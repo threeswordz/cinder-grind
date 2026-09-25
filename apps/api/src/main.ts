@@ -36,7 +36,8 @@ async function bootstrap(): Promise<void> {
   app.useGlobalFilters(new ProblemDetailsFilter());
   app.enableShutdownHooks();
 
-  await app.listen(getPort());
+  const apiHost = process.env.API_HOST ?? '127.0.0.1';
+  await app.listen(getPort(), apiHost);
 }
 
 void bootstrap();
