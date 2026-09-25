@@ -59,7 +59,9 @@ jobs:
         run: pnpm prisma:validate
       - name: Audit production dependencies
         run: pnpm audit --prod --audit-level=high
-      - name: Verify PostgreSQL connectivity and schema
-        run: pnpm --filter @construction-erp/api exec prisma db push --skip-generate
+      - name: Apply PostgreSQL migrations
+        run: pnpm prisma:migrate:deploy
+      - name: Verify migration status
+        run: pnpm --filter @construction-erp/api exec prisma migrate status
       - name: Validate workspace
         run: pnpm validate
