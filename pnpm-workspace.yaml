@@ -1,3 +1,10 @@
 packages:
   - "apps/*"
   - "packages/*"
+
+# pnpm 12 blocks dependency build scripts by default.
+# Only the pinned Prisma packages required by our approved ORM are allowed.
+allowBuilds:
+  "@prisma/client": true
+  "@prisma/engines": true
+  prisma: true
