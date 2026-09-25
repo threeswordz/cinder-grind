@@ -6,7 +6,7 @@ services:
       POSTGRES_USER: construction_erp
       POSTGRES_PASSWORD: construction_erp_dev_only
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - construction_erp_postgres:/var/lib/postgresql/data
     healthcheck:
