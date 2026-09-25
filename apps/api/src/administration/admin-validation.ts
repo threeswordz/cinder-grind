@@ -119,7 +119,12 @@ export function validateSystemSettingKey(value: string): string {
 }
 
 export function validateJsonSettingValue(value: unknown): unknown {
-  if (value === undefined) throw invalid('settingValue', 'Is required.');
+  if (value === undefined || value === null) {
+    throw invalid('settingValue', 'A non-null JSON value is required.');
+  }
+
+  assertNoSensitiveSettingKeys(value);
+
   const serialized = JSON.stringify(value);
   if (serialized === undefined || serialized.length > 16384) {
     throw invalid(
@@ -128,6 +133,29 @@ export function validateJsonSettingValue(value: unknown): unknown {
     );
   }
   return value;
+}
+
+function assertNoSensitiveSettingKeys(value: unknown): void {
+  if (Array.isArray(value)) {
+    for (const item of value) assertNoSensitiveSettingKeys(item);
+    return;
+  }
+
+  if (typeof value !== 'object' || value === null) return;
+
+  for (const [key, item] of Object.entries(value)) {
+    if (
+      /(password|secret|token|credential|private[_-]?key|api[_-]?key)/i.test(
+        key,
+      )
+    ) {
+      throw invalid(
+        'settingValue',
+        'Secret or credential fields must not be stored in system settings.',
+      );
+    }
+    assertNoSensitiveSettingKeys(item);
+  }
 }
 
 export function invalid(
