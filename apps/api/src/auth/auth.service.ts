@@ -32,8 +32,9 @@ export class AuthService {
       },
     });
 
-    const valid =
-      user !== null && (await this.passwords.verify(password, user.passwordHash));
+    const valid = user
+      ? await this.passwords.verify(password, user.passwordHash)
+      : (await this.passwords.consumeVerificationCost(password), false);
 
     if (!user || !valid) {
       throw new UnauthorizedException({
