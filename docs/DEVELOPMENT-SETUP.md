@@ -17,7 +17,7 @@ No new hosted-service account is required for V0.1-A. A Neon account is not requ
 git clone https://github.com/threeswordz/construction-erp.git
 cd construction-erp
 npm install --global pnpm@12.6.0
-pnpm install
+pnpm install --frozen-lockfile
 cp apps/api/.env.example apps/api/.env
 cp apps/web/.env.example apps/web/.env
 podman compose up -d
