@@ -1376,6 +1376,12 @@ POST   /api/v1/payments/{id}/submit
 POST   /api/v1/payments/{id}/approve
 ```
 
+Payment approval requires:
+
+`finance.payment.approve`
+
+and the configured approval-step authorization / maker-checker checks.
+
 ---
 
 # 42. Data Export
