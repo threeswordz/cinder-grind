@@ -17,6 +17,7 @@
     "start:api": "pnpm --filter @construction-erp/api start",
     "prisma:generate": "pnpm --filter @construction-erp/api prisma:generate",
     "prisma:validate": "pnpm --filter @construction-erp/api prisma:validate",
-    "prisma:migrate:dev": "pnpm --filter @construction-erp/api prisma:migrate:dev"
+    "prisma:migrate:dev": "pnpm --filter @construction-erp/api prisma:migrate:dev",
+    "prisma:migrate:deploy": "pnpm --filter @construction-erp/api prisma:migrate:deploy"
   }
 }
