@@ -55,6 +55,7 @@ Open:
 
 - Never commit a real `.env` file.
 - Never reuse the local database password in Staging or Production.
-- Do not expose local PostgreSQL port 5432 to the public internet.
+- The provided Podman PostgreSQL mapping binds only to 127.0.0.1; do not change it to a public bind without a deliberate environment-security design.
+- The local API defaults to 127.0.0.1; production bind/listen behavior must be environment-configured.
 - Do not place secrets in frontend `VITE_*` variables.
 - Do not use local prototype document storage for confidential Production data until Production backup/storage controls are designed.
