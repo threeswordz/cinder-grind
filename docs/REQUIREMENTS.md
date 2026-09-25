@@ -297,6 +297,9 @@ GitHub Issues will later reference the Requirement ID when implementation work i
 | FIN-009 | Subcontract Claim Payment Reference | Payments for subcontract work shall reference certified subcontract claims where applicable. | Connect Finance to certified commercial value. | Must Have | V0.6 Finance | FIN-006,SUB-007 | Finance payment records can reference the underlying certified claim. | Draft |
 | FIN-010 | Project Cash Flow | The ERP shall provide project cash-flow visibility from relevant finance transactions. | Support project financial planning/monitoring. | Must Have | V0.6 Finance | FIN-001,FIN-004,FIN-006 | Cash inflows/outflows can be summarized by Project over time. | Draft |
 | FIN-011 | Paid Cost Feed | Finance payment transactions shall feed Paid Cost information to Cost Control without replacing Actual Cost. | Maintain correct cost-state semantics. | Must Have | V0.7 Cost Control | FIN-006,COST-005 | Cost Control can report paid amounts separately from actual recognized cost. | Draft |
+| FIN-012 | Supplier Invoice Approval | Supplier Invoices shall use the approval framework before becoming eligible for approved financial/cost recognition workflows. | Prevent unapproved supplier liabilities from being treated as authorized cost. | Must Have | V0.6 Finance | FIN-001,FND-005 | Supplier Invoices can be submitted, approved or rejected; only approved invoices are eligible for downstream approved-cost processing. | Draft |
+| FIN-013 | Client Invoice Approval | Client Invoices shall use the approval framework before being treated as approved receivables. | Control customer billing authorization. | Must Have | V0.6 Finance | FIN-004,FND-005 | Client Invoices can be submitted, approved or rejected and approval status is retained. | Draft |
+| FIN-014 | Payment Approval | Payment transactions shall use the approval framework before being treated as approved/posted payments. | Prevent unauthorized cash settlement. | Must Have | V0.6 Finance | FIN-006,FND-005 | Payments can be submitted, approved or rejected; only approved payments feed Paid Cost and settlement reporting. | Draft |
 
 ## Cost Control
 
@@ -305,7 +308,7 @@ GitHub Issues will later reference the Requirement ID when implementation work i
 | COST-001 | Original Budget Consumption | Cost Control shall consume the approved Original Budget from BOQ & Budget rather than recreating it. | Maintain single ownership of budget data. | Must Have | V0.7 Cost Control | BUD-003 | Original budget values are available to Cost Control from the approved budget source. | Draft |
 | COST-002 | Revised Budget Consumption | Cost Control shall consume the current approved Revised Budget. | Provide current control baseline. | Must Have | V0.7 Cost Control | BUD-004 | Current approved revised budget is available without duplicating budget ownership. | Draft |
 | COST-003 | Committed Cost | Cost Control shall calculate/report Committed Cost separately from Actual Cost. | Distinguish commercial commitment from recognized cost. | Must Have | V0.7 Cost Control | PROC-021,SUB-002,SUB-003 | Approved commitments can be summarized without being classified automatically as Actual Cost. | Draft |
-| COST-004 | Actual Cost | Cost Control shall report Actual Cost according to an approved cost-recognition policy. | Provide reliable project cost reporting. | Must Have | V0.7 Cost Control | FIN-001,SUB-007 | Recognized supplier/subcontract/direct costs can be reported as Actual Cost according to documented rules. | Draft |
+| COST-004 | Actual Cost | Cost Control shall report Actual Cost according to an approved cost-recognition policy. | Provide reliable project cost reporting. | Must Have | V0.7 Cost Control | FIN-012,SUB-007 | Recognized approved supplier/subcontract/direct costs can be reported as Actual Cost according to documented rules. | Draft |
 | COST-005 | Paid Cost | Cost Control shall report Paid Cost separately from Actual and Committed Cost. | Distinguish cash payment from cost recognition. | Must Have | V0.7 Cost Control | FIN-011 | Paid amounts are derived from Finance payments and displayed separately. | Draft |
 | COST-006 | Forecast Cost | The ERP shall support Forecast Cost representing expected final cost. | Support forward-looking project control. | Must Have | V0.7 Cost Control | COST-004,COST-003 | Forecast Cost can incorporate actual cost, remaining commitments and forecast cost to complete. | Draft |
 | COST-007 | Cost to Complete | The ERP shall support Cost to Complete for Project/WBS. | Estimate remaining spend. | Must Have | V0.7 Cost Control | COST-006 | Expected remaining cost can be maintained or calculated for eligible scope. | Draft |
@@ -449,18 +452,64 @@ If a requirement is moved between releases after approval, the change must be re
 
 ---
 
-# 10. Current Review State
+# 10. Requirements Audit
 
 This register has been populated from **ERP-MASTER-BLUEPRINT.md — Architecture Baseline v0.1**.
+
+The v0.1 requirements audit checks:
+
+- Duplicate Requirement IDs
+- Duplicate Requirement Names
+- Broken Dependency References
+- Requirements Depending on Later Releases
+- Canonical Release Values
+- Canonical Priority Values
+- Module Ownership Conflicts
+- Architecture / Requirement Terminology Consistency
+- Finance approval completeness required by Cost Control
+
+Audit result:
+
+- Duplicate Requirement IDs: none
+- Duplicate Requirement Names: none
+- Broken Dependency References: none
+- Later-release dependency conflicts: none
+- Canonical release values: consistent
+- Major module ownership conflicts: none identified
+- Finance approval gap: corrected with FIN-012, FIN-013 and FIN-014
+
+---
+
+# 11. Open Business Rules for Later Detailed Design
+
+The following areas are intentionally **not yet approved requirements** because they were not defined in Architecture Baseline v0.1.
+
+They must be reviewed before the relevant module reaches implementation:
+
+- Tax / VAT treatment
+- Single-currency versus multi-currency operation
+- Supplier invoice matching tolerances
+- Partial receipt and over-receipt rules
+- Retention release rules
+- Notification delivery rules
+- Detailed accounting posting / accrual policy
+- Detailed client billing / progress-claim methodology
+
+These items are recorded here so they are not forgotten, but they must not be treated as approved scope until a business decision is made and the resulting requirement is formally added.
+
+---
+
+# 12. Current Review State
 
 Current status:
 
 - Architecture baseline: established
 - Requirements extraction: complete
-- Requirement approval review: pending
+- Requirements audit: complete
+- Requirement approval review: complete
 - GitHub implementation issues: not yet created for individual requirements
 - Application development: not started
 
-Next Phase 0 activity after review/approval of this register:
+Next Phase 0 activity after approval of this register:
 
 **Database ERD**
