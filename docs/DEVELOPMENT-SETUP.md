@@ -22,11 +22,17 @@ cp apps/api/.env.example apps/api/.env
 cp apps/web/.env.example apps/web/.env
 podman compose up -d
 pnpm prisma:generate
-pnpm --filter @construction-erp/api exec prisma db push
+pnpm prisma:migrate:deploy
 pnpm validate
 ```
 
-Commit the generated `pnpm-lock.yaml` once dependency installation has been validated.
+For future schema changes during development, create reviewed migrations with:
+
+```bash
+pnpm prisma:migrate:dev
+```
+
+Do not use `prisma db push` as the normal shared-development or release migration path.
 
 ## Start the API
 
