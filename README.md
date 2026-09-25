@@ -1,6 +1,7 @@
 # Construction ERP
 
 A full Construction ERP system covering:
+
 - Project Management
 - WBS & Cost Codes
 - Planning & Scheduling
@@ -16,53 +17,76 @@ A full Construction ERP system covering:
 - Reporting
 - Management Dashboards
 
-
 ## Technology Stack
 
+Runtime / Toolchain:
+- Node.js
+- TypeScript
+- pnpm
+
 Frontend:
-React + TypeScript
-Vite
-MUI Core
-TanStack Query
-React Hook Form
-Zod
+- React
+- Vite
+- MUI Core
+- TanStack Query
+- React Hook Form
+- Zod
 
 Scheduling:
-Frappe Gantt
+- Frappe Gantt
 
 Backend:
-NestJS + TypeScript
-REST API
+- NestJS
+- REST API
 
 Database:
-PostgreSQL
-Prisma ORM
+- PostgreSQL
+- Prisma ORM
 
 Background Processing:
-pg-boss — when required
+- pg-boss — only when required
 
 File Storage:
-Local filesystem during prototype
+- Local filesystem during prototype
+- Storage abstraction allows later replacement
 
 Containerization:
-Podman
+- Podman
 
 Source Control / Planning:
-Git
-GitHub Repository
-GitHub Projects
+- Git
+- GitHub Repository
+- GitHub Projects
+
+## Open-Source First
+
+The prototype must remain fully functional without requiring paid runtime software licenses or mandatory paid cloud services.
+
+Significant dependencies are reviewed in:
+
+`docs/DEPENDENCY-LICENSE-REGISTER.md`
 
 ## Project Status
 
-Current Phase: Phase 0 — ERP Definition
+**Phase 0 — ERP Definition: COMPLETE**
 
-Development has not started yet.
+Approved baselines:
 
-The current objective is to complete:
+1. ERP Master Blueprint v0.1
+2. Requirements Baseline v0.1
+3. Database Baseline v0.1
+4. Roles & Permissions Baseline v0.1
+5. API Architecture Baseline v0.1
+6. Testing & UAT Baseline v0.1
+7. Development Roadmap Baseline v0.1
+8. V0.1 Scope Baseline v0.1
+9. V0.1 Acceptance Criteria Baseline v0.1
+10. Dependency License Baseline v0.1
 
-1. ERP Master Blueprint
-2. Requirements Register
-3. Database ERD
-4. Development Roadmap
+Application development has **not started yet**.
 
-before beginning V0.1 development.
+Next development phase:
+
+**V0.1 Foundation — Stage V0.1-A Technical Skeleton**
+
+Development should begin only through the approved roadmap, requirements, security controls, test gates and dependency-license rules.
