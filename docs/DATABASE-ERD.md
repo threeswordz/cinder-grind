@@ -245,7 +245,7 @@ erDiagram
     PAYMENTS ||--o{ SUPPLIER_PAYMENT_ALLOCATIONS : allocates
     PAYMENTS ||--o{ CLIENT_RECEIPT_ALLOCATIONS : allocates
 
-    PROJECTS ||--o{ DOCUMENT_LINKS : referenced_by
+    DOCUMENTS ||--o{ DOCUMENT_LINKS : links
 ```
 
 The diagrams in this document are domain views, not separate databases.
@@ -314,6 +314,38 @@ erDiagram
 - base_currency_code
 - is_active
 - standard audit columns
+
+### `user_sessions`
+
+- id PK
+- user_id FK → users.id
+- token_hash
+- expires_at
+- revoked_at, nullable
+- last_seen_at, nullable
+- created_at
+
+Session secrets/tokens are stored only in hashed or otherwise appropriately protected form.
+
+Audit logs must never record password hashes, session secrets or authentication tokens.
+
+### `project_types`
+
+- id PK
+- company_id FK → companies.id
+- project_type_code
+- project_type_name
+- is_active
+- UNIQUE(company_id, project_type_code)
+
+### `activity_types`
+
+- id PK
+- company_id FK → companies.id
+- activity_type_code
+- activity_type_name
+- is_active
+- UNIQUE(company_id, activity_type_code)
 
 ### `users`
 
@@ -1729,6 +1761,7 @@ Retention-release business rules remain an open detailed-design item and are not
 | `supplier_payment_allocations` | Finance | Outbound payment allocation to supplier invoices |
 | `client_receipt_allocations` | Finance | Inbound receipt allocation to client invoices |
 | `subcontract_payment_allocations` | Finance | Payment allocation to certified subcontract claims |
+| `retention_ledger_entries` | Finance | Retention withheld / released / adjusted |
 
 AP and AR balances are derived from invoice and payment-allocation data.
 
@@ -1886,6 +1919,39 @@ Payment allocation tables provide settlement traceability without polymorphic fo
 
 ---
 
+## 14.7 `retention_ledger_entries`
+
+- id PK
+- company_id FK
+- project_id FK
+- retention_direction
+- entry_type
+- entry_date
+- subcontract_certification_id FK, nullable
+- client_invoice_id FK, nullable
+- amount
+- source_reference, nullable
+- standard audit columns
+
+Initial retention directions:
+
+- PAYABLE
+- RECEIVABLE
+
+Initial entry types:
+
+- WITHHOLD
+- RELEASE
+- ADJUSTMENT
+
+Subcontract certification may generate retention-withheld entries.
+
+Detailed retention-release rules remain an open business-rule decision; the ledger provides the accounting structure without inventing release authorization rules.
+
+Finance retention reporting is derived from approved retention ledger entries.
+
+---
+
 # 15. Cost Control
 
 Cost Control intentionally consumes source transactions instead of duplicating them into manually maintained totals.
@@ -1991,6 +2057,7 @@ Detailed client-variation workflow will be refined before V0.7 implementation.
 
 | Table | Owner | Purpose |
 | --- | --- | --- |
+| `document_types` | Documents | Configurable document categories |
 | `documents` | Documents | File metadata |
 | `document_links` | Documents | Links files to ERP records |
 
@@ -1998,11 +2065,40 @@ Actual file bytes are stored outside PostgreSQL.
 
 ---
 
-## 16.2 `documents`
+## 16.2 `document_types`
 
 - id PK
 - company_id FK
-- document_type
+- document_type_code
+- document_type_name
+- is_active
+- standard audit columns
+- UNIQUE(company_id, document_type_code)
+
+Examples may include:
+
+- CONTRACT
+- DRAWING
+- BOQ
+- SHOP_DRAWING
+- RFI
+- METHOD_STATEMENT
+- SITE_INSTRUCTION
+- VARIATION
+- INSPECTION
+- SITE_PHOTO
+- REPORT
+- HANDOVER
+
+Document types are configurable data, not hardcoded application-only labels.
+
+---
+
+## 16.3 `documents`
+
+- id PK
+- company_id FK
+- document_type_id FK → document_types.id
 - file_name
 - storage_provider
 - storage_key
@@ -2023,7 +2119,7 @@ They do not directly read/write local filesystem paths.
 
 ---
 
-## 16.3 `document_links`
+## 16.4 `document_links`
 
 - id PK
 - document_id FK → documents.id
@@ -2253,9 +2349,9 @@ The ERD has been reviewed against the **210 approved requirements**.
 | Inventory | INV-001–INV-012 | GRN, warehouses, ledger, reservations, issues/returns/transfers |
 | Equipment | EQP-001–EQP-009 | register, assignment, usage, maintenance |
 | Subcontracts | SUB-001–SUB-011 | subcontract, WO, claim, certification, variation |
-| Finance | FIN-001–FIN-014 | invoices, payments, allocations, approval state |
+| Finance | FIN-001–FIN-014 | invoices, payments, allocations, retention ledger, approval state |
 | Cost Control | COST-001–COST-014 | source rollups, direct costs, forecasts, project variations |
-| Documents | DOC-001–DOC-010 | documents, document_links, storage abstraction |
+| Documents | DOC-001–DOC-010 | document types, documents, document_links, storage abstraction |
 | Reporting | RPT-001–RPT-011 | derived views / application queries |
 | Administration | ADM-001–ADM-011 | roles, settings, status, sequences, types, calendars |
 | Cross-Cutting | SYS-001–SYS-008 | IDs, audit, lifecycle, ownership, traceability |
@@ -2406,6 +2502,7 @@ The Database Baseline v0.1 contains the following logical base tables.
 - supplier_payment_allocations
 - client_receipt_allocations
 - subcontract_payment_allocations
+- retention_ledger_entries
 
 ## Cost Control
 
@@ -2416,6 +2513,7 @@ The Database Baseline v0.1 contains the following logical base tables.
 
 ## Documents
 
+- document_types
 - documents
 - document_links
 
