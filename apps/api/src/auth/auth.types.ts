@@ -11,5 +11,6 @@ export type AuthenticatedUserContext = {
 
 export type AuthenticatedRequest = {
   headers: Record<string, string | string[] | undefined>;
+  correlationId?: string;
   auth?: AuthenticatedUserContext;
 };
