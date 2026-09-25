@@ -7,7 +7,9 @@ on:
     branches: [v0.1-foundation-skeleton]
 
 permissions:
-  contents: read
+  # Temporary branch-only write permission used once to commit the generated lockfile.
+  # This is reverted to read-only immediately after bootstrap.
+  contents: write
 
 jobs:
   validate:
@@ -40,7 +42,7 @@ jobs:
       - name: Set up pnpm
         uses: pnpm/action-setup@v6
         with:
-          version: 12.5.1
+          version: 12.6.0
           run_install: false
       - name: Set up Node.js
         uses: actions/setup-node@v7
@@ -54,6 +56,18 @@ jobs:
           name: pnpm-lock
           path: pnpm-lock.yaml
           retention-days: 1
+      - name: Commit deterministic lockfile on bootstrap branch
+        if: github.event_name == 'push' && github.ref == 'refs/heads/v0.1-foundation-skeleton'
+        run: |
+          if git ls-files --error-unmatch pnpm-lock.yaml >/dev/null 2>&1; then
+            echo "pnpm-lock.yaml is already tracked."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pnpm-lock.yaml
+          git commit -m "Add deterministic pnpm lockfile"
+          git push
       - name: Generate Prisma Client
         run: pnpm prisma:generate
       - name: Validate Prisma schema
