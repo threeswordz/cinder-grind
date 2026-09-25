@@ -3,9 +3,16 @@ import test from 'node:test';
 
 import { CorrelationIdMiddleware } from './correlation-id.middleware';
 
+type TestRequest = {
+  headers: Record<string, string>;
+  correlationId?: string;
+};
+
 test('correlation middleware preserves a safe supplied identifier', () => {
   const middleware = new CorrelationIdMiddleware();
-  const request = { headers: { 'x-correlation-id': 'request_123-abc' } };
+  const request: TestRequest = {
+    headers: { 'x-correlation-id': 'request_123-abc' },
+  };
   let headerValue = '';
   let nextCalled = false;
 
@@ -22,7 +29,9 @@ test('correlation middleware preserves a safe supplied identifier', () => {
 
 test('correlation middleware replaces unsafe supplied identifiers', () => {
   const middleware = new CorrelationIdMiddleware();
-  const request = { headers: { 'x-correlation-id': 'unsafe\r\nheader' } };
+  const request: TestRequest = {
+    headers: { 'x-correlation-id': 'unsafe\r\nheader' },
+  };
   let headerValue = '';
 
   middleware.use(
