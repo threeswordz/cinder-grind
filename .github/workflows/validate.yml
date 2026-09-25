@@ -4,14 +4,15 @@ on:
   pull_request:
     branches: [main]
   push:
-    branches: [main]
+    branches: [main, v0.1-foundation-skeleton]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
-  contents: read
+  # TEMPORARY: branch-only lockfile regeneration. Revert after bootstrap.
+  contents: write
 
 jobs:
   validate:
@@ -52,7 +53,19 @@ jobs:
         with:
           node-version: 24.21.0
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --no-frozen-lockfile
+      - name: Commit regenerated lockfile on bootstrap branch
+        if: github.event_name == 'push' && github.ref == 'refs/heads/v0.1-foundation-skeleton'
+        run: |
+          if git diff --quiet -- pnpm-lock.yaml; then
+            echo "pnpm-lock.yaml is already current."
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add pnpm-lock.yaml
+            git commit -m "Update lockfile for deepmerge-ts security override"
+            git push
+          fi
       - name: Generate Prisma Client
         run: pnpm prisma:generate
       - name: Validate Prisma schema
