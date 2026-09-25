@@ -238,7 +238,7 @@ Password storage must use an approved password-hashing algorithm during implemen
 
 Password-hash details are never written to audit logs.
 
-Password reset / recovery workflow is a V0.1 detailed-design item and must use open-source components.
+Password reset / recovery is not part of the approved V0.1 requirements baseline. If it becomes required, it must enter through Change Control and use approved open-source components.
 
 ---
 
