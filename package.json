@@ -18,10 +18,5 @@
     "prisma:generate": "pnpm --filter @construction-erp/api prisma:generate",
     "prisma:validate": "pnpm --filter @construction-erp/api prisma:validate",
     "prisma:migrate:dev": "pnpm --filter @construction-erp/api prisma:migrate:dev"
-  },
-  "pnpm": {
-    "overrides": {
-      "deepmerge-ts": "8.0.2"
-    }
   }
 }
