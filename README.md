@@ -83,10 +83,10 @@ Approved baselines:
 9. V0.1 Acceptance Criteria Baseline v0.1
 10. Dependency License Baseline v0.1
 
-Application development has **not started yet**.
+Application development has **started on V0.1 Foundation**.
 
-Next development phase:
+Current development stage:
 
 **V0.1 Foundation — Stage V0.1-A Technical Skeleton**
 
-Development should begin only through the approved roadmap, requirements, security controls, test gates and dependency-license rules.
+The technical skeleton is being validated through PR #12 before merge to `main`. Development continues only through the approved roadmap, requirements, security controls, test gates and dependency-license rules.
