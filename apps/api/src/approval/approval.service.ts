@@ -95,6 +95,12 @@ export class ApprovalService {
         );
         this.assertSubmitted(context.instance.approvalState);
         this.assertStepRole(context.currentStep, auth);
+        await this.assertNoPriorAction(
+          tx,
+          instanceId,
+          context.currentStep.id,
+          auth.userId,
+        );
 
         await tx.approvalAction.create({
           data: {
@@ -158,6 +164,12 @@ export class ApprovalService {
         );
         this.assertSubmitted(context.instance.approvalState);
         this.assertStepRole(context.currentStep, auth);
+        await this.assertNoPriorAction(
+          tx,
+          instanceId,
+          context.currentStep.id,
+          auth.userId,
+        );
 
         await tx.approvalAction.create({
           data: {
@@ -243,6 +255,29 @@ export class ApprovalService {
       throw new ForbiddenException({
         code: 'APPROVAL_ROLE_DENIED',
         detail: 'Your role is not authorized for the current approval step.',
+      });
+    }
+  }
+
+  private async assertNoPriorAction(
+    tx: Prisma.TransactionClient,
+    instanceId: string,
+    stepId: string,
+    userId: string,
+  ): Promise<void> {
+    const existing = await tx.approvalAction.findFirst({
+      where: {
+        approvalInstanceId: instanceId,
+        approvalStepId: stepId,
+        actionByUserId: userId,
+      },
+      select: { id: true },
+    });
+
+    if (existing) {
+      throw new ConflictException({
+        code: 'APPROVAL_ACTION_ALREADY_RECORDED',
+        detail: 'You have already acted on the current approval step.',
       });
     }
   }
