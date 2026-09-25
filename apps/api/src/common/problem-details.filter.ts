@@ -13,7 +13,12 @@ type HttpResponse = {
   type?(contentType: string): HttpResponse;
   json(body: unknown): void;
 };
-type HttpExceptionBody = { code?: unknown; message?: unknown; detail?: unknown };
+type HttpExceptionBody = {
+  code?: unknown;
+  message?: unknown;
+  detail?: unknown;
+  errors?: unknown;
+};
 
 @Catch()
 export class ProblemDetailsFilter implements ExceptionFilter {
@@ -57,6 +62,7 @@ export class ProblemDetailsFilter implements ExceptionFilter {
       detail,
       instance: request.url ?? '',
       correlationId: request.correlationId ?? '',
+      ...(Array.isArray(body.errors) ? { errors: body.errors } : {}),
     });
   }
 
