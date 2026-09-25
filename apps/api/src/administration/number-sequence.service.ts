@@ -122,6 +122,7 @@ export class NumberSequenceService {
         const currentPeriod = periodKey(resetRule, at);
         const shouldReset =
           currentPeriod !== null &&
+          sequence.last_period_key !== null &&
           sequence.last_period_key !== currentPeriod;
         const value = shouldReset ? 1 : sequence.next_value;
 
