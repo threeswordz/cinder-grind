@@ -11,6 +11,7 @@ export type AuthenticatedUserContext = {
 
 export type AuthenticatedRequest = {
   headers: Record<string, string | string[] | undefined>;
+  socket?: { remoteAddress?: string };
   correlationId?: string;
   auth?: AuthenticatedUserContext;
 };
