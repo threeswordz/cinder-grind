@@ -232,7 +232,7 @@ model ApprovalAction {
   approvalStep     ApprovalStep     @relation(fields: [approvalStepId], references: [id], onDelete: Restrict)
   actionByUser     User             @relation(fields: [actionByUserId], references: [id], onDelete: Restrict)
 
-  @@unique([approvalInstanceId, approvalStepId, actionByUserId, action])
+  @@unique([approvalInstanceId, approvalStepId, actionByUserId])
   @@index([approvalInstanceId, actionAt])
   @@index([actionByUserId])
   @@map("approval_actions")
