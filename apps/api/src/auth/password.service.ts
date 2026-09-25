@@ -47,6 +47,10 @@ export class PasswordService {
     ].join('$');
   }
 
+  async consumeVerificationCost(password: string): Promise<void> {
+    await deriveKey(password, Buffer.alloc(SALT_BYTES, 0));
+  }
+
   async verify(password: string, storedHash: string): Promise<boolean> {
     const parts = storedHash.split('$');
     if (parts.length !== 6 || parts[0] !== 'scrypt') return false;
