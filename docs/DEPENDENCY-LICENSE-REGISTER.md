@@ -148,6 +148,25 @@ GitHub workflow actions such as `actions/checkout`, `actions/setup-node` and `pn
 
 ---
 
+# 4.3 Temporary Security Override
+
+A current Prisma stable dependency chain pins `deepmerge-ts` below the patched 8.x line.
+
+Temporary override:
+
+| Package | Forced Version | License | Reason | Removal Condition |
+| --- | ---: | --- | --- | --- |
+| deepmerge-ts | 8.0.2 | BSD-3-Clause | Remediates GHSA-ggr8-5vv4-36mx / CVE-2026-40345 detected by `pnpm audit` | Remove when the selected stable Prisma line consumes a patched compatible version upstream |
+
+Notes:
+
+- The advisory is High severity.
+- Prisma's reported use is in configuration merging rather than normal HTTP request processing, so practical remote reachability is limited, but the project does not accept the known High finding when a testable workaround exists.
+- The override crosses a dependency major version and therefore must remain covered by CI checks for Prisma Client generation, schema validation and PostgreSQL schema operations.
+- This override is not blanket permission to force transitive major-version upgrades elsewhere.
+
+---
+
 # 5. Approved Development Tools
 
 | Component | Purpose | License / Terms | Role | Prototype Cost | Runtime Dependency | Status | Review Notes |
