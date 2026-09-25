@@ -18,6 +18,7 @@ import {
 } from './cookie.util';
 import { CsrfGuard } from './csrf.guard';
 import { parseLoginInput } from './login-input';
+import { LoginRateLimitService } from './login-rate-limit.service';
 import { SessionService } from './session.service';
 
 type HeaderResponse = {
@@ -36,20 +37,27 @@ export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly sessions: SessionService,
+    private readonly loginRateLimit: LoginRateLimitService,
   ) {}
 
   @Post('login')
   async login(
     @Body() body: unknown,
+    @Req() request: AuthenticatedRequest,
     @Res({ passthrough: true }) response: HeaderResponse,
   ) {
     const input = parseLoginInput(body);
+    const clientKey = request.socket?.remoteAddress ?? 'unknown';
+    this.loginRateLimit.consume(clientKey);
+
     const result = await this.authService.login(input.email, input.password);
+    this.loginRateLimit.reset(clientKey);
     const maxAgeSeconds = Math.max(
       0,
       Math.floor((result.expiresAt.getTime() - Date.now()) / 1000),
     );
 
+    response.setHeader('Cache-Control', 'no-store');
     response.setHeader(
       'Set-Cookie',
       buildSessionCookie(
@@ -70,7 +78,11 @@ export class AuthController {
 
   @Get('me')
   @UseGuards(AuthGuard)
-  me(@Req() request: AuthenticatedRequest) {
+  me(
+    @Req() request: AuthenticatedRequest,
+    @Res({ passthrough: true }) response: HeaderResponse,
+  ) {
+    response.setHeader('Cache-Control', 'no-store');
     const auth = requireAuth(request);
     return {
       data: {
@@ -86,7 +98,11 @@ export class AuthController {
 
   @Get('csrf')
   @UseGuards(AuthGuard)
-  async csrf(@Req() request: AuthenticatedRequest) {
+  async csrf(
+    @Req() request: AuthenticatedRequest,
+    @Res({ passthrough: true }) response: HeaderResponse,
+  ) {
+    response.setHeader('Cache-Control', 'no-store');
     const auth = requireAuth(request);
     const csrfToken = await this.sessions.rotateCsrfToken(auth.sessionId);
     return { data: { csrfToken } };
@@ -99,6 +115,7 @@ export class AuthController {
     @Req() request: AuthenticatedRequest,
     @Res({ passthrough: true }) response: HeaderResponse,
   ): Promise<void> {
+    response.setHeader('Cache-Control', 'no-store');
     const auth = requireAuth(request);
     await this.sessions.revoke(auth.sessionId);
     response.setHeader(
