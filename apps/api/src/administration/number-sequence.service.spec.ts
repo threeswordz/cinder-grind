@@ -1,0 +1,36 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import { ConflictException } from '@nestjs/common';
+
+import {
+  formatBusinessNumber,
+  normalizeResetRule,
+  NumberSequenceService,
+  validateFormatTemplate,
+} from './number-sequence.service';
+
+test('formats the approved POYYMM-### style', () => {
+  assert.equal(
+    formatBusinessNumber(
+      validateFormatTemplate('POYYMM-###'),
+      4,
+      new Date('2026-04-15T00:00:00Z'),
+    ),
+    'PO2604-004',
+  );
+});
+
+test('supports controlled reset rules only', () => {
+  assert.equal(normalizeResetRule('monthly'), 'MONTHLY');
+  assert.throws(() => normalizeResetRule('WEEKLY'));
+});
+
+test('sequence configuration becomes immutable after use', () => {
+  const service = new NumberSequenceService({} as never);
+
+  assert.doesNotThrow(() => service.assertEditable(1, null));
+  assert.throws(
+    () => service.assertEditable(2, null),
+    (error: unknown) => error instanceof ConflictException,
+  );
+});
