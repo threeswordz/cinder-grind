@@ -4,7 +4,7 @@
 **Current Phase:** Phase 0 — ERP Definition  
 **Policy:** Open-Source First  
 **License Verification Date:** 2026-09-26  
-**Version Status:** Exact package versions will be pinned when V0.1 implementation begins.
+**Version Status:** V0.1-A direct package versions selected and pinned in package manifests.
 
 ---
 
@@ -91,6 +91,60 @@ Commercial/proprietary components are not required by the prototype.
 | Prisma ORM | PostgreSQL application ORM / migration tooling | Apache-2.0 | Runtime / Build | Free | Yes | APPROVED | Current upstream project: https://github.com/prisma/orm |
 | PostgreSQL | Relational database | PostgreSQL License | Runtime | Free | Yes | APPROVED | https://www.postgresql.org/about/licence/ |
 | Local Filesystem | Prototype document-file storage | Operating-system facility; no commercial storage license required | Runtime infrastructure | Free | Yes | APPROVED | Accessed through ERP storage abstraction |
+
+---
+
+# 4.1 V0.1-A Selected Direct Versions
+
+The V0.1-A Technical Skeleton deliberately uses conservative maintained versions rather than automatically adopting every newest major release.
+
+| Package / Tool | Selected Version | License | Use | Decision |
+| --- | ---: | --- | --- | --- |
+| Node.js | 24.21.0 LTS | Node.js open-source license + bundled notices | Runtime / build | APPROVED |
+| pnpm | 12.5.1 | MIT for pnpm CLI | Package manager | APPROVED |
+| React | 19.3.0 | MIT | Frontend runtime | APPROVED |
+| React DOM | 19.3.0 | MIT | Browser renderer | APPROVED |
+| TypeScript | 5.9.3 | Apache-2.0 | Compiler | APPROVED |
+| Vite | 8.3.1 | MIT | Frontend build/dev server | APPROVED |
+| @vitejs/plugin-react | 6.1.1 | MIT | Vite React integration | APPROVED |
+| MUI Core | 7.3.11 | MIT | UI components | APPROVED |
+| @emotion/react | 11.14.0 | MIT | MUI styling peer | APPROVED |
+| @emotion/styled | 11.14.1 | MIT | MUI styling peer | APPROVED |
+| TanStack Query | 5.103.2 | MIT | Server-state client | APPROVED |
+| React Hook Form | 7.88.0 | MIT | Form state | APPROVED |
+| Zod | 4.6.5 | MIT | Runtime validation | APPROVED |
+| NestJS common/core/platform-express | 11.2.6 | MIT | Backend framework | APPROVED |
+| Prisma CLI / Client | 6.19.3 | Apache-2.0 | ORM / migrations | APPROVED |
+| dotenv | 17.4.2 | BSD-2-Clause | Local environment loading | APPROVED |
+| reflect-metadata | 0.2.2 | Apache-2.0 | NestJS decorator metadata | APPROVED |
+| RxJS | 7.8.2 | Apache-2.0 | NestJS runtime dependency | APPROVED |
+| @types/node | 24.13.6 | MIT | Development types | APPROVED |
+| @types/react | 19.3.0 | MIT | Development types | APPROVED |
+| @types/react-dom | 19.3.0 | MIT | Development types | APPROVED |
+| PostgreSQL | 17.11 for local CI/container baseline | PostgreSQL License | Database | APPROVED |
+
+Notes:
+
+- Prisma 6.19.3 was selected for V0.1-A because it supports Node.js 24 and TypeScript 5.4+ while retaining the simpler, mature Prisma 6 runtime model.
+- NestJS 11 and MUI 7 are intentionally selected instead of immediately moving the prototype to newly released major versions.
+- Exact direct versions are pinned in `package.json`; the deterministic `pnpm-lock.yaml` must be committed after the first validated dependency installation.
+- The PostgreSQL container tag is for Development/CI convenience only. PostgreSQL remains provider-independent.
+
+---
+
+# 4.2 Additional Direct Dependency Review
+
+The following direct packages are required by the selected frameworks and are explicitly approved rather than being left implicit:
+
+- React DOM — MIT
+- Emotion React / Emotion Styled — MIT
+- Vite React Plugin — MIT
+- reflect-metadata — Apache-2.0
+- RxJS — Apache-2.0
+- dotenv — BSD-2-Clause
+- DefinitelyTyped packages used directly by the project — MIT
+
+GitHub workflow actions such as `actions/checkout`, `actions/setup-node` and `pnpm/action-setup` are Development/CI tooling only and are not ERP runtime dependencies.
 
 ---
 
@@ -318,7 +372,7 @@ Verified baseline examples include:
 - pnpm CLI — MIT
 - Git — GPL-2.0-only
 
-Node.js uses its official open-source license file with MIT-style Node.js terms plus bundled third-party license notices; exact LTS distribution notices must be retained/reviewed when pinned.
+Node.js uses its official open-source license file with MIT-style Node.js terms plus bundled third-party license notices. V0.1-A pins Node.js 24.21.0 LTS; bundled notices must be retained/reviewed when distributing a runtime image.
 
 ---
 
