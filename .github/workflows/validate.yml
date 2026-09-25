@@ -48,6 +48,12 @@ jobs:
           node-version: 24.21.0
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
+      - name: Upload generated pnpm lockfile
+        uses: actions/upload-artifact@v7
+        with:
+          name: pnpm-lock
+          path: pnpm-lock.yaml
+          retention-days: 1
       - name: Generate Prisma Client
         run: pnpm prisma:generate
       - name: Validate Prisma schema
