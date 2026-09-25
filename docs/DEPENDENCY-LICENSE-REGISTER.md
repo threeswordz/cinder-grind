@@ -101,7 +101,7 @@ The V0.1-A Technical Skeleton deliberately uses conservative maintained versions
 | Package / Tool | Selected Version | License | Use | Decision |
 | --- | ---: | --- | --- | --- |
 | Node.js | 24.21.0 LTS | Node.js open-source license + bundled notices | Runtime / build | APPROVED |
-| pnpm | 12.5.1 | MIT for pnpm CLI | Package manager | APPROVED |
+| pnpm | 12.6.0 | MIT for pnpm CLI | Package manager | APPROVED |
 | React | 19.3.0 | MIT | Frontend runtime | APPROVED |
 | React DOM | 19.3.0 | MIT | Browser renderer | APPROVED |
 | TypeScript | 5.9.3 | Apache-2.0 | Compiler | APPROVED |
