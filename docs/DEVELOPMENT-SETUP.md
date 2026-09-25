@@ -6,7 +6,7 @@ Install:
 
 1. Git
 2. Node.js 24.21.0 LTS
-3. pnpm 12.5.1
+3. pnpm 12.6.0
 4. Podman Desktop (recommended for the local PostgreSQL container)
 
 No new hosted-service account is required for V0.1-A. A Neon account is not required now.
@@ -16,7 +16,7 @@ No new hosted-service account is required for V0.1-A. A Neon account is not requ
 ```bash
 git clone https://github.com/threeswordz/construction-erp.git
 cd construction-erp
-npm install --global pnpm@12.5.1
+npm install --global pnpm@12.6.0
 pnpm install
 cp apps/api/.env.example apps/api/.env
 cp apps/web/.env.example apps/web/.env
