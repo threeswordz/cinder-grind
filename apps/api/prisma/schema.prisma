@@ -1,0 +1,20 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Company {
+  id               String   @id @default(uuid()) @db.Uuid
+  companyCode      String   @unique @map("company_code") @db.VarChar(50)
+  companyName      String   @map("company_name") @db.VarChar(200)
+  baseCurrencyCode String   @default("SGD") @map("base_currency_code") @db.VarChar(3)
+  isActive         Boolean  @default(true) @map("is_active")
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("companies")
+}
