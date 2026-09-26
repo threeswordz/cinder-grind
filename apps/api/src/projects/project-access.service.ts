@@ -2,20 +2,20 @@ import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/commo
 import { Prisma } from '@prisma/client';
 
 import { AuthenticatedUserContext } from '../auth/auth.types';
-import { AuthorizationService } from '../authorization/authorization.service';
+import { ProjectScopeService } from '../authorization/project-scope.service';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class ProjectAccessService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly authorization: AuthorizationService,
+    private readonly projectScope: ProjectScopeService,
   ) {}
 
   async scopeWhere(
     auth: AuthenticatedUserContext,
   ): Promise<Prisma.ProjectWhereInput> {
-    if (this.authorization.hasAllProjectsAccess(auth)) {
+    if (this.projectScope.canAccessProject(auth, false)) {
       return { companyId: auth.companyId };
     }
 
@@ -58,10 +58,7 @@ export class ProjectAccessService {
         });
       }
 
-      throw new ForbiddenException({
-        code: 'PROJECT_SCOPE_DENIED',
-        detail: 'You do not have access to this Project.',
-      });
+      this.projectScope.assertProjectAccess(auth, false);
     }
   }
 
