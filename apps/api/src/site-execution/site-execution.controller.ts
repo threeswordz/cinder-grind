@@ -385,6 +385,7 @@ export class SiteExecutionController {
         auditContext(request),
         id,
         requiredSiteString(input, 'correctionNote', 10000),
+        progressRows(input.progress, 'progress'),
       ),
     };
   }
