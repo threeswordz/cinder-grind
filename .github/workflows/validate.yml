@@ -53,6 +53,10 @@ jobs:
           node-version: 24.21.0
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      - name: Validate zero-cost UAT pack
+        run: |
+          bash -n deploy/uat/*.sh
+          node --check deploy/uat/serve-web.mjs
       - name: Generate Prisma Client
         run: pnpm prisma:generate
       - name: Validate Prisma schema
