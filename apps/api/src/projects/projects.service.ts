@@ -108,6 +108,23 @@ export class ProjectsService {
     });
   }
 
+  statusOptions(auth: AuthenticatedUserContext) {
+    return this.prisma.statusDefinition.findMany({
+      where: {
+        companyId: auth.companyId,
+        entityType: 'PROJECT',
+        isActive: true,
+      },
+      orderBy: [{ sortOrder: 'asc' }, { statusLabel: 'asc' }],
+      select: {
+        id: true,
+        statusCode: true,
+        statusLabel: true,
+        isActive: true,
+      },
+    });
+  }
+
   async editOptions(auth: AuthenticatedUserContext) {
     const [customers, statuses] = await Promise.all([
       this.prisma.customer.findMany({
