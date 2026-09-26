@@ -11,7 +11,7 @@ import {
   Typography,
 } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import {
   BoqItem,
@@ -203,6 +203,11 @@ export function BudgetPanel({
     rejectRevision.error;
 
   const currentBoq = boq.data?.data ?? null;
+
+  useEffect(() => {
+    setBoqName(currentBoq?.boqName ?? 'Project BOQ');
+  }, [projectId, currentBoq?.boqName]);
+
   const activeSections = useMemo(
     () => (currentBoq?.sections ?? []).filter((row) => row.isActive),
     [currentBoq?.sections],
@@ -319,7 +324,7 @@ export function BudgetPanel({
                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
                   <TextField
                     label="BOQ name"
-                    value={boqName === 'Project BOQ' ? currentBoq.boqName : boqName}
+                    value={boqName}
                     onChange={(event) => setBoqName(event.target.value)}
                     sx={{ flexGrow: 1 }}
                   />
