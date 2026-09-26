@@ -4,8 +4,11 @@
 **Source of truth:** Live GitHub repository state
 
 - Current Release: V0.2 Project & Scheduling
-- Current Stage: V0.2-A Scheduling Data Model — COMPLETE
+- Current Stage: V0.2-B Scheduling Engine — ACTIVE
 - Completed Stages: V0.1-A Technical Skeleton; V0.1-B Company / Identity / Security; V0.1-C Administration; V0.1-D Master Data; V0.1-E Projects; V0.1-F WBS & Cost Codes; V0.1-G Basic Documents; V0.1-H Integration / Regression / UAT; V0.2-A Scheduling Data Model
+- Active Issue: #36 — V0.2-B Scheduling Engine
+- Active Branch: `v0.2-b-scheduling-engine`
+- Completed Issue: #35 — V0.2-B Scheduling Engine — Calculation Rules
 - Completed Issue: #29 — V0.2 Release Entry Gate — Scope & Acceptance Baselines
 - Completed Branch: `v0.2-entry-gate`
 - Completed Issue: #27 — V0.1-H Integration / Regression / UAT
@@ -29,7 +32,7 @@
 - V0.1 cross-module release acceptance scenario: PASS in the Stage H release-candidate regression suite.
 - Open defect check at V0.1 acceptance: no Severity 1 or Severity 2 release-blocking defect recorded.
 - Governance: `AGENTS.md`, `docs/PROJECT-GOVERNANCE.md`, PR governance checklist and DEC-008 are active; material decisions must pass the repository pre-flight and open-source/zero-cost-first constraint.
-- Next action: pre-flight V0.2-B Scheduling Engine against approved scheduling rules; begin implementation only where calculation semantics are defined.
+- Next action: implement V0.2-B Scheduling Engine under DEC-009, then validate deterministic working-calendar, dependency, CPM and Total Float behavior.
 
 ## Stage E completed
 
@@ -133,3 +136,13 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - Issue #31 closed automatically
 - exact-head CI #594 passed, including PostgreSQL scheduling integration and live HTTP acceptance
 - final review found no unresolved review threads and no Stage B/C/D, Site Execution, Equipment or V0.3+ scope creep
+
+
+## V0.2-B active
+
+- Product / Business Owner approved all six Scheduling Engine calculation rules on 2026-09-26.
+- DEC-009 records work-day duration, successor-calendar lag, signed lag/lead, milestone, CPM/Total Float and calendar-precedence conventions.
+- Issue #36 is the active implementation work item.
+- Branch: `v0.2-b-scheduling-engine`.
+- Stage B remains backend/domain-owned and independent of Frappe Gantt.
+- No paid scheduling engine or mandatory paid dependency is permitted.
