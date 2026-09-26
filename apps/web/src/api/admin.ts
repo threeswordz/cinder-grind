@@ -19,6 +19,13 @@ export type AdminRole = {
   }>;
 };
 
+export type AdminEmployeeOption = {
+  id: string;
+  employeeCode: string;
+  employeeName: string;
+  jobTitle: string | null;
+};
+
 export type AdminPermission = {
   id: string;
   permissionCode: string;
@@ -86,6 +93,8 @@ export const adminApi = {
       body: JSON.stringify(body),
     }),
 
+  userEmployeeOptions: () =>
+    apiRequest<Data<AdminEmployeeOption[]>>('/admin/user-employee-options'),
   userRoleOptions: () =>
     apiRequest<Data<AdminRole[]>>('/admin/user-role-options'),
   users: () => apiRequest<Data<AdminUser[]>>('/admin/users'),
@@ -93,6 +102,7 @@ export const adminApi = {
     email: string;
     displayName: string;
     password: string;
+    employeeId?: string;
     roleIds: string[];
   }) =>
     apiRequest<Data<AdminUser>>('/admin/users', {
