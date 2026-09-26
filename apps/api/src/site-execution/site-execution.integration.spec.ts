@@ -364,23 +364,21 @@ test('Stage E keeps Daily Site Reports project-scoped, immutable after submissio
     await assert.rejects(
       () =>
         prisma.dailySiteReport.update({
-        where: { id: created.id },
-        data: { generalRemarks: 'Database bypass must fail.' },
-      }),
-      undefined,
+          where: { id: created.id },
+          data: { generalRemarks: 'Database bypass must fail.' },
+        }),
       'submitted report must reject direct database edits',
     );
 
     await assert.rejects(
       () =>
         prisma.dailySiteReportManpower.create({
-        data: {
-          reportId: created.id,
-          tradeRole: 'Late edit',
-          headcount: 1,
-        },
-      }),
-      undefined,
+          data: {
+            reportId: created.id,
+            tradeRole: 'Late edit',
+            headcount: 1,
+          },
+        }),
       'submitted report child rows must be immutable in the database',
     );
 
@@ -392,12 +390,12 @@ test('Stage E keeps Daily Site Reports project-scoped, immutable after submissio
     assert.ok(correction);
     assert.equal(correction?.correctionNote.includes('14:45'), true);
 
-    await assert.rejects(() =>
-      prisma.dailySiteReportCorrection.update({
-        where: { id: correction!.id },
-        data: { correctionNote: 'Must remain append-only.' },
-      }),
-      undefined,
+    await assert.rejects(
+      () =>
+        prisma.dailySiteReportCorrection.update({
+          where: { id: correction!.id },
+          data: { correctionNote: 'Must remain append-only.' },
+        }),
       'Daily Site Report corrections must be append-only',
     );
 
