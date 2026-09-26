@@ -240,14 +240,40 @@ BEFORE INSERT OR UPDATE ON "daily_site_reports"
 FOR EACH ROW EXECUTE FUNCTION validate_daily_site_report_scope();
 
 CREATE OR REPLACE FUNCTION protect_submitted_daily_site_report()
-RETURNS trigger AS $$
+RETURNS trigger AS $
+DECLARE
+  invalid_progress_count INTEGER;
 BEGIN
   IF OLD."status" = 'SUBMITTED' THEN
     RAISE EXCEPTION 'Submitted Daily Site Reports are immutable';
   END IF;
+
+  IF NEW."status" = 'SUBMITTED' THEN
+    SELECT COUNT(*)
+      INTO invalid_progress_count
+    FROM "daily_site_report_progress_lines" line
+    LEFT JOIN "activity_progress" progress
+      ON progress."id" = line."activity_progress_id"
+    WHERE line."report_id" = NEW."id"
+      AND (
+        line."activity_progress_id" IS NULL
+        OR progress."id" IS NULL
+        OR progress."project_id" <> NEW."project_id"
+        OR progress."activity_id" <> line."activity_id"
+        OR progress."progress_date" <> NEW."report_date"
+        OR progress."source_type" <> 'DAILY_SITE_REPORT'
+        OR progress."source_entity_id" <> NEW."id"
+        OR progress."percent_complete" <> line."percent_complete"
+      );
+
+    IF invalid_progress_count > 0 THEN
+      RAISE EXCEPTION 'Daily Site Report progress must be appended to Activity Progress before submission';
+    END IF;
+  END IF;
+
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$ LANGUAGE plpgsql;
 
 CREATE TRIGGER daily_site_reports_submitted_update_guard
 BEFORE UPDATE ON "daily_site_reports"
@@ -368,3 +394,69 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER daily_site_report_corrections_guard
 BEFORE INSERT OR UPDATE OR DELETE ON "daily_site_report_corrections"
 FOR EACH ROW EXECUTE FUNCTION protect_daily_site_report_corrections();
+
+
+CREATE OR REPLACE FUNCTION protect_daily_site_report_document_links()
+RETURNS trigger AS $$
+DECLARE
+  target_entity_type VARCHAR(100);
+  target_entity_id UUID;
+  report_project_id UUID;
+  report_status VARCHAR(20);
+  has_project_link BOOLEAN;
+BEGIN
+  IF TG_OP = 'DELETE' THEN
+    target_entity_type := OLD."entity_type";
+    target_entity_id := OLD."entity_id";
+  ELSE
+    target_entity_type := NEW."entity_type";
+    target_entity_id := NEW."entity_id";
+  END IF;
+
+  IF target_entity_type = 'DAILY_SITE_REPORT' THEN
+    SELECT "project_id", "status"
+      INTO report_project_id, report_status
+    FROM "daily_site_reports"
+    WHERE "id" = target_entity_id;
+
+    IF report_project_id IS NULL THEN
+      RAISE EXCEPTION 'Daily Site Report document link target does not exist';
+    END IF;
+    IF report_status <> 'DRAFT' THEN
+      RAISE EXCEPTION 'Submitted Daily Site Report document links are immutable';
+    END IF;
+
+    IF TG_OP <> 'DELETE' THEN
+      SELECT EXISTS (
+        SELECT 1
+        FROM "document_links" project_link
+        WHERE project_link."document_id" = NEW."document_id"
+          AND project_link."entity_type" = 'PROJECT'
+          AND project_link."entity_id" = report_project_id
+      )
+      INTO has_project_link;
+
+      IF NOT has_project_link THEN
+        RAISE EXCEPTION 'Daily Site Report document must already be linked to the same Project';
+      END IF;
+    END IF;
+  END IF;
+
+  IF TG_OP = 'UPDATE' AND OLD."entity_type" = 'DAILY_SITE_REPORT' THEN
+    SELECT "status"
+      INTO report_status
+    FROM "daily_site_reports"
+    WHERE "id" = OLD."entity_id";
+
+    IF report_status <> 'DRAFT' THEN
+      RAISE EXCEPTION 'Submitted Daily Site Report document links are immutable';
+    END IF;
+  END IF;
+
+  RETURN CASE WHEN TG_OP = 'DELETE' THEN OLD ELSE NEW END;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER daily_site_report_document_links_guard
+BEFORE INSERT OR UPDATE OR DELETE ON "document_links"
+FOR EACH ROW EXECUTE FUNCTION protect_daily_site_report_document_links();
