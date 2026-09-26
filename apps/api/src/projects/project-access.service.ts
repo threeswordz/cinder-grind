@@ -5,6 +5,8 @@ import { AuthenticatedUserContext } from '../auth/auth.types';
 import { ProjectScopeService } from '../authorization/project-scope.service';
 import { PrismaService } from '../prisma/prisma.service';
 
+type ProjectScopeDb = Pick<Prisma.TransactionClient, 'project' | 'user'>;
+
 @Injectable()
 export class ProjectAccessService {
   constructor(
@@ -14,12 +16,13 @@ export class ProjectAccessService {
 
   async scopeWhere(
     auth: AuthenticatedUserContext,
+    db: ProjectScopeDb = this.prisma,
   ): Promise<Prisma.ProjectWhereInput> {
     if (this.projectScope.canAccessProject(auth, false)) {
       return { companyId: auth.companyId };
     }
 
-    const employeeId = await this.activeEmployeeId(auth);
+    const employeeId = await this.activeEmployeeId(auth, db);
     if (!employeeId) {
       return { companyId: auth.companyId, id: '__NO_PROJECT_ACCESS__' };
     }
@@ -38,15 +41,16 @@ export class ProjectAccessService {
   async assertAccess(
     auth: AuthenticatedUserContext,
     projectId: string,
+    db: ProjectScopeDb = this.prisma,
   ): Promise<void> {
-    const where = await this.scopeWhere(auth);
-    const project = await this.prisma.project.findFirst({
+    const where = await this.scopeWhere(auth, db);
+    const project = await db.project.findFirst({
       where: { ...where, id: projectId },
       select: { id: true },
     });
 
     if (!project) {
-      const exists = await this.prisma.project.findFirst({
+      const exists = await db.project.findFirst({
         where: { id: projectId, companyId: auth.companyId },
         select: { id: true },
       });
@@ -64,8 +68,9 @@ export class ProjectAccessService {
 
   async activeEmployeeId(
     auth: AuthenticatedUserContext,
+    db: ProjectScopeDb = this.prisma,
   ): Promise<string | null> {
-    const user = await this.prisma.user.findFirst({
+    const user = await db.user.findFirst({
       where: {
         id: auth.userId,
         companyId: auth.companyId,
