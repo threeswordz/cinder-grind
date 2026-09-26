@@ -22,6 +22,7 @@ import { StatusesPanel } from './admin/StatusesPanel';
 import { SystemSettingsPanel } from './admin/SystemSettingsPanel';
 import { UsersPanel } from './admin/UsersPanel';
 import { MasterDataPanel } from './master-data/MasterDataPanel';
+import { ProjectsPanel } from './projects/ProjectsPanel';
 
 type Section = {
   key: string;
@@ -37,6 +38,12 @@ export function AdminConsole({ user }: { user: CurrentUser }) {
   const sections = useMemo<Section[]>(
     () =>
       [
+        {
+          key: 'projects',
+          label: 'Projects',
+          permission: 'projects.project.view',
+          content: <ProjectsPanel permissions={user.permissions} />,
+        },
         {
           key: 'master-data',
           label: 'Master Data',
