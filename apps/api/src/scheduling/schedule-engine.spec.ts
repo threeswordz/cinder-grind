@@ -18,16 +18,27 @@ function calendar(
   id = 'CAL',
   workingWeekdays = [1, 2, 3, 4, 5],
   holidays: string[] = [],
+  timezoneName = 'Asia/Singapore',
+  startMinute = 8 * 60,
+  endMinute = 17 * 60,
 ): EngineCalendar {
   return {
     id,
-    weekdays: [1, 2, 3, 4, 5, 6, 7].map((weekdayNo) => ({
-      weekdayNo,
-      isWorking: workingWeekdays.includes(weekdayNo),
-    })),
+    timezoneName,
+    weekdays: [1, 2, 3, 4, 5, 6, 7].map((weekdayNo) => {
+      const isWorking = workingWeekdays.includes(weekdayNo);
+      return {
+        weekdayNo,
+        isWorking,
+        startMinute: isWorking ? startMinute : null,
+        endMinute: isWorking ? endMinute : null,
+      };
+    }),
     exceptions: holidays.map((value) => ({
       exceptionDate: date(value),
       isWorkingOverride: false,
+      startMinute: null,
+      endMinute: null,
     })),
   };
 }
@@ -135,6 +146,31 @@ test('mixed calendars apply lag on the successor Activity calendar', () => {
   const b = result.activities.find((row) => row.id === 'B');
   assert.equal(b?.calculatedStartDate, '2026-10-04');
   assert.equal(b?.calculatedFinishDate, '2026-10-04');
+});
+
+test('working hours and timezones affect cross-calendar scheduling', () => {
+  const result = calculateScheduleAnalysis({
+    mode: 'planned',
+    calendars: [
+      calendar('SG', [1, 2, 3, 4, 5], [], 'Asia/Singapore', 8 * 60, 17 * 60),
+      calendar('UTC', [1, 2, 3, 4, 5], [], 'UTC', 8 * 60, 12 * 60),
+    ],
+    activities: [
+      activity('A', '2026-10-02', 1, {
+        workingCalendarId: 'SG',
+      }),
+      activity('B', '2026-10-02', 1, {
+        workingCalendarId: 'UTC',
+      }),
+    ],
+    dependencies: [dependency('A', 'B', 'FS', 0)],
+  });
+
+  const b = result.activities.find((row) => row.id === 'B');
+  assert.equal(b?.calculatedStartDate, '2026-10-02');
+  assert.equal(b?.calculatedStartFraction, 0.25);
+  assert.equal(b?.calculatedFinishDate, '2026-10-05');
+  assert.equal(b?.calculatedFinishFraction, 0.25);
 });
 
 test('fractional work days are preserved internally while DATE fields project the containing work date', () => {
