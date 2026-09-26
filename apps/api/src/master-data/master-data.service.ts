@@ -498,7 +498,17 @@ export class MasterDataService {
         const created = await tx.unitOfMeasure.create({
           data: {
             companyId: context.auth.companyId,
-            ...data,
+            customerCode: data.customerCode,
+            customerName: data.customerName,
+            ...(data.registrationNumber !== undefined
+              ? { registrationNumber: data.registrationNumber }
+              : {}),
+            ...(data.contactName !== undefined
+              ? { contactName: data.contactName }
+              : {}),
+            ...(data.email !== undefined ? { email: data.email } : {}),
+            ...(data.phone !== undefined ? { phone: data.phone } : {}),
+            ...(data.address !== undefined ? { address: data.address } : {}),
           },
         });
         await this.audit.record(
