@@ -85,6 +85,45 @@ export class ProjectsController {
     };
   }
 
+  @Post()
+  @UseGuards(AuthGuard, CsrfGuard, PermissionGuard)
+  @RequirePermissions('projects.project.create')
+  async create(
+    @Req() request: AuthenticatedRequest,
+    @Body() body: unknown,
+  ) {
+    const input = requireProjectObject(body);
+    const location = nullableProjectString(input, 'location', 500);
+    const description = nullableProjectString(input, 'description', 10000);
+
+    return {
+      data: await this.projects.createProject(auditContext(request), {
+        projectCode: normalizeProjectCode(
+          requiredProjectString(input, 'projectCode', 50),
+        ),
+        projectName: requiredProjectString(input, 'projectName', 200),
+        customerId: validateProjectUuid(
+          requiredProjectString(input, 'customerId', 36),
+          'customerId',
+        ),
+        statusDefinitionId: validateProjectUuid(
+          requiredProjectString(input, 'statusDefinitionId', 36),
+          'statusDefinitionId',
+        ),
+        contractValue: parseContractValue(input.contractValue),
+        ...(location !== undefined ? { location } : {}),
+        ...(description !== undefined ? { description } : {}),
+        plannedStartDate: optionalProjectDate(input, 'plannedStartDate') ??
+          (() => { throw projectInvalid('plannedStartDate', 'Is required.'); })(),
+        plannedCompletionDate:
+          optionalProjectDate(input, 'plannedCompletionDate') ??
+          (() => {
+            throw projectInvalid('plannedCompletionDate', 'Is required.');
+          })(),
+      }),
+    };
+  }
+
   @Get('status-options')
   @UseGuards(AuthGuard, PermissionGuard)
   @RequirePermissions('projects.project.view')
