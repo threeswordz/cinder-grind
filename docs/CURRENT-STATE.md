@@ -201,3 +201,21 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - Branch: `v0.2-c-baselines-progress`.
 - superseded Issue #39 is closed and must not be used as a business-rule source.
 - Stage C reuses the existing Approval Matrix and introduces no paid dependency.
+
+
+## V0.2-C implementation progress
+
+- DEC-010 Baselines / Progress rules implemented
+- immutable versioned Schedule Baseline and Activity snapshot persistence
+- existing configurable Approval Matrix reused with `SCHEDULE_BASELINE` entity type and maker-checker enforcement
+- current baseline derived from the latest approved version; prior approved versions remain immutable history
+- append-only Activity Progress history with 0–100 validation and correction entries
+- explicit Project actual start/completion dates added; Activity actual/forecast dates remain independent
+- signed working-calendar baseline/forecast variance and DELAYED / ON_TIME / AHEAD / UNAVAILABLE classification
+- secured Project-scoped baseline, progress and comparison REST APIs
+- permission-aware Baselines & Progress Scheduling UI
+- PostgreSQL integrity triggers enforce baseline immutability, progress append-only history and same-company/Project scope
+- deterministic working-day variance tests and PostgreSQL Stage C integration coverage
+- live HTTP acceptance covers configured Approval Matrix, maker-checker denial, approval, progress correction, Project actual dates and delay comparison
+- CI #697 passed on `b5b7104a1b7176cbadad253dd1e6be10c7cda200` before final documentation commits; exact-head CI will be revalidated after documentation completion
+- no new runtime dependency or paid service introduced
