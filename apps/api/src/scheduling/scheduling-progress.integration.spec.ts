@@ -285,9 +285,9 @@ test('Stage C preserves immutable baselines and append-only progress with approv
       { auth: makerAuth },
       activityA.id,
       {
-        progressDate: new Date('2026-10-07T00:00:00.000Z'),
+        progressDate: new Date('2026-10-05T00:00:00.000Z'),
         percentComplete: new Prisma.Decimal('40'),
-        note: 'Correction after measurement',
+        note: 'Backdated correction appended later',
       },
     );
     assert.equal(firstProgress.percentComplete.toString(), '50');
