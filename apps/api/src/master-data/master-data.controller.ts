@@ -531,6 +531,17 @@ export class MasterDataController {
     };
   }
 
+  @Get('material-uom-options')
+  @UseGuards(AuthGuard, PermissionGuard)
+  @RequirePermissions('master.material.view')
+  async materialUomOptions(@Req() request: AuthenticatedRequest) {
+    return {
+      data: await this.master.listMaterialUomOptions(
+        authOf(request).companyId,
+      ),
+    };
+  }
+
   @Get('materials')
   @UseGuards(AuthGuard, PermissionGuard)
   @RequirePermissions('master.material.view')
