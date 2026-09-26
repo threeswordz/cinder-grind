@@ -34,7 +34,7 @@ CREATE INDEX "cost_codes_company_id_is_active_idx" ON "cost_codes"("company_id",
 
 -- WBS hierarchy integrity: parent and child must share a Project and the hierarchy must remain acyclic.
 CREATE OR REPLACE FUNCTION enforce_wbs_hierarchy()
-RETURNS trigger AS $
+RETURNS trigger AS $$
 BEGIN
   IF NEW.parent_id IS NULL THEN
     RETURN NEW;
@@ -68,7 +68,7 @@ BEGIN
 
   RETURN NEW;
 END;
-$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql;
 
 CREATE TRIGGER wbs_hierarchy_integrity
 BEFORE INSERT OR UPDATE OF project_id, parent_id ON "wbs_elements"
