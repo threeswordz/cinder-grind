@@ -61,3 +61,49 @@ The V0.2 Scheduling Engine uses the following approved calculation conventions:
 6. **Calendar precedence:** each Activity's explicitly assigned Working Calendar governs calculations. A Project/company default calendar supplies a default selection when creating an Activity but does not override an explicitly assigned Activity calendar.
 
 These rules are backend/domain scheduling rules. Frappe Gantt remains a replaceable visualization layer and does not own schedule calculations.
+
+
+## DEC-010 — V0.2 Baselines / Progress rules
+**Status:** APPROVED — 2026-09-26
+
+The V0.2-C Baselines / Progress stage uses the following approved rules:
+
+1. **Baseline approval uses the existing configurable Approval Matrix**
+   - Schedule Baseline entity type is `SCHEDULE_BASELINE`.
+   - approver Roles remain configurable, not hard-coded.
+   - existing maker-checker control applies.
+   - System Administrator is not an implicit business approver.
+
+2. **Approved baselines are immutable and versioned**
+   - initial baseline is Version 1.
+   - an authorized rebaseline creates Version N+1.
+   - the new version requires approval again.
+   - previous approved versions remain immutable and retained for history.
+   - one approved version is current for Project comparison.
+
+3. **Baseline snapshot content**
+   - snapshot every active Activity in the Project at submission.
+   - capture Activity identity, WBS reference, milestone/summary flags, planned duration and Stage B calculated planned start/finish.
+   - Activities added later have no row in older baseline versions.
+   - actual and forecast values are not copied into baseline snapshots.
+
+4. **Activity Progress history**
+   - progress range is 0–100%.
+   - progress entries are append-only history.
+   - current percent complete is the latest entry.
+   - decreases are allowed as explicit corrections; prior history is retained.
+   - Stage E Daily Site Reports may add progress entries later using the same history.
+
+5. **Actual dates remain explicit**
+   - percentage complete does not automatically create or change actual start/finish.
+   - Activity and Project actual dates remain separate from planned/baseline/forecast.
+   - actual finish must not be earlier than actual start.
+
+6. **Delay calculation**
+   - compare current forecast finish against the current approved baseline finish.
+   - explicit Activity forecast finish takes precedence when present; otherwise use Stage B calculated forecast finish.
+   - delay is measured in working days using the Activity's assigned Working Calendar.
+   - delay > 0 = delayed; 0 = on time; delay < 0 = ahead.
+   - without a current approved baseline, delay classification is unavailable and delay work days is null.
+
+These rules preserve the existing approval framework, Project-scope authorization and backend-owned scheduling architecture.
