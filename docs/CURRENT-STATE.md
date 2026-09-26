@@ -3,10 +3,10 @@
 **Last verified:** 2026-09-27
 **Source of truth:** Live GitHub repository state
 
-- Current Release: V0.2 Project & Scheduling
-- Current Stage: V0.2 Release Acceptance — AWAITING PRODUCT / BUSINESS OWNER SIGN-OFF
+- Current Release: V0.3 Procurement — ENTRY GATE
+- Current Stage: V0.3 Release Entry Gate — SCOPE / ACCEPTANCE BASELINES
 - Completed Stages: V0.1-A Technical Skeleton; V0.1-B Company / Identity / Security; V0.1-C Administration; V0.1-D Master Data; V0.1-E Projects; V0.1-F WBS & Cost Codes; V0.1-G Basic Documents; V0.1-H Integration / Regression / UAT; V0.2-A Scheduling Data Model; V0.2-B Scheduling Engine; V0.2-C Baselines / Progress; V0.2-D Gantt / Lookahead; V0.2-E Site Execution; V0.2-F Equipment; V0.2-G UAT Reference Programme
-- Active Issue: none — V0.2 release awaits Product / Business Owner acceptance
+- Active Issue: pending creation — V0.3 Release Entry Gate
 - Completed Issue: #53 — V0.2-G UAT Reference Programme
 - Completed Branch: `v0.2-g-uat-reference`
 - Merged PR: #54 — V0.2-G UAT Reference Programme and Release Closure
@@ -48,7 +48,7 @@
 - V0.1 cross-module release acceptance scenario: PASS in the Stage H release-candidate regression suite.
 - Open defect check at V0.1 acceptance: no Severity 1 or Severity 2 release-blocking defect recorded.
 - Governance: `AGENTS.md`, `docs/PROJECT-GOVERNANCE.md`, PR governance checklist and DEC-008 are active; material decisions must pass the repository pre-flight and open-source/zero-cost-first constraint.
-- Next action: Product / Business Owner reviews the V0.2 UAT evidence, known boundaries and usability, then explicitly ACCEPTS or REJECTS V0.2. Do not begin V0.3 implementation until the V0.2 release decision is recorded.
+- Next action: establish and approve the V0.3 Procurement scope baseline, acceptance criteria, architecture/business-rule decisions and test approach before V0.3-A BOQ & Budget implementation begins.
 
 ## Stage E completed
 
@@ -430,3 +430,14 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - deployment/rollback procedure, traceability, release checklist and UAT record are source-controlled.
 - V0.2 is technically release-ready but is **not Product-accepted yet**.
 - Product / Business Owner sign-off remains the release decision gate before V0.2 is marked complete and V0.3 Procurement begins.
+
+## V0.2 Project & Scheduling completed
+
+- Product / Business Owner explicitly accepted **V0.2 Project & Scheduling** on **2026-09-27**.
+- final accepted repository checkpoint before sign-off: `0cdebbf95eb155a4cde126673685b2b145c57af3`.
+- final post-merge validation CI #895 passed on that checkpoint.
+- V0.2-A through V0.2-G are complete.
+- all approved V0.2 Must-Have requirements have implementation/evidence paths.
+- V0.2 release boundaries and Should-Have deferrals were reviewed and accepted with the release decision.
+- V0.2 is formally closed.
+- V0.3 Procurement may now enter its release-entry governance gate; implementation remains blocked until V0.3 scope and acceptance baselines are approved.
