@@ -46,3 +46,18 @@ The Construction ERP is open-source-first and zero-cost-first. Do not introduce 
 When technically practical, use existing owned hardware/resources before proposing paid infrastructure. Optional paid services may be discussed only as clearly labeled alternatives, never as the default architecture.
 
 A casual request or implementation convenience does not silently supersede this decision. Conflicts must be surfaced and resolved through explicit change control.
+
+
+## DEC-009 — V0.2 Scheduling calculation rules
+**Status:** APPROVED — 2026-09-26
+
+The V0.2 Scheduling Engine uses the following approved calculation conventions:
+
+1. **Work-day duration:** `1.0` work day means one full working interval according to the Activity's assigned Working Calendar. Fractional durations consume the corresponding fraction of the applicable working interval.
+2. **Dependency lag calendar:** dependency lag is evaluated using the successor Activity's Working Calendar.
+3. **Negative lag / lead:** signed lag is allowed; a negative lag represents lead time.
+4. **Milestones:** a milestone has `0` work-day duration and planned start equals planned finish.
+5. **Critical Path / Total Float:** use a standard CPM forward/backward pass with working-calendar-aware Activity dates and dependency constraints. Activities with Total Float = 0 are critical. The Project finish anchor is the latest calculated eligible Activity finish.
+6. **Calendar precedence:** each Activity's explicitly assigned Working Calendar governs calculations. A Project/company default calendar supplies a default selection when creating an Activity but does not override an explicitly assigned Activity calendar.
+
+These rules are backend/domain scheduling rules. Frappe Gantt remains a replaceable visualization layer and does not own schedule calculations.
