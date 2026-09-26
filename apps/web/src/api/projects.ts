@@ -17,6 +17,8 @@ export type ProjectRecord = {
   description: string | null;
   plannedStartDate: string;
   plannedCompletionDate: string;
+  actualStartDate: string | null;
+  actualCompletionDate: string | null;
   isActive: boolean;
   customer: {
     id: string;
