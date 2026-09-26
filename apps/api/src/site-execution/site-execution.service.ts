@@ -248,14 +248,20 @@ export class SiteExecutionService {
             companyId: context.auth.companyId,
             projectId: input.projectId,
             reportDate: input.reportDate,
-            weatherObservation: input.weatherObservation,
-            generalRemarks: input.generalRemarks,
+            ...(input.weatherObservation !== undefined
+              ? { weatherObservation: input.weatherObservation }
+              : {}),
+            ...(input.generalRemarks !== undefined
+              ? { generalRemarks: input.generalRemarks }
+              : {}),
             createdByUserId: context.auth.userId,
             manpowerLines: {
               create: input.manpower.map((line) => ({
                 tradeRole: line.tradeRole,
                 headcount: line.headcount,
-                remarks: line.remarks,
+                ...(line.remarks !== undefined
+                  ? { remarks: line.remarks }
+                  : {}),
               })),
             },
             materialUsage: {
@@ -263,37 +269,57 @@ export class SiteExecutionService {
                 materialId: line.materialId,
                 uomId: line.uomId,
                 quantity: line.quantity,
-                activityId: line.activityId,
-                wbsId: line.wbsId,
-                remarks: line.remarks,
+                ...(line.activityId !== undefined
+                  ? { activityId: line.activityId }
+                  : {}),
+                ...(line.wbsId !== undefined
+                  ? { wbsId: line.wbsId }
+                  : {}),
+                ...(line.remarks !== undefined
+                  ? { remarks: line.remarks }
+                  : {}),
               })),
             },
             progressLines: {
               create: input.progress.map((line) => ({
                 activityId: line.activityId,
                 percentComplete: line.percentComplete,
-                note: line.note,
+                ...(line.note !== undefined ? { note: line.note } : {}),
               })),
             },
             issues: {
               create: input.issues.map((line) => ({
-                activityId: line.activityId,
+                ...(line.activityId !== undefined
+                  ? { activityId: line.activityId }
+                  : {}),
                 issueText: line.issueText,
-                remarks: line.remarks,
+                ...(line.remarks !== undefined
+                  ? { remarks: line.remarks }
+                  : {}),
               })),
             },
             delays: {
               create: input.delays.map((line) => ({
-                activityId: line.activityId,
+                ...(line.activityId !== undefined
+                  ? { activityId: line.activityId }
+                  : {}),
                 delayReason: line.delayReason,
-                remarks: line.remarks,
+                ...(line.remarks !== undefined
+                  ? { remarks: line.remarks }
+                  : {}),
               })),
             },
             inspections: {
               create: input.inspections.map((line) => ({
-                activityId: line.activityId,
-                inspectionReference: line.inspectionReference,
-                remarks: line.remarks,
+                ...(line.activityId !== undefined
+                  ? { activityId: line.activityId }
+                  : {}),
+                ...(line.inspectionReference !== undefined
+                  ? { inspectionReference: line.inspectionReference }
+                  : {}),
+                ...(line.remarks !== undefined
+                  ? { remarks: line.remarks }
+                  : {}),
               })),
             },
           },
@@ -361,7 +387,9 @@ export class SiteExecutionService {
                 reportId: id,
                 tradeRole: line.tradeRole,
                 headcount: line.headcount,
-                remarks: line.remarks,
+                ...(line.remarks !== undefined
+                  ? { remarks: line.remarks }
+                  : {}),
               })),
             });
           }
@@ -378,9 +406,15 @@ export class SiteExecutionService {
                 materialId: line.materialId,
                 uomId: line.uomId,
                 quantity: line.quantity,
-                activityId: line.activityId,
-                wbsId: line.wbsId,
-                remarks: line.remarks,
+                ...(line.activityId !== undefined
+                  ? { activityId: line.activityId }
+                  : {}),
+                ...(line.wbsId !== undefined
+                  ? { wbsId: line.wbsId }
+                  : {}),
+                ...(line.remarks !== undefined
+                  ? { remarks: line.remarks }
+                  : {}),
               })),
             });
           }
@@ -396,7 +430,7 @@ export class SiteExecutionService {
                 reportId: id,
                 activityId: line.activityId,
                 percentComplete: line.percentComplete,
-                note: line.note,
+                ...(line.note !== undefined ? { note: line.note } : {}),
               })),
             });
           }
@@ -408,9 +442,13 @@ export class SiteExecutionService {
             await tx.dailySiteReportIssue.createMany({
               data: input.issues.map((line) => ({
                 reportId: id,
-                activityId: line.activityId,
+                ...(line.activityId !== undefined
+                  ? { activityId: line.activityId }
+                  : {}),
                 issueText: line.issueText,
-                remarks: line.remarks,
+                ...(line.remarks !== undefined
+                  ? { remarks: line.remarks }
+                  : {}),
               })),
             });
           }
@@ -422,9 +460,13 @@ export class SiteExecutionService {
             await tx.dailySiteReportDelay.createMany({
               data: input.delays.map((line) => ({
                 reportId: id,
-                activityId: line.activityId,
+                ...(line.activityId !== undefined
+                  ? { activityId: line.activityId }
+                  : {}),
                 delayReason: line.delayReason,
-                remarks: line.remarks,
+                ...(line.remarks !== undefined
+                  ? { remarks: line.remarks }
+                  : {}),
               })),
             });
           }
@@ -438,9 +480,15 @@ export class SiteExecutionService {
             await tx.dailySiteReportInspection.createMany({
               data: input.inspections.map((line) => ({
                 reportId: id,
-                activityId: line.activityId,
-                inspectionReference: line.inspectionReference,
-                remarks: line.remarks,
+                ...(line.activityId !== undefined
+                  ? { activityId: line.activityId }
+                  : {}),
+                ...(line.inspectionReference !== undefined
+                  ? { inspectionReference: line.inspectionReference }
+                  : {}),
+                ...(line.remarks !== undefined
+                  ? { remarks: line.remarks }
+                  : {}),
               })),
             });
           }
