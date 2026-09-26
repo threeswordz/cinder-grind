@@ -172,6 +172,8 @@ function query(path: string, params: Record<string, string | undefined>) {
 export const schedulingApi = {
   projects: () => apiRequest<Data<ScheduleProject[]>>('/schedule/projects'),
 
+  calendarProjects: () =>
+    apiRequest<Data<ScheduleProject[]>>('/working-calendars/project-options'),
   calendars: (projectId?: string, active = 'all') =>
     apiRequest<Data<WorkingCalendarRecord[]>>(
       query('/working-calendars', {
