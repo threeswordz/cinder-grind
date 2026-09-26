@@ -12,8 +12,8 @@
 - Latest verified main commit: `1ebc5d6693308b03ef831e01003cf51a86fd3add` — V0.1-D: Master Data (#18)
 - Latest verified Stage E branch commit before this state update: `1c18e154249fc51b7d3dde2473d58fd3780a503f`
 - Latest Stage E PR CI: Validate Construction ERP run #323 — SUCCESS
-- Current blocker / business decision: Project creation scope policy A/B/C remains unresolved. Do not finalize project-scoped creation behavior until the Product / Business Owner selects a policy.
-- Next action: Continue Stage E work that is independent of the creation-policy decision, then implement the selected creation policy, complete UI/security/regression validation, and keep PR #22 draft until all completion gates pass.
+- Project creation scope decision: Option A — APPROVED. A scoped creator must have an active Employee link and is atomically added to the initial Project Team.
+- Next action: Complete Stage E Project UI and remaining security/regression validation; keep PR #22 draft until all completion gates pass.
 
 ## Stage E implemented so far
 
@@ -24,5 +24,6 @@
 - Database-derived project-scope access foundation
 - Project APIs/services for scoped reads, updates, archive/reactivate, team and contacts
 - PostgreSQL Project integration tests wired into the API test command
+- Option A Project creation API: scoped creators require an active Employee link and receive an automatic active `Project Creator` membership
 
 This file is a concise checkpoint only. Re-check live GitHub Issues, branches, PRs, commits and CI before modifying a stage.
