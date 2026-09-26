@@ -27,3 +27,7 @@ export function bool(body: Record<string, unknown>, field: string) {
 export function code(value:string, field:string){const v=value.toUpperCase();if(!/^[A-Z0-9][A-Z0-9._-]*$/.test(v))throw invalid(field,'Use letters, numbers, dot, underscore or hyphen only.');return v;}
 
 export function uuid(value:string,field:string){if(!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value))throw invalid(field,'Must be a valid UUID.');return value;}
+
+export function active(value:string|undefined){if(value===undefined||value===''||value==='all')return undefined;if(value==='true')return true;if(value==='false')return false;throw invalid('active','Use true, false or all.');}
+export function search(value:string|undefined){if(value===undefined||value.trim()==='')return undefined;const trimmed=value.trim();if(trimmed.length>200)throw invalid('search','Search is too long.');return trimmed;}
+export function nonempty(data:Record<string,unknown>){if(Object.keys(data).length===0)throw invalid('body','Provide at least one field to update.');}
