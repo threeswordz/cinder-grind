@@ -5,7 +5,7 @@
 
 - Current Release: V0.2 Project & Scheduling
 - Current Stage: V0.2-D Gantt / Lookahead — PRE-FLIGHT
-- Completed Stages: V0.1-A Technical Skeleton; V0.1-B Company / Identity / Security; V0.1-C Administration; V0.1-D Master Data; V0.1-E Projects; V0.1-F WBS & Cost Codes; V0.1-G Basic Documents; V0.1-H Integration / Regression / UAT; V0.2-A Scheduling Data Model; V0.2-B Scheduling Engine; V0.2-C Baselines / Progress
+- Completed Stages: V0.1-A Technical Skeleton; V0.1-B Company / Identity / Security; V0.1-C Administration; V0.1-D Master Data; V0.1-E Projects; V0.1-F WBS & Cost Codes; V0.1-G Basic Documents; V0.1-H Integration / Regression / UAT; V0.2-A Scheduling Data Model; V0.2-B Scheduling Engine; V0.2-C Baselines / Progress; V0.2-C Baselines / Progress
 - Active Issue: #42 — V0.2-D Gantt / Lookahead — Presentation Rules
 - Completed Issue: #40 — V0.2-C Baselines / Progress
 - Completed Branch: `v0.2-c-baselines-progress`
@@ -36,7 +36,7 @@
 - V0.1 cross-module release acceptance scenario: PASS in the Stage H release-candidate regression suite.
 - Open defect check at V0.1 acceptance: no Severity 1 or Severity 2 release-blocking defect recorded.
 - Governance: `AGENTS.md`, `docs/PROJECT-GOVERNANCE.md`, PR governance checklist and DEC-008 are active; material decisions must pass the repository pre-flight and open-source/zero-cost-first constraint.
-- Next action: pre-flight V0.2-C Baselines / Progress against approved baseline, rebaseline, progress-history and delay rules; implement only where semantics are defined.
+- Next action: begin V0.2-D Gantt / Lookahead under approved SCH-017/SCH-018/ARCH-010 requirements and the Stage B/C backend read models.
 
 ## Stage E completed
 
