@@ -89,6 +89,9 @@ export function SiteExecutionPanel({
   const [delays, setDelays] = useState<DelayLineInput[]>([]);
   const [inspections, setInspections] = useState<InspectionLineInput[]>([]);
   const [correctionNote, setCorrectionNote] = useState('');
+  const [correctionProgress, setCorrectionProgress] = useState<
+    ProgressLineInput[]
+  >([]);
   const [documentTypeId, setDocumentTypeId] = useState('');
   const [photo, setPhoto] = useState<File | null>(null);
 
@@ -265,9 +268,17 @@ export function SiteExecutionPanel({
 
   const correctionMutation = useMutation({
     mutationFn: () =>
-      siteExecutionApi.addCorrection(selectedId, correctionNote),
+      siteExecutionApi.addCorrection(
+        selectedId,
+        correctionNote,
+        correctionProgress.map((line) => ({
+          ...line,
+          note: line.note || null,
+        })),
+      ),
     onSuccess: async () => {
       setCorrectionNote('');
+      setCorrectionProgress([]);
       await queryClient.invalidateQueries({
         queryKey: ['site-execution', 'report', selectedId],
       });
@@ -303,6 +314,7 @@ export function SiteExecutionPanel({
     setDelays([]);
     setInspections([]);
     setCorrectionNote('');
+    setCorrectionProgress([]);
     setDocumentTypeId('');
     setPhoto(null);
   };
@@ -1019,6 +1031,17 @@ export function SiteExecutionPanel({
                         <Typography variant="body2">
                           {correction.correctionNote}
                         </Typography>
+                        {correction.progressCorrections.map((entry) => (
+                          <Typography
+                            key={entry.id}
+                            variant="body2"
+                            color="text.secondary"
+                          >
+                            {entry.activity.activityCode} —{' '}
+                            {entry.activity.activityName}: {entry.percentComplete}%
+                            {entry.note ? ' · ' + entry.note : ''}
+                          </Typography>
+                        ))}
                         <Typography
                           variant="caption"
                           color="text.secondary"
@@ -1030,10 +1053,7 @@ export function SiteExecutionPanel({
                     ))
                   )}
                   {canEdit ? (
-                    <Stack
-                      direction={{ xs: 'column', sm: 'row' }}
-                      spacing={1}
-                    >
+                    <Stack spacing={1}>
                       <TextField
                         label="Append correction"
                         value={correctionNote}
@@ -1042,16 +1062,110 @@ export function SiteExecutionPanel({
                         }
                         fullWidth
                       />
-                      <Button
-                        variant="outlined"
-                        disabled={
-                          !correctionNote.trim() ||
-                          correctionMutation.isPending
-                        }
-                        onClick={() => correctionMutation.mutate()}
+                      {correctionProgress.map((line, index) => (
+                        <Stack
+                          key={index}
+                          direction={{ xs: 'column', md: 'row' }}
+                          spacing={1}
+                        >
+                          <TextField
+                            select
+                            label="Correct Activity progress"
+                            value={line.activityId}
+                            onChange={(event) =>
+                              setCorrectionProgress((rows) =>
+                                rows.map((row, rowIndex) =>
+                                  rowIndex === index
+                                    ? {
+                                        ...row,
+                                        activityId: event.target.value,
+                                      }
+                                    : row,
+                                ),
+                              )
+                            }
+                            sx={{ flex: 3 }}
+                          >
+                            {activityOptions.map((activity) => (
+                              <MenuItem
+                                key={activity.id}
+                                value={activity.id}
+                              >
+                                {activity.activityCode} —{' '}
+                                {activity.activityName}
+                              </MenuItem>
+                            ))}
+                          </TextField>
+                          <TextField
+                            label="Corrected %"
+                            type="number"
+                            value={line.percentComplete}
+                            onChange={(event) =>
+                              setCorrectionProgress((rows) =>
+                                rows.map((row, rowIndex) =>
+                                  rowIndex === index
+                                    ? {
+                                        ...row,
+                                        percentComplete: event.target.value,
+                                      }
+                                    : row,
+                                ),
+                              )
+                            }
+                            sx={{ flex: 1 }}
+                          />
+                          <TextField
+                            label="Progress correction note"
+                            value={line.note ?? ''}
+                            onChange={(event) =>
+                              setCorrectionProgress((rows) =>
+                                rows.map((row, rowIndex) =>
+                                  rowIndex === index
+                                    ? { ...row, note: event.target.value }
+                                    : row,
+                                ),
+                              )
+                            }
+                            sx={{ flex: 2 }}
+                          />
+                          <Button
+                            onClick={() =>
+                              setCorrectionProgress((rows) =>
+                                rows.filter(
+                                  (_, rowIndex) => rowIndex !== index,
+                                ),
+                              )
+                            }
+                          >
+                            Remove
+                          </Button>
+                        </Stack>
+                      ))}
+                      <Stack
+                        direction={{ xs: 'column', sm: 'row' }}
+                        spacing={1}
                       >
-                        Add Correction
-                      </Button>
+                        <Button
+                          onClick={() =>
+                            setCorrectionProgress((rows) => [
+                              ...rows,
+                              emptyProgress(),
+                            ])
+                          }
+                        >
+                          Add progress correction
+                        </Button>
+                        <Button
+                          variant="outlined"
+                          disabled={
+                            !correctionNote.trim() ||
+                            correctionMutation.isPending
+                          }
+                          onClick={() => correctionMutation.mutate()}
+                        >
+                          Add Correction
+                        </Button>
+                      </Stack>
                     </Stack>
                   ) : null}
                 </Stack>
