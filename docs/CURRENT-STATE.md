@@ -4,23 +4,22 @@
 **Source of truth:** Live GitHub repository state
 
 - Current Release: V0.1 Foundation
-- Current Stage: V0.1-G Basic Documents — IN PROGRESS
-- Completed Stages: V0.1-A Technical Skeleton; V0.1-B Company / Identity / Security; V0.1-C Administration; V0.1-D Master Data; V0.1-E Projects; V0.1-F WBS & Cost Codes
-- Active Issue: #25 — V0.1-G Basic Documents
-- Active Branch: `v0.1-g-basic-documents`
-- Active PR: #26 — ready for final validation
+- Current Stage: V0.1-H Integration / Regression / UAT — NEXT
+- Completed Stages: V0.1-A Technical Skeleton; V0.1-B Company / Identity / Security; V0.1-C Administration; V0.1-D Master Data; V0.1-E Projects; V0.1-F WBS & Cost Codes; V0.1-G Basic Documents
+- Completed Issue: #25 — V0.1-G Basic Documents
+- Merged PR: #26 — V0.1-G Basic Documents
 - Previous completed Issue: #23 — V0.1-F WBS & Cost Codes
 - Previous merged PR: #24 — V0.1-F WBS & Cost Codes
 - Previous completed Issue: #20 — V0.1-E Projects
 - Previous merged PR: #22 — V0.1-E Projects
-- Latest verified main commit: `7bce190c412cd71222816428f04420be2a9278c9` — V0.1-F: WBS & Cost Codes (#24)
+- Latest verified main commit: `f18df261af292146f96b857d34d5037a2550f332` — V0.1-G: Basic Documents (#26)
 - Final Stage E PR CI: Validate Construction ERP run #351 — SUCCESS
 - Project creation scope decision: Option A — APPROVED. A scoped creator must have an active Employee link and is atomically added to the initial Project Team.
 - Final Stage F PR CI: Validate Construction ERP run #403 — SUCCESS on `ce649c16b139f2ebb81d0fa71fce7420fbde4b79`.
 - Stage F final review: no unresolved review threads, no scope creep into Activities/Scheduling, BOQ/Budget, Procurement or transaction allocations.
-- Latest Stage G code CI: Validate Construction ERP run #439 — SUCCESS on `a0b383be810c39b71fadb6b6d1db87e8103f437f`.
+- Final Stage G PR CI: Validate Construction ERP run #443 — SUCCESS on `298890cbd72965067d59995f81283ca7b4f5410b`.
 - Stage G final review: no unresolved review threads; no WBS/Activity or later-module document scope added.
-- Next action: Validate the final Stage G checkpoint head, then merge PR #26 and move to Stage H.
+- Next action: Open V0.1-H Integration / Regression / UAT; complete all automatable release gates before requesting Product / Business Owner UAT sign-off.
 
 ## Stage E completed
 
@@ -49,7 +48,7 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - PostgreSQL integration coverage for Project scope, access_all, hierarchy integrity, company isolation and WBS/Cost Code dimensional independence
 
 
-## Stage G implementation complete pending final merge
+## Stage G completed
 
 - Configurable Document Types and PostgreSQL document/link metadata
 - File bytes stored outside PostgreSQL through a replaceable DocumentStorage abstraction
