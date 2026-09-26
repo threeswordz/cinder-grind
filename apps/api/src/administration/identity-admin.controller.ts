@@ -27,6 +27,8 @@ import {
   requireObject,
   requiredTrimmedString,
   validateCode,
+  validateEmail,
+  validateUuid,
 } from './admin-validation';
 import { IdentityAdminService } from './identity-admin.service';
 
@@ -57,6 +59,16 @@ function stringArray(
     throw invalid(field, 'Must be an array of strings.');
   }
   return value as string[];
+}
+
+function uuidArray(
+  value: unknown,
+  field: string,
+  maxItems = 100,
+): string[] {
+  return stringArray(value, field, maxItems).map((item, index) =>
+    validateUuid(item, field + '[' + index + ']'),
+  );
 }
 
 @Controller('admin')
@@ -103,11 +115,11 @@ export class IdentityAdminController {
     const input = requireObject(body);
     const employeeId = optionalTrimmedString(input, 'employeeId', 36);
     const roleIds =
-      input.roleIds === undefined ? [] : stringArray(input.roleIds, 'roleIds');
+      input.roleIds === undefined ? [] : uuidArray(input.roleIds, 'roleIds');
 
     return {
       data: await this.identity.createUser(auditContext(request), {
-        email: requiredTrimmedString(input, 'email', 320),
+        email: validateEmail(requiredTrimmedString(input, 'email', 320)),
         displayName: requiredTrimmedString(input, 'displayName', 200),
         password: requiredTrimmedString(input, 'password', 1024),
         ...(employeeId ? { employeeId } : {}),
@@ -132,7 +144,10 @@ export class IdentityAdminController {
     let employeeId: string | null | undefined;
     if (input.employeeId === null) employeeId = null;
     else if (input.employeeId !== undefined) {
-      employeeId = requiredTrimmedString(input, 'employeeId', 36);
+      employeeId = validateUuid(
+        requiredTrimmedString(input, 'employeeId', 36),
+        'employeeId',
+      );
     }
 
     if (
@@ -146,7 +161,7 @@ export class IdentityAdminController {
 
     return {
       data: await this.identity.updateUser(auditContext(request), id, {
-        ...(email !== undefined ? { email } : {}),
+        ...(email !== undefined ? { email: validateEmail(email) } : {}),
         ...(displayName !== undefined ? { displayName } : {}),
         ...(employeeId !== undefined ? { employeeId } : {}),
         ...(isActive !== undefined ? { isActive } : {}),
@@ -184,7 +199,7 @@ export class IdentityAdminController {
       data: await this.identity.replaceUserRoles(
         auditContext(request),
         id,
-        stringArray(input.roleIds, 'roleIds'),
+        uuidArray(input.roleIds, 'roleIds'),
       ),
     };
   }
