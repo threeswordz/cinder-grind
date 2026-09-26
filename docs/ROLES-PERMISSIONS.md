@@ -352,7 +352,7 @@ V0.2-E enforcement uses:
 - `site.daily_report.edit`
 - `site.daily_report.submit`
 
-`site.daily_report.edit` owns draft manpower/material/issues/delays/inspections and append-only submitted-report corrections. `site.daily_report.submit` owns the finalization action that appends report progress into Scheduling's immutable Activity Progress history.
+`site.daily_report.edit` owns draft manpower/material/Equipment/issues/delays/inspections and append-only submitted-report corrections. `site.daily_report.submit` owns the finalization action that appends report progress into Scheduling's immutable Activity Progress history.
 
 Earlier design placeholders `site.progress.update`, `site.issue.manage` and `site.inspection.manage` are not separate V0.2-E enforcement permissions. Introducing finer-grained Site permissions later requires an explicit permission-baseline change rather than silently weakening the four implemented controls.
 
@@ -429,11 +429,21 @@ Posting permission is separate from editing a draft transaction.
 
 ## 9.9 Equipment
 
-- `equipment.register.view`
-- `equipment.register.manage`
+V0.2-F enforcement uses:
+
+- `equipment.type.view`
+- `equipment.type.manage`
+- `equipment.equipment.view`
+- `equipment.equipment.manage`
+- `equipment.assignment.view`
 - `equipment.assignment.manage`
-- `equipment.usage.record`
-- `equipment.maintenance.manage`
+- `equipment.usage.view`
+- `equipment.usage.create`
+- `equipment.usage.edit`
+
+Project assignment and usage permissions remain subject to Project scope. Company-wide register/type permissions do not reveal restricted Project details through assignment views. `equipment.usage.edit` permits audited correction of manual usage only; Daily Site Report-origin usage is corrected through the submitted-report correction path.
+
+Earlier placeholders `equipment.register.*`, `equipment.usage.record` and `equipment.maintenance.manage` are not V0.2-F enforcement permissions. Maintenance remains Future under EQP-008.
 
 ---
 
