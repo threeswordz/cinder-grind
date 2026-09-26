@@ -4,9 +4,12 @@
 **Source of truth:** Live GitHub repository state
 
 - Current Release: V0.2 Project & Scheduling
-- Current Stage: V0.2-E Site Execution — IMPLEMENTATION
-- Completed Stages: V0.1-A Technical Skeleton; V0.1-B Company / Identity / Security; V0.1-C Administration; V0.1-D Master Data; V0.1-E Projects; V0.1-F WBS & Cost Codes; V0.1-G Basic Documents; V0.1-H Integration / Regression / UAT; V0.2-A Scheduling Data Model; V0.2-B Scheduling Engine; V0.2-C Baselines / Progress; V0.2-D Gantt / Lookahead
-- Active Issue: #48 — V0.2-E Site Execution
+- Current Stage: V0.2-F Equipment — PRE-FLIGHT
+- Completed Stages: V0.1-A Technical Skeleton; V0.1-B Company / Identity / Security; V0.1-C Administration; V0.1-D Master Data; V0.1-E Projects; V0.1-F WBS & Cost Codes; V0.1-G Basic Documents; V0.1-H Integration / Regression / UAT; V0.2-A Scheduling Data Model; V0.2-B Scheduling Engine; V0.2-C Baselines / Progress; V0.2-D Gantt / Lookahead; V0.2-E Site Execution
+- Active Issue: #50 — V0.2-F Equipment — Business Rules
+- Completed Issue: #48 — V0.2-E Site Execution
+- Completed Branch: `v0.2-e-site-execution`
+- Merged PR: #49 — V0.2-E Site Execution
 - Completed Issue: #47 — V0.2-E Site Execution — Business Rules
 - Completed Issue: #45 — V0.2-D Gantt / Lookahead
 - Completed Branch: `v0.2-d-gantt-lookahead`
@@ -40,7 +43,7 @@
 - V0.1 cross-module release acceptance scenario: PASS in the Stage H release-candidate regression suite.
 - Open defect check at V0.1 acceptance: no Severity 1 or Severity 2 release-blocking defect recorded.
 - Governance: `AGENTS.md`, `docs/PROJECT-GOVERNANCE.md`, PR governance checklist and DEC-008 are active; material decisions must pass the repository pre-flight and open-source/zero-cost-first constraint.
-- Next action: implement V0.2-E Site Execution under DEC-012 on `v0.2-e-site-execution`, preserving the Stage F Equipment boundary.
+- Next action: Product / Business Owner to approve or replace the V0.2-F Equipment business rules in Issue #50 before implementation begins.
 
 ## Stage E completed
 
@@ -308,3 +311,29 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - Stage E testing exposed and fixed a pre-existing direct Project-access edge case where an empty Project scope could be overwritten by the requested Project id; a regression test now protects that shared authorization helper.
 - CI #790 and CI #792 passed during implementation, including migrations, full regression, production dependency audit, web build and live HTTP acceptance; final exact-head CI is revalidated after the final hardening/documentation commits.
 - no payroll/timesheet, full QA/QC, external weather service, Inventory posting, Equipment duplication or V0.3+ scope was introduced.
+
+## V0.2-E completed
+
+- PR #49 squash-merged to `main` as `20b9661f2e456a4a05639626b18869de92ee7579`.
+- Issue #48 closed by the merged PR.
+- DEC-012 Daily Site Report rules implemented.
+- one canonical Daily Site Report per Project/reporting date with DRAFT → SUBMITTED lifecycle.
+- aggregated manpower, material-use observations, local weather, site issues, delay reasons and lightweight inspections implemented.
+- Daily Report progress appends into the existing immutable Activity Progress history; submitted-report progress corrections append later history rather than rewriting prior entries.
+- site photographs/files reuse the existing Documents storage abstraction; physical storage keys remain server-side.
+- submitted report content and Daily Site Report document links are protected from silent mutation.
+- Project/date uniqueness, Company/Project reference integrity, Project-scope authorization and audit controls are active.
+- direct Project access empty-scope composition was hardened and regression-tested.
+- Stage E retained the V0.2-F Equipment boundary: no free-text/duplicate Equipment master was introduced.
+- exact-head branch CI #812 and PR CI #813 passed on `da3432635a358a6a5e7dbe2047dec271bb38609c`.
+- post-merge `main` CI #814 passed on `20b9661f2e456a4a05639626b18869de92ee7579`, including migration-from-zero, full regression, builds and live HTTP acceptance.
+- no Inventory posting, payroll/timesheets, full QA/QC, external weather dependency, Equipment cost allocation, paid dependency or V0.3+ scope was introduced.
+
+## V0.2-F pre-flight
+
+- Stage E is complete and merged.
+- Issue #50 records the unresolved Product / Business Owner rules for Equipment identity/type, operational status, derived availability, Project assignment history, usage, Daily Site Report integration and usage corrections/history.
+- EQP-001 through EQP-007 and SITE-005 are the V0.2 Stage F requirements.
+- EQP-008 Maintenance Records remains Future.
+- EQP-009 Equipment Cost Allocation remains V0.7 Cost Control.
+- Stage F implementation is paused until Issue #50 rules are approved or replaced.
