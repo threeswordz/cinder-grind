@@ -2,6 +2,7 @@ import { Box, Tab, Tabs } from '@mui/material';
 import { useState } from 'react';
 
 import { ActivitiesPanel } from './ActivitiesPanel';
+import { BaselinesProgressPanel } from './BaselinesProgressPanel';
 import { ActivityTypesPanel } from './ActivityTypesPanel';
 import { CalendarsPanel } from './CalendarsPanel';
 
@@ -13,9 +14,11 @@ export function SchedulingPanel({
   const canProgramme = permissions.includes('schedule.programme.view');
   const canCalendars = permissions.includes('schedule.calendar.manage');
   const canTypes = permissions.includes('admin.activity_types.manage');
+  const canBaselineProgress = permissions.includes('schedule.programme.view');
 
   const available = [
     ...(canProgramme ? [{ key: 'activities', label: 'Activities' }] : []),
+    ...(canBaselineProgress ? [{ key: 'baseline-progress', label: 'Baselines & Progress' }] : []),
     ...(canCalendars ? [{ key: 'calendars', label: 'Working Calendars' }] : []),
     ...(canTypes ? [{ key: 'types', label: 'Activity Types' }] : []),
   ];
@@ -43,6 +46,9 @@ export function SchedulingPanel({
       ) : null}
       {active === 'activities' ? (
         <ActivitiesPanel permissions={permissions} />
+      ) : null}
+      {active === 'baseline-progress' ? (
+        <BaselinesProgressPanel permissions={permissions} />
       ) : null}
       {active === 'calendars' ? (
         <CalendarsPanel canManage={canCalendars} />
