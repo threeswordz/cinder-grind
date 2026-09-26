@@ -25,3 +25,5 @@ export function bool(body: Record<string, unknown>, field: string) {
   const value=body[field]; if(value===undefined)return undefined; if(typeof value!=='boolean')throw invalid(field,'Must be a boolean.'); return value;
 }
 export function code(value:string, field:string){const v=value.toUpperCase();if(!/^[A-Z0-9][A-Z0-9._-]*$/.test(v))throw invalid(field,'Use letters, numbers, dot, underscore or hyphen only.');return v;}
+
+export function uuid(value:string,field:string){if(!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value))throw invalid(field,'Must be a valid UUID.');return value;}
