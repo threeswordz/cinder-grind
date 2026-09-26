@@ -21,6 +21,7 @@ import {
   DocumentPolicyService,
   UploadedDocumentFile,
 } from './document-policy.service';
+import { DocumentTargetsService } from './document-targets.service';
 import { DocumentsService } from './documents.service';
 import { LocalDocumentStorage } from './local-document-storage.service';
 
