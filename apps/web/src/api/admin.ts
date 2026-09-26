@@ -201,4 +201,28 @@ export const adminApi = {
       method: 'POST',
       body: JSON.stringify(body),
     }),
+  updateApprovalWorkflow: (
+    id: string,
+    body: { workflowName?: string; isActive?: boolean },
+  ) =>
+    apiRequest<Data<ApprovalWorkflow>>('/admin/approval-workflows/' + id, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    }),
+  replaceApprovalSteps: (
+    id: string,
+    steps: Array<{
+      stepNo: number;
+      stepName: string;
+      requiredApprovals: number;
+      roleIds: string[];
+    }>,
+  ) =>
+    apiRequest<Data<ApprovalWorkflow>>(
+      '/admin/approval-workflows/' + id + '/steps',
+      {
+        method: 'PUT',
+        body: JSON.stringify({ steps }),
+      },
+    ),
 };
