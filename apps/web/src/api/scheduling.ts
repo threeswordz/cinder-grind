@@ -224,6 +224,12 @@ export type ScheduleComparisonRecord = {
     wbs: { id: string; wbsCode: string; wbsName: string };
     isSummary: boolean;
     isMilestone: boolean;
+    plannedDurationWorkDays: number;
+    activityStatus: {
+      id: string;
+      statusCode: string;
+      statusLabel: string;
+    } | null;
     currentPercentComplete: number | null;
     actualStartDate: string | null;
     actualFinishDate: string | null;
@@ -257,6 +263,12 @@ export type SchedulePresentationRecord = {
     wbs: { id: string; wbsCode: string; wbsName: string };
     isSummary: boolean;
     isMilestone: boolean;
+    plannedDurationWorkDays: number;
+    activityStatus: {
+      id: string;
+      statusCode: string;
+      statusLabel: string;
+    } | null;
     currentPercentComplete: number | null;
     actualStartDate: string | null;
     actualFinishDate: string | null;
