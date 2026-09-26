@@ -39,6 +39,14 @@ export type SiteProgressInput = {
   note?: string | null;
 };
 
+export type SiteEquipmentUsageInput = {
+  equipmentId: string;
+  operatingHours?: Prisma.Decimal | null;
+  activityId?: string | null;
+  wbsId?: string | null;
+  remarks?: string | null;
+};
+
 export type SiteIssueInput = {
   activityId?: string | null;
   issueText: string;
@@ -64,6 +72,7 @@ export type DailySiteReportCreateInput = {
   generalRemarks?: string | null;
   manpower: SiteManpowerInput[];
   materialUsage: SiteMaterialUsageInput[];
+  equipmentUsage: SiteEquipmentUsageInput[];
   progress: SiteProgressInput[];
   issues: SiteIssueInput[];
   delays: SiteDelayInput[];
@@ -76,6 +85,7 @@ export type DailySiteReportUpdateInput = {
   generalRemarks?: string | null;
   manpower?: SiteManpowerInput[];
   materialUsage?: SiteMaterialUsageInput[];
+  equipmentUsage?: SiteEquipmentUsageInput[];
   progress?: SiteProgressInput[];
   issues?: SiteIssueInput[];
   delays?: SiteDelayInput[];
@@ -156,10 +166,10 @@ export class SiteExecutionService {
       uoms,
       documentTypes,
       equipmentIntegration: {
-        available: false,
+        available: true,
         targetStage: 'V0.2-F',
         message:
-          'Equipment usage will reference the canonical Equipment Register when V0.2-F is implemented.',
+          'Equipment usage references the canonical Equipment Register and effective Project assignment.',
       },
     };
   }
@@ -191,6 +201,7 @@ export class SiteExecutionService {
         _count: {
           select: {
             materialUsage: true,
+            equipmentUsage: true,
             progressLines: true,
             issues: true,
             delays: true,
@@ -240,6 +251,26 @@ export class SiteExecutionService {
           orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
         })
       : [];
+    const correctionEquipment = correctionIds.length
+      ? await this.prisma.equipmentUsage.findMany({
+          where: {
+            companyId: auth.companyId,
+            sourceType: 'DAILY_SITE_REPORT_CORRECTION',
+            sourceEntityId: { in: correctionIds },
+          },
+          include: {
+            equipment: {
+              select: { id: true, equipmentCode: true, equipmentName: true },
+            },
+            activity: {
+              select: { id: true, activityCode: true, activityName: true },
+            },
+            wbs: { select: { id: true, wbsCode: true, wbsName: true } },
+          },
+          orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+        })
+      : [];
+
     const progressByCorrection = new Map<string, typeof correctionProgress>();
     for (const progress of correctionProgress) {
       if (!progress.sourceEntityId) continue;
@@ -248,12 +279,22 @@ export class SiteExecutionService {
       progressByCorrection.set(progress.sourceEntityId, rows);
     }
 
+    const equipmentByCorrection = new Map<string, typeof correctionEquipment>();
+    for (const usage of correctionEquipment) {
+      if (!usage.sourceEntityId) continue;
+      const rows = equipmentByCorrection.get(usage.sourceEntityId) ?? [];
+      rows.push(usage);
+      equipmentByCorrection.set(usage.sourceEntityId, rows);
+    }
+
     return {
       ...report,
       corrections: report.corrections.map((correction) => ({
         ...correction,
         progressCorrections:
           progressByCorrection.get(correction.id) ?? [],
+        equipmentCorrections:
+          equipmentByCorrection.get(correction.id) ?? [],
       })),
       totalManpower: report.manpowerLines.reduce(
         (total, line) => total + line.headcount,
@@ -273,6 +314,7 @@ export class SiteExecutionService {
           tx,
           context.auth.companyId,
           input.projectId,
+          input.reportDate,
           input,
         );
 
@@ -313,7 +355,52 @@ export class SiteExecutionService {
                   : {}),
               })),
             },
-            progressLines: {
+            equipmentUsage: {
+              create: input.equipmentUsage.map((line) => ({
+                equipmentId: line.equipmentId,
+                ...(line.operatingHours !== undefined
+                  ? { operatingHours: line.operatingHours }
+                  : {}),
+                ...(line.activityId !== undefined
+                  ? { activityId: line.activityId }
+                  : {}),
+                ...(line.wbsId !== undefined
+                  ? { wbsId: line.wbsId }
+                  : {}),
+                ...(line.remarks !== undefined
+                  ? { remarks: line.remarks }
+                  : {}),
+              })),
+            },
+            equipmentUsage: {
+        include: {
+          equipment: {
+            select: {
+              id: true,
+              equipmentCode: true,
+              equipmentName: true,
+              operationalStatus: true,
+              isActive: true,
+            },
+          },
+          activity: {
+            select: { id: true, activityCode: true, activityName: true },
+          },
+          wbs: { select: { id: true, wbsCode: true, wbsName: true } },
+          equipmentUsage: {
+            select: {
+              id: true,
+              usageDate: true,
+              operatingHours: true,
+              sourceType: true,
+              sourceEntityId: true,
+              createdAt: true,
+            },
+          },
+        },
+        orderBy: { createdAt: 'asc' as const },
+      },
+      progressLines: {
               create: input.progress.map((line) => ({
                 activityId: line.activityId,
                 percentComplete: line.percentComplete,
@@ -400,9 +487,11 @@ export class SiteExecutionService {
           tx,
           context.auth.companyId,
           before.projectId,
+          input.reportDate ?? before.reportDate,
           {
             manpower: input.manpower ?? [],
             materialUsage: input.materialUsage ?? [],
+            equipmentUsage: input.equipmentUsage ?? [],
             progress: input.progress ?? [],
             issues: input.issues ?? [],
             delays: input.delays ?? [],
@@ -445,6 +534,30 @@ export class SiteExecutionService {
                 ...(line.wbsId !== undefined
                   ? { wbsId: line.wbsId }
                   : {}),
+                ...(line.remarks !== undefined
+                  ? { remarks: line.remarks }
+                  : {}),
+              })),
+            });
+          }
+        }
+
+        if (input.equipmentUsage !== undefined) {
+          await tx.dailySiteReportEquipmentUsage.deleteMany({
+            where: { reportId: id },
+          });
+          if (input.equipmentUsage.length) {
+            await tx.dailySiteReportEquipmentUsage.createMany({
+              data: input.equipmentUsage.map((line) => ({
+                reportId: id,
+                equipmentId: line.equipmentId,
+                ...(line.operatingHours !== undefined
+                  ? { operatingHours: line.operatingHours }
+                  : {}),
+                ...(line.activityId !== undefined
+                  ? { activityId: line.activityId }
+                  : {}),
+                ...(line.wbsId !== undefined ? { wbsId: line.wbsId } : {}),
                 ...(line.remarks !== undefined
                   ? { remarks: line.remarks }
                   : {}),
@@ -574,7 +687,7 @@ export class SiteExecutionService {
     await this.prisma.$transaction(async (tx) => {
       const report = await tx.dailySiteReport.findFirst({
         where: { id, companyId: context.auth.companyId },
-        include: { progressLines: true },
+        include: { progressLines: true, equipmentUsage: true },
       });
       if (!report) throw this.notFound();
       await this.access.assertAccess(context.auth, report.projectId, tx);
@@ -619,6 +732,46 @@ export class SiteExecutionService {
         );
       }
 
+      for (const line of report.equipmentUsage) {
+        const usage = await tx.equipmentUsage.create({
+          data: {
+            companyId: context.auth.companyId,
+            equipmentId: line.equipmentId,
+            projectId: report.projectId,
+            usageDate: report.reportDate,
+            ...(line.operatingHours !== null
+              ? { operatingHours: line.operatingHours }
+              : {}),
+            ...(line.activityId !== null ? { activityId: line.activityId } : {}),
+            ...(line.wbsId !== null ? { wbsId: line.wbsId } : {}),
+            ...(line.remarks !== null ? { remarks: line.remarks } : {}),
+            sourceType: 'DAILY_SITE_REPORT',
+            sourceEntityId: report.id,
+            recordedByUserId: context.auth.userId,
+          },
+        });
+        await tx.dailySiteReportEquipmentUsage.update({
+          where: { id: line.id },
+          data: { equipmentUsageId: usage.id },
+        });
+        await this.audit.record(
+          {
+            ...context,
+            entityType: 'EQUIPMENT_USAGE',
+            entityId: usage.id,
+            action: 'CREATE',
+            newValues: {
+              equipmentId: line.equipmentId,
+              projectId: report.projectId,
+              usageDate: report.reportDate,
+              sourceType: 'DAILY_SITE_REPORT',
+              sourceEntityId: report.id,
+            },
+          },
+          tx,
+        );
+      }
+
       const submitted = await tx.dailySiteReport.update({
         where: { id },
         data: {
@@ -653,6 +806,7 @@ export class SiteExecutionService {
     id: string,
     correctionNote: string,
     progressCorrections: SiteProgressInput[] = [],
+    equipmentCorrections: SiteEquipmentUsageInput[] = [],
   ) {
     const correctionId = await this.prisma.$transaction(async (tx) => {
       const report = await tx.dailySiteReport.findFirst({
@@ -671,9 +825,11 @@ export class SiteExecutionService {
         tx,
         context.auth.companyId,
         report.projectId,
+        report.reportDate,
         {
           manpower: [],
           materialUsage: [],
+          equipmentUsage: equipmentCorrections,
           progress: progressCorrections,
           issues: [],
           delays: [],
@@ -723,6 +879,44 @@ export class SiteExecutionService {
         );
       }
 
+      for (const line of equipmentCorrections) {
+        const usage = await tx.equipmentUsage.create({
+          data: {
+            companyId: context.auth.companyId,
+            equipmentId: line.equipmentId,
+            projectId: report.projectId,
+            usageDate: report.reportDate,
+            ...(line.operatingHours !== undefined
+              ? { operatingHours: line.operatingHours }
+              : {}),
+            ...(line.activityId !== undefined
+              ? { activityId: line.activityId }
+              : {}),
+            ...(line.wbsId !== undefined ? { wbsId: line.wbsId } : {}),
+            ...(line.remarks !== undefined ? { remarks: line.remarks } : {}),
+            sourceType: 'DAILY_SITE_REPORT_CORRECTION',
+            sourceEntityId: correction.id,
+            recordedByUserId: context.auth.userId,
+          },
+        });
+        await this.audit.record(
+          {
+            ...context,
+            entityType: 'EQUIPMENT_USAGE',
+            entityId: usage.id,
+            action: 'CREATE',
+            newValues: {
+              equipmentId: line.equipmentId,
+              projectId: report.projectId,
+              usageDate: report.reportDate,
+              sourceType: 'DAILY_SITE_REPORT_CORRECTION',
+              sourceEntityId: correction.id,
+            },
+          },
+          tx,
+        );
+      }
+
       await this.audit.record(
         {
           ...context,
@@ -733,6 +927,7 @@ export class SiteExecutionService {
             reportId: id,
             correctionNote,
             progressCorrectionCount: progressCorrections.length,
+            equipmentCorrectionCount: equipmentCorrections.length,
           },
         },
         tx,
@@ -763,9 +958,29 @@ export class SiteExecutionService {
       orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
     });
 
+    const persistedEquipmentCorrections =
+      await this.prisma.equipmentUsage.findMany({
+        where: {
+          companyId: context.auth.companyId,
+          sourceType: 'DAILY_SITE_REPORT_CORRECTION',
+          sourceEntityId: correctionId,
+        },
+        include: {
+          equipment: {
+            select: { id: true, equipmentCode: true, equipmentName: true },
+          },
+          activity: {
+            select: { id: true, activityCode: true, activityName: true },
+          },
+          wbs: { select: { id: true, wbsCode: true, wbsName: true } },
+        },
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      });
+
     return {
       ...correction,
       progressCorrections: persistedProgressCorrections,
+      equipmentCorrections: persistedEquipmentCorrections,
     };
   }
 
@@ -936,8 +1151,10 @@ export class SiteExecutionService {
     tx: Prisma.TransactionClient,
     companyId: string,
     projectId: string,
+    reportDate: Date,
     input: {
       materialUsage: SiteMaterialUsageInput[];
+      equipmentUsage: SiteEquipmentUsageInput[];
       progress: SiteProgressInput[];
       issues: SiteIssueInput[];
       delays: SiteDelayInput[];
@@ -947,6 +1164,9 @@ export class SiteExecutionService {
   ) {
     const activityIds = new Set<string>();
     for (const line of input.materialUsage) {
+      if (line.activityId) activityIds.add(line.activityId);
+    }
+    for (const line of input.equipmentUsage) {
       if (line.activityId) activityIds.add(line.activityId);
     }
     for (const line of input.progress) activityIds.add(line.activityId);
@@ -981,7 +1201,7 @@ export class SiteExecutionService {
     );
 
     const wbsIds = new Set(
-      input.materialUsage
+      [...input.materialUsage, ...input.equipmentUsage]
         .map((line) => line.wbsId)
         .filter((id): id is string => Boolean(id)),
     );
@@ -1042,6 +1262,55 @@ export class SiteExecutionService {
       ) {
         throw this.invalidReference(
           'When both Activity and WBS are supplied on a material-use line, the Activity must belong to that WBS.',
+        );
+      }
+    }
+
+    const equipmentIds = new Set(
+      input.equipmentUsage.map((line) => line.equipmentId),
+    );
+    if (equipmentIds.size) {
+      const eligible = await tx.equipment.findMany({
+        where: {
+          id: { in: [...equipmentIds] },
+          companyId,
+          isActive: true,
+          operationalStatus: 'AVAILABLE',
+        },
+        select: { id: true },
+      });
+      if (eligible.length !== equipmentIds.size) {
+        throw this.invalidReference(
+          'All Equipment references must be active, AVAILABLE and belong to the current Company.',
+        );
+      }
+
+      const assigned = await tx.equipmentAssignment.findMany({
+        where: {
+          companyId,
+          projectId,
+          equipmentId: { in: [...equipmentIds] },
+          assignedFrom: { lte: reportDate },
+          OR: [{ assignedTo: null }, { assignedTo: { gte: reportDate } }],
+        },
+        select: { equipmentId: true },
+      });
+      const assignedIds = new Set(assigned.map((row) => row.equipmentId));
+      if ([...equipmentIds].some((id) => !assignedIds.has(id))) {
+        throw this.invalidReference(
+          'All Equipment must be assigned to the Daily Site Report Project on the reporting date.',
+        );
+      }
+    }
+
+    for (const line of input.equipmentUsage) {
+      if (
+        line.activityId &&
+        line.wbsId &&
+        activityMap.get(line.activityId)?.wbsId !== line.wbsId
+      ) {
+        throw this.invalidReference(
+          'When both Activity and WBS are supplied on an Equipment line, the Activity must belong to that WBS.',
         );
       }
     }
