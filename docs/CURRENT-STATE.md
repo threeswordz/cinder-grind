@@ -3,9 +3,11 @@
 **Last verified:** 2026-09-26
 **Source of truth:** Live GitHub repository state
 
-- Current Release: V0.1 Foundation — COMPLETE
-- Current Stage: V0.1-H Integration / Regression / UAT — COMPLETE
+- Current Release: V0.2 Project & Scheduling — ENTRY GATE
+- Current Stage: V0.2 Release Entry Gate — Scope & Acceptance Baselines
 - Completed Stages: V0.1-A Technical Skeleton; V0.1-B Company / Identity / Security; V0.1-C Administration; V0.1-D Master Data; V0.1-E Projects; V0.1-F WBS & Cost Codes; V0.1-G Basic Documents; V0.1-H Integration / Regression / UAT
+- Active Issue: #29 — V0.2 Release Entry Gate — Scope & Acceptance Baselines
+- Active Branch: `v0.2-entry-gate`
 - Completed Issue: #27 — V0.1-H Integration / Regression / UAT
 - Completed Branch: `v0.1-h-integration-uat`
 - Merged PR: #28 — V0.1-H Integration / Regression / UAT
@@ -27,7 +29,7 @@
 - V0.1 cross-module release acceptance scenario: PASS in the Stage H release-candidate regression suite.
 - Open defect check at V0.1 acceptance: no Severity 1 or Severity 2 release-blocking defect recorded.
 - Governance: `AGENTS.md`, `docs/PROJECT-GOVERNANCE.md`, PR governance checklist and DEC-008 are active; material decisions must pass the repository pre-flight and open-source/zero-cost-first constraint.
-- Next action: verify V0.2 release-entry gates, then begin V0.2-A Scheduling Data Model only if the approved scope/requirements/acceptance baseline is complete.
+- Next action: Product / Business Owner review and approval of draft `docs/V0.2-SCOPE.md` and `docs/V0.2-ACCEPTANCE-CRITERIA.md`; no V0.2-A implementation before approval.
 
 ## Stage E completed
 
