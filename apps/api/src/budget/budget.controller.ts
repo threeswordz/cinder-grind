@@ -184,18 +184,15 @@ export class BudgetController {
         : {}),
       ...(input.description !== undefined
         ? {
-            description: budgetNullableString(
-              input,
-              'description',
-              10000,
-            ),
+            description:
+              budgetNullableString(input, 'description', 10000) ?? null,
           }
         : {}),
       ...(input.sortOrder !== undefined
         ? { sortOrder: budgetInteger(input.sortOrder, 'sortOrder') }
         : {}),
       ...(input.isActive !== undefined
-        ? { isActive: budgetBoolean(input, 'isActive') }
+        ? { isActive: budgetBoolean(input, 'isActive')! }
         : {}),
     };
     budgetNonEmpty(data);
@@ -311,15 +308,12 @@ export class BudgetController {
           }
         : {}),
       ...(input.wbsId !== undefined
-        ? { wbsId: budgetUuid(input.wbsId, 'wbsId', true) }
+        ? { wbsId: budgetUuid(input.wbsId, 'wbsId', true) ?? null }
         : {}),
       ...(input.costCodeId !== undefined
         ? {
-            costCodeId: budgetUuid(
-              input.costCodeId,
-              'costCodeId',
-              true,
-            ),
+            costCodeId:
+              budgetUuid(input.costCodeId, 'costCodeId', true) ?? null,
           }
         : {}),
       ...(input.sortOrder !== undefined
