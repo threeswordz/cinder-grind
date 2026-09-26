@@ -21,13 +21,6 @@ import { RolesPanel } from './admin/RolesPanel';
 import { StatusesPanel } from './admin/StatusesPanel';
 import { SystemSettingsPanel } from './admin/SystemSettingsPanel';
 import { UsersPanel } from './admin/UsersPanel';
-import { MaterialsPanel } from './master-data/MaterialsPanel';
-import {
-  CustomersPanel,
-  EmployeesPanel,
-  SuppliersPanel,
-  UomsPanel,
-} from './master-data/StandardMasters';
 import { MasterDataPanel } from './master-data/MasterDataPanel';
 
 type Section = {
