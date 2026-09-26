@@ -68,11 +68,23 @@ export class MasterDataService {
   ) {
     try {
       return await this.prisma.$transaction(async (tx) => {
+        const createData: Prisma.CustomerUncheckedCreateInput = {
+          companyId: context.auth.companyId,
+          customerCode: data.customerCode,
+          customerName: data.customerName,
+          ...(data.registrationNumber !== undefined
+            ? { registrationNumber: data.registrationNumber }
+            : {}),
+          ...(data.contactName !== undefined
+            ? { contactName: data.contactName }
+            : {}),
+          ...(data.email !== undefined ? { email: data.email } : {}),
+          ...(data.phone !== undefined ? { phone: data.phone } : {}),
+          ...(data.address !== undefined ? { address: data.address } : {}),
+        };
+
         const created = await tx.customer.create({
-          data: {
-            companyId: context.auth.companyId,
-            ...data,
-          },
+          data: createData,
         });
         await this.audit.record(
           {
@@ -113,7 +125,29 @@ export class MasterDataService {
         });
         if (!before) throw this.notFound('Customer');
 
-        const after = await tx.customer.update({ where: { id }, data });
+        const updateData: Prisma.CustomerUncheckedUpdateInput = {
+          ...(data.customerCode !== undefined
+            ? { customerCode: data.customerCode }
+            : {}),
+          ...(data.customerName !== undefined
+            ? { customerName: data.customerName }
+            : {}),
+          ...(data.registrationNumber !== undefined
+            ? { registrationNumber: data.registrationNumber }
+            : {}),
+          ...(data.contactName !== undefined
+            ? { contactName: data.contactName }
+            : {}),
+          ...(data.email !== undefined ? { email: data.email } : {}),
+          ...(data.phone !== undefined ? { phone: data.phone } : {}),
+          ...(data.address !== undefined ? { address: data.address } : {}),
+          ...(data.isActive !== undefined ? { isActive: data.isActive } : {}),
+        };
+
+        const after = await tx.customer.update({
+          where: { id },
+          data: updateData,
+        });
         await this.audit.record(
           {
             ...context,
@@ -179,11 +213,23 @@ export class MasterDataService {
   ) {
     try {
       return await this.prisma.$transaction(async (tx) => {
+        const createData: Prisma.SupplierUncheckedCreateInput = {
+          companyId: context.auth.companyId,
+          supplierCode: data.supplierCode,
+          supplierName: data.supplierName,
+          ...(data.registrationNumber !== undefined
+            ? { registrationNumber: data.registrationNumber }
+            : {}),
+          ...(data.contactName !== undefined
+            ? { contactName: data.contactName }
+            : {}),
+          ...(data.email !== undefined ? { email: data.email } : {}),
+          ...(data.phone !== undefined ? { phone: data.phone } : {}),
+          ...(data.address !== undefined ? { address: data.address } : {}),
+        };
+
         const created = await tx.supplier.create({
-          data: {
-            companyId: context.auth.companyId,
-            ...data,
-          },
+          data: createData,
         });
         await this.audit.record(
           {
@@ -224,7 +270,29 @@ export class MasterDataService {
         });
         if (!before) throw this.notFound('Supplier');
 
-        const after = await tx.supplier.update({ where: { id }, data });
+        const updateData: Prisma.SupplierUncheckedUpdateInput = {
+          ...(data.supplierCode !== undefined
+            ? { supplierCode: data.supplierCode }
+            : {}),
+          ...(data.supplierName !== undefined
+            ? { supplierName: data.supplierName }
+            : {}),
+          ...(data.registrationNumber !== undefined
+            ? { registrationNumber: data.registrationNumber }
+            : {}),
+          ...(data.contactName !== undefined
+            ? { contactName: data.contactName }
+            : {}),
+          ...(data.email !== undefined ? { email: data.email } : {}),
+          ...(data.phone !== undefined ? { phone: data.phone } : {}),
+          ...(data.address !== undefined ? { address: data.address } : {}),
+          ...(data.isActive !== undefined ? { isActive: data.isActive } : {}),
+        };
+
+        const after = await tx.supplier.update({
+          where: { id },
+          data: updateData,
+        });
         await this.audit.record(
           {
             ...context,
@@ -288,11 +356,17 @@ export class MasterDataService {
   ) {
     try {
       return await this.prisma.$transaction(async (tx) => {
+        const createData: Prisma.EmployeeUncheckedCreateInput = {
+          companyId: context.auth.companyId,
+          employeeCode: data.employeeCode,
+          employeeName: data.employeeName,
+          ...(data.jobTitle !== undefined ? { jobTitle: data.jobTitle } : {}),
+          ...(data.email !== undefined ? { email: data.email } : {}),
+          ...(data.phone !== undefined ? { phone: data.phone } : {}),
+        };
+
         const created = await tx.employee.create({
-          data: {
-            companyId: context.auth.companyId,
-            ...data,
-          },
+          data: createData,
         });
         await this.audit.record(
           {
@@ -345,7 +419,23 @@ export class MasterDataService {
           }
         }
 
-        const after = await tx.employee.update({ where: { id }, data });
+        const updateData: Prisma.EmployeeUncheckedUpdateInput = {
+          ...(data.employeeCode !== undefined
+            ? { employeeCode: data.employeeCode }
+            : {}),
+          ...(data.employeeName !== undefined
+            ? { employeeName: data.employeeName }
+            : {}),
+          ...(data.jobTitle !== undefined ? { jobTitle: data.jobTitle } : {}),
+          ...(data.email !== undefined ? { email: data.email } : {}),
+          ...(data.phone !== undefined ? { phone: data.phone } : {}),
+          ...(data.isActive !== undefined ? { isActive: data.isActive } : {}),
+        };
+
+        const after = await tx.employee.update({
+          where: { id },
+          data: updateData,
+        });
         await this.audit.record(
           {
             ...context,
@@ -463,9 +553,18 @@ export class MasterDataService {
           }
         }
 
+        const updateData: Prisma.UnitOfMeasureUncheckedUpdateInput = {
+          ...(data.uomCode !== undefined ? { uomCode: data.uomCode } : {}),
+          ...(data.uomName !== undefined ? { uomName: data.uomName } : {}),
+          ...(data.decimalPlaces !== undefined
+            ? { decimalPlaces: data.decimalPlaces }
+            : {}),
+          ...(data.isActive !== undefined ? { isActive: data.isActive } : {}),
+        };
+
         const after = await tx.unitOfMeasure.update({
           where: { id },
-          data,
+          data: updateData,
         });
         await this.audit.record(
           {
@@ -540,11 +639,21 @@ export class MasterDataService {
           data.defaultUomId,
         );
 
+        const createData: Prisma.MaterialUncheckedCreateInput = {
+          companyId: context.auth.companyId,
+          materialCode: data.materialCode,
+          materialName: data.materialName,
+          defaultUomId: data.defaultUomId,
+          ...(data.description !== undefined
+            ? { description: data.description }
+            : {}),
+          ...(data.materialCategory !== undefined
+            ? { materialCategory: data.materialCategory }
+            : {}),
+        };
+
         const created = await tx.material.create({
-          data: {
-            companyId: context.auth.companyId,
-            ...data,
-          },
+          data: createData,
           include: { defaultUom: true },
         });
 
@@ -594,9 +703,28 @@ export class MasterDataService {
           );
         }
 
+        const updateData: Prisma.MaterialUncheckedUpdateInput = {
+          ...(data.materialCode !== undefined
+            ? { materialCode: data.materialCode }
+            : {}),
+          ...(data.materialName !== undefined
+            ? { materialName: data.materialName }
+            : {}),
+          ...(data.description !== undefined
+            ? { description: data.description }
+            : {}),
+          ...(data.defaultUomId !== undefined
+            ? { defaultUomId: data.defaultUomId }
+            : {}),
+          ...(data.materialCategory !== undefined
+            ? { materialCategory: data.materialCategory }
+            : {}),
+          ...(data.isActive !== undefined ? { isActive: data.isActive } : {}),
+        };
+
         const after = await tx.material.update({
           where: { id },
-          data,
+          data: updateData,
           include: { defaultUom: true },
         });
 
