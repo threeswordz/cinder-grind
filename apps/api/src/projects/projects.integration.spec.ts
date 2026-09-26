@@ -251,6 +251,42 @@ test('Project scope and Team/Contact boundaries are enforced in PostgreSQL', asy
       (error: unknown) => error instanceof ForbiddenException,
     );
 
+    await assert.rejects(
+      () => service.getProject(scopedAuth, randomUUID()),
+      (error: unknown) =>
+        error instanceof Error &&
+        'status' in error &&
+        (error as { status?: number }).status === 404,
+    );
+
+    await assert.rejects(
+      () => service.listMembers(scopedAuth, unassignedProject.id),
+      (error: unknown) => error instanceof ForbiddenException,
+    );
+
+    await assert.rejects(
+      () =>
+        service.addMember(
+          { auth: scopedAuth },
+          unassignedProject.id,
+          {
+            employeeId: secondEmployee.id,
+            projectRole: 'Unauthorized Assignment',
+          },
+        ),
+      (error: unknown) => error instanceof ForbiddenException,
+    );
+
+    await assert.rejects(
+      () =>
+        service.addContact(
+          { auth: scopedAuth },
+          unassignedProject.id,
+          { contactName: 'Unauthorized Contact' },
+        ),
+      (error: unknown) => error instanceof ForbiddenException,
+    );
+
     const updated = await service.updateProject(
       { auth: scopedAuth },
       project.id,
