@@ -270,6 +270,7 @@ test('Stage E keeps Daily Site Reports project-scoped, immutable after submissio
           created.id,
         ),
       (error: unknown) => error instanceof ForbiddenException,
+      'unassigned user must be denied Daily Site Report access',
     );
 
     await assert.rejects(
@@ -288,6 +289,7 @@ test('Stage E keeps Daily Site Reports project-scoped, immutable after submissio
           },
         ),
       (error: unknown) => error instanceof ConflictException,
+      'duplicate Project/date Daily Site Report must be rejected',
     );
 
     await assert.rejects(
@@ -311,6 +313,7 @@ test('Stage E keeps Daily Site Reports project-scoped, immutable after submissio
           },
         ),
       (error: unknown) => error instanceof UnprocessableEntityException,
+      'cross-Project Activity reference must be rejected',
     );
 
     const updated = await service.update(
@@ -355,23 +358,30 @@ test('Stage E keeps Daily Site Reports project-scoped, immutable after submissio
           { generalRemarks: 'Must not overwrite submitted report.' },
         ),
       (error: unknown) => error instanceof ConflictException,
+      'submitted report must reject service-layer edits',
     );
 
-    await assert.rejects(() =>
-      prisma.dailySiteReport.update({
+    await assert.rejects(
+      () =>
+        prisma.dailySiteReport.update({
         where: { id: created.id },
         data: { generalRemarks: 'Database bypass must fail.' },
       }),
+      undefined,
+      'submitted report must reject direct database edits',
     );
 
-    await assert.rejects(() =>
-      prisma.dailySiteReportManpower.create({
+    await assert.rejects(
+      () =>
+        prisma.dailySiteReportManpower.create({
         data: {
           reportId: created.id,
           tradeRole: 'Late edit',
           headcount: 1,
         },
       }),
+      undefined,
+      'submitted report child rows must be immutable in the database',
     );
 
     const correction = await service.addCorrection(
@@ -387,6 +397,8 @@ test('Stage E keeps Daily Site Reports project-scoped, immutable after submissio
         where: { id: correction!.id },
         data: { correctionNote: 'Must remain append-only.' },
       }),
+      undefined,
+      'Daily Site Report corrections must be append-only',
     );
 
     const auditCount = await prisma.auditLog.count({
