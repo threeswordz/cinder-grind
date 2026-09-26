@@ -85,8 +85,8 @@ Approved baselines:
 
 Application development has **started on V0.1 Foundation**.
 
-Current development stage:
+Current development status is maintained in `docs/CURRENT-STATE.md`.
 
-**V0.1 Foundation — Stage V0.1-A Technical Skeleton**
+Completed foundation stages: **V0.1-A through V0.1-F**.
 
-The technical skeleton is being validated through PR #12 before merge to `main`. Development continues only through the approved roadmap, requirements, security controls, test gates and dependency-license rules.
+Next stage: **V0.1-G Basic Documents**. Development continues only through the approved roadmap, requirements, security controls, test gates and dependency-license rules.
