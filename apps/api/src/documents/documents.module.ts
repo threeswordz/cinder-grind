@@ -6,6 +6,8 @@ import { AuthorizationModule } from '../authorization/authorization.module';
 import { PrismaModule } from '../prisma/prisma.module';
 import { ProjectsModule } from '../projects/projects.module';
 import { DocumentPolicyService } from './document-policy.service';
+import { DocumentTargetsController } from './document-targets.controller';
+import { DocumentTargetsService } from './document-targets.service';
 import { DocumentStorage } from './document-storage';
 import {
   DocumentsController,
@@ -22,9 +24,10 @@ import { LocalDocumentStorage } from './local-document-storage.service';
     AuditModule,
     ProjectsModule,
   ],
-  controllers: [DocumentsController, DocumentTypesController],
+  controllers: [DocumentsController, DocumentTypesController, DocumentTargetsController],
   providers: [
     DocumentsService,
+    DocumentTargetsService,
     DocumentPolicyService,
     { provide: DocumentStorage, useClass: LocalDocumentStorage },
   ],
