@@ -748,7 +748,8 @@ export class SiteExecutionService {
     });
     if (!correction) return null;
 
-    const progressCorrections = await this.prisma.activityProgress.findMany({
+    const persistedProgressCorrections =
+      await this.prisma.activityProgress.findMany({
       where: {
         companyId: context.auth.companyId,
         sourceType: 'DAILY_SITE_REPORT_CORRECTION',
@@ -764,7 +765,7 @@ export class SiteExecutionService {
 
     return {
       ...correction,
-      progressCorrections,
+      progressCorrections: persistedProgressCorrections,
     };
   }
 
