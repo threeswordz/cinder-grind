@@ -16,6 +16,18 @@ type AuditContext = {
   correlationId?: string;
 };
 
+type ProjectCreate = {
+  projectCode: string;
+  projectName: string;
+  customerId: string;
+  statusDefinitionId: string;
+  contractValue: Prisma.Decimal;
+  location?: string | null;
+  description?: string | null;
+  plannedStartDate: Date;
+  plannedCompletionDate: Date;
+};
+
 type ProjectUpdate = {
   projectCode?: string;
   projectName?: string;
@@ -154,6 +166,87 @@ export class ProjectsService {
     ]);
 
     return { customers, statuses };
+  }
+
+  async createProject(context: AuditContext, data: ProjectCreate) {
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        await this.assertActiveCustomer(
+          tx,
+          context.auth.companyId,
+          data.customerId,
+        );
+        await this.assertActiveProjectStatus(
+          tx,
+          context.auth.companyId,
+          data.statusDefinitionId,
+        );
+        this.assertDateOrder(
+          data.plannedStartDate,
+          data.plannedCompletionDate,
+          'plannedCompletionDate',
+        );
+
+        let creatorEmployeeId: string | null = null;
+        if (!this.access.canAccessAll(context.auth)) {
+          creatorEmployeeId = await this.access.activeEmployeeId(context.auth, tx);
+          if (!creatorEmployeeId) {
+            throw new UnprocessableEntityException({
+              code: 'PROJECT_CREATOR_EMPLOYEE_REQUIRED',
+              detail:
+                'A project-scoped creator must be linked to an active Employee before creating a Project.',
+            });
+          }
+        }
+
+        const created = await tx.project.create({
+          data: {
+            companyId: context.auth.companyId,
+            projectCode: data.projectCode,
+            projectName: data.projectName,
+            customerId: data.customerId,
+            statusDefinitionId: data.statusDefinitionId,
+            contractValue: data.contractValue,
+            ...(data.location !== undefined ? { location: data.location } : {}),
+            ...(data.description !== undefined
+              ? { description: data.description }
+              : {}),
+            plannedStartDate: data.plannedStartDate,
+            plannedCompletionDate: data.plannedCompletionDate,
+          },
+          include: {
+            customer: true,
+            statusDefinition: true,
+          },
+        });
+
+        if (creatorEmployeeId) {
+          await tx.projectMember.create({
+            data: {
+              projectId: created.id,
+              employeeId: creatorEmployeeId,
+              projectRole: 'Project Creator',
+            },
+          });
+        }
+
+        await this.audit.record(
+          {
+            ...context,
+            entityType: 'PROJECT',
+            entityId: created.id,
+            action: 'CREATE',
+            newValues: created,
+          },
+          tx,
+        );
+
+        return created;
+      });
+    } catch (error) {
+      this.throwDuplicate(error, 'Project code is already in use.');
+      throw error;
+    }
   }
 
   async updateProject(
