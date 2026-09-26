@@ -4,10 +4,10 @@
 **Source of truth:** Live GitHub repository state
 
 - Current Release: V0.2 Project & Scheduling
-- Current Stage: V0.2-B Scheduling Engine — READY FOR MERGE
+- Current Stage: V0.2-B Scheduling Engine — COMPLETE
 - Completed Stages: V0.1-A Technical Skeleton; V0.1-B Company / Identity / Security; V0.1-C Administration; V0.1-D Master Data; V0.1-E Projects; V0.1-F WBS & Cost Codes; V0.1-G Basic Documents; V0.1-H Integration / Regression / UAT; V0.2-A Scheduling Data Model
-- Active Issue: #36 — V0.2-B Scheduling Engine
-- Active Branch: `v0.2-b-scheduling-engine`
+- Completed Issue: #36 — V0.2-B Scheduling Engine
+- Completed Branch: `v0.2-b-scheduling-engine`
 - Completed Issue: #35 — V0.2-B Scheduling Engine — Calculation Rules
 - Completed Issue: #29 — V0.2 Release Entry Gate — Scope & Acceptance Baselines
 - Completed Branch: `v0.2-entry-gate`
@@ -32,7 +32,7 @@
 - V0.1 cross-module release acceptance scenario: PASS in the Stage H release-candidate regression suite.
 - Open defect check at V0.1 acceptance: no Severity 1 or Severity 2 release-blocking defect recorded.
 - Governance: `AGENTS.md`, `docs/PROJECT-GOVERNANCE.md`, PR governance checklist and DEC-008 are active; material decisions must pass the repository pre-flight and open-source/zero-cost-first constraint.
-- Next action: final review and merge of PR #37, then pre-flight V0.2-C Baselines / Progress.
+- Next action: pre-flight V0.2-C Baselines / Progress against approved baseline, rebaseline, progress-history and delay rules; implement only where semantics are defined.
 
 ## Stage E completed
 
@@ -164,4 +164,19 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - deterministic engine tests cover holidays, negative lag, mixed calendars, fractional durations, FS/SS/FF/SF, forecast roots, float and cycles
 - PostgreSQL integration covers milestone/cycle constraints and schedule analysis
 - live HTTP acceptance covers calculated dates, Critical Path evidence, cycle rejection and unassigned-Project denial
-- exact-head CI #629 passed, including migration-from-zero, full regression, Scheduling Engine tests and live HTTP acceptance
+- final exact-head CI #647 passed on `012ff6479da005044fce5a83bdfb26630eac6d23`, including migration-from-zero, full regression, interval/timezone-aware Scheduling Engine tests and live HTTP acceptance
+
+
+## V0.2-B completed
+
+- Stage B PR #37 squash-merged to `main` as `bc942de7937fe105a6367f57a5f88a559daf81e8`
+- Issue #36 closed automatically
+- DEC-009 Scheduling calculation rules implemented
+- working-calendar calculations honor configured working intervals and IANA time zones
+- FS / SS / FF / SF relationships and signed successor-calendar lag/lead implemented
+- dependency graph cycle prevention is enforced in service logic and PostgreSQL with Project-scoped concurrency serialization
+- upgrade-safe milestone integrity is enforced for new/updated rows without silently rewriting legacy schedule data
+- planned/forecast backend schedule analysis, CPM, Total Float and critical-Activity derivation implemented
+- all four automated review findings addressed and review threads resolved
+- final exact-head CI #647 passed, including PostgreSQL migrations, full regression, API startup and live HTTP acceptance
+- no new runtime dependency, paid scheduling engine, Stage C/D/E/F, or V0.3+ scope introduced
