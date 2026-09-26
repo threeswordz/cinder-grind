@@ -23,6 +23,9 @@ model Company {
   approvalWorkflows ApprovalWorkflow[]
   approvalInstances ApprovalInstance[]
   auditLogs         AuditLog[]
+  statusDefinitions StatusDefinition[]
+  numberSequences   NumberSequence[]
+  systemSettings    SystemSetting[]
 
   @@map("companies")
 }
@@ -257,4 +260,50 @@ model AuditLog {
   @@index([actorUserId, occurredAt])
   @@index([correlationId])
   @@map("audit_logs")
+}
+
+
+model StatusDefinition {
+  id          String  @id @default(uuid()) @db.Uuid
+  companyId   String  @map("company_id") @db.Uuid
+  entityType  String  @map("entity_type") @db.VarChar(100)
+  statusCode  String  @map("status_code") @db.VarChar(80)
+  statusLabel String  @map("status_label") @db.VarChar(150)
+  sortOrder   Int     @default(0) @map("sort_order")
+  isActive    Boolean @default(true) @map("is_active")
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+
+  @@unique([companyId, entityType, statusCode])
+  @@index([companyId, entityType, isActive, sortOrder])
+  @@map("status_definitions")
+}
+
+model NumberSequence {
+  id             String  @id @default(uuid()) @db.Uuid
+  companyId      String  @map("company_id") @db.Uuid
+  entityType     String  @map("entity_type") @db.VarChar(100)
+  sequenceCode   String  @map("sequence_code") @db.VarChar(80)
+  formatTemplate String  @map("format_template") @db.VarChar(120)
+  resetRule      String  @map("reset_rule") @db.VarChar(30)
+  lastPeriodKey  String? @map("last_period_key") @db.VarChar(20)
+  nextValue      Int     @default(1) @map("next_value")
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+
+  @@unique([companyId, sequenceCode])
+  @@index([companyId, entityType])
+  @@map("number_sequences")
+}
+
+model SystemSetting {
+  id           String @id @default(uuid()) @db.Uuid
+  companyId    String @map("company_id") @db.Uuid
+  settingKey   String @map("setting_key") @db.VarChar(150)
+  settingValue Json   @map("setting_value")
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+
+  @@unique([companyId, settingKey])
+  @@map("system_settings")
 }
