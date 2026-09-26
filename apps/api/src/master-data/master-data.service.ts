@@ -587,6 +587,20 @@ export class MasterDataService {
     }
   }
 
+  listMaterialUomOptions(companyId: string) {
+    return this.prisma.unitOfMeasure.findMany({
+      where: { companyId, isActive: true },
+      orderBy: [{ uomName: 'asc' }, { uomCode: 'asc' }],
+      select: {
+        id: true,
+        uomCode: true,
+        uomName: true,
+        decimalPlaces: true,
+        isActive: true,
+      },
+    });
+  }
+
   listMaterials(
     companyId: string,
     search?: string,
