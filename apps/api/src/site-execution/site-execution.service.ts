@@ -619,6 +619,7 @@ export class SiteExecutionService {
     context: AuditContext,
     id: string,
     correctionNote: string,
+    progressCorrections: SiteProgressInput[] = [],
   ) {
     const correctionId = await this.prisma.$transaction(async (tx) => {
       const report = await tx.dailySiteReport.findFirst({
@@ -633,6 +634,20 @@ export class SiteExecutionService {
         });
       }
 
+      await this.validateReferences(
+        tx,
+        context.auth.companyId,
+        report.projectId,
+        {
+          manpower: [],
+          materialUsage: [],
+          progress: progressCorrections,
+          issues: [],
+          delays: [],
+          inspections: [],
+        },
+      );
+
       const correction = await tx.dailySiteReportCorrection.create({
         data: {
           reportId: id,
@@ -640,6 +655,41 @@ export class SiteExecutionService {
           createdByUserId: context.auth.userId,
         },
       });
+
+      for (const line of progressCorrections) {
+        const progress = await tx.activityProgress.create({
+          data: {
+            companyId: context.auth.companyId,
+            projectId: report.projectId,
+            activityId: line.activityId,
+            progressDate: report.reportDate,
+            percentComplete: line.percentComplete,
+            ...(line.note !== undefined ? { note: line.note } : {}),
+            sourceType: 'DAILY_SITE_REPORT_CORRECTION',
+            sourceEntityId: correction.id,
+            recordedByUserId: context.auth.userId,
+          },
+        });
+
+        await this.audit.record(
+          {
+            ...context,
+            entityType: 'ACTIVITY_PROGRESS',
+            entityId: progress.id,
+            action: 'CREATE',
+            newValues: {
+              projectId: report.projectId,
+              activityId: line.activityId,
+              progressDate: report.reportDate,
+              percentComplete: line.percentComplete,
+              sourceType: 'DAILY_SITE_REPORT_CORRECTION',
+              sourceEntityId: correction.id,
+            },
+          },
+          tx,
+        );
+      }
+
       await this.audit.record(
         {
           ...context,
@@ -649,6 +699,7 @@ export class SiteExecutionService {
           newValues: {
             reportId: id,
             correctionNote,
+            progressCorrectionCount: progressCorrections.length,
           },
         },
         tx,
@@ -656,12 +707,32 @@ export class SiteExecutionService {
       return correction.id;
     });
 
-    return this.prisma.dailySiteReportCorrection.findUnique({
+    const correction = await this.prisma.dailySiteReportCorrection.findUnique({
       where: { id: correctionId },
       include: {
         createdBy: { select: { id: true, displayName: true } },
       },
     });
+    if (!correction) return null;
+
+    const progressCorrections = await this.prisma.activityProgress.findMany({
+      where: {
+        companyId: context.auth.companyId,
+        sourceType: 'DAILY_SITE_REPORT_CORRECTION',
+        sourceEntityId: correctionId,
+      },
+      include: {
+        activity: {
+          select: { id: true, activityCode: true, activityName: true },
+        },
+      },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+    });
+
+    return {
+      ...correction,
+      progressCorrections,
+    };
   }
 
   async listDocuments(auth: AuthenticatedUserContext, reportId: string) {
