@@ -22,11 +22,12 @@
 - Stage F final review: no unresolved review threads, no scope creep into Activities/Scheduling, BOQ/Budget, Procurement or transaction allocations.
 - Final Stage G PR CI: Validate Construction ERP run #443 — SUCCESS on `298890cbd72965067d59995f81283ca7b4f5410b`.
 - Stage G final review: no unresolved review threads; no WBS/Activity or later-module document scope added.
-- Stage H release-candidate CI: Validate Construction ERP run #460 — SUCCESS on `dc013e731fcef6ab3e3d945f13047fa96c5b4d2e`.
-- V0.1 cross-module release acceptance scenario: PASS in CI #460.
+- Stage H release-candidate CI: Validate Construction ERP run #465 — SUCCESS.
+- Governance checkpoint validation before this state update: Validate Construction ERP run #473 — SUCCESS on `f94292a1ad11dc1d8eb28c2e65ba9d1e8a127e22`.
+- V0.1 cross-module release acceptance scenario: PASS in the Stage H release-candidate regression suite.
 - Open defect check: no open defect Issue exists; only Stage H tracking Issue #27 is open.
 - Governance: `AGENTS.md`, `docs/PROJECT-GOVERNANCE.md`, PR governance checklist and DEC-008 are active; material decisions must pass the repository pre-flight and open-source/zero-cost-first constraint.
-- Next action: revalidate this governance/documentation checkpoint head, then execute the documented self-hosted/free Staging/UAT smoke and manual V0.1 UAT; Product / Business Owner acceptance remains the final human gate.
+- Next action: execute the documented self-hosted / zero-cost Staging/UAT deployment and smoke test, then manual V0.1 UAT; Product / Business Owner acceptance remains the final human gate.
 
 ## Stage E completed
 
