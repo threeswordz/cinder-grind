@@ -59,6 +59,7 @@ function taskClass(activity: Activity) {
 
 export function GanttLookaheadPanel() {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const ganttRef = useRef<Gantt | null>(null);
   const [projectId, setProjectId] = useState('');
   const [scope, setScope] = useState<Scope>('gantt');
   const [viewMode, setViewMode] = useState<ViewMode>('Week');
@@ -120,7 +121,7 @@ export function GanttLookaheadPanel() {
 
     if (!tasks.length) return;
 
-    new Gantt(container, tasks, {
+    ganttRef.current = new Gantt(container, tasks, {
       view_mode: viewMode,
       readonly: true,
       readonly_dates: true,
@@ -133,9 +134,14 @@ export function GanttLookaheadPanel() {
     });
 
     return () => {
+      ganttRef.current = null;
       container.innerHTML = '';
     };
-  }, [asOf, scope, tasks, viewMode]);
+  }, [asOf, scope, tasks]);
+
+  useEffect(() => {
+    ganttRef.current?.change_view_mode(viewMode, true);
+  }, [viewMode]);
 
   useEffect(() => {
     if (
