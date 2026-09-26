@@ -450,3 +450,46 @@ BEGIN
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
+
+
+CREATE OR REPLACE FUNCTION validate_daily_site_report_equipment_date_change()
+RETURNS trigger AS $$
+DECLARE
+  invalid_count INTEGER;
+BEGIN
+  IF NEW."report_date" IS NOT DISTINCT FROM OLD."report_date" THEN
+    RETURN NEW;
+  END IF;
+
+  SELECT COUNT(*)
+    INTO invalid_count
+  FROM "daily_site_report_equipment_usage" line
+  JOIN "equipment" equipment ON equipment."id" = line."equipment_id"
+  WHERE line."report_id" = NEW."id"
+    AND (
+      NOT equipment."is_active"
+      OR equipment."operational_status" <> 'AVAILABLE'
+      OR NOT EXISTS (
+        SELECT 1
+        FROM "equipment_assignments" assignment
+        WHERE assignment."equipment_id" = line."equipment_id"
+          AND assignment."project_id" = NEW."project_id"
+          AND assignment."assigned_from" <= NEW."report_date"
+          AND (
+            assignment."assigned_to" IS NULL
+            OR assignment."assigned_to" >= NEW."report_date"
+          )
+      )
+    );
+
+  IF invalid_count > 0 THEN
+    RAISE EXCEPTION 'Daily Site Report date change would invalidate Equipment assignment/availability';
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER daily_site_report_equipment_date_change_guard
+BEFORE UPDATE OF "report_date" ON "daily_site_reports"
+FOR EACH ROW EXECUTE FUNCTION validate_daily_site_report_equipment_date_change();
