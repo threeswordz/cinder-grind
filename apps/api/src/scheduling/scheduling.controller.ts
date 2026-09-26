@@ -106,6 +106,13 @@ export class ScheduleController {
 export class WorkingCalendarsController {
   constructor(private readonly scheduling: SchedulingService) {}
 
+  @Get('project-options')
+  @UseGuards(AuthGuard, PermissionGuard)
+  @RequirePermissions('schedule.calendar.manage')
+  async projectOptions(@Req() request: AuthenticatedRequest) {
+    return { data: await this.scheduling.projects(authOf(request)) };
+  }
+
   @Get()
   @UseGuards(AuthGuard, PermissionGuard)
   @RequirePermissions('schedule.calendar.manage')
