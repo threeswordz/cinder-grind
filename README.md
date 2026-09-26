@@ -83,10 +83,10 @@ Approved baselines:
 9. V0.1 Acceptance Criteria Baseline v0.1
 10. Dependency License Baseline v0.1
 
-Application development has **started on V0.1 Foundation**.
+**V0.1 Foundation is complete and accepted.**
 
 Current development status is maintained in `docs/CURRENT-STATE.md`.
 
-Completed foundation stages: **V0.1-A through V0.1-G**.
+Completed foundation stages: **V0.1-A through V0.1-H**.
 
-Next stage: **V0.1-H Integration / Regression / UAT**. Development continues only through the approved roadmap, requirements, security controls, test gates and dependency-license rules.
+Next release: **V0.2 Project & Scheduling**. Development begins with **V0.2-A Scheduling Data Model** only after the V0.2 release-entry gates are verified. Development continues only through the approved roadmap, requirements, security controls, test gates and dependency-license rules.
