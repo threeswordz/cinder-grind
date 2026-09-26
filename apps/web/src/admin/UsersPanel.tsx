@@ -53,25 +53,7 @@ function UserEditor({
   });
 
   const resetPassword = useMutation({
-    mutationFn: async () => {
-      const response = await fetch(
-        (import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000/api/v1') +
-          '/admin/users/' +
-          user.id +
-          '/reset-password',
-        {
-          method: 'POST',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ password: newPassword }),
-        },
-      );
-      if (!response.ok) {
-        throw new Error('Password reset failed.');
-      }
-    },
+    mutationFn: () => adminApi.resetUserPassword(user.id, newPassword),
     onSuccess: () => setNewPassword(''),
   });
 
