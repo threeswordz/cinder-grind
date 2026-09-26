@@ -669,6 +669,11 @@ check(
   'Gantt presentation did not expose backend-derived delay/critical/float indicators.',
 );
 check(
+  Number(ganttA?.plannedDurationWorkDays) === 5 &&
+    ganttA?.activityStatus?.id === activityStatus.data.data.id,
+  'Gantt presentation did not expose Activity status and duration.',
+);
+check(
   ganttB?.predecessorActivityIds?.includes(activityA.data.data.id),
   'Gantt presentation did not preserve backend dependency references.',
 );
