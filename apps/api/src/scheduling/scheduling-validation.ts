@@ -158,6 +158,30 @@ export function optionalWorkDays(
   return parseWorkDays(body[field], field);
 }
 
+export function parseSignedWorkDays(
+  value: unknown,
+  field: string,
+): Prisma.Decimal {
+  if (
+    (typeof value !== 'string' && typeof value !== 'number') ||
+    !/^-?\d+(?:\.\d{1,2})?$/.test(String(value))
+  ) {
+    throw schedulingInvalid(
+      field,
+      'Use a number with at most two decimal places.',
+    );
+  }
+  return new Prisma.Decimal(String(value));
+}
+
+export function optionalSignedWorkDays(
+  body: Record<string, unknown>,
+  field: string,
+): Prisma.Decimal | undefined {
+  if (body[field] === undefined) return undefined;
+  return parseSignedWorkDays(body[field], field);
+}
+
 export function parseTime(value: unknown, field: string): Date | null {
   if (value === null || value === '') return null;
   if (typeof value !== 'string' || !/^([01]\d|2[0-3]):[0-5]\d$/.test(value)) {
