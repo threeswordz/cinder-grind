@@ -769,7 +769,16 @@ function zonedLocalToUtc(
   dateKey: string,
   minuteOfDay: number,
 ): number {
-  const [year, month, date] = dateKey.split('-').map(Number);
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateKey);
+  if (!match) {
+    throw new ScheduleEngineError(
+      'INVALID_SCHEDULE_DATE',
+      'Scheduling date keys must use YYYY-MM-DD.',
+    );
+  }
+  const year = Number(match[1]!);
+  const month = Number(match[2]!);
+  const date = Number(match[3]!);
   const hour = Math.floor(minuteOfDay / 60);
   const minute = minuteOfDay % 60;
   const desiredAsUtc = Date.UTC(year, month - 1, date, hour, minute, 0, 0);
