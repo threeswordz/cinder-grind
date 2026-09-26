@@ -521,15 +521,17 @@ Examples:
 
 The schedule-analysis endpoint is the backend/domain read model for working-calendar-aware dates, Critical Path and Total Float. It returns calculated Activity dates, fractional work-day positions, Total Float and critical flags without making the Gantt component the source of truth.
 
-`GET /api/v1/projects/{id}/gantt`
+`GET /api/v1/schedule/projects/{id}/gantt`
 
-`GET /api/v1/projects/{id}/lookahead?weeks=2`
+`GET /api/v1/schedule/projects/{id}/lookahead?asOf=YYYY-MM-DD&days=14`
 
-`GET /api/v1/projects/{id}/lookahead?weeks=4`
+`GET /api/v1/schedule/projects/{id}/lookahead?asOf=YYYY-MM-DD&days=28`
 
-The Gantt endpoint is a read model optimized for schedule visualization.
+The Gantt endpoint is a read model optimized for schedule visualization. It presents the backend current forecast together with the current approved baseline, progress, dependency references, Activity status, Critical Path / Total Float indicators and baseline-delay classification.
 
-It does not create a second scheduling source of truth.
+The lookahead endpoint uses an inclusive calendar-day window selected by `asOf`: `days=14` for 2-week and `days=28` for 4-week. Activities are included when their current forecast span overlaps the window; completed Activities are not silently removed.
+
+These endpoints do not create a second scheduling source of truth.
 
 The backend remains responsible for:
 
@@ -1302,9 +1304,10 @@ PATCH  /api/v1/activities/{id}
 POST   /api/v1/activity-dependencies
 DELETE /api/v1/activity-dependencies/{id}
 
-GET    /api/v1/projects/{id}/gantt
-GET    /api/v1/projects/{id}/lookahead?weeks=2
-GET    /api/v1/projects/{id}/critical-path
+GET    /api/v1/schedule/projects/{id}/gantt
+GET    /api/v1/schedule/projects/{id}/lookahead?asOf=YYYY-MM-DD&days=14
+GET    /api/v1/schedule/projects/{id}/analysis?mode=planned
+GET    /api/v1/schedule/projects/{id}/analysis?mode=forecast
 
 GET    /api/v1/schedule-baselines?projectId={id}
 GET    /api/v1/schedule-baselines/{id}
