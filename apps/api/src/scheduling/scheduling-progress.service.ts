@@ -423,8 +423,8 @@ export class SchedulingProgressService {
         },
       },
       orderBy: [
-        { progressDate: 'desc' },
         { createdAt: 'desc' },
+        { id: 'desc' },
       ],
     });
   }
@@ -475,8 +475,8 @@ export class SchedulingProgressService {
           },
           progressHistory: {
             orderBy: [
-              { progressDate: 'desc' },
               { createdAt: 'desc' },
+              { id: 'desc' },
             ],
             take: 1,
           },
