@@ -432,7 +432,10 @@ test('Project Documents enforce scope, safe storage and metadata boundaries', as
     );
 
     const listed = await service.listProjectDocuments(scoped, project.id);
-    assert.equal(listed.length, 1);
+    assert.equal(listed.length, 3);
+    assert.equal(listed.some((row) => row.id === created.id), true);
+    assert.equal(listed.some((row) => row.id === wbsDocument.id), true);
+    assert.equal(listed.some((row) => row.id === activityDocument.id), true);
     assert.equal('storageKey' in listed[0]!, false);
     assert.equal(JSON.stringify(listed).includes(tempRoot), false);
 
