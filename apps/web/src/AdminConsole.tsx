@@ -24,6 +24,7 @@ import { UsersPanel } from './admin/UsersPanel';
 import { MasterDataPanel } from './master-data/MasterDataPanel';
 import { ProjectsPanel } from './projects/ProjectsPanel';
 import { SchedulingPanel } from './scheduling/SchedulingPanel';
+import { SiteExecutionPanel } from './site-execution/SiteExecutionPanel';
 import { DocumentsPanel } from './documents/DocumentsPanel';
 import { WbsPanel } from './wbs/WbsPanel';
 
@@ -41,6 +42,12 @@ export function AdminConsole({ user }: { user: CurrentUser }) {
   const sections = useMemo<Section[]>(
     () =>
       [
+        {
+          key: 'site-execution',
+          label: 'Site Execution',
+          permission: '__site_execution__',
+          content: <SiteExecutionPanel permissions={user.permissions} />,
+        },
         {
           key: 'scheduling',
           label: 'Scheduling',
@@ -120,7 +127,11 @@ export function AdminConsole({ user }: { user: CurrentUser }) {
           content: <SystemSettingsPanel />,
         },
       ].filter((section) =>
-        section.permission === '__scheduling__'
+        section.permission === '__site_execution__'
+          ? user.permissions.some((permission) =>
+              permission.startsWith('site.'),
+            )
+          : section.permission === '__scheduling__'
           ? user.permissions.some(
               (permission) =>
                 permission.startsWith('schedule.') ||
