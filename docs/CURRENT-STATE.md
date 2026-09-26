@@ -348,3 +348,19 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - SITE-005 will be completed by referencing the canonical Equipment Register; free-text Equipment remains prohibited.
 - Equipment Maintenance remains Future and Equipment Cost Allocation remains V0.7.
 - no fuel/meter/depreciation/asset accounting, Inventory posting, paid dependency or V0.3+ scope is introduced.
+
+## V0.2-F implementation progress
+
+- DEC-013 Equipment rules implemented for Company-owned Equipment Types and Equipment register.
+- operational status is `AVAILABLE` / `UNAVAILABLE`; user-facing `AVAILABLE` / `ASSIGNED` / `UNAVAILABLE` availability is derived from active state, operational status and effective assignment.
+- dated Project assignment history is retained with at most one open assignment per Equipment; reassignment closes rather than deletes prior history.
+- canonical Equipment Usage supports optional 0–24-hour operating duration plus optional Activity/WBS/remarks context and requires an effective same-Project assignment on the usage date.
+- manual usage is audit-correctable but not ordinarily deletable; Daily Site Report-origin usage is immutable.
+- SITE-005 is integrated with the canonical Equipment Register: draft report lines select only eligible Project-assigned Equipment, submission materializes canonical Equipment Usage, and submitted-report corrections append later usage history.
+- PostgreSQL guards enforce Company/Project scope, assignment/date eligibility, usage-hour bounds, retained assignment/usage history and Daily Site Report materialization before submission.
+- permission-aware responsive Equipment workspace covers Equipment Type, register, derived availability, assignment/release and usage history/manual corrections.
+- Site Execution UI now includes canonical Equipment usage and correction lines; free-text Equipment remains prohibited.
+- Stage F integration tests cover derived availability, assignment/reassignment history, manual usage, report-origin usage/corrections, operational unavailability and database no-delete/immutability controls.
+- live HTTP acceptance covers Equipment register → Project assignment → derived availability → manual usage → Daily Site Report usage/correction → scoped denial.
+- functional branch CI #843 passed on `84377e82dc3b0dc73989ebc122d87fbff13cb3e9`; exact-head CI will be revalidated after documentation completion.
+- EQP-008 Maintenance remains Future; EQP-009 Equipment Cost Allocation remains V0.7; no Inventory posting, asset accounting, fuel/meter tracking, paid dependency or V0.3+ scope is introduced.
