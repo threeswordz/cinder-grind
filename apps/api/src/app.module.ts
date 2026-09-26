@@ -7,6 +7,7 @@ import { AuthModule } from './auth/auth.module';
 import { AuthorizationModule } from './authorization/authorization.module';
 import { CorrelationIdMiddleware } from './common/correlation-id.middleware';
 import { HealthModule } from './health/health.module';
+import { MasterDataModule } from './master-data/master-data.module';
 import { PrismaModule } from './prisma/prisma.module';
 
 @Module({
@@ -18,6 +19,7 @@ import { PrismaModule } from './prisma/prisma.module';
     ApprovalModule,
     AuditModule,
     HealthModule,
+    MasterDataModule,
   ],
 })
 export class AppModule implements NestModule {
