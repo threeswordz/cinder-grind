@@ -238,6 +238,42 @@ export type ScheduleComparisonRecord = {
   }>;
 };
 
+export type SchedulePresentationRecord = {
+  projectId: string;
+  currentBaseline: {
+    id: string;
+    versionNo: number;
+    approvedAt: string | null;
+  } | null;
+  window?: {
+    asOfDate: string;
+    endDate: string;
+    days: 14 | 28;
+  };
+  activities: Array<{
+    activityId: string;
+    activityCode: string;
+    activityName: string;
+    wbs: { id: string; wbsCode: string; wbsName: string };
+    isSummary: boolean;
+    isMilestone: boolean;
+    currentPercentComplete: number | null;
+    actualStartDate: string | null;
+    actualFinishDate: string | null;
+    baselineStartDate: string | null;
+    baselineFinishDate: string | null;
+    forecastStartDate: string | null;
+    forecastFinishDate: string | null;
+    startVarianceWorkDays: number | null;
+    finishVarianceWorkDays: number | null;
+    delayWorkDays: number | null;
+    delayStatus: 'DELAYED' | 'ON_TIME' | 'AHEAD' | 'UNAVAILABLE';
+    totalFloatWorkDays: number | null;
+    isCritical: boolean;
+    predecessorActivityIds: string[];
+  }>;
+};
+
 function query(path: string, params: Record<string, string | undefined>) {
   const search = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
@@ -363,6 +399,17 @@ export const schedulingApi = {
   comparison: (projectId: string) =>
     apiRequest<Data<ScheduleComparisonRecord>>(
       '/schedule/projects/' + projectId + '/comparison',
+    ),
+  gantt: (projectId: string) =>
+    apiRequest<Data<SchedulePresentationRecord>>(
+      '/schedule/projects/' + projectId + '/gantt',
+    ),
+  lookahead: (projectId: string, asOf: string, days: 14 | 28) =>
+    apiRequest<Data<SchedulePresentationRecord>>(
+      query('/schedule/projects/' + projectId + '/lookahead', {
+        asOf,
+        days: String(days),
+      }),
     ),
   progressHistory: (activityId: string) =>
     apiRequest<Data<ActivityProgressRecord[]>>('/activity-progress/' + activityId),
