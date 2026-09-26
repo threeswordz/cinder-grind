@@ -10,6 +10,12 @@ import { AuditService } from '../audit/audit.service';
 import { AuthenticatedUserContext } from '../auth/auth.types';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProjectAccessService } from '../projects/project-access.service';
+import {
+  ScheduleEngineError,
+  ScheduleMode,
+  assertDependencyGraphAcyclic,
+  calculateScheduleAnalysis,
+} from './schedule-engine';
 
 type AuditContext = {
   auth: AuthenticatedUserContext;
@@ -537,6 +543,12 @@ export class SchedulingService {
           data,
         );
         this.assertDateOrder(data.plannedStartDate, data.plannedFinishDate, 'plannedFinishDate');
+        this.assertMilestoneRule(
+          data.isMilestone ?? false,
+          data.plannedDurationWorkDays,
+          data.plannedStartDate,
+          data.plannedFinishDate,
+        );
         this.assertOptionalDateOrder(data.actualStartDate, data.actualFinishDate, 'actualFinishDate');
         this.assertOptionalDateOrder(data.forecastStartDate, data.forecastFinishDate, 'forecastFinishDate');
 
@@ -634,7 +646,16 @@ export class SchedulingService {
 
         const plannedStartDate = data.plannedStartDate ?? before.plannedStartDate;
         const plannedFinishDate = data.plannedFinishDate ?? before.plannedFinishDate;
+        const plannedDurationWorkDays =
+          data.plannedDurationWorkDays ?? before.plannedDurationWorkDays;
+        const isMilestone = data.isMilestone ?? before.isMilestone;
         this.assertDateOrder(plannedStartDate, plannedFinishDate, 'plannedFinishDate');
+        this.assertMilestoneRule(
+          isMilestone,
+          plannedDurationWorkDays,
+          plannedStartDate,
+          plannedFinishDate,
+        );
 
         const actualStartDate =
           data.actualStartDate === undefined ? before.actualStartDate : data.actualStartDate;
@@ -726,6 +747,105 @@ export class SchedulingService {
     });
   }
 
+  async scheduleAnalysis(
+    auth: AuthenticatedUserContext,
+    projectId: string,
+    mode: ScheduleMode,
+  ) {
+    await this.access.assertAccess(auth, projectId);
+
+    const [activities, dependencies] = await Promise.all([
+      this.prisma.activity.findMany({
+        where: {
+          projectId,
+          companyId: auth.companyId,
+          isActive: true,
+        },
+        include: {
+          workingCalendar: {
+            include: {
+              weekdays: { orderBy: { weekdayNo: 'asc' } },
+              exceptions: { orderBy: { exceptionDate: 'asc' } },
+            },
+          },
+        },
+        orderBy: { activityCode: 'asc' },
+      }),
+      this.prisma.activityDependency.findMany({
+        where: {
+          projectId,
+          isActive: true,
+          predecessor: { isActive: true },
+          successor: { isActive: true },
+        },
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      }),
+    ]);
+
+    const calendars = new Map(
+      activities.map((activity) => [
+        activity.workingCalendar.id,
+        activity.workingCalendar,
+      ]),
+    );
+
+    try {
+      const analysis = calculateScheduleAnalysis({
+        mode,
+        activities: activities.map((activity) => ({
+          id: activity.id,
+          activityCode: activity.activityCode,
+          activityName: activity.activityName,
+          workingCalendarId: activity.workingCalendarId,
+          plannedDurationWorkDays:
+            activity.plannedDurationWorkDays.toNumber(),
+          plannedStartDate: activity.plannedStartDate,
+          plannedFinishDate: activity.plannedFinishDate,
+          forecastStartDate: activity.forecastStartDate,
+          forecastFinishDate: activity.forecastFinishDate,
+          isMilestone: activity.isMilestone,
+        })),
+        dependencies: dependencies.map((dependency) => ({
+          id: dependency.id,
+          predecessorActivityId: dependency.predecessorActivityId,
+          successorActivityId: dependency.successorActivityId,
+          dependencyType: dependency.dependencyType as
+            | 'FS'
+            | 'SS'
+            | 'FF'
+            | 'SF',
+          lagWorkDays: dependency.lagWorkDays.toNumber(),
+        })),
+        calendars: [...calendars.values()].map((calendar) => ({
+          id: calendar.id,
+          timezoneName: calendar.timezoneName,
+          weekdays: calendar.weekdays.map((weekday) => ({
+            weekdayNo: weekday.weekdayNo,
+            isWorking: weekday.isWorking,
+            startMinute: this.timeMinute(weekday.startTime),
+            endMinute: this.timeMinute(weekday.endTime),
+          })),
+          exceptions: calendar.exceptions.map((exception) => ({
+            exceptionDate: exception.exceptionDate,
+            isWorkingOverride: exception.isWorkingOverride,
+            startMinute: this.timeMinute(exception.startTime),
+            endMinute: this.timeMinute(exception.endTime),
+          })),
+        })),
+      });
+
+      return { projectId, ...analysis };
+    } catch (error) {
+      if (error instanceof ScheduleEngineError) {
+        throw new UnprocessableEntityException({
+          code: error.code,
+          detail: error.message,
+        });
+      }
+      throw error;
+    }
+  }
+
   async createDependency(
     context: AuditContext,
     projectId: string,
@@ -744,6 +864,16 @@ export class SchedulingService {
           projectId,
           data.predecessorActivityId,
           data.successorActivityId,
+        );
+        await this.assertNoDependencyCycle(
+          tx,
+          projectId,
+          {
+            predecessorActivityId: data.predecessorActivityId,
+            successorActivityId: data.successorActivityId,
+            dependencyType: data.dependencyType,
+            lagWorkDays: data.lagWorkDays,
+          },
         );
         const created = await tx.activityDependency.create({
           data: { projectId, ...data },
@@ -790,6 +920,19 @@ export class SchedulingService {
           predecessorActivityId,
           successorActivityId,
         );
+        if (before.isActive) {
+          await this.assertNoDependencyCycle(
+            tx,
+            projectId,
+            {
+              predecessorActivityId,
+              successorActivityId,
+              dependencyType: data.dependencyType ?? before.dependencyType,
+              lagWorkDays: data.lagWorkDays ?? before.lagWorkDays,
+            },
+            id,
+          );
+        }
 
         const after = await tx.activityDependency.update({ where: { id }, data });
         await this.audit.record(
@@ -822,6 +965,19 @@ export class SchedulingService {
       });
       if (!before) throw this.notFound('ACTIVITY_DEPENDENCY_NOT_FOUND', 'Activity Dependency');
       await this.access.assertAccess(context.auth, before.projectId, tx);
+      if (isActive && !before.isActive) {
+        await this.assertNoDependencyCycle(
+          tx,
+          before.projectId,
+          {
+            predecessorActivityId: before.predecessorActivityId,
+            successorActivityId: before.successorActivityId,
+            dependencyType: before.dependencyType,
+            lagWorkDays: before.lagWorkDays,
+          },
+          id,
+        );
+      }
       const after = await tx.activityDependency.update({
         where: { id },
         data: { isActive },
@@ -1016,6 +1172,107 @@ export class SchedulingService {
         detail: 'Dependency Activities must be active and belong to the same Project.',
       });
     }
+  }
+
+  private async assertNoDependencyCycle(
+    tx: Prisma.TransactionClient,
+    projectId: string,
+    candidate: {
+      predecessorActivityId: string;
+      successorActivityId: string;
+      dependencyType: string;
+      lagWorkDays: Prisma.Decimal;
+    },
+    excludeId?: string,
+  ) {
+    const [activities, dependencies] = await Promise.all([
+      tx.activity.findMany({
+        where: { projectId, isActive: true },
+        select: { id: true },
+      }),
+      tx.activityDependency.findMany({
+        where: {
+          projectId,
+          isActive: true,
+          predecessor: { isActive: true },
+          successor: { isActive: true },
+          ...(excludeId ? { id: { not: excludeId } } : {}),
+        },
+        select: {
+          id: true,
+          predecessorActivityId: true,
+          successorActivityId: true,
+          dependencyType: true,
+          lagWorkDays: true,
+        },
+      }),
+    ]);
+
+    try {
+      assertDependencyGraphAcyclic(
+        activities.map((activity) => activity.id),
+        [
+          ...dependencies.map((dependency) => ({
+            id: dependency.id,
+            predecessorActivityId: dependency.predecessorActivityId,
+            successorActivityId: dependency.successorActivityId,
+            dependencyType: dependency.dependencyType as
+              | 'FS'
+              | 'SS'
+              | 'FF'
+              | 'SF',
+            lagWorkDays: dependency.lagWorkDays.toNumber(),
+          })),
+          {
+            predecessorActivityId: candidate.predecessorActivityId,
+            successorActivityId: candidate.successorActivityId,
+            dependencyType: candidate.dependencyType as
+              | 'FS'
+              | 'SS'
+              | 'FF'
+              | 'SF',
+            lagWorkDays: candidate.lagWorkDays.toNumber(),
+          },
+        ],
+      );
+    } catch (error) {
+      if (
+        error instanceof ScheduleEngineError &&
+        error.code === 'ACTIVITY_DEPENDENCY_CYCLE'
+      ) {
+        throw new UnprocessableEntityException({
+          code: error.code,
+          detail: error.message,
+        });
+      }
+      throw error;
+    }
+  }
+
+  private assertMilestoneRule(
+    isMilestone: boolean,
+    duration: Prisma.Decimal,
+    start: Date,
+    finish: Date,
+  ) {
+    if (!isMilestone) return;
+    if (!duration.isZero()) {
+      throw new UnprocessableEntityException({
+        code: 'INVALID_MILESTONE_DURATION',
+        detail: 'A milestone must have zero work-day duration.',
+      });
+    }
+    if (start.getTime() !== finish.getTime()) {
+      throw new UnprocessableEntityException({
+        code: 'INVALID_MILESTONE_DATES',
+        detail: 'A milestone planned start and planned finish must be the same date.',
+      });
+    }
+  }
+
+  private timeMinute(value: Date | null): number | null {
+    if (!value) return null;
+    return value.getUTCHours() * 60 + value.getUTCMinutes();
   }
 
   private assertDateOrder(start: Date, finish: Date, field: string) {
