@@ -29,6 +29,19 @@ export class ApprovalAdminService {
     private readonly audit: AuditService,
   ) {}
 
+  listRoleOptions(companyId: string) {
+    return this.prisma.role.findMany({
+      where: { companyId, isActive: true },
+      orderBy: { roleName: 'asc' },
+      select: {
+        id: true,
+        roleCode: true,
+        roleName: true,
+        isActive: true,
+      },
+    });
+  }
+
   listWorkflows(companyId: string) {
     return this.prisma.approvalWorkflow.findMany({
       where: { companyId },
