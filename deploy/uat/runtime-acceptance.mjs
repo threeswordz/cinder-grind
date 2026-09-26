@@ -178,6 +178,12 @@ const permissionCodes = [
   'documents.document.view',
   'documents.document.upload',
   'documents.document.link',
+  'schedule.programme.view',
+  'schedule.activity.create',
+  'schedule.activity.edit',
+  'schedule.activity.archive',
+  'schedule.dependency.manage',
+  'schedule.calendar.manage',
 ];
 await request(admin, `/admin/roles/${roleId}/permissions`, {
   method: 'PUT',
@@ -275,6 +281,142 @@ const costCode = await request(pm, '/cost-codes', {
 check(costCode.data.data.id, 'Cost Code was not created.');
 record('hierarchical WBS and independent Cost Code');
 
+const activityStatus = await request(admin, '/admin/statuses', {
+  method: 'POST',
+  json: {
+    entityType: 'ACTIVITY',
+    statusCode: 'PLANNED-' + suffix,
+    statusLabel: 'Planned ' + suffix,
+    sortOrder: 10,
+  },
+  expected: 201,
+});
+
+const activityType = await request(admin, '/activity-types', {
+  method: 'POST',
+  json: {
+    activityTypeCode: 'WORK-' + suffix,
+    activityTypeName: 'Work Activity ' + suffix,
+  },
+  expected: 201,
+});
+
+await request(pm, '/activity-types', {
+  method: 'POST',
+  json: {
+    activityTypeCode: 'DENIED-' + suffix,
+    activityTypeName: 'Must Not Persist',
+  },
+  expected: 403,
+});
+
+const calendar = await request(pm, '/working-calendars', {
+  method: 'POST',
+  json: {
+    projectId,
+    calendarName: 'Project Calendar ' + suffix,
+    timezoneName: 'Asia/Singapore',
+    isDefault: true,
+  },
+  expected: 201,
+});
+const calendarId = calendar.data.data.id;
+
+await request(pm, `/working-calendars/${calendarId}/weekdays`, {
+  method: 'PUT',
+  json: {
+    weekdays: [
+      { weekdayNo: 1, isWorking: true, startTime: '08:00', endTime: '17:00' },
+      { weekdayNo: 2, isWorking: true, startTime: '08:00', endTime: '17:00' },
+      { weekdayNo: 3, isWorking: true, startTime: '08:00', endTime: '17:00' },
+      { weekdayNo: 4, isWorking: true, startTime: '08:00', endTime: '17:00' },
+      { weekdayNo: 5, isWorking: true, startTime: '08:00', endTime: '17:00' },
+      { weekdayNo: 6, isWorking: false, startTime: null, endTime: null },
+      { weekdayNo: 7, isWorking: false, startTime: null, endTime: null },
+    ],
+  },
+});
+
+await request(pm, `/working-calendars/${calendarId}/exceptions`, {
+  method: 'PUT',
+  json: {
+    exceptions: [
+      {
+        exceptionDate: '2026-12-25',
+        isWorkingOverride: false,
+        startTime: null,
+        endTime: null,
+        reason: 'UAT non-working exception',
+      },
+    ],
+  },
+});
+
+const activityA = await request(pm, '/activities', {
+  method: 'POST',
+  json: {
+    projectId,
+    wbsId: rootWbs.data.data.id,
+    activityTypeId: activityType.data.data.id,
+    workingCalendarId: calendarId,
+    statusDefinitionId: activityStatus.data.data.id,
+    activityCode: 'A100-' + suffix,
+    activityName: 'Excavation ' + suffix,
+    plannedDurationWorkDays: '5',
+    plannedStartDate: '2026-10-01',
+    plannedFinishDate: '2026-10-05',
+    responsibleEmployeeId: pmEmployee.data.data.id,
+    ownerUserId: pmUser.data.data.id,
+  },
+  expected: 201,
+});
+
+const activityB = await request(pm, '/activities', {
+  method: 'POST',
+  json: {
+    projectId,
+    wbsId: childWbs.data.data.id,
+    parentActivityId: activityA.data.data.id,
+    activityTypeId: activityType.data.data.id,
+    workingCalendarId: calendarId,
+    statusDefinitionId: activityStatus.data.data.id,
+    activityCode: 'A110-' + suffix,
+    activityName: 'Detailed Excavation ' + suffix,
+    plannedDurationWorkDays: '2',
+    plannedStartDate: '2026-10-01',
+    plannedFinishDate: '2026-10-02',
+  },
+  expected: 201,
+});
+
+await request(pm, `/activities/${activityB.data.data.id}`, {
+  method: 'PATCH',
+  json: { description: 'Updated through standalone Activity UUID route' },
+});
+
+const dependency = await request(pm, '/activity-dependencies', {
+  method: 'POST',
+  json: {
+    projectId,
+    predecessorActivityId: activityA.data.data.id,
+    successorActivityId: activityB.data.data.id,
+    dependencyType: 'FS',
+    lagWorkDays: '-1',
+  },
+  expected: 201,
+});
+check(
+  String(dependency.data.data.lagWorkDays) === '-1',
+  'Signed dependency lag was not preserved.',
+);
+
+const activityList = await request(pm, '/activities?projectId=' + projectId);
+check(
+  activityList.data.data.length === 2,
+  'Project scheduling Activity list did not return the expected records.',
+);
+record('V0.2-A scheduling data model through live HTTP API');
+
 const documentType = await request(admin, '/document-types', {
   method: 'POST',
   json: {
@@ -312,7 +454,9 @@ record('secure document upload, metadata listing and byte-for-byte download');
 const unassigned = await login(unassignedUser.data.data.email, unassignedPassword);
 await request(unassigned, '/projects/' + projectId, { expected: 403 });
 await request(unassigned, `/documents/projects/${projectId}`, { expected: 403 });
-record('unassigned Project and Document access denied');
+await request(unassigned, '/activities?projectId=' + projectId, { expected: 403 });
+await request(unassigned, '/working-calendars?projectId=' + projectId, { expected: 403 });
+record('unassigned Project, Document and Scheduling access denied');
 
 await logout(pm);
 await request(pm, '/auth/me', { expected: 401 });
@@ -321,6 +465,6 @@ record('logout revokes the session');
 await logout(unassigned);
 await logout(admin);
 
-process.stdout.write('\nAutomated V0.1 runtime acceptance PASSED.\n');
+process.stdout.write('\nAutomated current-release runtime acceptance PASSED.\n');
 process.stdout.write(`Scenario suffix: ${suffix}\n`);
 process.stdout.write(`Checks passed: ${stepResults.length}\n`);
