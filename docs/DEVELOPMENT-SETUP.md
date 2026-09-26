@@ -65,3 +65,34 @@ Open:
 - The local API defaults to 127.0.0.1; production bind/listen behavior must be environment-configured.
 - Do not place secrets in frontend `VITE_*` variables.
 - Do not use local prototype document storage for confidential Production data until Production backup/storage controls are designed.
+
+
+## Bootstrap the first System Administrator
+
+After all migrations are applied, create the first Company/System Administrator from the API environment.
+
+Set temporary local environment values based on `apps/api/.env.example`:
+
+```text
+BOOTSTRAP_COMPANY_CODE=DEMO
+BOOTSTRAP_COMPANY_NAME=Example Construction Company
+BOOTSTRAP_ADMIN_EMAIL=admin@example.com
+BOOTSTRAP_ADMIN_DISPLAY_NAME=System Administrator
+BOOTSTRAP_ADMIN_PASSWORD=<strong temporary password>
+```
+
+Then build the API and run:
+
+```bash
+pnpm --filter @construction-erp/api build
+pnpm --filter @construction-erp/api bootstrap:admin
+```
+
+Security rules:
+
+- The bootstrap is a CLI command, not a public HTTP endpoint.
+- It refuses to run when the Company already has application Users.
+- The initial `SYS_ADMIN` Role receives technical Administration permissions only.
+- It does not receive Purchase Order, Budget, Invoice, Payment or other business approval permissions.
+- Do not commit the real bootstrap password to Git.
+- Remove the temporary bootstrap password from the environment after successful bootstrap.
