@@ -56,6 +56,15 @@ export function nullableSchedulingString(
   return optionalSchedulingString(body, field, maxLength);
 }
 
+export function requiredSchedulingBoolean(
+  body: Record<string, unknown>,
+  field: string,
+): boolean {
+  const value = optionalSchedulingBoolean(body, field);
+  if (value === undefined) throw schedulingInvalid(field, 'Is required.');
+  return value;
+}
+
 export function optionalSchedulingBoolean(
   body: Record<string, unknown>,
   field: string,
@@ -214,5 +223,31 @@ export function parseActiveFilter(value: string | undefined) {
 export function ensureSchedulingFields(data: Record<string, unknown>) {
   if (Object.keys(data).length === 0) {
     throw schedulingInvalid('body', 'Provide at least one field to update.');
+  }
+}
+
+export function validateTimeZone(value: string, field = 'timezoneName'): string {
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone: value }).format();
+    return value;
+  } catch {
+    throw schedulingInvalid(field, 'Use a valid IANA timezone name.');
+  }
+}
+
+export function validateTimePair(
+  start: Date | null,
+  end: Date | null,
+  startField: string,
+  endField: string,
+): void {
+  if ((start === null) !== (end === null)) {
+    throw schedulingInvalid(
+      end === null ? endField : startField,
+      'Start and end time must both be provided or both be blank.',
+    );
+  }
+  if (start && end && start.getTime() >= end.getTime()) {
+    throw schedulingInvalid(endField, 'End time must be later than start time.');
   }
 }
