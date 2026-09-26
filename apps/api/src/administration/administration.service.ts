@@ -48,31 +48,38 @@ export class AdministrationService {
       baseCurrencyCode?: string;
     },
   ) {
-    const before = await this.getCompany(context.auth.companyId);
-
     try {
-      const after = await this.prisma.company.update({
-        where: { id: context.auth.companyId },
-        data,
-        select: {
-          id: true,
-          companyCode: true,
-          companyName: true,
-          baseCurrencyCode: true,
-          isActive: true,
-        },
-      });
+      return await this.prisma.$transaction(async (tx) => {
+        const before = await this.getCompanyWithClient(
+          tx,
+          context.auth.companyId,
+        );
+        const after = await tx.company.update({
+          where: { id: context.auth.companyId },
+          data,
+          select: {
+            id: true,
+            companyCode: true,
+            companyName: true,
+            baseCurrencyCode: true,
+            isActive: true,
+          },
+        });
 
-      await this.audit.record({
-        ...context,
-        entityType: 'COMPANY',
-        entityId: after.id,
-        action: 'UPDATE_SETTINGS',
-        oldValues: before,
-        newValues: after,
-      });
+        await this.audit.record(
+          {
+            ...context,
+            entityType: 'COMPANY',
+            entityId: after.id,
+            action: 'UPDATE_SETTINGS',
+            oldValues: before,
+            newValues: after,
+          },
+          tx,
+        );
 
-      return after;
+        return after;
+      });
     } catch (error) {
       this.throwIfUniqueConflict(error, 'Company code is already in use.');
       throw error;
@@ -103,19 +110,24 @@ export class AdministrationService {
     },
   ) {
     try {
-      const created = await this.prisma.statusDefinition.create({
-        data: { companyId: context.auth.companyId, ...data },
-      });
+      return await this.prisma.$transaction(async (tx) => {
+        const created = await tx.statusDefinition.create({
+          data: { companyId: context.auth.companyId, ...data },
+        });
 
-      await this.audit.record({
-        ...context,
-        entityType: 'STATUS_DEFINITION',
-        entityId: created.id,
-        action: 'CREATE',
-        newValues: created,
-      });
+        await this.audit.record(
+          {
+            ...context,
+            entityType: 'STATUS_DEFINITION',
+            entityId: created.id,
+            action: 'CREATE',
+            newValues: created,
+          },
+          tx,
+        );
 
-      return created;
+        return created;
+      });
     } catch (error) {
       this.throwIfUniqueConflict(
         error,
@@ -134,26 +146,31 @@ export class AdministrationService {
       isActive?: boolean;
     },
   ) {
-    const before = await this.prisma.statusDefinition.findFirst({
-      where: { id, companyId: context.auth.companyId },
-    });
-    if (!before) throw this.notFound('Status definition');
+    return this.prisma.$transaction(async (tx) => {
+      const before = await tx.statusDefinition.findFirst({
+        where: { id, companyId: context.auth.companyId },
+      });
+      if (!before) throw this.notFound('Status definition');
 
-    const after = await this.prisma.statusDefinition.update({
-      where: { id },
-      data,
-    });
+      const after = await tx.statusDefinition.update({
+        where: { id },
+        data,
+      });
 
-    await this.audit.record({
-      ...context,
-      entityType: 'STATUS_DEFINITION',
-      entityId: id,
-      action: 'UPDATE',
-      oldValues: before,
-      newValues: after,
-    });
+      await this.audit.record(
+        {
+          ...context,
+          entityType: 'STATUS_DEFINITION',
+          entityId: id,
+          action: 'UPDATE',
+          oldValues: before,
+          newValues: after,
+        },
+        tx,
+      );
 
-    return after;
+      return after;
+    });
   }
 
   listNumberSequences(companyId: string) {
@@ -174,26 +191,31 @@ export class AdministrationService {
     },
   ) {
     try {
-      const created = await this.prisma.numberSequence.create({
-        data: {
-          companyId: context.auth.companyId,
-          entityType: data.entityType,
-          sequenceCode: data.sequenceCode,
-          formatTemplate: validateFormatTemplate(data.formatTemplate),
-          resetRule: normalizeResetRule(data.resetRule),
-          nextValue: data.startingValue,
-        },
-      });
+      return await this.prisma.$transaction(async (tx) => {
+        const created = await tx.numberSequence.create({
+          data: {
+            companyId: context.auth.companyId,
+            entityType: data.entityType,
+            sequenceCode: data.sequenceCode,
+            formatTemplate: validateFormatTemplate(data.formatTemplate),
+            resetRule: normalizeResetRule(data.resetRule),
+            nextValue: data.startingValue,
+          },
+        });
 
-      await this.audit.record({
-        ...context,
-        entityType: 'NUMBER_SEQUENCE',
-        entityId: created.id,
-        action: 'CREATE',
-        newValues: created,
-      });
+        await this.audit.record(
+          {
+            ...context,
+            entityType: 'NUMBER_SEQUENCE',
+            entityId: created.id,
+            action: 'CREATE',
+            newValues: created,
+          },
+          tx,
+        );
 
-      return created;
+        return created;
+      });
     } catch (error) {
       this.throwIfUniqueConflict(
         error,
@@ -211,38 +233,43 @@ export class AdministrationService {
       resetRule?: string;
     },
   ) {
-    const before = await this.prisma.numberSequence.findFirst({
-      where: { id, companyId: context.auth.companyId },
+    return this.prisma.$transaction(async (tx) => {
+      const before = await tx.numberSequence.findFirst({
+        where: { id, companyId: context.auth.companyId },
+      });
+      if (!before) throw this.notFound('Number sequence');
+
+      this.numberSequences.assertEditable(
+        before.nextValue,
+        before.lastPeriodKey,
+      );
+
+      const after = await tx.numberSequence.update({
+        where: { id },
+        data: {
+          ...(data.formatTemplate
+            ? { formatTemplate: validateFormatTemplate(data.formatTemplate) }
+            : {}),
+          ...(data.resetRule
+            ? { resetRule: normalizeResetRule(data.resetRule) }
+            : {}),
+        },
+      });
+
+      await this.audit.record(
+        {
+          ...context,
+          entityType: 'NUMBER_SEQUENCE',
+          entityId: id,
+          action: 'UPDATE',
+          oldValues: before,
+          newValues: after,
+        },
+        tx,
+      );
+
+      return after;
     });
-    if (!before) throw this.notFound('Number sequence');
-
-    this.numberSequences.assertEditable(
-      before.nextValue,
-      before.lastPeriodKey,
-    );
-
-    const after = await this.prisma.numberSequence.update({
-      where: { id },
-      data: {
-        ...(data.formatTemplate
-          ? { formatTemplate: validateFormatTemplate(data.formatTemplate) }
-          : {}),
-        ...(data.resetRule
-          ? { resetRule: normalizeResetRule(data.resetRule) }
-          : {}),
-      },
-    });
-
-    await this.audit.record({
-      ...context,
-      entityType: 'NUMBER_SEQUENCE',
-      entityId: id,
-      action: 'UPDATE',
-      oldValues: before,
-      newValues: after,
-    });
-
-    return after;
   }
 
   listSystemSettings(companyId: string) {
@@ -257,40 +284,61 @@ export class AdministrationService {
     settingKey: string,
     settingValue: Prisma.InputJsonValue,
   ) {
-    const before = await this.prisma.systemSetting.findUnique({
-      where: {
-        companyId_settingKey: {
+    return this.prisma.$transaction(async (tx) => {
+      const before = await tx.systemSetting.findUnique({
+        where: {
+          companyId_settingKey: {
+            companyId: context.auth.companyId,
+            settingKey,
+          },
+        },
+      });
+
+      const after = await tx.systemSetting.upsert({
+        where: {
+          companyId_settingKey: {
+            companyId: context.auth.companyId,
+            settingKey,
+          },
+        },
+        create: {
           companyId: context.auth.companyId,
           settingKey,
+          settingValue,
         },
-      },
-    });
+        update: { settingValue },
+      });
 
-    const after = await this.prisma.systemSetting.upsert({
-      where: {
-        companyId_settingKey: {
-          companyId: context.auth.companyId,
-          settingKey,
+      await this.audit.record(
+        {
+          ...context,
+          entityType: 'SYSTEM_SETTING',
+          entityId: after.id,
+          action: before ? 'UPDATE' : 'CREATE',
+          ...(before ? { oldValues: before } : {}),
+          newValues: after,
         },
-      },
-      create: {
-        companyId: context.auth.companyId,
-        settingKey,
-        settingValue,
-      },
-      update: { settingValue },
-    });
+        tx,
+      );
 
-    await this.audit.record({
-      ...context,
-      entityType: 'SYSTEM_SETTING',
-      entityId: after.id,
-      action: before ? 'UPDATE' : 'CREATE',
-      oldValues: before ?? undefined,
-      newValues: after,
+      return after;
     });
+  }
 
-    return after;
+  private getCompanyWithClient(
+    tx: Prisma.TransactionClient,
+    companyId: string,
+  ) {
+    return tx.company.findUniqueOrThrow({
+      where: { id: companyId },
+      select: {
+        id: true,
+        companyCode: true,
+        companyName: true,
+        baseCurrencyCode: true,
+        isActive: true,
+      },
+    });
   }
 
   private throwIfUniqueConflict(error: unknown, detail: string): void {
