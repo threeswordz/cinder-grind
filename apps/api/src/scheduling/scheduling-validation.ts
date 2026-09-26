@@ -260,3 +260,24 @@ export function parseScheduleMode(
   if (value === 'forecast') return 'forecast';
   throw schedulingInvalid('mode', 'Use planned or forecast.');
 }
+
+
+export function parsePercentComplete(
+  value: unknown,
+  field = 'percentComplete',
+): Prisma.Decimal {
+  if (
+    (typeof value !== 'string' && typeof value !== 'number') ||
+    !/^\d+(?:\.\d{1,2})?$/.test(String(value))
+  ) {
+    throw schedulingInvalid(
+      field,
+      'Use a number from 0 to 100 with at most two decimal places.',
+    );
+  }
+  const decimal = new Prisma.Decimal(String(value));
+  if (decimal.isNegative() || decimal.greaterThan(100)) {
+    throw schedulingInvalid(field, 'Must be between 0 and 100.');
+  }
+  return decimal;
+}
