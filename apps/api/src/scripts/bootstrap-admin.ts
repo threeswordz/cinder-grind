@@ -4,6 +4,12 @@ import { PasswordService } from '../auth/password.service';
 
 const REQUIRED_ADMIN_PERMISSIONS = [
   'projects.access_all',
+  'projects.project.view',
+  'projects.project.create',
+  'projects.project.edit',
+  'projects.project.archive',
+  'projects.team.view',
+  'projects.team.manage',
   'admin.company.manage',
   'admin.users.manage',
   'admin.roles.manage',
