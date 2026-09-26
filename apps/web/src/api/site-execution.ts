@@ -251,17 +251,31 @@ export const siteExecutionApi = {
       '/site-execution/reports/' + id + '/submit',
       { method: 'POST' },
     ),
-  addCorrection: (id: string, correctionNote: string) =>
+  addCorrection: (
+    id: string,
+    correctionNote: string,
+    progress: ProgressLineInput[] = [],
+  ) =>
     apiRequest<
       Data<{
         id: string;
         correctionNote: string;
         createdAt: string;
         createdBy: { id: string; displayName: string };
+        progressCorrections: Array<{
+          id: string;
+          activityId: string;
+          progressDate: string;
+          percentComplete: string;
+          note: string | null;
+          sourceType: string | null;
+          sourceEntityId: string | null;
+          activity: ActivityRef;
+        }>;
       }>
     >('/site-execution/reports/' + id + '/corrections', {
       method: 'POST',
-      body: JSON.stringify({ correctionNote }),
+      body: JSON.stringify({ correctionNote, progress }),
     }),
   documents: (id: string) =>
     apiRequest<Data<SiteReportDocument[]>>(
