@@ -4,8 +4,9 @@
 **Source of truth:** Live GitHub repository state
 
 - Current Release: V0.2 Project & Scheduling
-- Current Stage: V0.2-B Scheduling Engine — COMPLETE
+- Current Stage: V0.2-C Baselines / Progress — PRE-FLIGHT
 - Completed Stages: V0.1-A Technical Skeleton; V0.1-B Company / Identity / Security; V0.1-C Administration; V0.1-D Master Data; V0.1-E Projects; V0.1-F WBS & Cost Codes; V0.1-G Basic Documents; V0.1-H Integration / Regression / UAT; V0.2-A Scheduling Data Model; V0.2-B Scheduling Engine
+- Active Issue: #38 — V0.2-C Baselines / Progress — Business Rules
 - Completed Issue: #36 — V0.2-B Scheduling Engine
 - Completed Branch: `v0.2-b-scheduling-engine`
 - Completed Issue: #35 — V0.2-B Scheduling Engine — Calculation Rules
@@ -180,3 +181,11 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - all four automated review findings addressed and review threads resolved
 - final exact-head CI #647 passed, including PostgreSQL migrations, full regression, API startup and live HTTP acceptance
 - no new runtime dependency, paid scheduling engine, Stage C/D/E/F, or V0.3+ scope introduced
+
+
+## V0.2-C pre-flight
+
+- Stage B is complete and merged.
+- Issue #38 records the unresolved Product / Business Owner rules for baseline approval/versioning, baseline snapshot content, progress-history corrections, explicit actual dates and delay calculation.
+- Existing configurable Approval Matrix can support baseline approval without hard-coding approver Roles.
+- Stage C implementation is paused until Issue #38 rules are approved or replaced.
