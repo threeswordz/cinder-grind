@@ -3,7 +3,7 @@
 **Last verified:** 2026-09-27
 **Source of truth:** Live GitHub repository state
 
-- Current Release: V0.3 Procurement — ENTRY GATE
+- Current Release: V0.3 Procurement
 - Current Stage: V0.3-A BOQ & Budget — IMPLEMENTATION
 - Completed Stages: V0.1-A Technical Skeleton; V0.1-B Company / Identity / Security; V0.1-C Administration; V0.1-D Master Data; V0.1-E Projects; V0.1-F WBS & Cost Codes; V0.1-G Basic Documents; V0.1-H Integration / Regression / UAT; V0.2-A Scheduling Data Model; V0.2-B Scheduling Engine; V0.2-C Baselines / Progress; V0.2-D Gantt / Lookahead; V0.2-E Site Execution; V0.2-F Equipment; V0.2-G UAT Reference Programme
 - Active Issue: #59 — V0.3-A BOQ & Budget
@@ -466,3 +466,22 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - Issue #57 is closed.
 - V0.3-A BOQ & Budget is the active implementation stage under Issue #59 / branch `v0.3-a-boq-budget`.
 - V0.4 Inventory, V0.6 Finance and V0.7 Cost Control ownership boundaries remain unchanged.
+
+## V0.3-A implementation progress
+
+- BUD-001–BUD-010 are implemented on branch `v0.3-a-boq-budget` under Issue #59.
+- one canonical working BOQ per Project with stable Section/Item identities and soft archive/reactivation.
+- BOQ Item quantity/UOM/rate/amount are server/database validated; amount is derived as quantity × rate.
+- Project context is inherited; optional WBS and Cost Code remain independent validated dimensions.
+- Budget Revision creation captures an immutable Draft snapshot of active BOQ data and assigns a Company-unique immutable number through configured Number Sequence `BUDGET_REVISION`.
+- exact human-readable Budget/PR/RFQ/PO number formats remain intentionally configuration-owned/deferred under approved BR-V03-17; Stage A does not hardcode a production format.
+- submission is a separate Draft → Submitted transition using the existing configurable `BUDGET_REVISION` Approval Matrix and backend maker-checker.
+- first approved revision is derived as Original Budget; latest approved revision is Current Revised Budget; rejected revisions remain history.
+- Project, WBS and Cost Code approved-budget summaries are source-derived from immutable revision lines, including unallocated categories.
+- latest approved revision is exposed as a downstream read model for later Procurement without duplicating BOQ/Budget ownership.
+- PostgreSQL guards enforce Company/Project dimensional integrity, arithmetic, snapshot immutability and retained commercial history.
+- responsive BOQ & Budget workspace supports BOQ maintenance, Draft creation/submission/approval and Original/Revised budget summaries.
+- integration tests cover canonical BOQ, dimensional validation, immutable Draft/approved snapshots, maker-checker, Original/Revised semantics, rejected history and downstream approved-budget reads.
+- live HTTP acceptance covers BOQ → Draft Budget → submit → maker-checker approval → Revised Budget while preserving Original Budget, plus Project-scope denial.
+- full implementation branch CI #939 passed on `06f743755a16a3642d5f33b8d075e41204a34215` before documentation completion.
+- no PR/RFQ/quotation/PO, Inventory, Finance, Actual Cost, tax/VAT, FX or V0.7 Cost Control behavior is introduced.
