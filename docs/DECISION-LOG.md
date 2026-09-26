@@ -33,12 +33,6 @@ Project-scoped access is derived from User → optional active Employee link →
 System Administrator is a technical/admin role and must not automatically gain business approval authority. Business authority comes from explicit permissions/configured approval roles.
 
 ## DEC-007 — Project creation access policy
-**Status:** PENDING BUSINESS DECISION
+**Status:** APPROVED — Option A
 
-For a user who has `projects.project.create` but does not have `projects.access_all`, select one policy before finalizing Project creation:
-
-- A — Creator membership: creator must be linked to an active Employee and included in the initial Project Team.
-- B — Admin assignment later: allow creation without membership; creator may immediately lose access.
-- C — Restricted creation: only users with `projects.access_all` may create Projects.
-
-No option is approved yet. Technical Stage E work that does not depend on this choice may continue.
+A user who has `projects.project.create` but does not have `projects.access_all` must be linked to an active Employee. Project creation atomically includes that Employee in the initial Project Team as `Project Creator`, ensuring the creator retains project-scoped access. Users with `projects.access_all` do not require automatic creator membership. The `Project Creator` membership label grants no additional permission or business approval authority by itself.
