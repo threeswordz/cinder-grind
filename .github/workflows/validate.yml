@@ -57,6 +57,13 @@ jobs:
         run: |
           bash -n deploy/uat/*.sh
           node --check deploy/uat/serve-web.mjs
+      - name: Validate UAT environment template
+        run: |
+          set -a
+          source deploy/uat/.env.example
+          set +a
+          test "$BOOTSTRAP_COMPANY_NAME" = "Construction ERP UAT"
+          test "$BOOTSTRAP_ADMIN_DISPLAY_NAME" = "UAT System Administrator"
       - name: Generate Prisma Client
         run: pnpm prisma:generate
       - name: Validate Prisma schema
