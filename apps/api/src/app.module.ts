@@ -11,6 +11,7 @@ import { DocumentsModule } from './documents/documents.module';
 import { MasterDataModule } from './master-data/master-data.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ProjectsModule } from './projects/projects.module';
+import { SchedulingModule } from './scheduling/scheduling.module';
 import { WbsModule } from './wbs/wbs.module';
 
 @Module({
@@ -18,6 +19,7 @@ import { WbsModule } from './wbs/wbs.module';
     PrismaModule,
     ProjectsModule,
     WbsModule,
+    SchedulingModule,
     DocumentsModule,
     AdministrationModule,
     AuthModule,
