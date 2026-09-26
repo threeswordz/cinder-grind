@@ -4,10 +4,13 @@
 **Source of truth:** Live GitHub repository state
 
 - Current Release: V0.1 Foundation
-- Current Stage: V0.1-G Basic Documents — NEXT
+- Current Stage: V0.1-G Basic Documents — IN PROGRESS
 - Completed Stages: V0.1-A Technical Skeleton; V0.1-B Company / Identity / Security; V0.1-C Administration; V0.1-D Master Data; V0.1-E Projects; V0.1-F WBS & Cost Codes
-- Completed Issue: #23 — V0.1-F WBS & Cost Codes
-- Merged PR: #24 — V0.1-F WBS & Cost Codes
+- Active Issue: #25 — V0.1-G Basic Documents
+- Active Branch: `v0.1-g-basic-documents`
+- Active PR: #26 — ready for final validation
+- Previous completed Issue: #23 — V0.1-F WBS & Cost Codes
+- Previous merged PR: #24 — V0.1-F WBS & Cost Codes
 - Previous completed Issue: #20 — V0.1-E Projects
 - Previous merged PR: #22 — V0.1-E Projects
 - Latest verified main commit: `7bce190c412cd71222816428f04420be2a9278c9` — V0.1-F: WBS & Cost Codes (#24)
@@ -15,7 +18,9 @@
 - Project creation scope decision: Option A — APPROVED. A scoped creator must have an active Employee link and is atomically added to the initial Project Team.
 - Final Stage F PR CI: Validate Construction ERP run #403 — SUCCESS on `ce649c16b139f2ebb81d0fa71fce7420fbde4b79`.
 - Stage F final review: no unresolved review threads, no scope creep into Activities/Scheduling, BOQ/Budget, Procurement or transaction allocations.
-- Next action: Open and implement V0.1-G Basic Documents from approved DOC-001 through DOC-005 and the V0.1 document acceptance criteria.
+- Latest Stage G code CI: Validate Construction ERP run #439 — SUCCESS on `a0b383be810c39b71fadb6b6d1db87e8103f437f`.
+- Stage G final review: no unresolved review threads; no WBS/Activity or later-module document scope added.
+- Next action: Validate the final Stage G checkpoint head, then merge PR #26 and move to Stage H.
 
 ## Stage E completed
 
@@ -42,3 +47,14 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - Project-scoped WBS APIs and company-scoped Cost Code APIs with audit logging
 - Permission-aware WBS & Cost Codes UI
 - PostgreSQL integration coverage for Project scope, access_all, hierarchy integrity, company isolation and WBS/Cost Code dimensional independence
+
+
+## Stage G implementation complete pending final merge
+
+- Configurable Document Types and PostgreSQL document/link metadata
+- File bytes stored outside PostgreSQL through a replaceable DocumentStorage abstraction
+- Local filesystem provider with opaque server-generated UUID storage keys and configured storage root
+- Configurable file size and MIME allow-list policy with safe filename validation
+- Project-scoped document list/upload/download/archive APIs with audit logging
+- Permission-aware Documents UI with scoped Project selection, upload/download/archive and Document Type administration
+- Security/integration coverage for Project scope, projects.access_all, company isolation, path traversal, unsafe filenames/storage keys, size/MIME policy, physical-path non-disclosure and byte round-trip

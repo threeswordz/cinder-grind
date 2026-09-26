@@ -23,6 +23,7 @@ import { SystemSettingsPanel } from './admin/SystemSettingsPanel';
 import { UsersPanel } from './admin/UsersPanel';
 import { MasterDataPanel } from './master-data/MasterDataPanel';
 import { ProjectsPanel } from './projects/ProjectsPanel';
+import { DocumentsPanel } from './documents/DocumentsPanel';
 import { WbsPanel } from './wbs/WbsPanel';
 
 type Section = {
@@ -39,6 +40,12 @@ export function AdminConsole({ user }: { user: CurrentUser }) {
   const sections = useMemo<Section[]>(
     () =>
       [
+        {
+          key: 'documents',
+          label: 'Documents',
+          permission: '__documents__',
+          content: <DocumentsPanel permissions={user.permissions} />,
+        },
         {
           key: 'wbs',
           label: 'WBS & Cost Codes',
@@ -110,7 +117,9 @@ export function AdminConsole({ user }: { user: CurrentUser }) {
           ? user.permissions.some((permission) => permission.startsWith('master.') && permission.endsWith('.view'))
           : section.permission === '__wbs__'
             ? user.permissions.some((permission) => permission === 'wbs.wbs.view' || permission === 'wbs.cost_code.view')
-            : user.permissions.includes(section.permission),
+            : section.permission === '__documents__'
+              ? user.permissions.some((permission) => permission.startsWith('documents.'))
+              : user.permissions.includes(section.permission),
       ),
     [user.permissions],
   );

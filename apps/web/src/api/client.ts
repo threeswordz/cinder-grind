@@ -63,7 +63,8 @@ export async function apiRequest<T>(
   const headers = new Headers(options.headers);
   headers.set('Accept', 'application/json');
 
-  if (options.body !== undefined && !headers.has('Content-Type')) {
+  const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
+  if (options.body !== undefined && !isFormData && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json');
   }
 
@@ -91,4 +92,38 @@ export async function apiRequest<T>(
   }
 
   return (await response.json()) as T;
+}
+
+
+export async function apiDownload(
+  path: string,
+): Promise<{ blob: Blob; fileName: string | null }> {
+  const response = await fetch(apiBaseUrl + path, {
+    method: 'GET',
+    headers: { Accept: '*/*' },
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    const problem = await readProblem(response);
+    if (response.status === 401) csrfToken = null;
+    throw new ApiError(
+      problem.detail ?? 'Download failed.',
+      response.status,
+      problem.code,
+    );
+  }
+
+  const disposition = response.headers.get('Content-Disposition');
+  let fileName: string | null = null;
+  const utf8Match = disposition?.match(/filename\*=UTF-8''([^;]+)/i);
+  if (utf8Match?.[1]) {
+    try {
+      fileName = decodeURIComponent(utf8Match[1]);
+    } catch {
+      fileName = null;
+    }
+  }
+
+  return { blob: await response.blob(), fileName };
 }
