@@ -18,27 +18,39 @@ import {
 } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { AdminRole, AdminUser, adminApi } from '../api/admin';
+import { AdminEmployeeOption, AdminRole, AdminUser, adminApi } from '../api/admin';
 
 function UserEditor({
   user,
   roles,
+  employees,
 }: {
   user: AdminUser;
   roles: AdminRole[];
+  employees: AdminEmployeeOption[];
 }) {
   const queryClient = useQueryClient();
   const [roleIds, setRoleIds] = useState<string[]>(
     user.userRoles.map((item) => item.role.id),
   );
   const [newPassword, setNewPassword] = useState('');
+  const [employeeId, setEmployeeId] = useState(user.employeeId ?? '');
 
   useEffect(() => {
     setRoleIds(user.userRoles.map((item) => item.role.id));
-  }, [user.userRoles]);
+    setEmployeeId(user.employeeId ?? '');
+  }, [user.employeeId, user.userRoles]);
 
   const saveRoles = useMutation({
     mutationFn: () => adminApi.replaceUserRoles(user.id, roleIds),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+    },
+  });
+
+  const saveEmployee = useMutation({
+    mutationFn: () =>
+      adminApi.updateUser(user.id, { employeeId: employeeId || null }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
     },
@@ -73,6 +85,39 @@ function UserEditor({
               {user.isActive ? 'Active' : 'Inactive'}
             </Typography>
           </div>
+
+          <FormControl fullWidth>
+            <InputLabel id={'employee-link-' + user.id}>Employee Link</InputLabel>
+            <Select
+              labelId={'employee-link-' + user.id}
+              value={employeeId}
+              onChange={(event) => setEmployeeId(event.target.value)}
+              input={<OutlinedInput label="Employee Link" />}
+            >
+              <MenuItem value="">
+                <em>No Employee Link</em>
+              </MenuItem>
+              {employees.map((employee) => (
+                <MenuItem key={employee.id} value={employee.id}>
+                  {employee.employeeCode} — {employee.employeeName}
+                  {employee.jobTitle ? ' (' + employee.jobTitle + ')' : ''}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          <Button
+            variant="outlined"
+            onClick={() => saveEmployee.mutate()}
+            disabled={saveEmployee.isPending}
+          >
+            Save Employee Link
+          </Button>
+          {saveEmployee.isError ? (
+            <Alert severity="error">
+              Unable to change this User's Employee link. The Employee may already
+              be linked to another User.
+            </Alert>
+          ) : null}
 
           <FormControl fullWidth>
             <InputLabel id={'roles-' + user.id}>Roles</InputLabel>
@@ -159,10 +204,15 @@ export function UsersPanel() {
     queryKey: ['admin', 'roles'],
     queryFn: adminApi.userRoleOptions,
   });
+  const employeesQuery = useQuery({
+    queryKey: ['admin', 'user-employee-options'],
+    queryFn: adminApi.userEmployeeOptions,
+  });
 
   const [email, setEmail] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [password, setPassword] = useState('');
+  const [employeeId, setEmployeeId] = useState('');
   const [roleIds, setRoleIds] = useState<string[]>([]);
 
   const create = useMutation({
@@ -171,12 +221,14 @@ export function UsersPanel() {
         email,
         displayName,
         password,
+        ...(employeeId ? { employeeId } : {}),
         roleIds,
       }),
     onSuccess: async () => {
       setEmail('');
       setDisplayName('');
       setPassword('');
+      setEmployeeId('');
       setRoleIds([]);
       await queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
     },
@@ -193,6 +245,7 @@ export function UsersPanel() {
   }
 
   const roles = rolesQuery.data?.data ?? [];
+  const employees = employeesQuery.data?.data ?? [];
 
   return (
     <Stack spacing={3}>
@@ -228,6 +281,25 @@ export function UsersPanel() {
               helperText="Minimum 12 characters."
               required
             />
+            <FormControl fullWidth>
+              <InputLabel id="new-user-employee">Employee Link</InputLabel>
+              <Select
+                labelId="new-user-employee"
+                value={employeeId}
+                onChange={(event) => setEmployeeId(event.target.value)}
+                input={<OutlinedInput label="Employee Link" />}
+              >
+                <MenuItem value="">
+                  <em>No Employee Link</em>
+                </MenuItem>
+                {employees.map((employee) => (
+                  <MenuItem key={employee.id} value={employee.id}>
+                    {employee.employeeCode} — {employee.employeeName}
+                    {employee.jobTitle ? ' (' + employee.jobTitle + ')' : ''}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
             <FormControl fullWidth>
               <InputLabel id="new-user-roles">Roles</InputLabel>
               <Select
@@ -266,7 +338,12 @@ export function UsersPanel() {
 
       <Stack spacing={2}>
         {(usersQuery.data?.data ?? []).map((user) => (
-          <UserEditor key={user.id} user={user} roles={roles} />
+          <UserEditor
+            key={user.id}
+            user={user}
+            roles={roles}
+            employees={employees}
+          />
         ))}
       </Stack>
     </Stack>
