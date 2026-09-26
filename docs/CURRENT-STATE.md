@@ -4,11 +4,11 @@
 **Source of truth:** Live GitHub repository state
 
 - Current Release: V0.1 Foundation
-- Current Stage: V0.1-H Integration / Regression / UAT — IN PROGRESS
+- Current Stage: V0.1-H Integration / Regression / UAT — ACCEPTED, MERGE PENDING
 - Completed Stages: V0.1-A Technical Skeleton; V0.1-B Company / Identity / Security; V0.1-C Administration; V0.1-D Master Data; V0.1-E Projects; V0.1-F WBS & Cost Codes; V0.1-G Basic Documents
 - Active Issue: #27 — V0.1-H Integration / Regression / UAT
 - Active Branch: `v0.1-h-integration-uat`
-- Active PR: #28 — draft, awaiting UAT human gate
+- Active PR: #28 — acceptance recorded; final merge pending
 - Previous completed Issue: #25 — V0.1-G Basic Documents
 - Previous merged PR: #26 — V0.1-G Basic Documents
 - Previous completed Issue: #23 — V0.1-F WBS & Cost Codes
@@ -27,7 +27,7 @@
 - V0.1 cross-module release acceptance scenario: PASS in the Stage H release-candidate regression suite.
 - Open defect check: no open defect Issue exists; only Stage H tracking Issue #27 is open.
 - Governance: `AGENTS.md`, `docs/PROJECT-GOVERNANCE.md`, PR governance checklist and DEC-008 are active; material decisions must pass the repository pre-flight and open-source/zero-cost-first constraint.
-- Next action: execute the documented self-hosted / zero-cost Staging/UAT deployment and smoke test, then manual V0.1 UAT; Product / Business Owner acceptance remains the final human gate.
+- Next action: finalize PR #28 and merge V0.1-H; then mark V0.1 Foundation complete.
 
 ## Stage E completed
 
@@ -75,4 +75,6 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - V0.1 acceptance traceability and approved-scope limitations documented
 - Deployment, rollback/recovery and safe Staging/UAT smoke procedure documented
 - Manual V0.1 UAT scenario, test data, expected results and sign-off record prepared
-- Human gates still pending: Staging/UAT smoke execution and Product / Business Owner UAT/release acceptance
+- Local self-hosted API/web smoke and authenticated application load passed
+- CI #524 live HTTP V0.1 acceptance passed on `16c76a172bd314a9c5c2431ad112a9090a9d7a15`
+- Product / Business Owner accepted V0.1 Foundation on 2026-09-26
