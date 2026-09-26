@@ -1,0 +1,28 @@
+import assert from 'node:assert/strict'; import test from 'node:test'; import { randomUUID } from 'node:crypto'; import { Prisma } from '@prisma/client'; import { ForbiddenException,UnprocessableEntityException } from '@nestjs/common';
+import { AuditService } from '../audit/audit.service'; import { AuthenticatedUserContext } from '../auth/auth.types'; import { AuthorizationService } from '../authorization/authorization.service'; import { ProjectScopeService } from '../authorization/project-scope.service'; import { PrismaService } from '../prisma/prisma.service'; import { ProjectAccessService } from '../projects/project-access.service'; import { WbsService } from './wbs.service';
+const auth=(companyId:string,userId:string,permissions:string[]):AuthenticatedUserContext=>({sessionId:randomUUID(),userId,companyId,email:'wbs@example.com',displayName:'WBS User',roleCodes:['TEST'],permissions,csrfTokenHash:'0'.repeat(64)});
+test('WBS scope, hierarchy and independent Cost Codes are enforced in PostgreSQL',async()=>{
+ const prisma=new PrismaService();await prisma.$connect();try{const s=randomUUID().slice(0,8);
+ const company=await prisma.company.create({data:{companyCode:'WBS-'+s,companyName:'WBS Test'}});const other=await prisma.company.create({data:{companyCode:'WBX-'+s,companyName:'Other WBS Test'}});
+ const customer=await prisma.customer.create({data:{companyId:company.id,customerCode:'C-'+s,customerName:'Customer'}});const otherCustomer=await prisma.customer.create({data:{companyId:other.id,customerCode:'OC-'+s,customerName:'Other Customer'}});
+ const status=await prisma.statusDefinition.create({data:{companyId:company.id,entityType:'PROJECT',statusCode:'A-'+s,statusLabel:'Active'}});const otherStatus=await prisma.statusDefinition.create({data:{companyId:other.id,entityType:'PROJECT',statusCode:'A-'+s,statusLabel:'Active'}});
+ const employee=await prisma.employee.create({data:{companyId:company.id,employeeCode:'E-'+s,employeeName:'Employee'}});const user=await prisma.user.create({data:{companyId:company.id,employeeId:employee.id,email:'u-'+s+'@example.com',displayName:'User',passwordHash:'x'}});
+ const allUser=await prisma.user.create({data:{companyId:company.id,email:'a-'+s+'@example.com',displayName:'All',passwordHash:'x'}});
+ const project=await prisma.project.create({data:{companyId:company.id,projectCode:'P-'+s,projectName:'Assigned',customerId:customer.id,statusDefinitionId:status.id,contractValue:'1',plannedStartDate:new Date('2026-01-01'),plannedCompletionDate:new Date('2026-12-31')}});
+ const unassigned=await prisma.project.create({data:{companyId:company.id,projectCode:'P2-'+s,projectName:'Unassigned',customerId:customer.id,statusDefinitionId:status.id,contractValue:'1',plannedStartDate:new Date('2026-01-01'),plannedCompletionDate:new Date('2026-12-31')}});
+ const otherProject=await prisma.project.create({data:{companyId:other.id,projectCode:'OP-'+s,projectName:'Other',customerId:otherCustomer.id,statusDefinitionId:otherStatus.id,contractValue:'1',plannedStartDate:new Date('2026-01-01'),plannedCompletionDate:new Date('2026-12-31')}});
+ await prisma.projectMember.create({data:{projectId:project.id,employeeId:employee.id,projectRole:'Engineer'}});
+ const access=new ProjectAccessService(prisma,new ProjectScopeService(new AuthorizationService()));const svc=new WbsService(prisma,access,new AuditService(prisma));
+ const scoped=auth(company.id,user.id,['wbs.wbs.view','wbs.wbs.create','wbs.wbs.edit','wbs.wbs.archive','wbs.cost_code.view','wbs.cost_code.create','wbs.cost_code.edit','wbs.cost_code.archive']);
+ const all=auth(company.id,allUser.id,['projects.access_all','wbs.wbs.view','wbs.wbs.create']);
+ const root=await svc.createWbs({auth:scoped},project.id,{wbsCode:'1',wbsName:'Root'});const child=await svc.createWbs({auth:scoped},project.id,{parentId:root.id,wbsCode:'1.1',wbsName:'Child'});assert.equal(child.parentId,root.id);
+ await assert.rejects(()=>svc.listWbs(scoped,unassigned.id),(e:unknown)=>e instanceof ForbiddenException);assert.equal((await svc.projects(scoped)).length,1);assert.equal((await svc.projects(all)).length,2);
+ const foreign=await prisma.wbsElement.create({data:{projectId:unassigned.id,wbsCode:'X',wbsName:'Foreign'}});
+ await assert.rejects(()=>svc.createWbs({auth:scoped},project.id,{parentId:foreign.id,wbsCode:'BAD',wbsName:'Bad'}),(e:unknown)=>e instanceof UnprocessableEntityException);
+ await assert.rejects(()=>prisma.wbsElement.create({data:{projectId:project.id,parentId:foreign.id,wbsCode:'DBBAD',wbsName:'DB Bad'}}));
+ const cc=await svc.createCostCode({auth:scoped},{costCode:'LAB',costName:'Labour'});assert.equal(cc.companyId,company.id);assert.equal((await svc.listCostCodes(scoped)).length,1);
+ await prisma.costCode.create({data:{companyId:other.id,costCode:'LAB',costName:'Other Labour'}});assert.equal((await svc.listCostCodes(scoped)).length,1);
+ const fields=Prisma.dmmf.datamodel.models.find(m=>m.name==='CostCode')!.fields.map(f=>f.name);assert.equal(fields.includes('wbsId'),false);assert.equal(fields.includes('wbs'),false);
+ assert.equal((await prisma.wbsElement.findMany({where:{projectId:otherProject.id}})).length,0);
+ }finally{await prisma.$disconnect();}
+});
