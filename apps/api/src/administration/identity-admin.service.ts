@@ -369,6 +369,19 @@ export class IdentityAdminService {
     });
   }
 
+  listEmployeeOptions(companyId: string) {
+    return this.prisma.employee.findMany({
+      where: { companyId, isActive: true },
+      orderBy: [{ employeeName: 'asc' }, { employeeCode: 'asc' }],
+      select: {
+        id: true,
+        employeeCode: true,
+        employeeName: true,
+        jobTitle: true,
+      },
+    });
+  }
+
   listRoleOptions(companyId: string) {
     return this.prisma.role.findMany({
       where: { companyId, isActive: true },
