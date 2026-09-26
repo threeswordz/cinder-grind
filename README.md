@@ -87,6 +87,6 @@ Application development has **started on V0.1 Foundation**.
 
 Current development status is maintained in `docs/CURRENT-STATE.md`.
 
-Completed foundation stages: **V0.1-A through V0.1-F**.
+Completed foundation stages: **V0.1-A through V0.1-G**.
 
-Next stage: **V0.1-G Basic Documents**. Development continues only through the approved roadmap, requirements, security controls, test gates and dependency-license rules.
+Next stage: **V0.1-H Integration / Regression / UAT**. Development continues only through the approved roadmap, requirements, security controls, test gates and dependency-license rules.
