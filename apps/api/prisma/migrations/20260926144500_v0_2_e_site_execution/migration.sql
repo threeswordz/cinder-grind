@@ -261,11 +261,15 @@ DECLARE
   report_status VARCHAR(20);
   ref_project UUID;
   ref_company UUID;
+  target_report_id UUID;
 BEGIN
+  target_report_id :=
+    CASE WHEN TG_OP = 'DELETE' THEN OLD."report_id" ELSE NEW."report_id" END;
+
   SELECT "project_id", "company_id", "status"
     INTO report_project, report_company, report_status
   FROM "daily_site_reports"
-  WHERE "id" = COALESCE(NEW."report_id", OLD."report_id");
+  WHERE "id" = target_report_id;
 
   IF report_project IS NULL THEN
     RAISE EXCEPTION 'Daily Site Report not found';
