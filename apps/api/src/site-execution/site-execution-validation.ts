@@ -148,3 +148,19 @@ export function siteArray(
     return item as Record<string, unknown>;
   });
 }
+
+export function requiredSiteString(
+  input: Record<string, unknown>,
+  field: string,
+  max: number,
+): string {
+  return siteString(input, field, max, true) as string;
+}
+
+export function nullableSiteString(
+  input: Record<string, unknown>,
+  field: string,
+  max: number,
+): string | null | undefined {
+  return siteString(input, field, max, false);
+}
