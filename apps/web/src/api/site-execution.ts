@@ -195,6 +195,16 @@ export type DailySiteReportDetail = {
     correctionNote: string;
     createdAt: string;
     createdBy: { id: string; displayName: string };
+    progressCorrections: Array<{
+      id: string;
+      activityId: string;
+      progressDate: string;
+      percentComplete: string;
+      note: string | null;
+      sourceType: string | null;
+      sourceEntityId: string | null;
+      activity: ActivityRef;
+    }>;
   }>;
 };
 
