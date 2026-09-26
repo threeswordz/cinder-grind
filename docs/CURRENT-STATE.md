@@ -8,7 +8,7 @@
 - Completed Stages: V0.1-A Technical Skeleton; V0.1-B Company / Identity / Security; V0.1-C Administration; V0.1-D Master Data; V0.1-E Projects; V0.1-F WBS & Cost Codes
 - Active Issue: #25 — V0.1-G Basic Documents
 - Active Branch: `v0.1-g-basic-documents`
-- Active PR: #26 — draft
+- Active PR: #26 — ready for final validation
 - Previous completed Issue: #23 — V0.1-F WBS & Cost Codes
 - Previous merged PR: #24 — V0.1-F WBS & Cost Codes
 - Previous completed Issue: #20 — V0.1-E Projects
