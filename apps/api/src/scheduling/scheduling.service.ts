@@ -753,9 +753,27 @@ export class SchedulingService {
     mode: ScheduleMode,
   ) {
     await this.access.assertAccess(auth, projectId);
+    return this.scheduleAnalysisFromDb(this.prisma, auth, projectId, mode);
+  }
 
+  async scheduleAnalysisInTransaction(
+    auth: AuthenticatedUserContext,
+    projectId: string,
+    mode: ScheduleMode,
+    tx: Prisma.TransactionClient,
+  ) {
+    await this.access.assertAccess(auth, projectId, tx);
+    return this.scheduleAnalysisFromDb(tx, auth, projectId, mode);
+  }
+
+  private async scheduleAnalysisFromDb(
+    db: Pick<Prisma.TransactionClient, 'activity' | 'activityDependency'>,
+    auth: AuthenticatedUserContext,
+    projectId: string,
+    mode: ScheduleMode,
+  ) {
     const [activities, dependencies] = await Promise.all([
-      this.prisma.activity.findMany({
+      db.activity.findMany({
         where: {
           projectId,
           companyId: auth.companyId,
@@ -771,7 +789,7 @@ export class SchedulingService {
         },
         orderBy: { activityCode: 'asc' },
       }),
-      this.prisma.activityDependency.findMany({
+      db.activityDependency.findMany({
         where: {
           projectId,
           isActive: true,
