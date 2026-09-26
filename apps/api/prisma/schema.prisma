@@ -16,7 +16,11 @@ model Company {
   createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
+  customers         Customer[]
+  suppliers         Supplier[]
   employees         Employee[]
+  unitsOfMeasure    UnitOfMeasure[]
+  materials         Material[]
   users             User[]
   roles             Role[]
   userRoles         UserRole[]
@@ -28,6 +32,85 @@ model Company {
   systemSettings    SystemSetting[]
 
   @@map("companies")
+}
+
+model Customer {
+  id                 String   @id @default(uuid()) @db.Uuid
+  companyId          String   @map("company_id") @db.Uuid
+  customerCode       String   @map("customer_code") @db.VarChar(50)
+  customerName       String   @map("customer_name") @db.VarChar(200)
+  registrationNumber String?  @map("registration_number") @db.VarChar(100)
+  contactName        String?  @map("contact_name") @db.VarChar(200)
+  email              String?  @db.VarChar(320)
+  phone              String?  @db.VarChar(50)
+  address            String?  @db.Text
+  isActive           Boolean  @default(true) @map("is_active")
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+
+  @@unique([companyId, customerCode])
+  @@index([companyId, isActive])
+  @@map("customers")
+}
+
+model Supplier {
+  id                 String   @id @default(uuid()) @db.Uuid
+  companyId          String   @map("company_id") @db.Uuid
+  supplierCode       String   @map("supplier_code") @db.VarChar(50)
+  supplierName       String   @map("supplier_name") @db.VarChar(200)
+  registrationNumber String?  @map("registration_number") @db.VarChar(100)
+  contactName        String?  @map("contact_name") @db.VarChar(200)
+  email              String?  @db.VarChar(320)
+  phone              String?  @db.VarChar(50)
+  address            String?  @db.Text
+  isActive           Boolean  @default(true) @map("is_active")
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+
+  @@unique([companyId, supplierCode])
+  @@index([companyId, isActive])
+  @@map("suppliers")
+}
+
+model UnitOfMeasure {
+  id            String  @id @default(uuid()) @db.Uuid
+  companyId     String  @map("company_id") @db.Uuid
+  uomCode       String  @map("uom_code") @db.VarChar(30)
+  uomName       String  @map("uom_name") @db.VarChar(100)
+  decimalPlaces Int     @default(0) @map("decimal_places")
+  isActive      Boolean @default(true) @map("is_active")
+
+  company   Company    @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  materials Material[]
+
+  @@unique([companyId, uomCode])
+  @@index([companyId, isActive])
+  @@map("units_of_measure")
+}
+
+model Material {
+  id               String   @id @default(uuid()) @db.Uuid
+  companyId        String   @map("company_id") @db.Uuid
+  materialCode     String   @map("material_code") @db.VarChar(80)
+  materialName     String   @map("material_name") @db.VarChar(200)
+  description      String?  @db.Text
+  defaultUomId     String   @map("default_uom_id") @db.Uuid
+  materialCategory String?  @map("material_category") @db.VarChar(150)
+  isActive         Boolean  @default(true) @map("is_active")
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  company    Company       @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  defaultUom UnitOfMeasure @relation(fields: [defaultUomId], references: [id], onDelete: Restrict)
+
+  @@unique([companyId, materialCode])
+  @@index([companyId, isActive])
+  @@index([defaultUomId])
+  @@map("materials")
 }
 
 model Employee {

@@ -21,6 +21,7 @@ import { RolesPanel } from './admin/RolesPanel';
 import { StatusesPanel } from './admin/StatusesPanel';
 import { SystemSettingsPanel } from './admin/SystemSettingsPanel';
 import { UsersPanel } from './admin/UsersPanel';
+import { MasterDataPanel } from './master-data/MasterDataPanel';
 
 type Section = {
   key: string;
@@ -36,6 +37,12 @@ export function AdminConsole({ user }: { user: CurrentUser }) {
   const sections = useMemo<Section[]>(
     () =>
       [
+        {
+          key: 'master-data',
+          label: 'Master Data',
+          permission: '__master_data__',
+          content: <MasterDataPanel permissions={user.permissions} />,
+        },
         {
           key: 'company',
           label: 'Company',
@@ -84,7 +91,13 @@ export function AdminConsole({ user }: { user: CurrentUser }) {
           permission: 'admin.system_settings.manage',
           content: <SystemSettingsPanel />,
         },
-      ].filter((section) => user.permissions.includes(section.permission)),
+      ].filter((section) =>
+        section.permission === '__master_data__'
+          ? user.permissions.some((permission) =>
+              permission.startsWith('master.') && permission.endsWith('.view'),
+            )
+          : user.permissions.includes(section.permission),
+      ),
     [user.permissions],
   );
 
@@ -114,7 +127,7 @@ export function AdminConsole({ user }: { user: CurrentUser }) {
             <Box sx={{ flexGrow: 1 }}>
               <Typography variant="h6">Construction ERP</Typography>
               <Typography variant="body2" color="text.secondary">
-                V0.1 Administration · {user.displayName}
+                V0.1 Foundation · {user.displayName}
               </Typography>
             </Box>
             <Button
@@ -131,8 +144,8 @@ export function AdminConsole({ user }: { user: CurrentUser }) {
         <Box sx={{ py: 3 }}>
           {sections.length === 0 ? (
             <Alert severity="warning">
-              Your account is authenticated but has no Administration
-              permissions.
+              Your account is authenticated but has no available V0.1
+              application permissions.
             </Alert>
           ) : (
             <Stack spacing={3}>
