@@ -102,8 +102,6 @@ model UnitOfMeasure {
   company   Company    @relation(fields: [companyId], references: [id], onDelete: Restrict)
   materials Material[]
   dailySiteReportMaterialUsage DailySiteReportMaterialUsage[]
-  equipmentUsage               EquipmentUsage[]
-  dailySiteReportEquipmentUsage DailySiteReportEquipmentUsage[]
 
   @@unique([companyId, uomCode])
   @@index([companyId, isActive])
@@ -521,6 +519,8 @@ model WbsElement {
   activities        Activity[]
   baselineSnapshots ScheduleBaselineActivity[]
   dailySiteReportMaterialUsage DailySiteReportMaterialUsage[]
+  equipmentUsage               EquipmentUsage[]
+  dailySiteReportEquipmentUsage DailySiteReportEquipmentUsage[]
 
   @@unique([projectId, wbsCode])
   @@index([projectId, parentId, isActive])
