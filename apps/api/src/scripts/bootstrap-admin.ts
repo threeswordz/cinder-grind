@@ -14,6 +14,16 @@ const REQUIRED_ADMIN_PERMISSIONS = [
   'admin.system_settings.manage',
   'admin.audit_config.manage',
   'audit.log.view',
+  'master.customer.view',
+  'master.customer.manage',
+  'master.supplier.view',
+  'master.supplier.manage',
+  'master.employee.view',
+  'master.employee.manage',
+  'master.material.view',
+  'master.material.manage',
+  'master.uom.view',
+  'master.uom.manage',
 ] as const;
 
 function requiredEnv(name: string): string {
