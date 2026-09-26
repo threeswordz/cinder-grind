@@ -35,6 +35,7 @@ import {
   parseActiveFilter,
   parseDependencyType,
   parseSchedulingDate,
+  parseScheduleMode,
   parseSignedWorkDays,
   parseTime,
   parseWeekdayNo,
@@ -99,6 +100,23 @@ export class ScheduleController {
   @RequirePermissions('schedule.programme.view')
   async projects(@Req() request: AuthenticatedRequest) {
     return { data: await this.scheduling.projects(authOf(request)) };
+  }
+
+  @Get('projects/:projectId/analysis')
+  @UseGuards(AuthGuard, PermissionGuard)
+  @RequirePermissions('schedule.programme.view')
+  async analysis(
+    @Req() request: AuthenticatedRequest,
+    @Param('projectId', new ParseUUIDPipe({ version: '4' })) projectId: string,
+    @Query('mode') mode?: string,
+  ) {
+    return {
+      data: await this.scheduling.scheduleAnalysis(
+        authOf(request),
+        projectId,
+        parseScheduleMode(mode),
+      ),
+    };
   }
 }
 
