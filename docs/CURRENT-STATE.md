@@ -290,3 +290,21 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - Material usage remains observational and must not post Inventory.
 - Equipment master/usage selection remains a V0.2-F dependency; Stage E must not create free-text or duplicate Equipment.
 - no payroll/timesheet, full QA/QC, external weather dependency or V0.3+ scope is introduced.
+
+## V0.2-E implementation progress
+
+- DEC-012 Site Execution rules implemented for one canonical Daily Site Report per Project/reporting date and `DRAFT → SUBMITTED` lifecycle.
+- aggregated manpower, observational Material usage, local weather, site issues, delay reasons and lightweight inspection references implemented.
+- Daily Report progress appends to the existing immutable Scheduling Activity Progress history on submission; Schedule Baselines remain untouched.
+- submitted-report progress corrections append later immutable Activity Progress rows with `DAILY_SITE_REPORT_CORRECTION` source traceability rather than overwriting earlier progress.
+- submitted Daily Site Report header/content, report-specific document links and correction records are protected by PostgreSQL integrity guards.
+- site photographs/files reuse the existing Documents storage abstraction and Project document linkage; no storage key/physical path is exposed.
+- Equipment remains an explicit V0.2-F integration boundary; Stage E introduces no free-text or duplicate Equipment master.
+- material observations do not post Inventory or modify Stock Balance; no Inventory transaction dependency is introduced.
+- Project-scope permissions, audit logging and same-Project/company reference validation are active.
+- responsive Site Execution UI supports draft creation/editing, submission, observations, progress, photos/documents and append-only corrections.
+- Stage E integration coverage includes Project/date uniqueness, cross-Project denial, submission/progress traceability, database immutability and document-link guards.
+- live HTTP acceptance covers the V0.2-E field workflow and unassigned-Project denial.
+- Stage E testing exposed and fixed a pre-existing direct Project-access edge case where an empty Project scope could be overwritten by the requested Project id; a regression test now protects that shared authorization helper.
+- CI #790 and CI #792 passed during implementation, including migrations, full regression, production dependency audit, web build and live HTTP acceptance; final exact-head CI is revalidated after the final hardening/documentation commits.
+- no payroll/timesheet, full QA/QC, external weather service, Inventory posting, Equipment duplication or V0.3+ scope was introduced.
