@@ -4,9 +4,10 @@
 **Source of truth:** Live GitHub repository state
 
 - Current Release: V0.2 Project & Scheduling
-- Current Stage: V0.2-E Site Execution — PRE-FLIGHT
+- Current Stage: V0.2-E Site Execution — IMPLEMENTATION
 - Completed Stages: V0.1-A Technical Skeleton; V0.1-B Company / Identity / Security; V0.1-C Administration; V0.1-D Master Data; V0.1-E Projects; V0.1-F WBS & Cost Codes; V0.1-G Basic Documents; V0.1-H Integration / Regression / UAT; V0.2-A Scheduling Data Model; V0.2-B Scheduling Engine; V0.2-C Baselines / Progress; V0.2-D Gantt / Lookahead
-- Active Issue: #47 — V0.2-E Site Execution — Business Rules
+- Active Issue: #48 — V0.2-E Site Execution
+- Completed Issue: #47 — V0.2-E Site Execution — Business Rules
 - Completed Issue: #45 — V0.2-D Gantt / Lookahead
 - Completed Branch: `v0.2-d-gantt-lookahead`
 - Merged PR: #46 — V0.2-D Gantt / Lookahead
@@ -39,7 +40,7 @@
 - V0.1 cross-module release acceptance scenario: PASS in the Stage H release-candidate regression suite.
 - Open defect check at V0.1 acceptance: no Severity 1 or Severity 2 release-blocking defect recorded.
 - Governance: `AGENTS.md`, `docs/PROJECT-GOVERNANCE.md`, PR governance checklist and DEC-008 are active; material decisions must pass the repository pre-flight and open-source/zero-cost-first constraint.
-- Next action: Product / Business Owner to approve or replace the V0.2-E Site Execution business rules in Issue #47 before implementation begins.
+- Next action: implement V0.2-E Site Execution under DEC-012 on `v0.2-e-site-execution`, preserving the Stage F Equipment boundary.
 
 ## Stage E completed
 
@@ -278,3 +279,14 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - Issue #47 records the remaining Product / Business Owner rules for Daily Site Report identity/lifecycle, Activity Progress integration, manpower aggregation, material-use observation boundaries, Equipment dependency, weather/issues/delays/inspections and site photographs.
 - Stage E implementation is paused until Issue #47 rules are approved or replaced.
 - Stage E must not duplicate the Equipment Register before V0.2-F, post Inventory stock movements, introduce a full QA/QC workflow, or require an external weather service.
+
+## V0.2-E active
+
+- Product / Business Owner approved all eight Site Execution business rules on 2026-09-26.
+- DEC-012 is authoritative for Daily Report identity/lifecycle, Activity Progress integration, manpower, material-use boundaries, Equipment dependency, weather/issues/delays/inspections and site photographs.
+- Issue #48 is the active implementation work item.
+- Branch: `v0.2-e-site-execution`.
+- Daily Report progress reuses the existing immutable Activity Progress history; no parallel progress ledger is permitted.
+- Material usage remains observational and must not post Inventory.
+- Equipment master/usage selection remains a V0.2-F dependency; Stage E must not create free-text or duplicate Equipment.
+- no payroll/timesheet, full QA/QC, external weather dependency or V0.3+ scope is introduced.
