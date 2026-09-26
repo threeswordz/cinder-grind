@@ -146,3 +146,23 @@ Before Product / Business Owner sign-off, record:
 - Product / Business Owner decision
 
 V0.1 remains incomplete until the human gates in Issue #27 are explicitly recorded.
+
+
+## 10. Credential mismatch recovery for a fresh UAT database
+
+PostgreSQL initializes the database user's password only when the named data volume is first created. If `UAT_DB_PASSWORD` is changed in `deploy/uat/.env` after that first initialization, the application will receive an authentication failure even though the new password is valid text.
+
+If the UAT database is still fresh and contains no business data/evidence that must be retained:
+
+```bash
+bash deploy/uat/reset-fresh-database.sh
+```
+
+Type `RESET-UAT-DB` when prompted, then rerun:
+
+```bash
+bash deploy/uat/prepare-release.sh
+bash deploy/uat/bootstrap-admin.sh
+```
+
+Do not use this reset after UAT data/evidence must be retained. At that point use controlled password rotation/recovery instead of deleting the volume.
