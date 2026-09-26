@@ -638,6 +638,79 @@ check(
 );
 record('V0.2-C baselines, progress and delay comparison through live HTTP API');
 
+await request(pm, `/activity-progress/${activityB.data.data.id}`, {
+  method: 'POST',
+  json: {
+    progressDate: '2026-10-09',
+    percentComplete: '100',
+    note: 'Completed Activity must remain visible in lookahead',
+  },
+  expected: 201,
+});
+
+const ganttPresentation = await request(
+  pm,
+  '/schedule/projects/' + projectId + '/gantt',
+);
+check(
+  ganttPresentation.data.data.currentBaseline?.versionNo === 1,
+  'Gantt presentation did not use the current approved baseline.',
+);
+const ganttA = ganttPresentation.data.data.activities.find(
+  (item) => item.activityId === activityA.data.data.id,
+);
+const ganttB = ganttPresentation.data.data.activities.find(
+  (item) => item.activityId === activityB.data.data.id,
+);
+check(
+  ganttA?.delayStatus === 'DELAYED' &&
+    typeof ganttA?.isCritical === 'boolean' &&
+    typeof ganttA?.totalFloatWorkDays === 'number',
+  'Gantt presentation did not expose backend-derived delay/critical/float indicators.',
+);
+check(
+  Number(ganttA?.plannedDurationWorkDays) === 5 &&
+    ganttA?.activityStatus?.id === activityStatus.data.data.id,
+  'Gantt presentation did not expose Activity status and duration.',
+);
+check(
+  ganttB?.predecessorActivityIds?.includes(activityA.data.data.id),
+  'Gantt presentation did not preserve backend dependency references.',
+);
+
+const twoWeekLookahead = await request(
+  pm,
+  '/schedule/projects/' +
+    projectId +
+    '/lookahead?asOf=2026-10-01&days=14',
+);
+check(
+  twoWeekLookahead.data.data.window?.asOfDate === '2026-10-01' &&
+    twoWeekLookahead.data.data.window?.endDate === '2026-10-14' &&
+    twoWeekLookahead.data.data.window?.days === 14,
+  '2-week lookahead did not use the approved inclusive 14-calendar-day window.',
+);
+check(
+  twoWeekLookahead.data.data.activities.some(
+    (item) =>
+      item.activityId === activityB.data.data.id &&
+      Number(item.currentPercentComplete) === 100,
+  ),
+  'Completed overlapping Activity was incorrectly hidden from lookahead.',
+);
+
+const fourWeekLookahead = await request(
+  pm,
+  '/schedule/projects/' +
+    projectId +
+    '/lookahead?asOf=2026-10-01&days=28',
+);
+check(
+  fourWeekLookahead.data.data.window?.endDate === '2026-10-28',
+  '4-week lookahead did not use the approved inclusive 28-calendar-day window.',
+);
+record('V0.2-D Gantt and lookahead presentation through live HTTP API');
+
 const documentType = await request(admin, '/document-types', {
   method: 'POST',
   json: {

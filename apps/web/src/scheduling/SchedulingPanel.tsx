@@ -5,6 +5,7 @@ import { ActivitiesPanel } from './ActivitiesPanel';
 import { BaselinesProgressPanel } from './BaselinesProgressPanel';
 import { ActivityTypesPanel } from './ActivityTypesPanel';
 import { CalendarsPanel } from './CalendarsPanel';
+import { GanttLookaheadPanel } from './GanttLookaheadPanel';
 
 export function SchedulingPanel({
   permissions,
@@ -17,7 +18,7 @@ export function SchedulingPanel({
   const canBaselineProgress = permissions.includes('schedule.programme.view');
 
   const available = [
-    ...(canProgramme ? [{ key: 'activities', label: 'Activities' }] : []),
+    ...(canProgramme ? [{ key: 'gantt-lookahead', label: 'Gantt & Lookahead' }, { key: 'activities', label: 'Activities' }] : []),
     ...(canBaselineProgress ? [{ key: 'baseline-progress', label: 'Baselines & Progress' }] : []),
     ...(canCalendars ? [{ key: 'calendars', label: 'Working Calendars' }] : []),
     ...(canTypes ? [{ key: 'types', label: 'Activity Types' }] : []),
@@ -44,6 +45,7 @@ export function SchedulingPanel({
           </Tabs>
         </Box>
       ) : null}
+      {active === 'gantt-lookahead' ? <GanttLookaheadPanel /> : null}
       {active === 'activities' ? (
         <ActivitiesPanel permissions={permissions} />
       ) : null}

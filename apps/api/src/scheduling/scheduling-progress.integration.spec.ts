@@ -367,6 +367,53 @@ test('Stage C preserves immutable baselines and append-only progress with approv
     assert.equal(comparedA?.delayWorkDays, 2);
     assert.equal(comparedA?.delayStatus, 'DELAYED');
 
+    await service.recordProgress(
+      { auth: makerAuth },
+      activityB.id,
+      {
+        progressDate: new Date('2026-10-07T00:00:00.000Z'),
+        percentComplete: new Prisma.Decimal('100'),
+        note: 'Completed Activity remains visible in Stage D',
+      },
+    );
+
+    const stageDPresentation = await service.presentation(
+      makerAuth,
+      project.id,
+    );
+    const presentedA = stageDPresentation.activities.find(
+      (row) => row.activityId === activityA.id,
+    );
+    const presentedB = stageDPresentation.activities.find(
+      (row) => row.activityId === activityB.id,
+    );
+    assert.equal(stageDPresentation.currentBaseline?.versionNo, 1);
+    assert.equal(presentedA?.delayStatus, 'DELAYED');
+    assert.equal(typeof presentedA?.isCritical, 'boolean');
+    assert.equal(typeof presentedA?.totalFloatWorkDays, 'number');
+    assert.deepEqual(presentedB?.predecessorActivityIds, [activityA.id]);
+    assert.equal(presentedB?.currentPercentComplete, 100);
+
+    const twoWeekLookahead = await service.lookahead(
+      makerAuth,
+      project.id,
+      new Date('2026-10-01T00:00:00.000Z'),
+      14,
+    );
+    assert.deepEqual(twoWeekLookahead.window, {
+      asOfDate: '2026-10-01',
+      endDate: '2026-10-14',
+      days: 14,
+    });
+    assert.ok(
+      twoWeekLookahead.activities.some(
+        (row) =>
+          row.activityId === activityB.id &&
+          row.currentPercentComplete === 100,
+      ),
+      '100%-complete Activities must remain visible when they overlap the lookahead window.',
+    );
+
     await prisma.activity.update({
       where: { id: activityA.id },
       data: {

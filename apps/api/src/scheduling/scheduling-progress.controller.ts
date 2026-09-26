@@ -206,6 +206,51 @@ export class ActivityProgressController {
 export class ScheduleComparisonController {
   constructor(private readonly progress: SchedulingProgressService) {}
 
+  @Get('projects/:projectId/gantt')
+  @UseGuards(AuthGuard, PermissionGuard)
+  @RequirePermissions('schedule.programme.view')
+  async gantt(
+    @Req() request: AuthenticatedRequest,
+    @Param('projectId', new ParseUUIDPipe({ version: '4' }))
+    projectId: string,
+  ) {
+    return {
+      data: await this.progress.presentation(
+        authOf(request),
+        projectId,
+      ),
+    };
+  }
+
+  @Get('projects/:projectId/lookahead')
+  @UseGuards(AuthGuard, PermissionGuard)
+  @RequirePermissions('schedule.programme.view')
+  async lookahead(
+    @Req() request: AuthenticatedRequest,
+    @Param('projectId', new ParseUUIDPipe({ version: '4' }))
+    projectId: string,
+    @Query('asOf') rawAsOf?: string,
+    @Query('days') rawDays?: string,
+  ) {
+    if (!rawAsOf) {
+      throw schedulingInvalid('asOf', 'Is required.');
+    }
+    const parsedDays =
+      rawDays === undefined || rawDays === '' ? 14 : Number(rawDays);
+    if (parsedDays !== 14 && parsedDays !== 28) {
+      throw schedulingInvalid('days', 'Must be 14 or 28.');
+    }
+
+    return {
+      data: await this.progress.lookahead(
+        authOf(request),
+        projectId,
+        parseSchedulingDate(rawAsOf, 'asOf'),
+        parsedDays,
+      ),
+    };
+  }
+
   @Get('projects/:projectId/comparison')
   @UseGuards(AuthGuard, PermissionGuard)
   @RequirePermissions('schedule.programme.view')

@@ -4,9 +4,9 @@
 **Source of truth:** Live GitHub repository state
 
 - Current Release: V0.2 Project & Scheduling
-- Current Stage: V0.2-D Gantt / Lookahead — PRE-FLIGHT
-- Completed Stages: V0.1-A Technical Skeleton; V0.1-B Company / Identity / Security; V0.1-C Administration; V0.1-D Master Data; V0.1-E Projects; V0.1-F WBS & Cost Codes; V0.1-G Basic Documents; V0.1-H Integration / Regression / UAT; V0.2-A Scheduling Data Model; V0.2-B Scheduling Engine; V0.2-C Baselines / Progress; V0.2-C Baselines / Progress
-- Active Issue: #42 — V0.2-D Gantt / Lookahead — Presentation Rules
+- Current Stage: V0.2-D Gantt / Lookahead — IMPLEMENTATION
+- Completed Stages: V0.1-A Technical Skeleton; V0.1-B Company / Identity / Security; V0.1-C Administration; V0.1-D Master Data; V0.1-E Projects; V0.1-F WBS & Cost Codes; V0.1-G Basic Documents; V0.1-H Integration / Regression / UAT; V0.2-A Scheduling Data Model; V0.2-B Scheduling Engine; V0.2-C Baselines / Progress
+- Active Issue: #45 — V0.2-D Gantt / Lookahead
 - Completed Issue: #40 — V0.2-C Baselines / Progress
 - Completed Branch: `v0.2-c-baselines-progress`
 - Completed Issue: #38 — V0.2-C Baselines / Progress — Business Rules
@@ -36,7 +36,7 @@
 - V0.1 cross-module release acceptance scenario: PASS in the Stage H release-candidate regression suite.
 - Open defect check at V0.1 acceptance: no Severity 1 or Severity 2 release-blocking defect recorded.
 - Governance: `AGENTS.md`, `docs/PROJECT-GOVERNANCE.md`, PR governance checklist and DEC-008 are active; material decisions must pass the repository pre-flight and open-source/zero-cost-first constraint.
-- Next action: begin V0.2-D Gantt / Lookahead under approved SCH-017/SCH-018/ARCH-010 requirements and the Stage B/C backend read models.
+- Next action: implement V0.2-D Gantt / Lookahead under DEC-011 using the Stage B/C backend read models; keep Frappe Gantt visualization-only.
 
 ## Stage E completed
 
@@ -245,3 +245,12 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - Frappe Gantt remains the approved MIT/open-source visualization component only.
 - No paid Gantt dependency is proposed.
 - Stage D implementation is paused until Issue #42 rules are approved or replaced.
+
+## V0.2-D active
+
+- Product / Business Owner approved all six Gantt / Lookahead presentation rules on 2026-09-26.
+- DEC-011 records read-only Gantt mutation behavior, backend current-forecast precedence, current-approved-baseline presentation, 14/28-calendar-day lookahead windows, overlap inclusion and backend-derived critical/delay indicators.
+- Issue #45 is the active implementation work item.
+- Branch: `v0.2-d-gantt-lookahead`.
+- Frappe Gantt remains visualization-only; all schedule calculations remain backend/domain-owned.
+- V0.2-E Site Execution, V0.2-F Equipment and V0.3+ remain out of scope.
