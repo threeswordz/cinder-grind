@@ -1,0 +1,33 @@
+import { UnprocessableEntityException } from '@nestjs/common';
+
+export function invalid(field: string, message: string) {
+  return new UnprocessableEntityException({
+    code: 'VALIDATION_ERROR',
+    detail: 'One or more fields are invalid.',
+    errors: [{ field, message }],
+  });
+}
+export function object(body: unknown): Record<string, unknown> {
+  if (!body || typeof body !== 'object' || Array.isArray(body)) throw invalid('body','Request body must be a JSON object.');
+  return body as Record<string, unknown>;
+}
+export function str(body: Record<string, unknown>, field: string, max: number) {
+  const value=body[field];
+  if(typeof value!=='string'||!value.trim()||value.trim().length>max) throw invalid(field,'Is required and must be at most '+max+' characters.');
+  return value.trim();
+}
+export function nullable(body: Record<string, unknown>, field: string, max: number) {
+  const value=body[field]; if(value===undefined)return undefined; if(value===null)return null;
+  if(typeof value!=='string'||value.trim().length>max) throw invalid(field,'Must be a string of at most '+max+' characters.');
+  return value.trim()||null;
+}
+export function bool(body: Record<string, unknown>, field: string) {
+  const value=body[field]; if(value===undefined)return undefined; if(typeof value!=='boolean')throw invalid(field,'Must be a boolean.'); return value;
+}
+export function code(value:string, field:string){const v=value.toUpperCase();if(!/^[A-Z0-9][A-Z0-9._-]*$/.test(v))throw invalid(field,'Use letters, numbers, dot, underscore or hyphen only.');return v;}
+
+export function uuid(value:string,field:string){if(!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value))throw invalid(field,'Must be a valid UUID.');return value;}
+
+export function active(value:string|undefined){if(value===undefined||value===''||value==='all')return undefined;if(value==='true')return true;if(value==='false')return false;throw invalid('active','Use true, false or all.');}
+export function search(value:string|undefined){if(value===undefined||value.trim()==='')return undefined;const trimmed=value.trim();if(trimmed.length>200)throw invalid('search','Search is too long.');return trimmed;}
+export function nonempty(data:Record<string,unknown>){if(Object.keys(data).length===0)throw invalid('body','Provide at least one field to update.');}
