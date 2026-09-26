@@ -149,16 +149,12 @@ export class ProjectsController {
       if (value !== undefined) data.description = value;
     }
     if (input.plannedStartDate !== undefined) {
-      data.plannedStartDate = optionalProjectDate(
-        input,
-        'plannedStartDate',
-      );
+      const value = optionalProjectDate(input, 'plannedStartDate');
+      if (value !== undefined) data.plannedStartDate = value;
     }
     if (input.plannedCompletionDate !== undefined) {
-      data.plannedCompletionDate = optionalProjectDate(
-        input,
-        'plannedCompletionDate',
-      );
+      const value = optionalProjectDate(input, 'plannedCompletionDate');
+      if (value !== undefined) data.plannedCompletionDate = value;
     }
 
     ensureFields(data as Record<string, unknown>);
