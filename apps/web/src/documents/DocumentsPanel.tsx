@@ -15,6 +15,7 @@ import {
   DocumentType,
   documentsApi,
 } from '../api/documents';
+import { DocumentTargetPanel } from './DocumentTargetPanel';
 
 function formatBytes(value: number): string {
   if (value < 1024) return value + ' B';
@@ -211,6 +212,14 @@ export function DocumentsPanel({ permissions }: { permissions: string[] }) {
               </CardContent>
             </Card>
           ))}
+
+          {projectId ? (
+            <DocumentTargetPanel
+              projectId={projectId}
+              canUpload={canUpload}
+              canArchive={canArchive}
+            />
+          ) : null}
 
           {canUpload && projectId ? (
             <Card variant="outlined">
