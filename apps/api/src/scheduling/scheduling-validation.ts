@@ -251,3 +251,12 @@ export function validateTimePair(
     throw schedulingInvalid(endField, 'End time must be later than start time.');
   }
 }
+
+
+export function parseScheduleMode(
+  value: string | undefined,
+): 'planned' | 'forecast' {
+  if (value === undefined || value === '' || value === 'planned') return 'planned';
+  if (value === 'forecast') return 'forecast';
+  throw schedulingInvalid('mode', 'Use planned or forecast.');
+}
