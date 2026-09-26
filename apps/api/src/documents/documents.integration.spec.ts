@@ -189,6 +189,51 @@ test('Project Documents enforce scope, safe storage and metadata boundaries', as
       },
     });
 
+    const wbs = await prisma.wbsElement.create({
+      data: {
+        projectId: project.id,
+        wbsCode: 'DOC-WBS-' + suffix,
+        wbsName: 'Document WBS',
+      },
+    });
+    const unassignedWbs = await prisma.wbsElement.create({
+      data: {
+        projectId: unassigned.id,
+        wbsCode: 'DOC-UA-' + suffix,
+        wbsName: 'Unassigned WBS',
+      },
+    });
+    const calendar = await prisma.workingCalendar.create({
+      data: {
+        companyId: company.id,
+        projectId: project.id,
+        calendarName: 'Document Activity Calendar',
+        timezoneName: 'Asia/Singapore',
+      },
+    });
+    await prisma.workingCalendarWeekday.createMany({
+      data: [1, 2, 3, 4, 5].map((weekdayNo) => ({
+        workingCalendarId: calendar.id,
+        weekdayNo,
+        isWorking: true,
+        startTime: new Date('1970-01-01T08:00:00.000Z'),
+        endTime: new Date('1970-01-01T17:00:00.000Z'),
+      })),
+    });
+    const activity = await prisma.activity.create({
+      data: {
+        companyId: company.id,
+        projectId: project.id,
+        wbsId: wbs.id,
+        workingCalendarId: calendar.id,
+        activityCode: 'DOC-A-' + suffix,
+        activityName: 'Document Activity',
+        plannedDurationWorkDays: '1',
+        plannedStartDate: new Date('2026-10-01T00:00:00.000Z'),
+        plannedFinishDate: new Date('2026-10-01T00:00:00.000Z'),
+      },
+    });
+
     const access = new ProjectAccessService(
       prisma,
       new ProjectScopeService(new AuthorizationService()),
@@ -201,6 +246,12 @@ test('Project Documents enforce scope, safe storage and metadata boundaries', as
       new AuditService(prisma),
       storage,
       policy,
+    );
+    const targets = new DocumentTargetsService(
+      prisma,
+      access,
+      new AuditService(prisma),
+      service,
     );
 
     const permissions = [
@@ -272,6 +323,111 @@ test('Project Documents enforce scope, safe storage and metadata boundaries', as
         },
       }),
       1,
+    );
+
+    const wbsDocument = await targets.upload(
+      { auth: scoped },
+      project.id,
+      'WBS',
+      wbs.id,
+      type.id,
+      uploadFile('wbs-plan.pdf'),
+    );
+    const activityDocument = await targets.upload(
+      { auth: scoped },
+      project.id,
+      'ACTIVITY',
+      activity.id,
+      type.id,
+      uploadFile('activity-method.pdf'),
+    );
+    const targetOptions = await targets.options(scoped, project.id);
+    assert.equal(targetOptions.wbs.some((row) => row.id === wbs.id), true);
+    assert.equal(
+      targetOptions.activities.some((row) => row.id === activity.id),
+      true,
+    );
+
+    const wbsDocuments = await targets.list(
+      scoped,
+      project.id,
+      'WBS',
+      wbs.id,
+    );
+    assert.equal(wbsDocuments.some((row) => row.id === wbsDocument.id), true);
+    const activityDocuments = await targets.list(
+      scoped,
+      project.id,
+      'ACTIVITY',
+      activity.id,
+    );
+    assert.equal(
+      activityDocuments.some((row) => row.id === activityDocument.id),
+      true,
+    );
+    assert.equal(JSON.stringify(wbsDocuments).includes('storageKey'), false);
+
+    const targetDownload = await targets.download(
+      scoped,
+      project.id,
+      'ACTIVITY',
+      activity.id,
+      activityDocument.id,
+    );
+    assert.deepEqual(targetDownload.bytes, Buffer.from('%PDF-test'));
+
+    assert.equal(
+      await prisma.documentLink.count({
+        where: {
+          documentId: wbsDocument.id,
+          entityType: 'PROJECT',
+          entityId: project.id,
+        },
+      }),
+      1,
+    );
+    assert.equal(
+      await prisma.documentLink.count({
+        where: {
+          documentId: wbsDocument.id,
+          entityType: 'WBS',
+          entityId: wbs.id,
+        },
+      }),
+      1,
+    );
+
+    await assert.rejects(
+      () =>
+        targets.list(
+          scoped,
+          project.id,
+          'WBS',
+          unassignedWbs.id,
+        ),
+      (error: unknown) => error instanceof UnprocessableEntityException,
+    );
+
+    await assert.rejects(() =>
+      prisma.documentLink.create({
+        data: {
+          documentId: created.id,
+          entityType: 'WBS',
+          entityId: unassignedWbs.id,
+          linkedByUserId: scopedUser.id,
+        },
+      }),
+    );
+
+    await assert.rejects(() =>
+      prisma.documentLink.create({
+        data: {
+          documentId: created.id,
+          entityType: 'UNSUPPORTED',
+          entityId: wbs.id,
+          linkedByUserId: scopedUser.id,
+        },
+      }),
     );
 
     const listed = await service.listProjectDocuments(scoped, project.id);
