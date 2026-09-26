@@ -32,6 +32,9 @@ model Company {
   numberSequences   NumberSequence[]
   systemSettings    SystemSetting[]
   costCodes         CostCode[]
+  activityTypes     ActivityType[]
+  workingCalendars  WorkingCalendar[]
+  activities        Activity[]
   documentTypes     DocumentType[]
   documents         Document[]
 
@@ -132,7 +135,8 @@ model Employee {
 
   company        Company         @relation(fields: [companyId], references: [id], onDelete: Restrict)
   user           User?
-  projectMembers ProjectMember[]
+  projectMembers        ProjectMember[]
+  responsibleActivities Activity[]
 
   @@unique([companyId, employeeCode])
   @@index([companyId, isActive])
@@ -159,6 +163,7 @@ model User {
   auditLogs       AuditLog[]
   uploadedDocuments Document[]     @relation("DocumentUploader")
   documentLinks     DocumentLink[] @relation("DocumentLinker")
+  ownedActivities    Activity[]     @relation("ActivityOwner")
 
   @@unique([companyId, email])
   @@index([companyId, isActive])
@@ -363,8 +368,9 @@ model StatusDefinition {
   sortOrder   Int     @default(0) @map("sort_order")
   isActive    Boolean @default(true) @map("is_active")
 
-  company  Company   @relation(fields: [companyId], references: [id], onDelete: Restrict)
-  projects Project[]
+  company    Company    @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  projects   Project[]
+  activities Activity[]
 
   @@unique([companyId, entityType, statusCode])
   @@index([companyId, entityType, isActive, sortOrder])
@@ -420,9 +426,12 @@ model Project {
   company          Company           @relation(fields: [companyId], references: [id], onDelete: Restrict)
   customer         Customer          @relation(fields: [customerId], references: [id], onDelete: Restrict)
   statusDefinition StatusDefinition? @relation(fields: [statusDefinitionId], references: [id], onDelete: Restrict)
-  members          ProjectMember[]
-  contacts         ProjectContact[]
-  wbsElements      WbsElement[]
+  members              ProjectMember[]
+  contacts             ProjectContact[]
+  wbsElements          WbsElement[]
+  workingCalendars     WorkingCalendar[]
+  activities           Activity[]
+  activityDependencies ActivityDependency[]
 
   @@unique([companyId, projectCode])
   @@index([companyId, isActive])
@@ -483,7 +492,8 @@ model WbsElement {
 
   project  Project       @relation(fields: [projectId], references: [id], onDelete: Restrict)
   parent   WbsElement?   @relation("WbsHierarchy", fields: [parentId], references: [id], onDelete: Restrict)
-  children WbsElement[]  @relation("WbsHierarchy")
+  children   WbsElement[] @relation("WbsHierarchy")
+  activities Activity[]
 
   @@unique([projectId, wbsCode])
   @@index([projectId, parentId, isActive])
@@ -505,6 +515,145 @@ model CostCode {
   @@unique([companyId, costCode])
   @@index([companyId, isActive])
   @@map("cost_codes")
+}
+
+
+model ActivityType {
+  id               String   @id @default(uuid()) @db.Uuid
+  companyId        String   @map("company_id") @db.Uuid
+  activityTypeCode String   @map("activity_type_code") @db.VarChar(80)
+  activityTypeName String   @map("activity_type_name") @db.VarChar(150)
+  isActive         Boolean  @default(true) @map("is_active")
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  company    Company    @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  activities Activity[]
+
+  @@unique([companyId, activityTypeCode])
+  @@index([companyId, isActive])
+  @@map("activity_types")
+}
+
+model WorkingCalendar {
+  id           String   @id @default(uuid()) @db.Uuid
+  companyId    String   @map("company_id") @db.Uuid
+  projectId    String?  @map("project_id") @db.Uuid
+  calendarName String   @map("calendar_name") @db.VarChar(200)
+  description  String?  @db.Text
+  timezoneName String   @map("timezone_name") @db.VarChar(100)
+  isDefault    Boolean  @default(false) @map("is_default")
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  company    Company                    @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  project    Project?                   @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  weekdays   WorkingCalendarWeekday[]
+  exceptions WorkingCalendarException[]
+  activities Activity[]
+
+  @@index([companyId, isActive])
+  @@index([projectId, isActive])
+  @@map("working_calendars")
+}
+
+model WorkingCalendarWeekday {
+  id                String    @id @default(uuid()) @db.Uuid
+  workingCalendarId String    @map("working_calendar_id") @db.Uuid
+  weekdayNo         Int       @map("weekday_no")
+  isWorking         Boolean   @map("is_working")
+  startTime         DateTime? @map("start_time") @db.Time(0)
+  endTime           DateTime? @map("end_time") @db.Time(0)
+
+  workingCalendar WorkingCalendar @relation(fields: [workingCalendarId], references: [id], onDelete: Restrict)
+
+  @@unique([workingCalendarId, weekdayNo])
+  @@map("working_calendar_weekdays")
+}
+
+model WorkingCalendarException {
+  id                String    @id @default(uuid()) @db.Uuid
+  workingCalendarId String    @map("working_calendar_id") @db.Uuid
+  exceptionDate     DateTime  @map("exception_date") @db.Date
+  isWorkingOverride Boolean   @map("is_working_override")
+  startTime         DateTime? @map("start_time") @db.Time(0)
+  endTime           DateTime? @map("end_time") @db.Time(0)
+  reason            String?   @db.VarChar(500)
+
+  workingCalendar WorkingCalendar @relation(fields: [workingCalendarId], references: [id], onDelete: Restrict)
+
+  @@unique([workingCalendarId, exceptionDate])
+  @@map("working_calendar_exceptions")
+}
+
+model Activity {
+  id                      String   @id @default(uuid()) @db.Uuid
+  companyId               String   @map("company_id") @db.Uuid
+  projectId               String   @map("project_id") @db.Uuid
+  wbsId                   String   @map("wbs_id") @db.Uuid
+  parentActivityId        String?  @map("parent_activity_id") @db.Uuid
+  activityTypeId          String?  @map("activity_type_id") @db.Uuid
+  workingCalendarId       String   @map("working_calendar_id") @db.Uuid
+  statusDefinitionId      String?  @map("status_definition_id") @db.Uuid
+  activityCode            String   @map("activity_code") @db.VarChar(80)
+  activityName            String   @map("activity_name") @db.VarChar(200)
+  description             String?  @db.Text
+  isSummary               Boolean  @default(false) @map("is_summary")
+  isMilestone             Boolean  @default(false) @map("is_milestone")
+  plannedDurationWorkDays Decimal  @map("planned_duration_work_days") @db.Decimal(8, 2)
+  plannedStartDate        DateTime @map("planned_start_date") @db.Date
+  plannedFinishDate       DateTime @map("planned_finish_date") @db.Date
+  actualStartDate         DateTime? @map("actual_start_date") @db.Date
+  actualFinishDate        DateTime? @map("actual_finish_date") @db.Date
+  forecastStartDate       DateTime? @map("forecast_start_date") @db.Date
+  forecastFinishDate      DateTime? @map("forecast_finish_date") @db.Date
+  responsibleEmployeeId   String?  @map("responsible_employee_id") @db.Uuid
+  ownerUserId             String?  @map("owner_user_id") @db.Uuid
+  isActive                Boolean  @default(true) @map("is_active")
+  createdAt               DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt               DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  company             Company           @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  project             Project           @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  wbs                 WbsElement        @relation(fields: [wbsId], references: [id], onDelete: Restrict)
+  parent              Activity?         @relation("ActivityHierarchy", fields: [parentActivityId], references: [id], onDelete: Restrict)
+  children            Activity[]        @relation("ActivityHierarchy")
+  activityType        ActivityType?     @relation(fields: [activityTypeId], references: [id], onDelete: Restrict)
+  workingCalendar     WorkingCalendar   @relation(fields: [workingCalendarId], references: [id], onDelete: Restrict)
+  statusDefinition    StatusDefinition? @relation(fields: [statusDefinitionId], references: [id], onDelete: Restrict)
+  responsibleEmployee Employee?         @relation(fields: [responsibleEmployeeId], references: [id], onDelete: Restrict)
+  owner               User?             @relation("ActivityOwner", fields: [ownerUserId], references: [id], onDelete: Restrict)
+  predecessorLinks    ActivityDependency[] @relation("ActivityPredecessor")
+  successorLinks      ActivityDependency[] @relation("ActivitySuccessor")
+
+  @@unique([projectId, activityCode])
+  @@index([companyId, projectId, isActive])
+  @@index([projectId, wbsId])
+  @@index([projectId, parentActivityId])
+  @@index([workingCalendarId])
+  @@index([plannedStartDate, plannedFinishDate])
+  @@map("activities")
+}
+
+model ActivityDependency {
+  id                    String   @id @default(uuid()) @db.Uuid
+  projectId             String   @map("project_id") @db.Uuid
+  predecessorActivityId String   @map("predecessor_activity_id") @db.Uuid
+  successorActivityId   String   @map("successor_activity_id") @db.Uuid
+  dependencyType        String   @map("dependency_type") @db.VarChar(2)
+  lagWorkDays           Decimal  @default(0) @map("lag_work_days") @db.Decimal(8, 2)
+  createdAt             DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  predecessor Activity @relation("ActivityPredecessor", fields: [predecessorActivityId], references: [id], onDelete: Restrict)
+  successor   Activity @relation("ActivitySuccessor", fields: [successorActivityId], references: [id], onDelete: Restrict)
+
+  @@unique([predecessorActivityId, successorActivityId, dependencyType])
+  @@index([projectId])
+  @@index([successorActivityId])
+  @@map("activity_dependencies")
 }
 
 
