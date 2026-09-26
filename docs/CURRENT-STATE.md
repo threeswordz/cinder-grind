@@ -4,9 +4,12 @@
 **Source of truth:** Live GitHub repository state
 
 - Current Release: V0.3 Procurement — ENTRY GATE
-- Current Stage: V0.3 Release Entry Gate — APPROVED, PENDING MERGE
+- Current Stage: V0.3-A BOQ & Budget — IMPLEMENTATION
 - Completed Stages: V0.1-A Technical Skeleton; V0.1-B Company / Identity / Security; V0.1-C Administration; V0.1-D Master Data; V0.1-E Projects; V0.1-F WBS & Cost Codes; V0.1-G Basic Documents; V0.1-H Integration / Regression / UAT; V0.2-A Scheduling Data Model; V0.2-B Scheduling Engine; V0.2-C Baselines / Progress; V0.2-D Gantt / Lookahead; V0.2-E Site Execution; V0.2-F Equipment; V0.2-G UAT Reference Programme
-- Active Issue: #57 — V0.3 Release Entry Gate — Scope & Acceptance Baselines
+- Active Issue: #59 — V0.3-A BOQ & Budget
+- Completed Issue: #57 — V0.3 Release Entry Gate — Scope & Acceptance Baselines
+- Completed Branch: `v0.3-entry-gate`
+- Merged PR: #58 — V0.3 entry gate: approve Procurement baselines and business rules
 - Completed Issue: #53 — V0.2-G UAT Reference Programme
 - Completed Branch: `v0.2-g-uat-reference`
 - Merged PR: #54 — V0.2-G UAT Reference Programme and Release Closure
@@ -48,7 +51,7 @@
 - V0.1 cross-module release acceptance scenario: PASS in the Stage H release-candidate regression suite.
 - Open defect check at V0.1 acceptance: no Severity 1 or Severity 2 release-blocking defect recorded.
 - Governance: `AGENTS.md`, `docs/PROJECT-GOVERNANCE.md`, PR governance checklist and DEC-008 are active; material decisions must pass the repository pre-flight and open-source/zero-cost-first constraint.
-- Next action: merge the approved V0.3 entry-gate baseline after exact-head CI, close Issue #57, then open V0.3-A BOQ & Budget implementation.
+- Next action: implement V0.3-A BOQ & Budget under the approved BUD-001–BUD-010 acceptance criteria and BR-V03-01 through BR-V03-04 / BR-V03-17 / BR-V03-18.
 
 ## Stage E completed
 
@@ -451,4 +454,15 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - PROC-020 remains V0.6 Finance; PROC-021 remains V0.7 Cost Control.
 - V0.3 Scope Baseline v0.1 and V0.3 Acceptance Criteria Baseline v0.1 were explicitly approved on 2026-09-27.
 - BR-V03-01 through BR-V03-18 were explicitly approved as proposed on 2026-09-27 and are authoritative unless changed through Change Control.
-- V0.3-A implementation may begin after this approved entry-gate baseline is merged and Issue #57 is closed.
+- V0.3 entry gate is complete: PR #58 merged as `924e0ccad00d399246aa3ced95ec5013b8d18f0d`; post-merge main CI #916 passed.
+- V0.3-A implementation is authorized under Issue #59 and branch `v0.3-a-boq-budget`.
+
+## V0.3 entry gate completed
+
+- Product / Business Owner approved V0.3 Scope Baseline v0.1, V0.3 Acceptance Criteria Baseline v0.1 and BR-V03-01 through BR-V03-18 on 2026-09-27.
+- PR #58 merged to `main` as `924e0ccad00d399246aa3ced95ec5013b8d18f0d`.
+- exact-head PR CI #915 passed on `352a194e1f947f49957edb7c3b24ff43cc4d5421`.
+- post-merge `main` CI #916 passed on `924e0ccad00d399246aa3ced95ec5013b8d18f0d`.
+- Issue #57 is closed.
+- V0.3-A BOQ & Budget is the active implementation stage under Issue #59 / branch `v0.3-a-boq-budget`.
+- V0.4 Inventory, V0.6 Finance and V0.7 Cost Control ownership boundaries remain unchanged.
