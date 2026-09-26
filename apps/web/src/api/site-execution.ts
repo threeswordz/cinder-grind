@@ -57,6 +57,14 @@ export type MaterialUsageLineInput = {
   remarks?: string | null;
 };
 
+export type EquipmentUsageLineInput = {
+  equipmentId: string;
+  operatingHours?: string | number | null;
+  activityId?: string | null;
+  wbsId?: string | null;
+  remarks?: string | null;
+};
+
 export type ProgressLineInput = {
   activityId: string;
   percentComplete: string | number;
@@ -88,6 +96,7 @@ export type DailySiteReportPayload = {
   generalRemarks?: string | null;
   manpower?: ManpowerLineInput[];
   materialUsage?: MaterialUsageLineInput[];
+  equipmentUsage?: EquipmentUsageLineInput[];
   progress?: ProgressLineInput[];
   issues?: IssueLineInput[];
   delays?: DelayLineInput[];
@@ -109,6 +118,7 @@ export type DailySiteReportSummary = {
   totalManpower: number;
   _count: {
     materialUsage: number;
+    equipmentUsage: number;
     progressLines: number;
     issues: number;
     delays: number;
@@ -155,6 +165,32 @@ export type DailySiteReportDetail = {
     activity: ActivityRef | null;
     wbs: { id: string; wbsCode: string; wbsName: string } | null;
   }>;
+  equipmentUsage: Array<{
+    id: string;
+    equipmentId: string;
+    operatingHours: string | null;
+    activityId: string | null;
+    wbsId: string | null;
+    remarks: string | null;
+    equipmentUsageId: string | null;
+    equipment: {
+      id: string;
+      equipmentCode: string;
+      equipmentName: string;
+      operationalStatus: 'AVAILABLE' | 'UNAVAILABLE';
+      isActive: boolean;
+    };
+    activity: ActivityRef | null;
+    wbs: { id: string; wbsCode: string; wbsName: string } | null;
+    equipmentUsage: {
+      id: string;
+      usageDate: string;
+      operatingHours: string | null;
+      sourceType: string;
+      sourceEntityId: string | null;
+      createdAt: string;
+    } | null;
+  }>;
   progressLines: Array<{
     id: string;
     activityId: string;
@@ -195,6 +231,24 @@ export type DailySiteReportDetail = {
     correctionNote: string;
     createdAt: string;
     createdBy: { id: string; displayName: string };
+    equipmentCorrections: Array<{
+      id: string;
+      equipmentId: string;
+      usageDate: string;
+      operatingHours: string | null;
+      activityId: string | null;
+      wbsId: string | null;
+      remarks: string | null;
+      sourceType: string;
+      sourceEntityId: string | null;
+      equipment: {
+        id: string;
+        equipmentCode: string;
+        equipmentName: string;
+      };
+      activity: ActivityRef | null;
+      wbs: { id: string; wbsCode: string; wbsName: string } | null;
+    }>;
     progressCorrections: Array<{
       id: string;
       activityId: string;
@@ -265,6 +319,7 @@ export const siteExecutionApi = {
     id: string,
     correctionNote: string,
     progress: ProgressLineInput[] = [],
+    equipmentUsage: EquipmentUsageLineInput[] = [],
   ) =>
     apiRequest<
       Data<{
@@ -272,6 +327,24 @@ export const siteExecutionApi = {
         correctionNote: string;
         createdAt: string;
         createdBy: { id: string; displayName: string };
+        equipmentCorrections: Array<{
+          id: string;
+          equipmentId: string;
+          usageDate: string;
+          operatingHours: string | null;
+          activityId: string | null;
+          wbsId: string | null;
+          remarks: string | null;
+          sourceType: string;
+          sourceEntityId: string | null;
+          equipment: {
+            id: string;
+            equipmentCode: string;
+            equipmentName: string;
+          };
+          activity: ActivityRef | null;
+          wbs: { id: string; wbsCode: string; wbsName: string } | null;
+        }>;
         progressCorrections: Array<{
           id: string;
           activityId: string;
@@ -285,7 +358,7 @@ export const siteExecutionApi = {
       }>
     >('/site-execution/reports/' + id + '/corrections', {
       method: 'POST',
-      body: JSON.stringify({ correctionNote, progress }),
+      body: JSON.stringify({ correctionNote, progress, equipmentUsage }),
     }),
   documents: (id: string) =>
     apiRequest<Data<SiteReportDocument[]>>(
