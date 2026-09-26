@@ -72,7 +72,7 @@ export type DailySiteReportCreateInput = {
   generalRemarks?: string | null;
   manpower: SiteManpowerInput[];
   materialUsage: SiteMaterialUsageInput[];
-  equipmentUsage: SiteEquipmentUsageInput[];
+  equipmentUsage?: SiteEquipmentUsageInput[];
   progress: SiteProgressInput[];
   issues: SiteIssueInput[];
   delays: SiteDelayInput[];
@@ -356,7 +356,7 @@ export class SiteExecutionService {
               })),
             },
             equipmentUsage: {
-              create: input.equipmentUsage.map((line) => ({
+              create: (input.equipmentUsage ?? []).map((line) => ({
                 equipmentId: line.equipmentId,
                 ...(line.operatingHours !== undefined
                   ? { operatingHours: line.operatingHours }
@@ -372,35 +372,7 @@ export class SiteExecutionService {
                   : {}),
               })),
             },
-            equipmentUsage: {
-        include: {
-          equipment: {
-            select: {
-              id: true,
-              equipmentCode: true,
-              equipmentName: true,
-              operationalStatus: true,
-              isActive: true,
-            },
-          },
-          activity: {
-            select: { id: true, activityCode: true, activityName: true },
-          },
-          wbs: { select: { id: true, wbsCode: true, wbsName: true } },
-          equipmentUsage: {
-            select: {
-              id: true,
-              usageDate: true,
-              operatingHours: true,
-              sourceType: true,
-              sourceEntityId: true,
-              createdAt: true,
-            },
-          },
-        },
-        orderBy: { createdAt: 'asc' as const },
-      },
-      progressLines: {
+            progressLines: {
               create: input.progress.map((line) => ({
                 activityId: line.activityId,
                 percentComplete: line.percentComplete,
@@ -1154,7 +1126,7 @@ export class SiteExecutionService {
     reportDate: Date,
     input: {
       materialUsage: SiteMaterialUsageInput[];
-      equipmentUsage: SiteEquipmentUsageInput[];
+      equipmentUsage?: SiteEquipmentUsageInput[];
       progress: SiteProgressInput[];
       issues: SiteIssueInput[];
       delays: SiteDelayInput[];
@@ -1162,11 +1134,12 @@ export class SiteExecutionService {
       manpower?: SiteManpowerInput[];
     },
   ) {
+    const equipmentUsage = input.equipmentUsage ?? [];
     const activityIds = new Set<string>();
     for (const line of input.materialUsage) {
       if (line.activityId) activityIds.add(line.activityId);
     }
-    for (const line of input.equipmentUsage) {
+    for (const line of equipmentUsage) {
       if (line.activityId) activityIds.add(line.activityId);
     }
     for (const line of input.progress) activityIds.add(line.activityId);
@@ -1201,7 +1174,7 @@ export class SiteExecutionService {
     );
 
     const wbsIds = new Set(
-      [...input.materialUsage, ...input.equipmentUsage]
+      [...input.materialUsage, ...equipmentUsage]
         .map((line) => line.wbsId)
         .filter((id): id is string => Boolean(id)),
     );
@@ -1267,7 +1240,7 @@ export class SiteExecutionService {
     }
 
     const equipmentIds = new Set(
-      input.equipmentUsage.map((line) => line.equipmentId),
+      equipmentUsage.map((line) => line.equipmentId),
     );
     if (equipmentIds.size) {
       const eligible = await tx.equipment.findMany({
@@ -1303,7 +1276,7 @@ export class SiteExecutionService {
       }
     }
 
-    for (const line of input.equipmentUsage) {
+    for (const line of equipmentUsage) {
       if (
         line.activityId &&
         line.wbsId &&
