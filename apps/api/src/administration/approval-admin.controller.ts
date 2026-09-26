@@ -26,6 +26,7 @@ import {
   requireObject,
   requiredTrimmedString,
   validateCode,
+  validateUuid,
 } from './admin-validation';
 import { ApprovalAdminService } from './approval-admin.service';
 
@@ -82,7 +83,12 @@ function parseSteps(value: unknown) {
       stepNo: stepNo as number,
       stepName: requiredTrimmedString(record, 'stepName', 150),
       requiredApprovals: requiredApprovals as number,
-      roleIds: roleIds as string[],
+      roleIds: (roleIds as string[]).map((roleId, roleIndex) =>
+        validateUuid(
+          roleId,
+          'steps[' + index + '].roleIds[' + roleIndex + ']',
+        ),
+      ),
     };
   });
 }
