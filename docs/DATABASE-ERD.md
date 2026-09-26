@@ -1040,22 +1040,20 @@ Budget reporting may aggregate independently by:
 
 # 9. Site Execution
 
-## 9.1 Entities
+## 9.1 Implemented V0.2-E Entities
 
 | Table | Owner | Purpose |
 | --- | --- | --- |
-| `daily_site_reports` | Site Execution | Daily site-report header |
-| `daily_manpower` | Site Execution | Manpower entries |
-| `daily_material_usage` | Site Execution | Observed material usage |
-| `daily_site_issues` | Site Execution | Site issues / remarks |
-| `daily_delays` | Site Execution | Delay events/reasons |
-| `daily_inspections` | Site Execution | Inspection records/references |
+| `daily_site_reports` | Site Execution | One Daily Site Report per Project/reporting date |
+| `daily_site_report_manpower` | Site Execution | Aggregated trade/role headcount observations |
+| `daily_site_report_material_usage` | Site Execution | Observational Material usage; no Inventory posting |
+| `daily_site_report_progress_lines` | Site Execution | Draft report progress rows linked to immutable Activity Progress on submission |
+| `daily_site_report_issues` | Site Execution | Site issue/remark observations |
+| `daily_site_report_delays` | Site Execution | Explanatory delay observations |
+| `daily_site_report_inspections` | Site Execution | Lightweight inspection references/remarks |
+| `daily_site_report_corrections` | Site Execution | Append-only corrections to submitted reports |
 
-Activity progress uses `activity_progress_entries`.
-
-Equipment usage uses the Equipment-owned `equipment_usage` table.
-
-Photographs use the Documents module.
+Activity progress remains owned by the Scheduling module's `activity_progress` table. Equipment usage remains owned by the V0.2-F Equipment module. Site photographs remain owned by Documents and are linked to a report through `document_links`.
 
 This prevents duplicate sources of truth.
 
@@ -1066,65 +1064,117 @@ This prevents duplicate sources of truth.
 - id PK
 - company_id FK
 - project_id FK
-- report_number
 - report_date
-- prepared_by_employee_id FK, nullable
-- weather_summary, nullable
+- status: `DRAFT` or `SUBMITTED`
+- weather_observation, nullable
 - general_remarks, nullable
-- approval_state
-- standard audit columns
-- UNIQUE(project_id, report_date, report_number)
+- created_by_user_id FK
+- submitted_by_user_id FK, nullable until submission
+- submitted_at, nullable until submission
+- created_at / updated_at
+- UNIQUE(project_id, report_date)
 
-### `daily_manpower`
+Rules:
+
+- Project, creator and submitter must remain within the same Company.
+- a Project/reporting date has only one canonical report.
+- `DRAFT → SUBMITTED` is an operational finalization transition, not Approval Matrix workflow.
+- once submitted, the report header and its draft content rows are immutable.
+
+### `daily_site_report_manpower`
 
 - id PK
-- daily_site_report_id FK
-- trade_or_role
-- headcount
+- report_id FK
+- trade_role
+- headcount > 0
 - remarks, nullable
+- created_at
 
-### `daily_material_usage`
+Manpower is aggregated field-resource visibility only; individual attendance and payroll are outside V0.2-E.
+
+### `daily_site_report_material_usage`
 
 - id PK
-- daily_site_report_id FK
+- report_id FK
 - material_id FK
-- quantity
 - uom_id FK
-- wbs_id FK, nullable
+- quantity > 0
 - activity_id FK, nullable
+- wbs_id FK, nullable
 - remarks, nullable
+- created_at
 
-This records site-report observations only.
+Material and UOM must belong to the report Company. Activity/WBS references, when provided, must belong to the report Project. When both Activity and WBS are supplied, service validation requires the Activity to belong to that WBS.
 
-It does not replace formal Inventory material-issue transactions.
+These rows are observations only and do not create Inventory transactions or change Stock Balance.
 
-### `daily_site_issues`
-
-- id PK
-- daily_site_report_id FK
-- issue_type, nullable
-- description
-- severity, nullable
-- related_activity_id FK, nullable
-- resolved_at, nullable
-
-### `daily_delays`
+### `daily_site_report_progress_lines`
 
 - id PK
-- daily_site_report_id FK
+- report_id FK
+- activity_id FK
+- percent_complete between 0 and 100
+- note, nullable
+- activity_progress_id FK, nullable while draft and populated on submission
+- created_at
+- UNIQUE(report_id, activity_id)
+- UNIQUE(activity_progress_id)
+
+On report submission, each progress line appends one row to the existing immutable `activity_progress` table using the report date. The source is retained as `DAILY_SITE_REPORT` plus the report id.
+
+### `daily_site_report_issues`
+
+- id PK
+- report_id FK
+- activity_id FK, nullable
+- issue_text
+- remarks, nullable
+- created_at
+
+### `daily_site_report_delays`
+
+- id PK
+- report_id FK
 - activity_id FK, nullable
 - delay_reason
-- delay_duration_hours, nullable
 - remarks, nullable
+- created_at
 
-### `daily_inspections`
+Delay observations provide field context only. They do not change Activity schedule dates and do not replace Stage C delay classification.
+
+### `daily_site_report_inspections`
 
 - id PK
-- daily_site_report_id FK
+- report_id FK
 - activity_id FK, nullable
-- inspection_type
-- inspection_result, nullable
+- inspection_reference, nullable
 - remarks, nullable
+- created_at
+
+At least one of inspection reference or remarks is required. This is a lightweight V0.2 record, not a full QA/QC workflow.
+
+### `daily_site_report_corrections`
+
+- id PK
+- report_id FK
+- correction_note
+- created_by_user_id FK
+- created_at
+
+Corrections may only be appended after submission. Update/delete is blocked at the database layer.
+
+---
+
+## 9.3 Site Documents and Equipment Boundary
+
+Site photographs/files are stored through the existing Documents abstraction. The same Document remains Project-linked and receives an additional generic `document_links` row with:
+
+- entity_type = `DAILY_SITE_REPORT`
+- entity_id = Daily Site Report id
+
+File bytes remain outside PostgreSQL and storage keys are not returned to normal clients.
+
+V0.2-E intentionally creates no Equipment master or free-text Equipment field. SITE-005 becomes selectable against the canonical Equipment Register when V0.2-F is implemented.
 
 ---
 
@@ -2237,6 +2287,9 @@ flowchart LR
 | Project → Schedule Baselines | 1 : many |
 | Baseline → Activity Baseline Dates | 1 : many |
 | Activity → Progress Entries | 1 : many |
+| Project → Daily Site Reports | 1 : many |
+| Daily Site Report → Manpower / Material / Progress / Issue / Delay / Inspection rows | 1 : many |
+| Daily Site Report → Corrections | 1 : many |
 | Project → BOQs | 1 : many |
 | BOQ → Sections | 1 : many |
 | Section → BOQ Items | 1 : many |
@@ -2323,6 +2376,8 @@ Examples:
 - generic approval entity_type/entity_id references a valid target
 - generic document link references a valid target
 - approved baseline immutability
+- submitted Daily Site Report immutability and append-only corrections
+- Daily Site Report Activity/WBS/Material/UOM scope integrity
 - approved audit-log immutability
 - no hard deletion of approved transactions
 - quantity and money values respect applicable non-negative/positive rules
