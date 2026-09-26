@@ -113,6 +113,7 @@ The V0.1-A Technical Skeleton deliberately uses conservative maintained versions
 | TanStack Query | 5.103.2 | MIT | Server-state client | APPROVED |
 | React Hook Form | 7.88.0 | MIT | Form state | APPROVED |
 | Zod | 4.6.5 | MIT | Runtime validation | APPROVED |
+| Frappe Gantt | 1.2.2 | MIT | V0.2 scheduling visualization only | APPROVED |
 | NestJS common/core/platform-express | 11.2.6 | MIT | Backend framework | APPROVED |
 | Prisma CLI / Client | 6.19.3 | Apache-2.0 | ORM / migrations | APPROVED |
 | dotenv | 17.4.2 | BSD-2-Clause | Local environment loading | APPROVED |
