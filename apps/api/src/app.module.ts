@@ -8,6 +8,7 @@ import { AuthorizationModule } from './authorization/authorization.module';
 import { CorrelationIdMiddleware } from './common/correlation-id.middleware';
 import { HealthModule } from './health/health.module';
 import { DocumentsModule } from './documents/documents.module';
+import { EquipmentModule } from './equipment/equipment.module';
 import { MasterDataModule } from './master-data/master-data.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ProjectsModule } from './projects/projects.module';
@@ -22,6 +23,7 @@ import { WbsModule } from './wbs/wbs.module';
     WbsModule,
     SchedulingModule,
     SiteExecutionModule,
+    EquipmentModule,
     DocumentsModule,
     AdministrationModule,
     AuthModule,

@@ -4,9 +4,10 @@
 **Source of truth:** Live GitHub repository state
 
 - Current Release: V0.2 Project & Scheduling
-- Current Stage: V0.2-F Equipment — PRE-FLIGHT
+- Current Stage: V0.2-F Equipment — IMPLEMENTATION
 - Completed Stages: V0.1-A Technical Skeleton; V0.1-B Company / Identity / Security; V0.1-C Administration; V0.1-D Master Data; V0.1-E Projects; V0.1-F WBS & Cost Codes; V0.1-G Basic Documents; V0.1-H Integration / Regression / UAT; V0.2-A Scheduling Data Model; V0.2-B Scheduling Engine; V0.2-C Baselines / Progress; V0.2-D Gantt / Lookahead; V0.2-E Site Execution
-- Active Issue: #50 — V0.2-F Equipment — Business Rules
+- Active Issue: #51 — V0.2-F Equipment
+- Completed Issue: #50 — V0.2-F Equipment — Business Rules
 - Completed Issue: #48 — V0.2-E Site Execution
 - Completed Branch: `v0.2-e-site-execution`
 - Merged PR: #49 — V0.2-E Site Execution
@@ -43,7 +44,7 @@
 - V0.1 cross-module release acceptance scenario: PASS in the Stage H release-candidate regression suite.
 - Open defect check at V0.1 acceptance: no Severity 1 or Severity 2 release-blocking defect recorded.
 - Governance: `AGENTS.md`, `docs/PROJECT-GOVERNANCE.md`, PR governance checklist and DEC-008 are active; material decisions must pass the repository pre-flight and open-source/zero-cost-first constraint.
-- Next action: Product / Business Owner to approve or replace the V0.2-F Equipment business rules in Issue #50 before implementation begins.
+- Next action: implement V0.2-F Equipment under DEC-013 on `v0.2-f-equipment`, including SITE-005 integration without Maintenance/Cost-Control scope.
 
 ## Stage E completed
 
@@ -337,3 +338,29 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - EQP-008 Maintenance Records remains Future.
 - EQP-009 Equipment Cost Allocation remains V0.7 Cost Control.
 - Stage F implementation is paused until Issue #50 rules are approved or replaced.
+
+## V0.2-F active
+
+- Product / Business Owner approved all Equipment business rules on 2026-09-26.
+- DEC-013 is authoritative for Equipment identity/type, operational status, derived availability, Project assignment, usage, Daily Site Report integration and usage-history correction semantics.
+- Issue #51 is the active implementation work item.
+- Branch: `v0.2-f-equipment`.
+- SITE-005 will be completed by referencing the canonical Equipment Register; free-text Equipment remains prohibited.
+- Equipment Maintenance remains Future and Equipment Cost Allocation remains V0.7.
+- no fuel/meter/depreciation/asset accounting, Inventory posting, paid dependency or V0.3+ scope is introduced.
+
+## V0.2-F implementation progress
+
+- DEC-013 Equipment rules implemented for Company-owned Equipment Types and Equipment register.
+- operational status is `AVAILABLE` / `UNAVAILABLE`; user-facing `AVAILABLE` / `ASSIGNED` / `UNAVAILABLE` availability is derived from active state, operational status and effective assignment.
+- dated Project assignment history is retained with at most one open assignment per Equipment; reassignment closes rather than deletes prior history.
+- canonical Equipment Usage supports optional 0–24-hour operating duration plus optional Activity/WBS/remarks context and requires an effective same-Project assignment on the usage date.
+- manual usage is audit-correctable but not ordinarily deletable; Daily Site Report-origin usage is immutable.
+- SITE-005 is integrated with the canonical Equipment Register: draft report lines select only eligible Project-assigned Equipment, submission materializes canonical Equipment Usage, and submitted-report corrections append later usage history.
+- PostgreSQL guards enforce Company/Project scope, assignment/date eligibility, usage-hour bounds, retained assignment/usage history and Daily Site Report materialization before submission.
+- permission-aware responsive Equipment workspace covers Equipment Type, register, derived availability, assignment/release and usage history/manual corrections.
+- Site Execution UI now includes canonical Equipment usage and correction lines; free-text Equipment remains prohibited.
+- Stage F integration tests cover derived availability, assignment/reassignment history, manual usage, report-origin usage/corrections, operational unavailability and database no-delete/immutability controls.
+- live HTTP acceptance covers Equipment register → Project assignment → derived availability → manual usage → Daily Site Report usage/correction → scoped denial.
+- functional branch CI #843 passed on `84377e82dc3b0dc73989ebc122d87fbff13cb3e9`; exact-head CI will be revalidated after documentation completion.
+- EQP-008 Maintenance remains Future; EQP-009 Equipment Cost Allocation remains V0.7; no Inventory posting, asset accounting, fuel/meter tracking, paid dependency or V0.3+ scope is introduced.

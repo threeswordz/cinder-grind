@@ -164,3 +164,30 @@ export function nullableSiteString(
 ): string | null | undefined {
   return siteString(input, field, max, false);
 }
+
+export function optionalSiteHours(
+  value: unknown,
+  field: string,
+): Prisma.Decimal | null | undefined {
+  if (value === undefined) return undefined;
+  if (value === null || value === '') return null;
+  try {
+    const decimal = new Prisma.Decimal(
+      typeof value === 'number' || typeof value === 'string'
+        ? value
+        : '',
+    );
+    if (!decimal.isFinite() || decimal.lte(0) || decimal.gt(24)) {
+      return siteInvalid(
+        field,
+        'Must be greater than 0 and no more than 24.',
+      );
+    }
+    return decimal;
+  } catch {
+    return siteInvalid(
+      field,
+      'Must be a valid number greater than 0 and no more than 24.',
+    );
+  }
+}

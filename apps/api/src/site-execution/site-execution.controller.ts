@@ -32,6 +32,7 @@ import {
   DailySiteReportCreateInput,
   DailySiteReportUpdateInput,
   SiteDelayInput,
+  SiteEquipmentUsageInput,
   SiteInspectionInput,
   SiteIssueInput,
   SiteManpowerInput,
@@ -41,6 +42,7 @@ import {
 } from './site-execution.service';
 import {
   nullableSiteString,
+  optionalSiteHours,
   optionalSiteUuid,
   requiredSiteString,
   siteArray,
@@ -116,6 +118,37 @@ function materialRows(
         row.quantity,
         `${field}[${index}].quantity`,
       ),
+      ...(activityId !== undefined ? { activityId } : {}),
+      ...(wbsId !== undefined ? { wbsId } : {}),
+      ...(remarks !== undefined ? { remarks } : {}),
+    };
+  });
+}
+
+function equipmentRows(
+  value: unknown,
+  field = 'equipmentUsage',
+): SiteEquipmentUsageInput[] {
+  return siteArray(value, field).map((row, index) => {
+    const operatingHours = optionalSiteHours(
+      row.operatingHours,
+      `${field}[${index}].operatingHours`,
+    );
+    const activityId = optionalSiteUuid(
+      row.activityId,
+      `${field}[${index}].activityId`,
+    );
+    const wbsId = optionalSiteUuid(
+      row.wbsId,
+      `${field}[${index}].wbsId`,
+    );
+    const remarks = nullableSiteString(row, 'remarks', 10000);
+    return {
+      equipmentId: siteUuid(
+        row.equipmentId,
+        `${field}[${index}].equipmentId`,
+      ),
+      ...(operatingHours !== undefined ? { operatingHours } : {}),
       ...(activityId !== undefined ? { activityId } : {}),
       ...(wbsId !== undefined ? { wbsId } : {}),
       ...(remarks !== undefined ? { remarks } : {}),
@@ -226,6 +259,7 @@ function createInput(body: unknown): DailySiteReportCreateInput {
     ...(generalRemarks !== undefined ? { generalRemarks } : {}),
     manpower: manpowerRows(input.manpower),
     materialUsage: materialRows(input.materialUsage),
+    equipmentUsage: equipmentRows(input.equipmentUsage),
     progress: progressRows(input.progress),
     issues: issueRows(input.issues),
     delays: delayRows(input.delays),
@@ -259,6 +293,9 @@ function updateInput(body: unknown): DailySiteReportUpdateInput {
   if (input.manpower !== undefined) data.manpower = manpowerRows(input.manpower);
   if (input.materialUsage !== undefined) {
     data.materialUsage = materialRows(input.materialUsage);
+  }
+  if (input.equipmentUsage !== undefined) {
+    data.equipmentUsage = equipmentRows(input.equipmentUsage);
   }
   if (input.progress !== undefined) data.progress = progressRows(input.progress);
   if (input.issues !== undefined) data.issues = issueRows(input.issues);
@@ -386,6 +423,7 @@ export class SiteExecutionController {
         id,
         requiredSiteString(input, 'correctionNote', 10000),
         progressRows(input.progress, 'progress'),
+        equipmentRows(input.equipmentUsage, 'equipmentUsage'),
       ),
     };
   }

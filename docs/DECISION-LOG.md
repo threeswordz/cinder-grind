@@ -192,3 +192,54 @@ The V0.2-E Site Execution stage uses the following approved rules:
    - physical storage paths are never exposed to the browser.
 
 Project-scope authorization, audit controls, DEC-008 and existing scheduling ownership remain unchanged.
+
+## DEC-013 — V0.2-F Equipment rules
+**Status:** APPROVED — 2026-09-26
+
+The V0.2-F Equipment stage uses the following approved rules:
+
+1. **Equipment identity / ownership**
+   - Equipment is Company-owned master data.
+   - Equipment has a Company-unique code, name, Equipment Type, operational status, optional description and active/inactive lifecycle.
+   - deactivation does not delete assignment or usage history.
+
+2. **Equipment Type**
+   - Equipment Type is a configurable Company register with code, name and active/inactive lifecycle.
+   - active Equipment must reference an active Equipment Type when creating/changing type.
+   - historical Equipment remains readable if its Type is later deactivated.
+
+3. **Operational status / derived availability**
+   - operational status is `AVAILABLE` or `UNAVAILABLE`.
+   - Project assignment is independent of operational status.
+   - displayed availability is derived: inactive or operationally unavailable → `UNAVAILABLE`; otherwise effective open Project assignment → `ASSIGNED`; otherwise → `AVAILABLE`.
+   - availability is a read model and is not persisted as a second source of truth.
+
+4. **Project assignment history**
+   - assignment records contain Equipment, Project, assigned-from date, optional assigned-to date and optional remarks.
+   - at most one open assignment may exist for an Equipment item.
+   - reassignment/release closes the previous assignment and retains history.
+   - Projects must belong to the same Company.
+   - changing operational status does not automatically close assignment history.
+
+5. **Equipment Usage**
+   - canonical usage contains Equipment, Project, usage date, optional operating hours and optional Activity/WBS/remarks context.
+   - operating hours are optional; when supplied they must be > 0 and <= 24.
+   - Activity/WBS references must belong to the same Project.
+
+6. **Assignment requirement for usage**
+   - usage requires an Equipment assignment to the same Project covering the usage date.
+   - new usage cannot be recorded while Equipment is inactive or operationally unavailable.
+   - later status changes do not erase historical usage.
+
+7. **Daily Site Report integration**
+   - Daily Site Report Equipment lines reference the canonical Equipment Register only; no free-text Equipment.
+   - Equipment must be assigned to the report Project on the report date.
+   - report submission materializes lines into canonical Equipment Usage with source traceability.
+   - submitted Daily Site Report Equipment data follows the existing immutable/correction model.
+
+8. **Usage history / corrections**
+   - Equipment Usage history is retained chronologically.
+   - manual usage may be audit-updated in V0.2 but is not physically deleted through ordinary APIs.
+   - Daily Site Report-origin usage is immutable after submission; corrections append through the submitted-report correction path.
+
+EQP-008 Maintenance Records remains Future. EQP-009 Equipment Cost Allocation remains V0.7 Cost Control. No fuel, meter/odometer, depreciation, ownership/lease accounting, asset accounting, Inventory posting, paid dependency or V0.3+ scope is introduced.

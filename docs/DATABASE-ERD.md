@@ -2272,6 +2272,30 @@ flowchart LR
 
 ---
 
+## 18.3 Equipment Deployment and Usage
+
+```mermaid
+flowchart LR
+    ET[Equipment Type]
+    EQ[Equipment]
+    AS[Project Assignment]
+    EU[Equipment Usage]
+    DR[Daily Site Report]
+    DC[Daily Report Correction]
+
+    ET --> EQ
+    EQ --> AS
+    EQ --> EU
+    DR --> EU
+    DC --> EU
+```
+
+`equipment_types` and `equipment` are Company-owned source records. `equipment_assignments` retains dated Project deployment history and allows at most one open assignment per Equipment item. Availability is derived from Equipment active state, operational status and the effective assignment at the requested as-of date; it is not stored as a second source of truth.
+
+`equipment_usage` is the canonical usage history for manual usage and Daily Site Report-origin usage. Daily Site Report draft lines are stored in `daily_site_report_equipment_usage`; submission links each line to its canonical Equipment Usage row. Submitted-report corrections append additional `equipment_usage` history with correction source traceability.
+
+---
+
 # 19. Key Cardinality Rules
 
 | Relationship | Cardinality |
@@ -2288,7 +2312,11 @@ flowchart LR
 | Baseline → Activity Baseline Dates | 1 : many |
 | Activity → Progress Entries | 1 : many |
 | Project → Daily Site Reports | 1 : many |
-| Daily Site Report → Manpower / Material / Progress / Issue / Delay / Inspection rows | 1 : many |
+| Daily Site Report → Manpower / Material / Equipment / Progress / Issue / Delay / Inspection rows | 1 : many |
+| Company → Equipment Types / Equipment | 1 : many |
+| Equipment → Project Assignments | 1 : many |
+| Equipment → Usage History | 1 : many |
+| Project → Equipment Assignments / Usage | 1 : many |
 | Daily Site Report → Corrections | 1 : many |
 | Project → BOQs | 1 : many |
 | BOQ → Sections | 1 : many |
@@ -2378,6 +2406,12 @@ Examples:
 - approved baseline immutability
 - submitted Daily Site Report immutability and append-only corrections
 - Daily Site Report Activity/WBS/Material/UOM scope integrity
+- Equipment Type/Equipment Company integrity and operational-status validation
+- one open Equipment assignment per Equipment item and retained assignment history
+- Equipment Usage requires a same-Company Project assignment covering the usage date
+- Equipment Usage Activity/WBS context belongs to the same Project
+- Daily Site Report Equipment rows use canonical Equipment assigned on the reporting date and materialize to canonical usage before submission
+- Equipment assignment/usage history is not physically deleted through ordinary application flows
 - approved audit-log immutability
 - no hard deletion of approved transactions
 - quantity and money values respect applicable non-negative/positive rules
