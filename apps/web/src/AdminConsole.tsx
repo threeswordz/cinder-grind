@@ -23,6 +23,7 @@ import { SystemSettingsPanel } from './admin/SystemSettingsPanel';
 import { UsersPanel } from './admin/UsersPanel';
 import { MasterDataPanel } from './master-data/MasterDataPanel';
 import { ProjectsPanel } from './projects/ProjectsPanel';
+import { SchedulingPanel } from './scheduling/SchedulingPanel';
 import { DocumentsPanel } from './documents/DocumentsPanel';
 import { WbsPanel } from './wbs/WbsPanel';
 
@@ -40,6 +41,12 @@ export function AdminConsole({ user }: { user: CurrentUser }) {
   const sections = useMemo<Section[]>(
     () =>
       [
+        {
+          key: 'scheduling',
+          label: 'Scheduling',
+          permission: '__scheduling__',
+          content: <SchedulingPanel permissions={user.permissions} />,
+        },
         {
           key: 'documents',
           label: 'Documents',
@@ -113,7 +120,13 @@ export function AdminConsole({ user }: { user: CurrentUser }) {
           content: <SystemSettingsPanel />,
         },
       ].filter((section) =>
-        section.permission === '__master_data__'
+        section.permission === '__scheduling__'
+          ? user.permissions.some(
+              (permission) =>
+                permission.startsWith('schedule.') ||
+                permission === 'admin.activity_types.manage',
+            )
+          : section.permission === '__master_data__'
           ? user.permissions.some((permission) => permission.startsWith('master.') && permission.endsWith('.view'))
           : section.permission === '__wbs__'
             ? user.permissions.some((permission) => permission === 'wbs.wbs.view' || permission === 'wbs.cost_code.view')
@@ -150,7 +163,7 @@ export function AdminConsole({ user }: { user: CurrentUser }) {
             <Box sx={{ flexGrow: 1 }}>
               <Typography variant="h6">Construction ERP</Typography>
               <Typography variant="body2" color="text.secondary">
-                V0.1 Foundation · {user.displayName}
+                V0.2 Project & Scheduling · {user.displayName}
               </Typography>
             </Box>
             <Button
@@ -167,8 +180,7 @@ export function AdminConsole({ user }: { user: CurrentUser }) {
         <Box sx={{ py: 3 }}>
           {sections.length === 0 ? (
             <Alert severity="warning">
-              Your account is authenticated but has no available V0.1
-              application permissions.
+              Your account is authenticated but has no available application permissions.
             </Alert>
           ) : (
             <Stack spacing={3}>

@@ -4,7 +4,7 @@
 **Source of truth:** Live GitHub repository state
 
 - Current Release: V0.2 Project & Scheduling
-- Current Stage: V0.2-A Scheduling Data Model — READY TO START
+- Current Stage: V0.2-A Scheduling Data Model — IN PROGRESS
 - Completed Stages: V0.1-A Technical Skeleton; V0.1-B Company / Identity / Security; V0.1-C Administration; V0.1-D Master Data; V0.1-E Projects; V0.1-F WBS & Cost Codes; V0.1-G Basic Documents; V0.1-H Integration / Regression / UAT
 - Completed Issue: #29 — V0.2 Release Entry Gate — Scope & Acceptance Baselines
 - Completed Branch: `v0.2-entry-gate`
@@ -29,7 +29,7 @@
 - V0.1 cross-module release acceptance scenario: PASS in the Stage H release-candidate regression suite.
 - Open defect check at V0.1 acceptance: no Severity 1 or Severity 2 release-blocking defect recorded.
 - Governance: `AGENTS.md`, `docs/PROJECT-GOVERNANCE.md`, PR governance checklist and DEC-008 are active; material decisions must pass the repository pre-flight and open-source/zero-cost-first constraint.
-- Next action: begin V0.2-A Scheduling Data Model from the approved V0.2 baselines.
+- Next action: complete V0.2-A exact-head CI/security validation, final review and merge; then proceed to V0.2-B Scheduling Engine.
 
 ## Stage E completed
 
@@ -110,3 +110,20 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - CI #543 passed on the approved exact head
 - V0.2 Scope Baseline v0.1 and V0.2 Acceptance Criteria Baseline v0.1 are approved
 - V0.2-A Scheduling Data Model is the next active stage
+
+
+## V0.2-A implemented so far
+
+- Working Calendar, weekday rule and exception/holiday persistence
+- company-level and Project-specific calendar scope with timezone/default/active metadata
+- Activity Type company register and administration permission
+- canonical Activity persistence under Project → WBS → Activity
+- Activity hierarchy with same-Project validation and database/service cycle prevention
+- Activity identification, type, calendar, operational status, planned/actual/forecast fields, responsibility and owner references
+- Activity dependency persistence for FS / SS / FF / SF and signed lag work days
+- dependency self-reference and cross-Project integrity prevention; full dependency-graph scheduling/cycle engine remains V0.2-B
+- Stage A scheduling permission catalogue and System Administrator technical provisioning
+- secured REST APIs with Project-scope authorization and audit logging
+- permission-aware Scheduling UI for Activities, dependencies, Working Calendars and Activity Types
+- PostgreSQL integration coverage wired into the normal API regression suite
+- no new runtime dependency and no paid component introduced
