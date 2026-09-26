@@ -818,13 +818,18 @@ export class SchedulingService {
         })),
         calendars: [...calendars.values()].map((calendar) => ({
           id: calendar.id,
+          timezoneName: calendar.timezoneName,
           weekdays: calendar.weekdays.map((weekday) => ({
             weekdayNo: weekday.weekdayNo,
             isWorking: weekday.isWorking,
+            startMinute: this.timeMinute(weekday.startTime),
+            endMinute: this.timeMinute(weekday.endTime),
           })),
           exceptions: calendar.exceptions.map((exception) => ({
             exceptionDate: exception.exceptionDate,
             isWorkingOverride: exception.isWorkingOverride,
+            startMinute: this.timeMinute(exception.startTime),
+            endMinute: this.timeMinute(exception.endTime),
           })),
         })),
       });
@@ -1261,6 +1266,11 @@ export class SchedulingService {
         detail: 'A milestone planned start and planned finish must be the same date.',
       });
     }
+  }
+
+  private timeMinute(value: Date | null): number | null {
+    if (!value) return null;
+    return value.getUTCHours() * 60 + value.getUTCMinutes();
   }
 
   private assertDateOrder(start: Date, finish: Date, field: string) {
