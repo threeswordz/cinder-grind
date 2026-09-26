@@ -14,11 +14,15 @@ export class ProjectAccessService {
     private readonly projectScope: ProjectScopeService,
   ) {}
 
+  canAccessAll(auth: AuthenticatedUserContext): boolean {
+    return this.projectScope.canAccessProject(auth, false);
+  }
+
   async scopeWhere(
     auth: AuthenticatedUserContext,
     db: ProjectScopeDb = this.prisma,
   ): Promise<Prisma.ProjectWhereInput> {
-    if (this.projectScope.canAccessProject(auth, false)) {
+    if (this.canAccessAll(auth)) {
       return { companyId: auth.companyId };
     }
 
