@@ -157,7 +157,7 @@ export function UsersPanel() {
   });
   const rolesQuery = useQuery({
     queryKey: ['admin', 'roles'],
-    queryFn: adminApi.roles,
+    queryFn: adminApi.userRoleOptions,
   });
 
   const [email, setEmail] = useState('');
