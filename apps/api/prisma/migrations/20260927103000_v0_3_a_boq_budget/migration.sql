@@ -72,8 +72,10 @@ CREATE TABLE "budget_revisions" (
   "revision_no" INTEGER NOT NULL,
   "revision_number" VARCHAR(120) NOT NULL,
   "approval_instance_id" UUID,
-  "submitted_by_user_id" UUID NOT NULL,
-  "submitted_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "created_by_user_id" UUID NOT NULL,
+  "submitted_by_user_id" UUID,
+  "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "submitted_at" TIMESTAMPTZ(6),
   "revision_note" TEXT,
   CONSTRAINT "budget_revisions_pkey" PRIMARY KEY ("id"),
   CONSTRAINT "budget_revisions_approval_instance_id_key" UNIQUE ("approval_instance_id"),
@@ -83,11 +85,14 @@ CREATE TABLE "budget_revisions" (
   CONSTRAINT "budget_revisions_company_id_fkey" FOREIGN KEY ("company_id") REFERENCES "companies"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
   CONSTRAINT "budget_revisions_project_id_fkey" FOREIGN KEY ("project_id") REFERENCES "projects"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
   CONSTRAINT "budget_revisions_approval_instance_id_fkey" FOREIGN KEY ("approval_instance_id") REFERENCES "approval_instances"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
+  CONSTRAINT "budget_revisions_created_by_user_id_fkey" FOREIGN KEY ("created_by_user_id") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
   CONSTRAINT "budget_revisions_submitted_by_user_id_fkey" FOREIGN KEY ("submitted_by_user_id") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE
 );
 
-CREATE INDEX "budget_revisions_company_id_project_id_submitted_at_idx"
-  ON "budget_revisions"("company_id","project_id","submitted_at");
+CREATE INDEX "budget_revisions_company_id_project_id_created_at_idx"
+  ON "budget_revisions"("company_id","project_id","created_at");
+CREATE INDEX "budget_revisions_submitted_by_user_id_idx"
+  ON "budget_revisions"("submitted_by_user_id");
 
 CREATE TABLE "budget_revision_lines" (
   "id" UUID NOT NULL DEFAULT gen_random_uuid(),
@@ -201,6 +206,7 @@ CREATE OR REPLACE FUNCTION validate_budget_revision_scope()
 RETURNS trigger AS $$
 DECLARE
   project_company UUID;
+  creator_company UUID;
   submitter_company UUID;
   approval_company UUID;
   approval_entity_type VARCHAR(100);
@@ -208,14 +214,22 @@ DECLARE
 BEGIN
   SELECT "company_id" INTO project_company
   FROM "projects" WHERE "id" = NEW."project_id";
-  SELECT "company_id" INTO submitter_company
-  FROM "users" WHERE "id" = NEW."submitted_by_user_id";
+  SELECT "company_id" INTO creator_company
+  FROM "users" WHERE "id" = NEW."created_by_user_id";
 
   IF project_company IS NULL OR project_company <> NEW."company_id" THEN
     RAISE EXCEPTION 'Budget Revision Company must match Project Company';
   END IF;
-  IF submitter_company IS NULL OR submitter_company <> NEW."company_id" THEN
-    RAISE EXCEPTION 'Budget Revision submitter must belong to the same Company';
+  IF creator_company IS NULL OR creator_company <> NEW."company_id" THEN
+    RAISE EXCEPTION 'Budget Revision creator must belong to the same Company';
+  END IF;
+
+  IF NEW."submitted_by_user_id" IS NOT NULL THEN
+    SELECT "company_id" INTO submitter_company
+    FROM "users" WHERE "id" = NEW."submitted_by_user_id";
+    IF submitter_company IS NULL OR submitter_company <> NEW."company_id" THEN
+      RAISE EXCEPTION 'Budget Revision submitter must belong to the same Company';
+    END IF;
   END IF;
 
   IF NEW."approval_instance_id" IS NOT NULL THEN
@@ -335,17 +349,21 @@ CREATE OR REPLACE FUNCTION guard_budget_revision_update()
 RETURNS trigger AS $$
 BEGIN
   IF OLD."approval_instance_id" IS NULL
+     AND OLD."submitted_by_user_id" IS NULL
+     AND OLD."submitted_at" IS NULL
      AND NEW."approval_instance_id" IS NOT NULL
+     AND NEW."submitted_by_user_id" IS NOT NULL
+     AND NEW."submitted_at" IS NOT NULL
      AND OLD."company_id" = NEW."company_id"
      AND OLD."project_id" = NEW."project_id"
      AND OLD."revision_no" = NEW."revision_no"
      AND OLD."revision_number" = NEW."revision_number"
-     AND OLD."submitted_by_user_id" = NEW."submitted_by_user_id"
-     AND OLD."submitted_at" = NEW."submitted_at"
+     AND OLD."created_by_user_id" = NEW."created_by_user_id"
+     AND OLD."created_at" = NEW."created_at"
      AND OLD."revision_note" IS NOT DISTINCT FROM NEW."revision_note" THEN
     RETURN NEW;
   END IF;
-  RAISE EXCEPTION 'Submitted Budget Revision header is immutable';
+  RAISE EXCEPTION 'Budget Revision header is immutable except for the Draft-to-Submitted transition';
 END;
 $$ LANGUAGE plpgsql;
 
