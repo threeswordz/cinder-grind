@@ -241,18 +241,20 @@ function updateInput(body: unknown): DailySiteReportUpdateInput {
     data.reportDate = siteDate(input.reportDate, 'reportDate');
   }
   if (input.weatherObservation !== undefined) {
-    data.weatherObservation = nullableSiteString(
+    const value = nullableSiteString(
       input,
       'weatherObservation',
       10000,
     );
+    if (value !== undefined) data.weatherObservation = value;
   }
   if (input.generalRemarks !== undefined) {
-    data.generalRemarks = nullableSiteString(
+    const value = nullableSiteString(
       input,
       'generalRemarks',
       10000,
     );
+    if (value !== undefined) data.generalRemarks = value;
   }
   if (input.manpower !== undefined) data.manpower = manpowerRows(input.manpower);
   if (input.materialUsage !== undefined) {
