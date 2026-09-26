@@ -1310,6 +1310,34 @@ export class SiteExecutionService {
         },
         orderBy: { createdAt: 'asc' as const },
       },
+      equipmentUsage: {
+        include: {
+          equipment: {
+            select: {
+              id: true,
+              equipmentCode: true,
+              equipmentName: true,
+              operationalStatus: true,
+              isActive: true,
+            },
+          },
+          activity: {
+            select: { id: true, activityCode: true, activityName: true },
+          },
+          wbs: { select: { id: true, wbsCode: true, wbsName: true } },
+          equipmentUsage: {
+            select: {
+              id: true,
+              usageDate: true,
+              operatingHours: true,
+              sourceType: true,
+              sourceEntityId: true,
+              createdAt: true,
+            },
+          },
+        },
+        orderBy: { createdAt: 'asc' as const },
+      },
       progressLines: {
         include: {
           activity: {
