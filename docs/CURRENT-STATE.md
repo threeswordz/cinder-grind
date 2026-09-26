@@ -4,7 +4,7 @@
 **Source of truth:** Live GitHub repository state
 
 - Current Release: V0.2 Project & Scheduling
-- Current Stage: V0.2-B Scheduling Engine — ACTIVE
+- Current Stage: V0.2-B Scheduling Engine — READY FOR MERGE
 - Completed Stages: V0.1-A Technical Skeleton; V0.1-B Company / Identity / Security; V0.1-C Administration; V0.1-D Master Data; V0.1-E Projects; V0.1-F WBS & Cost Codes; V0.1-G Basic Documents; V0.1-H Integration / Regression / UAT; V0.2-A Scheduling Data Model
 - Active Issue: #36 — V0.2-B Scheduling Engine
 - Active Branch: `v0.2-b-scheduling-engine`
@@ -32,7 +32,7 @@
 - V0.1 cross-module release acceptance scenario: PASS in the Stage H release-candidate regression suite.
 - Open defect check at V0.1 acceptance: no Severity 1 or Severity 2 release-blocking defect recorded.
 - Governance: `AGENTS.md`, `docs/PROJECT-GOVERNANCE.md`, PR governance checklist and DEC-008 are active; material decisions must pass the repository pre-flight and open-source/zero-cost-first constraint.
-- Next action: implement V0.2-B Scheduling Engine under DEC-009, then validate deterministic working-calendar, dependency, CPM and Total Float behavior.
+- Next action: final review and merge of PR #37, then pre-flight V0.2-C Baselines / Progress.
 
 ## Stage E completed
 
@@ -164,4 +164,4 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - deterministic engine tests cover holidays, negative lag, mixed calendars, fractional durations, FS/SS/FF/SF, forecast roots, float and cycles
 - PostgreSQL integration covers milestone/cycle constraints and schedule analysis
 - live HTTP acceptance covers calculated dates, Critical Path evidence, cycle rejection and unassigned-Project denial
-- CI #623 passed before the final mixed-calendar test/documentation update; exact-head CI revalidation is pending
+- exact-head CI #629 passed, including migration-from-zero, full regression, Scheduling Engine tests and live HTTP acceptance
