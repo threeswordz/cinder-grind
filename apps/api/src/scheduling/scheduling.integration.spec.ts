@@ -520,6 +520,73 @@ test('Scheduling data model enforces Project scope and hierarchy integrity in Po
       plannedAnalysis.activities.some((row) => row.isCritical),
     );
 
+
+    const concurrentCycleA = await service.createActivity(
+      { auth: scoped },
+      project.id,
+      {
+        wbsId: wbs.id,
+        workingCalendarId: calendar.id,
+        activityCode: 'CYCLE-A-' + suffix,
+        activityName: 'Concurrent Cycle A',
+        plannedDurationWorkDays: new Prisma.Decimal('1'),
+        plannedStartDate: new Date('2026-10-12T00:00:00.000Z'),
+        plannedFinishDate: new Date('2026-10-12T00:00:00.000Z'),
+      },
+    );
+    const concurrentCycleB = await service.createActivity(
+      { auth: scoped },
+      project.id,
+      {
+        wbsId: wbs.id,
+        workingCalendarId: calendar.id,
+        activityCode: 'CYCLE-B-' + suffix,
+        activityName: 'Concurrent Cycle B',
+        plannedDurationWorkDays: new Prisma.Decimal('1'),
+        plannedStartDate: new Date('2026-10-12T00:00:00.000Z'),
+        plannedFinishDate: new Date('2026-10-12T00:00:00.000Z'),
+      },
+    );
+    const concurrentCycleResults = await Promise.allSettled([
+      prisma.activityDependency.create({
+        data: {
+          projectId: project.id,
+          predecessorActivityId: concurrentCycleA.id,
+          successorActivityId: concurrentCycleB.id,
+          dependencyType: 'FS',
+          lagWorkDays: '0',
+        },
+      }),
+      prisma.activityDependency.create({
+        data: {
+          projectId: project.id,
+          predecessorActivityId: concurrentCycleB.id,
+          successorActivityId: concurrentCycleA.id,
+          dependencyType: 'FS',
+          lagWorkDays: '0',
+        },
+      }),
+    ]);
+    assert.equal(
+      concurrentCycleResults.filter((result) => result.status === 'fulfilled')
+        .length,
+      1,
+    );
+    assert.equal(
+      concurrentCycleResults.filter((result) => result.status === 'rejected')
+        .length,
+      1,
+    );
+
+    const milestoneConstraint = await prisma.$queryRaw<
+      Array<{ convalidated: boolean }>
+    >`
+      SELECT convalidated
+      FROM pg_constraint
+      WHERE conname = 'activities_milestone_schedule_check'
+    `;
+    assert.equal(milestoneConstraint[0]?.convalidated, false);
+
     await assert.rejects(
       () =>
         service.createDependency(
@@ -572,19 +639,44 @@ test('Scheduling data model enforces Project scope and hierarchy integrity in Po
       ),
     );
 
-    const archivedDependency = await service.setDependencyActive(
-      { auth: scoped },
-      dependency.id,
-      false,
-    );
-    assert.equal(archivedDependency.isActive, false);
-
     const archivedChild = await service.setActivityActive(
       { auth: scoped },
       child.id,
       false,
     );
     assert.equal(archivedChild.isActive, false);
+
+    const unaffectedActivity = await service.createActivity(
+      { auth: scoped },
+      project.id,
+      {
+        wbsId: wbs.id,
+        workingCalendarId: calendar.id,
+        activityCode: 'UNAFFECTED-' + suffix,
+        activityName: 'Unaffected Activity',
+        plannedDurationWorkDays: new Prisma.Decimal('1'),
+        plannedStartDate: new Date('2026-10-13T00:00:00.000Z'),
+        plannedFinishDate: new Date('2026-10-13T00:00:00.000Z'),
+      },
+    );
+    const unaffectedDependency = await service.createDependency(
+      { auth: scoped },
+      project.id,
+      {
+        predecessorActivityId: root.id,
+        successorActivityId: unaffectedActivity.id,
+        dependencyType: 'FS',
+        lagWorkDays: new Prisma.Decimal('0'),
+      },
+    );
+    assert.equal(unaffectedDependency.isActive, true);
+
+    const archivedDependency = await service.setDependencyActive(
+      { auth: scoped },
+      dependency.id,
+      false,
+    );
+    assert.equal(archivedDependency.isActive, false);
 
     const archivedCalendar = await service.setCalendarActive(
       { auth: scoped },
