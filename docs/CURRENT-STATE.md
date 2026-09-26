@@ -4,10 +4,13 @@
 **Source of truth:** Live GitHub repository state
 
 - Current Release: V0.1 Foundation
-- Current Stage: V0.1-H Integration / Regression / UAT — NEXT
+- Current Stage: V0.1-H Integration / Regression / UAT — IN PROGRESS
 - Completed Stages: V0.1-A Technical Skeleton; V0.1-B Company / Identity / Security; V0.1-C Administration; V0.1-D Master Data; V0.1-E Projects; V0.1-F WBS & Cost Codes; V0.1-G Basic Documents
-- Completed Issue: #25 — V0.1-G Basic Documents
-- Merged PR: #26 — V0.1-G Basic Documents
+- Active Issue: #27 — V0.1-H Integration / Regression / UAT
+- Active Branch: `v0.1-h-integration-uat`
+- Active PR: #28 — draft, awaiting UAT human gate
+- Previous completed Issue: #25 — V0.1-G Basic Documents
+- Previous merged PR: #26 — V0.1-G Basic Documents
 - Previous completed Issue: #23 — V0.1-F WBS & Cost Codes
 - Previous merged PR: #24 — V0.1-F WBS & Cost Codes
 - Previous completed Issue: #20 — V0.1-E Projects
@@ -19,7 +22,10 @@
 - Stage F final review: no unresolved review threads, no scope creep into Activities/Scheduling, BOQ/Budget, Procurement or transaction allocations.
 - Final Stage G PR CI: Validate Construction ERP run #443 — SUCCESS on `298890cbd72965067d59995f81283ca7b4f5410b`.
 - Stage G final review: no unresolved review threads; no WBS/Activity or later-module document scope added.
-- Next action: Open V0.1-H Integration / Regression / UAT; complete all automatable release gates before requesting Product / Business Owner UAT sign-off.
+- Stage H automated release CI: Validate Construction ERP run #455 — SUCCESS.
+- V0.1 cross-module release acceptance scenario: PASS in CI #455.
+- Open defect check: no open defect Issue exists; only Stage H tracking Issue #27 is open.
+- Next action: validate the final Stage H documentation/checkpoint head, then execute Staging/UAT smoke + manual V0.1 UAT and record Product / Business Owner acceptance.
 
 ## Stage E completed
 
@@ -57,3 +63,14 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - Project-scoped document list/upload/download/archive APIs with audit logging
 - Permission-aware Documents UI with scoped Project selection, upload/download/archive and Document Type administration
 - Security/integration coverage for Project scope, projects.access_all, company isolation, path traversal, unsafe filenames/storage keys, size/MIME policy, physical-path non-disclosure and byte round-trip
+
+
+## Stage H technical gates completed so far
+
+- Cross-module V0.1 release acceptance integration scenario added to the normal regression suite
+- Full existing authentication/session/CSRF/authorization/master-data/Project/WBS/Documents regression suite remains green
+- Clean PostgreSQL migration-from-zero and production dependency audit pass in CI
+- V0.1 acceptance traceability and approved-scope limitations documented
+- Deployment, rollback/recovery and safe Staging/UAT smoke procedure documented
+- Manual V0.1 UAT scenario, test data, expected results and sign-off record prepared
+- Human gates still pending: Staging/UAT smoke execution and Product / Business Owner UAT/release acceptance
