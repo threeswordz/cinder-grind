@@ -4,10 +4,10 @@
 **Source of truth:** Live GitHub repository state
 
 - Current Release: V0.2 Project & Scheduling
-- Current Stage: V0.2-C Baselines / Progress — ACTIVE
-- Completed Stages: V0.1-A Technical Skeleton; V0.1-B Company / Identity / Security; V0.1-C Administration; V0.1-D Master Data; V0.1-E Projects; V0.1-F WBS & Cost Codes; V0.1-G Basic Documents; V0.1-H Integration / Regression / UAT; V0.2-A Scheduling Data Model; V0.2-B Scheduling Engine
-- Active Issue: #40 — V0.2-C Baselines / Progress
-- Active Branch: `v0.2-c-baselines-progress`
+- Current Stage: V0.2-C Baselines / Progress — COMPLETE
+- Completed Stages: V0.1-A Technical Skeleton; V0.1-B Company / Identity / Security; V0.1-C Administration; V0.1-D Master Data; V0.1-E Projects; V0.1-F WBS & Cost Codes; V0.1-G Basic Documents; V0.1-H Integration / Regression / UAT; V0.2-A Scheduling Data Model; V0.2-B Scheduling Engine; V0.2-C Baselines / Progress
+- Completed Issue: #40 — V0.2-C Baselines / Progress
+- Completed Branch: `v0.2-c-baselines-progress`
 - Completed Issue: #38 — V0.2-C Baselines / Progress — Business Rules
 - Completed Issue: #36 — V0.2-B Scheduling Engine
 - Completed Branch: `v0.2-b-scheduling-engine`
@@ -218,4 +218,20 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - deterministic working-day variance tests and PostgreSQL Stage C integration coverage
 - live HTTP acceptance covers configured Approval Matrix, maker-checker denial, approval, progress correction, Project actual dates and delay comparison
 - CI #697 passed on `b5b7104a1b7176cbadad253dd1e6be10c7cda200` before final documentation commits; exact-head CI will be revalidated after documentation completion
+- no new runtime dependency or paid service introduced
+
+
+## V0.2-C completed
+
+- PR #41 squash-merged to `main` as `3742ec78a7ba54242834523468a09643654e9764`
+- Issue #40 closed automatically
+- DEC-010 Baselines / Progress rules implemented
+- immutable versioned Schedule Baselines and immutable Activity snapshot rows
+- configurable `SCHEDULE_BASELINE` Approval Matrix with maker-checker enforcement
+- current comparison baseline derived from the highest approved version; historical approved versions remain unchanged
+- append-only Activity Progress history; the latest appended entry is current even when it is a backdated correction
+- explicit Activity and Project actual dates remain independent of planned/baseline/forecast values
+- signed working-calendar baseline/forecast variance and delay classification implemented
+- Project-scope authorization, permissions, audit and database integrity controls are active
+- exact-head CI #708 passed on `2e9cfefcf56ef16d75a1f8eb19153425eb00f707`, including migrations, full regression, Stage C PostgreSQL integration and live HTTP acceptance
 - no new runtime dependency or paid service introduced
