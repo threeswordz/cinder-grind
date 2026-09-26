@@ -323,7 +323,7 @@ DECLARE
   target_report_id UUID;
   report_project UUID;
   report_company UUID;
-  report_date DATE;
+  report_usage_date DATE;
   report_status VARCHAR(20);
   equipment_company UUID;
   equipment_active BOOLEAN;
@@ -334,7 +334,7 @@ BEGIN
   target_report_id := CASE WHEN TG_OP = 'DELETE' THEN OLD."report_id" ELSE NEW."report_id" END;
 
   SELECT "project_id","company_id","report_date","status"
-    INTO report_project,report_company,report_date,report_status
+    INTO report_project,report_company,report_usage_date,report_status
   FROM "daily_site_reports" WHERE "id" = target_report_id;
 
   IF report_project IS NULL THEN
@@ -362,8 +362,8 @@ BEGIN
     SELECT 1 FROM "equipment_assignments" a
     WHERE a."equipment_id" = NEW."equipment_id"
       AND a."project_id" = report_project
-      AND a."assigned_from" <= report_date
-      AND (a."assigned_to" IS NULL OR a."assigned_to" >= report_date)
+      AND a."assigned_from" <= report_usage_date
+      AND (a."assigned_to" IS NULL OR a."assigned_to" >= report_usage_date)
   ) INTO assignment_exists;
   IF NOT assignment_exists THEN
     RAISE EXCEPTION 'Daily Site Report Equipment must be assigned to the Project on the report date';
