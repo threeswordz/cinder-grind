@@ -387,3 +387,18 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - detailed durations sum to 20 working days on the reference Monday–Friday calendar.
 - Stage G is validation/release-exit work only; production features are changed only if a V0.2 acceptance defect is found.
 - V0.3 Procurement and all later-release scope remain excluded.
+
+## V0.2-G implementation progress
+
+- the approved SCH-019 Ground Floor Slab reference programme is encoded as a reusable fixed dataset and automated integration scenario.
+- eight detailed Activities total exactly 20 working days on the Monday–Friday reference calendar, with literal planned dates from 2026-10-01 through 2026-10-28.
+- a controlled one-working-day forecast shift moves the reference finish to 2026-10-29 while the approved baseline remains unchanged.
+- backend Scheduling Engine planned/forecast dates, Critical Path and Total Float are asserted independently before comparing the Gantt/read model.
+- 2-week and 4-week lookahead membership is asserted against fixed expected Activity sets.
+- Stage G release-exit review identified two previously missed V0.2 Must-Have gaps: DOC-006 WBS/Activity Documents and RPT-002 Project Engineer Dashboard / RPT-001 operational reporting.
+- DOC-006 is now closed by reusing the existing secure Documents owner/storage architecture with validated Project + WBS/Activity links and PostgreSQL target-scope integrity.
+- RPT-001/RPT-002 are now closed by a Project-scoped Project Engineer dashboard derived from Scheduling, Site Execution and Equipment source modules; no reporting transaction ledger is introduced.
+- the V0.2 Should-Have review records Activity Types as delivered while Project Type configuration remains the documented deferred remainder of ADM-008.
+- V0.2 release traceability, UAT record, release checklist and deployment/rollback procedure are now source-controlled.
+- full functional validation CI #884 passed on `7b09fb92317d4e9990be48fa0175fd1078d8bd1f`, including migrations, all regression/integration tests, builds and the expanded live HTTP V0.2 acceptance scenario.
+- final exact-head branch CI, PR CI, merge/post-merge CI and Product / Business Owner V0.2 acceptance remain release gates.
