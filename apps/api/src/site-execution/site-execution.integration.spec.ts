@@ -464,9 +464,38 @@ test('Stage E keeps Daily Site Reports project-scoped, immutable after submissio
       { auth: siteAuth },
       created.id,
       'Correction: rain started at 14:45, not 15:00.',
+      [
+        {
+          activityId: activity.id,
+          percentComplete: new Prisma.Decimal('60'),
+          note: 'Corrected submitted Daily Site Report progress',
+        },
+      ],
     );
     assert.ok(correction);
     assert.equal(correction?.correctionNote.includes('14:45'), true);
+    assert.equal(correction?.progressCorrections.length, 1);
+    assert.equal(
+      correction?.progressCorrections[0]?.percentComplete.toNumber(),
+      60,
+    );
+    assert.equal(
+      correction?.progressCorrections[0]?.sourceType,
+      'DAILY_SITE_REPORT_CORRECTION',
+    );
+
+    const correctedProgressHistory = await prisma.activityProgress.findMany({
+      where: { activityId: activity.id },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+    });
+    assert.equal(
+      correctedProgressHistory[0]?.percentComplete.toNumber(),
+      60,
+    );
+    assert.equal(
+      correctedProgressHistory[0]?.sourceEntityId,
+      correction?.id,
+    );
 
     await assert.rejects(
       () =>
