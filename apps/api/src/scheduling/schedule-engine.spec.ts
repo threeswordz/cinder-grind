@@ -114,6 +114,29 @@ test('negative lag creates lead time using the successor calendar', () => {
   assert.equal(b?.calculatedFinishDate, '2026-10-06');
 });
 
+test('mixed calendars apply lag on the successor Activity calendar', () => {
+  const result = calculateScheduleAnalysis({
+    mode: 'planned',
+    calendars: [
+      calendar('PRED', [1, 2, 3, 4, 5]),
+      calendar('SUCC', [6, 7, 1, 2, 3]),
+    ],
+    activities: [
+      activity('A', '2026-10-02', 1, {
+        workingCalendarId: 'PRED',
+      }),
+      activity('B', '2026-10-02', 1, {
+        workingCalendarId: 'SUCC',
+      }),
+    ],
+    dependencies: [dependency('A', 'B', 'FS', 1)],
+  });
+
+  const b = result.activities.find((row) => row.id === 'B');
+  assert.equal(b?.calculatedStartDate, '2026-10-04');
+  assert.equal(b?.calculatedFinishDate, '2026-10-04');
+});
+
 test('fractional work days are preserved internally while DATE fields project the containing work date', () => {
   const result = calculateScheduleAnalysis({
     mode: 'planned',
