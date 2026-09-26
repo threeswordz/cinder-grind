@@ -204,6 +204,14 @@ export class ProjectsController {
       const value = optionalProjectDate(input, 'plannedCompletionDate');
       if (value !== undefined) data.plannedCompletionDate = value;
     }
+    if (input.actualStartDate !== undefined) {
+      const value = nullableProjectDate(input, 'actualStartDate');
+      if (value !== undefined) data.actualStartDate = value;
+    }
+    if (input.actualCompletionDate !== undefined) {
+      const value = nullableProjectDate(input, 'actualCompletionDate');
+      if (value !== undefined) data.actualCompletionDate = value;
+    }
 
     ensureFields(data as Record<string, unknown>);
 
