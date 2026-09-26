@@ -4,8 +4,8 @@
 **Source of truth:** Live GitHub repository state
 
 - Current Release: V0.2 Project & Scheduling
-- Current Stage: V0.2-A Scheduling Data Model — IN PROGRESS
-- Completed Stages: V0.1-A Technical Skeleton; V0.1-B Company / Identity / Security; V0.1-C Administration; V0.1-D Master Data; V0.1-E Projects; V0.1-F WBS & Cost Codes; V0.1-G Basic Documents; V0.1-H Integration / Regression / UAT
+- Current Stage: V0.2-A Scheduling Data Model — COMPLETE
+- Completed Stages: V0.1-A Technical Skeleton; V0.1-B Company / Identity / Security; V0.1-C Administration; V0.1-D Master Data; V0.1-E Projects; V0.1-F WBS & Cost Codes; V0.1-G Basic Documents; V0.1-H Integration / Regression / UAT; V0.2-A Scheduling Data Model
 - Completed Issue: #29 — V0.2 Release Entry Gate — Scope & Acceptance Baselines
 - Completed Branch: `v0.2-entry-gate`
 - Completed Issue: #27 — V0.1-H Integration / Regression / UAT
@@ -29,7 +29,7 @@
 - V0.1 cross-module release acceptance scenario: PASS in the Stage H release-candidate regression suite.
 - Open defect check at V0.1 acceptance: no Severity 1 or Severity 2 release-blocking defect recorded.
 - Governance: `AGENTS.md`, `docs/PROJECT-GOVERNANCE.md`, PR governance checklist and DEC-008 are active; material decisions must pass the repository pre-flight and open-source/zero-cost-first constraint.
-- Next action: complete V0.2-A exact-head CI/security validation, final review and merge; then proceed to V0.2-B Scheduling Engine.
+- Next action: pre-flight V0.2-B Scheduling Engine against approved scheduling rules; begin implementation only where calculation semantics are defined.
 
 ## Stage E completed
 
@@ -112,7 +112,7 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - V0.2-A Scheduling Data Model is the next active stage
 
 
-## V0.2-A implemented so far
+## V0.2-A completed
 
 - Working Calendar, weekday rule and exception/holiday persistence
 - company-level and Project-specific calendar scope with timezone/default/active metadata
@@ -127,3 +127,9 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - permission-aware Scheduling UI for Activities, dependencies, Working Calendars and Activity Types
 - PostgreSQL integration coverage wired into the normal API regression suite
 - no new runtime dependency and no paid component introduced
+
+
+- Stage A PR #32 squash-merged to `main` as `35ec6198fc66994f7f2f8c0181178a02466824e6`
+- Issue #31 closed automatically
+- exact-head CI #594 passed, including PostgreSQL scheduling integration and live HTTP acceptance
+- final review found no unresolved review threads and no Stage B/C/D, Site Execution, Equipment or V0.3+ scope creep
