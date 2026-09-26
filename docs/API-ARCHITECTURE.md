@@ -515,6 +515,12 @@ Examples:
 
 `POST /api/v1/activity-dependencies`
 
+`GET /api/v1/schedule/projects/{id}/analysis?mode=planned`
+
+`GET /api/v1/schedule/projects/{id}/analysis?mode=forecast`
+
+The schedule-analysis endpoint is the backend/domain read model for working-calendar-aware dates, Critical Path and Total Float. It returns calculated Activity dates, fractional work-day positions, Total Float and critical flags without making the Gantt component the source of truth.
+
 `GET /api/v1/projects/{id}/gantt`
 
 `GET /api/v1/projects/{id}/lookahead?weeks=2`
