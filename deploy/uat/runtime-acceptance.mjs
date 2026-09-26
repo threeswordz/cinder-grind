@@ -201,6 +201,15 @@ const permissionCodes = [
   'site.daily_report.create',
   'site.daily_report.edit',
   'site.daily_report.submit',
+  'equipment.type.view',
+  'equipment.type.manage',
+  'equipment.equipment.view',
+  'equipment.equipment.manage',
+  'equipment.assignment.view',
+  'equipment.assignment.manage',
+  'equipment.usage.view',
+  'equipment.usage.create',
+  'equipment.usage.edit',
 ];
 await request(admin, `/admin/roles/${roleId}/permissions`, {
   method: 'PUT',
@@ -749,14 +758,94 @@ check(downloadedBytes.length === bytes.length, 'Downloaded document size mismatc
 check(downloadedBytes.every((value, index) => value === bytes[index]), 'Downloaded document bytes mismatch.');
 record('secure document upload, metadata listing and byte-for-byte download');
 
+const equipmentType = await request(pm, '/equipment/types', {
+  method: 'POST',
+  json: {
+    equipmentTypeCode: 'EXC-' + suffix,
+    equipmentTypeName: 'Excavator ' + suffix,
+    description: 'V0.2-F runtime acceptance Equipment Type',
+  },
+  expected: 201,
+});
+const equipment = await request(pm, '/equipment/register', {
+  method: 'POST',
+  json: {
+    equipmentTypeId: equipmentType.data.data.id,
+    equipmentCode: 'EQ-' + suffix,
+    equipmentName: 'Excavator ' + suffix,
+    operationalStatus: 'AVAILABLE',
+  },
+  expected: 201,
+});
+const equipmentId = equipment.data.data.id;
+const equipmentAssignment = await request(
+  pm,
+  '/equipment/register/' + equipmentId + '/assignments',
+  {
+    method: 'POST',
+    json: {
+      projectId,
+      assignedFrom: '2026-10-01',
+      remarks: 'UAT Project deployment',
+    },
+    expected: 201,
+  },
+);
+check(
+  equipmentAssignment.data.data.projectId === projectId,
+  'Equipment assignment was not created against the Project.',
+);
+
+const assignedRegister = await request(
+  pm,
+  '/equipment/register?asOf=2026-10-10',
+);
+const assignedEquipment = assignedRegister.data.data.find(
+  (item) => item.id === equipmentId,
+);
+check(
+  assignedEquipment?.availability === 'ASSIGNED',
+  'Derived Equipment availability did not report ASSIGNED.',
+);
+
+const projectEquipment = await request(
+  pm,
+  '/equipment/projects/' + projectId + '/available?asOf=2026-10-10',
+);
+check(
+  projectEquipment.data.data.some(
+    (item) => item.equipment?.id === equipmentId,
+  ),
+  'Assigned Equipment was not available to the Project on the as-of date.',
+);
+
+const manualEquipmentUsage = await request(pm, '/equipment/usage', {
+  method: 'POST',
+  json: {
+    equipmentId,
+    projectId,
+    usageDate: '2026-10-09',
+    operatingHours: '2.5',
+    activityId: activityA.data.data.id,
+    wbsId: rootWbs.data.data.id,
+    remarks: 'Manual V0.2-F runtime usage',
+  },
+  expected: 201,
+});
+check(
+  manualEquipmentUsage.data.data?.sourceType === 'MANUAL',
+  'Manual Equipment Usage did not retain MANUAL source type.',
+);
+record('V0.2-F Equipment register, Project assignment, derived availability and manual usage');
+
 const siteOptions = await request(
   pm,
   '/site-execution/projects/' + projectId + '/options',
 );
 check(
-  siteOptions.data.data.equipmentIntegration?.available === false &&
+  siteOptions.data.data.equipmentIntegration?.available === true &&
     siteOptions.data.data.equipmentIntegration?.targetStage === 'V0.2-F',
-  'Stage E did not preserve the approved Equipment integration boundary.',
+  'Stage F did not activate canonical Equipment integration.',
 );
 check(
   siteOptions.data.data.materials.some(
@@ -791,6 +880,15 @@ const dailyReport = await request(pm, '/site-execution/reports', {
         activityId: activityA.data.data.id,
         wbsId: rootWbs.data.data.id,
         remarks: 'Observation only; no Inventory posting.',
+      },
+    ],
+    equipmentUsage: [
+      {
+        equipmentId,
+        operatingHours: '4',
+        activityId: activityA.data.data.id,
+        wbsId: rootWbs.data.data.id,
+        remarks: 'Daily Site Report Equipment usage.',
       },
     ],
     progress: [
@@ -901,6 +999,31 @@ check(
   'Daily Site Report submission did not append Activity Progress.',
 );
 
+const submittedEquipmentLine =
+  submittedDailyReport.data.data.equipmentUsage.find(
+    (item) => item.equipmentId === equipmentId,
+  );
+check(
+  submittedEquipmentLine?.equipmentUsage?.sourceType ===
+      'DAILY_SITE_REPORT' &&
+    String(submittedEquipmentLine?.equipmentUsage?.operatingHours) === '4',
+  'Daily Site Report submission did not materialize canonical Equipment Usage.',
+);
+const equipmentHistoryAfterSubmit = await request(
+  pm,
+  '/equipment/usage?projectId=' + projectId + '&equipmentId=' + equipmentId,
+);
+check(
+  equipmentHistoryAfterSubmit.data.data.some(
+    (item) =>
+      item.sourceType === 'DAILY_SITE_REPORT' &&
+      item.sourceEntityId === dailyReportId &&
+      item.usageDate?.slice(0, 10) === '2026-10-10' &&
+      String(item.operatingHours) === '4',
+  ),
+  'Daily Site Report Equipment Usage was not retained in canonical history.',
+);
+
 const siteProgressHistory = await request(
   pm,
   '/activity-progress/' + activityA.data.data.id,
@@ -936,6 +1059,15 @@ await request(
           note: 'Corrected Daily Site Report progress retained as history.',
         },
       ],
+      equipmentUsage: [
+        {
+          equipmentId,
+          operatingHours: '4.5',
+          activityId: activityA.data.data.id,
+          wbsId: rootWbs.data.data.id,
+          remarks: 'Corrected Equipment usage retained as later history.',
+        },
+      ],
     },
     expected: 201,
   },
@@ -951,6 +1083,11 @@ check(
       correctedDailyReport.data.data.corrections[0]?.progressCorrections?.[0]
         ?.percentComplete,
     ) === '42' &&
+    correctedDailyReport.data.data.corrections[0]?.equipmentCorrections?.length === 1 &&
+    String(
+      correctedDailyReport.data.data.corrections[0]?.equipmentCorrections?.[0]
+        ?.operatingHours,
+    ) === '4.5' &&
     correctedDailyReport.data.data.generalRemarks ===
       'Automated V0.2-E site report.',
   'Submitted Daily Site Report correction did not remain append-only.',
@@ -968,6 +1105,45 @@ check(
   ),
   'Corrected Daily Site Report progress was not appended to immutable history.',
 );
+const correctedEquipmentHistory = await request(
+  pm,
+  '/equipment/usage?projectId=' + projectId + '&equipmentId=' + equipmentId,
+);
+check(
+  correctedEquipmentHistory.data.data.some(
+    (item) =>
+      item.sourceType === 'DAILY_SITE_REPORT_CORRECTION' &&
+      item.usageDate?.slice(0, 10) === '2026-10-10' &&
+      String(item.operatingHours) === '4.5',
+  ),
+  'Corrected Daily Site Report Equipment Usage was not appended to canonical history.',
+);
+
+await request(pm, '/equipment/register/' + equipmentId, {
+  method: 'PATCH',
+  json: { operationalStatus: 'UNAVAILABLE' },
+});
+const unavailableRegister = await request(
+  pm,
+  '/equipment/register?asOf=2026-10-10',
+);
+check(
+  unavailableRegister.data.data.find((item) => item.id === equipmentId)
+    ?.availability === 'UNAVAILABLE',
+  'Derived Equipment availability did not report UNAVAILABLE after status change.',
+);
+const unavailableProjectEquipment = await request(
+  pm,
+  '/equipment/projects/' + projectId + '/available?asOf=2026-10-10',
+);
+check(
+  !unavailableProjectEquipment.data.data.some(
+    (item) => item.equipment?.id === equipmentId,
+  ),
+  'Operationally unavailable Equipment remained selectable for new Project usage.',
+);
+record('V0.2-F Equipment Daily Site Report usage, append-only correction and derived availability');
+
 record('V0.2-E Daily Site Report, progress, observations, photos and corrections through live HTTP API');
 
 const unassigned = await login(unassignedUser.data.data.email, unassignedPassword);
@@ -1000,7 +1176,17 @@ await request(
   '/site-execution/reports/' + dailyReportId,
   { expected: 403 },
 );
-record('unassigned Project, Document, Scheduling and Site Execution access denied');
+await request(
+  unassigned,
+  '/equipment/projects/' + projectId + '/available?asOf=2026-10-10',
+  { expected: 403 },
+);
+await request(
+  unassigned,
+  '/equipment/usage?projectId=' + projectId,
+  { expected: 403 },
+);
+record('unassigned Project, Document, Scheduling, Site Execution and Equipment access denied');
 
 await logout(pm);
 await request(pm, '/auth/me', { expected: 401 });
