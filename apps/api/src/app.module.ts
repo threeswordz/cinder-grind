@@ -9,10 +9,12 @@ import { CorrelationIdMiddleware } from './common/correlation-id.middleware';
 import { HealthModule } from './health/health.module';
 import { MasterDataModule } from './master-data/master-data.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { ProjectsModule } from './projects/projects.module';
 
 @Module({
   imports: [
     PrismaModule,
+    ProjectsModule,
     AdministrationModule,
     AuthModule,
     AuthorizationModule,
