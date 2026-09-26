@@ -58,7 +58,10 @@ export type AuditRecordInput = {
 export class AuditService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async record(input: AuditRecordInput): Promise<void> {
+  async record(
+    input: AuditRecordInput,
+    client?: Prisma.TransactionClient,
+  ): Promise<void> {
     const oldValues =
       input.oldValues === undefined
         ? undefined
@@ -68,7 +71,9 @@ export class AuditService {
         ? undefined
         : (sanitizeAuditValue(input.newValues) as Prisma.InputJsonValue);
 
-    await this.prisma.auditLog.create({
+    const db = client ?? this.prisma;
+
+    await db.auditLog.create({
       data: {
         companyId: input.auth.companyId,
         entityType: input.entityType,
