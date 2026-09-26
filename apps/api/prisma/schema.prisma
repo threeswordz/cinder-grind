@@ -32,6 +32,8 @@ model Company {
   numberSequences   NumberSequence[]
   systemSettings    SystemSetting[]
   costCodes         CostCode[]
+  documentTypes     DocumentType[]
+  documents         Document[]
 
   @@map("companies")
 }
@@ -155,6 +157,8 @@ model User {
   sessions        UserSession[]
   approvalActions ApprovalAction[]
   auditLogs       AuditLog[]
+  uploadedDocuments Document[]     @relation("DocumentUploader")
+  documentLinks     DocumentLink[] @relation("DocumentLinker")
 
   @@unique([companyId, email])
   @@index([companyId, isActive])
@@ -501,4 +505,66 @@ model CostCode {
   @@unique([companyId, costCode])
   @@index([companyId, isActive])
   @@map("cost_codes")
+}
+
+
+model DocumentType {
+  id               String   @id @default(uuid()) @db.Uuid
+  companyId        String   @map("company_id") @db.Uuid
+  documentTypeCode String   @map("document_type_code") @db.VarChar(80)
+  documentTypeName String   @map("document_type_name") @db.VarChar(150)
+  isActive         Boolean  @default(true) @map("is_active")
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  company   Company    @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  documents Document[]
+
+  @@unique([companyId, documentTypeCode])
+  @@index([companyId, isActive])
+  @@map("document_types")
+}
+
+model Document {
+  id               String   @id @default(uuid()) @db.Uuid
+  companyId        String   @map("company_id") @db.Uuid
+  documentTypeId   String   @map("document_type_id") @db.Uuid
+  fileName         String   @map("file_name") @db.VarChar(255)
+  storageProvider  String   @map("storage_provider") @db.VarChar(30)
+  storageKey       String   @unique @map("storage_key") @db.VarChar(255)
+  mimeType         String   @map("mime_type") @db.VarChar(255)
+  fileSizeBytes    Int      @map("file_size_bytes")
+  uploadedByUserId String   @map("uploaded_by_user_id") @db.Uuid
+  uploadedAt       DateTime @default(now()) @map("uploaded_at") @db.Timestamptz(6)
+  checksum         String?  @db.VarChar(64)
+  isActive         Boolean  @default(true) @map("is_active")
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  company      Company      @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  documentType DocumentType @relation(fields: [documentTypeId], references: [id], onDelete: Restrict)
+  uploadedBy   User         @relation("DocumentUploader", fields: [uploadedByUserId], references: [id], onDelete: Restrict)
+  links        DocumentLink[]
+
+  @@index([companyId, isActive, uploadedAt])
+  @@index([documentTypeId])
+  @@index([uploadedByUserId])
+  @@map("documents")
+}
+
+model DocumentLink {
+  id             String   @id @default(uuid()) @db.Uuid
+  documentId     String   @map("document_id") @db.Uuid
+  entityType     String   @map("entity_type") @db.VarChar(100)
+  entityId       String   @map("entity_id") @db.Uuid
+  linkedAt       DateTime @default(now()) @map("linked_at") @db.Timestamptz(6)
+  linkedByUserId String   @map("linked_by_user_id") @db.Uuid
+
+  document Document @relation(fields: [documentId], references: [id], onDelete: Restrict)
+  linkedBy User     @relation("DocumentLinker", fields: [linkedByUserId], references: [id], onDelete: Restrict)
+
+  @@unique([documentId, entityType, entityId])
+  @@index([entityType, entityId])
+  @@index([linkedByUserId])
+  @@map("document_links")
 }
