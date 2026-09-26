@@ -197,6 +197,10 @@ const permissionCodes = [
   'schedule.baseline.create',
   'schedule.baseline.approve',
   'schedule.progress.record',
+  'site.daily_report.view',
+  'site.daily_report.create',
+  'site.daily_report.edit',
+  'site.daily_report.submit',
 ];
 await request(admin, `/admin/roles/${roleId}/permissions`, {
   method: 'PUT',
@@ -745,6 +749,227 @@ check(downloadedBytes.length === bytes.length, 'Downloaded document size mismatc
 check(downloadedBytes.every((value, index) => value === bytes[index]), 'Downloaded document bytes mismatch.');
 record('secure document upload, metadata listing and byte-for-byte download');
 
+const siteOptions = await request(
+  pm,
+  '/site-execution/projects/' + projectId + '/options',
+);
+check(
+  siteOptions.data.data.equipmentIntegration?.available === false &&
+    siteOptions.data.data.equipmentIntegration?.targetStage === 'V0.2-F',
+  'Stage E did not preserve the approved Equipment integration boundary.',
+);
+check(
+  siteOptions.data.data.materials.some(
+    (item) => item.id === material.data.data.id,
+  ),
+  'Site Execution options did not expose the valid Material master.',
+);
+
+const dailyReport = await request(pm, '/site-execution/reports', {
+  method: 'POST',
+  json: {
+    projectId,
+    reportDate: '2026-10-10',
+    weatherObservation: 'Dry morning; afternoon rain.',
+    generalRemarks: 'Automated V0.2-E site report.',
+    manpower: [
+      {
+        tradeRole: 'General Worker',
+        headcount: 6,
+        remarks: 'Groundworks crew',
+      },
+      {
+        tradeRole: 'Steel Fixer',
+        headcount: 4,
+      },
+    ],
+    materialUsage: [
+      {
+        materialId: material.data.data.id,
+        uomId,
+        quantity: '12',
+        activityId: activityA.data.data.id,
+        wbsId: rootWbs.data.data.id,
+        remarks: 'Observation only; no Inventory posting.',
+      },
+    ],
+    progress: [
+      {
+        activityId: activityA.data.data.id,
+        percentComplete: '45',
+        note: 'Progress captured through Daily Site Report.',
+      },
+    ],
+    issues: [
+      {
+        activityId: activityA.data.data.id,
+        issueText: 'Temporary access route partially obstructed.',
+      },
+    ],
+    delays: [
+      {
+        activityId: activityA.data.data.id,
+        delayReason: 'Afternoon rain reduced productivity.',
+      },
+    ],
+    inspections: [
+      {
+        activityId: activityA.data.data.id,
+        inspectionReference: 'IR-' + suffix,
+        remarks: 'Site inspection reference.',
+      },
+    ],
+  },
+  expected: 201,
+});
+const dailyReportId = dailyReport.data.data.id;
+check(
+  dailyReport.data.data.status === 'DRAFT' &&
+    dailyReport.data.data.totalManpower === 10,
+  'Daily Site Report draft/manpower totals were not created correctly.',
+);
+
+await request(pm, '/site-execution/reports', {
+  method: 'POST',
+  json: {
+    projectId,
+    reportDate: '2026-10-10',
+    manpower: [],
+    materialUsage: [],
+    progress: [],
+    issues: [],
+    delays: [],
+    inspections: [],
+  },
+  expected: 409,
+});
+
+const sitePhotoBytes = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
+const sitePhotoForm = new FormData();
+sitePhotoForm.set('documentTypeId', documentType.data.data.id);
+sitePhotoForm.set(
+  'file',
+  new Blob([sitePhotoBytes], { type: 'image/png' }),
+  'site-photo-' + suffix + '.png',
+);
+const sitePhoto = await request(
+  pm,
+  '/site-execution/reports/' + dailyReportId + '/photos',
+  {
+    method: 'POST',
+    body: sitePhotoForm,
+    expected: 201,
+  },
+);
+check(
+  sitePhoto.data.data.fileName === 'site-photo-' + suffix + '.png',
+  'Daily Site Report photograph/file upload did not use Documents.',
+);
+
+const siteDocuments = await request(
+  pm,
+  '/site-execution/reports/' + dailyReportId + '/documents',
+);
+check(
+  siteDocuments.data.data.some((item) => item.id === sitePhoto.data.data.id),
+  'Daily Site Report document link was not retained.',
+);
+check(
+  !JSON.stringify(siteDocuments.data).includes('storageKey'),
+  'Daily Site Report document response exposed storageKey.',
+);
+
+const submittedDailyReport = await request(
+  pm,
+  '/site-execution/reports/' + dailyReportId + '/submit',
+  {
+    method: 'POST',
+    expected: 201,
+  },
+);
+check(
+  submittedDailyReport.data.data.status === 'SUBMITTED',
+  'Daily Site Report did not enter SUBMITTED state.',
+);
+const submittedProgressLine =
+  submittedDailyReport.data.data.progressLines.find(
+    (item) => item.activityId === activityA.data.data.id,
+  );
+check(
+  submittedProgressLine?.activityProgress &&
+    String(submittedProgressLine.activityProgress.percentComplete) === '45',
+  'Daily Site Report submission did not append Activity Progress.',
+);
+
+const siteProgressHistory = await request(
+  pm,
+  '/activity-progress/' + activityA.data.data.id,
+);
+check(
+  siteProgressHistory.data.data.some(
+    (item) =>
+      item.sourceType === 'DAILY_SITE_REPORT' &&
+      item.sourceEntityId === dailyReportId &&
+      item.progressDate?.slice(0, 10) === '2026-10-10' &&
+      String(item.percentComplete) === '45',
+  ),
+  'Daily Site Report progress was not retained in immutable Activity Progress history.',
+);
+
+await request(pm, '/site-execution/reports/' + dailyReportId, {
+  method: 'PATCH',
+  json: { generalRemarks: 'Submitted content must remain immutable.' },
+  expected: 409,
+});
+
+await request(
+  pm,
+  '/site-execution/reports/' + dailyReportId + '/corrections',
+  {
+    method: 'POST',
+    json: {
+      correctionNote: 'Correction retained without overwriting submitted report.',
+      progress: [
+        {
+          activityId: activityA.data.data.id,
+          percentComplete: '42',
+          note: 'Corrected Daily Site Report progress retained as history.',
+        },
+      ],
+    },
+    expected: 201,
+  },
+);
+const correctedDailyReport = await request(
+  pm,
+  '/site-execution/reports/' + dailyReportId,
+);
+check(
+  correctedDailyReport.data.data.corrections.length === 1 &&
+    correctedDailyReport.data.data.corrections[0]?.progressCorrections?.length === 1 &&
+    String(
+      correctedDailyReport.data.data.corrections[0]?.progressCorrections?.[0]
+        ?.percentComplete,
+    ) === '42' &&
+    correctedDailyReport.data.data.generalRemarks ===
+      'Automated V0.2-E site report.',
+  'Submitted Daily Site Report correction did not remain append-only.',
+);
+const correctedSiteProgressHistory = await request(
+  pm,
+  '/activity-progress/' + activityA.data.data.id,
+);
+check(
+  correctedSiteProgressHistory.data.data.some(
+    (item) =>
+      item.sourceType === 'DAILY_SITE_REPORT_CORRECTION' &&
+      item.progressDate?.slice(0, 10) === '2026-10-10' &&
+      String(item.percentComplete) === '42',
+  ),
+  'Corrected Daily Site Report progress was not appended to immutable history.',
+);
+record('V0.2-E Daily Site Report, progress, observations, photos and corrections through live HTTP API');
+
 const unassigned = await login(unassignedUser.data.data.email, unassignedPassword);
 await request(unassigned, '/projects/' + projectId, { expected: 403 });
 await request(unassigned, `/documents/projects/${projectId}`, { expected: 403 });
@@ -765,7 +990,17 @@ await request(
   '/schedule/projects/' + projectId + '/comparison',
   { expected: 403 },
 );
-record('unassigned Project, Document and Scheduling access denied');
+await request(
+  unassigned,
+  '/site-execution/reports?projectId=' + projectId,
+  { expected: 403 },
+);
+await request(
+  unassigned,
+  '/site-execution/reports/' + dailyReportId,
+  { expected: 403 },
+);
+record('unassigned Project, Document, Scheduling and Site Execution access denied');
 
 await logout(pm);
 await request(pm, '/auth/me', { expected: 401 });

@@ -1329,7 +1329,36 @@ Deleting an unapproved dependency relationship is not equivalent to deleting an 
 
 ---
 
-## 41.4 Purchase Requests
+## 41.4 Site Execution
+
+```text
+GET    /api/v1/site-execution/projects
+GET    /api/v1/site-execution/projects/{projectId}/options
+GET    /api/v1/site-execution/reports?projectId={id}
+POST   /api/v1/site-execution/reports
+GET    /api/v1/site-execution/reports/{id}
+PATCH  /api/v1/site-execution/reports/{id}
+POST   /api/v1/site-execution/reports/{id}/submit
+POST   /api/v1/site-execution/reports/{id}/corrections
+
+GET    /api/v1/site-execution/reports/{id}/documents
+POST   /api/v1/site-execution/reports/{id}/photos
+GET    /api/v1/site-execution/reports/{id}/documents/{documentId}/download
+```
+
+Daily Site Reports are unique by Project + reporting date and use the operational lifecycle `DRAFT → SUBMITTED`; they do not use the Approval Matrix.
+
+Draft resource/observation rows include aggregated manpower, observational Material usage, Activity progress, site issues, delay reasons and lightweight inspection references. On submission, each Daily Report progress line appends an authoritative row to the existing immutable `activity_progress` history with the report date and `DAILY_SITE_REPORT` source reference.
+
+Material-use rows do not post Inventory or change Stock Balance. Delay observations do not move Activity schedule dates or replace backend schedule-delay classification. Photographs/files reuse the Documents storage abstraction and generic document-link metadata; storage keys remain server-only.
+
+Equipment selection is intentionally unavailable until V0.2-F supplies the canonical Equipment Register. Stage E does not create a duplicate or free-text Equipment source.
+
+Submitted Daily Site Report content is immutable. Corrections are append-only records and do not overwrite the submitted record. A correction may also append corrected Activity percentages to the immutable `activity_progress` history using the original report date and `DAILY_SITE_REPORT_CORRECTION` source traceability.
+
+---
+
+## 41.5 Purchase Requests
 
 ```text
 GET    /api/v1/purchase-requests
@@ -1344,7 +1373,7 @@ POST   /api/v1/purchase-requests/{id}/cancel
 
 ---
 
-## 41.5 Purchase Orders
+## 41.6 Purchase Orders
 
 ```text
 GET    /api/v1/purchase-orders
@@ -1360,7 +1389,7 @@ POST   /api/v1/purchase-orders/{id}/revisions
 
 ---
 
-## 41.6 Inventory
+## 41.7 Inventory
 
 ```text
 POST   /api/v1/goods-receipts
@@ -1381,7 +1410,7 @@ POST   /api/v1/stock-transfers/{id}/post
 
 ---
 
-## 41.7 Finance
+## 41.8 Finance
 
 ```text
 POST   /api/v1/supplier-invoices

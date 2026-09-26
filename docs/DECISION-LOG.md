@@ -145,3 +145,50 @@ The V0.2-D Gantt / Lookahead stage uses the following approved presentation rule
    - the Gantt/lookahead UI does not recalculate scheduling, criticality or delay.
 
 Frappe Gantt remains a replaceable MIT/open-source visualization layer. Backend/domain scheduling ownership and DEC-008 remain unchanged.
+
+## DEC-012 — V0.2-E Site Execution rules
+**Status:** APPROVED — 2026-09-26
+
+The V0.2-E Site Execution stage uses the following approved rules:
+
+1. **Daily Report identity**
+   - one canonical Daily Site Report exists per Project + reporting date in V0.2.
+   - Project/date uniqueness is enforced.
+   - linked Activities, WBS and Documents remain within the same authorized Project.
+
+2. **Daily Report lifecycle**
+   - lifecycle is `DRAFT → SUBMITTED`.
+   - submission is an operational finalization action and does not use the Approval Matrix.
+   - submitted report content is not silently overwritten; historical corrections are retained explicitly where applicable.
+
+3. **Activity Progress**
+   - Daily Report progress updates append to the existing immutable Activity Progress history using the report date.
+   - Daily Reports never mutate Schedule Baseline rows.
+   - corrections create later progress entries and do not edit/delete earlier history.
+
+4. **Manpower**
+   - manpower is recorded as aggregated trade/role/category + headcount + optional remarks.
+   - individual attendance/payroll is outside V0.2-E.
+
+5. **Material usage**
+   - material-use lines reference valid Material master data, quantity/UOM and optional Activity/WBS context.
+   - these are field observations only.
+   - they do not post Inventory transactions or change Stock Balance.
+
+6. **Equipment dependency**
+   - V0.2-E does not create free-text Equipment or duplicate an Equipment master.
+   - SITE-005 is completed against the canonical Equipment Register in V0.2-F.
+   - Stage E may expose the integration boundary but Equipment usage becomes selectable only when Stage F exists.
+
+7. **Weather / issues / delays / inspections**
+   - weather is recorded locally; no external weather service is required.
+   - site issues and delay observations may optionally reference an Activity.
+   - delay observations provide explanatory context only and do not move schedule dates or override backend delay classification.
+   - inspections are lightweight Daily Report records/references, not a full QA/QC workflow.
+
+8. **Site photographs**
+   - photographs/files use the existing Documents storage abstraction and generic document-link metadata.
+   - file bytes remain outside PostgreSQL.
+   - physical storage paths are never exposed to the browser.
+
+Project-scope authorization, audit controls, DEC-008 and existing scheduling ownership remain unchanged.

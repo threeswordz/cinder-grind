@@ -49,7 +49,9 @@ export class ProjectAccessService {
   ): Promise<void> {
     const where = await this.scopeWhere(auth, db);
     const project = await db.project.findFirst({
-      where: { ...where, id: projectId },
+      where: {
+        AND: [where, { id: projectId }],
+      },
       select: { id: true },
     });
 

@@ -39,6 +39,7 @@ model Company {
   documents         Document[]
   scheduleBaselines ScheduleBaseline[]
   activityProgress  ActivityProgress[]
+  dailySiteReports   DailySiteReport[]
 
   @@map("companies")
 }
@@ -96,6 +97,7 @@ model UnitOfMeasure {
 
   company   Company    @relation(fields: [companyId], references: [id], onDelete: Restrict)
   materials Material[]
+  dailySiteReportMaterialUsage DailySiteReportMaterialUsage[]
 
   @@unique([companyId, uomCode])
   @@index([companyId, isActive])
@@ -116,6 +118,7 @@ model Material {
 
   company    Company       @relation(fields: [companyId], references: [id], onDelete: Restrict)
   defaultUom UnitOfMeasure @relation(fields: [defaultUomId], references: [id], onDelete: Restrict)
+  dailySiteReportMaterialUsage DailySiteReportMaterialUsage[]
 
   @@unique([companyId, materialCode])
   @@index([companyId, isActive])
@@ -168,6 +171,9 @@ model User {
   ownedActivities    Activity[]     @relation("ActivityOwner")
   submittedScheduleBaselines ScheduleBaseline[] @relation("ScheduleBaselineSubmitter")
   recordedActivityProgress   ActivityProgress[] @relation("ActivityProgressRecorder")
+  createdDailySiteReports     DailySiteReport[] @relation("DailySiteReportCreator")
+  submittedDailySiteReports   DailySiteReport[] @relation("DailySiteReportSubmitter")
+  dailySiteReportCorrections  DailySiteReportCorrection[] @relation("DailySiteReportCorrectionCreator")
 
   @@unique([companyId, email])
   @@index([companyId, isActive])
@@ -441,6 +447,7 @@ model Project {
   activityDependencies ActivityDependency[]
   scheduleBaselines     ScheduleBaseline[]
   activityProgress      ActivityProgress[]
+  dailySiteReports       DailySiteReport[]
 
   @@unique([companyId, projectCode])
   @@index([companyId, isActive])
@@ -504,6 +511,7 @@ model WbsElement {
   children   WbsElement[] @relation("WbsHierarchy")
   activities        Activity[]
   baselineSnapshots ScheduleBaselineActivity[]
+  dailySiteReportMaterialUsage DailySiteReportMaterialUsage[]
 
   @@unique([projectId, wbsCode])
   @@index([projectId, parentId, isActive])
@@ -638,6 +646,11 @@ model Activity {
   successorLinks      ActivityDependency[] @relation("ActivitySuccessor")
   baselineSnapshots   ScheduleBaselineActivity[]
   progressHistory     ActivityProgress[]
+  dailySiteReportMaterialUsage DailySiteReportMaterialUsage[]
+  dailySiteReportProgressLines DailySiteReportProgressLine[]
+  dailySiteReportIssues        DailySiteReportIssue[]
+  dailySiteReportDelays        DailySiteReportDelay[]
+  dailySiteReportInspections   DailySiteReportInspection[]
 
   @@unique([projectId, activityCode])
   @@index([companyId, projectId, isActive])
@@ -736,6 +749,7 @@ model ActivityProgress {
   project    Project  @relation(fields: [projectId], references: [id], onDelete: Restrict)
   activity   Activity @relation(fields: [activityId], references: [id], onDelete: Restrict)
   recordedBy User     @relation("ActivityProgressRecorder", fields: [recordedByUserId], references: [id], onDelete: Restrict)
+  siteReportProgressLine DailySiteReportProgressLine?
 
   @@index([companyId, projectId, progressDate])
   @@index([activityId, progressDate, createdAt])
@@ -802,4 +816,155 @@ model DocumentLink {
   @@index([entityType, entityId])
   @@index([linkedByUserId])
   @@map("document_links")
+}
+
+model DailySiteReport {
+  id                String    @id @default(uuid()) @db.Uuid
+  companyId         String    @map("company_id") @db.Uuid
+  projectId         String    @map("project_id") @db.Uuid
+  reportDate        DateTime  @map("report_date") @db.Date
+  status            String    @default("DRAFT") @db.VarChar(20)
+  weatherObservation String?  @map("weather_observation") @db.Text
+  generalRemarks    String?   @map("general_remarks") @db.Text
+  createdByUserId   String    @map("created_by_user_id") @db.Uuid
+  submittedByUserId String?   @map("submitted_by_user_id") @db.Uuid
+  submittedAt       DateTime? @map("submitted_at") @db.Timestamptz(6)
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  company     Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  project     Project @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  createdBy   User    @relation("DailySiteReportCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  submittedBy User?   @relation("DailySiteReportSubmitter", fields: [submittedByUserId], references: [id], onDelete: Restrict)
+  manpowerLines  DailySiteReportManpower[]
+  materialUsage  DailySiteReportMaterialUsage[]
+  progressLines  DailySiteReportProgressLine[]
+  issues         DailySiteReportIssue[]
+  delays         DailySiteReportDelay[]
+  inspections    DailySiteReportInspection[]
+  corrections    DailySiteReportCorrection[]
+
+  @@unique([projectId, reportDate])
+  @@index([companyId, projectId, reportDate])
+  @@index([projectId, status, reportDate])
+  @@map("daily_site_reports")
+}
+
+model DailySiteReportManpower {
+  id        String   @id @default(uuid()) @db.Uuid
+  reportId  String   @map("report_id") @db.Uuid
+  tradeRole String   @map("trade_role") @db.VarChar(150)
+  headcount Int
+  remarks   String?  @db.Text
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  report DailySiteReport @relation(fields: [reportId], references: [id], onDelete: Restrict)
+
+  @@index([reportId])
+  @@map("daily_site_report_manpower")
+}
+
+model DailySiteReportMaterialUsage {
+  id         String   @id @default(uuid()) @db.Uuid
+  reportId   String   @map("report_id") @db.Uuid
+  materialId String   @map("material_id") @db.Uuid
+  uomId      String   @map("uom_id") @db.Uuid
+  quantity   Decimal  @db.Decimal(18, 4)
+  activityId String?  @map("activity_id") @db.Uuid
+  wbsId      String?  @map("wbs_id") @db.Uuid
+  remarks    String?  @db.Text
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  report   DailySiteReport @relation(fields: [reportId], references: [id], onDelete: Restrict)
+  material Material        @relation(fields: [materialId], references: [id], onDelete: Restrict)
+  uom      UnitOfMeasure   @relation(fields: [uomId], references: [id], onDelete: Restrict)
+  activity Activity?       @relation(fields: [activityId], references: [id], onDelete: Restrict)
+  wbs      WbsElement?     @relation(fields: [wbsId], references: [id], onDelete: Restrict)
+
+  @@index([reportId])
+  @@index([materialId])
+  @@index([activityId])
+  @@index([wbsId])
+  @@map("daily_site_report_material_usage")
+}
+
+model DailySiteReportProgressLine {
+  id              String   @id @default(uuid()) @db.Uuid
+  reportId        String   @map("report_id") @db.Uuid
+  activityId      String   @map("activity_id") @db.Uuid
+  percentComplete Decimal  @map("percent_complete") @db.Decimal(5, 2)
+  note            String?  @db.Text
+  activityProgressId String? @unique @map("activity_progress_id") @db.Uuid
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  report   DailySiteReport @relation(fields: [reportId], references: [id], onDelete: Restrict)
+  activity Activity        @relation(fields: [activityId], references: [id], onDelete: Restrict)
+  activityProgress ActivityProgress? @relation(fields: [activityProgressId], references: [id], onDelete: Restrict)
+
+  @@unique([reportId, activityId])
+  @@index([activityId])
+  @@map("daily_site_report_progress_lines")
+}
+
+model DailySiteReportIssue {
+  id        String   @id @default(uuid()) @db.Uuid
+  reportId  String   @map("report_id") @db.Uuid
+  activityId String? @map("activity_id") @db.Uuid
+  issueText String   @map("issue_text") @db.Text
+  remarks   String?  @db.Text
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  report   DailySiteReport @relation(fields: [reportId], references: [id], onDelete: Restrict)
+  activity Activity?       @relation(fields: [activityId], references: [id], onDelete: Restrict)
+
+  @@index([reportId])
+  @@index([activityId])
+  @@map("daily_site_report_issues")
+}
+
+model DailySiteReportDelay {
+  id          String   @id @default(uuid()) @db.Uuid
+  reportId    String   @map("report_id") @db.Uuid
+  activityId  String?  @map("activity_id") @db.Uuid
+  delayReason String   @map("delay_reason") @db.Text
+  remarks     String?  @db.Text
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  report   DailySiteReport @relation(fields: [reportId], references: [id], onDelete: Restrict)
+  activity Activity?       @relation(fields: [activityId], references: [id], onDelete: Restrict)
+
+  @@index([reportId])
+  @@index([activityId])
+  @@map("daily_site_report_delays")
+}
+
+model DailySiteReportInspection {
+  id                  String   @id @default(uuid()) @db.Uuid
+  reportId            String   @map("report_id") @db.Uuid
+  activityId          String?  @map("activity_id") @db.Uuid
+  inspectionReference String?  @map("inspection_reference") @db.VarChar(200)
+  remarks             String?  @db.Text
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  report   DailySiteReport @relation(fields: [reportId], references: [id], onDelete: Restrict)
+  activity Activity?       @relation(fields: [activityId], references: [id], onDelete: Restrict)
+
+  @@index([reportId])
+  @@index([activityId])
+  @@map("daily_site_report_inspections")
+}
+
+model DailySiteReportCorrection {
+  id              String   @id @default(uuid()) @db.Uuid
+  reportId        String   @map("report_id") @db.Uuid
+  correctionNote  String   @map("correction_note") @db.Text
+  createdByUserId String   @map("created_by_user_id") @db.Uuid
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  report    DailySiteReport @relation(fields: [reportId], references: [id], onDelete: Restrict)
+  createdBy User            @relation("DailySiteReportCorrectionCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+
+  @@index([reportId, createdAt])
+  @@index([createdByUserId])
+  @@map("daily_site_report_corrections")
 }

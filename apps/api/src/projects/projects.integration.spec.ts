@@ -247,6 +247,12 @@ test('Project scope and Team/Contact boundaries are enforced in PostgreSQL', asy
     assert.equal(noProjects.length, 0);
 
     await assert.rejects(
+      () => access.assertAccess(unlinkedAuth, project.id),
+      (error: unknown) => error instanceof ForbiddenException,
+      'an authenticated user without an active Employee link must not bypass empty Project scope',
+    );
+
+    await assert.rejects(
       () => service.getProject(scopedAuth, unassignedProject.id),
       (error: unknown) => error instanceof ForbiddenException,
     );
