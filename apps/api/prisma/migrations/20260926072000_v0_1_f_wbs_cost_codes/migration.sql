@@ -32,20 +32,44 @@ CREATE TABLE "cost_codes" (
 CREATE UNIQUE INDEX "cost_codes_company_id_cost_code_key" ON "cost_codes"("company_id", "cost_code");
 CREATE INDEX "cost_codes_company_id_is_active_idx" ON "cost_codes"("company_id", "is_active");
 
--- WBS hierarchy integrity: a parent must belong to the same Project as its child.
-CREATE OR REPLACE FUNCTION enforce_wbs_parent_project()
-RETURNS trigger AS $$
+-- WBS hierarchy integrity: parent and child must share a Project and the hierarchy must remain acyclic.
+CREATE OR REPLACE FUNCTION enforce_wbs_hierarchy()
+RETURNS trigger AS $
 BEGIN
-  IF NEW.parent_id IS NOT NULL AND NOT EXISTS (
+  IF NEW.parent_id IS NULL THEN
+    RETURN NEW;
+  END IF;
+
+  IF NEW.parent_id = NEW.id THEN
+    RAISE EXCEPTION 'WBS hierarchy cannot contain a self-parent';
+  END IF;
+
+  IF NOT EXISTS (
     SELECT 1 FROM wbs_elements parent
     WHERE parent.id = NEW.parent_id AND parent.project_id = NEW.project_id
   ) THEN
     RAISE EXCEPTION 'WBS parent must belong to the same Project';
   END IF;
+
+  IF EXISTS (
+    WITH RECURSIVE ancestors AS (
+      SELECT id, parent_id
+      FROM wbs_elements
+      WHERE id = NEW.parent_id
+      UNION ALL
+      SELECT parent.id, parent.parent_id
+      FROM wbs_elements parent
+      JOIN ancestors child ON parent.id = child.parent_id
+    )
+    SELECT 1 FROM ancestors WHERE id = NEW.id
+  ) THEN
+    RAISE EXCEPTION 'WBS hierarchy cannot contain a cycle';
+  END IF;
+
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$ LANGUAGE plpgsql;
 
-CREATE TRIGGER wbs_parent_same_project
+CREATE TRIGGER wbs_hierarchy_integrity
 BEFORE INSERT OR UPDATE OF project_id, parent_id ON "wbs_elements"
-FOR EACH ROW EXECUTE FUNCTION enforce_wbs_parent_project();
+FOR EACH ROW EXECUTE FUNCTION enforce_wbs_hierarchy();
