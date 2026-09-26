@@ -63,6 +63,15 @@ function stringArray(
 export class IdentityAdminController {
   constructor(private readonly identity: IdentityAdminService) {}
 
+  @Get('user-role-options')
+  @UseGuards(AuthGuard, PermissionGuard)
+  @RequirePermissions('admin.users.manage')
+  async userRoleOptions(@Req() request: AuthenticatedRequest) {
+    return {
+      data: await this.identity.listRoleOptions(authOf(request).companyId),
+    };
+  }
+
   @Get('users')
   @UseGuards(AuthGuard, PermissionGuard)
   @RequirePermissions('admin.users.manage')
