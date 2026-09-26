@@ -5,7 +5,7 @@
 
 - Current Release: V0.2 Project & Scheduling
 - Current Stage: V0.2-B Scheduling Engine — COMPLETE
-- Completed Stages: V0.1-A Technical Skeleton; V0.1-B Company / Identity / Security; V0.1-C Administration; V0.1-D Master Data; V0.1-E Projects; V0.1-F WBS & Cost Codes; V0.1-G Basic Documents; V0.1-H Integration / Regression / UAT; V0.2-A Scheduling Data Model
+- Completed Stages: V0.1-A Technical Skeleton; V0.1-B Company / Identity / Security; V0.1-C Administration; V0.1-D Master Data; V0.1-E Projects; V0.1-F WBS & Cost Codes; V0.1-G Basic Documents; V0.1-H Integration / Regression / UAT; V0.2-A Scheduling Data Model; V0.2-B Scheduling Engine
 - Completed Issue: #36 — V0.2-B Scheduling Engine
 - Completed Branch: `v0.2-b-scheduling-engine`
 - Completed Issue: #35 — V0.2-B Scheduling Engine — Calculation Rules
