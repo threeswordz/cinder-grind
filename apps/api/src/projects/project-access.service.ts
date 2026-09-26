@@ -24,7 +24,7 @@ export class ProjectAccessService {
 
     const employeeId = await this.activeEmployeeId(auth, db);
     if (!employeeId) {
-      return { companyId: auth.companyId, id: '__NO_PROJECT_ACCESS__' };
+      return { companyId: auth.companyId, id: { in: [] } };
     }
 
     return {
