@@ -13,7 +13,7 @@
 - Latest verified Stage E branch commit before this state update: `1c18e154249fc51b7d3dde2473d58fd3780a503f`
 - Latest Stage E PR CI: Validate Construction ERP run #323 — SUCCESS
 - Project creation scope decision: Option A — APPROVED. A scoped creator must have an active Employee link and is atomically added to the initial Project Team.
-- Next action: Complete Stage E Project UI and remaining security/regression validation; keep PR #22 draft until all completion gates pass.
+- Next action: Re-run CI after strengthened Stage E security/regression coverage, resolve any technical failures, then complete final Stage E review. PR #22 remains draft until the completion gate passes.
 
 ## Stage E implemented so far
 
@@ -24,6 +24,8 @@
 - Database-derived project-scope access foundation
 - Project APIs/services for scoped reads, updates, archive/reactivate, team and contacts
 - PostgreSQL Project integration tests wired into the API test command
+- Project UI: permission-aware navigation, scoped list/search/filter, create/edit, Customer/status selection, planned dates/contract value, archive/reactivate, Team and Contacts
+- Security regression coverage: assigned-project visibility, access_all, cross-company references, unauthorized direct service/API-scope paths, and Project Team scope
 - Option A Project creation API: scoped creators require an active Employee link and receive an automatic active `Project Creator` membership
 - Option A Project creation API: scoped creators require an active Employee link and receive an automatic active `Project Creator` membership
 
