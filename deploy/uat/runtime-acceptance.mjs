@@ -210,6 +210,7 @@ const permissionCodes = [
   'equipment.usage.view',
   'equipment.usage.create',
   'equipment.usage.edit',
+  'reporting.operational.view',
 ];
 await request(admin, `/admin/roles/${roleId}/permissions`, {
   method: 'PUT',
@@ -1120,6 +1121,88 @@ const downloaded = await request(pm, `/documents/projects/${projectId}/${documen
 const downloadedBytes = new Uint8Array(downloaded.data);
 check(downloadedBytes.length === bytes.length, 'Downloaded document size mismatch.');
 check(downloadedBytes.every((value, index) => value === bytes[index]), 'Downloaded document bytes mismatch.');
+const wbsDocumentBytes = new TextEncoder().encode(
+  '%PDF-1.4 WBS document ' + suffix,
+);
+const wbsDocumentForm = new FormData();
+wbsDocumentForm.set('documentTypeId', documentType.data.data.id);
+wbsDocumentForm.set(
+  'file',
+  new Blob([wbsDocumentBytes], { type: 'application/pdf' }),
+  'groundworks-plan-' + suffix + '.pdf',
+);
+const wbsDocument = await request(
+  pm,
+  '/documents/projects/' +
+    projectId +
+    '/targets/WBS/' +
+    rootWbs.data.data.id,
+  {
+    method: 'POST',
+    body: wbsDocumentForm,
+    expected: 201,
+  },
+);
+const wbsDocumentList = await request(
+  pm,
+  '/documents/projects/' +
+    projectId +
+    '/targets/WBS/' +
+    rootWbs.data.data.id,
+);
+check(
+  wbsDocumentList.data.data.some(
+    (item) => item.id === wbsDocument.data.data.id,
+  ) &&
+    !JSON.stringify(wbsDocumentList.data).includes('storageKey'),
+  'WBS Document link/list did not preserve the secure Documents boundary.',
+);
+
+const activityDocumentBytes = new TextEncoder().encode(
+  '%PDF-1.4 Activity document ' + suffix,
+);
+const activityDocumentForm = new FormData();
+activityDocumentForm.set('documentTypeId', documentType.data.data.id);
+activityDocumentForm.set(
+  'file',
+  new Blob([activityDocumentBytes], { type: 'application/pdf' }),
+  'excavation-method-' + suffix + '.pdf',
+);
+const activityDocument = await request(
+  pm,
+  '/documents/projects/' +
+    projectId +
+    '/targets/ACTIVITY/' +
+    activityA.data.data.id,
+  {
+    method: 'POST',
+    body: activityDocumentForm,
+    expected: 201,
+  },
+);
+const activityDocumentDownload = await request(
+  pm,
+  '/documents/projects/' +
+    projectId +
+    '/targets/ACTIVITY/' +
+    activityA.data.data.id +
+    '/' +
+    activityDocument.data.data.id +
+    '/download',
+  { accept: '*/*' },
+);
+const activityDownloadedBytes = new Uint8Array(
+  activityDocumentDownload.data,
+);
+check(
+  activityDownloadedBytes.length === activityDocumentBytes.length &&
+    activityDownloadedBytes.every(
+      (value, index) => value === activityDocumentBytes[index],
+    ),
+  'Activity Document link/download did not retain the original bytes.',
+);
+record('V0.2 DOC-006 WBS and Activity documents through live HTTP API');
+
 record('secure document upload, metadata listing and byte-for-byte download');
 
 const equipmentType = await request(pm, '/equipment/types', {
@@ -1483,6 +1566,44 @@ check(
   'Corrected Daily Site Report Equipment Usage was not appended to canonical history.',
 );
 
+const reportingProjects = await request(pm, '/reporting/projects');
+check(
+  reportingProjects.data.data.some((item) => item.id === projectId),
+  'Operational reporting Project selector did not respect the assigned Project.',
+);
+const projectEngineerDashboard = await request(
+  pm,
+  '/reporting/projects/' +
+    projectId +
+    '/project-engineer?asOf=2026-10-10&days=14',
+);
+check(
+  projectEngineerDashboard.data.data.project?.id === projectId &&
+    projectEngineerDashboard.data.data.schedule?.summary?.total >= 2 &&
+    projectEngineerDashboard.data.data.schedule?.currentBaseline?.versionNo === 1,
+  'Project Engineer Dashboard did not expose current Project/Scheduling source data.',
+);
+check(
+  projectEngineerDashboard.data.data.siteExecution?.latestReports?.some(
+    (item) =>
+      item.id === dailyReportId &&
+      Number(item.totalManpower) === 10 &&
+      Number(item.counts?.equipmentUsage) === 1,
+  ),
+  'Project Engineer Dashboard did not expose current Daily Site Report source data.',
+);
+check(
+  projectEngineerDashboard.data.data.equipment?.assignments?.some(
+    (item) => item.equipment?.id === equipmentId,
+  ),
+  'Project Engineer Dashboard did not expose current assigned operational Equipment.',
+);
+check(
+  projectEngineerDashboard.data.data.schedule?.lookahead?.window?.days === 14,
+  'Project Engineer Dashboard did not use the approved lookahead read model.',
+);
+record('V0.2 RPT-001/RPT-002 operational reporting and Project Engineer Dashboard');
+
 await request(pm, '/equipment/register/' + equipmentId, {
   method: 'PATCH',
   json: { operationalStatus: 'UNAVAILABLE' },
@@ -1550,7 +1671,22 @@ await request(
   '/equipment/usage?projectId=' + projectId,
   { expected: 403 },
 );
-record('unassigned Project, Document, Scheduling, Site Execution and Equipment access denied');
+await request(
+  unassigned,
+  '/documents/projects/' +
+    projectId +
+    '/targets/WBS/' +
+    rootWbs.data.data.id,
+  { expected: 403 },
+);
+await request(
+  unassigned,
+  '/reporting/projects/' +
+    projectId +
+    '/project-engineer?asOf=2026-10-10&days=14',
+  { expected: 403 },
+);
+record('unassigned Project, Document, Scheduling, Site Execution, Equipment and Reporting access denied');
 
 await logout(pm);
 await request(pm, '/auth/me', { expected: 401 });
