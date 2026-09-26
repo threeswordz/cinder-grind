@@ -15,6 +15,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { CurrentUser, logout } from './api/auth';
 import { ApprovalPanel } from './admin/ApprovalPanel';
+import { BudgetPanel } from './budget/BudgetPanel';
 import { CompanyPanel } from './admin/CompanyPanel';
 import { NumberingPanel } from './admin/NumberingPanel';
 import { RolesPanel } from './admin/RolesPanel';
@@ -44,6 +45,12 @@ export function AdminConsole({ user }: { user: CurrentUser }) {
   const sections = useMemo<Section[]>(
     () =>
       [
+        {
+          key: 'budget',
+          label: 'BOQ & Budget',
+          permission: '__budget__',
+          content: <BudgetPanel permissions={user.permissions} />,
+        },
         {
           key: 'project-engineer',
           label: 'Project Engineer',
@@ -141,7 +148,11 @@ export function AdminConsole({ user }: { user: CurrentUser }) {
           content: <SystemSettingsPanel />,
         },
       ].filter((section) =>
-        section.permission === '__equipment__'
+        section.permission === '__budget__'
+          ? user.permissions.some((permission) =>
+              permission.startsWith('budget.'),
+            )
+          : section.permission === '__equipment__'
           ? user.permissions.some((permission) =>
               permission.startsWith('equipment.'),
             )
@@ -192,7 +203,7 @@ export function AdminConsole({ user }: { user: CurrentUser }) {
             <Box sx={{ flexGrow: 1 }}>
               <Typography variant="h6">Construction ERP</Typography>
               <Typography variant="body2" color="text.secondary">
-                V0.2 Project & Scheduling · {user.displayName}
+                V0.3 Procurement · {user.displayName}
               </Typography>
             </Box>
             <Button
