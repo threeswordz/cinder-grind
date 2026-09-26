@@ -146,3 +146,22 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - Branch: `v0.2-b-scheduling-engine`.
 - Stage B remains backend/domain-owned and independent of Frappe Gantt.
 - No paid scheduling engine or mandatory paid dependency is permitted.
+
+
+## V0.2-B implementation progress
+
+- pure backend/domain Scheduling Engine added with no new runtime dependency
+- DEC-009 work-day, lag, milestone, CPM and calendar-precedence rules implemented
+- working-calendar-aware planned/forecast schedule analysis
+- FS / SS / FF / SF dependency semantics
+- signed lag / lead evaluated on the successor Activity calendar
+- fractional work-day positions retained in the schedule read model while existing DATE fields remain the persisted projection
+- dependency graph topological evaluation and cycle rejection
+- database trigger prevents circular active dependency graphs even outside normal service paths
+- database/service milestone integrity requires zero duration and matching planned start/finish
+- CPM forward/backward pass, Total Float and critical-Activity derivation
+- Project-scoped `GET /api/v1/schedule/projects/:projectId/analysis?mode=planned|forecast`
+- deterministic engine tests cover holidays, negative lag, mixed calendars, fractional durations, FS/SS/FF/SF, forecast roots, float and cycles
+- PostgreSQL integration covers milestone/cycle constraints and schedule analysis
+- live HTTP acceptance covers calculated dates, Critical Path evidence, cycle rejection and unassigned-Project denial
+- CI #623 passed before the final mixed-calendar test/documentation update; exact-head CI revalidation is pending
