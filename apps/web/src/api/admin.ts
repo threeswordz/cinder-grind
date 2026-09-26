@@ -107,6 +107,11 @@ export const adminApi = {
       method: 'PUT',
       body: JSON.stringify({ roleIds }),
     }),
+  resetUserPassword: (id: string, password: string) =>
+    apiRequest<void>('/admin/users/' + id + '/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ password }),
+    }),
 
   roles: () => apiRequest<Data<AdminRole[]>>('/admin/roles'),
   createRole: (body: {
