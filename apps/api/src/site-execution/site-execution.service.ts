@@ -220,8 +220,41 @@ export class SiteExecutionService {
     if (!report) throw this.notFound();
     await this.access.assertAccess(auth, report.projectId);
 
+    const correctionIds = report.corrections.map((row) => row.id);
+    const correctionProgress = correctionIds.length
+      ? await this.prisma.activityProgress.findMany({
+          where: {
+            companyId: auth.companyId,
+            sourceType: 'DAILY_SITE_REPORT_CORRECTION',
+            sourceEntityId: { in: correctionIds },
+          },
+          include: {
+            activity: {
+              select: {
+                id: true,
+                activityCode: true,
+                activityName: true,
+              },
+            },
+          },
+          orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+        })
+      : [];
+    const progressByCorrection = new Map<string, typeof correctionProgress>();
+    for (const progress of correctionProgress) {
+      if (!progress.sourceEntityId) continue;
+      const rows = progressByCorrection.get(progress.sourceEntityId) ?? [];
+      rows.push(progress);
+      progressByCorrection.set(progress.sourceEntityId, rows);
+    }
+
     return {
       ...report,
+      corrections: report.corrections.map((correction) => ({
+        ...correction,
+        progressCorrections:
+          progressByCorrection.get(correction.id) ?? [],
+      })),
       totalManpower: report.manpowerLines.reduce(
         (total, line) => total + line.headcount,
         0,
