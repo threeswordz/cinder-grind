@@ -6,7 +6,7 @@
 - Current Release: V0.3 Procurement — ENTRY GATE
 - Current Stage: V0.3 Release Entry Gate — SCOPE / ACCEPTANCE BASELINES
 - Completed Stages: V0.1-A Technical Skeleton; V0.1-B Company / Identity / Security; V0.1-C Administration; V0.1-D Master Data; V0.1-E Projects; V0.1-F WBS & Cost Codes; V0.1-G Basic Documents; V0.1-H Integration / Regression / UAT; V0.2-A Scheduling Data Model; V0.2-B Scheduling Engine; V0.2-C Baselines / Progress; V0.2-D Gantt / Lookahead; V0.2-E Site Execution; V0.2-F Equipment; V0.2-G UAT Reference Programme
-- Active Issue: pending creation — V0.3 Release Entry Gate
+- Active Issue: #57 — V0.3 Release Entry Gate — Scope & Acceptance Baselines
 - Completed Issue: #53 — V0.2-G UAT Reference Programme
 - Completed Branch: `v0.2-g-uat-reference`
 - Merged PR: #54 — V0.2-G UAT Reference Programme and Release Closure
@@ -441,3 +441,14 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - V0.2 release boundaries and Should-Have deferrals were reviewed and accepted with the release decision.
 - V0.2 is formally closed.
 - V0.3 Procurement may now enter its release-entry governance gate; implementation remains blocked until V0.3 scope and acceptance baselines are approved.
+
+## V0.3 release entry gate active
+
+- Issue #57 is the active V0.3 governance work item.
+- Branch: `v0.3-entry-gate`.
+- V0.3 master-requirement inventory contains 32 approved requirements: 31 Must Have and 1 Should Have.
+- target requirements are BUD-001–BUD-010, PROC-001–PROC-019, DOC-007, RPT-005 and SYS-007.
+- PROC-020 remains V0.6 Finance; PROC-021 remains V0.7 Cost Control.
+- draft V0.3 Scope and Acceptance Criteria baselines are being prepared from the existing approved Requirements/Roadmap only.
+- unresolved commercial lifecycle/arithmetic/source-traceability rules are explicitly surfaced in `docs/V0.3-BUSINESS-RULES-PROPOSED.md`.
+- no V0.3 production implementation starts until the Product / Business Owner approves the release scope and acceptance baselines.
