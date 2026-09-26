@@ -4,9 +4,12 @@
 **Source of truth:** Live GitHub repository state
 
 - Current Release: V0.2 Project & Scheduling
-- Current Stage: V0.2-D Gantt / Lookahead — IMPLEMENTATION
-- Completed Stages: V0.1-A Technical Skeleton; V0.1-B Company / Identity / Security; V0.1-C Administration; V0.1-D Master Data; V0.1-E Projects; V0.1-F WBS & Cost Codes; V0.1-G Basic Documents; V0.1-H Integration / Regression / UAT; V0.2-A Scheduling Data Model; V0.2-B Scheduling Engine; V0.2-C Baselines / Progress
-- Active Issue: #45 — V0.2-D Gantt / Lookahead
+- Current Stage: V0.2-E Site Execution — PRE-FLIGHT
+- Completed Stages: V0.1-A Technical Skeleton; V0.1-B Company / Identity / Security; V0.1-C Administration; V0.1-D Master Data; V0.1-E Projects; V0.1-F WBS & Cost Codes; V0.1-G Basic Documents; V0.1-H Integration / Regression / UAT; V0.2-A Scheduling Data Model; V0.2-B Scheduling Engine; V0.2-C Baselines / Progress; V0.2-D Gantt / Lookahead
+- Active Issue: #47 — V0.2-E Site Execution — Business Rules
+- Completed Issue: #45 — V0.2-D Gantt / Lookahead
+- Completed Branch: `v0.2-d-gantt-lookahead`
+- Merged PR: #46 — V0.2-D Gantt / Lookahead
 - Completed Issue: #40 — V0.2-C Baselines / Progress
 - Completed Branch: `v0.2-c-baselines-progress`
 - Completed Issue: #38 — V0.2-C Baselines / Progress — Business Rules
@@ -36,7 +39,7 @@
 - V0.1 cross-module release acceptance scenario: PASS in the Stage H release-candidate regression suite.
 - Open defect check at V0.1 acceptance: no Severity 1 or Severity 2 release-blocking defect recorded.
 - Governance: `AGENTS.md`, `docs/PROJECT-GOVERNANCE.md`, PR governance checklist and DEC-008 are active; material decisions must pass the repository pre-flight and open-source/zero-cost-first constraint.
-- Next action: implement V0.2-D Gantt / Lookahead under DEC-011 using the Stage B/C backend read models; keep Frappe Gantt visualization-only.
+- Next action: Product / Business Owner to approve or replace the V0.2-E Site Execution business rules in Issue #47 before implementation begins.
 
 ## Stage E completed
 
@@ -254,3 +257,24 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - Branch: `v0.2-d-gantt-lookahead`.
 - Frappe Gantt remains visualization-only; all schedule calculations remain backend/domain-owned.
 - V0.2-E Site Execution, V0.2-F Equipment and V0.3+ remain out of scope.
+
+## V0.2-D completed
+
+- PR #46 squash-merged to `main` as `dbe2c6d43d785781f1fe3aea23782f95f47eacbe`.
+- Issue #45 closed automatically.
+- DEC-011 Gantt / Lookahead presentation rules implemented.
+- backend-owned Project schedule presentation combines current forecast, current approved baseline, progress, dependencies, Activity status, Critical Path, Total Float and delay classification.
+- Project-scoped Gantt and inclusive 14/28-calendar-day lookahead endpoints implemented.
+- lookahead uses current-forecast overlap and retains completed Activities when they overlap the selected window.
+- permission-aware Gantt / Lookahead UI provides Master Gantt, 2-week and 4-week views plus Day / Week / Month modes and Activity detail/reference presentation.
+- Frappe Gantt 1.2.2 is pinned as an MIT/open-source visualization dependency only; official stylesheet is retained locally with its MIT notice to avoid CDN/package-layout coupling.
+- schedule calculations, baseline comparison, delay and critical-path logic remain backend/domain-owned.
+- exact-head branch CI #762 and PR CI #763 both passed on `2ee4224adb74f6bee0c5001f37d4153dcf5ef5f5`, including migrations, full regression, production dependency audit, web build and live HTTP V0.2-D acceptance.
+- no Site Execution, Equipment or V0.3+ implementation was introduced by Stage D.
+
+## V0.2-E pre-flight
+
+- Stage D is complete and merged.
+- Issue #47 records the remaining Product / Business Owner rules for Daily Site Report identity/lifecycle, Activity Progress integration, manpower aggregation, material-use observation boundaries, Equipment dependency, weather/issues/delays/inspections and site photographs.
+- Stage E implementation is paused until Issue #47 rules are approved or replaced.
+- Stage E must not duplicate the Equipment Register before V0.2-F, post Inventory stock movements, introduce a full QA/QC workflow, or require an external weather service.
