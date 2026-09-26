@@ -85,6 +85,15 @@ export class ProjectsController {
     };
   }
 
+  @Get('status-options')
+  @UseGuards(AuthGuard, PermissionGuard)
+  @RequirePermissions('projects.project.view')
+  async statusOptions(@Req() request: AuthenticatedRequest) {
+    return {
+      data: await this.projects.statusOptions(authOf(request)),
+    };
+  }
+
   @Get('edit-options')
   @UseGuards(AuthGuard, PermissionGuard)
   @RequirePermissions('projects.project.edit')
