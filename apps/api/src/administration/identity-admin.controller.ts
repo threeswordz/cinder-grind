@@ -202,20 +202,17 @@ export class IdentityAdminController {
       'roleCode',
       80,
     );
+    const description = optionalTrimmedString(
+      input,
+      'description',
+      2000,
+    );
 
     return {
       data: await this.identity.createRole(auditContext(request), {
         roleCode,
         roleName: requiredTrimmedString(input, 'roleName', 150),
-        ...(optionalTrimmedString(input, 'description', 2000)
-          ? {
-              description: optionalTrimmedString(
-                input,
-                'description',
-                2000,
-              ),
-            }
-          : {}),
+        ...(description !== undefined ? { description } : {}),
       }),
     };
   }
