@@ -161,6 +161,83 @@ export type ActivityOptions = {
   }>;
 };
 
+export type BaselineWorkflowOption = {
+  id: string;
+  workflowCode: string;
+  workflowName: string;
+};
+
+export type ScheduleBaselineRecord = {
+  id: string;
+  companyId: string;
+  projectId: string;
+  versionNo: number;
+  approvalInstanceId: string | null;
+  submittedByUserId: string;
+  submittedAt: string;
+  isCurrent: boolean;
+  approvalInstance: {
+    id: string;
+    approvalState: string;
+    currentStepNo: number;
+    startedAt: string;
+    completedAt: string | null;
+  } | null;
+  submittedBy: {
+    id: string;
+    displayName: string;
+    email: string;
+  };
+  _count?: { activities: number };
+};
+
+export type ActivityProgressRecord = {
+  id: string;
+  companyId: string;
+  projectId: string;
+  activityId: string;
+  progressDate: string;
+  percentComplete: string;
+  note: string | null;
+  sourceType: string;
+  sourceEntityId: string | null;
+  recordedByUserId: string;
+  createdAt: string;
+  recordedBy?: {
+    id: string;
+    displayName: string;
+    email: string;
+  };
+};
+
+export type ScheduleComparisonRecord = {
+  projectId: string;
+  currentBaseline: {
+    id: string;
+    versionNo: number;
+    approvedAt: string | null;
+  } | null;
+  activities: Array<{
+    activityId: string;
+    activityCode: string;
+    activityName: string;
+    wbs: { id: string; wbsCode: string; wbsName: string };
+    isSummary: boolean;
+    isMilestone: boolean;
+    currentPercentComplete: number | null;
+    actualStartDate: string | null;
+    actualFinishDate: string | null;
+    baselineStartDate: string | null;
+    baselineFinishDate: string | null;
+    forecastStartDate: string | null;
+    forecastFinishDate: string | null;
+    startVarianceWorkDays: number | null;
+    finishVarianceWorkDays: number | null;
+    delayWorkDays: number | null;
+    delayStatus: 'DELAYED' | 'ON_TIME' | 'AHEAD' | 'UNAVAILABLE';
+  }>;
+};
+
 function query(path: string, params: Record<string, string | undefined>) {
   const search = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
@@ -261,6 +338,42 @@ export const schedulingApi = {
       '/activities/' + id + (active ? '/reactivate' : '/archive'),
       { method: 'POST' },
     ),
+
+  baselineWorkflows: () =>
+    apiRequest<Data<BaselineWorkflowOption[]>>('/schedule-baselines/workflow-options'),
+  baselines: (projectId: string) =>
+    apiRequest<Data<ScheduleBaselineRecord[]>>(
+      query('/schedule-baselines', { projectId }),
+    ),
+  submitBaseline: (projectId: string, workflowCode: string) =>
+    apiRequest<Data<ScheduleBaselineRecord>>('/schedule-baselines/submit', {
+      method: 'POST',
+      body: JSON.stringify({ projectId, workflowCode }),
+    }),
+  approveBaseline: (id: string, comment?: string) =>
+    apiRequest<Data<ScheduleBaselineRecord>>('/schedule-baselines/' + id + '/approve', {
+      method: 'POST',
+      body: JSON.stringify({ comment: comment || null }),
+    }),
+  rejectBaseline: (id: string, comment?: string) =>
+    apiRequest<Data<ScheduleBaselineRecord>>('/schedule-baselines/' + id + '/reject', {
+      method: 'POST',
+      body: JSON.stringify({ comment: comment || null }),
+    }),
+  comparison: (projectId: string) =>
+    apiRequest<Data<ScheduleComparisonRecord>>(
+      '/schedule/projects/' + projectId + '/comparison',
+    ),
+  progressHistory: (activityId: string) =>
+    apiRequest<Data<ActivityProgressRecord[]>>('/activity-progress/' + activityId),
+  recordProgress: (
+    activityId: string,
+    body: { progressDate: string; percentComplete: string; note?: string | null },
+  ) =>
+    apiRequest<Data<ActivityProgressRecord>>('/activity-progress/' + activityId, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
 
   dependencies: (projectId: string, active = 'all') =>
     apiRequest<Data<ActivityDependencyRecord[]>>(

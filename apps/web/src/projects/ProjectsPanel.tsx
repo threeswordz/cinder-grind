@@ -10,6 +10,7 @@ const emptyProject = {
   projectCode: '', projectName: '', customerId: '', statusDefinitionId: '',
   contractValue: '0.00', location: '', description: '',
   plannedStartDate: '', plannedCompletionDate: '',
+  actualStartDate: '', actualCompletionDate: '',
 };
 
 export function ProjectsPanel({ permissions }: { permissions: string[] }) {
@@ -58,9 +59,24 @@ export function ProjectsPanel({ permissions }: { permissions: string[] }) {
   };
 
   const save = useMutation({
-    mutationFn: () => selected
-      ? projectsApi.update(selected.id, form)
-      : projectsApi.create(form),
+    mutationFn: () =>
+      selected
+        ? projectsApi.update(selected.id, {
+            ...form,
+            actualStartDate: form.actualStartDate || null,
+            actualCompletionDate: form.actualCompletionDate || null,
+          })
+        : projectsApi.create({
+            projectCode: form.projectCode,
+            projectName: form.projectName,
+            customerId: form.customerId,
+            statusDefinitionId: form.statusDefinitionId,
+            contractValue: form.contractValue,
+            location: form.location,
+            description: form.description,
+            plannedStartDate: form.plannedStartDate,
+            plannedCompletionDate: form.plannedCompletionDate,
+          }),
     onSuccess: async (result) => {
       setSelected(result.data);
       await refresh();
@@ -101,6 +117,8 @@ export function ProjectsPanel({ permissions }: { permissions: string[] }) {
       description: project.description ?? '',
       plannedStartDate: project.plannedStartDate.slice(0, 10),
       plannedCompletionDate: project.plannedCompletionDate.slice(0, 10),
+      actualStartDate: project.actualStartDate?.slice(0, 10) ?? '',
+      actualCompletionDate: project.actualCompletionDate?.slice(0, 10) ?? '',
     });
   }
 
@@ -179,6 +197,12 @@ export function ProjectsPanel({ permissions }: { permissions: string[] }) {
                 <TextField label="Planned Start" type="date" value={form.plannedStartDate} onChange={(e) => setForm({ ...form, plannedStartDate: e.target.value })} InputLabelProps={{ shrink: true }} required fullWidth />
                 <TextField label="Planned Completion" type="date" value={form.plannedCompletionDate} onChange={(e) => setForm({ ...form, plannedCompletionDate: e.target.value })} InputLabelProps={{ shrink: true }} required fullWidth />
               </Stack>
+              {selected ? (
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                  <TextField label="Actual Start" type="date" value={form.actualStartDate} onChange={(e) => setForm({ ...form, actualStartDate: e.target.value })} InputLabelProps={{ shrink: true }} fullWidth />
+                  <TextField label="Actual Completion" type="date" value={form.actualCompletionDate} onChange={(e) => setForm({ ...form, actualCompletionDate: e.target.value })} InputLabelProps={{ shrink: true }} fullWidth />
+                </Stack>
+              ) : null}
               <Button type="submit" variant="contained" disabled={save.isPending}>{selected ? 'Save Changes' : 'Create Project'}</Button>
             </Stack>
           </CardContent>

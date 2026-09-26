@@ -38,6 +38,8 @@ type ProjectUpdate = {
   description?: string | null;
   plannedStartDate?: Date;
   plannedCompletionDate?: Date;
+  actualStartDate?: Date | null;
+  actualCompletionDate?: Date | null;
 };
 
 type MemberInput = {
@@ -291,6 +293,20 @@ export class ProjectsService {
           'plannedCompletionDate',
         );
 
+        const actualStartDate =
+          data.actualStartDate === undefined
+            ? before.actualStartDate
+            : data.actualStartDate;
+        const actualCompletionDate =
+          data.actualCompletionDate === undefined
+            ? before.actualCompletionDate
+            : data.actualCompletionDate;
+        this.assertOptionalDateOrder(
+          actualStartDate,
+          actualCompletionDate,
+          'actualCompletionDate',
+        );
+
         const updateData: Prisma.ProjectUncheckedUpdateInput = {
           ...(data.projectCode !== undefined
             ? { projectCode: data.projectCode }
@@ -316,6 +332,12 @@ export class ProjectsService {
             : {}),
           ...(data.plannedCompletionDate !== undefined
             ? { plannedCompletionDate: data.plannedCompletionDate }
+            : {}),
+          ...(data.actualStartDate !== undefined
+            ? { actualStartDate: data.actualStartDate }
+            : {}),
+          ...(data.actualCompletionDate !== undefined
+            ? { actualCompletionDate: data.actualCompletionDate }
             : {}),
         };
 

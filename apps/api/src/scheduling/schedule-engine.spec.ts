@@ -8,6 +8,7 @@ import {
   ScheduleEngineError,
   assertDependencyGraphAcyclic,
   calculateScheduleAnalysis,
+  calculateWorkingDayVariance,
 } from './schedule-engine';
 
 function date(value: string) {
@@ -313,5 +314,34 @@ test('milestones must have zero duration and one planned date', () => {
     (error: unknown) =>
       error instanceof ScheduleEngineError &&
       error.code === 'INVALID_MILESTONE_DATES',
+  );
+});
+
+
+test('working-day variance reports signed delay and ahead values', () => {
+  const cal = calendar();
+  assert.equal(
+    calculateWorkingDayVariance(
+      cal,
+      date('2026-10-05'),
+      date('2026-10-07'),
+    ),
+    2,
+  );
+  assert.equal(
+    calculateWorkingDayVariance(
+      cal,
+      date('2026-10-07'),
+      date('2026-10-05'),
+    ),
+    -2,
+  );
+  assert.equal(
+    calculateWorkingDayVariance(
+      cal,
+      date('2026-10-09'),
+      date('2026-10-12'),
+    ),
+    1,
   );
 });

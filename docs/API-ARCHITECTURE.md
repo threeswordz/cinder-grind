@@ -1306,9 +1306,21 @@ GET    /api/v1/projects/{id}/gantt
 GET    /api/v1/projects/{id}/lookahead?weeks=2
 GET    /api/v1/projects/{id}/critical-path
 
-POST   /api/v1/schedule-baselines
+GET    /api/v1/schedule-baselines?projectId={id}
+GET    /api/v1/schedule-baselines/{id}
+POST   /api/v1/schedule-baselines/submit
 POST   /api/v1/schedule-baselines/{id}/approve
+POST   /api/v1/schedule-baselines/{id}/reject
+
+GET    /api/v1/activity-progress/{activityId}
+POST   /api/v1/activity-progress/{activityId}
+
+GET    /api/v1/schedule/projects/{id}/comparison
 ```
+
+Schedule Baseline submission snapshots the current backend-calculated planned schedule and starts the configured `SCHEDULE_BASELINE` Approval Matrix workflow. Approved baseline snapshots and Activity Progress history are immutable/append-only records.
+
+Project actual start/completion dates are additive fields on the existing Project PATCH contract and remain independent from planned dates.
 
 Deleting an unapproved dependency relationship is not equivalent to deleting an approved ERP transaction.
 

@@ -21,13 +21,17 @@ export const APPROVAL_STATE = {
 export class ApprovalService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async start(input: {
-    companyId: string;
-    workflowCode: string;
-    entityType: string;
-    entityId: string;
-  }) {
-    const workflow = await this.prisma.approvalWorkflow.findFirst({
+  async start(
+    input: {
+      companyId: string;
+      workflowCode: string;
+      entityType: string;
+      entityId: string;
+    },
+    tx?: Prisma.TransactionClient,
+  ) {
+    const db = tx ?? this.prisma;
+    const workflow = await db.approvalWorkflow.findFirst({
       where: {
         companyId: input.companyId,
         workflowCode: input.workflowCode,
@@ -49,7 +53,7 @@ export class ApprovalService {
       });
     }
 
-    const existing = await this.prisma.approvalInstance.findFirst({
+    const existing = await db.approvalInstance.findFirst({
       where: {
         companyId: input.companyId,
         entityType: input.entityType,
@@ -66,7 +70,7 @@ export class ApprovalService {
       });
     }
 
-    return this.prisma.approvalInstance.create({
+    return db.approvalInstance.create({
       data: {
         companyId: input.companyId,
         approvalWorkflowId: workflow.id,

@@ -37,6 +37,8 @@ model Company {
   activities        Activity[]
   documentTypes     DocumentType[]
   documents         Document[]
+  scheduleBaselines ScheduleBaseline[]
+  activityProgress  ActivityProgress[]
 
   @@map("companies")
 }
@@ -164,6 +166,8 @@ model User {
   uploadedDocuments Document[]     @relation("DocumentUploader")
   documentLinks     DocumentLink[] @relation("DocumentLinker")
   ownedActivities    Activity[]     @relation("ActivityOwner")
+  submittedScheduleBaselines ScheduleBaseline[] @relation("ScheduleBaselineSubmitter")
+  recordedActivityProgress   ActivityProgress[] @relation("ActivityProgressRecorder")
 
   @@unique([companyId, email])
   @@index([companyId, isActive])
@@ -311,7 +315,8 @@ model ApprovalInstance {
 
   company  Company            @relation(fields: [companyId], references: [id], onDelete: Restrict)
   workflow ApprovalWorkflow   @relation(fields: [approvalWorkflowId], references: [id], onDelete: Restrict)
-  actions  ApprovalAction[]
+  actions          ApprovalAction[]
+  scheduleBaseline ScheduleBaseline?
 
   @@index([companyId, entityType, entityId])
   @@index([approvalWorkflowId, approvalState])
@@ -419,6 +424,8 @@ model Project {
   description        String?  @db.Text
   plannedStartDate   DateTime @map("planned_start_date") @db.Date
   plannedCompletionDate DateTime @map("planned_completion_date") @db.Date
+  actualStartDate        DateTime? @map("actual_start_date") @db.Date
+  actualCompletionDate   DateTime? @map("actual_completion_date") @db.Date
   isActive           Boolean  @default(true) @map("is_active")
   createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -432,6 +439,8 @@ model Project {
   workingCalendars     WorkingCalendar[]
   activities           Activity[]
   activityDependencies ActivityDependency[]
+  scheduleBaselines     ScheduleBaseline[]
+  activityProgress      ActivityProgress[]
 
   @@unique([companyId, projectCode])
   @@index([companyId, isActive])
@@ -493,7 +502,8 @@ model WbsElement {
   project  Project       @relation(fields: [projectId], references: [id], onDelete: Restrict)
   parent   WbsElement?   @relation("WbsHierarchy", fields: [parentId], references: [id], onDelete: Restrict)
   children   WbsElement[] @relation("WbsHierarchy")
-  activities Activity[]
+  activities        Activity[]
+  baselineSnapshots ScheduleBaselineActivity[]
 
   @@unique([projectId, wbsCode])
   @@index([projectId, parentId, isActive])
@@ -626,6 +636,8 @@ model Activity {
   owner               User?             @relation("ActivityOwner", fields: [ownerUserId], references: [id], onDelete: Restrict)
   predecessorLinks    ActivityDependency[] @relation("ActivityPredecessor")
   successorLinks      ActivityDependency[] @relation("ActivitySuccessor")
+  baselineSnapshots   ScheduleBaselineActivity[]
+  progressHistory     ActivityProgress[]
 
   @@unique([projectId, activityCode])
   @@index([companyId, projectId, isActive])
@@ -657,6 +669,79 @@ model ActivityDependency {
   @@map("activity_dependencies")
 }
 
+
+
+model ScheduleBaseline {
+  id                 String    @id @default(uuid()) @db.Uuid
+  companyId          String    @map("company_id") @db.Uuid
+  projectId          String    @map("project_id") @db.Uuid
+  versionNo          Int       @map("version_no")
+  approvalInstanceId String?   @unique @map("approval_instance_id") @db.Uuid
+  submittedByUserId  String    @map("submitted_by_user_id") @db.Uuid
+  submittedAt        DateTime  @default(now()) @map("submitted_at") @db.Timestamptz(6)
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  company          Company            @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  project          Project            @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  approvalInstance ApprovalInstance?  @relation(fields: [approvalInstanceId], references: [id], onDelete: Restrict)
+  submittedBy      User               @relation("ScheduleBaselineSubmitter", fields: [submittedByUserId], references: [id], onDelete: Restrict)
+  activities       ScheduleBaselineActivity[]
+
+  @@unique([projectId, versionNo])
+  @@index([companyId, projectId, versionNo])
+  @@index([submittedByUserId, submittedAt])
+  @@map("schedule_baselines")
+}
+
+model ScheduleBaselineActivity {
+  id                      String   @id @default(uuid()) @db.Uuid
+  scheduleBaselineId      String   @map("schedule_baseline_id") @db.Uuid
+  activityId              String   @map("activity_id") @db.Uuid
+  wbsId                   String   @map("wbs_id") @db.Uuid
+  activityCode            String   @map("activity_code") @db.VarChar(80)
+  activityName            String   @map("activity_name") @db.VarChar(200)
+  wbsCode                 String   @map("wbs_code") @db.VarChar(80)
+  wbsName                 String   @map("wbs_name") @db.VarChar(200)
+  isSummary               Boolean  @map("is_summary")
+  isMilestone             Boolean  @map("is_milestone")
+  plannedDurationWorkDays Decimal  @map("planned_duration_work_days") @db.Decimal(8, 2)
+  plannedStartDate        DateTime @map("planned_start_date") @db.Date
+  plannedFinishDate       DateTime @map("planned_finish_date") @db.Date
+  createdAt               DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  scheduleBaseline ScheduleBaseline @relation(fields: [scheduleBaselineId], references: [id], onDelete: Restrict)
+  activity         Activity         @relation(fields: [activityId], references: [id], onDelete: Restrict)
+  wbs              WbsElement       @relation(fields: [wbsId], references: [id], onDelete: Restrict)
+
+  @@unique([scheduleBaselineId, activityId])
+  @@index([activityId])
+  @@index([wbsId])
+  @@map("schedule_baseline_activities")
+}
+
+model ActivityProgress {
+  id               String   @id @default(uuid()) @db.Uuid
+  companyId        String   @map("company_id") @db.Uuid
+  projectId        String   @map("project_id") @db.Uuid
+  activityId       String   @map("activity_id") @db.Uuid
+  progressDate     DateTime @map("progress_date") @db.Date
+  percentComplete  Decimal  @map("percent_complete") @db.Decimal(5, 2)
+  note             String?  @db.Text
+  sourceType       String   @default("MANUAL") @map("source_type") @db.VarChar(30)
+  sourceEntityId   String?  @map("source_entity_id") @db.Uuid
+  recordedByUserId String   @map("recorded_by_user_id") @db.Uuid
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  company    Company  @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  activity   Activity @relation(fields: [activityId], references: [id], onDelete: Restrict)
+  recordedBy User     @relation("ActivityProgressRecorder", fields: [recordedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([companyId, projectId, progressDate])
+  @@index([activityId, progressDate, createdAt])
+  @@index([recordedByUserId, createdAt])
+  @@map("activity_progress")
+}
 
 model DocumentType {
   id               String   @id @default(uuid()) @db.Uuid
