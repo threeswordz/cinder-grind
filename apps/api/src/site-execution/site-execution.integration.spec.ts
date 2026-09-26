@@ -148,6 +148,34 @@ test('Stage E keeps Daily Site Reports project-scoped, immutable after submissio
       },
     });
 
+    const documentType = await prisma.documentType.create({
+      data: {
+        companyId: company.id,
+        documentTypeCode: 'SITE-' + suffix,
+        documentTypeName: 'Site Photo',
+      },
+    });
+    const document = await prisma.document.create({
+      data: {
+        companyId: company.id,
+        documentTypeId: documentType.id,
+        fileName: 'site-photo-' + suffix + '.png',
+        storageProvider: 'LOCAL',
+        storageKey: randomUUID(),
+        mimeType: 'image/png',
+        fileSizeBytes: 8,
+        uploadedByUserId: user.id,
+      },
+    });
+    await prisma.documentLink.create({
+      data: {
+        documentId: document.id,
+        entityType: 'PROJECT',
+        entityId: project.id,
+        linkedByUserId: user.id,
+      },
+    });
+
     const otherProject = await prisma.project.create({
       data: {
         companyId: company.id,
@@ -263,6 +291,16 @@ test('Stage E keeps Daily Site Reports project-scoped, immutable after submissio
     assert.equal(created.progressLines.length, 1);
     assert.equal(created.materialUsage.length, 1);
 
+    const reportDocumentLink = await prisma.documentLink.create({
+      data: {
+        documentId: document.id,
+        entityType: 'DAILY_SITE_REPORT',
+        entityId: created.id,
+        linkedByUserId: user.id,
+      },
+    });
+    assert.equal(reportDocumentLink.entityId, created.id);
+
     await assert.rejects(
       () =>
         service.get(
@@ -314,6 +352,38 @@ test('Stage E keeps Daily Site Reports project-scoped, immutable after submissio
         ),
       (error: unknown) => error instanceof UnprocessableEntityException,
       'cross-Project Activity reference must be rejected',
+    );
+
+    const guardReport = await service.create(
+      { auth: siteAuth },
+      {
+        projectId: project.id,
+        reportDate: new Date('2026-10-07T00:00:00.000Z'),
+        manpower: [],
+        materialUsage: [],
+        progress: [
+          {
+            activityId: activity.id,
+            percentComplete: new Prisma.Decimal('20'),
+            note: 'Guard direct database submission',
+          },
+        ],
+        issues: [],
+        delays: [],
+        inspections: [],
+      },
+    );
+    await assert.rejects(
+      () =>
+        prisma.dailySiteReport.update({
+          where: { id: guardReport.id },
+          data: {
+            status: 'SUBMITTED',
+            submittedByUserId: user.id,
+            submittedAt: new Date(),
+          },
+        }),
+      'direct database submission must not bypass Activity Progress append',
     );
 
     const updated = await service.update(
@@ -380,6 +450,14 @@ test('Stage E keeps Daily Site Reports project-scoped, immutable after submissio
           },
         }),
       'submitted report child rows must be immutable in the database',
+    );
+
+    await assert.rejects(
+      () =>
+        prisma.documentLink.delete({
+          where: { id: reportDocumentLink.id },
+        }),
+      'submitted report document links must be immutable in the database',
     );
 
     const correction = await service.addCorrection(
