@@ -75,6 +75,15 @@ function uuidArray(
 export class IdentityAdminController {
   constructor(private readonly identity: IdentityAdminService) {}
 
+  @Get('user-employee-options')
+  @UseGuards(AuthGuard, PermissionGuard)
+  @RequirePermissions('admin.users.manage')
+  async userEmployeeOptions(@Req() request: AuthenticatedRequest) {
+    return {
+      data: await this.identity.listEmployeeOptions(authOf(request).companyId),
+    };
+  }
+
   @Get('user-role-options')
   @UseGuards(AuthGuard, PermissionGuard)
   @RequirePermissions('admin.users.manage')

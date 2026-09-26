@@ -36,3 +36,13 @@ System Administrator is a technical/admin role and must not automatically gain b
 **Status:** APPROVED — Option A
 
 A user who has `projects.project.create` but does not have `projects.access_all` must be linked to an active Employee. Project creation atomically includes that Employee in the initial Project Team as `Project Creator`, ensuring the creator retains project-scoped access. Users with `projects.access_all` do not require automatic creator membership. The `Project Creator` membership label grants no additional permission or business approval authority by itself.
+
+
+## DEC-008 — Open-source / zero-cost-first runtime constraint
+**Status:** APPROVED
+
+The Construction ERP is open-source-first and zero-cost-first. Do not introduce a mandatory paid runtime, cloud service, hosted identity provider, database, storage service, commercial library or recurring subscription unless the Product / Business Owner explicitly approves changing this constraint and the change is recorded before implementation.
+
+When technically practical, use existing owned hardware/resources before proposing paid infrastructure. Optional paid services may be discussed only as clearly labeled alternatives, never as the default architecture.
+
+A casual request or implementation convenience does not silently supersede this decision. Conflicts must be surfaced and resolved through explicit change control.

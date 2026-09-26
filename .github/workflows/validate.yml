@@ -38,6 +38,11 @@ jobs:
       WEB_ORIGIN: http://localhost:5173
       STORAGE_ROOT: ../../storage
       VITE_API_BASE_URL: http://localhost:3000/api/v1
+      BOOTSTRAP_COMPANY_CODE: UATCI
+      BOOTSTRAP_COMPANY_NAME: Construction ERP CI UAT
+      BOOTSTRAP_ADMIN_EMAIL: uat-ci-admin@example.com
+      BOOTSTRAP_ADMIN_DISPLAY_NAME: CI UAT System Administrator
+      BOOTSTRAP_ADMIN_PASSWORD: Ci-Uat-Admin-Password-2026!
 
     steps:
       - name: Checkout
@@ -53,6 +58,18 @@ jobs:
           node-version: 24.21.0
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      - name: Validate zero-cost UAT pack
+        run: |
+          bash -n deploy/uat/*.sh
+          node --check deploy/uat/serve-web.mjs
+          node --check deploy/uat/runtime-acceptance.mjs
+      - name: Validate UAT environment template
+        run: |
+          set -a
+          source deploy/uat/.env.example
+          set +a
+          test "$BOOTSTRAP_COMPANY_NAME" = "Construction ERP UAT"
+          test "$BOOTSTRAP_ADMIN_DISPLAY_NAME" = "UAT System Administrator"
       - name: Generate Prisma Client
         run: pnpm prisma:generate
       - name: Validate Prisma schema
@@ -65,3 +82,36 @@ jobs:
         run: pnpm --filter @construction-erp/api exec prisma migrate status
       - name: Validate workspace
         run: pnpm validate
+      - name: Bootstrap CI UAT administrator
+        run: pnpm --filter @construction-erp/api bootstrap:admin
+      - name: Smoke API startup and run live acceptance
+        run: |
+          pnpm start:api > /tmp/construction-erp-api.log 2>&1 &
+          api_pid=$!
+          cleanup() {
+            kill "$api_pid" >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+
+          ready=false
+          for attempt in {1..30}; do
+            if curl --fail --silent --show-error http://127.0.0.1:3000/api/v1/health >/dev/null; then
+              ready=true
+              break
+            fi
+            if ! kill -0 "$api_pid" >/dev/null 2>&1; then
+              echo "API exited before becoming healthy."
+              cat /tmp/construction-erp-api.log
+              exit 1
+            fi
+            sleep 1
+          done
+
+          if [[ "$ready" != "true" ]]; then
+            echo "API did not become healthy within 30 seconds."
+            cat /tmp/construction-erp-api.log
+            exit 1
+          fi
+
+          echo "API startup smoke passed."
+          bash deploy/uat/runtime-acceptance.sh

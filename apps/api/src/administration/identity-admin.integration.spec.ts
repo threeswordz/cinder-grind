@@ -55,6 +55,42 @@ test('user and role administration respects company boundaries and revokes sessi
     );
     const auth = authContext(company.id, admin.id);
 
+    const employee = await prisma.employee.create({
+      data: {
+        companyId: company.id,
+        employeeCode: 'PM-' + suffix,
+        employeeName: 'Project Manager ' + suffix,
+        jobTitle: 'Project Manager',
+      },
+    });
+    await prisma.employee.create({
+      data: {
+        companyId: company.id,
+        employeeCode: 'INACTIVE-' + suffix,
+        employeeName: 'Inactive Employee ' + suffix,
+        isActive: false,
+      },
+    });
+    const otherCompany = await prisma.company.create({
+      data: {
+        companyCode: 'OTHER-' + suffix,
+        companyName: 'Other Company ' + suffix,
+      },
+    });
+    await prisma.employee.create({
+      data: {
+        companyId: otherCompany.id,
+        employeeCode: 'OTHER-' + suffix,
+        employeeName: 'Other Company Employee ' + suffix,
+      },
+    });
+
+    const employeeOptions = await service.listEmployeeOptions(company.id);
+    assert.deepEqual(
+      employeeOptions.map((item) => item.id),
+      [employee.id],
+    );
+
     const role = await service.createRole(
       { auth },
       {
@@ -69,10 +105,12 @@ test('user and role administration respects company boundaries and revokes sessi
         email: 'user-' + suffix + '@example.com',
         displayName: 'Test User',
         password: 'Strong-User-Password-2026!',
+        employeeId: employee.id,
         roleIds: [role.id],
       },
     );
 
+    assert.equal(created.employeeId, employee.id);
     assert.equal(created.userRoles.length, 1);
     assert.equal(created.userRoles[0]?.role.roleCode, role.roleCode);
 
