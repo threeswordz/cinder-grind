@@ -371,10 +371,10 @@ export class BudgetController {
     };
   }
 
-  @Post('projects/:projectId/revisions/submit')
+  @Post('projects/:projectId/revisions')
   @UseGuards(AuthGuard, CsrfGuard, PermissionGuard)
   @RequirePermissions('budget.revision.submit')
-  async submitRevision(
+  async createRevisionDraft(
     @Req() request: AuthenticatedRequest,
     @Param('projectId', new ParseUUIDPipe({ version: '4' }))
     projectId: string,
@@ -382,14 +382,32 @@ export class BudgetController {
   ) {
     const input = budgetObject(body);
     return {
-      data: await this.budget.submitRevision(
+      data: await this.budget.createRevisionDraft(
         auditContext(request),
         projectId,
+        budgetNullableString(input, 'revisionNote', 10000),
+      ),
+    };
+  }
+
+  @Post('revisions/:revisionId/submit')
+  @UseGuards(AuthGuard, CsrfGuard, PermissionGuard)
+  @RequirePermissions('budget.revision.submit')
+  async submitRevision(
+    @Req() request: AuthenticatedRequest,
+    @Param('revisionId', new ParseUUIDPipe({ version: '4' }))
+    revisionId: string,
+    @Body() body: unknown,
+  ) {
+    const input = budgetObject(body);
+    return {
+      data: await this.budget.submitRevision(
+        auditContext(request),
+        revisionId,
         budgetCode(
           budgetString(input, 'workflowCode', 80),
           'workflowCode',
         ),
-        budgetNullableString(input, 'revisionNote', 10000),
       ),
     };
   }
