@@ -88,6 +88,29 @@ export function validateCode(
   return value;
 }
 
+export function validateEmail(value: string): string {
+  const normalized = value.trim().toLowerCase();
+  if (
+    normalized.length < 3 ||
+    normalized.length > 320 ||
+    !/^[^\s@]+@[^\s@]+$/.test(normalized)
+  ) {
+    throw invalid('email', 'Enter a valid email address.');
+  }
+  return normalized;
+}
+
+export function validateUuid(value: string, field: string): string {
+  if (
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      value,
+    )
+  ) {
+    throw invalid(field, 'Must be a valid UUID.');
+  }
+  return value;
+}
+
 export function validateCurrencyCode(value: string): string {
   const normalized = value.toUpperCase();
   if (!/^[A-Z]{3}$/.test(normalized)) {
