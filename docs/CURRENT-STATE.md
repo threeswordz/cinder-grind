@@ -1,12 +1,15 @@
 # Construction ERP — Current State
 
-**Last verified:** 2026-09-26
+**Last verified:** 2026-09-27
 **Source of truth:** Live GitHub repository state
 
 - Current Release: V0.2 Project & Scheduling
-- Current Stage: V0.2-G UAT Reference Programme — VALIDATION
-- Completed Stages: V0.1-A Technical Skeleton; V0.1-B Company / Identity / Security; V0.1-C Administration; V0.1-D Master Data; V0.1-E Projects; V0.1-F WBS & Cost Codes; V0.1-G Basic Documents; V0.1-H Integration / Regression / UAT; V0.2-A Scheduling Data Model; V0.2-B Scheduling Engine; V0.2-C Baselines / Progress; V0.2-D Gantt / Lookahead; V0.2-E Site Execution; V0.2-F Equipment
-- Active Issue: #53 — V0.2-G UAT Reference Programme
+- Current Stage: V0.2 Release Acceptance — AWAITING PRODUCT / BUSINESS OWNER SIGN-OFF
+- Completed Stages: V0.1-A Technical Skeleton; V0.1-B Company / Identity / Security; V0.1-C Administration; V0.1-D Master Data; V0.1-E Projects; V0.1-F WBS & Cost Codes; V0.1-G Basic Documents; V0.1-H Integration / Regression / UAT; V0.2-A Scheduling Data Model; V0.2-B Scheduling Engine; V0.2-C Baselines / Progress; V0.2-D Gantt / Lookahead; V0.2-E Site Execution; V0.2-F Equipment; V0.2-G UAT Reference Programme
+- Active Issue: none — V0.2 release awaits Product / Business Owner acceptance
+- Completed Issue: #53 — V0.2-G UAT Reference Programme
+- Completed Branch: `v0.2-g-uat-reference`
+- Merged PR: #54 — V0.2-G UAT Reference Programme and Release Closure
 - Completed Issue: #51 — V0.2-F Equipment
 - Completed Issue: #50 — V0.2-F Equipment — Business Rules
 - Completed Issue: #48 — V0.2-E Site Execution
@@ -45,7 +48,7 @@
 - V0.1 cross-module release acceptance scenario: PASS in the Stage H release-candidate regression suite.
 - Open defect check at V0.1 acceptance: no Severity 1 or Severity 2 release-blocking defect recorded.
 - Governance: `AGENTS.md`, `docs/PROJECT-GOVERNANCE.md`, PR governance checklist and DEC-008 are active; material decisions must pass the repository pre-flight and open-source/zero-cost-first constraint.
-- Next action: validate the SCH-019 Ground Floor Slab 20-working-day reference programme on `v0.2-g-uat-reference`; V0.2 exits only when backend schedule calculations and Gantt presentation agree and all release gates are green.
+- Next action: Product / Business Owner reviews the V0.2 UAT evidence, known boundaries and usability, then explicitly ACCEPTS or REJECTS V0.2. Do not begin V0.3 implementation until the V0.2 release decision is recorded.
 
 ## Stage E completed
 
@@ -402,3 +405,28 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - V0.2 release traceability, UAT record, release checklist and deployment/rollback procedure are now source-controlled.
 - full functional validation CI #884 passed on `7b09fb92317d4e9990be48fa0175fd1078d8bd1f`, including migrations, all regression/integration tests, builds and the expanded live HTTP V0.2 acceptance scenario.
 - final exact-head branch CI, PR CI, merge/post-merge CI and Product / Business Owner V0.2 acceptance remain release gates.
+
+## V0.2-G completed
+
+- Issue #53 closed after PR #54.
+- PR #54 squash-merged to `main` as `50d58931ae8275edbc95b3e7cb1f05de730262ef`.
+- exact-head branch CI #887 passed on `85e70e2808c899b53eafb8394f1d9a670d4cca92`.
+- PR CI #888 passed on the same exact head.
+- post-merge `main` CI #889 passed on `50d58931ae8275edbc95b3e7cb1f05de730262ef`.
+- SCH-019 Ground Floor Slab reference programme passes with eight detailed Activities totaling 20 working days from 2026-10-01 through 2026-10-28.
+- controlled one-working-day forecast delay moves finish to 2026-10-29 while the approved baseline remains unchanged.
+- backend schedule calculations, Critical Path and Total Float agree with the Gantt/read model.
+- 2-week and 4-week lookahead acceptance passes.
+- release-exit review found and closed DOC-006 WBS/Activity Documents and RPT-001/RPT-002 operational reporting / Project Engineer Dashboard gaps.
+- no open Severity 1 or Severity 2 release-blocking defect was recorded at the Stage G release review.
+- no V0.3+ scope or mandatory paid runtime/service dependency was introduced.
+
+## V0.2 technical release checkpoint
+
+- all seven V0.2 build/validation stages are merged.
+- all 37 Must-Have requirements have implementation/evidence paths.
+- all 10 Should-Have requirements have delivered/deferred status documented; the Project Type portion of ADM-008 remains the documented deferred remainder while Activity Types are delivered.
+- migration-from-zero, migration status, production dependency audit, API/web typecheck, regression/integration suites, live HTTP acceptance and production builds are green on post-merge `main` CI #889.
+- deployment/rollback procedure, traceability, release checklist and UAT record are source-controlled.
+- V0.2 is technically release-ready but is **not Product-accepted yet**.
+- Product / Business Owner sign-off remains the release decision gate before V0.2 is marked complete and V0.3 Procurement begins.
