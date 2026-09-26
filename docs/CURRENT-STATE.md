@@ -3,31 +3,31 @@
 **Last verified:** 2026-09-26
 **Source of truth:** Live GitHub repository state
 
-- Current Release: V0.1 Foundation
-- Current Stage: V0.1-H Integration / Regression / UAT — ACCEPTED, MERGE PENDING
-- Completed Stages: V0.1-A Technical Skeleton; V0.1-B Company / Identity / Security; V0.1-C Administration; V0.1-D Master Data; V0.1-E Projects; V0.1-F WBS & Cost Codes; V0.1-G Basic Documents
-- Active Issue: #27 — V0.1-H Integration / Regression / UAT
-- Active Branch: `v0.1-h-integration-uat`
-- Active PR: #28 — acceptance recorded; final merge pending
+- Current Release: V0.1 Foundation — COMPLETE
+- Current Stage: V0.1-H Integration / Regression / UAT — COMPLETE
+- Completed Stages: V0.1-A Technical Skeleton; V0.1-B Company / Identity / Security; V0.1-C Administration; V0.1-D Master Data; V0.1-E Projects; V0.1-F WBS & Cost Codes; V0.1-G Basic Documents; V0.1-H Integration / Regression / UAT
+- Completed Issue: #27 — V0.1-H Integration / Regression / UAT
+- Completed Branch: `v0.1-h-integration-uat`
+- Merged PR: #28 — V0.1-H Integration / Regression / UAT
 - Previous completed Issue: #25 — V0.1-G Basic Documents
 - Previous merged PR: #26 — V0.1-G Basic Documents
 - Previous completed Issue: #23 — V0.1-F WBS & Cost Codes
 - Previous merged PR: #24 — V0.1-F WBS & Cost Codes
 - Previous completed Issue: #20 — V0.1-E Projects
 - Previous merged PR: #22 — V0.1-E Projects
-- Latest verified main commit: `f18df261af292146f96b857d34d5037a2550f332` — V0.1-G: Basic Documents (#26)
+- Latest verified V0.1 merge commit: `9ff4ab48d9321c2345c04343be2bde301e933065` — V0.1-H: Integration / Regression / UAT (#28)
 - Final Stage E PR CI: Validate Construction ERP run #351 — SUCCESS
 - Project creation scope decision: Option A — APPROVED. A scoped creator must have an active Employee link and is atomically added to the initial Project Team.
 - Final Stage F PR CI: Validate Construction ERP run #403 — SUCCESS on `ce649c16b139f2ebb81d0fa71fce7420fbde4b79`.
 - Stage F final review: no unresolved review threads, no scope creep into Activities/Scheduling, BOQ/Budget, Procurement or transaction allocations.
 - Final Stage G PR CI: Validate Construction ERP run #443 — SUCCESS on `298890cbd72965067d59995f81283ca7b4f5410b`.
 - Stage G final review: no unresolved review threads; no WBS/Activity or later-module document scope added.
-- Stage H release-candidate CI: Validate Construction ERP run #465 — SUCCESS.
+- Final Stage H exact-head CI: Validate Construction ERP run #528 — SUCCESS, including live HTTP acceptance.
 - Governance checkpoint validation before this state update: Validate Construction ERP run #473 — SUCCESS on `f94292a1ad11dc1d8eb28c2e65ba9d1e8a127e22`.
 - V0.1 cross-module release acceptance scenario: PASS in the Stage H release-candidate regression suite.
-- Open defect check: no open defect Issue exists; only Stage H tracking Issue #27 is open.
+- Open defect check at V0.1 acceptance: no Severity 1 or Severity 2 release-blocking defect recorded.
 - Governance: `AGENTS.md`, `docs/PROJECT-GOVERNANCE.md`, PR governance checklist and DEC-008 are active; material decisions must pass the repository pre-flight and open-source/zero-cost-first constraint.
-- Next action: finalize PR #28 and merge V0.1-H; then mark V0.1 Foundation complete.
+- Next action: verify V0.2 release-entry gates, then begin V0.2-A Scheduling Data Model only if the approved scope/requirements/acceptance baseline is complete.
 
 ## Stage E completed
 
@@ -78,3 +78,13 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - Local self-hosted API/web smoke and authenticated application load passed
 - CI #524 live HTTP V0.1 acceptance passed on `16c76a172bd314a9c5c2431ad112a9090a9d7a15`
 - Product / Business Owner accepted V0.1 Foundation on 2026-09-26
+
+
+## V0.1 Foundation completed
+
+- Stage H PR #28 squash-merged to `main` as `9ff4ab48d9321c2345c04343be2bde301e933065`
+- Issue #27 closed automatically by the merged PR
+- local self-hosted API/web smoke and authenticated application load passed
+- CI #528 passed the exact accepted head, including repeatable live HTTP acceptance
+- Product / Business Owner accepted V0.1 Foundation on 2026-09-26
+- open-source / zero-cost-first runtime constraint remains active
