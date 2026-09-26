@@ -25,5 +25,6 @@
 - Project APIs/services for scoped reads, updates, archive/reactivate, team and contacts
 - PostgreSQL Project integration tests wired into the API test command
 - Option A Project creation API: scoped creators require an active Employee link and receive an automatic active `Project Creator` membership
+- Option A Project creation API: scoped creators require an active Employee link and receive an automatic active `Project Creator` membership
 
 This file is a concise checkpoint only. Re-check live GitHub Issues, branches, PRs, commits and CI before modifying a stage.
