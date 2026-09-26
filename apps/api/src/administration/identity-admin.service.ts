@@ -369,6 +369,19 @@ export class IdentityAdminService {
     });
   }
 
+  listRoleOptions(companyId: string) {
+    return this.prisma.role.findMany({
+      where: { companyId, isActive: true },
+      orderBy: { roleName: 'asc' },
+      select: {
+        id: true,
+        roleCode: true,
+        roleName: true,
+        isActive: true,
+      },
+    });
+  }
+
   listRoles(companyId: string) {
     return this.prisma.role.findMany({
       where: { companyId },
@@ -428,6 +441,19 @@ export class IdentityAdminService {
     });
     if (!before) throw this.notFound('Role');
 
+    if (input.isActive === false) {
+      const selfAssignment = await this.prisma.userRole.findFirst({
+        where: { userId: context.auth.userId, roleId: id },
+        select: { id: true },
+      });
+      if (selfAssignment) {
+        throw new ForbiddenException({
+          code: 'SELF_ROLE_DEACTIVATION_DENIED',
+          detail: 'You cannot deactivate a Role currently assigned to your own account.',
+        });
+      }
+    }
+
     const after = await this.prisma.role.update({
       where: { id },
       data: input,
@@ -477,6 +503,18 @@ export class IdentityAdminService {
         where: { id: roleId, companyId: context.auth.companyId },
       });
       if (!role) throw this.notFound('Role');
+
+      const selfAssignment = await tx.userRole.findFirst({
+        where: { userId: context.auth.userId, roleId },
+        select: { id: true },
+      });
+      if (selfAssignment) {
+        throw new ForbiddenException({
+          code: 'SELF_ROLE_PERMISSION_CHANGE_DENIED',
+          detail:
+            'You cannot change Permissions on a Role currently assigned to your own account.',
+        });
+      }
 
       const permissions = await tx.permission.findMany({
         where: { permissionCode: { in: uniqueCodes } },
