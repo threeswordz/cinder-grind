@@ -3,7 +3,7 @@ import { apiRequest } from './client';
 export type MasterRecord = {
   id: string;
   isActive: boolean;
-  [key: string]: string | number | boolean | null | undefined;
+  [key: string]: unknown;
 };
 
 export type UnitOfMeasure = MasterRecord & {
