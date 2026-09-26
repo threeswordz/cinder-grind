@@ -167,6 +167,7 @@ test('Project scope and Team/Contact boundaries are enforced in PostgreSQL', asy
 
     const scopedAuth = auth(company.id, scopedUser.id, [
       'projects.project.view',
+      'projects.project.create',
       'projects.project.edit',
       'projects.project.archive',
       'projects.team.view',
@@ -175,6 +176,7 @@ test('Project scope and Team/Contact boundaries are enforced in PostgreSQL', asy
     const allAuth = auth(company.id, allUser.id, [
       'projects.access_all',
       'projects.project.view',
+      'projects.project.create',
       'projects.project.edit',
       'projects.project.archive',
       'projects.team.view',
@@ -184,14 +186,61 @@ test('Project scope and Team/Contact boundaries are enforced in PostgreSQL', asy
       'projects.project.view',
     ]);
 
+    const createdByScopedUser = await service.createProject(
+      { auth: scopedAuth },
+      {
+        projectCode: 'PC-' + suffix,
+        projectName: 'Creator Membership Project',
+        customerId: customer.id,
+        statusDefinitionId: status.id,
+        contractValue: new (await import('@prisma/client')).Prisma.Decimal(
+          '250000.00',
+        ),
+        plannedStartDate: new Date('2026-12-01T00:00:00Z'),
+        plannedCompletionDate: new Date('2027-02-28T00:00:00Z'),
+      },
+    );
+    const creatorMembership = await prisma.projectMember.findFirst({
+      where: {
+        projectId: createdByScopedUser.id,
+        employeeId: employee.id,
+        projectRole: 'Project Creator',
+        isActive: true,
+      },
+    });
+    assert.ok(creatorMembership);
+
+    await assert.rejects(
+      () =>
+        service.createProject(
+          {
+            auth: auth(company.id, unlinkedUser.id, [
+              'projects.project.create',
+            ]),
+          },
+          {
+            projectCode: 'PU-' + suffix,
+            projectName: 'Unlinked Creator Project',
+            customerId: customer.id,
+            statusDefinitionId: status.id,
+            contractValue: new (await import('@prisma/client')).Prisma.Decimal(
+              '1000.00',
+            ),
+            plannedStartDate: new Date('2026-12-01T00:00:00Z'),
+            plannedCompletionDate: new Date('2026-12-31T00:00:00Z'),
+          },
+        ),
+      (error: unknown) => error instanceof UnprocessableEntityException,
+    );
+
     const scopedProjects = await service.listProjects(scopedAuth);
     assert.deepEqual(
-      scopedProjects.map((item) => item.id),
-      [project.id],
+      scopedProjects.map((item) => item.id).sort(),
+      [project.id, createdByScopedUser.id].sort(),
     );
 
     const allProjects = await service.listProjects(allAuth);
-    assert.equal(allProjects.length, 2);
+    assert.equal(allProjects.length, 3);
 
     const noProjects = await service.listProjects(unlinkedAuth);
     assert.equal(noProjects.length, 0);
