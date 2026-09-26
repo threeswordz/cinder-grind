@@ -1348,17 +1348,50 @@ GET    /api/v1/site-execution/reports/{id}/documents/{documentId}/download
 
 Daily Site Reports are unique by Project + reporting date and use the operational lifecycle `DRAFT → SUBMITTED`; they do not use the Approval Matrix.
 
-Draft resource/observation rows include aggregated manpower, observational Material usage, Activity progress, site issues, delay reasons and lightweight inspection references. On submission, each Daily Report progress line appends an authoritative row to the existing immutable `activity_progress` history with the report date and `DAILY_SITE_REPORT` source reference.
+Draft resource/observation rows include aggregated manpower, observational Material usage, canonical Equipment usage references, Activity progress, site issues, delay reasons and lightweight inspection references. On submission, each Daily Report progress line appends an authoritative row to the existing immutable `activity_progress` history with the report date and `DAILY_SITE_REPORT` source reference.
 
 Material-use rows do not post Inventory or change Stock Balance. Delay observations do not move Activity schedule dates or replace backend schedule-delay classification. Photographs/files reuse the Documents storage abstraction and generic document-link metadata; storage keys remain server-only.
 
-Equipment selection is intentionally unavailable until V0.2-F supplies the canonical Equipment Register. Stage E does not create a duplicate or free-text Equipment source.
+V0.2-F activates Equipment selection through the canonical Equipment Register. A Daily Site Report may reference only active, operationally available Equipment assigned to the report Project on the report date; free-text Equipment remains prohibited. Submission materializes each Equipment line into canonical Equipment Usage history, and submitted-report Equipment corrections append later history rather than rewriting the original usage.
 
 Submitted Daily Site Report content is immutable. Corrections are append-only records and do not overwrite the submitted record. A correction may also append corrected Activity percentages to the immutable `activity_progress` history using the original report date and `DAILY_SITE_REPORT_CORRECTION` source traceability.
 
 ---
 
-## 41.5 Purchase Requests
+## 41.5 Equipment
+
+```text
+GET    /api/v1/equipment/projects
+
+GET    /api/v1/equipment/types
+POST   /api/v1/equipment/types
+PATCH  /api/v1/equipment/types/{id}
+
+GET    /api/v1/equipment/register?asOf=YYYY-MM-DD
+POST   /api/v1/equipment/register
+PATCH  /api/v1/equipment/register/{id}
+
+GET    /api/v1/equipment/projects/{projectId}/available?asOf=YYYY-MM-DD
+GET    /api/v1/equipment/register/{id}/assignments
+POST   /api/v1/equipment/register/{id}/assignments
+POST   /api/v1/equipment/assignments/{id}/release
+
+GET    /api/v1/equipment/usage?projectId={id}&equipmentId={id}
+POST   /api/v1/equipment/usage
+PATCH  /api/v1/equipment/usage/{id}
+```
+
+Equipment Type and Equipment are Company-owned master/configuration data. Project assignment and usage enforce effective Project scope and Company isolation.
+
+Operational status is persisted only as `AVAILABLE` / `UNAVAILABLE`. User-facing availability is derived at an as-of date: inactive or operationally unavailable Equipment → `UNAVAILABLE`; otherwise an effective Project assignment → `ASSIGNED`; otherwise → `AVAILABLE`.
+
+Assignment history is retained. Reassignment closes the prior open assignment instead of deleting it. Canonical Equipment Usage requires an assignment covering the usage date; optional operating hours must be greater than 0 and no more than 24. Manual usage may be audit-updated, but ordinary APIs do not delete usage history. Daily Site Report-origin usage is immutable and is corrected through append-only submitted-report corrections.
+
+Maintenance records remain Future and Equipment cost allocation remains owned by V0.7 Cost Control.
+
+---
+
+## 41.6 Purchase Requests
 
 ```text
 GET    /api/v1/purchase-requests
@@ -1373,7 +1406,7 @@ POST   /api/v1/purchase-requests/{id}/cancel
 
 ---
 
-## 41.6 Purchase Orders
+## 41.7 Purchase Orders
 
 ```text
 GET    /api/v1/purchase-orders
@@ -1389,7 +1422,7 @@ POST   /api/v1/purchase-orders/{id}/revisions
 
 ---
 
-## 41.7 Inventory
+## 41.8 Inventory
 
 ```text
 POST   /api/v1/goods-receipts
@@ -1410,7 +1443,7 @@ POST   /api/v1/stock-transfers/{id}/post
 
 ---
 
-## 41.8 Finance
+## 41.9 Finance
 
 ```text
 POST   /api/v1/supplier-invoices
