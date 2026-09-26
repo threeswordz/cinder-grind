@@ -524,6 +524,9 @@ export class BudgetService {
             completedAt: true,
           },
         },
+        createdBy: {
+          select: { id: true, displayName: true, email: true },
+        },
         submittedBy: {
           select: { id: true, displayName: true, email: true },
         },
@@ -541,6 +544,8 @@ export class BudgetService {
 
     return rows.map((row) => ({
       ...row,
+      lifecycleState:
+        row.approvalInstance?.approvalState ?? 'DRAFT',
       isOriginal: row.id === originalId,
       isCurrent: row.id === currentId,
     }));
@@ -582,6 +587,9 @@ export class BudgetService {
             },
           },
         },
+        createdBy: {
+          select: { id: true, displayName: true, email: true },
+        },
         submittedBy: {
           select: { id: true, displayName: true, email: true },
         },
@@ -611,15 +619,16 @@ export class BudgetService {
 
     return {
       ...row,
+      lifecycleState:
+        row.approvalInstance?.approvalState ?? 'DRAFT',
       isOriginal: row.id === approved[0]?.id,
       isCurrent: row.id === approved.at(-1)?.id,
     };
   }
 
-  async submitRevision(
+  async createRevisionDraft(
     context: AuditContext,
     projectId: string,
-    workflowCode: string,
     revisionNote?: string | null,
   ) {
     await this.access.assertAccess(context.auth, projectId);
@@ -663,7 +672,7 @@ export class BudgetService {
           throw new UnprocessableEntityException({
             code: 'BUDGET_REVISION_EMPTY',
             detail:
-              'At least one active BOQ Item is required before submitting a Budget revision.',
+              'At least one active BOQ Item is required before creating a Budget revision.',
           });
         }
 
@@ -679,7 +688,7 @@ export class BudgetService {
             projectId,
             revisionNo,
             revisionNumber,
-            submittedByUserId: context.auth.userId,
+            createdByUserId: context.auth.userId,
             revisionNote: revisionNote ?? null,
           },
         });
@@ -708,6 +717,69 @@ export class BudgetService {
           })),
         });
 
+        await this.audit.record(
+          {
+            ...context,
+            entityType: 'BUDGET_REVISION',
+            entityId: revision.id,
+            action: 'CREATE_DRAFT',
+            newValues: {
+              projectId,
+              revisionNo,
+              revisionNumber,
+              lineCount: boq.items.length,
+            },
+          },
+          tx,
+        );
+
+        return {
+          ...revision,
+          lifecycleState: 'DRAFT' as const,
+          lineCount: boq.items.length,
+          isOriginal: false,
+          isCurrent: false,
+        };
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    );
+  }
+
+  async submitRevision(
+    context: AuditContext,
+    revisionId: string,
+    workflowCode: string,
+  ) {
+    return this.prisma.$transaction(
+      async (tx) => {
+        const revision = await tx.budgetRevision.findFirst({
+          where: {
+            id: revisionId,
+            companyId: context.auth.companyId,
+          },
+          include: {
+            _count: { select: { lines: true } },
+          },
+        });
+        if (!revision) throw this.revisionNotFound();
+        await this.access.assertAccess(
+          context.auth,
+          revision.projectId,
+          tx,
+        );
+        if (revision.approvalInstanceId || revision.submittedAt) {
+          throw new ConflictException({
+            code: 'BUDGET_REVISION_ALREADY_SUBMITTED',
+            detail: 'Only a Draft Budget Revision can be submitted.',
+          });
+        }
+        if (revision._count.lines === 0) {
+          throw new UnprocessableEntityException({
+            code: 'BUDGET_REVISION_EMPTY',
+            detail: 'A Budget Revision must contain at least one line.',
+          });
+        }
+
         const approvalInstance = await this.approvals.start(
           {
             companyId: context.auth.companyId,
@@ -717,10 +789,14 @@ export class BudgetService {
           },
           tx,
         );
-
+        const submittedAt = new Date();
         const submitted = await tx.budgetRevision.update({
           where: { id: revision.id },
-          data: { approvalInstanceId: approvalInstance.id },
+          data: {
+            approvalInstanceId: approvalInstance.id,
+            submittedByUserId: context.auth.userId,
+            submittedAt,
+          },
           include: {
             approvalInstance: true,
             _count: { select: { lines: true } },
@@ -734,11 +810,12 @@ export class BudgetService {
             entityId: revision.id,
             action: 'SUBMIT',
             newValues: {
-              projectId,
-              revisionNo,
-              revisionNumber,
+              projectId: revision.projectId,
+              revisionNo: revision.revisionNo,
+              revisionNumber: revision.revisionNumber,
               approvalInstanceId: approvalInstance.id,
-              lineCount: boq.items.length,
+              lineCount: revision._count.lines,
+              submittedAt,
             },
           },
           tx,
@@ -746,6 +823,7 @@ export class BudgetService {
 
         return {
           ...submitted,
+          lifecycleState: approvalInstance.approvalState,
           isOriginal: false,
           isCurrent: false,
         };
@@ -1053,13 +1131,18 @@ export class BudgetService {
         submittedByUserId: true,
       },
     });
-    if (!revision || !revision.approvalInstanceId) {
+    if (
+      !revision ||
+      !revision.approvalInstanceId ||
+      !revision.submittedByUserId
+    ) {
       throw this.revisionNotFound();
     }
     await this.access.assertAccess(auth, revision.projectId);
     return {
       ...revision,
       approvalInstanceId: revision.approvalInstanceId,
+      submittedByUserId: revision.submittedByUserId,
     };
   }
 
