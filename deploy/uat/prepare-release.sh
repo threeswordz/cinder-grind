@@ -3,7 +3,7 @@ set -euo pipefail
 source "$(dirname "$0")/common.sh"
 cd "$REPO_ROOT"
 
-"$(dirname "$0")/start-postgres.sh"
+bash "$(dirname "$0")/start-postgres.sh"
 
 pnpm install --frozen-lockfile
 pnpm prisma:generate
