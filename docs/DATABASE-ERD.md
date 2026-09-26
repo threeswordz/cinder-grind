@@ -1161,7 +1161,7 @@ At least one of inspection reference or remarks is required. This is a lightweig
 - created_by_user_id FK
 - created_at
 
-Corrections may only be appended after submission. Update/delete is blocked at the database layer.
+Corrections may only be appended after submission. Update/delete is blocked at the database layer. Corrected Activity percentages are not stored by overwriting report rows; they append new Scheduling `activity_progress` rows with the correction id as `source_entity_id` and `DAILY_SITE_REPORT_CORRECTION` as `source_type`.
 
 ---
 
