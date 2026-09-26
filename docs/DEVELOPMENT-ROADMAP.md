@@ -785,13 +785,17 @@ Create detailed issues shortly before the relevant release/module enters develop
 
 ---
 
-# 22. Current Next Step After Phase 0
+# 22. Current Next Step
 
-After Phase 0 is complete:
+V0.1 Foundation is complete and accepted.
 
-**Begin V0.1 Foundation — Stage V0.1-A Technical Skeleton**
+The next release is **V0.2 Project & Scheduling**.
 
-No V0.2+ business module should be implemented before V0.1 foundations are stable.
+Before V0.2 implementation starts, verify the Release Entry Gate in Section 16. In particular, the dedicated V0.2 Scope and V0.2 Acceptance Criteria baselines must be approved.
+
+After those entry gates pass:
+
+**Begin V0.2 Project & Scheduling — Stage V0.2-A Scheduling Data Model**
 
 ---
 
