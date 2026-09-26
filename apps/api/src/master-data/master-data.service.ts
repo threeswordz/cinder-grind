@@ -59,11 +59,11 @@ export class MasterDataService {
     data: {
       customerCode: string;
       customerName: string;
-      registrationNumber?: string | null;
-      contactName?: string | null;
-      email?: string | null;
-      phone?: string | null;
-      address?: string | null;
+      registrationNumber?: string | null | undefined;
+      contactName?: string | null | undefined;
+      email?: string | null | undefined;
+      phone?: string | null | undefined;
+      address?: string | null | undefined;
     },
   ) {
     try {
@@ -96,14 +96,14 @@ export class MasterDataService {
     context: AuditContext,
     id: string,
     data: {
-      customerCode?: string;
-      customerName?: string;
-      registrationNumber?: string | null;
-      contactName?: string | null;
-      email?: string | null;
-      phone?: string | null;
-      address?: string | null;
-      isActive?: boolean;
+      customerCode?: string | undefined;
+      customerName?: string | undefined;
+      registrationNumber?: string | null | undefined;
+      contactName?: string | null | undefined;
+      email?: string | null | undefined;
+      phone?: string | null | undefined;
+      address?: string | null | undefined;
+      isActive?: boolean | undefined;
     },
   ) {
     try {
@@ -170,11 +170,11 @@ export class MasterDataService {
     data: {
       supplierCode: string;
       supplierName: string;
-      registrationNumber?: string | null;
-      contactName?: string | null;
-      email?: string | null;
-      phone?: string | null;
-      address?: string | null;
+      registrationNumber?: string | null | undefined;
+      contactName?: string | null | undefined;
+      email?: string | null | undefined;
+      phone?: string | null | undefined;
+      address?: string | null | undefined;
     },
   ) {
     try {
@@ -207,14 +207,14 @@ export class MasterDataService {
     context: AuditContext,
     id: string,
     data: {
-      supplierCode?: string;
-      supplierName?: string;
-      registrationNumber?: string | null;
-      contactName?: string | null;
-      email?: string | null;
-      phone?: string | null;
-      address?: string | null;
-      isActive?: boolean;
+      supplierCode?: string | undefined;
+      supplierName?: string | undefined;
+      registrationNumber?: string | null | undefined;
+      contactName?: string | null | undefined;
+      email?: string | null | undefined;
+      phone?: string | null | undefined;
+      address?: string | null | undefined;
+      isActive?: boolean | undefined;
     },
   ) {
     try {
@@ -281,9 +281,9 @@ export class MasterDataService {
     data: {
       employeeCode: string;
       employeeName: string;
-      jobTitle?: string | null;
-      email?: string | null;
-      phone?: string | null;
+      jobTitle?: string | null | undefined;
+      email?: string | null | undefined;
+      phone?: string | null | undefined;
     },
   ) {
     try {
@@ -316,12 +316,12 @@ export class MasterDataService {
     context: AuditContext,
     id: string,
     data: {
-      employeeCode?: string;
-      employeeName?: string;
-      jobTitle?: string | null;
-      email?: string | null;
-      phone?: string | null;
-      isActive?: boolean;
+      employeeCode?: string | undefined;
+      employeeName?: string | undefined;
+      jobTitle?: string | null | undefined;
+      email?: string | null | undefined;
+      phone?: string | null | undefined;
+      isActive?: boolean | undefined;
     },
   ) {
     try {
@@ -433,10 +433,10 @@ export class MasterDataService {
     context: AuditContext,
     id: string,
     data: {
-      uomCode?: string;
-      uomName?: string;
-      decimalPlaces?: number;
-      isActive?: boolean;
+      uomCode?: string | undefined;
+      uomName?: string | undefined;
+      decimalPlaces?: number | undefined;
+      isActive?: boolean | undefined;
     },
   ) {
     try {
@@ -527,9 +527,9 @@ export class MasterDataService {
     data: {
       materialCode: string;
       materialName: string;
-      description?: string | null;
+      description?: string | null | undefined;
       defaultUomId: string;
-      materialCategory?: string | null;
+      materialCategory?: string | null | undefined;
     },
   ) {
     try {
@@ -570,12 +570,12 @@ export class MasterDataService {
     context: AuditContext,
     id: string,
     data: {
-      materialCode?: string;
-      materialName?: string;
-      description?: string | null;
-      defaultUomId?: string;
-      materialCategory?: string | null;
-      isActive?: boolean;
+      materialCode?: string | undefined;
+      materialName?: string | undefined;
+      description?: string | null | undefined;
+      defaultUomId?: string | undefined;
+      materialCategory?: string | null | undefined;
+      isActive?: boolean | undefined;
     },
   ) {
     try {
