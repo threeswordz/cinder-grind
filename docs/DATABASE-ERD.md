@@ -2312,6 +2312,39 @@ Operational reporting does not add persistent reporting tables in V0.2. The Proj
 
 ---
 
+## 18.5 BOQ and Budget Revision History
+
+```mermaid
+flowchart LR
+    P[Project]
+    B[Canonical BOQ]
+    S[BOQ Section]
+    I[BOQ Item]
+    R[Budget Revision]
+    L[Immutable Revision Line]
+    A[Approval Instance]
+
+    P --> B
+    B --> S
+    S --> I
+    P --> R
+    I --> L
+    R --> L
+    R --> A
+```
+
+V0.3-A stores one canonical working BOQ per Project. Sections and Items retain stable identities. BOQ Item quantity, rate and amount are decimal commercial values; PostgreSQL checks and trigger logic enforce positive quantity, non-negative rate and `amount = round(quantity × rate, 4)`.
+
+BOQ Item Project context comes from the BOQ. Optional WBS and Cost Code remain independent allocation dimensions. Database guards require WBS to belong to the same Project and UOM/Cost Code to belong to the same Company.
+
+A Budget Revision starts as a Draft immutable snapshot of all active BOQ Items under active Sections. Snapshot lines copy the commercial fields and human-readable WBS/Cost Code/UOM labels needed to preserve historical meaning even when working master/BOQ data changes later.
+
+Draft creation assigns an immutable Company-unique business number from Number Sequence `BUDGET_REVISION`. Submission is a separate transition that adds the Approval Instance plus submitter/time. PostgreSQL allows only that controlled Draft-to-Submitted header mutation; revision lines cannot be updated or deleted, and Budget Revision history cannot be physically deleted.
+
+The first approved revision is Original Budget. The latest approved revision is Current Revised Budget. Rejected revisions remain history. No separate mutable Original/Revised totals are stored; Project/WBS/Cost Code reporting is derived from approved snapshot lines.
+
+---
+
 # 19. Key Cardinality Rules
 
 | Relationship | Cardinality |
@@ -2334,11 +2367,11 @@ Operational reporting does not add persistent reporting tables in V0.2. The Proj
 | Equipment → Usage History | 1 : many |
 | Project → Equipment Assignments / Usage | 1 : many |
 | Daily Site Report → Corrections | 1 : many |
-| Project → BOQs | 1 : many |
+| Project → BOQ | 1 : zero-or-one |
 | BOQ → Sections | 1 : many |
 | Section → BOQ Items | 1 : many |
-| Project → Budget Versions | 1 : many |
-| Budget Version → Budget Lines | 1 : many |
+| Project → Budget Revisions | 1 : many |
+| Budget Revision → Immutable Snapshot Lines | 1 : many |
 | Purchase Request → PR Items | 1 : many |
 | RFQ → RFQ Items | 1 : many |
 | RFQ → Invited Suppliers | many : many through rfq_suppliers |
@@ -2427,6 +2460,11 @@ Examples:
 - one open Equipment assignment per Equipment item and retained assignment history
 - Equipment Usage requires a same-Company Project assignment covering the usage date
 - Equipment Usage Activity/WBS context belongs to the same Project
+- one canonical BOQ per Project and BOQ Company matches Project Company
+- BOQ Item Section belongs to the same BOQ; UOM/Cost Code share Company scope; optional WBS shares Project scope
+- BOQ quantity is positive, rate is non-negative and amount is database-normalized to quantity × rate
+- Budget Revision snapshot lines are immutable and cannot be physically deleted
+- Budget Revision header permits only the controlled Draft-to-Submitted approval-link transition; revision history cannot be physically deleted
 - Daily Site Report Equipment rows use canonical Equipment assigned on the reporting date and materialize to canonical usage before submission
 - Equipment assignment/usage history is not physically deleted through ordinary application flows
 - approved audit-log immutability
