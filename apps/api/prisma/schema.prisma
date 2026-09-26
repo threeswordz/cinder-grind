@@ -749,6 +749,7 @@ model ActivityProgress {
   project    Project  @relation(fields: [projectId], references: [id], onDelete: Restrict)
   activity   Activity @relation(fields: [activityId], references: [id], onDelete: Restrict)
   recordedBy User     @relation("ActivityProgressRecorder", fields: [recordedByUserId], references: [id], onDelete: Restrict)
+  siteReportProgressLine DailySiteReportProgressLine?
 
   @@index([companyId, projectId, progressDate])
   @@index([activityId, progressDate, createdAt])
@@ -898,6 +899,7 @@ model DailySiteReportProgressLine {
 
   report   DailySiteReport @relation(fields: [reportId], references: [id], onDelete: Restrict)
   activity Activity        @relation(fields: [activityId], references: [id], onDelete: Restrict)
+  activityProgress ActivityProgress? @relation(fields: [activityProgressId], references: [id], onDelete: Restrict)
 
   @@unique([reportId, activityId])
   @@index([activityId])
