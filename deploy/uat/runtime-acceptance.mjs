@@ -155,6 +155,15 @@ const unassignedEmployee = await request(admin, '/master-data/employees', {
   },
   expected: 201,
 });
+const checkerEmployee = await request(admin, '/master-data/employees', {
+  method: 'POST',
+  json: {
+    employeeCode: 'BA-' + suffix,
+    employeeName: 'Baseline Approver ' + suffix,
+    jobTitle: 'Project Controls Approver',
+  },
+  expected: 201,
+});
 record('master data creation through live HTTP API');
 
 const role = await request(admin, '/admin/roles', {
@@ -170,6 +179,7 @@ const roleId = role.data.data.id;
 const permissionCodes = [
   'projects.project.view',
   'projects.project.create',
+  'projects.project.edit',
   'projects.team.view',
   'wbs.wbs.view',
   'wbs.wbs.create',
@@ -184,14 +194,57 @@ const permissionCodes = [
   'schedule.activity.archive',
   'schedule.dependency.manage',
   'schedule.calendar.manage',
+  'schedule.baseline.create',
+  'schedule.baseline.approve',
+  'schedule.progress.record',
 ];
 await request(admin, `/admin/roles/${roleId}/permissions`, {
   method: 'PUT',
   json: { permissionCodes },
 });
 
+const checkerRole = await request(admin, '/admin/roles', {
+  method: 'POST',
+  json: {
+    roleCode: 'UAT_BASELINE_APPROVER_' + suffix,
+    roleName: 'UAT Baseline Approver ' + suffix,
+    description: 'Automated baseline approval role',
+  },
+  expected: 201,
+});
+const checkerRoleId = checkerRole.data.data.id;
+await request(admin, `/admin/roles/${checkerRoleId}/permissions`, {
+  method: 'PUT',
+  json: {
+    permissionCodes: [
+      'schedule.baseline.approve',
+      'schedule.programme.view',
+    ],
+  },
+});
+
+const baselineWorkflowCode = 'SCHEDULE_BASELINE_' + suffix;
+await request(admin, '/admin/approval-workflows', {
+  method: 'POST',
+  json: {
+    workflowCode: baselineWorkflowCode,
+    entityType: 'SCHEDULE_BASELINE',
+    workflowName: 'Schedule Baseline Approval ' + suffix,
+    steps: [
+      {
+        stepNo: 1,
+        stepName: 'Approve Schedule Baseline',
+        requiredApprovals: 1,
+        roleIds: [checkerRoleId],
+      },
+    ],
+  },
+  expected: 201,
+});
+
 const pmPassword = 'Uat-PM-' + suffix + '-Strong-2026!';
 const unassignedPassword = 'Uat-PE-' + suffix + '-Strong-2026!';
+const checkerPassword = 'Uat-BA-' + suffix + '-Strong-2026!';
 const pmUser = await request(admin, '/admin/users', {
   method: 'POST',
   json: {
@@ -214,9 +267,21 @@ const unassignedUser = await request(admin, '/admin/users', {
   },
   expected: 201,
 });
+const checkerUser = await request(admin, '/admin/users', {
+  method: 'POST',
+  json: {
+    email: `uat-ba-${suffix.toLowerCase()}@example.com`,
+    displayName: 'Baseline Approver ' + suffix,
+    password: checkerPassword,
+    employeeId: checkerEmployee.data.data.id,
+    roleIds: [checkerRoleId],
+  },
+  expected: 201,
+});
 check(pmUser.data.data.employeeId === pmEmployee.data.data.id, 'Project Manager User/Employee link missing.');
 check(unassignedUser.data.data.employeeId === unassignedEmployee.data.data.id, 'Unassigned User/Employee link missing.');
-record('roles, permissions and Employee-linked Users');
+check(checkerUser.data.data.employeeId === checkerEmployee.data.data.id, 'Baseline Approver User/Employee link missing.');
+record('roles, permissions, Approval Matrix and Employee-linked Users');
 
 const pm = await login(pmUser.data.data.email, pmPassword);
 await request(pm, '/cost-codes', {
@@ -256,6 +321,15 @@ check(
   'Automatic Project Creator membership was not found.',
 );
 record('scoped Project creation and automatic Project Creator membership');
+
+await request(admin, `/projects/${projectId}/members`, {
+  method: 'POST',
+  json: {
+    employeeId: checkerEmployee.data.data.id,
+    projectRole: 'Baseline Approver',
+  },
+  expected: 201,
+});
 
 const rootWbs = await request(pm, `/wbs/projects/${projectId}`, {
   method: 'POST',
@@ -455,6 +529,115 @@ await request(pm, '/activity-dependencies', {
 });
 record('V0.2-B scheduling engine through live HTTP API');
 
+const projectActual = await request(pm, '/projects/' + projectId, {
+  method: 'PATCH',
+  json: {
+    actualStartDate: '2026-10-01',
+    actualCompletionDate: null,
+  },
+});
+check(
+  String(projectActual.data.data.actualStartDate).slice(0, 10) === '2026-10-01',
+  'Project actual start date was not stored independently.',
+);
+
+const baseline = await request(pm, '/schedule-baselines/submit', {
+  method: 'POST',
+  json: {
+    projectId,
+    workflowCode: baselineWorkflowCode,
+  },
+  expected: 201,
+});
+check(baseline.data.data.versionNo === 1, 'Initial Schedule Baseline was not Version 1.');
+check(
+  baseline.data.data.approvalInstance?.approvalState === 'SUBMITTED',
+  'Schedule Baseline did not enter approval.',
+);
+
+await request(pm, `/schedule-baselines/${baseline.data.data.id}/approve`, {
+  method: 'POST',
+  json: { comment: 'Maker must not self-approve' },
+  expected: 403,
+});
+
+const checker = await login(checkerUser.data.data.email, checkerPassword);
+const approvedBaseline = await request(
+  checker,
+  `/schedule-baselines/${baseline.data.data.id}/approve`,
+  {
+    method: 'POST',
+    json: { comment: 'Automated UAT approval' },
+    expected: 201,
+  },
+);
+check(
+  approvedBaseline.data.data.approvalInstance?.approvalState === 'APPROVED',
+  'Configured baseline approver could not approve the Schedule Baseline.',
+);
+check(
+  approvedBaseline.data.data.isCurrent === true,
+  'Approved Schedule Baseline did not become current.',
+);
+
+await request(pm, `/activity-progress/${activityA.data.data.id}`, {
+  method: 'POST',
+  json: {
+    progressDate: '2026-10-08',
+    percentComplete: '50',
+    note: 'Initial progress',
+  },
+  expected: 201,
+});
+await request(pm, `/activity-progress/${activityA.data.data.id}`, {
+  method: 'POST',
+  json: {
+    progressDate: '2026-10-09',
+    percentComplete: '40',
+    note: 'Correction retained as history',
+  },
+  expected: 201,
+});
+const progressHistory = await request(
+  pm,
+  `/activity-progress/${activityA.data.data.id}`,
+);
+check(
+  progressHistory.data.data.length === 2 &&
+    String(progressHistory.data.data[0].percentComplete) === '40',
+  'Append-only progress correction history was not preserved.',
+);
+
+await request(pm, `/activities/${activityA.data.data.id}`, {
+  method: 'PATCH',
+  json: {
+    forecastStartDate: '2026-10-01',
+    forecastFinishDate: '2026-10-09',
+  },
+});
+
+const comparison = await request(
+  pm,
+  '/schedule/projects/' + projectId + '/comparison',
+);
+const comparedA = comparison.data.data.activities.find(
+  (item) => item.activityId === activityA.data.data.id,
+);
+check(
+  comparison.data.data.currentBaseline?.versionNo === 1,
+  'Current approved Schedule Baseline was not selected for comparison.',
+);
+check(
+  comparedA?.currentPercentComplete === 40,
+  'Latest progress entry was not derived as current progress.',
+);
+check(
+  comparedA?.delayStatus === 'DELAYED' &&
+    Number(comparedA?.delayWorkDays) > 0,
+  'Baseline-versus-forecast delay was not classified correctly.',
+);
+record('V0.2-C baselines, progress and delay comparison through live HTTP API');
+
 const documentType = await request(admin, '/document-types', {
   method: 'POST',
   json: {
@@ -499,6 +682,16 @@ await request(
   '/schedule/projects/' + projectId + '/analysis?mode=planned',
   { expected: 403 },
 );
+await request(
+  unassigned,
+  '/schedule-baselines?projectId=' + projectId,
+  { expected: 403 },
+);
+await request(
+  unassigned,
+  '/schedule/projects/' + projectId + '/comparison',
+  { expected: 403 },
+);
 record('unassigned Project, Document and Scheduling access denied');
 
 await logout(pm);
@@ -506,6 +699,7 @@ await request(pm, '/auth/me', { expected: 401 });
 record('logout revokes the session');
 
 await logout(unassigned);
+await logout(checker);
 await logout(admin);
 
 process.stdout.write('\nAutomated current-release runtime acceptance PASSED.\n');
