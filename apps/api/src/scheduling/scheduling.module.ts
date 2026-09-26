@@ -41,5 +41,6 @@ import { SchedulingService } from './scheduling.service';
     ScheduleComparisonController,
   ],
   providers: [SchedulingService, SchedulingProgressService],
+  exports: [SchedulingService, SchedulingProgressService],
 })
 export class SchedulingModule {}

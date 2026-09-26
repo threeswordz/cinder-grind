@@ -1391,7 +1391,27 @@ Maintenance records remain Future and Equipment cost allocation remains owned by
 
 ---
 
-## 41.6 Purchase Requests
+## 41.6 Documents / Operational Reporting
+
+```text
+GET    /api/v1/documents/projects/{projectId}/targets/options
+GET    /api/v1/documents/projects/{projectId}/targets/{WBS|ACTIVITY}/{entityId}
+POST   /api/v1/documents/projects/{projectId}/targets/{WBS|ACTIVITY}/{entityId}
+GET    /api/v1/documents/projects/{projectId}/targets/{WBS|ACTIVITY}/{entityId}/{documentId}/download
+POST   /api/v1/documents/projects/{projectId}/targets/{WBS|ACTIVITY}/{entityId}/{documentId}/archive
+POST   /api/v1/documents/projects/{projectId}/targets/{WBS|ACTIVITY}/{entityId}/{documentId}/reactivate
+
+GET    /api/v1/reporting/projects
+GET    /api/v1/reporting/projects/{projectId}/project-engineer?asOf=YYYY-MM-DD&days=14|28
+```
+
+WBS and Activity documents reuse the existing secure Documents owner/storage model. Upload first creates the canonical Project link and then the validated WBS/Activity target link. The database requires the document, linker and target to share Company scope and requires every non-Project target link to have the matching Project link.
+
+Operational reporting is a derived read model, not a new transaction ledger. The Project Engineer dashboard requires `reporting.operational.view` plus effective Project scope and composes current Scheduling/Gantt, approved 14/28-day lookahead, recent Daily Site Reports and effective operational Equipment assignments from their owning modules.
+
+---
+
+## 41.7 Purchase Requests
 
 ```text
 GET    /api/v1/purchase-requests
@@ -1406,7 +1426,7 @@ POST   /api/v1/purchase-requests/{id}/cancel
 
 ---
 
-## 41.7 Purchase Orders
+## 41.8 Purchase Orders
 
 ```text
 GET    /api/v1/purchase-orders
@@ -1422,7 +1442,7 @@ POST   /api/v1/purchase-orders/{id}/revisions
 
 ---
 
-## 41.8 Inventory
+## 41.9 Inventory
 
 ```text
 POST   /api/v1/goods-receipts
@@ -1443,7 +1463,7 @@ POST   /api/v1/stock-transfers/{id}/post
 
 ---
 
-## 41.9 Finance
+## 41.10 Finance
 
 ```text
 POST   /api/v1/supplier-invoices

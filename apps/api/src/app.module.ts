@@ -12,6 +12,7 @@ import { EquipmentModule } from './equipment/equipment.module';
 import { MasterDataModule } from './master-data/master-data.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ProjectsModule } from './projects/projects.module';
+import { ReportingModule } from './reporting/reporting.module';
 import { SchedulingModule } from './scheduling/scheduling.module';
 import { SiteExecutionModule } from './site-execution/site-execution.module';
 import { WbsModule } from './wbs/wbs.module';
@@ -24,6 +25,7 @@ import { WbsModule } from './wbs/wbs.module';
     SchedulingModule,
     SiteExecutionModule,
     EquipmentModule,
+    ReportingModule,
     DocumentsModule,
     AdministrationModule,
     AuthModule,

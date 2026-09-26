@@ -210,6 +210,7 @@ const permissionCodes = [
   'equipment.usage.view',
   'equipment.usage.create',
   'equipment.usage.edit',
+  'reporting.operational.view',
 ];
 await request(admin, `/admin/roles/${roleId}/permissions`, {
   method: 'PUT',
@@ -724,6 +725,370 @@ check(
 );
 record('V0.2-D Gantt and lookahead presentation through live HTTP API');
 
+const referenceProject = await request(pm, '/projects', {
+  method: 'POST',
+  json: {
+    projectCode: 'GW-UAT-' + suffix,
+    projectName: 'Factory Construction',
+    customerId,
+    statusDefinitionId: statusId,
+    contractValue: '90000000.00',
+    location: 'Ground Floor Slab UAT Site',
+    description: 'V0.2-G Groundworks reference programme',
+    plannedStartDate: '2026-10-01',
+    plannedCompletionDate: '2027-09-30',
+  },
+  expected: 201,
+});
+const referenceProjectId = referenceProject.data.data.id;
+await request(admin, `/projects/${referenceProjectId}/members`, {
+  method: 'POST',
+  json: {
+    employeeId: checkerEmployee.data.data.id,
+    projectRole: 'Baseline Approver',
+  },
+  expected: 201,
+});
+
+const referenceGroundworks = await request(
+  pm,
+  `/wbs/projects/${referenceProjectId}`,
+  {
+    method: 'POST',
+    json: { wbsCode: '01', wbsName: 'Groundworks' },
+    expected: 201,
+  },
+);
+const referenceSlab = await request(
+  pm,
+  `/wbs/projects/${referenceProjectId}`,
+  {
+    method: 'POST',
+    json: {
+      parentId: referenceGroundworks.data.data.id,
+      wbsCode: '01.01',
+      wbsName: 'Ground Floor Slab',
+    },
+    expected: 201,
+  },
+);
+check(
+  referenceSlab.data.data.parentId === referenceGroundworks.data.data.id,
+  'V0.2-G reference WBS hierarchy was not retained.',
+);
+
+const referenceCalendar = await request(pm, '/working-calendars', {
+  method: 'POST',
+  json: {
+    projectId: referenceProjectId,
+    calendarName: 'V0.2-G Mon-Fri Calendar',
+    timezoneName: 'Asia/Singapore',
+    isDefault: true,
+  },
+  expected: 201,
+});
+const referenceCalendarId = referenceCalendar.data.data.id;
+await request(
+  pm,
+  `/working-calendars/${referenceCalendarId}/weekdays`,
+  {
+    method: 'PUT',
+    json: {
+      weekdays: [
+        { weekdayNo: 1, isWorking: true, startTime: '08:00', endTime: '17:00' },
+        { weekdayNo: 2, isWorking: true, startTime: '08:00', endTime: '17:00' },
+        { weekdayNo: 3, isWorking: true, startTime: '08:00', endTime: '17:00' },
+        { weekdayNo: 4, isWorking: true, startTime: '08:00', endTime: '17:00' },
+        { weekdayNo: 5, isWorking: true, startTime: '08:00', endTime: '17:00' },
+        { weekdayNo: 6, isWorking: false, startTime: null, endTime: null },
+        { weekdayNo: 7, isWorking: false, startTime: null, endTime: null },
+      ],
+    },
+  },
+);
+
+const referenceSummary = await request(pm, '/activities', {
+  method: 'POST',
+  json: {
+    projectId: referenceProjectId,
+    wbsId: referenceSlab.data.data.id,
+    activityTypeId: activityType.data.data.id,
+    workingCalendarId: referenceCalendarId,
+    statusDefinitionId: activityStatus.data.data.id,
+    activityCode: 'GW-000',
+    activityName: 'Ground Floor Slab Groundworks',
+    isSummary: true,
+    plannedDurationWorkDays: '20',
+    plannedStartDate: '2026-10-01',
+    plannedFinishDate: '2026-10-28',
+  },
+  expected: 201,
+});
+
+const referenceActivitySpecs = [
+  ['GW-100', 'Setting Out', '1', '2026-10-01', '2026-10-01', '2026-10-02', '2026-10-02'],
+  ['GW-200', 'Excavation', '3', '2026-10-02', '2026-10-06', '2026-10-05', '2026-10-07'],
+  ['GW-300', 'Compaction', '2', '2026-10-07', '2026-10-08', '2026-10-08', '2026-10-09'],
+  ['GW-400', 'Blinding Concrete', '2', '2026-10-09', '2026-10-12', '2026-10-12', '2026-10-13'],
+  ['GW-500', 'Formwork', '3', '2026-10-13', '2026-10-15', '2026-10-14', '2026-10-16'],
+  ['GW-600', 'Reinforcement', '4', '2026-10-16', '2026-10-21', '2026-10-19', '2026-10-22'],
+  ['GW-700', 'Inspection', '1', '2026-10-22', '2026-10-22', '2026-10-23', '2026-10-23'],
+  ['GW-800', 'Concrete Pour', '4', '2026-10-23', '2026-10-28', '2026-10-26', '2026-10-29'],
+];
+check(
+  referenceActivitySpecs.reduce(
+    (sum, row) => sum + Number(row[2]),
+    0,
+  ) === 20,
+  'V0.2-G reference Activity durations do not total 20 working days.',
+);
+
+const referenceActivities = [];
+for (const [
+  code,
+  name,
+  duration,
+  plannedStartDate,
+  plannedFinishDate,
+] of referenceActivitySpecs) {
+  const created = await request(pm, '/activities', {
+    method: 'POST',
+    json: {
+      projectId: referenceProjectId,
+      wbsId: referenceSlab.data.data.id,
+      parentActivityId: referenceSummary.data.data.id,
+      activityTypeId: activityType.data.data.id,
+      workingCalendarId: referenceCalendarId,
+      statusDefinitionId: activityStatus.data.data.id,
+      activityCode: code,
+      activityName: name,
+      plannedDurationWorkDays: duration,
+      plannedStartDate,
+      plannedFinishDate,
+    },
+    expected: 201,
+  });
+  referenceActivities.push(created.data.data);
+}
+
+for (let index = 1; index < referenceActivities.length; index += 1) {
+  await request(pm, '/activity-dependencies', {
+    method: 'POST',
+    json: {
+      projectId: referenceProjectId,
+      predecessorActivityId: referenceActivities[index - 1].id,
+      successorActivityId: referenceActivities[index].id,
+      dependencyType: 'FS',
+      lagWorkDays: '0',
+    },
+    expected: 201,
+  });
+}
+
+const referencePlanned = await request(
+  pm,
+  '/schedule/projects/' + referenceProjectId + '/analysis?mode=planned',
+);
+check(
+  referencePlanned.data.data.projectFinishDate === '2026-10-28',
+  'V0.2-G reference programme did not finish on the independently expected 20th working day.',
+);
+for (const spec of referenceActivitySpecs) {
+  const calculated = referencePlanned.data.data.activities.find(
+    (item) => item.activityName === spec[1],
+  );
+  check(
+    calculated?.calculatedStartDate === spec[3] &&
+      calculated?.calculatedFinishDate === spec[4] &&
+      Number(calculated?.totalFloatWorkDays) === 0 &&
+      calculated?.isCritical === true,
+    'V0.2-G planned backend result mismatch for ' + spec[1] + '.',
+  );
+}
+
+const referenceBaseline = await request(pm, '/schedule-baselines/submit', {
+  method: 'POST',
+  json: {
+    projectId: referenceProjectId,
+    workflowCode: baselineWorkflowCode,
+  },
+  expected: 201,
+});
+const approvedReferenceBaseline = await request(
+  checker,
+  `/schedule-baselines/${referenceBaseline.data.data.id}/approve`,
+  {
+    method: 'POST',
+    json: { comment: 'Approve V0.2-G Groundworks reference baseline' },
+    expected: 201,
+  },
+);
+check(
+  approvedReferenceBaseline.data.data.isCurrent === true &&
+    approvedReferenceBaseline.data.data.activities.length === 9,
+  'V0.2-G reference baseline did not snapshot the summary plus eight detailed Activities.',
+);
+
+await request(pm, `/activities/${referenceSummary.data.data.id}`, {
+  method: 'PATCH',
+  json: {
+    forecastStartDate: '2026-10-02',
+    forecastFinishDate: '2026-10-29',
+  },
+});
+await request(pm, `/activities/${referenceActivities[0].id}`, {
+  method: 'PATCH',
+  json: {
+    actualStartDate: '2026-10-02',
+    actualFinishDate: '2026-10-02',
+    forecastStartDate: '2026-10-02',
+    forecastFinishDate: '2026-10-02',
+  },
+});
+await request(pm, `/activities/${referenceActivities[1].id}`, {
+  method: 'PATCH',
+  json: { actualStartDate: '2026-10-05' },
+});
+await request(pm, `/activity-progress/${referenceActivities[0].id}`, {
+  method: 'POST',
+  json: {
+    progressDate: '2026-10-02',
+    percentComplete: '100',
+    note: 'Setting Out completed one working day behind baseline.',
+  },
+  expected: 201,
+});
+await request(pm, `/activity-progress/${referenceActivities[1].id}`, {
+  method: 'POST',
+  json: {
+    progressDate: '2026-10-06',
+    percentComplete: '25',
+    note: 'Excavation first progress observation.',
+  },
+  expected: 201,
+});
+await request(pm, `/activity-progress/${referenceActivities[1].id}`, {
+  method: 'POST',
+  json: {
+    progressDate: '2026-10-07',
+    percentComplete: '50',
+    note: 'Excavation latest progress observation.',
+  },
+  expected: 201,
+});
+
+const referenceForecast = await request(
+  pm,
+  '/schedule/projects/' + referenceProjectId + '/analysis?mode=forecast',
+);
+check(
+  referenceForecast.data.data.projectFinishDate === '2026-10-29',
+  'V0.2-G one-working-day forecast delay did not move Project finish to 2026-10-29.',
+);
+for (const spec of referenceActivitySpecs) {
+  const calculated = referenceForecast.data.data.activities.find(
+    (item) => item.activityName === spec[1],
+  );
+  check(
+    calculated?.calculatedStartDate === spec[5] &&
+      calculated?.calculatedFinishDate === spec[6],
+    'V0.2-G forecast backend result mismatch for ' + spec[1] + '.',
+  );
+}
+
+const referenceGantt = await request(
+  pm,
+  '/schedule/projects/' + referenceProjectId + '/gantt',
+);
+check(
+  referenceGantt.data.data.currentBaseline?.versionNo === 1,
+  'V0.2-G Gantt did not use the approved reference baseline.',
+);
+for (const spec of referenceActivitySpecs) {
+  const backend = referenceForecast.data.data.activities.find(
+    (item) => item.activityName === spec[1],
+  );
+  const presented = referenceGantt.data.data.activities.find(
+    (item) => item.activityName === spec[1],
+  );
+  check(
+    String(presented?.forecastStartDate).slice(0, 10) ===
+        backend?.calculatedStartDate &&
+      String(presented?.forecastFinishDate).slice(0, 10) ===
+        backend?.calculatedFinishDate &&
+      String(presented?.baselineStartDate).slice(0, 10) === spec[3] &&
+      String(presented?.baselineFinishDate).slice(0, 10) === spec[4] &&
+      Number(presented?.totalFloatWorkDays) ===
+        Number(backend?.totalFloatWorkDays) &&
+      presented?.isCritical === backend?.isCritical &&
+      Number(presented?.delayWorkDays) === 1 &&
+      presented?.delayStatus === 'DELAYED',
+    'V0.2-G Gantt/backend agreement failed for ' + spec[1] + '.',
+  );
+}
+const referenceSettingOut = referenceGantt.data.data.activities.find(
+  (item) => item.activityName === 'Setting Out',
+);
+const referenceExcavation = referenceGantt.data.data.activities.find(
+  (item) => item.activityName === 'Excavation',
+);
+check(
+  String(referenceSettingOut?.actualStartDate).slice(0, 10) === '2026-10-02' &&
+    String(referenceSettingOut?.actualFinishDate).slice(0, 10) === '2026-10-02' &&
+    Number(referenceSettingOut?.currentPercentComplete) === 100,
+  'V0.2-G Setting Out actual/progress presentation mismatch.',
+);
+check(
+  String(referenceExcavation?.actualStartDate).slice(0, 10) === '2026-10-05' &&
+    Number(referenceExcavation?.currentPercentComplete) === 50,
+  'V0.2-G Excavation actual/progress presentation mismatch.',
+);
+
+const referenceTwoWeek = await request(
+  pm,
+  '/schedule/projects/' +
+    referenceProjectId +
+    '/lookahead?asOf=2026-10-01&days=14',
+);
+const referenceTwoWeekNames = new Set(
+  referenceTwoWeek.data.data.activities.map((item) => item.activityName),
+);
+for (const name of [
+  'Setting Out',
+  'Excavation',
+  'Compaction',
+  'Blinding Concrete',
+  'Formwork',
+]) {
+  check(
+    referenceTwoWeekNames.has(name),
+    'V0.2-G 2-week lookahead omitted ' + name + '.',
+  );
+}
+for (const name of ['Reinforcement', 'Inspection', 'Concrete Pour']) {
+  check(
+    !referenceTwoWeekNames.has(name),
+    'V0.2-G 2-week lookahead incorrectly included ' + name + '.',
+  );
+}
+
+const referenceFourWeek = await request(
+  pm,
+  '/schedule/projects/' +
+    referenceProjectId +
+    '/lookahead?asOf=2026-10-01&days=28',
+);
+const referenceFourWeekNames = new Set(
+  referenceFourWeek.data.data.activities.map((item) => item.activityName),
+);
+for (const spec of referenceActivitySpecs) {
+  check(
+    referenceFourWeekNames.has(spec[1]),
+    'V0.2-G 4-week lookahead omitted ' + spec[1] + '.',
+  );
+}
+record('V0.2-G 20-working-day Ground Floor Slab reference programme and Gantt/backend agreement');
+
 const documentType = await request(admin, '/document-types', {
   method: 'POST',
   json: {
@@ -756,6 +1121,88 @@ const downloaded = await request(pm, `/documents/projects/${projectId}/${documen
 const downloadedBytes = new Uint8Array(downloaded.data);
 check(downloadedBytes.length === bytes.length, 'Downloaded document size mismatch.');
 check(downloadedBytes.every((value, index) => value === bytes[index]), 'Downloaded document bytes mismatch.');
+const wbsDocumentBytes = new TextEncoder().encode(
+  '%PDF-1.4 WBS document ' + suffix,
+);
+const wbsDocumentForm = new FormData();
+wbsDocumentForm.set('documentTypeId', documentType.data.data.id);
+wbsDocumentForm.set(
+  'file',
+  new Blob([wbsDocumentBytes], { type: 'application/pdf' }),
+  'groundworks-plan-' + suffix + '.pdf',
+);
+const wbsDocument = await request(
+  pm,
+  '/documents/projects/' +
+    projectId +
+    '/targets/WBS/' +
+    rootWbs.data.data.id,
+  {
+    method: 'POST',
+    body: wbsDocumentForm,
+    expected: 201,
+  },
+);
+const wbsDocumentList = await request(
+  pm,
+  '/documents/projects/' +
+    projectId +
+    '/targets/WBS/' +
+    rootWbs.data.data.id,
+);
+check(
+  wbsDocumentList.data.data.some(
+    (item) => item.id === wbsDocument.data.data.id,
+  ) &&
+    !JSON.stringify(wbsDocumentList.data).includes('storageKey'),
+  'WBS Document link/list did not preserve the secure Documents boundary.',
+);
+
+const activityDocumentBytes = new TextEncoder().encode(
+  '%PDF-1.4 Activity document ' + suffix,
+);
+const activityDocumentForm = new FormData();
+activityDocumentForm.set('documentTypeId', documentType.data.data.id);
+activityDocumentForm.set(
+  'file',
+  new Blob([activityDocumentBytes], { type: 'application/pdf' }),
+  'excavation-method-' + suffix + '.pdf',
+);
+const activityDocument = await request(
+  pm,
+  '/documents/projects/' +
+    projectId +
+    '/targets/ACTIVITY/' +
+    activityA.data.data.id,
+  {
+    method: 'POST',
+    body: activityDocumentForm,
+    expected: 201,
+  },
+);
+const activityDocumentDownload = await request(
+  pm,
+  '/documents/projects/' +
+    projectId +
+    '/targets/ACTIVITY/' +
+    activityA.data.data.id +
+    '/' +
+    activityDocument.data.data.id +
+    '/download',
+  { accept: '*/*' },
+);
+const activityDownloadedBytes = new Uint8Array(
+  activityDocumentDownload.data,
+);
+check(
+  activityDownloadedBytes.length === activityDocumentBytes.length &&
+    activityDownloadedBytes.every(
+      (value, index) => value === activityDocumentBytes[index],
+    ),
+  'Activity Document link/download did not retain the original bytes.',
+);
+record('V0.2 DOC-006 WBS and Activity documents through live HTTP API');
+
 record('secure document upload, metadata listing and byte-for-byte download');
 
 const equipmentType = await request(pm, '/equipment/types', {
@@ -1119,6 +1566,44 @@ check(
   'Corrected Daily Site Report Equipment Usage was not appended to canonical history.',
 );
 
+const reportingProjects = await request(pm, '/reporting/projects');
+check(
+  reportingProjects.data.data.some((item) => item.id === projectId),
+  'Operational reporting Project selector did not respect the assigned Project.',
+);
+const projectEngineerDashboard = await request(
+  pm,
+  '/reporting/projects/' +
+    projectId +
+    '/project-engineer?asOf=2026-10-10&days=14',
+);
+check(
+  projectEngineerDashboard.data.data.project?.id === projectId &&
+    projectEngineerDashboard.data.data.schedule?.summary?.total >= 2 &&
+    projectEngineerDashboard.data.data.schedule?.currentBaseline?.versionNo === 1,
+  'Project Engineer Dashboard did not expose current Project/Scheduling source data.',
+);
+check(
+  projectEngineerDashboard.data.data.siteExecution?.latestReports?.some(
+    (item) =>
+      item.id === dailyReportId &&
+      Number(item.totalManpower) === 10 &&
+      Number(item.counts?.equipmentUsage) === 1,
+  ),
+  'Project Engineer Dashboard did not expose current Daily Site Report source data.',
+);
+check(
+  projectEngineerDashboard.data.data.equipment?.assignments?.some(
+    (item) => item.equipment?.id === equipmentId,
+  ),
+  'Project Engineer Dashboard did not expose current assigned operational Equipment.',
+);
+check(
+  projectEngineerDashboard.data.data.schedule?.lookahead?.window?.days === 14,
+  'Project Engineer Dashboard did not use the approved lookahead read model.',
+);
+record('V0.2 RPT-001/RPT-002 operational reporting and Project Engineer Dashboard');
+
 await request(pm, '/equipment/register/' + equipmentId, {
   method: 'PATCH',
   json: { operationalStatus: 'UNAVAILABLE' },
@@ -1186,7 +1671,22 @@ await request(
   '/equipment/usage?projectId=' + projectId,
   { expected: 403 },
 );
-record('unassigned Project, Document, Scheduling, Site Execution and Equipment access denied');
+await request(
+  unassigned,
+  '/documents/projects/' +
+    projectId +
+    '/targets/WBS/' +
+    rootWbs.data.data.id,
+  { expected: 403 },
+);
+await request(
+  unassigned,
+  '/reporting/projects/' +
+    projectId +
+    '/project-engineer?asOf=2026-10-10&days=14',
+  { expected: 403 },
+);
+record('unassigned Project, Document, Scheduling, Site Execution, Equipment and Reporting access denied');
 
 await logout(pm);
 await request(pm, '/auth/me', { expected: 401 });

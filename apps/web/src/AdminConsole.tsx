@@ -23,6 +23,7 @@ import { SystemSettingsPanel } from './admin/SystemSettingsPanel';
 import { UsersPanel } from './admin/UsersPanel';
 import { MasterDataPanel } from './master-data/MasterDataPanel';
 import { ProjectsPanel } from './projects/ProjectsPanel';
+import { ProjectEngineerDashboard } from './reporting/ProjectEngineerDashboard';
 import { SchedulingPanel } from './scheduling/SchedulingPanel';
 import { SiteExecutionPanel } from './site-execution/SiteExecutionPanel';
 import { DocumentsPanel } from './documents/DocumentsPanel';
@@ -43,6 +44,12 @@ export function AdminConsole({ user }: { user: CurrentUser }) {
   const sections = useMemo<Section[]>(
     () =>
       [
+        {
+          key: 'project-engineer',
+          label: 'Project Engineer',
+          permission: 'reporting.operational.view',
+          content: <ProjectEngineerDashboard />,
+        },
         {
           key: 'equipment',
           label: 'Equipment',

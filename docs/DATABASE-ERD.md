@@ -2296,6 +2296,22 @@ flowchart LR
 
 ---
 
+## 18.4 Document Target Traceability
+
+The Documents module remains the single owner of document metadata and file storage. Generic `document_links` provides Project, WBS, Activity and Daily Site Report references without copying file bytes or creating module-specific document tables.
+
+Rules enforced in V0.2 release closure:
+
+- the Document and linking User belong to the same Company;
+- the target entity exists and belongs to the same Company;
+- WBS, Activity and Daily Site Report target links require an existing Project link for the same target Project;
+- WBS and Activity target APIs enforce effective Project scope;
+- storage keys remain server-only and target-specific reads/downloads use the same secure Project document path.
+
+Operational reporting does not add persistent reporting tables in V0.2. The Project Engineer dashboard is derived at read time from Project, Scheduling, Site Execution and Equipment source records.
+
+---
+
 # 19. Key Cardinality Rules
 
 | Relationship | Cardinality |
@@ -2403,6 +2419,7 @@ Examples:
 - stock transaction has the correct source transaction reference
 - generic approval entity_type/entity_id references a valid target
 - generic document link references a valid target
+- WBS/Activity/Daily Site Report document links remain in the same Company and require a matching Project link
 - approved baseline immutability
 - submitted Daily Site Report immutability and append-only corrections
 - Daily Site Report Activity/WBS/Material/UOM scope integrity
