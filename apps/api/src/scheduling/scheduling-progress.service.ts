@@ -468,6 +468,9 @@ export class SchedulingProgressService {
           wbs: {
             select: { id: true, wbsCode: true, wbsName: true },
           },
+          statusDefinition: {
+            select: { id: true, statusCode: true, statusLabel: true },
+          },
           workingCalendar: {
             include: {
               weekdays: { orderBy: { weekdayNo: 'asc' } },
@@ -560,6 +563,9 @@ export class SchedulingProgressService {
         wbs: activity.wbs,
         isSummary: activity.isSummary,
         isMilestone: activity.isMilestone,
+        plannedDurationWorkDays:
+          activity.plannedDurationWorkDays.toNumber(),
+        activityStatus: activity.statusDefinition,
         currentPercentComplete:
           latestProgress?.percentComplete.toNumber() ?? null,
         actualStartDate: activity.actualStartDate,
