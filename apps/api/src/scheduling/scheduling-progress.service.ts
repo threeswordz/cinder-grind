@@ -19,6 +19,7 @@ import {
   ScheduleEngineError,
   calculateWorkingDayVariance,
 } from './schedule-engine';
+import { isInLookahead, lookaheadWindow } from './scheduling-presentation';
 import { SchedulingService } from './scheduling.service';
 
 type AuditContext = {
@@ -585,6 +586,64 @@ export class SchedulingProgressService {
           }
         : null,
       activities: rows,
+    };
+  }
+
+  async presentation(
+    auth: AuthenticatedUserContext,
+    projectId: string,
+  ) {
+    const [comparison, analysis, dependencies] = await Promise.all([
+      this.comparison(auth, projectId),
+      this.scheduling.scheduleAnalysis(auth, projectId, 'forecast'),
+      this.scheduling.listDependencies(auth, projectId, true),
+    ]);
+
+    const analysisById = new Map(
+      analysis.activities.map((row) => [row.id, row]),
+    );
+    const predecessorsBySuccessor = new Map<string, string[]>();
+    for (const dependency of dependencies) {
+      const predecessors =
+        predecessorsBySuccessor.get(dependency.successorActivityId) ?? [];
+      predecessors.push(dependency.predecessorActivityId);
+      predecessorsBySuccessor.set(
+        dependency.successorActivityId,
+        predecessors,
+      );
+    }
+
+    return {
+      projectId,
+      currentBaseline: comparison.currentBaseline,
+      activities: comparison.activities.map((row) => {
+        const schedule = analysisById.get(row.activityId);
+        return {
+          ...row,
+          totalFloatWorkDays: schedule?.totalFloatWorkDays ?? null,
+          isCritical: schedule?.isCritical ?? false,
+          predecessorActivityIds:
+            predecessorsBySuccessor.get(row.activityId) ?? [],
+        };
+      }),
+    };
+  }
+
+  async lookahead(
+    auth: AuthenticatedUserContext,
+    projectId: string,
+    asOf: Date,
+    days: 14 | 28,
+  ) {
+    const presentation = await this.presentation(auth, projectId);
+    const window = lookaheadWindow(asOf, days);
+
+    return {
+      ...presentation,
+      window,
+      activities: presentation.activities.filter((activity) =>
+        isInLookahead(activity, asOf, days),
+      ),
     };
   }
 
