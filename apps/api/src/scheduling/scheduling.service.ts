@@ -603,17 +603,17 @@ export class SchedulingService {
 
   async updateActivity(
     context: AuditContext,
-    projectId: string,
     id: string,
     data: ActivityInput,
   ) {
     try {
       return await this.prisma.$transaction(async (tx) => {
-        await this.access.assertAccess(context.auth, projectId, tx);
         const before = await tx.activity.findFirst({
-          where: { id, projectId, companyId: context.auth.companyId },
+          where: { id, companyId: context.auth.companyId },
         });
         if (!before) throw this.notFound('ACTIVITY_NOT_FOUND', 'Activity');
+        const projectId = before.projectId;
+        await this.access.assertAccess(context.auth, projectId, tx);
 
         if (data.parentActivityId === id) {
           throw new UnprocessableEntityException({
@@ -678,16 +678,15 @@ export class SchedulingService {
 
   async setActivityActive(
     context: AuditContext,
-    projectId: string,
     id: string,
     isActive: boolean,
   ) {
     return this.prisma.$transaction(async (tx) => {
-      await this.access.assertAccess(context.auth, projectId, tx);
       const before = await tx.activity.findFirst({
-        where: { id, projectId, companyId: context.auth.companyId },
+        where: { id, companyId: context.auth.companyId },
       });
       if (!before) throw this.notFound('ACTIVITY_NOT_FOUND', 'Activity');
+      await this.access.assertAccess(context.auth, before.projectId, tx);
       const after = await tx.activity.update({ where: { id }, data: { isActive } });
       await this.audit.record(
         {
@@ -769,17 +768,17 @@ export class SchedulingService {
 
   async updateDependency(
     context: AuditContext,
-    projectId: string,
     id: string,
     data: DependencyInput,
   ) {
     try {
       return await this.prisma.$transaction(async (tx) => {
-        await this.access.assertAccess(context.auth, projectId, tx);
         const before = await tx.activityDependency.findFirst({
-          where: { id, projectId },
+          where: { id },
         });
         if (!before) throw this.notFound('ACTIVITY_DEPENDENCY_NOT_FOUND', 'Activity Dependency');
+        const projectId = before.projectId;
+        await this.access.assertAccess(context.auth, projectId, tx);
 
         const predecessorActivityId =
           data.predecessorActivityId ?? before.predecessorActivityId;
@@ -814,16 +813,15 @@ export class SchedulingService {
 
   async setDependencyActive(
     context: AuditContext,
-    projectId: string,
     id: string,
     isActive: boolean,
   ) {
     return this.prisma.$transaction(async (tx) => {
-      await this.access.assertAccess(context.auth, projectId, tx);
       const before = await tx.activityDependency.findFirst({
-        where: { id, projectId },
+        where: { id },
       });
       if (!before) throw this.notFound('ACTIVITY_DEPENDENCY_NOT_FOUND', 'Activity Dependency');
+      await this.access.assertAccess(context.auth, before.projectId, tx);
       const after = await tx.activityDependency.update({
         where: { id },
         data: { isActive },
