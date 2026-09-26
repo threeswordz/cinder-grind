@@ -4,19 +4,18 @@
 **Source of truth:** Live GitHub repository state
 
 - Current Release: V0.1 Foundation
-- Current Stage: V0.1-F WBS & Cost Codes — IN PROGRESS
-- Completed Stages: V0.1-A Technical Skeleton; V0.1-B Company / Identity / Security; V0.1-C Administration; V0.1-D Master Data; V0.1-E Projects
-- Active Issue: #23 — V0.1-F WBS & Cost Codes
-- Active Branch: `v0.1-f-wbs-cost-codes`
-- Active PR: #24 — ready for final validation
+- Current Stage: V0.1-G Basic Documents — NEXT
+- Completed Stages: V0.1-A Technical Skeleton; V0.1-B Company / Identity / Security; V0.1-C Administration; V0.1-D Master Data; V0.1-E Projects; V0.1-F WBS & Cost Codes
+- Completed Issue: #23 — V0.1-F WBS & Cost Codes
+- Merged PR: #24 — V0.1-F WBS & Cost Codes
 - Previous completed Issue: #20 — V0.1-E Projects
 - Previous merged PR: #22 — V0.1-E Projects
-- Latest verified main commit: `ff4cc9ce0533675ec7fcfab866a4a962071803c6` — V0.1-E: Projects (#22)
+- Latest verified main commit: `7bce190c412cd71222816428f04420be2a9278c9` — V0.1-F: WBS & Cost Codes (#24)
 - Final Stage E PR CI: Validate Construction ERP run #351 — SUCCESS
 - Project creation scope decision: Option A — APPROVED. A scoped creator must have an active Employee link and is atomically added to the initial Project Team.
-- Latest Stage F code CI: Validate Construction ERP run #401 — SUCCESS on `f748b96e56ae7c5b032568f3f5899e5ba64cec01`.
+- Final Stage F PR CI: Validate Construction ERP run #403 — SUCCESS on `ce649c16b139f2ebb81d0fa71fce7420fbde4b79`.
 - Stage F final review: no unresolved review threads, no scope creep into Activities/Scheduling, BOQ/Budget, Procurement or transaction allocations.
-- Next action: Validate this final documentation/checkpoint head, then merge PR #24 and move to Stage G.
+- Next action: Open and implement V0.1-G Basic Documents from approved DOC-001 through DOC-005 and the V0.1 document acceptance criteria.
 
 ## Stage E completed
 
@@ -34,7 +33,7 @@
 This file is a concise checkpoint only. Re-check live GitHub Issues, branches, PRs, commits and CI before modifying a stage.
 
 
-## Stage F implementation complete pending final merge
+## Stage F completed
 
 - Hierarchical Project WBS with code, name, description and active/inactive lifecycle
 - Database trigger preventing cross-Project WBS parent relationships and hierarchy cycles
