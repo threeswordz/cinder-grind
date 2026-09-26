@@ -320,7 +320,7 @@ export class BudgetController {
         ? { sortOrder: budgetInteger(input.sortOrder, 'sortOrder') }
         : {}),
       ...(input.isActive !== undefined
-        ? { isActive: budgetBoolean(input, 'isActive') }
+        ? { isActive: budgetBoolean(input, 'isActive')! }
         : {}),
     };
     budgetNonEmpty(data);
