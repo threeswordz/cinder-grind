@@ -23,9 +23,11 @@ import { AdminPermission, AdminRole, adminApi } from '../api/admin';
 function RoleEditor({
   role,
   permissions,
+  canAssignPermissions,
 }: {
   role: AdminRole;
   permissions: AdminPermission[];
+  canAssignPermissions: boolean;
 }) {
   const queryClient = useQueryClient();
   const [permissionCodes, setPermissionCodes] = useState<string[]>(
@@ -80,50 +82,56 @@ function RoleEditor({
             </Typography>
           </div>
 
-          <FormControl fullWidth>
-            <InputLabel id={'permissions-' + role.id}>
-              System-defined Permissions
-            </InputLabel>
-            <Select
-              labelId={'permissions-' + role.id}
-              multiple
-              value={permissionCodes}
-              onChange={handleChange}
-              input={<OutlinedInput label="System-defined Permissions" />}
-              renderValue={(selected) => selected.join(', ')}
-            >
-              {permissions.map((permission) => (
-                <MenuItem
-                  key={permission.permissionCode}
-                  value={permission.permissionCode}
+          {canAssignPermissions ? (
+            <>
+              <FormControl fullWidth>
+                <InputLabel id={'permissions-' + role.id}>
+                  System-defined Permissions
+                </InputLabel>
+                <Select
+                  labelId={'permissions-' + role.id}
+                  multiple
+                  value={permissionCodes}
+                  onChange={handleChange}
+                  input={<OutlinedInput label="System-defined Permissions" />}
+                  renderValue={(selected) => selected.join(', ')}
                 >
-                  <Checkbox
-                    checked={permissionCodes.includes(
-                      permission.permissionCode,
-                    )}
-                  />
-                  <ListItemText
-                    primary={permission.permissionCode}
-                    secondary={permission.description}
-                  />
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+                  {permissions.map((permission) => (
+                    <MenuItem
+                      key={permission.permissionCode}
+                      value={permission.permissionCode}
+                    >
+                      <Checkbox
+                        checked={permissionCodes.includes(
+                          permission.permissionCode,
+                        )}
+                      />
+                      <ListItemText
+                        primary={permission.permissionCode}
+                        secondary={permission.description}
+                      />
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
 
-          <Alert severity="info">
-            Permission definitions are system-defined. This screen assigns
-            existing Permissions to Roles; it cannot invent permission codes.
-          </Alert>
+              <Alert severity="info">
+                Permission definitions are system-defined. This screen assigns
+                existing Permissions to Roles; it cannot invent permission codes.
+              </Alert>
+            </>
+          ) : null}
 
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
-            <Button
-              variant="outlined"
-              onClick={() => save.mutate()}
-              disabled={save.isPending}
-            >
-              Save Permissions
-            </Button>
+            {canAssignPermissions ? (
+              <Button
+                variant="outlined"
+                onClick={() => save.mutate()}
+                disabled={save.isPending}
+              >
+                Save Permissions
+              </Button>
+            ) : null}
             <Button
               color={role.isActive ? 'warning' : 'success'}
               onClick={() => toggle.mutate()}
@@ -138,7 +146,11 @@ function RoleEditor({
   );
 }
 
-export function RolesPanel() {
+export function RolesPanel({
+  canAssignPermissions,
+}: {
+  canAssignPermissions: boolean;
+}) {
   const queryClient = useQueryClient();
   const rolesQuery = useQuery({
     queryKey: ['admin', 'roles'],
@@ -147,6 +159,7 @@ export function RolesPanel() {
   const permissionsQuery = useQuery({
     queryKey: ['admin', 'permissions'],
     queryFn: adminApi.permissions,
+    enabled: canAssignPermissions,
   });
 
   const [roleCode, setRoleCode] = useState('');
@@ -215,6 +228,7 @@ export function RolesPanel() {
             key={role.id}
             role={role}
             permissions={permissionsQuery.data?.data ?? []}
+            canAssignPermissions={canAssignPermissions}
           />
         ))}
       </Stack>
