@@ -44,6 +44,8 @@ model Company {
   equipment           Equipment[]
   equipmentAssignments EquipmentAssignment[]
   equipmentUsage      EquipmentUsage[]
+  boqs                 Boq[]
+  budgetRevisions      BudgetRevision[]
 
   @@map("companies")
 }
@@ -102,6 +104,8 @@ model UnitOfMeasure {
   company   Company    @relation(fields: [companyId], references: [id], onDelete: Restrict)
   materials Material[]
   dailySiteReportMaterialUsage DailySiteReportMaterialUsage[]
+  boqItems                     BoqItem[]
+  budgetRevisionLines          BudgetRevisionLine[]
 
   @@unique([companyId, uomCode])
   @@index([companyId, isActive])
@@ -179,6 +183,7 @@ model User {
   submittedDailySiteReports   DailySiteReport[] @relation("DailySiteReportSubmitter")
   dailySiteReportCorrections  DailySiteReportCorrection[] @relation("DailySiteReportCorrectionCreator")
   recordedEquipmentUsage      EquipmentUsage[] @relation("EquipmentUsageRecorder")
+  submittedBudgetRevisions     BudgetRevision[] @relation("BudgetRevisionSubmitter")
 
   @@unique([companyId, email])
   @@index([companyId, isActive])
@@ -328,6 +333,7 @@ model ApprovalInstance {
   workflow ApprovalWorkflow   @relation(fields: [approvalWorkflowId], references: [id], onDelete: Restrict)
   actions          ApprovalAction[]
   scheduleBaseline ScheduleBaseline?
+  budgetRevision   BudgetRevision?
 
   @@index([companyId, entityType, entityId])
   @@index([approvalWorkflowId, approvalState])
@@ -455,6 +461,8 @@ model Project {
   dailySiteReports       DailySiteReport[]
   equipmentAssignments   EquipmentAssignment[]
   equipmentUsage         EquipmentUsage[]
+  boq                    Boq?
+  budgetRevisions        BudgetRevision[]
 
   @@unique([companyId, projectCode])
   @@index([companyId, isActive])
@@ -521,6 +529,8 @@ model WbsElement {
   dailySiteReportMaterialUsage DailySiteReportMaterialUsage[]
   equipmentUsage               EquipmentUsage[]
   dailySiteReportEquipmentUsage DailySiteReportEquipmentUsage[]
+  boqItems                      BoqItem[]
+  budgetRevisionLines           BudgetRevisionLine[]
 
   @@unique([projectId, wbsCode])
   @@index([projectId, parentId, isActive])
@@ -537,7 +547,9 @@ model CostCode {
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  company Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  company             Company              @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  boqItems             BoqItem[]
+  budgetRevisionLines  BudgetRevisionLine[]
 
   @@unique([companyId, costCode])
   @@index([companyId, isActive])
@@ -1097,4 +1109,130 @@ model DailySiteReportEquipmentUsage {
   @@index([activityId])
   @@index([wbsId])
   @@map("daily_site_report_equipment_usage")
+}
+
+model Boq {
+  id        String   @id @default(uuid()) @db.Uuid
+  companyId String   @map("company_id") @db.Uuid
+  projectId String   @unique @map("project_id") @db.Uuid
+  boqName   String   @default("Project BOQ") @map("boq_name") @db.VarChar(200)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  company  Company      @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  project  Project      @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  sections BoqSection[]
+  items    BoqItem[]
+
+  @@index([companyId])
+  @@map("boqs")
+}
+
+model BoqSection {
+  id          String   @id @default(uuid()) @db.Uuid
+  boqId       String   @map("boq_id") @db.Uuid
+  sectionCode String   @map("section_code") @db.VarChar(80)
+  sectionName String   @map("section_name") @db.VarChar(200)
+  description String?  @db.Text
+  sortOrder   Int      @default(0) @map("sort_order")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  boq   Boq       @relation(fields: [boqId], references: [id], onDelete: Restrict)
+  items BoqItem[]
+
+  @@unique([boqId, sectionCode])
+  @@index([boqId, isActive, sortOrder])
+  @@map("boq_sections")
+}
+
+model BoqItem {
+  id         String   @id @default(uuid()) @db.Uuid
+  boqId      String   @map("boq_id") @db.Uuid
+  sectionId  String   @map("section_id") @db.Uuid
+  itemCode   String   @map("item_code") @db.VarChar(80)
+  description String  @db.VarChar(500)
+  quantity   Decimal  @db.Decimal(18, 4)
+  uomId      String   @map("uom_id") @db.Uuid
+  rate       Decimal  @db.Decimal(18, 4)
+  amount     Decimal  @db.Decimal(20, 4)
+  wbsId      String?  @map("wbs_id") @db.Uuid
+  costCodeId String?  @map("cost_code_id") @db.Uuid
+  sortOrder  Int      @default(0) @map("sort_order")
+  isActive   Boolean  @default(true) @map("is_active")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  boq        Boq             @relation(fields: [boqId], references: [id], onDelete: Restrict)
+  section    BoqSection      @relation(fields: [sectionId], references: [id], onDelete: Restrict)
+  uom        UnitOfMeasure   @relation(fields: [uomId], references: [id], onDelete: Restrict)
+  wbs        WbsElement?     @relation(fields: [wbsId], references: [id], onDelete: Restrict)
+  costCode   CostCode?       @relation(fields: [costCodeId], references: [id], onDelete: Restrict)
+  revisionLines BudgetRevisionLine[]
+
+  @@unique([boqId, itemCode])
+  @@index([boqId, sectionId, isActive, sortOrder])
+  @@index([wbsId])
+  @@index([costCodeId])
+  @@index([uomId])
+  @@map("boq_items")
+}
+
+model BudgetRevision {
+  id                 String   @id @default(uuid()) @db.Uuid
+  companyId          String   @map("company_id") @db.Uuid
+  projectId          String   @map("project_id") @db.Uuid
+  revisionNo         Int      @map("revision_no")
+  revisionNumber     String   @map("revision_number") @db.VarChar(120)
+  approvalInstanceId String?  @unique @map("approval_instance_id") @db.Uuid
+  submittedByUserId  String   @map("submitted_by_user_id") @db.Uuid
+  submittedAt        DateTime @default(now()) @map("submitted_at") @db.Timestamptz(6)
+  revisionNote       String?  @map("revision_note") @db.Text
+
+  company          Company           @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  project          Project           @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  approvalInstance ApprovalInstance? @relation(fields: [approvalInstanceId], references: [id], onDelete: Restrict)
+  submittedBy      User              @relation("BudgetRevisionSubmitter", fields: [submittedByUserId], references: [id], onDelete: Restrict)
+  lines            BudgetRevisionLine[]
+
+  @@unique([companyId, revisionNumber])
+  @@unique([projectId, revisionNo])
+  @@index([companyId, projectId, submittedAt])
+  @@map("budget_revisions")
+}
+
+model BudgetRevisionLine {
+  id               String   @id @default(uuid()) @db.Uuid
+  budgetRevisionId String   @map("budget_revision_id") @db.Uuid
+  boqItemId        String   @map("boq_item_id") @db.Uuid
+  sectionCode      String   @map("section_code") @db.VarChar(80)
+  sectionName      String   @map("section_name") @db.VarChar(200)
+  itemCode         String   @map("item_code") @db.VarChar(80)
+  description      String   @db.VarChar(500)
+  quantity         Decimal  @db.Decimal(18, 4)
+  uomId            String   @map("uom_id") @db.Uuid
+  uomCode          String   @map("uom_code") @db.VarChar(30)
+  uomName          String   @map("uom_name") @db.VarChar(100)
+  rate             Decimal  @db.Decimal(18, 4)
+  amount           Decimal  @db.Decimal(20, 4)
+  wbsId            String?  @map("wbs_id") @db.Uuid
+  wbsCode          String?  @map("wbs_code") @db.VarChar(80)
+  wbsName          String?  @map("wbs_name") @db.VarChar(200)
+  costCodeId       String?  @map("cost_code_id") @db.Uuid
+  costCode         String?  @map("cost_code") @db.VarChar(80)
+  costName         String?  @map("cost_name") @db.VarChar(200)
+  sortOrder        Int      @default(0) @map("sort_order")
+
+  budgetRevision BudgetRevision @relation(fields: [budgetRevisionId], references: [id], onDelete: Restrict)
+  boqItem        BoqItem        @relation(fields: [boqItemId], references: [id], onDelete: Restrict)
+  uom            UnitOfMeasure  @relation(fields: [uomId], references: [id], onDelete: Restrict)
+  wbs            WbsElement?    @relation(fields: [wbsId], references: [id], onDelete: Restrict)
+  costCodeRef    CostCode?      @relation(fields: [costCodeId], references: [id], onDelete: Restrict)
+
+  @@unique([budgetRevisionId, boqItemId])
+  @@index([budgetRevisionId, sectionCode, sortOrder])
+  @@index([wbsId])
+  @@index([costCodeId])
+  @@map("budget_revision_lines")
 }
