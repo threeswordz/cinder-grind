@@ -4,9 +4,11 @@
 **Source of truth:** Live GitHub repository state
 
 - Current Release: V0.2 Project & Scheduling
-- Current Stage: V0.2-C Baselines / Progress — PRE-FLIGHT
+- Current Stage: V0.2-C Baselines / Progress — ACTIVE
 - Completed Stages: V0.1-A Technical Skeleton; V0.1-B Company / Identity / Security; V0.1-C Administration; V0.1-D Master Data; V0.1-E Projects; V0.1-F WBS & Cost Codes; V0.1-G Basic Documents; V0.1-H Integration / Regression / UAT; V0.2-A Scheduling Data Model; V0.2-B Scheduling Engine
-- Active Issue: #38 — V0.2-C Baselines / Progress — Business Rules
+- Active Issue: #40 — V0.2-C Baselines / Progress
+- Active Branch: `v0.2-c-baselines-progress`
+- Completed Issue: #38 — V0.2-C Baselines / Progress — Business Rules
 - Completed Issue: #36 — V0.2-B Scheduling Engine
 - Completed Branch: `v0.2-b-scheduling-engine`
 - Completed Issue: #35 — V0.2-B Scheduling Engine — Calculation Rules
@@ -189,3 +191,13 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - Issue #38 records the unresolved Product / Business Owner rules for baseline approval/versioning, baseline snapshot content, progress-history corrections, explicit actual dates and delay calculation.
 - Existing configurable Approval Matrix can support baseline approval without hard-coding approver Roles.
 - Stage C implementation is paused until Issue #38 rules are approved or replaced.
+
+
+## V0.2-C active
+
+- Product / Business Owner approved all six Baselines / Progress rules on 2026-09-26.
+- DEC-010 is authoritative for approval, versioning, snapshot, progress, actual-date and delay semantics.
+- Issue #40 is the active implementation work item.
+- Branch: `v0.2-c-baselines-progress`.
+- superseded Issue #39 is closed and must not be used as a business-rule source.
+- Stage C reuses the existing Approval Matrix and introduces no paid dependency.
