@@ -16,11 +16,14 @@ test('WBS scope, hierarchy and independent Cost Codes are enforced in PostgreSQL
  const scoped=auth(company.id,user.id,['wbs.wbs.view','wbs.wbs.create','wbs.wbs.edit','wbs.wbs.archive','wbs.cost_code.view','wbs.cost_code.create','wbs.cost_code.edit','wbs.cost_code.archive']);
  const all=auth(company.id,allUser.id,['projects.access_all','wbs.wbs.view','wbs.wbs.create']);
  const root=await svc.createWbs({auth:scoped},project.id,{wbsCode:'1',wbsName:'Root'});const child=await svc.createWbs({auth:scoped},project.id,{parentId:root.id,wbsCode:'1.1',wbsName:'Child'});assert.equal(child.parentId,root.id);
+ await assert.rejects(()=>svc.updateWbs({auth:scoped},project.id,root.id,{parentId:child.id}),(e:unknown)=>e instanceof UnprocessableEntityException);
+ await assert.rejects(()=>prisma.wbsElement.update({where:{id:root.id},data:{parentId:child.id}}));
  await assert.rejects(()=>svc.listWbs(scoped,unassigned.id),(e:unknown)=>e instanceof ForbiddenException);assert.equal((await svc.projects(scoped)).length,1);assert.equal((await svc.projects(all)).length,2);
  const foreign=await prisma.wbsElement.create({data:{projectId:unassigned.id,wbsCode:'X',wbsName:'Foreign'}});
  await assert.rejects(()=>svc.createWbs({auth:scoped},project.id,{parentId:foreign.id,wbsCode:'BAD',wbsName:'Bad'}),(e:unknown)=>e instanceof UnprocessableEntityException);
  await assert.rejects(()=>prisma.wbsElement.create({data:{projectId:project.id,parentId:foreign.id,wbsCode:'DBBAD',wbsName:'DB Bad'}}));
  const cc=await svc.createCostCode({auth:scoped},{costCode:'LAB',costName:'Labour'});assert.equal(cc.companyId,company.id);assert.equal((await svc.listCostCodes(scoped)).length,1);
+ const archivedWbs=await svc.setWbsActive({auth:scoped},project.id,child.id,false);assert.equal(archivedWbs.isActive,false);const archivedCc=await svc.setCostCodeActive({auth:scoped},cc.id,false);assert.equal(archivedCc.isActive,false);
  await prisma.costCode.create({data:{companyId:other.id,costCode:'LAB',costName:'Other Labour'}});assert.equal((await svc.listCostCodes(scoped)).length,1);
  const fields=Prisma.dmmf.datamodel.models.find(m=>m.name==='CostCode')!.fields.map(f=>f.name);assert.equal(fields.includes('wbsId'),false);assert.equal(fields.includes('wbs'),false);
  assert.equal((await prisma.wbsElement.findMany({where:{projectId:otherProject.id}})).length,0);
