@@ -137,6 +137,7 @@ CREATE TABLE "activity_dependencies" (
   "successor_activity_id" UUID NOT NULL,
   "dependency_type" VARCHAR(2) NOT NULL,
   "lag_work_days" DECIMAL(8,2) NOT NULL DEFAULT 0,
+  "is_active" BOOLEAN NOT NULL DEFAULT true,
   "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "updated_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT "activity_dependencies_pkey" PRIMARY KEY ("id"),
@@ -149,8 +150,8 @@ CREATE TABLE "activity_dependencies" (
 
 CREATE UNIQUE INDEX "activity_dependencies_predecessor_activity_id_successor_activity_id_dependency_type_key"
   ON "activity_dependencies"("predecessor_activity_id", "successor_activity_id", "dependency_type");
-CREATE INDEX "activity_dependencies_project_id_idx"
-  ON "activity_dependencies"("project_id");
+CREATE INDEX "activity_dependencies_project_id_is_active_idx"
+  ON "activity_dependencies"("project_id", "is_active");
 CREATE INDEX "activity_dependencies_successor_activity_id_idx"
   ON "activity_dependencies"("successor_activity_id");
 
