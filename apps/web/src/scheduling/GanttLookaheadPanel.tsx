@@ -48,13 +48,13 @@ function statusLabel(activity: Activity) {
 }
 
 function taskClass(activity: Activity) {
-  return [
-    activity.isCritical ? 'erp-critical' : '',
-    activity.delayStatus === 'DELAYED' ? 'erp-delayed' : '',
-    activity.isMilestone ? 'erp-milestone' : '',
-  ]
-    .filter(Boolean)
-    .join(' ');
+  if (activity.isMilestone) return 'erp-milestone';
+  if (activity.isCritical && activity.delayStatus === 'DELAYED') {
+    return 'erp-critical-delayed';
+  }
+  if (activity.isCritical) return 'erp-critical';
+  if (activity.delayStatus === 'DELAYED') return 'erp-delayed';
+  return '';
 }
 
 export function GanttLookaheadPanel() {
@@ -271,8 +271,12 @@ export function GanttLookaheadPanel() {
                   minHeight: tasks.length ? 260 : 80,
                   overflowX: 'auto',
                   '& .gantt-container': { minWidth: 700 },
-                  '& .erp-critical .bar': { strokeWidth: 2 },
-                  '& .erp-delayed .bar': { opacity: 0.78 },
+                  '& .erp-critical .bar, & .erp-critical-delayed .bar': {
+                    strokeWidth: 2,
+                  },
+                  '& .erp-delayed .bar, & .erp-critical-delayed .bar': {
+                    opacity: 0.78,
+                  },
                   '& .erp-milestone .bar': { strokeWidth: 2 },
                 }}
               />
