@@ -25,7 +25,8 @@
 - Stage H release-candidate CI: Validate Construction ERP run #460 — SUCCESS on `dc013e731fcef6ab3e3d945f13047fa96c5b4d2e`.
 - V0.1 cross-module release acceptance scenario: PASS in CI #460.
 - Open defect check: no open defect Issue exists; only Stage H tracking Issue #27 is open.
-- Next action: revalidate this documentation checkpoint head, then execute the documented Staging/UAT smoke and manual V0.1 UAT; Product / Business Owner acceptance remains the final human gate.
+- Governance: `AGENTS.md`, `docs/PROJECT-GOVERNANCE.md`, PR governance checklist and DEC-008 are active; material decisions must pass the repository pre-flight and open-source/zero-cost-first constraint.
+- Next action: revalidate this governance/documentation checkpoint head, then execute the documented self-hosted/free Staging/UAT smoke and manual V0.1 UAT; Product / Business Owner acceptance remains the final human gate.
 
 ## Stage E completed
 
