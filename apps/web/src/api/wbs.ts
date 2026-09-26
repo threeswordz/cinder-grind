@@ -8,7 +8,9 @@ export const wbsApi={
  list:(projectId:string)=>apiRequest<Data<WbsRecord[]>>('/wbs/projects/'+projectId),
  create:(projectId:string,body:Record<string,unknown>)=>apiRequest<Data<WbsRecord>>('/wbs/projects/'+projectId,{method:'POST',body:JSON.stringify(body)}),
  update:(projectId:string,id:string,body:Record<string,unknown>)=>apiRequest<Data<WbsRecord>>('/wbs/projects/'+projectId+'/'+id,{method:'PATCH',body:JSON.stringify(body)}),
+ setWbsActive:(projectId:string,id:string,active:boolean)=>apiRequest<Data<WbsRecord>>('/wbs/projects/'+projectId+'/'+id+(active?'/reactivate':'/archive'),{method:'POST'}),
  costCodes:(search='',active='all')=>{const p=new URLSearchParams();if(search.trim())p.set('search',search.trim());if(active!=='all')p.set('active',active);return apiRequest<Data<CostCodeRecord[]>>('/cost-codes'+(p.toString()?'?'+p:''));},
  createCostCode:(body:Record<string,unknown>)=>apiRequest<Data<CostCodeRecord>>('/cost-codes',{method:'POST',body:JSON.stringify(body)}),
- updateCostCode:(id:string,body:Record<string,unknown>)=>apiRequest<Data<CostCodeRecord>>('/cost-codes/'+id,{method:'PATCH',body:JSON.stringify(body)})
+ updateCostCode:(id:string,body:Record<string,unknown>)=>apiRequest<Data<CostCodeRecord>>('/cost-codes/'+id,{method:'PATCH',body:JSON.stringify(body)}),
+ setCostCodeActive:(id:string,active:boolean)=>apiRequest<Data<CostCodeRecord>>('/cost-codes/'+id+(active?'/reactivate':'/archive'),{method:'POST'})
 };
