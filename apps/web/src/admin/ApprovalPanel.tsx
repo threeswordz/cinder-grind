@@ -257,7 +257,7 @@ export function ApprovalPanel() {
   });
   const rolesQuery = useQuery({
     queryKey: ['admin', 'roles'],
-    queryFn: adminApi.roles,
+    queryFn: adminApi.approvalRoleOptions,
   });
 
   const [workflowCode, setWorkflowCode] = useState('');
