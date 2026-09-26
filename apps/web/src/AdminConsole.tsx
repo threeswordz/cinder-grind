@@ -26,6 +26,7 @@ import { ProjectsPanel } from './projects/ProjectsPanel';
 import { SchedulingPanel } from './scheduling/SchedulingPanel';
 import { SiteExecutionPanel } from './site-execution/SiteExecutionPanel';
 import { DocumentsPanel } from './documents/DocumentsPanel';
+import { EquipmentPanel } from './equipment/EquipmentPanel';
 import { WbsPanel } from './wbs/WbsPanel';
 
 type Section = {
@@ -42,6 +43,12 @@ export function AdminConsole({ user }: { user: CurrentUser }) {
   const sections = useMemo<Section[]>(
     () =>
       [
+        {
+          key: 'equipment',
+          label: 'Equipment',
+          permission: '__equipment__',
+          content: <EquipmentPanel permissions={user.permissions} />,
+        },
         {
           key: 'site-execution',
           label: 'Site Execution',
@@ -127,7 +134,11 @@ export function AdminConsole({ user }: { user: CurrentUser }) {
           content: <SystemSettingsPanel />,
         },
       ].filter((section) =>
-        section.permission === '__site_execution__'
+        section.permission === '__equipment__'
+          ? user.permissions.some((permission) =>
+              permission.startsWith('equipment.'),
+            )
+          : section.permission === '__site_execution__'
           ? user.permissions.some((permission) =>
               permission.startsWith('site.'),
             )
