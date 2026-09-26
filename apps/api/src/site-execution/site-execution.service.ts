@@ -8,10 +8,7 @@ import { Prisma } from '@prisma/client';
 
 import { AuditService } from '../audit/audit.service';
 import { AuthenticatedUserContext } from '../auth/auth.types';
-import {
-  DocumentPolicyService,
-  UploadedDocumentFile,
-} from '../documents/document-policy.service';
+import { UploadedDocumentFile } from '../documents/document-policy.service';
 import { DocumentsService } from '../documents/documents.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProjectAccessService } from '../projects/project-access.service';
@@ -92,7 +89,6 @@ export class SiteExecutionService {
     private readonly access: ProjectAccessService,
     private readonly audit: AuditService,
     private readonly documents: DocumentsService,
-    private readonly documentPolicy: DocumentPolicyService,
   ) {}
 
   async projects(auth: AuthenticatedUserContext) {
@@ -662,8 +658,6 @@ export class SiteExecutionService {
   ) {
     const report = await this.reportForAccess(context.auth, reportId);
     this.assertDraft(report.status);
-    this.documentPolicy.validate(file);
-
     const document = await this.documents.uploadProjectDocument(
       context,
       report.projectId,
