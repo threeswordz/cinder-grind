@@ -183,6 +183,7 @@ model User {
   submittedDailySiteReports   DailySiteReport[] @relation("DailySiteReportSubmitter")
   dailySiteReportCorrections  DailySiteReportCorrection[] @relation("DailySiteReportCorrectionCreator")
   recordedEquipmentUsage      EquipmentUsage[] @relation("EquipmentUsageRecorder")
+  createdBudgetRevisions       BudgetRevision[] @relation("BudgetRevisionCreator")
   submittedBudgetRevisions     BudgetRevision[] @relation("BudgetRevisionSubmitter")
 
   @@unique([companyId, email])
@@ -1180,25 +1181,29 @@ model BoqItem {
 }
 
 model BudgetRevision {
-  id                 String   @id @default(uuid()) @db.Uuid
-  companyId          String   @map("company_id") @db.Uuid
-  projectId          String   @map("project_id") @db.Uuid
-  revisionNo         Int      @map("revision_no")
-  revisionNumber     String   @map("revision_number") @db.VarChar(120)
-  approvalInstanceId String?  @unique @map("approval_instance_id") @db.Uuid
-  submittedByUserId  String   @map("submitted_by_user_id") @db.Uuid
-  submittedAt        DateTime @default(now()) @map("submitted_at") @db.Timestamptz(6)
-  revisionNote       String?  @map("revision_note") @db.Text
+  id                 String    @id @default(uuid()) @db.Uuid
+  companyId          String    @map("company_id") @db.Uuid
+  projectId          String    @map("project_id") @db.Uuid
+  revisionNo         Int       @map("revision_no")
+  revisionNumber     String    @map("revision_number") @db.VarChar(120)
+  approvalInstanceId String?   @unique @map("approval_instance_id") @db.Uuid
+  createdByUserId    String    @map("created_by_user_id") @db.Uuid
+  submittedByUserId  String?   @map("submitted_by_user_id") @db.Uuid
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  submittedAt        DateTime? @map("submitted_at") @db.Timestamptz(6)
+  revisionNote       String?   @map("revision_note") @db.Text
 
   company          Company           @relation(fields: [companyId], references: [id], onDelete: Restrict)
   project          Project           @relation(fields: [projectId], references: [id], onDelete: Restrict)
   approvalInstance ApprovalInstance? @relation(fields: [approvalInstanceId], references: [id], onDelete: Restrict)
-  submittedBy      User              @relation("BudgetRevisionSubmitter", fields: [submittedByUserId], references: [id], onDelete: Restrict)
+  createdBy        User              @relation("BudgetRevisionCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  submittedBy      User?             @relation("BudgetRevisionSubmitter", fields: [submittedByUserId], references: [id], onDelete: Restrict)
   lines            BudgetRevisionLine[]
 
   @@unique([companyId, revisionNumber])
   @@unique([projectId, revisionNo])
-  @@index([companyId, projectId, submittedAt])
+  @@index([companyId, projectId, createdAt])
+  @@index([submittedByUserId])
   @@map("budget_revisions")
 }
 
