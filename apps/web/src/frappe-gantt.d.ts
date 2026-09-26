@@ -32,5 +32,3 @@ declare module 'frappe-gantt' {
     update_options(options: Record<string, unknown>): void;
   }
 }
-
-declare module 'frappe-gantt/dist/frappe-gantt.css';
