@@ -4,8 +4,9 @@
 **Source of truth:** Live GitHub repository state
 
 - Current Release: V0.2 Project & Scheduling
-- Current Stage: V0.2-C Baselines / Progress — COMPLETE
+- Current Stage: V0.2-D Gantt / Lookahead — PRE-FLIGHT
 - Completed Stages: V0.1-A Technical Skeleton; V0.1-B Company / Identity / Security; V0.1-C Administration; V0.1-D Master Data; V0.1-E Projects; V0.1-F WBS & Cost Codes; V0.1-G Basic Documents; V0.1-H Integration / Regression / UAT; V0.2-A Scheduling Data Model; V0.2-B Scheduling Engine; V0.2-C Baselines / Progress
+- Active Issue: #42 — V0.2-D Gantt / Lookahead — Presentation Rules
 - Completed Issue: #40 — V0.2-C Baselines / Progress
 - Completed Branch: `v0.2-c-baselines-progress`
 - Completed Issue: #38 — V0.2-C Baselines / Progress — Business Rules
@@ -235,3 +236,12 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - Project-scope authorization, permissions, audit and database integrity controls are active
 - exact-head CI #708 passed on `2e9cfefcf56ef16d75a1f8eb19153425eb00f707`, including migrations, full regression, Stage C PostgreSQL integration and live HTTP acceptance
 - no new runtime dependency or paid service introduced
+
+
+## V0.2-D pre-flight
+
+- V0.2-C is complete and merged.
+- Issue #42 records the remaining Product / Business Owner presentation rules for read-only Gantt interaction, current forecast/baseline display, 14/28-calendar-day lookahead windows, overlap inclusion and backend-derived delayed/critical indicators.
+- Frappe Gantt remains the approved MIT/open-source visualization component only.
+- No paid Gantt dependency is proposed.
+- Stage D implementation is paused until Issue #42 rules are approved or replaced.
