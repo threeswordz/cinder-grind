@@ -929,6 +929,13 @@ await request(
     method: 'POST',
     json: {
       correctionNote: 'Correction retained without overwriting submitted report.',
+      progress: [
+        {
+          activityId: activityA.data.data.id,
+          percentComplete: '42',
+          note: 'Corrected Daily Site Report progress retained as history.',
+        },
+      ],
     },
     expected: 201,
   },
@@ -939,9 +946,27 @@ const correctedDailyReport = await request(
 );
 check(
   correctedDailyReport.data.data.corrections.length === 1 &&
+    correctedDailyReport.data.data.corrections[0]?.progressCorrections?.length === 1 &&
+    String(
+      correctedDailyReport.data.data.corrections[0]?.progressCorrections?.[0]
+        ?.percentComplete,
+    ) === '42' &&
     correctedDailyReport.data.data.generalRemarks ===
       'Automated V0.2-E site report.',
   'Submitted Daily Site Report correction did not remain append-only.',
+);
+const correctedSiteProgressHistory = await request(
+  pm,
+  '/activity-progress/' + activityA.data.data.id,
+);
+check(
+  correctedSiteProgressHistory.data.data.some(
+    (item) =>
+      item.sourceType === 'DAILY_SITE_REPORT_CORRECTION' &&
+      item.progressDate?.slice(0, 10) === '2026-10-10' &&
+      String(item.percentComplete) === '42',
+  ),
+  'Corrected Daily Site Report progress was not appended to immutable history.',
 );
 record('V0.2-E Daily Site Report, progress, observations, photos and corrections through live HTTP API');
 
