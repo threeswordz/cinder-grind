@@ -22,10 +22,10 @@
 - Stage F final review: no unresolved review threads, no scope creep into Activities/Scheduling, BOQ/Budget, Procurement or transaction allocations.
 - Final Stage G PR CI: Validate Construction ERP run #443 — SUCCESS on `298890cbd72965067d59995f81283ca7b4f5410b`.
 - Stage G final review: no unresolved review threads; no WBS/Activity or later-module document scope added.
-- Stage H automated release CI: Validate Construction ERP run #455 — SUCCESS.
-- V0.1 cross-module release acceptance scenario: PASS in CI #455.
+- Stage H release-candidate CI: Validate Construction ERP run #460 — SUCCESS on `dc013e731fcef6ab3e3d945f13047fa96c5b4d2e`.
+- V0.1 cross-module release acceptance scenario: PASS in CI #460.
 - Open defect check: no open defect Issue exists; only Stage H tracking Issue #27 is open.
-- Next action: validate the final Stage H documentation/checkpoint head, then execute Staging/UAT smoke + manual V0.1 UAT and record Product / Business Owner acceptance.
+- Next action: revalidate this documentation checkpoint head, then execute the documented Staging/UAT smoke and manual V0.1 UAT; Product / Business Owner acceptance remains the final human gate.
 
 ## Stage E completed
 
