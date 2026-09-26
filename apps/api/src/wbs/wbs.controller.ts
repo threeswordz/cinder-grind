@@ -1,8 +1,8 @@
 import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '../auth/auth.guard'; import { AuthenticatedRequest } from '../auth/auth.types'; import { CsrfGuard } from '../auth/csrf.guard';
-import { PermissionGuard } from '../authorization/permission.guard'; import { RequirePermissions } from '../authorization/require-permissions.decorator';
+import { PermissionGuard } from '../authorization/permission.guard'; import { RequirePermissions } from '../authorization/permissions.decorator';
 import { WbsService } from './wbs.service'; import { bool, code, nullable, object, str } from './wbs-validation';
-const auth=(r:AuthenticatedRequest)=>r.auth!; const ctx=(r:AuthenticatedRequest)=>({auth:auth(r),correlationId:r.correlationId});
+const auth=(r:AuthenticatedRequest)=>r.auth!; const ctx=(r:AuthenticatedRequest)=>({auth:auth(r),...(r.correlationId ? {correlationId:r.correlationId} : {})});
 @Controller('wbs') export class WbsController{constructor(private readonly svc:WbsService){}
  @Get('projects') @UseGuards(AuthGuard,PermissionGuard) @RequirePermissions('wbs.wbs.view') async projects(@Req()r:AuthenticatedRequest){return{data:await this.svc.projects(auth(r))};}
  @Get('projects/:projectId') @UseGuards(AuthGuard,PermissionGuard) @RequirePermissions('wbs.wbs.view') async list(@Req()r:AuthenticatedRequest,@Param('projectId',new ParseUUIDPipe({version:'4'}))p:string){return{data:await this.svc.listWbs(auth(r),p)};}
