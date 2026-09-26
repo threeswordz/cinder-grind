@@ -345,13 +345,16 @@ Baseline approval is separate from baseline creation.
 
 ## 9.5 Site Execution
 
+V0.2-E enforcement uses:
+
 - `site.daily_report.view`
 - `site.daily_report.create`
 - `site.daily_report.edit`
 - `site.daily_report.submit`
-- `site.progress.update`
-- `site.issue.manage`
-- `site.inspection.manage`
+
+`site.daily_report.edit` owns draft manpower/material/issues/delays/inspections and append-only submitted-report corrections. `site.daily_report.submit` owns the finalization action that appends report progress into Scheduling's immutable Activity Progress history.
+
+Earlier design placeholders `site.progress.update`, `site.issue.manage` and `site.inspection.manage` are not separate V0.2-E enforcement permissions. Introducing finer-grained Site permissions later requires an explicit permission-baseline change rather than silently weakening the four implemented controls.
 
 ---
 
