@@ -91,6 +91,15 @@ function parseSteps(value: unknown) {
 export class ApprovalAdminController {
   constructor(private readonly approvals: ApprovalAdminService) {}
 
+  @Get('role-options')
+  @UseGuards(AuthGuard, PermissionGuard)
+  @RequirePermissions('admin.approval_matrix.manage')
+  async roleOptions(@Req() request: AuthenticatedRequest) {
+    return {
+      data: await this.approvals.listRoleOptions(authOf(request).companyId),
+    };
+  }
+
   @Get()
   @UseGuards(AuthGuard, PermissionGuard)
   @RequirePermissions('admin.approval_matrix.manage')
