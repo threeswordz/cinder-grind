@@ -141,6 +141,33 @@ export function assertDependencyGraphAcyclic(
   return ordered;
 }
 
+export function calculateWorkingDayVariance(
+  calendar: EngineCalendar,
+  baselineDate: Date,
+  comparisonDate: Date,
+): number {
+  validateCalendar(calendar);
+
+  const baselineKey = utcDateKey(baselineDate);
+  const comparisonKey = utcDateKey(comparisonDate);
+  if (baselineKey === comparisonKey) return 0;
+
+  const direction = comparisonKey > baselineKey ? 1 : -1;
+  let key = baselineKey;
+  let total = 0;
+
+  for (let i = 0; i < SEARCH_LIMIT_DAYS; i++) {
+    if (key === comparisonKey) return total;
+    key = addDateKey(key, direction);
+    if (intervalForDate(calendar, key)) total += direction;
+  }
+
+  throw new ScheduleEngineError(
+    'SCHEDULE_VARIANCE_RANGE_EXCEEDED',
+    'Schedule variance exceeds the supported calendar search horizon.',
+  );
+}
+
 export function calculateScheduleAnalysis(input: {
   mode: ScheduleMode;
   activities: EngineActivity[];
