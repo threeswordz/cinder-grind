@@ -643,10 +643,16 @@ export class EquipmentService {
           equipmentId: merged.equipmentId,
           projectId: merged.projectId,
           usageDate: merged.usageDate,
-          operatingHours: merged.operatingHours,
-          activityId: merged.activityId,
-          wbsId: merged.wbsId,
-          remarks: merged.remarks,
+          ...(merged.operatingHours !== undefined
+            ? { operatingHours: merged.operatingHours }
+            : {}),
+          ...(merged.activityId !== undefined
+            ? { activityId: merged.activityId }
+            : {}),
+          ...(merged.wbsId !== undefined ? { wbsId: merged.wbsId } : {}),
+          ...(merged.remarks !== undefined
+            ? { remarks: merged.remarks }
+            : {}),
         },
       });
       await this.audit.record(
