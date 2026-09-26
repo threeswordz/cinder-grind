@@ -4,9 +4,10 @@
 **Source of truth:** Live GitHub repository state
 
 - Current Release: V0.2 Project & Scheduling
-- Current Stage: V0.2-F Equipment — PRE-FLIGHT
+- Current Stage: V0.2-F Equipment — IMPLEMENTATION
 - Completed Stages: V0.1-A Technical Skeleton; V0.1-B Company / Identity / Security; V0.1-C Administration; V0.1-D Master Data; V0.1-E Projects; V0.1-F WBS & Cost Codes; V0.1-G Basic Documents; V0.1-H Integration / Regression / UAT; V0.2-A Scheduling Data Model; V0.2-B Scheduling Engine; V0.2-C Baselines / Progress; V0.2-D Gantt / Lookahead; V0.2-E Site Execution
-- Active Issue: #50 — V0.2-F Equipment — Business Rules
+- Active Issue: #51 — V0.2-F Equipment
+- Completed Issue: #50 — V0.2-F Equipment — Business Rules
 - Completed Issue: #48 — V0.2-E Site Execution
 - Completed Branch: `v0.2-e-site-execution`
 - Merged PR: #49 — V0.2-E Site Execution
@@ -43,7 +44,7 @@
 - V0.1 cross-module release acceptance scenario: PASS in the Stage H release-candidate regression suite.
 - Open defect check at V0.1 acceptance: no Severity 1 or Severity 2 release-blocking defect recorded.
 - Governance: `AGENTS.md`, `docs/PROJECT-GOVERNANCE.md`, PR governance checklist and DEC-008 are active; material decisions must pass the repository pre-flight and open-source/zero-cost-first constraint.
-- Next action: Product / Business Owner to approve or replace the V0.2-F Equipment business rules in Issue #50 before implementation begins.
+- Next action: implement V0.2-F Equipment under DEC-013 on `v0.2-f-equipment`, including SITE-005 integration without Maintenance/Cost-Control scope.
 
 ## Stage E completed
 
@@ -337,3 +338,13 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - EQP-008 Maintenance Records remains Future.
 - EQP-009 Equipment Cost Allocation remains V0.7 Cost Control.
 - Stage F implementation is paused until Issue #50 rules are approved or replaced.
+
+## V0.2-F active
+
+- Product / Business Owner approved all Equipment business rules on 2026-09-26.
+- DEC-013 is authoritative for Equipment identity/type, operational status, derived availability, Project assignment, usage, Daily Site Report integration and usage-history correction semantics.
+- Issue #51 is the active implementation work item.
+- Branch: `v0.2-f-equipment`.
+- SITE-005 will be completed by referencing the canonical Equipment Register; free-text Equipment remains prohibited.
+- Equipment Maintenance remains Future and Equipment Cost Allocation remains V0.7.
+- no fuel/meter/depreciation/asset accounting, Inventory posting, paid dependency or V0.3+ scope is introduced.
