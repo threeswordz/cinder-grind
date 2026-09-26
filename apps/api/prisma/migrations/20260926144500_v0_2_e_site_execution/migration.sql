@@ -371,12 +371,15 @@ CREATE OR REPLACE FUNCTION protect_daily_site_report_corrections()
 RETURNS trigger AS $$
 DECLARE
   report_status VARCHAR(20);
+  report_company_id UUID;
+  creator_company_id UUID;
 BEGIN
   IF TG_OP IN ('UPDATE', 'DELETE') THEN
     RAISE EXCEPTION 'Daily Site Report corrections are append-only';
   END IF;
 
-  SELECT "status" INTO report_status
+  SELECT "status", "company_id"
+    INTO report_status, report_company_id
   FROM "daily_site_reports"
   WHERE "id" = NEW."report_id";
 
@@ -385,6 +388,14 @@ BEGIN
   END IF;
   IF report_status <> 'SUBMITTED' THEN
     RAISE EXCEPTION 'Corrections can only be appended to submitted Daily Site Reports';
+  END IF;
+
+  SELECT "company_id" INTO creator_company_id
+  FROM "users"
+  WHERE "id" = NEW."created_by_user_id";
+
+  IF creator_company_id IS NULL OR creator_company_id <> report_company_id THEN
+    RAISE EXCEPTION 'Daily Site Report correction creator must belong to the same Company';
   END IF;
 
   RETURN NEW;
@@ -402,7 +413,10 @@ DECLARE
   target_entity_type VARCHAR(100);
   target_entity_id UUID;
   report_project_id UUID;
+  report_company_id UUID;
   report_status VARCHAR(20);
+  document_company_id UUID;
+  linker_company_id UUID;
   has_project_link BOOLEAN;
 BEGIN
   IF TG_OP = 'DELETE' THEN
@@ -414,8 +428,8 @@ BEGIN
   END IF;
 
   IF target_entity_type = 'DAILY_SITE_REPORT' THEN
-    SELECT "project_id", "status"
-      INTO report_project_id, report_status
+    SELECT "project_id", "company_id", "status"
+      INTO report_project_id, report_company_id, report_status
     FROM "daily_site_reports"
     WHERE "id" = target_entity_id;
 
@@ -427,6 +441,21 @@ BEGIN
     END IF;
 
     IF TG_OP <> 'DELETE' THEN
+      SELECT "company_id" INTO document_company_id
+      FROM "documents"
+      WHERE "id" = NEW."document_id";
+
+      SELECT "company_id" INTO linker_company_id
+      FROM "users"
+      WHERE "id" = NEW."linked_by_user_id";
+
+      IF document_company_id IS NULL OR document_company_id <> report_company_id THEN
+        RAISE EXCEPTION 'Daily Site Report document must belong to the same Company';
+      END IF;
+      IF linker_company_id IS NULL OR linker_company_id <> report_company_id THEN
+        RAISE EXCEPTION 'Daily Site Report document linker must belong to the same Company';
+      END IF;
+
       SELECT EXISTS (
         SELECT 1
         FROM "document_links" project_link
