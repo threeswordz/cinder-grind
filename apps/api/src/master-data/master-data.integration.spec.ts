@@ -123,7 +123,7 @@ test('Master Data enforces company and active-reference boundaries', async () =>
         defaultUomId: uom.id,
       },
     );
-    assert.equal(material.defaultUom.id, uom.id);
+    assert.equal(material.defaultUomId, uom.id);
 
     await assert.rejects(
       () =>
