@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { randomUUID } from 'node:crypto';
+import { Prisma } from '@prisma/client';
 import {
   ForbiddenException,
   UnprocessableEntityException,
@@ -193,7 +194,7 @@ test('Project scope and Team/Contact boundaries are enforced in PostgreSQL', asy
         projectName: 'Creator Membership Project',
         customerId: customer.id,
         statusDefinitionId: status.id,
-        contractValue: new (await import('@prisma/client')).Prisma.Decimal(
+        contractValue: new Prisma.Decimal(
           '250000.00',
         ),
         plannedStartDate: new Date('2026-12-01T00:00:00Z'),
@@ -223,7 +224,7 @@ test('Project scope and Team/Contact boundaries are enforced in PostgreSQL', asy
             projectName: 'Unlinked Creator Project',
             customerId: customer.id,
             statusDefinitionId: status.id,
-            contractValue: new (await import('@prisma/client')).Prisma.Decimal(
+            contractValue: new Prisma.Decimal(
               '1000.00',
             ),
             plannedStartDate: new Date('2026-12-01T00:00:00Z'),
@@ -255,7 +256,7 @@ test('Project scope and Team/Contact boundaries are enforced in PostgreSQL', asy
       project.id,
       {
         projectName: 'Assigned Project Updated',
-        contractValue: new (await import('@prisma/client')).Prisma.Decimal(
+        contractValue: new Prisma.Decimal(
           '1100000.00',
         ),
       },
