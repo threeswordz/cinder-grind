@@ -171,13 +171,15 @@ export class WorkingCalendarsController {
     const data: Parameters<SchedulingService['updateCalendar']>[2] = {};
 
     if (input.projectId !== undefined) {
-      data.projectId = nullableSchedulingUuid(input, 'projectId');
+      const value = nullableSchedulingUuid(input, 'projectId');
+      if (value !== undefined) data.projectId = value;
     }
     if (input.calendarName !== undefined) {
       data.calendarName = requiredSchedulingString(input, 'calendarName', 200);
     }
     if (input.description !== undefined) {
-      data.description = nullableSchedulingString(input, 'description', 10000);
+      const value = nullableSchedulingString(input, 'description', 10000);
+      if (value !== undefined) data.description = value;
     }
     if (input.timezoneName !== undefined) {
       data.timezoneName = validateTimeZone(
@@ -185,7 +187,8 @@ export class WorkingCalendarsController {
       );
     }
     if (input.isDefault !== undefined) {
-      data.isDefault = optionalSchedulingBoolean(input, 'isDefault');
+      const value = optionalSchedulingBoolean(input, 'isDefault');
+      if (value !== undefined) data.isDefault = value;
     }
 
     ensureSchedulingFields(data as Record<string, unknown>);
@@ -577,10 +580,12 @@ export class ActivitiesController {
       );
     }
     if (input.parentActivityId !== undefined) {
-      data.parentActivityId = nullableSchedulingUuid(input, 'parentActivityId');
+      const value = nullableSchedulingUuid(input, 'parentActivityId');
+      if (value !== undefined) data.parentActivityId = value;
     }
     if (input.activityTypeId !== undefined) {
-      data.activityTypeId = nullableSchedulingUuid(input, 'activityTypeId');
+      const value = nullableSchedulingUuid(input, 'activityTypeId');
+      if (value !== undefined) data.activityTypeId = value;
     }
     if (input.workingCalendarId !== undefined) {
       data.workingCalendarId = validateSchedulingUuid(
@@ -589,10 +594,11 @@ export class ActivitiesController {
       );
     }
     if (input.statusDefinitionId !== undefined) {
-      data.statusDefinitionId = nullableSchedulingUuid(
+      const value = nullableSchedulingUuid(
         input,
         'statusDefinitionId',
       );
+      if (value !== undefined) data.statusDefinitionId = value;
     }
     if (input.activityCode !== undefined) {
       data.activityCode = normalizeSchedulingCode(
@@ -604,55 +610,67 @@ export class ActivitiesController {
       data.activityName = requiredSchedulingString(input, 'activityName', 200);
     }
     if (input.description !== undefined) {
-      data.description = nullableSchedulingString(input, 'description', 10000);
+      const value = nullableSchedulingString(input, 'description', 10000);
+      if (value !== undefined) data.description = value;
     }
     if (input.isSummary !== undefined) {
-      data.isSummary = optionalSchedulingBoolean(input, 'isSummary');
+      const value = optionalSchedulingBoolean(input, 'isSummary');
+      if (value !== undefined) data.isSummary = value;
     }
     if (input.isMilestone !== undefined) {
-      data.isMilestone = optionalSchedulingBoolean(input, 'isMilestone');
+      const value = optionalSchedulingBoolean(input, 'isMilestone');
+      if (value !== undefined) data.isMilestone = value;
     }
     if (input.plannedDurationWorkDays !== undefined) {
-      data.plannedDurationWorkDays = optionalWorkDays(
+      const value = optionalWorkDays(
         input,
         'plannedDurationWorkDays',
       );
+      if (value !== undefined) data.plannedDurationWorkDays = value;
     }
     if (input.plannedStartDate !== undefined) {
-      data.plannedStartDate = optionalSchedulingDate(input, 'plannedStartDate');
+      const value = optionalSchedulingDate(input, 'plannedStartDate');
+      if (value !== undefined) data.plannedStartDate = value;
     }
     if (input.plannedFinishDate !== undefined) {
-      data.plannedFinishDate = optionalSchedulingDate(
+      const value = optionalSchedulingDate(
         input,
         'plannedFinishDate',
       );
+      if (value !== undefined) data.plannedFinishDate = value;
     }
     if (input.actualStartDate !== undefined) {
-      data.actualStartDate = nullableSchedulingDate(input, 'actualStartDate');
+      const value = nullableSchedulingDate(input, 'actualStartDate');
+      if (value !== undefined) data.actualStartDate = value;
     }
     if (input.actualFinishDate !== undefined) {
-      data.actualFinishDate = nullableSchedulingDate(input, 'actualFinishDate');
+      const value = nullableSchedulingDate(input, 'actualFinishDate');
+      if (value !== undefined) data.actualFinishDate = value;
     }
     if (input.forecastStartDate !== undefined) {
-      data.forecastStartDate = nullableSchedulingDate(
+      const value = nullableSchedulingDate(
         input,
         'forecastStartDate',
       );
+      if (value !== undefined) data.forecastStartDate = value;
     }
     if (input.forecastFinishDate !== undefined) {
-      data.forecastFinishDate = nullableSchedulingDate(
+      const value = nullableSchedulingDate(
         input,
         'forecastFinishDate',
       );
+      if (value !== undefined) data.forecastFinishDate = value;
     }
     if (input.responsibleEmployeeId !== undefined) {
-      data.responsibleEmployeeId = nullableSchedulingUuid(
+      const value = nullableSchedulingUuid(
         input,
         'responsibleEmployeeId',
       );
+      if (value !== undefined) data.responsibleEmployeeId = value;
     }
     if (input.ownerUserId !== undefined) {
-      data.ownerUserId = nullableSchedulingUuid(input, 'ownerUserId');
+      const value = nullableSchedulingUuid(input, 'ownerUserId');
+      if (value !== undefined) data.ownerUserId = value;
     }
 
     ensureSchedulingFields(data as Record<string, unknown>);
@@ -778,7 +796,8 @@ export class ActivityDependenciesController {
       data.dependencyType = parseDependencyType(input.dependencyType);
     }
     if (input.lagWorkDays !== undefined) {
-      data.lagWorkDays = optionalSignedWorkDays(input, 'lagWorkDays');
+      const value = optionalSignedWorkDays(input, 'lagWorkDays');
+      if (value !== undefined) data.lagWorkDays = value;
     }
 
     ensureSchedulingFields(data as Record<string, unknown>);
