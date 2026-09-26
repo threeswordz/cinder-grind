@@ -86,6 +86,8 @@ export const adminApi = {
       body: JSON.stringify(body),
     }),
 
+  userRoleOptions: () =>
+    apiRequest<Data<AdminRole[]>>('/admin/user-role-options'),
   users: () => apiRequest<Data<AdminUser[]>>('/admin/users'),
   createUser: (body: {
     email: string;
@@ -189,6 +191,8 @@ export const adminApi = {
       },
     ),
 
+  approvalRoleOptions: () =>
+    apiRequest<Data<AdminRole[]>>('/admin/approval-workflows/role-options'),
   approvalWorkflows: () =>
     apiRequest<Data<ApprovalWorkflow[]>>('/admin/approval-workflows'),
   createApprovalWorkflow: (body: {
