@@ -417,6 +417,44 @@ check(
 );
 record('V0.2-A scheduling data model through live HTTP API');
 
+
+const plannedSchedule = await request(
+  pm,
+  '/schedule/projects/' + projectId + '/analysis?mode=planned',
+);
+check(
+  plannedSchedule.data.data.activities.length === 2,
+  'Schedule analysis did not return the expected Activities.',
+);
+const analysedB = plannedSchedule.data.data.activities.find(
+  (item) => item.id === activityB.data.data.id,
+);
+check(
+  analysedB?.calculatedStartDate === '2026-10-07',
+  'Successor-calendar negative lag did not produce the expected calculated start.',
+);
+check(
+  analysedB?.calculatedFinishDate === '2026-10-08',
+  'Working-calendar duration did not produce the expected calculated finish.',
+);
+check(
+  plannedSchedule.data.data.activities.some((item) => item.isCritical === true),
+  'Schedule analysis did not identify a critical Activity.',
+);
+
+await request(pm, '/activity-dependencies', {
+  method: 'POST',
+  json: {
+    projectId,
+    predecessorActivityId: activityB.data.data.id,
+    successorActivityId: activityA.data.data.id,
+    dependencyType: 'FS',
+    lagWorkDays: '0',
+  },
+  expected: 422,
+});
+record('V0.2-B scheduling engine through live HTTP API');
+
 const documentType = await request(admin, '/document-types', {
   method: 'POST',
   json: {
@@ -456,6 +494,11 @@ await request(unassigned, '/projects/' + projectId, { expected: 403 });
 await request(unassigned, `/documents/projects/${projectId}`, { expected: 403 });
 await request(unassigned, '/activities?projectId=' + projectId, { expected: 403 });
 await request(unassigned, '/working-calendars?projectId=' + projectId, { expected: 403 });
+await request(
+  unassigned,
+  '/schedule/projects/' + projectId + '/analysis?mode=planned',
+  { expected: 403 },
+);
 record('unassigned Project, Document and Scheduling access denied');
 
 await logout(pm);
