@@ -1354,7 +1354,7 @@ Material-use rows do not post Inventory or change Stock Balance. Delay observati
 
 Equipment selection is intentionally unavailable until V0.2-F supplies the canonical Equipment Register. Stage E does not create a duplicate or free-text Equipment source.
 
-Submitted Daily Site Report content is immutable. Corrections are append-only notes and do not overwrite the submitted record.
+Submitted Daily Site Report content is immutable. Corrections are append-only records and do not overwrite the submitted record. A correction may also append corrected Activity percentages to the immutable `activity_progress` history using the original report date and `DAILY_SITE_REPORT_CORRECTION` source traceability.
 
 ---
 
