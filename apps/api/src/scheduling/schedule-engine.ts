@@ -1,4 +1,5 @@
 const EPSILON = 1e-9;
+const EPSILON_MS = 1;
 const SEARCH_LIMIT_DAYS = 36600;
 
 export type DependencyType = 'FS' | 'SS' | 'FF' | 'SF';
@@ -6,10 +7,18 @@ export type ScheduleMode = 'planned' | 'forecast';
 
 export type EngineCalendar = {
   id: string;
-  weekdays: Array<{ weekdayNo: number; isWorking: boolean }>;
+  timezoneName: string;
+  weekdays: Array<{
+    weekdayNo: number;
+    isWorking: boolean;
+    startMinute: number | null;
+    endMinute: number | null;
+  }>;
   exceptions: Array<{
     exceptionDate: Date;
     isWorkingOverride: boolean;
+    startMinute: number | null;
+    endMinute: number | null;
   }>;
 };
 
@@ -53,17 +62,18 @@ export type ScheduleAnalysis = {
   activities: ScheduleActivityResult[];
 };
 
-type WorkPoint = {
-  date: Date;
-  fraction: number;
-};
-
 type InternalResult = {
   activity: EngineActivity;
-  start: WorkPoint;
-  finish: WorkPoint;
-  latestStart: WorkPoint;
-  latestFinish: WorkPoint;
+  start: number;
+  finish: number;
+  latestStart: number;
+  latestFinish: number;
+};
+
+type WorkInterval = {
+  dateKey: string;
+  start: number;
+  end: number;
 };
 
 export class ScheduleEngineError extends Error {
@@ -149,6 +159,8 @@ export function calculateScheduleAnalysis(input: {
   const activities = new Map(input.activities.map((row) => [row.id, row]));
   const calendars = new Map(input.calendars.map((row) => [row.id, row]));
 
+  for (const calendar of calendars.values()) validateCalendar(calendar);
+
   for (const activity of input.activities) {
     if (!calendars.has(activity.workingCalendarId)) {
       throw new ScheduleEngineError(
@@ -176,7 +188,8 @@ export function calculateScheduleAnalysis(input: {
     }
     if (
       activity.isMilestone &&
-      dateKey(activity.plannedStartDate) !== dateKey(activity.plannedFinishDate)
+      utcDateKey(activity.plannedStartDate) !==
+        utcDateKey(activity.plannedFinishDate)
     ) {
       throw new ScheduleEngineError(
         'INVALID_MILESTONE_DATES',
@@ -207,12 +220,13 @@ export function calculateScheduleAnalysis(input: {
     const activity = activities.get(id)!;
     const calendar = calendars.get(activity.workingCalendarId)!;
     const predecessors = incoming.get(id) ?? [];
-    let start: WorkPoint;
+    let start: number;
 
     if (predecessors.length === 0) {
       start = rootAnchor(activity, calendar, input.mode);
     } else {
-      let constrained: WorkPoint | undefined;
+      let constrained: number | undefined;
+
       for (const dependency of predecessors) {
         const predecessor = internal.get(dependency.predecessorActivityId);
         if (!predecessor) {
@@ -221,18 +235,21 @@ export function calculateScheduleAnalysis(input: {
             'Predecessor schedule result was not available.',
           );
         }
-        const event =
+
+        const predecessorEvent =
           dependency.dependencyType === 'FS' ||
           dependency.dependencyType === 'FF'
             ? predecessor.finish
             : predecessor.start;
+
+        const mappedEvent = mapInstantToCalendar(
+          calendar,
+          predecessorEvent,
+          dependency.lagWorkDays < 0 ? -1 : 1,
+        );
         const shifted = addWork(
           calendar,
-          mapPointToCalendar(
-            calendar,
-            event,
-            dependency.lagWorkDays < 0 ? -1 : 1,
-          ),
+          mappedEvent,
           dependency.lagWorkDays,
         );
 
@@ -254,10 +271,11 @@ export function calculateScheduleAnalysis(input: {
                 activity.plannedDurationWorkDays,
               );
 
-        if (!constrained || comparePoints(candidate, constrained) > 0) {
+        if (constrained === undefined || candidate > constrained) {
           constrained = candidate;
         }
       }
+
       start =
         constrained ??
         rootAnchor(activity, calendar, input.mode);
@@ -265,25 +283,27 @@ export function calculateScheduleAnalysis(input: {
 
     const finish =
       activity.plannedDurationWorkDays <= EPSILON
-        ? clonePoint(start)
+        ? start
         : addWork(calendar, start, activity.plannedDurationWorkDays);
 
     internal.set(id, {
       activity,
       start,
       finish,
-      latestStart: clonePoint(start),
-      latestFinish: clonePoint(finish),
+      latestStart: start,
+      latestFinish: finish,
     });
   }
 
-  let projectFinish: WorkPoint | undefined;
+  let projectFinish: number | undefined;
+  let projectFinishOwner: InternalResult | undefined;
   for (const row of internal.values()) {
-    if (!projectFinish || comparePoints(row.finish, projectFinish) > 0) {
-      projectFinish = clonePoint(row.finish);
+    if (projectFinish === undefined || row.finish > projectFinish) {
+      projectFinish = row.finish;
+      projectFinishOwner = row;
     }
   }
-  if (!projectFinish) {
+  if (projectFinish === undefined || !projectFinishOwner) {
     throw new ScheduleEngineError(
       'SCHEDULE_EMPTY',
       'Schedule analysis did not produce a Project finish.',
@@ -293,10 +313,10 @@ export function calculateScheduleAnalysis(input: {
   for (const id of order) {
     const row = internal.get(id)!;
     const calendar = calendars.get(row.activity.workingCalendarId)!;
-    const latestFinish = mapPointToCalendar(calendar, projectFinish, -1);
+    const latestFinish = mapInstantToCalendar(calendar, projectFinish, -1);
     const latestStart =
       row.activity.plannedDurationWorkDays <= EPSILON
-        ? clonePoint(latestFinish)
+        ? latestFinish
         : addWork(
             calendar,
             latestFinish,
@@ -309,7 +329,7 @@ export function calculateScheduleAnalysis(input: {
   for (const id of [...order].reverse()) {
     const row = internal.get(id)!;
     const calendar = calendars.get(row.activity.workingCalendarId)!;
-    let latestStart = clonePoint(row.latestStart);
+    let latestStart = row.latestStart;
 
     for (const dependency of outgoing.get(id) ?? []) {
       const successor = internal.get(dependency.successorActivityId)!;
@@ -322,22 +342,23 @@ export function calculateScheduleAnalysis(input: {
           ? successor.latestStart
           : successor.latestFinish;
 
+      const mappedSuccessorEvent = mapInstantToCalendar(
+        successorCalendar,
+        successorEvent,
+        dependency.lagWorkDays < 0 ? 1 : -1,
+      );
       const beforeLag = addWork(
         successorCalendar,
-        mapPointToCalendar(
-          successorCalendar,
-          successorEvent,
-          dependency.lagWorkDays < 0 ? 1 : -1,
-        ),
+        mappedSuccessorEvent,
         -dependency.lagWorkDays,
       );
 
-      let candidateStart: WorkPoint;
+      let candidateStart: number;
       if (
         dependency.dependencyType === 'FS' ||
         dependency.dependencyType === 'FF'
       ) {
-        const predecessorFinishBound = mapPointToCalendar(
+        const predecessorFinishBound = mapInstantToCalendar(
           calendar,
           beforeLag,
           -1,
@@ -351,18 +372,16 @@ export function calculateScheduleAnalysis(input: {
                 -row.activity.plannedDurationWorkDays,
               );
       } else {
-        candidateStart = mapPointToCalendar(calendar, beforeLag, -1);
+        candidateStart = mapInstantToCalendar(calendar, beforeLag, -1);
       }
 
-      if (comparePoints(candidateStart, latestStart) < 0) {
-        latestStart = candidateStart;
-      }
+      if (candidateStart < latestStart) latestStart = candidateStart;
     }
 
     row.latestStart = latestStart;
     row.latestFinish =
       row.activity.plannedDurationWorkDays <= EPSILON
-        ? clonePoint(latestStart)
+        ? latestStart
         : addWork(
             calendar,
             latestStart,
@@ -381,34 +400,25 @@ export function calculateScheduleAnalysis(input: {
       id: row.activity.id,
       activityCode: row.activity.activityCode,
       activityName: row.activity.activityName,
-      calculatedStartDate: dateKey(row.start.date),
-      calculatedFinishDate: displayFinishDate(
-        calendar,
-        row.finish,
-        row.activity.plannedDurationWorkDays,
-      ),
-      calculatedStartFraction: round4(row.start.fraction),
-      calculatedFinishFraction: round4(row.finish.fraction),
+      calculatedStartDate: localDateKey(calendar, row.start),
+      calculatedFinishDate: localDateKey(calendar, row.finish),
+      calculatedStartFraction: round4(intervalFraction(calendar, row.start)),
+      calculatedFinishFraction: round4(intervalFraction(calendar, row.finish)),
       totalFloatWorkDays: totalFloat,
       isCritical: Math.abs(totalFloat) < 0.005,
     };
   });
 
-  const projectFinishOwner = [...internal.values()].find(
-    (row) => comparePoints(row.finish, projectFinish!) === 0,
-  );
-  const projectFinishCalendar = projectFinishOwner
-    ? calendars.get(projectFinishOwner.activity.workingCalendarId)!
-    : calendars.values().next().value as EngineCalendar;
+  const ownerCalendar = calendars.get(
+    projectFinishOwner.activity.workingCalendarId,
+  )!;
 
   return {
     mode: input.mode,
-    projectFinishDate: displayFinishDate(
-      projectFinishCalendar,
-      projectFinish,
-      projectFinishOwner?.activity.plannedDurationWorkDays ?? 0,
+    projectFinishDate: localDateKey(ownerCalendar, projectFinish),
+    projectFinishFraction: round4(
+      intervalFraction(ownerCalendar, projectFinish),
     ),
-    projectFinishFraction: round4(projectFinish.fraction),
     activities: results,
   };
 }
@@ -417,39 +427,51 @@ function rootAnchor(
   activity: EngineActivity,
   calendar: EngineCalendar,
   mode: ScheduleMode,
-): WorkPoint {
-  const date =
+): number {
+  const sourceDate =
     mode === 'forecast' && activity.forecastStartDate
       ? activity.forecastStartDate
       : activity.plannedStartDate;
+  const interval = findWorkingInterval(
+    calendar,
+    utcDateKey(sourceDate),
+    1,
+    true,
+  );
   return normalizeActivityStart(
     calendar,
-    { date: day(date), fraction: 0 },
+    interval.start,
     activity.plannedDurationWorkDays,
   );
 }
 
 function normalizeActivityStart(
   calendar: EngineCalendar,
-  point: WorkPoint,
+  instant: number,
   duration: number,
-): WorkPoint {
-  let current = mapPointToCalendar(calendar, point, 1);
-  if (duration > EPSILON && current.fraction >= 1 - EPSILON) {
-    current = findWorkingBoundary(
+): number {
+  let current = mapInstantToCalendar(calendar, instant, 1);
+  const interval = intervalAtInstant(calendar, current);
+  if (
+    duration > EPSILON &&
+    interval &&
+    current >= interval.end - EPSILON_MS
+  ) {
+    current = findWorkingInterval(
       calendar,
-      { date: addDays(current.date, 1), fraction: 0 },
+      addDateKey(interval.dateKey, 1),
       1,
-    );
+      true,
+    ).start;
   }
   return current;
 }
 
 function addWork(
   calendar: EngineCalendar,
-  point: WorkPoint,
+  instant: number,
   amount: number,
-): WorkPoint {
+): number {
   if (!Number.isFinite(amount)) {
     throw new ScheduleEngineError(
       'INVALID_WORK_OFFSET',
@@ -457,186 +479,377 @@ function addWork(
     );
   }
 
-  let current = mapPointToCalendar(
-    calendar,
-    point,
-    amount < 0 ? -1 : 1,
-  );
+  const direction: 1 | -1 = amount < 0 ? -1 : 1;
+  let current = mapInstantToCalendar(calendar, instant, direction);
   let remaining = Math.abs(amount);
   if (remaining <= EPSILON) return current;
 
-  const direction = amount < 0 ? -1 : 1;
   let guard = 0;
-
   while (remaining > EPSILON) {
-    if (++guard > SEARCH_LIMIT_DAYS * 4) {
-      throw unusableCalendar();
+    if (++guard > SEARCH_LIMIT_DAYS * 4) throw unusableCalendar();
+
+    let interval = intervalAtInstant(calendar, current);
+    if (!interval) {
+      current = mapInstantToCalendar(calendar, current, direction);
+      interval = intervalAtInstant(calendar, current);
+      if (!interval) throw unusableCalendar();
     }
 
-    if (!isWorkingDate(calendar, current.date)) {
-      current = findWorkingBoundary(calendar, current, direction);
-      continue;
-    }
+    const length = interval.end - interval.start;
+    if (length <= 0) throw invalidInterval();
 
     if (direction > 0) {
-      if (current.fraction >= 1 - EPSILON) {
-        current = findWorkingBoundary(
+      if (current >= interval.end - EPSILON_MS) {
+        current = findWorkingInterval(
           calendar,
-          { date: addDays(current.date, 1), fraction: 0 },
+          addDateKey(interval.dateKey, 1),
           1,
-        );
+          true,
+        ).start;
         continue;
       }
-      const available = 1 - current.fraction;
+      const available = (interval.end - current) / length;
       const consumed = Math.min(available, remaining);
-      current.fraction += consumed;
+      current += consumed * length;
       remaining -= consumed;
     } else {
-      if (current.fraction <= EPSILON) {
-        current = findWorkingBoundary(
+      if (current <= interval.start + EPSILON_MS) {
+        current = findWorkingInterval(
           calendar,
-          { date: addDays(current.date, -1), fraction: 1 },
+          addDateKey(interval.dateKey, -1),
           -1,
-        );
+          true,
+        ).end;
         continue;
       }
-      const available = current.fraction;
+      const available = (current - interval.start) / length;
       const consumed = Math.min(available, remaining);
-      current.fraction -= consumed;
+      current -= consumed * length;
       remaining -= consumed;
     }
   }
 
-  current.fraction = clampFraction(current.fraction);
-  return current;
+  return Math.round(current);
 }
 
 function workDistance(
   calendar: EngineCalendar,
-  from: WorkPoint,
-  to: WorkPoint,
+  from: number,
+  to: number,
 ): number {
-  const comparison = comparePoints(from, to);
-  if (comparison === 0) return 0;
-  if (comparison > 0) return -workDistance(calendar, to, from);
+  if (Math.abs(from - to) <= EPSILON_MS) return 0;
+  if (from > to) return -workDistance(calendar, to, from);
 
-  let cursor = day(from.date);
-  const end = day(to.date);
+  let current = mapInstantToCalendar(calendar, from, 1);
   let total = 0;
   let guard = 0;
 
-  while (cursor.getTime() <= end.getTime()) {
-    if (++guard > SEARCH_LIMIT_DAYS) throw unusableCalendar();
-    if (isWorkingDate(calendar, cursor)) {
-      const sameStart = cursor.getTime() === day(from.date).getTime();
-      const sameEnd = cursor.getTime() === end.getTime();
-      const startFraction = sameStart ? from.fraction : 0;
-      const endFraction = sameEnd ? to.fraction : 1;
-      total += Math.max(0, endFraction - startFraction);
+  while (current < to - EPSILON_MS) {
+    if (++guard > SEARCH_LIMIT_DAYS * 4) throw unusableCalendar();
+    const interval = intervalAtInstant(calendar, current);
+    if (!interval) {
+      current = mapInstantToCalendar(calendar, current, 1);
+      continue;
     }
-    cursor = addDays(cursor, 1);
+
+    const length = interval.end - interval.start;
+    const end = Math.min(interval.end, to);
+    if (end > current) total += (end - current) / length;
+    if (end >= to - EPSILON_MS) break;
+
+    current = findWorkingInterval(
+      calendar,
+      addDateKey(interval.dateKey, 1),
+      1,
+      true,
+    ).start;
   }
 
   return total;
 }
 
-function displayFinishDate(
+function mapInstantToCalendar(
   calendar: EngineCalendar,
-  finish: WorkPoint,
-  duration: number,
-): string {
-  if (duration <= EPSILON) return dateKey(finish.date);
-  if (finish.fraction > EPSILON) return dateKey(finish.date);
-
-  let cursor = addDays(finish.date, -1);
-  for (let i = 0; i < SEARCH_LIMIT_DAYS; i++) {
-    if (isWorkingDate(calendar, cursor)) return dateKey(cursor);
-    cursor = addDays(cursor, -1);
-  }
-  throw unusableCalendar();
-}
-
-function mapPointToCalendar(
-  calendar: EngineCalendar,
-  point: WorkPoint,
+  instant: number,
   direction: 1 | -1,
-): WorkPoint {
-  const normalized = {
-    date: day(point.date),
-    fraction: clampFraction(point.fraction),
-  };
-  if (isWorkingDate(calendar, normalized.date)) return normalized;
-  return findWorkingBoundary(calendar, normalized, direction);
-}
+): number {
+  const key = localDateKey(calendar, instant);
+  const interval = intervalForDate(calendar, key);
 
-function findWorkingBoundary(
-  calendar: EngineCalendar,
-  point: WorkPoint,
-  direction: 1 | -1,
-): WorkPoint {
-  let cursor = day(point.date);
-  for (let i = 0; i < SEARCH_LIMIT_DAYS; i++) {
-    if (isWorkingDate(calendar, cursor)) {
-      return {
-        date: cursor,
-        fraction: direction > 0 ? 0 : 1,
-      };
+  if (interval) {
+    if (instant < interval.start) {
+      if (direction > 0) return interval.start;
+      return findWorkingInterval(
+        calendar,
+        addDateKey(key, -1),
+        -1,
+        true,
+      ).end;
     }
-    cursor = addDays(cursor, direction);
+    if (instant > interval.end) {
+      if (direction < 0) return interval.end;
+      return findWorkingInterval(
+        calendar,
+        addDateKey(key, 1),
+        1,
+        true,
+      ).start;
+    }
+    return instant;
+  }
+
+  return findWorkingInterval(
+    calendar,
+    addDateKey(key, direction),
+    direction,
+    true,
+  )[direction > 0 ? 'start' : 'end'];
+}
+
+function intervalAtInstant(
+  calendar: EngineCalendar,
+  instant: number,
+): WorkInterval | null {
+  const interval = intervalForDate(
+    calendar,
+    localDateKey(calendar, instant),
+  );
+  if (
+    interval &&
+    instant >= interval.start - EPSILON_MS &&
+    instant <= interval.end + EPSILON_MS
+  ) {
+    return interval;
+  }
+  return null;
+}
+
+function intervalFraction(
+  calendar: EngineCalendar,
+  instant: number,
+): number {
+  const interval = intervalAtInstant(calendar, instant);
+  if (!interval) {
+    const mapped = mapInstantToCalendar(calendar, instant, -1);
+    const mappedInterval = intervalAtInstant(calendar, mapped);
+    if (!mappedInterval) return 0;
+    return clamp01(
+      (mapped - mappedInterval.start) /
+        (mappedInterval.end - mappedInterval.start),
+    );
+  }
+  return clamp01(
+    (instant - interval.start) / (interval.end - interval.start),
+  );
+}
+
+function findWorkingInterval(
+  calendar: EngineCalendar,
+  startDateKey: string,
+  direction: 1 | -1,
+  includeStart: boolean,
+): WorkInterval {
+  let key = includeStart
+    ? startDateKey
+    : addDateKey(startDateKey, direction);
+
+  for (let i = 0; i < SEARCH_LIMIT_DAYS; i++) {
+    const interval = intervalForDate(calendar, key);
+    if (interval) return interval;
+    key = addDateKey(key, direction);
   }
   throw unusableCalendar();
 }
 
-function isWorkingDate(calendar: EngineCalendar, date: Date): boolean {
-  const key = dateKey(date);
+function intervalForDate(
+  calendar: EngineCalendar,
+  dateKey: string,
+): WorkInterval | null {
   const exception = calendar.exceptions.find(
-    (row) => dateKey(row.exceptionDate) === key,
+    (row) => utcDateKey(row.exceptionDate) === dateKey,
   );
-  if (exception) return exception.isWorkingOverride;
-
-  const weekdayNo = ((date.getUTCDay() + 6) % 7) + 1;
-  return (
-    calendar.weekdays.find((row) => row.weekdayNo === weekdayNo)?.isWorking ??
-    false
+  const weekdayNo = weekdayNumber(dateKey);
+  const weekday = calendar.weekdays.find(
+    (row) => row.weekdayNo === weekdayNo,
   );
-}
 
-function comparePoints(left: WorkPoint, right: WorkPoint): number {
-  const dateDifference = day(left.date).getTime() - day(right.date).getTime();
-  if (dateDifference !== 0) return dateDifference < 0 ? -1 : 1;
-  const fractionDifference = left.fraction - right.fraction;
-  if (Math.abs(fractionDifference) <= EPSILON) return 0;
-  return fractionDifference < 0 ? -1 : 1;
-}
+  const isWorking =
+    exception?.isWorkingOverride ?? weekday?.isWorking ?? false;
+  if (!isWorking) return null;
 
-function day(value: Date): Date {
-  return new Date(
-    Date.UTC(
-      value.getUTCFullYear(),
-      value.getUTCMonth(),
-      value.getUTCDate(),
+  let startMinute = exception?.startMinute ?? null;
+  let endMinute = exception?.endMinute ?? null;
+
+  if (startMinute === null && endMinute === null) {
+    startMinute = weekday?.startMinute ?? null;
+    endMinute = weekday?.endMinute ?? null;
+  }
+
+  if (
+    startMinute === null ||
+    endMinute === null ||
+    startMinute < 0 ||
+    endMinute > 1439 ||
+    startMinute >= endMinute
+  ) {
+    throw invalidInterval();
+  }
+
+  return {
+    dateKey,
+    start: zonedLocalToUtc(
+      calendar.timezoneName,
+      dateKey,
+      startMinute,
     ),
+    end: zonedLocalToUtc(
+      calendar.timezoneName,
+      dateKey,
+      endMinute,
+    ),
+  };
+}
+
+function validateCalendar(calendar: EngineCalendar) {
+  try {
+    new Intl.DateTimeFormat('en-US', {
+      timeZone: calendar.timezoneName,
+    }).format(new Date());
+  } catch {
+    throw new ScheduleEngineError(
+      'INVALID_WORKING_CALENDAR_TIMEZONE',
+      'Working Calendar timezone must be a valid IANA timezone.',
+    );
+  }
+
+  for (const row of calendar.weekdays) {
+    if (row.weekdayNo < 1 || row.weekdayNo > 7) {
+      throw new ScheduleEngineError(
+        'INVALID_WORKING_CALENDAR_WEEKDAY',
+        'Working Calendar weekday must be between 1 and 7.',
+      );
+    }
+    if (row.isWorking) validateMinutes(row.startMinute, row.endMinute);
+  }
+  for (const row of calendar.exceptions) {
+    if (row.isWorkingOverride) {
+      const weekday = calendar.weekdays.find(
+        (item) => item.weekdayNo === weekdayNumber(utcDateKey(row.exceptionDate)),
+      );
+      if (
+        row.startMinute === null &&
+        row.endMinute === null &&
+        weekday?.isWorking
+      ) {
+        validateMinutes(weekday.startMinute, weekday.endMinute);
+      } else {
+        validateMinutes(row.startMinute, row.endMinute);
+      }
+    }
+  }
+}
+
+function validateMinutes(
+  startMinute: number | null,
+  endMinute: number | null,
+) {
+  if (
+    startMinute === null ||
+    endMinute === null ||
+    startMinute < 0 ||
+    endMinute > 1439 ||
+    startMinute >= endMinute
+  ) {
+    throw invalidInterval();
+  }
+}
+
+function zonedLocalToUtc(
+  timezoneName: string,
+  dateKey: string,
+  minuteOfDay: number,
+): number {
+  const [year, month, date] = dateKey.split('-').map(Number);
+  const hour = Math.floor(minuteOfDay / 60);
+  const minute = minuteOfDay % 60;
+  const desiredAsUtc = Date.UTC(year, month - 1, date, hour, minute, 0, 0);
+  let guess = desiredAsUtc;
+
+  for (let i = 0; i < 5; i++) {
+    const parts = zonedParts(timezoneName, guess);
+    const representedAsUtc = Date.UTC(
+      parts.year,
+      parts.month - 1,
+      parts.date,
+      parts.hour,
+      parts.minute,
+      0,
+      0,
+    );
+    const delta = desiredAsUtc - representedAsUtc;
+    guess += delta;
+    if (Math.abs(delta) < 1000) return guess;
+  }
+
+  return guess;
+}
+
+function zonedParts(timezoneName: string, instant: number) {
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: timezoneName,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  });
+  const values: Record<string, string> = {};
+  for (const part of formatter.formatToParts(new Date(instant))) {
+    if (part.type !== 'literal') values[part.type] = part.value;
+  }
+  return {
+    year: Number(values.year),
+    month: Number(values.month),
+    date: Number(values.day),
+    hour: Number(values.hour),
+    minute: Number(values.minute),
+  };
+}
+
+function localDateKey(
+  calendar: EngineCalendar,
+  instant: number,
+): string {
+  const parts = zonedParts(calendar.timezoneName, instant);
+  return (
+    String(parts.year).padStart(4, '0') +
+    '-' +
+    String(parts.month).padStart(2, '0') +
+    '-' +
+    String(parts.date).padStart(2, '0')
   );
 }
 
-function addDays(value: Date, amount: number): Date {
-  const result = day(value);
-  result.setUTCDate(result.getUTCDate() + amount);
-  return result;
+function weekdayNumber(dateKey: string): number {
+  const day = new Date(dateKey + 'T00:00:00.000Z').getUTCDay();
+  return ((day + 6) % 7) + 1;
 }
 
-function dateKey(value: Date): string {
-  return day(value).toISOString().slice(0, 10);
+function addDateKey(dateKey: string, amount: number): string {
+  const value = new Date(dateKey + 'T00:00:00.000Z');
+  value.setUTCDate(value.getUTCDate() + amount);
+  return value.toISOString().slice(0, 10);
 }
 
-function clampFraction(value: number): number {
+function utcDateKey(value: Date): string {
+  return value.toISOString().slice(0, 10);
+}
+
+function clamp01(value: number): number {
   if (Math.abs(value) <= EPSILON) return 0;
   if (Math.abs(value - 1) <= EPSILON) return 1;
   return Math.max(0, Math.min(1, value));
-}
-
-function clonePoint(point: WorkPoint): WorkPoint {
-  return { date: new Date(point.date.getTime()), fraction: point.fraction };
 }
 
 function round2(value: number): number {
@@ -647,9 +860,16 @@ function round4(value: number): number {
   return Math.round((value + Number.EPSILON) * 10000) / 10000;
 }
 
+function invalidInterval() {
+  return new ScheduleEngineError(
+    'WORKING_CALENDAR_INTERVAL_MISSING',
+    'Every working calendar day used by the Scheduling Engine must define a valid start and end time.',
+  );
+}
+
 function unusableCalendar() {
   return new ScheduleEngineError(
     'WORKING_CALENDAR_HAS_NO_WORKING_TIME',
-    'The Working Calendar does not provide a usable working day in the supported search horizon.',
+    'The Working Calendar does not provide a usable working interval in the supported search horizon.',
   );
 }
