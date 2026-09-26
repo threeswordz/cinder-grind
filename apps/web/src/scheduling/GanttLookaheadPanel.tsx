@@ -99,7 +99,11 @@ export function GanttLookaheadPanel() {
     () =>
       scheduledActivities.map((activity) => ({
         id: activity.activityId,
-        name: activity.activityCode + ' — ' + activity.activityName,
+        name:
+          (activity.isMilestone ? '◆ ' : '') +
+          activity.activityCode +
+          ' — ' +
+          activity.activityName,
         start: activity.forecastStartDate!.slice(0, 10),
         end: activity.forecastFinishDate!.slice(0, 10),
         progress: activity.currentPercentComplete ?? 0,
@@ -313,8 +317,17 @@ export function GanttLookaheadPanel() {
                       size="small"
                       label={statusLabel(selectedActivity)}
                     />
+                    {selectedActivity.isMilestone ? (
+                      <Chip size="small" label="Milestone" />
+                    ) : null}
                     {selectedActivity.isCritical ? (
                       <Chip size="small" label="Critical" />
+                    ) : null}
+                    {selectedActivity.activityStatus ? (
+                      <Chip
+                        size="small"
+                        label={selectedActivity.activityStatus.statusLabel}
+                      />
                     ) : null}
                     <Chip
                       size="small"
@@ -324,6 +337,11 @@ export function GanttLookaheadPanel() {
                       }
                     />
                   </Stack>
+                  <Typography variant="body2">
+                    Planned duration: {selectedActivity.plannedDurationWorkDays}{' '}
+                    working day
+                    {selectedActivity.plannedDurationWorkDays === 1 ? '' : 's'}
+                  </Typography>
                   <Typography variant="body2">
                     Current forecast: {dateValue(selectedActivity.forecastStartDate)}
                     {' → '}
@@ -349,6 +367,9 @@ export function GanttLookaheadPanel() {
                   <TableRow>
                     <TableCell>Activity</TableCell>
                     <TableCell>WBS</TableCell>
+                    <TableCell>Type</TableCell>
+                    <TableCell>Duration</TableCell>
+                    <TableCell>Activity status</TableCell>
                     <TableCell>Baseline</TableCell>
                     <TableCell>Current forecast</TableCell>
                     <TableCell>Progress</TableCell>
@@ -372,6 +393,20 @@ export function GanttLookaheadPanel() {
                         {activity.isCritical ? ' • Critical' : ''}
                       </TableCell>
                       <TableCell>{activity.wbs.wbsCode}</TableCell>
+                      <TableCell>
+                        {activity.isMilestone
+                          ? 'Milestone'
+                          : activity.isSummary
+                            ? 'Summary'
+                            : 'Activity'}
+                      </TableCell>
+                      <TableCell>
+                        {activity.plannedDurationWorkDays} work day
+                        {activity.plannedDurationWorkDays === 1 ? '' : 's'}
+                      </TableCell>
+                      <TableCell>
+                        {activity.activityStatus?.statusLabel ?? '—'}
+                      </TableCell>
                       <TableCell>
                         {dateValue(activity.baselineStartDate)}
                         {' → '}
