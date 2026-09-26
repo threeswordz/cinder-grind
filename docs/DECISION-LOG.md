@@ -107,3 +107,41 @@ The V0.2-C Baselines / Progress stage uses the following approved rules:
    - without a current approved baseline, delay classification is unavailable and delay work days is null.
 
 These rules preserve the existing approval framework, Project-scope authorization and backend-owned scheduling architecture.
+
+## DEC-011 — V0.2-D Gantt / Lookahead presentation rules
+**Status:** APPROVED — 2026-09-26
+
+The V0.2-D Gantt / Lookahead stage uses the following approved presentation rules:
+
+1. **Read-only schedule mutation through Gantt**
+   - Frappe Gantt may provide pan/scroll, Day/Week/Month view switching, row selection and Activity detail presentation.
+   - drag/resize interactions must not directly mutate Activity dates or dependencies in V0.2.
+   - schedule mutations continue through ERP-controlled Activity/dependency APIs.
+
+2. **Current schedule presentation**
+   - primary current Gantt bars use backend current forecast dates.
+   - explicit Activity forecast dates take precedence where present.
+   - otherwise the Stage B calculated forecast is used.
+
+3. **Baseline presentation**
+   - the current approved baseline is the comparison reference.
+   - historical baseline versions remain available through baseline history.
+   - when no approved baseline exists, current schedule presentation remains available and baseline comparison is reported unavailable.
+
+4. **Lookahead windows**
+   - 2-week lookahead is 14 calendar days.
+   - 4-week lookahead is 28 calendar days.
+   - the selected As-of date and final window date are inclusive.
+   - Activity working calendars continue to govern Activity schedule calculations; the lookahead window itself is calendar-day based.
+
+5. **Lookahead inclusion**
+   - include an Activity when its current forecast span overlaps the selected window.
+   - include a milestone when its current forecast date falls inside the window.
+   - 100%-complete Activities are not silently removed.
+
+6. **Backend-derived indicators**
+   - Critical comes from Stage B CPM / Total Float.
+   - Delayed / On Time / Ahead comes from Stage C current-baseline comparison.
+   - the Gantt/lookahead UI does not recalculate scheduling, criticality or delay.
+
+Frappe Gantt remains a replaceable MIT/open-source visualization layer. Backend/domain scheduling ownership and DEC-008 remain unchanged.
