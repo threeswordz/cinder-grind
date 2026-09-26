@@ -52,7 +52,13 @@ export function AdminConsole({ user }: { user: CurrentUser }) {
           key: 'roles',
           label: 'Roles & Permissions',
           permission: 'admin.roles.manage',
-          content: <RolesPanel />,
+          content: (
+            <RolesPanel
+              canAssignPermissions={user.permissions.includes(
+                'admin.permissions.assign',
+              )}
+            />
+          ),
         },
         {
           key: 'approvals',
@@ -91,8 +97,7 @@ export function AdminConsole({ user }: { user: CurrentUser }) {
   const logoutMutation = useMutation({
     mutationFn: logout,
     onSuccess: async () => {
-      queryClient.clear();
-      await queryClient.invalidateQueries({ queryKey: ['current-user'] });
+      await queryClient.resetQueries({ queryKey: ['current-user'] });
     },
   });
 
