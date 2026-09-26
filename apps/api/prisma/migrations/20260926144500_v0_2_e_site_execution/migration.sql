@@ -240,7 +240,7 @@ BEFORE INSERT OR UPDATE ON "daily_site_reports"
 FOR EACH ROW EXECUTE FUNCTION validate_daily_site_report_scope();
 
 CREATE OR REPLACE FUNCTION protect_submitted_daily_site_report()
-RETURNS trigger AS $
+RETURNS trigger AS $$
 DECLARE
   invalid_progress_count INTEGER;
 BEGIN
@@ -273,7 +273,7 @@ BEGIN
 
   RETURN NEW;
 END;
-$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql;
 
 CREATE TRIGGER daily_site_reports_submitted_update_guard
 BEFORE UPDATE ON "daily_site_reports"
