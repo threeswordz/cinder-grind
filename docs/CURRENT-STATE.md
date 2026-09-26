@@ -4,7 +4,7 @@
 **Source of truth:** Live GitHub repository state
 
 - Current Release: V0.3 Procurement — ENTRY GATE
-- Current Stage: V0.3 Release Entry Gate — SCOPE / ACCEPTANCE BASELINES
+- Current Stage: V0.3 Release Entry Gate — APPROVED, PENDING MERGE
 - Completed Stages: V0.1-A Technical Skeleton; V0.1-B Company / Identity / Security; V0.1-C Administration; V0.1-D Master Data; V0.1-E Projects; V0.1-F WBS & Cost Codes; V0.1-G Basic Documents; V0.1-H Integration / Regression / UAT; V0.2-A Scheduling Data Model; V0.2-B Scheduling Engine; V0.2-C Baselines / Progress; V0.2-D Gantt / Lookahead; V0.2-E Site Execution; V0.2-F Equipment; V0.2-G UAT Reference Programme
 - Active Issue: #57 — V0.3 Release Entry Gate — Scope & Acceptance Baselines
 - Completed Issue: #53 — V0.2-G UAT Reference Programme
@@ -48,7 +48,7 @@
 - V0.1 cross-module release acceptance scenario: PASS in the Stage H release-candidate regression suite.
 - Open defect check at V0.1 acceptance: no Severity 1 or Severity 2 release-blocking defect recorded.
 - Governance: `AGENTS.md`, `docs/PROJECT-GOVERNANCE.md`, PR governance checklist and DEC-008 are active; material decisions must pass the repository pre-flight and open-source/zero-cost-first constraint.
-- Next action: establish and approve the V0.3 Procurement scope baseline, acceptance criteria, architecture/business-rule decisions and test approach before V0.3-A BOQ & Budget implementation begins.
+- Next action: merge the approved V0.3 entry-gate baseline after exact-head CI, close Issue #57, then open V0.3-A BOQ & Budget implementation.
 
 ## Stage E completed
 
@@ -449,6 +449,6 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - V0.3 master-requirement inventory contains 32 approved requirements: 31 Must Have and 1 Should Have.
 - target requirements are BUD-001–BUD-010, PROC-001–PROC-019, DOC-007, RPT-005 and SYS-007.
 - PROC-020 remains V0.6 Finance; PROC-021 remains V0.7 Cost Control.
-- draft V0.3 Scope and Acceptance Criteria baselines are being prepared from the existing approved Requirements/Roadmap only.
-- unresolved commercial lifecycle/arithmetic/source-traceability rules are explicitly surfaced in `docs/V0.3-BUSINESS-RULES-PROPOSED.md`.
-- no V0.3 production implementation starts until the Product / Business Owner approves the release scope and acceptance baselines.
+- V0.3 Scope Baseline v0.1 and V0.3 Acceptance Criteria Baseline v0.1 were explicitly approved on 2026-09-27.
+- BR-V03-01 through BR-V03-18 were explicitly approved as proposed on 2026-09-27 and are authoritative unless changed through Change Control.
+- V0.3-A implementation may begin after this approved entry-gate baseline is merged and Issue #57 is closed.
