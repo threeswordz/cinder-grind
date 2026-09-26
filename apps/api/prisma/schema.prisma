@@ -643,6 +643,7 @@ model ActivityDependency {
   successorActivityId   String   @map("successor_activity_id") @db.Uuid
   dependencyType        String   @map("dependency_type") @db.VarChar(2)
   lagWorkDays           Decimal  @default(0) @map("lag_work_days") @db.Decimal(8, 2)
+  isActive              Boolean  @default(true) @map("is_active")
   createdAt             DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt             DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
@@ -651,7 +652,7 @@ model ActivityDependency {
   successor   Activity @relation("ActivitySuccessor", fields: [successorActivityId], references: [id], onDelete: Restrict)
 
   @@unique([predecessorActivityId, successorActivityId, dependencyType])
-  @@index([projectId])
+  @@index([projectId, isActive])
   @@index([successorActivityId])
   @@map("activity_dependencies")
 }
