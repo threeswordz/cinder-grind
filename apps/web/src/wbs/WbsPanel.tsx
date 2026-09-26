@@ -12,9 +12,9 @@ export function WbsPanel({permissions}:{permissions:string[]}){
  const costs=useQuery({queryKey:['cost-codes',search,active],queryFn:()=>wbsApi.costCodes(search,active),enabled:permissions.includes('wbs.cost_code.view')});
  const refreshWbs=()=>qc.invalidateQueries({queryKey:['wbs',projectId]});const refreshCost=()=>qc.invalidateQueries({queryKey:['cost-codes']});
  const saveWbs=useMutation({mutationFn:()=>selected?wbsApi.update(projectId,selected.id,{...wf,parentId:wf.parentId||null}):wbsApi.create(projectId,{...wf,parentId:wf.parentId||null}),onSuccess:async()=>{setSelected(null);setWf({wbsCode:'',wbsName:'',parentId:'',description:''});await refreshWbs();}});
- const toggleWbs=useMutation({mutationFn:(x:WbsRecord)=>wbsApi.update(projectId,x.id,{isActive:!x.isActive}),onSuccess:refreshWbs});
+ const toggleWbs=useMutation({mutationFn:(x:WbsRecord)=>wbsApi.setWbsActive(projectId,x.id,!x.isActive),onSuccess:refreshWbs});
  const saveCost=useMutation({mutationFn:()=>cost?wbsApi.updateCostCode(cost.id,cf):wbsApi.createCostCode(cf),onSuccess:async()=>{setCost(null);setCf({costCode:'',costName:'',description:''});await refreshCost();}});
- const toggleCost=useMutation({mutationFn:(x:CostCodeRecord)=>wbsApi.updateCostCode(x.id,{isActive:!x.isActive}),onSuccess:refreshCost});
+ const toggleCost=useMutation({mutationFn:(x:CostCodeRecord)=>wbsApi.setCostCodeActive(x.id,!x.isActive),onSuccess:refreshCost});
  const editW=(x:WbsRecord)=>{setSelected(x);setWf({wbsCode:x.wbsCode,wbsName:x.wbsName,parentId:x.parentId??'',description:x.description??''});};
  const editC=(x:CostCodeRecord)=>{setCost(x);setCf({costCode:x.costCode,costName:x.costName,description:x.description??''});};
  const rows=wbs.data?.data??[]; const depth=(x:WbsRecord)=>{let d=0,p=x.parentId,guard=0;while(p&&guard++<50){d++;p=rows.find(r=>r.id===p)?.parentId??null;}return d;};
