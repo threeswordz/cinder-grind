@@ -17,6 +17,7 @@ model Company {
   updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   customers         Customer[]
+  projects          Project[]
   suppliers         Supplier[]
   employees         Employee[]
   unitsOfMeasure    UnitOfMeasure[]
@@ -48,7 +49,8 @@ model Customer {
   createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  company Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  company  Company   @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  projects Project[]
 
   @@unique([companyId, customerCode])
   @@index([companyId, isActive])
@@ -125,8 +127,9 @@ model Employee {
   createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  company Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
-  user    User?
+  company        Company         @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  user           User?
+  projectMembers ProjectMember[]
 
   @@unique([companyId, employeeCode])
   @@index([companyId, isActive])
@@ -355,7 +358,8 @@ model StatusDefinition {
   sortOrder   Int     @default(0) @map("sort_order")
   isActive    Boolean @default(true) @map("is_active")
 
-  company Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  company  Company   @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  projects Project[]
 
   @@unique([companyId, entityType, statusCode])
   @@index([companyId, entityType, isActive, sortOrder])
@@ -389,4 +393,72 @@ model SystemSetting {
 
   @@unique([companyId, settingKey])
   @@map("system_settings")
+}
+
+
+model Project {
+  id                 String   @id @default(uuid()) @db.Uuid
+  companyId          String   @map("company_id") @db.Uuid
+  projectCode        String   @map("project_code") @db.VarChar(50)
+  projectName        String   @map("project_name") @db.VarChar(200)
+  customerId         String   @map("customer_id") @db.Uuid
+  statusDefinitionId String?  @map("status_definition_id") @db.Uuid
+  contractValue      Decimal  @map("contract_value") @db.Decimal(18, 2)
+  location           String?  @db.VarChar(500)
+  description        String?  @db.Text
+  plannedStartDate   DateTime @map("planned_start_date") @db.Date
+  plannedCompletionDate DateTime @map("planned_completion_date") @db.Date
+  isActive           Boolean  @default(true) @map("is_active")
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  company          Company           @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  customer         Customer          @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  statusDefinition StatusDefinition? @relation(fields: [statusDefinitionId], references: [id], onDelete: Restrict)
+  members          ProjectMember[]
+  contacts         ProjectContact[]
+
+  @@unique([companyId, projectCode])
+  @@index([companyId, isActive])
+  @@index([customerId])
+  @@index([statusDefinitionId])
+  @@map("projects")
+}
+
+model ProjectMember {
+  id          String    @id @default(uuid()) @db.Uuid
+  projectId   String    @map("project_id") @db.Uuid
+  employeeId  String    @map("employee_id") @db.Uuid
+  projectRole String    @map("project_role") @db.VarChar(150)
+  startDate   DateTime? @map("start_date") @db.Date
+  endDate     DateTime? @map("end_date") @db.Date
+  isActive    Boolean   @default(true) @map("is_active")
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  project  Project  @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+
+  @@unique([projectId, employeeId, projectRole])
+  @@index([projectId, isActive])
+  @@index([employeeId, isActive])
+  @@map("project_members")
+}
+
+model ProjectContact {
+  id               String   @id @default(uuid()) @db.Uuid
+  projectId        String   @map("project_id") @db.Uuid
+  contactName      String   @map("contact_name") @db.VarChar(200)
+  organizationName String?  @map("organization_name") @db.VarChar(200)
+  roleOrTitle      String?  @map("role_or_title") @db.VarChar(150)
+  email            String?  @db.VarChar(320)
+  phone            String?  @db.VarChar(50)
+  isActive         Boolean  @default(true) @map("is_active")
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Restrict)
+
+  @@index([projectId, isActive])
+  @@map("project_contacts")
 }
