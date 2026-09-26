@@ -1194,6 +1194,8 @@ export class SchedulingService {
         where: {
           projectId,
           isActive: true,
+          predecessor: { isActive: true },
+          successor: { isActive: true },
           ...(excludeId ? { id: { not: excludeId } } : {}),
         },
         select: {
