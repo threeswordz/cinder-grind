@@ -272,6 +272,40 @@ test('Stage C preserves immutable baselines and append-only progress with approv
       prisma.scheduleBaseline.delete({ where: { id: submitted.id } }),
     );
 
+
+    const lateActivity = await prisma.activity.create({
+      data: {
+        companyId: company.id,
+        projectId: project.id,
+        wbsId: wbs.id,
+        workingCalendarId: calendar.id,
+        activityCode: 'LATE-' + suffix,
+        activityName: 'Late Activity Must Not Enter Baseline',
+        plannedDurationWorkDays: '1',
+        plannedStartDate: new Date('2026-10-09T00:00:00.000Z'),
+        plannedFinishDate: new Date('2026-10-09T00:00:00.000Z'),
+      },
+    });
+
+    await assert.rejects(() =>
+      prisma.scheduleBaselineActivity.create({
+        data: {
+          scheduleBaselineId: submitted.id,
+          activityId: lateActivity.id,
+          wbsId: wbs.id,
+          activityCode: lateActivity.activityCode,
+          activityName: lateActivity.activityName,
+          wbsCode: wbs.wbsCode,
+          wbsName: wbs.wbsName,
+          isSummary: false,
+          isMilestone: false,
+          plannedDurationWorkDays: '1',
+          plannedStartDate: new Date('2026-10-09T00:00:00.000Z'),
+          plannedFinishDate: new Date('2026-10-09T00:00:00.000Z'),
+        },
+      }),
+    );
+
     const firstProgress = await service.recordProgress(
       { auth: makerAuth },
       activityA.id,
