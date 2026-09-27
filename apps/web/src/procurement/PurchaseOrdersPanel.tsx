@@ -811,8 +811,7 @@ export function PurchaseOrdersPanel({ permissions }: Props) {
 
                 {canCancel &&
                 current.lifecycleState !== 'CANCELLED' &&
-                current.lifecycleState !== 'REJECTED' &&
-                !current.nextRevision ? (
+                current.lifecycleState !== 'REJECTED' ? (
                   <Stack spacing={1}>
                     <TextField
                       label="Cancellation reason"
@@ -830,7 +829,9 @@ export function PurchaseOrdersPanel({ permissions }: Props) {
                   </Stack>
                 ) : null}
 
-                {canRevise && approved && !current.nextRevision ? (
+                {canRevise &&
+                (approved || current.lifecycleState === 'REJECTED') &&
+                !current.nextRevision ? (
                   <Stack spacing={1}>
                     <TextField
                       label="Revision reason"
@@ -862,6 +863,7 @@ export function PurchaseOrdersPanel({ permissions }: Props) {
                             action.approvalStep.stepName +
                             ' · '
                           : ''}
+                        {action.action} ·{' '}
                         {action.actionByUser?.displayName ?? 'System'} ·{' '}
                         {new Date(action.actionAt).toLocaleString()}
                         {action.comment ? ' · ' + action.comment : ''}
