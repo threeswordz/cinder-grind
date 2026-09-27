@@ -75,6 +75,22 @@ export class ReportingService {
                       _count: {
                         select: { suppliers: true, quotations: true },
                       },
+                      quotations: {
+                        select: {
+                          id: true,
+                          supplierReference: true,
+                          quotationDate: true,
+                          validityDate: true,
+                          supplier: {
+                            select: {
+                              id: true,
+                              supplierCode: true,
+                              supplierName: true,
+                            },
+                          },
+                        },
+                        orderBy: { quotationDate: 'asc' },
+                      },
                     },
                   },
                   award: {
@@ -242,6 +258,15 @@ export class ReportingService {
             closingDate: dateKey(rfqLine.rfq.closingDate),
             invitedSupplierCount: rfqLine.rfq._count.suppliers,
             quotationCount: rfqLine.rfq._count.quotations,
+            quotations: rfqLine.rfq.quotations.map(
+              (quotation) => ({
+                id: quotation.id,
+                supplierReference: quotation.supplierReference,
+                quotationDate: dateKey(quotation.quotationDate)!,
+                validityDate: dateKey(quotation.validityDate),
+                supplier: quotation.supplier,
+              }),
+            ),
             award: rfqLine.award,
           })),
           purchaseOrders: poRows,
