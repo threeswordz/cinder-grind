@@ -1262,7 +1262,7 @@ check(
 );
 record('V0.3-C RFQ, multi-Supplier quotations, derived comparison and split line-level Supplier Awards');
 
-const rejectedCandidate = await request
+const rejectedCandidate = await request(
   pm,
   '/procurement/projects/' + projectId + '/purchase-requests',
   {
