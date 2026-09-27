@@ -1224,7 +1224,7 @@ Purchase Request
 
 Expected:
 
-Traceability is preserved and PO becomes Committed Cost.
+Traceability is preserved through the approved PO. V0.3-D retains the approved PO commercial value as immutable source evidence for later Committed Cost derivation; it does not create the V0.7 Committed Cost ledger and does not classify the PO as Actual Cost.
 
 ---
 
@@ -1493,8 +1493,14 @@ Priority testing:
 - quotations
 - award
 - Purchase Order
-- Required-on-Site vs Expected Delivery
-- committed cost
+- immutable PO numbering and revision history
+- PR → RFQ → quotation → award → PO traceability
+- Project/WBS/Cost Code allocation
+- Required-on-Site and Expected Delivery retention without Scheduling-date mutation
+- maker-checker approval, rejection and cancellation evidence
+- approved PO commercial values as source evidence for later committed-cost derivation
+
+Stage D automated integration and live HTTP acceptance exercise award-backed PO creation, duplicate-award prevention, quantity not exceeding the selected award, Draft-only commercial editing, approval, immutable earlier revisions, Expected Delivery changes through controlled revision, cancellation evidence and Project-scope denial. Stage D does not create the V0.7 Committed Cost ledger/read model.
 
 ---
 

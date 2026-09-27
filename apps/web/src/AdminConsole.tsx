@@ -25,6 +25,7 @@ import { UsersPanel } from './admin/UsersPanel';
 import { MasterDataPanel } from './master-data/MasterDataPanel';
 import { ProjectsPanel } from './projects/ProjectsPanel';
 import { PurchaseRequestsPanel } from './procurement/PurchaseRequestsPanel';
+import { PurchaseOrdersPanel } from './procurement/PurchaseOrdersPanel';
 import { SourcingPanel } from './procurement/SourcingPanel';
 import { ProjectEngineerDashboard } from './reporting/ProjectEngineerDashboard';
 import { SchedulingPanel } from './scheduling/SchedulingPanel';
@@ -47,6 +48,12 @@ export function AdminConsole({ user }: { user: CurrentUser }) {
   const sections = useMemo<Section[]>(
     () =>
       [
+        {
+          key: 'purchase-orders',
+          label: 'Purchase Orders',
+          permission: '__purchase_orders__',
+          content: <PurchaseOrdersPanel permissions={user.permissions} />,
+        },
         {
           key: 'sourcing',
           label: 'RFQ & Quotations',
@@ -162,7 +169,9 @@ export function AdminConsole({ user }: { user: CurrentUser }) {
           content: <SystemSettingsPanel />,
         },
       ].filter((section) =>
-        section.permission === '__sourcing__'
+        section.permission === '__purchase_orders__'
+          ? user.permissions.includes('procurement.po.view')
+          : section.permission === '__sourcing__'
           ? user.permissions.some(
               (permission) =>
                 permission.startsWith('procurement.rfq.') ||

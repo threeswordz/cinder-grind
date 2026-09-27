@@ -4,9 +4,9 @@
 **Source of truth:** Live GitHub repository state
 
 - Current Release: V0.3 Procurement
-- Current Stage: V0.3-D Purchase Order — PRE-FLIGHT
+- Current Stage: V0.3-D Purchase Order — ACTIVE IMPLEMENTATION
 - Completed Stages: V0.1-A Technical Skeleton; V0.1-B Company / Identity / Security; V0.1-C Administration; V0.1-D Master Data; V0.1-E Projects; V0.1-F WBS & Cost Codes; V0.1-G Basic Documents; V0.1-H Integration / Regression / UAT; V0.2-A Scheduling Data Model; V0.2-B Scheduling Engine; V0.2-C Baselines / Progress; V0.2-D Gantt / Lookahead; V0.2-E Site Execution; V0.2-F Equipment; V0.2-G UAT Reference Programme
-- Active Issue: pending creation — V0.3-D Purchase Order
+- Active Issue: #72 — V0.3-D Purchase Order
 - Completed Issue: #67 — V0.3-C RFQ / Quotations
 - Completed Branch: `v0.3-c-rfq-quotations`
 - Merged PR: #70 — V0.3-C: RFQ / Quotations
@@ -60,7 +60,7 @@
 - V0.1 cross-module release acceptance scenario: PASS in the Stage H release-candidate regression suite.
 - Open defect check at V0.1 acceptance: no Severity 1 or Severity 2 release-blocking defect recorded.
 - Governance: `AGENTS.md`, `docs/PROJECT-GOVERNANCE.md`, PR governance checklist and DEC-008 are active; material decisions must pass the repository pre-flight and open-source/zero-cost-first constraint.
-- Next action: run V0.3-D Purchase Order pre-flight, then implement PROC-009 through PROC-017 under AC-V03-017 through AC-V03-022, BR-V03-11 through BR-V03-14, and approved PO numbering `POYYMM-###` / MONTHLY.
+- Next action: complete V0.3-D exact-head validation and review, merge the Stage D implementation PR, validate post-merge `main`, then record the completion checkpoint before V0.3-E Schedule Risk.
 
 ## Stage E completed
 
@@ -582,4 +582,36 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - review hardening covers commercial-data authorization/redaction, exact quotation-line award integrity, quotation-only workspace access, date validation and concurrency-safe correction/award snapshots.
 - no Purchase Order, Expected Delivery/schedule-risk, committed-cost ledger, Inventory or Finance behavior was pulled forward.
 - next stage is V0.3-D Purchase Order pre-flight under PROC-009 through PROC-017, AC-V03-017 through AC-V03-022 and BR-V03-11 through BR-V03-14.
+
+## V0.3-D active
+
+- Issue #72 records the Stage D pre-flight and implementation contract.
+- Branch: `v0.3-d-purchase-order` from green post-completion `main` checkpoint `357926f3af4b046b974c40dbd09efe68aa7419c2`.
+- Entry CI: post-completion `main` CI #1155 passed.
+- Stage D implements PROC-009 through PROC-017 under AC-V03-017 through AC-V03-022 and BR-V03-11 through BR-V03-14.
+- Purchase Order numbering uses the approved `POYYMM-###` / MONTHLY Company sequence.
+- POs belong to one Company, one Supplier and one Project and originate from awarded quotation lines in the default V0.3 flow.
+- approved PO revisions preserve immutable earlier commercial values; the latest approved revision is current.
+- Required-on-Site and Expected Delivery are retained as line-level procurement dates without mutating schedule-owned Activity dates.
+- Stage D does not introduce Goods Receipt, Inventory posting, Finance, Actual Cost, the V0.7 Committed Cost ledger, tax/VAT, FX, or Stage E schedule-risk reporting.
+
+## V0.3-D implementation progress
+
+- canonical Purchase Order persistence is implemented with stable Company-scoped `POYYMM-###` identity and immutable revision numbers.
+- initial POs are created only from unused line-level Supplier Awards; one PO belongs to one Company, one Project and one Supplier.
+- every PO line retains direct PR → RFQ → Supplier Quotation → Supplier Award identifiers plus controlled material/UOM/commercial snapshots.
+- Draft quantity, pricing, WBS, Cost Code, Required-on-Site, Expected Delivery and remarks are controlled through backend validation; amount is server-derived and PO quantity cannot exceed the selected Supplier Award quantity.
+- PostgreSQL guards independently enforce Company/Project/Supplier scope, source-chain integrity, award-quantity limits, derived arithmetic, Draft-only mutation, revision-chain integrity and retained commercial history.
+- configurable `PURCHASE_ORDER` Approval Matrix and maker-checker controls drive SUBMITTED → APPROVED / REJECTED lifecycle; cancellation retains actor/time/reason.
+- approved commercial changes create a new linked Draft revision under the same PO number; earlier approved revisions remain immutable.
+- retained REJECTED PO revisions can be copied into a corrective next Draft under the same PO identity; rejected history never overwrites the latest approved commitment.
+- active PO dependencies prevent cancellation of their source Purchase Request demand, and final PO approval revalidates active approved source demand plus active Supplier status.
+- PO action permissions require `procurement.po.view`, preventing action-only Roles with no scoped workspace discovery/read path.
+- eight PO permissions are explicit business authorities and are not implicitly granted to technical `SYS_ADMIN`.
+- responsive Purchase Order workspace supports Project discovery, unused-award selection, Draft creation/editing, WBS/Cost Code selection, workflow actions, cancellation and revision history.
+- PostgreSQL integration coverage proves award-backed creation, duplicate-award prevention, Project scope, approval, immutable approved history, revisions, cancellation and audit evidence.
+- live HTTP acceptance proves numbering, source traceability, allocation, maker-checker approval, immutable revisions, delivery dates and Project-scope denial.
+- full functional branch CI #1177 passed on `c696e8fe66fb5c29f7c742974645dc9d6220edaf`, including migrations, typecheck, all regression/integration tests, production builds and live HTTP acceptance.
+- API, ERD and permission documentation is aligned to the Stage D implementation.
+- Goods Receipt / Inventory, Finance, Actual Cost, V0.7 Committed Cost ledger, tax/VAT, FX and Stage E schedule-risk classification remain excluded.
 

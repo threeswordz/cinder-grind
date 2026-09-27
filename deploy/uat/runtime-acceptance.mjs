@@ -107,6 +107,12 @@ check(
     !me.data.data.permissions.includes('procurement.award.select'),
   'SYS_ADMIN must not implicitly receive Stage C sourcing business authority.',
 );
+check(
+  !me.data.data.permissions.some((permission) =>
+    permission.startsWith('procurement.po.'),
+  ),
+  'SYS_ADMIN must not implicitly receive Purchase Order business authority.',
+);
 record('administrator login, current-user endpoint and technical-role business-authority separation');
 
 const status = await request(admin, '/admin/statuses', {
@@ -262,6 +268,12 @@ const permissionCodes = [
   'procurement.quotation.view',
   'procurement.quotation.manage',
   'procurement.award.select',
+  'procurement.po.view',
+  'procurement.po.create',
+  'procurement.po.edit',
+  'procurement.po.submit',
+  'procurement.po.cancel',
+  'procurement.po.revise',
 ];
 await request(admin, `/admin/roles/${roleId}/permissions`, {
   method: 'PUT',
@@ -290,6 +302,9 @@ await request(admin, `/admin/roles/${checkerRoleId}/permissions`, {
       'procurement.pr.approve',
       'procurement.quotation.view',
       'procurement.quotation.manage',
+      'procurement.po.view',
+      'procurement.po.approve',
+      'procurement.po.reject',
     ],
   },
 });
@@ -383,7 +398,37 @@ await request(admin, '/admin/number-sequences', {
   },
   expected: 201,
 });
-record('V0.3-A Budget, V0.3-B Purchase Request and V0.3-C RFQ numbering configuration');
+
+const poWorkflowCode = 'PURCHASE_ORDER_' + suffix;
+await request(admin, '/admin/approval-workflows', {
+  method: 'POST',
+  json: {
+    workflowCode: poWorkflowCode,
+    entityType: 'PURCHASE_ORDER',
+    workflowName: 'Purchase Order Approval ' + suffix,
+    steps: [
+      {
+        stepNo: 1,
+        stepName: 'Approve Purchase Order',
+        requiredApprovals: 1,
+        roleIds: [checkerRoleId],
+      },
+    ],
+  },
+  expected: 201,
+});
+await request(admin, '/admin/number-sequences', {
+  method: 'POST',
+  json: {
+    entityType: 'PURCHASE_ORDER',
+    sequenceCode: 'PURCHASE_ORDER',
+    formatTemplate: 'POYYMM-###',
+    resetRule: 'MONTHLY',
+    startingValue: 1,
+  },
+  expected: 201,
+});
+record('V0.3-A Budget, V0.3-B Purchase Request, V0.3-C RFQ and V0.3-D PO numbering / approval configuration');
 
 const pmPassword = 'Uat-PM-' + suffix + '-Strong-2026!';
 const unassignedPassword = 'Uat-PE-' + suffix + '-Strong-2026!';
@@ -1354,6 +1399,333 @@ check(
   'Approved demand did not derive awarded quantities from line-level Supplier Awards.',
 );
 record('V0.3-C RFQ, multi-Supplier quotations, derived comparison and split line-level Supplier Awards');
+
+const poProjects = await request(pm, '/procurement/po-projects');
+check(
+  poProjects.data.data.some((item) => item.id === projectId),
+  'Purchase Order Project selector did not expose the assigned Project.',
+);
+
+const availablePoAwards = await request(
+  pm,
+  '/procurement/projects/' + projectId + '/po-awards',
+);
+check(
+  availablePoAwards.data.data.some(
+    (item) => item.id === materialSourcingAward.data.data.id,
+  ) &&
+    availablePoAwards.data.data.some(
+      (item) => item.id === serviceSourcingAward.data.data.id,
+    ),
+  'Purchase Order award selector did not expose unused line-level Supplier Awards.',
+);
+
+const purchaseOrder = await request(
+  pm,
+  '/procurement/projects/' + projectId + '/purchase-orders',
+  {
+    method: 'POST',
+    json: {
+      awardIds: [materialSourcingAward.data.data.id],
+      remarks: 'Award-backed material Purchase Order ' + suffix,
+    },
+    expected: 201,
+  },
+);
+const purchaseOrderId = purchaseOrder.data.data.id;
+const purchaseOrderNumber = purchaseOrder.data.data.poNumber;
+const purchaseOrderLineId = purchaseOrder.data.data.lines[0]?.id;
+check(
+  /^PO\d{4}-\d{3}$/.test(purchaseOrderNumber) &&
+    purchaseOrder.data.data.revisionNo === 0 &&
+    purchaseOrder.data.data.supplierId === sourcingSupplierB.data.data.id &&
+    purchaseOrder.data.data.lines.length === 1 &&
+    purchaseOrder.data.data.lines[0]?.quotationAwardId ===
+      materialSourcingAward.data.data.id &&
+    purchaseOrder.data.data.lines[0]?.purchaseRequestLineId ===
+      prMaterialLine.data.data.id &&
+    purchaseOrder.data.data.lines[0]?.rfqId === sourcingRfqId &&
+    purchaseOrder.data.data.lines[0]?.supplierQuotationId ===
+      quotationB.data.data.id,
+  'Purchase Order did not retain immutable numbering, Supplier scope and PR → RFQ → quotation → award traceability.',
+);
+check(purchaseOrderLineId, 'Purchase Order source line was not created.');
+
+await request(
+  pm,
+  '/procurement/purchase-requests/' + purchaseRequestId + '/cancel',
+  {
+    method: 'POST',
+    expected: 409,
+  },
+);
+record('V0.3-D active PO dependency prevents source Purchase Request cancellation');
+
+await request(
+  pm,
+  '/procurement/projects/' + projectId + '/purchase-orders',
+  {
+    method: 'POST',
+    json: {
+      awardIds: [materialSourcingAward.data.data.id],
+      remarks: 'Duplicate award must be rejected.',
+    },
+    expected: 409,
+  },
+);
+
+const poOptions = await request(
+  pm,
+  '/procurement/projects/' + projectId + '/po-options',
+);
+check(
+  poOptions.data.data.wbs.some((item) => item.id === rootWbs.data.data.id) &&
+    poOptions.data.data.costCodes.some(
+      (item) => item.id === costCode.data.data.id,
+    ),
+  'Purchase Order allocation options did not expose active Project WBS and Company Cost Codes.',
+);
+
+const initialExpectedDelivery = utcDateOffset(10);
+const revisedExpectedDelivery = utcDateOffset(14);
+const updatedPoLine = await request(
+  pm,
+  '/procurement/purchase-order-lines/' + purchaseOrderLineId,
+  {
+    method: 'PATCH',
+    json: {
+      quantity: '9',
+      unitPrice: '9.5',
+      wbsId: rootWbs.data.data.id,
+      costCodeId: costCode.data.data.id,
+      requiredOnSite: '2026-10-12',
+      expectedDelivery: initialExpectedDelivery,
+      remarks: 'Confirmed first delivery date.',
+    },
+  },
+);
+check(
+  String(updatedPoLine.data.data.amount) === '85.5' &&
+    updatedPoLine.data.data.expectedDelivery?.slice(0, 10) ===
+      initialExpectedDelivery,
+  'Draft Purchase Order line did not derive amount or retain Expected Delivery.',
+);
+
+const submittedPo = await request(
+  pm,
+  '/procurement/purchase-orders/' + purchaseOrderId + '/submit',
+  {
+    method: 'POST',
+    json: { workflowCode: poWorkflowCode },
+    expected: 201,
+  },
+);
+check(
+  submittedPo.data.data.lifecycleState === 'SUBMITTED',
+  'Purchase Order did not enter SUBMITTED state.',
+);
+await request(
+  pm,
+  '/procurement/purchase-orders/' + purchaseOrderId + '/approve',
+  {
+    method: 'POST',
+    json: { comment: 'Maker must not self-approve PO.' },
+    expected: 403,
+  },
+);
+const approvedPo = await request(
+  checker,
+  '/procurement/purchase-orders/' + purchaseOrderId + '/approve',
+  {
+    method: 'POST',
+    json: { comment: 'Approved Purchase Order.' },
+    expected: 201,
+  },
+);
+check(
+  approvedPo.data.data.lifecycleState === 'APPROVED' &&
+    approvedPo.data.data.lines[0]?.expectedDelivery?.slice(0, 10) ===
+      initialExpectedDelivery,
+  'Configured checker could not approve the Purchase Order or delivery date was not retained.',
+);
+await request(
+  pm,
+  '/procurement/purchase-order-lines/' + purchaseOrderLineId,
+  {
+    method: 'PATCH',
+    json: { unitPrice: '10' },
+    expected: 409,
+  },
+);
+
+const revisedPo = await request(
+  pm,
+  '/procurement/purchase-orders/' + purchaseOrderId + '/revise',
+  {
+    method: 'POST',
+    json: { revisionReason: 'Supplier delivery and commercial revision.' },
+    expected: 201,
+  },
+);
+const revisedPoId = revisedPo.data.data.id;
+check(
+  revisedPo.data.data.poNumber === purchaseOrderNumber &&
+    revisedPo.data.data.revisionNo === 1 &&
+    revisedPo.data.data.previousRevisionId === purchaseOrderId &&
+    revisedPo.data.data.lifecycleState === 'DRAFT',
+  'Purchase Order revision did not preserve the stable PO identity and prior revision link.',
+);
+
+const revisedPoDetail = await request(
+  pm,
+  '/procurement/purchase-orders/' + revisedPoId,
+);
+const revisedPoLineId = revisedPoDetail.data.data.lines[0]?.id;
+check(
+  revisedPoDetail.data.data.lines.length === 1 &&
+    revisedPoDetail.data.data.lines[0]?.quotationAwardId ===
+      materialSourcingAward.data.data.id,
+  'Purchase Order revision did not preserve source traceability.',
+);
+check(revisedPoLineId, 'Revised Purchase Order line was not created.');
+
+await request(
+  pm,
+  '/procurement/purchase-order-lines/' + revisedPoLineId,
+  {
+    method: 'PATCH',
+    json: {
+      unitPrice: '9.75',
+      expectedDelivery: revisedExpectedDelivery,
+    },
+  },
+);
+await request(
+  pm,
+  '/procurement/purchase-orders/' + revisedPoId + '/submit',
+  {
+    method: 'POST',
+    json: { workflowCode: poWorkflowCode },
+    expected: 201,
+  },
+);
+const approvedPoRevision = await request(
+  checker,
+  '/procurement/purchase-orders/' + revisedPoId + '/approve',
+  {
+    method: 'POST',
+    json: { comment: 'Approved PO revision.' },
+    expected: 201,
+  },
+);
+check(
+  approvedPoRevision.data.data.lifecycleState === 'APPROVED' &&
+    approvedPoRevision.data.data.lines[0]?.unitPrice === '9.75' &&
+    approvedPoRevision.data.data.lines[0]?.expectedDelivery?.slice(0, 10) ===
+      revisedExpectedDelivery,
+  'Purchase Order revised commercial values or Expected Delivery were not approved correctly.',
+);
+
+const poHistory = await request(
+  pm,
+  '/procurement/purchase-orders/' + revisedPoId + '/revisions',
+);
+check(
+  poHistory.data.data.length === 2 &&
+    poHistory.data.data[0]?.revisionNo === 0 &&
+    poHistory.data.data[0]?.lifecycleState === 'APPROVED' &&
+    poHistory.data.data[1]?.revisionNo === 1 &&
+    poHistory.data.data[1]?.lifecycleState === 'APPROVED',
+  'Purchase Order revision history did not preserve both approved versions.',
+);
+const originalPoAfterRevision = await request(
+  pm,
+  '/procurement/purchase-orders/' + purchaseOrderId,
+);
+check(
+  originalPoAfterRevision.data.data.lines[0]?.unitPrice === '9.5' &&
+    originalPoAfterRevision.data.data.lines[0]?.expectedDelivery?.slice(0, 10) ===
+      initialExpectedDelivery,
+  'Earlier approved Purchase Order revision was modified by a later revision.',
+);
+
+const cancelledPo = await request(
+  pm,
+  '/procurement/purchase-orders/' + revisedPoId + '/cancel',
+  {
+    method: 'POST',
+    json: { reason: 'Supplier order cancelled during UAT.' },
+    expected: 201,
+  },
+);
+check(
+  cancelledPo.data.data.lifecycleState === 'CANCELLED' &&
+    cancelledPo.data.data.cancellationReason ===
+      'Supplier order cancelled during UAT.',
+  'Purchase Order cancellation did not retain actor/time/reason lifecycle evidence.',
+);
+record('V0.3-D Purchase Order award sourcing, numbering, allocation, maker-checker approval, immutable revisions, delivery dates and cancellation');
+
+const rejectedPo = await request(
+  pm,
+  '/procurement/projects/' + projectId + '/purchase-orders',
+  {
+    method: 'POST',
+    json: {
+      awardIds: [serviceSourcingAward.data.data.id],
+      remarks: 'Rejected PO retry acceptance ' + suffix,
+    },
+    expected: 201,
+  },
+);
+await request(
+  pm,
+  '/procurement/purchase-orders/' + rejectedPo.data.data.id + '/submit',
+  {
+    method: 'POST',
+    json: { workflowCode: poWorkflowCode },
+    expected: 201,
+  },
+);
+const rejectedPoResult = await request(
+  checker,
+  '/procurement/purchase-orders/' + rejectedPo.data.data.id + '/reject',
+  {
+    method: 'POST',
+    json: { comment: 'Correct supplier commercial detail and resubmit.' },
+    expected: 201,
+  },
+);
+check(
+  rejectedPoResult.data.data.lifecycleState === 'REJECTED',
+  'Purchase Order rejection was not retained.',
+);
+const retryPo = await request(
+  pm,
+  '/procurement/purchase-orders/' + rejectedPo.data.data.id + '/revise',
+  {
+    method: 'POST',
+    json: { revisionReason: 'Correct rejected Purchase Order.' },
+    expected: 201,
+  },
+);
+check(
+  retryPo.data.data.poNumber === rejectedPo.data.data.poNumber &&
+    retryPo.data.data.revisionNo === 1 &&
+    retryPo.data.data.lifecycleState === 'DRAFT',
+  'Rejected Purchase Order could not be copied into a retained corrective revision.',
+);
+await request(
+  pm,
+  '/procurement/purchase-orders/' + retryPo.data.data.id + '/cancel',
+  {
+    method: 'POST',
+    json: { reason: 'Rejected retry acceptance cleanup.' },
+    expected: 201,
+  },
+);
+record('V0.3-D rejected Purchase Order retry path');
+
 
 const rejectedCandidate = await request(
   pm,
@@ -2559,10 +2931,21 @@ await request(
   '/procurement/rfqs/' + sourcingRfqId,
   { expected: 403 },
 );
+await request(
+  unassigned,
+  '/procurement/projects/' + projectId + '/purchase-orders',
+  { expected: 403 },
+);
+await request(
+  unassigned,
+  '/procurement/purchase-orders/' + purchaseOrderId,
+  { expected: 403 },
+);
 record('V0.3-A scoped Budget access denied');
 record('V0.3-B scoped Purchase Request access denied');
 record('V0.3-C scoped RFQ / quotation access denied');
-record('unassigned Project, Document, Scheduling, Site Execution, Equipment, Reporting and Budget access denied');
+record('V0.3-D scoped Purchase Order access denied');
+record('unassigned Project, Document, Scheduling, Site Execution, Equipment, Reporting, Budget and Procurement access denied');
 
 await logout(pm);
 await request(pm, '/auth/me', { expected: 401 });

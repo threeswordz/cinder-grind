@@ -510,6 +510,21 @@ export class IdentityAdminService {
     permissionCodes: string[],
   ) {
     const uniqueCodes = [...new Set(permissionCodes)];
+    const poActionCodes = uniqueCodes.filter(
+      (code) =>
+        code.startsWith('procurement.po.') &&
+        code !== 'procurement.po.view',
+    );
+    if (
+      poActionCodes.length > 0 &&
+      !uniqueCodes.includes('procurement.po.view')
+    ) {
+      throw new UnprocessableEntityException({
+        code: 'PO_VIEW_PERMISSION_REQUIRED',
+        detail:
+          'Purchase Order action permissions require procurement.po.view so the authorized workflow actor can discover and read scoped Purchase Orders.',
+      });
+    }
 
     return this.prisma.$transaction(async (tx) => {
       const role = await tx.role.findFirst({
