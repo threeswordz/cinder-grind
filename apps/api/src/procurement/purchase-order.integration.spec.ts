@@ -634,6 +634,24 @@ test('V0.3-D Purchase Orders preserve awarded-source traceability, approval and 
       false,
       'Award already assigned to a PO must not remain available for a second PO.',
     );
+
+    const poLineGuard = await prisma.$queryRaw<
+      Array<{ definition: string }>
+    >`
+      SELECT pg_get_functiondef(
+        'validate_purchase_order_line()'::regprocedure
+      ) AS definition
+    `;
+    assert.match(
+      poLineGuard[0]?.definition ?? '',
+      /pg_advisory_xact_lock/,
+      'Database PO-line guard must serialize the Supplier Award key before checking assignment history.',
+    );
+    assert.match(
+      poLineGuard[0]?.definition ?? '',
+      /po-award:/,
+      'Database PO-line guard must use the same Supplier Award lock namespace as the service.',
+    );
   } finally {
     await prisma.$disconnect();
   }
