@@ -33,6 +33,7 @@ import { SchedulingPanel } from './scheduling/SchedulingPanel';
 import { SiteExecutionPanel } from './site-execution/SiteExecutionPanel';
 import { DocumentsPanel } from './documents/DocumentsPanel';
 import { EquipmentPanel } from './equipment/EquipmentPanel';
+import { WarehousesPanel } from './inventory/WarehousesPanel';
 import { WbsPanel } from './wbs/WbsPanel';
 
 type Section = {
@@ -84,6 +85,12 @@ export function AdminConsole({ user }: { user: CurrentUser }) {
           label: 'Project Engineer',
           permission: 'reporting.operational.view',
           content: <ProjectEngineerDashboard />,
+        },
+        {
+          key: 'inventory',
+          label: 'Inventory',
+          permission: '__inventory__',
+          content: <WarehousesPanel permissions={user.permissions} />,
         },
         {
           key: 'equipment',
@@ -193,6 +200,10 @@ export function AdminConsole({ user }: { user: CurrentUser }) {
           ? user.permissions.some((permission) =>
               permission.startsWith('budget.'),
             )
+          : section.permission === '__inventory__'
+          ? user.permissions.some((permission) =>
+              permission.startsWith('inventory.'),
+            )
           : section.permission === '__equipment__'
           ? user.permissions.some((permission) =>
               permission.startsWith('equipment.'),
@@ -244,7 +255,7 @@ export function AdminConsole({ user }: { user: CurrentUser }) {
             <Box sx={{ flexGrow: 1 }}>
               <Typography variant="h6">Construction ERP</Typography>
               <Typography variant="body2" color="text.secondary">
-                V0.3 Procurement · {user.displayName}
+                V0.4 Inventory · {user.displayName}
               </Typography>
             </Box>
             <Button
