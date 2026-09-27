@@ -274,19 +274,20 @@ DECLARE
   rfq_company UUID;
   supplier_company UUID;
   supplier_active BOOLEAN;
-  supplier_code VARCHAR(50);
-  supplier_name VARCHAR(200);
+  source_supplier_code VARCHAR(50);
+  source_supplier_name VARCHAR(200);
 BEGIN
-  SELECT "company_id" INTO rfq_company FROM "rfqs" WHERE "id" = NEW."rfq_id";
-  SELECT "company_id","is_active","supplier_code","supplier_name"
-    INTO supplier_company,supplier_active,supplier_code,supplier_name
-  FROM "suppliers" WHERE "id" = NEW."supplier_id";
+  SELECT r."company_id" INTO rfq_company
+  FROM "rfqs" r WHERE r."id" = NEW."rfq_id";
+  SELECT s."company_id",s."is_active",s."supplier_code",s."supplier_name"
+    INTO supplier_company,supplier_active,source_supplier_code,source_supplier_name
+  FROM "suppliers" s WHERE s."id" = NEW."supplier_id";
   IF rfq_company IS NULL OR supplier_company IS NULL
      OR supplier_company <> rfq_company OR NOT supplier_active THEN
     RAISE EXCEPTION 'RFQ Supplier must be active and belong to the same Company';
   END IF;
-  IF NEW."supplier_code_snapshot" <> supplier_code
-     OR NEW."supplier_name_snapshot" <> supplier_name THEN
+  IF NEW."supplier_code_snapshot" <> source_supplier_code
+     OR NEW."supplier_name_snapshot" <> source_supplier_name THEN
     RAISE EXCEPTION 'RFQ Supplier snapshots must match the invited Supplier';
   END IF;
   RETURN NEW;
