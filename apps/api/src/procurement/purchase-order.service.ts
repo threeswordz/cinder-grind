@@ -59,6 +59,26 @@ export class PurchaseOrderService {
     });
   }
 
+  async options(
+    auth: AuthenticatedUserContext,
+    projectId: string,
+  ) {
+    await this.access.assertAccess(auth, projectId);
+    const [wbs, costCodes] = await Promise.all([
+      this.prisma.wbsElement.findMany({
+        where: { projectId, isActive: true },
+        select: { id: true, wbsCode: true, wbsName: true },
+        orderBy: { wbsCode: 'asc' },
+      }),
+      this.prisma.costCode.findMany({
+        where: { companyId: auth.companyId, isActive: true },
+        select: { id: true, costCode: true, costName: true },
+        orderBy: { costCode: 'asc' },
+      }),
+    ]);
+    return { wbs, costCodes };
+  }
+
   async availableAwards(
     auth: AuthenticatedUserContext,
     projectId: string,
