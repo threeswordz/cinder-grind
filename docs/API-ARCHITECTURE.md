@@ -1455,16 +1455,33 @@ V0.3-A creates no Inventory movement, Supplier Invoice, Payment, Actual Cost, ta
 ## 41.8 Purchase Requests
 
 ```text
-GET    /api/v1/purchase-requests
-POST   /api/v1/purchase-requests
-GET    /api/v1/purchase-requests/{id}
-PATCH  /api/v1/purchase-requests/{id}
-POST   /api/v1/purchase-requests/{id}/submit
-POST   /api/v1/purchase-requests/{id}/approve
-POST   /api/v1/purchase-requests/{id}/reject
-POST   /api/v1/purchase-requests/{id}/cancel
+GET    /api/v1/procurement/projects
+GET    /api/v1/procurement/projects/{projectId}/options
+GET    /api/v1/procurement/pr-workflow-options
+
+GET    /api/v1/procurement/projects/{projectId}/purchase-requests
+POST   /api/v1/procurement/projects/{projectId}/purchase-requests
+GET    /api/v1/procurement/purchase-requests/{requestId}
+PATCH  /api/v1/procurement/purchase-requests/{requestId}
+POST   /api/v1/procurement/purchase-requests/{requestId}/copy-rejected
+
+POST   /api/v1/procurement/purchase-requests/{requestId}/lines
+PATCH  /api/v1/procurement/purchase-request-lines/{lineId}
+DELETE /api/v1/procurement/purchase-request-lines/{lineId}
+
+POST   /api/v1/procurement/purchase-requests/{requestId}/submit
+POST   /api/v1/procurement/purchase-requests/{requestId}/approve
+POST   /api/v1/procurement/purchase-requests/{requestId}/reject
+POST   /api/v1/procurement/purchase-requests/{requestId}/cancel
 ```
 
+V0.3-B assigns the immutable Company-scoped PR number at creation from sequence code `PURCHASE_REQUEST`, which must use the approved `PRYYMM-###` template with MONTHLY reset. Only Draft PRs are directly editable.
+
+A PR belongs to one Project. Each line is exactly MATERIAL or SERVICE, requires positive quantity and an active same-Company UOM, and may independently reference same-Project WBS, same-Company Cost Code, same-Project Activity and a line-level Required-on-Site date. MATERIAL lines reference an active Material master; SERVICE lines use their own controlled description and do not create a fake Material.
+
+Submission attaches the reusable `PURCHASE_REQUEST` Approval Matrix and records submitter/time. Maker-checker is backend enforced. Approved/rejected/cancelled PRs remain retained history. A rejected PR may be copied into a new independently numbered Draft through the dedicated copy action; the rejected record itself is never rewritten. Required-on-Site and optional Activity references are procurement-owned planning context and never mutate Scheduling dates.
+
+V0.3-B creates no RFQ, quotation, supplier award, PO, Inventory movement, Supplier Invoice, Payment, Actual Cost or committed-cost ledger semantics.
 ---
 
 ## 41.9 Purchase Orders

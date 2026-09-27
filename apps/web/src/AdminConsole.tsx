@@ -24,6 +24,7 @@ import { SystemSettingsPanel } from './admin/SystemSettingsPanel';
 import { UsersPanel } from './admin/UsersPanel';
 import { MasterDataPanel } from './master-data/MasterDataPanel';
 import { ProjectsPanel } from './projects/ProjectsPanel';
+import { PurchaseRequestsPanel } from './procurement/PurchaseRequestsPanel';
 import { ProjectEngineerDashboard } from './reporting/ProjectEngineerDashboard';
 import { SchedulingPanel } from './scheduling/SchedulingPanel';
 import { SiteExecutionPanel } from './site-execution/SiteExecutionPanel';
@@ -45,6 +46,12 @@ export function AdminConsole({ user }: { user: CurrentUser }) {
   const sections = useMemo<Section[]>(
     () =>
       [
+        {
+          key: 'purchase-requests',
+          label: 'Purchase Requests',
+          permission: '__procurement__',
+          content: <PurchaseRequestsPanel permissions={user.permissions} />,
+        },
         {
           key: 'budget',
           label: 'BOQ & Budget',
@@ -148,7 +155,11 @@ export function AdminConsole({ user }: { user: CurrentUser }) {
           content: <SystemSettingsPanel />,
         },
       ].filter((section) =>
-        section.permission === '__budget__'
+        section.permission === '__procurement__'
+          ? user.permissions.some((permission) =>
+              permission.startsWith('procurement.'),
+            )
+          : section.permission === '__budget__'
           ? user.permissions.some((permission) =>
               permission.startsWith('budget.'),
             )

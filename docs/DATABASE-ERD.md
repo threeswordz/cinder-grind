@@ -1251,6 +1251,18 @@ erDiagram
 - remarks, nullable
 - UNIQUE(purchase_request_id, line_no)
 
+### V0.3-B implemented Purchase Request storage
+
+The Stage B implementation uses the physical table name `purchase_request_lines` for the conceptual PR-item entity above. The implemented header/line shape is:
+
+- `purchase_requests`: Company + Project owner, immutable `pr_number`, remarks, optional rejected-copy `source_request_id`, Approval Instance, creator/submitter/canceller attribution and timestamps
+- `purchase_request_lines`: line number, MATERIAL/SERVICE type, optional Material (MATERIAL only), immutable Material-code snapshot for MATERIAL history, controlled description snapshot, positive quantity, UOM, optional WBS, optional independent Cost Code, optional Activity, Required-on-Site date
+- submitted/rejected/approved/cancelled history is protected by database triggers from ordinary mutation/deletion
+- line reference guards enforce active same-Company/same-Project ownership boundaries
+- rejected-copy lineage is restricted to a rejected source PR in the same Company and Project
+
+The conceptual `purchase_request_items` name elsewhere in this baseline should be read as this implemented `purchase_request_lines` entity until later procurement stages update their source-link names.
+
 ---
 
 ## 10.4 `rfqs`

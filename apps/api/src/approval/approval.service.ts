@@ -197,8 +197,12 @@ export class ApprovalService {
     );
   }
 
-  async cancel(instanceId: string, auth: AuthenticatedUserContext) {
-    return this.prisma.$transaction(async (tx) => {
+  async cancel(
+    instanceId: string,
+    auth: AuthenticatedUserContext,
+    existingTx?: Prisma.TransactionClient,
+  ) {
+    const cancelIn = async (tx: Prisma.TransactionClient) => {
       const context = await this.loadActionContext(
         tx,
         instanceId,
@@ -222,7 +226,10 @@ export class ApprovalService {
           completedAt: new Date(),
         },
       });
-    });
+    };
+
+    if (existingTx) return cancelIn(existingTx);
+    return this.prisma.$transaction(cancelIn);
   }
 
   assertMakerChecker(makerUserId: string, approverUserId: string): void {
