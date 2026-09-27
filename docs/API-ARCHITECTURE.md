@@ -1484,6 +1484,42 @@ Submission attaches the reusable `PURCHASE_REQUEST` Approval Matrix and records 
 V0.3-B creates no RFQ, quotation, supplier award, PO, Inventory movement, Supplier Invoice, Payment, Actual Cost or committed-cost ledger semantics.
 ---
 
+## 41.8A RFQ / Supplier Quotations
+
+```text
+GET    /api/v1/procurement/rfq-projects
+GET    /api/v1/procurement/projects/{projectId}/approved-demand
+GET    /api/v1/procurement/projects/{projectId}/supplier-options
+
+GET    /api/v1/procurement/projects/{projectId}/rfqs
+POST   /api/v1/procurement/projects/{projectId}/rfqs
+GET    /api/v1/procurement/rfqs/{rfqId}
+POST   /api/v1/procurement/rfqs/{rfqId}/suppliers
+
+POST   /api/v1/procurement/rfqs/{rfqId}/quotations
+PATCH  /api/v1/procurement/quotations/{quotationId}
+PUT    /api/v1/procurement/quotations/{quotationId}/lines/{rfqLineId}
+
+GET    /api/v1/procurement/rfqs/{rfqId}/comparison
+POST   /api/v1/procurement/rfq-lines/{rfqLineId}/award
+```
+
+V0.3-C assigns the immutable Company-scoped RFQ number at creation from sequence code `RFQ`, which must use the approved `RFQYYMM-###` template with MONTHLY reset.
+
+RFQs are Project-owned and may source only active APPROVED Purchase Request lines from that same Project. RFQ lines retain the exact source PR-line identifier and immutable commercial/demand snapshots. Multiple RFQs may reference the same approved PR demand, while aggregate active Supplier Awards are guarded against exceeding that approved demand.
+
+Supplier invitations use active same-Company Supplier master records and retain invitation-time Supplier code/name snapshots. Each invited Supplier may have one current quotation per RFQ. Supplier quotations do not receive a system-generated business number in V0.3-C; Supplier reference, quotation date, validity, remarks and quotation lines are the canonical source data.
+
+Quotation line quantity and unit price are canonical inputs. Amount is server-derived as quantity × unit price and database-guarded. Corrections are audited before award; an awarded quotation line is frozen. Comparison is a derived read model from RFQ + invitation + quotation data and has no independent editable comparison ledger.
+
+Supplier Award is line-level. It retains the exact source quotation line, invitation-time Supplier identity, commercial snapshots, decision reason, actor and timestamp. Different RFQ lines may be awarded to different Suppliers. Award records are immutable; V0.3-C defines no ordinary reversal/re-award endpoint.
+
+All endpoints remain Company/Project-scoped. Stage C business permissions are assigned explicitly through business Roles; the technical `SYS_ADMIN` role is not implicitly granted RFQ/quotation/award business authority.
+
+V0.3-C does not create Purchase Orders, Expected Delivery, procurement schedule-risk, committed-cost, Inventory or Finance semantics.
+
+---
+
 ## 41.9 Purchase Orders
 
 ```text
