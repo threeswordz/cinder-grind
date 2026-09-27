@@ -1,3 +1,14 @@
+## 2026-09-27 — V0.3-E Schedule Risk / Procurement Reporting technically completed
+
+- PROC-018 / PROC-019, RPT-005, SYS-007 and DOC-007 delivered with source-derived procurement schedule/risk, transaction traceability and secure procurement document targets.
+- PR #77 merged as `e0263cd55706179059d4e970ef80fd4ce5c7e1f4`.
+- exact-head branch CI #1264 and PR CI #1265 passed on `4603a584d97890841708ab7188b6572977a1151f`.
+- post-merge main CI #1266 passed.
+- all three Codex review findings were resolved before merge.
+- automated V0.3 regression, authorization and live HTTP acceptance evidence is green.
+- human UAT/business acceptance remains explicitly pending under repository governance; V0.3 is not yet marked Product / Business Owner accepted.
+- after explicit V0.3 acceptance, the next step is the V0.4 Inventory Release Entry Gate.
+
 ## 2026-09-27 — V0.3-D Purchase Order completed
 
 - PROC-009 through PROC-017 delivered with award-backed Purchase Orders, approval, retained revisions, cancellation and line-level Required-on-Site / Expected Delivery.
