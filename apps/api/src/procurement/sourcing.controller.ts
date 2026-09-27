@@ -56,6 +56,13 @@ export class SourcingController {
     return { data: await this.sourcing.projects(authOf(request)) };
   }
 
+  @Get('quotation-projects')
+  @UseGuards(AuthGuard, PermissionGuard)
+  @RequirePermissions('procurement.quotation.view')
+  async quotationProjects(@Req() request: AuthenticatedRequest) {
+    return { data: await this.sourcing.projects(authOf(request)) };
+  }
+
   @Get('projects/:projectId/approved-demand')
   @UseGuards(AuthGuard, PermissionGuard)
   @RequirePermissions('procurement.rfq.view')
@@ -92,6 +99,22 @@ export class SourcingController {
   @UseGuards(AuthGuard, PermissionGuard)
   @RequirePermissions('procurement.rfq.view')
   async listRfqs(
+    @Req() request: AuthenticatedRequest,
+    @Param('projectId', new ParseUUIDPipe({ version: '4' }))
+    projectId: string,
+  ) {
+    return {
+      data: await this.sourcing.listRfqs(
+        authOf(request),
+        projectId,
+      ),
+    };
+  }
+
+  @Get('projects/:projectId/quotation-rfqs')
+  @UseGuards(AuthGuard, PermissionGuard)
+  @RequirePermissions('procurement.quotation.view')
+  async listQuotationRfqs(
     @Req() request: AuthenticatedRequest,
     @Param('projectId', new ParseUUIDPipe({ version: '4' }))
     projectId: string,
