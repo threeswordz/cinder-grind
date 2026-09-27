@@ -305,7 +305,7 @@ DECLARE
   po_company UUID;
   po_project UUID;
   po_supplier UUID;
-  po_number VARCHAR(120);
+  po_number_value VARCHAR(120);
   po_approval UUID;
   po_submitted TIMESTAMPTZ;
   po_cancelled TIMESTAMPTZ;
@@ -330,7 +330,7 @@ DECLARE
 BEGIN
   SELECT "company_id","project_id","supplier_id","po_number",
          "approval_instance_id","submitted_at","cancelled_at"
-    INTO po_company,po_project,po_supplier,po_number,
+    INTO po_company,po_project,po_supplier,po_number_value,
          po_approval,po_submitted,po_cancelled
   FROM "purchase_orders"
   WHERE "id" = NEW."purchase_order_id";
@@ -406,7 +406,7 @@ BEGIN
       ON existing_po."id" = existing_line."purchase_order_id"
     WHERE existing_line."quotation_award_id" = NEW."quotation_award_id"
       AND existing_po."company_id" = po_company
-      AND existing_po."po_number" <> po_number
+      AND existing_po."po_number" <> po_number_value
   ) THEN
     RAISE EXCEPTION 'Quotation Award is already assigned to a different Purchase Order';
   END IF;
