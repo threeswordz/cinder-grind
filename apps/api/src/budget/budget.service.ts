@@ -539,7 +539,7 @@ export class BudgetService {
         row.approvalInstance?.approvalState ===
         APPROVAL_STATE.APPROVED,
     );
-    const originalId = approved.at(-1)?.id;
+    const originalId = this.firstApprovedRevisionId(approved);
     const currentId = approved[0]?.id;
 
     return rows.map((row) => ({
@@ -613,16 +613,22 @@ export class BudgetService {
           is: { approvalState: APPROVAL_STATE.APPROVED },
         },
       },
-      select: { id: true },
-      orderBy: { revisionNo: 'asc' },
+      select: {
+        id: true,
+        revisionNo: true,
+        approvalInstance: {
+          select: { completedAt: true },
+        },
+      },
+      orderBy: { revisionNo: 'desc' },
     });
 
     return {
       ...row,
       lifecycleState:
         row.approvalInstance?.approvalState ?? 'DRAFT',
-      isOriginal: row.id === approved[0]?.id,
-      isCurrent: row.id === approved.at(-1)?.id,
+      isOriginal: row.id === this.firstApprovedRevisionId(approved),
+      isCurrent: row.id === approved[0]?.id,
     };
   }
 
@@ -911,7 +917,9 @@ export class BudgetService {
       orderBy: { revisionNo: 'asc' },
     });
 
-    const original = revisions[0] ?? null;
+    const originalId = this.firstApprovedRevisionId(revisions);
+    const original =
+      revisions.find((revision) => revision.id === originalId) ?? null;
     const current = revisions.at(-1) ?? null;
 
     return {
@@ -953,6 +961,29 @@ export class BudgetService {
       orderBy: { revisionNo: 'desc' },
     });
     return current;
+  }
+
+  private firstApprovedRevisionId(
+    revisions: Array<{
+      id: string;
+      revisionNo: number;
+      approvalInstance: { completedAt: Date | null } | null;
+    }>,
+  ) {
+    return revisions
+      .filter(
+        (revision) => revision.approvalInstance?.completedAt !== null,
+      )
+      .sort((left, right) => {
+        const leftAt =
+          left.approvalInstance?.completedAt?.getTime() ??
+          Number.MAX_SAFE_INTEGER;
+        const rightAt =
+          right.approvalInstance?.completedAt?.getTime() ??
+          Number.MAX_SAFE_INTEGER;
+        if (leftAt !== rightAt) return leftAt - rightAt;
+        return left.revisionNo - right.revisionNo;
+      })[0]?.id;
   }
 
   private revisionSummary(revision: {
