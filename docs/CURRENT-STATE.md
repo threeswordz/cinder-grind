@@ -4,7 +4,7 @@
 **Source of truth:** Live GitHub repository state
 
 - Current Release: V0.4 Inventory
-- Current Stage: V0.4 Release Entry Gate — AWAITING BASELINE AND BUSINESS-RULE APPROVAL
+- Current Stage: V0.4 Release Entry Gate — APPROVED, MERGE / EXACT-HEAD VALIDATION PENDING
 - Completed Stages: V0.1-A through V0.1-H; V0.2-A through V0.2-G; V0.3-A BOQ & Budget; V0.3-B Purchase Request; V0.3-C RFQ / Quotations; V0.3-D Purchase Order; V0.3-E Schedule Risk / Procurement Reporting / Traceability
 - Active Issue: #81 — V0.4 Inventory Release Entry Gate — Scope, Acceptance & Business Rules
 - Active Branch: `v0.4-entry-gate`
@@ -69,7 +69,7 @@
 - V0.1 cross-module release acceptance scenario: PASS in the Stage H release-candidate regression suite.
 - Open defect check at V0.1 acceptance: no Severity 1 or Severity 2 release-blocking defect recorded.
 - Governance: `AGENTS.md`, `docs/PROJECT-GOVERNANCE.md`, PR governance checklist and DEC-008 are active; material decisions must pass the repository pre-flight and open-source/zero-cost-first constraint.
-- Next action: prepare the V0.4 Inventory Release Entry Gate baselines for Product / Business Owner approval: scope, requirements, acceptance criteria, required business rules, dependency/license review, database/API baseline and test approach. Do not begin V0.4 implementation until these entry-gate artifacts are explicitly approved.
+- Next action: complete exact-head validation and merge approved V0.4 entry-gate PR #82, then open V0.4-A Warehouse / Inventory Foundation pre-flight. Implementation must remain within the approved baselines and repository governance.
 
 ## Stage E completed
 
@@ -683,5 +683,5 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - proposed rules allow partial and multiple receipts, set over-receipt tolerance to zero, prohibit negative stock and require atomic idempotent posting with maker-checker.
 - proposed implementation estimate is 15–23 engineering days after entry-gate approval, plus 1–2 business days for human UAT.
 - no new runtime dependency is proposed; DEC-008 open-source / zero-cost-first remains active.
-- `docs/V0.4-SCOPE.md`, `docs/V0.4-ACCEPTANCE-CRITERIA.md`, `docs/V0.4-BUSINESS-RULES.md` and `docs/V0.4-ENTRY-GATE.md` are proposals awaiting Product / Business Owner approval.
-- no V0.4 implementation is authorized while the entry-gate approval items remain open.
+- Product / Business Owner approved `docs/V0.4-SCOPE.md`, `docs/V0.4-ACCEPTANCE-CRITERIA.md`, `docs/V0.4-BUSINESS-RULES.md` and the database/API/test/build-stage/deferral baselines on 2026-09-27.
+- V0.4-A pre-flight is authorized after approved PR #82 passes exact-head validation and merges; implementation remains bound by the approved baselines and Change Control.
