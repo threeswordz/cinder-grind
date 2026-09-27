@@ -106,8 +106,8 @@ export class SourcingService {
       ],
     });
 
-    return lines.map((line) => {
-      const awardedQuantity = line.rfqLines.reduce(
+    return lines.map(({ rfqLines, ...line }) => {
+      const awardedQuantity = rfqLines.reduce(
         (sum, rfqLine) =>
           rfqLine.award ? sum.plus(rfqLine.award.quantity) : sum,
         new Prisma.Decimal(0),
