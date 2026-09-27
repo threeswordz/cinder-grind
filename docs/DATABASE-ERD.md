@@ -1342,6 +1342,22 @@ Quotation comparison itself is generated from RFQ + quotation data.
 
 It does not require a duplicate comparison-data table.
 
+
+### V0.3-C implemented RFQ / quotation storage
+
+The Stage C implementation maps the conceptual sourcing entities to the following physical tables:
+
+- `rfqs`: Company + Project owner, immutable `rfq_number`, RFQ/closing dates, remarks and creator attribution
+- `rfq_lines`: immutable source lines with direct `purchase_request_line_id`, MATERIAL/SERVICE identity, description/material/UOM snapshots, requested quantity and Required-on-Site
+- `rfq_suppliers`: immutable invited-Supplier links with invitation-time Supplier code/name snapshots
+- `supplier_quotations`: one current quotation per RFQ/Supplier, storing Supplier reference, quotation/validity dates, remarks and creator/updater attribution
+- `supplier_quotation_lines`: canonical quoted quantity, UOM snapshot, unit price, derived amount and remarks tied directly to one RFQ line
+- `quotation_awards`: immutable line-level award tied to the exact quotation line with Supplier/commercial snapshots, decision reason, selector and timestamp
+
+V0.3-C deliberately does **not** persist a system-generated Supplier Quotation number or a separate editable quotation-comparison table. Comparison and quotation totals are derived from canonical quotation lines.
+
+Database guards enforce same-Company/same-Project source integrity, active APPROVED PR demand, invited Supplier requirements, quotation-line/RFQ-line consistency, derived amount integrity, freeze of awarded quotation lines, immutable award history, and aggregate awarded quantity not exceeding approved PR demand. Supplier Award identity is validated against the immutable RFQ invitation snapshot so later Supplier-master renames do not rewrite or block historical sourcing decisions.
+
 ---
 
 ## 10.6 `purchase_orders`
