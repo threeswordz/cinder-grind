@@ -18,6 +18,13 @@ function record(name) {
   process.stdout.write(`✓ ${name}\n`);
 }
 
+function utcDateOffset(days) {
+  const value = new Date();
+  value.setUTCHours(0, 0, 0, 0);
+  value.setUTCDate(value.getUTCDate() + days);
+  return value.toISOString().slice(0, 10);
+}
+
 function cookieFrom(response) {
   const raw = response.headers.get('set-cookie');
   check(raw, 'Login response did not set a session cookie.');
@@ -1054,13 +1061,32 @@ check(
   'V0.3-C approved-demand selector did not expose active approved PR lines.',
 );
 
+await request(
+  pm,
+  '/procurement/projects/' + projectId + '/rfqs',
+  {
+    method: 'POST',
+    json: {
+      closingDate: utcDateOffset(-1),
+      remarks: 'Past closing date must be rejected ' + suffix,
+      lines: [
+        {
+          purchaseRequestLineId: prMaterialLine.data.data.id,
+          quantity: '1',
+        },
+      ],
+    },
+    expected: 422,
+  },
+);
+
 const sourcingRfq = await request(
   pm,
   '/procurement/projects/' + projectId + '/rfqs',
   {
     method: 'POST',
     json: {
-      closingDate: '2026-10-11',
+      closingDate: utcDateOffset(7),
       remarks: 'Automated supplier sourcing ' + suffix,
       lines: [
         {
