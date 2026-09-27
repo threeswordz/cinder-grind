@@ -8,7 +8,9 @@ import { AuthorizationModule } from '../authorization/authorization.module';
 import { PrismaModule } from '../prisma/prisma.module';
 import { ProjectsModule } from '../projects/projects.module';
 import { ProcurementController } from './procurement.controller';
+import { PurchaseOrderController } from './purchase-order.controller';
 import { ProcurementService } from './procurement.service';
+import { PurchaseOrderService } from './purchase-order.service';
 import { SourcingController } from './sourcing.controller';
 import { SourcingService } from './sourcing.service';
 
@@ -22,8 +24,8 @@ import { SourcingService } from './sourcing.service';
     ApprovalModule,
     AdministrationModule,
   ],
-  controllers: [ProcurementController, SourcingController],
-  providers: [ProcurementService, SourcingService],
-  exports: [ProcurementService, SourcingService],
+  controllers: [ProcurementController, SourcingController, PurchaseOrderController],
+  providers: [ProcurementService, SourcingService, PurchaseOrderService],
+  exports: [ProcurementService, SourcingService, PurchaseOrderService],
 })
 export class ProcurementModule {}
