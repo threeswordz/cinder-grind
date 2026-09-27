@@ -88,6 +88,46 @@ export function procurementDecimal(value: unknown, field: string): Prisma.Decima
   }
 }
 
+export function procurementNonnegativeDecimal(
+  value: unknown,
+  field: string,
+): Prisma.Decimal {
+  try {
+    const decimal = new Prisma.Decimal(
+      typeof value === 'number' || typeof value === 'string' ? value : '',
+    );
+    if (!decimal.isFinite() || decimal.lt(0)) {
+      return procurementInvalid(field, 'A value of zero or greater is required.');
+    }
+    if (decimal.decimalPlaces() > 4) {
+      return procurementInvalid(field, 'Maximum precision is 4 decimal places.');
+    }
+    if (decimal.gte(new Prisma.Decimal('100000000000000'))) {
+      return procurementInvalid(
+        field,
+        'Maximum value is 99,999,999,999,999.9999.',
+      );
+    }
+    return decimal;
+  } catch {
+    return procurementInvalid(field, 'A valid decimal value is required.');
+  }
+}
+
+export function procurementArray(
+  value: unknown,
+  field: string,
+  minItems = 1,
+): unknown[] {
+  if (!Array.isArray(value) || value.length < minItems) {
+    return procurementInvalid(
+      field,
+      `Provide at least ${minItems} item${minItems === 1 ? '' : 's'}.`,
+    );
+  }
+  return value;
+}
+
 export function procurementLineType(value: unknown): 'MATERIAL' | 'SERVICE' {
   if (value !== 'MATERIAL' && value !== 'SERVICE') {
     return procurementInvalid('lineType', 'Supported values are MATERIAL and SERVICE.');

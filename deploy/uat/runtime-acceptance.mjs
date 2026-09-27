@@ -18,6 +18,13 @@ function record(name) {
   process.stdout.write(`✓ ${name}\n`);
 }
 
+function utcDateOffset(days) {
+  const value = new Date();
+  value.setUTCHours(0, 0, 0, 0);
+  value.setUTCDate(value.getUTCDate() + days);
+  return value.toISOString().slice(0, 10);
+}
+
 function cookieFrom(response) {
   const raw = response.headers.get('set-cookie');
   check(raw, 'Login response did not set a session cookie.');
@@ -94,6 +101,12 @@ check(
   !me.data.data.permissions.includes('procurement.pr.cancel'),
   'SYS_ADMIN must not implicitly receive Purchase Request cancellation authority.',
 );
+check(
+  !me.data.data.permissions.includes('procurement.rfq.manage') &&
+    !me.data.data.permissions.includes('procurement.quotation.manage') &&
+    !me.data.data.permissions.includes('procurement.award.select'),
+  'SYS_ADMIN must not implicitly receive Stage C sourcing business authority.',
+);
 record('administrator login, current-user endpoint and technical-role business-authority separation');
 
 const status = await request(admin, '/admin/statuses', {
@@ -140,6 +153,27 @@ const material = await request(admin, '/master-data/materials', {
   expected: 201,
 });
 check(material.data.data.defaultUomId === uomId, 'Material/UOM relationship mismatch.');
+
+const sourcingSupplierA = await request(admin, '/master-data/suppliers', {
+  method: 'POST',
+  json: {
+    supplierCode: 'SRC-A-' + suffix,
+    supplierName: 'Sourcing Supplier A ' + suffix,
+    contactName: 'Supplier A Contact',
+    email: 'supplier-a-' + suffix.toLowerCase() + '@example.com',
+  },
+  expected: 201,
+});
+const sourcingSupplierB = await request(admin, '/master-data/suppliers', {
+  method: 'POST',
+  json: {
+    supplierCode: 'SRC-B-' + suffix,
+    supplierName: 'Sourcing Supplier B ' + suffix,
+    contactName: 'Supplier B Contact',
+    email: 'supplier-b-' + suffix.toLowerCase() + '@example.com',
+  },
+  expected: 201,
+});
 
 const pmEmployee = await request(admin, '/master-data/employees', {
   method: 'POST',
@@ -223,6 +257,11 @@ const permissionCodes = [
   'procurement.pr.manage',
   'procurement.pr.submit',
   'procurement.pr.cancel',
+  'procurement.rfq.view',
+  'procurement.rfq.manage',
+  'procurement.quotation.view',
+  'procurement.quotation.manage',
+  'procurement.award.select',
 ];
 await request(admin, `/admin/roles/${roleId}/permissions`, {
   method: 'PUT',
@@ -249,6 +288,8 @@ await request(admin, `/admin/roles/${checkerRoleId}/permissions`, {
       'budget.revision.approve',
       'procurement.pr.view',
       'procurement.pr.approve',
+      'procurement.quotation.view',
+      'procurement.quotation.manage',
     ],
   },
 });
@@ -331,7 +372,18 @@ await request(admin, '/admin/number-sequences', {
   },
   expected: 201,
 });
-record('V0.3-A Budget and V0.3-B Purchase Request approval/numbering configuration');
+await request(admin, '/admin/number-sequences', {
+  method: 'POST',
+  json: {
+    entityType: 'RFQ',
+    sequenceCode: 'RFQ',
+    formatTemplate: 'RFQYYMM-###',
+    resetRule: 'MONTHLY',
+    startingValue: 1,
+  },
+  expected: 201,
+});
+record('V0.3-A Budget, V0.3-B Purchase Request and V0.3-C RFQ numbering configuration');
 
 const pmPassword = 'Uat-PM-' + suffix + '-Strong-2026!';
 const unassignedPassword = 'Uat-PE-' + suffix + '-Strong-2026!';
@@ -998,6 +1050,310 @@ check(
   approvedPr.data.data.lifecycleState === 'APPROVED',
   'Configured checker could not approve the Purchase Request.',
 );
+
+const approvedDemand = await request(
+  pm,
+  '/procurement/projects/' + projectId + '/approved-demand',
+);
+check(
+  approvedDemand.data.data.some((line) => line.id === prMaterialLine.data.data.id) &&
+    approvedDemand.data.data.some((line) => line.id === prServiceLine.data.data.id),
+  'V0.3-C approved-demand selector did not expose active approved PR lines.',
+);
+
+await request(
+  pm,
+  '/procurement/projects/' + projectId + '/rfqs',
+  {
+    method: 'POST',
+    json: {
+      closingDate: utcDateOffset(-1),
+      remarks: 'Past closing date must be rejected ' + suffix,
+      lines: [
+        {
+          purchaseRequestLineId: prMaterialLine.data.data.id,
+          quantity: '1',
+        },
+      ],
+    },
+    expected: 422,
+  },
+);
+
+const sourcingRfq = await request(
+  pm,
+  '/procurement/projects/' + projectId + '/rfqs',
+  {
+    method: 'POST',
+    json: {
+      closingDate: utcDateOffset(7),
+      remarks: 'Automated supplier sourcing ' + suffix,
+      lines: [
+        {
+          purchaseRequestLineId: prMaterialLine.data.data.id,
+          quantity: '10',
+        },
+        {
+          purchaseRequestLineId: prServiceLine.data.data.id,
+          quantity: '2',
+        },
+      ],
+    },
+    expected: 201,
+  },
+);
+const sourcingRfqId = sourcingRfq.data.data.id;
+check(
+  /^RFQ\d{4}-\d{3}$/.test(sourcingRfq.data.data.rfqNumber) &&
+    sourcingRfq.data.data.lines.length === 2,
+  'RFQ did not receive approved immutable numbering and PR-line source traceability.',
+);
+
+await request(pm, '/procurement/rfqs/' + sourcingRfqId + '/suppliers', {
+  method: 'POST',
+  json: { supplierId: sourcingSupplierA.data.data.id },
+  expected: 201,
+});
+await request(pm, '/procurement/rfqs/' + sourcingRfqId + '/suppliers', {
+  method: 'POST',
+  json: { supplierId: sourcingSupplierB.data.data.id },
+  expected: 201,
+});
+
+const quotationOnlyProjects = await request(
+  checker,
+  '/procurement/quotation-projects',
+);
+check(
+  quotationOnlyProjects.data.data.some((item) => item.id === projectId),
+  'Quotation-only Project discovery did not expose assigned Project.',
+);
+await request(checker, '/procurement/rfq-projects', { expected: 403 });
+const quotationOnlyRfqs = await request(
+  checker,
+  '/procurement/projects/' + projectId + '/quotation-rfqs',
+);
+check(
+  quotationOnlyRfqs.data.data.some((item) => item.id === sourcingRfqId),
+  'Quotation-only RFQ discovery did not expose the Project RFQ.',
+);
+await request(checker, '/procurement/rfqs/' + sourcingRfqId, {
+  expected: 403,
+});
+const quotationOnlyDetail = await request(
+  checker,
+  '/procurement/quotation-rfqs/' + sourcingRfqId,
+);
+check(
+  quotationOnlyDetail.data.data.id === sourcingRfqId &&
+    quotationOnlyDetail.data.data.suppliers.length === 2,
+  'Quotation-only manager could not load quotation-authorized RFQ detail.',
+);
+
+await request(
+  checker,
+  '/procurement/rfqs/' + sourcingRfqId + '/quotations',
+  {
+    method: 'POST',
+    json: {
+      supplierId: sourcingSupplierA.data.data.id,
+      supplierReference: 'QA-INVALID-' + suffix,
+      quotationDate: '2026-10-08',
+      validityDate: '2026-10-01',
+    },
+    expected: 422,
+  },
+);
+
+const quotationA = await request(
+  checker,
+  '/procurement/rfqs/' + sourcingRfqId + '/quotations',
+  {
+    method: 'POST',
+    json: {
+      supplierId: sourcingSupplierA.data.data.id,
+      supplierReference: 'QA-' + suffix,
+      quotationDate: '2026-10-08',
+      validityDate: '2026-10-31',
+      remarks: 'Supplier A quotation',
+    },
+    expected: 201,
+  },
+);
+await request(
+  checker,
+  '/procurement/quotations/' + quotationA.data.data.id,
+  {
+    method: 'PATCH',
+    json: { validityDate: '2026-10-01' },
+    expected: 422,
+  },
+);
+await request(
+  checker,
+  '/procurement/quotations/' + quotationA.data.data.id,
+  {
+    method: 'PATCH',
+    json: { quotationDate: '2026-11-01' },
+    expected: 422,
+  },
+);
+record('V0.3-C quotation-only manager access and quotation date validation');
+
+const quotationB = await request(
+  pm,
+  '/procurement/rfqs/' + sourcingRfqId + '/quotations',
+  {
+    method: 'POST',
+    json: {
+      supplierId: sourcingSupplierB.data.data.id,
+      supplierReference: 'QB-' + suffix,
+      quotationDate: '2026-10-08',
+      validityDate: '2026-10-31',
+      remarks: 'Supplier B quotation',
+    },
+    expected: 201,
+  },
+);
+
+const sourcingRfqDetail = await request(
+  pm,
+  '/procurement/rfqs/' + sourcingRfqId,
+);
+const sourcingMaterialLine = sourcingRfqDetail.data.data.lines.find(
+  (line) => line.purchaseRequestLineId === prMaterialLine.data.data.id,
+);
+const sourcingServiceLine = sourcingRfqDetail.data.data.lines.find(
+  (line) => line.purchaseRequestLineId === prServiceLine.data.data.id,
+);
+check(
+  sourcingMaterialLine && sourcingServiceLine,
+  'RFQ detail did not preserve both source PR lines.',
+);
+
+const qaMaterial = await request(
+  pm,
+  '/procurement/quotations/' +
+    quotationA.data.data.id +
+    '/lines/' +
+    sourcingMaterialLine.id,
+  {
+    method: 'PUT',
+    json: { quantity: '10', unitPrice: '10', remarks: 'A material offer' },
+  },
+);
+const qaService = await request(
+  pm,
+  '/procurement/quotations/' +
+    quotationA.data.data.id +
+    '/lines/' +
+    sourcingServiceLine.id,
+  {
+    method: 'PUT',
+    json: { quantity: '2', unitPrice: '90', remarks: 'A service offer' },
+  },
+);
+const qbMaterial = await request(
+  pm,
+  '/procurement/quotations/' +
+    quotationB.data.data.id +
+    '/lines/' +
+    sourcingMaterialLine.id,
+  {
+    method: 'PUT',
+    json: { quantity: '10', unitPrice: '9', remarks: 'B material offer' },
+  },
+);
+await request(
+  pm,
+  '/procurement/quotations/' +
+    quotationB.data.data.id +
+    '/lines/' +
+    sourcingServiceLine.id,
+  {
+    method: 'PUT',
+    json: { quantity: '2', unitPrice: '110', remarks: 'B service offer' },
+  },
+);
+
+const sourcingComparison = await request(
+  pm,
+  '/procurement/rfqs/' + sourcingRfqId + '/comparison',
+);
+check(
+  sourcingComparison.data.data.lines.length === 2 &&
+    sourcingComparison.data.data.suppliers.length === 2 &&
+    sourcingComparison.data.data.lines
+      .find((line) => line.id === sourcingMaterialLine.id)
+      ?.offers.some(
+        (offer) =>
+          offer.supplierId === sourcingSupplierB.data.data.id &&
+          String(offer.unitPrice) === '9',
+      ),
+  'Derived quotation comparison did not reflect canonical Supplier quotation data.',
+);
+
+const materialSourcingAward = await request(
+  pm,
+  '/procurement/rfq-lines/' + sourcingMaterialLine.id + '/award',
+  {
+    method: 'POST',
+    json: {
+      supplierQuotationLineId: qbMaterial.data.data.id,
+      decisionReason: 'Lower material commercial offer.',
+    },
+    expected: 201,
+  },
+);
+const serviceSourcingAward = await request(
+  pm,
+  '/procurement/rfq-lines/' + sourcingServiceLine.id + '/award',
+  {
+    method: 'POST',
+    json: {
+      supplierQuotationLineId: qaService.data.data.id,
+      decisionReason: 'Selected Supplier A for service value.',
+    },
+    expected: 201,
+  },
+);
+check(
+  materialSourcingAward.data.data.supplierId === sourcingSupplierB.data.data.id &&
+    serviceSourcingAward.data.data.supplierId === sourcingSupplierA.data.data.id,
+  'Line-level Supplier Award did not support different Suppliers across RFQ lines.',
+);
+
+await request(
+  pm,
+  '/procurement/quotations/' +
+    quotationB.data.data.id +
+    '/lines/' +
+    sourcingMaterialLine.id,
+  {
+    method: 'PUT',
+    json: { quantity: '10', unitPrice: '8' },
+    expected: 409,
+  },
+);
+
+const demandAfterSourcingAward = await request(
+  pm,
+  '/procurement/projects/' + projectId + '/approved-demand',
+);
+check(
+  String(
+    demandAfterSourcingAward.data.data.find(
+      (line) => line.id === prMaterialLine.data.data.id,
+    )?.awardedQuantity,
+  ) === '10' &&
+    String(
+      demandAfterSourcingAward.data.data.find(
+        (line) => line.id === prServiceLine.data.data.id,
+      )?.awardedQuantity,
+    ) === '2',
+  'Approved demand did not derive awarded quantities from line-level Supplier Awards.',
+);
+record('V0.3-C RFQ, multi-Supplier quotations, derived comparison and split line-level Supplier Awards');
 
 const rejectedCandidate = await request(
   pm,
@@ -2193,8 +2549,19 @@ await request(
   '/procurement/purchase-requests/' + purchaseRequestId,
   { expected: 403 },
 );
+await request(
+  unassigned,
+  '/procurement/projects/' + projectId + '/rfqs',
+  { expected: 403 },
+);
+await request(
+  unassigned,
+  '/procurement/rfqs/' + sourcingRfqId,
+  { expected: 403 },
+);
 record('V0.3-A scoped Budget access denied');
 record('V0.3-B scoped Purchase Request access denied');
+record('V0.3-C scoped RFQ / quotation access denied');
 record('unassigned Project, Document, Scheduling, Site Execution, Equipment, Reporting and Budget access denied');
 
 await logout(pm);

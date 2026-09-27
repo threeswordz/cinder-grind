@@ -48,6 +48,8 @@ model Company {
   budgetRevisions      BudgetRevision[]
 
   purchaseRequests     PurchaseRequest[]
+  rfqs                 Rfq[]
+  supplierQuotations   SupplierQuotation[]
   @@map("companies")
 }
 
@@ -89,6 +91,9 @@ model Supplier {
 
   company Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
 
+  rfqInvitations        RfqSupplier[]
+  supplierQuotations    SupplierQuotation[]
+  quotationAwards        QuotationAward[]
   @@unique([companyId, supplierCode])
   @@index([companyId, isActive])
   @@map("suppliers")
@@ -109,6 +114,9 @@ model UnitOfMeasure {
   budgetRevisionLines          BudgetRevisionLine[]
 
   purchaseRequestLines          PurchaseRequestLine[]
+  rfqLines                      RfqLine[]
+  supplierQuotationLines        SupplierQuotationLine[]
+  quotationAwards               QuotationAward[]
   @@unique([companyId, uomCode])
   @@index([companyId, isActive])
   @@map("units_of_measure")
@@ -192,6 +200,10 @@ model User {
   createdPurchaseRequests       PurchaseRequest[] @relation("PurchaseRequestCreator")
   submittedPurchaseRequests     PurchaseRequest[] @relation("PurchaseRequestSubmitter")
   cancelledPurchaseRequests     PurchaseRequest[] @relation("PurchaseRequestCanceller")
+  createdRfqs               Rfq[] @relation("RfqCreator")
+  createdSupplierQuotations SupplierQuotation[] @relation("SupplierQuotationCreator")
+  updatedSupplierQuotations SupplierQuotation[] @relation("SupplierQuotationUpdater")
+  selectedQuotationAwards   QuotationAward[] @relation("QuotationAwardSelector")
   @@unique([companyId, email])
   @@index([companyId, isActive])
   @@map("users")
@@ -473,6 +485,7 @@ model Project {
   budgetRevisions        BudgetRevision[]
 
   purchaseRequests       PurchaseRequest[]
+  rfqs                   Rfq[]
   @@unique([companyId, projectCode])
   @@index([companyId, isActive])
   @@index([customerId])
@@ -1312,6 +1325,7 @@ model PurchaseRequestLine {
   costCode        CostCode?       @relation(fields: [costCodeId], references: [id], onDelete: Restrict)
   activity        Activity?       @relation(fields: [activityId], references: [id], onDelete: Restrict)
 
+  rfqLines            RfqLine[]
   @@unique([purchaseRequestId, lineNo])
   @@index([materialId])
   @@index([uomId])
@@ -1320,4 +1334,162 @@ model PurchaseRequestLine {
   @@index([activityId])
   @@index([requiredOnSite])
   @@map("purchase_request_lines")
+}
+
+
+model Rfq {
+  id              String   @id @default(uuid()) @db.Uuid
+  companyId       String   @map("company_id") @db.Uuid
+  projectId       String   @map("project_id") @db.Uuid
+  rfqNumber       String   @map("rfq_number") @db.VarChar(120)
+  rfqDate         DateTime @default(now()) @map("rfq_date") @db.Date
+  closingDate     DateTime? @map("closing_date") @db.Date
+  remarks         String?  @db.Text
+  createdByUserId String   @map("created_by_user_id") @db.Uuid
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  createdBy User    @relation("RfqCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  lines      RfqLine[]
+  suppliers  RfqSupplier[]
+  quotations SupplierQuotation[]
+  awards     QuotationAward[]
+
+  @@unique([companyId, rfqNumber])
+  @@index([companyId, projectId, createdAt])
+  @@map("rfqs")
+}
+
+model RfqLine {
+  id                    String   @id @default(uuid()) @db.Uuid
+  rfqId                 String   @map("rfq_id") @db.Uuid
+  lineNo                Int      @map("line_no")
+  purchaseRequestLineId String   @map("purchase_request_line_id") @db.Uuid
+  lineType              String   @map("line_type") @db.VarChar(20)
+  materialCodeSnapshot  String?  @map("material_code_snapshot") @db.VarChar(80)
+  description           String   @db.VarChar(500)
+  quantity              Decimal  @db.Decimal(18, 4)
+  uomId                 String   @map("uom_id") @db.Uuid
+  uomCodeSnapshot       String   @map("uom_code_snapshot") @db.VarChar(30)
+  requiredOnSite        DateTime? @map("required_on_site") @db.Date
+  createdAt             DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  rfq                 Rfq                 @relation(fields: [rfqId], references: [id], onDelete: Restrict)
+  purchaseRequestLine PurchaseRequestLine @relation(fields: [purchaseRequestLineId], references: [id], onDelete: Restrict)
+  uom                 UnitOfMeasure       @relation(fields: [uomId], references: [id], onDelete: Restrict)
+  quotationLines      SupplierQuotationLine[]
+  award               QuotationAward?
+
+  @@unique([rfqId, lineNo])
+  @@unique([rfqId, purchaseRequestLineId])
+  @@index([purchaseRequestLineId])
+  @@index([uomId])
+  @@map("rfq_lines")
+}
+
+model RfqSupplier {
+  id                   String   @id @default(uuid()) @db.Uuid
+  rfqId                String   @map("rfq_id") @db.Uuid
+  supplierId           String   @map("supplier_id") @db.Uuid
+  supplierCodeSnapshot String   @map("supplier_code_snapshot") @db.VarChar(50)
+  supplierNameSnapshot String   @map("supplier_name_snapshot") @db.VarChar(200)
+  invitedAt            DateTime @default(now()) @map("invited_at") @db.Timestamptz(6)
+
+  rfq      Rfq      @relation(fields: [rfqId], references: [id], onDelete: Restrict)
+  supplier Supplier @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+
+  @@unique([rfqId, supplierId])
+  @@index([supplierId])
+  @@map("rfq_suppliers")
+}
+
+model SupplierQuotation {
+  id                String    @id @default(uuid()) @db.Uuid
+  companyId         String    @map("company_id") @db.Uuid
+  rfqId             String    @map("rfq_id") @db.Uuid
+  supplierId        String    @map("supplier_id") @db.Uuid
+  supplierReference String?   @map("supplier_reference") @db.VarChar(150)
+  quotationDate     DateTime  @map("quotation_date") @db.Date
+  validityDate      DateTime? @map("validity_date") @db.Date
+  remarks           String?   @db.Text
+  createdByUserId   String    @map("created_by_user_id") @db.Uuid
+  updatedByUserId   String    @map("updated_by_user_id") @db.Uuid
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  rfq       Rfq     @relation(fields: [rfqId], references: [id], onDelete: Restrict)
+  supplier  Supplier @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  createdBy User    @relation("SupplierQuotationCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  updatedBy User    @relation("SupplierQuotationUpdater", fields: [updatedByUserId], references: [id], onDelete: Restrict)
+  lines     SupplierQuotationLine[]
+  awards    QuotationAward[]
+
+  @@unique([rfqId, supplierId])
+  @@index([companyId, rfqId])
+  @@index([supplierId])
+  @@map("supplier_quotations")
+}
+
+model SupplierQuotationLine {
+  id                  String   @id @default(uuid()) @db.Uuid
+  supplierQuotationId String   @map("supplier_quotation_id") @db.Uuid
+  rfqLineId           String   @map("rfq_line_id") @db.Uuid
+  lineNo              Int      @map("line_no")
+  quantity            Decimal  @db.Decimal(18, 4)
+  uomId               String   @map("uom_id") @db.Uuid
+  uomCodeSnapshot     String   @map("uom_code_snapshot") @db.VarChar(30)
+  unitPrice           Decimal  @map("unit_price") @db.Decimal(18, 4)
+  amount              Decimal  @db.Decimal(38, 8)
+  remarks             String?  @db.Text
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  supplierQuotation SupplierQuotation @relation(fields: [supplierQuotationId], references: [id], onDelete: Restrict)
+  rfqLine           RfqLine           @relation(fields: [rfqLineId], references: [id], onDelete: Restrict)
+  uom               UnitOfMeasure     @relation(fields: [uomId], references: [id], onDelete: Restrict)
+  award             QuotationAward?
+
+  @@unique([supplierQuotationId, rfqLineId])
+  @@unique([supplierQuotationId, lineNo])
+  @@index([rfqLineId])
+  @@index([uomId])
+  @@map("supplier_quotation_lines")
+}
+
+model QuotationAward {
+  id                       String   @id @default(uuid()) @db.Uuid
+  rfqId                    String   @map("rfq_id") @db.Uuid
+  rfqLineId                String   @unique @map("rfq_line_id") @db.Uuid
+  supplierQuotationId      String   @map("supplier_quotation_id") @db.Uuid
+  supplierQuotationLineId  String   @unique @map("supplier_quotation_line_id") @db.Uuid
+  supplierId               String   @map("supplier_id") @db.Uuid
+  supplierCodeSnapshot     String   @map("supplier_code_snapshot") @db.VarChar(50)
+  supplierNameSnapshot     String   @map("supplier_name_snapshot") @db.VarChar(200)
+  supplierReferenceSnapshot String? @map("supplier_reference_snapshot") @db.VarChar(150)
+  quotationDateSnapshot    DateTime @map("quotation_date_snapshot") @db.Date
+  quantity                 Decimal  @db.Decimal(18, 4)
+  uomId                    String   @map("uom_id") @db.Uuid
+  uomCodeSnapshot          String   @map("uom_code_snapshot") @db.VarChar(30)
+  unitPrice                Decimal  @map("unit_price") @db.Decimal(18, 4)
+  amount                   Decimal  @db.Decimal(38, 8)
+  decisionReason           String?  @map("decision_reason") @db.Text
+  selectedByUserId         String   @map("selected_by_user_id") @db.Uuid
+  selectedAt               DateTime @default(now()) @map("selected_at") @db.Timestamptz(6)
+
+  rfq                   Rfq                   @relation(fields: [rfqId], references: [id], onDelete: Restrict)
+  rfqLine               RfqLine               @relation(fields: [rfqLineId], references: [id], onDelete: Restrict)
+  supplierQuotation     SupplierQuotation     @relation(fields: [supplierQuotationId], references: [id], onDelete: Restrict)
+  supplierQuotationLine SupplierQuotationLine @relation(fields: [supplierQuotationLineId], references: [id], onDelete: Restrict)
+  supplier              Supplier              @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  uom                   UnitOfMeasure         @relation(fields: [uomId], references: [id], onDelete: Restrict)
+  selectedBy            User                  @relation("QuotationAwardSelector", fields: [selectedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([rfqId])
+  @@index([supplierQuotationId])
+  @@index([supplierId])
+  @@index([selectedByUserId])
+  @@map("quotation_awards")
 }

@@ -401,12 +401,15 @@ V0.3-B enforcement uses:
 
 ### RFQ / Quotations
 
+V0.3-C enforcement uses:
+
 - `procurement.rfq.view`
 - `procurement.rfq.manage`
 - `procurement.quotation.view`
 - `procurement.quotation.manage`
 - `procurement.award.select`
-- `procurement.award.approve`
+
+`procurement.award.approve` remains reserved/unimplemented in V0.3-C because no approved Stage C rule defines a separate award-approval workflow. RFQ creation/invitation, quotation maintenance and award selection are business authorities and are **not** implicitly assigned to the technical `SYS_ADMIN` role. They must be granted explicitly through configured business Roles. All RFQ/quotation/award reads and actions remain Project-scoped.
 
 ### Purchase Order
 
