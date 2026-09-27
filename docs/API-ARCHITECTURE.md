@@ -1488,12 +1488,15 @@ V0.3-B creates no RFQ, quotation, supplier award, PO, Inventory movement, Suppli
 
 ```text
 GET    /api/v1/procurement/rfq-projects
+GET    /api/v1/procurement/quotation-projects
 GET    /api/v1/procurement/projects/{projectId}/approved-demand
 GET    /api/v1/procurement/projects/{projectId}/supplier-options
 
 GET    /api/v1/procurement/projects/{projectId}/rfqs
+GET    /api/v1/procurement/projects/{projectId}/quotation-rfqs
 POST   /api/v1/procurement/projects/{projectId}/rfqs
 GET    /api/v1/procurement/rfqs/{rfqId}
+GET    /api/v1/procurement/quotation-rfqs/{rfqId}
 POST   /api/v1/procurement/rfqs/{rfqId}/suppliers
 
 POST   /api/v1/procurement/rfqs/{rfqId}/quotations
