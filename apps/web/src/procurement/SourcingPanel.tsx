@@ -189,8 +189,9 @@ export function SourcingPanel({
   const current = detail.data?.data ?? null;
   const selectedQuotation = useMemo(
     () =>
-      current?.quotations.find((quotation) => quotation.id === quotationId) ??
-      null,
+      (current?.quotations ?? []).find(
+        (quotation) => quotation.id === quotationId,
+      ) ?? null,
     [current?.quotations, quotationId],
   );
 
@@ -198,7 +199,9 @@ export function SourcingPanel({
     if (!current) return;
     if (
       quotationId &&
-      !current.quotations.some((quotation) => quotation.id === quotationId)
+      !(current.quotations ?? []).some(
+        (quotation) => quotation.id === quotationId,
+      )
     ) {
       setQuotationId('');
     }
@@ -613,7 +616,7 @@ export function SourcingPanel({
                     onChange={(event) => setQuotationId(event.target.value)}
                   >
                     <MenuItem value="">New / select quotation</MenuItem>
-                    {current.quotations.map((quotation) => {
+                    {(current.quotations ?? []).map((quotation) => {
                       const supplier = current.suppliers.find(
                         (item) => item.supplierId === quotation.supplierId,
                       );
