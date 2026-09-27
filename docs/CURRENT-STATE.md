@@ -4,9 +4,12 @@
 **Source of truth:** Live GitHub repository state
 
 - Current Release: V0.3 Procurement
-- Current Stage: V0.3-B Purchase Request — ACTIVE IMPLEMENTATION
+- Current Stage: V0.3-C RFQ / Quotations — PRE-FLIGHT
 - Completed Stages: V0.1-A Technical Skeleton; V0.1-B Company / Identity / Security; V0.1-C Administration; V0.1-D Master Data; V0.1-E Projects; V0.1-F WBS & Cost Codes; V0.1-G Basic Documents; V0.1-H Integration / Regression / UAT; V0.2-A Scheduling Data Model; V0.2-B Scheduling Engine; V0.2-C Baselines / Progress; V0.2-D Gantt / Lookahead; V0.2-E Site Execution; V0.2-F Equipment; V0.2-G UAT Reference Programme
-- Active Issue: #64 — V0.3-B Purchase Request
+- Active Issue: pending creation — V0.3-C RFQ / Quotations
+- Completed Issue: #64 — V0.3-B Purchase Request
+- Completed Branch: `v0.3-b-purchase-request`
+- Merged PR: #65 — V0.3-B: Purchase Request
 - Completed Issue: #59 — V0.3-A BOQ & Budget
 - Completed Branch: `v0.3-a-boq-budget`
 - Merged PR: #60 — V0.3-A: BOQ & Budget
@@ -54,7 +57,7 @@
 - V0.1 cross-module release acceptance scenario: PASS in the Stage H release-candidate regression suite.
 - Open defect check at V0.1 acceptance: no Severity 1 or Severity 2 release-blocking defect recorded.
 - Governance: `AGENTS.md`, `docs/PROJECT-GOVERNANCE.md`, PR governance checklist and DEC-008 are active; material decisions must pass the repository pre-flight and open-source/zero-cost-first constraint.
-- Next action: implement V0.3-B Purchase Request under Issue #64 / branch `v0.3-b-purchase-request`, then validate AC-V03-008 through AC-V03-011 and cross-cutting V0.3 controls.
+- Next action: run V0.3-C RFQ / Quotations pre-flight, then implement PROC-004 through PROC-008 under AC-V03-012 through AC-V03-016, BR-V03-08 through BR-V03-10, and approved RFQ numbering `RFQYYMM-###` / MONTHLY.
 
 ## Stage E completed
 
@@ -538,3 +541,18 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - Branch: `v0.3-b-purchase-request`.
 - Stage B implements PROC-001 through PROC-003 plus Required-on-Site demand context required by AC-V03-011.
 - RFQ, quotation, supplier award, PO, Inventory, Finance and Actual Cost remain excluded.
+
+
+## V0.3-B completed
+
+- Issue #64 — V0.3-B Purchase Request is complete.
+- PR #65 — V0.3-B: Purchase Request squash-merged to `main` as `e392b468a22c701fbb1a60b1e87b7ef08d4794d1`.
+- final exact-head PR CI #1027 passed on `88cac51a05a26d782f7cec252d8689dc223e7952`.
+- post-merge `main` CI #1028 passed on `e392b468a22c701fbb1a60b1e87b7ef08d4794d1`.
+- PROC-001 through PROC-003 plus Stage-B Required-on-Site demand context are delivered under AC-V03-008 through AC-V03-011 and cross-cutting V0.3 controls.
+- approved Purchase Request numbering is `PRYYMM-###` with MONTHLY reset, Company scope, assignment at creation, immutability and no reuse.
+- MATERIAL / SERVICE demand, Project/WBS/Cost Code/Activity context, Required-on-Site, maker-checker Approval Matrix, rejection-copy history, cancellation and Project scope are implemented.
+- review hardening fixed multi-approver cancellation after a prior approval action, exposed approval actor/comment history, made Material code/description history immutable, and rejects quantity values beyond `DECIMAL(18,4)` before persistence.
+- all four Codex review threads were resolved with regression coverage before merge.
+- no RFQ, quotation, supplier award, PO, Inventory, Finance, Actual Cost or schedule-date mutation behavior was pulled forward.
+- next stage is V0.3-C RFQ / Quotations pre-flight under PROC-004 through PROC-008 and BR-V03-08 through BR-V03-10.
