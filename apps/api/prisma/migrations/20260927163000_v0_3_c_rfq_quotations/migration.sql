@@ -441,8 +441,8 @@ DECLARE
   ql_uom_code VARCHAR(30);
   ql_price DECIMAL(18,4);
   ql_amount DECIMAL(38,8);
-  supplier_code VARCHAR(50);
-  supplier_name VARCHAR(200);
+  invited_supplier_code VARCHAR(50);
+  invited_supplier_name VARCHAR(200);
   selector_company UUID;
   rfq_company UUID;
   source_pr_line UUID;
@@ -460,8 +460,11 @@ BEGIN
     INTO ql_rfq_line,ql_quantity,ql_uom,ql_uom_code,ql_price,ql_amount
   FROM "supplier_quotation_lines" sqln
   WHERE sqln."id" = NEW."supplier_quotation_line_id";
-  SELECT "supplier_code","supplier_name" INTO supplier_code,supplier_name
-  FROM "suppliers" WHERE "id" = NEW."supplier_id";
+  SELECT "supplier_code_snapshot","supplier_name_snapshot"
+    INTO invited_supplier_code,invited_supplier_name
+  FROM "rfq_suppliers"
+  WHERE "rfq_id" = NEW."rfq_id"
+    AND "supplier_id" = NEW."supplier_id";
   SELECT "company_id" INTO selector_company
   FROM "users" WHERE "id" = NEW."selected_by_user_id";
 
@@ -476,8 +479,11 @@ BEGIN
   IF selector_company IS NULL OR selector_company <> rfq_company THEN
     RAISE EXCEPTION 'Quotation Award selector must belong to the RFQ Company';
   END IF;
-  IF NEW."supplier_code_snapshot" <> supplier_code
-     OR NEW."supplier_name_snapshot" <> supplier_name
+  IF invited_supplier_code IS NULL OR invited_supplier_name IS NULL THEN
+    RAISE EXCEPTION 'Quotation Award Supplier must be an invited RFQ Supplier';
+  END IF;
+  IF NEW."supplier_code_snapshot" <> invited_supplier_code
+     OR NEW."supplier_name_snapshot" <> invited_supplier_name
      OR NEW."supplier_reference_snapshot" IS DISTINCT FROM quote_reference
      OR NEW."quotation_date_snapshot" <> quote_date
      OR NEW."quantity" <> ql_quantity
