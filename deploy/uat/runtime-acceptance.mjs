@@ -2456,8 +2456,19 @@ await request(
   '/procurement/purchase-requests/' + purchaseRequestId,
   { expected: 403 },
 );
+await request(
+  unassigned,
+  '/procurement/projects/' + projectId + '/rfqs',
+  { expected: 403 },
+);
+await request(
+  unassigned,
+  '/procurement/rfqs/' + sourcingRfqId,
+  { expected: 403 },
+);
 record('V0.3-A scoped Budget access denied');
 record('V0.3-B scoped Purchase Request access denied');
+record('V0.3-C scoped RFQ / quotation access denied');
 record('unassigned Project, Document, Scheduling, Site Execution, Equipment, Reporting and Budget access denied');
 
 await logout(pm);
