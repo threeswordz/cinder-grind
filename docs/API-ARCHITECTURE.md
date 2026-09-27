@@ -1415,6 +1415,7 @@ Operational reporting is a derived read model, not a new transaction ledger. The
 
 ```text
 GET    /api/v1/budget/projects
+GET    /api/v1/budget/revision-projects
 GET    /api/v1/budget/projects/{projectId}/options
 
 GET    /api/v1/budget/projects/{projectId}/boq
@@ -1445,7 +1446,7 @@ A Budget Revision is an immutable snapshot of the active BOQ at Draft creation. 
 
 Draft creation does not start approval. Submission is a distinct Draft → Submitted transition that attaches the reusable `BUDGET_REVISION` Approval Matrix workflow and records the submitter/time. Maker-checker remains backend-enforced. Snapshot lines are immutable from creation; submitted/approved/rejected revision history is never physically deleted through ordinary application flows.
 
-The first APPROVED revision is the immutable Original Budget. The highest/latest APPROVED revision is the Current Revised Budget. Rejected revisions remain history and never become current. The summary endpoint derives Project totals plus independent WBS and Cost Code totals, including explicit unallocated buckets. The approved endpoint exposes the latest approved immutable source data for later Procurement without transferring BOQ/Budget ownership.
+The revision whose approval completion event occurs first is the immutable Original Budget, even if a lower revision number is approved later. The highest/latest APPROVED revision number is the Current Revised Budget. Rejected revisions remain history and never become current. The summary endpoint derives Project totals plus independent WBS and Cost Code totals, including explicit unallocated buckets. The approved endpoint exposes the latest approved immutable source data for later Procurement without transferring BOQ/Budget ownership.
 
 V0.3-A creates no Inventory movement, Supplier Invoice, Payment, Actual Cost, tax/VAT, FX accounting or V0.7 committed-cost ledger.
 
