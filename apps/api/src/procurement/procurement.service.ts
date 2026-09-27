@@ -463,6 +463,12 @@ export class ProcurementService {
           lineType: input.lineType ?? (current.lineType as 'MATERIAL' | 'SERVICE'),
           materialId:
             input.materialId !== undefined ? input.materialId : current.materialId,
+          materialCodeSnapshot:
+            (input.lineType ?? current.lineType) === 'MATERIAL' &&
+            (input.materialId !== undefined ? input.materialId : current.materialId) ===
+              current.materialId
+              ? current.materialCodeSnapshot
+              : undefined,
           description:
             input.description !== undefined ? input.description : current.description,
           quantity: input.quantity ?? current.quantity,
