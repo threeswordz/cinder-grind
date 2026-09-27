@@ -202,14 +202,15 @@ export class ReportingService {
 
       const latestApproved = ordered.find(
         (order) =>
-          !order.cancelledAt &&
           order.approvalInstance?.approvalState === 'APPROVED',
       );
       if (latestApproved) {
-        currentRevisionByPoNumber.set(
-          poNumber,
-          latestApproved.id,
-        );
+        if (!latestApproved.cancelledAt) {
+          currentRevisionByPoNumber.set(
+            poNumber,
+            latestApproved.id,
+          );
+        }
         continue;
       }
 
