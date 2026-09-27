@@ -237,11 +237,12 @@ export class SourcingController {
     const data = {
       ...(input.supplierReference !== undefined
         ? {
-            supplierReference: procurementNullableString(
-              input,
-              'supplierReference',
-              150,
-            ),
+            supplierReference:
+              procurementNullableString(
+                input,
+                'supplierReference',
+                150,
+              ) ?? null,
           }
         : {}),
       ...(input.quotationDate !== undefined
@@ -264,11 +265,12 @@ export class SourcingController {
         : {}),
       ...(input.remarks !== undefined
         ? {
-            remarks: procurementNullableString(
-              input,
-              'remarks',
-              10000,
-            ),
+            remarks:
+              procurementNullableString(
+                input,
+                'remarks',
+                10000,
+              ) ?? null,
           }
         : {}),
     };
