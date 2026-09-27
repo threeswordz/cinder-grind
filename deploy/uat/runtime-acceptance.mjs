@@ -613,6 +613,17 @@ await request(pm, `/schedule-baselines/${baseline.data.data.id}/approve`, {
 });
 
 const checker = await login(checkerUser.data.data.email, checkerPassword);
+const checkerBudgetProjects = await request(
+  checker,
+  '/budget/revision-projects',
+);
+check(
+  checkerBudgetProjects.data.data.some((item) => item.id === projectId),
+  'Revision-only Budget approver Project selector did not expose assigned Project.',
+);
+await request(checker, '/budget/projects', { expected: 403 });
+record('V0.3-A revision-only Budget approver Project selector');
+
 const approvedBaseline = await request(
   checker,
   `/schedule-baselines/${baseline.data.data.id}/approve`,
