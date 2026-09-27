@@ -138,6 +138,17 @@ export type ProcurementReport = {
       closingDate: string | null;
       invitedSupplierCount: number;
       quotationCount: number;
+      quotations: Array<{
+        id: string;
+        supplierReference: string | null;
+        quotationDate: string;
+        validityDate: string | null;
+        supplier: {
+          id: string;
+          supplierCode: string;
+          supplierName: string;
+        };
+      }>;
       award: {
         id: string;
         supplierId: string;
