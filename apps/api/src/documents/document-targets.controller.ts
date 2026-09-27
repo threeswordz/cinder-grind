@@ -40,13 +40,22 @@ const auditContext = (request: AuthenticatedRequest) => ({
 });
 
 function targetType(value: string): DocumentTargetType {
-  if (value !== 'WBS' && value !== 'ACTIVITY') {
+  const supported: DocumentTargetType[] = [
+    'WBS',
+    'ACTIVITY',
+    'PURCHASE_REQUEST',
+    'RFQ',
+    'SUPPLIER_QUOTATION',
+    'PURCHASE_ORDER',
+  ];
+  if (!supported.includes(value as DocumentTargetType)) {
     throw new UnprocessableEntityException({
       code: 'DOCUMENT_TARGET_TYPE_INVALID',
-      detail: 'Document target type must be WBS or ACTIVITY.',
+      detail:
+        'Document target type must be WBS, ACTIVITY, PURCHASE_REQUEST, RFQ, SUPPLIER_QUOTATION or PURCHASE_ORDER.',
     });
   }
-  return value;
+  return value as DocumentTargetType;
 }
 
 @Controller('documents/projects/:projectId/targets')
