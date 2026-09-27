@@ -1,17 +1,7 @@
 -- V0.3-B review hardening:
--- 1) allow a user who already approved a multi-approval step to record a
---    distinct cancellation action while the approval instance is still SUBMITTED;
--- 2) snapshot the Material code shown in retained Purchase Request history.
-
-DROP INDEX IF EXISTS "approval_actions_instance_step_user_key";
-
-CREATE UNIQUE INDEX IF NOT EXISTS "approval_actions_instance_step_user_action_key"
-  ON "approval_actions"(
-    "approval_instance_id",
-    "approval_step_id",
-    "action_by_user_id",
-    "action"
-  );
+-- snapshot the Material code shown in retained Purchase Request history.
+-- Approval cancellation uniqueness is handled by the preceding
+-- 20260927150000_v0_3_b_approval_cancel_actions migration.
 
 ALTER TABLE "purchase_request_lines"
   ADD COLUMN IF NOT EXISTS "material_code_snapshot" VARCHAR(80);
