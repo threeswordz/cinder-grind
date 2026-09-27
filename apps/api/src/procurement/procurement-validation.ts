@@ -76,6 +76,12 @@ export function procurementDecimal(value: unknown, field: string): Prisma.Decima
     if (decimal.decimalPlaces() > 4) {
       return procurementInvalid(field, 'Maximum precision is 4 decimal places.');
     }
+    if (decimal.gte(new Prisma.Decimal('100000000000000'))) {
+      return procurementInvalid(
+        field,
+        'Maximum quantity is 99,999,999,999,999.9999.',
+      );
+    }
     return decimal;
   } catch {
     return procurementInvalid(field, 'A valid decimal value is required.');
