@@ -720,6 +720,46 @@ export class ProcurementService {
             detail: 'A rejected Purchase Request is retained history and cannot be cancelled.',
           });
         }
+
+        const requestLines = await tx.purchaseRequestLine.findMany({
+          where: { purchaseRequestId: request.id },
+          select: { id: true },
+        });
+        if (requestLines.length) {
+          const poDependencies = await tx.purchaseOrderLine.findMany({
+            where: {
+              purchaseRequestLineId: {
+                in: requestLines.map((line) => line.id),
+              },
+            },
+            select: {
+              purchaseOrder: {
+                select: {
+                  id: true,
+                  poNumber: true,
+                  cancelledAt: true,
+                  approvalInstance: {
+                    select: { approvalState: true },
+                  },
+                },
+              },
+            },
+          });
+          const activePo = poDependencies.find(({ purchaseOrder }) => {
+            if (purchaseOrder.cancelledAt) return false;
+            const approvalState =
+              purchaseOrder.approvalInstance?.approvalState;
+            return approvalState !== APPROVAL_STATE.REJECTED;
+          });
+          if (activePo) {
+            throw new ConflictException({
+              code: 'PR_HAS_ACTIVE_PURCHASE_ORDER',
+              detail:
+                'This Purchase Request cannot be cancelled while an active Purchase Order depends on its demand.',
+            });
+          }
+        }
+
         if (state === APPROVAL_STATE.SUBMITTED && request.approvalInstanceId) {
           await this.approvals.cancel(
             request.approvalInstanceId,
