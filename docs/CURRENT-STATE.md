@@ -4,9 +4,12 @@
 **Source of truth:** Live GitHub repository state
 
 - Current Release: V0.3 Procurement
-- Current Stage: V0.3-A BOQ & Budget — IMPLEMENTATION
+- Current Stage: V0.3-B Purchase Request — PRE-FLIGHT
 - Completed Stages: V0.1-A Technical Skeleton; V0.1-B Company / Identity / Security; V0.1-C Administration; V0.1-D Master Data; V0.1-E Projects; V0.1-F WBS & Cost Codes; V0.1-G Basic Documents; V0.1-H Integration / Regression / UAT; V0.2-A Scheduling Data Model; V0.2-B Scheduling Engine; V0.2-C Baselines / Progress; V0.2-D Gantt / Lookahead; V0.2-E Site Execution; V0.2-F Equipment; V0.2-G UAT Reference Programme
-- Active Issue: #59 — V0.3-A BOQ & Budget
+- Active Issue: pending creation — V0.3-B Purchase Request Pre-flight
+- Completed Issue: #59 — V0.3-A BOQ & Budget
+- Completed Branch: `v0.3-a-boq-budget`
+- Merged PR: #60 — V0.3-A: BOQ & Budget
 - Completed Issue: #57 — V0.3 Release Entry Gate — Scope & Acceptance Baselines
 - Completed Branch: `v0.3-entry-gate`
 - Merged PR: #58 — V0.3 entry gate: approve Procurement baselines and business rules
@@ -51,7 +54,7 @@
 - V0.1 cross-module release acceptance scenario: PASS in the Stage H release-candidate regression suite.
 - Open defect check at V0.1 acceptance: no Severity 1 or Severity 2 release-blocking defect recorded.
 - Governance: `AGENTS.md`, `docs/PROJECT-GOVERNANCE.md`, PR governance checklist and DEC-008 are active; material decisions must pass the repository pre-flight and open-source/zero-cost-first constraint.
-- Next action: implement V0.3-A BOQ & Budget under the approved BUD-001–BUD-010 acceptance criteria and BR-V03-01 through BR-V03-04 / BR-V03-17 / BR-V03-18.
+- Next action: resolve the BR-V03-17 human-readable numbering format for PR/RFQ/PO, then begin V0.3-B Purchase Request under PROC-001–PROC-003 and approved BR-V03-05 through BR-V03-07.
 
 ## Stage E completed
 
@@ -484,6 +487,10 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - integration tests cover canonical BOQ, dimensional validation, immutable Draft/approved snapshots, maker-checker, Original/Revised semantics, rejected history and downstream approved-budget reads.
 - live HTTP acceptance covers BOQ → Draft Budget → submit → maker-checker approval → Revised Budget while preserving Original Budget, plus Project-scope denial.
 - full implementation branch CI #939 passed on `06f743755a16a3642d5f33b8d075e41204a34215` before documentation completion.
+- PR review identified three acceptance defects; all were fixed before merge: Original Budget now follows earliest approval completion event, revision-only approvers can select assigned Projects, and Draft creation respects archived Sections.
+- final exact-head branch CI #959 and PR CI #960 passed on `f8349b2e4751512f88abdeebf2381d114e09f586`.
+- PR #60 squash-merged to `main` as `ec90e5a736de61333343f542ce7deef79d78b8ff`.
+- post-merge `main` CI #961 passed on `ec90e5a736de61333343f542ce7deef79d78b8ff`.
 - no PR/RFQ/quotation/PO, Inventory, Finance, Actual Cost, tax/VAT, FX or V0.7 Cost Control behavior is introduced.
 
 ## V0.3-A PR #60 review fixes
@@ -493,3 +500,16 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - revision-only Budget approvers can load assigned Projects through a dedicated Project selector endpoint without requiring BOQ-view permission.
 - the BOQ/Budget UI no longer enables Draft Budget creation when all active Items belong to archived Sections.
 - integration/live acceptance coverage was extended for approval-order semantics and revision-only approver Project selection.
+
+## V0.3-A completed
+
+- Issue #59 — V0.3-A BOQ & Budget is complete.
+- PR #60 — V0.3-A: BOQ & Budget merged to `main` as `ec90e5a736de61333343f542ce7deef79d78b8ff`.
+- exact-head branch CI #959 passed on `f8349b2e4751512f88abdeebf2381d114e09f586`.
+- exact-head PR CI #960 passed on the same head.
+- post-merge `main` CI #961 passed on `ec90e5a736de61333343f542ce7deef79d78b8ff`.
+- BUD-001 through BUD-010 are delivered.
+- Original Budget is permanently tied to the earliest actual approval completion event; a lower revision number approved later cannot replace it.
+- the highest/latest approved revision number is the Current Revised Budget.
+- no V0.3-B+ procurement transaction behavior was pulled forward.
+- V0.3-B remains gated by the deferred BR-V03-17 human-readable numbering-format decision.
