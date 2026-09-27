@@ -4,9 +4,9 @@
 **Source of truth:** Live GitHub repository state
 
 - Current Release: V0.3 Procurement
-- Current Stage: V0.3-B Purchase Request — IMPLEMENTATION AUTHORIZED
+- Current Stage: V0.3-B Purchase Request — ACTIVE IMPLEMENTATION
 - Completed Stages: V0.1-A Technical Skeleton; V0.1-B Company / Identity / Security; V0.1-C Administration; V0.1-D Master Data; V0.1-E Projects; V0.1-F WBS & Cost Codes; V0.1-G Basic Documents; V0.1-H Integration / Regression / UAT; V0.2-A Scheduling Data Model; V0.2-B Scheduling Engine; V0.2-C Baselines / Progress; V0.2-D Gantt / Lookahead; V0.2-E Site Execution; V0.2-F Equipment; V0.2-G UAT Reference Programme
-- Active Issue: #62 — V0.3-B Purchase Request — Pre-flight / Numbering Decision (approved; closure pending merge)
+- Active Issue: #64 — V0.3-B Purchase Request
 - Completed Issue: #59 — V0.3-A BOQ & Budget
 - Completed Branch: `v0.3-a-boq-budget`
 - Merged PR: #60 — V0.3-A: BOQ & Budget
@@ -54,7 +54,7 @@
 - V0.1 cross-module release acceptance scenario: PASS in the Stage H release-candidate regression suite.
 - Open defect check at V0.1 acceptance: no Severity 1 or Severity 2 release-blocking defect recorded.
 - Governance: `AGENTS.md`, `docs/PROJECT-GOVERNANCE.md`, PR governance checklist and DEC-008 are active; material decisions must pass the repository pre-flight and open-source/zero-cost-first constraint.
-- Next action: merge the approved V0.3-B numbering pre-flight, close Issue #62, then open V0.3-B Purchase Request implementation under PROC-001–PROC-003 and BR-V03-05 through BR-V03-07.
+- Next action: implement V0.3-B Purchase Request under Issue #64 / branch `v0.3-b-purchase-request`, then validate AC-V03-008 through AC-V03-011 and cross-cutting V0.3 controls.
 
 ## Stage E completed
 
@@ -527,3 +527,14 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
   - RFQ: `RFQYYMM-###` / MONTHLY
   - Purchase Order: `POYYMM-###` / MONTHLY
 - Product / Business Owner explicitly approved this numbering baseline on 2026-09-27; V0.3-B Purchase Request implementation is authorized after the pre-flight PR is merged.
+
+## V0.3-B active
+
+- Product / Business Owner approved the V0.3-B Procurement Numbering Baseline on 2026-09-27.
+- approved formats: Budget Revision `BRYY-###` / YEARLY; Purchase Request `PRYYMM-###` / MONTHLY; RFQ `RFQYYMM-###` / MONTHLY; Purchase Order `POYYMM-###` / MONTHLY.
+- numbering pre-flight PR #63 merged to `main` as `51e6f5a87f30db4baa5dd3cd49cc62f6c9c5af13`.
+- exact-head PR CI #973 and post-merge main CI #974 passed.
+- Issue #62 is closed; Issue #64 is the active implementation work item.
+- Branch: `v0.3-b-purchase-request`.
+- Stage B implements PROC-001 through PROC-003 plus Required-on-Site demand context required by AC-V03-011.
+- RFQ, quotation, supplier award, PO, Inventory, Finance and Actual Cost remain excluded.
