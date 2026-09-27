@@ -421,6 +421,9 @@ export class PurchaseOrderService {
             },
           },
           include: {
+            supplier: {
+              select: { id: true, companyId: true, isActive: true },
+            },
             rfq: {
               select: {
                 id: true,
@@ -460,6 +463,20 @@ export class PurchaseOrderService {
             code: 'PO_SUPPLIER_MISMATCH',
             detail:
               'One Purchase Order can contain award lines from only one Supplier.',
+          });
+        }
+
+        if (
+          awards.some(
+            (award) =>
+              !award.supplier.isActive ||
+              award.supplier.companyId !== context.auth.companyId,
+          )
+        ) {
+          throw new ConflictException({
+            code: 'PO_SUPPLIER_INACTIVE',
+            detail:
+              'A new Purchase Order cannot be created for an inactive Supplier.',
           });
         }
 
@@ -1051,15 +1068,17 @@ export class PurchaseOrderService {
           tx,
         );
 
+        const sourceApprovalState =
+          source.approvalInstance?.approvalState;
         if (
           source.cancelledAt ||
-          source.approvalInstance?.approvalState !==
-            APPROVAL_STATE.APPROVED
+          (sourceApprovalState !== APPROVAL_STATE.APPROVED &&
+            sourceApprovalState !== APPROVAL_STATE.REJECTED)
         ) {
           throw new ConflictException({
             code: 'PO_REVISION_SOURCE_INVALID',
             detail:
-              'A new Purchase Order revision must originate from an active approved revision.',
+              'A new Purchase Order revision must originate from an active approved or retained rejected revision.',
           });
         }
         if (source.nextRevision) {
