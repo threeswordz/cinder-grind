@@ -316,6 +316,28 @@ DECLARE
   creator_company UUID;
   updater_company UUID;
 BEGIN
+  SELECT rfl."purchase_request_line_id",prl."quantity",ai."approval_state",pr."cancelled_at"
+    INTO source_pr_line,source_pr_qty,source_pr_state,source_pr_cancelled
+  FROM "rfq_lines" rfl
+  JOIN "purchase_request_lines" prl ON prl."id" = rfl."purchase_request_line_id"
+  JOIN "purchase_requests" pr ON pr."id" = prl."purchase_request_id"
+  LEFT JOIN "approval_instances" ai ON ai."id" = pr."approval_instance_id"
+  WHERE rfl."id" = NEW."rfq_line_id";
+
+  IF source_pr_line IS NULL THEN
+    RAISE EXCEPTION 'Quotation Award source Purchase Request line not found';
+  END IF;
+  IF source_pr_state <> 'APPROVED' OR source_pr_cancelled IS NOT NULL THEN
+    RAISE EXCEPTION 'Quotation Award requires active approved Purchase Request demand';
+  END IF;
+
+  PERFORM pg_advisory_xact_lock(
+    hashtext('pr-demand-award:' || source_pr_line::text)
+  );
+  PERFORM pg_advisory_xact_lock(
+    hashtext('supplier-quotation:' || NEW."supplier_quotation_id"::text)
+  );
+
   SELECT "company_id" INTO rfq_company FROM "rfqs" WHERE "id" = NEW."rfq_id";
   SELECT "company_id" INTO creator_company FROM "users" WHERE "id" = NEW."created_by_user_id";
   SELECT "company_id" INTO updater_company FROM "users" WHERE "id" = NEW."updated_by_user_id";
@@ -341,8 +363,14 @@ BEFORE INSERT OR UPDATE ON "supplier_quotations"
 FOR EACH ROW EXECUTE FUNCTION validate_supplier_quotation();
 
 CREATE OR REPLACE FUNCTION protect_supplier_quotation_history()
-RETURNS trigger AS $$
+RETURNS trigger AS $
 BEGIN
+  IF TG_OP = 'UPDATE' THEN
+    PERFORM pg_advisory_xact_lock(
+      hashtext('supplier-quotation:' || OLD."id"::text)
+    );
+  END IF;
+
   IF TG_OP = 'DELETE' THEN
     RAISE EXCEPTION 'Supplier Quotations are retained history and cannot be deleted';
   END IF;
@@ -382,6 +410,10 @@ DECLARE
   line_uom UUID;
   line_uom_code VARCHAR(30);
 BEGIN
+  PERFORM pg_advisory_xact_lock(
+    hashtext('supplier-quotation:' || NEW."supplier_quotation_id"::text)
+  );
+
   SELECT "rfq_id" INTO quote_rfq
   FROM "supplier_quotations" WHERE "id" = NEW."supplier_quotation_id";
   SELECT "rfq_id","line_no","quantity","uom_id","uom_code_snapshot"
@@ -496,25 +528,6 @@ BEGIN
      OR NEW."amount" <> ql_amount THEN
     RAISE EXCEPTION 'Quotation Award snapshots must match the selected quotation line';
   END IF;
-
-  SELECT rfl."purchase_request_line_id",prl."quantity",ai."approval_state",pr."cancelled_at"
-    INTO source_pr_line,source_pr_qty,source_pr_state,source_pr_cancelled
-  FROM "rfq_lines" rfl
-  JOIN "purchase_request_lines" prl ON prl."id" = rfl."purchase_request_line_id"
-  JOIN "purchase_requests" pr ON pr."id" = prl."purchase_request_id"
-  LEFT JOIN "approval_instances" ai ON ai."id" = pr."approval_instance_id"
-  WHERE rfl."id" = NEW."rfq_line_id";
-
-  IF source_pr_state <> 'APPROVED' OR source_pr_cancelled IS NOT NULL THEN
-    RAISE EXCEPTION 'Quotation Award requires active approved Purchase Request demand';
-  END IF;
-
-  -- Serialize the aggregate demand-cap check at the database boundary too.
-  -- This uses the same source-demand lock key as SourcingService.selectAward,
-  -- so direct SQL/Prisma writers cannot race the cumulative award quantity.
-  PERFORM pg_advisory_xact_lock(
-    hashtext('pr-demand-award:' || source_pr_line::text)
-  );
 
   SELECT COALESCE(SUM(qa."quantity"),0)
     INTO already_awarded
