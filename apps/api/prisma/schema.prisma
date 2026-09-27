@@ -1293,8 +1293,9 @@ model PurchaseRequestLine {
   purchaseRequestId String    @map("purchase_request_id") @db.Uuid
   lineNo            Int       @map("line_no")
   lineType          String    @map("line_type") @db.VarChar(20)
-  materialId        String?   @map("material_id") @db.Uuid
-  description       String    @db.VarChar(500)
+  materialId           String?   @map("material_id") @db.Uuid
+  materialCodeSnapshot String?   @map("material_code_snapshot") @db.VarChar(80)
+  description          String    @db.VarChar(500)
   quantity          Decimal   @db.Decimal(18, 4)
   uomId             String    @map("uom_id") @db.Uuid
   wbsId             String?   @map("wbs_id") @db.Uuid
