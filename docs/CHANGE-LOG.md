@@ -1,3 +1,13 @@
+## 2026-09-27 — V0.3-D Purchase Order completed
+
+- PROC-009 through PROC-017 delivered with award-backed Purchase Orders, approval, retained revisions, cancellation and line-level Required-on-Site / Expected Delivery.
+- PR #74 merged as `600143b1e463a6536c5f588a6c30def373fa6a6e`.
+- exact-head branch CI #1210 and PR CI #1211 passed on `ec83b8d3c60c4945dbb8bb268baa9d58b0e7fd50`.
+- post-merge main CI #1212 passed.
+- review hardening covered rejected-PO corrective retry, active source-demand protection, inactive Supplier validation, action-history clarity, PO permission dependency and database-level source/quantity serialization.
+- Inventory, Finance, Actual Cost, V0.7 Committed Cost ledger and Stage-E schedule-risk behavior remain outside Stage D.
+- next stage is V0.3-E Schedule Risk pre-flight under PROC-018 / PROC-019, RPT-005 and SYS-007.
+
 ## 2026-09-27 — V0.3-C RFQ / Quotations completed
 
 - PROC-004 through PROC-008 delivered with RFQ, Supplier invitations, Supplier Quotations, comparison and line-level Supplier Awards.
