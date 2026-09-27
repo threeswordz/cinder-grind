@@ -503,6 +503,11 @@ export class SourcingService {
     input: Required<Pick<QuotationHeaderInput, 'quotationDate'>> &
       Omit<QuotationHeaderInput, 'quotationDate'>,
   ) {
+    this.assertQuotationDateRange(
+      input.quotationDate,
+      input.validityDate ?? null,
+    );
+
     try {
       return await this.prisma.$transaction(async (tx) => {
         const rfq = await tx.rfq.findFirst({
@@ -622,6 +627,13 @@ export class SourcingService {
             'Quotation header is frozen after one of its lines has been awarded.',
         });
       }
+
+      this.assertQuotationDateRange(
+        input.quotationDate ?? lockedCurrent.quotationDate,
+        input.validityDate !== undefined
+          ? input.validityDate
+          : lockedCurrent.validityDate,
+      );
 
       const data: Prisma.SupplierQuotationUpdateInput = {
         updatedBy: { connect: { id: context.auth.userId } },
@@ -1107,6 +1119,28 @@ export class SourcingService {
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
     );
+  }
+
+  private assertQuotationDateRange(
+    quotationDate: Date,
+    validityDate: Date | null,
+  ) {
+    if (
+      validityDate &&
+      validityDate.getTime() < quotationDate.getTime()
+    ) {
+      throw new UnprocessableEntityException({
+        code: 'VALIDATION_ERROR',
+        detail: 'One or more fields are invalid.',
+        errors: [
+          {
+            field: 'validityDate',
+            message:
+              'Validity date cannot be earlier than quotation date.',
+          },
+        ],
+      });
+    }
   }
 
   private async assertApprovedNumbering(companyId: string) {
