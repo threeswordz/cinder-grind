@@ -204,12 +204,14 @@ export class ReportingService {
             ? 'ON_TIME'
             : 'UNAVAILABLE';
 
+        const currentDeliveryDates = currentPoRows
+          .map((row) => row.expectedDelivery)
+          .filter((value): value is string => Boolean(value))
+          .sort();
         const expectedDelivery =
-          currentPoRows
-            .map((row) => row.expectedDelivery)
-            .filter((value): value is string => Boolean(value))
-            .sort()
-            .at(-1) ?? null;
+          currentDeliveryDates.length > 0
+            ? currentDeliveryDates[currentDeliveryDates.length - 1]!
+            : null;
 
         return {
           id: line.id,
