@@ -1260,6 +1260,7 @@ model PurchaseRequest {
   projectId          String    @map("project_id") @db.Uuid
   prNumber           String    @map("pr_number") @db.VarChar(120)
   remarks            String?   @db.Text
+  sourceRequestId    String?   @map("source_request_id") @db.Uuid
   approvalInstanceId String?   @unique @map("approval_instance_id") @db.Uuid
   createdByUserId    String    @map("created_by_user_id") @db.Uuid
   submittedByUserId  String?   @map("submitted_by_user_id") @db.Uuid
@@ -1275,12 +1276,15 @@ model PurchaseRequest {
   createdBy        User              @relation("PurchaseRequestCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
   submittedBy      User?             @relation("PurchaseRequestSubmitter", fields: [submittedByUserId], references: [id], onDelete: Restrict)
   cancelledBy      User?             @relation("PurchaseRequestCanceller", fields: [cancelledByUserId], references: [id], onDelete: Restrict)
+  sourceRequest    PurchaseRequest?  @relation("PurchaseRequestCopies", fields: [sourceRequestId], references: [id], onDelete: Restrict)
+  copies           PurchaseRequest[] @relation("PurchaseRequestCopies")
   lines            PurchaseRequestLine[]
 
   @@unique([companyId, prNumber])
   @@index([companyId, projectId, createdAt])
   @@index([submittedByUserId])
   @@index([cancelledByUserId])
+  @@index([sourceRequestId])
   @@map("purchase_requests")
 }
 
