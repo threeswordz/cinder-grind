@@ -51,6 +51,7 @@ model Company {
   rfqs                 Rfq[]
   supplierQuotations   SupplierQuotation[]
   purchaseOrders       PurchaseOrder[]
+  warehouses           Warehouse[]
   @@map("companies")
 }
 
@@ -495,6 +496,7 @@ model Project {
   purchaseRequests       PurchaseRequest[]
   rfqs                   Rfq[]
   purchaseOrders         PurchaseOrder[]
+  warehouses             Warehouse[]
   @@unique([companyId, projectCode])
   @@index([companyId, isActive])
   @@index([customerId])
@@ -1045,6 +1047,27 @@ model EquipmentType {
   @@unique([companyId, equipmentTypeCode])
   @@index([companyId, isActive])
   @@map("equipment_types")
+}
+
+model Warehouse {
+  id              String   @id @default(uuid()) @db.Uuid
+  companyId       String   @map("company_id") @db.Uuid
+  warehouseCode   String   @map("warehouse_code") @db.VarChar(80)
+  warehouseName   String   @map("warehouse_name") @db.VarChar(200)
+  projectId       String?  @map("project_id") @db.Uuid
+  location        String?  @db.VarChar(500)
+  isSiteWarehouse Boolean  @default(false) @map("is_site_warehouse")
+  isActive        Boolean  @default(true) @map("is_active")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  company Company  @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  project Project? @relation(fields: [projectId], references: [id], onDelete: Restrict)
+
+  @@unique([companyId, warehouseCode])
+  @@index([companyId, isActive])
+  @@index([projectId, isActive])
+  @@map("warehouses")
 }
 
 model Equipment {
