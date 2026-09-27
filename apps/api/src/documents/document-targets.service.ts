@@ -11,7 +11,13 @@ import { ProjectAccessService } from '../projects/project-access.service';
 import { UploadedDocumentFile } from './document-policy.service';
 import { DocumentsService } from './documents.service';
 
-export type DocumentTargetType = 'WBS' | 'ACTIVITY';
+export type DocumentTargetType =
+  | 'WBS'
+  | 'ACTIVITY'
+  | 'PURCHASE_REQUEST'
+  | 'RFQ'
+  | 'SUPPLIER_QUOTATION'
+  | 'PURCHASE_ORDER';
 
 type AuditContext = {
   auth: AuthenticatedUserContext;
@@ -29,7 +35,14 @@ export class DocumentTargetsService {
 
   async options(auth: AuthenticatedUserContext, projectId: string) {
     await this.access.assertAccess(auth, projectId);
-    const [wbs, activities] = await Promise.all([
+    const [
+      wbs,
+      activities,
+      purchaseRequests,
+      rfqs,
+      supplierQuotations,
+      purchaseOrders,
+    ] = await Promise.all([
       this.prisma.wbsElement.findMany({
         where: { projectId, isActive: true },
         select: { id: true, wbsCode: true, wbsName: true, parentId: true },
@@ -49,8 +62,52 @@ export class DocumentTargetsService {
         },
         orderBy: { activityCode: 'asc' },
       }),
+      this.prisma.purchaseRequest.findMany({
+        where: { projectId, companyId: auth.companyId },
+        select: { id: true, prNumber: true },
+        orderBy: { prNumber: 'asc' },
+      }),
+      this.prisma.rfq.findMany({
+        where: { projectId, companyId: auth.companyId },
+        select: { id: true, rfqNumber: true },
+        orderBy: { rfqNumber: 'asc' },
+      }),
+      this.prisma.supplierQuotation.findMany({
+        where: {
+          companyId: auth.companyId,
+          rfq: { projectId, companyId: auth.companyId },
+        },
+        select: {
+          id: true,
+          supplierReference: true,
+          rfq: { select: { rfqNumber: true } },
+          supplier: {
+            select: { supplierCode: true, supplierName: true },
+          },
+        },
+        orderBy: [{ rfq: { rfqNumber: 'asc' } }, { createdAt: 'asc' }],
+      }),
+      this.prisma.purchaseOrder.findMany({
+        where: { projectId, companyId: auth.companyId },
+        select: {
+          id: true,
+          poNumber: true,
+          revisionNo: true,
+          supplier: {
+            select: { supplierCode: true, supplierName: true },
+          },
+        },
+        orderBy: [{ poNumber: 'asc' }, { revisionNo: 'asc' }],
+      }),
     ]);
-    return { wbs, activities };
+    return {
+      wbs,
+      activities,
+      purchaseRequests,
+      rfqs,
+      supplierQuotations,
+      purchaseOrders,
+    };
   }
 
   async list(
@@ -203,7 +260,59 @@ export class DocumentTargetsService {
       return;
     }
 
-    const row = await this.prisma.activity.findFirst({
+    if (entityType === 'ACTIVITY') {
+      const row = await this.prisma.activity.findFirst({
+        where: {
+          id: entityId,
+          projectId,
+          companyId: auth.companyId,
+        },
+        select: { id: true },
+      });
+      if (!row) throw this.targetNotFound();
+      return;
+    }
+
+    if (entityType === 'PURCHASE_REQUEST') {
+      const row = await this.prisma.purchaseRequest.findFirst({
+        where: {
+          id: entityId,
+          projectId,
+          companyId: auth.companyId,
+        },
+        select: { id: true },
+      });
+      if (!row) throw this.targetNotFound();
+      return;
+    }
+
+    if (entityType === 'RFQ') {
+      const row = await this.prisma.rfq.findFirst({
+        where: {
+          id: entityId,
+          projectId,
+          companyId: auth.companyId,
+        },
+        select: { id: true },
+      });
+      if (!row) throw this.targetNotFound();
+      return;
+    }
+
+    if (entityType === 'SUPPLIER_QUOTATION') {
+      const row = await this.prisma.supplierQuotation.findFirst({
+        where: {
+          id: entityId,
+          companyId: auth.companyId,
+          rfq: { projectId, companyId: auth.companyId },
+        },
+        select: { id: true },
+      });
+      if (!row) throw this.targetNotFound();
+      return;
+    }
+
+    const row = await this.prisma.purchaseOrder.findFirst({
       where: {
         id: entityId,
         projectId,
@@ -276,7 +385,7 @@ export class DocumentTargetsService {
     return new UnprocessableEntityException({
       code: 'DOCUMENT_TARGET_INVALID',
       detail:
-        'WBS or Activity target must belong to the selected Project.',
+        'Document target must be a valid WBS, Activity or Procurement transaction in the selected Project.',
     });
   }
 }
