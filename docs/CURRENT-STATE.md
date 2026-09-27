@@ -6,8 +6,10 @@
 - Current Release: V0.4 Inventory
 - Current Stage: V0.4 Release Entry Gate — AWAITING BASELINE AND BUSINESS-RULE APPROVAL
 - Completed Stages: V0.1-A through V0.1-H; V0.2-A through V0.2-G; V0.3-A BOQ & Budget; V0.3-B Purchase Request; V0.3-C RFQ / Quotations; V0.3-D Purchase Order; V0.3-E Schedule Risk / Procurement Reporting / Traceability
-- Active Issue: #79 — V0.3 Procurement Product / Business Owner acceptance record
-- Active Branch: `v0.3-release-acceptance`
+- Active Issue: #81 — V0.4 Inventory Release Entry Gate — Scope, Acceptance & Business Rules
+- Active Branch: `v0.4-entry-gate`
+- Completed Issue: #79 — V0.3 Procurement Product / Business Owner acceptance record
+- Merged PR: #80 — docs: accept V0.3 Procurement
 - Completed Issue: #76 — V0.3-E Schedule Risk / Procurement Reporting / Traceability
 - Completed Branch: `v0.3-e-schedule-risk`
 - Merged PR: #77 — V0.3-E: Schedule Risk / Procurement Reporting
@@ -672,3 +674,14 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - Issue #79 and `docs/V0.3-UAT.md` / `docs/V0.3-RELEASE-CHECKLIST.md` preserve the formal exit evidence.
 - repository position advances to the V0.4 Inventory Release Entry Gate.
 - V0.4 implementation remains prohibited until the entry-gate baselines and required business rules are explicitly approved.
+
+## V0.4 Inventory release entry gate — proposed
+
+- Issue #81 is the active governance work item; branch `v0.4-entry-gate` starts from accepted V0.3 checkpoint `b3425914ddf43499b27bf876a55496899659b306`.
+- proposed scope covers INV-001 through INV-012, DOC-008 and RPT-006.
+- proposed build order is Warehouse → Goods Receipt → immutable Stock Transaction Ledger → derived Balance / Project-Site Stock → Reservation / Issue / Return → Transfer / Documents / Reporting / UAT.
+- proposed rules allow partial and multiple receipts, set over-receipt tolerance to zero, prohibit negative stock and require atomic idempotent posting with maker-checker.
+- proposed implementation estimate is 15–23 engineering days after entry-gate approval, plus 1–2 business days for human UAT.
+- no new runtime dependency is proposed; DEC-008 open-source / zero-cost-first remains active.
+- `docs/V0.4-SCOPE.md`, `docs/V0.4-ACCEPTANCE-CRITERIA.md`, `docs/V0.4-BUSINESS-RULES.md` and `docs/V0.4-ENTRY-GATE.md` are proposals awaiting Product / Business Owner approval.
+- no V0.4 implementation is authorized while the entry-gate approval items remain open.
