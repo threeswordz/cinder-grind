@@ -485,3 +485,11 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - live HTTP acceptance covers BOQ → Draft Budget → submit → maker-checker approval → Revised Budget while preserving Original Budget, plus Project-scope denial.
 - full implementation branch CI #939 passed on `06f743755a16a3642d5f33b8d075e41204a34215` before documentation completion.
 - no PR/RFQ/quotation/PO, Inventory, Finance, Actual Cost, tax/VAT, FX or V0.7 Cost Control behavior is introduced.
+
+## V0.3-A PR #60 review fixes
+
+- Original Budget identity is now derived from the earliest approval completion event, so approving a lower revision number later cannot retroactively replace the Original Budget.
+- the Current Revised Budget remains the highest/latest approved revision number.
+- revision-only Budget approvers can load assigned Projects through a dedicated Project selector endpoint without requiring BOQ-view permission.
+- the BOQ/Budget UI no longer enables Draft Budget creation when all active Items belong to archived Sections.
+- integration/live acceptance coverage was extended for approval-order semantics and revision-only approver Project selection.
