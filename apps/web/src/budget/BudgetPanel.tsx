@@ -38,6 +38,12 @@ export function BudgetPanel({
   const canManage = permissions.includes('budget.boq.manage');
   const canSubmit = permissions.includes('budget.revision.submit');
   const canApprove = permissions.includes('budget.revision.approve');
+  const canViewBoq =
+    permissions.includes('budget.boq.view') || canManage;
+  const canViewRevision =
+    permissions.includes('budget.revision.view') ||
+    canSubmit ||
+    canApprove;
 
   const [projectId, setProjectId] = useState('');
   const [boqName, setBoqName] = useState('Project BOQ');
@@ -64,28 +70,31 @@ export function BudgetPanel({
   const [approvalComment, setApprovalComment] = useState('');
 
   const projects = useQuery({
-    queryKey: ['budget', 'projects'],
-    queryFn: budgetApi.projects,
+    queryKey: ['budget', 'projects', canViewBoq ? 'boq' : 'revision'],
+    queryFn: canViewBoq
+      ? budgetApi.projects
+      : budgetApi.revisionProjects,
+    enabled: canViewBoq || canViewRevision,
   });
   const boq = useQuery({
     queryKey: ['budget', 'boq', projectId],
     queryFn: () => budgetApi.boq(projectId),
-    enabled: Boolean(projectId),
+    enabled: Boolean(projectId && canViewBoq),
   });
   const options = useQuery({
     queryKey: ['budget', 'options', projectId],
     queryFn: () => budgetApi.options(projectId),
-    enabled: Boolean(projectId),
+    enabled: Boolean(projectId && canManage),
   });
   const revisions = useQuery({
     queryKey: ['budget', 'revisions', projectId],
     queryFn: () => budgetApi.revisions(projectId),
-    enabled: Boolean(projectId),
+    enabled: Boolean(projectId && canViewRevision),
   });
   const summary = useQuery({
     queryKey: ['budget', 'summary', projectId],
     queryFn: () => budgetApi.summary(projectId),
-    enabled: Boolean(projectId),
+    enabled: Boolean(projectId && canViewRevision),
   });
   const workflows = useQuery({
     queryKey: ['budget', 'workflows'],
@@ -212,6 +221,14 @@ export function BudgetPanel({
     () => (currentBoq?.sections ?? []).filter((row) => row.isActive),
     [currentBoq?.sections],
   );
+  const activeSectionIds = useMemo(
+    () => new Set(activeSections.map((row) => row.id)),
+    [activeSections],
+  );
+  const hasDraftableItems =
+    currentBoq?.items.some(
+      (row) => row.isActive && activeSectionIds.has(row.sectionId),
+    ) ?? false;
 
   function clearSection() {
     setEditingSectionId('');
@@ -289,7 +306,7 @@ export function BudgetPanel({
         </Alert>
       ) : null}
 
-      {projectId && !currentBoq && !boq.isLoading ? (
+      {canViewBoq && projectId && !currentBoq && !boq.isLoading ? (
         <Card variant="outlined">
           <CardContent>
             <Stack spacing={2}>
@@ -592,6 +609,11 @@ export function BudgetPanel({
             </CardContent>
           </Card>
 
+        </>
+      ) : null}
+
+      {projectId && canViewRevision ? (
+        <>
           <Card variant="outlined">
             <CardContent>
               <Stack spacing={2}>
@@ -723,8 +745,7 @@ export function BudgetPanel({
                     <Button
                       variant="outlined"
                       disabled={
-                        !currentBoq.items.some((row) => row.isActive) ||
-                        createDraft.isPending
+                        !hasDraftableItems || createDraft.isPending
                       }
                       onClick={() => createDraft.mutate()}
                     >
