@@ -52,6 +52,20 @@ test('V0.3-C RFQ / Quotations preserves approved-demand sourcing, comparison and
   await prisma.$connect();
 
   try {
+    const [clock] = await prisma.$queryRaw<Array<{ today: string }>>`
+      SELECT CURRENT_DATE::text AS today
+    `;
+    assert.ok(clock?.today);
+    const dbToday = new Date(clock.today + 'T00:00:00.000Z');
+    const pastRfqClosingDate = new Date(dbToday);
+    pastRfqClosingDate.setUTCDate(
+      pastRfqClosingDate.getUTCDate() - 1,
+    );
+    const futureRfqClosingDate = new Date(dbToday);
+    futureRfqClosingDate.setUTCDate(
+      futureRfqClosingDate.getUTCDate() + 7,
+    );
+
     const suffix = randomUUID().slice(0, 8);
     const company = await prisma.company.create({
       data: {
@@ -310,11 +324,30 @@ test('V0.3-C RFQ / Quotations preserves approved-demand sourcing, comparison and
       '10',
     );
 
+    await assert.rejects(
+      () =>
+        sourcing.createRfq(
+          { auth: makerAuth },
+          project.id,
+          {
+            closingDate: pastRfqClosingDate,
+            lines: [
+              {
+                purchaseRequestLineId: materialLine.id,
+                quantity: new Prisma.Decimal('1'),
+              },
+            ],
+          },
+        ),
+      (error: unknown) =>
+        error instanceof UnprocessableEntityException,
+    );
+
     const rfq = await sourcing.createRfq(
       { auth: makerAuth },
       project.id,
       {
-        closingDate: new Date('2026-10-10T00:00:00.000Z'),
+        closingDate: futureRfqClosingDate,
         remarks: 'Competitive sourcing',
         lines: [
           {
