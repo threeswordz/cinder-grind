@@ -229,8 +229,9 @@ BEGIN
        OR NEW."revision_no" <> prev_revision + 1 THEN
       RAISE EXCEPTION 'Purchase Order revision chain is inconsistent';
     END IF;
-    IF prev_approval_state <> 'APPROVED' OR prev_cancelled IS NOT NULL THEN
-      RAISE EXCEPTION 'Purchase Order revision must originate from an active approved revision';
+    IF prev_approval_state NOT IN ('APPROVED','REJECTED')
+       OR prev_cancelled IS NOT NULL THEN
+      RAISE EXCEPTION 'Purchase Order revision must originate from an active approved or retained rejected revision';
     END IF;
   END IF;
 
