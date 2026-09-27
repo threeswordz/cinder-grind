@@ -25,6 +25,7 @@ import { UsersPanel } from './admin/UsersPanel';
 import { MasterDataPanel } from './master-data/MasterDataPanel';
 import { ProjectsPanel } from './projects/ProjectsPanel';
 import { PurchaseRequestsPanel } from './procurement/PurchaseRequestsPanel';
+import { SourcingPanel } from './procurement/SourcingPanel';
 import { ProjectEngineerDashboard } from './reporting/ProjectEngineerDashboard';
 import { SchedulingPanel } from './scheduling/SchedulingPanel';
 import { SiteExecutionPanel } from './site-execution/SiteExecutionPanel';
@@ -46,6 +47,12 @@ export function AdminConsole({ user }: { user: CurrentUser }) {
   const sections = useMemo<Section[]>(
     () =>
       [
+        {
+          key: 'sourcing',
+          label: 'RFQ & Quotations',
+          permission: '__sourcing__',
+          content: <SourcingPanel permissions={user.permissions} />,
+        },
         {
           key: 'purchase-requests',
           label: 'Purchase Requests',
@@ -155,9 +162,16 @@ export function AdminConsole({ user }: { user: CurrentUser }) {
           content: <SystemSettingsPanel />,
         },
       ].filter((section) =>
-        section.permission === '__procurement__'
+        section.permission === '__sourcing__'
+          ? user.permissions.some(
+              (permission) =>
+                permission.startsWith('procurement.rfq.') ||
+                permission.startsWith('procurement.quotation.') ||
+                permission.startsWith('procurement.award.'),
+            )
+          : section.permission === '__procurement__'
           ? user.permissions.some((permission) =>
-              permission.startsWith('procurement.'),
+              permission.startsWith('procurement.pr.'),
             )
           : section.permission === '__budget__'
           ? user.permissions.some((permission) =>
