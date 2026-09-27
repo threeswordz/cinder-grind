@@ -1395,11 +1395,11 @@ Maintenance records remain Future and Equipment cost allocation remains owned by
 
 ```text
 GET    /api/v1/documents/projects/{projectId}/targets/options
-GET    /api/v1/documents/projects/{projectId}/targets/{WBS|ACTIVITY}/{entityId}
-POST   /api/v1/documents/projects/{projectId}/targets/{WBS|ACTIVITY}/{entityId}
-GET    /api/v1/documents/projects/{projectId}/targets/{WBS|ACTIVITY}/{entityId}/{documentId}/download
-POST   /api/v1/documents/projects/{projectId}/targets/{WBS|ACTIVITY}/{entityId}/{documentId}/archive
-POST   /api/v1/documents/projects/{projectId}/targets/{WBS|ACTIVITY}/{entityId}/{documentId}/reactivate
+GET    /api/v1/documents/projects/{projectId}/targets/{WBS|ACTIVITY|PURCHASE_REQUEST|RFQ|SUPPLIER_QUOTATION|PURCHASE_ORDER}/{entityId}
+POST   /api/v1/documents/projects/{projectId}/targets/{WBS|ACTIVITY|PURCHASE_REQUEST|RFQ|SUPPLIER_QUOTATION|PURCHASE_ORDER}/{entityId}
+GET    /api/v1/documents/projects/{projectId}/targets/{WBS|ACTIVITY|PURCHASE_REQUEST|RFQ|SUPPLIER_QUOTATION|PURCHASE_ORDER}/{entityId}/{documentId}/download
+POST   /api/v1/documents/projects/{projectId}/targets/{WBS|ACTIVITY|PURCHASE_REQUEST|RFQ|SUPPLIER_QUOTATION|PURCHASE_ORDER}/{entityId}/{documentId}/archive
+POST   /api/v1/documents/projects/{projectId}/targets/{WBS|ACTIVITY|PURCHASE_REQUEST|RFQ|SUPPLIER_QUOTATION|PURCHASE_ORDER}/{entityId}/{documentId}/reactivate
 
 GET    /api/v1/reporting/projects
 GET    /api/v1/reporting/projects/{projectId}/project-engineer?asOf=YYYY-MM-DD&days=14|28
@@ -1559,6 +1559,28 @@ Submission attaches a configured `PURCHASE_ORDER` Approval Matrix. Maker-checker
 Stage D business permissions are `procurement.po.view/create/edit/submit/approve/reject/cancel/revise`. They are explicit business authorities and are not implicitly granted to technical `SYS_ADMIN`.
 
 V0.3-D retains approved PO values and source traceability only. It does not post Goods Receipt/Inventory, Supplier Invoice/Finance, Actual Cost, a V0.7 Committed Cost ledger, tax/VAT, FX, or Stage E procurement schedule-risk classification.
+
+---
+
+## 41.9A Procurement Schedule / Risk / Reporting
+
+```text
+GET /api/v1/reporting/projects/{projectId}/procurement
+```
+
+V0.3-E exposes a Project-scoped, read-only procurement schedule/read model derived from existing Purchase Request, RFQ, Supplier Quotation, Supplier Award and Purchase Order sources. Reporting owns no duplicate procurement ledger.
+
+Each procurement line exposes Required-on-Site, the currently relevant active PO Expected Delivery where available, source transaction status and stable forward/backward identifiers. Backend risk classification follows BR-V03-13 exactly:
+
+- Expected Delivery > Required-on-Site → `AT_RISK`
+- Expected Delivery <= Required-on-Site → `ON_TIME`
+- either date missing → `UNAVAILABLE`
+
+The comparison uses calendar dates and never changes Scheduling-owned Activity dates.
+
+Operational reporting omits quotation and PO unit-price/amount fields so `reporting.operational.view` does not become an alternate commercial-data authorization path. Project scope remains backend-enforced through the same ProjectAccessService used by transaction modules.
+
+DOC-007 reuses the existing secure Documents storage/authorization architecture. Canonical Project-owned documents may additionally link to validated `PURCHASE_REQUEST`, `RFQ`, `SUPPLIER_QUOTATION` and `PURCHASE_ORDER` targets; no procurement-specific file store is introduced.
 
 ---
 
