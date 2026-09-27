@@ -154,6 +154,10 @@ export type ProcurementReport = {
         supplierId: string;
         supplierCodeSnapshot: string;
         supplierNameSnapshot: string;
+        supplierQuotationId: string;
+        supplierQuotationLineId: string;
+        supplierReferenceSnapshot: string | null;
+        quotationDateSnapshot: string;
         selectedAt: string;
       } | null;
     }>;
