@@ -2818,6 +2818,35 @@ check(
   'Project Engineer Dashboard did not use the approved lookahead read model.',
 );
 record('V0.2 RPT-001/RPT-002 operational reporting and Project Engineer Dashboard');
+const procurementReport = await request(
+  pm,
+  '/reporting/projects/' + projectId + '/procurement',
+);
+const materialProcurementLine = procurementReport.data.data.lines.find(
+  (item) => item.id === prMaterialLine.data.data.id,
+);
+check(
+  procurementReport.data.data.project?.id === projectId &&
+    materialProcurementLine?.pr?.prNumber === purchaseRequestNumber &&
+    materialProcurementLine?.rfqs?.some(
+      (item) =>
+        item.rfqNumber === sourcingRfqNumber &&
+        item.award?.id === materialSourcingAward.data.data.id,
+    ) &&
+    materialProcurementLine?.purchaseOrders?.some(
+      (item) => item.poNumber === purchaseOrderNumber,
+    ) &&
+    ['AT_RISK', 'ON_TIME', 'UNAVAILABLE'].includes(
+      materialProcurementLine?.scheduleRisk,
+    ),
+  'V0.3-E procurement reporting did not expose source-derived status, dates, risk and forward traceability.',
+);
+check(
+  !JSON.stringify(materialProcurementLine).includes('unitPrice'),
+  'Operational procurement reporting leaked commercial pricing outside the quotation/PO authority boundary.',
+);
+record('V0.3-E procurement schedule/risk reporting and forward/backward traceability');
+
 
 await request(pm, '/equipment/register/' + equipmentId, {
   method: 'PATCH',
@@ -2899,6 +2928,11 @@ await request(
   '/reporting/projects/' +
     projectId +
     '/project-engineer?asOf=2026-10-10&days=14',
+  { expected: 403 },
+);
+await request(
+  unassigned,
+  '/reporting/projects/' + projectId + '/procurement',
   { expected: 403 },
 );
 await request(
