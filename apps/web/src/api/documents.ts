@@ -15,7 +15,13 @@ export type DocumentType = {
   isActive: boolean;
 };
 
-export type DocumentTargetType = 'WBS' | 'ACTIVITY';
+export type DocumentTargetType =
+  | 'WBS'
+  | 'ACTIVITY'
+  | 'PURCHASE_REQUEST'
+  | 'RFQ'
+  | 'SUPPLIER_QUOTATION'
+  | 'PURCHASE_ORDER';
 
 export type DocumentTargetOptions = {
   wbs: Array<{
@@ -29,6 +35,20 @@ export type DocumentTargetOptions = {
     activityCode: string;
     activityName: string;
     wbsId: string;
+  }>;
+  purchaseRequests: Array<{ id: string; prNumber: string }>;
+  rfqs: Array<{ id: string; rfqNumber: string }>;
+  supplierQuotations: Array<{
+    id: string;
+    supplierReference: string | null;
+    rfq: { rfqNumber: string };
+    supplier: { supplierCode: string; supplierName: string };
+  }>;
+  purchaseOrders: Array<{
+    id: string;
+    poNumber: string;
+    revisionNo: number;
+    supplier: { supplierCode: string; supplierName: string };
   }>;
 };
 
