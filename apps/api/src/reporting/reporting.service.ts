@@ -32,7 +32,7 @@ export class ReportingService {
   ) {
     await this.access.assertAccess(auth, projectId);
 
-    const [project, requests] = await Promise.all([
+    const [project, requests, purchaseOrders] = await Promise.all([
       this.prisma.project.findFirstOrThrow({
         where: { id: projectId, companyId: auth.companyId },
         select: {
@@ -99,6 +99,10 @@ export class ReportingService {
                       supplierId: true,
                       supplierCodeSnapshot: true,
                       supplierNameSnapshot: true,
+                      supplierQuotationId: true,
+                      supplierQuotationLineId: true,
+                      supplierReferenceSnapshot: true,
+                      quotationDateSnapshot: true,
                       selectedAt: true,
                     },
                   },
@@ -133,6 +137,22 @@ export class ReportingService {
         },
         orderBy: [{ createdAt: 'asc' }, { prNumber: 'asc' }],
       }),
+      this.prisma.purchaseOrder.findMany({
+        where: {
+          companyId: auth.companyId,
+          projectId,
+        },
+        select: {
+          id: true,
+          poNumber: true,
+          revisionNo: true,
+          cancelledAt: true,
+          approvalInstance: {
+            select: { approvalState: true },
+          },
+        },
+        orderBy: [{ poNumber: 'asc' }, { revisionNo: 'desc' }],
+      }),
     ]);
 
     const lifecycle = (row: {
@@ -156,6 +176,43 @@ export class ReportingService {
         : 'ON_TIME';
     };
 
+    const revisionsByPoNumber = new Map<
+      string,
+      typeof purchaseOrders
+    >();
+    for (const order of purchaseOrders) {
+      const revisions =
+        revisionsByPoNumber.get(order.poNumber) ?? [];
+      revisions.push(order);
+      revisionsByPoNumber.set(order.poNumber, revisions);
+    }
+
+    const currentRevisionByPoNumber = new Map<string, string>();
+    for (const [poNumber, revisions] of revisionsByPoNumber) {
+      const ordered = [...revisions].sort(
+        (a, b) => b.revisionNo - a.revisionNo,
+      );
+      const newest = ordered[0];
+      if (!newest || newest.cancelledAt) continue;
+      const newestState =
+        newest.approvalInstance?.approvalState ?? 'DRAFT';
+      if (newestState === 'REJECTED') {
+        const latestApproved = ordered.find(
+          (order) =>
+            !order.cancelledAt &&
+            order.approvalInstance?.approvalState === 'APPROVED',
+        );
+        if (latestApproved) {
+          currentRevisionByPoNumber.set(
+            poNumber,
+            latestApproved.id,
+          );
+        }
+        continue;
+      }
+      currentRevisionByPoNumber.set(poNumber, newest.id);
+    }
+
     const lines = requests.flatMap((request) =>
       request.lines.map((line) => {
         const poRows = line.purchaseOrderLines.map((poLine) => ({
@@ -178,56 +235,32 @@ export class ReportingService {
           rfqLineId: poLine.rfqLineId,
         }));
 
-        const rowsByPoNumber = new Map<
-          string,
-          typeof poRows
-        >();
-        for (const row of poRows) {
-          const group = rowsByPoNumber.get(row.poNumber) ?? [];
-          group.push(row);
-          rowsByPoNumber.set(row.poNumber, group);
-        }
-
-        const currentPoRows = [...rowsByPoNumber.values()].flatMap(
-          (group) => {
-            const revisions = [...group].sort(
-              (a, b) => b.revisionNo - a.revisionNo,
-            );
-            const newest = revisions[0];
-            if (!newest || newest.lifecycleState === 'CANCELLED') {
-              return [];
-            }
-            if (newest.lifecycleState === 'REJECTED') {
-              const latestApproved = revisions.find(
-                (row) => row.lifecycleState === 'APPROVED',
-              );
-              return latestApproved ? [latestApproved] : [];
-            }
-            return [newest];
-          },
+        const currentPoRows = poRows.filter(
+          (row) =>
+            currentRevisionByPoNumber.get(row.poNumber) ===
+            row.purchaseOrderId,
         );
 
-        const currentRisks = currentPoRows.map(
-          (row) => row.scheduleRisk,
-        );
+        const riskDriver =
+          currentPoRows.find(
+            (row) => row.scheduleRisk === 'AT_RISK',
+          ) ??
+          currentPoRows.find(
+            (row) => row.scheduleRisk === 'UNAVAILABLE',
+          ) ??
+          currentPoRows[0] ??
+          null;
+
         const scheduleRisk:
           | 'AT_RISK'
           | 'ON_TIME'
-          | 'UNAVAILABLE' = currentRisks.includes('AT_RISK')
-          ? 'AT_RISK'
-          : currentRisks.length > 0 &&
-              currentRisks.every((value) => value === 'ON_TIME')
-            ? 'ON_TIME'
-            : 'UNAVAILABLE';
-
-        const currentDeliveryDates = currentPoRows
-          .map((row) => row.expectedDelivery)
-          .filter((value): value is string => Boolean(value))
-          .sort();
+          | 'UNAVAILABLE' =
+          riskDriver?.scheduleRisk ?? 'UNAVAILABLE';
+        const requiredOnSite =
+          riskDriver?.requiredOnSite ??
+          dateKey(line.requiredOnSite);
         const expectedDelivery =
-          currentDeliveryDates.length > 0
-            ? currentDeliveryDates[currentDeliveryDates.length - 1]!
-            : null;
+          riskDriver?.expectedDelivery ?? null;
 
         return {
           id: line.id,
@@ -242,7 +275,7 @@ export class ReportingService {
           description: line.description,
           quantity: line.quantity.toString(),
           uom: line.uom,
-          requiredOnSite: dateKey(line.requiredOnSite),
+          requiredOnSite,
           expectedDelivery,
           scheduleRisk,
           context: {
