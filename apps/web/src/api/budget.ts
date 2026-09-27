@@ -152,6 +152,8 @@ export type BudgetSummary = {
 
 export const budgetApi = {
   projects: () => apiRequest<Data<BudgetProject[]>>('/budget/projects'),
+  revisionProjects: () =>
+    apiRequest<Data<BudgetProject[]>>('/budget/revision-projects'),
   options: (projectId: string) =>
     apiRequest<Data<BudgetOptions>>(
       '/budget/projects/' + projectId + '/options',
