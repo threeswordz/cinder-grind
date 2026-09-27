@@ -403,6 +403,14 @@ DECLARE
   line_uom UUID;
   line_uom_code VARCHAR(30);
 BEGIN
+  IF TG_OP = 'UPDATE' AND (
+    NEW."supplier_quotation_id" <> OLD."supplier_quotation_id"
+    OR NEW."rfq_line_id" <> OLD."rfq_line_id"
+    OR NEW."line_no" <> OLD."line_no"
+  ) THEN
+    RAISE EXCEPTION 'Supplier Quotation line identity is immutable';
+  END IF;
+
   PERFORM pg_advisory_xact_lock(
     hashtext('supplier-quotation:' || NEW."supplier_quotation_id"::text)
   );
