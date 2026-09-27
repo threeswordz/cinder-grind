@@ -1124,6 +1124,21 @@ check(
   'Quotation-only manager could not load quotation-authorized RFQ detail.',
 );
 
+await request(
+  checker,
+  '/procurement/rfqs/' + sourcingRfqId + '/quotations',
+  {
+    method: 'POST',
+    json: {
+      supplierId: sourcingSupplierA.data.data.id,
+      supplierReference: 'QA-INVALID-' + suffix,
+      quotationDate: '2026-10-08',
+      validityDate: '2026-10-01',
+    },
+    expected: 422,
+  },
+);
+
 const quotationA = await request(
   checker,
   '/procurement/rfqs/' + sourcingRfqId + '/quotations',
@@ -1139,7 +1154,25 @@ const quotationA = await request(
     expected: 201,
   },
 );
-record('V0.3-C quotation-only manager discovery, detail access and quotation creation');
+await request(
+  checker,
+  '/procurement/quotations/' + quotationA.data.data.id,
+  {
+    method: 'PATCH',
+    json: { validityDate: '2026-10-01' },
+    expected: 422,
+  },
+);
+await request(
+  checker,
+  '/procurement/quotations/' + quotationA.data.data.id,
+  {
+    method: 'PATCH',
+    json: { quotationDate: '2026-11-01' },
+    expected: 422,
+  },
+);
+record('V0.3-C quotation-only manager access and quotation date validation');
 
 const quotationB = await request(
   pm,
