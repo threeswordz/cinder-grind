@@ -260,6 +260,22 @@ export class SourcingService {
     return row;
   }
 
+  async getRfqDetail(
+    auth: AuthenticatedUserContext,
+    rfqId: string,
+  ) {
+    const row = await this.getRfq(auth, rfqId);
+    if (auth.permissions.includes('procurement.quotation.view')) {
+      return row;
+    }
+
+    const { quotations: _quotations, awards: _awards, ...rfq } = row;
+    return {
+      ...rfq,
+      lines: row.lines.map(({ award: _award, ...line }) => line),
+    };
+  }
+
   async createRfq(
     context: AuditContext,
     projectId: string,
