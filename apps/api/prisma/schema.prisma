@@ -93,6 +93,7 @@ model Supplier {
 
   rfqInvitations        RfqSupplier[]
   supplierQuotations    SupplierQuotation[]
+  quotationAwards        QuotationAward[]
   @@unique([companyId, supplierCode])
   @@index([companyId, isActive])
   @@map("suppliers")
@@ -1441,7 +1442,7 @@ model SupplierQuotationLine {
   uomId               String   @map("uom_id") @db.Uuid
   uomCodeSnapshot     String   @map("uom_code_snapshot") @db.VarChar(30)
   unitPrice           Decimal  @map("unit_price") @db.Decimal(18, 4)
-  amount              Decimal  @db.Decimal(18, 4)
+  amount              Decimal  @db.Decimal(38, 8)
   remarks             String?  @db.Text
   createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt           DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -1473,7 +1474,7 @@ model QuotationAward {
   uomId                    String   @map("uom_id") @db.Uuid
   uomCodeSnapshot          String   @map("uom_code_snapshot") @db.VarChar(30)
   unitPrice                Decimal  @map("unit_price") @db.Decimal(18, 4)
-  amount                   Decimal  @db.Decimal(18, 4)
+  amount                   Decimal  @db.Decimal(38, 8)
   decisionReason           String?  @map("decision_reason") @db.Text
   selectedByUserId         String   @map("selected_by_user_id") @db.Uuid
   selectedAt               DateTime @default(now()) @map("selected_at") @db.Timestamptz(6)
