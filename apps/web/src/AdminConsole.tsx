@@ -170,8 +170,7 @@ export function AdminConsole({ user }: { user: CurrentUser }) {
         },
       ].filter((section) =>
         section.permission === '__purchase_orders__'
-          ? user.permissions.includes('procurement.po.view') ||
-            user.permissions.includes('procurement.po.create')
+          ? user.permissions.includes('procurement.po.view')
           : section.permission === '__sourcing__'
           ? user.permissions.some(
               (permission) =>
