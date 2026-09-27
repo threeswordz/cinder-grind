@@ -727,10 +727,11 @@ export class ProcurementService {
   private async assertApprovedNumbering(companyId: string) {
     const sequence = await this.prisma.numberSequence.findFirst({
       where: { companyId, sequenceCode: 'PURCHASE_REQUEST' },
-      select: { formatTemplate: true, resetRule: true },
+      select: { entityType: true, formatTemplate: true, resetRule: true },
     });
     if (
       !sequence ||
+      sequence.entityType !== 'PURCHASE_REQUEST' ||
       sequence.formatTemplate !== 'PRYYMM-###' ||
       sequence.resetRule !== 'MONTHLY'
     ) {
