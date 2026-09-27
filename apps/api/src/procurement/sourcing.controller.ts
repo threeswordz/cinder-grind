@@ -143,6 +143,22 @@ export class SourcingController {
     };
   }
 
+  @Get('quotation-rfqs/:rfqId')
+  @UseGuards(AuthGuard, PermissionGuard)
+  @RequirePermissions('procurement.quotation.view')
+  async getQuotationRfq(
+    @Req() request: AuthenticatedRequest,
+    @Param('rfqId', new ParseUUIDPipe({ version: '4' }))
+    rfqId: string,
+  ) {
+    return {
+      data: await this.sourcing.getRfqDetail(
+        authOf(request),
+        rfqId,
+      ),
+    };
+  }
+
   @Post('projects/:projectId/rfqs')
   @UseGuards(AuthGuard, CsrfGuard, PermissionGuard)
   @RequirePermissions('procurement.rfq.manage')
