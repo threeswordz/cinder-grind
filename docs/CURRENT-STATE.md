@@ -604,6 +604,9 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - PostgreSQL guards independently enforce Company/Project/Supplier scope, source-chain integrity, award-quantity limits, derived arithmetic, Draft-only mutation, revision-chain integrity and retained commercial history.
 - configurable `PURCHASE_ORDER` Approval Matrix and maker-checker controls drive SUBMITTED → APPROVED / REJECTED lifecycle; cancellation retains actor/time/reason.
 - approved commercial changes create a new linked Draft revision under the same PO number; earlier approved revisions remain immutable.
+- retained REJECTED PO revisions can be copied into a corrective next Draft under the same PO identity; rejected history never overwrites the latest approved commitment.
+- active PO dependencies prevent cancellation of their source Purchase Request demand, and final PO approval revalidates active approved source demand plus active Supplier status.
+- PO action permissions require `procurement.po.view`, preventing action-only Roles with no scoped workspace discovery/read path.
 - eight PO permissions are explicit business authorities and are not implicitly granted to technical `SYS_ADMIN`.
 - responsive Purchase Order workspace supports Project discovery, unused-award selection, Draft creation/editing, WBS/Cost Code selection, workflow actions, cancellation and revision history.
 - PostgreSQL integration coverage proves award-backed creation, duplicate-award prevention, Project scope, approval, immutable approved history, revisions, cancellation and audit evidence.
