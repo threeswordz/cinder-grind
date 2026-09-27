@@ -6,7 +6,7 @@
 - Current Release: V0.3 Procurement
 - Current Stage: V0.3-B Purchase Request — PRE-FLIGHT
 - Completed Stages: V0.1-A Technical Skeleton; V0.1-B Company / Identity / Security; V0.1-C Administration; V0.1-D Master Data; V0.1-E Projects; V0.1-F WBS & Cost Codes; V0.1-G Basic Documents; V0.1-H Integration / Regression / UAT; V0.2-A Scheduling Data Model; V0.2-B Scheduling Engine; V0.2-C Baselines / Progress; V0.2-D Gantt / Lookahead; V0.2-E Site Execution; V0.2-F Equipment; V0.2-G UAT Reference Programme
-- Active Issue: pending creation — V0.3-B Purchase Request Pre-flight
+- Active Issue: #62 — V0.3-B Purchase Request — Pre-flight / Numbering Decision
 - Completed Issue: #59 — V0.3-A BOQ & Budget
 - Completed Branch: `v0.3-a-boq-budget`
 - Merged PR: #60 — V0.3-A: BOQ & Budget
@@ -54,7 +54,7 @@
 - V0.1 cross-module release acceptance scenario: PASS in the Stage H release-candidate regression suite.
 - Open defect check at V0.1 acceptance: no Severity 1 or Severity 2 release-blocking defect recorded.
 - Governance: `AGENTS.md`, `docs/PROJECT-GOVERNANCE.md`, PR governance checklist and DEC-008 are active; material decisions must pass the repository pre-flight and open-source/zero-cost-first constraint.
-- Next action: resolve the BR-V03-17 human-readable numbering format for PR/RFQ/PO, then begin V0.3-B Purchase Request under PROC-001–PROC-003 and approved BR-V03-05 through BR-V03-07.
+- Next action: Product / Business Owner approves the BR-V03-17 numbering baseline proposed in Issue #62; then open V0.3-B Purchase Request implementation.
 
 ## Stage E completed
 
@@ -513,3 +513,17 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - the highest/latest approved revision number is the Current Revised Budget.
 - no V0.3-B+ procurement transaction behavior was pulled forward.
 - V0.3-B remains gated by the deferred BR-V03-17 human-readable numbering-format decision.
+
+## V0.3-B pre-flight
+
+- Issue #62 is the active pre-flight item.
+- Branch: `v0.3-b-purchase-request-preflight`.
+- V0.3-A completion checkpoint PR #61 merged as `b61f69edc2f9280d793b40e30796bb83678ec4f0`.
+- completion-checkpoint branch CI #964 and PR CI #965 passed.
+- post-merge main CI #966 passed.
+- proposed BR-V03-17 numbering baseline:
+  - Budget Revision: `BRYY-###` / YEARLY
+  - Purchase Request: `PRYYMM-###` / MONTHLY
+  - RFQ: `RFQYYMM-###` / MONTHLY
+  - Purchase Order: `POYYMM-###` / MONTHLY
+- no V0.3-B production implementation begins until this numbering baseline is explicitly approved.
