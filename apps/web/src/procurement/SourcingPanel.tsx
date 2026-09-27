@@ -13,7 +13,7 @@ import {
   Typography,
 } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useMemo, useState } from 'react';
+import { Dispatch, SetStateAction, useEffect, useMemo, useState } from 'react';
 
 import {
   RfqComparison,
@@ -858,8 +858,8 @@ function ComparisonPanel({
   data: RfqComparison;
   canAward: boolean;
   awardReasons: Record<string, string>;
-  setAwardReasons: React.Dispatch<
-    React.SetStateAction<Record<string, string>>
+  setAwardReasons: Dispatch<
+    SetStateAction<Record<string, string>>
   >;
   pending: boolean;
   onAward: (rfqLineId: string, quotationLineId: string) => void;
