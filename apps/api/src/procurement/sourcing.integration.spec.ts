@@ -503,6 +503,31 @@ test('V0.3-C RFQ / Quotations preserves approved-demand sourcing, comparison and
       },
     });
 
+    await assert.rejects(
+      () =>
+        prisma.quotationAward.create({
+          data: {
+            rfqId: rfq.id,
+            rfqLineId: rfqMaterialLine.id,
+            supplierQuotationId: quoteA.id,
+            supplierQuotationLineId: correctedBMaterial.id,
+            supplierId: supplierA.id,
+            supplierCodeSnapshot: supplierA.supplierCode,
+            supplierNameSnapshot: supplierA.supplierName,
+            supplierReferenceSnapshot: quoteA.supplierReference,
+            quotationDateSnapshot: quoteA.quotationDate,
+            quantity: correctedBMaterial.quantity,
+            uomId: correctedBMaterial.uomId,
+            uomCodeSnapshot: correctedBMaterial.uomCodeSnapshot,
+            unitPrice: correctedBMaterial.unitPrice,
+            amount: correctedBMaterial.amount,
+            decisionReason: 'Invalid cross-quotation pairing.',
+            selectedByUserId: maker.id,
+          },
+        }),
+      'Award database guard must reject a quotation line from a different quotation header.',
+    );
+
     const materialAward = await sourcing.selectAward(
       { auth: makerAuth },
       rfqMaterialLine.id,
@@ -524,6 +549,29 @@ test('V0.3-C RFQ / Quotations preserves approved-demand sourcing, comparison and
     assert.equal(serviceAward.supplierId, supplierA.id);
     assert.equal(materialAward.quantity.toString(), '5');
     assert.equal(materialAward.unitPrice.toString(), '8.5');
+
+    const rfqOnlyDetail = await sourcing.getRfqDetail(
+      {
+        ...makerAuth,
+        permissions: ['procurement.rfq.view'],
+      },
+      rfq.id,
+    );
+    assert.equal(
+      'quotations' in rfqOnlyDetail,
+      false,
+      'RFQ-only viewers must not receive Supplier Quotation commercial data.',
+    );
+    assert.equal(
+      'awards' in rfqOnlyDetail,
+      false,
+      'RFQ-only viewers must not receive Supplier Award commercial data.',
+    );
+    assert.equal(
+      rfqOnlyDetail.lines.some((line) => 'award' in line),
+      false,
+      'RFQ-only viewers must not receive line-level award commercial data.',
+    );
 
     await assert.rejects(
       () =>
