@@ -91,6 +91,21 @@ BEGIN
   IF project_company IS NULL OR project_company <> NEW."company_id" THEN
     RAISE EXCEPTION 'Purchase Request Company must match Project Company';
   END IF;
+
+  IF NEW."source_request_id" IS NOT NULL THEN
+    IF NOT EXISTS (
+      SELECT 1
+      FROM "purchase_requests" source_pr
+      LEFT JOIN "approval_instances" source_approval
+        ON source_approval."id" = source_pr."approval_instance_id"
+      WHERE source_pr."id" = NEW."source_request_id"
+        AND source_pr."company_id" = NEW."company_id"
+        AND source_pr."project_id" = NEW."project_id"
+        AND source_approval."approval_state" = 'REJECTED'
+    ) THEN
+      RAISE EXCEPTION 'Purchase Request copy source must be a rejected request in the same Company and Project';
+    END IF;
+  END IF;
   IF creator_company IS NULL OR creator_company <> NEW."company_id" THEN
     RAISE EXCEPTION 'Purchase Request creator must belong to the same Company';
   END IF;
