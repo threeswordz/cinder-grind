@@ -509,6 +509,13 @@ BEGIN
     RAISE EXCEPTION 'Quotation Award requires active approved Purchase Request demand';
   END IF;
 
+  -- Serialize the aggregate demand-cap check at the database boundary too.
+  -- This uses the same source-demand lock key as SourcingService.selectAward,
+  -- so direct SQL/Prisma writers cannot race the cumulative award quantity.
+  PERFORM pg_advisory_xact_lock(
+    hashtext('pr-demand-award:' || source_pr_line::text)
+  );
+
   SELECT COALESCE(SUM(qa."quantity"),0)
     INTO already_awarded
   FROM "quotation_awards" qa
