@@ -5,6 +5,7 @@ import test from 'node:test';
 import {
   ConflictException,
   ForbiddenException,
+  UnprocessableEntityException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 
@@ -430,6 +431,29 @@ test('V0.3-D Purchase Orders preserve awarded-source traceability, approval and 
           [award.id],
         ),
       (error: unknown) => error instanceof ConflictException,
+    );
+
+    await assert.rejects(
+      () =>
+        purchaseOrders.updateLine(
+          { auth: makerAuth },
+          draft.lines[0]!.id,
+          { quantity: new Prisma.Decimal('11') },
+        ),
+      (error: unknown) =>
+        error instanceof UnprocessableEntityException,
+      'PO quantity above the Supplier Award must be rejected.',
+    );
+    await assert.rejects(
+      () =>
+        prisma.purchaseOrderLine.update({
+          where: { id: draft.lines[0]!.id },
+          data: {
+            quantity: new Prisma.Decimal('11'),
+            amount: new Prisma.Decimal('137.5'),
+          },
+        }),
+      'Database guard must reject PO quantity above its Supplier Award.',
     );
 
     const updatedLine = await purchaseOrders.updateLine(
