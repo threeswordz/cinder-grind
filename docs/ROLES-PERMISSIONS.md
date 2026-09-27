@@ -389,13 +389,15 @@ BOQ and Budget reads/writes are Project-scoped. `budget.boq.manage` maintains th
 
 ### Purchase Request
 
+V0.3-B enforcement uses:
+
 - `procurement.pr.view`
-- `procurement.pr.create`
-- `procurement.pr.edit`
+- `procurement.pr.manage`
 - `procurement.pr.submit`
 - `procurement.pr.approve`
-- `procurement.pr.reject`
 - `procurement.pr.cancel`
+
+`procurement.pr.manage` creates and edits Draft PR headers/lines. `procurement.pr.approve` authorizes both approve and reject actions at the configured Approval Matrix step; maker-checker is still enforced independently by the backend. All PR reads/actions remain Project-scoped, including approval.
 
 ### RFQ / Quotations
 
