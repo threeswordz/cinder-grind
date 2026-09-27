@@ -43,7 +43,7 @@ type LineDraft = {
 };
 
 function message(error: unknown) {
-  if (error instanceof ApiError) return error.detail;
+  if (error instanceof ApiError) return error.message;
   if (error instanceof Error) return error.message;
   return 'The request could not be completed.';
 }
@@ -106,6 +106,12 @@ export function PurchaseOrdersPanel({ permissions }: Props) {
     setOrderId('');
     setSelectedAwards([]);
   }, [projectId]);
+
+  const options = useQuery({
+    queryKey: ['po-options', projectId],
+    queryFn: () => purchaseOrdersApi.options(projectId),
+    enabled: canEdit && Boolean(projectId),
+  });
 
   const awards = useQuery({
     queryKey: ['po-awards', projectId],
@@ -350,6 +356,9 @@ export function PurchaseOrdersPanel({ permissions }: Props) {
       ) : null}
       {mutationError ? (
         <Alert severity="error">{message(mutationError)}</Alert>
+      ) : null}
+      {options.isError ? (
+        <Alert severity="error">{message(options.error)}</Alert>
       ) : null}
 
       <TextField
@@ -644,12 +653,8 @@ export function PurchaseOrdersPanel({ permissions }: Props) {
                         spacing={1}
                       >
                         <TextField
-                          label="WBS ID"
-                          helperText={
-                            line.wbs
-                              ? line.wbs.wbsCode + ' · ' + line.wbs.wbsName
-                              : 'Optional Project WBS UUID'
-                          }
+                          select
+                          label="WBS"
                           value={values.wbsId}
                           disabled={!canEdit || !draft}
                           onChange={(event) =>
@@ -662,16 +667,17 @@ export function PurchaseOrdersPanel({ permissions }: Props) {
                             }))
                           }
                           sx={{ flex: 1 }}
-                        />
+                        >
+                          <MenuItem value="">No WBS</MenuItem>
+                          {(options.data?.data.wbs ?? []).map((wbs) => (
+                            <MenuItem key={wbs.id} value={wbs.id}>
+                              {wbs.wbsCode} · {wbs.wbsName}
+                            </MenuItem>
+                          ))}
+                        </TextField>
                         <TextField
-                          label="Cost Code ID"
-                          helperText={
-                            line.costCode
-                              ? line.costCode.costCode +
-                                ' · ' +
-                                line.costCode.costName
-                              : 'Optional Company Cost Code UUID'
-                          }
+                          select
+                          label="Cost Code"
                           value={values.costCodeId}
                           disabled={!canEdit || !draft}
                           onChange={(event) =>
@@ -684,7 +690,14 @@ export function PurchaseOrdersPanel({ permissions }: Props) {
                             }))
                           }
                           sx={{ flex: 1 }}
-                        />
+                        >
+                          <MenuItem value="">No Cost Code</MenuItem>
+                          {(options.data?.data.costCodes ?? []).map((cost) => (
+                            <MenuItem key={cost.id} value={cost.id}>
+                              {cost.costCode} · {cost.costName}
+                            </MenuItem>
+                          ))}
+                        </TextField>
                       </Stack>
                       <TextField
                         label="Line remarks"
