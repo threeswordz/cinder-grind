@@ -527,7 +527,7 @@ test('V0.3-D Purchase Orders preserve awarded-source traceability, approval and 
           (quotation) =>
             quotation.id === quotation.id &&
             quotation.quotationDate ===
-              quotation.quotationDate.toISOString().slice(0, 10),
+              quotation.quotationDate.slice(0, 10),
         ),
       true,
     );
