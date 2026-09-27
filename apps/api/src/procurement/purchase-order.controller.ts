@@ -79,6 +79,22 @@ export class PurchaseOrderController {
     };
   }
 
+  @Get('projects/:projectId/po-options')
+  @UseGuards(AuthGuard, PermissionGuard)
+  @RequirePermissions('procurement.po.edit')
+  async options(
+    @Req() request: AuthenticatedRequest,
+    @Param('projectId', new ParseUUIDPipe({ version: '4' }))
+    projectId: string,
+  ) {
+    return {
+      data: await this.purchaseOrders.options(
+        authOf(request),
+        projectId,
+      ),
+    };
+  }
+
   @Get('projects/:projectId/po-awards')
   @UseGuards(AuthGuard, PermissionGuard)
   @RequirePermissions('procurement.po.create')
