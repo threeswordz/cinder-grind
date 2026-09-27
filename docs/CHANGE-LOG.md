@@ -1,3 +1,13 @@
+## 2026-09-27 — V0.3-B Purchase Request completed
+
+- PROC-001 through PROC-003 delivered, including Stage-B Required-on-Site demand context.
+- PR #65 merged as `e392b468a22c701fbb1a60b1e87b7ef08d4794d1`.
+- exact-head PR CI #1027 passed on `88cac51a05a26d782f7cec252d8689dc223e7952`.
+- post-merge main CI #1028 passed.
+- four Codex review findings were fixed before merge: multi-approver cancellation, visible approval action history, immutable Material code/description history, and DECIMAL(18,4) quantity-bound validation.
+- RFQ / quotation / supplier award / PO scope was not pulled forward.
+- next stage is V0.3-C RFQ / Quotations pre-flight under PROC-004 through PROC-008 and approved BR-V03-08 through BR-V03-10.
+
 ## 2026-09-27 — V0.3-A BOQ & Budget completed
 
 - BUD-001 through BUD-010 delivered.
