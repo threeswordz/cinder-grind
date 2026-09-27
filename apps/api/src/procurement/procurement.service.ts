@@ -21,6 +21,7 @@ type AuditContext = {
 type LineInput = {
   lineType?: 'MATERIAL' | 'SERVICE';
   materialId?: string | null;
+  materialCodeSnapshot?: string | null;
   description?: string;
   quantity?: Prisma.Decimal;
   uomId?: string;
@@ -158,12 +159,33 @@ export class ProcurementService {
         sourceRequest: { select: { id: true, prNumber: true } },
         copies: { select: { id: true, prNumber: true }, orderBy: { createdAt: 'asc' } },
         approvalInstance: {
-          select: {
-            id: true,
-            approvalState: true,
-            currentStepNo: true,
-            startedAt: true,
-            completedAt: true,
+          include: {
+            workflow: {
+              select: {
+                id: true,
+                workflowCode: true,
+                workflowName: true,
+              },
+            },
+            actions: {
+              orderBy: { actionAt: 'asc' },
+              include: {
+                actionByUser: {
+                  select: {
+                    id: true,
+                    displayName: true,
+                    email: true,
+                  },
+                },
+                approvalStep: {
+                  select: {
+                    id: true,
+                    stepNo: true,
+                    stepName: true,
+                  },
+                },
+              },
+            },
           },
         },
         lines: {
@@ -257,6 +279,7 @@ export class ProcurementService {
               {
                 lineType: line.lineType as 'MATERIAL' | 'SERVICE',
                 materialId: line.materialId,
+                materialCodeSnapshot: line.materialCodeSnapshot,
                 description: line.description,
                 quantity: line.quantity,
                 uomId: line.uomId,
@@ -833,6 +856,7 @@ export class ProcurementService {
 
     let description = input.description?.trim() ?? '';
     let materialId: string | null = null;
+    let materialCodeSnapshot: string | null = null;
     if (input.lineType === 'MATERIAL') {
       if (!input.materialId) {
         throw new UnprocessableEntityException({
@@ -846,7 +870,7 @@ export class ProcurementService {
           companyId: auth.companyId,
           isActive: true,
         },
-        select: { id: true, materialName: true },
+        select: { id: true, materialCode: true, materialName: true },
       });
       if (!material) {
         throw new UnprocessableEntityException({
@@ -855,7 +879,9 @@ export class ProcurementService {
         });
       }
       materialId = material.id;
-      description = material.materialName;
+      materialCodeSnapshot =
+        input.materialCodeSnapshot?.trim() || material.materialCode;
+      description = input.description?.trim() || material.materialName;
     } else {
       if (input.materialId) {
         throw new UnprocessableEntityException({
@@ -922,6 +948,7 @@ export class ProcurementService {
     return {
       lineType: input.lineType,
       materialId,
+      materialCodeSnapshot,
       description,
       quantity: input.quantity,
       uomId: input.uomId,
