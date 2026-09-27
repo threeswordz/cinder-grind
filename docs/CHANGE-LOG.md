@@ -1,3 +1,11 @@
+## 2026-09-27 — V0.4 Inventory Release Entry Gate approved
+
+- Product / Business Owner approved the V0.4 Scope Baseline, AC-V04-001 through AC-V04-031, BR-V04-01 through BR-V04-20, database/API/test baselines, build stages and explicit deferrals.
+- approved requirements remain INV-001 through INV-012, DOC-008 and RPT-006.
+- approved core controls include partial/multiple receipt, zero over-receipt tolerance, no negative stock, immutable derived ledger/balance, atomic idempotent posting and maker-checker.
+- no new runtime dependency is introduced; DEC-008 open-source / zero-cost-first remains active.
+- approval authorizes V0.4-A Warehouse / Inventory Foundation pre-flight after PR #82 passes exact-head validation and merges.
+- scope expansion remains subject to Change Control.
 ## 2026-09-27 — V0.3 Procurement accepted
 
 - Product / Business Owner explicitly accepted V0.3 Procurement and confirmed there are no blocking V0.3 business defects.
