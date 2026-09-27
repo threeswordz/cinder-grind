@@ -73,9 +73,15 @@ export class ReportingService {
                       rfqDate: true,
                       closingDate: true,
                       _count: {
-                        select: { suppliers: true, quotations: true },
+                        select: { suppliers: true },
                       },
-                      quotations: {
+                    },
+                  },
+                  quotationLines: {
+                    select: {
+                      id: true,
+                      supplierQuotationId: true,
+                      supplierQuotation: {
                         select: {
                           id: true,
                           supplierReference: true,
@@ -89,7 +95,6 @@ export class ReportingService {
                             },
                           },
                         },
-                        orderBy: { quotationDate: 'asc' },
                       },
                     },
                   },
@@ -193,24 +198,30 @@ export class ReportingService {
         (a, b) => b.revisionNo - a.revisionNo,
       );
       const newest = ordered[0];
-      if (!newest || newest.cancelledAt) continue;
-      const newestState =
-        newest.approvalInstance?.approvalState ?? 'DRAFT';
-      if (newestState === 'REJECTED') {
-        const latestApproved = ordered.find(
-          (order) =>
-            !order.cancelledAt &&
-            order.approvalInstance?.approvalState === 'APPROVED',
+      if (!newest) continue;
+
+      const latestApproved = ordered.find(
+        (order) =>
+          !order.cancelledAt &&
+          order.approvalInstance?.approvalState === 'APPROVED',
+      );
+      if (latestApproved) {
+        currentRevisionByPoNumber.set(
+          poNumber,
+          latestApproved.id,
         );
-        if (latestApproved) {
-          currentRevisionByPoNumber.set(
-            poNumber,
-            latestApproved.id,
-          );
-        }
         continue;
       }
-      currentRevisionByPoNumber.set(poNumber, newest.id);
+
+      const newestState =
+        newest.approvalInstance?.approvalState ?? 'DRAFT';
+      if (
+        !newest.cancelledAt &&
+        newestState !== 'REJECTED' &&
+        newestState !== 'CANCELLED'
+      ) {
+        currentRevisionByPoNumber.set(poNumber, newest.id);
+      }
     }
 
     const lines = requests.flatMap((request) =>
@@ -290,14 +301,20 @@ export class ReportingService {
             rfqDate: dateKey(rfqLine.rfq.rfqDate),
             closingDate: dateKey(rfqLine.rfq.closingDate),
             invitedSupplierCount: rfqLine.rfq._count.suppliers,
-            quotationCount: rfqLine.rfq._count.quotations,
-            quotations: rfqLine.rfq.quotations.map(
-              (quotation) => ({
-                id: quotation.id,
-                supplierReference: quotation.supplierReference,
-                quotationDate: dateKey(quotation.quotationDate)!,
-                validityDate: dateKey(quotation.validityDate),
-                supplier: quotation.supplier,
+            quotationCount: rfqLine.quotationLines.length,
+            quotations: rfqLine.quotationLines.map(
+              (quotationLine) => ({
+                id: quotationLine.supplierQuotation.id,
+                supplierQuotationLineId: quotationLine.id,
+                supplierReference:
+                  quotationLine.supplierQuotation.supplierReference,
+                quotationDate: dateKey(
+                  quotationLine.supplierQuotation.quotationDate,
+                )!,
+                validityDate: dateKey(
+                  quotationLine.supplierQuotation.validityDate,
+                ),
+                supplier: quotationLine.supplierQuotation.supplier,
               }),
             ),
             award: rfqLine.award,
