@@ -56,6 +56,13 @@ export class BudgetController {
     return { data: await this.budget.projects(authOf(request)) };
   }
 
+  @Get('revision-projects')
+  @UseGuards(AuthGuard, PermissionGuard)
+  @RequirePermissions('budget.revision.view')
+  async revisionProjects(@Req() request: AuthenticatedRequest) {
+    return { data: await this.budget.projects(authOf(request)) };
+  }
+
   @Get('projects/:projectId/options')
   @UseGuards(AuthGuard, PermissionGuard)
   @RequirePermissions('budget.boq.view')
