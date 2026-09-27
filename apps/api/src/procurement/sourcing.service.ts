@@ -286,6 +286,7 @@ export class SourcingService {
     },
   ) {
     await this.access.assertAccess(context.auth, projectId);
+    await this.assertRfqClosingDate(input.closingDate ?? null);
     await this.assertApprovedNumbering(context.auth.companyId);
     if (!input.lines.length) {
       throw new UnprocessableEntityException({
@@ -1119,6 +1120,37 @@ export class SourcingService {
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
     );
+  }
+
+  private async assertRfqClosingDate(
+    closingDate: Date | null,
+  ) {
+    if (!closingDate) return;
+
+    const [clock] = await this.prisma.$queryRaw<
+      Array<{ today: string }>
+    >`
+      SELECT CURRENT_DATE::text AS today
+    `;
+    const today = clock?.today;
+    if (!today) {
+      throw new Error('Unable to resolve database current date.');
+    }
+
+    const closing = closingDate.toISOString().slice(0, 10);
+    if (closing < today) {
+      throw new UnprocessableEntityException({
+        code: 'VALIDATION_ERROR',
+        detail: 'One or more fields are invalid.',
+        errors: [
+          {
+            field: 'closingDate',
+            message:
+              'Closing date cannot be earlier than the RFQ date.',
+          },
+        ],
+      });
+    }
   }
 
   private assertQuotationDateRange(
