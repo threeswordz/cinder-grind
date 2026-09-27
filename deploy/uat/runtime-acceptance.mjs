@@ -1726,51 +1726,6 @@ await request(
 );
 record('V0.3-D rejected Purchase Order retry path');
 
-const procurementDocumentBytes = new TextEncoder().encode(
-  '%PDF-1.4 Purchase Order support ' + suffix,
-);
-const procurementDocumentForm = new FormData();
-procurementDocumentForm.set(
-  'documentTypeId',
-  documentType.data.data.id,
-);
-procurementDocumentForm.set(
-  'file',
-  new Blob([procurementDocumentBytes], {
-    type: 'application/pdf',
-  }),
-  'purchase-order-support-' + suffix + '.pdf',
-);
-const procurementDocument = await request(
-  pm,
-  '/documents/projects/' +
-    projectId +
-    '/targets/PURCHASE_ORDER/' +
-    purchaseOrderId,
-  {
-    method: 'POST',
-    body: procurementDocumentForm,
-    expected: 201,
-  },
-);
-const procurementDocumentList = await request(
-  pm,
-  '/documents/projects/' +
-    projectId +
-    '/targets/PURCHASE_ORDER/' +
-    purchaseOrderId,
-);
-check(
-  procurementDocumentList.data.data.some(
-    (item) => item.id === procurementDocument.data.data.id,
-  ) &&
-    !JSON.stringify(procurementDocumentList.data).includes(
-      'storageKey',
-    ),
-  'V0.3-E procurement Document target did not preserve the secure Project-owned Documents boundary.',
-);
-record('V0.3-E DOC-007 secure Purchase Order document target');
-
 
 const rejectedCandidate = await request(
   pm,
@@ -2462,6 +2417,51 @@ check(
   'Activity Document link/download did not retain the original bytes.',
 );
 record('V0.2 DOC-006 WBS and Activity documents through live HTTP API');
+
+const procurementDocumentBytes = new TextEncoder().encode(
+  '%PDF-1.4 Purchase Order support ' + suffix,
+);
+const procurementDocumentForm = new FormData();
+procurementDocumentForm.set(
+  'documentTypeId',
+  documentType.data.data.id,
+);
+procurementDocumentForm.set(
+  'file',
+  new Blob([procurementDocumentBytes], {
+    type: 'application/pdf',
+  }),
+  'purchase-order-support-' + suffix + '.pdf',
+);
+const procurementDocument = await request(
+  pm,
+  '/documents/projects/' +
+    projectId +
+    '/targets/PURCHASE_ORDER/' +
+    purchaseOrderId,
+  {
+    method: 'POST',
+    body: procurementDocumentForm,
+    expected: 201,
+  },
+);
+const procurementDocumentList = await request(
+  pm,
+  '/documents/projects/' +
+    projectId +
+    '/targets/PURCHASE_ORDER/' +
+    purchaseOrderId,
+);
+check(
+  procurementDocumentList.data.data.some(
+    (item) => item.id === procurementDocument.data.data.id,
+  ) &&
+    !JSON.stringify(procurementDocumentList.data).includes(
+      'storageKey',
+    ),
+  'V0.3-E procurement Document target did not preserve the secure Project-owned Documents boundary.',
+);
+record('V0.3-E DOC-007 secure Purchase Order document target');
 
 record('secure document upload, metadata listing and byte-for-byte download');
 
