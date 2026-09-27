@@ -329,6 +329,12 @@ DECLARE
   material_company UUID;
   uom_company UUID;
 BEGIN
+  -- Serialize award-to-PO assignment even for direct database writers so two
+  -- concurrent PO identities cannot both pass the historical-use check.
+  PERFORM pg_advisory_xact_lock(
+    hashtext('po-award:' || NEW."quotation_award_id"::text)
+  );
+
   SELECT "company_id","project_id","supplier_id","po_number",
          "approval_instance_id","submitted_at","cancelled_at"
     INTO po_company,po_project,po_supplier,po_number_value,
