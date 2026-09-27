@@ -129,6 +129,20 @@ test('V0.3-A BOQ/Budget preserves draft snapshots, approval history and reportin
         },
       ],
     });
+    await prisma.projectMember.createMany({
+      data: [
+        {
+          projectId: otherProject.id,
+          employeeId: makerEmployee.id,
+          projectRole: 'Quantity Surveyor',
+        },
+        {
+          projectId: otherProject.id,
+          employeeId: checkerEmployee.id,
+          projectRole: 'Commercial Manager',
+        },
+      ],
+    });
     const wbs = await prisma.wbsElement.create({
       data: {
         projectId: project.id,
@@ -437,6 +451,124 @@ test('V0.3-A BOQ/Budget preserves draft snapshots, approval history and reportin
           where: { id: approved2.id },
         }),
       'Budget Revision history must not be physically deleted',
+    );
+
+    const otherBoq = await service.createBoq(
+      { auth: makerAuth },
+      otherProject.id,
+      'Out-of-order Approval BOQ',
+    );
+    const otherSection = await service.createSection(
+      { auth: makerAuth },
+      otherBoq.id,
+      {
+        sectionCode: 'B',
+        sectionName: 'Out-of-order Budget',
+        description: null,
+        sortOrder: 10,
+      },
+    );
+    const otherItem = await service.createItem(
+      { auth: makerAuth },
+      otherBoq.id,
+      {
+        sectionId: otherSection.id,
+        itemCode: 'B001',
+        description: 'Approval-order test item',
+        quantity: new Prisma.Decimal('1'),
+        uomId: uom.id,
+        rate: new Prisma.Decimal('100'),
+        wbsId: otherWbs.id,
+        costCodeId: costCode.id,
+        sortOrder: 10,
+      },
+    );
+    const olderRevision = await service.createRevisionDraft(
+      { auth: makerAuth },
+      otherProject.id,
+      'Revision 1 awaiting approval',
+    );
+    await service.updateItem(
+      { auth: makerAuth },
+      otherItem.id,
+      { rate: new Prisma.Decimal('200') },
+    );
+    const firstApprovedRevision = await service.createRevisionDraft(
+      { auth: makerAuth },
+      otherProject.id,
+      'Revision 2 approved first',
+    );
+    await service.submitRevision(
+      { auth: makerAuth },
+      olderRevision.id,
+      workflow.workflowCode,
+    );
+    await service.submitRevision(
+      { auth: makerAuth },
+      firstApprovedRevision.id,
+      workflow.workflowCode,
+    );
+
+    const approvedSecond = await service.approveRevision(
+      { auth: checkerAuth },
+      firstApprovedRevision.id,
+      'Approve Revision 2 first.',
+    );
+    const approvedOlder = await service.approveRevision(
+      { auth: checkerAuth },
+      olderRevision.id,
+      'Approve Revision 1 later.',
+    );
+
+    await prisma.approvalInstance.update({
+      where: { id: approvedSecond.approvalInstance!.id },
+      data: { completedAt: new Date('2026-10-01T09:00:00.000Z') },
+    });
+    await prisma.approvalInstance.update({
+      where: { id: approvedOlder.approvalInstance!.id },
+      data: { completedAt: new Date('2026-10-01T10:00:00.000Z') },
+    });
+
+    const approvalOrderRevisions = await service.listRevisions(
+      makerAuth,
+      otherProject.id,
+    );
+    assert.equal(
+      approvalOrderRevisions.find(
+        (row) => row.id === firstApprovedRevision.id,
+      )?.isOriginal,
+      true,
+      'The first actually approved revision must remain Original Budget.',
+    );
+    assert.equal(
+      approvalOrderRevisions.find((row) => row.id === olderRevision.id)
+        ?.isOriginal,
+      false,
+      'A lower revision number approved later must not replace Original Budget.',
+    );
+    assert.equal(
+      approvalOrderRevisions.find(
+        (row) => row.id === firstApprovedRevision.id,
+      )?.isCurrent,
+      true,
+      'The highest approved revision remains Current Revised Budget.',
+    );
+
+    const approvalOrderSummary = await service.summary(
+      makerAuth,
+      otherProject.id,
+    );
+    assert.equal(
+      approvalOrderSummary.original?.id,
+      firstApprovedRevision.id,
+    );
+    assert.equal(
+      approvalOrderSummary.original?.total.toString(),
+      '200',
+    );
+    assert.equal(
+      approvalOrderSummary.current?.id,
+      firstApprovedRevision.id,
     );
 
     const auditCount = await prisma.auditLog.count({
