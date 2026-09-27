@@ -363,7 +363,7 @@ BEFORE INSERT OR UPDATE ON "supplier_quotations"
 FOR EACH ROW EXECUTE FUNCTION validate_supplier_quotation();
 
 CREATE OR REPLACE FUNCTION protect_supplier_quotation_history()
-RETURNS trigger AS $
+RETURNS trigger AS $$
 BEGIN
   IF TG_OP = 'UPDATE' THEN
     PERFORM pg_advisory_xact_lock(
@@ -415,10 +415,13 @@ BEGIN
   );
 
   SELECT "rfq_id" INTO quote_rfq
-  FROM "supplier_quotations" WHERE "id" = NEW."supplier_quotation_id";
+  FROM "supplier_quotations"
+  WHERE "id" = NEW."supplier_quotation_id";
+
   SELECT "rfq_id","line_no","quantity","uom_id","uom_code_snapshot"
     INTO line_rfq,line_no_expected,line_quantity,line_uom,line_uom_code
-  FROM "rfq_lines" WHERE "id" = NEW."rfq_line_id";
+  FROM "rfq_lines"
+  WHERE "id" = NEW."rfq_line_id";
 
   IF quote_rfq IS NULL OR line_rfq IS NULL OR quote_rfq <> line_rfq THEN
     RAISE EXCEPTION 'Supplier Quotation line must reference an RFQ line from the same RFQ';
@@ -441,6 +444,7 @@ BEGIN
   ) THEN
     RAISE EXCEPTION 'Awarded Supplier Quotation line is frozen';
   END IF;
+
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
@@ -463,7 +467,6 @@ FOR EACH ROW EXECUTE FUNCTION protect_supplier_quotation_line_delete();
 CREATE OR REPLACE FUNCTION validate_quotation_award()
 RETURNS trigger AS $$
 DECLARE
-  award_rfq UUID;
   quote_rfq UUID;
   quote_supplier UUID;
   quote_reference VARCHAR(150);
@@ -485,22 +488,59 @@ DECLARE
   source_pr_cancelled TIMESTAMPTZ;
   already_awarded DECIMAL(38,4);
 BEGIN
-  SELECT "company_id" INTO rfq_company FROM "rfqs" WHERE "id" = NEW."rfq_id";
+  SELECT rfl."purchase_request_line_id",prl."quantity",ai."approval_state",pr."cancelled_at"
+    INTO source_pr_line,source_pr_qty,source_pr_state,source_pr_cancelled
+  FROM "rfq_lines" rfl
+  JOIN "purchase_request_lines" prl
+    ON prl."id" = rfl."purchase_request_line_id"
+  JOIN "purchase_requests" pr
+    ON pr."id" = prl."purchase_request_id"
+  LEFT JOIN "approval_instances" ai
+    ON ai."id" = pr."approval_instance_id"
+  WHERE rfl."id" = NEW."rfq_line_id";
+
+  IF source_pr_line IS NULL THEN
+    RAISE EXCEPTION 'Quotation Award source Purchase Request line not found';
+  END IF;
+  IF source_pr_state <> 'APPROVED' OR source_pr_cancelled IS NOT NULL THEN
+    RAISE EXCEPTION 'Quotation Award requires active approved Purchase Request demand';
+  END IF;
+
+  -- Match SourcingService.selectAward lock order: source demand first,
+  -- Supplier Quotation second. Direct DB writers participate in both locks.
+  PERFORM pg_advisory_xact_lock(
+    hashtext('pr-demand-award:' || source_pr_line::text)
+  );
+  PERFORM pg_advisory_xact_lock(
+    hashtext('supplier-quotation:' || NEW."supplier_quotation_id"::text)
+  );
+
+  SELECT "company_id"
+    INTO rfq_company
+  FROM "rfqs"
+  WHERE "id" = NEW."rfq_id";
+
   SELECT "rfq_id","supplier_id","supplier_reference","quotation_date"
     INTO quote_rfq,quote_supplier,quote_reference,quote_date
-  FROM "supplier_quotations" WHERE "id" = NEW."supplier_quotation_id";
+  FROM "supplier_quotations"
+  WHERE "id" = NEW."supplier_quotation_id";
+
   SELECT sqln."supplier_quotation_id",sqln."rfq_line_id",sqln."quantity",
          sqln."uom_id",sqln."uom_code_snapshot",sqln."unit_price",sqln."amount"
     INTO ql_quotation,ql_rfq_line,ql_quantity,ql_uom,ql_uom_code,ql_price,ql_amount
   FROM "supplier_quotation_lines" sqln
   WHERE sqln."id" = NEW."supplier_quotation_line_id";
+
   SELECT "supplier_code_snapshot","supplier_name_snapshot"
     INTO invited_supplier_code,invited_supplier_name
   FROM "rfq_suppliers"
   WHERE "rfq_id" = NEW."rfq_id"
     AND "supplier_id" = NEW."supplier_id";
-  SELECT "company_id" INTO selector_company
-  FROM "users" WHERE "id" = NEW."selected_by_user_id";
+
+  SELECT "company_id"
+    INTO selector_company
+  FROM "users"
+  WHERE "id" = NEW."selected_by_user_id";
 
   IF rfq_company IS NULL OR quote_rfq IS NULL OR ql_rfq_line IS NULL THEN
     RAISE EXCEPTION 'Quotation Award source not found';
@@ -532,7 +572,8 @@ BEGIN
   SELECT COALESCE(SUM(qa."quantity"),0)
     INTO already_awarded
   FROM "quotation_awards" qa
-  JOIN "rfq_lines" existing_rfl ON existing_rfl."id" = qa."rfq_line_id"
+  JOIN "rfq_lines" existing_rfl
+    ON existing_rfl."id" = qa."rfq_line_id"
   WHERE existing_rfl."purchase_request_line_id" = source_pr_line
     AND qa."id" <> NEW."id";
 
