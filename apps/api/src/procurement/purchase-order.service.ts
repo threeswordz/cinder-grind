@@ -626,6 +626,7 @@ export class PurchaseOrderService {
         },
         include: {
           purchaseOrder: true,
+          quotationAward: { select: { quantity: true } },
         },
       });
       if (!current) throw this.lineNotFound();
@@ -680,6 +681,13 @@ export class PurchaseOrderService {
       }
 
       const quantity = input.quantity ?? current.quantity;
+      if (quantity.gt(current.quotationAward.quantity)) {
+        throw new UnprocessableEntityException({
+          code: 'PO_QUANTITY_EXCEEDS_AWARD',
+          detail:
+            'Purchase Order quantity cannot exceed the selected Supplier Award quantity.',
+        });
+      }
       const unitPrice = input.unitPrice ?? current.unitPrice;
       const updated = await tx.purchaseOrderLine.update({
         where: { id: current.id },
