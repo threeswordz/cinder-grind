@@ -126,12 +126,13 @@ export function PurchaseOrdersPanel({ permissions }: Props) {
   });
 
   useEffect(() => {
+    if (orders.isFetching) return;
     const values = orders.data?.data ?? [];
     if (!orderId && values[0]) setOrderId(values[0].id);
     if (orderId && !values.some((order) => order.id === orderId)) {
       setOrderId(values[0]?.id ?? '');
     }
-  }, [orderId, orders.data]);
+  }, [orderId, orders.data, orders.isFetching]);
 
   const detail = useQuery({
     queryKey: ['purchase-order', orderId],
@@ -198,8 +199,8 @@ export function PurchaseOrdersPanel({ permissions }: Props) {
     onSuccess: async (result) => {
       setSelectedAwards([]);
       setCreateRemarks('');
-      setOrderId(result.data.id);
       await refreshProject();
+      setOrderId(result.data.id);
     },
   });
 
@@ -277,8 +278,8 @@ export function PurchaseOrdersPanel({ permissions }: Props) {
       purchaseOrdersApi.revise(orderId, revisionReason || null),
     onSuccess: async (result) => {
       setRevisionReason('');
-      setOrderId(result.data.id);
       await refreshProject();
+      setOrderId(result.data.id);
     },
   });
 
