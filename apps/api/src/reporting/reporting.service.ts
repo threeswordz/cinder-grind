@@ -162,21 +162,54 @@ export class ReportingService {
           rfqLineId: poLine.rfqLineId,
         }));
 
-        const activePoRows = poRows.filter((row) =>
-          ['DRAFT', 'SUBMITTED', 'APPROVED'].includes(
-            row.lifecycleState,
-          ),
-        );
-        const latestActivePo = [...activePoRows].sort((a, b) =>
-          a.poNumber === b.poNumber
-            ? b.revisionNo - a.revisionNo
-            : a.poNumber.localeCompare(b.poNumber),
-        )[0] ?? null;
+        const rowsByPoNumber = new Map<
+          string,
+          typeof poRows
+        >();
+        for (const row of poRows) {
+          const group = rowsByPoNumber.get(row.poNumber) ?? [];
+          group.push(row);
+          rowsByPoNumber.set(row.poNumber, group);
+        }
 
-        const requiredOnSite = line.requiredOnSite;
-        const expectedDelivery = latestActivePo?.expectedDelivery
-          ? new Date(latestActivePo.expectedDelivery + 'T00:00:00.000Z')
-          : null;
+        const currentPoRows = [...rowsByPoNumber.values()].flatMap(
+          (group) => {
+            const revisions = [...group].sort(
+              (a, b) => b.revisionNo - a.revisionNo,
+            );
+            const newest = revisions[0];
+            if (!newest || newest.lifecycleState === 'CANCELLED') {
+              return [];
+            }
+            if (newest.lifecycleState === 'REJECTED') {
+              const latestApproved = revisions.find(
+                (row) => row.lifecycleState === 'APPROVED',
+              );
+              return latestApproved ? [latestApproved] : [];
+            }
+            return [newest];
+          },
+        );
+
+        const currentRisks = currentPoRows.map(
+          (row) => row.scheduleRisk,
+        );
+        const scheduleRisk:
+          | 'AT_RISK'
+          | 'ON_TIME'
+          | 'UNAVAILABLE' = currentRisks.includes('AT_RISK')
+          ? 'AT_RISK'
+          : currentRisks.length > 0 &&
+              currentRisks.every((value) => value === 'ON_TIME')
+            ? 'ON_TIME'
+            : 'UNAVAILABLE';
+
+        const expectedDelivery =
+          currentPoRows
+            .map((row) => row.expectedDelivery)
+            .filter((value): value is string => Boolean(value))
+            .sort()
+            .at(-1) ?? null;
 
         return {
           id: line.id,
@@ -191,9 +224,9 @@ export class ReportingService {
           description: line.description,
           quantity: line.quantity.toString(),
           uom: line.uom,
-          requiredOnSite: dateKey(requiredOnSite),
-          expectedDelivery: latestActivePo?.expectedDelivery ?? null,
-          scheduleRisk: risk(requiredOnSite, expectedDelivery),
+          requiredOnSite: dateKey(line.requiredOnSite),
+          expectedDelivery,
+          scheduleRisk,
           context: {
             wbs: line.wbs,
             costCode: line.costCode,
