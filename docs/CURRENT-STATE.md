@@ -4,9 +4,12 @@
 **Source of truth:** Live GitHub repository state
 
 - Current Release: V0.3 Procurement
-- Current Stage: V0.3-C RFQ / Quotations — ACTIVE IMPLEMENTATION
+- Current Stage: V0.3-D Purchase Order — PRE-FLIGHT
 - Completed Stages: V0.1-A Technical Skeleton; V0.1-B Company / Identity / Security; V0.1-C Administration; V0.1-D Master Data; V0.1-E Projects; V0.1-F WBS & Cost Codes; V0.1-G Basic Documents; V0.1-H Integration / Regression / UAT; V0.2-A Scheduling Data Model; V0.2-B Scheduling Engine; V0.2-C Baselines / Progress; V0.2-D Gantt / Lookahead; V0.2-E Site Execution; V0.2-F Equipment; V0.2-G UAT Reference Programme
-- Active Issue: #67 — V0.3-C RFQ / Quotations
+- Active Issue: pending creation — V0.3-D Purchase Order
+- Completed Issue: #67 — V0.3-C RFQ / Quotations
+- Completed Branch: `v0.3-c-rfq-quotations`
+- Merged PR: #70 — V0.3-C: RFQ / Quotations
 - Completed Issue: #64 — V0.3-B Purchase Request
 - Completed Branch: `v0.3-b-purchase-request`
 - Merged PR: #65 — V0.3-B: Purchase Request
@@ -57,7 +60,7 @@
 - V0.1 cross-module release acceptance scenario: PASS in the Stage H release-candidate regression suite.
 - Open defect check at V0.1 acceptance: no Severity 1 or Severity 2 release-blocking defect recorded.
 - Governance: `AGENTS.md`, `docs/PROJECT-GOVERNANCE.md`, PR governance checklist and DEC-008 are active; material decisions must pass the repository pre-flight and open-source/zero-cost-first constraint.
-- Next action: implement V0.3-C RFQ / Quotations under Issue #67 / branch `v0.3-c-rfq-quotations`, then validate AC-V03-012 through AC-V03-016 and cross-cutting V0.3 controls.
+- Next action: run V0.3-D Purchase Order pre-flight, then implement PROC-009 through PROC-017 under AC-V03-017 through AC-V03-022, BR-V03-11 through BR-V03-14, and approved PO numbering `POYYMM-###` / MONTHLY.
 
 ## Stage E completed
 
@@ -565,3 +568,18 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - Stage C implements PROC-004 through PROC-008 under AC-V03-012 through AC-V03-016 and BR-V03-08 through BR-V03-10.
 - RFQ numbering uses the approved `RFQYYMM-###` / MONTHLY Company sequence.
 - Stage C does not invent an RFQ approval workflow, award approval workflow, Supplier Quotation number format, award reversal policy, PO behavior, Expected Delivery/schedule-risk behavior, committed cost, Inventory or Finance behavior.
+
+## V0.3-C completed
+
+- Issue #67 — V0.3-C RFQ / Quotations is complete.
+- PR #70 — V0.3-C: RFQ / Quotations squash-merged to `main` as `3ba9164b0edab46d0eecc305540d4f3e9840627e`.
+- final branch CI #1147 and exact-head PR CI #1148 passed on `9f667b17bfe9c1e8dfc957fa35620f7f5a2b9b70`.
+- post-merge `main` CI #1150 passed on `3ba9164b0edab46d0eecc305540d4f3e9840627e`.
+- PROC-004 through PROC-008 are delivered under AC-V03-012 through AC-V03-016 and BR-V03-08 through BR-V03-10.
+- RFQ numbering is `RFQYYMM-###` with MONTHLY reset and Company-scoped immutable allocation.
+- approved PR demand can flow into RFQs, multiple Supplier invitations, canonical Supplier Quotations, derived comparison and line-level Supplier Awards with source traceability.
+- aggregate awarded quantities are guarded against approved PR demand; awarded commercial source data is protected from later correction.
+- review hardening covers commercial-data authorization/redaction, exact quotation-line award integrity, quotation-only workspace access, date validation and concurrency-safe correction/award snapshots.
+- no Purchase Order, Expected Delivery/schedule-risk, committed-cost ledger, Inventory or Finance behavior was pulled forward.
+- next stage is V0.3-D Purchase Order pre-flight under PROC-009 through PROC-017, AC-V03-017 through AC-V03-022 and BR-V03-11 through BR-V03-14.
+
