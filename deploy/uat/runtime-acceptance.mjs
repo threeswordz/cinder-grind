@@ -94,6 +94,12 @@ check(
   !me.data.data.permissions.includes('procurement.pr.cancel'),
   'SYS_ADMIN must not implicitly receive Purchase Request cancellation authority.',
 );
+check(
+  !me.data.data.permissions.includes('procurement.rfq.manage') &&
+    !me.data.data.permissions.includes('procurement.quotation.manage') &&
+    !me.data.data.permissions.includes('procurement.award.select'),
+  'SYS_ADMIN must not implicitly receive Stage C sourcing business authority.',
+);
 record('administrator login, current-user endpoint and technical-role business-authority separation');
 
 const status = await request(admin, '/admin/statuses', {
@@ -140,6 +146,27 @@ const material = await request(admin, '/master-data/materials', {
   expected: 201,
 });
 check(material.data.data.defaultUomId === uomId, 'Material/UOM relationship mismatch.');
+
+const sourcingSupplierA = await request(admin, '/master-data/suppliers', {
+  method: 'POST',
+  json: {
+    supplierCode: 'SRC-A-' + suffix,
+    supplierName: 'Sourcing Supplier A ' + suffix,
+    contactName: 'Supplier A Contact',
+    email: 'supplier-a-' + suffix.toLowerCase() + '@example.com',
+  },
+  expected: 201,
+});
+const sourcingSupplierB = await request(admin, '/master-data/suppliers', {
+  method: 'POST',
+  json: {
+    supplierCode: 'SRC-B-' + suffix,
+    supplierName: 'Sourcing Supplier B ' + suffix,
+    contactName: 'Supplier B Contact',
+    email: 'supplier-b-' + suffix.toLowerCase() + '@example.com',
+  },
+  expected: 201,
+});
 
 const pmEmployee = await request(admin, '/master-data/employees', {
   method: 'POST',
@@ -223,6 +250,11 @@ const permissionCodes = [
   'procurement.pr.manage',
   'procurement.pr.submit',
   'procurement.pr.cancel',
+  'procurement.rfq.view',
+  'procurement.rfq.manage',
+  'procurement.quotation.view',
+  'procurement.quotation.manage',
+  'procurement.award.select',
 ];
 await request(admin, `/admin/roles/${roleId}/permissions`, {
   method: 'PUT',
@@ -331,7 +363,18 @@ await request(admin, '/admin/number-sequences', {
   },
   expected: 201,
 });
-record('V0.3-A Budget and V0.3-B Purchase Request approval/numbering configuration');
+await request(admin, '/admin/number-sequences', {
+  method: 'POST',
+  json: {
+    entityType: 'RFQ',
+    sequenceCode: 'RFQ',
+    formatTemplate: 'RFQYYMM-###',
+    resetRule: 'MONTHLY',
+    startingValue: 1,
+  },
+  expected: 201,
+});
+record('V0.3-A Budget, V0.3-B Purchase Request and V0.3-C RFQ numbering configuration');
 
 const pmPassword = 'Uat-PM-' + suffix + '-Strong-2026!';
 const unassignedPassword = 'Uat-PE-' + suffix + '-Strong-2026!';
