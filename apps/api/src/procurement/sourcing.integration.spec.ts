@@ -609,12 +609,86 @@ test('V0.3-C RFQ / Quotations preserves approved-demand sourcing, comparison and
       'Award database guard must reject a quotation line from a different quotation header.',
     );
 
-    const materialAward = await sourcing.selectAward(
+    let releaseCorrectionLock!: () => void;
+    let correctionLockReady!: () => void;
+    const correctionLockAcquired = new Promise<void>(
+      (resolve) => {
+        correctionLockReady = resolve;
+      },
+    );
+    const correctionLockRelease = new Promise<void>(
+      (resolve) => {
+        releaseCorrectionLock = resolve;
+      },
+    );
+
+    const concurrentCorrection = prisma.$transaction(
+      async (tx) => {
+        await tx.$executeRawUnsafe(
+          'SELECT pg_advisory_xact_lock(hashtext($1))',
+          'supplier-quotation:' + quoteB.id,
+        );
+        const corrected = await tx.supplierQuotationLine.update({
+          where: { id: correctedBMaterial.id },
+          data: {
+            unitPrice: new Prisma.Decimal('8.25'),
+            amount: new Prisma.Decimal('41.25'),
+            remarks: 'B corrected while award waits',
+          },
+        });
+        correctionLockReady();
+        await correctionLockRelease;
+        return corrected;
+      },
+    );
+
+    await correctionLockAcquired;
+    const materialAwardPromise = sourcing.selectAward(
       { auth: makerAuth },
       rfqMaterialLine.id,
       correctedBMaterial.id,
-      'Best commercial offer for material line.',
+      'Best commercial offer after concurrent correction.',
     );
+
+    let observedWaitingAward = false;
+    for (let attempt = 0; attempt < 50; attempt += 1) {
+      const waiting = await prisma.$queryRaw<
+        Array<{ waiting: bigint }>
+      >`
+        SELECT COUNT(*)::bigint AS waiting
+        FROM pg_locks
+        WHERE locktype = 'advisory'
+          AND granted = false
+      `;
+      if ((waiting[0]?.waiting ?? 0n) > 0n) {
+        observedWaitingAward = true;
+        break;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    }
+    assert.equal(
+      observedWaitingAward,
+      true,
+      'Award transaction did not wait on the Supplier Quotation correction lock.',
+    );
+
+    releaseCorrectionLock();
+    const [concurrentCorrectedLine, materialAward] =
+      await Promise.all([
+        concurrentCorrection,
+        materialAwardPromise,
+      ]);
+    assert.equal(
+      concurrentCorrectedLine.unitPrice.toString(),
+      '8.25',
+    );
+    assert.equal(
+      materialAward.unitPrice.toString(),
+      '8.25',
+      'Award snapshot must refresh quotation values after the advisory lock wait.',
+    );
+    assert.equal(materialAward.amount.toString(), '41.25');
+
     const serviceAward = await sourcing.selectAward(
       { auth: makerAuth },
       rfqServiceLine.id,
@@ -629,7 +703,7 @@ test('V0.3-C RFQ / Quotations preserves approved-demand sourcing, comparison and
     assert.equal(materialAward.supplierNameSnapshot, 'Supplier B');
     assert.equal(serviceAward.supplierId, supplierA.id);
     assert.equal(materialAward.quantity.toString(), '5');
-    assert.equal(materialAward.unitPrice.toString(), '8.5');
+    assert.equal(materialAward.unitPrice.toString(), '8.25');
 
     const rfqOnlyDetail = await sourcing.getRfqDetail(
       {
