@@ -1,3 +1,13 @@
+## 2026-09-27 — V0.3 Procurement accepted
+
+- Product / Business Owner explicitly accepted V0.3 Procurement and confirmed there are no blocking V0.3 business defects.
+- accepted checkpoint: `35808f301a7ddcb1945bd249b8c8097baec6d2d6`.
+- V0.3-A through V0.3-E are complete; PR #77 and completion PR #78 are merged.
+- final automated CI/live HTTP acceptance is green.
+- automated UAT business walkthrough scenario `MUJXJSHF` passed 34 checks across BOQ/Budget, Purchase Request, RFQ/quotations/award, Purchase Order revisions and dates, procurement documents, schedule risk, traceability and unauthorized Project access.
+- V0.3 Release Exit Gate is complete.
+- repository position advances to the V0.4 Inventory Release Entry Gate.
+- V0.4 implementation remains gated until its scope, requirements, acceptance criteria, required business rules, dependency/API/database baseline and test approach are explicitly approved.
 ## 2026-09-27 — V0.3-E Schedule Risk / Procurement Reporting technically completed
 
 - PROC-018 / PROC-019, RPT-005, SYS-007 and DOC-007 delivered with source-derived procurement schedule/risk, transaction traceability and secure procurement document targets.

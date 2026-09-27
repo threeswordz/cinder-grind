@@ -3,9 +3,11 @@
 **Last verified:** 2026-09-27
 **Source of truth:** Live GitHub repository state
 
-- Current Release: V0.3 Procurement
-- Current Stage: V0.3 Release Acceptance — AWAITING PRODUCT / BUSINESS OWNER
-- Completed Stages: V0.1-A Technical Skeleton; V0.1-B Company / Identity / Security; V0.1-C Administration; V0.1-D Master Data; V0.1-E Projects; V0.1-F WBS & Cost Codes; V0.1-G Basic Documents; V0.1-H Integration / Regression / UAT; V0.2-A Scheduling Data Model; V0.2-B Scheduling Engine; V0.2-C Baselines / Progress; V0.2-D Gantt / Lookahead; V0.2-E Site Execution; V0.2-F Equipment; V0.2-G UAT Reference Programme
+- Current Release: V0.4 Inventory
+- Current Stage: V0.4 Release Entry Gate — AWAITING BASELINE AND BUSINESS-RULE APPROVAL
+- Completed Stages: V0.1-A through V0.1-H; V0.2-A through V0.2-G; V0.3-A BOQ & Budget; V0.3-B Purchase Request; V0.3-C RFQ / Quotations; V0.3-D Purchase Order; V0.3-E Schedule Risk / Procurement Reporting / Traceability
+- Active Issue: #79 — V0.3 Procurement Product / Business Owner acceptance record
+- Active Branch: `v0.3-release-acceptance`
 - Completed Issue: #76 — V0.3-E Schedule Risk / Procurement Reporting / Traceability
 - Completed Branch: `v0.3-e-schedule-risk`
 - Merged PR: #77 — V0.3-E: Schedule Risk / Procurement Reporting
@@ -65,7 +67,7 @@
 - V0.1 cross-module release acceptance scenario: PASS in the Stage H release-candidate regression suite.
 - Open defect check at V0.1 acceptance: no Severity 1 or Severity 2 release-blocking defect recorded.
 - Governance: `AGENTS.md`, `docs/PROJECT-GOVERNANCE.md`, PR governance checklist and DEC-008 are active; material decisions must pass the repository pre-flight and open-source/zero-cost-first constraint.
-- Next action: Product / Business Owner human UAT/business acceptance for V0.3 Procurement. After explicit acceptance, run the V0.4 Inventory Release Entry Gate; do not begin V0.4 implementation until its scope, requirements, acceptance criteria, dependency/API changes and test approach are approved.
+- Next action: prepare the V0.4 Inventory Release Entry Gate baselines for Product / Business Owner approval: scope, requirements, acceptance criteria, required business rules, dependency/license review, database/API baseline and test approach. Do not begin V0.4 implementation until these entry-gate artifacts are explicitly approved.
 
 ## Stage E completed
 
@@ -658,3 +660,15 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - no Goods Receipt/Inventory posting, Supplier Invoice/Finance, Actual Cost, V0.7 Committed Cost ledger, tax/VAT, FX or Stage-E schedule-risk classification was pulled forward.
 - next stage is V0.3-E Schedule Risk pre-flight under PROC-018 / PROC-019, AC-V03-023 through AC-V03-027, RPT-005 and SYS-007.
 
+
+## V0.3 Procurement accepted and closed
+
+- Product / Business Owner explicitly accepted V0.3 Procurement on 2026-09-27.
+- accepted checkpoint: `35808f301a7ddcb1945bd249b8c8097baec6d2d6`.
+- V0.3-A through V0.3-E are complete; PR #77 and completion PR #78 are merged.
+- exact-head branch CI #1264 and PR CI #1265 passed on `4603a584d97890841708ab7188b6572977a1151f`; post-merge main CI #1266 passed.
+- automated business walkthrough scenario `MUJXJSHF` passed all 34 checks, including Original/Revised Budget behavior, PR → RFQ → quotations → award → PO traceability, PO revision/delivery-risk/document evidence and unauthorized Project-user denial.
+- Product / Business Owner confirmed there are no blocking V0.3 business defects.
+- Issue #79 and `docs/V0.3-UAT.md` / `docs/V0.3-RELEASE-CHECKLIST.md` preserve the formal exit evidence.
+- repository position advances to the V0.4 Inventory Release Entry Gate.
+- V0.4 implementation remains prohibited until the entry-gate baselines and required business rules are explicitly approved.
