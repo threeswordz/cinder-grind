@@ -384,6 +384,21 @@ test('V0.3-C RFQ / Quotations preserves approved-demand sourcing, comparison and
       (error: unknown) => error instanceof ConflictException,
     );
 
+    await assert.rejects(
+      () =>
+        sourcing.createQuotation(
+          { auth: makerAuth },
+          rfq.id,
+          supplierA.id,
+          {
+            quotationDate: new Date('2026-10-05T00:00:00.000Z'),
+            validityDate: new Date('2026-10-04T00:00:00.000Z'),
+          },
+        ),
+      (error: unknown) =>
+        error instanceof UnprocessableEntityException,
+    );
+
     const quoteA = await sourcing.createQuotation(
       { auth: makerAuth },
       rfq.id,
@@ -417,6 +432,30 @@ test('V0.3-C RFQ / Quotations preserves approved-demand sourcing, comparison and
           },
         ),
       (error: unknown) => error instanceof ConflictException,
+    );
+    await assert.rejects(
+      () =>
+        sourcing.updateQuotation(
+          { auth: makerAuth },
+          quoteA.id,
+          {
+            validityDate: new Date('2026-10-04T00:00:00.000Z'),
+          },
+        ),
+      (error: unknown) =>
+        error instanceof UnprocessableEntityException,
+    );
+    await assert.rejects(
+      () =>
+        sourcing.updateQuotation(
+          { auth: makerAuth },
+          quoteA.id,
+          {
+            quotationDate: new Date('2026-11-06T00:00:00.000Z'),
+          },
+        ),
+      (error: unknown) =>
+        error instanceof UnprocessableEntityException,
     );
 
     const rfqDetail = await sourcing.getRfq(makerAuth, rfq.id);
@@ -611,6 +650,42 @@ test('V0.3-C RFQ / Quotations preserves approved-demand sourcing, comparison and
       awardGuardDefinition[0]?.definition ?? '',
       /pr-demand-award:/,
       'Database award guard must lock by source Purchase Request line.',
+    );
+    assert.match(
+      awardGuardDefinition[0]?.definition ?? '',
+      /supplier-quotation:/,
+      'Database award guard must serialize with quotation corrections.',
+    );
+
+    const quotationLineGuardDefinition = await prisma.$queryRaw<
+      Array<{ definition: string }>
+    >`
+      SELECT pg_get_functiondef(
+        'validate_supplier_quotation_line()'::regprocedure
+      ) AS definition
+    `;
+    assert.match(
+      quotationLineGuardDefinition[0]?.definition ?? '',
+      /pg_advisory_xact_lock/,
+      'Direct quotation-line writes must participate in quotation serialization.',
+    );
+    assert.match(
+      quotationLineGuardDefinition[0]?.definition ?? '',
+      /supplier-quotation:/,
+      'Quotation-line guard must use the shared Supplier Quotation lock key.',
+    );
+
+    const quotationHeaderGuardDefinition = await prisma.$queryRaw<
+      Array<{ definition: string }>
+    >`
+      SELECT pg_get_functiondef(
+        'protect_supplier_quotation_history()'::regprocedure
+      ) AS definition
+    `;
+    assert.match(
+      quotationHeaderGuardDefinition[0]?.definition ?? '',
+      /supplier-quotation:/,
+      'Direct quotation-header corrections must share the award serialization lock.',
     );
 
     await assert.rejects(
