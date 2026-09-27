@@ -433,8 +433,9 @@ export function PurchaseRequestsPanel({
                     >
                       <Typography sx={{ flexGrow: 1 }}>
                         {line.lineNo}.{' '}
-                        {line.material
-                          ? line.material.materialCode +
+                        {line.lineType === 'MATERIAL' &&
+                        line.materialCodeSnapshot
+                          ? line.materialCodeSnapshot +
                             ' · ' +
                             line.description
                           : line.description}
@@ -640,6 +641,38 @@ export function PurchaseRequestsPanel({
             <CardContent>
               <Stack spacing={2}>
                 <Typography variant="subtitle1">Workflow</Typography>
+
+                {(current.approvalInstance?.actions ?? []).length > 0 ? (
+                  <Stack spacing={1}>
+                    <Typography variant="subtitle2">Approval history</Typography>
+                    {(current.approvalInstance?.actions ?? []).map((action) => (
+                      <Stack
+                        key={action.id}
+                        spacing={0.25}
+                        sx={{
+                          border: 1,
+                          borderColor: 'divider',
+                          borderRadius: 1,
+                          p: 1.25,
+                        }}
+                      >
+                        <Typography variant="body2">
+                          {action.action} · Step {action.approvalStep.stepNo}:{' '}
+                          {action.approvalStep.stepName}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          {action.actionByUser.displayName} ·{' '}
+                          {new Date(action.actionAt).toLocaleString()}
+                        </Typography>
+                        {action.comment ? (
+                          <Typography variant="body2">
+                            {action.comment}
+                          </Typography>
+                        ) : null}
+                      </Stack>
+                    ))}
+                  </Stack>
+                ) : null}
 
                 {isDraft && canSubmit ? (
                   <>
