@@ -14,6 +14,11 @@ export type PoWorkflow = {
   workflowName: string;
 };
 
+export type PoOptions = {
+  wbs: Array<{ id: string; wbsCode: string; wbsName: string }>;
+  costCodes: Array<{ id: string; costCode: string; costName: string }>;
+};
+
 export type PoAward = {
   id: string;
   rfqId: string;
@@ -128,7 +133,7 @@ export type PurchaseOrderLine = {
 
 export type ApprovalAction = {
   id: string;
-  actionType?: string;
+  action: string;
   actionAt: string;
   comment?: string | null;
   actionByUser?: {
@@ -213,6 +218,10 @@ export const purchaseOrdersApi = {
     apiRequest<Data<PoProject[]>>('/procurement/po-create-projects'),
   workflows: () =>
     apiRequest<Data<PoWorkflow[]>>('/procurement/po-workflow-options'),
+  options: (projectId: string) =>
+    apiRequest<Data<PoOptions>>(
+      '/procurement/projects/' + projectId + '/po-options',
+    ),
   awards: (projectId: string) =>
     apiRequest<Data<PoAward[]>>(
       '/procurement/projects/' + projectId + '/po-awards',
