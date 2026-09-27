@@ -598,7 +598,24 @@ export class SourcingService {
         current.rfq.projectId,
         tx,
       );
-      if (current._count.awards > 0) {
+
+      await tx.$executeRawUnsafe(
+        'SELECT pg_advisory_xact_lock(hashtext($1))',
+        'supplier-quotation:' + current.id,
+      );
+
+      const lockedCurrent = await tx.supplierQuotation.findUniqueOrThrow({
+        where: { id: current.id },
+        include: {
+          rfq: {
+            select: { projectId: true },
+          },
+          _count: {
+            select: { awards: true },
+          },
+        },
+      });
+      if (lockedCurrent._count.awards > 0) {
         throw new ConflictException({
           code: 'QUOTATION_HEADER_FROZEN',
           detail:
@@ -623,20 +640,20 @@ export class SourcingService {
       };
 
       const updated = await tx.supplierQuotation.update({
-        where: { id: current.id },
+        where: { id: lockedCurrent.id },
         data,
       });
       await this.audit.record(
         {
           ...context,
           entityType: 'SUPPLIER_QUOTATION',
-          entityId: current.id,
+          entityId: lockedCurrent.id,
           action: 'CORRECT_HEADER',
           oldValues: {
-            supplierReference: current.supplierReference,
-            quotationDate: current.quotationDate,
-            validityDate: current.validityDate,
-            remarks: current.remarks,
+            supplierReference: lockedCurrent.supplierReference,
+            quotationDate: lockedCurrent.quotationDate,
+            validityDate: lockedCurrent.validityDate,
+            remarks: lockedCurrent.remarks,
           },
           newValues: {
             supplierReference: updated.supplierReference,
@@ -681,6 +698,11 @@ export class SourcingService {
         context.auth,
         quotation.rfq.projectId,
         tx,
+      );
+
+      await tx.$executeRawUnsafe(
+        'SELECT pg_advisory_xact_lock(hashtext($1))',
+        'supplier-quotation:' + quotation.id,
       );
 
       const rfqLine = await tx.rfqLine.findFirst({
@@ -936,10 +958,33 @@ export class SourcingService {
           });
         }
 
+        const quoteLocator = await tx.supplierQuotationLine.findFirst({
+          where: {
+            id: supplierQuotationLineId,
+            rfqLineId: rfqLine.id,
+          },
+          select: {
+            supplierQuotationId: true,
+          },
+        });
+        if (!quoteLocator) {
+          throw new UnprocessableEntityException({
+            code: 'AWARD_QUOTATION_LINE_INVALID',
+            detail:
+              'Award must select a quotation line from this RFQ line.',
+          });
+        }
+
+        await tx.$executeRawUnsafe(
+          'SELECT pg_advisory_xact_lock(hashtext($1))',
+          'supplier-quotation:' + quoteLocator.supplierQuotationId,
+        );
+
         const quoteLine = await tx.supplierQuotationLine.findFirst({
           where: {
             id: supplierQuotationLineId,
             rfqLineId: rfqLine.id,
+            supplierQuotationId: quoteLocator.supplierQuotationId,
           },
           include: {
             supplierQuotation: {
