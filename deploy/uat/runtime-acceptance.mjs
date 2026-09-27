@@ -281,6 +281,8 @@ await request(admin, `/admin/roles/${checkerRoleId}/permissions`, {
       'budget.revision.approve',
       'procurement.pr.view',
       'procurement.pr.approve',
+      'procurement.quotation.view',
+      'procurement.quotation.manage',
     ],
   },
 });
@@ -1092,8 +1094,38 @@ await request(pm, '/procurement/rfqs/' + sourcingRfqId + '/suppliers', {
   expected: 201,
 });
 
+const quotationOnlyProjects = await request(
+  checker,
+  '/procurement/quotation-projects',
+);
+check(
+  quotationOnlyProjects.data.data.some((item) => item.id === projectId),
+  'Quotation-only Project discovery did not expose assigned Project.',
+);
+await request(checker, '/procurement/rfq-projects', { expected: 403 });
+const quotationOnlyRfqs = await request(
+  checker,
+  '/procurement/projects/' + projectId + '/quotation-rfqs',
+);
+check(
+  quotationOnlyRfqs.data.data.some((item) => item.id === sourcingRfqId),
+  'Quotation-only RFQ discovery did not expose the Project RFQ.',
+);
+await request(checker, '/procurement/rfqs/' + sourcingRfqId, {
+  expected: 403,
+});
+const quotationOnlyDetail = await request(
+  checker,
+  '/procurement/quotation-rfqs/' + sourcingRfqId,
+);
+check(
+  quotationOnlyDetail.data.data.id === sourcingRfqId &&
+    quotationOnlyDetail.data.data.suppliers.length === 2,
+  'Quotation-only manager could not load quotation-authorized RFQ detail.',
+);
+
 const quotationA = await request(
-  pm,
+  checker,
   '/procurement/rfqs/' + sourcingRfqId + '/quotations',
   {
     method: 'POST',
@@ -1107,6 +1139,8 @@ const quotationA = await request(
     expected: 201,
   },
 );
+record('V0.3-C quotation-only manager discovery, detail access and quotation creation');
+
 const quotationB = await request(
   pm,
   '/procurement/rfqs/' + sourcingRfqId + '/quotations',
