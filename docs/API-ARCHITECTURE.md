@@ -1526,16 +1526,39 @@ V0.3-C does not create Purchase Orders, Expected Delivery, procurement schedule-
 ## 41.9 Purchase Orders
 
 ```text
-GET    /api/v1/purchase-orders
-POST   /api/v1/purchase-orders
-GET    /api/v1/purchase-orders/{id}
-PATCH  /api/v1/purchase-orders/{id}
-POST   /api/v1/purchase-orders/{id}/submit
-POST   /api/v1/purchase-orders/{id}/approve
-POST   /api/v1/purchase-orders/{id}/reject
-POST   /api/v1/purchase-orders/{id}/cancel
-POST   /api/v1/purchase-orders/{id}/revisions
+GET    /api/v1/procurement/po-projects
+GET    /api/v1/procurement/po-create-projects
+GET    /api/v1/procurement/po-workflow-options
+GET    /api/v1/procurement/projects/{projectId}/po-options
+GET    /api/v1/procurement/projects/{projectId}/po-awards
+
+GET    /api/v1/procurement/projects/{projectId}/purchase-orders
+POST   /api/v1/procurement/projects/{projectId}/purchase-orders
+GET    /api/v1/procurement/purchase-orders/{orderId}
+PATCH  /api/v1/procurement/purchase-orders/{orderId}
+GET    /api/v1/procurement/purchase-orders/{orderId}/revisions
+
+PATCH  /api/v1/procurement/purchase-order-lines/{lineId}
+DELETE /api/v1/procurement/purchase-order-lines/{lineId}
+
+POST   /api/v1/procurement/purchase-orders/{orderId}/submit
+POST   /api/v1/procurement/purchase-orders/{orderId}/approve
+POST   /api/v1/procurement/purchase-orders/{orderId}/reject
+POST   /api/v1/procurement/purchase-orders/{orderId}/cancel
+POST   /api/v1/procurement/purchase-orders/{orderId}/revise
 ```
+
+V0.3-D creates Purchase Orders only from unused line-level Supplier Awards. One PO revision belongs to one Company, one Project and one Supplier. Initial lines copy the exact PR → RFQ → Supplier Quotation → Supplier Award source identifiers and commercial snapshots; a selected award cannot be assigned to a different PO identity.
+
+PO identity uses the approved Company-scoped sequence code `PURCHASE_ORDER` with `POYYMM-###` and MONTHLY reset. The PO number remains stable across revisions and `revisionNo` is the immutable version discriminator. A new revision can originate only from the latest active APPROVED revision and retains the prior revision link.
+
+Draft revisions may edit controlled commercial/allocation fields. Quantity remains positive and cannot exceed the selected Supplier Award quantity; amount is server-derived as quantity × unit price. WBS remains same-Project, Cost Code remains same-Company, and Required-on-Site / Expected Delivery are procurement-owned line dates. These dates never mutate Scheduling-owned Activity dates.
+
+Submission attaches a configured `PURCHASE_ORDER` Approval Matrix. Maker-checker and Project scope are backend enforced. Submitted and approved revisions are immutable commercial history; rejection is retained history, cancellation records actor/time/reason, and a later approved revision never rewrites an earlier approved revision.
+
+Stage D business permissions are `procurement.po.view/create/edit/submit/approve/reject/cancel/revise`. They are explicit business authorities and are not implicitly granted to technical `SYS_ADMIN`.
+
+V0.3-D retains approved PO values and source traceability only. It does not post Goods Receipt/Inventory, Supplier Invoice/Finance, Actual Cost, a V0.7 Committed Cost ledger, tax/VAT, FX, or Stage E procurement schedule-risk classification.
 
 ---
 
