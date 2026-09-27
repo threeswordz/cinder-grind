@@ -676,6 +676,11 @@ test('V0.3-C RFQ / Quotations preserves approved-demand sourcing, comparison and
         ?.remainingAwardQuantity.toString(),
       '0',
     );
+    assert.equal(
+      demandAfterAwards.some((line) => 'rfqLines' in line),
+      false,
+      'Approved-demand response must not expose nested Supplier Award details.',
+    );
 
     await assert.rejects(
       () =>
