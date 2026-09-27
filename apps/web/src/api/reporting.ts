@@ -140,6 +140,7 @@ export type ProcurementReport = {
       quotationCount: number;
       quotations: Array<{
         id: string;
+        supplierQuotationLineId: string;
         supplierReference: string | null;
         quotationDate: string;
         validityDate: string | null;
