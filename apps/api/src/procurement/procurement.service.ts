@@ -40,6 +40,7 @@ type PurchaseRequestDb = Pick<
   | 'wbsElement'
   | 'costCode'
   | 'activity'
+  | 'user'
 >;
 
 @Injectable()
@@ -293,6 +294,26 @@ export class ProcurementService {
         return { ...row, lifecycleState: 'DRAFT' as const };
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+    );
+  }
+
+  async copyRejected(
+    context: AuditContext,
+    requestId: string,
+    remarks?: string | null,
+  ) {
+    const source = await this.getRequest(context.auth, requestId);
+    if (source.lifecycleState !== APPROVAL_STATE.REJECTED) {
+      throw new ConflictException({
+        code: 'PR_COPY_SOURCE_INVALID',
+        detail: 'Only a rejected Purchase Request can be copied into a new Draft.',
+      });
+    }
+    return this.createRequest(
+      context,
+      source.projectId,
+      remarks === undefined ? source.remarks : remarks,
+      source.id,
     );
   }
 
@@ -730,7 +751,7 @@ export class ProcurementService {
       where: { id: requestId, companyId: auth.companyId },
     });
     if (!row) throw this.requestNotFound();
-    await this.access.assertAccess(auth, row.projectId, db as Prisma.TransactionClient);
+    await this.access.assertAccess(auth, row.projectId, db);
     this.assertDraft(row);
     return row;
   }
