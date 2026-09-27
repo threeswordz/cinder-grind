@@ -9,6 +9,8 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { ProjectsModule } from '../projects/projects.module';
 import { ProcurementController } from './procurement.controller';
 import { ProcurementService } from './procurement.service';
+import { SourcingController } from './sourcing.controller';
+import { SourcingService } from './sourcing.service';
 
 @Module({
   imports: [
@@ -20,8 +22,8 @@ import { ProcurementService } from './procurement.service';
     ApprovalModule,
     AdministrationModule,
   ],
-  controllers: [ProcurementController],
-  providers: [ProcurementService],
-  exports: [ProcurementService],
+  controllers: [ProcurementController, SourcingController],
+  providers: [ProcurementService, SourcingService],
+  exports: [ProcurementService, SourcingService],
 })
 export class ProcurementModule {}
