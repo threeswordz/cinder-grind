@@ -1042,7 +1042,227 @@ check(
   'Configured checker could not approve the Purchase Request.',
 );
 
-const rejectedCandidate = await request(
+const approvedDemand = await request(
+  pm,
+  '/procurement/projects/' + projectId + '/approved-demand',
+);
+check(
+  approvedDemand.data.data.some((line) => line.id === prMaterialLine.data.data.id) &&
+    approvedDemand.data.data.some((line) => line.id === prServiceLine.data.data.id),
+  'V0.3-C approved-demand selector did not expose active approved PR lines.',
+);
+
+const sourcingRfq = await request(
+  pm,
+  '/procurement/projects/' + projectId + '/rfqs',
+  {
+    method: 'POST',
+    json: {
+      closingDate: '2026-10-11',
+      remarks: 'Automated supplier sourcing ' + suffix,
+      lines: [
+        {
+          purchaseRequestLineId: prMaterialLine.data.data.id,
+          quantity: '10',
+        },
+        {
+          purchaseRequestLineId: prServiceLine.data.data.id,
+          quantity: '2',
+        },
+      ],
+    },
+    expected: 201,
+  },
+);
+const sourcingRfqId = sourcingRfq.data.data.id;
+check(
+  /^RFQ\d{4}-\d{3}$/.test(sourcingRfq.data.data.rfqNumber) &&
+    sourcingRfq.data.data.lines.length === 2,
+  'RFQ did not receive approved immutable numbering and PR-line source traceability.',
+);
+
+await request(pm, '/procurement/rfqs/' + sourcingRfqId + '/suppliers', {
+  method: 'POST',
+  json: { supplierId: sourcingSupplierA.data.data.id },
+  expected: 201,
+});
+await request(pm, '/procurement/rfqs/' + sourcingRfqId + '/suppliers', {
+  method: 'POST',
+  json: { supplierId: sourcingSupplierB.data.data.id },
+  expected: 201,
+});
+
+const quotationA = await request(
+  pm,
+  '/procurement/rfqs/' + sourcingRfqId + '/quotations',
+  {
+    method: 'POST',
+    json: {
+      supplierId: sourcingSupplierA.data.data.id,
+      supplierReference: 'QA-' + suffix,
+      quotationDate: '2026-10-08',
+      validityDate: '2026-10-31',
+      remarks: 'Supplier A quotation',
+    },
+    expected: 201,
+  },
+);
+const quotationB = await request(
+  pm,
+  '/procurement/rfqs/' + sourcingRfqId + '/quotations',
+  {
+    method: 'POST',
+    json: {
+      supplierId: sourcingSupplierB.data.data.id,
+      supplierReference: 'QB-' + suffix,
+      quotationDate: '2026-10-08',
+      validityDate: '2026-10-31',
+      remarks: 'Supplier B quotation',
+    },
+    expected: 201,
+  },
+);
+
+const sourcingRfqDetail = await request(
+  pm,
+  '/procurement/rfqs/' + sourcingRfqId,
+);
+const sourcingMaterialLine = sourcingRfqDetail.data.data.lines.find(
+  (line) => line.purchaseRequestLineId === prMaterialLine.data.data.id,
+);
+const sourcingServiceLine = sourcingRfqDetail.data.data.lines.find(
+  (line) => line.purchaseRequestLineId === prServiceLine.data.data.id,
+);
+check(
+  sourcingMaterialLine && sourcingServiceLine,
+  'RFQ detail did not preserve both source PR lines.',
+);
+
+const qaMaterial = await request(
+  pm,
+  '/procurement/quotations/' +
+    quotationA.data.data.id +
+    '/lines/' +
+    sourcingMaterialLine.id,
+  {
+    method: 'PUT',
+    json: { quantity: '10', unitPrice: '10', remarks: 'A material offer' },
+  },
+);
+const qaService = await request(
+  pm,
+  '/procurement/quotations/' +
+    quotationA.data.data.id +
+    '/lines/' +
+    sourcingServiceLine.id,
+  {
+    method: 'PUT',
+    json: { quantity: '2', unitPrice: '90', remarks: 'A service offer' },
+  },
+);
+const qbMaterial = await request(
+  pm,
+  '/procurement/quotations/' +
+    quotationB.data.data.id +
+    '/lines/' +
+    sourcingMaterialLine.id,
+  {
+    method: 'PUT',
+    json: { quantity: '10', unitPrice: '9', remarks: 'B material offer' },
+  },
+);
+await request(
+  pm,
+  '/procurement/quotations/' +
+    quotationB.data.data.id +
+    '/lines/' +
+    sourcingServiceLine.id,
+  {
+    method: 'PUT',
+    json: { quantity: '2', unitPrice: '110', remarks: 'B service offer' },
+  },
+);
+
+const sourcingComparison = await request(
+  pm,
+  '/procurement/rfqs/' + sourcingRfqId + '/comparison',
+);
+check(
+  sourcingComparison.data.data.lines.length === 2 &&
+    sourcingComparison.data.data.suppliers.length === 2 &&
+    sourcingComparison.data.data.lines
+      .find((line) => line.id === sourcingMaterialLine.id)
+      ?.offers.some(
+        (offer) =>
+          offer.supplierId === sourcingSupplierB.data.data.id &&
+          String(offer.unitPrice) === '9',
+      ),
+  'Derived quotation comparison did not reflect canonical Supplier quotation data.',
+);
+
+const materialSourcingAward = await request(
+  pm,
+  '/procurement/rfq-lines/' + sourcingMaterialLine.id + '/award',
+  {
+    method: 'POST',
+    json: {
+      supplierQuotationLineId: qbMaterial.data.data.id,
+      decisionReason: 'Lower material commercial offer.',
+    },
+    expected: 201,
+  },
+);
+const serviceSourcingAward = await request(
+  pm,
+  '/procurement/rfq-lines/' + sourcingServiceLine.id + '/award',
+  {
+    method: 'POST',
+    json: {
+      supplierQuotationLineId: qaService.data.data.id,
+      decisionReason: 'Selected Supplier A for service value.',
+    },
+    expected: 201,
+  },
+);
+check(
+  materialSourcingAward.data.data.supplierId === sourcingSupplierB.data.data.id &&
+    serviceSourcingAward.data.data.supplierId === sourcingSupplierA.data.data.id,
+  'Line-level Supplier Award did not support different Suppliers across RFQ lines.',
+);
+
+await request(
+  pm,
+  '/procurement/quotations/' +
+    quotationB.data.data.id +
+    '/lines/' +
+    sourcingMaterialLine.id,
+  {
+    method: 'PUT',
+    json: { quantity: '10', unitPrice: '8' },
+    expected: 409,
+  },
+);
+
+const demandAfterSourcingAward = await request(
+  pm,
+  '/procurement/projects/' + projectId + '/approved-demand',
+);
+check(
+  String(
+    demandAfterSourcingAward.data.data.find(
+      (line) => line.id === prMaterialLine.data.data.id,
+    )?.awardedQuantity,
+  ) === '10' &&
+    String(
+      demandAfterSourcingAward.data.data.find(
+        (line) => line.id === prServiceLine.data.data.id,
+      )?.awardedQuantity,
+    ) === '2',
+  'Approved demand did not derive awarded quantities from line-level Supplier Awards.',
+);
+record('V0.3-C RFQ, multi-Supplier quotations, derived comparison and split line-level Supplier Awards');
+
+const rejectedCandidate = await request
   pm,
   '/procurement/projects/' + projectId + '/purchase-requests',
   {
