@@ -495,6 +495,14 @@ test('V0.3-C RFQ / Quotations preserves approved-demand sourcing, comparison and
       '8.5',
     );
 
+    await prisma.supplier.update({
+      where: { id: supplierB.id },
+      data: {
+        supplierCode: 'SUP-B-RENAMED-' + suffix,
+        supplierName: 'Supplier B Renamed',
+      },
+    });
+
     const materialAward = await sourcing.selectAward(
       { auth: makerAuth },
       rfqMaterialLine.id,
@@ -508,6 +516,11 @@ test('V0.3-C RFQ / Quotations preserves approved-demand sourcing, comparison and
       'Selected Supplier A for service capability.',
     );
     assert.equal(materialAward.supplierId, supplierB.id);
+    assert.equal(
+      materialAward.supplierCodeSnapshot,
+      'SUP-B-' + suffix,
+    );
+    assert.equal(materialAward.supplierNameSnapshot, 'Supplier B');
     assert.equal(serviceAward.supplierId, supplierA.id);
     assert.equal(materialAward.quantity.toString(), '5');
     assert.equal(materialAward.unitPrice.toString(), '8.5');
