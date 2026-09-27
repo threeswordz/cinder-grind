@@ -1362,57 +1362,80 @@ Database guards enforce same-Company/same-Project source integrity, active APPRO
 
 ## 10.6 `purchase_orders`
 
+V0.3-D implements PO version history as retained Purchase Order revision rows rather than a mutable current header plus a separate JSON snapshot ledger.
+
+Key columns:
+
 - id PK
 - company_id FK
-- po_number
+- project_id FK
 - supplier_id FK
-- po_date
-- supplier_reference, nullable
-- approval_state
-- current_revision_no
-- total_amount
-- standard audit columns
-- UNIQUE(company_id, po_number)
+- po_number
+- revision_no
+- previous_revision_id FK to `purchase_orders`, nullable for revision 0
+- revision_reason, nullable
+- remarks, nullable
+- approval_instance_id FK, nullable
+- created_by_user_id FK
+- submitted_by_user_id / submitted_at, nullable until submission
+- cancelled_by_user_id / cancelled_at / cancellation_reason, nullable until cancellation
+- created_at / updated_at
+- UNIQUE(company_id, po_number, revision_no)
+- UNIQUE(previous_revision_id)
+- UNIQUE(approval_instance_id)
 
-### `purchase_order_items`
+The Company-scoped `po_number` is stable across the revision chain. Revision 0 has no predecessor. Revision N must point to the immediately preceding active APPROVED revision with the same Company, Project, Supplier and PO number. Earlier approved revisions remain immutable retained commercial evidence.
+
+### `purchase_order_lines`
+
+Key columns:
 
 - id PK
 - purchase_order_id FK
 - line_no
-- source_purchase_request_item_id FK, nullable
-- source_supplier_quotation_item_id FK, nullable
-- project_id FK
-- wbs_id FK, nullable
-- cost_code_id FK, nullable
-- material_id FK, nullable
+- quotation_award_id FK
+- purchase_request_line_id FK
+- rfq_id FK
+- rfq_line_id FK
+- supplier_quotation_id FK
+- supplier_quotation_line_id FK
+- line_type
+- material_id FK, nullable for SERVICE
+- material_code_snapshot, nullable for SERVICE
 - description
 - quantity
 - uom_id FK
+- uom_code_snapshot
 - unit_price
 - amount
-- required_on_site_date, nullable
-- expected_delivery_date, nullable
-- line_status, nullable
+- wbs_id FK, nullable
+- cost_code_id FK, nullable
+- required_on_site, nullable
+- expected_delivery, nullable
+- remarks, nullable
+- created_at / updated_at
 - UNIQUE(purchase_order_id, line_no)
+- UNIQUE(purchase_order_id, quotation_award_id)
 
-Approved PO line amounts become **Committed Cost**.
+Each line retains the full PR → RFQ → Supplier Quotation → Supplier Award source chain. Initial source identity and item/UOM snapshots must match the selected award and source PR line. Source identity remains immutable through later PO revisions.
 
-They do not become Actual Cost merely because the PO is approved.
+Database guards enforce:
 
-### `purchase_order_revision_snapshots`
+- one Company / Project / Supplier scope per PO revision
+- same-Project WBS and same-Company Cost Code / Material / UOM references
+- exact selected-award source traceability
+- an award cannot be assigned to a different PO number
+- positive quantity and quantity not exceeding the selected Supplier Award quantity
+- `amount = quantity × unit_price`
+- Draft-only direct line mutation/deletion
+- submitted/cancelled PO history immutability
+- retained cancellation actor/time/reason
+- valid sequential revision chain from an active approved prior revision
+- no physical deletion of Purchase Order history after lifecycle progression
 
-- id PK
-- purchase_order_id FK
-- revision_no
-- approved_at
-- approved_by_user_id FK
-- snapshot_data jsonb
-- created_at
-- UNIQUE(purchase_order_id, revision_no)
+Required-on-Site and Expected Delivery are retained procurement line dates only. They do not update Scheduling-owned Activity dates.
 
-The operational source remains `purchase_orders` + `purchase_order_items`.
-
-The snapshot table is immutable historical evidence of approved revisions.
+V0.3-D does **not** create the V0.7 Committed Cost ledger/read model, Actual Cost, Goods Receipt/stock transactions or Finance postings. Later releases may derive those measures from approved PO history without changing Stage D ownership.
 
 ---
 
