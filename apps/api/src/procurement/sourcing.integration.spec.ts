@@ -556,6 +556,15 @@ test('V0.3-C RFQ / Quotations preserves approved-demand sourcing, comparison and
     );
     assert.equal(correctedBMaterial.amount.toString(), '42.5');
 
+    await assert.rejects(
+      () =>
+        prisma.supplierQuotationLine.update({
+          where: { id: correctedBMaterial.id },
+          data: { lineNo: 99 },
+        }),
+      'Supplier Quotation line identity must remain immutable during direct database corrections.',
+    );
+
     const comparison = await sourcing.comparison(makerAuth, rfq.id);
     assert.equal(comparison.lines.length, 2);
     assert.equal(comparison.suppliers.length, 2);
@@ -707,6 +716,11 @@ test('V0.3-C RFQ / Quotations preserves approved-demand sourcing, comparison and
       /supplier-quotation:/,
       'Quotation-line guard must use the shared Supplier Quotation lock key.',
     );
+    assert.match(
+      quotationLineGuardDefinition[0]?.definition ?? '',
+      /Supplier Quotation line identity is immutable/,
+      'Database guard must freeze Supplier Quotation line source identity.',
+    );
 
     const quotationHeaderGuardDefinition = await prisma.$queryRaw<
       Array<{ definition: string }>
@@ -802,12 +816,49 @@ test('V0.3-C RFQ / Quotations preserves approved-demand sourcing, comparison and
         unitPrice: new Prisma.Decimal('9.5'),
       },
     );
-    const secondAward = await sourcing.selectAward(
-      { auth: makerAuth },
-      secondDetail.lines[0]!.id,
-      correctedSecond.id,
-      'Award remaining approved quantity.',
+    const concurrentAwardResults = await Promise.allSettled([
+      sourcing.selectAward(
+        { auth: makerAuth },
+        secondDetail.lines[0]!.id,
+        correctedSecond.id,
+        'Award remaining approved quantity.',
+      ),
+      sourcing.selectAward(
+        { auth: makerAuth },
+        secondDetail.lines[0]!.id,
+        correctedSecond.id,
+        'Concurrent duplicate award attempt.',
+      ),
+    ]);
+    const successfulAwards = concurrentAwardResults.filter(
+      (result) => result.status === 'fulfilled',
     );
+    const failedAwards = concurrentAwardResults.filter(
+      (result) => result.status === 'rejected',
+    );
+    assert.equal(
+      successfulAwards.length,
+      1,
+      'Concurrent award attempts must create exactly one Supplier Award.',
+    );
+    assert.equal(
+      failedAwards.length,
+      1,
+      'Concurrent duplicate award must fail once.',
+    );
+    const successfulAward = successfulAwards[0];
+    if (!successfulAward || successfulAward.status !== 'fulfilled') {
+      throw new Error('Expected one successful concurrent Supplier Award.');
+    }
+    const failedAward = failedAwards[0];
+    if (!failedAward || failedAward.status !== 'rejected') {
+      throw new Error('Expected one rejected concurrent Supplier Award.');
+    }
+    assert.ok(
+      failedAward.reason instanceof ConflictException,
+      'Concurrent duplicate award must return a controlled conflict.',
+    );
+    const secondAward = successfulAward.value;
     assert.equal(secondAward.quantity.toString(), '5');
 
     const demandAfterAwards = await sourcing.approvedDemand(
