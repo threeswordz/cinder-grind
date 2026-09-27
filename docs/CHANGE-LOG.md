@@ -1,3 +1,13 @@
+## 2026-09-27 — V0.3-C RFQ / Quotations completed
+
+- PROC-004 through PROC-008 delivered with RFQ, Supplier invitations, Supplier Quotations, comparison and line-level Supplier Awards.
+- PR #70 merged as `3ba9164b0edab46d0eecc305540d4f3e9840627e`.
+- branch CI #1147 and exact-head PR CI #1148 passed on `9f667b17bfe9c1e8dfc957fa35620f7f5a2b9b70`.
+- post-merge main CI #1150 passed.
+- review hardening covered authorization/redaction, award referential integrity, quotation-only access, date validation and concurrency-safe commercial snapshots.
+- Purchase Order, schedule-risk, committed-cost ledger, Inventory and Finance scope was not pulled forward.
+- next stage is V0.3-D Purchase Order pre-flight under PROC-009 through PROC-017 and BR-V03-11 through BR-V03-14.
+
 ## 2026-09-27 — V0.3-B Purchase Request completed
 
 - PROC-001 through PROC-003 delivered, including Stage-B Required-on-Site demand context.
