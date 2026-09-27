@@ -907,8 +907,10 @@ export class SourcingService {
     supplierQuotationLineId: string,
     decisionReason?: string | null,
   ) {
-    return this.prisma.$transaction(
-      async (tx) => {
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      try {
+        return await this.prisma.$transaction(
+          async (tx) => {
         const initialLine = await tx.rfqLine.findFirst({
           where: {
             id: rfqLineId,
@@ -1117,9 +1119,59 @@ export class SourcingService {
           tx,
         );
         return award;
-      },
-      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
-    );
+          },
+          {
+            isolationLevel:
+              Prisma.TransactionIsolationLevel.Serializable,
+          },
+        );
+      } catch (error) {
+        if (
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === 'P2034' &&
+          attempt === 0
+        ) {
+          continue;
+        }
+
+        if (
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          (error.code === 'P2002' || error.code === 'P2034')
+        ) {
+          const existing = await this.prisma.quotationAward.findFirst({
+            where: {
+              rfqLineId,
+              rfq: {
+                companyId: context.auth.companyId,
+              },
+            },
+            select: { id: true },
+          });
+
+          if (existing) {
+            throw new ConflictException({
+              code: 'RFQ_LINE_ALREADY_AWARDED',
+              detail:
+                'This RFQ line already has a Supplier Award.',
+            });
+          }
+
+          throw new ConflictException({
+            code: 'AWARD_CONCURRENCY_CONFLICT',
+            detail:
+              'Supplier Award changed concurrently. Reload the RFQ and try again.',
+          });
+        }
+
+        throw error;
+      }
+    }
+
+    throw new ConflictException({
+      code: 'AWARD_CONCURRENCY_CONFLICT',
+      detail:
+        'Supplier Award changed concurrently. Reload the RFQ and try again.',
+    });
   }
 
   private async assertRfqClosingDate(
