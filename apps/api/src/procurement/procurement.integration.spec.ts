@@ -285,6 +285,7 @@ test('V0.3-B Purchase Requests preserve demand, approval and retained history', 
       },
     );
     assert.equal(materialLine.lineNo, 1);
+    assert.equal(materialLine.materialCodeSnapshot, material.materialCode);
     assert.equal(materialLine.description, material.materialName);
 
     const serviceLine = await service.createLine(
@@ -366,6 +367,40 @@ test('V0.3-B Purchase Requests preserve demand, approval and retained history', 
       'Revise the demand.',
     );
     assert.equal(rejected.lifecycleState, 'REJECTED');
+    const rejectedDetail = await service.getRequest(makerAuth, draft.id);
+    assert.equal(rejectedDetail.approvalInstance?.actions.length, 1);
+    assert.equal(
+      rejectedDetail.approvalInstance?.actions[0]?.action,
+      'REJECT',
+    );
+    assert.equal(
+      rejectedDetail.approvalInstance?.actions[0]?.comment,
+      'Revise the demand.',
+    );
+    assert.equal(
+      rejectedDetail.approvalInstance?.actions[0]?.actionByUser.id,
+      checker.id,
+    );
+
+    await prisma.material.update({
+      where: { id: material.id },
+      data: {
+        materialCode: 'STEEL-RENAMED-' + suffix,
+        materialName: 'Renamed reinforcement steel',
+      },
+    });
+    const immutableMaterialHistory = await service.getRequest(
+      makerAuth,
+      draft.id,
+    );
+    assert.equal(
+      immutableMaterialHistory.lines[0]?.materialCodeSnapshot,
+      'STEEL-' + suffix,
+    );
+    assert.equal(
+      immutableMaterialHistory.lines[0]?.description,
+      'Reinforcement steel',
+    );
 
     const afterRejectActivity = await prisma.activity.findUniqueOrThrow({
       where: { id: activity.id },
@@ -389,6 +424,11 @@ test('V0.3-B Purchase Requests preserve demand, approval and retained history', 
     const copiedDetail = await service.getRequest(makerAuth, copied.id);
     assert.equal(copiedDetail.lines.length, 2);
     assert.equal(copiedDetail.sourceRequest?.id, draft.id);
+    assert.equal(
+      copiedDetail.lines[0]?.materialCodeSnapshot,
+      'STEEL-' + suffix,
+    );
+    assert.equal(copiedDetail.lines[0]?.description, 'Reinforcement steel');
 
     const cancelledDraft = await service.cancelRequest(
       { auth: makerAuth },
@@ -437,6 +477,70 @@ test('V0.3-B Purchase Requests preserve demand, approval and retained history', 
       where: { id: approved.approvalInstance!.id },
     });
     assert.equal(retainedApproval.approvalState, 'APPROVED');
+
+    const multiApprovalWorkflow = await prisma.approvalWorkflow.create({
+      data: {
+        companyId: company.id,
+        workflowCode: 'PR_MULTI_' + suffix,
+        entityType: 'PURCHASE_REQUEST',
+        workflowName: 'Purchase Request Multi Approval',
+        steps: {
+          create: [
+            {
+              stepNo: 1,
+              stepName: 'Two-person Procurement Approval',
+              requiredApprovals: 2,
+              stepRoles: {
+                create: [{ roleId: approverRole.id }],
+              },
+            },
+          ],
+        },
+      },
+    });
+    const partialDraft = await service.createRequest(
+      { auth: makerAuth },
+      project.id,
+      'Partial approval cancellation candidate',
+    );
+    await service.createLine(
+      { auth: makerAuth },
+      partialDraft.id,
+      {
+        lineType: 'SERVICE',
+        description: 'Temporary access service',
+        quantity: new Prisma.Decimal('1'),
+        uomId: uom.id,
+      },
+    );
+    await service.submitRequest(
+      { auth: makerAuth },
+      partialDraft.id,
+      multiApprovalWorkflow.workflowCode,
+    );
+    const partiallyApproved = await service.approveRequest(
+      { auth: checkerAuth },
+      partialDraft.id,
+      'First of two approvals.',
+    );
+    assert.equal(partiallyApproved.lifecycleState, 'SUBMITTED');
+    const cancelledAfterPartialApproval = await service.cancelRequest(
+      { auth: checkerAuth },
+      partialDraft.id,
+    );
+    assert.equal(cancelledAfterPartialApproval.lifecycleState, 'CANCELLED');
+    const partialActions = await prisma.approvalAction.findMany({
+      where: {
+        approvalInstanceId: partiallyApproved.approvalInstance!.id,
+        actionByUserId: checker.id,
+      },
+      orderBy: { actionAt: 'asc' },
+      select: { action: true },
+    });
+    assert.deepEqual(
+      partialActions.map((action) => action.action),
+      ['APPROVE', 'CANCEL'],
+    );
 
     await assert.rejects(
       () => service.listRequests(outsiderAuth, project.id),
