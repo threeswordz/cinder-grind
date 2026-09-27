@@ -7,16 +7,6 @@ VALUES
   (gen_random_uuid(),'procurement.award.select','PROCUREMENT','Record line-level Supplier Award decisions')
 ON CONFLICT ("permission_code") DO NOTHING;
 
--- Technical SYS_ADMIN receives Stage C read/maintenance permissions for support,
--- but not the commercial Supplier Award selection authority.
-INSERT INTO "role_permissions" ("id","role_id","permission_id")
-SELECT gen_random_uuid(),r.id,p.id
-FROM "roles" r
-JOIN "permissions" p ON p."permission_code" IN (
-  'procurement.rfq.view',
-  'procurement.rfq.manage',
-  'procurement.quotation.view',
-  'procurement.quotation.manage'
-)
-WHERE r."role_code"='SYS_ADMIN'
-ON CONFLICT ("role_id","permission_id") DO NOTHING;
+-- Stage C sourcing permissions are business authorities and are not assigned
+-- implicitly to the technical SYS_ADMIN role. Business roles receive them
+-- explicitly through Administration role configuration.
