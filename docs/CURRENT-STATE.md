@@ -4,9 +4,9 @@
 **Source of truth:** Live GitHub repository state
 
 - Current Release: V0.3 Procurement
-- Current Stage: V0.3-B Purchase Request — PRE-FLIGHT
+- Current Stage: V0.3-B Purchase Request — IMPLEMENTATION AUTHORIZED
 - Completed Stages: V0.1-A Technical Skeleton; V0.1-B Company / Identity / Security; V0.1-C Administration; V0.1-D Master Data; V0.1-E Projects; V0.1-F WBS & Cost Codes; V0.1-G Basic Documents; V0.1-H Integration / Regression / UAT; V0.2-A Scheduling Data Model; V0.2-B Scheduling Engine; V0.2-C Baselines / Progress; V0.2-D Gantt / Lookahead; V0.2-E Site Execution; V0.2-F Equipment; V0.2-G UAT Reference Programme
-- Active Issue: #62 — V0.3-B Purchase Request — Pre-flight / Numbering Decision
+- Active Issue: #62 — V0.3-B Purchase Request — Pre-flight / Numbering Decision (approved; closure pending merge)
 - Completed Issue: #59 — V0.3-A BOQ & Budget
 - Completed Branch: `v0.3-a-boq-budget`
 - Merged PR: #60 — V0.3-A: BOQ & Budget
@@ -54,7 +54,7 @@
 - V0.1 cross-module release acceptance scenario: PASS in the Stage H release-candidate regression suite.
 - Open defect check at V0.1 acceptance: no Severity 1 or Severity 2 release-blocking defect recorded.
 - Governance: `AGENTS.md`, `docs/PROJECT-GOVERNANCE.md`, PR governance checklist and DEC-008 are active; material decisions must pass the repository pre-flight and open-source/zero-cost-first constraint.
-- Next action: Product / Business Owner approves the BR-V03-17 numbering baseline proposed in Issue #62; then open V0.3-B Purchase Request implementation.
+- Next action: merge the approved V0.3-B numbering pre-flight, close Issue #62, then open V0.3-B Purchase Request implementation under PROC-001–PROC-003 and BR-V03-05 through BR-V03-07.
 
 ## Stage E completed
 
@@ -526,4 +526,4 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
   - Purchase Request: `PRYYMM-###` / MONTHLY
   - RFQ: `RFQYYMM-###` / MONTHLY
   - Purchase Order: `POYYMM-###` / MONTHLY
-- no V0.3-B production implementation begins until this numbering baseline is explicitly approved.
+- Product / Business Owner explicitly approved this numbering baseline on 2026-09-27; V0.3-B Purchase Request implementation is authorized after the pre-flight PR is merged.
