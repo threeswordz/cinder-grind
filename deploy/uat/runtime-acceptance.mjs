@@ -90,7 +90,11 @@ async function logout(session) {
 const admin = await login(adminEmail, adminPassword);
 const me = await request(admin, '/auth/me');
 check(me.data.data.email === adminEmail.toLowerCase(), 'Authenticated administrator identity mismatch.');
-record('administrator login and current-user endpoint');
+check(
+  !me.data.data.permissions.includes('procurement.pr.cancel'),
+  'SYS_ADMIN must not implicitly receive Purchase Request cancellation authority.',
+);
+record('administrator login, current-user endpoint and technical-role business-authority separation');
 
 const status = await request(admin, '/admin/statuses', {
   method: 'POST',
