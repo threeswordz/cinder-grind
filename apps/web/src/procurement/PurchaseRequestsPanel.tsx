@@ -82,8 +82,8 @@ export function PurchaseRequestsPanel({
   };
 
   const createRequest = useMutation({
-    mutationFn: () =>
-      procurementApi.createRequest(projectId, remarks.trim() || null),
+    mutationFn: (initialRemarks: string | null) =>
+      procurementApi.createRequest(projectId, initialRemarks),
     onSuccess: async (result) => {
       setRequestId(result.data.id);
       await refresh();
@@ -287,7 +287,7 @@ export function PurchaseRequestsPanel({
                     disabled={createRequest.isPending}
                     onClick={() => {
                       setRemarks('');
-                      createRequest.mutate();
+                      createRequest.mutate(null);
                     }}
                   >
                     New PR
@@ -436,7 +436,7 @@ export function PurchaseRequestsPanel({
                         {line.material
                           ? line.material.materialCode +
                             ' · ' +
-                            line.material.materialName
+                            line.description
                           : line.description}
                       </Typography>
                       <Chip size="small" label={line.lineType} />
