@@ -413,6 +413,8 @@ V0.3-C enforcement uses:
 
 ### Purchase Order
 
+V0.3-D enforcement uses:
+
 - `procurement.po.view`
 - `procurement.po.create`
 - `procurement.po.edit`
@@ -421,6 +423,10 @@ V0.3-C enforcement uses:
 - `procurement.po.reject`
 - `procurement.po.cancel`
 - `procurement.po.revise`
+
+`procurement.po.create` creates a Draft PO only from eligible line-level Supplier Awards in an accessible Project. `procurement.po.edit` changes Draft commercial/allocation/delivery fields only. `procurement.po.submit` starts the configured `PURCHASE_ORDER` Approval Matrix. `procurement.po.approve` and `procurement.po.reject` are separate business authorities and remain subject to maker-checker and Project scope. `procurement.po.revise` creates a new Draft version from the latest active approved revision; it never rewrites prior approved history. `procurement.po.cancel` retains actor/time/reason evidence.
+
+All PO business permissions require explicit business-Role assignment. The technical `SYS_ADMIN` role is deliberately not granted implicit PO create/edit/submit/approve/reject/cancel/revise authority.
 
 ---
 
