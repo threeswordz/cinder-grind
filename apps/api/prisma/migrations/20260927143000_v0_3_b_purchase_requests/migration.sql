@@ -4,6 +4,7 @@ CREATE TABLE "purchase_requests" (
   "project_id" UUID NOT NULL,
   "pr_number" VARCHAR(120) NOT NULL,
   "remarks" TEXT,
+  "source_request_id" UUID,
   "approval_instance_id" UUID,
   "created_by_user_id" UUID NOT NULL,
   "submitted_by_user_id" UUID,
@@ -17,6 +18,7 @@ CREATE TABLE "purchase_requests" (
   CONSTRAINT "purchase_requests_company_id_pr_number_key" UNIQUE ("company_id","pr_number"),
   CONSTRAINT "purchase_requests_company_id_fkey" FOREIGN KEY ("company_id") REFERENCES "companies"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
   CONSTRAINT "purchase_requests_project_id_fkey" FOREIGN KEY ("project_id") REFERENCES "projects"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
+  CONSTRAINT "purchase_requests_source_request_id_fkey" FOREIGN KEY ("source_request_id") REFERENCES "purchase_requests"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
   CONSTRAINT "purchase_requests_approval_instance_id_fkey" FOREIGN KEY ("approval_instance_id") REFERENCES "approval_instances"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
   CONSTRAINT "purchase_requests_created_by_user_id_fkey" FOREIGN KEY ("created_by_user_id") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
   CONSTRAINT "purchase_requests_submitted_by_user_id_fkey" FOREIGN KEY ("submitted_by_user_id") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
@@ -29,6 +31,8 @@ CREATE INDEX "purchase_requests_submitted_by_user_id_idx"
   ON "purchase_requests"("submitted_by_user_id");
 CREATE INDEX "purchase_requests_cancelled_by_user_id_idx"
   ON "purchase_requests"("cancelled_by_user_id");
+CREATE INDEX "purchase_requests_source_request_id_idx"
+  ON "purchase_requests"("source_request_id");
 
 CREATE TABLE "purchase_request_lines" (
   "id" UUID NOT NULL DEFAULT gen_random_uuid(),
@@ -142,6 +146,7 @@ BEGIN
      OR NEW."project_id" <> OLD."project_id"
      OR NEW."pr_number" <> OLD."pr_number"
      OR NEW."created_by_user_id" <> OLD."created_by_user_id"
+     OR NEW."source_request_id" IS DISTINCT FROM OLD."source_request_id"
      OR NEW."created_at" <> OLD."created_at" THEN
     RAISE EXCEPTION 'Purchase Request identity is immutable';
   END IF;
