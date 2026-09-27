@@ -20,6 +20,7 @@ function date(value: string | null) {
 export function ProcurementReport() {
   const [projectId, setProjectId] = useState('');
   const [risk, setRisk] = useState('ALL');
+  const [status, setStatus] = useState('ALL');
   const [search, setSearch] = useState('');
 
   const projects = useQuery({
@@ -36,6 +37,15 @@ export function ProcurementReport() {
     const needle = search.trim().toLowerCase();
     return (report.data?.data.lines ?? []).filter((line) => {
       if (risk !== 'ALL' && line.scheduleRisk !== risk) return false;
+      if (
+        status !== 'ALL' &&
+        line.pr.lifecycleState !== status &&
+        !line.purchaseOrders.some(
+          (item) => item.lifecycleState === status,
+        )
+      ) {
+        return false;
+      }
       if (!needle) return true;
       return [
         line.pr.prNumber,
@@ -48,7 +58,7 @@ export function ProcurementReport() {
         .toLowerCase()
         .includes(needle);
     });
-  }, [report.data, risk, search]);
+  }, [report.data, risk, search, status]);
 
   const data = report.data?.data;
 
@@ -81,6 +91,20 @@ export function ProcurementReport() {
           <MenuItem value="AT_RISK">At risk</MenuItem>
           <MenuItem value="ON_TIME">On time</MenuItem>
           <MenuItem value="UNAVAILABLE">Unavailable</MenuItem>
+        </TextField>
+        <TextField
+          select
+          label="Status"
+          value={status}
+          onChange={(event) => setStatus(event.target.value)}
+          sx={{ minWidth: 180 }}
+        >
+          <MenuItem value="ALL">All</MenuItem>
+          <MenuItem value="DRAFT">Draft</MenuItem>
+          <MenuItem value="SUBMITTED">Submitted</MenuItem>
+          <MenuItem value="APPROVED">Approved</MenuItem>
+          <MenuItem value="REJECTED">Rejected</MenuItem>
+          <MenuItem value="CANCELLED">Cancelled</MenuItem>
         </TextField>
         <TextField
           label="Search"
@@ -153,12 +177,29 @@ export function ProcurementReport() {
                     </Typography>
                   ) : (
                     line.rfqs.map((rfq) => (
-                      <Typography key={rfq.rfqLineId} variant="body2">
-                        {rfq.rfqNumber} · {rfq.quotationCount} quotation(s) ·{' '}
-                        {rfq.award
-                          ? 'Awarded to ' + rfq.award.supplierNameSnapshot
-                          : 'Not awarded'}
-                      </Typography>
+                      <Stack key={rfq.rfqLineId} spacing={0.5}>
+                        <Typography variant="body2">
+                          {rfq.rfqNumber} · RFQ {date(rfq.rfqDate)} · closes{' '}
+                          {date(rfq.closingDate)} · {rfq.quotationCount}{' '}
+                          quotation(s) ·{' '}
+                          {rfq.award
+                            ? 'Awarded to ' +
+                              rfq.award.supplierNameSnapshot
+                            : 'Not awarded'}
+                        </Typography>
+                        {rfq.quotations.map((quotation) => (
+                          <Typography
+                            key={quotation.id}
+                            variant="caption"
+                            color="text.secondary"
+                          >
+                            Quotation · {quotation.supplier.supplierCode} ·{' '}
+                            {quotation.supplier.supplierName} ·{' '}
+                            {date(quotation.quotationDate)} · valid to{' '}
+                            {date(quotation.validityDate)}
+                          </Typography>
+                        ))}
+                      </Stack>
                     ))
                   )}
                   {line.purchaseOrders.map((po) => (
