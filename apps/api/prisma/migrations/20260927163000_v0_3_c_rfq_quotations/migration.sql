@@ -316,37 +316,29 @@ DECLARE
   creator_company UUID;
   updater_company UUID;
 BEGIN
-  SELECT rfl."purchase_request_line_id",prl."quantity",ai."approval_state",pr."cancelled_at"
-    INTO source_pr_line,source_pr_qty,source_pr_state,source_pr_cancelled
-  FROM "rfq_lines" rfl
-  JOIN "purchase_request_lines" prl ON prl."id" = rfl."purchase_request_line_id"
-  JOIN "purchase_requests" pr ON pr."id" = prl."purchase_request_id"
-  LEFT JOIN "approval_instances" ai ON ai."id" = pr."approval_instance_id"
-  WHERE rfl."id" = NEW."rfq_line_id";
+  SELECT "company_id"
+    INTO rfq_company
+  FROM "rfqs"
+  WHERE "id" = NEW."rfq_id";
 
-  IF source_pr_line IS NULL THEN
-    RAISE EXCEPTION 'Quotation Award source Purchase Request line not found';
-  END IF;
-  IF source_pr_state <> 'APPROVED' OR source_pr_cancelled IS NOT NULL THEN
-    RAISE EXCEPTION 'Quotation Award requires active approved Purchase Request demand';
-  END IF;
+  SELECT "company_id"
+    INTO creator_company
+  FROM "users"
+  WHERE "id" = NEW."created_by_user_id";
 
-  PERFORM pg_advisory_xact_lock(
-    hashtext('pr-demand-award:' || source_pr_line::text)
-  );
-  PERFORM pg_advisory_xact_lock(
-    hashtext('supplier-quotation:' || NEW."supplier_quotation_id"::text)
-  );
+  SELECT "company_id"
+    INTO updater_company
+  FROM "users"
+  WHERE "id" = NEW."updated_by_user_id";
 
-  SELECT "company_id" INTO rfq_company FROM "rfqs" WHERE "id" = NEW."rfq_id";
-  SELECT "company_id" INTO creator_company FROM "users" WHERE "id" = NEW."created_by_user_id";
-  SELECT "company_id" INTO updater_company FROM "users" WHERE "id" = NEW."updated_by_user_id";
   IF rfq_company IS NULL OR rfq_company <> NEW."company_id" THEN
     RAISE EXCEPTION 'Supplier Quotation Company must match RFQ Company';
   END IF;
   IF NOT EXISTS (
-    SELECT 1 FROM "rfq_suppliers"
-    WHERE "rfq_id" = NEW."rfq_id" AND "supplier_id" = NEW."supplier_id"
+    SELECT 1
+    FROM "rfq_suppliers"
+    WHERE "rfq_id" = NEW."rfq_id"
+      AND "supplier_id" = NEW."supplier_id"
   ) THEN
     RAISE EXCEPTION 'Supplier must be invited to the RFQ before quotation capture';
   END IF;
@@ -354,6 +346,7 @@ BEGIN
      OR updater_company IS NULL OR updater_company <> NEW."company_id" THEN
     RAISE EXCEPTION 'Supplier Quotation users must belong to the same Company';
   END IF;
+
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
