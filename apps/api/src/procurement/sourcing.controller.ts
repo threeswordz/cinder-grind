@@ -113,7 +113,10 @@ export class SourcingController {
     rfqId: string,
   ) {
     return {
-      data: await this.sourcing.getRfq(authOf(request), rfqId),
+      data: await this.sourcing.getRfqDetail(
+        authOf(request),
+        rfqId,
+      ),
     };
   }
 
