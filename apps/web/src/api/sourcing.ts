@@ -70,6 +70,23 @@ export type RfqListItem = {
   };
 };
 
+export type CreatedRfq = {
+  id: string;
+  companyId: string;
+  projectId: string;
+  rfqNumber: string;
+  rfqDate: string;
+  closingDate: string | null;
+  remarks: string | null;
+  createdAt: string;
+  lines: Array<{
+    id: string;
+    lineNo: number;
+    purchaseRequestLineId: string;
+    quantity: string;
+  }>;
+};
+
 export type RfqSupplier = {
   id: string;
   rfqId: string;
@@ -246,7 +263,7 @@ export const sourcingApi = {
       }>;
     },
   ) =>
-    apiRequest<Data<RfqDetail>>(
+    apiRequest<Data<CreatedRfq>>(
       '/procurement/projects/' + projectId + '/rfqs',
       {
         method: 'POST',
