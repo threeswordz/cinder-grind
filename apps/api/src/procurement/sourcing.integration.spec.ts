@@ -573,6 +573,40 @@ test('V0.3-C RFQ / Quotations preserves approved-demand sourcing, comparison and
       'RFQ-only viewers must not receive line-level award commercial data.',
     );
 
+    const quotationOnlyDetail = await sourcing.getRfqDetail(
+      {
+        ...makerAuth,
+        permissions: [
+          'procurement.quotation.view',
+          'procurement.quotation.manage',
+        ],
+      },
+      rfq.id,
+    );
+    assert.equal(
+      quotationOnlyDetail.quotations.length,
+      2,
+      'Quotation-authorized viewers must receive canonical quotation detail.',
+    );
+
+    const awardGuardDefinition = await prisma.$queryRaw<
+      Array<{ definition: string }>
+    >`
+      SELECT pg_get_functiondef(
+        'validate_quotation_award()'::regprocedure
+      ) AS definition
+    `;
+    assert.match(
+      awardGuardDefinition[0]?.definition ?? '',
+      /pg_advisory_xact_lock/,
+      'Database award guard must serialize aggregate demand checks.',
+    );
+    assert.match(
+      awardGuardDefinition[0]?.definition ?? '',
+      /pr-demand-award:/,
+      'Database award guard must lock by source Purchase Request line.',
+    );
+
     await assert.rejects(
       () =>
         sourcing.upsertQuotationLine(
