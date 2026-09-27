@@ -1384,7 +1384,7 @@ Key columns:
 - UNIQUE(previous_revision_id)
 - UNIQUE(approval_instance_id)
 
-The Company-scoped `po_number` is stable across the revision chain. Revision 0 has no predecessor. Revision N must point to the immediately preceding active APPROVED revision with the same Company, Project, Supplier and PO number. Earlier approved revisions remain immutable retained commercial evidence.
+The Company-scoped `po_number` is stable across the revision chain. Revision 0 has no predecessor. Revision N must point to the immediately preceding active APPROVED or retained REJECTED revision with the same Company, Project, Supplier and PO number. A rejected revision is an immutable retry source, not a current commitment. Earlier approved revisions remain immutable retained commercial evidence.
 
 ### `purchase_order_lines`
 
@@ -1430,7 +1430,7 @@ Database guards enforce:
 - Draft-only direct line mutation/deletion
 - submitted/cancelled PO history immutability
 - retained cancellation actor/time/reason
-- valid sequential revision chain from an active approved prior revision
+- valid sequential revision chain from an active approved or retained rejected prior revision
 - no physical deletion of Purchase Order history after lifecycle progression
 
 Required-on-Site and Expected Delivery are retained procurement line dates only. They do not update Scheduling-owned Activity dates.
