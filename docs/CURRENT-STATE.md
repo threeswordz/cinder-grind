@@ -4,10 +4,12 @@
 **Source of truth:** Live GitHub repository state
 
 - Current Release: V0.4 Inventory
-- Current Stage: V0.4 Release Entry Gate — APPROVED, MERGE / EXACT-HEAD VALIDATION PENDING
+- Current Stage: V0.4-A Warehouse / Inventory Foundation — PRE-FLIGHT COMPLETE
 - Completed Stages: V0.1-A through V0.1-H; V0.2-A through V0.2-G; V0.3-A BOQ & Budget; V0.3-B Purchase Request; V0.3-C RFQ / Quotations; V0.3-D Purchase Order; V0.3-E Schedule Risk / Procurement Reporting / Traceability
-- Active Issue: #81 — V0.4 Inventory Release Entry Gate — Scope, Acceptance & Business Rules
-- Active Branch: `v0.4-entry-gate`
+- Active Issue: #83 — V0.4-A Warehouse / Inventory Foundation
+- Active Branch: `v0.4-a-warehouse-foundation`
+- Completed Issue: #81 — V0.4 Inventory Release Entry Gate — Scope, Acceptance & Business Rules
+- Merged PR: #82 — docs: approve V0.4 Inventory entry gate
 - Completed Issue: #79 — V0.3 Procurement Product / Business Owner acceptance record
 - Merged PR: #80 — docs: accept V0.3 Procurement
 - Completed Issue: #76 — V0.3-E Schedule Risk / Procurement Reporting / Traceability
@@ -69,7 +71,7 @@
 - V0.1 cross-module release acceptance scenario: PASS in the Stage H release-candidate regression suite.
 - Open defect check at V0.1 acceptance: no Severity 1 or Severity 2 release-blocking defect recorded.
 - Governance: `AGENTS.md`, `docs/PROJECT-GOVERNANCE.md`, PR governance checklist and DEC-008 are active; material decisions must pass the repository pre-flight and open-source/zero-cost-first constraint.
-- Next action: complete exact-head validation and merge approved V0.4 entry-gate PR #82, then open V0.4-A Warehouse / Inventory Foundation pre-flight. Implementation must remain within the approved baselines and repository governance.
+- Next action: implement V0.4-A Warehouse / Inventory Foundation under Issue #83 and the approved Stage A contract, then complete exact-head CI/review before merge. V0.4-B must not begin until Stage A completes.
 
 ## Stage E completed
 
@@ -685,3 +687,13 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - no new runtime dependency is proposed; DEC-008 open-source / zero-cost-first remains active.
 - Product / Business Owner approved `docs/V0.4-SCOPE.md`, `docs/V0.4-ACCEPTANCE-CRITERIA.md`, `docs/V0.4-BUSINESS-RULES.md` and the database/API/test/build-stage/deferral baselines on 2026-09-27.
 - V0.4-A pre-flight is authorized after approved PR #82 passes exact-head validation and merges; implementation remains bound by the approved baselines and Change Control.
+
+## V0.4-A Warehouse / Inventory Foundation pre-flight complete
+
+- Issue #83 is active; branch `v0.4-a-warehouse-foundation` starts from green approved-entry checkpoint `464c7acf9d23c3b176223ee38adb173045074708`.
+- approved authority: INV-003 with foundation support for INV-006 / INV-007; AC-V04-001 through AC-V04-004; BR-V04-01 through BR-V04-03, BR-V04-10 and BR-V04-17.
+- governance, Decision Log, dependency/license, architecture, Company/Project scope, permissions, audit, security and test impacts were reconciled.
+- no new runtime dependency or mandatory paid component is required.
+- no blocking business or architecture decision remains.
+- `docs/V0.4-A-PREFLIGHT.md` is the source-controlled Stage A implementation contract.
+- Stage A technical implementation may proceed within the approved baseline; scope expansion requires Change Control.
