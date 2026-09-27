@@ -37,6 +37,22 @@ export class ReportingController {
     return { data: await this.reporting.projects(authOf(request)) };
   }
 
+  @Get('projects/:projectId/procurement')
+  @UseGuards(AuthGuard, PermissionGuard)
+  @RequirePermissions('reporting.operational.view')
+  async procurement(
+    @Req() request: AuthenticatedRequest,
+    @Param('projectId', new ParseUUIDPipe({ version: '4' }))
+    projectId: string,
+  ) {
+    return {
+      data: await this.reporting.procurement(
+        authOf(request),
+        projectId,
+      ),
+    };
+  }
+
   @Get('projects/:projectId/project-engineer')
   @UseGuards(AuthGuard, PermissionGuard)
   @RequirePermissions('reporting.operational.view')
