@@ -4,10 +4,11 @@
 **Source of truth:** Live GitHub repository state
 
 - Current Release: V0.3 Procurement
-- Current Stage: V0.3-E Schedule Risk — ACTIVE IMPLEMENTATION
+- Current Stage: V0.3 Release Acceptance — AWAITING PRODUCT / BUSINESS OWNER
 - Completed Stages: V0.1-A Technical Skeleton; V0.1-B Company / Identity / Security; V0.1-C Administration; V0.1-D Master Data; V0.1-E Projects; V0.1-F WBS & Cost Codes; V0.1-G Basic Documents; V0.1-H Integration / Regression / UAT; V0.2-A Scheduling Data Model; V0.2-B Scheduling Engine; V0.2-C Baselines / Progress; V0.2-D Gantt / Lookahead; V0.2-E Site Execution; V0.2-F Equipment; V0.2-G UAT Reference Programme
-- Active Issue: #76 — V0.3-E Schedule Risk / Procurement Reporting / Traceability
-- Active Branch: `v0.3-e-schedule-risk`
+- Completed Issue: #76 — V0.3-E Schedule Risk / Procurement Reporting / Traceability
+- Completed Branch: `v0.3-e-schedule-risk`
+- Merged PR: #77 — V0.3-E: Schedule Risk / Procurement Reporting
 - Completed Issue: #72 — V0.3-D Purchase Order
 - Completed Branch: `v0.3-d-purchase-order`
 - Merged PR: #74 — V0.3-D: Purchase Order
@@ -64,7 +65,7 @@
 - V0.1 cross-module release acceptance scenario: PASS in the Stage H release-candidate regression suite.
 - Open defect check at V0.1 acceptance: no Severity 1 or Severity 2 release-blocking defect recorded.
 - Governance: `AGENTS.md`, `docs/PROJECT-GOVERNANCE.md`, PR governance checklist and DEC-008 are active; material decisions must pass the repository pre-flight and open-source/zero-cost-first constraint.
-- Next action: run V0.3-E Schedule Risk pre-flight, then implement PROC-018 / PROC-019 plus RPT-005 and SYS-007 under AC-V03-023 through AC-V03-027 and approved BR-V03-13 / BR-V03-15 / BR-V03-16.
+- Next action: Product / Business Owner human UAT/business acceptance for V0.3 Procurement. After explicit acceptance, run the V0.4 Inventory Release Entry Gate; do not begin V0.4 implementation until its scope, requirements, acceptance criteria, dependency/API changes and test approach are approved.
 
 ## Stage E completed
 
@@ -628,6 +629,19 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - procurement reporting is Project-scoped, source-derived and intentionally excludes commercial pricing from the operational-reporting permission boundary.
 - DOC-007 reuses the existing secure Documents abstraction with validated Procurement transaction targets and no second file store.
 - current implementation includes the procurement read model/API, responsive filterable report, forward/backward references, procurement document targets, integration coverage and live HTTP acceptance additions.
+
+## V0.3-E completed
+
+- Issue #76 — V0.3-E Schedule Risk / Procurement Reporting / Traceability is technically complete.
+- PR #77 — V0.3-E: Schedule Risk / Procurement Reporting squash-merged to `main` as `e0263cd55706179059d4e970ef80fd4ce5c7e1f4`.
+- exact-head branch CI #1264 and PR CI #1265 passed on `4603a584d97890841708ab7188b6572977a1151f`.
+- post-merge `main` CI #1266 passed on `e0263cd55706179059d4e970ef80fd4ce5c7e1f4`.
+- PROC-018 / PROC-019, RPT-005, SYS-007 and DOC-007 are delivered under the approved V0.3 acceptance/business-rule baseline.
+- procurement schedule/risk remains source-derived and read-only; Required-on-Site versus Expected Delivery yields `AT_RISK`, `ON_TIME` or `UNAVAILABLE` without mutating Scheduling-owned dates.
+- operational procurement reporting preserves Project scope, stable PR → RFQ → quotation → award → PO traceability and commercial-data redaction.
+- procurement document targets reuse the existing Project-owned secure Documents architecture with database target validation; no second file store or duplicate risk ledger was introduced.
+- all three Stage E Codex review findings were resolved before merge; automated regression, authorization and live HTTP acceptance are green.
+- V0.3 is now at the human release-acceptance gate. Repository governance requires Product / Business Owner UAT/business acceptance to be explicit; development/CI has not self-approved that human gate.
 
 ## V0.3-D completed
 
