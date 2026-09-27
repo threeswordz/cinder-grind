@@ -2875,7 +2875,7 @@ check(
     materialProcurementLine?.pr?.prNumber === purchaseRequest.data.data.prNumber &&
     materialProcurementLine?.rfqs?.some(
       (item) =>
-        item.rfqNumber === sourcingRfqNumber &&
+        item.rfqNumber === sourcingRfq.data.data.rfqNumber &&
         item.award?.id === materialSourcingAward.data.data.id &&
         item.award?.supplierQuotationId === quotationB.data.data.id &&
         item.quotations?.some(
