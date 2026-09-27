@@ -2872,7 +2872,7 @@ const materialProcurementLine = procurementReport.data.data.lines.find(
 );
 check(
   procurementReport.data.data.project?.id === projectId &&
-    materialProcurementLine?.pr?.prNumber === purchaseRequestNumber &&
+    materialProcurementLine?.pr?.prNumber === purchaseRequest.data.data.prNumber &&
     materialProcurementLine?.rfqs?.some(
       (item) =>
         item.rfqNumber === sourcingRfqNumber &&
