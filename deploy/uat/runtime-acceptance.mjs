@@ -215,6 +215,10 @@ const permissionCodes = [
   'budget.boq.manage',
   'budget.revision.view',
   'budget.revision.submit',
+  'procurement.pr.view',
+  'procurement.pr.manage',
+  'procurement.pr.submit',
+  'procurement.pr.cancel',
 ];
 await request(admin, `/admin/roles/${roleId}/permissions`, {
   method: 'PUT',
@@ -239,6 +243,8 @@ await request(admin, `/admin/roles/${checkerRoleId}/permissions`, {
       'schedule.programme.view',
       'budget.revision.view',
       'budget.revision.approve',
+      'procurement.pr.view',
+      'procurement.pr.approve',
     ],
   },
 });
@@ -291,7 +297,37 @@ await request(admin, '/admin/number-sequences', {
   },
   expected: 201,
 });
-record('V0.3-A Budget Approval Matrix and configured Budget Revision sequence');
+
+const prWorkflowCode = 'PURCHASE_REQUEST_' + suffix;
+await request(admin, '/admin/approval-workflows', {
+  method: 'POST',
+  json: {
+    workflowCode: prWorkflowCode,
+    entityType: 'PURCHASE_REQUEST',
+    workflowName: 'Purchase Request Approval ' + suffix,
+    steps: [
+      {
+        stepNo: 1,
+        stepName: 'Approve Purchase Request',
+        requiredApprovals: 1,
+        roleIds: [checkerRoleId],
+      },
+    ],
+  },
+  expected: 201,
+});
+await request(admin, '/admin/number-sequences', {
+  method: 'POST',
+  json: {
+    entityType: 'PURCHASE_REQUEST',
+    sequenceCode: 'PURCHASE_REQUEST',
+    formatTemplate: 'PRYYMM-###',
+    resetRule: 'MONTHLY',
+    startingValue: 1,
+  },
+  expected: 201,
+});
+record('V0.3-A Budget and V0.3-B Purchase Request approval/numbering configuration');
 
 const pmPassword = 'Uat-PM-' + suffix + '-Strong-2026!';
 const unassignedPassword = 'Uat-PE-' + suffix + '-Strong-2026!';
@@ -829,6 +865,209 @@ check(
   'Approved Budget downstream read model did not return the current approved revision.',
 );
 record('V0.3-A canonical BOQ, Draft/Approval history, Original/Revised Budget and dimensional reporting');
+
+const checkerProcurementProjects = await request(
+  checker,
+  '/procurement/projects',
+);
+check(
+  checkerProcurementProjects.data.data.some((item) => item.id === projectId),
+  'Purchase Request approver Project selector did not expose assigned Project.',
+);
+
+const purchaseRequest = await request(
+  pm,
+  '/procurement/projects/' + projectId + '/purchase-requests',
+  {
+    method: 'POST',
+    json: { remarks: 'Reinforcement and lifting demand ' + suffix },
+    expected: 201,
+  },
+);
+const purchaseRequestId = purchaseRequest.data.data.id;
+check(
+  /^PR\d{4}-\d{3}$/.test(purchaseRequest.data.data.prNumber) &&
+    purchaseRequest.data.data.lifecycleState === 'DRAFT',
+  'Purchase Request did not receive the approved immutable business-number format.',
+);
+
+const prMaterialLine = await request(
+  pm,
+  '/procurement/purchase-requests/' + purchaseRequestId + '/lines',
+  {
+    method: 'POST',
+    json: {
+      lineType: 'MATERIAL',
+      materialId: material.data.data.id,
+      quantity: '25',
+      uomId,
+      wbsId: rootWbs.data.data.id,
+      costCodeId: costCode.data.data.id,
+      activityId: activityA.data.data.id,
+      requiredOnSite: '2026-10-12',
+    },
+    expected: 201,
+  },
+);
+check(
+  prMaterialLine.data.data.lineNo === 1 &&
+    prMaterialLine.data.data.lineType === 'MATERIAL',
+  'Material Purchase Request line was not created correctly.',
+);
+
+const prServiceLine = await request(
+  pm,
+  '/procurement/purchase-requests/' + purchaseRequestId + '/lines',
+  {
+    method: 'POST',
+    json: {
+      lineType: 'SERVICE',
+      description: 'Mobile crane service',
+      quantity: '2',
+      uomId,
+      costCodeId: costCode.data.data.id,
+      requiredOnSite: '2026-10-13',
+    },
+    expected: 201,
+  },
+);
+check(
+  prServiceLine.data.data.lineNo === 2 &&
+    prServiceLine.data.data.materialId === null,
+  'Service Purchase Request line incorrectly used a Material reference.',
+);
+
+const prDetail = await request(
+  pm,
+  '/procurement/purchase-requests/' + purchaseRequestId,
+);
+check(
+  prDetail.data.data.lines.length === 2 &&
+    prDetail.data.data.lines[0]?.activity?.id === activityA.data.data.id &&
+    prDetail.data.data.lines[0]?.requiredOnSite?.slice(0, 10) === '2026-10-12',
+  'Purchase Request demand context was not retained.',
+);
+
+const submittedPr = await request(
+  pm,
+  '/procurement/purchase-requests/' + purchaseRequestId + '/submit',
+  {
+    method: 'POST',
+    json: { workflowCode: prWorkflowCode },
+    expected: 201,
+  },
+);
+check(
+  submittedPr.data.data.lifecycleState === 'SUBMITTED',
+  'Purchase Request did not enter SUBMITTED state.',
+);
+await request(
+  pm,
+  '/procurement/purchase-requests/' + purchaseRequestId,
+  {
+    method: 'PATCH',
+    json: { remarks: 'Submitted PR must be immutable.' },
+    expected: 409,
+  },
+);
+await request(
+  pm,
+  '/procurement/purchase-requests/' + purchaseRequestId + '/approve',
+  {
+    method: 'POST',
+    json: { comment: 'Maker must not self-approve PR.' },
+    expected: 403,
+  },
+);
+const approvedPr = await request(
+  checker,
+  '/procurement/purchase-requests/' + purchaseRequestId + '/approve',
+  {
+    method: 'POST',
+    json: { comment: 'Approved Purchase Request.' },
+    expected: 201,
+  },
+);
+check(
+  approvedPr.data.data.lifecycleState === 'APPROVED',
+  'Configured checker could not approve the Purchase Request.',
+);
+
+const rejectedCandidate = await request(
+  pm,
+  '/procurement/projects/' + projectId + '/purchase-requests',
+  {
+    method: 'POST',
+    json: { remarks: 'Rejected-copy acceptance candidate' },
+    expected: 201,
+  },
+);
+await request(
+  pm,
+  '/procurement/purchase-requests/' + rejectedCandidate.data.data.id + '/lines',
+  {
+    method: 'POST',
+    json: {
+      lineType: 'SERVICE',
+      description: 'Temporary surveying service',
+      quantity: '1',
+      uomId,
+      requiredOnSite: '2026-10-14',
+    },
+    expected: 201,
+  },
+);
+await request(
+  pm,
+  '/procurement/purchase-requests/' + rejectedCandidate.data.data.id + '/submit',
+  {
+    method: 'POST',
+    json: { workflowCode: prWorkflowCode },
+    expected: 201,
+  },
+);
+const rejectedPr = await request(
+  checker,
+  '/procurement/purchase-requests/' + rejectedCandidate.data.data.id + '/reject',
+  {
+    method: 'POST',
+    json: { comment: 'Revise and resubmit as a new Draft.' },
+    expected: 201,
+  },
+);
+check(
+  rejectedPr.data.data.lifecycleState === 'REJECTED',
+  'Purchase Request rejection history was not retained.',
+);
+const copiedPr = await request(
+  pm,
+  '/procurement/purchase-requests/' + rejectedCandidate.data.data.id + '/copy-rejected',
+  {
+    method: 'POST',
+    json: {},
+    expected: 201,
+  },
+);
+check(
+  copiedPr.data.data.lifecycleState === 'DRAFT' &&
+    copiedPr.data.data.sourceRequestId === rejectedCandidate.data.data.id &&
+    copiedPr.data.data.prNumber !== rejectedCandidate.data.data.prNumber,
+  'Rejected Purchase Request was not copied into a new independently numbered Draft.',
+);
+const cancelledCopy = await request(
+  pm,
+  '/procurement/purchase-requests/' + copiedPr.data.data.id + '/cancel',
+  {
+    method: 'POST',
+    json: {},
+    expected: 201,
+  },
+);
+check(
+  cancelledCopy.data.data.lifecycleState === 'CANCELLED',
+  'Purchase Request cancellation was not retained as a lifecycle state.',
+);
+record('V0.3-B Purchase Request material/service demand, Required-on-Site, maker-checker approval, rejected copy and cancellation');
 
 await request(pm, `/activity-progress/${activityA.data.data.id}`, {
   method: 'POST',
@@ -1932,7 +2171,18 @@ await request(
   '/budget/projects/' + projectId + '/summary',
   { expected: 403 },
 );
+await request(
+  unassigned,
+  '/procurement/projects/' + projectId + '/purchase-requests',
+  { expected: 403 },
+);
+await request(
+  unassigned,
+  '/procurement/purchase-requests/' + purchaseRequestId,
+  { expected: 403 },
+);
 record('V0.3-A scoped Budget access denied');
+record('V0.3-B scoped Purchase Request access denied');
 record('unassigned Project, Document, Scheduling, Site Execution, Equipment, Reporting and Budget access denied');
 
 await logout(pm);
