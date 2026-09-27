@@ -70,6 +70,27 @@ export type PurchaseRequestListItem = {
     currentStepNo: number;
     startedAt: string;
     completedAt: string | null;
+    workflow?: {
+      id: string;
+      workflowCode: string;
+      workflowName: string;
+    };
+    actions?: Array<{
+      id: string;
+      action: string;
+      actionAt: string;
+      comment: string | null;
+      actionByUser: {
+        id: string;
+        displayName: string;
+        email: string;
+      };
+      approvalStep: {
+        id: string;
+        stepNo: number;
+        stepName: string;
+      };
+    }>;
   } | null;
   _count: { lines: number; copies: number };
 };
@@ -80,6 +101,7 @@ export type PurchaseRequestLine = {
   lineNo: number;
   lineType: 'MATERIAL' | 'SERVICE';
   materialId: string | null;
+  materialCodeSnapshot: string | null;
   description: string;
   quantity: string;
   uomId: string;
