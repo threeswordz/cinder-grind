@@ -2418,6 +2418,51 @@ check(
 );
 record('V0.2 DOC-006 WBS and Activity documents through live HTTP API');
 
+const procurementDocumentBytes = new TextEncoder().encode(
+  '%PDF-1.4 Purchase Order support ' + suffix,
+);
+const procurementDocumentForm = new FormData();
+procurementDocumentForm.set(
+  'documentTypeId',
+  documentType.data.data.id,
+);
+procurementDocumentForm.set(
+  'file',
+  new Blob([procurementDocumentBytes], {
+    type: 'application/pdf',
+  }),
+  'purchase-order-support-' + suffix + '.pdf',
+);
+const procurementDocument = await request(
+  pm,
+  '/documents/projects/' +
+    projectId +
+    '/targets/PURCHASE_ORDER/' +
+    purchaseOrderId,
+  {
+    method: 'POST',
+    body: procurementDocumentForm,
+    expected: 201,
+  },
+);
+const procurementDocumentList = await request(
+  pm,
+  '/documents/projects/' +
+    projectId +
+    '/targets/PURCHASE_ORDER/' +
+    purchaseOrderId,
+);
+check(
+  procurementDocumentList.data.data.some(
+    (item) => item.id === procurementDocument.data.data.id,
+  ) &&
+    !JSON.stringify(procurementDocumentList.data).includes(
+      'storageKey',
+    ),
+  'V0.3-E procurement Document target did not preserve the secure Project-owned Documents boundary.',
+);
+record('V0.3-E DOC-007 secure Purchase Order document target');
+
 record('secure document upload, metadata listing and byte-for-byte download');
 
 const equipmentType = await request(pm, '/equipment/types', {
@@ -2818,6 +2863,39 @@ check(
   'Project Engineer Dashboard did not use the approved lookahead read model.',
 );
 record('V0.2 RPT-001/RPT-002 operational reporting and Project Engineer Dashboard');
+const procurementReport = await request(
+  pm,
+  '/reporting/projects/' + projectId + '/procurement',
+);
+const materialProcurementLine = procurementReport.data.data.lines.find(
+  (item) => item.id === prMaterialLine.data.data.id,
+);
+check(
+  procurementReport.data.data.project?.id === projectId &&
+    materialProcurementLine?.pr?.prNumber === purchaseRequest.data.data.prNumber &&
+    materialProcurementLine?.rfqs?.some(
+      (item) =>
+        item.rfqNumber === sourcingRfq.data.data.rfqNumber &&
+        item.award?.id === materialSourcingAward.data.data.id &&
+        item.award?.supplierQuotationId === quotationB.data.data.id &&
+        item.quotations?.some(
+          (quotation) => quotation.id === quotationB.data.data.id,
+        ),
+    ) &&
+    materialProcurementLine?.purchaseOrders?.some(
+      (item) => item.poNumber === purchaseOrderNumber,
+    ) &&
+    ['AT_RISK', 'ON_TIME', 'UNAVAILABLE'].includes(
+      materialProcurementLine?.scheduleRisk,
+    ),
+  'V0.3-E procurement reporting did not expose source-derived status, dates, risk and forward traceability.',
+);
+check(
+  !JSON.stringify(materialProcurementLine).includes('unitPrice'),
+  'Operational procurement reporting leaked commercial pricing outside the quotation/PO authority boundary.',
+);
+record('V0.3-E procurement schedule/risk reporting and forward/backward traceability');
+
 
 await request(pm, '/equipment/register/' + equipmentId, {
   method: 'PATCH',
@@ -2899,6 +2977,11 @@ await request(
   '/reporting/projects/' +
     projectId +
     '/project-engineer?asOf=2026-10-10&days=14',
+  { expected: 403 },
+);
+await request(
+  unassigned,
+  '/reporting/projects/' + projectId + '/procurement',
   { expected: 403 },
 );
 await request(

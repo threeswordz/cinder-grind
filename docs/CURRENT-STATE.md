@@ -4,9 +4,10 @@
 **Source of truth:** Live GitHub repository state
 
 - Current Release: V0.3 Procurement
-- Current Stage: V0.3-E Schedule Risk — PRE-FLIGHT
+- Current Stage: V0.3-E Schedule Risk — ACTIVE IMPLEMENTATION
 - Completed Stages: V0.1-A Technical Skeleton; V0.1-B Company / Identity / Security; V0.1-C Administration; V0.1-D Master Data; V0.1-E Projects; V0.1-F WBS & Cost Codes; V0.1-G Basic Documents; V0.1-H Integration / Regression / UAT; V0.2-A Scheduling Data Model; V0.2-B Scheduling Engine; V0.2-C Baselines / Progress; V0.2-D Gantt / Lookahead; V0.2-E Site Execution; V0.2-F Equipment; V0.2-G UAT Reference Programme
-- Active Issue: pending creation — V0.3-E Schedule Risk
+- Active Issue: #76 — V0.3-E Schedule Risk / Procurement Reporting / Traceability
+- Active Branch: `v0.3-e-schedule-risk`
 - Completed Issue: #72 — V0.3-D Purchase Order
 - Completed Branch: `v0.3-d-purchase-order`
 - Merged PR: #74 — V0.3-D: Purchase Order
@@ -617,6 +618,16 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - full functional branch CI #1177 passed on `c696e8fe66fb5c29f7c742974645dc9d6220edaf`, including migrations, typecheck, all regression/integration tests, production builds and live HTTP acceptance.
 - API, ERD and permission documentation is aligned to the Stage D implementation.
 - Goods Receipt / Inventory, Finance, Actual Cost, V0.7 Committed Cost ledger, tax/VAT, FX and Stage E schedule-risk classification remain excluded.
+
+## V0.3-E active
+
+- Issue #76 records the Stage E implementation contract and V0.3 release-exit checklist.
+- branch `v0.3-e-schedule-risk` starts from completed Stage D main checkpoint `df4a2b71a3f003941abff1a0e6d5825c172c95db`.
+- Stage E implements PROC-018 / PROC-019, RPT-005, SYS-007 and DOC-007 under AC-V03-023 through AC-V03-027 plus cross-cutting AC-V03-028 through AC-V03-032.
+- risk classification is backend-derived exactly as approved by BR-V03-13; no Scheduling-owned Activity date is mutated.
+- procurement reporting is Project-scoped, source-derived and intentionally excludes commercial pricing from the operational-reporting permission boundary.
+- DOC-007 reuses the existing secure Documents abstraction with validated Procurement transaction targets and no second file store.
+- current implementation includes the procurement read model/API, responsive filterable report, forward/backward references, procurement document targets, integration coverage and live HTTP acceptance additions.
 
 ## V0.3-D completed
 

@@ -1499,8 +1499,16 @@ Priority testing:
 - Required-on-Site and Expected Delivery retention without Scheduling-date mutation
 - maker-checker approval, rejection and cancellation evidence
 - approved PO commercial values as source evidence for later committed-cost derivation
+- Procurement Schedule / Risk read model
+- Required-on-Site versus Expected Delivery calendar-date classification
+- forward/backward PR → RFQ → quotation → award → PO traceability
+- procurement document targets through the secure Documents architecture
+- Project-scope denial through reporting and document target APIs
+- commercial-data redaction from operational procurement reporting
 
 Stage D automated integration and live HTTP acceptance exercise award-backed PO creation, duplicate-award prevention, quantity not exceeding the selected award, Draft-only commercial editing, approval, immutable earlier revisions, Expected Delivery changes through controlled revision, cancellation evidence and Project-scope denial. Stage D does not create the V0.7 Committed Cost ledger/read model.
+
+Stage E automated integration and live HTTP acceptance verify source-derived procurement status/key dates, BR-V03-13 risk classification, PR/RFQ/award/PO traceability, operational-report commercial redaction, procurement document targets, and Project-scope denial without introducing a duplicate reporting ledger.
 
 ---
 

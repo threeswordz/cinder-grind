@@ -2258,6 +2258,10 @@ Candidate views include:
 
 These are derived read models.
 
+V0.3-E implements procurement schedule/risk as an application-level derived read model rather than a new persisted table or editable schedule ledger. It joins canonical PR/RFQ/quotation/award/PO references, line-level Required-on-Site and Expected Delivery dates, and derives `AT_RISK` / `ON_TIME` / `UNAVAILABLE` at read time.
+
+Procurement document associations remain ordinary `document_links` rows with Project-owned authorization and validated procurement target IDs; no procurement-specific document table or storage silo is introduced.
+
 They do not replace source transactions.
 
 Prisma or NestJS may query them directly or reproduce the equivalent logic at application level depending on implementation support.

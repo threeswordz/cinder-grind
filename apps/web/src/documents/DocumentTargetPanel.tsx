@@ -61,19 +61,54 @@ export function DocumentTargetPanel({
     enabled: canUpload,
   });
 
-  const targetChoices = useMemo(
-    () =>
-      entityType === 'WBS'
-        ? (options.data?.data.wbs ?? []).map((row) => ({
-            id: row.id,
-            label: row.wbsCode + ' · ' + row.wbsName,
-          }))
-        : (options.data?.data.activities ?? []).map((row) => ({
-            id: row.id,
-            label: row.activityCode + ' · ' + row.activityName,
-          })),
-    [entityType, options.data?.data],
-  );
+  const targetChoices = useMemo(() => {
+    const data = options.data?.data;
+    if (!data) return [];
+    if (entityType === 'WBS') {
+      return data.wbs.map((row) => ({
+        id: row.id,
+        label: row.wbsCode + ' · ' + row.wbsName,
+      }));
+    }
+    if (entityType === 'ACTIVITY') {
+      return data.activities.map((row) => ({
+        id: row.id,
+        label: row.activityCode + ' · ' + row.activityName,
+      }));
+    }
+    if (entityType === 'PURCHASE_REQUEST') {
+      return data.purchaseRequests.map((row) => ({
+        id: row.id,
+        label: row.prNumber,
+      }));
+    }
+    if (entityType === 'RFQ') {
+      return data.rfqs.map((row) => ({
+        id: row.id,
+        label: row.rfqNumber,
+      }));
+    }
+    if (entityType === 'SUPPLIER_QUOTATION') {
+      return data.supplierQuotations.map((row) => ({
+        id: row.id,
+        label:
+          row.rfq.rfqNumber +
+          ' · ' +
+          row.supplier.supplierCode +
+          ' · ' +
+          (row.supplierReference ?? 'Quotation'),
+      }));
+    }
+    return data.purchaseOrders.map((row) => ({
+      id: row.id,
+      label:
+        row.poNumber +
+        ' · Rev ' +
+        row.revisionNo +
+        ' · ' +
+        row.supplier.supplierCode,
+    }));
+  }, [entityType, options.data?.data]);
 
   const upload = useMutation({
     mutationFn: () =>
@@ -168,10 +203,9 @@ export function DocumentTargetPanel({
 
   return (
     <Stack spacing={2}>
-      <Typography variant="h6">WBS / Activity Documents</Typography>
+      <Typography variant="h6">Project / Procurement Documents</Typography>
       <Typography variant="body2" color="text.secondary">
-        Documents remain Project-owned for access control while also
-        referencing the selected WBS or Activity.
+        Documents remain Project-owned for access control while also referencing the selected WBS, Activity or Procurement transaction.
       </Typography>
       <Stack direction={{ xs: 'column', md: 'row' }} spacing={1}>
         <TextField
@@ -186,10 +220,26 @@ export function DocumentTargetPanel({
         >
           <MenuItem value="WBS">WBS</MenuItem>
           <MenuItem value="ACTIVITY">Activity</MenuItem>
+          <MenuItem value="PURCHASE_REQUEST">Purchase Request</MenuItem>
+          <MenuItem value="RFQ">RFQ</MenuItem>
+          <MenuItem value="SUPPLIER_QUOTATION">Supplier Quotation</MenuItem>
+          <MenuItem value="PURCHASE_ORDER">Purchase Order</MenuItem>
         </TextField>
         <TextField
           select
-          label={entityType === 'WBS' ? 'WBS' : 'Activity'}
+          label={
+            entityType === 'WBS'
+              ? 'WBS'
+              : entityType === 'ACTIVITY'
+                ? 'Activity'
+                : entityType === 'PURCHASE_REQUEST'
+                  ? 'Purchase Request'
+                  : entityType === 'RFQ'
+                    ? 'RFQ'
+                    : entityType === 'SUPPLIER_QUOTATION'
+                      ? 'Supplier Quotation'
+                      : 'Purchase Order'
+          }
           value={entityId}
           onChange={(event) => setEntityId(event.target.value)}
           sx={{ flexGrow: 1 }}
@@ -205,13 +255,13 @@ export function DocumentTargetPanel({
 
       {targetDocuments.isError ? (
         <Alert severity="error">
-          Unable to load WBS/Activity documents.
+          Unable to load documents for the selected target.
         </Alert>
       ) : null}
 
       {entityId && (targetDocuments.data?.data ?? []).length === 0 ? (
         <Alert severity="info">
-          No documents are linked to this {entityType === 'WBS' ? 'WBS' : 'Activity'}.
+          No documents are linked to this target.
         </Alert>
       ) : null}
 

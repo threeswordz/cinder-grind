@@ -28,6 +28,7 @@ import { PurchaseRequestsPanel } from './procurement/PurchaseRequestsPanel';
 import { PurchaseOrdersPanel } from './procurement/PurchaseOrdersPanel';
 import { SourcingPanel } from './procurement/SourcingPanel';
 import { ProjectEngineerDashboard } from './reporting/ProjectEngineerDashboard';
+import { ProcurementReport } from './reporting/ProcurementReport';
 import { SchedulingPanel } from './scheduling/SchedulingPanel';
 import { SiteExecutionPanel } from './site-execution/SiteExecutionPanel';
 import { DocumentsPanel } from './documents/DocumentsPanel';
@@ -71,6 +72,12 @@ export function AdminConsole({ user }: { user: CurrentUser }) {
           label: 'BOQ & Budget',
           permission: '__budget__',
           content: <BudgetPanel permissions={user.permissions} />,
+        },
+        {
+          key: 'procurement-report',
+          label: 'Procurement Risk',
+          permission: 'reporting.operational.view',
+          content: <ProcurementReport />,
         },
         {
           key: 'project-engineer',

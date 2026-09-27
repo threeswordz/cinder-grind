@@ -561,6 +561,8 @@ Approved/historical documents should be archived rather than physically deleted 
 
 Report access must also respect underlying project/data scope.
 
+`reporting.operational.view` includes the V0.3 Procurement Schedule / Risk read model. It permits status, key-date, risk and transaction-reference visibility only; it does not independently grant Supplier Quotation or Purchase Order commercial pricing authority. The procurement report therefore excludes unit-price and amount fields.
+
 A report permission does not bypass project-scope restrictions.
 
 ---

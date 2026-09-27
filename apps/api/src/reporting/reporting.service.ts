@@ -26,6 +26,310 @@ export class ReportingService {
     });
   }
 
+  async procurement(
+    auth: AuthenticatedUserContext,
+    projectId: string,
+  ) {
+    await this.access.assertAccess(auth, projectId);
+
+    const [project, requests, purchaseOrders] = await Promise.all([
+      this.prisma.project.findFirstOrThrow({
+        where: { id: projectId, companyId: auth.companyId },
+        select: {
+          id: true,
+          projectCode: true,
+          projectName: true,
+        },
+      }),
+      this.prisma.purchaseRequest.findMany({
+        where: {
+          companyId: auth.companyId,
+          projectId,
+        },
+        include: {
+          approvalInstance: {
+            select: { approvalState: true },
+          },
+          lines: {
+            include: {
+              uom: {
+                select: { id: true, uomCode: true, uomName: true },
+              },
+              wbs: {
+                select: { id: true, wbsCode: true, wbsName: true },
+              },
+              costCode: {
+                select: { id: true, costCode: true, costName: true },
+              },
+              activity: {
+                select: { id: true, activityCode: true, activityName: true },
+              },
+              rfqLines: {
+                include: {
+                  rfq: {
+                    select: {
+                      id: true,
+                      rfqNumber: true,
+                      rfqDate: true,
+                      closingDate: true,
+                      _count: {
+                        select: { suppliers: true, quotations: true },
+                      },
+                      quotations: {
+                        select: {
+                          id: true,
+                          supplierReference: true,
+                          quotationDate: true,
+                          validityDate: true,
+                          supplier: {
+                            select: {
+                              id: true,
+                              supplierCode: true,
+                              supplierName: true,
+                            },
+                          },
+                        },
+                        orderBy: { quotationDate: 'asc' },
+                      },
+                    },
+                  },
+                  award: {
+                    select: {
+                      id: true,
+                      supplierId: true,
+                      supplierCodeSnapshot: true,
+                      supplierNameSnapshot: true,
+                      supplierQuotationId: true,
+                      supplierQuotationLineId: true,
+                      supplierReferenceSnapshot: true,
+                      quotationDateSnapshot: true,
+                      selectedAt: true,
+                    },
+                  },
+                },
+                orderBy: [{ rfq: { rfqNumber: 'asc' } }, { lineNo: 'asc' }],
+              },
+              purchaseOrderLines: {
+                include: {
+                  purchaseOrder: {
+                    include: {
+                      approvalInstance: {
+                        select: { approvalState: true },
+                      },
+                      supplier: {
+                        select: {
+                          id: true,
+                          supplierCode: true,
+                          supplierName: true,
+                        },
+                      },
+                    },
+                  },
+                },
+                orderBy: [
+                  { purchaseOrder: { poNumber: 'asc' } },
+                  { purchaseOrder: { revisionNo: 'asc' } },
+                ],
+              },
+            },
+            orderBy: { lineNo: 'asc' },
+          },
+        },
+        orderBy: [{ createdAt: 'asc' }, { prNumber: 'asc' }],
+      }),
+      this.prisma.purchaseOrder.findMany({
+        where: {
+          companyId: auth.companyId,
+          projectId,
+        },
+        select: {
+          id: true,
+          poNumber: true,
+          revisionNo: true,
+          cancelledAt: true,
+          approvalInstance: {
+            select: { approvalState: true },
+          },
+        },
+        orderBy: [{ poNumber: 'asc' }, { revisionNo: 'desc' }],
+      }),
+    ]);
+
+    const lifecycle = (row: {
+      cancelledAt?: Date | null;
+      approvalInstance?: { approvalState: string } | null;
+    }) =>
+      row.cancelledAt
+        ? 'CANCELLED'
+        : (row.approvalInstance?.approvalState ?? 'DRAFT');
+
+    const dateKey = (value: Date | null | undefined) =>
+      value ? value.toISOString().slice(0, 10) : null;
+
+    const risk = (
+      requiredOnSite: Date | null,
+      expectedDelivery: Date | null,
+    ): 'AT_RISK' | 'ON_TIME' | 'UNAVAILABLE' => {
+      if (!requiredOnSite || !expectedDelivery) return 'UNAVAILABLE';
+      return expectedDelivery.getTime() > requiredOnSite.getTime()
+        ? 'AT_RISK'
+        : 'ON_TIME';
+    };
+
+    const revisionsByPoNumber = new Map<
+      string,
+      typeof purchaseOrders
+    >();
+    for (const order of purchaseOrders) {
+      const revisions =
+        revisionsByPoNumber.get(order.poNumber) ?? [];
+      revisions.push(order);
+      revisionsByPoNumber.set(order.poNumber, revisions);
+    }
+
+    const currentRevisionByPoNumber = new Map<string, string>();
+    for (const [poNumber, revisions] of revisionsByPoNumber) {
+      const ordered = [...revisions].sort(
+        (a, b) => b.revisionNo - a.revisionNo,
+      );
+      const newest = ordered[0];
+      if (!newest || newest.cancelledAt) continue;
+      const newestState =
+        newest.approvalInstance?.approvalState ?? 'DRAFT';
+      if (newestState === 'REJECTED') {
+        const latestApproved = ordered.find(
+          (order) =>
+            !order.cancelledAt &&
+            order.approvalInstance?.approvalState === 'APPROVED',
+        );
+        if (latestApproved) {
+          currentRevisionByPoNumber.set(
+            poNumber,
+            latestApproved.id,
+          );
+        }
+        continue;
+      }
+      currentRevisionByPoNumber.set(poNumber, newest.id);
+    }
+
+    const lines = requests.flatMap((request) =>
+      request.lines.map((line) => {
+        const poRows = line.purchaseOrderLines.map((poLine) => ({
+          id: poLine.id,
+          purchaseOrderId: poLine.purchaseOrder.id,
+          poNumber: poLine.purchaseOrder.poNumber,
+          revisionNo: poLine.purchaseOrder.revisionNo,
+          lifecycleState: lifecycle(poLine.purchaseOrder),
+          supplier: poLine.purchaseOrder.supplier,
+          requiredOnSite: dateKey(poLine.requiredOnSite),
+          expectedDelivery: dateKey(poLine.expectedDelivery),
+          scheduleRisk: risk(
+            poLine.requiredOnSite,
+            poLine.expectedDelivery,
+          ),
+          quotationAwardId: poLine.quotationAwardId,
+          supplierQuotationId: poLine.supplierQuotationId,
+          supplierQuotationLineId: poLine.supplierQuotationLineId,
+          rfqId: poLine.rfqId,
+          rfqLineId: poLine.rfqLineId,
+        }));
+
+        const currentPoRows = poRows.filter(
+          (row) =>
+            currentRevisionByPoNumber.get(row.poNumber) ===
+            row.purchaseOrderId,
+        );
+
+        const riskDriver =
+          currentPoRows.find(
+            (row) => row.scheduleRisk === 'AT_RISK',
+          ) ??
+          currentPoRows.find(
+            (row) => row.scheduleRisk === 'UNAVAILABLE',
+          ) ??
+          currentPoRows[0] ??
+          null;
+
+        const scheduleRisk:
+          | 'AT_RISK'
+          | 'ON_TIME'
+          | 'UNAVAILABLE' =
+          riskDriver?.scheduleRisk ?? 'UNAVAILABLE';
+        const requiredOnSite =
+          riskDriver?.requiredOnSite ??
+          dateKey(line.requiredOnSite);
+        const expectedDelivery =
+          riskDriver?.expectedDelivery ?? null;
+
+        return {
+          id: line.id,
+          pr: {
+            id: request.id,
+            prNumber: request.prNumber,
+            lineNo: line.lineNo,
+            lifecycleState: lifecycle(request),
+          },
+          lineType: line.lineType,
+          materialCode: line.materialCodeSnapshot,
+          description: line.description,
+          quantity: line.quantity.toString(),
+          uom: line.uom,
+          requiredOnSite,
+          expectedDelivery,
+          scheduleRisk,
+          context: {
+            wbs: line.wbs,
+            costCode: line.costCode,
+            activity: line.activity,
+          },
+          rfqs: line.rfqLines.map((rfqLine) => ({
+            rfqLineId: rfqLine.id,
+            rfqId: rfqLine.rfq.id,
+            rfqNumber: rfqLine.rfq.rfqNumber,
+            rfqDate: dateKey(rfqLine.rfq.rfqDate),
+            closingDate: dateKey(rfqLine.rfq.closingDate),
+            invitedSupplierCount: rfqLine.rfq._count.suppliers,
+            quotationCount: rfqLine.rfq._count.quotations,
+            quotations: rfqLine.rfq.quotations.map(
+              (quotation) => ({
+                id: quotation.id,
+                supplierReference: quotation.supplierReference,
+                quotationDate: dateKey(quotation.quotationDate)!,
+                validityDate: dateKey(quotation.validityDate),
+                supplier: quotation.supplier,
+              }),
+            ),
+            award: rfqLine.award,
+          })),
+          purchaseOrders: poRows,
+        };
+      }),
+    );
+
+    const summary = lines.reduce(
+      (result, line) => {
+        result.total += 1;
+        result[line.scheduleRisk] += 1;
+        if (line.rfqs.length > 0) result.rfq += 1;
+        if (line.rfqs.some((item) => item.award)) result.awarded += 1;
+        if (line.purchaseOrders.length > 0) result.purchaseOrder += 1;
+        return result;
+      },
+      {
+        total: 0,
+        AT_RISK: 0,
+        ON_TIME: 0,
+        UNAVAILABLE: 0,
+        rfq: 0,
+        awarded: 0,
+        purchaseOrder: 0,
+      },
+    );
+
+    return { project, summary, lines };
+  }
+
   async projectEngineer(
     auth: AuthenticatedUserContext,
     projectId: string,

@@ -234,6 +234,15 @@ test('Project Documents enforce scope, safe storage and metadata boundaries', as
         plannedFinishDate: new Date('2026-10-01T00:00:00.000Z'),
       },
     });
+    const purchaseRequest = await prisma.purchaseRequest.create({
+      data: {
+        companyId: company.id,
+        projectId: project.id,
+        prNumber: 'PR2609-001',
+        remarks: 'Procurement document target',
+        createdByUserId: scopedUser.id,
+      },
+    });
 
     const access = new ProjectAccessService(
       prisma,
@@ -342,10 +351,24 @@ test('Project Documents enforce scope, safe storage and metadata boundaries', as
       type.id,
       uploadFile('activity-method.pdf'),
     );
+    const purchaseRequestDocument = await targets.upload(
+      { auth: scoped },
+      project.id,
+      'PURCHASE_REQUEST',
+      purchaseRequest.id,
+      type.id,
+      uploadFile('purchase-request-support.pdf'),
+    );
     const targetOptions = await targets.options(scoped, project.id);
     assert.equal(targetOptions.wbs.some((row) => row.id === wbs.id), true);
     assert.equal(
       targetOptions.activities.some((row) => row.id === activity.id),
+      true,
+    );
+    assert.equal(
+      targetOptions.purchaseRequests.some(
+        (row) => row.id === purchaseRequest.id,
+      ),
       true,
     );
 
@@ -364,6 +387,18 @@ test('Project Documents enforce scope, safe storage and metadata boundaries', as
     );
     assert.equal(
       activityDocuments.some((row) => row.id === activityDocument.id),
+      true,
+    );
+    const purchaseRequestDocuments = await targets.list(
+      scoped,
+      project.id,
+      'PURCHASE_REQUEST',
+      purchaseRequest.id,
+    );
+    assert.equal(
+      purchaseRequestDocuments.some(
+        (row) => row.id === purchaseRequestDocument.id,
+      ),
       true,
     );
     assert.equal(JSON.stringify(wbsDocuments).includes('storageKey'), false);
@@ -432,10 +467,14 @@ test('Project Documents enforce scope, safe storage and metadata boundaries', as
     );
 
     const listed = await service.listProjectDocuments(scoped, project.id);
-    assert.equal(listed.length, 3);
+    assert.equal(listed.length, 4);
     assert.equal(listed.some((row) => row.id === created.id), true);
     assert.equal(listed.some((row) => row.id === wbsDocument.id), true);
     assert.equal(listed.some((row) => row.id === activityDocument.id), true);
+    assert.equal(
+      listed.some((row) => row.id === purchaseRequestDocument.id),
+      true,
+    );
     assert.equal('storageKey' in listed[0]!, false);
     assert.equal(JSON.stringify(listed).includes(tempRoot), false);
 

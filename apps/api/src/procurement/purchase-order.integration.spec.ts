@@ -17,6 +17,8 @@ import { AuthorizationService } from '../authorization/authorization.service';
 import { ProjectScopeService } from '../authorization/project-scope.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProjectAccessService } from '../projects/project-access.service';
+import { ReportingService } from '../reporting/reporting.service';
+import { SchedulingProgressService } from '../scheduling/scheduling-progress.service';
 import { ProcurementService } from './procurement.service';
 import { PurchaseOrderService } from './purchase-order.service';
 import { SourcingService } from './sourcing.service';
@@ -284,6 +286,11 @@ test('V0.3-D Purchase Orders preserve awarded-source traceability, approval and 
       prisma,
       new ProjectScopeService(new AuthorizationService()),
     );
+    const reporting = new ReportingService(
+      prisma,
+      access,
+      null as unknown as SchedulingProgressService,
+    );
     const audit = new AuditService(prisma);
     const approvals = new ApprovalService(prisma);
     const numbers = new NumberSequenceService(prisma);
@@ -484,6 +491,63 @@ test('V0.3-D Purchase Orders preserve awarded-source traceability, approval and 
     );
     assert.equal(approved.lifecycleState, 'APPROVED');
     assert.equal(approved.revisionNo, 0);
+
+    const procurementReport = await reporting.procurement(
+      makerAuth,
+      project.id,
+    );
+    const procurementLine = procurementReport.lines.find(
+      (line) => line.id === prLine.id,
+    );
+    assert.ok(procurementLine);
+    assert.equal(procurementLine.pr.prNumber, pr.prNumber);
+    assert.equal(procurementLine.scheduleRisk, 'ON_TIME');
+    assert.equal(
+      procurementLine.requiredOnSite,
+      requiredOnSite.toISOString().slice(0, 10),
+    );
+    assert.equal(
+      procurementLine.expectedDelivery,
+      expectedDelivery.toISOString().slice(0, 10),
+    );
+    assert.equal(
+      procurementLine.rfqs.some(
+        (row) =>
+          row.rfqNumber === rfq.rfqNumber &&
+          row.award?.id === award.id &&
+          row.award.supplierQuotationId === quotation.id &&
+          row.award.supplierQuotationLineId === quotationLine.id,
+      ),
+      true,
+    );
+    assert.equal(
+      procurementLine.rfqs
+        .flatMap((row) => row.quotations)
+        .some(
+          (quotation) =>
+            quotation.id === quotation.id &&
+            quotation.quotationDate ===
+              quotation.quotationDate.slice(0, 10),
+        ),
+      true,
+    );
+    assert.equal(
+      procurementLine.purchaseOrders.some(
+        (row) =>
+          row.poNumber === draft.poNumber &&
+          row.lifecycleState === 'APPROVED',
+      ),
+      true,
+    );
+    assert.equal(
+      JSON.stringify(procurementLine).includes('unitPrice'),
+      false,
+      'Operational procurement reporting must not leak quotation/PO commercial pricing.',
+    );
+    await assert.rejects(
+      () => reporting.procurement(outsiderAuth, project.id),
+      (error: unknown) => error instanceof ForbiddenException,
+    );
 
     await assert.rejects(
       () =>
