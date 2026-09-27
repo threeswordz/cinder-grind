@@ -95,9 +95,17 @@ export function SourcingPanel({
     enabled: Boolean(canView && projectId),
   });
   const detail = useQuery({
-    queryKey: ['sourcing', 'rfq', rfqId],
-    queryFn: () => sourcingApi.rfq(rfqId),
-    enabled: Boolean(canViewRfq && rfqId),
+    queryKey: [
+      'sourcing',
+      'rfq',
+      rfqId,
+      canViewRfq ? 'rfq' : 'quotation',
+    ],
+    queryFn: () =>
+      canViewRfq
+        ? sourcingApi.rfq(rfqId)
+        : sourcingApi.quotationRfq(rfqId),
+    enabled: Boolean(canView && rfqId),
   });
   const comparison = useQuery({
     queryKey: ['sourcing', 'comparison', rfqId],
