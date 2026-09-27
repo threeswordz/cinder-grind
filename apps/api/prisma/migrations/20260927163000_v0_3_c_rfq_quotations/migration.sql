@@ -436,6 +436,7 @@ DECLARE
   quote_supplier UUID;
   quote_reference VARCHAR(150);
   quote_date DATE;
+  ql_quotation UUID;
   ql_rfq_line UUID;
   ql_quantity DECIMAL(18,4);
   ql_uom UUID;
@@ -456,9 +457,9 @@ BEGIN
   SELECT "rfq_id","supplier_id","supplier_reference","quotation_date"
     INTO quote_rfq,quote_supplier,quote_reference,quote_date
   FROM "supplier_quotations" WHERE "id" = NEW."supplier_quotation_id";
-  SELECT sqln."rfq_line_id",sqln."quantity",sqln."uom_id",sqln."uom_code_snapshot",
-         sqln."unit_price",sqln."amount"
-    INTO ql_rfq_line,ql_quantity,ql_uom,ql_uom_code,ql_price,ql_amount
+  SELECT sqln."supplier_quotation_id",sqln."rfq_line_id",sqln."quantity",
+         sqln."uom_id",sqln."uom_code_snapshot",sqln."unit_price",sqln."amount"
+    INTO ql_quotation,ql_rfq_line,ql_quantity,ql_uom,ql_uom_code,ql_price,ql_amount
   FROM "supplier_quotation_lines" sqln
   WHERE sqln."id" = NEW."supplier_quotation_line_id";
   SELECT "supplier_code_snapshot","supplier_name_snapshot"
@@ -473,6 +474,7 @@ BEGIN
     RAISE EXCEPTION 'Quotation Award source not found';
   END IF;
   IF quote_rfq <> NEW."rfq_id"
+     OR ql_quotation <> NEW."supplier_quotation_id"
      OR ql_rfq_line <> NEW."rfq_line_id"
      OR quote_supplier <> NEW."supplier_id" THEN
     RAISE EXCEPTION 'Quotation Award source references are inconsistent';
