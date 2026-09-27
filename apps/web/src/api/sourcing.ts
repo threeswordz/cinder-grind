@@ -177,15 +177,15 @@ export type RfqLine = {
       approvalInstance: { approvalState: string } | null;
     };
   };
-  award: QuotationAward | null;
+  award?: QuotationAward | null;
 };
 
 export type RfqDetail = RfqListItem & {
   project: SourcingProject;
   lines: RfqLine[];
   suppliers: RfqSupplier[];
-  quotations: SupplierQuotation[];
-  awards: QuotationAward[];
+  quotations?: SupplierQuotation[];
+  awards?: QuotationAward[];
 };
 
 export type RfqComparison = {
