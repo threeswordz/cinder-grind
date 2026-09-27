@@ -247,7 +247,15 @@ export class PurchaseOrderService {
           select: { id: true, poNumber: true, revisionNo: true },
         },
         nextRevision: {
-          select: { id: true, poNumber: true, revisionNo: true },
+          select: {
+            id: true,
+            poNumber: true,
+            revisionNo: true,
+            cancelledAt: true,
+            approvalInstance: {
+              select: { approvalState: true },
+            },
+          },
         },
         approvalInstance: {
           include: {
@@ -892,6 +900,52 @@ export class PurchaseOrderService {
       context.auth,
       orderId,
     );
+    const supplier = await this.prisma.supplier.findFirst({
+      where: {
+        id: order.supplierId,
+        companyId: context.auth.companyId,
+        isActive: true,
+      },
+      select: { id: true },
+    });
+    if (!supplier) {
+      throw new ConflictException({
+        code: 'PO_SUPPLIER_INACTIVE',
+        detail:
+          'This Purchase Order cannot be approved for an inactive Supplier.',
+      });
+    }
+
+    const sourceLines = await this.prisma.purchaseRequestLine.findMany({
+      where: {
+        id: { in: order.purchaseRequestLineIds },
+      },
+      include: {
+        purchaseRequest: {
+          include: {
+            approvalInstance: {
+              select: { approvalState: true },
+            },
+          },
+        },
+      },
+    });
+    if (
+      sourceLines.length !== order.purchaseRequestLineIds.length ||
+      sourceLines.some(
+        (line) =>
+          line.purchaseRequest.cancelledAt ||
+          line.purchaseRequest.approvalInstance?.approvalState !==
+            APPROVAL_STATE.APPROVED,
+      )
+    ) {
+      throw new ConflictException({
+        code: 'PO_SOURCE_DEMAND_INACTIVE',
+        detail:
+          'Purchase Order approval requires active approved Purchase Request demand.',
+      });
+    }
+
     const instance = await this.approvals.approve(
       order.approvalInstanceId,
       context.auth,
@@ -985,11 +1039,31 @@ export class PurchaseOrderService {
               'A rejected Purchase Order revision is retained history and cannot be cancelled.',
           });
         }
-        if (order.nextRevision) {
+        const blockingNewerRevision =
+          await tx.purchaseOrder.findFirst({
+            where: {
+              companyId: order.companyId,
+              poNumber: order.poNumber,
+              revisionNo: { gt: order.revisionNo },
+              cancelledAt: null,
+              OR: [
+                { approvalInstanceId: null },
+                {
+                  approvalInstance: {
+                    approvalState: {
+                      not: APPROVAL_STATE.REJECTED,
+                    },
+                  },
+                },
+              ],
+            },
+            select: { id: true },
+          });
+        if (blockingNewerRevision) {
           throw new ConflictException({
             code: 'PO_HAS_NEWER_REVISION',
             detail:
-              'A Purchase Order revision with a newer revision cannot be cancelled directly.',
+              'A Purchase Order revision with a newer active revision cannot be cancelled directly.',
           });
         }
         if (
@@ -1087,6 +1161,78 @@ export class PurchaseOrderService {
             detail:
               'This Purchase Order revision already has a newer revision.',
           });
+        }
+
+        const activeSupplier = await tx.supplier.findFirst({
+          where: {
+            id: source.supplierId,
+            companyId: source.companyId,
+            isActive: true,
+          },
+          select: { id: true },
+        });
+        if (!activeSupplier) {
+          throw new ConflictException({
+            code: 'PO_SUPPLIER_INACTIVE',
+            detail:
+              'A Purchase Order revision cannot be created for an inactive Supplier.',
+          });
+        }
+
+        const sourceRequestLines = await tx.purchaseRequestLine.findMany({
+          where: {
+            id: {
+              in: source.lines.map(
+                (line) => line.purchaseRequestLineId,
+              ),
+            },
+          },
+          include: {
+            purchaseRequest: {
+              include: {
+                approvalInstance: {
+                  select: { approvalState: true },
+                },
+              },
+            },
+          },
+        });
+        if (
+          sourceRequestLines.length !== source.lines.length ||
+          sourceRequestLines.some(
+            (line) =>
+              line.purchaseRequest.cancelledAt ||
+              line.purchaseRequest.approvalInstance?.approvalState !==
+                APPROVAL_STATE.APPROVED,
+          )
+        ) {
+          throw new ConflictException({
+            code: 'PO_SOURCE_DEMAND_INACTIVE',
+            detail:
+              'A Purchase Order revision requires active approved Purchase Request demand.',
+          });
+        }
+
+        if (sourceApprovalState === APPROVAL_STATE.REJECTED) {
+          const cancelledApprovedRevision =
+            await tx.purchaseOrder.findFirst({
+              where: {
+                companyId: source.companyId,
+                poNumber: source.poNumber,
+                cancelledAt: { not: null },
+                approvalInstance: {
+                  approvalState: APPROVAL_STATE.APPROVED,
+                },
+              },
+              select: { id: true },
+            });
+          if (cancelledApprovedRevision) {
+            throw new ConflictException({
+              code: 'PO_COMMITMENT_CANCELLED',
+              detail:
+                'A rejected Purchase Order cannot be retried after the approved commitment has been cancelled.',
+            });
+          }
         }
 
         await tx.$executeRawUnsafe(
@@ -1257,9 +1403,13 @@ export class PurchaseOrderService {
       select: {
         id: true,
         projectId: true,
+        supplierId: true,
         approvalInstanceId: true,
         submittedByUserId: true,
         cancelledAt: true,
+        lines: {
+          select: { purchaseRequestLineId: true },
+        },
       },
     });
     if (!row) throw this.orderNotFound();
@@ -1279,6 +1429,11 @@ export class PurchaseOrderService {
       ...row,
       approvalInstanceId: row.approvalInstanceId,
       submittedByUserId: row.submittedByUserId,
+      purchaseRequestLineIds: [
+        ...new Set(
+          row.lines.map((line) => line.purchaseRequestLineId),
+        ),
+      ],
     };
   }
 
