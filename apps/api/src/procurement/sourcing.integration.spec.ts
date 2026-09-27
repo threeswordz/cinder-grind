@@ -652,6 +652,8 @@ test('V0.3-C RFQ / Quotations preserves approved-demand sourcing, comparison and
 
     let observedWaitingAward = false;
     for (let attempt = 0; attempt < 50; attempt += 1) {
+      const waitLockKey =
+        'supplier-quotation:' + quoteB.id;
       const waiting = await prisma.$queryRaw<
         Array<{ waiting: bigint }>
       >`
@@ -659,6 +661,16 @@ test('V0.3-C RFQ / Quotations preserves approved-demand sourcing, comparison and
         FROM pg_locks
         WHERE locktype = 'advisory'
           AND granted = false
+          AND objsubid = 1
+          AND classid = (
+            (
+              hashtext(${waitLockKey})::bigint >> 32
+            ) & 4294967295
+          )::oid
+          AND objid = (
+            hashtext(${waitLockKey})::bigint
+            & 4294967295
+          )::oid
       `;
       if ((waiting[0]?.waiting ?? 0n) > 0n) {
         observedWaitingAward = true;
