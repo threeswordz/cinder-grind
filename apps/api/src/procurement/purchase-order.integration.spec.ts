@@ -512,8 +512,23 @@ test('V0.3-D Purchase Orders preserve awarded-source traceability, approval and 
     );
     assert.equal(
       procurementLine.rfqs.some(
-        (row) => row.rfqNumber === rfq.rfqNumber && row.award?.id === award.id,
+        (row) =>
+          row.rfqNumber === rfq.rfqNumber &&
+          row.award?.id === award.id &&
+          row.award.supplierQuotationId === quote.id &&
+          row.award.supplierQuotationLineId === quoteLine.id,
       ),
+      true,
+    );
+    assert.equal(
+      procurementLine.rfqs
+        .flatMap((row) => row.quotations)
+        .some(
+          (quotation) =>
+            quotation.id === quote.id &&
+            quotation.quotationDate ===
+              quote.quotationDate.toISOString().slice(0, 10),
+        ),
       true,
     );
     assert.equal(
