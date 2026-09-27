@@ -5,6 +5,7 @@ import { ApprovalModule } from './approval/approval.module';
 import { AuditModule } from './audit/audit.module';
 import { AuthModule } from './auth/auth.module';
 import { AuthorizationModule } from './authorization/authorization.module';
+import { BudgetModule } from './budget/budget.module';
 import { CorrelationIdMiddleware } from './common/correlation-id.middleware';
 import { HealthModule } from './health/health.module';
 import { DocumentsModule } from './documents/documents.module';
@@ -21,6 +22,7 @@ import { WbsModule } from './wbs/wbs.module';
   imports: [
     PrismaModule,
     ProjectsModule,
+    BudgetModule,
     WbsModule,
     SchedulingModule,
     SiteExecutionModule,

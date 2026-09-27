@@ -211,6 +211,10 @@ const permissionCodes = [
   'equipment.usage.create',
   'equipment.usage.edit',
   'reporting.operational.view',
+  'budget.boq.view',
+  'budget.boq.manage',
+  'budget.revision.view',
+  'budget.revision.submit',
 ];
 await request(admin, `/admin/roles/${roleId}/permissions`, {
   method: 'PUT',
@@ -233,6 +237,8 @@ await request(admin, `/admin/roles/${checkerRoleId}/permissions`, {
     permissionCodes: [
       'schedule.baseline.approve',
       'schedule.programme.view',
+      'budget.revision.view',
+      'budget.revision.approve',
     ],
   },
 });
@@ -255,6 +261,37 @@ await request(admin, '/admin/approval-workflows', {
   },
   expected: 201,
 });
+
+const budgetWorkflowCode = 'BUDGET_REVISION_' + suffix;
+await request(admin, '/admin/approval-workflows', {
+  method: 'POST',
+  json: {
+    workflowCode: budgetWorkflowCode,
+    entityType: 'BUDGET_REVISION',
+    workflowName: 'Budget Revision Approval ' + suffix,
+    steps: [
+      {
+        stepNo: 1,
+        stepName: 'Approve Budget Revision',
+        requiredApprovals: 1,
+        roleIds: [checkerRoleId],
+      },
+    ],
+  },
+  expected: 201,
+});
+await request(admin, '/admin/number-sequences', {
+  method: 'POST',
+  json: {
+    entityType: 'BUDGET_REVISION',
+    sequenceCode: 'BUDGET_REVISION',
+    formatTemplate: 'BRYY-###',
+    resetRule: 'YEARLY',
+    startingValue: 1,
+  },
+  expected: 201,
+});
+record('V0.3-A Budget Approval Matrix and configured Budget Revision sequence');
 
 const pmPassword = 'Uat-PM-' + suffix + '-Strong-2026!';
 const unassignedPassword = 'Uat-PE-' + suffix + '-Strong-2026!';
@@ -576,6 +613,17 @@ await request(pm, `/schedule-baselines/${baseline.data.data.id}/approve`, {
 });
 
 const checker = await login(checkerUser.data.data.email, checkerPassword);
+const checkerBudgetProjects = await request(
+  checker,
+  '/budget/revision-projects',
+);
+check(
+  checkerBudgetProjects.data.data.some((item) => item.id === projectId),
+  'Revision-only Budget approver Project selector did not expose assigned Project.',
+);
+await request(checker, '/budget/projects', { expected: 403 });
+record('V0.3-A revision-only Budget approver Project selector');
+
 const approvedBaseline = await request(
   checker,
   `/schedule-baselines/${baseline.data.data.id}/approve`,
@@ -593,6 +641,194 @@ check(
   approvedBaseline.data.data.isCurrent === true,
   'Approved Schedule Baseline did not become current.',
 );
+
+const projectBoq = await request(
+  pm,
+  '/budget/projects/' + projectId + '/boq',
+  {
+    method: 'POST',
+    json: { boqName: 'Main Contract BOQ ' + suffix },
+    expected: 201,
+  },
+);
+const boqId = projectBoq.data.data.id;
+const boqSection = await request(pm, '/budget/boqs/' + boqId + '/sections', {
+  method: 'POST',
+  json: {
+    sectionCode: 'A',
+    sectionName: 'Groundworks',
+    description: 'Ground Floor Slab BOQ section',
+    sortOrder: 10,
+  },
+  expected: 201,
+});
+const boqItem = await request(pm, '/budget/boqs/' + boqId + '/items', {
+  method: 'POST',
+  json: {
+    sectionId: boqSection.data.data.id,
+    itemCode: 'A001',
+    description: 'Blinding concrete',
+    quantity: '10',
+    uomId,
+    rate: '25',
+    wbsId: rootWbs.data.data.id,
+    costCodeId: costCode.data.data.id,
+    sortOrder: 10,
+  },
+  expected: 201,
+});
+check(
+  String(boqItem.data.data.amount) === '250',
+  'BOQ Item amount was not derived as quantity × rate.',
+);
+
+const budgetDraft1 = await request(
+  pm,
+  '/budget/projects/' + projectId + '/revisions',
+  {
+    method: 'POST',
+    json: { revisionNote: 'Original Budget' },
+    expected: 201,
+  },
+);
+check(
+  budgetDraft1.data.data.lifecycleState === 'DRAFT' &&
+    budgetDraft1.data.data.revisionNo === 1 &&
+    budgetDraft1.data.data.lineCount === 1,
+  'First Budget Revision did not start as a one-line Draft snapshot.',
+);
+check(
+  /^BR26-\d{3}$/.test(budgetDraft1.data.data.revisionNumber),
+  'Budget Revision business number was not generated from the configured sequence.',
+);
+
+await request(pm, '/budget/items/' + boqItem.data.data.id, {
+  method: 'PATCH',
+  json: { rate: '30' },
+});
+const draft1Detail = await request(
+  pm,
+  '/budget/revisions/' + budgetDraft1.data.data.id,
+);
+check(
+  String(draft1Detail.data.data.lines[0]?.amount) === '250',
+  'Draft Budget snapshot changed after the working BOQ was edited.',
+);
+
+const submittedBudget1 = await request(
+  pm,
+  '/budget/revisions/' + budgetDraft1.data.data.id + '/submit',
+  {
+    method: 'POST',
+    json: { workflowCode: budgetWorkflowCode },
+    expected: 201,
+  },
+);
+check(
+  submittedBudget1.data.data.approvalInstance?.approvalState === 'SUBMITTED',
+  'Draft Budget Revision did not enter approval.',
+);
+await request(
+  pm,
+  '/budget/revisions/' + budgetDraft1.data.data.id + '/approve',
+  {
+    method: 'POST',
+    json: { comment: 'Maker must not self-approve Budget.' },
+    expected: 403,
+  },
+);
+const approvedBudget1 = await request(
+  checker,
+  '/budget/revisions/' + budgetDraft1.data.data.id + '/approve',
+  {
+    method: 'POST',
+    json: { comment: 'Approve Original Budget.' },
+    expected: 201,
+  },
+);
+check(
+  approvedBudget1.data.data.isOriginal === true &&
+    approvedBudget1.data.data.isCurrent === true &&
+    approvedBudget1.data.data.approvalInstance?.approvalState === 'APPROVED',
+  'First approved Budget did not become both Original and Current.',
+);
+
+const budgetSummary1 = await request(
+  pm,
+  '/budget/projects/' + projectId + '/summary',
+);
+check(
+  String(budgetSummary1.data.data.original?.total) === '250' &&
+    String(budgetSummary1.data.data.current?.total) === '250',
+  'Original Budget summary was not derived from the first approved revision.',
+);
+
+const budgetDraft2 = await request(
+  pm,
+  '/budget/projects/' + projectId + '/revisions',
+  {
+    method: 'POST',
+    json: { revisionNote: 'Revised Budget' },
+    expected: 201,
+  },
+);
+await request(
+  pm,
+  '/budget/revisions/' + budgetDraft2.data.data.id + '/submit',
+  {
+    method: 'POST',
+    json: { workflowCode: budgetWorkflowCode },
+    expected: 201,
+  },
+);
+const approvedBudget2 = await request(
+  checker,
+  '/budget/revisions/' + budgetDraft2.data.data.id + '/approve',
+  {
+    method: 'POST',
+    json: { comment: 'Approve Revised Budget.' },
+    expected: 201,
+  },
+);
+check(
+  approvedBudget2.data.data.isOriginal === false &&
+    approvedBudget2.data.data.isCurrent === true,
+  'Second approved Budget did not become the Current Revised Budget.',
+);
+
+const budgetSummary2 = await request(
+  pm,
+  '/budget/projects/' + projectId + '/summary',
+);
+check(
+  String(budgetSummary2.data.data.original?.total) === '250' &&
+    String(budgetSummary2.data.data.current?.total) === '300',
+  'Original Budget was overwritten or Current Revised Budget was not updated.',
+);
+check(
+  budgetSummary2.data.data.current?.byWbs?.some(
+    (row) =>
+      row.wbsId === rootWbs.data.data.id &&
+      String(row.amount) === '300',
+  ) &&
+    budgetSummary2.data.data.current?.byCostCode?.some(
+      (row) =>
+        row.costCodeId === costCode.data.data.id &&
+        String(row.amount) === '300',
+    ),
+  'Budget WBS / Cost Code summaries did not preserve independent allocations.',
+);
+
+const downstreamBudget = await request(
+  pm,
+  '/budget/projects/' + projectId + '/approved',
+);
+check(
+  downstreamBudget.data.data.id === approvedBudget2.data.data.id &&
+    String(downstreamBudget.data.data.lines[0]?.amount) === '300',
+  'Approved Budget downstream read model did not return the current approved revision.',
+);
+record('V0.3-A canonical BOQ, Draft/Approval history, Original/Revised Budget and dimensional reporting');
 
 await request(pm, `/activity-progress/${activityA.data.data.id}`, {
   method: 'POST',
@@ -1686,7 +1922,18 @@ await request(
     '/project-engineer?asOf=2026-10-10&days=14',
   { expected: 403 },
 );
-record('unassigned Project, Document, Scheduling, Site Execution, Equipment and Reporting access denied');
+await request(
+  unassigned,
+  '/budget/projects/' + projectId + '/boq',
+  { expected: 403 },
+);
+await request(
+  unassigned,
+  '/budget/projects/' + projectId + '/summary',
+  { expected: 403 },
+);
+record('V0.3-A scoped Budget access denied');
+record('unassigned Project, Document, Scheduling, Site Execution, Equipment, Reporting and Budget access denied');
 
 await logout(pm);
 await request(pm, '/auth/me', { expected: 401 });

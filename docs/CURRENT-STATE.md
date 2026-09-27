@@ -3,10 +3,13 @@
 **Last verified:** 2026-09-27
 **Source of truth:** Live GitHub repository state
 
-- Current Release: V0.3 Procurement — ENTRY GATE
-- Current Stage: V0.3 Release Entry Gate — APPROVED, PENDING MERGE
+- Current Release: V0.3 Procurement
+- Current Stage: V0.3-A BOQ & Budget — IMPLEMENTATION
 - Completed Stages: V0.1-A Technical Skeleton; V0.1-B Company / Identity / Security; V0.1-C Administration; V0.1-D Master Data; V0.1-E Projects; V0.1-F WBS & Cost Codes; V0.1-G Basic Documents; V0.1-H Integration / Regression / UAT; V0.2-A Scheduling Data Model; V0.2-B Scheduling Engine; V0.2-C Baselines / Progress; V0.2-D Gantt / Lookahead; V0.2-E Site Execution; V0.2-F Equipment; V0.2-G UAT Reference Programme
-- Active Issue: #57 — V0.3 Release Entry Gate — Scope & Acceptance Baselines
+- Active Issue: #59 — V0.3-A BOQ & Budget
+- Completed Issue: #57 — V0.3 Release Entry Gate — Scope & Acceptance Baselines
+- Completed Branch: `v0.3-entry-gate`
+- Merged PR: #58 — V0.3 entry gate: approve Procurement baselines and business rules
 - Completed Issue: #53 — V0.2-G UAT Reference Programme
 - Completed Branch: `v0.2-g-uat-reference`
 - Merged PR: #54 — V0.2-G UAT Reference Programme and Release Closure
@@ -48,7 +51,7 @@
 - V0.1 cross-module release acceptance scenario: PASS in the Stage H release-candidate regression suite.
 - Open defect check at V0.1 acceptance: no Severity 1 or Severity 2 release-blocking defect recorded.
 - Governance: `AGENTS.md`, `docs/PROJECT-GOVERNANCE.md`, PR governance checklist and DEC-008 are active; material decisions must pass the repository pre-flight and open-source/zero-cost-first constraint.
-- Next action: merge the approved V0.3 entry-gate baseline after exact-head CI, close Issue #57, then open V0.3-A BOQ & Budget implementation.
+- Next action: implement V0.3-A BOQ & Budget under the approved BUD-001–BUD-010 acceptance criteria and BR-V03-01 through BR-V03-04 / BR-V03-17 / BR-V03-18.
 
 ## Stage E completed
 
@@ -451,4 +454,42 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - PROC-020 remains V0.6 Finance; PROC-021 remains V0.7 Cost Control.
 - V0.3 Scope Baseline v0.1 and V0.3 Acceptance Criteria Baseline v0.1 were explicitly approved on 2026-09-27.
 - BR-V03-01 through BR-V03-18 were explicitly approved as proposed on 2026-09-27 and are authoritative unless changed through Change Control.
-- V0.3-A implementation may begin after this approved entry-gate baseline is merged and Issue #57 is closed.
+- V0.3 entry gate is complete: PR #58 merged as `924e0ccad00d399246aa3ced95ec5013b8d18f0d`; post-merge main CI #916 passed.
+- V0.3-A implementation is authorized under Issue #59 and branch `v0.3-a-boq-budget`.
+
+## V0.3 entry gate completed
+
+- Product / Business Owner approved V0.3 Scope Baseline v0.1, V0.3 Acceptance Criteria Baseline v0.1 and BR-V03-01 through BR-V03-18 on 2026-09-27.
+- PR #58 merged to `main` as `924e0ccad00d399246aa3ced95ec5013b8d18f0d`.
+- exact-head PR CI #915 passed on `352a194e1f947f49957edb7c3b24ff43cc4d5421`.
+- post-merge `main` CI #916 passed on `924e0ccad00d399246aa3ced95ec5013b8d18f0d`.
+- Issue #57 is closed.
+- V0.3-A BOQ & Budget is the active implementation stage under Issue #59 / branch `v0.3-a-boq-budget`.
+- V0.4 Inventory, V0.6 Finance and V0.7 Cost Control ownership boundaries remain unchanged.
+
+## V0.3-A implementation progress
+
+- BUD-001–BUD-010 are implemented on branch `v0.3-a-boq-budget` under Issue #59.
+- one canonical working BOQ per Project with stable Section/Item identities and soft archive/reactivation.
+- BOQ Item quantity/UOM/rate/amount are server/database validated; amount is derived as quantity × rate.
+- Project context is inherited; optional WBS and Cost Code remain independent validated dimensions.
+- Budget Revision creation captures an immutable Draft snapshot of active BOQ data and assigns a Company-unique immutable number through configured Number Sequence `BUDGET_REVISION`.
+- exact human-readable Budget/PR/RFQ/PO number formats remain intentionally configuration-owned/deferred under approved BR-V03-17; Stage A does not hardcode a production format.
+- submission is a separate Draft → Submitted transition using the existing configurable `BUDGET_REVISION` Approval Matrix and backend maker-checker.
+- first approved revision is derived as Original Budget; latest approved revision is Current Revised Budget; rejected revisions remain history.
+- Project, WBS and Cost Code approved-budget summaries are source-derived from immutable revision lines, including unallocated categories.
+- latest approved revision is exposed as a downstream read model for later Procurement without duplicating BOQ/Budget ownership.
+- PostgreSQL guards enforce Company/Project dimensional integrity, arithmetic, snapshot immutability and retained commercial history.
+- responsive BOQ & Budget workspace supports BOQ maintenance, Draft creation/submission/approval and Original/Revised budget summaries.
+- integration tests cover canonical BOQ, dimensional validation, immutable Draft/approved snapshots, maker-checker, Original/Revised semantics, rejected history and downstream approved-budget reads.
+- live HTTP acceptance covers BOQ → Draft Budget → submit → maker-checker approval → Revised Budget while preserving Original Budget, plus Project-scope denial.
+- full implementation branch CI #939 passed on `06f743755a16a3642d5f33b8d075e41204a34215` before documentation completion.
+- no PR/RFQ/quotation/PO, Inventory, Finance, Actual Cost, tax/VAT, FX or V0.7 Cost Control behavior is introduced.
+
+## V0.3-A PR #60 review fixes
+
+- Original Budget identity is now derived from the earliest approval completion event, so approving a lower revision number later cannot retroactively replace the Original Budget.
+- the Current Revised Budget remains the highest/latest approved revision number.
+- revision-only Budget approvers can load assigned Projects through a dedicated Project selector endpoint without requiring BOQ-view permission.
+- the BOQ/Budget UI no longer enables Draft Budget creation when all active Items belong to archived Sections.
+- integration/live acceptance coverage was extended for approval-order semantics and revision-only approver Project selection.

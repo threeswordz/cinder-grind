@@ -1411,7 +1411,48 @@ Operational reporting is a derived read model, not a new transaction ledger. The
 
 ---
 
-## 41.7 Purchase Requests
+## 41.7 BOQ & Budget
+
+```text
+GET    /api/v1/budget/projects
+GET    /api/v1/budget/revision-projects
+GET    /api/v1/budget/projects/{projectId}/options
+
+GET    /api/v1/budget/projects/{projectId}/boq
+POST   /api/v1/budget/projects/{projectId}/boq
+PATCH  /api/v1/budget/projects/{projectId}/boq
+POST   /api/v1/budget/boqs/{boqId}/sections
+PATCH  /api/v1/budget/sections/{sectionId}
+POST   /api/v1/budget/boqs/{boqId}/items
+PATCH  /api/v1/budget/items/{itemId}
+
+GET    /api/v1/budget/revision-workflow-options
+GET    /api/v1/budget/projects/{projectId}/revisions
+GET    /api/v1/budget/revisions/{revisionId}
+POST   /api/v1/budget/projects/{projectId}/revisions
+POST   /api/v1/budget/revisions/{revisionId}/submit
+POST   /api/v1/budget/revisions/{revisionId}/approve
+POST   /api/v1/budget/revisions/{revisionId}/reject
+
+GET    /api/v1/budget/projects/{projectId}/summary
+GET    /api/v1/budget/projects/{projectId}/approved
+```
+
+V0.3-A has one canonical working BOQ per Project. BOQ Sections and BOQ Items retain stable identities and use soft active/inactive state rather than ordinary physical deletion. Item quantity must be greater than zero, rate must be non-negative, and amount is backend/database-derived as quantity × rate with four-decimal commercial precision.
+
+Project is inherited from the BOQ. WBS and Cost Code are independent optional allocation dimensions: a WBS must belong to the BOQ Project while a Cost Code must belong to the same Company. UOM must be an active same-Company master record.
+
+A Budget Revision is an immutable snapshot of the active BOQ at Draft creation. It receives its immutable business number from the configured Company Number Sequence code `BUDGET_REVISION`; V0.3-A deliberately does not hardcode the human-readable template because BR-V03-17 defers that format decision until before V0.3-B.
+
+Draft creation does not start approval. Submission is a distinct Draft → Submitted transition that attaches the reusable `BUDGET_REVISION` Approval Matrix workflow and records the submitter/time. Maker-checker remains backend-enforced. Snapshot lines are immutable from creation; submitted/approved/rejected revision history is never physically deleted through ordinary application flows.
+
+The revision whose approval completion event occurs first is the immutable Original Budget, even if a lower revision number is approved later. The highest/latest APPROVED revision number is the Current Revised Budget. Rejected revisions remain history and never become current. The summary endpoint derives Project totals plus independent WBS and Cost Code totals, including explicit unallocated buckets. The approved endpoint exposes the latest approved immutable source data for later Procurement without transferring BOQ/Budget ownership.
+
+V0.3-A creates no Inventory movement, Supplier Invoice, Payment, Actual Cost, tax/VAT, FX accounting or V0.7 committed-cost ledger.
+
+---
+
+## 41.8 Purchase Requests
 
 ```text
 GET    /api/v1/purchase-requests
@@ -1426,7 +1467,7 @@ POST   /api/v1/purchase-requests/{id}/cancel
 
 ---
 
-## 41.8 Purchase Orders
+## 41.9 Purchase Orders
 
 ```text
 GET    /api/v1/purchase-orders
@@ -1442,7 +1483,7 @@ POST   /api/v1/purchase-orders/{id}/revisions
 
 ---
 
-## 41.9 Inventory
+## 41.10 Inventory
 
 ```text
 POST   /api/v1/goods-receipts
@@ -1463,7 +1504,7 @@ POST   /api/v1/stock-transfers/{id}/post
 
 ---
 
-## 41.10 Finance
+## 41.11 Finance
 
 ```text
 POST   /api/v1/supplier-invoices

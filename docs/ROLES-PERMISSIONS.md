@@ -373,7 +373,19 @@ Earlier design placeholders `site.progress.update`, `site.issue.manage` and `sit
 
 ---
 
-## 9.7 Procurement
+## 9.7 BOQ & Procurement
+
+### BOQ & Budget
+
+V0.3-A enforcement uses:
+
+- `budget.boq.view`
+- `budget.boq.manage`
+- `budget.revision.view`
+- `budget.revision.submit`
+- `budget.revision.approve`
+
+BOQ and Budget reads/writes are Project-scoped. `budget.boq.manage` maintains the working canonical BOQ only; it does not permit mutation of captured Budget Revision snapshots. `budget.revision.submit` creates/submits immutable revision candidates, while `budget.revision.approve` is subject to the reusable Approval Matrix and maker-checker restriction. Approval permission never bypasses Project scope.
 
 ### Purchase Request
 
