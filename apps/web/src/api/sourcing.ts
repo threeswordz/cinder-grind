@@ -238,6 +238,8 @@ export type RfqComparison = {
 export const sourcingApi = {
   projects: () =>
     apiRequest<Data<SourcingProject[]>>('/procurement/rfq-projects'),
+  quotationProjects: () =>
+    apiRequest<Data<SourcingProject[]>>('/procurement/quotation-projects'),
   approvedDemand: (projectId: string) =>
     apiRequest<Data<ApprovedDemandLine[]>>(
       '/procurement/projects/' + projectId + '/approved-demand',
@@ -249,6 +251,10 @@ export const sourcingApi = {
   rfqs: (projectId: string) =>
     apiRequest<Data<RfqListItem[]>>(
       '/procurement/projects/' + projectId + '/rfqs',
+    ),
+  quotationRfqs: (projectId: string) =>
+    apiRequest<Data<RfqListItem[]>>(
+      '/procurement/projects/' + projectId + '/quotation-rfqs',
     ),
   rfq: (rfqId: string) =>
     apiRequest<Data<RfqDetail>>('/procurement/rfqs/' + rfqId),
