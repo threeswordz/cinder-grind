@@ -258,6 +258,10 @@ export const sourcingApi = {
     ),
   rfq: (rfqId: string) =>
     apiRequest<Data<RfqDetail>>('/procurement/rfqs/' + rfqId),
+  quotationRfq: (rfqId: string) =>
+    apiRequest<Data<RfqDetail>>(
+      '/procurement/quotation-rfqs/' + rfqId,
+    ),
   createRfq: (
     projectId: string,
     body: {
