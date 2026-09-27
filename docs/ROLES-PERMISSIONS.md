@@ -397,7 +397,7 @@ V0.3-B enforcement uses:
 - `procurement.pr.approve`
 - `procurement.pr.cancel`
 
-`procurement.pr.manage` creates and edits Draft PR headers/lines. `procurement.pr.approve` authorizes both approve and reject actions at the configured Approval Matrix step; maker-checker is still enforced independently by the backend. All PR reads/actions remain Project-scoped, including approval.
+`procurement.pr.manage` creates and edits Draft PR headers/lines. `procurement.pr.approve` authorizes both approve and reject actions at the configured Approval Matrix step; maker-checker is still enforced independently by the backend. All PR reads/actions remain Project-scoped, including approval. `procurement.pr.cancel` is business transaction authority and is **not** implicitly assigned to `SYS_ADMIN`; it must be granted through an explicitly configured business Role.
 
 ### RFQ / Quotations
 
