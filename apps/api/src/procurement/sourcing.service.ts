@@ -1122,7 +1122,7 @@ export class SourcingService {
           },
           {
             isolationLevel:
-              Prisma.TransactionIsolationLevel.Serializable,
+              Prisma.TransactionIsolationLevel.ReadCommitted,
           },
         );
       } catch (error) {
