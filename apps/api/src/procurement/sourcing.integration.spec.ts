@@ -584,10 +584,16 @@ test('V0.3-C RFQ / Quotations preserves approved-demand sourcing, comparison and
       rfq.id,
     );
     assert.equal(
-      quotationOnlyDetail.quotations.length,
-      2,
+      'quotations' in quotationOnlyDetail,
+      true,
       'Quotation-authorized viewers must receive canonical quotation detail.',
     );
+    if (!('quotations' in quotationOnlyDetail)) {
+      throw new Error(
+        'Quotation-authorized RFQ detail unexpectedly redacted quotations.',
+      );
+    }
+    assert.equal(quotationOnlyDetail.quotations.length, 2);
 
     const awardGuardDefinition = await prisma.$queryRaw<
       Array<{ definition: string }>
