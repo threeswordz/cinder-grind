@@ -1224,7 +1224,7 @@ Purchase Request
 
 Expected:
 
-Traceability is preserved and PO becomes Committed Cost.
+Traceability is preserved through the approved PO. V0.3-D retains the approved PO commercial value as immutable source evidence for later Committed Cost derivation; it does not create the V0.7 Committed Cost ledger and does not classify the PO as Actual Cost.
 
 ---
 
