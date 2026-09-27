@@ -314,6 +314,7 @@ DECLARE
   award_quote UUID;
   award_quote_line UUID;
   award_supplier UUID;
+  award_quantity DECIMAL(18,4);
   source_pr_line UUID;
   source_project UUID;
   source_company UUID;
@@ -343,11 +344,11 @@ BEGIN
   END IF;
 
   SELECT qa."rfq_id",qa."rfq_line_id",qa."supplier_quotation_id",
-         qa."supplier_quotation_line_id",qa."supplier_id",
+         qa."supplier_quotation_line_id",qa."supplier_id",qa."quantity",
          rfl."purchase_request_line_id",r."project_id",r."company_id",
          prl."line_type",prl."material_id",prl."material_code_snapshot",
          prl."description",qa."uom_id",qa."uom_code_snapshot"
-    INTO award_rfq,award_rfq_line,award_quote,award_quote_line,award_supplier,
+    INTO award_rfq,award_rfq_line,award_quote,award_quote_line,award_supplier,award_quantity,
          source_pr_line,source_project,source_company,
          source_line_type,source_material,source_material_code,
          source_description,source_uom,source_uom_code
@@ -435,6 +436,10 @@ BEGIN
   SELECT "company_id" INTO uom_company FROM "units_of_measure" WHERE "id" = NEW."uom_id";
   IF uom_company IS NULL OR uom_company <> po_company THEN
     RAISE EXCEPTION 'Purchase Order UOM must belong to the same Company';
+  END IF;
+
+  IF NEW."quantity" > award_quantity THEN
+    RAISE EXCEPTION 'Purchase Order quantity cannot exceed the selected Supplier Award quantity';
   END IF;
 
   IF NEW."amount" <> NEW."quantity" * NEW."unit_price" THEN
