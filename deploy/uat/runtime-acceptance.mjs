@@ -1453,6 +1453,16 @@ check(purchaseOrderLineId, 'Purchase Order source line was not created.');
 
 await request(
   pm,
+  '/procurement/purchase-requests/' + purchaseRequestId + '/cancel',
+  {
+    method: 'POST',
+    expected: 409,
+  },
+);
+record('V0.3-D active PO dependency prevents source Purchase Request cancellation');
+
+await request(
+  pm,
   '/procurement/projects/' + projectId + '/purchase-orders',
   {
     method: 'POST',
@@ -1655,6 +1665,67 @@ check(
   'Purchase Order cancellation did not retain actor/time/reason lifecycle evidence.',
 );
 record('V0.3-D Purchase Order award sourcing, numbering, allocation, maker-checker approval, immutable revisions, delivery dates and cancellation');
+
+const rejectedPo = await request(
+  pm,
+  '/procurement/projects/' + projectId + '/purchase-orders',
+  {
+    method: 'POST',
+    json: {
+      awardIds: [serviceSourcingAward.data.data.id],
+      remarks: 'Rejected PO retry acceptance ' + suffix,
+    },
+    expected: 201,
+  },
+);
+await request(
+  pm,
+  '/procurement/purchase-orders/' + rejectedPo.data.data.id + '/submit',
+  {
+    method: 'POST',
+    json: { workflowCode: poWorkflowCode },
+    expected: 201,
+  },
+);
+const rejectedPoResult = await request(
+  checker,
+  '/procurement/purchase-orders/' + rejectedPo.data.data.id + '/reject',
+  {
+    method: 'POST',
+    json: { comment: 'Correct supplier commercial detail and resubmit.' },
+    expected: 201,
+  },
+);
+check(
+  rejectedPoResult.data.data.lifecycleState === 'REJECTED',
+  'Purchase Order rejection was not retained.',
+);
+const retryPo = await request(
+  pm,
+  '/procurement/purchase-orders/' + rejectedPo.data.data.id + '/revise',
+  {
+    method: 'POST',
+    json: { revisionReason: 'Correct rejected Purchase Order.' },
+    expected: 201,
+  },
+);
+check(
+  retryPo.data.data.poNumber === rejectedPo.data.data.poNumber &&
+    retryPo.data.data.revisionNo === 1 &&
+    retryPo.data.data.lifecycleState === 'DRAFT',
+  'Rejected Purchase Order could not be copied into a retained corrective revision.',
+);
+await request(
+  pm,
+  '/procurement/purchase-orders/' + retryPo.data.data.id + '/cancel',
+  {
+    method: 'POST',
+    json: { reason: 'Rejected retry acceptance cleanup.' },
+    expected: 201,
+  },
+);
+record('V0.3-D rejected Purchase Order retry path');
+
 
 const rejectedCandidate = await request(
   pm,
