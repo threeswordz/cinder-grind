@@ -944,8 +944,10 @@ const prDetail = await request(
 check(
   prDetail.data.data.lines.length === 2 &&
     prDetail.data.data.lines[0]?.activity?.id === activityA.data.data.id &&
-    prDetail.data.data.lines[0]?.requiredOnSite?.slice(0, 10) === '2026-10-12',
-  'Purchase Request demand context was not retained.',
+    prDetail.data.data.lines[0]?.requiredOnSite?.slice(0, 10) === '2026-10-12' &&
+    prDetail.data.data.lines[0]?.materialCodeSnapshot ===
+      material.data.data.materialCode,
+  'Purchase Request demand context and Material snapshot were not retained.',
 );
 
 const submittedPr = await request(
@@ -1036,8 +1038,14 @@ const rejectedPr = await request(
   },
 );
 check(
-  rejectedPr.data.data.lifecycleState === 'REJECTED',
-  'Purchase Request rejection history was not retained.',
+  rejectedPr.data.data.lifecycleState === 'REJECTED' &&
+    rejectedPr.data.data.approvalInstance?.actions?.some(
+      (action) =>
+        action.action === 'REJECT' &&
+        action.comment === 'Revise and resubmit as a new Draft.' &&
+        action.actionByUser?.id === checkerUser.data.data.id,
+    ),
+  'Purchase Request rejection action history was not retained/exposed.',
 );
 const copiedPr = await request(
   pm,
