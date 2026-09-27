@@ -65,8 +65,10 @@ export function SourcingPanel({
   const [awardReasons, setAwardReasons] = useState<Record<string, string>>({});
 
   const projects = useQuery({
-    queryKey: ['sourcing', 'projects'],
-    queryFn: sourcingApi.projects,
+    queryKey: ['sourcing', 'projects', canViewRfq ? 'rfq' : 'quotation'],
+    queryFn: canViewRfq
+      ? sourcingApi.projects
+      : sourcingApi.quotationProjects,
     enabled: canView,
   });
   const demand = useQuery({
@@ -80,14 +82,22 @@ export function SourcingPanel({
     enabled: Boolean(canViewRfq && projectId),
   });
   const rfqs = useQuery({
-    queryKey: ['sourcing', 'rfqs', projectId],
-    queryFn: () => sourcingApi.rfqs(projectId),
-    enabled: Boolean(canViewRfq && projectId),
+    queryKey: [
+      'sourcing',
+      'rfqs',
+      projectId,
+      canViewRfq ? 'rfq' : 'quotation',
+    ],
+    queryFn: () =>
+      canViewRfq
+        ? sourcingApi.rfqs(projectId)
+        : sourcingApi.quotationRfqs(projectId),
+    enabled: Boolean(canView && projectId),
   });
   const detail = useQuery({
     queryKey: ['sourcing', 'rfq', rfqId],
     queryFn: () => sourcingApi.rfq(rfqId),
-    enabled: Boolean(canView && rfqId),
+    enabled: Boolean(canViewRfq && rfqId),
   });
   const comparison = useQuery({
     queryKey: ['sourcing', 'comparison', rfqId],
@@ -138,8 +148,8 @@ export function SourcingPanel({
         remarks: quotationRemarks.trim() || null,
       }),
     onSuccess: async (result) => {
-      setQuotationId(result.data.id);
       await refresh();
+      setQuotationId(result.data.id);
     },
   });
 
@@ -428,7 +438,7 @@ export function SourcingPanel({
         </Card>
       ) : null}
 
-      {projectId && canViewRfq ? (
+      {projectId && canView ? (
         <Card variant="outlined">
           <CardContent>
             <Stack spacing={2}>
@@ -832,19 +842,20 @@ export function SourcingPanel({
             </Card>
           ) : null}
 
-          {canViewQuotation && comparison.data?.data ? (
-            <ComparisonPanel
-              data={comparison.data.data}
-              canAward={canAward}
-              awardReasons={awardReasons}
-              setAwardReasons={setAwardReasons}
-              pending={selectAward.isPending}
-              onAward={(rfqLineId, quotationLineId) =>
-                selectAward.mutate({ rfqLineId, quotationLineId })
-              }
-            />
-          ) : null}
         </>
+      ) : null}
+
+      {canViewQuotation && comparison.data?.data ? (
+        <ComparisonPanel
+          data={comparison.data.data}
+          canAward={canAward}
+          awardReasons={awardReasons}
+          setAwardReasons={setAwardReasons}
+          pending={selectAward.isPending}
+          onAward={(rfqLineId, quotationLineId) =>
+            selectAward.mutate({ rfqLineId, quotationLineId })
+          }
+        />
       ) : null}
     </Stack>
   );
