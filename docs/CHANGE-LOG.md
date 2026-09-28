@@ -1,3 +1,10 @@
+## 2026-09-29 — V0.4 Inventory Product / Business Owner acceptance
+
+- Product / Business Owner explicitly accepted the V0.4 UAT walkthrough and directed the next gated step; exact instruction is recorded in `docs/V0.4-UAT.md` and Issue #96.
+- Accepted technical checkpoint `1511939701cb6c8c0c855cbd378125db6f12b461` passed post-merge main CI #1558, including the 40-check live HTTP acceptance. No open issues or PRs at acceptance; no blocking business defect or workaround reported with the acceptance.
+- AC-V04-031 owner decision is recorded; acceptance-document PR/CI/merge/post-merge validation remains to close the repository release record.
+- Next position: V0.5 Subcontracts Release Entry Gate. V0.5 implementation requires separate approved scope, acceptance criteria, business rules and technical baselines; DEC-008 and Committed/Actual/Paid Cost separation remain in force.
+
 ## 2026-09-28 — V0.4-D completed; V0.4-E pre-flight started
 
 - V0.4-D PR #91 squash-merged as `941e2e9c2966bac66ea1d01b34cb39fb5ce75bdd`; Issue #89 auto-closed.
