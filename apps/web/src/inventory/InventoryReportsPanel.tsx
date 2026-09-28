@@ -30,6 +30,7 @@ export function InventoryReportsPanel() {
   const [includeInactiveWarehouses, setIncludeInactiveWarehouses] = useState(false);
   const [includeZero, setIncludeZero] = useState(false);
   const [movementType, setMovementType] = useState('');
+  const [sourceType, setSourceType] = useState('');
   const [postedFrom, setPostedFrom] = useState('');
   const [postedTo, setPostedTo] = useState('');
 
@@ -47,10 +48,11 @@ export function InventoryReportsPanel() {
     }),
   });
   const movements = useQuery({
-    queryKey: ['inventory-report', 'movements', projectId, movementType, postedFrom, postedTo],
+    queryKey: ['inventory-report', 'movements', projectId, movementType, sourceType, postedFrom, postedTo],
     queryFn: () => inventoryApi.inventoryReportMovements({
       ...(projectId ? { projectId } : {}),
       ...(movementType ? { movementType } : {}),
+      ...(sourceType ? { sourceType } : {}),
       ...(postedFrom ? { postedFrom } : {}),
       ...(postedTo ? { postedTo } : {}),
     }),
@@ -123,6 +125,13 @@ export function InventoryReportsPanel() {
       <Stack spacing={2}>
         <Typography variant="subtitle1">Stock movements</Typography>
         <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
+          <TextField select label="Source" value={sourceType}
+            onChange={(event) => setSourceType(event.target.value)}>
+            <MenuItem value="">All sources</MenuItem>
+            {['GOODS_RECEIPT', 'MATERIAL_ISSUE', 'MATERIAL_RETURN', 'STOCK_TRANSFER'].map((type) => (
+              <MenuItem key={type} value={type}>{type.replaceAll('_', ' ')}</MenuItem>
+            ))}
+          </TextField>
           <TextField label="Movement type" value={movementType}
             onChange={(event) => setMovementType(event.target.value)}
             inputProps={{ maxLength: 40 }} helperText="For example, GOODS_RECEIPT" />
