@@ -62,3 +62,28 @@ BEFORE INSERT OR UPDATE OF company_id, project_id, is_site_warehouse
 ON "warehouses"
 FOR EACH ROW
 EXECUTE FUNCTION enforce_warehouse_project_scope();
+
+-- Warehouse identity cannot be changed or hard-deleted. Project reassignment
+-- before transaction history is allowed only through authorized service rules;
+-- later stages attach history-dependent guards when stock tables exist.
+CREATE OR REPLACE FUNCTION protect_warehouse_identity()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  IF TG_OP = 'DELETE' THEN
+    RAISE EXCEPTION 'Warehouse cannot be deleted; archive it instead';
+  END IF;
+
+  IF NEW.id <> OLD.id OR NEW.company_id <> OLD.company_id THEN
+    RAISE EXCEPTION 'Warehouse identity and Company cannot be changed';
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER warehouses_identity_guard
+BEFORE UPDATE OR DELETE ON "warehouses"
+FOR EACH ROW
+EXECUTE FUNCTION protect_warehouse_identity();
