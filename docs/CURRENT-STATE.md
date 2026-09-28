@@ -704,4 +704,5 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - Warehouse permissions and SYS_ADMIN technical provisioning added, including fresh bootstrap consistency; no stock-posting or business approval authority granted.
 - Project-scoped Warehouse APIs, audit logging, responsive permission-aware register, unit/integration coverage and live HTTP acceptance scenario added.
 - Inventory document numbering rules remain in the approved V0.4 baseline for later stages; no Inventory document or stock ledger is created in Stage A.
-- Gate pending: exact-head CI, review, merge and post-merge `main` CI. Stage B remains blocked until those gates pass.
+- Stage A code head `94516ba1d5baf9cb7cc75199c708ca26dc2eb6a6`: branch CI #1331 and PR CI #1332 passed, including clean migrations, API/web validation, PostgreSQL Warehouse tests, prior-release regression and live HTTP acceptance.
+- Codex review finding on test-suite wiring fixed and thread resolved. Final documentation-head CI, merge and post-merge `main` CI remain pending; Stage B remains blocked until those gates pass.
