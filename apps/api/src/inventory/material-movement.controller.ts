@@ -311,6 +311,17 @@ export class MaterialMovementController {
     };
   }
 
+  @Get('projects/:projectId/issue-reservations')
+  @UseGuards(AuthGuard, PermissionGuard)
+  @RequirePermissions('inventory.issue.view')
+  async issueReservations(
+    @Req() request: AuthenticatedRequest,
+    @Param('projectId', new ParseUUIDPipe({ version: '4' })) projectId: string,
+  ) {
+    const rows = await this.reservations.list(authOf(request), projectId);
+    return { data: rows.filter((row) => row.status === 'ACTIVE') };
+  }
+
   @Get('issue-workflows')
   @UseGuards(AuthGuard, PermissionGuard)
   @RequirePermissions('inventory.issue.submit')
@@ -509,6 +520,25 @@ export class MaterialMovementController {
         requiredInventoryString(input, 'reversalKey', 120),
         requiredInventoryString(input, 'reason', 1000),
       ),
+    };
+  }
+
+  @Get('return-projects')
+  @UseGuards(AuthGuard, PermissionGuard)
+  @RequirePermissions('inventory.return.view')
+  async returnProjects(@Req() request: AuthenticatedRequest) {
+    return { data: await this.reservations.projects(authOf(request)) };
+  }
+
+  @Get('projects/:projectId/return-warehouses')
+  @UseGuards(AuthGuard, PermissionGuard)
+  @RequirePermissions('inventory.return.view')
+  async returnWarehouses(
+    @Req() request: AuthenticatedRequest,
+    @Param('projectId', new ParseUUIDPipe({ version: '4' })) projectId: string,
+  ) {
+    return {
+      data: await this.reservations.warehouses(authOf(request), projectId),
     };
   }
 
