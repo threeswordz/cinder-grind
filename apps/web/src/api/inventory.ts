@@ -685,6 +685,7 @@ export const inventoryApi = {
     warehouseId?: string;
     materialId?: string;
     movementType?: string;
+    sourceType?: string;
     postedFrom?: string;
     postedTo?: string;
   } = {}) =>
@@ -694,6 +695,7 @@ export const inventoryApi = {
         warehouseId: filters.warehouseId,
         materialId: filters.materialId,
         movementType: filters.movementType,
+        sourceType: filters.sourceType,
         postedFrom: filters.postedFrom,
         postedTo: filters.postedTo,
       }),
