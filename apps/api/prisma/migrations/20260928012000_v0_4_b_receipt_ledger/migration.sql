@@ -295,3 +295,23 @@ CREATE TRIGGER purchase_orders_receipt_cancel_guard BEFORE UPDATE OF cancelled_a
 FOR EACH ROW EXECUTE FUNCTION enforce_po_receipt_history();
 CREATE TRIGGER purchase_order_lines_receipt_quantity_guard BEFORE INSERT OR UPDATE OF quantity ON purchase_order_lines
 FOR EACH ROW EXECUTE FUNCTION enforce_po_receipt_history();
+
+CREATE OR REPLACE FUNCTION protect_received_po_line_delete()
+RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM goods_receipt_items i
+    JOIN goods_receipts r ON r.id = i.goods_receipt_id
+    JOIN purchase_orders source_po ON source_po.id = r.purchase_order_id
+    JOIN purchase_orders current_po ON current_po.id = OLD.purchase_order_id
+    WHERE i.quotation_award_id = OLD.quotation_award_id
+      AND source_po.company_id = current_po.company_id
+      AND source_po.po_number = current_po.po_number
+      AND r.posted_at IS NOT NULL AND r.reversed_at IS NULL
+  ) THEN
+    RAISE EXCEPTION 'PO line with outstanding receipt cannot be deleted';
+  END IF;
+  RETURN OLD;
+END; $$;
+CREATE TRIGGER purchase_order_lines_received_delete_guard BEFORE DELETE ON purchase_order_lines
+FOR EACH ROW EXECUTE FUNCTION protect_received_po_line_delete();
