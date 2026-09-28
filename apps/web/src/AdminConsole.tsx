@@ -33,7 +33,7 @@ import { SchedulingPanel } from './scheduling/SchedulingPanel';
 import { SiteExecutionPanel } from './site-execution/SiteExecutionPanel';
 import { DocumentsPanel } from './documents/DocumentsPanel';
 import { EquipmentPanel } from './equipment/EquipmentPanel';
-import { WarehousesPanel } from './inventory/WarehousesPanel';
+import { InventoryWorkspace } from './inventory/InventoryWorkspace';
 import { WbsPanel } from './wbs/WbsPanel';
 
 type Section = {
@@ -90,7 +90,7 @@ export function AdminConsole({ user }: { user: CurrentUser }) {
           key: 'inventory',
           label: 'Inventory',
           permission: '__inventory__',
-          content: <WarehousesPanel permissions={user.permissions} />,
+          content: <InventoryWorkspace permissions={user.permissions} />,
         },
         {
           key: 'equipment',
