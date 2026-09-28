@@ -149,6 +149,16 @@ export const inventoryApi = {
       method: 'POST', body: JSON.stringify(body),
     }),
 
+  updateGoodsReceipt: (id: string, remarks: string | null) =>
+    apiRequest<Data<GoodsReceipt>>('/inventory/goods-receipts/' + id, {
+      method: 'PATCH', body: JSON.stringify({ remarks }),
+    }),
+
+  updateGoodsReceiptItem: (id: string, quantity: string) =>
+    apiRequest<Data<{ id: string }>>('/inventory/goods-receipt-items/' + id, {
+      method: 'PATCH', body: JSON.stringify({ quantity }),
+    }),
+
   submitGoodsReceipt: (id: string, workflowCode: string) =>
     apiRequest<Data<GoodsReceipt>>('/inventory/goods-receipts/' + id + '/submit', {
       method: 'POST', body: JSON.stringify({ workflowCode }),
