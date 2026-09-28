@@ -3,8 +3,8 @@
 **Last verified:** 2026-09-29
 **Source of truth:** Live GitHub repository state
 
-- Current Release: V0.5 Subcontracts — Release Entry Gate (not yet approved)
-- Current Stage: V0.4 Inventory release exit complete; V0.5 entry-gate proposals under Issue #98 awaiting explicit Product / Business Owner approval
+- Current Release: V0.5 Subcontracts — owner-approved entry-gate baselines; formal entry-gate CI/review/merge and Issue #98 closure pending
+- Current Stage: V0.4 Inventory release exit complete; V0.5 entry-gate approval record under Issue #98; no V0.5-A pre-flight until technical gates complete
 - Completed Stages: V0.1-A through V0.1-H; V0.2-A through V0.2-G; V0.3-A through V0.3-E; V0.4-A Warehouse Foundation; V0.4-B Goods Receipt / Ledger; V0.4-C Derived Stock Balance; V0.4-D Material Reservation / Issue / Return; V0.4-E Stock Transfer / Inventory Documents / Reporting / Release Evidence
 - Completed Issue: #92 — V0.4-E Stock Transfer / Inventory Documents / Reporting / Release Evidence
 - Completed Issue: #89 — V0.4-D Material Reservation / Issue / Return
@@ -80,7 +80,7 @@
 - V0.1 cross-module release acceptance scenario: PASS in the Stage H release-candidate regression suite.
 - Open defect check at V0.1 acceptance: no Severity 1 or Severity 2 release-blocking defect recorded.
 - Governance: `AGENTS.md`, `docs/PROJECT-GOVERNANCE.md`, PR governance checklist and DEC-008 are active; material decisions must pass the repository pre-flight and open-source/zero-cost-first constraint.
-- Next action: Product / Business Owner reviews the proposed V0.5 Scope, AC-V05-001–030, BR-V05-01–20, data/API/test baseline, stages and deferrals under Issue #98; approve or amend D05-01–11 explicitly before the entry gate can close. V0.5-A remains blocked.
+- Next action: complete the V0.5 approval-record PR's exact-head CI/review/merge and post-merge `main` CI, then close Issue #98 and begin V0.5-A pre-flight. The Product / Business Owner approved the proposed baselines without amendments on 2026-09-29; V0.5 release UAT/exit remains a later human gate.
 
 ## Stage E completed
 
@@ -791,9 +791,9 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - V0.5 Subcontracts Release Entry Gate Issue #98 is open. `docs/V0.5-ENTRY-GATE-DRAFT.md` is explicitly DRAFT/NOT APPROVED and maps SUB-001–010 and RPT-007 to proposed acceptance areas, technical boundaries and unresolved business decisions.
 - No V0.5 schema, API, UI or implementation stage has begun. Product / Business Owner approval of the entry-gate baselines and blocking business rules remains required. DEC-008 and separation of Committed, Actual and Paid Cost remain active.
 
-## V0.5 entry-gate baseline proposals under review
+## V0.5 entry-gate baseline proposal and owner approval
 
 - PR #100 merged the proposed V0.5 scope, AC and business-rule documents as `818f48c373416dbae27f59b6b76af6a363f10649`. Exact-head PR CI #1588 and post-merge `main` CI #1589 passed; both automated review findings were addressed. This merge did not approve the proposals or close Issue #98.
 - Proposed `docs/V0.5-SCOPE.md`, `docs/V0.5-ACCEPTANCE-CRITERIA.md` (AC-V05-001–030) and `docs/V0.5-BUSINESS-RULES.md` (BR-V05-01–20) provide a concrete owner-review package for Issue #98. They are not approved and authorize no implementation.
 - The proposal preserves the Subcontracts-owned Company register and Project-scoped downstream records, distinct claim/assessment/certification values, no WO double counting and separate Committed/Actual/Paid Cost. Tax/FX, Finance, retention release and DOC-009 remain deferred.
-- Product / Business Owner decisions D05-01–11, including commercial currency/tax basis, remain open. Only after explicit approval and its CI/review/merge/post-merge gates may V0.5-A pre-flight begin.
+- Product / Business Owner instruction on 2026-09-29 completed review and approved the proposed V0.5 Scope, AC-V05-001–030, BR-V05-01–20 / D05-01–11, data/API/test baselines, stages, estimates and deferrals without amendments. DEC-014 records this decision. Approval-record CI/review/merge and post-merge `main` CI, then Issue #98 closure, remain before V0.5-A pre-flight.
