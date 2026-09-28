@@ -80,7 +80,7 @@
 - V0.1 cross-module release acceptance scenario: PASS in the Stage H release-candidate regression suite.
 - Open defect check at V0.1 acceptance: no Severity 1 or Severity 2 release-blocking defect recorded.
 - Governance: `AGENTS.md`, `docs/PROJECT-GOVERNANCE.md`, PR governance checklist and DEC-008 are active; material decisions must pass the repository pre-flight and open-source/zero-cost-first constraint.
-- Next action: review `docs/V0.5-ENTRY-GATE-DRAFT.md` under Issue #98, resolve the open D05-01–D05-10 decisions, and obtain explicit Product / Business Owner approval of V0.5 scope, acceptance, business rules and technical baselines before V0.5-A implementation.
+- Next action: Product / Business Owner reviews the proposed V0.5 Scope, AC-V05-001–030, BR-V05-01–20, data/API/test baseline, stages and deferrals under Issue #98; approve or amend D05-01–11 explicitly before the entry gate can close. V0.5-A remains blocked.
 
 ## Stage E completed
 
@@ -790,3 +790,9 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - V0.4 Product / Business Owner acceptance Issue #96 closed through PR #97, squash-merged to `main` as `c846068c59cf20ab74f3b802cf4eacbd262aaba9`. Exact-head branch CI #1563 and PR CI #1564 passed; post-merge main CI #1565 passed at the merge. V0.4 Inventory is formally closed.
 - V0.5 Subcontracts Release Entry Gate Issue #98 is open. `docs/V0.5-ENTRY-GATE-DRAFT.md` is explicitly DRAFT/NOT APPROVED and maps SUB-001–010 and RPT-007 to proposed acceptance areas, technical boundaries and unresolved business decisions.
 - No V0.5 schema, API, UI or implementation stage has begun. Product / Business Owner approval of the entry-gate baselines and blocking business rules remains required. DEC-008 and separation of Committed, Actual and Paid Cost remain active.
+
+## V0.5 entry-gate baseline proposals under review
+
+- Proposed `docs/V0.5-SCOPE.md`, `docs/V0.5-ACCEPTANCE-CRITERIA.md` (AC-V05-001–030) and `docs/V0.5-BUSINESS-RULES.md` (BR-V05-01–20) provide a concrete owner-review package for Issue #98. They are not approved and authorize no implementation.
+- The proposal preserves the Subcontracts-owned Company register and Project-scoped downstream records, distinct claim/assessment/certification values, no WO double counting and separate Committed/Actual/Paid Cost. Tax/FX, Finance, retention release and DOC-009 remain deferred.
+- Product / Business Owner decisions D05-01–11, including commercial currency/tax basis, remain open. Only after explicit approval and its CI/review/merge/post-merge gates may V0.5-A pre-flight begin.
