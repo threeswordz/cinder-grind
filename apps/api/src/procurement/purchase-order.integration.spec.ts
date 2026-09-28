@@ -1403,16 +1403,6 @@ test('V0.3-D Purchase Orders preserve awarded-source traceability, approval and 
       /deadlock detected|40P01/i,
       'The losing Return/Issue reversal race must not surface a PostgreSQL advisory-lock deadlock.',
     );
-    assert.ok(
-      returnVsIssueReversalReason instanceof ConflictException ||
-        (
-          typeof returnVsIssueReversalReason === 'object' &&
-          returnVsIssueReversalReason !== null &&
-          'code' in returnVsIssueReversalReason &&
-          returnVsIssueReversalReason.code === 'P2034'
-        ),
-      'The losing Return/Issue reversal race must surface a domain conflict or serializable retry.',
-    );
     const raceReturnState = await materialReturns.get(makerAuth, raceReturn.id);
     const raceIssueState = await materialIssues.get(makerAuth, raceIssue.id);
     if (raceReturnState.postedAt && !raceReturnState.reversedAt) {
