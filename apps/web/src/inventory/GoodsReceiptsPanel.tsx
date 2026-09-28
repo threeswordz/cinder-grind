@@ -214,7 +214,7 @@ export function GoodsReceiptsPanel({ permissions }: { permissions: string[] }) {
                 <Stack spacing={1}>
                   <TextField label="Draft line quantity" value={draftQuantity}
                     onChange={(event) => setDraftQuantity(event.target.value)} inputMode="decimal" />
-                  <Button disabled={!/^(?:0|[1-9]\\d{0,13})(?:\\.\\d{1,4})?$/.test(draftQuantity) ||
+                  <Button disabled={!/^(?:0|[1-9]\d{0,13})(?:\.\d{1,4})?$/.test(draftQuantity) ||
                     Number(draftQuantity) <= 0 || mutation.isPending}
                     onClick={() => perform(async () => {
                       await inventoryApi.updateGoodsReceiptItem(current.items![0]!.id, draftQuantity);
