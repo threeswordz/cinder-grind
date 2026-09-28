@@ -15,13 +15,13 @@ export function GoodsReceiptsPanel({ permissions }: { permissions: string[] }) {
   const canReverse = permissions.includes('inventory.receipt.reverse');
   const [projectId, setProjectId] = useState('');
   const [purchaseOrderId, setPurchaseOrderId] = useState('');
-  const [purchaseOrderLineId, setPurchaseOrderLineId] = useState('');
+  const [lineQuantities, setLineQuantities] = useState<Record<string, string>>({});
   const [warehouseId, setWarehouseId] = useState('');
-  const [quantity, setQuantity] = useState('');
+
   const [workflowCode, setWorkflowCode] = useState('');
   const [selectedId, setSelectedId] = useState('');
   const [reason, setReason] = useState('');
-  const [draftQuantity, setDraftQuantity] = useState('');
+  const [draftQuantities, setDraftQuantities] = useState<Record<string, string>>({});
   const [draftRemarks, setDraftRemarks] = useState('');
   const [mutationError, setMutationError] = useState<unknown>(null);
   const [postKeys] = useState(() => new Map<string, string>());
@@ -57,13 +57,14 @@ export function GoodsReceiptsPanel({ permissions }: { permissions: string[] }) {
     enabled: canSubmit,
   });
   const selectedOrder = orders.data?.data.find((order) => order.id === purchaseOrderId);
-  const selectedLine = selectedOrder?.lines.find((line) => line.id === purchaseOrderLineId);
+  const chosenLines = (selectedOrder?.lines ?? []).filter((line) => Boolean(lineQuantities[line.id]?.trim()));
+  const validQuantity = (value: string) => /^(?:0|[1-9]\d{0,13})(?:\.\d{1,4})?$/.test(value) && Number(value) > 0;
   const current = detail.data?.data;
   useEffect(() => {
     if (!current) return;
-    setDraftQuantity(current.items?.[0]?.quantity ?? '');
+    setDraftQuantities(Object.fromEntries((current.items ?? []).map((item) => [item.id, item.quantity])));
     setDraftRemarks(current.remarks ?? '');
-  }, [current?.id, current?.items?.[0]?.quantity, current?.remarks]);
+  }, [current?.id, current?.items, current?.remarks]);
   const refresh = async () => {
     await queryClient.invalidateQueries({ queryKey: ['goods-receipts'] });
     await queryClient.invalidateQueries({ queryKey: ['goods-receipt'] });
@@ -82,7 +83,7 @@ export function GoodsReceiptsPanel({ permissions }: { permissions: string[] }) {
   const switchProject = (id: string) => {
     setProjectId(id);
     setPurchaseOrderId('');
-    setPurchaseOrderLineId('');
+    setLineQuantities({});
     setWarehouseId('');
     setSelectedId('');
   };
@@ -117,24 +118,12 @@ export function GoodsReceiptsPanel({ permissions }: { permissions: string[] }) {
               <Typography variant="subtitle1">Create Goods Receipt Draft</Typography>
               <TextField
                 select label="Approved Purchase Order" value={purchaseOrderId}
-                onChange={(event) => { setPurchaseOrderId(event.target.value); setPurchaseOrderLineId(''); }}
+                onChange={(event) => { setPurchaseOrderId(event.target.value); setLineQuantities({}); }}
               >
                 <MenuItem value="">Select Purchase Order</MenuItem>
                 {(orders.data?.data ?? []).filter((order) => order.lines.length > 0).map((order) => (
                   <MenuItem key={order.id} value={order.id}>
                     {order.poNumber} · Revision {order.revisionNo}
-                  </MenuItem>
-                ))}
-              </TextField>
-              <TextField
-                select label="Material line" value={purchaseOrderLineId}
-                onChange={(event) => setPurchaseOrderLineId(event.target.value)}
-                disabled={!purchaseOrderId}
-              >
-                <MenuItem value="">Select material line</MenuItem>
-                {(selectedOrder?.lines ?? []).map((line) => (
-                  <MenuItem key={line.id} value={line.id}>
-                    {line.materialCodeSnapshot} · {line.description} · PO {line.quantity} {line.uomCodeSnapshot}
                   </MenuItem>
                 ))}
               </TextField>
@@ -149,19 +138,29 @@ export function GoodsReceiptsPanel({ permissions }: { permissions: string[] }) {
                   </MenuItem>
                 ))}
               </TextField>
-              <TextField
-                label={selectedLine ? 'Receipt quantity (' + selectedLine.uomCodeSnapshot + ')' : 'Receipt quantity'}
-                value={quantity} onChange={(event) => setQuantity(event.target.value)}
-                inputMode="decimal"
-              />
+              {(selectedOrder?.lines ?? []).map((line) => (
+                <TextField key={line.id}
+                  label={line.materialCodeSnapshot + ' · ' + line.description + ' · PO ' +
+                    line.quantity + ' ' + line.uomCodeSnapshot}
+                  value={lineQuantities[line.id] ?? ''}
+                  onChange={(event) => setLineQuantities((prior) => ({
+                    ...prior, [line.id]: event.target.value,
+                  }))}
+                  placeholder="Leave blank if not received"
+                  inputMode="decimal"
+                />
+              ))}
               <Button
                 variant="contained"
-                disabled={!purchaseOrderId || !purchaseOrderLineId || !warehouseId ||
-                  !/^(?:0|[1-9]\d{0,13})(?:\.\d{1,4})?$/.test(quantity) ||
-                  Number(quantity) <= 0 || mutation.isPending}
+                disabled={!purchaseOrderId || !warehouseId || !chosenLines.length ||
+                  chosenLines.some((line) => !validQuantity(lineQuantities[line.id]!)) ||
+                  mutation.isPending}
                 onClick={() => perform(() => inventoryApi.createGoodsReceipt({
                   projectId, purchaseOrderId, warehouseId,
-                  lines: [{ purchaseOrderLineId, quantity }],
+                  lines: chosenLines.map((line) => ({
+                    purchaseOrderLineId: line.id,
+                    quantity: lineQuantities[line.id]!,
+                  })),
                 }))}
               >
                 Create Draft
@@ -212,16 +211,23 @@ export function GoodsReceiptsPanel({ permissions }: { permissions: string[] }) {
               </Typography>
               {canEdit && !current.submittedAt && current.items?.[0] ? (
                 <Stack spacing={1}>
-                  <TextField label="Draft line quantity" value={draftQuantity}
-                    onChange={(event) => setDraftQuantity(event.target.value)} inputMode="decimal" />
-                  <Button disabled={!/^(?:0|[1-9]\d{0,13})(?:\.\d{1,4})?$/.test(draftQuantity) ||
-                    Number(draftQuantity) <= 0 || mutation.isPending}
-                    onClick={() => perform(async () => {
-                      await inventoryApi.updateGoodsReceiptItem(current.items![0]!.id, draftQuantity);
-                      return { data: { id: current.id } };
-                    })}>
-                    Save Draft quantity
-                  </Button>
+                  {(current.items ?? []).map((item) => (
+                    <Stack key={item.id} direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+                      <TextField label={item.description + ' (' + item.uomCodeSnapshot + ')'}
+                        value={draftQuantities[item.id] ?? ''}
+                        onChange={(event) => setDraftQuantities((prior) => ({
+                          ...prior, [item.id]: event.target.value,
+                        }))}
+                        inputMode="decimal" sx={{ flexGrow: 1 }} />
+                      <Button disabled={!validQuantity(draftQuantities[item.id] ?? '') || mutation.isPending}
+                        onClick={() => perform(async () => {
+                          await inventoryApi.updateGoodsReceiptItem(item.id, draftQuantities[item.id]!);
+                          return { data: { id: current.id } };
+                        })}>
+                        Save quantity
+                      </Button>
+                    </Stack>
+                  ))}
                   <TextField label="Draft remarks" value={draftRemarks}
                     onChange={(event) => setDraftRemarks(event.target.value)} multiline minRows={2} />
                   <Button disabled={mutation.isPending}
