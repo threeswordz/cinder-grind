@@ -18,6 +18,7 @@ import { ProjectScopeService } from '../authorization/project-scope.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { GoodsReceiptService } from '../inventory/goods-receipt.service';
 import { InventoryQuantityService } from '../inventory/inventory-quantity.service';
+import { InventoryReportService } from '../inventory/inventory-report.service';
 import { InventoryService } from '../inventory/inventory.service';
 import { MaterialIssueService } from '../inventory/material-issue.service';
 import { MaterialReservationService } from '../inventory/material-reservation.service';
@@ -434,6 +435,7 @@ test('V0.3-D Purchase Orders preserve awarded-source traceability, approval and 
       quantities,
     );
     const balances = new StockBalanceService(prisma, access);
+    const inventoryReports = new InventoryReportService(prisma, access, balances);
     const reservations = new MaterialReservationService(
       prisma, access, audit, numbers, quantities,
     );
@@ -895,6 +897,44 @@ test('V0.3-D Purchase Orders preserve awarded-source traceability, approval and 
       ],
       'Posted Transfer must append one matched negative/positive ledger pair.',
     );
+    const transferMovements = await inventoryReports.movementReport(makerAuth, {
+      projectId: project.id,
+      movementType: 'STOCK_TRANSFER_OUT',
+    });
+    const transferOut = transferMovements.find(
+      (row) => row.sourceId === transfer.id,
+    );
+    assert.equal(transferOut?.sourceNumber, transfer.transferNumber);
+    assert.equal(transferOut?.sourceType, 'STOCK_TRANSFER');
+    assert.equal(transferOut?.quantity, '-1.0000');
+    assert.equal(transferOut?.warehouseId, warehouse.id);
+    const transferIn = (await inventoryReports.movementReport(makerAuth, {
+      projectId: project.id,
+      warehouseId: transferWarehouse.id,
+      movementType: 'STOCK_TRANSFER_IN',
+    })).find((row) => row.sourceId === transfer.id);
+    assert.equal(transferIn?.quantity, '1.0000');
+    assert.equal(transferIn?.sourceNumber, transfer.transferNumber);
+    assert.deepEqual(
+      await inventoryReports.movementReport(outsiderAuth, {}),
+      [],
+      'Inventory movement reports must hide unassigned Project transactions.',
+    );
+    await assert.rejects(
+      () => inventoryReports.movementReport(outsiderAuth, { projectId: project.id }),
+      (error: unknown) => error instanceof ForbiddenException,
+      'An explicit unauthorized Project filter must be denied.',
+    );
+    assert.equal(
+      (await inventoryReports.balanceReport(makerAuth, {
+        projectId: project.id,
+        warehouseId: transferWarehouse.id,
+        materialId: material.id,
+      }))[0]?.quantity,
+      '1.0000',
+      'Inventory balance report must derive the posted Transfer destination effect.',
+    );
+
     const retriedTransfer = await stockTransfers.approve(
       { auth: checkerAuth },
       transfer.id,
