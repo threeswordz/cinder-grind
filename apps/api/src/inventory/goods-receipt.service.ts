@@ -27,6 +27,15 @@ export class GoodsReceiptService {
     private readonly numbers: NumberSequenceService,
   ) {}
 
+  async projects(auth: AuthenticatedUserContext) {
+    const scope = await this.access.scopeWhere(auth);
+    return this.prisma.project.findMany({
+      where: { AND: [scope, { isActive: true }] },
+      select: { id: true, projectCode: true, projectName: true },
+      orderBy: [{ projectName: 'asc' }, { projectCode: 'asc' }],
+    });
+  }
+
   async eligibleOrders(auth: AuthenticatedUserContext, projectId: string) {
     await this.access.assertAccess(auth, projectId);
     const orders = await this.prisma.purchaseOrder.findMany({
