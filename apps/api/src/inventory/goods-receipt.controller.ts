@@ -38,6 +38,13 @@ function quantity(value: unknown): Prisma.Decimal {
 export class GoodsReceiptController {
   constructor(private readonly receipts: GoodsReceiptService) {}
 
+  @Get('receipt-projects')
+  @UseGuards(AuthGuard, PermissionGuard)
+  @RequirePermissions('inventory.receipt.view')
+  async projects(@Req() request: AuthenticatedRequest) {
+    return { data: await this.receipts.projects(authOf(request)) };
+  }
+
   @Get('receipt-workflows')
   @UseGuards(AuthGuard, PermissionGuard)
   @RequirePermissions('inventory.receipt.submit')
