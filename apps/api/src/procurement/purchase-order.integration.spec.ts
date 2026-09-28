@@ -1386,6 +1386,14 @@ test('V0.3-D Purchase Orders preserve awarded-source traceability, approval and 
       1,
       'Concurrent Return posting and source Issue reversal must serialize so only one succeeds.',
     );
+    const returnVsIssueReversalFailure = returnVsIssueReversal.find(
+      (result) => result.status === 'rejected',
+    );
+    assert.ok(
+      returnVsIssueReversalFailure?.status === 'rejected' &&
+        returnVsIssueReversalFailure.reason instanceof ConflictException,
+      'The losing Return/Issue reversal race must surface a domain conflict, not a PostgreSQL deadlock.',
+    );
     const raceReturnState = await materialReturns.get(makerAuth, raceReturn.id);
     const raceIssueState = await materialIssues.get(makerAuth, raceIssue.id);
     if (raceReturnState.postedAt && !raceReturnState.reversedAt) {
