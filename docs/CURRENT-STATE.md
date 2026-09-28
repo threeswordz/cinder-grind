@@ -3,8 +3,8 @@
 **Last verified:** 2026-09-29
 **Source of truth:** Live GitHub repository state
 
-- Current Release: V0.4 Inventory
-- Current Stage: V0.4 Inventory Product / Business Owner accepted; release record under PR/CI validation; V0.5 Subcontracts Release Entry Gate next
+- Current Release: V0.5 Subcontracts — Release Entry Gate (not yet approved)
+- Current Stage: V0.4 Inventory release exit complete; V0.5 entry-gate draft and business decisions under Issue #98
 - Completed Stages: V0.1-A through V0.1-H; V0.2-A through V0.2-G; V0.3-A through V0.3-E; V0.4-A Warehouse Foundation; V0.4-B Goods Receipt / Ledger; V0.4-C Derived Stock Balance; V0.4-D Material Reservation / Issue / Return; V0.4-E Stock Transfer / Inventory Documents / Reporting / Release Evidence
 - Completed Issue: #92 — V0.4-E Stock Transfer / Inventory Documents / Reporting / Release Evidence
 - Completed Issue: #89 — V0.4-D Material Reservation / Issue / Return
@@ -80,7 +80,7 @@
 - V0.1 cross-module release acceptance scenario: PASS in the Stage H release-candidate regression suite.
 - Open defect check at V0.1 acceptance: no Severity 1 or Severity 2 release-blocking defect recorded.
 - Governance: `AGENTS.md`, `docs/PROJECT-GOVERNANCE.md`, PR governance checklist and DEC-008 are active; material decisions must pass the repository pre-flight and open-source/zero-cost-first constraint.
-- Next action: complete Issue #96 V0.4 acceptance-record PR/CI/merge/post-merge main gates; then prepare the V0.5 Subcontracts Release Entry Gate for Product / Business Owner scope, acceptance and business-rule decisions. No V0.5 implementation before that gate is approved.
+- Next action: review `docs/V0.5-ENTRY-GATE-DRAFT.md` under Issue #98, resolve the open D05-01–D05-10 decisions, and obtain explicit Product / Business Owner approval of V0.5 scope, acceptance, business rules and technical baselines before V0.5-A implementation.
 
 ## Stage E completed
 
@@ -778,9 +778,15 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - Follow-up branch `v0.4-e-completion-evidence` added two PostgreSQL regressions: opposite-direction concurrent Transfers make progress without a Warehouse-lock deadlock; Transfer reversal is denied when destination stock has been consumed. CI #1546/#1547 passed, with #1547 at `8f352c351cdef2b719ef77922f603b4745682427`. Completion-evidence PR #94 merged as `26b4e6ceba114f57f225a96fd6e8de4fe0b489fe` after exact-head branch CI #1550 and PR CI #1551 passed at `bbfa8865d8d2a45713b88e4e3d073e73a7a291b5`; post-merge main CI #1552 passed.
 - `docs/V0.4-UAT.md` and `docs/V0.4-RELEASE-CHECKLIST.md` record technical evidence and the remaining Product / Business Owner walkthrough. No human UAT or business acceptance has been recorded. AC-V04-031 and the V0.4 Release Exit Gate remain open; V0.5 cannot start.
 
-## V0.4 Inventory Product / Business Owner accepted — V0.5 entry gate next
+## V0.4 Inventory Product / Business Owner accepted — V0.5 entry gate next (prior checkpoint)
 
 - The Product / Business Owner explicitly accepted the V0.4 UAT walkthrough and instructed the next gated step on 2026-09-29 (Singapore time). Exact wording is preserved in `docs/V0.4-UAT.md` and Issue #96. No blocking business defect or workaround was reported with the acceptance; no issue or PR was open at the accepted checkpoint.
 - Accepted technical `main` checkpoint: `1511939701cb6c8c0c855cbd378125db6f12b461`. Post-merge CI #1558 passed, including the live HTTP current-release acceptance (40 checks). V0.4-A through V0.4-E are technically complete; AC-V04-031 is satisfied by the explicit owner decision.
 - Acceptance-record Issue #96 and its documentation PR must complete exact-head CI/review, merge and post-merge `main` CI before the release record is closed.
 - The next position is the V0.5 Subcontracts Release Entry Gate. V0.5 scope, acceptance criteria, required business rules, database/API/test approach and license/cost review need their own approval before implementation. Retention release, tax/FX, accounting and cost recognition are not authorized by V0.4 acceptance. Committed Cost, Actual Cost and Paid Cost remain separate.
+
+## V0.4 release exit complete / V0.5 entry gate draft
+
+- V0.4 Product / Business Owner acceptance Issue #96 closed through PR #97, squash-merged to `main` as `c846068c59cf20ab74f3b802cf4eacbd262aaba9`. Exact-head branch CI #1563 and PR CI #1564 passed; post-merge main CI #1565 passed at the merge. V0.4 Inventory is formally closed.
+- V0.5 Subcontracts Release Entry Gate Issue #98 is open. `docs/V0.5-ENTRY-GATE-DRAFT.md` is explicitly DRAFT/NOT APPROVED and maps SUB-001–010 and RPT-007 to proposed acceptance areas, technical boundaries and unresolved business decisions.
+- No V0.5 schema, API, UI or implementation stage has begun. Product / Business Owner approval of the entry-gate baselines and blocking business rules remains required. DEC-008 and separation of Committed, Actual and Paid Cost remain active.

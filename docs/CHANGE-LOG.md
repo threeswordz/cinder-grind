@@ -1,3 +1,9 @@
+## 2026-09-29 — V0.4 release closed; V0.5 Subcontracts entry gate drafted
+
+- V0.4 acceptance PR #97 squash-merged to `main` as `c846068c59cf20ab74f3b802cf4eacbd262aaba9`; Issue #96 closed. Exact-head branch CI #1563 and PR CI #1564 passed; post-merge main CI #1565 passed. V0.4 release exit is complete.
+- V0.5 entry-gate Issue #98 opened. `docs/V0.5-ENTRY-GATE-DRAFT.md` translates SUB-001–010 and RPT-007 into proposed scope/acceptance areas, technical boundaries and unresolved decisions. It is not approved and authorizes no V0.5 implementation.
+- Retention release, tax/FX, accounting and cost recognition remain deferred. DEC-008 applies; Committed, Actual and Paid Cost remain separate.
+
 ## 2026-09-29 — V0.4 Inventory Product / Business Owner acceptance
 
 - Product / Business Owner explicitly accepted the V0.4 UAT walkthrough and directed the next gated step; exact instruction is recorded in `docs/V0.4-UAT.md` and Issue #96.
