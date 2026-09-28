@@ -1666,3 +1666,9 @@ Testing is part of development, not a final activity performed after coding is f
 The next Phase 0 deliverable is:
 
 **Development Roadmap — Issue #7**
+
+
+### V0.4-A Warehouse foundation validation
+
+Stage A adds clean migration/schema validation, Warehouse input validation, PostgreSQL Company/Project/site integrity, Company-unique code, assigned/unassigned Project-scope denial, archive/reactivate lifecycle, audit history, web typecheck/build and live HTTP create/read/update/archive/reactivate checks. The full V0.1–V0.3 regression remains mandatory. Stock posting, balance, reservations, issues, returns and transfers are not tested as implemented in Stage A.
+
