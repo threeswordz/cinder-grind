@@ -1059,6 +1059,110 @@ test('V0.3-D Purchase Orders preserve awarded-source traceability, approval and 
       'Concurrent Transfer cleanup must restore the original source balance.',
     );
 
+    const seedDestination = await stockTransfers.create(
+      { auth: makerAuth },
+      {
+        sourceWarehouseId: warehouse.id,
+        destinationWarehouseId: transferWarehouse.id,
+        transferDate: today,
+        lines: [{
+          materialId: material.id,
+          quantity: new Prisma.Decimal('1'),
+          uomId: uom.id,
+          sourceProjectId: project.id,
+          destinationProjectId: project.id,
+        }],
+      },
+    );
+    await stockTransfers.submit(
+      { auth: makerAuth },
+      seedDestination.id,
+      transferWorkflow.workflowCode,
+    );
+    await stockTransfers.approve(
+      { auth: checkerAuth },
+      seedDestination.id,
+      'opposite-direction-seed',
+    );
+    const opposingTransfers = [];
+    for (const [label, source, destination] of [
+      ['forward', warehouse.id, transferWarehouse.id],
+      ['backward', transferWarehouse.id, warehouse.id],
+    ]) {
+      const draft = await stockTransfers.create(
+        { auth: makerAuth },
+        {
+          sourceWarehouseId: source,
+          destinationWarehouseId: destination,
+          transferDate: today,
+          lines: [{
+            materialId: material.id,
+            quantity: new Prisma.Decimal('1'),
+            uomId: uom.id,
+            sourceProjectId: project.id,
+            destinationProjectId: project.id,
+          }],
+        },
+      );
+      await stockTransfers.submit(
+        { auth: makerAuth },
+        draft.id,
+        transferWorkflow.workflowCode,
+      );
+      opposingTransfers.push({ draft, label });
+    }
+    const opposingPosts = await Promise.allSettled(
+      opposingTransfers.map(({ draft, label }) =>
+        stockTransfers.approve(
+          { auth: checkerAuth },
+          draft.id,
+          'opposite-direction-' + label,
+        ),
+      ),
+    );
+    assert.ok(
+      opposingPosts.some((result) => result.status === 'fulfilled'),
+      'Opposite-direction Transfers must allow progress under deterministic Warehouse locking.',
+    );
+    for (const result of opposingPosts) {
+      if (result.status === 'rejected') {
+        const message = result.reason instanceof Error
+          ? result.reason.message
+          : String(result.reason);
+        assert.doesNotMatch(
+          message,
+          /deadlock detected|40P01/i,
+          'Opposite-direction Transfers must not deadlock on Warehouse locks.',
+        );
+      }
+    }
+    for (const { draft } of opposingTransfers) {
+      const postedOpposing = await stockTransfers.get(makerAuth, draft.id);
+      if (postedOpposing.postedAt) {
+        await stockTransfers.reverse(
+          { auth: makerAuth },
+          draft.id,
+          'opposite-direction-cleanup-' + draft.id,
+          'Restore opposing Transfer regression stock',
+        );
+      }
+    }
+    await stockTransfers.reverse(
+      { auth: makerAuth },
+      seedDestination.id,
+      'opposite-direction-seed-cleanup',
+      'Restore seeded destination stock',
+    );
+    assert.equal(
+      (await balances.balances(makerAuth, {
+        projectId: project.id,
+        warehouseId: warehouse.id,
+        materialId: material.id,
+      }))[0]?.quantity,
+      '3.0000',
+      'Opposite-direction cleanup must restore source stock.',
+    );
+
     const transferProtectedReservation = await reservations.create(
       { auth: makerAuth },
       {
