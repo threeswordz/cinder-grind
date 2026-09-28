@@ -10,13 +10,14 @@ import {
   Typography,
 } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { inventoryApi } from '../api/inventory';
 
 export function StockTransfersPanel({ permissions }: { permissions: string[] }) {
   const queryClient = useQueryClient();
   const canCreate = permissions.includes('inventory.transfer.create');
+  const canEdit = permissions.includes('inventory.transfer.edit');
   const canSubmit = permissions.includes('inventory.transfer.submit');
   const canApprove = permissions.includes('inventory.transfer.approve');
   const canReverse = permissions.includes('inventory.transfer.reverse');
@@ -34,6 +35,8 @@ export function StockTransfersPanel({ permissions }: { permissions: string[] }) 
   const [workflowCode, setWorkflowCode] = useState('');
   const [selectedId, setSelectedId] = useState('');
   const [reason, setReason] = useState('');
+  const [draftRemarks, setDraftRemarks] = useState('');
+  const [draftQuantities, setDraftQuantities] = useState<Record<string, string>>({});
   const [mutationError, setMutationError] = useState<unknown>(null);
   const [postKeys] = useState(() => new Map<string, string>());
   const [reversalKeys] = useState(() => new Map<string, string>());
@@ -82,6 +85,14 @@ export function StockTransfersPanel({ permissions }: { permissions: string[] }) 
     Number(quantity) > 0 &&
     (!selectedStock || Number(quantity) <= Number(selectedStock.available));
   const current = detail.data?.data;
+
+  useEffect(() => {
+    if (!current) return;
+    setDraftRemarks(current.remarks ?? '');
+    setDraftQuantities(Object.fromEntries(
+      (current.items ?? []).map((item) => [item.id, item.quantity]),
+    ));
+  }, [current]);
 
   const refresh = async () => {
     await Promise.all([
@@ -345,6 +356,58 @@ export function StockTransfersPanel({ permissions }: { permissions: string[] }) 
                     item.destinationProjectId}
                 </Typography>
               ))}
+
+              {!current.submittedAt && canEdit ? (
+                <Stack spacing={1}>
+                  <Typography variant="subtitle2">Edit Draft</Typography>
+                  <TextField label="Remarks" value={draftRemarks}
+                    onChange={(event) => setDraftRemarks(event.target.value)}
+                    multiline minRows={2} />
+                  <Button variant="outlined" disabled={mutation.isPending}
+                    onClick={() => perform(() =>
+                      inventoryApi.updateStockTransfer(current.id, {
+                        remarks: draftRemarks.trim() || null,
+                      })
+                    )}>
+                    Save remarks
+                  </Button>
+                  {(current.items ?? []).map((item) => {
+                    const draftQuantity = draftQuantities[item.id] ?? item.quantity;
+                    const validDraftQuantity =
+                      /^(?:0|[1-9]\\d{0,13})(?:\\.\\d{1,4})?$/.test(draftQuantity) &&
+                      Number(draftQuantity) > 0;
+                    return (
+                      <Stack key={item.id} direction={{ xs: 'column', sm: 'row' }}
+                        spacing={1} alignItems={{ sm: 'center' }}>
+                        <Typography variant="body2">
+                          {item.material?.materialCode ?? item.materialId} ·
+                          {item.uom?.uomCode ?? item.uomId}
+                        </Typography>
+                        <TextField label="Quantity" value={draftQuantity}
+                          onChange={(event) => setDraftQuantities((previous) => ({
+                            ...previous, [item.id]: event.target.value,
+                          }))}
+                          error={!validDraftQuantity} />
+                        <Button variant="outlined"
+                          disabled={!validDraftQuantity || mutation.isPending}
+                          onClick={() => perform(async () => {
+                            await inventoryApi.updateStockTransferItem(item.id, {
+                              materialId: item.materialId,
+                              quantity: draftQuantity,
+                              uomId: item.uomId,
+                              sourceProjectId: item.sourceProjectId,
+                              destinationProjectId: item.destinationProjectId,
+                              remarks: item.remarks ?? null,
+                            });
+                            return { data: { id: current.id } };
+                          })}>
+                          Save line
+                        </Button>
+                      </Stack>
+                    );
+                  })}
+                </Stack>
+              ) : null}
 
               {!current.submittedAt && canSubmit ? (
                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
