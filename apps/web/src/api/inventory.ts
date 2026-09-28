@@ -634,6 +634,25 @@ export const inventoryApi = {
       body: JSON.stringify(body),
     }),
 
+  updateStockTransfer: (id: string, body: { remarks?: string | null }) =>
+    apiRequest<Data<StockTransfer>>('/inventory/stock-transfers/' + id, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    }),
+
+  updateStockTransferItem: (id: string, body: {
+    materialId: string;
+    quantity: string;
+    uomId: string;
+    sourceProjectId: string;
+    destinationProjectId: string;
+    remarks?: string | null;
+  }) =>
+    apiRequest<Data<{ id: string }>>('/inventory/stock-transfer-items/' + id, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    }),
+
   submitStockTransfer: (id: string, workflowCode: string) =>
     apiRequest<Data<StockTransfer>>('/inventory/stock-transfers/' + id + '/submit', {
       method: 'POST',
