@@ -1084,6 +1084,51 @@ test('V0.3-D Purchase Orders preserve awarded-source traceability, approval and 
       seedDestination.id,
       'opposite-direction-seed',
     );
+    const consumedDestination = await materialIssues.create(
+      { auth: makerAuth },
+      {
+        projectId: project.id,
+        warehouseId: transferWarehouse.id,
+        issueDate: today,
+        lines: [{
+          materialId: material.id,
+          quantity: new Prisma.Decimal('1'),
+          uomId: uom.id,
+          wbsId: wbs.id,
+          costCodeId: costCode.id,
+        }],
+      },
+    );
+    await materialIssues.submit(
+      { auth: makerAuth },
+      consumedDestination.id,
+      issueWorkflow.workflowCode,
+    );
+    await materialIssues.approve(
+      { auth: checkerAuth },
+      consumedDestination.id,
+      'consume-transfer-destination',
+    );
+    await assert.rejects(
+      () => stockTransfers.reverse(
+        { auth: makerAuth },
+        seedDestination.id,
+        'transfer-destination-consumed',
+        'Cannot reverse a Transfer after its destination stock is issued',
+      ),
+      (error: unknown) =>
+        error instanceof ConflictException &&
+        (error.getResponse() as { code?: string }).code ===
+          'STOCK_TRANSFER_REVERSAL_INSUFFICIENT_AVAILABLE',
+      'Transfer reversal must not consume stock already issued from the destination.',
+    );
+    await materialIssues.reverse(
+      { auth: makerAuth },
+      consumedDestination.id,
+      'restore-transfer-destination',
+      'Restore destination stock for opposing Transfer regression',
+    );
+
     const opposingTransfers = [];
     for (const [label, source, destination] of [
       ['forward', warehouse.id, transferWarehouse.id],
