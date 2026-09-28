@@ -2,7 +2,7 @@
 
 - Issue #83 implements Company/Project-scoped Warehouse register, database integrity, lifecycle, server-side permissions, audit, UI and automated tests within approved INV-003/Stage A scope.
 - warehouse permissions are provisioned for technical SYS_ADMIN bootstrap without stock posting or business approval authority.
-- live HTTP and PostgreSQL acceptance coverage added; final exact-head CI, review and merge remain pending.
+- live HTTP and PostgreSQL acceptance coverage added; code head `94516ba1d5baf9cb7cc75199c708ca26dc2eb6a6` passed branch CI #1331 and PR CI #1332. Codex review finding on test wiring fixed and thread resolved; documentation-head CI and merge remain pending.
 - V0.4-B remains blocked until Stage A exact-head gates pass, PR merges and post-merge main validation is green.
 
 ## 2026-09-27 — V0.4 Inventory Release Entry Gate approved
