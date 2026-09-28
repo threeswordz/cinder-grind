@@ -42,8 +42,8 @@ export function StockBalancePanel() {
     setError('');
     try {
       const response = await inventoryApi.stockBalances({
-        projectId: projectId || undefined,
-        search: search || undefined,
+        ...(projectId ? { projectId } : {}),
+        ...(search ? { search } : {}),
         includeInactiveWarehouses,
         includeZero,
       });
