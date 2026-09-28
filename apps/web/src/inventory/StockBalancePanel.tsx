@@ -15,7 +15,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 import {
   InventoryProject,
@@ -36,8 +36,10 @@ export function StockBalancePanel() {
   const [includeZero, setIncludeZero] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const requestGeneration = useRef(0);
 
   const load = useCallback(async () => {
+    const generation = ++requestGeneration.current;
     setLoading(true);
     setError('');
     try {
@@ -47,11 +49,17 @@ export function StockBalancePanel() {
         includeInactiveWarehouses,
         includeZero,
       });
-      setRows(response.data);
+      if (generation === requestGeneration.current) {
+        setRows(response.data);
+      }
     } catch (caught) {
-      setError(message(caught));
+      if (generation === requestGeneration.current) {
+        setError(message(caught));
+      }
     } finally {
-      setLoading(false);
+      if (generation === requestGeneration.current) {
+        setLoading(false);
+      }
     }
   }, [projectId, search, includeInactiveWarehouses, includeZero]);
 
