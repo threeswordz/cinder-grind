@@ -4,12 +4,14 @@
 **Source of truth:** Live GitHub repository state
 
 - Current Release: V0.4 Inventory
-- Current Stage: V0.4-C Derived Stock Balance / Project-Site Stock Views — IMPLEMENTATION / VALIDATION
-- Completed Stages: V0.1-A through V0.1-H; V0.2-A through V0.2-G; V0.3-A BOQ & Budget; V0.3-B Purchase Request; V0.3-C RFQ / Quotations; V0.3-D Purchase Order; V0.3-E Schedule Risk / Procurement Reporting / Traceability
-- Active Issue: #87 — V0.4-C Derived Stock Balance / Project-Site Stock Views
+- Current Stage: V0.4-D Material Reservation / Issue / Return — PRE-FLIGHT
+- Completed Stages: V0.1-A through V0.1-H; V0.2-A through V0.2-G; V0.3-A through V0.3-E; V0.4-A Warehouse Foundation; V0.4-B Goods Receipt / Ledger; V0.4-C Derived Stock Balance
+- Active Issue: #89 — V0.4-D Material Reservation / Issue / Return
+- Completed Issue: #87 — V0.4-C Derived Stock Balance / Project-Site Stock Views
 - Completed Issue: #85 — V0.4-B Goods Receipt / PO Receipt Controls / Stock Transaction Ledger
 - Completed Issue: #83 — V0.4-A Warehouse / Inventory Foundation
-- Active Branch: `v0.4-c-stock-balance-views`
+- Active Branch: `v0.4-d-reservation-issue-return`
+- Merged PR: #88 — V0.4-C Derived Stock Balance / Project-Site Stock Views (`096ee639f7e0597dd6c4068d9d1d0c323f66f15d`)
 - Merged PR: #86 — V0.4-B Goods Receipt / Stock Transaction Ledger (`1f39a0d9e9c8d0d9dc32112e6eec4ec36321ac4d`)
 - Merged PR: #84 — V0.4-A Warehouse / Inventory Foundation (`4ab736203c9870f4b6782ad85c108f3b0b66accd`)
 - Completed Issue: #81 — V0.4 Inventory Release Entry Gate — Scope, Acceptance & Business Rules
@@ -75,7 +77,7 @@
 - V0.1 cross-module release acceptance scenario: PASS in the Stage H release-candidate regression suite.
 - Open defect check at V0.1 acceptance: no Severity 1 or Severity 2 release-blocking defect recorded.
 - Governance: `AGENTS.md`, `docs/PROJECT-GOVERNANCE.md`, PR governance checklist and DEC-008 are active; material decisions must pass the repository pre-flight and open-source/zero-cost-first constraint.
-- Next action: complete V0.4-C PR #88 review and merge gates under Issue #87, then require post-merge main CI. V0.4-D must wait for the Stage C merge and post-merge main CI.
+- Next action: validate the V0.4-D pre-flight under Issue #89, then implement only its approved Reservation / Issue / Return contract. V0.4-E must wait for the Stage D merge and post-merge main CI.
 
 ## Stage E completed
 
@@ -736,3 +738,12 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - Stage C adds explicit `inventory.stock.view`, secured read-only Project choices and ledger-derived balances grouped by Warehouse, Material, Project attribution and UOM, with exact decimal strings, archived/zero filters and no editable balance store.
 - The Inventory workspace has a permission-gated Stock Balance tab. PostgreSQL and live HTTP evidence cover posted quantity, Project/Site dimensions, unauthorized Project denial and exact reversal-to-zero.
 - Implementation/test head `385388c395d570c6141dc6c1e31dbd65690c5ca1` passed CI #1403. PR #88 records the exact-head branch/PR CI evidence and review resolution required before merge; post-merge main CI remains pending. V0.4-D has not begun; human V0.4 release UAT remains a separate exit gate.
+
+
+## V0.4-C completed / V0.4-D pre-flight
+
+- PR #88 merged to `main` as `096ee639f7e0597dd6c4068d9d1d0c323f66f15d`; Issue #87 closed. Final branch CI #1417, PR CI #1418 and post-merge main CI #1419 passed, including live HTTP acceptance.
+- The Stage C P2 stale-response review finding was fixed, exact-head validated and resolved before merge.
+- Stage D Issue #89 and branch `v0.4-d-reservation-issue-return` start only from that green checkpoint.
+- `docs/V0.4-D-PREFLIGHT.md` binds Stage D to approved INV-008/009/010, AC-V04-016–021 and supporting security/ledger criteria, and BR-V04-07–15 with existing Company/Project governance.
+- Stock Transfer, Inventory Documents, full Inventory reporting and human V0.4 release UAT remain deferred. V0.4-D implementation may begin only after the pre-flight exact-head CI passes; V0.4-E has not begun.
