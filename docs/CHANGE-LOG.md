@@ -5,7 +5,7 @@
 - V0.4-B PR #86 merged as `1f39a0d9e9c8d0d9dc32112e6eec4ec36321ac4d`; post-merge main CI #1390 passed and Issue #85 closed.
 - Issue #87 and the Stage C pre-flight authorize only read-only ledger-derived Stock Balance and Project/Site views under approved INV-005/006/007 and AC-V04-012–015.
 - Added explicit stock-view permission, secured aggregate API, Stock Balance UI, PostgreSQL scope/reversal evidence and live HTTP acceptance without an editable/materialized balance table or new dependency.
-- Implementation/test head `385388c395d570c6141dc6c1e31dbd65690c5ca1` passed CI #1403. Final branch head `91ce2f3c749a4d5c70adcc2b5056f154d4416240` passed branch CI #1409 and PR CI #1410 in PR #88; review/merge and post-merge main CI remain pending. V0.4-D has not begun.
+- Implementation/test head `385388c395d570c6141dc6c1e31dbd65690c5ca1` passed CI #1403. PR #88 records exact-head branch/PR CI and review-resolution evidence; merge and post-merge main CI remain pending. V0.4-D has not begun.
 
 
 - Stage A PR #84 merged as `4ab736203c9870f4b6782ad85c108f3b0b66accd`; post-merge main CI #1337 passed. Stage B issue #85/branch started only after this gate.
