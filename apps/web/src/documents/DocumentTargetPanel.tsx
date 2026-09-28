@@ -65,49 +65,45 @@ export function DocumentTargetPanel({
     const data = options.data?.data;
     if (!data) return [];
     if (entityType === 'WBS') {
-      return data.wbs.map((row) => ({
-        id: row.id,
-        label: row.wbsCode + ' · ' + row.wbsName,
-      }));
+      return data.wbs.map((row) => ({ id: row.id, label: row.wbsCode + ' · ' + row.wbsName }));
     }
     if (entityType === 'ACTIVITY') {
-      return data.activities.map((row) => ({
-        id: row.id,
-        label: row.activityCode + ' · ' + row.activityName,
-      }));
+      return data.activities.map((row) => ({ id: row.id, label: row.activityCode + ' · ' + row.activityName }));
     }
     if (entityType === 'PURCHASE_REQUEST') {
-      return data.purchaseRequests.map((row) => ({
-        id: row.id,
-        label: row.prNumber,
-      }));
+      return data.purchaseRequests.map((row) => ({ id: row.id, label: row.prNumber }));
     }
     if (entityType === 'RFQ') {
-      return data.rfqs.map((row) => ({
-        id: row.id,
-        label: row.rfqNumber,
-      }));
+      return data.rfqs.map((row) => ({ id: row.id, label: row.rfqNumber }));
     }
     if (entityType === 'SUPPLIER_QUOTATION') {
       return data.supplierQuotations.map((row) => ({
         id: row.id,
-        label:
-          row.rfq.rfqNumber +
-          ' · ' +
-          row.supplier.supplierCode +
-          ' · ' +
-          (row.supplierReference ?? 'Quotation'),
+        label: row.rfq.rfqNumber + ' · ' + row.supplier.supplierCode + ' · ' + (row.supplierReference ?? 'Quotation'),
       }));
     }
-    return data.purchaseOrders.map((row) => ({
-      id: row.id,
-      label:
-        row.poNumber +
-        ' · Rev ' +
-        row.revisionNo +
-        ' · ' +
-        row.supplier.supplierCode,
-    }));
+    if (entityType === 'PURCHASE_ORDER') {
+      return data.purchaseOrders.map((row) => ({
+        id: row.id,
+        label: row.poNumber + ' · Rev ' + row.revisionNo + ' · ' + row.supplier.supplierCode,
+      }));
+    }
+    if (entityType === 'GOODS_RECEIPT') {
+      return data.goodsReceipts.map((row) => ({ id: row.id, label: row.receiptNumber }));
+    }
+    if (entityType === 'MATERIAL_RESERVATION') {
+      return data.materialReservations.map((row) => ({
+        id: row.id,
+        label: row.reservationNumber + ' · ' + row.status,
+      }));
+    }
+    if (entityType === 'MATERIAL_ISSUE') {
+      return data.materialIssues.map((row) => ({ id: row.id, label: row.issueNumber }));
+    }
+    if (entityType === 'MATERIAL_RETURN') {
+      return data.materialReturns.map((row) => ({ id: row.id, label: row.returnNumber }));
+    }
+    return data.stockTransfers.map((row) => ({ id: row.id, label: row.transferNumber }));
   }, [entityType, options.data?.data]);
 
   const upload = useMutation({
@@ -203,9 +199,9 @@ export function DocumentTargetPanel({
 
   return (
     <Stack spacing={2}>
-      <Typography variant="h6">Project / Procurement Documents</Typography>
+      <Typography variant="h6">Project / Transaction Documents</Typography>
       <Typography variant="body2" color="text.secondary">
-        Documents remain Project-owned for access control while also referencing the selected WBS, Activity or Procurement transaction.
+        Documents remain Project-owned for access control while also referencing the selected WBS, Activity, Procurement or Inventory transaction.
       </Typography>
       <Stack direction={{ xs: 'column', md: 'row' }} spacing={1}>
         <TextField
@@ -224,22 +220,15 @@ export function DocumentTargetPanel({
           <MenuItem value="RFQ">RFQ</MenuItem>
           <MenuItem value="SUPPLIER_QUOTATION">Supplier Quotation</MenuItem>
           <MenuItem value="PURCHASE_ORDER">Purchase Order</MenuItem>
+          <MenuItem value="GOODS_RECEIPT">Goods Receipt</MenuItem>
+          <MenuItem value="MATERIAL_RESERVATION">Material Reservation</MenuItem>
+          <MenuItem value="MATERIAL_ISSUE">Material Issue</MenuItem>
+          <MenuItem value="MATERIAL_RETURN">Material Return</MenuItem>
+          <MenuItem value="STOCK_TRANSFER">Stock Transfer</MenuItem>
         </TextField>
         <TextField
           select
-          label={
-            entityType === 'WBS'
-              ? 'WBS'
-              : entityType === 'ACTIVITY'
-                ? 'Activity'
-                : entityType === 'PURCHASE_REQUEST'
-                  ? 'Purchase Request'
-                  : entityType === 'RFQ'
-                    ? 'RFQ'
-                    : entityType === 'SUPPLIER_QUOTATION'
-                      ? 'Supplier Quotation'
-                      : 'Purchase Order'
-          }
+          label={entityType.replaceAll('_', ' ')}
           value={entityId}
           onChange={(event) => setEntityId(event.target.value)}
           sx={{ flexGrow: 1 }}
@@ -313,7 +302,7 @@ export function DocumentTargetPanel({
           <CardContent>
             <Stack component="form" spacing={2} onSubmit={submit}>
               <Typography fontWeight={600}>
-                Upload to {entityType === 'WBS' ? 'WBS' : 'Activity'}
+                Upload to {entityType.replaceAll('_', ' ')}
               </Typography>
               {upload.isError ? (
                 <Alert severity="error">

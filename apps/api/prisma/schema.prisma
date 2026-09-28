@@ -56,6 +56,7 @@ model Company {
   materialReservations MaterialReservation[]
   materialIssues       MaterialIssue[]
   materialReturns      MaterialReturn[]
+  stockTransfers       StockTransfer[]
   stockTransactions   StockTransaction[]
   @@map("companies")
 }
@@ -131,6 +132,7 @@ model UnitOfMeasure {
   materialReservations          MaterialReservation[]
   materialIssueItems            MaterialIssueItem[]
   materialReturnItems           MaterialReturnItem[]
+  stockTransferItems             StockTransferItem[]
   stockTransactions             StockTransaction[]
   @@unique([companyId, uomCode])
   @@index([companyId, isActive])
@@ -159,6 +161,7 @@ model Material {
   materialReservations          MaterialReservation[]
   materialIssueItems            MaterialIssueItem[]
   materialReturnItems           MaterialReturnItem[]
+  stockTransferItems             StockTransferItem[]
   stockTransactions             StockTransaction[]
   @@unique([companyId, materialCode])
   @@index([companyId, isActive])
@@ -246,6 +249,10 @@ model User {
   submittedMaterialReturns    MaterialReturn[] @relation("MaterialReturnSubmitter")
   postedMaterialReturns       MaterialReturn[] @relation("MaterialReturnPoster")
   reversedMaterialReturns     MaterialReturn[] @relation("MaterialReturnReverser")
+  createdStockTransfers        StockTransfer[] @relation("StockTransferCreator")
+  submittedStockTransfers      StockTransfer[] @relation("StockTransferSubmitter")
+  postedStockTransfers         StockTransfer[] @relation("StockTransferPoster")
+  reversedStockTransfers       StockTransfer[] @relation("StockTransferReverser")
   stockTransactions          StockTransaction[]
   @@unique([companyId, email])
   @@index([companyId, isActive])
@@ -402,6 +409,7 @@ model ApprovalInstance {
   goodsReceipt     GoodsReceipt?
   materialIssue    MaterialIssue?
   materialReturn   MaterialReturn?
+  stockTransfer    StockTransfer?
   @@index([companyId, entityType, entityId])
   @@index([approvalWorkflowId, approvalState])
   @@map("approval_instances")
@@ -539,6 +547,8 @@ model Project {
   materialReservations  MaterialReservation[]
   materialIssues        MaterialIssue[]
   materialReturns       MaterialReturn[]
+  sourceStockTransferItems      StockTransferItem[] @relation("StockTransferSourceProject")
+  destinationStockTransferItems StockTransferItem[] @relation("StockTransferDestinationProject")
   stockTransactions     StockTransaction[]
   @@unique([companyId, projectCode])
   @@index([companyId, isActive])
@@ -1118,6 +1128,8 @@ model Warehouse {
   materialReservations MaterialReservation[]
   materialIssues MaterialIssue[]
   materialReturns MaterialReturn[]
+  sourceStockTransfers      StockTransfer[] @relation("StockTransferSourceWarehouse")
+  destinationStockTransfers StockTransfer[] @relation("StockTransferDestinationWarehouse")
   stockTransactions StockTransaction[]
 
   @@unique([companyId, warehouseCode])
@@ -1375,6 +1387,72 @@ model MaterialReturnItem {
   @@map("material_return_items")
 }
 
+model StockTransfer {
+  id                     String    @id @default(uuid()) @db.Uuid
+  companyId              String    @map("company_id") @db.Uuid
+  sourceWarehouseId      String    @map("source_warehouse_id") @db.Uuid
+  destinationWarehouseId String    @map("destination_warehouse_id") @db.Uuid
+  transferNumber         String    @map("transfer_number") @db.VarChar(120)
+  transferDate           DateTime  @map("transfer_date") @db.Date
+  approvalInstanceId     String?   @unique @map("approval_instance_id") @db.Uuid
+  createdByUserId        String    @map("created_by_user_id") @db.Uuid
+  submittedByUserId      String?   @map("submitted_by_user_id") @db.Uuid
+  postedByUserId         String?   @map("posted_by_user_id") @db.Uuid
+  reversedByUserId       String?   @map("reversed_by_user_id") @db.Uuid
+  postKey                String?   @unique @map("post_key") @db.VarChar(120)
+  reversalKey            String?   @unique @map("reversal_key") @db.VarChar(120)
+  remarks                String?   @db.Text
+  reversalReason         String?   @map("reversal_reason") @db.Text
+  createdAt              DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt              DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  submittedAt            DateTime? @map("submitted_at") @db.Timestamptz(6)
+  postedAt               DateTime? @map("posted_at") @db.Timestamptz(6)
+  reversedAt             DateTime? @map("reversed_at") @db.Timestamptz(6)
+
+  company              Company           @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  sourceWarehouse      Warehouse         @relation("StockTransferSourceWarehouse", fields: [sourceWarehouseId], references: [id], onDelete: Restrict)
+  destinationWarehouse Warehouse         @relation("StockTransferDestinationWarehouse", fields: [destinationWarehouseId], references: [id], onDelete: Restrict)
+  approvalInstance     ApprovalInstance? @relation(fields: [approvalInstanceId], references: [id], onDelete: Restrict)
+  createdBy            User              @relation("StockTransferCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  submittedBy          User?             @relation("StockTransferSubmitter", fields: [submittedByUserId], references: [id], onDelete: Restrict)
+  postedBy             User?             @relation("StockTransferPoster", fields: [postedByUserId], references: [id], onDelete: Restrict)
+  reversedBy           User?             @relation("StockTransferReverser", fields: [reversedByUserId], references: [id], onDelete: Restrict)
+  items                StockTransferItem[]
+  stockTransactions    StockTransaction[]
+
+  @@unique([companyId, transferNumber])
+  @@index([companyId, createdAt])
+  @@index([sourceWarehouseId])
+  @@index([destinationWarehouseId])
+  @@map("stock_transfers")
+}
+
+model StockTransferItem {
+  id                   String   @id @default(uuid()) @db.Uuid
+  stockTransferId      String   @map("stock_transfer_id") @db.Uuid
+  lineNo               Int      @map("line_no")
+  materialId           String   @map("material_id") @db.Uuid
+  quantity             Decimal  @db.Decimal(18, 4)
+  uomId                 String   @map("uom_id") @db.Uuid
+  sourceProjectId      String   @map("source_project_id") @db.Uuid
+  destinationProjectId String   @map("destination_project_id") @db.Uuid
+  remarks              String?  @db.Text
+  createdAt            DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  stockTransfer      StockTransfer @relation(fields: [stockTransferId], references: [id], onDelete: Restrict)
+  material           Material      @relation(fields: [materialId], references: [id], onDelete: Restrict)
+  uom                UnitOfMeasure @relation(fields: [uomId], references: [id], onDelete: Restrict)
+  sourceProject      Project       @relation("StockTransferSourceProject", fields: [sourceProjectId], references: [id], onDelete: Restrict)
+  destinationProject Project       @relation("StockTransferDestinationProject", fields: [destinationProjectId], references: [id], onDelete: Restrict)
+  stockTransactions  StockTransaction[]
+
+  @@unique([stockTransferId, lineNo])
+  @@index([materialId, uomId])
+  @@index([sourceProjectId])
+  @@index([destinationProjectId])
+  @@map("stock_transfer_items")
+}
+
 model StockTransaction {
   id                   String    @id @default(uuid()) @db.Uuid
   companyId            String    @map("company_id") @db.Uuid
@@ -1388,6 +1466,8 @@ model StockTransaction {
   materialIssueItemId  String?   @map("material_issue_item_id") @db.Uuid
   materialReturnId     String?   @map("material_return_id") @db.Uuid
   materialReturnItemId String?   @map("material_return_item_id") @db.Uuid
+  stockTransferId       String?   @map("stock_transfer_id") @db.Uuid
+  stockTransferItemId   String?   @map("stock_transfer_item_id") @db.Uuid
   wbsId                String?   @map("wbs_id") @db.Uuid
   costCodeId           String?   @map("cost_code_id") @db.Uuid
   activityId           String?   @map("activity_id") @db.Uuid
@@ -1409,6 +1489,8 @@ model StockTransaction {
   materialIssueItem   MaterialIssueItem?  @relation(fields: [materialIssueItemId], references: [id], onDelete: Restrict)
   materialReturn      MaterialReturn?     @relation(fields: [materialReturnId], references: [id], onDelete: Restrict)
   materialReturnItem  MaterialReturnItem? @relation(fields: [materialReturnItemId], references: [id], onDelete: Restrict)
+  stockTransfer       StockTransfer?      @relation(fields: [stockTransferId], references: [id], onDelete: Restrict)
+  stockTransferItem   StockTransferItem?  @relation(fields: [stockTransferItemId], references: [id], onDelete: Restrict)
   wbs                 WbsElement?         @relation(fields: [wbsId], references: [id], onDelete: Restrict)
   costCode            CostCode?           @relation(fields: [costCodeId], references: [id], onDelete: Restrict)
   activity            Activity?           @relation(fields: [activityId], references: [id], onDelete: Restrict)
@@ -1419,10 +1501,12 @@ model StockTransaction {
   @@unique([goodsReceiptItemId, movementType])
   @@unique([materialIssueItemId, movementType])
   @@unique([materialReturnItemId, movementType])
+  @@unique([stockTransferItemId, movementType])
   @@index([companyId, warehouseId, materialId, projectId])
   @@index([goodsReceiptId])
   @@index([materialIssueId])
   @@index([materialReturnId])
+  @@index([stockTransferId])
   @@map("stock_transactions")
 }
 

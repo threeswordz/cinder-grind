@@ -18,11 +18,13 @@ import { ProjectScopeService } from '../authorization/project-scope.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { GoodsReceiptService } from '../inventory/goods-receipt.service';
 import { InventoryQuantityService } from '../inventory/inventory-quantity.service';
+import { InventoryReportService } from '../inventory/inventory-report.service';
 import { InventoryService } from '../inventory/inventory.service';
 import { MaterialIssueService } from '../inventory/material-issue.service';
 import { MaterialReservationService } from '../inventory/material-reservation.service';
 import { MaterialReturnService } from '../inventory/material-return.service';
 import { StockBalanceService } from '../inventory/stock-balance.service';
+import { StockTransferService } from '../inventory/stock-transfer.service';
 import { ProjectAccessService } from '../projects/project-access.service';
 import { ReportingService } from '../reporting/reporting.service';
 import { SchedulingProgressService } from '../scheduling/scheduling-progress.service';
@@ -266,6 +268,13 @@ test('V0.3-D Purchase Orders preserve awarded-source traceability, approval and 
           formatTemplate: 'MRTYYMM-###',
           resetRule: 'MONTHLY',
         },
+        {
+          companyId: company.id,
+          entityType: 'STOCK_TRANSFER',
+          sequenceCode: 'STOCK_TRANSFER',
+          formatTemplate: 'STYYMM-###',
+          resetRule: 'MONTHLY',
+        },
       ],
     });
 
@@ -365,6 +374,22 @@ test('V0.3-D Purchase Orders preserve awarded-source traceability, approval and 
         },
       },
     });
+    const transferWorkflow = await prisma.approvalWorkflow.create({
+      data: {
+        companyId: company.id,
+        workflowCode: 'STOCK_TRANSFER_' + suffix,
+        entityType: 'STOCK_TRANSFER',
+        workflowName: 'Stock Transfer Approval',
+        steps: {
+          create: [{
+            stepNo: 1,
+            stepName: 'Approve stock transfer',
+            requiredApprovals: 1,
+            stepRoles: { create: [{ roleId: approverRole.id }] },
+          }],
+        },
+      },
+    });
 
     const access = new ProjectAccessService(
       prisma,
@@ -410,6 +435,7 @@ test('V0.3-D Purchase Orders preserve awarded-source traceability, approval and 
       quantities,
     );
     const balances = new StockBalanceService(prisma, access);
+    const inventoryReports = new InventoryReportService(prisma, access, balances);
     const reservations = new MaterialReservationService(
       prisma, access, audit, numbers, quantities,
     );
@@ -417,6 +443,9 @@ test('V0.3-D Purchase Orders preserve awarded-source traceability, approval and 
       prisma, access, audit, approvals, numbers, quantities,
     );
     const materialReturns = new MaterialReturnService(
+      prisma, access, audit, approvals, numbers, quantities,
+    );
+    const stockTransfers = new StockTransferService(
       prisma, access, audit, approvals, numbers, quantities,
     );
 
@@ -760,6 +789,15 @@ test('V0.3-D Purchase Orders preserve awarded-source traceability, approval and 
         isSiteWarehouse: true,
       },
     });
+    const transferWarehouse = await prisma.warehouse.create({
+      data: {
+        companyId: company.id,
+        warehouseCode: 'PO-XFER-' + suffix,
+        warehouseName: 'Transfer integration store',
+        projectId: project.id,
+        isSiteWarehouse: true,
+      },
+    });
     const sourceLine = revisionDetail.lines[0]!;
     const createReceipt = (qty: string) =>
       receipts.create({ auth: makerAuth }, {
@@ -790,6 +828,299 @@ test('V0.3-D Purchase Orders preserve awarded-source traceability, approval and 
     assert.equal(postedBalance[0]?.warehouseProjectId, project.id);
     assert.equal(postedBalance[0]?.isSiteWarehouse, true);
     assert.deepEqual(await balances.balances(outsiderAuth, {}), []);
+
+    await assert.rejects(
+      () => stockTransfers.create(
+        { auth: makerAuth },
+        {
+          sourceWarehouseId: warehouse.id,
+          destinationWarehouseId: warehouse.id,
+          transferDate: today,
+          lines: [{
+            materialId: material.id,
+            quantity: new Prisma.Decimal('1'),
+            uomId: uom.id,
+            sourceProjectId: project.id,
+            destinationProjectId: project.id,
+          }],
+        },
+      ),
+      (error: unknown) =>
+        error instanceof UnprocessableEntityException &&
+        (error.getResponse() as { code?: string }).code ===
+          'STOCK_TRANSFER_WAREHOUSES_SAME',
+      'Stock Transfer must reject the same source and destination Warehouse.',
+    );
+
+    const transfer = await stockTransfers.create(
+      { auth: makerAuth },
+      {
+        sourceWarehouseId: warehouse.id,
+        destinationWarehouseId: transferWarehouse.id,
+        transferDate: today,
+        lines: [{
+          materialId: material.id,
+          quantity: new Prisma.Decimal('1'),
+          uomId: uom.id,
+          sourceProjectId: project.id,
+          destinationProjectId: project.id,
+        }],
+      },
+    );
+    assert.match(transfer.transferNumber, /^ST\d{4}-\d{3}$/);
+    await stockTransfers.submit(
+      { auth: makerAuth },
+      transfer.id,
+      transferWorkflow.workflowCode,
+    );
+    await assert.rejects(
+      () => stockTransfers.approve(
+        { auth: makerAuth },
+        transfer.id,
+        'transfer-maker-post',
+      ),
+      (error: unknown) => error instanceof ForbiddenException,
+      'Stock Transfer must preserve maker-checker.',
+    );
+    const postedTransfer = await stockTransfers.approve(
+      { auth: checkerAuth },
+      transfer.id,
+      'transfer-post',
+    );
+    assert.deepEqual(
+      postedTransfer.stockTransactions
+        .map((row) => [row.movementType, row.quantity.toString()])
+        .sort(),
+      [
+        ['STOCK_TRANSFER_IN', '1'],
+        ['STOCK_TRANSFER_OUT', '-1'],
+      ],
+      'Posted Transfer must append one matched negative/positive ledger pair.',
+    );
+    const transferMovements = await inventoryReports.movementReport(makerAuth, {
+      projectId: project.id,
+      movementType: 'STOCK_TRANSFER_OUT',
+      sourceType: 'STOCK_TRANSFER',
+    });
+    assert.ok(transferMovements.every((row) => row.sourceType === 'STOCK_TRANSFER'));
+    const transferOut = transferMovements.find(
+      (row) => row.sourceId === transfer.id,
+    );
+    assert.equal(transferOut?.sourceNumber, transfer.transferNumber);
+    assert.equal(transferOut?.sourceType, 'STOCK_TRANSFER');
+    assert.equal(transferOut?.quantity, '-1.0000');
+    assert.equal(transferOut?.warehouseId, warehouse.id);
+    const transferIn = (await inventoryReports.movementReport(makerAuth, {
+      projectId: project.id,
+      warehouseId: transferWarehouse.id,
+      movementType: 'STOCK_TRANSFER_IN',
+    })).find((row) => row.sourceId === transfer.id);
+    assert.equal(transferIn?.quantity, '1.0000');
+    assert.equal(transferIn?.sourceNumber, transfer.transferNumber);
+    assert.deepEqual(
+      await inventoryReports.movementReport(outsiderAuth, {}),
+      [],
+      'Inventory movement reports must hide unassigned Project transactions.',
+    );
+    await assert.rejects(
+      () => inventoryReports.movementReport(outsiderAuth, { projectId: project.id }),
+      (error: unknown) => error instanceof ForbiddenException,
+      'An explicit unauthorized Project filter must be denied.',
+    );
+    assert.equal(
+      (await inventoryReports.balanceReport(makerAuth, {
+        projectId: project.id,
+        warehouseId: transferWarehouse.id,
+        materialId: material.id,
+      }))[0]?.quantity,
+      '1.0000',
+      'Inventory balance report must derive the posted Transfer destination effect.',
+    );
+
+    const retriedTransfer = await stockTransfers.approve(
+      { auth: checkerAuth },
+      transfer.id,
+      'transfer-post',
+    );
+    assert.equal(
+      retriedTransfer.stockTransactions.length,
+      2,
+      'Transfer posting retry must not duplicate physical effects.',
+    );
+    assert.equal(
+      (await balances.balances(makerAuth, {
+        projectId: project.id,
+        warehouseId: warehouse.id,
+        materialId: material.id,
+      }))[0]?.quantity,
+      '2.0000',
+    );
+    assert.equal(
+      (await balances.balances(makerAuth, {
+        projectId: project.id,
+        warehouseId: transferWarehouse.id,
+        materialId: material.id,
+      }))[0]?.quantity,
+      '1.0000',
+    );
+    const reversedTransfer = await stockTransfers.reverse(
+      { auth: makerAuth },
+      transfer.id,
+      'transfer-reverse',
+      'Restore stock after Transfer lifecycle regression',
+    );
+    assert.equal(
+      reversedTransfer.stockTransactions.length,
+      4,
+      'Transfer reversal must append exact opposite effects without rewriting originals.',
+    );
+    assert.equal(
+      reversedTransfer.stockTransactions.reduce(
+        (sum, row) => sum.plus(row.quantity),
+        new Prisma.Decimal(0),
+      ).toString(),
+      '0',
+    );
+    assert.equal(
+      (await balances.balances(makerAuth, {
+        projectId: project.id,
+        warehouseId: warehouse.id,
+        materialId: material.id,
+      }))[0]?.quantity,
+      '3.0000',
+    );
+
+    const competingTransfers = [];
+    for (const label of ['A', 'B']) {
+        const draft = await stockTransfers.create(
+          { auth: makerAuth },
+          {
+            sourceWarehouseId: warehouse.id,
+            destinationWarehouseId: transferWarehouse.id,
+            transferDate: today,
+            lines: [{
+              materialId: material.id,
+              quantity: new Prisma.Decimal('2'),
+              uomId: uom.id,
+              sourceProjectId: project.id,
+              destinationProjectId: project.id,
+            }],
+          },
+        );
+        await stockTransfers.submit(
+          { auth: makerAuth },
+          draft.id,
+          transferWorkflow.workflowCode,
+        );
+        competingTransfers.push({ draft, label });
+    }
+    const competingPosts = await Promise.allSettled(
+      competingTransfers.map(({ draft, label }) =>
+        stockTransfers.approve(
+          { auth: checkerAuth },
+          draft.id,
+          'competing-transfer-' + label,
+        ),
+      ),
+    );
+    assert.equal(
+      competingPosts.filter((result) => result.status === 'fulfilled').length,
+      1,
+      'Concurrent Transfers must not both consume the same final source stock.',
+    );
+    const winningTransfer = competingTransfers[
+      competingPosts[0]?.status === 'fulfilled' ? 0 : 1
+    ]!.draft;
+    assert.equal(
+      await prisma.stockTransaction.count({
+        where: {
+          stockTransferId: {
+            in: competingTransfers.map(({ draft }) => draft.id),
+          },
+          movementType: 'STOCK_TRANSFER_OUT',
+        },
+      }),
+      1,
+      'Only the winning Transfer may append a source-negative ledger effect.',
+    );
+    await stockTransfers.reverse(
+      { auth: makerAuth },
+      winningTransfer.id,
+      'competing-transfer-cleanup',
+      'Restore stock after concurrent Transfer regression',
+    );
+    assert.equal(
+      (await balances.balances(makerAuth, {
+        projectId: project.id,
+        warehouseId: warehouse.id,
+        materialId: material.id,
+      }))[0]?.quantity,
+      '3.0000',
+      'Concurrent Transfer cleanup must restore the original source balance.',
+    );
+
+    const transferProtectedReservation = await reservations.create(
+      { auth: makerAuth },
+      {
+        projectId: project.id,
+        warehouseId: warehouse.id,
+        materialId: material.id,
+        uomId: uom.id,
+        quantity: new Prisma.Decimal('3'),
+      },
+    );
+    await reservations.activate(
+      { auth: makerAuth },
+      transferProtectedReservation.id,
+    );
+    const blockedTransfer = await stockTransfers.create(
+      { auth: makerAuth },
+      {
+        sourceWarehouseId: warehouse.id,
+        destinationWarehouseId: transferWarehouse.id,
+        transferDate: today,
+        lines: [{
+          materialId: material.id,
+          quantity: new Prisma.Decimal('1'),
+          uomId: uom.id,
+          sourceProjectId: project.id,
+          destinationProjectId: project.id,
+        }],
+      },
+    );
+    await stockTransfers.submit(
+      { auth: makerAuth },
+      blockedTransfer.id,
+      transferWorkflow.workflowCode,
+    );
+    await assert.rejects(
+      () => stockTransfers.approve(
+        { auth: checkerAuth },
+        blockedTransfer.id,
+        'transfer-reserved-post',
+      ),
+      (error: unknown) =>
+        error instanceof ConflictException &&
+        (error.getResponse() as { code?: string }).code ===
+          'STOCK_TRANSFER_INSUFFICIENT_AVAILABLE',
+      'Stock Transfer must not consume quantity held by an Active Reservation.',
+    );
+    assert.equal(
+      (await stockTransfers.get(makerAuth, blockedTransfer.id))
+        .approvalInstance?.approvalState,
+      'SUBMITTED',
+      'Failed Transfer posting must roll back final approval.',
+    );
+    await stockTransfers.reject(
+      { auth: checkerAuth },
+      blockedTransfer.id,
+      'Release failed Transfer workflow',
+    );
+    await reservations.release(
+      { auth: makerAuth },
+      transferProtectedReservation.id,
+      'Release Transfer reservation-protection regression',
+    );
 
     const staleWbs = await prisma.wbsElement.create({
       data: {

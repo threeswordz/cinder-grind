@@ -4,13 +4,13 @@
 **Source of truth:** Live GitHub repository state
 
 - Current Release: V0.4 Inventory
-- Current Stage: V0.4-D Material Reservation / Issue / Return — IMPLEMENTATION / VALIDATION
-- Completed Stages: V0.1-A through V0.1-H; V0.2-A through V0.2-G; V0.3-A through V0.3-E; V0.4-A Warehouse Foundation; V0.4-B Goods Receipt / Ledger; V0.4-C Derived Stock Balance
-- Active Issue: #89 — V0.4-D Material Reservation / Issue / Return
+- Current Stage: V0.4-E Stock Transfer / Inventory Documents / Reporting / Release Evidence — PRE-FLIGHT
+- Completed Stages: V0.1-A through V0.1-H; V0.2-A through V0.2-G; V0.3-A through V0.3-E; V0.4-A Warehouse Foundation; V0.4-B Goods Receipt / Ledger; V0.4-C Derived Stock Balance; V0.4-D Material Reservation / Issue / Return
+- Active Issue: #92 — V0.4-E Stock Transfer / Inventory Documents / Reporting / Release Evidence\n- Completed Issue: #89 — V0.4-D Material Reservation / Issue / Return
 - Completed Issue: #87 — V0.4-C Derived Stock Balance / Project-Site Stock Views
 - Completed Issue: #85 — V0.4-B Goods Receipt / PO Receipt Controls / Stock Transaction Ledger
 - Completed Issue: #83 — V0.4-A Warehouse / Inventory Foundation
-- Active Branch: `v0.4-d-reservation-issue-return`
+- Active Branch: `v0.4-e-transfer-docs-reporting`\n- Merged PR: #91 — V0.4-D Material Reservation / Issue / Return (`941e2e9c2966bac66ea1d01b34cb39fb5ce75bdd`); post-merge main CI #1492 SUCCESS
 - Merged PR: #88 — V0.4-C Derived Stock Balance / Project-Site Stock Views (`096ee639f7e0597dd6c4068d9d1d0c323f66f15d`)
 - Merged PR: #86 — V0.4-B Goods Receipt / Stock Transaction Ledger (`1f39a0d9e9c8d0d9dc32112e6eec4ec36321ac4d`)
 - Merged PR: #84 — V0.4-A Warehouse / Inventory Foundation (`4ab736203c9870f4b6782ad85c108f3b0b66accd`)
@@ -77,7 +77,7 @@
 - V0.1 cross-module release acceptance scenario: PASS in the Stage H release-candidate regression suite.
 - Open defect check at V0.1 acceptance: no Severity 1 or Severity 2 release-blocking defect recorded.
 - Governance: `AGENTS.md`, `docs/PROJECT-GOVERNANCE.md`, PR governance checklist and DEC-008 are active; material decisions must pass the repository pre-flight and open-source/zero-cost-first constraint.
-- Next action: run the V0.4-D documentation-head exact CI, then open the Stage-D PR. Resolve review findings and merge only after PR CI is green; V0.4-E must wait for the Stage-D merge and post-merge main CI.
+- Next action: validate the V0.4-E pre-flight on the exact branch head, then implement only the approved Stage-E Transfer/Documents/reporting/release-evidence scope under Issue #92. Human V0.4 Product / Business Owner acceptance remains a separate Release Exit Gate.
 
 ## Stage E completed
 
@@ -759,3 +759,11 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - Explicit reservation/issue/return permissions are not granted implicitly to technical `SYS_ADMIN`. Company/Project scope remains backend-enforced.
 - PostgreSQL integration plus live HTTP acceptance cover concurrency, availability, maker-checker, ledger effects, return ceilings, reversal ordering, Project denial and exact balance restoration. Hardened implementation/test head `18e44cc07adcc7cadc9fc057f8d1c77ea0c35e97` passed branch CI #1456. Two Codex P1 stock-reversal findings were fixed and resolved: Return reversal aggregates same-dimension quantity before availability validation, and Goods Receipt reversal now uses the shared stock lock plus derived-availability guard against downstream Issue/Active-Reservation consumption. Additional hardening enforces Return allocation lineage, shared Return/Issue-reversal source locking and posted Issue/Return identity immutability.
 - Final documentation-head exact branch CI, exact-head PR CI, squash merge, Issue #89 closure and post-merge main CI remain pending. V0.4-E Stock Transfer / Inventory Documents / reporting has not begun. Human V0.4 business UAT remains a separate Release Exit Gate.
+
+## V0.4-D completed / V0.4-E under validation
+
+- PR #91 squash-merged to `main` as `941e2e9c2966bac66ea1d01b34cb39fb5ce75bdd`; Issue #89 closed; post-merge main CI #1492 passed.
+- Issue #92 and `docs/V0.4-E-PREFLIGHT.md` authorize the approved Stage E scope. The pre-flight found no new business-policy or architecture decision needed.
+- Branch `v0.4-e-transfer-docs-reporting` and draft PR #93 include Stock Transfer schema/API/UI, authorized Inventory document targets, ledger-derived balance/movement reports, and Stage E integration/live HTTP acceptance work.
+- Stage E code + release-evidence checkpoint `fc4855bf019c41c32e7482b0a20b11b961e26f35` passed branch CI #1532 and PR CI #1533, including migration-from-zero, dependency audit, API/web validation, PostgreSQL regression and live HTTP acceptance (scenario `MUL9VGJX`, 40 checks). Final documentation-head CI, review resolution, merge and post-merge main CI remain pending. `docs/V0.4-UAT.md` and `docs/V0.4-RELEASE-CHECKLIST.md` keep the human Release Exit Gate explicitly pending.
+- V0.5 must not begin before V0.4 technical completion and explicit Product / Business Owner acceptance under AC-V04-031.

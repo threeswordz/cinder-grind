@@ -1,3 +1,21 @@
+## 2026-09-28 — V0.4-D completed; V0.4-E pre-flight started
+
+- V0.4-D PR #91 squash-merged as `941e2e9c2966bac66ea1d01b34cb39fb5ce75bdd`; Issue #89 auto-closed.
+- Exact-head Stage-D push CI #1490 and PR CI #1491 passed before merge; all review threads were resolved.
+- Post-merge main CI #1492 passed, including migration, full workspace/PostgreSQL regression and live HTTP acceptance.
+- Stage-D hardening preserved the single immutable ledger, corrected Reservation→Issue retained-history cardinality, standardized Return/Issue reversal lock ordering and serialized Warehouse archive races across Receipt/Return/Issue-reversal positive-stock paths.
+- V0.4-E Issue #92 and branch `v0.4-e-transfer-docs-reporting` start only from that exact green main checkpoint.
+- Stage-E authority is limited to INV-011/012, DOC-008, RPT-006 and supporting approved Inventory behavior: Stock Transfer, Inventory Documents, balance/movement reporting, full regression and release/UAT evidence preparation.
+- No new paid/runtime dependency or scope expansion is introduced. Human AC-V04-031 Product / Business Owner walkthrough/acceptance remains pending after Stage-E technical completion.
+
+## 2026-09-28 — V0.4-E Stock Transfer / Inventory Documents / Reporting pre-flight
+
+- `docs/V0.4-E-PREFLIGHT.md` records PASS against the approved V0.4 baseline and green Stage-D predecessor checkpoint.
+- Transfer will use `STYYMM-###`, Approval Matrix maker-checker, deterministic two-Warehouse locking, matched immutable OUT/IN ledger effects, exact reversal pairs, idempotency and Active Reservation availability protection.
+- DOC-008 extends the existing secure Documents target architecture to Goods Receipt, Reservation, Issue, Return and Transfer without a second file store.
+- RPT-006 remains read-only and ledger-derived; balance/movement reporting introduces no valuation, editable reporting ledger or Finance posting.
+- Stage E cannot close until exact-head CI/review/merge/post-merge main validation passes. V0.4 itself cannot close until explicit human Product / Business Owner acceptance under AC-V04-031.
+
 ## 2026-09-28 — V0.4-D Material Reservation / Issue / Return pre-flight
 
 ## 2026-09-28 — V0.4-D Material Reservation / Issue / Return under validation

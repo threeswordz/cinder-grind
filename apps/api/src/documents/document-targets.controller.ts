@@ -47,12 +47,17 @@ function targetType(value: string): DocumentTargetType {
     'RFQ',
     'SUPPLIER_QUOTATION',
     'PURCHASE_ORDER',
+    'GOODS_RECEIPT',
+    'MATERIAL_RESERVATION',
+    'MATERIAL_ISSUE',
+    'MATERIAL_RETURN',
+    'STOCK_TRANSFER',
   ];
   if (!supported.includes(value as DocumentTargetType)) {
     throw new UnprocessableEntityException({
       code: 'DOCUMENT_TARGET_TYPE_INVALID',
       detail:
-        'Document target type must be WBS, ACTIVITY, PURCHASE_REQUEST, RFQ, SUPPLIER_QUOTATION or PURCHASE_ORDER.',
+        'Document target type must be WBS, ACTIVITY, PURCHASE_REQUEST, RFQ, SUPPLIER_QUOTATION, PURCHASE_ORDER, GOODS_RECEIPT, MATERIAL_RESERVATION, MATERIAL_ISSUE, MATERIAL_RETURN or STOCK_TRANSFER.',
     });
   }
   return value as DocumentTargetType;

@@ -133,6 +133,72 @@ export type MaterialReturn = {
   _count?: { items: number };
 };
 
+export type TransferStockChoice = MaterialStockChoice & {
+  reserved: string;
+  available: string;
+};
+
+export type StockTransfer = {
+  id: string;
+  transferNumber: string;
+  sourceWarehouseId: string;
+  destinationWarehouseId: string;
+  transferDate: string;
+  remarks: string | null;
+  createdAt: string;
+  submittedAt: string | null;
+  postedAt: string | null;
+  reversedAt: string | null;
+  sourceWarehouse?: { warehouseCode: string; warehouseName: string; projectId?: string | null };
+  destinationWarehouse?: { warehouseCode: string; warehouseName: string; projectId?: string | null };
+  approvalInstance?: { approvalState: string } | null;
+  items?: Array<{
+    id: string;
+    lineNo: number;
+    materialId: string;
+    quantity: string;
+    uomId: string;
+    sourceProjectId: string;
+    destinationProjectId: string;
+    remarks?: string | null;
+    material?: { materialCode: string; materialName: string };
+    uom?: { uomCode: string };
+    sourceProject?: { projectCode: string; projectName: string };
+    destinationProject?: { projectCode: string; projectName: string };
+  }>;
+  stockTransactions?: Array<{
+    id: string;
+    movementType: string;
+    quantity: string;
+  }>;
+  _count?: { items: number };
+};
+
+export type InventoryMovementRecord = {
+  id: string;
+  movementType: string;
+  quantity: string;
+  effectKey: string;
+  reversalOfId: string | null;
+  postedAt: string;
+  warehouseId: string;
+  warehouseCode: string;
+  warehouseName: string;
+  materialId: string;
+  materialCode: string;
+  materialName: string;
+  projectId: string | null;
+  projectCode: string | null;
+  projectName: string | null;
+  uomId: string;
+  uomCode: string;
+  postedByUserId: string;
+  postedByDisplayName: string;
+  sourceType: string;
+  sourceId: string | null;
+  sourceNumber: string | null;
+};
+
 export type WarehouseRecord = {
   id: string;
   companyId: string;
@@ -522,6 +588,137 @@ export const inventoryApi = {
       method: 'POST',
       body: JSON.stringify({ reversalKey, reason }),
     }),
+
+  transferProjects: () =>
+    apiRequest<Data<InventoryProject[]>>('/inventory/transfer-projects'),
+
+  transferWarehouses: (projectId: string) =>
+    apiRequest<Data<Array<{ id: string; warehouseCode: string; warehouseName: string; projectId: string | null; isSiteWarehouse: boolean }>>>(
+      '/inventory/projects/' + projectId + '/transfer-warehouses',
+    ),
+
+  transferStock: (projectId: string, warehouseId?: string) =>
+    apiRequest<Data<TransferStockChoice[]>>(
+      query('/inventory/projects/' + projectId + '/transfer-stock', { warehouseId }),
+    ),
+
+  transferWorkflows: () =>
+    apiRequest<Data<Array<{ workflowCode: string; workflowName: string }>>>(
+      '/inventory/transfer-workflows',
+    ),
+
+  stockTransfers: (projectId?: string) =>
+    apiRequest<Data<StockTransfer[]>>(
+      query('/inventory/stock-transfers', { projectId }),
+    ),
+
+  stockTransfer: (id: string) =>
+    apiRequest<Data<StockTransfer>>('/inventory/stock-transfers/' + id),
+
+  createStockTransfer: (body: {
+    sourceWarehouseId: string;
+    destinationWarehouseId: string;
+    transferDate: string;
+    remarks?: string | null;
+    lines: Array<{
+      materialId: string;
+      quantity: string;
+      uomId: string;
+      sourceProjectId: string;
+      destinationProjectId: string;
+      remarks?: string | null;
+    }>;
+  }) =>
+    apiRequest<Data<StockTransfer>>('/inventory/stock-transfers', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  updateStockTransfer: (id: string, body: { remarks?: string | null }) =>
+    apiRequest<Data<StockTransfer>>('/inventory/stock-transfers/' + id, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    }),
+
+  updateStockTransferItem: (id: string, body: {
+    materialId: string;
+    quantity: string;
+    uomId: string;
+    sourceProjectId: string;
+    destinationProjectId: string;
+    remarks?: string | null;
+  }) =>
+    apiRequest<Data<{ id: string }>>('/inventory/stock-transfer-items/' + id, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    }),
+
+  submitStockTransfer: (id: string, workflowCode: string) =>
+    apiRequest<Data<StockTransfer>>('/inventory/stock-transfers/' + id + '/submit', {
+      method: 'POST',
+      body: JSON.stringify({ workflowCode }),
+    }),
+
+  approveStockTransfer: (id: string, postKey: string, comment?: string) =>
+    apiRequest<Data<StockTransfer>>('/inventory/stock-transfers/' + id + '/approve', {
+      method: 'POST',
+      body: JSON.stringify({ postKey, comment }),
+    }),
+
+  rejectStockTransfer: (id: string, comment?: string) =>
+    apiRequest<Data<StockTransfer>>('/inventory/stock-transfers/' + id + '/reject', {
+      method: 'POST',
+      body: JSON.stringify({ comment }),
+    }),
+
+  reverseStockTransfer: (id: string, reversalKey: string, reason: string) =>
+    apiRequest<Data<StockTransfer>>('/inventory/stock-transfers/' + id + '/reverse', {
+      method: 'POST',
+      body: JSON.stringify({ reversalKey, reason }),
+    }),
+
+  inventoryReportProjects: () =>
+    apiRequest<Data<InventoryProject[]>>('/inventory/reports/projects'),
+
+  inventoryReportBalances: (filters: {
+    projectId?: string;
+    warehouseId?: string;
+    materialId?: string;
+    search?: string;
+    includeInactiveWarehouses?: boolean;
+    includeZero?: boolean;
+  } = {}) =>
+    apiRequest<Data<StockBalanceRecord[]>>(
+      query('/inventory/reports/balances', {
+        projectId: filters.projectId,
+        warehouseId: filters.warehouseId,
+        materialId: filters.materialId,
+        search: filters.search,
+        includeInactiveWarehouses: filters.includeInactiveWarehouses ? 'true' : undefined,
+        includeZero: filters.includeZero ? 'true' : undefined,
+      }),
+    ),
+
+  inventoryReportMovements: (filters: {
+    projectId?: string;
+    warehouseId?: string;
+    materialId?: string;
+    movementType?: string;
+    sourceType?: string;
+    postedFrom?: string;
+    postedTo?: string;
+  } = {}) =>
+    apiRequest<Data<InventoryMovementRecord[]>>(
+      query('/inventory/reports/movements', {
+        projectId: filters.projectId,
+        warehouseId: filters.warehouseId,
+        materialId: filters.materialId,
+        movementType: filters.movementType,
+        sourceType: filters.sourceType,
+        postedFrom: filters.postedFrom,
+        postedTo: filters.postedTo,
+      }),
+    ),
 
   reactivateWarehouse: (id: string) =>
     apiRequest<Data<WarehouseRecord>>(

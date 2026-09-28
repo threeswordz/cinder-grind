@@ -1,4 +1,5 @@
 import {
+  ForbiddenException,
   Injectable,
   NotFoundException,
   UnprocessableEntityException,
@@ -17,7 +18,12 @@ export type DocumentTargetType =
   | 'PURCHASE_REQUEST'
   | 'RFQ'
   | 'SUPPLIER_QUOTATION'
-  | 'PURCHASE_ORDER';
+  | 'PURCHASE_ORDER'
+  | 'GOODS_RECEIPT'
+  | 'MATERIAL_RESERVATION'
+  | 'MATERIAL_ISSUE'
+  | 'MATERIAL_RETURN'
+  | 'STOCK_TRANSFER';
 
 type AuditContext = {
   auth: AuthenticatedUserContext;
@@ -35,6 +41,13 @@ export class DocumentTargetsService {
 
   async options(auth: AuthenticatedUserContext, projectId: string) {
     await this.access.assertAccess(auth, projectId);
+    const projectScope = await this.access.scopeWhere(auth);
+    const accessibleProjects = await this.prisma.project.findMany({
+      where: projectScope,
+      select: { id: true },
+    });
+    const accessibleProjectIds = accessibleProjects.map((row) => row.id);
+    const can = (permission: string) => auth.permissions.includes(permission);
     const [
       wbs,
       activities,
@@ -42,6 +55,11 @@ export class DocumentTargetsService {
       rfqs,
       supplierQuotations,
       purchaseOrders,
+      goodsReceipts,
+      materialReservations,
+      materialIssues,
+      materialReturns,
+      stockTransfers,
     ] = await Promise.all([
       this.prisma.wbsElement.findMany({
         where: { projectId, isActive: true },
@@ -99,6 +117,57 @@ export class DocumentTargetsService {
         },
         orderBy: [{ poNumber: 'asc' }, { revisionNo: 'asc' }],
       }),
+      can('inventory.receipt.view')
+        ? this.prisma.goodsReceipt.findMany({
+            where: { projectId, companyId: auth.companyId },
+            select: { id: true, receiptNumber: true, postedAt: true },
+            orderBy: { receiptNumber: 'asc' },
+          })
+        : Promise.resolve([]),
+      can('inventory.reservation.view')
+        ? this.prisma.materialReservation.findMany({
+            where: { projectId, companyId: auth.companyId },
+            select: { id: true, reservationNumber: true, status: true },
+            orderBy: { reservationNumber: 'asc' },
+          })
+        : Promise.resolve([]),
+      can('inventory.issue.view')
+        ? this.prisma.materialIssue.findMany({
+            where: { projectId, companyId: auth.companyId },
+            select: { id: true, issueNumber: true, postedAt: true },
+            orderBy: { issueNumber: 'asc' },
+          })
+        : Promise.resolve([]),
+      can('inventory.return.view')
+        ? this.prisma.materialReturn.findMany({
+            where: { projectId, companyId: auth.companyId },
+            select: { id: true, returnNumber: true, postedAt: true },
+            orderBy: { returnNumber: 'asc' },
+          })
+        : Promise.resolve([]),
+      can('inventory.transfer.view') && accessibleProjectIds.length
+        ? this.prisma.stockTransfer.findMany({
+            where: {
+              companyId: auth.companyId,
+              items: {
+                some: {
+                  OR: [
+                    { sourceProjectId: projectId },
+                    { destinationProjectId: projectId },
+                  ],
+                },
+                every: {
+                  AND: [
+                    { sourceProjectId: { in: accessibleProjectIds } },
+                    { destinationProjectId: { in: accessibleProjectIds } },
+                  ],
+                },
+              },
+            },
+            select: { id: true, transferNumber: true, postedAt: true },
+            orderBy: { transferNumber: 'asc' },
+          })
+        : Promise.resolve([]),
     ]);
     return {
       wbs,
@@ -107,6 +176,11 @@ export class DocumentTargetsService {
       rfqs,
       supplierQuotations,
       purchaseOrders,
+      goodsReceipts,
+      materialReservations,
+      materialIssues,
+      materialReturns,
+      stockTransfers,
     };
   }
 
@@ -250,6 +324,7 @@ export class DocumentTargetsService {
     entityId: string,
   ) {
     await this.access.assertAccess(auth, projectId);
+    this.assertInventoryTargetPermission(auth, entityType);
 
     if (entityType === 'WBS') {
       const row = await this.prisma.wbsElement.findFirst({
@@ -262,11 +337,7 @@ export class DocumentTargetsService {
 
     if (entityType === 'ACTIVITY') {
       const row = await this.prisma.activity.findFirst({
-        where: {
-          id: entityId,
-          projectId,
-          companyId: auth.companyId,
-        },
+        where: { id: entityId, projectId, companyId: auth.companyId },
         select: { id: true },
       });
       if (!row) throw this.targetNotFound();
@@ -275,11 +346,7 @@ export class DocumentTargetsService {
 
     if (entityType === 'PURCHASE_REQUEST') {
       const row = await this.prisma.purchaseRequest.findFirst({
-        where: {
-          id: entityId,
-          projectId,
-          companyId: auth.companyId,
-        },
+        where: { id: entityId, projectId, companyId: auth.companyId },
         select: { id: true },
       });
       if (!row) throw this.targetNotFound();
@@ -288,11 +355,7 @@ export class DocumentTargetsService {
 
     if (entityType === 'RFQ') {
       const row = await this.prisma.rfq.findFirst({
-        where: {
-          id: entityId,
-          projectId,
-          companyId: auth.companyId,
-        },
+        where: { id: entityId, projectId, companyId: auth.companyId },
         select: { id: true },
       });
       if (!row) throw this.targetNotFound();
@@ -312,15 +375,102 @@ export class DocumentTargetsService {
       return;
     }
 
-    const row = await this.prisma.purchaseOrder.findFirst({
+    if (entityType === 'PURCHASE_ORDER') {
+      const row = await this.prisma.purchaseOrder.findFirst({
+        where: { id: entityId, projectId, companyId: auth.companyId },
+        select: { id: true },
+      });
+      if (!row) throw this.targetNotFound();
+      return;
+    }
+
+    if (entityType === 'GOODS_RECEIPT') {
+      const row = await this.prisma.goodsReceipt.findFirst({
+        where: { id: entityId, projectId, companyId: auth.companyId },
+        select: { id: true },
+      });
+      if (!row) throw this.targetNotFound();
+      return;
+    }
+
+    if (entityType === 'MATERIAL_RESERVATION') {
+      const row = await this.prisma.materialReservation.findFirst({
+        where: { id: entityId, projectId, companyId: auth.companyId },
+        select: { id: true },
+      });
+      if (!row) throw this.targetNotFound();
+      return;
+    }
+
+    if (entityType === 'MATERIAL_ISSUE') {
+      const row = await this.prisma.materialIssue.findFirst({
+        where: { id: entityId, projectId, companyId: auth.companyId },
+        select: { id: true },
+      });
+      if (!row) throw this.targetNotFound();
+      return;
+    }
+
+    if (entityType === 'MATERIAL_RETURN') {
+      const row = await this.prisma.materialReturn.findFirst({
+        where: { id: entityId, projectId, companyId: auth.companyId },
+        select: { id: true },
+      });
+      if (!row) throw this.targetNotFound();
+      return;
+    }
+
+    const transfer = await this.prisma.stockTransfer.findFirst({
       where: {
         id: entityId,
-        projectId,
         companyId: auth.companyId,
+        items: {
+          some: {
+            OR: [
+              { sourceProjectId: projectId },
+              { destinationProjectId: projectId },
+            ],
+          },
+        },
       },
-      select: { id: true },
+      select: {
+        id: true,
+        items: {
+          select: { sourceProjectId: true, destinationProjectId: true },
+        },
+      },
     });
-    if (!row) throw this.targetNotFound();
+    if (!transfer) throw this.targetNotFound();
+    const projects = new Set(
+      transfer.items.flatMap((item) => [
+        item.sourceProjectId,
+        item.destinationProjectId,
+      ]),
+    );
+    for (const transferProjectId of projects) {
+      await this.access.assertAccess(auth, transferProjectId);
+    }
+  }
+
+  private assertInventoryTargetPermission(
+    auth: AuthenticatedUserContext,
+    entityType: DocumentTargetType,
+  ) {
+    const permission: Partial<Record<DocumentTargetType, string>> = {
+      GOODS_RECEIPT: 'inventory.receipt.view',
+      MATERIAL_RESERVATION: 'inventory.reservation.view',
+      MATERIAL_ISSUE: 'inventory.issue.view',
+      MATERIAL_RETURN: 'inventory.return.view',
+      STOCK_TRANSFER: 'inventory.transfer.view',
+    };
+    const required = permission[entityType];
+    if (required && !auth.permissions.includes(required)) {
+      throw new ForbiddenException({
+        code: 'DOCUMENT_INVENTORY_TARGET_FORBIDDEN',
+        detail:
+          'Inventory target visibility requires the matching Inventory view permission.',
+      });
+    }
   }
 
   private async assertLinked(
@@ -385,7 +535,7 @@ export class DocumentTargetsService {
     return new UnprocessableEntityException({
       code: 'DOCUMENT_TARGET_INVALID',
       detail:
-        'Document target must be a valid WBS, Activity or Procurement transaction in the selected Project.',
+        'Document target must be a valid WBS, Activity, Procurement or Inventory transaction in the selected Project.',
     });
   }
 }
