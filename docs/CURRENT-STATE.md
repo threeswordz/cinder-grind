@@ -75,7 +75,7 @@
 - V0.1 cross-module release acceptance scenario: PASS in the Stage H release-candidate regression suite.
 - Open defect check at V0.1 acceptance: no Severity 1 or Severity 2 release-blocking defect recorded.
 - Governance: `AGENTS.md`, `docs/PROJECT-GOVERNANCE.md`, PR governance checklist and DEC-008 are active; material decisions must pass the repository pre-flight and open-source/zero-cost-first constraint.
-- Next action: complete V0.4-C documentation-head exact CI and review under Issue #87; merge only when all Stage C gates pass. V0.4-D must wait for the Stage C merge and post-merge main CI.
+- Next action: complete V0.4-C PR #88 review and merge gates under Issue #87, then require post-merge main CI. V0.4-D must wait for the Stage C merge and post-merge main CI.
 
 ## Stage E completed
 
@@ -735,4 +735,4 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - Stage C Issue #87 and branch `v0.4-c-stock-balance-views` started only from that green checkpoint. Pre-flight commit `4cd363e2b69d8ba5f5251e1881632648530ea159` passed CI #1392.
 - Stage C adds explicit `inventory.stock.view`, secured read-only Project choices and ledger-derived balances grouped by Warehouse, Material, Project attribution and UOM, with exact decimal strings, archived/zero filters and no editable balance store.
 - The Inventory workspace has a permission-gated Stock Balance tab. PostgreSQL and live HTTP evidence cover posted quantity, Project/Site dimensions, unauthorized Project denial and exact reversal-to-zero.
-- Implementation/test head `385388c395d570c6141dc6c1e31dbd65690c5ca1` passed CI #1403. Documentation-head CI, PR review/merge and post-merge main CI remain pending. V0.4-D has not begun; human V0.4 release UAT remains a separate exit gate.
+- Implementation/test head `385388c395d570c6141dc6c1e31dbd65690c5ca1` passed CI #1403. Final branch head `91ce2f3c749a4d5c70adcc2b5056f154d4416240` passed branch CI #1409 and PR CI #1410 in PR #88; review/merge and post-merge main CI remain pending. V0.4-D has not begun; human V0.4 release UAT remains a separate exit gate.
