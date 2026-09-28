@@ -21,7 +21,12 @@ export type DocumentTargetType =
   | 'PURCHASE_REQUEST'
   | 'RFQ'
   | 'SUPPLIER_QUOTATION'
-  | 'PURCHASE_ORDER';
+  | 'PURCHASE_ORDER'
+  | 'GOODS_RECEIPT'
+  | 'MATERIAL_RESERVATION'
+  | 'MATERIAL_ISSUE'
+  | 'MATERIAL_RETURN'
+  | 'STOCK_TRANSFER';
 
 export type DocumentTargetOptions = {
   wbs: Array<{
@@ -50,6 +55,11 @@ export type DocumentTargetOptions = {
     revisionNo: number;
     supplier: { supplierCode: string; supplierName: string };
   }>;
+  goodsReceipts: Array<{ id: string; receiptNumber: string; postedAt: string | null }>;
+  materialReservations: Array<{ id: string; reservationNumber: string; status: string }>;
+  materialIssues: Array<{ id: string; issueNumber: string; postedAt: string | null }>;
+  materialReturns: Array<{ id: string; returnNumber: string; postedAt: string | null }>;
+  stockTransfers: Array<{ id: string; transferNumber: string; postedAt: string | null }>;
 };
 
 export type ProjectDocument = {
