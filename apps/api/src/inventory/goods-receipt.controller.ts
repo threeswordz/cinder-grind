@@ -1,5 +1,5 @@
 import {
-  Body, Controller, Get, Param, ParseUUIDPipe, Post, Req, UseGuards,
+  Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, Req, UseGuards,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 
@@ -114,6 +114,35 @@ export class GoodsReceiptController {
       remarks: nullableInventoryString(input, 'remarks', 10000) ?? null,
       lines,
     }) };
+  }
+
+  @Patch('goods-receipts/:id')
+  @UseGuards(AuthGuard, CsrfGuard, PermissionGuard)
+  @RequirePermissions('inventory.receipt.edit')
+  async edit(
+    @Req() request: AuthenticatedRequest,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+    @Body() body: unknown,
+  ) {
+    const input = inventoryObject(body);
+    if (input.remarks === undefined) inventoryInvalid('remarks', 'Provide Draft remarks.');
+    return { data: await this.receipts.updateDraft(
+      auditContext(request), id,
+      nullableInventoryString(input, 'remarks', 10000) ?? null,
+    ) };
+  }
+
+  @Patch('goods-receipt-items/:id')
+  @UseGuards(AuthGuard, CsrfGuard, PermissionGuard)
+  @RequirePermissions('inventory.receipt.edit')
+  async editLine(
+    @Req() request: AuthenticatedRequest,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+    @Body() body: unknown,
+  ) {
+    return { data: await this.receipts.updateDraftLine(
+      auditContext(request), id, quantity(inventoryObject(body).quantity),
+    ) };
   }
 
   @Post('goods-receipts/:id/submit')
