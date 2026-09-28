@@ -238,6 +238,12 @@ export class InventoryService {
     isActive: boolean,
   ) {
     return this.prisma.$transaction(async (tx) => {
+      if (!isActive) {
+        await tx.$executeRawUnsafe(
+          'SELECT pg_advisory_xact_lock(hashtext($1))',
+          'inventory-warehouse:' + id,
+        );
+      }
       const before = await this.visibleWarehouse(context.auth, id, tx);
       if (before.isActive === isActive) {
         throw new ConflictException({
