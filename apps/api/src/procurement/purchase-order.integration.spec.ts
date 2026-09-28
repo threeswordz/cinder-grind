@@ -724,20 +724,26 @@ test('V0.3-D Purchase Orders preserve awarded-source traceability, approval and 
       (error: unknown) => error instanceof ConflictException,
     );
 
-    const second = await createReceipt('7');
-    const third = await createReceipt('7');
+    const second = await createReceipt('6');
+    const third = await createReceipt('6');
     await receipts.submit({ auth: makerAuth }, second.id, receiptWorkflow.workflowCode);
     await receipts.submit({ auth: makerAuth }, third.id, receiptWorkflow.workflowCode);
     const simultaneous = await Promise.allSettled([
       receipts.approve({ auth: checkerAuth }, second.id, 'receipt-second'),
       receipts.approve({ auth: checkerAuth }, third.id, 'receipt-third'),
     ]);
-    assert.equal(simultaneous.filter((result) => result.status === 'fulfilled').length, 0,
-      'Both over-quantity requests must fail against the existing partial receipt.');
+    assert.equal(simultaneous.filter((result) => result.status === 'fulfilled').length, 1,
+      'Concurrent receipts must not both consume the same remaining PO quantity.');
     const stillOne = await prisma.stockTransaction.count({
       where: { goodsReceiptId: { in: [second.id, third.id] } },
     });
-    assert.equal(stillOne, 0);
+    assert.equal(stillOne, 1);
+
+    const successfulId = simultaneous[0]?.status === 'fulfilled' ? second.id : third.id;
+    const concurrentReversal = await receipts.reverse(
+      { auth: makerAuth }, successfulId, 'concurrent-reverse', 'Restore PO cancellation eligibility',
+    );
+    assert.equal(concurrentReversal.stockTransactions.length, 2);
 
     const reversal = await receipts.reverse({ auth: makerAuth }, first.id, 'receipt-reverse', 'Integration reversal');
     assert.equal(reversal.stockTransactions.length, 2);
