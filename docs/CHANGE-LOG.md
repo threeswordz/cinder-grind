@@ -1,3 +1,20 @@
+## 2026-09-28 — V0.4-D Material Reservation / Issue / Return pre-flight
+
+## 2026-09-28 — V0.4-D Material Reservation / Issue / Return under validation
+
+- Stage D starts only from V0.4-C green merge checkpoint `096ee639f7e0597dd6c4068d9d1d0c323f66f15d`; Issue #89 and `docs/V0.4-D-PREFLIGHT.md` define the approved contract.
+- Added Reservation, Material Issue and Material Return persistence, one source-family-aware immutable Stock Transaction Ledger, database integrity/immutability guards, explicit business permissions, scoped APIs and permission-gated Inventory UI tabs.
+- Reservation availability is derived from on-hand less Active Reservations; Issue/Return posting uses serializable transactions, deterministic locks, maker-checker, idempotency, negative-stock/other-reservation protection, exact source traceability and append-only reversal effects.
+- PostgreSQL regression covers competing Reservation activation, linked fulfillment, Issue/Return posting, return ceilings and reversal ordering. Live HTTP acceptance covers the complete receive → reserve → issue → return → reverse path plus unauthorized Project denial.
+- Implementation/test head `2a21d5bd3dd3748717ddea25a19b2dc8ee1394b9` passed branch CI #1442. Documentation-head CI, PR CI/review/merge, Issue closure and post-merge main CI remain pending; V0.4-E remains blocked.
+- No new mandatory paid/runtime dependency was introduced; DEC-008 remains active. Human V0.4 business UAT remains a separate Release Exit Gate.
+
+
+- V0.4-C PR #88 merged as `096ee639f7e0597dd6c4068d9d1d0c323f66f15d`; Issue #87 closed and post-merge main CI #1419 passed.
+- Opened Issue #89 and branch `v0.4-d-reservation-issue-return` from that exact green checkpoint.
+- Added the Stage D pre-flight contract for Reservation availability, Issue/Return workflow, immutable shared-ledger extension, negative-stock/concurrency guards, explicit permissions and automated/live acceptance.
+- V0.4-E Transfer/Documents/reporting and human V0.4 release UAT remain deferred; no scope or governance change.
+
 ## 2026-09-28 — V0.4-B Goods Receipt / Stock Ledger under validation
 
 ## 2026-09-28 — V0.4-C derived Stock Balance under validation

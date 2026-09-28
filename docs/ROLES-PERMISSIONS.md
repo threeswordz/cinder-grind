@@ -994,3 +994,28 @@ All routes enforce explicit permission, persisted Company/Project assignment and
 | `inventory.stock.view` | View read-only derived Stock Balance and effective Project filters within Company/Project scope |
 
 This permission exposes business Inventory quantities and is not granted implicitly to technical `SYS_ADMIN`. Backend aggregation enforces Company and effective Project scope before grouping. Users without `projects.access_all` cannot see nullable/unallocated Project stock or another Project's balance through Warehouse, Material, search or direct Project filters.
+
+
+## V0.4-D Material movement permissions
+
+| Permission | Authority |
+| --- | --- |
+| `inventory.reservation.view` | View scoped Reservations, stock choices and derived availability |
+| `inventory.reservation.create` | Create Reservation Drafts |
+| `inventory.reservation.edit` | Edit Reservation Drafts |
+| `inventory.reservation.activate` | Activate against currently available stock |
+| `inventory.reservation.release` | Release or cancel Active Reservations with retained history |
+| `inventory.issue.view` | View scoped Material Issues, stock choices and eligible Active Reservations |
+| `inventory.issue.create` | Create Material Issue Drafts |
+| `inventory.issue.edit` | Edit Material Issue Drafts |
+| `inventory.issue.submit` | Submit to configured `MATERIAL_ISSUE` workflow |
+| `inventory.issue.approve` | Act as configured approver; final action atomically posts stock |
+| `inventory.issue.reverse` | Reverse a posted Issue when downstream Return ordering permits |
+| `inventory.return.view` | View scoped Returns and eligible posted Issue lines |
+| `inventory.return.create` | Create Material Return Drafts |
+| `inventory.return.edit` | Edit Material Return Drafts |
+| `inventory.return.submit` | Submit to configured `MATERIAL_RETURN` workflow |
+| `inventory.return.approve` | Act as configured approver; final action atomically posts stock |
+| `inventory.return.reverse` | Reverse a posted Return subject to available-stock protection |
+
+The Stage-D permission migration intentionally does not grant these business permissions to technical `SYS_ADMIN`. Every backend route still enforces Company and effective Project scope in addition to the explicit permission. Approval Matrix Role checks and maker-checker remain mandatory for Issue/Return final posting. UI tab visibility is convenience only and never substitutes for backend authorization.

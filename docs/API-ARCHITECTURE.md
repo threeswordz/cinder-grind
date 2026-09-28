@@ -1864,3 +1864,20 @@ Stage C adds two read-only routes under `/api/v1/inventory`:
 | GET | `/stock-balances` | `inventory.stock.view` | Derived Company/Project/Warehouse/Material/UOM on-hand quantities |
 
 `/stock-balances` supports optional `projectId`, `warehouseId`, `materialId`, bounded `search`, `includeInactiveWarehouses` and `includeZero` filters. The server sums signed DECIMAL(18,4) `stock_transactions.quantity` rows and returns decimal strings. There is no balance identity, mutation route, editable/materialized balance table, cache or second ledger. Assigned users see only transaction rows attributed to active assigned Projects; nullable Project attribution requires `projects.access_all`. General Warehouse ownership never broadens Project access. Results are capped at 1,000 grouped rows; the Stage E reporting surface remains deferred.
+
+
+## V0.4-D Material Reservation / Issue / Return API
+
+Stage D keeps the one immutable Stock Transaction Ledger and adds the approved reservation, issue and return workflows under `/api/v1/inventory`.
+
+| Resource | Key routes | Permission boundary |
+| --- | --- | --- |
+| Reservation | `GET /reservation-projects`, `GET /projects/:projectId/reservation-warehouses`, `GET /projects/:projectId/reservation-stock`, `GET /reservation-availability`, `GET /projects/:projectId/material-reservations`, `GET /material-reservations/:id`, `POST /material-reservations`, `PATCH /material-reservations/:id`, `POST /material-reservations/:id/activate|release|cancel` | `inventory.reservation.view/create/edit/activate/release` |
+| Material Issue | `GET /issue-projects`, `GET /projects/:projectId/issue-warehouses`, `GET /projects/:projectId/issue-stock`, `GET /projects/:projectId/issue-reservations`, `GET /issue-workflows`, list/detail/create/edit, `submit`, `approve`, `reject`, `reverse` | `inventory.issue.view/create/edit/submit/approve/reverse` |
+| Material Return | `GET /return-projects`, `GET /projects/:projectId/return-warehouses`, `GET /projects/:projectId/eligible-return-issue-lines`, `GET /return-workflows`, list/detail/create/edit, `submit`, `approve`, `reject`, `reverse` | `inventory.return.view/create/edit/submit/approve/reverse` |
+
+Reservation activation derives available quantity as immutable-ledger on-hand minus Active Reservation quantity on the identical Company/Warehouse/Material/Project/UOM dimensions. It does not create a physical stock movement. Material Issue final approval uses the configured `MATERIAL_ISSUE` Approval Matrix, maker-checker, deterministic stock/reservation locks, serializable transaction isolation, negative-stock prevention, and one exact negative ledger row per line. A linked Active Reservation must match exactly and is fulfilled atomically with posting.
+
+Material Return references a posted, non-reversed Material Issue line in the same Project. Final approval uses the configured `MATERIAL_RETURN` Approval Matrix, locks the Issue lineage, enforces the cumulative non-reversed return ceiling, and appends one exact positive ledger row per line. Full Issue and Return reversals append exact opposite ledger effects; Issue reversal is blocked while a posted non-reversed Return exists. Return reversal revalidates available destination stock so it cannot create negative stock or consume another Active Reservation.
+
+All mutation routes require CSRF, explicit business permission, Company/Project scope and retained audit history. `projects.access_all` only bypasses Project assignment. Technical `SYS_ADMIN` receives no Stage-D business action authority implicitly. No editable balance, reservation ledger, availability cache, second stock ledger, UOM conversion, costing or Finance posting is introduced.

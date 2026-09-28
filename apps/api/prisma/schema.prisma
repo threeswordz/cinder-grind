@@ -53,6 +53,9 @@ model Company {
   purchaseOrders       PurchaseOrder[]
   warehouses           Warehouse[]
   goodsReceipts       GoodsReceipt[]
+  materialReservations MaterialReservation[]
+  materialIssues       MaterialIssue[]
+  materialReturns      MaterialReturn[]
   stockTransactions   StockTransaction[]
   @@map("companies")
 }
@@ -125,6 +128,9 @@ model UnitOfMeasure {
   quotationAwards               QuotationAward[]
   purchaseOrderLines             PurchaseOrderLine[]
   goodsReceiptItems             GoodsReceiptItem[]
+  materialReservations          MaterialReservation[]
+  materialIssueItems            MaterialIssueItem[]
+  materialReturnItems           MaterialReturnItem[]
   stockTransactions             StockTransaction[]
   @@unique([companyId, uomCode])
   @@index([companyId, isActive])
@@ -150,6 +156,9 @@ model Material {
   purchaseRequestLines          PurchaseRequestLine[]
   purchaseOrderLines             PurchaseOrderLine[]
   goodsReceiptItems             GoodsReceiptItem[]
+  materialReservations          MaterialReservation[]
+  materialIssueItems            MaterialIssueItem[]
+  materialReturnItems           MaterialReturnItem[]
   stockTransactions             StockTransaction[]
   @@unique([companyId, materialCode])
   @@index([companyId, isActive])
@@ -173,6 +182,7 @@ model Employee {
   user           User?
   projectMembers        ProjectMember[]
   responsibleActivities Activity[]
+  issuedMaterialIssues   MaterialIssue[]
 
   @@unique([companyId, employeeCode])
   @@index([companyId, isActive])
@@ -223,6 +233,19 @@ model User {
   submittedGoodsReceipts     GoodsReceipt[] @relation("GoodsReceiptSubmitter")
   postedGoodsReceipts        GoodsReceipt[] @relation("GoodsReceiptPoster")
   reversedGoodsReceipts      GoodsReceipt[] @relation("GoodsReceiptReverser")
+  createdMaterialReservations   MaterialReservation[] @relation("MaterialReservationCreator")
+  activatedMaterialReservations MaterialReservation[] @relation("MaterialReservationActivator")
+  fulfilledMaterialReservations MaterialReservation[] @relation("MaterialReservationFulfiller")
+  releasedMaterialReservations  MaterialReservation[] @relation("MaterialReservationReleaser")
+  cancelledMaterialReservations MaterialReservation[] @relation("MaterialReservationCanceller")
+  createdMaterialIssues       MaterialIssue[] @relation("MaterialIssueCreator")
+  submittedMaterialIssues     MaterialIssue[] @relation("MaterialIssueSubmitter")
+  postedMaterialIssues        MaterialIssue[] @relation("MaterialIssuePoster")
+  reversedMaterialIssues      MaterialIssue[] @relation("MaterialIssueReverser")
+  createdMaterialReturns      MaterialReturn[] @relation("MaterialReturnCreator")
+  submittedMaterialReturns    MaterialReturn[] @relation("MaterialReturnSubmitter")
+  postedMaterialReturns       MaterialReturn[] @relation("MaterialReturnPoster")
+  reversedMaterialReturns     MaterialReturn[] @relation("MaterialReturnReverser")
   stockTransactions          StockTransaction[]
   @@unique([companyId, email])
   @@index([companyId, isActive])
@@ -377,6 +400,8 @@ model ApprovalInstance {
   purchaseRequest  PurchaseRequest?
   purchaseOrder    PurchaseOrder?
   goodsReceipt     GoodsReceipt?
+  materialIssue    MaterialIssue?
+  materialReturn   MaterialReturn?
   @@index([companyId, entityType, entityId])
   @@index([approvalWorkflowId, approvalState])
   @@map("approval_instances")
@@ -511,6 +536,9 @@ model Project {
   purchaseOrders         PurchaseOrder[]
   warehouses             Warehouse[]
   goodsReceipts         GoodsReceipt[]
+  materialReservations  MaterialReservation[]
+  materialIssues        MaterialIssue[]
+  materialReturns       MaterialReturn[]
   stockTransactions     StockTransaction[]
   @@unique([companyId, projectCode])
   @@index([companyId, isActive])
@@ -582,6 +610,9 @@ model WbsElement {
 
   purchaseRequestLines          PurchaseRequestLine[]
   purchaseOrderLines             PurchaseOrderLine[]
+  materialReservations           MaterialReservation[]
+  materialIssueItems             MaterialIssueItem[]
+  stockTransactions              StockTransaction[]
   @@unique([projectId, wbsCode])
   @@index([projectId, parentId, isActive])
   @@map("wbs_elements")
@@ -603,6 +634,8 @@ model CostCode {
 
   purchaseRequestLines          PurchaseRequestLine[]
   purchaseOrderLines             PurchaseOrderLine[]
+  materialIssueItems             MaterialIssueItem[]
+  stockTransactions              StockTransaction[]
   @@unique([companyId, costCode])
   @@index([companyId, isActive])
   @@map("cost_codes")
@@ -728,6 +761,9 @@ model Activity {
   dailySiteReportEquipmentUsage DailySiteReportEquipmentUsage[]
 
   purchaseRequestLines          PurchaseRequestLine[]
+  materialReservations           MaterialReservation[]
+  materialIssueItems             MaterialIssueItem[]
+  stockTransactions              StockTransaction[]
   @@unique([projectId, activityCode])
   @@index([companyId, projectId, isActive])
   @@index([projectId, wbsId])
@@ -1079,6 +1115,9 @@ model Warehouse {
   company Company  @relation(fields: [companyId], references: [id], onDelete: Restrict)
   project Project? @relation(fields: [projectId], references: [id], onDelete: Restrict)
   goodsReceipts GoodsReceipt[]
+  materialReservations MaterialReservation[]
+  materialIssues MaterialIssue[]
+  materialReturns MaterialReturn[]
   stockTransactions StockTransaction[]
 
   @@unique([companyId, warehouseCode])
@@ -1156,36 +1195,233 @@ model GoodsReceiptItem {
   @@map("goods_receipt_items")
 }
 
-model StockTransaction {
-  id                  String    @id @default(uuid()) @db.Uuid
-  companyId           String    @map("company_id") @db.Uuid
-  warehouseId         String    @map("warehouse_id") @db.Uuid
-  materialId          String    @map("material_id") @db.Uuid
-  projectId           String?   @map("project_id") @db.Uuid
-  uomId               String    @map("uom_id") @db.Uuid
-  goodsReceiptId      String    @map("goods_receipt_id") @db.Uuid
-  goodsReceiptItemId  String    @map("goods_receipt_item_id") @db.Uuid
-  movementType        String    @map("movement_type") @db.VarChar(40)
-  quantity            Decimal   @db.Decimal(18, 4)
-  effectKey           String    @unique @map("effect_key") @db.VarChar(180)
-  reversalOfId        String?   @unique @map("reversal_of_id") @db.Uuid
-  postedByUserId      String    @map("posted_by_user_id") @db.Uuid
-  postedAt            DateTime  @default(now()) @map("posted_at") @db.Timestamptz(6)
+model MaterialReservation {
+  id                 String    @id @default(uuid()) @db.Uuid
+  companyId          String    @map("company_id") @db.Uuid
+  projectId          String    @map("project_id") @db.Uuid
+  warehouseId        String    @map("warehouse_id") @db.Uuid
+  materialId         String    @map("material_id") @db.Uuid
+  uomId              String    @map("uom_id") @db.Uuid
+  wbsId              String?   @map("wbs_id") @db.Uuid
+  activityId         String?   @map("activity_id") @db.Uuid
+  reservationNumber  String    @map("reservation_number") @db.VarChar(120)
+  quantity           Decimal   @db.Decimal(18, 4)
+  requiredDate       DateTime? @map("required_date") @db.Date
+  status             String    @default("DRAFT") @db.VarChar(20)
+  remarks            String?   @db.Text
+  releaseReason      String?   @map("release_reason") @db.Text
+  cancellationReason String?   @map("cancellation_reason") @db.Text
+  createdByUserId    String    @map("created_by_user_id") @db.Uuid
+  activatedByUserId  String?   @map("activated_by_user_id") @db.Uuid
+  fulfilledByUserId  String?   @map("fulfilled_by_user_id") @db.Uuid
+  releasedByUserId   String?   @map("released_by_user_id") @db.Uuid
+  cancelledByUserId  String?   @map("cancelled_by_user_id") @db.Uuid
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  activatedAt        DateTime? @map("activated_at") @db.Timestamptz(6)
+  fulfilledAt        DateTime? @map("fulfilled_at") @db.Timestamptz(6)
+  releasedAt         DateTime? @map("released_at") @db.Timestamptz(6)
+  cancelledAt        DateTime? @map("cancelled_at") @db.Timestamptz(6)
 
-  company             Company           @relation(fields: [companyId], references: [id], onDelete: Restrict)
-  warehouse           Warehouse         @relation(fields: [warehouseId], references: [id], onDelete: Restrict)
-  material            Material          @relation(fields: [materialId], references: [id], onDelete: Restrict)
-  project             Project?          @relation(fields: [projectId], references: [id], onDelete: Restrict)
-  uom                 UnitOfMeasure     @relation(fields: [uomId], references: [id], onDelete: Restrict)
-  goodsReceipt        GoodsReceipt      @relation(fields: [goodsReceiptId], references: [id], onDelete: Restrict)
-  goodsReceiptItem    GoodsReceiptItem  @relation(fields: [goodsReceiptItemId], references: [id], onDelete: Restrict)
-  postedBy            User              @relation(fields: [postedByUserId], references: [id], onDelete: Restrict)
-  reversalOf          StockTransaction? @relation("StockTransactionReversals", fields: [reversalOfId], references: [id], onDelete: Restrict)
-  reversal            StockTransaction? @relation("StockTransactionReversals")
+  company      Company       @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  project      Project       @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  warehouse    Warehouse     @relation(fields: [warehouseId], references: [id], onDelete: Restrict)
+  material     Material      @relation(fields: [materialId], references: [id], onDelete: Restrict)
+  uom          UnitOfMeasure @relation(fields: [uomId], references: [id], onDelete: Restrict)
+  wbs          WbsElement?   @relation(fields: [wbsId], references: [id], onDelete: Restrict)
+  activity     Activity?     @relation(fields: [activityId], references: [id], onDelete: Restrict)
+  createdBy    User          @relation("MaterialReservationCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  activatedBy  User?         @relation("MaterialReservationActivator", fields: [activatedByUserId], references: [id], onDelete: Restrict)
+  fulfilledBy  User?         @relation("MaterialReservationFulfiller", fields: [fulfilledByUserId], references: [id], onDelete: Restrict)
+  releasedBy   User?         @relation("MaterialReservationReleaser", fields: [releasedByUserId], references: [id], onDelete: Restrict)
+  cancelledBy  User?         @relation("MaterialReservationCanceller", fields: [cancelledByUserId], references: [id], onDelete: Restrict)
+  issueItem    MaterialIssueItem?
+
+  @@unique([companyId, reservationNumber])
+  @@index([companyId, projectId, status])
+  @@index([warehouseId, materialId, projectId, uomId, status])
+  @@map("material_reservations")
+}
+
+model MaterialIssue {
+  id                 String    @id @default(uuid()) @db.Uuid
+  companyId          String    @map("company_id") @db.Uuid
+  projectId          String    @map("project_id") @db.Uuid
+  warehouseId        String    @map("warehouse_id") @db.Uuid
+  issueNumber        String    @map("issue_number") @db.VarChar(120)
+  issueDate          DateTime  @map("issue_date") @db.Date
+  issuedToEmployeeId String?   @map("issued_to_employee_id") @db.Uuid
+  approvalInstanceId String?   @unique @map("approval_instance_id") @db.Uuid
+  createdByUserId    String    @map("created_by_user_id") @db.Uuid
+  submittedByUserId  String?   @map("submitted_by_user_id") @db.Uuid
+  postedByUserId     String?   @map("posted_by_user_id") @db.Uuid
+  reversedByUserId   String?   @map("reversed_by_user_id") @db.Uuid
+  postKey            String?   @unique @map("post_key") @db.VarChar(120)
+  reversalKey        String?   @unique @map("reversal_key") @db.VarChar(120)
+  remarks            String?   @db.Text
+  reversalReason     String?   @map("reversal_reason") @db.Text
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  submittedAt        DateTime? @map("submitted_at") @db.Timestamptz(6)
+  postedAt           DateTime? @map("posted_at") @db.Timestamptz(6)
+  reversedAt         DateTime? @map("reversed_at") @db.Timestamptz(6)
+
+  company          Company           @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  project          Project           @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  warehouse        Warehouse         @relation(fields: [warehouseId], references: [id], onDelete: Restrict)
+  issuedToEmployee Employee?         @relation(fields: [issuedToEmployeeId], references: [id], onDelete: Restrict)
+  approvalInstance ApprovalInstance? @relation(fields: [approvalInstanceId], references: [id], onDelete: Restrict)
+  createdBy        User              @relation("MaterialIssueCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  submittedBy      User?             @relation("MaterialIssueSubmitter", fields: [submittedByUserId], references: [id], onDelete: Restrict)
+  postedBy         User?             @relation("MaterialIssuePoster", fields: [postedByUserId], references: [id], onDelete: Restrict)
+  reversedBy       User?             @relation("MaterialIssueReverser", fields: [reversedByUserId], references: [id], onDelete: Restrict)
+  items            MaterialIssueItem[]
+  stockTransactions StockTransaction[]
+
+  @@unique([companyId, issueNumber])
+  @@index([companyId, projectId, createdAt])
+  @@index([warehouseId])
+  @@map("material_issues")
+}
+
+model MaterialIssueItem {
+  id              String   @id @default(uuid()) @db.Uuid
+  materialIssueId String   @map("material_issue_id") @db.Uuid
+  lineNo          Int      @map("line_no")
+  materialId      String   @map("material_id") @db.Uuid
+  quantity        Decimal  @db.Decimal(18, 4)
+  uomId           String   @map("uom_id") @db.Uuid
+  reservationId   String?  @unique @map("reservation_id") @db.Uuid
+  wbsId           String?  @map("wbs_id") @db.Uuid
+  costCodeId      String?  @map("cost_code_id") @db.Uuid
+  activityId      String?  @map("activity_id") @db.Uuid
+  remarks         String?  @db.Text
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  materialIssue MaterialIssue        @relation(fields: [materialIssueId], references: [id], onDelete: Restrict)
+  material      Material             @relation(fields: [materialId], references: [id], onDelete: Restrict)
+  uom           UnitOfMeasure        @relation(fields: [uomId], references: [id], onDelete: Restrict)
+  reservation   MaterialReservation? @relation(fields: [reservationId], references: [id], onDelete: Restrict)
+  wbs           WbsElement?          @relation(fields: [wbsId], references: [id], onDelete: Restrict)
+  costCode      CostCode?            @relation(fields: [costCodeId], references: [id], onDelete: Restrict)
+  activity      Activity?            @relation(fields: [activityId], references: [id], onDelete: Restrict)
+  returnItems   MaterialReturnItem[]
+  stockTransactions StockTransaction[]
+
+  @@unique([materialIssueId, lineNo])
+  @@index([materialId, uomId])
+  @@map("material_issue_items")
+}
+
+model MaterialReturn {
+  id                 String    @id @default(uuid()) @db.Uuid
+  companyId          String    @map("company_id") @db.Uuid
+  projectId          String    @map("project_id") @db.Uuid
+  warehouseId        String    @map("warehouse_id") @db.Uuid
+  returnNumber       String    @map("return_number") @db.VarChar(120)
+  returnDate         DateTime  @map("return_date") @db.Date
+  approvalInstanceId String?   @unique @map("approval_instance_id") @db.Uuid
+  createdByUserId    String    @map("created_by_user_id") @db.Uuid
+  submittedByUserId  String?   @map("submitted_by_user_id") @db.Uuid
+  postedByUserId     String?   @map("posted_by_user_id") @db.Uuid
+  reversedByUserId   String?   @map("reversed_by_user_id") @db.Uuid
+  postKey            String?   @unique @map("post_key") @db.VarChar(120)
+  reversalKey        String?   @unique @map("reversal_key") @db.VarChar(120)
+  remarks            String?   @db.Text
+  reversalReason     String?   @map("reversal_reason") @db.Text
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  submittedAt        DateTime? @map("submitted_at") @db.Timestamptz(6)
+  postedAt           DateTime? @map("posted_at") @db.Timestamptz(6)
+  reversedAt         DateTime? @map("reversed_at") @db.Timestamptz(6)
+
+  company          Company           @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  project          Project           @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  warehouse        Warehouse         @relation(fields: [warehouseId], references: [id], onDelete: Restrict)
+  approvalInstance ApprovalInstance? @relation(fields: [approvalInstanceId], references: [id], onDelete: Restrict)
+  createdBy        User              @relation("MaterialReturnCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  submittedBy      User?             @relation("MaterialReturnSubmitter", fields: [submittedByUserId], references: [id], onDelete: Restrict)
+  postedBy         User?             @relation("MaterialReturnPoster", fields: [postedByUserId], references: [id], onDelete: Restrict)
+  reversedBy       User?             @relation("MaterialReturnReverser", fields: [reversedByUserId], references: [id], onDelete: Restrict)
+  items            MaterialReturnItem[]
+  stockTransactions StockTransaction[]
+
+  @@unique([companyId, returnNumber])
+  @@index([companyId, projectId, createdAt])
+  @@index([warehouseId])
+  @@map("material_returns")
+}
+
+model MaterialReturnItem {
+  id                  String   @id @default(uuid()) @db.Uuid
+  materialReturnId    String   @map("material_return_id") @db.Uuid
+  lineNo              Int      @map("line_no")
+  materialIssueItemId String   @map("material_issue_item_id") @db.Uuid
+  materialId          String   @map("material_id") @db.Uuid
+  quantity            Decimal  @db.Decimal(18, 4)
+  uomId               String   @map("uom_id") @db.Uuid
+  remarks             String?  @db.Text
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  materialReturn   MaterialReturn    @relation(fields: [materialReturnId], references: [id], onDelete: Restrict)
+  materialIssueItem MaterialIssueItem @relation(fields: [materialIssueItemId], references: [id], onDelete: Restrict)
+  material         Material          @relation(fields: [materialId], references: [id], onDelete: Restrict)
+  uom              UnitOfMeasure     @relation(fields: [uomId], references: [id], onDelete: Restrict)
+  stockTransactions StockTransaction[]
+
+  @@unique([materialReturnId, lineNo])
+  @@index([materialIssueItemId])
+  @@map("material_return_items")
+}
+
+model StockTransaction {
+  id                   String    @id @default(uuid()) @db.Uuid
+  companyId            String    @map("company_id") @db.Uuid
+  warehouseId          String    @map("warehouse_id") @db.Uuid
+  materialId           String    @map("material_id") @db.Uuid
+  projectId            String?   @map("project_id") @db.Uuid
+  uomId                String    @map("uom_id") @db.Uuid
+  goodsReceiptId       String?   @map("goods_receipt_id") @db.Uuid
+  goodsReceiptItemId   String?   @map("goods_receipt_item_id") @db.Uuid
+  materialIssueId      String?   @map("material_issue_id") @db.Uuid
+  materialIssueItemId  String?   @map("material_issue_item_id") @db.Uuid
+  materialReturnId     String?   @map("material_return_id") @db.Uuid
+  materialReturnItemId String?   @map("material_return_item_id") @db.Uuid
+  wbsId                String?   @map("wbs_id") @db.Uuid
+  costCodeId           String?   @map("cost_code_id") @db.Uuid
+  activityId           String?   @map("activity_id") @db.Uuid
+  movementType         String    @map("movement_type") @db.VarChar(40)
+  quantity             Decimal   @db.Decimal(18, 4)
+  effectKey            String    @unique @map("effect_key") @db.VarChar(180)
+  reversalOfId         String?   @unique @map("reversal_of_id") @db.Uuid
+  postedByUserId       String    @map("posted_by_user_id") @db.Uuid
+  postedAt             DateTime  @default(now()) @map("posted_at") @db.Timestamptz(6)
+
+  company             Company             @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  warehouse           Warehouse           @relation(fields: [warehouseId], references: [id], onDelete: Restrict)
+  material            Material            @relation(fields: [materialId], references: [id], onDelete: Restrict)
+  project             Project?            @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  uom                 UnitOfMeasure       @relation(fields: [uomId], references: [id], onDelete: Restrict)
+  goodsReceipt        GoodsReceipt?       @relation(fields: [goodsReceiptId], references: [id], onDelete: Restrict)
+  goodsReceiptItem    GoodsReceiptItem?   @relation(fields: [goodsReceiptItemId], references: [id], onDelete: Restrict)
+  materialIssue       MaterialIssue?      @relation(fields: [materialIssueId], references: [id], onDelete: Restrict)
+  materialIssueItem   MaterialIssueItem?  @relation(fields: [materialIssueItemId], references: [id], onDelete: Restrict)
+  materialReturn      MaterialReturn?     @relation(fields: [materialReturnId], references: [id], onDelete: Restrict)
+  materialReturnItem  MaterialReturnItem? @relation(fields: [materialReturnItemId], references: [id], onDelete: Restrict)
+  wbs                 WbsElement?         @relation(fields: [wbsId], references: [id], onDelete: Restrict)
+  costCode            CostCode?           @relation(fields: [costCodeId], references: [id], onDelete: Restrict)
+  activity            Activity?           @relation(fields: [activityId], references: [id], onDelete: Restrict)
+  postedBy            User                @relation(fields: [postedByUserId], references: [id], onDelete: Restrict)
+  reversalOf          StockTransaction?   @relation("StockTransactionReversals", fields: [reversalOfId], references: [id], onDelete: Restrict)
+  reversal            StockTransaction?   @relation("StockTransactionReversals")
 
   @@unique([goodsReceiptItemId, movementType])
+  @@unique([materialIssueItemId, movementType])
+  @@unique([materialReturnItemId, movementType])
   @@index([companyId, warehouseId, materialId, projectId])
   @@index([goodsReceiptId])
+  @@index([materialIssueId])
+  @@index([materialReturnId])
   @@map("stock_transactions")
 }
 

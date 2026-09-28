@@ -264,6 +264,21 @@ const permissionCodes = [
   'inventory.receipt.submit',
   'inventory.receipt.reverse',
   'inventory.stock.view',
+  'inventory.reservation.view',
+  'inventory.reservation.create',
+  'inventory.reservation.edit',
+  'inventory.reservation.activate',
+  'inventory.reservation.release',
+  'inventory.issue.view',
+  'inventory.issue.create',
+  'inventory.issue.edit',
+  'inventory.issue.submit',
+  'inventory.issue.reverse',
+  'inventory.return.view',
+  'inventory.return.create',
+  'inventory.return.edit',
+  'inventory.return.submit',
+  'inventory.return.reverse',
   'reporting.operational.view',
   'budget.boq.view',
   'budget.boq.manage',
@@ -317,6 +332,10 @@ await request(admin, `/admin/roles/${checkerRoleId}/permissions`, {
       'procurement.po.reject',
       'inventory.receipt.view',
       'inventory.receipt.approve',
+      'inventory.issue.view',
+      'inventory.issue.approve',
+      'inventory.return.view',
+      'inventory.return.approve',
     ],
   },
 });
@@ -462,6 +481,71 @@ await request(admin, '/admin/number-sequences', {
     entityType: 'GOODS_RECEIPT',
     sequenceCode: 'GOODS_RECEIPT',
     formatTemplate: 'GRNYYMM-###',
+    resetRule: 'MONTHLY',
+    startingValue: 1,
+  },
+  expected: 201,
+});
+await request(admin, '/admin/number-sequences', {
+  method: 'POST',
+  json: {
+    entityType: 'MATERIAL_RESERVATION',
+    sequenceCode: 'MATERIAL_RESERVATION',
+    formatTemplate: 'RSVYYMM-###',
+    resetRule: 'MONTHLY',
+    startingValue: 1,
+  },
+  expected: 201,
+});
+const issueWorkflowCode = 'MATERIAL_ISSUE_' + suffix;
+await request(admin, '/admin/approval-workflows', {
+  method: 'POST',
+  json: {
+    workflowCode: issueWorkflowCode,
+    entityType: 'MATERIAL_ISSUE',
+    workflowName: 'Material Issue Approval ' + suffix,
+    steps: [{
+      stepNo: 1,
+      stepName: 'Approve Material Issue',
+      requiredApprovals: 1,
+      roleIds: [checkerRoleId],
+    }],
+  },
+  expected: 201,
+});
+await request(admin, '/admin/number-sequences', {
+  method: 'POST',
+  json: {
+    entityType: 'MATERIAL_ISSUE',
+    sequenceCode: 'MATERIAL_ISSUE',
+    formatTemplate: 'MIYYMM-###',
+    resetRule: 'MONTHLY',
+    startingValue: 1,
+  },
+  expected: 201,
+});
+const returnWorkflowCode = 'MATERIAL_RETURN_' + suffix;
+await request(admin, '/admin/approval-workflows', {
+  method: 'POST',
+  json: {
+    workflowCode: returnWorkflowCode,
+    entityType: 'MATERIAL_RETURN',
+    workflowName: 'Material Return Approval ' + suffix,
+    steps: [{
+      stepNo: 1,
+      stepName: 'Approve Material Return',
+      requiredApprovals: 1,
+      roleIds: [checkerRoleId],
+    }],
+  },
+  expected: 201,
+});
+await request(admin, '/admin/number-sequences', {
+  method: 'POST',
+  json: {
+    entityType: 'MATERIAL_RETURN',
+    sequenceCode: 'MATERIAL_RETURN',
+    formatTemplate: 'MRTYYMM-###',
     resetRule: 'MONTHLY',
     startingValue: 1,
   },
@@ -1772,6 +1856,231 @@ await request(
   '/inventory/stock-balances?projectId=' + projectId,
   { expected: 403 },
 );
+await request(
+  unassignedReceipt,
+  '/inventory/reservation-availability?projectId=' + projectId +
+    '&warehouseId=' + receiptWarehouseId +
+    '&materialId=' + material.data.data.id +
+    '&uomId=' + uomId,
+  { expected: 403 },
+);
+
+const reservation = await request(pm, '/inventory/material-reservations', {
+  method: 'POST',
+  json: {
+    projectId,
+    warehouseId: receiptWarehouseId,
+    materialId: material.data.data.id,
+    uomId,
+    wbsId: rootWbs.data.data.id,
+    activityId: activityA.data.data.id,
+    quantity: '2',
+    requiredDate: '2026-10-12',
+    remarks: 'V0.4-D live reservation',
+  },
+  expected: 201,
+});
+check(
+  /^RSV\d{4}-\d{3}$/.test(reservation.data.data.reservationNumber) &&
+    reservation.data.data.status === 'DRAFT',
+  'Material Reservation Draft or numbering was incorrect.',
+);
+const reservationId = reservation.data.data.id;
+const activeReservation = await request(
+  pm,
+  '/inventory/material-reservations/' + reservationId + '/activate',
+  { method: 'POST', expected: 201 },
+);
+check(activeReservation.data.data.status === 'ACTIVE', 'Reservation activation failed.');
+const reservedAvailability = await request(
+  pm,
+  '/inventory/reservation-availability?projectId=' + projectId +
+    '&warehouseId=' + receiptWarehouseId +
+    '&materialId=' + material.data.data.id +
+    '&uomId=' + uomId,
+);
+check(
+  reservedAvailability.data.data.onHand === '3.0000' &&
+    reservedAvailability.data.data.reserved === '2.0000' &&
+    reservedAvailability.data.data.available === '1.0000',
+  'Reservation did not reduce derived available quantity exactly.',
+);
+
+const materialIssue = await request(pm, '/inventory/material-issues', {
+  method: 'POST',
+  json: {
+    projectId,
+    warehouseId: receiptWarehouseId,
+    issueDate: '2026-10-10',
+    issuedToEmployeeId: pmEmployee.data.data.id,
+    remarks: 'V0.4-D live issue',
+    lines: [{
+      materialId: material.data.data.id,
+      quantity: '2',
+      uomId,
+      reservationId,
+      wbsId: rootWbs.data.data.id,
+      costCodeId: costCode.data.data.id,
+      activityId: activityA.data.data.id,
+    }],
+  },
+  expected: 201,
+});
+check(/^MI\d{4}-\d{3}$/.test(materialIssue.data.data.issueNumber), 'Material Issue numbering mismatch.');
+const materialIssueId = materialIssue.data.data.id;
+await request(pm, '/inventory/material-issues/' + materialIssueId + '/submit', {
+  method: 'POST',
+  json: { workflowCode: issueWorkflowCode },
+  expected: 201,
+});
+await request(pm, '/inventory/material-issues/' + materialIssueId + '/approve', {
+  method: 'POST',
+  json: { postKey: 'issue-maker-' + suffix },
+  expected: 403,
+});
+const postedIssue = await request(
+  checker,
+  '/inventory/material-issues/' + materialIssueId + '/approve',
+  {
+    method: 'POST',
+    json: { postKey: 'issue-post-' + suffix },
+    expected: 201,
+  },
+);
+check(
+  postedIssue.data.data.postedAt &&
+    postedIssue.data.data.stockTransactions.length === 1 &&
+    postedIssue.data.data.stockTransactions[0]?.movementType === 'MATERIAL_ISSUE' &&
+    String(postedIssue.data.data.stockTransactions[0]?.quantity) === '-2',
+  'Material Issue approval did not atomically post one exact negative ledger effect.',
+);
+const fulfilledReservation = await request(
+  pm,
+  '/inventory/material-reservations/' + reservationId,
+);
+check(
+  fulfilledReservation.data.data.status === 'FULFILLED',
+  'Linked Reservation was not fulfilled atomically with Material Issue posting.',
+);
+const issueBalance = await request(
+  pm,
+  '/inventory/stock-balances?projectId=' + projectId +
+    '&warehouseId=' + receiptWarehouseId,
+);
+check(issueBalance.data.data[0]?.quantity === '1.0000', 'Material Issue did not reduce on-hand exactly.');
+
+const materialReturn = await request(pm, '/inventory/material-returns', {
+  method: 'POST',
+  json: {
+    projectId,
+    warehouseId: receiptWarehouseId,
+    returnDate: '2026-10-10',
+    remarks: 'V0.4-D live return',
+    lines: [{
+      materialIssueItemId: postedIssue.data.data.items[0].id,
+      quantity: '1',
+    }],
+  },
+  expected: 201,
+});
+check(/^MRT\d{4}-\d{3}$/.test(materialReturn.data.data.returnNumber), 'Material Return numbering mismatch.');
+const materialReturnId = materialReturn.data.data.id;
+await request(pm, '/inventory/material-returns/' + materialReturnId + '/submit', {
+  method: 'POST',
+  json: { workflowCode: returnWorkflowCode },
+  expected: 201,
+});
+const postedReturn = await request(
+  checker,
+  '/inventory/material-returns/' + materialReturnId + '/approve',
+  {
+    method: 'POST',
+    json: { postKey: 'return-post-' + suffix },
+    expected: 201,
+  },
+);
+check(
+  postedReturn.data.data.postedAt &&
+    postedReturn.data.data.stockTransactions.length === 1 &&
+    postedReturn.data.data.stockTransactions[0]?.movementType === 'MATERIAL_RETURN' &&
+    String(postedReturn.data.data.stockTransactions[0]?.quantity) === '1',
+  'Material Return approval did not atomically post one exact positive ledger effect.',
+);
+await request(pm, '/inventory/material-issues/' + materialIssueId + '/reverse', {
+  method: 'POST',
+  json: {
+    reversalKey: 'issue-too-early-' + suffix,
+    reason: 'Must reject until Return is reversed',
+  },
+  expected: 409,
+});
+await request(pm, '/inventory/material-returns', {
+  method: 'POST',
+  json: {
+    projectId,
+    warehouseId: receiptWarehouseId,
+    returnDate: '2026-10-10',
+    lines: [{
+      materialIssueItemId: postedIssue.data.data.items[0].id,
+      quantity: '2',
+    }],
+  },
+  expected: 422,
+});
+const reversedReturn = await request(
+  pm,
+  '/inventory/material-returns/' + materialReturnId + '/reverse',
+  {
+    method: 'POST',
+    json: {
+      reversalKey: 'return-reverse-' + suffix,
+      reason: 'V0.4-D live Return reversal',
+    },
+    expected: 201,
+  },
+);
+check(
+  reversedReturn.data.data.stockTransactions.reduce(
+    (sum, row) => sum + Number(row.quantity), 0,
+  ) === 0,
+  'Material Return reversal did not exactly negate its source movement.',
+);
+const reversedIssue = await request(
+  pm,
+  '/inventory/material-issues/' + materialIssueId + '/reverse',
+  {
+    method: 'POST',
+    json: {
+      reversalKey: 'issue-reverse-' + suffix,
+      reason: 'V0.4-D live Issue reversal',
+    },
+    expected: 201,
+  },
+);
+check(
+  reversedIssue.data.data.stockTransactions.reduce(
+    (sum, row) => sum + Number(row.quantity), 0,
+  ) === 0,
+  'Material Issue reversal did not exactly negate its source movement.',
+);
+const restoredBalance = await request(
+  pm,
+  '/inventory/stock-balances?projectId=' + projectId +
+    '&warehouseId=' + receiptWarehouseId,
+);
+check(
+  restoredBalance.data.data[0]?.quantity === '3.0000',
+  'Issue/Return reversal sequence did not restore the original on-hand balance.',
+);
+const historicalReservation = await request(
+  pm,
+  '/inventory/material-reservations/' + reservationId,
+);
+check(
+  historicalReservation.data.data.status === 'FULFILLED',
+  'Issue reversal incorrectly reopened a fulfilled Reservation.',
+);
+record('V0.4-D reservation availability, Issue maker-checker/posting, Return ceiling, reversal ordering and exact balance restoration');
 
 const receiptB = await makeReceipt('6');
 const receiptBId = receiptB.data.data.id;

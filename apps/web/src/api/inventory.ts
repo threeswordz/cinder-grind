@@ -28,6 +28,111 @@ export type StockBalanceRecord = {
   quantity: string;
 };
 
+export type MaterialStockChoice = {
+  warehouseId: string;
+  warehouseCode: string;
+  materialId: string;
+  materialCode: string;
+  materialName: string;
+  uomId: string;
+  uomCode: string;
+  onHand: string;
+};
+
+export type MaterialReservation = {
+  id: string;
+  reservationNumber: string;
+  projectId: string;
+  warehouseId: string;
+  materialId: string;
+  uomId: string;
+  wbsId: string | null;
+  activityId: string | null;
+  quantity: string;
+  requiredDate: string | null;
+  status: string;
+  remarks: string | null;
+  createdAt: string;
+  activatedAt: string | null;
+  fulfilledAt: string | null;
+  releasedAt: string | null;
+  cancelledAt: string | null;
+  warehouse?: { warehouseCode: string; warehouseName: string };
+  material?: { materialCode: string; materialName: string };
+  uom?: { uomCode: string };
+};
+
+export type MaterialIssue = {
+  id: string;
+  issueNumber: string;
+  projectId: string;
+  warehouseId: string;
+  issueDate: string;
+  issuedToEmployeeId: string | null;
+  remarks: string | null;
+  createdAt: string;
+  submittedAt: string | null;
+  postedAt: string | null;
+  reversedAt: string | null;
+  approvalInstance?: { approvalState: string } | null;
+  items?: Array<{
+    id: string;
+    lineNo: number;
+    materialId: string;
+    quantity: string;
+    uomId: string;
+    reservationId: string | null;
+    wbsId: string | null;
+    costCodeId: string | null;
+    activityId: string | null;
+    material?: { materialCode: string; materialName: string };
+    uom?: { uomCode: string };
+    reservation?: { reservationNumber: string; status: string; quantity: string } | null;
+  }>;
+  stockTransactions?: Array<{ id: string; movementType: string; quantity: string }>;
+  _count?: { items: number };
+};
+
+export type EligibleReturnIssueLine = {
+  id: string;
+  materialIssueId: string;
+  lineNo: number;
+  materialId: string;
+  quantity: string;
+  uomId: string;
+  returned: string;
+  returnable: string;
+  materialIssue: { id: string; issueNumber: string; issueDate: string; warehouseId: string };
+  material: { materialCode: string; materialName: string };
+  uom: { uomCode: string };
+};
+
+export type MaterialReturn = {
+  id: string;
+  returnNumber: string;
+  projectId: string;
+  warehouseId: string;
+  returnDate: string;
+  remarks: string | null;
+  createdAt: string;
+  submittedAt: string | null;
+  postedAt: string | null;
+  reversedAt: string | null;
+  approvalInstance?: { approvalState: string } | null;
+  items?: Array<{
+    id: string;
+    lineNo: number;
+    materialIssueItemId: string;
+    materialId: string;
+    quantity: string;
+    uomId: string;
+    material?: { materialCode: string; materialName: string };
+    uom?: { uomCode: string };
+  }>;
+  stockTransactions?: Array<{ id: string; movementType: string; quantity: string }>;
+  _count?: { items: number };
+};
+
 export type WarehouseRecord = {
   id: string;
   companyId: string;
@@ -221,6 +326,201 @@ export const inventoryApi = {
   reverseGoodsReceipt: (id: string, reversalKey: string, reason: string) =>
     apiRequest<Data<GoodsReceipt>>('/inventory/goods-receipts/' + id + '/reverse', {
       method: 'POST', body: JSON.stringify({ reversalKey, reason }),
+    }),
+
+  reservationProjects: () =>
+    apiRequest<Data<InventoryProject[]>>('/inventory/reservation-projects'),
+
+  reservationWarehouses: (projectId: string) =>
+    apiRequest<Data<Array<{ id: string; warehouseCode: string; warehouseName: string; projectId: string | null; isSiteWarehouse: boolean }>>>(
+      '/inventory/projects/' + projectId + '/reservation-warehouses',
+    ),
+
+  reservationStock: (projectId: string, warehouseId?: string) =>
+    apiRequest<Data<MaterialStockChoice[]>>(
+      query('/inventory/projects/' + projectId + '/reservation-stock', { warehouseId }),
+    ),
+
+  reservationAvailability: (input: {
+    projectId: string;
+    warehouseId: string;
+    materialId: string;
+    uomId: string;
+  }) =>
+    apiRequest<Data<{ onHand: string; reserved: string; available: string }>>(
+      query('/inventory/reservation-availability', input),
+    ),
+
+  materialReservations: (projectId: string) =>
+    apiRequest<Data<MaterialReservation[]>>(
+      '/inventory/projects/' + projectId + '/material-reservations',
+    ),
+
+  materialReservation: (id: string) =>
+    apiRequest<Data<MaterialReservation>>('/inventory/material-reservations/' + id),
+
+  createMaterialReservation: (body: {
+    projectId: string;
+    warehouseId: string;
+    materialId: string;
+    uomId: string;
+    wbsId?: string | null;
+    activityId?: string | null;
+    quantity: string;
+    requiredDate?: string | null;
+    remarks?: string | null;
+  }) =>
+    apiRequest<Data<MaterialReservation>>('/inventory/material-reservations', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  activateMaterialReservation: (id: string) =>
+    apiRequest<Data<MaterialReservation>>('/inventory/material-reservations/' + id + '/activate', {
+      method: 'POST',
+    }),
+
+  releaseMaterialReservation: (id: string, reason: string) =>
+    apiRequest<Data<MaterialReservation>>('/inventory/material-reservations/' + id + '/release', {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    }),
+
+  cancelMaterialReservation: (id: string, reason: string) =>
+    apiRequest<Data<MaterialReservation>>('/inventory/material-reservations/' + id + '/cancel', {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    }),
+
+  issueProjects: () =>
+    apiRequest<Data<InventoryProject[]>>('/inventory/issue-projects'),
+
+  issueWarehouses: (projectId: string) =>
+    apiRequest<Data<Array<{ id: string; warehouseCode: string; warehouseName: string; projectId: string | null; isSiteWarehouse: boolean }>>>(
+      '/inventory/projects/' + projectId + '/issue-warehouses',
+    ),
+
+  issueStock: (projectId: string, warehouseId?: string) =>
+    apiRequest<Data<MaterialStockChoice[]>>(
+      query('/inventory/projects/' + projectId + '/issue-stock', { warehouseId }),
+    ),
+
+  issueReservations: (projectId: string) =>
+    apiRequest<Data<MaterialReservation[]>>(
+      '/inventory/projects/' + projectId + '/issue-reservations',
+    ),
+
+  issueWorkflows: () =>
+    apiRequest<Data<Array<{ workflowCode: string; workflowName: string }>>>('/inventory/issue-workflows'),
+
+  materialIssues: (projectId: string) =>
+    apiRequest<Data<MaterialIssue[]>>('/inventory/projects/' + projectId + '/material-issues'),
+
+  materialIssue: (id: string) =>
+    apiRequest<Data<MaterialIssue>>('/inventory/material-issues/' + id),
+
+  createMaterialIssue: (body: {
+    projectId: string;
+    warehouseId: string;
+    issueDate: string;
+    issuedToEmployeeId?: string | null;
+    remarks?: string | null;
+    lines: Array<{
+      materialId: string;
+      quantity: string;
+      uomId: string;
+      reservationId?: string | null;
+      wbsId?: string | null;
+      costCodeId?: string | null;
+      activityId?: string | null;
+      remarks?: string | null;
+    }>;
+  }) =>
+    apiRequest<Data<MaterialIssue>>('/inventory/material-issues', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  submitMaterialIssue: (id: string, workflowCode: string) =>
+    apiRequest<Data<MaterialIssue>>('/inventory/material-issues/' + id + '/submit', {
+      method: 'POST',
+      body: JSON.stringify({ workflowCode }),
+    }),
+
+  approveMaterialIssue: (id: string, postKey: string, comment?: string) =>
+    apiRequest<Data<MaterialIssue>>('/inventory/material-issues/' + id + '/approve', {
+      method: 'POST',
+      body: JSON.stringify({ postKey, comment }),
+    }),
+
+  rejectMaterialIssue: (id: string, comment?: string) =>
+    apiRequest<Data<MaterialIssue>>('/inventory/material-issues/' + id + '/reject', {
+      method: 'POST',
+      body: JSON.stringify({ comment }),
+    }),
+
+  reverseMaterialIssue: (id: string, reversalKey: string, reason: string) =>
+    apiRequest<Data<MaterialIssue>>('/inventory/material-issues/' + id + '/reverse', {
+      method: 'POST',
+      body: JSON.stringify({ reversalKey, reason }),
+    }),
+
+  returnProjects: () =>
+    apiRequest<Data<InventoryProject[]>>('/inventory/return-projects'),
+
+  returnWarehouses: (projectId: string) =>
+    apiRequest<Data<Array<{ id: string; warehouseCode: string; warehouseName: string; projectId: string | null; isSiteWarehouse: boolean }>>>(
+      '/inventory/projects/' + projectId + '/return-warehouses',
+    ),
+
+  returnWorkflows: () =>
+    apiRequest<Data<Array<{ workflowCode: string; workflowName: string }>>>('/inventory/return-workflows'),
+
+  eligibleReturnIssueLines: (projectId: string) =>
+    apiRequest<Data<EligibleReturnIssueLine[]>>(
+      '/inventory/projects/' + projectId + '/eligible-return-issue-lines',
+    ),
+
+  materialReturns: (projectId: string) =>
+    apiRequest<Data<MaterialReturn[]>>('/inventory/projects/' + projectId + '/material-returns'),
+
+  materialReturn: (id: string) =>
+    apiRequest<Data<MaterialReturn>>('/inventory/material-returns/' + id),
+
+  createMaterialReturn: (body: {
+    projectId: string;
+    warehouseId: string;
+    returnDate: string;
+    remarks?: string | null;
+    lines: Array<{ materialIssueItemId: string; quantity: string; remarks?: string | null }>;
+  }) =>
+    apiRequest<Data<MaterialReturn>>('/inventory/material-returns', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  submitMaterialReturn: (id: string, workflowCode: string) =>
+    apiRequest<Data<MaterialReturn>>('/inventory/material-returns/' + id + '/submit', {
+      method: 'POST',
+      body: JSON.stringify({ workflowCode }),
+    }),
+
+  approveMaterialReturn: (id: string, postKey: string, comment?: string) =>
+    apiRequest<Data<MaterialReturn>>('/inventory/material-returns/' + id + '/approve', {
+      method: 'POST',
+      body: JSON.stringify({ postKey, comment }),
+    }),
+
+  rejectMaterialReturn: (id: string, comment?: string) =>
+    apiRequest<Data<MaterialReturn>>('/inventory/material-returns/' + id + '/reject', {
+      method: 'POST',
+      body: JSON.stringify({ comment }),
+    }),
+
+  reverseMaterialReturn: (id: string, reversalKey: string, reason: string) =>
+    apiRequest<Data<MaterialReturn>>('/inventory/material-returns/' + id + '/reverse', {
+      method: 'POST',
+      body: JSON.stringify({ reversalKey, reason }),
     }),
 
   reactivateWarehouse: (id: string) =>
