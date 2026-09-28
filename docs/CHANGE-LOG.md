@@ -1,3 +1,10 @@
+## 2026-09-28 — V0.4-B Goods Receipt / Stock Ledger under validation
+
+- Stage A PR #84 merged as `4ab736203c9870f4b6782ad85c108f3b0b66accd`; post-merge main CI #1337 passed. Stage B issue #85/branch started only after this gate.
+- Stage B adds approved Goods Receipt workflow, PO material-source/quantity guards, immutable signed Stock Transaction Ledger, atomic approval/posting and full reversal, Project-scoped API/UI and explicit permissions.
+- PostgreSQL and live HTTP coverage exercises partial/multiple receipts, maker-checker, retry, zero over-receipt tolerance, concurrency, PO cancellation/revision protection, Warehouse history and reversal.
+- implementation-head branch CI #1382 passed; final documentation-head CI, review and merge remain pending. V0.4-C has not begun; human V0.4 release UAT remains a separate exit gate.
+
 ## 2026-09-28 — V0.4-A Warehouse / Inventory Foundation under validation
 
 - Issue #83 implements Company/Project-scoped Warehouse register, database integrity, lifecycle, server-side permissions, audit, UI and automated tests within approved INV-003/Stage A scope.

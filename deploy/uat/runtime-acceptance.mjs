@@ -258,6 +258,11 @@ const permissionCodes = [
   'inventory.warehouse.create',
   'inventory.warehouse.edit',
   'inventory.warehouse.archive',
+  'inventory.receipt.view',
+  'inventory.receipt.create',
+  'inventory.receipt.edit',
+  'inventory.receipt.submit',
+  'inventory.receipt.reverse',
   'reporting.operational.view',
   'budget.boq.view',
   'budget.boq.manage',
@@ -309,6 +314,8 @@ await request(admin, `/admin/roles/${checkerRoleId}/permissions`, {
       'procurement.po.view',
       'procurement.po.approve',
       'procurement.po.reject',
+      'inventory.receipt.view',
+      'inventory.receipt.approve',
     ],
   },
 });
@@ -432,6 +439,34 @@ await request(admin, '/admin/number-sequences', {
   },
   expected: 201,
 });
+const receiptWorkflowCode = 'GOODS_RECEIPT_' + suffix;
+await request(admin, '/admin/approval-workflows', {
+  method: 'POST',
+  json: {
+    workflowCode: receiptWorkflowCode,
+    entityType: 'GOODS_RECEIPT',
+    workflowName: 'Goods Receipt Approval ' + suffix,
+    steps: [{
+      stepNo: 1,
+      stepName: 'Approve Goods Receipt',
+      requiredApprovals: 1,
+      roleIds: [checkerRoleId],
+    }],
+  },
+  expected: 201,
+});
+await request(admin, '/admin/number-sequences', {
+  method: 'POST',
+  json: {
+    entityType: 'GOODS_RECEIPT',
+    sequenceCode: 'GOODS_RECEIPT',
+    formatTemplate: 'GRNYYMM-###',
+    resetRule: 'MONTHLY',
+    startingValue: 1,
+  },
+  expected: 201,
+});
+
 record('V0.3-A Budget, V0.3-B Purchase Request, V0.3-C RFQ and V0.3-D PO numbering / approval configuration');
 
 const pmPassword = 'Uat-PM-' + suffix + '-Strong-2026!';
@@ -1652,6 +1687,112 @@ check(
       initialExpectedDelivery,
   'Earlier approved Purchase Order revision was modified by a later revision.',
 );
+
+const receiptStore = await request(pm, '/inventory/warehouses', {
+  method: 'POST',
+  json: {
+    warehouseCode: 'GRN-WH-' + suffix,
+    warehouseName: 'Goods Receipt Store ' + suffix,
+    projectId,
+    isSiteWarehouse: true,
+  },
+  expected: 201,
+});
+const receiptWarehouseId = receiptStore.data.data.id;
+const eligibleReceiptPos = await request(
+  pm, '/inventory/projects/' + projectId + '/eligible-receipt-pos',
+);
+check(
+  eligibleReceiptPos.data.data.some((item) =>
+    item.id === revisedPoId && item.lines.some((line) => line.id === revisedPoLineId)
+  ),
+  'Current approved PO material line was not eligible for Goods Receipt.',
+);
+const unassignedReceipt = await login(unassignedUser.data.data.email, unassignedPassword);
+await request(
+  unassignedReceipt, '/inventory/projects/' + projectId + '/eligible-receipt-pos',
+  { expected: 403 },
+);
+const makeReceipt = async (quantity) => request(pm, '/inventory/goods-receipts', {
+  method: 'POST',
+  json: {
+    projectId,
+    purchaseOrderId: revisedPoId,
+    warehouseId: receiptWarehouseId,
+    lines: [{ purchaseOrderLineId: revisedPoLineId, quantity }],
+  },
+  expected: 201,
+});
+const receiptA = await makeReceipt('2');
+check(/^GRN\d{4}-\d{3}$/.test(receiptA.data.data.receiptNumber), 'Goods Receipt numbering format mismatch.');
+const receiptAId = receiptA.data.data.id;
+const receiptADraft = await request(pm, '/inventory/goods-receipts/' + receiptAId);
+await request(pm, '/inventory/goods-receipt-items/' + receiptADraft.data.data.items[0].id, {
+  method: 'PATCH', json: { quantity: '3' },
+});
+await request(pm, '/inventory/goods-receipts/' + receiptAId, {
+  method: 'PATCH', json: { remarks: 'Confirmed three units delivered' },
+});
+await request(pm, '/inventory/goods-receipts/' + receiptAId + '/submit', {
+  method: 'POST', json: { workflowCode: receiptWorkflowCode }, expected: 201,
+});
+await request(pm, '/inventory/goods-receipts/' + receiptAId + '/approve', {
+  method: 'POST', json: { postKey: 'post-a-' + suffix }, expected: 403,
+});
+const postedA = await request(checker, '/inventory/goods-receipts/' + receiptAId + '/approve', {
+  method: 'POST', json: { postKey: 'post-a-' + suffix }, expected: 201,
+});
+check(
+  postedA.data.data.postedAt &&
+    postedA.data.data.stockTransactions.length === 1 &&
+    String(postedA.data.data.stockTransactions[0]?.quantity) === '3',
+  'First partial receipt did not atomically create one positive ledger effect.',
+);
+const postedARetry = await request(checker, '/inventory/goods-receipts/' + receiptAId + '/approve', {
+  method: 'POST', json: { postKey: 'post-a-' + suffix }, expected: 201,
+});
+check(postedARetry.data.data.stockTransactions.length === 1, 'Posting retry duplicated stock effect.');
+
+const receiptB = await makeReceipt('6');
+const receiptBId = receiptB.data.data.id;
+await request(pm, '/inventory/goods-receipts/' + receiptBId + '/submit', {
+  method: 'POST', json: { workflowCode: receiptWorkflowCode }, expected: 201,
+});
+await request(checker, '/inventory/goods-receipts/' + receiptBId + '/approve', {
+  method: 'POST', json: { postKey: 'post-b-' + suffix }, expected: 201,
+});
+const excess = await makeReceipt('1');
+await request(pm, '/inventory/goods-receipts/' + excess.data.data.id + '/submit', {
+  method: 'POST', json: { workflowCode: receiptWorkflowCode }, expected: 201,
+});
+await request(checker, '/inventory/goods-receipts/' + excess.data.data.id + '/approve', {
+  method: 'POST', json: { postKey: 'post-excess-' + suffix }, expected: 409,
+});
+await request(checker, '/inventory/goods-receipts/' + excess.data.data.id + '/reject', {
+  method: 'POST', json: { comment: 'Exceeds current approved PO quantity' }, expected: 201,
+});
+await request(pm, '/procurement/purchase-orders/' + revisedPoId + '/cancel', {
+  method: 'POST', json: { reason: 'Blocked while receipts remain' }, expected: 409,
+});
+await request(unassignedReceipt, '/inventory/goods-receipts/' + receiptAId, {
+  expected: 403,
+});
+for (const [id, key] of [[receiptAId, 'reverse-a-'], [receiptBId, 'reverse-b-']]) {
+  const reversed = await request(pm, '/inventory/goods-receipts/' + id + '/reverse', {
+    method: 'POST',
+    json: { reversalKey: key + suffix, reason: 'UAT full reversal' },
+    expected: 201,
+  });
+  check(
+    reversed.data.data.reversedAt &&
+      reversed.data.data.stockTransactions.length === 2 &&
+      reversed.data.data.stockTransactions.reduce(
+        (sum, row) => sum + Number(row.quantity), 0,
+      ) === 0,
+    'Goods Receipt reversal did not append the exact negative stock effect.',
+  );
+}
+record('V0.4-B partial/multiple PO receipt, maker-checker, over-receipt, retry, scope, PO cancellation guard and reversal');
 
 const cancelledPo = await request(
   pm,

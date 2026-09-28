@@ -2774,3 +2774,12 @@ The next Phase 0 deliverable is:
 
 The `warehouses` model is source-controlled with UUID identity, Company-scoped unique code, name, optional Project/location, site flag, active state and audit timestamps. PostgreSQL independently checks that a Site Warehouse has a Project and that an associated Project belongs to the same Company. Foreign keys restrict deletion. The V0.4-B/D transaction tables will enforce the approved no-reassignment-after-history and zero-stock/no-active-reservation archive rules when those histories exist. No Stock Transaction or editable balance table is introduced by Stage A.
 
+
+## V0.4-B Goods Receipt / Stock Transaction Ledger
+
+- `goods_receipts`: Company, Project, Supplier, Warehouse, one immutable PO revision and `GRNYYMM-###` number; optional Approval Instance; creator/submitter/poster/reverser, workflow timestamps, post/reversal keys, remarks and retained reversal reason. Company + number, post key and reversal key are unique. Header source and Warehouse Project integrity are database checked.
+- `goods_receipt_items`: one or more PO material lines, positive DECIMAL(18,4) quantity, stable `quotation_award_id` demand key, Material/UOM and source snapshots. A PO line occurs at most once per receipt. Submitted items cannot be edited or deleted.
+- `stock_transactions`: signed physical movement by Company, Warehouse, Material, nullable Project and UOM, linked to source receipt/item and actor/time. A receipt contributes one positive row per item. Full reversal appends one exact negative row per original with unique `reversal_of_id`; `effect_key` and item/movement uniqueness reject duplicates. PostgreSQL triggers forbid UPDATE/DELETE and reject mismatched source dimensions/quantity.
+- A posted receipt header cannot be rewritten; reversal metadata is set once. A Warehouse with movement history cannot change Project, and archive requires zero derived on-hand quantity. Active-reservation archive checks attach in V0.4-D when Reservation exists.
+- PO cancellation is blocked while any receipt across its revision lineage remains posted and non-reversed. PO line quantity cannot be reduced below outstanding receipts, and a received line cannot be deleted. The service serializes posting and PO cancellation/revision checks by PO identity. No editable balance table exists.
+- V0.4-B ledger FKs currently reference Goods Receipt source items. Later V0.4-D/E source types extend the same ledger under their own approved migrations; no separate ledger is created.

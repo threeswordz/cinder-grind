@@ -87,6 +87,7 @@ export class ApprovalService {
     auth: AuthenticatedUserContext,
     makerUserId: string,
     comment?: string,
+    onFinalApproval?: (tx: Prisma.TransactionClient) => Promise<void>,
   ) {
     this.assertMakerChecker(makerUserId, auth.userId);
 
@@ -139,13 +140,15 @@ export class ApprovalService {
           });
         }
 
-        return tx.approvalInstance.update({
+        const approved = await tx.approvalInstance.update({
           where: { id: instanceId },
           data: {
             approvalState: APPROVAL_STATE.APPROVED,
             completedAt: new Date(),
           },
         });
+        if (onFinalApproval) await onFinalApproval(tx);
+        return approved;
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
     );

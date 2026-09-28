@@ -713,6 +713,11 @@ export class PurchaseOrderService {
             'Purchase Order quantity cannot exceed the selected Supplier Award quantity.',
         });
       }
+      if (input.quantity !== undefined) {
+        await this.assertReceivedQuantityFloor(
+          tx, current.purchaseOrder, current.quotationAwardId, quantity,
+        );
+      }
       const unitPrice = input.unitPrice ?? current.unitPrice;
       const updated = await tx.purchaseOrderLine.update({
         where: { id: current.id },
@@ -781,6 +786,10 @@ export class PurchaseOrderService {
         tx,
       );
       this.assertDraft(current.purchaseOrder);
+
+      await this.assertReceivedQuantityFloor(
+        tx, current.purchaseOrder, current.quotationAwardId, new Prisma.Decimal(0),
+      );
 
       await tx.purchaseOrderLine.delete({
         where: { id: current.id },
@@ -951,6 +960,20 @@ export class PurchaseOrderService {
       context.auth,
       order.submittedByUserId,
       comment,
+      async (tx) => {
+        const lines = await tx.purchaseOrderLine.findMany({
+          where: { purchaseOrderId: order.id },
+          select: { quotationAwardId: true, quantity: true },
+        });
+        for (const line of lines) {
+          await this.assertReceivedQuantityFloor(
+            tx,
+            { companyId: context.auth.companyId, poNumber: order.poNumber },
+            line.quotationAwardId,
+            line.quantity,
+          );
+        }
+      },
     );
     await this.audit.record({
       ...context,
@@ -1023,6 +1046,28 @@ export class PurchaseOrderService {
           order.projectId,
           tx,
         );
+
+        await tx.$executeRawUnsafe(
+          'SELECT pg_advisory_xact_lock(hashtext($1))',
+          'receipt-po:' + order.companyId + ':' + order.poNumber,
+        );
+        const outstandingReceipt = await tx.goodsReceipt.findFirst({
+          where: {
+            postedAt: { not: null },
+            reversedAt: null,
+            purchaseOrder: {
+              companyId: order.companyId,
+              poNumber: order.poNumber,
+            },
+          },
+          select: { id: true },
+        });
+        if (outstandingReceipt) {
+          throw new ConflictException({
+            code: 'PO_HAS_OUTSTANDING_RECEIPT',
+            detail: 'Reverse all posted Goods Receipts before cancelling this Purchase Order.',
+          });
+        }
 
         const state = this.lifecycleOf(order);
         if (state === 'CANCELLED') {
@@ -1402,6 +1447,7 @@ export class PurchaseOrderService {
       },
       select: {
         id: true,
+        poNumber: true,
         projectId: true,
         supplierId: true,
         approvalInstanceId: true,
@@ -1435,6 +1481,38 @@ export class PurchaseOrderService {
         ),
       ],
     };
+  }
+
+  private async assertReceivedQuantityFloor(
+    tx: Prisma.TransactionClient,
+    order: { companyId: string; poNumber: string },
+    awardId: string,
+    quantity: Prisma.Decimal,
+  ) {
+    await tx.$executeRawUnsafe(
+      'SELECT pg_advisory_xact_lock(hashtext($1))',
+      'receipt-po:' + order.companyId + ':' + order.poNumber,
+    );
+    const received = await tx.goodsReceiptItem.aggregate({
+      where: {
+        quotationAwardId: awardId,
+        goodsReceipt: {
+          postedAt: { not: null },
+          reversedAt: null,
+          purchaseOrder: {
+            companyId: order.companyId,
+            poNumber: order.poNumber,
+          },
+        },
+      },
+      _sum: { quantity: true },
+    });
+    if (quantity.lt(received._sum.quantity ?? 0)) {
+      throw new ConflictException({
+        code: 'PO_BELOW_RECEIVED_QUANTITY',
+        detail: 'Purchase Order quantity cannot be lower than outstanding received quantity.',
+      });
+    }
   }
 
   private lifecycleOf(row: {

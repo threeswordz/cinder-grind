@@ -4,10 +4,12 @@
 **Source of truth:** Live GitHub repository state
 
 - Current Release: V0.4 Inventory
-- Current Stage: V0.4-A Warehouse / Inventory Foundation — IMPLEMENTATION / VALIDATION
+- Current Stage: V0.4-B Goods Receipt / PO Receipt Controls / Stock Transaction Ledger — IMPLEMENTATION / VALIDATION
 - Completed Stages: V0.1-A through V0.1-H; V0.2-A through V0.2-G; V0.3-A BOQ & Budget; V0.3-B Purchase Request; V0.3-C RFQ / Quotations; V0.3-D Purchase Order; V0.3-E Schedule Risk / Procurement Reporting / Traceability
-- Active Issue: #83 — V0.4-A Warehouse / Inventory Foundation
-- Active Branch: `v0.4-a-warehouse-foundation`
+- Active Issue: #85 — V0.4-B Goods Receipt / PO Receipt Controls / Stock Transaction Ledger
+- Completed Issue: #83 — V0.4-A Warehouse / Inventory Foundation
+- Active Branch: `v0.4-b-goods-receipt-ledger`
+- Merged PR: #84 — V0.4-A Warehouse / Inventory Foundation (`4ab736203c9870f4b6782ad85c108f3b0b66accd`)
 - Completed Issue: #81 — V0.4 Inventory Release Entry Gate — Scope, Acceptance & Business Rules
 - Merged PR: #82 — docs: approve V0.4 Inventory entry gate
 - Completed Issue: #79 — V0.3 Procurement Product / Business Owner acceptance record
@@ -71,7 +73,7 @@
 - V0.1 cross-module release acceptance scenario: PASS in the Stage H release-candidate regression suite.
 - Open defect check at V0.1 acceptance: no Severity 1 or Severity 2 release-blocking defect recorded.
 - Governance: `AGENTS.md`, `docs/PROJECT-GOVERNANCE.md`, PR governance checklist and DEC-008 are active; material decisions must pass the repository pre-flight and open-source/zero-cost-first constraint.
-- Next action: finish V0.4-A exact-head CI, review and merge under Issue #83. V0.4-B must not begin until Stage A merges and post-merge main CI passes.
+- Next action: complete V0.4-B documentation-head exact CI and review under Issue #85; merge only when all Stage B gates pass. V0.4-C must wait for the Stage B merge and post-merge main CI.
 
 ## Stage E completed
 
@@ -706,3 +708,20 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - Inventory document numbering rules remain in the approved V0.4 baseline for later stages; no Inventory document or stock ledger is created in Stage A.
 - Stage A code head `94516ba1d5baf9cb7cc75199c708ca26dc2eb6a6`: branch CI #1331 and PR CI #1332 passed, including clean migrations, API/web validation, PostgreSQL Warehouse tests, prior-release regression and live HTTP acceptance.
 - Codex review finding on test-suite wiring fixed and thread resolved. Final documentation-head CI, merge and post-merge `main` CI remain pending; Stage B remains blocked until those gates pass.
+
+## V0.4-A completed / V0.4-B started
+
+- PR #84 merged to `main` as `4ab736203c9870f4b6782ad85c108f3b0b66accd`; Issue #83 closed.
+- Stage A exact-head branch CI #1335 and PR CI #1336 passed, including Warehouse PostgreSQL and live HTTP acceptance. Post-merge main CI #1337 passed.
+- Stage B issue #85 and branch `v0.4-b-goods-receipt-ledger` start from that green merge checkpoint.
+- Stage B pre-flight contract is `docs/V0.4-B-PREFLIGHT.md`; implementation, CI/review and merge gates remain pending. Human V0.4 release UAT remains unapproved.
+
+## V0.4-B implementation under validation
+
+- Goods Receipt, item and append-only signed Stock Transaction source-controlled models/migrations; same-Company/Project/PO material integrity, immutable history, effect uniqueness and Warehouse/PO received-stock guards.
+- Explicit receipt view/create/edit/submit/approve/reverse permissions; technical SYS_ADMIN does not inherit business posting authority.
+- Approval Matrix maker-checker final action posts the complete receipt atomically in a serializable transaction; full reversal appends opposite rows with retained reason.
+- Server-side Project-scoped APIs and UI for eligible PO material lines, general/Project Warehouse selection, multi-line Draft creation/edit, submit, approve/post, reject, reversal and retained history.
+- PO cancellation and revision edit/delete/final-approval guard against outstanding received quantity; deterministic source locking and idempotent retry controls.
+- PostgreSQL integration and live HTTP acceptance cover partial/multiple receipt, over-receipt, concurrency, Project denial, PO revision/cancellation, ledger immutability and full reversal.
+- Branch CI #1382 passed on implementation head `f76cc4587dd21544a4abcbdb820c178194ba9d7d`. Documentation-head CI, PR review/merge and post-merge main CI remain pending. V0.4-C has not begun.
