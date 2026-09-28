@@ -16,6 +16,7 @@ import { AuthenticatedUserContext } from '../auth/auth.types';
 import { AuthorizationService } from '../authorization/authorization.service';
 import { ProjectScopeService } from '../authorization/project-scope.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { GoodsReceiptService } from '../inventory/goods-receipt.service';
 import { ProjectAccessService } from '../projects/project-access.service';
 import { ReportingService } from '../reporting/reporting.service';
 import { SchedulingProgressService } from '../scheduling/scheduling-progress.service';
@@ -231,6 +232,13 @@ test('V0.3-D Purchase Orders preserve awarded-source traceability, approval and 
           formatTemplate: 'POYYMM-###',
           resetRule: 'MONTHLY',
         },
+        {
+          companyId: company.id,
+          entityType: 'GOODS_RECEIPT',
+          sequenceCode: 'GOODS_RECEIPT',
+          formatTemplate: 'GRNYYMM-###',
+          resetRule: 'MONTHLY',
+        },
       ],
     });
 
@@ -282,6 +290,22 @@ test('V0.3-D Purchase Orders preserve awarded-source traceability, approval and 
       },
     });
 
+    const receiptWorkflow = await prisma.approvalWorkflow.create({
+      data: {
+        companyId: company.id,
+        workflowCode: 'PO_RECEIPT_' + suffix,
+        entityType: 'GOODS_RECEIPT',
+        workflowName: 'Receipt Approval',
+        steps: {
+          create: [{
+            stepNo: 1, stepName: 'Approve received stock',
+            requiredApprovals: 1,
+            stepRoles: { create: [{ roleId: approverRole.id }] },
+          }],
+        },
+      },
+    });
+
     const access = new ProjectAccessService(
       prisma,
       new ProjectScopeService(new AuthorizationService()),
@@ -314,6 +338,8 @@ test('V0.3-D Purchase Orders preserve awarded-source traceability, approval and 
       approvals,
       numbers,
     );
+
+    const receipts = new GoodsReceiptService(prisma, access, audit, approvals, numbers);
 
     const makerAuth = auth(company.id, maker.id, ['PO_MAKER']);
     const checkerAuth = auth(company.id, checker.id, [
@@ -645,6 +671,88 @@ test('V0.3-D Purchase Orders preserve awarded-source traceability, approval and 
         }),
       'Approved Purchase Order lines must be immutable.',
     );
+
+    const warehouse = await prisma.warehouse.create({
+      data: {
+        companyId: company.id,
+        warehouseCode: 'PO-RECEIPT-' + suffix,
+        warehouseName: 'Receipt integration store',
+        projectId: project.id,
+        isSiteWarehouse: true,
+      },
+    });
+    const sourceLine = revisionDetail.lines[0]!;
+    const createReceipt = (qty: string) =>
+      receipts.create({ auth: makerAuth }, {
+        projectId: project.id, purchaseOrderId: revision.id,
+        warehouseId: warehouse.id,
+        lines: [{ purchaseOrderLineId: sourceLine.id, quantity: new Prisma.Decimal(qty) }],
+      });
+    const first = await createReceipt('3');
+    await receipts.submit({ auth: makerAuth }, first.id, receiptWorkflow.workflowCode);
+    await assert.rejects(
+      () => receipts.approve({ auth: makerAuth }, first.id, 'maker-post'),
+      (error: unknown) => error instanceof ForbiddenException,
+    );
+    const posted = await receipts.approve({ auth: checkerAuth }, first.id, 'receipt-first');
+    assert.equal(posted.stockTransactions.length, 1);
+    assert.equal(posted.stockTransactions[0]?.quantity.toString(), '3');
+    const retried = await receipts.approve({ auth: checkerAuth }, first.id, 'receipt-first');
+    assert.equal(retried.stockTransactions.length, 1);
+
+    await assert.rejects(
+      () => receipts.get(outsiderAuth, first.id),
+      (error: unknown) => error instanceof ForbiddenException,
+    );
+    await assert.rejects(
+      () => prisma.stockTransaction.update({
+        where: { id: posted.stockTransactions[0]!.id },
+        data: { quantity: new Prisma.Decimal('8') },
+      }),
+      'Posted Stock Transaction must be immutable in PostgreSQL.',
+    );
+    await assert.rejects(
+      () => prisma.warehouse.update({ where: { id: warehouse.id }, data: { projectId: null } }),
+      'Warehouse with stock history cannot change Project.',
+    );
+    await assert.rejects(
+      () => prisma.warehouse.update({ where: { id: warehouse.id }, data: { isActive: false } }),
+      'Warehouse with positive on-hand stock cannot be archived.',
+    );
+    await assert.rejects(
+      () => purchaseOrders.cancel({ auth: makerAuth }, revision.id, 'Cannot cancel with stock'),
+      (error: unknown) => error instanceof ConflictException,
+    );
+
+    const second = await createReceipt('7');
+    const third = await createReceipt('7');
+    await receipts.submit({ auth: makerAuth }, second.id, receiptWorkflow.workflowCode);
+    await receipts.submit({ auth: makerAuth }, third.id, receiptWorkflow.workflowCode);
+    const simultaneous = await Promise.allSettled([
+      receipts.approve({ auth: checkerAuth }, second.id, 'receipt-second'),
+      receipts.approve({ auth: checkerAuth }, third.id, 'receipt-third'),
+    ]);
+    assert.equal(simultaneous.filter((result) => result.status === 'fulfilled').length, 0,
+      'Both over-quantity requests must fail against the existing partial receipt.');
+    const stillOne = await prisma.stockTransaction.count({
+      where: { goodsReceiptId: { in: [second.id, third.id] } },
+    });
+    assert.equal(stillOne, 0);
+
+    const reversal = await receipts.reverse({ auth: makerAuth }, first.id, 'receipt-reverse', 'Integration reversal');
+    assert.equal(reversal.stockTransactions.length, 2);
+    assert.equal(reversal.stockTransactions.reduce((sum, row) => sum.plus(row.quantity), new Prisma.Decimal(0)).toString(), '0');
+    await assert.rejects(
+      () => prisma.stockTransaction.delete({ where: { id: reversal.stockTransactions[0]!.id } }),
+      'Posted Stock Transaction deletion must be rejected.',
+    );
+    const repeat = await receipts.reverse({ auth: makerAuth }, first.id, 'receipt-reverse', 'Integration reversal');
+    assert.equal(repeat.stockTransactions.length, 2);
+    const archivedAfterReversal = await prisma.warehouse.update({
+      where: { id: warehouse.id },
+      data: { isActive: false },
+    });
+    assert.equal(archivedAfterReversal.isActive, false);
 
     const cancelled = await purchaseOrders.cancel(
       { auth: makerAuth },
