@@ -18,6 +18,8 @@ import { MaterialReservationService } from './material-reservation.service';
 import { MaterialReturnService } from './material-return.service';
 import { StockBalanceController } from './stock-balance.controller';
 import { StockBalanceService } from './stock-balance.service';
+import { StockTransferController } from './stock-transfer.controller';
+import { StockTransferService } from './stock-transfer.service';
 
 @Module({
   imports: [
@@ -34,6 +36,7 @@ import { StockBalanceService } from './stock-balance.service';
     GoodsReceiptController,
     StockBalanceController,
     MaterialMovementController,
+    StockTransferController,
   ],
   providers: [
     InventoryService,
@@ -43,6 +46,7 @@ import { StockBalanceService } from './stock-balance.service';
     MaterialReservationService,
     MaterialIssueService,
     MaterialReturnService,
+    StockTransferService,
   ],
   exports: [
     InventoryService,
@@ -52,6 +56,7 @@ import { StockBalanceService } from './stock-balance.service';
     MaterialReservationService,
     MaterialIssueService,
     MaterialReturnService,
+    StockTransferService,
   ],
 })
 export class InventoryModule {}
