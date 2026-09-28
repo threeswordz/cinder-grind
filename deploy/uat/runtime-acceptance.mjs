@@ -279,6 +279,12 @@ const permissionCodes = [
   'inventory.return.edit',
   'inventory.return.submit',
   'inventory.return.reverse',
+  'inventory.transfer.view',
+  'inventory.transfer.create',
+  'inventory.transfer.edit',
+  'inventory.transfer.submit',
+  'inventory.transfer.reverse',
+  'inventory.report.view',
   'reporting.operational.view',
   'budget.boq.view',
   'budget.boq.manage',
@@ -336,6 +342,8 @@ await request(admin, `/admin/roles/${checkerRoleId}/permissions`, {
       'inventory.issue.approve',
       'inventory.return.view',
       'inventory.return.approve',
+      'inventory.transfer.view',
+      'inventory.transfer.approve',
     ],
   },
 });
@@ -546,6 +554,34 @@ await request(admin, '/admin/number-sequences', {
     entityType: 'MATERIAL_RETURN',
     sequenceCode: 'MATERIAL_RETURN',
     formatTemplate: 'MRTYYMM-###',
+    resetRule: 'MONTHLY',
+    startingValue: 1,
+  },
+  expected: 201,
+});
+
+const transferWorkflowCode = 'STOCK_TRANSFER_' + suffix;
+await request(admin, '/admin/approval-workflows', {
+  method: 'POST',
+  json: {
+    workflowCode: transferWorkflowCode,
+    entityType: 'STOCK_TRANSFER',
+    workflowName: 'Stock Transfer Approval ' + suffix,
+    steps: [{
+      stepNo: 1,
+      stepName: 'Approve Stock Transfer',
+      requiredApprovals: 1,
+      roleIds: [checkerRoleId],
+    }],
+  },
+  expected: 201,
+});
+await request(admin, '/admin/number-sequences', {
+  method: 'POST',
+  json: {
+    entityType: 'STOCK_TRANSFER',
+    sequenceCode: 'STOCK_TRANSFER',
+    formatTemplate: 'STYYMM-###',
     resetRule: 'MONTHLY',
     startingValue: 1,
   },
@@ -2081,6 +2117,109 @@ check(
   'Issue reversal incorrectly reopened a fulfilled Reservation.',
 );
 record('V0.4-D reservation availability, Issue maker-checker/posting, Return ceiling, reversal ordering and exact balance restoration');
+
+const transferStore = await request(pm, '/inventory/warehouses', {
+  method: 'POST',
+  json: {
+    warehouseCode: 'XFER-WH-' + suffix,
+    warehouseName: 'Transfer destination ' + suffix,
+    projectId,
+    isSiteWarehouse: true,
+  },
+  expected: 201,
+});
+const transferWarehouseId = transferStore.data.data.id;
+const stageETransfer = await request(pm, '/inventory/stock-transfers', {
+  method: 'POST',
+  json: {
+    sourceWarehouseId: receiptWarehouseId,
+    destinationWarehouseId: transferWarehouseId,
+    transferDate: '2026-10-10',
+    lines: [{
+      materialId: material.data.data.id,
+      quantity: '1',
+      uomId,
+      sourceProjectId: projectId,
+      destinationProjectId: projectId,
+    }],
+  },
+  expected: 201,
+});
+const stageETransferId = stageETransfer.data.data.id;
+check(/^ST\\d{4}-\\d{3}$/.test(stageETransfer.data.data.transferNumber),
+  'Stock Transfer numbering format mismatch.');
+await request(pm, '/inventory/stock-transfers/' + stageETransferId + '/submit', {
+  method: 'POST',
+  json: { workflowCode: transferWorkflowCode },
+  expected: 201,
+});
+await request(pm, '/inventory/stock-transfers/' + stageETransferId + '/approve', {
+  method: 'POST',
+  json: { postKey: 'transfer-maker-' + suffix },
+  expected: 403,
+});
+const postedStageETransfer = await request(
+  checker, '/inventory/stock-transfers/' + stageETransferId + '/approve', {
+    method: 'POST',
+    json: { postKey: 'transfer-post-' + suffix },
+    expected: 201,
+  },
+);
+check(
+  postedStageETransfer.data.data.stockTransactions.length === 2 &&
+    postedStageETransfer.data.data.stockTransactions.some(
+      (row) => row.movementType === 'STOCK_TRANSFER_OUT' && String(row.quantity) === '-1',
+    ) &&
+    postedStageETransfer.data.data.stockTransactions.some(
+      (row) => row.movementType === 'STOCK_TRANSFER_IN' && String(row.quantity) === '1',
+    ),
+  'Stock Transfer did not post matched source and destination ledger effects.',
+);
+const transferMovements = await request(
+  pm,
+  '/inventory/reports/movements?projectId=' + projectId +
+    '&sourceType=STOCK_TRANSFER',
+);
+check(
+  transferMovements.data.data.filter(
+    (row) => row.sourceId === stageETransferId,
+  ).length === 2 &&
+    transferMovements.data.data.every(
+      (row) => row.sourceType === 'STOCK_TRANSFER',
+    ),
+  'Movement report did not preserve Transfer source identity and source-family filtering.',
+);
+const transferBalances = await request(
+  pm,
+  '/inventory/reports/balances?projectId=' + projectId +
+    '&warehouseId=' + transferWarehouseId,
+);
+check(transferBalances.data.data[0]?.quantity === '1.0000',
+  'Inventory balance report did not derive destination Transfer stock.');
+await request(unassignedReceipt, '/inventory/reports/movements?projectId=' + projectId,
+  { expected: 403 });
+await request(unassignedReceipt, '/inventory/stock-transfers/' + stageETransferId,
+  { expected: 403 });
+const reversedStageETransfer = await request(
+  pm, '/inventory/stock-transfers/' + stageETransferId + '/reverse', {
+    method: 'POST',
+    json: {
+      reversalKey: 'transfer-reverse-' + suffix,
+      reason: 'V0.4-E live Transfer reversal',
+    },
+    expected: 201,
+  },
+);
+check(
+  reversedStageETransfer.data.data.stockTransactions.length === 4 &&
+    reversedStageETransfer.data.data.stockTransactions.reduce(
+      (sum, row) => sum + Number(row.quantity), 0,
+    ) === 0,
+  'Stock Transfer reversal did not append exact opposite effects.',
+);
+record('V0.4-E Transfer maker-checker, matched posting, derived reports, scoped denial and reversal');
+
+
 
 const receiptB = await makeReceipt('6');
 const receiptBId = receiptB.data.data.id;
