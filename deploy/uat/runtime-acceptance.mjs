@@ -258,6 +258,10 @@ const permissionCodes = [
   'inventory.warehouse.create',
   'inventory.warehouse.edit',
   'inventory.warehouse.archive',
+  'inventory.receipt.view',
+  'inventory.receipt.create',
+  'inventory.receipt.submit',
+  'inventory.receipt.reverse',
   'reporting.operational.view',
   'budget.boq.view',
   'budget.boq.manage',
@@ -309,6 +313,8 @@ await request(admin, `/admin/roles/${checkerRoleId}/permissions`, {
       'procurement.po.view',
       'procurement.po.approve',
       'procurement.po.reject',
+      'inventory.receipt.view',
+      'inventory.receipt.approve',
     ],
   },
 });
@@ -432,6 +438,34 @@ await request(admin, '/admin/number-sequences', {
   },
   expected: 201,
 });
+const receiptWorkflowCode = 'GOODS_RECEIPT_' + suffix;
+await request(admin, '/admin/approval-workflows', {
+  method: 'POST',
+  json: {
+    workflowCode: receiptWorkflowCode,
+    entityType: 'GOODS_RECEIPT',
+    workflowName: 'Goods Receipt Approval ' + suffix,
+    steps: [{
+      stepNo: 1,
+      stepName: 'Approve Goods Receipt',
+      requiredApprovals: 1,
+      roleIds: [checkerRoleId],
+    }],
+  },
+  expected: 201,
+});
+await request(admin, '/admin/number-sequences', {
+  method: 'POST',
+  json: {
+    entityType: 'GOODS_RECEIPT',
+    sequenceCode: 'GOODS_RECEIPT',
+    formatTemplate: 'GRNYYMM-###',
+    resetRule: 'MONTHLY',
+    startingValue: 1,
+  },
+  expected: 201,
+});
+
 record('V0.3-A Budget, V0.3-B Purchase Request, V0.3-C RFQ and V0.3-D PO numbering / approval configuration');
 
 const pmPassword = 'Uat-PM-' + suffix + '-Strong-2026!';
