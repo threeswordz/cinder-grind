@@ -1,10 +1,10 @@
 # Construction ERP — Current State
 
-**Last verified:** 2026-09-27
+**Last verified:** 2026-09-28
 **Source of truth:** Live GitHub repository state
 
 - Current Release: V0.4 Inventory
-- Current Stage: V0.4-A Warehouse / Inventory Foundation — PRE-FLIGHT COMPLETE
+- Current Stage: V0.4-A Warehouse / Inventory Foundation — IMPLEMENTATION / VALIDATION
 - Completed Stages: V0.1-A through V0.1-H; V0.2-A through V0.2-G; V0.3-A BOQ & Budget; V0.3-B Purchase Request; V0.3-C RFQ / Quotations; V0.3-D Purchase Order; V0.3-E Schedule Risk / Procurement Reporting / Traceability
 - Active Issue: #83 — V0.4-A Warehouse / Inventory Foundation
 - Active Branch: `v0.4-a-warehouse-foundation`
@@ -71,7 +71,7 @@
 - V0.1 cross-module release acceptance scenario: PASS in the Stage H release-candidate regression suite.
 - Open defect check at V0.1 acceptance: no Severity 1 or Severity 2 release-blocking defect recorded.
 - Governance: `AGENTS.md`, `docs/PROJECT-GOVERNANCE.md`, PR governance checklist and DEC-008 are active; material decisions must pass the repository pre-flight and open-source/zero-cost-first constraint.
-- Next action: implement V0.4-A Warehouse / Inventory Foundation under Issue #83 and the approved Stage A contract, then complete exact-head CI/review before merge. V0.4-B must not begin until Stage A completes.
+- Next action: finish V0.4-A exact-head CI, review and merge under Issue #83. V0.4-B must not begin until Stage A merges and post-merge main CI passes.
 
 ## Stage E completed
 
@@ -697,3 +697,11 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - no blocking business or architecture decision remains.
 - `docs/V0.4-A-PREFLIGHT.md` is the source-controlled Stage A implementation contract.
 - Stage A technical implementation may proceed within the approved baseline; scope expansion requires Change Control.
+
+## V0.4-A implementation under validation
+
+- Warehouse persistence, Company/Project database integrity, site flag and active/archive lifecycle added with source-controlled migrations.
+- Warehouse permissions and SYS_ADMIN technical provisioning added, including fresh bootstrap consistency; no stock-posting or business approval authority granted.
+- Project-scoped Warehouse APIs, audit logging, responsive permission-aware register, unit/integration coverage and live HTTP acceptance scenario added.
+- Inventory document numbering rules remain in the approved V0.4 baseline for later stages; no Inventory document or stock ledger is created in Stage A.
+- Gate pending: exact-head CI, review, merge and post-merge `main` CI. Stage B remains blocked until those gates pass.
