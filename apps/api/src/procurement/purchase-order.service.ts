@@ -960,6 +960,20 @@ export class PurchaseOrderService {
       context.auth,
       order.submittedByUserId,
       comment,
+      async (tx) => {
+        const lines = await tx.purchaseOrderLine.findMany({
+          where: { purchaseOrderId: order.id },
+          select: { quotationAwardId: true, quantity: true },
+        });
+        for (const line of lines) {
+          await this.assertReceivedQuantityFloor(
+            tx,
+            { companyId: context.auth.companyId, poNumber: order.poNumber },
+            line.quotationAwardId,
+            line.quantity,
+          );
+        }
+      },
     );
     await this.audit.record({
       ...context,
