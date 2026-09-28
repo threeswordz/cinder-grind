@@ -262,6 +262,20 @@ test('V0.4-A Warehouse enforces Company, Project scope, lifecycle and audit', as
       'database trigger must reject cross-Company Project ownership',
     );
 
+    await assert.rejects(
+      () =>
+        prisma.warehouse.update({
+          where: { id: general.id },
+          data: { companyId: otherCompany.id },
+        }),
+      'database trigger must prevent Warehouse Company reassignment',
+    );
+
+    await assert.rejects(
+      () => prisma.warehouse.delete({ where: { id: general.id } }),
+      'Warehouse history requires archive rather than hard deletion',
+    );
+
     const archived = await service.archiveWarehouse(
       { auth: scopedAuth },
       general.id,
