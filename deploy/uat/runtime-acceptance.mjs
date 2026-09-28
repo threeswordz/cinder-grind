@@ -260,6 +260,7 @@ const permissionCodes = [
   'inventory.warehouse.archive',
   'inventory.receipt.view',
   'inventory.receipt.create',
+  'inventory.receipt.edit',
   'inventory.receipt.submit',
   'inventory.receipt.reverse',
   'reporting.operational.view',
