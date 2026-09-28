@@ -759,3 +759,11 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - Explicit reservation/issue/return permissions are not granted implicitly to technical `SYS_ADMIN`. Company/Project scope remains backend-enforced.
 - PostgreSQL integration plus live HTTP acceptance cover concurrency, availability, maker-checker, ledger effects, return ceilings, reversal ordering, Project denial and exact balance restoration. Hardened implementation/test head `18e44cc07adcc7cadc9fc057f8d1c77ea0c35e97` passed branch CI #1456. Two Codex P1 stock-reversal findings were fixed and resolved: Return reversal aggregates same-dimension quantity before availability validation, and Goods Receipt reversal now uses the shared stock lock plus derived-availability guard against downstream Issue/Active-Reservation consumption. Additional hardening enforces Return allocation lineage, shared Return/Issue-reversal source locking and posted Issue/Return identity immutability.
 - Final documentation-head exact branch CI, exact-head PR CI, squash merge, Issue #89 closure and post-merge main CI remain pending. V0.4-E Stock Transfer / Inventory Documents / reporting has not begun. Human V0.4 business UAT remains a separate Release Exit Gate.
+
+## V0.4-D completed / V0.4-E under validation
+
+- PR #91 squash-merged to `main` as `941e2e9c2966bac66ea1d01b34cb39fb5ce75bdd`; Issue #89 closed; post-merge main CI #1492 passed.
+- Issue #92 and `docs/V0.4-E-PREFLIGHT.md` authorize the approved Stage E scope. The pre-flight found no new business-policy or architecture decision needed.
+- Branch `v0.4-e-transfer-docs-reporting` and draft PR #93 include Stock Transfer schema/API/UI, authorized Inventory document targets, ledger-derived balance/movement reports, and Stage E integration/live HTTP acceptance work.
+- Stage E exact-head branch/PR CI, review resolution, final merge and post-merge main CI are pending. `docs/V0.4-UAT.md` and `docs/V0.4-RELEASE-CHECKLIST.md` keep the human Release Exit Gate explicitly pending.
+- V0.5 must not begin before V0.4 technical completion and explicit Product / Business Owner acceptance under AC-V04-031.
