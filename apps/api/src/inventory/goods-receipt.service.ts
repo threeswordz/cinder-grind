@@ -12,6 +12,10 @@ import { AuditService } from '../audit/audit.service';
 import { AuthenticatedUserContext } from '../auth/auth.types';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProjectAccessService } from '../projects/project-access.service';
+import {
+  InventoryQuantityService,
+  StockDimension,
+} from './inventory-quantity.service';
 
 type AuditContext = { auth: AuthenticatedUserContext; correlationId?: string };
 type Db = Prisma.TransactionClient | PrismaService;
@@ -25,6 +29,7 @@ export class GoodsReceiptService {
     private readonly audit: AuditService,
     private readonly approvals: ApprovalService,
     private readonly numbers: NumberSequenceService,
+    private readonly quantities: InventoryQuantityService,
   ) {}
 
   async projects(auth: AuthenticatedUserContext) {
@@ -358,6 +363,46 @@ export class GoodsReceiptService {
       }
       const originals = receipt.stockTransactions.filter((row) => row.movementType === 'GOODS_RECEIPT');
       if (originals.length !== receipt.items.length) throw new ConflictException({ code: 'RECEIPT_LEDGER_INCOMPLETE' });
+
+      const dimensions = new Map<
+        string,
+        { dimension: StockDimension; reversalQuantity: Prisma.Decimal }
+      >();
+      for (const row of originals) {
+        if (!row.projectId) {
+          throw new ConflictException({ code: 'RECEIPT_LEDGER_PROJECT_MISSING' });
+        }
+        const dimension: StockDimension = {
+          companyId: row.companyId,
+          warehouseId: row.warehouseId,
+          materialId: row.materialId,
+          projectId: row.projectId,
+          uomId: row.uomId,
+        };
+        const key = this.quantities.key(dimension);
+        const existing = dimensions.get(key);
+        if (existing) {
+          existing.reversalQuantity = existing.reversalQuantity.plus(row.quantity);
+        } else {
+          dimensions.set(key, {
+            dimension,
+            reversalQuantity: new Prisma.Decimal(row.quantity),
+          });
+        }
+      }
+      for (const key of [...dimensions.keys()].sort()) {
+        await this.quantities.lock(tx, dimensions.get(key)!.dimension);
+      }
+      for (const { dimension, reversalQuantity } of dimensions.values()) {
+        const available = await this.quantities.available(tx, dimension);
+        if (reversalQuantity.greaterThan(available.available)) {
+          throw new ConflictException({
+            code: 'RECEIPT_REVERSAL_INSUFFICIENT_AVAILABLE',
+            detail: 'Goods Receipt reversal cannot create negative stock or consume stock protected by an Active Reservation.',
+          });
+        }
+      }
+
       const at = new Date();
       await tx.goodsReceipt.update({
         where: { id }, data: {

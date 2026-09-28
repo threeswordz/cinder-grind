@@ -364,6 +364,10 @@ export class MaterialReturnService {
         if (current.postedAt || current.reversedAt) {
           throw new ConflictException({ code: 'MATERIAL_RETURN_ALREADY_POSTED' });
         }
+        await tx.$executeRawUnsafe(
+          'SELECT pg_advisory_xact_lock(hashtext($1))',
+          'inventory-warehouse:' + current.warehouseId,
+        );
         await this.validateWarehouse(
           context.auth,
           current.projectId,
@@ -470,24 +474,27 @@ export class MaterialReturnService {
   }
 
   async reject(context: AuditContext, id: string, comment?: string) {
-    const row = await this.get(context.auth, id);
-    if (!row.approvalInstanceId || !row.submittedByUserId || row.postedAt) {
-      throw new ConflictException({ code: 'MATERIAL_RETURN_NOT_SUBMITTED' });
-    }
-    const result = await this.approvals.reject(
-      row.approvalInstanceId,
-      context.auth,
-      row.createdByUserId,
-      comment,
-    );
-    await this.audit.record({
-      ...context,
-      entityType: 'MATERIAL_RETURN',
-      entityId: id,
-      action: 'REJECT',
-      newValues: { approvalState: result.approvalState },
-    });
-    return this.get(context.auth, id);
+    return this.prisma.$transaction(async (tx) => {
+      const row = await this.get(context.auth, id, tx);
+      if (!row.approvalInstanceId || !row.submittedByUserId || row.postedAt) {
+        throw new ConflictException({ code: 'MATERIAL_RETURN_NOT_SUBMITTED' });
+      }
+      const result = await this.approvals.reject(
+        row.approvalInstanceId,
+        context.auth,
+        row.createdByUserId,
+        comment,
+        tx,
+      );
+      await this.audit.record({
+        ...context,
+        entityType: 'MATERIAL_RETURN',
+        entityId: id,
+        action: 'REJECT',
+        newValues: { approvalState: result.approvalState },
+      }, tx);
+      return this.get(context.auth, id, tx);
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
   }
 
   async reverse(
@@ -512,7 +519,10 @@ export class MaterialReturnService {
       if (originals.length !== row.items.length) {
         throw new ConflictException({ code: 'MATERIAL_RETURN_LEDGER_INCOMPLETE' });
       }
-      const dimensions = new Map<string, StockDimension>();
+      const dimensions = new Map<
+        string,
+        { dimension: StockDimension; reversalQuantity: Prisma.Decimal }
+      >();
       for (const movement of originals) {
         const dimension: StockDimension = {
           companyId: movement.companyId,
@@ -521,22 +531,26 @@ export class MaterialReturnService {
           projectId: movement.projectId!,
           uomId: movement.uomId,
         };
-        dimensions.set(this.quantities.key(dimension), dimension);
+        const key = this.quantities.key(dimension);
+        const existing = dimensions.get(key);
+        if (existing) {
+          existing.reversalQuantity = existing.reversalQuantity.plus(
+            movement.quantity,
+          );
+        } else {
+          dimensions.set(key, {
+            dimension,
+            reversalQuantity: new Prisma.Decimal(movement.quantity),
+          });
+        }
       }
       for (const key of [...dimensions.keys()].sort()) {
-        await this.quantities.lock(tx, dimensions.get(key)!);
+        await this.quantities.lock(tx, dimensions.get(key)!.dimension);
       }
 
-      for (const movement of originals) {
-        const dimension: StockDimension = {
-          companyId: movement.companyId,
-          warehouseId: movement.warehouseId,
-          materialId: movement.materialId,
-          projectId: movement.projectId!,
-          uomId: movement.uomId,
-        };
+      for (const { dimension, reversalQuantity } of dimensions.values()) {
         const available = await this.quantities.available(tx, dimension);
-        if (movement.quantity.greaterThan(available.available)) {
+        if (reversalQuantity.greaterThan(available.available)) {
           throw new ConflictException({
             code: 'MATERIAL_RETURN_REVERSAL_INSUFFICIENT_AVAILABLE',
             detail: 'Return reversal cannot create negative stock or consume stock reserved by an Active Reservation.',

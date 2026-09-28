@@ -18,6 +18,7 @@ import { ProjectScopeService } from '../authorization/project-scope.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { GoodsReceiptService } from '../inventory/goods-receipt.service';
 import { InventoryQuantityService } from '../inventory/inventory-quantity.service';
+import { InventoryService } from '../inventory/inventory.service';
 import { MaterialIssueService } from '../inventory/material-issue.service';
 import { MaterialReservationService } from '../inventory/material-reservation.service';
 import { MaterialReturnService } from '../inventory/material-return.service';
@@ -398,9 +399,17 @@ test('V0.3-D Purchase Orders preserve awarded-source traceability, approval and 
       numbers,
     );
 
-    const receipts = new GoodsReceiptService(prisma, access, audit, approvals, numbers);
-    const balances = new StockBalanceService(prisma, access);
     const quantities = new InventoryQuantityService(prisma);
+    const inventory = new InventoryService(prisma, access, audit);
+    const receipts = new GoodsReceiptService(
+      prisma,
+      access,
+      audit,
+      approvals,
+      numbers,
+      quantities,
+    );
+    const balances = new StockBalanceService(prisma, access);
     const reservations = new MaterialReservationService(
       prisma, access, audit, numbers, quantities,
     );
@@ -782,6 +791,169 @@ test('V0.3-D Purchase Orders preserve awarded-source traceability, approval and 
     assert.equal(postedBalance[0]?.isSiteWarehouse, true);
     assert.deepEqual(await balances.balances(outsiderAuth, {}), []);
 
+    const staleWbs = await prisma.wbsElement.create({
+      data: {
+        projectId: project.id,
+        wbsCode: 'STALE-' + suffix,
+        wbsName: 'Reservation activation stale context',
+      },
+    });
+    const staleReservation = await reservations.create(
+      { auth: makerAuth },
+      {
+        projectId: project.id,
+        warehouseId: warehouse.id,
+        materialId: material.id,
+        uomId: uom.id,
+        wbsId: staleWbs.id,
+        quantity: new Prisma.Decimal('1'),
+      },
+    );
+    await prisma.wbsElement.update({
+      where: { id: staleWbs.id },
+      data: { isActive: false },
+    });
+    await assert.rejects(
+      () => reservations.activate({ auth: makerAuth }, staleReservation.id),
+      (error: unknown) =>
+        error instanceof UnprocessableEntityException &&
+        (error.getResponse() as { code?: string }).code === 'RESERVATION_WBS_INVALID',
+      'Reservation activation must revalidate that its WBS context is still active.',
+    );
+    assert.equal(
+      (await reservations.get(makerAuth, staleReservation.id)).status,
+      'DRAFT',
+      'Failed Reservation activation must leave the Draft unchanged.',
+    );
+
+    const staleIssueWbs = await prisma.wbsElement.create({
+      data: {
+        projectId: project.id,
+        wbsCode: 'ISSUE-STALE-' + suffix,
+        wbsName: 'Issue final approval stale context',
+      },
+    });
+    const staleIssue = await materialIssues.create(
+      { auth: makerAuth },
+      {
+        projectId: project.id,
+        warehouseId: warehouse.id,
+        issueDate: today,
+        issuedToEmployeeId: makerEmployee.id,
+        lines: [{
+          materialId: material.id,
+          quantity: new Prisma.Decimal('1'),
+          uomId: uom.id,
+          wbsId: staleIssueWbs.id,
+          costCodeId: costCode.id,
+        }],
+      },
+    );
+    await materialIssues.submit(
+      { auth: makerAuth },
+      staleIssue.id,
+      issueWorkflow.workflowCode,
+    );
+    await prisma.wbsElement.update({
+      where: { id: staleIssueWbs.id },
+      data: { isActive: false },
+    });
+    await assert.rejects(
+      () => materialIssues.approve(
+        { auth: checkerAuth },
+        staleIssue.id,
+        'stale-issue-post',
+      ),
+      (error: unknown) =>
+        error instanceof UnprocessableEntityException &&
+        (error.getResponse() as { code?: string }).code === 'MATERIAL_ISSUE_WBS_INVALID',
+      'Final Issue posting must revalidate line dimensions after submission.',
+    );
+    const staleIssueAfterFailure = await materialIssues.get(
+      makerAuth,
+      staleIssue.id,
+    );
+    assert.equal(
+      staleIssueAfterFailure.postedAt,
+      null,
+      'Failed final Issue validation must not post stock.',
+    );
+    assert.equal(
+      staleIssueAfterFailure.approvalInstance?.approvalState,
+      'SUBMITTED',
+      'Failed final Issue validation must roll back final approval state.',
+    );
+    assert.equal(
+      await prisma.stockTransaction.count({
+        where: { materialIssueId: staleIssue.id },
+      }),
+      0,
+      'Failed final Issue validation must not append ledger effects.',
+    );
+
+    const rejectIssue = await materialIssues.create(
+      { auth: makerAuth },
+      {
+        projectId: project.id,
+        warehouseId: warehouse.id,
+        issueDate: today,
+        lines: [{
+          materialId: material.id,
+          quantity: new Prisma.Decimal('1'),
+          uomId: uom.id,
+          wbsId: wbs.id,
+          costCodeId: costCode.id,
+        }],
+      },
+    );
+    await materialIssues.submit(
+      { auth: makerAuth },
+      rejectIssue.id,
+      issueWorkflow.workflowCode,
+    );
+    const originalAuditRecord = audit.record;
+    audit.record = async (input, client) => {
+      if (
+        input.entityType === 'MATERIAL_ISSUE' &&
+        input.entityId === rejectIssue.id &&
+        input.action === 'REJECT'
+      ) {
+        throw new Error('Injected audit failure');
+      }
+      return originalAuditRecord.call(audit, input, client);
+    };
+    try {
+      await assert.rejects(
+        () => materialIssues.reject(
+          { auth: checkerAuth },
+          rejectIssue.id,
+          'Reject must roll back with failed audit',
+        ),
+        /Injected audit failure/,
+      );
+    } finally {
+      audit.record = originalAuditRecord;
+    }
+    const rejectIssueAfterFailure = await materialIssues.get(
+      makerAuth,
+      rejectIssue.id,
+    );
+    assert.equal(
+      rejectIssueAfterFailure.approvalInstance?.approvalState,
+      'SUBMITTED',
+      'Issue rejection must roll back if its audit record cannot commit.',
+    );
+    assert.equal(
+      await prisma.approvalAction.count({
+        where: {
+          approvalInstanceId: rejectIssueAfterFailure.approvalInstanceId!,
+          action: 'REJECT',
+        },
+      }),
+      0,
+      'Rolled-back Issue rejection must not retain an Approval Action.',
+    );
+
     const competingReservationA = await reservations.create(
       { auth: makerAuth },
       {
@@ -823,6 +995,82 @@ test('V0.3-D Purchase Orders preserve awarded-source traceability, approval and 
       'Release concurrency test reservation',
     );
 
+    const replacementReservation = await reservations.create(
+      { auth: makerAuth },
+      {
+        projectId: project.id,
+        warehouseId: warehouse.id,
+        materialId: material.id,
+        uomId: uom.id,
+        wbsId: wbs.id,
+        quantity: new Prisma.Decimal('1'),
+      },
+    );
+    await reservations.activate({ auth: makerAuth }, replacementReservation.id);
+    const rejectedReservedIssue = await materialIssues.create(
+      { auth: makerAuth },
+      {
+        projectId: project.id,
+        warehouseId: warehouse.id,
+        issueDate: today,
+        lines: [{
+          materialId: material.id,
+          quantity: new Prisma.Decimal('1'),
+          uomId: uom.id,
+          reservationId: replacementReservation.id,
+          wbsId: wbs.id,
+          costCodeId: costCode.id,
+        }],
+      },
+    );
+    await materialIssues.submit(
+      { auth: makerAuth },
+      rejectedReservedIssue.id,
+      issueWorkflow.workflowCode,
+    );
+    await materialIssues.reject(
+      { auth: checkerAuth },
+      rejectedReservedIssue.id,
+      'Reject first reservation-linked Issue',
+    );
+    const replacementIssue = await materialIssues.create(
+      { auth: makerAuth },
+      {
+        projectId: project.id,
+        warehouseId: warehouse.id,
+        issueDate: today,
+        lines: [{
+          materialId: material.id,
+          quantity: new Prisma.Decimal('1'),
+          uomId: uom.id,
+          reservationId: replacementReservation.id,
+          wbsId: wbs.id,
+          costCodeId: costCode.id,
+        }],
+      },
+    );
+    await materialIssues.submit(
+      { auth: makerAuth },
+      replacementIssue.id,
+      issueWorkflow.workflowCode,
+    );
+    await materialIssues.approve(
+      { auth: checkerAuth },
+      replacementIssue.id,
+      'replacement-reserved-issue-post',
+    );
+    assert.equal(
+      (await reservations.get(makerAuth, replacementReservation.id)).status,
+      'FULFILLED',
+      'A rejected Issue must not permanently block a replacement Issue from fulfilling the Active Reservation.',
+    );
+    await materialIssues.reverse(
+      { auth: makerAuth },
+      replacementIssue.id,
+      'replacement-reserved-issue-reverse',
+      'Restore replacement reservation regression stock',
+    );
+
     const reservation = await reservations.create(
       { auth: makerAuth },
       {
@@ -848,6 +1096,19 @@ test('V0.3-D Purchase Orders preserve awarded-source traceability, approval and 
     assert.equal(reservedAvailability.onHand, '3.0000');
     assert.equal(reservedAvailability.reserved, '2.0000');
     assert.equal(reservedAvailability.available, '1.0000');
+    await assert.rejects(
+      () => receipts.reverse(
+        { auth: makerAuth },
+        first.id,
+        'receipt-reverse-while-reserved',
+        'Must not consume Active Reservation stock',
+      ),
+      (error: unknown) =>
+        error instanceof ConflictException &&
+        (error.getResponse() as { code?: string }).code ===
+          'RECEIPT_REVERSAL_INSUFFICIENT_AVAILABLE',
+      'Goods Receipt reversal must not consume stock protected by an Active Reservation.',
+    );
 
     const issue = await materialIssues.create(
       { auth: makerAuth },
@@ -888,6 +1149,13 @@ test('V0.3-D Purchase Orders preserve awarded-source traceability, approval and 
     assert.equal(postedIssue.stockTransactions.length, 1);
     assert.equal(postedIssue.stockTransactions[0]?.movementType, 'MATERIAL_ISSUE');
     assert.equal(postedIssue.stockTransactions[0]?.quantity.toString(), '-2');
+    await assert.rejects(
+      () => prisma.materialIssue.update({
+        where: { id: postedIssue.id },
+        data: { postKey: 'tampered-issue-post-key' },
+      }),
+      'Posted Material Issue posting identity must be immutable in PostgreSQL.',
+    );
     assert.equal(
       (await reservations.get(makerAuth, reservation.id)).status,
       'FULFILLED',
@@ -900,6 +1168,79 @@ test('V0.3-D Purchase Orders preserve awarded-source traceability, approval and 
         materialId: material.id,
       }))[0]?.quantity,
       '1.0000',
+    );
+    await assert.rejects(
+      () => receipts.reverse(
+        { auth: makerAuth },
+        first.id,
+        'receipt-reverse-after-issue',
+        'Must not reverse consumed receipt stock',
+      ),
+      (error: unknown) =>
+        error instanceof ConflictException &&
+        (error.getResponse() as { code?: string }).code ===
+          'RECEIPT_REVERSAL_INSUFFICIENT_AVAILABLE',
+      'Goods Receipt reversal must not create negative stock after downstream Issue consumption.',
+    );
+
+    const rejectReturn = await materialReturns.create(
+      { auth: makerAuth },
+      {
+        projectId: project.id,
+        warehouseId: warehouse.id,
+        returnDate: today,
+        lines: [{
+          materialIssueItemId: postedIssue.items[0]!.id,
+          quantity: new Prisma.Decimal('1'),
+        }],
+      },
+    );
+    await materialReturns.submit(
+      { auth: makerAuth },
+      rejectReturn.id,
+      returnWorkflow.workflowCode,
+    );
+    const originalReturnAuditRecord = audit.record;
+    audit.record = async (input, client) => {
+      if (
+        input.entityType === 'MATERIAL_RETURN' &&
+        input.entityId === rejectReturn.id &&
+        input.action === 'REJECT'
+      ) {
+        throw new Error('Injected return audit failure');
+      }
+      return originalReturnAuditRecord.call(audit, input, client);
+    };
+    try {
+      await assert.rejects(
+        () => materialReturns.reject(
+          { auth: checkerAuth },
+          rejectReturn.id,
+          'Return reject must roll back with failed audit',
+        ),
+        /Injected return audit failure/,
+      );
+    } finally {
+      audit.record = originalReturnAuditRecord;
+    }
+    const rejectReturnAfterFailure = await materialReturns.get(
+      makerAuth,
+      rejectReturn.id,
+    );
+    assert.equal(
+      rejectReturnAfterFailure.approvalInstance?.approvalState,
+      'SUBMITTED',
+      'Return rejection must roll back if its audit record cannot commit.',
+    );
+    assert.equal(
+      await prisma.approvalAction.count({
+        where: {
+          approvalInstanceId: rejectReturnAfterFailure.approvalInstanceId!,
+          action: 'REJECT',
+        },
+      }),
+      0,
+      'Rolled-back Return rejection must not retain an Approval Action.',
     );
 
     const materialReturn = await materialReturns.create(
@@ -927,6 +1268,23 @@ test('V0.3-D Purchase Orders preserve awarded-source traceability, approval and 
     assert.equal(postedReturn.stockTransactions.length, 1);
     assert.equal(postedReturn.stockTransactions[0]?.movementType, 'MATERIAL_RETURN');
     assert.equal(postedReturn.stockTransactions[0]?.quantity.toString(), '1');
+    assert.equal(
+      postedReturn.stockTransactions[0]?.wbsId,
+      wbs.id,
+      'Return ledger must preserve the source Issue WBS attribution.',
+    );
+    assert.equal(
+      postedReturn.stockTransactions[0]?.costCodeId,
+      costCode.id,
+      'Return ledger must preserve the source Issue Cost Code attribution.',
+    );
+    await assert.rejects(
+      () => prisma.materialReturn.update({
+        where: { id: postedReturn.id },
+        data: { postKey: 'tampered-return-post-key' },
+      }),
+      'Posted Material Return posting identity must be immutable in PostgreSQL.',
+    );
 
     await assert.rejects(
       () => materialIssues.reverse(
@@ -968,6 +1326,94 @@ test('V0.3-D Purchase Orders preserve awarded-source traceability, approval and 
       ).toString(),
       '0',
     );
+    const raceIssue = await materialIssues.create(
+      { auth: makerAuth },
+      {
+        projectId: project.id,
+        warehouseId: warehouse.id,
+        issueDate: today,
+        lines: [{
+          materialId: material.id,
+          quantity: new Prisma.Decimal('1'),
+          uomId: uom.id,
+          wbsId: wbs.id,
+          costCodeId: costCode.id,
+        }],
+      },
+    );
+    await materialIssues.submit(
+      { auth: makerAuth },
+      raceIssue.id,
+      issueWorkflow.workflowCode,
+    );
+    const postedRaceIssue = await materialIssues.approve(
+      { auth: checkerAuth },
+      raceIssue.id,
+      'race-issue-post',
+    );
+    const raceReturn = await materialReturns.create(
+      { auth: makerAuth },
+      {
+        projectId: project.id,
+        warehouseId: warehouse.id,
+        returnDate: today,
+        lines: [{
+          materialIssueItemId: postedRaceIssue.items[0]!.id,
+          quantity: new Prisma.Decimal('1'),
+        }],
+      },
+    );
+    await materialReturns.submit(
+      { auth: makerAuth },
+      raceReturn.id,
+      returnWorkflow.workflowCode,
+    );
+    const returnVsIssueReversal = await Promise.allSettled([
+      materialReturns.approve(
+        { auth: checkerAuth },
+        raceReturn.id,
+        'race-return-post',
+      ),
+      materialIssues.reverse(
+        { auth: makerAuth },
+        raceIssue.id,
+        'race-issue-reverse',
+        'Race Return posting against Issue reversal',
+      ),
+    ]);
+    assert.equal(
+      returnVsIssueReversal.filter((result) => result.status === 'fulfilled').length,
+      1,
+      'Concurrent Return posting and source Issue reversal must serialize so only one succeeds.',
+    );
+    const raceReturnState = await materialReturns.get(makerAuth, raceReturn.id);
+    const raceIssueState = await materialIssues.get(makerAuth, raceIssue.id);
+    if (raceReturnState.postedAt && !raceReturnState.reversedAt) {
+      await materialReturns.reverse(
+        { auth: makerAuth },
+        raceReturn.id,
+        'race-return-reverse',
+        'Clean up concurrency regression Return',
+      );
+    }
+    if (!raceIssueState.reversedAt) {
+      await materialIssues.reverse(
+        { auth: makerAuth },
+        raceIssue.id,
+        'race-issue-reverse-cleanup',
+        'Clean up concurrency regression Issue',
+      );
+    }
+    assert.equal(
+      (await balances.balances(makerAuth, {
+        projectId: project.id,
+        warehouseId: warehouse.id,
+        materialId: material.id,
+      }))[0]?.quantity,
+      '1.0000',
+      'Concurrency regression cleanup must restore the balance held before the race.',
+    );
+
     const reversedIssue = await materialIssues.reverse(
       { auth: makerAuth },
       issue.id,
@@ -994,6 +1440,238 @@ test('V0.3-D Purchase Orders preserve awarded-source traceability, approval and 
       }))[0]?.quantity,
       '3.0000',
       'Return and Issue reversals must restore the original receipt balance exactly.',
+    );
+
+    const aggregateIssue = await materialIssues.create(
+      { auth: makerAuth },
+      {
+        projectId: project.id,
+        warehouseId: warehouse.id,
+        issueDate: today,
+        lines: [
+          {
+            materialId: material.id,
+            quantity: new Prisma.Decimal('1'),
+            uomId: uom.id,
+            wbsId: wbs.id,
+            costCodeId: costCode.id,
+          },
+          {
+            materialId: material.id,
+            quantity: new Prisma.Decimal('1'),
+            uomId: uom.id,
+            wbsId: wbs.id,
+            costCodeId: costCode.id,
+          },
+        ],
+      },
+    );
+    await materialIssues.submit(
+      { auth: makerAuth },
+      aggregateIssue.id,
+      issueWorkflow.workflowCode,
+    );
+    const postedAggregateIssue = await materialIssues.approve(
+      { auth: checkerAuth },
+      aggregateIssue.id,
+      'aggregate-issue-post',
+    );
+    const aggregateReturn = await materialReturns.create(
+      { auth: makerAuth },
+      {
+        projectId: project.id,
+        warehouseId: warehouse.id,
+        returnDate: today,
+        lines: postedAggregateIssue.items.map((item) => ({
+          materialIssueItemId: item.id,
+          quantity: new Prisma.Decimal('1'),
+        })),
+      },
+    );
+    await materialReturns.submit(
+      { auth: makerAuth },
+      aggregateReturn.id,
+      returnWorkflow.workflowCode,
+    );
+    await materialReturns.approve(
+      { auth: checkerAuth },
+      aggregateReturn.id,
+      'aggregate-return-post',
+    );
+    const drainIssue = await materialIssues.create(
+      { auth: makerAuth },
+      {
+        projectId: project.id,
+        warehouseId: warehouse.id,
+        issueDate: today,
+        lines: [{
+          materialId: material.id,
+          quantity: new Prisma.Decimal('1.5'),
+          uomId: uom.id,
+          wbsId: wbs.id,
+          costCodeId: costCode.id,
+        }],
+      },
+    );
+    await materialIssues.submit(
+      { auth: makerAuth },
+      drainIssue.id,
+      issueWorkflow.workflowCode,
+    );
+    await materialIssues.approve(
+      { auth: checkerAuth },
+      drainIssue.id,
+      'aggregate-drain-post',
+    );
+    await assert.rejects(
+      () => materialReturns.reverse(
+        { auth: makerAuth },
+        aggregateReturn.id,
+        'aggregate-return-blocked-reverse',
+        'Aggregate reversal must not create negative stock',
+      ),
+      (error: unknown) =>
+        error instanceof ConflictException &&
+        (error.getResponse() as { code?: string }).code ===
+          'MATERIAL_RETURN_REVERSAL_INSUFFICIENT_AVAILABLE',
+      'Return reversal must compare the aggregate same-dimension quantity with availability.',
+    );
+    await materialIssues.reverse(
+      { auth: makerAuth },
+      drainIssue.id,
+      'aggregate-drain-reverse',
+      'Restore stock for aggregate Return reversal',
+    );
+    await materialReturns.reverse(
+      { auth: makerAuth },
+      aggregateReturn.id,
+      'aggregate-return-reverse',
+      'Reverse after sufficient aggregate stock is restored',
+    );
+    await materialIssues.reverse(
+      { auth: makerAuth },
+      aggregateIssue.id,
+      'aggregate-issue-reverse',
+      'Restore aggregate reversal regression fixture',
+    );
+    assert.equal(
+      (await balances.balances(makerAuth, {
+        projectId: project.id,
+        warehouseId: warehouse.id,
+        materialId: material.id,
+      }))[0]?.quantity,
+      '3.0000',
+      'Aggregate Return reversal regression cleanup must restore stock exactly.',
+    );
+
+    const archiveIssue = await materialIssues.create(
+      { auth: makerAuth },
+      {
+        projectId: project.id,
+        warehouseId: warehouse.id,
+        issueDate: today,
+        lines: [{
+          materialId: material.id,
+          quantity: new Prisma.Decimal('3'),
+          uomId: uom.id,
+          wbsId: wbs.id,
+          costCodeId: costCode.id,
+        }],
+      },
+    );
+    await materialIssues.submit(
+      { auth: makerAuth },
+      archiveIssue.id,
+      issueWorkflow.workflowCode,
+    );
+    const postedArchiveIssue = await materialIssues.approve(
+      { auth: checkerAuth },
+      archiveIssue.id,
+      'archive-issue-post',
+    );
+    await inventory.archiveWarehouse({ auth: makerAuth }, warehouse.id);
+    await assert.rejects(
+      () => materialIssues.reverse(
+        { auth: makerAuth },
+        archiveIssue.id,
+        'archive-issue-reverse-blocked',
+        'Inactive Warehouse must block stock restoration',
+      ),
+      (error: unknown) =>
+        error instanceof ConflictException &&
+        (error.getResponse() as { code?: string }).code ===
+          'MATERIAL_ISSUE_REVERSAL_WAREHOUSE_INACTIVE',
+      'Issue reversal must not restore positive stock into an archived Warehouse.',
+    );
+    await inventory.reactivateWarehouse({ auth: makerAuth }, warehouse.id);
+
+    const archiveReturn = await materialReturns.create(
+      { auth: makerAuth },
+      {
+        projectId: project.id,
+        warehouseId: warehouse.id,
+        returnDate: today,
+        lines: [{
+          materialIssueItemId: postedArchiveIssue.items[0]!.id,
+          quantity: new Prisma.Decimal('1'),
+        }],
+      },
+    );
+    await materialReturns.submit(
+      { auth: makerAuth },
+      archiveReturn.id,
+      returnWorkflow.workflowCode,
+    );
+    const returnVsArchive = await Promise.allSettled([
+      materialReturns.approve(
+        { auth: checkerAuth },
+        archiveReturn.id,
+        'archive-race-return-post',
+      ),
+      inventory.archiveWarehouse({ auth: makerAuth }, warehouse.id),
+    ]);
+    assert.equal(
+      returnVsArchive.filter((result) => result.status === 'fulfilled').length,
+      1,
+      'Return posting and Warehouse archival must serialize so only one can commit.',
+    );
+    const warehouseAfterRace = await prisma.warehouse.findUniqueOrThrow({
+      where: { id: warehouse.id },
+      select: { isActive: true },
+    });
+    const archiveReturnAfterRace = await materialReturns.get(
+      makerAuth,
+      archiveReturn.id,
+    );
+    assert.ok(
+      warehouseAfterRace.isActive || !archiveReturnAfterRace.postedAt,
+      'A posted Return must never leave positive stock in an archived Warehouse.',
+    );
+    if (archiveReturnAfterRace.postedAt && !archiveReturnAfterRace.reversedAt) {
+      await materialReturns.reverse(
+        { auth: makerAuth },
+        archiveReturn.id,
+        'archive-race-return-reverse',
+        'Clean up Return versus Warehouse archival regression',
+      );
+    }
+    if (!warehouseAfterRace.isActive) {
+      await inventory.reactivateWarehouse({ auth: makerAuth }, warehouse.id);
+    }
+    await materialIssues.reverse(
+      { auth: makerAuth },
+      archiveIssue.id,
+      'archive-issue-reverse-cleanup',
+      'Restore stock after Warehouse archival regressions',
+    );
+    assert.equal(
+      (await balances.balances(makerAuth, {
+        projectId: project.id,
+        warehouseId: warehouse.id,
+        materialId: material.id,
+      }))[0]?.quantity,
+      '3.0000',
+      'Warehouse archival regression cleanup must restore the original stock.',
     );
 
     await assert.rejects(
@@ -1164,6 +1842,24 @@ test('V0.3-D Purchase Orders preserve awarded-source traceability, approval and 
       poLineGuard[0]?.definition ?? '',
       /po-award:/,
       'Database PO-line guard must use the same Supplier Award lock namespace as the service.',
+    );
+
+    const warehouseHistoryGuard = await prisma.$queryRaw<
+      Array<{ definition: string }>
+    >`
+      SELECT pg_get_functiondef(
+        'enforce_warehouse_stock_history()'::regprocedure
+      ) AS definition
+    `;
+    assert.match(
+      warehouseHistoryGuard[0]?.definition ?? '',
+      /pg_advisory_xact_lock/,
+      'Warehouse archival must serialize with Reservation activation.',
+    );
+    assert.match(
+      warehouseHistoryGuard[0]?.definition ?? '',
+      /inventory-warehouse:/,
+      'Warehouse archival and Reservation activation must share one lock namespace.',
     );
   } finally {
     await prisma.$disconnect();

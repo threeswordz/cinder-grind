@@ -280,6 +280,11 @@ export class MaterialReservationService {
       if (row.status !== 'DRAFT') {
         throw new ConflictException({ code: 'RESERVATION_NOT_DRAFT' });
       }
+      await tx.$executeRawUnsafe(
+        'SELECT pg_advisory_xact_lock(hashtext($1))',
+        'inventory-warehouse:' + row.warehouseId,
+      );
+      await this.validateDimensions(context.auth, row, tx);
       const dimension = this.dimension(context.auth.companyId, row);
       await this.quantities.lock(tx, dimension);
       const availability = await this.quantities.available(tx, dimension);
