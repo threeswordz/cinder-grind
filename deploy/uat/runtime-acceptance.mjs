@@ -2200,6 +2200,14 @@ await request(unassignedReceipt, '/inventory/reports/movements?projectId=' + pro
   { expected: 403 });
 await request(unassignedReceipt, '/inventory/stock-transfers/' + stageETransferId,
   { expected: 403 });
+const transferEvidenceType = await request(admin, '/document-types', {
+  method: 'POST',
+  json: {
+    documentTypeCode: 'TRANSFER-' + suffix,
+    documentTypeName: 'Transfer Evidence ' + suffix,
+  },
+  expected: 201,
+});
 const inventoryTargets = await request(
   pm, '/documents/projects/' + projectId + '/targets/options',
 );
@@ -2212,7 +2220,7 @@ check(
   'Document target options omitted an authorized Inventory transaction family.',
 );
 const transferEvidence = new FormData();
-transferEvidence.set('documentTypeId', documentType.data.data.id);
+transferEvidence.set('documentTypeId', transferEvidenceType.data.data.id);
 transferEvidence.set('file', new Blob(
   [new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10])],
   { type: 'image/png' },
