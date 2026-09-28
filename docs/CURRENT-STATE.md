@@ -4,13 +4,13 @@
 **Source of truth:** Live GitHub repository state
 
 - Current Release: V0.4 Inventory
-- Current Stage: V0.4-D Material Reservation / Issue / Return — IMPLEMENTATION / VALIDATION
-- Completed Stages: V0.1-A through V0.1-H; V0.2-A through V0.2-G; V0.3-A through V0.3-E; V0.4-A Warehouse Foundation; V0.4-B Goods Receipt / Ledger; V0.4-C Derived Stock Balance
-- Active Issue: #89 — V0.4-D Material Reservation / Issue / Return
+- Current Stage: V0.4-E Stock Transfer / Inventory Documents / Reporting / Release Evidence — PRE-FLIGHT
+- Completed Stages: V0.1-A through V0.1-H; V0.2-A through V0.2-G; V0.3-A through V0.3-E; V0.4-A Warehouse Foundation; V0.4-B Goods Receipt / Ledger; V0.4-C Derived Stock Balance; V0.4-D Material Reservation / Issue / Return
+- Active Issue: #92 — V0.4-E Stock Transfer / Inventory Documents / Reporting / Release Evidence\n- Completed Issue: #89 — V0.4-D Material Reservation / Issue / Return
 - Completed Issue: #87 — V0.4-C Derived Stock Balance / Project-Site Stock Views
 - Completed Issue: #85 — V0.4-B Goods Receipt / PO Receipt Controls / Stock Transaction Ledger
 - Completed Issue: #83 — V0.4-A Warehouse / Inventory Foundation
-- Active Branch: `v0.4-d-reservation-issue-return`
+- Active Branch: `v0.4-e-transfer-docs-reporting`\n- Merged PR: #91 — V0.4-D Material Reservation / Issue / Return (`941e2e9c2966bac66ea1d01b34cb39fb5ce75bdd`); post-merge main CI #1492 SUCCESS
 - Merged PR: #88 — V0.4-C Derived Stock Balance / Project-Site Stock Views (`096ee639f7e0597dd6c4068d9d1d0c323f66f15d`)
 - Merged PR: #86 — V0.4-B Goods Receipt / Stock Transaction Ledger (`1f39a0d9e9c8d0d9dc32112e6eec4ec36321ac4d`)
 - Merged PR: #84 — V0.4-A Warehouse / Inventory Foundation (`4ab736203c9870f4b6782ad85c108f3b0b66accd`)
@@ -77,7 +77,7 @@
 - V0.1 cross-module release acceptance scenario: PASS in the Stage H release-candidate regression suite.
 - Open defect check at V0.1 acceptance: no Severity 1 or Severity 2 release-blocking defect recorded.
 - Governance: `AGENTS.md`, `docs/PROJECT-GOVERNANCE.md`, PR governance checklist and DEC-008 are active; material decisions must pass the repository pre-flight and open-source/zero-cost-first constraint.
-- Next action: run the V0.4-D documentation-head exact CI, then open the Stage-D PR. Resolve review findings and merge only after PR CI is green; V0.4-E must wait for the Stage-D merge and post-merge main CI.
+- Next action: validate the V0.4-E pre-flight on the exact branch head, then implement only the approved Stage-E Transfer/Documents/reporting/release-evidence scope under Issue #92. Human V0.4 Product / Business Owner acceptance remains a separate Release Exit Gate.
 
 ## Stage E completed
 
