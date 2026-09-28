@@ -67,7 +67,7 @@ export class StockBalanceService {
       });
       if (projects.length === 0) return [];
       conditions.push(
-        Prisma.sql`st.project_id IN (${Prisma.join(projects.map((row) => row.id))}::uuid)`,
+        Prisma.sql`st.project_id IN (${Prisma.join(projects.map((row) => Prisma.sql`${row.id}::uuid`))})`,
       );
     }
 
