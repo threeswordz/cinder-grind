@@ -2146,7 +2146,7 @@ const stageETransfer = await request(pm, '/inventory/stock-transfers', {
   expected: 201,
 });
 const stageETransferId = stageETransfer.data.data.id;
-check(/^ST\\d{4}-\\d{3}$/.test(stageETransfer.data.data.transferNumber),
+check(/^ST\d{4}-\d{3}$/.test(stageETransfer.data.data.transferNumber),
   'Stock Transfer numbering format mismatch.');
 await request(pm, '/inventory/stock-transfers/' + stageETransferId + '/submit', {
   method: 'POST',
