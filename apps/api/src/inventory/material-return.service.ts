@@ -364,6 +364,14 @@ export class MaterialReturnService {
         if (current.postedAt || current.reversedAt) {
           throw new ConflictException({ code: 'MATERIAL_RETURN_ALREADY_POSTED' });
         }
+        for (const sourceId of current.items
+          .map((item) => item.materialIssueItemId)
+          .sort()) {
+          await tx.$executeRawUnsafe(
+            'SELECT pg_advisory_xact_lock(hashtext($1))',
+            'inventory-return-source:' + sourceId,
+          );
+        }
         await tx.$executeRawUnsafe(
           'SELECT pg_advisory_xact_lock(hashtext($1))',
           'inventory-warehouse:' + current.warehouseId,
@@ -374,15 +382,6 @@ export class MaterialReturnService {
           current.warehouseId,
           tx,
         );
-
-        for (const sourceId of current.items
-          .map((item) => item.materialIssueItemId)
-          .sort()) {
-          await tx.$executeRawUnsafe(
-            'SELECT pg_advisory_xact_lock(hashtext($1))',
-            'inventory-return-source:' + sourceId,
-          );
-        }
         const dimensions = new Map<string, StockDimension>();
         for (const item of current.items) {
           const dimension: StockDimension = {
