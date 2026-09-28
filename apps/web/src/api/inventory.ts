@@ -121,6 +121,11 @@ export const inventoryApi = {
   receiptProjects: () =>
     apiRequest<Data<InventoryProject[]>>('/inventory/receipt-projects'),
 
+  receiptWarehouses: (projectId: string) =>
+    apiRequest<Data<Array<{ id: string; warehouseCode: string; warehouseName: string; projectId: string | null }>>>(
+      '/inventory/projects/' + projectId + '/receipt-warehouses',
+    ),
+
   eligibleReceiptPos: (projectId: string) =>
     apiRequest<Data<ReceiptPo[]>>('/inventory/projects/' + projectId + '/eligible-receipt-pos'),
 
