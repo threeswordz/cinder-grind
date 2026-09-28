@@ -1,6 +1,6 @@
 # Construction ERP — Current State
 
-**Last verified:** 2026-09-28
+**Last verified:** 2026-09-29
 **Source of truth:** Live GitHub repository state
 
 - Current Release: V0.4 Inventory
@@ -11,7 +11,7 @@
 - Completed Issue: #87 — V0.4-C Derived Stock Balance / Project-Site Stock Views
 - Completed Issue: #85 — V0.4-B Goods Receipt / PO Receipt Controls / Stock Transaction Ledger
 - Completed Issue: #83 — V0.4-A Warehouse / Inventory Foundation
-- Follow-up evidence branch: `v0.4-e-completion-evidence` (CI #1547 passed at `8f352c351cdef2b719ef77922f603b4745682427`; completion-evidence PR pending)
+- Merged completion-evidence PR: #94 (`26b4e6ceba114f57f225a96fd6e8de4fe0b489fe`); exact-head branch CI #1550 and PR CI #1551 passed at `bbfa8865d8d2a45713b88e4e3d073e73a7a291b5`; post-merge main CI #1552 passed
 - Merged PR: #93 — V0.4-E Stock Transfer / Inventory Documents / Reporting (`6a04d95410589b5e9cb8c7a55d19aa095b9ee67c`); post-merge main CI #1543 passed
 - Merged PR: #91 — V0.4-D Material Reservation / Issue / Return (`941e2e9c2966bac66ea1d01b34cb39fb5ce75bdd`); post-merge main CI #1492 SUCCESS
 - Merged PR: #88 — V0.4-C Derived Stock Balance / Project-Site Stock Views (`096ee639f7e0597dd6c4068d9d1d0c323f66f15d`)
@@ -80,7 +80,7 @@
 - V0.1 cross-module release acceptance scenario: PASS in the Stage H release-candidate regression suite.
 - Open defect check at V0.1 acceptance: no Severity 1 or Severity 2 release-blocking defect recorded.
 - Governance: `AGENTS.md`, `docs/PROJECT-GOVERNANCE.md`, PR governance checklist and DEC-008 are active; material decisions must pass the repository pre-flight and open-source/zero-cost-first constraint.
-- Next action: merge the narrowly scoped completion-evidence PR after exact-head CI/review gates, verify post-merge main CI, then present `docs/V0.4-UAT.md` for the Product / Business Owner walkthrough and explicit acceptance. V0.5 remains blocked by AC-V04-031.
+- Next action: Product / Business Owner performs the `docs/V0.4-UAT.md` business walkthrough, records any blocking defects or accepted non-blocking workarounds, and explicitly accepts V0.4 Inventory if satisfied. AC-V04-031 remains open and V0.5 is blocked until that acceptance is recorded.
 
 ## Stage E completed
 
@@ -775,5 +775,5 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 
 - PR #93 squash-merged to `main` as `6a04d95410589b5e9cb8c7a55d19aa095b9ee67c`; Issue #92 closed; post-merge `main` CI #1543 passed. V0.4-A through V0.4-E are technically implemented.
 - The V0.4 live HTTP Inventory scenario `MUL9VGJX` passed all 40 checks in the Stage E CI evidence.
-- Follow-up branch `v0.4-e-completion-evidence` adds two PostgreSQL regressions: opposite-direction concurrent Transfers make progress without a Warehouse-lock deadlock; Transfer reversal is denied when destination stock has been consumed. CI #1546/#1547 passed, with #1547 at `8f352c351cdef2b719ef77922f603b4745682427` before this documentation update. Exact documentation-head PR CI and post-merge main CI must be verified separately.
+- Follow-up branch `v0.4-e-completion-evidence` added two PostgreSQL regressions: opposite-direction concurrent Transfers make progress without a Warehouse-lock deadlock; Transfer reversal is denied when destination stock has been consumed. CI #1546/#1547 passed, with #1547 at `8f352c351cdef2b719ef77922f603b4745682427`. Completion-evidence PR #94 merged as `26b4e6ceba114f57f225a96fd6e8de4fe0b489fe` after exact-head branch CI #1550 and PR CI #1551 passed at `bbfa8865d8d2a45713b88e4e3d073e73a7a291b5`; post-merge main CI #1552 passed.
 - `docs/V0.4-UAT.md` and `docs/V0.4-RELEASE-CHECKLIST.md` record technical evidence and the remaining Product / Business Owner walkthrough. No human UAT or business acceptance has been recorded. AC-V04-031 and the V0.4 Release Exit Gate remain open; V0.5 cannot start.
