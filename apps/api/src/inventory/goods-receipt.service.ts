@@ -36,6 +36,19 @@ export class GoodsReceiptService {
     });
   }
 
+  async warehouses(auth: AuthenticatedUserContext, projectId: string) {
+    await this.access.assertAccess(auth, projectId);
+    return this.prisma.warehouse.findMany({
+      where: {
+        companyId: auth.companyId,
+        isActive: true,
+        OR: [{ projectId: null }, { projectId }],
+      },
+      select: { id: true, warehouseCode: true, warehouseName: true, projectId: true },
+      orderBy: { warehouseCode: 'asc' },
+    });
+  }
+
   async eligibleOrders(auth: AuthenticatedUserContext, projectId: string) {
     await this.access.assertAccess(auth, projectId);
     const orders = await this.prisma.purchaseOrder.findMany({
