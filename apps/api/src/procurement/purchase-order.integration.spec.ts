@@ -724,6 +724,22 @@ test('V0.3-D Purchase Orders preserve awarded-source traceability, approval and 
       (error: unknown) => error instanceof ConflictException,
     );
 
+    const afterReceiptRevision = await purchaseOrders.revise(
+      { auth: makerAuth }, revision.id, 'Try to reduce delivered quantity',
+    );
+    const afterReceiptDetail = await purchaseOrders.getOrder(makerAuth, afterReceiptRevision.id);
+    await assert.rejects(
+      () => purchaseOrders.updateLine(
+        { auth: makerAuth }, afterReceiptDetail.lines[0]!.id,
+        { quantity: new Prisma.Decimal('2') },
+      ),
+      (error: unknown) => error instanceof ConflictException,
+    );
+    await assert.rejects(
+      () => purchaseOrders.deleteLine({ auth: makerAuth }, afterReceiptDetail.lines[0]!.id),
+      (error: unknown) => error instanceof ConflictException,
+    );
+
     const second = await createReceipt('6');
     const third = await createReceipt('6');
     await receipts.submit({ auth: makerAuth }, second.id, receiptWorkflow.workflowCode);
@@ -759,6 +775,10 @@ test('V0.3-D Purchase Orders preserve awarded-source traceability, approval and 
       data: { isActive: false },
     });
     assert.equal(archivedAfterReversal.isActive, false);
+
+    await purchaseOrders.cancel(
+      { auth: makerAuth }, afterReceiptRevision.id, 'Draft revision withdrawn after reversal',
+    );
 
     const cancelled = await purchaseOrders.cancel(
       { auth: makerAuth },
