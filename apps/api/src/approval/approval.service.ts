@@ -159,43 +159,47 @@ export class ApprovalService {
     auth: AuthenticatedUserContext,
     makerUserId: string,
     comment?: string,
+    existingTx?: Prisma.TransactionClient,
   ) {
     this.assertMakerChecker(makerUserId, auth.userId);
 
+    const rejectIn = async (tx: Prisma.TransactionClient) => {
+      const context = await this.loadActionContext(
+        tx,
+        instanceId,
+        auth.companyId,
+      );
+      this.assertSubmitted(context.instance.approvalState);
+      this.assertStepRole(context.currentStep, auth);
+      await this.assertNoPriorAction(
+        tx,
+        instanceId,
+        context.currentStep.id,
+        auth.userId,
+      );
+
+      await tx.approvalAction.create({
+        data: {
+          approvalInstanceId: instanceId,
+          approvalStepId: context.currentStep.id,
+          action: 'REJECT',
+          actionByUserId: auth.userId,
+          ...(comment ? { comment } : {}),
+        },
+      });
+
+      return tx.approvalInstance.update({
+        where: { id: instanceId },
+        data: {
+          approvalState: APPROVAL_STATE.REJECTED,
+          completedAt: new Date(),
+        },
+      });
+    };
+
+    if (existingTx) return rejectIn(existingTx);
     return this.prisma.$transaction(
-      async (tx) => {
-        const context = await this.loadActionContext(
-          tx,
-          instanceId,
-          auth.companyId,
-        );
-        this.assertSubmitted(context.instance.approvalState);
-        this.assertStepRole(context.currentStep, auth);
-        await this.assertNoPriorAction(
-          tx,
-          instanceId,
-          context.currentStep.id,
-          auth.userId,
-        );
-
-        await tx.approvalAction.create({
-          data: {
-            approvalInstanceId: instanceId,
-            approvalStepId: context.currentStep.id,
-            action: 'REJECT',
-            actionByUserId: auth.userId,
-            ...(comment ? { comment } : {}),
-          },
-        });
-
-        return tx.approvalInstance.update({
-          where: { id: instanceId },
-          data: {
-            approvalState: APPROVAL_STATE.REJECTED,
-            completedAt: new Date(),
-          },
-        });
-      },
+      rejectIn,
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
     );
   }

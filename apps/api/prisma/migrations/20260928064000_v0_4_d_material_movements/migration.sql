@@ -99,7 +99,7 @@ CREATE TABLE "material_issue_items" (
   CONSTRAINT "material_issue_items_line_check" CHECK ("line_no" > 0)
 );
 CREATE UNIQUE INDEX "material_issue_items_issue_line_key" ON "material_issue_items"("material_issue_id","line_no");
-CREATE UNIQUE INDEX "material_issue_items_reservation_key" ON "material_issue_items"("reservation_id");
+CREATE INDEX "material_issue_items_reservation_idx" ON "material_issue_items"("reservation_id");
 CREATE INDEX "material_issue_items_material_uom_idx" ON "material_issue_items"("material_id","uom_id");
 
 CREATE TABLE "material_returns" (
@@ -341,6 +341,11 @@ BEGIN
     (OLD.company_id,OLD.project_id,OLD.warehouse_id,OLD.issue_number,OLD.issue_date,OLD.issued_to_employee_id,
      OLD.approval_instance_id,OLD.created_by_user_id,OLD.submitted_by_user_id,OLD.remarks,OLD.created_at,OLD.submitted_at)
   THEN RAISE EXCEPTION 'Submitted Material Issue is immutable'; END IF;
+  IF OLD.posted_at IS NOT NULL AND
+    (NEW.posted_at,NEW.post_key,NEW.posted_by_user_id)
+    IS DISTINCT FROM
+    (OLD.posted_at,OLD.post_key,OLD.posted_by_user_id)
+  THEN RAISE EXCEPTION 'Posted Material Issue posting identity is immutable'; END IF;
   IF OLD.reversed_at IS NOT NULL AND NEW IS DISTINCT FROM OLD
   THEN RAISE EXCEPTION 'Reversed Material Issue history is immutable'; END IF;
   RETURN NEW;
@@ -402,6 +407,11 @@ BEGIN
     (OLD.company_id,OLD.project_id,OLD.warehouse_id,OLD.return_number,OLD.return_date,
      OLD.approval_instance_id,OLD.created_by_user_id,OLD.submitted_by_user_id,OLD.remarks,OLD.created_at,OLD.submitted_at)
   THEN RAISE EXCEPTION 'Submitted Material Return is immutable'; END IF;
+  IF OLD.posted_at IS NOT NULL AND
+    (NEW.posted_at,NEW.post_key,NEW.posted_by_user_id)
+    IS DISTINCT FROM
+    (OLD.posted_at,OLD.post_key,OLD.posted_by_user_id)
+  THEN RAISE EXCEPTION 'Posted Material Return posting identity is immutable'; END IF;
   IF OLD.reversed_at IS NOT NULL AND NEW IS DISTINCT FROM OLD
   THEN RAISE EXCEPTION 'Reversed Material Return history is immutable'; END IF;
   RETURN NEW;
@@ -432,6 +442,7 @@ BEGIN
     IF NOT FOUND OR source.posted_at IS NULL OR NEW.company_id IS DISTINCT FROM source.company_id
       OR NEW.warehouse_id IS DISTINCT FROM source.warehouse_id OR NEW.project_id IS DISTINCT FROM source.project_id
       OR NEW.material_id IS DISTINCT FROM source.material_id OR NEW.uom_id IS DISTINCT FROM source.uom_id
+      OR NEW.wbs_id IS NOT NULL OR NEW.cost_code_id IS NOT NULL OR NEW.activity_id IS NOT NULL
     THEN RAISE EXCEPTION 'Receipt Stock movement source dimensions mismatch'; END IF;
     IF NEW.movement_type='GOODS_RECEIPT' THEN
       IF source.reversed_at IS NOT NULL OR NEW.quantity<>source.item_quantity
@@ -464,12 +475,18 @@ BEGIN
     ELSE RAISE EXCEPTION 'Issue source cannot use this movement type'; END IF;
   ELSE
     SELECT h.company_id,h.warehouse_id,h.project_id,h.posted_at,h.reversed_at,
-      i.material_id,i.uom_id,i.quantity AS item_quantity
-    INTO source FROM material_returns h JOIN material_return_items i ON i.material_return_id=h.id
+      i.material_id,i.uom_id,i.quantity AS item_quantity,
+      src.wbs_id,src.cost_code_id,src.activity_id
+    INTO source
+    FROM material_returns h
+    JOIN material_return_items i ON i.material_return_id=h.id
+    JOIN material_issue_items src ON src.id=i.material_issue_item_id
     WHERE h.id=NEW.material_return_id AND i.id=NEW.material_return_item_id;
     IF NOT FOUND OR source.posted_at IS NULL OR NEW.company_id IS DISTINCT FROM source.company_id
       OR NEW.warehouse_id IS DISTINCT FROM source.warehouse_id OR NEW.project_id IS DISTINCT FROM source.project_id
       OR NEW.material_id IS DISTINCT FROM source.material_id OR NEW.uom_id IS DISTINCT FROM source.uom_id
+      OR NEW.wbs_id IS DISTINCT FROM source.wbs_id OR NEW.cost_code_id IS DISTINCT FROM source.cost_code_id
+      OR NEW.activity_id IS DISTINCT FROM source.activity_id
     THEN RAISE EXCEPTION 'Return Stock movement source dimensions mismatch'; END IF;
     IF NEW.movement_type='MATERIAL_RETURN' THEN
       IF source.reversed_at IS NOT NULL OR NEW.quantity<>source.item_quantity
@@ -486,8 +503,11 @@ END; $$;
 
 -- A Warehouse with an Active Reservation cannot be archived even when physical on-hand is zero.
 CREATE OR REPLACE FUNCTION enforce_warehouse_stock_history()
-RETURNS trigger LANGUAGE plpgsql AS $$
+RETURNS trigger LANGUAGE plpgsql AS $warehouse$
 BEGIN
+  IF OLD.is_active AND NOT NEW.is_active THEN
+    PERFORM pg_advisory_xact_lock(hashtext('inventory-warehouse:' || OLD.id::text));
+  END IF;
   IF NEW.project_id IS DISTINCT FROM OLD.project_id
     AND EXISTS (SELECT 1 FROM stock_transactions WHERE warehouse_id=OLD.id)
   THEN RAISE EXCEPTION 'Warehouse with stock history cannot change Project'; END IF;
@@ -501,4 +521,4 @@ BEGIN
     AND EXISTS (SELECT 1 FROM material_reservations WHERE warehouse_id=OLD.id AND status='ACTIVE')
   THEN RAISE EXCEPTION 'Warehouse with Active Reservation cannot be archived'; END IF;
   RETURN NEW;
-END; $$;
+END; $warehouse$;

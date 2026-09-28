@@ -357,15 +357,29 @@ export class MaterialIssueService {
         if (current.postedAt || current.reversedAt) {
           throw new ConflictException({ code: 'MATERIAL_ISSUE_ALREADY_POSTED' });
         }
-        const warehouse = await tx.warehouse.findFirst({
-          where: {
-            id: current.warehouseId,
-            companyId: current.companyId,
-            isActive: true,
-          },
-        });
-        if (!warehouse || (warehouse.projectId && warehouse.projectId !== current.projectId)) {
-          throw new ConflictException({ code: 'MATERIAL_ISSUE_WAREHOUSE_INACTIVE' });
+        await this.validateHeader(
+          context.auth,
+          current.projectId,
+          current.warehouseId,
+          current.issuedToEmployeeId,
+          tx,
+        );
+        for (const item of current.items) {
+          await this.validateLine(
+            context.auth,
+            current,
+            {
+              materialId: item.materialId,
+              quantity: item.quantity,
+              uomId: item.uomId,
+              reservationId: item.reservationId,
+              wbsId: item.wbsId,
+              costCodeId: item.costCodeId,
+              activityId: item.activityId,
+              remarks: item.remarks,
+            },
+            tx,
+          );
         }
 
         const dimensions = new Map<string, StockDimension>();
@@ -478,24 +492,27 @@ export class MaterialIssueService {
   }
 
   async reject(context: AuditContext, id: string, comment?: string) {
-    const issue = await this.get(context.auth, id);
-    if (!issue.approvalInstanceId || !issue.submittedByUserId || issue.postedAt) {
-      throw new ConflictException({ code: 'MATERIAL_ISSUE_NOT_SUBMITTED' });
-    }
-    const result = await this.approvals.reject(
-      issue.approvalInstanceId,
-      context.auth,
-      issue.createdByUserId,
-      comment,
-    );
-    await this.audit.record({
-      ...context,
-      entityType: 'MATERIAL_ISSUE',
-      entityId: id,
-      action: 'REJECT',
-      newValues: { approvalState: result.approvalState },
-    });
-    return this.get(context.auth, id);
+    return this.prisma.$transaction(async (tx) => {
+      const issue = await this.get(context.auth, id, tx);
+      if (!issue.approvalInstanceId || !issue.submittedByUserId || issue.postedAt) {
+        throw new ConflictException({ code: 'MATERIAL_ISSUE_NOT_SUBMITTED' });
+      }
+      const result = await this.approvals.reject(
+        issue.approvalInstanceId,
+        context.auth,
+        issue.createdByUserId,
+        comment,
+        tx,
+      );
+      await this.audit.record({
+        ...context,
+        entityType: 'MATERIAL_ISSUE',
+        entityId: id,
+        action: 'REJECT',
+        newValues: { approvalState: result.approvalState },
+      }, tx);
+      return this.get(context.auth, id, tx);
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
   }
 
   async reverse(
@@ -513,6 +530,12 @@ export class MaterialIssueService {
       if (issue.reversedAt && issue.reversalKey === reversalKey) return issue;
       if (!issue.postedAt || issue.reversedAt) {
         throw new ConflictException({ code: 'MATERIAL_ISSUE_NOT_REVERSIBLE' });
+      }
+      for (const sourceId of issue.items.map((item) => item.id).sort()) {
+        await tx.$executeRawUnsafe(
+          'SELECT pg_advisory_xact_lock(hashtext($1))',
+          'inventory-return-source:' + sourceId,
+        );
       }
       const outstandingReturns = await tx.materialReturnItem.count({
         where: {
@@ -532,6 +555,30 @@ export class MaterialIssueService {
       if (originals.length !== issue.items.length) {
         throw new ConflictException({ code: 'MATERIAL_ISSUE_LEDGER_INCOMPLETE' });
       }
+      await tx.$executeRawUnsafe(
+        'SELECT pg_advisory_xact_lock(hashtext($1))',
+        'inventory-warehouse:' + issue.warehouseId,
+      );
+      await tx.$queryRawUnsafe<Array<{ id: string }>>(
+        'SELECT id FROM warehouses WHERE id = $1::uuid FOR UPDATE',
+        issue.warehouseId,
+      );
+      const activeWarehouse = await tx.warehouse.findFirst({
+        where: {
+          id: issue.warehouseId,
+          companyId: issue.companyId,
+          isActive: true,
+          OR: [{ projectId: null }, { projectId: issue.projectId }],
+        },
+        select: { id: true },
+      });
+      if (!activeWarehouse) {
+        throw new ConflictException({
+          code: 'MATERIAL_ISSUE_REVERSAL_WAREHOUSE_INACTIVE',
+          detail: 'Reactivate the Issue Warehouse before restoring stock.',
+        });
+      }
+
       const dimensions = new Map<string, StockDimension>();
       for (const row of originals) {
         const dimension: StockDimension = {

@@ -1235,7 +1235,7 @@ model MaterialReservation {
   fulfilledBy  User?         @relation("MaterialReservationFulfiller", fields: [fulfilledByUserId], references: [id], onDelete: Restrict)
   releasedBy   User?         @relation("MaterialReservationReleaser", fields: [releasedByUserId], references: [id], onDelete: Restrict)
   cancelledBy  User?         @relation("MaterialReservationCanceller", fields: [cancelledByUserId], references: [id], onDelete: Restrict)
-  issueItem    MaterialIssueItem?
+  issueItems   MaterialIssueItem[]
 
   @@unique([companyId, reservationNumber])
   @@index([companyId, projectId, status])
@@ -1291,7 +1291,7 @@ model MaterialIssueItem {
   materialId      String   @map("material_id") @db.Uuid
   quantity        Decimal  @db.Decimal(18, 4)
   uomId           String   @map("uom_id") @db.Uuid
-  reservationId   String?  @unique @map("reservation_id") @db.Uuid
+  reservationId   String?  @map("reservation_id") @db.Uuid
   wbsId           String?  @map("wbs_id") @db.Uuid
   costCodeId      String?  @map("cost_code_id") @db.Uuid
   activityId      String?  @map("activity_id") @db.Uuid
@@ -1309,6 +1309,7 @@ model MaterialIssueItem {
   stockTransactions StockTransaction[]
 
   @@unique([materialIssueId, lineNo])
+  @@index([reservationId], map: "material_issue_items_reservation_idx")
   @@index([materialId, uomId])
   @@map("material_issue_items")
 }
