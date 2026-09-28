@@ -134,7 +134,7 @@ export class MaterialReservationService {
         uom: { select: { uomCode: true } },
         wbs: { select: { wbsCode: true, wbsName: true } },
         activity: { select: { activityCode: true, activityName: true } },
-        issueItem: { select: { id: true, materialIssueId: true } },
+        issueItems: { select: { id: true, materialIssueId: true } },
       },
     });
     if (!row) throw new NotFoundException({ code: 'RESERVATION_NOT_FOUND' });
