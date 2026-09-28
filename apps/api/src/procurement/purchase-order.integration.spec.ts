@@ -817,33 +817,11 @@ test('V0.3-D Purchase Orders preserve awarded-source traceability, approval and 
       competingActivations[0]?.status === 'fulfilled'
         ? competingReservationA
         : competingReservationB;
-    const failedCompeting =
-      activeCompeting.id === competingReservationA.id
-        ? competingReservationB
-        : competingReservationA;
     await reservations.release(
       { auth: makerAuth },
       activeCompeting.id,
       'Release concurrency test reservation',
     );
-    await reservations.cancel(
-      { auth: makerAuth },
-      failedCompeting.id,
-      'Cancel unused concurrency test draft',
-    ).catch(async () => {
-      const failed = await reservations.get(makerAuth, failedCompeting.id);
-      if (failed.status === 'DRAFT') {
-        await prisma.materialReservation.update({
-          where: { id: failed.id },
-          data: {
-            status: 'CANCELLED',
-            cancelledAt: new Date(),
-            cancelledByUserId: maker.id,
-            cancellationReason: 'Cancel failed activation draft',
-          },
-        });
-      }
-    });
 
     const reservation = await reservations.create(
       { auth: makerAuth },
