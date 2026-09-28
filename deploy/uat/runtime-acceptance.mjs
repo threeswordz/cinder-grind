@@ -2200,6 +2200,47 @@ await request(unassignedReceipt, '/inventory/reports/movements?projectId=' + pro
   { expected: 403 });
 await request(unassignedReceipt, '/inventory/stock-transfers/' + stageETransferId,
   { expected: 403 });
+const inventoryTargets = await request(
+  pm, '/documents/projects/' + projectId + '/targets/options',
+);
+check(
+  inventoryTargets.data.data.goodsReceipts.some((row) => row.id === receiptAId) &&
+    inventoryTargets.data.data.materialReservations.some((row) => row.id === reservationId) &&
+    inventoryTargets.data.data.materialIssues.some((row) => row.id === materialIssueId) &&
+    inventoryTargets.data.data.materialReturns.some((row) => row.id === materialReturnId) &&
+    inventoryTargets.data.data.stockTransfers.some((row) => row.id === stageETransferId),
+  'Document target options omitted an authorized Inventory transaction family.',
+);
+const transferEvidence = new FormData();
+transferEvidence.set('documentTypeId', documentType.data.data.id);
+transferEvidence.set('file', new Blob(
+  [new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10])],
+  { type: 'image/png' },
+), 'transfer-' + suffix + '.png');
+const transferDocument = await request(
+  pm,
+  '/documents/projects/' + projectId +
+    '/targets/STOCK_TRANSFER/' + stageETransferId,
+  { method: 'POST', body: transferEvidence, expected: 201 },
+);
+const transferDocuments = await request(
+  pm,
+  '/documents/projects/' + projectId +
+    '/targets/STOCK_TRANSFER/' + stageETransferId,
+);
+check(
+  transferDocuments.data.data.some((row) => row.id === transferDocument.data.data.id) &&
+    !JSON.stringify(transferDocuments.data).includes('storageKey'),
+  'Stock Transfer evidence was not securely linked through Documents.',
+);
+await request(
+  unassignedReceipt,
+  '/documents/projects/' + projectId +
+    '/targets/STOCK_TRANSFER/' + stageETransferId,
+  { expected: 403 },
+);
+record('V0.4-E Inventory document targets, secure Transfer evidence and Project denial');
+
 const reversedStageETransfer = await request(
   pm, '/inventory/stock-transfers/' + stageETransferId + '/reverse', {
     method: 'POST',
