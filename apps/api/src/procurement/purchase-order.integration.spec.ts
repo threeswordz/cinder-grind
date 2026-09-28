@@ -1390,9 +1390,28 @@ test('V0.3-D Purchase Orders preserve awarded-source traceability, approval and 
       (result) => result.status === 'rejected',
     );
     assert.ok(
-      returnVsIssueReversalFailure?.status === 'rejected' &&
-        returnVsIssueReversalFailure.reason instanceof ConflictException,
-      'The losing Return/Issue reversal race must surface a domain conflict, not a PostgreSQL deadlock.',
+      returnVsIssueReversalFailure?.status === 'rejected',
+      'Concurrent Return posting and source Issue reversal must produce one losing transaction.',
+    );
+    const returnVsIssueReversalReason = returnVsIssueReversalFailure.reason;
+    const returnVsIssueReversalMessage =
+      returnVsIssueReversalReason instanceof Error
+        ? returnVsIssueReversalReason.message
+        : String(returnVsIssueReversalReason);
+    assert.doesNotMatch(
+      returnVsIssueReversalMessage,
+      /deadlock detected|40P01/i,
+      'The losing Return/Issue reversal race must not surface a PostgreSQL advisory-lock deadlock.',
+    );
+    assert.ok(
+      returnVsIssueReversalReason instanceof ConflictException ||
+        (
+          typeof returnVsIssueReversalReason === 'object' &&
+          returnVsIssueReversalReason !== null &&
+          'code' in returnVsIssueReversalReason &&
+          returnVsIssueReversalReason.code === 'P2034'
+        ),
+      'The losing Return/Issue reversal race must surface a domain conflict or serializable retry.',
     );
     const raceReturnState = await materialReturns.get(makerAuth, raceReturn.id);
     const raceIssueState = await materialIssues.get(makerAuth, raceIssue.id);
