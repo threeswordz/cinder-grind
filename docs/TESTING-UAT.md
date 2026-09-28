@@ -1680,3 +1680,10 @@ The normal API regression command includes the Purchase Order PostgreSQL integra
 The live HTTP runtime acceptance uses unique scenario records and the configured `GOODS_RECEIPT` workflow/sequence. It covers Draft quantity/remarks edit, partial and multiple receipts, approved posting, maker denial, duplicate retry, over-receipt denial, source and Project authorization, PO cancellation guard and exact negative reversal. Persistent UAT cleanup remains non-destructive under BR-V04-20.
 
 Clean migration-from-zero/status, API/web typecheck/build, prior-release regression and production dependency audit remain required. Stage B completion needs exact-head branch/PR CI and resolved review. Later V0.4-C/D/E tests must add derived balance, reservation/negative-stock, return and transfer behavior; V0.4 human Product / Business Owner UAT remains a separate Release Exit Gate.
+
+
+## V0.4-C Stock Balance automated evidence
+
+The Purchase Order/Goods Receipt PostgreSQL integration path now instantiates the derived-balance service against real immutable ledger rows. It verifies exact DECIMAL(18,4) aggregation after posting, Project/Site dimensions, unassigned-Project denial, default hiding of net-zero historical groups and exact reversal-to-zero when requested. The normal test command executes this coverage.
+
+Live HTTP acceptance grants the explicit stock-view permission to the scenario business Role, verifies the posted Project/Site balance, denies an unassigned Project user, reverses every receipt and verifies both default zero suppression and explicit zero-history visibility. Migration-from-zero/status, API/web typecheck/build, dependency audit and all V0.1–V0.4-B regression remain in the same CI gate.
