@@ -1,3 +1,8 @@
+## 2026-09-29 — V0.5 entry-gate proposal prepared (approval pending)
+
+- Proposed `docs/V0.5-SCOPE.md`, `docs/V0.5-ACCEPTANCE-CRITERIA.md` and `docs/V0.5-BUSINESS-RULES.md` map SUB-001–010/RPT-007 into reviewable scope, 30 proposed AC, 20 proposed BR, technical baselines, build stages and deferrals under Issue #98.
+- All D05-01–11 choices remain unapproved. V0.5-A pre-flight/implementation is blocked until explicit Product / Business Owner approval and entry-gate CI/review/merge/post-merge main validation. DEC-008 remains active.
+
 ## 2026-09-29 — V0.4 release closed; V0.5 Subcontracts entry gate drafted
 
 - V0.4 acceptance PR #97 squash-merged to `main` as `c846068c59cf20ab74f3b802cf4eacbd262aaba9`; Issue #96 closed. Exact-head branch CI #1563 and PR CI #1564 passed; post-merge main CI #1565 passed. V0.4 release exit is complete.
