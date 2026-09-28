@@ -113,6 +113,7 @@ export class InventoryReportController {
     @Query('warehouseId') warehouseId: unknown,
     @Query('materialId') materialId: unknown,
     @Query('movementType') movementType: unknown,
+    @Query('sourceType') sourceType: unknown,
     @Query('postedFrom') postedFrom: unknown,
     @Query('postedTo') postedTo: unknown,
   ) {
@@ -121,12 +122,14 @@ export class InventoryReportController {
     const warehouse = optionalInventoryUuid(warehouseId, 'warehouseId');
     const material = optionalInventoryUuid(materialId, 'materialId');
     const movement = optionalString(movementType, 'movementType', 40);
+    const source = optionalString(sourceType, 'sourceType', 40);
     const from = optionalDate(postedFrom, 'postedFrom');
     const to = optionalDate(postedTo, 'postedTo', true);
     if (project) filters.projectId = project;
     if (warehouse) filters.warehouseId = warehouse;
     if (material) filters.materialId = material;
     if (movement) filters.movementType = movement;
+    if (source) filters.sourceType = source;
     if (from) filters.postedFrom = from;
     if (to) filters.postedTo = to;
     return { data: await this.reports.movementReport(authOf(request), filters) };
