@@ -288,6 +288,14 @@ export class GoodsReceiptService {
         for (const awardId of [...new Set(current.items.map((item) => item.quotationAwardId))].sort()) {
           await tx.$executeRawUnsafe('SELECT pg_advisory_xact_lock(hashtext($1))', 'receipt-award:' + awardId);
         }
+        await tx.$executeRawUnsafe(
+          'SELECT pg_advisory_xact_lock(hashtext($1))',
+          'inventory-warehouse:' + current.warehouseId,
+        );
+        await tx.$queryRawUnsafe<Array<{ id: string }>>(
+          'SELECT id FROM warehouses WHERE id = $1::uuid FOR UPDATE',
+          current.warehouseId,
+        );
         const warehouse = await tx.warehouse.findFirst({
           where: { id: current.warehouseId, companyId: context.auth.companyId, isActive: true },
         });
