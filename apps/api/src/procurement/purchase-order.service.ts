@@ -1024,6 +1024,28 @@ export class PurchaseOrderService {
           tx,
         );
 
+        await tx.$executeRawUnsafe(
+          'SELECT pg_advisory_xact_lock(hashtext($1))',
+          'receipt-po:' + order.companyId + ':' + order.poNumber,
+        );
+        const outstandingReceipt = await tx.goodsReceipt.findFirst({
+          where: {
+            postedAt: { not: null },
+            reversedAt: null,
+            purchaseOrder: {
+              companyId: order.companyId,
+              poNumber: order.poNumber,
+            },
+          },
+          select: { id: true },
+        });
+        if (outstandingReceipt) {
+          throw new ConflictException({
+            code: 'PO_HAS_OUTSTANDING_RECEIPT',
+            detail: 'Reverse all posted Goods Receipts before cancelling this Purchase Order.',
+          });
+        }
+
         const state = this.lifecycleOf(order);
         if (state === 'CANCELLED') {
           throw new ConflictException({
