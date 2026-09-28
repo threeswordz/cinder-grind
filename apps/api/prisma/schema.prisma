@@ -1183,6 +1183,7 @@ model StockTransaction {
   reversalOf          StockTransaction? @relation("StockTransactionReversals", fields: [reversalOfId], references: [id], onDelete: Restrict)
   reversal            StockTransaction? @relation("StockTransactionReversals")
 
+  @@unique([goodsReceiptItemId, movementType])
   @@index([companyId, warehouseId, materialId, projectId])
   @@index([goodsReceiptId])
   @@map("stock_transactions")
