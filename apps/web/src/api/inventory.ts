@@ -405,6 +405,11 @@ export const inventoryApi = {
       query('/inventory/projects/' + projectId + '/issue-stock', { warehouseId }),
     ),
 
+  issueReservations: (projectId: string) =>
+    apiRequest<Data<MaterialReservation[]>>(
+      '/inventory/projects/' + projectId + '/issue-reservations',
+    ),
+
   issueWorkflows: () =>
     apiRequest<Data<Array<{ workflowCode: string; workflowName: string }>>>('/inventory/issue-workflows'),
 
@@ -459,6 +464,14 @@ export const inventoryApi = {
       method: 'POST',
       body: JSON.stringify({ reversalKey, reason }),
     }),
+
+  returnProjects: () =>
+    apiRequest<Data<InventoryProject[]>>('/inventory/return-projects'),
+
+  returnWarehouses: (projectId: string) =>
+    apiRequest<Data<Array<{ id: string; warehouseCode: string; warehouseName: string; projectId: string | null; isSiteWarehouse: boolean }>>>(
+      '/inventory/projects/' + projectId + '/return-warehouses',
+    ),
 
   returnWorkflows: () =>
     apiRequest<Data<Array<{ workflowCode: string; workflowName: string }>>>('/inventory/return-workflows'),
