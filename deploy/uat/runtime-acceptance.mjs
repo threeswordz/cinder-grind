@@ -1723,9 +1723,16 @@ const makeReceipt = async (quantity) => request(pm, '/inventory/goods-receipts',
   },
   expected: 201,
 });
-const receiptA = await makeReceipt('3');
+const receiptA = await makeReceipt('2');
 check(/^GRN\d{4}-\d{3}$/.test(receiptA.data.data.receiptNumber), 'Goods Receipt numbering format mismatch.');
 const receiptAId = receiptA.data.data.id;
+const receiptADraft = await request(pm, '/inventory/goods-receipts/' + receiptAId);
+await request(pm, '/inventory/goods-receipt-items/' + receiptADraft.data.data.items[0].id, {
+  method: 'PATCH', json: { quantity: '3' },
+});
+await request(pm, '/inventory/goods-receipts/' + receiptAId, {
+  method: 'PATCH', json: { remarks: 'Confirmed three units delivered' },
+});
 await request(pm, '/inventory/goods-receipts/' + receiptAId + '/submit', {
   method: 'POST', json: { workflowCode: receiptWorkflowCode }, expected: 201,
 });
