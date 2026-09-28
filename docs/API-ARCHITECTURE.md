@@ -1852,3 +1852,15 @@ Under `/api/v1/inventory` the Stage B resources are:
 Create body: `{projectId,purchaseOrderId,warehouseId,remarks?,lines:[{purchaseOrderLineId,quantity}]}`. Quantities are positive decimal strings or JSON numbers with at most four decimal places; no UOM conversion. Submit body: `{workflowCode}`. Approve body: `{postKey,comment?}`. Reverse body: `{reversalKey,reason}`. The source PO revision must remain the current active approved revision at final posting. Every endpoint enforces Company, Project and explicit permission scope on the server; mutating endpoints require CSRF. The creator cannot perform final approval. Final posting and reversal include audit and ledger effects in one serializable transaction. A retry with the same key returns the existing effect without duplicating stock.
 
 Stage B exposes only Goods Receipt source and movement history through detail. Derived Stock Balance/report APIs belong to V0.4-C/E.
+
+
+## V0.4-C Derived Stock Balance API
+
+Stage C adds two read-only routes under `/api/v1/inventory`:
+
+| Method | Route | Permission | Purpose |
+| --- | --- | --- | --- |
+| GET | `/stock-projects` | `inventory.stock.view` | Active effective-Project filter choices |
+| GET | `/stock-balances` | `inventory.stock.view` | Derived Company/Project/Warehouse/Material/UOM on-hand quantities |
+
+`/stock-balances` supports optional `projectId`, `warehouseId`, `materialId`, bounded `search`, `includeInactiveWarehouses` and `includeZero` filters. The server sums signed DECIMAL(18,4) `stock_transactions.quantity` rows and returns decimal strings. There is no balance identity, mutation route, editable/materialized balance table, cache or second ledger. Assigned users see only transaction rows attributed to active assigned Projects; nullable Project attribution requires `projects.access_all`. General Warehouse ownership never broadens Project access. Results are capped at 1,000 grouped rows; the Stage E reporting surface remains deferred.

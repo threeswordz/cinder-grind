@@ -11,6 +11,8 @@ import { GoodsReceiptController } from './goods-receipt.controller';
 import { GoodsReceiptService } from './goods-receipt.service';
 import { InventoryController } from './inventory.controller';
 import { InventoryService } from './inventory.service';
+import { StockBalanceController } from './stock-balance.controller';
+import { StockBalanceService } from './stock-balance.service';
 
 @Module({
   imports: [
@@ -22,8 +24,12 @@ import { InventoryService } from './inventory.service';
     ApprovalModule,
     AdministrationModule,
   ],
-  controllers: [InventoryController, GoodsReceiptController],
-  providers: [InventoryService, GoodsReceiptService],
-  exports: [InventoryService, GoodsReceiptService],
+  controllers: [
+    InventoryController,
+    GoodsReceiptController,
+    StockBalanceController,
+  ],
+  providers: [InventoryService, GoodsReceiptService, StockBalanceService],
+  exports: [InventoryService, GoodsReceiptService, StockBalanceService],
 })
 export class InventoryModule {}

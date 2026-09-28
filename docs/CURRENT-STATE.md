@@ -4,11 +4,13 @@
 **Source of truth:** Live GitHub repository state
 
 - Current Release: V0.4 Inventory
-- Current Stage: V0.4-B Goods Receipt / PO Receipt Controls / Stock Transaction Ledger — IMPLEMENTATION / VALIDATION
+- Current Stage: V0.4-C Derived Stock Balance / Project-Site Stock Views — IMPLEMENTATION / VALIDATION
 - Completed Stages: V0.1-A through V0.1-H; V0.2-A through V0.2-G; V0.3-A BOQ & Budget; V0.3-B Purchase Request; V0.3-C RFQ / Quotations; V0.3-D Purchase Order; V0.3-E Schedule Risk / Procurement Reporting / Traceability
-- Active Issue: #85 — V0.4-B Goods Receipt / PO Receipt Controls / Stock Transaction Ledger
+- Active Issue: #87 — V0.4-C Derived Stock Balance / Project-Site Stock Views
+- Completed Issue: #85 — V0.4-B Goods Receipt / PO Receipt Controls / Stock Transaction Ledger
 - Completed Issue: #83 — V0.4-A Warehouse / Inventory Foundation
-- Active Branch: `v0.4-b-goods-receipt-ledger`
+- Active Branch: `v0.4-c-stock-balance-views`
+- Merged PR: #86 — V0.4-B Goods Receipt / Stock Transaction Ledger (`1f39a0d9e9c8d0d9dc32112e6eec4ec36321ac4d`)
 - Merged PR: #84 — V0.4-A Warehouse / Inventory Foundation (`4ab736203c9870f4b6782ad85c108f3b0b66accd`)
 - Completed Issue: #81 — V0.4 Inventory Release Entry Gate — Scope, Acceptance & Business Rules
 - Merged PR: #82 — docs: approve V0.4 Inventory entry gate
@@ -73,7 +75,7 @@
 - V0.1 cross-module release acceptance scenario: PASS in the Stage H release-candidate regression suite.
 - Open defect check at V0.1 acceptance: no Severity 1 or Severity 2 release-blocking defect recorded.
 - Governance: `AGENTS.md`, `docs/PROJECT-GOVERNANCE.md`, PR governance checklist and DEC-008 are active; material decisions must pass the repository pre-flight and open-source/zero-cost-first constraint.
-- Next action: complete V0.4-B documentation-head exact CI and review under Issue #85; merge only when all Stage B gates pass. V0.4-C must wait for the Stage B merge and post-merge main CI.
+- Next action: complete V0.4-C PR #88 review and merge gates under Issue #87, then require post-merge main CI. V0.4-D must wait for the Stage C merge and post-merge main CI.
 
 ## Stage E completed
 
@@ -725,3 +727,12 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - PO cancellation and revision edit/delete/final-approval guard against outstanding received quantity; deterministic source locking and idempotent retry controls.
 - PostgreSQL integration and live HTTP acceptance cover partial/multiple receipt, over-receipt, concurrency, Project denial, PO revision/cancellation, ledger immutability and full reversal.
 - Branch CI #1382 passed on implementation head `f76cc4587dd21544a4abcbdb820c178194ba9d7d`. Documentation-head CI, PR review/merge and post-merge main CI remain pending. V0.4-C has not begun.
+
+
+## V0.4-B completed / V0.4-C implementation under validation
+
+- PR #86 merged to `main` as `1f39a0d9e9c8d0d9dc32112e6eec4ec36321ac4d`; Issue #85 closed. Stage B branch CI #1388, PR CI #1389 and post-merge main CI #1390 passed.
+- Stage C Issue #87 and branch `v0.4-c-stock-balance-views` started only from that green checkpoint. Pre-flight commit `4cd363e2b69d8ba5f5251e1881632648530ea159` passed CI #1392.
+- Stage C adds explicit `inventory.stock.view`, secured read-only Project choices and ledger-derived balances grouped by Warehouse, Material, Project attribution and UOM, with exact decimal strings, archived/zero filters and no editable balance store.
+- The Inventory workspace has a permission-gated Stock Balance tab. PostgreSQL and live HTTP evidence cover posted quantity, Project/Site dimensions, unauthorized Project denial and exact reversal-to-zero.
+- Implementation/test head `385388c395d570c6141dc6c1e31dbd65690c5ca1` passed CI #1403. PR #88 records the exact-head branch/PR CI evidence and review resolution required before merge; post-merge main CI remains pending. V0.4-D has not begun; human V0.4 release UAT remains a separate exit gate.

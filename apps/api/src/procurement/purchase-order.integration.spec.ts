@@ -17,6 +17,7 @@ import { AuthorizationService } from '../authorization/authorization.service';
 import { ProjectScopeService } from '../authorization/project-scope.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { GoodsReceiptService } from '../inventory/goods-receipt.service';
+import { StockBalanceService } from '../inventory/stock-balance.service';
 import { ProjectAccessService } from '../projects/project-access.service';
 import { ReportingService } from '../reporting/reporting.service';
 import { SchedulingProgressService } from '../scheduling/scheduling-progress.service';
@@ -340,6 +341,7 @@ test('V0.3-D Purchase Orders preserve awarded-source traceability, approval and 
     );
 
     const receipts = new GoodsReceiptService(prisma, access, audit, approvals, numbers);
+    const balances = new StockBalanceService(prisma, access);
 
     const makerAuth = auth(company.id, maker.id, ['PO_MAKER']);
     const checkerAuth = auth(company.id, checker.id, [
@@ -700,6 +702,18 @@ test('V0.3-D Purchase Orders preserve awarded-source traceability, approval and 
     const retried = await receipts.approve({ auth: checkerAuth }, first.id, 'receipt-first');
     assert.equal(retried.stockTransactions.length, 1);
 
+    const postedBalance = await balances.balances(makerAuth, {
+      projectId: project.id,
+      warehouseId: warehouse.id,
+      materialId: material.id,
+    });
+    assert.equal(postedBalance.length, 1);
+    assert.equal(postedBalance[0]?.quantity, '3.0000');
+    assert.equal(postedBalance[0]?.projectId, project.id);
+    assert.equal(postedBalance[0]?.warehouseProjectId, project.id);
+    assert.equal(postedBalance[0]?.isSiteWarehouse, true);
+    assert.deepEqual(await balances.balances(outsiderAuth, {}), []);
+
     await assert.rejects(
       () => receipts.get(outsiderAuth, first.id),
       (error: unknown) => error instanceof ForbiddenException,
@@ -770,6 +784,25 @@ test('V0.3-D Purchase Orders preserve awarded-source traceability, approval and 
     );
     const repeat = await receipts.reverse({ auth: makerAuth }, first.id, 'receipt-reverse', 'Integration reversal');
     assert.equal(repeat.stockTransactions.length, 2);
+
+    assert.deepEqual(
+      await balances.balances(makerAuth, {
+        projectId: project.id,
+        warehouseId: warehouse.id,
+        materialId: material.id,
+      }),
+      [],
+      'Net-zero historical balance groups are hidden by default.',
+    );
+    const zeroBalance = await balances.balances(makerAuth, {
+      projectId: project.id,
+      warehouseId: warehouse.id,
+      materialId: material.id,
+      includeInactiveWarehouses: true,
+      includeZero: true,
+    });
+    assert.equal(zeroBalance.length, 1);
+    assert.equal(zeroBalance[0]?.quantity, '0.0000');
     const archivedAfterReversal = await prisma.warehouse.update({
       where: { id: warehouse.id },
       data: { isActive: false },

@@ -985,3 +985,12 @@ Each endpoint enforces Company and effective Project scope in addition to its ex
 | `inventory.receipt.reverse` | Reverse posted receipt with reason, opposite ledger and audit history |
 
 All routes enforce explicit permission, persisted Company/Project assignment and CSRF on mutation. `projects.access_all` bypasses Project assignment only; it does not grant receipt action authority. Approval Matrix Role and maker-checker checks remain mandatory. No Goods Receipt posting/approval/reversal permission is granted to technical `SYS_ADMIN` by the Stage B migration. Business Roles receive them through existing administration.
+
+
+## V0.4-C Stock Balance permission
+
+| Permission | Authority |
+| --- | --- |
+| `inventory.stock.view` | View read-only derived Stock Balance and effective Project filters within Company/Project scope |
+
+This permission exposes business Inventory quantities and is not granted implicitly to technical `SYS_ADMIN`. Backend aggregation enforces Company and effective Project scope before grouping. Users without `projects.access_all` cannot see nullable/unallocated Project stock or another Project's balance through Warehouse, Material, search or direct Project filters.

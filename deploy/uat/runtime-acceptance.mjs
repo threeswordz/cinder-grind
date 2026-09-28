@@ -263,6 +263,7 @@ const permissionCodes = [
   'inventory.receipt.edit',
   'inventory.receipt.submit',
   'inventory.receipt.reverse',
+  'inventory.stock.view',
   'reporting.operational.view',
   'budget.boq.view',
   'budget.boq.manage',
@@ -1753,6 +1754,25 @@ const postedARetry = await request(checker, '/inventory/goods-receipts/' + recei
 });
 check(postedARetry.data.data.stockTransactions.length === 1, 'Posting retry duplicated stock effect.');
 
+const postedBalance = await request(
+  pm,
+  '/inventory/stock-balances?projectId=' + projectId +
+    '&warehouseId=' + receiptWarehouseId,
+);
+check(
+  postedBalance.data.data.length === 1 &&
+    postedBalance.data.data[0]?.quantity === '3.0000' &&
+    postedBalance.data.data[0]?.projectId === projectId &&
+    postedBalance.data.data[0]?.warehouseProjectId === projectId &&
+    postedBalance.data.data[0]?.isSiteWarehouse === true,
+  'Derived Stock Balance did not expose the exact posted Project/Site quantity.',
+);
+await request(
+  unassignedReceipt,
+  '/inventory/stock-balances?projectId=' + projectId,
+  { expected: 403 },
+);
+
 const receiptB = await makeReceipt('6');
 const receiptBId = receiptB.data.data.id;
 await request(pm, '/inventory/goods-receipts/' + receiptBId + '/submit', {
@@ -1792,7 +1812,28 @@ for (const [id, key] of [[receiptAId, 'reverse-a-'], [receiptBId, 'reverse-b-']]
     'Goods Receipt reversal did not append the exact negative stock effect.',
   );
 }
+const hiddenZeroBalance = await request(
+  pm,
+  '/inventory/stock-balances?projectId=' + projectId +
+    '&warehouseId=' + receiptWarehouseId,
+);
+check(
+  hiddenZeroBalance.data.data.length === 0,
+  'Net-zero historical balance must be hidden by default.',
+);
+const visibleZeroBalance = await request(
+  pm,
+  '/inventory/stock-balances?projectId=' + projectId +
+    '&warehouseId=' + receiptWarehouseId +
+    '&includeZero=true&includeInactiveWarehouses=true',
+);
+check(
+  visibleZeroBalance.data.data.length === 1 &&
+    visibleZeroBalance.data.data[0]?.quantity === '0.0000',
+  'Zero-balance history was not derived exactly when requested.',
+);
 record('V0.4-B partial/multiple PO receipt, maker-checker, over-receipt, retry, scope, PO cancellation guard and reversal');
+record('V0.4-C derived Stock Balance, Project/Site filtering, reversal-to-zero and unauthorized Project denial');
 
 const cancelledPo = await request(
   pm,
