@@ -990,8 +990,8 @@ test('V0.3-D Purchase Orders preserve awarded-source traceability, approval and 
       '3.0000',
     );
 
-    const competingTransfers = await Promise.all(
-      ['A', 'B'].map(async (label) => {
+    const competingTransfers = [];
+    for (const label of ['A', 'B']) {
         const draft = await stockTransfers.create(
           { auth: makerAuth },
           {
@@ -1012,9 +1012,8 @@ test('V0.3-D Purchase Orders preserve awarded-source traceability, approval and 
           draft.id,
           transferWorkflow.workflowCode,
         );
-        return { draft, label };
-      }),
-    );
+        competingTransfers.push({ draft, label });
+    }
     const competingPosts = await Promise.allSettled(
       competingTransfers.map(({ draft, label }) =>
         stockTransfers.approve(
