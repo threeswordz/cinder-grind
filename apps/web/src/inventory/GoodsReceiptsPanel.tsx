@@ -2,7 +2,7 @@ import {
   Alert, Button, Card, CardContent, Chip, MenuItem, Stack, TextField, Typography,
 } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { inventoryApi } from '../api/inventory';
 
@@ -10,6 +10,7 @@ export function GoodsReceiptsPanel({ permissions }: { permissions: string[] }) {
   const queryClient = useQueryClient();
   const canCreate = permissions.includes('inventory.receipt.create');
   const canSubmit = permissions.includes('inventory.receipt.submit');
+  const canEdit = permissions.includes('inventory.receipt.edit');
   const canApprove = permissions.includes('inventory.receipt.approve');
   const canReverse = permissions.includes('inventory.receipt.reverse');
   const [projectId, setProjectId] = useState('');
@@ -20,6 +21,8 @@ export function GoodsReceiptsPanel({ permissions }: { permissions: string[] }) {
   const [workflowCode, setWorkflowCode] = useState('');
   const [selectedId, setSelectedId] = useState('');
   const [reason, setReason] = useState('');
+  const [draftQuantity, setDraftQuantity] = useState('');
+  const [draftRemarks, setDraftRemarks] = useState('');
   const [mutationError, setMutationError] = useState<unknown>(null);
   const [postKeys] = useState(() => new Map<string, string>());
   const [reversalKeys] = useState(() => new Map<string, string>());
@@ -56,6 +59,11 @@ export function GoodsReceiptsPanel({ permissions }: { permissions: string[] }) {
   const selectedOrder = orders.data?.data.find((order) => order.id === purchaseOrderId);
   const selectedLine = selectedOrder?.lines.find((line) => line.id === purchaseOrderLineId);
   const current = detail.data?.data;
+  useEffect(() => {
+    if (!current) return;
+    setDraftQuantity(current.items?.[0]?.quantity ?? '');
+    setDraftRemarks(current.remarks ?? '');
+  }, [current?.id, current?.items?.[0]?.quantity, current?.remarks]);
   const refresh = async () => {
     await queryClient.invalidateQueries({ queryKey: ['goods-receipts'] });
     await queryClient.invalidateQueries({ queryKey: ['goods-receipt'] });
@@ -202,6 +210,26 @@ export function GoodsReceiptsPanel({ permissions }: { permissions: string[] }) {
                   row.movementType + ' ' + row.quantity,
                 ).join(' · ') || 'none'}
               </Typography>
+              {canEdit && !current.submittedAt && current.items?.[0] ? (
+                <Stack spacing={1}>
+                  <TextField label="Draft line quantity" value={draftQuantity}
+                    onChange={(event) => setDraftQuantity(event.target.value)} inputMode="decimal" />
+                  <Button disabled={!/^(?:0|[1-9]\\d{0,13})(?:\\.\\d{1,4})?$/.test(draftQuantity) ||
+                    Number(draftQuantity) <= 0 || mutation.isPending}
+                    onClick={() => perform(async () => {
+                      await inventoryApi.updateGoodsReceiptItem(current.items![0]!.id, draftQuantity);
+                      return { data: { id: current.id } };
+                    })}>
+                    Save Draft quantity
+                  </Button>
+                  <TextField label="Draft remarks" value={draftRemarks}
+                    onChange={(event) => setDraftRemarks(event.target.value)} multiline minRows={2} />
+                  <Button disabled={mutation.isPending}
+                    onClick={() => perform(() => inventoryApi.updateGoodsReceipt(current.id, draftRemarks || null))}>
+                    Save Draft remarks
+                  </Button>
+                </Stack>
+              ) : null}
               {canSubmit && !current.submittedAt ? (
                 <Stack spacing={1}>
                   <TextField select label="Approval workflow" value={workflowCode}
