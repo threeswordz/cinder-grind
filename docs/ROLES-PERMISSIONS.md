@@ -972,3 +972,16 @@ The next Phase 0 deliverable is:
 
 Each endpoint enforces Company and effective Project scope in addition to its explicit permission. The technical `SYS_ADMIN` may maintain Warehouse configuration but receives no Inventory posting or business approval authority. Later-stage Inventory transaction permissions are not granted in Stage A.
 
+
+## V0.4-B Goods Receipt permissions
+
+| Permission | Authority |
+| --- | --- |
+| `inventory.receipt.view` | Project-scoped eligible PO, Warehouse choice, receipt list/detail and retained movement/action history |
+| `inventory.receipt.create` | Create a Draft receipt against the current approved PO material source |
+| `inventory.receipt.edit` | Change Draft remarks or item quantity |
+| `inventory.receipt.submit` | Submit to configured `GOODS_RECEIPT` Approval Matrix workflow |
+| `inventory.receipt.approve` | Act in the configured approver Role; final approval atomically posts; may reject |
+| `inventory.receipt.reverse` | Reverse posted receipt with reason, opposite ledger and audit history |
+
+All routes enforce explicit permission, persisted Company/Project assignment and CSRF on mutation. `projects.access_all` bypasses Project assignment only; it does not grant receipt action authority. Approval Matrix Role and maker-checker checks remain mandatory. No Goods Receipt posting/approval/reversal permission is granted to technical `SYS_ADMIN` by the Stage B migration. Business Roles receive them through existing administration.
