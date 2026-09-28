@@ -1828,3 +1828,27 @@ POST   /api/v1/inventory/warehouses/{id}/reactivate
 
 Warehouses are Company-owned. A general Warehouse has no fixed Project; a Project/Site Warehouse has one same-Company Project. Site Warehouses require a Project. Scoped users see general Warehouses and Warehouses linked to their active Project membership; `projects.access_all` grants assignment-filter bypass but not action permission. Explicit `inventory.warehouse.*` permissions guard each operation. Create/update/archive/reactivate are audited. A Project reassignment requires `projects.access_all`. Inventory document posting and derived balances remain later-stage work.
 
+
+## V0.4-B Goods Receipt / Stock Ledger API
+
+Under `/api/v1/inventory` the Stage B resources are:
+
+| Method | Route | Permission | Purpose |
+| --- | --- | --- | --- |
+| GET | `/receipt-projects` | `inventory.receipt.view` | Effective active Project choices |
+| GET | `/projects/:projectId/receipt-warehouses` | `inventory.receipt.view` | Active general or matching Project Warehouses |
+| GET | `/projects/:projectId/eligible-receipt-pos` | `inventory.receipt.view` | Current active approved PO material lines |
+| GET | `/projects/:projectId/goods-receipts` | `inventory.receipt.view` | Scoped receipt register |
+| GET | `/goods-receipts/:id` | `inventory.receipt.view` | Receipt, approval actions, items and immutable movement history |
+| GET | `/receipt-workflows` | `inventory.receipt.submit` | Active configured `GOODS_RECEIPT` Approval Matrix options |
+| POST | `/goods-receipts` | `inventory.receipt.create` | Create Draft from approved PO and positive material-line quantities |
+| PATCH | `/goods-receipts/:id` | `inventory.receipt.edit` | Draft remarks only |
+| PATCH | `/goods-receipt-items/:id` | `inventory.receipt.edit` | Draft quantity only |
+| POST | `/goods-receipts/:id/submit` | `inventory.receipt.submit` | Submit to configured workflow |
+| POST | `/goods-receipts/:id/approve` | `inventory.receipt.approve` | Approval Matrix action; final approval atomically posts with `postKey` |
+| POST | `/goods-receipts/:id/reject` | `inventory.receipt.approve` | Retain rejection/action history |
+| POST | `/goods-receipts/:id/reverse` | `inventory.receipt.reverse` | Full reversal with `reversalKey` and required reason |
+
+Create body: `{projectId,purchaseOrderId,warehouseId,remarks?,lines:[{purchaseOrderLineId,quantity}]}`. Quantities are positive decimal strings or JSON numbers with at most four decimal places; no UOM conversion. Submit body: `{workflowCode}`. Approve body: `{postKey,comment?}`. Reverse body: `{reversalKey,reason}`. The source PO revision must remain the current active approved revision at final posting. Every endpoint enforces Company, Project and explicit permission scope on the server; mutating endpoints require CSRF. The creator cannot perform final approval. Final posting and reversal include audit and ledger effects in one serializable transaction. A retry with the same key returns the existing effect without duplicating stock.
+
+Stage B exposes only Goods Receipt source and movement history through detail. Derived Stock Balance/report APIs belong to V0.4-C/E.
