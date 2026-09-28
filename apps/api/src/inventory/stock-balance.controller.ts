@@ -5,7 +5,7 @@ import { AuthenticatedRequest, AuthenticatedUserContext } from '../auth/auth.typ
 import { PermissionGuard } from '../authorization/permission.guard';
 import { RequirePermissions } from '../authorization/permissions.decorator';
 import { inventoryInvalid, optionalInventoryUuid } from './inventory-validation';
-import { StockBalanceService } from './stock-balance.service';
+import { StockBalanceFilters, StockBalanceService } from './stock-balance.service';
 
 function authOf(request: AuthenticatedRequest): AuthenticatedUserContext {
   if (!request.auth) throw new Error('Authentication context is missing.');
@@ -50,18 +50,23 @@ export class StockBalanceController {
     @Query('includeInactiveWarehouses') includeInactiveWarehouses: unknown,
     @Query('includeZero') includeZero: unknown,
   ) {
-    return {
-      data: await this.balances.balances(authOf(request), {
-        projectId: optionalInventoryUuid(projectId, 'projectId') ?? undefined,
-        warehouseId: optionalInventoryUuid(warehouseId, 'warehouseId') ?? undefined,
-        materialId: optionalInventoryUuid(materialId, 'materialId') ?? undefined,
-        search: optionalSearch(search),
-        includeInactiveWarehouses: optionalBoolean(
-          includeInactiveWarehouses,
-          'includeInactiveWarehouses',
-        ),
-        includeZero: optionalBoolean(includeZero, 'includeZero'),
-      }),
+    const project = optionalInventoryUuid(projectId, 'projectId') ?? undefined;
+    const warehouse = optionalInventoryUuid(warehouseId, 'warehouseId') ?? undefined;
+    const material = optionalInventoryUuid(materialId, 'materialId') ?? undefined;
+    const searchText = optionalSearch(search);
+    const inactive = optionalBoolean(
+      includeInactiveWarehouses,
+      'includeInactiveWarehouses',
+    );
+    const zero = optionalBoolean(includeZero, 'includeZero');
+    const filters: StockBalanceFilters = {
+      ...(project ? { projectId: project } : {}),
+      ...(warehouse ? { warehouseId: warehouse } : {}),
+      ...(material ? { materialId: material } : {}),
+      ...(searchText ? { search: searchText } : {}),
+      ...(inactive !== undefined ? { includeInactiveWarehouses: inactive } : {}),
+      ...(zero !== undefined ? { includeZero: zero } : {}),
     };
+    return { data: await this.balances.balances(authOf(request), filters) };
   }
 }
