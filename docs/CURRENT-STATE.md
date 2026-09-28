@@ -4,7 +4,7 @@
 **Source of truth:** Live GitHub repository state
 
 - Current Release: V0.4 Inventory
-- Current Stage: V0.4-D Material Reservation / Issue / Return — PRE-FLIGHT
+- Current Stage: V0.4-D Material Reservation / Issue / Return — IMPLEMENTATION / VALIDATION
 - Completed Stages: V0.1-A through V0.1-H; V0.2-A through V0.2-G; V0.3-A through V0.3-E; V0.4-A Warehouse Foundation; V0.4-B Goods Receipt / Ledger; V0.4-C Derived Stock Balance
 - Active Issue: #89 — V0.4-D Material Reservation / Issue / Return
 - Completed Issue: #87 — V0.4-C Derived Stock Balance / Project-Site Stock Views
@@ -77,7 +77,7 @@
 - V0.1 cross-module release acceptance scenario: PASS in the Stage H release-candidate regression suite.
 - Open defect check at V0.1 acceptance: no Severity 1 or Severity 2 release-blocking defect recorded.
 - Governance: `AGENTS.md`, `docs/PROJECT-GOVERNANCE.md`, PR governance checklist and DEC-008 are active; material decisions must pass the repository pre-flight and open-source/zero-cost-first constraint.
-- Next action: validate the V0.4-D pre-flight under Issue #89, then implement only its approved Reservation / Issue / Return contract. V0.4-E must wait for the Stage D merge and post-merge main CI.
+- Next action: run the V0.4-D documentation-head exact CI, then open the Stage-D PR. Resolve review findings and merge only after PR CI is green; V0.4-E must wait for the Stage-D merge and post-merge main CI.
 
 ## Stage E completed
 
@@ -747,3 +747,15 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - Stage D Issue #89 and branch `v0.4-d-reservation-issue-return` start only from that green checkpoint.
 - `docs/V0.4-D-PREFLIGHT.md` binds Stage D to approved INV-008/009/010, AC-V04-016–021 and supporting security/ledger criteria, and BR-V04-07–15 with existing Company/Project governance.
 - Stock Transfer, Inventory Documents, full Inventory reporting and human V0.4 release UAT remain deferred. V0.4-D implementation may begin only after the pre-flight exact-head CI passes; V0.4-E has not begun.
+
+
+## V0.4-D implementation under validation
+
+- Issue #89 remains active on branch `v0.4-d-reservation-issue-return`; Stage C green merge `096ee639f7e0597dd6c4068d9d1d0c323f66f15d` remains the branch base.
+- Stage D adds Material Reservation, Material Issue and Material Return models/services/API/UI under the approved INV-008/009/010 scope. The existing signed `stock_transactions` table remains the one immutable physical movement ledger.
+- Reservation activation derives availability from on-hand minus Active Reservations with deterministic stock-dimension locking; it creates no stock ledger row. Release/cancel retain history.
+- Material Issue final approval uses the configured Approval Matrix, maker-checker, idempotent post keys, negative-stock/other-reservation protection, optional exact linked-Reservation fulfillment, WBS/Cost Code/Activity attribution and one negative ledger row per line.
+- Material Return final approval references a posted Issue line, enforces cumulative non-reversed quantity ceilings and appends positive ledger effects. Reversal ordering requires Return reversal before source Issue reversal, and both append exact opposite movements.
+- Explicit reservation/issue/return permissions are not granted implicitly to technical `SYS_ADMIN`. Company/Project scope remains backend-enforced.
+- PostgreSQL integration plus live HTTP acceptance cover concurrency, availability, maker-checker, ledger effects, return ceilings, reversal ordering, Project denial and exact balance restoration. Implementation/test head `2a21d5bd3dd3748717ddea25a19b2dc8ee1394b9` passed branch CI #1442.
+- Documentation-head exact CI, PR CI/review/merge, Issue #89 closure and post-merge main CI remain pending. V0.4-E Stock Transfer / Inventory Documents / reporting has not begun. Human V0.4 business UAT remains a separate Release Exit Gate.
