@@ -197,7 +197,7 @@ export class GoodsReceiptService {
         if (current.postedAt || current.reversedAt) throw new ConflictException({ code: 'RECEIPT_ALREADY_POSTED' });
         const order = await this.currentOrder(context.auth, current.projectId, current.purchaseOrderId, tx);
         for (const awardId of [...new Set(current.items.map((item) => item.quotationAwardId))].sort()) {
-          await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${'receipt-award:' + awardId}))`;
+          await tx.$executeRawUnsafe('SELECT pg_advisory_xact_lock(hashtext($1))', 'receipt-award:' + awardId);
         }
         const warehouse = await tx.warehouse.findFirst({
           where: { id: current.warehouseId, companyId: context.auth.companyId, isActive: true },
