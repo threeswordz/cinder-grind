@@ -1,3 +1,10 @@
+## 2026-09-28 — V0.4-D Material Reservation / Issue / Return pre-flight
+
+- V0.4-C PR #88 merged as `096ee639f7e0597dd6c4068d9d1d0c323f66f15d`; Issue #87 closed and post-merge main CI #1419 passed.
+- Opened Issue #89 and branch `v0.4-d-reservation-issue-return` from that exact green checkpoint.
+- Added the Stage D pre-flight contract for Reservation availability, Issue/Return workflow, immutable shared-ledger extension, negative-stock/concurrency guards, explicit permissions and automated/live acceptance.
+- V0.4-E Transfer/Documents/reporting and human V0.4 release UAT remain deferred; no scope or governance change.
+
 ## 2026-09-28 — V0.4-B Goods Receipt / Stock Ledger under validation
 
 ## 2026-09-28 — V0.4-C derived Stock Balance under validation
