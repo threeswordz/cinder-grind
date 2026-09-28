@@ -101,7 +101,7 @@ export class GoodsReceiptService {
       throw new UnprocessableEntityException({ code: 'RECEIPT_LINES_INVALID' });
     }
     const sequence = await this.prisma.numberSequence.findFirst({
-      where: { companyId: context.auth.companyId, sequenceCode: 'GOODS_RECEIPT', isActive: true },
+      where: { companyId: context.auth.companyId, sequenceCode: 'GOODS_RECEIPT' },
     });
     if (!sequence || sequence.formatTemplate !== 'GRNYYMM-###' || sequence.resetRule !== 'MONTHLY') {
       throw new ConflictException({ code: 'RECEIPT_NUMBERING_REQUIRED', detail: 'Configure GRNYYMM-### with a monthly reset.' });
