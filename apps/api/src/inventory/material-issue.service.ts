@@ -559,6 +559,10 @@ export class MaterialIssueService {
         'SELECT pg_advisory_xact_lock(hashtext($1))',
         'inventory-warehouse:' + issue.warehouseId,
       );
+      await tx.$queryRawUnsafe<Array<{ id: string }>>(
+        'SELECT id FROM warehouses WHERE id = $1::uuid FOR UPDATE',
+        issue.warehouseId,
+      );
       const activeWarehouse = await tx.warehouse.findFirst({
         where: {
           id: issue.warehouseId,
