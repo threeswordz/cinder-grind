@@ -11,6 +11,11 @@ import { GoodsReceiptController } from './goods-receipt.controller';
 import { GoodsReceiptService } from './goods-receipt.service';
 import { InventoryController } from './inventory.controller';
 import { InventoryService } from './inventory.service';
+import { InventoryQuantityService } from './inventory-quantity.service';
+import { MaterialIssueService } from './material-issue.service';
+import { MaterialMovementController } from './material-movement.controller';
+import { MaterialReservationService } from './material-reservation.service';
+import { MaterialReturnService } from './material-return.service';
 import { StockBalanceController } from './stock-balance.controller';
 import { StockBalanceService } from './stock-balance.service';
 
@@ -28,8 +33,25 @@ import { StockBalanceService } from './stock-balance.service';
     InventoryController,
     GoodsReceiptController,
     StockBalanceController,
+    MaterialMovementController,
   ],
-  providers: [InventoryService, GoodsReceiptService, StockBalanceService],
-  exports: [InventoryService, GoodsReceiptService, StockBalanceService],
+  providers: [
+    InventoryService,
+    GoodsReceiptService,
+    StockBalanceService,
+    InventoryQuantityService,
+    MaterialReservationService,
+    MaterialIssueService,
+    MaterialReturnService,
+  ],
+  exports: [
+    InventoryService,
+    GoodsReceiptService,
+    StockBalanceService,
+    InventoryQuantityService,
+    MaterialReservationService,
+    MaterialIssueService,
+    MaterialReturnService,
+  ],
 })
 export class InventoryModule {}
