@@ -1,5 +1,5 @@
 import {
-  Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, Req, UseGuards,
+  Body, Controller, Get, Param, ParseUUIDPipe, Post, Req, UseGuards,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 
@@ -94,7 +94,7 @@ export class GoodsReceiptController {
       projectId: inventoryUuid(input.projectId, 'projectId'),
       purchaseOrderId: inventoryUuid(input.purchaseOrderId, 'purchaseOrderId'),
       warehouseId: inventoryUuid(input.warehouseId, 'warehouseId'),
-      remarks: nullableInventoryString(input, 'remarks', 10000),
+      remarks: nullableInventoryString(input, 'remarks', 10000) ?? null,
       lines,
     }) };
   }
