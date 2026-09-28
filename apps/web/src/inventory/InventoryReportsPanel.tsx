@@ -40,8 +40,8 @@ export function InventoryReportsPanel() {
   const balances = useQuery({
     queryKey: ['inventory-report', 'balances', projectId, search, includeInactiveWarehouses, includeZero],
     queryFn: () => inventoryApi.inventoryReportBalances({
-      projectId: projectId || undefined,
-      search: search || undefined,
+      ...(projectId ? { projectId } : {}),
+      ...(search ? { search } : {}),
       includeInactiveWarehouses,
       includeZero,
     }),
@@ -49,10 +49,10 @@ export function InventoryReportsPanel() {
   const movements = useQuery({
     queryKey: ['inventory-report', 'movements', projectId, movementType, postedFrom, postedTo],
     queryFn: () => inventoryApi.inventoryReportMovements({
-      projectId: projectId || undefined,
-      movementType: movementType || undefined,
-      postedFrom: postedFrom || undefined,
-      postedTo: postedTo || undefined,
+      ...(projectId ? { projectId } : {}),
+      ...(movementType ? { movementType } : {}),
+      ...(postedFrom ? { postedFrom } : {}),
+      ...(postedTo ? { postedTo } : {}),
     }),
   });
   const movementTypes = [...new Set((movements.data?.data ?? []).map((row) => row.movementType))].sort();
