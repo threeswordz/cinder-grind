@@ -1,3 +1,10 @@
+## 2026-09-28 — V0.4-A Warehouse / Inventory Foundation under validation
+
+- Issue #83 implements Company/Project-scoped Warehouse register, database integrity, lifecycle, server-side permissions, audit, UI and automated tests within approved INV-003/Stage A scope.
+- warehouse permissions are provisioned for technical SYS_ADMIN bootstrap without stock posting or business approval authority.
+- live HTTP and PostgreSQL acceptance coverage added; final exact-head CI, review and merge remain pending.
+- V0.4-B remains blocked until Stage A exact-head gates pass, PR merges and post-merge main validation is green.
+
 ## 2026-09-27 — V0.4 Inventory Release Entry Gate approved
 
 - Product / Business Owner approved the V0.4 Scope Baseline, AC-V04-001 through AC-V04-031, BR-V04-01 through BR-V04-20, database/API/test baselines, build stages and explicit deferrals.
