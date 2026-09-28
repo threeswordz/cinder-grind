@@ -50,6 +50,10 @@ const REQUIRED_ADMIN_PERMISSIONS = [
   'master.material.manage',
   'master.uom.view',
   'master.uom.manage',
+  'inventory.warehouse.view',
+  'inventory.warehouse.create',
+  'inventory.warehouse.edit',
+  'inventory.warehouse.archive',
 ] as const;
 
 function requiredEnv(name: string): string {
