@@ -8,6 +8,26 @@ export type InventoryProject = {
   projectName: string;
 };
 
+export type StockBalanceRecord = {
+  warehouseId: string;
+  warehouseCode: string;
+  warehouseName: string;
+  warehouseProjectId: string | null;
+  warehouseProjectCode: string | null;
+  warehouseProjectName: string | null;
+  isSiteWarehouse: boolean;
+  warehouseIsActive: boolean;
+  materialId: string;
+  materialCode: string;
+  materialName: string;
+  projectId: string | null;
+  projectCode: string | null;
+  projectName: string | null;
+  uomId: string;
+  uomCode: string;
+  quantity: string;
+};
+
 export type WarehouseRecord = {
   id: string;
   companyId: string;
@@ -67,6 +87,29 @@ function query(path: string, params: Record<string, string | undefined>) {
 }
 
 export const inventoryApi = {
+
+  stockProjects: () =>
+    apiRequest<Data<InventoryProject[]>>('/inventory/stock-projects'),
+
+  stockBalances: (filters: {
+    projectId?: string;
+    warehouseId?: string;
+    materialId?: string;
+    search?: string;
+    includeInactiveWarehouses?: boolean;
+    includeZero?: boolean;
+  } = {}) =>
+    apiRequest<Data<StockBalanceRecord[]>>(
+      query('/inventory/stock-balances', {
+        projectId: filters.projectId,
+        warehouseId: filters.warehouseId,
+        materialId: filters.materialId,
+        search: filters.search,
+        includeInactiveWarehouses: filters.includeInactiveWarehouses ? 'true' : undefined,
+        includeZero: filters.includeZero ? 'true' : undefined,
+      }),
+    ),
+
   projects: () =>
     apiRequest<Data<InventoryProject[]>>('/inventory/projects'),
 
