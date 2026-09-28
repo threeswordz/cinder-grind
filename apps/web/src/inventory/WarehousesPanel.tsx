@@ -51,8 +51,8 @@ export function WarehousesPanel({
     queryFn: () =>
       inventoryApi.warehouses({
         includeInactive,
-        projectId: projectFilter || undefined,
-        search: search || undefined,
+        ...(projectFilter ? { projectId: projectFilter } : {}),
+        ...(search ? { search } : {}),
       }),
   });
 
