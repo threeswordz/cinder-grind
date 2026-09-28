@@ -47,6 +47,7 @@ export type GoodsReceipt = {
   purchaseOrderId: string;
   warehouseId: string;
   supplierId: string;
+  remarks: string | null;
   createdAt: string;
   submittedAt: string | null;
   postedAt: string | null;
