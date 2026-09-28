@@ -14,6 +14,7 @@ export type InventoryMovementFilters = {
   warehouseId?: string;
   materialId?: string;
   movementType?: string;
+  sourceType?: string;
   postedFrom?: Date;
   postedTo?: Date;
 };
@@ -102,6 +103,17 @@ export class InventoryReportService {
       conditions.push(
         Prisma.sql`st.movement_type = ${filters.movementType}`,
       );
+    }
+    if (filters.sourceType) {
+      const sourceColumn: Record<string, Prisma.Sql> = {
+        GOODS_RECEIPT: Prisma.sql`st.goods_receipt_item_id`,
+        MATERIAL_ISSUE: Prisma.sql`st.material_issue_item_id`,
+        MATERIAL_RETURN: Prisma.sql`st.material_return_item_id`,
+        STOCK_TRANSFER: Prisma.sql`st.stock_transfer_item_id`,
+      };
+      const column = sourceColumn[filters.sourceType];
+      if (!column) return [];
+      conditions.push(Prisma.sql`${column} IS NOT NULL`);
     }
     if (filters.postedFrom) {
       conditions.push(Prisma.sql`st.posted_at >= ${filters.postedFrom}`);
