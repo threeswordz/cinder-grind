@@ -1088,7 +1088,7 @@ test('V0.3-D Purchase Orders preserve awarded-source traceability, approval and 
     for (const [label, source, destination] of [
       ['forward', warehouse.id, transferWarehouse.id],
       ['backward', transferWarehouse.id, warehouse.id],
-    ]) {
+    ] as const) {
       const draft = await stockTransfers.create(
         { auth: makerAuth },
         {
