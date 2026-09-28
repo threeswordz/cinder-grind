@@ -12,6 +12,8 @@ import { GoodsReceiptService } from './goods-receipt.service';
 import { InventoryController } from './inventory.controller';
 import { InventoryService } from './inventory.service';
 import { InventoryQuantityService } from './inventory-quantity.service';
+import { InventoryReportController } from './inventory-report.controller';
+import { InventoryReportService } from './inventory-report.service';
 import { MaterialIssueService } from './material-issue.service';
 import { MaterialMovementController } from './material-movement.controller';
 import { MaterialReservationService } from './material-reservation.service';
@@ -33,6 +35,7 @@ import { StockTransferService } from './stock-transfer.service';
   ],
   controllers: [
     InventoryController,
+    InventoryReportController,
     GoodsReceiptController,
     StockBalanceController,
     MaterialMovementController,
@@ -40,6 +43,7 @@ import { StockTransferService } from './stock-transfer.service';
   ],
   providers: [
     InventoryService,
+    InventoryReportService,
     GoodsReceiptService,
     StockBalanceService,
     InventoryQuantityService,
@@ -50,6 +54,7 @@ import { StockTransferService } from './stock-transfer.service';
   ],
   exports: [
     InventoryService,
+    InventoryReportService,
     GoodsReceiptService,
     StockBalanceService,
     InventoryQuantityService,
