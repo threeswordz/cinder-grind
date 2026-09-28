@@ -1447,6 +1447,7 @@ export class PurchaseOrderService {
       },
       select: {
         id: true,
+        poNumber: true,
         projectId: true,
         supplierId: true,
         approvalInstanceId: true,
