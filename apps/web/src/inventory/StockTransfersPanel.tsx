@@ -374,7 +374,7 @@ export function StockTransfersPanel({ permissions }: { permissions: string[] }) 
                   {(current.items ?? []).map((item) => {
                     const draftQuantity = draftQuantities[item.id] ?? item.quantity;
                     const validDraftQuantity =
-                      /^(?:0|[1-9]\\d{0,13})(?:\\.\\d{1,4})?$/.test(draftQuantity) &&
+                      /^(?:0|[1-9]\d{0,13})(?:\.\d{1,4})?$/.test(draftQuantity) &&
                       Number(draftQuantity) > 0;
                     return (
                       <Stack key={item.id} direction={{ xs: 'column', sm: 'row' }}
