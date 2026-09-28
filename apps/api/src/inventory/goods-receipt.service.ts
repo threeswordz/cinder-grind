@@ -183,6 +183,59 @@ export class GoodsReceiptService {
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
   }
 
+  async updateDraft(
+    context: AuditContext,
+    id: string,
+    remarks: string | null,
+  ) {
+    return this.prisma.$transaction(async (tx) => {
+      const receipt = await this.get(context.auth, id, tx);
+      if (receipt.submittedAt || receipt.postedAt || receipt.reversedAt) {
+        throw new ConflictException({ code: 'RECEIPT_NOT_DRAFT' });
+      }
+      const updated = await tx.goodsReceipt.update({
+        where: { id }, data: { remarks },
+      });
+      await this.audit.record({
+        ...context, entityType: 'GOODS_RECEIPT', entityId: id,
+        action: 'UPDATE_DRAFT', oldValues: { remarks: receipt.remarks },
+        newValues: { remarks },
+      }, tx);
+      return updated;
+    });
+  }
+
+  async updateDraftLine(
+    context: AuditContext,
+    itemId: string,
+    quantity: Prisma.Decimal,
+  ) {
+    if (!quantity.isFinite() || quantity.lte(0) || quantity.decimalPlaces() > 4 ||
+        quantity.greaterThan('99999999999999.9999')) {
+      throw new UnprocessableEntityException({ code: 'RECEIPT_QUANTITY_INVALID' });
+    }
+    return this.prisma.$transaction(async (tx) => {
+      const item = await tx.goodsReceiptItem.findFirst({
+        where: { id: itemId, goodsReceipt: { companyId: context.auth.companyId } },
+        select: { id: true, goodsReceiptId: true, quantity: true },
+      });
+      if (!item) throw new NotFoundException({ code: 'RECEIPT_ITEM_NOT_FOUND' });
+      const receipt = await this.get(context.auth, item.goodsReceiptId, tx);
+      if (receipt.submittedAt || receipt.postedAt || receipt.reversedAt) {
+        throw new ConflictException({ code: 'RECEIPT_NOT_DRAFT' });
+      }
+      const updated = await tx.goodsReceiptItem.update({
+        where: { id: itemId }, data: { quantity },
+      });
+      await this.audit.record({
+        ...context, entityType: 'GOODS_RECEIPT_ITEM', entityId: itemId,
+        action: 'UPDATE_DRAFT', oldValues: { quantity: item.quantity.toString() },
+        newValues: { quantity: quantity.toString() },
+      }, tx);
+      return updated;
+    });
+  }
+
   async submit(context: AuditContext, id: string, workflowCode: string) {
     return this.prisma.$transaction(async (tx) => {
       const receipt = await this.get(context.auth, id, tx);
