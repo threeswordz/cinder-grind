@@ -52,6 +52,16 @@ export class GoodsReceiptController {
     return { data: await this.receipts.workflowOptions(authOf(request)) };
   }
 
+  @Get('projects/:projectId/receipt-warehouses')
+  @UseGuards(AuthGuard, PermissionGuard)
+  @RequirePermissions('inventory.receipt.view')
+  async warehouses(
+    @Req() request: AuthenticatedRequest,
+    @Param('projectId', new ParseUUIDPipe({ version: '4' })) projectId: string,
+  ) {
+    return { data: await this.receipts.warehouses(authOf(request), projectId) };
+  }
+
   @Get('projects/:projectId/eligible-receipt-pos')
   @UseGuards(AuthGuard, PermissionGuard)
   @RequirePermissions('inventory.receipt.view')
