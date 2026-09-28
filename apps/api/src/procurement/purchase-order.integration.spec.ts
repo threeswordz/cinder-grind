@@ -990,6 +990,76 @@ test('V0.3-D Purchase Orders preserve awarded-source traceability, approval and 
       '3.0000',
     );
 
+    const competingTransfers = await Promise.all(
+      ['A', 'B'].map(async (label) => {
+        const draft = await stockTransfers.create(
+          { auth: makerAuth },
+          {
+            sourceWarehouseId: warehouse.id,
+            destinationWarehouseId: transferWarehouse.id,
+            transferDate: today,
+            lines: [{
+              materialId: material.id,
+              quantity: new Prisma.Decimal('2'),
+              uomId: uom.id,
+              sourceProjectId: project.id,
+              destinationProjectId: project.id,
+            }],
+          },
+        );
+        await stockTransfers.submit(
+          { auth: makerAuth },
+          draft.id,
+          transferWorkflow.workflowCode,
+        );
+        return { draft, label };
+      }),
+    );
+    const competingPosts = await Promise.allSettled(
+      competingTransfers.map(({ draft, label }) =>
+        stockTransfers.approve(
+          { auth: checkerAuth },
+          draft.id,
+          'competing-transfer-' + label,
+        ),
+      ),
+    );
+    assert.equal(
+      competingPosts.filter((result) => result.status === 'fulfilled').length,
+      1,
+      'Concurrent Transfers must not both consume the same final source stock.',
+    );
+    const winningTransfer = competingTransfers[
+      competingPosts[0]?.status === 'fulfilled' ? 0 : 1
+    ]!.draft;
+    assert.equal(
+      await prisma.stockTransaction.count({
+        where: {
+          stockTransferId: {
+            in: competingTransfers.map(({ draft }) => draft.id),
+          },
+          movementType: 'STOCK_TRANSFER_OUT',
+        },
+      }),
+      1,
+      'Only the winning Transfer may append a source-negative ledger effect.',
+    );
+    await stockTransfers.reverse(
+      { auth: makerAuth },
+      winningTransfer.id,
+      'competing-transfer-cleanup',
+      'Restore stock after concurrent Transfer regression',
+    );
+    assert.equal(
+      (await balances.balances(makerAuth, {
+        projectId: project.id,
+        warehouseId: warehouse.id,
+        materialId: material.id,
+      }))[0]?.quantity,
+      '3.0000',
+      'Concurrent Transfer cleanup must restore the original source balance.',
+    );
+
     const transferProtectedReservation = await reservations.create(
       { auth: makerAuth },
       {
