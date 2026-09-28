@@ -2768,3 +2768,9 @@ The logical ERD has now defined:
 The next Phase 0 deliverable is:
 
 **Roles & Permissions Model — Issue #4**
+
+
+## V0.4-A implemented Warehouse foundation
+
+The `warehouses` model is source-controlled with UUID identity, Company-scoped unique code, name, optional Project/location, site flag, active state and audit timestamps. PostgreSQL independently checks that a Site Warehouse has a Project and that an associated Project belongs to the same Company. Foreign keys restrict deletion. The V0.4-B/D transaction tables will enforce the approved no-reassignment-after-history and zero-stock/no-active-reservation archive rules when those histories exist. No Stock Transaction or editable balance table is introduced by Stage A.
+

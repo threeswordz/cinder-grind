@@ -8,6 +8,7 @@ import { AuthorizationModule } from './authorization/authorization.module';
 import { BudgetModule } from './budget/budget.module';
 import { CorrelationIdMiddleware } from './common/correlation-id.middleware';
 import { HealthModule } from './health/health.module';
+import { InventoryModule } from './inventory/inventory.module';
 import { DocumentsModule } from './documents/documents.module';
 import { EquipmentModule } from './equipment/equipment.module';
 import { MasterDataModule } from './master-data/master-data.module';
@@ -29,6 +30,7 @@ import { WbsModule } from './wbs/wbs.module';
     SchedulingModule,
     SiteExecutionModule,
     EquipmentModule,
+    InventoryModule,
     ReportingModule,
     DocumentsModule,
     AdministrationModule,

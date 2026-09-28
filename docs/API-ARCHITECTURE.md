@@ -1812,3 +1812,19 @@ Business workflow transitions occur through explicit backend commands.
 The next Phase 0 deliverable is:
 
 **Testing & UAT Approach — Issue #6**
+
+
+## V0.4-A Warehouse / Inventory Foundation
+
+```text
+GET    /api/v1/inventory/projects
+GET    /api/v1/inventory/warehouses?includeInactive=true&projectId={id}&search={text}
+GET    /api/v1/inventory/warehouses/{id}
+POST   /api/v1/inventory/warehouses
+PATCH  /api/v1/inventory/warehouses/{id}
+POST   /api/v1/inventory/warehouses/{id}/archive
+POST   /api/v1/inventory/warehouses/{id}/reactivate
+```
+
+Warehouses are Company-owned. A general Warehouse has no fixed Project; a Project/Site Warehouse has one same-Company Project. Site Warehouses require a Project. Scoped users see general Warehouses and Warehouses linked to their active Project membership; `projects.access_all` grants assignment-filter bypass but not action permission. Explicit `inventory.warehouse.*` permissions guard each operation. Create/update/archive/reactivate are audited. A Project reassignment requires `projects.access_all`. Inventory document posting and derived balances remain later-stage work.
+

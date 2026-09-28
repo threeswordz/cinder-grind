@@ -1,13 +1,15 @@
 # Construction ERP — Current State
 
-**Last verified:** 2026-09-27
+**Last verified:** 2026-09-28
 **Source of truth:** Live GitHub repository state
 
 - Current Release: V0.4 Inventory
-- Current Stage: V0.4 Release Entry Gate — APPROVED, MERGE / EXACT-HEAD VALIDATION PENDING
+- Current Stage: V0.4-A Warehouse / Inventory Foundation — IMPLEMENTATION / VALIDATION
 - Completed Stages: V0.1-A through V0.1-H; V0.2-A through V0.2-G; V0.3-A BOQ & Budget; V0.3-B Purchase Request; V0.3-C RFQ / Quotations; V0.3-D Purchase Order; V0.3-E Schedule Risk / Procurement Reporting / Traceability
-- Active Issue: #81 — V0.4 Inventory Release Entry Gate — Scope, Acceptance & Business Rules
-- Active Branch: `v0.4-entry-gate`
+- Active Issue: #83 — V0.4-A Warehouse / Inventory Foundation
+- Active Branch: `v0.4-a-warehouse-foundation`
+- Completed Issue: #81 — V0.4 Inventory Release Entry Gate — Scope, Acceptance & Business Rules
+- Merged PR: #82 — docs: approve V0.4 Inventory entry gate
 - Completed Issue: #79 — V0.3 Procurement Product / Business Owner acceptance record
 - Merged PR: #80 — docs: accept V0.3 Procurement
 - Completed Issue: #76 — V0.3-E Schedule Risk / Procurement Reporting / Traceability
@@ -69,7 +71,7 @@
 - V0.1 cross-module release acceptance scenario: PASS in the Stage H release-candidate regression suite.
 - Open defect check at V0.1 acceptance: no Severity 1 or Severity 2 release-blocking defect recorded.
 - Governance: `AGENTS.md`, `docs/PROJECT-GOVERNANCE.md`, PR governance checklist and DEC-008 are active; material decisions must pass the repository pre-flight and open-source/zero-cost-first constraint.
-- Next action: complete exact-head validation and merge approved V0.4 entry-gate PR #82, then open V0.4-A Warehouse / Inventory Foundation pre-flight. Implementation must remain within the approved baselines and repository governance.
+- Next action: finish V0.4-A exact-head CI, review and merge under Issue #83. V0.4-B must not begin until Stage A merges and post-merge main CI passes.
 
 ## Stage E completed
 
@@ -685,3 +687,22 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - no new runtime dependency is proposed; DEC-008 open-source / zero-cost-first remains active.
 - Product / Business Owner approved `docs/V0.4-SCOPE.md`, `docs/V0.4-ACCEPTANCE-CRITERIA.md`, `docs/V0.4-BUSINESS-RULES.md` and the database/API/test/build-stage/deferral baselines on 2026-09-27.
 - V0.4-A pre-flight is authorized after approved PR #82 passes exact-head validation and merges; implementation remains bound by the approved baselines and Change Control.
+
+## V0.4-A Warehouse / Inventory Foundation pre-flight complete
+
+- Issue #83 is active; branch `v0.4-a-warehouse-foundation` starts from green approved-entry checkpoint `464c7acf9d23c3b176223ee38adb173045074708`.
+- approved authority: INV-003 with foundation support for INV-006 / INV-007; AC-V04-001 through AC-V04-004; BR-V04-01 through BR-V04-03, BR-V04-10 and BR-V04-17.
+- governance, Decision Log, dependency/license, architecture, Company/Project scope, permissions, audit, security and test impacts were reconciled.
+- no new runtime dependency or mandatory paid component is required.
+- no blocking business or architecture decision remains.
+- `docs/V0.4-A-PREFLIGHT.md` is the source-controlled Stage A implementation contract.
+- Stage A technical implementation may proceed within the approved baseline; scope expansion requires Change Control.
+
+## V0.4-A implementation under validation
+
+- Warehouse persistence, Company/Project database integrity, site flag and active/archive lifecycle added with source-controlled migrations.
+- Warehouse permissions and SYS_ADMIN technical provisioning added, including fresh bootstrap consistency; no stock-posting or business approval authority granted.
+- Project-scoped Warehouse APIs, audit logging, responsive permission-aware register, unit/integration coverage and live HTTP acceptance scenario added.
+- Inventory document numbering rules remain in the approved V0.4 baseline for later stages; no Inventory document or stock ledger is created in Stage A.
+- Stage A code head `94516ba1d5baf9cb7cc75199c708ca26dc2eb6a6`: branch CI #1331 and PR CI #1332 passed, including clean migrations, API/web validation, PostgreSQL Warehouse tests, prior-release regression and live HTTP acceptance.
+- Codex review finding on test-suite wiring fixed and thread resolved. Final documentation-head CI, merge and post-merge `main` CI remain pending; Stage B remains blocked until those gates pass.

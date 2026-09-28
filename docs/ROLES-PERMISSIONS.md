@@ -961,3 +961,14 @@ Technical administration and business approval authority remain separate.
 The next Phase 0 deliverable is:
 
 **API Architecture Baseline — Issue #5**
+
+
+## V0.4-A Warehouse permissions
+
+- `inventory.warehouse.view` — scoped Warehouse list, detail and Project selector
+- `inventory.warehouse.create` — create Company/Project Warehouses
+- `inventory.warehouse.edit` — edit Warehouse master data
+- `inventory.warehouse.archive` — archive/reactivate Warehouse
+
+Each endpoint enforces Company and effective Project scope in addition to its explicit permission. The technical `SYS_ADMIN` may maintain Warehouse configuration but receives no Inventory posting or business approval authority. Later-stage Inventory transaction permissions are not granted in Stage A.
+

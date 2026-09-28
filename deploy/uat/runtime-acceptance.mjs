@@ -254,6 +254,10 @@ const permissionCodes = [
   'equipment.usage.view',
   'equipment.usage.create',
   'equipment.usage.edit',
+  'inventory.warehouse.view',
+  'inventory.warehouse.create',
+  'inventory.warehouse.edit',
+  'inventory.warehouse.archive',
   'reporting.operational.view',
   'budget.boq.view',
   'budget.boq.manage',
@@ -2465,6 +2469,62 @@ record('V0.3-E DOC-007 secure Purchase Order document target');
 
 record('secure document upload, metadata listing and byte-for-byte download');
 
+const unassigned = await login(unassignedUser.data.data.email, unassignedPassword);
+
+const warehouse = await request(pm, '/inventory/warehouses', {
+  method: 'POST',
+  json: {
+    warehouseCode: 'WH-' + suffix,
+    warehouseName: 'Factory Site Store ' + suffix,
+    projectId,
+    location: 'UAT Site Compound',
+    isSiteWarehouse: true,
+  },
+  expected: 201,
+});
+const warehouseId = warehouse.data.data.id;
+check(
+  warehouse.data.data.projectId === projectId &&
+    warehouse.data.data.isSiteWarehouse === true,
+  'Stage A Site Warehouse did not retain the Project and Site identity.',
+);
+const warehouseList = await request(pm, '/inventory/warehouses?projectId=' + projectId);
+check(
+  warehouseList.data.data.some((item) => item.id === warehouseId),
+  'Stage A Warehouse was not discoverable within the assigned Project.',
+);
+await request(unassigned, '/inventory/warehouses/' + warehouseId, {
+  expected: 403,
+});
+await request(unassigned, '/inventory/warehouses?projectId=' + projectId, {
+  expected: 403,
+});
+const warehouseUpdated = await request(
+  pm,
+  '/inventory/warehouses/' + warehouseId,
+  {
+    method: 'PATCH',
+    json: { location: 'Updated Site Compound' },
+  },
+);
+check(
+  warehouseUpdated.data.data.location === 'Updated Site Compound',
+  'Warehouse location update was not retained.',
+);
+const archivedWarehouse = await request(
+  pm,
+  '/inventory/warehouses/' + warehouseId + '/archive',
+  { method: 'POST', expected: 201 },
+);
+check(archivedWarehouse.data.data.isActive === false, 'Warehouse archive failed.');
+const reactivatedWarehouse = await request(
+  pm,
+  '/inventory/warehouses/' + warehouseId + '/reactivate',
+  { method: 'POST', expected: 201 },
+);
+check(reactivatedWarehouse.data.data.isActive === true, 'Warehouse reactivate failed.');
+record('V0.4-A Warehouse creation, Project scope, update and lifecycle');
+
 const equipmentType = await request(pm, '/equipment/types', {
   method: 'POST',
   json: {
@@ -2924,7 +2984,6 @@ record('V0.2-F Equipment Daily Site Report usage, append-only correction and der
 
 record('V0.2-E Daily Site Report, progress, observations, photos and corrections through live HTTP API');
 
-const unassigned = await login(unassignedUser.data.data.email, unassignedPassword);
 await request(unassigned, '/projects/' + projectId, { expected: 403 });
 await request(unassigned, `/documents/projects/${projectId}`, { expected: 403 });
 await request(unassigned, '/activities?projectId=' + projectId, { expected: 403 });
