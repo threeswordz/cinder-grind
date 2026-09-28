@@ -2469,6 +2469,8 @@ record('V0.3-E DOC-007 secure Purchase Order document target');
 
 record('secure document upload, metadata listing and byte-for-byte download');
 
+const unassigned = await login(unassignedUser.data.data.email, unassignedPassword);
+
 const warehouse = await request(pm, '/inventory/warehouses', {
   method: 'POST',
   json: {
@@ -2982,7 +2984,6 @@ record('V0.2-F Equipment Daily Site Report usage, append-only correction and der
 
 record('V0.2-E Daily Site Report, progress, observations, photos and corrections through live HTTP API');
 
-const unassigned = await login(unassignedUser.data.data.email, unassignedPassword);
 await request(unassigned, '/projects/' + projectId, { expected: 403 });
 await request(unassigned, `/documents/projects/${projectId}`, { expected: 403 });
 await request(unassigned, '/activities?projectId=' + projectId, { expected: 403 });
