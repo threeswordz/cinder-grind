@@ -4,7 +4,7 @@
 **Source of truth:** Live GitHub repository state
 
 - Current Release: V0.5 Subcontracts — Release Entry Gate (not yet approved)
-- Current Stage: V0.4 Inventory release exit complete; V0.5 entry-gate draft and business decisions under Issue #98
+- Current Stage: V0.4 Inventory release exit complete; V0.5 entry-gate proposals under Issue #98 awaiting explicit Product / Business Owner approval
 - Completed Stages: V0.1-A through V0.1-H; V0.2-A through V0.2-G; V0.3-A through V0.3-E; V0.4-A Warehouse Foundation; V0.4-B Goods Receipt / Ledger; V0.4-C Derived Stock Balance; V0.4-D Material Reservation / Issue / Return; V0.4-E Stock Transfer / Inventory Documents / Reporting / Release Evidence
 - Completed Issue: #92 — V0.4-E Stock Transfer / Inventory Documents / Reporting / Release Evidence
 - Completed Issue: #89 — V0.4-D Material Reservation / Issue / Return
@@ -793,6 +793,7 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 
 ## V0.5 entry-gate baseline proposals under review
 
+- PR #100 merged the proposed V0.5 scope, AC and business-rule documents as `818f48c373416dbae27f59b6b76af6a363f10649`. Exact-head PR CI #1588 and post-merge `main` CI #1589 passed; both automated review findings were addressed. This merge did not approve the proposals or close Issue #98.
 - Proposed `docs/V0.5-SCOPE.md`, `docs/V0.5-ACCEPTANCE-CRITERIA.md` (AC-V05-001–030) and `docs/V0.5-BUSINESS-RULES.md` (BR-V05-01–20) provide a concrete owner-review package for Issue #98. They are not approved and authorize no implementation.
 - The proposal preserves the Subcontracts-owned Company register and Project-scoped downstream records, distinct claim/assessment/certification values, no WO double counting and separate Committed/Actual/Paid Cost. Tax/FX, Finance, retention release and DOC-009 remain deferred.
 - Product / Business Owner decisions D05-01–11, including commercial currency/tax basis, remain open. Only after explicit approval and its CI/review/merge/post-merge gates may V0.5-A pre-flight begin.
