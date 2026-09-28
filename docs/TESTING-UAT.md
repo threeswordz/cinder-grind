@@ -1672,3 +1672,11 @@ The next Phase 0 deliverable is:
 
 Stage A adds clean migration/schema validation, Warehouse input validation, PostgreSQL Company/Project/site integrity, Company-unique code, assigned/unassigned Project-scope denial, archive/reactivate lifecycle, audit history, web typecheck/build and live HTTP create/read/update/archive/reactivate checks. The full V0.1–V0.3 regression remains mandatory. Stock posting, balance, reservations, issues, returns and transfers are not tested as implemented in Stage A.
 
+
+## V0.4-B Goods Receipt automated evidence
+
+The normal API regression command includes the Purchase Order PostgreSQL integration scenario extended with Goods Receipt posting. It verifies current approved PO lineage, maker-checker, one positive ledger effect, idempotent retry, unauthorized Project denial, direct ledger UPDATE/DELETE rejection, Warehouse history reassignment/archive protection, PO cancellation denial while received, revision quantity/deletion denial, simultaneous competing posts against remaining PO quantity, full reversal and archive/cancellation eligibility after reversal.
+
+The live HTTP runtime acceptance uses unique scenario records and the configured `GOODS_RECEIPT` workflow/sequence. It covers Draft quantity/remarks edit, partial and multiple receipts, approved posting, maker denial, duplicate retry, over-receipt denial, source and Project authorization, PO cancellation guard and exact negative reversal. Persistent UAT cleanup remains non-destructive under BR-V04-20.
+
+Clean migration-from-zero/status, API/web typecheck/build, prior-release regression and production dependency audit remain required. Stage B completion needs exact-head branch/PR CI and resolved review. Later V0.4-C/D/E tests must add derived balance, reservation/negative-stock, return and transfer behavior; V0.4 human Product / Business Owner UAT remains a separate Release Exit Gate.
