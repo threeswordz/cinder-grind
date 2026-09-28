@@ -376,6 +376,10 @@ export class MaterialReturnService {
           'SELECT pg_advisory_xact_lock(hashtext($1))',
           'inventory-warehouse:' + current.warehouseId,
         );
+        await tx.$queryRawUnsafe<Array<{ id: string }>>(
+          'SELECT id FROM warehouses WHERE id = $1::uuid FOR UPDATE',
+          current.warehouseId,
+        );
         await this.validateWarehouse(
           context.auth,
           current.projectId,
