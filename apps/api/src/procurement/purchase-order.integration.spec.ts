@@ -900,7 +900,9 @@ test('V0.3-D Purchase Orders preserve awarded-source traceability, approval and 
     const transferMovements = await inventoryReports.movementReport(makerAuth, {
       projectId: project.id,
       movementType: 'STOCK_TRANSFER_OUT',
+      sourceType: 'STOCK_TRANSFER',
     });
+    assert.ok(transferMovements.every((row) => row.sourceType === 'STOCK_TRANSFER'));
     const transferOut = transferMovements.find(
       (row) => row.sourceId === transfer.id,
     );
