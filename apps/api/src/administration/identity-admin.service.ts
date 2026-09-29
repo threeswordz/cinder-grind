@@ -540,6 +540,22 @@ export class IdentityAdminService {
           'subcontracts.work_order.reject',
         ],
       },
+      {
+        view: 'subcontracts.claim.view',
+        actions: [
+          'subcontracts.claim.create',
+          'subcontracts.claim.edit',
+          'subcontracts.claim.submit',
+          'subcontracts.claim.withdraw',
+        ],
+      },
+      {
+        view: 'subcontracts.assessment.view',
+        actions: [
+          'subcontracts.assessment.assess',
+          'subcontracts.assessment.reject',
+        ],
+      },
     ];
     for (const group of subcontractPermissionGroups) {
       if (

@@ -62,6 +62,9 @@ model Company {
   subcontractAgreements SubcontractAgreement[]
   subcontractAgreementVersions SubcontractAgreementVersion[]
   subcontractWorkOrders SubcontractWorkOrder[]
+  subcontractClaims SubcontractClaim[]
+  subcontractClaimLines SubcontractClaimLine[]
+  subcontractClaimAssessments SubcontractClaimAssessment[]
   @@map("companies")
 }
 
@@ -245,6 +248,11 @@ model User {
   submittedAgreementVersions SubcontractAgreementVersion[] @relation("AgreementVersionSubmitter")
   createdSubcontractWorkOrders SubcontractWorkOrder[] @relation("WorkOrderCreator")
   submittedSubcontractWorkOrders SubcontractWorkOrder[] @relation("WorkOrderSubmitter")
+  createdSubcontractClaims SubcontractClaim[] @relation("ClaimCreator")
+  submittedSubcontractClaims SubcontractClaim[] @relation("ClaimSubmitter")
+  withdrawnSubcontractClaims SubcontractClaim[] @relation("ClaimWithdrawer")
+  assessedSubcontractClaims SubcontractClaimAssessment[] @relation("ClaimAssessor")
+  rejectedSubcontractClaimAssessments SubcontractClaimAssessment[] @relation("ClaimAssessmentRejector")
   submittedGoodsReceipts     GoodsReceipt[] @relation("GoodsReceiptSubmitter")
   postedGoodsReceipts        GoodsReceipt[] @relation("GoodsReceiptPoster")
   reversedGoodsReceipts      GoodsReceipt[] @relation("GoodsReceiptReverser")
@@ -571,6 +579,9 @@ model Project {
   subcontractAgreements SubcontractAgreement[]
   subcontractAgreementVersions SubcontractAgreementVersion[]
   subcontractWorkOrders SubcontractWorkOrder[]
+  subcontractClaims SubcontractClaim[]
+  subcontractClaimLines SubcontractClaimLine[]
+  subcontractClaimAssessments SubcontractClaimAssessment[]
   @@unique([companyId, projectCode])
   @@unique([companyId, id])
   @@index([companyId, isActive])
@@ -1191,6 +1202,9 @@ model SubcontractAgreement {
   cancelledBy       User?             @relation("SubcontractAgreementCanceller", fields: [companyId, cancelledByUserId], references: [companyId, id], onDelete: Restrict)
   versions          SubcontractAgreementVersion[]
   workOrders        SubcontractWorkOrder[]
+  claims            SubcontractClaim[]
+  claimLines        SubcontractClaimLine[]
+  claimAssessments  SubcontractClaimAssessment[]
 
   @@unique([companyId, agreementNumber])
   @@unique([companyId, id])
@@ -1262,13 +1276,106 @@ model SubcontractWorkOrder {
   approvalInstance ApprovalInstance? @relation(fields: [approvalInstanceId], references: [id], onDelete: Restrict)
   createdBy        User @relation("WorkOrderCreator", fields: [companyId, createdByUserId], references: [companyId, id], onDelete: Restrict)
   submittedBy      User? @relation("WorkOrderSubmitter", fields: [companyId, submittedByUserId], references: [companyId, id], onDelete: Restrict)
+  claimLines       SubcontractClaimLine[]
 
   @@unique([agreementId, sequenceNo])
+  @@unique([companyId, projectId, agreementId, id])
   @@unique([agreementId, workOrderNumber])
   @@index([companyId, projectId, agreementId, approvalState])
   @@index([wbsElementId])
   @@index([costCodeId])
   @@map("subcontract_work_orders")
+}
+
+
+model SubcontractClaim {
+  id                    String   @id @default(uuid()) @db.Uuid
+  companyId             String   @map("company_id") @db.Uuid
+  projectId             String   @map("project_id") @db.Uuid
+  agreementId           String   @map("agreement_id") @db.Uuid
+  claimNumber           String   @map("claim_number") @db.VarChar(30)
+  periodStart           DateTime @map("period_start") @db.Date
+  periodEnd             DateTime @map("period_end") @db.Date
+  currencyCode          String   @map("currency_code") @db.VarChar(3)
+  state                 String   @default("DRAFT") @db.VarChar(30)
+  replacementForClaimId String?  @unique @map("replacement_for_claim_id") @db.Uuid
+  createdByUserId       String   @map("created_by_user_id") @db.Uuid
+  submittedByUserId     String?  @map("submitted_by_user_id") @db.Uuid
+  withdrawnByUserId     String?  @map("withdrawn_by_user_id") @db.Uuid
+  createdAt             DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  submittedAt           DateTime? @map("submitted_at") @db.Timestamptz(6)
+  withdrawnAt           DateTime? @map("withdrawn_at") @db.Timestamptz(6)
+  withdrawalReason      String?  @map("withdrawal_reason") @db.Text
+  replacedAt            DateTime? @map("replaced_at") @db.Timestamptz(6)
+
+  company        Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  project        Project @relation(fields: [companyId, projectId], references: [companyId, id], onDelete: Restrict)
+  agreement      SubcontractAgreement @relation(fields: [companyId, projectId, agreementId], references: [companyId, projectId, id], onDelete: Restrict)
+  replacementFor SubcontractClaim? @relation("ClaimReplacement", fields: [companyId, projectId, agreementId, replacementForClaimId], references: [companyId, projectId, agreementId, id], onDelete: Restrict)
+  replacementClaim SubcontractClaim? @relation("ClaimReplacement")
+  createdBy      User @relation("ClaimCreator", fields: [companyId, createdByUserId], references: [companyId, id], onDelete: Restrict)
+  submittedBy    User? @relation("ClaimSubmitter", fields: [companyId, submittedByUserId], references: [companyId, id], onDelete: Restrict)
+  withdrawnBy    User? @relation("ClaimWithdrawer", fields: [companyId, withdrawnByUserId], references: [companyId, id], onDelete: Restrict)
+  lines          SubcontractClaimLine[]
+  assessment     SubcontractClaimAssessment?
+
+  @@unique([companyId, claimNumber])
+  @@unique([companyId, projectId, agreementId, id])
+  @@index([companyId, projectId, agreementId, state])
+  @@index([agreementId, periodStart, periodEnd])
+  @@map("subcontract_claims")
+}
+
+model SubcontractClaimLine {
+  id          String   @id @default(uuid()) @db.Uuid
+  companyId   String   @map("company_id") @db.Uuid
+  projectId   String   @map("project_id") @db.Uuid
+  agreementId String   @map("agreement_id") @db.Uuid
+  claimId     String   @map("claim_id") @db.Uuid
+  lineNo      Int      @map("line_no")
+  workOrderId String?  @map("work_order_id") @db.Uuid
+  amount      Decimal  @db.Decimal(18, 2)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  project   Project @relation(fields: [companyId, projectId], references: [companyId, id], onDelete: Restrict)
+  agreement SubcontractAgreement @relation(fields: [companyId, projectId, agreementId], references: [companyId, projectId, id], onDelete: Restrict)
+  claim     SubcontractClaim @relation(fields: [companyId, projectId, agreementId, claimId], references: [companyId, projectId, agreementId, id], onDelete: Restrict)
+  workOrder SubcontractWorkOrder? @relation(fields: [companyId, projectId, agreementId, workOrderId], references: [companyId, projectId, agreementId, id], onDelete: Restrict)
+
+  @@unique([claimId, lineNo])
+  @@index([companyId, projectId, agreementId, claimId])
+  @@index([workOrderId])
+  @@map("subcontract_claim_lines")
+}
+
+model SubcontractClaimAssessment {
+  id                 String   @id @default(uuid()) @db.Uuid
+  companyId          String   @map("company_id") @db.Uuid
+  projectId          String   @map("project_id") @db.Uuid
+  agreementId        String   @map("agreement_id") @db.Uuid
+  claimId            String   @unique @map("claim_id") @db.Uuid
+  assessedAmount     Decimal  @map("assessed_amount") @db.Decimal(18, 2)
+  reason             String   @db.Text
+  state              String   @default("ASSESSED") @db.VarChar(30)
+  assessedByUserId   String   @map("assessed_by_user_id") @db.Uuid
+  assessedAt         DateTime @map("assessed_at") @db.Timestamptz(6)
+  rejectedByUserId   String?  @map("rejected_by_user_id") @db.Uuid
+  rejectedAt         DateTime? @map("rejected_at") @db.Timestamptz(6)
+  rejectionReason    String?  @map("rejection_reason") @db.Text
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  company    Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  project    Project @relation(fields: [companyId, projectId], references: [companyId, id], onDelete: Restrict)
+  agreement  SubcontractAgreement @relation(fields: [companyId, projectId, agreementId], references: [companyId, projectId, id], onDelete: Restrict)
+  claim      SubcontractClaim @relation(fields: [companyId, projectId, agreementId, claimId], references: [companyId, projectId, agreementId, id], onDelete: Restrict)
+  assessedBy User @relation("ClaimAssessor", fields: [companyId, assessedByUserId], references: [companyId, id], onDelete: Restrict)
+  rejectedBy User? @relation("ClaimAssessmentRejector", fields: [companyId, rejectedByUserId], references: [companyId, id], onDelete: Restrict)
+
+  @@index([companyId, projectId, agreementId, state])
+  @@map("subcontract_claim_assessments")
 }
 
 model Warehouse {
