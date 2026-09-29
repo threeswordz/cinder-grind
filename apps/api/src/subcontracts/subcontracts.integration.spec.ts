@@ -437,21 +437,20 @@ test('V0.5-A enforces Subcontractor Company scope and agreement Project scope', 
         createKey: 'restricted-' + suffix,
       },
     );
-    await assert.rejects(
-      () =>
-        service.createAgreement(
-          { auth: scoped },
-          {
-            projectId: project.id,
-            subcontractorId: subcontractor.id,
-            originalValue: '5000.00',
-            scopeOfWork: 'Must not disclose another Project retry',
-            currencyCode: 'SGD',
-            createKey: 'restricted-' + suffix,
-          },
-        ),
-      (error: unknown) => error instanceof ForbiddenException,
+    const scopedSameKey = await service.createAgreement(
+      { auth: scoped },
+      {
+        projectId: project.id,
+        subcontractorId: subcontractor.id,
+        originalValue: '5000.00',
+        scopeOfWork: 'Independent creator-scoped request',
+        currencyCode: 'SGD',
+        createKey: 'restricted-' + suffix,
+      },
     );
+    assert.notEqual(scopedSameKey.id, restricted.id);
+    assert.equal(scopedSameKey.createdByUserId, scopedUser.id);
+    assert.equal(scopedSameKey.projectId, project.id);
     await assert.rejects(
       () => service.getAgreement(scoped, restricted.id),
       (error: unknown) => error instanceof ForbiddenException,
