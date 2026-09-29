@@ -549,7 +549,7 @@ function AgreementsPanel({ permissions }: { permissions: string[] }) {
                   multiline
                   minRows={4}
                 />
-                {newMode ? canCreate : canEdit ? (
+                {(newMode ? canCreate : canEdit) ? (
                   <Button
                     variant="contained"
                     onClick={() => save.mutate()}
