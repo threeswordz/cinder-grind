@@ -188,9 +188,18 @@ test('V0.5-B retains agreement decisions and enforces Work Order allocation ceil
         scopeOfWork: 'Stage B structural package',
         currencyCode: 'SGD',
         operationalStatusId: statusA.id,
+        createKey: 'stage-a-create-' + suffix,
+        createPayloadHash: 'a'.repeat(64),
         createdByUserId: maker.id,
       },
     });
+
+    const stageAFingerprint = {
+      createKey: agreement.createKey,
+      createPayloadHash: agreement.createPayloadHash,
+    };
+    assert.equal(stageAFingerprint.createKey, 'stage-a-create-' + suffix);
+    assert.equal(stageAFingerprint.createPayloadHash, 'a'.repeat(64));
 
     await assert.rejects(
       () =>
@@ -282,6 +291,17 @@ test('V0.5-B retains agreement decisions and enforces Work Order allocation ceil
     assert.equal(approved.approvalState, 'APPROVED');
     assert.ok(approved.firstApprovedAt);
 
+    const approvedFingerprint =
+      await prisma.subcontractAgreement.findUniqueOrThrow({
+        where: { id: agreement.id },
+        select: { createKey: true, createPayloadHash: true },
+      });
+    assert.deepEqual(
+      approvedFingerprint,
+      stageAFingerprint,
+      'Stage B submission/approval must retain the Stage A creation fingerprint unchanged',
+    );
+
     const replayedApproval = await service.approveInitialAgreement(
       { auth: checkerAuth },
       agreement.id,
@@ -310,6 +330,14 @@ test('V0.5-B retains agreement decisions and enforces Work Order allocation ceil
         where: { agreementId: agreement.id, versionNo: 1 },
       });
     assert.equal(versionOne.approvalState, 'APPROVED');
+
+    await assert.rejects(
+      () =>
+        prisma.subcontractAgreementVersion.delete({
+          where: { id: versionOne.id },
+        }),
+      'retained Agreement Version history must not be hard-deletable',
+    );
 
     await assert.rejects(
       () =>
@@ -425,6 +453,14 @@ test('V0.5-B retains agreement decisions and enforces Work Order allocation ceil
     });
     assert.equal(approvedWorkOrders.length, 1);
     assert.equal(approvedWorkOrders[0]?.amount.toFixed(2), '600.00');
+
+    await assert.rejects(
+      () =>
+        prisma.subcontractWorkOrder.delete({
+          where: { id: approvedWorkOrders[0]!.id },
+        }),
+      'retained Work Order history must not be hard-deletable',
+    );
 
     const pendingWorkOrder = await prisma.subcontractWorkOrder.findFirstOrThrow({
       where: {
