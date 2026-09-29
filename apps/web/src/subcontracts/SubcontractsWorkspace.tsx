@@ -225,6 +225,12 @@ function SubcontractorsPanel({ permissions }: { permissions: string[] }) {
                     sx={{ minWidth: 260 }}
                   >
                     <MenuItem value="">No Supplier link</MenuItem>
+                    {selected?.supplier && !selected.supplier.isActive ? (
+                      <MenuItem value={selected.supplier.id} disabled>
+                        {selected.supplier.supplierCode} —{' '}
+                        {selected.supplier.supplierName} — inactive current
+                      </MenuItem>
+                    ) : null}
                     {(suppliers.data?.data ?? []).map((supplier) => (
                       <MenuItem key={supplier.id} value={supplier.id}>
                         {supplier.supplierCode} — {supplier.supplierName}
