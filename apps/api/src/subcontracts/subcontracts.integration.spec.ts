@@ -116,6 +116,14 @@ test('V0.5-A enforces Subcontractor Company scope and agreement Project scope', 
         passwordHash: 'x',
       },
     });
+    const otherCompanyUser = await prisma.user.create({
+      data: {
+        companyId: otherCompany.id,
+        email: 'sub-other-' + suffix + '@example.com',
+        displayName: 'Other Company User',
+        passwordHash: 'x',
+      },
+    });
     const project = await prisma.project.create({
       data: {
         companyId: company.id,
@@ -255,6 +263,23 @@ test('V0.5-A enforces Subcontractor Company scope and agreement Project scope', 
     assert.match(created.agreementNumber, /^SC\d{4}-\d{3}$/);
     assert.equal(created.approvalState, 'DRAFT');
     assert.equal(created.projectId, project.id);
+
+    await assert.rejects(
+      () =>
+        prisma.subcontractAgreement.create({
+          data: {
+            companyId: company.id,
+            projectId: project.id,
+            subcontractorId: subcontractor.id,
+            agreementNumber: 'SC0000-CROSS-' + suffix,
+            originalValue: '1.00',
+            scopeOfWork: 'Cross-Company creator must fail',
+            currencyCode: 'SGD',
+            createdByUserId: otherCompanyUser.id,
+          },
+        }),
+      'Agreement creator must belong to the same Company at the database boundary',
+    );
 
     const reservedSequence = await prisma.numberSequence.findUniqueOrThrow({
       where: {

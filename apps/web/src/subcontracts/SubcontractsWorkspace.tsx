@@ -485,6 +485,17 @@ function AgreementsPanel({ permissions }: { permissions: string[] }) {
                     disabled={!newMode}
                     sx={{ minWidth: 280, flexGrow: 1 }}
                   >
+                    {!newMode &&
+                    selected &&
+                    projects.isSuccess &&
+                    !projects.data.data.some(
+                      (project) => project.id === selected.projectId,
+                    ) ? (
+                      <MenuItem value={selected.projectId} disabled>
+                        {selected.project.projectCode} —{' '}
+                        {selected.project.projectName} — inactive current
+                      </MenuItem>
+                    ) : null}
                     {(projects.data?.data ?? []).map((project) => (
                       <MenuItem key={project.id} value={project.id}>
                         {project.projectCode} — {project.projectName}
@@ -499,6 +510,14 @@ function AgreementsPanel({ permissions }: { permissions: string[] }) {
                     disabled={!newMode}
                     sx={{ minWidth: 280, flexGrow: 1 }}
                   >
+                    {!newMode &&
+                    selected?.subcontractor &&
+                    !selected.subcontractor.isActive ? (
+                      <MenuItem value={selected.subcontractorId} disabled>
+                        {selected.subcontractor.subcontractorCode} —{' '}
+                        {selected.subcontractor.subcontractorName} — inactive current
+                      </MenuItem>
+                    ) : null}
                     {(subcontractors.data?.data ?? []).map((row) => (
                       <MenuItem key={row.id} value={row.id}>
                         {row.subcontractorCode} — {row.subcontractorName}

@@ -260,6 +260,7 @@ model User {
   reversedStockTransfers       StockTransfer[] @relation("StockTransferReverser")
   stockTransactions          StockTransaction[]
   @@unique([companyId, email])
+  @@unique([companyId, id])
   @@index([companyId, isActive])
   @@map("users")
 }
@@ -1166,7 +1167,7 @@ model SubcontractAgreement {
   project           Project           @relation(fields: [companyId, projectId], references: [companyId, id], onDelete: Restrict)
   subcontractor     Subcontractor     @relation(fields: [companyId, subcontractorId], references: [companyId, id], onDelete: Restrict)
   operationalStatus StatusDefinition? @relation(fields: [companyId, operationalStatusId], references: [companyId, id], onDelete: Restrict)
-  createdBy         User              @relation("SubcontractAgreementCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  createdBy         User              @relation("SubcontractAgreementCreator", fields: [companyId, createdByUserId], references: [companyId, id], onDelete: Restrict)
 
   @@unique([companyId, agreementNumber])
   @@unique([companyId, createdByUserId, createKey], map: "subcontract_agreements_creator_create_key_key")

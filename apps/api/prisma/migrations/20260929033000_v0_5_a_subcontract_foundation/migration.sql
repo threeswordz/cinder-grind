@@ -25,6 +25,9 @@ ON "projects"("company_id","id");
 CREATE UNIQUE INDEX IF NOT EXISTS "status_definitions_company_id_id_key"
 ON "status_definitions"("company_id","id");
 
+CREATE UNIQUE INDEX IF NOT EXISTS "users_company_id_id_key"
+ON "users"("company_id","id");
+
 CREATE TABLE "subcontractors" (
   "id" UUID NOT NULL DEFAULT gen_random_uuid(),
   "company_id" UUID NOT NULL,
@@ -92,8 +95,8 @@ CREATE TABLE "subcontract_agreements" (
     FOREIGN KEY ("company_id","subcontractor_id") REFERENCES "subcontractors"("company_id","id") ON DELETE RESTRICT ON UPDATE CASCADE,
   CONSTRAINT "subcontract_agreements_company_id_operational_status_id_fkey"
     FOREIGN KEY ("company_id","operational_status_id") REFERENCES "status_definitions"("company_id","id") ON DELETE RESTRICT ON UPDATE CASCADE,
-  CONSTRAINT "subcontract_agreements_created_by_user_id_fkey"
-    FOREIGN KEY ("created_by_user_id") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE
+  CONSTRAINT "subcontract_agreements_company_id_created_by_user_id_fkey"
+    FOREIGN KEY ("company_id","created_by_user_id") REFERENCES "users"("company_id","id") ON DELETE RESTRICT ON UPDATE CASCADE
 );
 
 CREATE UNIQUE INDEX "subcontract_agreements_company_id_agreement_number_key"
