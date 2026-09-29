@@ -435,6 +435,12 @@ function AgreementsPanel({ permissions }: { permissions: string[] }) {
     [workOrders.data?.data, selectedWorkOrderId],
   );
 
+  const initialVersion = useMemo(
+    () =>
+      (versions.data?.data ?? []).find((row) => row.versionNo === 1) ?? null,
+    [versions.data?.data],
+  );
+
   const activeRevision = useMemo(
     () =>
       (versions.data?.data ?? []).find(
@@ -520,8 +526,15 @@ function AgreementsPanel({ permissions }: { permissions: string[] }) {
       action: 'submit' | 'approve' | 'reject' | 'cancel';
       agreement: AgreementDraft;
     }) => {
+      const approvalStep =
+        initialVersion?.approvalInstance?.currentStepNo ?? 0;
       const actionKey =
-        input.action + '-agreement-' + input.agreement.id + '-' + crypto.randomUUID();
+        input.action +
+        '-agreement-' +
+        input.agreement.id +
+        (input.action === 'approve' || input.action === 'reject'
+          ? '-step-' + approvalStep
+          : '');
       if (input.action === 'submit') {
         return subcontractsApi.submitAgreement(
           input.agreement.id,
@@ -571,8 +584,15 @@ function AgreementsPanel({ permissions }: { permissions: string[] }) {
           reason: revisionReason,
         });
       }
+      const approvalStep =
+        input.revision.approvalInstance?.currentStepNo ?? 0;
       const actionKey =
-        input.action + '-agreement-revision-' + input.revision.id + '-' + crypto.randomUUID();
+        input.action +
+        '-agreement-revision-' +
+        input.revision.id +
+        (input.action === 'approve' || input.action === 'reject'
+          ? '-step-' + approvalStep
+          : '');
       if (input.action === 'submit') {
         return subcontractsApi.submitAgreementRevision(
           input.revision.id,
@@ -619,8 +639,15 @@ function AgreementsPanel({ permissions }: { permissions: string[] }) {
           costCodeId: workOrderCostCodeId || null,
         });
       }
+      const approvalStep =
+        input.workOrder.approvalInstance?.currentStepNo ?? 0;
       const actionKey =
-        input.action + '-work-order-' + input.workOrder.id + '-' + crypto.randomUUID();
+        input.action +
+        '-work-order-' +
+        input.workOrder.id +
+        (input.action === 'approve' || input.action === 'reject'
+          ? '-step-' + approvalStep
+          : '');
       if (input.action === 'submit') {
         return subcontractsApi.submitWorkOrder(
           input.workOrder.id,
