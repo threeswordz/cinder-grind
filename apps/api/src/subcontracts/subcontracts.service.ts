@@ -717,12 +717,12 @@ export class SubcontractsService {
 
   private agreementCreatePayloadHash(input: AgreementDraftInput): string {
     const canonicalPayload = JSON.stringify([
-      input.projectId,
-      input.subcontractorId,
+      input.projectId.toLowerCase(),
+      input.subcontractorId.toLowerCase(),
       new Prisma.Decimal(input.originalValue).toFixed(2),
       input.scopeOfWork,
       input.currencyCode,
-      input.operationalStatusId ?? null,
+      input.operationalStatusId?.toLowerCase() ?? null,
     ]);
     return createHash('sha256').update(canonicalPayload).digest('hex');
   }

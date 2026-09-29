@@ -80,6 +80,7 @@ CREATE TABLE "subcontract_agreements" (
     ("create_key" IS NULL AND "create_payload_hash" IS NULL)
     OR (
       "create_key" IS NOT NULL
+      AND "create_payload_hash" IS NOT NULL
       AND "create_payload_hash" ~ '^[0-9a-f]{64}$'
     )
   ),

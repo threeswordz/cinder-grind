@@ -293,6 +293,20 @@ test('V0.5-A enforces Subcontractor Company scope and agreement Project scope', 
     );
     assert.equal(retry.id, created.id);
 
+    const caseNormalizedRetry = await service.createAgreement(
+      { auth: scoped },
+      {
+        projectId: project.id.toUpperCase(),
+        subcontractorId: subcontractor.id.toUpperCase(),
+        originalValue: '25000.00',
+        scopeOfWork: 'Structural steel installation',
+        currencyCode: 'SGD',
+        operationalStatusId: status.id.toUpperCase(),
+        createKey: 'stage-a-' + suffix,
+      },
+    );
+    assert.equal(caseNormalizedRetry.id, created.id);
+
     await assert.rejects(
       () =>
         service.createAgreement(
@@ -603,6 +617,25 @@ test('V0.5-A enforces Subcontractor Company scope and agreement Project scope', 
           },
         ),
       (error: unknown) => error instanceof UnprocessableEntityException,
+    );
+
+    await assert.rejects(
+      () =>
+        prisma.subcontractAgreement.create({
+          data: {
+            companyId: company.id,
+            projectId: project.id,
+            subcontractorId: subcontractor.id,
+            agreementNumber: 'SC0000-NOHASH-' + suffix,
+            originalValue: '1.00',
+            scopeOfWork: 'Invalid missing create payload hash',
+            currencyCode: 'SGD',
+            createKey: 'missing-hash-' + suffix,
+            createPayloadHash: null,
+            createdByUserId: scopedUser.id,
+          },
+        }),
+      'A create key must have a non-null valid payload fingerprint',
     );
 
     await assert.rejects(
