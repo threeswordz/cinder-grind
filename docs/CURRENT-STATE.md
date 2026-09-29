@@ -808,3 +808,11 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - Six explicit permissions, CSRF, backend Company/Project access, composite database references, hard-delete/identity guards, audit, stable creation keys and fresh-bootstrap technical provisioning are implemented. No business approval permission or later-stage transaction is introduced.
 - The responsive Subcontracts workspace supports register search/edit/lifecycle and accessible-Project agreement Draft creation/editing. PostgreSQL integration and live HTTP acceptance cover Company/Project authorization, Supplier linkage, numbering/retry, archive guards and retained history.
 - Code/test head `83e73f47f10953deed06479ad8b9cae0a9ed139e` passed CI #1653. Documentation-head CI, review, merge, post-merge main CI and Issue #103 closure remain pending. V0.5-B has not begun.
+
+
+## V0.5-A completed / V0.5-B pre-flight
+
+- PR #104 squash-merged to `main` as `af1a3f4953af524110dc4305a061099f4fa80388`; Issue #103 closed. Final Stage A head `a0cb667c658ff1f9ca1de0328a0210b196b92afe` passed push CI #1696 and PR CI #1697, exact-head Codex review found no major issues, and post-merge main CI #1698 passed.
+- Stage A delivers the Company-owned Subcontractor register and Project-scoped agreement Draft foundation with composite database integrity, initiating-user-scoped replay keys, explicit permission dependencies, read-only historical detail and retained inactive reference identity.
+- Issue #105 and branch `v0.5-b-agreement-work-orders` start only from the green Stage A merge checkpoint. `docs/V0.5-B-PREFLIGHT.md` binds implementation to agreement approval/administrative revision history and Work Orders under the approved V0.5 baseline.
+- Claims/assessments, certification/retention withholding, Variations/reporting and human V0.5 release UAT remain later gates. SUB-011/DOC-009, retention release, Finance/payment, tax/FX, accounting and cost recognition remain excluded; Committed, Actual and Paid Cost remain separate.

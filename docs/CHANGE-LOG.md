@@ -1,3 +1,10 @@
+## 2026-09-29 — V0.5-A completed; V0.5-B pre-flight started
+
+- Stage A PR #104 squash-merged as `af1a3f4953af524110dc4305a061099f4fa80388`; final push CI #1696, PR CI #1697, clean exact-head review and post-merge main CI #1698 passed; Issue #103 closed.
+- Opened Issue #105 and branch `v0.5-b-agreement-work-orders` from that exact green checkpoint.
+- Added `docs/V0.5-B-PREFLIGHT.md` for configured agreement approval, retained non-commercial administrative revisions, agreement cancellation guards and agreement-local Work Orders with maker-checker and atomic allocation ceilings.
+- No new dependency or paid service is introduced. Claims, certification/retention, Variations/reporting, Finance/payment, retention release, tax/FX, accounting and cost recognition remain deferred; Committed, Actual and Paid Cost remain separate.
+
 ## 2026-09-29 — V0.5-A Subcontractor Register / Agreement Foundation under validation
 
 - Entry-gate PR #102 merged as `5b67832079ef6ded86bc79f997d8115835d0c55e`; post-merge main CI #1611 passed and Issue #98 closed before Stage A began.
