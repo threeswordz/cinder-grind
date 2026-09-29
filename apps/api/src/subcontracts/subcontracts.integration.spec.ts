@@ -287,6 +287,23 @@ test('V0.5-A enforces Subcontractor Company scope and agreement Project scope', 
     );
 
     await assert.rejects(
+      () =>
+        prisma.subcontractAgreement.update({
+          where: { id: created.id },
+          data: { agreementNumber: 'SC0000-999' },
+        }),
+      'Agreement number must remain immutable below the API boundary',
+    );
+    await assert.rejects(
+      () =>
+        prisma.subcontractAgreement.update({
+          where: { id: created.id },
+          data: { projectId: unassigned.id },
+        }),
+      'Agreement Project identity must remain immutable below the API boundary',
+    );
+
+    await assert.rejects(
       () => prisma.subcontractor.delete({ where: { id: subcontractor.id } }),
       'Subcontractor history must be archived, never deleted',
     );

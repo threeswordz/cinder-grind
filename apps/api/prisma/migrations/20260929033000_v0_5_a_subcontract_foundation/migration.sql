@@ -91,6 +91,16 @@ BEGIN
   IF NEW.id <> OLD.id OR NEW.company_id <> OLD.company_id THEN
     RAISE EXCEPTION '% identity and Company cannot be changed', TG_TABLE_NAME;
   END IF;
+  IF TG_TABLE_NAME = 'subcontract_agreements' AND (
+    NEW.agreement_number <> OLD.agreement_number
+    OR NEW.project_id <> OLD.project_id
+    OR NEW.subcontractor_id <> OLD.subcontractor_id
+    OR NEW.create_key IS DISTINCT FROM OLD.create_key
+    OR NEW.created_by_user_id <> OLD.created_by_user_id
+    OR NEW.created_at <> OLD.created_at
+  ) THEN
+    RAISE EXCEPTION 'Subcontract agreement number and source identity are immutable';
+  END IF;
   RETURN NEW;
 END;
 $$;
