@@ -311,7 +311,7 @@ export class SubcontractsWorkflowService {
 
         return version;
       },
-      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted },
     );
   }
 
@@ -729,7 +729,7 @@ export class SubcontractsWorkflowService {
         );
         return row;
       },
-      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted },
     );
   }
 
