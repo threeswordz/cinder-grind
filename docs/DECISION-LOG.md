@@ -243,3 +243,13 @@ The V0.2-F Equipment stage uses the following approved rules:
    - Daily Site Report-origin usage is immutable after submission; corrections append through the submitted-report correction path.
 
 EQP-008 Maintenance Records remains Future. EQP-009 Equipment Cost Allocation remains V0.7 Cost Control. No fuel, meter/odometer, depreciation, ownership/lease accounting, asset accounting, Inventory posting, paid dependency or V0.3+ scope is introduced.
+
+
+## DEC-014 — V0.5 Subcontracts release entry baseline
+**Status:** APPROVED — Product / Business Owner, 2026-09-29 (Singapore time)
+
+In response to the request to review and explicitly approve or amend the V0.5 scope, AC-V05-001–030, BR-V05-01–20 / D05-01–11, data/API/test baselines, stages, estimates and deferrals, the Product / Business Owner stated: “proceed with next step , done on all these following” and listed those baseline items. No amendments were specified. Record this as approval of the exact proposal package merged through PR #100 and clarified through PR #101, without expanding its scope.
+
+The approved authority is `docs/V0.5-SCOPE.md`, `docs/V0.5-ACCEPTANCE-CRITERIA.md` and `docs/V0.5-BUSINESS-RULES.md`. D05-01–11 are approved as written, including Company-owned Subcontractor identity, the numbering/lifecycle/ceiling/claim/certification/retention/Variation/reporting choices and the agreement currency with tax-exclusive amount basis. The approved data/API/test boundary, stages, 19–29 engineering-day planning estimate plus separate 1–2 business-day human acceptance window, and explicit deferrals are also accepted.
+
+No SUB-011, DOC-009, retention release, Finance payment/accounting, tax/FX or cost recognition is authorized. Committed Cost, Actual Cost and Paid Cost remain separate. DEC-008 remains in force. This decision authorizes V0.5-A pre-flight only after its entry-gate PR passes exact-head CI/review, merges, post-merge `main` CI passes and Issue #98 closes. Every stage retains its own completion gates, and V0.5 Release Exit requires separate human UAT and explicit Product / Business Owner acceptance.

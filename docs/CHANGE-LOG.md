@@ -1,3 +1,8 @@
+## 2026-09-29 — V0.5 entry-gate baseline approved by Product / Business Owner
+
+- The owner completed review and approved the PR #100 / #101 proposal package as written, with no amendments: Scope; AC-V05-001–030; BR-V05-01–20 / D05-01–11; data/API/test baselines; stages; 19–29 engineering-day estimate and separate 1–2 business-day human UAT window; exclusions and deferrals. DEC-014 records the exact instruction and interpretation.
+- Entry-gate approval PR exact-head CI/review/merge, post-merge `main` CI and Issue #98 closure remain required before V0.5-A pre-flight. Human V0.5 UAT and release acceptance remain separate.
+
 ## 2026-09-29 — V0.5 entry-gate proposal prepared (approval pending)
 
 - Proposed `docs/V0.5-SCOPE.md`, `docs/V0.5-ACCEPTANCE-CRITERIA.md` and `docs/V0.5-BUSINESS-RULES.md` map SUB-001–010/RPT-007 into reviewable scope, 30 proposed AC, 20 proposed BR, technical baselines, build stages and deferrals under Issue #98.
