@@ -4,7 +4,7 @@
 **Source of truth:** Live GitHub repository state
 
 - Current Release: V0.5 Subcontracts — approved entry gate complete; Stage A implementation under validation
-- Current Stage: V0.5-A Subcontractor Register / Agreement Foundation in Issue #103 and draft PR #104
+- Current Stage: V0.5-A Subcontractor Register / Agreement Foundation in Issue #103 and PR #104
 - Completed Stages: V0.1-A through V0.1-H; V0.2-A through V0.2-G; V0.3-A through V0.3-E; V0.4-A through V0.4-E; V0.5 entry gate
 - Active Issue: #103 — V0.5-A Subcontractor Register and Agreement Foundation
 - Draft PR: #104 — V0.5-A implementation on `v0.5-a-subcontract-foundation`
@@ -803,7 +803,7 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 
 ## V0.5-A implementation under validation
 
-- Issue #103 and draft PR #104 started from green entry-gate merge `5b67832079ef6ded86bc79f997d8115835d0c55e` only after Issue #98 closed.
+- Issue #103 and PR #104 started from green entry-gate merge `5b67832079ef6ded86bc79f997d8115835d0c55e` only after Issue #98 closed.
 - Stage A adds a Company-owned Subcontractor register with optional same-Company Supplier link and archive/reactivate lifecycle, plus Project-scoped agreement Drafts with required Scope of Work, original tax-exclusive DECIMAL(18,2) value, one currency, configured operational status and immutable `SCYYMM-###` identity.
 - Six explicit permissions, CSRF, backend Company/Project access, composite database references, hard-delete/identity guards, audit, stable creation keys and fresh-bootstrap technical provisioning are implemented. No business approval permission or later-stage transaction is introduced.
 - The responsive Subcontracts workspace supports register search/edit/lifecycle and accessible-Project agreement Draft creation/editing. PostgreSQL integration and live HTTP acceptance cover Company/Project authorization, Supplier linkage, numbering/retry, archive guards and retained history.
