@@ -153,6 +153,31 @@ test('V0.5-B retains agreement decisions and enforces Work Order allocation ceil
       },
     });
 
+    const multiStepAgreementWorkflow = await prisma.approvalWorkflow.create({
+      data: {
+        companyId: company.id,
+        workflowCode: 'SC_AGR_MULTI_' + suffix,
+        entityType: 'SUBCONTRACT_AGREEMENT',
+        workflowName: 'Two-Step Agreement Approval',
+        steps: {
+          create: [
+            {
+              stepNo: 1,
+              stepName: 'Commercial Review',
+              requiredApprovals: 1,
+              stepRoles: { create: { roleId: role.id } },
+            },
+            {
+              stepNo: 2,
+              stepName: 'Final Approval',
+              requiredApprovals: 1,
+              stepRoles: { create: { roleId: role.id } },
+            },
+          ],
+        },
+      },
+    });
+
     const agreement = await prisma.subcontractAgreement.create({
       data: {
         companyId: company.id,
@@ -257,6 +282,29 @@ test('V0.5-B retains agreement decisions and enforces Work Order allocation ceil
     assert.equal(approved.approvalState, 'APPROVED');
     assert.ok(approved.firstApprovedAt);
 
+    const replayedApproval = await service.approveInitialAgreement(
+      { auth: checkerAuth },
+      agreement.id,
+      'checker-approve-' + suffix,
+      'Approved for Stage B test.',
+    );
+    assert.equal(replayedApproval.approvalState, 'APPROVED');
+    assert.equal(
+      replayedApproval.firstApprovedAt?.toISOString(),
+      approved.firstApprovedAt?.toISOString(),
+    );
+    await assert.rejects(
+      () =>
+        service.approveInitialAgreement(
+          { auth: checkerAuth },
+          agreement.id,
+          'checker-approve-' + suffix,
+          'Changed approval comment',
+        ),
+      (error: unknown) => error instanceof ConflictException,
+      'a final-approval retry key cannot be reused with changed material payload',
+    );
+
     const versionOne =
       await prisma.subcontractAgreementVersion.findFirstOrThrow({
         where: { agreementId: agreement.id, versionNo: 1 },
@@ -304,24 +352,29 @@ test('V0.5-B retains agreement decisions and enforces Work Order allocation ceil
     assert.equal(afterRevision.originalValue.toFixed(2), '1000.00');
     assert.equal(afterRevision.scopeOfWork, 'Stage B structural package');
 
-    const wo1 = await service.createWorkOrder(
-      { auth: makerAuth },
-      agreement.id,
-      {
-        scopeOfWork: 'Work Order allocation one',
-        amount: '600.00',
-      },
+    const [wo1, wo2] = await Promise.all([
+      service.createWorkOrder(
+        { auth: makerAuth },
+        agreement.id,
+        {
+          scopeOfWork: 'Work Order allocation one',
+          amount: '600.00',
+        },
+      ),
+      service.createWorkOrder(
+        { auth: makerAuth },
+        agreement.id,
+        {
+          scopeOfWork: 'Work Order allocation two',
+          amount: '600.00',
+        },
+      ),
+    ]);
+    assert.deepEqual(
+      [wo1.workOrderNumber, wo2.workOrderNumber].sort(),
+      ['WO-001', 'WO-002'],
+      'concurrent Work Order creation must allocate distinct retained agreement-local numbers',
     );
-    const wo2 = await service.createWorkOrder(
-      { auth: makerAuth },
-      agreement.id,
-      {
-        scopeOfWork: 'Work Order allocation two',
-        amount: '600.00',
-      },
-    );
-    assert.equal(wo1.workOrderNumber, 'WO-001');
-    assert.equal(wo2.workOrderNumber, 'WO-002');
 
     await service.submitWorkOrder(
       { auth: makerAuth },
@@ -489,6 +542,187 @@ test('V0.5-B retains agreement decisions and enforces Work Order allocation ceil
       (error: unknown) => error instanceof ConflictException,
       'a cancellation retry key cannot be reused with changed material payload',
     );
+
+    const multiStepAgreement = await prisma.subcontractAgreement.create({
+      data: {
+        companyId: company.id,
+        projectId: project.id,
+        subcontractorId: subcontractor.id,
+        agreementNumber: 'SC2609-M' + suffix.slice(0, 2).toUpperCase(),
+        originalValue: '700.00',
+        scopeOfWork: 'Two-step approval package',
+        currencyCode: 'SGD',
+        operationalStatusId: statusA.id,
+        createdByUserId: maker.id,
+      },
+    });
+    await service.submitInitialAgreement(
+      { auth: makerAuth },
+      multiStepAgreement.id,
+      multiStepAgreementWorkflow.workflowCode,
+      'multi-submit-' + suffix,
+    );
+    const afterFirstStep = await service.approveInitialAgreement(
+      { auth: checkerAuth },
+      multiStepAgreement.id,
+      'multi-step-one-' + suffix,
+    );
+    assert.equal(
+      afterFirstStep.approvalState,
+      'SUBMITTED',
+      'the first configured approval step must not prematurely approve the Agreement',
+    );
+    const multiStepVersion =
+      await prisma.subcontractAgreementVersion.findFirstOrThrow({
+        where: { agreementId: multiStepAgreement.id, versionNo: 1 },
+      });
+    const afterFirstStepInstance =
+      await prisma.approvalInstance.findUniqueOrThrow({
+        where: { id: multiStepVersion.approvalInstanceId! },
+      });
+    assert.equal(afterFirstStepInstance.approvalState, 'SUBMITTED');
+    assert.equal(afterFirstStepInstance.currentStepNo, 2);
+    const afterSecondStep = await service.approveInitialAgreement(
+      { auth: checkerAuth },
+      multiStepAgreement.id,
+      'multi-step-two-' + suffix,
+    );
+    assert.equal(afterSecondStep.approvalState, 'APPROVED');
+    assert.ok(afterSecondStep.firstApprovedAt);
+
+    const submissionRaceAgreement =
+      await prisma.subcontractAgreement.create({
+        data: {
+          companyId: company.id,
+          projectId: project.id,
+          subcontractorId: subcontractor.id,
+          agreementNumber: 'SC2609-S' + suffix.slice(0, 2).toUpperCase(),
+          originalValue: '300.00',
+          scopeOfWork: 'Cancellation versus submission race package',
+          currencyCode: 'SGD',
+          operationalStatusId: statusA.id,
+          createdByUserId: maker.id,
+        },
+      });
+    await service.submitInitialAgreement(
+      { auth: makerAuth },
+      submissionRaceAgreement.id,
+      agreementWorkflow.workflowCode,
+      'submission-race-agreement-submit-' + suffix,
+    );
+    await service.approveInitialAgreement(
+      { auth: checkerAuth },
+      submissionRaceAgreement.id,
+      'submission-race-agreement-approve-' + suffix,
+    );
+    const submissionRaceWorkOrder = await service.createWorkOrder(
+      { auth: makerAuth },
+      submissionRaceAgreement.id,
+      {
+        scopeOfWork: 'Cancellation versus submission race allocation',
+        amount: '100.00',
+      },
+    );
+    const cancellationVsSubmission = await Promise.allSettled([
+      service.cancelAgreement(
+        { auth: makerAuth },
+        submissionRaceAgreement.id,
+        'Concurrent cancellation probe',
+        'submission-race-cancel-' + suffix,
+      ),
+      service.submitWorkOrder(
+        { auth: makerAuth },
+        submissionRaceWorkOrder.id,
+        workOrderWorkflow.workflowCode,
+        'submission-race-wo-submit-' + suffix,
+      ),
+    ]);
+    assert.equal(
+      cancellationVsSubmission.filter((result) => result.status === 'fulfilled')
+        .length,
+      1,
+      'agreement locking must permit exactly one winner between cancellation and Work Order submission',
+    );
+    const submissionRaceAgreementAfter =
+      await prisma.subcontractAgreement.findUniqueOrThrow({
+        where: { id: submissionRaceAgreement.id },
+      });
+    const submissionRaceWorkOrderAfter =
+      await prisma.subcontractWorkOrder.findUniqueOrThrow({
+        where: { id: submissionRaceWorkOrder.id },
+      });
+    assert.ok(
+      (submissionRaceAgreementAfter.approvalState === 'CANCELLED' &&
+        submissionRaceWorkOrderAfter.approvalState === 'DRAFT') ||
+        (submissionRaceAgreementAfter.approvalState === 'APPROVED' &&
+          submissionRaceWorkOrderAfter.approvalState === 'SUBMITTED'),
+      'cancellation/submission race must leave one coherent retained lifecycle outcome',
+    );
+
+    const approvalRaceAgreement = await prisma.subcontractAgreement.create({
+      data: {
+        companyId: company.id,
+        projectId: project.id,
+        subcontractorId: subcontractor.id,
+        agreementNumber: 'SC2609-A' + suffix.slice(0, 2).toUpperCase(),
+        originalValue: '300.00',
+        scopeOfWork: 'Cancellation versus approval race package',
+        currencyCode: 'SGD',
+        operationalStatusId: statusA.id,
+        createdByUserId: maker.id,
+      },
+    });
+    await service.submitInitialAgreement(
+      { auth: makerAuth },
+      approvalRaceAgreement.id,
+      agreementWorkflow.workflowCode,
+      'approval-race-agreement-submit-' + suffix,
+    );
+    await service.approveInitialAgreement(
+      { auth: checkerAuth },
+      approvalRaceAgreement.id,
+      'approval-race-agreement-approve-' + suffix,
+    );
+    const approvalRaceWorkOrder = await service.createWorkOrder(
+      { auth: makerAuth },
+      approvalRaceAgreement.id,
+      {
+        scopeOfWork: 'Cancellation versus approval race allocation',
+        amount: '100.00',
+      },
+    );
+    await service.submitWorkOrder(
+      { auth: makerAuth },
+      approvalRaceWorkOrder.id,
+      workOrderWorkflow.workflowCode,
+      'approval-race-wo-submit-' + suffix,
+    );
+    const cancellationVsApproval = await Promise.allSettled([
+      service.cancelAgreement(
+        { auth: makerAuth },
+        approvalRaceAgreement.id,
+        'Must not cancel while submitted allocation exists',
+        'approval-race-cancel-' + suffix,
+      ),
+      service.approveWorkOrder(
+        { auth: checkerAuth },
+        approvalRaceWorkOrder.id,
+        'approval-race-wo-approve-' + suffix,
+      ),
+    ]);
+    assert.equal(cancellationVsApproval[0]?.status, 'rejected');
+    assert.equal(cancellationVsApproval[1]?.status, 'fulfilled');
+    const approvalRaceAgreementAfter =
+      await prisma.subcontractAgreement.findUniqueOrThrow({
+        where: { id: approvalRaceAgreement.id },
+      });
+    const approvalRaceWorkOrderAfter =
+      await prisma.subcontractWorkOrder.findUniqueOrThrow({
+        where: { id: approvalRaceWorkOrder.id },
+      });
+    assert.equal(approvalRaceAgreementAfter.approvalState, 'APPROVED');
+    assert.equal(approvalRaceAgreementAfter.cancelledAt, null);
+    assert.equal(approvalRaceWorkOrderAfter.approvalState, 'APPROVED');
 
     const audits = await prisma.auditLog.findMany({
       where: {
