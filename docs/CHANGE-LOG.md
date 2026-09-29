@@ -170,3 +170,13 @@
 - V0.3 Procurement may proceed to its release entry gate; implementation remains gated by approved V0.3 scope and acceptance criteria.
 
 
+
+
+## 2026-09-29 — V0.5-B Agreements / Work Orders under validation
+
+- Started only after V0.5-A merged green at `af1a3f4953af524110dc4305a061099f4fa80388`; Stage B pre-flight `2da316612bba1fbaee449e72a068a6781c56bee7` passed CI #1700.
+- Added agreement version persistence, configured approval/rejection, maker-checker, administrative operational-status revisions, guarded cancellation, agreement-local Work Orders, allocation-ceiling serialization, replay evidence, explicit permissions, Project authorization, API/web lifecycle controls and Stage B PostgreSQL/live HTTP acceptance coverage.
+- Preserved migration history by moving replay evidence to a later forward-only migration rather than rewriting the already-executed Stage B migration.
+- Corrected the V0.5-A permission regression to assert the six Stage A permission codes explicitly instead of assuming no later Subcontracts permissions exist.
+- Exact-head CI is currently infrastructure-blocked: runs #1702 through #1711 received no GitHub-hosted runner and executed zero steps. Stage B is not complete, no PR/merge gate is satisfied, Issue #105 remains open and V0.5-C has not begun.
+- DEC-008 and all approved V0.5 deferrals remain unchanged.
