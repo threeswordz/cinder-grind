@@ -464,6 +464,75 @@ test('V0.5-A enforces Subcontractor Company scope and agreement Project scope', 
       data: { isActive: true },
     });
 
+    const rejectAfterConcurrentStatusArchive = async (
+      operation: () => Promise<unknown>,
+      waitingMessage: string,
+    ) => {
+      let releaseStatusArchive!: () => void;
+      let statusArchiveLocked!: () => void;
+      const releaseStatusArchivePromise = new Promise<void>((resolve) => {
+        releaseStatusArchive = resolve;
+      });
+      const statusArchiveLockedPromise = new Promise<void>((resolve) => {
+        statusArchiveLocked = resolve;
+      });
+      const concurrentStatusArchive = prisma.$transaction(async (tx) => {
+        await tx.$queryRaw`SELECT "id"
+          FROM "status_definitions"
+          WHERE "id" = ${status.id}::uuid
+          FOR UPDATE`;
+        statusArchiveLocked();
+        await releaseStatusArchivePromise;
+        await tx.statusDefinition.update({
+          where: { id: status.id },
+          data: { isActive: false },
+        });
+      });
+      await statusArchiveLockedPromise;
+      let operationSettled = false;
+      const pendingOperation = operation().finally(() => {
+        operationSettled = true;
+      });
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      assert.equal(operationSettled, false, waitingMessage);
+      releaseStatusArchive();
+      await concurrentStatusArchive;
+      await assert.rejects(
+        pendingOperation,
+        (error: unknown) => error instanceof UnprocessableEntityException,
+      );
+      await prisma.statusDefinition.update({
+        where: { id: status.id },
+        data: { isActive: true },
+      });
+    };
+
+    await rejectAfterConcurrentStatusArchive(
+      () =>
+        service.createAgreement(
+          { auth: scoped },
+          {
+            projectId: project.id,
+            subcontractorId: subcontractor.id,
+            originalValue: '1400.00',
+            scopeOfWork: 'Concurrent status archive creation guard',
+            currencyCode: 'SGD',
+            operationalStatusId: status.id,
+            createKey: 'status-create-race-' + suffix,
+          },
+        ),
+      'agreement creation must wait for the status lifecycle lock',
+    );
+    await rejectAfterConcurrentStatusArchive(
+      () =>
+        service.updateAgreement(
+          { auth: scoped },
+          created.id,
+          { operationalStatusId: status.id },
+        ),
+      'agreement edit must wait for the status lifecycle lock',
+    );
+
     await service.archiveSubcontractor({ auth: scoped }, subcontractor.id);
     await assert.rejects(
       () =>

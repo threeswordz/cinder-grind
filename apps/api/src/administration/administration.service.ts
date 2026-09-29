@@ -147,6 +147,13 @@ export class AdministrationService {
     },
   ) {
     return this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw(
+        Prisma.sql`SELECT "id"
+          FROM "status_definitions"
+          WHERE "id" = ${id}::uuid
+            AND "company_id" = ${context.auth.companyId}::uuid
+          FOR UPDATE`,
+      );
       const before = await tx.statusDefinition.findFirst({
         where: { id, companyId: context.auth.companyId },
       });

@@ -356,6 +356,11 @@ export class SubcontractsService {
           input.subcontractorId,
           tx,
         );
+        await this.lockStatus(
+          context.auth.companyId,
+          input.operationalStatusId,
+          tx,
+        );
         await this.assertAgreementReferences(context.auth, input, tx);
         const row = await tx.subcontractAgreement.create({
           data: {
@@ -418,6 +423,11 @@ export class SubcontractsService {
         });
       }
       if (input.operationalStatusId !== undefined) {
+        await this.lockStatus(
+          context.auth.companyId,
+          input.operationalStatusId,
+          tx,
+        );
         await this.assertStatus(
           context.auth.companyId,
           input.operationalStatusId,
@@ -497,6 +507,20 @@ export class SubcontractsService {
     await tx.$queryRaw(
       Prisma.sql`SELECT "id"
         FROM "projects"
+        WHERE "id" = ${id}::uuid AND "company_id" = ${companyId}::uuid
+        FOR UPDATE`,
+    );
+  }
+
+  private async lockStatus(
+    companyId: string,
+    id: string | null | undefined,
+    tx: Prisma.TransactionClient,
+  ) {
+    if (!id) return;
+    await tx.$queryRaw(
+      Prisma.sql`SELECT "id"
+        FROM "status_definitions"
         WHERE "id" = ${id}::uuid AND "company_id" = ${companyId}::uuid
         FOR UPDATE`,
     );
