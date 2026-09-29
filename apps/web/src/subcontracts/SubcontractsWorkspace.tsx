@@ -192,21 +192,27 @@ function SubcontractorsPanel({ permissions }: { permissions: string[] }) {
             {rows.isSuccess && rows.data.data.length === 0 ? (
               <Alert severity="info">No Subcontractor matches the filters.</Alert>
             ) : null}
-            {(newMode || selected) && canManage ? (
+            {(newMode && canManage) || selected ? (
               <>
                 <Divider />
                 <Typography variant="subtitle1">
-                  {newMode ? 'Create Subcontractor' : 'Edit Subcontractor'}
+                  {newMode
+                    ? 'Create Subcontractor'
+                    : canManage
+                      ? 'Edit Subcontractor'
+                      : 'Subcontractor details'}
                 </Typography>
                 <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
                   <TextField
                     label="Code"
                     value={code}
+                    disabled={!canManage}
                     onChange={(event) => setCode(event.target.value)}
                   />
                   <TextField
                     label="Name"
                     value={name}
+                    disabled={!canManage}
                     onChange={(event) => setName(event.target.value)}
                     sx={{ flexGrow: 1 }}
                   />
@@ -214,6 +220,7 @@ function SubcontractorsPanel({ permissions }: { permissions: string[] }) {
                     select
                     label="Optional Supplier link"
                     value={supplierId}
+                    disabled={!canManage}
                     onChange={(event) => setSupplierId(event.target.value)}
                     sx={{ minWidth: 260 }}
                   >
@@ -229,39 +236,46 @@ function SubcontractorsPanel({ permissions }: { permissions: string[] }) {
                   <TextField
                     label="Registration number"
                     value={registration}
+                    disabled={!canManage}
                     onChange={(event) => setRegistration(event.target.value)}
                   />
                   <TextField
                     label="Contact"
                     value={contact}
+                    disabled={!canManage}
                     onChange={(event) => setContact(event.target.value)}
                   />
                   <TextField
                     label="Email"
                     value={email}
+                    disabled={!canManage}
                     onChange={(event) => setEmail(event.target.value)}
                   />
                   <TextField
                     label="Phone"
                     value={phone}
+                    disabled={!canManage}
                     onChange={(event) => setPhone(event.target.value)}
                   />
                 </Stack>
                 <TextField
                   label="Address"
                   value={address}
+                  disabled={!canManage}
                   onChange={(event) => setAddress(event.target.value)}
                   multiline
                   minRows={2}
                 />
                 <Stack direction="row" spacing={2}>
-                  <Button
-                    variant="contained"
-                    onClick={() => save.mutate()}
-                    disabled={save.isPending || !code.trim() || !name.trim()}
-                  >
-                    Save
-                  </Button>
+                  {canManage ? (
+                    <Button
+                      variant="contained"
+                      onClick={() => save.mutate()}
+                      disabled={save.isPending || !code.trim() || !name.trim()}
+                    >
+                      Save
+                    </Button>
+                  ) : null}
                   {selected && canArchive ? (
                     <Button
                       color={selected.isActive ? 'warning' : 'success'}
@@ -447,14 +461,14 @@ function AgreementsPanel({ permissions }: { permissions: string[] }) {
             {agreements.isSuccess && agreements.data.data.length === 0 ? (
               <Alert severity="info">No agreement Draft matches the filters.</Alert>
             ) : null}
-            {(newMode || selected) &&
-            (newMode ? canCreate : canEdit) ? (
+            {(newMode && canCreate) || selected ? (
               <>
                 <Divider />
                 <Typography variant="subtitle1">
                   {newMode
                     ? 'Create Agreement Draft'
-                    : selected?.agreementNumber + ' · Edit Draft'}
+                    : selected?.agreementNumber +
+                      (canEdit ? ' · Edit Draft' : ' · Agreement details')}
                 </Typography>
                 <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
                   <TextField
@@ -490,17 +504,20 @@ function AgreementsPanel({ permissions }: { permissions: string[] }) {
                   <TextField
                     label="Original value (tax-exclusive)"
                     value={value}
+                    disabled={!newMode && !canEdit}
                     onChange={(event) => setValue(event.target.value)}
                   />
                   <TextField
                     label="Currency"
                     value={currency}
+                    disabled={!newMode && !canEdit}
                     onChange={(event) => setCurrency(event.target.value)}
                   />
                   <TextField
                     select
                     label="Operational status"
                     value={statusId}
+                    disabled={!newMode && !canEdit}
                     onChange={(event) => setStatusId(event.target.value)}
                     sx={{ minWidth: 220 }}
                   >
@@ -527,24 +544,27 @@ function AgreementsPanel({ permissions }: { permissions: string[] }) {
                 <TextField
                   label="Scope of Work"
                   value={scope}
+                  disabled={!newMode && !canEdit}
                   onChange={(event) => setScope(event.target.value)}
                   multiline
                   minRows={4}
                 />
-                <Button
-                  variant="contained"
-                  onClick={() => save.mutate()}
-                  disabled={
-                    save.isPending ||
-                    !projectId ||
-                    !subcontractorId ||
-                    !value ||
-                    !scope.trim() ||
-                    currency.trim().length !== 3
-                  }
-                >
-                  Save Draft
-                </Button>
+                {newMode ? canCreate : canEdit ? (
+                  <Button
+                    variant="contained"
+                    onClick={() => save.mutate()}
+                    disabled={
+                      save.isPending ||
+                      !projectId ||
+                      !subcontractorId ||
+                      !value ||
+                      !scope.trim() ||
+                      currency.trim().length !== 3
+                    }
+                  >
+                    Save Draft
+                  </Button>
+                ) : null}
               </>
             ) : null}
           </Stack>

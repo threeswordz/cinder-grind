@@ -510,6 +510,35 @@ export class IdentityAdminService {
     permissionCodes: string[],
   ) {
     const uniqueCodes = [...new Set(permissionCodes)];
+    const subcontractPermissionGroups = [
+      {
+        view: 'subcontracts.subcontractor.view',
+        actions: [
+          'subcontracts.subcontractor.manage',
+          'subcontracts.subcontractor.archive',
+        ],
+      },
+      {
+        view: 'subcontracts.agreement.view',
+        actions: [
+          'subcontracts.agreement.create',
+          'subcontracts.agreement.edit',
+        ],
+      },
+    ];
+    for (const group of subcontractPermissionGroups) {
+      if (
+        group.actions.some((code) => uniqueCodes.includes(code)) &&
+        !uniqueCodes.includes(group.view)
+      ) {
+        throw new UnprocessableEntityException({
+          code: 'SUBCONTRACTS_VIEW_PERMISSION_REQUIRED',
+          detail:
+            'Subcontracts action permissions require the matching view permission so authorized users can discover and read the records they act on.',
+        });
+      }
+    }
+
     const poActionCodes = uniqueCodes.filter(
       (code) =>
         code.startsWith('procurement.po.') &&
