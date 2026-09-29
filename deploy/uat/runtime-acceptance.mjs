@@ -3266,6 +3266,7 @@ check(
 );
 await request(pm, '/subcontracts/subcontractors/' + subcontractorId + '/archive', {
   method: 'POST',
+  expected: 201,
 });
 await request(pm, '/subcontracts/agreements', {
   method: 'POST',
