@@ -167,6 +167,15 @@ test('V0.5-B retains agreement decisions and enforces Work Order allocation ceil
       },
     });
 
+    await assert.rejects(
+      () =>
+        prisma.subcontractAgreement.update({
+          where: { id: agreement.id },
+          data: { firstApprovedAt: new Date() },
+        }),
+      'a Draft agreement cannot acquire first-approval evidence below the API',
+    );
+
     const authorization = new AuthorizationService();
     const access = new ProjectAccessService(
       prisma,
@@ -213,6 +222,19 @@ test('V0.5-B retains agreement decisions and enforces Work Order allocation ceil
         ),
       (error: unknown) => error instanceof ConflictException,
       'a retry key must not be reusable with a changed workflow payload',
+    );
+
+    const submittedVersion =
+      await prisma.subcontractAgreementVersion.findFirstOrThrow({
+        where: { agreementId: agreement.id, versionNo: 1 },
+      });
+    await assert.rejects(
+      () =>
+        prisma.subcontractAgreementVersion.update({
+          where: { id: submittedVersion.id },
+          data: { approvalState: 'APPROVED' },
+        }),
+      'an approved Agreement Version must carry retained decision evidence below the API',
     );
 
     await assert.rejects(
@@ -314,6 +336,15 @@ test('V0.5-B retains agreement decisions and enforces Work Order allocation ceil
       'wo2-submit-' + suffix,
     );
 
+    await assert.rejects(
+      () =>
+        prisma.subcontractWorkOrder.update({
+          where: { id: wo1.id },
+          data: { approvalState: 'APPROVED' },
+        }),
+      'an approved Work Order must carry retained decision evidence below the API',
+    );
+
     const competingApprovals = await Promise.allSettled([
       service.approveWorkOrder(
         { auth: checkerAuth },
@@ -355,6 +386,15 @@ test('V0.5-B retains agreement decisions and enforces Work Order allocation ceil
       pendingActionCount,
       0,
       'a failed over-ceiling final approval must roll back its Approval Action',
+    );
+
+    await assert.rejects(
+      () =>
+        prisma.subcontractAgreement.update({
+          where: { id: agreement.id },
+          data: { approvalState: 'CANCELLED' },
+        }),
+      'a cancelled agreement must carry actor/time/reason evidence below the API',
     );
 
     await assert.rejects(
