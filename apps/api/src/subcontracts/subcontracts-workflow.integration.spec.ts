@@ -543,6 +543,66 @@ test('V0.5-B retains agreement decisions and enforces Work Order allocation ceil
       'a cancellation retry key cannot be reused with changed material payload',
     );
 
+    const revisionRaceAgreement = await prisma.subcontractAgreement.create({
+      data: {
+        companyId: company.id,
+        projectId: project.id,
+        subcontractorId: subcontractor.id,
+        agreementNumber: 'SC2609-REV-' + suffix,
+        originalValue: '800.00',
+        scopeOfWork: 'Concurrent administrative revision package',
+        currencyCode: 'SGD',
+        operationalStatusId: statusA.id,
+        createdByUserId: maker.id,
+      },
+    });
+    await service.submitInitialAgreement(
+      { auth: makerAuth },
+      revisionRaceAgreement.id,
+      agreementWorkflow.workflowCode,
+      'revision-race-agreement-submit-' + suffix,
+    );
+    await service.approveInitialAgreement(
+      { auth: checkerAuth },
+      revisionRaceAgreement.id,
+      'revision-race-agreement-approve-' + suffix,
+    );
+    const competingRevisions = await Promise.allSettled([
+      service.createRevision(
+        { auth: makerAuth },
+        revisionRaceAgreement.id,
+        {
+          operationalStatusId: statusB.id,
+          reason: 'Concurrent administrative revision A',
+        },
+      ),
+      service.createRevision(
+        { auth: makerAuth },
+        revisionRaceAgreement.id,
+        {
+          operationalStatusId: statusB.id,
+          reason: 'Concurrent administrative revision B',
+        },
+      ),
+    ]);
+    assert.equal(
+      competingRevisions.filter((result) => result.status === 'fulfilled')
+        .length,
+      1,
+      'agreement locking must allow only one active administrative revision to be created concurrently',
+    );
+    const retainedRaceRevisions =
+      await prisma.subcontractAgreementVersion.findMany({
+        where: {
+          agreementId: revisionRaceAgreement.id,
+          versionNo: { gt: 1 },
+        },
+        orderBy: { versionNo: 'asc' },
+      });
+    assert.equal(retainedRaceRevisions.length, 1);
+    assert.equal(retainedRaceRevisions[0]?.versionNo, 2);
+    assert.equal(retainedRaceRevisions[0]?.approvalState, 'DRAFT');
+
     const multiStepAgreement = await prisma.subcontractAgreement.create({
       data: {
         companyId: company.id,
