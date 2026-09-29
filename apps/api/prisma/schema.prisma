@@ -1298,7 +1298,7 @@ model SubcontractClaim {
   periodEnd             DateTime @map("period_end") @db.Date
   currencyCode          String   @map("currency_code") @db.VarChar(3)
   state                 String   @default("DRAFT") @db.VarChar(30)
-  replacementForClaimId String?  @unique @map("replacement_for_claim_id") @db.Uuid
+  replacementForClaimId String?  @map("replacement_for_claim_id") @db.Uuid
   createdByUserId       String   @map("created_by_user_id") @db.Uuid
   submittedByUserId     String?  @map("submitted_by_user_id") @db.Uuid
   withdrawnByUserId     String?  @map("withdrawn_by_user_id") @db.Uuid
@@ -1309,19 +1309,20 @@ model SubcontractClaim {
   withdrawalReason      String?  @map("withdrawal_reason") @db.Text
   replacedAt            DateTime? @map("replaced_at") @db.Timestamptz(6)
 
-  company        Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
-  project        Project @relation(fields: [companyId, projectId], references: [companyId, id], onDelete: Restrict)
-  agreement      SubcontractAgreement @relation(fields: [companyId, projectId, agreementId], references: [companyId, projectId, id], onDelete: Restrict)
-  replacementFor SubcontractClaim? @relation("ClaimReplacement", fields: [companyId, projectId, agreementId, replacementForClaimId], references: [companyId, projectId, agreementId, id], onDelete: Restrict)
+  company        Company @relation(fields: [companyId], references: [id], onDelete: Restrict, map: "subcontract_claims_company_fkey")
+  project        Project @relation(fields: [companyId, projectId], references: [companyId, id], onDelete: Restrict, map: "subcontract_claims_project_fkey")
+  agreement      SubcontractAgreement @relation(fields: [companyId, projectId, agreementId], references: [companyId, projectId, id], onDelete: Restrict, map: "subcontract_claims_agreement_fkey")
+  replacementFor SubcontractClaim? @relation("ClaimReplacement", fields: [companyId, projectId, agreementId, replacementForClaimId], references: [companyId, projectId, agreementId, id], onDelete: Restrict, map: "subcontract_claims_replacement_fkey")
   replacementClaim SubcontractClaim? @relation("ClaimReplacement")
-  createdBy      User @relation("ClaimCreator", fields: [companyId, createdByUserId], references: [companyId, id], onDelete: Restrict)
-  submittedBy    User? @relation("ClaimSubmitter", fields: [companyId, submittedByUserId], references: [companyId, id], onDelete: Restrict)
-  withdrawnBy    User? @relation("ClaimWithdrawer", fields: [companyId, withdrawnByUserId], references: [companyId, id], onDelete: Restrict)
+  createdBy      User @relation("ClaimCreator", fields: [companyId, createdByUserId], references: [companyId, id], onDelete: Restrict, map: "subcontract_claims_creator_fkey")
+  submittedBy    User? @relation("ClaimSubmitter", fields: [companyId, submittedByUserId], references: [companyId, id], onDelete: Restrict, map: "subcontract_claims_submitter_fkey")
+  withdrawnBy    User? @relation("ClaimWithdrawer", fields: [companyId, withdrawnByUserId], references: [companyId, id], onDelete: Restrict, map: "subcontract_claims_withdrawer_fkey")
   lines          SubcontractClaimLine[]
   assessment     SubcontractClaimAssessment?
 
   @@unique([companyId, claimNumber])
   @@unique([companyId, projectId, agreementId, id])
+  @@unique([companyId, projectId, agreementId, replacementForClaimId], map: "subcontract_claims_replacement_scope_key")
   @@index([companyId, projectId, agreementId, state])
   @@index([agreementId, periodStart, periodEnd])
   @@map("subcontract_claims")
@@ -1339,11 +1340,11 @@ model SubcontractClaimLine {
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  company   Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
-  project   Project @relation(fields: [companyId, projectId], references: [companyId, id], onDelete: Restrict)
-  agreement SubcontractAgreement @relation(fields: [companyId, projectId, agreementId], references: [companyId, projectId, id], onDelete: Restrict)
-  claim     SubcontractClaim @relation(fields: [companyId, projectId, agreementId, claimId], references: [companyId, projectId, agreementId, id], onDelete: Restrict)
-  workOrder SubcontractWorkOrder? @relation(fields: [companyId, projectId, agreementId, workOrderId], references: [companyId, projectId, agreementId, id], onDelete: Restrict)
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Restrict, map: "subcontract_claim_lines_company_fkey")
+  project   Project @relation(fields: [companyId, projectId], references: [companyId, id], onDelete: Restrict, map: "subcontract_claim_lines_project_fkey")
+  agreement SubcontractAgreement @relation(fields: [companyId, projectId, agreementId], references: [companyId, projectId, id], onDelete: Restrict, map: "subcontract_claim_lines_agreement_fkey")
+  claim     SubcontractClaim @relation(fields: [companyId, projectId, agreementId, claimId], references: [companyId, projectId, agreementId, id], onDelete: Restrict, map: "subcontract_claim_lines_claim_fkey")
+  workOrder SubcontractWorkOrder? @relation(fields: [companyId, projectId, agreementId, workOrderId], references: [companyId, projectId, agreementId, id], onDelete: Restrict, map: "subcontract_claim_lines_work_order_fkey")
 
   @@unique([claimId, lineNo])
   @@index([companyId, projectId, agreementId, claimId])
@@ -1356,7 +1357,7 @@ model SubcontractClaimAssessment {
   companyId          String   @map("company_id") @db.Uuid
   projectId          String   @map("project_id") @db.Uuid
   agreementId        String   @map("agreement_id") @db.Uuid
-  claimId            String   @unique @map("claim_id") @db.Uuid
+  claimId            String   @map("claim_id") @db.Uuid
   assessedAmount     Decimal  @map("assessed_amount") @db.Decimal(18, 2)
   reason             String   @db.Text
   state              String   @default("ASSESSED") @db.VarChar(30)
@@ -1367,13 +1368,14 @@ model SubcontractClaimAssessment {
   rejectionReason    String?  @map("rejection_reason") @db.Text
   createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  company    Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
-  project    Project @relation(fields: [companyId, projectId], references: [companyId, id], onDelete: Restrict)
-  agreement  SubcontractAgreement @relation(fields: [companyId, projectId, agreementId], references: [companyId, projectId, id], onDelete: Restrict)
-  claim      SubcontractClaim @relation(fields: [companyId, projectId, agreementId, claimId], references: [companyId, projectId, agreementId, id], onDelete: Restrict)
-  assessedBy User @relation("ClaimAssessor", fields: [companyId, assessedByUserId], references: [companyId, id], onDelete: Restrict)
-  rejectedBy User? @relation("ClaimAssessmentRejector", fields: [companyId, rejectedByUserId], references: [companyId, id], onDelete: Restrict)
+  company    Company @relation(fields: [companyId], references: [id], onDelete: Restrict, map: "claim_assessments_company_fkey")
+  project    Project @relation(fields: [companyId, projectId], references: [companyId, id], onDelete: Restrict, map: "claim_assessments_project_fkey")
+  agreement  SubcontractAgreement @relation(fields: [companyId, projectId, agreementId], references: [companyId, projectId, id], onDelete: Restrict, map: "claim_assessments_agreement_fkey")
+  claim      SubcontractClaim @relation(fields: [companyId, projectId, agreementId, claimId], references: [companyId, projectId, agreementId, id], onDelete: Restrict, map: "claim_assessments_claim_fkey")
+  assessedBy User @relation("ClaimAssessor", fields: [companyId, assessedByUserId], references: [companyId, id], onDelete: Restrict, map: "claim_assessments_assessor_fkey")
+  rejectedBy User? @relation("ClaimAssessmentRejector", fields: [companyId, rejectedByUserId], references: [companyId, id], onDelete: Restrict, map: "claim_assessments_rejector_fkey")
 
+  @@unique([companyId, projectId, agreementId, claimId], map: "claim_assessments_claim_scope_key")
   @@index([companyId, projectId, agreementId, state])
   @@map("subcontract_claim_assessments")
 }
