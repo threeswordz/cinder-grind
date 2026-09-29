@@ -20,7 +20,6 @@ import { CsrfGuard } from '../auth/csrf.guard';
 import { PermissionGuard } from '../authorization/permission.guard';
 import { RequirePermissions } from '../authorization/permissions.decorator';
 import {
-  optionalSubcontractBoolean,
   optionalSubcontractString,
   optionalSubcontractUuid,
   requiredSubcontractString,
