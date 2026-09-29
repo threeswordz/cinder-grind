@@ -62,6 +62,15 @@ function subcontractorCreate(body: unknown): SubcontractorInput {
   ) {
     return subcontractInvalid('email', 'Use a valid email address.');
   }
+  const supplierId = optionalSubcontractUuid(input.supplierId, 'supplierId');
+  const registrationNumber = optionalSubcontractString(
+    input,
+    'registrationNumber',
+    100,
+  );
+  const contactName = optionalSubcontractString(input, 'contactName', 200);
+  const phone = optionalSubcontractString(input, 'phone', 50);
+  const address = optionalSubcontractString(input, 'address', 4000);
   return {
     subcontractorCode: subcontractCode(
       requiredSubcontractString(input, 'subcontractorCode', 50),
@@ -72,16 +81,12 @@ function subcontractorCreate(body: unknown): SubcontractorInput {
       'subcontractorName',
       200,
     ),
-    supplierId: optionalSubcontractUuid(input.supplierId, 'supplierId'),
-    registrationNumber: optionalSubcontractString(
-      input,
-      'registrationNumber',
-      100,
-    ),
-    contactName: optionalSubcontractString(input, 'contactName', 200),
-    email,
-    phone: optionalSubcontractString(input, 'phone', 50),
-    address: optionalSubcontractString(input, 'address', 4000),
+    ...(supplierId !== undefined ? { supplierId } : {}),
+    ...(registrationNumber !== undefined ? { registrationNumber } : {}),
+    ...(contactName !== undefined ? { contactName } : {}),
+    ...(email !== undefined ? { email } : {}),
+    ...(phone !== undefined ? { phone } : {}),
+    ...(address !== undefined ? { address } : {}),
   };
 }
 
@@ -195,7 +200,9 @@ export class SubcontractsController {
           includeInactive,
           'includeInactive',
         ),
-        search: subcontractSearch(search),
+        ...(subcontractSearch(search)
+          ? { search: subcontractSearch(search) }
+          : {}),
       }),
     };
   }
@@ -312,7 +319,9 @@ export class SubcontractsController {
               ),
             }
           : {}),
-        search: subcontractSearch(search),
+        ...(subcontractSearch(search)
+          ? { search: subcontractSearch(search) }
+          : {}),
       }),
     };
   }
