@@ -332,6 +332,11 @@ export class SubcontractsService {
     try {
       return await this.prisma.$transaction(async (tx) => {
         await this.access.assertAccess(context.auth, input.projectId, tx);
+        await this.lockSubcontractor(
+          context.auth.companyId,
+          input.subcontractorId,
+          tx,
+        );
         await this.assertAgreementReferences(context.auth, input, tx);
         const row = await tx.subcontractAgreement.create({
           data: {
@@ -425,6 +430,7 @@ export class SubcontractsService {
     active: boolean,
   ) {
     return this.prisma.$transaction(async (tx) => {
+      await this.lockSubcontractor(context.auth.companyId, id, tx);
       const before = await this.subcontractor(context.auth.companyId, id, tx);
       if (before.isActive === active) return before;
       if (active) {
@@ -461,6 +467,19 @@ export class SubcontractsService {
       );
       return row;
     });
+  }
+
+  private async lockSubcontractor(
+    companyId: string,
+    id: string,
+    tx: Prisma.TransactionClient,
+  ) {
+    await tx.$queryRaw(
+      Prisma.sql`SELECT "id"
+        FROM "subcontractors"
+        WHERE "id" = ${id}::uuid AND "company_id" = ${companyId}::uuid
+        FOR UPDATE`,
+    );
   }
 
   private async subcontractor(

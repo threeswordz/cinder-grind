@@ -286,6 +286,57 @@ test('V0.5-A enforces Subcontractor Company scope and agreement Project scope', 
       (error: unknown) => error instanceof ForbiddenException,
     );
 
+    let releaseArchive!: () => void;
+    let archiveLocked!: () => void;
+    const releaseArchivePromise = new Promise<void>((resolve) => {
+      releaseArchive = resolve;
+    });
+    const archiveLockedPromise = new Promise<void>((resolve) => {
+      archiveLocked = resolve;
+    });
+    const concurrentArchive = prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT "id"
+        FROM "subcontractors"
+        WHERE "id" = ${subcontractor.id}::uuid
+        FOR UPDATE`;
+      archiveLocked();
+      await releaseArchivePromise;
+      await tx.subcontractor.update({
+        where: { id: subcontractor.id },
+        data: { isActive: false },
+      });
+    });
+    await archiveLockedPromise;
+    let concurrentCreateSettled = false;
+    const concurrentCreate = service
+      .createAgreement(
+        { auth: scoped },
+        {
+          projectId: project.id,
+          subcontractorId: subcontractor.id,
+          originalValue: '1200.00',
+          scopeOfWork: 'Concurrent archive guard',
+          currencyCode: 'SGD',
+          createKey: 'archive-race-' + suffix,
+        },
+      )
+      .finally(() => {
+        concurrentCreateSettled = true;
+      });
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    assert.equal(
+      concurrentCreateSettled,
+      false,
+      'agreement creation must wait for the Subcontractor lifecycle lock',
+    );
+    releaseArchive();
+    await concurrentArchive;
+    await assert.rejects(
+      concurrentCreate,
+      (error: unknown) => error instanceof UnprocessableEntityException,
+    );
+    await service.reactivateSubcontractor({ auth: scoped }, subcontractor.id);
+
     await service.archiveSubcontractor({ auth: scoped }, subcontractor.id);
     await assert.rejects(
       () =>
