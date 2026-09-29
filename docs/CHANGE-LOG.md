@@ -1,3 +1,10 @@
+## 2026-09-29 — V0.5-A Subcontractor Register / Agreement Foundation under validation
+
+- Entry-gate PR #102 merged as `5b67832079ef6ded86bc79f997d8115835d0c55e`; post-merge main CI #1611 passed and Issue #98 closed before Stage A began.
+- Issue #103, branch `v0.5-a-subcontract-foundation` and PR #104 implement the Company-owned Subcontractor register plus Project-scoped agreement Draft identity/scope/status under AC-V05-001–005 and BR-V05-01–05/19–20.
+- Source-controlled schema/migrations, six permissions, audit, `SCYYMM-###` numbering, replay-safe create keys, backend Project access, responsive UI, PostgreSQL integration and live HTTP Stage-A acceptance are included. Agreement approval/Work Orders and all later V0.5 stages remain out of scope.
+- Code/test head `83e73f47f10953deed06479ad8b9cae0a9ed139e` passed full CI #1653. Exact-head documentation CI/review/merge and post-merge main CI remain before V0.5-B.
+
 ## 2026-09-29 — V0.5 entry-gate baseline approved by Product / Business Owner
 
 - The owner completed review and approved the PR #100 / #101 proposal package as written, with no amendments: Scope; AC-V05-001–030; BR-V05-01–20 / D05-01–11; data/API/test baselines; stages; 19–29 engineering-day estimate and separate 1–2 business-day human UAT window; exclusions and deferrals. DEC-014 records the exact instruction and interpretation.

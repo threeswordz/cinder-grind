@@ -305,6 +305,12 @@ const permissionCodes = [
   'procurement.po.submit',
   'procurement.po.cancel',
   'procurement.po.revise',
+  'subcontracts.subcontractor.view',
+  'subcontracts.subcontractor.manage',
+  'subcontracts.subcontractor.archive',
+  'subcontracts.agreement.view',
+  'subcontracts.agreement.create',
+  'subcontracts.agreement.edit',
 ];
 await request(admin, `/admin/roles/${roleId}/permissions`, {
   method: 'PUT',
@@ -3149,6 +3155,137 @@ record('V0.3-E DOC-007 secure Purchase Order document target');
 record('secure document upload, metadata listing and byte-for-byte download');
 
 const unassigned = await login(unassignedUser.data.data.email, unassignedPassword);
+
+const subcontractStatus = await request(admin, '/admin/statuses', {
+  method: 'POST',
+  json: {
+    entityType: 'SUBCONTRACT_AGREEMENT',
+    statusCode: 'ACTIVE-' + suffix,
+    statusLabel: 'Active Subcontract ' + suffix,
+    sortOrder: 10,
+  },
+  expected: 201,
+});
+const subcontractor = await request(pm, '/subcontracts/subcontractors', {
+  method: 'POST',
+  json: {
+    subcontractorCode: 'SUB-' + suffix,
+    subcontractorName: 'Groundworks Subcontractor ' + suffix,
+    supplierId: sourcingSupplierA.data.data.id,
+    registrationNumber: 'REG-' + suffix,
+    contactName: 'Subcontracts UAT Contact',
+    email: 'subcontracts-' + suffix.toLowerCase() + '@example.com',
+  },
+  expected: 201,
+});
+const subcontractorId = subcontractor.data.data.id;
+check(
+  subcontractor.data.data.supplier?.id === sourcingSupplierA.data.data.id,
+  'Subcontractor did not retain the optional same-Company Supplier link.',
+);
+const companyRegisterForUnassigned = await request(
+  unassigned,
+  '/subcontracts/subcontractors?search=' + encodeURIComponent(suffix),
+);
+check(
+  companyRegisterForUnassigned.data.data.some(
+    (item) => item.id === subcontractorId,
+  ),
+  'Company-authorized user without Project membership could not read the Subcontractor register.',
+);
+record('V0.5-A Company Subcontractor register and optional Supplier link');
+
+const subcontractProjects = await request(pm, '/subcontracts/projects');
+check(
+  subcontractProjects.data.data.some((item) => item.id === projectId),
+  'Subcontracts Project selector did not expose the assigned Project.',
+);
+const unassignedSubcontractProjects = await request(
+  unassigned,
+  '/subcontracts/projects',
+);
+check(
+  !unassignedSubcontractProjects.data.data.some(
+    (item) => item.id === projectId,
+  ),
+  'Subcontracts Project selector exposed an unauthorized Project.',
+);
+
+const agreementPayload = {
+  projectId,
+  subcontractorId,
+  originalValue: '125000.00',
+  scopeOfWork: 'Groundworks package ' + suffix,
+  currencyCode: 'SGD',
+  operationalStatusId: subcontractStatus.data.data.id,
+  createKey: 'uat-v05a-' + suffix,
+};
+const agreement = await request(pm, '/subcontracts/agreements', {
+  method: 'POST',
+  json: agreementPayload,
+  expected: 201,
+});
+const agreementId = agreement.data.data.id;
+check(
+  /^SC\d{4}-\d{3}$/.test(agreement.data.data.agreementNumber) &&
+    agreement.data.data.approvalState === 'DRAFT' &&
+    agreement.data.data.projectId === projectId &&
+    agreement.data.data.subcontractorId === subcontractorId &&
+    String(agreement.data.data.originalValue) === '125000',
+  'Agreement Draft identity, numbering, scope or original value was not retained.',
+);
+const agreementRetry = await request(pm, '/subcontracts/agreements', {
+  method: 'POST',
+  json: agreementPayload,
+  expected: 201,
+});
+check(
+  agreementRetry.data.data.id === agreementId &&
+    agreementRetry.data.data.agreementNumber ===
+      agreement.data.data.agreementNumber,
+  'Agreement create-key retry created a duplicate commercial identity.',
+);
+await request(unassigned, '/subcontracts/agreements?projectId=' + projectId, {
+  expected: 403,
+});
+await request(unassigned, '/subcontracts/agreements/' + agreementId, {
+  expected: 403,
+});
+const editedAgreement = await request(
+  pm,
+  '/subcontracts/agreements/' + agreementId,
+  {
+    method: 'PATCH',
+    json: { scopeOfWork: 'Groundworks package revised Draft ' + suffix },
+  },
+);
+check(
+  editedAgreement.data.data.scopeOfWork ===
+    'Groundworks package revised Draft ' + suffix,
+  'Agreement Draft edit did not retain the revised Scope of Work.',
+);
+await request(pm, '/subcontracts/subcontractors/' + subcontractorId + '/archive', {
+  method: 'POST',
+  expected: 201,
+});
+await request(pm, '/subcontracts/agreements', {
+  method: 'POST',
+  json: {
+    ...agreementPayload,
+    createKey: 'uat-v05a-archived-' + suffix,
+  },
+  expected: 422,
+});
+const retainedAgreement = await request(
+  pm,
+  '/subcontracts/agreements/' + agreementId,
+);
+check(
+  retainedAgreement.data.data.id === agreementId &&
+    retainedAgreement.data.data.subcontractor.id === subcontractorId,
+  'Archiving the Subcontractor hid retained agreement history.',
+);
+record('V0.5-A Project-scoped agreement Draft, immutable numbering, idempotent retry, archive guard and unauthorized Project denial');
 
 const warehouse = await request(pm, '/inventory/warehouses', {
   method: 'POST',

@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { randomUUID } from 'node:crypto';
 
+import { ConflictException } from '@nestjs/common';
+
 import { PrismaService } from '../prisma/prisma.service';
 import { NumberSequenceService } from './number-sequence.service';
 
@@ -57,6 +59,31 @@ test('number sequence preserves starting value and resets on a new month', async
       ),
       'PO2605-001',
     );
+
+    const invalidReserved = await prisma.numberSequence.create({
+      data: {
+        companyId: company.id,
+        entityType: 'SUBCONTRACT_AGREEMENT',
+        sequenceCode: 'SUBCONTRACT_AGREEMENT',
+        formatTemplate: 'BAD-###',
+        resetRule: 'NONE',
+        nextValue: 1,
+      },
+    });
+    await assert.rejects(
+      () =>
+        service.next(
+          company.id,
+          invalidReserved.sequenceCode,
+          new Date('2026-05-01T00:00:00Z'),
+        ),
+      (error: unknown) => error instanceof ConflictException,
+    );
+    const unchangedReserved = await prisma.numberSequence.findUniqueOrThrow({
+      where: { id: invalidReserved.id },
+    });
+    assert.equal(unchangedReserved.nextValue, 1);
+    assert.equal(unchangedReserved.lastPeriodKey, null);
 
     const stored = await prisma.numberSequence.findUniqueOrThrow({
       where: { id: sequence.id },

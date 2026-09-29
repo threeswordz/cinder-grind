@@ -1881,3 +1881,20 @@ Reservation activation derives available quantity as immutable-ledger on-hand mi
 Material Return references a posted, non-reversed Material Issue line in the same Project. Final approval uses the configured `MATERIAL_RETURN` Approval Matrix, locks the Issue lineage, enforces the cumulative non-reversed return ceiling, and appends one exact positive ledger row per line. Full Issue and Return reversals append exact opposite ledger effects; Issue reversal is blocked while a posted non-reversed Return exists. Return reversal revalidates available destination stock so it cannot create negative stock or consume another Active Reservation.
 
 All mutation routes require CSRF, explicit business permission, Company/Project scope and retained audit history. `projects.access_all` only bypasses Project assignment. Technical `SYS_ADMIN` receives no Stage-D business action authority implicitly. No editable balance, reservation ledger, availability cache, second stock ledger, UOM conversion, costing or Finance posting is introduced.
+
+## V0.5-A Subcontractor Register and Agreement Draft API
+
+Stage A adds the permission-gated `/api/v1/subcontracts` resource family without introducing agreement approval or Work Orders.
+
+| Method | Route | Permission | Purpose |
+| --- | --- | --- | --- |
+| GET/POST | `/subcontractors` | `subcontracts.subcontractor.view/manage` | Search/read or create Company-owned register entries |
+| GET/PATCH | `/subcontractors/:id` | `subcontracts.subcontractor.view/manage` | Read or edit a retained register entry |
+| POST | `/subcontractors/:id/archive`, `/reactivate` | `subcontracts.subcontractor.archive` | Change active selection state without deleting history |
+| GET | `/suppliers` | `subcontracts.subcontractor.view` | Active same-Company Supplier choices for the optional link |
+| GET | `/agreement-subcontractors` | `subcontracts.agreement.view` | Minimal active Company Subcontractor choices for agreement users; does not expose the full register |
+| GET | `/projects`, `/agreement-statuses` | `subcontracts.agreement.view` | Effective Project and configured operational-status choices |
+| GET/POST | `/agreements` | `subcontracts.agreement.view/create` | Scoped Draft list/search and idempotent Draft creation |
+| GET/PATCH | `/agreements/:id` | `subcontracts.agreement.view/edit` | Scoped detail and Draft-only commercial-field edit |
+
+All mutations require CSRF, explicit permission and audit history. Register authority is Company-scoped and does not require Project membership. Agreement reads/writes enforce database-derived Project access, active same-Company references and separate system `DRAFT` versus configured operational status. Creation allocates immutable Company-scoped `SCYYMM-###` identity and accepts a stable create key bound to an immutable creation-payload fingerprint for replay safety. Stage A has no submit, approve, reject, revise, cancel, Work Order, claim, certification, retention, Variation, Finance or cost-posting action.

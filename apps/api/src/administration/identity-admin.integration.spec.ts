@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { randomUUID } from 'node:crypto';
-import { ForbiddenException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 
 import { AuditService } from '../audit/audit.service';
 import { AuthenticatedUserContext } from '../auth/auth.types';
@@ -98,6 +101,27 @@ test('user and role administration respects company boundaries and revokes sessi
         roleName: 'Test Role',
       },
     );
+
+    await assert.rejects(
+      () =>
+        service.replaceRolePermissions({ auth }, role.id, [
+          'subcontracts.agreement.create',
+        ]),
+      (error: unknown) => error instanceof UnprocessableEntityException,
+    );
+    await service.replaceRolePermissions({ auth }, role.id, [
+      'subcontracts.subcontractor.view',
+      'subcontracts.subcontractor.manage',
+      'subcontracts.agreement.view',
+      'subcontracts.agreement.create',
+    ]);
+    const subcontractPermissionCount = await prisma.rolePermission.count({
+      where: {
+        roleId: role.id,
+        permission: { permissionCode: { startsWith: 'subcontracts.' } },
+      },
+    });
+    assert.equal(subcontractPermissionCount, 4);
 
     const created = await service.createUser(
       { auth },

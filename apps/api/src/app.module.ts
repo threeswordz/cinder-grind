@@ -18,6 +18,7 @@ import { ProcurementModule } from './procurement/procurement.module';
 import { ReportingModule } from './reporting/reporting.module';
 import { SchedulingModule } from './scheduling/scheduling.module';
 import { SiteExecutionModule } from './site-execution/site-execution.module';
+import { SubcontractsModule } from './subcontracts/subcontracts.module';
 import { WbsModule } from './wbs/wbs.module';
 
 @Module({
@@ -31,6 +32,7 @@ import { WbsModule } from './wbs/wbs.module';
     SiteExecutionModule,
     EquipmentModule,
     InventoryModule,
+    SubcontractsModule,
     ReportingModule,
     DocumentsModule,
     AdministrationModule,

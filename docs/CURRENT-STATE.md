@@ -3,9 +3,12 @@
 **Last verified:** 2026-09-29
 **Source of truth:** Live GitHub repository state
 
-- Current Release: V0.5 Subcontracts — owner-approved entry-gate baselines; formal entry-gate CI/review/merge and Issue #98 closure pending
-- Current Stage: V0.4 Inventory release exit complete; V0.5 entry-gate approval record under Issue #98; no V0.5-A pre-flight until technical gates complete
-- Completed Stages: V0.1-A through V0.1-H; V0.2-A through V0.2-G; V0.3-A through V0.3-E; V0.4-A Warehouse Foundation; V0.4-B Goods Receipt / Ledger; V0.4-C Derived Stock Balance; V0.4-D Material Reservation / Issue / Return; V0.4-E Stock Transfer / Inventory Documents / Reporting / Release Evidence
+- Current Release: V0.5 Subcontracts — approved entry gate complete; Stage A implementation under validation
+- Current Stage: V0.5-A Subcontractor Register / Agreement Foundation in Issue #103 and PR #104
+- Completed Stages: V0.1-A through V0.1-H; V0.2-A through V0.2-G; V0.3-A through V0.3-E; V0.4-A through V0.4-E; V0.5 entry gate
+- Active Issue: #103 — V0.5-A Subcontractor Register and Agreement Foundation
+- Draft PR: #104 — V0.5-A implementation on `v0.5-a-subcontract-foundation`
+- V0.5 entry gate: PR #102 squash-merged as `5b67832079ef6ded86bc79f997d8115835d0c55e`; post-merge main CI #1611 passed; Issue #98 closed
 - Completed Issue: #92 — V0.4-E Stock Transfer / Inventory Documents / Reporting / Release Evidence
 - Completed Issue: #89 — V0.4-D Material Reservation / Issue / Return
 - Completed Issue: #87 — V0.4-C Derived Stock Balance / Project-Site Stock Views
@@ -80,7 +83,7 @@
 - V0.1 cross-module release acceptance scenario: PASS in the Stage H release-candidate regression suite.
 - Open defect check at V0.1 acceptance: no Severity 1 or Severity 2 release-blocking defect recorded.
 - Governance: `AGENTS.md`, `docs/PROJECT-GOVERNANCE.md`, PR governance checklist and DEC-008 are active; material decisions must pass the repository pre-flight and open-source/zero-cost-first constraint.
-- Next action: complete the V0.5 approval-record PR's exact-head CI/review/merge and post-merge `main` CI, then close Issue #98 and begin V0.5-A pre-flight. The Product / Business Owner approved the proposed baselines without amendments on 2026-09-29; V0.5 release UAT/exit remains a later human gate.
+- Next action: complete V0.5-A exact-head CI and review on PR #104, merge only after all findings/gates pass, confirm post-merge `main` CI, close Issue #103, then begin V0.5-B pre-flight. Human V0.5 release UAT/acceptance remains a later exit gate.
 
 ## Stage E completed
 
@@ -797,3 +800,11 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - Proposed `docs/V0.5-SCOPE.md`, `docs/V0.5-ACCEPTANCE-CRITERIA.md` (AC-V05-001–030) and `docs/V0.5-BUSINESS-RULES.md` (BR-V05-01–20) provide a concrete owner-review package for Issue #98. They are not approved and authorize no implementation.
 - The proposal preserves the Subcontracts-owned Company register and Project-scoped downstream records, distinct claim/assessment/certification values, no WO double counting and separate Committed/Actual/Paid Cost. Tax/FX, Finance, retention release and DOC-009 remain deferred.
 - Product / Business Owner instruction on 2026-09-29 completed review and approved the proposed V0.5 Scope, AC-V05-001–030, BR-V05-01–20 / D05-01–11, data/API/test baselines, stages, estimates and deferrals without amendments. DEC-014 records this decision. Approval-record CI/review/merge and post-merge `main` CI, then Issue #98 closure, remain before V0.5-A pre-flight.
+
+## V0.5-A implementation under validation
+
+- Issue #103 and PR #104 started from green entry-gate merge `5b67832079ef6ded86bc79f997d8115835d0c55e` only after Issue #98 closed.
+- Stage A adds a Company-owned Subcontractor register with optional same-Company Supplier link and archive/reactivate lifecycle, plus Project-scoped agreement Drafts with required Scope of Work, original tax-exclusive DECIMAL(18,2) value, one currency, configured operational status and immutable `SCYYMM-###` identity.
+- Six explicit permissions, CSRF, backend Company/Project access, composite database references, hard-delete/identity guards, audit, stable creation keys and fresh-bootstrap technical provisioning are implemented. No business approval permission or later-stage transaction is introduced.
+- The responsive Subcontracts workspace supports register search/edit/lifecycle and accessible-Project agreement Draft creation/editing. PostgreSQL integration and live HTTP acceptance cover Company/Project authorization, Supplier linkage, numbering/retry, archive guards and retained history.
+- Code/test head `83e73f47f10953deed06479ad8b9cae0a9ed139e` passed CI #1653. Documentation-head CI, review, merge, post-merge main CI and Issue #103 closure remain pending. V0.5-B has not begun.

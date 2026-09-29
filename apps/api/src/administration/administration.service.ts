@@ -147,6 +147,13 @@ export class AdministrationService {
     },
   ) {
     return this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw(
+        Prisma.sql`SELECT "id"
+          FROM "status_definitions"
+          WHERE "id" = ${id}::uuid
+            AND "company_id" = ${context.auth.companyId}::uuid
+          FOR UPDATE`,
+      );
       const before = await tx.statusDefinition.findFirst({
         where: { id, companyId: context.auth.companyId },
       });
@@ -190,6 +197,7 @@ export class AdministrationService {
       startingValue: number;
     },
   ) {
+    this.numberSequences.assertCreatable(data.sequenceCode);
     try {
       return await this.prisma.$transaction(async (tx) => {
         const created = await tx.numberSequence.create({
@@ -242,6 +250,7 @@ export class AdministrationService {
       this.numberSequences.assertEditable(
         before.nextValue,
         before.lastPeriodKey,
+        before.sequenceCode,
       );
 
       const after = await tx.numberSequence.update({
