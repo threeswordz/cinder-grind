@@ -18,6 +18,7 @@ import { REQUIRED_PERMISSIONS_KEY } from '../authorization/permissions.decorator
 import { PrismaService } from '../prisma/prisma.service';
 import { ProjectAccessService } from '../projects/project-access.service';
 import { SubcontractsController } from './subcontracts.controller';
+import { SubcontractsWorkflowController } from './subcontracts-workflow.controller';
 import { SubcontractsService } from './subcontracts.service';
 
 function auth(
@@ -44,6 +45,42 @@ function auth(
     csrfTokenHash: '0'.repeat(64),
   };
 }
+
+test('V0.5-B workflow routes retain explicit permission metadata', () => {
+  const routes = [
+    ['agreementWorkflowOptions', 'subcontracts.agreement.submit'],
+    ['workOrderWorkflowOptions', 'subcontracts.work_order.submit'],
+    ['versions', 'subcontracts.agreement.view'],
+    ['submitAgreement', 'subcontracts.agreement.submit'],
+    ['approveAgreement', 'subcontracts.agreement.approve'],
+    ['rejectAgreement', 'subcontracts.agreement.reject'],
+    ['createRevision', 'subcontracts.agreement.revise'],
+    ['updateRevision', 'subcontracts.agreement.revise'],
+    ['submitRevision', 'subcontracts.agreement.submit'],
+    ['approveRevision', 'subcontracts.agreement.approve'],
+    ['rejectRevision', 'subcontracts.agreement.reject'],
+    ['cancelAgreement', 'subcontracts.agreement.cancel'],
+    ['workOrderOptions', 'subcontracts.work_order.view'],
+    ['workOrders', 'subcontracts.work_order.view'],
+    ['workOrder', 'subcontracts.work_order.view'],
+    ['createWorkOrder', 'subcontracts.work_order.create'],
+    ['updateWorkOrder', 'subcontracts.work_order.edit'],
+    ['submitWorkOrder', 'subcontracts.work_order.submit'],
+    ['approveWorkOrder', 'subcontracts.work_order.approve'],
+    ['rejectWorkOrder', 'subcontracts.work_order.reject'],
+  ] as const;
+
+  for (const [method, permission] of routes) {
+    assert.deepEqual(
+      Reflect.getMetadata(
+        REQUIRED_PERMISSIONS_KEY,
+        SubcontractsWorkflowController.prototype[method],
+      ),
+      [permission],
+      method + ' must retain its Stage B permission boundary',
+    );
+  }
+});
 
 test('V0.5-A enforces Subcontractor Company scope and agreement Project scope', async () => {
   const prisma = new PrismaService();
