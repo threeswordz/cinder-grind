@@ -737,10 +737,24 @@ test('V0.5-A enforces Subcontractor Company scope and agreement Project scope', 
     assert.ok(audit.some((row) => row.action === 'CREATE_DRAFT'));
     assert.ok(audit.some((row) => row.action === 'ARCHIVE'));
 
-    const permissionCount = await prisma.permission.count({
-      where: { permissionCode: { startsWith: 'subcontracts.' } },
+    const stageAPermissionCodes = [
+      'subcontracts.subcontractor.view',
+      'subcontracts.subcontractor.manage',
+      'subcontracts.subcontractor.archive',
+      'subcontracts.agreement.view',
+      'subcontracts.agreement.create',
+      'subcontracts.agreement.edit',
+    ];
+    const stageAPermissions = await prisma.permission.findMany({
+      where: { permissionCode: { in: stageAPermissionCodes } },
+      select: { permissionCode: true },
+      orderBy: { permissionCode: 'asc' },
     });
-    assert.equal(permissionCount, 6);
+    assert.deepEqual(
+      stageAPermissions.map((row) => row.permissionCode),
+      [...stageAPermissionCodes].sort(),
+      'all six V0.5-A permissions must remain provisioned as later stages add permissions',
+    );
   } finally {
     await prisma.$disconnect();
   }
