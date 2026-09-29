@@ -344,7 +344,9 @@ function AgreementsPanel({ permissions }: { permissions: string[] }) {
             originalValue: value,
             scopeOfWork: scope,
             currencyCode: currency,
-            operationalStatusId: statusId || null,
+            ...(statusId !== (selected.operationalStatusId ?? '')
+              ? { operationalStatusId: statusId || null }
+              : {}),
           }),
     onSuccess: async (result) => {
       setSelectedId(result.data.id);
@@ -495,6 +497,18 @@ function AgreementsPanel({ permissions }: { permissions: string[] }) {
                     sx={{ minWidth: 220 }}
                   >
                     <MenuItem value="">No configured status</MenuItem>
+                    {selected?.operationalStatus &&
+                    selected.operationalStatusId &&
+                    !(statuses.data?.data ?? []).some(
+                      (status) => status.id === selected.operationalStatusId,
+                    ) ? (
+                      <MenuItem
+                        value={selected.operationalStatusId}
+                        disabled
+                      >
+                        {selected.operationalStatus.statusLabel} — inactive current
+                      </MenuItem>
+                    ) : null}
                     {(statuses.data?.data ?? []).map((status) => (
                       <MenuItem key={status.id} value={status.id}>
                         {status.statusLabel}
