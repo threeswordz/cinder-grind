@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+
 import {
   ConflictException,
   ForbiddenException,
@@ -374,6 +376,9 @@ export class SubcontractsService {
             currencyCode: input.currencyCode,
             operationalStatusId: input.operationalStatusId ?? null,
             createKey: input.createKey ?? null,
+            createPayloadHash: input.createKey
+              ? this.agreementCreatePayloadHash(input)
+              : null,
             createdByUserId: context.auth.userId,
           },
           include: this.agreementInclude(),
@@ -710,25 +715,26 @@ export class SubcontractsService {
     } satisfies Prisma.SubcontractAgreementInclude;
   }
 
+  private agreementCreatePayloadHash(input: AgreementDraftInput): string {
+    const canonicalPayload = JSON.stringify([
+      input.projectId,
+      input.subcontractorId,
+      new Prisma.Decimal(input.originalValue).toFixed(2),
+      input.scopeOfWork,
+      input.currencyCode,
+      input.operationalStatusId ?? null,
+    ]);
+    return createHash('sha256').update(canonicalPayload).digest('hex');
+  }
+
   private assertAgreementReplayPayload(
-    existing: {
-      projectId: string;
-      subcontractorId: string;
-      originalValue: Prisma.Decimal;
-      scopeOfWork: string;
-      currencyCode: string;
-      operationalStatusId: string | null;
-    },
+    existing: { createPayloadHash: string | null },
     input: AgreementDraftInput,
   ): void {
-    const samePayload =
-      existing.projectId === input.projectId &&
-      existing.subcontractorId === input.subcontractorId &&
-      existing.originalValue.equals(new Prisma.Decimal(input.originalValue)) &&
-      existing.scopeOfWork === input.scopeOfWork &&
-      existing.currencyCode === input.currencyCode &&
-      existing.operationalStatusId === (input.operationalStatusId ?? null);
-    if (!samePayload) {
+    if (
+      !existing.createPayloadHash ||
+      existing.createPayloadHash !== this.agreementCreatePayloadHash(input)
+    ) {
       throw new ConflictException({
         code: 'IDEMPOTENCY_KEY_REUSED',
         detail:

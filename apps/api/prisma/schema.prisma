@@ -1157,6 +1157,7 @@ model SubcontractAgreement {
   approvalState         String   @default("DRAFT") @map("approval_state") @db.VarChar(30)
   operationalStatusId   String?  @map("operational_status_id") @db.Uuid
   createKey             String?  @map("create_key") @db.VarChar(120)
+  createPayloadHash     String?  @map("create_payload_hash") @db.VarChar(64)
   createdByUserId       String   @map("created_by_user_id") @db.Uuid
   createdAt             DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt             DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)

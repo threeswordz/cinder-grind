@@ -67,6 +67,7 @@ CREATE TABLE "subcontract_agreements" (
   "approval_state" VARCHAR(30) NOT NULL DEFAULT 'DRAFT',
   "operational_status_id" UUID,
   "create_key" VARCHAR(120),
+  "create_payload_hash" VARCHAR(64),
   "created_by_user_id" UUID NOT NULL,
   "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "updated_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -75,6 +76,13 @@ CREATE TABLE "subcontract_agreements" (
   CONSTRAINT "subcontract_agreements_scope_check" CHECK (length(btrim("scope_of_work")) > 0),
   CONSTRAINT "subcontract_agreements_currency_check" CHECK ("currency_code" ~ '^[A-Z]{3}$'),
   CONSTRAINT "subcontract_agreements_state_check" CHECK ("approval_state" IN ('DRAFT','SUBMITTED','APPROVED','REJECTED','CANCELLED')),
+  CONSTRAINT "subcontract_agreements_create_payload_check" CHECK (
+    ("create_key" IS NULL AND "create_payload_hash" IS NULL)
+    OR (
+      "create_key" IS NOT NULL
+      AND "create_payload_hash" ~ '^[0-9a-f]{64}$'
+    )
+  ),
   CONSTRAINT "subcontract_agreements_company_id_fkey"
     FOREIGN KEY ("company_id") REFERENCES "companies"("id") ON DELETE RESTRICT ON UPDATE CASCADE,
   CONSTRAINT "subcontract_agreements_company_id_project_id_fkey"
@@ -114,6 +122,7 @@ BEGIN
       OR NEW.project_id <> OLD.project_id
       OR NEW.subcontractor_id <> OLD.subcontractor_id
       OR NEW.create_key IS DISTINCT FROM OLD.create_key
+      OR NEW.create_payload_hash IS DISTINCT FROM OLD.create_payload_hash
       OR NEW.created_by_user_id <> OLD.created_by_user_id
       OR NEW.created_at <> OLD.created_at
     THEN

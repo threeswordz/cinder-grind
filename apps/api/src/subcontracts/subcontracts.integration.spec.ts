@@ -310,6 +310,45 @@ test('V0.5-A enforces Subcontractor Company scope and agreement Project scope', 
       (error: unknown) => error instanceof ConflictException,
     );
 
+    await service.updateAgreement(
+      { auth: scoped },
+      created.id,
+      {
+        originalValue: '27500.00',
+        scopeOfWork: 'Edited after creation',
+      },
+    );
+    const originalReplayAfterEdit = await service.createAgreement(
+      { auth: scoped },
+      {
+        projectId: project.id,
+        subcontractorId: subcontractor.id,
+        originalValue: '25000.00',
+        scopeOfWork: 'Structural steel installation',
+        currencyCode: 'SGD',
+        operationalStatusId: status.id,
+        createKey: 'stage-a-' + suffix,
+      },
+    );
+    assert.equal(originalReplayAfterEdit.id, created.id);
+    assert.equal(originalReplayAfterEdit.scopeOfWork, 'Edited after creation');
+    await assert.rejects(
+      () =>
+        service.createAgreement(
+          { auth: scoped },
+          {
+            projectId: project.id,
+            subcontractorId: subcontractor.id,
+            originalValue: '27500.00',
+            scopeOfWork: 'Edited after creation',
+            currencyCode: 'SGD',
+            operationalStatusId: status.id,
+            createKey: 'stage-a-' + suffix,
+          },
+        ),
+      (error: unknown) => error instanceof ConflictException,
+    );
+
     const createOnly = {
       ...scoped,
       permissions: ['subcontracts.agreement.create'],
@@ -581,6 +620,14 @@ test('V0.5-A enforces Subcontractor Company scope and agreement Project scope', 
           data: { projectId: unassigned.id },
         }),
       'Agreement Project identity must remain immutable below the API boundary',
+    );
+    await assert.rejects(
+      () =>
+        prisma.subcontractAgreement.update({
+          where: { id: created.id },
+          data: { createPayloadHash: '0'.repeat(64) },
+        }),
+      'Agreement creation-payload fingerprint must remain immutable below the API boundary',
     );
 
     await assert.rejects(
