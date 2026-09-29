@@ -111,6 +111,8 @@ function SubcontractorsPanel({ permissions }: { permissions: string[] }) {
     setAddress('');
   };
 
+  const requestError = save.error ?? lifecycle.error;
+
   return (
     <Stack spacing={3}>
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
@@ -127,11 +129,9 @@ function SubcontractorsPanel({ permissions }: { permissions: string[] }) {
         This is the Company-owned Subcontracts register. A Supplier link is
         optional and does not replace the Subcontractor record.
       </Alert>
-      {save.error || lifecycle.error ? (
+      {requestError ? (
         <Alert severity="error">
-          {(save.error ?? lifecycle.error) instanceof Error
-            ? (save.error ?? lifecycle.error as Error).message
-            : 'Request failed.'}
+          {requestError instanceof Error ? requestError.message : 'Request failed.'}
         </Alert>
       ) : null}
       <Card variant="outlined">
@@ -287,6 +287,7 @@ function AgreementsPanel({ permissions }: { permissions: string[] }) {
   const [scope, setScope] = useState('');
   const [currency, setCurrency] = useState('SGD');
   const [statusId, setStatusId] = useState('');
+  const [createKey, setCreateKey] = useState(() => crypto.randomUUID());
 
   const agreements = useQuery({
     queryKey: ['subcontracts', 'agreements', projectFilter, search],
@@ -337,7 +338,7 @@ function AgreementsPanel({ permissions }: { permissions: string[] }) {
             scopeOfWork: scope,
             currencyCode: currency,
             operationalStatusId: statusId || null,
-            createKey: crypto.randomUUID(),
+            createKey,
           })
         : subcontractsApi.updateAgreement(selected.id, {
             originalValue: value,
@@ -361,6 +362,7 @@ function AgreementsPanel({ permissions }: { permissions: string[] }) {
     setScope('');
     setCurrency('SGD');
     setStatusId('');
+    setCreateKey(crypto.randomUUID());
   };
 
   return (
