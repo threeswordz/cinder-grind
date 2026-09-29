@@ -297,6 +297,18 @@ test('V0.5-B retains agreement decisions and enforces Work Order allocation ceil
     await assert.rejects(
       () =>
         service.submitInitialAgreement(
+          { auth: outsiderAuth },
+          agreement.id,
+          agreementWorkflow.workflowCode,
+          'agreement-submit-' + suffix,
+        ),
+      (error: unknown) => error instanceof ForbiddenException,
+      'a retained retry key must never disclose an Agreement outside effective Project access',
+    );
+
+    await assert.rejects(
+      () =>
+        service.submitInitialAgreement(
           { auth: makerAuth },
           agreement.id,
           'CHANGED_' + suffix,
@@ -593,6 +605,21 @@ test('V0.5-B retains agreement decisions and enforces Work Order allocation ceil
       0,
       'a failed over-ceiling final approval must roll back its Approval Action',
     );
+
+    const rejectedWorkOrder = await service.rejectWorkOrder(
+      { auth: checkerAuth },
+      pendingWorkOrder.id,
+      'wo-over-ceiling-reject-' + suffix,
+      'Rejected after retained over-allocation failure.',
+    );
+    assert.equal(rejectedWorkOrder.approvalState, 'REJECTED');
+    assert.ok(rejectedWorkOrder.decidedAt);
+    const rejectedWorkOrderActions = await prisma.approvalAction.findMany({
+      where: { approvalInstanceId: rejectedWorkOrder.approvalInstanceId! },
+      orderBy: { actionAt: 'asc' },
+    });
+    assert.equal(rejectedWorkOrderActions.length, 1);
+    assert.equal(rejectedWorkOrderActions[0]?.action, 'REJECT');
 
     await assert.rejects(
       () =>
