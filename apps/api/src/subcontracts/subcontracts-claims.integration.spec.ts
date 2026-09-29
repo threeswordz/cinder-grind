@@ -40,6 +40,8 @@ function auth(
 
 test('V0.5-C Claim routes retain explicit permission metadata', () => {
   const routes = [
+    ['claimAgreementOptions', 'subcontracts.claim.view'],
+    ['claimOptions', 'subcontracts.claim.view'],
     ['listClaims', 'subcontracts.claim.view'],
     ['getClaim', 'subcontracts.claim.view'],
     ['createClaim', 'subcontracts.claim.create'],

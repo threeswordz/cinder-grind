@@ -51,6 +51,70 @@ export class SubcontractsClaimsService {
     private readonly numbers: NumberSequenceService,
   ) {}
 
+  async claimAgreementOptions(auth: AuthenticatedUserContext) {
+    const scope = await this.access.scopeWhere(auth, this.prisma);
+    return this.prisma.subcontractAgreement.findMany({
+      where: {
+        companyId: auth.companyId,
+        project: scope,
+        approvalState: 'APPROVED',
+        cancelledAt: null,
+      },
+      select: {
+        id: true,
+        agreementNumber: true,
+        projectId: true,
+        originalValue: true,
+        currencyCode: true,
+        project: {
+          select: { id: true, projectCode: true, projectName: true },
+        },
+        subcontractor: {
+          select: {
+            id: true,
+            subcontractorCode: true,
+            subcontractorName: true,
+          },
+        },
+      },
+      orderBy: { agreementNumber: 'asc' },
+    });
+  }
+
+  async claimOptions(
+    auth: AuthenticatedUserContext,
+    agreementId: string,
+  ) {
+    const agreement = await this.visibleAgreement(
+      auth,
+      agreementId,
+      this.prisma,
+    );
+    this.assertApprovedAgreement(agreement);
+    const workOrders = await this.prisma.subcontractWorkOrder.findMany({
+      where: {
+        companyId: auth.companyId,
+        agreementId,
+        approvalState: 'APPROVED',
+      },
+      select: {
+        id: true,
+        workOrderNumber: true,
+        amount: true,
+      },
+      orderBy: { sequenceNo: 'asc' },
+    });
+    return {
+      agreement: {
+        id: agreement.id,
+        agreementNumber: agreement.agreementNumber,
+        originalValue: agreement.originalValue,
+        currencyCode: agreement.currencyCode,
+      },
+      workOrders,
+    };
+  }
+
   async listClaims(
     auth: AuthenticatedUserContext,
     agreementId: string,

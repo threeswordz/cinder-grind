@@ -166,6 +166,28 @@ function assessmentAction(body: unknown) {
 export class SubcontractsClaimsController {
   constructor(private readonly claims: SubcontractsClaimsService) {}
 
+  @Get('claim-agreement-options')
+  @UseGuards(AuthGuard, PermissionGuard)
+  @RequirePermissions('subcontracts.claim.view')
+  async claimAgreementOptions(@Req() request: AuthenticatedRequest) {
+    return {
+      data: await this.claims.claimAgreementOptions(authOf(request)),
+    };
+  }
+
+  @Get('agreements/:agreementId/claim-options')
+  @UseGuards(AuthGuard, PermissionGuard)
+  @RequirePermissions('subcontracts.claim.view')
+  async claimOptions(
+    @Req() request: AuthenticatedRequest,
+    @Param('agreementId', new ParseUUIDPipe({ version: '4' }))
+    agreementId: string,
+  ) {
+    return {
+      data: await this.claims.claimOptions(authOf(request), agreementId),
+    };
+  }
+
   @Get('agreements/:agreementId/claims')
   @UseGuards(AuthGuard, PermissionGuard)
   @RequirePermissions('subcontracts.claim.view')

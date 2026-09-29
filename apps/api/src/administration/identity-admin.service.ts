@@ -550,6 +550,14 @@ export class IdentityAdminService {
         ],
       },
       {
+        view: 'subcontracts.claim.view',
+        actions: [
+          'subcontracts.assessment.view',
+          'subcontracts.assessment.assess',
+          'subcontracts.assessment.reject',
+        ],
+      },
+      {
         view: 'subcontracts.assessment.view',
         actions: [
           'subcontracts.assessment.assess',
