@@ -5,6 +5,7 @@ import test from 'node:test';
 import {
   ConflictException,
   ForbiddenException,
+  UnprocessableEntityException,
 } from '@nestjs/common';
 
 import { ApprovalService } from '../approval/approval.service';
@@ -65,6 +66,53 @@ test('V0.5-B retains agreement decisions and enforces Work Order allocation ceil
         plannedCompletionDate: new Date('2027-03-31T00:00:00.000Z'),
       },
     });
+    const otherProject = await prisma.project.create({
+      data: {
+        companyId: company.id,
+        projectCode: 'SCB-XP-' + suffix,
+        projectName: 'Other Stage B Project',
+        customerId: customer.id,
+        contractValue: '50000',
+        plannedStartDate: new Date('2026-10-01T00:00:00.000Z'),
+        plannedCompletionDate: new Date('2027-03-31T00:00:00.000Z'),
+      },
+    });
+    const projectWbs = await prisma.wbsElement.create({
+      data: {
+        projectId: project.id,
+        wbsCode: 'SCB-WBS-' + suffix,
+        wbsName: 'Stage B Valid WBS',
+      },
+    });
+    const otherProjectWbs = await prisma.wbsElement.create({
+      data: {
+        projectId: otherProject.id,
+        wbsCode: 'SCB-XWBS-' + suffix,
+        wbsName: 'Stage B Cross-Project WBS',
+      },
+    });
+    const projectCostCode = await prisma.costCode.create({
+      data: {
+        companyId: company.id,
+        costCode: 'SCB-CC-' + suffix,
+        costName: 'Stage B Valid Cost Code',
+      },
+    });
+    const otherCompany = await prisma.company.create({
+      data: {
+        companyCode: 'SCB-X-' + suffix,
+        companyName: 'Other Stage B Company ' + suffix,
+        baseCurrencyCode: 'SGD',
+      },
+    });
+    const otherCompanyCostCode = await prisma.costCode.create({
+      data: {
+        companyId: otherCompany.id,
+        costCode: 'SCB-XCC-' + suffix,
+        costName: 'Stage B Cross-Company Cost Code',
+      },
+    });
+
     const subcontractor = await prisma.subcontractor.create({
       data: {
         companyId: company.id,
@@ -380,6 +428,70 @@ test('V0.5-B retains agreement decisions and enforces Work Order allocation ceil
     assert.equal(afterRevision.originalValue.toFixed(2), '1000.00');
     assert.equal(afterRevision.scopeOfWork, 'Stage B structural package');
 
+    await assert.rejects(
+      () =>
+        service.createWorkOrder(
+          { auth: makerAuth },
+          agreement.id,
+          {
+            scopeOfWork: 'Must reject cross-Project WBS',
+            amount: '25.00',
+            wbsElementId: otherProjectWbs.id,
+          },
+        ),
+      (error: unknown) => error instanceof UnprocessableEntityException,
+      'Work Order service must reject a WBS outside the Agreement Project',
+    );
+    await assert.rejects(
+      () =>
+        service.createWorkOrder(
+          { auth: makerAuth },
+          agreement.id,
+          {
+            scopeOfWork: 'Must reject cross-Company Cost Code',
+            amount: '25.00',
+            costCodeId: otherCompanyCostCode.id,
+          },
+        ),
+      (error: unknown) => error instanceof UnprocessableEntityException,
+      'Work Order service must reject a Cost Code outside the Agreement Company',
+    );
+
+    await assert.rejects(
+      () =>
+        prisma.subcontractWorkOrder.create({
+          data: {
+            companyId: company.id,
+            projectId: project.id,
+            agreementId: agreement.id,
+            sequenceNo: 900,
+            workOrderNumber: 'WO-900',
+            scopeOfWork: 'Database cross-Project WBS probe',
+            amount: '1.00',
+            wbsElementId: otherProjectWbs.id,
+            createdByUserId: maker.id,
+          },
+        }),
+      'database composite WBS reference must reject a cross-Project Work Order',
+    );
+    await assert.rejects(
+      () =>
+        prisma.subcontractWorkOrder.create({
+          data: {
+            companyId: company.id,
+            projectId: project.id,
+            agreementId: agreement.id,
+            sequenceNo: 901,
+            workOrderNumber: 'WO-901',
+            scopeOfWork: 'Database cross-Company Cost Code probe',
+            amount: '1.00',
+            costCodeId: otherCompanyCostCode.id,
+            createdByUserId: maker.id,
+          },
+        }),
+      'database composite Cost Code reference must reject a cross-Company Work Order',
+    );
+
     const [wo1, wo2] = await Promise.all([
       service.createWorkOrder(
         { auth: makerAuth },
@@ -387,6 +499,8 @@ test('V0.5-B retains agreement decisions and enforces Work Order allocation ceil
         {
           scopeOfWork: 'Work Order allocation one',
           amount: '600.00',
+          wbsElementId: projectWbs.id,
+          costCodeId: projectCostCode.id,
         },
       ),
       service.createWorkOrder(
@@ -403,6 +517,9 @@ test('V0.5-B retains agreement decisions and enforces Work Order allocation ceil
       ['WO-001', 'WO-002'],
       'concurrent Work Order creation must allocate distinct retained agreement-local numbers',
     );
+
+    assert.equal(wo1.wbsElementId, projectWbs.id);
+    assert.equal(wo1.costCodeId, projectCostCode.id);
 
     await service.submitWorkOrder(
       { auth: makerAuth },
