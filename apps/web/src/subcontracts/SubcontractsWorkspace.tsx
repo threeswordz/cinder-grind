@@ -293,8 +293,8 @@ function AgreementsPanel({ permissions }: { permissions: string[] }) {
     queryKey: ['subcontracts', 'agreements', projectFilter, search],
     queryFn: () =>
       subcontractsApi.agreements({
-        projectId: projectFilter || undefined,
-        search: search || undefined,
+        ...(projectFilter ? { projectId: projectFilter } : {}),
+        ...(search ? { search } : {}),
       }),
   });
   const projects = useQuery({
