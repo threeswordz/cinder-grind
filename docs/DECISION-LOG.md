@@ -253,3 +253,20 @@ In response to the request to review and explicitly approve or amend the V0.5 sc
 The approved authority is `docs/V0.5-SCOPE.md`, `docs/V0.5-ACCEPTANCE-CRITERIA.md` and `docs/V0.5-BUSINESS-RULES.md`. D05-01–11 are approved as written, including Company-owned Subcontractor identity, the numbering/lifecycle/ceiling/claim/certification/retention/Variation/reporting choices and the agreement currency with tax-exclusive amount basis. The approved data/API/test boundary, stages, 19–29 engineering-day planning estimate plus separate 1–2 business-day human acceptance window, and explicit deferrals are also accepted.
 
 No SUB-011, DOC-009, retention release, Finance payment/accounting, tax/FX or cost recognition is authorized. Committed Cost, Actual Cost and Paid Cost remain separate. DEC-008 remains in force. This decision authorizes V0.5-A pre-flight only after its entry-gate PR passes exact-head CI/review, merges, post-merge `main` CI passes and Issue #98 closes. Every stage retains its own completion gates, and V0.5 Release Exit requires separate human UAT and explicit Product / Business Owner acceptance.
+
+## DEC-015 — One-time V0.5-B Codex review waiver
+**Status:** APPROVED — Product / Business Owner, 2026-09-30 (Singapore time)
+
+The Product / Business Owner explicitly instructed: “proceed safely without codex review , do it” for V0.5-B PR #106 after the required Codex review bot could not execute because its code-review usage quota was exhausted.
+
+This approval is a **one-time stage-gate waiver for PR #106 only**. It does not remove or weaken the repository's normal review expectations for later stages or releases, does not waive exact-head CI, PR CI, post-merge `main` CI, issue closure, or any human UAT/business acceptance gate, and does not alter DEC-008 or the approved V0.5 scope/deferrals.
+
+The waiver is permitted only because:
+- exact-head branch CI #1732 passed on `faafa48c5b50a037de37185e011b0da5b7e9c46f`;
+- PR CI #1733 passed on the same head;
+- PR #106 is mergeable/clean;
+- there are no unresolved review threads or submitted review findings;
+- the missing review is caused by external Codex review quota, not by a known application defect.
+
+Before merge, this Decision Log entry and affected Stage-B status documentation must themselves pass exact-head CI/PR CI. PR #106 must still be squash-merged and post-merge `main` CI must pass before Issue #105 closes and V0.5-C begins.
+

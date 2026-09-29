@@ -60,6 +60,8 @@ model Company {
   stockTransactions   StockTransaction[]
   subcontractors       Subcontractor[]
   subcontractAgreements SubcontractAgreement[]
+  subcontractAgreementVersions SubcontractAgreementVersion[]
+  subcontractWorkOrders SubcontractWorkOrder[]
   @@map("companies")
 }
 
@@ -238,6 +240,11 @@ model User {
   cancelledPurchaseOrders    PurchaseOrder[] @relation("PurchaseOrderCanceller")
   createdGoodsReceipts       GoodsReceipt[] @relation("GoodsReceiptCreator")
   createdSubcontractAgreements SubcontractAgreement[] @relation("SubcontractAgreementCreator")
+  cancelledSubcontractAgreements SubcontractAgreement[] @relation("SubcontractAgreementCanceller")
+  createdAgreementVersions SubcontractAgreementVersion[] @relation("AgreementVersionCreator")
+  submittedAgreementVersions SubcontractAgreementVersion[] @relation("AgreementVersionSubmitter")
+  createdSubcontractWorkOrders SubcontractWorkOrder[] @relation("WorkOrderCreator")
+  submittedSubcontractWorkOrders SubcontractWorkOrder[] @relation("WorkOrderSubmitter")
   submittedGoodsReceipts     GoodsReceipt[] @relation("GoodsReceiptSubmitter")
   postedGoodsReceipts        GoodsReceipt[] @relation("GoodsReceiptPoster")
   reversedGoodsReceipts      GoodsReceipt[] @relation("GoodsReceiptReverser")
@@ -416,6 +423,8 @@ model ApprovalInstance {
   materialIssue    MaterialIssue?
   materialReturn   MaterialReturn?
   stockTransfer    StockTransfer?
+  subcontractAgreementVersion SubcontractAgreementVersion?
+  subcontractWorkOrder SubcontractWorkOrder?
   @@index([companyId, entityType, entityId])
   @@index([approvalWorkflowId, approvalState])
   @@map("approval_instances")
@@ -475,6 +484,7 @@ model StatusDefinition {
   projects   Project[]
   activities Activity[]
   subcontractAgreements SubcontractAgreement[]
+  subcontractAgreementVersions SubcontractAgreementVersion[]
 
   @@unique([companyId, entityType, statusCode])
   @@unique([companyId, id])
@@ -559,6 +569,8 @@ model Project {
   destinationStockTransferItems StockTransferItem[] @relation("StockTransferDestinationProject")
   stockTransactions     StockTransaction[]
   subcontractAgreements SubcontractAgreement[]
+  subcontractAgreementVersions SubcontractAgreementVersion[]
+  subcontractWorkOrders SubcontractWorkOrder[]
   @@unique([companyId, projectCode])
   @@unique([companyId, id])
   @@index([companyId, isActive])
@@ -633,6 +645,8 @@ model WbsElement {
   materialReservations           MaterialReservation[]
   materialIssueItems             MaterialIssueItem[]
   stockTransactions              StockTransaction[]
+  subcontractWorkOrders SubcontractWorkOrder[]
+  @@unique([projectId, id])
   @@unique([projectId, wbsCode])
   @@index([projectId, parentId, isActive])
   @@map("wbs_elements")
@@ -656,6 +670,8 @@ model CostCode {
   purchaseOrderLines             PurchaseOrderLine[]
   materialIssueItems             MaterialIssueItem[]
   stockTransactions              StockTransaction[]
+  subcontractWorkOrders SubcontractWorkOrder[]
+  @@unique([companyId, id])
   @@unique([companyId, costCode])
   @@index([companyId, isActive])
   @@map("cost_codes")
@@ -1157,6 +1173,10 @@ model SubcontractAgreement {
   currencyCode          String   @map("currency_code") @db.VarChar(3)
   approvalState         String   @default("DRAFT") @map("approval_state") @db.VarChar(30)
   operationalStatusId   String?  @map("operational_status_id") @db.Uuid
+  firstApprovedAt       DateTime? @map("first_approved_at") @db.Timestamptz(6)
+  cancelledAt           DateTime? @map("cancelled_at") @db.Timestamptz(6)
+  cancelledByUserId     String?  @map("cancelled_by_user_id") @db.Uuid
+  cancellationReason    String?  @map("cancellation_reason") @db.Text
   createKey             String?  @map("create_key") @db.VarChar(120)
   createPayloadHash     String?  @map("create_payload_hash") @db.VarChar(64)
   createdByUserId       String   @map("created_by_user_id") @db.Uuid
@@ -1168,13 +1188,87 @@ model SubcontractAgreement {
   subcontractor     Subcontractor     @relation(fields: [companyId, subcontractorId], references: [companyId, id], onDelete: Restrict)
   operationalStatus StatusDefinition? @relation(fields: [companyId, operationalStatusId], references: [companyId, id], onDelete: Restrict)
   createdBy         User              @relation("SubcontractAgreementCreator", fields: [companyId, createdByUserId], references: [companyId, id], onDelete: Restrict)
+  cancelledBy       User?             @relation("SubcontractAgreementCanceller", fields: [companyId, cancelledByUserId], references: [companyId, id], onDelete: Restrict)
+  versions          SubcontractAgreementVersion[]
+  workOrders        SubcontractWorkOrder[]
 
   @@unique([companyId, agreementNumber])
+  @@unique([companyId, id])
+  @@unique([companyId, projectId, id])
   @@unique([companyId, createdByUserId, createKey], map: "subcontract_agreements_creator_create_key_key")
   @@index([companyId, projectId, approvalState])
   @@index([companyId, subcontractorId])
   @@index([operationalStatusId])
   @@map("subcontract_agreements")
+}
+
+model SubcontractAgreementVersion {
+  id                   String   @id @default(uuid()) @db.Uuid
+  companyId            String   @map("company_id") @db.Uuid
+  projectId            String   @map("project_id") @db.Uuid
+  agreementId          String   @map("agreement_id") @db.Uuid
+  versionNo            Int      @map("version_no")
+  approvalState        String   @default("DRAFT") @map("approval_state") @db.VarChar(30)
+  originalValue        Decimal  @map("original_value") @db.Decimal(18, 2)
+  scopeOfWork          String   @map("scope_of_work") @db.Text
+  currencyCode         String   @map("currency_code") @db.VarChar(3)
+  operationalStatusId  String?  @map("operational_status_id") @db.Uuid
+  reason               String?  @db.Text
+  approvalInstanceId   String?  @unique @map("approval_instance_id") @db.Uuid
+  createdByUserId      String   @map("created_by_user_id") @db.Uuid
+  submittedByUserId    String?  @map("submitted_by_user_id") @db.Uuid
+  createdAt            DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  submittedAt          DateTime? @map("submitted_at") @db.Timestamptz(6)
+  decidedAt            DateTime? @map("decided_at") @db.Timestamptz(6)
+
+  company          Company           @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  project          Project           @relation(fields: [companyId, projectId], references: [companyId, id], onDelete: Restrict)
+  agreement        SubcontractAgreement @relation(fields: [companyId, projectId, agreementId], references: [companyId, projectId, id], onDelete: Restrict)
+  operationalStatus StatusDefinition? @relation(fields: [companyId, operationalStatusId], references: [companyId, id], onDelete: Restrict)
+  approvalInstance ApprovalInstance? @relation(fields: [approvalInstanceId], references: [id], onDelete: Restrict)
+  createdBy        User @relation("AgreementVersionCreator", fields: [companyId, createdByUserId], references: [companyId, id], onDelete: Restrict)
+  submittedBy      User? @relation("AgreementVersionSubmitter", fields: [companyId, submittedByUserId], references: [companyId, id], onDelete: Restrict)
+
+  @@unique([agreementId, versionNo])
+  @@index([companyId, projectId, agreementId])
+  @@map("subcontract_agreement_versions")
+}
+
+model SubcontractWorkOrder {
+  id                   String   @id @default(uuid()) @db.Uuid
+  companyId            String   @map("company_id") @db.Uuid
+  projectId            String   @map("project_id") @db.Uuid
+  agreementId          String   @map("agreement_id") @db.Uuid
+  sequenceNo           Int      @map("sequence_no")
+  workOrderNumber      String   @map("work_order_number") @db.VarChar(30)
+  scopeOfWork          String   @map("scope_of_work") @db.Text
+  amount               Decimal  @db.Decimal(18, 2)
+  wbsElementId         String?  @map("wbs_element_id") @db.Uuid
+  costCodeId           String?  @map("cost_code_id") @db.Uuid
+  approvalState        String   @default("DRAFT") @map("approval_state") @db.VarChar(30)
+  approvalInstanceId   String?  @unique @map("approval_instance_id") @db.Uuid
+  createdByUserId      String   @map("created_by_user_id") @db.Uuid
+  submittedByUserId    String?  @map("submitted_by_user_id") @db.Uuid
+  createdAt            DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  submittedAt          DateTime? @map("submitted_at") @db.Timestamptz(6)
+  decidedAt            DateTime? @map("decided_at") @db.Timestamptz(6)
+
+  company          Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  project          Project @relation(fields: [companyId, projectId], references: [companyId, id], onDelete: Restrict)
+  agreement        SubcontractAgreement @relation(fields: [companyId, projectId, agreementId], references: [companyId, projectId, id], onDelete: Restrict)
+  wbsElement       WbsElement? @relation(fields: [projectId, wbsElementId], references: [projectId, id], onDelete: Restrict)
+  costCode         CostCode? @relation(fields: [companyId, costCodeId], references: [companyId, id], onDelete: Restrict)
+  approvalInstance ApprovalInstance? @relation(fields: [approvalInstanceId], references: [id], onDelete: Restrict)
+  createdBy        User @relation("WorkOrderCreator", fields: [companyId, createdByUserId], references: [companyId, id], onDelete: Restrict)
+  submittedBy      User? @relation("WorkOrderSubmitter", fields: [companyId, submittedByUserId], references: [companyId, id], onDelete: Restrict)
+
+  @@unique([agreementId, sequenceNo])
+  @@unique([agreementId, workOrderNumber])
+  @@index([companyId, projectId, agreementId, approvalState])
+  @@index([wbsElementId])
+  @@index([costCodeId])
+  @@map("subcontract_work_orders")
 }
 
 model Warehouse {
@@ -2139,3 +2233,20 @@ model PurchaseOrderLine {
   @@map("purchase_order_lines")
 }
 
+
+
+model SubcontractActionReplay {
+  id          String   @id @default(uuid()) @db.Uuid
+  companyId   String   @map("company_id") @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  actionKey   String   @map("action_key") @db.VarChar(120)
+  actionType  String   @map("action_type") @db.VarChar(60)
+  entityType  String   @map("entity_type") @db.VarChar(60)
+  entityId    String   @map("entity_id") @db.Uuid
+  payloadHash String   @map("payload_hash") @db.VarChar(64)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([companyId, userId, actionKey], map: "subcontract_action_replays_actor_key")
+  @@index([companyId, entityType, entityId])
+  @@map("subcontract_action_replays")
+}

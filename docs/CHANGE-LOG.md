@@ -1,3 +1,10 @@
+## 2026-09-29 — V0.5-A completed; V0.5-B pre-flight started
+
+- Stage A PR #104 squash-merged as `af1a3f4953af524110dc4305a061099f4fa80388`; final push CI #1696, PR CI #1697, clean exact-head review and post-merge main CI #1698 passed; Issue #103 closed.
+- Opened Issue #105 and branch `v0.5-b-agreement-work-orders` from that exact green checkpoint.
+- Added `docs/V0.5-B-PREFLIGHT.md` for configured agreement approval, retained non-commercial administrative revisions, agreement cancellation guards and agreement-local Work Orders with maker-checker and atomic allocation ceilings.
+- No new dependency or paid service is introduced. Claims, certification/retention, Variations/reporting, Finance/payment, retention release, tax/FX, accounting and cost recognition remain deferred; Committed, Actual and Paid Cost remain separate.
+
 ## 2026-09-29 — V0.5-A Subcontractor Register / Agreement Foundation under validation
 
 - Entry-gate PR #102 merged as `5b67832079ef6ded86bc79f997d8115835d0c55e`; post-merge main CI #1611 passed and Issue #98 closed before Stage A began.
@@ -163,3 +170,20 @@
 - V0.3 Procurement may proceed to its release entry gate; implementation remains gated by approved V0.3 scope and acceptance criteria.
 
 
+
+
+## 2026-09-29 — V0.5-B Agreements / Work Orders under validation
+
+- Started only after V0.5-A merged green at `af1a3f4953af524110dc4305a061099f4fa80388`; Stage B pre-flight `2da316612bba1fbaee449e72a068a6781c56bee7` passed CI #1700.
+- Added agreement version persistence, configured approval/rejection, maker-checker, administrative operational-status revisions, guarded cancellation, agreement-local Work Orders, allocation-ceiling serialization, replay evidence, explicit permissions, Project authorization, API/web lifecycle controls and Stage B PostgreSQL/live HTTP acceptance coverage.
+- Preserved migration history by moving replay evidence to a later forward-only migration rather than rewriting the already-executed Stage B migration.
+- Corrected the V0.5-A permission regression to assert the six Stage A permission codes explicitly instead of assuming no later Subcontracts permissions exist.
+- Validation hardening through `887621f1755260ba095c20f97483934c45c5f68d` adds two-step workflow coverage, final-approval replay/change-payload checks, concurrent Work Order numbering, concurrent administrative revision creation, cancellation-versus-Work-Order submission/final-approval scenarios and explicit Stage-B route permission-metadata regression.
+- Regression coverage now also proves Stage-A creation fingerprint retention, hard-delete denial for Agreement Versions/Work Orders, cross-Project WBS and cross-Company Cost Code rejection at service/database boundaries, retained rejected Work Order decision history, and replay visibility enforcement.
+- A sequence-allocation concurrency defect found during review was corrected: administrative revision and Work Order creation use `READ COMMITTED` after the deterministic agreement row lock, preventing a waiting transaction from allocating against a stale `SERIALIZABLE` snapshot. Final approval/cancellation transaction behavior remains unchanged.
+- UI workflow action keys are retained across failed/manual retries and cleared only after confirmed success, preserving the Stage-B retry/idempotency contract across lost responses and multi-step approvals.
+- GitHub-hosted runner allocation recovered after the repository rename. Rerun #1730 executed and revealed two older V0.3 PostgreSQL integration suites colliding under parallel Node test-file execution; V0.5-B itself passed.
+- The API test command now uses `node --test --test-concurrency=1` so shared-database integration suites execute deterministically without cross-file serializable transaction deadlocks. No production isolation or runtime behavior was weakened.
+- Exact-head branch CI #1732 and PR CI #1733 passed on `faafa48c5b50a037de37185e011b0da5b7e9c46f`, including migrations/status, Prisma validation, dependency audit, full workspace validation, UAT bootstrap and live HTTP acceptance. PR #106 is mergeable/clean with no unresolved review threads.
+- The Codex review bot could not execute because the account's code-review quota was exhausted. The Product / Business Owner explicitly approved a one-time waiver for PR #106 only; DEC-015 records the change-control exception. Future review expectations, exact-head/PR/post-merge CI, issue closure, human UAT and all other governance remain unchanged.
+- DEC-008 and all approved V0.5 deferrals remain unchanged.
