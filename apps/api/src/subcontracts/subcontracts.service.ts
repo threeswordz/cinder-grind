@@ -335,6 +335,7 @@ export class SubcontractsService {
       if (existing) {
         await this.access.assertAccess(context.auth, existing.projectId);
         this.assertAgreementReplayView(context.auth);
+        this.assertAgreementReplayPayload(existing, input);
         return existing;
       }
     }
@@ -401,6 +402,7 @@ export class SubcontractsService {
         if (existing) {
           await this.access.assertAccess(context.auth, existing.projectId);
           this.assertAgreementReplayView(context.auth);
+          this.assertAgreementReplayPayload(existing, input);
           return existing;
         }
       }
@@ -706,6 +708,33 @@ export class SubcontractsService {
         select: { id: true, displayName: true },
       },
     } satisfies Prisma.SubcontractAgreementInclude;
+  }
+
+  private assertAgreementReplayPayload(
+    existing: {
+      projectId: string;
+      subcontractorId: string;
+      originalValue: Prisma.Decimal;
+      scopeOfWork: string;
+      currencyCode: string;
+      operationalStatusId: string | null;
+    },
+    input: AgreementDraftInput,
+  ): void {
+    const samePayload =
+      existing.projectId === input.projectId &&
+      existing.subcontractorId === input.subcontractorId &&
+      existing.originalValue.equals(new Prisma.Decimal(input.originalValue)) &&
+      existing.scopeOfWork === input.scopeOfWork &&
+      existing.currencyCode === input.currencyCode &&
+      existing.operationalStatusId === (input.operationalStatusId ?? null);
+    if (!samePayload) {
+      throw new ConflictException({
+        code: 'IDEMPOTENCY_KEY_REUSED',
+        detail:
+          'The create key is already bound to a different agreement payload.',
+      });
+    }
   }
 
   private assertAgreementReplayView(auth: AuthenticatedUserContext): void {

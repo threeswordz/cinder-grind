@@ -293,6 +293,23 @@ test('V0.5-A enforces Subcontractor Company scope and agreement Project scope', 
     );
     assert.equal(retry.id, created.id);
 
+    await assert.rejects(
+      () =>
+        service.createAgreement(
+          { auth: scoped },
+          {
+            projectId: project.id,
+            subcontractorId: subcontractor.id,
+            originalValue: '26000.00',
+            scopeOfWork: 'Changed payload must conflict',
+            currencyCode: 'SGD',
+            operationalStatusId: status.id,
+            createKey: 'stage-a-' + suffix,
+          },
+        ),
+      (error: unknown) => error instanceof ConflictException,
+    );
+
     const createOnly = {
       ...scoped,
       permissions: ['subcontracts.agreement.create'],
