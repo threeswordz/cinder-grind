@@ -2233,3 +2233,20 @@ model PurchaseOrderLine {
   @@map("purchase_order_lines")
 }
 
+
+
+model SubcontractActionReplay {
+  id          String   @id @default(uuid()) @db.Uuid
+  companyId   String   @map("company_id") @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  actionKey   String   @map("action_key") @db.VarChar(120)
+  actionType  String   @map("action_type") @db.VarChar(60)
+  entityType  String   @map("entity_type") @db.VarChar(60)
+  entityId    String   @map("entity_id") @db.Uuid
+  payloadHash String   @map("payload_hash") @db.VarChar(64)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([companyId, userId, actionKey], map: "subcontract_action_replays_actor_key")
+  @@index([companyId, entityType, entityId])
+  @@map("subcontract_action_replays")
+}

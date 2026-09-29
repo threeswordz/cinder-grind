@@ -523,6 +523,21 @@ export class IdentityAdminService {
         actions: [
           'subcontracts.agreement.create',
           'subcontracts.agreement.edit',
+          'subcontracts.agreement.submit',
+          'subcontracts.agreement.approve',
+          'subcontracts.agreement.reject',
+          'subcontracts.agreement.revise',
+          'subcontracts.agreement.cancel',
+        ],
+      },
+      {
+        view: 'subcontracts.work_order.view',
+        actions: [
+          'subcontracts.work_order.create',
+          'subcontracts.work_order.edit',
+          'subcontracts.work_order.submit',
+          'subcontracts.work_order.approve',
+          'subcontracts.work_order.reject',
         ],
       },
     ];

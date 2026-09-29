@@ -88,68 +88,72 @@ export class ApprovalService {
     makerUserId: string,
     comment?: string,
     onFinalApproval?: (tx: Prisma.TransactionClient) => Promise<void>,
+    existingTx?: Prisma.TransactionClient,
   ) {
     this.assertMakerChecker(makerUserId, auth.userId);
 
-    return this.prisma.$transaction(
-      async (tx) => {
-        const context = await this.loadActionContext(
-          tx,
-          instanceId,
-          auth.companyId,
-        );
-        this.assertSubmitted(context.instance.approvalState);
-        this.assertStepRole(context.currentStep, auth);
-        await this.assertNoPriorAction(
-          tx,
-          instanceId,
-          context.currentStep.id,
-          auth.userId,
-        );
+    const approveIn = async (tx: Prisma.TransactionClient) => {
+      const context = await this.loadActionContext(
+        tx,
+        instanceId,
+        auth.companyId,
+      );
+      this.assertSubmitted(context.instance.approvalState);
+      this.assertStepRole(context.currentStep, auth);
+      await this.assertNoPriorAction(
+        tx,
+        instanceId,
+        context.currentStep.id,
+        auth.userId,
+      );
 
-        await tx.approvalAction.create({
-          data: {
-            approvalInstanceId: instanceId,
-            approvalStepId: context.currentStep.id,
-            action: 'APPROVE',
-            actionByUserId: auth.userId,
-            ...(comment ? { comment } : {}),
-          },
-        });
+      await tx.approvalAction.create({
+        data: {
+          approvalInstanceId: instanceId,
+          approvalStepId: context.currentStep.id,
+          action: 'APPROVE',
+          actionByUserId: auth.userId,
+          ...(comment ? { comment } : {}),
+        },
+      });
 
-        const approvalCount = await tx.approvalAction.count({
-          where: {
-            approvalInstanceId: instanceId,
-            approvalStepId: context.currentStep.id,
-            action: 'APPROVE',
-          },
-        });
+      const approvalCount = await tx.approvalAction.count({
+        where: {
+          approvalInstanceId: instanceId,
+          approvalStepId: context.currentStep.id,
+          action: 'APPROVE',
+        },
+      });
 
-        if (approvalCount < context.currentStep.requiredApprovals) {
-          return context.instance;
-        }
+      if (approvalCount < context.currentStep.requiredApprovals) {
+        return context.instance;
+      }
 
-        const nextStep = context.steps.find(
-          (step) => step.stepNo > context.currentStep.stepNo,
-        );
+      const nextStep = context.steps.find(
+        (step) => step.stepNo > context.currentStep.stepNo,
+      );
 
-        if (nextStep) {
-          return tx.approvalInstance.update({
-            where: { id: instanceId },
-            data: { currentStepNo: nextStep.stepNo },
-          });
-        }
-
-        const approved = await tx.approvalInstance.update({
+      if (nextStep) {
+        return tx.approvalInstance.update({
           where: { id: instanceId },
-          data: {
-            approvalState: APPROVAL_STATE.APPROVED,
-            completedAt: new Date(),
-          },
+          data: { currentStepNo: nextStep.stepNo },
         });
-        if (onFinalApproval) await onFinalApproval(tx);
-        return approved;
-      },
+      }
+
+      const approved = await tx.approvalInstance.update({
+        where: { id: instanceId },
+        data: {
+          approvalState: APPROVAL_STATE.APPROVED,
+          completedAt: new Date(),
+        },
+      });
+      if (onFinalApproval) await onFinalApproval(tx);
+      return approved;
+    };
+
+    if (existingTx) return approveIn(existingTx);
+    return this.prisma.$transaction(
+      approveIn,
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
     );
   }
