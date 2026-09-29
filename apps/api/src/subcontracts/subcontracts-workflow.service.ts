@@ -1363,42 +1363,62 @@ export class SubcontractsWorkflowService {
       .update(JSON.stringify(payload))
       .digest('hex');
 
-    const existing = await tx.subcontractActionReplay.findUnique({
-      where: {
-        companyId_userId_actionKey: {
-          companyId: auth.companyId,
-          userId: auth.userId,
-          actionKey,
-        },
-      },
-    });
-    if (existing) {
-      if (
-        existing.actionType !== actionType ||
-        existing.entityType !== entityType ||
-        existing.entityId !== entityId ||
-        existing.payloadHash !== payloadHash
-      ) {
-        throw new ConflictException({
-          code: 'IDEMPOTENCY_KEY_REUSED',
-          detail: 'This action key is already paired with a different Subcontracts action, record, or payload.',
-        });
-      }
-      return true;
-    }
-
-    await tx.subcontractActionReplay.create({
-      data: {
+    const key = {
+      companyId_userId_actionKey: {
         companyId: auth.companyId,
         userId: auth.userId,
         actionKey,
-        actionType,
-        entityType,
-        entityId,
-        payloadHash,
       },
+    } as const;
+
+    const matches = (existing: {
+      actionType: string;
+      entityType: string;
+      entityId: string;
+      payloadHash: string;
+    }) =>
+      existing.actionType === actionType &&
+      existing.entityType === entityType &&
+      existing.entityId === entityId &&
+      existing.payloadHash === payloadHash;
+
+    const existing = await tx.subcontractActionReplay.findUnique({
+      where: key,
     });
-    return false;
+    if (existing) {
+      if (!matches(existing)) this.throwReplayConflict();
+      return true;
+    }
+
+    const inserted = await tx.subcontractActionReplay.createMany({
+      data: [
+        {
+          companyId: auth.companyId,
+          userId: auth.userId,
+          actionKey,
+          actionType,
+          entityType,
+          entityId,
+          payloadHash,
+        },
+      ],
+      skipDuplicates: true,
+    });
+    if (inserted.count === 1) return false;
+
+    const raced = await tx.subcontractActionReplay.findUnique({
+      where: key,
+    });
+    if (!raced || !matches(raced)) this.throwReplayConflict();
+    return true;
+  }
+
+  private throwReplayConflict(): never {
+    throw new ConflictException({
+      code: 'IDEMPOTENCY_KEY_REUSED',
+      detail:
+        'This action key is already paired with a different Subcontracts action, record, or payload.',
+    });
   }
 
   private async visibleAgreement(
