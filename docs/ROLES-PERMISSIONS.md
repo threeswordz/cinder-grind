@@ -1019,3 +1019,16 @@ This permission exposes business Inventory quantities and is not granted implici
 | `inventory.return.reverse` | Reverse a posted Return subject to available-stock protection |
 
 The Stage-D permission migration intentionally does not grant these business permissions to technical `SYS_ADMIN`. Every backend route still enforces Company and effective Project scope in addition to the explicit permission. Approval Matrix Role checks and maker-checker remain mandatory for Issue/Return final posting. UI tab visibility is convenience only and never substitutes for backend authorization.
+
+## V0.5-A Subcontracts permissions
+
+| Permission | Authority |
+| --- | --- |
+| `subcontracts.subcontractor.view` | View the Company register without requiring Project membership |
+| `subcontracts.subcontractor.manage` | Create and edit Company register entries and optional same-Company Supplier link |
+| `subcontracts.subcontractor.archive` | Archive/reactivate selection eligibility while retaining history |
+| `subcontracts.agreement.view` | View agreements and selectors within effective Project scope |
+| `subcontracts.agreement.create` | Create a Project-scoped agreement Draft |
+| `subcontracts.agreement.edit` | Edit a Project-scoped agreement while its system state is Draft |
+
+The Stage-A migration and fresh bootstrap give technical `SYS_ADMIN` these foundation/configuration actions so a clean environment is operable. No agreement approval, Work Order, claim, assessment, certification, retention, Variation or Finance authority exists in Stage A. Later business actions remain separate permissions and Approval Matrix Role checks; technical administration never becomes implicit business approval authority. `projects.access_all` bypasses Project assignment only.
