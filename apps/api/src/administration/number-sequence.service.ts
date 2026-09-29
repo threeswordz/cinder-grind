@@ -11,6 +11,16 @@ import { PrismaService } from '../prisma/prisma.service';
 export const SEQUENCE_RESET_RULES = ['NONE', 'YEARLY', 'MONTHLY'] as const;
 export type SequenceResetRule = (typeof SEQUENCE_RESET_RULES)[number];
 
+const RESERVED_SEQUENCE_POLICIES: Record<
+  string,
+  { formatTemplate: string; resetRule: SequenceResetRule }
+> = {
+  SUBCONTRACT_AGREEMENT: {
+    formatTemplate: 'SCYYMM-###',
+    resetRule: 'MONTHLY',
+  },
+};
+
 type LockedSequence = {
   id: string;
   format_template: string;
@@ -119,6 +129,18 @@ export class NumberSequenceService {
         }
 
         const resetRule = normalizeResetRule(sequence.reset_rule);
+        const reservedPolicy = RESERVED_SEQUENCE_POLICIES[sequenceCode];
+        if (
+          reservedPolicy &&
+          (sequence.format_template !== reservedPolicy.formatTemplate ||
+            resetRule !== reservedPolicy.resetRule)
+        ) {
+          throw new ConflictException({
+            code: 'NUMBER_SEQUENCE_POLICY_MISMATCH',
+            detail:
+              'This reserved number sequence does not match its approved format and reset policy.',
+          });
+        }
         const currentPeriod = periodKey(resetRule, at);
         const shouldReset =
           currentPeriod !== null &&
@@ -146,7 +168,18 @@ export class NumberSequenceService {
     );
   }
 
-  assertEditable(nextValue: number, lastPeriodKey: string | null): void {
+  assertEditable(
+    nextValue: number,
+    lastPeriodKey: string | null,
+    sequenceCode?: string,
+  ): void {
+    if (sequenceCode && RESERVED_SEQUENCE_POLICIES[sequenceCode]) {
+      throw new ConflictException({
+        code: 'NUMBER_SEQUENCE_RESERVED',
+        detail:
+          'This number sequence is reserved by an approved business numbering policy and cannot be edited.',
+      });
+    }
     if (nextValue > 1 || lastPeriodKey !== null) {
       throw new ConflictException({
         code: 'NUMBER_SEQUENCE_ALREADY_USED',

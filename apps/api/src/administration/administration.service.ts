@@ -242,6 +242,7 @@ export class AdministrationService {
       this.numberSequences.assertEditable(
         before.nextValue,
         before.lastPeriodKey,
+        before.sequenceCode,
       );
 
       const after = await tx.numberSequence.update({

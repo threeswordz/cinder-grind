@@ -3,10 +3,12 @@ import { randomUUID } from 'node:crypto';
 import test from 'node:test';
 
 import {
+  ConflictException,
   ForbiddenException,
   UnprocessableEntityException,
 } from '@nestjs/common';
 
+import { AdministrationService } from '../administration/administration.service';
 import { NumberSequenceService } from '../administration/number-sequence.service';
 import { AuditService } from '../audit/audit.service';
 import { AuthenticatedUserContext } from '../auth/auth.types';
@@ -251,6 +253,29 @@ test('V0.5-A enforces Subcontractor Company scope and agreement Project scope', 
     assert.match(created.agreementNumber, /^SC\d{4}-\d{3}$/);
     assert.equal(created.approvalState, 'DRAFT');
     assert.equal(created.projectId, project.id);
+
+    const reservedSequence = await prisma.numberSequence.findUniqueOrThrow({
+      where: {
+        companyId_sequenceCode: {
+          companyId: company.id,
+          sequenceCode: 'SUBCONTRACT_AGREEMENT',
+        },
+      },
+    });
+    const administration = new AdministrationService(
+      prisma,
+      new AuditService(prisma),
+      new NumberSequenceService(prisma),
+    );
+    await assert.rejects(
+      () =>
+        administration.updateNumberSequence(
+          { auth: scoped },
+          reservedSequence.id,
+          { formatTemplate: 'BAD-###', resetRule: 'NONE' },
+        ),
+      (error: unknown) => error instanceof ConflictException,
+    );
 
     const retry = await service.createAgreement(
       { auth: scoped },

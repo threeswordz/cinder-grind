@@ -30,6 +30,10 @@ test('sequence configuration becomes immutable after use', () => {
 
   assert.doesNotThrow(() => service.assertEditable(1, null));
   assert.throws(
+    () => service.assertEditable(1, null, 'SUBCONTRACT_AGREEMENT'),
+    (error: unknown) => error instanceof ConflictException,
+  );
+  assert.throws(
     () => service.assertEditable(2, null),
     (error: unknown) => error instanceof ConflictException,
   );
