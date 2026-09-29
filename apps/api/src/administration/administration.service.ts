@@ -190,6 +190,7 @@ export class AdministrationService {
       startingValue: number;
     },
   ) {
+    this.numberSequences.assertCreatable(data.sequenceCode);
     try {
       return await this.prisma.$transaction(async (tx) => {
         const created = await tx.numberSequence.create({

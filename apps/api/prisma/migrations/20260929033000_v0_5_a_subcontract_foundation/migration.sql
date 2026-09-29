@@ -114,6 +114,24 @@ CREATE TRIGGER subcontract_agreements_identity_guard
 BEFORE UPDATE OR DELETE ON "subcontract_agreements"
 FOR EACH ROW EXECUTE FUNCTION protect_v05a_identity_and_history();
 
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM "number_sequences"
+    WHERE "sequence_code" = 'SUBCONTRACT_AGREEMENT'
+      AND (
+        "entity_type" <> 'SUBCONTRACT_AGREEMENT'
+        OR "format_template" <> 'SCYYMM-###'
+        OR "reset_rule" <> 'MONTHLY'
+      )
+  ) THEN
+    RAISE EXCEPTION
+      'V0.5-A migration blocked: an existing SUBCONTRACT_AGREEMENT number sequence conflicts with the approved SCYYMM-### / MONTHLY policy. Rename the conflicting generic sequence before retrying the migration.';
+  END IF;
+END;
+$$;
+
 INSERT INTO "number_sequences"
   ("id","company_id","entity_type","sequence_code","format_template","reset_rule","next_value")
 SELECT gen_random_uuid(), c."id", 'SUBCONTRACT_AGREEMENT', 'SUBCONTRACT_AGREEMENT', 'SCYYMM-###', 'MONTHLY', 1

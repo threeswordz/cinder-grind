@@ -168,6 +168,16 @@ export class NumberSequenceService {
     );
   }
 
+  assertCreatable(sequenceCode: string): void {
+    if (RESERVED_SEQUENCE_POLICIES[sequenceCode]) {
+      throw new ConflictException({
+        code: 'NUMBER_SEQUENCE_RESERVED',
+        detail:
+          'This number-sequence code is reserved by an approved business numbering policy and cannot be created through generic administration.',
+      });
+    }
+  }
+
   assertEditable(
     nextValue: number,
     lastPeriodKey: string | null,
