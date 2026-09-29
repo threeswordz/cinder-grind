@@ -23,7 +23,6 @@ import {
   optionalSubcontractUuid,
   requiredSubcontractString,
   subcontractInvalid,
-  subcontractInvalid,
   subcontractObject,
   subcontractPositiveAmount,
 } from './subcontract-validation';
