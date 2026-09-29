@@ -311,6 +311,17 @@ const permissionCodes = [
   'subcontracts.agreement.view',
   'subcontracts.agreement.create',
   'subcontracts.agreement.edit',
+  'subcontracts.agreement.submit',
+  'subcontracts.agreement.approve',
+  'subcontracts.agreement.reject',
+  'subcontracts.agreement.revise',
+  'subcontracts.agreement.cancel',
+  'subcontracts.work_order.view',
+  'subcontracts.work_order.create',
+  'subcontracts.work_order.edit',
+  'subcontracts.work_order.submit',
+  'subcontracts.work_order.approve',
+  'subcontracts.work_order.reject',
 ];
 await request(admin, `/admin/roles/${roleId}/permissions`, {
   method: 'PUT',
@@ -350,6 +361,12 @@ await request(admin, `/admin/roles/${checkerRoleId}/permissions`, {
       'inventory.return.approve',
       'inventory.transfer.view',
       'inventory.transfer.approve',
+      'subcontracts.agreement.view',
+      'subcontracts.agreement.approve',
+      'subcontracts.agreement.reject',
+      'subcontracts.work_order.view',
+      'subcontracts.work_order.approve',
+      'subcontracts.work_order.reject',
     ],
   },
 });
@@ -590,6 +607,39 @@ await request(admin, '/admin/number-sequences', {
     formatTemplate: 'STYYMM-###',
     resetRule: 'MONTHLY',
     startingValue: 1,
+  },
+  expected: 201,
+});
+
+const subcontractAgreementWorkflowCode = 'SUBCONTRACT_AGREEMENT_' + suffix;
+await request(admin, '/admin/approval-workflows', {
+  method: 'POST',
+  json: {
+    workflowCode: subcontractAgreementWorkflowCode,
+    entityType: 'SUBCONTRACT_AGREEMENT',
+    workflowName: 'Subcontract Agreement Approval ' + suffix,
+    steps: [{
+      stepNo: 1,
+      stepName: 'Approve Subcontract Agreement',
+      requiredApprovals: 1,
+      roleIds: [checkerRoleId],
+    }],
+  },
+  expected: 201,
+});
+const subcontractWorkOrderWorkflowCode = 'SUBCONTRACT_WORK_ORDER_' + suffix;
+await request(admin, '/admin/approval-workflows', {
+  method: 'POST',
+  json: {
+    workflowCode: subcontractWorkOrderWorkflowCode,
+    entityType: 'SUBCONTRACT_WORK_ORDER',
+    workflowName: 'Subcontract Work Order Approval ' + suffix,
+    steps: [{
+      stepNo: 1,
+      stepName: 'Approve Subcontract Work Order',
+      requiredApprovals: 1,
+      roleIds: [checkerRoleId],
+    }],
   },
   expected: 201,
 });
@@ -3264,6 +3314,344 @@ check(
     'Groundworks package revised Draft ' + suffix,
   'Agreement Draft edit did not retain the revised Scope of Work.',
 );
+const submittedAgreement = await request(
+  pm,
+  '/subcontracts/agreements/' + agreementId + '/submit',
+  {
+    method: 'POST',
+    json: {
+      workflowCode: subcontractAgreementWorkflowCode,
+      actionKey: 'uat-v05b-agreement-submit-' + suffix,
+    },
+    expected: 201,
+  },
+);
+check(
+  submittedAgreement.data.data.approvalState === 'SUBMITTED',
+  'V0.5-B Agreement did not enter configured approval.',
+);
+await request(pm, '/subcontracts/agreements/' + agreementId + '/approve', {
+  method: 'POST',
+  json: {
+    actionKey: 'uat-v05b-agreement-maker-approve-' + suffix,
+    comment: 'Maker must not self-approve.',
+  },
+  expected: 403,
+});
+const approvedAgreement = await request(
+  checker,
+  '/subcontracts/agreements/' + agreementId + '/approve',
+  {
+    method: 'POST',
+    json: {
+      actionKey: 'uat-v05b-agreement-approve-' + suffix,
+      comment: 'Configured checker approval.',
+    },
+    expected: 201,
+  },
+);
+check(
+  approvedAgreement.data.data.approvalState === 'APPROVED' &&
+    approvedAgreement.data.data.firstApprovedAt,
+  'V0.5-B Agreement approval did not retain the first-approved checkpoint.',
+);
+const replayedAgreementSubmit = await request(
+  pm,
+  '/subcontracts/agreements/' + agreementId + '/submit',
+  {
+    method: 'POST',
+    json: {
+      workflowCode: subcontractAgreementWorkflowCode,
+      actionKey: 'uat-v05b-agreement-submit-' + suffix,
+    },
+    expected: 201,
+  },
+);
+check(
+  replayedAgreementSubmit.data.data.id === agreementId &&
+    replayedAgreementSubmit.data.data.approvalState === 'APPROVED',
+  'V0.5-B stable submit retry did not return the same visible Agreement.',
+);
+await request(pm, '/subcontracts/agreements/' + agreementId, {
+  method: 'PATCH',
+  json: { originalValue: '125001.00' },
+  expected: 409,
+});
+
+const mobilizedStatus = await request(admin, '/admin/statuses', {
+  method: 'POST',
+  json: {
+    entityType: 'SUBCONTRACT_AGREEMENT',
+    statusCode: 'MOBILIZED-' + suffix,
+    statusLabel: 'Mobilized Subcontract ' + suffix,
+    sortOrder: 20,
+  },
+  expected: 201,
+});
+const agreementRevision = await request(
+  pm,
+  '/subcontracts/agreements/' + agreementId + '/revisions',
+  {
+    method: 'POST',
+    json: {
+      operationalStatusId: mobilizedStatus.data.data.id,
+      reason: 'Mobilization status update ' + suffix,
+    },
+    expected: 201,
+  },
+);
+check(
+  agreementRevision.data.data.versionNo === 2 &&
+    String(agreementRevision.data.data.originalValue) === '125000',
+  'V0.5-B administrative revision did not retain the approved commercial snapshot.',
+);
+await request(
+  pm,
+  '/subcontracts/agreement-versions/' + agreementRevision.data.data.id + '/submit',
+  {
+    method: 'POST',
+    json: {
+      workflowCode: subcontractAgreementWorkflowCode,
+      actionKey: 'uat-v05b-revision-submit-' + suffix,
+    },
+    expected: 201,
+  },
+);
+await request(
+  pm,
+  '/subcontracts/agreement-versions/' + agreementRevision.data.data.id + '/approve',
+  {
+    method: 'POST',
+    json: {
+      actionKey: 'uat-v05b-revision-maker-approve-' + suffix,
+    },
+    expected: 403,
+  },
+);
+const approvedAgreementRevision = await request(
+  checker,
+  '/subcontracts/agreement-versions/' + agreementRevision.data.data.id + '/approve',
+  {
+    method: 'POST',
+    json: {
+      actionKey: 'uat-v05b-revision-approve-' + suffix,
+    },
+    expected: 201,
+  },
+);
+check(
+  approvedAgreementRevision.data.data.approvalState === 'APPROVED',
+  'V0.5-B administrative revision was not approved.',
+);
+const afterAdministrativeRevision = await request(
+  pm,
+  '/subcontracts/agreements/' + agreementId,
+);
+check(
+  afterAdministrativeRevision.data.data.operationalStatusId ===
+    mobilizedStatus.data.data.id &&
+    String(afterAdministrativeRevision.data.data.originalValue) === '125000' &&
+    afterAdministrativeRevision.data.data.scopeOfWork ===
+      'Groundworks package revised Draft ' + suffix,
+  'V0.5-B administrative revision changed commercial history or failed to update status.',
+);
+
+const workOrderOne = await request(
+  pm,
+  '/subcontracts/agreements/' + agreementId + '/work-orders',
+  {
+    method: 'POST',
+    json: {
+      scopeOfWork: 'Groundworks allocation one ' + suffix,
+      amount: '75000.00',
+      wbsElementId: rootWbs.data.data.id,
+      costCodeId: costCode.data.data.id,
+    },
+    expected: 201,
+  },
+);
+check(
+  /^WO-\d{3}$/.test(workOrderOne.data.data.workOrderNumber) &&
+    workOrderOne.data.data.approvalState === 'DRAFT',
+  'V0.5-B Work Order did not retain agreement-local WO-### identity.',
+);
+await request(
+  pm,
+  '/subcontracts/work-orders/' + workOrderOne.data.data.id + '/submit',
+  {
+    method: 'POST',
+    json: {
+      workflowCode: subcontractWorkOrderWorkflowCode,
+      actionKey: 'uat-v05b-wo1-submit-' + suffix,
+    },
+    expected: 201,
+  },
+);
+await request(
+  pm,
+  '/subcontracts/work-orders/' + workOrderOne.data.data.id + '/approve',
+  {
+    method: 'POST',
+    json: {
+      actionKey: 'uat-v05b-wo1-maker-approve-' + suffix,
+    },
+    expected: 403,
+  },
+);
+const approvedWorkOrderOne = await request(
+  checker,
+  '/subcontracts/work-orders/' + workOrderOne.data.data.id + '/approve',
+  {
+    method: 'POST',
+    json: {
+      actionKey: 'uat-v05b-wo1-approve-' + suffix,
+    },
+    expected: 201,
+  },
+);
+check(
+  approvedWorkOrderOne.data.data.approvalState === 'APPROVED',
+  'V0.5-B configured checker could not approve a Work Order.',
+);
+
+const workOrderTwo = await request(
+  pm,
+  '/subcontracts/agreements/' + agreementId + '/work-orders',
+  {
+    method: 'POST',
+    json: {
+      scopeOfWork: 'Groundworks over-allocation probe ' + suffix,
+      amount: '60000.00',
+    },
+    expected: 201,
+  },
+);
+await request(
+  pm,
+  '/subcontracts/work-orders/' + workOrderTwo.data.data.id + '/submit',
+  {
+    method: 'POST',
+    json: {
+      workflowCode: subcontractWorkOrderWorkflowCode,
+      actionKey: 'uat-v05b-wo2-submit-' + suffix,
+    },
+    expected: 201,
+  },
+);
+await request(
+  checker,
+  '/subcontracts/work-orders/' + workOrderTwo.data.data.id + '/approve',
+  {
+    method: 'POST',
+    json: {
+      actionKey: 'uat-v05b-wo2-over-ceiling-' + suffix,
+    },
+    expected: 409,
+  },
+);
+const rejectedWorkOrderTwo = await request(
+  checker,
+  '/subcontracts/work-orders/' + workOrderTwo.data.data.id + '/reject',
+  {
+    method: 'POST',
+    json: {
+      actionKey: 'uat-v05b-wo2-reject-' + suffix,
+      comment: 'Rejected after the ceiling guard proof.',
+    },
+    expected: 201,
+  },
+);
+check(
+  rejectedWorkOrderTwo.data.data.approvalState === 'REJECTED',
+  'V0.5-B over-ceiling Work Order did not remain available for a retained rejection.',
+);
+await request(
+  pm,
+  '/subcontracts/agreements/' + agreementId + '/cancel',
+  {
+    method: 'POST',
+    json: {
+      reason: 'Cancellation guard probe',
+      actionKey: 'uat-v05b-cancel-blocked-' + suffix,
+    },
+    expected: 409,
+  },
+);
+await request(
+  unassigned,
+  '/subcontracts/work-orders/' + workOrderOne.data.data.id,
+  { expected: 403 },
+);
+const agreementVersions = await request(
+  pm,
+  '/subcontracts/agreements/' + agreementId + '/versions',
+);
+check(
+  agreementVersions.data.data.length === 2 &&
+    agreementVersions.data.data.every(
+      (version) =>
+        String(version.originalValue) === '125000' &&
+        version.currencyCode === 'SGD',
+    ),
+  'V0.5-B retained Agreement versions lost the approved commercial snapshot.',
+);
+
+const cancellableAgreement = await request(pm, '/subcontracts/agreements', {
+  method: 'POST',
+  json: {
+    projectId,
+    subcontractorId,
+    originalValue: '1000.00',
+    scopeOfWork: 'Cancellation-only package ' + suffix,
+    currencyCode: 'SGD',
+    operationalStatusId: subcontractStatus.data.data.id,
+    createKey: 'uat-v05b-cancellable-' + suffix,
+  },
+  expected: 201,
+});
+await request(
+  pm,
+  '/subcontracts/agreements/' + cancellableAgreement.data.data.id + '/submit',
+  {
+    method: 'POST',
+    json: {
+      workflowCode: subcontractAgreementWorkflowCode,
+      actionKey: 'uat-v05b-cancellable-submit-' + suffix,
+    },
+    expected: 201,
+  },
+);
+await request(
+  checker,
+  '/subcontracts/agreements/' + cancellableAgreement.data.data.id + '/approve',
+  {
+    method: 'POST',
+    json: {
+      actionKey: 'uat-v05b-cancellable-approve-' + suffix,
+    },
+    expected: 201,
+  },
+);
+const cancelledAgreement = await request(
+  pm,
+  '/subcontracts/agreements/' + cancellableAgreement.data.data.id + '/cancel',
+  {
+    method: 'POST',
+    json: {
+      reason: 'Package withdrawn in live acceptance',
+      actionKey: 'uat-v05b-cancellable-cancel-' + suffix,
+    },
+    expected: 201,
+  },
+);
+check(
+  cancelledAgreement.data.data.approvalState === 'CANCELLED' &&
+    cancelledAgreement.data.data.cancellationReason ===
+      'Package withdrawn in live acceptance',
+  'V0.5-B Agreement cancellation did not retain audited cancellation evidence.',
+);
+record('V0.5-B configured maker-checker Agreement/Revision/Work Order lifecycle, ceiling guard, stable retries, cancellation guard and Project authorization');
+
 await request(pm, '/subcontracts/subcontractors/' + subcontractorId + '/archive', {
   method: 'POST',
   expected: 201,
