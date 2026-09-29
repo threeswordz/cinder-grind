@@ -103,6 +103,28 @@ export function subcontractAmount(value: unknown): string {
   return text;
 }
 
+export function subcontractPositiveAmount(
+  value: unknown,
+  field: string,
+): string {
+  const text =
+    typeof value === 'number' && Number.isFinite(value)
+      ? String(value)
+      : typeof value === 'string'
+        ? value.trim()
+        : '';
+  if (
+    !/^(?:0|[1-9]\d{0,15})(?:\.\d{1,2})?$/.test(text) ||
+    /^0(?:\.0{1,2})?$/.test(text)
+  ) {
+    return subcontractInvalid(
+      field,
+      'Use a positive DECIMAL(18,2) amount with at most 16 integer digits.',
+    );
+  }
+  return text;
+}
+
 export function optionalSubcontractBoolean(
   value: unknown,
   field: string,
