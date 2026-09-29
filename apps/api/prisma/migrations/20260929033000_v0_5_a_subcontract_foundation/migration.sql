@@ -98,8 +98,8 @@ CREATE TABLE "subcontract_agreements" (
 
 CREATE UNIQUE INDEX "subcontract_agreements_company_id_agreement_number_key"
 ON "subcontract_agreements"("company_id","agreement_number");
-CREATE UNIQUE INDEX "subcontract_agreements_company_id_create_key_key"
-ON "subcontract_agreements"("company_id","create_key");
+CREATE UNIQUE INDEX "subcontract_agreements_creator_create_key_key"
+ON "subcontract_agreements"("company_id","created_by_user_id","create_key");
 CREATE INDEX "subcontract_agreements_company_id_project_id_approval_state_idx"
 ON "subcontract_agreements"("company_id","project_id","approval_state");
 CREATE INDEX "subcontract_agreements_company_id_subcontractor_id_idx"

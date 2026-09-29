@@ -1169,7 +1169,7 @@ model SubcontractAgreement {
   createdBy         User              @relation("SubcontractAgreementCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
 
   @@unique([companyId, agreementNumber])
-  @@unique([companyId, createKey])
+  @@unique([companyId, createdByUserId, createKey], map: "subcontract_agreements_creator_create_key_key")
   @@index([companyId, projectId, approvalState])
   @@index([companyId, subcontractorId])
   @@index([operationalStatusId])

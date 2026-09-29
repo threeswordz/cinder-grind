@@ -293,6 +293,34 @@ test('V0.5-A enforces Subcontractor Company scope and agreement Project scope', 
     );
     assert.equal(retry.id, created.id);
 
+    const secondUserSameKey = await service.createAgreement(
+      { auth: all },
+      {
+        projectId: project.id,
+        subcontractorId: subcontractor.id,
+        originalValue: '25000.00',
+        scopeOfWork: 'Structural steel installation',
+        currencyCode: 'SGD',
+        operationalStatusId: status.id,
+        createKey: 'stage-a-' + suffix,
+      },
+    );
+    assert.notEqual(secondUserSameKey.id, created.id);
+    assert.equal(secondUserSameKey.createdByUserId, allUser.id);
+    const secondUserRetry = await service.createAgreement(
+      { auth: all },
+      {
+        projectId: project.id,
+        subcontractorId: subcontractor.id,
+        originalValue: '25000.00',
+        scopeOfWork: 'Structural steel installation',
+        currencyCode: 'SGD',
+        operationalStatusId: status.id,
+        createKey: 'stage-a-' + suffix,
+      },
+    );
+    assert.equal(secondUserRetry.id, secondUserSameKey.id);
+
     const caseNormalizedRetry = await service.createAgreement(
       { auth: scoped },
       {

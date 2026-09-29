@@ -330,6 +330,7 @@ export class SubcontractsService {
       const existing = await this.prisma.subcontractAgreement.findFirst({
         where: {
           companyId: context.auth.companyId,
+          createdByUserId: context.auth.userId,
           createKey: input.createKey,
         },
         include: this.agreementInclude(),
@@ -400,6 +401,7 @@ export class SubcontractsService {
         const existing = await this.prisma.subcontractAgreement.findFirst({
           where: {
             companyId: context.auth.companyId,
+            createdByUserId: context.auth.userId,
             createKey: input.createKey,
           },
           include: this.agreementInclude(),

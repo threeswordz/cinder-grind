@@ -75,16 +75,24 @@ function SubcontractorsPanel({ permissions }: { permissions: string[] }) {
       const body = {
         subcontractorCode: code,
         subcontractorName: name,
-        supplierId: supplierId || null,
         registrationNumber: registration || null,
         contactName: contact || null,
         email: email || null,
         phone: phone || null,
         address: address || null,
       };
-      return newMode || !selected
-        ? subcontractsApi.createSubcontractor(body)
-        : subcontractsApi.updateSubcontractor(selected.id, body);
+      if (newMode || !selected) {
+        return subcontractsApi.createSubcontractor({
+          ...body,
+          supplierId: supplierId || null,
+        });
+      }
+      return subcontractsApi.updateSubcontractor(selected.id, {
+        ...body,
+        ...(supplierId !== (selected.supplierId ?? '')
+          ? { supplierId: supplierId || null }
+          : {}),
+      });
     },
     onSuccess: async (result) => {
       setSelectedId(result.data.id);
