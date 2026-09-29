@@ -383,7 +383,7 @@ export class SubcontractsWorkflowController {
 
   @Get('agreements/:agreementId/work-order-options')
   @UseGuards(AuthGuard, PermissionGuard)
-  @RequirePermissions('subcontracts.work_order.create')
+  @RequirePermissions('subcontracts.work_order.view')
   async workOrderOptions(
     @Req() request: AuthenticatedRequest,
     @Param('agreementId', new ParseUUIDPipe({ version: '4' }))
