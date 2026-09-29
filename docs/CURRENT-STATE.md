@@ -834,3 +834,13 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - PR #106 is open, mergeable/clean, and PR CI #1733 passed on the same exact head as branch CI #1732. The Codex review bot could not execute because its code-review usage quota was exhausted. The Product / Business Owner explicitly approved a one-time waiver for PR #106 only; DEC-015 records that exception without changing future review expectations or the human UAT gate.
 - V0.5-B remains **under validation**, not complete. The branch/PR CI gates are satisfied; this waiver-record documentation must pass exact-head CI/PR CI, then PR #106 may squash-merge. Post-merge `main` CI and Issue #105 closure remain required before V0.5-C. Human V0.5 UAT remains a separate Release Exit Gate.
 - Claims/assessments, certification/retention withholding, Variations/reporting, Finance/payment, tax/FX, accounting, cost recognition and retention release remain outside Stage B. DEC-008 open-source / zero-cost-first remains unchanged.
+
+
+## V0.5-B completed / V0.5-C pre-flight
+
+- PR #106 squash-merged to `main` as `d5cf7bb1a3009d37c6cf875c54d74954e778aa57`; post-merge main CI #1736 passed and Issue #105 closed.
+- DEC-015 records the Product / Business Owner's one-time Codex review waiver for PR #106 only. It does not waive V0.5-C review requirements or human V0.5 UAT.
+- Issue #107 and branch `v0.5-c-claims-assessments` start from that exact green checkpoint.
+- `docs/V0.5-C-PREFLIGHT.md` binds Stage C to SUB-005/SUB-006, AC-V05-011–016 and BR-V05-09–12 with approved numbering/project/security/test rules.
+- Payment Certification/retention withholding, Variations/reporting, Finance/payment, tax/FX, cost recognition and human V0.5 release UAT remain deferred.
+- V0.5-C implementation may begin only after this pre-flight exact-head CI passes; V0.5-D has not begun.

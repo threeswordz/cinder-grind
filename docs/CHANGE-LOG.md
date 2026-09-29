@@ -187,3 +187,13 @@
 - Exact-head branch CI #1732 and PR CI #1733 passed on `faafa48c5b50a037de37185e011b0da5b7e9c46f`, including migrations/status, Prisma validation, dependency audit, full workspace validation, UAT bootstrap and live HTTP acceptance. PR #106 is mergeable/clean with no unresolved review threads.
 - The Codex review bot could not execute because the account's code-review quota was exhausted. The Product / Business Owner explicitly approved a one-time waiver for PR #106 only; DEC-015 records the change-control exception. Future review expectations, exact-head/PR/post-merge CI, issue closure, human UAT and all other governance remain unchanged.
 - DEC-008 and all approved V0.5 deferrals remain unchanged.
+
+
+## 2026-09-30 — V0.5-B completed / V0.5-C pre-flight
+
+- PR #106 squash-merged as `d5cf7bb1a3009d37c6cf875c54d74954e778aa57`; post-merge main CI #1736 passed and Issue #105 closed.
+- DEC-015 is a one-time Product / Business Owner waiver of Codex review for PR #106 only; future stage review and human UAT gates remain unchanged.
+- Issue #107 and branch `v0.5-c-claims-assessments` start from the exact green merge checkpoint.
+- Stage C pre-flight authorizes only Progress Claims and Assessments under SUB-005/SUB-006, AC-V05-011–016 and BR-V05-09–12. Certification/retention, Variations/reporting and Finance remain deferred.
+- Assessment is implemented as an explicitly permitted auditable decision, not a new Approval Matrix workflow: SUB-006 does not depend on FND-005, while SUB-007 Certification explicitly does.
+- DEC-008 and all approved V0.5 deferrals remain unchanged.
