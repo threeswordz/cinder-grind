@@ -684,8 +684,8 @@ export class SubcontractsClaimsService {
             detail: 'Only a submitted Claim can be withdrawn before assessment.',
           });
         }
-        const assessment = await tx.subcontractClaimAssessment.findUnique({
-          where: { claimId },
+        const assessment = await tx.subcontractClaimAssessment.findFirst({
+          where: { claimId, companyId: context.auth.companyId },
           select: { id: true },
         });
         if (assessment) {
@@ -862,8 +862,8 @@ export class SubcontractsClaimsService {
           tx,
         );
         this.assertApprovedAgreement(agreement);
-        const assessment = await tx.subcontractClaimAssessment.findUnique({
-          where: { claimId },
+        const assessment = await tx.subcontractClaimAssessment.findFirst({
+          where: { claimId, companyId: context.auth.companyId },
         });
         if (!assessment || assessment.state !== 'ASSESSED') {
           throw new ConflictException({
