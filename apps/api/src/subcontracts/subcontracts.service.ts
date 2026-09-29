@@ -10,6 +10,7 @@ import { Prisma } from '@prisma/client';
 import { NumberSequenceService } from '../administration/number-sequence.service';
 import { AuditService } from '../audit/audit.service';
 import { AuthenticatedUserContext } from '../auth/auth.types';
+import { AuthorizationService } from '../authorization/authorization.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProjectAccessService } from '../projects/project-access.service';
 
@@ -55,6 +56,7 @@ export class SubcontractsService {
     private readonly access: ProjectAccessService,
     private readonly audit: AuditService,
     private readonly numbers: NumberSequenceService,
+    private readonly authorization: AuthorizationService,
   ) {}
 
   listSubcontractors(
@@ -332,6 +334,7 @@ export class SubcontractsService {
       });
       if (existing) {
         await this.access.assertAccess(context.auth, existing.projectId);
+        this.assertAgreementReplayView(context.auth);
         return existing;
       }
     }
@@ -392,6 +395,7 @@ export class SubcontractsService {
         });
         if (existing) {
           await this.access.assertAccess(context.auth, existing.projectId);
+          this.assertAgreementReplayView(context.auth);
           return existing;
         }
       }
@@ -678,6 +682,21 @@ export class SubcontractsService {
         select: { id: true, displayName: true },
       },
     } satisfies Prisma.SubcontractAgreementInclude;
+  }
+
+  private assertAgreementReplayView(auth: AuthenticatedUserContext): void {
+    if (
+      !this.authorization.hasPermission(
+        auth,
+        'subcontracts.agreement.view',
+      )
+    ) {
+      throw new ForbiddenException({
+        code: 'PERMISSION_DENIED',
+        detail:
+          'Agreement view permission is required to return an existing create-key result.',
+      });
+    }
   }
 
   private throwUnique(error: unknown, detail: string): void {

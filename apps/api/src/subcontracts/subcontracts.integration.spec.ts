@@ -165,15 +165,17 @@ test('V0.5-A enforces Subcontractor Company scope and agreement Project scope', 
       },
     });
 
+    const authorization = new AuthorizationService();
     const access = new ProjectAccessService(
       prisma,
-      new ProjectScopeService(new AuthorizationService()),
+      new ProjectScopeService(authorization),
     );
     const service = new SubcontractsService(
       prisma,
       access,
       new AuditService(prisma),
       new NumberSequenceService(prisma),
+      authorization,
     );
     const scoped = auth(company.id, scopedUser.id);
     const all = auth(company.id, allUser.id, true);
@@ -290,6 +292,26 @@ test('V0.5-A enforces Subcontractor Company scope and agreement Project scope', 
       },
     );
     assert.equal(retry.id, created.id);
+
+    const createOnly = {
+      ...scoped,
+      permissions: ['subcontracts.agreement.create'],
+    };
+    await assert.rejects(
+      () =>
+        service.createAgreement(
+          { auth: createOnly },
+          {
+            projectId: project.id,
+            subcontractorId: subcontractor.id,
+            originalValue: '25000.00',
+            scopeOfWork: 'Must not disclose an existing create-key result',
+            currencyCode: 'SGD',
+            createKey: 'stage-a-' + suffix,
+          },
+        ),
+      (error: unknown) => error instanceof ForbiddenException,
+    );
 
     await assert.rejects(
       () =>
