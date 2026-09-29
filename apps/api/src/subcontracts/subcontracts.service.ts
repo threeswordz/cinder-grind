@@ -369,7 +369,10 @@ export class SubcontractsService {
           },
           include: this.agreementInclude(),
         });
-        if (existing) return existing;
+        if (existing) {
+          await this.access.assertAccess(context.auth, existing.projectId);
+          return existing;
+        }
       }
       this.throwUnique(error, 'Agreement number or create key is already in use.');
       throw error;

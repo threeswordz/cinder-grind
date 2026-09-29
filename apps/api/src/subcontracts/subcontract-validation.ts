@@ -94,10 +94,10 @@ export function subcontractAmount(value: unknown): string {
       : typeof value === 'string'
         ? value.trim()
         : '';
-  if (!/^(?:0|[1-9]\d*)(?:\.\d{1,2})?$/.test(text)) {
+  if (!/^(?:0|[1-9]\d{0,15})(?:\.\d{1,2})?$/.test(text)) {
     return subcontractInvalid(
       'originalValue',
-      'Use a nonnegative amount with at most two decimal places.',
+      'Use a nonnegative DECIMAL(18,2) amount with at most 16 integer digits.',
     );
   }
   return text;

@@ -263,7 +263,23 @@ test('V0.5-A enforces Subcontractor Company scope and agreement Project scope', 
         originalValue: '5000.00',
         scopeOfWork: 'Access-all Project',
         currencyCode: 'SGD',
+        createKey: 'restricted-' + suffix,
       },
+    );
+    await assert.rejects(
+      () =>
+        service.createAgreement(
+          { auth: scoped },
+          {
+            projectId: project.id,
+            subcontractorId: subcontractor.id,
+            originalValue: '5000.00',
+            scopeOfWork: 'Must not disclose another Project retry',
+            currencyCode: 'SGD',
+            createKey: 'restricted-' + suffix,
+          },
+        ),
+      (error: unknown) => error instanceof ForbiddenException,
     );
     await assert.rejects(
       () => service.getAgreement(scoped, restricted.id),
