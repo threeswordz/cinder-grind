@@ -422,7 +422,7 @@ function AgreementsPanel({ permissions }: { permissions: string[] }) {
     queryFn: () => subcontractsApi.workOrderOptions(selectedId),
     enabled:
       Boolean(selectedId) &&
-      canCreateWorkOrder &&
+      canViewWorkOrders &&
       selected?.approvalState === 'APPROVED' &&
       !selected?.cancelledAt,
   });
