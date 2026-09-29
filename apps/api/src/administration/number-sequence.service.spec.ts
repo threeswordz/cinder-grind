@@ -29,6 +29,8 @@ test('sequence configuration becomes immutable after use', () => {
   const service = new NumberSequenceService({} as never);
 
   assert.doesNotThrow(() => service.assertCreatable('CUSTOM_SEQUENCE'));
+  assert.doesNotThrow(() => service.assertCreatable('constructor'));
+  assert.doesNotThrow(() => service.assertCreatable('__proto__'));
   assert.throws(
     () => service.assertCreatable('SUBCONTRACT_AGREEMENT'),
     (error: unknown) => error instanceof ConflictException,

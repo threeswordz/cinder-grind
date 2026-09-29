@@ -11,15 +11,18 @@ import { PrismaService } from '../prisma/prisma.service';
 export const SEQUENCE_RESET_RULES = ['NONE', 'YEARLY', 'MONTHLY'] as const;
 export type SequenceResetRule = (typeof SEQUENCE_RESET_RULES)[number];
 
-const RESERVED_SEQUENCE_POLICIES: Record<
+const RESERVED_SEQUENCE_POLICIES = new Map<
   string,
   { formatTemplate: string; resetRule: SequenceResetRule }
-> = {
-  SUBCONTRACT_AGREEMENT: {
-    formatTemplate: 'SCYYMM-###',
-    resetRule: 'MONTHLY',
-  },
-};
+>([
+  [
+    'SUBCONTRACT_AGREEMENT',
+    {
+      formatTemplate: 'SCYYMM-###',
+      resetRule: 'MONTHLY',
+    },
+  ],
+]);
 
 type LockedSequence = {
   id: string;
@@ -129,7 +132,7 @@ export class NumberSequenceService {
         }
 
         const resetRule = normalizeResetRule(sequence.reset_rule);
-        const reservedPolicy = RESERVED_SEQUENCE_POLICIES[sequenceCode];
+        const reservedPolicy = RESERVED_SEQUENCE_POLICIES.get(sequenceCode);
         if (
           reservedPolicy &&
           (sequence.format_template !== reservedPolicy.formatTemplate ||
@@ -169,7 +172,7 @@ export class NumberSequenceService {
   }
 
   assertCreatable(sequenceCode: string): void {
-    if (RESERVED_SEQUENCE_POLICIES[sequenceCode]) {
+    if (RESERVED_SEQUENCE_POLICIES.has(sequenceCode)) {
       throw new ConflictException({
         code: 'NUMBER_SEQUENCE_RESERVED',
         detail:
@@ -183,7 +186,7 @@ export class NumberSequenceService {
     lastPeriodKey: string | null,
     sequenceCode?: string,
   ): void {
-    if (sequenceCode && RESERVED_SEQUENCE_POLICIES[sequenceCode]) {
+    if (sequenceCode && RESERVED_SEQUENCE_POLICIES.has(sequenceCode)) {
       throw new ConflictException({
         code: 'NUMBER_SEQUENCE_RESERVED',
         detail:
