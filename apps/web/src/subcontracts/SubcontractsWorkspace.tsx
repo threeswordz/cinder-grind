@@ -15,7 +15,7 @@ import {
   Typography,
 } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   AgreementDraft,
@@ -369,6 +369,24 @@ function AgreementsPanel({ permissions }: { permissions: string[] }) {
   const [workOrderWorkflow, setWorkOrderWorkflow] = useState('');
   const [workOrderComment, setWorkOrderComment] = useState('');
 
+  const retryActionKeys = useRef(new Map<string, string>());
+  const agreementActionSignature = useRef<string | null>(null);
+  const revisionActionSignature = useRef<string | null>(null);
+  const workOrderActionSignature = useRef<string | null>(null);
+
+  const retryActionKey = (signature: string) => {
+    const existing = retryActionKeys.current.get(signature);
+    if (existing) return existing;
+    const actionKey = crypto.randomUUID();
+    retryActionKeys.current.set(signature, actionKey);
+    return actionKey;
+  };
+
+  const clearRetryActionKey = (signature: string | null) => {
+    if (!signature) return;
+    retryActionKeys.current.delete(signature);
+  };
+
   const agreements = useQuery({
     queryKey: ['subcontracts', 'agreements', projectFilter, search],
     queryFn: () =>
@@ -433,12 +451,6 @@ function AgreementsPanel({ permissions }: { permissions: string[] }) {
         (row) => row.id === selectedWorkOrderId,
       ) ?? null,
     [workOrders.data?.data, selectedWorkOrderId],
-  );
-
-  const initialVersion = useMemo(
-    () =>
-      (versions.data?.data ?? []).find((row) => row.versionNo === 1) ?? null,
-    [versions.data?.data],
   );
 
   const activeRevision = useMemo(
@@ -526,15 +538,20 @@ function AgreementsPanel({ permissions }: { permissions: string[] }) {
       action: 'submit' | 'approve' | 'reject' | 'cancel';
       agreement: AgreementDraft;
     }) => {
-      const approvalStep =
-        initialVersion?.approvalInstance?.currentStepNo ?? 0;
-      const actionKey =
-        input.action +
-        '-agreement-' +
-        input.agreement.id +
-        (input.action === 'approve' || input.action === 'reject'
-          ? '-step-' + approvalStep
-          : '');
+      const materialPayload =
+        input.action === 'submit'
+          ? agreementWorkflow
+          : input.action === 'cancel'
+            ? cancelReason
+            : decisionComment || null;
+      const signature = JSON.stringify([
+        'agreement',
+        input.action,
+        input.agreement.id,
+        materialPayload,
+      ]);
+      agreementActionSignature.current = signature;
+      const actionKey = retryActionKey(signature);
       if (input.action === 'submit') {
         return subcontractsApi.submitAgreement(
           input.agreement.id,
@@ -562,7 +579,11 @@ function AgreementsPanel({ permissions }: { permissions: string[] }) {
         actionKey,
       );
     },
-    onSuccess: refresh,
+    onSuccess: async () => {
+      clearRetryActionKey(agreementActionSignature.current);
+      agreementActionSignature.current = null;
+      await refresh();
+    },
   });
 
   const revisionAction = useMutation({
@@ -584,15 +605,18 @@ function AgreementsPanel({ permissions }: { permissions: string[] }) {
           reason: revisionReason,
         });
       }
-      const approvalStep =
-        input.revision.approvalInstance?.currentStepNo ?? 0;
-      const actionKey =
-        input.action +
-        '-agreement-revision-' +
-        input.revision.id +
-        (input.action === 'approve' || input.action === 'reject'
-          ? '-step-' + approvalStep
-          : '');
+      const materialPayload =
+        input.action === 'submit'
+          ? agreementWorkflow
+          : decisionComment || null;
+      const signature = JSON.stringify([
+        'agreement-revision',
+        input.action,
+        input.revision.id,
+        materialPayload,
+      ]);
+      revisionActionSignature.current = signature;
+      const actionKey = retryActionKey(signature);
       if (input.action === 'submit') {
         return subcontractsApi.submitAgreementRevision(
           input.revision.id,
@@ -613,7 +637,11 @@ function AgreementsPanel({ permissions }: { permissions: string[] }) {
         decisionComment || undefined,
       );
     },
-    onSuccess: refresh,
+    onSuccess: async () => {
+      clearRetryActionKey(revisionActionSignature.current);
+      revisionActionSignature.current = null;
+      await refresh();
+    },
   });
 
   const workOrderAction = useMutation({
@@ -639,15 +667,18 @@ function AgreementsPanel({ permissions }: { permissions: string[] }) {
           costCodeId: workOrderCostCodeId || null,
         });
       }
-      const approvalStep =
-        input.workOrder.approvalInstance?.currentStepNo ?? 0;
-      const actionKey =
-        input.action +
-        '-work-order-' +
-        input.workOrder.id +
-        (input.action === 'approve' || input.action === 'reject'
-          ? '-step-' + approvalStep
-          : '');
+      const materialPayload =
+        input.action === 'submit'
+          ? workOrderWorkflow
+          : workOrderComment || null;
+      const signature = JSON.stringify([
+        'work-order',
+        input.action,
+        input.workOrder.id,
+        materialPayload,
+      ]);
+      workOrderActionSignature.current = signature;
+      const actionKey = retryActionKey(signature);
       if (input.action === 'submit') {
         return subcontractsApi.submitWorkOrder(
           input.workOrder.id,
@@ -669,6 +700,8 @@ function AgreementsPanel({ permissions }: { permissions: string[] }) {
       );
     },
     onSuccess: async (result) => {
+      clearRetryActionKey(workOrderActionSignature.current);
+      workOrderActionSignature.current = null;
       if ('workOrderNumber' in result.data) {
         setSelectedWorkOrderId(result.data.id);
       }
