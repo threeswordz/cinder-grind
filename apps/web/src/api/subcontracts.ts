@@ -102,6 +102,16 @@ export const subcontractsApi = {
         (active ? '/reactivate' : '/archive'),
       { method: 'POST' },
     ),
+  agreementSubcontractors: () =>
+    apiRequest<
+      Data<
+        Array<{
+          id: string;
+          subcontractorCode: string;
+          subcontractorName: string;
+        }>
+      >
+    >('/subcontracts/agreement-subcontractors'),
   projects: () =>
     apiRequest<Data<SubcontractProject[]>>('/subcontracts/projects'),
   statuses: () =>

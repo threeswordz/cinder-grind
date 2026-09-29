@@ -135,6 +135,21 @@ export class SubcontractsService {
     });
   }
 
+  agreementSubcontractors(auth: AuthenticatedUserContext) {
+    return this.prisma.subcontractor.findMany({
+      where: { companyId: auth.companyId, isActive: true },
+      select: {
+        id: true,
+        subcontractorCode: true,
+        subcontractorName: true,
+      },
+      orderBy: [
+        { subcontractorName: 'asc' },
+        { subcontractorCode: 'asc' },
+      ],
+    });
+  }
+
   async createSubcontractor(context: AuditContext, input: SubcontractorInput) {
     try {
       return await this.prisma.$transaction(async (tx) => {
@@ -332,6 +347,7 @@ export class SubcontractsService {
     try {
       return await this.prisma.$transaction(async (tx) => {
         await this.access.assertAccess(context.auth, input.projectId, tx);
+        await this.lockProject(context.auth.companyId, input.projectId, tx);
         await this.lockSubcontractor(
           context.auth.companyId,
           input.subcontractorId,
@@ -467,6 +483,19 @@ export class SubcontractsService {
       );
       return row;
     });
+  }
+
+  private async lockProject(
+    companyId: string,
+    id: string,
+    tx: Prisma.TransactionClient,
+  ) {
+    await tx.$queryRaw(
+      Prisma.sql`SELECT "id"
+        FROM "projects"
+        WHERE "id" = ${id}::uuid AND "company_id" = ${companyId}::uuid
+        FOR UPDATE`,
+    );
   }
 
   private async lockSubcontractor(

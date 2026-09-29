@@ -377,6 +377,13 @@ export class ProjectsService {
   ) {
     return this.prisma.$transaction(async (tx) => {
       await this.access.assertAccess(context.auth, projectId, tx);
+      await tx.$queryRaw(
+        Prisma.sql`SELECT "id"
+          FROM "projects"
+          WHERE "id" = ${projectId}::uuid
+            AND "company_id" = ${context.auth.companyId}::uuid
+          FOR UPDATE`,
+      );
       const before = await tx.project.findFirst({
         where: { id: projectId, companyId: context.auth.companyId },
       });

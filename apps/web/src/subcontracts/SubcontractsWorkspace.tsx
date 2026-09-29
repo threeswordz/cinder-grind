@@ -302,8 +302,8 @@ function AgreementsPanel({ permissions }: { permissions: string[] }) {
     queryFn: subcontractsApi.projects,
   });
   const subcontractors = useQuery({
-    queryKey: ['subcontracts', 'subcontractors', false, ''],
-    queryFn: () => subcontractsApi.subcontractors(),
+    queryKey: ['subcontracts', 'agreement-subcontractors'],
+    queryFn: subcontractsApi.agreementSubcontractors,
   });
   const statuses = useQuery({
     queryKey: ['subcontracts', 'statuses'],

@@ -12,8 +12,10 @@ import { AuditService } from '../audit/audit.service';
 import { AuthenticatedUserContext } from '../auth/auth.types';
 import { AuthorizationService } from '../authorization/authorization.service';
 import { ProjectScopeService } from '../authorization/project-scope.service';
+import { REQUIRED_PERMISSIONS_KEY } from '../authorization/permissions.decorator';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProjectAccessService } from '../projects/project-access.service';
+import { SubcontractsController } from './subcontracts.controller';
 import { SubcontractsService } from './subcontracts.service';
 
 function auth(
@@ -184,6 +186,30 @@ test('V0.5-A enforces Subcontractor Company scope and agreement Project scope', 
     );
     assert.equal(subcontractor.supplierId, supplier.id);
 
+    const agreementOnly = {
+      ...scoped,
+      permissions: [
+        'subcontracts.agreement.view',
+        'subcontracts.agreement.create',
+      ],
+    };
+    const selectorRows = await service.agreementSubcontractors(agreementOnly);
+    assert.deepEqual(selectorRows, [
+      {
+        id: subcontractor.id,
+        subcontractorCode: subcontractor.subcontractorCode,
+        subcontractorName: subcontractor.subcontractorName,
+      },
+    ]);
+    assert.deepEqual(
+      Reflect.getMetadata(
+        REQUIRED_PERMISSIONS_KEY,
+        SubcontractsController.prototype.agreementSubcontractors,
+      ),
+      ['subcontracts.agreement.view'],
+      'agreement selector must not require Company-register view permission',
+    );
+
     await assert.rejects(
       () =>
         service.createSubcontractor(
@@ -336,6 +362,60 @@ test('V0.5-A enforces Subcontractor Company scope and agreement Project scope', 
       (error: unknown) => error instanceof UnprocessableEntityException,
     );
     await service.reactivateSubcontractor({ auth: scoped }, subcontractor.id);
+
+    let releaseProjectArchive!: () => void;
+    let projectArchiveLocked!: () => void;
+    const releaseProjectArchivePromise = new Promise<void>((resolve) => {
+      releaseProjectArchive = resolve;
+    });
+    const projectArchiveLockedPromise = new Promise<void>((resolve) => {
+      projectArchiveLocked = resolve;
+    });
+    const concurrentProjectArchive = prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT "id"
+        FROM "projects"
+        WHERE "id" = ${project.id}::uuid
+        FOR UPDATE`;
+      projectArchiveLocked();
+      await releaseProjectArchivePromise;
+      await tx.project.update({
+        where: { id: project.id },
+        data: { isActive: false },
+      });
+    });
+    await projectArchiveLockedPromise;
+    let projectCreateSettled = false;
+    const concurrentProjectCreate = service
+      .createAgreement(
+        { auth: scoped },
+        {
+          projectId: project.id,
+          subcontractorId: subcontractor.id,
+          originalValue: '1300.00',
+          scopeOfWork: 'Concurrent Project archive guard',
+          currencyCode: 'SGD',
+          createKey: 'project-archive-race-' + suffix,
+        },
+      )
+      .finally(() => {
+        projectCreateSettled = true;
+      });
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    assert.equal(
+      projectCreateSettled,
+      false,
+      'agreement creation must wait for the Project lifecycle lock',
+    );
+    releaseProjectArchive();
+    await concurrentProjectArchive;
+    await assert.rejects(
+      concurrentProjectCreate,
+      (error: unknown) => error instanceof UnprocessableEntityException,
+    );
+    await prisma.project.update({
+      where: { id: project.id },
+      data: { isActive: true },
+    });
 
     await service.archiveSubcontractor({ auth: scoped }, subcontractor.id);
     await assert.rejects(

@@ -282,6 +282,15 @@ export class SubcontractsController {
     return { data: await this.subcontracts.listSuppliers(authOf(request)) };
   }
 
+  @Get('agreement-subcontractors')
+  @UseGuards(AuthGuard, PermissionGuard)
+  @RequirePermissions('subcontracts.agreement.view')
+  async agreementSubcontractors(@Req() request: AuthenticatedRequest) {
+    return {
+      data: await this.subcontracts.agreementSubcontractors(authOf(request)),
+    };
+  }
+
   @Get('projects')
   @UseGuards(AuthGuard, PermissionGuard)
   @RequirePermissions('subcontracts.agreement.view')

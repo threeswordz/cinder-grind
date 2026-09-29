@@ -1892,6 +1892,7 @@ Stage A adds the permission-gated `/api/v1/subcontracts` resource family without
 | GET/PATCH | `/subcontractors/:id` | `subcontracts.subcontractor.view/manage` | Read or edit a retained register entry |
 | POST | `/subcontractors/:id/archive`, `/reactivate` | `subcontracts.subcontractor.archive` | Change active selection state without deleting history |
 | GET | `/suppliers` | `subcontracts.subcontractor.view` | Active same-Company Supplier choices for the optional link |
+| GET | `/agreement-subcontractors` | `subcontracts.agreement.view` | Minimal active Company Subcontractor choices for agreement users; does not expose the full register |
 | GET | `/projects`, `/agreement-statuses` | `subcontracts.agreement.view` | Effective Project and configured operational-status choices |
 | GET/POST | `/agreements` | `subcontracts.agreement.view/create` | Scoped Draft list/search and idempotent Draft creation |
 | GET/PATCH | `/agreements/:id` | `subcontracts.agreement.view/edit` | Scoped detail and Draft-only commercial-field edit |
