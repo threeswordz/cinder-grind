@@ -194,15 +194,14 @@ export class SubcontractsController {
     @Query('includeInactive') includeInactive?: string,
     @Query('search') search?: string,
   ) {
+    const normalizedSearch = subcontractSearch(search);
     return {
       data: await this.subcontracts.listSubcontractors(authOf(request), {
         includeInactive: subcontractFlag(
           includeInactive,
           'includeInactive',
         ),
-        ...(subcontractSearch(search)
-          ? { search: subcontractSearch(search) }
-          : {}),
+        ...(normalizedSearch !== undefined ? { search: normalizedSearch } : {}),
       }),
     };
   }
@@ -306,6 +305,7 @@ export class SubcontractsController {
     @Query('subcontractorId') subcontractorId?: string,
     @Query('search') search?: string,
   ) {
+    const normalizedSearch = subcontractSearch(search);
     return {
       data: await this.subcontracts.listAgreements(authOf(request), {
         ...(projectId
@@ -319,9 +319,7 @@ export class SubcontractsController {
               ),
             }
           : {}),
-        ...(subcontractSearch(search)
-          ? { search: subcontractSearch(search) }
-          : {}),
+        ...(normalizedSearch !== undefined ? { search: normalizedSearch } : {}),
       }),
     };
   }
