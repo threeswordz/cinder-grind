@@ -54,6 +54,12 @@ const REQUIRED_ADMIN_PERMISSIONS = [
   'inventory.warehouse.create',
   'inventory.warehouse.edit',
   'inventory.warehouse.archive',
+  'subcontracts.subcontractor.view',
+  'subcontracts.subcontractor.manage',
+  'subcontracts.subcontractor.archive',
+  'subcontracts.agreement.view',
+  'subcontracts.agreement.create',
+  'subcontracts.agreement.edit',
 ] as const;
 
 function requiredEnv(name: string): string {
