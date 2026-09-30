@@ -737,13 +737,34 @@ export class SubcontractsService {
     return createHash('sha256').update(canonicalPayload).digest('hex');
   }
 
+  private legacyAgreementCreatePayloadHash(input: AgreementDraftInput): string {
+    const canonicalPayload = JSON.stringify([
+      input.projectId.toLowerCase(),
+      input.subcontractorId.toLowerCase(),
+      new Prisma.Decimal(input.originalValue).toFixed(2),
+      input.scopeOfWork,
+      input.currencyCode,
+      input.operationalStatusId?.toLowerCase() ?? null,
+    ]);
+    return createHash('sha256').update(canonicalPayload).digest('hex');
+  }
+
   private assertAgreementReplayPayload(
     existing: { createPayloadHash: string | null },
     input: AgreementDraftInput,
   ): void {
+    const currentHash = this.agreementCreatePayloadHash(input);
+    const usesStageDDefaults =
+      new Prisma.Decimal(input.retentionRate ?? '0.00').equals(0) &&
+      (input.retentionCap === null || input.retentionCap === undefined);
+    const legacyHash = usesStageDDefaults
+      ? this.legacyAgreementCreatePayloadHash(input)
+      : null;
+
     if (
       !existing.createPayloadHash ||
-      existing.createPayloadHash !== this.agreementCreatePayloadHash(input)
+      (existing.createPayloadHash !== currentHash &&
+        existing.createPayloadHash !== legacyHash)
     ) {
       throw new ConflictException({
         code: 'IDEMPOTENCY_KEY_REUSED',
