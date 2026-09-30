@@ -462,6 +462,70 @@ test('V0.5-C serializes Claim commercial races on the Agreement boundary', async
       '450.00',
       'retained Assessment amount changed during the cancellation race',
     );
+
+    const lineRaceAgreement = await createAgreement('LI');
+    const lineRaceClaim = await createDraft(
+      lineRaceAgreement.id,
+      '2027-05-01',
+      '2027-05-31',
+      '600.00',
+    );
+    let releaseInsert!: () => void;
+    const holdInsert = new Promise<void>((resolve) => {
+      releaseInsert = resolve;
+    });
+    let inserted!: () => void;
+    const insertStarted = new Promise<void>((resolve) => {
+      inserted = resolve;
+    });
+    const directInsert = prisma.$transaction(async (tx) => {
+      await tx.subcontractClaimLine.create({
+        data: {
+          companyId: company.id,
+          projectId: project.id,
+          agreementId: lineRaceAgreement.id,
+          claimId: lineRaceClaim.id,
+          lineNo: 2,
+          amount: '500.00',
+        },
+      });
+      inserted();
+      await holdInsert;
+    });
+    await insertStarted;
+    const racingSubmission = claims.submitClaim(
+      { auth: makerAuth },
+      lineRaceClaim.id,
+      'line-insert-race-' + suffix,
+    );
+    const submissionState = await Promise.race([
+      racingSubmission.then(
+        () => 'fulfilled' as const,
+        () => 'rejected' as const,
+      ),
+      new Promise<'pending'>((resolve) =>
+        setTimeout(() => resolve('pending'), 200),
+      ),
+    ]);
+    assert.equal(
+      submissionState,
+      'pending',
+      'Claim submission must wait for a concurrent direct line insert holding the parent lock',
+    );
+    releaseInsert();
+    await directInsert;
+    await assert.rejects(
+      () => racingSubmission,
+      (error: unknown) => error instanceof ConflictException,
+      'submission must re-read the committed line and reject the resulting Agreement overclaim',
+    );
+    const lineRaceAfter =
+      await prisma.subcontractClaim.findUniqueOrThrow({
+        where: { id: lineRaceClaim.id },
+        include: { lines: true },
+      });
+    assert.equal(lineRaceAfter.state, 'DRAFT');
+    assert.equal(lineRaceAfter.lines.length, 2);
   } finally {
     await prisma.$disconnect();
   }

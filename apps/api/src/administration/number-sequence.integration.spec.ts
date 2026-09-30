@@ -114,6 +114,52 @@ test('number sequence preserves starting value and resets on a new month', async
     assert.equal(concurrentStored.lastPeriodKey, '202606');
     assert.equal(concurrentStored.nextValue, 3);
 
+    const boundarySequence = await prisma.numberSequence.create({
+      data: {
+        companyId: company.id,
+        entityType: 'TEST_PERIOD_BOUNDARY',
+        sequenceCode: 'PERIOD_BOUNDARY_' + suffix,
+        formatTemplate: 'BYYMM-###',
+        resetRule: 'MONTHLY',
+        nextValue: 1,
+      },
+    });
+    assert.equal(
+      await service.next(
+        company.id,
+        boundarySequence.sequenceCode,
+        new Date('2026-07-01T00:00:00Z'),
+      ),
+      'B2607-001',
+    );
+    await assert.rejects(
+      () =>
+        service.next(
+          company.id,
+          boundarySequence.sequenceCode,
+          new Date('2026-06-30T23:59:59Z'),
+        ),
+      (error: unknown) =>
+        error instanceof ConflictException &&
+        error.getResponse() !== null &&
+        (error.getResponse() as { code?: string }).code ===
+          'NUMBER_SEQUENCE_PERIOD_REGRESSION',
+      'an older-period waiter must not move the reset period backward',
+    );
+    assert.equal(
+      await service.next(
+        company.id,
+        boundarySequence.sequenceCode,
+        new Date('2026-07-01T00:00:01Z'),
+      ),
+      'B2607-002',
+    );
+    const boundaryStored = await prisma.numberSequence.findUniqueOrThrow({
+      where: { id: boundarySequence.id },
+    });
+    assert.equal(boundaryStored.lastPeriodKey, '202607');
+    assert.equal(boundaryStored.nextValue, 3);
+
     const stored = await prisma.numberSequence.findUniqueOrThrow({
       where: { id: sequence.id },
     });
