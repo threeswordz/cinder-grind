@@ -7,8 +7,8 @@
 - Current Stage: V0.5-C Claims and Assessments under Issue #107 on `v0.5-c-claims-assessments`
 - Completed Stages: V0.1-A through V0.1-H; V0.2-A through V0.2-G; V0.3-A through V0.3-E; V0.4-A through V0.4-E; V0.5 entry gate; V0.5-A; V0.5-B
 - Active Issue: #107 — V0.5-C Claims and Assessments
-- Active implementation checkpoint: `07c83c65188684e63905df156396b7191033d8dc`; PR CI #1769 passed on the exact head after review fixes and targeted regressions
-- Stage-C PR: #108 — V0.5-C Claims and Assessments; initial Codex review found two genuine issues (submit-replay Assessment disclosure and Assessment audit entity-ID mismatch), both fixed and review threads resolved; final exact-head re-review remains required before merge
+- Active implementation checkpoint: `98be784cb83e72a02d3986bf7c9a6e5114c54112`; PR CI #1777 passed on the exact head after review fixes, shared numbering concurrency hardening and targeted regressions
+- Stage-C PR: #108 — V0.5-C Claims and Assessments; initial Codex review found two genuine issues (submit-replay Assessment disclosure and Assessment audit entity-ID mismatch), both fixed and threads resolved. Codex then reported no major issues on `e936aea8d9fa1f29f16cddb9b0f251654c7a300e`; a later shared number-sequence concurrency correction plus dedicated regression advanced the head to `98be784cb83e72a02d3986bf7c9a6e5114c54112`, so final exact-head re-review remains required before merge
 - V0.5-B green main checkpoint: PR #106 squash-merged as `d5cf7bb1a3009d37c6cf875c54d74954e778aa57`; post-merge main CI #1736 passed; Issue #105 closed
 - V0.5 entry gate: PR #102 squash-merged as `5b67832079ef6ded86bc79f997d8115835d0c55e`; post-merge main CI #1611 passed; Issue #98 closed
 - Completed Issue: #92 — V0.4-E Stock Transfer / Inventory Documents / Reporting / Release Evidence
@@ -85,7 +85,7 @@
 - V0.1 cross-module release acceptance scenario: PASS in the Stage H release-candidate regression suite.
 - Open defect check at V0.1 acceptance: no Severity 1 or Severity 2 release-blocking defect recorded.
 - Governance: `AGENTS.md`, `docs/PROJECT-GOVERNANCE.md`, PR governance checklist and DEC-008 are active; material decisions must pass the repository pre-flight and open-source/zero-cost-first constraint.
-- Next action: complete V0.5-A exact-head CI and review on PR #104, merge only after all findings/gates pass, confirm post-merge `main` CI, close Issue #103, then begin V0.5-B pre-flight. Human V0.5 release UAT/acceptance remains a later exit gate.
+- Next action: complete final exact-head review on PR #108, resolve any genuine findings, squash-merge only with green exact-head CI/review, confirm post-merge `main` CI, close Issue #107, then begin V0.5-D pre-flight. Human V0.5 release UAT/acceptance remains a later exit gate.
 
 ## Stage E completed
 
