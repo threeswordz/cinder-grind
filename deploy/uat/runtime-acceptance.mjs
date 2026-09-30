@@ -336,6 +336,11 @@ const permissionCodes = [
   'subcontracts.claim.submit',
   'subcontracts.claim.withdraw',
   'subcontracts.assessment.view',
+  'subcontracts.certification.view',
+  'subcontracts.certification.create',
+  'subcontracts.certification.edit',
+  'subcontracts.certification.submit',
+  'subcontracts.certification.approve',
 ];
 await request(admin, `/admin/roles/${roleId}/permissions`, {
   method: 'PUT',
@@ -385,6 +390,10 @@ await request(admin, `/admin/roles/${checkerRoleId}/permissions`, {
       'subcontracts.assessment.view',
       'subcontracts.assessment.assess',
       'subcontracts.assessment.reject',
+      'subcontracts.certification.view',
+      'subcontracts.certification.approve',
+      'subcontracts.certification.reject',
+      'subcontracts.certification.reverse',
     ],
   },
 });
@@ -661,8 +670,25 @@ await request(admin, '/admin/approval-workflows', {
   },
   expected: 201,
 });
+const subcontractCertificationWorkflowCode =
+  'SUBCONTRACT_CERTIFICATION_' + suffix;
+await request(admin, '/admin/approval-workflows', {
+  method: 'POST',
+  json: {
+    workflowCode: subcontractCertificationWorkflowCode,
+    entityType: 'SUBCONTRACT_CERTIFICATION',
+    workflowName: 'Subcontract Certification Approval ' + suffix,
+    steps: [{
+      stepNo: 1,
+      stepName: 'Approve Subcontract Certification',
+      requiredApprovals: 1,
+      roleIds: [checkerRoleId],
+    }],
+  },
+  expected: 201,
+});
 
-record('V0.3-A Budget, V0.3-B Purchase Request, V0.3-C RFQ and V0.3-D PO numbering / approval configuration');
+record('V0.3-A Budget, V0.3-B Purchase Request, V0.3-C RFQ, V0.3-D PO and V0.5-D Certification approval configuration');
 
 const pmPassword = 'Uat-PM-' + suffix + '-Strong-2026!';
 const unassignedPassword = 'Uat-PE-' + suffix + '-Strong-2026!';
@@ -4045,7 +4071,359 @@ await request(
     expected: 409,
   },
 );
+
 record('V0.5-C Claim Draft/line/submit lifecycle, exact-period and cumulative ceilings, immutable submitted source, lower Assessment, rejection/replacement history, retry safety, Claim-specific cancellation guard and Project authorization');
+
+const stageDAgreement = await request(pm, '/subcontracts/agreements', {
+  method: 'POST',
+  json: {
+    projectId,
+    subcontractorId,
+    originalValue: '1000.00',
+    scopeOfWork: 'Stage D certification and retention package ' + suffix,
+    currencyCode: 'SGD',
+    retentionRate: '2.50',
+    retentionCap: '5.01',
+    operationalStatusId: subcontractStatus.data.data.id,
+    createKey: 'uat-v05d-agreement-' + suffix,
+  },
+  expected: 201,
+});
+const stageDAgreementId = stageDAgreement.data.data.id;
+check(
+  stageDAgreement.data.data.approvalState === 'DRAFT' &&
+    Number(stageDAgreement.data.data.retentionRate) === 2.5 &&
+    Number(stageDAgreement.data.data.retentionCap) === 5.01,
+  'V0.5-D Agreement Draft did not retain retention rate/cap.',
+);
+await request(
+  pm,
+  '/subcontracts/agreements/' + stageDAgreementId + '/submit',
+  {
+    method: 'POST',
+    json: {
+      workflowCode: subcontractAgreementWorkflowCode,
+      actionKey: 'uat-v05d-agreement-submit-' + suffix,
+    },
+    expected: 201,
+  },
+);
+await request(
+  pm,
+  '/subcontracts/agreements/' + stageDAgreementId + '/approve',
+  {
+    method: 'POST',
+    json: {
+      actionKey: 'uat-v05d-agreement-maker-approve-' + suffix,
+    },
+    expected: 403,
+  },
+);
+const approvedStageDAgreement = await request(
+  checker,
+  '/subcontracts/agreements/' + stageDAgreementId + '/approve',
+  {
+    method: 'POST',
+    json: {
+      actionKey: 'uat-v05d-agreement-approve-' + suffix,
+      comment: 'Approve Stage D retention terms.',
+    },
+    expected: 201,
+  },
+);
+check(
+  approvedStageDAgreement.data.data.approvalState === 'APPROVED' &&
+    Number(approvedStageDAgreement.data.data.retentionRate) === 2.5 &&
+    Number(approvedStageDAgreement.data.data.retentionCap) === 5.01,
+  'V0.5-D Agreement approval did not freeze the retention terms.',
+);
+
+async function createStageDAssessedClaim({
+  periodStart,
+  periodEnd,
+  amount,
+  key,
+}) {
+  const claim = await request(
+    pm,
+    '/subcontracts/agreements/' + stageDAgreementId + '/claims',
+    {
+      method: 'POST',
+      json: { periodStart, periodEnd },
+      expected: 201,
+    },
+  );
+  await request(pm, '/subcontracts/claims/' + claim.data.data.id + '/lines', {
+    method: 'POST',
+    json: { amount },
+    expected: 201,
+  });
+  await request(pm, '/subcontracts/claims/' + claim.data.data.id + '/submit', {
+    method: 'POST',
+    json: { actionKey: 'uat-v05d-claim-submit-' + key + '-' + suffix },
+    expected: 201,
+  });
+  return request(
+    checker,
+    '/subcontracts/claims/' + claim.data.data.id + '/assess',
+    {
+      method: 'POST',
+      json: {
+        assessedAmount: amount,
+        reason: 'Accepted Stage D measured progress.',
+        actionKey: 'uat-v05d-assess-' + key + '-' + suffix,
+      },
+      expected: 201,
+    },
+  );
+}
+
+const stageDClaimOne = await createStageDAssessedClaim({
+  periodStart: '2027-02-01',
+  periodEnd: '2027-02-28',
+  amount: '100.00',
+  key: 'one',
+});
+const stageDClaimOneId = stageDClaimOne.data.data.id;
+const stageDCertOne = await request(
+  pm,
+  '/subcontracts/claims/' + stageDClaimOneId + '/certifications',
+  {
+    method: 'POST',
+    json: { certifiedGross: '100.00' },
+    expected: 201,
+  },
+);
+const stageDCertOneId = stageDCertOne.data.data.id;
+check(
+  /^SCT\d{4}-\d{3}$/.test(stageDCertOne.data.data.certificationNumber) &&
+    stageDCertOne.data.data.state === 'DRAFT',
+  'V0.5-D Certification Draft did not retain SCTYYMM-### identity.',
+);
+await request(
+  unassigned,
+  '/subcontracts/certifications/' + stageDCertOneId,
+  { expected: 403 },
+);
+await request(
+  admin,
+  '/subcontracts/certifications/' + stageDCertOneId,
+  { expected: 403 },
+);
+await request(
+  pm,
+  '/subcontracts/certifications/' + stageDCertOneId + '/submit',
+  {
+    method: 'POST',
+    json: {
+      workflowCode: subcontractCertificationWorkflowCode,
+      actionKey: 'uat-v05d-cert-one-submit-' + suffix,
+    },
+    expected: 201,
+  },
+);
+await request(
+  pm,
+  '/subcontracts/certifications/' + stageDCertOneId + '/approve',
+  {
+    method: 'POST',
+    json: {
+      actionKey: 'uat-v05d-cert-one-maker-approve-' + suffix,
+    },
+    expected: 403,
+  },
+);
+const approvedStageDCertOne = await request(
+  checker,
+  '/subcontracts/certifications/' + stageDCertOneId + '/approve',
+  {
+    method: 'POST',
+    json: {
+      actionKey: 'uat-v05d-cert-one-approve-' + suffix,
+      comment: 'Configured checker final approval.',
+    },
+    expected: 201,
+  },
+);
+check(
+  approvedStageDCertOne.data.data.state === 'APPROVED' &&
+    Number(approvedStageDCertOne.data.data.assessedAmountSnapshot) === 100 &&
+    Number(approvedStageDCertOne.data.data.certifiedGross) === 100 &&
+    Number(approvedStageDCertOne.data.data.retentionRateSnapshot) === 2.5 &&
+    Number(approvedStageDCertOne.data.data.retentionCapSnapshot) === 5.01 &&
+    Number(approvedStageDCertOne.data.data.retainedBeforeSnapshot) === 0 &&
+    Number(approvedStageDCertOne.data.data.retainedAmount) === 2.5 &&
+    Number(approvedStageDCertOne.data.data.netCertifiedAmount) === 97.5,
+  'V0.5-D first Certification did not preserve gross/retention/net snapshots.',
+);
+const replayedStageDCertOne = await request(
+  checker,
+  '/subcontracts/certifications/' + stageDCertOneId + '/approve',
+  {
+    method: 'POST',
+    json: {
+      actionKey: 'uat-v05d-cert-one-approve-' + suffix,
+      comment: 'Configured checker final approval.',
+    },
+    expected: 201,
+  },
+);
+check(
+  replayedStageDCertOne.data.data.id === stageDCertOneId &&
+    replayedStageDCertOne.data.data.state === 'APPROVED',
+  'V0.5-D stable Certification approval retry duplicated the decision.',
+);
+
+const stageDClaimTwo = await createStageDAssessedClaim({
+  periodStart: '2027-03-01',
+  periodEnd: '2027-03-31',
+  amount: '100.20',
+  key: 'two',
+});
+const stageDClaimTwoId = stageDClaimTwo.data.data.id;
+await request(
+  pm,
+  '/subcontracts/claims/' + stageDClaimTwoId + '/certifications',
+  {
+    method: 'POST',
+    json: { certifiedGross: '100.21' },
+    expected: 422,
+  },
+);
+const stageDCertTwo = await request(
+  pm,
+  '/subcontracts/claims/' + stageDClaimTwoId + '/certifications',
+  {
+    method: 'POST',
+    json: { certifiedGross: '100.20' },
+    expected: 201,
+  },
+);
+const stageDCertTwoId = stageDCertTwo.data.data.id;
+await request(
+  pm,
+  '/subcontracts/certifications/' + stageDCertTwoId + '/submit',
+  {
+    method: 'POST',
+    json: {
+      workflowCode: subcontractCertificationWorkflowCode,
+      actionKey: 'uat-v05d-cert-two-submit-' + suffix,
+    },
+    expected: 201,
+  },
+);
+const approvedStageDCertTwo = await request(
+  checker,
+  '/subcontracts/certifications/' + stageDCertTwoId + '/approve',
+  {
+    method: 'POST',
+    json: {
+      actionKey: 'uat-v05d-cert-two-approve-' + suffix,
+      comment: 'Approve half-up and remaining-cap evidence.',
+    },
+    expected: 201,
+  },
+);
+check(
+  approvedStageDCertTwo.data.data.state === 'APPROVED' &&
+    Number(approvedStageDCertTwo.data.data.assessedAmountSnapshot) === 100.2 &&
+    Number(approvedStageDCertTwo.data.data.certifiedGross) === 100.2 &&
+    Number(approvedStageDCertTwo.data.data.retainedBeforeSnapshot) === 2.5 &&
+    Number(approvedStageDCertTwo.data.data.retainedAmount) === 2.51 &&
+    Number(approvedStageDCertTwo.data.data.netCertifiedAmount) === 97.69,
+  'V0.5-D half-up retention and remaining aggregate cap were not applied correctly.',
+);
+
+const stageDCertificationHistory = await request(
+  pm,
+  '/subcontracts/agreements/' + stageDAgreementId + '/certifications',
+);
+check(
+  stageDCertificationHistory.data.data.length === 2 &&
+    stageDCertificationHistory.data.data.some(
+      (item) =>
+        item.id === stageDCertOneId &&
+        Number(item.retainedAmount) === 2.5,
+    ) &&
+    stageDCertificationHistory.data.data.some(
+      (item) =>
+        item.id === stageDCertTwoId &&
+        Number(item.retainedAmount) === 2.51,
+    ),
+  'V0.5-D retained Certification history did not preserve both approved snapshots.',
+);
+check(
+  !('paymentStatus' in approvedStageDCertTwo.data.data) &&
+    !('invoiceId' in approvedStageDCertTwo.data.data) &&
+    !('paymentId' in approvedStageDCertTwo.data.data),
+  'V0.5-D Certification unexpectedly exposed a payment or Finance posting effect.',
+);
+
+const reversedStageDCertTwo = await request(
+  checker,
+  '/subcontracts/certifications/' + stageDCertTwoId + '/reverse',
+  {
+    method: 'POST',
+    json: {
+      reason: 'Correct the assessed Claim through linked replacement.',
+      actionKey: 'uat-v05d-cert-two-reverse-' + suffix,
+    },
+    expected: 201,
+  },
+);
+check(
+  reversedStageDCertTwo.data.data.state === 'REVERSED' &&
+    reversedStageDCertTwo.data.data.reversedAt &&
+    reversedStageDCertTwo.data.data.reversedBy &&
+    reversedStageDCertTwo.data.data.reversalReason ===
+      'Correct the assessed Claim through linked replacement.' &&
+    Number(reversedStageDCertTwo.data.data.retainedAmount) === 2.51 &&
+    Number(reversedStageDCertTwo.data.data.netCertifiedAmount) === 97.69,
+  'V0.5-D reversal did not retain original Certification snapshots and reversal evidence.',
+);
+
+const stageDReplacement = await request(
+  pm,
+  '/subcontracts/claims/' + stageDClaimTwoId + '/replacements',
+  {
+    method: 'POST',
+    json: {},
+    expected: 201,
+  },
+);
+await request(
+  pm,
+  '/subcontracts/claims/' + stageDReplacement.data.data.id + '/lines',
+  {
+    method: 'POST',
+    json: { amount: '99.00' },
+    expected: 201,
+  },
+);
+await request(
+  pm,
+  '/subcontracts/claims/' + stageDReplacement.data.data.id + '/submit',
+  {
+    method: 'POST',
+    json: {
+      actionKey: 'uat-v05d-replacement-submit-' + suffix,
+    },
+    expected: 201,
+  },
+);
+const replacedStageDSource = await request(
+  pm,
+  '/subcontracts/claims/' + stageDClaimTwoId,
+);
+check(
+  replacedStageDSource.data.data.state === 'REPLACED' &&
+    replacedStageDSource.data.data.replacementClaim?.id ===
+      stageDReplacement.data.data.id,
+  'V0.5-D reversed Certification did not restore the approved linked replacement Claim path.',
+);
+
+record('V0.5-D Payment Certification, maker-checker, Project/permission denial, distinct gross/assessment values, half-up capped retention withholding, net certification, retry safety, retained reversal history, linked Claim correction and no Finance/payment posting');
+
 
 await request(pm, '/subcontracts/subcontractors/' + subcontractorId + '/archive', {
   method: 'POST',

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import test from 'node:test';
 
 import {
@@ -396,6 +396,52 @@ test('V0.5-A enforces Subcontractor Company scope and agreement Project scope', 
       },
     );
     assert.equal(caseNormalizedRetry.id, created.id);
+
+    const legacyCreateKey = 'legacy-stage-a-' + suffix;
+    const legacyPayloadHash = createHash('sha256')
+      .update(
+        JSON.stringify([
+          project.id.toLowerCase(),
+          subcontractor.id.toLowerCase(),
+          '25000.00',
+          'Legacy agreement replay',
+          'SGD',
+          status.id.toLowerCase(),
+        ]),
+      )
+      .digest('hex');
+    const legacyAgreement = await prisma.subcontractAgreement.create({
+      data: {
+        companyId: company.id,
+        projectId: project.id,
+        subcontractorId: subcontractor.id,
+        agreementNumber: 'SC2610-999',
+        originalValue: '25000.00',
+        scopeOfWork: 'Legacy agreement replay',
+        currencyCode: 'SGD',
+        operationalStatusId: status.id,
+        createKey: legacyCreateKey,
+        createPayloadHash: legacyPayloadHash,
+        createdByUserId: scopedUser.id,
+      },
+    });
+    const legacyRetry = await service.createAgreement(
+      { auth: scoped },
+      {
+        projectId: project.id,
+        subcontractorId: subcontractor.id,
+        originalValue: '25000.00',
+        scopeOfWork: 'Legacy agreement replay',
+        currencyCode: 'SGD',
+        operationalStatusId: status.id,
+        createKey: legacyCreateKey,
+      },
+    );
+    assert.equal(
+      legacyRetry.id,
+      legacyAgreement.id,
+      'pre-Stage-D create-key retries must accept the legacy payload hash when retention stays at defaults',
+    );
 
     await assert.rejects(
       () =>

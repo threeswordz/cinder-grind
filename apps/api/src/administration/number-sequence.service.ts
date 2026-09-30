@@ -29,6 +29,13 @@ const RESERVED_SEQUENCE_POLICIES = new Map<
       resetRule: 'MONTHLY',
     },
   ],
+  [
+    'SUBCONTRACT_CERTIFICATION',
+    {
+      formatTemplate: 'SCTYYMM-###',
+      resetRule: 'MONTHLY',
+    },
+  ],
 ]);
 
 type LockedSequence = {

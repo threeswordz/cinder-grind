@@ -40,6 +40,8 @@ export type AgreementDraftInput = {
   originalValue: string;
   scopeOfWork: string;
   currencyCode: string;
+  retentionRate?: string;
+  retentionCap?: string | null;
   operationalStatusId?: string | null;
   createKey?: string | null;
 };
@@ -47,7 +49,7 @@ export type AgreementDraftInput = {
 export type AgreementDraftUpdate = Partial<
   Pick<
     AgreementDraftInput,
-    'originalValue' | 'scopeOfWork' | 'currencyCode' | 'operationalStatusId'
+    'originalValue' | 'scopeOfWork' | 'currencyCode' | 'retentionRate' | 'retentionCap' | 'operationalStatusId'
   >
 >;
 
@@ -375,6 +377,8 @@ export class SubcontractsService {
             originalValue: input.originalValue,
             scopeOfWork: input.scopeOfWork,
             currencyCode: input.currencyCode,
+            retentionRate: input.retentionRate ?? '0.00',
+            retentionCap: input.retentionCap ?? null,
             operationalStatusId: input.operationalStatusId ?? null,
             createKey: input.createKey ?? null,
             createPayloadHash: input.createKey
@@ -724,6 +728,22 @@ export class SubcontractsService {
       new Prisma.Decimal(input.originalValue).toFixed(2),
       input.scopeOfWork,
       input.currencyCode,
+      new Prisma.Decimal(input.retentionRate ?? '0.00').toFixed(2),
+      input.retentionCap === null || input.retentionCap === undefined
+        ? null
+        : new Prisma.Decimal(input.retentionCap).toFixed(2),
+      input.operationalStatusId?.toLowerCase() ?? null,
+    ]);
+    return createHash('sha256').update(canonicalPayload).digest('hex');
+  }
+
+  private legacyAgreementCreatePayloadHash(input: AgreementDraftInput): string {
+    const canonicalPayload = JSON.stringify([
+      input.projectId.toLowerCase(),
+      input.subcontractorId.toLowerCase(),
+      new Prisma.Decimal(input.originalValue).toFixed(2),
+      input.scopeOfWork,
+      input.currencyCode,
       input.operationalStatusId?.toLowerCase() ?? null,
     ]);
     return createHash('sha256').update(canonicalPayload).digest('hex');
@@ -733,9 +753,18 @@ export class SubcontractsService {
     existing: { createPayloadHash: string | null },
     input: AgreementDraftInput,
   ): void {
+    const currentHash = this.agreementCreatePayloadHash(input);
+    const usesStageDDefaults =
+      new Prisma.Decimal(input.retentionRate ?? '0.00').equals(0) &&
+      (input.retentionCap === null || input.retentionCap === undefined);
+    const legacyHash = usesStageDDefaults
+      ? this.legacyAgreementCreatePayloadHash(input)
+      : null;
+
     if (
       !existing.createPayloadHash ||
-      existing.createPayloadHash !== this.agreementCreatePayloadHash(input)
+      (existing.createPayloadHash !== currentHash &&
+        existing.createPayloadHash !== legacyHash)
     ) {
       throw new ConflictException({
         code: 'IDEMPOTENCY_KEY_REUSED',

@@ -227,12 +227,11 @@ export class SubcontractsClaimsService {
       sourceClaimId,
       this.prisma,
     );
-    if (!['WITHDRAWN', 'REJECTED'].includes(source.state)) {
-      throw new ConflictException({
-        code: 'CLAIM_NOT_REPLACEABLE',
-        detail: 'Only a withdrawn or rejected Claim can be replaced.',
-      });
-    }
+    await this.assertReplaceableSource(
+      context.auth.companyId,
+      source,
+      this.prisma,
+    );
     await this.ensureClaimSequence(context.auth.companyId);
     const claimNumber = await this.numbers.next(
       context.auth.companyId,
@@ -257,12 +256,11 @@ export class SubcontractsClaimsService {
             sourceClaimId,
             tx,
           );
-          if (!['WITHDRAWN', 'REJECTED'].includes(current.state)) {
-            throw new ConflictException({
-              code: 'CLAIM_NOT_REPLACEABLE',
-              detail: 'Only a withdrawn or rejected Claim can be replaced.',
-            });
-          }
+          await this.assertReplaceableSource(
+            context.auth.companyId,
+            current,
+            tx,
+          );
           const agreement = await this.agreementById(
             context.auth.companyId,
             current.agreementId,
@@ -275,6 +273,7 @@ export class SubcontractsClaimsService {
             current.periodStart,
             current.periodEnd,
             tx,
+            current.id,
           );
 
           const row = await tx.subcontractClaim.create({
@@ -669,7 +668,29 @@ export class SubcontractsClaimsService {
           tx,
         );
         this.assertApprovedAgreement(agreement);
-        if (!claim.replacementForClaimId) {
+        let replacementSource:
+          | Awaited<ReturnType<typeof this.claimById>>
+          | null = null;
+        if (claim.replacementForClaimId) {
+          replacementSource = await this.claimById(
+            context.auth.companyId,
+            claim.replacementForClaimId,
+            tx,
+          );
+          if (replacementSource.agreementId !== claim.agreementId) {
+            throw new ConflictException({
+              code: 'CLAIM_REPLACEMENT_SOURCE_INVALID',
+              detail:
+                'A replacement Claim requires a retained source Claim from the same agreement.',
+            });
+          }
+          await this.assertReplaceableSource(
+            context.auth.companyId,
+            replacementSource,
+            tx,
+          );
+          this.assertReplacementPeriod(replacementSource, claim);
+        } else {
           await this.assertNoUnlinkedPeriodHistory(
             context.auth.companyId,
             claim.agreementId,
@@ -702,7 +723,12 @@ export class SubcontractsClaimsService {
         const existing = await tx.subcontractClaimLine.aggregate({
           where: {
             agreementId: claim.agreementId,
-            claim: { state: { in: ['SUBMITTED', 'ASSESSED'] } },
+            claim: {
+              state: { in: ['SUBMITTED', 'ASSESSED'] },
+              ...(replacementSource
+                ? { id: { not: replacementSource.id } }
+                : {}),
+            },
           },
           _sum: { amount: true },
         });
@@ -745,7 +771,12 @@ export class SubcontractsClaimsService {
           const prior = await tx.subcontractClaimLine.aggregate({
             where: {
               workOrderId,
-              claim: { state: { in: ['SUBMITTED', 'ASSESSED'] } },
+              claim: {
+                state: { in: ['SUBMITTED', 'ASSESSED'] },
+                ...(replacementSource
+                  ? { id: { not: replacementSource.id } }
+                  : {}),
+              },
             },
             _sum: { amount: true },
           });
@@ -761,25 +792,9 @@ export class SubcontractsClaimsService {
           }
         }
 
-        if (claim.replacementForClaimId) {
-          const source = await this.claimById(
-            context.auth.companyId,
-            claim.replacementForClaimId,
-            tx,
-          );
-          if (
-            source.agreementId !== claim.agreementId ||
-            !['WITHDRAWN', 'REJECTED'].includes(source.state)
-          ) {
-            throw new ConflictException({
-              code: 'CLAIM_REPLACEMENT_SOURCE_INVALID',
-              detail:
-                'A replacement Claim requires a retained withdrawn or rejected Claim from the same agreement.',
-            });
-          }
-          this.assertReplacementPeriod(source, claim);
+        if (replacementSource) {
           await tx.subcontractClaim.update({
-            where: { id: source.id },
+            where: { id: replacementSource.id },
             data: { state: 'REPLACED', replacedAt: new Date() },
           });
         }
@@ -1040,6 +1055,24 @@ export class SubcontractsClaimsService {
             detail: 'No active assessment exists for this Claim.',
           });
         }
+        const certificationHistory =
+          await tx.subcontractCertification.findFirst({
+            where: {
+              companyId: context.auth.companyId,
+              claimId,
+              state: {
+                in: ['DRAFT', 'SUBMITTED', 'APPROVED', 'REVERSED'],
+              },
+            },
+            select: { id: true, certificationNumber: true, state: true },
+          });
+        if (certificationHistory) {
+          throw new ConflictException({
+            code: 'ASSESSMENT_CERTIFICATION_CORRECTION_REQUIRED',
+            detail:
+              'Certification history controls this correction. Reverse an approved Certification and use a linked replacement Claim.',
+          });
+        }
 
         const rejectedAt = new Date();
         await tx.subcontractClaimAssessment.update({
@@ -1197,6 +1230,31 @@ export class SubcontractsClaimsService {
           'This agreement and period has retained Claim history; use the linked replacement workflow.',
       });
     }
+  }
+
+  private async assertReplaceableSource(
+    companyId: string,
+    claim: { id: string; state: string },
+    db: SubcontractDb,
+  ) {
+    if (['WITHDRAWN', 'REJECTED'].includes(claim.state)) return;
+    if (claim.state === 'ASSESSED') {
+      const reversedCertification =
+        await db.subcontractCertification.findFirst({
+          where: {
+            companyId,
+            claimId: claim.id,
+            state: 'REVERSED',
+          },
+          select: { id: true },
+        });
+      if (reversedCertification) return;
+    }
+    throw new ConflictException({
+      code: 'CLAIM_NOT_REPLACEABLE',
+      detail:
+        'A Claim can be replaced only after withdrawal, Assessment rejection, or approved Certification reversal.',
+    });
   }
 
   private assertReplacementPeriod(

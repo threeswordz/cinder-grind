@@ -564,6 +564,29 @@ export class IdentityAdminService {
           'subcontracts.assessment.reject',
         ],
       },
+      {
+        view: 'subcontracts.claim.view',
+        actions: [
+          'subcontracts.certification.view',
+          'subcontracts.certification.create',
+          'subcontracts.certification.edit',
+          'subcontracts.certification.submit',
+          'subcontracts.certification.approve',
+          'subcontracts.certification.reject',
+          'subcontracts.certification.reverse',
+        ],
+      },
+      {
+        view: 'subcontracts.certification.view',
+        actions: [
+          'subcontracts.certification.create',
+          'subcontracts.certification.edit',
+          'subcontracts.certification.submit',
+          'subcontracts.certification.approve',
+          'subcontracts.certification.reject',
+          'subcontracts.certification.reverse',
+        ],
+      },
     ];
     for (const group of subcontractPermissionGroups) {
       if (

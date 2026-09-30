@@ -72,6 +72,8 @@ export type AgreementDraft = {
   originalValue: string;
   scopeOfWork: string;
   currencyCode: string;
+  retentionRate: string;
+  retentionCap: string | null;
   approvalState: string;
   operationalStatusId: string | null;
   firstApprovedAt: string | null;
@@ -96,6 +98,8 @@ export type AgreementVersion = {
   originalValue: string;
   scopeOfWork: string;
   currencyCode: string;
+  retentionRate: string;
+  retentionCap: string | null;
   operationalStatusId: string | null;
   reason: string | null;
   approvalInstanceId: string | null;
@@ -251,6 +255,61 @@ export type ClaimRecord = {
   withdrawnBy: { id: string; displayName: string } | null;
 };
 
+
+export type CertificationRecord = {
+  id: string;
+  projectId: string;
+  agreementId: string;
+  claimId: string;
+  assessmentId: string;
+  certificationNumber: string;
+  currencyCode: string;
+  certifiedGross: string;
+  state: string;
+  approvalInstanceId: string | null;
+  assessedAmountSnapshot: string | null;
+  retentionRateSnapshot: string | null;
+  retentionCapSnapshot: string | null;
+  retainedBeforeSnapshot: string | null;
+  retainedAmount: string | null;
+  netCertifiedAmount: string | null;
+  submittedAt: string | null;
+  decidedAt: string | null;
+  approvedAt: string | null;
+  rejectedAt: string | null;
+  rejectionReason: string | null;
+  reversedAt: string | null;
+  reversalReason: string | null;
+  createdAt: string;
+  agreement: {
+    id: string;
+    agreementNumber: string;
+    originalValue: string;
+    currencyCode: string;
+    retentionRate: string;
+    retentionCap: string | null;
+    approvalState: string;
+    cancelledAt: string | null;
+  };
+  claim: {
+    id: string;
+    claimNumber: string;
+    state: string;
+  };
+  assessment: {
+    id: string;
+    assessedAmount: string;
+    state: string;
+    assessedAt: string;
+  };
+  createdBy: { id: string; displayName: string };
+  submittedBy: { id: string; displayName: string } | null;
+  approvedBy: { id: string; displayName: string } | null;
+  rejectedBy: { id: string; displayName: string } | null;
+  reversedBy: { id: string; displayName: string } | null;
+  approvalInstance: ApprovalInstanceRecord | null;
+};
+
 function query(path: string, values: Record<string, string | undefined>) {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(values)) {
@@ -330,6 +389,8 @@ export const subcontractsApi = {
     originalValue: string;
     scopeOfWork: string;
     currencyCode: string;
+    retentionRate?: string;
+    retentionCap?: string | null;
     operationalStatusId?: string | null;
     createKey?: string;
   }) =>
@@ -343,6 +404,8 @@ export const subcontractsApi = {
       originalValue: string;
       scopeOfWork: string;
       currencyCode: string;
+      retentionRate: string;
+      retentionCap: string | null;
       operationalStatusId: string | null;
     }>,
   ) =>
@@ -588,6 +651,71 @@ export const subcontractsApi = {
   ) =>
     postAction<ClaimRecord>(
       '/subcontracts/claims/' + claimId + '/assessment/reject',
+      { reason, actionKey },
+    ),
+
+  certificationWorkflowOptions: () =>
+    apiRequest<Data<WorkflowOption[]>>(
+      '/subcontracts/certification-workflow-options',
+    ),
+  certifications: (agreementId: string) =>
+    apiRequest<Data<CertificationRecord[]>>(
+      '/subcontracts/agreements/' + agreementId + '/certifications',
+    ),
+  certification: (certificationId: string) =>
+    apiRequest<Data<CertificationRecord>>(
+      '/subcontracts/certifications/' + certificationId,
+    ),
+  createCertification: (
+    claimId: string,
+    body: { certifiedGross: string },
+  ) =>
+    postAction<CertificationRecord>(
+      '/subcontracts/claims/' + claimId + '/certifications',
+      body,
+    ),
+  updateCertification: (
+    certificationId: string,
+    body: { certifiedGross: string },
+  ) =>
+    apiRequest<Data<CertificationRecord>>(
+      '/subcontracts/certifications/' + certificationId,
+      { method: 'PATCH', body: JSON.stringify(body) },
+    ),
+  submitCertification: (
+    certificationId: string,
+    workflowCode: string,
+    actionKey: string,
+  ) =>
+    postAction<CertificationRecord>(
+      '/subcontracts/certifications/' + certificationId + '/submit',
+      { workflowCode, actionKey },
+    ),
+  approveCertification: (
+    certificationId: string,
+    actionKey: string,
+    comment?: string,
+  ) =>
+    postAction<CertificationRecord>(
+      '/subcontracts/certifications/' + certificationId + '/approve',
+      { actionKey, ...(comment ? { comment } : {}) },
+    ),
+  rejectCertification: (
+    certificationId: string,
+    reason: string,
+    actionKey: string,
+  ) =>
+    postAction<CertificationRecord>(
+      '/subcontracts/certifications/' + certificationId + '/reject',
+      { reason, actionKey },
+    ),
+  reverseCertification: (
+    certificationId: string,
+    reason: string,
+    actionKey: string,
+  ) =>
+    postAction<CertificationRecord>(
+      '/subcontracts/certifications/' + certificationId + '/reverse',
       { reason, actionKey },
     ),
 };

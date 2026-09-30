@@ -7,6 +7,8 @@ import { AuthModule } from '../auth/auth.module';
 import { AuthorizationModule } from '../authorization/authorization.module';
 import { PrismaModule } from '../prisma/prisma.module';
 import { ProjectsModule } from '../projects/projects.module';
+import { SubcontractsCertificationController } from './subcontracts-certification.controller';
+import { SubcontractsCertificationService } from './subcontracts-certification.service';
 import { SubcontractsClaimsController } from './subcontracts-claims.controller';
 import { SubcontractsClaimsService } from './subcontracts-claims.service';
 import { SubcontractsWorkflowController } from './subcontracts-workflow.controller';
@@ -28,16 +30,19 @@ import { SubcontractsService } from './subcontracts.service';
     SubcontractsController,
     SubcontractsWorkflowController,
     SubcontractsClaimsController,
+    SubcontractsCertificationController,
   ],
   providers: [
     SubcontractsService,
     SubcontractsWorkflowService,
     SubcontractsClaimsService,
+    SubcontractsCertificationService,
   ],
   exports: [
     SubcontractsService,
     SubcontractsWorkflowService,
     SubcontractsClaimsService,
+    SubcontractsCertificationService,
   ],
 })
 export class SubcontractsModule {}

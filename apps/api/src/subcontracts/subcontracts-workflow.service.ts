@@ -146,6 +146,8 @@ export class SubcontractsWorkflowService {
             originalValue: agreement.originalValue,
             scopeOfWork: agreement.scopeOfWork,
             currencyCode: agreement.currencyCode,
+            retentionRate: agreement.retentionRate,
+            retentionCap: agreement.retentionCap,
             operationalStatusId: agreement.operationalStatusId,
             createdByUserId: context.auth.userId,
           },
@@ -283,6 +285,8 @@ export class SubcontractsWorkflowService {
             originalValue: agreement.originalValue,
             scopeOfWork: agreement.scopeOfWork,
             currencyCode: agreement.currencyCode,
+            retentionRate: agreement.retentionRate,
+            retentionCap: agreement.retentionCap,
             operationalStatusId:
               input.operationalStatusId === undefined
                 ? agreement.operationalStatusId
@@ -586,6 +590,21 @@ export class SubcontractsWorkflowService {
             code: 'AGREEMENT_HAS_ACTIVE_CLAIM',
             detail:
               'An agreement with a submitted or assessed Claim cannot be cancelled.',
+          });
+        }
+
+        const blockingCertification = await tx.subcontractCertification.findFirst({
+          where: {
+            agreementId,
+            state: 'APPROVED',
+          },
+          select: { id: true, certificationNumber: true },
+        });
+        if (blockingCertification) {
+          throw new ConflictException({
+            code: 'AGREEMENT_HAS_APPROVED_CERTIFICATION',
+            detail:
+              'An agreement with a non-reversed approved Certification cannot be cancelled.',
           });
         }
 
@@ -1688,17 +1707,26 @@ export class SubcontractsWorkflowService {
       originalValue: Prisma.Decimal;
       scopeOfWork: string;
       currencyCode: string;
+      retentionRate: Prisma.Decimal;
+      retentionCap: Prisma.Decimal | null;
     },
     version: {
       originalValue: Prisma.Decimal;
       scopeOfWork: string;
       currencyCode: string;
+      retentionRate: Prisma.Decimal;
+      retentionCap: Prisma.Decimal | null;
     },
   ) {
     if (
       !agreement.originalValue.equals(version.originalValue) ||
       agreement.scopeOfWork !== version.scopeOfWork ||
-      agreement.currencyCode !== version.currencyCode
+      agreement.currencyCode !== version.currencyCode ||
+      !agreement.retentionRate.equals(version.retentionRate) ||
+      (agreement.retentionCap === null
+        ? version.retentionCap !== null
+        : version.retentionCap === null ||
+          !agreement.retentionCap.equals(version.retentionCap))
     ) {
       throw new ConflictException({
         code: 'AGREEMENT_COMMERCIAL_SNAPSHOT_MISMATCH',

@@ -18,6 +18,7 @@ import {
   ClaimRecord,
   subcontractsApi,
 } from '../api/subcontracts';
+import { CertificationSection } from './CertificationSection';
 
 function amountToCents(value: string) {
   const [whole = '0', fraction = ''] = value.split('.');
@@ -318,9 +319,9 @@ export function ClaimsPanel({ permissions }: { permissions: string[] }) {
     <Stack spacing={3}>
       <Typography variant="h6">Claims and Assessments</Typography>
       <Alert severity="info">
-        Claims are period increments against an approved Agreement. Submitted
-        source values are retained separately from Assessment values. This Stage
-        does not certify payment or apply retention.
+        Claims, Assessments and Payment Certifications remain distinct retained
+        values. Stage D applies retention withholding only when a Certification
+        reaches final approval; it does not create a payment or Finance posting.
       </Alert>
       {requestError ? (
         <Alert severity="error">
@@ -694,6 +695,14 @@ export function ClaimsPanel({ permissions }: { permissions: string[] }) {
                   Create Linked Replacement Claim
                 </Button>
               ) : null}
+
+              <CertificationSection
+                claim={selectedClaim}
+                claimedAmount={claimAmount}
+                agreementActive={agreementActive}
+                permissions={permissions}
+                onReplacementCreated={(claimId) => setSelectedClaimId(claimId)}
+              />
 
               <Divider />
               <Typography variant="subtitle2">Retained history</Typography>
