@@ -133,6 +133,15 @@ test('user and role administration respects company boundaries and revokes sessi
       (error: unknown) => error instanceof UnprocessableEntityException,
       'Stage D Certification actions require Certification view permission',
     );
+    await assert.rejects(
+      () =>
+        service.replaceRolePermissions({ auth }, role.id, [
+          'subcontracts.certification.view',
+          'subcontracts.certification.approve',
+        ]),
+      (error: unknown) => error instanceof UnprocessableEntityException,
+      'Stage D Certification permissions require Claim view because the Certification workspace is mounted inside Claims',
+    );
     await service.replaceRolePermissions({ auth }, role.id, [
       'subcontracts.subcontractor.view',
       'subcontracts.subcontractor.manage',
