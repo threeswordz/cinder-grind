@@ -1,14 +1,14 @@
 # Construction ERP — Current State
 
-**Last verified:** 2026-09-30
+**Last verified:** 2026-10-01
 **Source of truth:** Live GitHub repository state
 
-- Current Release: V0.5 Subcontracts — V0.5-A, V0.5-B and V0.5-C technically complete; V0.5-D Certification and Retention Withholding is in pre-flight; human V0.5 Product / Business Owner UAT remains pending as the separate release-exit gate
-- Current Stage: V0.5-D Certification and Retention Withholding under Issue #109 on `v0.5-d-certification-retention`
+- Current Release: V0.5 Subcontracts — V0.5-A, V0.5-B and V0.5-C are technically complete; V0.5-D Certification and Retention Withholding has reached a green pre-PR implementation checkpoint on its stage branch; PR/review/merge gates remain, and human V0.5 Product / Business Owner UAT remains the separate release-exit gate
+- Current Stage: V0.5-D Certification and Retention Withholding merge preparation under Issue #109 on `v0.5-d-certification-retention`; implementation, focused PostgreSQL/concurrency coverage, web presentation and authenticated live acceptance are green; PR/review/merge remain
 - Completed Stages: V0.1-A through V0.1-H; V0.2-A through V0.2-G; V0.3-A through V0.3-E; V0.4-A through V0.4-E; V0.5 entry gate; V0.5-A; V0.5-B; V0.5-C
 - Active Issue: #109 — V0.5-D Certification and Retention Withholding
 - V0.5-C green main checkpoint: PR #108 squash-merged as `3f00de1f984c82c1737c4b47c226d99197b19e54`; final exact-head push CI #1869 and PR CI #1870 passed on `0833cd893f208003215cf39cee9c07b6c9a817ad`; final Codex exact-head review reported no major issues; post-merge main CI #1871 passed; Issue #107 closed.
-- V0.5-D pre-flight: Issue #109 open; branch `v0.5-d-certification-retention` starts from green V0.5-C main `3f00de1f984c82c1737c4b47c226d99197b19e54`. Approved boundary is Certification and retention withholding only under AC-V05-017–022 / BR-V05-13–15 with applicable shared quality/security rules. Human V0.5 UAT remains later.
+- V0.5-D green implementation checkpoint: Issue #109 remains open; branch `v0.5-d-certification-retention` is 13 commits ahead / 0 behind green V0.5-C main `3f00de1f984c82c1737c4b47c226d99197b19e54` at implementation head `782da07ff103e728351680718132fd2c33758875`. CI #1885 passed clean migration deployment/status, Prisma validation, production dependency audit, full API/web validation, Stage-D PostgreSQL integrity/concurrency regression and the authenticated live HTTP Certification/retention walkthrough. Approved boundary remains Certification and retention withholding only; retention release, Finance/payment/accounting, tax/FX, Variations and later reporting remain deferred. Human V0.5 UAT remains later.
 - V0.5-B green main checkpoint: PR #106 squash-merged as `d5cf7bb1a3009d37c6cf875c54d74954e778aa57`; post-merge main CI #1736 passed; Issue #105 closed
 - V0.5 entry gate: PR #102 squash-merged as `5b67832079ef6ded86bc79f997d8115835d0c55e`; post-merge main CI #1611 passed; Issue #98 closed
 - Completed Issue: #92 — V0.4-E Stock Transfer / Inventory Documents / Reporting / Release Evidence
@@ -85,7 +85,7 @@
 - V0.1 cross-module release acceptance scenario: PASS in the Stage H release-candidate regression suite.
 - Open defect check at V0.1 acceptance: no Severity 1 or Severity 2 release-blocking defect recorded.
 - Governance: `AGENTS.md`, `docs/PROJECT-GOVERNANCE.md`, PR governance checklist and DEC-008 are active; material decisions must pass the repository pre-flight and open-source/zero-cost-first constraint.
-- Next action: complete final exact-head review on PR #108, resolve any genuine findings, squash-merge only with green exact-head CI/review, confirm post-merge `main` CI, close Issue #107, then begin V0.5-D pre-flight. Human V0.5 release UAT/acceptance remains a later exit gate.
+- Next action: open the V0.5-D PR from `v0.5-d-certification-retention` to `main`; require exact-head branch/PR CI and the required Codex review; address every genuine finding with evidence and repeat exact-head gates if the head changes; then squash-merge, verify post-merge `main` CI and close Issue #109. V0.5-E must not begin before those V0.5-D technical gates complete. Human V0.5 release UAT/acceptance remains a later exit gate.
 
 ## Stage E completed
 
