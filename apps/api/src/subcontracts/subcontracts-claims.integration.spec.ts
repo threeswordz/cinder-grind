@@ -550,6 +550,63 @@ test('V0.5-C retains Claim history, separates assessment and enforces commercial
     );
     assert.notEqual(replacement.claimNumber, claim.claimNumber);
     assert.equal(replacement.replacementForClaimId, claim.id);
+
+    // Direct INSERT/future Prisma paths must not fabricate a completed
+    // replacement lineage without either withdrawal evidence or a rejected
+    // Assessment on the predecessor.
+    const evidenceFreeSourceId = randomUUID();
+    const evidenceFreeReplacementId = randomUUID();
+    await assert.rejects(
+      () =>
+        prisma.$transaction(async (tx) => {
+          const insertedAt = new Date();
+          await tx.subcontractClaim.create({
+            data: {
+              id: evidenceFreeSourceId,
+              companyId: company.id,
+              projectId: project.id,
+              agreementId: agreement.id,
+              claimNumber: 'SCL-NOE-SRC-' + suffix,
+              periodStart: new Date('2028-03-01T00:00:00.000Z'),
+              periodEnd: new Date('2028-03-31T00:00:00.000Z'),
+              currencyCode: agreement.currencyCode,
+              state: 'REPLACED',
+              createdByUserId: maker.id,
+              submittedByUserId: maker.id,
+              submittedAt: insertedAt,
+              replacedAt: insertedAt,
+            },
+          });
+          await tx.subcontractClaim.create({
+            data: {
+              id: evidenceFreeReplacementId,
+              companyId: company.id,
+              projectId: project.id,
+              agreementId: agreement.id,
+              claimNumber: 'SCL-NOE-RPL-' + suffix,
+              periodStart: new Date('2028-03-01T00:00:00.000Z'),
+              periodEnd: new Date('2028-03-31T00:00:00.000Z'),
+              currencyCode: agreement.currencyCode,
+              state: 'SUBMITTED',
+              replacementForClaimId: evidenceFreeSourceId,
+              createdByUserId: maker.id,
+              submittedByUserId: maker.id,
+              submittedAt: insertedAt,
+            },
+          });
+        }),
+      'database must reject inserted replacement lineage without correction evidence',
+    );
+    assert.equal(
+      await prisma.subcontractClaim.count({
+        where: {
+          id: { in: [evidenceFreeSourceId, evidenceFreeReplacementId] },
+        },
+      }),
+      0,
+      'invalid evidence-free replacement lineage must roll back completely',
+    );
+
     const replacementLine = await claims.addLine(
       { auth: makerAuth },
       replacement.id,
