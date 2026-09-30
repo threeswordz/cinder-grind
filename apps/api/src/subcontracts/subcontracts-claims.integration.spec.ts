@@ -431,9 +431,53 @@ test('V0.5-C retains Claim history, separates assessment and enforces commercial
       'Assessment decision history must not be hard-deletable',
     );
 
+    // Terminal exact-period history must not be bypassed through generic
+    // create or by changing the period of an unrelated Draft.
+    await assert.rejects(
+      () =>
+        claims.createClaim(
+          { auth: makerAuth },
+          agreement.id,
+          {
+            periodStart: claim.periodStart,
+            periodEnd: claim.periodEnd,
+          },
+        ),
+      (error: unknown) => error instanceof ConflictException,
+      'rejected Claim period must require a linked replacement',
+    );
+    const unrelatedDraft = await claims.createClaim(
+      { auth: makerAuth },
+      agreement.id,
+      {
+        periodStart: new Date('2027-05-01T00:00:00.000Z'),
+        periodEnd: new Date('2027-05-31T00:00:00.000Z'),
+      },
+    );
+    await assert.rejects(
+      () =>
+        claims.updateClaim(
+          { auth: makerAuth },
+          unrelatedDraft.id,
+          { periodStart: claim.periodStart, periodEnd: claim.periodEnd },
+        ),
+      (error: unknown) => error instanceof ConflictException,
+      'changing an unrelated Draft to a terminal period must be denied',
+    );
+
     const replacement = await claims.createReplacement(
       { auth: makerAuth },
       claim.id,
+    );
+    await assert.rejects(
+      () =>
+        claims.updateClaim(
+          { auth: makerAuth },
+          replacement.id,
+          { periodEnd: new Date('2026-09-29T00:00:00.000Z') },
+        ),
+      (error: unknown) => error instanceof ConflictException,
+      'a linked replacement must retain the predecessor period',
     );
     assert.notEqual(replacement.claimNumber, claim.claimNumber);
     assert.equal(replacement.replacementForClaimId, claim.id);
@@ -453,6 +497,19 @@ test('V0.5-C retains Claim history, separates assessment and enforces commercial
     });
     assert.equal(replacedSource.state, 'REPLACED');
     assert.ok(replacedSource.replacedAt);
+    await assert.rejects(
+      () =>
+        claims.createClaim(
+          { auth: makerAuth },
+          agreement.id,
+          {
+            periodStart: claim.periodStart,
+            periodEnd: claim.periodEnd,
+          },
+        ),
+      (error: unknown) => error instanceof ConflictException,
+      'generic creation must not erase period history after predecessor is REPLACED',
+    );
 
     const overAgreement = await claims.createClaim(
       { auth: makerAuth },
@@ -496,6 +553,22 @@ test('V0.5-C retains Claim history, separates assessment and enforces commercial
       withdrawal.id,
       'withdrawal-submit-' + suffix,
     );
+    // Direct SQL/Prisma must not move SUBMITTED to WITHDRAWN without the
+    // complete actor/time/reason evidence required by BR-V05-11.
+    await assert.rejects(
+      () =>
+        prisma.$executeRaw`UPDATE "subcontract_claims"
+          SET "state" = 'WITHDRAWN'
+          WHERE "id" = ${withdrawal.id}::uuid`,
+      'database must reject a withdrawal transition missing all withdrawal evidence',
+    );
+    assert.equal(
+      (await prisma.subcontractClaim.findUniqueOrThrow({
+        where: { id: withdrawal.id },
+      })).state,
+      'SUBMITTED',
+    );
+
     const withdrawn = await claims.withdrawClaim(
       { auth: makerAuth },
       withdrawal.id,
@@ -504,6 +577,20 @@ test('V0.5-C retains Claim history, separates assessment and enforces commercial
     );
     assert.equal(withdrawn.state, 'WITHDRAWN');
     assert.equal(withdrawn.withdrawalReason, 'Incorrect source measurement.');
+
+    await assert.rejects(
+      () =>
+        claims.createClaim(
+          { auth: makerAuth },
+          agreement.id,
+          {
+            periodStart: withdrawal.periodStart,
+            periodEnd: withdrawal.periodEnd,
+          },
+        ),
+      (error: unknown) => error instanceof ConflictException,
+      'withdrawn Claim period must use the linked replacement path',
+    );
 
     const withdrawalReplacement = await claims.createReplacement(
       { auth: makerAuth },
