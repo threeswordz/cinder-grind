@@ -78,6 +78,9 @@ export function VariationsReportingPanel({
       ) ?? null,
     [variations.data?.data, selectedVariationId],
   );
+  const selectedAgreementIsActive =
+    selectedAgreement?.approvalState === 'APPROVED' &&
+    !selectedAgreement.cancelledAt;
 
   useEffect(() => {
     if (!selected || newMode) return;
@@ -184,9 +187,7 @@ export function VariationsReportingPanel({
                 <Typography variant="h6" sx={{ flexGrow: 1 }}>
                   Variation Orders
                 </Typography>
-                {canCreate &&
-                selectedAgreement?.approvalState === 'APPROVED' &&
-                !selectedAgreement.cancelledAt ? (
+                {canCreate && selectedAgreementIsActive ? (
                   <Button variant="outlined" onClick={beginNew}>
                     New Variation
                   </Button>
@@ -250,7 +251,10 @@ export function VariationsReportingPanel({
                   <TextField
                     label="Signed value delta"
                     value={valueDelta}
-                    disabled={!newMode && (!canEdit || selected?.state !== 'DRAFT')}
+                    disabled={
+                      !selectedAgreementIsActive ||
+                      (!newMode && (!canEdit || selected?.state !== 'DRAFT'))
+                    }
                     onChange={(event) => setValueDelta(event.target.value)}
                     helperText="Positive increases, negative reduces, zero is scope-only."
                   />
@@ -259,7 +263,10 @@ export function VariationsReportingPanel({
                     value={scopeChange}
                     multiline
                     minRows={2}
-                    disabled={!newMode && (!canEdit || selected?.state !== 'DRAFT')}
+                    disabled={
+                      !selectedAgreementIsActive ||
+                      (!newMode && (!canEdit || selected?.state !== 'DRAFT'))
+                    }
                     onChange={(event) => setScopeChange(event.target.value)}
                   />
                   <TextField
@@ -267,10 +274,14 @@ export function VariationsReportingPanel({
                     value={reason}
                     multiline
                     minRows={2}
-                    disabled={!newMode && (!canEdit || selected?.state !== 'DRAFT')}
+                    disabled={
+                      !selectedAgreementIsActive ||
+                      (!newMode && (!canEdit || selected?.state !== 'DRAFT'))
+                    }
                     onChange={(event) => setReason(event.target.value)}
                   />
-                  {(newMode ? canCreate : canEdit && selected?.state === 'DRAFT') ? (
+                  {selectedAgreementIsActive &&
+                  (newMode ? canCreate : canEdit && selected?.state === 'DRAFT') ? (
                     <Button
                       variant="contained"
                       onClick={() => save.mutate()}
@@ -285,7 +296,9 @@ export function VariationsReportingPanel({
                     </Button>
                   ) : null}
 
-                  {selected?.state === 'SUBMITTED' || selected?.state === 'APPROVED' ? (
+                  {selectedAgreementIsActive &&
+                  (selected?.state === 'SUBMITTED' ||
+                    selected?.state === 'APPROVED') ? (
                     <TextField
                       label={
                         selected.state === 'APPROVED'
@@ -298,7 +311,9 @@ export function VariationsReportingPanel({
                       onChange={(event) => setDecisionText(event.target.value)}
                     />
                   ) : null}
-                  {selected?.state === 'DRAFT' && canSubmit ? (
+                  {selectedAgreementIsActive &&
+                  selected?.state === 'DRAFT' &&
+                  canSubmit ? (
                     <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
                       <TextField
                         select
@@ -324,7 +339,7 @@ export function VariationsReportingPanel({
                       </Button>
                     </Stack>
                   ) : null}
-                  {selected?.state === 'SUBMITTED' ? (
+                  {selectedAgreementIsActive && selected?.state === 'SUBMITTED' ? (
                     <Stack direction="row" spacing={2}>
                       {canApprove ? (
                         <Button
@@ -350,7 +365,9 @@ export function VariationsReportingPanel({
                       ) : null}
                     </Stack>
                   ) : null}
-                  {selected?.state === 'APPROVED' && canReverse ? (
+                  {selectedAgreementIsActive &&
+                  selected?.state === 'APPROVED' &&
+                  canReverse ? (
                     <Button
                       color="warning"
                       onClick={() =>
@@ -360,6 +377,12 @@ export function VariationsReportingPanel({
                     >
                       Reverse Variation
                     </Button>
+                  ) : null}
+                  {!selectedAgreementIsActive && selected ? (
+                    <Alert severity="info">
+                      This cancelled Agreement is retained for history only.
+                      Variation actions are disabled.
+                    </Alert>
                   ) : null}
                   {selected?.approvalInstance ? (
                     <Stack spacing={0.5}>
