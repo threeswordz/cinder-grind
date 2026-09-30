@@ -163,6 +163,13 @@ export class SubcontractsClaimsService {
             tx,
           );
           this.assertApprovedAgreement(agreement);
+          await this.assertActivePeriodAvailable(
+            context.auth.companyId,
+            agreement.id,
+            input.periodStart,
+            input.periodEnd,
+            tx,
+          );
 
           const row = await tx.subcontractClaim.create({
             data: {
@@ -255,6 +262,13 @@ export class SubcontractsClaimsService {
             tx,
           );
           this.assertApprovedAgreement(agreement);
+          await this.assertActivePeriodAvailable(
+            context.auth.companyId,
+            current.agreementId,
+            current.periodStart,
+            current.periodEnd,
+            tx,
+          );
 
           const row = await tx.subcontractClaim.create({
             data: {
@@ -329,6 +343,14 @@ export class SubcontractsClaimsService {
       const periodStart = input.periodStart ?? current.periodStart;
       const periodEnd = input.periodEnd ?? current.periodEnd;
       this.assertPeriod(periodStart, periodEnd);
+      await this.assertActivePeriodAvailable(
+        context.auth.companyId,
+        current.agreementId,
+        periodStart,
+        periodEnd,
+        tx,
+        current.id,
+      );
 
       try {
         const updated = await tx.subcontractClaim.update({
@@ -1086,6 +1108,34 @@ export class SubcontractsClaimsService {
       throw new UnprocessableEntityException({
         code: 'INVALID_CLAIM_PERIOD',
         detail: 'Claim period start must be on or before period end.',
+      });
+    }
+  }
+
+  private async assertActivePeriodAvailable(
+    companyId: string,
+    agreementId: string,
+    periodStart: Date,
+    periodEnd: Date,
+    db: SubcontractDb,
+    excludeClaimId?: string,
+  ) {
+    const existing = await db.subcontractClaim.findFirst({
+      where: {
+        companyId,
+        agreementId,
+        periodStart,
+        periodEnd,
+        state: { in: ['DRAFT', 'SUBMITTED', 'ASSESSED'] },
+        ...(excludeClaimId ? { id: { not: excludeClaimId } } : {}),
+      },
+      select: { id: true },
+    });
+    if (existing) {
+      throw new ConflictException({
+        code: 'CLAIM_ACTIVE_PERIOD_EXISTS',
+        detail:
+          'An active Claim already exists for this agreement and exact period.',
       });
     }
   }
