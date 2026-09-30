@@ -87,6 +87,8 @@ Approved baselines:
 
 Current development status is maintained in `docs/CURRENT-STATE.md`.
 
+Development/session responsibilities are defined in `docs/DEVELOPMENT-OPERATING-MODEL.md`: Chat is the default Builder / Release Coordinator, GitHub is the source of truth, CI/tests provide technical evidence, the Product / Business Owner owns approval/UAT gates, and Work is the periodic independent auditor.
+
 Completed foundation stages: **V0.1-A through V0.1-H**.
 
 Next release: **V0.2 Project & Scheduling**. Development begins with **V0.2-A Scheduling Data Model** only after the V0.2 release-entry gates are verified. Development continues only through the approved roadmap, requirements, security controls, test gates and dependency-license rules.

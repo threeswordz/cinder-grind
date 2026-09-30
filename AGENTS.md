@@ -9,12 +9,13 @@ Before any material architecture, infrastructure, dependency, scope, security, b
 1. `AGENTS.md`
 2. `docs/PROJECT-GOVERNANCE.md`
 3. `docs/DECISION-LOG.md`
-4. `docs/REQUIREMENTS.md`
-5. the active release scope and acceptance criteria
-6. `docs/DEVELOPMENT-ROADMAP.md`
-7. the active GitHub Issue
-8. `docs/CURRENT-STATE.md`
-9. the active PR, code and CI
+4. `docs/DEVELOPMENT-OPERATING-MODEL.md`
+5. `docs/REQUIREMENTS.md`
+6. the active release scope and acceptance criteria
+7. `docs/DEVELOPMENT-ROADMAP.md`
+8. the active GitHub Issue
+9. `docs/CURRENT-STATE.md`
+10. the active PR, code and CI
 
 Live GitHub state is authoritative for implementation status. Approved governance/decision documents are authoritative for constraints and policy.
 
@@ -61,3 +62,16 @@ If the desired outcome requires changing an approved rule, stop and obtain expli
 - Human UAT/business acceptance must not be self-approved by development or automation.
 - Every release/stage PR must complete the governance checklist in the pull-request template.
 - Update documentation and CI evidence before merge.
+
+
+## 5. Chat / Work operating discipline
+
+- Chat is the default day-to-day Builder / Release Coordinator.
+- GitHub is the source of truth for implementation status and durable project state.
+- CI/tests are technical evidence; they do not self-approve human business/UAT gates.
+- The Product / Business Owner remains the authority for explicit approval-gated decisions and human UAT/business acceptance.
+- Work is audit-first and is primarily used for periodic repository-wide architecture, security, technical-debt, documentation and production-readiness reviews.
+- Only one active writer should normally modify an active stage branch at a time.
+- New implementation sessions must first re-read live GitHub state and applicable governance/decision/scope documents.
+- Findings from Work normally become durable repository Issues or Change Control items, then return to Chat for implementation under the normal CI/PR/merge process.
+- See `docs/DEVELOPMENT-OPERATING-MODEL.md` and DEC-016.

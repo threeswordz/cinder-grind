@@ -844,3 +844,11 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - `docs/V0.5-C-PREFLIGHT.md` binds Stage C to SUB-005/SUB-006, AC-V05-011–016 and BR-V05-09–12 with approved numbering/project/security/test rules.
 - Payment Certification/retention withholding, Variations/reporting, Finance/payment, tax/FX, cost recognition and human V0.5 release UAT remain deferred.
 - V0.5-C implementation may begin only after this pre-flight exact-head CI passes; V0.5-D has not begun.
+
+## Development operating model approved
+
+- DEC-016 approves `docs/DEVELOPMENT-OPERATING-MODEL.md`.
+- Chat is the normal Builder / Release Coordinator; GitHub remains the durable source of truth; CI/tests remain technical evidence; the Product / Business Owner retains approval/UAT authority; Work is the periodic independent auditor.
+- One active implementation writer should normally modify the active stage branch at a time, and every new implementation session must bootstrap itself from live GitHub before material writes.
+- This operating-model approval does not change V0.5-C scope, Issue #107, release sequencing, review/CI gates, human V0.5 UAT, DEC-008 or any approved deferral.
+
