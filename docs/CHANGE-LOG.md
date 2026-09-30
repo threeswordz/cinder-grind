@@ -1,3 +1,9 @@
+## 2026-09-30 — V0.5-C Assessment-state lifecycle integrity review follow-up
+
+- Codex's exact-head review of `2f99b1e730e7ab110fa6f09eed824e74851f3221` identified a P2 direct-SQL Claim-state transition gap: a Claim could become ASSESSED without matching Assessment evidence or REJECTED while its Assessment was active.
+- Added forward-only `20260930133000_v0_5_c_assessment_state_guards` (`dd97b854d7eea58de34965c1fa4be72531274b19`). The Claim transition guard requires matching retained Assessment evidence; Assessment writes serialize with the parent Claim and a deferred consistency guard rejects contradictory standalone Assessment mutations at commit. No executed migration was modified.
+- Added PostgreSQL regression `496df38bbd8e28afc1e006d1eeb73d77a2e072c8` for direct Claim transitions and standalone Assessment rejection while preserving valid authorized assessment/rejection flow. Exact implementation-head PR CI #1814 SUCCESS, including migrations, workspace/PostgreSQL tests and authenticated live HTTP acceptance. Codex finding replied to/resolved; final exact documentation-head CI and Codex re-review are pending. V0.5 human UAT remains a separate Product/Business Owner release-exit gate.
+
 ## 2026-09-30 — V0.5-C final Codex finding fixes and release review checkpoint
 
 - PR #108 / Issue #107: Codex's final review identified three real P2 gaps after earlier Claim-line parent-lock and shared NumberSequence backward-period concurrency fixes. All are now addressed within approved Stage-C scope and previous migrations remain byte-for-byte unchanged.
