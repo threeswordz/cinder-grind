@@ -61,7 +61,8 @@ export class SubcontractsVariationService {
       where: {
         companyId: auth.companyId,
         project: scope,
-        approvalState: { in: ['APPROVED', 'CANCELLED'] },
+        approvalState: 'APPROVED',
+        cancelledAt: null,
       },
       select: {
         id: true,
