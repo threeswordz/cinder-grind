@@ -174,7 +174,10 @@ export class NumberSequenceService {
 
         return businessNumber;
       },
-      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      // The sequence row is explicitly locked FOR UPDATE above. READ COMMITTED
+      // lets a waiter observe the prior allocator's committed next_value instead
+      // of retaining a stale SERIALIZABLE snapshot and failing with P2034.
+      { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted },
     );
   }
 
