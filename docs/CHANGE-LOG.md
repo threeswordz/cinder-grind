@@ -1,3 +1,10 @@
+## 2026-10-01 — V0.5-E Variation decision timestamp Codex follow-up
+
+- Codex review of `68e778129ef43c8551548c86ff698d6ce597fb45` identified one additional genuine P2: the Variation workspace Approval trail rendered step/action/actor/comment but omitted the retained ApprovalAction `actionAt` timestamp, preventing human UAT from verifying decision time in the UI.
+- Added `actionAt` rendering to every Variation Approval trail entry using the already-returned retained approval record. REVERSED evidence continues to show separate reversal actor/time/reason; no new history source, schema or business rule was introduced.
+- Exact code head `87994499477d314f47269dbd926d856d4c957670` passed push CI #1924 and PR CI #1925, including web typecheck/build, clean migrations, full API/web/PostgreSQL V0.1–V0.5 regression and authenticated live HTTP acceptance. The Codex thread has an evidence reply and is resolved.
+- Human AC-V05-030 remains **PENDING**; final documentation-head CI and clean exact-head Codex re-review still precede squash merge.
+
 ## 2026-10-01 — V0.5-E reporting snapshot-consistency Codex follow-up
 
 - Final Codex re-review of `72a0aa18a6d9d32b75b6606bf3844434057e307b` identified one additional genuine P2: the scoped Agreement read and five batched report aggregates could observe different PostgreSQL snapshots while commercial writes commit concurrently.
