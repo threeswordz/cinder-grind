@@ -210,3 +210,7 @@
 - Exact implementation head `02c8281a6e79e3d5c7b7a67efe9fea3f31ad1d58` passed CI #1756 including clean migrations/status, Prisma validation, dependency audit, full workspace validation, PostgreSQL regression/concurrency tests, bootstrap and live HTTP acceptance.
 - Payment Certification/retention, Variations/reporting, Finance/payment/accounting, tax/VAT, FX, cost recognition, retention release, SUB-011/DOC-009 and V0.7 aggregation remain deferred. DEC-008 remains unchanged.
 - Stage C is not yet merged at this record. Required PR CI/review, squash merge, post-merge main CI and Issue #107 closure remain gates. Human V0.5 Product / Business Owner UAT remains separate and pending.
+
+- Independent pre-merge review also hardened valid DECIMAL(18,2) UI display precision by replacing JavaScript floating-point Claim total summation with exact integer-cents arithmetic.
+- Codex review of PR #108 identified two genuine issues: submit replay could disclose a later Assessment to a Claim-only reader, and the ASSESS audit event used the Claim UUID instead of the Assessment UUID. Fixes landed in `6ab22059b2474fbe69200fc7ea5129bcdd625a0b` and `ce32dbd25af26a7052f47c562a3694c89accff19`, with targeted regression coverage in `07c83c65188684e63905df156396b7191033d8dc`.
+- PR CI #1769 passed on exact head `07c83c65188684e63905df156396b7191033d8dc`; both Codex review threads are resolved. A final exact-head CI/re-review is required after this documentation reconciliation before merge.
