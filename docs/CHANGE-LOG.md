@@ -1,3 +1,8 @@
+## 2026-10-01 — V0.5-E PR #112 final review checkpoint
+
+- PR #112 opened for V0.5-E at exact evidence head `6ad9dad5543386f70472deb2ff9be0477de0d401`; branch CI #1910 and PR CI #1911 both passed clean migrations, full workspace/PostgreSQL regression and authenticated live HTTP acceptance.
+- Durable current-state now reflects the live PR/review position rather than the earlier pre-PR checkpoint. Required Codex exact-head review remains pending; any head change requires fresh CI/re-review. Human AC-V05-030 acceptance remains separate and pending.
+
 ## 2026-10-01 — V0.5-E implementation and human-UAT evidence ready for final PR gates
 
 - Implemented SUB-009 Variation Orders with Company/month `SVOYYMM-###` identity, immutable Agreement linkage/currency, signed scope/value change, configured Approval Matrix maker-checker, explicit permissions, Project authorization, stable retry keys, retained audit/history and explicit reversal. Original Agreement value/scope remain unchanged; only approved non-reversed Variation deltas derive the current ceiling.

@@ -4,7 +4,7 @@
 **Source of truth:** Live GitHub repository state
 
 - Current Release: V0.5 Subcontracts — V0.5-A through V0.5-D are technically complete; V0.5-E Variations / Derived Reporting / Release Evidence implementation and automated evidence are complete on its stage branch and entering final exact-head PR/review gates; human V0.5 Product / Business Owner UAT remains the separate mandatory release-exit gate
-- Current Stage: V0.5-E Variations / Derived Reporting / Release Evidence under Issue #111 on `v0.5-e-variations-reporting`; Variation lifecycle/current-ceiling integration, source-derived reporting, UI, PostgreSQL regression, concurrency/authorization coverage and authenticated live HTTP acceptance are implemented. Pre-evidence implementation head `2a2909675d015caed8e1e0a3b317cbd321723795` passed CI #1909.
+- Current Stage: V0.5-E Variations / Derived Reporting / Release Evidence final PR review under Issue #111 and PR #112 on `v0.5-e-variations-reporting`. Final evidence head `6ad9dad5543386f70472deb2ff9be0477de0d401` passed branch CI #1910 and PR CI #1911; required Codex exact-head review is the remaining pre-merge gate.
 - Completed Stages: V0.1-A through V0.1-H; V0.2-A through V0.2-G; V0.3-A through V0.3-E; V0.4-A through V0.4-E; V0.5 entry gate; V0.5-A; V0.5-B; V0.5-C; V0.5-D
 - Active Issue: #111 — V0.5-E Variations / Derived Reporting / Release Evidence
 - V0.5-C green main checkpoint: PR #108 squash-merged as `3f00de1f984c82c1737c4b47c226d99197b19e54`; final exact-head push CI #1869 and PR CI #1870 passed on `0833cd893f208003215cf39cee9c07b6c9a817ad`; final Codex exact-head review reported no major issues; post-merge main CI #1871 passed; Issue #107 closed.
@@ -85,7 +85,7 @@
 - V0.1 cross-module release acceptance scenario: PASS in the Stage H release-candidate regression suite.
 - Open defect check at V0.1 acceptance: no Severity 1 or Severity 2 release-blocking defect recorded.
 - Governance: `AGENTS.md`, `docs/PROJECT-GOVERNANCE.md`, PR governance checklist and DEC-008 are active; material decisions must pass the repository pre-flight and open-source/zero-cost-first constraint.
-- Next action: pass fresh exact-head CI on the final V0.5-E evidence checkpoint; open the Stage-E PR, require exact-head PR CI and Codex review, resolve every genuine finding, squash merge, pass post-merge `main` CI, and only then close Issue #111 as technically complete. Present `docs/V0.5-UAT-EVIDENCE.md` to the Product / Business Owner and STOP for explicit AC-V05-030 acceptance. V0.6 must not begin before that human gate completes.
+- Next action: complete the required exact-head Codex review for PR #112, resolve every genuine finding with fresh exact-head CI/re-review if the head changes, then squash merge, pass post-merge `main` CI and only then close Issue #111 as technically complete. Present `docs/V0.5-UAT-EVIDENCE.md` to the Product / Business Owner and STOP for explicit AC-V05-030 acceptance. V0.6 must not begin before that human gate completes.
 
 ## Stage E completed
 
