@@ -40,6 +40,8 @@ export type AgreementDraftInput = {
   originalValue: string;
   scopeOfWork: string;
   currencyCode: string;
+  retentionRate: string;
+  retentionCap?: string | null;
   operationalStatusId?: string | null;
   createKey?: string | null;
 };
@@ -47,7 +49,7 @@ export type AgreementDraftInput = {
 export type AgreementDraftUpdate = Partial<
   Pick<
     AgreementDraftInput,
-    'originalValue' | 'scopeOfWork' | 'currencyCode' | 'operationalStatusId'
+    'originalValue' | 'scopeOfWork' | 'currencyCode' | 'retentionRate' | 'retentionCap' | 'operationalStatusId'
   >
 >;
 
@@ -375,6 +377,8 @@ export class SubcontractsService {
             originalValue: input.originalValue,
             scopeOfWork: input.scopeOfWork,
             currencyCode: input.currencyCode,
+            retentionRate: input.retentionRate,
+            retentionCap: input.retentionCap ?? null,
             operationalStatusId: input.operationalStatusId ?? null,
             createKey: input.createKey ?? null,
             createPayloadHash: input.createKey
@@ -724,6 +728,10 @@ export class SubcontractsService {
       new Prisma.Decimal(input.originalValue).toFixed(2),
       input.scopeOfWork,
       input.currencyCode,
+      new Prisma.Decimal(input.retentionRate).toFixed(2),
+      input.retentionCap === null || input.retentionCap === undefined
+        ? null
+        : new Prisma.Decimal(input.retentionCap).toFixed(2),
       input.operationalStatusId?.toLowerCase() ?? null,
     ]);
     return createHash('sha256').update(canonicalPayload).digest('hex');

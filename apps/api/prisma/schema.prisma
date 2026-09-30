@@ -253,6 +253,11 @@ model User {
   withdrawnSubcontractClaims SubcontractClaim[] @relation("ClaimWithdrawer")
   assessedSubcontractClaims SubcontractClaimAssessment[] @relation("ClaimAssessor")
   rejectedSubcontractClaimAssessments SubcontractClaimAssessment[] @relation("ClaimAssessmentRejector")
+  createdSubcontractCertifications SubcontractCertification[] @relation("CertificationCreator")
+  submittedSubcontractCertifications SubcontractCertification[] @relation("CertificationSubmitter")
+  approvedSubcontractCertifications SubcontractCertification[] @relation("CertificationApprover")
+  rejectedSubcontractCertifications SubcontractCertification[] @relation("CertificationRejector")
+  reversedSubcontractCertifications SubcontractCertification[] @relation("CertificationReverser")
   submittedGoodsReceipts     GoodsReceipt[] @relation("GoodsReceiptSubmitter")
   postedGoodsReceipts        GoodsReceipt[] @relation("GoodsReceiptPoster")
   reversedGoodsReceipts      GoodsReceipt[] @relation("GoodsReceiptReverser")
@@ -433,6 +438,7 @@ model ApprovalInstance {
   stockTransfer    StockTransfer?
   subcontractAgreementVersion SubcontractAgreementVersion?
   subcontractWorkOrder SubcontractWorkOrder?
+  subcontractCertification SubcontractCertification?
   @@index([companyId, entityType, entityId])
   @@index([approvalWorkflowId, approvalState])
   @@map("approval_instances")
@@ -1182,6 +1188,8 @@ model SubcontractAgreement {
   originalValue         Decimal  @map("original_value") @db.Decimal(18, 2)
   scopeOfWork           String   @map("scope_of_work") @db.Text
   currencyCode          String   @map("currency_code") @db.VarChar(3)
+  retentionRate         Decimal  @default(0) @map("retention_rate") @db.Decimal(5, 2)
+  retentionCap          Decimal? @map("retention_cap") @db.Decimal(18, 2)
   approvalState         String   @default("DRAFT") @map("approval_state") @db.VarChar(30)
   operationalStatusId   String?  @map("operational_status_id") @db.Uuid
   firstApprovedAt       DateTime? @map("first_approved_at") @db.Timestamptz(6)
@@ -1205,6 +1213,7 @@ model SubcontractAgreement {
   claims            SubcontractClaim[]
   claimLines        SubcontractClaimLine[]
   claimAssessments  SubcontractClaimAssessment[]
+  certifications    SubcontractCertification[]
 
   @@unique([companyId, agreementNumber])
   @@unique([companyId, id])
@@ -1226,6 +1235,8 @@ model SubcontractAgreementVersion {
   originalValue        Decimal  @map("original_value") @db.Decimal(18, 2)
   scopeOfWork          String   @map("scope_of_work") @db.Text
   currencyCode         String   @map("currency_code") @db.VarChar(3)
+  retentionRate        Decimal  @default(0) @map("retention_rate") @db.Decimal(5, 2)
+  retentionCap         Decimal? @map("retention_cap") @db.Decimal(18, 2)
   operationalStatusId  String?  @map("operational_status_id") @db.Uuid
   reason               String?  @db.Text
   approvalInstanceId   String?  @unique @map("approval_instance_id") @db.Uuid
@@ -1319,6 +1330,7 @@ model SubcontractClaim {
   withdrawnBy    User? @relation("ClaimWithdrawer", fields: [companyId, withdrawnByUserId], references: [companyId, id], onDelete: Restrict, map: "subcontract_claims_withdrawer_fkey")
   lines          SubcontractClaimLine[]
   assessment     SubcontractClaimAssessment?
+  certifications SubcontractCertification[]
 
   @@unique([companyId, claimNumber])
   @@unique([companyId, projectId, agreementId, id])
@@ -1374,10 +1386,63 @@ model SubcontractClaimAssessment {
   claim      SubcontractClaim @relation(fields: [companyId, projectId, agreementId, claimId], references: [companyId, projectId, agreementId, id], onDelete: Restrict, map: "claim_assessments_claim_fkey")
   assessedBy User @relation("ClaimAssessor", fields: [companyId, assessedByUserId], references: [companyId, id], onDelete: Restrict, map: "claim_assessments_assessor_fkey")
   rejectedBy User? @relation("ClaimAssessmentRejector", fields: [companyId, rejectedByUserId], references: [companyId, id], onDelete: Restrict, map: "claim_assessments_rejector_fkey")
+  certifications SubcontractCertification[]
 
   @@unique([companyId, projectId, agreementId, claimId], map: "claim_assessments_claim_scope_key")
+  @@unique([companyId, projectId, agreementId, claimId, id], map: "claim_assessments_certification_scope_key")
   @@index([companyId, projectId, agreementId, state])
   @@map("subcontract_claim_assessments")
+}
+
+
+model SubcontractCertification {
+  id                       String    @id @default(uuid()) @db.Uuid
+  companyId                String    @map("company_id") @db.Uuid
+  projectId                String    @map("project_id") @db.Uuid
+  agreementId              String    @map("agreement_id") @db.Uuid
+  claimId                  String    @map("claim_id") @db.Uuid
+  assessmentId             String    @map("assessment_id") @db.Uuid
+  certificationNumber      String    @map("certification_number") @db.VarChar(30)
+  currencyCode             String    @map("currency_code") @db.VarChar(3)
+  certifiedGross           Decimal   @map("certified_gross") @db.Decimal(18, 2)
+  state                    String    @default("DRAFT") @db.VarChar(30)
+  approvalInstanceId       String?   @unique @map("approval_instance_id") @db.Uuid
+  assessedAmountSnapshot   Decimal?  @map("assessed_amount_snapshot") @db.Decimal(18, 2)
+  retentionRateSnapshot    Decimal?  @map("retention_rate_snapshot") @db.Decimal(5, 2)
+  retentionCapSnapshot     Decimal?  @map("retention_cap_snapshot") @db.Decimal(18, 2)
+  retainedBeforeSnapshot   Decimal?  @map("retained_before_snapshot") @db.Decimal(18, 2)
+  retainedAmount           Decimal?  @map("retained_amount") @db.Decimal(18, 2)
+  netCertifiedAmount       Decimal?  @map("net_certified_amount") @db.Decimal(18, 2)
+  createdByUserId          String    @map("created_by_user_id") @db.Uuid
+  submittedByUserId        String?   @map("submitted_by_user_id") @db.Uuid
+  approvedByUserId         String?   @map("approved_by_user_id") @db.Uuid
+  rejectedByUserId         String?   @map("rejected_by_user_id") @db.Uuid
+  reversedByUserId         String?   @map("reversed_by_user_id") @db.Uuid
+  createdAt                DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  submittedAt              DateTime? @map("submitted_at") @db.Timestamptz(6)
+  decidedAt                DateTime? @map("decided_at") @db.Timestamptz(6)
+  approvedAt               DateTime? @map("approved_at") @db.Timestamptz(6)
+  rejectedAt               DateTime? @map("rejected_at") @db.Timestamptz(6)
+  rejectionReason          String?   @map("rejection_reason") @db.Text
+  reversedAt               DateTime? @map("reversed_at") @db.Timestamptz(6)
+  reversalReason           String?   @map("reversal_reason") @db.Text
+
+  agreement       SubcontractAgreement @relation(fields: [companyId, projectId, agreementId], references: [companyId, projectId, id], onDelete: Restrict, map: "subcontract_certifications_agreement_fkey")
+  claim           SubcontractClaim @relation(fields: [companyId, projectId, agreementId, claimId], references: [companyId, projectId, agreementId, id], onDelete: Restrict, map: "subcontract_certifications_claim_fkey")
+  assessment      SubcontractClaimAssessment @relation(fields: [companyId, projectId, agreementId, claimId, assessmentId], references: [companyId, projectId, agreementId, claimId, id], onDelete: Restrict, map: "subcontract_certifications_assessment_fkey")
+  approvalInstance ApprovalInstance? @relation(fields: [approvalInstanceId], references: [id], onDelete: Restrict)
+  createdBy       User @relation("CertificationCreator", fields: [companyId, createdByUserId], references: [companyId, id], onDelete: Restrict, map: "subcontract_certifications_creator_fkey")
+  submittedBy     User? @relation("CertificationSubmitter", fields: [companyId, submittedByUserId], references: [companyId, id], onDelete: Restrict, map: "subcontract_certifications_submitter_fkey")
+  approvedBy      User? @relation("CertificationApprover", fields: [companyId, approvedByUserId], references: [companyId, id], onDelete: Restrict, map: "subcontract_certifications_approver_fkey")
+  rejectedBy      User? @relation("CertificationRejector", fields: [companyId, rejectedByUserId], references: [companyId, id], onDelete: Restrict, map: "subcontract_certifications_rejector_fkey")
+  reversedBy      User? @relation("CertificationReverser", fields: [companyId, reversedByUserId], references: [companyId, id], onDelete: Restrict, map: "subcontract_certifications_reverser_fkey")
+
+  @@unique([companyId, certificationNumber])
+  @@unique([companyId, projectId, agreementId, claimId, id], map: "subcontract_certifications_scope_key")
+  @@index([companyId, projectId, agreementId, state])
+  @@index([claimId, state])
+  @@map("subcontract_certifications")
 }
 
 model Warehouse {

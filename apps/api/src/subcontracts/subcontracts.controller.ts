@@ -130,6 +130,53 @@ function subcontractorUpdate(body: unknown): Partial<SubcontractorInput> {
   return result;
 }
 
+function nonnegativeAmount(value: unknown, field: string): string {
+  const text =
+    typeof value === 'number' && Number.isFinite(value)
+      ? String(value)
+      : typeof value === 'string'
+        ? value.trim()
+        : '';
+  if (!/^(?:0|[1-9]\d{0,15})(?:\.\d{1,2})?$/.test(text)) {
+    return subcontractInvalid(
+      field,
+      'Use a nonnegative DECIMAL(18,2) amount with at most 16 integer digits.',
+    );
+  }
+  return text;
+}
+
+function retentionRate(value: unknown): string {
+  const text =
+    value === undefined
+      ? '0.00'
+      : typeof value === 'number' && Number.isFinite(value)
+        ? String(value)
+        : typeof value === 'string'
+          ? value.trim()
+          : '';
+  if (!/^(?:0|[1-9]\d?|100)(?:\.\d{1,2})?$/.test(text)) {
+    return subcontractInvalid(
+      'retentionRate',
+      'Use a percentage from 0.00 through 100.00 with at most two decimal places.',
+    );
+  }
+  const numeric = Number(text);
+  if (numeric < 0 || numeric > 100) {
+    return subcontractInvalid(
+      'retentionRate',
+      'Use a percentage from 0.00 through 100.00.',
+    );
+  }
+  return text;
+}
+
+function optionalRetentionCap(value: unknown): string | null | undefined {
+  if (value === undefined) return undefined;
+  if (value === null || value === '') return null;
+  return nonnegativeAmount(value, 'retentionCap');
+}
+
 function agreementCreate(body: unknown): AgreementDraftInput {
   const input = subcontractObject(body);
   const status = optionalSubcontractUuid(
@@ -137,6 +184,7 @@ function agreementCreate(body: unknown): AgreementDraftInput {
     'operationalStatusId',
   );
   const key = optionalSubcontractString(input, 'createKey', 120);
+  const cap = optionalRetentionCap(input.retentionCap);
   return {
     projectId: requiredSubcontractUuid(input.projectId, 'projectId'),
     subcontractorId: requiredSubcontractUuid(
@@ -148,6 +196,8 @@ function agreementCreate(body: unknown): AgreementDraftInput {
     currencyCode: subcontractCurrency(
       requiredSubcontractString(input, 'currencyCode', 3),
     ),
+    retentionRate: retentionRate(input.retentionRate),
+    ...(cap !== undefined ? { retentionCap: cap } : {}),
     ...(status !== undefined ? { operationalStatusId: status } : {}),
     ...(key !== undefined ? { createKey: key } : {}),
   };
@@ -171,6 +221,11 @@ function agreementUpdate(body: unknown): AgreementDraftUpdate {
       requiredSubcontractString(input, 'currencyCode', 3),
     );
   }
+  if (input.retentionRate !== undefined) {
+    result.retentionRate = retentionRate(input.retentionRate);
+  }
+  const cap = optionalRetentionCap(input.retentionCap);
+  if (cap !== undefined) result.retentionCap = cap;
   const status = optionalSubcontractUuid(
     input.operationalStatusId,
     'operationalStatusId',
