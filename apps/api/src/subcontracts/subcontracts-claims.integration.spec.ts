@@ -311,6 +311,144 @@ test('V0.5-C retains Claim history, separates assessment and enforces commercial
       'assessment cannot exceed the retained submitted Claim total',
     );
 
+    // Direct PostgreSQL/Prisma persistence must retain the same monetary bound.
+    // Use an isolated Agreement so these database-level fixtures cannot affect
+    // the commercial ceiling assertions for the primary Stage-C lifecycle.
+    const assessmentBoundAgreement = await prisma.subcontractAgreement.create({
+      data: {
+        companyId: company.id,
+        projectId: project.id,
+        subcontractorId: subcontractor.id,
+        agreementNumber: 'SC2609-B' + suffix.slice(0, 2).toUpperCase(),
+        originalValue: '1000.00',
+        scopeOfWork: 'Assessment amount database-bound fixture',
+        currencyCode: 'SGD',
+        approvalState: 'APPROVED',
+        firstApprovedAt: new Date(),
+        createdByUserId: maker.id,
+      },
+    });
+    const createSubmittedAssessmentBoundClaim = async (
+      periodStart: string,
+      periodEnd: string,
+      amount: string,
+      actionKey: string,
+    ) => {
+      const boundClaim = await claims.createClaim(
+        { auth: makerAuth },
+        assessmentBoundAgreement.id,
+        {
+          periodStart: new Date(periodStart + 'T00:00:00.000Z'),
+          periodEnd: new Date(periodEnd + 'T00:00:00.000Z'),
+        },
+      );
+      await claims.addLine(
+        { auth: makerAuth },
+        boundClaim.id,
+        { amount },
+      );
+      return claims.submitClaim(
+        { auth: makerAuth },
+        boundClaim.id,
+        actionKey,
+      );
+    };
+    const directlyAssessBoundClaim = async (
+      claimId: string,
+      assessedAmount: string,
+      reason: string,
+    ) =>
+      prisma.$transaction(async (tx) => {
+        const decision = await tx.subcontractClaimAssessment.create({
+          data: {
+            companyId: company.id,
+            projectId: project.id,
+            agreementId: assessmentBoundAgreement.id,
+            claimId,
+            assessedAmount,
+            reason,
+            state: 'ASSESSED',
+            assessedByUserId: assessor.id,
+            assessedAt: new Date(),
+          },
+        });
+        await tx.subcontractClaim.update({
+          where: { id: claimId },
+          data: { state: 'ASSESSED' },
+        });
+        return decision;
+      });
+
+    const directEqualClaim = await createSubmittedAssessmentBoundClaim(
+      '2028-05-01',
+      '2028-05-31',
+      '100.00',
+      'direct-bound-equal-submit-' + suffix,
+    );
+    const directEqualAssessment = await directlyAssessBoundClaim(
+      directEqualClaim.id,
+      '100.00',
+      'Direct database assessment equal to retained Claim total.',
+    );
+    assert.equal(directEqualAssessment.assessedAmount.toFixed(2), '100.00');
+    assert.equal(
+      (await prisma.subcontractClaim.findUniqueOrThrow({
+        where: { id: directEqualClaim.id },
+      })).state,
+      'ASSESSED',
+      'direct assessment equal to retained Claim total must remain valid',
+    );
+
+    const directLowerClaim = await createSubmittedAssessmentBoundClaim(
+      '2028-06-01',
+      '2028-06-30',
+      '100.00',
+      'direct-bound-lower-submit-' + suffix,
+    );
+    const directLowerAssessment = await directlyAssessBoundClaim(
+      directLowerClaim.id,
+      '75.00',
+      'Direct database assessment below retained Claim total.',
+    );
+    assert.equal(directLowerAssessment.assessedAmount.toFixed(2), '75.00');
+    assert.equal(
+      (await prisma.subcontractClaim.findUniqueOrThrow({
+        where: { id: directLowerClaim.id },
+      })).state,
+      'ASSESSED',
+      'direct assessment below retained Claim total must remain valid',
+    );
+
+    const directOverClaim = await createSubmittedAssessmentBoundClaim(
+      '2028-07-01',
+      '2028-07-31',
+      '100.00',
+      'direct-bound-over-submit-' + suffix,
+    );
+    await assert.rejects(
+      () =>
+        directlyAssessBoundClaim(
+          directOverClaim.id,
+          '100.01',
+          'Direct database assessment above retained Claim total.',
+        ),
+      'database must reject a direct Assessment above the retained Claim total',
+    );
+    assert.equal(
+      (await prisma.subcontractClaim.findUniqueOrThrow({
+        where: { id: directOverClaim.id },
+      })).state,
+      'SUBMITTED',
+      'rejected direct over-assessment must roll back the Claim state transition',
+    );
+    assert.equal(
+      await prisma.subcontractClaimAssessment.count({
+        where: { claimId: directOverClaim.id },
+      }),
+      0,
+      'rejected direct over-assessment must roll back Assessment evidence',
+    );
+
     // Inserts as terminal assessment states must also carry reciprocal
     // Assessment evidence. Single-statement direct inserts cannot fabricate it.
     for (const [badState, periodStart, periodEnd] of [
@@ -532,6 +670,61 @@ test('V0.5-C retains Claim history, separates assessment and enforces commercial
         ),
       (error: unknown) => error instanceof ConflictException,
       'changing an unrelated Draft to a terminal period must be denied',
+    );
+
+    const unlinkedDirectCorrectionId = randomUUID();
+    await assert.rejects(
+      () =>
+        prisma.$transaction(async (tx) => {
+          const submittedAt = new Date();
+          await tx.subcontractClaim.create({
+            data: {
+              id: unlinkedDirectCorrectionId,
+              companyId: company.id,
+              projectId: project.id,
+              agreementId: agreement.id,
+              claimNumber: 'SCL-UNLINK-' + suffix,
+              periodStart: claim.periodStart,
+              periodEnd: claim.periodEnd,
+              currencyCode: agreement.currencyCode,
+              state: 'DRAFT',
+              createdByUserId: maker.id,
+            },
+          });
+          await tx.subcontractClaimLine.create({
+            data: {
+              companyId: company.id,
+              projectId: project.id,
+              agreementId: agreement.id,
+              claimId: unlinkedDirectCorrectionId,
+              lineNo: 1,
+              amount: '10.00',
+            },
+          });
+          await tx.subcontractClaim.update({
+            where: { id: unlinkedDirectCorrectionId },
+            data: {
+              state: 'SUBMITTED',
+              submittedByUserId: maker.id,
+              submittedAt,
+            },
+          });
+        }),
+      'database must reject an unlinked direct correction for retained terminal Claim history',
+    );
+    assert.equal(
+      await prisma.subcontractClaim.count({
+        where: { id: unlinkedDirectCorrectionId },
+      }),
+      0,
+      'invalid unlinked direct correction must roll back the Claim',
+    );
+    assert.equal(
+      await prisma.subcontractClaimLine.count({
+        where: { claimId: unlinkedDirectCorrectionId },
+      }),
+      0,
+      'invalid unlinked direct correction must roll back its Claim lines',
     );
 
     const replacement = await claims.createReplacement(
