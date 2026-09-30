@@ -161,6 +161,8 @@ export type ClaimAgreementOption = {
   projectId: string;
   originalValue: string;
   currencyCode: string;
+  approvalState: string;
+  cancelledAt: string | null;
   project: SubcontractProject;
   subcontractor: {
     id: string;
