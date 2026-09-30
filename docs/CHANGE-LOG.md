@@ -1,3 +1,10 @@
+## 2026-10-01 — V0.5-E cancelled-Agreement action Codex follow-up
+
+- Codex review of `cfe404b639906a418e8bd5fdbf0e607b43f0bbb3` identified one additional genuine P2: cancelled Agreements correctly remained discoverable for retained Variation history, but Draft/Approved Variations could still show mutation controls that the backend would reject.
+- Fixed at `7d79ade7feefd635626d05f70f0f767448131822` by deriving active-Agreement state in the existing Variation workspace and gating Draft fields/save, decision input, submit, approve/reject and reverse on an approved, non-cancelled Agreement. Cancelled Agreement history remains selectable/readable and now shows an explicit read-only notice; backend guards remain authoritative.
+- Exact code-head push CI #1928 and PR CI #1929 passed, including web typecheck/build, clean migrations, full API/web/PostgreSQL V0.1–V0.5 regression and authenticated live HTTP acceptance. The Codex thread has an evidence reply and is resolved.
+- Final documentation-head CI and clean exact-head Codex re-review remain before squash merge. Human AC-V05-030 remains **PENDING** and V0.6 remains blocked.
+
 ## 2026-10-01 — V0.5-E Variation decision timestamp Codex follow-up
 
 - Codex review of `68e778129ef43c8551548c86ff698d6ce597fb45` identified one additional genuine P2: the Variation workspace Approval trail rendered step/action/actor/comment but omitted the retained ApprovalAction `actionAt` timestamp, preventing human UAT from verifying decision time in the UI.
