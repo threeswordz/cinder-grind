@@ -65,6 +65,12 @@ export function VariationsReportingPanel({
     enabled: canReport,
   });
 
+  const selectedAgreement = useMemo(
+    () =>
+      (agreements.data?.data ?? []).find((row) => row.id === agreementId) ??
+      null,
+    [agreements.data?.data, agreementId],
+  );
   const selected = useMemo(
     () =>
       (variations.data?.data ?? []).find(
@@ -178,7 +184,9 @@ export function VariationsReportingPanel({
                 <Typography variant="h6" sx={{ flexGrow: 1 }}>
                   Variation Orders
                 </Typography>
-                {canCreate && agreementId ? (
+                {canCreate &&
+                selectedAgreement?.approvalState === 'APPROVED' &&
+                !selectedAgreement.cancelledAt ? (
                   <Button variant="outlined" onClick={beginNew}>
                     New Variation
                   </Button>

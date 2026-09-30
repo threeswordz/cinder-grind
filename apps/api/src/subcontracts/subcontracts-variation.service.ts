@@ -61,8 +61,7 @@ export class SubcontractsVariationService {
       where: {
         companyId: auth.companyId,
         project: scope,
-        approvalState: 'APPROVED',
-        cancelledAt: null,
+        approvalState: { in: ['APPROVED', 'CANCELLED'] },
       },
       select: {
         id: true,
@@ -483,72 +482,115 @@ export class SubcontractsVariationService {
       orderBy: [{ project: { projectCode: 'asc' } }, { agreementNumber: 'asc' }],
     });
 
-    return Promise.all(
-      agreements.map(async (agreement) => {
-        const [variations, workOrders, claims, assessments, certifications] =
-          await Promise.all([
-            this.prisma.subcontractVariation.aggregate({
-              where: { agreementId: agreement.id, state: 'APPROVED' },
-              _sum: { valueDelta: true },
-            }),
-            this.prisma.subcontractWorkOrder.aggregate({
-              where: { agreementId: agreement.id, approvalState: 'APPROVED' },
-              _sum: { amount: true },
-            }),
-            this.prisma.subcontractClaimLine.aggregate({
-              where: {
-                agreementId: agreement.id,
-                claim: { state: { in: ['SUBMITTED', 'ASSESSED'] } },
-              },
-              _sum: { amount: true },
-            }),
-            this.prisma.subcontractClaimAssessment.aggregate({
-              where: {
-                agreementId: agreement.id,
-                state: 'ASSESSED',
-                claim: { state: 'ASSESSED' },
-              },
-              _sum: { assessedAmount: true },
-            }),
-            this.prisma.subcontractCertification.aggregate({
-              where: { agreementId: agreement.id, state: 'APPROVED' },
-              _sum: {
-                certifiedGross: true,
-                retainedAmount: true,
-                netCertifiedAmount: true,
-              },
-            }),
-          ]);
-        const variationDelta = new Prisma.Decimal(
-          variations._sum.valueDelta ?? 0,
-        );
-        const currentCeiling = agreement.originalValue.plus(variationDelta);
-        return {
-          ...agreement,
-          originalValue: agreement.originalValue.toFixed(2),
-          approvedVariationDelta: variationDelta.toFixed(2),
-          currentCeiling: currentCeiling.toFixed(2),
-          approvedWorkOrderAllocation: new Prisma.Decimal(
-            workOrders._sum.amount ?? 0,
-          ).toFixed(2),
-          activeClaimedValue: new Prisma.Decimal(
-            claims._sum.amount ?? 0,
-          ).toFixed(2),
-          assessedValue: new Prisma.Decimal(
-            assessments._sum.assessedAmount ?? 0,
-          ).toFixed(2),
-          certifiedGross: new Prisma.Decimal(
-            certifications._sum.certifiedGross ?? 0,
-          ).toFixed(2),
-          withheldRetention: new Prisma.Decimal(
-            certifications._sum.retainedAmount ?? 0,
-          ).toFixed(2),
-          netCertification: new Prisma.Decimal(
-            certifications._sum.netCertifiedAmount ?? 0,
-          ).toFixed(2),
-        };
+    if (agreements.length === 0) return [];
+
+    const agreementIds = agreements.map((agreement) => agreement.id);
+    const [
+      variationTotals,
+      workOrderTotals,
+      claimTotals,
+      assessmentTotals,
+      certificationTotals,
+    ] = await Promise.all([
+      this.prisma.subcontractVariation.groupBy({
+        by: ['agreementId'],
+        where: {
+          companyId: auth.companyId,
+          agreementId: { in: agreementIds },
+          state: 'APPROVED',
+        },
+        _sum: { valueDelta: true },
       }),
+      this.prisma.subcontractWorkOrder.groupBy({
+        by: ['agreementId'],
+        where: {
+          companyId: auth.companyId,
+          agreementId: { in: agreementIds },
+          approvalState: 'APPROVED',
+        },
+        _sum: { amount: true },
+      }),
+      this.prisma.subcontractClaimLine.groupBy({
+        by: ['agreementId'],
+        where: {
+          companyId: auth.companyId,
+          agreementId: { in: agreementIds },
+          claim: { state: { in: ['SUBMITTED', 'ASSESSED'] } },
+        },
+        _sum: { amount: true },
+      }),
+      this.prisma.subcontractClaimAssessment.groupBy({
+        by: ['agreementId'],
+        where: {
+          companyId: auth.companyId,
+          agreementId: { in: agreementIds },
+          state: 'ASSESSED',
+          claim: { state: 'ASSESSED' },
+        },
+        _sum: { assessedAmount: true },
+      }),
+      this.prisma.subcontractCertification.groupBy({
+        by: ['agreementId'],
+        where: {
+          companyId: auth.companyId,
+          agreementId: { in: agreementIds },
+          state: 'APPROVED',
+        },
+        _sum: {
+          certifiedGross: true,
+          retainedAmount: true,
+          netCertifiedAmount: true,
+        },
+      }),
+    ]);
+
+    const variationsByAgreement = new Map(
+      variationTotals.map((row) => [row.agreementId, row._sum.valueDelta]),
     );
+    const workOrdersByAgreement = new Map(
+      workOrderTotals.map((row) => [row.agreementId, row._sum.amount]),
+    );
+    const claimsByAgreement = new Map(
+      claimTotals.map((row) => [row.agreementId, row._sum.amount]),
+    );
+    const assessmentsByAgreement = new Map(
+      assessmentTotals.map((row) => [row.agreementId, row._sum.assessedAmount]),
+    );
+    const certificationsByAgreement = new Map(
+      certificationTotals.map((row) => [row.agreementId, row._sum]),
+    );
+
+    return agreements.map((agreement) => {
+      const variationDelta = new Prisma.Decimal(
+        variationsByAgreement.get(agreement.id) ?? 0,
+      );
+      const certification = certificationsByAgreement.get(agreement.id);
+      const currentCeiling = agreement.originalValue.plus(variationDelta);
+      return {
+        ...agreement,
+        originalValue: agreement.originalValue.toFixed(2),
+        approvedVariationDelta: variationDelta.toFixed(2),
+        currentCeiling: currentCeiling.toFixed(2),
+        approvedWorkOrderAllocation: new Prisma.Decimal(
+          workOrdersByAgreement.get(agreement.id) ?? 0,
+        ).toFixed(2),
+        activeClaimedValue: new Prisma.Decimal(
+          claimsByAgreement.get(agreement.id) ?? 0,
+        ).toFixed(2),
+        assessedValue: new Prisma.Decimal(
+          assessmentsByAgreement.get(agreement.id) ?? 0,
+        ).toFixed(2),
+        certifiedGross: new Prisma.Decimal(
+          certification?.certifiedGross ?? 0,
+        ).toFixed(2),
+        withheldRetention: new Prisma.Decimal(
+          certification?.retainedAmount ?? 0,
+        ).toFixed(2),
+        netCertification: new Prisma.Decimal(
+          certification?.netCertifiedAmount ?? 0,
+        ).toFixed(2),
+      };
+    });
   }
 
   private async decideVariation(

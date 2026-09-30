@@ -507,6 +507,45 @@ test('V0.5-E applies approved Variations to the ceiling and derives authorized r
         (error.getResponse() as { code?: string }).code ===
           'AGREEMENT_HAS_PENDING_VARIATION',
     );
+    const rejectedCancellationVariation = await variations.rejectVariation(
+      { auth: checkerAuth },
+      pendingCancellation.id,
+      'Resolve pending Variation before Agreement cancellation.',
+      'cancel-var-reject-' + suffix,
+    );
+    assert.equal(rejectedCancellationVariation.state, 'REJECTED');
+    const cancelledAgreement = await workflow.cancelAgreement(
+      { auth: makerAuth },
+      cancellableAgreement.id,
+      'Cancel after pending Variation is resolved.',
+      'cancel-agreement-after-reject-' + suffix,
+    );
+    assert.equal(cancelledAgreement.approvalState, 'CANCELLED');
+    const historyOptions = await variations.agreementOptions(makerAuth);
+    assert.ok(
+      historyOptions.some(
+        (item) =>
+          item.id === cancellableAgreement.id &&
+          item.approvalState === 'CANCELLED' &&
+          item.cancelledAt,
+      ),
+      'cancelled Agreements must remain discoverable for retained Variation history',
+    );
+    await assert.rejects(
+      () =>
+        variations.createVariation(
+          { auth: makerAuth },
+          cancellableAgreement.id,
+          {
+            valueDelta: '1.00',
+            scopeChange: 'Must not create against cancelled Agreement.',
+            reason: 'History selector must remain read-only for cancellation.',
+            createKey: 'cancelled-create-' + suffix,
+          },
+        ),
+      (error: unknown) => error instanceof ConflictException,
+      'cancelled Agreement history browsing must not re-enable new Variations',
+    );
 
     const reductions = await Promise.all(
       ['a', 'b'].map(async (label) => {
