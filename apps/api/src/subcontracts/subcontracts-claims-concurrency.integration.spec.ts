@@ -526,6 +526,94 @@ test('V0.5-C serializes Claim commercial races on the Agreement boundary', async
       });
     assert.equal(lineRaceAfter.state, 'DRAFT');
     assert.equal(lineRaceAfter.lines.length, 2);
+
+    // Barrier after the first visibility read guarantees both overlapping
+    // edits observed the same original Draft before either acquires locks.
+    // The second audit entry must use the row fetched under the Claim lock.
+    const auditAgreement = await createAgreement('AU');
+    const auditDraft = await claims.createClaim(
+      { auth: makerAuth },
+      auditAgreement.id,
+      {
+        periodStart: new Date('2027-06-01T00:00:00.000Z'),
+        periodEnd: new Date('2027-06-30T00:00:00.000Z'),
+      },
+    );
+    const intercepted = claims as unknown as {
+      visibleClaim: (
+        auth: AuthenticatedUserContext,
+        claimId: string,
+        db: unknown,
+      ) => Promise<unknown>;
+    };
+    const originalLookup = intercepted.visibleClaim.bind(claims);
+    let readCount = 0;
+    let releaseReads!: () => void;
+    const permitUpdates = new Promise<void>((resolve) => {
+      releaseReads = resolve;
+    });
+    let bothRead!: () => void;
+    const reachedBarrier = new Promise<void>((resolve) => {
+      bothRead = resolve;
+    });
+    intercepted.visibleClaim = async (actor, id, db) => {
+      const result = await originalLookup(actor, id, db);
+      if (id === auditDraft.id && readCount < 2) {
+        readCount += 1;
+        if (readCount === 2) bothRead();
+        await permitUpdates;
+      }
+      return result;
+    };
+    try {
+      const overlappingEdits = Promise.allSettled([
+        claims.updateClaim(
+          { auth: makerAuth },
+          auditDraft.id,
+          { periodEnd: new Date('2027-06-28T00:00:00.000Z') },
+        ),
+        claims.updateClaim(
+          { auth: makerAuth },
+          auditDraft.id,
+          { periodEnd: new Date('2027-06-29T00:00:00.000Z') },
+        ),
+      ]);
+      await reachedBarrier;
+      releaseReads();
+      const editResults = await overlappingEdits;
+      assert.equal(
+        editResults.filter((item) => item.status === 'fulfilled').length,
+        2,
+        'both valid concurrent Draft edits must serialize successfully',
+      );
+    } finally {
+      releaseReads();
+      intercepted.visibleClaim = originalLookup;
+    }
+    const editAudits = await prisma.auditLog.findMany({
+      where: {
+        companyId: company.id,
+        entityType: 'SUBCONTRACT_CLAIM',
+        entityId: auditDraft.id,
+        action: 'UPDATE_DRAFT',
+      },
+      select: { oldValues: true, newValues: true },
+    });
+    assert.equal(editAudits.length, 2);
+    const oldPeriodEnds = editAudits.map(
+      (item) => (item.oldValues as { periodEnd: string }).periodEnd,
+    );
+    assert.equal(
+      oldPeriodEnds.filter((date) => date === '2027-06-30T00:00:00.000Z').length,
+      1,
+      'only the first update can audit the original period',
+    );
+    assert.ok(
+      oldPeriodEnds.some((date) =>
+        ['2027-06-28T00:00:00.000Z', '2027-06-29T00:00:00.000Z'].includes(date),
+      ),
+      'the second concurrent update must audit the committed post-lock period',
+    );
   } finally {
     await prisma.$disconnect();
   }
