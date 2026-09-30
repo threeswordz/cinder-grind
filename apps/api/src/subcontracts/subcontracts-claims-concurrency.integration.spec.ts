@@ -463,6 +463,135 @@ test('V0.5-C serializes Claim commercial races on the Agreement boundary', async
       'retained Assessment amount changed during the cancellation race',
     );
 
+    // Direct terminal creation must not create unrelated exact-period history
+    // beside an existing active Claim below the service layer.
+    const terminalPairAgreement = await createAgreement('TP');
+    const terminalPairDraft = await claims.createClaim(
+      { auth: makerAuth },
+      terminalPairAgreement.id,
+      {
+        periodStart: new Date('2027-07-01T00:00:00.000Z'),
+        periodEnd: new Date('2027-07-31T00:00:00.000Z'),
+      },
+    );
+    const directTerminalId = randomUUID();
+    const directTerminalAt = new Date();
+    await assert.rejects(
+      () =>
+        prisma.subcontractClaim.create({
+          data: {
+            id: directTerminalId,
+            companyId: company.id,
+            projectId: project.id,
+            agreementId: terminalPairAgreement.id,
+            claimNumber: 'SCL-TERM-' + suffix,
+            periodStart: terminalPairDraft.periodStart,
+            periodEnd: terminalPairDraft.periodEnd,
+            currencyCode: terminalPairDraft.currencyCode,
+            state: 'WITHDRAWN',
+            createdByUserId: maker.id,
+            submittedByUserId: maker.id,
+            submittedAt: directTerminalAt,
+            withdrawnByUserId: maker.id,
+            withdrawnAt: directTerminalAt,
+            withdrawalReason: 'Direct terminal history must not bypass active lineage.',
+          },
+        }),
+      'database must reject terminal history beside an unrelated active Claim',
+    );
+    assert.equal(
+      await prisma.subcontractClaim.count({
+        where: { id: directTerminalId },
+      }),
+      0,
+      'rejected direct terminal history must roll back completely',
+    );
+
+    // Two direct transactions can insert opposite sides before either commits.
+    // The deferred lineage guard must serialize the Agreement boundary so only
+    // one side commits and the second sees the first committed history.
+    const concurrentPairAgreement = await createAgreement('CP');
+    const concurrentActiveId = randomUUID();
+    const concurrentTerminalId = randomUUID();
+    const concurrentPeriodStart = new Date('2027-08-01T00:00:00.000Z');
+    const concurrentPeriodEnd = new Date('2027-08-31T00:00:00.000Z');
+    const concurrentTerminalAt = new Date();
+    let pairInsertCount = 0;
+    let bothPairRowsInserted!: () => void;
+    const pairRowsInserted = new Promise<void>((resolve) => {
+      bothPairRowsInserted = resolve;
+    });
+    let releasePairCommits!: () => void;
+    const permitPairCommits = new Promise<void>((resolve) => {
+      releasePairCommits = resolve;
+    });
+    const holdAfterPairInsert = async () => {
+      pairInsertCount += 1;
+      if (pairInsertCount === 2) bothPairRowsInserted();
+      await permitPairCommits;
+    };
+    const activePairInsert = prisma.$transaction(async (tx) => {
+      await tx.subcontractClaim.create({
+        data: {
+          id: concurrentActiveId,
+          companyId: company.id,
+          projectId: project.id,
+          agreementId: concurrentPairAgreement.id,
+          claimNumber: 'SCL-PAIR-A-' + suffix,
+          periodStart: concurrentPeriodStart,
+          periodEnd: concurrentPeriodEnd,
+          currencyCode: 'SGD',
+          state: 'DRAFT',
+          createdByUserId: maker.id,
+        },
+      });
+      await holdAfterPairInsert();
+    });
+    const terminalPairInsert = prisma.$transaction(async (tx) => {
+      await tx.subcontractClaim.create({
+        data: {
+          id: concurrentTerminalId,
+          companyId: company.id,
+          projectId: project.id,
+          agreementId: concurrentPairAgreement.id,
+          claimNumber: 'SCL-PAIR-T-' + suffix,
+          periodStart: concurrentPeriodStart,
+          periodEnd: concurrentPeriodEnd,
+          currencyCode: 'SGD',
+          state: 'WITHDRAWN',
+          createdByUserId: maker.id,
+          submittedByUserId: maker.id,
+          submittedAt: concurrentTerminalAt,
+          withdrawnByUserId: maker.id,
+          withdrawnAt: concurrentTerminalAt,
+          withdrawalReason: 'Concurrent terminal lineage serialization fixture.',
+        },
+      });
+      await holdAfterPairInsert();
+    });
+    const concurrentPairResultsPromise = Promise.allSettled([
+      activePairInsert,
+      terminalPairInsert,
+    ]);
+    await pairRowsInserted;
+    releasePairCommits();
+    const concurrentPairResults = await concurrentPairResultsPromise;
+    assertOneFulfilledOneRejected(
+      concurrentPairResults,
+      'concurrent active/terminal direct Claim creation must serialize',
+    );
+    const retainedConcurrentPair = await prisma.subcontractClaim.findMany({
+      where: {
+        id: { in: [concurrentActiveId, concurrentTerminalId] },
+      },
+      select: { id: true, state: true },
+    });
+    assert.equal(
+      retainedConcurrentPair.length,
+      1,
+      'concurrent active/terminal race must retain exactly one Claim',
+    );
+
     const lineRaceAgreement = await createAgreement('LI');
     const lineRaceClaim = await createDraft(
       lineRaceAgreement.id,
