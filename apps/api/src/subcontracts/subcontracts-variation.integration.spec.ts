@@ -343,6 +343,25 @@ test('V0.5-E applies approved Variations to the ceiling and derives authorized r
       'Approved.',
     );
     assert.equal(approvedIncrease.state, 'APPROVED');
+    const unchangedAgreement = await prisma.subcontractAgreement.findUniqueOrThrow({
+      where: { id: agreement.id },
+    });
+    assert.equal(unchangedAgreement.originalValue.toFixed(2), '1000.00');
+    assert.equal(unchangedAgreement.scopeOfWork, 'Immutable original scope');
+    const retainedVariationAudit = await prisma.auditLog.findMany({
+      where: {
+        companyId: company.id,
+        entityType: 'SUBCONTRACT_VARIATION',
+        entityId: increase.id,
+      },
+      select: { action: true },
+      orderBy: { occurredAt: 'asc' },
+    });
+    assert.deepEqual(
+      retainedVariationAudit.map((entry) => entry.action),
+      ['CREATE_DRAFT', 'SUBMIT', 'APPROVAL_APPROVE'],
+      'Variation create, submit and approval decisions must remain in retained audit history',
+    );
     await assert.rejects(() =>
       prisma.subcontractVariation.update({
         where: { id: increase.id },

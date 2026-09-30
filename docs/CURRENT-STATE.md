@@ -3,8 +3,8 @@
 **Last verified:** 2026-10-01
 **Source of truth:** Live GitHub repository state
 
-- Current Release: V0.5 Subcontracts — V0.5-A through V0.5-D are technically complete; V0.5-E Variations / Derived Reporting / Release Evidence is now in pre-flight under Issue #111 from green main `aceeb82ad13a2f6c773d307541ddd02fafc69a92`; human V0.5 Product / Business Owner UAT remains the separate mandatory release-exit gate
-- Current Stage: V0.5-E Variations / Derived Reporting / Release Evidence pre-flight under Issue #111 on `v0.5-e-variations-reporting`; authority is SUB-009/RPT-007, AC-V05-023–029 and approved BR-V05-16–20 plus applicable shared rules; implementation has not begun at this checkpoint
+- Current Release: V0.5 Subcontracts — V0.5-A through V0.5-D are technically complete; V0.5-E Variations / Derived Reporting / Release Evidence implementation and automated evidence are complete on its stage branch and entering final exact-head PR/review gates; human V0.5 Product / Business Owner UAT remains the separate mandatory release-exit gate
+- Current Stage: V0.5-E Variations / Derived Reporting / Release Evidence under Issue #111 on `v0.5-e-variations-reporting`; Variation lifecycle/current-ceiling integration, source-derived reporting, UI, PostgreSQL regression, concurrency/authorization coverage and authenticated live HTTP acceptance are implemented. Pre-evidence implementation head `2a2909675d015caed8e1e0a3b317cbd321723795` passed CI #1909.
 - Completed Stages: V0.1-A through V0.1-H; V0.2-A through V0.2-G; V0.3-A through V0.3-E; V0.4-A through V0.4-E; V0.5 entry gate; V0.5-A; V0.5-B; V0.5-C; V0.5-D
 - Active Issue: #111 — V0.5-E Variations / Derived Reporting / Release Evidence
 - V0.5-C green main checkpoint: PR #108 squash-merged as `3f00de1f984c82c1737c4b47c226d99197b19e54`; final exact-head push CI #1869 and PR CI #1870 passed on `0833cd893f208003215cf39cee9c07b6c9a817ad`; final Codex exact-head review reported no major issues; post-merge main CI #1871 passed; Issue #107 closed.
@@ -85,7 +85,7 @@
 - V0.1 cross-module release acceptance scenario: PASS in the Stage H release-candidate regression suite.
 - Open defect check at V0.1 acceptance: no Severity 1 or Severity 2 release-blocking defect recorded.
 - Governance: `AGENTS.md`, `docs/PROJECT-GOVERNANCE.md`, PR governance checklist and DEC-008 are active; material decisions must pass the repository pre-flight and open-source/zero-cost-first constraint.
-- Next action: pass exact-head CI for the V0.5-E pre-flight checkpoint on `v0.5-e-variations-reporting`; then implement approved Variation, source-derived reporting, full regression and UAT-evidence preparation under Issue #111. No scope expansion without Change Control. Human AC-V05-030 Product / Business Owner acceptance remains a separate later release-exit gate and V0.6 must not begin before it completes.
+- Next action: pass fresh exact-head CI on the final V0.5-E evidence checkpoint; open the Stage-E PR, require exact-head PR CI and Codex review, resolve every genuine finding, squash merge, pass post-merge `main` CI, and only then close Issue #111 as technically complete. Present `docs/V0.5-UAT-EVIDENCE.md` to the Product / Business Owner and STOP for explicit AC-V05-030 acceptance. V0.6 must not begin before that human gate completes.
 
 ## Stage E completed
 

@@ -1,3 +1,13 @@
+## 2026-10-01 — V0.5-E implementation and human-UAT evidence ready for final PR gates
+
+- Implemented SUB-009 Variation Orders with Company/month `SVOYYMM-###` identity, immutable Agreement linkage/currency, signed scope/value change, configured Approval Matrix maker-checker, explicit permissions, Project authorization, stable retry keys, retained audit/history and explicit reversal. Original Agreement value/scope remain unchanged; only approved non-reversed Variation deltas derive the current ceiling.
+- Current-ceiling integration now governs Work Order approval, Claim submission and Certification approval. Reducing Variation approval and reversal of positive Variations protect approved Work Order allocation, active submitted/assessed claimed value and non-reversed certified value under deterministic Agreement locking.
+- Added read-only Project-scoped RPT-007 reporting for original value, approved Variation delta, current ceiling, approved Work Order allocation, active claimed, assessed, certified gross, withheld retention and net certification. It creates no second ledger, Finance posting, Actual Cost or Paid Cost semantics.
+- Added permission-aware Variation/reporting UI, focused PostgreSQL lifecycle/integrity/idempotency/concurrency/authorization/reporting regression and authenticated live HTTP Agreement → Work Order → Claim → Assessment → Certification/retention → Variation → reporting acceptance with unauthorized Project denial.
+- Focused Stage-E regression exposed an ambiguous PL/pgSQL `approval_state` reference in the already-executed Variation consistency migration. Historical migration remained unchanged; forward-only `20261001032000_v0_5_e_variation_consistency_fix` qualifies source columns and renames the local ApprovalInstance state variable.
+- Pre-evidence implementation head `2a2909675d015caed8e1e0a3b317cbd321723795` passed CI #1909: clean migration deployment/status, Prisma validation, production dependency/license audit, full API/web validation, PostgreSQL/full V0.1–V0.5 regression and authenticated live HTTP acceptance.
+- Prepared `docs/V0.5-UAT-EVIDENCE.md` for the separate human walkthrough. **AC-V05-030 remains pending and is not auto-accepted.** Required final exact-head CI, PR CI/Codex review, squash merge, post-merge main CI and Issue #111 closure still precede human V0.5 Release Exit acceptance.
+
 ## 2026-10-01 — V0.5-D completed; V0.5-E pre-flight started
 
 - PR #110 squash-merged to `main` as `aceeb82ad13a2f6c773d307541ddd02fafc69a92` after exact-head push CI #1898 and PR CI #1899 passed on `0cf62c630153a6ac2326f352c0064243b3a2f45f`; final Codex review reported no major issues and all review threads were resolved.
