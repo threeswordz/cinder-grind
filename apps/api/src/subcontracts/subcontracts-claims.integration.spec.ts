@@ -311,6 +311,33 @@ test('V0.5-C retains Claim history, separates assessment and enforces commercial
       'assessment cannot exceed the retained submitted Claim total',
     );
 
+    // Inserts as terminal assessment states must also carry reciprocal
+    // Assessment evidence. Single-statement direct inserts cannot fabricate it.
+    for (const [badState, periodStart, periodEnd] of [
+      ['ASSESSED', '2028-01-01', '2028-01-31'],
+      ['REJECTED', '2028-02-01', '2028-02-29'],
+    ] as const) {
+      await assert.rejects(
+        () =>
+          prisma.subcontractClaim.create({
+            data: {
+              companyId: company.id,
+              projectId: project.id,
+              agreementId: agreement.id,
+              claimNumber: 'SCL-DI-' + badState[0] + '-' + suffix,
+              periodStart: new Date(periodStart + 'T00:00:00.000Z'),
+              periodEnd: new Date(periodEnd + 'T00:00:00.000Z'),
+              currencyCode: agreement.currencyCode,
+              state: badState,
+              createdByUserId: maker.id,
+              submittedByUserId: maker.id,
+              submittedAt: new Date(),
+            },
+          }),
+        'database must reject inserted ' + badState + ' Claim without matching Assessment',
+      );
+    }
+
     // Direct SQL/Prisma cannot invent ASSESSED state without retained
     // assessment decision evidence. Valid assessment below must still work.
     await assert.rejects(
@@ -622,6 +649,21 @@ test('V0.5-C retains Claim history, separates assessment and enforces commercial
 
     await assert.rejects(
       () =>
+        prisma.subcontractClaim.update({
+          where: { id: withdrawal.id },
+          data: { state: 'REPLACED', replacedAt: new Date() },
+        }),
+      'database must reject REPLACED predecessor without linked submitted successor',
+    );
+    assert.equal(
+      (await prisma.subcontractClaim.findUniqueOrThrow({
+        where: { id: withdrawal.id },
+      })).state,
+      'WITHDRAWN',
+    );
+
+    await assert.rejects(
+      () =>
         claims.createClaim(
           { auth: makerAuth },
           agreement.id,
@@ -638,6 +680,31 @@ test('V0.5-C retains Claim history, separates assessment and enforces commercial
       { auth: makerAuth },
       withdrawal.id,
     );
+    await assert.rejects(
+      () =>
+        prisma.subcontractClaim.update({
+          where: { id: withdrawalReplacement.id },
+          data: {
+            state: 'SUBMITTED',
+            submittedByUserId: maker.id,
+            submittedAt: new Date(),
+          },
+        }),
+      'database must reject submitted linked replacement while predecessor is not REPLACED',
+    );
+    const lineageBeforeSubmit = await prisma.subcontractClaim.findMany({
+      where: { id: { in: [withdrawal.id, withdrawalReplacement.id] } },
+      select: { id: true, state: true },
+    });
+    assert.equal(
+      lineageBeforeSubmit.find((row) => row.id === withdrawal.id)?.state,
+      'WITHDRAWN',
+    );
+    assert.equal(
+      lineageBeforeSubmit.find((row) => row.id === withdrawalReplacement.id)?.state,
+      'DRAFT',
+    );
+
     await claims.addLine(
       { auth: makerAuth },
       withdrawalReplacement.id,
