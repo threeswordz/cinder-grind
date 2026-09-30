@@ -115,6 +115,13 @@ function reasonAction(body: unknown) {
 export class SubcontractsVariationController {
   constructor(private readonly variations: SubcontractsVariationService) {}
 
+  @Get('variation-agreement-options')
+  @UseGuards(AuthGuard, PermissionGuard)
+  @RequirePermissions('subcontracts.variation.view')
+  async agreementOptions(@Req() request: AuthenticatedRequest) {
+    return { data: await this.variations.agreementOptions(authOf(request)) };
+  }
+
   @Get('variation-workflow-options')
   @UseGuards(AuthGuard, PermissionGuard)
   @RequirePermissions('subcontracts.variation.view', 'subcontracts.variation.submit')

@@ -25,6 +25,7 @@ import {
   subcontractsApi,
 } from '../api/subcontracts';
 import { ClaimsPanel } from './ClaimsPanel';
+import { VariationsReportingPanel } from './VariationsReportingPanel';
 
 function SubcontractorsPanel({ permissions }: { permissions: string[] }) {
   const client = useQueryClient();
@@ -1692,11 +1693,20 @@ export function SubcontractsWorkspace({
   );
   const canSeeAgreements = permissions.includes('subcontracts.agreement.view');
   const canSeeClaims = permissions.includes('subcontracts.claim.view');
+  const canSeeVariations =
+    permissions.includes('subcontracts.variation.view') ||
+    permissions.includes('subcontracts.report.view');
   const [tab, setTab] = useState(
-    canSeeRegister ? 'register' : canSeeAgreements ? 'agreements' : 'claims',
+    canSeeRegister
+      ? 'register'
+      : canSeeAgreements
+        ? 'agreements'
+        : canSeeClaims
+          ? 'claims'
+          : 'variations',
   );
 
-  if (!canSeeRegister && !canSeeAgreements && !canSeeClaims) {
+  if (!canSeeRegister && !canSeeAgreements && !canSeeClaims && !canSeeVariations) {
     return <Alert severity="warning">No Subcontracts permission is assigned.</Alert>;
   }
 
@@ -1706,6 +1716,9 @@ export function SubcontractsWorkspace({
         {canSeeRegister ? <Tab value="register" label="Subcontractors" /> : null}
         {canSeeAgreements ? <Tab value="agreements" label="Agreements" /> : null}
         {canSeeClaims ? <Tab value="claims" label="Claims" /> : null}
+        {canSeeVariations ? (
+          <Tab value="variations" label="Variations & Reports" />
+        ) : null}
       </Tabs>
       {tab === 'register' && canSeeRegister ? (
         <SubcontractorsPanel permissions={permissions} />
@@ -1715,6 +1728,9 @@ export function SubcontractsWorkspace({
       ) : null}
       {tab === 'claims' && canSeeClaims ? (
         <ClaimsPanel permissions={permissions} />
+      ) : null}
+      {tab === 'variations' && canSeeVariations ? (
+        <VariationsReportingPanel permissions={permissions} />
       ) : null}
     </Stack>
   );

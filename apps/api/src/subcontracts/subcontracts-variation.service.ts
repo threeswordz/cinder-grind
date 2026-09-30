@@ -55,6 +55,31 @@ export class SubcontractsVariationService {
     });
   }
 
+  async agreementOptions(auth: AuthenticatedUserContext) {
+    const scope = await this.access.scopeWhere(auth, this.prisma);
+    return this.prisma.subcontractAgreement.findMany({
+      where: {
+        companyId: auth.companyId,
+        project: scope,
+        approvalState: { in: ['APPROVED', 'CANCELLED'] },
+      },
+      select: {
+        id: true,
+        agreementNumber: true,
+        projectId: true,
+        originalValue: true,
+        currencyCode: true,
+        approvalState: true,
+        cancelledAt: true,
+        project: { select: { id: true, projectCode: true, projectName: true } },
+        subcontractor: {
+          select: { id: true, subcontractorCode: true, subcontractorName: true },
+        },
+      },
+      orderBy: [{ project: { projectCode: 'asc' } }, { agreementNumber: 'asc' }],
+    });
+  }
+
   async listVariations(auth: AuthenticatedUserContext, agreementId: string) {
     await this.visibleAgreement(auth, agreementId, this.prisma);
     return this.prisma.subcontractVariation.findMany({
