@@ -197,3 +197,16 @@
 - Stage C pre-flight authorizes only Progress Claims and Assessments under SUB-005/SUB-006, AC-V05-011–016 and BR-V05-09–12. Certification/retention, Variations/reporting and Finance remain deferred.
 - Assessment is implemented as an explicitly permitted auditable decision, not a new Approval Matrix workflow: SUB-006 does not depend on FND-005, while SUB-007 Certification explicitly does.
 - DEC-008 and all approved V0.5 deferrals remain unchanged.
+
+
+## 2026-09-30 — V0.5-C Claims / Assessments technically implemented
+
+- Implemented SUB-005/SUB-006 within the approved V0.5-C boundary: Claim identity/period/lines, submission ceilings and immutability, withdrawal/replacement history, Assessment decision/rejection history, claimed-versus-assessed separation, Project authorization, explicit permissions, audit and retry/idempotency protections.
+- Added the permission-aware Claims / Assessments web workspace with approved Agreement and Work Order selectors, Draft editing, read-only submitted source values, lifecycle actions, retained history and stable action keys across failed/manual retries.
+- Extended authenticated live HTTP acceptance with valid Claim submission, duplicate and cumulative-overclaim rejection, source immutability, lower Assessment, claimed/assessed separation, Assessment rejection/replacement, unauthorized Project denial and active-Claim Agreement cancellation protection.
+- Added explicit concurrency evidence for active same-period contention, competing Agreement-ceiling submissions, competing per-Work-Order submissions, cancellation versus Claim submission, and cancellation versus Assessment finalization.
+- Concurrency CI found a stale-snapshot cancellation defect when a waiting `SERIALIZABLE` cancellation transaction could miss the winning Claim submission. Cancellation now uses the existing deterministic Agreement lock with `READ COMMITTED`, rechecking committed state after the lock; exact-head CI #1754 validated the correction.
+- Final security review found and fixed an Assessment read-boundary gap: Claim list/detail no longer disclose nested Assessment history without `subcontracts.assessment.view`; detail/list regressions were added.
+- Exact implementation head `02c8281a6e79e3d5c7b7a67efe9fea3f31ad1d58` passed CI #1756 including clean migrations/status, Prisma validation, dependency audit, full workspace validation, PostgreSQL regression/concurrency tests, bootstrap and live HTTP acceptance.
+- Payment Certification/retention, Variations/reporting, Finance/payment/accounting, tax/VAT, FX, cost recognition, retention release, SUB-011/DOC-009 and V0.7 aggregation remain deferred. DEC-008 remains unchanged.
+- Stage C is not yet merged at this record. Required PR CI/review, squash merge, post-merge main CI and Issue #107 closure remain gates. Human V0.5 Product / Business Owner UAT remains separate and pending.
