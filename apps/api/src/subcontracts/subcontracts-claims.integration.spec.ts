@@ -347,6 +347,31 @@ test('V0.5-C retains Claim history, separates assessment and enforces commercial
       'assessment.view must expose retained Assessment history',
     );
 
+    const replayedSubmitAfterAssessment = await claims.submitClaim(
+      { auth: claimOnlyReader },
+      claim.id,
+      'claim-submit-' + suffix,
+    );
+    assert.equal(replayedSubmitAfterAssessment.state, 'ASSESSED');
+    assert.equal(
+      replayedSubmitAfterAssessment.assessment,
+      null,
+      'submit replay must not disclose a later Assessment without assessment.view',
+    );
+
+    const assessAudit = await prisma.auditLog.findFirst({
+      where: {
+        companyId: company.id,
+        entityType: 'SUBCONTRACT_CLAIM_ASSESSMENT',
+        entityId: assessed.assessment!.id,
+        action: 'ASSESS',
+      },
+    });
+    assert.ok(
+      assessAudit,
+      'Assessment creation audit must be keyed to the Assessment entity ID',
+    );
+
     const replayedAssessment = await claims.assessClaim(
       { auth: assessorAuth },
       claim.id,
