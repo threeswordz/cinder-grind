@@ -607,6 +607,64 @@ test('V0.5-C retains Claim history, separates assessment and enforces commercial
       'invalid evidence-free replacement lineage must roll back completely',
     );
 
+    // Direct SQL/future Prisma replacement lineage must correct the exact same
+    // predecessor period even when all other correction evidence is valid.
+    const mismatchedPeriodSourceId = randomUUID();
+    const mismatchedPeriodReplacementId = randomUUID();
+    await assert.rejects(
+      () =>
+        prisma.$transaction(async (tx) => {
+          const insertedAt = new Date();
+          await tx.subcontractClaim.create({
+            data: {
+              id: mismatchedPeriodSourceId,
+              companyId: company.id,
+              projectId: project.id,
+              agreementId: agreement.id,
+              claimNumber: 'SCL-MISMATCH-SRC-' + suffix,
+              periodStart: new Date('2028-04-01T00:00:00.000Z'),
+              periodEnd: new Date('2028-04-30T00:00:00.000Z'),
+              currencyCode: agreement.currencyCode,
+              state: 'REPLACED',
+              createdByUserId: maker.id,
+              submittedByUserId: maker.id,
+              submittedAt: insertedAt,
+              withdrawnByUserId: maker.id,
+              withdrawnAt: insertedAt,
+              withdrawalReason: 'Valid withdrawal correction evidence.',
+              replacedAt: insertedAt,
+            },
+          });
+          await tx.subcontractClaim.create({
+            data: {
+              id: mismatchedPeriodReplacementId,
+              companyId: company.id,
+              projectId: project.id,
+              agreementId: agreement.id,
+              claimNumber: 'SCL-MISMATCH-RPL-' + suffix,
+              periodStart: new Date('2028-04-01T00:00:00.000Z'),
+              periodEnd: new Date('2028-04-29T00:00:00.000Z'),
+              currencyCode: agreement.currencyCode,
+              state: 'SUBMITTED',
+              replacementForClaimId: mismatchedPeriodSourceId,
+              createdByUserId: maker.id,
+              submittedByUserId: maker.id,
+              submittedAt: insertedAt,
+            },
+          });
+        }),
+      'database must reject linked replacement whose period differs from predecessor',
+    );
+    assert.equal(
+      await prisma.subcontractClaim.count({
+        where: {
+          id: { in: [mismatchedPeriodSourceId, mismatchedPeriodReplacementId] },
+        },
+      }),
+      0,
+      'mismatched-period replacement lineage must roll back completely',
+    );
+
     const replacementLine = await claims.addLine(
       { auth: makerAuth },
       replacement.id,
