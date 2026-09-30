@@ -548,6 +548,25 @@ test('V0.5-C retains Claim history, separates assessment and enforces commercial
       (error: unknown) => error instanceof ConflictException,
       'a linked replacement must retain the predecessor period',
     );
+
+    await assert.rejects(
+      () =>
+        prisma.subcontractClaim.update({
+          where: { id: replacement.id },
+          data: { periodEnd: new Date('2026-09-29T00:00:00.000Z') },
+        }),
+      'database must reject direct period edits on a linked Draft replacement',
+    );
+    const replacementAfterDirectPeriodEdit =
+      await prisma.subcontractClaim.findUniqueOrThrow({
+        where: { id: replacement.id },
+      });
+    assert.equal(
+      replacementAfterDirectPeriodEdit.periodEnd.getTime(),
+      claim.periodEnd.getTime(),
+      'rejected direct period edit must retain the predecessor period',
+    );
+
     assert.notEqual(replacement.claimNumber, claim.claimNumber);
     assert.equal(replacement.replacementForClaimId, claim.id);
 
