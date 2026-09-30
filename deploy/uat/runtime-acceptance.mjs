@@ -113,6 +113,14 @@ check(
   ),
   'SYS_ADMIN must not implicitly receive Purchase Order business authority.',
 );
+check(
+  !me.data.data.permissions.some(
+    (permission) =>
+      permission.startsWith('subcontracts.claim.') ||
+      permission.startsWith('subcontracts.assessment.'),
+  ),
+  'SYS_ADMIN must not implicitly receive Claim or Assessment business authority.',
+);
 record('administrator login, current-user endpoint and technical-role business-authority separation');
 
 const status = await request(admin, '/admin/statuses', {
@@ -322,6 +330,12 @@ const permissionCodes = [
   'subcontracts.work_order.submit',
   'subcontracts.work_order.approve',
   'subcontracts.work_order.reject',
+  'subcontracts.claim.view',
+  'subcontracts.claim.create',
+  'subcontracts.claim.edit',
+  'subcontracts.claim.submit',
+  'subcontracts.claim.withdraw',
+  'subcontracts.assessment.view',
 ];
 await request(admin, `/admin/roles/${roleId}/permissions`, {
   method: 'PUT',
@@ -367,6 +381,10 @@ await request(admin, `/admin/roles/${checkerRoleId}/permissions`, {
       'subcontracts.work_order.view',
       'subcontracts.work_order.approve',
       'subcontracts.work_order.reject',
+      'subcontracts.claim.view',
+      'subcontracts.assessment.view',
+      'subcontracts.assessment.assess',
+      'subcontracts.assessment.reject',
     ],
   },
 });
@@ -3651,6 +3669,383 @@ check(
   'V0.5-B Agreement cancellation did not retain audited cancellation evidence.',
 );
 record('V0.5-B configured maker-checker Agreement/Revision/Work Order lifecycle, ceiling guard, stable retries, cancellation guard and Project authorization');
+
+const claimAgreementOptions = await request(
+  pm,
+  '/subcontracts/claim-agreement-options',
+);
+check(
+  claimAgreementOptions.data.data.some((item) => item.id === agreementId),
+  'V0.5-C Claim Agreement selector did not expose the authorized approved Agreement.',
+);
+const unassignedClaimAgreementOptions = await request(
+  unassigned,
+  '/subcontracts/claim-agreement-options',
+);
+check(
+  !unassignedClaimAgreementOptions.data.data.some(
+    (item) => item.id === agreementId,
+  ),
+  'V0.5-C Claim Agreement selector exposed an unauthorized Project.',
+);
+
+const claimOptions = await request(
+  pm,
+  '/subcontracts/agreements/' + agreementId + '/claim-options',
+);
+check(
+  claimOptions.data.data.workOrders.some(
+    (item) => item.id === workOrderOne.data.data.id,
+  ) &&
+    !claimOptions.data.data.workOrders.some(
+      (item) => item.id === workOrderTwo.data.data.id,
+    ),
+  'V0.5-C Claim options did not expose only approved same-Agreement Work Orders.',
+);
+
+const stageCClaim = await request(
+  pm,
+  '/subcontracts/agreements/' + agreementId + '/claims',
+  {
+    method: 'POST',
+    json: {
+      periodStart: '2026-10-01',
+      periodEnd: '2026-10-31',
+    },
+    expected: 201,
+  },
+);
+const stageCClaimId = stageCClaim.data.data.id;
+check(
+  /^SCL\d{4}-\d{3}$/.test(stageCClaim.data.data.claimNumber) &&
+    stageCClaim.data.data.state === 'DRAFT',
+  'V0.5-C Claim Draft did not retain the approved SCLYYMM-### identity and Draft state.',
+);
+
+const stageCClaimLine = await request(
+  pm,
+  '/subcontracts/claims/' + stageCClaimId + '/lines',
+  {
+    method: 'POST',
+    json: {
+      amount: '50000.00',
+      workOrderId: workOrderOne.data.data.id,
+    },
+    expected: 201,
+  },
+);
+check(
+  stageCClaimLine.data.data.workOrderId === workOrderOne.data.data.id &&
+    Number(stageCClaimLine.data.data.amount) === 50000,
+  'V0.5-C Claim line did not retain the approved Work Order allocation.',
+);
+
+const submittedStageCClaim = await request(
+  pm,
+  '/subcontracts/claims/' + stageCClaimId + '/submit',
+  {
+    method: 'POST',
+    json: { actionKey: 'uat-v05c-claim-submit-' + suffix },
+    expected: 201,
+  },
+);
+check(
+  submittedStageCClaim.data.data.state === 'SUBMITTED',
+  'V0.5-C Claim did not enter SUBMITTED state.',
+);
+const replayedStageCClaim = await request(
+  pm,
+  '/subcontracts/claims/' + stageCClaimId + '/submit',
+  {
+    method: 'POST',
+    json: { actionKey: 'uat-v05c-claim-submit-' + suffix },
+    expected: 201,
+  },
+);
+check(
+  replayedStageCClaim.data.data.id === stageCClaimId &&
+    replayedStageCClaim.data.data.state === 'SUBMITTED',
+  'V0.5-C stable submit retry did not return the same visible Claim.',
+);
+
+await request(
+  pm,
+  '/subcontracts/agreements/' + agreementId + '/claims',
+  {
+    method: 'POST',
+    json: {
+      periodStart: '2026-10-01',
+      periodEnd: '2026-10-31',
+    },
+    expected: 409,
+  },
+);
+await request(pm, '/subcontracts/claims/' + stageCClaimId, {
+  method: 'PATCH',
+  json: { periodEnd: '2026-11-01' },
+  expected: 409,
+});
+await request(pm, '/subcontracts/claim-lines/' + stageCClaimLine.data.data.id, {
+  method: 'PATCH',
+  json: { amount: '49999.00' },
+  expected: 409,
+});
+
+const overWorkOrderClaim = await request(
+  pm,
+  '/subcontracts/agreements/' + agreementId + '/claims',
+  {
+    method: 'POST',
+    json: {
+      periodStart: '2026-11-01',
+      periodEnd: '2026-11-30',
+    },
+    expected: 201,
+  },
+);
+await request(
+  pm,
+  '/subcontracts/claims/' + overWorkOrderClaim.data.data.id + '/lines',
+  {
+    method: 'POST',
+    json: {
+      amount: '30000.00',
+      workOrderId: workOrderOne.data.data.id,
+    },
+    expected: 201,
+  },
+);
+await request(
+  pm,
+  '/subcontracts/claims/' + overWorkOrderClaim.data.data.id + '/submit',
+  {
+    method: 'POST',
+    json: { actionKey: 'uat-v05c-wo-overclaim-' + suffix },
+    expected: 409,
+  },
+);
+
+const assessedStageCClaim = await request(
+  checker,
+  '/subcontracts/claims/' + stageCClaimId + '/assess',
+  {
+    method: 'POST',
+    json: {
+      assessedAmount: '45000.00',
+      reason: 'Accepted lower assessed value in live acceptance.',
+      actionKey: 'uat-v05c-assess-' + suffix,
+    },
+    expected: 201,
+  },
+);
+check(
+  assessedStageCClaim.data.data.state === 'ASSESSED' &&
+    Number(assessedStageCClaim.data.data.lines[0]?.amount) === 50000 &&
+    Number(assessedStageCClaim.data.data.assessment?.assessedAmount) === 45000,
+  'V0.5-C Assessment did not preserve claimed and assessed values separately.',
+);
+const replayedAssessment = await request(
+  checker,
+  '/subcontracts/claims/' + stageCClaimId + '/assess',
+  {
+    method: 'POST',
+    json: {
+      assessedAmount: '45000.00',
+      reason: 'Accepted lower assessed value in live acceptance.',
+      actionKey: 'uat-v05c-assess-' + suffix,
+    },
+    expected: 201,
+  },
+);
+check(
+  replayedAssessment.data.data.state === 'ASSESSED' &&
+    Number(replayedAssessment.data.data.assessment?.assessedAmount) === 45000,
+  'V0.5-C stable Assessment retry did not return the retained decision.',
+);
+
+const rejectedAssessment = await request(
+  checker,
+  '/subcontracts/claims/' + stageCClaimId + '/assessment/reject',
+  {
+    method: 'POST',
+    json: {
+      reason: 'Correction requires a replacement Claim.',
+      actionKey: 'uat-v05c-assessment-reject-' + suffix,
+    },
+    expected: 201,
+  },
+);
+check(
+  rejectedAssessment.data.data.state === 'REJECTED' &&
+    rejectedAssessment.data.data.assessment?.state === 'REJECTED' &&
+    Number(rejectedAssessment.data.data.lines[0]?.amount) === 50000 &&
+    Number(rejectedAssessment.data.data.assessment?.assessedAmount) === 45000,
+  'V0.5-C Assessment rejection rewrote retained Claim or Assessment values.',
+);
+
+const replacementClaim = await request(
+  pm,
+  '/subcontracts/claims/' + stageCClaimId + '/replacements',
+  {
+    method: 'POST',
+    json: {},
+    expected: 201,
+  },
+);
+check(
+  replacementClaim.data.data.state === 'DRAFT' &&
+    replacementClaim.data.data.replacementForClaimId === stageCClaimId,
+  'V0.5-C linked replacement Claim did not retain predecessor lineage.',
+);
+await request(
+  pm,
+  '/subcontracts/claims/' + replacementClaim.data.data.id + '/lines',
+  {
+    method: 'POST',
+    json: {
+      amount: '50000.00',
+      workOrderId: workOrderOne.data.data.id,
+    },
+    expected: 201,
+  },
+);
+const submittedReplacementClaim = await request(
+  pm,
+  '/subcontracts/claims/' + replacementClaim.data.data.id + '/submit',
+  {
+    method: 'POST',
+    json: { actionKey: 'uat-v05c-replacement-submit-' + suffix },
+    expected: 201,
+  },
+);
+check(
+  submittedReplacementClaim.data.data.state === 'SUBMITTED',
+  'V0.5-C replacement Claim could not be submitted after rejection released the prior active ceiling.',
+);
+const replacedSourceClaim = await request(
+  pm,
+  '/subcontracts/claims/' + stageCClaimId,
+);
+check(
+  replacedSourceClaim.data.data.state === 'REPLACED' &&
+    replacedSourceClaim.data.data.replacementClaim?.id ===
+      replacementClaim.data.data.id,
+  'V0.5-C predecessor Claim did not retain replacement history after replacement submission.',
+);
+await request(
+  unassigned,
+  '/subcontracts/claims/' + replacementClaim.data.data.id,
+  { expected: 403 },
+);
+
+const claimGuardAgreement = await request(pm, '/subcontracts/agreements', {
+  method: 'POST',
+  json: {
+    projectId,
+    subcontractorId,
+    originalValue: '1000.00',
+    scopeOfWork: 'Stage C Claim cancellation guard ' + suffix,
+    currencyCode: 'SGD',
+    operationalStatusId: subcontractStatus.data.data.id,
+    createKey: 'uat-v05c-claim-guard-agreement-' + suffix,
+  },
+  expected: 201,
+});
+await request(
+  pm,
+  '/subcontracts/agreements/' + claimGuardAgreement.data.data.id + '/submit',
+  {
+    method: 'POST',
+    json: {
+      workflowCode: subcontractAgreementWorkflowCode,
+      actionKey: 'uat-v05c-claim-guard-submit-' + suffix,
+    },
+    expected: 201,
+  },
+);
+await request(
+  checker,
+  '/subcontracts/agreements/' + claimGuardAgreement.data.data.id + '/approve',
+  {
+    method: 'POST',
+    json: { actionKey: 'uat-v05c-claim-guard-approve-' + suffix },
+    expected: 201,
+  },
+);
+const claimGuardClaim = await request(
+  pm,
+  '/subcontracts/agreements/' + claimGuardAgreement.data.data.id + '/claims',
+  {
+    method: 'POST',
+    json: {
+      periodStart: '2026-12-01',
+      periodEnd: '2026-12-31',
+    },
+    expected: 201,
+  },
+);
+await request(
+  pm,
+  '/subcontracts/claims/' + claimGuardClaim.data.data.id + '/lines',
+  {
+    method: 'POST',
+    json: { amount: '600.00' },
+    expected: 201,
+  },
+);
+await request(
+  pm,
+  '/subcontracts/claims/' + claimGuardClaim.data.data.id + '/submit',
+  {
+    method: 'POST',
+    json: { actionKey: 'uat-v05c-claim-guard-claim-submit-' + suffix },
+    expected: 201,
+  },
+);
+await request(
+  pm,
+  '/subcontracts/agreements/' + claimGuardAgreement.data.data.id + '/cancel',
+  {
+    method: 'POST',
+    json: {
+      reason: 'Must remain blocked by the active Claim.',
+      actionKey: 'uat-v05c-active-claim-cancel-' + suffix,
+    },
+    expected: 409,
+  },
+);
+
+const overAgreementClaim = await request(
+  pm,
+  '/subcontracts/agreements/' + claimGuardAgreement.data.data.id + '/claims',
+  {
+    method: 'POST',
+    json: {
+      periodStart: '2027-01-01',
+      periodEnd: '2027-01-31',
+    },
+    expected: 201,
+  },
+);
+await request(
+  pm,
+  '/subcontracts/claims/' + overAgreementClaim.data.data.id + '/lines',
+  {
+    method: 'POST',
+    json: { amount: '500.00' },
+    expected: 201,
+  },
+);
+await request(
+  pm,
+  '/subcontracts/claims/' + overAgreementClaim.data.data.id + '/submit',
+  {
+    method: 'POST',
+    json: { actionKey: 'uat-v05c-agreement-overclaim-' + suffix },
+    expected: 409,
+  },
+);
+record('V0.5-C Claim Draft/line/submit lifecycle, exact-period and cumulative ceilings, immutable submitted source, lower Assessment, rejection/replacement history, retry safety, Claim-specific cancellation guard and Project authorization');
 
 await request(pm, '/subcontracts/subcontractors/' + subcontractorId + '/archive', {
   method: 'POST',
