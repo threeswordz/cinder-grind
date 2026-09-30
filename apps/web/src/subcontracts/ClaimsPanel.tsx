@@ -19,11 +19,25 @@ import {
   subcontractsApi,
 } from '../api/subcontracts';
 
+function amountToCents(value: string) {
+  const [whole, fraction = ''] = value.split('.');
+  return BigInt(whole) * 100n + BigInt((fraction + '00').slice(0, 2));
+}
+
+function centsToAmount(value: bigint) {
+  const whole = value / 100n;
+  const fraction = (value % 100n).toString().padStart(2, '0');
+  return whole.toString() + '.' + fraction;
+}
+
 function claimTotal(claim: ClaimRecord | null) {
   if (!claim) return '0.00';
-  return claim.lines
-    .reduce((total, line) => total + Number(line.amount), 0)
-    .toFixed(2);
+  return centsToAmount(
+    claim.lines.reduce(
+      (total, line) => total + amountToCents(line.amount),
+      0n,
+    ),
+  );
 }
 
 function actionColor(state: string) {
