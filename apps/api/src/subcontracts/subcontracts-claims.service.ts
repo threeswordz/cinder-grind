@@ -1236,22 +1236,24 @@ export class SubcontractsClaimsService {
   }
 
   private async ensureClaimSequence(companyId: string) {
-    await this.prisma.numberSequence.upsert({
-      where: {
-        companyId_sequenceCode: {
+    // Concurrent first-use Claim creation must initialize the reserved sequence
+    // idempotently. Prisma upsert can surface a raw P2002 when two transactions
+    // both observe the row as absent before either insert commits. PostgreSQL
+    // ON CONFLICT semantics behind createMany(skipDuplicates) make this
+    // bootstrap race-safe; NumberSequenceService.next() then locks and validates
+    // the retained reserved policy before allocating a value.
+    await this.prisma.numberSequence.createMany({
+      data: [
+        {
           companyId,
+          entityType: 'SUBCONTRACT_CLAIM',
           sequenceCode: 'SUBCONTRACT_CLAIM',
+          formatTemplate: 'SCLYYMM-###',
+          resetRule: 'MONTHLY',
+          nextValue: 1,
         },
-      },
-      create: {
-        companyId,
-        entityType: 'SUBCONTRACT_CLAIM',
-        sequenceCode: 'SUBCONTRACT_CLAIM',
-        formatTemplate: 'SCLYYMM-###',
-        resetRule: 'MONTHLY',
-        nextValue: 1,
-      },
-      update: {},
+      ],
+      skipDuplicates: true,
     });
   }
 
