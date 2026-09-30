@@ -1,13 +1,15 @@
 # Construction ERP — Current State
 
-**Last verified:** 2026-09-29
+**Last verified:** 2026-09-30
 **Source of truth:** Live GitHub repository state
 
-- Current Release: V0.5 Subcontracts — approved entry gate complete; Stage A implementation under validation
-- Current Stage: V0.5-A Subcontractor Register / Agreement Foundation in Issue #103 and PR #104
-- Completed Stages: V0.1-A through V0.1-H; V0.2-A through V0.2-G; V0.3-A through V0.3-E; V0.4-A through V0.4-E; V0.5 entry gate
-- Active Issue: #103 — V0.5-A Subcontractor Register and Agreement Foundation
-- Draft PR: #104 — V0.5-A implementation on `v0.5-a-subcontract-foundation`
+- Current Release: V0.5 Subcontracts — V0.5-A and V0.5-B complete; V0.5-C implementation is technically green and entering PR/review/merge gates; human V0.5 Product / Business Owner UAT remains pending as the separate release-exit gate
+- Current Stage: V0.5-C Claims and Assessments under Issue #107 on `v0.5-c-claims-assessments`
+- Completed Stages: V0.1-A through V0.1-H; V0.2-A through V0.2-G; V0.3-A through V0.3-E; V0.4-A through V0.4-E; V0.5 entry gate; V0.5-A; V0.5-B
+- Active Issue: #107 — V0.5-C Claims and Assessments
+- Active implementation checkpoint: `02c8281a6e79e3d5c7b7a67efe9fea3f31ad1d58`; exact-head branch CI #1756 passed migrations/status, Prisma validation, dependency audit, full workspace validation, bootstrap and authenticated live HTTP acceptance
+- Stage-C PR: not yet opened at this checkpoint; required PR CI/review, squash merge, post-merge main CI and Issue #107 closure remain outstanding
+- V0.5-B green main checkpoint: PR #106 squash-merged as `d5cf7bb1a3009d37c6cf875c54d74954e778aa57`; post-merge main CI #1736 passed; Issue #105 closed
 - V0.5 entry gate: PR #102 squash-merged as `5b67832079ef6ded86bc79f997d8115835d0c55e`; post-merge main CI #1611 passed; Issue #98 closed
 - Completed Issue: #92 — V0.4-E Stock Transfer / Inventory Documents / Reporting / Release Evidence
 - Completed Issue: #89 — V0.4-D Material Reservation / Issue / Return
@@ -852,3 +854,16 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - One active implementation writer should normally modify the active stage branch at a time, and every new implementation session must bootstrap itself from live GitHub before material writes.
 - This operating-model approval does not change V0.5-C scope, Issue #107, release sequencing, review/CI gates, human V0.5 UAT, DEC-008 or any approved deferral.
 
+
+
+## V0.5-C Claims / Assessments technically implemented — PR gate
+
+- V0.5-C remains limited to SUB-005/SUB-006, AC-V05-011–016 plus applicable AC-V05-027–029, and BR-V05-09–12. Payment Certification/retention, Variations/reporting, Finance/payment/accounting, tax/VAT, FX, cost recognition, retention release, SUB-011/DOC-009 and V0.7 aggregation remain deferred.
+- Persistence/API delivers immutable `SCLYYMM-###` Claim identity, Draft period/line editing, submitted source immutability, Agreement and approved-Work-Order cumulative ceilings, withdrawal, linked replacement, retained Assessment history, claimed-versus-assessed separation, Assessment rejection/correction history, Project authorization, explicit permissions, audit and stable retry/action-key behavior.
+- The Subcontracts web workspace exposes the approved Stage-C Claim/Assessment lifecycle only. Submitted Claim source values are read-only; claimed and assessed values remain distinct; actions are permission-gated while backend authorization remains the security boundary.
+- Authenticated runtime acceptance now exercises Draft creation, lines, valid submission, duplicate/over-claim denial, submitted-source immutability, lower Assessment, claimed/assessed separation, Assessment rejection, linked replacement, unauthorized Project denial and the active-Claim Agreement cancellation guard while preserving previous-release regression.
+- PostgreSQL concurrency coverage now proves same-period active-Claim contention, Agreement-ceiling competing submissions, per-Work-Order ceiling competing submissions, Agreement cancellation versus Claim submission, and cancellation versus Assessment finalization.
+- Concurrency testing exposed and fixed a real stale-snapshot cancellation race: Agreement cancellation now uses the deterministic Agreement row lock with `READ COMMITTED`, so a waiter rechecks the winner's committed Claim/state before deciding.
+- Final security review also hardened the approved separate Assessment read boundary: Claim list/detail responses redact nested Assessment history unless the caller has `subcontracts.assessment.view`; regression covers both detail and list behavior.
+- Exact implementation head `02c8281a6e79e3d5c7b7a67efe9fea3f31ad1d58` passed CI #1756. This documentation record changes the branch head, so a new exact-head CI is required before the Stage-C PR is opened.
+- Human V0.5 UAT/business acceptance is not complete and is not self-approved. V0.5-D remains blocked until V0.5-C PR/review/merge/post-merge gates pass and Issue #107 closes.
