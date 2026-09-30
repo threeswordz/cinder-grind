@@ -593,6 +593,21 @@ export class SubcontractsWorkflowService {
           });
         }
 
+        const blockingCertification = await tx.subcontractCertification.findFirst({
+          where: {
+            agreementId,
+            state: 'APPROVED',
+          },
+          select: { id: true, certificationNumber: true },
+        });
+        if (blockingCertification) {
+          throw new ConflictException({
+            code: 'AGREEMENT_HAS_APPROVED_CERTIFICATION',
+            detail:
+              'An agreement with a non-reversed approved Certification cannot be cancelled.',
+          });
+        }
+
         const cancelledAt = new Date();
         const updated = await tx.subcontractAgreement.update({
           where: { id: agreement.id },
