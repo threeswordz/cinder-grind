@@ -20,7 +20,7 @@ import {
 } from '../api/subcontracts';
 
 function amountToCents(value: string) {
-  const [whole, fraction = ''] = value.split('.');
+  const [whole = '0', fraction = ''] = value.split('.');
   return BigInt(whole) * 100n + BigInt((fraction + '00').slice(0, 2));
 }
 
