@@ -101,10 +101,21 @@ export function ClaimsPanel({ permissions }: { permissions: string[] }) {
     enabled: canView,
   });
 
+  const selectedAgreement = useMemo(
+    () =>
+      (agreements.data?.data ?? []).find(
+        (agreement) => agreement.id === agreementId,
+      ) ?? null,
+    [agreements.data?.data, agreementId],
+  );
+  const agreementActive =
+    selectedAgreement?.approvalState === 'APPROVED' &&
+    !selectedAgreement.cancelledAt;
+
   const options = useQuery({
     queryKey: ['subcontracts', 'claim-options', agreementId],
     queryFn: () => subcontractsApi.claimOptions(agreementId),
-    enabled: canView && Boolean(agreementId),
+    enabled: canView && Boolean(agreementId) && agreementActive,
   });
 
   const claims = useQuery({
@@ -126,7 +137,8 @@ export function ClaimsPanel({ permissions }: { permissions: string[] }) {
     [selectedClaim, selectedLineId],
   );
 
-  const requiresWorkOrder = (options.data?.data.workOrders.length ?? 0) > 0;
+  const requiresWorkOrder =
+    agreementActive && (options.data?.data.workOrders.length ?? 0) > 0;
 
   useEffect(() => {
     setSelectedClaimId('');
@@ -296,7 +308,10 @@ export function ClaimsPanel({ permissions }: { permissions: string[] }) {
     replacement.error;
 
   const draftEditable =
-    selectedClaim?.state === 'DRAFT' && canEdit && !savePeriod.isPending;
+    agreementActive &&
+    selectedClaim?.state === 'DRAFT' &&
+    canEdit &&
+    !savePeriod.isPending;
   const claimAmount = claimTotal(selectedClaim);
 
   return (
@@ -318,7 +333,7 @@ export function ClaimsPanel({ permissions }: { permissions: string[] }) {
           <Stack spacing={2}>
             <TextField
               select
-              label="Approved Agreement"
+              label="Agreement (active or history)"
               value={agreementId}
               onChange={(event) => setAgreementId(event.target.value)}
               sx={{ minWidth: 320 }}
@@ -328,11 +343,19 @@ export function ClaimsPanel({ permissions }: { permissions: string[] }) {
                 <MenuItem key={agreement.id} value={agreement.id}>
                   {agreement.agreementNumber} — {agreement.project.projectCode} —{' '}
                   {agreement.subcontractor.subcontractorName}
+                  {agreement.cancelledAt ? ' — Cancelled' : ''}
                 </MenuItem>
               ))}
             </TextField>
 
-            {agreementId && canCreate ? (
+            {selectedAgreement?.cancelledAt ? (
+              <Alert severity="info">
+                Cancelled Agreement — retained Claim and Assessment history is
+                available here in read-only mode.
+              </Alert>
+            ) : null}
+
+            {agreementId && canCreate && agreementActive ? (
               <>
                 <Divider />
                 <Typography variant="subtitle1">Create Claim Draft</Typography>
@@ -481,7 +504,7 @@ export function ClaimsPanel({ permissions }: { permissions: string[] }) {
                     }
                     color={line.id === selectedLineId ? 'primary' : 'default'}
                     onClick={
-                      selectedClaim.state === 'DRAFT'
+                      selectedClaim.state === 'DRAFT' && agreementActive
                         ? () => setSelectedLineId(line.id)
                         : undefined
                     }
@@ -489,7 +512,7 @@ export function ClaimsPanel({ permissions }: { permissions: string[] }) {
                 ))}
               </Stack>
 
-              {selectedClaim.state === 'DRAFT' && canEdit ? (
+              {selectedClaim.state === 'DRAFT' && canEdit && agreementActive ? (
                 <>
                   <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
                     <TextField
@@ -553,13 +576,17 @@ export function ClaimsPanel({ permissions }: { permissions: string[] }) {
                 </>
               ) : (
                 <Alert severity="info">
-                  Submitted Claim source period and lines are read-only.
+                  {agreementActive
+                    ? 'Non-Draft Claim source period and lines are read-only.'
+                    : 'This cancelled Agreement is history-only; Claim source period and lines are read-only.'}
                 </Alert>
               )}
 
               <Divider />
               <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-                {selectedClaim.state === 'DRAFT' && canSubmit ? (
+                {selectedClaim.state === 'DRAFT' &&
+                canSubmit &&
+                agreementActive ? (
                   <Button
                     variant="contained"
                     onClick={() => claimAction.mutate('submit')}
@@ -572,7 +599,9 @@ export function ClaimsPanel({ permissions }: { permissions: string[] }) {
                 ) : null}
               </Stack>
 
-              {selectedClaim.state === 'SUBMITTED' && canWithdraw ? (
+              {selectedClaim.state === 'SUBMITTED' &&
+              canWithdraw &&
+              agreementActive ? (
                 <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
                   <TextField
                     label="Withdrawal reason"
@@ -591,7 +620,9 @@ export function ClaimsPanel({ permissions }: { permissions: string[] }) {
                 </Stack>
               ) : null}
 
-              {selectedClaim.state === 'SUBMITTED' && canAssess ? (
+              {selectedClaim.state === 'SUBMITTED' &&
+              canAssess &&
+              agreementActive ? (
                 <>
                   <Divider />
                   <Typography variant="subtitle2">Assessment</Typography>
@@ -625,7 +656,9 @@ export function ClaimsPanel({ permissions }: { permissions: string[] }) {
                 </>
               ) : null}
 
-              {selectedClaim.state === 'ASSESSED' && canRejectAssessment ? (
+              {selectedClaim.state === 'ASSESSED' &&
+              canRejectAssessment &&
+              agreementActive ? (
                 <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
                   <TextField
                     label="Assessment rejection reason"
@@ -650,6 +683,7 @@ export function ClaimsPanel({ permissions }: { permissions: string[] }) {
 
               {['WITHDRAWN', 'REJECTED'].includes(selectedClaim.state) &&
               canCreate &&
+              agreementActive &&
               !selectedClaim.replacementClaim ? (
                 <Button
                   variant="outlined"
