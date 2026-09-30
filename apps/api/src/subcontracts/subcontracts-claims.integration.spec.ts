@@ -274,6 +274,20 @@ test('V0.5-C retains Claim history, separates assessment and enforces commercial
       'submitted Claim source lines must be immutable below the API',
     );
     await assert.rejects(
+      () =>
+        prisma.subcontractClaimLine.create({
+          data: {
+            companyId: company.id,
+            projectId: project.id,
+            agreementId: agreement.id,
+            claimId: claim.id,
+            lineNo: 99,
+            amount: '1.00',
+          },
+        }),
+      'submitted Claim source lines must reject direct inserts below the API',
+    );
+    await assert.rejects(
       () => prisma.subcontractClaimLine.delete({ where: { id: line.id } }),
       'submitted Claim lines must not be hard-deletable',
     );
