@@ -311,6 +311,22 @@ test('V0.5-C retains Claim history, separates assessment and enforces commercial
       'assessment cannot exceed the retained submitted Claim total',
     );
 
+    // Direct SQL/Prisma cannot invent ASSESSED state without retained
+    // assessment decision evidence. Valid assessment below must still work.
+    await assert.rejects(
+      () => prisma.subcontractClaim.update({
+        where: { id: claim.id },
+        data: { state: 'ASSESSED' },
+      }),
+      'database must reject SUBMITTED -> ASSESSED without matching Assessment',
+    );
+    assert.equal(
+      (await prisma.subcontractClaim.findUniqueOrThrow({
+        where: { id: claim.id },
+      })).state,
+      'SUBMITTED',
+    );
+
     const assessed = await claims.assessClaim(
       { auth: assessorAuth },
       claim.id,
@@ -411,6 +427,32 @@ test('V0.5-C retains Claim history, separates assessment and enforces commercial
       (error: unknown) => error instanceof ConflictException,
       'assessment action key cannot be reused with changed material payload',
     );
+
+    await assert.rejects(
+      () => prisma.subcontractClaim.update({
+        where: { id: claim.id },
+        data: { state: 'REJECTED' },
+      }),
+      'database must reject ASSESSED -> REJECTED while Assessment is still active',
+    );
+    await assert.rejects(
+      () => prisma.subcontractClaimAssessment.update({
+        where: { id: assessed.assessment!.id },
+        data: {
+          state: 'REJECTED',
+          rejectedByUserId: assessor.id,
+          rejectedAt: new Date(),
+          rejectionReason: 'Cannot reject Assessment without updating its Claim.',
+        },
+      }),
+      'database must reject standalone Assessment rejection without Claim correction',
+    );
+    const stillAssessed = await prisma.subcontractClaim.findUniqueOrThrow({
+      where: { id: claim.id },
+      include: { assessment: true },
+    });
+    assert.equal(stillAssessed.state, 'ASSESSED');
+    assert.equal(stillAssessed.assessment?.state, 'ASSESSED');
 
     const rejected = await claims.rejectAssessment(
       { auth: assessorAuth },
