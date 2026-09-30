@@ -152,10 +152,21 @@ export class NumberSequenceService {
           });
         }
         const currentPeriod = periodKey(resetRule, at);
+        if (
+          currentPeriod !== null &&
+          sequence.last_period_key !== null &&
+          currentPeriod < sequence.last_period_key
+        ) {
+          throw new ConflictException({
+            code: 'NUMBER_SEQUENCE_PERIOD_REGRESSION',
+            detail:
+              'A number sequence cannot allocate an identifier for an earlier reset period.',
+          });
+        }
         const shouldReset =
           currentPeriod !== null &&
           sequence.last_period_key !== null &&
-          sequence.last_period_key !== currentPeriod;
+          sequence.last_period_key < currentPeriod;
         const value = shouldReset ? 1 : sequence.next_value;
 
         const businessNumber = formatBusinessNumber(
