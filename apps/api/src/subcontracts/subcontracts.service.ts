@@ -40,7 +40,7 @@ export type AgreementDraftInput = {
   originalValue: string;
   scopeOfWork: string;
   currencyCode: string;
-  retentionRate: string;
+  retentionRate?: string;
   retentionCap?: string | null;
   operationalStatusId?: string | null;
   createKey?: string | null;
@@ -377,7 +377,7 @@ export class SubcontractsService {
             originalValue: input.originalValue,
             scopeOfWork: input.scopeOfWork,
             currencyCode: input.currencyCode,
-            retentionRate: input.retentionRate,
+            retentionRate: input.retentionRate ?? '0.00',
             retentionCap: input.retentionCap ?? null,
             operationalStatusId: input.operationalStatusId ?? null,
             createKey: input.createKey ?? null,
@@ -728,7 +728,7 @@ export class SubcontractsService {
       new Prisma.Decimal(input.originalValue).toFixed(2),
       input.scopeOfWork,
       input.currencyCode,
-      new Prisma.Decimal(input.retentionRate).toFixed(2),
+      new Prisma.Decimal(input.retentionRate ?? '0.00').toFixed(2),
       input.retentionCap === null || input.retentionCap === undefined
         ? null
         : new Prisma.Decimal(input.retentionCap).toFixed(2),
