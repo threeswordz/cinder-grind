@@ -310,6 +310,43 @@ test('V0.5-C retains Claim history, separates assessment and enforces commercial
     assert.equal(assessed.lines[0]?.amount.toFixed(2), '600.00');
     assert.equal(assessed.assessment?.assessedAmount.toFixed(2), '500.00');
 
+    const claimOnlyReader: AuthenticatedUserContext = {
+      ...makerAuth,
+      permissions: ['projects.access_all', 'subcontracts.claim.view'],
+    };
+    const assessmentReader: AuthenticatedUserContext = {
+      ...assessorAuth,
+      permissions: [
+        'projects.access_all',
+        'subcontracts.claim.view',
+        'subcontracts.assessment.view',
+      ],
+    };
+    const claimOnlyDetail = await claims.getClaim(claimOnlyReader, claim.id);
+    assert.equal(
+      claimOnlyDetail.assessment,
+      null,
+      'Claim view alone must not disclose Assessment detail',
+    );
+    const claimOnlyList = await claims.listClaims(
+      claimOnlyReader,
+      agreement.id,
+    );
+    assert.equal(
+      claimOnlyList.find((row) => row.id === claim.id)?.assessment,
+      null,
+      'Claim list must redact Assessment history without assessment.view',
+    );
+    const assessmentDetail = await claims.getClaim(
+      assessmentReader,
+      claim.id,
+    );
+    assert.equal(
+      assessmentDetail.assessment?.assessedAmount.toFixed(2),
+      '500.00',
+      'assessment.view must expose retained Assessment history',
+    );
+
     const replayedAssessment = await claims.assessClaim(
       { auth: assessorAuth },
       claim.id,
