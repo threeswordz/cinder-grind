@@ -353,6 +353,8 @@ function AgreementsPanel({ permissions }: { permissions: string[] }) {
   const [value, setValue] = useState('');
   const [scope, setScope] = useState('');
   const [currency, setCurrency] = useState('SGD');
+  const [retentionRate, setRetentionRate] = useState('0.00');
+  const [retentionCap, setRetentionCap] = useState('');
   const [statusId, setStatusId] = useState('');
   const [createKey, setCreateKey] = useState(() => crypto.randomUUID());
 
@@ -472,6 +474,8 @@ function AgreementsPanel({ permissions }: { permissions: string[] }) {
     setValue(selected.originalValue);
     setScope(selected.scopeOfWork);
     setCurrency(selected.currencyCode);
+    setRetentionRate(selected.retentionRate);
+    setRetentionCap(selected.retentionCap ?? '');
     setStatusId(selected.operationalStatusId ?? '');
     setCancelReason('');
     setDecisionComment('');
@@ -516,6 +520,8 @@ function AgreementsPanel({ permissions }: { permissions: string[] }) {
             originalValue: value,
             scopeOfWork: scope,
             currencyCode: currency,
+            retentionRate,
+            retentionCap: retentionCap || null,
             operationalStatusId: statusId || null,
             createKey,
           })
@@ -523,6 +529,8 @@ function AgreementsPanel({ permissions }: { permissions: string[] }) {
             originalValue: value,
             scopeOfWork: scope,
             currencyCode: currency,
+            retentionRate,
+            retentionCap: retentionCap || null,
             ...(statusId !== (selected.operationalStatusId ?? '')
               ? { operationalStatusId: statusId || null }
               : {}),
@@ -718,6 +726,8 @@ function AgreementsPanel({ permissions }: { permissions: string[] }) {
     setValue('');
     setScope('');
     setCurrency('SGD');
+    setRetentionRate('0.00');
+    setRetentionCap('');
     setStatusId('');
     setCreateKey(crypto.randomUUID());
     setSelectedWorkOrderId('');
@@ -762,9 +772,10 @@ function AgreementsPanel({ permissions }: { permissions: string[] }) {
         ) : null}
       </Stack>
       <Alert severity="info">
-        Stage B uses configured approval workflows, maker-checker controls,
-        retained agreement versions and agreement-local Work Orders. Approved
-        commercial agreement fields remain immutable.
+        Agreement approval keeps commercial terms immutable after submission.
+        Stage D adds Draft retention rate/cap terms used only when a Payment
+        Certification is finally approved; Work Orders and retained versions
+        continue to use the existing configured maker-checker workflow.
       </Alert>
       {requestError ? (
         <Alert severity="error">
@@ -953,6 +964,23 @@ function AgreementsPanel({ permissions }: { permissions: string[] }) {
                   </TextField>
                 </Stack>
 
+                <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
+                  <TextField
+                    label="Retention rate (%)"
+                    value={retentionRate}
+                    disabled={!newMode && !canEditSelectedDraft}
+                    onChange={(event) => setRetentionRate(event.target.value)}
+                    helperText="0.00–100.00; frozen after first submission"
+                  />
+                  <TextField
+                    label="Retention cap (optional)"
+                    value={retentionCap}
+                    disabled={!newMode && !canEditSelectedDraft}
+                    onChange={(event) => setRetentionCap(event.target.value)}
+                    helperText="Aggregate withholding cap in Agreement currency"
+                  />
+                </Stack>
+
                 <TextField
                   label="Scope of Work"
                   value={scope}
@@ -1093,6 +1121,12 @@ function AgreementsPanel({ permissions }: { permissions: string[] }) {
                                   </Typography>
                                   <Typography variant="body2">
                                     {version.currencyCode} {version.originalValue}
+                                  </Typography>
+                                  <Typography variant="body2" color="text.secondary">
+                                    Retention {version.retentionRate}% · Cap{' '}
+                                    {version.retentionCap
+                                      ? version.currencyCode + ' ' + version.retentionCap
+                                      : 'none'}
                                   </Typography>
                                 </Stack>
                                 {version.reason ? (
