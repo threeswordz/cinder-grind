@@ -28,24 +28,20 @@ function auth(companyId: string, userId: string): AuthenticatedUserContext {
   };
 }
 
-function oneFulfilledOneRejected<T>(
-  results: PromiseSettledResult<T>[],
+function assertOneFulfilledOneRejected(
+  results: readonly PromiseSettledResult<unknown>[],
   message: string,
-): {
-  fulfilled: PromiseFulfilledResult<T>;
-  rejected: PromiseRejectedResult;
-} {
-  const fulfilled = results.filter(
-    (result): result is PromiseFulfilledResult<T> =>
-      result.status === 'fulfilled',
+) {
+  assert.equal(
+    results.filter((result) => result.status === 'fulfilled').length,
+    1,
+    message + ': expected one winner',
   );
-  const rejected = results.filter(
-    (result): result is PromiseRejectedResult =>
-      result.status === 'rejected',
+  assert.equal(
+    results.filter((result) => result.status === 'rejected').length,
+    1,
+    message + ': expected one loser',
   );
-  assert.equal(fulfilled.length, 1, message + ': expected one winner');
-  assert.equal(rejected.length, 1, message + ': expected one loser');
-  return { fulfilled: fulfilled[0]!, rejected: rejected[0]! };
 }
 
 test('V0.5-C serializes Claim commercial races on the Agreement boundary', async () => {
@@ -190,13 +186,15 @@ test('V0.5-C serializes Claim commercial races on the Agreement boundary', async
         },
       ),
     ]);
-    const samePeriod = oneFulfilledOneRejected(
+    assertOneFulfilledOneRejected(
       samePeriodResults,
       'same-period competitors',
     );
+    const samePeriodRejected = samePeriodResults.find(
+      (result): result is PromiseRejectedResult => result.status === 'rejected',
+    );
     assert.ok(
-      samePeriod.rejected.status === 'rejected' &&
-        samePeriod.rejected.reason instanceof ConflictException,
+      samePeriodRejected?.reason instanceof ConflictException,
       'same-period loser must fail as a business conflict',
     );
     assert.equal(
@@ -211,7 +209,15 @@ test('V0.5-C serializes Claim commercial races on the Agreement boundary', async
       1,
       'only one active same-period Claim may survive the race',
     );
-    const samePeriodWinner = samePeriod.fulfilled.value;
+    const samePeriodFulfilled = samePeriodResults.find(
+      (
+        result,
+      ): result is PromiseFulfilledResult<
+        Awaited<ReturnType<typeof claims.createClaim>>
+      > => result.status === 'fulfilled',
+    );
+    assert.ok(samePeriodFulfilled);
+    const samePeriodWinner = samePeriodFulfilled.value;
     await claims.addLine(
       { auth: makerAuth },
       samePeriodWinner.id,
@@ -249,7 +255,7 @@ test('V0.5-C serializes Claim commercial races on the Agreement boundary', async
         'agreement-race-b-' + suffix,
       ),
     ]);
-    oneFulfilledOneRejected(
+    assertOneFulfilledOneRejected(
       agreementCeilingResults,
       'agreement-ceiling competing submissions',
     );
@@ -327,7 +333,7 @@ test('V0.5-C serializes Claim commercial races on the Agreement boundary', async
         'work-order-race-b-' + suffix,
       ),
     ]);
-    oneFulfilledOneRejected(
+    assertOneFulfilledOneRejected(
       workOrderResults,
       'Work Order ceiling competing submissions',
     );
@@ -364,7 +370,7 @@ test('V0.5-C serializes Claim commercial races on the Agreement boundary', async
         'cancel-submit-cancel-' + suffix,
       ),
     ]);
-    oneFulfilledOneRejected(
+    assertOneFulfilledOneRejected(
       cancellationSubmissionResults,
       'Agreement cancellation versus Claim submission',
     );
