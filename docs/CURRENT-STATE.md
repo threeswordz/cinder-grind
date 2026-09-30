@@ -4,7 +4,7 @@
 **Source of truth:** Live GitHub repository state
 
 - Current Release: V0.5 Subcontracts — V0.5-A through V0.5-D are technically complete; V0.5-E Variations / Derived Reporting / Release Evidence implementation and automated evidence are complete on its stage branch and entering final exact-head PR/review gates; human V0.5 Product / Business Owner UAT remains the separate mandatory release-exit gate
-- Current Stage: V0.5-E Variations / Derived Reporting / Release Evidence final PR review under Issue #111 and PR #112 on `v0.5-e-variations-reporting`. Final evidence head `6ad9dad5543386f70472deb2ff9be0477de0d401` passed branch CI #1910 and PR CI #1911; required Codex exact-head review is the remaining pre-merge gate.
+- Current Stage: V0.5-E Variations / Derived Reporting / Release Evidence final PR review under Issue #111 and PR #112 on `v0.5-e-variations-reporting`. Codex findings from reviews of `6ad9dad5543386f70472deb2ff9be0477de0d401` / `98493e5e7ffd07ebd81b2c7d6d174da1e04e105e` were fixed at `7f3f015fa7e26ce9aa3d06b43d270196a01cb7ed`; exact-head push CI #1916 and PR CI #1917 passed and all three review threads are resolved. A final clean exact-head Codex re-review remains before merge.
 - Completed Stages: V0.1-A through V0.1-H; V0.2-A through V0.2-G; V0.3-A through V0.3-E; V0.4-A through V0.4-E; V0.5 entry gate; V0.5-A; V0.5-B; V0.5-C; V0.5-D
 - Active Issue: #111 — V0.5-E Variations / Derived Reporting / Release Evidence
 - V0.5-C green main checkpoint: PR #108 squash-merged as `3f00de1f984c82c1737c4b47c226d99197b19e54`; final exact-head push CI #1869 and PR CI #1870 passed on `0833cd893f208003215cf39cee9c07b6c9a817ad`; final Codex exact-head review reported no major issues; post-merge main CI #1871 passed; Issue #107 closed.

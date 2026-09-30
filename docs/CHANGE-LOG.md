@@ -1,3 +1,12 @@
+## 2026-10-01 — V0.5-E Codex findings resolved before final re-review
+
+- Codex review identified three genuine P2 findings: cancelled Agreements were no longer discoverable for retained Variation history; RPT-007 used an unbounded per-Agreement `1 + 5N` aggregate query pattern; and the workspace did not display retained Variation reversal actor/time/reason.
+- Fixed history discovery by returning authorized APPROVED/CANCELLED Agreements while allowing **New Variation** only for active approved Agreements; service-side cancellation guards remain authoritative. Added PostgreSQL regression proving cancelled Agreement history remains discoverable while new Variation creation stays blocked.
+- Reworked RPT-007 to one scoped Agreement query plus five batched `groupBy` aggregate queries across all selected Agreement IDs, preserving the existing source-derived values and authorization boundary without an editable reporting store.
+- Added reversal evidence rendering from retained `reversedBy`, `reversedAt` and `reversalReason` fields so the human history walkthrough can verify actor/time/reason.
+- Exact fix head `7f3f015fa7e26ce9aa3d06b43d270196a01cb7ed` passed push CI #1916 and PR CI #1917. All three Codex threads have evidence replies and are resolved. Final exact-head Codex re-review remains required before squash merge.
+- Human AC-V05-030 remains **PENDING** and V0.6 remains blocked.
+
 ## 2026-10-01 — V0.5-E PR #112 final review checkpoint
 
 - PR #112 opened for V0.5-E at exact evidence head `6ad9dad5543386f70472deb2ff9be0477de0d401`; branch CI #1910 and PR CI #1911 both passed clean migrations, full workspace/PostgreSQL regression and authenticated live HTTP acceptance.
