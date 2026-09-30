@@ -114,7 +114,9 @@ export function CertificationSection({
       return;
     }
     if (!claimCertifications.some((row) => row.id === selectedId)) {
-      setSelectedId((activeCertification ?? claimCertifications[0]).id);
+      const nextCertification =
+        activeCertification ?? claimCertifications[0];
+      if (nextCertification) setSelectedId(nextCertification.id);
     }
   }, [
     activeCertification,
