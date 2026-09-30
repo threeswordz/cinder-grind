@@ -555,6 +555,56 @@ test('V0.5-C retains Claim history, separates assessment and enforces commercial
       replacement.id,
       { amount: '500.00' },
     );
+
+    // A rejected correction path must not be rewritten as a withdrawal path
+    // while the predecessor/successor replacement transition commits atomically.
+    await assert.rejects(
+      () =>
+        prisma.$transaction(async (tx) => {
+          await tx.subcontractClaim.update({
+            where: { id: claim.id },
+            data: {
+              state: 'REPLACED',
+              replacedAt: new Date(),
+              withdrawnByUserId: maker.id,
+              withdrawnAt: new Date(),
+              withdrawalReason: 'Contradictory withdrawal evidence.',
+            },
+          });
+          await tx.subcontractClaim.update({
+            where: { id: replacement.id },
+            data: {
+              state: 'SUBMITTED',
+              submittedByUserId: maker.id,
+              submittedAt: new Date(),
+            },
+          });
+        }),
+      'database must reject withdrawal evidence on a rejected Claim replacement',
+    );
+    const rejectedLineageAfterInvalidReplacement =
+      await prisma.subcontractClaim.findMany({
+        where: { id: { in: [claim.id, replacement.id] } },
+        select: {
+          id: true,
+          state: true,
+          withdrawnAt: true,
+          withdrawnByUserId: true,
+          withdrawalReason: true,
+        },
+      });
+    const rejectedSourceAfterInvalidReplacement =
+      rejectedLineageAfterInvalidReplacement.find((row) => row.id === claim.id);
+    const rejectedReplacementAfterInvalidReplacement =
+      rejectedLineageAfterInvalidReplacement.find(
+        (row) => row.id === replacement.id,
+      );
+    assert.equal(rejectedSourceAfterInvalidReplacement?.state, 'REJECTED');
+    assert.equal(rejectedSourceAfterInvalidReplacement?.withdrawnAt, null);
+    assert.equal(rejectedSourceAfterInvalidReplacement?.withdrawnByUserId, null);
+    assert.equal(rejectedSourceAfterInvalidReplacement?.withdrawalReason, null);
+    assert.equal(rejectedReplacementAfterInvalidReplacement?.state, 'DRAFT');
+
     const submittedReplacement = await claims.submitClaim(
       { auth: makerAuth },
       replacement.id,
