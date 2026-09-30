@@ -170,6 +170,13 @@ export class SubcontractsClaimsService {
             input.periodEnd,
             tx,
           );
+          await this.assertNoUnlinkedPeriodHistory(
+            context.auth.companyId,
+            agreement.id,
+            input.periodStart,
+            input.periodEnd,
+            tx,
+          );
 
           const row = await tx.subcontractClaim.create({
             data: {
@@ -351,6 +358,22 @@ export class SubcontractsClaimsService {
         tx,
         current.id,
       );
+      if (current.replacementForClaimId) {
+        const predecessor = await this.claimById(
+          context.auth.companyId,
+          current.replacementForClaimId,
+          tx,
+        );
+        this.assertReplacementPeriod(predecessor, { periodStart, periodEnd });
+      } else {
+        await this.assertNoUnlinkedPeriodHistory(
+          context.auth.companyId,
+          current.agreementId,
+          periodStart,
+          periodEnd,
+          tx,
+        );
+      }
 
       try {
         const updated = await tx.subcontractClaim.update({
@@ -368,8 +391,8 @@ export class SubcontractsClaimsService {
             entityId: claimId,
             action: 'UPDATE_DRAFT',
             oldValues: {
-              periodStart: visible.periodStart,
-              periodEnd: visible.periodEnd,
+              periodStart: current.periodStart,
+              periodEnd: current.periodEnd,
             },
             newValues: {
               periodStart: updated.periodStart,
@@ -646,6 +669,15 @@ export class SubcontractsClaimsService {
           tx,
         );
         this.assertApprovedAgreement(agreement);
+        if (!claim.replacementForClaimId) {
+          await this.assertNoUnlinkedPeriodHistory(
+            context.auth.companyId,
+            claim.agreementId,
+            claim.periodStart,
+            claim.periodEnd,
+            tx,
+          );
+        }
         const lines = await tx.subcontractClaimLine.findMany({
           where: { claimId: claim.id },
           orderBy: { lineNo: 'asc' },
@@ -745,6 +777,7 @@ export class SubcontractsClaimsService {
                 'A replacement Claim requires a retained withdrawn or rejected Claim from the same agreement.',
             });
           }
+          this.assertReplacementPeriod(source, claim);
           await tx.subcontractClaim.update({
             where: { id: source.id },
             data: { state: 'REPLACED', replacedAt: new Date() },
@@ -1136,6 +1169,47 @@ export class SubcontractsClaimsService {
         code: 'CLAIM_ACTIVE_PERIOD_EXISTS',
         detail:
           'An active Claim already exists for this agreement and exact period.',
+      });
+    }
+  }
+
+  private async assertNoUnlinkedPeriodHistory(
+    companyId: string,
+    agreementId: string,
+    periodStart: Date,
+    periodEnd: Date,
+    db: SubcontractDb,
+  ) {
+    const predecessor = await db.subcontractClaim.findFirst({
+      where: {
+        companyId,
+        agreementId,
+        periodStart,
+        periodEnd,
+        state: { in: ['WITHDRAWN', 'REJECTED', 'REPLACED'] },
+      },
+      select: { id: true },
+    });
+    if (predecessor) {
+      throw new ConflictException({
+        code: 'CLAIM_REPLACEMENT_REQUIRED',
+        detail:
+          'This agreement and period has retained Claim history; use the linked replacement workflow.',
+      });
+    }
+  }
+
+  private assertReplacementPeriod(
+    predecessor: { periodStart: Date; periodEnd: Date },
+    replacement: { periodStart: Date; periodEnd: Date },
+  ) {
+    if (
+      predecessor.periodStart.getTime() !== replacement.periodStart.getTime() ||
+      predecessor.periodEnd.getTime() !== replacement.periodEnd.getTime()
+    ) {
+      throw new ConflictException({
+        code: 'CLAIM_REPLACEMENT_PERIOD_MISMATCH',
+        detail: 'A replacement Claim must retain its predecessor Claim period.',
       });
     }
   }
