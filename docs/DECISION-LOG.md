@@ -270,3 +270,18 @@ The waiver is permitted only because:
 
 Before merge, this Decision Log entry and affected Stage-B status documentation must themselves pass exact-head CI/PR CI. PR #106 must still be squash-merged and post-merge `main` CI must pass before Issue #105 closes and V0.5-C begins.
 
+## DEC-016 — Chat / Work / GitHub development operating model
+**Status:** APPROVED — Product / Business Owner, 2026-09-30 (Singapore time)
+
+The Product / Business Owner approved the repository operating model documented in `docs/DEVELOPMENT-OPERATING-MODEL.md`:
+
+- **Chat = Builder / Release Coordinator** for live GitHub checks, stage implementation, CI fixes, merge-conflict resolution, focused review, PR/merge operations, acceptance-criteria verification and release checkpoint maintenance.
+- **GitHub = durable source of truth** for implementation state, repository history, issues, branches, PRs, commits, decisions and CI evidence.
+- **CI/tests = technical evidence** and do not replace human UAT/business acceptance.
+- **Product / Business Owner = scope/business authority** for explicit approval-gated decisions, Change Control and required human UAT/business acceptance.
+- **Work = periodic independent auditor** for repository-wide architecture, security/technical debt, cross-release documentation, final-system and production-readiness analysis.
+
+One active implementation writer should normally modify a stage branch at a time. New implementation sessions must bootstrap from live GitHub before material writes. Work is audit-first by default; its findings should normally be recorded durably and implemented by Chat through the normal CI/PR/merge flow.
+
+This decision changes delivery tooling/role allocation only. It does not alter release-stage sequencing, review requirements, exact-head/PR/post-merge CI gates, human UAT, DEC-008, approved scope/deferrals, Project security rules or Change Control. DEC-015 remains limited to PR #106 only.
+

@@ -155,6 +155,102 @@ export type WorkOrderOptions = {
   costCodes: Array<{ id: string; costCode: string; costName: string }>;
 };
 
+export type ClaimAgreementOption = {
+  id: string;
+  agreementNumber: string;
+  projectId: string;
+  originalValue: string;
+  currencyCode: string;
+  approvalState: string;
+  cancelledAt: string | null;
+  project: SubcontractProject;
+  subcontractor: {
+    id: string;
+    subcontractorCode: string;
+    subcontractorName: string;
+  };
+};
+
+export type ClaimOptions = {
+  agreement: {
+    id: string;
+    agreementNumber: string;
+    originalValue: string;
+    currencyCode: string;
+  };
+  workOrders: Array<{
+    id: string;
+    workOrderNumber: string;
+    amount: string;
+  }>;
+};
+
+export type ClaimLineRecord = {
+  id: string;
+  claimId: string;
+  lineNo: number;
+  workOrderId: string | null;
+  amount: string;
+  workOrder: {
+    id: string;
+    workOrderNumber: string;
+    amount: string;
+    approvalState: string;
+  } | null;
+};
+
+export type ClaimAssessmentRecord = {
+  id: string;
+  claimId: string;
+  assessedAmount: string;
+  reason: string;
+  state: string;
+  assessedAt: string;
+  rejectedAt: string | null;
+  rejectionReason: string | null;
+  assessedBy: { id: string; displayName: string };
+  rejectedBy: { id: string; displayName: string } | null;
+};
+
+export type ClaimRecord = {
+  id: string;
+  projectId: string;
+  agreementId: string;
+  claimNumber: string;
+  periodStart: string;
+  periodEnd: string;
+  currencyCode: string;
+  state: string;
+  replacementForClaimId: string | null;
+  submittedAt: string | null;
+  withdrawnAt: string | null;
+  withdrawalReason: string | null;
+  replacedAt: string | null;
+  agreement: {
+    id: string;
+    agreementNumber: string;
+    originalValue: string;
+    currencyCode: string;
+    approvalState: string;
+    cancelledAt: string | null;
+  };
+  lines: ClaimLineRecord[];
+  assessment: ClaimAssessmentRecord | null;
+  replacementFor: {
+    id: string;
+    claimNumber: string;
+    state: string;
+  } | null;
+  replacementClaim: {
+    id: string;
+    claimNumber: string;
+    state: string;
+  } | null;
+  createdBy: { id: string; displayName: string };
+  submittedBy: { id: string; displayName: string } | null;
+  withdrawnBy: { id: string; displayName: string } | null;
+};
+
 function query(path: string, values: Record<string, string | undefined>) {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(values)) {
@@ -407,5 +503,91 @@ export const subcontractsApi = {
     postAction<WorkOrderRecord>(
       '/subcontracts/work-orders/' + workOrderId + '/reject',
       { actionKey, ...(comment ? { comment } : {}) },
+    ),
+
+  claimAgreementOptions: () =>
+    apiRequest<Data<ClaimAgreementOption[]>>(
+      '/subcontracts/claim-agreement-options',
+    ),
+  claimOptions: (agreementId: string) =>
+    apiRequest<Data<ClaimOptions>>(
+      '/subcontracts/agreements/' + agreementId + '/claim-options',
+    ),
+  claims: (agreementId: string) =>
+    apiRequest<Data<ClaimRecord[]>>(
+      '/subcontracts/agreements/' + agreementId + '/claims',
+    ),
+  claim: (claimId: string) =>
+    apiRequest<Data<ClaimRecord>>('/subcontracts/claims/' + claimId),
+  createClaim: (
+    agreementId: string,
+    body: { periodStart: string; periodEnd: string },
+  ) =>
+    apiRequest<Data<ClaimRecord>>(
+      '/subcontracts/agreements/' + agreementId + '/claims',
+      { method: 'POST', body: JSON.stringify(body) },
+    ),
+  updateClaim: (
+    claimId: string,
+    body: Partial<{ periodStart: string; periodEnd: string }>,
+  ) =>
+    apiRequest<Data<ClaimRecord>>('/subcontracts/claims/' + claimId, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    }),
+  addClaimLine: (
+    claimId: string,
+    body: { amount: string; workOrderId?: string | null },
+  ) =>
+    apiRequest<Data<ClaimLineRecord>>(
+      '/subcontracts/claims/' + claimId + '/lines',
+      { method: 'POST', body: JSON.stringify(body) },
+    ),
+  updateClaimLine: (
+    lineId: string,
+    body: Partial<{ amount: string; workOrderId: string | null }>,
+  ) =>
+    apiRequest<Data<ClaimLineRecord>>(
+      '/subcontracts/claim-lines/' + lineId,
+      { method: 'PATCH', body: JSON.stringify(body) },
+    ),
+  deleteClaimLine: (lineId: string) =>
+    apiRequest<Data<{ id: string }>>('/subcontracts/claim-lines/' + lineId, {
+      method: 'DELETE',
+    }),
+  submitClaim: (claimId: string, actionKey: string) =>
+    postAction<ClaimRecord>('/subcontracts/claims/' + claimId + '/submit', {
+      actionKey,
+    }),
+  withdrawClaim: (
+    claimId: string,
+    reason: string,
+    actionKey: string,
+  ) =>
+    postAction<ClaimRecord>('/subcontracts/claims/' + claimId + '/withdraw', {
+      reason,
+      actionKey,
+    }),
+  createClaimReplacement: (claimId: string) =>
+    postAction<ClaimRecord>(
+      '/subcontracts/claims/' + claimId + '/replacements',
+      {},
+    ),
+  assessClaim: (
+    claimId: string,
+    body: { assessedAmount: string; reason: string; actionKey: string },
+  ) =>
+    postAction<ClaimRecord>(
+      '/subcontracts/claims/' + claimId + '/assess',
+      body,
+    ),
+  rejectClaimAssessment: (
+    claimId: string,
+    reason: string,
+    actionKey: string,
+  ) =>
+    postAction<ClaimRecord>(
+      '/subcontracts/claims/' + claimId + '/assessment/reject',
+      { reason, actionKey },
     ),
 };

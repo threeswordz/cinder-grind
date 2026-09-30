@@ -1,13 +1,15 @@
 # Construction ERP — Current State
 
-**Last verified:** 2026-09-29
+**Last verified:** 2026-09-30
 **Source of truth:** Live GitHub repository state
 
-- Current Release: V0.5 Subcontracts — approved entry gate complete; Stage A implementation under validation
-- Current Stage: V0.5-A Subcontractor Register / Agreement Foundation in Issue #103 and PR #104
-- Completed Stages: V0.1-A through V0.1-H; V0.2-A through V0.2-G; V0.3-A through V0.3-E; V0.4-A through V0.4-E; V0.5 entry gate
-- Active Issue: #103 — V0.5-A Subcontractor Register and Agreement Foundation
-- Draft PR: #104 — V0.5-A implementation on `v0.5-a-subcontract-foundation`
+- Current Release: V0.5 Subcontracts — V0.5-A and V0.5-B complete; V0.5-C implementation plus all currently known review findings are technically green, with final docs-head CI/Codex review and merge/post-merge gates still pending; human V0.5 Product / Business Owner UAT remains pending as the separate release-exit gate
+- Current Stage: V0.5-C Claims and Assessments under Issue #107 on `v0.5-c-claims-assessments`
+- Completed Stages: V0.1-A through V0.1-H; V0.2-A through V0.2-G; V0.3-A through V0.3-E; V0.4-A through V0.4-E; V0.5 entry gate; V0.5-A; V0.5-B
+- Active Issue: #107 — V0.5-C Claims and Assessments
+- Active implementation checkpoint before documentation reconciliation: `990ddd088783de4a7c5cb2fcc8d18fa092f554c4`. Final Codex review of docs head `cf1db7c9f45adbb42e9098e3f8c606c9e1a625bf` found a nineteenth genuine P2: the exact-period guard rejected unlinked active Claims beside terminal history but did not symmetrically reject terminal history beside an existing unrelated active Claim, and concurrent direct active/terminal inserts were not serialized. Commit `990ddd088783de4a7c5cb2fcc8d18fa092f554c4` adds forward-only migration `20260930170000_v0_5_c_claim_period_pair_serialization`; the deferred replacement-lineage function now validates both directions and uses a transaction-scoped advisory lock keyed to company/agreement so concurrent direct persistence rechecks committed peer history. Targeted PostgreSQL coverage proves direct terminal insertion beside an active Draft is rejected and simultaneous active/terminal direct inserts retain exactly one Claim. Exact-head push CI #1867 and PR CI #1868 passed; all 19 Codex review threads are resolved; no historical migration was modified. This documentation reconciliation creates the final docs-only review head.
+- Stage-C PR: #108 — V0.5-C Claims and Assessments, open/mergeable. Claim-line locking, NumberSequence concurrency, correction-evidence exclusivity, reciprocal Claim/Assessment lifecycle state, exact replacement period/trigger coverage, bidirectional active/terminal exact-period integrity with concurrent serialization, and direct/deferred Assessment amount bounds are hardened through forward-only migrations and targeted regressions (see CHANGE-LOG). At implementation head `990ddd088783de4a7c5cb2fcc8d18fa092f554c4`, push CI #1867 and PR CI #1868 passed, the branch was 79 ahead / 0 behind `main`, and all 19 Codex review threads were resolved. The resulting docs-only head must pass exact-head CI and final Codex exact-head review with zero genuine findings before squash merge. DEC-015 does not apply.
+- V0.5-B green main checkpoint: PR #106 squash-merged as `d5cf7bb1a3009d37c6cf875c54d74954e778aa57`; post-merge main CI #1736 passed; Issue #105 closed
 - V0.5 entry gate: PR #102 squash-merged as `5b67832079ef6ded86bc79f997d8115835d0c55e`; post-merge main CI #1611 passed; Issue #98 closed
 - Completed Issue: #92 — V0.4-E Stock Transfer / Inventory Documents / Reporting / Release Evidence
 - Completed Issue: #89 — V0.4-D Material Reservation / Issue / Return
@@ -83,7 +85,7 @@
 - V0.1 cross-module release acceptance scenario: PASS in the Stage H release-candidate regression suite.
 - Open defect check at V0.1 acceptance: no Severity 1 or Severity 2 release-blocking defect recorded.
 - Governance: `AGENTS.md`, `docs/PROJECT-GOVERNANCE.md`, PR governance checklist and DEC-008 are active; material decisions must pass the repository pre-flight and open-source/zero-cost-first constraint.
-- Next action: complete V0.5-A exact-head CI and review on PR #104, merge only after all findings/gates pass, confirm post-merge `main` CI, close Issue #103, then begin V0.5-B pre-flight. Human V0.5 release UAT/acceptance remains a later exit gate.
+- Next action: complete final exact-head review on PR #108, resolve any genuine findings, squash-merge only with green exact-head CI/review, confirm post-merge `main` CI, close Issue #107, then begin V0.5-D pre-flight. Human V0.5 release UAT/acceptance remains a later exit gate.
 
 ## Stage E completed
 
@@ -834,3 +836,38 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - PR #106 is open, mergeable/clean, and PR CI #1733 passed on the same exact head as branch CI #1732. The Codex review bot could not execute because its code-review usage quota was exhausted. The Product / Business Owner explicitly approved a one-time waiver for PR #106 only; DEC-015 records that exception without changing future review expectations or the human UAT gate.
 - V0.5-B remains **under validation**, not complete. The branch/PR CI gates are satisfied; this waiver-record documentation must pass exact-head CI/PR CI, then PR #106 may squash-merge. Post-merge `main` CI and Issue #105 closure remain required before V0.5-C. Human V0.5 UAT remains a separate Release Exit Gate.
 - Claims/assessments, certification/retention withholding, Variations/reporting, Finance/payment, tax/FX, accounting, cost recognition and retention release remain outside Stage B. DEC-008 open-source / zero-cost-first remains unchanged.
+
+
+## V0.5-B completed / V0.5-C pre-flight
+
+- PR #106 squash-merged to `main` as `d5cf7bb1a3009d37c6cf875c54d74954e778aa57`; post-merge main CI #1736 passed and Issue #105 closed.
+- DEC-015 records the Product / Business Owner's one-time Codex review waiver for PR #106 only. It does not waive V0.5-C review requirements or human V0.5 UAT.
+- Issue #107 and branch `v0.5-c-claims-assessments` start from that exact green checkpoint.
+- `docs/V0.5-C-PREFLIGHT.md` binds Stage C to SUB-005/SUB-006, AC-V05-011–016 and BR-V05-09–12 with approved numbering/project/security/test rules.
+- Payment Certification/retention withholding, Variations/reporting, Finance/payment, tax/FX, cost recognition and human V0.5 release UAT remain deferred.
+- V0.5-C implementation may begin only after this pre-flight exact-head CI passes; V0.5-D has not begun.
+
+## Development operating model approved
+
+- DEC-016 approves `docs/DEVELOPMENT-OPERATING-MODEL.md`.
+- Chat is the normal Builder / Release Coordinator; GitHub remains the durable source of truth; CI/tests remain technical evidence; the Product / Business Owner retains approval/UAT authority; Work is the periodic independent auditor.
+- One active implementation writer should normally modify the active stage branch at a time, and every new implementation session must bootstrap itself from live GitHub before material writes.
+- This operating-model approval does not change V0.5-C scope, Issue #107, release sequencing, review/CI gates, human V0.5 UAT, DEC-008 or any approved deferral.
+
+
+
+## V0.5-C Claims / Assessments technically implemented — PR gate
+
+- V0.5-C remains limited to SUB-005/SUB-006, AC-V05-011–016 plus applicable AC-V05-027–029, and BR-V05-09–12. Payment Certification/retention, Variations/reporting, Finance/payment/accounting, tax/VAT, FX, cost recognition, retention release, SUB-011/DOC-009 and V0.7 aggregation remain deferred.
+- Persistence/API delivers immutable `SCLYYMM-###` Claim identity, Draft period/line editing, submitted source immutability, Agreement and approved-Work-Order cumulative ceilings, withdrawal, linked replacement, retained Assessment history, claimed-versus-assessed separation, Assessment rejection/correction history, Project authorization, explicit permissions, audit and stable retry/action-key behavior.
+- The Subcontracts web workspace exposes the approved Stage-C Claim/Assessment lifecycle only. Submitted Claim source values are read-only; claimed and assessed values remain distinct; actions are permission-gated while backend authorization remains the security boundary.
+- Authenticated runtime acceptance now exercises Draft creation, lines, valid submission, duplicate/over-claim denial, submitted-source immutability, lower Assessment, claimed/assessed separation, Assessment rejection, linked replacement, unauthorized Project denial and the active-Claim Agreement cancellation guard while preserving previous-release regression.
+- PostgreSQL concurrency coverage now proves same-period active-Claim contention, Agreement-ceiling competing submissions, per-Work-Order ceiling competing submissions, Agreement cancellation versus Claim submission, and cancellation versus Assessment finalization.
+- Concurrency testing exposed and fixed a real stale-snapshot cancellation race: Agreement cancellation now uses the deterministic Agreement row lock with `READ COMMITTED`, so a waiter rechecks the winner's committed Claim/state before deciding.
+- Final security review also hardened the approved separate Assessment read boundary: Claim list/detail responses redact nested Assessment history unless the caller has `subcontracts.assessment.view`; regression covers both detail and list behavior.
+- Exact implementation head `02c8281a6e79e3d5c7b7a67efe9fea3f31ad1d58` passed CI #1756. This documentation record changes the branch head, so a new exact-head CI is required before the Stage-C PR is opened.
+- Human V0.5 UAT/business acceptance is not complete and is not self-approved. V0.5-D remains blocked until V0.5-C PR/review/merge/post-merge gates pass and Issue #107 closes.
+- Exact arithmetic in the Claims UI now uses integer cents instead of JavaScript floating-point `Number`, preserving valid DECIMAL(18,2) display precision across the approved numeric range.
+- Codex review on `90ffe38ae6` produced two findings; fixes are in `6ab22059b2474fbe69200fc7ea5129bcdd625a0b` and `ce32dbd25af26a7052f47c562a3694c89accff19`, with regression coverage in `07c83c65188684e63905df156396b7191033d8dc`. Both review threads are resolved; final re-review of the latest head is pending.
+- Final exact-head Codex review of `620222b0dc05f97aa702b8b7024a38498dc656f4` identified two genuine P2 concurrency gaps. Direct Claim-line mutations now take a parent Claim row lock before evaluating Draft immutability through new forward-only migration `20260930123000_v0_5_c_claim_line_parent_lock`; the already-executed Stage-C migrations remain unchanged.
+- NumberSequence allocation under `READ COMMITTED` now rejects an earlier reset period after a later period has committed, preventing a delayed older-period allocation from moving `lastPeriodKey` backward and duplicating a reset value. Targeted PostgreSQL regressions cover the Claim-line/submission race and reset-period regression. Exact-head CI and Codex re-review remain pending; DEC-015 does not apply.

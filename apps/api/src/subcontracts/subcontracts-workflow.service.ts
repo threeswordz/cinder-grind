@@ -574,6 +574,21 @@ export class SubcontractsWorkflowService {
           });
         }
 
+        const blockingClaim = await tx.subcontractClaim.findFirst({
+          where: {
+            agreementId,
+            state: { in: ['SUBMITTED', 'ASSESSED'] },
+          },
+          select: { id: true, claimNumber: true },
+        });
+        if (blockingClaim) {
+          throw new ConflictException({
+            code: 'AGREEMENT_HAS_ACTIVE_CLAIM',
+            detail:
+              'An agreement with a submitted or assessed Claim cannot be cancelled.',
+          });
+        }
+
         const cancelledAt = new Date();
         const updated = await tx.subcontractAgreement.update({
           where: { id: agreement.id },
@@ -603,7 +618,7 @@ export class SubcontractsWorkflowService {
         );
         return updated;
       },
-      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted },
     );
   }
 

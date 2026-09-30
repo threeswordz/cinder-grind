@@ -28,6 +28,8 @@ A lower-authority item cannot silently override a higher-authority item.
 
 Live GitHub Issues, PRs, commits and CI are authoritative for current implementation status.
 
+The approved Chat / Work / GitHub operating model is defined in `docs/DEVELOPMENT-OPERATING-MODEL.md`. It controls tool/session responsibility but does not supersede this governance, the Decision Log, release gates or human UAT/business acceptance.
+
 ## 3. Hard constraints
 
 ### 3.1 Cost and licensing
@@ -106,7 +108,20 @@ The next stage must not begin until required predecessor gates are complete unle
 
 Human UAT/business acceptance must not be marked complete by development or CI.
 
-## 7. Pull-request governance evidence
+## 7. Development-session operating model
+
+- Chat is the default Builder / Release Coordinator for day-to-day implementation, CI repair, focused review, PR/merge coordination and release checkpoint maintenance.
+- GitHub is the durable source of truth for implementation state.
+- CI/tests are the technical evidence layer.
+- The Product / Business Owner remains the authority for approval-gated scope/business decisions and required human UAT.
+- Work is the periodic independent auditor for broad repository-wide analysis and should be audit-first by default.
+- Only one active implementation writer should normally modify a given stage branch at a time.
+- A new implementation session must bootstrap itself from live GitHub state before material writes; conversational memory never overrides repository truth.
+- Work findings normally become durable Issues/Change Control items and return to Chat for implementation through the normal CI/PR/merge gates.
+
+See `docs/DEVELOPMENT-OPERATING-MODEL.md`.
+
+## 8. Pull-request governance evidence
 
 Every material PR must explicitly confirm:
 
@@ -122,13 +137,13 @@ Every material PR must explicitly confirm:
 - documentation/current state updated before merge
 - human gates remain human where required
 
-## 8. If the Product / Business Owner forgets a rule
+## 9. If the Product / Business Owner forgets a rule
 
 If a new request appears to conflict with this governance or an approved decision, do not silently follow the conflicting request.
 
 State the specific conflict and ask whether the Product / Business Owner intends to change the approved rule. Only explicit approval followed by change control can supersede it.
 
-## 9. If an AI/developer forgets a rule
+## 10. If an AI/developer forgets a rule
 
 The repository documents remain authoritative. A conflicting recommendation should be discarded or corrected before implementation.
 

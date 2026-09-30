@@ -24,6 +24,7 @@ import {
   WorkOrderRecord,
   subcontractsApi,
 } from '../api/subcontracts';
+import { ClaimsPanel } from './ClaimsPanel';
 
 function SubcontractorsPanel({ permissions }: { permissions: string[] }) {
   const client = useQueryClient();
@@ -1656,9 +1657,12 @@ export function SubcontractsWorkspace({
     'subcontracts.subcontractor.view',
   );
   const canSeeAgreements = permissions.includes('subcontracts.agreement.view');
-  const [tab, setTab] = useState(canSeeRegister ? 'register' : 'agreements');
+  const canSeeClaims = permissions.includes('subcontracts.claim.view');
+  const [tab, setTab] = useState(
+    canSeeRegister ? 'register' : canSeeAgreements ? 'agreements' : 'claims',
+  );
 
-  if (!canSeeRegister && !canSeeAgreements) {
+  if (!canSeeRegister && !canSeeAgreements && !canSeeClaims) {
     return <Alert severity="warning">No Subcontracts permission is assigned.</Alert>;
   }
 
@@ -1667,12 +1671,16 @@ export function SubcontractsWorkspace({
       <Tabs value={tab} onChange={(_event, value: string) => setTab(value)}>
         {canSeeRegister ? <Tab value="register" label="Subcontractors" /> : null}
         {canSeeAgreements ? <Tab value="agreements" label="Agreements" /> : null}
+        {canSeeClaims ? <Tab value="claims" label="Claims" /> : null}
       </Tabs>
       {tab === 'register' && canSeeRegister ? (
         <SubcontractorsPanel permissions={permissions} />
       ) : null}
       {tab === 'agreements' && canSeeAgreements ? (
         <AgreementsPanel permissions={permissions} />
+      ) : null}
+      {tab === 'claims' && canSeeClaims ? (
+        <ClaimsPanel permissions={permissions} />
       ) : null}
     </Stack>
   );
