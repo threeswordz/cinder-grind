@@ -849,7 +849,7 @@ export class SubcontractsClaimsService {
         }
 
         const assessedAt = new Date();
-        await tx.subcontractClaimAssessment.create({
+        const assessment = await tx.subcontractClaimAssessment.create({
           data: {
             companyId: claim.companyId,
             projectId: claim.projectId,
@@ -869,7 +869,7 @@ export class SubcontractsClaimsService {
           {
             ...context,
             entityType: 'SUBCONTRACT_CLAIM_ASSESSMENT',
-            entityId: claim.id,
+            entityId: assessment.id,
             action: 'ASSESS',
             newValues: {
               claimId: claim.id,
