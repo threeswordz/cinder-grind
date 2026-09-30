@@ -341,6 +341,12 @@ const permissionCodes = [
   'subcontracts.certification.edit',
   'subcontracts.certification.submit',
   'subcontracts.certification.approve',
+  'subcontracts.variation.view',
+  'subcontracts.variation.create',
+  'subcontracts.variation.edit',
+  'subcontracts.variation.submit',
+  'subcontracts.variation.approve',
+  'subcontracts.report.view',
 ];
 await request(admin, `/admin/roles/${roleId}/permissions`, {
   method: 'PUT',
@@ -394,6 +400,11 @@ await request(admin, `/admin/roles/${checkerRoleId}/permissions`, {
       'subcontracts.certification.approve',
       'subcontracts.certification.reject',
       'subcontracts.certification.reverse',
+      'subcontracts.variation.view',
+      'subcontracts.variation.approve',
+      'subcontracts.variation.reject',
+      'subcontracts.variation.reverse',
+      'subcontracts.report.view',
     ],
   },
 });
@@ -687,8 +698,25 @@ await request(admin, '/admin/approval-workflows', {
   },
   expected: 201,
 });
+const subcontractVariationWorkflowCode =
+  'SUBCONTRACT_VARIATION_' + suffix;
+await request(admin, '/admin/approval-workflows', {
+  method: 'POST',
+  json: {
+    workflowCode: subcontractVariationWorkflowCode,
+    entityType: 'SUBCONTRACT_VARIATION',
+    workflowName: 'Subcontract Variation Approval ' + suffix,
+    steps: [{
+      stepNo: 1,
+      stepName: 'Approve Subcontract Variation',
+      requiredApprovals: 1,
+      roleIds: [checkerRoleId],
+    }],
+  },
+  expected: 201,
+});
 
-record('V0.3-A Budget, V0.3-B Purchase Request, V0.3-C RFQ, V0.3-D PO and V0.5-D Certification approval configuration');
+record('V0.3-A Budget, V0.3-B Purchase Request, V0.3-C RFQ, V0.3-D PO and V0.5-D/E Subcontracts approval configuration');
 
 const pmPassword = 'Uat-PM-' + suffix + '-Strong-2026!';
 const unassignedPassword = 'Uat-PE-' + suffix + '-Strong-2026!';
@@ -4423,6 +4451,392 @@ check(
 );
 
 record('V0.5-D Payment Certification, maker-checker, Project/permission denial, distinct gross/assessment values, half-up capped retention withholding, net certification, retry safety, retained reversal history, linked Claim correction and no Finance/payment posting');
+
+const stageEAgreement = await request(pm, '/subcontracts/agreements', {
+  method: 'POST',
+  json: {
+    projectId,
+    subcontractorId,
+    originalValue: '1000.00',
+    scopeOfWork: 'Stage E Variation and reporting package ' + suffix,
+    currencyCode: 'SGD',
+    retentionRate: '5.00',
+    operationalStatusId: subcontractStatus.data.data.id,
+    createKey: 'uat-v05e-agreement-' + suffix,
+  },
+  expected: 201,
+});
+const stageEAgreementId = stageEAgreement.data.data.id;
+await request(pm, '/subcontracts/agreements/' + stageEAgreementId + '/submit', {
+  method: 'POST',
+  json: {
+    workflowCode: subcontractAgreementWorkflowCode,
+    actionKey: 'uat-v05e-agreement-submit-' + suffix,
+  },
+  expected: 201,
+});
+await request(checker, '/subcontracts/agreements/' + stageEAgreementId + '/approve', {
+  method: 'POST',
+  json: {
+    actionKey: 'uat-v05e-agreement-approve-' + suffix,
+    comment: 'Approve Stage E baseline Agreement.',
+  },
+  expected: 201,
+});
+
+const stageEWorkOrder = await request(
+  pm,
+  '/subcontracts/agreements/' + stageEAgreementId + '/work-orders',
+  {
+    method: 'POST',
+    json: {
+      scopeOfWork: 'Stage E measured works allocation',
+      amount: '600.00',
+    },
+    expected: 201,
+  },
+);
+await request(
+  pm,
+  '/subcontracts/work-orders/' + stageEWorkOrder.data.data.id + '/submit',
+  {
+    method: 'POST',
+    json: {
+      workflowCode: subcontractWorkOrderWorkflowCode,
+      actionKey: 'uat-v05e-wo-submit-' + suffix,
+    },
+    expected: 201,
+  },
+);
+await request(
+  checker,
+  '/subcontracts/work-orders/' + stageEWorkOrder.data.data.id + '/approve',
+  {
+    method: 'POST',
+    json: { actionKey: 'uat-v05e-wo-approve-' + suffix },
+    expected: 201,
+  },
+);
+
+const stageEClaim = await request(
+  pm,
+  '/subcontracts/agreements/' + stageEAgreementId + '/claims',
+  {
+    method: 'POST',
+    json: {
+      periodStart: '2027-06-01',
+      periodEnd: '2027-06-30',
+    },
+    expected: 201,
+  },
+);
+await request(
+  pm,
+  '/subcontracts/claims/' + stageEClaim.data.data.id + '/lines',
+  {
+    method: 'POST',
+    json: {
+      workOrderId: stageEWorkOrder.data.data.id,
+      amount: '500.00',
+    },
+    expected: 201,
+  },
+);
+await request(pm, '/subcontracts/claims/' + stageEClaim.data.data.id + '/submit', {
+  method: 'POST',
+  json: { actionKey: 'uat-v05e-claim-submit-' + suffix },
+  expected: 201,
+});
+await request(
+  checker,
+  '/subcontracts/claims/' + stageEClaim.data.data.id + '/assess',
+  {
+    method: 'POST',
+    json: {
+      assessedAmount: '450.00',
+      reason: 'Stage E measured progress accepted.',
+      actionKey: 'uat-v05e-claim-assess-' + suffix,
+    },
+    expected: 201,
+  },
+);
+
+const stageECertification = await request(
+  pm,
+  '/subcontracts/claims/' + stageEClaim.data.data.id + '/certifications',
+  {
+    method: 'POST',
+    json: { certifiedGross: '400.00' },
+    expected: 201,
+  },
+);
+await request(
+  pm,
+  '/subcontracts/certifications/' + stageECertification.data.data.id + '/submit',
+  {
+    method: 'POST',
+    json: {
+      workflowCode: subcontractCertificationWorkflowCode,
+      actionKey: 'uat-v05e-cert-submit-' + suffix,
+    },
+    expected: 201,
+  },
+);
+await request(
+  checker,
+  '/subcontracts/certifications/' + stageECertification.data.data.id + '/approve',
+  {
+    method: 'POST',
+    json: {
+      actionKey: 'uat-v05e-cert-approve-' + suffix,
+      comment: 'Approve Stage E Certification.',
+    },
+    expected: 201,
+  },
+);
+
+const stageEVariationPayload = {
+  valueDelta: '250.00',
+  scopeChange: 'Authorize additional Stage E scope.',
+  reason: 'Approved commercial scope growth.',
+  createKey: 'uat-v05e-var-create-' + suffix,
+};
+const stageEVariation = await request(
+  pm,
+  '/subcontracts/agreements/' + stageEAgreementId + '/variations',
+  {
+    method: 'POST',
+    json: stageEVariationPayload,
+    expected: 201,
+  },
+);
+const stageEVariationId = stageEVariation.data.data.id;
+check(
+  /^SVO\d{4}-\d{3}$/.test(stageEVariation.data.data.variationNumber) &&
+    stageEVariation.data.data.state === 'DRAFT' &&
+    Number(stageEVariation.data.data.valueDelta) === 250 &&
+    stageEVariation.data.data.currencyCode === 'SGD',
+  'V0.5-E Variation did not retain SVOYYMM-### identity, signed delta or inherited currency.',
+);
+const stageEVariationRetry = await request(
+  pm,
+  '/subcontracts/agreements/' + stageEAgreementId + '/variations',
+  {
+    method: 'POST',
+    json: stageEVariationPayload,
+    expected: 201,
+  },
+);
+check(
+  stageEVariationRetry.data.data.id === stageEVariationId &&
+    stageEVariationRetry.data.data.variationNumber ===
+      stageEVariation.data.data.variationNumber,
+  'V0.5-E stable Variation create retry produced duplicate commercial history.',
+);
+await request(unassigned, '/subcontracts/variations/' + stageEVariationId, {
+  expected: 403,
+});
+await request(admin, '/subcontracts/variations/' + stageEVariationId, {
+  expected: 403,
+});
+await request(pm, '/subcontracts/variations/' + stageEVariationId + '/submit', {
+  method: 'POST',
+  json: {
+    workflowCode: subcontractVariationWorkflowCode,
+    actionKey: 'uat-v05e-var-submit-' + suffix,
+  },
+  expected: 201,
+});
+await request(pm, '/subcontracts/variations/' + stageEVariationId + '/approve', {
+  method: 'POST',
+  json: { actionKey: 'uat-v05e-var-maker-approve-' + suffix },
+  expected: 403,
+});
+const approvedStageEVariation = await request(
+  checker,
+  '/subcontracts/variations/' + stageEVariationId + '/approve',
+  {
+    method: 'POST',
+    json: {
+      actionKey: 'uat-v05e-var-approve-' + suffix,
+      comment: 'Configured checker approval.',
+    },
+    expected: 201,
+  },
+);
+check(
+  approvedStageEVariation.data.data.state === 'APPROVED' &&
+    Number(approvedStageEVariation.data.data.valueDelta) === 250,
+  'V0.5-E configured maker-checker did not approve the Variation.',
+);
+const replayedStageEVariationApproval = await request(
+  checker,
+  '/subcontracts/variations/' + stageEVariationId + '/approve',
+  {
+    method: 'POST',
+    json: {
+      actionKey: 'uat-v05e-var-approve-' + suffix,
+      comment: 'Configured checker approval.',
+    },
+    expected: 201,
+  },
+);
+check(
+  replayedStageEVariationApproval.data.data.id === stageEVariationId &&
+    replayedStageEVariationApproval.data.data.state === 'APPROVED',
+  'V0.5-E stable Variation approval retry duplicated the decision.',
+);
+
+const stageEExpandedWorkOrder = await request(
+  pm,
+  '/subcontracts/agreements/' + stageEAgreementId + '/work-orders',
+  {
+    method: 'POST',
+    json: {
+      scopeOfWork: 'Allocation enabled by approved Variation',
+      amount: '500.00',
+    },
+    expected: 201,
+  },
+);
+await request(
+  pm,
+  '/subcontracts/work-orders/' + stageEExpandedWorkOrder.data.data.id + '/submit',
+  {
+    method: 'POST',
+    json: {
+      workflowCode: subcontractWorkOrderWorkflowCode,
+      actionKey: 'uat-v05e-expanded-wo-submit-' + suffix,
+    },
+    expected: 201,
+  },
+);
+await request(
+  checker,
+  '/subcontracts/work-orders/' + stageEExpandedWorkOrder.data.data.id + '/approve',
+  {
+    method: 'POST',
+    json: { actionKey: 'uat-v05e-expanded-wo-approve-' + suffix },
+    expected: 201,
+  },
+);
+
+const stageEReport = await request(
+  pm,
+  '/subcontracts/reports/agreements?projectId=' + projectId,
+);
+const stageEReportRow = stageEReport.data.data.find(
+  (item) => item.id === stageEAgreementId,
+);
+check(
+  stageEReportRow &&
+    Number(stageEReportRow.originalValue) === 1000 &&
+    Number(stageEReportRow.approvedVariationDelta) === 250 &&
+    Number(stageEReportRow.currentCeiling) === 1250 &&
+    Number(stageEReportRow.approvedWorkOrderAllocation) === 1100 &&
+    Number(stageEReportRow.activeClaimedValue) === 500 &&
+    Number(stageEReportRow.assessedValue) === 450 &&
+    Number(stageEReportRow.certifiedGross) === 400 &&
+    Number(stageEReportRow.withheldRetention) === 20 &&
+    Number(stageEReportRow.netCertification) === 380,
+  'V0.5-E source-derived reporting did not keep Agreement, Variation, Work Order, Claim, Assessment, Certification, retention and net values distinct.',
+);
+check(
+  !('actualCost' in stageEReportRow) &&
+    !('paidCost' in stageEReportRow) &&
+    !('paymentStatus' in stageEReportRow),
+  'V0.5-E reporting exposed a prohibited Actual Cost, Paid Cost or settlement field.',
+);
+await request(
+  unassigned,
+  '/subcontracts/reports/agreements?projectId=' + projectId,
+  { expected: 403 },
+);
+const unassignedStageEReport = await request(
+  unassigned,
+  '/subcontracts/reports/agreements',
+);
+check(
+  !unassignedStageEReport.data.data.some(
+    (item) => item.id === stageEAgreementId,
+  ),
+  'V0.5-E reporting leaked an unauthorized Project row through an unfiltered request.',
+);
+
+const reducingVariation = await request(
+  pm,
+  '/subcontracts/agreements/' + stageEAgreementId + '/variations',
+  {
+    method: 'POST',
+    json: {
+      valueDelta: '-900.00',
+      scopeChange: 'Attempt unsafe commercial reduction.',
+      reason: 'Protected-ceiling guard proof.',
+      createKey: 'uat-v05e-reducing-var-' + suffix,
+    },
+    expected: 201,
+  },
+);
+await request(
+  pm,
+  '/subcontracts/variations/' + reducingVariation.data.data.id + '/submit',
+  {
+    method: 'POST',
+    json: {
+      workflowCode: subcontractVariationWorkflowCode,
+      actionKey: 'uat-v05e-reducing-submit-' + suffix,
+    },
+    expected: 201,
+  },
+);
+await request(
+  checker,
+  '/subcontracts/variations/' + reducingVariation.data.data.id + '/approve',
+  {
+    method: 'POST',
+    json: { actionKey: 'uat-v05e-reducing-approve-' + suffix },
+    expected: 409,
+  },
+);
+await request(
+  checker,
+  '/subcontracts/variations/' + reducingVariation.data.data.id + '/reject',
+  {
+    method: 'POST',
+    json: {
+      reason: 'Rejected after protected-ceiling proof.',
+      actionKey: 'uat-v05e-reducing-reject-' + suffix,
+    },
+    expected: 201,
+  },
+);
+
+await request(
+  checker,
+  '/subcontracts/variations/' + stageEVariationId + '/reverse',
+  {
+    method: 'POST',
+    json: {
+      reason: 'Would reduce below approved Work Order allocation.',
+      actionKey: 'uat-v05e-positive-reverse-blocked-' + suffix,
+    },
+    expected: 409,
+  },
+);
+const afterBlockedReverseReport = await request(
+  pm,
+  '/subcontracts/reports/agreements?projectId=' + projectId,
+);
+check(
+  Number(
+    afterBlockedReverseReport.data.data.find(
+      (item) => item.id === stageEAgreementId,
+    )?.currentCeiling,
+  ) === 1250,
+  'V0.5-E blocked Variation reversal changed the retained commercial ceiling.',
+);
+
+record('V0.5-E authenticated Agreement -> Work Order -> Claim -> Assessment -> Certification/retention -> Variation -> source-derived reporting walkthrough, maker-checker, stable retry, reducing/reversal guards and unauthorized Project denial');
 
 
 await request(pm, '/subcontracts/subcontractors/' + subcontractorId + '/archive', {

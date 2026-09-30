@@ -562,6 +562,18 @@ export class SubcontractsWorkflowService {
           });
         }
 
+        const blockingVariation = await tx.subcontractVariation.findFirst({
+          where: { agreementId, state: 'SUBMITTED' },
+          select: { id: true, variationNumber: true },
+        });
+        if (blockingVariation) {
+          throw new ConflictException({
+            code: 'AGREEMENT_HAS_PENDING_VARIATION',
+            detail:
+              'Resolve the submitted Variation before cancelling the agreement.',
+          });
+        }
+
         const blockingWorkOrder = await tx.subcontractWorkOrder.findFirst({
           where: {
             agreementId,
@@ -1327,7 +1339,12 @@ export class SubcontractsWorkflowService {
                   const total = new Prisma.Decimal(
                     allocated._sum.amount ?? 0,
                   ).plus(currentWorkOrder.amount);
-                  if (total.gt(lockedAgreement.originalValue)) {
+                  const currentCeiling =
+                    await this.currentAgreementCeiling(
+                      lockedAgreement,
+                      approvalTx,
+                    );
+                  if (total.gt(currentCeiling)) {
                     throw new ConflictException({
                       code: 'WORK_ORDER_CEILING_EXCEEDED',
                       detail: 'Approved Work Orders cannot exceed the current agreement commercial ceiling.',
@@ -1683,6 +1700,17 @@ export class SubcontractsWorkflowService {
         detail: 'Work Order Cost Code must be active and belong to the same Company.',
       });
     }
+  }
+
+  private async currentAgreementCeiling(
+    agreement: { id: string; originalValue: Prisma.Decimal },
+    db: SubcontractDb,
+  ) {
+    const variations = await db.subcontractVariation.aggregate({
+      where: { agreementId: agreement.id, state: 'APPROVED' },
+      _sum: { valueDelta: true },
+    });
+    return agreement.originalValue.plus(variations._sum.valueDelta ?? 0);
   }
 
   private assertApprovedAgreement(agreement: {

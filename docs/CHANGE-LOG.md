@@ -1,3 +1,57 @@
+## 2026-10-01 — V0.5-E cancelled-Agreement action Codex follow-up
+
+- Codex review of `cfe404b639906a418e8bd5fdbf0e607b43f0bbb3` identified one additional genuine P2: cancelled Agreements correctly remained discoverable for retained Variation history, but Draft/Approved Variations could still show mutation controls that the backend would reject.
+- Fixed at `7d79ade7feefd635626d05f70f0f767448131822` by deriving active-Agreement state in the existing Variation workspace and gating Draft fields/save, decision input, submit, approve/reject and reverse on an approved, non-cancelled Agreement. Cancelled Agreement history remains selectable/readable and now shows an explicit read-only notice; backend guards remain authoritative.
+- Exact code-head push CI #1928 and PR CI #1929 passed, including web typecheck/build, clean migrations, full API/web/PostgreSQL V0.1–V0.5 regression and authenticated live HTTP acceptance. The Codex thread has an evidence reply and is resolved.
+- Final documentation-head CI and clean exact-head Codex re-review remain before squash merge. Human AC-V05-030 remains **PENDING** and V0.6 remains blocked.
+
+## 2026-10-01 — V0.5-E Variation decision timestamp Codex follow-up
+
+- Codex review of `68e778129ef43c8551548c86ff698d6ce597fb45` identified one additional genuine P2: the Variation workspace Approval trail rendered step/action/actor/comment but omitted the retained ApprovalAction `actionAt` timestamp, preventing human UAT from verifying decision time in the UI.
+- Added `actionAt` rendering to every Variation Approval trail entry using the already-returned retained approval record. REVERSED evidence continues to show separate reversal actor/time/reason; no new history source, schema or business rule was introduced.
+- Exact code head `87994499477d314f47269dbd926d856d4c957670` passed push CI #1924 and PR CI #1925, including web typecheck/build, clean migrations, full API/web/PostgreSQL V0.1–V0.5 regression and authenticated live HTTP acceptance. The Codex thread has an evidence reply and is resolved.
+- Human AC-V05-030 remains **PENDING**; final documentation-head CI and clean exact-head Codex re-review still precede squash merge.
+
+## 2026-10-01 — V0.5-E reporting snapshot-consistency Codex follow-up
+
+- Final Codex re-review of `72a0aa18a6d9d32b75b6606bf3844434057e307b` identified one additional genuine P2: the scoped Agreement read and five batched report aggregates could observe different PostgreSQL snapshots while commercial writes commit concurrently.
+- Fixed `reportAgreements()` so Project authorization/scope resolution, Agreement selection and all five batched source aggregates execute inside one Prisma interactive transaction at `RepeatableRead` isolation. Each RPT-007 response now reconciles to one PostgreSQL snapshot while retaining a fixed batched query count and read-only source-derived semantics.
+- Exact code head `8b00a42e2beb4e6ffccf6a8c1bd6e0f7e5a99e41` passed push CI #1920 and PR CI #1921, including clean migrations, full API/web/PostgreSQL V0.1–V0.5 regression and authenticated live HTTP acceptance. The Codex thread has an evidence reply and is resolved.
+- Human AC-V05-030 remains **PENDING**; final documentation-head CI and clean exact-head Codex re-review still precede squash merge.
+
+## 2026-10-01 — V0.5-E Codex findings resolved before final re-review
+
+- Codex review identified three genuine P2 findings: cancelled Agreements were no longer discoverable for retained Variation history; RPT-007 used an unbounded per-Agreement `1 + 5N` aggregate query pattern; and the workspace did not display retained Variation reversal actor/time/reason.
+- Fixed history discovery by returning authorized APPROVED/CANCELLED Agreements while allowing **New Variation** only for active approved Agreements; service-side cancellation guards remain authoritative. Added PostgreSQL regression proving cancelled Agreement history remains discoverable while new Variation creation stays blocked.
+- Reworked RPT-007 to one scoped Agreement query plus five batched `groupBy` aggregate queries across all selected Agreement IDs, preserving the existing source-derived values and authorization boundary without an editable reporting store.
+- Added reversal evidence rendering from retained `reversedBy`, `reversedAt` and `reversalReason` fields so the human history walkthrough can verify actor/time/reason.
+- Exact fix head `7f3f015fa7e26ce9aa3d06b43d270196a01cb7ed` passed push CI #1916 and PR CI #1917. All three Codex threads have evidence replies and are resolved. Final exact-head Codex re-review remains required before squash merge.
+- Human AC-V05-030 remains **PENDING** and V0.6 remains blocked.
+
+## 2026-10-01 — V0.5-E PR #112 final review checkpoint
+
+- PR #112 opened for V0.5-E at exact evidence head `6ad9dad5543386f70472deb2ff9be0477de0d401`; branch CI #1910 and PR CI #1911 both passed clean migrations, full workspace/PostgreSQL regression and authenticated live HTTP acceptance.
+- Durable current-state now reflects the live PR/review position rather than the earlier pre-PR checkpoint. Required Codex exact-head review remains pending; any head change requires fresh CI/re-review. Human AC-V05-030 acceptance remains separate and pending.
+
+## 2026-10-01 — V0.5-E implementation and human-UAT evidence ready for final PR gates
+
+- Implemented SUB-009 Variation Orders with Company/month `SVOYYMM-###` identity, immutable Agreement linkage/currency, signed scope/value change, configured Approval Matrix maker-checker, explicit permissions, Project authorization, stable retry keys, retained audit/history and explicit reversal. Original Agreement value/scope remain unchanged; only approved non-reversed Variation deltas derive the current ceiling.
+- Current-ceiling integration now governs Work Order approval, Claim submission and Certification approval. Reducing Variation approval and reversal of positive Variations protect approved Work Order allocation, active submitted/assessed claimed value and non-reversed certified value under deterministic Agreement locking.
+- Added read-only Project-scoped RPT-007 reporting for original value, approved Variation delta, current ceiling, approved Work Order allocation, active claimed, assessed, certified gross, withheld retention and net certification. It creates no second ledger, Finance posting, Actual Cost or Paid Cost semantics.
+- Added permission-aware Variation/reporting UI, focused PostgreSQL lifecycle/integrity/idempotency/concurrency/authorization/reporting regression and authenticated live HTTP Agreement → Work Order → Claim → Assessment → Certification/retention → Variation → reporting acceptance with unauthorized Project denial.
+- Focused Stage-E regression exposed an ambiguous PL/pgSQL `approval_state` reference in the already-executed Variation consistency migration. Historical migration remained unchanged; forward-only `20261001032000_v0_5_e_variation_consistency_fix` qualifies source columns and renames the local ApprovalInstance state variable.
+- Pre-evidence implementation head `2a2909675d015caed8e1e0a3b317cbd321723795` passed CI #1909: clean migration deployment/status, Prisma validation, production dependency/license audit, full API/web validation, PostgreSQL/full V0.1–V0.5 regression and authenticated live HTTP acceptance.
+- Prepared `docs/V0.5-UAT-EVIDENCE.md` for the separate human walkthrough. **AC-V05-030 remains pending and is not auto-accepted.** Required final exact-head CI, PR CI/Codex review, squash merge, post-merge main CI and Issue #111 closure still precede human V0.5 Release Exit acceptance.
+
+## 2026-10-01 — V0.5-D completed; V0.5-E pre-flight started
+
+- PR #110 squash-merged to `main` as `aceeb82ad13a2f6c773d307541ddd02fafc69a92` after exact-head push CI #1898 and PR CI #1899 passed on `0cf62c630153a6ac2326f352c0064243b3a2f45f`; final Codex review reported no major issues and all review threads were resolved.
+- Post-merge main CI #1900 passed, including clean migrations, production dependency/schema checks, full workspace/PostgreSQL regression and authenticated live HTTP acceptance. Issue #109 closed as completed.
+- Opened Issue #111 and branch `v0.5-e-variations-reporting` from that exact green checkpoint for approved V0.5-E only: SUB-009 Variation Orders, RPT-007 source-derived reporting, full V0.1–V0.5 regression and V0.5 human-UAT evidence preparation.
+- Stage E keeps original Agreement value/scope immutable; only approved non-reversed signed Variation deltas affect current ceiling. Reducing approvals and positive-Variation reversals must protect approved Work Order allocation, active submitted/assessed Claims and non-reversed certified value.
+- Reporting remains Project-scoped, read-only and source-derived; no second ledger, Finance posting, Actual Cost or Paid Cost is introduced. DEC-008 remains mandatory.
+- Human AC-V05-030 Product / Business Owner UAT/business acceptance is not part of automated Stage-E completion and remains the separate V0.5 Release Exit Gate. V0.6 remains blocked until explicit human acceptance.
+
 ## 2026-10-01 — V0.5-D Certification / Retention implementation ready for PR review
 
 - Issue #109 branch `v0.5-d-certification-retention` reached green pre-PR implementation head `782da07ff103e728351680718132fd2c33758875`, 13 commits ahead / 0 behind V0.5-C main. Exact-head CI #1885 passed clean migration deployment/status, Prisma validation, production dependency audit, full API/web validation and authenticated live HTTP acceptance.

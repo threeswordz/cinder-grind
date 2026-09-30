@@ -733,7 +733,10 @@ export class SubcontractsClaimsService {
           _sum: { amount: true },
         });
         const existingTotal = existing._sum.amount ?? new Prisma.Decimal(0);
-        const ceiling = agreement.originalValue;
+        const ceiling = await this.currentAgreementCeiling(
+          agreement,
+          tx,
+        );
         if (existingTotal.plus(claimTotal).gt(ceiling)) {
           throw new ConflictException({
             code: 'CLAIM_AGREEMENT_CEILING_EXCEEDED',
@@ -1291,6 +1294,17 @@ export class SubcontractsClaimsService {
         detail: 'Claims require an approved, non-cancelled agreement.',
       });
     }
+  }
+
+  private async currentAgreementCeiling(
+    agreement: { id: string; originalValue: Prisma.Decimal },
+    db: SubcontractDb,
+  ) {
+    const variations = await db.subcontractVariation.aggregate({
+      where: { agreementId: agreement.id, state: 'APPROVED' },
+      _sum: { valueDelta: true },
+    });
+    return agreement.originalValue.plus(variations._sum.valueDelta ?? 0);
   }
 
   private async ensureClaimSequence(companyId: string) {

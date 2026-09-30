@@ -258,6 +258,11 @@ model User {
   approvedSubcontractCertifications SubcontractCertification[] @relation("CertificationApprover")
   rejectedSubcontractCertifications SubcontractCertification[] @relation("CertificationRejector")
   reversedSubcontractCertifications SubcontractCertification[] @relation("CertificationReverser")
+  createdSubcontractVariations SubcontractVariation[] @relation("VariationCreator")
+  submittedSubcontractVariations SubcontractVariation[] @relation("VariationSubmitter")
+  approvedSubcontractVariations SubcontractVariation[] @relation("VariationApprover")
+  rejectedSubcontractVariations SubcontractVariation[] @relation("VariationRejector")
+  reversedSubcontractVariations SubcontractVariation[] @relation("VariationReverser")
   submittedGoodsReceipts     GoodsReceipt[] @relation("GoodsReceiptSubmitter")
   postedGoodsReceipts        GoodsReceipt[] @relation("GoodsReceiptPoster")
   reversedGoodsReceipts      GoodsReceipt[] @relation("GoodsReceiptReverser")
@@ -439,6 +444,7 @@ model ApprovalInstance {
   subcontractAgreementVersion SubcontractAgreementVersion?
   subcontractWorkOrder SubcontractWorkOrder?
   subcontractCertification SubcontractCertification?
+  subcontractVariation SubcontractVariation?
   @@index([companyId, entityType, entityId])
   @@index([approvalWorkflowId, approvalState])
   @@map("approval_instances")
@@ -1214,6 +1220,7 @@ model SubcontractAgreement {
   claimLines        SubcontractClaimLine[]
   claimAssessments  SubcontractClaimAssessment[]
   certifications    SubcontractCertification[]
+  variations        SubcontractVariation[]
 
   @@unique([companyId, agreementNumber])
   @@unique([companyId, id])
@@ -1443,6 +1450,51 @@ model SubcontractCertification {
   @@index([companyId, projectId, agreementId, state])
   @@index([claimId, state])
   @@map("subcontract_certifications")
+}
+
+
+model SubcontractVariation {
+  id                   String    @id @default(uuid()) @db.Uuid
+  companyId            String    @map("company_id") @db.Uuid
+  projectId            String    @map("project_id") @db.Uuid
+  agreementId          String    @map("agreement_id") @db.Uuid
+  variationNumber      String    @map("variation_number") @db.VarChar(30)
+  currencyCode         String    @map("currency_code") @db.VarChar(3)
+  valueDelta           Decimal   @map("value_delta") @db.Decimal(18, 2)
+  scopeChange          String    @map("scope_change") @db.Text
+  reason               String    @db.Text
+  state                String    @default("DRAFT") @db.VarChar(30)
+  approvalInstanceId   String?   @unique @map("approval_instance_id") @db.Uuid
+  createKey            String    @map("create_key") @db.VarChar(120)
+  createPayloadHash    String    @map("create_payload_hash") @db.VarChar(64)
+  createdByUserId      String    @map("created_by_user_id") @db.Uuid
+  submittedByUserId    String?   @map("submitted_by_user_id") @db.Uuid
+  approvedByUserId     String?   @map("approved_by_user_id") @db.Uuid
+  rejectedByUserId     String?   @map("rejected_by_user_id") @db.Uuid
+  reversedByUserId     String?   @map("reversed_by_user_id") @db.Uuid
+  createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  submittedAt          DateTime? @map("submitted_at") @db.Timestamptz(6)
+  decidedAt            DateTime? @map("decided_at") @db.Timestamptz(6)
+  approvedAt           DateTime? @map("approved_at") @db.Timestamptz(6)
+  rejectedAt           DateTime? @map("rejected_at") @db.Timestamptz(6)
+  rejectionReason      String?   @map("rejection_reason") @db.Text
+  reversedAt           DateTime? @map("reversed_at") @db.Timestamptz(6)
+  reversalReason       String?   @map("reversal_reason") @db.Text
+
+  agreement        SubcontractAgreement @relation(fields: [companyId, projectId, agreementId], references: [companyId, projectId, id], onDelete: Restrict, map: "subcontract_variations_agreement_fkey")
+  approvalInstance ApprovalInstance? @relation(fields: [approvalInstanceId], references: [id], onDelete: Restrict)
+  createdBy        User @relation("VariationCreator", fields: [companyId, createdByUserId], references: [companyId, id], onDelete: Restrict, map: "subcontract_variations_creator_fkey")
+  submittedBy      User? @relation("VariationSubmitter", fields: [companyId, submittedByUserId], references: [companyId, id], onDelete: Restrict, map: "subcontract_variations_submitter_fkey")
+  approvedBy       User? @relation("VariationApprover", fields: [companyId, approvedByUserId], references: [companyId, id], onDelete: Restrict, map: "subcontract_variations_approver_fkey")
+  rejectedBy       User? @relation("VariationRejector", fields: [companyId, rejectedByUserId], references: [companyId, id], onDelete: Restrict, map: "subcontract_variations_rejector_fkey")
+  reversedBy       User? @relation("VariationReverser", fields: [companyId, reversedByUserId], references: [companyId, id], onDelete: Restrict, map: "subcontract_variations_reverser_fkey")
+
+  @@unique([companyId, variationNumber])
+  @@unique([companyId, createdByUserId, createKey], map: "subcontract_variations_creator_create_key_key")
+  @@unique([companyId, projectId, agreementId, id], map: "subcontract_variations_scope_key")
+  @@index([companyId, projectId, agreementId, state])
+  @@map("subcontract_variations")
 }
 
 model Warehouse {

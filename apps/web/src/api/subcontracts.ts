@@ -310,6 +310,82 @@ export type CertificationRecord = {
   approvalInstance: ApprovalInstanceRecord | null;
 };
 
+
+export type VariationAgreementOption = {
+  id: string;
+  agreementNumber: string;
+  projectId: string;
+  originalValue: string;
+  currencyCode: string;
+  approvalState: string;
+  cancelledAt: string | null;
+  project: SubcontractProject;
+  subcontractor: {
+    id: string;
+    subcontractorCode: string;
+    subcontractorName: string;
+  };
+};
+
+export type VariationRecord = {
+  id: string;
+  projectId: string;
+  agreementId: string;
+  variationNumber: string;
+  currencyCode: string;
+  valueDelta: string;
+  scopeChange: string;
+  reason: string;
+  state: string;
+  approvalInstanceId: string | null;
+  submittedAt: string | null;
+  decidedAt: string | null;
+  approvedAt: string | null;
+  rejectedAt: string | null;
+  rejectionReason: string | null;
+  reversedAt: string | null;
+  reversalReason: string | null;
+  createdAt: string;
+  agreement: {
+    id: string;
+    agreementNumber: string;
+    originalValue: string;
+    currencyCode: string;
+    approvalState: string;
+    cancelledAt: string | null;
+  };
+  createdBy: { id: string; displayName: string };
+  submittedBy: { id: string; displayName: string } | null;
+  approvedBy: { id: string; displayName: string } | null;
+  rejectedBy: { id: string; displayName: string } | null;
+  reversedBy: { id: string; displayName: string } | null;
+  approvalInstance: ApprovalInstanceRecord | null;
+};
+
+export type SubcontractReportRecord = {
+  id: string;
+  agreementNumber: string;
+  projectId: string;
+  originalValue: string;
+  currencyCode: string;
+  approvalState: string;
+  cancelledAt: string | null;
+  approvedVariationDelta: string;
+  currentCeiling: string;
+  approvedWorkOrderAllocation: string;
+  activeClaimedValue: string;
+  assessedValue: string;
+  certifiedGross: string;
+  withheldRetention: string;
+  netCertification: string;
+  project: SubcontractProject;
+  subcontractor: {
+    id: string;
+    subcontractorCode: string;
+    subcontractorName: string;
+  };
+};
+
 function query(path: string, values: Record<string, string | undefined>) {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(values)) {
@@ -717,5 +793,87 @@ export const subcontractsApi = {
     postAction<CertificationRecord>(
       '/subcontracts/certifications/' + certificationId + '/reverse',
       { reason, actionKey },
+    ),
+
+  variationAgreementOptions: () =>
+    apiRequest<Data<VariationAgreementOption[]>>(
+      '/subcontracts/variation-agreement-options',
+    ),
+  variationWorkflowOptions: () =>
+    apiRequest<Data<WorkflowOption[]>>(
+      '/subcontracts/variation-workflow-options',
+    ),
+  variations: (agreementId: string) =>
+    apiRequest<Data<VariationRecord[]>>(
+      '/subcontracts/agreements/' + agreementId + '/variations',
+    ),
+  variation: (variationId: string) =>
+    apiRequest<Data<VariationRecord>>(
+      '/subcontracts/variations/' + variationId,
+    ),
+  createVariation: (
+    agreementId: string,
+    body: {
+      valueDelta: string;
+      scopeChange: string;
+      reason: string;
+      createKey: string;
+    },
+  ) =>
+    postAction<VariationRecord>(
+      '/subcontracts/agreements/' + agreementId + '/variations',
+      body,
+    ),
+  updateVariation: (
+    variationId: string,
+    body: Partial<{
+      valueDelta: string;
+      scopeChange: string;
+      reason: string;
+    }>,
+  ) =>
+    apiRequest<Data<VariationRecord>>(
+      '/subcontracts/variations/' + variationId,
+      { method: 'PATCH', body: JSON.stringify(body) },
+    ),
+  submitVariation: (
+    variationId: string,
+    workflowCode: string,
+    actionKey: string,
+  ) =>
+    postAction<VariationRecord>(
+      '/subcontracts/variations/' + variationId + '/submit',
+      { workflowCode, actionKey },
+    ),
+  approveVariation: (
+    variationId: string,
+    actionKey: string,
+    comment?: string,
+  ) =>
+    postAction<VariationRecord>(
+      '/subcontracts/variations/' + variationId + '/approve',
+      { actionKey, ...(comment ? { comment } : {}) },
+    ),
+  rejectVariation: (
+    variationId: string,
+    reason: string,
+    actionKey: string,
+  ) =>
+    postAction<VariationRecord>(
+      '/subcontracts/variations/' + variationId + '/reject',
+      { reason, actionKey },
+    ),
+  reverseVariation: (
+    variationId: string,
+    reason: string,
+    actionKey: string,
+  ) =>
+    postAction<VariationRecord>(
+      '/subcontracts/variations/' + variationId + '/reverse',
+      { reason, actionKey },
+    ),
+  subcontractReports: (projectId?: string) =>
+    apiRequest<Data<SubcontractReportRecord[]>>(
+      query('/subcontracts/reports/agreements', { projectId }),
     ),
 };
