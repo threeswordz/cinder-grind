@@ -1,3 +1,11 @@
+## 2026-09-30 — V0.5-C final Codex finding fixes and release review checkpoint
+
+- PR #108 / Issue #107: Codex's final review identified three real P2 gaps after earlier Claim-line parent-lock and shared NumberSequence backward-period concurrency fixes. All are now addressed within approved Stage-C scope and previous migrations remain byte-for-byte unchanged.
+- Claim Draft creation/edit/submission now prevent generic exact-period re-entry when rejected/withdrawn/replaced history exists; linked replacements preserve their predecessor period (service commit `81a0eaba606c2c7003e6437148c5016acfdb8ff5`). The same commit records Draft period audit `oldValues` from post-lock `current` rather than stale pre-lock reads.
+- New forward-only migration `20260930130000_v0_5_c_withdrawal_evidence_guard` (commit `0e69e32baba09b0ab188d1b4fe48d444271a1aa1`) requires actor, timestamp and nonblank reason for every WITHDRAWN Claim while allowing rejected Claims to become REPLACED without fabricated withdrawal evidence.
+- PostgreSQL lifecycle regressions cover direct-SQL missing withdrawal evidence, generic correction bypass through create/period edit and replacement-period immutability (`67bd604bd67359991873494bf430ca705889a553`). A two-reader concurrency barrier verifies the second Draft-update audit records the first committed post-lock period (`c2d7c4cd045a142c0ab6cdd37ab6720123d7e8c5`).
+- Exact implementation-head PR CI #1806 passed on `c2d7c4cd045a142c0ab6cdd37ab6720123d7e8c5`, including clean migrations, full workspace/PostgreSQL regression and authenticated live HTTP acceptance. All known Codex review threads have replies/evidence and are resolved. Final documentation-head exact CI and Codex review are still required before squash merge, post-merge main CI, Issue #107 closure and V0.5-D pre-flight; human V0.5 owner acceptance remains separate.
+
 ## 2026-09-29 — V0.5-A completed; V0.5-B pre-flight started
 
 - Stage A PR #104 squash-merged as `af1a3f4953af524110dc4305a061099f4fa80388`; final push CI #1696, PR CI #1697, clean exact-head review and post-merge main CI #1698 passed; Issue #103 closed.
