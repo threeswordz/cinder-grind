@@ -40,24 +40,24 @@ function auth(
 
 test('V0.5-D Certification routes retain explicit permission metadata', () => {
   const routes = [
-    ['workflowOptions', 'subcontracts.certification.submit'],
-    ['certificationsForAgreement', 'subcontracts.certification.view'],
-    ['certification', 'subcontracts.certification.view'],
-    ['createCertification', 'subcontracts.certification.create'],
-    ['updateCertification', 'subcontracts.certification.edit'],
-    ['submitCertification', 'subcontracts.certification.submit'],
-    ['approveCertification', 'subcontracts.certification.approve'],
-    ['rejectCertification', 'subcontracts.certification.reject'],
-    ['reverseCertification', 'subcontracts.certification.reverse'],
+    ['workflowOptions', ['subcontracts.certification.view', 'subcontracts.certification.submit']],
+    ['certificationsForAgreement', ['subcontracts.certification.view']],
+    ['certification', ['subcontracts.certification.view']],
+    ['createCertification', ['subcontracts.certification.view', 'subcontracts.certification.create']],
+    ['updateCertification', ['subcontracts.certification.view', 'subcontracts.certification.edit']],
+    ['submitCertification', ['subcontracts.certification.view', 'subcontracts.certification.submit']],
+    ['approveCertification', ['subcontracts.certification.view', 'subcontracts.certification.approve']],
+    ['rejectCertification', ['subcontracts.certification.view', 'subcontracts.certification.reject']],
+    ['reverseCertification', ['subcontracts.certification.view', 'subcontracts.certification.reverse']],
   ] as const;
 
-  for (const [method, permission] of routes) {
+  for (const [method, permissions] of routes) {
     assert.deepEqual(
       Reflect.getMetadata(
         REQUIRED_PERMISSIONS_KEY,
         SubcontractsCertificationController.prototype[method],
       ),
-      [permission],
+      permissions,
       method + ' must retain its Stage-D Certification permission boundary',
     );
   }
@@ -190,6 +190,7 @@ test('V0.5-D certifies assessed Claims with retained withholding, history and co
     );
 
     const makerAuth = auth(company.id, maker.id);
+    const makerApproverAuth = auth(company.id, maker.id, [role.roleCode]);
     const checkerAuth = auth(company.id, checker.id, [role.roleCode]);
     const noRoleAuth = auth(company.id, noRole.id);
     const outsiderAuth = auth(
@@ -320,7 +321,7 @@ test('V0.5-D certifies assessed Claims with retained withholding, history and co
     );
 
     const submittedOne = await certifications.submitCertification(
-      { auth: makerAuth },
+      { auth: checkerAuth },
       certOne.id,
       workflow.workflowCode,
       'cert-submit-one-' + suffix,
@@ -328,7 +329,7 @@ test('V0.5-D certifies assessed Claims with retained withholding, history and co
     assert.equal(submittedOne.state, 'SUBMITTED');
 
     const replayedSubmit = await certifications.submitCertification(
-      { auth: makerAuth },
+      { auth: checkerAuth },
       certOne.id,
       workflow.workflowCode,
       'cert-submit-one-' + suffix,
@@ -337,8 +338,17 @@ test('V0.5-D certifies assessed Claims with retained withholding, history and co
 
     await assert.rejects(
       () =>
+        prisma.approvalInstance.update({
+          where: { id: submittedOne.approvalInstanceId! },
+          data: { approvalState: 'APPROVED', completedAt: new Date() },
+        }),
+      'database must reject ApprovalInstance state changes that are not reciprocated by Certification lifecycle state',
+    );
+
+    await assert.rejects(
+      () =>
         certifications.submitCertification(
-          { auth: makerAuth },
+          { auth: checkerAuth },
           certOne.id,
           workflow.workflowCode + '_CHANGED',
           'cert-submit-one-' + suffix,
@@ -350,12 +360,12 @@ test('V0.5-D certifies assessed Claims with retained withholding, history and co
     await assert.rejects(
       () =>
         certifications.approveCertification(
-          { auth: makerAuth },
+          { auth: makerApproverAuth },
           certOne.id,
           'maker-approve-' + suffix,
         ),
       (error: unknown) => error instanceof ForbiddenException,
-      'Certification maker cannot final-approve the same submission',
+      'Certification draft creator cannot final-approve even when another user submitted it',
     );
     await assert.rejects(
       () =>

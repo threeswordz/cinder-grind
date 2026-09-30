@@ -119,7 +119,10 @@ export class SubcontractsCertificationController {
 
   @Get('certification-workflow-options')
   @UseGuards(AuthGuard, PermissionGuard)
-  @RequirePermissions('subcontracts.certification.submit')
+  @RequirePermissions(
+    'subcontracts.certification.view',
+    'subcontracts.certification.submit',
+  )
   async workflowOptions(@Req() request: AuthenticatedRequest) {
     return {
       data: await this.certifications.workflowOptions(authOf(request)),
@@ -160,7 +163,10 @@ export class SubcontractsCertificationController {
 
   @Post('claims/:claimId/certifications')
   @UseGuards(AuthGuard, CsrfGuard, PermissionGuard)
-  @RequirePermissions('subcontracts.certification.create')
+  @RequirePermissions(
+    'subcontracts.certification.view',
+    'subcontracts.certification.create',
+  )
   async createCertification(
     @Req() request: AuthenticatedRequest,
     @Param('claimId', new ParseUUIDPipe({ version: '4' }))
@@ -178,7 +184,10 @@ export class SubcontractsCertificationController {
 
   @Patch('certifications/:certificationId')
   @UseGuards(AuthGuard, CsrfGuard, PermissionGuard)
-  @RequirePermissions('subcontracts.certification.edit')
+  @RequirePermissions(
+    'subcontracts.certification.view',
+    'subcontracts.certification.edit',
+  )
   async updateCertification(
     @Req() request: AuthenticatedRequest,
     @Param('certificationId', new ParseUUIDPipe({ version: '4' }))
@@ -196,7 +205,10 @@ export class SubcontractsCertificationController {
 
   @Post('certifications/:certificationId/submit')
   @UseGuards(AuthGuard, CsrfGuard, PermissionGuard)
-  @RequirePermissions('subcontracts.certification.submit')
+  @RequirePermissions(
+    'subcontracts.certification.view',
+    'subcontracts.certification.submit',
+  )
   async submitCertification(
     @Req() request: AuthenticatedRequest,
     @Param('certificationId', new ParseUUIDPipe({ version: '4' }))
@@ -216,7 +228,10 @@ export class SubcontractsCertificationController {
 
   @Post('certifications/:certificationId/approve')
   @UseGuards(AuthGuard, CsrfGuard, PermissionGuard)
-  @RequirePermissions('subcontracts.certification.approve')
+  @RequirePermissions(
+    'subcontracts.certification.view',
+    'subcontracts.certification.approve',
+  )
   async approveCertification(
     @Req() request: AuthenticatedRequest,
     @Param('certificationId', new ParseUUIDPipe({ version: '4' }))
@@ -236,7 +251,10 @@ export class SubcontractsCertificationController {
 
   @Post('certifications/:certificationId/reject')
   @UseGuards(AuthGuard, CsrfGuard, PermissionGuard)
-  @RequirePermissions('subcontracts.certification.reject')
+  @RequirePermissions(
+    'subcontracts.certification.view',
+    'subcontracts.certification.reject',
+  )
   async rejectCertification(
     @Req() request: AuthenticatedRequest,
     @Param('certificationId', new ParseUUIDPipe({ version: '4' }))
@@ -256,7 +274,10 @@ export class SubcontractsCertificationController {
 
   @Post('certifications/:certificationId/reverse')
   @UseGuards(AuthGuard, CsrfGuard, PermissionGuard)
-  @RequirePermissions('subcontracts.certification.reverse')
+  @RequirePermissions(
+    'subcontracts.certification.view',
+    'subcontracts.certification.reverse',
+  )
   async reverseCertification(
     @Req() request: AuthenticatedRequest,
     @Param('certificationId', new ParseUUIDPipe({ version: '4' }))

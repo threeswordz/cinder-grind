@@ -516,7 +516,7 @@ export class SubcontractsCertificationService {
             ? await this.approvals.approve(
                 certification.approvalInstanceId!,
                 context.auth,
-                certification.submittedByUserId!,
+                certification.createdByUserId!,
                 comment,
                 async (approvalTx) => {
                   const current = await this.certificationById(
@@ -615,7 +615,7 @@ export class SubcontractsCertificationService {
             : await this.approvals.reject(
                 certification.approvalInstanceId!,
                 context.auth,
-                certification.submittedByUserId!,
+                certification.createdByUserId!,
                 comment,
                 tx,
               );

@@ -125,6 +125,14 @@ test('user and role administration respects company boundaries and revokes sessi
       (error: unknown) => error instanceof UnprocessableEntityException,
       'Stage B Work Order actions require Work Order view permission',
     );
+    await assert.rejects(
+      () =>
+        service.replaceRolePermissions({ auth }, role.id, [
+          'subcontracts.certification.approve',
+        ]),
+      (error: unknown) => error instanceof UnprocessableEntityException,
+      'Stage D Certification actions require Certification view permission',
+    );
     await service.replaceRolePermissions({ auth }, role.id, [
       'subcontracts.subcontractor.view',
       'subcontracts.subcontractor.manage',
