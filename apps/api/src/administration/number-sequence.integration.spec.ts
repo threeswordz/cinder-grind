@@ -85,6 +85,35 @@ test('number sequence preserves starting value and resets on a new month', async
     assert.equal(unchangedReserved.nextValue, 1);
     assert.equal(unchangedReserved.lastPeriodKey, null);
 
+    const concurrentSequence = await prisma.numberSequence.create({
+      data: {
+        companyId: company.id,
+        entityType: 'TEST_CONCURRENT',
+        sequenceCode: 'CONCURRENT_' + suffix,
+        formatTemplate: 'TYYMM-###',
+        resetRule: 'MONTHLY',
+        nextValue: 1,
+      },
+    });
+    const concurrent = await Promise.all([
+      service.next(
+        company.id,
+        concurrentSequence.sequenceCode,
+        new Date('2026-06-01T00:00:00Z'),
+      ),
+      service.next(
+        company.id,
+        concurrentSequence.sequenceCode,
+        new Date('2026-06-01T00:00:00Z'),
+      ),
+    ]);
+    assert.deepEqual([...concurrent].sort(), ['T2606-001', 'T2606-002']);
+    const concurrentStored = await prisma.numberSequence.findUniqueOrThrow({
+      where: { id: concurrentSequence.id },
+    });
+    assert.equal(concurrentStored.lastPeriodKey, '202606');
+    assert.equal(concurrentStored.nextValue, 3);
+
     const stored = await prisma.numberSequence.findUniqueOrThrow({
       where: { id: sequence.id },
     });
