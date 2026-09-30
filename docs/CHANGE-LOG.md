@@ -1,3 +1,12 @@
+## 2026-10-01 — V0.5-D completed; V0.5-E pre-flight started
+
+- PR #110 squash-merged to `main` as `aceeb82ad13a2f6c773d307541ddd02fafc69a92` after exact-head push CI #1898 and PR CI #1899 passed on `0cf62c630153a6ac2326f352c0064243b3a2f45f`; final Codex review reported no major issues and all review threads were resolved.
+- Post-merge main CI #1900 passed, including clean migrations, production dependency/schema checks, full workspace/PostgreSQL regression and authenticated live HTTP acceptance. Issue #109 closed as completed.
+- Opened Issue #111 and branch `v0.5-e-variations-reporting` from that exact green checkpoint for approved V0.5-E only: SUB-009 Variation Orders, RPT-007 source-derived reporting, full V0.1–V0.5 regression and V0.5 human-UAT evidence preparation.
+- Stage E keeps original Agreement value/scope immutable; only approved non-reversed signed Variation deltas affect current ceiling. Reducing approvals and positive-Variation reversals must protect approved Work Order allocation, active submitted/assessed Claims and non-reversed certified value.
+- Reporting remains Project-scoped, read-only and source-derived; no second ledger, Finance posting, Actual Cost or Paid Cost is introduced. DEC-008 remains mandatory.
+- Human AC-V05-030 Product / Business Owner UAT/business acceptance is not part of automated Stage-E completion and remains the separate V0.5 Release Exit Gate. V0.6 remains blocked until explicit human acceptance.
+
 ## 2026-10-01 — V0.5-D Certification / Retention implementation ready for PR review
 
 - Issue #109 branch `v0.5-d-certification-retention` reached green pre-PR implementation head `782da07ff103e728351680718132fd2c33758875`, 13 commits ahead / 0 behind V0.5-C main. Exact-head CI #1885 passed clean migration deployment/status, Prisma validation, production dependency audit, full API/web validation and authenticated live HTTP acceptance.

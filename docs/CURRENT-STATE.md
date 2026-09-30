@@ -3,12 +3,12 @@
 **Last verified:** 2026-10-01
 **Source of truth:** Live GitHub repository state
 
-- Current Release: V0.5 Subcontracts — V0.5-A, V0.5-B and V0.5-C are technically complete; V0.5-D Certification and Retention Withholding is at PR #110 final review/merge gate on exact head `a51eede8a4304d36415a70bd2fff30e8312031ce`; exact-head push CI #1896 and PR CI #1897 passed, the latest Codex review found one remaining documentation-checkpoint finding being addressed here, and human V0.5 Product / Business Owner UAT remains the separate release-exit gate
-- Current Stage: V0.5-D Certification and Retention Withholding final PR #110 review/merge preparation under Issue #109 on `v0.5-d-certification-retention`; implementation, focused PostgreSQL/concurrency coverage, web presentation and authenticated live acceptance are green; only final exact-head review, squash merge, post-merge `main` CI and Issue #109 closure remain before V0.5-D is technically complete
-- Completed Stages: V0.1-A through V0.1-H; V0.2-A through V0.2-G; V0.3-A through V0.3-E; V0.4-A through V0.4-E; V0.5 entry gate; V0.5-A; V0.5-B; V0.5-C
-- Active Issue: #109 — V0.5-D Certification and Retention Withholding
+- Current Release: V0.5 Subcontracts — V0.5-A through V0.5-D are technically complete; V0.5-E Variations / Derived Reporting / Release Evidence is now in pre-flight under Issue #111 from green main `aceeb82ad13a2f6c773d307541ddd02fafc69a92`; human V0.5 Product / Business Owner UAT remains the separate mandatory release-exit gate
+- Current Stage: V0.5-E Variations / Derived Reporting / Release Evidence pre-flight under Issue #111 on `v0.5-e-variations-reporting`; authority is SUB-009/RPT-007, AC-V05-023–029 and approved BR-V05-16–20 plus applicable shared rules; implementation has not begun at this checkpoint
+- Completed Stages: V0.1-A through V0.1-H; V0.2-A through V0.2-G; V0.3-A through V0.3-E; V0.4-A through V0.4-E; V0.5 entry gate; V0.5-A; V0.5-B; V0.5-C; V0.5-D
+- Active Issue: #111 — V0.5-E Variations / Derived Reporting / Release Evidence
 - V0.5-C green main checkpoint: PR #108 squash-merged as `3f00de1f984c82c1737c4b47c226d99197b19e54`; final exact-head push CI #1869 and PR CI #1870 passed on `0833cd893f208003215cf39cee9c07b6c9a817ad`; final Codex exact-head review reported no major issues; post-merge main CI #1871 passed; Issue #107 closed.
-- V0.5-D current PR checkpoint: Issue #109 remains open; PR #110 is open and mergeable from `v0.5-d-certification-retention` to green V0.5-C `main` `3f00de1f984c82c1737c4b47c226d99197b19e54`. Before this documentation correction the branch was 19 commits ahead / 0 behind at exact reviewed head `a51eede8a4304d36415a70bd2fff30e8312031ce`. Push CI #1896 and PR CI #1897 passed clean migration deployment/status, Prisma validation, production dependency audit, full API/web validation, Stage-D PostgreSQL integrity/concurrency regression and authenticated live HTTP Certification/retention acceptance. All prior code findings were fixed and resolved; the Codex review of `a51eede8a4` identified only this stale `CURRENT-STATE.md` checkpoint as the remaining merge blocker. Approved boundary remains Certification and retention withholding only; retention release, Finance/payment/accounting, tax/FX, Variations and later reporting remain deferred. Human V0.5 UAT remains later.
+- V0.5-D green main checkpoint: PR #110 squash-merged as `aceeb82ad13a2f6c773d307541ddd02fafc69a92`; final exact-head push CI #1898 and PR CI #1899 passed on `0cf62c630153a6ac2326f352c0064243b3a2f45f`; final Codex exact-head review reported no major issues; post-merge main CI #1900 passed; Issue #109 closed. Human V0.5 UAT remains later.
 - V0.5-B green main checkpoint: PR #106 squash-merged as `d5cf7bb1a3009d37c6cf875c54d74954e778aa57`; post-merge main CI #1736 passed; Issue #105 closed
 - V0.5 entry gate: PR #102 squash-merged as `5b67832079ef6ded86bc79f997d8115835d0c55e`; post-merge main CI #1611 passed; Issue #98 closed
 - Completed Issue: #92 — V0.4-E Stock Transfer / Inventory Documents / Reporting / Release Evidence
@@ -85,7 +85,7 @@
 - V0.1 cross-module release acceptance scenario: PASS in the Stage H release-candidate regression suite.
 - Open defect check at V0.1 acceptance: no Severity 1 or Severity 2 release-blocking defect recorded.
 - Governance: `AGENTS.md`, `docs/PROJECT-GOVERNANCE.md`, PR governance checklist and DEC-008 are active; material decisions must pass the repository pre-flight and open-source/zero-cost-first constraint.
-- Next action: validate this documentation-only correction on the new PR #110 exact head, reply to and resolve the remaining Codex documentation finding, then request one final exact-head Codex re-review. If clean, squash-merge PR #110, verify post-merge `main` CI, close Issue #109 and mark V0.5-D technically complete. Only then prepare V0.5-E. Human V0.5 release UAT/acceptance remains a later exit gate.
+- Next action: pass exact-head CI for the V0.5-E pre-flight checkpoint on `v0.5-e-variations-reporting`; then implement approved Variation, source-derived reporting, full regression and UAT-evidence preparation under Issue #111. No scope expansion without Change Control. Human AC-V05-030 Product / Business Owner acceptance remains a separate later release-exit gate and V0.6 must not begin before it completes.
 
 ## Stage E completed
 
