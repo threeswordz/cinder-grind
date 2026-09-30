@@ -57,8 +57,7 @@ export class SubcontractsClaimsService {
       where: {
         companyId: auth.companyId,
         project: scope,
-        approvalState: 'APPROVED',
-        cancelledAt: null,
+        approvalState: { in: ['APPROVED', 'CANCELLED'] },
       },
       select: {
         id: true,
@@ -66,6 +65,8 @@ export class SubcontractsClaimsService {
         projectId: true,
         originalValue: true,
         currencyCode: true,
+        approvalState: true,
+        cancelledAt: true,
         project: {
           select: { id: true, projectCode: true, projectName: true },
         },
@@ -302,12 +303,23 @@ export class SubcontractsClaimsService {
   ) {
     return this.prisma.$transaction(async (tx) => {
       const visible = await this.visibleClaim(context.auth, claimId, tx);
+      await this.lockAgreement(
+        context.auth.companyId,
+        visible.agreementId,
+        tx,
+      );
       await this.lockClaims(context.auth.companyId, [claimId], tx);
       const current = await this.claimById(
         context.auth.companyId,
         claimId,
         tx,
       );
+      const agreement = await this.agreementById(
+        context.auth.companyId,
+        current.agreementId,
+        tx,
+      );
+      this.assertApprovedAgreement(agreement);
       if (current.state !== 'DRAFT') {
         throw new ConflictException({
           code: 'CLAIM_NOT_DRAFT',
@@ -360,12 +372,23 @@ export class SubcontractsClaimsService {
     return this.prisma.$transaction(
       async (tx) => {
         const visible = await this.visibleClaim(context.auth, claimId, tx);
+        await this.lockAgreement(
+          context.auth.companyId,
+          visible.agreementId,
+          tx,
+        );
         await this.lockClaims(context.auth.companyId, [claimId], tx);
         const claim = await this.claimById(
           context.auth.companyId,
           claimId,
           tx,
         );
+        const agreement = await this.agreementById(
+          context.auth.companyId,
+          claim.agreementId,
+          tx,
+        );
+        this.assertApprovedAgreement(agreement);
         this.assertDraftClaim(claim);
         await this.assertLineWorkOrder(
           context.auth.companyId,
@@ -427,6 +450,11 @@ export class SubcontractsClaimsService {
   ) {
     return this.prisma.$transaction(async (tx) => {
       const visible = await this.visibleLine(context.auth, lineId, tx);
+      await this.lockAgreement(
+        context.auth.companyId,
+        visible.agreementId,
+        tx,
+      );
       await this.lockClaims(
         context.auth.companyId,
         [visible.claimId],
@@ -437,6 +465,12 @@ export class SubcontractsClaimsService {
         visible.claimId,
         tx,
       );
+      const agreement = await this.agreementById(
+        context.auth.companyId,
+        claim.agreementId,
+        tx,
+      );
+      this.assertApprovedAgreement(agreement);
       this.assertDraftClaim(claim);
       const current = await tx.subcontractClaimLine.findFirstOrThrow({
         where: { id: lineId, companyId: context.auth.companyId },
@@ -494,6 +528,11 @@ export class SubcontractsClaimsService {
   async deleteLine(context: AuditContext, lineId: string) {
     return this.prisma.$transaction(async (tx) => {
       const visible = await this.visibleLine(context.auth, lineId, tx);
+      await this.lockAgreement(
+        context.auth.companyId,
+        visible.agreementId,
+        tx,
+      );
       await this.lockClaims(
         context.auth.companyId,
         [visible.claimId],
@@ -504,6 +543,12 @@ export class SubcontractsClaimsService {
         visible.claimId,
         tx,
       );
+      const agreement = await this.agreementById(
+        context.auth.companyId,
+        claim.agreementId,
+        tx,
+      );
+      this.assertApprovedAgreement(agreement);
       this.assertDraftClaim(claim);
       const deleted = await tx.subcontractClaimLine.delete({
         where: { id: lineId },
