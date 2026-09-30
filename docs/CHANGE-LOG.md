@@ -1,3 +1,10 @@
+## 2026-10-01 — V0.5-E reporting snapshot-consistency Codex follow-up
+
+- Final Codex re-review of `72a0aa18a6d9d32b75b6606bf3844434057e307b` identified one additional genuine P2: the scoped Agreement read and five batched report aggregates could observe different PostgreSQL snapshots while commercial writes commit concurrently.
+- Fixed `reportAgreements()` so Project authorization/scope resolution, Agreement selection and all five batched source aggregates execute inside one Prisma interactive transaction at `RepeatableRead` isolation. Each RPT-007 response now reconciles to one PostgreSQL snapshot while retaining a fixed batched query count and read-only source-derived semantics.
+- Exact code head `8b00a42e2beb4e6ffccf6a8c1bd6e0f7e5a99e41` passed push CI #1920 and PR CI #1921, including clean migrations, full API/web/PostgreSQL V0.1–V0.5 regression and authenticated live HTTP acceptance. The Codex thread has an evidence reply and is resolved.
+- Human AC-V05-030 remains **PENDING**; final documentation-head CI and clean exact-head Codex re-review still precede squash merge.
+
 ## 2026-10-01 — V0.5-E Codex findings resolved before final re-review
 
 - Codex review identified three genuine P2 findings: cancelled Agreements were no longer discoverable for retained Variation history; RPT-007 used an unbounded per-Agreement `1 + 5N` aggregate query pattern; and the workspace did not display retained Variation reversal actor/time/reason.
