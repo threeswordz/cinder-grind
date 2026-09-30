@@ -552,7 +552,12 @@ export class SubcontractsCertificationService {
                   const cumulativeGross = new Prisma.Decimal(
                     priorGross._sum.certifiedGross ?? 0,
                   ).plus(current.certifiedGross);
-                  if (cumulativeGross.gt(agreement.originalValue)) {
+                  const currentCeiling =
+                    await this.currentAgreementCeiling(
+                      agreement,
+                      approvalTx,
+                    );
+                  if (cumulativeGross.gt(currentCeiling)) {
                     throw new ConflictException({
                       code: 'CERTIFICATION_AGREEMENT_CEILING_EXCEEDED',
                       detail:
@@ -730,6 +735,17 @@ export class SubcontractsCertificationService {
       });
     }
     return agreement;
+  }
+
+  private async currentAgreementCeiling(
+    agreement: { id: string; originalValue: Prisma.Decimal },
+    db: SubcontractDb,
+  ) {
+    const variations = await db.subcontractVariation.aggregate({
+      where: { agreementId: agreement.id, state: 'APPROVED' },
+      _sum: { valueDelta: true },
+    });
+    return agreement.originalValue.plus(variations._sum.valueDelta ?? 0);
   }
 
   private async ensureCertificationSequence(companyId: string) {
