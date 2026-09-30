@@ -7,8 +7,8 @@
 - Current Stage: V0.5-C Claims and Assessments under Issue #107 on `v0.5-c-claims-assessments`
 - Completed Stages: V0.1-A through V0.1-H; V0.2-A through V0.2-G; V0.3-A through V0.3-E; V0.4-A through V0.4-E; V0.5 entry gate; V0.5-A; V0.5-B
 - Active Issue: #107 — V0.5-C Claims and Assessments
-- Active implementation checkpoint: `02c8281a6e79e3d5c7b7a67efe9fea3f31ad1d58`; exact-head branch CI #1756 passed migrations/status, Prisma validation, dependency audit, full workspace validation, bootstrap and authenticated live HTTP acceptance
-- Stage-C PR: not yet opened at this checkpoint; required PR CI/review, squash merge, post-merge main CI and Issue #107 closure remain outstanding
+- Active implementation checkpoint: `07c83c65188684e63905df156396b7191033d8dc`; PR CI #1769 passed on the exact head after review fixes and targeted regressions
+- Stage-C PR: #108 — V0.5-C Claims and Assessments; initial Codex review found two genuine issues (submit-replay Assessment disclosure and Assessment audit entity-ID mismatch), both fixed and review threads resolved; final exact-head re-review remains required before merge
 - V0.5-B green main checkpoint: PR #106 squash-merged as `d5cf7bb1a3009d37c6cf875c54d74954e778aa57`; post-merge main CI #1736 passed; Issue #105 closed
 - V0.5 entry gate: PR #102 squash-merged as `5b67832079ef6ded86bc79f997d8115835d0c55e`; post-merge main CI #1611 passed; Issue #98 closed
 - Completed Issue: #92 — V0.4-E Stock Transfer / Inventory Documents / Reporting / Release Evidence
@@ -867,3 +867,5 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - Final security review also hardened the approved separate Assessment read boundary: Claim list/detail responses redact nested Assessment history unless the caller has `subcontracts.assessment.view`; regression covers both detail and list behavior.
 - Exact implementation head `02c8281a6e79e3d5c7b7a67efe9fea3f31ad1d58` passed CI #1756. This documentation record changes the branch head, so a new exact-head CI is required before the Stage-C PR is opened.
 - Human V0.5 UAT/business acceptance is not complete and is not self-approved. V0.5-D remains blocked until V0.5-C PR/review/merge/post-merge gates pass and Issue #107 closes.
+- Exact arithmetic in the Claims UI now uses integer cents instead of JavaScript floating-point `Number`, preserving valid DECIMAL(18,2) display precision across the approved numeric range.
+- Codex review on `90ffe38ae6` produced two findings; fixes are in `6ab22059b2474fbe69200fc7ea5129bcdd625a0b` and `ce32dbd25af26a7052f47c562a3694c89accff19`, with regression coverage in `07c83c65188684e63905df156396b7191033d8dc`. Both review threads are resolved; final re-review of the latest head is pending.
