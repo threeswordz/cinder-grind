@@ -120,15 +120,17 @@ export class SubcontractsClaimsService {
     agreementId: string,
   ) {
     await this.visibleAgreement(auth, agreementId, this.prisma);
-    return this.prisma.subcontractClaim.findMany({
+    const claims = await this.prisma.subcontractClaim.findMany({
       where: { companyId: auth.companyId, agreementId },
       include: this.claimInclude(),
       orderBy: [{ periodStart: 'desc' }, { claimNumber: 'desc' }],
     });
+    return claims.map((claim) => this.claimForRead(auth, claim));
   }
 
-  getClaim(auth: AuthenticatedUserContext, claimId: string) {
-    return this.visibleClaim(auth, claimId, this.prisma);
+  async getClaim(auth: AuthenticatedUserContext, claimId: string) {
+    const claim = await this.visibleClaim(auth, claimId, this.prisma);
+    return this.claimForRead(auth, claim);
   }
 
   async createClaim(
@@ -1274,6 +1276,16 @@ export class SubcontractsClaimsService {
           'A Claim already exists for this active agreement/period or replacement source.',
       });
     }
+  }
+
+  private claimForRead<T extends { assessment: unknown }>(
+    auth: AuthenticatedUserContext,
+    claim: T,
+  ) {
+    if (auth.permissions.includes('subcontracts.assessment.view')) {
+      return claim;
+    }
+    return { ...claim, assessment: null };
   }
 
   private claimInclude() {
