@@ -449,6 +449,79 @@ test('V0.5-C retains Claim history, separates assessment and enforces commercial
       'rejected direct over-assessment must roll back Assessment evidence',
     );
 
+    // The monetary bound must be checked against the final committed Claim
+    // lines, not only against the line total observed when Assessment is inserted.
+    const directMutableDraft = await claims.createClaim(
+      { auth: makerAuth },
+      assessmentBoundAgreement.id,
+      {
+        periodStart: new Date('2028-08-01T00:00:00.000Z'),
+        periodEnd: new Date('2028-08-31T00:00:00.000Z'),
+      },
+    );
+    const directMutableLine = await claims.addLine(
+      { auth: makerAuth },
+      directMutableDraft.id,
+      { amount: '100.00' },
+    );
+    await assert.rejects(
+      () =>
+        prisma.$transaction(async (tx) => {
+          const assessedAt = new Date();
+          await tx.subcontractClaimAssessment.create({
+            data: {
+              companyId: company.id,
+              projectId: project.id,
+              agreementId: assessmentBoundAgreement.id,
+              claimId: directMutableDraft.id,
+              assessedAmount: '100.00',
+              reason: 'Must be checked against the final retained line total.',
+              state: 'ASSESSED',
+              assessedByUserId: assessor.id,
+              assessedAt,
+            },
+          });
+          await tx.subcontractClaimLine.update({
+            where: { id: directMutableLine.id },
+            data: { amount: '50.00' },
+          });
+          await tx.subcontractClaim.update({
+            where: { id: directMutableDraft.id },
+            data: {
+              state: 'SUBMITTED',
+              submittedByUserId: maker.id,
+              submittedAt: assessedAt,
+            },
+          });
+          await tx.subcontractClaim.update({
+            where: { id: directMutableDraft.id },
+            data: { state: 'ASSESSED' },
+          });
+        }),
+      'deferred database consistency must reject an Assessment above the final retained Claim total',
+    );
+    assert.equal(
+      (await prisma.subcontractClaim.findUniqueOrThrow({
+        where: { id: directMutableDraft.id },
+      })).state,
+      'DRAFT',
+      'failed direct Assessment transaction must roll back Claim lifecycle changes',
+    );
+    assert.equal(
+      (await prisma.subcontractClaimLine.findUniqueOrThrow({
+        where: { id: directMutableLine.id },
+      })).amount.toFixed(2),
+      '100.00',
+      'failed direct Assessment transaction must roll back Draft line mutation',
+    );
+    assert.equal(
+      await prisma.subcontractClaimAssessment.count({
+        where: { claimId: directMutableDraft.id },
+      }),
+      0,
+      'failed direct Assessment transaction must roll back Assessment evidence',
+    );
+
     // Inserts as terminal assessment states must also carry reciprocal
     // Assessment evidence. Single-statement direct inserts cannot fabricate it.
     for (const [badState, periodStart, periodEnd] of [
