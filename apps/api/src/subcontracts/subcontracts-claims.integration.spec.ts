@@ -528,6 +528,146 @@ test('V0.5-C retains Claim history, separates assessment and enforces commercial
       'unassigned Project users must not read retained Claims',
     );
 
+    const historyAgreement = await prisma.subcontractAgreement.create({
+      data: {
+        companyId: company.id,
+        projectId: project.id,
+        subcontractorId: subcontractor.id,
+        agreementNumber: 'SC2609-H' + suffix.slice(0, 2).toUpperCase(),
+        originalValue: '1000.00',
+        scopeOfWork: 'Cancelled Agreement retained-history package',
+        currencyCode: 'SGD',
+        approvalState: 'APPROVED',
+        firstApprovedAt: new Date(),
+        createdByUserId: maker.id,
+      },
+    });
+    const historyClaim = await claims.createClaim(
+      { auth: makerAuth },
+      historyAgreement.id,
+      {
+        periodStart: new Date('2027-02-01T00:00:00.000Z'),
+        periodEnd: new Date('2027-02-28T00:00:00.000Z'),
+      },
+    );
+    await claims.addLine(
+      { auth: makerAuth },
+      historyClaim.id,
+      { amount: '50.00' },
+    );
+    await claims.submitClaim(
+      { auth: makerAuth },
+      historyClaim.id,
+      'history-submit-' + suffix,
+    );
+    await claims.withdrawClaim(
+      { auth: makerAuth },
+      historyClaim.id,
+      'Retain this Claim as cancelled-agreement history.',
+      'history-withdraw-' + suffix,
+    );
+
+    const historyDraft = await claims.createClaim(
+      { auth: makerAuth },
+      historyAgreement.id,
+      {
+        periodStart: new Date('2027-03-01T00:00:00.000Z'),
+        periodEnd: new Date('2027-03-31T00:00:00.000Z'),
+      },
+    );
+    const historyDraftLine = await claims.addLine(
+      { auth: makerAuth },
+      historyDraft.id,
+      { amount: '25.00' },
+    );
+
+    const cancelledHistoryAgreement = await workflow.cancelAgreement(
+      { auth: assessorAuth },
+      historyAgreement.id,
+      'Agreement package cancelled after retaining terminal Claim history.',
+      'history-agreement-cancel-' + suffix,
+    );
+    assert.equal(cancelledHistoryAgreement.approvalState, 'CANCELLED');
+    assert.ok(cancelledHistoryAgreement.cancelledAt);
+
+    const historyOptions = await claims.claimAgreementOptions(makerAuth);
+    const cancelledHistoryOption = historyOptions.find(
+      (row) => row.id === historyAgreement.id,
+    );
+    assert.equal(
+      cancelledHistoryOption?.approvalState,
+      'CANCELLED',
+      'cancelled Agreements with retained Claim history must remain discoverable',
+    );
+    assert.ok(
+      cancelledHistoryOption?.cancelledAt,
+      'history selector must expose cancellation state for read-only presentation',
+    );
+
+    const retainedHistory = await claims.listClaims(
+      assessmentReader,
+      historyAgreement.id,
+    );
+    assert.deepEqual(
+      retainedHistory.map((row) => row.state).sort(),
+      ['DRAFT', 'WITHDRAWN'],
+      'cancelled Agreement history must remain readable, including a surviving Draft',
+    );
+
+    await assert.rejects(
+      () =>
+        claims.createClaim(
+          { auth: makerAuth },
+          historyAgreement.id,
+          {
+            periodStart: new Date('2027-04-01T00:00:00.000Z'),
+            periodEnd: new Date('2027-04-30T00:00:00.000Z'),
+          },
+        ),
+      (error: unknown) => error instanceof ConflictException,
+      'cancelled Agreements must reject new Claim Draft creation',
+    );
+    await assert.rejects(
+      () =>
+        claims.updateClaim(
+          { auth: makerAuth },
+          historyDraft.id,
+          { periodEnd: new Date('2027-03-30T00:00:00.000Z') },
+        ),
+      (error: unknown) => error instanceof ConflictException,
+      'surviving Draft periods must become read-only after Agreement cancellation',
+    );
+    await assert.rejects(
+      () =>
+        claims.addLine(
+          { auth: makerAuth },
+          historyDraft.id,
+          { amount: '1.00' },
+        ),
+      (error: unknown) => error instanceof ConflictException,
+      'surviving Drafts must reject new lines after Agreement cancellation',
+    );
+    await assert.rejects(
+      () =>
+        claims.updateLine(
+          { auth: makerAuth },
+          historyDraftLine.id,
+          { amount: '26.00' },
+        ),
+      (error: unknown) => error instanceof ConflictException,
+      'surviving Draft lines must be immutable after Agreement cancellation',
+    );
+    await assert.rejects(
+      () => claims.deleteLine({ auth: makerAuth }, historyDraftLine.id),
+      (error: unknown) => error instanceof ConflictException,
+      'surviving Draft lines must not be deletable after Agreement cancellation',
+    );
+    await assert.rejects(
+      () => claims.createReplacement({ auth: makerAuth }, historyClaim.id),
+      (error: unknown) => error instanceof ConflictException,
+      'cancelled Agreements must reject linked replacement creation',
+    );
+
     const workflowRow = await prisma.approvalWorkflow.create({
       data: {
         companyId: company.id,
