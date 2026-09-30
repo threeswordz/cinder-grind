@@ -562,7 +562,10 @@ export class SubcontractsClaimsService {
           claimId,
           [],
         );
-        if (replay) return this.visibleClaim(context.auth, claimId, tx);
+        if (replay) {
+          const current = await this.visibleClaim(context.auth, claimId, tx);
+          return this.claimForRead(context.auth, current);
+        }
 
         const claim = await this.claimById(
           context.auth.companyId,
