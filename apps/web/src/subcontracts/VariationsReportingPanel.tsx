@@ -377,6 +377,15 @@ export function VariationsReportingPanel({
                       ))}
                     </Stack>
                   ) : null}
+                  {selected?.state === 'REVERSED' &&
+                  selected.reversedAt &&
+                  selected.reversedBy ? (
+                    <Alert severity="warning">
+                      Reversed by {selected.reversedBy.displayName} ·{' '}
+                      {new Date(selected.reversedAt).toLocaleString()} · Reason:{' '}
+                      {selected.reversalReason}
+                    </Alert>
+                  ) : null}
                 </>
               ) : null}
             </Stack>
