@@ -371,7 +371,8 @@ export function VariationsReportingPanel({
                           color="text.secondary"
                         >
                           Step {entry.approvalStep.stepNo} · {entry.action} ·{' '}
-                          {entry.actionByUser.displayName}
+                          {entry.actionByUser.displayName} ·{' '}
+                          {new Date(entry.actionAt).toLocaleString()}
                           {entry.comment ? ' · ' + entry.comment : ''}
                         </Typography>
                       ))}
