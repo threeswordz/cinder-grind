@@ -186,6 +186,74 @@ export class FinanceService {
     return this.visibleInvoice(auth, invoiceId, this.prisma);
   }
 
+  async invoicesForPurchaseOrderLine(
+    auth: AuthenticatedUserContext,
+    purchaseOrderLineId: string,
+  ) {
+    const source = await this.prisma.purchaseOrderLine.findFirst({
+      where: {
+        id: purchaseOrderLineId,
+        purchaseOrder: { companyId: auth.companyId },
+      },
+      select: {
+        purchaseOrder: {
+          select: { projectId: true },
+        },
+      },
+    });
+    if (!source) throw this.sourceNotFound();
+    await this.access.assertAccess(auth, source.purchaseOrder.projectId);
+    return this.prisma.supplierInvoice.findMany({
+      where: {
+        companyId: auth.companyId,
+        projectId: source.purchaseOrder.projectId,
+        items: { some: { purchaseOrderLineId } },
+      },
+      include: {
+        supplier: {
+          select: { id: true, supplierCode: true, supplierName: true },
+        },
+        approvalInstance: { select: { approvalState: true } },
+        _count: { select: { items: true } },
+      },
+      orderBy: [{ invoiceDate: 'desc' }, { supplierInvoiceNumber: 'desc' }],
+    });
+  }
+
+  async invoicesForGoodsReceiptItem(
+    auth: AuthenticatedUserContext,
+    goodsReceiptItemId: string,
+  ) {
+    const source = await this.prisma.goodsReceiptItem.findFirst({
+      where: {
+        id: goodsReceiptItemId,
+        goodsReceipt: { companyId: auth.companyId },
+      },
+      select: {
+        goodsReceipt: {
+          select: { projectId: true },
+        },
+      },
+    });
+    if (!source) throw this.sourceNotFound();
+    await this.access.assertAccess(auth, source.goodsReceipt.projectId);
+    return this.prisma.supplierInvoice.findMany({
+      where: {
+        companyId: auth.companyId,
+        projectId: source.goodsReceipt.projectId,
+        items: { some: { goodsReceiptItemId } },
+      },
+      include: {
+        supplier: {
+          select: { id: true, supplierCode: true, supplierName: true },
+        },
+        approvalInstance: { select: { approvalState: true } },
+        _count: { select: { items: true } },
+      },
+      orderBy: [{ invoiceDate: 'desc' }, { supplierInvoiceNumber: 'desc' }],
+    });
+  }
+
   async createInvoice(
     context: AuditContext,
     projectId: string,
@@ -1175,6 +1243,13 @@ export class FinanceService {
     return new NotFoundException({
       code: 'SUPPLIER_INVOICE_LINE_NOT_FOUND',
       detail: 'Supplier Invoice line not found.',
+    });
+  }
+
+  private sourceNotFound() {
+    return new NotFoundException({
+      code: 'FINANCE_SOURCE_NOT_FOUND',
+      detail: 'Finance source record not found.',
     });
   }
 }

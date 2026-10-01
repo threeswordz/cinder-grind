@@ -45,6 +45,8 @@ test('V0.6-A routes retain explicit Supplier Invoice permissions', () => {
     ['options', ['finance.supplier_invoice.view']],
     ['list', ['finance.supplier_invoice.view']],
     ['get', ['finance.supplier_invoice.view']],
+    ['byPurchaseOrderLine', ['finance.supplier_invoice.view']],
+    ['byGoodsReceiptItem', ['finance.supplier_invoice.view']],
     ['create', ['finance.supplier_invoice.create']],
     ['update', ['finance.supplier_invoice.edit']],
     ['addLine', ['finance.supplier_invoice.edit']],

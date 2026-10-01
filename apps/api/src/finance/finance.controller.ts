@@ -108,6 +108,36 @@ export class FinanceController {
     return { data: await this.finance.getInvoice(authOf(request), invoiceId) };
   }
 
+  @Get('purchase-order-lines/:lineId/supplier-invoices')
+  @UseGuards(AuthGuard, PermissionGuard)
+  @RequirePermissions('finance.supplier_invoice.view')
+  async byPurchaseOrderLine(
+    @Req() request: AuthenticatedRequest,
+    @Param('lineId', new ParseUUIDPipe({ version: '4' })) lineId: string,
+  ) {
+    return {
+      data: await this.finance.invoicesForPurchaseOrderLine(
+        authOf(request),
+        lineId,
+      ),
+    };
+  }
+
+  @Get('goods-receipt-items/:itemId/supplier-invoices')
+  @UseGuards(AuthGuard, PermissionGuard)
+  @RequirePermissions('finance.supplier_invoice.view')
+  async byGoodsReceiptItem(
+    @Req() request: AuthenticatedRequest,
+    @Param('itemId', new ParseUUIDPipe({ version: '4' })) itemId: string,
+  ) {
+    return {
+      data: await this.finance.invoicesForGoodsReceiptItem(
+        authOf(request),
+        itemId,
+      ),
+    };
+  }
+
   @Post('projects/:projectId/supplier-invoices')
   @UseGuards(AuthGuard, CsrfGuard, PermissionGuard)
   @RequirePermissions('finance.supplier_invoice.create')
