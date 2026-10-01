@@ -242,6 +242,7 @@ erDiagram
 
     SUPPLIER_INVOICES ||--o{ SUPPLIER_INVOICE_ITEMS : contains
     CLIENT_INVOICES ||--o{ CLIENT_INVOICE_ITEMS : contains
+    PROJECTS ||--o{ PAYMENTS : scopes
     PAYMENTS ||--o{ SUPPLIER_PAYMENT_ALLOCATIONS : allocates
     PAYMENTS ||--o{ CLIENT_RECEIPT_ALLOCATIONS : allocates
 
@@ -1875,6 +1876,7 @@ They are not maintained as manually editable balance tables.
 ```mermaid
 erDiagram
     SUPPLIERS ||--o{ SUPPLIER_INVOICES : invoices
+    PROJECTS ||--o{ SUPPLIER_INVOICES : scopes
     SUPPLIER_INVOICES ||--o{ SUPPLIER_INVOICE_ITEMS : contains
     PURCHASE_ORDER_ITEMS ||--o{ SUPPLIER_INVOICE_ITEMS : billed
     GOODS_RECEIPT_ITEMS ||--o{ SUPPLIER_INVOICE_ITEMS : received
@@ -1899,6 +1901,7 @@ erDiagram
 
 - id PK
 - company_id FK
+- project_id FK
 - supplier_invoice_number
 - supplier_id FK
 - supplier_reference
