@@ -4,9 +4,9 @@
 **Source of truth:** Live GitHub repository state
 
 - Current Release: V0.5 Subcontracts — **COMPLETE AND ACCEPTED**. V0.5-A through V0.5-E are technically complete; AC-V05-030 was explicitly accepted by the Product / Business Owner on 2026-10-01 (Singapore time); acceptance PR #114 squash-merged as `6973ba513134e463ab41341313705ffa44486d74`; post-merge `main` CI #1943 passed; Issue #113 is closed. V0.6 has not started.
-- Current Stage: V0.5 Release Exit Gate — **COMPLETE**. V0.5-E PR #112 merged with post-merge CI #1932; fresh automated release walkthrough #1933 attempt 2 passed 46 checks (scenario `MUP0LKS3`); acceptance-record corrected head `23ae1efb7ecf845ef5422682b81d950710295c5e` passed push CI #1941 and PR CI #1942; final Codex exact-head re-review reported no major issues; PR #114 squash-merged as `6973ba513134e463ab41341313705ffa44486d74`; post-merge `main` CI #1943 passed; Issue #113 closed. The next permitted activity is the separate V0.6 Finance Release Entry Gate.
+- Current Stage: V0.6 Finance Release Entry Gate — **PROPOSAL UNDER REVIEW / NOT APPROVED**. Issue #115 and PR #116 contain the proposal-only V0.6 scope, acceptance criteria, BR-V06/D06 decisions and technical/test/dependency baselines. V0.6 schema/API/UI implementation has not started and remains blocked pending explicit Product / Business Owner approval plus the normal exact-head review/CI/merge/post-merge gates.
 - Completed Stages: V0.1-A through V0.1-H; V0.2-A through V0.2-G; V0.3-A through V0.3-E; V0.4-A through V0.4-E; V0.5 entry gate; V0.5-A; V0.5-B; V0.5-C; V0.5-D; V0.5-E
-- Active Issue: none for V0.5. Issue #111 (V0.5-E technical completion) and Issue #113 (V0.5 Product / Business Owner acceptance and release exit) are closed.
+- Active Issue: #115 — V0.6 Finance Release Entry Gate — Scope, Acceptance & Business Rules. Active proposal PR: #116 on `v0.6-entry-gate`. V0.5 Issues #111 and #113 remain closed.
 - V0.5-C green main checkpoint: PR #108 squash-merged as `3f00de1f984c82c1737c4b47c226d99197b19e54`; final exact-head push CI #1869 and PR CI #1870 passed on `0833cd893f208003215cf39cee9c07b6c9a817ad`; final Codex exact-head review reported no major issues; post-merge main CI #1871 passed; Issue #107 closed.
 - V0.5-D green main checkpoint: PR #110 squash-merged as `aceeb82ad13a2f6c773d307541ddd02fafc69a92`; final exact-head push CI #1898 and PR CI #1899 passed on `0cf62c630153a6ac2326f352c0064243b3a2f45f`; final Codex exact-head review reported no major issues; post-merge main CI #1900 passed; Issue #109 closed.
 - V0.5-E green main checkpoint: PR #112 squash-merged as `c054b9253e1ad2623a3fc233ba125003b2894c37`; final exact-head push CI #1930 and PR CI #1931 passed on `9ba8d862dcf66e7b00d7006d9398b19d83026e41`; final Codex exact-head review reported no major issues; post-merge main CI #1932 passed; Issue #111 closed. AC-V05-030 was explicitly accepted by the Product / Business Owner on 2026-10-01.
@@ -87,7 +87,7 @@
 - V0.1 cross-module release acceptance scenario: PASS in the Stage H release-candidate regression suite.
 - Open defect check at V0.1 acceptance: no Severity 1 or Severity 2 release-blocking defect recorded.
 - Governance: `AGENTS.md`, `docs/PROJECT-GOVERNANCE.md`, PR governance checklist and DEC-008 are active; material decisions must pass the repository pre-flight and open-source/zero-cost-first constraint.
-- Next action: V0.6 Finance may enter its **Release Entry Gate**. Do not begin V0.6 implementation until its scope, acceptance criteria, business rules, data/API/test baselines, estimates/deferrals and required Product / Business Owner approvals are durably recorded and the V0.6 entry gate passes its normal CI/review/merge/post-merge checks.
+- Next action: complete exact-head CI/review for V0.6 entry-gate PR #116, then obtain explicit Product / Business Owner approval or amendments for the proposed scope, AC-V06 criteria, BR-V06/D06 decisions, data/API/security/audit/concurrency/test/dependency baselines, stages, estimates and deferrals. Record that approval durably, merge the entry-gate PR, verify post-merge `main` CI, and close Issue #115 before V0.6-A starts.
 
 ## Stage E completed
 
