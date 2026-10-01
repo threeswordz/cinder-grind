@@ -1627,6 +1627,15 @@ Payment approval requires:
 
 and the configured approval-step authorization / maker-checker checks.
 
+V0.6 Finance Project-scoping rules:
+- Supplier Invoice create/edit includes required `projectId` under D06-17 / DEC-018; every line and linked PO/GR source must match that Project.
+- Payment create/edit includes required `projectId` under D06-18 / DEC-019.
+- Payment list/detail/action/allocation endpoints enforce the Payment Project as part of backend Project scope.
+- Supplier Invoice, Client Invoice and Subcontract Certification allocation targets must match the Payment Project in addition to Company/direction/counterparty/base-currency constraints.
+- Multi-target Payment allocation is allowed only within one Project.
+- Cross-Project and Company-level/non-project Payments are rejected in initial V0.6.
+- `projects.access_all` may bypass assignment filtering but does not bypass the same-Project transaction-integrity rule or grant Finance action/approval authority.
+
 ---
 
 # 42. Data Export

@@ -242,6 +242,7 @@ erDiagram
 
     SUPPLIER_INVOICES ||--o{ SUPPLIER_INVOICE_ITEMS : contains
     CLIENT_INVOICES ||--o{ CLIENT_INVOICE_ITEMS : contains
+    PROJECTS ||--o{ PAYMENTS : scopes
     PAYMENTS ||--o{ SUPPLIER_PAYMENT_ALLOCATIONS : allocates
     PAYMENTS ||--o{ CLIENT_RECEIPT_ALLOCATIONS : allocates
 
@@ -1875,6 +1876,7 @@ They are not maintained as manually editable balance tables.
 ```mermaid
 erDiagram
     SUPPLIERS ||--o{ SUPPLIER_INVOICES : invoices
+    PROJECTS ||--o{ SUPPLIER_INVOICES : scopes
     SUPPLIER_INVOICES ||--o{ SUPPLIER_INVOICE_ITEMS : contains
     PURCHASE_ORDER_ITEMS ||--o{ SUPPLIER_INVOICE_ITEMS : billed
     GOODS_RECEIPT_ITEMS ||--o{ SUPPLIER_INVOICE_ITEMS : received
@@ -1899,6 +1901,7 @@ erDiagram
 
 - id PK
 - company_id FK
+- project_id FK
 - supplier_invoice_number
 - supplier_id FK
 - supplier_reference
@@ -1929,6 +1932,8 @@ erDiagram
 Supplier-invoice matching tolerances are an open business-rule decision.
 
 The schema retains the PO and GRN references required for future matching rules.
+
+Under approved D06-17 / DEC-018, one Supplier Invoice belongs to exactly one Project. `supplier_invoices.project_id` is required; every Supplier Invoice item `project_id` and any linked PO/GR source must resolve to that same Project. Cross-Project Supplier Invoices are rejected.
 
 Only approved Supplier Invoices are eligible for approved cost-recognition workflows.
 
@@ -1966,6 +1971,7 @@ Detailed progress-billing methodology remains a later business-design decision.
 
 - id PK
 - company_id FK
+- project_id FK
 - payment_number
 - payment_direction
 - payment_date
@@ -1985,6 +1991,8 @@ Payment directions:
 - INBOUND
 
 Service/database validation must ensure valid counterparty usage for the selected payment direction.
+
+Under approved D06-18 / DEC-019, one Payment belongs to exactly one Project. `payments.project_id` is required, and every Supplier Invoice, Client Invoice or Subcontract Certification allocation from that Payment must resolve to the same Project. Multi-target allocations remain allowed within that Project only. Cross-Project and Company-level/non-project Payments are rejected in initial V0.6.
 
 Only approved payments feed Paid Cost / settlement reporting.
 
@@ -2016,7 +2024,7 @@ Only approved payments feed Paid Cost / settlement reporting.
 - allocated_amount
 - UNIQUE(payment_id, subcontract_certification_id)
 
-Payment allocation tables provide settlement traceability without polymorphic foreign keys.
+Payment allocation tables provide settlement traceability without polymorphic foreign keys. Allocation creation must enforce same-Company and same-Project integrity with `payments.project_id` before any settlement effect is committed.
 
 ---
 

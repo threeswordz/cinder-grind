@@ -190,6 +190,8 @@ Examples of roles that may require all-project visibility:
 
 If a future transaction references more than one Project, the user must have access to every referenced Project unless the user has `projects.access_all`.
 
+This generic future rule does **not** authorize V0.6 Finance transactions to become multi-Project. Under D06-17 / DEC-018, each Supplier Invoice is exactly one Project. Under D06-18 / DEC-019, each Payment is exactly one Project and all of its allocation targets must match that Project. `projects.access_all` may bypass assignment filtering but does not bypass these same-Project transaction-integrity rules or grant Finance action/approval authority.
+
 ---
 
 # 6. Starter Role Templates

@@ -285,3 +285,75 @@ One active implementation writer should normally modify a stage branch at a time
 
 This decision changes delivery tooling/role allocation only. It does not alter release-stage sequencing, review requirements, exact-head/PR/post-merge CI gates, human UAT, DEC-008, approved scope/deferrals, Project security rules or Change Control. DEC-015 remains limited to PR #106 only.
 
+
+
+## DEC-017 — V0.6 Finance release entry baseline
+**Status:** APPROVED — Product / Business Owner, 2026-10-01 (Singapore time)
+
+The Product / Business Owner approved the V0.6 Finance Release Entry Gate proposal in two explicit steps:
+
+1. In response to the request to approve the proposal package at exact head `e71f64cd03f61ddeee7de4e034def0da0ca6907c`, the owner replied **“ok”**, approving the then-present V0.6 scope/exclusions, AC-V06 baseline, BR-V06-01–20, D06-01–13, data/API/security/audit/concurrency/testing/dependency baselines, V0.6-A–E stages, estimates and deferrals.
+2. The final exact-head Codex review then identified three additional P1 Finance-handoff boundaries. After those were surfaced as D06-14–16 / AC-V06-022A–022C, the owner explicitly stated **“Approve D06-14, D06-15 and D06-16 as proposed”**.
+
+The approved V0.6 entry baseline therefore includes D06-01–16 and the corresponding acceptance criteria, including:
+- ordinary Subcontract Certification Payment allocations are capped at V0.5 `net_certified_amount`; withheld retention is not payable through that ordinary path;
+- a V0.5 certification whose currency differs from Company base currency is rejected/deferred from Finance handoff with no conversion or numeric reinterpretation until approved FX/multi-currency Change Control exists;
+- certification reversal is blocked while active Finance Payment allocations remain; after Finance cancellation clears those allocations, **if a linked Finance retention-withholding entry exists, the certification reversal must atomically create its linked compensating reversal**. That correction is mandatory when applicable and is not a retention release/payout.
+
+This decision does **not** authorize implementation by itself. PR #116 must still pass exact-head CI and required review, the Codex findings must be resolved, the PR must merge, post-merge `main` CI must pass, and Issue #115 must close before V0.6-A implementation may start.
+
+DEC-008 open-source/zero-cost-first, DEC-016 operating model, backend authorization, maker-checker separation, forward-only migrations, audit immutability, Change Control and required human UAT/business acceptance remain unchanged.
+
+
+## DEC-018 — V0.6 Supplier Invoice Project boundary
+**Status:** APPROVED — Product / Business Owner, 2026-10-01 (Singapore time)
+
+A later exact-head Codex review of the V0.6 Finance entry package identified an ambiguity when one Supplier Invoice contains lines for multiple Projects: header-level Supplier Payment allocations cannot unambiguously attribute a partial settlement to each Project, and Project-scoped AP/invoice visibility could expose values belonging to another Project.
+
+The Product / Business Owner explicitly stated: **“Approve D06-17 as proposed.”**
+
+The approved V0.6 rule is therefore:
+- exactly one Project per Supplier Invoice;
+- every Supplier Invoice line and any linked PO/GR source must belong to that same Project;
+- Supplier Payment allocations, AP visibility and Project cash-flow attribution for that invoice inherit the same Project;
+- cross-Project Supplier Invoices are rejected/unsupported in the initial V0.6 baseline;
+- because D06-01 keeps supplier reference unique per Company+Supplier, the same external supplier invoice must not be silently split into multiple internal invoices merely to bypass this rule;
+- support for true multi-Project Supplier Invoices requires explicit Change Control defining line-level settlement/proration and Project-visibility behavior.
+
+This decision supplements DEC-017 and does not reopen any previously approved V0.6 boundary. It does not authorize implementation by itself. PR #116 must still pass exact-head CI/review, merge, pass post-merge `main` CI and close Issue #115 before V0.6-A implementation begins.
+
+
+## DEC-019 — V0.6 Payment Project boundary
+**Status:** APPROVED — Product / Business Owner, 2026-10-01 (Singapore time)
+
+A later exact-head Codex review of the V0.6 Finance entry package identified a Payment-level Project visibility ambiguity: one Payment could otherwise allocate to targets in multiple Projects even though the Payment header had no Project, creating cross-Project visibility and Project cash-flow attribution risk.
+
+The Product / Business Owner explicitly stated: **“Approve D06-18 as proposed.”**
+
+The approved initial V0.6 rule is therefore:
+- exactly one Project per Payment;
+- the Payment records that Project explicitly;
+- every Supplier Invoice, Client Invoice or Subcontract Certification allocation from that Payment must belong to the same Project, in addition to the approved Company/direction/counterparty/base-currency rules;
+- multi-target allocations remain allowed only within that one Project;
+- cross-Project and Company-level/non-project Payments are rejected/unsupported in initial V0.6;
+- support for cross-Project or Company-level/non-project Payments requires explicit Change Control defining scoped/redacted Payment representation, allocation visibility and Project cash-flow behavior.
+
+This decision supplements DEC-017 and DEC-018 and does not reopen any previously approved V0.6 boundary. It does not authorize implementation by itself. PR #116 must still pass exact-head CI/review, merge, pass post-merge `main` CI and close Issue #115 before V0.6-A implementation begins.
+
+
+## DEC-020 — V0.6 Payment Project cash-flow attribution
+**Status:** APPROVED — Product / Business Owner, 2026-10-01 (Singapore time)
+
+A later exact-head Codex review identified a contradiction between approved D06-18 / DEC-019 Payment Project ownership and the older rule that unallocated Payment amounts were not Project-attributed.
+
+The Product / Business Owner explicitly stated: **“Approve D06-19 as proposed.”**
+
+The approved V0.6 rule is therefore:
+- every final approved, non-cancelled Payment contributes its full amount to Project Cash Flow against its required `payments.project_id` on the Payment date;
+- OUTBOUND Payments are Project cash outflows and INBOUND Payments are Project cash inflows;
+- the rule applies even when a Payment is partially or wholly unallocated;
+- Payment allocation rows govern Supplier/Client/Subcontract settlement, AP/AR linkage and traceability, and must not duplicate or reduce the Payment's Project cash-flow amount;
+- any unallocated balance remains visible as an unallocated settlement state within the same Project;
+- Draft, submitted, rejected and cancelled Payments do not contribute to Project Cash Flow.
+
+This decision supplements DEC-017, DEC-018 and DEC-019. It does not authorize implementation by itself. PR #116 must still pass exact-head CI/review, merge, pass post-merge `main` CI and close Issue #115 before V0.6-A implementation begins.
