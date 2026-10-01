@@ -398,6 +398,23 @@ test('V0.6-A Supplier Invoice preserves Project scope, approval history, totals 
           created.items[0]!.id,
         ),
     );
+    await assert.rejects(
+      () =>
+        prisma.$executeRawUnsafe(
+          'UPDATE "supplier_invoices" SET "approval_instance_id" = NULL WHERE "id" = $1::uuid',
+          created.id,
+        ),
+      /SUPPLIER_INVOICE_HISTORY_IMMUTABLE/,
+    );
+    await assert.rejects(
+      () =>
+        prisma.$executeRawUnsafe(
+          'UPDATE "supplier_invoices" SET "approved_by_user_id" = $1::uuid WHERE "id" = $2::uuid',
+          maker.id,
+          created.id,
+        ),
+      /SUPPLIER_INVOICE_HISTORY_IMMUTABLE/,
+    );
 
     await assert.rejects(
       () => finance.getInvoice(outsiderAuth, created.id),

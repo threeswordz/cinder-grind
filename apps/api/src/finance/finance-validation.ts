@@ -68,7 +68,12 @@ export function financeDate(
     return invalid(field, 'Must use YYYY-MM-DD.');
   }
   const date = new Date(value + 'T00:00:00.000Z');
-  if (Number.isNaN(date.getTime())) return invalid(field, 'Must be a valid date.');
+  if (
+    Number.isNaN(date.getTime()) ||
+    date.toISOString().slice(0, 10) !== value
+  ) {
+    return invalid(field, 'Must be a valid calendar date.');
+  }
   return date;
 }
 

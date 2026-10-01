@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Box,
@@ -114,6 +114,23 @@ export function FinanceWorkspace({ permissions }: Props) {
 
   const [workflowCode, setWorkflowCode] = useState('');
   const [actionComment, setActionComment] = useState('');
+
+  const retryActionKeys = useRef(new Map<string, string>());
+  const workflowActionSignature = useRef<string | null>(null);
+
+  const retryActionKey = (signature: string) => {
+    const existing = retryActionKeys.current.get(signature);
+    if (existing) return existing;
+    const actionKey = key();
+    retryActionKeys.current.set(signature, actionKey);
+    return actionKey;
+  };
+
+  const clearWorkflowRetryKey = () => {
+    if (!workflowActionSignature.current) return;
+    retryActionKeys.current.delete(workflowActionSignature.current);
+    workflowActionSignature.current = null;
+  };
 
   const projects = useQuery({
     queryKey: ['finance-projects'],
@@ -260,51 +277,109 @@ export function FinanceWorkspace({ permissions }: Props) {
   });
 
   const submitInvoice = useMutation({
-    mutationFn: () => financeApi.submit(invoiceId, workflowCode, key()),
-    onSuccess: () => refreshInvoice(),
+    mutationFn: () => {
+      const signature = JSON.stringify([
+        'supplier-invoice',
+        'submit',
+        invoiceId,
+        workflowCode,
+      ]);
+      workflowActionSignature.current = signature;
+      return financeApi.submit(
+        invoiceId,
+        workflowCode,
+        retryActionKey(signature),
+      );
+    },
+    onSuccess: async () => {
+      clearWorkflowRetryKey();
+      await refreshInvoice();
+    },
   });
 
   const approveInvoice = useMutation({
-    mutationFn: () =>
-      financeApi.approve(invoiceId, key(), actionComment || null),
+    mutationFn: () => {
+      const signature = JSON.stringify([
+        'supplier-invoice',
+        'approve',
+        invoiceId,
+        actionComment || null,
+      ]);
+      workflowActionSignature.current = signature;
+      return financeApi.approve(
+        invoiceId,
+        retryActionKey(signature),
+        actionComment || null,
+      );
+    },
     onSuccess: async () => {
+      clearWorkflowRetryKey();
       setActionComment('');
       await refreshInvoice();
     },
   });
 
   const rejectInvoice = useMutation({
-    mutationFn: () =>
-      financeApi.reject(invoiceId, key(), actionComment || null),
+    mutationFn: () => {
+      const signature = JSON.stringify([
+        'supplier-invoice',
+        'reject',
+        invoiceId,
+        actionComment || null,
+      ]);
+      workflowActionSignature.current = signature;
+      return financeApi.reject(
+        invoiceId,
+        retryActionKey(signature),
+        actionComment || null,
+      );
+    },
     onSuccess: async () => {
+      clearWorkflowRetryKey();
       setActionComment('');
       await refreshInvoice();
     },
   });
 
-  const selectedSupplier =
-    createSupplierId ||
-    detail.data?.data.supplierId ||
-    '';
-
-  const poOptions = useMemo(
+  const current = detail.data?.data;
+  const createPoOptions = useMemo(
     () =>
       (options.data?.data.purchaseOrderLines ?? []).filter(
         (line) =>
-          !selectedSupplier ||
-          line.purchaseOrder.supplierId === selectedSupplier,
+          !createSupplierId ||
+          line.purchaseOrder.supplierId === createSupplierId,
       ),
-    [options.data, selectedSupplier],
+    [createSupplierId, options.data],
   );
 
-  const grOptions = useMemo(
+  const createGrOptions = useMemo(
     () =>
       (options.data?.data.goodsReceiptItems ?? []).filter(
         (line) =>
-          !selectedSupplier ||
-          line.goodsReceipt.supplierId === selectedSupplier,
+          !createSupplierId ||
+          line.goodsReceipt.supplierId === createSupplierId,
       ),
-    [options.data, selectedSupplier],
+    [createSupplierId, options.data],
+  );
+
+  const invoicePoOptions = useMemo(
+    () =>
+      (options.data?.data.purchaseOrderLines ?? []).filter(
+        (line) =>
+          !current?.supplierId ||
+          line.purchaseOrder.supplierId === current.supplierId,
+      ),
+    [current?.supplierId, options.data],
+  );
+
+  const invoiceGrOptions = useMemo(
+    () =>
+      (options.data?.data.goodsReceiptItems ?? []).filter(
+        (line) =>
+          !current?.supplierId ||
+          line.goodsReceipt.supplierId === current.supplierId,
+      ),
+    [current?.supplierId, options.data],
   );
 
   const updateCreateLine = (
@@ -319,7 +394,7 @@ export function FinanceWorkspace({ permissions }: Props) {
   };
 
   const linkCreateReceipt = (index: number, receiptId: string) => {
-    const receipt = grOptions.find((item) => item.id === receiptId);
+    const receipt = createGrOptions.find((item) => item.id === receiptId);
     updateCreateLine(index, {
       goodsReceiptItemId: receiptId,
       ...(receipt?.purchaseOrderLineId
@@ -332,7 +407,7 @@ export function FinanceWorkspace({ permissions }: Props) {
     current: LineDraft,
     receiptId: string,
   ): LineDraft => {
-    const receipt = grOptions.find((item) => item.id === receiptId);
+    const receipt = invoiceGrOptions.find((item) => item.id === receiptId);
     return {
       ...current,
       goodsReceiptItemId: receiptId,
@@ -342,7 +417,6 @@ export function FinanceWorkspace({ permissions }: Props) {
     };
   };
 
-  const current = detail.data?.data;
   const draft = current?.state === 'DRAFT';
   const submitted = current?.state === 'SUBMITTED';
 
@@ -526,7 +600,7 @@ export function FinanceWorkspace({ permissions }: Props) {
                       sx={{ flex: 1 }}
                     >
                       <MenuItem value="">No PO source</MenuItem>
-                      {poOptions.map((item) => (
+                      {createPoOptions.map((item) => (
                         <MenuItem key={item.id} value={item.id}>
                           {item.purchaseOrder.poNumber} · L{item.lineNo} ·{' '}
                           {item.description}
@@ -543,7 +617,7 @@ export function FinanceWorkspace({ permissions }: Props) {
                       sx={{ flex: 1 }}
                     >
                       <MenuItem value="">No GR source</MenuItem>
-                      {grOptions.map((item) => (
+                      {createGrOptions.map((item) => (
                         <MenuItem key={item.id} value={item.id}>
                           {item.goodsReceipt.receiptNumber} · L{item.lineNo} ·{' '}
                           {item.description}
@@ -832,7 +906,7 @@ export function FinanceWorkspace({ permissions }: Props) {
                           sx={{ flex: 1 }}
                         >
                           <MenuItem value="">No PO source</MenuItem>
-                          {poOptions.map((item) => (
+                          {invoicePoOptions.map((item) => (
                             <MenuItem key={item.id} value={item.id}>
                               {item.purchaseOrder.poNumber} · L{item.lineNo} ·{' '}
                               {item.description}
@@ -856,7 +930,7 @@ export function FinanceWorkspace({ permissions }: Props) {
                           sx={{ flex: 1 }}
                         >
                           <MenuItem value="">No GR source</MenuItem>
-                          {grOptions.map((item) => (
+                          {invoiceGrOptions.map((item) => (
                             <MenuItem key={item.id} value={item.id}>
                               {item.goodsReceipt.receiptNumber} · L{item.lineNo}{' '}
                               · {item.description}
@@ -991,7 +1065,7 @@ export function FinanceWorkspace({ permissions }: Props) {
                         sx={{ flex: 1 }}
                       >
                         <MenuItem value="">No PO source</MenuItem>
-                        {poOptions.map((item) => (
+                        {invoicePoOptions.map((item) => (
                           <MenuItem key={item.id} value={item.id}>
                             {item.purchaseOrder.poNumber} · L{item.lineNo} ·{' '}
                             {item.description}
@@ -1010,7 +1084,7 @@ export function FinanceWorkspace({ permissions }: Props) {
                         sx={{ flex: 1 }}
                       >
                         <MenuItem value="">No GR source</MenuItem>
-                        {grOptions.map((item) => (
+                        {invoiceGrOptions.map((item) => (
                           <MenuItem key={item.id} value={item.id}>
                             {item.goodsReceipt.receiptNumber} · L{item.lineNo} ·{' '}
                             {item.description}
