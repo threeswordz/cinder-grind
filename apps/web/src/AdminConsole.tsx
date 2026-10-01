@@ -33,6 +33,7 @@ import { SchedulingPanel } from './scheduling/SchedulingPanel';
 import { SiteExecutionPanel } from './site-execution/SiteExecutionPanel';
 import { DocumentsPanel } from './documents/DocumentsPanel';
 import { EquipmentPanel } from './equipment/EquipmentPanel';
+import { FinanceWorkspace } from './finance/FinanceWorkspace';
 import { InventoryWorkspace } from './inventory/InventoryWorkspace';
 import { SubcontractsWorkspace } from './subcontracts/SubcontractsWorkspace';
 import { WbsPanel } from './wbs/WbsPanel';
@@ -51,6 +52,12 @@ export function AdminConsole({ user }: { user: CurrentUser }) {
   const sections = useMemo<Section[]>(
     () =>
       [
+        {
+          key: 'finance',
+          label: 'Finance',
+          permission: '__finance__',
+          content: <FinanceWorkspace permissions={user.permissions} />,
+        },
         {
           key: 'purchase-orders',
           label: 'Purchase Orders',
@@ -190,7 +197,11 @@ export function AdminConsole({ user }: { user: CurrentUser }) {
           content: <SystemSettingsPanel />,
         },
       ].filter((section) =>
-        section.permission === '__purchase_orders__'
+        section.permission === '__finance__'
+          ? user.permissions.some((permission) =>
+              permission.startsWith('finance.supplier_invoice.'),
+            )
+          : section.permission === '__purchase_orders__'
           ? user.permissions.includes('procurement.po.view')
           : section.permission === '__sourcing__'
           ? user.permissions.some(
@@ -266,7 +277,7 @@ export function AdminConsole({ user }: { user: CurrentUser }) {
             <Box sx={{ flexGrow: 1 }}>
               <Typography variant="h6">Construction ERP</Typography>
               <Typography variant="body2" color="text.secondary">
-                V0.5 Subcontracts · {user.displayName}
+                V0.6 Finance · {user.displayName}
               </Typography>
             </Box>
             <Button
