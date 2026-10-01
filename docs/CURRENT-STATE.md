@@ -3,12 +3,13 @@
 **Last verified:** 2026-10-01
 **Source of truth:** Live GitHub repository state
 
-- Current Release: V0.5 Subcontracts — V0.5-A through V0.5-D are technically complete; V0.5-E Variations / Derived Reporting / Release Evidence implementation and automated evidence are complete on its stage branch and entering final exact-head PR/review gates; human V0.5 Product / Business Owner UAT remains the separate mandatory release-exit gate
-- Current Stage: V0.5-E Variations / Derived Reporting / Release Evidence final PR review under Issue #111 and PR #112 on `v0.5-e-variations-reporting`. Six genuine Codex P2 findings have been fixed: retained cancelled-Agreement history discovery, batched reporting aggregates, visible reversal evidence, single-snapshot reporting consistency, visible approval-decision timestamps, and cancelled-Agreement mutation controls. Latest code head `7d79ade7feefd635626d05f70f0f767448131822` passed exact-head push CI #1928 and PR CI #1929; all known review threads are resolved. A final clean exact-head Codex re-review remains before merge.
-- Completed Stages: V0.1-A through V0.1-H; V0.2-A through V0.2-G; V0.3-A through V0.3-E; V0.4-A through V0.4-E; V0.5 entry gate; V0.5-A; V0.5-B; V0.5-C; V0.5-D
-- Active Issue: #111 — V0.5-E Variations / Derived Reporting / Release Evidence
+- Current Release: V0.5 Subcontracts — V0.5-A through V0.5-E are technically complete; V0.5 technical implementation is merged and green on `main`; human V0.5 Product / Business Owner UAT under AC-V05-030 remains the separate mandatory release-exit gate
+- Current Stage: V0.5 Release Exit Gate — V0.5-E technical implementation is complete. PR #112 passed final exact-head push CI #1930 and PR CI #1931 on `9ba8d862dcf66e7b00d7006d9398b19d83026e41`; the final Codex review reported no major issues; PR #112 squash-merged to `main` as `c054b9253e1ad2623a3fc233ba125003b2894c37`; post-merge main CI #1932 passed; Issue #111 is closed. AC-V05-030 human Product / Business Owner UAT/business acceptance remains PENDING.
+- Completed Stages: V0.1-A through V0.1-H; V0.2-A through V0.2-G; V0.3-A through V0.3-E; V0.4-A through V0.4-E; V0.5 entry gate; V0.5-A; V0.5-B; V0.5-C; V0.5-D; V0.5-E
+- Active Issue: none for V0.5 technical implementation; Issue #111 is closed. Active release gate: AC-V05-030 human Product / Business Owner UAT/business acceptance.
 - V0.5-C green main checkpoint: PR #108 squash-merged as `3f00de1f984c82c1737c4b47c226d99197b19e54`; final exact-head push CI #1869 and PR CI #1870 passed on `0833cd893f208003215cf39cee9c07b6c9a817ad`; final Codex exact-head review reported no major issues; post-merge main CI #1871 passed; Issue #107 closed.
 - V0.5-D green main checkpoint: PR #110 squash-merged as `aceeb82ad13a2f6c773d307541ddd02fafc69a92`; final exact-head push CI #1898 and PR CI #1899 passed on `0cf62c630153a6ac2326f352c0064243b3a2f45f`; final Codex exact-head review reported no major issues; post-merge main CI #1900 passed; Issue #109 closed. Human V0.5 UAT remains later.
+- V0.5-E green main checkpoint: PR #112 squash-merged as `c054b9253e1ad2623a3fc233ba125003b2894c37`; final exact-head push CI #1930 and PR CI #1931 passed on `9ba8d862dcf66e7b00d7006d9398b19d83026e41`; final Codex exact-head review reported no major issues; post-merge main CI #1932 passed; Issue #111 closed. Human AC-V05-030 acceptance remains pending.
 - V0.5-B green main checkpoint: PR #106 squash-merged as `d5cf7bb1a3009d37c6cf875c54d74954e778aa57`; post-merge main CI #1736 passed; Issue #105 closed
 - V0.5 entry gate: PR #102 squash-merged as `5b67832079ef6ded86bc79f997d8115835d0c55e`; post-merge main CI #1611 passed; Issue #98 closed
 - Completed Issue: #92 — V0.4-E Stock Transfer / Inventory Documents / Reporting / Release Evidence
@@ -85,7 +86,7 @@
 - V0.1 cross-module release acceptance scenario: PASS in the Stage H release-candidate regression suite.
 - Open defect check at V0.1 acceptance: no Severity 1 or Severity 2 release-blocking defect recorded.
 - Governance: `AGENTS.md`, `docs/PROJECT-GOVERNANCE.md`, PR governance checklist and DEC-008 are active; material decisions must pass the repository pre-flight and open-source/zero-cost-first constraint.
-- Next action: complete the required exact-head Codex review for PR #112, resolve every genuine finding with fresh exact-head CI/re-review if the head changes, then squash merge, pass post-merge `main` CI and only then close Issue #111 as technically complete. Present `docs/V0.5-UAT-EVIDENCE.md` to the Product / Business Owner and STOP for explicit AC-V05-030 acceptance. V0.6 must not begin before that human gate completes.
+- Next action: present `docs/V0.5-UAT-EVIDENCE.md` to the Product / Business Owner and STOP for the explicit AC-V05-030 business acceptance decision. Record any blocking business defect before acceptance. V0.6 must not begin before AC-V05-030 is explicitly accepted and durably recorded.
 
 ## Stage E completed
 
