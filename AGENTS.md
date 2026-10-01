@@ -16,6 +16,7 @@ Before any material architecture, infrastructure, dependency, scope, security, b
 8. the active GitHub Issue
 9. `docs/CURRENT-STATE.md`
 10. the active PR, code and CI
+11. `docs/LIVE-POSITION-REPORTING-STANDARD.md` when reporting project/live position
 
 Live GitHub state is authoritative for implementation status. Approved governance/decision documents are authoritative for constraints and policy.
 
@@ -74,4 +75,5 @@ If the desired outcome requires changing an approved rule, stop and obtain expli
 - Only one active writer should normally modify an active stage branch at a time.
 - New implementation sessions must first re-read live GitHub state and applicable governance/decision/scope documents.
 - Findings from Work normally become durable repository Issues or Change Control items, then return to Chat for implementation under the normal CI/PR/merge process.
+- When the Product / Business Owner asks for `live position`, `current position`, `where are we`, or equivalent project-status wording, follow `docs/LIVE-POSITION-REPORTING-STANDARD.md` after re-fetching live GitHub state.
 - See `docs/DEVELOPMENT-OPERATING-MODEL.md` and DEC-016.
