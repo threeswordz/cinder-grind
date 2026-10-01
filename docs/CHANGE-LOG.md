@@ -4,7 +4,7 @@
 - The subsequent current-state checkpoint `d251b79aaf49355b194fcb22c80cdbbd11054602` passed main CI #1934, including clean migrations, full workspace regression and live HTTP acceptance.
 - On 2026-10-01 (Singapore time), the Product / Business Owner explicitly stated: “I explicitly accept V0.5 Subcontracts under AC-V05-030 and authorize V0.5 release closure.”
 - AC-V05-030 is therefore satisfied by a human Product / Business Owner decision. The automated walkthrough remains supporting technical evidence and is not treated as self-approval.
-- No blocking business defect or workaround was reported with the acceptance decision. V0.5 release closure now proceeds through the acceptance-record PR/CI/merge/post-merge-main gate under Issue #113; V0.6 has not started.
+- No blocking business defect or workaround was reported with the acceptance decision. Acceptance PR #114 corrected head `23ae1efb7ecf845ef5422682b81d950710295c5e` passed push CI #1941 and PR CI #1942 after the single Codex P2 stale-status finding was fixed/resolved; final exact-head Codex re-review reported no major issues. PR #114 squash-merged as `6973ba513134e463ab41341313705ffa44486d74`, post-merge `main` CI #1943 passed, and Issue #113 closed. **V0.5 Subcontracts is complete and accepted.** V0.6 has not started; it may now enter its separate Release Entry Gate.
 
 ## 2026-10-01 — V0.5-E cancelled-Agreement action Codex follow-up
 
