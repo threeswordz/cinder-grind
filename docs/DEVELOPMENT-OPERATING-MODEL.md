@@ -122,3 +122,17 @@ This operating model does **not** change:
 - existing review requirements or any explicit one-time waiver such as DEC-015.
 
 GitHub remains the durable source of truth; Chat remains the normal implementation coordinator; Work remains the periodic independent auditor.
+
+
+## 10. Live-position reporting standard
+
+When the Product / Business Owner asks for the Construction ERP `live position`, `current position`, `where are we`, or equivalent project-status wording, Chat must:
+
+1. re-fetch live GitHub state before reporting;
+2. follow `docs/LIVE-POSITION-REPORTING-STANDARD.md`;
+3. show the full V0.1 → V0.8 roadmap plus the V1.0 Production destination;
+4. show V0.6-A through V0.6-E individually;
+5. use the standard status vocabulary; and
+6. state the current exact position, current blocker and immediate next action.
+
+This is a presentation/continuity rule only. It does not alter release sequencing, review/CI gates, human UAT/business acceptance, DEC-008, approved scope/deferrals, security requirements or Change Control.
