@@ -321,3 +321,21 @@ The approved V0.6 rule is therefore:
 - support for true multi-Project Supplier Invoices requires explicit Change Control defining line-level settlement/proration and Project-visibility behavior.
 
 This decision supplements DEC-017 and does not reopen any previously approved V0.6 boundary. It does not authorize implementation by itself. PR #116 must still pass exact-head CI/review, merge, pass post-merge `main` CI and close Issue #115 before V0.6-A implementation begins.
+
+
+## DEC-019 — V0.6 Payment Project boundary
+**Status:** APPROVED — Product / Business Owner, 2026-10-01 (Singapore time)
+
+A later exact-head Codex review of the V0.6 Finance entry package identified a Payment-level Project visibility ambiguity: one Payment could otherwise allocate to targets in multiple Projects even though the Payment header had no Project, creating cross-Project visibility and Project cash-flow attribution risk.
+
+The Product / Business Owner explicitly stated: **“Approve D06-18 as proposed.”**
+
+The approved initial V0.6 rule is therefore:
+- exactly one Project per Payment;
+- the Payment records that Project explicitly;
+- every Supplier Invoice, Client Invoice or Subcontract Certification allocation from that Payment must belong to the same Project, in addition to the approved Company/direction/counterparty/base-currency rules;
+- multi-target allocations remain allowed only within that one Project;
+- cross-Project and Company-level/non-project Payments are rejected/unsupported in initial V0.6;
+- support for cross-Project or Company-level/non-project Payments requires explicit Change Control defining scoped/redacted Payment representation, allocation visibility and Project cash-flow behavior.
+
+This decision supplements DEC-017 and DEC-018 and does not reopen any previously approved V0.6 boundary. It does not authorize implementation by itself. PR #116 must still pass exact-head CI/review, merge, pass post-merge `main` CI and close Issue #115 before V0.6-A implementation begins.
