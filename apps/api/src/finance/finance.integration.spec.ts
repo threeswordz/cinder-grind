@@ -354,6 +354,25 @@ test('V0.6-A Supplier Invoice preserves Project scope, approval history, totals 
       (error: unknown) => error instanceof ForbiddenException,
     );
 
+    await prisma.wbsElement.update({
+      where: { id: wbs.id },
+      data: { isActive: false },
+    });
+    await assert.rejects(
+      () =>
+        finance.approve(
+          { auth: checkerAuth },
+          created.id,
+          randomUUID(),
+          'Source changed after submission',
+        ),
+      (error: unknown) => error instanceof UnprocessableEntityException,
+    );
+    await prisma.wbsElement.update({
+      where: { id: wbs.id },
+      data: { isActive: true },
+    });
+
     const approvedKey = randomUUID();
     const approved = await finance.approve(
       { auth: checkerAuth },
