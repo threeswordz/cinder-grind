@@ -1907,3 +1907,29 @@ Stage A adds the permission-gated `/api/v1/subcontracts` resource family without
 | GET/PATCH | `/agreements/:id` | `subcontracts.agreement.view/edit` | Scoped detail and Draft-only commercial-field edit |
 
 All mutations require CSRF, explicit permission and audit history. Register authority is Company-scoped and does not require Project membership. Agreement reads/writes enforce database-derived Project access, active same-Company references and separate system `DRAFT` versus configured operational status. Creation allocates immutable Company-scoped `SCYYMM-###` identity and accepts a stable create key bound to an immutable creation-payload fingerprint for replay safety. Stage A has no submit, approve, reject, revise, cancel, Work Order, claim, certification, retention, Variation, Finance or cost-posting action.
+
+
+## V0.6-A Supplier Invoice Finance API
+
+V0.6-A adds the `/api/v1/finance` resource family. Every route is protected by explicit Finance permission and backend Company/Project authorization; UI visibility is not a security boundary.
+
+| Method | Route | Permission | Purpose |
+| --- | --- | --- | --- |
+| GET | `/finance/projects` | `finance.supplier_invoice.view` | Effective active Project choices |
+| GET | `/finance/supplier-invoice-workflow-options` | `finance.supplier_invoice.submit` | Active configured `SUPPLIER_INVOICE` Approval Matrix workflows |
+| GET | `/finance/projects/:projectId/supplier-invoice-options` | `finance.supplier_invoice.view` | Base currency, active Suppliers, WBS, Cost Codes and eligible current PO/GR source choices |
+| GET | `/finance/projects/:projectId/supplier-invoices` | `finance.supplier_invoice.view` | Project-scoped Supplier Invoice register |
+| GET | `/finance/supplier-invoices/:invoiceId` | `finance.supplier_invoice.view` | Detail, retained lines and approval history |
+| POST | `/finance/projects/:projectId/supplier-invoices` | `finance.supplier_invoice.create` | Idempotent Draft creation with one or more lines |
+| PATCH | `/finance/supplier-invoices/:invoiceId` | `finance.supplier_invoice.edit` | Draft header edit |
+| POST | `/finance/supplier-invoices/:invoiceId/items` | `finance.supplier_invoice.edit` | Add Draft line |
+| PATCH/DELETE | `/finance/supplier-invoice-items/:itemId` | `finance.supplier_invoice.edit` | Edit/remove Draft line |
+| POST | `/finance/supplier-invoices/:invoiceId/submit` | `finance.supplier_invoice.submit` | Submit to configured workflow with stable action key |
+| POST | `/finance/supplier-invoices/:invoiceId/approve` | `finance.supplier_invoice.approve` | Configured-role approval with maker-checker |
+| POST | `/finance/supplier-invoices/:invoiceId/reject` | `finance.supplier_invoice.reject` | Configured-role rejection with retained reason/history |
+| GET | `/finance/purchase-order-lines/:lineId/supplier-invoices` | `finance.supplier_invoice.view` | Forward trace from an authorized PO source line to related Supplier Invoices |
+| GET | `/finance/goods-receipt-items/:itemId/supplier-invoices` | `finance.supplier_invoice.view` | Forward trace from an authorized GR source item to related Supplier Invoices |
+
+Supplier Invoice creation uses Company base currency only and the reserved `SIYYMM-###` Number Sequence. A line may reference neither source, a current approved PO line, a posted/non-reversed GR item, or both when they preserve the same PO-line lineage. Linked PO/GR sources must match the invoice Company, Supplier and single Project. V0.6-A performs source-reference integrity only: it does not implement quantity/value matching tolerances, tax/VAT, FX, GL posting, payments or cancellation/credit-note behavior.
+
+Mutation routes require CSRF. Create and workflow actions use durable replay keys/payload fingerprints; approval/rejection transactions lock and serialize the invoice before the Approval Matrix action. Submitted/approved/rejected source history is retained, and approved/rejected invoices are not ordinarily editable.
