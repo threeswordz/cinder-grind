@@ -300,6 +300,19 @@ test('V0.6-A Supplier Invoice preserves Project scope, approval history, totals 
           {
             ...draftInput,
             createKey: randomUUID(),
+          },
+        ),
+      (error: unknown) => error instanceof ConflictException,
+    );
+
+    await assert.rejects(
+      () =>
+        finance.createInvoice(
+          { auth: makerAuth },
+          project.id,
+          {
+            ...draftInput,
+            createKey: randomUUID(),
             supplierReference: 'CROSS-' + suffix,
             lines: [
               {
@@ -389,6 +402,100 @@ test('V0.6-A Supplier Invoice preserves Project scope, approval history, totals 
     await assert.rejects(
       () => finance.getInvoice(outsiderAuth, created.id),
       (error: unknown) => error instanceof ForbiddenException,
+    );
+
+    const rejectedDraft = await finance.createInvoice(
+      { auth: makerAuth },
+      project.id,
+      {
+        ...draftInput,
+        createKey: randomUUID(),
+        supplierReference: 'REJECT-' + suffix,
+      },
+    );
+    await finance.submit(
+      { auth: makerAuth },
+      rejectedDraft.id,
+      workflow.workflowCode,
+      randomUUID(),
+    );
+    const rejected = await finance.reject(
+      { auth: checkerAuth },
+      rejectedDraft.id,
+      randomUUID(),
+      'Rejected with retained decision history',
+    );
+    assert.equal(rejected.state, 'REJECTED');
+    assert.equal(rejected.approvalInstance?.approvalState, 'REJECTED');
+    assert.equal(rejected.rejectedByUserId, checker.id);
+    assert.equal(
+      rejected.rejectionReason,
+      'Rejected with retained decision history',
+    );
+    await assert.rejects(
+      () =>
+        finance.updateInvoice(
+          { auth: makerAuth },
+          rejectedDraft.id,
+          { supplierReference: 'REJECT-MUTATED-' + suffix },
+        ),
+      (error: unknown) => error instanceof ConflictException,
+    );
+
+    const concurrentDraft = await finance.createInvoice(
+      { auth: makerAuth },
+      project.id,
+      {
+        ...draftInput,
+        createKey: randomUUID(),
+        supplierReference: 'CONCURRENT-' + suffix,
+      },
+    );
+    const concurrentSubmitted = await finance.submit(
+      { auth: makerAuth },
+      concurrentDraft.id,
+      workflow.workflowCode,
+      randomUUID(),
+    );
+    assert.ok(concurrentSubmitted.approvalInstanceId);
+
+    const concurrentResults = await Promise.allSettled([
+      finance.approve(
+        { auth: checkerAuth },
+        concurrentDraft.id,
+        randomUUID(),
+        'Concurrent decision A',
+      ),
+      finance.approve(
+        { auth: checkerAuth },
+        concurrentDraft.id,
+        randomUUID(),
+        'Concurrent decision B',
+      ),
+    ]);
+    assert.equal(
+      concurrentResults.filter((result) => result.status === 'fulfilled').length,
+      1,
+      'Exactly one concurrent approval transaction must commit.',
+    );
+    assert.equal(
+      concurrentResults.filter((result) => result.status === 'rejected').length,
+      1,
+      'The competing concurrent approval transaction must not duplicate the decision.',
+    );
+    const concurrentAfter = await finance.getInvoice(
+      makerAuth,
+      concurrentDraft.id,
+    );
+    assert.equal(concurrentAfter.state, 'APPROVED');
+    assert.equal(
+      await prisma.approvalAction.count({
+        where: {
+          approvalInstanceId: concurrentSubmitted.approvalInstanceId!,
+        },
+      }),
+      1,
+      'Concurrent approval must retain exactly one approval action.',
     );
 
     const auditRows = await prisma.auditLog.findMany({
