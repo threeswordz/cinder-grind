@@ -303,3 +303,21 @@ The approved V0.6 entry baseline therefore includes D06-01–16 and the correspo
 This decision does **not** authorize implementation by itself. PR #116 must still pass exact-head CI and required review, the Codex findings must be resolved, the PR must merge, post-merge `main` CI must pass, and Issue #115 must close before V0.6-A implementation may start.
 
 DEC-008 open-source/zero-cost-first, DEC-016 operating model, backend authorization, maker-checker separation, forward-only migrations, audit immutability, Change Control and required human UAT/business acceptance remain unchanged.
+
+
+## DEC-018 — V0.6 Supplier Invoice Project boundary
+**Status:** APPROVED — Product / Business Owner, 2026-10-01 (Singapore time)
+
+A later exact-head Codex review of the V0.6 Finance entry package identified an ambiguity when one Supplier Invoice contains lines for multiple Projects: header-level Supplier Payment allocations cannot unambiguously attribute a partial settlement to each Project, and Project-scoped AP/invoice visibility could expose values belonging to another Project.
+
+The Product / Business Owner explicitly stated: **“Approve D06-17 as proposed.”**
+
+The approved V0.6 rule is therefore:
+- exactly one Project per Supplier Invoice;
+- every Supplier Invoice line and any linked PO/GR source must belong to that same Project;
+- Supplier Payment allocations, AP visibility and Project cash-flow attribution for that invoice inherit the same Project;
+- cross-Project Supplier Invoices are rejected/unsupported in the initial V0.6 baseline;
+- because D06-01 keeps supplier reference unique per Company+Supplier, the same external supplier invoice must not be silently split into multiple internal invoices merely to bypass this rule;
+- support for true multi-Project Supplier Invoices requires explicit Change Control defining line-level settlement/proration and Project-visibility behavior.
+
+This decision supplements DEC-017 and does not reopen any previously approved V0.6 boundary. It does not authorize implementation by itself. PR #116 must still pass exact-head CI/review, merge, pass post-merge `main` CI and close Issue #115 before V0.6-A implementation begins.
