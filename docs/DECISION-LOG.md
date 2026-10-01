@@ -339,3 +339,21 @@ The approved initial V0.6 rule is therefore:
 - support for cross-Project or Company-level/non-project Payments requires explicit Change Control defining scoped/redacted Payment representation, allocation visibility and Project cash-flow behavior.
 
 This decision supplements DEC-017 and DEC-018 and does not reopen any previously approved V0.6 boundary. It does not authorize implementation by itself. PR #116 must still pass exact-head CI/review, merge, pass post-merge `main` CI and close Issue #115 before V0.6-A implementation begins.
+
+
+## DEC-020 — V0.6 Payment Project cash-flow attribution
+**Status:** APPROVED — Product / Business Owner, 2026-10-01 (Singapore time)
+
+A later exact-head Codex review identified a contradiction between approved D06-18 / DEC-019 Payment Project ownership and the older rule that unallocated Payment amounts were not Project-attributed.
+
+The Product / Business Owner explicitly stated: **“Approve D06-19 as proposed.”**
+
+The approved V0.6 rule is therefore:
+- every final approved, non-cancelled Payment contributes its full amount to Project Cash Flow against its required `payments.project_id` on the Payment date;
+- OUTBOUND Payments are Project cash outflows and INBOUND Payments are Project cash inflows;
+- the rule applies even when a Payment is partially or wholly unallocated;
+- Payment allocation rows govern Supplier/Client/Subcontract settlement, AP/AR linkage and traceability, and must not duplicate or reduce the Payment's Project cash-flow amount;
+- any unallocated balance remains visible as an unallocated settlement state within the same Project;
+- Draft, submitted, rejected and cancelled Payments do not contribute to Project Cash Flow.
+
+This decision supplements DEC-017, DEC-018 and DEC-019. It does not authorize implementation by itself. PR #116 must still pass exact-head CI/review, merge, pass post-merge `main` CI and close Issue #115 before V0.6-A implementation begins.
