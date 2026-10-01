@@ -16,6 +16,13 @@ const RESERVED_SEQUENCE_POLICIES = new Map<
   { formatTemplate: string; resetRule: SequenceResetRule }
 >([
   [
+    'SUPPLIER_INVOICE',
+    {
+      formatTemplate: 'SIYYMM-###',
+      resetRule: 'MONTHLY',
+    },
+  ],
+  [
     'SUBCONTRACT_AGREEMENT',
     {
       formatTemplate: 'SCYYMM-###',

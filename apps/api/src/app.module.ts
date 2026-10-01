@@ -11,6 +11,7 @@ import { HealthModule } from './health/health.module';
 import { InventoryModule } from './inventory/inventory.module';
 import { DocumentsModule } from './documents/documents.module';
 import { EquipmentModule } from './equipment/equipment.module';
+import { FinanceModule } from './finance/finance.module';
 import { MasterDataModule } from './master-data/master-data.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ProjectsModule } from './projects/projects.module';
@@ -31,6 +32,7 @@ import { WbsModule } from './wbs/wbs.module';
     SchedulingModule,
     SiteExecutionModule,
     EquipmentModule,
+    FinanceModule,
     InventoryModule,
     SubcontractsModule,
     ReportingModule,
