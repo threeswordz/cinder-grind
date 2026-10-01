@@ -284,7 +284,7 @@ export class FinanceService {
             return this.visibleInvoice(context.auth, raced.id, tx);
           }
 
-          const created = await tx.supplierInvoice.create({
+          const header = await tx.supplierInvoice.create({
             data: {
               companyId: context.auth.companyId,
               projectId,
@@ -294,30 +294,43 @@ export class FinanceService {
               invoiceDate: input.invoiceDate,
               ...(input.dueDate !== undefined ? { dueDate: input.dueDate } : {}),
               currencyCode: company.baseCurrencyCode,
-              totalAmount: total,
+              totalAmount: 0,
               createKey: input.createKey,
               createPayloadHash: payloadHash,
               createdByUserId: context.auth.userId,
-              items: {
-                create: input.lines.map((line, index) => ({
-                  companyId: context.auth.companyId,
-                  projectId,
-                  lineNo: index + 1,
-                  description: line.description,
-                  amount: line.amount,
-                  ...(line.purchaseOrderLineId
-                    ? { purchaseOrderLineId: line.purchaseOrderLineId }
-                    : {}),
-                  ...(line.goodsReceiptItemId
-                    ? { goodsReceiptItemId: line.goodsReceiptItemId }
-                    : {}),
-                  ...(line.wbsId ? { wbsId: line.wbsId } : {}),
-                  ...(line.costCodeId ? { costCodeId: line.costCodeId } : {}),
-                })),
-              },
             },
-            include: this.invoiceInclude(),
           });
+
+          await tx.supplierInvoiceItem.createMany({
+            data: input.lines.map((line, index) => ({
+              companyId: context.auth.companyId,
+              projectId,
+              supplierInvoiceId: header.id,
+              lineNo: index + 1,
+              description: line.description,
+              amount: line.amount,
+              ...(line.purchaseOrderLineId
+                ? { purchaseOrderLineId: line.purchaseOrderLineId }
+                : {}),
+              ...(line.goodsReceiptItemId
+                ? { goodsReceiptItemId: line.goodsReceiptItemId }
+                : {}),
+              ...(line.wbsId ? { wbsId: line.wbsId } : {}),
+              ...(line.costCodeId ? { costCodeId: line.costCodeId } : {}),
+            })),
+          });
+
+          const created = await this.visibleInvoice(
+            context.auth,
+            header.id,
+            tx,
+          );
+          if (!created.totalAmount.equals(total)) {
+            throw new ConflictException({
+              code: 'SUPPLIER_INVOICE_TOTAL_MISMATCH',
+              detail: 'Supplier Invoice header total must equal retained line total.',
+            });
+          }
 
           await this.audit.record(
             {
