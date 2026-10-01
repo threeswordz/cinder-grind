@@ -357,3 +357,31 @@ The approved V0.6 rule is therefore:
 - Draft, submitted, rejected and cancelled Payments do not contribute to Project Cash Flow.
 
 This decision supplements DEC-017, DEC-018 and DEC-019. It does not authorize implementation by itself. PR #116 must still pass exact-head CI/review, merge, pass post-merge `main` CI and close Issue #115 before V0.6-A implementation begins.
+
+
+## DEC-021 — PR #116 one-time Codex review waiver
+**Status:** APPROVED — Product / Business Owner, 2026-10-01 (Singapore time)
+
+After all surfaced PR #116 Codex findings had been addressed and all review threads resolved, a final exact-head Codex review was requested on `0863366e6c6245744131478a87f7cbeec7bf4c0b`. Codex returned a usage-limit message instead of a review verdict.
+
+The Product / Business Owner explicitly stated:
+
+**“I approve a one-time Codex review waiver for PR #116 only and authorize merge based on the completed CI, resolved review threads and documented review evidence.”**
+
+Evidence at the waived merge gate:
+- exact-head push CI #2076 passed;
+- exact-head PR CI #2077 passed;
+- unresolved review threads were zero;
+- PR #116 was mergeable;
+- all V0.6 owner decisions D06-01–19 were approved and recorded through DEC-020;
+- PR #116 changed documentation/baseline files only and introduced no application implementation, migration, UI code or runtime dependency;
+- prior Codex findings were individually addressed and resolved.
+
+PR #116 then squash-merged as `7d2ebc95fbc8eaacb6843bfe2cff277f69d73e89`, and post-merge `main` CI #2078 passed. Issue #115 closed completed.
+
+This waiver:
+- applies **only** to PR #116;
+- does not reuse or extend DEC-015;
+- is not a standing precedent or reusable waiver for later PRs;
+- does not weaken DEC-008, DEC-016, Change Control, forward-only migration rules, security/project-scope rules, or CI requirements;
+- does not waive any later mandatory human UAT or Product / Business Owner release acceptance gate.
