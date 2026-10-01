@@ -796,8 +796,10 @@ export class FinanceService {
         }
         const current = await tx.supplierInvoice.findUniqueOrThrow({
           where: { id: invoiceId },
+          include: { items: true },
         });
         this.assertSubmitted(current);
+        await this.revalidateInvoiceSources(tx, current);
         await this.approvals.approve(
           current.approvalInstanceId!,
           context.auth,
@@ -891,6 +893,25 @@ export class FinanceService {
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
     );
+  }
+
+  private async revalidateInvoiceSources(
+    tx: Prisma.TransactionClient,
+    invoice: Prisma.SupplierInvoiceGetPayload<{ include: { items: true } }>,
+  ) {
+    // Final approval runs in the same SERIALIZABLE transaction that holds the
+    // Supplier Invoice row lock. Re-read every mutable source reference here so
+    // a Draft submitted against valid sources cannot be approved after those
+    // sources have become invalid.
+    for (const line of invoice.items) {
+      await this.assertLineReferences(
+        tx,
+        invoice.companyId,
+        invoice.projectId,
+        invoice.supplierId,
+        line,
+      );
+    }
   }
 
   private async assertLineReferences(
