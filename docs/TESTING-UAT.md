@@ -1552,6 +1552,10 @@ Priority testing:
 - allocations
 - maker-checker
 - cash flow
+- D06-17 / DEC-018: one Project per Supplier Invoice, same-Project line and PO/GR source enforcement, cross-Project rejection and Project-scoped visibility
+- D06-18 / DEC-019: required Payment Project, same-Project Supplier/Client/Subcontract allocation targets, multi-target allocation within one Project only, cross-Project and Company-level/non-project Payment rejection
+- direct API bypass denial for users lacking effective access to the Supplier Invoice or Payment Project
+- `projects.access_all` assignment bypass without bypassing the D06-17 / D06-18 same-Project transaction-integrity rules
 
 ---
 
