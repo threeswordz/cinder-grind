@@ -298,7 +298,7 @@ The Product / Business Owner approved the V0.6 Finance Release Entry Gate propos
 The approved V0.6 entry baseline therefore includes D06-01–16 and the corresponding acceptance criteria, including:
 - ordinary Subcontract Certification Payment allocations are capped at V0.5 `net_certified_amount`; withheld retention is not payable through that ordinary path;
 - a V0.5 certification whose currency differs from Company base currency is rejected/deferred from Finance handoff with no conversion or numeric reinterpretation until approved FX/multi-currency Change Control exists;
-- certification reversal is blocked while active Finance Payment allocations remain; after Finance cancellation clears those allocations, reversal may create a linked compensating retention-withholding correction, which is not a retention release/payout.
+- certification reversal is blocked while active Finance Payment allocations remain; after Finance cancellation clears those allocations, **if a linked Finance retention-withholding entry exists, the certification reversal must atomically create its linked compensating reversal**. That correction is mandatory when applicable and is not a retention release/payout.
 
 This decision does **not** authorize implementation by itself. PR #116 must still pass exact-head CI and required review, the Codex findings must be resolved, the PR must merge, post-merge `main` CI must pass, and Issue #115 must close before V0.6-A implementation may start.
 
