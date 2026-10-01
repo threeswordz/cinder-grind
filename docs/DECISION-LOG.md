@@ -285,3 +285,21 @@ One active implementation writer should normally modify a stage branch at a time
 
 This decision changes delivery tooling/role allocation only. It does not alter release-stage sequencing, review requirements, exact-head/PR/post-merge CI gates, human UAT, DEC-008, approved scope/deferrals, Project security rules or Change Control. DEC-015 remains limited to PR #106 only.
 
+
+
+## DEC-017 — V0.6 Finance release entry baseline
+**Status:** APPROVED — Product / Business Owner, 2026-10-01 (Singapore time)
+
+The Product / Business Owner approved the V0.6 Finance Release Entry Gate proposal in two explicit steps:
+
+1. In response to the request to approve the proposal package at exact head `e71f64cd03f61ddeee7de4e034def0da0ca6907c`, the owner replied **“ok”**, approving the then-present V0.6 scope/exclusions, AC-V06 baseline, BR-V06-01–20, D06-01–13, data/API/security/audit/concurrency/testing/dependency baselines, V0.6-A–E stages, estimates and deferrals.
+2. The final exact-head Codex review then identified three additional P1 Finance-handoff boundaries. After those were surfaced as D06-14–16 / AC-V06-022A–022C, the owner explicitly stated **“Approve D06-14, D06-15 and D06-16 as proposed”**.
+
+The approved V0.6 entry baseline therefore includes D06-01–16 and the corresponding acceptance criteria, including:
+- ordinary Subcontract Certification Payment allocations are capped at V0.5 `net_certified_amount`; withheld retention is not payable through that ordinary path;
+- a V0.5 certification whose currency differs from Company base currency is rejected/deferred from Finance handoff with no conversion or numeric reinterpretation until approved FX/multi-currency Change Control exists;
+- certification reversal is blocked while active Finance Payment allocations remain; after Finance cancellation clears those allocations, reversal may create a linked compensating retention-withholding correction, which is not a retention release/payout.
+
+This decision does **not** authorize implementation by itself. PR #116 must still pass exact-head CI and required review, the Codex findings must be resolved, the PR must merge, post-merge `main` CI must pass, and Issue #115 must close before V0.6-A implementation may start.
+
+DEC-008 open-source/zero-cost-first, DEC-016 operating model, backend authorization, maker-checker separation, forward-only migrations, audit immutability, Change Control and required human UAT/business acceptance remain unchanged.
