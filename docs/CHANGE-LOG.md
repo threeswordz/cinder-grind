@@ -1,3 +1,11 @@
+## 2026-10-01 — V0.5 Subcontracts Product / Business Owner acceptance
+
+- Fresh current-release automated walkthrough on `f6c99c232475871c247c749e289995bdb0f3eb34` passed Validate Construction ERP #1933 attempt 2 with scenario `MUP0LKS3` and 46 checks, covering V0.5-A through V0.5-E plus the authenticated Subcontractor → Agreement → Work Order → Claim → Assessment → Certification/Retention → Variation → reporting path and authorization negatives.
+- The subsequent current-state checkpoint `d251b79aaf49355b194fcb22c80cdbbd11054602` passed main CI #1934, including clean migrations, full workspace regression and live HTTP acceptance.
+- On 2026-10-01 (Singapore time), the Product / Business Owner explicitly stated: “I explicitly accept V0.5 Subcontracts under AC-V05-030 and authorize V0.5 release closure.”
+- AC-V05-030 is therefore satisfied by a human Product / Business Owner decision. The automated walkthrough remains supporting technical evidence and is not treated as self-approval.
+- No blocking business defect or workaround was reported with the acceptance decision. V0.5 release closure now proceeds through the acceptance-record PR/CI/merge/post-merge-main gate under Issue #113; V0.6 has not started.
+
 ## 2026-10-01 — V0.5-E cancelled-Agreement action Codex follow-up
 
 - Codex review of `cfe404b639906a418e8bd5fdbf0e607b43f0bbb3` identified one additional genuine P2: cancelled Agreements correctly remained discoverable for retained Variation history, but Draft/Approved Variations could still show mutation controls that the backend would reject.
