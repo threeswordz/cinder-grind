@@ -1705,6 +1705,10 @@ test('V0.6-B Client Invoice preserves scope, maker-checker, retained history and
     );
     assert.equal(approved.state, 'APPROVED');
     assert.equal(approved.approvalInstance?.approvalState, 'APPROVED');
+    assert.doesNotThrow(
+      () => JSON.stringify(approved),
+      'Client Invoice approval responses must not expose internal BigInt decision-order fields.',
+    );
     const retainedApprovedAction = await prisma.approvalAction.findFirstOrThrow({
       where: {
         approvalInstanceId: approved.approvalInstanceId!,
