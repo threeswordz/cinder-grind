@@ -942,6 +942,14 @@ test('V0.6-B Client Invoice preserves scope, maker-checker, retained history and
       /CLIENT_INVOICE_HISTORY_IMMUTABLE/,
     );
     await assert.rejects(
+      () => prisma.$executeRawUnsafe(
+        'UPDATE "client_invoice_items" SET "client_invoice_id" = $1::uuid WHERE "id" = $2::uuid',
+        alternateCustomerDraft.id,
+        draft.items[0]!.id,
+      ),
+      /CLIENT_INVOICE_HISTORY_IMMUTABLE/,
+    );
+    await assert.rejects(
       () => clientFinance.get(outsiderAuth, draft.id),
       (error: unknown) => error instanceof ForbiddenException,
     );
