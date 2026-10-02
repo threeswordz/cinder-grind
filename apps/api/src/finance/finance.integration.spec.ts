@@ -17,6 +17,8 @@ import { ProjectScopeService } from '../authorization/project-scope.service';
 import { REQUIRED_PERMISSIONS_KEY } from '../authorization/permissions.decorator';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProjectAccessService } from '../projects/project-access.service';
+import { ClientInvoiceController } from './client-invoice.controller';
+import { ClientInvoiceService } from './client-invoice.service';
 import { FinanceController } from './finance.controller';
 import { FinanceService } from './finance.service';
 
@@ -542,6 +544,421 @@ test('V0.6-A Supplier Invoice preserves Project scope, approval history, totals 
       },
     });
     assert.ok(auditRows.some((row) => row.action === 'CREATE_DRAFT'));
+    assert.ok(auditRows.some((row) => row.action === 'SUBMIT'));
+    assert.ok(auditRows.some((row) => row.action === 'APPROVE'));
+  } finally {
+    await prisma.$disconnect();
+  }
+});
+
+
+test('V0.6-B routes retain explicit Client Invoice and AP-AR permissions', () => {
+  const clientRoutes = [
+    ['workflows', ['finance.client_invoice.submit']],
+    ['options', ['finance.client_invoice.view']],
+    ['list', ['finance.client_invoice.view']],
+    ['accountsReceivable', ['finance.ar.view']],
+    ['get', ['finance.client_invoice.view']],
+    ['create', ['finance.client_invoice.create']],
+    ['update', ['finance.client_invoice.edit']],
+    ['addLine', ['finance.client_invoice.edit']],
+    ['updateLine', ['finance.client_invoice.edit']],
+    ['deleteLine', ['finance.client_invoice.edit']],
+    ['submit', ['finance.client_invoice.submit']],
+    ['approve', ['finance.client_invoice.approve']],
+    ['reject', ['finance.client_invoice.reject']],
+  ] as const;
+  for (const [method, permissions] of clientRoutes) {
+    assert.deepEqual(
+      Reflect.getMetadata(
+        REQUIRED_PERMISSIONS_KEY,
+        ClientInvoiceController.prototype[method],
+      ),
+      permissions,
+    );
+  }
+  assert.deepEqual(
+    Reflect.getMetadata(
+      REQUIRED_PERMISSIONS_KEY,
+      FinanceController.prototype.accountsPayable,
+    ),
+    ['finance.ap.view'],
+  );
+});
+
+test('V0.6-B Client Invoice preserves scope, maker-checker, retained history and derived AP-AR', async () => {
+  const prisma = new PrismaService();
+  await prisma.$connect();
+
+  try {
+    const suffix = randomUUID().slice(0, 8);
+    const company = await prisma.company.create({
+      data: {
+        companyCode: 'FINB-' + suffix,
+        companyName: 'Finance B Test ' + suffix,
+        baseCurrencyCode: 'SGD',
+      },
+    });
+    const customer = await prisma.customer.create({
+      data: {
+        companyId: company.id,
+        customerCode: 'FINB-C-' + suffix,
+        customerName: 'Finance B Customer',
+      },
+    });
+    const otherCustomer = await prisma.customer.create({
+      data: {
+        companyId: company.id,
+        customerCode: 'FINB-X-' + suffix,
+        customerName: 'Wrong Project Customer',
+      },
+    });
+    const makerEmployee = await prisma.employee.create({
+      data: {
+        companyId: company.id,
+        employeeCode: 'FINB-M-' + suffix,
+        employeeName: 'Finance B Maker',
+      },
+    });
+    const checkerEmployee = await prisma.employee.create({
+      data: {
+        companyId: company.id,
+        employeeCode: 'FINB-CHECK-' + suffix,
+        employeeName: 'Finance B Checker',
+      },
+    });
+    const outsiderEmployee = await prisma.employee.create({
+      data: {
+        companyId: company.id,
+        employeeCode: 'FINB-OUT-' + suffix,
+        employeeName: 'Finance B Outsider',
+      },
+    });
+    const maker = await prisma.user.create({
+      data: {
+        companyId: company.id,
+        employeeId: makerEmployee.id,
+        email: 'finb-maker-' + suffix + '@example.com',
+        displayName: 'Finance B Maker',
+        passwordHash: 'x',
+      },
+    });
+    const checker = await prisma.user.create({
+      data: {
+        companyId: company.id,
+        employeeId: checkerEmployee.id,
+        email: 'finb-checker-' + suffix + '@example.com',
+        displayName: 'Finance B Checker',
+        passwordHash: 'x',
+      },
+    });
+    const outsider = await prisma.user.create({
+      data: {
+        companyId: company.id,
+        employeeId: outsiderEmployee.id,
+        email: 'finb-outsider-' + suffix + '@example.com',
+        displayName: 'Finance B Outsider',
+        passwordHash: 'x',
+      },
+    });
+    const project = await prisma.project.create({
+      data: {
+        companyId: company.id,
+        projectCode: 'FINB-P-' + suffix,
+        projectName: 'Finance B Project',
+        customerId: customer.id,
+        contractValue: '1000000',
+        plannedStartDate: new Date('2026-10-01T00:00:00.000Z'),
+        plannedCompletionDate: new Date('2027-12-31T00:00:00.000Z'),
+      },
+    });
+    await prisma.projectMember.createMany({
+      data: [
+        { projectId: project.id, employeeId: makerEmployee.id, projectRole: 'Finance Maker' },
+        { projectId: project.id, employeeId: checkerEmployee.id, projectRole: 'Finance Approver' },
+      ],
+    });
+    const supplier = await prisma.supplier.create({
+      data: {
+        companyId: company.id,
+        supplierCode: 'FINB-S-' + suffix,
+        supplierName: 'Finance B Supplier',
+      },
+    });
+    const role = await prisma.role.create({
+      data: {
+        companyId: company.id,
+        roleCode: 'FINB_APPROVER_' + suffix,
+        roleName: 'Finance B Approver',
+      },
+    });
+    const clientWorkflow = await prisma.approvalWorkflow.create({
+      data: {
+        companyId: company.id,
+        workflowCode: 'FINB_CI_' + suffix,
+        entityType: 'CLIENT_INVOICE',
+        workflowName: 'Client Invoice Approval',
+        steps: {
+          create: {
+            stepNo: 1,
+            stepName: 'Finance Checker',
+            requiredApprovals: 1,
+            stepRoles: { create: { roleId: role.id } },
+          },
+        },
+      },
+    });
+    const supplierWorkflow = await prisma.approvalWorkflow.create({
+      data: {
+        companyId: company.id,
+        workflowCode: 'FINB_SI_' + suffix,
+        entityType: 'SUPPLIER_INVOICE',
+        workflowName: 'Supplier Invoice Approval',
+        steps: {
+          create: {
+            stepNo: 1,
+            stepName: 'Finance Checker',
+            requiredApprovals: 1,
+            stepRoles: { create: { roleId: role.id } },
+          },
+        },
+      },
+    });
+
+    const access = new ProjectAccessService(
+      prisma,
+      new ProjectScopeService(new AuthorizationService()),
+    );
+    const approvals = new ApprovalService(prisma);
+    const audit = new AuditService(prisma);
+    const numbers = new NumberSequenceService(prisma);
+    const clientFinance = new ClientInvoiceService(
+      prisma,
+      access,
+      approvals,
+      audit,
+      numbers,
+    );
+    const supplierFinance = new FinanceService(
+      prisma,
+      access,
+      approvals,
+      audit,
+      numbers,
+    );
+    const makerAuth = auth(company.id, maker.id);
+    const checkerAuth = auth(company.id, checker.id, [role.roleCode]);
+    const sysAdminAuth = auth(company.id, outsider.id, ['SYS_ADMIN']);
+    const outsiderAuth = auth(company.id, outsider.id, [], []);
+    const Decimal = (await import('@prisma/client')).Prisma.Decimal;
+
+    const draft = await clientFinance.create(
+      { auth: makerAuth },
+      project.id,
+      {
+        customerId: customer.id,
+        invoiceDate: new Date('2026-10-02T00:00:00.000Z'),
+        dueDate: new Date('2026-10-31T00:00:00.000Z'),
+        createKey: randomUUID(),
+        lines: [{ description: 'Progress billing', amount: new Decimal('125.50') }],
+      },
+    );
+    assert.match(draft.clientInvoiceNumber, /^CI2610-\d{3}$/);
+    assert.equal(draft.currencyCode, 'SGD');
+    assert.equal(draft.totalAmount.toFixed(2), '125.50');
+
+    await assert.rejects(
+      () =>
+        clientFinance.create(
+          { auth: makerAuth },
+          project.id,
+          {
+            customerId: otherCustomer.id,
+            invoiceDate: new Date('2026-10-02T00:00:00.000Z'),
+            createKey: randomUUID(),
+            lines: [{ description: 'Wrong customer', amount: new Decimal('1.00') }],
+          },
+        ),
+      (error: unknown) => error instanceof UnprocessableEntityException,
+    );
+
+    const edited = await clientFinance.addLine(
+      { auth: makerAuth },
+      draft.id,
+      { description: 'Approved variation billing', amount: new Decimal('50.00') },
+    );
+    assert.equal(edited.totalAmount.toFixed(2), '175.50');
+    const lineToEdit = edited.items[1]!;
+    const editedLine = await clientFinance.updateLine(
+      { auth: makerAuth },
+      lineToEdit.id,
+      { description: 'Variation billing' },
+    );
+    assert.equal(editedLine.items[1]!.description, 'Variation billing');
+
+    const submitKey = randomUUID();
+    const submitted = await clientFinance.submit(
+      { auth: makerAuth },
+      draft.id,
+      clientWorkflow.workflowCode,
+      submitKey,
+    );
+    assert.equal(submitted.state, 'SUBMITTED');
+    const submittedReplay = await clientFinance.submit(
+      { auth: makerAuth },
+      draft.id,
+      clientWorkflow.workflowCode,
+      submitKey,
+    );
+    assert.equal(submittedReplay.state, 'SUBMITTED');
+
+    await assert.rejects(
+      () => clientFinance.addLine(
+        { auth: makerAuth },
+        draft.id,
+        { description: 'Late mutation', amount: new Decimal('1.00') },
+      ),
+      (error: unknown) => error instanceof ConflictException,
+    );
+    await assert.rejects(
+      () => clientFinance.approve(
+        { auth: auth(company.id, maker.id, [role.roleCode]) },
+        draft.id,
+        randomUUID(),
+      ),
+      (error: unknown) => error instanceof ForbiddenException,
+    );
+    await assert.rejects(
+      () => clientFinance.approve(
+        { auth: sysAdminAuth },
+        draft.id,
+        randomUUID(),
+      ),
+      (error: unknown) => error instanceof ForbiddenException,
+    );
+
+    const approveKey = randomUUID();
+    const approved = await clientFinance.approve(
+      { auth: checkerAuth },
+      draft.id,
+      approveKey,
+      'Approved client billing',
+    );
+    assert.equal(approved.state, 'APPROVED');
+    assert.equal(approved.approvalInstance?.approvalState, 'APPROVED');
+    const approvedReplay = await clientFinance.approve(
+      { auth: checkerAuth },
+      draft.id,
+      approveKey,
+      'Approved client billing',
+    );
+    assert.equal(approvedReplay.state, 'APPROVED');
+
+    await assert.rejects(
+      () => prisma.$executeRawUnsafe(
+        'UPDATE "client_invoices" SET "invoice_date" = $1::date WHERE "id" = $2::uuid',
+        '2026-10-03',
+        draft.id,
+      ),
+      /CLIENT_INVOICE_HISTORY_IMMUTABLE/,
+    );
+    await assert.rejects(
+      () => clientFinance.get(outsiderAuth, draft.id),
+      (error: unknown) => error instanceof ForbiddenException,
+    );
+
+    const ar = await clientFinance.accountsReceivable(makerAuth, project.id);
+    const arRow = ar.find((row) => row.id === draft.id);
+    assert.ok(arRow);
+    assert.equal(arRow.allocatedAmount.toFixed(2), '0.00');
+    assert.equal(arRow.outstandingAmount.toFixed(2), '175.50');
+    await assert.rejects(
+      () => clientFinance.accountsReceivable(outsiderAuth, project.id),
+      (error: unknown) => error instanceof ForbiddenException,
+    );
+
+    const supplierDraft = await supplierFinance.createInvoice(
+      { auth: makerAuth },
+      project.id,
+      {
+        supplierId: supplier.id,
+        supplierReference: 'FINB-SUP-' + suffix,
+        invoiceDate: new Date('2026-10-02T00:00:00.000Z'),
+        dueDate: new Date('2026-10-30T00:00:00.000Z'),
+        createKey: randomUUID(),
+        lines: [{ description: 'Supplier billing', amount: new Decimal('80.00') }],
+      },
+    );
+    await supplierFinance.submit(
+      { auth: makerAuth },
+      supplierDraft.id,
+      supplierWorkflow.workflowCode,
+      randomUUID(),
+    );
+    await supplierFinance.approve(
+      { auth: checkerAuth },
+      supplierDraft.id,
+      randomUUID(),
+      'Approved AP source',
+    );
+    const ap = await supplierFinance.accountsPayable(makerAuth, project.id);
+    const apRow = ap.find((row) => row.id === supplierDraft.id);
+    assert.ok(apRow);
+    assert.equal(apRow.allocatedAmount.toFixed(2), '0.00');
+    assert.equal(apRow.outstandingAmount.toFixed(2), '80.00');
+    await assert.rejects(
+      () => supplierFinance.accountsPayable(outsiderAuth, project.id),
+      (error: unknown) => error instanceof ForbiddenException,
+    );
+
+    const concurrentDraft = await clientFinance.create(
+      { auth: makerAuth },
+      project.id,
+      {
+        customerId: customer.id,
+        invoiceDate: new Date('2026-10-02T00:00:00.000Z'),
+        createKey: randomUUID(),
+        lines: [{ description: 'Concurrent billing', amount: new Decimal('20.00') }],
+      },
+    );
+    const concurrentSubmitted = await clientFinance.submit(
+      { auth: makerAuth },
+      concurrentDraft.id,
+      clientWorkflow.workflowCode,
+      randomUUID(),
+    );
+    const decisions = await Promise.allSettled([
+      clientFinance.approve(
+        { auth: checkerAuth },
+        concurrentDraft.id,
+        randomUUID(),
+        'Concurrent A',
+      ),
+      clientFinance.approve(
+        { auth: checkerAuth },
+        concurrentDraft.id,
+        randomUUID(),
+        'Concurrent B',
+      ),
+    ]);
+    assert.equal(decisions.filter((result) => result.status === 'fulfilled').length, 1);
+    assert.equal(decisions.filter((result) => result.status === 'rejected').length, 1);
+    assert.equal(
+      await prisma.approvalAction.count({
+        where: { approvalInstanceId: concurrentSubmitted.approvalInstanceId! },
+      }),
+      1,
+    );
+
+    const auditRows = await prisma.auditLog.findMany({
+      where: {
+        companyId: company.id,
+        entityType: 'CLIENT_INVOICE',
+        entityId: draft.id,
+      },
+    });
+    assert.ok(auditRows.some((row) => row.action === 'CREATE_DRAFT'));
+    assert.ok(auditRows.some((row) => row.action === 'ADD_LINE'));
     assert.ok(auditRows.some((row) => row.action === 'SUBMIT'));
     assert.ok(auditRows.some((row) => row.action === 'APPROVE'));
   } finally {
