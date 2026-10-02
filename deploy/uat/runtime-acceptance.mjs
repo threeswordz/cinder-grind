@@ -2708,21 +2708,28 @@ await request(pm, '/procurement/purchase-orders/' + revisedPoId + '/cancel', {
 await request(unassignedReceipt, '/inventory/goods-receipts/' + receiptAId, {
   expected: 403,
 });
-for (const [id, key] of [[receiptAId, 'reverse-a-'], [receiptBId, 'reverse-b-']]) {
-  const reversed = await request(pm, '/inventory/goods-receipts/' + id + '/reverse', {
+await request(pm, '/inventory/goods-receipts/' + receiptAId + '/reverse', {
+  method: 'POST',
+  json: { reversalKey: 'reverse-a-' + suffix, reason: 'Blocked by approved Supplier Invoice lineage' },
+  expected: 409,
+});
+const reversedReceiptB = await request(
+  pm,
+  '/inventory/goods-receipts/' + receiptBId + '/reverse',
+  {
     method: 'POST',
-    json: { reversalKey: key + suffix, reason: 'UAT full reversal' },
+    json: { reversalKey: 'reverse-b-' + suffix, reason: 'UAT full reversal' },
     expected: 201,
-  });
-  check(
-    reversed.data.data.reversedAt &&
-      reversed.data.data.stockTransactions.length === 2 &&
-      reversed.data.data.stockTransactions.reduce(
-        (sum, row) => sum + Number(row.quantity), 0,
-      ) === 0,
-    'Goods Receipt reversal did not append the exact negative stock effect.',
-  );
-}
+  },
+);
+check(
+  reversedReceiptB.data.data.reversedAt &&
+    reversedReceiptB.data.data.stockTransactions.length === 2 &&
+    reversedReceiptB.data.data.stockTransactions.reduce(
+      (sum, row) => sum + Number(row.quantity), 0,
+    ) === 0,
+  'Unreferenced Goods Receipt reversal did not append the exact negative stock effect.',
+);
 const hiddenZeroBalance = await request(
   pm,
   '/inventory/stock-balances?projectId=' + projectId +
