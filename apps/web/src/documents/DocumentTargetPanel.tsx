@@ -103,7 +103,61 @@ export function DocumentTargetPanel({
     if (entityType === 'MATERIAL_RETURN') {
       return data.materialReturns.map((row) => ({ id: row.id, label: row.returnNumber }));
     }
-    return data.stockTransfers.map((row) => ({ id: row.id, label: row.transferNumber }));
+    if (entityType === 'STOCK_TRANSFER') {
+      return data.stockTransfers.map((row) => ({ id: row.id, label: row.transferNumber }));
+    }
+    if (entityType === 'SUPPLIER_INVOICE') {
+      return data.supplierInvoices.map((row) => ({
+        id: row.id,
+        label: row.supplierInvoiceNumber + ' · ' + row.supplierReference + ' · ' + row.state,
+      }));
+    }
+    if (entityType === 'CLIENT_INVOICE') {
+      return data.clientInvoices.map((row) => ({
+        id: row.id,
+        label: row.clientInvoiceNumber + ' · ' + row.state,
+      }));
+    }
+    if (entityType === 'PAYMENT') {
+      return data.payments.map((row) => ({
+        id: row.id,
+        label:
+          row.paymentNumber +
+          ' · ' +
+          row.paymentDirection +
+          ' · ' +
+          row.state +
+          (row.reference ? ' · ' + row.reference : ''),
+      }));
+    }
+    if (entityType === 'SUBCONTRACT_AGREEMENT') {
+      return data.subcontractAgreements.map((row) => ({
+        id: row.id,
+        label: row.agreementNumber + ' · ' + row.approvalState,
+      }));
+    }
+    if (entityType === 'SUBCONTRACT_WORK_ORDER') {
+      return data.subcontractWorkOrders.map((row) => ({
+        id: row.id,
+        label: row.workOrderNumber + ' · ' + row.approvalState,
+      }));
+    }
+    if (entityType === 'SUBCONTRACT_CLAIM') {
+      return data.subcontractClaims.map((row) => ({
+        id: row.id,
+        label: row.claimNumber + ' · ' + row.state,
+      }));
+    }
+    if (entityType === 'SUBCONTRACT_CERTIFICATION') {
+      return data.subcontractCertifications.map((row) => ({
+        id: row.id,
+        label: row.certificationNumber + ' · ' + row.state,
+      }));
+    }
+    return data.subcontractVariations.map((row) => ({
+      id: row.id,
+      label: row.variationNumber + ' · ' + row.state,
+    }));
   }, [entityType, options.data?.data]);
 
   const upload = useMutation({
@@ -201,7 +255,7 @@ export function DocumentTargetPanel({
     <Stack spacing={2}>
       <Typography variant="h6">Project / Transaction Documents</Typography>
       <Typography variant="body2" color="text.secondary">
-        Documents remain Project-owned for access control while also referencing the selected WBS, Activity, Procurement or Inventory transaction.
+        Documents remain Project-owned for access control while also referencing the selected WBS, Activity, Procurement, Inventory, Finance or Subcontract transaction.
       </Typography>
       <Stack direction={{ xs: 'column', md: 'row' }} spacing={1}>
         <TextField
@@ -225,6 +279,14 @@ export function DocumentTargetPanel({
           <MenuItem value="MATERIAL_ISSUE">Material Issue</MenuItem>
           <MenuItem value="MATERIAL_RETURN">Material Return</MenuItem>
           <MenuItem value="STOCK_TRANSFER">Stock Transfer</MenuItem>
+          <MenuItem value="SUPPLIER_INVOICE">Supplier Invoice</MenuItem>
+          <MenuItem value="CLIENT_INVOICE">Client Invoice</MenuItem>
+          <MenuItem value="PAYMENT">Payment</MenuItem>
+          <MenuItem value="SUBCONTRACT_AGREEMENT">Subcontract Agreement</MenuItem>
+          <MenuItem value="SUBCONTRACT_WORK_ORDER">Subcontract Work Order</MenuItem>
+          <MenuItem value="SUBCONTRACT_CLAIM">Subcontract Claim</MenuItem>
+          <MenuItem value="SUBCONTRACT_CERTIFICATION">Subcontract Certification</MenuItem>
+          <MenuItem value="SUBCONTRACT_VARIATION">Subcontract Variation</MenuItem>
         </TextField>
         <TextField
           select

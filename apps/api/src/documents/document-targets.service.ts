@@ -23,7 +23,15 @@ export type DocumentTargetType =
   | 'MATERIAL_RESERVATION'
   | 'MATERIAL_ISSUE'
   | 'MATERIAL_RETURN'
-  | 'STOCK_TRANSFER';
+  | 'STOCK_TRANSFER'
+  | 'SUPPLIER_INVOICE'
+  | 'CLIENT_INVOICE'
+  | 'PAYMENT'
+  | 'SUBCONTRACT_AGREEMENT'
+  | 'SUBCONTRACT_WORK_ORDER'
+  | 'SUBCONTRACT_CLAIM'
+  | 'SUBCONTRACT_CERTIFICATION'
+  | 'SUBCONTRACT_VARIATION';
 
 type AuditContext = {
   auth: AuthenticatedUserContext;
@@ -60,6 +68,14 @@ export class DocumentTargetsService {
       materialIssues,
       materialReturns,
       stockTransfers,
+      supplierInvoices,
+      clientInvoices,
+      payments,
+      subcontractAgreements,
+      subcontractWorkOrders,
+      subcontractClaims,
+      subcontractCertifications,
+      subcontractVariations,
     ] = await Promise.all([
       this.prisma.wbsElement.findMany({
         where: { projectId, isActive: true },
@@ -168,6 +184,81 @@ export class DocumentTargetsService {
             orderBy: { transferNumber: 'asc' },
           })
         : Promise.resolve([]),
+      can('finance.supplier_invoice.view')
+        ? this.prisma.supplierInvoice.findMany({
+            where: { projectId, companyId: auth.companyId },
+            select: {
+              id: true,
+              supplierInvoiceNumber: true,
+              supplierReference: true,
+              state: true,
+            },
+            orderBy: { supplierInvoiceNumber: 'asc' },
+          })
+        : Promise.resolve([]),
+      can('finance.client_invoice.view')
+        ? this.prisma.clientInvoice.findMany({
+            where: { projectId, companyId: auth.companyId },
+            select: { id: true, clientInvoiceNumber: true, state: true },
+            orderBy: { clientInvoiceNumber: 'asc' },
+          })
+        : Promise.resolve([]),
+      can('finance.payment.view')
+        ? this.prisma.payment.findMany({
+            where: { projectId, companyId: auth.companyId },
+            select: {
+              id: true,
+              paymentNumber: true,
+              paymentDirection: true,
+              state: true,
+              reference: true,
+            },
+            orderBy: { paymentNumber: 'asc' },
+          })
+        : Promise.resolve([]),
+      can('subcontracts.agreement.view')
+        ? this.prisma.subcontractAgreement.findMany({
+            where: { projectId, companyId: auth.companyId },
+            select: {
+              id: true,
+              agreementNumber: true,
+              approvalState: true,
+            },
+            orderBy: { agreementNumber: 'asc' },
+          })
+        : Promise.resolve([]),
+      can('subcontracts.work_order.view')
+        ? this.prisma.subcontractWorkOrder.findMany({
+            where: { projectId, companyId: auth.companyId },
+            select: {
+              id: true,
+              workOrderNumber: true,
+              approvalState: true,
+            },
+            orderBy: { workOrderNumber: 'asc' },
+          })
+        : Promise.resolve([]),
+      can('subcontracts.claim.view')
+        ? this.prisma.subcontractClaim.findMany({
+            where: { projectId, companyId: auth.companyId },
+            select: { id: true, claimNumber: true, state: true },
+            orderBy: { claimNumber: 'asc' },
+          })
+        : Promise.resolve([]),
+      can('subcontracts.certification.view')
+        ? this.prisma.subcontractCertification.findMany({
+            where: { projectId, companyId: auth.companyId },
+            select: { id: true, certificationNumber: true, state: true },
+            orderBy: { certificationNumber: 'asc' },
+          })
+        : Promise.resolve([]),
+      can('subcontracts.variation.view')
+        ? this.prisma.subcontractVariation.findMany({
+            where: { projectId, companyId: auth.companyId },
+            select: { id: true, variationNumber: true, state: true },
+            orderBy: { variationNumber: 'asc' },
+          })
+        : Promise.resolve([]),
     ]);
     return {
       wbs,
@@ -181,6 +272,14 @@ export class DocumentTargetsService {
       materialIssues,
       materialReturns,
       stockTransfers,
+      supplierInvoices,
+      clientInvoices,
+      payments,
+      subcontractAgreements,
+      subcontractWorkOrders,
+      subcontractClaims,
+      subcontractCertifications,
+      subcontractVariations,
     };
   }
 
@@ -324,7 +423,7 @@ export class DocumentTargetsService {
     entityId: string,
   ) {
     await this.access.assertAccess(auth, projectId);
-    this.assertInventoryTargetPermission(auth, entityType);
+    this.assertTargetPermission(auth, entityType);
 
     if (entityType === 'WBS') {
       const row = await this.prisma.wbsElement.findFirst({
@@ -420,6 +519,78 @@ export class DocumentTargetsService {
       return;
     }
 
+    if (entityType === 'SUPPLIER_INVOICE') {
+      const row = await this.prisma.supplierInvoice.findFirst({
+        where: { id: entityId, projectId, companyId: auth.companyId },
+        select: { id: true },
+      });
+      if (!row) throw this.targetNotFound();
+      return;
+    }
+
+    if (entityType === 'CLIENT_INVOICE') {
+      const row = await this.prisma.clientInvoice.findFirst({
+        where: { id: entityId, projectId, companyId: auth.companyId },
+        select: { id: true },
+      });
+      if (!row) throw this.targetNotFound();
+      return;
+    }
+
+    if (entityType === 'PAYMENT') {
+      const row = await this.prisma.payment.findFirst({
+        where: { id: entityId, projectId, companyId: auth.companyId },
+        select: { id: true },
+      });
+      if (!row) throw this.targetNotFound();
+      return;
+    }
+
+    if (entityType === 'SUBCONTRACT_AGREEMENT') {
+      const row = await this.prisma.subcontractAgreement.findFirst({
+        where: { id: entityId, projectId, companyId: auth.companyId },
+        select: { id: true },
+      });
+      if (!row) throw this.targetNotFound();
+      return;
+    }
+
+    if (entityType === 'SUBCONTRACT_WORK_ORDER') {
+      const row = await this.prisma.subcontractWorkOrder.findFirst({
+        where: { id: entityId, projectId, companyId: auth.companyId },
+        select: { id: true },
+      });
+      if (!row) throw this.targetNotFound();
+      return;
+    }
+
+    if (entityType === 'SUBCONTRACT_CLAIM') {
+      const row = await this.prisma.subcontractClaim.findFirst({
+        where: { id: entityId, projectId, companyId: auth.companyId },
+        select: { id: true },
+      });
+      if (!row) throw this.targetNotFound();
+      return;
+    }
+
+    if (entityType === 'SUBCONTRACT_CERTIFICATION') {
+      const row = await this.prisma.subcontractCertification.findFirst({
+        where: { id: entityId, projectId, companyId: auth.companyId },
+        select: { id: true },
+      });
+      if (!row) throw this.targetNotFound();
+      return;
+    }
+
+    if (entityType === 'SUBCONTRACT_VARIATION') {
+      const row = await this.prisma.subcontractVariation.findFirst({
+        where: { id: entityId, projectId, companyId: auth.companyId },
+        select: { id: true },
+      });
+      if (!row) throw this.targetNotFound();
+      return;
+    }
+
     const transfer = await this.prisma.stockTransfer.findFirst({
       where: {
         id: entityId,
@@ -452,7 +623,7 @@ export class DocumentTargetsService {
     }
   }
 
-  private assertInventoryTargetPermission(
+  private assertTargetPermission(
     auth: AuthenticatedUserContext,
     entityType: DocumentTargetType,
   ) {
@@ -462,13 +633,21 @@ export class DocumentTargetsService {
       MATERIAL_ISSUE: 'inventory.issue.view',
       MATERIAL_RETURN: 'inventory.return.view',
       STOCK_TRANSFER: 'inventory.transfer.view',
+      SUPPLIER_INVOICE: 'finance.supplier_invoice.view',
+      CLIENT_INVOICE: 'finance.client_invoice.view',
+      PAYMENT: 'finance.payment.view',
+      SUBCONTRACT_AGREEMENT: 'subcontracts.agreement.view',
+      SUBCONTRACT_WORK_ORDER: 'subcontracts.work_order.view',
+      SUBCONTRACT_CLAIM: 'subcontracts.claim.view',
+      SUBCONTRACT_CERTIFICATION: 'subcontracts.certification.view',
+      SUBCONTRACT_VARIATION: 'subcontracts.variation.view',
     };
     const required = permission[entityType];
     if (required && !auth.permissions.includes(required)) {
       throw new ForbiddenException({
-        code: 'DOCUMENT_INVENTORY_TARGET_FORBIDDEN',
+        code: 'DOCUMENT_TARGET_PERMISSION_DENIED',
         detail:
-          'Inventory target visibility requires the matching Inventory view permission.',
+          'Document target visibility requires the matching business-record view permission.',
       });
     }
   }
