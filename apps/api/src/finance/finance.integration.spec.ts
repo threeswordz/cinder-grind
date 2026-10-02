@@ -2281,8 +2281,13 @@ test('V0.6-C Payments preserve Project scope, settlement ceilings, idempotency a
       audit,
       numbers,
     );
-    const makerAuth = auth(company.id, maker.id);
-    const checkerAuth = auth(company.id, checker.id, [role.roleCode]);
+    const makerAuth = auth(company.id, maker.id, [], []);
+    const checkerAuth = auth(
+      company.id,
+      checker.id,
+      [role.roleCode],
+      [],
+    );
     const outsiderAuth = auth(company.id, outsider.id, [], []);
 
     const supplierDraft = await supplierFinance.createInvoice(
