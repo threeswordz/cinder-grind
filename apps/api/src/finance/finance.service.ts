@@ -186,6 +186,35 @@ export class FinanceService {
     return this.visibleInvoice(auth, invoiceId, this.prisma);
   }
 
+  async accountsPayable(auth: AuthenticatedUserContext, projectId: string) {
+    await this.access.assertAccess(auth, projectId);
+    const rows = await this.prisma.supplierInvoice.findMany({
+      where: {
+        companyId: auth.companyId,
+        projectId,
+        state: 'APPROVED',
+      },
+      select: {
+        id: true,
+        supplierInvoiceNumber: true,
+        supplierReference: true,
+        invoiceDate: true,
+        dueDate: true,
+        currencyCode: true,
+        totalAmount: true,
+        supplier: {
+          select: { id: true, supplierCode: true, supplierName: true },
+        },
+      },
+      orderBy: [{ dueDate: 'asc' }, { invoiceDate: 'asc' }, { supplierInvoiceNumber: 'asc' }],
+    });
+    return rows.map((row) => ({
+      ...row,
+      allocatedAmount: new Prisma.Decimal(0),
+      outstandingAmount: row.totalAmount,
+    }));
+  }
+
   async invoicesForPurchaseOrderLine(
     auth: AuthenticatedUserContext,
     purchaseOrderLineId: string,
