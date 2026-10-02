@@ -1,12 +1,12 @@
 # Construction ERP — Current State
 
-**Last verified:** 2026-10-01
+**Last verified:** 2026-10-02
 **Source of truth:** Live GitHub repository state
 
-- Current Release: V0.6 Finance — **IN PROGRESS**. V0.6-A is technically complete. V0.6-B Client Invoice / Derived AP-AR is the active stage under Issue #121 / PR #122.
-- Current Stage: V0.6-B Client Invoice / Derived AP-AR — **MERGE GATES CLEAR AT CURRENT HEAD**. PR #122 is open and mergeable at `10e0b7257bf803d7e368bb10311c1e070cde92a5`; CI #2326 passed; all 29 review threads are resolved; final Codex exact-head review on `10e0b7257b` reported no major issues. Issue #121 remains open until merge + post-merge `main` CI + closure. Human V0.6 release UAT remains a later mandatory release-exit gate after V0.6-A through V0.6-E.
-- Completed Stages: V0.1-A through V0.1-H; V0.2-A through V0.2-G; V0.3-A through V0.3-E; V0.4-A through V0.4-E; V0.5 entry gate; V0.5-A; V0.5-B; V0.5-C; V0.5-D; V0.5-E; V0.6 entry gate; V0.6-A
-- Active Issue: #121 — V0.6-B Client Invoice / Derived AP-AR. Active PR: #122. Current reviewed head: `10e0b7257bf803d7e368bb10311c1e070cde92a5`.
+- Current Release: V0.6 Finance — **IN PROGRESS**. V0.6-A and V0.6-B are technically complete. V0.6-C Payments / Approvals / Allocations is entering its source-controlled pre-flight under Issue #124.
+- Current Stage: V0.6-C Payments / Approvals / Allocations — **PRE-FLIGHT**. V0.6-B PR #122 squash-merged as `0e4d8314f23471e82165e27c745dbd0057a5d42e`; post-merge `main` CI #2332 passed and Issue #121 is closed. Stage-C implementation has not started and remains blocked until its pre-flight PR/CI/post-merge gate completes.
+- Completed Stages: V0.1-A through V0.1-H; V0.2-A through V0.2-G; V0.3-A through V0.3-E; V0.4-A through V0.4-E; V0.5 entry gate; V0.5-A; V0.5-B; V0.5-C; V0.5-D; V0.5-E; V0.6 entry gate; V0.6-A; V0.6-B
+- Active Issue: #124 — V0.6-C Payments / Approvals / Allocations. Pre-flight branch: `v0.6-c-preflight`. No Stage-C implementation code has begun.
 - V0.5-C green main checkpoint: PR #108 squash-merged as `3f00de1f984c82c1737c4b47c226d99197b19e54`; final exact-head push CI #1869 and PR CI #1870 passed on `0833cd893f208003215cf39cee9c07b6c9a817ad`; final Codex exact-head review reported no major issues; post-merge main CI #1871 passed; Issue #107 closed.
 - V0.5-D green main checkpoint: PR #110 squash-merged as `aceeb82ad13a2f6c773d307541ddd02fafc69a92`; final exact-head push CI #1898 and PR CI #1899 passed on `0cf62c630153a6ac2326f352c0064243b3a2f45f`; final Codex exact-head review reported no major issues; post-merge main CI #1900 passed; Issue #109 closed.
 - V0.5-E green main checkpoint: PR #112 squash-merged as `c054b9253e1ad2623a3fc233ba125003b2894c37`; final exact-head push CI #1930 and PR CI #1931 passed on `9ba8d862dcf66e7b00d7006d9398b19d83026e41`; final Codex exact-head review reported no major issues; post-merge main CI #1932 passed; Issue #111 closed. AC-V05-030 was explicitly accepted by the Product / Business Owner on 2026-10-01.
@@ -87,7 +87,7 @@
 - V0.1 cross-module release acceptance scenario: PASS in the Stage H release-candidate regression suite.
 - Open defect check at V0.1 acceptance: no Severity 1 or Severity 2 release-blocking defect recorded.
 - Governance: `AGENTS.md`, `docs/PROJECT-GOVERNANCE.md`, PR governance checklist, DEC-008, DEC-016 and DEC-022 are active. DEC-022 makes Codex a stable-merge-candidate/high-risk independent gate rather than a continuous per-fix reviewer; human UAT and CI/release sequencing are unchanged.
-- Next action: PR #122 is technically ready for the normal squash-merge sequence at its current reviewed head; after merge, verify post-merge `main` CI, close Issue #121, then mark V0.6-B technically complete before V0.6-C begins. Human V0.6 UAT/release acceptance remains a later mandatory gate.
+- Next action: validate and merge the V0.6-C pre-flight documentation, verify post-merge `main` CI, then create `v0.6-c-payments-allocations` from that exact green checkpoint and begin Stage-C implementation. Human V0.6 UAT/release acceptance remains a later mandatory gate.
 
 ## Stage E completed
 
@@ -892,3 +892,11 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - Chat + CI remain continuous during active implementation; Codex is reserved for stable merge candidates and material/high-risk re-review rather than every intermediate head.
 - V0.6-B PR #122 already has a clean final Codex review on exact head `10e0b7257bf803d7e368bb10311c1e070cde92a5`, CI #2326 passed and all 29 review threads are resolved. No further Codex review is required unless that PR receives a material code/schema/security/business-behavior change before merge.
 - Required human V0.6 UAT/business acceptance is unchanged and has not been completed.
+
+## V0.6-B completed / V0.6-C pre-flight
+
+- PR #122 squash-merged to `main` as `0e4d8314f23471e82165e27c745dbd0057a5d42e` after final PR-head CI #2331 passed and all 29 review threads were resolved.
+- Final Codex runtime review of `10e0b7257b` reported no major issues. Later PR-head movement was documentation/governance reconciliation only under DEC-022.
+- Post-merge `main` CI #2332 passed and Issue #121 closed completed. V0.6-B is technically complete.
+- Issue #124 defines V0.6-C Payments / Approvals / Allocations. Stage-C implementation is not authorized until its source-controlled pre-flight CI/merge/post-merge gates complete.
+- V0.6-D, V0.6-E and human V0.6 release UAT remain later gates.
