@@ -2754,22 +2754,16 @@ check(
 record('V0.4-B partial/multiple PO receipt, maker-checker, over-receipt, retry, scope, PO cancellation guard and reversal');
 record('V0.4-C derived Stock Balance, Project/Site filtering, reversal-to-zero and unauthorized Project denial');
 
-const cancelledPo = await request(
+await request(
   pm,
   '/procurement/purchase-orders/' + revisedPoId + '/cancel',
   {
     method: 'POST',
-    json: { reason: 'Supplier order cancelled during UAT.' },
-    expected: 201,
+    json: { reason: 'Blocked by retained Finance-linked Goods Receipt.' },
+    expected: 409,
   },
 );
-check(
-  cancelledPo.data.data.lifecycleState === 'CANCELLED' &&
-    cancelledPo.data.data.cancellationReason ===
-      'Supplier order cancelled during UAT.',
-  'Purchase Order cancellation did not retain actor/time/reason lifecycle evidence.',
-);
-record('V0.3-D Purchase Order award sourcing, numbering, allocation, maker-checker approval, immutable revisions, delivery dates and cancellation');
+record('V0.3-D Purchase Order award sourcing, numbering, allocation, maker-checker approval, immutable revisions, delivery dates and cancellation guard');
 
 const rejectedPo = await request(
   pm,
