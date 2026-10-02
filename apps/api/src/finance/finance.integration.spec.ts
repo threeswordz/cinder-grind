@@ -2756,6 +2756,15 @@ test('V0.6-C Payments preserve Project scope, settlement ceilings, idempotency a
         ),
       /PAYMENT_CANCELLATION_HISTORY_IMMUTABLE/,
     );
+    await assert.rejects(
+      () =>
+        prisma.$executeRawUnsafe(
+          'UPDATE "payments" SET "approved_at" = "approved_at" + interval \'1 second\', "approved_by_user_id" = $2::uuid WHERE "id" = $1::uuid',
+          cancelled.id,
+          outsider.id,
+        ),
+      /PAYMENT_APPROVAL_HISTORY_IMMUTABLE/,
+    );
     const apAfterCancellation = await supplierFinance.accountsPayable(
       makerAuth,
       project.id,
