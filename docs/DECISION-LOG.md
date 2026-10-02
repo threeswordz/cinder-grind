@@ -385,3 +385,26 @@ This waiver:
 - is not a standing precedent or reusable waiver for later PRs;
 - does not weaken DEC-008, DEC-016, Change Control, forward-only migration rules, security/project-scope rules, or CI requirements;
 - does not waive any later mandatory human UAT or Product / Business Owner release acceptance gate.
+
+## DEC-022 — Codex review economy / stable-merge-candidate policy
+**Status:** APPROVED — Product / Business Owner, 2026-10-02 (Singapore time)
+
+The Product / Business Owner explicitly approved making the recommended Codex-efficiency approach permanent and instructed that GitHub be documented after checking the live project position.
+
+The approved policy is:
+- Chat and CI/tests remain the continuous development, focused-review and defect-fixing loop while a branch is actively changing.
+- Codex is a scarce independent review gate and should not be repeatedly triggered on unstable intermediate heads or after each individual fix.
+- The normal first Codex review occurs only when the PR/stage is a stable merge candidate with applicable CI green and known Chat findings resolved.
+- Genuine Codex findings are batched, fixed with regression coverage where applicable, and validated by CI before a further review request.
+- A batched final re-review is required when those fixes materially change reviewed runtime behavior or touch authorization, permissions, Finance/payment/accounting, migrations, audit/history immutability, concurrency or data-integrity surfaces. Additional review passes occur only when a later review finds a distinct genuine blocker or a subsequent material change invalidates prior evidence.
+- A clean Codex review is not invalidated merely because later commits change documentation/evidence only and do not alter reviewed runtime behavior, schema, security boundaries or business rules.
+- Low-risk documentation-only PRs normally require Chat review + CI, not Codex, unless another approved stage/release gate explicitly requires it.
+- High-risk implementation PRs still require Codex at the stable merge candidate unless the Product / Business Owner grants an explicit PR-specific waiver that is recorded durably.
+- Work remains the periodic independent broad auditor; this policy does not transfer implementation ownership to Work.
+- Human UAT/business acceptance, Change Control, DEC-008, forward-only migrations, one-active-writer guidance, predecessor-stage sequencing and exact-head/PR/post-merge CI requirements remain unchanged.
+
+### Application to V0.6-B at approval time
+
+Live GitHub was checked before this decision was recorded. PR #122 (`V0.6-B Client Invoice and derived AP-AR`) was open and mergeable at head `10e0b7257bf803d7e368bb10311c1e070cde92a5`. CI #2326 passed on that head, all 29 review threads were resolved, and the Codex timeline recorded: “Codex Review: Didn't find any major issues.” for reviewed commit `10e0b7257b`.
+
+Therefore the V0.6-B Codex gate is satisfied at that exact reviewed head. This separate governance/documentation change does not modify PR #122 and does not invalidate that clean review. If PR #122 later receives a material code/schema/security/business-behavior change, DEC-022 requires the appropriate stable-head re-review before merge.
