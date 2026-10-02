@@ -1038,6 +1038,9 @@ export class PurchaseOrderService {
             nextRevision: {
               select: { id: true },
             },
+            lines: {
+              orderBy: { lineNo: 'asc' },
+            },
           },
         });
         if (!order) throw this.orderNotFound();
@@ -1051,6 +1054,26 @@ export class PurchaseOrderService {
           'SELECT pg_advisory_xact_lock(hashtext($1))',
           'receipt-po:' + order.companyId + ':' + order.poNumber,
         );
+        for (const line of [...order.lines].sort((a, b) => a.id.localeCompare(b.id))) {
+          await tx.$executeRawUnsafe(
+            'SELECT pg_advisory_xact_lock(hashtext($1))',
+            'finance-source:po-line:' + line.id,
+          );
+        }
+        const approvedInvoiceSource = await tx.supplierInvoiceItem.findFirst({
+          where: {
+            purchaseOrderLineId: { in: order.lines.map((line) => line.id) },
+            supplierInvoice: { state: 'APPROVED' },
+          },
+          select: { id: true },
+        });
+        if (approvedInvoiceSource) {
+          throw new ConflictException({
+            code: 'PO_CANCEL_FINANCE_SOURCE_LOCKED',
+            detail:
+              'A Purchase Order referenced by an approved Supplier Invoice cannot be cancelled.',
+          });
+        }
         const outstandingReceipt = await tx.goodsReceipt.findFirst({
           where: {
             postedAt: { not: null },
@@ -1152,7 +1175,7 @@ export class PurchaseOrderService {
           lifecycleState: 'CANCELLED' as const,
         };
       },
-      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted },
     );
   }
 
