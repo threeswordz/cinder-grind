@@ -2736,8 +2736,9 @@ const hiddenZeroBalance = await request(
     '&warehouseId=' + receiptWarehouseId,
 );
 check(
-  hiddenZeroBalance.data.data.length === 0,
-  'Net-zero historical balance must be hidden by default.',
+  hiddenZeroBalance.data.data.length === 1 &&
+    hiddenZeroBalance.data.data[0]?.quantity === '4.0000',
+  'Finance-linked retained receipt must remain visible in derived stock balance.',
 );
 const visibleZeroBalance = await request(
   pm,
@@ -2747,8 +2748,8 @@ const visibleZeroBalance = await request(
 );
 check(
   visibleZeroBalance.data.data.length === 1 &&
-    visibleZeroBalance.data.data[0]?.quantity === '0.0000',
-  'Zero-balance history was not derived exactly when requested.',
+    visibleZeroBalance.data.data[0]?.quantity === '4.0000',
+  'Finance-linked retained receipt balance was not derived exactly.',
 );
 record('V0.4-B partial/multiple PO receipt, maker-checker, over-receipt, retry, scope, PO cancellation guard and reversal');
 record('V0.4-C derived Stock Balance, Project/Site filtering, reversal-to-zero and unauthorized Project denial');
