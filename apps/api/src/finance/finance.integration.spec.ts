@@ -596,6 +596,33 @@ test('V0.6-B routes retain explicit Client Invoice and AP-AR permissions', () =>
   );
 });
 
+test('V0.6-B Client Invoice viewer Project selector preserves archived history', async () => {
+  const companyId = randomUUID();
+  const userId = randomUUID();
+  const viewerAuth = auth(companyId, userId, [], [
+    'finance.client_invoice.view',
+    'projects.access_all',
+  ]);
+  const archivedProject = {
+    id: randomUUID(),
+    projectCode: 'ARCHIVED-CI',
+    projectName: 'Archived Client Invoice Project',
+    isActive: false,
+  };
+  let balanceSelectorCalled = false;
+  const controller = new ClientInvoiceController({
+    balanceProjects: async (receivedAuth: AuthenticatedUserContext) => {
+      balanceSelectorCalled = true;
+      assert.equal(receivedAuth.userId, userId);
+      return [archivedProject];
+    },
+  } as unknown as ClientInvoiceService);
+
+  const result = await controller.projects({ auth: viewerAuth } as never);
+  assert.equal(balanceSelectorCalled, true);
+  assert.deepEqual(result.data, [archivedProject]);
+});
+
 test('V0.6-B Client Invoice preserves scope, maker-checker, retained history and derived AP-AR', async () => {
   const prisma = new PrismaService();
   await prisma.$connect();
