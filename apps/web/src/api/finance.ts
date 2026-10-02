@@ -367,6 +367,10 @@ export type AccountsPayableRow = {
 export const clientFinanceApi = {
   projects: () =>
     apiRequest<Data<FinanceProject[]>>('/finance/client-invoice-projects'),
+  accountsPayableProjects: () =>
+    apiRequest<Data<FinanceProject[]>>('/finance/accounts-payable-projects'),
+  accountsReceivableProjects: () =>
+    apiRequest<Data<FinanceProject[]>>('/finance/accounts-receivable-projects'),
   workflows: () =>
     apiRequest<Data<FinanceWorkflow[]>>('/finance/client-invoice-workflow-options'),
   options: (projectId: string) =>
