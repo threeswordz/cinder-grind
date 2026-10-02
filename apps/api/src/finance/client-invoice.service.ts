@@ -215,8 +215,12 @@ export class ClientInvoiceService {
 
   async update(context: AuditContext, invoiceId: string, input: ClientInvoiceDraftUpdate) {
     return this.prisma.$transaction(async (tx) => {
-      const current = await this.visible(context.auth, invoiceId, tx);
+      await this.visible(context.auth, invoiceId, tx);
       await this.lock(context.auth.companyId, invoiceId, tx);
+      const current = await tx.clientInvoice.findFirst({
+        where: { id: invoiceId, companyId: context.auth.companyId },
+      });
+      if (!current) throw this.notFound();
       this.assertDraft(current.state);
       const invoiceDate = input.invoiceDate ?? current.invoiceDate;
       const dueDate = input.dueDate === undefined ? current.dueDate : input.dueDate;
@@ -237,8 +241,12 @@ export class ClientInvoiceService {
   async addLine(context: AuditContext, invoiceId: string, input: ClientInvoiceLineInput) {
     this.assertLine(input);
     return this.prisma.$transaction(async (tx) => {
-      const current = await this.visible(context.auth, invoiceId, tx);
+      await this.visible(context.auth, invoiceId, tx);
       await this.lock(context.auth.companyId, invoiceId, tx);
+      const current = await tx.clientInvoice.findFirst({
+        where: { id: invoiceId, companyId: context.auth.companyId },
+      });
+      if (!current) throw this.notFound();
       this.assertDraft(current.state);
       const max = await tx.clientInvoiceItem.aggregate({ where: { clientInvoiceId: invoiceId }, _max: { lineNo: true } });
       const item = await tx.clientInvoiceItem.create({ data: {
@@ -252,10 +260,15 @@ export class ClientInvoiceService {
 
   async updateLine(context: AuditContext, itemId: string, input: ClientInvoiceLineUpdate) {
     return this.prisma.$transaction(async (tx) => {
-      const item = await tx.clientInvoiceItem.findFirst({ where: { id: itemId, clientInvoice: { companyId: context.auth.companyId } }, include: { clientInvoice: true } });
+      const visibleItem = await tx.clientInvoiceItem.findFirst({ where: { id: itemId, clientInvoice: { companyId: context.auth.companyId } } });
+      if (!visibleItem) throw this.notFound();
+      await this.access.assertAccess(context.auth, visibleItem.projectId, tx);
+      await this.lock(context.auth.companyId, visibleItem.clientInvoiceId, tx);
+      const item = await tx.clientInvoiceItem.findFirst({
+        where: { id: itemId, clientInvoice: { companyId: context.auth.companyId } },
+        include: { clientInvoice: true },
+      });
       if (!item) throw this.notFound();
-      await this.access.assertAccess(context.auth, item.projectId, tx);
-      await this.lock(context.auth.companyId, item.clientInvoiceId, tx);
       this.assertDraft(item.clientInvoice.state);
       const merged = { description: input.description ?? item.description, amount: input.amount ?? item.amount };
       this.assertLine(merged);
@@ -270,10 +283,15 @@ export class ClientInvoiceService {
 
   async deleteLine(context: AuditContext, itemId: string) {
     return this.prisma.$transaction(async (tx) => {
-      const item = await tx.clientInvoiceItem.findFirst({ where: { id: itemId, clientInvoice: { companyId: context.auth.companyId } }, include: { clientInvoice: true } });
+      const visibleItem = await tx.clientInvoiceItem.findFirst({ where: { id: itemId, clientInvoice: { companyId: context.auth.companyId } } });
+      if (!visibleItem) throw this.notFound();
+      await this.access.assertAccess(context.auth, visibleItem.projectId, tx);
+      await this.lock(context.auth.companyId, visibleItem.clientInvoiceId, tx);
+      const item = await tx.clientInvoiceItem.findFirst({
+        where: { id: itemId, clientInvoice: { companyId: context.auth.companyId } },
+        include: { clientInvoice: true },
+      });
       if (!item) throw this.notFound();
-      await this.access.assertAccess(context.auth, item.projectId, tx);
-      await this.lock(context.auth.companyId, item.clientInvoiceId, tx);
       this.assertDraft(item.clientInvoice.state);
       await tx.clientInvoiceItem.delete({ where: { id: itemId } });
       await this.audit.record({ ...context, entityType: 'CLIENT_INVOICE', entityId: item.clientInvoiceId, action: 'DELETE_LINE', oldValues: { lineId: itemId, lineNo: item.lineNo } }, tx);
