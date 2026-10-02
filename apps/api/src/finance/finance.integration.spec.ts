@@ -900,15 +900,21 @@ test('V0.6-B Client Invoice preserves scope, maker-checker, retained history and
         lines: [{ description: 'Later-period losing retry', amount: new Decimal('4.00') }],
       },
     );
+    const novemberOutcome = novemberRace.then(
+      (value) => ({ status: 'fulfilled' as const, value }),
+      (error: unknown) => ({ status: 'rejected' as const, error }),
+    );
     await secondEntered;
     releaseFirstResolve();
 
     try {
       const octoberWinner = await octoberRace;
       assert.match(octoberWinner.clientInvoiceNumber, /^CI2610-\d{3}$/);
-      await assert.rejects(
-        () => novemberRace,
-        (error: unknown) => error instanceof ConflictException,
+      const losingOutcome = await novemberOutcome;
+      assert.equal(losingOutcome.status, 'rejected');
+      assert.ok(
+        losingOutcome.status === 'rejected' &&
+          losingOutcome.error instanceof ConflictException,
       );
     } finally {
       numbers.next = originalNext;
