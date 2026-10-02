@@ -514,12 +514,16 @@ BEGIN
     RAISE EXCEPTION 'PAYMENT_ALLOCATION_HISTORY_IMMUTABLE';
   END IF;
 
-  SELECT c.*, a."subcontractor_id"
-    INTO certification_row, certification_subcontractor_id
+  SELECT c.*
+    INTO certification_row
   FROM "subcontract_certifications" c
-  JOIN "subcontract_agreements" a ON a."id" = c."agreement_id"
   WHERE c."id" = NEW."subcontract_certification_id"
-  FOR UPDATE OF c;
+  FOR UPDATE;
+
+  SELECT a."subcontractor_id"
+    INTO certification_subcontractor_id
+  FROM "subcontract_agreements" a
+  WHERE a."id" = certification_row."agreement_id";
 
   IF
        certification_row."id" IS NULL
