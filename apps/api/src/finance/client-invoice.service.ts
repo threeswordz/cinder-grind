@@ -34,6 +34,15 @@ export class ClientInvoiceService {
     private readonly numbers: NumberSequenceService,
   ) {}
 
+  async projects(auth: AuthenticatedUserContext) {
+    const scope = await this.access.scopeWhere(auth);
+    return this.prisma.project.findMany({
+      where: { AND: [scope, { isActive: true }] },
+      select: { id: true, projectCode: true, projectName: true },
+      orderBy: [{ projectName: 'asc' }, { projectCode: 'asc' }],
+    });
+  }
+
   workflowOptions(auth: AuthenticatedUserContext) {
     return this.prisma.approvalWorkflow.findMany({
       where: { companyId: auth.companyId, entityType: 'CLIENT_INVOICE', isActive: true },
