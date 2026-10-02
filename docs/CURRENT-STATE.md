@@ -1,12 +1,12 @@
 # Construction ERP — Current State
 
-**Last verified:** 2026-10-02
+**Last verified:** 2026-10-01
 **Source of truth:** Live GitHub repository state
 
-- Current Release: V0.6 Finance — **IN PROGRESS**. The approved V0.6 Finance baseline is governed by DEC-017 through DEC-021. V0.6-A Supplier Invoice Foundation / PO-GR Traceability / Approval is technically complete; V0.6-B Client Invoice / Derived AP-AR is implemented on PR #122 and is under final pre-merge validation.
-- Current Stage: V0.6-B Client Invoice / Derived AP-AR — **IMPLEMENTED / UNDER VALIDATION**. Issue #121 is active; PR #122 is open and mergeable on branch `v0.6-b-client-invoice-ap-ar`. Latest implementation head `fd3aeb303a39bb87c8c3e1d742650f486dd04dcf` passed exact-head CI #2322, including migrations, migration status, full workspace validation/tests, UAT bootstrap and live HTTP acceptance. Rejection reason remains bound to the immutable final Approval Action comment. Approval Action timestamps remain stamped after the Approval Instance serialization lock and normalized to millisecond precision; public Client Invoice approval history now uses retained `client_invoice_decision_order` as its primary order, with `actionAt` and `id` only as deterministic secondary keys, so same-millisecond timestamp ties cannot reorder serialized audit history. Regression coverage proves the public history follows serialized decision order while the BIGINT decision-order field remains internal and JSON-safe. Client Invoice archived-history discoverability, AP/AR archived-balance discovery, Client Invoice action→view permission dependency, approval-evidence and permission/Project-scope hardening remain intact. The Codex review of `20a14168f7` raised the same-millisecond ordering P2; it is addressed by the decision-order read-path fix and regression now green at CI #2322. This documentation reconciliation changes the PR head, so fresh exact-head CI and a clean Codex review remain required before merge. V0.6-B is not technically complete until PR #122 merges, post-merge `main` CI passes and Issue #121 closes. Human V0.6 release UAT remains a later mandatory release-exit gate after V0.6-A through V0.6-E.
+- Current Release: V0.6 Finance — **IN PROGRESS**. V0.6-A is technically complete. V0.6-B Client Invoice / Derived AP-AR is the active stage under Issue #121 / PR #122.
+- Current Stage: V0.6-B Client Invoice / Derived AP-AR — **MERGE GATES CLEAR AT CURRENT HEAD**. PR #122 is open and mergeable at `10e0b7257bf803d7e368bb10311c1e070cde92a5`; CI #2326 passed; all 29 review threads are resolved; final Codex exact-head review on `10e0b7257b` reported no major issues. Issue #121 remains open until merge + post-merge `main` CI + closure. Human V0.6 release UAT remains a later mandatory release-exit gate after V0.6-A through V0.6-E.
 - Completed Stages: V0.1-A through V0.1-H; V0.2-A through V0.2-G; V0.3-A through V0.3-E; V0.4-A through V0.4-E; V0.5 entry gate; V0.5-A; V0.5-B; V0.5-C; V0.5-D; V0.5-E; V0.6 entry gate; V0.6-A
-- Active Issue: #121 — V0.6-B Client Invoice / Derived AP-AR. PR #122 remains the active implementation PR and is pending the final documentation-updated exact-head CI/Codex gate before merge.
+- Active Issue: #121 — V0.6-B Client Invoice / Derived AP-AR. Active PR: #122. Current reviewed head: `10e0b7257bf803d7e368bb10311c1e070cde92a5`.
 - V0.5-C green main checkpoint: PR #108 squash-merged as `3f00de1f984c82c1737c4b47c226d99197b19e54`; final exact-head push CI #1869 and PR CI #1870 passed on `0833cd893f208003215cf39cee9c07b6c9a817ad`; final Codex exact-head review reported no major issues; post-merge main CI #1871 passed; Issue #107 closed.
 - V0.5-D green main checkpoint: PR #110 squash-merged as `aceeb82ad13a2f6c773d307541ddd02fafc69a92`; final exact-head push CI #1898 and PR CI #1899 passed on `0cf62c630153a6ac2326f352c0064243b3a2f45f`; final Codex exact-head review reported no major issues; post-merge main CI #1900 passed; Issue #109 closed.
 - V0.5-E green main checkpoint: PR #112 squash-merged as `c054b9253e1ad2623a3fc233ba125003b2894c37`; final exact-head push CI #1930 and PR CI #1931 passed on `9ba8d862dcf66e7b00d7006d9398b19d83026e41`; final Codex exact-head review reported no major issues; post-merge main CI #1932 passed; Issue #111 closed. AC-V05-030 was explicitly accepted by the Product / Business Owner on 2026-10-01.
@@ -86,8 +86,8 @@
 - Governance checkpoint validation before this state update: Validate Construction ERP run #473 — SUCCESS on `f94292a1ad11dc1d8eb28c2e65ba9d1e8a127e22`.
 - V0.1 cross-module release acceptance scenario: PASS in the Stage H release-candidate regression suite.
 - Open defect check at V0.1 acceptance: no Severity 1 or Severity 2 release-blocking defect recorded.
-- Governance: `AGENTS.md`, `docs/PROJECT-GOVERNANCE.md`, PR governance checklist and DEC-008 are active; material decisions must pass the repository pre-flight and open-source/zero-cost-first constraint.
-- Next action: run fresh exact-head CI and Codex review on the documentation-reconciled PR #122 head; if clean, squash-merge #122, verify post-merge `main` CI, close Issue #121, record V0.6-B technically complete, then begin V0.6-C Payments / Allocations. Human V0.6 UAT/release acceptance remains a later mandatory gate.
+- Governance: `AGENTS.md`, `docs/PROJECT-GOVERNANCE.md`, PR governance checklist, DEC-008, DEC-016 and DEC-022 are active. DEC-022 makes Codex a stable-merge-candidate/high-risk independent gate rather than a continuous per-fix reviewer; human UAT and CI/release sequencing are unchanged.
+- Next action: PR #122 is technically ready for the normal squash-merge sequence at its current reviewed head; after merge, verify post-merge `main` CI, close Issue #121, then mark V0.6-B technically complete before V0.6-C begins. Human V0.6 UAT/release acceptance remains a later mandatory gate.
 
 ## Stage E completed
 
@@ -886,20 +886,9 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - Exact-head implementation/test CI #2089 passed on `e5926031c3b1ddff558e159cfa0165cc6c0a309b`. The stage is not merged or complete: documentation/PR CI, focused Chat review and the required Codex exact-head review gate remain. Human V0.6 Product / Business Owner UAT remains the later Release Exit Gate after V0.6-A through V0.6-E and is not self-approved here.
 - Client Invoice/AR, Payments/allocations, subcontract Finance payment handoff, retention accounting, cash flow/reporting, tax/VAT, FX, GL/journals, accruals, chart of accounts, matching tolerances/automation, credit/debit notes, approved-invoice cancellation, V0.7 and V0.8 remain deferred.
 
+## Codex review economy policy approved — DEC-022
 
-## V0.6-B Client Invoice / Derived AP-AR implementation under validation
-
-- Issue #121 is active; PR #122 is open and mergeable on branch `v0.6-b-client-invoice-ap-ar`.
-- Stage B remains limited to the approved Client Invoice lifecycle and derived AP/AR read models. Payment/allocation mutation remains V0.6-C; subcontract Finance/retention remains V0.6-D; cash-flow/reporting remains V0.6-E.
-- Security/integrity hardening includes approval-action reassignment prevention, serialized duplicate-decision checks, action-specific Finance permission enforcement, effective Project-scope enforcement, reciprocal invoice/Approval Instance state integrity, retained approval-evidence protection, exact final actor/timestamp binding, deterministic final-action identification for multi-approver workflows and JSON-safe public projections.
-- AP/AR balance selectors and the Client Invoice viewer selector now preserve effective Project scope without filtering archived Projects, so approved balances and Draft/Submitted/historical Client Invoices remain discoverable after Project archival.
-- New Client Invoice setup remains active-only through selected-Project UI checks plus service-side Project validation; archived Projects are labelled and new setup options/creation are suppressed.
-- Role administration rejects Client Invoice create/edit/submit/approve/reject permission sets that omit `finance.client_invoice.view`, preserving discoverability/read access for configured workflow actors.
-- Implementation head `fd3aeb303a39bb87c8c3e1d742650f486dd04dcf` passed CI #2322: migrations, migration status, full workspace validation/tests, UAT bootstrap and live HTTP acceptance all passed.
-- Forward-only rejection-evidence hardening binds Client Invoice rejection reason to the immutable final Approval Action comment; forged direct-transition reasons remain rejected while evidence-matching reasons succeed.
-- Forward-only decision-chronology hardening stamps Approval Action `action_at` after the Approval Instance serialization lock and normalizes to millisecond precision; concurrency regression confirms caller-supplied timestamps cannot forge chronology.
-- Public Client Invoice Approval Action history now orders primarily by retained `client_invoice_decision_order`, with `actionAt` and `id` as deterministic secondary keys. Regression coverage proves serialized history remains correctly ordered even when adjacent millisecond timestamps tie; the BIGINT field remains excluded from HTTP payloads.
-- Existing regressions continue to confirm Client Invoice view-only archived-history discovery, archived AP/AR discovery and balances, and rejection of action-only Client Invoice Role permission sets without view permission.
-- The Codex review of `20a14168f7` raised the same-millisecond public-history ordering P2. The decision-order read-path fix is green at CI #2322; this documentation reconciliation changes the PR head, so fresh exact-head CI and a clean Codex review are still mandatory before PR #122 may merge.
-- After a clean merge, post-merge `main` CI must pass and Issue #121 must close before V0.6-C begins. Human V0.6 UAT/business acceptance remains a later mandatory release-exit gate after V0.6-A through V0.6-E.
-
+- Product / Business Owner approved the permanent stable-merge-candidate Codex policy on 2026-10-02 after a live GitHub check.
+- Chat + CI remain continuous during active implementation; Codex is reserved for stable merge candidates and material/high-risk re-review rather than every intermediate head.
+- V0.6-B PR #122 already has a clean final Codex review on exact head `10e0b7257bf803d7e368bb10311c1e070cde92a5`, CI #2326 passed and all 29 review threads are resolved. No further Codex review is required unless that PR receives a material code/schema/security/business-behavior change before merge.
+- Required human V0.6 UAT/business acceptance is unchanged and has not been completed.
