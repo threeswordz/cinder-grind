@@ -1,3 +1,15 @@
+## 2026-10-02 — V0.6-C Payments / Approvals / Allocations runtime candidate and draft PR #126
+
+- V0.6-C pre-flight PR #125 merged as `606b6622bd6e22623b8aadf8178dd4b905df5c4b` after its CI/post-merge gates, and implementation proceeded only on `v0.6-c-payments-allocations` under Issue #124.
+- Implemented canonical INBOUND/OUTBOUND Payments, one-Project/base-currency/counterparty integrity, configured Approval Matrix maker-checker, explicit Finance permissions, partial/multi-target same-Project allocations, Supplier Invoice settlement, Client Invoice receipt settlement, Subcontract Certification settlement, target/Payment ceilings, replay protection, cancellation and retained audit/history.
+- Added forward-only `20261002232000_v0_6_c_payment_history_immutability` after focused review found that direct database writes could otherwise rewrite retained Payment decision metadata. No already-executed migration was modified.
+- Extended Subcontract Certification reversal compatibility: an active Finance allocation blocks reversal at the database boundary and now returns a controlled service-level 409 Conflict; cancelling the Payment releases the reversal guard while retaining allocation/cancellation history.
+- Added focused regression for cross-Project allocation denial, decision-history immutability, stable allocation replay, technical SYS_ADMIN separation and concurrent Payment create/allocation/approval/cancellation convergence.
+- Authenticated live HTTP acceptance now proves Payment create/retry, direction-safe allocation, maker-checker approval, derived AP/AR settlement, controlled cancellation/restoration, Project/SYS_ADMIN denial, Subcontract net-certified ceiling and Certification reversal blocking/release.
+- Exact runtime head `3dd10ffd3ce1791de28f771c2c28e418ce431deb` passed CI #2351: clean migrations/status, Prisma validation, dependency audit, full API/web validation and prior-release regression, UAT bootstrap and live HTTP acceptance.
+- Draft PR #126 is open specifically to reconcile durable Stage-C docs before review. Under DEC-022, Codex has not been spent on intermediate heads; after this docs-only reconciliation passes CI, PR #126 will be marked ready and the stable exact head will receive the required Codex review.
+- Human V0.6 UAT/business acceptance remains a later release-exit gate after V0.6-A through V0.6-E. V0.6-D must not begin before V0.6-C merge, post-merge `main` CI and Issue #124 closure.
+
 ## 2026-10-01 — V0.5 Subcontracts Product / Business Owner acceptance
 
 - Fresh current-release automated walkthrough on `f6c99c232475871c247c749e289995bdb0f3eb34` passed Validate Construction ERP #1933 attempt 2 with scenario `MUP0LKS3` and 46 checks, covering V0.5-A through V0.5-E plus the authenticated Subcontractor → Agreement → Work Order → Claim → Assessment → Certification/Retention → Variation → reporting path and authorization negatives.
