@@ -16,6 +16,7 @@ import { ProjectScopeService } from '../authorization/project-scope.service';
 import { REQUIRED_PERMISSIONS_KEY } from '../authorization/permissions.decorator';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProjectAccessService } from '../projects/project-access.service';
+import { RetentionService } from '../finance/retention.service';
 import { SubcontractsCertificationController } from './subcontracts-certification.controller';
 import { SubcontractsCertificationService } from './subcontracts-certification.service';
 import { SubcontractsClaimsService } from './subcontracts-claims.service';
@@ -43,6 +44,7 @@ test('V0.5-D Certification routes retain explicit permission metadata', () => {
     ['workflowOptions', ['subcontracts.certification.view', 'subcontracts.certification.submit']],
     ['certificationsForAgreement', ['subcontracts.certification.view']],
     ['certification', ['subcontracts.certification.view']],
+    ['financeReference', ['subcontracts.certification.view', 'finance.payment.view']],
     ['createCertification', ['subcontracts.certification.view', 'subcontracts.certification.create']],
     ['updateCertification', ['subcontracts.certification.view', 'subcontracts.certification.edit']],
     ['submitCertification', ['subcontracts.certification.view', 'subcontracts.certification.submit']],
@@ -188,6 +190,7 @@ test('V0.5-D certifies assessed Claims with retained withholding, history and co
       audit,
       numbers,
     );
+    const retention = new RetentionService(prisma, access);
 
     const makerAuth = auth(company.id, maker.id);
     const makerApproverAuth = auth(company.id, maker.id, [role.roleCode]);
@@ -392,6 +395,40 @@ test('V0.5-D certifies assessed Claims with retained withholding, history and co
     assert.equal(approvedOne.retainedAmount?.toFixed(2), '10.00');
     assert.equal(approvedOne.netCertifiedAmount?.toFixed(2), '90.00');
 
+    const withholdingEntries = await prisma.retentionLedgerEntry.findMany({
+      where: { certificationId: certOne.id },
+      orderBy: { recordedAt: 'asc' },
+    });
+    assert.equal(withholdingEntries.length, 1);
+    assert.equal(withholdingEntries[0]?.entryType, 'WITHHOLDING');
+    assert.equal(withholdingEntries[0]?.amount.toFixed(2), '10.00');
+    assert.equal(withholdingEntries[0]?.recordedByUserId, checker.id);
+
+    const financeReferenceBeforePayment =
+      await certifications.financeReference(checkerAuth, certOne.id);
+    assert.equal(financeReferenceBeforePayment.allocations.length, 0);
+
+    const retentionBeforeReversal = await retention.list(
+      checkerAuth,
+      project.id,
+    );
+    const retentionRow = retentionBeforeReversal.find(
+      (row) => row.id === certOne.id,
+    );
+    assert.ok(retentionRow);
+    assert.equal(retentionRow.financeState, 'ACTIVE');
+    assert.equal(retentionRow.retentionBalance?.toFixed(2), '10.00');
+
+    await assert.rejects(
+      () =>
+        prisma.retentionLedgerEntry.update({
+          where: { id: withholdingEntries[0]!.id },
+          data: { amount: '9.99' },
+        }),
+      /RETENTION_LEDGER_IMMUTABLE/,
+      'retention ledger history must be immutable below the API',
+    );
+
     const replayedApproval = await certifications.approveCertification(
       { auth: checkerAuth },
       certOne.id,
@@ -499,6 +536,11 @@ test('V0.5-D certifies assessed Claims with retained withholding, history and co
     assert.equal(approvedThree.retainedAmount?.toFixed(2), '0.00');
     assert.equal(approvedThree.netCertifiedAmount?.toFixed(2), '100.00');
 
+    await prisma.company.update({
+      where: { id: company.id },
+      data: { baseCurrencyCode: 'USD' },
+    });
+
     const reversedOne = await certifications.reverseCertification(
       { auth: checkerAuth },
       certOne.id,
@@ -509,6 +551,47 @@ test('V0.5-D certifies assessed Claims with retained withholding, history and co
     assert.equal(reversedOne.reversalReason, 'Correct the underlying assessed Claim.');
     assert.equal(reversedOne.retainedAmount?.toFixed(2), '10.00');
     assert.ok(reversedOne.reversedAt);
+
+    const reversedEntries = await prisma.retentionLedgerEntry.findMany({
+      where: { certificationId: certOne.id },
+      orderBy: { recordedAt: 'asc' },
+    });
+    assert.equal(reversedEntries.length, 2);
+    assert.deepEqual(
+      reversedEntries.map((entry) => entry.entryType),
+      ['WITHHOLDING', 'REVERSAL'],
+    );
+    assert.equal(reversedEntries[1]?.amount.toFixed(2), '10.00');
+    assert.equal(
+      reversedEntries[1]?.reversesEntryId,
+      reversedEntries[0]?.id,
+    );
+    const retentionAfterReversal = await retention.list(
+      checkerAuth,
+      project.id,
+    );
+    const reversedRetentionRow = retentionAfterReversal.find(
+      (row) => row.id === certOne.id,
+    );
+    assert.ok(reversedRetentionRow);
+    assert.equal(reversedRetentionRow.financeState, 'REVERSED');
+    assert.equal(reversedRetentionRow.retentionBalance?.toFixed(2), '0.00');
+    assert.equal(reversedRetentionRow.currencyCode, 'SGD');
+    assert.equal(
+      reversedRetentionRow.baseCurrencyCode,
+      'USD',
+      'historical withholding must remain reversible after a later Company base-currency change',
+    );
+    assert.deepEqual(
+      reversedEntries.map((entry) => entry.currencyCode),
+      ['SGD', 'SGD'],
+      'compensating reversal must reuse the original withholding currency without FX conversion',
+    );
+
+    await prisma.company.update({
+      where: { id: company.id },
+      data: { baseCurrencyCode: 'SGD' },
+    });
 
     const replacement = await claims.createReplacement(
       { auth: makerAuth },

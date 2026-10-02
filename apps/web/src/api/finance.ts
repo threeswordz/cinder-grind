@@ -712,3 +712,52 @@ export const paymentApi = {
       { actionKey, reason },
     ),
 };
+
+export type RetentionLedgerEntry = {
+  id: string;
+  entryType: 'WITHHOLDING' | 'REVERSAL';
+  amount: string;
+  currencyCode: string;
+  reversesEntryId: string | null;
+  recordedAt: string;
+  recordedBy: { id: string; displayName: string };
+};
+
+export type RetentionRow = {
+  id: string;
+  certificationNumber: string;
+  currencyCode: string;
+  state: string;
+  retainedAmount: string;
+  netCertifiedAmount: string | null;
+  approvedAt: string | null;
+  reversedAt: string | null;
+  reversalReason: string | null;
+  baseCurrencyCode: string;
+  financeState:
+    | 'ACTIVE'
+    | 'REVERSED'
+    | 'UNSUPPORTED_CURRENCY'
+    | 'MISSING_EVIDENCE';
+  retentionBalance: string | null;
+  agreement: {
+    id: string;
+    agreementNumber: string;
+    subcontractor: {
+      id: string;
+      subcontractorCode: string;
+      subcontractorName: string;
+    };
+  };
+  retentionLedgerEntries: RetentionLedgerEntry[];
+};
+
+export const retentionApi = {
+  projects: () =>
+    apiRequest<Data<FinanceProject[]>>('/finance/retention-projects'),
+  list: (projectId: string) =>
+    apiRequest<Data<RetentionRow[]>>(
+      '/finance/projects/' + projectId + '/retention',
+    ),
+};
+

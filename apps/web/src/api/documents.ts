@@ -26,7 +26,15 @@ export type DocumentTargetType =
   | 'MATERIAL_RESERVATION'
   | 'MATERIAL_ISSUE'
   | 'MATERIAL_RETURN'
-  | 'STOCK_TRANSFER';
+  | 'STOCK_TRANSFER'
+  | 'SUPPLIER_INVOICE'
+  | 'CLIENT_INVOICE'
+  | 'PAYMENT'
+  | 'SUBCONTRACT_AGREEMENT'
+  | 'SUBCONTRACT_WORK_ORDER'
+  | 'SUBCONTRACT_CLAIM'
+  | 'SUBCONTRACT_CERTIFICATION'
+  | 'SUBCONTRACT_VARIATION';
 
 export type DocumentTargetOptions = {
   wbs: Array<{
@@ -60,6 +68,41 @@ export type DocumentTargetOptions = {
   materialIssues: Array<{ id: string; issueNumber: string; postedAt: string | null }>;
   materialReturns: Array<{ id: string; returnNumber: string; postedAt: string | null }>;
   stockTransfers: Array<{ id: string; transferNumber: string; postedAt: string | null }>;
+  supplierInvoices: Array<{
+    id: string;
+    supplierInvoiceNumber: string;
+    supplierReference: string;
+    state: string;
+  }>;
+  clientInvoices: Array<{ id: string; clientInvoiceNumber: string; state: string }>;
+  payments: Array<{
+    id: string;
+    paymentNumber: string;
+    paymentDirection: string;
+    state: string;
+    reference: string | null;
+  }>;
+  subcontractAgreements: Array<{
+    id: string;
+    agreementNumber: string;
+    approvalState: string;
+  }>;
+  subcontractWorkOrders: Array<{
+    id: string;
+    workOrderNumber: string;
+    approvalState: string;
+  }>;
+  subcontractClaims: Array<{ id: string; claimNumber: string; state: string }>;
+  subcontractCertifications: Array<{
+    id: string;
+    certificationNumber: string;
+    state: string;
+  }>;
+  subcontractVariations: Array<{
+    id: string;
+    variationNumber: string;
+    state: string;
+  }>;
 };
 
 export type ProjectDocument = {

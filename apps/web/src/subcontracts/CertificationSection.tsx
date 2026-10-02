@@ -48,6 +48,7 @@ export function CertificationSection({
   const canReject = permissions.includes('subcontracts.certification.reject');
   const canReverse = permissions.includes('subcontracts.certification.reverse');
   const canCreateClaim = permissions.includes('subcontracts.claim.create');
+  const canViewPaymentReference = permissions.includes('finance.payment.view');
 
   const [selectedId, setSelectedId] = useState('');
   const [certifiedGross, setCertifiedGross] = useState('');
@@ -78,6 +79,12 @@ export function CertificationSection({
     queryKey: ['subcontracts', 'certification-workflows'],
     queryFn: subcontractsApi.certificationWorkflowOptions,
     enabled: canView && canSubmit,
+  });
+
+  const financeReference = useQuery({
+    queryKey: ['subcontracts', 'certification-finance-reference', selectedId],
+    queryFn: () => subcontractsApi.certificationFinanceReference(selectedId),
+    enabled: canView && canViewPaymentReference && Boolean(selectedId),
   });
 
   const claimCertifications = useMemo(
@@ -468,6 +475,57 @@ export function CertificationSection({
                     This is certification/withholding evidence only and is not a
                     payment or Finance posting.
                   </Alert>
+                ) : null}
+
+                {canViewPaymentReference ? (
+                  <>
+                    <Divider />
+                    <Typography variant="subtitle2">
+                      Finance Payment references
+                    </Typography>
+                    {financeReference.isError ? (
+                      <Alert severity="error">
+                        Unable to load authorized Finance Payment references.
+                      </Alert>
+                    ) : null}
+                    {!financeReference.isFetching &&
+                    (financeReference.data?.data.allocations ?? []).length === 0 ? (
+                      <Typography variant="body2" color="text.secondary">
+                        No Finance Payment allocation is linked to this
+                        Certification.
+                      </Typography>
+                    ) : null}
+                    {(financeReference.data?.data.allocations ?? []).map(
+                      (allocation) => (
+                        <Card key={allocation.id} variant="outlined">
+                          <CardContent>
+                            <Stack spacing={0.5}>
+                              <Typography fontWeight={600}>
+                                {allocation.payment.paymentNumber} ·{' '}
+                                {allocation.payment.state}
+                              </Typography>
+                              <Typography variant="body2">
+                                Allocated {allocation.payment.currencyCode}{' '}
+                                {allocation.allocatedAmount} · Payment date{' '}
+                                {allocation.payment.paymentDate.slice(0, 10)}
+                              </Typography>
+                              <Typography variant="body2" color="text.secondary">
+                                {allocation.payment.reference ?? 'No reference'}
+                                {allocation.payment.cancelledAt
+                                  ? ' · Cancelled ' +
+                                    allocation.payment.cancelledAt +
+                                    (allocation.payment.cancellationReason
+                                      ? ' · ' +
+                                        allocation.payment.cancellationReason
+                                      : '')
+                                  : ''}
+                              </Typography>
+                            </Stack>
+                          </CardContent>
+                        </Card>
+                      ),
+                    )}
+                  </>
                 ) : null}
 
                 <Divider />

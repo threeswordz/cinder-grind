@@ -8,6 +8,8 @@
 **Roles & Permissions Baseline:** v0.1  
 **API Architecture Baseline:** v0.1
 
+**V0.6-D validation note — 2026-10-03:** Runtime head `405aa627cb612697139b72f93024210d7a8d139c` passed CI #2376 after Stage-D CI #2373–#2375. PR #129 then passed exact-head branch CI #2377 and PR CI #2378 on `dfe3e5f79b7e01598a85f21658ed14817872b935`. The first stable-head Codex review found one P1: historical withholding could fail to receive a compensating reversal after a later Company base-currency change. A forward-only fix and regression now require historical ledger currency preservation without FX; fresh exact-head CI/Codex re-review are required. Automated evidence covers base-currency retention materialization, immutable withholding history, linked compensating reversal and zero balance after reversal; read-only approved/cancelled Finance Payment references; Project/SYS_ADMIN authorization denial; all eight approved DOC-009 target families in the canonical target allowlist; secure Certification document upload/list/download/archive; storage-path secrecy; and prior-release regression. Focused Chat review found no new blocking defect. Stable-head PR CI and one DEC-022 Codex review remain before merge; human V0.6 UAT remains a later release-exit gate.
+
 ---
 
 # 1. Purpose

@@ -1,3 +1,22 @@
+## 2026-10-03 — V0.6-D stable-head Codex P1 correction
+
+- Stable PR #129 exact head `dfe3e5f79b7e01598a85f21658ed14817872b935` passed branch CI #2377 and PR CI #2378 before Codex review.
+- Codex identified one genuine P1: a Company base-currency change after valid retention withholding could cause a later Certification reversal to skip the compensating retention `REVERSAL`, leaving historical immutable withholding active.
+- The correction is forward-only: a new Stage-D migration replaces the retention insert/materialization functions without modifying already-executed migrations. New withholding still requires the current Company base currency; a later reversal of existing historical withholding reuses the original ledger amount/currency and performs no FX conversion.
+- The Finance retention read model now treats existing immutable ledger evidence as supported historical evidence even when the Company's current base currency differs.
+- Regression changes the Company base currency after withholding, reverses the Certification, requires linked same-currency reversal evidence and zero balance, then restores the test Company currency. Exact-head CI and fresh Codex re-review remain required before merge.
+
+## 2026-10-03 — V0.6-D implementation candidate / documentation reconciliation
+
+- V0.6-D pre-flight PR #128 merged to `main` as `4b074ad7dcb5d7148040fc58f25dc16d45149f07`; post-merge main CI #2371 passed before implementation began.
+- Active branch `v0.6-d-subcontract-retention-documents` implements the approved Stage-D boundary. Runtime head `405aa627cb612697139b72f93024210d7a8d139c` is four commits ahead of the pre-flight checkpoint and passed CI #2376; the preceding Stage-D commits passed CI #2373–#2375.
+- Delivered immutable payable-retention ledger evidence limited to `WITHHOLDING` and linked `REVERSAL`, sourced from approved/reversed Subcontract Certifications, Company-base-currency constrained, source-linked, duplicate-protected and immutable below the API. No retention release or user adjustment action is introduced.
+- Added Project-scoped `finance.retention.view` read surfaces, read-only Subcontract Certification → Finance Payment allocation/reference/status visibility, and D06-16 compensating retention-withholding reversal evidence after active Payment allocations are cleared.
+- Extended canonical DOC-009 Documents linking to Supplier Invoice, Client Invoice, Payment, Subcontract Agreement, Work Order, Claim, Certification and Variation with existing document permissions plus target business-record permissions, Company/Project authorization, archive history and no second file store.
+- Authenticated live HTTP acceptance proves retention visibility and Project/SYS_ADMIN denial, approved/cancelled Payment reference history, linked retention reversal evidence, all eight approved DOC-009 target families, secure Certification upload/download/archive and retained file-path secrecy.
+- Focused Chat review of the runtime candidate found no new blocking implementation defect. Documentation is now reconciled for the stable-candidate PR gate; Codex is intentionally deferred until the stable material PR head under DEC-022.
+- V0.6-D is **UNDER VALIDATION**, not complete. Exact documentation-head CI, PR CI, stable-head Codex review, squash merge, post-merge main CI and Issue #127 closure remain. V0.6-E and human V0.6 UAT remain later gates.
+
 ## 2026-10-03 — V0.6-C technical completion / V0.6-D pre-flight
 
 - V0.6-C PR #126 final exact head `6a2c4c3e0b5c794609ce194226dfc81ee45fb7f5` passed push CI #2365 and PR CI #2366 after the one genuine Codex P1 was fixed forward-only at runtime head `246246521b8adf9ebab4aa0e43d53195b842f3f4`.

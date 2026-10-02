@@ -52,12 +52,20 @@ function targetType(value: string): DocumentTargetType {
     'MATERIAL_ISSUE',
     'MATERIAL_RETURN',
     'STOCK_TRANSFER',
+    'SUPPLIER_INVOICE',
+    'CLIENT_INVOICE',
+    'PAYMENT',
+    'SUBCONTRACT_AGREEMENT',
+    'SUBCONTRACT_WORK_ORDER',
+    'SUBCONTRACT_CLAIM',
+    'SUBCONTRACT_CERTIFICATION',
+    'SUBCONTRACT_VARIATION',
   ];
   if (!supported.includes(value as DocumentTargetType)) {
     throw new UnprocessableEntityException({
       code: 'DOCUMENT_TARGET_TYPE_INVALID',
       detail:
-        'Document target type must be WBS, ACTIVITY, PURCHASE_REQUEST, RFQ, SUPPLIER_QUOTATION, PURCHASE_ORDER, GOODS_RECEIPT, MATERIAL_RESERVATION, MATERIAL_ISSUE, MATERIAL_RETURN or STOCK_TRANSFER.',
+        'Document target type is not supported by the canonical Documents target allowlist.',
     });
   }
   return value as DocumentTargetType;

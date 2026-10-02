@@ -36,6 +36,7 @@ import { EquipmentPanel } from './equipment/EquipmentPanel';
 import { ClientFinanceWorkspace } from './finance/ClientFinanceWorkspace';
 import { FinanceWorkspace } from './finance/FinanceWorkspace';
 import { PaymentFinanceWorkspace } from './finance/PaymentFinanceWorkspace';
+import { RetentionFinanceWorkspace } from './finance/RetentionFinanceWorkspace';
 import { InventoryWorkspace } from './inventory/InventoryWorkspace';
 import { SubcontractsWorkspace } from './subcontracts/SubcontractsWorkspace';
 import { WbsPanel } from './wbs/WbsPanel';
@@ -71,6 +72,12 @@ export function AdminConsole({ user }: { user: CurrentUser }) {
           label: 'Payments',
           permission: '__payments__',
           content: <PaymentFinanceWorkspace permissions={user.permissions} />,
+        },
+        {
+          key: 'retention',
+          label: 'Retention',
+          permission: 'finance.retention.view',
+          content: <RetentionFinanceWorkspace permissions={user.permissions} />,
         },
         {
           key: 'purchase-orders',

@@ -161,6 +161,25 @@ export class SubcontractsCertificationController {
     };
   }
 
+  @Get('certifications/:certificationId/finance-reference')
+  @UseGuards(AuthGuard, PermissionGuard)
+  @RequirePermissions(
+    'subcontracts.certification.view',
+    'finance.payment.view',
+  )
+  async financeReference(
+    @Req() request: AuthenticatedRequest,
+    @Param('certificationId', new ParseUUIDPipe({ version: '4' }))
+    certificationId: string,
+  ) {
+    return {
+      data: await this.certifications.financeReference(
+        authOf(request),
+        certificationId,
+      ),
+    };
+  }
+
   @Post('claims/:claimId/certifications')
   @UseGuards(AuthGuard, CsrfGuard, PermissionGuard)
   @RequirePermissions(
