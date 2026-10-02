@@ -36,6 +36,16 @@ export class ClientInvoiceController {
     return { data: await this.service.list(authOf(r),projectId) };
   }
 
+  @Get('projects/:projectId/accounts-receivable')
+  @UseGuards(AuthGuard, PermissionGuard)
+  @RequirePermissions('finance.ar.view')
+  async accountsReceivable(
+    @Req() r: AuthenticatedRequest,
+    @Param('projectId', new ParseUUIDPipe({ version: '4' })) projectId: string,
+  ) {
+    return { data: await this.service.accountsReceivable(authOf(r), projectId) };
+  }
+
   @Get('client-invoices/:invoiceId')
   @UseGuards(AuthGuard, PermissionGuard)
   @RequirePermissions('finance.client_invoice.view')
