@@ -256,6 +256,31 @@ export type ClaimRecord = {
 };
 
 
+export type CertificationFinanceReference = {
+  certificationId: string;
+  certificationNumber: string;
+  projectId: string;
+  currencyCode: string;
+  state: string;
+  allocations: Array<{
+    id: string;
+    allocatedAmount: string;
+    createdAt: string;
+    payment: {
+      id: string;
+      paymentNumber: string;
+      paymentDate: string;
+      amount: string;
+      currencyCode: string;
+      state: string;
+      reference: string | null;
+      approvedAt: string | null;
+      cancelledAt: string | null;
+      cancellationReason: string | null;
+    };
+  }>;
+};
+
 export type CertificationRecord = {
   id: string;
   projectId: string;
@@ -741,6 +766,12 @@ export const subcontractsApi = {
   certification: (certificationId: string) =>
     apiRequest<Data<CertificationRecord>>(
       '/subcontracts/certifications/' + certificationId,
+    ),
+  certificationFinanceReference: (certificationId: string) =>
+    apiRequest<Data<CertificationFinanceReference>>(
+      '/subcontracts/certifications/' +
+        certificationId +
+        '/finance-reference',
     ),
   createCertification: (
     claimId: string,
