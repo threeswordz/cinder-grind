@@ -9,8 +9,7 @@ ALTER TABLE "approval_actions"
   ADD COLUMN IF NOT EXISTS "client_invoice_decision_order" BIGINT;
 
 CREATE UNIQUE INDEX IF NOT EXISTS "approval_actions_client_invoice_decision_order_key"
-  ON "approval_actions"("client_invoice_decision_order")
-  WHERE "client_invoice_decision_order" IS NOT NULL;
+  ON "approval_actions"("client_invoice_decision_order");
 
 CREATE OR REPLACE FUNCTION erp_client_invoice_approval_action_guard()
 RETURNS trigger AS $$
