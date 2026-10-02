@@ -848,6 +848,93 @@ test('V0.6-B Client Invoice preserves scope, maker-checker, retained history and
     ]);
     assert.equal(createRaceA.id, createRaceB.id);
 
+    // A losing concurrent retry with the same create key but a different month
+    // must not commit a later-period sequence mutation. This barrier makes the
+    // earlier request hold the sequence allocation until the competing request
+    // has reached the allocator, reproducing the race deterministically.
+    const originalNext = numbers.next.bind(numbers);
+    let sequenceCalls = 0;
+    let firstAllocatedResolve!: () => void;
+    let releaseFirstResolve!: () => void;
+    let secondEnteredResolve!: () => void;
+    const firstAllocated = new Promise<void>((resolve) => {
+      firstAllocatedResolve = resolve;
+    });
+    const releaseFirst = new Promise<void>((resolve) => {
+      releaseFirstResolve = resolve;
+    });
+    const secondEntered = new Promise<void>((resolve) => {
+      secondEnteredResolve = resolve;
+    });
+    numbers.next = async (...args: Parameters<NumberSequenceService['next']>) => {
+      sequenceCalls += 1;
+      if (sequenceCalls === 1) {
+        const value = await originalNext(...args);
+        firstAllocatedResolve();
+        await releaseFirst;
+        return value;
+      }
+      if (sequenceCalls === 2) secondEnteredResolve();
+      return originalNext(...args);
+    };
+
+    const periodRaceKey = randomUUID();
+    const octoberRace = clientFinance.create(
+      { auth: makerAuth },
+      project.id,
+      {
+        customerId: customer.id,
+        invoiceDate: new Date('2026-10-20T00:00:00.000Z'),
+        createKey: periodRaceKey,
+        lines: [{ description: 'Earlier-period race winner', amount: new Decimal('3.00') }],
+      },
+    );
+    await firstAllocated;
+    const novemberRace = clientFinance.create(
+      { auth: makerAuth },
+      project.id,
+      {
+        customerId: customer.id,
+        invoiceDate: new Date('2026-11-02T00:00:00.000Z'),
+        createKey: periodRaceKey,
+        lines: [{ description: 'Later-period losing retry', amount: new Decimal('4.00') }],
+      },
+    );
+    await secondEntered;
+    releaseFirstResolve();
+
+    try {
+      const octoberWinner = await octoberRace;
+      assert.match(octoberWinner.clientInvoiceNumber, /^CI2610-\d{3}$/);
+      await assert.rejects(
+        () => novemberRace,
+        (error: unknown) => error instanceof ConflictException,
+      );
+    } finally {
+      numbers.next = originalNext;
+    }
+
+    const clientSequenceAfterRace = await prisma.numberSequence.findFirstOrThrow({
+      where: { companyId: company.id, sequenceCode: 'CLIENT_INVOICE' },
+      select: { lastPeriodKey: true },
+    });
+    assert.equal(
+      clientSequenceAfterRace.lastPeriodKey,
+      '202610',
+      'A losing later-period retry must roll back its sequence-period mutation.',
+    );
+    const postRaceOctober = await clientFinance.create(
+      { auth: makerAuth },
+      project.id,
+      {
+        customerId: customer.id,
+        invoiceDate: new Date('2026-10-25T00:00:00.000Z'),
+        createKey: randomUUID(),
+        lines: [{ description: 'Earlier period remains allocatable', amount: new Decimal('5.00') }],
+      },
+    );
+    assert.match(postRaceOctober.clientInvoiceNumber, /^CI2610-\d{3}$/);
+
     const edited = await clientFinance.addLine(
       { auth: makerAuth },
       draft.id,
