@@ -2446,6 +2446,8 @@ test('V0.6-C Payments preserve Project scope, settlement ceilings, idempotency a
     );
     const winningPayment =
       concurrent[0]!.status === 'fulfilled' ? outbound : competing;
+    const losingPayment =
+      concurrent[0]!.status === 'fulfilled' ? competing : outbound;
 
     const apBeforeApproval = await supplierFinance.accountsPayable(
       makerAuth,
@@ -2571,7 +2573,7 @@ test('V0.6-C Payments preserve Project scope, settlement ceilings, idempotency a
       () =>
         payments.addAllocation(
           { auth: makerAuth },
-          competing.id,
+          losingPayment.id,
           {
             targetType: 'CLIENT_INVOICE',
             targetId: clientApproved.id,
