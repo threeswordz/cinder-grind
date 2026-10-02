@@ -414,7 +414,25 @@ export class ClientInvoiceService {
         approvedBy: { select: { id: true, displayName: true } },
         rejectedBy: { select: { id: true, displayName: true } },
         items: { orderBy: { lineNo: 'asc' } },
-        approvalInstance: { include: { workflow: { select: { workflowCode: true, workflowName: true } }, actions: { orderBy: { actionAt: 'asc' }, include: { approvalStep: true, actionByUser: { select: { id: true, displayName: true } } } } } },
+        approvalInstance: {
+          include: {
+            workflow: { select: { workflowCode: true, workflowName: true } },
+            actions: {
+              orderBy: { actionAt: 'asc' },
+              select: {
+                id: true,
+                approvalInstanceId: true,
+                approvalStepId: true,
+                action: true,
+                actionByUserId: true,
+                actionAt: true,
+                comment: true,
+                approvalStep: true,
+                actionByUser: { select: { id: true, displayName: true } },
+              },
+            },
+          },
+        },
       },
     });
     if (!row) throw this.notFound();
