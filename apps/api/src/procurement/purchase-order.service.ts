@@ -1284,6 +1284,26 @@ export class PurchaseOrderService {
           'SELECT pg_advisory_xact_lock(hashtext($1))',
           'purchase-order:' + source.poNumber,
         );
+        for (const line of [...source.lines].sort((a, b) => a.id.localeCompare(b.id))) {
+          await tx.$executeRawUnsafe(
+            'SELECT pg_advisory_xact_lock(hashtext($1))',
+            'finance-source:po-line:' + line.id,
+          );
+        }
+        const approvedInvoiceSource = await tx.supplierInvoiceItem.findFirst({
+          where: {
+            purchaseOrderLineId: { in: source.lines.map((line) => line.id) },
+            supplierInvoice: { state: 'APPROVED' },
+          },
+          select: { id: true },
+        });
+        if (approvedInvoiceSource) {
+          throw new ConflictException({
+            code: 'PO_REVISION_FINANCE_SOURCE_LOCKED',
+            detail:
+              'A Purchase Order revision cannot supersede lines referenced by an approved Supplier Invoice.',
+          });
+        }
 
         const afterLock = await tx.purchaseOrder.findFirst({
           where: { id: source.id },
@@ -1371,7 +1391,7 @@ export class PurchaseOrderService {
           lifecycleState: 'DRAFT' as const,
         };
       },
-      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted },
     );
   }
 
