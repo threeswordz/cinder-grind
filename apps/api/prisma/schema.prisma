@@ -66,6 +66,7 @@ model Company {
   subcontractClaimLines SubcontractClaimLine[]
   subcontractClaimAssessments SubcontractClaimAssessment[]
   supplierInvoices SupplierInvoice[]
+  clientInvoices ClientInvoice[]
   financeActionReplays FinanceActionReplay[]
   @@map("companies")
 }
@@ -86,8 +87,10 @@ model Customer {
 
   company  Company   @relation(fields: [companyId], references: [id], onDelete: Restrict)
   projects Project[]
+  clientInvoices ClientInvoice[]
 
   @@unique([companyId, customerCode])
+  @@unique([companyId, id])
   @@index([companyId, isActive])
   @@map("customers")
 }
@@ -291,6 +294,10 @@ model User {
   submittedSupplierInvoices   SupplierInvoice[] @relation("SupplierInvoiceSubmitter")
   approvedSupplierInvoices    SupplierInvoice[] @relation("SupplierInvoiceApprover")
   rejectedSupplierInvoices    SupplierInvoice[] @relation("SupplierInvoiceRejector")
+  createdClientInvoices      ClientInvoice[] @relation("ClientInvoiceCreator")
+  submittedClientInvoices    ClientInvoice[] @relation("ClientInvoiceSubmitter")
+  approvedClientInvoices     ClientInvoice[] @relation("ClientInvoiceApprover")
+  rejectedClientInvoices     ClientInvoice[] @relation("ClientInvoiceRejector")
   financeActionReplays        FinanceActionReplay[]
   @@unique([companyId, email])
   @@unique([companyId, id])
@@ -454,6 +461,7 @@ model ApprovalInstance {
   subcontractCertification SubcontractCertification?
   subcontractVariation SubcontractVariation?
   supplierInvoice SupplierInvoice?
+  clientInvoice ClientInvoice?
   @@index([companyId, entityType, entityId])
   @@index([approvalWorkflowId, approvalState])
   @@map("approval_instances")
@@ -604,6 +612,7 @@ model Project {
   subcontractClaimLines SubcontractClaimLine[]
   subcontractClaimAssessments SubcontractClaimAssessment[]
   supplierInvoices SupplierInvoice[]
+  clientInvoices ClientInvoice[]
   @@unique([companyId, projectCode])
   @@unique([companyId, id])
   @@index([companyId, isActive])
@@ -2565,6 +2574,69 @@ model SupplierInvoiceItem {
   @@index([purchaseOrderLineId])
   @@index([goodsReceiptItemId])
   @@map("supplier_invoice_items")
+}
+
+
+model ClientInvoice {
+  id                  String    @id @default(uuid()) @db.Uuid
+  companyId           String    @map("company_id") @db.Uuid
+  projectId           String    @map("project_id") @db.Uuid
+  customerId          String    @map("customer_id") @db.Uuid
+  clientInvoiceNumber String    @map("client_invoice_number") @db.VarChar(120)
+  invoiceDate         DateTime  @map("invoice_date") @db.Date
+  dueDate             DateTime? @map("due_date") @db.Date
+  currencyCode        String    @map("currency_code") @db.VarChar(3)
+  totalAmount         Decimal   @default(0) @map("total_amount") @db.Decimal(18, 2)
+  state               String    @default("DRAFT") @db.VarChar(30)
+  approvalInstanceId  String?   @unique @map("approval_instance_id") @db.Uuid
+  createKey           String    @map("create_key") @db.VarChar(120)
+  createPayloadHash   String    @map("create_payload_hash") @db.VarChar(64)
+  createdByUserId     String    @map("created_by_user_id") @db.Uuid
+  submittedByUserId   String?   @map("submitted_by_user_id") @db.Uuid
+  approvedByUserId    String?   @map("approved_by_user_id") @db.Uuid
+  rejectedByUserId    String?   @map("rejected_by_user_id") @db.Uuid
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  submittedAt         DateTime? @map("submitted_at") @db.Timestamptz(6)
+  decidedAt           DateTime? @map("decided_at") @db.Timestamptz(6)
+  approvedAt          DateTime? @map("approved_at") @db.Timestamptz(6)
+  rejectedAt          DateTime? @map("rejected_at") @db.Timestamptz(6)
+  rejectionReason     String?   @map("rejection_reason") @db.Text
+
+  company          Company           @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  project          Project           @relation(fields: [companyId, projectId], references: [companyId, id], onDelete: Restrict)
+  customer         Customer          @relation(fields: [companyId, customerId], references: [companyId, id], onDelete: Restrict)
+  approvalInstance ApprovalInstance? @relation(fields: [approvalInstanceId], references: [id], onDelete: Restrict)
+  createdBy        User              @relation("ClientInvoiceCreator", fields: [companyId, createdByUserId], references: [companyId, id], onDelete: Restrict)
+  submittedBy      User?             @relation("ClientInvoiceSubmitter", fields: [companyId, submittedByUserId], references: [companyId, id], onDelete: Restrict)
+  approvedBy       User?             @relation("ClientInvoiceApprover", fields: [companyId, approvedByUserId], references: [companyId, id], onDelete: Restrict)
+  rejectedBy       User?             @relation("ClientInvoiceRejector", fields: [companyId, rejectedByUserId], references: [companyId, id], onDelete: Restrict)
+  items            ClientInvoiceItem[]
+
+  @@unique([companyId, clientInvoiceNumber])
+  @@unique([companyId, createdByUserId, createKey], map: "client_invoices_creator_create_key_key")
+  @@unique([companyId, projectId, id], map: "client_invoices_scope_key")
+  @@index([companyId, projectId, state])
+  @@index([companyId, customerId, invoiceDate])
+  @@map("client_invoices")
+}
+
+model ClientInvoiceItem {
+  id              String   @id @default(uuid()) @db.Uuid
+  companyId       String   @map("company_id") @db.Uuid
+  projectId       String   @map("project_id") @db.Uuid
+  clientInvoiceId String   @map("client_invoice_id") @db.Uuid
+  lineNo          Int      @map("line_no")
+  description     String   @db.VarChar(500)
+  amount          Decimal  @db.Decimal(18, 2)
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  clientInvoice ClientInvoice @relation(fields: [companyId, projectId, clientInvoiceId], references: [companyId, projectId, id], onDelete: Restrict)
+
+  @@unique([clientInvoiceId, lineNo])
+  @@index([companyId, projectId])
+  @@map("client_invoice_items")
 }
 
 model FinanceActionReplay {
