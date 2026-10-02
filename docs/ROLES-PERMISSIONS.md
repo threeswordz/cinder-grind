@@ -6,6 +6,8 @@
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1
 
+**V0.6-D implementation note — 2026-10-03:** `finance.retention.view` is the only new Stage-D Finance retention permission and is read-only. Certification Payment-reference presentation additionally requires existing `subcontracts.certification.view` plus `finance.payment.view`. DOC-009 target operations retain `documents.document.view/upload/link/archive` and additionally require the matching Finance/Subcontract target view permission. `projects.access_all` bypasses Project assignment only; it grants no Finance, Subcontract or document mutation authority. Technical `SYS_ADMIN` remains separate from business authority.
+
 ---
 
 # 1. Purpose

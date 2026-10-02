@@ -8,6 +8,8 @@
 **Application ORM:** Prisma ORM  
 **Scope:** Logical database design; no database has been created yet.
 
+**V0.6-D implementation note — 2026-10-03:** `retention_ledger_entries` is now materialized only for payable Subcontract Certification withholding evidence and linked compensating reversal evidence. Implemented entry types are `WITHHOLDING` and `REVERSAL` only; each entry is Company/Project/Agreement/Certification scoped, base-currency constrained, source actor/time bound, duplicate-protected and immutable after insert. Certification approval/reversal materializes the corresponding evidence through forward-only database triggers; historical eligible Certifications are backfilled. This does **not** authorize retention RELEASE or user ADJUSTMENT. DOC-009 continues to use canonical `documents` / `document_links`; the Stage-D forward-only scope guard adds the eight approved Finance/Subcontract targets without creating another file store.
+
 ---
 
 # 1. Purpose

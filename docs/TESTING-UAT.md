@@ -8,6 +8,8 @@
 **Roles & Permissions Baseline:** v0.1  
 **API Architecture Baseline:** v0.1
 
+**V0.6-D validation note — 2026-10-03:** Runtime head `405aa627cb612697139b72f93024210d7a8d139c` passed CI #2376 after Stage-D CI #2373–#2375. Automated evidence covers base-currency retention materialization, immutable withholding history, linked compensating reversal and zero balance after reversal; read-only approved/cancelled Finance Payment references; Project/SYS_ADMIN authorization denial; all eight approved DOC-009 target families in the canonical target allowlist; secure Certification document upload/list/download/archive; storage-path secrecy; and prior-release regression. Focused Chat review found no new blocking defect. Stable-head PR CI and one DEC-022 Codex review remain before merge; human V0.6 UAT remains a later release-exit gate.
+
 ---
 
 # 1. Purpose

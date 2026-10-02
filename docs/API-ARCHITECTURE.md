@@ -10,6 +10,8 @@
 **Frontend:** React + TypeScript  
 **API Style:** REST over HTTPS
 
+**V0.6-D implementation note — 2026-10-03:** The active Finance/Subcontract integration now exposes read-only `GET /finance/retention-projects`, `GET /finance/projects/:projectId/retention`, and `GET /subcontracts/certifications/:certificationId/finance-reference` surfaces. Retention reads require `finance.retention.view`; Certification Payment-reference reads require both `subcontracts.certification.view` and `finance.payment.view`. The Documents target API reuses the canonical Project-owned Documents abstraction for Supplier Invoice, Client Invoice, Payment, Subcontract Agreement, Work Order, Claim, Certification and Variation; it revalidates Project access and the matching business-record view permission server-side. Subcontracts never mutates Finance Payments, and Stage D exposes no retention release/manual-adjustment endpoint. Runtime candidate `405aa627...` passed CI #2376; merge review remains pending.
+
 ---
 
 # 1. Purpose
