@@ -799,6 +799,7 @@ export class FinanceService {
           include: { items: true },
         });
         this.assertSubmitted(current);
+        await this.lockInvoiceSources(tx, current);
         await this.revalidateInvoiceSources(tx, current);
         await this.approvals.approve(
           current.approvalInstanceId!,
@@ -831,7 +832,7 @@ export class FinanceService {
         );
         return this.visibleInvoice(context.auth, invoiceId, tx);
       },
-      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted },
     );
   }
 
@@ -893,6 +894,27 @@ export class FinanceService {
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
     );
+  }
+
+  private async lockInvoiceSources(
+    tx: Prisma.TransactionClient,
+    invoice: Prisma.SupplierInvoiceGetPayload<{ include: { items: true } }>,
+  ) {
+    const keys = new Set<string>();
+    for (const line of invoice.items) {
+      if (line.purchaseOrderLineId) {
+        keys.add('finance-source:po-line:' + line.purchaseOrderLineId);
+      }
+      if (line.goodsReceiptItemId) {
+        keys.add('finance-source:gr-item:' + line.goodsReceiptItemId);
+      }
+    }
+    for (const key of [...keys].sort()) {
+      await tx.$executeRawUnsafe(
+        'SELECT pg_advisory_xact_lock(hashtext($1))',
+        key,
+      );
+    }
   }
 
   private async revalidateInvoiceSources(
