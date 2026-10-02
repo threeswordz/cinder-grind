@@ -124,6 +124,7 @@ check(
     (permission) =>
       permission.startsWith('finance.client_invoice.') ||
       permission.startsWith('finance.payment.') ||
+      permission === 'finance.retention.view' ||
       permission === 'finance.ap.view' ||
       permission === 'finance.ar.view',
   ),
@@ -256,6 +257,7 @@ const permissionCodes = [
   'documents.document.view',
   'documents.document.upload',
   'documents.document.link',
+  'documents.document.archive',
   'schedule.programme.view',
   'schedule.activity.create',
   'schedule.activity.edit',
@@ -342,6 +344,7 @@ const permissionCodes = [
   'finance.payment.edit',
   'finance.payment.submit',
   'finance.payment.cancel',
+  'finance.retention.view',
   'finance.ap.view',
   'finance.ar.view',
   'subcontracts.subcontractor.view',
@@ -5329,6 +5332,35 @@ check(
   'V0.5-D stable Certification approval retry duplicated the decision.',
 );
 
+const stageDRetentionProjects = await request(pm, '/finance/retention-projects');
+check(
+  stageDRetentionProjects.data.data.some((item) => item.id === projectId),
+  'V0.6-D retention Project selector omitted the authorized Project.',
+);
+await request(admin, '/finance/retention-projects', { expected: 403 });
+await request(
+  unassigned,
+  '/finance/projects/' + projectId + '/retention',
+  { expected: 403 },
+);
+const stageDRetentionActive = await request(
+  pm,
+  '/finance/projects/' + projectId + '/retention',
+);
+const stageDCertOneRetention = stageDRetentionActive.data.data.find(
+  (item) => item.id === stageDCertOneId,
+);
+check(
+  stageDCertOneRetention &&
+    stageDCertOneRetention.financeState === 'ACTIVE' &&
+    Number(stageDCertOneRetention.retainedAmount) === 2.5 &&
+    Number(stageDCertOneRetention.retentionBalance) === 2.5 &&
+    stageDCertOneRetention.retentionLedgerEntries.length === 1 &&
+    stageDCertOneRetention.retentionLedgerEntries[0]?.entryType === 'WITHHOLDING',
+  'V0.6-D payable retention did not expose the immutable Certification withholding evidence.',
+);
+record('V0.6-D base-currency Certification approval materializes payable retention withholding with SYS_ADMIN and Project denial');
+
 const stageDClaimTwo = await createStageDAssessedClaim({
   periodStart: '2027-03-01',
   periodEnd: '2027-03-31',
@@ -5520,6 +5552,32 @@ check(
     approvedSubcontractPayment.data.data.subcontractAllocations.length === 1,
   'V0.6-C Subcontract Payment approval did not retain active Certification allocation evidence.',
 );
+const approvedCertificationPaymentReference = await request(
+  pm,
+  '/subcontracts/certifications/' + stageDCertTwoId + '/finance-reference',
+);
+check(
+  approvedCertificationPaymentReference.data.data.allocations.length === 1 &&
+    approvedCertificationPaymentReference.data.data.allocations[0]?.payment.id ===
+      subcontractPaymentId &&
+    approvedCertificationPaymentReference.data.data.allocations[0]?.payment.state ===
+      'APPROVED' &&
+    String(
+      approvedCertificationPaymentReference.data.data.allocations[0]
+        ?.allocatedAmount,
+    ) === '50',
+  'V0.6-D Subcontract read model did not expose the Finance-owned approved Payment reference.',
+);
+await request(
+  admin,
+  '/subcontracts/certifications/' + stageDCertTwoId + '/finance-reference',
+  { expected: 403 },
+);
+await request(
+  unassigned,
+  '/subcontracts/certifications/' + stageDCertTwoId + '/finance-reference',
+  { expected: 403 },
+);
 await request(
   checker,
   '/subcontracts/certifications/' + stageDCertTwoId + '/reverse',
@@ -5549,6 +5607,19 @@ check(
     cancelledSubcontractPayment.data.data.subcontractAllocations.length === 1,
   'V0.6-C Subcontract Payment cancellation did not retain historical allocation evidence.',
 );
+const cancelledCertificationPaymentReference = await request(
+  pm,
+  '/subcontracts/certifications/' + stageDCertTwoId + '/finance-reference',
+);
+check(
+  cancelledCertificationPaymentReference.data.data.allocations.length === 1 &&
+    cancelledCertificationPaymentReference.data.data.allocations[0]?.payment.state ===
+      'CANCELLED' &&
+    cancelledCertificationPaymentReference.data.data.allocations[0]?.payment
+      .cancellationReason ===
+      'Cancel settlement before Certification correction.',
+  'V0.6-D Subcontract Payment reference did not retain Finance cancellation history.',
+);
 record('V0.6-C Subcontract Certification settlement enforces net-certified ceiling, blocks reversal while active, and releases the reversal guard only after Finance cancellation');
 
 const reversedStageDCertTwo = await request(
@@ -5573,6 +5644,27 @@ check(
     Number(reversedStageDCertTwo.data.data.netCertifiedAmount) === 97.69,
   'V0.5-D reversal did not retain original Certification snapshots and reversal evidence.',
 );
+const stageDRetentionReversed = await request(
+  pm,
+  '/finance/projects/' + projectId + '/retention',
+);
+const stageDCertTwoRetention = stageDRetentionReversed.data.data.find(
+  (item) => item.id === stageDCertTwoId,
+);
+check(
+  stageDCertTwoRetention &&
+    stageDCertTwoRetention.financeState === 'REVERSED' &&
+    Number(stageDCertTwoRetention.retentionBalance) === 0 &&
+    stageDCertTwoRetention.retentionLedgerEntries.length === 2 &&
+    stageDCertTwoRetention.retentionLedgerEntries.some(
+      (entry) => entry.entryType === 'WITHHOLDING',
+    ) &&
+    stageDCertTwoRetention.retentionLedgerEntries.some(
+      (entry) => entry.entryType === 'REVERSAL' && entry.reversesEntryId,
+    ),
+  'V0.6-D Certification reversal did not retain the linked compensating retention-withholding correction.',
+);
+record('V0.6-D Finance retention balance preserves linked withholding/reversal evidence without implementing retention release or manual adjustment');
 
 const stageDReplacement = await request(
   pm,
@@ -5850,6 +5942,116 @@ check(
     replayedStageEVariationApproval.data.data.state === 'APPROVED',
   'V0.5-E stable Variation approval retry duplicated the decision.',
 );
+
+const stageDFinanceSubcontractTargets = await request(
+  pm,
+  '/documents/projects/' + projectId + '/targets/options',
+);
+check(
+  stageDFinanceSubcontractTargets.data.data.supplierInvoices.some(
+    (row) => row.id === supplierInvoiceId,
+  ) &&
+    stageDFinanceSubcontractTargets.data.data.clientInvoices.some(
+      (row) => row.id === clientInvoiceId,
+    ) &&
+    stageDFinanceSubcontractTargets.data.data.payments.some(
+      (row) => row.id === subcontractPaymentId,
+    ) &&
+    stageDFinanceSubcontractTargets.data.data.subcontractAgreements.some(
+      (row) => row.id === stageEAgreementId,
+    ) &&
+    stageDFinanceSubcontractTargets.data.data.subcontractWorkOrders.some(
+      (row) => row.id === stageEWorkOrder.data.data.id,
+    ) &&
+    stageDFinanceSubcontractTargets.data.data.subcontractClaims.some(
+      (row) => row.id === stageEClaim.data.data.id,
+    ) &&
+    stageDFinanceSubcontractTargets.data.data.subcontractCertifications.some(
+      (row) => row.id === stageECertification.data.data.id,
+    ) &&
+    stageDFinanceSubcontractTargets.data.data.subcontractVariations.some(
+      (row) => row.id === stageEVariationId,
+    ),
+  'V0.6-D DOC-009 options did not expose all eight approved Finance/Subcontract target families.',
+);
+await request(
+  unassigned,
+  '/documents/projects/' + projectId + '/targets/options',
+  { expected: 403 },
+);
+const stageDCertDocumentBytes = new TextEncoder().encode(
+  '%PDF-1.4 Subcontract Certification evidence ' + suffix,
+);
+const stageDCertDocumentForm = new FormData();
+stageDCertDocumentForm.set('documentTypeId', documentType.data.data.id);
+stageDCertDocumentForm.set(
+  'file',
+  new Blob([stageDCertDocumentBytes], { type: 'application/pdf' }),
+  'subcontract-certification-' + suffix + '.pdf',
+);
+const stageDCertDocument = await request(
+  pm,
+  '/documents/projects/' +
+    projectId +
+    '/targets/SUBCONTRACT_CERTIFICATION/' +
+    stageECertification.data.data.id,
+  {
+    method: 'POST',
+    body: stageDCertDocumentForm,
+    expected: 201,
+  },
+);
+const stageDCertDocumentList = await request(
+  pm,
+  '/documents/projects/' +
+    projectId +
+    '/targets/SUBCONTRACT_CERTIFICATION/' +
+    stageECertification.data.data.id,
+);
+check(
+  stageDCertDocumentList.data.data.some(
+    (item) => item.id === stageDCertDocument.data.data.id,
+  ) &&
+    !JSON.stringify(stageDCertDocumentList.data).includes('storageKey'),
+  'V0.6-D DOC-009 Certification document did not retain the secure canonical Documents boundary.',
+);
+const stageDCertDocumentDownload = await request(
+  pm,
+  '/documents/projects/' +
+    projectId +
+    '/targets/SUBCONTRACT_CERTIFICATION/' +
+    stageECertification.data.data.id +
+    '/' +
+    stageDCertDocument.data.data.id +
+    '/download',
+  { accept: '*/*' },
+);
+const stageDCertDownloadedBytes = new Uint8Array(
+  stageDCertDocumentDownload.data,
+);
+check(
+  stageDCertDownloadedBytes.length === stageDCertDocumentBytes.length &&
+    stageDCertDownloadedBytes.every(
+      (value, index) => value === stageDCertDocumentBytes[index],
+    ),
+  'V0.6-D DOC-009 Certification document download did not retain original bytes.',
+);
+const archivedStageDCertDocument = await request(
+  pm,
+  '/documents/projects/' +
+    projectId +
+    '/targets/SUBCONTRACT_CERTIFICATION/' +
+    stageECertification.data.data.id +
+    '/' +
+    stageDCertDocument.data.data.id +
+    '/archive',
+  { method: 'POST', expected: 201 },
+);
+check(
+  archivedStageDCertDocument.data.data.isActive === false,
+  'V0.6-D DOC-009 archive did not retain the document as inactive history.',
+);
+record('V0.6-D DOC-009 exposes all eight approved Finance/Subcontract targets through the canonical Project-owned Documents abstraction');
 
 const stageEExpandedWorkOrder = await request(
   pm,
