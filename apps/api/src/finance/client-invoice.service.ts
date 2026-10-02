@@ -149,7 +149,6 @@ export class ClientInvoiceService {
       data: [{ companyId: context.auth.companyId, entityType: 'CLIENT_INVOICE', sequenceCode: 'CLIENT_INVOICE', formatTemplate: 'CIYYMM-###', resetRule: 'MONTHLY', nextValue: 1 }],
       skipDuplicates: true,
     });
-    const number = await this.numbers.next(context.auth.companyId, 'CLIENT_INVOICE', input.invoiceDate);
 
     try {
       return await this.prisma.$transaction(async (tx) => {
@@ -163,6 +162,16 @@ export class ClientInvoiceService {
           if (raced.createPayloadHash !== hash) this.replayConflict();
           return this.visible(context.auth, raced.id, tx);
         }
+
+        // Allocate the business number inside the same transaction as the
+        // create-key claim. A losing concurrent retry therefore rolls back its
+        // sequence mutation instead of advancing the Company-wide period.
+        const number = await this.numbers.next(
+          context.auth.companyId,
+          'CLIENT_INVOICE',
+          input.invoiceDate,
+          tx,
+        );
 
         const header = await tx.clientInvoice.create({
           data: {
