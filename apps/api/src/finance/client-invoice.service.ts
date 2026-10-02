@@ -324,8 +324,21 @@ export class ClientInvoiceService {
       const current = await tx.clientInvoice.findUniqueOrThrow({ where: { id: invoiceId } });
       this.assertSubmitted(current);
       await this.approvals.approve(current.approvalInstanceId!, context.auth, current.createdByUserId, comment, async (approvalTx) => {
-        const now = new Date();
-        await approvalTx.clientInvoice.update({ where: { id: invoiceId }, data: { state: 'APPROVED', approvedByUserId: context.auth.userId, approvedAt: now, decidedAt: now } });
+        const decision = await this.retainedDecisionEvidence(
+          approvalTx,
+          current.approvalInstanceId!,
+          context.auth.userId,
+          'APPROVE',
+        );
+        await approvalTx.clientInvoice.update({
+          where: { id: invoiceId },
+          data: {
+            state: 'APPROVED',
+            approvedByUserId: decision.actionByUserId,
+            approvedAt: decision.actionAt,
+            decidedAt: decision.actionAt,
+          },
+        });
       }, tx);
       await this.audit.record({ ...context, entityType: 'CLIENT_INVOICE', entityId: invoiceId, action: 'APPROVE', newValues: { comment: comment ?? null } }, tx);
       return this.visible(context.auth, invoiceId, tx);
@@ -340,11 +353,54 @@ export class ClientInvoiceService {
       const current = await tx.clientInvoice.findUniqueOrThrow({ where: { id: invoiceId } });
       this.assertSubmitted(current);
       await this.approvals.reject(current.approvalInstanceId!, context.auth, current.createdByUserId, comment, tx);
-      const now = new Date();
-      await tx.clientInvoice.update({ where: { id: invoiceId }, data: { state: 'REJECTED', rejectedByUserId: context.auth.userId, rejectedAt: now, decidedAt: now, rejectionReason: comment ?? null } });
+      const decision = await this.retainedDecisionEvidence(
+        tx,
+        current.approvalInstanceId!,
+        context.auth.userId,
+        'REJECT',
+      );
+      await tx.clientInvoice.update({
+        where: { id: invoiceId },
+        data: {
+          state: 'REJECTED',
+          rejectedByUserId: decision.actionByUserId,
+          rejectedAt: decision.actionAt,
+          decidedAt: decision.actionAt,
+          rejectionReason: comment ?? null,
+        },
+      });
       await this.audit.record({ ...context, entityType: 'CLIENT_INVOICE', entityId: invoiceId, action: 'REJECT', newValues: { comment: comment ?? null } }, tx);
       return this.visible(context.auth, invoiceId, tx);
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+  }
+
+  private async retainedDecisionEvidence(
+    tx: Prisma.TransactionClient,
+    approvalInstanceId: string,
+    actorUserId: string,
+    action: 'APPROVE' | 'REJECT',
+  ) {
+    const instance = await tx.approvalInstance.findUniqueOrThrow({
+      where: { id: approvalInstanceId },
+      select: { approvalWorkflowId: true, currentStepNo: true },
+    });
+    const step = await tx.approvalStep.findFirstOrThrow({
+      where: {
+        approvalWorkflowId: instance.approvalWorkflowId,
+        stepNo: instance.currentStepNo,
+      },
+      select: { id: true },
+    });
+    return tx.approvalAction.findFirstOrThrow({
+      where: {
+        approvalInstanceId,
+        approvalStepId: step.id,
+        action,
+        actionByUserId: actorUserId,
+      },
+      orderBy: [{ actionAt: 'desc' }, { id: 'desc' }],
+      select: { actionByUserId: true, actionAt: true },
+    });
   }
 
   private async visible(auth: AuthenticatedUserContext, id: string, db: Db) {
