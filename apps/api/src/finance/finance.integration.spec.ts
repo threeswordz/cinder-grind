@@ -897,6 +897,101 @@ test('V0.6-B Client Invoice preserves scope, maker-checker, retained history and
         dateRaceAfter.dueDate.getTime() >= dateRaceAfter.invoiceDate.getTime(),
     );
 
+    const lineSubmissionRaceDraft = await clientFinance.create(
+      { auth: makerAuth },
+      project.id,
+      {
+        customerId: customer.id,
+        invoiceDate: new Date('2026-10-04T00:00:00.000Z'),
+        dueDate: new Date('2026-10-31T00:00:00.000Z'),
+        createKey: randomUUID(),
+        lines: [{ description: 'Line/submission serialization', amount: new Decimal('10.00') }],
+      },
+    );
+    const interceptedClientFinance = clientFinance as unknown as {
+      lock: (
+        companyId: string,
+        invoiceId: string,
+        tx: Prisma.TransactionClient,
+      ) => Promise<void>;
+    };
+    const originalClientInvoiceLock =
+      interceptedClientFinance.lock.bind(clientFinance);
+    let releaseSubmissionLock!: () => void;
+    const permitSubmission = new Promise<void>((resolve) => {
+      releaseSubmissionLock = resolve;
+    });
+    let submissionLocked!: () => void;
+    const submissionHasLock = new Promise<void>((resolve) => {
+      submissionLocked = resolve;
+    });
+    interceptedClientFinance.lock = async (companyId, invoiceId, tx) => {
+      await originalClientInvoiceLock(companyId, invoiceId, tx);
+      if (invoiceId === lineSubmissionRaceDraft.id) {
+        submissionLocked();
+        await permitSubmission;
+      }
+    };
+    try {
+      const racingLineSubmission = clientFinance.submit(
+        { auth: makerAuth },
+        lineSubmissionRaceDraft.id,
+        clientWorkflow.workflowCode,
+        randomUUID(),
+      );
+      await submissionHasLock;
+      const directLineMutation = prisma.clientInvoiceItem
+        .create({
+          data: {
+            companyId: company.id,
+            projectId: project.id,
+            clientInvoiceId: lineSubmissionRaceDraft.id,
+            lineNo: 2,
+            description: 'Must not cross submission boundary',
+            amount: new Decimal('5.00'),
+          },
+        })
+        .then(
+          (value) => ({ status: 'fulfilled' as const, value }),
+          (error: unknown) => ({ status: 'rejected' as const, error }),
+        );
+      const mutationState = await Promise.race([
+        directLineMutation.then((result) => result.status),
+        new Promise<'pending'>((resolve) =>
+          setTimeout(() => resolve('pending'), 200),
+        ),
+      ]);
+      assert.equal(
+        mutationState,
+        'pending',
+        'Direct Client Invoice line mutation must wait while submission owns the parent invoice lock.',
+      );
+
+      releaseSubmissionLock();
+      const retainedSubmission = await racingLineSubmission;
+      assert.equal(retainedSubmission.state, 'SUBMITTED');
+
+      const mutationOutcome = await directLineMutation;
+      assert.equal(mutationOutcome.status, 'rejected');
+      assert.ok(
+        mutationOutcome.status === 'rejected' &&
+          mutationOutcome.error instanceof Error &&
+          mutationOutcome.error.message.includes(
+            'CLIENT_INVOICE_HISTORY_IMMUTABLE',
+          ),
+        'A direct line mutation waiting behind submission must re-check the committed parent state and reject.',
+      );
+      const retainedAfterLineRace = await clientFinance.get(
+        makerAuth,
+        lineSubmissionRaceDraft.id,
+      );
+      assert.equal(retainedAfterLineRace.items.length, 1);
+      assert.equal(retainedAfterLineRace.totalAmount.toFixed(2), '10.00');
+    } finally {
+      releaseSubmissionLock();
+      interceptedClientFinance.lock = originalClientInvoiceLock;
+    }
+
     const alternateCustomerDraft = await clientFinance.create(
       { auth: makerAuth },
       project.id,
