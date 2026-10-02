@@ -2282,6 +2282,12 @@ test('V0.6-C Payments preserve Project scope, settlement ceilings, idempotency a
       numbers,
     );
     const makerAuth = auth(company.id, maker.id, [], []);
+    const makerApproverAuth = auth(
+      company.id,
+      maker.id,
+      [role.roleCode],
+      [],
+    );
     const checkerAuth = auth(
       company.id,
       checker.id,
@@ -2289,6 +2295,7 @@ test('V0.6-C Payments preserve Project scope, settlement ceilings, idempotency a
       [],
     );
     const outsiderAuth = auth(company.id, outsider.id, [], []);
+    const sysAdminAuth = auth(company.id, outsider.id, ['SYS_ADMIN'], []);
 
     const supplierDraft = await supplierFinance.createInvoice(
       { auth: makerAuth },
@@ -2405,6 +2412,14 @@ test('V0.6-C Payments preserve Project scope, settlement ceilings, idempotency a
       (error: unknown) => error instanceof ForbiddenException,
     );
 
+    await prisma.projectMember.create({
+      data: {
+        projectId: project.id,
+        employeeId: outsiderEmployee.id,
+        projectRole: 'Technical Administrator',
+      },
+    });
+
     const competing = await payments.create(
       { auth: makerAuth },
       project.id,
@@ -2468,7 +2483,16 @@ test('V0.6-C Payments preserve Project scope, settlement ceilings, idempotency a
     await assert.rejects(
       () =>
         payments.approve(
-          { auth: makerAuth },
+          { auth: makerApproverAuth },
+          winningPayment.id,
+          randomUUID(),
+        ),
+      (error: unknown) => error instanceof ForbiddenException,
+    );
+    await assert.rejects(
+      () =>
+        payments.approve(
+          { auth: sysAdminAuth },
           winningPayment.id,
           randomUUID(),
         ),
@@ -2516,6 +2540,14 @@ test('V0.6-C Payments preserve Project scope, settlement ceilings, idempotency a
     );
     assert.equal(cancelled.state, 'CANCELLED');
     assert.equal(cancelled.supplierAllocations.length, 1);
+    await assert.rejects(
+      () =>
+        prisma.$executeRawUnsafe(
+          'UPDATE "payments" SET "cancellation_reason" = "cancellation_reason" || \' tampered\' WHERE "id" = $1::uuid',
+          cancelled.id,
+        ),
+      /PAYMENT_CANCELLATION_HISTORY_IMMUTABLE/,
+    );
     const apAfterCancellation = await supplierFinance.accountsPayable(
       makerAuth,
       project.id,
@@ -2539,6 +2571,7 @@ test('V0.6-C Payments preserve Project scope, settlement ceilings, idempotency a
         createKey: randomUUID(),
       },
     );
+    const inboundAllocationKey = randomUUID();
     await payments.addAllocation(
       { auth: makerAuth },
       inbound.id,
@@ -2546,8 +2579,33 @@ test('V0.6-C Payments preserve Project scope, settlement ceilings, idempotency a
         targetType: 'CLIENT_INVOICE',
         targetId: clientApproved.id,
         amount: new Decimal('50.00'),
-        actionKey: randomUUID(),
+        actionKey: inboundAllocationKey,
       },
+    );
+    const inboundReplay = await payments.addAllocation(
+      { auth: makerAuth },
+      inbound.id,
+      {
+        targetType: 'CLIENT_INVOICE',
+        targetId: clientApproved.id,
+        amount: new Decimal('50.00'),
+        actionKey: inboundAllocationKey,
+      },
+    );
+    assert.equal(inboundReplay.clientAllocations.length, 1);
+    await assert.rejects(
+      () =>
+        payments.addAllocation(
+          { auth: makerAuth },
+          inbound.id,
+          {
+            targetType: 'CLIENT_INVOICE',
+            targetId: clientApproved.id,
+            amount: new Decimal('49.00'),
+            actionKey: inboundAllocationKey,
+          },
+        ),
+      (error: unknown) => error instanceof ConflictException,
     );
     await payments.submit(
       { auth: makerAuth },
@@ -2562,6 +2620,48 @@ test('V0.6-C Payments preserve Project scope, settlement ceilings, idempotency a
       'Approved client receipt',
     );
     assert.equal(approvedReceipt.state, 'APPROVED');
+    await assert.rejects(
+      () =>
+        prisma.$executeRawUnsafe(
+          'UPDATE "payments" SET "approved_at" = "approved_at" + interval \'1 second\' WHERE "id" = $1::uuid',
+          approvedReceipt.id,
+        ),
+      /PAYMENT_APPROVAL_HISTORY_IMMUTABLE/,
+    );
+
+    const rejectedDraft = await payments.create(
+      { auth: makerAuth },
+      project.id,
+      {
+        direction: 'INBOUND',
+        paymentDate: new Date('2026-10-05T00:00:00.000Z'),
+        customerId: customer.id,
+        amount: new Decimal('10.00'),
+        reference: 'Rejected receipt',
+        createKey: randomUUID(),
+      },
+    );
+    await payments.submit(
+      { auth: makerAuth },
+      rejectedDraft.id,
+      paymentWorkflow.workflowCode,
+      randomUUID(),
+    );
+    const rejectedPayment = await payments.reject(
+      { auth: checkerAuth },
+      rejectedDraft.id,
+      randomUUID(),
+      'Rejected for Stage C history proof',
+    );
+    assert.equal(rejectedPayment.state, 'REJECTED');
+    await assert.rejects(
+      () =>
+        prisma.$executeRawUnsafe(
+          'UPDATE "payments" SET "rejection_reason" = \'tampered\' WHERE "id" = $1::uuid',
+          rejectedPayment.id,
+        ),
+      /PAYMENT_REJECTION_HISTORY_IMMUTABLE/,
+    );
 
     const ar = await clientFinance.accountsReceivable(makerAuth, project.id);
     const arRow = ar.find((row) => row.id === clientApproved.id);
