@@ -1324,7 +1324,7 @@ test('V0.6-B Client Invoice preserves scope, maker-checker, retained history and
       const earlyStartedLaterInsert = prisma.$transaction(async (tx) => {
         await tx.$queryRaw`SELECT now()`;
         earlyTransactionStarted();
-        await tx.$queryRaw`SELECT pg_sleep(0.25)`;
+        await tx.$queryRaw`SELECT 1::int AS "slept" FROM pg_sleep(0.25)`;
         return tx.approvalAction.create({
           data: {
             approvalInstanceId: multiInstance.id,
