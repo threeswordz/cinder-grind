@@ -112,7 +112,7 @@ export class FinanceController {
   @UseGuards(AuthGuard, PermissionGuard)
   @RequirePermissions('finance.ap.view')
   async accountsPayableProjects(@Req() request: AuthenticatedRequest) {
-    return { data: await this.finance.projects(authOf(request)) };
+    return { data: await this.finance.balanceProjects(authOf(request)) };
   }
 
   @Get('projects/:projectId/accounts-payable')
