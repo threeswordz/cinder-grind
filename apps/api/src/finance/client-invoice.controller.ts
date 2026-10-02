@@ -1,10 +1,10 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Req, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '../auth/auth.guard';
 import { AuthenticatedRequest } from '../auth/auth.types';
 import { CsrfGuard } from '../auth/csrf.guard';
 import { PermissionGuard } from '../authorization/permission.guard';
 import { RequirePermissions } from '../authorization/permissions.decorator';
-import { financeArray, financeDate, financeNullableString, financeObject, financePositiveDecimal, financeString, financeUuid } from './finance-validation';
+import { financeArray, financeDate, financeNonEmpty, financeNullableString, financeObject, financePositiveDecimal, financeString, financeUuid } from './finance-validation';
 import { ClientInvoiceLineInput, ClientInvoiceService } from './client-invoice.service';
 
 function authOf(r: AuthenticatedRequest) { if (!r.auth) throw new Error('Authentication context is missing.'); return r.auth; }
@@ -53,6 +53,41 @@ export class ClientInvoiceController {
       dueDate: financeDate(x,'dueDate',true), createKey: financeString(x,'createKey',120),
       lines: financeArray(x,'lines').map(line),
     })};
+  }
+
+
+  @Patch('client-invoices/:invoiceId')
+  @UseGuards(AuthGuard, CsrfGuard, PermissionGuard)
+  @RequirePermissions('finance.client_invoice.edit')
+  async update(@Req() r:AuthenticatedRequest,@Param('invoiceId',new ParseUUIDPipe({version:'4'})) invoiceId:string,@Body() body:unknown) {
+    const x=financeObject(body); const data={
+      ...(x.invoiceDate!==undefined?{invoiceDate:financeDate(x,'invoiceDate')!}:{}),
+      ...(x.dueDate!==undefined?{dueDate:financeDate(x,'dueDate',true)}:{}),
+    }; financeNonEmpty(data); return {data:await this.service.update(contextOf(r),invoiceId,data)};
+  }
+
+  @Post('client-invoices/:invoiceId/items')
+  @UseGuards(AuthGuard, CsrfGuard, PermissionGuard)
+  @RequirePermissions('finance.client_invoice.edit')
+  async addLine(@Req() r:AuthenticatedRequest,@Param('invoiceId',new ParseUUIDPipe({version:'4'})) invoiceId:string,@Body() body:unknown) {
+    return {data:await this.service.addLine(contextOf(r),invoiceId,line(body))};
+  }
+
+  @Patch('client-invoice-items/:itemId')
+  @UseGuards(AuthGuard, CsrfGuard, PermissionGuard)
+  @RequirePermissions('finance.client_invoice.edit')
+  async updateLine(@Req() r:AuthenticatedRequest,@Param('itemId',new ParseUUIDPipe({version:'4'})) itemId:string,@Body() body:unknown) {
+    const x=financeObject(body); const data={
+      ...(x.description!==undefined?{description:financeString(x,'description',500)}:{}),
+      ...(x.amount!==undefined?{amount:financePositiveDecimal(x,'amount')}:{}),
+    }; financeNonEmpty(data); return {data:await this.service.updateLine(contextOf(r),itemId,data)};
+  }
+
+  @Delete('client-invoice-items/:itemId')
+  @UseGuards(AuthGuard, CsrfGuard, PermissionGuard)
+  @RequirePermissions('finance.client_invoice.edit')
+  async deleteLine(@Req() r:AuthenticatedRequest,@Param('itemId',new ParseUUIDPipe({version:'4'})) itemId:string) {
+    return {data:await this.service.deleteLine(contextOf(r),itemId)};
   }
 
   @Post('client-invoices/:invoiceId/submit')
