@@ -239,7 +239,6 @@ test('V0.6-A Supplier Invoice preserves Project scope, approval history, totals 
     );
     const makerAuth = auth(company.id, maker.id);
     const checkerAuth = auth(company.id, checker.id, [role.roleCode]);
-    const checker2Auth = auth(company.id, checker2.id, [role.roleCode]);
     const sysAdminAuth = auth(company.id, outsider.id, ['SYS_ADMIN']);
     const outsiderAuth = auth(company.id, outsider.id, [], []);
 
