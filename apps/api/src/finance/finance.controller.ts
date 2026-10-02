@@ -108,6 +108,23 @@ export class FinanceController {
     return { data: await this.finance.getInvoice(authOf(request), invoiceId) };
   }
 
+  @Get('accounts-payable-projects')
+  @UseGuards(AuthGuard, PermissionGuard)
+  @RequirePermissions('finance.ap.view')
+  async accountsPayableProjects(@Req() request: AuthenticatedRequest) {
+    return { data: await this.finance.balanceProjects(authOf(request)) };
+  }
+
+  @Get('projects/:projectId/accounts-payable')
+  @UseGuards(AuthGuard, PermissionGuard)
+  @RequirePermissions('finance.ap.view')
+  async accountsPayable(
+    @Req() request: AuthenticatedRequest,
+    @Param('projectId', new ParseUUIDPipe({ version: '4' })) projectId: string,
+  ) {
+    return { data: await this.finance.accountsPayable(authOf(request), projectId) };
+  }
+
   @Get('purchase-order-lines/:lineId/supplier-invoices')
   @UseGuards(AuthGuard, PermissionGuard)
   @RequirePermissions('finance.supplier_invoice.view')

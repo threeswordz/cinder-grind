@@ -33,6 +33,7 @@ import { SchedulingPanel } from './scheduling/SchedulingPanel';
 import { SiteExecutionPanel } from './site-execution/SiteExecutionPanel';
 import { DocumentsPanel } from './documents/DocumentsPanel';
 import { EquipmentPanel } from './equipment/EquipmentPanel';
+import { ClientFinanceWorkspace } from './finance/ClientFinanceWorkspace';
 import { FinanceWorkspace } from './finance/FinanceWorkspace';
 import { InventoryWorkspace } from './inventory/InventoryWorkspace';
 import { SubcontractsWorkspace } from './subcontracts/SubcontractsWorkspace';
@@ -57,6 +58,12 @@ export function AdminConsole({ user }: { user: CurrentUser }) {
           label: 'Finance',
           permission: '__finance__',
           content: <FinanceWorkspace permissions={user.permissions} />,
+        },
+        {
+          key: 'client-finance',
+          label: 'Client Finance',
+          permission: '__client_finance__',
+          content: <ClientFinanceWorkspace permissions={user.permissions} />,
         },
         {
           key: 'purchase-orders',
@@ -200,6 +207,13 @@ export function AdminConsole({ user }: { user: CurrentUser }) {
         section.permission === '__finance__'
           ? user.permissions.some((permission) =>
               permission.startsWith('finance.supplier_invoice.'),
+            )
+          : section.permission === '__client_finance__'
+          ? user.permissions.some(
+              (permission) =>
+                permission.startsWith('finance.client_invoice.') ||
+                permission === 'finance.ap.view' ||
+                permission === 'finance.ar.view',
             )
           : section.permission === '__purchase_orders__'
           ? user.permissions.includes('procurement.po.view')

@@ -63,7 +63,16 @@ export class FinanceService {
     const scope = await this.access.scopeWhere(auth);
     return this.prisma.project.findMany({
       where: { AND: [scope, { isActive: true }] },
-      select: { id: true, projectCode: true, projectName: true },
+      select: { id: true, projectCode: true, projectName: true, isActive: true },
+      orderBy: [{ projectName: 'asc' }, { projectCode: 'asc' }],
+    });
+  }
+
+  async balanceProjects(auth: AuthenticatedUserContext) {
+    const scope = await this.access.scopeWhere(auth);
+    return this.prisma.project.findMany({
+      where: scope,
+      select: { id: true, projectCode: true, projectName: true, isActive: true },
       orderBy: [{ projectName: 'asc' }, { projectCode: 'asc' }],
     });
   }
@@ -184,6 +193,35 @@ export class FinanceService {
 
   async getInvoice(auth: AuthenticatedUserContext, invoiceId: string) {
     return this.visibleInvoice(auth, invoiceId, this.prisma);
+  }
+
+  async accountsPayable(auth: AuthenticatedUserContext, projectId: string) {
+    await this.access.assertAccess(auth, projectId);
+    const rows = await this.prisma.supplierInvoice.findMany({
+      where: {
+        companyId: auth.companyId,
+        projectId,
+        state: 'APPROVED',
+      },
+      select: {
+        id: true,
+        supplierInvoiceNumber: true,
+        supplierReference: true,
+        invoiceDate: true,
+        dueDate: true,
+        currencyCode: true,
+        totalAmount: true,
+        supplier: {
+          select: { id: true, supplierCode: true, supplierName: true },
+        },
+      },
+      orderBy: [{ dueDate: 'asc' }, { invoiceDate: 'asc' }, { supplierInvoiceNumber: 'asc' }],
+    });
+    return rows.map((row) => ({
+      ...row,
+      allocatedAmount: new Prisma.Decimal(0),
+      outstandingAmount: row.totalAmount,
+    }));
   }
 
   async invoicesForPurchaseOrderLine(

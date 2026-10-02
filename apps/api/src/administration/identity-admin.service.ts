@@ -612,6 +612,22 @@ export class IdentityAdminService {
       }
     }
 
+    const clientInvoiceActionCodes = uniqueCodes.filter(
+      (code) =>
+        code.startsWith('finance.client_invoice.') &&
+        code !== 'finance.client_invoice.view',
+    );
+    if (
+      clientInvoiceActionCodes.length > 0 &&
+      !uniqueCodes.includes('finance.client_invoice.view')
+    ) {
+      throw new UnprocessableEntityException({
+        code: 'CLIENT_INVOICE_VIEW_PERMISSION_REQUIRED',
+        detail:
+          'Client Invoice action permissions require finance.client_invoice.view so authorized workflow actors can discover and read scoped Client Invoices.',
+      });
+    }
+
     const poActionCodes = uniqueCodes.filter(
       (code) =>
         code.startsWith('procurement.po.') &&
