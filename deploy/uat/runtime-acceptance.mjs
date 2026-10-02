@@ -5414,6 +5414,143 @@ check(
   'V0.5-D Certification unexpectedly exposed a payment or Finance posting effect.',
 );
 
+// V0.6-C settlement hand-off: the approved Certification remains owned by
+// Subcontracts while Finance retains the canonical Payment/allocation evidence.
+const subcontractPaymentOptions = await request(
+  pm,
+  '/finance/projects/' + projectId + '/payment-options',
+);
+check(
+  subcontractPaymentOptions.data.data.certifications.some(
+    (item) =>
+      item.id === stageDCertTwoId &&
+      item.agreement?.subcontractorId === subcontractorId &&
+      Number(item.netCertifiedAmount) === 97.69,
+  ),
+  'V0.6-C Payment options did not expose the approved same-Project Certification payable ceiling.',
+);
+const subcontractPayment = await request(
+  pm,
+  '/finance/projects/' + projectId + '/payments',
+  {
+    method: 'POST',
+    json: {
+      direction: 'OUTBOUND',
+      paymentDate: '2027-03-15',
+      subcontractorId,
+      amount: '100.00',
+      paymentMethod: 'BANK_TRANSFER',
+      reference: 'Subcontract certification settlement ' + suffix,
+      createKey: 'pay-sub-create-' + suffix,
+    },
+    expected: 201,
+  },
+);
+const subcontractPaymentId = subcontractPayment.data.data.id;
+check(
+  /^PAY2703-\d{3}$/.test(subcontractPayment.data.data.paymentNumber) &&
+    subcontractPayment.data.data.projectId === projectId &&
+    subcontractPayment.data.data.subcontractorId === subcontractorId &&
+    subcontractPayment.data.data.paymentDirection === 'OUTBOUND',
+  'V0.6-C Subcontract Payment did not retain its required Project/direction/counterparty identity.',
+);
+await request(
+  pm,
+  '/finance/payments/' + subcontractPaymentId + '/allocations',
+  {
+    method: 'POST',
+    json: {
+      targetType: 'SUBCONTRACT_CERTIFICATION',
+      targetId: stageDCertTwoId,
+      amount: '97.70',
+      actionKey: 'pay-sub-over-net-' + suffix,
+    },
+    expected: 409,
+  },
+);
+const subcontractAllocation = await request(
+  pm,
+  '/finance/payments/' + subcontractPaymentId + '/allocations',
+  {
+    method: 'POST',
+    json: {
+      targetType: 'SUBCONTRACT_CERTIFICATION',
+      targetId: stageDCertTwoId,
+      amount: '50.00',
+      actionKey: 'pay-sub-alloc-' + suffix,
+    },
+    expected: 201,
+  },
+);
+check(
+  subcontractAllocation.data.data.subcontractAllocations.length === 1 &&
+    subcontractAllocation.data.data.subcontractAllocations[0]
+      ?.subcontractCertification?.id === stageDCertTwoId &&
+    String(
+      subcontractAllocation.data.data.subcontractAllocations[0]?.allocatedAmount,
+    ) === '50',
+  'V0.6-C Subcontract allocation did not retain Certification settlement evidence.',
+);
+await request(
+  pm,
+  '/finance/payments/' + subcontractPaymentId + '/submit',
+  {
+    method: 'POST',
+    json: {
+      workflowCode: paymentWorkflowCode,
+      actionKey: 'pay-sub-submit-' + suffix,
+    },
+    expected: 201,
+  },
+);
+const approvedSubcontractPayment = await request(
+  checker,
+  '/finance/payments/' + subcontractPaymentId + '/approve',
+  {
+    method: 'POST',
+    json: {
+      actionKey: 'pay-sub-approve-' + suffix,
+      comment: 'Approve Certification settlement.',
+    },
+    expected: 201,
+  },
+);
+check(
+  approvedSubcontractPayment.data.data.state === 'APPROVED' &&
+    approvedSubcontractPayment.data.data.subcontractAllocations.length === 1,
+  'V0.6-C Subcontract Payment approval did not retain active Certification allocation evidence.',
+);
+await request(
+  checker,
+  '/subcontracts/certifications/' + stageDCertTwoId + '/reverse',
+  {
+    method: 'POST',
+    json: {
+      reason: 'Must remain blocked while Finance allocation is active.',
+      actionKey: 'uat-v06c-blocked-cert-reverse-' + suffix,
+    },
+    expected: 409,
+  },
+);
+const cancelledSubcontractPayment = await request(
+  pm,
+  '/finance/payments/' + subcontractPaymentId + '/cancel',
+  {
+    method: 'POST',
+    json: {
+      actionKey: 'pay-sub-cancel-' + suffix,
+      reason: 'Cancel settlement before Certification correction.',
+    },
+    expected: 201,
+  },
+);
+check(
+  cancelledSubcontractPayment.data.data.state === 'CANCELLED' &&
+    cancelledSubcontractPayment.data.data.subcontractAllocations.length === 1,
+  'V0.6-C Subcontract Payment cancellation did not retain historical allocation evidence.',
+);
+record('V0.6-C Subcontract Certification settlement enforces net-certified ceiling, blocks reversal while active, and releases the reversal guard only after Finance cancellation');
+
 const reversedStageDCertTwo = await request(
   checker,
   '/subcontracts/certifications/' + stageDCertTwoId + '/reverse',
