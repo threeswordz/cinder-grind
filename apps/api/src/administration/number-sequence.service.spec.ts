@@ -35,9 +35,17 @@ test('sequence configuration becomes immutable after use', () => {
     () => service.assertCreatable('SUBCONTRACT_AGREEMENT'),
     (error: unknown) => error instanceof ConflictException,
   );
+  assert.throws(
+    () => service.assertCreatable('CLIENT_INVOICE'),
+    (error: unknown) => error instanceof ConflictException,
+  );
   assert.doesNotThrow(() => service.assertEditable(1, null));
   assert.throws(
     () => service.assertEditable(1, null, 'SUBCONTRACT_AGREEMENT'),
+    (error: unknown) => error instanceof ConflictException,
+  );
+  assert.throws(
+    () => service.assertEditable(1, null, 'CLIENT_INVOICE'),
     (error: unknown) => error instanceof ConflictException,
   );
   assert.throws(
