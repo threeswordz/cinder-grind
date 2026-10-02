@@ -1317,6 +1317,8 @@ test('V0.6-B Client Invoice preserves scope, maker-checker, retained history and
         },
       });
 
+      const earlierRetainedTimestamp = new Date('2026-10-07T09:00:00.000Z');
+      const laterRetainedTimestamp = new Date('2026-10-07T10:00:00.000Z');
       let earlyTransactionStarted!: () => void;
       const earlyStarted = new Promise<void>((resolve) => {
         earlyTransactionStarted = resolve;
@@ -1331,6 +1333,7 @@ test('V0.6-B Client Invoice preserves scope, maker-checker, retained history and
             approvalStepId: multiStep.id,
             action: 'APPROVE',
             actionByUserId: checker2.id,
+            actionAt: earlierRetainedTimestamp,
           },
         });
       });
@@ -1342,6 +1345,7 @@ test('V0.6-B Client Invoice preserves scope, maker-checker, retained history and
             approvalStepId: multiStep.id,
             action: 'APPROVE',
             actionByUserId: checker.id,
+            actionAt: laterRetainedTimestamp,
           },
         }),
       );
@@ -1357,9 +1361,9 @@ test('V0.6-B Client Invoice preserves scope, maker-checker, retained history and
         'Decision order must follow the Approval Instance lock serialization order.',
       );
       assert.ok(
-        serializedSecondAction.actionAt.getTime() <=
+        serializedSecondAction.actionAt.getTime() <
           serializedFirstAction.actionAt.getTime(),
-        'Regression must reproduce a later-serialized action whose transaction-start timestamp is not later.',
+        'Regression must prove final-action selection follows serialized decision order even when action_at ordering is inverted.',
       );
 
       await prisma.approvalInstance.update({
