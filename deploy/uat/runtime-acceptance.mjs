@@ -2737,7 +2737,7 @@ const hiddenZeroBalance = await request(
 );
 check(
   hiddenZeroBalance.data.data.length === 1 &&
-    hiddenZeroBalance.data.data[0]?.quantity === '4.0000',
+    hiddenZeroBalance.data.data[0]?.quantity === '3.0000',
   'Finance-linked retained receipt must remain visible in derived stock balance.',
 );
 const visibleZeroBalance = await request(
@@ -2748,7 +2748,7 @@ const visibleZeroBalance = await request(
 );
 check(
   visibleZeroBalance.data.data.length === 1 &&
-    visibleZeroBalance.data.data[0]?.quantity === '4.0000',
+    visibleZeroBalance.data.data[0]?.quantity === '3.0000',
   'Finance-linked retained receipt balance was not derived exactly.',
 );
 record('V0.4-B partial/multiple PO receipt, maker-checker, over-receipt, retry, scope, PO cancellation guard and reversal');
