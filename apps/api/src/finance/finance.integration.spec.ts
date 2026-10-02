@@ -392,6 +392,26 @@ test('V0.6-A Supplier Invoice preserves Project scope, approval history, totals 
     );
     assert.equal(approvedReplay.state, 'APPROVED');
 
+    const approvedPoLineId = approved.items.find(
+      (item) => item.purchaseOrderLineId,
+    )?.purchaseOrderLineId;
+    if (approvedPoLineId) {
+      const approvedPoLine = await prisma.purchaseOrderLine.findUniqueOrThrow({
+        where: { id: approvedPoLineId },
+        select: { purchaseOrderId: true },
+      });
+      await assert.rejects(
+        () =>
+          purchaseOrders.cancel(
+            { auth: makerAuth },
+            approvedPoLine.purchaseOrderId,
+            'Must remain active for approved Supplier Invoice',
+          ),
+        (error: unknown) => error instanceof ConflictException,
+        'PO cancellation must be blocked while an approved Supplier Invoice references its line.',
+      );
+    }
+
     await assert.rejects(
       () =>
         finance.updateInvoice(
