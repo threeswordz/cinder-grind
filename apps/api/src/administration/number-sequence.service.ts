@@ -142,77 +142,82 @@ export class NumberSequenceService {
     companyId: string,
     sequenceCode: string,
     at = new Date(),
+    transaction?: Prisma.TransactionClient,
   ): Promise<string> {
-    return this.prisma.$transaction(
-      async (tx) => {
-        const rows = await tx.$queryRaw<LockedSequence[]>(Prisma.sql`
-          SELECT
-            "id",
-            "format_template",
-            "reset_rule",
-            "last_period_key",
-            "next_value"
-          FROM "number_sequences"
-          WHERE "company_id" = ${companyId}::uuid
-            AND "sequence_code" = ${sequenceCode}
-          FOR UPDATE
-        `);
+    const allocate = async (tx: Prisma.TransactionClient) => {
+      const rows = await tx.$queryRaw<LockedSequence[]>(Prisma.sql`
+        SELECT
+          "id",
+          "format_template",
+          "reset_rule",
+          "last_period_key",
+          "next_value"
+        FROM "number_sequences"
+        WHERE "company_id" = ${companyId}::uuid
+          AND "sequence_code" = ${sequenceCode}
+        FOR UPDATE
+      `);
 
-        const sequence = rows[0];
-        if (!sequence) {
-          throw new NotFoundException({
-            code: 'NUMBER_SEQUENCE_NOT_FOUND',
-            detail: 'Number sequence not found.',
-          });
-        }
-
-        const resetRule = normalizeResetRule(sequence.reset_rule);
-        const reservedPolicy = RESERVED_SEQUENCE_POLICIES.get(sequenceCode);
-        if (
-          reservedPolicy &&
-          (sequence.format_template !== reservedPolicy.formatTemplate ||
-            resetRule !== reservedPolicy.resetRule)
-        ) {
-          throw new ConflictException({
-            code: 'NUMBER_SEQUENCE_POLICY_MISMATCH',
-            detail:
-              'This reserved number sequence does not match its approved format and reset policy.',
-          });
-        }
-        const currentPeriod = periodKey(resetRule, at);
-        if (
-          currentPeriod !== null &&
-          sequence.last_period_key !== null &&
-          currentPeriod < sequence.last_period_key
-        ) {
-          throw new ConflictException({
-            code: 'NUMBER_SEQUENCE_PERIOD_REGRESSION',
-            detail:
-              'A number sequence cannot allocate an identifier for an earlier reset period.',
-          });
-        }
-        const shouldReset =
-          currentPeriod !== null &&
-          sequence.last_period_key !== null &&
-          sequence.last_period_key < currentPeriod;
-        const value = shouldReset ? 1 : sequence.next_value;
-
-        const businessNumber = formatBusinessNumber(
-          sequence.format_template,
-          value,
-          at,
-        );
-
-        await tx.numberSequence.update({
-          where: { id: sequence.id },
-          data: {
-            nextValue: value + 1,
-            lastPeriodKey: currentPeriod,
-          },
+      const sequence = rows[0];
+      if (!sequence) {
+        throw new NotFoundException({
+          code: 'NUMBER_SEQUENCE_NOT_FOUND',
+          detail: 'Number sequence not found.',
         });
+      }
 
-        return businessNumber;
-      },
+      const resetRule = normalizeResetRule(sequence.reset_rule);
+      const reservedPolicy = RESERVED_SEQUENCE_POLICIES.get(sequenceCode);
+      if (
+        reservedPolicy &&
+        (sequence.format_template !== reservedPolicy.formatTemplate ||
+          resetRule !== reservedPolicy.resetRule)
+      ) {
+        throw new ConflictException({
+          code: 'NUMBER_SEQUENCE_POLICY_MISMATCH',
+          detail:
+            'This reserved number sequence does not match its approved format and reset policy.',
+        });
+      }
+      const currentPeriod = periodKey(resetRule, at);
+      if (
+        currentPeriod !== null &&
+        sequence.last_period_key !== null &&
+        currentPeriod < sequence.last_period_key
+      ) {
+        throw new ConflictException({
+          code: 'NUMBER_SEQUENCE_PERIOD_REGRESSION',
+          detail:
+            'A number sequence cannot allocate an identifier for an earlier reset period.',
+        });
+      }
+      const shouldReset =
+        currentPeriod !== null &&
+        sequence.last_period_key !== null &&
+        sequence.last_period_key < currentPeriod;
+      const value = shouldReset ? 1 : sequence.next_value;
+
+      const businessNumber = formatBusinessNumber(
+        sequence.format_template,
+        value,
+        at,
+      );
+
+      await tx.numberSequence.update({
+        where: { id: sequence.id },
+        data: {
+          nextValue: value + 1,
+          lastPeriodKey: currentPeriod,
+        },
+      });
+
+      return businessNumber;
+    };
+
+    if (transaction) return allocate(transaction);
+
+    return this.prisma.$transaction(
+      allocate,
       // The sequence row is explicitly locked FOR UPDATE above. READ COMMITTED
       // lets a waiter observe the prior allocator's committed next_value instead
       // of retaining a stale SERIALIZABLE snapshot and failing with P2034.
