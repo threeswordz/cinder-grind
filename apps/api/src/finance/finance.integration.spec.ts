@@ -1069,6 +1069,48 @@ test('V0.6-B Client Invoice preserves scope, maker-checker, retained history and
       (error: unknown) => error instanceof UnprocessableEntityException,
     );
 
+    const directInsertDecisionAt = new Date();
+    await assert.rejects(
+      () =>
+        prisma.clientInvoice.create({
+          data: {
+            companyId: company.id,
+            projectId: project.id,
+            customerId: customer.id,
+            clientInvoiceNumber: 'CI2610-999999',
+            invoiceDate: new Date('2026-10-02T00:00:00.000Z'),
+            currencyCode: 'SGD',
+            state: 'APPROVED',
+            createKey: randomUUID(),
+            createPayloadHash: '1'.repeat(64),
+            createdByUserId: maker.id,
+            approvedByUserId: checker.id,
+            approvedAt: directInsertDecisionAt,
+            decidedAt: directInsertDecisionAt,
+          },
+        }),
+      /CLIENT_INVOICE_INITIAL_STATE_INVALID/,
+    );
+    await assert.rejects(
+      () =>
+        prisma.clientInvoice.create({
+          data: {
+            companyId: company.id,
+            projectId: project.id,
+            customerId: customer.id,
+            clientInvoiceNumber: 'CI2610-999998',
+            invoiceDate: new Date('2026-10-02T00:00:00.000Z'),
+            currencyCode: 'SGD',
+            state: 'DRAFT',
+            createKey: randomUUID(),
+            createPayloadHash: '2'.repeat(64),
+            createdByUserId: maker.id,
+            approvedByUserId: checker.id,
+          },
+        }),
+      /CLIENT_INVOICE_INITIAL_STATE_INVALID/,
+    );
+
     await assert.rejects(
       () =>
         prisma.clientInvoice.create({
