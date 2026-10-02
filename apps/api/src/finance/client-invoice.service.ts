@@ -14,6 +14,8 @@ type Db = Prisma.TransactionClient | PrismaService;
 type AuditContext = { auth: AuthenticatedUserContext; correlationId?: string };
 
 export type ClientInvoiceLineInput = { description: string; amount: Prisma.Decimal };
+export type ClientInvoiceDraftUpdate = { invoiceDate?: Date; dueDate?: Date | null };
+export type ClientInvoiceLineUpdate = Partial<ClientInvoiceLineInput>;
 export type ClientInvoiceDraftInput = {
   customerId: string;
   invoiceDate: Date;
@@ -131,6 +133,74 @@ export class ClientInvoiceService {
       }, tx);
       return this.visible(context.auth, header.id, tx);
     }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
+  }
+
+
+  async update(context: AuditContext, invoiceId: string, input: ClientInvoiceDraftUpdate) {
+    return this.prisma.$transaction(async (tx) => {
+      const current = await this.visible(context.auth, invoiceId, tx);
+      await this.lock(context.auth.companyId, invoiceId, tx);
+      this.assertDraft(current.state);
+      const invoiceDate = input.invoiceDate ?? current.invoiceDate;
+      const dueDate = input.dueDate === undefined ? current.dueDate : input.dueDate;
+      this.assertDates(invoiceDate, dueDate);
+      const updated = await tx.clientInvoice.update({
+        where: { id: invoiceId },
+        data: {
+          ...(input.invoiceDate !== undefined ? { invoiceDate: input.invoiceDate } : {}),
+          ...(input.dueDate !== undefined ? { dueDate: input.dueDate } : {}),
+        },
+      });
+      await this.audit.record({ ...context, entityType: 'CLIENT_INVOICE', entityId: invoiceId, action: 'UPDATE_DRAFT' }, tx);
+      return this.visible(context.auth, updated.id, tx);
+    });
+  }
+
+  async addLine(context: AuditContext, invoiceId: string, input: ClientInvoiceLineInput) {
+    this.assertLine(input);
+    return this.prisma.$transaction(async (tx) => {
+      const current = await this.visible(context.auth, invoiceId, tx);
+      await this.lock(context.auth.companyId, invoiceId, tx);
+      this.assertDraft(current.state);
+      const max = await tx.clientInvoiceItem.aggregate({ where: { clientInvoiceId: invoiceId }, _max: { lineNo: true } });
+      const item = await tx.clientInvoiceItem.create({ data: {
+        companyId: current.companyId, projectId: current.projectId, clientInvoiceId: invoiceId,
+        lineNo: (max._max.lineNo ?? 0) + 1, description: input.description.trim(), amount: input.amount,
+      }});
+      await this.audit.record({ ...context, entityType: 'CLIENT_INVOICE', entityId: invoiceId, action: 'ADD_LINE', newValues: { lineId: item.id, lineNo: item.lineNo } }, tx);
+      return this.visible(context.auth, invoiceId, tx);
+    });
+  }
+
+  async updateLine(context: AuditContext, itemId: string, input: ClientInvoiceLineUpdate) {
+    return this.prisma.$transaction(async (tx) => {
+      const item = await tx.clientInvoiceItem.findFirst({ where: { id: itemId, clientInvoice: { companyId: context.auth.companyId } }, include: { clientInvoice: true } });
+      if (!item) throw this.notFound();
+      await this.access.assertAccess(context.auth, item.projectId, tx);
+      await this.lock(context.auth.companyId, item.clientInvoiceId, tx);
+      this.assertDraft(item.clientInvoice.state);
+      const merged = { description: input.description ?? item.description, amount: input.amount ?? item.amount };
+      this.assertLine(merged);
+      await tx.clientInvoiceItem.update({ where: { id: itemId }, data: {
+        ...(input.description !== undefined ? { description: input.description.trim() } : {}),
+        ...(input.amount !== undefined ? { amount: input.amount } : {}),
+      }});
+      await this.audit.record({ ...context, entityType: 'CLIENT_INVOICE', entityId: item.clientInvoiceId, action: 'UPDATE_LINE', newValues: { lineId: itemId } }, tx);
+      return this.visible(context.auth, item.clientInvoiceId, tx);
+    });
+  }
+
+  async deleteLine(context: AuditContext, itemId: string) {
+    return this.prisma.$transaction(async (tx) => {
+      const item = await tx.clientInvoiceItem.findFirst({ where: { id: itemId, clientInvoice: { companyId: context.auth.companyId } }, include: { clientInvoice: true } });
+      if (!item) throw this.notFound();
+      await this.access.assertAccess(context.auth, item.projectId, tx);
+      await this.lock(context.auth.companyId, item.clientInvoiceId, tx);
+      this.assertDraft(item.clientInvoice.state);
+      await tx.clientInvoiceItem.delete({ where: { id: itemId } });
+      await this.audit.record({ ...context, entityType: 'CLIENT_INVOICE', entityId: item.clientInvoiceId, action: 'DELETE_LINE', oldValues: { lineId: itemId, lineNo: item.lineNo } }, tx);
+      return this.visible(context.auth, item.clientInvoiceId, tx);
+    });
   }
 
   async submit(context: AuditContext, invoiceId: string, workflowCode: string, actionKey: string) {
