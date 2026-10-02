@@ -47,7 +47,7 @@ export class ClientInvoiceController {
   @UseGuards(AuthGuard, PermissionGuard)
   @RequirePermissions('finance.ar.view')
   async accountsReceivableProjects(@Req() r: AuthenticatedRequest) {
-    return { data: await this.service.projects(authOf(r)) };
+    return { data: await this.service.balanceProjects(authOf(r)) };
   }
 
   @Get('projects/:projectId/accounts-receivable')
