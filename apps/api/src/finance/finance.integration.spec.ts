@@ -2412,6 +2412,85 @@ test('V0.6-C Payments preserve Project scope, settlement ceilings, idempotency a
       (error: unknown) => error instanceof ForbiddenException,
     );
 
+    await prisma.projectMember.createMany({
+      data: [
+        {
+          projectId: otherProject.id,
+          employeeId: makerEmployee.id,
+          projectRole: 'Cross Project Finance Maker',
+        },
+        {
+          projectId: otherProject.id,
+          employeeId: checkerEmployee.id,
+          projectRole: 'Cross Project Finance Checker',
+        },
+      ],
+    });
+    const crossProjectClientDraft = await clientFinance.create(
+      { auth: makerAuth },
+      otherProject.id,
+      {
+        customerId: customer.id,
+        invoiceDate: new Date('2026-10-02T00:00:00.000Z'),
+        createKey: randomUUID(),
+        lines: [
+          {
+            description: 'Cross Project allocation target',
+            amount: new Decimal('20.00'),
+          },
+        ],
+      },
+    );
+    await clientFinance.submit(
+      { auth: makerAuth },
+      crossProjectClientDraft.id,
+      clientWorkflow.workflowCode,
+      randomUUID(),
+    );
+    const crossProjectClientApproved = await clientFinance.approve(
+      { auth: checkerAuth },
+      crossProjectClientDraft.id,
+      randomUUID(),
+      'Approve cross-Project rejection probe.',
+    );
+    const crossProjectProbe = await payments.create(
+      { auth: makerAuth },
+      project.id,
+      {
+        direction: 'INBOUND',
+        paymentDate: new Date('2026-10-03T00:00:00.000Z'),
+        customerId: customer.id,
+        amount: new Decimal('5.00'),
+        reference: 'Cross Project allocation probe',
+        createKey: randomUUID(),
+      },
+    );
+    await assert.rejects(
+      () =>
+        payments.addAllocation(
+          { auth: makerAuth },
+          crossProjectProbe.id,
+          {
+            targetType: 'CLIENT_INVOICE',
+            targetId: crossProjectClientApproved.id,
+            amount: new Decimal('1.00'),
+            actionKey: randomUUID(),
+          },
+        ),
+      (error: unknown) => error instanceof UnprocessableEntityException,
+    );
+    await assert.rejects(
+      () =>
+        prisma.clientReceiptAllocation.create({
+          data: {
+            paymentId: crossProjectProbe.id,
+            clientInvoiceId: crossProjectClientApproved.id,
+            allocatedAmount: new Decimal('1.00'),
+          },
+        }),
+      /PAYMENT_CLIENT_TARGET_INVALID/,
+    );
+
     await prisma.projectMember.create({
       data: {
         projectId: project.id,
@@ -2662,6 +2741,101 @@ test('V0.6-C Payments preserve Project scope, settlement ceilings, idempotency a
         ),
       /PAYMENT_REJECTION_HISTORY_IMMUTABLE/,
     );
+
+    const concurrentCreateKey = randomUUID();
+    const concurrentInput = {
+      direction: 'INBOUND' as const,
+      paymentDate: new Date('2026-10-06T00:00:00.000Z'),
+      customerId: customer.id,
+      amount: new Decimal('5.00'),
+      reference: 'Concurrent Payment lifecycle proof',
+      createKey: concurrentCreateKey,
+    };
+    const concurrentCreate = await Promise.all([
+      payments.create({ auth: makerAuth }, project.id, concurrentInput),
+      payments.create({ auth: makerAuth }, project.id, concurrentInput),
+    ]);
+    assert.equal(
+      concurrentCreate[0]!.id,
+      concurrentCreate[1]!.id,
+      'Concurrent stable Payment create retries must converge on one record.',
+    );
+    const concurrentPaymentId = concurrentCreate[0]!.id;
+    await payments.addAllocation(
+      { auth: makerAuth },
+      concurrentPaymentId,
+      {
+        targetType: 'CLIENT_INVOICE',
+        targetId: clientApproved.id,
+        amount: new Decimal('5.00'),
+        actionKey: randomUUID(),
+      },
+    );
+    await payments.submit(
+      { auth: makerAuth },
+      concurrentPaymentId,
+      paymentWorkflow.workflowCode,
+      randomUUID(),
+    );
+
+    const approvalRace = await Promise.allSettled([
+      payments.approve(
+        { auth: checkerAuth },
+        concurrentPaymentId,
+        randomUUID(),
+        'Concurrent approval A',
+      ),
+      payments.approve(
+        { auth: checkerAuth },
+        concurrentPaymentId,
+        randomUUID(),
+        'Concurrent approval B',
+      ),
+    ]);
+    assert.equal(
+      approvalRace.filter((result) => result.status === 'fulfilled').length,
+      1,
+      'Concurrent approval must produce exactly one final Payment decision.',
+    );
+    assert.equal(
+      approvalRace.filter((result) => result.status === 'rejected').length,
+      1,
+    );
+    const afterApprovalRace = await payments.get(
+      makerAuth,
+      concurrentPaymentId,
+    );
+    assert.equal(afterApprovalRace.state, 'APPROVED');
+
+    const cancellationRace = await Promise.allSettled([
+      payments.cancel(
+        { auth: makerAuth },
+        concurrentPaymentId,
+        randomUUID(),
+        'Concurrent cancellation A',
+      ),
+      payments.cancel(
+        { auth: makerAuth },
+        concurrentPaymentId,
+        randomUUID(),
+        'Concurrent cancellation B',
+      ),
+    ]);
+    assert.equal(
+      cancellationRace.filter((result) => result.status === 'fulfilled').length,
+      1,
+      'Concurrent cancellation must produce exactly one terminal transition.',
+    );
+    assert.equal(
+      cancellationRace.filter((result) => result.status === 'rejected').length,
+      1,
+    );
+    const afterCancellationRace = await payments.get(
+      makerAuth,
+      concurrentPaymentId,
+    );
+    assert.equal(afterCancellationRace.state, 'CANCELLED');
+    assert.equal(afterCancellationRace.clientAllocations.length, 1);
 
     const ar = await clientFinance.accountsReceivable(makerAuth, project.id);
     const arRow = ar.find((row) => row.id === clientApproved.id);
