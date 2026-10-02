@@ -791,6 +791,33 @@ test('V0.6-B Client Invoice preserves scope, maker-checker, retained history and
     assert.equal(draft.currencyCode, 'SGD');
     assert.equal(draft.totalAmount.toFixed(2), '125.50');
 
+    const samePeriodDateEdit = await clientFinance.update(
+      { auth: makerAuth },
+      draft.id,
+      { invoiceDate: new Date('2026-10-15T00:00:00.000Z') },
+    );
+    assert.equal(
+      samePeriodDateEdit.invoiceDate.toISOString().slice(0, 10),
+      '2026-10-15',
+    );
+    await assert.rejects(
+      () =>
+        clientFinance.update(
+          { auth: makerAuth },
+          draft.id,
+          { invoiceDate: new Date('2026-11-01T00:00:00.000Z') },
+        ),
+      (error: unknown) => error instanceof ConflictException,
+    );
+    await assert.rejects(
+      () =>
+        prisma.clientInvoice.update({
+          where: { id: draft.id },
+          data: { invoiceDate: new Date('2026-11-01T00:00:00.000Z') },
+        }),
+      /CLIENT_INVOICE_NUMBER_PERIOD_MISMATCH/,
+    );
+
     const alternateCustomerDraft = await clientFinance.create(
       { auth: makerAuth },
       project.id,
