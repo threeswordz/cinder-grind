@@ -375,7 +375,7 @@ export class ClientInvoiceService {
           rejectedByUserId: decision.actionByUserId,
           rejectedAt: decision.actionAt,
           decidedAt: decision.actionAt,
-          rejectionReason: comment ?? null,
+          rejectionReason: decision.comment,
         },
       });
       await this.audit.record({ ...context, entityType: 'CLIENT_INVOICE', entityId: invoiceId, action: 'REJECT', newValues: { comment: comment ?? null } }, tx);
@@ -408,7 +408,7 @@ export class ClientInvoiceService {
         actionByUserId: actorUserId,
       },
       orderBy: [{ actionAt: 'desc' }, { id: 'desc' }],
-      select: { actionByUserId: true, actionAt: true },
+      select: { actionByUserId: true, actionAt: true, comment: true },
     });
   }
 
