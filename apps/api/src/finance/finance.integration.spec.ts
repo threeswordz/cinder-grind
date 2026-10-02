@@ -2179,10 +2179,13 @@ test('V0.6-C Payments preserve Project scope, settlement ceilings, idempotency a
       where: {
         permissionCode: {
           in: [
+            'finance.supplier_invoice.view',
             'finance.supplier_invoice.approve',
             'finance.supplier_invoice.reject',
+            'finance.client_invoice.view',
             'finance.client_invoice.approve',
             'finance.client_invoice.reject',
+            'finance.payment.view',
             'finance.payment.approve',
             'finance.payment.reject',
           ],
@@ -2190,7 +2193,7 @@ test('V0.6-C Payments preserve Project scope, settlement ceilings, idempotency a
       },
       select: { id: true },
     });
-    assert.equal(permissions.length, 6);
+    assert.equal(permissions.length, 9);
     await prisma.rolePermission.createMany({
       data: permissions.map((permission) => ({
         roleId: role.id,

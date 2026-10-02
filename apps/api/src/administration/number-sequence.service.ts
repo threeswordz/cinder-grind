@@ -122,7 +122,11 @@ export function formatBusinessNumber(
   const month = String(at.getUTCMonth() + 1).padStart(2, '0');
   const yy = String(year).slice(-2);
 
+  // Resolve adjacent date tokens before standalone tokens. This preserves
+  // literal prefix characters that happen to be Y, e.g. PAY + YYMM.
   let output = template
+    .replaceAll('YYYYMM', String(year) + month)
+    .replaceAll('YYMM', yy + month)
     .replaceAll('YYYY', String(year))
     .replaceAll('YY', yy)
     .replaceAll('MM', month);

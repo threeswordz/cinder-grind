@@ -35,6 +35,7 @@ import { DocumentsPanel } from './documents/DocumentsPanel';
 import { EquipmentPanel } from './equipment/EquipmentPanel';
 import { ClientFinanceWorkspace } from './finance/ClientFinanceWorkspace';
 import { FinanceWorkspace } from './finance/FinanceWorkspace';
+import { PaymentFinanceWorkspace } from './finance/PaymentFinanceWorkspace';
 import { InventoryWorkspace } from './inventory/InventoryWorkspace';
 import { SubcontractsWorkspace } from './subcontracts/SubcontractsWorkspace';
 import { WbsPanel } from './wbs/WbsPanel';
@@ -64,6 +65,12 @@ export function AdminConsole({ user }: { user: CurrentUser }) {
           label: 'Client Finance',
           permission: '__client_finance__',
           content: <ClientFinanceWorkspace permissions={user.permissions} />,
+        },
+        {
+          key: 'payments',
+          label: 'Payments',
+          permission: '__payments__',
+          content: <PaymentFinanceWorkspace permissions={user.permissions} />,
         },
         {
           key: 'purchase-orders',
@@ -214,6 +221,10 @@ export function AdminConsole({ user }: { user: CurrentUser }) {
                 permission.startsWith('finance.client_invoice.') ||
                 permission === 'finance.ap.view' ||
                 permission === 'finance.ar.view',
+            )
+          : section.permission === '__payments__'
+          ? user.permissions.some((permission) =>
+              permission.startsWith('finance.payment.'),
             )
           : section.permission === '__purchase_orders__'
           ? user.permissions.includes('procurement.po.view')
