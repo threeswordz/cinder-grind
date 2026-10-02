@@ -633,14 +633,19 @@ export class PaymentService {
               where: { id: paymentId },
             });
             await this.assertAllAllocationsValid(approvalTx, locked);
-            const now = new Date();
+            const decision = await this.retainedDecisionEvidence(
+              approvalTx,
+              current.approvalInstanceId!,
+              context.auth.userId,
+              'APPROVE',
+            );
             await approvalTx.payment.update({
               where: { id: paymentId },
               data: {
                 state: 'APPROVED',
-                approvedByUserId: context.auth.userId,
-                approvedAt: now,
-                decidedAt: now,
+                approvedByUserId: decision.actionByUserId,
+                approvedAt: decision.actionAt,
+                decidedAt: decision.actionAt,
               },
             });
           },
@@ -695,15 +700,20 @@ export class PaymentService {
           comment,
           tx,
         );
-        const now = new Date();
+        const decision = await this.retainedDecisionEvidence(
+          tx,
+          current.approvalInstanceId!,
+          context.auth.userId,
+          'REJECT',
+        );
         await tx.payment.update({
           where: { id: paymentId },
           data: {
             state: 'REJECTED',
-            rejectedByUserId: context.auth.userId,
-            rejectedAt: now,
-            decidedAt: now,
-            rejectionReason: comment ?? null,
+            rejectedByUserId: decision.actionByUserId,
+            rejectedAt: decision.actionAt,
+            decidedAt: decision.actionAt,
+            rejectionReason: decision.comment,
           },
         });
         await this.audit.record(
@@ -1162,7 +1172,11 @@ export class PaymentService {
             select: { workflowCode: true, workflowName: true },
           },
           actions: {
-            orderBy: [{ actionAt: 'asc' as const }, { id: 'asc' as const }],
+            orderBy: [
+              { paymentDecisionOrder: 'asc' as const },
+              { actionAt: 'asc' as const },
+              { id: 'asc' as const },
+            ],
             select: {
               id: true,
               action: true,
@@ -1184,6 +1198,44 @@ export class PaymentService {
         },
       },
     };
+  }
+
+  private async retainedDecisionEvidence(
+    tx: Prisma.TransactionClient,
+    approvalInstanceId: string,
+    actorUserId: string,
+    action: 'APPROVE' | 'REJECT',
+  ) {
+    const instance = await tx.approvalInstance.findUniqueOrThrow({
+      where: { id: approvalInstanceId },
+      select: { approvalWorkflowId: true, currentStepNo: true },
+    });
+    const step = await tx.approvalStep.findFirstOrThrow({
+      where: {
+        approvalWorkflowId: instance.approvalWorkflowId,
+        stepNo: instance.currentStepNo,
+      },
+      select: { id: true },
+    });
+    return tx.approvalAction.findFirstOrThrow({
+      where: {
+        approvalInstanceId,
+        approvalStepId: step.id,
+        action,
+        actionByUserId: actorUserId,
+        paymentDecisionOrder: { not: null },
+      },
+      orderBy: [
+        { paymentDecisionOrder: 'desc' },
+        { actionAt: 'desc' },
+        { id: 'desc' },
+      ],
+      select: {
+        actionByUserId: true,
+        actionAt: true,
+        comment: true,
+      },
+    });
   }
 
   private async lockPayment(

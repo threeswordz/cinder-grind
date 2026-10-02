@@ -484,6 +484,7 @@ model ApprovalAction {
   actionByUserId     String   @map("action_by_user_id") @db.Uuid
   actionAt           DateTime @default(now()) @map("action_at") @db.Timestamptz(6)
   clientInvoiceDecisionOrder BigInt? @unique(map: "approval_actions_client_invoice_decision_order_key") @map("client_invoice_decision_order")
+  paymentDecisionOrder BigInt? @unique(map: "approval_actions_payment_decision_order_key") @map("payment_decision_order")
   comment            String?  @db.Text
 
   approvalInstance ApprovalInstance @relation(fields: [approvalInstanceId], references: [id], onDelete: Restrict)

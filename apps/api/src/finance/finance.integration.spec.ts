@@ -2204,6 +2204,42 @@ test('V0.6-C Payments preserve Project scope, settlement ceilings, idempotency a
       data: { companyId: company.id, userId: checker.id, roleId: role.id },
     });
 
+    const makerRole = await prisma.role.create({
+      data: {
+        companyId: company.id,
+        roleCode: 'FINC_MAKER_' + suffix,
+        roleName: 'Finance C Maker',
+      },
+    });
+    const makerPermissions = await prisma.permission.findMany({
+      where: {
+        permissionCode: {
+          in: [
+            'finance.payment.view',
+            'finance.payment.create',
+            'finance.payment.edit',
+            'finance.payment.submit',
+            'finance.payment.cancel',
+          ],
+        },
+      },
+      select: { id: true },
+    });
+    assert.equal(makerPermissions.length, 5);
+    await prisma.rolePermission.createMany({
+      data: makerPermissions.map((permission) => ({
+        roleId: makerRole.id,
+        permissionId: permission.id,
+      })),
+    });
+    await prisma.userRole.create({
+      data: {
+        companyId: company.id,
+        userId: maker.id,
+        roleId: makerRole.id,
+      },
+    });
+
     const supplierWorkflow = await prisma.approvalWorkflow.create({
       data: {
         companyId: company.id,
@@ -2553,11 +2589,90 @@ test('V0.6-C Payments preserve Project scope, settlement ceilings, idempotency a
     assert.ok(apBeforeRow);
     assert.equal(apBeforeRow.allocatedAmount.toFixed(2), '0.00');
 
+    await assert.rejects(
+      () =>
+        prisma.payment.create({
+          data: {
+            companyId: company.id,
+            projectId: project.id,
+            paymentNumber: 'PAY2610-998',
+            paymentDirection: 'INBOUND',
+            paymentDate: new Date('2026-10-03T00:00:00.000Z'),
+            customerId: customer.id,
+            amount: new Decimal('1.00'),
+            currencyCode: company.baseCurrencyCode,
+            state: 'APPROVED',
+            createKey: randomUUID(),
+            createPayloadHash: '0'.repeat(64),
+            createdByUserId: maker.id,
+            approvedByUserId: checker.id,
+            approvedAt: new Date(),
+            decidedAt: new Date(),
+          },
+        }),
+      /PAYMENT_INITIAL_STATE_INVALID/,
+    );
+
     await payments.submit(
       { auth: makerAuth },
       winningPayment.id,
       paymentWorkflow.workflowCode,
       randomUUID(),
+    );
+
+    const submittedPayment = await prisma.payment.findUniqueOrThrow({
+      where: { id: winningPayment.id },
+      select: { approvalInstanceId: true },
+    });
+    assert.ok(submittedPayment.approvalInstanceId);
+    await assert.rejects(
+      () =>
+        prisma.payment.update({
+          where: { id: winningPayment.id },
+          data: {
+            state: 'APPROVED',
+            approvedByUserId: checker.id,
+            approvedAt: new Date(),
+            decidedAt: new Date(),
+          },
+        }),
+      /PAYMENT_APPROVAL_STATE_MISMATCH/,
+    );
+    await assert.rejects(
+      () =>
+        prisma.approvalInstance.update({
+          where: { id: submittedPayment.approvalInstanceId! },
+          data: {
+            approvalState: 'APPROVED',
+            completedAt: new Date(),
+          },
+        }),
+      /PAYMENT_APPROVAL_EVIDENCE_INVALID/,
+    );
+    const paymentApprovalInstance =
+      await prisma.approvalInstance.findUniqueOrThrow({
+        where: { id: submittedPayment.approvalInstanceId! },
+        select: { approvalWorkflowId: true, currentStepNo: true },
+      });
+    const paymentApprovalStep = await prisma.approvalStep.findFirstOrThrow({
+      where: {
+        approvalWorkflowId: paymentApprovalInstance.approvalWorkflowId,
+        stepNo: paymentApprovalInstance.currentStepNo,
+      },
+      select: { id: true },
+    });
+    await assert.rejects(
+      () =>
+        prisma.approvalAction.create({
+          data: {
+            approvalInstanceId: submittedPayment.approvalInstanceId!,
+            approvalStepId: paymentApprovalStep.id,
+            action: 'APPROVE',
+            actionByUserId: maker.id,
+            comment: 'Direct maker bypass probe',
+          },
+        }),
+      /PAYMENT_MAKER_CHECKER_VIOLATION/,
     );
     await assert.rejects(
       () =>
@@ -2595,6 +2710,20 @@ test('V0.6-C Payments preserve Project scope, settlement ceilings, idempotency a
     assert.ok(apAfterRow);
     assert.equal(apAfterRow.allocatedAmount.toFixed(2), '60.00');
     assert.equal(apAfterRow.outstandingAmount.toFixed(2), '40.00');
+
+    await assert.rejects(
+      () =>
+        prisma.payment.update({
+          where: { id: approvedPayment.id },
+          data: {
+            state: 'CANCELLED',
+            cancelledByUserId: outsider.id,
+            cancelledAt: new Date(),
+            cancellationReason: 'Direct unauthorized cancellation probe',
+          },
+        }),
+      /PAYMENT_CANCEL_PERMISSION_DENIED/,
+    );
 
     await assert.rejects(
       () =>
