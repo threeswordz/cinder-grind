@@ -6,6 +6,7 @@ export type FinanceProject = {
   id: string;
   projectCode: string;
   projectName: string;
+  isActive: boolean;
 };
 
 export type FinanceWorkflow = {
