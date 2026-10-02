@@ -2218,6 +2218,53 @@ await request(
   },
 );
 
+const rejectedSupplierInvoiceDraft = await request(
+  pm,
+  '/finance/projects/' + projectId + '/supplier-invoices',
+  {
+    method: 'POST',
+    json: {
+      ...supplierInvoicePayload,
+      supplierReference: 'SUP-INV-REJECT-' + suffix,
+      createKey: 'si-create-reject-' + suffix,
+    },
+    expected: 201,
+  },
+);
+const rejectedSupplierInvoiceId = rejectedSupplierInvoiceDraft.data.data.id;
+await request(
+  pm,
+  '/finance/supplier-invoices/' + rejectedSupplierInvoiceId + '/submit',
+  {
+    method: 'POST',
+    json: {
+      workflowCode: supplierInvoiceWorkflowCode,
+      actionKey: 'si-submit-reject-' + suffix,
+    },
+    expected: 201,
+  },
+);
+const rejectedSupplierInvoice = await request(
+  checker,
+  '/finance/supplier-invoices/' + rejectedSupplierInvoiceId + '/reject',
+  {
+    method: 'POST',
+    json: {
+      actionKey: 'si-reject-' + suffix,
+      comment: 'Live HTTP rejection acceptance reason.',
+    },
+    expected: 201,
+  },
+);
+check(
+  rejectedSupplierInvoice.data.data.state === 'REJECTED' &&
+    rejectedSupplierInvoice.data.data.approvalInstance?.approvalState ===
+      'REJECTED' &&
+    rejectedSupplierInvoice.data.data.rejectionReason ===
+      'Live HTTP rejection acceptance reason.',
+  'V0.6-A Supplier Invoice live HTTP rejection did not retain rejected state and reason.',
+);
+
 const poInvoiceTrace = await request(
   pm,
   '/finance/purchase-order-lines/' + revisedPoLineId + '/supplier-invoices',
@@ -2239,7 +2286,7 @@ await request(
   '/finance/purchase-order-lines/' + revisedPoLineId + '/supplier-invoices',
   { expected: 403 },
 );
-record('V0.6-A Supplier Invoice Draft → PO/GR lineage → submit → configured maker-checker approval → immutable retained history → source forward trace → unauthorized Project denial');
+record('V0.6-A Supplier Invoice Draft → PO/GR lineage → submit → configured maker-checker approval/rejection → immutable retained history → source forward trace → unauthorized Project denial');
 
 const postedBalance = await request(
   pm,
