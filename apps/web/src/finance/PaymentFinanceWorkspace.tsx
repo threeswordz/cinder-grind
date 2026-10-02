@@ -269,9 +269,9 @@ export function PaymentFinanceWorkspace({ permissions }: Props) {
         paymentMethod: paymentMethod.trim() || null,
         reference: reference.trim() || null,
         createKey,
-        supplierId: kind === 'SUPPLIER' ? id : null,
-        customerId: kind === 'CUSTOMER' ? id : null,
-        subcontractorId: kind === 'SUBCONTRACTOR' ? id : null,
+        ...(kind === 'SUPPLIER' ? { supplierId: id } : {}),
+        ...(kind === 'CUSTOMER' ? { customerId: id } : {}),
+        ...(kind === 'SUBCONTRACTOR' ? { subcontractorId: id } : {}),
       });
     },
     onSuccess: async (result) => {
