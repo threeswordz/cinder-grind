@@ -682,6 +682,20 @@ test('V0.6-B Client Invoice preserves scope, maker-checker, retained history and
         employeeName: 'Finance B Outsider',
       },
     });
+    const permissionDeniedEmployee = await prisma.employee.create({
+      data: {
+        companyId: company.id,
+        employeeCode: 'FINB-NOPERM-' + suffix,
+        employeeName: 'Finance B No Permission',
+      },
+    });
+    const scopeDeniedEmployee = await prisma.employee.create({
+      data: {
+        companyId: company.id,
+        employeeCode: 'FINB-NOSCOPE-' + suffix,
+        employeeName: 'Finance B No Project Scope',
+      },
+    });
     const maker = await prisma.user.create({
       data: {
         companyId: company.id,
@@ -709,6 +723,24 @@ test('V0.6-B Client Invoice preserves scope, maker-checker, retained history and
         passwordHash: 'x',
       },
     });
+    const permissionDeniedUser = await prisma.user.create({
+      data: {
+        companyId: company.id,
+        employeeId: permissionDeniedEmployee.id,
+        email: 'finb-noperm-' + suffix + '@example.com',
+        displayName: 'Finance B No Permission',
+        passwordHash: 'x',
+      },
+    });
+    const scopeDeniedUser = await prisma.user.create({
+      data: {
+        companyId: company.id,
+        employeeId: scopeDeniedEmployee.id,
+        email: 'finb-noscope-' + suffix + '@example.com',
+        displayName: 'Finance B No Project Scope',
+        passwordHash: 'x',
+      },
+    });
     const project = await prisma.project.create({
       data: {
         companyId: company.id,
@@ -724,6 +756,7 @@ test('V0.6-B Client Invoice preserves scope, maker-checker, retained history and
       data: [
         { projectId: project.id, employeeId: makerEmployee.id, projectRole: 'Finance Maker' },
         { projectId: project.id, employeeId: checkerEmployee.id, projectRole: 'Finance Approver' },
+        { projectId: project.id, employeeId: permissionDeniedEmployee.id, projectRole: 'Finance Permission Test' },
       ],
     });
     const supplier = await prisma.supplier.create({
@@ -740,12 +773,42 @@ test('V0.6-B Client Invoice preserves scope, maker-checker, retained history and
         roleName: 'Finance B Approver',
       },
     });
-    await prisma.userRole.create({
+    const noPermissionRole = await prisma.role.create({
       data: {
         companyId: company.id,
-        userId: checker.id,
-        roleId: role.id,
+        roleCode: 'FINB_NOPERM_' + suffix,
+        roleName: 'Finance B Workflow Role Without Finance Permission',
       },
+    });
+    const decisionPermissions = await prisma.permission.findMany({
+      where: {
+        permissionCode: {
+          in: ['finance.client_invoice.approve', 'finance.client_invoice.reject'],
+        },
+      },
+      select: { id: true, permissionCode: true },
+    });
+    assert.equal(decisionPermissions.length, 2);
+    await prisma.rolePermission.createMany({
+      data: decisionPermissions.map((permission) => ({
+        roleId: role.id,
+        permissionId: permission.id,
+      })),
+    });
+    await prisma.userRole.createMany({
+      data: [
+        { companyId: company.id, userId: checker.id, roleId: role.id },
+        {
+          companyId: company.id,
+          userId: permissionDeniedUser.id,
+          roleId: noPermissionRole.id,
+        },
+        {
+          companyId: company.id,
+          userId: scopeDeniedUser.id,
+          roleId: role.id,
+        },
+      ],
     });
     const clientWorkflow = await prisma.approvalWorkflow.create({
       data: {
@@ -758,7 +821,12 @@ test('V0.6-B Client Invoice preserves scope, maker-checker, retained history and
             stepNo: 1,
             stepName: 'Finance Checker',
             requiredApprovals: 1,
-            stepRoles: { create: { roleId: role.id } },
+            stepRoles: {
+              create: [
+                { roleId: role.id },
+                { roleId: noPermissionRole.id },
+              ],
+            },
           },
         },
       },
@@ -1082,6 +1150,30 @@ test('V0.6-B Client Invoice preserves scope, maker-checker, retained history and
             },
           }),
         /CLIENT_INVOICE_APPROVAL_ROLE_DENIED/,
+      );
+      await assert.rejects(
+        () =>
+          prisma.approvalAction.create({
+            data: {
+              approvalInstanceId: linkedApproval.id,
+              approvalStepId: currentApprovalStep!.id,
+              action: 'APPROVE',
+              actionByUserId: permissionDeniedUser.id,
+            },
+          }),
+        /CLIENT_INVOICE_APPROVAL_PERMISSION_DENIED/,
+      );
+      await assert.rejects(
+        () =>
+          prisma.approvalAction.create({
+            data: {
+              approvalInstanceId: linkedApproval.id,
+              approvalStepId: currentApprovalStep!.id,
+              action: 'APPROVE',
+              actionByUserId: scopeDeniedUser.id,
+            },
+          }),
+        /CLIENT_INVOICE_APPROVAL_PROJECT_ACCESS_DENIED/,
       );
 
       const supplierApprovalStep = await prisma.approvalStep.findFirstOrThrow({
