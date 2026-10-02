@@ -65,6 +65,8 @@ model Company {
   subcontractClaims SubcontractClaim[]
   subcontractClaimLines SubcontractClaimLine[]
   subcontractClaimAssessments SubcontractClaimAssessment[]
+  supplierInvoices SupplierInvoice[]
+  financeActionReplays FinanceActionReplay[]
   @@map("companies")
 }
 
@@ -111,6 +113,7 @@ model Supplier {
   quotationAwards        QuotationAward[]
   purchaseOrders         PurchaseOrder[]
   goodsReceipts          GoodsReceipt[]
+  supplierInvoices       SupplierInvoice[]
   subcontractors         Subcontractor[]
   @@unique([companyId, supplierCode])
   @@unique([companyId, id])
@@ -284,6 +287,11 @@ model User {
   postedStockTransfers         StockTransfer[] @relation("StockTransferPoster")
   reversedStockTransfers       StockTransfer[] @relation("StockTransferReverser")
   stockTransactions          StockTransaction[]
+  createdSupplierInvoices     SupplierInvoice[] @relation("SupplierInvoiceCreator")
+  submittedSupplierInvoices   SupplierInvoice[] @relation("SupplierInvoiceSubmitter")
+  approvedSupplierInvoices    SupplierInvoice[] @relation("SupplierInvoiceApprover")
+  rejectedSupplierInvoices    SupplierInvoice[] @relation("SupplierInvoiceRejector")
+  financeActionReplays        FinanceActionReplay[]
   @@unique([companyId, email])
   @@unique([companyId, id])
   @@index([companyId, isActive])
@@ -445,6 +453,7 @@ model ApprovalInstance {
   subcontractWorkOrder SubcontractWorkOrder?
   subcontractCertification SubcontractCertification?
   subcontractVariation SubcontractVariation?
+  supplierInvoice SupplierInvoice?
   @@index([companyId, entityType, entityId])
   @@index([approvalWorkflowId, approvalState])
   @@map("approval_instances")
@@ -594,6 +603,7 @@ model Project {
   subcontractClaims SubcontractClaim[]
   subcontractClaimLines SubcontractClaimLine[]
   subcontractClaimAssessments SubcontractClaimAssessment[]
+  supplierInvoices SupplierInvoice[]
   @@unique([companyId, projectCode])
   @@unique([companyId, id])
   @@index([companyId, isActive])
@@ -669,6 +679,7 @@ model WbsElement {
   materialIssueItems             MaterialIssueItem[]
   stockTransactions              StockTransaction[]
   subcontractWorkOrders SubcontractWorkOrder[]
+  supplierInvoiceItems SupplierInvoiceItem[]
   @@unique([projectId, id])
   @@unique([projectId, wbsCode])
   @@index([projectId, parentId, isActive])
@@ -694,6 +705,7 @@ model CostCode {
   materialIssueItems             MaterialIssueItem[]
   stockTransactions              StockTransaction[]
   subcontractWorkOrders SubcontractWorkOrder[]
+  supplierInvoiceItems SupplierInvoiceItem[]
   @@unique([companyId, id])
   @@unique([companyId, costCode])
   @@index([companyId, isActive])
@@ -1587,6 +1599,7 @@ model GoodsReceiptItem {
   material           Material           @relation(fields: [materialId], references: [id], onDelete: Restrict)
   uom                UnitOfMeasure      @relation(fields: [uomId], references: [id], onDelete: Restrict)
   stockTransactions  StockTransaction[]
+  supplierInvoiceItems SupplierInvoiceItem[]
 
   @@unique([goodsReceiptId, lineNo])
   @@unique([goodsReceiptId, purchaseOrderLineId])
@@ -2441,6 +2454,7 @@ model PurchaseOrderLine {
   wbs                   WbsElement?           @relation(fields: [wbsId], references: [id], onDelete: Restrict)
   costCode              CostCode?             @relation(fields: [costCodeId], references: [id], onDelete: Restrict)
   goodsReceiptItems     GoodsReceiptItem[]
+  supplierInvoiceItems  SupplierInvoiceItem[]
 
   @@unique([purchaseOrderId, lineNo])
   @@unique([purchaseOrderId, quotationAwardId])
@@ -2475,4 +2489,99 @@ model SubcontractActionReplay {
   @@unique([companyId, userId, actionKey], map: "subcontract_action_replays_actor_key")
   @@index([companyId, entityType, entityId])
   @@map("subcontract_action_replays")
+}
+
+
+model SupplierInvoice {
+  id                    String    @id @default(uuid()) @db.Uuid
+  companyId             String    @map("company_id") @db.Uuid
+  projectId             String    @map("project_id") @db.Uuid
+  supplierId            String    @map("supplier_id") @db.Uuid
+  supplierInvoiceNumber String    @map("supplier_invoice_number") @db.VarChar(120)
+  supplierReference     String    @map("supplier_reference") @db.VarChar(200)
+  invoiceDate           DateTime  @map("invoice_date") @db.Date
+  dueDate               DateTime? @map("due_date") @db.Date
+  currencyCode          String    @map("currency_code") @db.VarChar(3)
+  totalAmount           Decimal   @default(0) @map("total_amount") @db.Decimal(18, 2)
+  state                 String    @default("DRAFT") @db.VarChar(30)
+  approvalInstanceId    String?   @unique @map("approval_instance_id") @db.Uuid
+  createKey             String    @map("create_key") @db.VarChar(120)
+  createPayloadHash     String    @map("create_payload_hash") @db.VarChar(64)
+  createdByUserId       String    @map("created_by_user_id") @db.Uuid
+  submittedByUserId     String?   @map("submitted_by_user_id") @db.Uuid
+  approvedByUserId      String?   @map("approved_by_user_id") @db.Uuid
+  rejectedByUserId      String?   @map("rejected_by_user_id") @db.Uuid
+  createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  submittedAt           DateTime? @map("submitted_at") @db.Timestamptz(6)
+  decidedAt             DateTime? @map("decided_at") @db.Timestamptz(6)
+  approvedAt            DateTime? @map("approved_at") @db.Timestamptz(6)
+  rejectedAt            DateTime? @map("rejected_at") @db.Timestamptz(6)
+  rejectionReason       String?   @map("rejection_reason") @db.Text
+
+  company          Company           @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  project          Project           @relation(fields: [companyId, projectId], references: [companyId, id], onDelete: Restrict)
+  supplier         Supplier          @relation(fields: [companyId, supplierId], references: [companyId, id], onDelete: Restrict)
+  approvalInstance ApprovalInstance? @relation(fields: [approvalInstanceId], references: [id], onDelete: Restrict)
+  createdBy        User              @relation("SupplierInvoiceCreator", fields: [companyId, createdByUserId], references: [companyId, id], onDelete: Restrict)
+  submittedBy      User?             @relation("SupplierInvoiceSubmitter", fields: [companyId, submittedByUserId], references: [companyId, id], onDelete: Restrict)
+  approvedBy       User?             @relation("SupplierInvoiceApprover", fields: [companyId, approvedByUserId], references: [companyId, id], onDelete: Restrict)
+  rejectedBy       User?             @relation("SupplierInvoiceRejector", fields: [companyId, rejectedByUserId], references: [companyId, id], onDelete: Restrict)
+  items            SupplierInvoiceItem[]
+
+  @@unique([companyId, supplierInvoiceNumber])
+  @@unique([companyId, supplierId, supplierReference])
+  @@unique([companyId, createdByUserId, createKey], map: "supplier_invoices_creator_create_key_key")
+  @@unique([companyId, projectId, id], map: "supplier_invoices_scope_key")
+  @@index([companyId, projectId, state])
+  @@index([companyId, supplierId, invoiceDate])
+  @@map("supplier_invoices")
+}
+
+model SupplierInvoiceItem {
+  id                   String   @id @default(uuid()) @db.Uuid
+  companyId            String   @map("company_id") @db.Uuid
+  projectId            String   @map("project_id") @db.Uuid
+  supplierInvoiceId    String   @map("supplier_invoice_id") @db.Uuid
+  lineNo               Int      @map("line_no")
+  purchaseOrderLineId  String?  @map("purchase_order_line_id") @db.Uuid
+  goodsReceiptItemId   String?  @map("goods_receipt_item_id") @db.Uuid
+  wbsId                String?  @map("wbs_id") @db.Uuid
+  costCodeId           String?  @map("cost_code_id") @db.Uuid
+  description          String   @db.VarChar(500)
+  amount               Decimal  @db.Decimal(18, 2)
+  createdAt            DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  supplierInvoice   SupplierInvoice  @relation(fields: [companyId, projectId, supplierInvoiceId], references: [companyId, projectId, id], onDelete: Restrict)
+  purchaseOrderLine PurchaseOrderLine? @relation(fields: [purchaseOrderLineId], references: [id], onDelete: Restrict)
+  goodsReceiptItem  GoodsReceiptItem?  @relation(fields: [goodsReceiptItemId], references: [id], onDelete: Restrict)
+  wbs               WbsElement?        @relation(fields: [projectId, wbsId], references: [projectId, id], onDelete: Restrict)
+  costCode          CostCode?          @relation(fields: [companyId, costCodeId], references: [companyId, id], onDelete: Restrict)
+
+  @@unique([supplierInvoiceId, lineNo])
+  @@index([companyId, projectId, wbsId])
+  @@index([companyId, costCodeId])
+  @@index([purchaseOrderLineId])
+  @@index([goodsReceiptItemId])
+  @@map("supplier_invoice_items")
+}
+
+model FinanceActionReplay {
+  id          String   @id @default(uuid()) @db.Uuid
+  companyId   String   @map("company_id") @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  actionKey   String   @map("action_key") @db.VarChar(120)
+  actionType  String   @map("action_type") @db.VarChar(80)
+  entityType  String   @map("entity_type") @db.VarChar(100)
+  entityId    String   @map("entity_id") @db.Uuid
+  payloadHash String   @map("payload_hash") @db.VarChar(64)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  user    User    @relation(fields: [companyId, userId], references: [companyId, id], onDelete: Restrict)
+
+  @@unique([companyId, userId, actionKey])
+  @@index([companyId, entityType, entityId])
+  @@map("finance_action_replays")
 }

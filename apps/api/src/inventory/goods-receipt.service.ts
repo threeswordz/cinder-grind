@@ -369,6 +369,26 @@ export class GoodsReceiptService {
       if (!receipt.postedAt || receipt.reversedAt) {
         throw new ConflictException({ code: 'RECEIPT_NOT_REVERSIBLE' });
       }
+      for (const item of [...receipt.items].sort((a, b) => a.id.localeCompare(b.id))) {
+        await tx.$executeRawUnsafe(
+          'SELECT pg_advisory_xact_lock(hashtext($1))',
+          'finance-source:gr-item:' + item.id,
+        );
+      }
+      const approvedInvoiceSource = await tx.supplierInvoiceItem.findFirst({
+        where: {
+          goodsReceiptItemId: { in: receipt.items.map((item) => item.id) },
+          supplierInvoice: { state: 'APPROVED' },
+        },
+        select: { id: true },
+      });
+      if (approvedInvoiceSource) {
+        throw new ConflictException({
+          code: 'RECEIPT_REVERSAL_FINANCE_SOURCE_LOCKED',
+          detail:
+            'A Goods Receipt referenced by an approved Supplier Invoice cannot be reversed.',
+        });
+      }
       const originals = receipt.stockTransactions.filter((row) => row.movementType === 'GOODS_RECEIPT');
       if (originals.length !== receipt.items.length) throw new ConflictException({ code: 'RECEIPT_LEDGER_INCOMPLETE' });
 
@@ -435,7 +455,7 @@ export class GoodsReceiptService {
         action: 'REVERSE', newValues: { reversalKey, reason, reversedAt: at },
       }, tx);
       return this.get(context.auth, id, tx);
-    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
   }
 
   private async currentOrder(

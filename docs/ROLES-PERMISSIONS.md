@@ -1034,3 +1034,17 @@ The Stage-D permission migration intentionally does not grant these business per
 | `subcontracts.agreement.edit` | Edit a Project-scoped agreement while its system state is Draft |
 
 The Stage-A migration and fresh bootstrap give technical `SYS_ADMIN` these foundation/configuration actions so a clean environment is operable. No agreement approval, Work Order, claim, assessment, certification, retention, Variation or Finance authority exists in Stage A. Later business actions remain separate permissions and Approval Matrix Role checks; technical administration never becomes implicit business approval authority. `projects.access_all` bypasses Project assignment only.
+
+
+## V0.6-A Supplier Invoice Finance permissions
+
+| Permission | Authority |
+| --- | --- |
+| `finance.supplier_invoice.view` | View effective Finance Projects, Supplier Invoice register/detail, source options/history and authorized PO/GR forward trace |
+| `finance.supplier_invoice.create` | Create Project-scoped Supplier Invoice Drafts |
+| `finance.supplier_invoice.edit` | Edit Draft headers/lines only |
+| `finance.supplier_invoice.submit` | Submit a Draft to a configured `SUPPLIER_INVOICE` Approval Matrix workflow |
+| `finance.supplier_invoice.approve` | Act as a configured approval Role, subject to maker-checker |
+| `finance.supplier_invoice.reject` | Reject a Submitted Supplier Invoice as a configured approval Role, retaining reason/history |
+
+All Finance routes enforce explicit permission plus Company and effective Project scope on the backend; `projects.access_all` bypasses Project assignment only and does not grant Finance action authority. Technical `SYS_ADMIN` does not implicitly receive any `finance.supplier_invoice.*` business permission. Approval Matrix Role membership and maker-checker are independent requirements for approve/reject actions. The Stage-A UI hides unavailable actions for usability but cannot authorize them.

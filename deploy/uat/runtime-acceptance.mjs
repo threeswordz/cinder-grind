@@ -114,6 +114,12 @@ check(
   'SYS_ADMIN must not implicitly receive Purchase Order business authority.',
 );
 check(
+  !me.data.data.permissions.some((permission) =>
+    permission.startsWith('finance.supplier_invoice.'),
+  ),
+  'SYS_ADMIN must not implicitly receive Supplier Invoice Finance authority.',
+);
+check(
   !me.data.data.permissions.some(
     (permission) =>
       permission.startsWith('subcontracts.claim.') ||
@@ -313,6 +319,10 @@ const permissionCodes = [
   'procurement.po.submit',
   'procurement.po.cancel',
   'procurement.po.revise',
+  'finance.supplier_invoice.view',
+  'finance.supplier_invoice.create',
+  'finance.supplier_invoice.edit',
+  'finance.supplier_invoice.submit',
   'subcontracts.subcontractor.view',
   'subcontracts.subcontractor.manage',
   'subcontracts.subcontractor.archive',
@@ -378,6 +388,9 @@ await request(admin, `/admin/roles/${checkerRoleId}/permissions`, {
       'procurement.po.view',
       'procurement.po.approve',
       'procurement.po.reject',
+      'finance.supplier_invoice.view',
+      'finance.supplier_invoice.approve',
+      'finance.supplier_invoice.reject',
       'inventory.receipt.view',
       'inventory.receipt.approve',
       'inventory.issue.view',
@@ -716,7 +729,24 @@ await request(admin, '/admin/approval-workflows', {
   expected: 201,
 });
 
-record('V0.3-A Budget, V0.3-B Purchase Request, V0.3-C RFQ, V0.3-D PO and V0.5-D/E Subcontracts approval configuration');
+const supplierInvoiceWorkflowCode = 'SUPPLIER_INVOICE_' + suffix;
+await request(admin, '/admin/approval-workflows', {
+  method: 'POST',
+  json: {
+    workflowCode: supplierInvoiceWorkflowCode,
+    entityType: 'SUPPLIER_INVOICE',
+    workflowName: 'Supplier Invoice Approval ' + suffix,
+    steps: [{
+      stepNo: 1,
+      stepName: 'Approve Supplier Invoice',
+      requiredApprovals: 1,
+      roleIds: [checkerRoleId],
+    }],
+  },
+  expected: 201,
+});
+
+record('V0.3-A Budget, V0.3-B Purchase Request, V0.3-C RFQ, V0.3-D PO, V0.5-D/E Subcontracts and V0.6-A Supplier Invoice approval configuration');
 
 const pmPassword = 'Uat-PM-' + suffix + '-Strong-2026!';
 const unassignedPassword = 'Uat-PE-' + suffix + '-Strong-2026!';
@@ -2002,6 +2032,262 @@ const postedARetry = await request(checker, '/inventory/goods-receipts/' + recei
 });
 check(postedARetry.data.data.stockTransactions.length === 1, 'Posting retry duplicated stock effect.');
 
+const financeProjects = await request(pm, '/finance/projects');
+check(
+  financeProjects.data.data.some((item) => item.id === projectId),
+  'V0.6-A Finance Project selector did not expose the assigned Project.',
+);
+const unassignedFinanceProjects = await request(
+  unassignedReceipt,
+  '/finance/projects',
+);
+check(
+  !unassignedFinanceProjects.data.data.some((item) => item.id === projectId),
+  'V0.6-A Finance Project selector exposed an unauthorized Project.',
+);
+
+const financeOptions = await request(
+  pm,
+  '/finance/projects/' + projectId + '/supplier-invoice-options',
+);
+const receiptAItemId = receiptADraft.data.data.items[0]?.id;
+check(receiptAItemId, 'V0.6-A source Goods Receipt item was not available.');
+check(
+  financeOptions.data.data.baseCurrencyCode === 'SGD' &&
+    financeOptions.data.data.purchaseOrderLines.some(
+      (line) => line.id === revisedPoLineId,
+    ) &&
+    financeOptions.data.data.goodsReceiptItems.some(
+      (item) => item.id === receiptAItemId,
+    ),
+  'V0.6-A source options did not expose Company base currency and current same-Project PO/GR sources.',
+);
+
+const supplierInvoiceCreateKey = 'si-create-' + suffix;
+const supplierInvoicePayload = {
+  supplierId: sourcingSupplierB.data.data.id,
+  supplierReference: 'SUP-INV-' + suffix,
+  invoiceDate: '2026-10-01',
+  dueDate: '2026-10-31',
+  createKey: supplierInvoiceCreateKey,
+  lines: [{
+    description: 'Three delivered reinforcement units',
+    amount: '29.25',
+    purchaseOrderLineId: revisedPoLineId,
+    goodsReceiptItemId: receiptAItemId,
+    wbsId: rootWbs.data.data.id,
+    costCodeId: costCode.data.data.id,
+  }],
+};
+const supplierInvoice = await request(
+  pm,
+  '/finance/projects/' + projectId + '/supplier-invoices',
+  {
+    method: 'POST',
+    json: supplierInvoicePayload,
+    expected: 201,
+  },
+);
+const supplierInvoiceId = supplierInvoice.data.data.id;
+check(
+  /^SI2610-\d{3}$/.test(supplierInvoice.data.data.supplierInvoiceNumber) &&
+    supplierInvoice.data.data.state === 'DRAFT' &&
+    supplierInvoice.data.data.currencyCode === 'SGD' &&
+    String(supplierInvoice.data.data.totalAmount) === '29.25' &&
+    supplierInvoice.data.data.projectId === projectId &&
+    supplierInvoice.data.data.items[0]?.purchaseOrderLineId === revisedPoLineId &&
+    supplierInvoice.data.data.items[0]?.goodsReceiptItemId === receiptAItemId,
+  'V0.6-A Supplier Invoice Draft did not retain numbering, one-Project scope, base currency, total and PO/GR lineage.',
+);
+const supplierInvoiceRetry = await request(
+  pm,
+  '/finance/projects/' + projectId + '/supplier-invoices',
+  {
+    method: 'POST',
+    json: supplierInvoicePayload,
+    expected: 201,
+  },
+);
+check(
+  supplierInvoiceRetry.data.data.id === supplierInvoiceId,
+  'V0.6-A stable create retry duplicated the Supplier Invoice.',
+);
+
+await request(
+  pm,
+  '/finance/projects/' + projectId + '/supplier-invoices',
+  {
+    method: 'POST',
+    json: {
+      ...supplierInvoicePayload,
+      supplierId: sourcingSupplierA.data.data.id,
+      supplierReference: 'CROSS-SUP-' + suffix,
+      createKey: 'si-cross-supplier-' + suffix,
+    },
+    expected: 422,
+  },
+);
+await request(
+  unassignedReceipt,
+  '/finance/projects/' + projectId + '/supplier-invoices',
+  { expected: 403 },
+);
+await request(
+  unassignedReceipt,
+  '/finance/supplier-invoices/' + supplierInvoiceId,
+  { expected: 403 },
+);
+
+const submittedSupplierInvoice = await request(
+  pm,
+  '/finance/supplier-invoices/' + supplierInvoiceId + '/submit',
+  {
+    method: 'POST',
+    json: {
+      workflowCode: supplierInvoiceWorkflowCode,
+      actionKey: 'si-submit-' + suffix,
+    },
+    expected: 201,
+  },
+);
+check(
+  submittedSupplierInvoice.data.data.state === 'SUBMITTED' &&
+    submittedSupplierInvoice.data.data.approvalInstance?.approvalState ===
+      'SUBMITTED',
+  'V0.6-A Supplier Invoice did not enter configured approval.',
+);
+await request(
+  pm,
+  '/finance/supplier-invoices/' + supplierInvoiceId + '/approve',
+  {
+    method: 'POST',
+    json: {
+      actionKey: 'si-maker-approve-' + suffix,
+      comment: 'Maker must not self-approve.',
+    },
+    expected: 403,
+  },
+);
+const supplierInvoiceApprovalKey = 'si-approve-' + suffix;
+const approvedSupplierInvoice = await request(
+  checker,
+  '/finance/supplier-invoices/' + supplierInvoiceId + '/approve',
+  {
+    method: 'POST',
+    json: {
+      actionKey: supplierInvoiceApprovalKey,
+      comment: 'Configured Finance checker approval.',
+    },
+    expected: 201,
+  },
+);
+check(
+  approvedSupplierInvoice.data.data.state === 'APPROVED' &&
+    approvedSupplierInvoice.data.data.approvalInstance?.approvalState ===
+      'APPROVED' &&
+    approvedSupplierInvoice.data.data.items[0]?.purchaseOrderLineId ===
+      revisedPoLineId &&
+    approvedSupplierInvoice.data.data.items[0]?.goodsReceiptItemId ===
+      receiptAItemId,
+  'V0.6-A Supplier Invoice approval did not retain PO/GR source history.',
+);
+const replayedSupplierInvoiceApproval = await request(
+  checker,
+  '/finance/supplier-invoices/' + supplierInvoiceId + '/approve',
+  {
+    method: 'POST',
+    json: {
+      actionKey: supplierInvoiceApprovalKey,
+      comment: 'Configured Finance checker approval.',
+    },
+    expected: 201,
+  },
+);
+check(
+  replayedSupplierInvoiceApproval.data.data.state === 'APPROVED',
+  'V0.6-A stable approval retry did not return the retained approved record.',
+);
+
+await request(
+  pm,
+  '/finance/supplier-invoices/' + supplierInvoiceId,
+  {
+    method: 'PATCH',
+    json: { supplierReference: 'MUTATION-MUST-FAIL-' + suffix },
+    expected: 409,
+  },
+);
+
+const rejectedSupplierInvoiceDraft = await request(
+  pm,
+  '/finance/projects/' + projectId + '/supplier-invoices',
+  {
+    method: 'POST',
+    json: {
+      ...supplierInvoicePayload,
+      supplierReference: 'SUP-INV-REJECT-' + suffix,
+      createKey: 'si-create-reject-' + suffix,
+    },
+    expected: 201,
+  },
+);
+const rejectedSupplierInvoiceId = rejectedSupplierInvoiceDraft.data.data.id;
+await request(
+  pm,
+  '/finance/supplier-invoices/' + rejectedSupplierInvoiceId + '/submit',
+  {
+    method: 'POST',
+    json: {
+      workflowCode: supplierInvoiceWorkflowCode,
+      actionKey: 'si-submit-reject-' + suffix,
+    },
+    expected: 201,
+  },
+);
+const rejectedSupplierInvoice = await request(
+  checker,
+  '/finance/supplier-invoices/' + rejectedSupplierInvoiceId + '/reject',
+  {
+    method: 'POST',
+    json: {
+      actionKey: 'si-reject-' + suffix,
+      comment: 'Live HTTP rejection acceptance reason.',
+    },
+    expected: 201,
+  },
+);
+check(
+  rejectedSupplierInvoice.data.data.state === 'REJECTED' &&
+    rejectedSupplierInvoice.data.data.approvalInstance?.approvalState ===
+      'REJECTED' &&
+    rejectedSupplierInvoice.data.data.rejectionReason ===
+      'Live HTTP rejection acceptance reason.',
+  'V0.6-A Supplier Invoice live HTTP rejection did not retain rejected state and reason.',
+);
+
+const poInvoiceTrace = await request(
+  pm,
+  '/finance/purchase-order-lines/' + revisedPoLineId + '/supplier-invoices',
+);
+check(
+  poInvoiceTrace.data.data.some((invoice) => invoice.id === supplierInvoiceId),
+  'V0.6-A PO source did not forward-trace to its Supplier Invoice.',
+);
+const grInvoiceTrace = await request(
+  pm,
+  '/finance/goods-receipt-items/' + receiptAItemId + '/supplier-invoices',
+);
+check(
+  grInvoiceTrace.data.data.some((invoice) => invoice.id === supplierInvoiceId),
+  'V0.6-A Goods Receipt source did not forward-trace to its Supplier Invoice.',
+);
+await request(
+  unassignedReceipt,
+  '/finance/purchase-order-lines/' + revisedPoLineId + '/supplier-invoices',
+  { expected: 403 },
+);
+record('V0.6-A Supplier Invoice Draft → PO/GR lineage → submit → configured maker-checker approval/rejection → immutable retained history → source forward trace → unauthorized Project denial');
+
 const postedBalance = await request(
   pm,
   '/inventory/stock-balances?projectId=' + projectId +
@@ -2422,29 +2708,37 @@ await request(pm, '/procurement/purchase-orders/' + revisedPoId + '/cancel', {
 await request(unassignedReceipt, '/inventory/goods-receipts/' + receiptAId, {
   expected: 403,
 });
-for (const [id, key] of [[receiptAId, 'reverse-a-'], [receiptBId, 'reverse-b-']]) {
-  const reversed = await request(pm, '/inventory/goods-receipts/' + id + '/reverse', {
+await request(pm, '/inventory/goods-receipts/' + receiptAId + '/reverse', {
+  method: 'POST',
+  json: { reversalKey: 'reverse-a-' + suffix, reason: 'Blocked by approved Supplier Invoice lineage' },
+  expected: 409,
+});
+const reversedReceiptB = await request(
+  pm,
+  '/inventory/goods-receipts/' + receiptBId + '/reverse',
+  {
     method: 'POST',
-    json: { reversalKey: key + suffix, reason: 'UAT full reversal' },
+    json: { reversalKey: 'reverse-b-' + suffix, reason: 'UAT full reversal' },
     expected: 201,
-  });
-  check(
-    reversed.data.data.reversedAt &&
-      reversed.data.data.stockTransactions.length === 2 &&
-      reversed.data.data.stockTransactions.reduce(
-        (sum, row) => sum + Number(row.quantity), 0,
-      ) === 0,
-    'Goods Receipt reversal did not append the exact negative stock effect.',
-  );
-}
+  },
+);
+check(
+  reversedReceiptB.data.data.reversedAt &&
+    reversedReceiptB.data.data.stockTransactions.length === 2 &&
+    reversedReceiptB.data.data.stockTransactions.reduce(
+      (sum, row) => sum + Number(row.quantity), 0,
+    ) === 0,
+  'Unreferenced Goods Receipt reversal did not append the exact negative stock effect.',
+);
 const hiddenZeroBalance = await request(
   pm,
   '/inventory/stock-balances?projectId=' + projectId +
     '&warehouseId=' + receiptWarehouseId,
 );
 check(
-  hiddenZeroBalance.data.data.length === 0,
-  'Net-zero historical balance must be hidden by default.',
+  hiddenZeroBalance.data.data.length === 1 &&
+    hiddenZeroBalance.data.data[0]?.quantity === '3.0000',
+  'Finance-linked retained receipt must remain visible in derived stock balance.',
 );
 const visibleZeroBalance = await request(
   pm,
@@ -2454,28 +2748,22 @@ const visibleZeroBalance = await request(
 );
 check(
   visibleZeroBalance.data.data.length === 1 &&
-    visibleZeroBalance.data.data[0]?.quantity === '0.0000',
-  'Zero-balance history was not derived exactly when requested.',
+    visibleZeroBalance.data.data[0]?.quantity === '3.0000',
+  'Finance-linked retained receipt balance was not derived exactly.',
 );
 record('V0.4-B partial/multiple PO receipt, maker-checker, over-receipt, retry, scope, PO cancellation guard and reversal');
 record('V0.4-C derived Stock Balance, Project/Site filtering, reversal-to-zero and unauthorized Project denial');
 
-const cancelledPo = await request(
+await request(
   pm,
   '/procurement/purchase-orders/' + revisedPoId + '/cancel',
   {
     method: 'POST',
-    json: { reason: 'Supplier order cancelled during UAT.' },
-    expected: 201,
+    json: { reason: 'Blocked by retained Finance-linked Goods Receipt.' },
+    expected: 409,
   },
 );
-check(
-  cancelledPo.data.data.lifecycleState === 'CANCELLED' &&
-    cancelledPo.data.data.cancellationReason ===
-      'Supplier order cancelled during UAT.',
-  'Purchase Order cancellation did not retain actor/time/reason lifecycle evidence.',
-);
-record('V0.3-D Purchase Order award sourcing, numbering, allocation, maker-checker approval, immutable revisions, delivery dates and cancellation');
+record('V0.3-D Purchase Order award sourcing, numbering, allocation, maker-checker approval, immutable revisions, delivery dates and cancellation guard');
 
 const rejectedPo = await request(
   pm,
