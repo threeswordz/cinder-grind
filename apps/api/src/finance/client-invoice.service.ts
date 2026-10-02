@@ -221,6 +221,7 @@ export class ClientInvoiceService {
       const invoiceDate = input.invoiceDate ?? current.invoiceDate;
       const dueDate = input.dueDate === undefined ? current.dueDate : input.dueDate;
       this.assertDates(invoiceDate, dueDate);
+      this.assertNumberPeriod(current.clientInvoiceNumber, invoiceDate);
       const updated = await tx.clientInvoice.update({
         where: { id: invoiceId },
         data: {
@@ -391,6 +392,16 @@ export class ClientInvoiceService {
   }
   private assertDates(invoice?: Date, due?: Date | null) {
     if (invoice && due && due.getTime() < invoice.getTime()) throw new UnprocessableEntityException({ code: 'CLIENT_INVOICE_DATE_INVALID', detail: 'Due date must not be earlier than invoice date.' });
+  }
+  private assertNumberPeriod(clientInvoiceNumber: string, invoiceDate: Date) {
+    const yy = String(invoiceDate.getUTCFullYear()).slice(-2);
+    const mm = String(invoiceDate.getUTCMonth() + 1).padStart(2, '0');
+    if (!clientInvoiceNumber.startsWith(`CI${yy}${mm}-`)) {
+      throw new ConflictException({
+        code: 'CLIENT_INVOICE_NUMBER_PERIOD_MISMATCH',
+        detail: 'Invoice date must remain within the month and year encoded in the immutable Client Invoice number.',
+      });
+    }
   }
   private assertDraft(state: string) {
     if (state !== 'DRAFT') throw new ConflictException({ code: 'CLIENT_INVOICE_NOT_DRAFT', detail: 'Only a Draft Client Invoice can be edited or submitted.' });
