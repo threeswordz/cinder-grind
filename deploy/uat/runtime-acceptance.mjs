@@ -122,6 +122,15 @@ check(
 check(
   !me.data.data.permissions.some(
     (permission) =>
+      permission.startsWith('finance.client_invoice.') ||
+      permission === 'finance.ap.view' ||
+      permission === 'finance.ar.view',
+  ),
+  'SYS_ADMIN must not implicitly receive Client Invoice or AP/AR Finance authority.',
+);
+check(
+  !me.data.data.permissions.some(
+    (permission) =>
       permission.startsWith('subcontracts.claim.') ||
       permission.startsWith('subcontracts.assessment.'),
   ),
@@ -323,6 +332,12 @@ const permissionCodes = [
   'finance.supplier_invoice.create',
   'finance.supplier_invoice.edit',
   'finance.supplier_invoice.submit',
+  'finance.client_invoice.view',
+  'finance.client_invoice.create',
+  'finance.client_invoice.edit',
+  'finance.client_invoice.submit',
+  'finance.ap.view',
+  'finance.ar.view',
   'subcontracts.subcontractor.view',
   'subcontracts.subcontractor.manage',
   'subcontracts.subcontractor.archive',
@@ -391,6 +406,11 @@ await request(admin, `/admin/roles/${checkerRoleId}/permissions`, {
       'finance.supplier_invoice.view',
       'finance.supplier_invoice.approve',
       'finance.supplier_invoice.reject',
+      'finance.client_invoice.view',
+      'finance.client_invoice.approve',
+      'finance.client_invoice.reject',
+      'finance.ap.view',
+      'finance.ar.view',
       'inventory.receipt.view',
       'inventory.receipt.approve',
       'inventory.issue.view',
@@ -746,7 +766,24 @@ await request(admin, '/admin/approval-workflows', {
   expected: 201,
 });
 
-record('V0.3-A Budget, V0.3-B Purchase Request, V0.3-C RFQ, V0.3-D PO, V0.5-D/E Subcontracts and V0.6-A Supplier Invoice approval configuration');
+const clientInvoiceWorkflowCode = 'CLIENT_INVOICE_' + suffix;
+await request(admin, '/admin/approval-workflows', {
+  method: 'POST',
+  json: {
+    workflowCode: clientInvoiceWorkflowCode,
+    entityType: 'CLIENT_INVOICE',
+    workflowName: 'Client Invoice Approval ' + suffix,
+    steps: [{
+      stepNo: 1,
+      stepName: 'Approve Client Invoice',
+      requiredApprovals: 1,
+      roleIds: [checkerRoleId],
+    }],
+  },
+  expected: 201,
+});
+
+record('V0.3-A Budget, V0.3-B Purchase Request, V0.3-C RFQ, V0.3-D PO, V0.5-D/E Subcontracts and V0.6-A/B Finance approval configuration');
 
 const pmPassword = 'Uat-PM-' + suffix + '-Strong-2026!';
 const unassignedPassword = 'Uat-PE-' + suffix + '-Strong-2026!';
@@ -2287,6 +2324,324 @@ await request(
   { expected: 403 },
 );
 record('V0.6-A Supplier Invoice Draft → PO/GR lineage → submit → configured maker-checker approval/rejection → immutable retained history → source forward trace → unauthorized Project denial');
+
+const clientWorkflowOptions = await request(
+  pm,
+  '/finance/client-invoice-workflow-options',
+);
+check(
+  clientWorkflowOptions.data.data.some(
+    (workflow) => workflow.workflowCode === clientInvoiceWorkflowCode,
+  ),
+  'V0.6-B Client Invoice workflow options did not expose the configured workflow.',
+);
+
+const clientInvoiceOptions = await request(
+  pm,
+  '/finance/projects/' + projectId + '/client-invoice-options',
+);
+check(
+  clientInvoiceOptions.data.data.baseCurrencyCode === 'SGD' &&
+    clientInvoiceOptions.data.data.customers.some(
+      (item) => item.id === customerId,
+    ),
+  'V0.6-B Client Invoice options did not expose Company base currency and valid same-Company Customer.',
+);
+
+const clientInvoicePayload = {
+  customerId,
+  invoiceDate: '2026-10-02',
+  dueDate: '2026-11-02',
+  createKey: 'ci-create-' + suffix,
+  lines: [{
+    description: 'Generic Project billing',
+    amount: '500.00',
+  }],
+};
+await request(
+  pm,
+  '/finance/projects/' + projectId + '/client-invoices',
+  {
+    method: 'POST',
+    json: {
+      ...clientInvoicePayload,
+      createKey: 'ci-no-csrf-' + suffix,
+    },
+    expected: 403,
+    csrf: false,
+  },
+);
+const clientInvoice = await request(
+  pm,
+  '/finance/projects/' + projectId + '/client-invoices',
+  {
+    method: 'POST',
+    json: clientInvoicePayload,
+    expected: 201,
+  },
+);
+const clientInvoiceId = clientInvoice.data.data.id;
+check(
+  /^CI2610-\d{3}$/.test(clientInvoice.data.data.clientInvoiceNumber) &&
+    clientInvoice.data.data.state === 'DRAFT' &&
+    clientInvoice.data.data.currencyCode === 'SGD' &&
+    clientInvoice.data.data.projectId === projectId &&
+    clientInvoice.data.data.customerId === customerId &&
+    String(clientInvoice.data.data.totalAmount) === '500',
+  'V0.6-B Client Invoice Draft did not retain CIYYMM-### identity, Project/Customer scope, base currency and line total.',
+);
+const clientInvoiceRetry = await request(
+  pm,
+  '/finance/projects/' + projectId + '/client-invoices',
+  {
+    method: 'POST',
+    json: clientInvoicePayload,
+    expected: 201,
+  },
+);
+check(
+  clientInvoiceRetry.data.data.id === clientInvoiceId,
+  'V0.6-B stable Client Invoice create retry duplicated the invoice.',
+);
+
+const updatedClientInvoice = await request(
+  pm,
+  '/finance/client-invoices/' + clientInvoiceId,
+  {
+    method: 'PATCH',
+    json: { dueDate: '2026-11-15' },
+  },
+);
+check(
+  updatedClientInvoice.data.data.dueDate?.slice(0, 10) === '2026-11-15',
+  'V0.6-B Client Invoice Draft header edit was not retained.',
+);
+const clientInvoiceLine = await request(
+  pm,
+  '/finance/client-invoices/' + clientInvoiceId + '/items',
+  {
+    method: 'POST',
+    json: {
+      description: 'Approved variation billing',
+      amount: '100.00',
+    },
+    expected: 201,
+  },
+);
+const clientInvoiceLineId = clientInvoiceLine.data.data.items.find(
+  (item) => item.lineNo === 2,
+)?.id;
+check(clientInvoiceLineId, 'V0.6-B Client Invoice Draft line add did not return the new line.');
+const editedClientInvoiceLine = await request(
+  pm,
+  '/finance/client-invoice-items/' + clientInvoiceLineId,
+  {
+    method: 'PATCH',
+    json: {
+      description: 'Generic variation billing',
+      amount: '125.00',
+    },
+  },
+);
+check(
+  String(editedClientInvoiceLine.data.data.totalAmount) === '625' &&
+    editedClientInvoiceLine.data.data.items.some(
+      (item) =>
+        item.id === clientInvoiceLineId &&
+        item.description === 'Generic variation billing' &&
+        String(item.amount) === '125',
+    ),
+  'V0.6-B Client Invoice Draft line edit did not retain the updated amount and derived total.',
+);
+
+const clientInvoiceList = await request(
+  pm,
+  '/finance/projects/' + projectId + '/client-invoices',
+);
+check(
+  clientInvoiceList.data.data.some((item) => item.id === clientInvoiceId),
+  'V0.6-B Project Client Invoice list did not expose the Draft invoice.',
+);
+await request(
+  unassignedReceipt,
+  '/finance/projects/' + projectId + '/client-invoices',
+  { expected: 403 },
+);
+await request(
+  unassignedReceipt,
+  '/finance/client-invoices/' + clientInvoiceId,
+  { expected: 403 },
+);
+await request(
+  admin,
+  '/finance/client-invoices/' + clientInvoiceId,
+  { expected: 403 },
+);
+
+const submittedClientInvoice = await request(
+  pm,
+  '/finance/client-invoices/' + clientInvoiceId + '/submit',
+  {
+    method: 'POST',
+    json: {
+      workflowCode: clientInvoiceWorkflowCode,
+      actionKey: 'ci-submit-' + suffix,
+    },
+    expected: 201,
+  },
+);
+check(
+  submittedClientInvoice.data.data.state === 'SUBMITTED' &&
+    submittedClientInvoice.data.data.approvalInstance?.approvalState ===
+      'SUBMITTED',
+  'V0.6-B Client Invoice did not enter configured approval.',
+);
+await request(
+  pm,
+  '/finance/client-invoices/' + clientInvoiceId + '/approve',
+  {
+    method: 'POST',
+    json: {
+      actionKey: 'ci-maker-approve-' + suffix,
+      comment: 'Maker must not self-approve.',
+    },
+    expected: 403,
+  },
+);
+const clientInvoiceApproveKey = 'ci-approve-' + suffix;
+const approvedClientInvoice = await request(
+  checker,
+  '/finance/client-invoices/' + clientInvoiceId + '/approve',
+  {
+    method: 'POST',
+    json: {
+      actionKey: clientInvoiceApproveKey,
+      comment: 'Configured Finance checker approval.',
+    },
+    expected: 201,
+  },
+);
+check(
+  approvedClientInvoice.data.data.state === 'APPROVED' &&
+    approvedClientInvoice.data.data.approvalInstance?.approvalState ===
+      'APPROVED' &&
+    String(approvedClientInvoice.data.data.totalAmount) === '625',
+  'V0.6-B Client Invoice approval did not retain the approved total and history.',
+);
+const replayedClientInvoiceApproval = await request(
+  checker,
+  '/finance/client-invoices/' + clientInvoiceId + '/approve',
+  {
+    method: 'POST',
+    json: {
+      actionKey: clientInvoiceApproveKey,
+      comment: 'Configured Finance checker approval.',
+    },
+    expected: 201,
+  },
+);
+check(
+  replayedClientInvoiceApproval.data.data.state === 'APPROVED',
+  'V0.6-B stable Client Invoice approval retry did not return retained approved history.',
+);
+await request(
+  pm,
+  '/finance/client-invoices/' + clientInvoiceId,
+  {
+    method: 'PATCH',
+    json: { dueDate: '2026-12-01' },
+    expected: 409,
+  },
+);
+
+const accountsReceivable = await request(
+  pm,
+  '/finance/projects/' + projectId + '/accounts-receivable',
+);
+const clientReceivable = accountsReceivable.data.data.find(
+  (item) => item.id === clientInvoiceId,
+);
+check(
+  clientReceivable &&
+    String(clientReceivable.allocatedAmount) === '0' &&
+    String(clientReceivable.outstandingAmount) === '625',
+  'V0.6-B derived AR did not expose the approved Client Invoice outstanding balance.',
+);
+const accountsPayable = await request(
+  pm,
+  '/finance/projects/' + projectId + '/accounts-payable',
+);
+const supplierPayable = accountsPayable.data.data.find(
+  (item) => item.id === supplierInvoiceId,
+);
+check(
+  supplierPayable &&
+    String(supplierPayable.allocatedAmount) === '0' &&
+    String(supplierPayable.outstandingAmount) === '29.25',
+  'V0.6-B derived AP did not expose the approved Supplier Invoice outstanding balance.',
+);
+await request(
+  unassignedReceipt,
+  '/finance/projects/' + projectId + '/accounts-receivable',
+  { expected: 403 },
+);
+await request(
+  unassignedReceipt,
+  '/finance/projects/' + projectId + '/accounts-payable',
+  { expected: 403 },
+);
+
+const rejectedClientInvoiceDraft = await request(
+  pm,
+  '/finance/projects/' + projectId + '/client-invoices',
+  {
+    method: 'POST',
+    json: {
+      customerId,
+      invoiceDate: '2026-10-02',
+      dueDate: '2026-11-02',
+      createKey: 'ci-reject-create-' + suffix,
+      lines: [{
+        description: 'Rejected generic billing',
+        amount: '50.00',
+      }],
+    },
+    expected: 201,
+  },
+);
+await request(
+  pm,
+  '/finance/client-invoices/' + rejectedClientInvoiceDraft.data.data.id + '/submit',
+  {
+    method: 'POST',
+    json: {
+      workflowCode: clientInvoiceWorkflowCode,
+      actionKey: 'ci-reject-submit-' + suffix,
+    },
+    expected: 201,
+  },
+);
+const rejectedClientInvoice = await request(
+  checker,
+  '/finance/client-invoices/' + rejectedClientInvoiceDraft.data.data.id + '/reject',
+  {
+    method: 'POST',
+    json: {
+      actionKey: 'ci-reject-' + suffix,
+      comment: 'Live HTTP Client Invoice rejection reason.',
+    },
+    expected: 201,
+  },
+);
+check(
+  rejectedClientInvoice.data.data.state === 'REJECTED' &&
+    rejectedClientInvoice.data.data.approvalInstance?.approvalState ===
+      'REJECTED' &&
+    rejectedClientInvoice.data.data.rejectionReason ===
+      'Live HTTP Client Invoice rejection reason.',
+  'V0.6-B Client Invoice rejection did not retain rejected state and reason.',
+);
+record('V0.6-B Client Invoice Draft/edit → configured maker-checker approval/rejection → derived AP/AR → CSRF and unauthorized Project denial through live HTTP API');
 
 const postedBalance = await request(
   pm,
