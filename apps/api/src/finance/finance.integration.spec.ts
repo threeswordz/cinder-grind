@@ -1084,6 +1084,101 @@ test('V0.6-B Client Invoice preserves scope, maker-checker, retained history and
         /CLIENT_INVOICE_APPROVAL_ROLE_DENIED/,
       );
 
+      const supplierApprovalStep = await prisma.approvalStep.findFirstOrThrow({
+        where: { approvalWorkflowId: supplierWorkflow.id, stepNo: 1 },
+      });
+      const unrelatedApprovalInstance = await prisma.approvalInstance.create({
+        data: {
+          companyId: company.id,
+          approvalWorkflowId: supplierWorkflow.id,
+          entityType: 'SUPPLIER_INVOICE',
+          entityId: randomUUID(),
+          currentStepNo: 1,
+          approvalState: 'SUBMITTED',
+        },
+      });
+      const unrelatedApprovalAction = await prisma.approvalAction.create({
+        data: {
+          approvalInstanceId: unrelatedApprovalInstance.id,
+          approvalStepId: supplierApprovalStep.id,
+          action: 'APPROVE',
+          actionByUserId: checker.id,
+        },
+      });
+      await assert.rejects(
+        () =>
+          prisma.approvalAction.update({
+            where: { id: unrelatedApprovalAction.id },
+            data: {
+              approvalInstanceId: linkedApproval.id,
+              approvalStepId: currentApprovalStep!.id,
+            },
+          }),
+        /CLIENT_INVOICE_APPROVAL_ACTION_IMMUTABLE/,
+      );
+
+      const decisionRaceDraft = await clientFinance.create(
+        { auth: makerAuth },
+        project.id,
+        {
+          customerId: customer.id,
+          invoiceDate: new Date('2026-10-06T00:00:00.000Z'),
+          dueDate: new Date('2026-10-31T00:00:00.000Z'),
+          createKey: randomUUID(),
+          lines: [{ description: 'Approval decision serialization', amount: new Decimal('7.00') }],
+        },
+      );
+      const decisionRaceSubmission = await clientFinance.submit(
+        { auth: makerAuth },
+        decisionRaceDraft.id,
+        clientWorkflow.workflowCode,
+        randomUUID(),
+      );
+      const decisionRaceInstance = await prisma.approvalInstance.findUniqueOrThrow({
+        where: { id: decisionRaceSubmission.approvalInstanceId! },
+      });
+      const decisionRaceStep = await prisma.approvalStep.findFirstOrThrow({
+        where: {
+          approvalWorkflowId: decisionRaceInstance.approvalWorkflowId,
+          stepNo: decisionRaceInstance.currentStepNo,
+        },
+      });
+      const competingDecisions = await Promise.allSettled([
+        prisma.approvalAction.create({
+          data: {
+            approvalInstanceId: decisionRaceInstance.id,
+            approvalStepId: decisionRaceStep.id,
+            action: 'APPROVE',
+            actionByUserId: checker.id,
+          },
+        }),
+        prisma.approvalAction.create({
+          data: {
+            approvalInstanceId: decisionRaceInstance.id,
+            approvalStepId: decisionRaceStep.id,
+            action: 'REJECT',
+            actionByUserId: checker.id,
+          },
+        }),
+      ]);
+      assert.equal(
+        competingDecisions.filter((result) => result.status === 'fulfilled').length,
+        1,
+        'Exactly one competing direct decision by the same user may commit.',
+      );
+      const rejectedCompetingDecision = competingDecisions.find(
+        (result) => result.status === 'rejected',
+      );
+      assert.ok(
+        rejectedCompetingDecision &&
+          rejectedCompetingDecision.status === 'rejected' &&
+          rejectedCompetingDecision.reason instanceof Error &&
+          rejectedCompetingDecision.reason.message.includes(
+            'CLIENT_INVOICE_APPROVAL_ACTION_DUPLICATE',
+          ),
+        'The serialized waiter must observe the committed decision and reject.',
+      );
+
       const legitimateDecision = await clientFinance.approve(
         { auth: checkerAuth },
         lineSubmissionRaceDraft.id,
