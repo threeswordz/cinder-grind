@@ -83,6 +83,28 @@ test('V0.6-A Supplier Invoice preserves Project scope, approval history, totals 
         baseCurrencyCode: 'SGD',
       },
     });
+    await assert.rejects(
+      () =>
+        prisma.numberSequence.create({
+          data: {
+            companyId: company.id,
+            entityType: 'CUSTOM',
+            sequenceCode: 'CLIENT_INVOICE',
+            formatTemplate: 'BAD-###',
+            resetRule: 'NONE',
+            nextValue: 1,
+          },
+        }),
+      (error: unknown) => error instanceof Prisma.PrismaClientKnownRequestError,
+    );
+    assert.equal(
+      await prisma.numberSequence.count({
+        where: { companyId: company.id, sequenceCode: 'CLIENT_INVOICE' },
+      }),
+      0,
+      'Post-migration database policy must reject malformed reserved Client Invoice sequences.',
+    );
+
     const customer = await prisma.customer.create({
       data: {
         companyId: company.id,
