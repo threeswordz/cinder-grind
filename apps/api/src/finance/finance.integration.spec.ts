@@ -558,6 +558,7 @@ test('V0.6-B routes retain explicit Client Invoice and AP-AR permissions', () =>
     ['workflows', ['finance.client_invoice.submit']],
     ['options', ['finance.client_invoice.view']],
     ['list', ['finance.client_invoice.view']],
+    ['accountsReceivableProjects', ['finance.ar.view']],
     ['accountsReceivable', ['finance.ar.view']],
     ['get', ['finance.client_invoice.view']],
     ['create', ['finance.client_invoice.create']],
@@ -578,6 +579,13 @@ test('V0.6-B routes retain explicit Client Invoice and AP-AR permissions', () =>
       permissions,
     );
   }
+  assert.deepEqual(
+    Reflect.getMetadata(
+      REQUIRED_PERMISSIONS_KEY,
+      FinanceController.prototype.accountsPayableProjects,
+    ),
+    ['finance.ap.view'],
+  );
   assert.deepEqual(
     Reflect.getMetadata(
       REQUIRED_PERMISSIONS_KEY,
