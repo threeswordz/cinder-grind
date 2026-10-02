@@ -1,3 +1,14 @@
+## 2026-10-03 — V0.6-C technical completion / V0.6-D pre-flight
+
+- V0.6-C PR #126 final exact head `6a2c4c3e0b5c794609ce194226dfc81ee45fb7f5` passed push CI #2365 and PR CI #2366 after the one genuine Codex P1 was fixed forward-only at runtime head `246246521b8adf9ebab4aa0e43d53195b842f3f4`.
+- The original P1 review thread was resolved with implementation/test evidence; fresh exact-head Codex re-review reported no major issues.
+- PR #126 squash-merged to `main` as `2ca6e21d1b4c9a5e7a29989518f8bcf7210d4e18`.
+- Post-merge main CI #2367 passed the full migration/schema/dependency/workspace/live-HTTP suite, and Issue #124 closed completed. **V0.6-C Payments / Approvals / Allocations is technically complete.**
+- Issue #127 now tracks V0.6-D Subcontract Payment Reference / Retention / Documents. The docs-only pre-flight branch `v0.6-d-preflight` starts from exact green main `2ca6e21d1b4c9a5e7a29989518f8bcf7210d4e18`.
+- Stage-D scope is limited to already-approved Subcontract Finance payment-reference visibility, payable retention withholding/balance, D06-16 compensating retention correction, and DOC-009 on the eight approved targets. Retention release/adjustment, V0.6-E reporting and later-release scope remain deferred.
+- Under DEC-022, this docs-only pre-flight does not consume Codex; implementation will use Chat + CI and reserve Codex for the stable material Stage-D merge candidate.
+- No V0.6-D implementation begins until this pre-flight merges and post-merge main CI passes. Human V0.6 UAT/business acceptance remains a later mandatory Release Exit Gate.
+
 ## 2026-10-02 — V0.6-C Payments / Approvals / Allocations runtime candidate and draft PR #126
 
 - V0.6-C pre-flight PR #125 merged as `606b6622bd6e22623b8aadf8178dd4b905df5c4b` after its CI/post-merge gates, and implementation proceeded only on `v0.6-c-payments-allocations` under Issue #124.
