@@ -72,6 +72,34 @@ export class ClientInvoiceService {
     return this.visible(auth, invoiceId, this.prisma);
   }
 
+  async accountsReceivable(auth: AuthenticatedUserContext, projectId: string) {
+    await this.access.assertAccess(auth, projectId);
+    const rows = await this.prisma.clientInvoice.findMany({
+      where: {
+        companyId: auth.companyId,
+        projectId,
+        state: 'APPROVED',
+      },
+      select: {
+        id: true,
+        clientInvoiceNumber: true,
+        invoiceDate: true,
+        dueDate: true,
+        currencyCode: true,
+        totalAmount: true,
+        customer: {
+          select: { id: true, customerCode: true, customerName: true },
+        },
+      },
+      orderBy: [{ dueDate: 'asc' }, { invoiceDate: 'asc' }, { clientInvoiceNumber: 'asc' }],
+    });
+    return rows.map((row) => ({
+      ...row,
+      allocatedAmount: new Prisma.Decimal(0),
+      outstandingAmount: row.totalAmount,
+    }));
+  }
+
   async create(context: AuditContext, projectId: string, input: ClientInvoiceDraftInput) {
     await this.access.assertAccess(context.auth, projectId);
     if (!input.lines.length) throw new UnprocessableEntityException({ code: 'CLIENT_INVOICE_LINES_REQUIRED', detail: 'A Client Invoice requires at least one line.' });
