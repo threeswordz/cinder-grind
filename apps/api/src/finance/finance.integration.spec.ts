@@ -987,6 +987,56 @@ test('V0.6-B Client Invoice preserves scope, maker-checker, retained history and
       );
       assert.equal(retainedAfterLineRace.items.length, 1);
       assert.equal(retainedAfterLineRace.totalAmount.toFixed(2), '10.00');
+
+      const directDecisionAt = new Date();
+      await assert.rejects(
+        () =>
+          prisma.clientInvoice.update({
+            where: { id: lineSubmissionRaceDraft.id },
+            data: {
+              state: 'APPROVED',
+              approvedByUserId: checker.id,
+              approvedAt: directDecisionAt,
+              decidedAt: directDecisionAt,
+            },
+          }),
+        /CLIENT_INVOICE_APPROVAL_STATE_MISMATCH/,
+      );
+      await assert.rejects(
+        () =>
+          prisma.clientInvoice.update({
+            where: { id: lineSubmissionRaceDraft.id },
+            data: {
+              state: 'REJECTED',
+              rejectedByUserId: checker.id,
+              rejectedAt: directDecisionAt,
+              decidedAt: directDecisionAt,
+              rejectionReason: 'Direct decision bypass must fail',
+            },
+          }),
+        /CLIENT_INVOICE_APPROVAL_STATE_MISMATCH/,
+      );
+      const afterDecisionBypass = await clientFinance.get(
+        makerAuth,
+        lineSubmissionRaceDraft.id,
+      );
+      assert.equal(afterDecisionBypass.state, 'SUBMITTED');
+      assert.equal(
+        afterDecisionBypass.approvalInstance?.approvalState,
+        'SUBMITTED',
+      );
+
+      const legitimateDecision = await clientFinance.approve(
+        { auth: checkerAuth },
+        lineSubmissionRaceDraft.id,
+        randomUUID(),
+        'Configured workflow decision',
+      );
+      assert.equal(legitimateDecision.state, 'APPROVED');
+      assert.equal(
+        legitimateDecision.approvalInstance?.approvalState,
+        'APPROVED',
+      );
     } finally {
       releaseSubmissionLock();
       interceptedClientFinance.lock = originalClientInvoiceLock;
