@@ -554,6 +554,7 @@ test('V0.6-A Supplier Invoice preserves Project scope, approval history, totals 
 
 test('V0.6-B routes retain explicit Client Invoice and AP-AR permissions', () => {
   const clientRoutes = [
+    ['projects', ['finance.client_invoice.view']],
     ['workflows', ['finance.client_invoice.submit']],
     ['options', ['finance.client_invoice.view']],
     ['list', ['finance.client_invoice.view']],
