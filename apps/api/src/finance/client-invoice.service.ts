@@ -427,7 +427,14 @@ export class ClientInvoiceService {
           include: {
             workflow: { select: { workflowCode: true, workflowName: true } },
             actions: {
-              orderBy: { actionAt: 'asc' },
+              // Client Invoice approval chronology is serialized by the database
+              // decision-order sequence. actionAt is millisecond-normalized for
+              // round-trips and may legitimately tie for adjacent approvals.
+              orderBy: [
+                { clientInvoiceDecisionOrder: 'asc' },
+                { actionAt: 'asc' },
+                { id: 'asc' },
+              ],
               select: {
                 id: true,
                 approvalInstanceId: true,
