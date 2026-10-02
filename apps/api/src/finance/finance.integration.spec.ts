@@ -610,7 +610,21 @@ test('V0.6-B Client Invoice preserves scope, maker-checker, retained history and
       data: {
         companyId: company.id,
         customerCode: 'FINB-X-' + suffix,
-        customerName: 'Wrong Project Customer',
+        customerName: 'Alternate Same-Company Customer',
+      },
+    });
+    const foreignCompany = await prisma.company.create({
+      data: {
+        companyCode: 'FINB-F-' + suffix,
+        companyName: 'Finance B Foreign Company ' + suffix,
+        baseCurrencyCode: 'SGD',
+      },
+    });
+    const foreignCustomer = await prisma.customer.create({
+      data: {
+        companyId: foreignCompany.id,
+        customerCode: 'FINB-FC-' + suffix,
+        customerName: 'Foreign Company Customer',
       },
     });
     const makerEmployee = await prisma.employee.create({
@@ -767,20 +781,63 @@ test('V0.6-B Client Invoice preserves scope, maker-checker, retained history and
     assert.equal(draft.currencyCode, 'SGD');
     assert.equal(draft.totalAmount.toFixed(2), '125.50');
 
+    const alternateCustomerDraft = await clientFinance.create(
+      { auth: makerAuth },
+      project.id,
+      {
+        customerId: otherCustomer.id,
+        invoiceDate: new Date('2026-10-02T00:00:00.000Z'),
+        createKey: randomUUID(),
+        lines: [{ description: 'Alternate same-Company customer', amount: new Decimal('1.00') }],
+      },
+    );
+    assert.equal(alternateCustomerDraft.customerId, otherCustomer.id);
+
     await assert.rejects(
       () =>
         clientFinance.create(
           { auth: makerAuth },
           project.id,
           {
-            customerId: otherCustomer.id,
+            customerId: foreignCustomer.id,
             invoiceDate: new Date('2026-10-02T00:00:00.000Z'),
             createKey: randomUUID(),
-            lines: [{ description: 'Wrong customer', amount: new Decimal('1.00') }],
+            lines: [{ description: 'Cross-company customer', amount: new Decimal('1.00') }],
           },
         ),
       (error: unknown) => error instanceof UnprocessableEntityException,
     );
+
+    await assert.rejects(
+      () =>
+        prisma.clientInvoice.create({
+          data: {
+            companyId: company.id,
+            projectId: project.id,
+            customerId: customer.id,
+            clientInvoiceNumber: 'CI-BAD-' + suffix,
+            invoiceDate: new Date('2026-10-02T00:00:00.000Z'),
+            currencyCode: 'USD',
+            createKey: randomUUID(),
+            createPayloadHash: '0'.repeat(64),
+            createdByUserId: maker.id,
+          },
+        }),
+      /CLIENT_INVOICE_BASE_CURRENCY_REQUIRED/,
+    );
+
+    const createRaceKey = randomUUID();
+    const createRaceInput = {
+      customerId: customer.id,
+      invoiceDate: new Date('2026-10-02T00:00:00.000Z'),
+      createKey: createRaceKey,
+      lines: [{ description: 'Idempotent create race', amount: new Decimal('2.00') }],
+    };
+    const [createRaceA, createRaceB] = await Promise.all([
+      clientFinance.create({ auth: makerAuth }, project.id, createRaceInput),
+      clientFinance.create({ auth: makerAuth }, project.id, createRaceInput),
+    ]);
+    assert.equal(createRaceA.id, createRaceB.id);
 
     const edited = await clientFinance.addLine(
       { auth: makerAuth },
@@ -858,6 +915,28 @@ test('V0.6-B Client Invoice preserves scope, maker-checker, retained history and
       () => prisma.$executeRawUnsafe(
         'UPDATE "client_invoices" SET "invoice_date" = $1::date WHERE "id" = $2::uuid',
         '2026-10-03',
+        draft.id,
+      ),
+      /CLIENT_INVOICE_HISTORY_IMMUTABLE/,
+    );
+    await assert.rejects(
+      () => prisma.$executeRawUnsafe(
+        'UPDATE "client_invoices" SET "approval_instance_id" = NULL WHERE "id" = $1::uuid',
+        draft.id,
+      ),
+      /CLIENT_INVOICE_HISTORY_IMMUTABLE/,
+    );
+    await assert.rejects(
+      () => prisma.$executeRawUnsafe(
+        'UPDATE "client_invoices" SET "approved_by_user_id" = $1::uuid WHERE "id" = $2::uuid',
+        maker.id,
+        draft.id,
+      ),
+      /CLIENT_INVOICE_HISTORY_IMMUTABLE/,
+    );
+    await assert.rejects(
+      () => prisma.$executeRawUnsafe(
+        'DELETE FROM "client_invoices" WHERE "id" = $1::uuid',
         draft.id,
       ),
       /CLIENT_INVOICE_HISTORY_IMMUTABLE/,
