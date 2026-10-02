@@ -259,3 +259,185 @@ export const financeApi = {
       { actionKey, comment: comment ?? null },
     ),
 };
+
+export type ClientInvoiceOptions = {
+  baseCurrencyCode: string;
+  customers: Array<{
+    id: string;
+    customerCode: string;
+    customerName: string;
+  }>;
+};
+
+export type ClientInvoiceItem = {
+  id: string;
+  companyId: string;
+  projectId: string;
+  clientInvoiceId: string;
+  lineNo: number;
+  description: string;
+  amount: string;
+};
+
+export type ClientInvoiceListItem = {
+  id: string;
+  companyId: string;
+  projectId: string;
+  customerId: string;
+  clientInvoiceNumber: string;
+  invoiceDate: string;
+  dueDate: string | null;
+  currencyCode: string;
+  totalAmount: string;
+  state: string;
+  approvalInstanceId: string | null;
+  submittedAt: string | null;
+  approvedAt: string | null;
+  rejectedAt: string | null;
+  rejectionReason: string | null;
+  createdAt: string;
+  updatedAt: string;
+  customer: {
+    id: string;
+    customerCode: string;
+    customerName: string;
+  };
+  approvalInstance: { approvalState: string } | null;
+  _count: { items: number };
+};
+
+export type ClientInvoiceDetail = Omit<
+  ClientInvoiceListItem,
+  'approvalInstance' | '_count'
+> & {
+  project: FinanceProject;
+  createdBy: { id: string; displayName: string };
+  submittedBy: { id: string; displayName: string } | null;
+  approvedBy: { id: string; displayName: string } | null;
+  rejectedBy: { id: string; displayName: string } | null;
+  items: ClientInvoiceItem[];
+  approvalInstance: {
+    id: string;
+    approvalState: string;
+    currentStepNo: number | null;
+    startedAt: string;
+    completedAt: string | null;
+    workflow: { workflowCode: string; workflowName: string };
+    actions: Array<{
+      id: string;
+      action: string;
+      actionAt: string;
+      comment: string | null;
+      approvalStep: { stepNo: number; stepName: string } | null;
+      actionByUser: { id: string; displayName: string } | null;
+    }>;
+  } | null;
+};
+
+export type ClientInvoiceLineInput = {
+  description: string;
+  amount: string;
+};
+
+export type AccountsReceivableRow = {
+  id: string;
+  clientInvoiceNumber: string;
+  invoiceDate: string;
+  dueDate: string | null;
+  currencyCode: string;
+  totalAmount: string;
+  allocatedAmount: string;
+  outstandingAmount: string;
+  customer: { id: string; customerCode: string; customerName: string };
+};
+
+export type AccountsPayableRow = {
+  id: string;
+  supplierInvoiceNumber: string;
+  supplierReference: string;
+  invoiceDate: string;
+  dueDate: string | null;
+  currencyCode: string;
+  totalAmount: string;
+  allocatedAmount: string;
+  outstandingAmount: string;
+  supplier: { id: string; supplierCode: string; supplierName: string };
+};
+
+export const clientFinanceApi = {
+  projects: () =>
+    apiRequest<Data<FinanceProject[]>>('/finance/client-invoice-projects'),
+  workflows: () =>
+    apiRequest<Data<FinanceWorkflow[]>>('/finance/client-invoice-workflow-options'),
+  options: (projectId: string) =>
+    apiRequest<Data<ClientInvoiceOptions>>(
+      '/finance/projects/' + projectId + '/client-invoice-options',
+    ),
+  list: (projectId: string) =>
+    apiRequest<Data<ClientInvoiceListItem[]>>(
+      '/finance/projects/' + projectId + '/client-invoices',
+    ),
+  detail: (invoiceId: string) =>
+    apiRequest<Data<ClientInvoiceDetail>>('/finance/client-invoices/' + invoiceId),
+  create: (
+    projectId: string,
+    body: {
+      customerId: string;
+      invoiceDate: string;
+      dueDate?: string | null;
+      createKey: string;
+      lines: ClientInvoiceLineInput[];
+    },
+  ) =>
+    postAction<ClientInvoiceDetail>(
+      '/finance/projects/' + projectId + '/client-invoices',
+      body,
+    ),
+  update: (
+    invoiceId: string,
+    body: Partial<{ invoiceDate: string; dueDate: string | null }>,
+  ) =>
+    apiRequest<Data<ClientInvoiceDetail>>('/finance/client-invoices/' + invoiceId, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    }),
+  addLine: (invoiceId: string, body: ClientInvoiceLineInput) =>
+    postAction<ClientInvoiceDetail>(
+      '/finance/client-invoices/' + invoiceId + '/items',
+      body,
+    ),
+  updateLine: (itemId: string, body: Partial<ClientInvoiceLineInput>) =>
+    apiRequest<Data<ClientInvoiceDetail>>(
+      '/finance/client-invoice-items/' + itemId,
+      { method: 'PATCH', body: JSON.stringify(body) },
+    ),
+  deleteLine: (itemId: string) =>
+    apiRequest<Data<ClientInvoiceDetail>>(
+      '/finance/client-invoice-items/' + itemId,
+      { method: 'DELETE' },
+    ),
+  submit: (invoiceId: string, workflowCode: string, actionKey: string) =>
+    postAction<ClientInvoiceDetail>(
+      '/finance/client-invoices/' + invoiceId + '/submit',
+      { workflowCode, actionKey },
+    ),
+  approve: (invoiceId: string, actionKey: string, comment?: string | null) =>
+    postAction<ClientInvoiceDetail>(
+      '/finance/client-invoices/' + invoiceId + '/approve',
+      { actionKey, comment: comment ?? null },
+    ),
+  reject: (invoiceId: string, actionKey: string, comment?: string | null) =>
+    postAction<ClientInvoiceDetail>(
+      '/finance/client-invoices/' + invoiceId + '/reject',
+      { actionKey, comment: comment ?? null },
+    ),
+  accountsReceivable: (projectId: string) =>
+    apiRequest<Data<AccountsReceivableRow[]>>(
+      '/finance/projects/' + projectId + '/accounts-receivable',
+    ),
+  accountsPayable: (projectId: string) =>
+    apiRequest<Data<AccountsPayableRow[]>>(
+      '/finance/projects/' + projectId + '/accounts-payable',
+    ),
+};
+
