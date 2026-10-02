@@ -1854,6 +1854,45 @@ test('V0.6-B Client Invoice preserves scope, maker-checker, retained history and
       1,
     );
 
+    await prisma.project.update({
+      where: { id: project.id },
+      data: { isActive: false },
+    });
+    const activeClientProjects = await clientFinance.projects(makerAuth);
+    assert.equal(
+      activeClientProjects.some((item) => item.id === project.id),
+      false,
+      'Archived Projects must remain unavailable for new Client Invoice setup.',
+    );
+    const arProjectsAfterArchive = await clientFinance.balanceProjects(makerAuth);
+    const archivedArProject = arProjectsAfterArchive.find(
+      (item) => item.id === project.id,
+    );
+    assert.ok(archivedArProject);
+    assert.equal(archivedArProject.isActive, false);
+    const apProjectsAfterArchive = await supplierFinance.balanceProjects(makerAuth);
+    const archivedApProject = apProjectsAfterArchive.find(
+      (item) => item.id === project.id,
+    );
+    assert.ok(archivedApProject);
+    assert.equal(archivedApProject.isActive, false);
+    const archivedAr = await clientFinance.accountsReceivable(
+      makerAuth,
+      project.id,
+    );
+    assert.ok(
+      archivedAr.some((row) => row.id === draft.id),
+      'Approved receivables must remain visible after Project archival.',
+    );
+    const archivedAp = await supplierFinance.accountsPayable(
+      makerAuth,
+      project.id,
+    );
+    assert.ok(
+      archivedAp.some((row) => row.id === supplierDraft.id),
+      'Approved payables must remain visible after Project archival.',
+    );
+
     const auditRows = await prisma.auditLog.findMany({
       where: {
         companyId: company.id,
