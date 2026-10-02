@@ -17,6 +17,13 @@ function line(value: unknown): ClientInvoiceLineInput {
 export class ClientInvoiceController {
   constructor(private readonly service: ClientInvoiceService) {}
 
+  @Get('client-invoice-projects')
+  @UseGuards(AuthGuard, PermissionGuard)
+  @RequirePermissions('finance.client_invoice.view')
+  async projects(@Req() r: AuthenticatedRequest) {
+    return { data: await this.service.projects(authOf(r)) };
+  }
+
   @Get('client-invoice-workflow-options')
   @UseGuards(AuthGuard, PermissionGuard)
   @RequirePermissions('finance.client_invoice.submit')
