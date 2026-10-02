@@ -123,10 +123,11 @@ check(
   !me.data.data.permissions.some(
     (permission) =>
       permission.startsWith('finance.client_invoice.') ||
+      permission.startsWith('finance.payment.') ||
       permission === 'finance.ap.view' ||
       permission === 'finance.ar.view',
   ),
-  'SYS_ADMIN must not implicitly receive Client Invoice or AP/AR Finance authority.',
+  'SYS_ADMIN must not implicitly receive Client Invoice, Payment or AP/AR Finance authority.',
 );
 check(
   !me.data.data.permissions.some(
@@ -336,6 +337,11 @@ const permissionCodes = [
   'finance.client_invoice.create',
   'finance.client_invoice.edit',
   'finance.client_invoice.submit',
+  'finance.payment.view',
+  'finance.payment.create',
+  'finance.payment.edit',
+  'finance.payment.submit',
+  'finance.payment.cancel',
   'finance.ap.view',
   'finance.ar.view',
   'subcontracts.subcontractor.view',
@@ -409,6 +415,9 @@ await request(admin, `/admin/roles/${checkerRoleId}/permissions`, {
       'finance.client_invoice.view',
       'finance.client_invoice.approve',
       'finance.client_invoice.reject',
+      'finance.payment.view',
+      'finance.payment.approve',
+      'finance.payment.reject',
       'finance.ap.view',
       'finance.ar.view',
       'inventory.receipt.view',
@@ -783,7 +792,24 @@ await request(admin, '/admin/approval-workflows', {
   expected: 201,
 });
 
-record('V0.3-A Budget, V0.3-B Purchase Request, V0.3-C RFQ, V0.3-D PO, V0.5-D/E Subcontracts and V0.6-A/B Finance approval configuration');
+const paymentWorkflowCode = 'PAYMENT_' + suffix;
+await request(admin, '/admin/approval-workflows', {
+  method: 'POST',
+  json: {
+    workflowCode: paymentWorkflowCode,
+    entityType: 'PAYMENT',
+    workflowName: 'Payment Approval ' + suffix,
+    steps: [{
+      stepNo: 1,
+      stepName: 'Approve Payment',
+      requiredApprovals: 1,
+      roleIds: [checkerRoleId],
+    }],
+  },
+  expected: 201,
+});
+
+record('V0.3-A Budget, V0.3-B Purchase Request, V0.3-C RFQ, V0.3-D PO, V0.5-D/E Subcontracts and V0.6-A/B/C Finance approval configuration');
 
 const pmPassword = 'Uat-PM-' + suffix + '-Strong-2026!';
 const unassignedPassword = 'Uat-PE-' + suffix + '-Strong-2026!';
@@ -2642,6 +2668,364 @@ check(
   'V0.6-B Client Invoice rejection did not retain rejected state and reason.',
 );
 record('V0.6-B Client Invoice Draft/edit → configured maker-checker approval/rejection → derived AP/AR → CSRF and unauthorized Project denial through live HTTP API');
+
+const paymentWorkflowOptions = await request(pm, '/finance/payment-workflow-options');
+check(
+  paymentWorkflowOptions.data.data.some(
+    (workflow) => workflow.workflowCode === paymentWorkflowCode,
+  ),
+  'V0.6-C Payment workflow options did not expose the configured workflow.',
+);
+const paymentOptions = await request(
+  pm,
+  '/finance/projects/' + projectId + '/payment-options',
+);
+check(
+  paymentOptions.data.data.baseCurrencyCode === 'SGD' &&
+    paymentOptions.data.data.supplierInvoices.some(
+      (invoice) => invoice.id === supplierInvoiceId,
+    ) &&
+    paymentOptions.data.data.clientInvoices.some(
+      (invoice) => invoice.id === clientInvoiceId,
+    ),
+  'V0.6-C Payment options did not expose same-Project approved settlement targets.',
+);
+await request(admin, '/finance/payment-projects', { expected: 403 });
+
+const outboundPaymentPayload = {
+  direction: 'OUTBOUND',
+  paymentDate: '2026-10-03',
+  supplierId: sourcingSupplierB.data.data.id,
+  amount: '20.00',
+  paymentMethod: 'BANK_TRANSFER',
+  reference: 'Supplier settlement ' + suffix,
+  createKey: 'pay-out-create-' + suffix,
+};
+await request(
+  pm,
+  '/finance/projects/' + projectId + '/payments',
+  {
+    method: 'POST',
+    json: {
+      ...outboundPaymentPayload,
+      createKey: 'pay-no-csrf-' + suffix,
+    },
+    expected: 403,
+    csrf: false,
+  },
+);
+const outboundPayment = await request(
+  pm,
+  '/finance/projects/' + projectId + '/payments',
+  {
+    method: 'POST',
+    json: outboundPaymentPayload,
+    expected: 201,
+  },
+);
+const outboundPaymentId = outboundPayment.data.data.id;
+check(
+  /^PAY2610-\d{3}$/.test(outboundPayment.data.data.paymentNumber) &&
+    outboundPayment.data.data.projectId === projectId &&
+    outboundPayment.data.data.paymentDirection === 'OUTBOUND' &&
+    outboundPayment.data.data.supplierId === sourcingSupplierB.data.data.id &&
+    outboundPayment.data.data.state === 'DRAFT' &&
+    outboundPayment.data.data.currencyCode === 'SGD' &&
+    String(outboundPayment.data.data.amount) === '20',
+  'V0.6-C outbound Payment did not retain stable identity, Project, direction, counterparty, base currency and amount.',
+);
+const outboundPaymentRetry = await request(
+  pm,
+  '/finance/projects/' + projectId + '/payments',
+  {
+    method: 'POST',
+    json: outboundPaymentPayload,
+    expected: 201,
+  },
+);
+check(
+  outboundPaymentRetry.data.data.id === outboundPaymentId,
+  'V0.6-C stable Payment create retry duplicated the Payment.',
+);
+await request(
+  unassignedReceipt,
+  '/finance/projects/' + projectId + '/payments',
+  { expected: 403 },
+);
+await request(
+  unassignedReceipt,
+  '/finance/payments/' + outboundPaymentId,
+  { expected: 403 },
+);
+
+const supplierAllocationKey = 'pay-out-alloc-' + suffix;
+const outboundAllocated = await request(
+  pm,
+  '/finance/payments/' + outboundPaymentId + '/allocations',
+  {
+    method: 'POST',
+    json: {
+      targetType: 'SUPPLIER_INVOICE',
+      targetId: supplierInvoiceId,
+      amount: '20.00',
+      actionKey: supplierAllocationKey,
+    },
+    expected: 201,
+  },
+);
+check(
+  outboundAllocated.data.data.supplierAllocations.length === 1 &&
+    String(outboundAllocated.data.data.supplierAllocations[0]?.allocatedAmount) ===
+      '20',
+  'V0.6-C supplier allocation was not retained on the Draft Payment.',
+);
+const outboundAllocationReplay = await request(
+  pm,
+  '/finance/payments/' + outboundPaymentId + '/allocations',
+  {
+    method: 'POST',
+    json: {
+      targetType: 'SUPPLIER_INVOICE',
+      targetId: supplierInvoiceId,
+      amount: '20.00',
+      actionKey: supplierAllocationKey,
+    },
+    expected: 201,
+  },
+);
+check(
+  outboundAllocationReplay.data.data.supplierAllocations.length === 1,
+  'V0.6-C stable allocation retry duplicated settlement evidence.',
+);
+await request(
+  pm,
+  '/finance/payments/' + outboundPaymentId + '/allocations',
+  {
+    method: 'POST',
+    json: {
+      targetType: 'CLIENT_INVOICE',
+      targetId: clientInvoiceId,
+      amount: '1.00',
+      actionKey: 'pay-wrong-direction-' + suffix,
+    },
+    expected: 422,
+  },
+);
+
+const apWithDraftPayment = await request(
+  pm,
+  '/finance/projects/' + projectId + '/accounts-payable',
+);
+const supplierPayableWithDraft = apWithDraftPayment.data.data.find(
+  (item) => item.id === supplierInvoiceId,
+);
+check(
+  supplierPayableWithDraft &&
+    String(supplierPayableWithDraft.allocatedAmount) === '0' &&
+    String(supplierPayableWithDraft.outstandingAmount) === '29.25',
+  'V0.6-C Draft Payment incorrectly affected derived AP.',
+);
+
+await request(
+  pm,
+  '/finance/payments/' + outboundPaymentId + '/submit',
+  {
+    method: 'POST',
+    json: {
+      workflowCode: paymentWorkflowCode,
+      actionKey: 'pay-out-submit-' + suffix,
+    },
+    expected: 201,
+  },
+);
+await request(
+  pm,
+  '/finance/payments/' + outboundPaymentId + '/approve',
+  {
+    method: 'POST',
+    json: {
+      actionKey: 'pay-maker-approve-' + suffix,
+      comment: 'Maker must not self-approve.',
+    },
+    expected: 403,
+  },
+);
+const outboundApprovalKey = 'pay-out-approve-' + suffix;
+const approvedOutboundPayment = await request(
+  checker,
+  '/finance/payments/' + outboundPaymentId + '/approve',
+  {
+    method: 'POST',
+    json: {
+      actionKey: outboundApprovalKey,
+      comment: 'Configured Finance checker Payment approval.',
+    },
+    expected: 201,
+  },
+);
+check(
+  approvedOutboundPayment.data.data.state === 'APPROVED' &&
+    approvedOutboundPayment.data.data.approvalInstance?.approvalState ===
+      'APPROVED' &&
+    approvedOutboundPayment.data.data.supplierAllocations.length === 1,
+  'V0.6-C outbound Payment did not retain configured approval and allocation history.',
+);
+const replayedOutboundApproval = await request(
+  checker,
+  '/finance/payments/' + outboundPaymentId + '/approve',
+  {
+    method: 'POST',
+    json: {
+      actionKey: outboundApprovalKey,
+      comment: 'Configured Finance checker Payment approval.',
+    },
+    expected: 201,
+  },
+);
+check(
+  replayedOutboundApproval.data.data.state === 'APPROVED',
+  'V0.6-C stable Payment approval retry did not return retained approved history.',
+);
+
+const apWithApprovedPayment = await request(
+  pm,
+  '/finance/projects/' + projectId + '/accounts-payable',
+);
+const supplierPayableApproved = apWithApprovedPayment.data.data.find(
+  (item) => item.id === supplierInvoiceId,
+);
+check(
+  supplierPayableApproved &&
+    String(supplierPayableApproved.allocatedAmount) === '20' &&
+    String(supplierPayableApproved.outstandingAmount) === '9.25',
+  'V0.6-C approved outbound Payment did not reduce derived AP by the allocation amount.',
+);
+
+const paymentCancelKey = 'pay-out-cancel-' + suffix;
+const cancelledOutboundPayment = await request(
+  pm,
+  '/finance/payments/' + outboundPaymentId + '/cancel',
+  {
+    method: 'POST',
+    json: {
+      actionKey: paymentCancelKey,
+      reason: 'Void supplier settlement and retain history.',
+    },
+    expected: 201,
+  },
+);
+check(
+  cancelledOutboundPayment.data.data.state === 'CANCELLED' &&
+    cancelledOutboundPayment.data.data.supplierAllocations.length === 1 &&
+    cancelledOutboundPayment.data.data.cancellationReason ===
+      'Void supplier settlement and retain history.',
+  'V0.6-C Payment cancellation did not retain historical allocation and cancellation evidence.',
+);
+const cancelledOutboundReplay = await request(
+  pm,
+  '/finance/payments/' + outboundPaymentId + '/cancel',
+  {
+    method: 'POST',
+    json: {
+      actionKey: paymentCancelKey,
+      reason: 'Void supplier settlement and retain history.',
+    },
+    expected: 201,
+  },
+);
+check(
+  cancelledOutboundReplay.data.data.state === 'CANCELLED',
+  'V0.6-C stable cancellation retry did not return retained cancellation history.',
+);
+const apAfterPaymentCancellation = await request(
+  pm,
+  '/finance/projects/' + projectId + '/accounts-payable',
+);
+const supplierPayableRestored = apAfterPaymentCancellation.data.data.find(
+  (item) => item.id === supplierInvoiceId,
+);
+check(
+  supplierPayableRestored &&
+    String(supplierPayableRestored.allocatedAmount) === '0' &&
+    String(supplierPayableRestored.outstandingAmount) === '29.25',
+  'V0.6-C cancelled Payment did not restore derived AP while retaining history.',
+);
+
+const inboundPayment = await request(
+  pm,
+  '/finance/projects/' + projectId + '/payments',
+  {
+    method: 'POST',
+    json: {
+      direction: 'INBOUND',
+      paymentDate: '2026-10-04',
+      customerId,
+      amount: '125.00',
+      paymentMethod: 'BANK_TRANSFER',
+      reference: 'Client receipt ' + suffix,
+      createKey: 'pay-in-create-' + suffix,
+    },
+    expected: 201,
+  },
+);
+const inboundPaymentId = inboundPayment.data.data.id;
+await request(
+  pm,
+  '/finance/payments/' + inboundPaymentId + '/allocations',
+  {
+    method: 'POST',
+    json: {
+      targetType: 'CLIENT_INVOICE',
+      targetId: clientInvoiceId,
+      amount: '125.00',
+      actionKey: 'pay-in-alloc-' + suffix,
+    },
+    expected: 201,
+  },
+);
+await request(
+  pm,
+  '/finance/payments/' + inboundPaymentId + '/submit',
+  {
+    method: 'POST',
+    json: {
+      workflowCode: paymentWorkflowCode,
+      actionKey: 'pay-in-submit-' + suffix,
+    },
+    expected: 201,
+  },
+);
+const approvedInboundPayment = await request(
+  checker,
+  '/finance/payments/' + inboundPaymentId + '/approve',
+  {
+    method: 'POST',
+    json: {
+      actionKey: 'pay-in-approve-' + suffix,
+      comment: 'Approve client receipt.',
+    },
+    expected: 201,
+  },
+);
+check(
+  approvedInboundPayment.data.data.state === 'APPROVED' &&
+    approvedInboundPayment.data.data.clientAllocations.length === 1,
+  'V0.6-C inbound Payment did not retain approved Client Invoice allocation.',
+);
+const arWithApprovedReceipt = await request(
+  pm,
+  '/finance/projects/' + projectId + '/accounts-receivable',
+);
+const clientReceivablePaid = arWithApprovedReceipt.data.data.find(
+  (item) => item.id === clientInvoiceId,
+);
+check(
+  clientReceivablePaid &&
+    String(clientReceivablePaid.allocatedAmount) === '125' &&
+    String(clientReceivablePaid.outstandingAmount) === '500',
+  'V0.6-C approved inbound Payment did not reduce derived AR by the allocation amount.',
+);
+record('V0.6-C Payment create/retry → direction-safe allocation → configured approval → AP/AR settlement → controlled cancellation/restoration → SYS_ADMIN/Project denial through live HTTP API');
 
 const postedBalance = await request(
   pm,
@@ -5029,6 +5413,143 @@ check(
     !('paymentId' in approvedStageDCertTwo.data.data),
   'V0.5-D Certification unexpectedly exposed a payment or Finance posting effect.',
 );
+
+// V0.6-C settlement hand-off: the approved Certification remains owned by
+// Subcontracts while Finance retains the canonical Payment/allocation evidence.
+const subcontractPaymentOptions = await request(
+  pm,
+  '/finance/projects/' + projectId + '/payment-options',
+);
+check(
+  subcontractPaymentOptions.data.data.certifications.some(
+    (item) =>
+      item.id === stageDCertTwoId &&
+      item.agreement?.subcontractorId === subcontractorId &&
+      Number(item.netCertifiedAmount) === 97.69,
+  ),
+  'V0.6-C Payment options did not expose the approved same-Project Certification payable ceiling.',
+);
+const subcontractPayment = await request(
+  pm,
+  '/finance/projects/' + projectId + '/payments',
+  {
+    method: 'POST',
+    json: {
+      direction: 'OUTBOUND',
+      paymentDate: '2027-03-15',
+      subcontractorId,
+      amount: '100.00',
+      paymentMethod: 'BANK_TRANSFER',
+      reference: 'Subcontract certification settlement ' + suffix,
+      createKey: 'pay-sub-create-' + suffix,
+    },
+    expected: 201,
+  },
+);
+const subcontractPaymentId = subcontractPayment.data.data.id;
+check(
+  /^PAY2703-\d{3}$/.test(subcontractPayment.data.data.paymentNumber) &&
+    subcontractPayment.data.data.projectId === projectId &&
+    subcontractPayment.data.data.subcontractorId === subcontractorId &&
+    subcontractPayment.data.data.paymentDirection === 'OUTBOUND',
+  'V0.6-C Subcontract Payment did not retain its required Project/direction/counterparty identity.',
+);
+await request(
+  pm,
+  '/finance/payments/' + subcontractPaymentId + '/allocations',
+  {
+    method: 'POST',
+    json: {
+      targetType: 'SUBCONTRACT_CERTIFICATION',
+      targetId: stageDCertTwoId,
+      amount: '97.70',
+      actionKey: 'pay-sub-over-net-' + suffix,
+    },
+    expected: 409,
+  },
+);
+const subcontractAllocation = await request(
+  pm,
+  '/finance/payments/' + subcontractPaymentId + '/allocations',
+  {
+    method: 'POST',
+    json: {
+      targetType: 'SUBCONTRACT_CERTIFICATION',
+      targetId: stageDCertTwoId,
+      amount: '50.00',
+      actionKey: 'pay-sub-alloc-' + suffix,
+    },
+    expected: 201,
+  },
+);
+check(
+  subcontractAllocation.data.data.subcontractAllocations.length === 1 &&
+    subcontractAllocation.data.data.subcontractAllocations[0]
+      ?.subcontractCertification?.id === stageDCertTwoId &&
+    String(
+      subcontractAllocation.data.data.subcontractAllocations[0]?.allocatedAmount,
+    ) === '50',
+  'V0.6-C Subcontract allocation did not retain Certification settlement evidence.',
+);
+await request(
+  pm,
+  '/finance/payments/' + subcontractPaymentId + '/submit',
+  {
+    method: 'POST',
+    json: {
+      workflowCode: paymentWorkflowCode,
+      actionKey: 'pay-sub-submit-' + suffix,
+    },
+    expected: 201,
+  },
+);
+const approvedSubcontractPayment = await request(
+  checker,
+  '/finance/payments/' + subcontractPaymentId + '/approve',
+  {
+    method: 'POST',
+    json: {
+      actionKey: 'pay-sub-approve-' + suffix,
+      comment: 'Approve Certification settlement.',
+    },
+    expected: 201,
+  },
+);
+check(
+  approvedSubcontractPayment.data.data.state === 'APPROVED' &&
+    approvedSubcontractPayment.data.data.subcontractAllocations.length === 1,
+  'V0.6-C Subcontract Payment approval did not retain active Certification allocation evidence.',
+);
+await request(
+  checker,
+  '/subcontracts/certifications/' + stageDCertTwoId + '/reverse',
+  {
+    method: 'POST',
+    json: {
+      reason: 'Must remain blocked while Finance allocation is active.',
+      actionKey: 'uat-v06c-blocked-cert-reverse-' + suffix,
+    },
+    expected: 409,
+  },
+);
+const cancelledSubcontractPayment = await request(
+  pm,
+  '/finance/payments/' + subcontractPaymentId + '/cancel',
+  {
+    method: 'POST',
+    json: {
+      actionKey: 'pay-sub-cancel-' + suffix,
+      reason: 'Cancel settlement before Certification correction.',
+    },
+    expected: 201,
+  },
+);
+check(
+  cancelledSubcontractPayment.data.data.state === 'CANCELLED' &&
+    cancelledSubcontractPayment.data.data.subcontractAllocations.length === 1,
+  'V0.6-C Subcontract Payment cancellation did not retain historical allocation evidence.',
+);
+record('V0.6-C Subcontract Certification settlement enforces net-certified ceiling, blocks reversal while active, and releases the reversal guard only after Finance cancellation');
 
 const reversedStageDCertTwo = await request(
   checker,

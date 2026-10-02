@@ -22,6 +22,8 @@ import { ClientInvoiceController } from './client-invoice.controller';
 import { ClientInvoiceService } from './client-invoice.service';
 import { FinanceController } from './finance.controller';
 import { FinanceService } from './finance.service';
+import { PaymentController } from './payment.controller';
+import { PaymentService } from './payment.service';
 
 function auth(
   companyId: string,
@@ -2020,6 +2022,997 @@ test('V0.6-B Client Invoice preserves scope, maker-checker, retained history and
     assert.ok(auditRows.some((row) => row.action === 'ADD_LINE'));
     assert.ok(auditRows.some((row) => row.action === 'SUBMIT'));
     assert.ok(auditRows.some((row) => row.action === 'APPROVE'));
+  } finally {
+    await prisma.$disconnect();
+  }
+});
+
+
+test('V0.6-C routes retain explicit Payment permissions', () => {
+  const routes = [
+    ['projects', ['finance.payment.view']],
+    ['workflows', ['finance.payment.view', 'finance.payment.submit']],
+    ['options', ['finance.payment.view']],
+    ['list', ['finance.payment.view']],
+    ['get', ['finance.payment.view']],
+    ['create', ['finance.payment.view', 'finance.payment.create']],
+    ['update', ['finance.payment.view', 'finance.payment.edit']],
+    ['addAllocation', ['finance.payment.view', 'finance.payment.edit']],
+    ['removeAllocation', ['finance.payment.view', 'finance.payment.edit']],
+    ['submit', ['finance.payment.view', 'finance.payment.submit']],
+    ['approve', ['finance.payment.view', 'finance.payment.approve']],
+    ['reject', ['finance.payment.view', 'finance.payment.reject']],
+    ['cancel', ['finance.payment.view', 'finance.payment.cancel']],
+  ] as const;
+  for (const [method, permissions] of routes) {
+    assert.deepEqual(
+      Reflect.getMetadata(
+        REQUIRED_PERMISSIONS_KEY,
+        PaymentController.prototype[method],
+      ),
+      permissions,
+    );
+  }
+});
+
+test('V0.6-C Payments preserve Project scope, settlement ceilings, idempotency and cancellation history', async () => {
+  const prisma = new PrismaService();
+  await prisma.$connect();
+
+  try {
+    const suffix = randomUUID().slice(0, 8);
+    const Decimal = Prisma.Decimal;
+    const company = await prisma.company.create({
+      data: {
+        companyCode: 'FINC-' + suffix,
+        companyName: 'Finance C Test ' + suffix,
+        baseCurrencyCode: 'SGD',
+      },
+    });
+    const customer = await prisma.customer.create({
+      data: {
+        companyId: company.id,
+        customerCode: 'FINC-C-' + suffix,
+        customerName: 'Finance C Customer',
+      },
+    });
+    const supplier = await prisma.supplier.create({
+      data: {
+        companyId: company.id,
+        supplierCode: 'FINC-S-' + suffix,
+        supplierName: 'Finance C Supplier',
+      },
+    });
+    const makerEmployee = await prisma.employee.create({
+      data: {
+        companyId: company.id,
+        employeeCode: 'FINC-M-' + suffix,
+        employeeName: 'Finance C Maker',
+      },
+    });
+    const checkerEmployee = await prisma.employee.create({
+      data: {
+        companyId: company.id,
+        employeeCode: 'FINC-CHECK-' + suffix,
+        employeeName: 'Finance C Checker',
+      },
+    });
+    const outsiderEmployee = await prisma.employee.create({
+      data: {
+        companyId: company.id,
+        employeeCode: 'FINC-OUT-' + suffix,
+        employeeName: 'Finance C Outsider',
+      },
+    });
+    const maker = await prisma.user.create({
+      data: {
+        companyId: company.id,
+        employeeId: makerEmployee.id,
+        email: 'finc-maker-' + suffix + '@example.com',
+        displayName: 'Finance C Maker',
+        passwordHash: 'x',
+      },
+    });
+    const checker = await prisma.user.create({
+      data: {
+        companyId: company.id,
+        employeeId: checkerEmployee.id,
+        email: 'finc-checker-' + suffix + '@example.com',
+        displayName: 'Finance C Checker',
+        passwordHash: 'x',
+      },
+    });
+    const outsider = await prisma.user.create({
+      data: {
+        companyId: company.id,
+        employeeId: outsiderEmployee.id,
+        email: 'finc-outsider-' + suffix + '@example.com',
+        displayName: 'Finance C Outsider',
+        passwordHash: 'x',
+      },
+    });
+    const project = await prisma.project.create({
+      data: {
+        companyId: company.id,
+        projectCode: 'FINC-P-' + suffix,
+        projectName: 'Finance C Project',
+        customerId: customer.id,
+        contractValue: '1000000',
+        plannedStartDate: new Date('2026-10-01T00:00:00.000Z'),
+        plannedCompletionDate: new Date('2027-12-31T00:00:00.000Z'),
+      },
+    });
+    const otherProject = await prisma.project.create({
+      data: {
+        companyId: company.id,
+        projectCode: 'FINC-X-' + suffix,
+        projectName: 'Finance C Other Project',
+        customerId: customer.id,
+        contractValue: '500000',
+        plannedStartDate: new Date('2026-10-01T00:00:00.000Z'),
+        plannedCompletionDate: new Date('2027-12-31T00:00:00.000Z'),
+      },
+    });
+    await prisma.projectMember.createMany({
+      data: [
+        {
+          projectId: project.id,
+          employeeId: makerEmployee.id,
+          projectRole: 'Finance Maker',
+        },
+        {
+          projectId: project.id,
+          employeeId: checkerEmployee.id,
+          projectRole: 'Finance Checker',
+        },
+      ],
+    });
+
+    const role = await prisma.role.create({
+      data: {
+        companyId: company.id,
+        roleCode: 'FINC_APPROVER_' + suffix,
+        roleName: 'Finance C Approver',
+      },
+    });
+    const permissions = await prisma.permission.findMany({
+      where: {
+        permissionCode: {
+          in: [
+            'finance.supplier_invoice.view',
+            'finance.supplier_invoice.approve',
+            'finance.supplier_invoice.reject',
+            'finance.client_invoice.view',
+            'finance.client_invoice.approve',
+            'finance.client_invoice.reject',
+            'finance.payment.view',
+            'finance.payment.approve',
+            'finance.payment.reject',
+          ],
+        },
+      },
+      select: { id: true },
+    });
+    assert.equal(permissions.length, 9);
+    await prisma.rolePermission.createMany({
+      data: permissions.map((permission) => ({
+        roleId: role.id,
+        permissionId: permission.id,
+      })),
+    });
+    await prisma.userRole.create({
+      data: { companyId: company.id, userId: checker.id, roleId: role.id },
+    });
+
+    const makerRole = await prisma.role.create({
+      data: {
+        companyId: company.id,
+        roleCode: 'FINC_MAKER_' + suffix,
+        roleName: 'Finance C Maker',
+      },
+    });
+    const makerPermissions = await prisma.permission.findMany({
+      where: {
+        permissionCode: {
+          in: [
+            'finance.payment.view',
+            'finance.payment.create',
+            'finance.payment.edit',
+            'finance.payment.submit',
+            'finance.payment.cancel',
+          ],
+        },
+      },
+      select: { id: true },
+    });
+    assert.equal(makerPermissions.length, 5);
+    await prisma.rolePermission.createMany({
+      data: makerPermissions.map((permission) => ({
+        roleId: makerRole.id,
+        permissionId: permission.id,
+      })),
+    });
+    await prisma.userRole.create({
+      data: {
+        companyId: company.id,
+        userId: maker.id,
+        roleId: makerRole.id,
+      },
+    });
+
+    const supplierWorkflow = await prisma.approvalWorkflow.create({
+      data: {
+        companyId: company.id,
+        workflowCode: 'FINC_SI_' + suffix,
+        entityType: 'SUPPLIER_INVOICE',
+        workflowName: 'Finance C Supplier Invoice',
+        steps: {
+          create: {
+            stepNo: 1,
+            stepName: 'Finance Checker',
+            requiredApprovals: 1,
+            stepRoles: { create: { roleId: role.id } },
+          },
+        },
+      },
+    });
+    const clientWorkflow = await prisma.approvalWorkflow.create({
+      data: {
+        companyId: company.id,
+        workflowCode: 'FINC_CI_' + suffix,
+        entityType: 'CLIENT_INVOICE',
+        workflowName: 'Finance C Client Invoice',
+        steps: {
+          create: {
+            stepNo: 1,
+            stepName: 'Finance Checker',
+            requiredApprovals: 1,
+            stepRoles: { create: { roleId: role.id } },
+          },
+        },
+      },
+    });
+    const paymentWorkflow = await prisma.approvalWorkflow.create({
+      data: {
+        companyId: company.id,
+        workflowCode: 'FINC_PAY_' + suffix,
+        entityType: 'PAYMENT',
+        workflowName: 'Finance C Payment',
+        steps: {
+          create: {
+            stepNo: 1,
+            stepName: 'Finance Checker',
+            requiredApprovals: 1,
+            stepRoles: { create: { roleId: role.id } },
+          },
+        },
+      },
+    });
+
+    const access = new ProjectAccessService(
+      prisma,
+      new ProjectScopeService(new AuthorizationService()),
+    );
+    const approvals = new ApprovalService(prisma);
+    const audit = new AuditService(prisma);
+    const numbers = new NumberSequenceService(prisma);
+    const supplierFinance = new FinanceService(
+      prisma,
+      access,
+      approvals,
+      audit,
+      numbers,
+    );
+    const clientFinance = new ClientInvoiceService(
+      prisma,
+      access,
+      approvals,
+      audit,
+      numbers,
+    );
+    const payments = new PaymentService(
+      prisma,
+      access,
+      approvals,
+      audit,
+      numbers,
+    );
+    const makerAuth = auth(company.id, maker.id, [], []);
+    const makerApproverAuth = auth(
+      company.id,
+      maker.id,
+      [role.roleCode],
+      [],
+    );
+    const checkerAuth = auth(
+      company.id,
+      checker.id,
+      [role.roleCode],
+      [],
+    );
+    const outsiderAuth = auth(company.id, outsider.id, [], []);
+    const sysAdminAuth = auth(company.id, outsider.id, ['SYS_ADMIN'], []);
+
+    const supplierDraft = await supplierFinance.createInvoice(
+      { auth: makerAuth },
+      project.id,
+      {
+        supplierId: supplier.id,
+        supplierReference: 'FINC-SUP-' + suffix,
+        invoiceDate: new Date('2026-10-02T00:00:00.000Z'),
+        createKey: randomUUID(),
+        lines: [
+          {
+            description: 'Stage C supplier liability',
+            amount: new Decimal('100.00'),
+          },
+        ],
+      },
+    );
+    await supplierFinance.submit(
+      { auth: makerAuth },
+      supplierDraft.id,
+      supplierWorkflow.workflowCode,
+      randomUUID(),
+    );
+    const supplierApproved = await supplierFinance.approve(
+      { auth: checkerAuth },
+      supplierDraft.id,
+      randomUUID(),
+      'Approved for Payment test',
+    );
+    assert.equal(supplierApproved.state, 'APPROVED');
+
+    const clientDraft = await clientFinance.create(
+      { auth: makerAuth },
+      project.id,
+      {
+        customerId: customer.id,
+        invoiceDate: new Date('2026-10-02T00:00:00.000Z'),
+        createKey: randomUUID(),
+        lines: [
+          {
+            description: 'Stage C receivable',
+            amount: new Decimal('150.00'),
+          },
+        ],
+      },
+    );
+    await clientFinance.submit(
+      { auth: makerAuth },
+      clientDraft.id,
+      clientWorkflow.workflowCode,
+      randomUUID(),
+    );
+    const clientApproved = await clientFinance.approve(
+      { auth: checkerAuth },
+      clientDraft.id,
+      randomUUID(),
+      'Approved for receipt test',
+    );
+    assert.equal(clientApproved.state, 'APPROVED');
+
+    const createKey = randomUUID();
+    const outboundInput = {
+      direction: 'OUTBOUND' as const,
+      paymentDate: new Date('2026-10-03T00:00:00.000Z'),
+      supplierId: supplier.id,
+      amount: new Decimal('60.00'),
+      reference: 'Supplier settlement',
+      createKey,
+    };
+    const outbound = await payments.create(
+      { auth: makerAuth },
+      project.id,
+      outboundInput,
+    );
+    assert.match(outbound.paymentNumber, /^PAY2610-\d{3}$/);
+    const outboundReplay = await payments.create(
+      { auth: makerAuth },
+      project.id,
+      outboundInput,
+    );
+    assert.equal(outboundReplay.id, outbound.id);
+
+    await assert.rejects(
+      () =>
+        payments.create(
+          { auth: makerAuth },
+          project.id,
+          { ...outboundInput, amount: new Decimal('61.00') },
+        ),
+      (error: unknown) => error instanceof ConflictException,
+    );
+    await assert.rejects(
+      () =>
+        payments.create(
+          { auth: outsiderAuth },
+          project.id,
+          {
+            ...outboundInput,
+            createKey: randomUUID(),
+          },
+        ),
+      (error: unknown) => error instanceof ForbiddenException,
+    );
+    await assert.rejects(
+      () =>
+        payments.create(
+          { auth: makerAuth },
+          otherProject.id,
+          {
+            ...outboundInput,
+            createKey: randomUUID(),
+          },
+        ),
+      (error: unknown) => error instanceof ForbiddenException,
+    );
+
+    await prisma.projectMember.createMany({
+      data: [
+        {
+          projectId: otherProject.id,
+          employeeId: makerEmployee.id,
+          projectRole: 'Cross Project Finance Maker',
+        },
+        {
+          projectId: otherProject.id,
+          employeeId: checkerEmployee.id,
+          projectRole: 'Cross Project Finance Checker',
+        },
+      ],
+    });
+    const crossProjectClientDraft = await clientFinance.create(
+      { auth: makerAuth },
+      otherProject.id,
+      {
+        customerId: customer.id,
+        invoiceDate: new Date('2026-10-02T00:00:00.000Z'),
+        createKey: randomUUID(),
+        lines: [
+          {
+            description: 'Cross Project allocation target',
+            amount: new Decimal('20.00'),
+          },
+        ],
+      },
+    );
+    await clientFinance.submit(
+      { auth: makerAuth },
+      crossProjectClientDraft.id,
+      clientWorkflow.workflowCode,
+      randomUUID(),
+    );
+    const crossProjectClientApproved = await clientFinance.approve(
+      { auth: checkerAuth },
+      crossProjectClientDraft.id,
+      randomUUID(),
+      'Approve cross-Project rejection probe.',
+    );
+    const crossProjectProbe = await payments.create(
+      { auth: makerAuth },
+      project.id,
+      {
+        direction: 'INBOUND',
+        paymentDate: new Date('2026-10-03T00:00:00.000Z'),
+        customerId: customer.id,
+        amount: new Decimal('5.00'),
+        reference: 'Cross Project allocation probe',
+        createKey: randomUUID(),
+      },
+    );
+    await assert.rejects(
+      () =>
+        payments.addAllocation(
+          { auth: makerAuth },
+          crossProjectProbe.id,
+          {
+            targetType: 'CLIENT_INVOICE',
+            targetId: crossProjectClientApproved.id,
+            amount: new Decimal('1.00'),
+            actionKey: randomUUID(),
+          },
+        ),
+      (error: unknown) => error instanceof UnprocessableEntityException,
+    );
+    await assert.rejects(
+      () =>
+        prisma.clientReceiptAllocation.create({
+          data: {
+            paymentId: crossProjectProbe.id,
+            clientInvoiceId: crossProjectClientApproved.id,
+            allocatedAmount: new Decimal('1.00'),
+          },
+        }),
+      /PAYMENT_CLIENT_TARGET_INVALID/,
+    );
+
+    await prisma.projectMember.create({
+      data: {
+        projectId: project.id,
+        employeeId: outsiderEmployee.id,
+        projectRole: 'Technical Administrator',
+      },
+    });
+
+    const competing = await payments.create(
+      { auth: makerAuth },
+      project.id,
+      {
+        ...outboundInput,
+        createKey: randomUUID(),
+      },
+    );
+    const concurrent = await Promise.allSettled([
+      payments.addAllocation(
+        { auth: makerAuth },
+        outbound.id,
+        {
+          targetType: 'SUPPLIER_INVOICE',
+          targetId: supplierApproved.id,
+          amount: new Decimal('60.00'),
+          actionKey: randomUUID(),
+        },
+      ),
+      payments.addAllocation(
+        { auth: makerAuth },
+        competing.id,
+        {
+          targetType: 'SUPPLIER_INVOICE',
+          targetId: supplierApproved.id,
+          amount: new Decimal('60.00'),
+          actionKey: randomUUID(),
+        },
+      ),
+    ]);
+    assert.equal(
+      concurrent.filter((result) => result.status === 'fulfilled').length,
+      1,
+      'Concurrent Draft allocations must serialize against target outstanding.',
+    );
+    assert.equal(
+      concurrent.filter((result) => result.status === 'rejected').length,
+      1,
+    );
+    const winningPayment =
+      concurrent[0]!.status === 'fulfilled' ? outbound : competing;
+    const losingPayment =
+      concurrent[0]!.status === 'fulfilled' ? competing : outbound;
+
+    const apBeforeApproval = await supplierFinance.accountsPayable(
+      makerAuth,
+      project.id,
+    );
+    const apBeforeRow = apBeforeApproval.find(
+      (row) => row.id === supplierApproved.id,
+    );
+    assert.ok(apBeforeRow);
+    assert.equal(apBeforeRow.allocatedAmount.toFixed(2), '0.00');
+
+    await assert.rejects(
+      () =>
+        prisma.payment.create({
+          data: {
+            companyId: company.id,
+            projectId: project.id,
+            paymentNumber: 'PAY2610-998',
+            paymentDirection: 'INBOUND',
+            paymentDate: new Date('2026-10-03T00:00:00.000Z'),
+            customerId: customer.id,
+            amount: new Decimal('1.00'),
+            currencyCode: company.baseCurrencyCode,
+            state: 'APPROVED',
+            createKey: randomUUID(),
+            createPayloadHash: '0'.repeat(64),
+            createdByUserId: maker.id,
+            approvedByUserId: checker.id,
+            approvedAt: new Date(),
+            decidedAt: new Date(),
+          },
+        }),
+      /PAYMENT_INITIAL_STATE_INVALID/,
+    );
+
+    await payments.submit(
+      { auth: makerAuth },
+      winningPayment.id,
+      paymentWorkflow.workflowCode,
+      randomUUID(),
+    );
+
+    const submittedPayment = await prisma.payment.findUniqueOrThrow({
+      where: { id: winningPayment.id },
+      select: { approvalInstanceId: true },
+    });
+    assert.ok(submittedPayment.approvalInstanceId);
+    await assert.rejects(
+      () =>
+        prisma.payment.update({
+          where: { id: winningPayment.id },
+          data: {
+            state: 'APPROVED',
+            approvedByUserId: checker.id,
+            approvedAt: new Date(),
+            decidedAt: new Date(),
+          },
+        }),
+      /PAYMENT_APPROVAL_STATE_MISMATCH/,
+    );
+    await assert.rejects(
+      () =>
+        prisma.approvalInstance.update({
+          where: { id: submittedPayment.approvalInstanceId! },
+          data: {
+            approvalState: 'APPROVED',
+            completedAt: new Date(),
+          },
+        }),
+      /PAYMENT_APPROVAL_EVIDENCE_INVALID/,
+    );
+    const paymentApprovalInstance =
+      await prisma.approvalInstance.findUniqueOrThrow({
+        where: { id: submittedPayment.approvalInstanceId! },
+        select: { approvalWorkflowId: true, currentStepNo: true },
+      });
+    const paymentApprovalStep = await prisma.approvalStep.findFirstOrThrow({
+      where: {
+        approvalWorkflowId: paymentApprovalInstance.approvalWorkflowId,
+        stepNo: paymentApprovalInstance.currentStepNo,
+      },
+      select: { id: true },
+    });
+    await assert.rejects(
+      () =>
+        prisma.approvalAction.create({
+          data: {
+            approvalInstanceId: submittedPayment.approvalInstanceId!,
+            approvalStepId: paymentApprovalStep.id,
+            action: 'APPROVE',
+            actionByUserId: maker.id,
+            comment: 'Direct maker bypass probe',
+          },
+        }),
+      /PAYMENT_MAKER_CHECKER_VIOLATION/,
+    );
+    await assert.rejects(
+      () =>
+        payments.approve(
+          { auth: makerApproverAuth },
+          winningPayment.id,
+          randomUUID(),
+        ),
+      (error: unknown) => error instanceof ForbiddenException,
+    );
+    await assert.rejects(
+      () =>
+        payments.approve(
+          { auth: sysAdminAuth },
+          winningPayment.id,
+          randomUUID(),
+        ),
+      (error: unknown) => error instanceof ForbiddenException,
+    );
+    const approvedPayment = await payments.approve(
+      { auth: checkerAuth },
+      winningPayment.id,
+      randomUUID(),
+      'Approved supplier settlement',
+    );
+    assert.equal(approvedPayment.state, 'APPROVED');
+
+    const apAfterApproval = await supplierFinance.accountsPayable(
+      makerAuth,
+      project.id,
+    );
+    const apAfterRow = apAfterApproval.find(
+      (row) => row.id === supplierApproved.id,
+    );
+    assert.ok(apAfterRow);
+    assert.equal(apAfterRow.allocatedAmount.toFixed(2), '60.00');
+    assert.equal(apAfterRow.outstandingAmount.toFixed(2), '40.00');
+
+    await assert.rejects(
+      () =>
+        prisma.payment.update({
+          where: { id: approvedPayment.id },
+          data: {
+            state: 'CANCELLED',
+            cancelledByUserId: outsider.id,
+            cancelledAt: new Date(),
+            cancellationReason: 'Direct unauthorized cancellation probe',
+          },
+        }),
+      /PAYMENT_CANCEL_PERMISSION_DENIED/,
+    );
+
+    await assert.rejects(
+      () =>
+        payments.addAllocation(
+          { auth: makerAuth },
+          winningPayment.id,
+          {
+            targetType: 'SUPPLIER_INVOICE',
+            targetId: supplierApproved.id,
+            amount: new Decimal('1.00'),
+            actionKey: randomUUID(),
+          },
+        ),
+      (error: unknown) => error instanceof ConflictException,
+    );
+
+    const cancelled = await payments.cancel(
+      { auth: makerAuth },
+      winningPayment.id,
+      randomUUID(),
+      'Payment voided and will be re-issued.',
+    );
+    assert.equal(cancelled.state, 'CANCELLED');
+    assert.equal(cancelled.supplierAllocations.length, 1);
+    await assert.rejects(
+      () =>
+        prisma.$executeRawUnsafe(
+          'UPDATE "payments" SET "cancellation_reason" = "cancellation_reason" || \' tampered\' WHERE "id" = $1::uuid',
+          cancelled.id,
+        ),
+      /PAYMENT_CANCELLATION_HISTORY_IMMUTABLE/,
+    );
+    await assert.rejects(
+      () =>
+        prisma.$executeRawUnsafe(
+          'UPDATE "payments" SET "approved_at" = "approved_at" + interval \'1 second\', "approved_by_user_id" = $2::uuid WHERE "id" = $1::uuid',
+          cancelled.id,
+          outsider.id,
+        ),
+      /PAYMENT_APPROVAL_HISTORY_IMMUTABLE/,
+    );
+    const apAfterCancellation = await supplierFinance.accountsPayable(
+      makerAuth,
+      project.id,
+    );
+    const apCancelledRow = apAfterCancellation.find(
+      (row) => row.id === supplierApproved.id,
+    );
+    assert.ok(apCancelledRow);
+    assert.equal(apCancelledRow.allocatedAmount.toFixed(2), '0.00');
+    assert.equal(apCancelledRow.outstandingAmount.toFixed(2), '100.00');
+
+    const inbound = await payments.create(
+      { auth: makerAuth },
+      project.id,
+      {
+        direction: 'INBOUND',
+        paymentDate: new Date('2026-10-04T00:00:00.000Z'),
+        customerId: customer.id,
+        amount: new Decimal('50.00'),
+        reference: 'Client receipt',
+        createKey: randomUUID(),
+      },
+    );
+    const inboundAllocationKey = randomUUID();
+    await payments.addAllocation(
+      { auth: makerAuth },
+      inbound.id,
+      {
+        targetType: 'CLIENT_INVOICE',
+        targetId: clientApproved.id,
+        amount: new Decimal('50.00'),
+        actionKey: inboundAllocationKey,
+      },
+    );
+    const inboundReplay = await payments.addAllocation(
+      { auth: makerAuth },
+      inbound.id,
+      {
+        targetType: 'CLIENT_INVOICE',
+        targetId: clientApproved.id,
+        amount: new Decimal('50.00'),
+        actionKey: inboundAllocationKey,
+      },
+    );
+    assert.equal(inboundReplay.clientAllocations.length, 1);
+    await assert.rejects(
+      () =>
+        payments.addAllocation(
+          { auth: makerAuth },
+          inbound.id,
+          {
+            targetType: 'CLIENT_INVOICE',
+            targetId: clientApproved.id,
+            amount: new Decimal('49.00'),
+            actionKey: inboundAllocationKey,
+          },
+        ),
+      (error: unknown) => error instanceof ConflictException,
+    );
+    await payments.submit(
+      { auth: makerAuth },
+      inbound.id,
+      paymentWorkflow.workflowCode,
+      randomUUID(),
+    );
+    const approvedReceipt = await payments.approve(
+      { auth: checkerAuth },
+      inbound.id,
+      randomUUID(),
+      'Approved client receipt',
+    );
+    assert.equal(approvedReceipt.state, 'APPROVED');
+    await assert.rejects(
+      () =>
+        prisma.$executeRawUnsafe(
+          'UPDATE "payments" SET "approved_at" = "approved_at" + interval \'1 second\' WHERE "id" = $1::uuid',
+          approvedReceipt.id,
+        ),
+      /PAYMENT_APPROVAL_HISTORY_IMMUTABLE/,
+    );
+
+    const rejectedDraft = await payments.create(
+      { auth: makerAuth },
+      project.id,
+      {
+        direction: 'INBOUND',
+        paymentDate: new Date('2026-10-05T00:00:00.000Z'),
+        customerId: customer.id,
+        amount: new Decimal('10.00'),
+        reference: 'Rejected receipt',
+        createKey: randomUUID(),
+      },
+    );
+    await payments.submit(
+      { auth: makerAuth },
+      rejectedDraft.id,
+      paymentWorkflow.workflowCode,
+      randomUUID(),
+    );
+    const rejectedPayment = await payments.reject(
+      { auth: checkerAuth },
+      rejectedDraft.id,
+      randomUUID(),
+      'Rejected for Stage C history proof',
+    );
+    assert.equal(rejectedPayment.state, 'REJECTED');
+    await assert.rejects(
+      () =>
+        prisma.$executeRawUnsafe(
+          'UPDATE "payments" SET "rejection_reason" = \'tampered\' WHERE "id" = $1::uuid',
+          rejectedPayment.id,
+        ),
+      /PAYMENT_REJECTION_HISTORY_IMMUTABLE/,
+    );
+
+    const concurrentCreateKey = randomUUID();
+    const concurrentInput = {
+      direction: 'INBOUND' as const,
+      paymentDate: new Date('2026-10-06T00:00:00.000Z'),
+      customerId: customer.id,
+      amount: new Decimal('5.00'),
+      reference: 'Concurrent Payment lifecycle proof',
+      createKey: concurrentCreateKey,
+    };
+    const concurrentCreate = await Promise.all([
+      payments.create({ auth: makerAuth }, project.id, concurrentInput),
+      payments.create({ auth: makerAuth }, project.id, concurrentInput),
+    ]);
+    assert.equal(
+      concurrentCreate[0]!.id,
+      concurrentCreate[1]!.id,
+      'Concurrent stable Payment create retries must converge on one record.',
+    );
+    const concurrentPaymentId = concurrentCreate[0]!.id;
+    await payments.addAllocation(
+      { auth: makerAuth },
+      concurrentPaymentId,
+      {
+        targetType: 'CLIENT_INVOICE',
+        targetId: clientApproved.id,
+        amount: new Decimal('5.00'),
+        actionKey: randomUUID(),
+      },
+    );
+    await payments.submit(
+      { auth: makerAuth },
+      concurrentPaymentId,
+      paymentWorkflow.workflowCode,
+      randomUUID(),
+    );
+
+    const approvalRace = await Promise.allSettled([
+      payments.approve(
+        { auth: checkerAuth },
+        concurrentPaymentId,
+        randomUUID(),
+        'Concurrent approval A',
+      ),
+      payments.approve(
+        { auth: checkerAuth },
+        concurrentPaymentId,
+        randomUUID(),
+        'Concurrent approval B',
+      ),
+    ]);
+    assert.equal(
+      approvalRace.filter((result) => result.status === 'fulfilled').length,
+      1,
+      'Concurrent approval must produce exactly one final Payment decision.',
+    );
+    assert.equal(
+      approvalRace.filter((result) => result.status === 'rejected').length,
+      1,
+    );
+    const afterApprovalRace = await payments.get(
+      makerAuth,
+      concurrentPaymentId,
+    );
+    assert.equal(afterApprovalRace.state, 'APPROVED');
+
+    const cancellationRace = await Promise.allSettled([
+      payments.cancel(
+        { auth: makerAuth },
+        concurrentPaymentId,
+        randomUUID(),
+        'Concurrent cancellation A',
+      ),
+      payments.cancel(
+        { auth: makerAuth },
+        concurrentPaymentId,
+        randomUUID(),
+        'Concurrent cancellation B',
+      ),
+    ]);
+    assert.equal(
+      cancellationRace.filter((result) => result.status === 'fulfilled').length,
+      1,
+      'Concurrent cancellation must produce exactly one terminal transition.',
+    );
+    assert.equal(
+      cancellationRace.filter((result) => result.status === 'rejected').length,
+      1,
+    );
+    const afterCancellationRace = await payments.get(
+      makerAuth,
+      concurrentPaymentId,
+    );
+    assert.equal(afterCancellationRace.state, 'CANCELLED');
+    assert.equal(afterCancellationRace.clientAllocations.length, 1);
+
+    const ar = await clientFinance.accountsReceivable(makerAuth, project.id);
+    const arRow = ar.find((row) => row.id === clientApproved.id);
+    assert.ok(arRow);
+    assert.equal(arRow.allocatedAmount.toFixed(2), '50.00');
+    assert.equal(arRow.outstandingAmount.toFixed(2), '100.00');
+
+    await assert.rejects(
+      () =>
+        payments.addAllocation(
+          { auth: makerAuth },
+          losingPayment.id,
+          {
+            targetType: 'CLIENT_INVOICE',
+            targetId: clientApproved.id,
+            amount: new Decimal('1.00'),
+            actionKey: randomUUID(),
+          },
+        ),
+      (error: unknown) => error instanceof UnprocessableEntityException,
+    );
+
+    await assert.rejects(
+      () =>
+        prisma.$executeRawUnsafe(
+          'DELETE FROM "payments" WHERE "id" = $1::uuid',
+          approvedReceipt.id,
+        ),
+      /PAYMENT_HISTORY_DELETE_FORBIDDEN/,
+    );
+
+    const auditRows = await prisma.auditLog.findMany({
+      where: { companyId: company.id, entityType: 'PAYMENT' },
+    });
+    assert.ok(auditRows.some((row) => row.action === 'CREATE_DRAFT'));
+    assert.ok(auditRows.some((row) => row.action === 'ADD_ALLOCATION'));
+    assert.ok(auditRows.some((row) => row.action === 'SUBMIT'));
+    assert.ok(auditRows.some((row) => row.action === 'APPROVE'));
+    assert.ok(auditRows.some((row) => row.action === 'CANCEL'));
   } finally {
     await prisma.$disconnect();
   }

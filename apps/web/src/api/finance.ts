@@ -446,3 +446,269 @@ export const clientFinanceApi = {
     ),
 };
 
+
+
+export type PaymentDirection = 'OUTBOUND' | 'INBOUND';
+export type PaymentAllocationTarget =
+  | 'SUPPLIER_INVOICE'
+  | 'CLIENT_INVOICE'
+  | 'SUBCONTRACT_CERTIFICATION';
+
+export type PaymentOptions = {
+  baseCurrencyCode: string;
+  suppliers: Array<{
+    id: string;
+    supplierCode: string;
+    supplierName: string;
+  }>;
+  customers: Array<{
+    id: string;
+    customerCode: string;
+    customerName: string;
+  }>;
+  subcontractors: Array<{
+    id: string;
+    subcontractorCode: string;
+    subcontractorName: string;
+    supplierId: string | null;
+  }>;
+  supplierInvoices: Array<{
+    id: string;
+    supplierId: string;
+    supplierInvoiceNumber: string;
+    supplierReference: string;
+    currencyCode: string;
+    totalAmount: string;
+  }>;
+  clientInvoices: Array<{
+    id: string;
+    customerId: string;
+    clientInvoiceNumber: string;
+    currencyCode: string;
+    totalAmount: string;
+  }>;
+  certifications: Array<{
+    id: string;
+    certificationNumber: string;
+    currencyCode: string;
+    netCertifiedAmount: string | null;
+    agreement: {
+      subcontractorId: string;
+      subcontractor: {
+        id: string;
+        subcontractorCode: string;
+        subcontractorName: string;
+      };
+    };
+  }>;
+};
+
+export type PaymentAllocation = {
+  id: string;
+  allocatedAmount: string;
+  createdAt: string;
+};
+
+export type PaymentDetail = {
+  id: string;
+  companyId: string;
+  projectId: string;
+  paymentNumber: string;
+  paymentDirection: PaymentDirection;
+  paymentDate: string;
+  supplierId: string | null;
+  customerId: string | null;
+  subcontractorId: string | null;
+  amount: string;
+  currencyCode: string;
+  paymentMethod: string | null;
+  reference: string | null;
+  state: string;
+  approvalInstanceId: string | null;
+  submittedAt: string | null;
+  approvedAt: string | null;
+  rejectedAt: string | null;
+  rejectionReason: string | null;
+  cancelledAt: string | null;
+  cancellationReason: string | null;
+  createdAt: string;
+  updatedAt: string;
+  project: FinanceProject;
+  supplier: {
+    id: string;
+    supplierCode: string;
+    supplierName: string;
+  } | null;
+  customer: {
+    id: string;
+    customerCode: string;
+    customerName: string;
+  } | null;
+  subcontractor: {
+    id: string;
+    subcontractorCode: string;
+    subcontractorName: string;
+  } | null;
+  createdBy: { id: string; displayName: string };
+  submittedBy: { id: string; displayName: string } | null;
+  approvedBy: { id: string; displayName: string } | null;
+  rejectedBy: { id: string; displayName: string } | null;
+  cancelledBy: { id: string; displayName: string } | null;
+  supplierAllocations: Array<
+    PaymentAllocation & {
+      supplierInvoice: {
+        id: string;
+        supplierInvoiceNumber: string;
+        supplierReference: string;
+        totalAmount: string;
+        state: string;
+      };
+    }
+  >;
+  clientAllocations: Array<
+    PaymentAllocation & {
+      clientInvoice: {
+        id: string;
+        clientInvoiceNumber: string;
+        totalAmount: string;
+        state: string;
+      };
+    }
+  >;
+  subcontractAllocations: Array<
+    PaymentAllocation & {
+      subcontractCertification: {
+        id: string;
+        certificationNumber: string;
+        netCertifiedAmount: string | null;
+        state: string;
+        reversedAt: string | null;
+      };
+    }
+  >;
+  approvalInstance: {
+    id: string;
+    approvalState: string;
+    currentStepNo: number | null;
+    workflow: {
+      workflowCode: string;
+      workflowName: string;
+    };
+    actions: Array<{
+      id: string;
+      action: string;
+      actionAt: string;
+      comment: string | null;
+      actionByUser: { id: string; displayName: string };
+      approvalStep: {
+        id: string;
+        stepNo: number;
+        stepName: string;
+        requiredApprovals: number;
+      };
+    }>;
+  } | null;
+};
+
+export const paymentApi = {
+  projects: () =>
+    apiRequest<Data<FinanceProject[]>>('/finance/payment-projects'),
+  workflows: () =>
+    apiRequest<Data<FinanceWorkflow[]>>('/finance/payment-workflow-options'),
+  options: (projectId: string) =>
+    apiRequest<Data<PaymentOptions>>(
+      '/finance/projects/' + projectId + '/payment-options',
+    ),
+  list: (projectId: string) =>
+    apiRequest<Data<PaymentDetail[]>>(
+      '/finance/projects/' + projectId + '/payments',
+    ),
+  detail: (paymentId: string) =>
+    apiRequest<Data<PaymentDetail>>('/finance/payments/' + paymentId),
+  create: (
+    projectId: string,
+    body: {
+      direction: PaymentDirection;
+      paymentDate: string;
+      supplierId?: string | null;
+      customerId?: string | null;
+      subcontractorId?: string | null;
+      amount: string;
+      paymentMethod?: string | null;
+      reference?: string | null;
+      createKey: string;
+    },
+  ) =>
+    postAction<PaymentDetail>(
+      '/finance/projects/' + projectId + '/payments',
+      body,
+    ),
+  update: (
+    paymentId: string,
+    body: Partial<{
+      paymentDate: string;
+      amount: string;
+      paymentMethod: string | null;
+      reference: string | null;
+    }>,
+  ) =>
+    apiRequest<Data<PaymentDetail>>('/finance/payments/' + paymentId, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    }),
+  addAllocation: (
+    paymentId: string,
+    body: {
+      targetType: PaymentAllocationTarget;
+      targetId: string;
+      amount: string;
+      actionKey: string;
+    },
+  ) =>
+    postAction<PaymentDetail>(
+      '/finance/payments/' + paymentId + '/allocations',
+      body,
+    ),
+  removeAllocation: (
+    paymentId: string,
+    allocationId: string,
+    targetType: PaymentAllocationTarget,
+    actionKey: string,
+  ) =>
+    postAction<PaymentDetail>(
+      '/finance/payments/' +
+        paymentId +
+        '/allocations/' +
+        allocationId +
+        '/remove',
+      { targetType, actionKey },
+    ),
+  submit: (paymentId: string, workflowCode: string, actionKey: string) =>
+    postAction<PaymentDetail>(
+      '/finance/payments/' + paymentId + '/submit',
+      { workflowCode, actionKey },
+    ),
+  approve: (
+    paymentId: string,
+    actionKey: string,
+    comment?: string | null,
+  ) =>
+    postAction<PaymentDetail>(
+      '/finance/payments/' + paymentId + '/approve',
+      { actionKey, comment: comment ?? null },
+    ),
+  reject: (
+    paymentId: string,
+    actionKey: string,
+    comment?: string | null,
+  ) =>
+    postAction<PaymentDetail>(
+      '/finance/payments/' + paymentId + '/reject',
+      { actionKey, comment: comment ?? null },
+    ),
+  cancel: (paymentId: string, actionKey: string, reason: string) =>
+    postAction<PaymentDetail>(
+      '/finance/payments/' + paymentId + '/cancel',
+      { actionKey, reason },
+    ),
+};

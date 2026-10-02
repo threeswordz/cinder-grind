@@ -125,6 +125,26 @@ test('user and role administration respects company boundaries and revokes sessi
     await assert.rejects(
       () =>
         service.replaceRolePermissions({ auth }, role.id, [
+          'finance.payment.approve',
+        ]),
+      (error: unknown) => error instanceof UnprocessableEntityException,
+      'Payment action permissions require Payment view permission',
+    );
+    await service.replaceRolePermissions({ auth }, role.id, [
+      'finance.payment.view',
+      'finance.payment.approve',
+    ]);
+    const paymentPermissionCount = await prisma.rolePermission.count({
+      where: {
+        roleId: role.id,
+        permission: { permissionCode: { startsWith: 'finance.payment.' } },
+      },
+    });
+    assert.equal(paymentPermissionCount, 2);
+
+    await assert.rejects(
+      () =>
+        service.replaceRolePermissions({ auth }, role.id, [
           'subcontracts.agreement.create',
         ]),
       (error: unknown) => error instanceof UnprocessableEntityException,

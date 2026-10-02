@@ -20,6 +20,17 @@ test('formats the approved POYYMM-### style', () => {
   );
 });
 
+test('formats the approved PAYYYMM-### style without consuming the literal Y prefix', () => {
+  assert.equal(
+    formatBusinessNumber(
+      validateFormatTemplate('PAYYYMM-###'),
+      1,
+      new Date('2026-10-03T00:00:00Z'),
+    ),
+    'PAY2610-001',
+  );
+});
+
 test('supports controlled reset rules only', () => {
   assert.equal(normalizeResetRule('monthly'), 'MONTHLY');
   assert.throws(() => normalizeResetRule('WEEKLY'));
@@ -39,6 +50,10 @@ test('sequence configuration becomes immutable after use', () => {
     () => service.assertCreatable('CLIENT_INVOICE'),
     (error: unknown) => error instanceof ConflictException,
   );
+  assert.throws(
+    () => service.assertCreatable('PAYMENT'),
+    (error: unknown) => error instanceof ConflictException,
+  );
   assert.doesNotThrow(() => service.assertEditable(1, null));
   assert.throws(
     () => service.assertEditable(1, null, 'SUBCONTRACT_AGREEMENT'),
@@ -46,6 +61,10 @@ test('sequence configuration becomes immutable after use', () => {
   );
   assert.throws(
     () => service.assertEditable(1, null, 'CLIENT_INVOICE'),
+    (error: unknown) => error instanceof ConflictException,
+  );
+  assert.throws(
+    () => service.assertEditable(1, null, 'PAYMENT'),
     (error: unknown) => error instanceof ConflictException,
   );
   assert.throws(

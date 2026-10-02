@@ -3,10 +3,10 @@
 **Last verified:** 2026-10-02
 **Source of truth:** Live GitHub repository state
 
-- Current Release: V0.6 Finance — **IN PROGRESS**. V0.6-A and V0.6-B are technically complete. V0.6-C Payments / Approvals / Allocations is entering its source-controlled pre-flight under Issue #124.
-- Current Stage: V0.6-C Payments / Approvals / Allocations — **PRE-FLIGHT**. V0.6-B PR #122 squash-merged as `0e4d8314f23471e82165e27c745dbd0057a5d42e`; post-merge `main` CI #2332 passed and Issue #121 is closed. Stage-C implementation has not started and remains blocked until its pre-flight PR/CI/post-merge gate completes.
+- Current Release: V0.6 Finance — **IN PROGRESS**. V0.6-A and V0.6-B are technically complete. V0.6-C Payments / Approvals / Allocations is implemented on PR #126 and is at the final Codex re-review gate after one genuine P1 was fixed.
+- Current Stage: V0.6-C Payments / Approvals / Allocations — **IMPLEMENTED / FINAL CODEX RE-REVIEW GATE**. Pre-flight PR #125 merged as `606b6622bd6e22623b8aadf8178dd4b905df5c4b`; implementation branch `v0.6-c-payments-allocations` is on PR #126. The first stable-head Codex review found one P1: CANCELLED Payments could still rewrite retained approval actor/time. Forward-only fix head `246246521b8adf9ebab4aa0e43d53195b842f3f4` closes that gap and passed PR CI #2364 including clean migrations, full workspace/prior-release regression and authenticated live HTTP acceptance.
 - Completed Stages: V0.1-A through V0.1-H; V0.2-A through V0.2-G; V0.3-A through V0.3-E; V0.4-A through V0.4-E; V0.5 entry gate; V0.5-A; V0.5-B; V0.5-C; V0.5-D; V0.5-E; V0.6 entry gate; V0.6-A; V0.6-B
-- Active Issue: #124 — V0.6-C Payments / Approvals / Allocations. Pre-flight branch: `v0.6-c-preflight`. No Stage-C implementation code has begun.
+- Active Issue / PR: #124 — V0.6-C Payments / Approvals / Allocations; PR #126 on `v0.6-c-payments-allocations`. Runtime implementation is frozen under the approved boundary at `246246521b8adf9ebab4aa0e43d53195b842f3f4`. Merge still requires documentation-head CI, closure of the single P1 review thread, and a fresh exact-head Codex re-review; after merge, post-merge `main` CI and Issue #124 closure precede V0.6-D.
 - V0.5-C green main checkpoint: PR #108 squash-merged as `3f00de1f984c82c1737c4b47c226d99197b19e54`; final exact-head push CI #1869 and PR CI #1870 passed on `0833cd893f208003215cf39cee9c07b6c9a817ad`; final Codex exact-head review reported no major issues; post-merge main CI #1871 passed; Issue #107 closed.
 - V0.5-D green main checkpoint: PR #110 squash-merged as `aceeb82ad13a2f6c773d307541ddd02fafc69a92`; final exact-head push CI #1898 and PR CI #1899 passed on `0cf62c630153a6ac2326f352c0064243b3a2f45f`; final Codex exact-head review reported no major issues; post-merge main CI #1900 passed; Issue #109 closed.
 - V0.5-E green main checkpoint: PR #112 squash-merged as `c054b9253e1ad2623a3fc233ba125003b2894c37`; final exact-head push CI #1930 and PR CI #1931 passed on `9ba8d862dcf66e7b00d7006d9398b19d83026e41`; final Codex exact-head review reported no major issues; post-merge main CI #1932 passed; Issue #111 closed. AC-V05-030 was explicitly accepted by the Product / Business Owner on 2026-10-01.
@@ -87,7 +87,7 @@
 - V0.1 cross-module release acceptance scenario: PASS in the Stage H release-candidate regression suite.
 - Open defect check at V0.1 acceptance: no Severity 1 or Severity 2 release-blocking defect recorded.
 - Governance: `AGENTS.md`, `docs/PROJECT-GOVERNANCE.md`, PR governance checklist, DEC-008, DEC-016 and DEC-022 are active. DEC-022 makes Codex a stable-merge-candidate/high-risk independent gate rather than a continuous per-fix reviewer; human UAT and CI/release sequencing are unchanged.
-- Next action: validate and merge the V0.6-C pre-flight documentation, verify post-merge `main` CI, then create `v0.6-c-payments-allocations` from that exact green checkpoint and begin Stage-C implementation. Human V0.6 UAT/release acceptance remains a later mandatory gate.
+- Next action: validate the documentation-reconciled PR #126 exact head, enter ready-for-review, run the single DEC-022 stable exact-head Codex review, batch/resolve genuine findings, then squash merge, verify post-merge `main` CI and close Issue #124. V0.6-D must not begin before those predecessor gates complete. Human V0.6 UAT/release acceptance remains a later mandatory gate.
 
 ## Stage E completed
 
@@ -893,10 +893,15 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - V0.6-B PR #122 already has a clean final Codex review on exact head `10e0b7257bf803d7e368bb10311c1e070cde92a5`, CI #2326 passed and all 29 review threads are resolved. No further Codex review is required unless that PR receives a material code/schema/security/business-behavior change before merge.
 - Required human V0.6 UAT/business acceptance is unchanged and has not been completed.
 
-## V0.6-B completed / V0.6-C pre-flight
+## V0.6-B completed / V0.6-C implemented under PR #126
 
 - PR #122 squash-merged to `main` as `0e4d8314f23471e82165e27c745dbd0057a5d42e` after final PR-head CI #2331 passed and all 29 review threads were resolved.
 - Final Codex runtime review of `10e0b7257b` reported no major issues. Later PR-head movement was documentation/governance reconciliation only under DEC-022.
 - Post-merge `main` CI #2332 passed and Issue #121 closed completed. V0.6-B is technically complete.
-- Issue #124 defines V0.6-C Payments / Approvals / Allocations. Stage-C implementation is not authorized until its source-controlled pre-flight CI/merge/post-merge gates complete.
-- V0.6-D, V0.6-E and human V0.6 release UAT remain later gates.
+- V0.6-C pre-flight PR #125 merged as `606b6622bd6e22623b8aadf8178dd4b905df5c4b`; pre-flight CI #2336 and post-merge `main` CI #2337 passed before implementation began.
+- Issue #124 / PR #126 contain the implemented Payment / approvals / allocations stage. First stable-head Codex review on `48bbff5d2502d9ac2e9d2676ef3fc9cb1ffd358f` identified one genuine P1: CANCELLED Payment rows could still alter retained approval actor/time/decision metadata.
+- Forward-only `20261003005000_v0_6_c_cancelled_payment_approval_history` fixes the P1 without editing executed migrations. Exact fix runtime head `246246521b8adf9ebab4aa0e43d53195b842f3f4` passed PR CI #2364 with migrations, full workspace/prior-release regression and authenticated live HTTP acceptance.
+- Stage-C hardening now includes immutable retained approval evidence through cancellation, reciprocal ApprovalAction/ApprovalInstance evidence guards, serialized decision ordering, retained actor/time/comment binding, clean-Draft insert enforcement, same-Project allocation enforcement, stable retry protection, concurrency-safe create/allocation/approval/cancellation, controlled cancellation restoring derived AP/AR and a Subcontract Certification reversal guard while active Finance allocation exists.
+- Payment action permissions now require Payment view permission at role configuration, and the workspace renders retained approval/cancellation timestamps for human evidence review.
+- DEC-022 is being applied as intended: Codex was not spent on intermediate Stage-C fixes. Because the first stable review produced one genuine material P1 and the fix changes database integrity behavior, one fresh exact-head Codex re-review is now required after documentation-head CI; no per-fix review loop is introduced.
+- V0.6-D, V0.6-E and human V0.6 release UAT remain later gates. V0.6-D must not begin before PR #126 merge, post-merge main CI and Issue #124 closure.

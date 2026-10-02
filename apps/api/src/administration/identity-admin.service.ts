@@ -628,6 +628,22 @@ export class IdentityAdminService {
       });
     }
 
+    const paymentActionCodes = uniqueCodes.filter(
+      (code) =>
+        code.startsWith('finance.payment.') &&
+        code !== 'finance.payment.view',
+    );
+    if (
+      paymentActionCodes.length > 0 &&
+      !uniqueCodes.includes('finance.payment.view')
+    ) {
+      throw new UnprocessableEntityException({
+        code: 'PAYMENT_VIEW_PERMISSION_REQUIRED',
+        detail:
+          'Payment action permissions require finance.payment.view so authorized workflow actors can discover and read scoped Payments.',
+      });
+    }
+
     const poActionCodes = uniqueCodes.filter(
       (code) =>
         code.startsWith('procurement.po.') &&
