@@ -98,11 +98,7 @@ export class ClientInvoiceService {
   async accountsReceivable(auth: AuthenticatedUserContext, projectId: string) {
     await this.access.assertAccess(auth, projectId);
     const rows = await this.prisma.clientInvoice.findMany({
-      where: {
-        companyId: auth.companyId,
-        projectId,
-        state: 'APPROVED',
-      },
+      where: { companyId: auth.companyId, projectId, state: 'APPROVED' },
       select: {
         id: true,
         clientInvoiceNumber: true,
@@ -113,14 +109,28 @@ export class ClientInvoiceService {
         customer: {
           select: { id: true, customerCode: true, customerName: true },
         },
+        receiptAllocations: {
+          where: { payment: { state: 'APPROVED' } },
+          select: { allocatedAmount: true },
+        },
       },
-      orderBy: [{ dueDate: 'asc' }, { invoiceDate: 'asc' }, { clientInvoiceNumber: 'asc' }],
+      orderBy: [
+        { dueDate: 'asc' },
+        { invoiceDate: 'asc' },
+        { clientInvoiceNumber: 'asc' },
+      ],
     });
-    return rows.map((row) => ({
-      ...row,
-      allocatedAmount: new Prisma.Decimal(0),
-      outstandingAmount: row.totalAmount,
-    }));
+    return rows.map(({ receiptAllocations, ...row }) => {
+      const allocatedAmount = receiptAllocations.reduce(
+        (sum, allocation) => sum.plus(allocation.allocatedAmount),
+        new Prisma.Decimal(0),
+      );
+      return {
+        ...row,
+        allocatedAmount,
+        outstandingAmount: row.totalAmount.minus(allocatedAmount),
+      };
+    });
   }
 
   async create(context: AuditContext, projectId: string, input: ClientInvoiceDraftInput) {

@@ -67,6 +67,7 @@ model Company {
   subcontractClaimAssessments SubcontractClaimAssessment[]
   supplierInvoices SupplierInvoice[]
   clientInvoices ClientInvoice[]
+  payments Payment[]
   financeActionReplays FinanceActionReplay[]
   @@map("companies")
 }
@@ -88,6 +89,7 @@ model Customer {
   company  Company   @relation(fields: [companyId], references: [id], onDelete: Restrict)
   projects Project[]
   clientInvoices ClientInvoice[]
+  payments Payment[]
 
   @@unique([companyId, customerCode])
   @@unique([companyId, id])
@@ -117,6 +119,7 @@ model Supplier {
   purchaseOrders         PurchaseOrder[]
   goodsReceipts          GoodsReceipt[]
   supplierInvoices       SupplierInvoice[]
+  payments               Payment[]
   subcontractors         Subcontractor[]
   @@unique([companyId, supplierCode])
   @@unique([companyId, id])
@@ -298,6 +301,11 @@ model User {
   submittedClientInvoices    ClientInvoice[] @relation("ClientInvoiceSubmitter")
   approvedClientInvoices     ClientInvoice[] @relation("ClientInvoiceApprover")
   rejectedClientInvoices     ClientInvoice[] @relation("ClientInvoiceRejector")
+  createdPayments            Payment[] @relation("PaymentCreator")
+  submittedPayments          Payment[] @relation("PaymentSubmitter")
+  approvedPayments           Payment[] @relation("PaymentApprover")
+  rejectedPayments           Payment[] @relation("PaymentRejector")
+  cancelledPayments          Payment[] @relation("PaymentCanceller")
   financeActionReplays        FinanceActionReplay[]
   @@unique([companyId, email])
   @@unique([companyId, id])
@@ -462,6 +470,7 @@ model ApprovalInstance {
   subcontractVariation SubcontractVariation?
   supplierInvoice SupplierInvoice?
   clientInvoice ClientInvoice?
+  payment Payment?
   @@index([companyId, entityType, entityId])
   @@index([approvalWorkflowId, approvalState])
   @@map("approval_instances")
@@ -614,6 +623,7 @@ model Project {
   subcontractClaimAssessments SubcontractClaimAssessment[]
   supplierInvoices SupplierInvoice[]
   clientInvoices ClientInvoice[]
+  payments Payment[]
   @@unique([companyId, projectCode])
   @@unique([companyId, id])
   @@index([companyId, isActive])
@@ -1199,6 +1209,7 @@ model Subcontractor {
   company   Company   @relation(fields: [companyId], references: [id], onDelete: Restrict)
   supplier  Supplier? @relation(fields: [companyId, supplierId], references: [companyId, id], onDelete: Restrict)
   agreements SubcontractAgreement[]
+  payments Payment[]
 
   @@unique([companyId, subcontractorCode])
   @@unique([companyId, supplierId])
@@ -1466,6 +1477,7 @@ model SubcontractCertification {
   approvedBy      User? @relation("CertificationApprover", fields: [companyId, approvedByUserId], references: [companyId, id], onDelete: Restrict, map: "subcontract_certifications_approver_fkey")
   rejectedBy      User? @relation("CertificationRejector", fields: [companyId, rejectedByUserId], references: [companyId, id], onDelete: Restrict, map: "subcontract_certifications_rejector_fkey")
   reversedBy      User? @relation("CertificationReverser", fields: [companyId, reversedByUserId], references: [companyId, id], onDelete: Restrict, map: "subcontract_certifications_reverser_fkey")
+  paymentAllocations SubcontractPaymentAllocation[]
 
   @@unique([companyId, certificationNumber])
   @@unique([companyId, projectId, agreementId, claimId, id], map: "subcontract_certifications_scope_key")
@@ -2538,6 +2550,7 @@ model SupplierInvoice {
   approvedBy       User?             @relation("SupplierInvoiceApprover", fields: [companyId, approvedByUserId], references: [companyId, id], onDelete: Restrict)
   rejectedBy       User?             @relation("SupplierInvoiceRejector", fields: [companyId, rejectedByUserId], references: [companyId, id], onDelete: Restrict)
   items            SupplierInvoiceItem[]
+  paymentAllocations SupplierPaymentAllocation[]
 
   @@unique([companyId, supplierInvoiceNumber])
   @@unique([companyId, supplierId, supplierReference])
@@ -2613,6 +2626,7 @@ model ClientInvoice {
   approvedBy       User?             @relation("ClientInvoiceApprover", fields: [companyId, approvedByUserId], references: [companyId, id], onDelete: Restrict)
   rejectedBy       User?             @relation("ClientInvoiceRejector", fields: [companyId, rejectedByUserId], references: [companyId, id], onDelete: Restrict)
   items            ClientInvoiceItem[]
+  receiptAllocations ClientReceiptAllocation[]
 
   @@unique([companyId, clientInvoiceNumber])
   @@unique([companyId, createdByUserId, createKey], map: "client_invoices_creator_create_key_key")
@@ -2638,6 +2652,110 @@ model ClientInvoiceItem {
   @@unique([clientInvoiceId, lineNo])
   @@index([companyId, projectId])
   @@map("client_invoice_items")
+}
+
+
+model Payment {
+  id                 String    @id @default(uuid()) @db.Uuid
+  companyId          String    @map("company_id") @db.Uuid
+  projectId          String    @map("project_id") @db.Uuid
+  paymentNumber      String    @map("payment_number") @db.VarChar(120)
+  paymentDirection   String    @map("payment_direction") @db.VarChar(20)
+  paymentDate        DateTime  @map("payment_date") @db.Date
+  supplierId         String?   @map("supplier_id") @db.Uuid
+  customerId         String?   @map("customer_id") @db.Uuid
+  subcontractorId    String?   @map("subcontractor_id") @db.Uuid
+  amount             Decimal   @db.Decimal(18, 2)
+  currencyCode       String    @map("currency_code") @db.VarChar(3)
+  paymentMethod      String?   @map("payment_method") @db.VarChar(120)
+  reference          String?   @db.VarChar(200)
+  state              String    @default("DRAFT") @db.VarChar(30)
+  approvalInstanceId String?   @unique @map("approval_instance_id") @db.Uuid
+  createKey          String    @map("create_key") @db.VarChar(120)
+  createPayloadHash  String    @map("create_payload_hash") @db.VarChar(64)
+  createdByUserId    String    @map("created_by_user_id") @db.Uuid
+  submittedByUserId  String?   @map("submitted_by_user_id") @db.Uuid
+  approvedByUserId   String?   @map("approved_by_user_id") @db.Uuid
+  rejectedByUserId   String?   @map("rejected_by_user_id") @db.Uuid
+  cancelledByUserId  String?   @map("cancelled_by_user_id") @db.Uuid
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  submittedAt        DateTime? @map("submitted_at") @db.Timestamptz(6)
+  decidedAt          DateTime? @map("decided_at") @db.Timestamptz(6)
+  approvedAt         DateTime? @map("approved_at") @db.Timestamptz(6)
+  rejectedAt         DateTime? @map("rejected_at") @db.Timestamptz(6)
+  rejectionReason    String?   @map("rejection_reason") @db.Text
+  cancelledAt        DateTime? @map("cancelled_at") @db.Timestamptz(6)
+  cancellationReason String?   @map("cancellation_reason") @db.Text
+
+  company          Company           @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  project          Project           @relation(fields: [companyId, projectId], references: [companyId, id], onDelete: Restrict)
+  supplier         Supplier?         @relation(fields: [companyId, supplierId], references: [companyId, id], onDelete: Restrict)
+  customer         Customer?         @relation(fields: [companyId, customerId], references: [companyId, id], onDelete: Restrict)
+  subcontractor    Subcontractor?    @relation(fields: [companyId, subcontractorId], references: [companyId, id], onDelete: Restrict)
+  approvalInstance ApprovalInstance? @relation(fields: [approvalInstanceId], references: [id], onDelete: Restrict)
+  createdBy        User              @relation("PaymentCreator", fields: [companyId, createdByUserId], references: [companyId, id], onDelete: Restrict)
+  submittedBy      User?             @relation("PaymentSubmitter", fields: [companyId, submittedByUserId], references: [companyId, id], onDelete: Restrict)
+  approvedBy       User?             @relation("PaymentApprover", fields: [companyId, approvedByUserId], references: [companyId, id], onDelete: Restrict)
+  rejectedBy       User?             @relation("PaymentRejector", fields: [companyId, rejectedByUserId], references: [companyId, id], onDelete: Restrict)
+  cancelledBy      User?             @relation("PaymentCanceller", fields: [companyId, cancelledByUserId], references: [companyId, id], onDelete: Restrict)
+  supplierAllocations    SupplierPaymentAllocation[]
+  clientAllocations      ClientReceiptAllocation[]
+  subcontractAllocations SubcontractPaymentAllocation[]
+
+  @@unique([companyId, paymentNumber])
+  @@unique([companyId, createdByUserId, createKey], map: "payments_creator_create_key_key")
+  @@unique([companyId, projectId, id], map: "payments_scope_key")
+  @@index([companyId, projectId, state])
+  @@index([companyId, supplierId, paymentDate])
+  @@index([companyId, customerId, paymentDate])
+  @@index([companyId, subcontractorId, paymentDate])
+  @@map("payments")
+}
+
+model SupplierPaymentAllocation {
+  id                String   @id @default(uuid()) @db.Uuid
+  paymentId         String   @map("payment_id") @db.Uuid
+  supplierInvoiceId String   @map("supplier_invoice_id") @db.Uuid
+  allocatedAmount   Decimal  @map("allocated_amount") @db.Decimal(18, 2)
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  payment         Payment         @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+  supplierInvoice SupplierInvoice @relation(fields: [supplierInvoiceId], references: [id], onDelete: Restrict)
+
+  @@unique([paymentId, supplierInvoiceId])
+  @@index([supplierInvoiceId])
+  @@map("supplier_payment_allocations")
+}
+
+model ClientReceiptAllocation {
+  id              String   @id @default(uuid()) @db.Uuid
+  paymentId       String   @map("payment_id") @db.Uuid
+  clientInvoiceId String   @map("client_invoice_id") @db.Uuid
+  allocatedAmount Decimal  @map("allocated_amount") @db.Decimal(18, 2)
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  payment       Payment       @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+  clientInvoice ClientInvoice @relation(fields: [clientInvoiceId], references: [id], onDelete: Restrict)
+
+  @@unique([paymentId, clientInvoiceId])
+  @@index([clientInvoiceId])
+  @@map("client_receipt_allocations")
+}
+
+model SubcontractPaymentAllocation {
+  id                         String   @id @default(uuid()) @db.Uuid
+  paymentId                  String   @map("payment_id") @db.Uuid
+  subcontractCertificationId String   @map("subcontract_certification_id") @db.Uuid
+  allocatedAmount            Decimal  @map("allocated_amount") @db.Decimal(18, 2)
+  createdAt                  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  payment                  Payment                  @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+  subcontractCertification SubcontractCertification @relation(fields: [subcontractCertificationId], references: [id], onDelete: Restrict)
+
+  @@unique([paymentId, subcontractCertificationId])
+  @@index([subcontractCertificationId])
+  @@map("subcontract_payment_allocations")
 }
 
 model FinanceActionReplay {

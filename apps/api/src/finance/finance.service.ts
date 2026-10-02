@@ -198,11 +198,7 @@ export class FinanceService {
   async accountsPayable(auth: AuthenticatedUserContext, projectId: string) {
     await this.access.assertAccess(auth, projectId);
     const rows = await this.prisma.supplierInvoice.findMany({
-      where: {
-        companyId: auth.companyId,
-        projectId,
-        state: 'APPROVED',
-      },
+      where: { companyId: auth.companyId, projectId, state: 'APPROVED' },
       select: {
         id: true,
         supplierInvoiceNumber: true,
@@ -214,14 +210,28 @@ export class FinanceService {
         supplier: {
           select: { id: true, supplierCode: true, supplierName: true },
         },
+        paymentAllocations: {
+          where: { payment: { state: 'APPROVED' } },
+          select: { allocatedAmount: true },
+        },
       },
-      orderBy: [{ dueDate: 'asc' }, { invoiceDate: 'asc' }, { supplierInvoiceNumber: 'asc' }],
+      orderBy: [
+        { dueDate: 'asc' },
+        { invoiceDate: 'asc' },
+        { supplierInvoiceNumber: 'asc' },
+      ],
     });
-    return rows.map((row) => ({
-      ...row,
-      allocatedAmount: new Prisma.Decimal(0),
-      outstandingAmount: row.totalAmount,
-    }));
+    return rows.map(({ paymentAllocations, ...row }) => {
+      const allocatedAmount = paymentAllocations.reduce(
+        (sum, allocation) => sum.plus(allocation.allocatedAmount),
+        new Prisma.Decimal(0),
+      );
+      return {
+        ...row,
+        allocatedAmount,
+        outstandingAmount: row.totalAmount.minus(allocatedAmount),
+      };
+    });
   }
 
   async invoicesForPurchaseOrderLine(

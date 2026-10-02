@@ -11,6 +11,8 @@ import { ClientInvoiceController } from './client-invoice.controller';
 import { ClientInvoiceService } from './client-invoice.service';
 import { FinanceController } from './finance.controller';
 import { FinanceService } from './finance.service';
+import { PaymentController } from './payment.controller';
+import { PaymentService } from './payment.service';
 
 @Module({
   imports: [
@@ -22,8 +24,8 @@ import { FinanceService } from './finance.service';
     ApprovalModule,
     AdministrationModule,
   ],
-  controllers: [FinanceController, ClientInvoiceController],
-  providers: [FinanceService, ClientInvoiceService],
+  controllers: [FinanceController, ClientInvoiceController, PaymentController],
+  providers: [FinanceService, ClientInvoiceService, PaymentService],
   exports: [FinanceService],
 })
 export class FinanceModule {}

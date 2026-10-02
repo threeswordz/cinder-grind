@@ -30,6 +30,13 @@ const RESERVED_SEQUENCE_POLICIES = new Map<
     },
   ],
   [
+    'PAYMENT',
+    {
+      formatTemplate: 'PAYYYMM-###',
+      resetRule: 'MONTHLY',
+    },
+  ],
+  [
     'SUBCONTRACT_AGREEMENT',
     {
       formatTemplate: 'SCYYMM-###',
