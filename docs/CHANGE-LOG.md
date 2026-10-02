@@ -1,3 +1,14 @@
+## 2026-10-03 — V0.6-D technical completion / V0.6-E pre-flight
+
+- V0.6-D PR #129 exact material fix head `a80f4b7c56e14635cd162ee2cd449b4be55ed346` passed push CI #2379 and PR CI #2380 after the first stable-head Codex review identified one genuine P1 involving historical retention reversal after a later Company base-currency change.
+- The P1 was fixed with forward-only migration `20261003030000_v0_6_d_historical_retention_reversal`; no already-executed migration was edited. Historical reversal now reuses original immutable withholding amount/currency without FX conversion.
+- The P1 thread was resolved with evidence and fresh exact-head Codex re-review on `a80f4b7c56` reported no major issues.
+- PR #129 squash-merged to `main` as `25ed713cafee02b6709a933dbee8670c45d4a9f8`; post-merge main CI #2381 passed and Issue #127 closed completed. **V0.6-D is technically complete.**
+- Issue #130 now tracks V0.6-E Project Cash Flow / Finance Reporting / Release Evidence. Pre-flight branch `v0.6-e-preflight` starts from exact green main `25ed713cafee02b6709a933dbee8670c45d4a9f8`.
+- Stage-E authority is AC-V06-027–036 plus the approved D06-08, D06-11, D06-18 and D06-19 / DEC-020 boundaries. AC-V06-037–038 remain the later human UAT/release-exit gates.
+- BR-V06-13 contained stale pre-D06-19 wording that unallocated Payments were not Project-attributed. This pre-flight reconciles it to the already-approved D06-19 / DEC-020 full-Payment Project cash-flow rule; no new owner policy is introduced.
+- Under DEC-022, this docs-only pre-flight does not consume Codex because it adds no new product policy or governance. Stage-E implementation will use Chat + CI and reserve Codex for its stable material merge candidate.
+
 ## 2026-10-03 — V0.6-D stable-head Codex P1 correction
 
 - Stable PR #129 exact head `dfe3e5f79b7e01598a85f21658ed14817872b935` passed branch CI #2377 and PR CI #2378 before Codex review.
