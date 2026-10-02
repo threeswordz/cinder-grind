@@ -7,6 +7,8 @@ import { AuthModule } from '../auth/auth.module';
 import { AuthorizationModule } from '../authorization/authorization.module';
 import { PrismaModule } from '../prisma/prisma.module';
 import { ProjectsModule } from '../projects/projects.module';
+import { ClientInvoiceController } from './client-invoice.controller';
+import { ClientInvoiceService } from './client-invoice.service';
 import { FinanceController } from './finance.controller';
 import { FinanceService } from './finance.service';
 
@@ -20,8 +22,8 @@ import { FinanceService } from './finance.service';
     ApprovalModule,
     AdministrationModule,
   ],
-  controllers: [FinanceController],
-  providers: [FinanceService],
+  controllers: [FinanceController, ClientInvoiceController],
+  providers: [FinanceService, ClientInvoiceService],
   exports: [FinanceService],
 })
 export class FinanceModule {}
