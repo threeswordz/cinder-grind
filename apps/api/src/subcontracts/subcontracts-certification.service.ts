@@ -413,6 +413,25 @@ export class SubcontractsCertificationService {
             detail: 'Only an approved Certification can be reversed.',
           });
         }
+
+        const activePaymentAllocation =
+          await tx.subcontractPaymentAllocation.findFirst({
+            where: {
+              subcontractCertificationId: current.id,
+              payment: {
+                state: { in: ['DRAFT', 'SUBMITTED', 'APPROVED'] },
+              },
+            },
+            select: { id: true },
+          });
+        if (activePaymentAllocation) {
+          throw new ConflictException({
+            code: 'SUBCONTRACT_CERTIFICATION_ACTIVE_PAYMENT_ALLOCATION',
+            detail:
+              'A Certification with an active Finance Payment allocation cannot be reversed. Cancel or otherwise release the Payment first.',
+          });
+        }
+
         const reversedAt = new Date();
         await tx.subcontractCertification.update({
           where: { id: current.id },
