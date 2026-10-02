@@ -21,7 +21,7 @@ export class ClientInvoiceController {
   @UseGuards(AuthGuard, PermissionGuard)
   @RequirePermissions('finance.client_invoice.view')
   async projects(@Req() r: AuthenticatedRequest) {
-    return { data: await this.service.projects(authOf(r)) };
+    return { data: await this.service.balanceProjects(authOf(r)) };
   }
 
   @Get('client-invoice-workflow-options')
