@@ -44,15 +44,20 @@ export class ClientInvoiceService {
 
   async options(auth: AuthenticatedUserContext, projectId: string) {
     await this.access.assertAccess(auth, projectId);
-    const [company, project] = await Promise.all([
+    const [company, project, customers] = await Promise.all([
       this.prisma.company.findUniqueOrThrow({ where: { id: auth.companyId }, select: { baseCurrencyCode: true } }),
       this.prisma.project.findFirst({
         where: { id: projectId, companyId: auth.companyId, isActive: true },
-        select: { id: true, customer: { select: { id: true, customerCode: true, customerName: true, isActive: true } } },
+        select: { id: true },
+      }),
+      this.prisma.customer.findMany({
+        where: { companyId: auth.companyId, isActive: true },
+        select: { id: true, customerCode: true, customerName: true },
+        orderBy: [{ customerName: 'asc' }, { customerCode: 'asc' }],
       }),
     ]);
-    if (!project || !project.customer.isActive) throw this.notFound();
-    return { baseCurrencyCode: company.baseCurrencyCode, customer: project.customer };
+    if (!project) throw this.notFound();
+    return { baseCurrencyCode: company.baseCurrencyCode, customers };
   }
 
   async list(auth: AuthenticatedUserContext, projectId: string) {
@@ -115,16 +120,20 @@ export class ClientInvoiceService {
       return this.visible(context.auth, replay.id, this.prisma);
     }
 
-    const [company, project] = await Promise.all([
+    const [company, project, customer] = await Promise.all([
       this.prisma.company.findUnique({ where: { id: context.auth.companyId }, select: { baseCurrencyCode: true } }),
       this.prisma.project.findFirst({
-        where: { id: projectId, companyId: context.auth.companyId, isActive: true, customerId: input.customerId },
-        select: { id: true, customer: { select: { isActive: true } } },
+        where: { id: projectId, companyId: context.auth.companyId, isActive: true },
+        select: { id: true },
+      }),
+      this.prisma.customer.findFirst({
+        where: { id: input.customerId, companyId: context.auth.companyId, isActive: true },
+        select: { id: true },
       }),
     ]);
-    if (!company || !project || !project.customer.isActive) throw new UnprocessableEntityException({
+    if (!company || !project || !customer) throw new UnprocessableEntityException({
       code: 'CLIENT_INVOICE_SCOPE_INVALID',
-      detail: 'Client Invoice Customer must be the active Customer of the same Company Project.',
+      detail: 'Client Invoice requires an active same-Company Project and Customer.',
     });
 
     await this.prisma.numberSequence.createMany({
@@ -133,36 +142,58 @@ export class ClientInvoiceService {
     });
     const number = await this.numbers.next(context.auth.companyId, 'CLIENT_INVOICE', input.invoiceDate);
 
-    return this.prisma.$transaction(async (tx) => {
-      await this.access.assertAccess(context.auth, projectId, tx);
-      const header = await tx.clientInvoice.create({
-        data: {
-          companyId: context.auth.companyId,
-          projectId,
-          customerId: input.customerId,
-          clientInvoiceNumber: number,
-          invoiceDate: input.invoiceDate,
-          ...(input.dueDate !== undefined ? { dueDate: input.dueDate } : {}),
-          currencyCode: company.baseCurrencyCode,
-          createKey: input.createKey,
-          createPayloadHash: hash,
-          createdByUserId: context.auth.userId,
-        },
-      });
-      await tx.clientInvoiceItem.createMany({
-        data: input.lines.map((line, i) => ({
-          companyId: context.auth.companyId, projectId, clientInvoiceId: header.id,
-          lineNo: i + 1, description: line.description.trim(), amount: line.amount,
-        })),
-      });
-      await this.audit.record({
-        ...context, entityType: 'CLIENT_INVOICE', entityId: header.id, action: 'CREATE_DRAFT',
-        newValues: { clientInvoiceNumber: number, projectId, customerId: input.customerId },
-      }, tx);
-      return this.visible(context.auth, header.id, tx);
-    }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
-  }
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        await this.access.assertAccess(context.auth, projectId, tx);
+        await this.assertScope(tx, context.auth.companyId, projectId, input.customerId);
 
+        const raced = await tx.clientInvoice.findFirst({
+          where: { companyId: context.auth.companyId, createdByUserId: context.auth.userId, createKey: input.createKey },
+        });
+        if (raced) {
+          if (raced.createPayloadHash !== hash) this.replayConflict();
+          return this.visible(context.auth, raced.id, tx);
+        }
+
+        const header = await tx.clientInvoice.create({
+          data: {
+            companyId: context.auth.companyId,
+            projectId,
+            customerId: input.customerId,
+            clientInvoiceNumber: number,
+            invoiceDate: input.invoiceDate,
+            ...(input.dueDate !== undefined ? { dueDate: input.dueDate } : {}),
+            currencyCode: company.baseCurrencyCode,
+            createKey: input.createKey,
+            createPayloadHash: hash,
+            createdByUserId: context.auth.userId,
+          },
+        });
+        await tx.clientInvoiceItem.createMany({
+          data: input.lines.map((line, i) => ({
+            companyId: context.auth.companyId, projectId, clientInvoiceId: header.id,
+            lineNo: i + 1, description: line.description.trim(), amount: line.amount,
+          })),
+        });
+        await this.audit.record({
+          ...context, entityType: 'CLIENT_INVOICE', entityId: header.id, action: 'CREATE_DRAFT',
+          newValues: { clientInvoiceNumber: number, projectId, customerId: input.customerId },
+        }, tx);
+        return this.visible(context.auth, header.id, tx);
+      }, { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+        const raced = await this.prisma.clientInvoice.findFirst({
+          where: { companyId: context.auth.companyId, createdByUserId: context.auth.userId, createKey: input.createKey },
+        });
+        if (raced) {
+          if (raced.createPayloadHash !== hash) this.replayConflict();
+          return this.visible(context.auth, raced.id, this.prisma);
+        }
+      }
+      throw error;
+    }
+  }
 
   async update(context: AuditContext, invoiceId: string, input: ClientInvoiceDraftUpdate) {
     return this.prisma.$transaction(async (tx) => {
@@ -314,6 +345,19 @@ export class ClientInvoiceService {
     const raced = await tx.financeActionReplay.findUnique({ where });
     if (!raced || !matches(raced)) this.replayConflict();
     return true;
+  }
+
+  private async assertScope(db: Db, companyId: string, projectId: string, customerId: string) {
+    const [project, customer] = await Promise.all([
+      db.project.findFirst({ where: { id: projectId, companyId, isActive: true }, select: { id: true } }),
+      db.customer.findFirst({ where: { id: customerId, companyId, isActive: true }, select: { id: true } }),
+    ]);
+    if (!project || !customer) {
+      throw new UnprocessableEntityException({
+        code: 'CLIENT_INVOICE_SCOPE_INVALID',
+        detail: 'Client Invoice requires an active same-Company Project and Customer.',
+      });
+    }
   }
 
   private payloadHash(projectId: string, input: ClientInvoiceDraftInput) {
