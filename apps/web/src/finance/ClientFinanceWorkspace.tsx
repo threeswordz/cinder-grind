@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Alert,
   Box,
@@ -69,6 +69,23 @@ export function ClientFinanceWorkspace({ permissions }: Props) {
   const [newLine, setNewLine] = useState<LineDraft>(emptyLine);
   const [workflowCode, setWorkflowCode] = useState('');
   const [comment, setComment] = useState('');
+
+  const retryActionKeys = useRef(new Map<string, string>());
+  const workflowActionSignature = useRef<string | null>(null);
+
+  const retryActionKey = (signature: string) => {
+    const existing = retryActionKeys.current.get(signature);
+    if (existing) return existing;
+    const key = actionKey();
+    retryActionKeys.current.set(signature, key);
+    return key;
+  };
+
+  const clearWorkflowRetryKey = () => {
+    if (!workflowActionSignature.current) return;
+    retryActionKeys.current.delete(workflowActionSignature.current);
+    workflowActionSignature.current = null;
+  };
 
   const projects = useQuery({
     queryKey: ['v06b-finance-projects', canView, canAr, canAp],
@@ -224,24 +241,65 @@ export function ClientFinanceWorkspace({ permissions }: Props) {
   });
 
   const submit = useMutation({
-    mutationFn: () =>
-      clientFinanceApi.submit(invoiceId, workflowCode, actionKey()),
-    onSuccess: () => refresh(),
+    mutationFn: () => {
+      const signature = JSON.stringify([
+        'client-invoice',
+        'submit',
+        invoiceId,
+        workflowCode,
+      ]);
+      workflowActionSignature.current = signature;
+      return clientFinanceApi.submit(
+        invoiceId,
+        workflowCode,
+        retryActionKey(signature),
+      );
+    },
+    onSuccess: async () => {
+      clearWorkflowRetryKey();
+      await refresh();
+    },
   });
 
   const approve = useMutation({
-    mutationFn: () =>
-      clientFinanceApi.approve(invoiceId, actionKey(), comment || null),
+    mutationFn: () => {
+      const signature = JSON.stringify([
+        'client-invoice',
+        'approve',
+        invoiceId,
+        comment || null,
+      ]);
+      workflowActionSignature.current = signature;
+      return clientFinanceApi.approve(
+        invoiceId,
+        retryActionKey(signature),
+        comment || null,
+      );
+    },
     onSuccess: async () => {
+      clearWorkflowRetryKey();
       setComment('');
       await refresh();
     },
   });
 
   const reject = useMutation({
-    mutationFn: () =>
-      clientFinanceApi.reject(invoiceId, actionKey(), comment || null),
+    mutationFn: () => {
+      const signature = JSON.stringify([
+        'client-invoice',
+        'reject',
+        invoiceId,
+        comment || null,
+      ]);
+      workflowActionSignature.current = signature;
+      return clientFinanceApi.reject(
+        invoiceId,
+        retryActionKey(signature),
+        comment || null,
+      );
+    },
     onSuccess: async () => {
+      clearWorkflowRetryKey();
       setComment('');
       await refresh();
     },
