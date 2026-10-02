@@ -77,3 +77,16 @@ If the desired outcome requires changing an approved rule, stop and obtain expli
 - Findings from Work normally become durable repository Issues or Change Control items, then return to Chat for implementation under the normal CI/PR/merge process.
 - When the Product / Business Owner asks for `live position`, `current position`, `where are we`, or equivalent project-status wording, follow `docs/LIVE-POSITION-REPORTING-STANDARD.md` after re-fetching live GitHub state.
 - See `docs/DEVELOPMENT-OPERATING-MODEL.md` and DEC-016.
+
+## Codex review economy policy — DEC-022
+
+- Chat + CI are the continuous development/review loop while a branch is changing.
+- Do not request Codex after every commit or every individual fix.
+- Request Codex when a PR/stage reaches a stable merge candidate with applicable CI green and known Chat findings resolved.
+- Batch genuine Codex findings, fix them together where practical, rerun CI, then use a single batched final re-review when the fixes materially affect reviewed behavior or a high-risk surface.
+- A clean Codex review is not invalidated by later documentation/evidence-only edits that do not change runtime behavior, schema, security boundaries or business rules.
+- Authorization, permissions, Finance/payment/accounting, migrations, audit/history immutability, concurrency and data-integrity changes still require Codex at the stable merge candidate unless an explicit PR-specific Product / Business Owner waiver is recorded.
+- Low-risk documentation-only changes normally use Chat + CI unless an approved gate explicitly requires Codex.
+- Work remains the periodic broad auditor; required human UAT/business acceptance remains human.
+
+See `docs/DEVELOPMENT-OPERATING-MODEL.md` and DEC-022.

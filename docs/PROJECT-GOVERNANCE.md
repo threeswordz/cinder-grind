@@ -108,6 +108,8 @@ The next stage must not begin until required predecessor gates are complete unle
 
 Human UAT/business acceptance must not be marked complete by development or CI.
 
+Independent review execution follows the approved operating model and Decision Log. DEC-022 requires Codex to be concentrated on stable merge candidates and material/high-risk re-review rather than repeated reviews of unstable intermediate heads. This changes review timing/economy, not applicable CI, security, Change Control or human UAT gates.
+
 ## 7. Development-session operating model
 
 - Chat is the default Builder / Release Coordinator for day-to-day implementation, CI repair, focused review, PR/merge coordination and release checkpoint maintenance.

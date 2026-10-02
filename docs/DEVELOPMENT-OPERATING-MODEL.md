@@ -91,6 +91,27 @@ The normal delivery flow remains:
 
 **Product / Business Owner approves scope → Chat builds stage → GitHub records implementation → CI/tests validate → Chat fixes defects → PR/review → merge → post-merge CI → next stage**
 
+## Codex review economy policy — DEC-022
+
+Codex is a scarce independent review gate, not the continuous development reviewer. The default delivery pattern is:
+
+**Chat review + tests/CI while the branch is changing → stable merge candidate → Codex review → batch-fix genuine findings → CI → one batched final re-review when materially warranted → merge.**
+
+Rules:
+
+1. **Chat + CI are continuous.** During active implementation, Chat performs focused review and defect fixing and CI/tests provide the technical evidence loop.
+2. **Do not spend Codex on unstable intermediate heads.** Do not request Codex after every commit, every individual fix, or while the PR is still expected to change materially.
+3. **First Codex pass is on a stable merge candidate.** Request Codex only after applicable tests/CI are green and known Chat findings are resolved.
+4. **Batch Codex findings.** When Codex reports multiple genuine defects, resolve them together where practical, add/adjust regression coverage, and rerun CI before asking for another review.
+5. **Re-review is risk-based, not commit-count-based.** A batched final re-review is required when the fixes materially change reviewed runtime behavior or touch a high-risk surface. Additional passes are used only when a later review finds a distinct genuine blocker or a subsequent material change invalidates the prior review.
+6. **Non-semantic head movement does not automatically burn another review.** A clean Codex review remains valid across later documentation/evidence-only edits that do not change the reviewed runtime behavior, schema, security boundary or business rule.
+7. **High-risk surfaces still require independent review.** Authorization, permissions, Finance/payment/accounting behavior, migrations, audit/history immutability, concurrency and data-integrity changes require Codex at the stable merge candidate unless the Product / Business Owner grants an explicit PR-specific waiver recorded in the Decision Log.
+8. **Low-risk documentation-only changes normally use Chat + CI.** Codex is not a default requirement for documentation/reporting-only PRs unless an approved stage/release gate explicitly says otherwise.
+9. **Release-level audit remains separate.** Work remains the periodic broad auditor for architecture, security, technical debt, cross-release integration and production readiness; Codex should be concentrated on stable code boundaries rather than repeated intermediate commits.
+10. **Human gates are unchanged.** CI, Chat, Codex and Work do not self-approve required Product / Business Owner UAT/business acceptance.
+
+For an already-reviewed PR, a new Codex pass is required only if a later change materially affects code/schema/security/business behavior covered by that review, or if an explicit approved gate requires a new confirmation.
+
 Periodic audit flow:
 
 **Work audits accumulated system → findings become durable repository items → Chat implements approved fixes → CI/tests prove → PR/merge**
@@ -119,7 +140,7 @@ This operating model does **not** change:
 - open-source / zero-cost-first DEC-008;
 - approved release scope or deferrals;
 - change-control requirements;
-- existing review requirements or any explicit one-time waiver such as DEC-015.
+- approved review requirements, including the Codex review economy policy in DEC-022, and any explicit one-time waiver such as DEC-015 or DEC-021.
 
 GitHub remains the durable source of truth; Chat remains the normal implementation coordinator; Work remains the periodic independent auditor.
 
