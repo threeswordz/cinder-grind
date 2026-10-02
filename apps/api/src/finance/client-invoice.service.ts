@@ -38,7 +38,16 @@ export class ClientInvoiceService {
     const scope = await this.access.scopeWhere(auth);
     return this.prisma.project.findMany({
       where: { AND: [scope, { isActive: true }] },
-      select: { id: true, projectCode: true, projectName: true },
+      select: { id: true, projectCode: true, projectName: true, isActive: true },
+      orderBy: [{ projectName: 'asc' }, { projectCode: 'asc' }],
+    });
+  }
+
+  async balanceProjects(auth: AuthenticatedUserContext) {
+    const scope = await this.access.scopeWhere(auth);
+    return this.prisma.project.findMany({
+      where: scope,
+      select: { id: true, projectCode: true, projectName: true, isActive: true },
       orderBy: [{ projectName: 'asc' }, { projectCode: 'asc' }],
     });
   }
