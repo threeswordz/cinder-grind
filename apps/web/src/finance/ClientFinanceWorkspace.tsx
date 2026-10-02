@@ -90,11 +90,11 @@ export function ClientFinanceWorkspace({ permissions }: Props) {
   const projects = useQuery({
     queryKey: ['v06b-finance-projects', canView, canAr, canAp],
     queryFn: () =>
-      canView
-        ? clientFinanceApi.projects()
-        : canAr
-          ? clientFinanceApi.accountsReceivableProjects()
-          : clientFinanceApi.accountsPayableProjects(),
+      canAr
+        ? clientFinanceApi.accountsReceivableProjects()
+        : canAp
+          ? clientFinanceApi.accountsPayableProjects()
+          : clientFinanceApi.projects(),
     enabled: hasAccess,
   });
 
@@ -111,10 +111,14 @@ export function ClientFinanceWorkspace({ permissions }: Props) {
     setCustomerId('');
   }, [projectId]);
 
+  const selectedProject = (projects.data?.data ?? []).find(
+    (project) => project.id === projectId,
+  );
+
   const options = useQuery({
     queryKey: ['v06b-client-options', projectId],
     queryFn: () => clientFinanceApi.options(projectId),
-    enabled: canView && Boolean(projectId),
+    enabled: canView && Boolean(projectId) && selectedProject?.isActive === true,
   });
 
   useEffect(() => {
@@ -367,6 +371,7 @@ export function ClientFinanceWorkspace({ permissions }: Props) {
         {(projects.data?.data ?? []).map((project) => (
           <MenuItem key={project.id} value={project.id}>
             {project.projectCode} · {project.projectName}
+            {project.isActive ? '' : ' · Archived'}
           </MenuItem>
         ))}
       </TextField>
@@ -379,7 +384,14 @@ export function ClientFinanceWorkspace({ permissions }: Props) {
         </Alert>
       ) : null}
 
-      {canCreate && projectId ? (
+      {selectedProject && !selectedProject.isActive ? (
+        <Alert severity="info">
+          This Project is archived. Historical Client Invoices and AP/AR balances
+          remain visible; new Client Invoice setup is limited to active Projects.
+        </Alert>
+      ) : null}
+
+      {canCreate && projectId && selectedProject?.isActive ? (
         <Card variant="outlined">
           <CardContent>
             <Stack spacing={2}>
