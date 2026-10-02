@@ -23,6 +23,13 @@ const RESERVED_SEQUENCE_POLICIES = new Map<
     },
   ],
   [
+    'CLIENT_INVOICE',
+    {
+      formatTemplate: 'CIYYMM-###',
+      resetRule: 'MONTHLY',
+    },
+  ],
+  [
     'SUBCONTRACT_AGREEMENT',
     {
       formatTemplate: 'SCYYMM-###',
