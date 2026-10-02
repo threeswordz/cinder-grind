@@ -805,7 +805,10 @@ test('V0.6-B Client Invoice preserves scope, maker-checker, retained history and
         clientFinance.update(
           { auth: makerAuth },
           draft.id,
-          { invoiceDate: new Date('2026-11-01T00:00:00.000Z') },
+          {
+            invoiceDate: new Date('2026-11-01T00:00:00.000Z'),
+            dueDate: new Date('2026-11-30T00:00:00.000Z'),
+          },
         ),
       (error: unknown) => error instanceof ConflictException,
     );
