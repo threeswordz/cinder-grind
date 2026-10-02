@@ -788,7 +788,8 @@ export function PaymentFinanceWorkspace({ permissions }: Props) {
                   {current.approvalInstance.actions.map((action) => (
                     <Typography key={action.id} variant="body2">
                       Step {action.approvalStep?.stepNo ?? '—'} ·{' '}
-                      {action.action} · {action.actionByUser?.displayName ?? '—'}
+                      {action.action} · {action.actionByUser?.displayName ?? '—'} ·{' '}
+                      {new Date(action.actionAt).toLocaleString()}
                       {action.comment ? ' · ' + action.comment : ''}
                     </Typography>
                   ))}
@@ -797,7 +798,11 @@ export function PaymentFinanceWorkspace({ permissions }: Props) {
 
               {current.state === 'CANCELLED' ? (
                 <Alert severity="info">
-                  Cancelled by {current.cancelledBy?.displayName ?? '—'} ·{' '}
+                  Cancelled by {current.cancelledBy?.displayName ?? '—'}
+                  {current.cancelledAt
+                    ? ' · ' + new Date(current.cancelledAt).toLocaleString()
+                    : ''}
+                  {' · '}
                   {current.cancellationReason ?? 'No reason retained.'}
                 </Alert>
               ) : null}
