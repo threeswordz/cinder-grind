@@ -1458,9 +1458,19 @@ test('V0.6-B Client Invoice preserves scope, maker-checker, retained history and
         'Decision order must follow the Approval Instance lock serialization order.',
       );
       assert.ok(
-        serializedSecondAction.actionAt.getTime() <
+        serializedSecondAction.actionAt.getTime() >=
           serializedFirstAction.actionAt.getTime(),
-        'Regression must prove final-action selection follows serialized decision order even when action_at ordering is inverted.',
+        'Retained action_at must follow the Approval Instance serialization order.',
+      );
+      assert.notEqual(
+        serializedFirstAction.actionAt.getTime(),
+        laterRetainedTimestamp.getTime(),
+        'The database must replace caller-supplied action_at after acquiring the serialization lock.',
+      );
+      assert.notEqual(
+        serializedSecondAction.actionAt.getTime(),
+        earlierRetainedTimestamp.getTime(),
+        'The final serialized action must receive its retained timestamp after lock acquisition.',
       );
 
       await prisma.approvalInstance.update({
