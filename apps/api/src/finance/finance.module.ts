@@ -13,6 +13,8 @@ import { FinanceController } from './finance.controller';
 import { FinanceService } from './finance.service';
 import { PaymentController } from './payment.controller';
 import { PaymentService } from './payment.service';
+import { RetentionController } from './retention.controller';
+import { RetentionService } from './retention.service';
 
 @Module({
   imports: [
@@ -24,8 +26,13 @@ import { PaymentService } from './payment.service';
     ApprovalModule,
     AdministrationModule,
   ],
-  controllers: [FinanceController, ClientInvoiceController, PaymentController],
-  providers: [FinanceService, ClientInvoiceService, PaymentService],
-  exports: [FinanceService],
+  controllers: [
+    FinanceController,
+    ClientInvoiceController,
+    PaymentController,
+    RetentionController,
+  ],
+  providers: [FinanceService, ClientInvoiceService, PaymentService, RetentionService],
+  exports: [FinanceService, RetentionService],
 })
 export class FinanceModule {}

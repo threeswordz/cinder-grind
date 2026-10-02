@@ -69,6 +69,7 @@ model Company {
   clientInvoices ClientInvoice[]
   payments Payment[]
   financeActionReplays FinanceActionReplay[]
+  retentionLedgerEntries RetentionLedgerEntry[]
   @@map("companies")
 }
 
@@ -307,6 +308,7 @@ model User {
   rejectedPayments           Payment[] @relation("PaymentRejector")
   cancelledPayments          Payment[] @relation("PaymentCanceller")
   financeActionReplays        FinanceActionReplay[]
+  recordedRetentionLedgerEntries RetentionLedgerEntry[] @relation("RetentionLedgerRecorder")
   @@unique([companyId, email])
   @@unique([companyId, id])
   @@index([companyId, isActive])
@@ -625,6 +627,7 @@ model Project {
   supplierInvoices SupplierInvoice[]
   clientInvoices ClientInvoice[]
   payments Payment[]
+  retentionLedgerEntries RetentionLedgerEntry[]
   @@unique([companyId, projectCode])
   @@unique([companyId, id])
   @@index([companyId, isActive])
@@ -1255,6 +1258,7 @@ model SubcontractAgreement {
   claimAssessments  SubcontractClaimAssessment[]
   certifications    SubcontractCertification[]
   variations        SubcontractVariation[]
+  retentionLedgerEntries RetentionLedgerEntry[]
 
   @@unique([companyId, agreementNumber])
   @@unique([companyId, id])
@@ -1479,6 +1483,7 @@ model SubcontractCertification {
   rejectedBy      User? @relation("CertificationRejector", fields: [companyId, rejectedByUserId], references: [companyId, id], onDelete: Restrict, map: "subcontract_certifications_rejector_fkey")
   reversedBy      User? @relation("CertificationReverser", fields: [companyId, reversedByUserId], references: [companyId, id], onDelete: Restrict, map: "subcontract_certifications_reverser_fkey")
   paymentAllocations SubcontractPaymentAllocation[]
+  retentionLedgerEntries RetentionLedgerEntry[]
 
   @@unique([companyId, certificationNumber])
   @@unique([companyId, projectId, agreementId, claimId, id], map: "subcontract_certifications_scope_key")
@@ -2757,6 +2762,34 @@ model SubcontractPaymentAllocation {
   @@unique([paymentId, subcontractCertificationId])
   @@index([subcontractCertificationId])
   @@map("subcontract_payment_allocations")
+}
+
+model RetentionLedgerEntry {
+  id                 String   @id @default(uuid()) @db.Uuid
+  companyId          String   @map("company_id") @db.Uuid
+  projectId          String   @map("project_id") @db.Uuid
+  agreementId        String   @map("agreement_id") @db.Uuid
+  certificationId    String   @map("certification_id") @db.Uuid
+  entryType          String   @map("entry_type") @db.VarChar(30)
+  amount             Decimal  @db.Decimal(18, 2)
+  currencyCode       String   @map("currency_code") @db.VarChar(3)
+  reversesEntryId    String?  @unique(map: "retention_ledger_entries_reverses_entry_key") @map("reverses_entry_id") @db.Uuid
+  recordedByUserId   String   @map("recorded_by_user_id") @db.Uuid
+  recordedAt         DateTime @map("recorded_at") @db.Timestamptz(6)
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  company       Company                  @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  project       Project                  @relation(fields: [companyId, projectId], references: [companyId, id], onDelete: Restrict)
+  agreement     SubcontractAgreement     @relation(fields: [companyId, projectId, agreementId], references: [companyId, projectId, id], onDelete: Restrict)
+  certification SubcontractCertification @relation(fields: [certificationId], references: [id], onDelete: Restrict)
+  recordedBy    User                     @relation("RetentionLedgerRecorder", fields: [companyId, recordedByUserId], references: [companyId, id], onDelete: Restrict)
+  reversesEntry RetentionLedgerEntry?    @relation("RetentionLedgerReversal", fields: [reversesEntryId], references: [id], onDelete: Restrict)
+  reversalEntry RetentionLedgerEntry?    @relation("RetentionLedgerReversal")
+
+  @@unique([certificationId, entryType], map: "retention_ledger_entries_cert_type_key")
+  @@index([companyId, projectId, recordedAt])
+  @@index([agreementId, recordedAt])
+  @@map("retention_ledger_entries")
 }
 
 model FinanceActionReplay {

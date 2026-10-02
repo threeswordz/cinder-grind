@@ -71,6 +71,54 @@ export class SubcontractsCertificationService {
     return this.visibleCertification(auth, certificationId, this.prisma);
   }
 
+  async financeReference(
+    auth: AuthenticatedUserContext,
+    certificationId: string,
+  ) {
+    const certification = await this.visibleCertification(
+      auth,
+      certificationId,
+      this.prisma,
+    );
+    const allocations = await this.prisma.subcontractPaymentAllocation.findMany({
+      where: {
+        subcontractCertificationId: certification.id,
+        payment: {
+          companyId: auth.companyId,
+          projectId: certification.projectId,
+        },
+      },
+      select: {
+        id: true,
+        allocatedAmount: true,
+        createdAt: true,
+        payment: {
+          select: {
+            id: true,
+            paymentNumber: true,
+            paymentDate: true,
+            amount: true,
+            currencyCode: true,
+            state: true,
+            reference: true,
+            approvedAt: true,
+            cancelledAt: true,
+            cancellationReason: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+    return {
+      certificationId: certification.id,
+      certificationNumber: certification.certificationNumber,
+      projectId: certification.projectId,
+      currencyCode: certification.currencyCode,
+      state: certification.state,
+      allocations,
+    };
+  }
+
   async createCertification(
     context: AuditContext,
     claimId: string,
