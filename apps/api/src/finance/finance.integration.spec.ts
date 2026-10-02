@@ -844,6 +844,58 @@ test('V0.6-B Client Invoice preserves scope, maker-checker, retained history and
         }),
       /CLIENT_INVOICE_NUMBER_PERIOD_MISMATCH/,
     );
+    await assert.rejects(
+      () =>
+        prisma.clientInvoice.update({
+          where: { id: draft.id },
+          data: { dueDate: new Date('2026-10-10T00:00:00.000Z') },
+        }),
+      (error: unknown) =>
+        error instanceof Error &&
+        error.message.includes('client_invoices_due_date_order_check'),
+    );
+
+    const dateRaceDraft = await clientFinance.create(
+      { auth: makerAuth },
+      project.id,
+      {
+        customerId: customer.id,
+        invoiceDate: new Date('2026-10-02T00:00:00.000Z'),
+        dueDate: new Date('2026-10-31T00:00:00.000Z'),
+        createKey: randomUUID(),
+        lines: [{ description: 'Concurrent header date validation', amount: new Decimal('6.00') }],
+      },
+    );
+    const dateRaceResults = await Promise.allSettled([
+      clientFinance.update(
+        { auth: makerAuth },
+        dateRaceDraft.id,
+        { dueDate: new Date('2026-10-10T00:00:00.000Z') },
+      ),
+      clientFinance.update(
+        { auth: makerAuth },
+        dateRaceDraft.id,
+        { invoiceDate: new Date('2026-10-20T00:00:00.000Z') },
+      ),
+    ]);
+    assert.equal(
+      dateRaceResults.filter((result) => result.status === 'fulfilled').length,
+      1,
+      'Exactly one competing Draft header date update may commit.',
+    );
+    const rejectedDateRace = dateRaceResults.find(
+      (result) => result.status === 'rejected',
+    );
+    assert.ok(rejectedDateRace && rejectedDateRace.status === 'rejected');
+    assert.ok(
+      rejectedDateRace.reason instanceof UnprocessableEntityException,
+      'The waiter must reload the locked Draft and reject the stale date pair in service validation.',
+    );
+    const dateRaceAfter = await clientFinance.get(makerAuth, dateRaceDraft.id);
+    assert.ok(
+      dateRaceAfter.dueDate === null ||
+        dateRaceAfter.dueDate.getTime() >= dateRaceAfter.invoiceDate.getTime(),
+    );
 
     const alternateCustomerDraft = await clientFinance.create(
       { auth: makerAuth },
