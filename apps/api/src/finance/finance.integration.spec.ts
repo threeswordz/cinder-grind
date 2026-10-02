@@ -740,6 +740,13 @@ test('V0.6-B Client Invoice preserves scope, maker-checker, retained history and
         roleName: 'Finance B Approver',
       },
     });
+    await prisma.userRole.create({
+      data: {
+        companyId: company.id,
+        userId: checker.id,
+        roleId: role.id,
+      },
+    });
     const clientWorkflow = await prisma.approvalWorkflow.create({
       data: {
         companyId: company.id,
@@ -1024,6 +1031,57 @@ test('V0.6-B Client Invoice preserves scope, maker-checker, retained history and
       assert.equal(
         afterDecisionBypass.approvalInstance?.approvalState,
         'SUBMITTED',
+      );
+
+      const linkedApproval = await prisma.approvalInstance.findUniqueOrThrow({
+        where: { id: retainedSubmission.approvalInstanceId! },
+        include: {
+          workflow: {
+            include: {
+              steps: { orderBy: { stepNo: 'asc' } },
+            },
+          },
+        },
+      });
+      const currentApprovalStep = linkedApproval.workflow.steps.find(
+        (step) => step.stepNo === linkedApproval.currentStepNo,
+      );
+      assert.ok(currentApprovalStep);
+
+      await assert.rejects(
+        () =>
+          prisma.approvalInstance.update({
+            where: { id: linkedApproval.id },
+            data: {
+              approvalState: 'APPROVED',
+              completedAt: new Date(),
+            },
+          }),
+        /CLIENT_INVOICE_APPROVAL_EVIDENCE_INVALID/,
+      );
+      await assert.rejects(
+        () =>
+          prisma.approvalAction.create({
+            data: {
+              approvalInstanceId: linkedApproval.id,
+              approvalStepId: currentApprovalStep!.id,
+              action: 'APPROVE',
+              actionByUserId: maker.id,
+            },
+          }),
+        /CLIENT_INVOICE_MAKER_CHECKER_VIOLATION/,
+      );
+      await assert.rejects(
+        () =>
+          prisma.approvalAction.create({
+            data: {
+              approvalInstanceId: linkedApproval.id,
+              approvalStepId: currentApprovalStep!.id,
+              action: 'APPROVE',
+              actionByUserId: outsider.id,
+            },
+          }),
+        /CLIENT_INVOICE_APPROVAL_ROLE_DENIED/,
       );
 
       const legitimateDecision = await clientFinance.approve(
