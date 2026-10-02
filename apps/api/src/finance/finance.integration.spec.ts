@@ -1317,6 +1317,76 @@ test('V0.6-B Client Invoice preserves scope, maker-checker, retained history and
         actorBindingAction.actionAt.getTime(),
       );
 
+      const rejectionBindingDraft = await clientFinance.create(
+        { auth: makerAuth },
+        project.id,
+        {
+          customerId: customer.id,
+          invoiceDate: new Date('2026-10-06T00:00:00.000Z'),
+          dueDate: new Date('2026-10-31T00:00:00.000Z'),
+          createKey: randomUUID(),
+          lines: [{ description: 'Rejection reason evidence binding', amount: new Decimal('8.50') }],
+        },
+      );
+      const rejectionBindingSubmission = await clientFinance.submit(
+        { auth: makerAuth },
+        rejectionBindingDraft.id,
+        clientWorkflow.workflowCode,
+        randomUUID(),
+      );
+      const rejectionBindingInstance = await prisma.approvalInstance.findUniqueOrThrow({
+        where: { id: rejectionBindingSubmission.approvalInstanceId! },
+      });
+      const rejectionBindingStep = await prisma.approvalStep.findFirstOrThrow({
+        where: {
+          approvalWorkflowId: rejectionBindingInstance.approvalWorkflowId,
+          stepNo: rejectionBindingInstance.currentStepNo,
+        },
+      });
+      const retainedRejectionReason = 'Retained rejection evidence';
+      const rejectionBindingAction = await prisma.approvalAction.create({
+        data: {
+          approvalInstanceId: rejectionBindingInstance.id,
+          approvalStepId: rejectionBindingStep.id,
+          action: 'REJECT',
+          actionByUserId: checker.id,
+          comment: retainedRejectionReason,
+        },
+      });
+      await prisma.approvalInstance.update({
+        where: { id: rejectionBindingInstance.id },
+        data: {
+          approvalState: 'REJECTED',
+          completedAt: rejectionBindingAction.actionAt,
+        },
+      });
+      await assert.rejects(
+        () =>
+          prisma.clientInvoice.update({
+            where: { id: rejectionBindingDraft.id },
+            data: {
+              state: 'REJECTED',
+              rejectedByUserId: rejectionBindingAction.actionByUserId,
+              rejectedAt: rejectionBindingAction.actionAt,
+              decidedAt: rejectionBindingAction.actionAt,
+              rejectionReason: 'Forged rejection reason',
+            },
+          }),
+        /CLIENT_INVOICE_REJECTION_METADATA_EVIDENCE_MISMATCH/,
+      );
+      const evidenceBoundRejectedInvoice = await prisma.clientInvoice.update({
+        where: { id: rejectionBindingDraft.id },
+        data: {
+          state: 'REJECTED',
+          rejectedByUserId: rejectionBindingAction.actionByUserId,
+          rejectedAt: rejectionBindingAction.actionAt,
+          decidedAt: rejectionBindingAction.actionAt,
+          rejectionReason: retainedRejectionReason,
+        },
+      });
+      assert.equal(evidenceBoundRejectedInvoice.rejectedByUserId, checker.id);
+      assert.equal(evidenceBoundRejectedInvoice.rejectionReason, retainedRejectionReason);
+
       const multiDraft = await clientFinance.create(
         { auth: makerAuth },
         project.id,
