@@ -1176,6 +1176,86 @@ test('V0.6-B Client Invoice preserves scope, maker-checker, retained history and
         /CLIENT_INVOICE_APPROVAL_PROJECT_ACCESS_DENIED/,
       );
 
+      const actorBindingDraft = await clientFinance.create(
+        { auth: makerAuth },
+        project.id,
+        {
+          customerId: customer.id,
+          invoiceDate: new Date('2026-10-05T00:00:00.000Z'),
+          dueDate: new Date('2026-10-31T00:00:00.000Z'),
+          createKey: randomUUID(),
+          lines: [{ description: 'Decision evidence binding', amount: new Decimal('8.00') }],
+        },
+      );
+      const actorBindingSubmission = await clientFinance.submit(
+        { auth: makerAuth },
+        actorBindingDraft.id,
+        clientWorkflow.workflowCode,
+        randomUUID(),
+      );
+      const actorBindingInstance = await prisma.approvalInstance.findUniqueOrThrow({
+        where: { id: actorBindingSubmission.approvalInstanceId! },
+      });
+      const actorBindingStep = await prisma.approvalStep.findFirstOrThrow({
+        where: {
+          approvalWorkflowId: actorBindingInstance.approvalWorkflowId,
+          stepNo: actorBindingInstance.currentStepNo,
+        },
+      });
+      const actorBindingAction = await prisma.approvalAction.create({
+        data: {
+          approvalInstanceId: actorBindingInstance.id,
+          approvalStepId: actorBindingStep.id,
+          action: 'APPROVE',
+          actionByUserId: checker.id,
+        },
+      });
+      await prisma.approvalInstance.update({
+        where: { id: actorBindingInstance.id },
+        data: { approvalState: 'APPROVED', completedAt: actorBindingAction.actionAt },
+      });
+      await assert.rejects(
+        () =>
+          prisma.clientInvoice.update({
+            where: { id: actorBindingDraft.id },
+            data: {
+              state: 'APPROVED',
+              approvedByUserId: outsider.id,
+              approvedAt: actorBindingAction.actionAt,
+              decidedAt: actorBindingAction.actionAt,
+            },
+          }),
+        /CLIENT_INVOICE_APPROVAL_METADATA_EVIDENCE_MISMATCH/,
+      );
+      const forgedDecisionAt = new Date(actorBindingAction.actionAt.getTime() + 1000);
+      await assert.rejects(
+        () =>
+          prisma.clientInvoice.update({
+            where: { id: actorBindingDraft.id },
+            data: {
+              state: 'APPROVED',
+              approvedByUserId: checker.id,
+              approvedAt: forgedDecisionAt,
+              decidedAt: forgedDecisionAt,
+            },
+          }),
+        /CLIENT_INVOICE_APPROVAL_METADATA_EVIDENCE_MISMATCH/,
+      );
+      const evidenceBoundInvoice = await prisma.clientInvoice.update({
+        where: { id: actorBindingDraft.id },
+        data: {
+          state: 'APPROVED',
+          approvedByUserId: actorBindingAction.actionByUserId,
+          approvedAt: actorBindingAction.actionAt,
+          decidedAt: actorBindingAction.actionAt,
+        },
+      });
+      assert.equal(evidenceBoundInvoice.approvedByUserId, checker.id);
+      assert.equal(
+        evidenceBoundInvoice.approvedAt?.getTime(),
+        actorBindingAction.actionAt.getTime(),
+      );
+
       const supplierApprovalStep = await prisma.approvalStep.findFirstOrThrow({
         where: { approvalWorkflowId: supplierWorkflow.id, stepNo: 1 },
       });
@@ -1496,6 +1576,17 @@ test('V0.6-B Client Invoice preserves scope, maker-checker, retained history and
     );
     assert.equal(approved.state, 'APPROVED');
     assert.equal(approved.approvalInstance?.approvalState, 'APPROVED');
+    const retainedApprovedAction = await prisma.approvalAction.findFirstOrThrow({
+      where: {
+        approvalInstanceId: approved.approvalInstanceId!,
+        action: 'APPROVE',
+        actionByUserId: checker.id,
+      },
+      orderBy: [{ actionAt: 'desc' }, { id: 'desc' }],
+    });
+    assert.equal(approved.approvedByUserId, retainedApprovedAction.actionByUserId);
+    assert.equal(approved.approvedAt?.getTime(), retainedApprovedAction.actionAt.getTime());
+    assert.equal(approved.decidedAt?.getTime(), retainedApprovedAction.actionAt.getTime());
     const approvedReplay = await clientFinance.approve(
       { auth: checkerAuth },
       draft.id,
