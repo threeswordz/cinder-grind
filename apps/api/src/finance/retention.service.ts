@@ -74,7 +74,10 @@ export class RetentionService {
     });
 
     return certifications.map((certification) => {
+      const hasLedgerEvidence =
+        certification.retentionLedgerEntries.length > 0;
       const supported =
+        hasLedgerEvidence ||
         certification.currencyCode === company.baseCurrencyCode;
       const retentionBalance = certification.retentionLedgerEntries.reduce(
         (balance, entry) =>

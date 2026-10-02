@@ -1,3 +1,11 @@
+## 2026-10-03 — V0.6-D stable-head Codex P1 correction
+
+- Stable PR #129 exact head `dfe3e5f79b7e01598a85f21658ed14817872b935` passed branch CI #2377 and PR CI #2378 before Codex review.
+- Codex identified one genuine P1: a Company base-currency change after valid retention withholding could cause a later Certification reversal to skip the compensating retention `REVERSAL`, leaving historical immutable withholding active.
+- The correction is forward-only: a new Stage-D migration replaces the retention insert/materialization functions without modifying already-executed migrations. New withholding still requires the current Company base currency; a later reversal of existing historical withholding reuses the original ledger amount/currency and performs no FX conversion.
+- The Finance retention read model now treats existing immutable ledger evidence as supported historical evidence even when the Company's current base currency differs.
+- Regression changes the Company base currency after withholding, reverses the Certification, requires linked same-currency reversal evidence and zero balance, then restores the test Company currency. Exact-head CI and fresh Codex re-review remain required before merge.
+
 ## 2026-10-03 — V0.6-D implementation candidate / documentation reconciliation
 
 - V0.6-D pre-flight PR #128 merged to `main` as `4b074ad7dcb5d7148040fc58f25dc16d45149f07`; post-merge main CI #2371 passed before implementation began.
