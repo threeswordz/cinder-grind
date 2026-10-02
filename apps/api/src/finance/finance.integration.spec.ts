@@ -1491,6 +1491,15 @@ test('V0.6-B Client Invoice preserves scope, maker-checker, retained history and
         multiApproved.approvedAt?.getTime(),
         serializedSecondAction.actionAt.getTime(),
       );
+      const orderedApprovalHistory = await clientFinance.get(
+        makerAuth,
+        multiDraft.id,
+      );
+      assert.deepEqual(
+        orderedApprovalHistory.approvalInstance?.actions.map((action) => action.id),
+        [serializedFirstAction.id, serializedSecondAction.id],
+        'Public Client Invoice approval history must follow serialized decision order even when millisecond action_at values tie.',
+      );
 
       const supplierApprovalStep = await prisma.approvalStep.findFirstOrThrow({
         where: { approvalWorkflowId: supplierWorkflow.id, stepNo: 1 },
