@@ -239,6 +239,7 @@ test('V0.6-A Supplier Invoice preserves Project scope, approval history, totals 
     );
     const makerAuth = auth(company.id, maker.id);
     const checkerAuth = auth(company.id, checker.id, [role.roleCode]);
+    const checker2Auth = auth(company.id, checker2.id, [role.roleCode]);
     const sysAdminAuth = auth(company.id, outsider.id, ['SYS_ADMIN']);
     const outsiderAuth = auth(company.id, outsider.id, [], []);
 
@@ -675,6 +676,13 @@ test('V0.6-B Client Invoice preserves scope, maker-checker, retained history and
         employeeName: 'Finance B Checker',
       },
     });
+    const checker2Employee = await prisma.employee.create({
+      data: {
+        companyId: company.id,
+        employeeCode: 'FINB-CHECK2-' + suffix,
+        employeeName: 'Finance B Checker Two',
+      },
+    });
     const outsiderEmployee = await prisma.employee.create({
       data: {
         companyId: company.id,
@@ -711,6 +719,15 @@ test('V0.6-B Client Invoice preserves scope, maker-checker, retained history and
         employeeId: checkerEmployee.id,
         email: 'finb-checker-' + suffix + '@example.com',
         displayName: 'Finance B Checker',
+        passwordHash: 'x',
+      },
+    });
+    const checker2 = await prisma.user.create({
+      data: {
+        companyId: company.id,
+        employeeId: checker2Employee.id,
+        email: 'finb-checker2-' + suffix + '@example.com',
+        displayName: 'Finance B Checker Two',
         passwordHash: 'x',
       },
     });
@@ -756,6 +773,7 @@ test('V0.6-B Client Invoice preserves scope, maker-checker, retained history and
       data: [
         { projectId: project.id, employeeId: makerEmployee.id, projectRole: 'Finance Maker' },
         { projectId: project.id, employeeId: checkerEmployee.id, projectRole: 'Finance Approver' },
+        { projectId: project.id, employeeId: checker2Employee.id, projectRole: 'Finance Approver' },
         { projectId: project.id, employeeId: permissionDeniedEmployee.id, projectRole: 'Finance Permission Test' },
       ],
     });
@@ -798,6 +816,7 @@ test('V0.6-B Client Invoice preserves scope, maker-checker, retained history and
     await prisma.userRole.createMany({
       data: [
         { companyId: company.id, userId: checker.id, roleId: role.id },
+        { companyId: company.id, userId: checker2.id, roleId: role.id },
         {
           companyId: company.id,
           userId: permissionDeniedUser.id,
@@ -827,6 +846,22 @@ test('V0.6-B Client Invoice preserves scope, maker-checker, retained history and
                 { roleId: noPermissionRole.id },
               ],
             },
+          },
+        },
+      },
+    });
+    const multiApproverWorkflow = await prisma.approvalWorkflow.create({
+      data: {
+        companyId: company.id,
+        workflowCode: 'FINB_CI_MULTI_' + suffix,
+        entityType: 'CLIENT_INVOICE',
+        workflowName: 'Client Invoice Two-Approver Workflow',
+        steps: {
+          create: {
+            stepNo: 1,
+            stepName: 'Two Finance Checkers',
+            requiredApprovals: 2,
+            stepRoles: { create: { roleId: role.id } },
           },
         },
       },
@@ -1254,6 +1289,97 @@ test('V0.6-B Client Invoice preserves scope, maker-checker, retained history and
       assert.equal(
         evidenceBoundInvoice.approvedAt?.getTime(),
         actorBindingAction.actionAt.getTime(),
+      );
+
+      const multiDraft = await clientFinance.create(
+        { auth: makerAuth },
+        project.id,
+        {
+          customerId: customer.id,
+          invoiceDate: new Date('2026-10-07T00:00:00.000Z'),
+          dueDate: new Date('2026-10-31T00:00:00.000Z'),
+          createKey: randomUUID(),
+          lines: [{ description: 'Serialized multi-approver final action', amount: new Decimal('9.00') }],
+        },
+      );
+      const multiSubmitted = await clientFinance.submit(
+        { auth: makerAuth },
+        multiDraft.id,
+        multiApproverWorkflow.workflowCode,
+        randomUUID(),
+      );
+      const multiInstance = await prisma.approvalInstance.findUniqueOrThrow({
+        where: { id: multiSubmitted.approvalInstanceId! },
+      });
+      const multiStep = await prisma.approvalStep.findFirstOrThrow({
+        where: {
+          approvalWorkflowId: multiInstance.approvalWorkflowId,
+          stepNo: multiInstance.currentStepNo,
+        },
+      });
+
+      let earlyTransactionStarted!: () => void;
+      const earlyStarted = new Promise<void>((resolve) => {
+        earlyTransactionStarted = resolve;
+      });
+      const earlyStartedLaterInsert = prisma.$transaction(async (tx) => {
+        await tx.$queryRaw`SELECT now()`;
+        earlyTransactionStarted();
+        await tx.$queryRaw`SELECT pg_sleep(0.25)`;
+        return tx.approvalAction.create({
+          data: {
+            approvalInstanceId: multiInstance.id,
+            approvalStepId: multiStep.id,
+            action: 'APPROVE',
+            actionByUserId: checker2.id,
+          },
+        });
+      });
+      await earlyStarted;
+      const laterStartedEarlierInsert = prisma.$transaction(async (tx) =>
+        tx.approvalAction.create({
+          data: {
+            approvalInstanceId: multiInstance.id,
+            approvalStepId: multiStep.id,
+            action: 'APPROVE',
+            actionByUserId: checker.id,
+          },
+        }),
+      );
+      const [serializedSecondAction, serializedFirstAction] = await Promise.all([
+        earlyStartedLaterInsert,
+        laterStartedEarlierInsert,
+      ]);
+      assert.ok(serializedFirstAction.clientInvoiceDecisionOrder);
+      assert.ok(serializedSecondAction.clientInvoiceDecisionOrder);
+      assert.ok(
+        serializedSecondAction.clientInvoiceDecisionOrder! >
+          serializedFirstAction.clientInvoiceDecisionOrder!,
+        'Decision order must follow the Approval Instance lock serialization order.',
+      );
+      assert.ok(
+        serializedSecondAction.actionAt.getTime() <=
+          serializedFirstAction.actionAt.getTime(),
+        'Regression must reproduce a later-serialized action whose transaction-start timestamp is not later.',
+      );
+
+      await prisma.approvalInstance.update({
+        where: { id: multiInstance.id },
+        data: { approvalState: 'APPROVED', completedAt: new Date() },
+      });
+      const multiApproved = await prisma.clientInvoice.update({
+        where: { id: multiDraft.id },
+        data: {
+          state: 'APPROVED',
+          approvedByUserId: serializedSecondAction.actionByUserId,
+          approvedAt: serializedSecondAction.actionAt,
+          decidedAt: serializedSecondAction.actionAt,
+        },
+      });
+      assert.equal(multiApproved.approvedByUserId, checker2.id);
+      assert.equal(
+        multiApproved.approvedAt?.getTime(),
+        serializedSecondAction.actionAt.getTime(),
       );
 
       const supplierApprovalStep = await prisma.approvalStep.findFirstOrThrow({
