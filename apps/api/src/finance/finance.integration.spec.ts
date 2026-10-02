@@ -7,6 +7,7 @@ import {
   ForbiddenException,
   UnprocessableEntityException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 
 import { NumberSequenceService } from '../administration/number-sequence.service';
 import { ApprovalService } from '../approval/approval.service';
