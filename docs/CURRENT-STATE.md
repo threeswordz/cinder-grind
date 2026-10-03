@@ -3,10 +3,10 @@
 **Last verified:** 2026-10-03
 **Source of truth:** Live GitHub repository state
 
-- Current Release: V0.6 Finance — **RELEASE ACCEPTANCE CLOSURE IN PROGRESS**. V0.6-A through V0.6-E are technically complete. Product / Business Owner DEC-023 explicitly waives personal execution of AC-V06-037 for V0.6 only; the authorized proxy evidence review passed with no blocking business defects, and AC-V06-038 is explicitly accepted.
-- Current Stage: V0.6 Release Exit Gate — **OWNER WAIVER / PROXY REVIEW PASS — CLOSURE CI PENDING**. V0.6-E PR #132 squash-merged to `main` as `b8b24a1c1ab424a7e662a99b537004461df359e4`; post-merge main CI #2401 passed; release-exit docs PR #134 squash-merged as `2aa738160e5f2c5cc2070ad1d8f6a4a96acaf85c`; post-merge main CI #2405 passed.
-- Completed Stages: V0.1-A through V0.1-H; V0.2-A through V0.2-G; V0.3-A through V0.3-E; V0.4-A through V0.4-E; V0.5 entry gate; V0.5-A; V0.5-B; V0.5-C; V0.5-D; V0.5-E; V0.6 entry gate; V0.6-A; V0.6-B; V0.6-C; V0.6-D; V0.6-E
-- Active Issue / PR: Issue #133 — V0.6 Release Exit Gate. Branch `v0.6-release-exit-waiver` records DEC-023, the proxy review PASS and explicit release acceptance. **Do not begin V0.7 until this waiver/evidence PR passes CI, merges, post-merge main CI passes and Issue #133 closes.**
+- Current Release: V0.6 Finance — **COMPLETE AND ACCEPTED**. V0.6-A through V0.6-E are technically complete. DEC-023 records the Product / Business Owner's one-time V0.6 AC-V06-037 execution waiver; the authorized proxy evidence review passed with no blocking business defects, and AC-V06-038 was explicitly accepted.
+- Current Stage: V0.7 Cost Control — **NEXT / ENTRY GATE NOT STARTED**. V0.6 release-exit PR #135 squash-merged as `6ebb18c8813c208caa26d6c55ad5dda1f2d79e24`; post-merge main CI #2409 passed; Issue #133 closed completed.
+- Completed Stages: V0.1-A through V0.1-H; V0.2-A through V0.2-G; V0.3-A through V0.3-E; V0.4-A through V0.4-E; V0.5 entry gate; V0.5-A; V0.5-B; V0.5-C; V0.5-D; V0.5-E; V0.6 entry gate; V0.6-A; V0.6-B; V0.6-C; V0.6-D; V0.6-E; V0.6 release exit
+- Active Issue / PR: **None for V0.6.** V0.6 is closed. The next permitted activity is to establish the V0.7 Cost Control entry gate; no V0.7 implementation has begun.
 - V0.5-C green main checkpoint: PR #108 squash-merged as `3f00de1f984c82c1737c4b47c226d99197b19e54`; final exact-head push CI #1869 and PR CI #1870 passed on `0833cd893f208003215cf39cee9c07b6c9a817ad`; final Codex exact-head review reported no major issues; post-merge main CI #1871 passed; Issue #107 closed.
 - V0.5-D green main checkpoint: PR #110 squash-merged as `aceeb82ad13a2f6c773d307541ddd02fafc69a92`; final exact-head push CI #1898 and PR CI #1899 passed on `0cf62c630153a6ac2326f352c0064243b3a2f45f`; final Codex exact-head review reported no major issues; post-merge main CI #1900 passed; Issue #109 closed.
 - V0.5-E green main checkpoint: PR #112 squash-merged as `c054b9253e1ad2623a3fc233ba125003b2894c37`; final exact-head push CI #1930 and PR CI #1931 passed on `9ba8d862dcf66e7b00d7006d9398b19d83026e41`; final Codex exact-head review reported no major issues; post-merge main CI #1932 passed; Issue #111 closed. AC-V05-030 was explicitly accepted by the Product / Business Owner on 2026-10-01.
@@ -953,5 +953,9 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - Supplier Invoice/PO-GR, Client Invoice/AP-AR, Payment/allocation/cancellation, Subcontract retention/reference, Finance Reports/Project Cash Flow, security boundaries and V0.7 scope boundary all passed the available authenticated evidence.
 - Merged-main CI #2401 passed 55 authenticated current-release checks; release-exit checkpoint main CI #2405 passed.
 - AC-V06-038 explicit Product / Business Owner acceptance is recorded.
-- Remaining release-closure gate: DEC-023/evidence branch CI + PR CI → merge → post-merge main CI → close Issue #133.
-- Only after Issue #133 closes may V0.7 entry begin.
+- DEC-023/evidence branch CI #2407 and PR CI #2408 passed.
+- PR #135 squash-merged as `6ebb18c8813c208caa26d6c55ad5dda1f2d79e24`.
+- Post-merge main CI #2409 passed.
+- Issue #133 closed completed.
+- V0.6 Finance is complete and accepted.
+- V0.7 Cost Control is the next release; entry-gate work is permitted, but no V0.7 implementation has begun.
