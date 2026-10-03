@@ -3,10 +3,10 @@
 **Last verified:** 2026-10-03
 **Source of truth:** Live GitHub repository state
 
-- Current Release: V0.7 Cost Control — **ACTIVE / ENTRY GATE COMPLETE / V0.7-A MERGE CANDIDATE**. V0.6 Finance remains COMPLETE AND ACCEPTED; DEC-023 was a one-time V0.6 release-exit exception only and does not apply to V0.7.
-- Current Stage: V0.7-A — **INTEGRATED COST SOURCE READ MODEL — IMPLEMENTATION IN PROGRESS**. The V0.7 entry gate is complete: PR #138 squash-merged as `5d44ad433894ef847588cbd15da2e9f3f7298f06`, post-merge main CI #2417 passed and Issue #137 closed completed. Issue #139 / branch `v0.7-a-cost-read-model` is the active implementation stage.
-- Completed Stages: V0.1-A through V0.1-H; V0.2-A through V0.2-G; V0.3-A through V0.3-E; V0.4-A through V0.4-E; V0.5 entry gate; V0.5-A; V0.5-B; V0.5-C; V0.5-D; V0.5-E; V0.6 entry gate; V0.6-A; V0.6-B; V0.6-C; V0.6-D; V0.6-E; V0.6 release exit
-- Active Issue / PR: **Issue #139 / PR #140 — V0.7-A Integrated Cost Source Read Model.** Active branch: `v0.7-a-cost-read-model`. Initial P1/P2/P3 findings were fixed in `c3884bae2a7ab3cbe67c0132262b2cc55026857a`, with push/PR CI #2429/#2430 PASS. Documentation head `fd7382dd2bf15b8a6d2c36abc62532d8727908ba` passed #2431/#2432. Fresh Codex review of `fd7382dd2b` returned a distinct P1: historical Budget/PO currency provenance. Currency-provenance fix `95cd15073424bf39454d230352873ba40909095e` passed exact push CI #2433 and PR CI #2434, including 57 authenticated live checks. All four genuine review threads are resolved. Fresh Codex review of `5c9c79fa73c58223e733105ce1ed04fa847ccef3` reports no major issues. Exact reviewed-head push CI #2435 and PR CI #2436 PASS. This follow-up is evidence-only under DEC-022; final packaging CI, merge and post-merge main validation remain. V0.7-B remains blocked.
+- Current Release: V0.7 Cost Control — **ACTIVE / V0.7-A COMPLETE / V0.7-B PRE-FLIGHT**. V0.6 Finance remains COMPLETE AND ACCEPTED. DEC-023 is V0.6-only; V0.7 human UAT and explicit owner acceptance remain pending.
+- Current Stage: V0.7-B — **DIRECT COST POSTING — PRE-FLIGHT**. Issue #141 / branch `v0.7-b-preflight`. Application implementation has not begun; pre-flight merge and post-merge CI remain required.
+- Completed Stages: V0.1-A through V0.1-H; V0.2-A through V0.2-G; V0.3-A through V0.3-E; V0.4-A through V0.4-E; V0.5 entry gate; V0.5-A; V0.5-B; V0.5-C; V0.5-D; V0.5-E; V0.6 entry gate; V0.6-A; V0.6-B; V0.6-C; V0.6-D; V0.6-E; V0.6 release exit; V0.7 entry gate; V0.7-A
+- Active Issue / PR: **Issue #141 — V0.7-B Direct Cost Posting.** Stage-A Issue #139 closed completed after PR #140 merged as `d2d1aa75715aa9260b27d89a7029dcab1e9c4941` and exact post-merge main CI #2439 PASS (57 runtime checks). Stage-B pre-flight is documentation-only; implementation must start from its green merged-main checkpoint.
 - V0.5-C green main checkpoint: PR #108 squash-merged as `3f00de1f984c82c1737c4b47c226d99197b19e54`; final exact-head push CI #1869 and PR CI #1870 passed on `0833cd893f208003215cf39cee9c07b6c9a817ad`; final Codex exact-head review reported no major issues; post-merge main CI #1871 passed; Issue #107 closed.
 - V0.5-D green main checkpoint: PR #110 squash-merged as `aceeb82ad13a2f6c773d307541ddd02fafc69a92`; final exact-head push CI #1898 and PR CI #1899 passed on `0cf62c630153a6ac2326f352c0064243b3a2f45f`; final Codex exact-head review reported no major issues; post-merge main CI #1900 passed; Issue #109 closed.
 - V0.5-E green main checkpoint: PR #112 squash-merged as `c054b9253e1ad2623a3fc233ba125003b2894c37`; final exact-head push CI #1930 and PR CI #1931 passed on `9ba8d862dcf66e7b00d7006d9398b19d83026e41`; final Codex exact-head review reported no major issues; post-merge main CI #1932 passed; Issue #111 closed. AC-V05-030 was explicitly accepted by the Product / Business Owner on 2026-10-01.
@@ -1004,3 +1004,12 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - Reviewed-head push CI #2435 and PR CI #2436 PASS; all four genuine findings fixed and threads resolved.
 - This reconciliation changes documentation only. DEC-022 retains the clean material review; no further Codex request is required unless runtime/schema/security/business behavior changes.
 - Remaining technical gates: final documentation-head CI, squash merge, post-merge main CI and Issue #139 closure. V0.7-B remains blocked until those predecessor gates pass.
+
+## V0.7-A completed / V0.7-B pre-flight
+
+- PR #140 squash-merged as `d2d1aa75715aa9260b27d89a7029dcab1e9c4941`; final packaging head `5f62dd3c908bbf76b9802eea16685ebb58730901` passed push/PR CI #2437/#2438.
+- Codex reviewed `5c9c79fa73c58223e733105ce1ed04fa847ccef3` and found no major issues. Later head movement changed evidence documents only under DEC-022.
+- Post-merge main CI #2439 PASS with 57 runtime checks; all four genuine findings fixed and review threads resolved. Issue #139 closed completed. V0.7-A is technically COMPLETE.
+- Issue #141 now tracks V0.7-B Direct Cost Posting under approved D07-07–10 / DEC-024. `docs/V0.7-B-PREFLIGHT.md` records its inherited boundary.
+- Pre-flight is documentation only. V0.7-B application/schema implementation remains NOT STARTED until this PR merges and post-merge main CI passes; it must then use a fresh implementation branch from that exact green main.
+- Forecast/ETC/Variance, Project Variations/revenue/profit, V0.8 and required human V0.7 release acceptance remain later gates.
