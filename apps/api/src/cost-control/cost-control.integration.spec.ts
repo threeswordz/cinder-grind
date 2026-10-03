@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import { UnprocessableEntityException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 
 import { REQUIRED_PERMISSIONS_KEY } from '../authorization/permissions.decorator';
@@ -94,7 +95,14 @@ test('V0.7-A Work Orders allocate within the subcontract ceiling without double 
         new Prisma.Decimal('100.00'),
         [{ amount: new Prisma.Decimal('100.01') }],
       ),
-    /Approved Work Order allocation cannot exceed/,
+    (error: unknown) => {
+      if (!(error instanceof UnprocessableEntityException)) return false;
+      const response = error.getResponse() as { code?: string };
+      return (
+        response.code ===
+        'COST_CONTROL_SUBCONTRACT_ALLOCATION_INVALID'
+      );
+    },
   );
 });
 
