@@ -408,3 +408,37 @@ The approved policy is:
 Live GitHub was checked before this decision was recorded. PR #122 (`V0.6-B Client Invoice and derived AP-AR`) was open and mergeable at head `10e0b7257bf803d7e368bb10311c1e070cde92a5`. CI #2326 passed on that head, all 29 review threads were resolved, and the Codex timeline recorded: “Codex Review: Didn't find any major issues.” for reviewed commit `10e0b7257b`.
 
 Therefore the V0.6-B Codex gate is satisfied at that exact reviewed head. This separate governance/documentation change does not modify PR #122 and does not invalidate that clean review. If PR #122 later receives a material code/schema/security/business-behavior change, DEC-022 requires the appropriate stable-head re-review before merge.
+
+
+## DEC-023 — V0.6 one-time human-UAT execution waiver
+**Status:** APPROVED — Product / Business Owner, 2026-10-03 (Singapore time)
+
+At the V0.6 Finance Release Exit Gate, after V0.6-A through V0.6-E were technically complete, PR #132 was merged, Issue #130 was closed, and merged-main technical/runtime evidence was green, the Product / Business Owner explicitly instructed:
+
+**“make exception , review on my behalf and let me know the result”**
+
+This is a **one-time V0.6 Release Exit exception only**. For AC-V06-037, the Product / Business Owner waives the requirement to personally execute the prepared hands-on human walkthrough and authorizes Chat, acting as Builder / Release Coordinator, to perform a proxy evidence review against the prepared V0.6 UAT criteria and merged-main runtime/CI evidence.
+
+This exception does **not** claim that the Product / Business Owner personally performed human UAT. AC-V06-037 may be recorded only as **WAIVED BY OWNER / PROXY EVIDENCE REVIEW PASS** if the proxy review finds no blocking business defect.
+
+Proxy review result:
+- Supplier Invoice → approval → PO/GR source traceability: PASS;
+- Client Invoice → approval → derived AR: PASS;
+- Payment → allocation → AP/AR → controlled cancellation/history: PASS;
+- Subcontract Certification → Finance reference / payable-retention visibility: PASS;
+- Finance Reports → derived Project Cash Flow, allocation independence and Payment-date filtering: PASS;
+- Project/Finance permission boundaries and technical SYS_ADMIN separation: PASS;
+- V0.6 cost/accounting exclusions and V0.7 boundary: PASS;
+- blocking business defects found: **NONE**.
+
+Supporting evidence includes merged-main CI #2401 with 55 authenticated current-release checks, release-exit main CI #2405 PASS, clean migration/status and Prisma validation, production dependency audit, API/web typecheck/test/build, prior-release regression, final Stage-E Codex review closure and the prepared `docs/V0.6-UAT-EVIDENCE.md`.
+
+AC-V06-038 explicit release acceptance is supported by the Product / Business Owner's earlier statement **“i approve”** at Issue #133 and this explicit one-time exception instruction. V0.6 release closure is authorized only after this Decision Log / acceptance-evidence change itself passes exact-head branch CI, PR CI, merges to `main`, post-merge `main` CI passes and Issue #133 is closed.
+
+This waiver:
+- applies only to V0.6 AC-V06-037;
+- is not a standing precedent for V0.7, V0.8, V1.0 or later releases;
+- does not change DEC-008;
+- does not transfer Product / Business Owner authority to Chat generally;
+- does not weaken technical CI, security, review, forward-only migration or Change Control requirements;
+- does not permit a future human-UAT gate to be auto-completed without a new explicit Product / Business Owner exception.
