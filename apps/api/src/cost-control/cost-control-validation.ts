@@ -118,3 +118,46 @@ export function costNonEmpty(value: Record<string, unknown>): void {
     invalid('body', 'Provide at least one field to update.');
   }
 }
+
+
+export function costNonNegativeDecimal(
+  input: Record<string, unknown>,
+  field: string,
+): Prisma.Decimal {
+  const value = input[field];
+  if (
+    typeof value !== 'string' ||
+    !/^\d{1,16}(?:\.\d{1,2})?$/.test(value)
+  ) {
+    return invalid(
+      field,
+      'Must be an exact non-negative decimal string with up to 16 integer digits and 2 decimal places.',
+    );
+  }
+  try {
+    const decimal = new Prisma.Decimal(value);
+    if (decimal.isNegative()) {
+      return invalid(field, 'Must be zero or greater.');
+    }
+    return decimal;
+  } catch {
+    return invalid(field, 'Must be a valid non-negative decimal string.');
+  }
+}
+
+export function costArray(
+  input: Record<string, unknown>,
+  field: string,
+  max = 500,
+): Record<string, unknown>[] {
+  const value = input[field];
+  if (!Array.isArray(value) || value.length > max) {
+    return invalid(field, 'Must be an array containing no more than ' + max + ' items.');
+  }
+  return value.map((item, index) => {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) {
+      return invalid(field + '[' + index + ']', 'Must be a JSON object.');
+    }
+    return item as Record<string, unknown>;
+  });
+}

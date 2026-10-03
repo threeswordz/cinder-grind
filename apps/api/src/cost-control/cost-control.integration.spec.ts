@@ -2,16 +2,23 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import test from 'node:test';
 
-import { UnprocessableEntityException } from '@nestjs/common';
+import {
+  ConflictException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 
+import { AuditService } from '../audit/audit.service';
 import { REQUIRED_PERMISSIONS_KEY } from '../authorization/permissions.decorator';
 import { PrismaService } from '../prisma/prisma.service';
 import { CostControlController } from './cost-control.controller';
 import { costPositiveDecimal } from './cost-control-validation';
 import { DirectCostController } from './direct-cost.controller';
 import { DirectCostService } from './direct-cost.service';
+import { ForecastController } from './forecast.controller';
+import { ForecastService } from './forecast.service';
 import {
+  remainingCostCommitment,
   selectCurrentApprovedPurchaseOrders,
   selectOriginalAndCurrentBudget,
   splitSubcontractCommitment,
@@ -38,6 +45,7 @@ test('V0.7-A Budget and PO currency checks work without other Finance sources', 
         subcontractCertification: { findMany: async () => [] },
         payment: { findMany: async () => [] },
         directCostPosting: { findMany: async () => [] },
+        costForecast: { findFirst: async () => null },
       };
       const service = new CostControlService(prisma as unknown as PrismaService,
         { assertAccess: async () => {} } as never);
@@ -221,6 +229,651 @@ test('V0.7-A Decimal helper preserves exact financial arithmetic beyond Decimal.
     ]).toFixed(),
     '1000000000000000000000000000000',
   );
+});
+
+
+test('V0.7-C Remaining Commitment uses exact Decimal arithmetic and floors at zero', () => {
+  assert.equal(
+    remainingCostCommitment(
+      new Prisma.Decimal('100.00'),
+      new Prisma.Decimal('40.00'),
+    ).toFixed(2),
+    '60.00',
+  );
+  assert.equal(
+    remainingCostCommitment(
+      new Prisma.Decimal('100.00'),
+      new Prisma.Decimal('100.01'),
+    ).toFixed(2),
+    '0.00',
+  );
+  assert.equal(
+    remainingCostCommitment(
+      new Prisma.Decimal('9999999999999999.99'),
+      new Prisma.Decimal('0.01'),
+    ).toFixed(2),
+    '9999999999999999.98',
+  );
+});
+
+test('V0.7-C integrated forecast reduces only canonically linked PO commitment', async () => {
+  const prisma = {
+    project: {
+      findFirstOrThrow: async () => ({
+        id: 'project',
+        projectCode: 'P-1',
+        projectName: 'Project',
+      }),
+    },
+    company: {
+      findUniqueOrThrow: async () => ({ baseCurrencyCode: 'SGD' }),
+    },
+    wbsElement: { findMany: async () => [] },
+    costCode: { findMany: async () => [] },
+    budgetRevision: { findMany: async () => [] },
+    purchaseOrder: {
+      findMany: async () => [
+        {
+          id: 'po',
+          poNumber: 'PO-1',
+          revisionNo: 0,
+          currencyCode: 'SGD',
+          cancelledAt: null,
+          lines: [
+            {
+              id: 'po-line-1',
+              amount: new Prisma.Decimal('100.00'),
+              wbsId: null,
+              costCodeId: null,
+              quotationAwardId: 'award-1',
+            },
+          ],
+        },
+      ],
+    },
+    subcontractAgreement: { findMany: async () => [] },
+    supplierInvoice: {
+      findMany: async () => [
+        {
+          id: 'invoice',
+          supplierInvoiceNumber: 'SI-1',
+          invoiceDate: new Date('2026-10-03'),
+          currencyCode: 'SGD',
+          items: [
+            {
+              id: 'invoice-line',
+              amount: new Prisma.Decimal('40.00'),
+              wbsId: null,
+              costCodeId: null,
+              purchaseOrderLine: {
+                quotationAwardId: 'award-1',
+                purchaseOrder: { poNumber: 'PO-1' },
+              },
+              goodsReceiptItem: null,
+            },
+          ],
+        },
+      ],
+    },
+    subcontractCertification: { findMany: async () => [] },
+    payment: { findMany: async () => [] },
+    directCostPosting: { findMany: async () => [] },
+    costForecast: {
+      findFirst: async () => ({
+        id: 'forecast',
+        versionNo: 3,
+        forecastDate: new Date('2026-10-03'),
+        currencyCode: 'SGD',
+        approvedAt: new Date('2026-10-03T12:00:00Z'),
+        lines: [
+          {
+            id: 'forecast-line',
+            lineNo: 1,
+            wbsId: null,
+            costCodeId: null,
+            uncommittedEtcAmount: new Prisma.Decimal('25.00'),
+            remarks: null,
+          },
+        ],
+      }),
+    },
+  };
+  const service = new CostControlService(
+    prisma as unknown as PrismaService,
+    { assertAccess: async () => {} } as never,
+  );
+
+  const result = await service.projectCostControl(
+    {
+      companyId: 'company',
+      permissions: ['cost.forecast.view'],
+    } as never,
+    'project',
+  );
+
+  assert.equal(result.totals.committedCost.procurement.toFixed(2), '100.00');
+  assert.equal(result.totals.actualCost.supplier.toFixed(2), '40.00');
+  assert.equal(
+    result.totals.remainingCommitment.procurement.toFixed(2),
+    '60.00',
+  );
+  assert.equal(result.totals.uncommittedEtc.toFixed(2), '25.00');
+  assert.equal(result.totals.costToComplete.toFixed(2), '85.00');
+  assert.equal(result.totals.forecastCost.toFixed(2), '125.00');
+  assert.equal(result.currentForecast?.versionNo, 3);
+
+  const aggregateOnly = await service.projectCostControl(
+    {
+      companyId: 'company',
+      permissions: ['cost.control.view'],
+    } as never,
+    'project',
+  );
+  assert.equal(aggregateOnly.totals.uncommittedEtc.toFixed(2), '25.00');
+  assert.equal(aggregateOnly.currentForecast, null);
+  assert.equal(
+    aggregateOnly.sourceEvidence.uncommittedEtc.recordsVisible,
+    false,
+  );
+  assert.equal(
+    'records' in aggregateOnly.sourceEvidence.uncommittedEtc,
+    false,
+  );
+});
+
+test('V0.7-C Remaining Commitment validates currency for linked Actual even when invoice dimensions are filtered out', async () => {
+  const prisma = {
+    project: {
+      findFirstOrThrow: async () => ({
+        id: 'project',
+        projectCode: 'P-CURRENCY',
+        projectName: 'Currency regression',
+      }),
+    },
+    company: {
+      findUniqueOrThrow: async () => ({ baseCurrencyCode: 'SGD' }),
+    },
+    wbsElement: {
+      findMany: async () => [
+        {
+          id: 'wbs-selected',
+          parentId: null,
+          wbsCode: 'SELECTED',
+          wbsName: 'Selected WBS',
+        },
+        {
+          id: 'wbs-other',
+          parentId: null,
+          wbsCode: 'OTHER',
+          wbsName: 'Other WBS',
+        },
+      ],
+    },
+    costCode: { findMany: async () => [] },
+    budgetRevision: { findMany: async () => [] },
+    purchaseOrder: {
+      findMany: async () => [
+        {
+          id: 'po',
+          poNumber: 'PO-CURRENCY',
+          revisionNo: 0,
+          currencyCode: 'SGD',
+          cancelledAt: null,
+          lines: [
+            {
+              id: 'po-line',
+              amount: new Prisma.Decimal('100.00'),
+              wbsId: 'wbs-selected',
+              costCodeId: null,
+              quotationAwardId: 'award-currency',
+            },
+          ],
+        },
+      ],
+    },
+    subcontractAgreement: { findMany: async () => [] },
+    supplierInvoice: {
+      findMany: async () => [
+        {
+          id: 'invoice',
+          supplierInvoiceNumber: 'SI-FOREIGN',
+          invoiceDate: new Date('2026-10-03'),
+          currencyCode: 'USD',
+          items: [
+            {
+              id: 'invoice-line',
+              amount: new Prisma.Decimal('40.00'),
+              wbsId: 'wbs-other',
+              costCodeId: null,
+              purchaseOrderLine: {
+                quotationAwardId: 'award-currency',
+                purchaseOrder: { poNumber: 'PO-CURRENCY' },
+              },
+              goodsReceiptItem: null,
+            },
+          ],
+        },
+      ],
+    },
+    subcontractCertification: { findMany: async () => [] },
+    payment: { findMany: async () => [] },
+    directCostPosting: { findMany: async () => [] },
+    costForecast: { findFirst: async () => null },
+  };
+  const service = new CostControlService(
+    prisma as unknown as PrismaService,
+    { assertAccess: async () => {} } as never,
+  );
+
+  await assert.rejects(
+    () =>
+      service.projectCostControl(
+        { companyId: 'company', permissions: [] } as never,
+        'project',
+        { wbsId: 'wbs-selected' },
+      ),
+    (error: unknown) => {
+      if (!(error instanceof UnprocessableEntityException)) return false;
+      return (
+        (error.getResponse() as { code?: string }).code ===
+        'COST_CONTROL_CURRENCY_UNSUPPORTED'
+      );
+    },
+  );
+});
+
+test('V0.7-C Forecast routes require explicit view/manage/approve permissions', () => {
+  assert.deepEqual(
+    Reflect.getMetadata(
+      REQUIRED_PERMISSIONS_KEY,
+      ForecastController.prototype.list,
+    ),
+    ['cost.forecast.view'],
+  );
+  assert.deepEqual(
+    Reflect.getMetadata(
+      REQUIRED_PERMISSIONS_KEY,
+      ForecastController.prototype.create,
+    ),
+    ['cost.forecast.manage'],
+  );
+  assert.deepEqual(
+    Reflect.getMetadata(
+      REQUIRED_PERMISSIONS_KEY,
+      ForecastController.prototype.approve,
+    ),
+    ['cost.forecast.approve'],
+  );
+});
+
+test('V0.7-C Forecast service creates a versioned draft with real PostgreSQL guards', async () => {
+  const prisma = new PrismaService();
+  await prisma.$connect();
+  try {
+    const suffix = randomUUID();
+    const company = await prisma.company.create({
+      data: {
+        companyCode: 'FC-' + suffix,
+        companyName: 'Forecast create company',
+        baseCurrencyCode: 'SGD',
+      },
+    });
+    const customer = await prisma.customer.create({
+      data: {
+        companyId: company.id,
+        customerCode: 'FC-C-' + suffix,
+        customerName: 'Forecast create customer',
+      },
+    });
+    const employee = await prisma.employee.create({
+      data: {
+        companyId: company.id,
+        employeeCode: 'FC-E-' + suffix,
+        employeeName: 'Forecast maker employee',
+      },
+    });
+    const maker = await prisma.user.create({
+      data: {
+        companyId: company.id,
+        employeeId: employee.id,
+        email: 'forecast-maker-' + suffix + '@example.com',
+        displayName: 'Forecast maker',
+        passwordHash: 'x',
+      },
+    });
+    const project = await prisma.project.create({
+      data: {
+        companyId: company.id,
+        projectCode: 'FC-P-' + suffix,
+        projectName: 'Forecast create project',
+        customerId: customer.id,
+        contractValue: '1000.00',
+        plannedStartDate: new Date('2026-10-01'),
+        plannedCompletionDate: new Date('2027-10-01'),
+      },
+    });
+    await prisma.projectMember.create({
+      data: {
+        projectId: project.id,
+        employeeId: employee.id,
+        projectRole: 'Forecast Maker',
+      },
+    });
+    const wbs = await prisma.wbsElement.create({
+      data: {
+        projectId: project.id,
+        wbsCode: 'FC-' + suffix,
+        wbsName: 'Forecast WBS',
+      },
+    });
+    const costCode = await prisma.costCode.create({
+      data: {
+        companyId: company.id,
+        costCode: 'FC-' + suffix,
+        costName: 'Forecast Cost Code',
+      },
+    });
+    const role = await prisma.role.create({
+      data: {
+        companyId: company.id,
+        roleCode: 'FC-MAKER-' + suffix,
+        roleName: 'Forecast Maker',
+      },
+    });
+    const managePermission = await prisma.permission.findUniqueOrThrow({
+      where: { permissionCode: 'cost.forecast.manage' },
+    });
+    await prisma.rolePermission.create({
+      data: { roleId: role.id, permissionId: managePermission.id },
+    });
+    await prisma.userRole.create({
+      data: {
+        companyId: company.id,
+        userId: maker.id,
+        roleId: role.id,
+      },
+    });
+
+    const service = new ForecastService(
+      prisma,
+      { assertAccess: async () => {} } as never,
+      {} as never,
+      new AuditService(prisma),
+    );
+    const auth = {
+      companyId: company.id,
+      userId: maker.id,
+      permissions: ['cost.forecast.manage'],
+    } as never;
+    const created = await service.create(
+      { auth },
+      project.id,
+      {
+        forecastDate: new Date('2027-04-05T00:00:00.000Z'),
+        description: 'Real PostgreSQL Forecast draft',
+        createKey: 'forecast-create-' + suffix,
+        lines: [
+          {
+            wbsId: wbs.id,
+            costCodeId: costCode.id,
+            uncommittedEtcAmount: new Prisma.Decimal('35.00'),
+            remarks: 'Dimensioned ETC',
+            inputOrder: 1,
+          },
+          {
+            wbsId: null,
+            costCodeId: null,
+            uncommittedEtcAmount: new Prisma.Decimal('10.00'),
+            remarks: 'Unallocated ETC',
+            inputOrder: 2,
+          },
+        ],
+      },
+    );
+
+    assert.equal(created.state, 'DRAFT');
+    assert.equal(created.versionNo, 1);
+    assert.equal(created.totalUncommittedEtc.toFixed(2), '45.00');
+    assert.equal(created.lines.length, 2);
+
+    const concurrent = await Promise.all(
+      Array.from({ length: 4 }, (_, index) =>
+        service.create(
+          { auth },
+          project.id,
+          {
+            forecastDate: new Date('2027-04-06T00:00:00.000Z'),
+            description: 'Concurrent Forecast draft ' + index,
+            createKey: 'forecast-concurrent-' + index + '-' + suffix,
+            lines: [
+              {
+                wbsId: null,
+                costCodeId: null,
+                uncommittedEtcAmount: new Prisma.Decimal(
+                  (index + 1).toFixed(2),
+                ),
+                remarks: 'Concurrent version regression',
+                inputOrder: 1,
+              },
+            ],
+          },
+        ),
+      ),
+    );
+    assert.deepEqual(
+      concurrent
+        .map((forecast) => forecast.versionNo)
+        .sort((left, right) => left - right),
+      [2, 3, 4, 5],
+    );
+
+    const sourceWithLine = await service.create(
+      { auth },
+      project.id,
+      {
+        forecastDate: new Date('2027-04-08T00:00:00.000Z'),
+        description: 'Forecast line parent immutability source',
+        createKey: 'forecast-line-source-' + suffix,
+        lines: [
+          {
+            wbsId: null,
+            costCodeId: null,
+            uncommittedEtcAmount: new Prisma.Decimal('12.00'),
+            remarks: 'Must remain attached to its original Forecast',
+            inputOrder: 1,
+          },
+        ],
+      },
+    );
+    const alternateDraft = await service.create(
+      { auth },
+      project.id,
+      {
+        forecastDate: new Date('2027-04-09T00:00:00.000Z'),
+        description: 'Forecast line parent immutability target',
+        createKey: 'forecast-line-target-' + suffix,
+        lines: [],
+      },
+    );
+
+    await assert.rejects(() =>
+      prisma.costForecastLine.update({
+        where: { id: sourceWithLine.lines[0]!.id },
+        data: { forecastId: alternateDraft.id },
+      }),
+    );
+    const retainedLine = await prisma.costForecastLine.findUniqueOrThrow({
+      where: { id: sourceWithLine.lines[0]!.id },
+      select: { forecastId: true },
+    });
+    assert.equal(retainedLine.forecastId, sourceWithLine.id);
+  } finally {
+    await prisma.$disconnect();
+  }
+});
+
+test('V0.7-C Forecast create returns controlled conflict after concurrency retry exhaustion', async () => {
+  for (const code of ['P2002', 'P2034'] as const) {
+    let attempts = 0;
+    const prisma = {
+      costForecast: {
+        findFirst: async () => null,
+      },
+      $transaction: async () => {
+        attempts += 1;
+        throw new Prisma.PrismaClientKnownRequestError(
+          'Synthetic Forecast concurrency failure',
+          {
+            code,
+            clientVersion: 'test',
+          },
+        );
+      },
+    };
+    const service = new ForecastService(
+      prisma as unknown as PrismaService,
+      { assertAccess: async () => {} } as never,
+      {} as never,
+      {} as never,
+    );
+    const auth = {
+      companyId: 'company',
+      userId: 'maker',
+      permissions: ['cost.forecast.manage'],
+    } as never;
+
+    await assert.rejects(
+      () =>
+        service.create(
+          { auth },
+          'project',
+          {
+            forecastDate: new Date('2027-04-07T00:00:00.000Z'),
+            description: 'Retry exhaustion regression',
+            createKey: 'retry-exhaustion-' + code,
+            lines: [],
+          },
+        ),
+      (error: unknown) => {
+        if (!(error instanceof ConflictException)) return false;
+        return (
+          (error.getResponse() as { code?: string }).code ===
+          'COST_FORECAST_CREATE_CONCURRENCY_RETRY_EXHAUSTED'
+        );
+      },
+    );
+    assert.equal(attempts, 5, code + ' should exhaust exactly five attempts');
+  }
+});
+
+test('V0.7-C serialized Forecast writes retry P2034 and fail as controlled conflicts after exhaustion', async () => {
+  const operations = [
+    {
+      name: 'update',
+      permission: 'cost.forecast.manage',
+      invoke: (service: ForecastService, auth: never) =>
+        service.update({ auth }, 'forecast', { description: 'retry' }),
+    },
+    {
+      name: 'submit',
+      permission: 'cost.forecast.manage',
+      invoke: (service: ForecastService, auth: never) =>
+        service.submit({ auth }, 'forecast', 'WF-1', 'submit-key'),
+    },
+    {
+      name: 'approve',
+      permission: 'cost.forecast.approve',
+      invoke: (service: ForecastService, auth: never) =>
+        service.approve({ auth }, 'forecast', 'approve-key', 'retry'),
+    },
+    {
+      name: 'reject',
+      permission: 'cost.forecast.approve',
+      invoke: (service: ForecastService, auth: never) =>
+        service.reject({ auth }, 'forecast', 'reject-key', 'retry'),
+    },
+  ] as const;
+
+  for (const operation of operations) {
+    let attempts = 0;
+    const prisma = {
+      costForecast: {
+        findFirst: async () => ({
+          id: 'forecast',
+          companyId: 'company',
+          projectId: 'project',
+          lines: [],
+        }),
+      },
+      $transaction: async () => {
+        attempts += 1;
+        throw new Prisma.PrismaClientKnownRequestError(
+          'Synthetic serialized Forecast write conflict',
+          {
+            code: 'P2034',
+            clientVersion: 'test',
+          },
+        );
+      },
+    };
+    const service = new ForecastService(
+      prisma as unknown as PrismaService,
+      { assertAccess: async () => {} } as never,
+      {} as never,
+      {} as never,
+    );
+    const auth = {
+      companyId: 'company',
+      userId: 'user',
+      permissions: [operation.permission],
+    } as never;
+
+    await assert.rejects(
+      () => operation.invoke(service, auth),
+      (error: unknown) => {
+        if (!(error instanceof ConflictException)) return false;
+        return (
+          (error.getResponse() as { code?: string }).code ===
+          'COST_FORECAST_WRITE_CONCURRENCY_RETRY_EXHAUSTED'
+        );
+      },
+    );
+    assert.equal(
+      attempts,
+      5,
+      operation.name + ' should retry the full serialized transaction five times',
+    );
+  }
+});
+
+test('V0.7-C Forecast permissions are seeded without implicit SYS_ADMIN grants', async () => {
+  const prisma = new PrismaService();
+  await prisma.$connect();
+  try {
+    const codes = [
+      'cost.forecast.view',
+      'cost.forecast.manage',
+      'cost.forecast.approve',
+    ];
+    const permissions = await prisma.permission.findMany({
+      where: { permissionCode: { in: codes } },
+      select: { id: true, permissionCode: true, moduleCode: true },
+    });
+    assert.deepEqual(
+      permissions.map((row) => row.permissionCode).sort(),
+      [...codes].sort(),
+    );
+    assert.ok(permissions.every((row) => row.moduleCode === 'COST_CONTROL'));
+    const implicitTechnicalGrant = await prisma.rolePermission.count({
+      where: {
+        permissionId: { in: permissions.map((row) => row.id) },
+        role: { roleCode: 'SYS_ADMIN' },
+      },
+    });
+    assert.equal(implicitTechnicalGrant, 0);
+  } finally {
+    await prisma.$disconnect();
+  }
 });
 
 test('V0.7-A permission is seeded without implicit SYS_ADMIN grant', async () => {
@@ -687,11 +1340,17 @@ test('V0.7-B database freezes terminal evidence and permits exact reversal after
 });
 
 
-test('V0.7-B Project selector retains scoped archived Projects with Direct Cost history', async () => {
+test('V0.7-C Project selector retains scoped archived Projects with Direct Cost or Forecast history', async () => {
   let projectWhere: unknown;
   const prisma = {
     directCostPosting: {
       findMany: async () => [{ projectId: 'archived-project' }],
+    },
+    costForecast: {
+      findMany: async () => [
+        { projectId: 'archived-project' },
+        { projectId: 'forecast-only-project' },
+      ],
     },
     project: {
       findMany: async (args: { where: unknown }) => {
@@ -701,6 +1360,12 @@ test('V0.7-B Project selector retains scoped archived Projects with Direct Cost 
             id: 'archived-project',
             projectCode: 'ARCH-1',
             projectName: 'Archived project',
+            isActive: false,
+          },
+          {
+            id: 'forecast-only-project',
+            projectCode: 'ARCH-2',
+            projectName: 'Forecast-only archived project',
             isActive: false,
           },
         ];
@@ -727,6 +1392,12 @@ test('V0.7-B Project selector retains scoped archived Projects with Direct Cost 
       projectName: 'Archived project',
       isActive: false,
     },
+    {
+      id: 'forecast-only-project',
+      projectCode: 'ARCH-2',
+      projectName: 'Forecast-only archived project',
+      isActive: false,
+    },
   ]);
   assert.deepEqual(projectWhere, {
     AND: [
@@ -734,7 +1405,7 @@ test('V0.7-B Project selector retains scoped archived Projects with Direct Cost 
       {
         OR: [
           { isActive: true },
-          { id: { in: ['archived-project'] } },
+          { id: { in: ['archived-project', 'forecast-only-project'] } },
         ],
       },
     ],

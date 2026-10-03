@@ -10,6 +10,8 @@ import { CostControlController } from './cost-control.controller';
 import { CostControlService } from './cost-control.service';
 import { DirectCostController } from './direct-cost.controller';
 import { DirectCostService } from './direct-cost.service';
+import { ForecastController } from './forecast.controller';
+import { ForecastService } from './forecast.service';
 
 @Module({
   imports: [
@@ -20,8 +22,8 @@ import { DirectCostService } from './direct-cost.service';
     AuthorizationModule,
     ProjectsModule,
   ],
-  controllers: [CostControlController, DirectCostController],
-  providers: [CostControlService, DirectCostService],
-  exports: [CostControlService, DirectCostService],
+  controllers: [CostControlController, DirectCostController, ForecastController],
+  providers: [CostControlService, DirectCostService, ForecastService],
+  exports: [CostControlService, DirectCostService, ForecastService],
 })
 export class CostControlModule {}

@@ -358,11 +358,10 @@ export function CostControlWorkspace({ permissions }: Props) {
   return (
     <Stack spacing={3}>
       <Box>
-        <Typography variant="h5">Cost Control · Direct Cost Posting</Typography>
+        <Typography variant="h5">Cost Control</Typography>
         <Typography color="text.secondary">
-          Integrated Budget / Commitment / Actual / Paid measures plus
-          controlled project expenses that are not already represented by AP
-          or Subcontracts.
+          Integrated Budget, Commitment, Actual, Paid and Forecast measures,
+          with controlled Direct Cost and Uncommitted ETC workflows.
         </Typography>
       </Box>
 
@@ -440,16 +439,59 @@ export function CostControlWorkspace({ permissions }: Props) {
                     readModel.data.data.totals.paidCost.total
                   }
                 />
+                <Chip
+                  label={
+                    'Remaining Commitment ' +
+                    readModel.data.data.baseCurrencyCode +
+                    ' ' +
+                    readModel.data.data.totals.remainingCommitment.total
+                  }
+                />
+                <Chip
+                  label={
+                    'Uncommitted ETC ' +
+                    readModel.data.data.baseCurrencyCode +
+                    ' ' +
+                    readModel.data.data.totals.uncommittedEtc
+                  }
+                />
+                <Chip
+                  label={
+                    'Forecast Cost ' +
+                    readModel.data.data.baseCurrencyCode +
+                    ' ' +
+                    readModel.data.data.totals.forecastCost
+                  }
+                />
+                <Chip
+                  label={
+                    'Variance ' +
+                    readModel.data.data.baseCurrencyCode +
+                    ' ' +
+                    readModel.data.data.totals.variance
+                  }
+                />
               </Stack>
               <Typography variant="body2" color="text.secondary">
-                Direct Actual: {readModel.data.data.baseCurrencyCode}{' '}
+                Cost to Complete: {readModel.data.data.baseCurrencyCode}{' '}
+                {readModel.data.data.totals.costToComplete}. Direct Actual:{' '}
+                {readModel.data.data.baseCurrencyCode}{' '}
                 {readModel.data.data.totals.actualCost.direct}. Committed,
-                Actual and Paid remain separate measures.
+                Actual, Paid and Forecast remain separate measures.
+                {readModel.data.data.currentForecast
+                  ? ' Current Forecast: v' +
+                    readModel.data.data.currentForecast.versionNo +
+                    ' (' +
+                    dateValue(readModel.data.data.currentForecast.forecastDate) +
+                    ').'
+                  : ' No approved Forecast yet.'}
               </Typography>
             </Stack>
           </CardContent>
         </Card>
       ) : null}
+
+      <ForecastPanel permissions={permissions} projectId={projectId} />
 
       {canCreate &&
       projectId &&
@@ -991,5 +1033,535 @@ function PostingDetail(props: PostingDetailProps) {
         </Card>
       ) : null}
     </Stack>
+  );
+}
+
+
+type ForecastLineDraft = {
+  key: string;
+  wbsId: string;
+  costCodeId: string;
+  amount: string;
+  remarks: string;
+};
+
+function blankForecastLine(): ForecastLineDraft {
+  return {
+    key: key(),
+    wbsId: '',
+    costCodeId: '',
+    amount: '',
+    remarks: '',
+  };
+}
+
+function ForecastPanel({
+  permissions,
+  projectId,
+}: {
+  permissions: string[];
+  projectId: string;
+}) {
+  const queryClient = useQueryClient();
+  const canView = permissions.includes('cost.forecast.view');
+  const canManage = permissions.includes('cost.forecast.manage');
+  const canApprove = permissions.includes('cost.forecast.approve');
+
+  const [forecastId, setForecastId] = useState('');
+  const [createDate, setCreateDate] = useState(today);
+  const [createDescription, setCreateDescription] = useState('');
+  const [createLines, setCreateLines] = useState<ForecastLineDraft[]>([
+    blankForecastLine(),
+  ]);
+  const [createKey, setCreateKey] = useState(key);
+
+  const [editDate, setEditDate] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editLines, setEditLines] = useState<ForecastLineDraft[]>([]);
+  const [workflowCode, setWorkflowCode] = useState('');
+  const [comment, setComment] = useState('');
+
+  const retryActionKeys = useRef(new Map<string, string>());
+  const actionKey = (signature: string) => {
+    const existing = retryActionKeys.current.get(signature);
+    if (existing) return existing;
+    const value = key();
+    retryActionKeys.current.set(signature, value);
+    return value;
+  };
+  const clearActionKey = (signature: string) => {
+    retryActionKeys.current.delete(signature);
+  };
+
+  const options = useQuery({
+    queryKey: ['forecast-options', projectId],
+    queryFn: () => costControlApi.forecastOptions(projectId),
+    enabled: canView && Boolean(projectId),
+  });
+
+  const forecasts = useQuery({
+    queryKey: ['cost-forecasts', projectId],
+    queryFn: () => costControlApi.forecastList(projectId),
+    enabled: canView && Boolean(projectId),
+  });
+
+  useEffect(() => {
+    const values = forecasts.data?.data ?? [];
+    if (!forecastId && values[0]) setForecastId(values[0].id);
+    if (forecastId && !values.some((row) => row.id === forecastId)) {
+      setForecastId(values[0]?.id ?? '');
+    }
+  }, [forecastId, forecasts.data]);
+
+  const detail = useQuery({
+    queryKey: ['cost-forecast', forecastId],
+    queryFn: () => costControlApi.forecastDetail(forecastId),
+    enabled: canView && Boolean(forecastId),
+  });
+  const current = detail.data?.data;
+
+  useEffect(() => {
+    if (!current) return;
+    setEditDate(dateValue(current.forecastDate));
+    setEditDescription(current.description ?? '');
+    setEditLines(
+      current.lines.map((line) => ({
+        key: line.id,
+        wbsId: line.wbsId ?? '',
+        costCodeId: line.costCodeId ?? '',
+        amount: line.uncommittedEtcAmount,
+        remarks: line.remarks ?? '',
+      })),
+    );
+  }, [current?.id, current?.updatedAt]);
+
+  useEffect(() => {
+    setForecastId('');
+    setCreateLines([blankForecastLine()]);
+  }, [projectId]);
+
+  const workflows = useQuery({
+    queryKey: ['forecast-workflows'],
+    queryFn: costControlApi.forecastWorkflows,
+    enabled: canManage,
+  });
+  useEffect(() => {
+    const values = workflows.data?.data ?? [];
+    if (!workflowCode && values[0]) setWorkflowCode(values[0].workflowCode);
+    if (
+      workflowCode &&
+      !values.some((workflow) => workflow.workflowCode === workflowCode)
+    ) {
+      setWorkflowCode(values[0]?.workflowCode ?? '');
+    }
+  }, [workflowCode, workflows.data]);
+
+  const refresh = async (id?: string) => {
+    if (id) setForecastId(id);
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['cost-forecasts', projectId] }),
+      queryClient.invalidateQueries({
+        queryKey: ['cost-control-read-model', projectId],
+      }),
+      ...(id
+        ? [
+            queryClient.invalidateQueries({
+              queryKey: ['cost-forecast', id],
+            }),
+          ]
+        : []),
+    ]);
+  };
+
+  const payloadLines = (lines: ForecastLineDraft[]) =>
+    lines.map((line) => ({
+      wbsId: line.wbsId || null,
+      costCodeId: line.costCodeId || null,
+      uncommittedEtcAmount: line.amount,
+      remarks: line.remarks.trim() || null,
+    }));
+
+  const createForecast = useMutation({
+    mutationFn: () =>
+      costControlApi.forecastCreate(projectId, {
+        forecastDate: createDate,
+        description: createDescription.trim() || null,
+        lines: payloadLines(createLines),
+        createKey,
+      }),
+    onSuccess: async (result) => {
+      setCreateDescription('');
+      setCreateLines([blankForecastLine()]);
+      setCreateKey(key());
+      await refresh(result.data.id);
+    },
+  });
+
+  const saveForecast = useMutation({
+    mutationFn: () =>
+      costControlApi.forecastUpdate(forecastId, {
+        forecastDate: editDate,
+        description: editDescription.trim() || null,
+        lines: payloadLines(editLines),
+      }),
+    onSuccess: async () => refresh(forecastId),
+  });
+
+  const submitForecast = useMutation({
+    mutationFn: () => {
+      const signature = 'forecast-submit:' + forecastId + ':' + workflowCode;
+      return costControlApi
+        .forecastSubmit(forecastId, {
+          workflowCode,
+          actionKey: actionKey(signature),
+        })
+        .then((result) => {
+          clearActionKey(signature);
+          return result;
+        });
+    },
+    onSuccess: async () => refresh(forecastId),
+  });
+
+  const approveForecast = useMutation({
+    mutationFn: () => {
+      const signature = 'forecast-approve:' + forecastId + ':' + comment;
+      return costControlApi
+        .forecastApprove(forecastId, {
+          actionKey: actionKey(signature),
+          ...(comment.trim() ? { comment: comment.trim() } : {}),
+        })
+        .then((result) => {
+          clearActionKey(signature);
+          return result;
+        });
+    },
+    onSuccess: async () => {
+      setComment('');
+      await refresh(forecastId);
+    },
+  });
+
+  const rejectForecast = useMutation({
+    mutationFn: () => {
+      const signature = 'forecast-reject:' + forecastId + ':' + comment;
+      return costControlApi
+        .forecastReject(forecastId, {
+          actionKey: actionKey(signature),
+          ...(comment.trim() ? { comment: comment.trim() } : {}),
+        })
+        .then((result) => {
+          clearActionKey(signature);
+          return result;
+        });
+    },
+    onSuccess: async () => {
+      setComment('');
+      await refresh(forecastId);
+    },
+  });
+
+  if (!projectId) return null;
+  if (!canView) {
+    return (
+      <Alert severity="info">
+        Forecast source records require cost.forecast.view. Aggregate Forecast
+        measures remain available through authorized Cost Control reporting.
+      </Alert>
+    );
+  }
+
+  const busy =
+    createForecast.isPending ||
+    saveForecast.isPending ||
+    submitForecast.isPending ||
+    approveForecast.isPending ||
+    rejectForecast.isPending;
+  const mutationError =
+    createForecast.error ||
+    saveForecast.error ||
+    submitForecast.error ||
+    approveForecast.error ||
+    rejectForecast.error;
+
+  const updateLine = (
+    setter: React.Dispatch<React.SetStateAction<ForecastLineDraft[]>>,
+    lineKey: string,
+    patch: Partial<ForecastLineDraft>,
+  ) =>
+    setter((lines) =>
+      lines.map((line) => (line.key === lineKey ? { ...line, ...patch } : line)),
+    );
+
+  const lineEditor = (
+    lines: ForecastLineDraft[],
+    setter: React.Dispatch<React.SetStateAction<ForecastLineDraft[]>>,
+    disabled: boolean,
+  ) => (
+    <Stack spacing={1}>
+      {lines.map((line, index) => (
+        <Stack
+          key={line.key}
+          direction={{ xs: 'column', md: 'row' }}
+          spacing={1}
+        >
+          <TextField
+            select
+            label={'WBS ' + (index + 1)}
+            value={line.wbsId}
+            disabled={disabled}
+            onChange={(event) =>
+              updateLine(setter, line.key, { wbsId: event.target.value })
+            }
+            sx={{ flex: 1 }}
+          >
+            <MenuItem value="">Unallocated WBS</MenuItem>
+            {(options.data?.data.wbs ?? []).map((wbs) => (
+              <MenuItem key={wbs.id} value={wbs.id}>
+                {wbs.wbsCode} · {wbs.wbsName}
+              </MenuItem>
+            ))}
+          </TextField>
+          <TextField
+            select
+            label="Cost Code"
+            value={line.costCodeId}
+            disabled={disabled}
+            onChange={(event) =>
+              updateLine(setter, line.key, { costCodeId: event.target.value })
+            }
+            sx={{ flex: 1 }}
+          >
+            <MenuItem value="">Unallocated Cost Code</MenuItem>
+            {(options.data?.data.costCodes ?? []).map((costCode) => (
+              <MenuItem key={costCode.id} value={costCode.id}>
+                {costCode.costCode} · {costCode.costName}
+              </MenuItem>
+            ))}
+          </TextField>
+          <TextField
+            label="Uncommitted ETC"
+            value={line.amount}
+            disabled={disabled}
+            onChange={(event) =>
+              updateLine(setter, line.key, { amount: event.target.value })
+            }
+            sx={{ flex: 1 }}
+          />
+          <TextField
+            label="Remarks"
+            value={line.remarks}
+            disabled={disabled}
+            onChange={(event) =>
+              updateLine(setter, line.key, { remarks: event.target.value })
+            }
+            sx={{ flex: 2 }}
+          />
+          {!disabled && lines.length > 1 ? (
+            <Button
+              onClick={() =>
+                setter((values) => values.filter((value) => value.key !== line.key))
+              }
+            >
+              Remove
+            </Button>
+          ) : null}
+        </Stack>
+      ))}
+      {!disabled ? (
+        <Button
+          variant="text"
+          onClick={() => setter((values) => [...values, blankForecastLine()])}
+        >
+          Add Forecast Line
+        </Button>
+      ) : null}
+    </Stack>
+  );
+
+  return (
+    <Card variant="outlined">
+      <CardContent>
+        <Stack spacing={2}>
+          <Typography variant="h6">Cost Forecast / Uncommitted ETC</Typography>
+          <Typography variant="body2" color="text.secondary">
+            Enter only Uncommitted ETC. Remaining Commitment is derived from
+            canonical commitments and attributable Actual Cost; Cost to Complete,
+            Forecast Cost and Variance are calculated by Cost Control.
+          </Typography>
+          {mutationError ? (
+            <Alert severity="error">{message(mutationError)}</Alert>
+          ) : null}
+
+          {canManage && options.data?.data.project.isActive ? (
+            <Stack spacing={1}>
+              <Typography variant="subtitle1">Create Forecast Version</Typography>
+              <Stack direction={{ xs: 'column', md: 'row' }} spacing={1}>
+                <TextField
+                  type="date"
+                  label="Forecast date"
+                  value={createDate}
+                  onChange={(event) => setCreateDate(event.target.value)}
+                  InputLabelProps={{ shrink: true }}
+                  sx={{ flex: 1 }}
+                />
+                <TextField
+                  label="Description"
+                  value={createDescription}
+                  onChange={(event) => setCreateDescription(event.target.value)}
+                  sx={{ flex: 3 }}
+                />
+              </Stack>
+              {lineEditor(createLines, setCreateLines, false)}
+              <Button
+                variant="contained"
+                disabled={
+                  busy ||
+                  !createDate ||
+                  createLines.some((line) => !line.amount)
+                }
+                onClick={() => createForecast.mutate()}
+              >
+                Create Forecast Draft
+              </Button>
+            </Stack>
+          ) : null}
+
+          <Divider />
+          <TextField
+            select
+            label="Forecast Version"
+            value={forecastId}
+            onChange={(event) => setForecastId(event.target.value)}
+            fullWidth
+          >
+            {(forecasts.data?.data ?? []).map((forecast) => (
+              <MenuItem key={forecast.id} value={forecast.id}>
+                v{forecast.versionNo} · {dateValue(forecast.forecastDate)} ·{' '}
+                {forecast.currencyCode} · {forecast.state}
+              </MenuItem>
+            ))}
+          </TextField>
+
+          {detail.isPending && forecastId ? <CircularProgress size={24} /> : null}
+          {detail.isError ? (
+            <Alert severity="error">{message(detail.error)}</Alert>
+          ) : null}
+
+          {current ? (
+            <Stack spacing={2}>
+              <Stack direction={{ xs: 'column', md: 'row' }} spacing={1}>
+                <Chip label={'v' + current.versionNo} />
+                <Chip label={current.state} />
+                <Chip
+                  variant="outlined"
+                  label={
+                    current.currencyCode +
+                    ' ETC ' +
+                    current.totalUncommittedEtc
+                  }
+                />
+              </Stack>
+              <Stack direction={{ xs: 'column', md: 'row' }} spacing={1}>
+                <TextField
+                  type="date"
+                  label="Forecast date"
+                  value={editDate}
+                  disabled={!canManage || current.state !== 'DRAFT'}
+                  onChange={(event) => setEditDate(event.target.value)}
+                  InputLabelProps={{ shrink: true }}
+                  sx={{ flex: 1 }}
+                />
+                <TextField
+                  label="Description"
+                  value={editDescription}
+                  disabled={!canManage || current.state !== 'DRAFT'}
+                  onChange={(event) => setEditDescription(event.target.value)}
+                  sx={{ flex: 3 }}
+                />
+              </Stack>
+              {lineEditor(
+                editLines,
+                setEditLines,
+                !canManage || current.state !== 'DRAFT',
+              )}
+              {canManage && current.state === 'DRAFT' ? (
+                <Button
+                  variant="outlined"
+                  disabled={
+                    busy ||
+                    !editDate ||
+                    editLines.some((line) => !line.amount)
+                  }
+                  onClick={() => saveForecast.mutate()}
+                >
+                  Save Forecast Draft
+                </Button>
+              ) : null}
+
+              {canManage && current.state === 'DRAFT' ? (
+                <Stack spacing={1}>
+                  <TextField
+                    select
+                    label="Approval workflow"
+                    value={workflowCode}
+                    onChange={(event) => setWorkflowCode(event.target.value)}
+                  >
+                    {(workflows.data?.data ?? []).map((workflow) => (
+                      <MenuItem
+                        key={workflow.id}
+                        value={workflow.workflowCode}
+                      >
+                        {workflow.workflowName} · {workflow.workflowCode}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                  {(workflows.data?.data ?? []).length === 0 ? (
+                    <Alert severity="warning">
+                      No active COST_FORECAST approval workflow is configured.
+                    </Alert>
+                  ) : null}
+                  <Button
+                    variant="contained"
+                    disabled={busy || !workflowCode}
+                    onClick={() => submitForecast.mutate()}
+                  >
+                    Submit Forecast
+                  </Button>
+                </Stack>
+              ) : null}
+
+              {canApprove && current.state === 'SUBMITTED' ? (
+                <Stack spacing={1}>
+                  <TextField
+                    label="Approval comment (optional)"
+                    value={comment}
+                    onChange={(event) => setComment(event.target.value)}
+                    multiline
+                    minRows={2}
+                  />
+                  <Stack direction="row" spacing={1}>
+                    <Button
+                      variant="contained"
+                      disabled={busy}
+                      onClick={() => approveForecast.mutate()}
+                    >
+                      Approve Forecast
+                    </Button>
+                    <Button
+                      variant="outlined"
+                      disabled={busy}
+                      onClick={() => rejectForecast.mutate()}
+                    >
+                      Reject Forecast
+                    </Button>
+                  </Stack>
+                </Stack>
+              ) : null}
+            </Stack>
+          ) : null}
+        </Stack>
+      </CardContent>
+    </Card>
   );
 }
