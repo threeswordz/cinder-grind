@@ -352,6 +352,9 @@ const permissionCodes = [
   'finance.ap.view',
   'finance.ar.view',
   'cost.control.view',
+  'cost.direct_posting.create',
+  'cost.direct_posting.submit',
+  'cost.direct_posting.approve',
   'subcontracts.subcontractor.view',
   'subcontracts.subcontractor.manage',
   'subcontracts.subcontractor.archive',
@@ -428,6 +431,8 @@ await request(admin, `/admin/roles/${checkerRoleId}/permissions`, {
       'finance.payment.reject',
       'finance.ap.view',
       'finance.ar.view',
+      'cost.control.view',
+      'cost.direct_posting.approve',
       'inventory.receipt.view',
       'inventory.receipt.approve',
       'inventory.issue.view',
@@ -457,6 +462,25 @@ await request(admin, `/admin/roles/${checkerRoleId}/permissions`, {
       'subcontracts.report.view',
     ],
   },
+});
+
+const directCostWorkflowCode = 'DIRECT_COST_POSTING_' + suffix;
+await request(admin, '/admin/approval-workflows', {
+  method: 'POST',
+  json: {
+    workflowCode: directCostWorkflowCode,
+    entityType: 'DIRECT_COST_POSTING',
+    workflowName: 'Direct Cost Posting Approval ' + suffix,
+    steps: [
+      {
+        stepNo: 1,
+        stepName: 'Approve Direct Cost Posting',
+        requiredApprovals: 1,
+        roleIds: [checkerRoleId],
+      },
+    ],
+  },
+  expected: 201,
 });
 
 const baselineWorkflowCode = 'SCHEDULE_BASELINE_' + suffix;
@@ -7172,6 +7196,380 @@ await request(
   { expected: 403 },
 );
 record('V0.7-A Cost Control derives Original/Revised Budget, separate Committed/Actual/Paid measures, dimensional filters, source-permission evidence and Project authorization');
+
+const v07DirectBaseline =
+  Number(v07CostControl.data.data.totals.actualCost.direct ?? 0);
+const v07PaidBaseline =
+  Number(v07CostControl.data.data.totals.paidCost.total);
+
+await request(
+  v07Restricted,
+  '/cost-control/projects/' + projectId + '/direct-cost-postings',
+  { expected: 403 },
+);
+await request(
+  unassigned,
+  '/cost-control/projects/' + projectId + '/direct-cost-postings',
+  { expected: 403 },
+);
+await request(
+  admin,
+  '/cost-control/projects/' + projectId + '/direct-cost-postings',
+  { expected: 403 },
+);
+
+const directCreateBody = {
+  postingDate: '2027-04-02',
+  description: 'V0.7-B controlled site expense ' + suffix,
+  reference: 'DC-' + suffix,
+  amount: '17.25',
+  wbsId: rootWbs.data.data.id,
+  costCodeId: costCode.data.data.id,
+  createKey: 'v07-direct-create-' + suffix,
+};
+const v07DirectDraft = await request(
+  pm,
+  '/cost-control/projects/' + projectId + '/direct-cost-postings',
+  {
+    method: 'POST',
+    json: directCreateBody,
+    expected: 201,
+  },
+);
+const v07DirectId = v07DirectDraft.data.data.id;
+check(
+  v07DirectDraft.data.data.state === 'DRAFT' &&
+    Number(v07DirectDraft.data.data.amount) === 17.25 &&
+    v07DirectDraft.data.data.wbsId === rootWbs.data.data.id &&
+    v07DirectDraft.data.data.costCodeId === costCode.data.data.id,
+  'V0.7-B Direct Cost Draft did not retain Project/WBS/Cost Code/amount evidence.',
+);
+const v07DirectRetry = await request(
+  pm,
+  '/cost-control/projects/' + projectId + '/direct-cost-postings',
+  {
+    method: 'POST',
+    json: directCreateBody,
+    expected: 201,
+  },
+);
+check(
+  v07DirectRetry.data.data.id === v07DirectId,
+  'V0.7-B Direct Cost create idempotency did not return the original Draft.',
+);
+await request(
+  pm,
+  '/cost-control/projects/' + projectId + '/direct-cost-postings',
+  {
+    method: 'POST',
+    json: {
+      ...directCreateBody,
+      amount: '-1.00',
+      createKey: 'v07-direct-negative-' + suffix,
+    },
+    expected: 422,
+  },
+);
+
+const v07DirectEdited = await request(
+  pm,
+  '/cost-control/direct-cost-postings/' + v07DirectId,
+  {
+    method: 'PATCH',
+    json: {
+      description: 'V0.7-B edited controlled site expense ' + suffix,
+      reference: 'DC-EDIT-' + suffix,
+    },
+    expected: 200,
+  },
+);
+check(
+  v07DirectEdited.data.data.state === 'DRAFT' &&
+    v07DirectEdited.data.data.reference === 'DC-EDIT-' + suffix,
+  'V0.7-B Draft maintenance did not retain the edited source evidence.',
+);
+
+const directBeforeApproval = await request(
+  pm,
+  '/projects/' + projectId + '/cost-control',
+);
+check(
+  Number(directBeforeApproval.data.data.totals.actualCost.direct ?? 0) ===
+    v07DirectBaseline &&
+    Number(directBeforeApproval.data.data.totals.paidCost.total) ===
+      v07PaidBaseline,
+  'V0.7-B Draft Direct Cost incorrectly contributed to Actual or Paid Cost.',
+);
+
+const directSubmitKey = 'v07-direct-submit-' + suffix;
+const v07DirectSubmitted = await request(
+  pm,
+  '/cost-control/direct-cost-postings/' + v07DirectId + '/submit',
+  {
+    method: 'POST',
+    json: {
+      workflowCode: directCostWorkflowCode,
+      actionKey: directSubmitKey,
+    },
+    expected: 201,
+  },
+);
+check(
+  v07DirectSubmitted.data.data.state === 'SUBMITTED' &&
+    v07DirectSubmitted.data.data.approvalInstance?.approvalState ===
+      'SUBMITTED',
+  'V0.7-B Direct Cost did not enter configured approval.',
+);
+const v07DirectSubmitRetry = await request(
+  pm,
+  '/cost-control/direct-cost-postings/' + v07DirectId + '/submit',
+  {
+    method: 'POST',
+    json: {
+      workflowCode: directCostWorkflowCode,
+      actionKey: directSubmitKey,
+    },
+    expected: 201,
+  },
+);
+check(
+  v07DirectSubmitRetry.data.data.id === v07DirectId &&
+    v07DirectSubmitRetry.data.data.state === 'SUBMITTED',
+  'V0.7-B Direct Cost submit retry was not stable.',
+);
+await request(
+  pm,
+  '/cost-control/direct-cost-postings/' + v07DirectId + '/approve',
+  {
+    method: 'POST',
+    json: {
+      actionKey: 'v07-direct-self-approve-' + suffix,
+      comment: 'Maker must not approve own Direct Cost.',
+    },
+    expected: 403,
+  },
+);
+
+const directApproveKey = 'v07-direct-approve-' + suffix;
+const v07DirectApproved = await request(
+  checker,
+  '/cost-control/direct-cost-postings/' + v07DirectId + '/approve',
+  {
+    method: 'POST',
+    json: {
+      actionKey: directApproveKey,
+      comment: 'Approve controlled Direct Cost.',
+    },
+    expected: 201,
+  },
+);
+check(
+  v07DirectApproved.data.data.state === 'APPROVED' &&
+    v07DirectApproved.data.data.approvedAt &&
+    v07DirectApproved.data.data.approvalInstance?.approvalState ===
+      'APPROVED',
+  'V0.7-B independent approver did not final-approve Direct Cost.',
+);
+const v07DirectApproveRetry = await request(
+  checker,
+  '/cost-control/direct-cost-postings/' + v07DirectId + '/approve',
+  {
+    method: 'POST',
+    json: {
+      actionKey: directApproveKey,
+      comment: 'Approve controlled Direct Cost.',
+    },
+    expected: 201,
+  },
+);
+check(
+  v07DirectApproveRetry.data.data.state === 'APPROVED',
+  'V0.7-B Direct Cost approval retry was not stable.',
+);
+await request(
+  pm,
+  '/cost-control/direct-cost-postings/' + v07DirectId,
+  {
+    method: 'PATCH',
+    json: { description: 'Approved history must be immutable.' },
+    expected: 409,
+  },
+);
+
+const directAfterApproval = await request(
+  pm,
+  '/projects/' + projectId + '/cost-control',
+);
+const directApprovedEvidence =
+  directAfterApproval.data.data.sourceEvidence.directActual.records?.find(
+    (row) => row.id === v07DirectId,
+  );
+check(
+  Number(directAfterApproval.data.data.totals.actualCost.direct) ===
+    v07DirectBaseline + 17.25 &&
+    Number(directAfterApproval.data.data.totals.paidCost.total) ===
+      v07PaidBaseline &&
+    directAfterApproval.data.data.sourceEvidence.directActual.recordsVisible ===
+      true &&
+    directApprovedEvidence &&
+    Number(directApprovedEvidence.amount) === 17.25 &&
+    String(directApprovedEvidence.recognitionDate).slice(0, 10) ===
+      '2027-04-02',
+  'V0.7-B approved Direct Cost did not contribute signed Actual Cost on posting date while leaving Paid Cost unchanged.',
+);
+
+const v07DirectReversal = await request(
+  pm,
+  '/cost-control/direct-cost-postings/' + v07DirectId + '/reversal',
+  {
+    method: 'POST',
+    json: {
+      postingDate: '2027-04-03',
+      reason: 'Correct the controlled site expense through retained history.',
+      reference: 'DC-REV-' + suffix,
+      createKey: 'v07-direct-reversal-create-' + suffix,
+    },
+    expected: 201,
+  },
+);
+const v07DirectReversalId = v07DirectReversal.data.data.id;
+check(
+  v07DirectReversal.data.data.state === 'DRAFT' &&
+    v07DirectReversal.data.data.reversesPostingId === v07DirectId &&
+    Number(v07DirectReversal.data.data.amount) === -17.25 &&
+    v07DirectReversal.data.data.wbsId === rootWbs.data.data.id &&
+    v07DirectReversal.data.data.costCodeId === costCode.data.data.id,
+  'V0.7-B linked reversal did not exactly offset and preserve original dimensions.',
+);
+await request(
+  pm,
+  '/cost-control/direct-cost-postings/' + v07DirectReversalId + '/submit',
+  {
+    method: 'POST',
+    json: {
+      workflowCode: directCostWorkflowCode,
+      actionKey: 'v07-direct-reversal-submit-' + suffix,
+    },
+    expected: 201,
+  },
+);
+await request(
+  checker,
+  '/cost-control/direct-cost-postings/' + v07DirectReversalId + '/approve',
+  {
+    method: 'POST',
+    json: {
+      actionKey: 'v07-direct-reversal-approve-' + suffix,
+      comment: 'Approve exact linked reversal.',
+    },
+    expected: 201,
+  },
+);
+await request(
+  pm,
+  '/cost-control/direct-cost-postings/' + v07DirectId + '/reversal',
+  {
+    method: 'POST',
+    json: {
+      postingDate: '2027-04-04',
+      reason: 'A second active/approved reversal must be rejected.',
+      createKey: 'v07-direct-second-reversal-' + suffix,
+    },
+    expected: 409,
+  },
+);
+
+const directAfterReversal = await request(
+  pm,
+  '/projects/' + projectId + '/cost-control',
+);
+check(
+  Number(directAfterReversal.data.data.totals.actualCost.direct) ===
+    v07DirectBaseline &&
+    Number(directAfterReversal.data.data.totals.paidCost.total) ===
+      v07PaidBaseline &&
+    directAfterReversal.data.data.sourceEvidence.directActual.records.some(
+      (row) =>
+        row.id === v07DirectReversalId &&
+        Number(row.amount) === -17.25 &&
+        row.reversesPostingId === v07DirectId,
+    ),
+  'V0.7-B approved linked reversal did not exactly offset Actual Cost while retaining source history.',
+);
+
+const v07RejectedDraft = await request(
+  pm,
+  '/cost-control/projects/' + projectId + '/direct-cost-postings',
+  {
+    method: 'POST',
+    json: {
+      postingDate: '2027-04-04',
+      description: 'V0.7-B rejected Direct Cost ' + suffix,
+      amount: '9.50',
+      wbsId: rootWbs.data.data.id,
+      costCodeId: costCode.data.data.id,
+      createKey: 'v07-direct-rejected-create-' + suffix,
+    },
+    expected: 201,
+  },
+);
+const v07RejectedId = v07RejectedDraft.data.data.id;
+await request(
+  pm,
+  '/cost-control/direct-cost-postings/' + v07RejectedId + '/submit',
+  {
+    method: 'POST',
+    json: {
+      workflowCode: directCostWorkflowCode,
+      actionKey: 'v07-direct-rejected-submit-' + suffix,
+    },
+    expected: 201,
+  },
+);
+await request(
+  checker,
+  '/cost-control/direct-cost-postings/' + v07RejectedId + '/reject',
+  {
+    method: 'POST',
+    json: {
+      actionKey: directApproveKey,
+      comment: 'Reusing a completed approval key must fail closed.',
+    },
+    expected: 409,
+  },
+);
+const v07DirectRejected = await request(
+  checker,
+  '/cost-control/direct-cost-postings/' + v07RejectedId + '/reject',
+  {
+    method: 'POST',
+    json: {
+      actionKey: 'v07-direct-reject-' + suffix,
+      comment: 'Reject this Direct Cost and retain the decision history.',
+    },
+    expected: 201,
+  },
+);
+check(
+  v07DirectRejected.data.data.state === 'REJECTED' &&
+    v07DirectRejected.data.data.rejectionReason ===
+      'Reject this Direct Cost and retain the decision history.',
+  'V0.7-B rejection did not retain explicit rejected state and reason.',
+);
+const directAfterReject = await request(
+  pm,
+  '/projects/' + projectId + '/cost-control',
+);
+check(
+  Number(directAfterReject.data.data.totals.actualCost.direct) ===
+    v07DirectBaseline &&
+    Number(directAfterReject.data.data.totals.paidCost.total) ===
+      v07PaidBaseline,
+  'V0.7-B rejected Direct Cost incorrectly contributed to Actual or Paid Cost.',
+);
+
+record('V0.7-B Direct Cost create/retry → Draft maintenance → configured maker-checker approval/retry → posting-date Actual Cost recognition → immutable approved history');
+record('V0.7-B linked reversal exactly offsets Actual without touching Paid Cost; rejection, idempotency-key reuse, aggregate-only source denial and Project authorization fail closed');
 
 await request(admin, '/admin/company', {
   method: 'PATCH', json: { baseCurrencyCode: 'USD' },

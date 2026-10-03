@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 
 import {
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
   UnprocessableEntityException,
@@ -114,6 +115,7 @@ export class DirectCostService {
   }
 
   async list(auth: AuthenticatedUserContext, projectId: string) {
+    this.assertSourcePermission(auth);
     await this.access.assertAccess(auth, projectId);
     return this.prisma.directCostPosting.findMany({
       where: { companyId: auth.companyId, projectId },
@@ -122,6 +124,7 @@ export class DirectCostService {
   }
 
   async get(auth: AuthenticatedUserContext, postingId: string) {
+    this.assertSourcePermission(auth);
     const posting = await this.visiblePosting(auth, postingId, this.prisma);
     return this.hydrate(posting, this.prisma);
   }
@@ -953,6 +956,20 @@ export class DirectCostService {
         code: 'DIRECT_COST_NOT_SUBMITTED',
         detail:
           'This Direct Cost Posting is not awaiting an approval action.',
+      });
+    }
+  }
+
+  private assertSourcePermission(auth: AuthenticatedUserContext) {
+    if (
+      !auth.permissions.some((permission) =>
+        permission.startsWith('cost.direct_posting.'),
+      )
+    ) {
+      throw new ForbiddenException({
+        code: 'DIRECT_COST_SOURCE_FORBIDDEN',
+        detail:
+          'Direct Cost source records require an explicit Direct Cost action permission in addition to Cost Control aggregate visibility.',
       });
     }
   }
