@@ -4,9 +4,9 @@
 **Source of truth:** Live GitHub repository state
 
 - Current Release: V0.6 Finance — **COMPLETE AND ACCEPTED**. V0.6-A through V0.6-E are technically complete. DEC-023 records the Product / Business Owner's one-time V0.6 AC-V06-037 execution waiver; the authorized proxy evidence review passed with no blocking business defects, and AC-V06-038 was explicitly accepted.
-- Current Stage: V0.7 Cost Control — **NEXT / ENTRY GATE NOT STARTED**. V0.6 release-exit PR #135 squash-merged as `6ebb18c8813c208caa26d6c55ad5dda1f2d79e24`; post-merge main CI #2409 passed; Issue #133 closed completed.
+- Current Stage: V0.7 Cost Control — **ENTRY GATE OWNER-APPROVED / TECHNICAL CLOSURE IN PROGRESS**. Product / Business Owner approved the complete V0.7 baseline (D07-01–11, BR-V07-01–16, AC-V07-001–052 and supporting baselines) on 2026-10-03; Issue #137 is the active release entry gate. V0.7 implementation has not begun.
 - Completed Stages: V0.1-A through V0.1-H; V0.2-A through V0.2-G; V0.3-A through V0.3-E; V0.4-A through V0.4-E; V0.5 entry gate; V0.5-A; V0.5-B; V0.5-C; V0.5-D; V0.5-E; V0.6 entry gate; V0.6-A; V0.6-B; V0.6-C; V0.6-D; V0.6-E; V0.6 release exit
-- Active Issue / PR: **None for V0.6.** V0.6 is closed. The next permitted activity is to establish the V0.7 Cost Control entry gate; no V0.7 implementation has begun.
+- Active Issue / PR: **Issue #137 — V0.7 Cost Control Release Entry Gate.** Active docs-only branch: `v0.7-entry-gate`. No implementation PR exists and V0.7-A remains blocked until the entry gate merges, post-merge main CI passes and #137 closes.
 - V0.5-C green main checkpoint: PR #108 squash-merged as `3f00de1f984c82c1737c4b47c226d99197b19e54`; final exact-head push CI #1869 and PR CI #1870 passed on `0833cd893f208003215cf39cee9c07b6c9a817ad`; final Codex exact-head review reported no major issues; post-merge main CI #1871 passed; Issue #107 closed.
 - V0.5-D green main checkpoint: PR #110 squash-merged as `aceeb82ad13a2f6c773d307541ddd02fafc69a92`; final exact-head push CI #1898 and PR CI #1899 passed on `0cf62c630153a6ac2326f352c0064243b3a2f45f`; final Codex exact-head review reported no major issues; post-merge main CI #1900 passed; Issue #109 closed.
 - V0.5-E green main checkpoint: PR #112 squash-merged as `c054b9253e1ad2623a3fc233ba125003b2894c37`; final exact-head push CI #1930 and PR CI #1931 passed on `9ba8d862dcf66e7b00d7006d9398b19d83026e41`; final Codex exact-head review reported no major issues; post-merge main CI #1932 passed; Issue #111 closed. AC-V05-030 was explicitly accepted by the Product / Business Owner on 2026-10-01.
@@ -87,7 +87,7 @@
 - V0.1 cross-module release acceptance scenario: PASS in the Stage H release-candidate regression suite.
 - Open defect check at V0.1 acceptance: no Severity 1 or Severity 2 release-blocking defect recorded.
 - Governance: `AGENTS.md`, `docs/PROJECT-GOVERNANCE.md`, PR governance checklist, DEC-008, DEC-016 and DEC-022 are active. DEC-022 makes Codex a stable-merge-candidate/high-risk independent gate rather than a continuous per-fix reviewer; human UAT and CI/release sequencing are unchanged.
-- Next action: validate and merge the docs-only V0.6-E pre-flight, verify post-merge `main` CI, then create the Stage-E implementation branch from that exact green checkpoint. Stage E implements only derived Project Cash Flow, basic Finance reporting, policy/traceability hardening and release evidence under the approved V0.6 baseline. After V0.6-E technical completion, STOP at required human V0.6 UAT/business acceptance under AC-V06-037–038.
+- Next action: validate the exact head of `v0.7-entry-gate`, open the docs-only V0.7 entry-gate PR, apply DEC-022 review policy, merge after applicable gates pass, verify post-merge `main` CI, then close Issue #137. Only after that may V0.7-A begin.
 
 ## Stage E completed
 
@@ -959,3 +959,18 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - Issue #133 closed completed.
 - V0.6 Finance is complete and accepted.
 - V0.7 Cost Control is the next release; entry-gate work is permitted, but no V0.7 implementation has begun.
+
+
+## V0.7 Cost Control release entry gate
+
+- Product / Business Owner approved the complete V0.7 entry baseline on 2026-10-03 with “go ahead i trust u”.
+- Decision: DEC-024.
+- Active Issue: #137.
+- Active branch: `v0.7-entry-gate`.
+- Approved AC baseline: AC-V07-001–052.
+- Approved business rules: BR-V07-01–16.
+- Approved owner decisions: D07-01–11.
+- Approved implementation decomposition: V0.7-A Integrated Cost Source Read Model; V0.7-B Direct Cost Posting; V0.7-C Forecast/ETC/Variance; V0.7-D Project Variations/Revenue/Profit; V0.7-E Cost Reporting/Hardening/Release Evidence.
+- Critical semantic rule: Committed Cost, Actual Cost and Paid Cost remain separate.
+- No second editable Cost Control ledger is authorized.
+- V0.7 implementation remains NOT STARTED until this entry gate is merged, post-merge main CI passes and Issue #137 closes.

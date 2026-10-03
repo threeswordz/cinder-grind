@@ -575,7 +575,9 @@ Dependencies:
 
 Budget, Procurement, Subcontracts and Finance.
 
-Build:
+**Entry baseline:** APPROVED by Product / Business Owner on 2026-10-03 under DEC-024. Technical entry-gate closure remains Issue #137; implementation may not start before that Issue closes after merge and green post-merge main CI.
+
+Approved capabilities:
 
 1. Original Budget consumption
 2. Revised Budget consumption
@@ -583,22 +585,36 @@ Build:
 4. Actual Cost
 5. Paid Cost
 6. Direct Cost Posting
-7. Cost Forecast
+7. Cost Forecast / Uncommitted ETC
 8. Cost to Complete
 9. Variance
-10. Project Variations
-11. Contract/Revenue measures
+10. Client Project Variations
+11. Contract / Revenue measures
 12. Forecast Profit
 13. Actual Profit
-14. Project/WBS/Cost Code rollups
+14. Project / WBS / Cost Code rollups
 15. Cost reports
 
-Critical rule:
+Approved implementation stages:
 
-Committed Cost, Actual Cost and Paid Cost remain separate measures.
+1. **V0.7-A — Integrated Cost Source Read Model**
+2. **V0.7-B — Direct Cost Posting**
+3. **V0.7-C — Forecast / ETC / Variance**
+4. **V0.7-D — Project Variations / Revenue / Profit**
+5. **V0.7-E — Cost Reporting / Hardening / Release Evidence**
+
+Critical rules:
+
+- Committed Cost, Actual Cost and Paid Cost remain separate measures.
+- Source modules retain ownership; no second editable cost ledger.
+- Goods Receipt/Inventory does not independently create Actual Cost.
+- Human V0.7 UAT/business acceptance remains mandatory at release exit; DEC-023 is not reusable.
+
+Planning estimate: **24–37 engineering days**, plus a separate Product / Business Owner UAT/acceptance window.
+
+Explicitly deferred unless Change Control approves otherwise: tax/VAT, GL/journals, FX/multi-currency, inventory valuation, retention release, detailed client progress billing, synthetic dimensional proration, automated Equipment Cost Allocation and V0.8 management analytics.
 
 ---
-
 # 14. V0.8 Management — Build Sequence
 
 Dependencies:

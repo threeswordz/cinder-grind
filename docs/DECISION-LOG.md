@@ -442,3 +442,39 @@ This waiver:
 - does not transfer Product / Business Owner authority to Chat generally;
 - does not weaken technical CI, security, review, forward-only migration or Change Control requirements;
 - does not permit a future human-UAT gate to be auto-completed without a new explicit Product / Business Owner exception.
+
+
+## DEC-024 — V0.7 Cost Control release entry baseline
+**Status:** APPROVED — Product / Business Owner, 2026-10-03 (Singapore time)
+
+Live GitHub was refreshed before this decision was recorded. V0.6 Finance was complete and accepted; main was `b0e8fbf2fc0338c652a76b95a4a1418d2a5e7907`; post-merge main CI #2413 passed; open PRs/issues were zero; no V0.7 branch or implementation existed.
+
+After a repository-wide analysis of V0.3 Budget/Procurement, V0.4 Inventory, V0.5 Subcontracts, V0.6 Finance, COST-014/D06-08, source ownership, security, precision, concurrency and reporting boundaries, the complete proposed V0.7 package was presented to the Product / Business Owner. It included:
+
+- V0.7 Scope and explicit deferrals;
+- AC-V07-001–052;
+- BR-V07-01–16;
+- D07-01–11;
+- canonical cost/revenue definitions and source mapping;
+- data/API/security/test baselines;
+- V0.7-A through V0.7-E decomposition;
+- 24–37 engineering-day planning estimate plus a separate human UAT/acceptance window.
+
+The Product / Business Owner explicitly replied: **“go ahead i trust u”**. No amendment was specified. Record this as approval of that immediately preceding V0.7 proposal exactly as presented.
+
+Key approved decisions are:
+- D07-01 current PO + Subcontract commercial-ceiling commitment semantics, with no Work Order double count;
+- D07-02 Paid Cost from approved non-cancelled outbound settlement allocations, separate from Payment-level Project Cash Flow;
+- D07-03 Uncommitted ETC + Remaining Commitment forecast model;
+- D07-04 Client Invoice Actual Revenue, Payment cash received and revised-contract Forecast Revenue separation;
+- D07-05 controlled client Project Variations;
+- D07-06 no synthetic WBS/Cost Code proration;
+- D07-07 controlled Direct Cost Posting;
+- D07-08 deterministic recognition dates;
+- D07-09 base-currency-only and Decimal financial authority;
+- D07-10 aggregate Cost Control visibility does not bypass source-module permissions;
+- D07-11 automated Equipment Cost Allocation deferred until a canonical rate/valuation rule is approved.
+
+Committed Cost, Actual Cost and Paid Cost remain separate. No second editable cost ledger is authorized. DEC-008, DEC-016 and DEC-022 remain mandatory. DEC-023 remains a one-time V0.6 release-exit exception and does not waive V0.7 human UAT/business acceptance.
+
+This approval authorizes the V0.7 entry-gate documentation/closure sequence only. **V0.7-A implementation must not begin until the entry-gate PR merges, post-merge main CI passes and Issue #137 closes completed.**
