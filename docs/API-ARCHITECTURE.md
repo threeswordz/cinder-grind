@@ -1935,3 +1935,19 @@ V0.6-A adds the `/api/v1/finance` resource family. Every route is protected by e
 Supplier Invoice creation uses Company base currency only and the reserved `SIYYMM-###` Number Sequence. A line may reference neither source, a current approved PO line, a posted/non-reversed GR item, or both when they preserve the same PO-line lineage. Linked PO/GR sources must match the invoice Company, Supplier and single Project. V0.6-A performs source-reference integrity only: it does not implement quantity/value matching tolerances, tax/VAT, FX, GL posting, payments or cancellation/credit-note behavior.
 
 Mutation routes require CSRF. Create and workflow actions use durable replay keys/payload fingerprints; approval/rejection transactions lock and serialize the invoice before the Approval Matrix action. Submitted/approved/rejected source history is retained, and approved/rejected invoices are not ordinarily editable.
+
+
+## V0.6-E Project Cash Flow / Finance Reporting API
+
+V0.6-E adds a derived Project cash-flow read model without creating an editable financial ledger. Existing AP, AR, Payment and payable-retention endpoints remain their own canonical/source-derived views and are composed by the permission-aware Finance Reports workspace.
+
+| Method | Route | Permission | Purpose |
+| --- | --- | --- | --- |
+| GET | `/finance/cash-flow-projects` | `finance.payment.view` | Effective Project choices for Project Cash Flow |
+| GET | `/finance/projects/:projectId/cash-flow?fromDate=YYYY-MM-DD&toDate=YYYY-MM-DD` | `finance.payment.view` | Derived Payment-level Project Cash Flow with optional inclusive Payment-date range |
+
+Cash Flow includes only final `APPROVED`, non-cancelled Payments in the authenticated Company and authorized Project. Each Payment contributes its full amount exactly once on its Payment date: `INBOUND` is inflow and `OUTBOUND` is outflow. Allocation rows are returned only as settlement traceability and do not duplicate, reduce or defer the Payment-level cash-flow amount. The response separately exposes allocated/unallocated settlement amounts and status.
+
+Date filters are optional, validated as `YYYY-MM-DD`, inclusive at both ends, and applied server-side before aggregation. If any included final approved/non-cancelled Payment retains a currency different from the Company's current base currency, the endpoint returns `422 CASH_FLOW_CURRENCY_UNSUPPORTED` rather than combining or mislabelling currencies. V0.6 performs no FX conversion. Backend Project authorization is mandatory even when frontend controls are bypassed. `projects.access_all` does not substitute for `finance.payment.view`, and technical SYS_ADMIN alone does not gain cash-flow authority.
+
+The Finance Reports UI conditionally composes existing AP, AR, Payment, payable-retention and cash-flow reads according to each user's existing permissions. It does not create report-owned balances, Cost Control measures, GL/journals, tax/VAT, FX, retention release or any V0.7/V0.8 source of truth.

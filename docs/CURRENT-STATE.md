@@ -3,10 +3,10 @@
 **Last verified:** 2026-10-03
 **Source of truth:** Live GitHub repository state
 
-- Current Release: V0.6 Finance — **IN PROGRESS**. V0.6-A through V0.6-D are technically complete. V0.6-E Project Cash Flow / Finance Reporting / Release Evidence is entering docs-only pre-flight.
-- Current Stage: V0.6-E — **PRE-FLIGHT / IMPLEMENTATION NOT STARTED**. V0.6-D PR #129 squash-merged as `25ed713cafee02b6709a933dbee8670c45d4a9f8`; its material fix head `a80f4b7c56e14635cd162ee2cd449b4be55ed346` passed push CI #2379 and PR CI #2380, the genuine Codex P1 was fixed forward-only, the review thread was resolved, and fresh exact-head Codex re-review reported no major issues. Post-merge main CI #2381 passed and Issue #127 closed completed.
+- Current Release: V0.6 Finance — **IN PROGRESS**. V0.6-A through V0.6-D are technically complete. V0.6-E Project Cash Flow / Finance Reporting / Release Evidence is implemented and at its final merge gate.
+- Current Stage: V0.6-E — **FINAL MERGE-GATE VALIDATION**. Pre-flight PR #131 merged as `d05f6d57966329767182f8befe6f3a0b2d891ee3` with post-merge main CI #2385 PASS. Implementation PR #132 is open from `v0.6-e-cash-flow-reporting`. The first stable review found genuine P1/P2 issues; batched fix head `898f809d45540c766bc54d92b9ebfeb607524d50` passed push CI #2395 and PR CI #2396. Documentation-reconciled head `d44c934c2935964d146ec5b9aa1cc34e6d794f68` passed push CI #2397 and PR CI #2398; its fresh exact-head Codex re-review found no remaining code/schema/security/business-behavior issue and only one P2 stale-summary documentation finding, corrected by the current docs-only commit.
 - Completed Stages: V0.1-A through V0.1-H; V0.2-A through V0.2-G; V0.3-A through V0.3-E; V0.4-A through V0.4-E; V0.5 entry gate; V0.5-A; V0.5-B; V0.5-C; V0.5-D; V0.5-E; V0.6 entry gate; V0.6-A; V0.6-B; V0.6-C; V0.6-D
-- Active Issue / PR: #130 — V0.6-E Project Cash Flow / Finance Reporting / Release Evidence. Pre-flight branch `v0.6-e-preflight` starts exactly from green main `25ed713cafee02b6709a933dbee8670c45d4a9f8`. No Stage-E schema/API/UI implementation has begun. The pre-flight reconciles stale BR-V06-13 wording to already-approved D06-19 / DEC-020; it introduces no new Product / Business Owner decision.
+- Active Issue / PR: Issue #130 / PR #132 — V0.6-E Project Cash Flow / Finance Reporting / Release Evidence. Remaining technical sequence is docs-only exact-head push/PR CI → resolve the stale-summary thread → squash merge PR #132 → post-merge `main` CI → close Issue #130. Under DEC-022 no additional Codex review is required for this docs-only correction. After technical closure, **STOP at AC-V06-037–038** for Product / Business Owner human UAT and explicit V0.6 release acceptance.
 - V0.5-C green main checkpoint: PR #108 squash-merged as `3f00de1f984c82c1737c4b47c226d99197b19e54`; final exact-head push CI #1869 and PR CI #1870 passed on `0833cd893f208003215cf39cee9c07b6c9a817ad`; final Codex exact-head review reported no major issues; post-merge main CI #1871 passed; Issue #107 closed.
 - V0.5-D green main checkpoint: PR #110 squash-merged as `aceeb82ad13a2f6c773d307541ddd02fafc69a92`; final exact-head push CI #1898 and PR CI #1899 passed on `0cf62c630153a6ac2326f352c0064243b3a2f45f`; final Codex exact-head review reported no major issues; post-merge main CI #1900 passed; Issue #109 closed.
 - V0.5-E green main checkpoint: PR #112 squash-merged as `c054b9253e1ad2623a3fc233ba125003b2894c37`; final exact-head push CI #1930 and PR CI #1931 passed on `9ba8d862dcf66e7b00d7006d9398b19d83026e41`; final Codex exact-head review reported no major issues; post-merge main CI #1932 passed; Issue #111 closed. AC-V05-030 was explicitly accepted by the Product / Business Owner on 2026-10-01.
@@ -905,3 +905,25 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - Payment action permissions now require Payment view permission at role configuration, and the workspace renders retained approval/cancellation timestamps for human evidence review.
 - DEC-022 is being applied as intended: Codex was not spent on intermediate Stage-C fixes. Because the first stable review produced one genuine material P1 and the fix changes database integrity behavior, one fresh exact-head Codex re-review is now required after documentation-head CI; no per-fix review loop is introduced.
 - V0.6-D, V0.6-E and human V0.6 release UAT remain later gates. V0.6-D must not begin before PR #126 merge, post-merge main CI and Issue #124 closure.
+
+
+## V0.6-E implementation / validation checkpoint
+
+- Pre-flight PR #131 merged as `d05f6d57966329767182f8befe6f3a0b2d891ee3`; post-merge `main` CI #2385 passed.
+- Stage-E implementation branch: `v0.6-e-cash-flow-reporting`.
+- Derived Project Cash Flow uses canonical final approved, non-cancelled Payment records only; it creates no editable financial ledger.
+- D06-19 / DEC-020 behavior is implemented: full Payment amount exactly once on Payment date, INBOUND as inflow, OUTBOUND as outflow, independent of allocation completeness.
+- Settlement allocation amount/status and trace remain visible without changing the Payment-level cash-flow amount.
+- Inclusive Payment-date filtering is available without changing source ownership.
+- Permission-aware Finance Reports present existing source-derived AP, AR, Payment, payable-retention and Project cash-flow views without inventing a report-owned balance.
+- Backend authorization requires existing Finance permissions plus effective Project access; technical SYS_ADMIN alone does not receive Payment/cash-flow authority.
+- Focused unit coverage proves approved/cancelled source-state behavior, full/partial/unallocated allocation independence and direction-aware totals.
+- Authenticated live HTTP acceptance proves cancelled-payment exclusion, fully allocated inbound cash flow, wholly unallocated outbound cash flow, date filtering, Project denial and SYS_ADMIN denial.
+- Initial stable candidate `92cf87c48367697a8d35b44f223cdd348cc0e0f7` passed push CI #2393 and PR CI #2394. Its first DEC-022 Codex review identified two genuine findings: a P1 mixed/historical-currency aggregation risk after Company base-currency changes and a P2 test-registration omission.
+- Both findings were fixed together at `898f809d45540c766bc54d92b9ebfeb607524d50`: Project Cash Flow now rejects any included approved/non-cancelled Payment whose stored currency differs from the current Company base currency instead of inventing FX or mislabelling totals, and `cash-flow.spec.ts` is registered in the API test command.
+- Fix head `898f809d45540c766bc54d92b9ebfeb607524d50` passed push CI #2395 and PR CI #2396, including clean migrations/status, Prisma validation, dependency audit, the now-executed focused cash-flow tests, full prior-release regression and authenticated live HTTP proof that a base-currency mismatch fails safely and valid reporting resumes after restoration.
+- No schema migration or mandatory paid dependency was introduced by Stage E.
+- V0.7 Actual/Committed/Paid Cost ledgers, Direct Cost Posting, tax/VAT, FX, GL/journals/accruals and other approved deferrals remain excluded.
+- Because the P1 changed financial reporting behavior, DEC-022 requires one fresh exact-head Codex re-review after this evidence-only documentation reconciliation. No per-fix Codex loop is introduced.
+- Remaining technical gate: final documentation-head push/PR CI, fresh exact-head Codex re-review, squash merge, post-merge `main` CI and Issue #130 closure.
+- After technical completion, STOP at AC-V06-037–038. Product / Business Owner human UAT and explicit release acceptance remain pending.
