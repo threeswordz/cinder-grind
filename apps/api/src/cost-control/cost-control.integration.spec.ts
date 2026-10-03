@@ -8,6 +8,7 @@ import { Prisma } from '@prisma/client';
 import { REQUIRED_PERMISSIONS_KEY } from '../authorization/permissions.decorator';
 import { PrismaService } from '../prisma/prisma.service';
 import { CostControlController } from './cost-control.controller';
+import { DirectCostController } from './direct-cost.controller';
 import {
   selectCurrentApprovedPurchaseOrders,
   selectOriginalAndCurrentBudget,
@@ -34,6 +35,7 @@ test('V0.7-A Budget and PO currency checks work without other Finance sources', 
         supplierInvoice: { findMany: async () => [] },
         subcontractCertification: { findMany: async () => [] },
         payment: { findMany: async () => [] },
+        directCostPosting: { findMany: async () => [] },
       };
       const service = new CostControlService(prisma as unknown as PrismaService,
         { assertAccess: async () => {} } as never);
@@ -236,6 +238,189 @@ test('V0.7-A permission is seeded without implicit SYS_ADMIN grant', async () =>
       },
     });
     assert.equal(implicitTechnicalGrant, 0);
+  } finally {
+    await prisma.$disconnect();
+  }
+});
+
+
+test('V0.7-B Direct Cost routes require the approved explicit permissions', () => {
+  assert.deepEqual(
+    Reflect.getMetadata(
+      REQUIRED_PERMISSIONS_KEY,
+      DirectCostController.prototype.projects,
+    ),
+    ['cost.control.view'],
+  );
+  assert.deepEqual(
+    Reflect.getMetadata(
+      REQUIRED_PERMISSIONS_KEY,
+      DirectCostController.prototype.create,
+    ),
+    ['cost.direct_posting.create'],
+  );
+  assert.deepEqual(
+    Reflect.getMetadata(
+      REQUIRED_PERMISSIONS_KEY,
+      DirectCostController.prototype.submit,
+    ),
+    ['cost.direct_posting.submit'],
+  );
+  assert.deepEqual(
+    Reflect.getMetadata(
+      REQUIRED_PERMISSIONS_KEY,
+      DirectCostController.prototype.approve,
+    ),
+    ['cost.direct_posting.approve'],
+  );
+  assert.deepEqual(
+    Reflect.getMetadata(
+      REQUIRED_PERMISSIONS_KEY,
+      DirectCostController.prototype.reject,
+    ),
+    ['cost.direct_posting.approve'],
+  );
+});
+
+test('V0.7-B Direct Cost permissions are seeded without implicit SYS_ADMIN grants', async () => {
+  const prisma = new PrismaService();
+  await prisma.$connect();
+  try {
+    const codes = [
+      'cost.direct_posting.create',
+      'cost.direct_posting.submit',
+      'cost.direct_posting.approve',
+    ];
+    const permissions = await prisma.permission.findMany({
+      where: { permissionCode: { in: codes } },
+      select: { id: true, permissionCode: true, moduleCode: true },
+    });
+    assert.deepEqual(
+      permissions.map((row) => row.permissionCode).sort(),
+      [...codes].sort(),
+    );
+    assert.ok(permissions.every((row) => row.moduleCode === 'COST_CONTROL'));
+    const implicitTechnicalGrant = await prisma.rolePermission.count({
+      where: {
+        permissionId: { in: permissions.map((row) => row.id) },
+        role: { roleCode: 'SYS_ADMIN' },
+      },
+    });
+    assert.equal(implicitTechnicalGrant, 0);
+  } finally {
+    await prisma.$disconnect();
+  }
+});
+
+test('V0.7-B database guards Direct Cost dimensional scope and normal-posting sign', async () => {
+  const prisma = new PrismaService();
+  await prisma.$connect();
+  try {
+    const suffix = randomUUID();
+    const company = await prisma.company.create({
+      data: {
+        companyCode: 'DC-' + suffix,
+        companyName: 'Direct Cost company',
+        baseCurrencyCode: 'SGD',
+      },
+    });
+    const otherCompany = await prisma.company.create({
+      data: {
+        companyCode: 'DX-' + suffix,
+        companyName: 'Other Direct Cost company',
+        baseCurrencyCode: 'SGD',
+      },
+    });
+    const customer = await prisma.customer.create({
+      data: {
+        companyId: company.id,
+        customerCode: 'DC-C-' + suffix,
+        customerName: 'Direct Cost customer',
+      },
+    });
+    const user = await prisma.user.create({
+      data: {
+        companyId: company.id,
+        email: 'dc-' + suffix + '@example.com',
+        displayName: 'Direct Cost maker',
+        passwordHash: 'x',
+      },
+    });
+    const project = await prisma.project.create({
+      data: {
+        companyId: company.id,
+        projectCode: 'DC-P-' + suffix,
+        projectName: 'Direct Cost project',
+        customerId: customer.id,
+        contractValue: '100',
+        plannedStartDate: new Date('2026-10-01'),
+        plannedCompletionDate: new Date('2027-01-01'),
+      },
+    });
+    const costCode = await prisma.costCode.create({
+      data: {
+        companyId: company.id,
+        costCode: 'DC-' + suffix,
+        costName: 'Direct Cost',
+      },
+    });
+    const otherCostCode = await prisma.costCode.create({
+      data: {
+        companyId: otherCompany.id,
+        costCode: 'DX-' + suffix,
+        costName: 'Other Direct Cost',
+      },
+    });
+
+    const valid = await prisma.directCostPosting.create({
+      data: {
+        companyId: company.id,
+        projectId: project.id,
+        costCodeId: costCode.id,
+        postingDate: new Date('2026-10-03'),
+        description: 'Manual approved-scope expense draft',
+        amount: '123.45',
+        currencyCode: 'SGD',
+        createKey: randomUUID(),
+        createPayloadHash: 'a'.repeat(64),
+        createdByUserId: user.id,
+      },
+    });
+    assert.equal(valid.amount.toFixed(2), '123.45');
+
+    await assert.rejects(() =>
+      prisma.directCostPosting.create({
+        data: {
+          companyId: company.id,
+          projectId: project.id,
+          costCodeId: costCode.id,
+          postingDate: new Date('2026-10-03'),
+          description: 'Negative normal posting must fail closed',
+          amount: '-1.00',
+          currencyCode: 'SGD',
+          createKey: randomUUID(),
+          createPayloadHash: 'b'.repeat(64),
+          createdByUserId: user.id,
+        },
+      }),
+    );
+
+    await assert.rejects(() =>
+      prisma.directCostPosting.create({
+        data: {
+          companyId: company.id,
+          projectId: project.id,
+          costCodeId: otherCostCode.id,
+          postingDate: new Date('2026-10-03'),
+          description: 'Cross-company Cost Code must fail closed',
+          amount: '1.00',
+          currencyCode: 'SGD',
+          createKey: randomUUID(),
+          createPayloadHash: 'c'.repeat(64),
+          createdByUserId: user.id,
+        },
+      }),
+    );
   } finally {
     await prisma.$disconnect();
   }

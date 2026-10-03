@@ -2812,3 +2812,56 @@ model FinanceActionReplay {
   @@index([companyId, entityType, entityId])
   @@map("finance_action_replays")
 }
+
+
+model DirectCostPosting {
+  id                 String    @id @default(uuid()) @db.Uuid
+  companyId          String    @map("company_id") @db.Uuid
+  projectId          String    @map("project_id") @db.Uuid
+  wbsId              String?   @map("wbs_id") @db.Uuid
+  costCodeId         String    @map("cost_code_id") @db.Uuid
+  postingDate        DateTime  @map("posting_date") @db.Date
+  description        String    @db.VarChar(500)
+  reference          String?   @db.VarChar(200)
+  amount             Decimal   @db.Decimal(18, 2)
+  currencyCode       String    @map("currency_code") @db.VarChar(3)
+  state              String    @default("DRAFT") @db.VarChar(30)
+  approvalInstanceId String?   @unique @map("approval_instance_id") @db.Uuid
+  reversesPostingId  String?   @map("reverses_posting_id") @db.Uuid
+  reversalReason     String?   @map("reversal_reason") @db.Text
+  createKey          String    @map("create_key") @db.VarChar(120)
+  createPayloadHash  String    @map("create_payload_hash") @db.VarChar(64)
+  createdByUserId    String    @map("created_by_user_id") @db.Uuid
+  submittedByUserId  String?   @map("submitted_by_user_id") @db.Uuid
+  approvedByUserId   String?   @map("approved_by_user_id") @db.Uuid
+  rejectedByUserId   String?   @map("rejected_by_user_id") @db.Uuid
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  submittedAt        DateTime? @map("submitted_at") @db.Timestamptz(6)
+  decidedAt          DateTime? @map("decided_at") @db.Timestamptz(6)
+  approvedAt         DateTime? @map("approved_at") @db.Timestamptz(6)
+  rejectedAt         DateTime? @map("rejected_at") @db.Timestamptz(6)
+  rejectionReason    String?   @map("rejection_reason") @db.Text
+
+  @@unique([companyId, createdByUserId, createKey], map: "direct_cost_postings_creator_create_key_key")
+  @@index([companyId, projectId, state, postingDate])
+  @@index([companyId, projectId, wbsId, costCodeId])
+  @@index([reversesPostingId])
+  @@map("direct_cost_postings")
+}
+
+model CostActionReplay {
+  id          String   @id @default(uuid()) @db.Uuid
+  companyId   String   @map("company_id") @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  actionKey   String   @map("action_key") @db.VarChar(120)
+  actionType  String   @map("action_type") @db.VarChar(80)
+  entityType  String   @map("entity_type") @db.VarChar(100)
+  entityId    String   @map("entity_id") @db.Uuid
+  payloadHash String   @map("payload_hash") @db.VarChar(64)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([companyId, userId, actionKey])
+  @@index([companyId, entityType, entityId])
+  @@map("cost_action_replays")
+}
