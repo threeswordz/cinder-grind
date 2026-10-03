@@ -1,3 +1,5 @@
+**V0.7-A implementation note — 2026-10-03:** `cost.control.view` is now seeded as the explicit read authority for the integrated Cost Control read model. It remains subject to effective Project access and does not grant source-module detail permissions. `projects.access_all` only bypasses Project assignment filtering, and technical `SYS_ADMIN` is not implicitly granted `cost.control.view`.
+
 # Construction ERP — Roles & Permissions Model
 
 **Document Status:** Roles & Permissions Baseline v0.1  

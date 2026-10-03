@@ -131,6 +131,10 @@ check(
   'SYS_ADMIN must not implicitly receive Client Invoice, Payment or AP/AR Finance authority.',
 );
 check(
+  !me.data.data.permissions.includes('cost.control.view'),
+  'SYS_ADMIN must not implicitly receive Cost Control authority.',
+);
+check(
   !me.data.data.permissions.some(
     (permission) =>
       permission.startsWith('subcontracts.claim.') ||
@@ -347,6 +351,7 @@ const permissionCodes = [
   'finance.retention.view',
   'finance.ap.view',
   'finance.ar.view',
+  'cost.control.view',
   'subcontracts.subcontractor.view',
   'subcontracts.subcontractor.manage',
   'subcontracts.subcontractor.archive',
@@ -6976,6 +6981,214 @@ record('V0.3-C scoped RFQ / quotation access denied');
 record('V0.3-D scoped Purchase Order access denied');
 record('unassigned Project, Document, Scheduling, Site Execution, Equipment, Reporting, Budget and Procurement access denied');
 
+
+const v07PaidCostPayment = await request(
+  pm,
+  '/finance/projects/' + projectId + '/payments',
+  {
+    method: 'POST',
+    json: {
+      direction: 'OUTBOUND',
+      paymentDate: '2027-04-01',
+      supplierId: sourcingSupplierB.data.data.id,
+      amount: '5.00',
+      paymentMethod: 'BANK_TRANSFER',
+      reference: 'V0.7-A Paid Cost acceptance ' + suffix,
+      createKey: 'v07-paid-create-' + suffix,
+    },
+    expected: 201,
+  },
+);
+const v07PaidCostPaymentId = v07PaidCostPayment.data.data.id;
+await request(
+  pm,
+  '/finance/payments/' + v07PaidCostPaymentId + '/allocations',
+  {
+    method: 'POST',
+    json: {
+      targetType: 'SUPPLIER_INVOICE',
+      targetId: supplierInvoiceId,
+      amount: '5.00',
+      actionKey: 'v07-paid-alloc-' + suffix,
+    },
+    expected: 201,
+  },
+);
+await request(
+  pm,
+  '/finance/payments/' + v07PaidCostPaymentId + '/submit',
+  {
+    method: 'POST',
+    json: {
+      workflowCode: paymentWorkflowCode,
+      actionKey: 'v07-paid-submit-' + suffix,
+    },
+    expected: 201,
+  },
+);
+const v07PaidCostApproved = await request(
+  checker,
+  '/finance/payments/' + v07PaidCostPaymentId + '/approve',
+  {
+    method: 'POST',
+    json: {
+      actionKey: 'v07-paid-approve-' + suffix,
+      comment: 'Approve final V0.7-A Paid Cost acceptance settlement.',
+    },
+    expected: 201,
+  },
+);
+check(
+  v07PaidCostApproved.data.data.state === 'APPROVED' &&
+    v07PaidCostApproved.data.data.supplierAllocations.length === 1,
+  'V0.7-A Paid Cost acceptance Payment did not retain approved allocation evidence.',
+);
+
+const v07RestrictedEmployee = await request(
+  admin,
+  '/master-data/employees',
+  {
+    method: 'POST',
+    json: {
+      employeeCode: 'CC-' + suffix,
+      employeeName: 'Cost Control Restricted ' + suffix,
+      jobTitle: 'Cost Controller',
+    },
+    expected: 201,
+  },
+);
+const v07RestrictedRole = await request(admin, '/admin/roles', {
+  method: 'POST',
+  json: {
+    roleCode: 'UAT_COST_CONTROL_' + suffix,
+    roleName: 'UAT Cost Control ' + suffix,
+    description: 'V0.7-A aggregate-only Cost Control acceptance role',
+  },
+  expected: 201,
+});
+await request(
+  admin,
+  '/admin/roles/' + v07RestrictedRole.data.data.id + '/permissions',
+  {
+    method: 'PUT',
+    json: { permissionCodes: ['cost.control.view'] },
+  },
+);
+const v07RestrictedPassword =
+  'Uat-CC-' + suffix + '-Strong-2026!';
+const v07RestrictedUser = await request(admin, '/admin/users', {
+  method: 'POST',
+  json: {
+    email: 'uat-cc-' + suffix.toLowerCase() + '@example.com',
+    displayName: 'Cost Control Restricted ' + suffix,
+    password: v07RestrictedPassword,
+    employeeId: v07RestrictedEmployee.data.data.id,
+    roleIds: [v07RestrictedRole.data.data.id],
+  },
+  expected: 201,
+});
+await request(admin, '/projects/' + projectId + '/members', {
+  method: 'POST',
+  json: {
+    employeeId: v07RestrictedEmployee.data.data.id,
+    projectRole: 'Cost Controller',
+  },
+  expected: 201,
+});
+const v07Restricted = await login(
+  v07RestrictedUser.data.data.email,
+  v07RestrictedPassword,
+);
+
+const v07CostControl = await request(
+  pm,
+  '/projects/' + projectId + '/cost-control',
+);
+check(
+  v07CostControl.data.data.project.id === projectId &&
+    Number(v07CostControl.data.data.totals.originalBudget) === 250 &&
+    Number(v07CostControl.data.data.totals.revisedBudget) === 300 &&
+    Number(v07CostControl.data.data.totals.committedCost.total) > 0 &&
+    Number(v07CostControl.data.data.totals.actualCost.total) > 0 &&
+    Number(v07CostControl.data.data.totals.paidCost.supplier) === 5 &&
+    Number(v07CostControl.data.data.totals.paidCost.subcontract) === 0 &&
+    Number(v07CostControl.data.data.totals.paidCost.total) === 5 &&
+    v07CostControl.data.data.boundaries.committedActualPaidSeparate === true &&
+    v07CostControl.data.data.boundaries.inventoryCreatesActualCost === false,
+  'V0.7-A integrated Cost Control source totals or semantic boundaries were incorrect.',
+);
+check(
+  v07CostControl.data.data.sourceEvidence.originalBudget.recordsVisible === true &&
+    v07CostControl.data.data.sourceEvidence.procurementCommitted.recordsVisible === true &&
+    v07CostControl.data.data.sourceEvidence.supplierActual.recordsVisible === true &&
+    v07CostControl.data.data.sourceEvidence.paidCost.recordsVisible === true,
+  'V0.7-A authorized source traceability did not expose permitted source evidence.',
+);
+
+const v07RestrictedCostControl = await request(
+  v07Restricted,
+  '/projects/' + projectId + '/cost-control',
+);
+check(
+  Number(v07RestrictedCostControl.data.data.totals.originalBudget) === 250 &&
+    Number(v07RestrictedCostControl.data.data.totals.revisedBudget) === 300 &&
+    Number(v07RestrictedCostControl.data.data.totals.paidCost.total) === 5,
+  'V0.7-A aggregate-only Cost Control role did not retain authorized aggregate measures.',
+);
+check(
+  Object.values(v07RestrictedCostControl.data.data.sourceEvidence).every(
+    (source) =>
+      source.recordsVisible === false &&
+      !Object.prototype.hasOwnProperty.call(source, 'records'),
+  ),
+  'V0.7-A aggregate-only Cost Control role leaked protected source records.',
+);
+await request(
+  admin,
+  '/projects/' + projectId + '/cost-control',
+  { expected: 403 },
+);
+const v07Dimensional = await request(
+  pm,
+  '/projects/' +
+    projectId +
+    '/cost-control?wbsId=' +
+    rootWbs.data.data.id +
+    '&costCodeId=' +
+    costCode.data.data.id,
+);
+check(
+  Number(v07Dimensional.data.data.totals.originalBudget) === 250 &&
+    Number(v07Dimensional.data.data.totals.revisedBudget) === 300 &&
+    Number(v07Dimensional.data.data.totals.committedCost.procurement) > 0 &&
+    Number(v07Dimensional.data.data.totals.committedCost.subcontract) === 75000 &&
+    Number(v07Dimensional.data.data.totals.actualCost.subcontract) === 0 &&
+    Number(v07Dimensional.data.data.totals.paidCost.total) === 0,
+  'V0.7-A WBS/Cost Code filter did not preserve dimensional allocation or exclude unallocated header-level sources.',
+);
+await request(
+  unassigned,
+  '/projects/' + projectId + '/cost-control',
+  { expected: 403 },
+);
+record('V0.7-A Cost Control derives Original/Revised Budget, separate Committed/Actual/Paid measures, dimensional filters, source-permission evidence and Project authorization');
+
+await request(admin, '/admin/company', {
+  method: 'PATCH', json: { baseCurrencyCode: 'USD' },
+});
+await request(pm, '/projects/' + projectId + '/cost-control', { expected: 422 });
+await request(admin, '/admin/company', {
+  method: 'PATCH', json: { baseCurrencyCode: 'SGD' },
+});
+const restoredCostControl = await request(pm, '/projects/' + projectId + '/cost-control');
+check(
+  restoredCostControl.data.data.baseCurrencyCode === 'SGD' &&
+    restoredCostControl.data.data.totals.originalBudget === v07CostControl.data.data.totals.originalBudget,
+  'V0.7-A historical source currency was not retained after restoring the Company currency.',
+);
+record('V0.7-A rejects historical Budget/PO currency mismatch and restores valid same-currency reporting');
+
+await logout(v07Restricted);
 await logout(pm);
 await request(pm, '/auth/me', { expected: 401 });
 record('logout revokes the session');
