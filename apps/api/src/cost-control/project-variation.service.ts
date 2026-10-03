@@ -188,8 +188,9 @@ export class ProjectVariationService {
           ...context, entityType: 'PROJECT_VARIATION', entityId: row.id, action: 'CREATE_REVERSAL_DRAFT',
           newValues: { reversesVariationId: source.id, variationNumber: row.variationNumber, reversalReason: input.reason, valueDelta: row.valueDelta.toFixed(2) },
         }, tx);
-        return row;
-      }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+          return row;
+        },
+      );
       return this.get(context.auth, created.id);
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
