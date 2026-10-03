@@ -5,6 +5,7 @@ import test from 'node:test';
 import { UnprocessableEntityException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 
+import { AuditService } from '../audit/audit.service';
 import { REQUIRED_PERMISSIONS_KEY } from '../authorization/permissions.decorator';
 import { PrismaService } from '../prisma/prisma.service';
 import { CostControlController } from './cost-control.controller';
@@ -12,6 +13,7 @@ import { costPositiveDecimal } from './cost-control-validation';
 import { DirectCostController } from './direct-cost.controller';
 import { DirectCostService } from './direct-cost.service';
 import { ForecastController } from './forecast.controller';
+import { ForecastService } from './forecast.service';
 import {
   remainingCostCommitment,
   selectCurrentApprovedPurchaseOrders,
@@ -380,6 +382,140 @@ test('V0.7-C Forecast routes require explicit view/manage/approve permissions', 
     ),
     ['cost.forecast.approve'],
   );
+});
+
+test('V0.7-C Forecast service creates a versioned draft with real PostgreSQL guards', async () => {
+  const prisma = new PrismaService();
+  await prisma.$connect();
+  try {
+    const suffix = randomUUID();
+    const company = await prisma.company.create({
+      data: {
+        companyCode: 'FC-' + suffix,
+        companyName: 'Forecast create company',
+        baseCurrencyCode: 'SGD',
+      },
+    });
+    const customer = await prisma.customer.create({
+      data: {
+        companyId: company.id,
+        customerCode: 'FC-C-' + suffix,
+        customerName: 'Forecast create customer',
+      },
+    });
+    const employee = await prisma.employee.create({
+      data: {
+        companyId: company.id,
+        employeeCode: 'FC-E-' + suffix,
+        employeeName: 'Forecast maker employee',
+      },
+    });
+    const maker = await prisma.user.create({
+      data: {
+        companyId: company.id,
+        employeeId: employee.id,
+        email: 'forecast-maker-' + suffix + '@example.com',
+        displayName: 'Forecast maker',
+        passwordHash: 'x',
+      },
+    });
+    const project = await prisma.project.create({
+      data: {
+        companyId: company.id,
+        projectCode: 'FC-P-' + suffix,
+        projectName: 'Forecast create project',
+        customerId: customer.id,
+        contractValue: '1000.00',
+        plannedStartDate: new Date('2026-10-01'),
+        plannedCompletionDate: new Date('2027-10-01'),
+      },
+    });
+    await prisma.projectMember.create({
+      data: {
+        projectId: project.id,
+        employeeId: employee.id,
+        projectRole: 'Forecast Maker',
+      },
+    });
+    const wbs = await prisma.wbsElement.create({
+      data: {
+        projectId: project.id,
+        wbsCode: 'FC-' + suffix,
+        wbsName: 'Forecast WBS',
+      },
+    });
+    const costCode = await prisma.costCode.create({
+      data: {
+        companyId: company.id,
+        costCode: 'FC-' + suffix,
+        costName: 'Forecast Cost Code',
+      },
+    });
+    const role = await prisma.role.create({
+      data: {
+        companyId: company.id,
+        roleCode: 'FC-MAKER-' + suffix,
+        roleName: 'Forecast Maker',
+      },
+    });
+    const managePermission = await prisma.permission.findUniqueOrThrow({
+      where: { permissionCode: 'cost.forecast.manage' },
+    });
+    await prisma.rolePermission.create({
+      data: { roleId: role.id, permissionId: managePermission.id },
+    });
+    await prisma.userRole.create({
+      data: {
+        companyId: company.id,
+        userId: maker.id,
+        roleId: role.id,
+      },
+    });
+
+    const service = new ForecastService(
+      prisma,
+      { assertAccess: async () => {} } as never,
+      {} as never,
+      new AuditService(prisma),
+    );
+    const auth = {
+      companyId: company.id,
+      userId: maker.id,
+      permissions: ['cost.forecast.manage'],
+    } as never;
+    const created = await service.create(
+      { auth },
+      project.id,
+      {
+        forecastDate: new Date('2027-04-05T00:00:00.000Z'),
+        description: 'Real PostgreSQL Forecast draft',
+        createKey: 'forecast-create-' + suffix,
+        lines: [
+          {
+            wbsId: wbs.id,
+            costCodeId: costCode.id,
+            uncommittedEtcAmount: new Prisma.Decimal('35.00'),
+            remarks: 'Dimensioned ETC',
+            inputOrder: 1,
+          },
+          {
+            wbsId: null,
+            costCodeId: null,
+            uncommittedEtcAmount: new Prisma.Decimal('10.00'),
+            remarks: 'Unallocated ETC',
+            inputOrder: 2,
+          },
+        ],
+      },
+    );
+
+    assert.equal(created.state, 'DRAFT');
+    assert.equal(created.versionNo, 1);
+    assert.equal(created.totalUncommittedEtc.toFixed(2), '45.00');
+    assert.equal(created.lines.length, 2);
+  } finally {
+    await prisma.$disconnect();
+  }
 });
 
 test('V0.7-C Forecast permissions are seeded without implicit SYS_ADMIN grants', async () => {
