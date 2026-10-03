@@ -18,6 +18,7 @@ import { DirectCostService } from './direct-cost.service';
 import { ForecastController } from './forecast.controller';
 import { ForecastService } from './forecast.service';
 import {
+  activeProjectVariationValue,
   remainingCostCommitment,
   selectCurrentApprovedPurchaseOrders,
   selectOriginalAndCurrentBudget,
@@ -45,7 +46,9 @@ test('V0.7-A Budget and PO currency checks work without other Finance sources', 
         subcontractCertification: { findMany: async () => [] },
         payment: { findMany: async () => [] },
         directCostPosting: { findMany: async () => [] },
-        costForecast: { findFirst: async () => null },
+        projectVariation: { findMany: async () => [] },
+    clientInvoice: { findMany: async () => [] },
+    costForecast: { findFirst: async () => null },
       };
       const service = new CostControlService(prisma as unknown as PrismaService,
         { assertAccess: async () => {} } as never);
@@ -318,6 +321,8 @@ test('V0.7-C integrated forecast reduces only canonically linked PO commitment',
     subcontractCertification: { findMany: async () => [] },
     payment: { findMany: async () => [] },
     directCostPosting: { findMany: async () => [] },
+    projectVariation: { findMany: async () => [] },
+    clientInvoice: { findMany: async () => [] },
     costForecast: {
       findFirst: async () => ({
         id: 'forecast',
@@ -458,6 +463,8 @@ test('V0.7-C Remaining Commitment validates currency for linked Actual even when
     subcontractCertification: { findMany: async () => [] },
     payment: { findMany: async () => [] },
     directCostPosting: { findMany: async () => [] },
+    projectVariation: { findMany: async () => [] },
+    clientInvoice: { findMany: async () => [] },
     costForecast: { findFirst: async () => null },
   };
   const service = new CostControlService(
@@ -716,7 +723,9 @@ test('V0.7-C Forecast create returns controlled conflict after concurrency retry
   for (const code of ['P2002', 'P2034'] as const) {
     let attempts = 0;
     const prisma = {
-      costForecast: {
+      projectVariation: { findMany: async () => [] },
+    clientInvoice: { findMany: async () => [] },
+    costForecast: {
         findFirst: async () => null,
       },
       $transaction: async () => {
@@ -797,7 +806,9 @@ test('V0.7-C serialized Forecast writes retry P2034 and fail as controlled confl
   for (const operation of operations) {
     let attempts = 0;
     const prisma = {
-      costForecast: {
+      projectVariation: { findMany: async () => [] },
+    clientInvoice: { findMany: async () => [] },
+    costForecast: {
         findFirst: async () => ({
           id: 'forecast',
           companyId: 'company',
@@ -1346,6 +1357,8 @@ test('V0.7-C Project selector retains scoped archived Projects with Direct Cost 
     directCostPosting: {
       findMany: async () => [{ projectId: 'archived-project' }],
     },
+    projectVariation: { findMany: async () => [] },
+    clientInvoice: { findMany: async () => [] },
     costForecast: {
       findMany: async () => [
         { projectId: 'archived-project' },
@@ -1854,4 +1867,165 @@ test('V0.7-B terminal Direct Cost approval requires authorized retained evidence
   } finally {
     await prisma.$disconnect();
   }
+});
+
+
+test('V0.7-D active Project Variation value excludes approved compensating reversals', () => {
+  assert.equal(
+    activeProjectVariationValue([
+      {
+        id: 'positive',
+        valueDelta: new Prisma.Decimal('100.00'),
+        reversesVariationId: null,
+      },
+      {
+        id: 'negative',
+        valueDelta: new Prisma.Decimal('-20.00'),
+        reversesVariationId: null,
+      },
+      {
+        id: 'reverse-positive',
+        valueDelta: new Prisma.Decimal('-100.00'),
+        reversesVariationId: 'positive',
+      },
+    ]).toFixed(2),
+    '-20.00',
+  );
+});
+
+test('V0.7-D commercial measures keep revenue, cash and Project-level profit separate', async () => {
+  const prisma = {
+    project: {
+      findFirstOrThrow: async () => ({
+        id: 'project',
+        projectCode: 'P-1',
+        projectName: 'Project',
+        contractValue: new Prisma.Decimal('1000.00'),
+      }),
+    },
+    company: {
+      findUniqueOrThrow: async () => ({ baseCurrencyCode: 'SGD' }),
+    },
+    wbsElement: { findMany: async () => [] },
+    costCode: { findMany: async () => [] },
+    budgetRevision: { findMany: async () => [] },
+    purchaseOrder: { findMany: async () => [] },
+    subcontractAgreement: { findMany: async () => [] },
+    supplierInvoice: { findMany: async () => [] },
+    subcontractCertification: { findMany: async () => [] },
+    payment: {
+      findMany: async (args: { where?: { paymentDirection?: string } }) =>
+        args.where?.paymentDirection === 'INBOUND'
+          ? [
+              {
+                id: 'receipt',
+                paymentNumber: 'RCPT-1',
+                paymentDirection: 'INBOUND',
+                paymentDate: new Date('2026-10-04'),
+                amount: new Prisma.Decimal('500.00'),
+                currencyCode: 'SGD',
+              },
+            ]
+          : [],
+    },
+    directCostPosting: { findMany: async () => [] },
+    projectVariation: {
+      findMany: async () => [
+        {
+          id: 'pv-1',
+          variationNumber: 'PV-1',
+          description: 'Client addition',
+          reason: null,
+          valueDelta: new Prisma.Decimal('100.00'),
+          currencyCode: 'SGD',
+          approvedAt: new Date('2026-10-04T01:00:00Z'),
+          reversesVariationId: null,
+          reversalReason: null,
+        },
+      ],
+    },
+    clientInvoice: {
+      findMany: async () => [
+        {
+          id: 'ci-1',
+          clientInvoiceNumber: 'CI-1',
+          invoiceDate: new Date('2026-10-04'),
+          totalAmount: new Prisma.Decimal('700.00'),
+          currencyCode: 'SGD',
+          approvedAt: new Date('2026-10-04T02:00:00Z'),
+        },
+      ],
+    },
+    costForecast: { findFirst: async () => null },
+  };
+  const service = new CostControlService(
+    prisma as unknown as PrismaService,
+    { assertAccess: async () => {} } as never,
+  );
+  const result = await service.projectCostControl(
+    {
+      companyId: 'company',
+      permissions: [
+        'cost.control.view',
+        'cost.variation.view',
+        'finance.client_invoice.view',
+        'finance.payment.view',
+      ],
+    } as never,
+    'project',
+  );
+  assert.equal(result.totals.commercial.originalContractValue.toFixed(2), '1000.00');
+  assert.equal(result.totals.commercial.approvedVariationValue.toFixed(2), '100.00');
+  assert.equal(result.totals.commercial.revisedContractValue.toFixed(2), '1100.00');
+  assert.equal(result.totals.commercial.actualRevenue.toFixed(2), '700.00');
+  assert.equal(result.totals.commercial.cashReceived.toFixed(2), '500.00');
+  assert.equal(result.totals.commercial.forecastRevenue.toFixed(2), '1100.00');
+  assert.equal(result.totals.commercial.actualProfit?.toFixed(2), '700.00');
+  assert.equal(result.totals.commercial.forecastProfit?.toFixed(2), '1100.00');
+  assert.equal(result.boundaries.revenueProfitProjectLevelOnly, true);
+});
+
+test('V0.7-D refuses to fabricate WBS or Cost Code profitability', async () => {
+  const prisma = {
+    project: {
+      findFirstOrThrow: async () => ({
+        id: 'project',
+        projectCode: 'P-1',
+        projectName: 'Project',
+        contractValue: new Prisma.Decimal('1000.00'),
+      }),
+    },
+    company: {
+      findUniqueOrThrow: async () => ({ baseCurrencyCode: 'SGD' }),
+    },
+    wbsElement: { findMany: async () => [] },
+    costCode: {
+      findMany: async () => [
+        { id: 'cc-1', costCode: 'CC-1', costName: 'Cost Code' },
+      ],
+    },
+    budgetRevision: { findMany: async () => [] },
+    purchaseOrder: { findMany: async () => [] },
+    subcontractAgreement: { findMany: async () => [] },
+    supplierInvoice: { findMany: async () => [] },
+    subcontractCertification: { findMany: async () => [] },
+    payment: { findMany: async () => [] },
+    directCostPosting: { findMany: async () => [] },
+    projectVariation: { findMany: async () => [] },
+    clientInvoice: { findMany: async () => [] },
+    costForecast: { findFirst: async () => null },
+  };
+  const service = new CostControlService(
+    prisma as unknown as PrismaService,
+    { assertAccess: async () => {} } as never,
+  );
+  const result = await service.projectCostControl(
+    { companyId: 'company', permissions: ['cost.control.view'] } as never,
+    'project',
+    { costCodeId: 'cc-1' },
+  );
+  assert.equal(result.totals.commercial.allocationLevel, 'PROJECT');
+  assert.equal(result.totals.commercial.actualProfit, null);
+  assert.equal(result.totals.commercial.forecastProfit, null);
+  assert.equal(result.totals.commercial.profitAvailableAtCurrentFilter, false);
 });
