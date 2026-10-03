@@ -53,6 +53,9 @@ type MeasureBucket = {
   directActual: Prisma.Decimal;
   supplierPaid: Prisma.Decimal;
   subcontractPaid: Prisma.Decimal;
+  remainingProcurement: Prisma.Decimal;
+  remainingSubcontract: Prisma.Decimal;
+  uncommittedEtc: Prisma.Decimal;
 };
 
 type MeasureKey = keyof MeasureBucket;
@@ -130,6 +133,14 @@ function subtractCostControlDecimals(
     { value: left, multiplier: 1n },
     { value: right, multiplier: -1n },
   ]);
+}
+
+export function remainingCostCommitment(
+  committed: Prisma.Decimal,
+  attributableActual: Prisma.Decimal,
+): Prisma.Decimal {
+  const remaining = subtractCostControlDecimals(committed, attributableActual);
+  return remaining.isNegative() ? new Prisma.Decimal(0) : remaining;
 }
 
 export function selectOriginalAndCurrentBudget<
@@ -254,6 +265,7 @@ export class CostControlService {
       certifications,
       outboundPayments,
       directCostPostings,
+      currentForecast,
     ] = await Promise.all([
       this.prisma.budgetRevision.findMany({
         where: {
@@ -277,6 +289,7 @@ export class CostControlService {
               amount: true,
               wbsId: true,
               costCodeId: true,
+              quotationAwardId: true,
             },
           },
         },
@@ -357,6 +370,26 @@ export class CostControlService {
               amount: true,
               wbsId: true,
               costCodeId: true,
+              purchaseOrderLine: {
+                select: {
+                  quotationAwardId: true,
+                  purchaseOrder: {
+                    select: { poNumber: true },
+                  },
+                },
+              },
+              goodsReceiptItem: {
+                select: {
+                  purchaseOrderLine: {
+                    select: {
+                      quotationAwardId: true,
+                      purchaseOrder: {
+                        select: { poNumber: true },
+                      },
+                    },
+                  },
+                },
+              },
             },
           },
         },
@@ -424,6 +457,32 @@ export class CostControlService {
           reversalReason: true,
         },
       }),
+      this.prisma.costForecast.findFirst({
+        where: {
+          companyId: auth.companyId,
+          projectId,
+          state: 'APPROVED',
+        },
+        select: {
+          id: true,
+          versionNo: true,
+          forecastDate: true,
+          currencyCode: true,
+          approvedAt: true,
+          lines: {
+            select: {
+              id: true,
+              lineNo: true,
+              wbsId: true,
+              costCodeId: true,
+              uncommittedEtcAmount: true,
+              remarks: true,
+            },
+            orderBy: { lineNo: 'asc' },
+          },
+        },
+        orderBy: [{ versionNo: 'desc' }, { approvedAt: 'desc' }, { id: 'desc' }],
+      }),
     ]);
 
     const dimensionMap = new Map<string, DimensionBucket>();
@@ -444,6 +503,8 @@ export class CostControlService {
     const subcontractActualRecords: EvidenceRecord[] = [];
     const directActualRecords: EvidenceRecord[] = [];
     const paidRecords: EvidenceRecord[] = [];
+    const remainingCommitmentRecords: EvidenceRecord[] = [];
+    const forecastRecords: EvidenceRecord[] = [];
 
     const originalBudget = this.revisionContribution(
       budgetSelection.original,
@@ -564,6 +625,179 @@ export class CostControlService {
           amount: workOrder.amount,
           wbsId: workOrder.wbsElementId,
           costCodeId: workOrder.costCodeId,
+        })),
+      });
+    }
+
+
+    const supplierActualByPoLineage = new Map<string, Prisma.Decimal>();
+    for (const invoice of supplierInvoices) {
+      for (const item of invoice.items) {
+        const purchaseOrderLine =
+          item.purchaseOrderLine ?? item.goodsReceiptItem?.purchaseOrderLine ?? null;
+        if (!purchaseOrderLine) continue;
+        const lineageKey =
+          purchaseOrderLine.purchaseOrder.poNumber +
+          '|' +
+          purchaseOrderLine.quotationAwardId;
+        const current =
+          supplierActualByPoLineage.get(lineageKey) ?? new Prisma.Decimal(0);
+        supplierActualByPoLineage.set(
+          lineageKey,
+          sumCostControlDecimals([current, item.amount]),
+        );
+      }
+    }
+
+    let remainingProcurement = new Prisma.Decimal(0);
+    for (const order of currentPurchaseOrders) {
+      this.assertBaseCurrency(
+        'Procurement remaining commitment',
+        order.currencyCode,
+        company.baseCurrencyCode,
+      );
+      for (const line of order.lines) {
+        if (
+          !this.matchesDimension(
+            line.wbsId,
+            line.costCodeId,
+            dimensions,
+          )
+        ) {
+          continue;
+        }
+        const lineageKey = order.poNumber + '|' + line.quotationAwardId;
+        const attributableActual =
+          supplierActualByPoLineage.get(lineageKey) ?? new Prisma.Decimal(0);
+        const remaining = remainingCostCommitment(
+          line.amount,
+          attributableActual,
+        );
+        remainingProcurement = sumCostControlDecimals([
+          remainingProcurement,
+          remaining,
+        ]);
+        this.addDimension(
+          dimensionMap,
+          line.wbsId,
+          line.costCodeId,
+          'remainingProcurement',
+          remaining,
+        );
+        if (!remaining.equals(0) || !attributableActual.equals(0)) {
+          remainingCommitmentRecords.push({
+            sourceType: 'PURCHASE_ORDER_LINE',
+            purchaseOrderNumber: order.poNumber,
+            purchaseOrderLineId: line.id,
+            quotationAwardId: line.quotationAwardId,
+            committedAmount: line.amount,
+            attributableActual,
+            remainingCommitment: remaining,
+            wbsId: line.wbsId,
+            costCodeId: line.costCodeId,
+          });
+        }
+      }
+    }
+
+    const certificationActualByAgreement = new Map<string, Prisma.Decimal>();
+    for (const certification of certifications) {
+      const current =
+        certificationActualByAgreement.get(certification.agreementId) ??
+        new Prisma.Decimal(0);
+      certificationActualByAgreement.set(
+        certification.agreementId,
+        sumCostControlDecimals([current, certification.certifiedGross]),
+      );
+    }
+
+    let remainingSubcontract = new Prisma.Decimal(0);
+    if (this.matchesDimension(null, null, dimensions)) {
+      for (const agreement of agreements) {
+        this.assertBaseCurrency(
+          'Subcontract remaining commitment',
+          agreement.currencyCode,
+          company.baseCurrencyCode,
+        );
+        const variationValue = sumCostControlDecimals(
+          agreement.variations.map((variation) => variation.valueDelta),
+        );
+        const ceiling = sumCostControlDecimals([
+          agreement.originalValue,
+          variationValue,
+        ]);
+        const attributableActual =
+          certificationActualByAgreement.get(agreement.id) ??
+          new Prisma.Decimal(0);
+        const remaining = remainingCostCommitment(
+          ceiling,
+          attributableActual,
+        );
+        remainingSubcontract = sumCostControlDecimals([
+          remainingSubcontract,
+          remaining,
+        ]);
+        this.addDimension(
+          dimensionMap,
+          null,
+          null,
+          'remainingSubcontract',
+          remaining,
+        );
+        if (!remaining.equals(0) || !attributableActual.equals(0)) {
+          remainingCommitmentRecords.push({
+            sourceType: 'SUBCONTRACT_AGREEMENT',
+            agreementId: agreement.id,
+            agreementNumber: agreement.agreementNumber,
+            committedAmount: ceiling,
+            attributableActual,
+            remainingCommitment: remaining,
+            allocationState: 'UNALLOCATED',
+          });
+        }
+      }
+    }
+
+    let uncommittedEtc = new Prisma.Decimal(0);
+    if (currentForecast) {
+      this.assertBaseCurrency(
+        'Cost Forecast',
+        currentForecast.currencyCode,
+        company.baseCurrencyCode,
+      );
+      const matchingForecastLines = currentForecast.lines.filter((line) =>
+        this.matchesDimension(
+          line.wbsId,
+          line.costCodeId,
+          dimensions,
+        ),
+      );
+      for (const line of matchingForecastLines) {
+        uncommittedEtc = sumCostControlDecimals([
+          uncommittedEtc,
+          line.uncommittedEtcAmount,
+        ]);
+        this.addDimension(
+          dimensionMap,
+          line.wbsId,
+          line.costCodeId,
+          'uncommittedEtc',
+          line.uncommittedEtcAmount,
+        );
+      }
+      forecastRecords.push({
+        id: currentForecast.id,
+        versionNo: currentForecast.versionNo,
+        forecastDate: currentForecast.forecastDate,
+        approvedAt: currentForecast.approvedAt,
+        amount: uncommittedEtc,
+        lines: matchingForecastLines.map((line) => ({
+          id: line.id,
+          lineNo: line.lineNo,
+          wbsId: line.wbsId,
+          costCodeId: line.costCodeId,
+          uncommittedEtcAmount: line.uncommittedEtcAmount,
+          remarks: line.remarks,
         })),
       });
     }
@@ -728,6 +962,22 @@ export class CostControlService {
       supplierPaid,
       subcontractPaid,
     ]);
+    const remainingCommitmentTotal = sumCostControlDecimals([
+      remainingProcurement,
+      remainingSubcontract,
+    ]);
+    const costToComplete = sumCostControlDecimals([
+      remainingCommitmentTotal,
+      uncommittedEtc,
+    ]);
+    const forecastCost = sumCostControlDecimals([
+      actualTotal,
+      costToComplete,
+    ]);
+    const variance = subtractCostControlDecimals(
+      revisedBudget,
+      forecastCost,
+    );
 
     const wbsById = new Map(
       dimensions.wbsRows.map((row) => [row.id, row]),
@@ -793,6 +1043,39 @@ export class CostControlService {
               bucket.subcontractPaid,
             ]),
           },
+          remainingCommitment: {
+            procurement: bucket.remainingProcurement,
+            subcontract: bucket.remainingSubcontract,
+            total: sumCostControlDecimals([
+              bucket.remainingProcurement,
+              bucket.remainingSubcontract,
+            ]),
+          },
+          uncommittedEtc: bucket.uncommittedEtc,
+          costToComplete: sumCostControlDecimals([
+            bucket.remainingProcurement,
+            bucket.remainingSubcontract,
+            bucket.uncommittedEtc,
+          ]),
+          forecastCost: sumCostControlDecimals([
+            bucket.supplierActual,
+            bucket.subcontractActual,
+            bucket.directActual,
+            bucket.remainingProcurement,
+            bucket.remainingSubcontract,
+            bucket.uncommittedEtc,
+          ]),
+          variance: subtractCostControlDecimals(
+            bucket.revisedBudget,
+            sumCostControlDecimals([
+              bucket.supplierActual,
+              bucket.subcontractActual,
+              bucket.directActual,
+              bucket.remainingProcurement,
+              bucket.remainingSubcontract,
+              bucket.uncommittedEtc,
+            ]),
+          ),
         };
       })
       .sort((left, right) => {
@@ -833,7 +1116,24 @@ export class CostControlService {
           subcontract: subcontractPaid,
           total: paidTotal,
         },
+        remainingCommitment: {
+          procurement: remainingProcurement,
+          subcontract: remainingSubcontract,
+          total: remainingCommitmentTotal,
+        },
+        uncommittedEtc,
+        costToComplete,
+        forecastCost,
+        variance,
       },
+      currentForecast: currentForecast
+        ? {
+            id: currentForecast.id,
+            versionNo: currentForecast.versionNo,
+            forecastDate: currentForecast.forecastDate,
+            approvedAt: currentForecast.approvedAt,
+          }
+        : null,
       dimensionBreakdown,
       sourceEvidence: {
         originalBudget: this.evidence(
@@ -905,6 +1205,20 @@ export class CostControlService {
           'V0.6 Payment allocations',
           'Approved non-cancelled OUTBOUND allocations to Supplier Invoices or Subcontract Certifications on Payment date',
         ),
+        remainingCommitment: this.evidence(
+          remainingCommitmentTotal,
+          remainingCommitmentRecords,
+          true,
+          'Derived Cost Control measure',
+          'Current commitment less only canonically attributable recognized Actual, floored at zero. Procurement follows PO lineage; subcontract certification reduction remains Unallocated because no approved WBS/Cost Code allocation exists.',
+        ),
+        uncommittedEtc: this.evidence(
+          uncommittedEtc,
+          forecastRecords,
+          this.hasPermissions(auth, 'cost.forecast.view'),
+          'V0.7 Cost Forecast',
+          'Highest-version final-approved Forecast only; lines store Uncommitted ETC and never total Cost to Complete.',
+        ),
       },
       boundaries: {
         committedActualPaidSeparate: true,
@@ -913,7 +1227,7 @@ export class CostControlService {
         syntheticDimensionalProration: false,
         financialAuthority: 'POSTGRESQL_PRISMA_DECIMAL',
         directCostPostingImplemented: true,
-        forecastImplemented: false,
+        forecastImplemented: true,
         projectVariationRevenueProfitImplemented: false,
       },
     };
@@ -1068,6 +1382,9 @@ export class CostControlService {
       directActual: new Prisma.Decimal(0),
       supplierPaid: new Prisma.Decimal(0),
       subcontractPaid: new Prisma.Decimal(0),
+      remainingProcurement: new Prisma.Decimal(0),
+      remainingSubcontract: new Prisma.Decimal(0),
+      uncommittedEtc: new Prisma.Decimal(0),
     };
   }
 
