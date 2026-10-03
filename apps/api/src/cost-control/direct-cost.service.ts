@@ -312,7 +312,6 @@ export class DirectCostService {
             current.projectId,
             next.wbsId,
             next.costCodeId,
-            current.currencyCode,
           );
           await this.assertReversalIntegrity(tx, { ...current, ...next });
         } else {
@@ -438,7 +437,6 @@ export class DirectCostService {
           current.projectId,
           current.wbsId,
           current.costCodeId,
-          current.currencyCode,
         );
         const description = ('Reversal: ' + current.description).slice(0, 500);
         const row = await tx.directCostPosting.create({
@@ -692,7 +690,6 @@ export class DirectCostService {
         posting.projectId,
         posting.wbsId,
         posting.costCodeId,
-        posting.currencyCode,
       );
       await this.assertReversalIntegrity(tx, posting);
     } else {
@@ -762,12 +759,11 @@ export class DirectCostService {
     projectId: string,
     wbsId: string | null,
     costCodeId: string,
-    expectedCurrency: string,
   ): Promise<void> {
     const [company, project, wbs, costCode] = await Promise.all([
       db.company.findUnique({
         where: { id: companyId },
-        select: { baseCurrencyCode: true },
+        select: { id: true },
       }),
       db.project.findFirst({
         where: { id: projectId, companyId },
@@ -789,13 +785,6 @@ export class DirectCostService {
         code: 'DIRECT_COST_REVERSAL_SCOPE_INVALID',
         detail:
           'A linked reversal must preserve historical Project, WBS and Cost Code identity within the original Company and Project.',
-      });
-    }
-    if (expectedCurrency !== company.baseCurrencyCode) {
-      throw new UnprocessableEntityException({
-        code: 'DIRECT_COST_CURRENCY_UNSUPPORTED',
-        detail:
-          'Direct Cost Posting currency must equal the current Company base currency. V0.7 performs no FX conversion.',
       });
     }
   }

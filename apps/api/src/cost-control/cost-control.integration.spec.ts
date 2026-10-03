@@ -650,23 +650,36 @@ test('V0.7-B database freezes terminal evidence and permits exact reversal after
       }),
     );
 
-    const reversal = await prisma.directCostPosting.create({
-      data: {
-        companyId: company.id,
-        projectId: project.id,
-        costCodeId: costCode.id,
-        postingDate: new Date('2026-10-04'),
-        description: 'Reversal: Hardening source posting',
-        amount: '-88.75',
-        currencyCode: 'SGD',
-        reversesPostingId: original.id,
-        reversalReason: 'Historical correction after Cost Code deactivation',
-        createKey: randomUUID(),
-        createPayloadHash: 'f'.repeat(64),
-        createdByUserId: maker.id,
-      },
+    await prisma.company.update({
+      where: { id: company.id },
+      data: { baseCurrencyCode: 'USD' },
     });
+    const directCost = new DirectCostService(
+      prisma,
+      { assertAccess: async () => {} } as never,
+      {} as never,
+      { record: async () => {} } as never,
+    );
+    const reversal = await directCost.createReversal(
+      {
+        auth: {
+          companyId: company.id,
+          userId: maker.id,
+          permissions: ['cost.direct_posting.create'],
+          roleCodes: [],
+        } as never,
+      },
+      original.id,
+      {
+        postingDate: new Date('2026-10-04'),
+        reason:
+          'Historical correction after Cost Code deactivation and base-currency change',
+        reference: 'HISTORICAL-REVERSAL',
+        createKey: randomUUID(),
+      },
+    );
     assert.equal(reversal.amount.toFixed(2), '-88.75');
+    assert.equal(reversal.currencyCode, 'SGD');
     assert.equal(reversal.reversesPostingId, original.id);
   } finally {
     await prisma.$disconnect();
@@ -842,12 +855,23 @@ test('V0.7-B terminal Direct Cost approval requires authorized retained evidence
       data: {
         approvalWorkflowId: workflow.id,
         stepNo: 1,
-        stepName: 'Approve Direct Cost',
+        stepName: 'First Direct Cost approval',
         requiredApprovals: 1,
       },
     });
-    await prisma.approvalStepRole.create({
-      data: { approvalStepId: step.id, roleId: role.id },
+    const finalStep = await prisma.approvalStep.create({
+      data: {
+        approvalWorkflowId: workflow.id,
+        stepNo: 2,
+        stepName: 'Final Direct Cost approval',
+        requiredApprovals: 1,
+      },
+    });
+    await prisma.approvalStepRole.createMany({
+      data: [
+        { approvalStepId: step.id, roleId: role.id },
+        { approvalStepId: finalStep.id, roleId: role.id },
+      ],
     });
     const instance = await prisma.approvalInstance.create({
       data: {
@@ -880,33 +904,62 @@ test('V0.7-B terminal Direct Cost approval requires authorized retained evidence
       }),
     );
 
-    const makerAction = await prisma.approvalAction.create({
-      data: {
-        approvalInstanceId: instance.id,
-        approvalStepId: step.id,
-        action: 'APPROVE',
-        actionByUserId: maker.id,
-        comment: 'Maker must not self-approve',
-      },
-    });
     await assert.rejects(() =>
-      prisma.approvalInstance.update({
-        where: { id: instance.id },
+      prisma.approvalAction.create({
         data: {
-          approvalState: 'APPROVED',
-          completedAt: new Date('2026-10-03T03:00:00.000Z'),
+          approvalInstanceId: instance.id,
+          approvalStepId: finalStep.id,
+          action: 'APPROVE',
+          actionByUserId: approver.id,
+          comment: 'Future-step action must not be preinserted',
         },
       }),
     );
-    await prisma.approvalAction.delete({ where: { id: makerAction.id } });
+    await assert.rejects(() =>
+      prisma.approvalInstance.update({
+        where: { id: instance.id },
+        data: { currentStepNo: 2 },
+      }),
+    );
+    await assert.rejects(() =>
+      prisma.approvalAction.create({
+        data: {
+          approvalInstanceId: instance.id,
+          approvalStepId: step.id,
+          action: 'APPROVE',
+          actionByUserId: maker.id,
+          comment: 'Maker must not self-approve',
+        },
+      }),
+    );
 
-    const action = await prisma.approvalAction.create({
+    const firstAction = await prisma.approvalAction.create({
       data: {
         approvalInstanceId: instance.id,
         approvalStepId: step.id,
         action: 'APPROVE',
         actionByUserId: approver.id,
-        comment: 'Authorized retained approval evidence',
+        comment: 'Authorized first-step approval evidence',
+      },
+    });
+    await prisma.approvalInstance.update({
+      where: { id: instance.id },
+      data: { currentStepNo: 2 },
+    });
+    await assert.rejects(() =>
+      prisma.approvalAction.update({
+        where: { id: firstAction.id },
+        data: { comment: 'Submitted approval evidence is append-only' },
+      }),
+    );
+
+    const action = await prisma.approvalAction.create({
+      data: {
+        approvalInstanceId: instance.id,
+        approvalStepId: finalStep.id,
+        action: 'APPROVE',
+        actionByUserId: approver.id,
+        comment: 'Authorized final-step approval evidence',
       },
     });
     const completedAt = new Date('2026-10-03T03:00:00.000Z');
