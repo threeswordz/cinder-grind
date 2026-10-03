@@ -14,6 +14,7 @@ import {
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { CurrentUser, logout } from './api/auth';
+import { CostControlWorkspace } from './cost-control/CostControlWorkspace';
 import { ApprovalPanel } from './admin/ApprovalPanel';
 import { BudgetPanel } from './budget/BudgetPanel';
 import { CompanyPanel } from './admin/CompanyPanel';
@@ -56,6 +57,12 @@ export function AdminConsole({ user }: { user: CurrentUser }) {
   const sections = useMemo<Section[]>(
     () =>
       [
+        {
+          key: 'cost-control',
+          label: 'Cost Control',
+          permission: '__cost_control__',
+          content: <CostControlWorkspace permissions={user.permissions} />,
+        },
         {
           key: 'finance',
           label: 'Finance',
@@ -225,7 +232,13 @@ export function AdminConsole({ user }: { user: CurrentUser }) {
           content: <SystemSettingsPanel />,
         },
       ].filter((section) =>
-        section.permission === '__finance__'
+        section.permission === '__cost_control__'
+          ? user.permissions.some(
+              (permission) =>
+                permission === 'cost.control.view' ||
+                permission.startsWith('cost.direct_posting.'),
+            )
+          : section.permission === '__finance__'
           ? user.permissions.some((permission) =>
               permission.startsWith('finance.supplier_invoice.'),
             )
@@ -325,7 +338,7 @@ export function AdminConsole({ user }: { user: CurrentUser }) {
             <Box sx={{ flexGrow: 1 }}>
               <Typography variant="h6">Construction ERP</Typography>
               <Typography variant="body2" color="text.secondary">
-                V0.6 Finance · {user.displayName}
+                V0.7 Cost Control · {user.displayName}
               </Typography>
             </Box>
             <Button

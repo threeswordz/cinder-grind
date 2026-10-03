@@ -50,6 +50,7 @@ type MeasureBucket = {
   subcontractCommitted: Prisma.Decimal;
   supplierActual: Prisma.Decimal;
   subcontractActual: Prisma.Decimal;
+  directActual: Prisma.Decimal;
   supplierPaid: Prisma.Decimal;
   subcontractPaid: Prisma.Decimal;
 };
@@ -252,6 +253,7 @@ export class CostControlService {
       supplierInvoices,
       certifications,
       outboundPayments,
+      directCostPostings,
     ] = await Promise.all([
       this.prisma.budgetRevision.findMany({
         where: {
@@ -403,6 +405,25 @@ export class CostControlService {
           },
         },
       }),
+      this.prisma.directCostPosting.findMany({
+        where: {
+          companyId: auth.companyId,
+          projectId,
+          state: 'APPROVED',
+        },
+        select: {
+          id: true,
+          postingDate: true,
+          description: true,
+          reference: true,
+          amount: true,
+          currencyCode: true,
+          wbsId: true,
+          costCodeId: true,
+          reversesPostingId: true,
+          reversalReason: true,
+        },
+      }),
     ]);
 
     const dimensionMap = new Map<string, DimensionBucket>();
@@ -421,6 +442,7 @@ export class CostControlService {
     const subcontractCommitmentRecords: EvidenceRecord[] = [];
     const supplierActualRecords: EvidenceRecord[] = [];
     const subcontractActualRecords: EvidenceRecord[] = [];
+    const directActualRecords: EvidenceRecord[] = [];
     const paidRecords: EvidenceRecord[] = [];
 
     const originalBudget = this.revisionContribution(
@@ -610,6 +632,41 @@ export class CostControlService {
       }
     }
 
+    let directActual = new Prisma.Decimal(0);
+    for (const posting of directCostPostings) {
+      if (
+        !this.matchesDimension(
+          posting.wbsId,
+          posting.costCodeId,
+          dimensions,
+        )
+      ) {
+        continue;
+      }
+      this.assertBaseCurrency(
+        'Direct Actual Cost',
+        posting.currencyCode,
+        company.baseCurrencyCode,
+      );
+      directActual = sumCostControlDecimals([directActual, posting.amount]);
+      this.addDimension(
+        dimensionMap,
+        posting.wbsId,
+        posting.costCodeId,
+        'directActual',
+        posting.amount,
+      );
+      directActualRecords.push({
+        id: posting.id,
+        recognitionDate: posting.postingDate,
+        description: posting.description,
+        reference: posting.reference,
+        amount: posting.amount,
+        reversesPostingId: posting.reversesPostingId,
+        reversalReason: posting.reversalReason,
+      });
+    }
+
     let supplierPaid = new Prisma.Decimal(0);
     let subcontractPaid = new Prisma.Decimal(0);
     if (this.matchesDimension(null, null, dimensions)) {
@@ -665,6 +722,7 @@ export class CostControlService {
     const actualTotal = sumCostControlDecimals([
       supplierActual,
       subcontractActual,
+      directActual,
     ]);
     const paidTotal = sumCostControlDecimals([
       supplierPaid,
@@ -720,9 +778,11 @@ export class CostControlService {
           actualCost: {
             supplier: bucket.supplierActual,
             subcontract: bucket.subcontractActual,
+            direct: bucket.directActual,
             total: sumCostControlDecimals([
               bucket.supplierActual,
               bucket.subcontractActual,
+              bucket.directActual,
             ]),
           },
           paidCost: {
@@ -765,6 +825,7 @@ export class CostControlService {
         actualCost: {
           supplier: supplierActual,
           subcontract: subcontractActual,
+          direct: directActual,
           total: actualTotal,
         },
         paidCost: {
@@ -828,6 +889,15 @@ export class CostControlService {
           'V0.5 Subcontract Certification',
           'Approved non-reversed certifiedGross recognized on certification approval date',
         ),
+        directActual: this.evidence(
+          directActual,
+          directActualRecords,
+          auth.permissions.some((permission) =>
+            permission.startsWith('cost.direct_posting.'),
+          ),
+          'V0.7 Direct Cost Posting',
+          'Final-approved Direct Cost Posting recognized on posting date; an approved linked reversal contributes the exact signed offset',
+        ),
         paidCost: this.evidence(
           paidTotal,
           paidRecords,
@@ -842,7 +912,7 @@ export class CostControlService {
         sourceModulesRemainCanonical: true,
         syntheticDimensionalProration: false,
         financialAuthority: 'POSTGRESQL_PRISMA_DECIMAL',
-        directCostPostingImplemented: false,
+        directCostPostingImplemented: true,
         forecastImplemented: false,
         projectVariationRevenueProfitImplemented: false,
       },
@@ -995,6 +1065,7 @@ export class CostControlService {
       subcontractCommitted: new Prisma.Decimal(0),
       supplierActual: new Prisma.Decimal(0),
       subcontractActual: new Prisma.Decimal(0),
+      directActual: new Prisma.Decimal(0),
       supplierPaid: new Prisma.Decimal(0),
       subcontractPaid: new Prisma.Decimal(0),
     };

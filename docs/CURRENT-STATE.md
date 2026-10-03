@@ -3,10 +3,10 @@
 **Last verified:** 2026-10-03
 **Source of truth:** Live GitHub repository state
 
-- Current Release: V0.7 Cost Control — **ACTIVE / V0.7-A COMPLETE / V0.7-B PRE-FLIGHT**. V0.6 Finance remains COMPLETE AND ACCEPTED. DEC-023 is V0.6-only; V0.7 human UAT and explicit owner acceptance remain pending.
-- Current Stage: V0.7-B — **DIRECT COST POSTING — PRE-FLIGHT**. Issue #141 / branch `v0.7-b-preflight`. Application implementation has not begun; pre-flight merge and post-merge CI remain required.
+- Current Release: V0.7 Cost Control — **ACTIVE / V0.7-A COMPLETE / V0.7-B FINAL MERGE-CANDIDATE REVIEW**. V0.6 Finance remains COMPLETE AND ACCEPTED. DEC-023 is V0.6-only; V0.7 human UAT and explicit owner acceptance remain pending.
+- Current Stage: V0.7-B — **DIRECT COST POSTING — IMPLEMENTED / RUNTIME GREEN / DOCUMENTATION RECONCILIATION**. Issue #141 / PR #143 / branch `v0.7-b-direct-cost-posting`. Latest reviewed material head `2147128a44fbfbe92cedd9f73f15ea2c3f8f7a93` passed exact-head PR CI #2489, including forward-only migrations, Prisma/schema validation, full workspace/regression validation and authenticated live HTTP acceptance.
 - Completed Stages: V0.1-A through V0.1-H; V0.2-A through V0.2-G; V0.3-A through V0.3-E; V0.4-A through V0.4-E; V0.5 entry gate; V0.5-A; V0.5-B; V0.5-C; V0.5-D; V0.5-E; V0.6 entry gate; V0.6-A; V0.6-B; V0.6-C; V0.6-D; V0.6-E; V0.6 release exit; V0.7 entry gate; V0.7-A
-- Active Issue / PR: **Issue #141 — V0.7-B Direct Cost Posting.** Stage-A Issue #139 closed completed after PR #140 merged as `d2d1aa75715aa9260b27d89a7029dcab1e9c4941` and exact post-merge main CI #2439 PASS (57 runtime checks). Stage-B pre-flight is documentation-only; implementation must start from its green merged-main checkpoint.
+- Active Issue / PR: **Issue #141 / PR #143 — V0.7-B Direct Cost Posting.** Stage-B implementation is complete and green. Successive DEC-022 reviews drove fixes for maker/editor separation, exact Decimal input, historical reversal reachability, terminal lifecycle and approval-history immutability, reversal-draft UI behavior, archived Project history access, aggregate-only source isolation, database-authoritative terminal approval evidence, strict current-step sequencing, retained historical reversal currency, approval-action/step concurrency serialization, and serialized multi-approver decision order/time with terminal actor binding. The final material review on `2147128a44...` found only stale documentation evidence; no further runtime/schema/security defect was reported. DEC-022 preserves that material review across documentation-only reconciliation. All executed-migration corrections remained forward-only. V0.7-C remains blocked until this documentation reconciliation passes CI, PR #143 merges, post-merge main CI passes and Issue #141 closes completed.
 - V0.5-C green main checkpoint: PR #108 squash-merged as `3f00de1f984c82c1737c4b47c226d99197b19e54`; final exact-head push CI #1869 and PR CI #1870 passed on `0833cd893f208003215cf39cee9c07b6c9a817ad`; final Codex exact-head review reported no major issues; post-merge main CI #1871 passed; Issue #107 closed.
 - V0.5-D green main checkpoint: PR #110 squash-merged as `aceeb82ad13a2f6c773d307541ddd02fafc69a92`; final exact-head push CI #1898 and PR CI #1899 passed on `0cf62c630153a6ac2326f352c0064243b3a2f45f`; final Codex exact-head review reported no major issues; post-merge main CI #1900 passed; Issue #109 closed.
 - V0.5-E green main checkpoint: PR #112 squash-merged as `c054b9253e1ad2623a3fc233ba125003b2894c37`; final exact-head push CI #1930 and PR CI #1931 passed on `9ba8d862dcf66e7b00d7006d9398b19d83026e41`; final Codex exact-head review reported no major issues; post-merge main CI #1932 passed; Issue #111 closed. AC-V05-030 was explicitly accepted by the Product / Business Owner on 2026-10-01.
@@ -87,7 +87,7 @@
 - V0.1 cross-module release acceptance scenario: PASS in the Stage H release-candidate regression suite.
 - Open defect check at V0.1 acceptance: no Severity 1 or Severity 2 release-blocking defect recorded.
 - Governance: `AGENTS.md`, `docs/PROJECT-GOVERNANCE.md`, PR governance checklist, DEC-008, DEC-016 and DEC-022 are active. DEC-022 makes Codex a stable-merge-candidate/high-risk independent gate rather than a continuous per-fix reviewer; human UAT and CI/release sequencing are unchanged.
-- Next action: run the fresh DEC-022 Codex review on the reconciled PR #140 head. If it reports no remaining genuine defect, merge PR #140, verify post-merge `main` CI, record closure evidence and close Issue #139 completed. V0.7-B remains blocked until that sequence finishes.
+- Next action: run the final DEC-022 exact-head Codex review on the reconciled PR #143 candidate. If no genuine defect remains, squash-merge PR #143, verify post-merge `main` CI, reconcile closure evidence and close Issue #141 completed. Only then may V0.7-C begin.
 
 ## Stage E completed
 
@@ -1013,3 +1013,18 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - Issue #141 now tracks V0.7-B Direct Cost Posting under approved D07-07–10 / DEC-024. `docs/V0.7-B-PREFLIGHT.md` records its inherited boundary.
 - Pre-flight is documentation only. V0.7-B application/schema implementation remains NOT STARTED until this PR merges and post-merge main CI passes; it must then use a fresh implementation branch from that exact green main.
 - Forecast/ETC/Variance, Project Variations/revenue/profit, V0.8 and required human V0.7 release acceptance remain later gates.
+
+
+## V0.7-B merge-candidate checkpoint
+
+- Issue #141 tracks Direct Cost Posting under DEC-024 / D07-07–10 and the approved V0.7 Stage-B boundary.
+- Pre-flight PR #142 merged as `8fed1288254154fbba111386c4b1ab94f4de43d4`; post-merge main CI #2443 PASS. Implementation branch `v0.7-b-direct-cost-posting` started from that exact green main.
+- Implemented forward-only `direct_cost_postings` / replay persistence, explicit Cost Control permissions, Project + required Cost Code + optional WBS scope, retained base currency, approval binding, immutable approved history and linked exact reversal integrity.
+- Backend/API and authorized web workspace support Draft create/edit, submission, maker-checker approval/rejection and linked reversal. Approved signed Direct Cost contributes Actual Cost on posting date and remains separate from Paid Cost / Project Cash Flow.
+- Aggregate-only `cost.control.view` retains aggregate measures without leaking Direct Cost source records; detailed Direct Cost evidence requires a Direct Cost business permission. SYS_ADMIN receives no implicit Direct Cost business authority.
+- Implementation checkpoints: backend `141259b0ea055cf573d5953035e23887d1af4637`; source-redaction fix `2d8ecb958d062f7c5d83c56cc1620f7b9be4d36a`; web workflow `0104b0aaf74b50e7d726482a8c8c0d57b0a7ce13`; web typing fix `c088fdcdad59a194bf45565be34aa0ba92990e5d`; live runtime evidence `d7811139985c88d6a068cee933c475f347d5ce80`.
+- CI #2449 reached live HTTP and exposed `erp_direct_cost_scope_guard()` ambiguity between a PL/pgSQL variable and `approval_instances.approval_state`. No prior migration was edited; forward-only correction migration `20261003104000_v0_7_b_direct_cost_scope_guard_fix` was added in `e32b89f9a37e53e80cbc6f6ae3bcb3a141a17fab`.
+- Exact corrected implementation head `e32b89f9a37e53e80cbc6f6ae3bcb3a141a17fab`: push CI #2450 PASS; 99 API regression tests PASS; authenticated runtime scenario `MUS9B907` PASS with 59 checks covering Direct Cost create/retry/edit/submit/maker-checker/approval/immutability/reversal/rejection, authorization and Actual-versus-Paid separation.
+- Draft PR #143 is open only to attach final durable evidence without prematurely consuming the DEC-022 review. After this documentation-only packaging head passes push and PR CI, mark it ready and run the stable-candidate Codex review.
+- No Codex waiver applies. Squash merge, post-merge main CI and Issue #141 closure remain mandatory before V0.7-C may begin.
+- Human V0.7 UAT and explicit Product / Business Owner release acceptance remain later release-exit gates and are not satisfied by Stage-B automated evidence.
