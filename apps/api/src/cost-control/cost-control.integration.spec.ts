@@ -933,6 +933,109 @@ test('V0.7-B terminal Direct Cost approval requires authorized retained evidence
       }),
     );
 
+    // Regression for the DEC-022 concurrency finding: once the current-step
+    // approval threshold is satisfied, an uncommitted REJECT insertion must
+    // serialize with an attempted step advance. Without the approval-instance
+    // row lock both transactions can commit, leaving old-step reject evidence
+    // behind an already-advanced instance.
+    const racePosting = await prisma.directCostPosting.create({
+      data: {
+        companyId: company.id,
+        projectId: project.id,
+        costCodeId: costCode.id,
+        postingDate: new Date('2026-10-03'),
+        description: 'Concurrent Direct Cost approval race',
+        amount: '26.00',
+        currencyCode: 'SGD',
+        createKey: randomUUID(),
+        createPayloadHash: '8'.repeat(64),
+        createdByUserId: maker.id,
+      },
+    });
+    const raceInstance = await prisma.approvalInstance.create({
+      data: {
+        companyId: company.id,
+        approvalWorkflowId: workflow.id,
+        entityType: 'DIRECT_COST_POSTING',
+        entityId: racePosting.id,
+        currentStepNo: 1,
+        approvalState: 'SUBMITTED',
+      },
+    });
+    await prisma.directCostPosting.update({
+      where: { id: racePosting.id },
+      data: {
+        state: 'SUBMITTED',
+        approvalInstanceId: raceInstance.id,
+        submittedByUserId: maker.id,
+        submittedAt: new Date('2026-10-03T02:30:00.000Z'),
+      },
+    });
+    await prisma.approvalAction.create({
+      data: {
+        approvalInstanceId: raceInstance.id,
+        approvalStepId: step.id,
+        action: 'APPROVE',
+        actionByUserId: approver.id,
+        comment: 'Committed threshold evidence before concurrency race',
+      },
+    });
+
+    let releaseConcurrentReject!: () => void;
+    let signalConcurrentRejectInserted!: () => void;
+    const concurrentRejectInserted = new Promise<void>((resolve) => {
+      signalConcurrentRejectInserted = resolve;
+    });
+    const releaseConcurrentRejectPromise = new Promise<void>((resolve) => {
+      releaseConcurrentReject = resolve;
+    });
+    const concurrentRejectTx = prisma.$transaction(async (tx) => {
+      await tx.approvalAction.create({
+        data: {
+          approvalInstanceId: raceInstance.id,
+          approvalStepId: step.id,
+          action: 'REJECT',
+          actionByUserId: approver.id,
+          comment: 'Concurrent reject must serialize with progression',
+        },
+      });
+      signalConcurrentRejectInserted();
+      await releaseConcurrentRejectPromise;
+    }, { timeout: 10_000 });
+
+    await concurrentRejectInserted;
+
+    let concurrentProgressionError: unknown;
+    try {
+      await prisma.$transaction(async (tx) => {
+        await tx.$executeRawUnsafe("SET LOCAL lock_timeout = '250ms'");
+        await tx.approvalInstance.update({
+          where: { id: raceInstance.id },
+          data: { currentStepNo: 2 },
+        });
+      }, { timeout: 5_000 });
+    } catch (error) {
+      concurrentProgressionError = error;
+    }
+
+    releaseConcurrentReject();
+    await concurrentRejectTx;
+
+    assert.ok(
+      concurrentProgressionError,
+      'step progression must block behind an in-flight Direct Cost approval action',
+    );
+    assert.match(
+      String(concurrentProgressionError),
+      /lock timeout|canceling statement due to lock timeout/i,
+    );
+    await assert.rejects(() =>
+      prisma.approvalInstance.update({
+        where: { id: raceInstance.id },
+        data: { currentStepNo: 2 },
+      }),
+    );
+
     const firstAction = await prisma.approvalAction.create({
       data: {
         approvalInstanceId: instance.id,
