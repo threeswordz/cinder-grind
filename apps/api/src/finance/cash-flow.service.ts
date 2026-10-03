@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnprocessableEntityException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 
 import { AuthenticatedUserContext } from '../auth/auth.types';
@@ -65,9 +65,21 @@ export function deriveProjectCashFlow(
   baseCurrencyCode: string,
 ) {
   const zero = new Prisma.Decimal(0);
-  const rows = sourceRows
-    .filter((payment) => payment.state === 'APPROVED' && payment.cancelledAt === null)
-    .map((payment) => {
+  const includedRows = sourceRows.filter(
+    (payment) => payment.state === 'APPROVED' && payment.cancelledAt === null,
+  );
+  const mismatchedCurrency = includedRows.find(
+    (payment) => payment.currencyCode !== baseCurrencyCode,
+  );
+  if (mismatchedCurrency) {
+    throw new UnprocessableEntityException({
+      code: 'CASH_FLOW_CURRENCY_UNSUPPORTED',
+      detail:
+        'Project Cash Flow cannot aggregate Payments recorded in a currency different from the current Company base currency without approved FX accounting.',
+    });
+  }
+
+  const rows = includedRows.map((payment) => {
       const supplierAllocated = payment.supplierAllocations.reduce(
         (sum, allocation) => sum.plus(allocation.allocatedAmount),
         zero,

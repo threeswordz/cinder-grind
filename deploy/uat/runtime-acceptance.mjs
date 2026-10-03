@@ -3134,6 +3134,30 @@ await request(
   '/finance/projects/' + projectId + '/cash-flow',
   { expected: 403 },
 );
+
+await request(admin, '/admin/company', {
+  method: 'PATCH',
+  json: { baseCurrencyCode: 'USD' },
+});
+await request(
+  pm,
+  '/finance/projects/' + projectId + '/cash-flow',
+  { expected: 422 },
+);
+await request(admin, '/admin/company', {
+  method: 'PATCH',
+  json: { baseCurrencyCode: 'SGD' },
+});
+const restoredStageECashFlow = await request(
+  pm,
+  '/finance/projects/' + projectId + '/cash-flow',
+);
+check(
+  Number(restoredStageECashFlow.data.data.totals.netCashFlow) === 118,
+  'V0.6-E restoring Company base currency did not restore valid Project Cash Flow.',
+);
+record('V0.6-E rejects historical Payment currency when current Company base currency differs, preventing unsupported FX/mixed-currency aggregation');
+
 record('V0.6-E authenticated Project Cash Flow counts approved non-cancelled Payment amounts once, supports Payment-date filtering, preserves unallocated settlement evidence, excludes cancelled history and enforces SYS_ADMIN/Project denial');
 
 const postedBalance = await request(

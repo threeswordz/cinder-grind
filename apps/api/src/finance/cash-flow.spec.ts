@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import { UnprocessableEntityException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 
 import { REQUIRED_PERMISSIONS_KEY } from '../authorization/permissions.decorator';
@@ -149,4 +150,55 @@ test('V0.6-E allocation trace never changes Payment-level cash-flow amount', () 
   assert.equal(result.rows[0]?.unallocatedAmount.toFixed(2), '250.00');
   assert.equal(result.rows[0]?.allocations.length, 2);
   assert.equal(result.totals.netCashFlow.toFixed(2), '500.00');
+});
+
+
+test('V0.6-E rejects included Payment currency that differs from current Company base currency', () => {
+  assert.throws(
+    () =>
+      deriveProjectCashFlow(
+        [
+          source({
+            id: 'historical-currency',
+            currencyCode: 'SGD',
+            amount: new Prisma.Decimal('125.00'),
+          }),
+        ],
+        'USD',
+      ),
+    (error: unknown) => {
+      if (!(error instanceof UnprocessableEntityException)) return false;
+      const response = error.getResponse();
+      return (
+        typeof response === 'object' &&
+        response !== null &&
+        'code' in response &&
+        response.code === 'CASH_FLOW_CURRENCY_UNSUPPORTED'
+      );
+    },
+  );
+});
+
+test('V0.6-E ignores cancelled historical-currency Payment for cash-flow aggregation', () => {
+  const result = deriveProjectCashFlow(
+    [
+      source({
+        id: 'cancelled-historical-currency',
+        currencyCode: 'SGD',
+        amount: new Prisma.Decimal('125.00'),
+        state: 'CANCELLED',
+        cancelledAt: new Date('2026-10-03T01:00:00.000Z'),
+      }),
+      source({
+        id: 'current-currency',
+        currencyCode: 'USD',
+        amount: new Prisma.Decimal('25.00'),
+      }),
+    ],
+    'USD',
+  );
+
+  assert.equal(result.rows.length, 1);
+  assert.equal(result.rows[0]?.id, 'current-currency');
+  assert.equal(result.totals.outflowAmount.toFixed(2), '25.00');
 });
