@@ -2112,6 +2112,7 @@ model BudgetRevision {
   projectId          String    @map("project_id") @db.Uuid
   revisionNo         Int       @map("revision_no")
   revisionNumber     String    @map("revision_number") @db.VarChar(120)
+  currencyCode       String?   @map("currency_code") @db.VarChar(3)
   approvalInstanceId String?   @unique @map("approval_instance_id") @db.Uuid
   createdByUserId    String    @map("created_by_user_id") @db.Uuid
   submittedByUserId  String?   @map("submitted_by_user_id") @db.Uuid
@@ -2408,6 +2409,7 @@ model PurchaseOrder {
   projectId          String    @map("project_id") @db.Uuid
   supplierId         String    @map("supplier_id") @db.Uuid
   poNumber           String    @map("po_number") @db.VarChar(120)
+  currencyCode       String?   @map("currency_code") @db.VarChar(3)
   revisionNo         Int       @default(0) @map("revision_no")
   previousRevisionId String?   @unique @map("previous_revision_id") @db.Uuid
   revisionReason     String?   @map("revision_reason") @db.Text

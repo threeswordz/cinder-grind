@@ -7173,6 +7173,21 @@ await request(
 );
 record('V0.7-A Cost Control derives Original/Revised Budget, separate Committed/Actual/Paid measures, dimensional filters, source-permission evidence and Project authorization');
 
+await request(admin, '/admin/company', {
+  method: 'PATCH', json: { baseCurrencyCode: 'USD' },
+});
+await request(pm, '/projects/' + projectId + '/cost-control', { expected: 422 });
+await request(admin, '/admin/company', {
+  method: 'PATCH', json: { baseCurrencyCode: 'SGD' },
+});
+const restoredCostControl = await request(pm, '/projects/' + projectId + '/cost-control');
+check(
+  restoredCostControl.data.data.baseCurrencyCode === 'SGD' &&
+    restoredCostControl.data.data.totals.originalBudget === v07CostControl.data.data.totals.originalBudget,
+  'V0.7-A historical source currency was not retained after restoring the Company currency.',
+);
+record('V0.7-A rejects historical Budget/PO currency mismatch and restores valid same-currency reporting');
+
 await logout(v07Restricted);
 await logout(pm);
 await request(pm, '/auth/me', { expected: 401 });

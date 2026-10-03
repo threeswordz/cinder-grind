@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { randomUUID } from 'node:crypto';
 import test from 'node:test';
 
 import { UnprocessableEntityException } from '@nestjs/common';
@@ -12,7 +13,94 @@ import {
   selectOriginalAndCurrentBudget,
   splitSubcontractCommitment,
   sumCostControlDecimals,
+  CostControlService,
 } from './cost-control.service';
+
+test('V0.7-A Budget and PO currency checks work without other Finance sources', async () => {
+  for (const source of ['budget', 'po']) {
+    for (const currencyCode of ['SGD', 'USD', null]) {
+      const sourceRow = source === 'budget'
+        ? { id: 'budget', revisionNo: 1, revisionNumber: 'BR-1', currencyCode,
+            approvalInstance: { completedAt: new Date() }, lines: [] }
+        : { id: 'po', poNumber: 'PO-1', revisionNo: 0, currencyCode, cancelledAt: null, lines: [] };
+      const prisma = {
+        project: { findFirstOrThrow: async () => ({ id: 'project' }) },
+        company: { findUniqueOrThrow: async () => ({ baseCurrencyCode: 'SGD' }) },
+        wbsElement: { findMany: async () => [] },
+        costCode: { findMany: async () => [] },
+        budgetRevision: { findMany: async () => source === 'budget' ? [sourceRow] : [] },
+        purchaseOrder: { findMany: async () => source === 'po' ? [sourceRow] : [] },
+        subcontractAgreement: { findMany: async () => [] },
+        supplierInvoice: { findMany: async () => [] },
+        subcontractCertification: { findMany: async () => [] },
+        payment: { findMany: async () => [] },
+      };
+      const service = new CostControlService(prisma as unknown as PrismaService,
+        { assertAccess: async () => {} } as never);
+      const read = () => service.projectCostControl({ companyId: 'company', permissions: [] } as never, 'project');
+      if (currencyCode === 'SGD') {
+        assert.equal((await read()).baseCurrencyCode, 'SGD');
+      } else {
+        await assert.rejects(read, (error: unknown) => {
+          if (!(error instanceof UnprocessableEntityException)) return false;
+          return (error.getResponse() as { code: string }).code ===
+            (currencyCode === null ? 'COST_CONTROL_CURRENCY_UNVERIFIED' : 'COST_CONTROL_CURRENCY_UNSUPPORTED');
+        }, source + ' must independently fail closed for mismatched/unknown provenance');
+      }
+    }
+  }
+});
+
+test('V0.7-A source currency is captured, retained and inherited across Company changes', async () => {
+  const prisma = new PrismaService();
+  await prisma.$connect();
+  try {
+    const suffix = randomUUID();
+    const company = await prisma.company.create({ data: {
+      companyCode: 'CC-' + suffix, companyName: 'Currency provenance', baseCurrencyCode: 'SGD',
+    } });
+    const customer = await prisma.customer.create({ data: {
+      companyId: company.id, customerCode: 'C-' + suffix, customerName: 'Currency customer',
+    } });
+    const user = await prisma.user.create({ data: {
+      companyId: company.id, email: suffix + '@example.com', displayName: 'Currency maker', passwordHash: 'x',
+    } });
+    const supplier = await prisma.supplier.create({ data: {
+      companyId: company.id, supplierCode: 'S-' + suffix, supplierName: 'Currency supplier',
+    } });
+    const project = await prisma.project.create({ data: {
+      companyId: company.id, projectCode: 'P-' + suffix, projectName: 'Currency project', customerId: customer.id,
+      contractValue: '100', plannedStartDate: new Date('2026-10-01'), plannedCompletionDate: new Date('2027-01-01'),
+    } });
+    const budget = await prisma.budgetRevision.create({ data: {
+      companyId: company.id, projectId: project.id, revisionNo: 1, revisionNumber: 'BR-' + suffix, createdByUserId: user.id,
+    } });
+    const po = await prisma.purchaseOrder.create({ data: {
+      companyId: company.id, projectId: project.id, supplierId: supplier.id, poNumber: 'PO-' + suffix, createdByUserId: user.id,
+    } });
+    assert.equal(budget.currencyCode, 'SGD');
+    assert.equal(po.currencyCode, 'SGD');
+    await prisma.company.update({ where: { id: company.id }, data: { baseCurrencyCode: 'USD' } });
+    assert.equal((await prisma.budgetRevision.findUniqueOrThrow({ where: { id: budget.id } })).currencyCode, 'SGD');
+    assert.equal((await prisma.purchaseOrder.findUniqueOrThrow({ where: { id: po.id } })).currencyCode, 'SGD');
+    await assert.rejects(() => prisma.purchaseOrder.update({ where: { id: po.id }, data: { currencyCode: 'USD' } }));
+    await assert.rejects(() => prisma.budgetRevision.update({ where: { id: budget.id }, data: { currencyCode: 'USD' } }));
+    const budgetRevision = await prisma.budgetRevision.create({ data: {
+      companyId: company.id, projectId: project.id, revisionNo: 2, revisionNumber: 'BR2-' + suffix, createdByUserId: user.id,
+    } });
+    assert.equal(budgetRevision.currencyCode, 'SGD');
+    await assert.rejects(() => prisma.purchaseOrder.create({ data: {
+      companyId: company.id, projectId: project.id, supplierId: supplier.id, poNumber: 'FORGED-' + suffix,
+      createdByUserId: user.id, currencyCode: 'SGD',
+    } }));
+    const newPo = await prisma.purchaseOrder.create({ data: {
+      companyId: company.id, projectId: project.id, supplierId: supplier.id, poNumber: 'NEW-' + suffix, createdByUserId: user.id,
+    } });
+    assert.equal(newPo.currencyCode, 'USD');
+  } finally {
+    await prisma.$disconnect();
+  }
+});
 
 test('V0.7-A route requires explicit Cost Control permission', () => {
   assert.deepEqual(

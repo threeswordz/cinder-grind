@@ -265,6 +265,7 @@ export class CostControlService {
           id: true,
           revisionNo: true,
           revisionNumber: true,
+          currencyCode: true,
           approvalInstance: {
             select: { completedAt: true },
           },
@@ -289,6 +290,7 @@ export class CostControlService {
         select: {
           id: true,
           poNumber: true,
+          currencyCode: true,
           revisionNo: true,
           cancelledAt: true,
           lines: {
@@ -407,6 +409,12 @@ export class CostControlService {
     const budgetSelection =
       selectOriginalAndCurrentBudget(budgetRevisions);
 
+    for (const revision of [budgetSelection.original, budgetSelection.current]) {
+      if (revision) {
+        this.assertBaseCurrency('Budget', revision.currencyCode, company.baseCurrencyCode);
+      }
+    }
+
     const originalBudgetRecords: EvidenceRecord[] = [];
     const revisedBudgetRecords: EvidenceRecord[] = [];
     const procurementRecords: EvidenceRecord[] = [];
@@ -434,6 +442,7 @@ export class CostControlService {
       selectCurrentApprovedPurchaseOrders(approvedPurchaseOrders);
     let procurementCommitted = new Prisma.Decimal(0);
     for (const order of currentPurchaseOrders) {
+      this.assertBaseCurrency('Procurement commitment', order.currencyCode, company.baseCurrencyCode);
       const matchingLines = order.lines.filter((line) =>
         this.matchesDimension(
           line.wbsId,
@@ -1017,9 +1026,15 @@ export class CostControlService {
 
   private assertBaseCurrency(
     source: string,
-    currencyCode: string,
+    currencyCode: string | null,
     baseCurrencyCode: string,
   ) {
+    if (currencyCode === null) {
+      throw new UnprocessableEntityException({
+        code: 'COST_CONTROL_CURRENCY_UNVERIFIED',
+        detail: source + ' cannot be aggregated because its historical currency is unverified. No currency is inferred or converted.',
+      });
+    }
     if (currencyCode === baseCurrencyCode) return;
     throw new UnprocessableEntityException({
       code: 'COST_CONTROL_CURRENCY_UNSUPPORTED',

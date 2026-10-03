@@ -17,6 +17,7 @@ import { AuthorizationService } from '../authorization/authorization.service';
 import { ProjectScopeService } from '../authorization/project-scope.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProjectAccessService } from '../projects/project-access.service';
+import { CostControlService } from '../cost-control/cost-control.service';
 import { BudgetService } from './budget.service';
 
 function auth(
@@ -580,6 +581,19 @@ test('V0.3-A BOQ/Budget preserves draft snapshots, approval history and reportin
       },
     });
     assert.ok(auditCount >= 12);
+    assert.equal(approved1.currencyCode, 'SGD');
+    const costControl = new CostControlService(prisma, access);
+    const beforeCurrencyChange = await costControl.projectCostControl(makerAuth, project.id);
+    await prisma.company.update({ where: { id: company.id }, data: { baseCurrencyCode: 'USD' } });
+    await assert.rejects(
+      () => costControl.projectCostControl(makerAuth, project.id),
+      (error: unknown) => error instanceof UnprocessableEntityException &&
+        (error.getResponse() as { code: string }).code === 'COST_CONTROL_CURRENCY_UNSUPPORTED',
+      'A Budget-only Project must not reinterpret retained SGD Budget as USD.',
+    );
+    await prisma.company.update({ where: { id: company.id }, data: { baseCurrencyCode: 'SGD' } });
+    assert.equal((await costControl.projectCostControl(makerAuth, project.id)).totals.originalBudget.toString(),
+      beforeCurrencyChange.totals.originalBudget.toString());
   } finally {
     await prisma.$disconnect();
   }
