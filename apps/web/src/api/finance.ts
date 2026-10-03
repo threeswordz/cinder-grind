@@ -761,3 +761,58 @@ export const retentionApi = {
     ),
 };
 
+
+
+export type CashFlowSettlementStatus =
+  | 'UNALLOCATED'
+  | 'PARTIALLY_ALLOCATED'
+  | 'FULLY_ALLOCATED';
+
+export type ProjectCashFlowRow = {
+  id: string;
+  paymentNumber: string;
+  paymentDirection: PaymentDirection;
+  paymentDate: string;
+  amount: string;
+  currencyCode: string;
+  paymentMethod: string | null;
+  reference: string | null;
+  counterparty: {
+    type: 'SUPPLIER' | 'CUSTOMER' | 'SUBCONTRACTOR';
+    id: string;
+    code: string;
+    name: string;
+  } | null;
+  inflowAmount: string;
+  outflowAmount: string;
+  signedAmount: string;
+  allocatedAmount: string;
+  unallocatedAmount: string;
+  settlementStatus: CashFlowSettlementStatus;
+  allocations: Array<{
+    targetType: PaymentAllocationTarget;
+    targetId: string;
+    targetNumber: string;
+    targetReference: string | null;
+    allocatedAmount: string;
+  }>;
+};
+
+export type ProjectCashFlowReport = {
+  baseCurrencyCode: string;
+  totals: {
+    inflowAmount: string;
+    outflowAmount: string;
+    netCashFlow: string;
+  };
+  rows: ProjectCashFlowRow[];
+};
+
+export const cashFlowApi = {
+  projects: () =>
+    apiRequest<Data<FinanceProject[]>>('/finance/cash-flow-projects'),
+  report: (projectId: string) =>
+    apiRequest<Data<ProjectCashFlowReport>>(
+      '/finance/projects/' + projectId + '/cash-flow',
+    ),
+};

@@ -35,6 +35,7 @@ import { DocumentsPanel } from './documents/DocumentsPanel';
 import { EquipmentPanel } from './equipment/EquipmentPanel';
 import { ClientFinanceWorkspace } from './finance/ClientFinanceWorkspace';
 import { FinanceWorkspace } from './finance/FinanceWorkspace';
+import { FinanceReportingWorkspace } from './finance/FinanceReportingWorkspace';
 import { PaymentFinanceWorkspace } from './finance/PaymentFinanceWorkspace';
 import { RetentionFinanceWorkspace } from './finance/RetentionFinanceWorkspace';
 import { InventoryWorkspace } from './inventory/InventoryWorkspace';
@@ -78,6 +79,12 @@ export function AdminConsole({ user }: { user: CurrentUser }) {
           label: 'Retention',
           permission: 'finance.retention.view',
           content: <RetentionFinanceWorkspace permissions={user.permissions} />,
+        },
+        {
+          key: 'finance-reports',
+          label: 'Finance Reports',
+          permission: '__finance_reports__',
+          content: <FinanceReportingWorkspace permissions={user.permissions} />,
         },
         {
           key: 'purchase-orders',
@@ -232,6 +239,15 @@ export function AdminConsole({ user }: { user: CurrentUser }) {
           : section.permission === '__payments__'
           ? user.permissions.some((permission) =>
               permission.startsWith('finance.payment.'),
+            )
+          : section.permission === '__finance_reports__'
+          ? user.permissions.some((permission) =>
+              [
+                'finance.ap.view',
+                'finance.ar.view',
+                'finance.payment.view',
+                'finance.retention.view',
+              ].includes(permission),
             )
           : section.permission === '__purchase_orders__'
           ? user.permissions.includes('procurement.po.view')
