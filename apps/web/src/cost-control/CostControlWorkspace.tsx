@@ -54,6 +54,9 @@ export function CostControlWorkspace({ permissions }: Props) {
   const canCreate = permissions.includes('cost.direct_posting.create');
   const canSubmit = permissions.includes('cost.direct_posting.submit');
   const canApprove = permissions.includes('cost.direct_posting.approve');
+  const canViewDirectCostSource = permissions.some((permission) =>
+    permission.startsWith('cost.direct_posting.'),
+  );
 
   const [projectId, setProjectId] = useState('');
   const [postingId, setPostingId] = useState('');
@@ -140,7 +143,7 @@ export function CostControlWorkspace({ permissions }: Props) {
   const postings = useQuery({
     queryKey: ['direct-cost-postings', projectId],
     queryFn: () => costControlApi.list(projectId),
-    enabled: canView && Boolean(projectId),
+    enabled: canView && canViewDirectCostSource && Boolean(projectId),
   });
 
   useEffect(() => {
@@ -154,7 +157,7 @@ export function CostControlWorkspace({ permissions }: Props) {
   const detail = useQuery({
     queryKey: ['direct-cost-posting', postingId],
     queryFn: () => costControlApi.detail(postingId),
-    enabled: canView && Boolean(postingId),
+    enabled: canView && canViewDirectCostSource && Boolean(postingId),
   });
 
   const current = detail.data?.data;
@@ -544,7 +547,14 @@ export function CostControlWorkspace({ permissions }: Props) {
         </Card>
       ) : null}
 
-      {projectId ? (
+      {projectId && !canViewDirectCostSource ? (
+        <Alert severity="info">
+          You have aggregate Cost Control visibility. Direct Cost source
+          registers require an explicit cost.direct_posting.* permission.
+        </Alert>
+      ) : null}
+
+      {projectId && canViewDirectCostSource ? (
         <Card variant="outlined">
           <CardContent>
             <Stack spacing={2}>

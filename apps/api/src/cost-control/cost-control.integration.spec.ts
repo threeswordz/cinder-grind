@@ -673,7 +673,7 @@ test('V0.7-B Project selector retains scoped archived Projects with Direct Cost 
   });
 });
 
-test('V0.7-B completed Direct Cost approval history is database-immutable', async () => {
+test('V0.7-B terminal Direct Cost approval requires authorized retained evidence and remains immutable', async () => {
   const prisma = new PrismaService();
   await prisma.$connect();
   try {
@@ -681,16 +681,98 @@ test('V0.7-B completed Direct Cost approval history is database-immutable', asyn
     const company = await prisma.company.create({
       data: {
         companyCode: 'DA-' + suffix,
-        companyName: 'Direct Cost approval history company',
+        companyName: 'Direct Cost approval evidence company',
         baseCurrencyCode: 'SGD',
       },
     });
-    const actor = await prisma.user.create({
+    const customer = await prisma.customer.create({
       data: {
         companyId: company.id,
-        email: 'da-' + suffix + '@example.com',
-        displayName: 'Direct Cost approval history actor',
+        customerCode: 'DA-C-' + suffix,
+        customerName: 'Direct Cost approval evidence customer',
+      },
+    });
+    const maker = await prisma.user.create({
+      data: {
+        companyId: company.id,
+        email: 'da-maker-' + suffix + '@example.com',
+        displayName: 'Direct Cost maker',
         passwordHash: 'x',
+      },
+    });
+    const approverEmployee = await prisma.employee.create({
+      data: {
+        companyId: company.id,
+        employeeCode: 'DA-E-' + suffix,
+        employeeName: 'Direct Cost approver employee',
+      },
+    });
+    const approver = await prisma.user.create({
+      data: {
+        companyId: company.id,
+        employeeId: approverEmployee.id,
+        email: 'da-approver-' + suffix + '@example.com',
+        displayName: 'Direct Cost approver',
+        passwordHash: 'x',
+      },
+    });
+    const project = await prisma.project.create({
+      data: {
+        companyId: company.id,
+        projectCode: 'DA-P-' + suffix,
+        projectName: 'Direct Cost approval evidence project',
+        customerId: customer.id,
+        contractValue: '100',
+        plannedStartDate: new Date('2026-10-01'),
+        plannedCompletionDate: new Date('2027-01-01'),
+      },
+    });
+    await prisma.projectMember.create({
+      data: {
+        projectId: project.id,
+        employeeId: approverEmployee.id,
+        projectRole: 'Cost Control Approver',
+      },
+    });
+    const costCode = await prisma.costCode.create({
+      data: {
+        companyId: company.id,
+        costCode: 'DA-' + suffix,
+        costName: 'Direct Cost approval evidence',
+      },
+    });
+    const posting = await prisma.directCostPosting.create({
+      data: {
+        companyId: company.id,
+        projectId: project.id,
+        costCodeId: costCode.id,
+        postingDate: new Date('2026-10-03'),
+        description: 'Approval evidence posting',
+        amount: '25.00',
+        currencyCode: 'SGD',
+        createKey: randomUUID(),
+        createPayloadHash: '9'.repeat(64),
+        createdByUserId: maker.id,
+      },
+    });
+    const role = await prisma.role.create({
+      data: {
+        companyId: company.id,
+        roleCode: 'DA-APPROVER-' + suffix,
+        roleName: 'Direct Cost Approver',
+      },
+    });
+    const permission = await prisma.permission.findUniqueOrThrow({
+      where: { permissionCode: 'cost.direct_posting.approve' },
+    });
+    await prisma.rolePermission.create({
+      data: { roleId: role.id, permissionId: permission.id },
+    });
+    await prisma.userRole.create({
+      data: {
+        companyId: company.id,
+        userId: approver.id,
+        roleId: role.id,
       },
     });
     const workflow = await prisma.approvalWorkflow.create({
@@ -698,41 +780,95 @@ test('V0.7-B completed Direct Cost approval history is database-immutable', asyn
         companyId: company.id,
         workflowCode: 'DA-WF-' + suffix,
         entityType: 'DIRECT_COST_POSTING',
-        workflowName: 'Direct Cost approval history workflow',
+        workflowName: 'Direct Cost approval evidence workflow',
       },
     });
     const step = await prisma.approvalStep.create({
       data: {
         approvalWorkflowId: workflow.id,
         stepNo: 1,
-        stepName: 'Direct Cost approval history step',
+        stepName: 'Approve Direct Cost',
         requiredApprovals: 1,
       },
+    });
+    await prisma.approvalStepRole.create({
+      data: { approvalStepId: step.id, roleId: role.id },
     });
     const instance = await prisma.approvalInstance.create({
       data: {
         companyId: company.id,
         approvalWorkflowId: workflow.id,
         entityType: 'DIRECT_COST_POSTING',
-        entityId: randomUUID(),
+        entityId: posting.id,
         currentStepNo: 1,
         approvalState: 'SUBMITTED',
       },
     });
+    const submittedAt = new Date('2026-10-03T02:00:00.000Z');
+    await prisma.directCostPosting.update({
+      where: { id: posting.id },
+      data: {
+        state: 'SUBMITTED',
+        approvalInstanceId: instance.id,
+        submittedByUserId: maker.id,
+        submittedAt,
+      },
+    });
+
+    await assert.rejects(() =>
+      prisma.approvalInstance.update({
+        where: { id: instance.id },
+        data: {
+          approvalState: 'APPROVED',
+          completedAt: new Date('2026-10-03T03:00:00.000Z'),
+        },
+      }),
+    );
+
+    const makerAction = await prisma.approvalAction.create({
+      data: {
+        approvalInstanceId: instance.id,
+        approvalStepId: step.id,
+        action: 'APPROVE',
+        actionByUserId: maker.id,
+        comment: 'Maker must not self-approve',
+      },
+    });
+    await assert.rejects(() =>
+      prisma.approvalInstance.update({
+        where: { id: instance.id },
+        data: {
+          approvalState: 'APPROVED',
+          completedAt: new Date('2026-10-03T03:00:00.000Z'),
+        },
+      }),
+    );
+    await prisma.approvalAction.delete({ where: { id: makerAction.id } });
+
     const action = await prisma.approvalAction.create({
       data: {
         approvalInstanceId: instance.id,
         approvalStepId: step.id,
         action: 'APPROVE',
-        actionByUserId: actor.id,
-        comment: 'Original retained approval evidence',
+        actionByUserId: approver.id,
+        comment: 'Authorized retained approval evidence',
       },
     });
+    const completedAt = new Date('2026-10-03T03:00:00.000Z');
     await prisma.approvalInstance.update({
       where: { id: instance.id },
       data: {
         approvalState: 'APPROVED',
-        completedAt: new Date('2026-10-03T03:00:00.000Z'),
+        completedAt,
+      },
+    });
+    await prisma.directCostPosting.update({
+      where: { id: posting.id },
+      data: {
+        state: 'APPROVED',
+        approvedByUserId: approver.id,
+        approvedAt: completedAt,
+        decidedAt: completedAt,
       },
     });
 
@@ -764,7 +900,7 @@ test('V0.7-B completed Direct Cost approval history is database-immutable', asyn
           approvalInstanceId: instance.id,
           approvalStepId: step.id,
           action: 'REJECT',
-          actionByUserId: actor.id,
+          actionByUserId: approver.id,
           comment: 'Late forged action',
         },
       }),
