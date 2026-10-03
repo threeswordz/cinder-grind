@@ -7534,7 +7534,7 @@ await request(pm, '/cost-codes/' + costCode.data.data.id + '/reactivate', {
   expected: 201,
 });
 
-const v07RejectedDraft = await request
+const v07RejectedDraft = await request(
   pm,
   '/cost-control/projects/' + projectId + '/direct-cost-postings',
   {
