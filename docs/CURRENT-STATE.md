@@ -919,8 +919,11 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - Backend authorization requires existing Finance permissions plus effective Project access; technical SYS_ADMIN alone does not receive Payment/cash-flow authority.
 - Focused unit coverage proves approved/cancelled source-state behavior, full/partial/unallocated allocation independence and direction-aware totals.
 - Authenticated live HTTP acceptance proves cancelled-payment exclusion, fully allocated inbound cash flow, wholly unallocated outbound cash flow, date filtering, Project denial and SYS_ADMIN denial.
-- Implementation head `f0833d935c474d98229c0ec5eefc8350f28ec887` passed CI #2392 with migration-from-zero/status, Prisma validation, production dependency audit, API/web typecheck/test/build, full prior-release regression and live HTTP acceptance.
+- Initial stable candidate `92cf87c48367697a8d35b44f223cdd348cc0e0f7` passed push CI #2393 and PR CI #2394. Its first DEC-022 Codex review identified two genuine findings: a P1 mixed/historical-currency aggregation risk after Company base-currency changes and a P2 test-registration omission.
+- Both findings were fixed together at `898f809d45540c766bc54d92b9ebfeb607524d50`: Project Cash Flow now rejects any included approved/non-cancelled Payment whose stored currency differs from the current Company base currency instead of inventing FX or mislabelling totals, and `cash-flow.spec.ts` is registered in the API test command.
+- Fix head `898f809d45540c766bc54d92b9ebfeb607524d50` passed push CI #2395 and PR CI #2396, including clean migrations/status, Prisma validation, dependency audit, the now-executed focused cash-flow tests, full prior-release regression and authenticated live HTTP proof that a base-currency mismatch fails safely and valid reporting resumes after restoration.
 - No schema migration or mandatory paid dependency was introduced by Stage E.
 - V0.7 Actual/Committed/Paid Cost ledgers, Direct Cost Posting, tax/VAT, FX, GL/journals/accruals and other approved deferrals remain excluded.
-- Remaining technical gate: documentation-reconciled exact-head CI, PR CI, one stable-head Codex review under DEC-022, squash merge, post-merge `main` CI and Issue #130 closure.
+- Because the P1 changed financial reporting behavior, DEC-022 requires one fresh exact-head Codex re-review after this evidence-only documentation reconciliation. No per-fix Codex loop is introduced.
+- Remaining technical gate: final documentation-head push/PR CI, fresh exact-head Codex re-review, squash merge, post-merge `main` CI and Issue #130 closure.
 - After technical completion, STOP at AC-V06-037–038. Product / Business Owner human UAT and explicit release acceptance remain pending.
