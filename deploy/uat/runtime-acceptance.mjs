@@ -6982,6 +6982,68 @@ record('V0.3-D scoped Purchase Order access denied');
 record('unassigned Project, Document, Scheduling, Site Execution, Equipment, Reporting, Budget and Procurement access denied');
 
 
+const v07PaidCostPayment = await request(
+  pm,
+  '/finance/projects/' + projectId + '/payments',
+  {
+    method: 'POST',
+    json: {
+      direction: 'OUTBOUND',
+      paymentDate: '2026-10-06',
+      supplierId: sourcingSupplierB.data.data.id,
+      amount: '5.00',
+      paymentMethod: 'BANK_TRANSFER',
+      reference: 'V0.7-A Paid Cost acceptance ' + suffix,
+      createKey: 'v07-paid-create-' + suffix,
+    },
+    expected: 201,
+  },
+);
+const v07PaidCostPaymentId = v07PaidCostPayment.data.data.id;
+await request(
+  pm,
+  '/finance/payments/' + v07PaidCostPaymentId + '/allocations',
+  {
+    method: 'POST',
+    json: {
+      targetType: 'SUPPLIER_INVOICE',
+      targetId: supplierInvoiceId,
+      amount: '5.00',
+      actionKey: 'v07-paid-alloc-' + suffix,
+    },
+    expected: 201,
+  },
+);
+await request(
+  pm,
+  '/finance/payments/' + v07PaidCostPaymentId + '/submit',
+  {
+    method: 'POST',
+    json: {
+      workflowCode: paymentWorkflowCode,
+      actionKey: 'v07-paid-submit-' + suffix,
+    },
+    expected: 201,
+  },
+);
+const v07PaidCostApproved = await request(
+  checker,
+  '/finance/payments/' + v07PaidCostPaymentId + '/approve',
+  {
+    method: 'POST',
+    json: {
+      actionKey: 'v07-paid-approve-' + suffix,
+      comment: 'Approve final V0.7-A Paid Cost acceptance settlement.',
+    },
+    expected: 201,
+  },
+);
+check(
+  v07PaidCostApproved.data.data.state === 'APPROVED' &&
+    v07PaidCostApproved.data.data.supplierAllocations.length === 1,
+  'V0.7-A Paid Cost acceptance Payment did not retain approved allocation evidence.',
+);
+
 const v07CostControl = await request(
   pm,
   '/projects/' + projectId + '/cost-control',
@@ -6992,7 +7054,9 @@ check(
     Number(v07CostControl.data.data.totals.revisedBudget) === 300 &&
     Number(v07CostControl.data.data.totals.committedCost.total) > 0 &&
     Number(v07CostControl.data.data.totals.actualCost.total) > 0 &&
-    Number(v07CostControl.data.data.totals.paidCost.total) > 0 &&
+    Number(v07CostControl.data.data.totals.paidCost.supplier) === 5 &&
+    Number(v07CostControl.data.data.totals.paidCost.subcontract) === 0 &&
+    Number(v07CostControl.data.data.totals.paidCost.total) === 5 &&
     v07CostControl.data.data.boundaries.committedActualPaidSeparate === true &&
     v07CostControl.data.data.boundaries.inventoryCreatesActualCost === false,
   'V0.7-A integrated Cost Control source totals or semantic boundaries were incorrect.',
