@@ -1325,6 +1325,18 @@ export class CostControlService {
         costToComplete,
         forecastCost,
         variance,
+        commercial: {
+          allocationLevel: 'PROJECT',
+          originalContractValue,
+          approvedVariationValue,
+          revisedContractValue,
+          actualRevenue,
+          cashReceived,
+          forecastRevenue,
+          actualProfit,
+          forecastProfit,
+          profitAvailableAtCurrentFilter: projectLevelProfitAvailable,
+        },
       },
       currentForecast:
         currentForecast && this.hasPermissions(auth, 'cost.forecast.view')
