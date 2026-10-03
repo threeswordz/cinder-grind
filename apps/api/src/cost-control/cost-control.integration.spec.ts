@@ -8,6 +8,7 @@ import { Prisma } from '@prisma/client';
 import { REQUIRED_PERMISSIONS_KEY } from '../authorization/permissions.decorator';
 import { PrismaService } from '../prisma/prisma.service';
 import { CostControlController } from './cost-control.controller';
+import { costPositiveDecimal } from './cost-control-validation';
 import { DirectCostController } from './direct-cost.controller';
 import {
   selectCurrentApprovedPurchaseOrders,
@@ -421,6 +422,196 @@ test('V0.7-B database guards Direct Cost dimensional scope and normal-posting si
         },
       }),
     );
+  } finally {
+    await prisma.$disconnect();
+  }
+});
+
+
+test('V0.7-B Direct Cost financial input rejects JSON numbers before Decimal conversion', () => {
+  assert.equal(
+    costPositiveDecimal(
+      { amount: '9007199254740993' },
+      'amount',
+    ).toFixed(0),
+    '9007199254740993',
+  );
+  assert.throws(
+    () =>
+      costPositiveDecimal(
+        { amount: 9007199254740993 },
+        'amount',
+      ),
+    (error: unknown) => {
+      if (!(error instanceof UnprocessableEntityException)) return false;
+      const response = error.getResponse() as { code?: string };
+      return response.code === 'VALIDATION_ERROR';
+    },
+  );
+});
+
+test('V0.7-B database freezes terminal evidence and permits exact reversal after Cost Code deactivation', async () => {
+  const prisma = new PrismaService();
+  await prisma.$connect();
+  try {
+    const suffix = randomUUID();
+    const company = await prisma.company.create({
+      data: {
+        companyCode: 'DH-' + suffix,
+        companyName: 'Direct Cost hardening company',
+        baseCurrencyCode: 'SGD',
+      },
+    });
+    const customer = await prisma.customer.create({
+      data: {
+        companyId: company.id,
+        customerCode: 'DH-C-' + suffix,
+        customerName: 'Direct Cost hardening customer',
+      },
+    });
+    const maker = await prisma.user.create({
+      data: {
+        companyId: company.id,
+        email: 'dh-maker-' + suffix + '@example.com',
+        displayName: 'Direct Cost hardening maker',
+        passwordHash: 'x',
+      },
+    });
+    const approver = await prisma.user.create({
+      data: {
+        companyId: company.id,
+        email: 'dh-approver-' + suffix + '@example.com',
+        displayName: 'Direct Cost hardening approver',
+        passwordHash: 'x',
+      },
+    });
+    const project = await prisma.project.create({
+      data: {
+        companyId: company.id,
+        projectCode: 'DH-P-' + suffix,
+        projectName: 'Direct Cost hardening project',
+        customerId: customer.id,
+        contractValue: '100',
+        plannedStartDate: new Date('2026-10-01'),
+        plannedCompletionDate: new Date('2027-01-01'),
+      },
+    });
+    const costCode = await prisma.costCode.create({
+      data: {
+        companyId: company.id,
+        costCode: 'DH-' + suffix,
+        costName: 'Direct Cost hardening',
+      },
+    });
+    const original = await prisma.directCostPosting.create({
+      data: {
+        companyId: company.id,
+        projectId: project.id,
+        costCodeId: costCode.id,
+        postingDate: new Date('2026-10-03'),
+        description: 'Hardening source posting',
+        amount: '88.75',
+        currencyCode: 'SGD',
+        createKey: randomUUID(),
+        createPayloadHash: 'd'.repeat(64),
+        createdByUserId: maker.id,
+      },
+    });
+    const workflow = await prisma.approvalWorkflow.create({
+      data: {
+        companyId: company.id,
+        workflowCode: 'DH-WF-' + suffix,
+        entityType: 'DIRECT_COST_POSTING',
+        workflowName: 'Direct Cost hardening workflow',
+      },
+    });
+    const instance = await prisma.approvalInstance.create({
+      data: {
+        companyId: company.id,
+        approvalWorkflowId: workflow.id,
+        entityType: 'DIRECT_COST_POSTING',
+        entityId: original.id,
+        currentStepNo: 1,
+        approvalState: 'SUBMITTED',
+      },
+    });
+    const submittedAt = new Date('2026-10-03T01:00:00.000Z');
+    await prisma.directCostPosting.update({
+      where: { id: original.id },
+      data: {
+        state: 'SUBMITTED',
+        approvalInstanceId: instance.id,
+        submittedByUserId: maker.id,
+        submittedAt,
+      },
+    });
+    await prisma.approvalInstance.update({
+      where: { id: instance.id },
+      data: {
+        approvalState: 'APPROVED',
+        completedAt: new Date('2026-10-03T02:00:00.000Z'),
+      },
+    });
+    const approvedAt = new Date('2026-10-03T02:00:00.000Z');
+    await prisma.directCostPosting.update({
+      where: { id: original.id },
+      data: {
+        state: 'APPROVED',
+        approvedByUserId: approver.id,
+        approvedAt,
+        decidedAt: approvedAt,
+      },
+    });
+
+    await assert.rejects(() =>
+      prisma.directCostPosting.update({
+        where: { id: original.id },
+        data: {
+          approvedByUserId: maker.id,
+          approvedAt: new Date('2026-10-04T02:00:00.000Z'),
+        },
+      }),
+    );
+
+    await prisma.costCode.update({
+      where: { id: costCode.id },
+      data: { isActive: false },
+    });
+    await assert.rejects(() =>
+      prisma.directCostPosting.create({
+        data: {
+          companyId: company.id,
+          projectId: project.id,
+          costCodeId: costCode.id,
+          postingDate: new Date('2026-10-04'),
+          description: 'New normal posting cannot use inactive dimensions',
+          amount: '1.00',
+          currencyCode: 'SGD',
+          createKey: randomUUID(),
+          createPayloadHash: 'e'.repeat(64),
+          createdByUserId: maker.id,
+        },
+      }),
+    );
+
+    const reversal = await prisma.directCostPosting.create({
+      data: {
+        companyId: company.id,
+        projectId: project.id,
+        costCodeId: costCode.id,
+        postingDate: new Date('2026-10-04'),
+        description: 'Reversal: Hardening source posting',
+        amount: '-88.75',
+        currencyCode: 'SGD',
+        reversesPostingId: original.id,
+        reversalReason: 'Historical correction after Cost Code deactivation',
+        createKey: randomUUID(),
+        createPayloadHash: 'f'.repeat(64),
+        createdByUserId: maker.id,
+      },
+    });
+    assert.equal(reversal.amount.toFixed(2), '-88.75');
+    assert.equal(reversal.reversesPostingId, original.id);
   } finally {
     await prisma.$disconnect();
   }

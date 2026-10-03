@@ -258,6 +258,7 @@ const permissionCodes = [
   'wbs.wbs.create',
   'wbs.cost_code.view',
   'wbs.cost_code.create',
+  'wbs.cost_code.archive',
   'documents.document.view',
   'documents.document.upload',
   'documents.document.link',
@@ -432,6 +433,7 @@ await request(admin, `/admin/roles/${checkerRoleId}/permissions`, {
       'finance.ap.view',
       'finance.ar.view',
       'cost.control.view',
+      'cost.direct_posting.create',
       'cost.direct_posting.approve',
       'inventory.receipt.view',
       'inventory.receipt.approve',
@@ -7270,6 +7272,31 @@ await request(
     expected: 422,
   },
 );
+await request(
+  pm,
+  '/cost-control/projects/' + projectId + '/direct-cost-postings',
+  {
+    method: 'POST',
+    json: {
+      ...directCreateBody,
+      amount: 9007199254740993,
+      createKey: 'v07-direct-number-amount-' + suffix,
+    },
+    expected: 422,
+  },
+);
+await request(
+  checker,
+  '/cost-control/direct-cost-postings/' + v07DirectId,
+  {
+    method: 'PATCH',
+    json: {
+      description:
+        'A dual-authority non-maker must not become a hidden material editor.',
+    },
+    expected: 403,
+  },
+);
 
 const v07DirectEdited = await request(
   pm,
@@ -7418,7 +7445,12 @@ check(
   'V0.7-B approved Direct Cost did not contribute signed Actual Cost on posting date while leaving Paid Cost unchanged.',
 );
 
-const v07DirectReversal = await request(
+await request(pm, '/cost-codes/' + costCode.data.data.id + '/archive', {
+  method: 'POST',
+  expected: 201,
+});
+
+const v07DirectReversal = await request
   pm,
   '/cost-control/direct-cost-postings/' + v07DirectId + '/reversal',
   {
@@ -7497,7 +7529,12 @@ check(
   'V0.7-B approved linked reversal did not exactly offset Actual Cost while retaining source history.',
 );
 
-const v07RejectedDraft = await request(
+await request(pm, '/cost-codes/' + costCode.data.data.id + '/reactivate', {
+  method: 'POST',
+  expected: 201,
+});
+
+const v07RejectedDraft = await request
   pm,
   '/cost-control/projects/' + projectId + '/direct-cost-postings',
   {
@@ -7568,8 +7605,8 @@ check(
   'V0.7-B rejected Direct Cost incorrectly contributed to Actual or Paid Cost.',
 );
 
-record('V0.7-B Direct Cost create/retry → Draft maintenance → configured maker-checker approval/retry → posting-date Actual Cost recognition → immutable approved history');
-record('V0.7-B linked reversal exactly offsets Actual without touching Paid Cost; rejection, idempotency-key reuse, aggregate-only source denial and Project authorization fail closed');
+record('V0.7-B Direct Cost string-only financial input and original-maker Draft editing fail closed; configured maker-checker approval/retry → posting-date Actual Cost recognition → immutable approved history');
+record('V0.7-B linked reversal remains available across historical Cost Code deactivation, exactly offsets Actual without touching Paid Cost; rejection, idempotency-key reuse, aggregate-only source denial and Project authorization fail closed');
 
 await request(admin, '/admin/company', {
   method: 'PATCH', json: { baseCurrencyCode: 'USD' },

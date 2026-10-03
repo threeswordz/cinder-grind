@@ -93,19 +93,23 @@ export function costPositiveDecimal(
   field: string,
 ): Prisma.Decimal {
   const value = input[field];
-  try {
-    const decimal = new Prisma.Decimal(
-      typeof value === 'number' || typeof value === 'string' ? value : '',
+  if (
+    typeof value !== 'string' ||
+    !/^\d{1,16}(?:\.\d{1,2})?$/.test(value)
+  ) {
+    return invalid(
+      field,
+      'Must be an exact positive decimal string with up to 16 integer digits and 2 decimal places.',
     );
+  }
+  try {
+    const decimal = new Prisma.Decimal(value);
     if (!decimal.isPositive()) {
       return invalid(field, 'Must be greater than zero.');
     }
-    if (decimal.decimalPlaces() > 2) {
-      return invalid(field, 'Use at most 2 decimal places.');
-    }
     return decimal;
   } catch {
-    return invalid(field, 'Must be a positive decimal amount.');
+    return invalid(field, 'Must be a valid positive decimal string.');
   }
 }
 

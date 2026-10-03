@@ -254,6 +254,13 @@ export class DirectCostService {
           where: { id: postingId },
         });
         this.assertDraft(current.state);
+        if (current.createdByUserId !== context.auth.userId) {
+          throw new ForbiddenException({
+            code: 'DIRECT_COST_DRAFT_EDITOR_DENIED',
+            detail:
+              'Only the original Direct Cost maker may edit this Draft. A material editor cannot later be treated as an independent approver.',
+          });
+        }
         if (
           current.reversesPostingId &&
           (input.amount !== undefined ||
@@ -276,16 +283,25 @@ export class DirectCostService {
           costCodeId: input.costCodeId ?? current.costCodeId,
         };
         if (!current.reversesPostingId) this.assertPositiveAmount(next.amount);
-        await this.assertDimensions(
-          tx,
-          context.auth.companyId,
-          current.projectId,
-          next.wbsId,
-          next.costCodeId,
-          current.currencyCode,
-        );
         if (current.reversesPostingId) {
+          await this.assertHistoricalReversalDimensions(
+            tx,
+            context.auth.companyId,
+            current.projectId,
+            next.wbsId,
+            next.costCodeId,
+            current.currencyCode,
+          );
           await this.assertReversalIntegrity(tx, { ...current, ...next });
+        } else {
+          await this.assertDimensions(
+            tx,
+            context.auth.companyId,
+            current.projectId,
+            next.wbsId,
+            next.costCodeId,
+            current.currencyCode,
+          );
         }
         const row = await tx.directCostPosting.update({
           where: { id: postingId },
@@ -394,7 +410,7 @@ export class DirectCostService {
           });
         }
 
-        await this.assertDimensions(
+        await this.assertHistoricalReversalDimensions(
           tx,
           context.auth.companyId,
           current.projectId,
@@ -647,17 +663,25 @@ export class DirectCostService {
       reversalReason: string | null;
     },
   ) {
-    await this.assertDimensions(
-      tx,
-      posting.companyId,
-      posting.projectId,
-      posting.wbsId,
-      posting.costCodeId,
-      posting.currencyCode,
-    );
     if (posting.reversesPostingId) {
+      await this.assertHistoricalReversalDimensions(
+        tx,
+        posting.companyId,
+        posting.projectId,
+        posting.wbsId,
+        posting.costCodeId,
+        posting.currencyCode,
+      );
       await this.assertReversalIntegrity(tx, posting);
     } else {
+      await this.assertDimensions(
+        tx,
+        posting.companyId,
+        posting.projectId,
+        posting.wbsId,
+        posting.costCodeId,
+        posting.currencyCode,
+      );
       this.assertPositiveAmount(posting.amount);
     }
   }
@@ -708,6 +732,50 @@ export class DirectCostService {
       });
     }
     return company.baseCurrencyCode;
+  }
+
+  private async assertHistoricalReversalDimensions(
+    db: CostDb,
+    companyId: string,
+    projectId: string,
+    wbsId: string | null,
+    costCodeId: string,
+    expectedCurrency: string,
+  ): Promise<void> {
+    const [company, project, wbs, costCode] = await Promise.all([
+      db.company.findUnique({
+        where: { id: companyId },
+        select: { baseCurrencyCode: true },
+      }),
+      db.project.findFirst({
+        where: { id: projectId, companyId },
+        select: { id: true },
+      }),
+      wbsId
+        ? db.wbsElement.findFirst({
+            where: { id: wbsId, projectId },
+            select: { id: true },
+          })
+        : Promise.resolve(null),
+      db.costCode.findFirst({
+        where: { id: costCodeId, companyId },
+        select: { id: true },
+      }),
+    ]);
+    if (!company || !project || (wbsId && !wbs) || !costCode) {
+      throw new UnprocessableEntityException({
+        code: 'DIRECT_COST_REVERSAL_SCOPE_INVALID',
+        detail:
+          'A linked reversal must preserve historical Project, WBS and Cost Code identity within the original Company and Project.',
+      });
+    }
+    if (expectedCurrency !== company.baseCurrencyCode) {
+      throw new UnprocessableEntityException({
+        code: 'DIRECT_COST_CURRENCY_UNSUPPORTED',
+        detail:
+          'Direct Cost Posting currency must equal the current Company base currency. V0.7 performs no FX conversion.',
+      });
+    }
   }
 
   private async assertReversalIntegrity(
