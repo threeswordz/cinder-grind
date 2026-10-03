@@ -9,6 +9,7 @@ import { CostControlController } from './cost-control.controller';
 import {
   selectCurrentApprovedPurchaseOrders,
   selectOriginalAndCurrentBudget,
+  splitSubcontractCommitment,
   sumCostControlDecimals,
 } from './cost-control.service';
 
@@ -74,6 +75,26 @@ test('V0.7-A PO selector uses latest approved revision and does not revive cance
   assert.deepEqual(
     selected.map((row) => row.id),
     ['po-a-1'],
+  );
+});
+
+test('V0.7-A Work Orders allocate within the subcontract ceiling without double counting', () => {
+  const allocation = splitSubcontractCommitment(
+    new Prisma.Decimal('125000.00'),
+    [
+      { amount: new Prisma.Decimal('75000.00') },
+      { amount: new Prisma.Decimal('10000.00') },
+    ],
+  );
+  assert.equal(allocation.allocatedAmount.toString(), '85000');
+  assert.equal(allocation.unallocatedAmount.toString(), '40000');
+  assert.throws(
+    () =>
+      splitSubcontractCommitment(
+        new Prisma.Decimal('100.00'),
+        [{ amount: new Prisma.Decimal('100.01') }],
+      ),
+    /Approved Work Order allocation cannot exceed/,
   );
 });
 

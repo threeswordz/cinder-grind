@@ -7161,7 +7161,7 @@ check(
   Number(v07Dimensional.data.data.totals.originalBudget) === 250 &&
     Number(v07Dimensional.data.data.totals.revisedBudget) === 300 &&
     Number(v07Dimensional.data.data.totals.committedCost.procurement) > 0 &&
-    Number(v07Dimensional.data.data.totals.committedCost.subcontract) === 0 &&
+    Number(v07Dimensional.data.data.totals.committedCost.subcontract) === 75000 &&
     Number(v07Dimensional.data.data.totals.actualCost.subcontract) === 0 &&
     Number(v07Dimensional.data.data.totals.paidCost.total) === 0,
   'V0.7-A WBS/Cost Code filter did not preserve dimensional allocation or exclude unallocated header-level sources.',

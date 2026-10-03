@@ -97,6 +97,26 @@ export function selectOriginalAndCurrentBudget<
   return { original, current };
 }
 
+export function splitSubcontractCommitment(
+  ceiling: Prisma.Decimal,
+  workOrders: Array<{ amount: Prisma.Decimal }>,
+) {
+  const allocatedAmount = sumCostControlDecimals(
+    workOrders.map((workOrder) => workOrder.amount),
+  );
+  if (ceiling.isNegative() || allocatedAmount.greaterThan(ceiling)) {
+    throw new UnprocessableEntityException({
+      code: 'COST_CONTROL_SUBCONTRACT_ALLOCATION_INVALID',
+      detail:
+        'Approved Work Order allocation cannot exceed the current approved Subcontract Agreement commitment ceiling.',
+    });
+  }
+  return {
+    allocatedAmount,
+    unallocatedAmount: ceiling.minus(allocatedAmount),
+  };
+}
+
 export function selectCurrentApprovedPurchaseOrders<
   T extends PurchaseOrderSelectionCandidate,
 >(rows: T[]): T[] {
@@ -245,6 +265,16 @@ export class CostControlService {
               valueDelta: true,
             },
           },
+          workOrders: {
+            where: { approvalState: 'APPROVED' },
+            select: {
+              id: true,
+              workOrderNumber: true,
+              amount: true,
+              wbsElementId: true,
+              costCodeId: true,
+            },
+          },
         },
       }),
       this.prisma.supplierInvoice.findMany({
@@ -375,33 +405,77 @@ export class CostControlService {
     }
 
     let subcontractCommitted = new Prisma.Decimal(0);
-    if (this.matchesDimension(null, null, dimensions)) {
-      for (const agreement of agreements) {
-        this.assertBaseCurrency(
-          'Subcontract commitment',
-          agreement.currencyCode,
-          company.baseCurrencyCode,
+    for (const agreement of agreements) {
+      this.assertBaseCurrency(
+        'Subcontract commitment',
+        agreement.currencyCode,
+        company.baseCurrencyCode,
+      );
+      const variationValue = sumCostControlDecimals(
+        agreement.variations.map((variation) => variation.valueDelta),
+      );
+      const ceiling = agreement.originalValue.plus(variationValue);
+      const allocation = splitSubcontractCommitment(
+        ceiling,
+        agreement.workOrders,
+      );
+      const matchingWorkOrders = agreement.workOrders.filter(
+        (workOrder) =>
+          this.matchesDimension(
+            workOrder.wbsElementId,
+            workOrder.costCodeId,
+            dimensions,
+          ),
+      );
+      const allocatedAmount = sumCostControlDecimals(
+        matchingWorkOrders.map((workOrder) => workOrder.amount),
+      );
+      const includeUnallocated =
+        this.matchesDimension(null, null, dimensions);
+      const amount = includeUnallocated
+        ? allocatedAmount.plus(allocation.unallocatedAmount)
+        : allocatedAmount;
+      if (amount.equals(0)) continue;
+
+      subcontractCommitted = subcontractCommitted.plus(amount);
+      for (const workOrder of matchingWorkOrders) {
+        this.addDimension(
+          dimensionMap,
+          workOrder.wbsElementId,
+          workOrder.costCodeId,
+          'subcontractCommitted',
+          workOrder.amount,
         );
-        const variationValue = sumCostControlDecimals(
-          agreement.variations.map((variation) => variation.valueDelta),
-        );
-        const amount = agreement.originalValue.plus(variationValue);
-        subcontractCommitted = subcontractCommitted.plus(amount);
+      }
+      if (
+        includeUnallocated &&
+        !allocation.unallocatedAmount.equals(0)
+      ) {
         this.addDimension(
           dimensionMap,
           null,
           null,
           'subcontractCommitted',
-          amount,
+          allocation.unallocatedAmount,
         );
-        subcontractCommitmentRecords.push({
-          id: agreement.id,
-          number: agreement.agreementNumber,
-          originalValue: agreement.originalValue,
-          approvedVariationValue: variationValue,
-          amount,
-        });
       }
+      subcontractCommitmentRecords.push({
+        id: agreement.id,
+        number: agreement.agreementNumber,
+        originalValue: agreement.originalValue,
+        approvedVariationValue: variationValue,
+        currentCeiling: ceiling,
+        approvedWorkOrderAllocation: allocation.allocatedAmount,
+        unallocatedCommitment: allocation.unallocatedAmount,
+        amount,
+        workOrders: matchingWorkOrders.map((workOrder) => ({
+          id: workOrder.id,
+          number: workOrder.workOrderNumber,
+          amount: workOrder.amount,
+          wbsId: workOrder.wbsElementId,
+          costCodeId: workOrder.costCodeId,
+        })),
+      });
     }
 
     let supplierActual = new Prisma.Decimal(0);
@@ -649,9 +723,10 @@ export class CostControlService {
             auth,
             'subcontracts.agreement.view',
             'subcontracts.variation.view',
+            'subcontracts.work_order.view',
           ),
-          'V0.5 Subcontract Agreement / Variation',
-          'Approved active Agreement original value plus approved non-reversed Variation deltas; Work Orders are not additive',
+          'V0.5 Subcontract Agreement / Variation / Work Order',
+          'Approved active Agreement original value plus approved non-reversed Variation deltas define the commitment ceiling; approved Work Orders allocate within that ceiling and never add a second commitment',
         ),
         supplierActual: this.evidence(
           supplierActual,
