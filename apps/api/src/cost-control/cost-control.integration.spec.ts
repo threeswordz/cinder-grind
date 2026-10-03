@@ -17,6 +17,7 @@ import { DirectCostController } from './direct-cost.controller';
 import { DirectCostService } from './direct-cost.service';
 import { ForecastController } from './forecast.controller';
 import { ForecastService } from './forecast.service';
+import { ProjectVariationService } from './project-variation.service';
 import {
   activeProjectVariationValue,
   remainingCostCommitment,
