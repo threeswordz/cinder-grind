@@ -892,7 +892,9 @@ export class CostControlService {
         directActual: this.evidence(
           directActual,
           directActualRecords,
-          true,
+          auth.permissions.some((permission) =>
+            permission.startsWith('cost.direct_posting.'),
+          ),
           'V0.7 Direct Cost Posting',
           'Final-approved Direct Cost Posting recognized on posting date; an approved linked reversal contributes the exact signed offset',
         ),
