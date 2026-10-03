@@ -107,6 +107,11 @@ export function CostControlWorkspace({ permissions }: Props) {
     }
   }, [projectId, projects.data]);
 
+  const selectedProject = (projects.data?.data ?? []).find(
+    (project) => project.id === projectId,
+  );
+  const projectAllowsNewDirectCost = selectedProject?.isActive === true;
+
   useEffect(() => {
     setPostingId('');
     setCreateWbsId('');
@@ -221,15 +226,24 @@ export function CostControlWorkspace({ permissions }: Props) {
   });
 
   const saveDraft = useMutation({
-    mutationFn: () =>
-      costControlApi.update(postingId, {
+    mutationFn: () => {
+      const editableFields = {
         postingDate: editPostingDate,
         description: editDescription.trim(),
         reference: editReference.trim() || null,
-        amount: editAmount,
-        wbsId: editWbsId || null,
-        costCodeId: editCostCodeId,
-      }),
+      };
+      return costControlApi.update(
+        postingId,
+        current?.reversesPostingId
+          ? editableFields
+          : {
+              ...editableFields,
+              amount: editAmount,
+              wbsId: editWbsId || null,
+              costCodeId: editCostCodeId,
+            },
+      );
+    },
     onSuccess: async () => refresh(postingId),
   });
 
@@ -372,6 +386,7 @@ export function CostControlWorkspace({ permissions }: Props) {
         {(projects.data?.data ?? []).map((project) => (
           <MenuItem key={project.id} value={project.id}>
             {project.projectCode} · {project.projectName}
+            {project.isActive ? '' : ' · ARCHIVED'}
           </MenuItem>
         ))}
       </TextField>
@@ -433,7 +448,18 @@ export function CostControlWorkspace({ permissions }: Props) {
         </Card>
       ) : null}
 
-      {canCreate && projectId ? (
+      {canCreate &&
+      projectId &&
+      selectedProject &&
+      !selectedProject.isActive ? (
+        <Alert severity="info">
+          This Project is archived. Retained Direct Cost history remains
+          available for review and linked reversals, but new normal Direct Cost
+          drafts are disabled.
+        </Alert>
+      ) : null}
+
+      {canCreate && projectId && projectAllowsNewDirectCost ? (
         <Card variant="outlined">
           <CardContent>
             <Stack spacing={2}>

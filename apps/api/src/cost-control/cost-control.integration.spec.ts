@@ -10,6 +10,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CostControlController } from './cost-control.controller';
 import { costPositiveDecimal } from './cost-control-validation';
 import { DirectCostController } from './direct-cost.controller';
+import { DirectCostService } from './direct-cost.service';
 import {
   selectCurrentApprovedPurchaseOrders,
   selectOriginalAndCurrentBudget,
@@ -612,6 +613,162 @@ test('V0.7-B database freezes terminal evidence and permits exact reversal after
     });
     assert.equal(reversal.amount.toFixed(2), '-88.75');
     assert.equal(reversal.reversesPostingId, original.id);
+  } finally {
+    await prisma.$disconnect();
+  }
+});
+
+
+test('V0.7-B Project selector retains scoped archived Projects with Direct Cost history', async () => {
+  let projectWhere: unknown;
+  const prisma = {
+    directCostPosting: {
+      findMany: async () => [{ projectId: 'archived-project' }],
+    },
+    project: {
+      findMany: async (args: { where: unknown }) => {
+        projectWhere = args.where;
+        return [
+          {
+            id: 'archived-project',
+            projectCode: 'ARCH-1',
+            projectName: 'Archived project',
+            isActive: false,
+          },
+        ];
+      },
+    },
+  };
+  const service = new DirectCostService(
+    prisma as unknown as PrismaService,
+    {
+      scopeWhere: async () => ({ companyId: 'company' }),
+    } as never,
+    {} as never,
+    {} as never,
+  );
+
+  const projects = await service.projects({
+    companyId: 'company',
+  } as never);
+
+  assert.deepEqual(projects, [
+    {
+      id: 'archived-project',
+      projectCode: 'ARCH-1',
+      projectName: 'Archived project',
+      isActive: false,
+    },
+  ]);
+  assert.deepEqual(projectWhere, {
+    AND: [
+      { companyId: 'company' },
+      {
+        OR: [
+          { isActive: true },
+          { id: { in: ['archived-project'] } },
+        ],
+      },
+    ],
+  });
+});
+
+test('V0.7-B completed Direct Cost approval history is database-immutable', async () => {
+  const prisma = new PrismaService();
+  await prisma.$connect();
+  try {
+    const suffix = randomUUID();
+    const company = await prisma.company.create({
+      data: {
+        companyCode: 'DA-' + suffix,
+        companyName: 'Direct Cost approval history company',
+        baseCurrencyCode: 'SGD',
+      },
+    });
+    const actor = await prisma.user.create({
+      data: {
+        companyId: company.id,
+        email: 'da-' + suffix + '@example.com',
+        displayName: 'Direct Cost approval history actor',
+        passwordHash: 'x',
+      },
+    });
+    const workflow = await prisma.approvalWorkflow.create({
+      data: {
+        companyId: company.id,
+        workflowCode: 'DA-WF-' + suffix,
+        entityType: 'DIRECT_COST_POSTING',
+        workflowName: 'Direct Cost approval history workflow',
+      },
+    });
+    const step = await prisma.approvalStep.create({
+      data: {
+        approvalWorkflowId: workflow.id,
+        stepNo: 1,
+        stepName: 'Direct Cost approval history step',
+        requiredApprovals: 1,
+      },
+    });
+    const instance = await prisma.approvalInstance.create({
+      data: {
+        companyId: company.id,
+        approvalWorkflowId: workflow.id,
+        entityType: 'DIRECT_COST_POSTING',
+        entityId: randomUUID(),
+        currentStepNo: 1,
+        approvalState: 'SUBMITTED',
+      },
+    });
+    const action = await prisma.approvalAction.create({
+      data: {
+        approvalInstanceId: instance.id,
+        approvalStepId: step.id,
+        action: 'APPROVE',
+        actionByUserId: actor.id,
+        comment: 'Original retained approval evidence',
+      },
+    });
+    await prisma.approvalInstance.update({
+      where: { id: instance.id },
+      data: {
+        approvalState: 'APPROVED',
+        completedAt: new Date('2026-10-03T03:00:00.000Z'),
+      },
+    });
+
+    await assert.rejects(() =>
+      prisma.approvalInstance.update({
+        where: { id: instance.id },
+        data: { currentStepNo: 2 },
+      }),
+    );
+    await assert.rejects(() =>
+      prisma.approvalInstance.delete({
+        where: { id: instance.id },
+      }),
+    );
+    await assert.rejects(() =>
+      prisma.approvalAction.update({
+        where: { id: action.id },
+        data: { comment: 'Forged approval evidence' },
+      }),
+    );
+    await assert.rejects(() =>
+      prisma.approvalAction.delete({
+        where: { id: action.id },
+      }),
+    );
+    await assert.rejects(() =>
+      prisma.approvalAction.create({
+        data: {
+          approvalInstanceId: instance.id,
+          approvalStepId: step.id,
+          action: 'REJECT',
+          actionByUserId: actor.id,
+          comment: 'Late forged action',
+        },
+      }),
+    );
   } finally {
     await prisma.$disconnect();
   }

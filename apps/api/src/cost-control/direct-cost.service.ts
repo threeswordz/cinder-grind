@@ -59,8 +59,26 @@ export class DirectCostService {
 
   async projects(auth: AuthenticatedUserContext) {
     const scope = await this.access.scopeWhere(auth);
+    const historicalProjects = await this.prisma.directCostPosting.findMany({
+      where: { companyId: auth.companyId },
+      select: { projectId: true },
+      distinct: ['projectId'],
+    });
+    const historicalProjectIds = historicalProjects.map(
+      (posting) => posting.projectId,
+    );
     return this.prisma.project.findMany({
-      where: { AND: [scope, { isActive: true }] },
+      where: {
+        AND: [
+          scope,
+          {
+            OR: [
+              { isActive: true },
+              { id: { in: historicalProjectIds } },
+            ],
+          },
+        ],
+      },
       select: { id: true, projectCode: true, projectName: true, isActive: true },
       orderBy: [{ projectName: 'asc' }, { projectCode: 'asc' }],
     });
@@ -90,9 +108,13 @@ export class DirectCostService {
         where: {
           id: projectId,
           companyId: auth.companyId,
+        },
+        select: {
+          id: true,
+          projectCode: true,
+          projectName: true,
           isActive: true,
         },
-        select: { id: true, projectCode: true, projectName: true },
       }),
       this.prisma.wbsElement.findMany({
         where: { projectId, isActive: true },

@@ -20,6 +20,7 @@ export type DirectCostOptions = {
     id: string;
     projectCode: string;
     projectName: string;
+    isActive: boolean;
   };
   baseCurrencyCode: string;
   wbs: Array<{ id: string; wbsCode: string; wbsName: string }>;
