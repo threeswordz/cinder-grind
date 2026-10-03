@@ -78,6 +78,46 @@ export type CostForecastDetail = CostForecast & {
   approvalInstance: DirectCostDetail['approvalInstance'];
 };
 
+export type ProjectVariation = {
+  id: string;
+  companyId: string;
+  projectId: string;
+  variationNumber: string;
+  description: string;
+  reason: string | null;
+  valueDelta: string;
+  currencyCode: string;
+  state: 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'REJECTED';
+  approvalInstanceId: string | null;
+  reversesVariationId: string | null;
+  reversalReason: string | null;
+  createdByUserId: string;
+  submittedByUserId: string | null;
+  approvedByUserId: string | null;
+  rejectedByUserId: string | null;
+  createdAt: string;
+  updatedAt: string;
+  submittedAt: string | null;
+  decidedAt: string | null;
+  approvedAt: string | null;
+  rejectedAt: string | null;
+  rejectionReason: string | null;
+};
+
+export type ProjectVariationDetail = ProjectVariation & {
+  project: {
+    id: string;
+    projectCode: string;
+    projectName: string;
+    isActive: boolean;
+  } | null;
+  createdBy: { id: string; displayName: string } | null;
+  submittedBy: { id: string; displayName: string } | null;
+  approvedBy: { id: string; displayName: string } | null;
+  rejectedBy: { id: string; displayName: string } | null;
+  approvalInstance: DirectCostDetail['approvalInstance'];
+};
+
 export type DirectCostOptions = {
   project: {
     id: string;
@@ -192,6 +232,18 @@ export type CostControlReadModel = {
     costToComplete: string;
     forecastCost: string;
     variance: string;
+    commercial: {
+      allocationLevel: 'PROJECT';
+      originalContractValue: string;
+      approvedVariationValue: string;
+      revisedContractValue: string;
+      actualRevenue: string;
+      cashReceived: string;
+      forecastRevenue: string;
+      actualProfit: string | null;
+      forecastProfit: string | null;
+      profitAvailableAtCurrentFilter: boolean;
+    };
   };
   currentForecast: {
     id: string;
@@ -203,6 +255,8 @@ export type CostControlReadModel = {
     committedActualPaidSeparate: boolean;
     directCostPostingImplemented: boolean;
     forecastImplemented: boolean;
+    projectVariationRevenueProfitImplemented: boolean;
+    revenueProfitProjectLevelOnly: boolean;
   };
 };
 
@@ -293,6 +347,76 @@ export const costControlApi = {
   ) =>
     postAction<CostForecastDetail>(
       '/cost-control/forecasts/' + forecastId + '/reject',
+      body,
+    ),
+  variationWorkflows: () =>
+    apiRequest<Data<CostWorkflow[]>>(
+      '/cost-control/project-variation-workflow-options',
+    ),
+  variationList: (projectId: string) =>
+    apiRequest<Data<ProjectVariation[]>>(
+      '/cost-control/projects/' + projectId + '/project-variations',
+    ),
+  variationDetail: (variationId: string) =>
+    apiRequest<Data<ProjectVariationDetail>>(
+      '/cost-control/project-variations/' + variationId,
+    ),
+  variationCreate: (
+    projectId: string,
+    body: {
+      variationNumber: string;
+      description: string;
+      reason?: string | null;
+      valueDelta: string;
+      createKey: string;
+    },
+  ) =>
+    postAction<ProjectVariationDetail>(
+      '/cost-control/projects/' + projectId + '/project-variations',
+      body,
+    ),
+  variationUpdate: (
+    variationId: string,
+    body: Partial<{
+      description: string;
+      reason: string | null;
+      valueDelta: string;
+    }>,
+  ) =>
+    apiRequest<Data<ProjectVariationDetail>>(
+      '/cost-control/project-variations/' + variationId,
+      { method: 'PATCH', body: JSON.stringify(body) },
+    ),
+  variationReversal: (
+    variationId: string,
+    body: { variationNumber: string; reason: string; createKey: string },
+  ) =>
+    postAction<ProjectVariationDetail>(
+      '/cost-control/project-variations/' + variationId + '/reversal',
+      body,
+    ),
+  variationSubmit: (
+    variationId: string,
+    body: { workflowCode: string; actionKey: string },
+  ) =>
+    postAction<ProjectVariationDetail>(
+      '/cost-control/project-variations/' + variationId + '/submit',
+      body,
+    ),
+  variationApprove: (
+    variationId: string,
+    body: { actionKey: string; comment?: string },
+  ) =>
+    postAction<ProjectVariationDetail>(
+      '/cost-control/project-variations/' + variationId + '/approve',
+      body,
+    ),
+  variationReject: (
+    variationId: string,
+    body: { actionKey: string; comment?: string },
+  ) =>
+    postAction<ProjectVariationDetail>(
+      '/cost-control/project-variations/' + variationId + '/reject',
       body,
     ),
   options: (projectId: string) =>

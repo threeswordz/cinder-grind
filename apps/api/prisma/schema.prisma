@@ -489,6 +489,7 @@ model ApprovalAction {
   paymentDecisionOrder BigInt? @unique(map: "approval_actions_payment_decision_order_key") @map("payment_decision_order")
   directCostDecisionOrder BigInt? @unique(map: "approval_actions_direct_cost_decision_order_key") @map("direct_cost_decision_order")
   forecastDecisionOrder   BigInt? @unique(map: "approval_actions_forecast_decision_order_key") @map("forecast_decision_order")
+  projectVariationDecisionOrder BigInt? @unique(map: "approval_actions_project_variation_decision_order_key") @map("project_variation_decision_order")
   comment            String?  @db.Text
 
   approvalInstance ApprovalInstance @relation(fields: [approvalInstanceId], references: [id], onDelete: Restrict)
@@ -2852,6 +2853,40 @@ model DirectCostPosting {
   @@map("direct_cost_postings")
 }
 
+
+model ProjectVariation {
+  id                  String    @id @default(uuid()) @db.Uuid
+  companyId           String    @map("company_id") @db.Uuid
+  projectId           String    @map("project_id") @db.Uuid
+  variationNumber     String    @map("variation_number") @db.VarChar(120)
+  description         String    @db.VarChar(500)
+  reason              String?   @db.Text
+  valueDelta          Decimal   @map("value_delta") @db.Decimal(18, 2)
+  currencyCode        String    @map("currency_code") @db.VarChar(3)
+  state               String    @default("DRAFT") @db.VarChar(30)
+  approvalInstanceId  String?   @unique @map("approval_instance_id") @db.Uuid
+  reversesVariationId String?   @map("reverses_variation_id") @db.Uuid
+  reversalReason      String?   @map("reversal_reason") @db.Text
+  createKey           String    @map("create_key") @db.VarChar(120)
+  createPayloadHash   String    @map("create_payload_hash") @db.VarChar(64)
+  createdByUserId     String    @map("created_by_user_id") @db.Uuid
+  submittedByUserId   String?   @map("submitted_by_user_id") @db.Uuid
+  approvedByUserId    String?   @map("approved_by_user_id") @db.Uuid
+  rejectedByUserId    String?   @map("rejected_by_user_id") @db.Uuid
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  submittedAt         DateTime? @map("submitted_at") @db.Timestamptz(6)
+  decidedAt           DateTime? @map("decided_at") @db.Timestamptz(6)
+  approvedAt          DateTime? @map("approved_at") @db.Timestamptz(6)
+  rejectedAt          DateTime? @map("rejected_at") @db.Timestamptz(6)
+  rejectionReason     String?   @map("rejection_reason") @db.Text
+
+  @@unique([companyId, projectId, variationNumber], map: "project_variations_project_number_key")
+  @@unique([companyId, createdByUserId, createKey], map: "project_variations_creator_create_key_key")
+  @@index([companyId, projectId, state, approvedAt])
+  @@index([reversesVariationId])
+  @@map("project_variations")
+}
 
 model CostForecast {
   id                 String    @id @default(uuid()) @db.Uuid

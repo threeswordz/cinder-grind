@@ -359,6 +359,10 @@ const permissionCodes = [
   'cost.forecast.view',
   'cost.forecast.manage',
   'cost.forecast.approve',
+  'cost.variation.view',
+  'cost.variation.create',
+  'cost.variation.submit',
+  'cost.variation.approve',
   'subcontracts.subcontractor.view',
   'subcontracts.subcontractor.manage',
   'subcontracts.subcontractor.archive',
@@ -440,6 +444,8 @@ await request(admin, `/admin/roles/${checkerRoleId}/permissions`, {
       'cost.direct_posting.approve',
       'cost.forecast.view',
       'cost.forecast.approve',
+      'cost.variation.view',
+      'cost.variation.approve',
       'inventory.receipt.view',
       'inventory.receipt.approve',
       'inventory.issue.view',
@@ -501,6 +507,25 @@ await request(admin, '/admin/approval-workflows', {
       {
         stepNo: 1,
         stepName: 'Approve Cost Forecast',
+        requiredApprovals: 1,
+        roleIds: [checkerRoleId],
+      },
+    ],
+  },
+  expected: 201,
+});
+
+const projectVariationWorkflowCode = 'PROJECT_VARIATION_' + suffix;
+await request(admin, '/admin/approval-workflows', {
+  method: 'POST',
+  json: {
+    workflowCode: projectVariationWorkflowCode,
+    entityType: 'PROJECT_VARIATION',
+    workflowName: 'Project Variation Approval ' + suffix,
+    steps: [
+      {
+        stepNo: 1,
+        stepName: 'Approve Project Variation',
         requiredApprovals: 1,
         roleIds: [checkerRoleId],
       },
@@ -7992,6 +8017,399 @@ check(
 
 record('V0.7-C live Forecast workflow: exact-string ETC → maker-checker approval → immutable version history → highest approved current selection → deterministic Remaining Commitment / CTC / Forecast Cost / Variance');
 record('V0.7-C aggregate Cost Control keeps Forecast and mixed commitment source identifiers sanitized without matching source permissions');
+
+await request(
+  v07Restricted,
+  '/cost-control/projects/' + projectId + '/project-variations',
+  { expected: 403 },
+);
+await request(
+  admin,
+  '/cost-control/projects/' + projectId + '/project-variations',
+  { expected: 403 },
+);
+await request(
+  unassigned,
+  '/cost-control/projects/' + projectId + '/project-variations',
+  { expected: 403 },
+);
+
+const commercialBeforeVariation = await request(
+  pm,
+  '/projects/' + projectId + '/cost-control',
+);
+const commercialBaseline = commercialBeforeVariation.data.data.totals.commercial;
+const actualCostBaseline = Number(
+  commercialBeforeVariation.data.data.totals.actualCost.total,
+);
+const forecastCostBaseline = Number(
+  commercialBeforeVariation.data.data.totals.forecastCost,
+);
+check(
+  Number(commercialBaseline.actualProfit) ===
+    Number(commercialBaseline.actualRevenue) - actualCostBaseline &&
+    Number(commercialBaseline.forecastProfit) ===
+      Number(commercialBaseline.forecastRevenue) - forecastCostBaseline &&
+    Number(commercialBaseline.revisedContractValue) ===
+      Number(commercialBaseline.originalContractValue) +
+        Number(commercialBaseline.approvedVariationValue) &&
+    commercialBeforeVariation.data.data.boundaries
+      .revenueProfitProjectLevelOnly === true,
+  'V0.7-D baseline commercial measures did not preserve approved revenue/cost/profit definitions.',
+);
+
+const variationCreateBody = {
+  variationNumber: 'PV-UAT-' + suffix,
+  description: 'V0.7-D approved client addition ' + suffix,
+  reason: 'Authenticated Stage-D commercial acceptance.',
+  valueDelta: '125.50',
+  createKey: 'v07-variation-create-' + suffix,
+};
+const v07VariationDraft = await request(
+  pm,
+  '/cost-control/projects/' + projectId + '/project-variations',
+  {
+    method: 'POST',
+    json: variationCreateBody,
+    expected: 201,
+  },
+);
+const v07VariationId = v07VariationDraft.data.data.id;
+check(
+  v07VariationDraft.data.data.state === 'DRAFT' &&
+    v07VariationDraft.data.data.variationNumber ===
+      variationCreateBody.variationNumber &&
+    Number(v07VariationDraft.data.data.valueDelta) === 125.5,
+  'V0.7-D Project Variation Draft did not retain immutable identity and signed value.',
+);
+const v07VariationCreateRetry = await request(
+  pm,
+  '/cost-control/projects/' + projectId + '/project-variations',
+  {
+    method: 'POST',
+    json: variationCreateBody,
+    expected: 201,
+  },
+);
+check(
+  v07VariationCreateRetry.data.data.id === v07VariationId,
+  'V0.7-D Project Variation create idempotency did not return the original Draft.',
+);
+await request(
+  pm,
+  '/cost-control/projects/' + projectId + '/project-variations',
+  {
+    method: 'POST',
+    json: {
+      ...variationCreateBody,
+      variationNumber: 'PV-NUMBER-' + suffix,
+      valueDelta: 9007199254740993,
+      createKey: 'v07-variation-number-value-' + suffix,
+    },
+    expected: 422,
+  },
+);
+
+const commercialWhileDraft = await request(
+  pm,
+  '/projects/' + projectId + '/cost-control',
+);
+check(
+  Number(
+    commercialWhileDraft.data.data.totals.commercial.revisedContractValue,
+  ) === Number(commercialBaseline.revisedContractValue),
+  'V0.7-D Draft Project Variation incorrectly changed Revised Contract Value.',
+);
+
+const variationSubmitKey = 'v07-variation-submit-' + suffix;
+const v07VariationSubmitted = await request(
+  pm,
+  '/cost-control/project-variations/' + v07VariationId + '/submit',
+  {
+    method: 'POST',
+    json: {
+      workflowCode: projectVariationWorkflowCode,
+      actionKey: variationSubmitKey,
+    },
+    expected: 201,
+  },
+);
+check(
+  v07VariationSubmitted.data.data.state === 'SUBMITTED' &&
+    v07VariationSubmitted.data.data.approvalInstance?.approvalState ===
+      'SUBMITTED',
+  'V0.7-D Project Variation did not enter configured maker-checker approval.',
+);
+const v07VariationSubmitRetry = await request(
+  pm,
+  '/cost-control/project-variations/' + v07VariationId + '/submit',
+  {
+    method: 'POST',
+    json: {
+      workflowCode: projectVariationWorkflowCode,
+      actionKey: variationSubmitKey,
+    },
+    expected: 201,
+  },
+);
+check(
+  v07VariationSubmitRetry.data.data.id === v07VariationId &&
+    v07VariationSubmitRetry.data.data.state === 'SUBMITTED',
+  'V0.7-D Project Variation submit retry was not stable.',
+);
+await request(
+  pm,
+  '/cost-control/project-variations/' + v07VariationId + '/approve',
+  {
+    method: 'POST',
+    json: {
+      actionKey: 'v07-variation-self-approve-' + suffix,
+      comment: 'Maker must not approve own Project Variation.',
+    },
+    expected: 403,
+  },
+);
+
+const variationApproveKey = 'v07-variation-approve-' + suffix;
+const v07VariationApproved = await request(
+  checker,
+  '/cost-control/project-variations/' + v07VariationId + '/approve',
+  {
+    method: 'POST',
+    json: {
+      actionKey: variationApproveKey,
+      comment: 'Approve client Project Variation.',
+    },
+    expected: 201,
+  },
+);
+check(
+  v07VariationApproved.data.data.state === 'APPROVED' &&
+    v07VariationApproved.data.data.approvedAt &&
+    v07VariationApproved.data.data.approvalInstance?.approvalState ===
+      'APPROVED',
+  'V0.7-D independent approver did not final-approve Project Variation.',
+);
+const v07VariationApproveRetry = await request(
+  checker,
+  '/cost-control/project-variations/' + v07VariationId + '/approve',
+  {
+    method: 'POST',
+    json: {
+      actionKey: variationApproveKey,
+      comment: 'Approve client Project Variation.',
+    },
+    expected: 201,
+  },
+);
+check(
+  v07VariationApproveRetry.data.data.state === 'APPROVED',
+  'V0.7-D Project Variation approval retry was not stable.',
+);
+await request(
+  pm,
+  '/cost-control/project-variations/' + v07VariationId,
+  {
+    method: 'PATCH',
+    json: { description: 'Approved Project Variation must be immutable.' },
+    expected: 409,
+  },
+);
+
+const commercialAfterVariation = await request(
+  pm,
+  '/projects/' + projectId + '/cost-control',
+);
+const approvedCommercial =
+  commercialAfterVariation.data.data.totals.commercial;
+check(
+  Number(approvedCommercial.approvedVariationValue) ===
+    Number(commercialBaseline.approvedVariationValue) + 125.5 &&
+    Number(approvedCommercial.revisedContractValue) ===
+      Number(commercialBaseline.revisedContractValue) + 125.5 &&
+    Number(approvedCommercial.forecastRevenue) ===
+      Number(commercialBaseline.forecastRevenue) + 125.5 &&
+    Number(approvedCommercial.forecastProfit) ===
+      Number(commercialBaseline.forecastProfit) + 125.5 &&
+    Number(approvedCommercial.actualRevenue) ===
+      Number(commercialBaseline.actualRevenue) &&
+    Number(approvedCommercial.cashReceived) ===
+      Number(commercialBaseline.cashReceived) &&
+    Number(approvedCommercial.actualProfit) ===
+      Number(commercialBaseline.actualProfit) &&
+    commercialAfterVariation.data.data.sourceEvidence.projectVariation
+      .recordsVisible === true &&
+    commercialAfterVariation.data.data.sourceEvidence.projectVariation.records
+      .some(
+        (row) =>
+          row.id === v07VariationId &&
+          Number(row.financialContribution) === 125.5,
+      ),
+  'V0.7-D approved Project Variation did not revise contract/forecast revenue/profit while preserving Actual Revenue/Cash/Actual Profit separation.',
+);
+
+const restrictedAfterVariation = await request(
+  v07Restricted,
+  '/projects/' + projectId + '/cost-control',
+);
+check(
+  Number(
+    restrictedAfterVariation.data.data.totals.commercial.revisedContractValue,
+  ) === Number(approvedCommercial.revisedContractValue) &&
+    restrictedAfterVariation.data.data.sourceEvidence.projectVariation
+      .recordsVisible === false &&
+    restrictedAfterVariation.data.data.sourceEvidence.actualRevenue
+      .recordsVisible === false &&
+    restrictedAfterVariation.data.data.sourceEvidence.cashReceived
+      .recordsVisible === false &&
+    !Object.prototype.hasOwnProperty.call(
+      restrictedAfterVariation.data.data.sourceEvidence.projectVariation,
+      'records',
+    ),
+  'V0.7-D aggregate Cost Control leaked protected Project Variation/Finance source details.',
+);
+
+const v07VariationReversal = await request(
+  pm,
+  '/cost-control/project-variations/' + v07VariationId + '/reversal',
+  {
+    method: 'POST',
+    json: {
+      variationNumber: 'PV-REV-UAT-' + suffix,
+      reason: 'Correct through linked compensating reversal.',
+      createKey: 'v07-variation-reversal-create-' + suffix,
+    },
+    expected: 201,
+  },
+);
+const v07VariationReversalId = v07VariationReversal.data.data.id;
+check(
+  v07VariationReversal.data.data.state === 'DRAFT' &&
+    v07VariationReversal.data.data.reversesVariationId === v07VariationId &&
+    Number(v07VariationReversal.data.data.valueDelta) === -125.5,
+  'V0.7-D linked compensating reversal did not retain exact signed offset.',
+);
+await request(
+  pm,
+  '/cost-control/project-variations/' + v07VariationReversalId + '/submit',
+  {
+    method: 'POST',
+    json: {
+      workflowCode: projectVariationWorkflowCode,
+      actionKey: 'v07-variation-reversal-submit-' + suffix,
+    },
+    expected: 201,
+  },
+);
+await request(
+  checker,
+  '/cost-control/project-variations/' + v07VariationReversalId + '/approve',
+  {
+    method: 'POST',
+    json: {
+      actionKey: 'v07-variation-reversal-approve-' + suffix,
+      comment: 'Approve exact Project Variation reversal.',
+    },
+    expected: 201,
+  },
+);
+await request(
+  pm,
+  '/cost-control/project-variations/' + v07VariationId + '/reversal',
+  {
+    method: 'POST',
+    json: {
+      variationNumber: 'PV-REV2-UAT-' + suffix,
+      reason: 'Second active/approved reversal must fail.',
+      createKey: 'v07-variation-second-reversal-' + suffix,
+    },
+    expected: 409,
+  },
+);
+
+const commercialAfterReversal = await request(
+  pm,
+  '/projects/' + projectId + '/cost-control',
+);
+check(
+  Number(
+    commercialAfterReversal.data.data.totals.commercial.revisedContractValue,
+  ) === Number(commercialBaseline.revisedContractValue) &&
+    Number(
+      commercialAfterReversal.data.data.totals.commercial.approvedVariationValue,
+    ) === Number(commercialBaseline.approvedVariationValue) &&
+    commercialAfterReversal.data.data.sourceEvidence.projectVariation.records
+      .some(
+        (row) =>
+          row.id === v07VariationId &&
+          Number(row.financialContribution) === 0 &&
+          row.reversedByVariationId === v07VariationReversalId,
+      ),
+  'V0.7-D approved linked reversal did not neutralize the original commercial effect while retaining history.',
+);
+
+const v07NegativeVariation = await request(
+  pm,
+  '/cost-control/projects/' + projectId + '/project-variations',
+  {
+    method: 'POST',
+    json: {
+      variationNumber: 'PV-NEG-UAT-' + suffix,
+      description: 'Approved client deduction ' + suffix,
+      reason: 'Prove signed negative commercial Variations.',
+      valueDelta: '-25.00',
+      createKey: 'v07-variation-negative-create-' + suffix,
+    },
+    expected: 201,
+  },
+);
+await request(
+  pm,
+  '/cost-control/project-variations/' +
+    v07NegativeVariation.data.data.id +
+    '/submit',
+  {
+    method: 'POST',
+    json: {
+      workflowCode: projectVariationWorkflowCode,
+      actionKey: 'v07-variation-negative-submit-' + suffix,
+    },
+    expected: 201,
+  },
+);
+await request(
+  checker,
+  '/cost-control/project-variations/' +
+    v07NegativeVariation.data.data.id +
+    '/approve',
+  {
+    method: 'POST',
+    json: {
+      actionKey: 'v07-variation-negative-approve-' + suffix,
+      comment: 'Approve signed negative client Variation.',
+    },
+    expected: 201,
+  },
+);
+const commercialAfterNegative = await request(
+  pm,
+  '/projects/' + projectId + '/cost-control',
+);
+check(
+  Number(
+    commercialAfterNegative.data.data.totals.commercial.revisedContractValue,
+  ) === Number(commercialBaseline.revisedContractValue) - 25 &&
+    Number(
+      commercialAfterNegative.data.data.totals.commercial.forecastRevenue,
+    ) === Number(commercialBaseline.forecastRevenue) - 25 &&
+    Number(
+      commercialAfterNegative.data.data.totals.commercial.forecastProfit,
+    ) === Number(commercialBaseline.forecastProfit) - 25,
+  'V0.7-D approved signed negative Project Variation did not reduce Revised Contract, Forecast Revenue and Forecast Profit.',
+);
+
+record('V0.7-D Project Variation live workflow: exact-string signed value → maker-checker approval → immutable history → linked compensating reversal → signed negative commercial effect');
+record('V0.7-D commercial read model keeps Original/Revised Contract, Actual Revenue, Cash Received, Forecast Revenue, Actual/Forecast Profit separate and sanitizes protected source evidence');
 
 await request(admin, '/admin/company', {
   method: 'PATCH', json: { baseCurrencyCode: 'USD' },

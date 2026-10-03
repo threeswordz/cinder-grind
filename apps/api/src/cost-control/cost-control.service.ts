@@ -143,6 +143,29 @@ export function remainingCostCommitment(
   return remaining.isNegative() ? new Prisma.Decimal(0) : remaining;
 }
 
+export function activeProjectVariationValue(
+  rows: Array<{
+    id: string;
+    valueDelta: Prisma.Decimal;
+    reversesVariationId: string | null;
+  }>,
+): Prisma.Decimal {
+  const reversedOriginalIds = new Set(
+    rows
+      .filter((row) => row.reversesVariationId !== null)
+      .map((row) => row.reversesVariationId!),
+  );
+  return sumCostControlDecimals(
+    rows
+      .filter(
+        (row) =>
+          row.reversesVariationId === null &&
+          !reversedOriginalIds.has(row.id),
+      )
+      .map((row) => row.valueDelta),
+  );
+}
+
 export function selectOriginalAndCurrentBudget<
   T extends BudgetSelectionCandidate,
 >(revisions: T[]): { original: T | null; current: T | null } {
@@ -224,6 +247,7 @@ export class CostControlService {
           id: true,
           projectCode: true,
           projectName: true,
+          contractValue: true,
         },
       }),
       this.prisma.company.findUniqueOrThrow({
@@ -265,6 +289,9 @@ export class CostControlService {
       certifications,
       outboundPayments,
       directCostPostings,
+      projectVariations,
+      clientInvoices,
+      inboundPayments,
       currentForecast,
     ] = await Promise.all([
       this.prisma.budgetRevision.findMany({
@@ -457,6 +484,59 @@ export class CostControlService {
           reversesPostingId: true,
           reversalReason: true,
         },
+      }),
+      this.prisma.projectVariation.findMany({
+        where: {
+          companyId: auth.companyId,
+          projectId,
+          state: 'APPROVED',
+        },
+        select: {
+          id: true,
+          variationNumber: true,
+          description: true,
+          reason: true,
+          valueDelta: true,
+          currencyCode: true,
+          approvedAt: true,
+          reversesVariationId: true,
+          reversalReason: true,
+        },
+        orderBy: [{ approvedAt: 'asc' }, { id: 'asc' }],
+      }),
+      this.prisma.clientInvoice.findMany({
+        where: {
+          companyId: auth.companyId,
+          projectId,
+          state: 'APPROVED',
+        },
+        select: {
+          id: true,
+          clientInvoiceNumber: true,
+          invoiceDate: true,
+          totalAmount: true,
+          currencyCode: true,
+          approvedAt: true,
+        },
+        orderBy: [{ invoiceDate: 'asc' }, { id: 'asc' }],
+      }),
+      this.prisma.payment.findMany({
+        where: {
+          companyId: auth.companyId,
+          projectId,
+          state: 'APPROVED',
+          cancelledAt: null,
+          paymentDirection: 'INBOUND',
+        },
+        select: {
+          id: true,
+          paymentNumber: true,
+          paymentDirection: true,
+          paymentDate: true,
+          amount: true,
+          currencyCode: true,
+        },
+        orderBy: [{ paymentDate: 'asc' }, { id: 'asc' }],
       }),
       this.prisma.costForecast.findFirst({
         where: {
@@ -1003,6 +1083,102 @@ export class CostControlService {
       forecastCost,
     );
 
+    for (const variation of projectVariations) {
+      this.assertBaseCurrency(
+        'Project Variation',
+        variation.currencyCode,
+        company.baseCurrencyCode,
+      );
+    }
+    const approvedVariationValue =
+      activeProjectVariationValue(projectVariations);
+    const originalContractValue =
+      project.contractValue ?? new Prisma.Decimal(0);
+    const revisedContractValue = sumCostControlDecimals([
+      originalContractValue,
+      approvedVariationValue,
+    ]);
+
+    let actualRevenue = new Prisma.Decimal(0);
+    const actualRevenueRecords: EvidenceRecord[] = [];
+    for (const invoice of clientInvoices) {
+      this.assertBaseCurrency(
+        'Actual Revenue',
+        invoice.currencyCode,
+        company.baseCurrencyCode,
+      );
+      actualRevenue = sumCostControlDecimals([
+        actualRevenue,
+        invoice.totalAmount,
+      ]);
+      actualRevenueRecords.push({
+        id: invoice.id,
+        number: invoice.clientInvoiceNumber,
+        recognitionDate: invoice.invoiceDate,
+        approvedAt: invoice.approvedAt,
+        amount: invoice.totalAmount,
+      });
+    }
+
+    let cashReceived = new Prisma.Decimal(0);
+    const cashReceivedRecords: EvidenceRecord[] = [];
+    for (const payment of inboundPayments) {
+      if (payment.paymentDirection !== 'INBOUND') continue;
+      this.assertBaseCurrency(
+        'Cash Received',
+        payment.currencyCode,
+        company.baseCurrencyCode,
+      );
+      cashReceived = sumCostControlDecimals([
+        cashReceived,
+        payment.amount,
+      ]);
+      cashReceivedRecords.push({
+        id: payment.id,
+        number: payment.paymentNumber,
+        recognitionDate: payment.paymentDate,
+        amount: payment.amount,
+      });
+    }
+
+    const forecastRevenue = revisedContractValue;
+    const projectLevelProfitAvailable =
+      dimensions.selectedWbs === null &&
+      dimensions.selectedCostCode === null;
+    const actualProfit = projectLevelProfitAvailable
+      ? subtractCostControlDecimals(actualRevenue, actualTotal)
+      : null;
+    const forecastProfit = projectLevelProfitAvailable
+      ? subtractCostControlDecimals(forecastRevenue, forecastCost)
+      : null;
+
+    const approvedReversalBySource = new Map(
+      projectVariations
+        .filter((variation) => variation.reversesVariationId !== null)
+        .map((variation) => [
+          variation.reversesVariationId!,
+          variation.id,
+        ]),
+    );
+    const projectVariationRecords: EvidenceRecord[] =
+      projectVariations.map((variation) => ({
+        id: variation.id,
+        number: variation.variationNumber,
+        description: variation.description,
+        reason: variation.reason,
+        approvalDate: variation.approvedAt,
+        valueDelta: variation.valueDelta,
+        reversesVariationId: variation.reversesVariationId,
+        reversalReason: variation.reversalReason,
+        reversedByVariationId:
+          approvedReversalBySource.get(variation.id) ?? null,
+        financialContribution:
+          variation.reversesVariationId !== null ||
+          approvedReversalBySource.has(variation.id)
+            ? new Prisma.Decimal(0)
+            : variation.valueDelta,
+      }));
+
     const wbsById = new Map(
       dimensions.wbsRows.map((row) => [row.id, row]),
     );
@@ -1149,6 +1325,18 @@ export class CostControlService {
         costToComplete,
         forecastCost,
         variance,
+        commercial: {
+          allocationLevel: 'PROJECT',
+          originalContractValue,
+          approvedVariationValue,
+          revisedContractValue,
+          actualRevenue,
+          cashReceived,
+          forecastRevenue,
+          actualProfit,
+          forecastProfit,
+          profitAvailableAtCurrentFilter: projectLevelProfitAvailable,
+        },
       },
       currentForecast:
         currentForecast && this.hasPermissions(auth, 'cost.forecast.view')
@@ -1270,6 +1458,27 @@ export class CostControlService {
           'V0.7 Cost Forecast',
           'Highest-version final-approved Forecast only; lines store Uncommitted ETC and never total Cost to Complete.',
         ),
+        projectVariation: this.evidence(
+          approvedVariationValue,
+          projectVariationRecords,
+          this.hasPermissions(auth, 'cost.variation.view'),
+          'V0.7 Project Variation',
+          'Approved original Project Variations contribute on approval date unless cancelled by an approved linked compensating reversal.',
+        ),
+        actualRevenue: this.evidence(
+          actualRevenue,
+          actualRevenueRecords,
+          this.hasPermissions(auth, 'finance.client_invoice.view'),
+          'V0.6 Client Invoice',
+          'Final-approved Client Invoice total recognized on invoice date.',
+        ),
+        cashReceived: this.evidence(
+          cashReceived,
+          cashReceivedRecords,
+          this.hasPermissions(auth, 'finance.payment.view'),
+          'V0.6 INBOUND Payment',
+          'Approved non-cancelled INBOUND Payment amount recognized on payment date.',
+        ),
       },
       boundaries: {
         committedActualPaidSeparate: true,
@@ -1279,7 +1488,8 @@ export class CostControlService {
         financialAuthority: 'POSTGRESQL_PRISMA_DECIMAL',
         directCostPostingImplemented: true,
         forecastImplemented: true,
-        projectVariationRevenueProfitImplemented: false,
+        projectVariationRevenueProfitImplemented: true,
+        revenueProfitProjectLevelOnly: true,
       },
     };
   }

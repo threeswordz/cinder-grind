@@ -17,7 +17,9 @@ import { DirectCostController } from './direct-cost.controller';
 import { DirectCostService } from './direct-cost.service';
 import { ForecastController } from './forecast.controller';
 import { ForecastService } from './forecast.service';
+import { ProjectVariationService } from './project-variation.service';
 import {
+  activeProjectVariationValue,
   remainingCostCommitment,
   selectCurrentApprovedPurchaseOrders,
   selectOriginalAndCurrentBudget,
@@ -45,7 +47,9 @@ test('V0.7-A Budget and PO currency checks work without other Finance sources', 
         subcontractCertification: { findMany: async () => [] },
         payment: { findMany: async () => [] },
         directCostPosting: { findMany: async () => [] },
-        costForecast: { findFirst: async () => null },
+        projectVariation: { findMany: async () => [] },
+    clientInvoice: { findMany: async () => [] },
+    costForecast: { findFirst: async () => null },
       };
       const service = new CostControlService(prisma as unknown as PrismaService,
         { assertAccess: async () => {} } as never);
@@ -318,6 +322,8 @@ test('V0.7-C integrated forecast reduces only canonically linked PO commitment',
     subcontractCertification: { findMany: async () => [] },
     payment: { findMany: async () => [] },
     directCostPosting: { findMany: async () => [] },
+    projectVariation: { findMany: async () => [] },
+    clientInvoice: { findMany: async () => [] },
     costForecast: {
       findFirst: async () => ({
         id: 'forecast',
@@ -458,6 +464,8 @@ test('V0.7-C Remaining Commitment validates currency for linked Actual even when
     subcontractCertification: { findMany: async () => [] },
     payment: { findMany: async () => [] },
     directCostPosting: { findMany: async () => [] },
+    projectVariation: { findMany: async () => [] },
+    clientInvoice: { findMany: async () => [] },
     costForecast: { findFirst: async () => null },
   };
   const service = new CostControlService(
@@ -716,7 +724,9 @@ test('V0.7-C Forecast create returns controlled conflict after concurrency retry
   for (const code of ['P2002', 'P2034'] as const) {
     let attempts = 0;
     const prisma = {
-      costForecast: {
+      projectVariation: { findMany: async () => [] },
+    clientInvoice: { findMany: async () => [] },
+    costForecast: {
         findFirst: async () => null,
       },
       $transaction: async () => {
@@ -797,7 +807,9 @@ test('V0.7-C serialized Forecast writes retry P2034 and fail as controlled confl
   for (const operation of operations) {
     let attempts = 0;
     const prisma = {
-      costForecast: {
+      projectVariation: { findMany: async () => [] },
+    clientInvoice: { findMany: async () => [] },
+    costForecast: {
         findFirst: async () => ({
           id: 'forecast',
           companyId: 'company',
@@ -1346,6 +1358,8 @@ test('V0.7-C Project selector retains scoped archived Projects with Direct Cost 
     directCostPosting: {
       findMany: async () => [{ projectId: 'archived-project' }],
     },
+    projectVariation: { findMany: async () => [] },
+    clientInvoice: { findMany: async () => [] },
     costForecast: {
       findMany: async () => [
         { projectId: 'archived-project' },
@@ -1853,5 +1867,626 @@ test('V0.7-B terminal Direct Cost approval requires authorized retained evidence
     );
   } finally {
     await prisma.$disconnect();
+  }
+});
+
+
+test('V0.7-D active Project Variation value excludes approved compensating reversals', () => {
+  assert.equal(
+    activeProjectVariationValue([
+      {
+        id: 'positive',
+        valueDelta: new Prisma.Decimal('100.00'),
+        reversesVariationId: null,
+      },
+      {
+        id: 'negative',
+        valueDelta: new Prisma.Decimal('-20.00'),
+        reversesVariationId: null,
+      },
+      {
+        id: 'reverse-positive',
+        valueDelta: new Prisma.Decimal('-100.00'),
+        reversesVariationId: 'positive',
+      },
+    ]).toFixed(2),
+    '-20.00',
+  );
+});
+
+test('V0.7-D commercial measures keep revenue, cash and Project-level profit separate', async () => {
+  const prisma = {
+    project: {
+      findFirstOrThrow: async () => ({
+        id: 'project',
+        projectCode: 'P-1',
+        projectName: 'Project',
+        contractValue: new Prisma.Decimal('1000.00'),
+      }),
+    },
+    company: {
+      findUniqueOrThrow: async () => ({ baseCurrencyCode: 'SGD' }),
+    },
+    wbsElement: { findMany: async () => [] },
+    costCode: { findMany: async () => [] },
+    budgetRevision: { findMany: async () => [] },
+    purchaseOrder: { findMany: async () => [] },
+    subcontractAgreement: { findMany: async () => [] },
+    supplierInvoice: { findMany: async () => [] },
+    subcontractCertification: { findMany: async () => [] },
+    payment: {
+      findMany: async (args: { where?: { paymentDirection?: string } }) =>
+        args.where?.paymentDirection === 'INBOUND'
+          ? [
+              {
+                id: 'receipt',
+                paymentNumber: 'RCPT-1',
+                paymentDirection: 'INBOUND',
+                paymentDate: new Date('2026-10-04'),
+                amount: new Prisma.Decimal('500.00'),
+                currencyCode: 'SGD',
+              },
+            ]
+          : [],
+    },
+    directCostPosting: { findMany: async () => [] },
+    projectVariation: {
+      findMany: async () => [
+        {
+          id: 'pv-1',
+          variationNumber: 'PV-1',
+          description: 'Client addition',
+          reason: null,
+          valueDelta: new Prisma.Decimal('100.00'),
+          currencyCode: 'SGD',
+          approvedAt: new Date('2026-10-04T01:00:00Z'),
+          reversesVariationId: null,
+          reversalReason: null,
+        },
+      ],
+    },
+    clientInvoice: {
+      findMany: async () => [
+        {
+          id: 'ci-1',
+          clientInvoiceNumber: 'CI-1',
+          invoiceDate: new Date('2026-10-04'),
+          totalAmount: new Prisma.Decimal('700.00'),
+          currencyCode: 'SGD',
+          approvedAt: new Date('2026-10-04T02:00:00Z'),
+        },
+      ],
+    },
+    costForecast: { findFirst: async () => null },
+  };
+  const service = new CostControlService(
+    prisma as unknown as PrismaService,
+    { assertAccess: async () => {} } as never,
+  );
+  const result = await service.projectCostControl(
+    {
+      companyId: 'company',
+      permissions: [
+        'cost.control.view',
+        'cost.variation.view',
+        'finance.client_invoice.view',
+        'finance.payment.view',
+      ],
+    } as never,
+    'project',
+  );
+  assert.equal(result.totals.commercial.originalContractValue.toFixed(2), '1000.00');
+  assert.equal(result.totals.commercial.approvedVariationValue.toFixed(2), '100.00');
+  assert.equal(result.totals.commercial.revisedContractValue.toFixed(2), '1100.00');
+  assert.equal(result.totals.commercial.actualRevenue.toFixed(2), '700.00');
+  assert.equal(result.totals.commercial.cashReceived.toFixed(2), '500.00');
+  assert.equal(result.totals.commercial.forecastRevenue.toFixed(2), '1100.00');
+  assert.equal(result.totals.commercial.actualProfit?.toFixed(2), '700.00');
+  assert.equal(result.totals.commercial.forecastProfit?.toFixed(2), '1100.00');
+  assert.equal(result.boundaries.revenueProfitProjectLevelOnly, true);
+});
+
+test('V0.7-D refuses to fabricate WBS or Cost Code profitability', async () => {
+  const prisma = {
+    project: {
+      findFirstOrThrow: async () => ({
+        id: 'project',
+        projectCode: 'P-1',
+        projectName: 'Project',
+        contractValue: new Prisma.Decimal('1000.00'),
+      }),
+    },
+    company: {
+      findUniqueOrThrow: async () => ({ baseCurrencyCode: 'SGD' }),
+    },
+    wbsElement: { findMany: async () => [] },
+    costCode: {
+      findMany: async () => [
+        { id: 'cc-1', costCode: 'CC-1', costName: 'Cost Code' },
+      ],
+    },
+    budgetRevision: { findMany: async () => [] },
+    purchaseOrder: { findMany: async () => [] },
+    subcontractAgreement: { findMany: async () => [] },
+    supplierInvoice: { findMany: async () => [] },
+    subcontractCertification: { findMany: async () => [] },
+    payment: { findMany: async () => [] },
+    directCostPosting: { findMany: async () => [] },
+    projectVariation: { findMany: async () => [] },
+    clientInvoice: { findMany: async () => [] },
+    costForecast: { findFirst: async () => null },
+  };
+  const service = new CostControlService(
+    prisma as unknown as PrismaService,
+    { assertAccess: async () => {} } as never,
+  );
+  const result = await service.projectCostControl(
+    { companyId: 'company', permissions: ['cost.control.view'] } as never,
+    'project',
+    { costCodeId: 'cc-1' },
+  );
+  assert.equal(result.totals.commercial.allocationLevel, 'PROJECT');
+  assert.equal(result.totals.commercial.actualProfit, null);
+  assert.equal(result.totals.commercial.forecastProfit, null);
+  assert.equal(result.totals.commercial.profitAvailableAtCurrentFilter, false);
+});
+
+
+test('V0.7-D Project Variation database guards approval authority and terminal history', async () => {
+  const prisma = new PrismaService();
+  await prisma.$connect();
+  try {
+    const suffix = randomUUID();
+    const company = await prisma.company.create({
+      data: {
+        companyCode: 'PVH-' + suffix,
+        companyName: 'Project Variation hardening company',
+        baseCurrencyCode: 'SGD',
+      },
+    });
+    const customer = await prisma.customer.create({
+      data: {
+        companyId: company.id,
+        customerCode: 'PVH-C-' + suffix,
+        customerName: 'Project Variation hardening customer',
+      },
+    });
+    const maker = await prisma.user.create({
+      data: {
+        companyId: company.id,
+        email: 'pvh-maker-' + suffix + '@example.com',
+        displayName: 'Project Variation maker',
+        passwordHash: 'x',
+      },
+    });
+    const approverEmployee = await prisma.employee.create({
+      data: {
+        companyId: company.id,
+        employeeCode: 'PVH-E-' + suffix,
+        employeeName: 'Project Variation approver employee',
+      },
+    });
+    const approver = await prisma.user.create({
+      data: {
+        companyId: company.id,
+        employeeId: approverEmployee.id,
+        email: 'pvh-approver-' + suffix + '@example.com',
+        displayName: 'Project Variation approver',
+        passwordHash: 'x',
+      },
+    });
+    const unauthorized = await prisma.user.create({
+      data: {
+        companyId: company.id,
+        email: 'pvh-unauthorized-' + suffix + '@example.com',
+        displayName: 'Project Variation unauthorized actor',
+        passwordHash: 'x',
+      },
+    });
+    const project = await prisma.project.create({
+      data: {
+        companyId: company.id,
+        projectCode: 'PVH-P-' + suffix,
+        projectName: 'Project Variation hardening project',
+        customerId: customer.id,
+        contractValue: '1000.00',
+        plannedStartDate: new Date('2026-10-01'),
+        plannedCompletionDate: new Date('2027-01-01'),
+      },
+    });
+    await prisma.projectMember.create({
+      data: {
+        projectId: project.id,
+        employeeId: approverEmployee.id,
+        projectRole: 'Commercial Approver',
+      },
+    });
+
+    const variation = await prisma.projectVariation.create({
+      data: {
+        companyId: company.id,
+        projectId: project.id,
+        variationNumber: 'PV-' + suffix,
+        description: 'Hardening variation',
+        valueDelta: '125.50',
+        currencyCode: 'SGD',
+        createKey: randomUUID(),
+        createPayloadHash: 'a'.repeat(64),
+        createdByUserId: maker.id,
+      },
+    });
+
+    await assert.rejects(() =>
+      prisma.projectVariation.update({
+        where: { id: variation.id },
+        data: { state: 'SUBMITTED' },
+      }),
+    );
+
+    const workflow = await prisma.approvalWorkflow.create({
+      data: {
+        companyId: company.id,
+        workflowCode: 'PVH-WF-' + suffix,
+        entityType: 'PROJECT_VARIATION',
+        workflowName: 'Project Variation hardening workflow',
+      },
+    });
+    const step = await prisma.approvalStep.create({
+      data: {
+        approvalWorkflowId: workflow.id,
+        stepNo: 1,
+        stepName: 'Approve Project Variation',
+        requiredApprovals: 1,
+      },
+    });
+    const role = await prisma.role.create({
+      data: {
+        companyId: company.id,
+        roleCode: 'PVH-APPROVER-' + suffix,
+        roleName: 'Project Variation Approver',
+      },
+    });
+    const approvePermission = await prisma.permission.findUniqueOrThrow({
+      where: { permissionCode: 'cost.variation.approve' },
+    });
+    await prisma.rolePermission.create({
+      data: { roleId: role.id, permissionId: approvePermission.id },
+    });
+    await prisma.userRole.create({
+      data: {
+        companyId: company.id,
+        userId: approver.id,
+        roleId: role.id,
+      },
+    });
+    await prisma.approvalStepRole.create({
+      data: { approvalStepId: step.id, roleId: role.id },
+    });
+    const instance = await prisma.approvalInstance.create({
+      data: {
+        companyId: company.id,
+        approvalWorkflowId: workflow.id,
+        entityType: 'PROJECT_VARIATION',
+        entityId: variation.id,
+        currentStepNo: 1,
+        approvalState: 'SUBMITTED',
+      },
+    });
+    const submittedAt = new Date('2026-10-04T01:00:00.000Z');
+    await prisma.projectVariation.update({
+      where: { id: variation.id },
+      data: {
+        state: 'SUBMITTED',
+        approvalInstanceId: instance.id,
+        submittedByUserId: maker.id,
+        submittedAt,
+      },
+    });
+
+    await assert.rejects(() =>
+      prisma.approvalInstance.update({
+        where: { id: instance.id },
+        data: {
+          approvalState: 'APPROVED',
+          completedAt: new Date('2026-10-04T01:01:00.000Z'),
+        },
+      }),
+    );
+
+    await assert.rejects(() =>
+      prisma.approvalAction.create({
+        data: {
+          approvalInstanceId: instance.id,
+          approvalStepId: step.id,
+          action: 'APPROVE',
+          actionByUserId: maker.id,
+        },
+      }),
+    );
+    await assert.rejects(() =>
+      prisma.approvalAction.create({
+        data: {
+          approvalInstanceId: instance.id,
+          approvalStepId: step.id,
+          action: 'APPROVE',
+          actionByUserId: unauthorized.id,
+        },
+      }),
+    );
+
+    const decision = await prisma.approvalAction.create({
+      data: {
+        approvalInstanceId: instance.id,
+        approvalStepId: step.id,
+        action: 'APPROVE',
+        actionByUserId: approver.id,
+        comment: 'Authorized commercial approval',
+      },
+    });
+    assert.ok(decision.projectVariationDecisionOrder);
+
+    await prisma.approvalInstance.update({
+      where: { id: instance.id },
+      data: {
+        approvalState: 'APPROVED',
+        completedAt: decision.actionAt,
+      },
+    });
+
+    await assert.rejects(() =>
+      prisma.projectVariation.update({
+        where: { id: variation.id },
+        data: { state: 'APPROVED' },
+      }),
+    );
+    await assert.rejects(() =>
+      prisma.projectVariation.update({
+        where: { id: variation.id },
+        data: {
+          state: 'APPROVED',
+          approvedByUserId: maker.id,
+          approvedAt: new Date(decision.actionAt.getTime() + 1_000),
+          decidedAt: new Date(decision.actionAt.getTime() + 1_000),
+        },
+      }),
+    );
+
+    await prisma.projectVariation.update({
+      where: { id: variation.id },
+      data: {
+        state: 'APPROVED',
+        approvedByUserId: approver.id,
+        approvedAt: decision.actionAt,
+        decidedAt: decision.actionAt,
+      },
+    });
+
+    await assert.rejects(() =>
+      prisma.projectVariation.update({
+        where: { id: variation.id },
+        data: { description: 'Forbidden approved edit' },
+      }),
+    );
+    await assert.rejects(() =>
+      prisma.approvalAction.update({
+        where: { id: decision.id },
+        data: { comment: 'Forbidden history rewrite' },
+      }),
+    );
+    await assert.rejects(() =>
+      prisma.approvalAction.delete({ where: { id: decision.id } }),
+    );
+
+    const rejectedVariation = await prisma.projectVariation.create({
+      data: {
+        companyId: company.id,
+        projectId: project.id,
+        variationNumber: 'PV-REJECT-' + suffix,
+        description: 'Rejected evidence binding variation',
+        valueDelta: '-10.00',
+        currencyCode: 'SGD',
+        createKey: randomUUID(),
+        createPayloadHash: 'd'.repeat(64),
+        createdByUserId: maker.id,
+      },
+    });
+    const rejectedInstance = await prisma.approvalInstance.create({
+      data: {
+        companyId: company.id,
+        approvalWorkflowId: workflow.id,
+        entityType: 'PROJECT_VARIATION',
+        entityId: rejectedVariation.id,
+        currentStepNo: 1,
+        approvalState: 'SUBMITTED',
+      },
+    });
+    await prisma.projectVariation.update({
+      where: { id: rejectedVariation.id },
+      data: {
+        state: 'SUBMITTED',
+        approvalInstanceId: rejectedInstance.id,
+        submittedByUserId: maker.id,
+        submittedAt: new Date('2026-10-04T01:10:00.000Z'),
+      },
+    });
+    const rejectionDecision = await prisma.approvalAction.create({
+      data: {
+        approvalInstanceId: rejectedInstance.id,
+        approvalStepId: step.id,
+        action: 'REJECT',
+        actionByUserId: approver.id,
+        comment: 'Retain exact rejection reason',
+      },
+    });
+    await prisma.approvalInstance.update({
+      where: { id: rejectedInstance.id },
+      data: {
+        approvalState: 'REJECTED',
+        completedAt: rejectionDecision.actionAt,
+      },
+    });
+    await assert.rejects(() =>
+      prisma.projectVariation.update({
+        where: { id: rejectedVariation.id },
+        data: {
+          state: 'REJECTED',
+          rejectedByUserId: maker.id,
+          rejectedAt: rejectionDecision.actionAt,
+          decidedAt: rejectionDecision.actionAt,
+          rejectionReason: 'Forged rejection reason',
+        },
+      }),
+    );
+    await prisma.projectVariation.update({
+      where: { id: rejectedVariation.id },
+      data: {
+        state: 'REJECTED',
+        rejectedByUserId: approver.id,
+        rejectedAt: rejectionDecision.actionAt,
+        decidedAt: rejectionDecision.actionAt,
+        rejectionReason: rejectionDecision.comment,
+      },
+    });
+    await assert.rejects(() =>
+      prisma.projectVariation.update({
+        where: { id: rejectedVariation.id },
+        data: { rejectionReason: 'Forbidden rejected-history rewrite' },
+      }),
+    );
+
+    const duplicateNumber = 'PV-DUP-' + suffix;
+    const outcomes = await Promise.allSettled([
+      prisma.projectVariation.create({
+        data: {
+          companyId: company.id,
+          projectId: project.id,
+          variationNumber: duplicateNumber,
+          description: 'Concurrent A',
+          valueDelta: '1.00',
+          currencyCode: 'SGD',
+          createKey: randomUUID(),
+          createPayloadHash: 'b'.repeat(64),
+          createdByUserId: maker.id,
+        },
+      }),
+      prisma.projectVariation.create({
+        data: {
+          companyId: company.id,
+          projectId: project.id,
+          variationNumber: duplicateNumber,
+          description: 'Concurrent B',
+          valueDelta: '2.00',
+          currencyCode: 'SGD',
+          createKey: randomUUID(),
+          createPayloadHash: 'c'.repeat(64),
+          createdByUserId: maker.id,
+        },
+      }),
+    ]);
+    assert.equal(
+      outcomes.filter((outcome) => outcome.status === 'fulfilled').length,
+      1,
+    );
+    assert.equal(
+      await prisma.projectVariation.count({
+        where: {
+          companyId: company.id,
+          projectId: project.id,
+          variationNumber: duplicateNumber,
+        },
+      }),
+      1,
+    );
+  } finally {
+    await prisma.$disconnect();
+  }
+});
+
+
+test('V0.7-D serialized Project Variation writes retry P2034 and fail as controlled conflicts after exhaustion', async () => {
+  const operations = [
+    {
+      name: 'update',
+      invoke: (service: ProjectVariationService, auth: never) =>
+        service.update({ auth }, 'variation', { description: 'retry' }),
+    },
+    {
+      name: 'submit',
+      invoke: (service: ProjectVariationService, auth: never) =>
+        service.submit({ auth }, 'variation', 'PV-WF', 'submit-key'),
+    },
+    {
+      name: 'approve',
+      invoke: (service: ProjectVariationService, auth: never) =>
+        service.approve({ auth }, 'variation', 'approve-key', 'approve'),
+    },
+    {
+      name: 'reject',
+      invoke: (service: ProjectVariationService, auth: never) =>
+        service.reject({ auth }, 'variation', 'reject-key', 'reject'),
+    },
+    {
+      name: 'reversal',
+      invoke: (service: ProjectVariationService, auth: never) =>
+        service.createReversal(
+          { auth },
+          'variation',
+          {
+            variationNumber: 'PV-REV',
+            reason: 'retry reversal',
+            createKey: 'reversal-key',
+          },
+        ),
+    },
+  ];
+
+  for (const operation of operations) {
+    let attempts = 0;
+    const prisma = {
+      projectVariation: {
+        findFirst: async () => ({
+          id: 'variation',
+          companyId: 'company',
+          projectId: 'project',
+        }),
+      },
+      $transaction: async () => {
+        attempts += 1;
+        throw new Prisma.PrismaClientKnownRequestError(
+          'Synthetic Project Variation serialized write conflict',
+          {
+            code: 'P2034',
+            clientVersion: 'test',
+          },
+        );
+      },
+    };
+    const service = new ProjectVariationService(
+      prisma as unknown as PrismaService,
+      { assertAccess: async () => {} } as never,
+      {} as never,
+      {} as never,
+    );
+    const auth = {
+      companyId: 'company',
+      userId: 'user',
+      permissions: ['cost.variation.view'],
+    } as never;
+
+    await assert.rejects(
+      () => operation.invoke(service, auth),
+      (error: unknown) => {
+        if (!(error instanceof ConflictException)) return false;
+        return (
+          (error.getResponse() as { code?: string }).code ===
+          'PROJECT_VARIATION_WRITE_CONCURRENCY_RETRY_EXHAUSTED'
+        );
+      },
+    );
+    assert.equal(
+      attempts,
+      5,
+      operation.name + ' should retry the full serialized transaction five times',
+    );
   }
 });

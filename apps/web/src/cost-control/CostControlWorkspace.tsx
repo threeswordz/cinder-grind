@@ -24,6 +24,7 @@ import {
   costControlApi,
   DirectCostDetail,
 } from '../api/cost-control';
+import { ProjectVariationPanel } from './ProjectVariationPanel';
 
 type Props = {
   permissions: string[];
@@ -360,8 +361,8 @@ export function CostControlWorkspace({ permissions }: Props) {
       <Box>
         <Typography variant="h5">Cost Control</Typography>
         <Typography color="text.secondary">
-          Integrated Budget, Commitment, Actual, Paid and Forecast measures,
-          with controlled Direct Cost and Uncommitted ETC workflows.
+          Integrated Budget, Commitment, Actual, Paid, Forecast, Contract,
+          Revenue and Profit measures with controlled Cost Control workflows.
         </Typography>
       </Box>
 
@@ -471,13 +472,80 @@ export function CostControlWorkspace({ permissions }: Props) {
                     readModel.data.data.totals.variance
                   }
                 />
+                <Chip
+                  label={
+                    'Original Contract ' +
+                    readModel.data.data.baseCurrencyCode +
+                    ' ' +
+                    readModel.data.data.totals.commercial.originalContractValue
+                  }
+                />
+                <Chip
+                  label={
+                    'Approved Variations ' +
+                    readModel.data.data.baseCurrencyCode +
+                    ' ' +
+                    readModel.data.data.totals.commercial.approvedVariationValue
+                  }
+                />
+                <Chip
+                  label={
+                    'Revised Contract ' +
+                    readModel.data.data.baseCurrencyCode +
+                    ' ' +
+                    readModel.data.data.totals.commercial.revisedContractValue
+                  }
+                />
+                <Chip
+                  label={
+                    'Actual Revenue ' +
+                    readModel.data.data.baseCurrencyCode +
+                    ' ' +
+                    readModel.data.data.totals.commercial.actualRevenue
+                  }
+                />
+                <Chip
+                  label={
+                    'Cash Received ' +
+                    readModel.data.data.baseCurrencyCode +
+                    ' ' +
+                    readModel.data.data.totals.commercial.cashReceived
+                  }
+                />
+                <Chip
+                  label={
+                    'Forecast Revenue ' +
+                    readModel.data.data.baseCurrencyCode +
+                    ' ' +
+                    readModel.data.data.totals.commercial.forecastRevenue
+                  }
+                />
+                <Chip
+                  label={
+                    'Actual Profit ' +
+                    readModel.data.data.baseCurrencyCode +
+                    ' ' +
+                    (readModel.data.data.totals.commercial.actualProfit ?? 'PROJECT ONLY')
+                  }
+                />
+                <Chip
+                  label={
+                    'Forecast Profit ' +
+                    readModel.data.data.baseCurrencyCode +
+                    ' ' +
+                    (readModel.data.data.totals.commercial.forecastProfit ?? 'PROJECT ONLY')
+                  }
+                />
               </Stack>
               <Typography variant="body2" color="text.secondary">
                 Cost to Complete: {readModel.data.data.baseCurrencyCode}{' '}
                 {readModel.data.data.totals.costToComplete}. Direct Actual:{' '}
                 {readModel.data.data.baseCurrencyCode}{' '}
                 {readModel.data.data.totals.actualCost.direct}. Committed,
-                Actual, Paid and Forecast remain separate measures.
+                Actual, Paid and Forecast remain separate measures. Actual
+                Revenue, Cash Received and Forecast Revenue are also separate;
+                revenue/profit remain Project-level where no canonical
+                lower-dimensional allocation exists.
                 {readModel.data.data.currentForecast
                   ? ' Current Forecast: v' +
                     readModel.data.data.currentForecast.versionNo +
@@ -492,6 +560,12 @@ export function CostControlWorkspace({ permissions }: Props) {
       ) : null}
 
       <ForecastPanel permissions={permissions} projectId={projectId} />
+
+      <ProjectVariationPanel
+        permissions={permissions}
+        projectId={projectId}
+        projectIsActive={selectedProject?.isActive === true}
+      />
 
       {canCreate &&
       projectId &&
