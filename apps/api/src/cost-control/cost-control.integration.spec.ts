@@ -2238,6 +2238,17 @@ test('V0.7-D Project Variation database guards approval authority and terminal h
         data: { state: 'APPROVED' },
       }),
     );
+    await assert.rejects(() =>
+      prisma.projectVariation.update({
+        where: { id: variation.id },
+        data: {
+          state: 'APPROVED',
+          approvedByUserId: maker.id,
+          approvedAt: new Date(decision.actionAt.getTime() + 1_000),
+          decidedAt: new Date(decision.actionAt.getTime() + 1_000),
+        },
+      }),
+    );
 
     await prisma.projectVariation.update({
       where: { id: variation.id },
@@ -2263,6 +2274,83 @@ test('V0.7-D Project Variation database guards approval authority and terminal h
     );
     await assert.rejects(() =>
       prisma.approvalAction.delete({ where: { id: decision.id } }),
+    );
+
+    const rejectedVariation = await prisma.projectVariation.create({
+      data: {
+        companyId: company.id,
+        projectId: project.id,
+        variationNumber: 'PV-REJECT-' + suffix,
+        description: 'Rejected evidence binding variation',
+        valueDelta: '-10.00',
+        currencyCode: 'SGD',
+        createKey: randomUUID(),
+        createPayloadHash: 'd'.repeat(64),
+        createdByUserId: maker.id,
+      },
+    });
+    const rejectedInstance = await prisma.approvalInstance.create({
+      data: {
+        companyId: company.id,
+        approvalWorkflowId: workflow.id,
+        entityType: 'PROJECT_VARIATION',
+        entityId: rejectedVariation.id,
+        currentStepNo: 1,
+        approvalState: 'SUBMITTED',
+      },
+    });
+    await prisma.projectVariation.update({
+      where: { id: rejectedVariation.id },
+      data: {
+        state: 'SUBMITTED',
+        approvalInstanceId: rejectedInstance.id,
+        submittedByUserId: maker.id,
+        submittedAt: new Date('2026-10-04T01:10:00.000Z'),
+      },
+    });
+    const rejectionDecision = await prisma.approvalAction.create({
+      data: {
+        approvalInstanceId: rejectedInstance.id,
+        approvalStepId: step.id,
+        action: 'REJECT',
+        actionByUserId: approver.id,
+        comment: 'Retain exact rejection reason',
+      },
+    });
+    await prisma.approvalInstance.update({
+      where: { id: rejectedInstance.id },
+      data: {
+        approvalState: 'REJECTED',
+        completedAt: rejectionDecision.actionAt,
+      },
+    });
+    await assert.rejects(() =>
+      prisma.projectVariation.update({
+        where: { id: rejectedVariation.id },
+        data: {
+          state: 'REJECTED',
+          rejectedByUserId: maker.id,
+          rejectedAt: rejectionDecision.actionAt,
+          decidedAt: rejectionDecision.actionAt,
+          rejectionReason: 'Forged rejection reason',
+        },
+      }),
+    );
+    await prisma.projectVariation.update({
+      where: { id: rejectedVariation.id },
+      data: {
+        state: 'REJECTED',
+        rejectedByUserId: approver.id,
+        rejectedAt: rejectionDecision.actionAt,
+        decidedAt: rejectionDecision.actionAt,
+        rejectionReason: rejectionDecision.comment,
+      },
+    });
+    await assert.rejects(() =>
+      prisma.projectVariation.update({
+        where: { id: rejectedVariation.id },
+        data: { rejectionReason: 'Forbidden rejected-history rewrite' },
+      }),
     );
 
     const duplicateNumber = 'PV-DUP-' + suffix;
@@ -2310,5 +2398,94 @@ test('V0.7-D Project Variation database guards approval authority and terminal h
     );
   } finally {
     await prisma.$disconnect();
+  }
+});
+
+
+test('V0.7-D serialized Project Variation writes retry P2034 and fail as controlled conflicts after exhaustion', async () => {
+  const operations = [
+    {
+      name: 'update',
+      invoke: (service: ProjectVariationService, auth: never) =>
+        service.update({ auth }, 'variation', { description: 'retry' }),
+    },
+    {
+      name: 'submit',
+      invoke: (service: ProjectVariationService, auth: never) =>
+        service.submit({ auth }, 'variation', 'PV-WF', 'submit-key'),
+    },
+    {
+      name: 'approve',
+      invoke: (service: ProjectVariationService, auth: never) =>
+        service.approve({ auth }, 'variation', 'approve-key', 'approve'),
+    },
+    {
+      name: 'reject',
+      invoke: (service: ProjectVariationService, auth: never) =>
+        service.reject({ auth }, 'variation', 'reject-key', 'reject'),
+    },
+    {
+      name: 'reversal',
+      invoke: (service: ProjectVariationService, auth: never) =>
+        service.createReversal(
+          { auth },
+          'variation',
+          {
+            variationNumber: 'PV-REV',
+            reason: 'retry reversal',
+            createKey: 'reversal-key',
+          },
+        ),
+    },
+  ];
+
+  for (const operation of operations) {
+    let attempts = 0;
+    const prisma = {
+      projectVariation: {
+        findFirst: async () => ({
+          id: 'variation',
+          companyId: 'company',
+          projectId: 'project',
+        }),
+      },
+      $transaction: async () => {
+        attempts += 1;
+        throw new Prisma.PrismaClientKnownRequestError(
+          'Synthetic Project Variation serialized write conflict',
+          {
+            code: 'P2034',
+            clientVersion: 'test',
+          },
+        );
+      },
+    };
+    const service = new ProjectVariationService(
+      prisma as unknown as PrismaService,
+      { assertAccess: async () => {} } as never,
+      {} as never,
+      {} as never,
+    );
+    const auth = {
+      companyId: 'company',
+      userId: 'user',
+      permissions: ['cost.variation.view'],
+    } as never;
+
+    await assert.rejects(
+      () => operation.invoke(service, auth),
+      (error: unknown) => {
+        if (!(error instanceof ConflictException)) return false;
+        return (
+          (error.getResponse() as { code?: string }).code ===
+          'PROJECT_VARIATION_WRITE_CONCURRENCY_RETRY_EXHAUSTED'
+        );
+      },
+    );
+    assert.equal(
+      attempts,
+      5,
+      operation.name + ' should retry the full serialized transaction five times',
+    );
   }
 });
