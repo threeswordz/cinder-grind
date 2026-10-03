@@ -7044,6 +7044,62 @@ check(
   'V0.7-A Paid Cost acceptance Payment did not retain approved allocation evidence.',
 );
 
+const v07RestrictedEmployee = await request(
+  admin,
+  '/master-data/employees',
+  {
+    method: 'POST',
+    json: {
+      employeeCode: 'CC-' + suffix,
+      employeeName: 'Cost Control Restricted ' + suffix,
+      jobTitle: 'Cost Controller',
+    },
+    expected: 201,
+  },
+);
+const v07RestrictedRole = await request(admin, '/admin/roles', {
+  method: 'POST',
+  json: {
+    roleCode: 'UAT_COST_CONTROL_' + suffix,
+    roleName: 'UAT Cost Control ' + suffix,
+    description: 'V0.7-A aggregate-only Cost Control acceptance role',
+  },
+  expected: 201,
+});
+await request(
+  admin,
+  '/admin/roles/' + v07RestrictedRole.data.data.id + '/permissions',
+  {
+    method: 'PUT',
+    json: { permissionCodes: ['cost.control.view'] },
+  },
+);
+const v07RestrictedPassword =
+  'Uat-CC-' + suffix + '-Strong-2026!';
+const v07RestrictedUser = await request(admin, '/admin/users', {
+  method: 'POST',
+  json: {
+    email: 'uat-cc-' + suffix.toLowerCase() + '@example.com',
+    displayName: 'Cost Control Restricted ' + suffix,
+    password: v07RestrictedPassword,
+    employeeId: v07RestrictedEmployee.data.data.id,
+    roleIds: [v07RestrictedRole.data.data.id],
+  },
+  expected: 201,
+});
+await request(admin, '/projects/' + projectId + '/members', {
+  method: 'POST',
+  json: {
+    employeeId: v07RestrictedEmployee.data.data.id,
+    projectRole: 'Cost Controller',
+  },
+  expected: 201,
+});
+const v07Restricted = await login(
+  v07RestrictedUser.data.data.email,
+  v07RestrictedPassword,
+);
+
 const v07CostControl = await request(
   pm,
   '/projects/' + projectId + '/cost-control',
@@ -7067,6 +7123,30 @@ check(
     v07CostControl.data.data.sourceEvidence.supplierActual.recordsVisible === true &&
     v07CostControl.data.data.sourceEvidence.paidCost.recordsVisible === true,
   'V0.7-A authorized source traceability did not expose permitted source evidence.',
+);
+
+const v07RestrictedCostControl = await request(
+  v07Restricted,
+  '/projects/' + projectId + '/cost-control',
+);
+check(
+  Number(v07RestrictedCostControl.data.data.totals.originalBudget) === 250 &&
+    Number(v07RestrictedCostControl.data.data.totals.revisedBudget) === 300 &&
+    Number(v07RestrictedCostControl.data.data.totals.paidCost.total) === 5,
+  'V0.7-A aggregate-only Cost Control role did not retain authorized aggregate measures.',
+);
+check(
+  Object.values(v07RestrictedCostControl.data.data.sourceEvidence).every(
+    (source) =>
+      source.recordsVisible === false &&
+      !Object.prototype.hasOwnProperty.call(source, 'records'),
+  ),
+  'V0.7-A aggregate-only Cost Control role leaked protected source records.',
+);
+await request(
+  admin,
+  '/projects/' + projectId + '/cost-control',
+  { expected: 403 },
 );
 const v07Dimensional = await request(
   pm,
@@ -7093,6 +7173,7 @@ await request(
 );
 record('V0.7-A Cost Control derives Original/Revised Budget, separate Committed/Actual/Paid measures, dimensional filters, source-permission evidence and Project authorization');
 
+await logout(v07Restricted);
 await logout(pm);
 await request(pm, '/auth/me', { expected: 401 });
 record('logout revokes the session');
