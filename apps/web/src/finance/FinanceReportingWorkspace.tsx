@@ -94,8 +94,8 @@ export function FinanceReportingWorkspace({
     ],
     queryFn: () =>
       cashFlowApi.report(projectId, {
-        fromDate: cashFromDate || undefined,
-        toDate: cashToDate || undefined,
+        ...(cashFromDate ? { fromDate: cashFromDate } : {}),
+        ...(cashToDate ? { toDate: cashToDate } : {}),
       }),
     enabled: canPayment && Boolean(projectId),
   });
