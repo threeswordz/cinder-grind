@@ -3,10 +3,10 @@
 **Last verified:** 2026-10-03
 **Source of truth:** Live GitHub repository state
 
-- Current Release: V0.6 Finance — **IN PROGRESS**. V0.6-A through V0.6-D are technically complete. V0.6-E Project Cash Flow / Finance Reporting / Release Evidence is implemented and at its final merge gate.
-- Current Stage: V0.6-E — **FINAL MERGE-GATE VALIDATION**. Pre-flight PR #131 merged as `d05f6d57966329767182f8befe6f3a0b2d891ee3` with post-merge main CI #2385 PASS. Implementation PR #132 is open from `v0.6-e-cash-flow-reporting`. The first stable review found genuine P1/P2 issues; batched fix head `898f809d45540c766bc54d92b9ebfeb607524d50` passed push CI #2395 and PR CI #2396. Documentation-reconciled head `d44c934c2935964d146ec5b9aa1cc34e6d794f68` passed push CI #2397 and PR CI #2398; its fresh exact-head Codex re-review found no remaining code/schema/security/business-behavior issue and only one P2 stale-summary documentation finding, corrected by the current docs-only commit.
-- Completed Stages: V0.1-A through V0.1-H; V0.2-A through V0.2-G; V0.3-A through V0.3-E; V0.4-A through V0.4-E; V0.5 entry gate; V0.5-A; V0.5-B; V0.5-C; V0.5-D; V0.5-E; V0.6 entry gate; V0.6-A; V0.6-B; V0.6-C; V0.6-D
-- Active Issue / PR: Issue #130 / PR #132 — V0.6-E Project Cash Flow / Finance Reporting / Release Evidence. Remaining technical sequence is docs-only exact-head push/PR CI → resolve the stale-summary thread → squash merge PR #132 → post-merge `main` CI → close Issue #130. Under DEC-022 no additional Codex review is required for this docs-only correction. After technical closure, **STOP at AC-V06-037–038** for Product / Business Owner human UAT and explicit V0.6 release acceptance.
+- Current Release: V0.6 Finance — **TECHNICAL IMPLEMENTATION COMPLETE / HUMAN RELEASE EXIT PENDING**. V0.6-A through V0.6-E are technically complete.
+- Current Stage: V0.6 Release Exit Gate — **PENDING HUMAN UAT / NOT ACCEPTED** under AC-V06-037 and AC-V06-038. V0.6-E PR #132 squash-merged to `main` as `b8b24a1c1ab424a7e662a99b537004461df359e4`; post-merge main CI #2401 passed; Issue #130 closed completed.
+- Completed Stages: V0.1-A through V0.1-H; V0.2-A through V0.2-G; V0.3-A through V0.3-E; V0.4-A through V0.4-E; V0.5 entry gate; V0.5-A; V0.5-B; V0.5-C; V0.5-D; V0.5-E; V0.6 entry gate; V0.6-A; V0.6-B; V0.6-C; V0.6-D; V0.6-E
+- Active Issue / PR: Issue #133 — V0.6 Release Exit Gate — Human Finance UAT and Acceptance. Docs-only branch `v0.6-release-exit-gate` records the technical closure and prepared walkthrough. **Do not begin V0.7** until the Product / Business Owner explicitly completes AC-V06-037 human UAT and accepts V0.6 under AC-V06-038.
 - V0.5-C green main checkpoint: PR #108 squash-merged as `3f00de1f984c82c1737c4b47c226d99197b19e54`; final exact-head push CI #1869 and PR CI #1870 passed on `0833cd893f208003215cf39cee9c07b6c9a817ad`; final Codex exact-head review reported no major issues; post-merge main CI #1871 passed; Issue #107 closed.
 - V0.5-D green main checkpoint: PR #110 squash-merged as `aceeb82ad13a2f6c773d307541ddd02fafc69a92`; final exact-head push CI #1898 and PR CI #1899 passed on `0cf62c630153a6ac2326f352c0064243b3a2f45f`; final Codex exact-head review reported no major issues; post-merge main CI #1900 passed; Issue #109 closed.
 - V0.5-E green main checkpoint: PR #112 squash-merged as `c054b9253e1ad2623a3fc233ba125003b2894c37`; final exact-head push CI #1930 and PR CI #1931 passed on `9ba8d862dcf66e7b00d7006d9398b19d83026e41`; final Codex exact-head review reported no major issues; post-merge main CI #1932 passed; Issue #111 closed. AC-V05-030 was explicitly accepted by the Product / Business Owner on 2026-10-01.
@@ -927,3 +927,17 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - Because the P1 changed financial reporting behavior, DEC-022 requires one fresh exact-head Codex re-review after this evidence-only documentation reconciliation. No per-fix Codex loop is introduced.
 - Remaining technical gate: final documentation-head push/PR CI, fresh exact-head Codex re-review, squash merge, post-merge `main` CI and Issue #130 closure.
 - After technical completion, STOP at AC-V06-037–038. Product / Business Owner human UAT and explicit release acceptance remain pending.
+
+
+## V0.6 release-exit gate
+
+- V0.6-E PR #132 final reviewed material head `d44c934c2935964d146ec5b9aa1cc34e6d794f68` passed push CI #2397 and PR CI #2398 after the material currency/test-registration fixes.
+- Fresh exact-head Codex re-review found no remaining code/schema/security/business-behavior issue and one docs-only stale-summary P2.
+- Final docs-only PR head `d59678768eb83f73c7f567e3f70c4b3c8b34725c` passed push CI #2399 and PR CI #2400; all review threads resolved.
+- PR #132 squash-merged as `b8b24a1c1ab424a7e662a99b537004461df359e4`.
+- Post-merge `main` CI #2401 passed.
+- Issue #130 closed completed.
+- Issue #133 now tracks AC-V06-037 human Finance UAT and AC-V06-038 explicit Product / Business Owner release acceptance.
+- `docs/V0.6-UAT-EVIDENCE.md` is the prepared walkthrough/evidence pack.
+- Automated acceptance remains technical evidence only. It does not self-approve the human gate.
+- V0.7 is blocked until explicit V0.6 release acceptance and release closure.
