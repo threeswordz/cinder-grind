@@ -262,6 +262,142 @@ test('V0.7-C Remaining Commitment uses exact Decimal arithmetic and floors at ze
   );
 });
 
+test('V0.7-E reporting keeps descendant WBS values and explicit Unallocated dimensions', async () => {
+  const prisma = {
+    project: {
+      findFirstOrThrow: async () => ({
+        id: 'project',
+        projectCode: 'P-RPT',
+        projectName: 'Reporting project',
+        contractValue: new Prisma.Decimal('1000.00'),
+      }),
+    },
+    company: {
+      findUniqueOrThrow: async () => ({ baseCurrencyCode: 'SGD' }),
+    },
+    wbsElement: {
+      findMany: async () => [
+        { id: 'wbs-parent', parentId: null, wbsCode: '1', wbsName: 'Parent' },
+        {
+          id: 'wbs-child',
+          parentId: 'wbs-parent',
+          wbsCode: '1.1',
+          wbsName: 'Child',
+        },
+      ],
+    },
+    costCode: {
+      findMany: async () => [
+        { id: 'cc-1', costCode: 'LAB', costName: 'Labour' },
+      ],
+    },
+    budgetRevision: {
+      findMany: async () => [
+        {
+          id: 'budget-1',
+          revisionNo: 1,
+          revisionNumber: 'BUD-1',
+          currencyCode: 'SGD',
+          approvalInstance: { completedAt: new Date('2026-10-01T00:00:00Z') },
+          lines: [
+            {
+              id: 'budget-child',
+              amount: new Prisma.Decimal('100.00'),
+              wbsId: 'wbs-child',
+              costCodeId: 'cc-1',
+            },
+            {
+              id: 'budget-unallocated',
+              amount: new Prisma.Decimal('20.00'),
+              wbsId: null,
+              costCodeId: null,
+            },
+          ],
+        },
+      ],
+    },
+    purchaseOrder: { findMany: async () => [] },
+    subcontractAgreement: { findMany: async () => [] },
+    supplierInvoice: { findMany: async () => [] },
+    subcontractCertification: { findMany: async () => [] },
+    payment: { findMany: async () => [] },
+    directCostPosting: {
+      findMany: async () => [
+        {
+          id: 'direct-child',
+          postingDate: new Date('2026-10-02'),
+          description: 'Child direct cost',
+          reference: null,
+          amount: new Prisma.Decimal('50.00'),
+          currencyCode: 'SGD',
+          wbsId: 'wbs-child',
+          costCodeId: 'cc-1',
+          reversesPostingId: null,
+          reversalReason: null,
+        },
+        {
+          id: 'direct-unallocated-wbs',
+          postingDate: new Date('2026-10-02'),
+          description: 'Unallocated WBS direct cost',
+          reference: null,
+          amount: new Prisma.Decimal('10.00'),
+          currencyCode: 'SGD',
+          wbsId: null,
+          costCodeId: 'cc-1',
+          reversesPostingId: null,
+          reversalReason: null,
+        },
+      ],
+    },
+    projectVariation: { findMany: async () => [] },
+    clientInvoice: { findMany: async () => [] },
+    costForecast: { findFirst: async () => null },
+  };
+  const service = new CostControlService(
+    prisma as unknown as PrismaService,
+    { assertAccess: async () => {} } as never,
+  );
+  const auth = {
+    companyId: 'company',
+    permissions: ['cost.control.view', 'cost.direct_posting.create'],
+  } as never;
+
+  const full = await service.projectCostControl(auth, 'project');
+  assert.equal(full.totals.revisedBudget.toFixed(2), '120.00');
+  assert.equal(full.totals.actualCost.direct.toFixed(2), '60.00');
+  assert.equal(full.reportDimensions.wbs.length, 2);
+  assert.equal(full.reportDimensions.costCodes.length, 1);
+  assert.ok(
+    full.dimensionBreakdown.some(
+      (row) =>
+        row.wbs === null &&
+        row.costCode === null &&
+        row.allocationState === 'UNALLOCATED' &&
+        row.revisedBudget.toFixed(2) === '20.00',
+    ),
+  );
+  assert.ok(
+    full.dimensionBreakdown.some(
+      (row) =>
+        row.wbs === null &&
+        row.costCode?.id === 'cc-1' &&
+        row.allocationState === 'PARTIALLY_ALLOCATED' &&
+        row.actualCost.direct.toFixed(2) === '10.00',
+    ),
+  );
+
+  const parent = await service.projectCostControl(auth, 'project', {
+    wbsId: 'wbs-parent',
+  });
+  assert.equal(parent.filters.wbs?.id, 'wbs-parent');
+  assert.equal(parent.filters.wbsIncludesDescendants, true);
+  assert.equal(parent.totals.revisedBudget.toFixed(2), '100.00');
+  assert.equal(parent.totals.actualCost.direct.toFixed(2), '50.00');
+  assert.equal(parent.dimensionBreakdown.length, 1);
+  assert.equal(parent.dimensionBreakdown[0]?.wbs?.id, 'wbs-child');
+  assert.equal(parent.dimensionBreakdown[0]?.costCode?.id, 'cc-1');
+});
+
 test('V0.7-C integrated forecast reduces only canonically linked PO commitment', async () => {
   const prisma = {
     project: {
