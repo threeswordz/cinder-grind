@@ -846,11 +846,17 @@ test('V0.7-B database freezes terminal evidence and permits exact reversal after
 });
 
 
-test('V0.7-B Project selector retains scoped archived Projects with Direct Cost history', async () => {
+test('V0.7-C Project selector retains scoped archived Projects with Direct Cost or Forecast history', async () => {
   let projectWhere: unknown;
   const prisma = {
     directCostPosting: {
       findMany: async () => [{ projectId: 'archived-project' }],
+    },
+    costForecast: {
+      findMany: async () => [
+        { projectId: 'archived-project' },
+        { projectId: 'forecast-only-project' },
+      ],
     },
     project: {
       findMany: async (args: { where: unknown }) => {
@@ -860,6 +866,12 @@ test('V0.7-B Project selector retains scoped archived Projects with Direct Cost 
             id: 'archived-project',
             projectCode: 'ARCH-1',
             projectName: 'Archived project',
+            isActive: false,
+          },
+          {
+            id: 'forecast-only-project',
+            projectCode: 'ARCH-2',
+            projectName: 'Forecast-only archived project',
             isActive: false,
           },
         ];
@@ -886,6 +898,12 @@ test('V0.7-B Project selector retains scoped archived Projects with Direct Cost 
       projectName: 'Archived project',
       isActive: false,
     },
+    {
+      id: 'forecast-only-project',
+      projectCode: 'ARCH-2',
+      projectName: 'Forecast-only archived project',
+      isActive: false,
+    },
   ]);
   assert.deepEqual(projectWhere, {
     AND: [
@@ -893,7 +911,7 @@ test('V0.7-B Project selector retains scoped archived Projects with Direct Cost 
       {
         OR: [
           { isActive: true },
-          { id: { in: ['archived-project'] } },
+          { id: { in: ['archived-project', 'forecast-only-project'] } },
         ],
       },
     ],
