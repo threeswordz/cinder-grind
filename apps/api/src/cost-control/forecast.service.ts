@@ -261,10 +261,10 @@ export class ForecastService {
   ) {
     this.assertPermission(context.auth, 'cost.forecast.manage');
     if (input.lines) this.assertLineAmounts(input.lines);
-    const result = await this.prisma.$transaction(
+    const result = await this.serializedForecastWrite(
+      context.auth,
+      forecastId,
       async (tx) => {
-        await this.visibleForecast(context.auth, forecastId, tx);
-        await this.lockForecast(context.auth.companyId, forecastId, tx);
         const current = await tx.costForecast.findUniqueOrThrow({
           where: { id: forecastId },
         });
@@ -336,7 +336,6 @@ export class ForecastService {
         );
         return row;
       },
-      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
     );
     return this.get(context.auth, result.id);
   }
@@ -348,10 +347,10 @@ export class ForecastService {
     actionKey: string,
   ) {
     this.assertPermission(context.auth, 'cost.forecast.manage');
-    const result = await this.prisma.$transaction(
+    const result = await this.serializedForecastWrite(
+      context.auth,
+      forecastId,
       async (tx) => {
-        await this.visibleForecast(context.auth, forecastId, tx);
-        await this.lockForecast(context.auth.companyId, forecastId, tx);
         if (
           await this.claimReplay(
             tx,
@@ -413,7 +412,6 @@ export class ForecastService {
         );
         return row;
       },
-      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
     );
     return this.get(context.auth, result.id);
   }
@@ -425,10 +423,10 @@ export class ForecastService {
     comment?: string,
   ) {
     this.assertPermission(context.auth, 'cost.forecast.approve');
-    const result = await this.prisma.$transaction(
+    const result = await this.serializedForecastWrite(
+      context.auth,
+      forecastId,
       async (tx) => {
-        await this.visibleForecast(context.auth, forecastId, tx);
-        await this.lockForecast(context.auth.companyId, forecastId, tx);
         if (
           await this.claimReplay(
             tx,
@@ -499,7 +497,6 @@ export class ForecastService {
         );
         return tx.costForecast.findUniqueOrThrow({ where: { id: forecastId } });
       },
-      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
     );
     return this.get(context.auth, result.id);
   }
@@ -511,10 +508,10 @@ export class ForecastService {
     comment?: string,
   ) {
     this.assertPermission(context.auth, 'cost.forecast.approve');
-    const result = await this.prisma.$transaction(
+    const result = await this.serializedForecastWrite(
+      context.auth,
+      forecastId,
       async (tx) => {
-        await this.visibleForecast(context.auth, forecastId, tx);
-        await this.lockForecast(context.auth.companyId, forecastId, tx);
         if (
           await this.claimReplay(
             tx,
@@ -570,9 +567,50 @@ export class ForecastService {
         );
         return row;
       },
-      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
     );
     return this.get(context.auth, result.id);
+  }
+
+  private async serializedForecastWrite<T>(
+    auth: AuthenticatedUserContext,
+    forecastId: string,
+    operation: (tx: Prisma.TransactionClient) => Promise<T>,
+  ): Promise<T> {
+    // Preflight access outside the SERIALIZABLE transaction so authorization
+    // does not establish a stale transactional snapshot before the row lock.
+    await this.visibleForecast(auth, forecastId, this.prisma);
+
+    const maxWriteAttempts = 5;
+    for (let attempt = 1; attempt <= maxWriteAttempts; attempt += 1) {
+      try {
+        return await this.prisma.$transaction(
+          async (tx) => {
+            // The Forecast row is the serialization boundary for all mutable
+            // lifecycle actions. Lock first, then revalidate visibility/access
+            // inside the fresh transaction before performing the action.
+            await this.lockForecast(auth.companyId, forecastId, tx);
+            await this.visibleForecast(auth, forecastId, tx);
+            return operation(tx);
+          },
+          { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+        );
+      } catch (error) {
+        if (
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === 'P2034'
+        ) {
+          if (attempt < maxWriteAttempts) continue;
+          break;
+        }
+        throw error;
+      }
+    }
+
+    throw new ConflictException({
+      code: 'COST_FORECAST_WRITE_CONCURRENCY_RETRY_EXHAUSTED',
+      detail:
+        'Forecast action could not serialize after repeated concurrent attempts.',
+    });
   }
 
   private async visibleForecast(

@@ -631,6 +631,23 @@ export class CostControlService {
     }
 
 
+    const selectedProcurementLineages = new Set<string>();
+    for (const order of currentPurchaseOrders) {
+      for (const line of order.lines) {
+        if (
+          this.matchesDimension(
+            line.wbsId,
+            line.costCodeId,
+            dimensions,
+          )
+        ) {
+          selectedProcurementLineages.add(
+            order.poNumber + '|' + line.quotationAwardId,
+          );
+        }
+      }
+    }
+
     const supplierActualByPoLineage = new Map<string, Prisma.Decimal>();
     for (const invoice of supplierInvoices) {
       for (const item of invoice.items) {
@@ -641,6 +658,12 @@ export class CostControlService {
           purchaseOrderLine.purchaseOrder.poNumber +
           '|' +
           purchaseOrderLine.quotationAwardId;
+        if (!selectedProcurementLineages.has(lineageKey)) continue;
+        this.assertBaseCurrency(
+          'Supplier Actual attributable to Procurement remaining commitment',
+          invoice.currencyCode,
+          company.baseCurrencyCode,
+        );
         const current =
           supplierActualByPoLineage.get(lineageKey) ?? new Prisma.Decimal(0);
         supplierActualByPoLineage.set(

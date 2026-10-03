@@ -381,6 +381,107 @@ test('V0.7-C integrated forecast reduces only canonically linked PO commitment',
   );
 });
 
+test('V0.7-C Remaining Commitment validates currency for linked Actual even when invoice dimensions are filtered out', async () => {
+  const prisma = {
+    project: {
+      findFirstOrThrow: async () => ({
+        id: 'project',
+        projectCode: 'P-CURRENCY',
+        projectName: 'Currency regression',
+      }),
+    },
+    company: {
+      findUniqueOrThrow: async () => ({ baseCurrencyCode: 'SGD' }),
+    },
+    wbsElement: {
+      findMany: async () => [
+        {
+          id: 'wbs-selected',
+          parentId: null,
+          wbsCode: 'SELECTED',
+          wbsName: 'Selected WBS',
+        },
+        {
+          id: 'wbs-other',
+          parentId: null,
+          wbsCode: 'OTHER',
+          wbsName: 'Other WBS',
+        },
+      ],
+    },
+    costCode: { findMany: async () => [] },
+    budgetRevision: { findMany: async () => [] },
+    purchaseOrder: {
+      findMany: async () => [
+        {
+          id: 'po',
+          poNumber: 'PO-CURRENCY',
+          revisionNo: 0,
+          currencyCode: 'SGD',
+          cancelledAt: null,
+          lines: [
+            {
+              id: 'po-line',
+              amount: new Prisma.Decimal('100.00'),
+              wbsId: 'wbs-selected',
+              costCodeId: null,
+              quotationAwardId: 'award-currency',
+            },
+          ],
+        },
+      ],
+    },
+    subcontractAgreement: { findMany: async () => [] },
+    supplierInvoice: {
+      findMany: async () => [
+        {
+          id: 'invoice',
+          supplierInvoiceNumber: 'SI-FOREIGN',
+          invoiceDate: new Date('2026-10-03'),
+          currencyCode: 'USD',
+          items: [
+            {
+              id: 'invoice-line',
+              amount: new Prisma.Decimal('40.00'),
+              wbsId: 'wbs-other',
+              costCodeId: null,
+              purchaseOrderLine: {
+                quotationAwardId: 'award-currency',
+                purchaseOrder: { poNumber: 'PO-CURRENCY' },
+              },
+              goodsReceiptItem: null,
+            },
+          ],
+        },
+      ],
+    },
+    subcontractCertification: { findMany: async () => [] },
+    payment: { findMany: async () => [] },
+    directCostPosting: { findMany: async () => [] },
+    costForecast: { findFirst: async () => null },
+  };
+  const service = new CostControlService(
+    prisma as unknown as PrismaService,
+    { assertAccess: async () => {} } as never,
+  );
+
+  await assert.rejects(
+    () =>
+      service.projectCostControl(
+        { companyId: 'company', permissions: [] } as never,
+        'project',
+        { wbsId: 'wbs-selected' },
+      ),
+    (error: unknown) => {
+      if (!(error instanceof UnprocessableEntityException)) return false;
+      return (
+        (error.getResponse() as { code?: string }).code ===
+        'COST_CONTROL_CURRENCY_UNSUPPORTED'
+      );
+    },
+  );
+});
+
 test('V0.7-C Forecast routes require explicit view/manage/approve permissions', () => {
   assert.deepEqual(
     Reflect.getMetadata(
@@ -621,6 +722,86 @@ test('V0.7-C Forecast create returns controlled conflict after concurrency retry
       },
     );
     assert.equal(attempts, 5, code + ' should exhaust exactly five attempts');
+  }
+});
+
+test('V0.7-C serialized Forecast writes retry P2034 and fail as controlled conflicts after exhaustion', async () => {
+  const operations = [
+    {
+      name: 'update',
+      permission: 'cost.forecast.manage',
+      invoke: (service: ForecastService, auth: never) =>
+        service.update({ auth }, 'forecast', { description: 'retry' }),
+    },
+    {
+      name: 'submit',
+      permission: 'cost.forecast.manage',
+      invoke: (service: ForecastService, auth: never) =>
+        service.submit({ auth }, 'forecast', 'WF-1', 'submit-key'),
+    },
+    {
+      name: 'approve',
+      permission: 'cost.forecast.approve',
+      invoke: (service: ForecastService, auth: never) =>
+        service.approve({ auth }, 'forecast', 'approve-key', 'retry'),
+    },
+    {
+      name: 'reject',
+      permission: 'cost.forecast.approve',
+      invoke: (service: ForecastService, auth: never) =>
+        service.reject({ auth }, 'forecast', 'reject-key', 'retry'),
+    },
+  ] as const;
+
+  for (const operation of operations) {
+    let attempts = 0;
+    const prisma = {
+      costForecast: {
+        findFirst: async () => ({
+          id: 'forecast',
+          companyId: 'company',
+          projectId: 'project',
+          lines: [],
+        }),
+      },
+      $transaction: async () => {
+        attempts += 1;
+        throw new Prisma.PrismaClientKnownRequestError(
+          'Synthetic serialized Forecast write conflict',
+          {
+            code: 'P2034',
+            clientVersion: 'test',
+          },
+        );
+      },
+    };
+    const service = new ForecastService(
+      prisma as unknown as PrismaService,
+      { assertAccess: async () => {} } as never,
+      {} as never,
+      {} as never,
+    );
+    const auth = {
+      companyId: 'company',
+      userId: 'user',
+      permissions: [operation.permission],
+    } as never;
+
+    await assert.rejects(
+      () => operation.invoke(service, auth),
+      (error: unknown) => {
+        if (!(error instanceof ConflictException)) return false;
+        return (
+          (error.getResponse() as { code?: string }).code ===
+          'COST_FORECAST_WRITE_CONCURRENCY_RETRY_EXHAUSTED'
+        );
+      },
+    );
+    assert.equal(
+      attempts,
+      5,
+      operation.name + ' should retry the full serialized transaction five times',
+    );
   }
 });
 
