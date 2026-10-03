@@ -505,12 +505,19 @@ test('V0.7-B database freezes terminal evidence and permits exact reversal after
         plannedCompletionDate: new Date('2027-01-01'),
       },
     });
-    await prisma.projectMember.create({
-      data: {
-        projectId: project.id,
-        employeeId: approverEmployee.id,
-        projectRole: 'Cost Control Approver',
-      },
+    await prisma.projectMember.createMany({
+      data: [
+        {
+          projectId: project.id,
+          employeeId: approverEmployee.id,
+          projectRole: 'Cost Control Approver',
+        },
+        {
+          projectId: project.id,
+          employeeId: finalApproverEmployee.id,
+          projectRole: 'Cost Control Final Approver',
+        },
+      ],
     });
     const costCode = await prisma.costCode.create({
       data: {
@@ -562,12 +569,19 @@ test('V0.7-B database freezes terminal evidence and permits exact reversal after
     await prisma.rolePermission.create({
       data: { roleId: role.id, permissionId: approvePermission.id },
     });
-    await prisma.userRole.create({
-      data: {
-        companyId: company.id,
-        userId: approver.id,
-        roleId: role.id,
-      },
+    await prisma.userRole.createMany({
+      data: [
+        {
+          companyId: company.id,
+          userId: approver.id,
+          roleId: role.id,
+        },
+        {
+          companyId: company.id,
+          userId: finalApprover.id,
+          roleId: role.id,
+        },
+      ],
     });
     await prisma.approvalStepRole.create({
       data: { approvalStepId: step.id, roleId: role.id },
@@ -784,6 +798,22 @@ test('V0.7-B terminal Direct Cost approval requires authorized retained evidence
         passwordHash: 'x',
       },
     });
+    const finalApproverEmployee = await prisma.employee.create({
+      data: {
+        companyId: company.id,
+        employeeCode: 'DA-E2-' + suffix,
+        employeeName: 'Direct Cost final approver employee',
+      },
+    });
+    const finalApprover = await prisma.user.create({
+      data: {
+        companyId: company.id,
+        employeeId: finalApproverEmployee.id,
+        email: 'da-final-approver-' + suffix + '@example.com',
+        displayName: 'Direct Cost final approver',
+        passwordHash: 'x',
+      },
+    });
     const project = await prisma.project.create({
       data: {
         companyId: company.id,
@@ -864,7 +894,7 @@ test('V0.7-B terminal Direct Cost approval requires authorized retained evidence
         approvalWorkflowId: workflow.id,
         stepNo: 2,
         stepName: 'Final Direct Cost approval',
-        requiredApprovals: 1,
+        requiredApprovals: 2,
       },
     });
     await prisma.approvalStepRole.createMany({
@@ -1056,16 +1086,39 @@ test('V0.7-B terminal Direct Cost approval requires authorized retained evidence
       }),
     );
 
-    const action = await prisma.approvalAction.create({
+    const firstFinalAction = await prisma.approvalAction.create({
       data: {
         approvalInstanceId: instance.id,
         approvalStepId: finalStep.id,
         action: 'APPROVE',
         actionByUserId: approver.id,
-        comment: 'Authorized final-step approval evidence',
+        actionAt: new Date('2000-01-01T00:00:00.000Z'),
+        comment: 'First final-step approval evidence',
       },
     });
-    const completedAt = new Date('2026-10-03T03:00:00.000Z');
+    const action = await prisma.approvalAction.create({
+      data: {
+        approvalInstanceId: instance.id,
+        approvalStepId: finalStep.id,
+        action: 'APPROVE',
+        actionByUserId: finalApprover.id,
+        actionAt: new Date('1999-01-01T00:00:00.000Z'),
+        comment: 'Threshold-completing final approval evidence',
+      },
+    });
+    assert.ok(firstFinalAction.directCostDecisionOrder);
+    assert.ok(action.directCostDecisionOrder);
+    assert.ok(
+      action.directCostDecisionOrder > firstFinalAction.directCostDecisionOrder,
+      'serialized decision order must identify the threshold-completing action',
+    );
+    assert.notEqual(
+      action.actionAt.toISOString(),
+      '1999-01-01T00:00:00.000Z',
+      'database must override caller-supplied Direct Cost decision time',
+    );
+
+    const completedAt = action.actionAt;
     await prisma.approvalInstance.update({
       where: { id: instance.id },
       data: {
@@ -1073,11 +1126,22 @@ test('V0.7-B terminal Direct Cost approval requires authorized retained evidence
         completedAt,
       },
     });
+    await assert.rejects(() =>
+      prisma.directCostPosting.update({
+        where: { id: posting.id },
+        data: {
+          state: 'APPROVED',
+          approvedByUserId: approver.id,
+          approvedAt: firstFinalAction.actionAt,
+          decidedAt: firstFinalAction.actionAt,
+        },
+      }),
+    );
     await prisma.directCostPosting.update({
       where: { id: posting.id },
       data: {
         state: 'APPROVED',
-        approvedByUserId: approver.id,
+        approvedByUserId: finalApprover.id,
         approvedAt: completedAt,
         decidedAt: completedAt,
       },
