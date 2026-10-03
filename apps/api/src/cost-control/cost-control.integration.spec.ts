@@ -382,6 +382,36 @@ test('V0.7-C Forecast routes require explicit view/manage/approve permissions', 
   );
 });
 
+test('V0.7-C Forecast permissions are seeded without implicit SYS_ADMIN grants', async () => {
+  const prisma = new PrismaService();
+  await prisma.$connect();
+  try {
+    const codes = [
+      'cost.forecast.view',
+      'cost.forecast.manage',
+      'cost.forecast.approve',
+    ];
+    const permissions = await prisma.permission.findMany({
+      where: { permissionCode: { in: codes } },
+      select: { id: true, permissionCode: true, moduleCode: true },
+    });
+    assert.deepEqual(
+      permissions.map((row) => row.permissionCode).sort(),
+      [...codes].sort(),
+    );
+    assert.ok(permissions.every((row) => row.moduleCode === 'COST_CONTROL'));
+    const implicitTechnicalGrant = await prisma.rolePermission.count({
+      where: {
+        permissionId: { in: permissions.map((row) => row.id) },
+        role: { roleCode: 'SYS_ADMIN' },
+      },
+    });
+    assert.equal(implicitTechnicalGrant, 0);
+  } finally {
+    await prisma.$disconnect();
+  }
+});
+
 test('V0.7-A permission is seeded without implicit SYS_ADMIN grant', async () => {
   const prisma = new PrismaService();
   await prisma.$connect();
