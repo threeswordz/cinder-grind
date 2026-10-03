@@ -35,6 +35,8 @@ export function FinanceReportingWorkspace({
   const canRetention = permissions.includes('finance.retention.view');
   const hasAccess = canAp || canAr || canPayment || canRetention;
   const [projectId, setProjectId] = useState('');
+  const [cashFromDate, setCashFromDate] = useState('');
+  const [cashToDate, setCashToDate] = useState('');
 
   const projects = useQuery({
     queryKey: [
@@ -84,8 +86,17 @@ export function FinanceReportingWorkspace({
     enabled: canRetention && Boolean(projectId),
   });
   const cashFlow = useQuery({
-    queryKey: ['v06e-report-cash-flow', projectId],
-    queryFn: () => cashFlowApi.report(projectId),
+    queryKey: [
+      'v06e-report-cash-flow',
+      projectId,
+      cashFromDate,
+      cashToDate,
+    ],
+    queryFn: () =>
+      cashFlowApi.report(projectId, {
+        fromDate: cashFromDate || undefined,
+        toDate: cashToDate || undefined,
+      }),
     enabled: canPayment && Boolean(projectId),
   });
 
@@ -129,6 +140,27 @@ export function FinanceReportingWorkspace({
           </MenuItem>
         ))}
       </TextField>
+
+      {canPayment ? (
+        <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
+          <TextField
+            label="Cash flow from"
+            type="date"
+            value={cashFromDate}
+            onChange={(event) => setCashFromDate(event.target.value)}
+            InputLabelProps={{ shrink: true }}
+            fullWidth
+          />
+          <TextField
+            label="Cash flow to"
+            type="date"
+            value={cashToDate}
+            onChange={(event) => setCashToDate(event.target.value)}
+            InputLabelProps={{ shrink: true }}
+            fullWidth
+          />
+        </Stack>
+      ) : null}
 
       {reportErrors ? (
         <Alert severity="error">

@@ -5,6 +5,11 @@ import { AuthenticatedUserContext } from '../auth/auth.types';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProjectAccessService } from '../projects/project-access.service';
 
+export type CashFlowPeriod = {
+  fromDate?: Date;
+  toDateExclusive?: Date;
+};
+
 export type CashFlowSourceRow = {
   id: string;
   paymentNumber: string;
@@ -190,8 +195,17 @@ export class CashFlowService {
   async projectCashFlow(
     auth: AuthenticatedUserContext,
     projectId: string,
+    period: CashFlowPeriod = {},
   ) {
     await this.access.assertAccess(auth, projectId);
+
+    const paymentDate =
+      period.fromDate || period.toDateExclusive
+        ? {
+            ...(period.fromDate ? { gte: period.fromDate } : {}),
+            ...(period.toDateExclusive ? { lt: period.toDateExclusive } : {}),
+          }
+        : undefined;
 
     const [company, payments] = await Promise.all([
       this.prisma.company.findUniqueOrThrow({
@@ -203,6 +217,7 @@ export class CashFlowService {
           companyId: auth.companyId,
           projectId,
           state: { in: ['APPROVED', 'CANCELLED'] },
+          ...(paymentDate ? { paymentDate } : {}),
         },
         select: {
           id: true,

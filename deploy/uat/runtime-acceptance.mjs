@@ -3108,12 +3108,33 @@ check(
     Number(stageECashFlow.data.data.totals.netCashFlow) === 118,
   'V0.6-E Project Cash Flow did not count approved Payment amounts exactly once while excluding cancelled Payments and preserving unallocated settlement state.',
 );
+const stageEOneDayCashFlow = await request(
+  pm,
+  '/finance/projects/' +
+    projectId +
+    '/cash-flow?fromDate=2026-10-04&toDate=2026-10-04',
+);
+check(
+  stageEOneDayCashFlow.data.data.rows.length === 1 &&
+    stageEOneDayCashFlow.data.data.rows[0]?.id === inboundPaymentId &&
+    Number(stageEOneDayCashFlow.data.data.totals.inflowAmount) === 125 &&
+    Number(stageEOneDayCashFlow.data.data.totals.outflowAmount) === 0 &&
+    Number(stageEOneDayCashFlow.data.data.totals.netCashFlow) === 125,
+  'V0.6-E Payment-date filter did not constrain Project Cash Flow to the inclusive requested day.',
+);
+await request(
+  pm,
+  '/finance/projects/' +
+    projectId +
+    '/cash-flow?fromDate=2026-10-06&toDate=2026-10-04',
+  { expected: 422 },
+);
 await request(
   unassignedReceipt,
   '/finance/projects/' + projectId + '/cash-flow',
   { expected: 403 },
 );
-record('V0.6-E authenticated Project Cash Flow counts approved non-cancelled Payment amounts once, preserves unallocated settlement evidence, excludes cancelled history and enforces SYS_ADMIN/Project denial');
+record('V0.6-E authenticated Project Cash Flow counts approved non-cancelled Payment amounts once, supports Payment-date filtering, preserves unallocated settlement evidence, excludes cancelled history and enforces SYS_ADMIN/Project denial');
 
 const postedBalance = await request(
   pm,

@@ -811,8 +811,16 @@ export type ProjectCashFlowReport = {
 export const cashFlowApi = {
   projects: () =>
     apiRequest<Data<FinanceProject[]>>('/finance/cash-flow-projects'),
-  report: (projectId: string) =>
-    apiRequest<Data<ProjectCashFlowReport>>(
-      '/finance/projects/' + projectId + '/cash-flow',
-    ),
+  report: (
+    projectId: string,
+    filters: { fromDate?: string; toDate?: string } = {},
+  ) => {
+    const query = new URLSearchParams();
+    if (filters.fromDate) query.set('fromDate', filters.fromDate);
+    if (filters.toDate) query.set('toDate', filters.toDate);
+    const suffix = query.toString() ? '?' + query.toString() : '';
+    return apiRequest<Data<ProjectCashFlowReport>>(
+      '/finance/projects/' + projectId + '/cash-flow' + suffix,
+    );
+  },
 };
