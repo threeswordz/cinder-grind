@@ -1209,9 +1209,35 @@ export class CostControlService {
         remainingCommitment: this.evidence(
           remainingCommitmentTotal,
           remainingCommitmentRecords,
-          true,
+          false,
           'Derived Cost Control measure',
-          'Current commitment less only canonically attributable recognized Actual, floored at zero. Procurement follows PO lineage; subcontract certification reduction remains Unallocated because no approved WBS/Cost Code allocation exists.',
+          'Current commitment less only canonically attributable recognized Actual, floored at zero. Mixed Procurement/Subcontract source identifiers remain sanitized at aggregate Cost Control scope.',
+        ),
+        remainingProcurement: this.evidence(
+          remainingProcurement,
+          remainingCommitmentRecords.filter(
+            (record) => record.sourceType === 'PURCHASE_ORDER_LINE',
+          ),
+          this.hasPermissions(
+            auth,
+            'procurement.po.view',
+            'finance.supplier_invoice.view',
+          ),
+          'V0.3 Purchase Order / V0.6 Supplier Invoice',
+          'Current approved PO-line commitment less canonically linked approved Supplier Invoice Actual, floored at zero.',
+        ),
+        remainingSubcontract: this.evidence(
+          remainingSubcontract,
+          remainingCommitmentRecords.filter(
+            (record) => record.sourceType === 'SUBCONTRACT_AGREEMENT',
+          ),
+          this.hasPermissions(
+            auth,
+            'subcontracts.agreement.view',
+            'subcontracts.certification.view',
+          ),
+          'V0.5 Subcontract Agreement / Certification',
+          'Current approved Agreement ceiling less approved non-reversed certifiedGross, floored at zero and retained as Unallocated where no lower-dimensional allocation exists.',
         ),
         uncommittedEtc: this.evidence(
           uncommittedEtc,
