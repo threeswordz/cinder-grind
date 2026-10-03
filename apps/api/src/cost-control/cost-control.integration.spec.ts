@@ -666,6 +666,47 @@ test('V0.7-C Forecast service creates a versioned draft with real PostgreSQL gua
         .sort((left, right) => left - right),
       [2, 3, 4, 5],
     );
+
+    const sourceWithLine = await service.create(
+      { auth },
+      project.id,
+      {
+        forecastDate: new Date('2027-04-08T00:00:00.000Z'),
+        description: 'Forecast line parent immutability source',
+        createKey: 'forecast-line-source-' + suffix,
+        lines: [
+          {
+            wbsId: null,
+            costCodeId: null,
+            uncommittedEtcAmount: new Prisma.Decimal('12.00'),
+            remarks: 'Must remain attached to its original Forecast',
+            inputOrder: 1,
+          },
+        ],
+      },
+    );
+    const alternateDraft = await service.create(
+      { auth },
+      project.id,
+      {
+        forecastDate: new Date('2027-04-09T00:00:00.000Z'),
+        description: 'Forecast line parent immutability target',
+        createKey: 'forecast-line-target-' + suffix,
+        lines: [],
+      },
+    );
+
+    await assert.rejects(() =>
+      prisma.costForecastLine.update({
+        where: { id: sourceWithLine.lines[0]!.id },
+        data: { forecastId: alternateDraft.id },
+      }),
+    );
+    const retainedLine = await prisma.costForecastLine.findUniqueOrThrow({
+      where: { id: sourceWithLine.lines[0]!.id },
+      select: { forecastId: true },
+    });
+    assert.equal(retainedLine.forecastId, sourceWithLine.id);
   } finally {
     await prisma.$disconnect();
   }
