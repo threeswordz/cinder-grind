@@ -356,6 +356,9 @@ const permissionCodes = [
   'cost.direct_posting.create',
   'cost.direct_posting.submit',
   'cost.direct_posting.approve',
+  'cost.forecast.view',
+  'cost.forecast.manage',
+  'cost.forecast.approve',
   'subcontracts.subcontractor.view',
   'subcontracts.subcontractor.manage',
   'subcontracts.subcontractor.archive',
@@ -435,6 +438,8 @@ await request(admin, `/admin/roles/${checkerRoleId}/permissions`, {
       'cost.control.view',
       'cost.direct_posting.create',
       'cost.direct_posting.approve',
+      'cost.forecast.view',
+      'cost.forecast.approve',
       'inventory.receipt.view',
       'inventory.receipt.approve',
       'inventory.issue.view',
@@ -477,6 +482,25 @@ await request(admin, '/admin/approval-workflows', {
       {
         stepNo: 1,
         stepName: 'Approve Direct Cost Posting',
+        requiredApprovals: 1,
+        roleIds: [checkerRoleId],
+      },
+    ],
+  },
+  expected: 201,
+});
+
+const forecastWorkflowCode = 'COST_FORECAST_' + suffix;
+await request(admin, '/admin/approval-workflows', {
+  method: 'POST',
+  json: {
+    workflowCode: forecastWorkflowCode,
+    entityType: 'COST_FORECAST',
+    workflowName: 'Cost Forecast Approval ' + suffix,
+    steps: [
+      {
+        stepNo: 1,
+        stepName: 'Approve Cost Forecast',
         requiredApprovals: 1,
         roleIds: [checkerRoleId],
       },
@@ -7607,6 +7631,367 @@ check(
 
 record('V0.7-B Direct Cost string-only financial input and original-maker Draft editing fail closed; configured maker-checker approval/retry → posting-date Actual Cost recognition → immutable approved history');
 record('V0.7-B linked reversal remains available across historical Cost Code deactivation, exactly offsets Actual without touching Paid Cost; rejection, idempotency-key reuse, aggregate-only source denial and Project authorization fail closed');
+
+await request(
+  v07Restricted,
+  '/cost-control/projects/' + projectId + '/forecasts',
+  { expected: 403 },
+);
+await request(
+  admin,
+  '/cost-control/projects/' + projectId + '/forecasts',
+  { expected: 403 },
+);
+await request(
+  unassigned,
+  '/cost-control/projects/' + projectId + '/forecasts',
+  { expected: 403 },
+);
+
+const forecastBeforeApproval = await request(
+  pm,
+  '/projects/' + projectId + '/cost-control',
+);
+const v07RemainingBeforeForecast = Number(
+  forecastBeforeApproval.data.data.totals.remainingCommitment.total,
+);
+const v07ActualBeforeForecast = Number(
+  forecastBeforeApproval.data.data.totals.actualCost.total,
+);
+check(
+  Number(forecastBeforeApproval.data.data.totals.uncommittedEtc) === 0 &&
+    forecastBeforeApproval.data.data.currentForecast === null,
+  'V0.7-C Draft-independent read model unexpectedly exposed an approved Forecast before one existed.',
+);
+
+const forecastCreateBody = {
+  forecastDate: '2027-04-05',
+  description: 'V0.7-C first cost forecast ' + suffix,
+  lines: [
+    {
+      wbsId: rootWbs.data.data.id,
+      costCodeId: costCode.data.data.id,
+      uncommittedEtcAmount: '35.00',
+      remarks: 'Dimensioned uncommitted ETC',
+    },
+    {
+      wbsId: null,
+      costCodeId: null,
+      uncommittedEtcAmount: '10.00',
+      remarks: 'Explicitly unallocated ETC',
+    },
+  ],
+  createKey: 'v07-forecast-create-' + suffix,
+};
+const v07ForecastDraft = await request(
+  pm,
+  '/cost-control/projects/' + projectId + '/forecasts',
+  {
+    method: 'POST',
+    json: forecastCreateBody,
+    expected: 201,
+  },
+);
+const v07ForecastId = v07ForecastDraft.data.data.id;
+check(
+  v07ForecastDraft.data.data.state === 'DRAFT' &&
+    v07ForecastDraft.data.data.versionNo === 1 &&
+    Number(v07ForecastDraft.data.data.totalUncommittedEtc) === 45 &&
+    v07ForecastDraft.data.data.lines.length === 2,
+  'V0.7-C Forecast Draft did not retain versioned multi-line Uncommitted ETC.',
+);
+const v07ForecastCreateRetry = await request(
+  pm,
+  '/cost-control/projects/' + projectId + '/forecasts',
+  {
+    method: 'POST',
+    json: forecastCreateBody,
+    expected: 201,
+  },
+);
+check(
+  v07ForecastCreateRetry.data.data.id === v07ForecastId,
+  'V0.7-C Forecast create idempotency did not return the original Draft.',
+);
+await request(
+  pm,
+  '/cost-control/projects/' + projectId + '/forecasts',
+  {
+    method: 'POST',
+    json: {
+      ...forecastCreateBody,
+      createKey: 'v07-forecast-negative-' + suffix,
+      lines: [
+        {
+          wbsId: null,
+          costCodeId: null,
+          uncommittedEtcAmount: '-1.00',
+        },
+      ],
+    },
+    expected: 422,
+  },
+);
+await request(
+  pm,
+  '/cost-control/projects/' + projectId + '/forecasts',
+  {
+    method: 'POST',
+    json: {
+      ...forecastCreateBody,
+      createKey: 'v07-forecast-number-' + suffix,
+      lines: [
+        {
+          wbsId: null,
+          costCodeId: null,
+          uncommittedEtcAmount: 9007199254740993,
+        },
+      ],
+    },
+    expected: 422,
+  },
+);
+
+const forecastSubmitKey = 'v07-forecast-submit-' + suffix;
+const v07ForecastSubmitted = await request(
+  pm,
+  '/cost-control/forecasts/' + v07ForecastId + '/submit',
+  {
+    method: 'POST',
+    json: {
+      workflowCode: forecastWorkflowCode,
+      actionKey: forecastSubmitKey,
+    },
+    expected: 201,
+  },
+);
+check(
+  v07ForecastSubmitted.data.data.state === 'SUBMITTED' &&
+    v07ForecastSubmitted.data.data.approvalInstance?.approvalState ===
+      'SUBMITTED',
+  'V0.7-C Forecast did not enter configured maker-checker approval.',
+);
+const v07ForecastSubmitRetry = await request(
+  pm,
+  '/cost-control/forecasts/' + v07ForecastId + '/submit',
+  {
+    method: 'POST',
+    json: {
+      workflowCode: forecastWorkflowCode,
+      actionKey: forecastSubmitKey,
+    },
+    expected: 201,
+  },
+);
+check(
+  v07ForecastSubmitRetry.data.data.id === v07ForecastId &&
+    v07ForecastSubmitRetry.data.data.state === 'SUBMITTED',
+  'V0.7-C Forecast submit retry was not stable.',
+);
+await request(
+  pm,
+  '/cost-control/forecasts/' + v07ForecastId + '/approve',
+  {
+    method: 'POST',
+    json: {
+      actionKey: 'v07-forecast-self-approve-' + suffix,
+      comment: 'Maker must not approve own Forecast.',
+    },
+    expected: 403,
+  },
+);
+const v07ForecastApproved = await request(
+  checker,
+  '/cost-control/forecasts/' + v07ForecastId + '/approve',
+  {
+    method: 'POST',
+    json: {
+      actionKey: 'v07-forecast-approve-' + suffix,
+      comment: 'Approve first Cost Forecast.',
+    },
+    expected: 201,
+  },
+);
+check(
+  v07ForecastApproved.data.data.state === 'APPROVED' &&
+    v07ForecastApproved.data.data.approvedAt &&
+    v07ForecastApproved.data.data.approvalInstance?.approvalState ===
+      'APPROVED',
+  'V0.7-C independent approver did not final-approve Forecast v1.',
+);
+await request(
+  pm,
+  '/cost-control/forecasts/' + v07ForecastId,
+  {
+    method: 'PATCH',
+    json: { description: 'Approved Forecast history must be immutable.' },
+    expected: 409,
+  },
+);
+
+const costAfterForecastV1 = await request(
+  pm,
+  '/projects/' + projectId + '/cost-control',
+);
+check(
+  costAfterForecastV1.data.data.currentForecast?.versionNo === 1 &&
+    Number(costAfterForecastV1.data.data.totals.uncommittedEtc) === 45 &&
+    Number(costAfterForecastV1.data.data.totals.costToComplete) ===
+      v07RemainingBeforeForecast + 45 &&
+    Number(costAfterForecastV1.data.data.totals.forecastCost) ===
+      v07ActualBeforeForecast + v07RemainingBeforeForecast + 45 &&
+    Number(costAfterForecastV1.data.data.totals.variance) ===
+      Number(costAfterForecastV1.data.data.totals.revisedBudget) -
+        Number(costAfterForecastV1.data.data.totals.forecastCost) &&
+    costAfterForecastV1.data.data.sourceEvidence.uncommittedEtc.recordsVisible ===
+      true,
+  'V0.7-C approved Forecast v1 did not drive ETC / CTC / Forecast Cost / Variance formulas.',
+);
+
+const restrictedAfterForecast = await request(
+  v07Restricted,
+  '/projects/' + projectId + '/cost-control',
+);
+check(
+  Number(restrictedAfterForecast.data.data.totals.uncommittedEtc) === 45 &&
+    restrictedAfterForecast.data.data.sourceEvidence.uncommittedEtc
+      .recordsVisible === false &&
+    restrictedAfterForecast.data.data.sourceEvidence.remainingCommitment
+      .recordsVisible === false &&
+    !Object.prototype.hasOwnProperty.call(
+      restrictedAfterForecast.data.data.sourceEvidence.uncommittedEtc,
+      'records',
+    ) &&
+    !Object.prototype.hasOwnProperty.call(
+      restrictedAfterForecast.data.data.sourceEvidence.remainingCommitment,
+      'records',
+    ),
+  'V0.7-C aggregate-only Cost Control leaked Forecast or mixed Remaining Commitment source records.',
+);
+
+const v07ForecastV2 = await request(
+  pm,
+  '/cost-control/projects/' + projectId + '/forecasts',
+  {
+    method: 'POST',
+    json: {
+      forecastDate: '2027-04-06',
+      description: 'V0.7-C second cost forecast ' + suffix,
+      lines: [
+        {
+          wbsId: null,
+          costCodeId: null,
+          uncommittedEtcAmount: '55.00',
+          remarks: 'Replacement current Forecast assumption',
+        },
+      ],
+      createKey: 'v07-forecast-v2-create-' + suffix,
+    },
+    expected: 201,
+  },
+);
+check(
+  v07ForecastV2.data.data.versionNo === 2,
+  'V0.7-C Forecast version numbering was not monotonic.',
+);
+await request(
+  pm,
+  '/cost-control/forecasts/' + v07ForecastV2.data.data.id + '/submit',
+  {
+    method: 'POST',
+    json: {
+      workflowCode: forecastWorkflowCode,
+      actionKey: 'v07-forecast-v2-submit-' + suffix,
+    },
+    expected: 201,
+  },
+);
+await request(
+  checker,
+  '/cost-control/forecasts/' + v07ForecastV2.data.data.id + '/approve',
+  {
+    method: 'POST',
+    json: {
+      actionKey: 'v07-forecast-v2-approve-' + suffix,
+      comment: 'Approve second Forecast version.',
+    },
+    expected: 201,
+  },
+);
+const costAfterForecastV2 = await request(
+  pm,
+  '/projects/' + projectId + '/cost-control',
+);
+check(
+  costAfterForecastV2.data.data.currentForecast?.versionNo === 2 &&
+    Number(costAfterForecastV2.data.data.totals.uncommittedEtc) === 55,
+  'V0.7-C highest-version final-approved Forecast was not selected as current.',
+);
+
+const v07ForecastV3 = await request(
+  pm,
+  '/cost-control/projects/' + projectId + '/forecasts',
+  {
+    method: 'POST',
+    json: {
+      forecastDate: '2027-04-07',
+      description: 'V0.7-C rejected forecast ' + suffix,
+      lines: [
+        {
+          wbsId: null,
+          costCodeId: null,
+          uncommittedEtcAmount: '999.00',
+        },
+      ],
+      createKey: 'v07-forecast-v3-create-' + suffix,
+    },
+    expected: 201,
+  },
+);
+check(
+  v07ForecastV3.data.data.versionNo === 3,
+  'V0.7-C rejected Forecast candidate did not receive retained version history.',
+);
+await request(
+  pm,
+  '/cost-control/forecasts/' + v07ForecastV3.data.data.id + '/submit',
+  {
+    method: 'POST',
+    json: {
+      workflowCode: forecastWorkflowCode,
+      actionKey: 'v07-forecast-v3-submit-' + suffix,
+    },
+    expected: 201,
+  },
+);
+const v07ForecastRejected = await request(
+  checker,
+  '/cost-control/forecasts/' + v07ForecastV3.data.data.id + '/reject',
+  {
+    method: 'POST',
+    json: {
+      actionKey: 'v07-forecast-v3-reject-' + suffix,
+      comment: 'Reject third Forecast version.',
+    },
+    expected: 201,
+  },
+);
+check(
+  v07ForecastRejected.data.data.state === 'REJECTED',
+  'V0.7-C Forecast rejection did not retain terminal rejected state.',
+);
+const costAfterForecastReject = await request(
+  pm,
+  '/projects/' + projectId + '/cost-control',
+);
+check(
+  costAfterForecastReject.data.data.currentForecast?.versionNo === 2 &&
+    Number(costAfterForecastReject.data.data.totals.uncommittedEtc) === 55,
+  'V0.7-C rejected higher Forecast incorrectly superseded the current approved version.',
+);
+
+record('V0.7-C live Forecast workflow: exact-string ETC → maker-checker approval → immutable version history → highest approved current selection → deterministic Remaining Commitment / CTC / Forecast Cost / Variance');
+record('V0.7-C aggregate Cost Control keeps Forecast and mixed commitment source identifiers sanitized without matching source permissions');
 
 await request(admin, '/admin/company', {
   method: 'PATCH', json: { baseCurrencyCode: 'USD' },
