@@ -3,10 +3,10 @@
 **Last verified:** 2026-10-03
 **Source of truth:** Live GitHub repository state
 
-- Current Release: V0.6 Finance — **COMPLETE AND ACCEPTED**. V0.6-A through V0.6-E are technically complete. DEC-023 records the Product / Business Owner's one-time V0.6 AC-V06-037 execution waiver; the authorized proxy evidence review passed with no blocking business defects, and AC-V06-038 was explicitly accepted.
+- Current Release: V0.7 Cost Control — **ACTIVE / ENTRY GATE COMPLETE / V0.7-A MERGE CANDIDATE**. V0.6 Finance remains COMPLETE AND ACCEPTED; DEC-023 was a one-time V0.6 release-exit exception only and does not apply to V0.7.
 - Current Stage: V0.7-A — **INTEGRATED COST SOURCE READ MODEL — IMPLEMENTATION IN PROGRESS**. The V0.7 entry gate is complete: PR #138 squash-merged as `5d44ad433894ef847588cbd15da2e9f3f7298f06`, post-merge main CI #2417 passed and Issue #137 closed completed. Issue #139 / branch `v0.7-a-cost-read-model` is the active implementation stage.
 - Completed Stages: V0.1-A through V0.1-H; V0.2-A through V0.2-G; V0.3-A through V0.3-E; V0.4-A through V0.4-E; V0.5 entry gate; V0.5-A; V0.5-B; V0.5-C; V0.5-D; V0.5-E; V0.6 entry gate; V0.6-A; V0.6-B; V0.6-C; V0.6-D; V0.6-E; V0.6 release exit
-- Active Issue / PR: **Issue #139 / PR #140 — V0.7-A Integrated Cost Source Read Model.** Active implementation branch: `v0.7-a-cost-read-model`. PR #140 is the stable material merge candidate. Exact reviewed pre-fix head `469b2e573528cd4048de4ec10f6981d443b679e6` passed push CI #2427 and PR CI #2428; Codex returned P1 current-state evidence, P2 aggregate precision and P3 Markdown-format findings, which are being batch-fixed before a fresh material-head review.
+- Active Issue / PR: **Issue #139 / PR #140 — V0.7-A Integrated Cost Source Read Model.** Active branch: `v0.7-a-cost-read-model`. The current material merge-candidate code head is `c3884bae2a7ab3cbe67c0132262b2cc55026857a`; exact push CI #2429 and PR CI #2430 both PASS. The first Codex review on `469b2e573528cd4048de4ec10f6981d443b679e6` returned P1/P2/P3 findings; all three are addressed in `c3884bae...`. Because P2 changed financial aggregation behavior, a fresh DEC-022 Codex review remains the only review gate before merge.
 - V0.5-C green main checkpoint: PR #108 squash-merged as `3f00de1f984c82c1737c4b47c226d99197b19e54`; final exact-head push CI #1869 and PR CI #1870 passed on `0833cd893f208003215cf39cee9c07b6c9a817ad`; final Codex exact-head review reported no major issues; post-merge main CI #1871 passed; Issue #107 closed.
 - V0.5-D green main checkpoint: PR #110 squash-merged as `aceeb82ad13a2f6c773d307541ddd02fafc69a92`; final exact-head push CI #1898 and PR CI #1899 passed on `0cf62c630153a6ac2326f352c0064243b3a2f45f`; final Codex exact-head review reported no major issues; post-merge main CI #1900 passed; Issue #109 closed.
 - V0.5-E green main checkpoint: PR #112 squash-merged as `c054b9253e1ad2623a3fc233ba125003b2894c37`; final exact-head push CI #1930 and PR CI #1931 passed on `9ba8d862dcf66e7b00d7006d9398b19d83026e41`; final Codex exact-head review reported no major issues; post-merge main CI #1932 passed; Issue #111 closed. AC-V05-030 was explicitly accepted by the Product / Business Owner on 2026-10-01.
@@ -87,7 +87,7 @@
 - V0.1 cross-module release acceptance scenario: PASS in the Stage H release-candidate regression suite.
 - Open defect check at V0.1 acceptance: no Severity 1 or Severity 2 release-blocking defect recorded.
 - Governance: `AGENTS.md`, `docs/PROJECT-GOVERNANCE.md`, PR governance checklist, DEC-008, DEC-016 and DEC-022 are active. DEC-022 makes Codex a stable-merge-candidate/high-risk independent gate rather than a continuous per-fix reviewer; human UAT and CI/release sequencing are unchanged.
-- Next action: complete the PR #140 Codex finding batch, obtain green exact-head push/PR CI, request the DEC-022 fresh review because the precision fix changes financial calculation behavior, reconcile final Stage-A evidence, then merge only if all review/CI gates are clear. V0.7-B remains blocked until Issue #139 closes after green post-merge `main` CI.
+- Next action: run the fresh DEC-022 Codex review on the reconciled PR #140 head. If it reports no remaining genuine defect, merge PR #140, verify post-merge `main` CI, record closure evidence and close Issue #139 completed. V0.7-B remains blocked until that sequence finishes.
 
 ## Stage E completed
 
@@ -965,7 +965,7 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 
 - Product / Business Owner approved the complete V0.7 entry baseline on 2026-10-03 with “go ahead i trust u”.
 - Decision: DEC-024.
-- Active Issue: #137.
+- Completed entry-gate Issue: #137.
 - Historical entry-gate branch: `v0.7-entry-gate`.
 - Approved AC baseline: AC-V07-001–052.
 - Approved business rules: BR-V07-01–16.
@@ -983,8 +983,8 @@ This file is a concise checkpoint only. Re-check live GitHub Issues, branches, P
 - Active branch: `v0.7-a-cost-read-model`.
 - Initial Stage-A implementation head `c861dcd5470c04cd454f14c4836144d4064ce6f1` passed CI #2419.
 - Stable pre-fix PR head `469b2e573528cd4048de4ec10f6981d443b679e6` passed push CI #2427 and PR CI #2428, including authenticated Stage-A live HTTP acceptance.
-- Codex reviewed `469b2e573528cd4048de4ec10f6981d443b679e6` and returned three genuine findings: P1 durable current-state evidence, P2 full-precision aggregation, and P3 Markdown newline formatting. These findings are being resolved as one batch; merge remains blocked until the material precision fix passes fresh exact-head CI and fresh DEC-022 review.
+- Codex reviewed `469b2e573528cd4048de4ec10f6981d443b679e6` and returned three genuine findings: P1 durable current-state evidence, P2 full-precision aggregation, and P3 Markdown newline formatting. All three are addressed in material fix head `c3884bae2a7ab3cbe67c0132262b2cc55026857a`; exact push CI #2429 and PR CI #2430 PASS. Fresh DEC-022 Codex review is required because P2 materially changed financial aggregation behavior.
 - Stage-A scope: read-only Original/Revised Budget, Procurement/Subcontract Committed Cost, Supplier/Subcontract Actual Cost, Paid Cost, dimensional rollups and source evidence.
 - New permission: `cost.control.view` via a forward-only migration; no implicit SYS_ADMIN grant.
 - No Direct Cost, Forecast, client Project Variation, revenue/profit or Cost Control mutation is part of Stage A.
-- DEC-022: Codex remains deferred until the stable material merge candidate.
+- DEC-022: first stable-head review completed with P1/P2/P3 findings; the material fix head is green and requires one fresh review before merge.
