@@ -131,6 +131,10 @@ check(
   'SYS_ADMIN must not implicitly receive Client Invoice, Payment or AP/AR Finance authority.',
 );
 check(
+  !me.data.data.permissions.includes('cost.control.view'),
+  'SYS_ADMIN must not implicitly receive Cost Control authority.',
+);
+check(
   !me.data.data.permissions.some(
     (permission) =>
       permission.startsWith('subcontracts.claim.') ||
@@ -347,6 +351,7 @@ const permissionCodes = [
   'finance.retention.view',
   'finance.ap.view',
   'finance.ar.view',
+  'cost.control.view',
   'subcontracts.subcontractor.view',
   'subcontracts.subcontractor.manage',
   'subcontracts.subcontractor.archive',
@@ -6975,6 +6980,54 @@ record('V0.3-B scoped Purchase Request access denied');
 record('V0.3-C scoped RFQ / quotation access denied');
 record('V0.3-D scoped Purchase Order access denied');
 record('unassigned Project, Document, Scheduling, Site Execution, Equipment, Reporting, Budget and Procurement access denied');
+
+
+const v07CostControl = await request(
+  pm,
+  '/projects/' + projectId + '/cost-control',
+);
+check(
+  v07CostControl.data.data.project.id === projectId &&
+    Number(v07CostControl.data.data.totals.originalBudget) === 250 &&
+    Number(v07CostControl.data.data.totals.revisedBudget) === 300 &&
+    Number(v07CostControl.data.data.totals.committedCost.total) > 0 &&
+    Number(v07CostControl.data.data.totals.actualCost.total) > 0 &&
+    Number(v07CostControl.data.data.totals.paidCost.total) > 0 &&
+    v07CostControl.data.data.boundaries.committedActualPaidSeparate === true &&
+    v07CostControl.data.data.boundaries.inventoryCreatesActualCost === false,
+  'V0.7-A integrated Cost Control source totals or semantic boundaries were incorrect.',
+);
+check(
+  v07CostControl.data.data.sourceEvidence.originalBudget.recordsVisible === true &&
+    v07CostControl.data.data.sourceEvidence.procurementCommitted.recordsVisible === true &&
+    v07CostControl.data.data.sourceEvidence.supplierActual.recordsVisible === true &&
+    v07CostControl.data.data.sourceEvidence.paidCost.recordsVisible === true,
+  'V0.7-A authorized source traceability did not expose permitted source evidence.',
+);
+const v07Dimensional = await request(
+  pm,
+  '/projects/' +
+    projectId +
+    '/cost-control?wbsId=' +
+    rootWbs.data.data.id +
+    '&costCodeId=' +
+    costCode.data.data.id,
+);
+check(
+  Number(v07Dimensional.data.data.totals.originalBudget) === 250 &&
+    Number(v07Dimensional.data.data.totals.revisedBudget) === 300 &&
+    Number(v07Dimensional.data.data.totals.committedCost.procurement) > 0 &&
+    Number(v07Dimensional.data.data.totals.committedCost.subcontract) === 0 &&
+    Number(v07Dimensional.data.data.totals.actualCost.subcontract) === 0 &&
+    Number(v07Dimensional.data.data.totals.paidCost.total) === 0,
+  'V0.7-A WBS/Cost Code filter did not preserve dimensional allocation or exclude unallocated header-level sources.',
+);
+await request(
+  unassigned,
+  '/projects/' + projectId + '/cost-control',
+  { expected: 403 },
+);
+record('V0.7-A Cost Control derives Original/Revised Budget, separate Committed/Actual/Paid measures, dimensional filters, source-permission evidence and Project authorization');
 
 await logout(pm);
 await request(pm, '/auth/me', { expected: 401 });

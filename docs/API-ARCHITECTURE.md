@@ -1,4 +1,4 @@
-# Construction ERP — API Architecture
+**V0.7-A implementation note — 2026-10-03:** Cost Control adds the read-only `GET /api/v1/projects/{projectId}/cost-control` surface with optional `wbsId` and `costCodeId` filters. It derives Original/Revised Budget, Procurement/Subcontract Committed Cost, Supplier/Subcontract Actual Cost and settlement-based Paid Cost from canonical source modules. Parent-WBS filters include descendants; header-level sources without canonical lower-dimensional allocation remain Unallocated and are excluded by WBS/Cost Code filters rather than synthetically prorated. The route requires explicit `cost.control.view` plus backend Company/Project scope. Detailed source records are returned only when the caller also holds the matching source-module view permission. No Cost Control mutation/source ledger is introduced in Stage A.\n\n# Construction ERP — API Architecture
 
 **Document Status:** API Architecture Baseline v0.1  
 **Current Phase:** Phase 0 — ERP Definition  

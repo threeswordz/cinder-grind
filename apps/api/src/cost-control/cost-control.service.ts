@@ -551,9 +551,11 @@ export class CostControlService {
               }
             : null,
           allocationState:
-            bucket.wbsId || bucket.costCodeId
-              ? 'ALLOCATED'
-              : 'UNALLOCATED',
+            bucket.wbsId && bucket.costCodeId
+              ? 'FULLY_ALLOCATED'
+              : bucket.wbsId || bucket.costCodeId
+                ? 'PARTIALLY_ALLOCATED'
+                : 'UNALLOCATED',
           originalBudget: bucket.originalBudget,
           revisedBudget: bucket.revisedBudget,
           committedCost: {
