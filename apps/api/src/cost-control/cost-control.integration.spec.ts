@@ -11,7 +11,9 @@ import { CostControlController } from './cost-control.controller';
 import { costPositiveDecimal } from './cost-control-validation';
 import { DirectCostController } from './direct-cost.controller';
 import { DirectCostService } from './direct-cost.service';
+import { ForecastController } from './forecast.controller';
 import {
+  remainingCostCommitment,
   selectCurrentApprovedPurchaseOrders,
   selectOriginalAndCurrentBudget,
   splitSubcontractCommitment,
@@ -38,6 +40,7 @@ test('V0.7-A Budget and PO currency checks work without other Finance sources', 
         subcontractCertification: { findMany: async () => [] },
         payment: { findMany: async () => [] },
         directCostPosting: { findMany: async () => [] },
+        costForecast: { findFirst: async () => null },
       };
       const service = new CostControlService(prisma as unknown as PrismaService,
         { assertAccess: async () => {} } as never);
@@ -220,6 +223,162 @@ test('V0.7-A Decimal helper preserves exact financial arithmetic beyond Decimal.
       new Prisma.Decimal('0.00000001'),
     ]).toFixed(),
     '1000000000000000000000000000000',
+  );
+});
+
+
+test('V0.7-C Remaining Commitment uses exact Decimal arithmetic and floors at zero', () => {
+  assert.equal(
+    remainingCostCommitment(
+      new Prisma.Decimal('100.00'),
+      new Prisma.Decimal('40.00'),
+    ).toFixed(2),
+    '60.00',
+  );
+  assert.equal(
+    remainingCostCommitment(
+      new Prisma.Decimal('100.00'),
+      new Prisma.Decimal('100.01'),
+    ).toFixed(2),
+    '0.00',
+  );
+  assert.equal(
+    remainingCostCommitment(
+      new Prisma.Decimal('9999999999999999.99'),
+      new Prisma.Decimal('0.01'),
+    ).toFixed(2),
+    '9999999999999999.98',
+  );
+});
+
+test('V0.7-C integrated forecast reduces only canonically linked PO commitment', async () => {
+  const prisma = {
+    project: {
+      findFirstOrThrow: async () => ({
+        id: 'project',
+        projectCode: 'P-1',
+        projectName: 'Project',
+      }),
+    },
+    company: {
+      findUniqueOrThrow: async () => ({ baseCurrencyCode: 'SGD' }),
+    },
+    wbsElement: { findMany: async () => [] },
+    costCode: { findMany: async () => [] },
+    budgetRevision: { findMany: async () => [] },
+    purchaseOrder: {
+      findMany: async () => [
+        {
+          id: 'po',
+          poNumber: 'PO-1',
+          revisionNo: 0,
+          currencyCode: 'SGD',
+          cancelledAt: null,
+          lines: [
+            {
+              id: 'po-line-1',
+              amount: new Prisma.Decimal('100.00'),
+              wbsId: null,
+              costCodeId: null,
+              quotationAwardId: 'award-1',
+            },
+          ],
+        },
+      ],
+    },
+    subcontractAgreement: { findMany: async () => [] },
+    supplierInvoice: {
+      findMany: async () => [
+        {
+          id: 'invoice',
+          supplierInvoiceNumber: 'SI-1',
+          invoiceDate: new Date('2026-10-03'),
+          currencyCode: 'SGD',
+          items: [
+            {
+              id: 'invoice-line',
+              amount: new Prisma.Decimal('40.00'),
+              wbsId: null,
+              costCodeId: null,
+              purchaseOrderLine: {
+                quotationAwardId: 'award-1',
+                purchaseOrder: { poNumber: 'PO-1' },
+              },
+              goodsReceiptItem: null,
+            },
+          ],
+        },
+      ],
+    },
+    subcontractCertification: { findMany: async () => [] },
+    payment: { findMany: async () => [] },
+    directCostPosting: { findMany: async () => [] },
+    costForecast: {
+      findFirst: async () => ({
+        id: 'forecast',
+        versionNo: 3,
+        forecastDate: new Date('2026-10-03'),
+        currencyCode: 'SGD',
+        approvedAt: new Date('2026-10-03T12:00:00Z'),
+        lines: [
+          {
+            id: 'forecast-line',
+            lineNo: 1,
+            wbsId: null,
+            costCodeId: null,
+            uncommittedEtcAmount: new Prisma.Decimal('25.00'),
+            remarks: null,
+          },
+        ],
+      }),
+    },
+  };
+  const service = new CostControlService(
+    prisma as unknown as PrismaService,
+    { assertAccess: async () => {} } as never,
+  );
+
+  const result = await service.projectCostControl(
+    {
+      companyId: 'company',
+      permissions: ['cost.forecast.view'],
+    } as never,
+    'project',
+  );
+
+  assert.equal(result.totals.committedCost.procurement.toFixed(2), '100.00');
+  assert.equal(result.totals.actualCost.supplier.toFixed(2), '40.00');
+  assert.equal(
+    result.totals.remainingCommitment.procurement.toFixed(2),
+    '60.00',
+  );
+  assert.equal(result.totals.uncommittedEtc.toFixed(2), '25.00');
+  assert.equal(result.totals.costToComplete.toFixed(2), '85.00');
+  assert.equal(result.totals.forecastCost.toFixed(2), '125.00');
+  assert.equal(result.currentForecast?.versionNo, 3);
+});
+
+test('V0.7-C Forecast routes require explicit view/manage/approve permissions', () => {
+  assert.deepEqual(
+    Reflect.getMetadata(
+      REQUIRED_PERMISSIONS_KEY,
+      ForecastController.prototype.list,
+    ),
+    ['cost.forecast.view'],
+  );
+  assert.deepEqual(
+    Reflect.getMetadata(
+      REQUIRED_PERMISSIONS_KEY,
+      ForecastController.prototype.create,
+    ),
+    ['cost.forecast.manage'],
+  );
+  assert.deepEqual(
+    Reflect.getMetadata(
+      REQUIRED_PERMISSIONS_KEY,
+      ForecastController.prototype.approve,
+    ),
+    ['cost.forecast.approve'],
   );
 });
 
