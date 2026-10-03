@@ -505,19 +505,12 @@ test('V0.7-B database freezes terminal evidence and permits exact reversal after
         plannedCompletionDate: new Date('2027-01-01'),
       },
     });
-    await prisma.projectMember.createMany({
-      data: [
-        {
-          projectId: project.id,
-          employeeId: approverEmployee.id,
-          projectRole: 'Cost Control Approver',
-        },
-        {
-          projectId: project.id,
-          employeeId: finalApproverEmployee.id,
-          projectRole: 'Cost Control Final Approver',
-        },
-      ],
+    await prisma.projectMember.create({
+      data: {
+        projectId: project.id,
+        employeeId: approverEmployee.id,
+        projectRole: 'Cost Control Approver',
+      },
     });
     const costCode = await prisma.costCode.create({
       data: {
@@ -569,19 +562,12 @@ test('V0.7-B database freezes terminal evidence and permits exact reversal after
     await prisma.rolePermission.create({
       data: { roleId: role.id, permissionId: approvePermission.id },
     });
-    await prisma.userRole.createMany({
-      data: [
-        {
-          companyId: company.id,
-          userId: approver.id,
-          roleId: role.id,
-        },
-        {
-          companyId: company.id,
-          userId: finalApprover.id,
-          roleId: role.id,
-        },
-      ],
+    await prisma.userRole.create({
+      data: {
+        companyId: company.id,
+        userId: approver.id,
+        roleId: role.id,
+      },
     });
     await prisma.approvalStepRole.create({
       data: { approvalStepId: step.id, roleId: role.id },
@@ -825,12 +811,19 @@ test('V0.7-B terminal Direct Cost approval requires authorized retained evidence
         plannedCompletionDate: new Date('2027-01-01'),
       },
     });
-    await prisma.projectMember.create({
-      data: {
-        projectId: project.id,
-        employeeId: approverEmployee.id,
-        projectRole: 'Cost Control Approver',
-      },
+    await prisma.projectMember.createMany({
+      data: [
+        {
+          projectId: project.id,
+          employeeId: approverEmployee.id,
+          projectRole: 'Cost Control Approver',
+        },
+        {
+          projectId: project.id,
+          employeeId: finalApproverEmployee.id,
+          projectRole: 'Cost Control Final Approver',
+        },
+      ],
     });
     const costCode = await prisma.costCode.create({
       data: {
@@ -866,12 +859,19 @@ test('V0.7-B terminal Direct Cost approval requires authorized retained evidence
     await prisma.rolePermission.create({
       data: { roleId: role.id, permissionId: permission.id },
     });
-    await prisma.userRole.create({
-      data: {
-        companyId: company.id,
-        userId: approver.id,
-        roleId: role.id,
-      },
+    await prisma.userRole.createMany({
+      data: [
+        {
+          companyId: company.id,
+          userId: approver.id,
+          roleId: role.id,
+        },
+        {
+          companyId: company.id,
+          userId: finalApprover.id,
+          roleId: role.id,
+        },
+      ],
     });
     const workflow = await prisma.approvalWorkflow.create({
       data: {
