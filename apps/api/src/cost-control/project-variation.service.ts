@@ -94,8 +94,9 @@ export class ProjectVariationService {
             reason: row.reason, valueDelta: row.valueDelta.toFixed(2), currencyCode,
           },
         }, tx);
-        return row;
-      }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+          return row;
+        },
+      );
       return this.get(context.auth, created.id);
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
@@ -113,33 +114,35 @@ export class ProjectVariationService {
   }
 
   async update(context: AuditContext, variationId: string, input: DraftUpdate) {
-    const row = await this.prisma.$transaction(async (tx) => {
-      await this.visible(context.auth, variationId, tx);
-      await this.lock(context.auth.companyId, variationId, tx);
-      const current = await tx.projectVariation.findUniqueOrThrow({ where: { id: variationId } });
-      this.assertDraft(current.state);
-      if (current.createdByUserId !== context.auth.userId) {
-        throw new ForbiddenException({ code: 'PROJECT_VARIATION_DRAFT_EDITOR_DENIED', detail: 'Only the original maker may edit this Draft.' });
-      }
-      if (current.reversesVariationId && (input.valueDelta !== undefined || input.reason !== undefined)) {
-        throw new ConflictException({ code: 'PROJECT_VARIATION_REVERSAL_VALUE_IMMUTABLE', detail: 'A linked reversal must retain the exact offset and reversal reason.' });
-      }
-      const next = {
-        description: input.description ?? current.description,
-        reason: input.reason !== undefined ? input.reason : current.reason,
-        valueDelta: input.valueDelta ?? current.valueDelta,
-      };
-      this.assertNonZero(next.valueDelta);
-      if (current.reversesVariationId) await this.assertReversal(tx, { ...current, ...next });
-      else await this.assertActiveScope(tx, current.companyId, current.projectId, current.currencyCode);
-      const updated = await tx.projectVariation.update({ where: { id: variationId }, data: next });
-      await this.audit.record({
-        ...context, entityType: 'PROJECT_VARIATION', entityId: variationId, action: 'UPDATE_DRAFT',
-        oldValues: { description: current.description, reason: current.reason, valueDelta: current.valueDelta.toFixed(2) },
-        newValues: { description: updated.description, reason: updated.reason, valueDelta: updated.valueDelta.toFixed(2) },
-      }, tx);
-      return updated;
-    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+    const row = await this.serializedVariationWrite(
+      context.auth,
+      variationId,
+      async (tx) => {
+        const current = await tx.projectVariation.findUniqueOrThrow({ where: { id: variationId } });
+        this.assertDraft(current.state);
+        if (current.createdByUserId !== context.auth.userId) {
+          throw new ForbiddenException({ code: 'PROJECT_VARIATION_DRAFT_EDITOR_DENIED', detail: 'Only the original maker may edit this Draft.' });
+        }
+        if (current.reversesVariationId && (input.valueDelta !== undefined || input.reason !== undefined)) {
+          throw new ConflictException({ code: 'PROJECT_VARIATION_REVERSAL_VALUE_IMMUTABLE', detail: 'A linked reversal must retain the exact offset and reversal reason.' });
+        }
+        const next = {
+          description: input.description ?? current.description,
+          reason: input.reason !== undefined ? input.reason : current.reason,
+          valueDelta: input.valueDelta ?? current.valueDelta,
+        };
+        this.assertNonZero(next.valueDelta);
+        if (current.reversesVariationId) await this.assertReversal(tx, { ...current, ...next });
+        else await this.assertActiveScope(tx, current.companyId, current.projectId, current.currencyCode);
+        const updated = await tx.projectVariation.update({ where: { id: variationId }, data: next });
+        await this.audit.record({
+          ...context, entityType: 'PROJECT_VARIATION', entityId: variationId, action: 'UPDATE_DRAFT',
+          oldValues: { description: current.description, reason: current.reason, valueDelta: current.valueDelta.toFixed(2) },
+          newValues: { description: updated.description, reason: updated.reason, valueDelta: updated.valueDelta.toFixed(2) },
+        }, tx);
+        return updated;
+      },
+    );
     return this.get(context.auth, row.id);
   }
 
@@ -148,10 +151,11 @@ export class ProjectVariationService {
       sourceId, variationNumber: input.variationNumber, reason: input.reason,
     })).digest('hex');
     try {
-      const created = await this.prisma.$transaction(async (tx) => {
-        await this.visible(context.auth, sourceId, tx);
-        await this.lock(context.auth.companyId, sourceId, tx);
-        const source = await tx.projectVariation.findUniqueOrThrow({ where: { id: sourceId } });
+      const created = await this.serializedVariationWrite(
+        context.auth,
+        sourceId,
+        async (tx) => {
+          const source = await tx.projectVariation.findUniqueOrThrow({ where: { id: sourceId } });
         if (source.state !== 'APPROVED' || source.reversesVariationId) {
           throw new ConflictException({ code: 'PROJECT_VARIATION_REVERSAL_SOURCE_INVALID', detail: 'Only an approved original Project Variation can be reversed.' });
         }
@@ -203,37 +207,40 @@ export class ProjectVariationService {
   }
 
   async submit(context: AuditContext, variationId: string, workflowCode: string, actionKey: string) {
-    const row = await this.prisma.$transaction(async (tx) => {
-      await this.visible(context.auth, variationId, tx);
-      await this.lock(context.auth.companyId, variationId, tx);
-      if (await this.claimReplay(tx, context.auth, actionKey, 'PROJECT_VARIATION_SUBMIT', variationId, [workflowCode])) {
-        return tx.projectVariation.findUniqueOrThrow({ where: { id: variationId } });
-      }
-      const current = await tx.projectVariation.findUniqueOrThrow({ where: { id: variationId } });
-      this.assertDraft(current.state);
-      await this.revalidate(tx, current);
-      const instance = await this.approvals.start({
-        companyId: context.auth.companyId, workflowCode,
-        entityType: 'PROJECT_VARIATION', entityId: variationId,
-      }, tx);
-      const updated = await tx.projectVariation.update({
-        where: { id: variationId },
-        data: { state: 'SUBMITTED', approvalInstanceId: instance.id, submittedByUserId: context.auth.userId, submittedAt: new Date() },
-      });
-      await this.audit.record({
-        ...context, entityType: 'PROJECT_VARIATION', entityId: variationId, action: 'SUBMIT',
-        newValues: { workflowCode, approvalInstanceId: instance.id },
-      }, tx);
-      return updated;
-    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+    const row = await this.serializedVariationWrite(
+      context.auth,
+      variationId,
+      async (tx) => {
+        if (await this.claimReplay(tx, context.auth, actionKey, 'PROJECT_VARIATION_SUBMIT', variationId, [workflowCode])) {
+          return tx.projectVariation.findUniqueOrThrow({ where: { id: variationId } });
+        }
+        const current = await tx.projectVariation.findUniqueOrThrow({ where: { id: variationId } });
+        this.assertDraft(current.state);
+        await this.revalidate(tx, current);
+        const instance = await this.approvals.start({
+          companyId: context.auth.companyId, workflowCode,
+          entityType: 'PROJECT_VARIATION', entityId: variationId,
+        }, tx);
+        const updated = await tx.projectVariation.update({
+          where: { id: variationId },
+          data: { state: 'SUBMITTED', approvalInstanceId: instance.id, submittedByUserId: context.auth.userId, submittedAt: new Date() },
+        });
+        await this.audit.record({
+          ...context, entityType: 'PROJECT_VARIATION', entityId: variationId, action: 'SUBMIT',
+          newValues: { workflowCode, approvalInstanceId: instance.id },
+        }, tx);
+        return updated;
+      },
+    );
     return this.get(context.auth, row.id);
   }
 
   async approve(context: AuditContext, variationId: string, actionKey: string, comment?: string) {
-    const row = await this.prisma.$transaction(async (tx) => {
-      await this.visible(context.auth, variationId, tx);
-      await this.lock(context.auth.companyId, variationId, tx);
-      if (await this.claimReplay(tx, context.auth, actionKey, 'PROJECT_VARIATION_APPROVE', variationId, [comment ?? ''])) {
+    const row = await this.serializedVariationWrite(
+      context.auth,
+      variationId,
+      async (tx) => {
+        if (await this.claimReplay(tx, context.auth, actionKey, 'PROJECT_VARIATION_APPROVE', variationId, [comment ?? ''])) {
         return tx.projectVariation.findUniqueOrThrow({ where: { id: variationId } });
       }
       const current = await tx.projectVariation.findUniqueOrThrow({ where: { id: variationId } });
@@ -258,16 +265,18 @@ export class ProjectVariationService {
         ...context, entityType: 'PROJECT_VARIATION', entityId: variationId, action: 'APPROVE',
         newValues: { comment: comment ?? null },
       }, tx);
-      return tx.projectVariation.findUniqueOrThrow({ where: { id: variationId } });
-    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+        return tx.projectVariation.findUniqueOrThrow({ where: { id: variationId } });
+      },
+    );
     return this.get(context.auth, row.id);
   }
 
   async reject(context: AuditContext, variationId: string, actionKey: string, comment?: string) {
-    const row = await this.prisma.$transaction(async (tx) => {
-      await this.visible(context.auth, variationId, tx);
-      await this.lock(context.auth.companyId, variationId, tx);
-      if (await this.claimReplay(tx, context.auth, actionKey, 'PROJECT_VARIATION_REJECT', variationId, [comment ?? ''])) {
+    const row = await this.serializedVariationWrite(
+      context.auth,
+      variationId,
+      async (tx) => {
+        if (await this.claimReplay(tx, context.auth, actionKey, 'PROJECT_VARIATION_REJECT', variationId, [comment ?? ''])) {
         return tx.projectVariation.findUniqueOrThrow({ where: { id: variationId } });
       }
       const current = await tx.projectVariation.findUniqueOrThrow({ where: { id: variationId } });
@@ -291,9 +300,52 @@ export class ProjectVariationService {
         ...context, entityType: 'PROJECT_VARIATION', entityId: variationId, action: 'REJECT',
         newValues: { comment: comment ?? null },
       }, tx);
-      return updated;
-    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+        return updated;
+      },
+    );
     return this.get(context.auth, row.id);
+  }
+
+  private async serializedVariationWrite<T>(
+    auth: AuthenticatedUserContext,
+    variationId: string,
+    operation: (tx: Prisma.TransactionClient) => Promise<T>,
+  ): Promise<T> {
+    // Preflight authorization outside SERIALIZABLE so access checks do not
+    // establish a stale transactional snapshot before the row lock.
+    await this.visible(auth, variationId, this.prisma);
+
+    const maxWriteAttempts = 5;
+    for (let attempt = 1; attempt <= maxWriteAttempts; attempt += 1) {
+      try {
+        return await this.prisma.$transaction(
+          async (tx) => {
+            // The Project Variation row is the serialization boundary for all
+            // mutable lifecycle actions. Lock first on a fresh snapshot, then
+            // revalidate visibility/access before executing the action.
+            await this.lock(auth.companyId, variationId, tx);
+            await this.visible(auth, variationId, tx);
+            return operation(tx);
+          },
+          { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+        );
+      } catch (error) {
+        if (
+          error instanceof Prisma.PrismaClientKnownRequestError &&
+          error.code === 'P2034'
+        ) {
+          if (attempt < maxWriteAttempts) continue;
+          break;
+        }
+        throw error;
+      }
+    }
+
+    throw new ConflictException({
+      code: 'PROJECT_VARIATION_WRITE_CONCURRENCY_RETRY_EXHAUSTED',
+      detail:
+        'Project Variation action could not serialize after repeated concurrent attempts.',
+    });
   }
 
   private async revalidate(tx: Prisma.TransactionClient, row: {
