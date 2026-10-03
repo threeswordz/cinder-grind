@@ -7450,7 +7450,7 @@ await request(pm, '/cost-codes/' + costCode.data.data.id + '/archive', {
   expected: 201,
 });
 
-const v07DirectReversal = await request
+const v07DirectReversal = await request(
   pm,
   '/cost-control/direct-cost-postings/' + v07DirectId + '/reversal',
   {
