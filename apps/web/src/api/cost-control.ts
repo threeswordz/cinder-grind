@@ -202,36 +202,63 @@ export type DirectCostDetail = DirectCostPosting & {
   } | null;
 };
 
+export type CostControlDimensionMeasures = {
+  originalBudget: string;
+  revisedBudget: string;
+  committedCost: {
+    procurement: string;
+    subcontract: string;
+    total: string;
+  };
+  actualCost: {
+    supplier: string;
+    subcontract: string;
+    direct: string;
+    total: string;
+  };
+  paidCost: {
+    supplier: string;
+    subcontract: string;
+    total: string;
+  };
+  remainingCommitment: {
+    procurement: string;
+    subcontract: string;
+    total: string;
+  };
+  uncommittedEtc: string;
+  costToComplete: string;
+  forecastCost: string;
+  variance: string;
+};
+
 export type CostControlReadModel = {
+  project: {
+    id: string;
+    projectCode: string;
+    projectName: string;
+    contractValue: string;
+  };
   baseCurrencyCode: string;
-  totals: {
-    originalBudget: string;
-    revisedBudget: string;
-    committedCost: {
-      procurement: string;
-      subcontract: string;
-      total: string;
-    };
-    actualCost: {
-      supplier: string;
-      subcontract: string;
-      direct: string;
-      total: string;
-    };
-    paidCost: {
-      supplier: string;
-      subcontract: string;
-      total: string;
-    };
-    remainingCommitment: {
-      procurement: string;
-      subcontract: string;
-      total: string;
-    };
-    uncommittedEtc: string;
-    costToComplete: string;
-    forecastCost: string;
-    variance: string;
+  filters: {
+    wbs: { id: string; wbsCode: string; wbsName: string } | null;
+    costCode: { id: string; costCode: string; costName: string } | null;
+    wbsIncludesDescendants: boolean;
+  };
+  reportDimensions: {
+    wbs: Array<{
+      id: string;
+      parentId: string | null;
+      wbsCode: string;
+      wbsName: string;
+    }>;
+    costCodes: Array<{
+      id: string;
+      costCode: string;
+      costName: string;
+    }>;
+  };
+  totals: CostControlDimensionMeasures & {
     commercial: {
       allocationLevel: 'PROJECT';
       originalContractValue: string;
@@ -251,12 +278,44 @@ export type CostControlReadModel = {
     forecastDate: string;
     approvedAt: string | null;
   } | null;
+  dimensionBreakdown: Array<
+    CostControlDimensionMeasures & {
+      wbs: { id: string; wbsCode: string; wbsName: string } | null;
+      costCode: {
+        id: string;
+        costCode: string;
+        costName: string;
+      } | null;
+      allocationState:
+        | 'FULLY_ALLOCATED'
+        | 'PARTIALLY_ALLOCATED'
+        | 'UNALLOCATED';
+    }
+  >;
+  sourceEvidence: Record<
+    string,
+    {
+      canonicalOwner: string;
+      recognitionRule: string;
+      amount: string;
+      recordCount: number;
+      recordsVisible: boolean;
+      records?: Array<Record<string, unknown>>;
+    }
+  >;
   boundaries: {
     committedActualPaidSeparate: boolean;
+    inventoryCreatesActualCost: boolean;
+    sourceModulesRemainCanonical: boolean;
+    syntheticDimensionalProration: boolean;
+    financialAuthority: string;
     directCostPostingImplemented: boolean;
     forecastImplemented: boolean;
     projectVariationRevenueProfitImplemented: boolean;
     revenueProfitProjectLevelOnly: boolean;
+    rpt009CostReportingImplemented: boolean;
+    explicitUnallocatedReporting: boolean;
+    parentWbsFilterIncludesDescendants: boolean;
   };
 };
 
@@ -423,10 +482,21 @@ export const costControlApi = {
     apiRequest<Data<DirectCostOptions>>(
       '/cost-control/projects/' + projectId + '/direct-cost-options',
     ),
-  readModel: (projectId: string) =>
-    apiRequest<Data<CostControlReadModel>>(
-      '/projects/' + projectId + '/cost-control',
-    ),
+  readModel: (
+    projectId: string,
+    filters?: { wbsId?: string; costCodeId?: string },
+  ) => {
+    const params = new URLSearchParams();
+    if (filters?.wbsId) params.set('wbsId', filters.wbsId);
+    if (filters?.costCodeId) params.set('costCodeId', filters.costCodeId);
+    const query = params.toString();
+    return apiRequest<Data<CostControlReadModel>>(
+      '/projects/' +
+        projectId +
+        '/cost-control' +
+        (query ? '?' + query : ''),
+    );
+  },
   list: (projectId: string) =>
     apiRequest<Data<DirectCostPosting[]>>(
       '/cost-control/projects/' + projectId + '/direct-cost-postings',
