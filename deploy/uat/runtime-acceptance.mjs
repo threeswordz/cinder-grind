@@ -6989,7 +6989,7 @@ const v07PaidCostPayment = await request(
     method: 'POST',
     json: {
       direction: 'OUTBOUND',
-      paymentDate: '2026-10-06',
+      paymentDate: '2027-04-01',
       supplierId: sourcingSupplierB.data.data.id,
       amount: '5.00',
       paymentMethod: 'BANK_TRANSFER',
