@@ -488,6 +488,7 @@ model ApprovalAction {
   clientInvoiceDecisionOrder BigInt? @unique(map: "approval_actions_client_invoice_decision_order_key") @map("client_invoice_decision_order")
   paymentDecisionOrder BigInt? @unique(map: "approval_actions_payment_decision_order_key") @map("payment_decision_order")
   directCostDecisionOrder BigInt? @unique(map: "approval_actions_direct_cost_decision_order_key") @map("direct_cost_decision_order")
+  forecastDecisionOrder   BigInt? @unique(map: "approval_actions_forecast_decision_order_key") @map("forecast_decision_order")
   comment            String?  @db.Text
 
   approvalInstance ApprovalInstance @relation(fields: [approvalInstanceId], references: [id], onDelete: Restrict)
@@ -2849,6 +2850,62 @@ model DirectCostPosting {
   @@index([companyId, projectId, wbsId, costCodeId])
   @@index([reversesPostingId])
   @@map("direct_cost_postings")
+}
+
+
+model CostForecast {
+  id                 String    @id @default(uuid()) @db.Uuid
+  companyId          String    @map("company_id") @db.Uuid
+  projectId          String    @map("project_id") @db.Uuid
+  forecastDate       DateTime  @map("forecast_date") @db.Date
+  versionNo          Int       @default(0) @map("version_no")
+  description        String?   @db.Text
+  currencyCode       String    @map("currency_code") @db.VarChar(3)
+  state              String    @default("DRAFT") @db.VarChar(30)
+  approvalInstanceId String?   @unique @map("approval_instance_id") @db.Uuid
+  createKey          String    @map("create_key") @db.VarChar(120)
+  createPayloadHash  String    @map("create_payload_hash") @db.VarChar(64)
+  createdByUserId    String    @map("created_by_user_id") @db.Uuid
+  submittedByUserId  String?   @map("submitted_by_user_id") @db.Uuid
+  approvedByUserId   String?   @map("approved_by_user_id") @db.Uuid
+  rejectedByUserId   String?   @map("rejected_by_user_id") @db.Uuid
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  submittedAt        DateTime? @map("submitted_at") @db.Timestamptz(6)
+  decidedAt          DateTime? @map("decided_at") @db.Timestamptz(6)
+  approvedAt         DateTime? @map("approved_at") @db.Timestamptz(6)
+  rejectedAt         DateTime? @map("rejected_at") @db.Timestamptz(6)
+  rejectionReason    String?   @map("rejection_reason") @db.Text
+
+  lines CostForecastLine[]
+
+  @@unique([companyId, projectId, versionNo], map: "cost_forecasts_project_version_key")
+  @@unique([companyId, createdByUserId, createKey], map: "cost_forecasts_creator_create_key_key")
+  @@unique([companyId, projectId, id], map: "cost_forecasts_scope_key")
+  @@index([companyId, projectId, state, versionNo])
+  @@index([companyId, projectId, forecastDate])
+  @@map("cost_forecasts")
+}
+
+model CostForecastLine {
+  id                   String   @id @default(uuid()) @db.Uuid
+  companyId            String   @map("company_id") @db.Uuid
+  projectId            String   @map("project_id") @db.Uuid
+  forecastId           String   @map("forecast_id") @db.Uuid
+  lineNo               Int      @map("line_no")
+  wbsId                String?  @map("wbs_id") @db.Uuid
+  costCodeId           String?  @map("cost_code_id") @db.Uuid
+  uncommittedEtcAmount Decimal  @map("uncommitted_etc_amount") @db.Decimal(18, 2)
+  remarks              String?  @db.Text
+  createdAt            DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  forecast CostForecast @relation(fields: [companyId, projectId, forecastId], references: [companyId, projectId, id], onDelete: Restrict)
+
+  @@unique([forecastId, lineNo])
+  @@index([companyId, projectId, wbsId])
+  @@index([companyId, costCodeId])
+  @@map("cost_forecast_lines")
 }
 
 model CostActionReplay {
