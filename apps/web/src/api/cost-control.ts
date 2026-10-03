@@ -15,6 +15,69 @@ export type CostWorkflow = {
   workflowName: string;
 };
 
+export type ForecastOptions = {
+  project: {
+    id: string;
+    projectCode: string;
+    projectName: string;
+    isActive: boolean;
+  };
+  baseCurrencyCode: string;
+  wbs: Array<{ id: string; wbsCode: string; wbsName: string }>;
+  costCodes: Array<{ id: string; costCode: string; costName: string }>;
+};
+
+export type ForecastLine = {
+  id: string;
+  lineNo: number;
+  wbsId: string | null;
+  costCodeId: string | null;
+  uncommittedEtcAmount: string;
+  remarks: string | null;
+  wbs?: { id: string; wbsCode: string; wbsName: string } | null;
+  costCode?: { id: string; costCode: string; costName: string } | null;
+  allocationState?: 'FULLY_ALLOCATED' | 'PARTIALLY_ALLOCATED' | 'UNALLOCATED';
+};
+
+export type CostForecast = {
+  id: string;
+  companyId: string;
+  projectId: string;
+  forecastDate: string;
+  versionNo: number;
+  description: string | null;
+  currencyCode: string;
+  state: 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'REJECTED';
+  approvalInstanceId: string | null;
+  createdByUserId: string;
+  submittedByUserId: string | null;
+  approvedByUserId: string | null;
+  rejectedByUserId: string | null;
+  createdAt: string;
+  updatedAt: string;
+  submittedAt: string | null;
+  decidedAt: string | null;
+  approvedAt: string | null;
+  rejectedAt: string | null;
+  rejectionReason: string | null;
+  lines: ForecastLine[];
+};
+
+export type CostForecastDetail = CostForecast & {
+  totalUncommittedEtc: string;
+  project: {
+    id: string;
+    projectCode: string;
+    projectName: string;
+    isActive: boolean;
+  } | null;
+  createdBy: { id: string; displayName: string } | null;
+  submittedBy: { id: string; displayName: string } | null;
+  approvedBy: { id: string; displayName: string } | null;
+  rejectedBy: { id: string; displayName: string } | null;
+  approvalInstance: DirectCostDetail['approvalInstance'];
+};
+
 export type DirectCostOptions = {
   project: {
     id: string;
@@ -120,10 +183,26 @@ export type CostControlReadModel = {
       subcontract: string;
       total: string;
     };
+    remainingCommitment: {
+      procurement: string;
+      subcontract: string;
+      total: string;
+    };
+    uncommittedEtc: string;
+    costToComplete: string;
+    forecastCost: string;
+    variance: string;
   };
+  currentForecast: {
+    id: string;
+    versionNo: number;
+    forecastDate: string;
+    approvedAt: string | null;
+  } | null;
   boundaries: {
     committedActualPaidSeparate: boolean;
     directCostPostingImplemented: boolean;
+    forecastImplemented: boolean;
   };
 };
 
@@ -140,6 +219,81 @@ export const costControlApi = {
   workflows: () =>
     apiRequest<Data<CostWorkflow[]>>(
       '/cost-control/direct-cost-workflow-options',
+    ),
+  forecastWorkflows: () =>
+    apiRequest<Data<CostWorkflow[]>>(
+      '/cost-control/forecast-workflow-options',
+    ),
+  forecastOptions: (projectId: string) =>
+    apiRequest<Data<ForecastOptions>>(
+      '/cost-control/projects/' + projectId + '/forecast-options',
+    ),
+  forecastList: (projectId: string) =>
+    apiRequest<Data<CostForecast[]>>(
+      '/cost-control/projects/' + projectId + '/forecasts',
+    ),
+  forecastDetail: (forecastId: string) =>
+    apiRequest<Data<CostForecastDetail>>(
+      '/cost-control/forecasts/' + forecastId,
+    ),
+  forecastCreate: (
+    projectId: string,
+    body: {
+      forecastDate: string;
+      description?: string | null;
+      lines: Array<{
+        wbsId?: string | null;
+        costCodeId?: string | null;
+        uncommittedEtcAmount: string;
+        remarks?: string | null;
+      }>;
+      createKey: string;
+    },
+  ) =>
+    postAction<CostForecastDetail>(
+      '/cost-control/projects/' + projectId + '/forecasts',
+      body,
+    ),
+  forecastUpdate: (
+    forecastId: string,
+    body: Partial<{
+      forecastDate: string;
+      description: string | null;
+      lines: Array<{
+        wbsId?: string | null;
+        costCodeId?: string | null;
+        uncommittedEtcAmount: string;
+        remarks?: string | null;
+      }>;
+    }>,
+  ) =>
+    apiRequest<Data<CostForecastDetail>>(
+      '/cost-control/forecasts/' + forecastId,
+      { method: 'PATCH', body: JSON.stringify(body) },
+    ),
+  forecastSubmit: (
+    forecastId: string,
+    body: { workflowCode: string; actionKey: string },
+  ) =>
+    postAction<CostForecastDetail>(
+      '/cost-control/forecasts/' + forecastId + '/submit',
+      body,
+    ),
+  forecastApprove: (
+    forecastId: string,
+    body: { actionKey: string; comment?: string },
+  ) =>
+    postAction<CostForecastDetail>(
+      '/cost-control/forecasts/' + forecastId + '/approve',
+      body,
+    ),
+  forecastReject: (
+    forecastId: string,
+    body: { actionKey: string; comment?: string },
+  ) =>
+    postAction<CostForecastDetail>(
+      '/cost-control/forecasts/' + forecastId + '/reject',
+      body,
     ),
   options: (projectId: string) =>
     apiRequest<Data<DirectCostOptions>>(
