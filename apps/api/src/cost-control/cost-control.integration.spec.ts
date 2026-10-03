@@ -592,7 +592,7 @@ test('V0.7-B database freezes terminal evidence and permits exact reversal after
         submittedAt,
       },
     });
-    await prisma.approvalAction.create({
+    const hardeningDecision = await prisma.approvalAction.create({
       data: {
         approvalInstanceId: instance.id,
         approvalStepId: step.id,
@@ -605,10 +605,10 @@ test('V0.7-B database freezes terminal evidence and permits exact reversal after
       where: { id: instance.id },
       data: {
         approvalState: 'APPROVED',
-        completedAt: new Date('2026-10-03T02:00:00.000Z'),
+        completedAt: hardeningDecision.actionAt,
       },
     });
-    const approvedAt = new Date('2026-10-03T02:00:00.000Z');
+    const approvedAt = hardeningDecision.actionAt;
     await prisma.directCostPosting.update({
       where: { id: original.id },
       data: {
