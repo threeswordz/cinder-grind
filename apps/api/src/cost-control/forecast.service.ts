@@ -14,6 +14,7 @@ import { AuditService } from '../audit/audit.service';
 import { AuthenticatedUserContext } from '../auth/auth.types';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProjectAccessService } from '../projects/project-access.service';
+import { sumCostControlDecimals } from './cost-control.service';
 
 type AuditContext = {
   auth: AuthenticatedUserContext;
@@ -114,7 +115,7 @@ export class ForecastService {
   }
 
   async get(auth: AuthenticatedUserContext, forecastId: string) {
-    this.assertPermission(auth, 'cost.forecast.view');
+    this.assertSourcePermission(auth);
     const forecast = await this.visibleForecast(auth, forecastId, this.prisma);
     return this.hydrate(forecast, this.prisma);
   }
@@ -854,9 +855,8 @@ export class ForecastService {
   }
 
   private sumLines(lines: CostForecastLineInput[]): Prisma.Decimal {
-    return lines.reduce(
-      (sum, line) => sum.plus(line.uncommittedEtcAmount),
-      new Prisma.Decimal(0),
+    return sumCostControlDecimals(
+      lines.map((line) => line.uncommittedEtcAmount),
     );
   }
 
@@ -868,6 +868,19 @@ export class ForecastService {
           detail: 'Uncommitted ETC cannot be negative.',
         });
       }
+    }
+  }
+
+  private assertSourcePermission(auth: AuthenticatedUserContext) {
+    if (
+      !auth.permissions.some((permission) =>
+        permission.startsWith('cost.forecast.'),
+      )
+    ) {
+      throw new ForbiddenException({
+        code: 'PERMISSION_DENIED',
+        detail: 'An explicit cost.forecast.* permission is required.',
+      });
     }
   }
 
