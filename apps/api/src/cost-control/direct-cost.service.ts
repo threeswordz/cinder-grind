@@ -59,7 +59,11 @@ export class DirectCostService {
 
   async projects(auth: AuthenticatedUserContext) {
     const scope = await this.access.scopeWhere(auth);
-    const [historicalDirectCosts, historicalForecasts] = await Promise.all([
+    const [
+      historicalDirectCosts,
+      historicalForecasts,
+      historicalVariations,
+    ] = await Promise.all([
       this.prisma.directCostPosting.findMany({
         where: { companyId: auth.companyId },
         select: { projectId: true },
@@ -70,11 +74,17 @@ export class DirectCostService {
         select: { projectId: true },
         distinct: ['projectId'],
       }),
+      this.prisma.projectVariation.findMany({
+        where: { companyId: auth.companyId },
+        select: { projectId: true },
+        distinct: ['projectId'],
+      }),
     ]);
     const historicalProjectIds = [
       ...new Set([
         ...historicalDirectCosts.map((posting) => posting.projectId),
         ...historicalForecasts.map((forecast) => forecast.projectId),
+        ...historicalVariations.map((variation) => variation.projectId),
       ]),
     ];
     return this.prisma.project.findMany({
