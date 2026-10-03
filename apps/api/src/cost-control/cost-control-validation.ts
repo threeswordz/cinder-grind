@@ -161,3 +161,23 @@ export function costArray(
     return item as Record<string, unknown>;
   });
 }
+
+export function costSignedDecimal(
+  input: Record<string, unknown>,
+  field: string,
+): Prisma.Decimal {
+  const value = input[field];
+  if (typeof value !== 'string' || !/^-?\d{1,16}(?:\.\d{1,2})?$/.test(value)) {
+    return invalid(
+      field,
+      'Must be an exact non-zero signed decimal string with up to 16 integer digits and 2 decimal places.',
+    );
+  }
+  try {
+    const decimal = new Prisma.Decimal(value);
+    if (decimal.isZero()) return invalid(field, 'Must not be zero.');
+    return decimal;
+  } catch {
+    return invalid(field, 'Must be a valid signed decimal string.');
+  }
+}
