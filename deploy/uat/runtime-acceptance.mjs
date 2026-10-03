@@ -3030,6 +3030,91 @@ check(
 );
 record('V0.6-C Payment create/retry → direction-safe allocation → configured approval → AP/AR settlement → controlled cancellation/restoration → SYS_ADMIN/Project denial through live HTTP API');
 
+await request(admin, '/finance/cash-flow-projects', { expected: 403 });
+const cashFlowProjects = await request(pm, '/finance/cash-flow-projects');
+check(
+  cashFlowProjects.data.data.some((project) => project.id === projectId),
+  'V0.6-E cash-flow Project selector did not expose an authorized Project.',
+);
+
+const unallocatedOutboundPayment = await request(
+  pm,
+  '/finance/projects/' + projectId + '/payments',
+  {
+    method: 'POST',
+    json: {
+      direction: 'OUTBOUND',
+      paymentDate: '2026-10-05',
+      supplierId: sourcingSupplierB.data.data.id,
+      amount: '7.00',
+      paymentMethod: 'BANK_TRANSFER',
+      reference: 'Unallocated cash-flow proof ' + suffix,
+      createKey: 'pay-cash-flow-unallocated-' + suffix,
+    },
+    expected: 201,
+  },
+);
+const unallocatedOutboundPaymentId = unallocatedOutboundPayment.data.data.id;
+await request(
+  pm,
+  '/finance/payments/' + unallocatedOutboundPaymentId + '/submit',
+  {
+    method: 'POST',
+    json: {
+      workflowCode: paymentWorkflowCode,
+      actionKey: 'pay-cash-flow-submit-' + suffix,
+    },
+    expected: 201,
+  },
+);
+await request(
+  checker,
+  '/finance/payments/' + unallocatedOutboundPaymentId + '/approve',
+  {
+    method: 'POST',
+    json: {
+      actionKey: 'pay-cash-flow-approve-' + suffix,
+      comment: 'Approve unallocated Payment for Stage-E cash-flow evidence.',
+    },
+    expected: 201,
+  },
+);
+
+const stageECashFlow = await request(
+  pm,
+  '/finance/projects/' + projectId + '/cash-flow',
+);
+const stageECancelledRow = stageECashFlow.data.data.rows.find(
+  (row) => row.id === outboundPaymentId,
+);
+const stageEInboundRow = stageECashFlow.data.data.rows.find(
+  (row) => row.id === inboundPaymentId,
+);
+const stageEUnallocatedRow = stageECashFlow.data.data.rows.find(
+  (row) => row.id === unallocatedOutboundPaymentId,
+);
+check(
+  !stageECancelledRow &&
+    stageEInboundRow &&
+    stageEUnallocatedRow &&
+    Number(stageEInboundRow.inflowAmount) === 125 &&
+    Number(stageEInboundRow.outflowAmount) === 0 &&
+    Number(stageEUnallocatedRow.outflowAmount) === 7 &&
+    Number(stageEUnallocatedRow.allocatedAmount) === 0 &&
+    Number(stageEUnallocatedRow.unallocatedAmount) === 7 &&
+    stageEUnallocatedRow.settlementStatus === 'UNALLOCATED' &&
+    Number(stageECashFlow.data.data.totals.inflowAmount) === 125 &&
+    Number(stageECashFlow.data.data.totals.outflowAmount) === 7 &&
+    Number(stageECashFlow.data.data.totals.netCashFlow) === 118,
+  'V0.6-E Project Cash Flow did not count approved Payment amounts exactly once while excluding cancelled Payments and preserving unallocated settlement state.',
+);
+await request(
+  unassignedReceipt,
+  '/finance/projects/' + projectId + '/cash-flow',
+  { expected: 403 },
+);
+record('V0.6-E authenticated Project Cash Flow counts approved non-cancelled Payment amounts once, preserves unallocated settlement evidence, excludes cancelled history and enforces SYS_ADMIN/Project denial');
+
 const postedBalance = await request(
   pm,
   '/inventory/stock-balances?projectId=' + projectId +
