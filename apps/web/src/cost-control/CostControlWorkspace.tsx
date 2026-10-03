@@ -252,10 +252,11 @@ export function CostControlWorkspace({ permissions }: Props) {
   const approvePosting = useMutation({
     mutationFn: () => {
       const signature = 'approve:' + postingId + ':' + actionComment;
+      const comment = actionComment.trim();
       return costControlApi
         .approve(postingId, {
           actionKey: actionKey(signature),
-          comment: actionComment.trim() || undefined,
+          ...(comment ? { comment } : {}),
         })
         .then((result) => {
           clearActionKey(signature);
@@ -271,10 +272,11 @@ export function CostControlWorkspace({ permissions }: Props) {
   const rejectPosting = useMutation({
     mutationFn: () => {
       const signature = 'reject:' + postingId + ':' + actionComment;
+      const comment = actionComment.trim();
       return costControlApi
         .reject(postingId, {
           actionKey: actionKey(signature),
-          comment: actionComment.trim() || undefined,
+          ...(comment ? { comment } : {}),
         })
         .then((result) => {
           clearActionKey(signature);
