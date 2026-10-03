@@ -478,9 +478,17 @@ test('V0.7-B database freezes terminal evidence and permits exact reversal after
         passwordHash: 'x',
       },
     });
+    const approverEmployee = await prisma.employee.create({
+      data: {
+        companyId: company.id,
+        employeeCode: 'DH-E-' + suffix,
+        employeeName: 'Direct Cost hardening approver employee',
+      },
+    });
     const approver = await prisma.user.create({
       data: {
         companyId: company.id,
+        employeeId: approverEmployee.id,
         email: 'dh-approver-' + suffix + '@example.com',
         displayName: 'Direct Cost hardening approver',
         passwordHash: 'x',
@@ -495,6 +503,13 @@ test('V0.7-B database freezes terminal evidence and permits exact reversal after
         contractValue: '100',
         plannedStartDate: new Date('2026-10-01'),
         plannedCompletionDate: new Date('2027-01-01'),
+      },
+    });
+    await prisma.projectMember.create({
+      data: {
+        projectId: project.id,
+        employeeId: approverEmployee.id,
+        projectRole: 'Cost Control Approver',
       },
     });
     const costCode = await prisma.costCode.create({
@@ -526,6 +541,37 @@ test('V0.7-B database freezes terminal evidence and permits exact reversal after
         workflowName: 'Direct Cost hardening workflow',
       },
     });
+    const step = await prisma.approvalStep.create({
+      data: {
+        approvalWorkflowId: workflow.id,
+        stepNo: 1,
+        stepName: 'Approve Direct Cost',
+        requiredApprovals: 1,
+      },
+    });
+    const role = await prisma.role.create({
+      data: {
+        companyId: company.id,
+        roleCode: 'DH-APPROVER-' + suffix,
+        roleName: 'Direct Cost Hardening Approver',
+      },
+    });
+    const approvePermission = await prisma.permission.findUniqueOrThrow({
+      where: { permissionCode: 'cost.direct_posting.approve' },
+    });
+    await prisma.rolePermission.create({
+      data: { roleId: role.id, permissionId: approvePermission.id },
+    });
+    await prisma.userRole.create({
+      data: {
+        companyId: company.id,
+        userId: approver.id,
+        roleId: role.id,
+      },
+    });
+    await prisma.approvalStepRole.create({
+      data: { approvalStepId: step.id, roleId: role.id },
+    });
     const instance = await prisma.approvalInstance.create({
       data: {
         companyId: company.id,
@@ -544,6 +590,15 @@ test('V0.7-B database freezes terminal evidence and permits exact reversal after
         approvalInstanceId: instance.id,
         submittedByUserId: maker.id,
         submittedAt,
+      },
+    });
+    await prisma.approvalAction.create({
+      data: {
+        approvalInstanceId: instance.id,
+        approvalStepId: step.id,
+        action: 'APPROVE',
+        actionByUserId: approver.id,
+        comment: 'Authorized hardening approval evidence',
       },
     });
     await prisma.approvalInstance.update({
