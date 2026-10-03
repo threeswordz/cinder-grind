@@ -131,7 +131,7 @@ BEGIN
 
   RETURN NEW;
 END;
-$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql;
 
 CREATE OR REPLACE FUNCTION erp_direct_cost_terminal_actor_guard()
 RETURNS trigger AS $$
