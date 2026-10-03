@@ -289,7 +289,6 @@ export class CostControlService {
               amount: true,
               wbsId: true,
               costCodeId: true,
-              quotationAwardId: true,
             },
           },
         },
@@ -314,6 +313,7 @@ export class CostControlService {
               amount: true,
               wbsId: true,
               costCodeId: true,
+              quotationAwardId: true,
             },
           },
         },
@@ -403,6 +403,7 @@ export class CostControlService {
         },
         select: {
           id: true,
+          agreementId: true,
           certificationNumber: true,
           approvedAt: true,
           certifiedGross: true,
