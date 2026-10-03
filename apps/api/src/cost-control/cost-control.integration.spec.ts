@@ -47,7 +47,9 @@ test('V0.7-A Budget and PO currency checks work without other Finance sources', 
         subcontractCertification: { findMany: async () => [] },
         payment: { findMany: async () => [] },
         directCostPosting: { findMany: async () => [] },
-        projectVariation: { findMany: async () => [] },
+        projectVariation: {
+      findMany: async () => [{ projectId: 'variation-only-project' }],
+    },
     clientInvoice: { findMany: async () => [] },
     costForecast: { findFirst: async () => null },
       };
@@ -1352,7 +1354,7 @@ test('V0.7-B database freezes terminal evidence and permits exact reversal after
 });
 
 
-test('V0.7-C Project selector retains scoped archived Projects with Direct Cost or Forecast history', async () => {
+test('V0.7-E Project selector retains scoped archived Projects with any V0.7-owned history', async () => {
   let projectWhere: unknown;
   const prisma = {
     directCostPosting: {
@@ -1380,6 +1382,12 @@ test('V0.7-C Project selector retains scoped archived Projects with Direct Cost 
             id: 'forecast-only-project',
             projectCode: 'ARCH-2',
             projectName: 'Forecast-only archived project',
+            isActive: false,
+          },
+          {
+            id: 'variation-only-project',
+            projectCode: 'ARCH-3',
+            projectName: 'Variation-only archived project',
             isActive: false,
           },
         ];
@@ -1412,6 +1420,12 @@ test('V0.7-C Project selector retains scoped archived Projects with Direct Cost 
       projectName: 'Forecast-only archived project',
       isActive: false,
     },
+    {
+      id: 'variation-only-project',
+      projectCode: 'ARCH-3',
+      projectName: 'Variation-only archived project',
+      isActive: false,
+    },
   ]);
   assert.deepEqual(projectWhere, {
     AND: [
@@ -1419,7 +1433,15 @@ test('V0.7-C Project selector retains scoped archived Projects with Direct Cost 
       {
         OR: [
           { isActive: true },
-          { id: { in: ['archived-project', 'forecast-only-project'] } },
+          {
+            id: {
+              in: [
+                'archived-project',
+                'forecast-only-project',
+                'variation-only-project',
+              ],
+            },
+          },
         ],
       },
     ],
