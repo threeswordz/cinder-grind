@@ -1127,14 +1127,15 @@ export class CostControlService {
         forecastCost,
         variance,
       },
-      currentForecast: currentForecast
-        ? {
-            id: currentForecast.id,
-            versionNo: currentForecast.versionNo,
-            forecastDate: currentForecast.forecastDate,
-            approvedAt: currentForecast.approvedAt,
-          }
-        : null,
+      currentForecast:
+        currentForecast && this.hasPermissions(auth, 'cost.forecast.view')
+          ? {
+              id: currentForecast.id,
+              versionNo: currentForecast.versionNo,
+              forecastDate: currentForecast.forecastDate,
+              approvedAt: currentForecast.approvedAt,
+            }
+          : null,
       dimensionBreakdown,
       sourceEvidence: {
         originalBudget: this.evidence(

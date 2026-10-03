@@ -2,7 +2,10 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import test from 'node:test';
 
-import { UnprocessableEntityException } from '@nestjs/common';
+import {
+  ConflictException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 
 import { AuditService } from '../audit/audit.service';
@@ -358,6 +361,24 @@ test('V0.7-C integrated forecast reduces only canonically linked PO commitment',
   assert.equal(result.totals.costToComplete.toFixed(2), '85.00');
   assert.equal(result.totals.forecastCost.toFixed(2), '125.00');
   assert.equal(result.currentForecast?.versionNo, 3);
+
+  const aggregateOnly = await service.projectCostControl(
+    {
+      companyId: 'company',
+      permissions: ['cost.control.view'],
+    } as never,
+    'project',
+  );
+  assert.equal(aggregateOnly.totals.uncommittedEtc.toFixed(2), '25.00');
+  assert.equal(aggregateOnly.currentForecast, null);
+  assert.equal(
+    aggregateOnly.sourceEvidence.uncommittedEtc.recordsVisible,
+    false,
+  );
+  assert.equal(
+    'records' in aggregateOnly.sourceEvidence.uncommittedEtc,
+    false,
+  );
 });
 
 test('V0.7-C Forecast routes require explicit view/manage/approve permissions', () => {
@@ -546,6 +567,60 @@ test('V0.7-C Forecast service creates a versioned draft with real PostgreSQL gua
     );
   } finally {
     await prisma.$disconnect();
+  }
+});
+
+test('V0.7-C Forecast create returns controlled conflict after concurrency retry exhaustion', async () => {
+  for (const code of ['P2002', 'P2034'] as const) {
+    let attempts = 0;
+    const prisma = {
+      costForecast: {
+        findFirst: async () => null,
+      },
+      $transaction: async () => {
+        attempts += 1;
+        throw new Prisma.PrismaClientKnownRequestError(
+          'Synthetic Forecast concurrency failure',
+          {
+            code,
+            clientVersion: 'test',
+          },
+        );
+      },
+    };
+    const service = new ForecastService(
+      prisma as unknown as PrismaService,
+      { assertAccess: async () => {} } as never,
+      {} as never,
+      {} as never,
+    );
+    const auth = {
+      companyId: 'company',
+      userId: 'maker',
+      permissions: ['cost.forecast.manage'],
+    } as never;
+
+    await assert.rejects(
+      () =>
+        service.create(
+          { auth },
+          'project',
+          {
+            forecastDate: new Date('2027-04-07T00:00:00.000Z'),
+            description: 'Retry exhaustion regression',
+            createKey: 'retry-exhaustion-' + code,
+            lines: [],
+          },
+        ),
+      (error: unknown) => {
+        if (!(error instanceof ConflictException)) return false;
+        return (
+          (error.getResponse() as { code?: string }).code ===
+          'COST_FORECAST_CREATE_CONCURRENCY_RETRY_EXHAUSTED'
+        );
+      },
+    );
+    assert.equal(attempts, 5, code + ' should exhaust exactly five attempts');
   }
 });
 

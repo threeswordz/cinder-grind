@@ -232,13 +232,15 @@ export class ForecastService {
               return this.get(context.auth, replay.id);
             }
             if (attempt < maxCreateAttempts) continue;
+            break;
           }
 
           // Prisma reports PostgreSQL SERIALIZABLE write conflicts/deadlocks
           // as P2034. Restarting creates a fresh snapshot after the Project
           // serialization boundary has advanced.
-          if (error.code === 'P2034' && attempt < maxCreateAttempts) {
-            continue;
+          if (error.code === 'P2034') {
+            if (attempt < maxCreateAttempts) continue;
+            break;
           }
         }
         throw error;
