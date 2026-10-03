@@ -178,8 +178,6 @@ export class ForecastService {
               createdByUserId: context.auth.userId,
               lines: {
                 create: input.lines.map((line, index) => ({
-                  companyId: context.auth.companyId,
-                  projectId,
                   lineNo: index + 1,
                   wbsId: line.wbsId,
                   costCodeId: line.costCodeId,
