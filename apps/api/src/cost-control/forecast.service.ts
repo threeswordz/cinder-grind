@@ -142,92 +142,114 @@ export class ForecastService {
       return this.get(context.auth, existing.id);
     }
 
-    try {
-      const created = await this.prisma.$transaction(
-        async (tx) => {
-          await this.access.assertAccess(context.auth, projectId, tx);
-          await this.lockProject(context.auth.companyId, projectId, tx);
-          const raced = await tx.costForecast.findFirst({
-            where: {
-              companyId: context.auth.companyId,
-              createdByUserId: context.auth.userId,
-              createKey: input.createKey,
-            },
-          });
-          if (raced) {
-            if (raced.createPayloadHash !== payloadHash) this.throwReplayConflict();
-            return raced;
+    const maxCreateAttempts = 5;
+    for (let attempt = 1; attempt <= maxCreateAttempts; attempt += 1) {
+      try {
+        const created = await this.prisma.$transaction(
+          async (tx) => {
+            // The Project row is the serialization boundary for Forecast
+            // version assignment. Lock it before any other transactional read,
+            // then retry the whole SERIALIZABLE transaction if a concurrent
+            // creator established an older snapshot while waiting here.
+            await this.lockProject(context.auth.companyId, projectId, tx);
+            await this.access.assertAccess(context.auth, projectId, tx);
+            const raced = await tx.costForecast.findFirst({
+              where: {
+                companyId: context.auth.companyId,
+                createdByUserId: context.auth.userId,
+                createKey: input.createKey,
+              },
+            });
+            if (raced) {
+              if (raced.createPayloadHash !== payloadHash) this.throwReplayConflict();
+              return raced;
+            }
+
+            const currencyCode = await this.assertDimensions(
+              tx,
+              context.auth.companyId,
+              projectId,
+              input.lines,
+            );
+            const row = await tx.costForecast.create({
+              data: {
+                companyId: context.auth.companyId,
+                projectId,
+                forecastDate: input.forecastDate,
+                versionNo: 0,
+                description: input.description,
+                currencyCode,
+                createKey: input.createKey,
+                createPayloadHash: payloadHash,
+                createdByUserId: context.auth.userId,
+                lines: {
+                  create: input.lines.map((line, index) => ({
+                    lineNo: index + 1,
+                    wbsId: line.wbsId,
+                    costCodeId: line.costCodeId,
+                    uncommittedEtcAmount: line.uncommittedEtcAmount,
+                    remarks: line.remarks,
+                  })),
+                },
+              },
+            });
+            await this.audit.record(
+              {
+                ...context,
+                entityType: 'COST_FORECAST',
+                entityId: row.id,
+                action: 'CREATE_DRAFT',
+                newValues: {
+                  projectId,
+                  forecastDate: row.forecastDate,
+                  versionNo: row.versionNo,
+                  currencyCode,
+                  lineCount: input.lines.length,
+                  uncommittedEtc: this.sumLines(input.lines).toFixed(2),
+                },
+              },
+              tx,
+            );
+            return row;
+          },
+          { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+        );
+        return this.get(context.auth, created.id);
+      } catch (error) {
+        if (error instanceof Prisma.PrismaClientKnownRequestError) {
+          if (error.code === 'P2002') {
+            const replay = await this.prisma.costForecast.findFirst({
+              where: {
+                companyId: context.auth.companyId,
+                createdByUserId: context.auth.userId,
+                createKey: input.createKey,
+              },
+            });
+            if (replay) {
+              if (replay.createPayloadHash !== payloadHash) {
+                this.throwReplayConflict();
+              }
+              return this.get(context.auth, replay.id);
+            }
+            if (attempt < maxCreateAttempts) continue;
           }
 
-          const currencyCode = await this.assertDimensions(
-            tx,
-            context.auth.companyId,
-            projectId,
-            input.lines,
-          );
-          const row = await tx.costForecast.create({
-            data: {
-              companyId: context.auth.companyId,
-              projectId,
-              forecastDate: input.forecastDate,
-              versionNo: 0,
-              description: input.description,
-              currencyCode,
-              createKey: input.createKey,
-              createPayloadHash: payloadHash,
-              createdByUserId: context.auth.userId,
-              lines: {
-                create: input.lines.map((line, index) => ({
-                  lineNo: index + 1,
-                  wbsId: line.wbsId,
-                  costCodeId: line.costCodeId,
-                  uncommittedEtcAmount: line.uncommittedEtcAmount,
-                  remarks: line.remarks,
-                })),
-              },
-            },
-          });
-          await this.audit.record(
-            {
-              ...context,
-              entityType: 'COST_FORECAST',
-              entityId: row.id,
-              action: 'CREATE_DRAFT',
-              newValues: {
-                projectId,
-                forecastDate: row.forecastDate,
-                versionNo: row.versionNo,
-                currencyCode,
-                lineCount: input.lines.length,
-                uncommittedEtc: this.sumLines(input.lines).toFixed(2),
-              },
-            },
-            tx,
-          );
-          return row;
-        },
-        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
-      );
-      return this.get(context.auth, created.id);
-    } catch (error) {
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === 'P2002'
-      ) {
-        const replay = await this.prisma.costForecast.findFirst({
-          where: {
-            companyId: context.auth.companyId,
-            createdByUserId: context.auth.userId,
-            createKey: input.createKey,
-          },
-        });
-        if (replay) {
-          if (replay.createPayloadHash !== payloadHash) this.throwReplayConflict();
-          return this.get(context.auth, replay.id);
+          // Prisma reports PostgreSQL SERIALIZABLE write conflicts/deadlocks
+          // as P2034. Restarting creates a fresh snapshot after the Project
+          // serialization boundary has advanced.
+          if (error.code === 'P2034' && attempt < maxCreateAttempts) {
+            continue;
+          }
         }
+        throw error;
       }
-      throw error;
     }
+
+    throw new ConflictException({
+      code: 'COST_FORECAST_CREATE_CONCURRENCY_RETRY_EXHAUSTED',
+      detail:
+        'Forecast creation could not serialize after repeated concurrent attempts.',
+    });
   }
 
   async update(

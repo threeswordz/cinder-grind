@@ -513,6 +513,37 @@ test('V0.7-C Forecast service creates a versioned draft with real PostgreSQL gua
     assert.equal(created.versionNo, 1);
     assert.equal(created.totalUncommittedEtc.toFixed(2), '45.00');
     assert.equal(created.lines.length, 2);
+
+    const concurrent = await Promise.all(
+      Array.from({ length: 4 }, (_, index) =>
+        service.create(
+          { auth },
+          project.id,
+          {
+            forecastDate: new Date('2027-04-06T00:00:00.000Z'),
+            description: 'Concurrent Forecast draft ' + index,
+            createKey: 'forecast-concurrent-' + index + '-' + suffix,
+            lines: [
+              {
+                wbsId: null,
+                costCodeId: null,
+                uncommittedEtcAmount: new Prisma.Decimal(
+                  (index + 1).toFixed(2),
+                ),
+                remarks: 'Concurrent version regression',
+                inputOrder: 1,
+              },
+            ],
+          },
+        ),
+      ),
+    );
+    assert.deepEqual(
+      concurrent
+        .map((forecast) => forecast.versionNo)
+        .sort((left, right) => left - right),
+      [2, 3, 4, 5],
+    );
   } finally {
     await prisma.$disconnect();
   }
