@@ -578,14 +578,28 @@ export class DirectCostService {
           current.createdByUserId,
           comment,
           async (approvalTx) => {
-            const now = new Date();
+            const decision = await approvalTx.approvalAction.findFirst({
+              where: {
+                approvalInstanceId: current.approvalInstanceId!,
+                action: 'APPROVE',
+                directCostDecisionOrder: { not: null },
+              },
+              orderBy: { directCostDecisionOrder: 'desc' },
+              select: { actionByUserId: true, actionAt: true },
+            });
+            if (!decision) {
+              throw new ConflictException({
+                code: 'DIRECT_COST_DECISION_EVIDENCE_MISSING',
+                detail: 'Serialized Direct Cost approval evidence is missing.',
+              });
+            }
             await approvalTx.directCostPosting.update({
               where: { id: postingId },
               data: {
                 state: 'APPROVED',
-                approvedByUserId: context.auth.userId,
-                approvedAt: now,
-                decidedAt: now,
+                approvedByUserId: decision.actionByUserId,
+                approvedAt: decision.actionAt,
+                decidedAt: decision.actionAt,
               },
             });
           },
@@ -641,15 +655,29 @@ export class DirectCostService {
           comment,
           tx,
         );
-        const now = new Date();
+        const decision = await tx.approvalAction.findFirst({
+          where: {
+            approvalInstanceId: current.approvalInstanceId!,
+            action: 'REJECT',
+            directCostDecisionOrder: { not: null },
+          },
+          orderBy: { directCostDecisionOrder: 'desc' },
+          select: { actionByUserId: true, actionAt: true, comment: true },
+        });
+        if (!decision) {
+          throw new ConflictException({
+            code: 'DIRECT_COST_DECISION_EVIDENCE_MISSING',
+            detail: 'Serialized Direct Cost rejection evidence is missing.',
+          });
+        }
         const row = await tx.directCostPosting.update({
           where: { id: postingId },
           data: {
             state: 'REJECTED',
-            rejectedByUserId: context.auth.userId,
-            rejectedAt: now,
-            decidedAt: now,
-            rejectionReason: comment ?? null,
+            rejectedByUserId: decision.actionByUserId,
+            rejectedAt: decision.actionAt,
+            decidedAt: decision.actionAt,
+            rejectionReason: decision.comment,
           },
         });
         await this.audit.record(
@@ -883,7 +911,10 @@ export class DirectCostService {
                 },
               },
               actions: {
-                orderBy: { actionAt: 'asc' },
+                orderBy: [
+                  { directCostDecisionOrder: 'asc' },
+                  { actionAt: 'asc' },
+                ],
                 include: {
                   approvalStep: {
                     select: { stepNo: true, stepName: true },
