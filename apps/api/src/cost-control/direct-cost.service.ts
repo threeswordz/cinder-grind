@@ -915,7 +915,11 @@ export class DirectCostService {
                   { directCostDecisionOrder: 'asc' },
                   { actionAt: 'asc' },
                 ],
-                include: {
+                select: {
+                  id: true,
+                  action: true,
+                  actionAt: true,
+                  comment: true,
                   approvalStep: {
                     select: { stepNo: true, stepName: true },
                   },
