@@ -63,13 +63,72 @@ type DimensionBucket = MeasureBucket & {
 
 type EvidenceRecord = Record<string, unknown>;
 
+type ExactDecimalTerm = {
+  value: Prisma.Decimal;
+  multiplier: 1n | -1n;
+};
+
+function fixedDecimalParts(value: Prisma.Decimal) {
+  const text = value.toFixed();
+  const negative = text.startsWith('-');
+  const unsigned = negative ? text.slice(1) : text;
+  const [whole = '0', fraction = ''] = unsigned.split('.');
+  const digits = (whole + fraction).replace(/^0+(?=\d)/, '') || '0';
+  return {
+    units: BigInt(digits) * (negative ? -1n : 1n),
+    scale: fraction.length,
+  };
+}
+
+function exactCostDecimal(terms: ExactDecimalTerm[]): Prisma.Decimal {
+  if (terms.length === 0) return new Prisma.Decimal(0);
+  const parsed = terms.map((term) => ({
+    ...fixedDecimalParts(term.value),
+    multiplier: term.multiplier,
+  }));
+  const scale = Math.max(...parsed.map((term) => term.scale));
+  const units = parsed.reduce(
+    (sum, term) =>
+      sum +
+      term.units *
+        term.multiplier *
+        10n ** BigInt(scale - term.scale),
+    0n,
+  );
+  if (units === 0n) return new Prisma.Decimal(0);
+
+  const negative = units < 0n;
+  const absolute = (negative ? -units : units)
+    .toString()
+    .padStart(scale + 1, '0');
+  const whole =
+    scale === 0 ? absolute : absolute.slice(0, -scale);
+  const rawFraction =
+    scale === 0 ? '' : absolute.slice(-scale);
+  const fraction = rawFraction.replace(/0+$/, '');
+  const text =
+    (negative ? '-' : '') +
+    whole +
+    (fraction ? '.' + fraction : '');
+  return new Prisma.Decimal(text);
+}
+
 export function sumCostControlDecimals(
   values: Prisma.Decimal[],
 ): Prisma.Decimal {
-  return values.reduce(
-    (sum, value) => sum.plus(value),
-    new Prisma.Decimal(0),
+  return exactCostDecimal(
+    values.map((value) => ({ value, multiplier: 1n })),
   );
+}
+
+function subtractCostControlDecimals(
+  left: Prisma.Decimal,
+  right: Prisma.Decimal,
+): Prisma.Decimal {
+  return exactCostDecimal([
+    { value: left, multiplier: 1n },
+    { value: right, multiplier: -1n },
+  ]);
 }
 
 export function selectOriginalAndCurrentBudget<
@@ -113,7 +172,7 @@ export function splitSubcontractCommitment(
   }
   return {
     allocatedAmount,
-    unallocatedAmount: ceiling.minus(allocatedAmount),
+    unallocatedAmount: subtractCostControlDecimals(ceiling, allocatedAmount),
   };
 }
 
@@ -386,7 +445,7 @@ export class CostControlService {
       const amount = sumCostControlDecimals(
         matchingLines.map((line) => line.amount),
       );
-      procurementCommitted = procurementCommitted.plus(amount);
+      procurementCommitted = sumCostControlDecimals([procurementCommitted, amount]);
       for (const line of matchingLines) {
         this.addDimension(
           dimensionMap,
@@ -414,7 +473,7 @@ export class CostControlService {
       const variationValue = sumCostControlDecimals(
         agreement.variations.map((variation) => variation.valueDelta),
       );
-      const ceiling = agreement.originalValue.plus(variationValue);
+      const ceiling = sumCostControlDecimals([agreement.originalValue, variationValue]);
       const allocation = splitSubcontractCommitment(
         ceiling,
         agreement.workOrders,
@@ -433,11 +492,11 @@ export class CostControlService {
       const includeUnallocated =
         this.matchesDimension(null, null, dimensions);
       const amount = includeUnallocated
-        ? allocatedAmount.plus(allocation.unallocatedAmount)
+        ? sumCostControlDecimals([allocatedAmount, allocation.unallocatedAmount])
         : allocatedAmount;
       if (amount.equals(0)) continue;
 
-      subcontractCommitted = subcontractCommitted.plus(amount);
+      subcontractCommitted = sumCostControlDecimals([subcontractCommitted, amount]);
       for (const workOrder of matchingWorkOrders) {
         this.addDimension(
           dimensionMap,
@@ -496,7 +555,7 @@ export class CostControlService {
       const amount = sumCostControlDecimals(
         matchingItems.map((item) => item.amount),
       );
-      supplierActual = supplierActual.plus(amount);
+      supplierActual = sumCostControlDecimals([supplierActual, amount]);
       for (const item of matchingItems) {
         this.addDimension(
           dimensionMap,
@@ -522,9 +581,10 @@ export class CostControlService {
           certification.currencyCode,
           company.baseCurrencyCode,
         );
-        subcontractActual = subcontractActual.plus(
+        subcontractActual = sumCostControlDecimals([
+          subcontractActual,
           certification.certifiedGross,
-        );
+        ]);
         this.addDimension(
           dimensionMap,
           null,
@@ -555,15 +615,15 @@ export class CostControlService {
             (allocation) => allocation.allocatedAmount,
           ),
         );
-        const eligibleAmount = supplierAmount.plus(subcontractAmount);
+        const eligibleAmount = sumCostControlDecimals([supplierAmount, subcontractAmount]);
         if (eligibleAmount.equals(0)) continue;
         this.assertBaseCurrency(
           'Paid Cost',
           payment.currencyCode,
           company.baseCurrencyCode,
         );
-        supplierPaid = supplierPaid.plus(supplierAmount);
-        subcontractPaid = subcontractPaid.plus(subcontractAmount);
+        supplierPaid = sumCostControlDecimals([supplierPaid, supplierAmount]);
+        subcontractPaid = sumCostControlDecimals([subcontractPaid, subcontractAmount]);
         this.addDimension(
           dimensionMap,
           null,
@@ -589,10 +649,18 @@ export class CostControlService {
       }
     }
 
-    const committedTotal =
-      procurementCommitted.plus(subcontractCommitted);
-    const actualTotal = supplierActual.plus(subcontractActual);
-    const paidTotal = supplierPaid.plus(subcontractPaid);
+    const committedTotal = sumCostControlDecimals([
+      procurementCommitted,
+      subcontractCommitted,
+    ]);
+    const actualTotal = sumCostControlDecimals([
+      supplierActual,
+      subcontractActual,
+    ]);
+    const paidTotal = sumCostControlDecimals([
+      supplierPaid,
+      subcontractPaid,
+    ]);
 
     const wbsById = new Map(
       dimensions.wbsRows.map((row) => [row.id, row]),
@@ -635,23 +703,26 @@ export class CostControlService {
           committedCost: {
             procurement: bucket.procurementCommitted,
             subcontract: bucket.subcontractCommitted,
-            total: bucket.procurementCommitted.plus(
+            total: sumCostControlDecimals([
+              bucket.procurementCommitted,
               bucket.subcontractCommitted,
-            ),
+            ]),
           },
           actualCost: {
             supplier: bucket.supplierActual,
             subcontract: bucket.subcontractActual,
-            total: bucket.supplierActual.plus(
+            total: sumCostControlDecimals([
+              bucket.supplierActual,
               bucket.subcontractActual,
-            ),
+            ]),
           },
           paidCost: {
             supplier: bucket.supplierPaid,
             subcontract: bucket.subcontractPaid,
-            total: bucket.supplierPaid.plus(
+            total: sumCostControlDecimals([
+              bucket.supplierPaid,
               bucket.subcontractPaid,
-            ),
+            ]),
           },
         };
       })
@@ -941,7 +1012,7 @@ export class CostControlService {
       };
       map.set(key, bucket);
     }
-    bucket[field] = bucket[field].plus(amount);
+    bucket[field] = sumCostControlDecimals([bucket[field], amount]);
   }
 
   private assertBaseCurrency(

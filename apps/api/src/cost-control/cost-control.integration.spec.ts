@@ -106,14 +106,28 @@ test('V0.7-A Work Orders allocate within the subcontract ceiling without double 
   );
 });
 
-test('V0.7-A Decimal helper preserves exact financial arithmetic', () => {
+test('V0.7-A Decimal helper preserves exact financial arithmetic beyond Decimal.js default precision', () => {
   assert.equal(
     sumCostControlDecimals([
       new Prisma.Decimal('0.1'),
       new Prisma.Decimal('0.2'),
       new Prisma.Decimal('123456789.12345678'),
-    ]).toString(),
+    ]).toFixed(),
     '123456789.42345678',
+  );
+  assert.equal(
+    sumCostControlDecimals([
+      new Prisma.Decimal('9999999999999999.9999'),
+      new Prisma.Decimal('0.0001'),
+    ]).toFixed(),
+    '10000000000000000',
+  );
+  assert.equal(
+    sumCostControlDecimals([
+      new Prisma.Decimal('999999999999999999999999999999.99999999'),
+      new Prisma.Decimal('0.00000001'),
+    ]).toFixed(),
+    '1000000000000000000000000000000',
   );
 });
 
