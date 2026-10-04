@@ -29,7 +29,7 @@ export function ManagementWorkspace({
         onChange={(_event, value: Mode) => setMode(value)}
       >
         <Tab value="executive" label="Executive" />
-        <Tab value="projects" label="Project Dashboards" />
+        <Tab value="projects" label="Project & Domain Dashboards" />
       </Tabs>
       {mode === 'executive' ? (
         <ExecutivePortfolioDashboard />

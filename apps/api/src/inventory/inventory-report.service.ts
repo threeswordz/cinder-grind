@@ -19,6 +19,21 @@ export type InventoryMovementFilters = {
   postedTo?: Date;
 };
 
+type InventoryBalanceQuantitySummaryRow = {
+  positiveBalanceRowCount: number;
+  negativeBalanceRowCount: number;
+  zeroBalanceRowCount: number;
+};
+
+type InventoryMovementSummaryRow = {
+  movementRowCount: number;
+  latestPostedAt: Date | null;
+  goodsReceiptRowCount: number;
+  materialIssueRowCount: number;
+  materialReturnRowCount: number;
+  stockTransferRowCount: number;
+};
+
 type MovementRow = {
   id: string;
   movementType: string;
@@ -75,6 +90,83 @@ export class InventoryReportService {
     projectIds: string[],
   ) {
     return this.balances.portfolioBalanceSummaries(auth, projectIds);
+  }
+
+  async balanceQuantitySummary(
+    auth: AuthenticatedUserContext,
+    projectId: string,
+  ) {
+    await this.access.assertAccess(auth, projectId);
+    const rows = await this.prisma.$queryRaw<InventoryBalanceQuantitySummaryRow[]>(
+      Prisma.sql`
+        WITH balance_rows AS (
+          SELECT
+            SUM(st.quantity)::DECIMAL(18,4) AS quantity
+          FROM stock_transactions st
+          JOIN warehouses w
+            ON w.id = st.warehouse_id
+           AND w.company_id = st.company_id
+          WHERE st.company_id = ${auth.companyId}::uuid
+            AND st.project_id = ${projectId}::uuid
+            AND w.is_active = TRUE
+          GROUP BY st.warehouse_id, st.material_id, st.uom_id
+        )
+        SELECT
+          COUNT(*) FILTER (WHERE quantity > 0)::INTEGER
+            AS "positiveBalanceRowCount",
+          COUNT(*) FILTER (WHERE quantity < 0)::INTEGER
+            AS "negativeBalanceRowCount",
+          COUNT(*) FILTER (WHERE quantity = 0)::INTEGER
+            AS "zeroBalanceRowCount"
+        FROM balance_rows
+      `,
+    );
+    return (
+      rows[0] ?? {
+        positiveBalanceRowCount: 0,
+        negativeBalanceRowCount: 0,
+        zeroBalanceRowCount: 0,
+      }
+    );
+  }
+
+  async movementSummary(
+    auth: AuthenticatedUserContext,
+    projectId: string,
+  ) {
+    await this.access.assertAccess(auth, projectId);
+    const rows = await this.prisma.$queryRaw<InventoryMovementSummaryRow[]>(
+      Prisma.sql`
+        SELECT
+          COUNT(*)::INTEGER AS "movementRowCount",
+          MAX(st.posted_at) AS "latestPostedAt",
+          COUNT(*) FILTER (
+            WHERE st.goods_receipt_item_id IS NOT NULL
+          )::INTEGER AS "goodsReceiptRowCount",
+          COUNT(*) FILTER (
+            WHERE st.material_issue_item_id IS NOT NULL
+          )::INTEGER AS "materialIssueRowCount",
+          COUNT(*) FILTER (
+            WHERE st.material_return_item_id IS NOT NULL
+          )::INTEGER AS "materialReturnRowCount",
+          COUNT(*) FILTER (
+            WHERE st.stock_transfer_item_id IS NOT NULL
+          )::INTEGER AS "stockTransferRowCount"
+        FROM stock_transactions st
+        WHERE st.company_id = ${auth.companyId}::uuid
+          AND st.project_id = ${projectId}::uuid
+      `,
+    );
+    return (
+      rows[0] ?? {
+        movementRowCount: 0,
+        latestPostedAt: null,
+        goodsReceiptRowCount: 0,
+        materialIssueRowCount: 0,
+        materialReturnRowCount: 0,
+        stockTransferRowCount: 0,
+      }
+    );
   }
 
   async movementReport(

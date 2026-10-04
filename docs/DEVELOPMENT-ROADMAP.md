@@ -1,7 +1,7 @@
 # Construction ERP — Development Roadmap
 
 **Document Status:** Development Roadmap Baseline v0.1  
-**Current Phase:** V0.8 Management — ACTIVE / V0.8-A through V0.8-C COMPLETE / V0.8-D PRE-FLIGHT ACTIVE
+**Current Phase:** V0.8 Management — ACTIVE / V0.8-A through V0.8-C COMPLETE / V0.8-D ACTIVE
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1  
@@ -807,7 +807,7 @@ Completed release: **V0.7 Cost Control — COMPLETE AND ACCEPTED**.
 
 Next release: **V0.8 Management**.
 
-Current stage: **V0.8-D Domain Dashboards — PRE-FLIGHT ACTIVE / IMPLEMENTATION NOT STARTED**.
+Current stage: **V0.8-D Domain Dashboards — ACTIVE**.
 
 Immediate sequence:
 
@@ -825,7 +825,14 @@ Immediate sequence:
 12. PR #173 squash-merged as `a73d11024adc8b7b1373b4c962f924a34e354e20`; post-merge main CI #2888 PASS; Issue #172 CLOSED / COMPLETED.
 13. V0.8-C Executive / Cross-Project Management Dashboard is technically COMPLETE.
 14. Stage-C closure/status PR #174 squash-merged as `9a07a50d377aceec65304aa5881f3610d4cd1205`; post-merge exact-main CI #2901 PASS.
-15. Issue #175 now tracks V0.8-D Domain Dashboards. Pre-flight branch `v0.8-d-preflight` is active; application implementation remains NOT STARTED until the pre-flight merge and post-merge main CI pass.
+15. V0.8-D pre-flight PR #176 squash-merged as `66ef5bfeae9211b6f1ff10772e4698cc3a9cc133`; post-merge exact-main CI #2912 PASS.
+16. Issue #175 / branch `v0.8-d-domain-dashboards` — ACTIVE from that exact green main.
+17. Initial Stage-D implementation provides dedicated Schedule / Procurement / Inventory / Cost / Finance Management tabs over the existing canonical Project summary, with protected source drilldown retained behind owning-module permissions and no duplicate source truth.
+18. PR #177 ready-for-review head `8352b43394abc70952569136d629abf473328cc8` passed CI #2937; first DEC-022 review identified two genuine P1 gaps under AC-V08-008 and AC-V08-010.
+19. Inventory balance/movement visibility and Finance AP/AR visibility were remediated through canonical source composition; material remediation head `a3302ca2eca4eea88af9d49bd7ebe83109e23eb0` passed CI #2951 including authenticated live acceptance.
+20. The two P1 threads were resolved; fresh DEC-022 re-review on `6fb4e23859ead102ee2b167b31c85de5809fae59` found one genuine P2: Management movement totals could not reliably reconcile to the canonical Inventory movement report after its 2,000-row result cap.
+21. P2 remediation head `11f955f6cfbfe056b8f088faa9da29937ca6b2eb` exposes/reconciles the canonical total movement count while retaining the report's bounded row payload; exact-head CI #2955 PASS.
+22. All known implementation and documentation review findings are resolved. Current Stage-D gate: documentation-synchronized exact-head CI → fresh exact-head DEC-022 re-review → squash merge only if clean → post-merge exact-main CI → Issue #175 closure. V0.8-E must not begin before these predecessor gates complete.
 
 
 # 23. Baseline Decision

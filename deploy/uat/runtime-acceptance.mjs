@@ -8539,6 +8539,22 @@ const managementCashFlow = await request(
   pm,
   '/finance/projects/' + projectId + '/cash-flow',
 );
+const managementAccountsPayable = await request(
+  pm,
+  '/finance/projects/' + projectId + '/accounts-payable',
+);
+const managementAccountsReceivable = await request(
+  pm,
+  '/finance/projects/' + projectId + '/accounts-receivable',
+);
+const managementInventoryBalanceSummary = await request(
+  pm,
+  '/inventory/reports/balance-quantity-summary?projectId=' + projectId,
+);
+const managementInventoryMovementSummary = await request(
+  pm,
+  '/inventory/reports/movement-summary?projectId=' + projectId,
+);
 const managementSummary = await request(
   pm,
   '/management/projects/' + projectId + '/summary?asOf=2026-10-10&days=14',
@@ -8558,8 +8574,37 @@ check(
     Number(managementSummary.data.data.domains?.cost?.revisedBudget) ===
       Number(restoredCostControl.data.data.totals.revisedBudget) &&
     Number(managementSummary.data.data.domains?.finance?.netCashFlow) ===
-      Number(managementCashFlow.data.data.totals.netCashFlow),
-  'V0.8-A Management summary did not reconcile to canonical Schedule, Procurement, Cost Control and Cash Flow measures.',
+      Number(managementCashFlow.data.data.totals.netCashFlow) &&
+    Number(managementSummary.data.data.domains?.finance?.accountsPayable?.outstandingAmount) ===
+      managementAccountsPayable.data.data.reduce(
+        (sum, row) => sum + Number(row.outstandingAmount),
+        0,
+      ) &&
+    Number(managementSummary.data.data.domains?.finance?.accountsReceivable?.outstandingAmount) ===
+      managementAccountsReceivable.data.data.reduce(
+        (sum, row) => sum + Number(row.outstandingAmount),
+        0,
+      ) &&
+    managementSummary.data.data.domains?.inventory?.positiveBalanceRowCount ===
+      managementInventoryBalanceSummary.data.data.positiveBalanceRowCount &&
+    managementSummary.data.data.domains?.inventory?.negativeBalanceRowCount ===
+      managementInventoryBalanceSummary.data.data.negativeBalanceRowCount &&
+    managementSummary.data.data.domains?.inventory?.zeroBalanceRowCount ===
+      managementInventoryBalanceSummary.data.data.zeroBalanceRowCount &&
+    managementSummary.data.data.domains?.inventory?.movementRowCount ===
+      managementInventoryMovementSummary.data.data.movementRowCount &&
+    managementSummary.data.data.domains?.inventory?.movementSources?.goodsReceipt ===
+      managementInventoryMovementSummary.data.data.goodsReceiptRowCount &&
+    managementSummary.data.data.domains?.inventory?.movementSources?.materialIssue ===
+      managementInventoryMovementSummary.data.data.materialIssueRowCount &&
+    managementSummary.data.data.domains?.inventory?.movementSources?.materialReturn ===
+      managementInventoryMovementSummary.data.data.materialReturnRowCount &&
+    managementSummary.data.data.domains?.inventory?.movementSources?.stockTransfer ===
+      managementInventoryMovementSummary.data.data.stockTransferRowCount &&
+    Number(managementSummary.data.data.domains?.inventory?.balanceRowCount) >= 0 &&
+    managementSummary.data.data.domains?.inventory?.quantityAggregation ===
+      'NOT_APPLICABLE_MIXED_MATERIAL_AND_UOM_DIMENSIONS',
+  'V0.8-D Management summary did not reconcile canonical Inventory balance/movement and Finance AP/AR/Payment/Cash Flow measures.',
 );
 check(
   managementSummary.data.data.boundaries?.readOnlyComposition === true &&
@@ -8633,7 +8678,8 @@ check(
     managementPortfolio.data.data.boundaries?.perProjectAuthorizationFanOut === false &&
     managementPortfolio.data.data.boundaries?.deterministicHealthSignals === true &&
     managementPortfolio.data.data.boundaries?.overallHealthSeverityPolicyApproved === false &&
-    managementPortfolio.data.data.boundaries?.manualHealthOverride === false,
+    managementPortfolio.data.data.boundaries?.manualHealthOverride === false &&
+    managementPortfolio.data.data.deferredToLaterStages?.domainDashboards === false,
   'V0.8-C Executive portfolio did not reconcile bounded canonical source signals without inventing an overall severity policy.',
 );
 const portfolioProtectedDetailPaths = findProtectedDetailPaths(
@@ -8662,6 +8708,7 @@ await request(
 record('V0.8-A Management read-model contract composes canonical Schedule/Procurement/Inventory/Cost/Finance aggregates, preserves source-detail boundaries and enforces Management/Project authorization');
 record('V0.8-B Management Project selector preserves dashboard permission and effective Project scope');
 record('V0.8-C Executive portfolio composes authorized cross-Project progress, delayed/critical/lookahead schedule signals, procurement/site/inventory, cost, cash and profitability without protected-detail leakage or an unapproved overall severity policy');
+record('V0.8-D dedicated Schedule/Procurement/Inventory/Cost/Finance dashboards reuse canonical Schedule/Procurement, Inventory balance/movement, Cost Control and Finance AP/AR/Payment/Cash Flow semantics, preserve permission boundaries and keep cash flow distinct from Paid Cost');
 
 await logout(v07Restricted);
 await logout(pm);

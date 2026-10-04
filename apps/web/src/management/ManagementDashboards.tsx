@@ -21,7 +21,14 @@ import {
 import { ProjectEngineerDashboard } from '../reporting/ProjectEngineerDashboard';
 import { GanttLookaheadPanel } from '../scheduling/GanttLookaheadPanel';
 
-type DashboardMode = 'engineer' | 'manager';
+type DashboardMode =
+  | 'engineer'
+  | 'manager'
+  | 'schedule'
+  | 'procurement'
+  | 'inventory'
+  | 'cost'
+  | 'finance';
 
 function localDateValue(date = new Date()) {
   const year = date.getFullYear();
@@ -159,7 +166,7 @@ function ProcurementCard({
 }) {
   const procurement = summary.domains.procurement.summary;
   return (
-    <MetricCard title="Procurement risk">
+    <MetricCard title="Procurement">
       <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
         <Chip label={'Demand lines ' + procurement.total} variant="outlined" />
         <Chip label={'At risk ' + procurement.AT_RISK} variant="outlined" />
@@ -173,8 +180,47 @@ function ProcurementCard({
         />
       </Stack>
       <Typography variant="body2" color="text.secondary">
-        Risk reuses canonical Required-on-Site versus Expected Delivery
-        semantics.
+        Risk reuses canonical PROC-019 Required-on-Site versus Expected
+        Delivery semantics; Management does not calculate a second risk score.
+      </Typography>
+    </MetricCard>
+  );
+}
+
+function InventoryCard({
+  summary,
+}: {
+  summary: ManagementProjectSummary;
+}) {
+  const inventory = summary.domains.inventory;
+  return (
+    <MetricCard title="Inventory">
+      <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+        <Chip label={'Balance rows ' + inventory.balanceRowCount} variant="outlined" />
+        <Chip
+          label={'Positive balances ' + inventory.positiveBalanceRowCount}
+          variant="outlined"
+        />
+        <Chip
+          label={'Negative balances ' + inventory.negativeBalanceRowCount}
+          variant="outlined"
+        />
+        <Chip label={'Movements ' + inventory.movementRowCount} variant="outlined" />
+        <Chip label={'Warehouses ' + inventory.warehouseCount} variant="outlined" />
+        <Chip label={'Materials ' + inventory.materialCount} variant="outlined" />
+        <Chip label={'UOMs ' + inventory.uomCount} variant="outlined" />
+      </Stack>
+      <Typography variant="body2" color="text.secondary">
+        Latest movement: {dateValue(inventory.latestMovementAt)} · Goods receipt{' '}
+        {inventory.movementSources.goodsReceipt} · Issue{' '}
+        {inventory.movementSources.materialIssue} · Return{' '}
+        {inventory.movementSources.materialReturn} · Transfer{' '}
+        {inventory.movementSources.stockTransfer}
+      </Typography>
+      <Typography variant="body2" color="text.secondary">
+        Balance signs and movement counts reuse canonical Inventory transactions.
+        No inventory valuation or cross-material quantity total is invented by
+        Management.
       </Typography>
     </MetricCard>
   );
@@ -187,8 +233,11 @@ function CostCard({
 }) {
   const cost = summary.domains.cost;
   return (
-    <MetricCard title="Cost Control position">
+    <MetricCard title="Cost Control">
       <Stack spacing={0.5}>
+        <Typography variant="body2">
+          Original budget: {money(summary.baseCurrencyCode, cost.originalBudget)}
+        </Typography>
         <Typography variant="body2">
           Revised budget: {money(summary.baseCurrencyCode, cost.revisedBudget)}
         </Typography>
@@ -200,6 +249,18 @@ function CostCard({
         </Typography>
         <Typography variant="body2">
           Paid: {money(summary.baseCurrencyCode, cost.paidCost)}
+        </Typography>
+        <Typography variant="body2">
+          Remaining commitment:{' '}
+          {money(summary.baseCurrencyCode, cost.remainingCommitment)}
+        </Typography>
+        <Typography variant="body2">
+          Uncommitted ETC:{' '}
+          {money(summary.baseCurrencyCode, cost.uncommittedEtc)}
+        </Typography>
+        <Typography variant="body2">
+          Cost to complete:{' '}
+          {money(summary.baseCurrencyCode, cost.costToComplete)}
         </Typography>
         <Typography variant="body2">
           Forecast cost: {money(summary.baseCurrencyCode, cost.forecastCost)}
@@ -219,8 +280,16 @@ function CommercialCard({
 }) {
   const commercial = summary.domains.cost.commercial;
   return (
-    <MetricCard title="Commercial & cash">
+    <MetricCard title="Revenue & profit">
       <Stack spacing={0.5}>
+        <Typography variant="body2">
+          Original contract:{' '}
+          {money(summary.baseCurrencyCode, commercial.originalContractValue)}
+        </Typography>
+        <Typography variant="body2">
+          Approved variations:{' '}
+          {money(summary.baseCurrencyCode, commercial.approvedVariationValue)}
+        </Typography>
         <Typography variant="body2">
           Revised contract:{' '}
           {money(summary.baseCurrencyCode, commercial.revisedContractValue)}
@@ -241,16 +310,91 @@ function CommercialCard({
           Forecast profit:{' '}
           {money(summary.baseCurrencyCode, commercial.forecastProfit)}
         </Typography>
-        <Divider />
-        <Typography variant="body2">
-          Net cash flow:{' '}
-          {money(
-            summary.baseCurrencyCode,
-            summary.domains.finance.netCashFlow,
-          )}
-        </Typography>
       </Stack>
     </MetricCard>
+  );
+}
+
+function FinanceCard({
+  summary,
+}: {
+  summary: ManagementProjectSummary;
+}) {
+  const finance = summary.domains.finance;
+  const cost = summary.domains.cost;
+  return (
+    <MetricCard title="Finance & cash flow">
+      <Stack spacing={0.5}>
+        <Typography variant="body2">
+          Accounts payable outstanding:{' '}
+          {money(
+            summary.baseCurrencyCode,
+            finance.accountsPayable.outstandingAmount,
+          )}{' '}
+          · {finance.accountsPayable.outstandingInvoiceCount} unpaid of{' '}
+          {finance.accountsPayable.approvedInvoiceCount} approved
+        </Typography>
+        <Typography variant="body2">
+          Accounts receivable outstanding:{' '}
+          {money(
+            summary.baseCurrencyCode,
+            finance.accountsReceivable.outstandingAmount,
+          )}{' '}
+          · {finance.accountsReceivable.outstandingInvoiceCount} unpaid of{' '}
+          {finance.accountsReceivable.approvedInvoiceCount} approved
+        </Typography>
+        <Divider />
+        <Typography variant="body2">
+          Cash inflow: {money(summary.baseCurrencyCode, finance.inflowAmount)}
+        </Typography>
+        <Typography variant="body2">
+          Cash outflow: {money(summary.baseCurrencyCode, finance.outflowAmount)}
+        </Typography>
+        <Typography variant="body2">
+          Net cash flow: {money(summary.baseCurrencyCode, finance.netCashFlow)}
+        </Typography>
+        <Divider />
+        <Typography variant="body2">
+          Paid Cost (separate Cost Control measure):{' '}
+          {money(summary.baseCurrencyCode, cost.paidCost)}
+        </Typography>
+        <Typography variant="body2">
+          Cash received (commercial measure):{' '}
+          {money(summary.baseCurrencyCode, cost.commercial.cashReceived)}
+        </Typography>
+      </Stack>
+      <Typography variant="body2" color="text.secondary">
+        Accounts Payable, Accounts Receivable and Project Cash Flow remain
+        canonical V0.6 positions. Cash Flow is not relabelled as Paid Cost.
+      </Typography>
+    </MetricCard>
+  );
+}
+
+function ScheduleDetail({
+  projectId,
+  canViewGantt,
+}: {
+  projectId: string;
+  canViewGantt: boolean;
+}) {
+  return (
+    <Card variant="outlined">
+      <CardContent>
+        <Stack spacing={2}>
+          <Typography variant="subtitle1">Gantt, progress & lookahead</Typography>
+          {canViewGantt ? (
+            <GanttLookaheadPanel fixedProjectId={projectId} hideTitle />
+          ) : (
+            <Alert severity="info">
+              Aggregate Management schedule indicators are available, but
+              detailed Gantt/activity drilldown requires the owning Scheduling
+              permission <strong>schedule.programme.view</strong>.
+            </Alert>
+          )}
+        </Stack>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -285,16 +429,25 @@ export function ManagementDashboards({
       <Stack spacing={0.5}>
         <Typography variant="h6">Management Dashboards</Typography>
         <Typography variant="body2" color="text.secondary">
-          V0.8-B read-only Project dashboards over canonical ERP sources.
+          V0.8-D read-only Project and domain dashboards over canonical ERP
+          sources.
         </Typography>
       </Stack>
 
       <Tabs
         value={mode}
         onChange={(_event, value: DashboardMode) => setMode(value)}
+        variant="scrollable"
+        scrollButtons="auto"
+        allowScrollButtonsMobile
       >
         <Tab value="engineer" label="Project Engineer" />
         <Tab value="manager" label="Project Manager" />
+        <Tab value="schedule" label="Schedule" />
+        <Tab value="procurement" label="Procurement" />
+        <Tab value="inventory" label="Inventory" />
+        <Tab value="cost" label="Cost" />
+        <Tab value="finance" label="Finance" />
       </Tabs>
 
       <Stack direction={{ xs: 'column', md: 'row' }} spacing={1}>
@@ -384,48 +537,72 @@ export function ManagementDashboards({
                         Aggregate Management indicators are available, but
                         current-work, activity-progress, lookahead and Daily
                         Site Report execution detail requires the owning
-                        Reporting permission
-                        <strong> reporting.operational.view</strong>.
+                        Reporting permission{' '}
+                        <strong>reporting.operational.view</strong>.
                       </Alert>
                     )}
                   </Stack>
                 </CardContent>
               </Card>
             </>
-          ) : (
+          ) : null}
+
+          {mode === 'manager' ? (
             <>
               <Stack direction="row" spacing={2} useFlexGap flexWrap="wrap">
                 <ScheduleCard summary={summary} />
                 <ProcurementCard summary={summary} />
                 <SiteCard summary={summary} />
+                <InventoryCard summary={summary} />
                 <CostCard summary={summary} />
+                <FinanceCard summary={summary} />
                 <CommercialCard summary={summary} />
               </Stack>
-
-              <Card variant="outlined">
-                <CardContent>
-                  <Stack spacing={2}>
-                    <Typography variant="subtitle1">
-                      Gantt, progress & lookahead
-                    </Typography>
-                    {canViewGantt ? (
-                      <GanttLookaheadPanel
-                        fixedProjectId={projectId}
-                        hideTitle
-                      />
-                    ) : (
-                      <Alert severity="info">
-                        The Management dashboard can show schedule aggregates,
-                        but detailed Gantt/activity drilldown requires the
-                        owning Scheduling permission
-                        <strong> schedule.programme.view</strong>.
-                      </Alert>
-                    )}
-                  </Stack>
-                </CardContent>
-              </Card>
+              <ScheduleDetail
+                projectId={projectId}
+                canViewGantt={canViewGantt}
+              />
             </>
-          )}
+          ) : null}
+
+          {mode === 'schedule' ? (
+            <>
+              <Stack direction="row" spacing={2} useFlexGap flexWrap="wrap">
+                <ScheduleCard summary={summary} />
+                <SiteCard summary={summary} />
+              </Stack>
+              <ScheduleDetail
+                projectId={projectId}
+                canViewGantt={canViewGantt}
+              />
+            </>
+          ) : null}
+
+          {mode === 'procurement' ? (
+            <Stack direction="row" spacing={2} useFlexGap flexWrap="wrap">
+              <ProcurementCard summary={summary} />
+            </Stack>
+          ) : null}
+
+          {mode === 'inventory' ? (
+            <Stack direction="row" spacing={2} useFlexGap flexWrap="wrap">
+              <InventoryCard summary={summary} />
+            </Stack>
+          ) : null}
+
+          {mode === 'cost' ? (
+            <Stack direction="row" spacing={2} useFlexGap flexWrap="wrap">
+              <CostCard summary={summary} />
+              <CommercialCard summary={summary} />
+            </Stack>
+          ) : null}
+
+          {mode === 'finance' ? (
+            <Stack direction="row" spacing={2} useFlexGap flexWrap="wrap">
+              <FinanceCard summary={summary} />
+              <CommercialCard summary={summary} />
+            </Stack>
+          ) : null}
 
           <SourceBoundary summary={summary} />
         </>

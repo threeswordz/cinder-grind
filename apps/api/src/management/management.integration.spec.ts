@@ -8,6 +8,8 @@ import { AuthenticatedUserContext } from '../auth/auth.types';
 import { REQUIRED_PERMISSIONS_KEY } from '../authorization/permissions.decorator';
 import { CostControlService } from '../cost-control/cost-control.service';
 import { CashFlowService } from '../finance/cash-flow.service';
+import { ClientInvoiceService } from '../finance/client-invoice.service';
+import { FinanceService } from '../finance/finance.service';
 import { InventoryReportService } from '../inventory/inventory-report.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProjectAccessService } from '../projects/project-access.service';
@@ -184,12 +186,50 @@ test('V0.8-A Project summary composes aggregate-only canonical source contracts'
     }),
   } as unknown as CashFlowService;
 
+  const finance = {
+    accountsPayable: async () => [
+      {
+        currencyCode: 'SGD',
+        outstandingAmount: decimal('60.00'),
+        secretSupplierInvoiceDetail: 'must-not-leak',
+      },
+      {
+        currencyCode: 'SGD',
+        outstandingAmount: decimal('0.00'),
+      },
+    ],
+  } as unknown as FinanceService;
+
+  const clientInvoices = {
+    accountsReceivable: async () => [
+      {
+        currencyCode: 'SGD',
+        outstandingAmount: decimal('120.00'),
+        secretClientInvoiceDetail: 'must-not-leak',
+      },
+    ],
+  } as unknown as ClientInvoiceService;
+
   const inventory = {
     balanceSummary: async () => ({
       balanceRowCount: 1250,
       warehouseCount: 12,
       materialCount: 347,
       uomCount: 5,
+    }),
+    balanceQuantitySummary: async () => ({
+      positiveBalanceRowCount: 1200,
+      negativeBalanceRowCount: 50,
+      zeroBalanceRowCount: 0,
+    }),
+    movementSummary: async () => ({
+      movementRowCount: 42,
+      latestPostedAt: new Date('2026-10-03T10:00:00.000Z'),
+      goodsReceiptRowCount: 10,
+      materialIssueRowCount: 20,
+      materialReturnRowCount: 5,
+      stockTransferRowCount: 7,
+      secretMovementDetail: 'must-not-leak',
     }),
     balanceReport: async () => {
       throw new Error(
@@ -204,6 +244,8 @@ test('V0.8-A Project summary composes aggregate-only canonical source contracts'
     reporting,
     costControl,
     cashFlow,
+    finance,
+    clientInvoices,
     inventory,
   );
 
@@ -227,7 +269,16 @@ test('V0.8-A Project summary composes aggregate-only canonical source contracts'
   assert.equal(result.domains.inventory.warehouseCount, 12);
   assert.equal(result.domains.inventory.materialCount, 347);
   assert.equal(result.domains.inventory.uomCount, 5);
+  assert.equal(result.domains.inventory.positiveBalanceRowCount, 1200);
+  assert.equal(result.domains.inventory.negativeBalanceRowCount, 50);
+  assert.equal(result.domains.inventory.movementRowCount, 42);
+  assert.equal(result.domains.inventory.latestMovementAt, '2026-10-03');
+  assert.equal(result.domains.inventory.movementSources.materialIssue, 20);
   assert.equal(result.domains.cost.forecastCost, '600');
+  assert.equal(result.domains.finance.accountsPayable.approvedInvoiceCount, 2);
+  assert.equal(result.domains.finance.accountsPayable.outstandingInvoiceCount, 1);
+  assert.equal(result.domains.finance.accountsPayable.outstandingAmount, '60');
+  assert.equal(result.domains.finance.accountsReceivable.outstandingAmount, '120');
   assert.equal(result.domains.finance.netCashFlow, '560');
   assert.equal(result.sourceTraceability.cost.sourceViewAvailable, false);
   assert.equal(
@@ -241,6 +292,9 @@ test('V0.8-A Project summary composes aggregate-only canonical source contracts'
   assert.equal(serialized.includes('sourceEvidence'), false);
   assert.equal(serialized.includes('activities'), false);
   assert.equal(serialized.includes('rows'), false);
+  assert.equal(serialized.includes('secretSupplierInvoiceDetail'), false);
+  assert.equal(serialized.includes('secretClientInvoiceDetail'), false);
+  assert.equal(serialized.includes('secretMovementDetail'), false);
 });
 
 test('V0.8-A Project summary fails before source composition when Project access is denied', async () => {
@@ -266,6 +320,8 @@ test('V0.8-A Project summary fails before source composition when Project access
     reporting,
     {} as CostControlService,
     {} as CashFlowService,
+    {} as FinanceService,
+    {} as ClientInvoiceService,
     {} as InventoryReportService,
   );
 
@@ -455,6 +511,8 @@ test('V0.8-C Portfolio uses bounded canonical source reads and exposes source si
     reporting,
     costControl,
     cashFlow,
+    {} as FinanceService,
+    {} as ClientInvoiceService,
     inventory,
   );
 
@@ -512,6 +570,7 @@ test('V0.8-C Portfolio uses bounded canonical source reads and exposes source si
   assert.equal(result.boundaries.perProjectAuthorizationFanOut, false);
   assert.equal(result.boundaries.deterministicHealthSignals, true);
   assert.equal(result.boundaries.overallHealthSeverityPolicyApproved, false);
+  assert.equal(result.deferredToLaterStages.domainDashboards, false);
   const serializedPortfolio = JSON.stringify(result);
   assert.equal(serializedPortfolio.includes('sourceEvidence'), false);
   assert.equal(serializedPortfolio.includes('generalRemarks'), false);
@@ -547,6 +606,8 @@ test('V0.8-B Management Project selector applies effective Project scope before 
     {} as ReportingService,
     {} as CostControlService,
     {} as CashFlowService,
+    {} as FinanceService,
+    {} as ClientInvoiceService,
     {} as InventoryReportService,
   );
 

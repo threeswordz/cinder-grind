@@ -15,6 +15,7 @@ import { PermissionGuard } from '../authorization/permission.guard';
 import { RequirePermissions } from '../authorization/permissions.decorator';
 import {
   inventoryInvalid,
+  inventoryUuid,
   optionalInventoryUuid,
 } from './inventory-validation';
 import {
@@ -102,6 +103,36 @@ export class InventoryReportController {
     if (inactive !== undefined) filters.includeInactiveWarehouses = inactive;
     if (zero !== undefined) filters.includeZero = zero;
     return { data: await this.reports.balanceReport(authOf(request), filters) };
+  }
+
+  @Get('balance-quantity-summary')
+  @UseGuards(AuthGuard, PermissionGuard)
+  @RequirePermissions('inventory.report.view')
+  async balanceQuantitySummary(
+    @Req() request: AuthenticatedRequest,
+    @Query('projectId') projectId: unknown,
+  ) {
+    return {
+      data: await this.reports.balanceQuantitySummary(
+        authOf(request),
+        inventoryUuid(projectId, 'projectId'),
+      ),
+    };
+  }
+
+  @Get('movement-summary')
+  @UseGuards(AuthGuard, PermissionGuard)
+  @RequirePermissions('inventory.report.view')
+  async movementSummary(
+    @Req() request: AuthenticatedRequest,
+    @Query('projectId') projectId: unknown,
+  ) {
+    return {
+      data: await this.reports.movementSummary(
+        authOf(request),
+        inventoryUuid(projectId, 'projectId'),
+      ),
+    };
   }
 
   @Get('movements')

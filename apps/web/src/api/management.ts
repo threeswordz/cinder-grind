@@ -62,6 +62,17 @@ export type ManagementProjectSummary = {
       warehouseCount: number;
       materialCount: number;
       uomCount: number;
+      positiveBalanceRowCount: number;
+      negativeBalanceRowCount: number;
+      zeroBalanceRowCount: number;
+      movementRowCount: number;
+      latestMovementAt: string | null;
+      movementSources: {
+        goodsReceipt: number;
+        materialIssue: number;
+        materialReturn: number;
+        stockTransfer: number;
+      };
       quantityAggregation: string;
     };
     cost: {
@@ -89,6 +100,16 @@ export type ManagementProjectSummary = {
     };
     finance: {
       status: 'AVAILABLE';
+      accountsPayable: {
+        approvedInvoiceCount: number;
+        outstandingInvoiceCount: number;
+        outstandingAmount: string;
+      };
+      accountsReceivable: {
+        approvedInvoiceCount: number;
+        outstandingInvoiceCount: number;
+        outstandingAmount: string;
+      };
       inflowAmount: string;
       outflowAmount: string;
       netCashFlow: string;
