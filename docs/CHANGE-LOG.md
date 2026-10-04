@@ -1,3 +1,12 @@
+## 2026-10-04 — V0.8 Management entry-gate proposal prepared
+
+- V0.7 Cost Control is COMPLETE AND ACCEPTED; final closure PR #159 merged as `668a855bd71cebe21e3a38afc40188377163fb69` and post-merge main CI #2663 passed.
+- Issue #160 opened for the V0.8 Management release-entry gate.
+- Proposed package prepared: `V0.8-SCOPE.md`, AC-V08-001–040, BR-V08-01–16 / D08-01–12, data/API/security/test baseline and V0.8-A–E stage decomposition.
+- Core proposed architecture: read-only/derived management dashboards and cross-module reporting over canonical source modules; no second KPI/financial/operational source of truth.
+- Proposed deferrals include predictive/ML analytics, data warehouse/OLAP, persistent KPI snapshots, FX, GL/statutory accounting, synthetic allocation, paid BI services and advanced scheduled/report-designer scope.
+- **Product / Business Owner approval is pending. V0.8 implementation has not started and is not authorized by this proposal.**
+
 ## 2026-10-04 — V0.7 Cost Control release closure complete
 
 - Product / Business Owner acceptance under AC-V07-051 and AC-V07-052 was recorded in PR #158.
