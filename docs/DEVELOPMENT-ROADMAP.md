@@ -575,7 +575,7 @@ Dependencies:
 
 Budget, Procurement, Subcontracts and Finance.
 
-**Entry baseline:** APPROVED and CLOSED under DEC-024. PR #138 merged; post-merge main CI #2417 passed; Issue #137 closed. V0.7-A through V0.7-E are technically complete. V0.7-E PR #153 merged as `3db10a025aa996d2721cd5387b752d314a1753dc`; post-merge main CI #2611 passed; Issue #151 closed completed. AC-V07-051/052 remain the release-exit gates.
+**Entry baseline:** APPROVED and CLOSED under DEC-024. PR #138 merged; post-merge main CI #2417 passed; Issue #137 closed. V0.7-A through V0.7-E are complete. Product / Business Owner accepted AC-V07-051/052 on 2026-10-04; acceptance-record PR #158 merged as `32ffab318066bec6fad770f5419cfd1942d9556d`; post-merge main CI #2637 passed; Issue #157 closed completed. **V0.7 Cost Control is COMPLETE AND ACCEPTED.**
 
 Approved capabilities:
 
