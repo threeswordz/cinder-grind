@@ -608,7 +608,7 @@ Critical rules:
 - Committed Cost, Actual Cost and Paid Cost remain separate measures.
 - Source modules retain ownership; no second editable cost ledger.
 - Goods Receipt/Inventory does not independently create Actual Cost.
-- Human V0.7 UAT/business acceptance remains mandatory at release exit; DEC-023 is not reusable.
+- Human V0.7 UAT/business acceptance was mandatory at release exit and is now satisfied under AC-V07-051/052; DEC-023 was not reused.
 
 Planning estimate: **24–37 engineering days**, plus a separate Product / Business Owner UAT/acceptance window.
 
