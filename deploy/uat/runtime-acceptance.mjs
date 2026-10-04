@@ -8485,6 +8485,11 @@ await request(admin, '/management/projects/' + projectId + '/summary?asOf=2026-1
 });
 await request(admin, '/management/portfolio', { expected: 403 });
 
+await request(
+  pm,
+  '/management/projects/' + projectId + '/summary',
+  { expected: 422 },
+);
 const managementCashFlow = await request(
   pm,
   '/finance/projects/' + projectId + '/cash-flow',
@@ -8521,9 +8526,9 @@ check(
 );
 check(
   Object.values(managementSummary.data.data.sourceTraceability ?? {}).every(
-    (source) => source.detailPolicy === 'SOURCE_PERMISSION_REQUIRED',
+    (source) => source.protectedDetailPolicy === 'OWNING_MODULE_PERMISSION_REQUIRED',
   ),
-  'V0.8-A Management source traceability did not preserve source-permission policy.',
+  'V0.8-A Management source traceability did not preserve owning-module source-detail policy.',
 );
 const serializedManagement = JSON.stringify(managementSummary.data.data);
 check(
