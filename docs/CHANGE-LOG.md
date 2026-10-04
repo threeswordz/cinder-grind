@@ -1,3 +1,10 @@
+## 2026-10-04 — V0.7-E final material candidate and review closure evidence
+
+- Final reviewed material candidate `bcb1055461a0fb4649268ccfcd7391a02da819ba` passed exact-head push CI #2607 and PR CI #2608, including full workspace regression and authenticated live acceptance.
+- DEC-022 review findings were addressed in-scope: RPT-009 cache invalidation after Direct Cost/Forecast/Project Variation mutations; authorized source-record rendering while sanitized evidence remains omitted; archived Projects retained when canonical Budget/PO/Subcontract/Invoice/Payment/Direct Cost/Forecast/Variation history exists; and archived Projects with nonzero Project-owned contract value remain reachable.
+- The latest Codex pass on `bcb1055461` found release-evidence references still pointed to the older candidate. This documentation-only reconciliation updates CURRENT-STATE, Stage-E evidence, UAT evidence and the change log to the true final green material head.
+- AC-V07-051 human UAT and AC-V07-052 explicit Product / Business Owner acceptance remain pending and cannot be self-completed.
+
 ## 2026-10-04 — V0.7-E stable material PR gate
 
 - Runtime/test candidate `eb6f6cc32bd96eebf22e880047e954fee4ae71ac` passed exact-head push CI #2597, including migration/status, Prisma/schema validation, dependency audit, full workspace regression, CI UAT bootstrap and authenticated live acceptance.
