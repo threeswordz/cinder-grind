@@ -200,6 +200,9 @@ export function CostControlWorkspace({ permissions }: Props) {
       queryClient.invalidateQueries({
         queryKey: ['cost-control-read-model', projectId],
       }),
+      queryClient.invalidateQueries({
+        queryKey: ['cost-control-rpt009', projectId],
+      }),
       ...(id
         ? [
             queryClient.invalidateQueries({
@@ -1239,6 +1242,9 @@ function ForecastPanel({
       queryClient.invalidateQueries({ queryKey: ['cost-forecasts', projectId] }),
       queryClient.invalidateQueries({
         queryKey: ['cost-control-read-model', projectId],
+      }),
+      queryClient.invalidateQueries({
+        queryKey: ['cost-control-rpt009', projectId],
       }),
       ...(id
         ? [

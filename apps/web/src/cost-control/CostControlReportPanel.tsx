@@ -27,6 +27,18 @@ function message(error: unknown) {
   return 'The report could not be loaded.';
 }
 
+function sourceRecordText(record: Record<string, unknown>) {
+  return Object.entries(record)
+    .map(([key, value]) => {
+      if (value === null) return key + ': null';
+      if (typeof value === 'object') {
+        return key + ': ' + JSON.stringify(value);
+      }
+      return key + ': ' + String(value);
+    })
+    .join(' · ');
+}
+
 export function CostControlReportPanel({
   projectId,
   canView,
@@ -216,7 +228,27 @@ export function CostControlReportPanel({
                       <TableCell>{evidence.canonicalOwner}</TableCell>
                       <TableCell align="right">{evidence.recordCount}</TableCell>
                       <TableCell>
-                        {evidence.recordsVisible ? 'Authorized' : 'Sanitized'}
+                        {!evidence.recordsVisible ? (
+                          'Sanitized'
+                        ) : evidence.records?.length ? (
+                          <Stack spacing={0.5}>
+                            {evidence.records.map((record, index) => (
+                              <Typography
+                                key={measure + '-source-' + index}
+                                variant="caption"
+                                component="div"
+                                sx={{
+                                  fontFamily: 'monospace',
+                                  overflowWrap: 'anywhere',
+                                }}
+                              >
+                                {sourceRecordText(record)}
+                              </Typography>
+                            ))}
+                          </Stack>
+                        ) : (
+                          'Authorized · no matching records'
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}
