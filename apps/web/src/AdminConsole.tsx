@@ -61,7 +61,7 @@ export function AdminConsole({ user }: { user: CurrentUser }) {
         {
           key: 'management',
           label: 'Management',
-          permission: 'management.dashboard.view',
+          permission: '__management__',
           content: <ManagementDashboards permissions={user.permissions} />,
         },
         {
@@ -239,7 +239,14 @@ export function AdminConsole({ user }: { user: CurrentUser }) {
           content: <SystemSettingsPanel />,
         },
       ].filter((section) =>
-        section.permission === '__cost_control__'
+        section.permission === '__management__'
+          ? user.permissions.some((permission) =>
+              [
+                'management.dashboard.view',
+                'management.portfolio.view',
+              ].includes(permission),
+            )
+          : section.permission === '__cost_control__'
           ? user.permissions.some(
               (permission) =>
                 permission === 'cost.control.view' ||
