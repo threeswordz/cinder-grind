@@ -47,10 +47,8 @@ test('V0.7-A Budget and PO currency checks work without other Finance sources', 
         subcontractCertification: { findMany: async () => [] },
         payment: { findMany: async () => [] },
         directCostPosting: { findMany: async () => [] },
-        projectVariation: {
-      findMany: async () => [{ projectId: 'variation-only-project' }],
-    },
-    clientInvoice: { findMany: async () => [] },
+        projectVariation: { findMany: async () => [] },
+        clientInvoice: { findMany: async () => [] },
     costForecast: { findFirst: async () => null },
       };
       const service = new CostControlService(prisma as unknown as PrismaService,
@@ -349,7 +347,9 @@ test('V0.7-E reporting keeps descendant WBS values and explicit Unallocated dime
         },
       ],
     },
-    projectVariation: { findMany: async () => [] },
+    projectVariation: {
+      findMany: async () => [{ projectId: 'variation-only-project' }],
+    },
     clientInvoice: { findMany: async () => [] },
     costForecast: { findFirst: async () => null },
   };
