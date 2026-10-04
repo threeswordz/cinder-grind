@@ -1,3 +1,14 @@
+## 2026-10-04 — V0.7 Cost Control release closure complete
+
+- Product / Business Owner acceptance under AC-V07-051 and AC-V07-052 was recorded in PR #158.
+- Exact-head acceptance-record push CI #2635 and PR CI #2636 passed.
+- PR #158 squash-merged as `32ffab318066bec6fad770f5419cfd1942d9556d`; post-merge main CI #2637 passed.
+- Issue #157 closed completed.
+- Chat-assisted proxy UAT passed all nine V0.7 areas with no blocking business defect identified; 117/117 API tests and 64/64 authenticated current-release runtime checks passed on the supporting evidence path.
+- **V0.7 Cost Control is COMPLETE AND ACCEPTED.**
+- V0.8 Management is NEXT at its release-entry gate. No V0.8 implementation is authorized until its own scope/acceptance/business-rule/data/API/test/security baseline is approved and merged with green post-merge main CI.
+- Historical change-log entries below remain point-in-time evidence and are intentionally not rewritten.
+
 ## 2026-10-04 — V0.7 Product / Business Owner acceptance
 
 - Product / Business Owner explicitly stated: “I explicitly accept V0.7 Cost Control under AC-V07-051 and AC-V07-052 and authorize V0.7 release closure.”
