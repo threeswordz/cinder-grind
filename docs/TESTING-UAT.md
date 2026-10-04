@@ -1,9 +1,9 @@
-**V0.7-E validation note — 2026-10-04:** Stage E is the active Cost Control reporting/hardening/release-evidence stage. Automated technical evidence covers distinct Budget/Committed/Actual/Paid/Forecast/Cost-to-Complete/Variance measures, Project/WBS/Cost Code reporting, parent-WBS descendants, explicit Unallocated behavior, source-detail sanitation, authorization negatives and authenticated runtime acceptance. This evidence does not satisfy AC-V07-051 human UAT or AC-V07-052 explicit Product / Business Owner acceptance.
+**V0.7-E validation note — 2026-10-04:** Stage E is technically complete. PR #153 merged as `3db10a025aa996d2721cd5387b752d314a1753dc` and post-merge main CI #2611 passed. Automated technical evidence covers distinct Budget/Committed/Actual/Paid/Forecast/Cost-to-Complete/Variance measures, Project/WBS/Cost Code reporting, parent-WBS descendants, explicit Unallocated behavior, source-detail sanitation, authorization negatives and authenticated runtime acceptance. This evidence does not satisfy AC-V07-051 human UAT or AC-V07-052 explicit Product / Business Owner acceptance.
 
 # Construction ERP — Testing & UAT Approach
 
 **Document Status:** Testing & UAT Baseline v0.1  
-**Current Phase:** V0.7 Cost Control — Stage E implementation / release hardening  
+**Current Phase:** V0.7 Cost Control — technical implementation complete / human release exit pending  
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1  

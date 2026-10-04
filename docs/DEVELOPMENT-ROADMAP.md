@@ -1,7 +1,7 @@
 # Construction ERP — Development Roadmap
 
 **Document Status:** Development Roadmap Baseline v0.1  
-**Current Phase:** V0.7 Cost Control — Stage E implementation / release hardening  
+**Current Phase:** V0.7 Cost Control — technical implementation complete / human release exit pending  
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1  
@@ -575,7 +575,7 @@ Dependencies:
 
 Budget, Procurement, Subcontracts and Finance.
 
-**Entry baseline:** APPROVED and CLOSED under DEC-024. PR #138 merged; post-merge main CI #2417 passed; Issue #137 closed. V0.7-A through V0.7-D are technically complete. V0.7-E Cost Reporting / Hardening / Release Evidence is the active stage under Issue #151; its pre-flight PR #152 merged and post-merge main CI #2580 passed.
+**Entry baseline:** APPROVED and CLOSED under DEC-024. PR #138 merged; post-merge main CI #2417 passed; Issue #137 closed. V0.7-A through V0.7-E are technically complete. V0.7-E PR #153 merged as `3db10a025aa996d2721cd5387b752d314a1753dc`; post-merge main CI #2611 passed; Issue #151 closed completed. AC-V07-051/052 remain the release-exit gates.
 
 Approved capabilities:
 
@@ -805,18 +805,17 @@ Create detailed issues shortly before the relevant release/module enters develop
 
 Current release: **V0.7 Cost Control**.
 
-Current stage: **V0.7-E — Cost Reporting / Hardening / Release Evidence**.
+Current stage: **Release Exit — Human UAT / Product Owner Acceptance**.
 
 Immediate sequence:
 
-1. Keep repository documentation reconciled with the live Stage-E branch.
-2. Finish only approved Stage-E reporting/hardening gaps.
-3. Obtain exact-head CI on the stable material merge candidate.
-4. Open/package the Stage-E PR and run DEC-022 Codex only at the stable green merge candidate.
-5. Resolve genuine findings, rerun CI, squash-merge and verify post-merge main CI.
-6. Close Issue #151 after technical completion.
-7. Stop at AC-V07-051/052 for required Product / Business Owner human UAT and explicit release acceptance.
-8. Do not begin V0.8 until V0.7 release closure is complete.
+1. V0.7-A through V0.7-E technical implementation — COMPLETE.
+2. PR #153 merged as `3db10a025aa996d2721cd5387b752d314a1753dc`; post-merge main CI #2611 — PASS.
+3. Issue #151 — CLOSED / COMPLETED.
+4. Run the source-controlled `docs/V0.7-UAT-EVIDENCE.md` walkthrough for AC-V07-051.
+5. Product / Business Owner explicitly decides AC-V07-052.
+6. If accepted, record V0.7 release closure durably in GitHub.
+7. Do not begin V0.8 until V0.7 release closure is complete.
 
 
 # 23. Baseline Decision

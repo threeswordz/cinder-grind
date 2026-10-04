@@ -5,7 +5,7 @@
 # Construction ERP — Roles & Permissions Model
 
 **Document Status:** Roles & Permissions Baseline v0.1  
-**Current Phase:** V0.7 Cost Control — Stage E implementation / release hardening  
+**Current Phase:** V0.7 Cost Control — technical implementation complete / human release exit pending  
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1
