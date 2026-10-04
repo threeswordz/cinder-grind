@@ -4,6 +4,8 @@ import { Prisma } from '@prisma/client';
 import { AuthenticatedUserContext } from '../auth/auth.types';
 import { CostControlService } from '../cost-control/cost-control.service';
 import { CashFlowService } from '../finance/cash-flow.service';
+import { ClientInvoiceService } from '../finance/client-invoice.service';
+import { FinanceService } from '../finance/finance.service';
 import { InventoryReportService } from '../inventory/inventory-report.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProjectAccessService } from '../projects/project-access.service';
@@ -22,6 +24,8 @@ export class ManagementService {
     private readonly reporting: ReportingService,
     private readonly costControl: CostControlService,
     private readonly cashFlow: CashFlowService,
+    private readonly finance: FinanceService,
+    private readonly clientInvoices: ClientInvoiceService,
     private readonly inventory: InventoryReportService,
   ) {}
 
@@ -45,21 +49,39 @@ export class ManagementService {
   ) {
     await this.access.assertAccess(auth, projectId);
 
-    const [engineer, procurement, cost, cashFlow, inventorySummary] =
-      await Promise.all([
-        this.reporting.projectEngineer(
-          auth,
-          projectId,
-          options.asOf,
-          options.days,
-        ),
-        this.reporting.procurement(auth, projectId),
-        this.costControl.projectCostControl(auth, projectId),
-        this.cashFlow.projectCashFlow(auth, projectId),
-        this.inventory.balanceSummary(auth, { projectId }),
-      ]);
+    const [
+      engineer,
+      procurement,
+      cost,
+      cashFlow,
+      accountsPayable,
+      accountsReceivable,
+      inventorySummary,
+      inventoryQuantities,
+      inventoryMovements,
+    ] = await Promise.all([
+      this.reporting.projectEngineer(
+        auth,
+        projectId,
+        options.asOf,
+        options.days,
+      ),
+      this.reporting.procurement(auth, projectId),
+      this.costControl.projectCostControl(auth, projectId),
+      this.cashFlow.projectCashFlow(auth, projectId),
+      this.finance.accountsPayable(auth, projectId),
+      this.clientInvoices.accountsReceivable(auth, projectId),
+      this.inventory.balanceSummary(auth, { projectId }),
+      this.inventory.balanceQuantitySummary(auth, projectId),
+      this.inventory.movementSummary(auth, projectId),
+    ]);
 
-    if (cost.baseCurrencyCode !== cashFlow.baseCurrencyCode) {
+    if (
+      cost.baseCurrencyCode !== cashFlow.baseCurrencyCode ||
+      [...accountsPayable, ...accountsReceivable].some(
+        (row) => row.currencyCode !== cost.baseCurrencyCode,
+      )
+    ) {
       throw new Error(
         'Canonical Management financial sources returned inconsistent Company base currencies.',
       );
@@ -136,6 +158,20 @@ export class ManagementService {
           warehouseCount: inventorySummary.warehouseCount,
           materialCount: inventorySummary.materialCount,
           uomCount: inventorySummary.uomCount,
+          positiveBalanceRowCount:
+            inventoryQuantities.positiveBalanceRowCount,
+          negativeBalanceRowCount:
+            inventoryQuantities.negativeBalanceRowCount,
+          zeroBalanceRowCount:
+            inventoryQuantities.zeroBalanceRowCount,
+          movementRowCount: inventoryMovements.movementRowCount,
+          latestMovementAt: this.day(inventoryMovements.latestPostedAt),
+          movementSources: {
+            goodsReceipt: inventoryMovements.goodsReceiptRowCount,
+            materialIssue: inventoryMovements.materialIssueRowCount,
+            materialReturn: inventoryMovements.materialReturnRowCount,
+            stockTransfer: inventoryMovements.stockTransferRowCount,
+          },
           quantityAggregation:
             'NOT_APPLICABLE_MIXED_MATERIAL_AND_UOM_DIMENSIONS' as const,
         },
@@ -184,6 +220,8 @@ export class ManagementService {
         },
         finance: {
           status: 'AVAILABLE' as const,
+          accountsPayable: this.invoicePosition(accountsPayable),
+          accountsReceivable: this.invoicePosition(accountsReceivable),
           inflowAmount: this.money(cashFlow.totals.inflowAmount),
           outflowAmount: this.money(cashFlow.totals.outflowAmount),
           netCashFlow: this.money(cashFlow.totals.netCashFlow),
@@ -217,7 +255,7 @@ export class ManagementService {
         finance: this.sourceContract(
           auth,
           'V0.6 Finance',
-          ['finance.payment.view'],
+          ['finance.ap.view', 'finance.ar.view', 'finance.payment.view'],
         ),
       },
       boundaries: {
@@ -671,6 +709,26 @@ export class ManagementService {
         domainDashboards: false,
         reportingExport: true,
       },
+    };
+  }
+
+  private invoicePosition(
+    rows: Array<{
+      outstandingAmount: Prisma.Decimal;
+    }>,
+  ) {
+    const zero = new Prisma.Decimal(0);
+    return {
+      approvedInvoiceCount: rows.length,
+      outstandingInvoiceCount: rows.filter((row) =>
+        row.outstandingAmount.greaterThan(0),
+      ).length,
+      outstandingAmount: rows
+        .reduce(
+          (total, row) => total.plus(row.outstandingAmount),
+          zero,
+        )
+        .toFixed(),
     };
   }
 
