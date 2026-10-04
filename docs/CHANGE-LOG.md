@@ -1,3 +1,10 @@
+## 2026-10-04 — V0.7-E stable material PR gate
+
+- Runtime/test candidate `eb6f6cc32bd96eebf22e880047e954fee4ae71ac` passed exact-head push CI #2597, including migration/status, Prisma/schema validation, dependency audit, full workspace regression, CI UAT bootstrap and authenticated live acceptance.
+- The two prior Cost Control API failures were test-fixture drift only; correction changed no runtime/schema/business-rule behavior.
+- Material PR #153 is open from the green candidate. DEC-022 Codex is now intentionally at the stable merge-candidate gate; later documentation/evidence-only head movement does not invalidate the reviewed runtime candidate.
+- AC-V07-051 human UAT and AC-V07-052 explicit Product / Business Owner acceptance remain pending and cannot be self-completed.
+
 ## 2026-10-04 — V0.7-E documentation reconciliation prioritized
 
 - V0.7-A through V0.7-D are technically complete. V0.7-E pre-flight PR #152 squash-merged as `b3011a3953f361d81d0f33479ed551d10fd0c008`; post-merge main CI #2580 passed; Issue #151 remains open.
