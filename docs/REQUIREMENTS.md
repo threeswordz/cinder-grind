@@ -1,12 +1,12 @@
 # Construction ERP — Master Requirements Register
 
 **Document Status:** Requirements Baseline v0.1  
-**Current Phase:** V0.7 Cost Control — COMPLETE AND ACCEPTED / V0.8 Management release entry gate NEXT  
+**Current Phase:** V0.8-A Management Read Model / KPI Contracts — ACTIVE  
 **Architecture Baseline:** v0.1  
 **Source:** ERP-MASTER-BLUEPRINT.md  
 **Last Structural Review:** V0.7 documentation reconciliation — 2026-10-04
 
-**Live delivery note:** V0.1–V0.7 are complete; V0.7 Cost Control is explicitly accepted by the Product / Business Owner under AC-V07-051/052. Acceptance-record PR #158 merged and post-merge main CI #2637 passed; Issue #157 closed completed. V0.8 Management release-entry work is next, but no V0.8 implementation is authorized until its own baseline is approved. Requirement approval/status remains governed by the approved baselines and Change Control; this note does not rewrite historical requirement approval.
+**Live delivery note:** V0.1–V0.7 are complete; V0.7 Cost Control is accepted. V0.8 Management entry baseline is approved under DEC-025; PR #165 merged as `a05e455fb3c27c03f7b97ac17aa5bbca710eda0e`, main CI #2727 passed and Issue #160 closed completed. V0.8-A Management Read Model / KPI Contracts is active under Issue #166. Requirement approval/status remains governed by the approved baselines and Change Control; this note does not rewrite historical requirement approval.
 
 ---
 

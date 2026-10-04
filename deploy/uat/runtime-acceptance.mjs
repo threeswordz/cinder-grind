@@ -135,6 +135,12 @@ check(
   'SYS_ADMIN must not implicitly receive Cost Control authority.',
 );
 check(
+  !me.data.data.permissions.some((permission) =>
+    permission.startsWith('management.'),
+  ),
+  'SYS_ADMIN must not implicitly receive Management dashboard, portfolio or export authority.',
+);
+check(
   !me.data.data.permissions.some(
     (permission) =>
       permission.startsWith('subcontracts.claim.') ||
@@ -353,6 +359,9 @@ const permissionCodes = [
   'finance.ap.view',
   'finance.ar.view',
   'cost.control.view',
+  'management.dashboard.view',
+  'management.portfolio.view',
+  'management.report.export',
   'cost.direct_posting.create',
   'cost.direct_posting.submit',
   'cost.direct_posting.approve',
@@ -8470,6 +8479,92 @@ check(
   'V0.7-A historical source currency was not retained after restoring the Company currency.',
 );
 record('V0.7-A rejects historical Budget/PO currency mismatch and restores valid same-currency reporting');
+
+await request(admin, '/management/projects/' + projectId + '/summary?asOf=2026-10-10&days=14', {
+  expected: 403,
+});
+await request(admin, '/management/portfolio', { expected: 403 });
+
+await request(
+  pm,
+  '/management/projects/' + projectId + '/summary',
+  { expected: 422 },
+);
+const managementCashFlow = await request(
+  pm,
+  '/finance/projects/' + projectId + '/cash-flow',
+);
+const managementSummary = await request(
+  pm,
+  '/management/projects/' + projectId + '/summary?asOf=2026-10-10&days=14',
+);
+check(
+  managementSummary.data.data.contractVersion === 'V0.8-A' &&
+    managementSummary.data.data.project?.id === projectId &&
+    managementSummary.data.data.lookaheadDays === 14 &&
+    managementSummary.data.data.baseCurrencyCode === 'SGD',
+  'V0.8-A Project Management summary contract identity was incorrect.',
+);
+check(
+  managementSummary.data.data.domains?.schedule?.summary?.total ===
+      projectEngineerDashboard.data.data.schedule?.summary?.total &&
+    managementSummary.data.data.domains?.procurement?.summary?.total ===
+      procurementReport.data.data.summary?.total &&
+    Number(managementSummary.data.data.domains?.cost?.revisedBudget) ===
+      Number(restoredCostControl.data.data.totals.revisedBudget) &&
+    Number(managementSummary.data.data.domains?.finance?.netCashFlow) ===
+      Number(managementCashFlow.data.data.totals.netCashFlow),
+  'V0.8-A Management summary did not reconcile to canonical Schedule, Procurement, Cost Control and Cash Flow measures.',
+);
+check(
+  managementSummary.data.data.boundaries?.readOnlyComposition === true &&
+    managementSummary.data.data.boundaries?.sourceModulesRemainCanonical === true &&
+    managementSummary.data.data.boundaries?.syntheticDimensionalAllocation === false &&
+    managementSummary.data.data.boundaries?.financialAuthority === 'POSTGRESQL_PRISMA_DECIMAL' &&
+    managementSummary.data.data.boundaries?.baseCurrencyOnly === true,
+  'V0.8-A Management contract boundaries were incorrect.',
+);
+check(
+  Object.values(managementSummary.data.data.sourceTraceability ?? {}).every(
+    (source) => source.protectedDetailPolicy === 'OWNING_MODULE_PERMISSION_REQUIRED',
+  ),
+  'V0.8-A Management source traceability did not preserve owning-module source-detail policy.',
+);
+const serializedManagement = JSON.stringify(managementSummary.data.data);
+check(
+  !serializedManagement.includes('generalRemarks') &&
+    !serializedManagement.includes('paymentNumber') &&
+    !serializedManagement.includes('sourceEvidence') &&
+    !serializedManagement.includes('"activities"') &&
+    !serializedManagement.includes('"lines"') &&
+    !serializedManagement.includes('"rows"'),
+  'V0.8-A Management summary leaked protected source rows/details.',
+);
+
+const managementPortfolio = await request(pm, '/management/portfolio');
+check(
+  managementPortfolio.data.data.contractVersion === 'V0.8-A' &&
+    managementPortfolio.data.data.projectCount >= 1 &&
+    managementPortfolio.data.data.projects.some((item) => item.id === projectId) &&
+    managementPortfolio.data.data.scope?.inaccessibleProjectsExcludedBeforeAggregation === true,
+  'V0.8-A Management portfolio did not expose the authorized Project scope.',
+);
+const unassignedManagementPortfolio = await request(
+  unassigned,
+  '/management/portfolio',
+);
+check(
+  !unassignedManagementPortfolio.data.data.projects.some(
+    (item) => item.id === projectId,
+  ),
+  'V0.8-A Management portfolio included an inaccessible Project before aggregation.',
+);
+await request(
+  unassigned,
+  '/management/projects/' + projectId + '/summary?asOf=2026-10-10&days=14',
+  { expected: 403 },
+);
+record('V0.8-A Management read-model contract composes canonical Schedule/Procurement/Inventory/Cost/Finance aggregates, preserves source-detail boundaries and enforces Management/Project authorization');
 
 await logout(v07Restricted);
 await logout(pm);

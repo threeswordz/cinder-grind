@@ -1,9 +1,11 @@
+**V0.8-A validation note — 2026-10-04:** Stage A adds explicit route-permission tests, aggregate-only Management composition tests, Project-access denial coverage, portfolio scope-before-aggregation coverage, SYS_ADMIN Management-permission separation and authenticated live Project/portfolio acceptance. Full prior-release regression remains mandatory. Because Stage A touches authorization/read-model boundaries, DEC-022 independent review is required at the stable merge candidate. V0.8 human UAT remains a later release-exit gate under AC-V08-039/040.
+
 **V0.7 release-closure note — 2026-10-04:** V0.7-A through V0.7-E are technically complete. The Chat-assisted proxy walkthrough passed all nine UAT areas with 117/117 API tests and 64/64 authenticated runtime checks on the accepted evidence path. The Product / Business Owner then explicitly accepted V0.7 under AC-V07-051 and AC-V07-052. Acceptance-record PR #158 merged as `32ffab318066bec6fad770f5419cfd1942d9556d`, post-merge main CI #2637 passed and Issue #157 closed completed.
 
 # Construction ERP — Testing & UAT Approach
 
 **Document Status:** Testing & UAT Baseline v0.1  
-**Current Phase:** V0.7 Cost Control — COMPLETE AND ACCEPTED / V0.8 Management release entry gate NEXT  
+**Current Phase:** V0.8-A Management Read Model / KPI Contracts — ACTIVE  
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1  
