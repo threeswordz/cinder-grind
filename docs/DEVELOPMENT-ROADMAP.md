@@ -821,10 +821,10 @@ Immediate sequence:
 8. Post-merge main CI #2798 — PASS; Issue #169 — CLOSED / COMPLETED.
 9. Stage-B closure/status reconciliation PR #171 — MERGED as `5581819419a4602a73ed0249ad8e0377f745d474`; post-merge main CI #2809 PASS.
 10. Issue #172 / branch `v0.8-c-executive-portfolio-dashboard` — ACTIVE from exact green main `5581819419a4602a73ed0249ad8e0377f745d474`.
-11. PR #173 DEC-022 review identified five genuine findings across business-policy authority, portfolio query shape, Executive progress/inventory presentation, protected baseline metadata and empty-asOf/lookahead handling.
-12. The remediation sequence now uses bounded canonical portfolio reads (no per-Project authorization fan-out), source-signal-only health presentation with no unapproved severity mapping, protected-detail sanitization, explicit asOf validation, required progress/inventory presentation and matching regression/live-acceptance coverage.
-13. Current remediation/test head `e1b6842934abec70e20794a184e6e87a1ab6e592` is **UNDER VALIDATION**. Obtain green exact-head and PR CI, resolve/outdate all five review threads with evidence, then obtain a clean DEC-022 exact-head re-review.
-14. Only after that may PR #173 be squash-merged; verify post-merge main CI and close Issue #172.
+11. PR #173 first DEC-022 review identified five genuine findings; all were fixed, regression-covered and resolved. Exact-head re-review of `90b60e9a99ce97c9933f5f7321f8147289f64a56` identified three additional genuine findings: restore canonical delayed/critical/lookahead Schedule signals, apply the selected 14/28-day window to those signals, and reconcile stale current-state evidence.
+12. Stage-C now uses bounded canonical Scheduling/Reporting/Inventory/Cost Control/Cash Flow reads with effective Project scope before aggregation. Scheduling provides total/completed/critical/delayed/lookahead counts without protected baseline metadata or per-Project authorization/query fan-out; Management forwards the selected days and the Executive UI presents the restored Schedule risk/lookahead indicators.
+13. Repaired material/test head `3ea59c834dee1bbd8d693b0f18d4e5fbd381b50d` passed push CI #2880 and PR CI #2881, including authenticated live acceptance. Current-state evidence was reconciled in `dc2893414aed5c63d56ddca845baebb1038bc0a3`.
+14. Complete documentation reconciliation, pass exact-head/PR CI, resolve the three latest review threads with evidence, then obtain a clean DEC-022 exact-head re-review. Only then may PR #173 be squash-merged; verify post-merge main CI and close Issue #172.
 15. Do not begin V0.8-D until V0.8-C completes those closure gates.
 
 

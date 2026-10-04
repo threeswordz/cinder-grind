@@ -1,3 +1,11 @@
+## 2026-10-04 — V0.8-C exact-head schedule-signal remediation checkpoint
+
+- After the first five PR #173 Codex findings were fixed and resolved, exact-head DEC-022 re-review of `90b60e9a99ce97c9933f5f7321f8147289f64a56` identified three additional genuine findings: P1 restore canonical delayed/critical/lookahead Schedule signals, P2 apply the selected 14/28-day lookahead to the bounded source calculation, and P2 reconcile stale current-state evidence.
+- Scheduling now supplies bounded canonical portfolio signals for total/completed/critical/delayed/lookahead without protected baseline metadata or per-Project authorization/query fan-out. Reporting and Management preserve those signals, the selected `days` value drives lookahead composition, and the Executive UI presents delayed/critical/lookahead indicators.
+- Regression/live-acceptance coverage now asserts the restored schedule signals and Management forwarding of the selected lookahead window.
+- Repaired material/test head `3ea59c834dee1bbd8d693b0f18d4e5fbd381b50d` passed push CI #2880 and PR CI #2881, including authenticated live acceptance. `CURRENT-STATE.md` was reconciled in `dc2893414aed5c63d56ddca845baebb1038bc0a3`.
+- Current gate: documentation reconciliation exact-head CI, evidence replies/resolution for the three latest review threads, then a clean DEC-022 exact-head re-review before merge.
+
 ## 2026-10-04 — V0.8-C PR #173 Codex remediation checkpoint
 
 - DEC-022 review on PR #173 identified five genuine findings: P1 unapproved overall health-severity mapping, P1 per-Project/N+1 portfolio query fan-out, P1 missing Executive progress/inventory indicators, P2 protected Scheduling baseline metadata exposure, and P2 empty-`asOf` lookahead mismatch.
