@@ -92,7 +92,7 @@
 - V0.1 cross-module release acceptance scenario: PASS in the Stage H release-candidate regression suite.
 - Open defect check at V0.1 acceptance: no Severity 1 or Severity 2 release-blocking defect recorded.
 - Governance: `AGENTS.md`, `docs/PROJECT-GOVERNANCE.md`, PR governance checklist, DEC-008, DEC-016 and DEC-022 are active. DEC-022 makes Codex a stable-merge-candidate/high-risk independent gate rather than a continuous per-fix reviewer; human UAT and CI/release sequencing are unchanged.
-- Next action: STOP at the mandatory V0.7 human release-exit gate. Run `docs/V0.7-UAT-EVIDENCE.md` under AC-V07-051, then the Product / Business Owner must explicitly decide AC-V07-052. Do not begin V0.8 until V0.7 is explicitly accepted and release closure is durably recorded.
+- Next action: prepare the V0.8 Management release-entry gate. V0.7 is COMPLETE AND ACCEPTED; AC-V07-051/052 are closed and Issue #157 is completed. Do not begin V0.8 implementation until its own scope, acceptance criteria, business rules/decisions, data/API/test/security baseline, stage sequence and deferrals are explicitly approved and merged with green post-merge main CI.
 
 ## Stage E completed
 
