@@ -25,14 +25,28 @@ function dateKey(value: string | null | undefined) {
   return value ? value.slice(0, 10) : '—';
 }
 
-export function ProjectEngineerDashboard() {
-  const [projectId, setProjectId] = useState('');
-  const [asOf, setAsOf] = useState(localDateValue());
-  const [days, setDays] = useState<14 | 28>(14);
+export function ProjectEngineerDashboard({
+  fixedProjectId,
+  fixedAsOf,
+  fixedDays,
+  embedded = false,
+}: {
+  fixedProjectId?: string;
+  fixedAsOf?: string;
+  fixedDays?: 14 | 28;
+  embedded?: boolean;
+} = {}) {
+  const [selectedProjectId, setSelectedProjectId] = useState('');
+  const [selectedAsOf, setSelectedAsOf] = useState(localDateValue());
+  const [selectedDays, setSelectedDays] = useState<14 | 28>(14);
+  const projectId = fixedProjectId ?? selectedProjectId;
+  const asOf = fixedAsOf ?? selectedAsOf;
+  const days = fixedDays ?? selectedDays;
 
   const projects = useQuery({
     queryKey: ['reporting', 'projects'],
     queryFn: reportingApi.projects,
+    enabled: fixedProjectId === undefined,
   });
   const dashboard = useQuery({
     queryKey: ['reporting', 'project-engineer', projectId, asOf, days],
@@ -44,42 +58,46 @@ export function ProjectEngineerDashboard() {
 
   return (
     <Stack spacing={3}>
-      <Typography variant="h6">Project Engineer Dashboard</Typography>
-      <Stack direction={{ xs: 'column', md: 'row' }} spacing={1}>
-        <TextField
-          select
-          label="Project"
-          value={projectId}
-          onChange={(event) => setProjectId(event.target.value)}
-          sx={{ flexGrow: 1 }}
-        >
-          <MenuItem value="">Select Project</MenuItem>
-          {(projects.data?.data ?? []).map((project) => (
-            <MenuItem key={project.id} value={project.id}>
-              {project.projectCode} · {project.projectName}
-            </MenuItem>
-          ))}
-        </TextField>
-        <TextField
-          label="As of"
-          type="date"
-          value={asOf}
-          onChange={(event) => setAsOf(event.target.value)}
-          slotProps={{ inputLabel: { shrink: true } }}
-        />
-        <TextField
-          select
-          label="Lookahead"
-          value={days}
-          onChange={(event) =>
-            setDays(Number(event.target.value) as 14 | 28)
-          }
-          sx={{ minWidth: 160 }}
-        >
-          <MenuItem value={14}>2 weeks</MenuItem>
-          <MenuItem value={28}>4 weeks</MenuItem>
-        </TextField>
-      </Stack>
+      {!embedded ? (
+        <Typography variant="h6">Project Engineer Dashboard</Typography>
+      ) : null}
+      {!embedded ? (
+        <Stack direction={{ xs: 'column', md: 'row' }} spacing={1}>
+          <TextField
+            select
+            label="Project"
+            value={projectId}
+            onChange={(event) => setSelectedProjectId(event.target.value)}
+            sx={{ flexGrow: 1 }}
+          >
+            <MenuItem value="">Select Project</MenuItem>
+            {(projects.data?.data ?? []).map((project) => (
+              <MenuItem key={project.id} value={project.id}>
+                {project.projectCode} · {project.projectName}
+              </MenuItem>
+            ))}
+          </TextField>
+          <TextField
+            label="As of"
+            type="date"
+            value={asOf}
+            onChange={(event) => setSelectedAsOf(event.target.value)}
+            slotProps={{ inputLabel: { shrink: true } }}
+          />
+          <TextField
+            select
+            label="Lookahead"
+            value={days}
+            onChange={(event) =>
+              setSelectedDays(Number(event.target.value) as 14 | 28)
+            }
+            sx={{ minWidth: 160 }}
+          >
+            <MenuItem value={14}>2 weeks</MenuItem>
+            <MenuItem value={28}>4 weeks</MenuItem>
+          </TextField>
+        </Stack>
+      ) : null}
 
       {dashboard.isError ? (
         <Alert severity="error">
