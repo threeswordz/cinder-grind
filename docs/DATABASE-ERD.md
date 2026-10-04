@@ -1,7 +1,9 @@
+**V0.7 implementation reconciliation — 2026-10-04:** `direct_cost_postings`, `cost_forecasts` / `cost_forecast_lines` and `project_variations` are implemented through forward-only migrations with retained approval/history integrity. Stage E reporting remains a derived read model over canonical source modules and these Cost Control-owned mutation entities; it does not add an editable report ledger.
+
 # Construction ERP — Database ERD
 
 **Document Status:** Database Baseline v0.1  
-**Current Phase:** Phase 0 — ERP Definition  
+**Current Phase:** V0.7 Cost Control — Stage E implementation / release hardening  
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database:** PostgreSQL  
@@ -2158,7 +2160,7 @@ according to the approved calculation policy.
 
 This entity provides the approved variation-value source required for revised contract value / project revenue reporting.
 
-Detailed client-variation workflow will be refined before V0.7 implementation.
+The V0.7-D client/project Variation workflow is implemented: Draft → submit → configured maker-checker approve/reject, immutable terminal history, and linked compensating reversal correction. Only approved non-reversed Variation effects change Revised Contract Value.
 
 ---
 

@@ -59,7 +59,53 @@ export class DirectCostService {
 
   async projects(auth: AuthenticatedUserContext) {
     const scope = await this.access.scopeWhere(auth);
-    const [historicalDirectCosts, historicalForecasts] = await Promise.all([
+    const [
+      historicalBudgets,
+      historicalPurchaseOrders,
+      historicalSubcontracts,
+      historicalSupplierInvoices,
+      historicalCertifications,
+      historicalPayments,
+      historicalClientInvoices,
+      historicalDirectCosts,
+      historicalForecasts,
+      historicalVariations,
+    ] = await Promise.all([
+      this.prisma.budgetRevision.findMany({
+        where: { companyId: auth.companyId },
+        select: { projectId: true },
+        distinct: ['projectId'],
+      }),
+      this.prisma.purchaseOrder.findMany({
+        where: { companyId: auth.companyId },
+        select: { projectId: true },
+        distinct: ['projectId'],
+      }),
+      this.prisma.subcontractAgreement.findMany({
+        where: { companyId: auth.companyId },
+        select: { projectId: true },
+        distinct: ['projectId'],
+      }),
+      this.prisma.supplierInvoice.findMany({
+        where: { companyId: auth.companyId },
+        select: { projectId: true },
+        distinct: ['projectId'],
+      }),
+      this.prisma.subcontractCertification.findMany({
+        where: { companyId: auth.companyId },
+        select: { projectId: true },
+        distinct: ['projectId'],
+      }),
+      this.prisma.payment.findMany({
+        where: { companyId: auth.companyId },
+        select: { projectId: true },
+        distinct: ['projectId'],
+      }),
+      this.prisma.clientInvoice.findMany({
+        where: { companyId: auth.companyId },
+        select: { projectId: true },
+        distinct: ['projectId'],
+      }),
       this.prisma.directCostPosting.findMany({
         where: { companyId: auth.companyId },
         select: { projectId: true },
@@ -70,11 +116,24 @@ export class DirectCostService {
         select: { projectId: true },
         distinct: ['projectId'],
       }),
+      this.prisma.projectVariation.findMany({
+        where: { companyId: auth.companyId },
+        select: { projectId: true },
+        distinct: ['projectId'],
+      }),
     ]);
     const historicalProjectIds = [
       ...new Set([
+        ...historicalBudgets.map((row) => row.projectId),
+        ...historicalPurchaseOrders.map((row) => row.projectId),
+        ...historicalSubcontracts.map((row) => row.projectId),
+        ...historicalSupplierInvoices.map((row) => row.projectId),
+        ...historicalCertifications.map((row) => row.projectId),
+        ...historicalPayments.map((row) => row.projectId),
+        ...historicalClientInvoices.map((row) => row.projectId),
         ...historicalDirectCosts.map((posting) => posting.projectId),
         ...historicalForecasts.map((forecast) => forecast.projectId),
+        ...historicalVariations.map((variation) => variation.projectId),
       ]),
     ];
     return this.prisma.project.findMany({
@@ -84,6 +143,7 @@ export class DirectCostService {
           {
             OR: [
               { isActive: true },
+              { contractValue: { not: '0' } },
               { id: { in: historicalProjectIds } },
             ],
           },

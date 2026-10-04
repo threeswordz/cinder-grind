@@ -1297,6 +1297,19 @@ export class CostControlService {
         costCode: dimensions.selectedCostCode,
         wbsIncludesDescendants: dimensions.selectedWbs !== null,
       },
+      reportDimensions: {
+        wbs: dimensions.wbsRows.map((row) => ({
+          id: row.id,
+          parentId: row.parentId,
+          wbsCode: row.wbsCode,
+          wbsName: row.wbsName,
+        })),
+        costCodes: dimensions.costCodes.map((row) => ({
+          id: row.id,
+          costCode: row.costCode,
+          costName: row.costName,
+        })),
+      },
       totals: {
         originalBudget,
         revisedBudget,
@@ -1490,6 +1503,9 @@ export class CostControlService {
         forecastImplemented: true,
         projectVariationRevenueProfitImplemented: true,
         revenueProfitProjectLevelOnly: true,
+        rpt009CostReportingImplemented: true,
+        explicitUnallocatedReporting: true,
+        parentWbsFilterIncludesDescendants: true,
       },
     };
   }

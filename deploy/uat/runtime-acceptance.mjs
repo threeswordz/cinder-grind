@@ -8411,6 +8411,51 @@ check(
 record('V0.7-D Project Variation live workflow: exact-string signed value → maker-checker approval → immutable history → linked compensating reversal → signed negative commercial effect');
 record('V0.7-D commercial read model keeps Original/Revised Contract, Actual Revenue, Cash Received, Forecast Revenue, Actual/Forecast Profit separate and sanitizes protected source evidence');
 
+const v07Report = commercialAfterNegative.data.data;
+check(
+  v07Report.boundaries.rpt009CostReportingImplemented === true &&
+    v07Report.boundaries.explicitUnallocatedReporting === true &&
+    v07Report.boundaries.parentWbsFilterIncludesDescendants === true &&
+    v07Report.reportDimensions.wbs.some(
+      (row) => row.id === rootWbs.data.data.id,
+    ) &&
+    v07Report.reportDimensions.costCodes.some(
+      (row) => row.id === costCode.data.data.id,
+    ) &&
+    v07Report.dimensionBreakdown.length > 0 &&
+    v07Report.dimensionBreakdown.some(
+      (row) =>
+        row.allocationState === 'UNALLOCATED' ||
+        row.allocationState === 'PARTIALLY_ALLOCATED',
+    ),
+  'V0.7-E RPT-009 report metadata/dimensional breakdown did not retain approved explicit Unallocated reporting semantics.',
+);
+const v07ParentWbsReport = await request(
+  pm,
+  '/projects/' +
+    projectId +
+    '/cost-control?wbsId=' +
+    rootWbs.data.data.id,
+);
+check(
+  v07ParentWbsReport.data.data.filters.wbs?.id === rootWbs.data.data.id &&
+    v07ParentWbsReport.data.data.filters.wbsIncludesDescendants === true &&
+    v07ParentWbsReport.data.data.dimensionBreakdown.every(
+      (row) => row.wbs !== null,
+    ) &&
+    Number(v07ParentWbsReport.data.data.totals.revisedBudget) > 0,
+  'V0.7-E parent-WBS Cost Report did not include descendant scope or incorrectly retained Unallocated WBS rows.',
+);
+check(
+  Object.values(v07RestrictedCostControl.data.data.sourceEvidence).every(
+    (source) =>
+      source.recordsVisible === false &&
+      !Object.prototype.hasOwnProperty.call(source, 'records'),
+  ),
+  'V0.7-E report hardening regressed aggregate source-detail sanitation.',
+);
+record('V0.7-E RPT-009 Cost Reporting exposes Project/WBS/Cost Code dimensions, parent-WBS descendant filtering, explicit Unallocated states and sanitized source traceability');
+
 await request(admin, '/admin/company', {
   method: 'PATCH', json: { baseCurrencyCode: 'USD' },
 });

@@ -24,6 +24,7 @@ import {
   costControlApi,
   DirectCostDetail,
 } from '../api/cost-control';
+import { CostControlReportPanel } from './CostControlReportPanel';
 import { ProjectVariationPanel } from './ProjectVariationPanel';
 
 type Props = {
@@ -198,6 +199,9 @@ export function CostControlWorkspace({ permissions }: Props) {
       }),
       queryClient.invalidateQueries({
         queryKey: ['cost-control-read-model', projectId],
+      }),
+      queryClient.invalidateQueries({
+        queryKey: ['cost-control-rpt009', projectId],
       }),
       ...(id
         ? [
@@ -558,6 +562,8 @@ export function CostControlWorkspace({ permissions }: Props) {
           </CardContent>
         </Card>
       ) : null}
+
+      <CostControlReportPanel projectId={projectId} canView={canView} />
 
       <ForecastPanel permissions={permissions} projectId={projectId} />
 
@@ -1236,6 +1242,9 @@ function ForecastPanel({
       queryClient.invalidateQueries({ queryKey: ['cost-forecasts', projectId] }),
       queryClient.invalidateQueries({
         queryKey: ['cost-control-read-model', projectId],
+      }),
+      queryClient.invalidateQueries({
+        queryKey: ['cost-control-rpt009', projectId],
       }),
       ...(id
         ? [

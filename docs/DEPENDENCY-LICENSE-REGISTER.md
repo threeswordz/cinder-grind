@@ -1,7 +1,7 @@
 # Construction ERP — Dependency License Register
 
 **Document Status:** Dependency License Baseline v0.1  
-**Current Phase:** Phase 0 — ERP Definition  
+**Current Phase:** V0.7 Cost Control — Stage E implementation / release hardening  
 **Policy:** Open-Source First  
 **License Verification Date:** 2026-09-26  
 **Version Status:** V0.1-A direct package versions selected and pinned in package manifests.

@@ -48,7 +48,7 @@ test('V0.7-A Budget and PO currency checks work without other Finance sources', 
         payment: { findMany: async () => [] },
         directCostPosting: { findMany: async () => [] },
         projectVariation: { findMany: async () => [] },
-    clientInvoice: { findMany: async () => [] },
+        clientInvoice: { findMany: async () => [] },
     costForecast: { findFirst: async () => null },
       };
       const service = new CostControlService(prisma as unknown as PrismaService,
@@ -258,6 +258,142 @@ test('V0.7-C Remaining Commitment uses exact Decimal arithmetic and floors at ze
     ).toFixed(2),
     '9999999999999999.98',
   );
+});
+
+test('V0.7-E reporting keeps descendant WBS values and explicit Unallocated dimensions', async () => {
+  const prisma = {
+    project: {
+      findFirstOrThrow: async () => ({
+        id: 'project',
+        projectCode: 'P-RPT',
+        projectName: 'Reporting project',
+        contractValue: new Prisma.Decimal('1000.00'),
+      }),
+    },
+    company: {
+      findUniqueOrThrow: async () => ({ baseCurrencyCode: 'SGD' }),
+    },
+    wbsElement: {
+      findMany: async () => [
+        { id: 'wbs-parent', parentId: null, wbsCode: '1', wbsName: 'Parent' },
+        {
+          id: 'wbs-child',
+          parentId: 'wbs-parent',
+          wbsCode: '1.1',
+          wbsName: 'Child',
+        },
+      ],
+    },
+    costCode: {
+      findMany: async () => [
+        { id: 'cc-1', costCode: 'LAB', costName: 'Labour' },
+      ],
+    },
+    budgetRevision: {
+      findMany: async () => [
+        {
+          id: 'budget-1',
+          revisionNo: 1,
+          revisionNumber: 'BUD-1',
+          currencyCode: 'SGD',
+          approvalInstance: { completedAt: new Date('2026-10-01T00:00:00Z') },
+          lines: [
+            {
+              id: 'budget-child',
+              amount: new Prisma.Decimal('100.00'),
+              wbsId: 'wbs-child',
+              costCodeId: 'cc-1',
+            },
+            {
+              id: 'budget-unallocated',
+              amount: new Prisma.Decimal('20.00'),
+              wbsId: null,
+              costCodeId: null,
+            },
+          ],
+        },
+      ],
+    },
+    purchaseOrder: { findMany: async () => [] },
+    subcontractAgreement: { findMany: async () => [] },
+    supplierInvoice: { findMany: async () => [] },
+    subcontractCertification: { findMany: async () => [] },
+    payment: { findMany: async () => [] },
+    directCostPosting: {
+      findMany: async () => [
+        {
+          id: 'direct-child',
+          postingDate: new Date('2026-10-02'),
+          description: 'Child direct cost',
+          reference: null,
+          amount: new Prisma.Decimal('50.00'),
+          currencyCode: 'SGD',
+          wbsId: 'wbs-child',
+          costCodeId: 'cc-1',
+          reversesPostingId: null,
+          reversalReason: null,
+        },
+        {
+          id: 'direct-unallocated-wbs',
+          postingDate: new Date('2026-10-02'),
+          description: 'Unallocated WBS direct cost',
+          reference: null,
+          amount: new Prisma.Decimal('10.00'),
+          currencyCode: 'SGD',
+          wbsId: null,
+          costCodeId: 'cc-1',
+          reversesPostingId: null,
+          reversalReason: null,
+        },
+      ],
+    },
+    projectVariation: { findMany: async () => [] },
+    clientInvoice: { findMany: async () => [] },
+    costForecast: { findFirst: async () => null },
+  };
+  const service = new CostControlService(
+    prisma as unknown as PrismaService,
+    { assertAccess: async () => {} } as never,
+  );
+  const auth = {
+    companyId: 'company',
+    permissions: ['cost.control.view', 'cost.direct_posting.create'],
+  } as never;
+
+  const full = await service.projectCostControl(auth, 'project');
+  assert.equal(full.totals.revisedBudget.toFixed(2), '120.00');
+  assert.equal(full.totals.actualCost.direct.toFixed(2), '60.00');
+  assert.equal(full.reportDimensions.wbs.length, 2);
+  assert.equal(full.reportDimensions.costCodes.length, 1);
+  assert.ok(
+    full.dimensionBreakdown.some(
+      (row) =>
+        row.wbs === null &&
+        row.costCode === null &&
+        row.allocationState === 'UNALLOCATED' &&
+        row.revisedBudget.toFixed(2) === '20.00',
+    ),
+  );
+  assert.ok(
+    full.dimensionBreakdown.some(
+      (row) =>
+        row.wbs === null &&
+        row.costCode?.id === 'cc-1' &&
+        row.allocationState === 'PARTIALLY_ALLOCATED' &&
+        row.actualCost.direct.toFixed(2) === '10.00',
+    ),
+  );
+
+  const parent = await service.projectCostControl(auth, 'project', {
+    wbsId: 'wbs-parent',
+  });
+  assert.equal(parent.filters.wbs?.id, 'wbs-parent');
+  assert.equal(parent.filters.wbsIncludesDescendants, true);
+  assert.equal(parent.totals.revisedBudget.toFixed(2), '100.00');
+  assert.equal(parent.totals.actualCost.direct.toFixed(2), '50.00');
+  assert.equal(parent.dimensionBreakdown.length, 1);
+  assert.equal(parent.dimensionBreakdown[0]?.wbs?.id, 'wbs-child');
+  assert.equal(parent.dimensionBreakdown[0]?.costCode?.id, 'cc-1');
 });
 
 test('V0.7-C integrated forecast reduces only canonically linked PO commitment', async () => {
@@ -1352,14 +1488,36 @@ test('V0.7-B database freezes terminal evidence and permits exact reversal after
 });
 
 
-test('V0.7-C Project selector retains scoped archived Projects with Direct Cost or Forecast history', async () => {
+test('V0.7-E Project selector retains scoped archived Projects with canonical Cost Control source history', async () => {
   let projectWhere: unknown;
   const prisma = {
+    budgetRevision: {
+      findMany: async () => [{ projectId: 'budget-only-project' }],
+    },
+    purchaseOrder: {
+      findMany: async () => [{ projectId: 'po-only-project' }],
+    },
+    subcontractAgreement: {
+      findMany: async () => [{ projectId: 'subcontract-only-project' }],
+    },
+    supplierInvoice: {
+      findMany: async () => [{ projectId: 'supplier-invoice-only-project' }],
+    },
+    subcontractCertification: {
+      findMany: async () => [{ projectId: 'certification-only-project' }],
+    },
+    payment: {
+      findMany: async () => [{ projectId: 'payment-only-project' }],
+    },
+    clientInvoice: {
+      findMany: async () => [{ projectId: 'client-invoice-only-project' }],
+    },
     directCostPosting: {
       findMany: async () => [{ projectId: 'archived-project' }],
     },
-    projectVariation: { findMany: async () => [] },
-    clientInvoice: { findMany: async () => [] },
+    projectVariation: {
+      findMany: async () => [{ projectId: 'variation-only-project' }],
+    },
     costForecast: {
       findMany: async () => [
         { projectId: 'archived-project' },
@@ -1380,6 +1538,30 @@ test('V0.7-C Project selector retains scoped archived Projects with Direct Cost 
             id: 'forecast-only-project',
             projectCode: 'ARCH-2',
             projectName: 'Forecast-only archived project',
+            isActive: false,
+          },
+          {
+            id: 'variation-only-project',
+            projectCode: 'ARCH-3',
+            projectName: 'Variation-only archived project',
+            isActive: false,
+          },
+          {
+            id: 'budget-only-project',
+            projectCode: 'ARCH-4',
+            projectName: 'Budget-only archived project',
+            isActive: false,
+          },
+          {
+            id: 'payment-only-project',
+            projectCode: 'ARCH-5',
+            projectName: 'Payment-only archived project',
+            isActive: false,
+          },
+          {
+            id: 'contract-only-project',
+            projectCode: 'ARCH-6',
+            projectName: 'Contract-only archived project',
             isActive: false,
           },
         ];
@@ -1412,6 +1594,30 @@ test('V0.7-C Project selector retains scoped archived Projects with Direct Cost 
       projectName: 'Forecast-only archived project',
       isActive: false,
     },
+    {
+      id: 'variation-only-project',
+      projectCode: 'ARCH-3',
+      projectName: 'Variation-only archived project',
+      isActive: false,
+    },
+    {
+      id: 'budget-only-project',
+      projectCode: 'ARCH-4',
+      projectName: 'Budget-only archived project',
+      isActive: false,
+    },
+    {
+      id: 'payment-only-project',
+      projectCode: 'ARCH-5',
+      projectName: 'Payment-only archived project',
+      isActive: false,
+    },
+    {
+      id: 'contract-only-project',
+      projectCode: 'ARCH-6',
+      projectName: 'Contract-only archived project',
+      isActive: false,
+    },
   ]);
   assert.deepEqual(projectWhere, {
     AND: [
@@ -1419,7 +1625,23 @@ test('V0.7-C Project selector retains scoped archived Projects with Direct Cost 
       {
         OR: [
           { isActive: true },
-          { id: { in: ['archived-project', 'forecast-only-project'] } },
+          { contractValue: { not: '0' } },
+          {
+            id: {
+              in: [
+                'budget-only-project',
+                'po-only-project',
+                'subcontract-only-project',
+                'supplier-invoice-only-project',
+                'certification-only-project',
+                'payment-only-project',
+                'client-invoice-only-project',
+                'archived-project',
+                'forecast-only-project',
+                'variation-only-project',
+              ],
+            },
+          },
         ],
       },
     ],

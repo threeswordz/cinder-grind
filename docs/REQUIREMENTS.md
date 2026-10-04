@@ -1,10 +1,12 @@
 # Construction ERP — Master Requirements Register
 
 **Document Status:** Requirements Baseline v0.1  
-**Current Phase:** Phase 0 — ERP Definition  
+**Current Phase:** V0.7 Cost Control — Stage E implementation / release hardening  
 **Architecture Baseline:** v0.1  
 **Source:** ERP-MASTER-BLUEPRINT.md  
-**Last Structural Review:** Architecture Baseline v0.1
+**Last Structural Review:** V0.7 documentation reconciliation — 2026-10-04
+
+**Live delivery note:** V0.1–V0.6 are complete; V0.7-A through V0.7-D are technically complete; V0.7-E reporting/hardening/release evidence is active. Requirement approval/status remains governed by the approved baselines and Change Control; this note does not rewrite historical requirement approval.
 
 ---
 

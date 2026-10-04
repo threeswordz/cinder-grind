@@ -1,7 +1,9 @@
+**V0.7-E validation note — 2026-10-04:** Stage E is the active Cost Control reporting/hardening/release-evidence stage. Automated technical evidence covers distinct Budget/Committed/Actual/Paid/Forecast/Cost-to-Complete/Variance measures, Project/WBS/Cost Code reporting, parent-WBS descendants, explicit Unallocated behavior, source-detail sanitation, authorization negatives and authenticated runtime acceptance. This evidence does not satisfy AC-V07-051 human UAT or AC-V07-052 explicit Product / Business Owner acceptance.
+
 # Construction ERP — Testing & UAT Approach
 
 **Document Status:** Testing & UAT Baseline v0.1  
-**Current Phase:** Phase 0 — ERP Definition  
+**Current Phase:** V0.7 Cost Control — Stage E implementation / release hardening  
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1  
@@ -853,25 +855,26 @@ current approved Revised Budget.
 
 ## Committed Cost
 
-Examples:
+Sources:
 
-- approved PO
-- approved subcontract
-- approved work order
+- current applicable approved/non-cancelled Purchase Order revision;
+- current approved Subcontract Agreement commercial ceiling including approved non-reversed subcontract Variations.
+
+Work Orders allocate within the Subcontract ceiling and must not be added as a second commitment.
 
 ## Actual Cost
 
-Examples according to approved policy:
+Sources according to the approved V0.7 policy:
 
-- approved Supplier Invoice
-- certified Subcontract Claim
-- approved Direct Cost Posting
+- final-approved Supplier Invoice items;
+- approved non-reversed Subcontract Certification gross value;
+- approved non-reversed Direct Cost Postings.
 
 ## Paid Cost
 
 Source:
 
-approved Finance Payment.
+approved non-cancelled Finance Payment allocations to eligible Actual Cost sources. Paid Cost remains separate from Project Cash Flow and from Actual Cost.
 
 Test specifically that:
 
@@ -889,9 +892,15 @@ Also test:
 - Forecast Profit
 - Actual Profit
 - Project rollup
-- WBS rollup
+- WBS rollup including parent-WBS descendants without double counting
 - Cost Code rollup
 - combined WBS + Cost Code reporting
+- explicit Unallocated / Partially Allocated reporting
+- inaccessible-Project exclusion
+- aggregate/source-detail leakage protection
+- source-of-truth supersession/cancellation behavior
+- Decimal precision and stable financial string representation
+- idempotency/concurrency on V0.7 material mutations
 
 ---
 
