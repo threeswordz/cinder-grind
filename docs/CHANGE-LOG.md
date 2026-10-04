@@ -1,3 +1,13 @@
+## 2026-10-05 — V0.8-D Domain Dashboards implementation merged / closure active
+
+- Final Stage-D head `e11a77391ebfb43ff4431820ea363964f525f545` passed exact-head CI #2995 including authenticated live acceptance.
+- Final DEC-022 review of that exact head reported **no major issues**; all known implementation and documentation review findings were resolved before merge.
+- PR #177 squash-merged to `main` as `ff3dc08a4aee9945bb0b195627e31577f766f691`.
+- Issue #175 remains OPEN until the Stage-D closure evidence gate is complete.
+- The connected GitHub tooling currently exposes pull-request workflow runs but not the push-triggered exact-main run for merge commit `ff3dc08...`; post-merge exact-main CI is therefore **not yet recorded as PASS** and must not be inferred.
+- Closure branch `v0.8-d-closure-reconcile` reconciles durable status only; no runtime/schema/security/business-rule or governance change is introduced.
+- V0.8-E remains blocked until post-merge exact-main CI evidence is recorded, the closure reconciliation is merged, and Issue #175 is closed.
+
 ## 2026-10-04 — V0.8-D Domain Dashboards implementation started
 
 - Pre-flight PR #176 squash-merged as `66ef5bfeae9211b6f1ff10772e4698cc3a9cc133`; post-merge exact-main CI #2912 PASS.
@@ -12,7 +22,7 @@
 - Both P1s were remediated with canonical source composition plus regression/live reconciliation; material remediation head `a3302ca2eca4eea88af9d49bd7ebe83109e23eb0` passed exact-head CI #2951 including authenticated live acceptance, and both P1 review threads are resolved.
 - DEC-022 re-review on `6fb4e23859ead102ee2b167b31c85de5809fae59` found one genuine P2: Management movement totals were uncapped while the canonical Inventory movement report returns a bounded 2,000-row payload, so high-volume acceptance reconciliation could diverge.
 - P2 remediation head `11f955f6cfbfe056b8f088faa9da29937ca6b2eb` adds a canonical total movement count alongside the bounded report rows and updates acceptance to reconcile equivalent canonical totals/bounds; exact-head CI #2955 PASS.
-- All known implementation and documentation review findings are resolved. Remaining gate: documentation-synchronized exact-head CI → fresh exact-head DEC-022 re-review → squash merge only if clean → post-merge exact-main CI → Issue #175 closure.
+- At that pre-merge checkpoint, all known implementation and documentation review findings were resolved; the then-remaining gate was documentation-synchronized exact-head CI → fresh exact-head DEC-022 re-review → clean squash merge → post-merge exact-main CI → Issue #175 closure. The 2026-10-05 closure entry above is authoritative for the current position.
 
 ## 2026-10-04 — V0.8-D pre-flight established
 
