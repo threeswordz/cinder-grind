@@ -1,3 +1,5 @@
+**V0.8-B implementation note — 2026-10-04:** Management now exposes an authorized `GET /api/v1/management/projects` selector for `management.dashboard.view` users, filtered by effective Project scope before choices are returned. The Project Engineer / Project Manager web dashboards consume the V0.8-A aggregate summary contract. Detailed Gantt/activity drilldown reuses the canonical Scheduling Gantt component and is rendered only when the viewer already holds `schedule.programme.view`; Management permission alone does not broaden source detail.
+
 **V0.8-A implementation note — 2026-10-04:** Management introduces read-only `GET /api/v1/management/projects/{projectId}/summary` and `GET /api/v1/management/portfolio` contracts. The Project summary composes aggregate-only canonical Scheduling/Site, Procurement, Inventory, V0.7 Cost Control and V0.6 Cash Flow services; it does not expose source rows merely because a caller holds Management permission. Portfolio filtering applies effective Project scope before aggregation. No Management mutation endpoint or duplicate KPI/financial ledger is introduced.
 
 **V0.7-E implementation note — 2026-10-04:** The existing Project Cost Control read surface now carries the Stage-E RPT-009 report contract: server-authoritative Project/WBS/Cost Code filtering, parent-WBS descendant inclusion, explicit Unallocated allocation state, separate Budget/Committed/Actual/Paid/Forecast/Cost-to-Complete/Variance measures, Project-level revenue/profit where no canonical lower-dimensional allocation exists, and permission-sanitized source evidence. The Stage-E report UI consumes this read model; no second reporting ledger is introduced.
@@ -7,7 +9,7 @@
 # Construction ERP — API Architecture
 
 **Document Status:** API Architecture Baseline v0.1  
-**Current Phase:** V0.8-B Project Engineer & Project Manager Dashboards — NEXT / NOT STARTED  
+**Current Phase:** V0.8-B Project Engineer & Project Manager Dashboards — ACTIVE  
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1  
