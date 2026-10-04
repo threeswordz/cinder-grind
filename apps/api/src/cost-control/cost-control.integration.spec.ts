@@ -1491,6 +1491,27 @@ test('V0.7-B database freezes terminal evidence and permits exact reversal after
 test('V0.7-E Project selector retains scoped archived Projects with any V0.7-owned history', async () => {
   let projectWhere: unknown;
   const prisma = {
+    budgetRevision: {
+      findMany: async () => [{ projectId: 'budget-only-project' }],
+    },
+    purchaseOrder: {
+      findMany: async () => [{ projectId: 'po-only-project' }],
+    },
+    subcontractAgreement: {
+      findMany: async () => [{ projectId: 'subcontract-only-project' }],
+    },
+    supplierInvoice: {
+      findMany: async () => [{ projectId: 'supplier-invoice-only-project' }],
+    },
+    subcontractCertification: {
+      findMany: async () => [{ projectId: 'certification-only-project' }],
+    },
+    payment: {
+      findMany: async () => [{ projectId: 'payment-only-project' }],
+    },
+    clientInvoice: {
+      findMany: async () => [{ projectId: 'client-invoice-only-project' }],
+    },
     directCostPosting: {
       findMany: async () => [{ projectId: 'archived-project' }],
     },
@@ -1524,6 +1545,18 @@ test('V0.7-E Project selector retains scoped archived Projects with any V0.7-own
             id: 'variation-only-project',
             projectCode: 'ARCH-3',
             projectName: 'Variation-only archived project',
+            isActive: false,
+          },
+          {
+            id: 'budget-only-project',
+            projectCode: 'ARCH-4',
+            projectName: 'Budget-only archived project',
+            isActive: false,
+          },
+          {
+            id: 'payment-only-project',
+            projectCode: 'ARCH-5',
+            projectName: 'Payment-only archived project',
             isActive: false,
           },
         ];
@@ -1562,6 +1595,18 @@ test('V0.7-E Project selector retains scoped archived Projects with any V0.7-own
       projectName: 'Variation-only archived project',
       isActive: false,
     },
+    {
+      id: 'budget-only-project',
+      projectCode: 'ARCH-4',
+      projectName: 'Budget-only archived project',
+      isActive: false,
+    },
+    {
+      id: 'payment-only-project',
+      projectCode: 'ARCH-5',
+      projectName: 'Payment-only archived project',
+      isActive: false,
+    },
   ]);
   assert.deepEqual(projectWhere, {
     AND: [
@@ -1572,6 +1617,13 @@ test('V0.7-E Project selector retains scoped archived Projects with any V0.7-own
           {
             id: {
               in: [
+                'budget-only-project',
+                'po-only-project',
+                'subcontract-only-project',
+                'supplier-invoice-only-project',
+                'certification-only-project',
+                'payment-only-project',
+                'client-invoice-only-project',
                 'archived-project',
                 'forecast-only-project',
                 'variation-only-project',
