@@ -1,7 +1,7 @@
 # Construction ERP — Development Roadmap
 
 **Document Status:** Development Roadmap Baseline v0.1  
-**Current Phase:** Phase 0 — ERP Definition  
+**Current Phase:** V0.7 Cost Control — Stage E implementation / release hardening  
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1  
@@ -575,7 +575,7 @@ Dependencies:
 
 Budget, Procurement, Subcontracts and Finance.
 
-**Entry baseline:** APPROVED by Product / Business Owner on 2026-10-03 under DEC-024. Technical entry-gate closure remains Issue #137; implementation may not start before that Issue closes after merge and green post-merge main CI.
+**Entry baseline:** APPROVED and CLOSED under DEC-024. PR #138 merged; post-merge main CI #2417 passed; Issue #137 closed. V0.7-A through V0.7-D are technically complete. V0.7-E Cost Reporting / Hardening / Release Evidence is the active stage under Issue #151; its pre-flight PR #152 merged and post-merge main CI #2580 passed.
 
 Approved capabilities:
 
@@ -803,17 +803,21 @@ Create detailed issues shortly before the relevant release/module enters develop
 
 # 22. Current Next Step
 
-V0.1 Foundation is complete and accepted.
+Current release: **V0.7 Cost Control**.
 
-The next release is **V0.2 Project & Scheduling**.
+Current stage: **V0.7-E — Cost Reporting / Hardening / Release Evidence**.
 
-Before V0.2 implementation starts, verify the Release Entry Gate in Section 16. In particular, the dedicated V0.2 Scope and V0.2 Acceptance Criteria baselines must be approved.
+Immediate sequence:
 
-After those entry gates pass:
+1. Keep repository documentation reconciled with the live Stage-E branch.
+2. Finish only approved Stage-E reporting/hardening gaps.
+3. Obtain exact-head CI on the stable material merge candidate.
+4. Open/package the Stage-E PR and run DEC-022 Codex only at the stable green merge candidate.
+5. Resolve genuine findings, rerun CI, squash-merge and verify post-merge main CI.
+6. Close Issue #151 after technical completion.
+7. Stop at AC-V07-051/052 for required Product / Business Owner human UAT and explicit release acceptance.
+8. Do not begin V0.8 until V0.7 release closure is complete.
 
-**Begin V0.2 Project & Scheduling — Stage V0.2-A Scheduling Data Model**
-
----
 
 # 23. Baseline Decision
 

@@ -89,6 +89,6 @@ Current development status is maintained in `docs/CURRENT-STATE.md`.
 
 Development/session responsibilities are defined in `docs/DEVELOPMENT-OPERATING-MODEL.md`: Chat is the default Builder / Release Coordinator, GitHub is the source of truth, CI/tests provide technical evidence, the Product / Business Owner owns approval/UAT gates, and Work is the periodic independent auditor.
 
-Completed foundation stages: **V0.1-A through V0.1-H**.
+Completed releases: **V0.1 Foundation, V0.2 Project & Scheduling, V0.3 Procurement, V0.4 Inventory, V0.5 Subcontracts and V0.6 Finance**. V0.5 and V0.6 are accepted.
 
-Next release: **V0.2 Project & Scheduling**. Development begins with **V0.2-A Scheduling Data Model** only after the V0.2 release-entry gates are verified. Development continues only through the approved roadmap, requirements, security controls, test gates and dependency-license rules.
+Current release: **V0.7 Cost Control**. V0.7-A through V0.7-D are technically complete; **V0.7-E Cost Reporting / Hardening / Release Evidence is active** under Issue #151 on `v0.7-e-reporting-hardening-implementation`. Human V0.7 UAT and explicit Product / Business Owner acceptance remain mandatory release-exit gates before V0.8.

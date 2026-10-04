@@ -67,9 +67,14 @@ For later releases, when source-controlled stage definitions exist, include thei
 Use a plain-text progress visual similar to:
 
 ```text
-V0.5 Subcontracts     ██████████  COMPLETE
-V0.6 Finance          ░░░░░░░░░░  ENTRY APPROVED — CURRENT
-  V0.6-A ...          ░░░░░░░░░░  NEXT
+V0.5 Subcontracts     ██████████  COMPLETE + ACCEPTED
+V0.6 Finance          ██████████  COMPLETE + ACCEPTED
+V0.7 Cost Control     ████████░░  ACTIVE
+  V0.7-A Read Model   ██████████  COMPLETE
+  V0.7-B Direct Cost  ██████████  COMPLETE
+  V0.7-C Forecast     ██████████  COMPLETE
+  V0.7-D Variations   ██████████  COMPLETE
+  V0.7-E Reporting    ████████░░  ACTIVE — CURRENT
 ```
 
 Progress bars are qualitative status indicators, not calculated engineering percentages:

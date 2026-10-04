@@ -1,7 +1,7 @@
 # Construction ERP — Master Blueprint
 
 **Document Status:** Architecture Baseline v0.1
-**Current Phase:** Phase 0 — ERP Definition
+**Current Phase:** V0.7 Cost Control — Stage E implementation / release hardening
 **System:** Construction ERP
 **Primary Platform:** Web Application
 **Architecture Principle:** Open-Source First
@@ -1667,28 +1667,30 @@ Once agreed, important requirements must be transferred into the permanent GitHu
 
 # 28. Current Phase
 
-Current Phase:
+Current Release:
 
-**Phase 0 — ERP Definition**
+**V0.7 Cost Control**
 
-Application development has not started.
+Current Stage:
 
-Before V0.1 development begins, complete and review:
+**V0.7-E — Cost Reporting / Hardening / Release Evidence — ACTIVE**
 
-1. ERP Master Blueprint
-2. Master Requirements Register
-3. Database ERD
-4. Roles & Permissions Model
-5. API Architecture Baseline
-6. Testing & UAT Approach
-7. Detailed Development Roadmap
-8. V0.1 Scope
-9. V0.1 Acceptance Criteria
-10. Dependency License Register
+Live delivery position:
 
-After these items are reviewed, V0.1 application development may begin.
+- V0.1 Foundation — complete
+- V0.2 Project & Scheduling — complete
+- V0.3 Procurement — complete
+- V0.4 Inventory — complete
+- V0.5 Subcontracts — complete and accepted
+- V0.6 Finance — complete and accepted
+- V0.7-A Integrated Cost Source Read Model — complete
+- V0.7-B Direct Cost Posting — complete
+- V0.7-C Forecast / ETC / Variance — complete
+- V0.7-D Project Variations / Revenue / Profit — complete
+- V0.7-E Cost Reporting / Hardening / Release Evidence — active
 
----
+The live GitHub repository, active Issue/PR/CI evidence and `docs/CURRENT-STATE.md` are authoritative for implementation status. Human V0.7 UAT and explicit Product / Business Owner acceptance remain mandatory release-exit gates before V0.8.
+
 
 # 29. Current Architecture Summary
 

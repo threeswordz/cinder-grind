@@ -1,3 +1,11 @@
+## 2026-10-04 — V0.7-E documentation reconciliation prioritized
+
+- V0.7-A through V0.7-D are technically complete. V0.7-E pre-flight PR #152 squash-merged as `b3011a3953f361d81d0f33479ed551d10fd0c008`; post-merge main CI #2580 passed; Issue #151 remains open.
+- Active implementation branch `v0.7-e-reporting-hardening-implementation` is based on that green main. Latest material implementation head before this documentation sweep is `5204935b9cc93bb822a32b876ba1e24b98eaf866`.
+- Stage E already contains the integrated RPT-009 Cost Report surface, dimensional Project/WBS/Cost Code reporting, parent-WBS descendant handling, explicit Unallocated states, protected source-trace sanitation, report UI, expanded integration/live acceptance and the prepared V0.7 UAT walkthrough.
+- Repository documentation is being reconciled before the stable Stage-E PR is packaged. Historical release evidence remains historical; current-status, roadmap, architecture, permissions, testing and V0.7 gate documents are updated to the live branch.
+- DEC-008, DEC-016 and DEC-022 remain unchanged. Human AC-V07-051 UAT and AC-V07-052 explicit Product / Business Owner acceptance remain mandatory and are not self-completed.
+
 ## 2026-10-03 — V0.6-D technical completion / V0.6-E pre-flight
 
 - V0.6-D PR #129 exact material fix head `a80f4b7c56e14635cd162ee2cd449b4be55ed346` passed push CI #2379 and PR CI #2380 after the first stable-head Codex review identified one genuine P1 involving historical retention reversal after a later Company base-currency change.
