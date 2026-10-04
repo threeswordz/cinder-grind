@@ -280,9 +280,12 @@ test('V0.8-A Project summary fails before source composition when Project access
   assert.equal(sourceCalled, false);
 });
 
-test('V0.8-A Portfolio applies effective Project scope before aggregation', async () => {
+test('V0.8-C Portfolio scopes Projects before aggregation and derives deterministic health', async () => {
   let receivedWhere: unknown = null;
   const prisma = {
+    company: {
+      findUniqueOrThrow: async () => ({ baseCurrencyCode: 'SGD' }),
+    },
     project: {
       findMany: async (args: { where: unknown }) => {
         receivedWhere = args.where;
@@ -290,10 +293,22 @@ test('V0.8-A Portfolio applies effective Project scope before aggregation', asyn
           {
             id: 'project-1',
             projectCode: 'P-001',
-            projectName: 'Scoped Project',
-            isActive: true,
+            projectName: 'Scoped Project One',
             plannedStartDate: new Date('2026-01-01T00:00:00.000Z'),
             plannedCompletionDate: new Date('2026-12-31T00:00:00.000Z'),
+            actualStartDate: null,
+            actualCompletionDate: null,
+            statusDefinition: {
+              statusCode: 'ACTIVE',
+              statusLabel: 'Active',
+            },
+          },
+          {
+            id: 'project-2',
+            projectCode: 'P-002',
+            projectName: 'Scoped Project Two',
+            plannedStartDate: new Date('2026-02-01T00:00:00.000Z'),
+            plannedCompletionDate: new Date('2027-01-31T00:00:00.000Z'),
             actualStartDate: null,
             actualCompletionDate: null,
             statusDefinition: {
@@ -305,43 +320,175 @@ test('V0.8-A Portfolio applies effective Project scope before aggregation', asyn
       },
     },
   } as unknown as PrismaService;
+
   const access = {
     scopeWhere: async () => ({
       companyId: 'company',
-      id: { in: ['project-1'] },
+      id: { in: ['project-1', 'project-2'] },
     }),
+    assertAccess: async () => undefined,
   } as unknown as ProjectAccessService;
+
+  const risky = (projectId: string) => projectId === 'project-2';
+
+  const reporting = {
+    projectEngineer: async (
+      _auth: AuthenticatedUserContext,
+      projectId: string,
+    ) => ({
+      project: {
+        id: projectId,
+        projectCode: risky(projectId) ? 'P-002' : 'P-001',
+        projectName: risky(projectId)
+          ? 'Scoped Project Two'
+          : 'Scoped Project One',
+        plannedStartDate: new Date('2026-01-01T00:00:00.000Z'),
+        plannedCompletionDate: new Date('2026-12-31T00:00:00.000Z'),
+        actualStartDate: null,
+        actualCompletionDate: null,
+      },
+      asOfDate: '2026-10-04',
+      schedule: {
+        currentBaseline: null,
+        summary: {
+          total: 10,
+          critical: risky(projectId) ? 2 : 0,
+          delayed: risky(projectId) ? 1 : 0,
+          completed: 4,
+        },
+        activities: [],
+        lookahead: { activities: [{ id: 'lookahead' }] },
+      },
+      siteExecution: {
+        latestReports: [
+          {
+            reportDate: new Date('2026-10-03T00:00:00.000Z'),
+            counts: {
+              issues: risky(projectId) ? 1 : 0,
+              delays: 0,
+              inspections: 1,
+            },
+          },
+        ],
+      },
+      equipment: { assignedCount: 1 },
+    }),
+    procurement: async (
+      _auth: AuthenticatedUserContext,
+      projectId: string,
+    ) => ({
+      summary: {
+        total: 5,
+        AT_RISK: risky(projectId) ? 1 : 0,
+        ON_TIME: risky(projectId) ? 3 : 4,
+        UNAVAILABLE: 1,
+        rfq: 4,
+        awarded: 3,
+        purchaseOrder: 2,
+      },
+    }),
+  } as unknown as ReportingService;
+
+  const costControl = {
+    projectCostControl: async (
+      _auth: AuthenticatedUserContext,
+      projectId: string,
+    ) => ({
+      baseCurrencyCode: 'SGD',
+      totals: {
+        originalBudget: decimal('1000'),
+        revisedBudget: decimal('1200'),
+        committedCost: { total: decimal('500') },
+        actualCost: { total: decimal('200') },
+        paidCost: { total: decimal('90') },
+        remainingCommitment: { total: decimal('300') },
+        uncommittedEtc: decimal('100'),
+        costToComplete: decimal('400'),
+        forecastCost: decimal(risky(projectId) ? '1300' : '600'),
+        variance: decimal(risky(projectId) ? '-100' : '600'),
+        commercial: {
+          originalContractValue: decimal('1500'),
+          approvedVariationValue: decimal('100'),
+          revisedContractValue: decimal('1600'),
+          actualRevenue: decimal('700'),
+          cashReceived: decimal('650'),
+          forecastRevenue: decimal('1600'),
+          actualProfit: decimal('500'),
+          forecastProfit: decimal(risky(projectId) ? '-25' : '1000'),
+        },
+      },
+    }),
+  } as unknown as CostControlService;
+
+  const cashFlow = {
+    projectCashFlow: async () => ({
+      baseCurrencyCode: 'SGD',
+      totals: {
+        inflowAmount: decimal('650'),
+        outflowAmount: decimal('90'),
+        netCashFlow: decimal('560'),
+      },
+    }),
+  } as unknown as CashFlowService;
+
+  const inventory = {
+    balanceSummary: async (
+      _auth: AuthenticatedUserContext,
+      filters: { projectId?: string },
+    ) => ({
+      balanceRowCount: filters.projectId === 'project-2' ? 2 : 1,
+      warehouseCount: 1,
+      materialCount: 2,
+      uomCount: 1,
+    }),
+  } as unknown as InventoryReportService;
 
   const service = new ManagementService(
     prisma,
     access,
-    {} as ReportingService,
-    {} as CostControlService,
-    {} as CashFlowService,
-    {} as InventoryReportService,
+    reporting,
+    costControl,
+    cashFlow,
+    inventory,
   );
 
   const result = await service.portfolio(
     auth(['management.portfolio.view']),
+    {
+      asOf: new Date('2026-10-04T00:00:00.000Z'),
+      days: 14,
+    },
   );
 
-  assert.equal(result.projectCount, 1);
-  assert.deepEqual(
-    result.projects.map((project) => project.id),
-    ['project-1'],
-  );
   assert.deepEqual(receivedWhere, {
     AND: [
-      { companyId: 'company', id: { in: ['project-1'] } },
+      { companyId: 'company', id: { in: ['project-1', 'project-2'] } },
       { isActive: true },
     ],
   });
+  assert.equal(result.contractVersion, 'V0.8-C');
+  assert.equal(result.projectCount, 2);
+  assert.deepEqual(
+    result.projects.map((row) => row.project.id),
+    ['project-1', 'project-2'],
+  );
+  assert.equal(result.projects[0]?.health.status, 'ON_TRACK');
+  assert.equal(result.projects[1]?.health.status, 'CRITICAL');
+  assert.equal(result.healthSummary.ON_TRACK, 1);
+  assert.equal(result.healthSummary.CRITICAL, 1);
+  assert.equal(result.totals.schedule.activities, 20);
+  assert.equal(result.totals.procurement.atRisk, 1);
+  assert.equal(result.totals.inventory.balanceRows, 3);
+  assert.equal(result.totals.cost.revisedBudget, '2400');
+  assert.equal(result.totals.cost.forecastCost, '1900');
+  assert.equal(result.totals.commercial.forecastProfit.status, 'AVAILABLE');
+  assert.equal(result.totals.commercial.forecastProfit.value, '975');
   assert.equal(
     result.scope.inaccessibleProjectsExcludedBeforeAggregation,
     true,
   );
+  assert.equal(result.boundaries.deterministicHealthSignals, true);
 });
-
 
 test('V0.8-B Management Project selector applies effective Project scope before listing choices', async () => {
   let receivedWhere: unknown = null;
