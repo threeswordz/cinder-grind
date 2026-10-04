@@ -3,6 +3,8 @@
 **Last verified:** 2026-10-04
 **Source of truth:** Live GitHub repository state
 
+**Interpretation rule:** The top `Current Release`, `Current Stage`, completed-stage and active Issue/PR bullets are the live status. Lower sections preserve chronological point-in-time checkpoints for auditability; historical words such as `open`, `pending`, `blocked`, `active` or `next` describe that checkpoint and do not override the live status above.
+
 - Current Release: V0.7 Cost Control — **COMPLETE AND ACCEPTED**. V0.7-A through V0.7-E and the V0.7 release exit are complete. V0.6 Finance remains COMPLETE AND ACCEPTED.
 - Current Stage: **V0.8 MANAGEMENT RELEASE ENTRY GATE — PROPOSAL PREPARED / PRODUCT OWNER APPROVAL PENDING**. Issue #160 is OPEN. The proposed package defines scope, AC-V08-001–040, BR-V08-01–16, D08-01–12, data/API/security/test baseline, V0.8-A–E stage sequence, planning estimate and deferrals. V0.8 implementation is NOT STARTED and remains unauthorized until explicit Product / Business Owner approval and entry-gate closure.
 - Completed Stages: V0.1-A through V0.1-H; V0.2-A through V0.2-G; V0.3-A through V0.3-E; V0.4-A through V0.4-E; V0.5 entry gate; V0.5-A; V0.5-B; V0.5-C; V0.5-D; V0.5-E; V0.6 entry gate; V0.6-A; V0.6-B; V0.6-C; V0.6-D; V0.6-E; V0.6 release exit; V0.7 entry gate; V0.7-A; V0.7-B; V0.7-C; V0.7-D; V0.7-E; V0.7 release exit

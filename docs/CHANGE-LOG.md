@@ -1,3 +1,12 @@
+## 2026-10-04 — V0.1–V0.7 cross-release integrity audit
+
+- Cross-release technical audit opened under Issue #163 after V0.7 closure and before V0.8 implementation.
+- Verified baseline main `f9e77ad61049830446b337447a84c3a0e1781528`: main CI #2681 PASS, 122 migrations applied/schema current, 117/117 API tests PASS with 0 failures, and 64/64 authenticated runtime acceptance checks PASS.
+- Open-ticket audit found no V0.1–V0.7 defect/implementation PR or issue; Issue #160 is V0.8 entry approval only.
+- Repository text scan found no TODO, FIXME, HACK, known-defect, open-defect or merge-conflict markers.
+- Documentation audit found stale present-tense historical wording in older scope/pre-flight/UAT snapshots. The reconciliation preserves the original chronology while marking historical snapshots explicitly and updating authoritative V0.6/V0.7 status wording to the completed/accepted state.
+- No runtime code, schema, migration, dependency, approved business-rule substance or governance policy is changed by this reconciliation.
+
 ## 2026-10-04 — V0.8 Management entry proposal published
 
 - Proposal PR #161 squash-merged as `82278f1975e046ca9b2e40ca168de570dcb93bfa`.
