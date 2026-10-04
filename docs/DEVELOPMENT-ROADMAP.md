@@ -821,10 +821,11 @@ Immediate sequence:
 8. Post-merge main CI #2798 — PASS; Issue #169 — CLOSED / COMPLETED.
 9. Stage-B closure/status reconciliation PR #171 — MERGED as `5581819419a4602a73ed0249ad8e0377f745d474`; post-merge main CI #2809 PASS.
 10. Issue #172 / branch `v0.8-c-executive-portfolio-dashboard` — ACTIVE from exact green main `5581819419a4602a73ed0249ad8e0377f745d474`.
-11. Stage-C implementation is materially present on clean candidate head `06fc017bfa9685a97efab5756e4ac2000334bf91`.
-12. Exact-head CI #2827 — **PASS**, including UAT-pack validation, migrations, workspace validation, full regression and authenticated live acceptance; the aggregate-counter/protected-detail ambiguity is resolved with sentinel regression coverage.
-13. PR #173 is OPEN from the synchronized Stage-C candidate. Obtain green PR CI and mandatory DEC-022 stable-candidate review, resolve genuine findings, then squash-merge, verify post-merge main CI and close Issue #172.
-14. Do not begin V0.8-D until V0.8-C completes those closure gates.
+11. PR #173 DEC-022 review identified five genuine findings across business-policy authority, portfolio query shape, Executive progress/inventory presentation, protected baseline metadata and empty-asOf/lookahead handling.
+12. The remediation sequence now uses bounded canonical portfolio reads (no per-Project authorization fan-out), source-signal-only health presentation with no unapproved severity mapping, protected-detail sanitization, explicit asOf validation, required progress/inventory presentation and matching regression/live-acceptance coverage.
+13. Current remediation/test head `e1b6842934abec70e20794a184e6e87a1ab6e592` is **UNDER VALIDATION**. Obtain green exact-head and PR CI, resolve/outdate all five review threads with evidence, then obtain a clean DEC-022 exact-head re-review.
+14. Only after that may PR #173 be squash-merged; verify post-merge main CI and close Issue #172.
+15. Do not begin V0.8-D until V0.8-C completes those closure gates.
 
 
 # 23. Baseline Decision
