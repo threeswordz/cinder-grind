@@ -13,7 +13,35 @@ function check(condition, message) {
   if (!condition) throw new Error(message);
 }
 
-function findProtectedDetailPaths(value, path = '
+function findProtectedDetailPaths(value, path = 'root') {
+  const found = [];
+  if (Array.isArray(value)) {
+    value.forEach((item, index) => {
+      found.push(...findProtectedDetailPaths(item, path + '[' + index + ']'));
+    });
+    return found;
+  }
+  if (value === null || typeof value !== 'object') return found;
+
+  for (const [key, item] of Object.entries(value)) {
+    const keyPath = path + '.' + key;
+    if (
+      key === 'generalRemarks' ||
+      key === 'paymentNumber' ||
+      key === 'sourceEvidence'
+    ) {
+      found.push(keyPath);
+    }
+    if (
+      (key === 'activities' || key === 'lines' || key === 'rows') &&
+      Array.isArray(item)
+    ) {
+      found.push(keyPath);
+    }
+    found.push(...findProtectedDetailPaths(item, keyPath));
+  }
+  return found;
+}
 
 function record(name) {
   stepResults.push(name);
