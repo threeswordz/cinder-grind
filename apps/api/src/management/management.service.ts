@@ -260,90 +260,213 @@ export class ManagementService {
           plannedCompletionDate: true,
           actualStartDate: true,
           actualCompletionDate: true,
-          statusDefinition: {
-            select: {
-              statusCode: true,
-              statusLabel: true,
-            },
-          },
         },
         orderBy: [{ projectName: 'asc' }, { projectCode: 'asc' }],
       }),
     ]);
+    const projectIds = projects.map((project) => project.id);
 
-    const summaries = await Promise.all(
-      projects.map((project) =>
-        this.projectSummary(auth, project.id, resolvedOptions),
-      ),
+    const [reportingRows, inventoryRows, costRows, cashFlowRows] =
+      await Promise.all([
+        this.reporting.portfolioSignals(
+          auth,
+          projectIds,
+          resolvedOptions.asOf,
+        ),
+        this.inventory.portfolioBalanceSummaries(auth, projectIds),
+        this.costControl.portfolioProjectTotals(auth, projectIds),
+        this.cashFlow.portfolioProjectCashFlows(auth, projectIds),
+      ]);
+
+    const reportingByProject = new Map(
+      reportingRows.map((row) => [row.projectId, row]),
+    );
+    const inventoryByProject = new Map(
+      inventoryRows.map((row) => [row.projectId, row]),
+    );
+    const costByProject = new Map(
+      costRows.map((row) => [row.projectId, row]),
+    );
+    const cashFlowByProject = new Map(
+      cashFlowRows.map((row) => [row.projectId, row]),
     );
 
-    for (const summary of summaries) {
-      if (summary.baseCurrencyCode !== company.baseCurrencyCode) {
+    const rows = projects.map((project) => {
+      const reporting = reportingByProject.get(project.id);
+      const cost = costByProject.get(project.id);
+      const cashFlow = cashFlowByProject.get(project.id);
+      if (!reporting || !cost || !cashFlow) {
+        throw new Error(
+          'Canonical Management portfolio source did not return an authorized Project.',
+        );
+      }
+      if (
+        cost.baseCurrencyCode !== company.baseCurrencyCode ||
+        cashFlow.baseCurrencyCode !== company.baseCurrencyCode
+      ) {
         throw new Error(
           'Canonical Management portfolio sources returned inconsistent Company base currencies.',
         );
       }
-    }
+      const inventory =
+        inventoryByProject.get(project.id) ?? {
+          projectId: project.id,
+          balanceRowCount: 0,
+          warehouseCount: 0,
+          materialCount: 0,
+          uomCount: 0,
+        };
 
-    const rows = summaries.map((summary) => {
-      const attentionDrivers: string[] = [];
-      const criticalDrivers: string[] = [];
-
-      if (summary.domains.schedule.summary.delayed > 0) {
-        attentionDrivers.push('SCHEDULE_DELAY');
-      }
-      if (summary.domains.procurement.summary.AT_RISK > 0) {
-        attentionDrivers.push('PROCUREMENT_AT_RISK');
-      }
-      if (summary.domains.siteExecution.delayCount > 0) {
-        attentionDrivers.push('SITE_DELAY');
-      }
-      if (summary.domains.siteExecution.issueCount > 0) {
-        attentionDrivers.push('SITE_ISSUE');
-      }
-      if (new Prisma.Decimal(summary.domains.cost.variance).lt(0)) {
-        criticalDrivers.push('FORECAST_COST_OVER_BUDGET');
-      }
       const forecastProfit =
-        summary.domains.cost.commercial.forecastProfit;
-      if (
-        forecastProfit !== null &&
-        new Prisma.Decimal(forecastProfit).lt(0)
-      ) {
-        criticalDrivers.push('FORECAST_LOSS');
-      }
-
-      const health =
-        criticalDrivers.length > 0
-          ? {
-              status: 'CRITICAL' as const,
-              drivers: [...criticalDrivers, ...attentionDrivers],
-            }
-          : attentionDrivers.length > 0
-            ? {
-                status: 'ATTENTION' as const,
-                drivers: attentionDrivers,
-              }
-            : {
-                status: 'ON_TRACK' as const,
-                drivers: [] as string[],
-              };
+        cost.totals.commercial.forecastProfit.toFixed();
 
       return {
-        project: summary.project,
-        health,
-        domains: summary.domains,
-        sourceTraceability: summary.sourceTraceability,
+        project: {
+          id: project.id,
+          projectCode: project.projectCode,
+          projectName: project.projectName,
+          plannedStartDate: this.day(project.plannedStartDate),
+          plannedCompletionDate: this.day(
+            project.plannedCompletionDate,
+          ),
+          actualStartDate: this.day(project.actualStartDate),
+          actualCompletionDate: this.day(
+            project.actualCompletionDate,
+          ),
+        },
+        health: {
+          overallSeverity: {
+            status: 'UNAVAILABLE' as const,
+            reason:
+              'NO_APPROVED_OVERALL_HEALTH_SEVERITY_POLICY' as const,
+          },
+          sourceSignals: {
+            progress: {
+              completedActivities:
+                reporting.schedule.completed,
+              totalActivities: reporting.schedule.total,
+            },
+            procurement: {
+              atRiskLines: reporting.procurement.AT_RISK,
+              unavailableLines:
+                reporting.procurement.UNAVAILABLE,
+            },
+            site: {
+              issueCount: reporting.siteExecution.issueCount,
+              delayCount: reporting.siteExecution.delayCount,
+            },
+            cost: {
+              variance: cost.totals.variance.toFixed(),
+            },
+            commercial: {
+              forecastProfit,
+            },
+          },
+        },
+        domains: {
+          schedule: {
+            status: 'AVAILABLE' as const,
+            summary: reporting.schedule,
+          },
+          siteExecution: {
+            status: 'AVAILABLE' as const,
+            recentReportCount:
+              reporting.siteExecution.recentReportCount,
+            issueCount: reporting.siteExecution.issueCount,
+            delayCount: reporting.siteExecution.delayCount,
+          },
+          procurement: {
+            status: 'AVAILABLE' as const,
+            summary: reporting.procurement,
+          },
+          inventory: {
+            status: 'AVAILABLE' as const,
+            balanceRowCount: inventory.balanceRowCount,
+            warehouseCount: inventory.warehouseCount,
+            materialCount: inventory.materialCount,
+            uomCount: inventory.uomCount,
+            quantityAggregation:
+              'NOT_APPLICABLE_MIXED_MATERIAL_AND_UOM_DIMENSIONS' as const,
+          },
+          cost: {
+            status: 'AVAILABLE' as const,
+            originalBudget:
+              cost.totals.originalBudget.toFixed(),
+            revisedBudget:
+              cost.totals.revisedBudget.toFixed(),
+            committedCost:
+              cost.totals.committedCost.toFixed(),
+            actualCost: cost.totals.actualCost.toFixed(),
+            paidCost: cost.totals.paidCost.toFixed(),
+            remainingCommitment:
+              cost.totals.remainingCommitment.toFixed(),
+            uncommittedEtc:
+              cost.totals.uncommittedEtc.toFixed(),
+            costToComplete:
+              cost.totals.costToComplete.toFixed(),
+            forecastCost: cost.totals.forecastCost.toFixed(),
+            variance: cost.totals.variance.toFixed(),
+            commercial: {
+              originalContractValue:
+                cost.totals.commercial.originalContractValue.toFixed(),
+              approvedVariationValue:
+                cost.totals.commercial.approvedVariationValue.toFixed(),
+              revisedContractValue:
+                cost.totals.commercial.revisedContractValue.toFixed(),
+              actualRevenue:
+                cost.totals.commercial.actualRevenue.toFixed(),
+              cashReceived:
+                cost.totals.commercial.cashReceived.toFixed(),
+              forecastRevenue:
+                cost.totals.commercial.forecastRevenue.toFixed(),
+              actualProfit:
+                cost.totals.commercial.actualProfit.toFixed(),
+              forecastProfit,
+            },
+          },
+          finance: {
+            status: 'AVAILABLE' as const,
+            inflowAmount:
+              cashFlow.totals.inflowAmount.toFixed(),
+            outflowAmount:
+              cashFlow.totals.outflowAmount.toFixed(),
+            netCashFlow:
+              cashFlow.totals.netCashFlow.toFixed(),
+          },
+        },
+        sourceTraceability: {
+          scheduleSite: this.sourceContract(
+            auth,
+            'V0.2 Scheduling / Site Execution',
+            ['schedule.programme.view', 'site.daily_report.view'],
+          ),
+          procurement: this.sourceContract(
+            auth,
+            'V0.3 Procurement',
+            [
+              'procurement.pr.view',
+              'procurement.rfq.view',
+              'procurement.po.view',
+            ],
+          ),
+          inventory: this.sourceContract(
+            auth,
+            'V0.4 Inventory',
+            ['inventory.report.view'],
+          ),
+          cost: this.sourceContract(
+            auth,
+            'V0.7 Cost Control',
+            ['cost.control.view'],
+          ),
+          finance: this.sourceContract(
+            auth,
+            'V0.6 Finance',
+            ['finance.payment.view'],
+          ),
+        },
       };
     });
-
-    const healthSummary = rows.reduce(
-      (result, row) => {
-        result[row.health.status] += 1;
-        return result;
-      },
-      { ON_TRACK: 0, ATTENTION: 0, CRITICAL: 0 },
-    );
 
     return {
       contractVersion: 'V0.8-C',
@@ -351,80 +474,88 @@ export class ManagementService {
       lookaheadDays: resolvedOptions.days,
       baseCurrencyCode: company.baseCurrencyCode,
       projectCount: rows.length,
-      healthSummary,
+      healthPolicy: {
+        overallSeverity: 'NOT_APPROVED' as const,
+        presentation: 'SOURCE_SIGNALS_ONLY' as const,
+      },
       totals: {
         schedule: {
           activities: rows.reduce(
-            (sum, row) => sum + row.domains.schedule.summary.total,
+            (sum, row) =>
+              sum + row.domains.schedule.summary.total,
             0,
           ),
           completed: rows.reduce(
-            (sum, row) => sum + row.domains.schedule.summary.completed,
-            0,
-          ),
-          delayed: rows.reduce(
-            (sum, row) => sum + row.domains.schedule.summary.delayed,
-            0,
-          ),
-          critical: rows.reduce(
-            (sum, row) => sum + row.domains.schedule.summary.critical,
-            0,
-          ),
-          lookahead: rows.reduce(
-            (sum, row) => sum + row.domains.schedule.lookaheadActivityCount,
+            (sum, row) =>
+              sum + row.domains.schedule.summary.completed,
             0,
           ),
         },
         procurement: {
           demandLines: rows.reduce(
-            (sum, row) => sum + row.domains.procurement.summary.total,
+            (sum, row) =>
+              sum + row.domains.procurement.summary.total,
             0,
           ),
           atRisk: rows.reduce(
-            (sum, row) => sum + row.domains.procurement.summary.AT_RISK,
+            (sum, row) =>
+              sum + row.domains.procurement.summary.AT_RISK,
             0,
           ),
           onTime: rows.reduce(
-            (sum, row) => sum + row.domains.procurement.summary.ON_TIME,
+            (sum, row) =>
+              sum + row.domains.procurement.summary.ON_TIME,
             0,
           ),
           unavailable: rows.reduce(
-            (sum, row) => sum + row.domains.procurement.summary.UNAVAILABLE,
+            (sum, row) =>
+              sum + row.domains.procurement.summary.UNAVAILABLE,
             0,
           ),
         },
         siteExecution: {
           recentReports: rows.reduce(
-            (sum, row) => sum + row.domains.siteExecution.recentReportCount,
+            (sum, row) =>
+              sum + row.domains.siteExecution.recentReportCount,
             0,
           ),
           issues: rows.reduce(
-            (sum, row) => sum + row.domains.siteExecution.issueCount,
+            (sum, row) =>
+              sum + row.domains.siteExecution.issueCount,
             0,
           ),
           delays: rows.reduce(
-            (sum, row) => sum + row.domains.siteExecution.delayCount,
+            (sum, row) =>
+              sum + row.domains.siteExecution.delayCount,
             0,
           ),
         },
         inventory: {
           balanceRows: rows.reduce(
-            (sum, row) => sum + row.domains.inventory.balanceRowCount,
+            (sum, row) =>
+              sum + row.domains.inventory.balanceRowCount,
             0,
           ),
           projectsWithStock: rows.filter(
-            (row) => row.domains.inventory.balanceRowCount > 0,
+            (row) =>
+              row.domains.inventory.balanceRowCount > 0,
           ).length,
         },
         cost: {
           originalBudget: this.sumMoney(
-            rows.map((row) => row.domains.cost.originalBudget),
+            rows.map(
+              (row) => row.domains.cost.originalBudget,
+            ),
           ),
           revisedBudget: this.sumMoney(
-            rows.map((row) => row.domains.cost.revisedBudget),
+            rows.map(
+              (row) => row.domains.cost.revisedBudget,
+            ),
           ),
           committedCost: this.sumMoney(
-            rows.map((row) => row.domains.cost.committedCost),
+            rows.map(
+              (row) => row.domains.cost.committedCost,
+            ),
           ),
           actualCost: this.sumMoney(
             rows.map((row) => row.domains.cost.actualCost),
@@ -433,7 +564,9 @@ export class ManagementService {
             rows.map((row) => row.domains.cost.paidCost),
           ),
           forecastCost: this.sumMoney(
-            rows.map((row) => row.domains.cost.forecastCost),
+            rows.map(
+              (row) => row.domains.cost.forecastCost,
+            ),
           ),
           variance: this.sumMoney(
             rows.map((row) => row.domains.cost.variance),
@@ -441,38 +574,58 @@ export class ManagementService {
         },
         finance: {
           inflowAmount: this.sumMoney(
-            rows.map((row) => row.domains.finance.inflowAmount),
+            rows.map(
+              (row) => row.domains.finance.inflowAmount,
+            ),
           ),
           outflowAmount: this.sumMoney(
-            rows.map((row) => row.domains.finance.outflowAmount),
+            rows.map(
+              (row) => row.domains.finance.outflowAmount,
+            ),
           ),
           netCashFlow: this.sumMoney(
-            rows.map((row) => row.domains.finance.netCashFlow),
+            rows.map(
+              (row) => row.domains.finance.netCashFlow,
+            ),
           ),
         },
         commercial: {
           revisedContractValue: this.sumMoney(
             rows.map(
               (row) =>
-                row.domains.cost.commercial.revisedContractValue,
+                row.domains.cost.commercial
+                  .revisedContractValue,
             ),
           ),
           actualRevenue: this.sumMoney(
-            rows.map((row) => row.domains.cost.commercial.actualRevenue),
+            rows.map(
+              (row) =>
+                row.domains.cost.commercial.actualRevenue,
+            ),
           ),
           cashReceived: this.sumMoney(
-            rows.map((row) => row.domains.cost.commercial.cashReceived),
+            rows.map(
+              (row) =>
+                row.domains.cost.commercial.cashReceived,
+            ),
           ),
           forecastRevenue: this.sumMoney(
             rows.map(
-              (row) => row.domains.cost.commercial.forecastRevenue,
+              (row) =>
+                row.domains.cost.commercial.forecastRevenue,
             ),
           ),
           actualProfit: this.sumOptionalMoney(
-            rows.map((row) => row.domains.cost.commercial.actualProfit),
+            rows.map(
+              (row) =>
+                row.domains.cost.commercial.actualProfit,
+            ),
           ),
           forecastProfit: this.sumOptionalMoney(
-            rows.map((row) => row.domains.cost.commercial.forecastProfit),
+            rows.map(
+              (row) =>
+                row.domains.cost.commercial.forecastProfit,
+            ),
           ),
         },
       },
@@ -486,7 +639,10 @@ export class ManagementService {
       boundaries: {
         readOnlyComposition: true,
         sourceModulesRemainCanonical: true,
+        boundedPortfolioSourceReads: true,
+        perProjectAuthorizationFanOut: false,
         deterministicHealthSignals: true,
+        overallHealthSeverityPolicyApproved: false,
         manualHealthOverride: false,
         financialAuthority: 'POSTGRESQL_PRISMA_DECIMAL',
         baseCurrencyOnly: true,
