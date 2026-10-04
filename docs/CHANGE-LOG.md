@@ -1,3 +1,13 @@
+## 2026-10-04 — V0.8-A Management Read Model / KPI Contracts complete
+
+- Final corrected Stage-A material head `93b116af63723869e9b28c9407e67b034088bf18` passed push CI #2758 and PR CI #2759.
+- DEC-022 initial review found one genuine P2: inventory KPI counts could be truncated by the 1,000-row balance-list cap.
+- The finding was fixed with an uncapped canonical Stock Balance aggregate while retaining the presentation-list cap; focused regression covers >1,000 balance combinations.
+- Final exact-head Codex re-review reported **no major issues**.
+- PR #167 squash-merged as `d60c5c051f1eb6aec30399173f33ab05300cc52c`; post-merge main CI #2760 passed.
+- Issue #166 closed completed.
+- **V0.8-A is COMPLETE. V0.8-B Project Engineer & Project Manager Dashboards is NEXT.**
+
 ## 2026-10-04 — V0.8 Management entry baseline approved
 
 - Product / Business Owner explicitly approved the complete V0.8 Management entry package as proposed: Scope, AC-V08-001–040, BR-V08-01–16, D08-01–12, data/API/security/test baseline, V0.8-A–E stages, 18–30 engineering-day planning estimate plus separate UAT/acceptance window, and explicit deferrals.

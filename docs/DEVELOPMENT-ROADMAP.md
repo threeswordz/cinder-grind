@@ -807,19 +807,19 @@ Completed release: **V0.7 Cost Control — COMPLETE AND ACCEPTED**.
 
 Next release: **V0.8 Management**.
 
-Current stage: **V0.8-A Management Read Model / KPI Contracts — ACTIVE**.
+Current stage: **V0.8-B Project Engineer & Project Manager Dashboards — NEXT / NOT STARTED**.
 
 Immediate sequence:
 
 1. V0.7 Cost Control — COMPLETE AND ACCEPTED.
 2. V0.8 entry gate — COMPLETE under DEC-025.
-3. Approval PR #165 — MERGED as `a05e455fb3c27c03f7b97ac17aa5bbca710eda0e`; post-merge main CI #2727 — PASS.
-4. Issue #160 — CLOSED / COMPLETED.
-5. Issue #166 / branch `v0.8-a-management-read-model-kpi-contracts` — ACTIVE.
-6. Implement Management permissions, Project summary and portfolio/KPI read-model contracts without duplicating canonical source ownership.
-7. Run targeted regression, full workspace CI and authenticated live acceptance.
-8. At the stable merge candidate, satisfy DEC-022 independent review because authorization/read-model boundaries are material.
-9. Merge only after green exact-head/PR CI and resolved findings; verify post-merge main CI and close #166 before V0.8-B.
+3. V0.8-A Management Read Model / KPI Contracts — **COMPLETE**.
+4. Final Stage-A material head `93b116af63723869e9b28c9407e67b034088bf18` — push CI #2758 PASS / PR CI #2759 PASS.
+5. DEC-022 exact-head re-review — **NO MAJOR ISSUES** after the inventory KPI truncation P2 was fixed and regression-covered.
+6. PR #167 — MERGED as `d60c5c051f1eb6aec30399173f33ab05300cc52c`.
+7. Post-merge main CI #2760 — PASS; Issue #166 — CLOSED / COMPLETED.
+8. Establish V0.8-B from exact green main `d60c5c051f1eb6aec30399173f33ab05300cc52c`.
+9. Do not begin V0.8-C until V0.8-B completes its own CI/review/merge/post-merge closure gates.
 
 
 # 23. Baseline Decision

@@ -1,12 +1,12 @@
 # Construction ERP — Master Requirements Register
 
 **Document Status:** Requirements Baseline v0.1  
-**Current Phase:** V0.8-A Management Read Model / KPI Contracts — ACTIVE  
+**Current Phase:** V0.8-B Project Engineer & Project Manager Dashboards — NEXT / NOT STARTED  
 **Architecture Baseline:** v0.1  
 **Source:** ERP-MASTER-BLUEPRINT.md  
 **Last Structural Review:** V0.7 documentation reconciliation — 2026-10-04
 
-**Live delivery note:** V0.1–V0.7 are complete; V0.7 Cost Control is accepted. V0.8 Management entry baseline is approved under DEC-025; PR #165 merged as `a05e455fb3c27c03f7b97ac17aa5bbca710eda0e`, main CI #2727 passed and Issue #160 closed completed. V0.8-A Management Read Model / KPI Contracts is active under Issue #166. Requirement approval/status remains governed by the approved baselines and Change Control; this note does not rewrite historical requirement approval.
+**Live delivery note:** V0.1–V0.7 are complete; V0.7 Cost Control is accepted. V0.8 Management entry baseline is approved under DEC-025. V0.8-A Management Read Model / KPI Contracts is COMPLETE: PR #167 merged as `d60c5c051f1eb6aec30399173f33ab05300cc52c`, post-merge main CI #2760 passed and Issue #166 closed completed. V0.8-B Project Engineer & Project Manager Dashboards is next. Requirement approval/status remains governed by the approved baselines and Change Control; this note does not rewrite historical requirement approval.
 
 ---
 
