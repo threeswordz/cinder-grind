@@ -478,3 +478,43 @@ Key approved decisions are:
 Committed Cost, Actual Cost and Paid Cost remain separate. No second editable cost ledger is authorized. DEC-008, DEC-016 and DEC-022 remain mandatory. DEC-023 remains a one-time V0.6 release-exit exception and does not waive V0.7 human UAT/business acceptance.
 
 This approval authorizes the V0.7 entry-gate documentation/closure sequence only. **V0.7-A implementation must not begin until the entry-gate PR merges, post-merge main CI passes and Issue #137 closes completed.**
+
+## DEC-025 — V0.8 Management release entry baseline
+**Status:** APPROVED — Product / Business Owner, 2026-10-04 (Singapore time)
+
+Live GitHub was refreshed before this decision was recorded. V0.7 Cost Control was complete and accepted; the V0.1–V0.7 integrity reconciliation had merged as `49d50b5c8a8e032a0590b851fbe7612612d0d031`; post-merge main CI #2714 passed; open PRs were zero; Issue #160 was the only open issue and existed solely for V0.8 entry approval.
+
+The complete V0.8 Management proposal was presented as:
+
+- V0.8 Scope and explicit exclusions/deferrals;
+- AC-V08-001–040;
+- BR-V08-01–16;
+- D08-01–12;
+- data/API/security/test baseline;
+- V0.8-A through V0.8-E stage decomposition;
+- 18–30 engineering-day planning estimate plus a separate Product / Business Owner UAT/acceptance window.
+
+The Product / Business Owner explicitly stated:
+
+**“I approve the complete V0.8 Management entry package as proposed, including Scope, AC-V08-001–040, BR-V08-01–16, D08-01–12, data/API/security/test baseline, V0.8-A–E stages, planning estimate and deferrals, and authorize V0.8 entry-gate closure”**
+
+No amendment was specified. Record the full package exactly as proposed as the approved V0.8 Management entry baseline.
+
+Key approved decisions include:
+
+- D08-01 — Management uses derived read models over canonical modules; no persistent editable KPI/management ledger.
+- D08-02 — current derived data is the default; only non-authoritative permission-safe invalidatable cache is allowed if needed.
+- D08-03 — Project dashboards require effective Project access plus Management permission; portfolio views require separate explicit portfolio permission.
+- D08-04 — Management aggregate visibility does not grant protected source detail; source-module view permissions remain required.
+- D08-05 — Project health/risk is deterministic from approved source signals; no manually authoritative overall-health override in initial V0.8.
+- D08-06 — reuse existing Scheduling/Site semantics; no second schedule engine.
+- D08-07 — reuse PROC-019 Required-on-Site versus Expected Delivery risk; no second procurement risk engine.
+- D08-08 — consume V0.6/V0.7 approved Cost/Finance/Revenue/Profit measures exactly and keep them distinct.
+- D08-09 — initial Management financial consolidation is Company base-currency-only; no FX conversion; server/database Decimal remains authoritative.
+- D08-10 — controlled CSV and browser-printable views are the initial export baseline; advanced PDF/XLSX designer and scheduled distribution are deferred.
+- D08-11 — descriptive/diagnostic analytics only; predictive/ML forecasting and AI recommendations are deferred.
+- D08-12 — use canonical transaction/version history; dedicated warehouse/OLAP/persistent daily KPI snapshots are deferred.
+
+V0.8 remains a read-only derived management/reporting layer. Source modules remain canonical owners. DEC-008 open-source/zero-cost-first, DEC-016 operating model and DEC-022 stable-candidate review policy remain mandatory.
+
+This owner approval does not by itself start implementation. V0.8-A may begin only after the approved entry-gate branch passes exact-head CI, applicable PR/review gates pass, the entry-gate PR merges, post-merge `main` CI passes and Issue #160 closes completed. V0.8 Release Exit will still require separate Product / Business Owner human UAT and explicit release acceptance.
