@@ -1,7 +1,7 @@
 # Construction ERP — Master Blueprint
 
 **Document Status:** Architecture Baseline v0.1
-**Current Phase:** V0.8 Management — ACTIVE / V0.8-A COMPLETE / V0.8-B COMPLETE / V0.8-C NEXT
+**Current Phase:** V0.8 Management — ACTIVE / V0.8-A COMPLETE / V0.8-B COMPLETE / V0.8-C ACTIVE
 **System:** Construction ERP
 **Primary Platform:** Web Application
 **Architecture Principle:** Open-Source First
@@ -1677,7 +1677,7 @@ Next Release:
 
 Current Stage:
 
-**V0.8-C Executive / Cross-Project Management Dashboard — NEXT / NOT STARTED**
+**V0.8-C Executive / Cross-Project Management Dashboard — ACTIVE**
 
 Live delivery position:
 
@@ -1691,7 +1691,7 @@ Live delivery position:
 - V0.8 Management Release Entry Gate — complete under DEC-025
 - V0.8-A Management Read Model / KPI Contracts — complete
 - V0.8-B Project Engineer & Project Manager Dashboards — complete
-- V0.8-C Executive / Cross-Project Management Dashboard — next / not started
+- V0.8-C Executive / Cross-Project Management Dashboard — active
 - V0.8-D Domain Dashboards — future
 - V0.8-E Cross-Module Reporting / Export / Hardening / Release Evidence — future
 

@@ -1,3 +1,11 @@
+## 2026-10-04 — V0.8-C Executive / Cross-Project Management Dashboard started
+
+- V0.8-B closure/status reconciliation PR #171 squash-merged as `5581819419a4602a73ed0249ad8e0377f745d474`; post-merge main CI #2809 passed.
+- Issue #172 opened for the approved V0.8-C Executive / Cross-Project Management Dashboard.
+- Implementation branch `v0.8-c-executive-portfolio-dashboard` starts from exact green main `5581819419a4602a73ed0249ad8e0377f745d474`.
+- Existing V0.8-A `GET /management/portfolio` already enforces `management.portfolio.view` and effective Project scope, but intentionally defers financial portfolio aggregation and cross-Project health scoring to Stage C.
+- Stage C will extend that canonical foundation only; V0.8-D domain dashboards and V0.8-E reporting/export remain deferred.
+
 ## 2026-10-04 — V0.8-B Project Engineer & Project Manager Dashboards complete
 
 - Final Stage-B implementation head `4230e6ffff3e1c5a3dc7ee3b7669f86061e704ba` passed exact-head push CI #2796 and PR CI #2797.

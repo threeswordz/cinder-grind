@@ -807,7 +807,7 @@ Completed release: **V0.7 Cost Control — COMPLETE AND ACCEPTED**.
 
 Next release: **V0.8 Management**.
 
-Current stage: **V0.8-C Executive / Cross-Project Management Dashboard — NEXT**.
+Current stage: **V0.8-C Executive / Cross-Project Management Dashboard — ACTIVE**.
 
 Immediate sequence:
 
@@ -819,8 +819,10 @@ Immediate sequence:
 6. DEC-022 final exact-head re-review — **NO MAJOR ISSUES** after the AC-V08-003 P1 execution-view gap was fixed and regression-covered.
 7. PR #170 — MERGED as `42444cc91912f323d672f63da050b68b8d777b62`.
 8. Post-merge main CI #2798 — PASS; Issue #169 — CLOSED / COMPLETED.
-9. Complete the Stage-B closure/status reconciliation and verify its post-merge main CI.
-10. Then establish V0.8-C from that exact green main; do not begin V0.8-D until V0.8-C completes its own CI/review/merge/post-merge closure gates.
+9. Stage-B closure/status reconciliation PR #171 — MERGED as `5581819419a4602a73ed0249ad8e0377f745d474`; post-merge main CI #2809 PASS.
+10. Issue #172 / branch `v0.8-c-executive-portfolio-dashboard` — ACTIVE from exact green main `5581819419a4602a73ed0249ad8e0377f745d474`.
+11. Implement the approved Executive / Cross-Project Management Dashboard using the existing scoped portfolio foundation and canonical source semantics.
+12. Do not begin V0.8-D until V0.8-C completes its own CI/review/merge/post-merge closure gates.
 
 
 # 23. Baseline Decision
