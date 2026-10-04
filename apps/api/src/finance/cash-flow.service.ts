@@ -204,6 +204,117 @@ export class CashFlowService {
     });
   }
 
+  async portfolioProjectCashFlows(
+    auth: AuthenticatedUserContext,
+    projectIds: string[],
+    period: CashFlowPeriod = {},
+  ) {
+    const requestedIds = [...new Set(projectIds)];
+    if (requestedIds.length === 0) return [];
+
+    const scope = await this.access.scopeWhere(auth);
+    const allowedProjects = await this.prisma.project.findMany({
+      where: {
+        AND: [
+          scope,
+          { id: { in: requestedIds }, isActive: true },
+        ],
+      },
+      select: { id: true },
+    });
+    const allowedIds = allowedProjects.map((row) => row.id);
+    if (allowedIds.length === 0) return [];
+
+    const paymentDate =
+      period.fromDate || period.toDateExclusive
+        ? {
+            ...(period.fromDate ? { gte: period.fromDate } : {}),
+            ...(period.toDateExclusive ? { lt: period.toDateExclusive } : {}),
+          }
+        : undefined;
+
+    const [company, payments] = await Promise.all([
+      this.prisma.company.findUniqueOrThrow({
+        where: { id: auth.companyId },
+        select: { baseCurrencyCode: true },
+      }),
+      this.prisma.payment.findMany({
+        where: {
+          companyId: auth.companyId,
+          projectId: { in: allowedIds },
+          state: { in: ['APPROVED', 'CANCELLED'] },
+          ...(paymentDate ? { paymentDate } : {}),
+        },
+        select: {
+          id: true,
+          projectId: true,
+          paymentNumber: true,
+          paymentDirection: true,
+          paymentDate: true,
+          amount: true,
+          currencyCode: true,
+          paymentMethod: true,
+          reference: true,
+          state: true,
+          cancelledAt: true,
+          supplier: {
+            select: { id: true, supplierCode: true, supplierName: true },
+          },
+          customer: {
+            select: { id: true, customerCode: true, customerName: true },
+          },
+          subcontractor: {
+            select: {
+              id: true,
+              subcontractorCode: true,
+              subcontractorName: true,
+            },
+          },
+          supplierAllocations: {
+            select: {
+              allocatedAmount: true,
+              supplierInvoice: {
+                select: {
+                  id: true,
+                  supplierInvoiceNumber: true,
+                  supplierReference: true,
+                },
+              },
+            },
+          },
+          clientAllocations: {
+            select: {
+              allocatedAmount: true,
+              clientInvoice: {
+                select: { id: true, clientInvoiceNumber: true },
+              },
+            },
+          },
+          subcontractAllocations: {
+            select: {
+              allocatedAmount: true,
+              subcontractCertification: {
+                select: { id: true, certificationNumber: true },
+              },
+            },
+          },
+        },
+      }),
+    ]);
+
+    return allowedIds.map((projectId) => {
+      const result = deriveProjectCashFlow(
+        payments.filter((payment) => payment.projectId === projectId),
+        company.baseCurrencyCode,
+      );
+      return {
+        projectId,
+        baseCurrencyCode: result.baseCurrencyCode,
+        totals: result.totals,
+      };
+    });
+  }
+
   async projectCashFlow(
     auth: AuthenticatedUserContext,
     projectId: string,

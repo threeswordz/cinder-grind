@@ -41,6 +41,10 @@ type BalanceSummaryRow = {
   uomCount: number;
 };
 
+type PortfolioBalanceSummaryRow = BalanceSummaryRow & {
+  projectId: string;
+};
+
 @Injectable()
 export class StockBalanceService {
   constructor(
@@ -112,6 +116,62 @@ export class StockBalanceService {
     }
 
     return conditions;
+  }
+
+  async portfolioBalanceSummaries(
+    auth: AuthenticatedUserContext,
+    projectIds: string[],
+  ) {
+    const requestedIds = [...new Set(projectIds)];
+    if (requestedIds.length === 0) return [];
+
+    const scope = await this.access.scopeWhere(auth);
+    const allowedProjects = await this.prisma.project.findMany({
+      where: {
+        AND: [
+          scope,
+          { id: { in: requestedIds }, isActive: true },
+        ],
+      },
+      select: { id: true },
+    });
+    const allowedIds = allowedProjects.map((row) => row.id);
+    if (allowedIds.length === 0) return [];
+
+    return this.prisma.$queryRaw<PortfolioBalanceSummaryRow[]>(Prisma.sql`
+      WITH balance_rows AS (
+        SELECT
+          st.project_id AS project_id,
+          w.id AS warehouse_id,
+          m.id AS material_id,
+          u.id AS uom_id
+        FROM stock_transactions st
+        JOIN warehouses w
+          ON w.id = st.warehouse_id
+         AND w.company_id = st.company_id
+        JOIN materials m
+          ON m.id = st.material_id
+         AND m.company_id = st.company_id
+        JOIN units_of_measure u
+          ON u.id = st.uom_id
+         AND u.company_id = st.company_id
+        WHERE st.company_id = ${auth.companyId}::uuid
+          AND st.project_id IN (${Prisma.join(
+            allowedIds.map((id) => Prisma.sql`${id}::uuid`),
+          )})
+          AND w.is_active = TRUE
+        GROUP BY st.project_id, w.id, m.id, u.id
+        HAVING SUM(st.quantity) <> 0
+      )
+      SELECT
+        project_id AS "projectId",
+        COUNT(*)::INTEGER AS "balanceRowCount",
+        COUNT(DISTINCT warehouse_id)::INTEGER AS "warehouseCount",
+        COUNT(DISTINCT material_id)::INTEGER AS "materialCount",
+        COUNT(DISTINCT uom_id)::INTEGER AS "uomCount"
+      FROM balance_rows
+      GROUP BY project_id
+    `);
   }
 
   async balanceSummary(

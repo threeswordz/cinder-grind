@@ -70,6 +70,13 @@ export class InventoryReportService {
     return this.balances.balanceSummary(auth, filters);
   }
 
+  portfolioBalanceSummaries(
+    auth: AuthenticatedUserContext,
+    projectIds: string[],
+  ) {
+    return this.balances.portfolioBalanceSummaries(auth, projectIds);
+  }
+
   async movementReport(
     auth: AuthenticatedUserContext,
     filters: InventoryMovementFilters,
