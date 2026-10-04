@@ -1,3 +1,13 @@
+## 2026-10-05 — V0.8-D Domain Dashboards implementation merged / closure active
+
+- Final Stage-D head `e11a77391ebfb43ff4431820ea363964f525f545` passed exact-head CI #2995 including authenticated live acceptance.
+- Final DEC-022 review of that exact head reported **no major issues**; all known implementation and documentation review findings were resolved before merge.
+- PR #177 squash-merged to `main` as `ff3dc08a4aee9945bb0b195627e31577f766f691`.
+- Issue #175 remains OPEN until the Stage-D closure evidence gate is complete.
+- The connected GitHub tooling currently exposes pull-request workflow runs but not the push-triggered exact-main run for merge commit `ff3dc08...`; post-merge exact-main CI is therefore **not yet recorded as PASS** and must not be inferred.
+- Closure branch `v0.8-d-closure-reconcile` reconciles durable status only; no runtime/schema/security/business-rule or governance change is introduced.
+- V0.8-E remains blocked until post-merge exact-main CI evidence is recorded, the closure reconciliation is merged, and Issue #175 is closed.
+
 ## 2026-10-04 — V0.8-D Domain Dashboards implementation started
 
 - Pre-flight PR #176 squash-merged as `66ef5bfeae9211b6f1ff10772e4698cc3a9cc133`; post-merge exact-main CI #2912 PASS.
