@@ -42,6 +42,11 @@ import { RetentionService } from './retention.service';
     PaymentService,
     RetentionService,
   ],
-  exports: [FinanceService, CashFlowService, RetentionService],
+  exports: [
+    FinanceService,
+    CashFlowService,
+    ClientInvoiceService,
+    RetentionService,
+  ],
 })
 export class FinanceModule {}
