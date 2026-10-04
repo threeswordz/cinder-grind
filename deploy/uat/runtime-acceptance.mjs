@@ -13,6 +13,17 @@ function check(condition, message) {
   if (!condition) throw new Error(message);
 }
 
+function hasOwnKeyDeep(value, forbiddenKeys) {
+  if (Array.isArray(value)) {
+    return value.some((item) => hasOwnKeyDeep(item, forbiddenKeys));
+  }
+  if (value === null || typeof value !== 'object') return false;
+  return Object.entries(value).some(
+    ([key, item]) =>
+      forbiddenKeys.has(key) || hasOwnKeyDeep(item, forbiddenKeys),
+  );
+}
+
 function record(name) {
   stepResults.push(name);
   process.stdout.write(`✓ ${name}\n`);
@@ -8545,14 +8556,18 @@ check(
   ),
   'V0.8-A Management source traceability did not preserve owning-module source-detail policy.',
 );
-const serializedManagement = JSON.stringify(managementSummary.data.data);
 check(
-  !serializedManagement.includes('\"generalRemarks\":') &&
-    !serializedManagement.includes('\"paymentNumber\":') &&
-    !serializedManagement.includes('\"sourceEvidence\":') &&
-    !serializedManagement.includes('"activities":') &&
-    !serializedManagement.includes('"lines":') &&
-    !serializedManagement.includes('"rows":'),
+  !hasOwnKeyDeep(
+    managementSummary.data.data,
+    new Set([
+      'generalRemarks',
+      'paymentNumber',
+      'sourceEvidence',
+      'activities',
+      'lines',
+      'rows',
+    ]),
+  ),
   'V0.8-A Management summary leaked protected source rows/details.',
 );
 
@@ -8584,14 +8599,18 @@ check(
     managementPortfolio.data.data.boundaries?.manualHealthOverride === false,
   'V0.8-C Executive portfolio did not reconcile canonical finance/cost measures and deterministic health signals.',
 );
-const serializedPortfolio = JSON.stringify(managementPortfolio.data.data);
 check(
-  !serializedPortfolio.includes('generalRemarks') &&
-    !serializedPortfolio.includes('paymentNumber') &&
-    !serializedPortfolio.includes('sourceEvidence') &&
-    !serializedPortfolio.includes('"activities"') &&
-    !serializedPortfolio.includes('"lines"') &&
-    !serializedPortfolio.includes('"rows"'),
+  !hasOwnKeyDeep(
+    managementPortfolio.data.data,
+    new Set([
+      'generalRemarks',
+      'paymentNumber',
+      'sourceEvidence',
+      'activities',
+      'lines',
+      'rows',
+    ]),
+  ),
   'V0.8-C Executive portfolio leaked protected source rows/details.',
 );
 const unassignedManagementPortfolio = await request(
