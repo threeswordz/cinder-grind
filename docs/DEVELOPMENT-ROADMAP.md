@@ -1,7 +1,7 @@
 # Construction ERP — Development Roadmap
 
 **Document Status:** Development Roadmap Baseline v0.1  
-**Current Phase:** V0.8 Management — ACTIVE / V0.8-A through V0.8-C COMPLETE / V0.8-D ACTIVE
+**Current Phase:** V0.8 Management — ACTIVE / V0.8-A through V0.8-C COMPLETE / V0.8-D IMPLEMENTATION MERGED / CLOSURE ACTIVE
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1  
@@ -807,7 +807,7 @@ Completed release: **V0.7 Cost Control — COMPLETE AND ACCEPTED**.
 
 Next release: **V0.8 Management**.
 
-Current stage: **V0.8-D Domain Dashboards — ACTIVE**.
+Current stage: **V0.8-D Domain Dashboards — IMPLEMENTATION MERGED / CLOSURE ACTIVE**.
 
 Immediate sequence:
 
@@ -832,7 +832,9 @@ Immediate sequence:
 19. Inventory balance/movement visibility and Finance AP/AR visibility were remediated through canonical source composition; material remediation head `a3302ca2eca4eea88af9d49bd7ebe83109e23eb0` passed CI #2951 including authenticated live acceptance.
 20. The two P1 threads were resolved; fresh DEC-022 re-review on `6fb4e23859ead102ee2b167b31c85de5809fae59` found one genuine P2: Management movement totals could not reliably reconcile to the canonical Inventory movement report after its 2,000-row result cap.
 21. P2 remediation head `11f955f6cfbfe056b8f088faa9da29937ca6b2eb` exposes/reconciles the canonical total movement count while retaining the report's bounded row payload; exact-head CI #2955 PASS.
-22. All known implementation and documentation review findings are resolved. Current Stage-D gate: documentation-synchronized exact-head CI → fresh exact-head DEC-022 re-review → squash merge only if clean → post-merge exact-main CI → Issue #175 closure. V0.8-E must not begin before these predecessor gates complete.
+22. Final Stage-D head `e11a77391ebfb43ff4431820ea363964f525f545` passed exact-head CI #2995 including authenticated live acceptance; final DEC-022 review reported no major issues and all review threads were resolved.
+23. PR #177 squash-merged to `main` as `ff3dc08a4aee9945bb0b195627e31577f766f691`.
+24. Current Stage-D closure gate: record/verify post-merge exact-main CI evidence → merge closure/status reconciliation → close Issue #175. Connected GitHub tooling does not expose the push-triggered main run for the merge commit, so that PASS must not be inferred. V0.8-E must not begin before these predecessor gates complete.
 
 
 # 23. Baseline Decision
