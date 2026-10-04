@@ -807,19 +807,19 @@ Completed release: **V0.7 Cost Control — COMPLETE AND ACCEPTED**.
 
 Next release: **V0.8 Management**.
 
-Current stage: **V0.8 Release Entry Gate — NEXT / NOT STARTED**.
+Current stage: **V0.8 Release Entry Gate — PROPOSAL PREPARED / APPROVAL PENDING**.
 
 Immediate sequence:
 
-1. V0.7-A through V0.7-E technical implementation — COMPLETE.
-2. Chat-assisted proxy UAT — PASS; no blocking business defect identified.
-3. AC-V07-051 — **ACCEPTED BY PRODUCT / BUSINESS OWNER on 2026-10-04**.
-4. AC-V07-052 — **EXPLICITLY ACCEPTED BY PRODUCT / BUSINESS OWNER on 2026-10-04**.
-5. Acceptance-record PR #158 merged as `32ffab318066bec6fad770f5419cfd1942d9556d`; post-merge main CI #2637 — PASS.
-6. Issue #157 — **CLOSED / COMPLETED**.
-7. Prepare the V0.8 Management release-entry proposal: scope, acceptance criteria, business rules/decisions, data/API/test/security baseline, stage sequence, estimates and explicit deferrals.
-8. Obtain Product / Business Owner approval of the V0.8 entry baseline before implementation.
-9. Do not begin V0.8 implementation before the approved entry baseline is merged and its post-merge main CI is green.
+1. V0.7 Cost Control — COMPLETE AND ACCEPTED.
+2. Issue #160 — OPEN for the V0.8 Management release-entry gate.
+3. Proposal prepared: Scope, AC-V08-001–040, BR-V08-01–16, D08-01–12, data/API/security/test baseline, V0.8-A–E stages, planning estimate and explicit deferrals.
+4. Validate the exact proposal head and open the docs-only proposal PR.
+5. Product / Business Owner explicitly approves or amends the complete V0.8 entry package.
+6. Record the approved baseline durably; do not convert proposed rules/decisions into approved state without that owner decision.
+7. Merge the approved entry-gate record only after green CI/review.
+8. Verify post-merge main CI and close Issue #160 COMPLETED.
+9. Only then may V0.8-A implementation begin from the exact green main.
 
 
 # 23. Baseline Decision
