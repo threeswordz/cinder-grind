@@ -1,3 +1,5 @@
+**V0.8-D implementation note — 2026-10-04:** Dedicated Schedule, Procurement, Inventory, Cost and Finance Management dashboard tabs reuse the existing V0.8-A Project summary and canonical source-module semantics. No new Management permission is introduced; effective Project access remains mandatory and protected source drilldown still requires owning-module permissions. No schema/migration, inventory valuation, FX, duplicate scheduler/risk engine/cost-finance ledger or paid dependency is introduced. Active branch: `v0.8-d-domain-dashboards`; implementation CI/evidence pending.
+
 **V0.8-C closure note — 2026-10-04:** The read-only `GET /api/v1/management/portfolio` contract is complete for Stage C and composes Executive portfolio data across effective authorized Projects using bounded canonical Scheduling/Reporting, Inventory, Cost Control and Cash Flow reads. It retains server/Prisma Decimal + Company base-currency authority, excludes protected source rows/baseline metadata and avoids per-Project authorization/query fan-out under AC-V08-033. Scheduling supplies canonical total/completed/critical/delayed/lookahead aggregate signals using the selected 14/28-day lookahead window. Overall severity remains explicitly unavailable until a Product / Business Owner policy exists, and empty `asOf` fails closed. Final PR #173 head `cbc916e5a325555d1971b0ceec6ae63445cfcaff` passed CI #2886/#2887 and clean DEC-022 exact-head review; PR #173 merged as `a73d11024adc8b7b1373b4c962f924a34e354e20`; post-merge main CI #2888 passed and Issue #172 closed completed.
 
 **V0.8-B closure note — 2026-10-04:** Stage B is COMPLETE. The Management Project selector and Project Engineer / Project Manager dashboard surfaces retain the V0.8-A read-model boundary and permission-safe source reuse. Final head `4230e6ffff3e1c5a3dc7ee3b7669f86061e704ba` passed push/PR CI #2796/#2797; final DEC-022 exact-head re-review reported no major issues after the AC-V08-003 P1 fix; PR #170 merged as `42444cc91912f323d672f63da050b68b8d777b62`; post-merge main CI #2798 passed; Issue #169 closed completed. V0.8-C is complete; V0.8-D is next and must preserve the same source-ownership and authorization model.
@@ -13,7 +15,7 @@
 # Construction ERP — API Architecture
 
 **Document Status:** API Architecture Baseline v0.1  
-**Current Phase:** V0.8-D Domain Dashboards — PRE-FLIGHT ACTIVE / IMPLEMENTATION NOT STARTED  
+**Current Phase:** V0.8-D Domain Dashboards — ACTIVE  
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1  
