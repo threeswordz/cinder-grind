@@ -24,7 +24,7 @@ import { StatusesPanel } from './admin/StatusesPanel';
 import { SystemSettingsPanel } from './admin/SystemSettingsPanel';
 import { UsersPanel } from './admin/UsersPanel';
 import { MasterDataPanel } from './master-data/MasterDataPanel';
-import { ManagementDashboards } from './management/ManagementDashboards';
+import { ManagementWorkspace } from './management/ManagementWorkspace';
 import { ProjectsPanel } from './projects/ProjectsPanel';
 import { PurchaseRequestsPanel } from './procurement/PurchaseRequestsPanel';
 import { PurchaseOrdersPanel } from './procurement/PurchaseOrdersPanel';
@@ -62,7 +62,7 @@ export function AdminConsole({ user }: { user: CurrentUser }) {
           key: 'management',
           label: 'Management',
           permission: '__management__',
-          content: <ManagementDashboards permissions={user.permissions} />,
+          content: <ManagementWorkspace permissions={user.permissions} />,
         },
         {
           key: 'cost-control',
