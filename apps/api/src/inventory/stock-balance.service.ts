@@ -77,7 +77,9 @@ export class StockBalanceService {
       });
       if (projects.length === 0) return null;
       conditions.push(
-        Prisma.sql`st.project_id IN (${Prisma.join(projects.map((row) => Prisma.sql`${row.id}::uuid`))})`,
+        Prisma.sql`st.project_id IN (${Prisma.join(
+          projects.map((row) => Prisma.sql`${row.id}::uuid`),
+        )})`,
       );
     }
 
@@ -85,64 +87,20 @@ export class StockBalanceService {
       conditions.push(Prisma.sql`st.project_id = ${filters.projectId}::uuid`);
     }
     if (filters.warehouseId) {
-      conditions.push(Prisma.sql`st.warehouse_id = ${filters.warehouseId}::uuid`);
-    }
-    if (filters.materialId) {
-      conditions.push(Prisma.sql`st.material_id = ${filters.materialId}::uuid`);
-    }
-    if (!filters.includeInactiveWarehouses) {
-      conditions.push(Prisma.sql`w.is_active = TRUE`);
-    }
-    if (filters.search) {
-      const pattern = `%${filters.search.replace(/[\\%_]/g, '\\  async balances(auth: AuthenticatedUserContext, filters: StockBalanceFilters) {
-    if (filters.projectId) {
-      await this.access.assertAccess(auth, filters.projectId);
-    }
-
-    const conditions: Prisma.Sql[] = [
-      Prisma.sql`st.company_id = ${auth.companyId}::uuid`,
-    ];
-
-    if (!this.access.canAccessAll(auth)) {
-      const scope = await this.access.scopeWhere(auth);
-      const projects = await this.prisma.project.findMany({
-        where: scope,
-        select: { id: true },
-      });
-      if (projects.length === 0) return [];
       conditions.push(
-        Prisma.sql`st.project_id IN (${Prisma.join(projects.map((row) => Prisma.sql`${row.id}::uuid`))})`,
+        Prisma.sql`st.warehouse_id = ${filters.warehouseId}::uuid`,
       );
     }
-
-    if (filters.projectId) {
-      conditions.push(Prisma.sql`st.project_id = ${filters.projectId}::uuid`);
-    }
-    if (filters.warehouseId) {
-      conditions.push(Prisma.sql`st.warehouse_id = ${filters.warehouseId}::uuid`);
-    }
     if (filters.materialId) {
-      conditions.push(Prisma.sql`st.material_id = ${filters.materialId}::uuid`);
+      conditions.push(
+        Prisma.sql`st.material_id = ${filters.materialId}::uuid`,
+      );
     }
     if (!filters.includeInactiveWarehouses) {
       conditions.push(Prisma.sql`w.is_active = TRUE`);
     }
     if (filters.search) {
       const pattern = `%${filters.search.replace(/[\\%_]/g, '\\$&')}%`;
-      conditions.push(Prisma.sql`(
-        w.warehouse_code ILIKE ${pattern} ESCAPE '\\'
-        OR w.warehouse_name ILIKE ${pattern} ESCAPE '\\'
-        OR m.material_code ILIKE ${pattern} ESCAPE '\\'
-        OR m.material_name ILIKE ${pattern} ESCAPE '\\'
-        OR COALESCE(p.project_code, '') ILIKE ${pattern} ESCAPE '\\'
-        OR COALESCE(p.project_name, '') ILIKE ${pattern} ESCAPE '\\'
-      )`);
-    }
-
-    const having = filters.includeZero
-      ? Prisma.empty
-      : Prisma.sql`HAVING SUM(st.quantity) <> 0`;
-')}%`;
       conditions.push(Prisma.sql`(
         w.warehouse_code ILIKE ${pattern} ESCAPE '\\'
         OR w.warehouse_name ILIKE ${pattern} ESCAPE '\\'
