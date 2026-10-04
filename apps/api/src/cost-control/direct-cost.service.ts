@@ -143,6 +143,7 @@ export class DirectCostService {
           {
             OR: [
               { isActive: true },
+              { contractValue: { not: '0' } },
               { id: { in: historicalProjectIds } },
             ],
           },

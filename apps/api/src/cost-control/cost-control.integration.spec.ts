@@ -1488,7 +1488,7 @@ test('V0.7-B database freezes terminal evidence and permits exact reversal after
 });
 
 
-test('V0.7-E Project selector retains scoped archived Projects with any V0.7-owned history', async () => {
+test('V0.7-E Project selector retains scoped archived Projects with canonical Cost Control source history', async () => {
   let projectWhere: unknown;
   const prisma = {
     budgetRevision: {
@@ -1558,6 +1558,12 @@ test('V0.7-E Project selector retains scoped archived Projects with any V0.7-own
             projectName: 'Payment-only archived project',
             isActive: false,
           },
+          {
+            id: 'contract-only-project',
+            projectCode: 'ARCH-6',
+            projectName: 'Contract-only archived project',
+            isActive: false,
+          },
         ];
       },
     },
@@ -1606,6 +1612,12 @@ test('V0.7-E Project selector retains scoped archived Projects with any V0.7-own
       projectName: 'Payment-only archived project',
       isActive: false,
     },
+    {
+      id: 'contract-only-project',
+      projectCode: 'ARCH-6',
+      projectName: 'Contract-only archived project',
+      isActive: false,
+    },
   ]);
   assert.deepEqual(projectWhere, {
     AND: [
@@ -1613,6 +1625,7 @@ test('V0.7-E Project selector retains scoped archived Projects with any V0.7-own
       {
         OR: [
           { isActive: true },
+          { contractValue: { not: '0' } },
           {
             id: {
               in: [
