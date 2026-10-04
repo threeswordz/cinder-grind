@@ -807,20 +807,20 @@ Completed release: **V0.7 Cost Control — COMPLETE AND ACCEPTED**.
 
 Next release: **V0.8 Management**.
 
-Current stage: **V0.8-B Project Engineer & Project Manager Dashboards — ACTIVE**.
+Current stage: **V0.8-C Executive / Cross-Project Management Dashboard — NEXT**.
 
 Immediate sequence:
 
 1. V0.7 Cost Control — COMPLETE AND ACCEPTED.
 2. V0.8 entry gate — COMPLETE under DEC-025.
 3. V0.8-A Management Read Model / KPI Contracts — **COMPLETE**.
-4. Final Stage-A material head `93b116af63723869e9b28c9407e67b034088bf18` — push CI #2758 PASS / PR CI #2759 PASS.
-5. DEC-022 exact-head re-review — **NO MAJOR ISSUES** after the inventory KPI truncation P2 was fixed and regression-covered.
-6. PR #167 — MERGED as `d60c5c051f1eb6aec30399173f33ab05300cc52c`.
-7. Post-merge main CI #2760 — PASS; Issue #166 — CLOSED / COMPLETED.
-8. Issue #169 / branch `v0.8-b-project-management-dashboards` — ACTIVE from exact green main `2b3a10aec1f5ef9dd8c855d9361c5a4f2c64bd68` (main CI #2774 PASS).
-9. Implement the approved Project Engineer & Project Manager dashboards using V0.8-A read models/canonical source semantics; do not broaden protected source detail.
-10. Do not begin V0.8-C until V0.8-B completes its own CI/review/merge/post-merge closure gates.
+4. V0.8-B Project Engineer & Project Manager Dashboards — **COMPLETE**.
+5. Final Stage-B head `4230e6ffff3e1c5a3dc7ee3b7669f86061e704ba` — push CI #2796 PASS / PR CI #2797 PASS.
+6. DEC-022 final exact-head re-review — **NO MAJOR ISSUES** after the AC-V08-003 P1 execution-view gap was fixed and regression-covered.
+7. PR #170 — MERGED as `42444cc91912f323d672f63da050b68b8d777b62`.
+8. Post-merge main CI #2798 — PASS; Issue #169 — CLOSED / COMPLETED.
+9. Complete the Stage-B closure/status reconciliation and verify its post-merge main CI.
+10. Then establish V0.8-C from that exact green main; do not begin V0.8-D until V0.8-C completes its own CI/review/merge/post-merge closure gates.
 
 
 # 23. Baseline Decision

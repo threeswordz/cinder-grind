@@ -1,3 +1,5 @@
+**V0.8-B closure note — 2026-10-04:** Stage B is COMPLETE. `management.dashboard.view` authorizes the scoped Management Project selector and aggregate Project Engineer / Project Manager workspace, while source execution/Gantt detail remains separately gated by the owning source permissions. Final head `4230e6ffff3e1c5a3dc7ee3b7669f86061e704ba` passed push/PR CI #2796/#2797; final DEC-022 exact-head re-review reported no major issues after the AC-V08-003 P1 fix; PR #170 merged; post-merge main CI #2798 passed; Issue #169 closed completed. V0.8-C is next; portfolio access must continue to require explicit `management.portfolio.view` and effective Project scope.
+
 **V0.8-B implementation note — 2026-10-04:** `management.dashboard.view` now authorizes the scoped Management Project selector and aggregate Project Engineer / Project Manager dashboard workspace. Effective Project access is still applied server-side before selection/read. Detailed Gantt/activity drilldown is shown only when the user separately has `schedule.programme.view`; protected source detail remains owned by the source module. `projects.access_all` and SYS_ADMIN still do not imply Management permission.
 
 **V0.8-A implementation note — 2026-10-04:** Management adds explicit `management.dashboard.view`, `management.portfolio.view` and `management.report.export` permissions. Project Management summaries require `management.dashboard.view` plus effective Project access; portfolio reads require `management.portfolio.view` and exclude inaccessible Projects before aggregation. `projects.access_all` does not grant Management permission, and technical `SYS_ADMIN` receives no implicit Management business authority. Management aggregate visibility does not grant protected source detail; source-module permissions remain required for drilldown/detail.
@@ -9,7 +11,7 @@
 # Construction ERP — Roles & Permissions Model
 
 **Document Status:** Roles & Permissions Baseline v0.1  
-**Current Phase:** V0.8-B Project Engineer & Project Manager Dashboards — ACTIVE  
+**Current Phase:** V0.8-C Executive / Cross-Project Management Dashboard — NEXT / NOT STARTED  
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1

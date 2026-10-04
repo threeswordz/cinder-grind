@@ -1,4 +1,4 @@
-**V0.8-B validation note — 2026-10-04:** Stage B adds route-permission metadata coverage for `GET /management/projects`, scope-before-listing regression, Management dashboard web build validation, canonical Gantt reuse behind `schedule.programme.view`, and authenticated live selector checks proving assigned Project visibility / unassigned Project exclusion / missing Management permission denial. Exact-head push CI #2787 passed the first complete implementation slice; a final stable-candidate CI/review remains required before merge.
+**V0.8-B closure note — 2026-10-04:** Stage B is COMPLETE. Final head `4230e6ffff3e1c5a3dc7ee3b7669f86061e704ba` passed push CI #2796 and PR CI #2797. DEC-022 found one genuine P1 AC-V08-003 execution-view gap; it was fixed by reusing the canonical Project Engineer execution view only for viewers with existing `reporting.operational.view`, preserving Management/source-detail permission separation. Final exact-head Codex re-review reported no major issues. PR #170 merged as `42444cc91912f323d672f63da050b68b8d777b62`, post-merge main CI #2798 passed and Issue #169 closed completed. V0.8 human UAT remains a later release-exit gate under AC-V08-039/040.
 
 **V0.8-A closure note — 2026-10-04:** Stage A is COMPLETE. Final corrected material head `93b116af63723869e9b28c9407e67b034088bf18` passed push CI #2758 and PR CI #2759; DEC-022 exact-head re-review reported no major issues after the inventory KPI truncation P2 was fixed and regression-covered. PR #167 merged as `d60c5c051f1eb6aec30399173f33ab05300cc52c`, post-merge main CI #2760 passed and Issue #166 closed completed. V0.8 human UAT remains a later release-exit gate under AC-V08-039/040.
 
@@ -7,7 +7,7 @@
 # Construction ERP — Testing & UAT Approach
 
 **Document Status:** Testing & UAT Baseline v0.1  
-**Current Phase:** V0.8-B Project Engineer & Project Manager Dashboards — ACTIVE  
+**Current Phase:** V0.8-C Executive / Cross-Project Management Dashboard — NEXT / NOT STARTED  
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1  
