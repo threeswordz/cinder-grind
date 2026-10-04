@@ -512,6 +512,7 @@ test('V0.8-C Portfolio uses bounded canonical source reads and exposes source si
   assert.equal(result.boundaries.perProjectAuthorizationFanOut, false);
   assert.equal(result.boundaries.deterministicHealthSignals, true);
   assert.equal(result.boundaries.overallHealthSeverityPolicyApproved, false);
+  assert.equal(result.deferredToLaterStages.domainDashboards, false);
   const serializedPortfolio = JSON.stringify(result);
   assert.equal(serializedPortfolio.includes('sourceEvidence'), false);
   assert.equal(serializedPortfolio.includes('generalRemarks'), false);
