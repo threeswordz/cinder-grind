@@ -63,6 +63,13 @@ export class InventoryReportService {
     return this.balances.balances(auth, filters);
   }
 
+  balanceSummary(
+    auth: AuthenticatedUserContext,
+    filters: StockBalanceFilters,
+  ) {
+    return this.balances.balanceSummary(auth, filters);
+  }
+
   async movementReport(
     auth: AuthenticatedUserContext,
     filters: InventoryMovementFilters,
