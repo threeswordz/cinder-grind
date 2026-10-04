@@ -17,6 +17,7 @@ import { ProjectAccessService } from '../projects/project-access.service';
 import {
   EngineCalendar,
   ScheduleEngineError,
+  calculateScheduleAnalysis,
   calculateWorkingDayVariance,
 } from './schedule-engine';
 import { isInLookahead, lookaheadWindow } from './scheduling-presentation';
@@ -427,6 +428,237 @@ export class SchedulingProgressService {
         { createdAt: 'desc' },
         { id: 'desc' },
       ],
+    });
+  }
+
+  async portfolioScheduleSignals(
+    auth: AuthenticatedUserContext,
+    projectIds: string[],
+    asOf: Date,
+    days: 14 | 28,
+  ) {
+    const requestedIds = [...new Set(projectIds)];
+    if (requestedIds.length === 0) return [];
+
+    const scope = await this.access.scopeWhere(auth);
+    const allowedProjects = await this.prisma.project.findMany({
+      where: {
+        AND: [
+          scope,
+          { id: { in: requestedIds }, isActive: true },
+        ],
+      },
+      select: { id: true },
+    });
+    const allowedIds = allowedProjects.map((row) => row.id);
+    if (allowedIds.length === 0) return [];
+
+    const [activities, dependencies, baselines] = await Promise.all([
+      this.prisma.activity.findMany({
+        where: {
+          companyId: auth.companyId,
+          projectId: { in: allowedIds },
+          isActive: true,
+        },
+        include: {
+          workingCalendar: {
+            include: {
+              weekdays: { orderBy: { weekdayNo: 'asc' } },
+              exceptions: { orderBy: { exceptionDate: 'asc' } },
+            },
+          },
+          progressHistory: {
+            orderBy: [
+              { createdAt: 'desc' },
+              { id: 'desc' },
+            ],
+            take: 1,
+          },
+        },
+        orderBy: [
+          { projectId: 'asc' },
+          { activityCode: 'asc' },
+        ],
+      }),
+      this.prisma.activityDependency.findMany({
+        where: {
+          projectId: { in: allowedIds },
+          isActive: true,
+          predecessor: { isActive: true },
+          successor: { isActive: true },
+        },
+        orderBy: [
+          { projectId: 'asc' },
+          { createdAt: 'asc' },
+          { id: 'asc' },
+        ],
+      }),
+      this.prisma.scheduleBaseline.findMany({
+        where: {
+          companyId: auth.companyId,
+          projectId: { in: allowedIds },
+          approvalInstance: {
+            is: { approvalState: APPROVAL_STATE.APPROVED },
+          },
+        },
+        include: {
+          activities: true,
+        },
+        orderBy: [
+          { projectId: 'asc' },
+          { versionNo: 'desc' },
+        ],
+      }),
+    ]);
+
+    const activitiesByProject = new Map<string, typeof activities>();
+    for (const activity of activities) {
+      const rows = activitiesByProject.get(activity.projectId) ?? [];
+      rows.push(activity);
+      activitiesByProject.set(activity.projectId, rows);
+    }
+
+    const dependenciesByProject = new Map<string, typeof dependencies>();
+    for (const dependency of dependencies) {
+      const rows = dependenciesByProject.get(dependency.projectId) ?? [];
+      rows.push(dependency);
+      dependenciesByProject.set(dependency.projectId, rows);
+    }
+
+    const baselineByProject = new Map<string, (typeof baselines)[number]>();
+    for (const baseline of baselines) {
+      if (!baselineByProject.has(baseline.projectId)) {
+        baselineByProject.set(baseline.projectId, baseline);
+      }
+    }
+
+    return allowedIds.map((projectId) => {
+      const projectActivities = activitiesByProject.get(projectId) ?? [];
+      const projectDependencies =
+        dependenciesByProject.get(projectId) ?? [];
+      const calendars = new Map(
+        projectActivities.map((activity) => [
+          activity.workingCalendar.id,
+          activity.workingCalendar,
+        ]),
+      );
+
+      let analysis;
+      try {
+        analysis = calculateScheduleAnalysis({
+          mode: 'forecast',
+          activities: projectActivities.map((activity) => ({
+            id: activity.id,
+            activityCode: activity.activityCode,
+            activityName: activity.activityName,
+            workingCalendarId: activity.workingCalendarId,
+            plannedDurationWorkDays:
+              activity.plannedDurationWorkDays.toNumber(),
+            plannedStartDate: activity.plannedStartDate,
+            plannedFinishDate: activity.plannedFinishDate,
+            forecastStartDate: activity.forecastStartDate,
+            forecastFinishDate: activity.forecastFinishDate,
+            isMilestone: activity.isMilestone,
+          })),
+          dependencies: projectDependencies.map((dependency) => ({
+            id: dependency.id,
+            predecessorActivityId: dependency.predecessorActivityId,
+            successorActivityId: dependency.successorActivityId,
+            dependencyType: dependency.dependencyType as
+              | 'FS'
+              | 'SS'
+              | 'FF'
+              | 'SF',
+            lagWorkDays: dependency.lagWorkDays.toNumber(),
+          })),
+          calendars: [...calendars.values()].map((calendar) =>
+            this.engineCalendar(calendar),
+          ),
+        });
+      } catch (error) {
+        if (error instanceof ScheduleEngineError) {
+          throw new UnprocessableEntityException({
+            code: error.code,
+            detail: error.message,
+          });
+        }
+        throw error;
+      }
+
+      const analysisById = new Map(
+        analysis.activities.map((row) => [row.id, row]),
+      );
+      const baselineRows = new Map(
+        baselineByProject
+          .get(projectId)
+          ?.activities.map((row) => [row.activityId, row]) ?? [],
+      );
+
+      const summary = {
+        total: 0,
+        completed: 0,
+        critical: 0,
+        delayed: 0,
+        lookahead: 0,
+      };
+
+      for (const activity of projectActivities) {
+        summary.total += 1;
+        if (
+          activity.progressHistory[0]?.percentComplete.toNumber() === 100
+        ) {
+          summary.completed += 1;
+        }
+
+        const calculated = analysisById.get(activity.id);
+        if (calculated?.isCritical) summary.critical += 1;
+
+        const forecastStartDate =
+          activity.forecastStartDate ??
+          (calculated
+            ? this.date(calculated.calculatedStartDate)
+            : null);
+        const forecastFinishDate =
+          activity.forecastFinishDate ??
+          (calculated
+            ? this.date(calculated.calculatedFinishDate)
+            : null);
+
+        const baseline = baselineRows.get(activity.id);
+        if (baseline && forecastFinishDate) {
+          try {
+            const finishVarianceWorkDays =
+              calculateWorkingDayVariance(
+                this.engineCalendar(activity.workingCalendar),
+                baseline.plannedFinishDate,
+                forecastFinishDate,
+              );
+            if (finishVarianceWorkDays > 0) {
+              summary.delayed += 1;
+            }
+          } catch (error) {
+            if (error instanceof ScheduleEngineError) {
+              throw new UnprocessableEntityException({
+                code: error.code,
+                detail: error.message,
+              });
+            }
+            throw error;
+          }
+        }
+
+        if (
+          isInLookahead(
+            { forecastStartDate, forecastFinishDate },
+            asOf,
+            days,
+          )
+        ) {
+          summary.lookahead += 1;
+        }
+      }
+
+      return { projectId, schedule: summary };
     });
   }
 
