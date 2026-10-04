@@ -15,7 +15,7 @@
 # Construction ERP — API Architecture
 
 **Document Status:** API Architecture Baseline v0.1  
-**Current Phase:** V0.8-D Domain Dashboards — ACTIVE  
+**Current Phase:** V0.8-D Domain Dashboards — IMPLEMENTATION MERGED / CLOSURE ACTIVE  
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1  
