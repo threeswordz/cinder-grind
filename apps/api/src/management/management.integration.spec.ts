@@ -225,7 +225,11 @@ test('V0.8-A Project summary composes aggregate-only canonical source contracts'
   assert.equal(result.domains.inventory.warehouseCount, 1);
   assert.equal(result.domains.cost.forecastCost, '600');
   assert.equal(result.domains.finance.netCashFlow, '560');
-  assert.equal(result.sourceTraceability.cost.detailAvailable, false);
+  assert.equal(result.sourceTraceability.cost.sourceViewAvailable, false);
+  assert.equal(
+    result.sourceTraceability.cost.protectedDetailPolicy,
+    'OWNING_MODULE_PERMISSION_REQUIRED',
+  );
   assert.equal(result.boundaries.readOnlyComposition, true);
 
   const serialized = JSON.stringify(result);
