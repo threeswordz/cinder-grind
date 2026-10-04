@@ -1518,7 +1518,6 @@ test('V0.7-E Project selector retains scoped archived Projects with any V0.7-own
     projectVariation: {
       findMany: async () => [{ projectId: 'variation-only-project' }],
     },
-    clientInvoice: { findMany: async () => [] },
     costForecast: {
       findMany: async () => [
         { projectId: 'archived-project' },
