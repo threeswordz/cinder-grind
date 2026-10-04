@@ -76,7 +76,14 @@ V0.7 Cost Control     ██████████  COMPLETE + ACCEPTED
   V0.7-D Variations   ██████████  COMPLETE
   V0.7-E Reporting    ██████████  COMPLETE
   Release Exit        ██████████  COMPLETE + ACCEPTED
-V0.8 Management       ░░░░░░░░░░  NEXT — ENTRY GATE NOT STARTED
+V0.8 Management       ██░░░░░░░░  ACTIVE
+  V0.8 Entry Gate     ██████████  COMPLETE
+  V0.8-A Read Model   ██████████  COMPLETE
+  V0.8-B Dashboards   ░░░░░░░░░░  NEXT
+  V0.8-C Executive    ░░░░░░░░░░  FUTURE
+  V0.8-D Domain Views ░░░░░░░░░░  FUTURE
+  V0.8-E Reporting    ░░░░░░░░░░  FUTURE
+  Release Exit        ░░░░░░░░░░  FUTURE
 ```
 
 Progress bars are qualitative status indicators, not calculated engineering percentages:
