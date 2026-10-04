@@ -356,13 +356,16 @@ test('V0.8-C Portfolio scopes Projects before aggregation and derives determinis
           delayed: risky(projectId) ? 1 : 0,
           completed: 4,
         },
-        activities: [],
-        lookahead: { activities: [{ id: 'lookahead' }] },
+        activities: [{ secretActivityDetail: 'must-not-leak' }],
+        lookahead: {
+          activities: [{ id: 'lookahead', secretLookaheadDetail: 'must-not-leak' }],
+        },
       },
       siteExecution: {
         latestReports: [
           {
             reportDate: new Date('2026-10-03T00:00:00.000Z'),
+            generalRemarks: 'must-not-leak',
             counts: {
               issues: risky(projectId) ? 1 : 0,
               delays: 0,
@@ -386,6 +389,7 @@ test('V0.8-C Portfolio scopes Projects before aggregation and derives determinis
         awarded: 3,
         purchaseOrder: 2,
       },
+      lines: [{ secretProcurementDetail: 'must-not-leak' }],
     }),
   } as unknown as ReportingService;
 
@@ -417,6 +421,9 @@ test('V0.8-C Portfolio scopes Projects before aggregation and derives determinis
           forecastProfit: decimal(risky(projectId) ? '-25' : '1000'),
         },
       },
+      sourceEvidence: {
+        supplierActual: { records: [{ secretCostDetail: 'must-not-leak' }] },
+      },
     }),
   } as unknown as CostControlService;
 
@@ -428,6 +435,7 @@ test('V0.8-C Portfolio scopes Projects before aggregation and derives determinis
         outflowAmount: decimal('90'),
         netCashFlow: decimal('560'),
       },
+      rows: [{ secretPaymentDetail: 'must-not-leak' }],
     }),
   } as unknown as CashFlowService;
 
@@ -477,6 +485,11 @@ test('V0.8-C Portfolio scopes Projects before aggregation and derives determinis
   assert.equal(result.healthSummary.ON_TRACK, 1);
   assert.equal(result.healthSummary.CRITICAL, 1);
   assert.equal(result.totals.schedule.activities, 20);
+  assert.equal(typeof result.totals.schedule.activities, 'number');
+  const serializedPortfolio = JSON.stringify(result);
+  assert.equal(serializedPortfolio.includes('must-not-leak'), false);
+  assert.equal(serializedPortfolio.includes('sourceEvidence'), false);
+  assert.equal(serializedPortfolio.includes('generalRemarks'), false);
   assert.equal(result.totals.procurement.atRisk, 1);
   assert.equal(result.totals.inventory.balanceRows, 3);
   assert.equal(result.totals.cost.revisedBudget, '2400');
