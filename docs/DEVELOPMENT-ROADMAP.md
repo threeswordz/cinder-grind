@@ -1,7 +1,7 @@
 # Construction ERP — Development Roadmap
 
 **Document Status:** Development Roadmap Baseline v0.1  
-**Current Phase:** V0.8 Management — ACTIVE / V0.8-A through V0.8-C COMPLETE / V0.8-D NEXT
+**Current Phase:** V0.8 Management — ACTIVE / V0.8-A through V0.8-C COMPLETE / V0.8-D PRE-FLIGHT ACTIVE
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1  
@@ -807,7 +807,7 @@ Completed release: **V0.7 Cost Control — COMPLETE AND ACCEPTED**.
 
 Next release: **V0.8 Management**.
 
-Current stage: **V0.8-D Domain Dashboards — NEXT / NOT STARTED**.
+Current stage: **V0.8-D Domain Dashboards — PRE-FLIGHT ACTIVE / IMPLEMENTATION NOT STARTED**.
 
 Immediate sequence:
 
@@ -824,7 +824,8 @@ Immediate sequence:
 11. All eight genuine DEC-022 findings from the two Stage-C review rounds were fixed and resolved; final exact-head review reported **no major issues**.
 12. PR #173 squash-merged as `a73d11024adc8b7b1373b4c962f924a34e354e20`; post-merge main CI #2888 PASS; Issue #172 CLOSED / COMPLETED.
 13. V0.8-C Executive / Cross-Project Management Dashboard is technically COMPLETE.
-14. Complete this Stage-C closure/status reconciliation and verify green post-merge main CI; then establish V0.8-D Domain Dashboards from that exact green main.
+14. Stage-C closure/status PR #174 squash-merged as `9a07a50d377aceec65304aa5881f3610d4cd1205`; post-merge exact-main CI #2901 PASS.
+15. Issue #175 now tracks V0.8-D Domain Dashboards. Pre-flight branch `v0.8-d-preflight` is active; application implementation remains NOT STARTED until the pre-flight merge and post-merge main CI pass.
 
 
 # 23. Baseline Decision
