@@ -7,6 +7,7 @@
 - Inventory remains quantity/dimension reporting only; no valuation is introduced.
 - Portfolio contract now records domain dashboards as delivered while V0.8-E reporting/export remains deferred.
 - No migration, new permission, FX, duplicate scheduler/procurement-risk engine/cost-finance ledger, paid dependency or V0.8-E scope is introduced.
+- Material/test head `77731f5b5d02db36152e471beb0197cbd1139580` passed exact-head CI #2927 including authenticated live acceptance; evidence-only packaging follows before PR/Codex gates.
 
 ## 2026-10-04 — V0.8-D pre-flight established
 
