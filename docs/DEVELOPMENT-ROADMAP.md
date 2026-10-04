@@ -803,19 +803,21 @@ Create detailed issues shortly before the relevant release/module enters develop
 
 # 22. Current Next Step
 
-Current release: **V0.7 Cost Control**.
+Current release: **V0.7 Cost Control — OWNER ACCEPTED / RELEASE CLOSURE IN PROGRESS**.
 
-Current stage: **Release Exit — Human UAT / Product Owner Acceptance**.
+Current stage: **Release Closure — Issue #157**.
 
 Immediate sequence:
 
 1. V0.7-A through V0.7-E technical implementation — COMPLETE.
-2. PR #153 merged as `3db10a025aa996d2721cd5387b752d314a1753dc`; post-merge main CI #2611 — PASS.
-3. Issue #151 — CLOSED / COMPLETED.
-4. Run the source-controlled `docs/V0.7-UAT-EVIDENCE.md` walkthrough for AC-V07-051.
-5. Product / Business Owner explicitly decides AC-V07-052.
-6. If accepted, record V0.7 release closure durably in GitHub.
-7. Do not begin V0.8 until V0.7 release closure is complete.
+2. Chat-assisted proxy UAT — PASS; no blocking business defect identified.
+3. AC-V07-051 — **ACCEPTED BY PRODUCT / BUSINESS OWNER on 2026-10-04**.
+4. AC-V07-052 — **EXPLICITLY ACCEPTED BY PRODUCT / BUSINESS OWNER on 2026-10-04**.
+5. Record the acceptance/closure evidence under Issue #157 and validate exact-head CI.
+6. Merge the release-closure record and verify post-merge `main` CI.
+7. Close Issue #157 COMPLETED.
+8. Reconcile repository-wide current-status documentation to **V0.7 COMPLETE + ACCEPTED / V0.8 Management entry gate next**.
+9. Do not begin V0.8 implementation before its own release-entry baseline is approved.
 
 
 # 23. Baseline Decision
