@@ -822,7 +822,7 @@ Immediate sequence:
 9. Stage-B closure/status reconciliation PR #171 — MERGED as `5581819419a4602a73ed0249ad8e0377f745d474`; post-merge main CI #2809 PASS.
 10. Issue #172 / branch `v0.8-c-executive-portfolio-dashboard` — ACTIVE from exact green main `5581819419a4602a73ed0249ad8e0377f745d474`.
 11. Stage-C implementation is materially present and under validation. Exact-head CI #2822 exposed an acceptance-detector false positive: the legitimate numeric aggregate `totals.schedule.activities` was treated as protected activity-detail collection data.
-12. Fix commit `5ac822a96dee73f7e8aacafd6dbc91e3be9b9ee4` distinguishes aggregate scalar counters from source-detail collections and adds protected-detail sentinel regression coverage; obtain a fresh exact-head CI PASS.
+12. Fix commit `bb30f563fbf5a23f183951a5b9e548c3e7e5bdd7` distinguishes aggregate scalar counters from source-detail collections and adds protected-detail sentinel regression coverage; obtain a fresh exact-head CI PASS.
 13. Run the mandatory DEC-022 stable-candidate review, resolve genuine findings, obtain PR CI, squash-merge, verify post-merge main CI and close Issue #172.
 14. Do not begin V0.8-D until V0.8-C completes those closure gates.
 
