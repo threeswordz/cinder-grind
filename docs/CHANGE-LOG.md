@@ -6,6 +6,7 @@
 - Integration regression now injects protected-detail sentinels into canonical source mocks and verifies none reach the portfolio contract.
 - No permission, source-ownership, business-rule, schema, migration or governance boundary is relaxed. Fresh exact-head CI and DEC-022 stable-candidate review remain mandatory.
 - CI #2823 failed at UAT-pack syntax validation because the first helper insertion was truncated; `bb30f563fbf5a23f183951a5b9e548c3e7e5bdd7` repairs that syntax while preserving the same protected-detail test intent.
+- Clean rebuild commit `06fc017bfa9685a97efab5756e4ac2000334bf91` restored the runtime acceptance file from the last clean source and reapplied only the intended detector changes. Exact-head CI #2827 **PASSED**, including authenticated runtime acceptance. Stage C is ready for DEC-022 stable-candidate review.
 
 ## 2026-10-04 — V0.8-C Executive / Cross-Project Management Dashboard started
 
