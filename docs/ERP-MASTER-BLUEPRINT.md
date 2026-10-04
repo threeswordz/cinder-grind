@@ -1,12 +1,12 @@
 # Construction ERP — Master Blueprint
 
 **Document Status:** Architecture Baseline v0.1
-**Current Phase:** V0.8 Management — ACTIVE / V0.8-A COMPLETE / V0.8-B COMPLETE / V0.8-C ACTIVE
+**Current Phase:** V0.8 Management — ACTIVE / V0.8-A COMPLETE / V0.8-B COMPLETE / V0.8-C COMPLETE / V0.8-D NEXT
 **System:** Construction ERP
 **Primary Platform:** Web Application
 **Architecture Principle:** Open-Source First
 
-**V0.8-C live checkpoint — 2026-10-04:** Executive / Cross-Project Management Dashboard implementation is active under Issue #172 / PR #173. It remains a read-only derived management layer over canonical modules, with effective Project authorization before aggregation and no duplicate operational/financial source of truth. The first five DEC-022 findings were fixed/resolved; exact-head re-review then required restoration of canonical delayed/critical/lookahead Schedule signals, application of the selected 14/28-day window and current-state evidence reconciliation. Bounded Scheduling/Reporting composition now preserves those signals without protected baseline metadata or per-Project query fan-out. Material/test head `3ea59c834dee1bbd8d693b0f18d4e5fbd381b50d` passed push CI #2880 and PR CI #2881; synchronized documentation/evidence head `f052c021bfc3a495d8522b0530aa356bea1ee95c` passed push CI #2884 and PR CI #2885. Stage C remains incomplete until clean exact-head review, merge and post-merge closure gates pass.
+**V0.8-C closure checkpoint — 2026-10-04:** Executive / Cross-Project Management Dashboard is technically COMPLETE. Final PR #173 head `cbc916e5a325555d1971b0ceec6ae63445cfcaff` passed push CI #2886 and PR CI #2887 including authenticated live acceptance. Eight genuine DEC-022 findings across two review rounds were fixed/resolved and the final exact-head review reported no major issues. PR #173 squash-merged as `a73d11024adc8b7b1373b4c962f924a34e354e20`; post-merge main CI #2888 passed; Issue #172 closed completed. Stage C remains a read-only derived management layer over canonical modules with effective Project authorization before aggregation and no duplicate operational/financial source of truth.
 
 ---
 
@@ -1679,7 +1679,7 @@ Next Release:
 
 Current Stage:
 
-**V0.8-C Executive / Cross-Project Management Dashboard — ACTIVE**
+**V0.8-D Domain Dashboards — NEXT / NOT STARTED**
 
 Live delivery position:
 
@@ -1693,8 +1693,8 @@ Live delivery position:
 - V0.8 Management Release Entry Gate — complete under DEC-025
 - V0.8-A Management Read Model / KPI Contracts — complete
 - V0.8-B Project Engineer & Project Manager Dashboards — complete
-- V0.8-C Executive / Cross-Project Management Dashboard — active
-- V0.8-D Domain Dashboards — future
+- V0.8-C Executive / Cross-Project Management Dashboard — complete
+- V0.8-D Domain Dashboards — next / not started
 - V0.8-E Cross-Module Reporting / Export / Hardening / Release Evidence — future
 
 V0.8-B final head `4230e6ffff3e1c5a3dc7ee3b7669f86061e704ba` passed push/PR CI #2796/#2797; final DEC-022 exact-head re-review reported no major issues after the AC-V08-003 P1 fix. PR #170 merged as `42444cc91912f323d672f63da050b68b8d777b62`; post-merge main CI #2798 passed; Issue #169 closed completed. The live GitHub repository and `docs/CURRENT-STATE.md` remain authoritative.
