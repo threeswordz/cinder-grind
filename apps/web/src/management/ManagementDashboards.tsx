@@ -12,7 +12,7 @@ import {
   Typography,
 } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
+import { ReactNode, useState } from 'react';
 
 import {
   ManagementProjectSummary,
@@ -42,7 +42,7 @@ function MetricCard({
   children,
 }: {
   title: string;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
     <Card variant="outlined" sx={{ flex: '1 1 280px' }}>
