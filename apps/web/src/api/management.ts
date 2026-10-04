@@ -127,18 +127,14 @@ export type ManagementPortfolio = {
   lookaheadDays: 14 | 28;
   baseCurrencyCode: string;
   projectCount: number;
-  healthSummary: {
-    ON_TRACK: number;
-    ATTENTION: number;
-    CRITICAL: number;
+  healthPolicy: {
+    overallSeverity: 'NOT_APPROVED';
+    presentation: 'SOURCE_SIGNALS_ONLY';
   };
   totals: {
     schedule: {
       activities: number;
       completed: number;
-      delayed: number;
-      critical: number;
-      lookahead: number;
     };
     procurement: {
       demandLines: number;
@@ -181,10 +177,65 @@ export type ManagementPortfolio = {
   projects: Array<{
     project: ManagementProjectSummary['project'];
     health: {
-      status: 'ON_TRACK' | 'ATTENTION' | 'CRITICAL';
-      drivers: string[];
+      overallSeverity: {
+        status: 'UNAVAILABLE';
+        reason: 'NO_APPROVED_OVERALL_HEALTH_SEVERITY_POLICY';
+      };
+      sourceSignals: {
+        progress: {
+          completedActivities: number;
+          totalActivities: number;
+        };
+        procurement: {
+          atRiskLines: number;
+          unavailableLines: number;
+        };
+        site: {
+          issueCount: number;
+          delayCount: number;
+        };
+        cost: {
+          variance: string;
+        };
+        commercial: {
+          forecastProfit: string;
+        };
+      };
     };
-    domains: ManagementProjectSummary['domains'];
+    domains: {
+      schedule: {
+        status: 'AVAILABLE';
+        summary: {
+          total: number;
+          completed: number;
+        };
+      };
+      siteExecution: {
+        status: 'AVAILABLE';
+        recentReportCount: number;
+        issueCount: number;
+        delayCount: number;
+      };
+      procurement: {
+        status: 'AVAILABLE';
+        summary: {
+          total: number;
+          AT_RISK: number;
+          ON_TIME: number;
+          UNAVAILABLE: number;
+        };
+      };
+      inventory: {
+        status: 'AVAILABLE';
+        balanceRowCount: number;
+        warehouseCount: number;
+        materialCount: number;
+        uomCount: number;
+        quantityAggregation: string;
+      };
+      cost: ManagementProjectSummary['domains']['cost'];
+      finance: ManagementProjectSummary['domains']['finance'];
+    };
     sourceTraceability: ManagementProjectSummary['sourceTraceability'];
   }>;
   scope: {
@@ -196,7 +247,10 @@ export type ManagementPortfolio = {
   boundaries: {
     readOnlyComposition: boolean;
     sourceModulesRemainCanonical: boolean;
+    boundedPortfolioSourceReads: boolean;
+    perProjectAuthorizationFanOut: boolean;
     deterministicHealthSignals: boolean;
+    overallHealthSeverityPolicyApproved: boolean;
     manualHealthOverride: boolean;
     financialAuthority: string;
     baseCurrencyOnly: boolean;
