@@ -31,6 +31,7 @@ export class ReportingService {
     auth: AuthenticatedUserContext,
     projectIds: string[],
     asOf: Date,
+    days: 14 | 28,
   ) {
     const requestedIds = [...new Set(projectIds)];
     if (requestedIds.length === 0) return [];
@@ -48,28 +49,13 @@ export class ReportingService {
     const allowedIds = allowedProjects.map((row) => row.id);
     if (allowedIds.length === 0) return [];
 
-    const [activities, requests, siteRows] = await Promise.all([
-      this.prisma.activity.findMany({
-        where: {
-          companyId: auth.companyId,
-          projectId: { in: allowedIds },
-          isActive: true,
-        },
-        select: {
-          id: true,
-          projectId: true,
-          progressHistory: {
-            where: { progressDate: { lte: asOf } },
-            select: { percentComplete: true },
-            orderBy: [
-              { progressDate: 'desc' },
-              { createdAt: 'desc' },
-              { id: 'desc' },
-            ],
-            take: 1,
-          },
-        },
-      }),
+    const [scheduleRows, requests, siteRows] = await Promise.all([
+      this.scheduling.portfolioScheduleSignals(
+        auth,
+        allowedIds,
+        asOf,
+        days,
+      ),
       this.prisma.purchaseRequest.findMany({
         where: {
           companyId: auth.companyId,
@@ -139,22 +125,6 @@ export class ReportingService {
         GROUP BY rr.project_id
       `),
     ]);
-
-    const activityByProject = new Map(
-      allowedIds.map((projectId) => [
-        projectId,
-        { total: 0, completed: 0 },
-      ]),
-    );
-    for (const activity of activities) {
-      const summary = activityByProject.get(activity.projectId)!;
-      summary.total += 1;
-      if (
-        activity.progressHistory[0]?.percentComplete.toNumber() === 100
-      ) {
-        summary.completed += 1;
-      }
-    }
 
     const poByProjectAndNumber = new Map<
       string,
@@ -254,13 +224,23 @@ export class ReportingService {
       }
     }
 
+    const scheduleByProject = new Map(
+      scheduleRows.map((row) => [row.projectId, row.schedule]),
+    );
     const siteByProject = new Map(
       siteRows.map((row) => [row.projectId, row]),
     );
 
     return allowedIds.map((projectId) => ({
       projectId,
-      schedule: activityByProject.get(projectId)!,
+      schedule:
+        scheduleByProject.get(projectId) ?? {
+          total: 0,
+          completed: 0,
+          critical: 0,
+          delayed: 0,
+          lookahead: 0,
+        },
       procurement: procurementByProject.get(projectId)!,
       siteExecution:
         siteByProject.get(projectId) ?? {
