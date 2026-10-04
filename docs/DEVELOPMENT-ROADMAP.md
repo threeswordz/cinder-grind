@@ -807,7 +807,7 @@ Completed release: **V0.7 Cost Control — COMPLETE AND ACCEPTED**.
 
 Next release: **V0.8 Management**.
 
-Current stage: **V0.8-C Executive / Cross-Project Management Dashboard — NEXT**.
+Current stage: **V0.8-C Executive / Cross-Project Management Dashboard — ACTIVE**.
 
 Immediate sequence:
 
@@ -819,8 +819,13 @@ Immediate sequence:
 6. DEC-022 final exact-head re-review — **NO MAJOR ISSUES** after the AC-V08-003 P1 execution-view gap was fixed and regression-covered.
 7. PR #170 — MERGED as `42444cc91912f323d672f63da050b68b8d777b62`.
 8. Post-merge main CI #2798 — PASS; Issue #169 — CLOSED / COMPLETED.
-9. Complete the Stage-B closure/status reconciliation and verify its post-merge main CI.
-10. Then establish V0.8-C from that exact green main; do not begin V0.8-D until V0.8-C completes its own CI/review/merge/post-merge closure gates.
+9. Stage-B closure/status reconciliation PR #171 — MERGED as `5581819419a4602a73ed0249ad8e0377f745d474`; post-merge main CI #2809 PASS.
+10. Issue #172 / branch `v0.8-c-executive-portfolio-dashboard` — ACTIVE from exact green main `5581819419a4602a73ed0249ad8e0377f745d474`.
+11. PR #173 first DEC-022 review identified five genuine findings; all were fixed, regression-covered and resolved. Exact-head re-review of `90b60e9a99ce97c9933f5f7321f8147289f64a56` identified three additional genuine findings: restore canonical delayed/critical/lookahead Schedule signals, apply the selected 14/28-day window to those signals, and reconcile stale current-state evidence.
+12. Stage-C now uses bounded canonical Scheduling/Reporting/Inventory/Cost Control/Cash Flow reads with effective Project scope before aggregation. Scheduling provides total/completed/critical/delayed/lookahead counts without protected baseline metadata or per-Project authorization/query fan-out; Management forwards the selected days and the Executive UI presents the restored Schedule risk/lookahead indicators.
+13. Repaired material/test head `3ea59c834dee1bbd8d693b0f18d4e5fbd381b50d` passed push CI #2880 and PR CI #2881, including authenticated live acceptance. Current-state evidence was reconciled in `dc2893414aed5c63d56ddca845baebb1038bc0a3`; synchronized documentation/evidence head `f052c021bfc3a495d8522b0530aa356bea1ee95c` passed push CI #2884 and PR CI #2885.
+14. Resolve the three latest review threads with evidence, then obtain a clean DEC-022 exact-head re-review. Only then may PR #173 be squash-merged; verify post-merge main CI and close Issue #172.
+15. Do not begin V0.8-D until V0.8-C completes those closure gates.
 
 
 # 23. Baseline Decision

@@ -1,3 +1,39 @@
+## 2026-10-04 — V0.8-C exact-head schedule-signal remediation checkpoint
+
+- After the first five PR #173 Codex findings were fixed and resolved, exact-head DEC-022 re-review of `90b60e9a99ce97c9933f5f7321f8147289f64a56` identified three additional genuine findings: P1 restore canonical delayed/critical/lookahead Schedule signals, P2 apply the selected 14/28-day lookahead to the bounded source calculation, and P2 reconcile stale current-state evidence.
+- Scheduling now supplies bounded canonical portfolio signals for total/completed/critical/delayed/lookahead without protected baseline metadata or per-Project authorization/query fan-out. Reporting and Management preserve those signals, the selected `days` value drives lookahead composition, and the Executive UI presents delayed/critical/lookahead indicators.
+- Regression/live-acceptance coverage now asserts the restored schedule signals and Management forwarding of the selected lookahead window.
+- Repaired material/test head `3ea59c834dee1bbd8d693b0f18d4e5fbd381b50d` passed push CI #2880 and PR CI #2881, including authenticated live acceptance. `CURRENT-STATE.md` was reconciled in `dc2893414aed5c63d56ddca845baebb1038bc0a3`.
+- Synchronized documentation/evidence head `f052c021bfc3a495d8522b0530aa356bea1ee95c` passed push CI #2884 and PR CI #2885.
+- Current gate: evidence replies/resolution for the three latest review threads, then a clean DEC-022 exact-head re-review before merge.
+
+## 2026-10-04 — V0.8-C PR #173 Codex remediation checkpoint
+
+- DEC-022 review on PR #173 identified five genuine findings: P1 unapproved overall health-severity mapping, P1 per-Project/N+1 portfolio query fan-out, P1 missing Executive progress/inventory indicators, P2 protected Scheduling baseline metadata exposure, and P2 empty-`asOf` lookahead mismatch.
+- Remediation moves portfolio composition to bounded canonical source reads from Reporting, Inventory, Cost Control and Cash Flow with effective Project scope before aggregation and no per-Project authorization fan-out.
+- Executive health is now source-signal-only; overall severity is explicitly unavailable until a Product / Business Owner severity policy is approved. No implicit `ON_TRACK` / `ATTENTION` / `CRITICAL` business policy remains.
+- Portfolio rows omit protected baseline metadata, empty `asOf` fails closed, and the Executive UI now displays progress and inventory alongside procurement/site/cost/cash/profitability signals.
+- Integration and authenticated live-acceptance coverage were updated to the bounded source-signal contract. Remediation/test head `e1b6842934abec70e20794a184e6e87a1ab6e592` is under validation; exact-head/PR CI plus a clean DEC-022 exact-head re-review remain mandatory before merge.
+
+## 2026-10-04 — V0.8-C Executive / Cross-Project Management Dashboard validation checkpoint
+
+- Stage-C Executive portfolio implementation is materially present on `v0.8-c-executive-portfolio-dashboard`, including authorized Project aggregation, deterministic health, canonical Schedule/Procurement/Inventory/Cost/Finance composition and the Executive Management workspace.
+- Exact-head CI #2822 failed in authenticated runtime acceptance because the leak detector treated the valid numeric aggregate key `totals.schedule.activities` as though it were a protected detail collection.
+- Fix commit `bb30f563fbf5a23f183951a5b9e548c3e7e5bdd7` corrects the detector to distinguish aggregate scalar counters from collection-valued source details while still rejecting `generalRemarks`, `paymentNumber`, `sourceEvidence` and collection-valued `activities` / `lines` / `rows`.
+- Integration regression now injects protected-detail sentinels into canonical source mocks and verifies none reach the portfolio contract.
+- No permission, source-ownership, business-rule, schema, migration or governance boundary is relaxed. Fresh exact-head CI and DEC-022 stable-candidate review remain mandatory.
+- CI #2823 failed at UAT-pack syntax validation because the first helper insertion was truncated; `bb30f563fbf5a23f183951a5b9e548c3e7e5bdd7` repairs that syntax while preserving the same protected-detail test intent.
+- Clean rebuild commit `06fc017bfa9685a97efab5756e4ac2000334bf91` restored the runtime acceptance file from the last clean source and reapplied only the intended detector changes. Exact-head CI #2827 **PASSED**, including authenticated runtime acceptance. Stage C is ready for DEC-022 stable-candidate review.
+- Documentation/evidence reconciliation head `b5bbe707d011b43c2aef84dd9ac323b5b861ac62` passed exact-head CI #2828. PR #173 is now OPEN against `main`; PR CI and the mandatory DEC-022 stable-candidate review are the active merge gates.
+
+## 2026-10-04 — V0.8-C Executive / Cross-Project Management Dashboard started
+
+- V0.8-B closure/status reconciliation PR #171 squash-merged as `5581819419a4602a73ed0249ad8e0377f745d474`; post-merge main CI #2809 passed.
+- Issue #172 opened for the approved V0.8-C Executive / Cross-Project Management Dashboard.
+- Implementation branch `v0.8-c-executive-portfolio-dashboard` starts from exact green main `5581819419a4602a73ed0249ad8e0377f745d474`.
+- Existing V0.8-A `GET /management/portfolio` already enforces `management.portfolio.view` and effective Project scope, but intentionally defers financial portfolio aggregation and cross-Project health scoring to Stage C.
+- Stage C will extend that canonical foundation only; V0.8-D domain dashboards and V0.8-E reporting/export remain deferred.
+
 ## 2026-10-04 — V0.8-B Project Engineer & Project Manager Dashboards complete
 
 - Final Stage-B implementation head `4230e6ffff3e1c5a3dc7ee3b7669f86061e704ba` passed exact-head push CI #2796 and PR CI #2797.

@@ -24,7 +24,7 @@ import { StatusesPanel } from './admin/StatusesPanel';
 import { SystemSettingsPanel } from './admin/SystemSettingsPanel';
 import { UsersPanel } from './admin/UsersPanel';
 import { MasterDataPanel } from './master-data/MasterDataPanel';
-import { ManagementDashboards } from './management/ManagementDashboards';
+import { ManagementWorkspace } from './management/ManagementWorkspace';
 import { ProjectsPanel } from './projects/ProjectsPanel';
 import { PurchaseRequestsPanel } from './procurement/PurchaseRequestsPanel';
 import { PurchaseOrdersPanel } from './procurement/PurchaseOrdersPanel';
@@ -61,8 +61,8 @@ export function AdminConsole({ user }: { user: CurrentUser }) {
         {
           key: 'management',
           label: 'Management',
-          permission: 'management.dashboard.view',
-          content: <ManagementDashboards permissions={user.permissions} />,
+          permission: '__management__',
+          content: <ManagementWorkspace permissions={user.permissions} />,
         },
         {
           key: 'cost-control',
@@ -239,7 +239,14 @@ export function AdminConsole({ user }: { user: CurrentUser }) {
           content: <SystemSettingsPanel />,
         },
       ].filter((section) =>
-        section.permission === '__cost_control__'
+        section.permission === '__management__'
+          ? user.permissions.some((permission) =>
+              [
+                'management.dashboard.view',
+                'management.portfolio.view',
+              ].includes(permission),
+            )
+          : section.permission === '__cost_control__'
           ? user.permissions.some(
               (permission) =>
                 permission === 'cost.control.view' ||

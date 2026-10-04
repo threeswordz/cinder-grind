@@ -97,7 +97,16 @@ export class ManagementController {
   @Get('portfolio')
   @UseGuards(AuthGuard, PermissionGuard)
   @RequirePermissions('management.portfolio.view')
-  async portfolio(@Req() request: AuthenticatedRequest) {
-    return { data: await this.management.portfolio(authOf(request)) };
+  async portfolio(
+    @Req() request: AuthenticatedRequest,
+    @Query('asOf') asOf?: string,
+    @Query('days') days?: string,
+  ) {
+    return {
+      data: await this.management.portfolio(authOf(request), {
+        asOf: asOfDate(asOf),
+        days: lookaheadDays(days),
+      }),
+    };
   }
 }

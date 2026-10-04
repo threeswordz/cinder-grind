@@ -1,10 +1,12 @@
 # Construction ERP — Master Blueprint
 
 **Document Status:** Architecture Baseline v0.1
-**Current Phase:** V0.8 Management — ACTIVE / V0.8-A COMPLETE / V0.8-B COMPLETE / V0.8-C NEXT
+**Current Phase:** V0.8 Management — ACTIVE / V0.8-A COMPLETE / V0.8-B COMPLETE / V0.8-C ACTIVE
 **System:** Construction ERP
 **Primary Platform:** Web Application
 **Architecture Principle:** Open-Source First
+
+**V0.8-C live checkpoint — 2026-10-04:** Executive / Cross-Project Management Dashboard implementation is active under Issue #172 / PR #173. It remains a read-only derived management layer over canonical modules, with effective Project authorization before aggregation and no duplicate operational/financial source of truth. The first five DEC-022 findings were fixed/resolved; exact-head re-review then required restoration of canonical delayed/critical/lookahead Schedule signals, application of the selected 14/28-day window and current-state evidence reconciliation. Bounded Scheduling/Reporting composition now preserves those signals without protected baseline metadata or per-Project query fan-out. Material/test head `3ea59c834dee1bbd8d693b0f18d4e5fbd381b50d` passed push CI #2880 and PR CI #2881; synchronized documentation/evidence head `f052c021bfc3a495d8522b0530aa356bea1ee95c` passed push CI #2884 and PR CI #2885. Stage C remains incomplete until clean exact-head review, merge and post-merge closure gates pass.
 
 ---
 
@@ -1677,7 +1679,7 @@ Next Release:
 
 Current Stage:
 
-**V0.8-C Executive / Cross-Project Management Dashboard — NEXT / NOT STARTED**
+**V0.8-C Executive / Cross-Project Management Dashboard — ACTIVE**
 
 Live delivery position:
 
@@ -1691,7 +1693,7 @@ Live delivery position:
 - V0.8 Management Release Entry Gate — complete under DEC-025
 - V0.8-A Management Read Model / KPI Contracts — complete
 - V0.8-B Project Engineer & Project Manager Dashboards — complete
-- V0.8-C Executive / Cross-Project Management Dashboard — next / not started
+- V0.8-C Executive / Cross-Project Management Dashboard — active
 - V0.8-D Domain Dashboards — future
 - V0.8-E Cross-Module Reporting / Export / Hardening / Release Evidence — future
 

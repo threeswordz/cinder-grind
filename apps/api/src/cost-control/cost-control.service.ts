@@ -233,6 +233,588 @@ export class CostControlService {
     private readonly access: ProjectAccessService,
   ) {}
 
+  async portfolioProjectTotals(
+    auth: AuthenticatedUserContext,
+    projectIds: string[],
+  ) {
+    const requestedIds = [...new Set(projectIds)];
+    if (requestedIds.length === 0) return [];
+
+    const scope = await this.access.scopeWhere(auth);
+    const projects = await this.prisma.project.findMany({
+      where: {
+        AND: [
+          scope,
+          { id: { in: requestedIds }, isActive: true },
+        ],
+      },
+      select: {
+        id: true,
+        contractValue: true,
+      },
+    });
+    const allowedIds = projects.map((row) => row.id);
+    if (allowedIds.length === 0) return [];
+
+    const [
+      company,
+      budgetRevisions,
+      purchaseOrders,
+      agreements,
+      supplierInvoices,
+      certifications,
+      payments,
+      directPostings,
+      projectVariations,
+      clientInvoices,
+      forecasts,
+    ] = await Promise.all([
+      this.prisma.company.findUniqueOrThrow({
+        where: { id: auth.companyId },
+        select: { baseCurrencyCode: true },
+      }),
+      this.prisma.budgetRevision.findMany({
+        where: {
+          companyId: auth.companyId,
+          projectId: { in: allowedIds },
+          approvalInstance: {
+            is: { approvalState: 'APPROVED' },
+          },
+        },
+        select: {
+          projectId: true,
+          revisionNo: true,
+          revisionNumber: true,
+          currencyCode: true,
+          approvalInstance: {
+            select: { completedAt: true },
+          },
+          lines: { select: { amount: true } },
+        },
+      }),
+      this.prisma.purchaseOrder.findMany({
+        where: {
+          companyId: auth.companyId,
+          projectId: { in: allowedIds },
+          approvalInstance: {
+            is: { approvalState: 'APPROVED' },
+          },
+        },
+        select: {
+          projectId: true,
+          id: true,
+          poNumber: true,
+          currencyCode: true,
+          revisionNo: true,
+          cancelledAt: true,
+          lines: {
+            select: {
+              id: true,
+              amount: true,
+              quotationAwardId: true,
+            },
+          },
+        },
+      }),
+      this.prisma.subcontractAgreement.findMany({
+        where: {
+          companyId: auth.companyId,
+          projectId: { in: allowedIds },
+          approvalState: 'APPROVED',
+          cancelledAt: null,
+        },
+        select: {
+          projectId: true,
+          id: true,
+          originalValue: true,
+          currencyCode: true,
+          variations: {
+            where: {
+              state: 'APPROVED',
+              reversedAt: null,
+            },
+            select: { valueDelta: true },
+          },
+        },
+      }),
+      this.prisma.supplierInvoice.findMany({
+        where: {
+          companyId: auth.companyId,
+          projectId: { in: allowedIds },
+          state: 'APPROVED',
+        },
+        select: {
+          projectId: true,
+          currencyCode: true,
+          items: {
+            select: {
+              amount: true,
+              purchaseOrderLine: {
+                select: {
+                  quotationAwardId: true,
+                  purchaseOrder: {
+                    select: { poNumber: true },
+                  },
+                },
+              },
+              goodsReceiptItem: {
+                select: {
+                  purchaseOrderLine: {
+                    select: {
+                      quotationAwardId: true,
+                      purchaseOrder: {
+                        select: { poNumber: true },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      }),
+      this.prisma.subcontractCertification.findMany({
+        where: {
+          companyId: auth.companyId,
+          projectId: { in: allowedIds },
+          state: 'APPROVED',
+          reversedAt: null,
+        },
+        select: {
+          projectId: true,
+          agreementId: true,
+          certifiedGross: true,
+          currencyCode: true,
+        },
+      }),
+      this.prisma.payment.findMany({
+        where: {
+          companyId: auth.companyId,
+          projectId: { in: allowedIds },
+          state: 'APPROVED',
+          cancelledAt: null,
+        },
+        select: {
+          projectId: true,
+          paymentDirection: true,
+          amount: true,
+          currencyCode: true,
+          supplierAllocations: {
+            select: { allocatedAmount: true },
+          },
+          subcontractAllocations: {
+            select: { allocatedAmount: true },
+          },
+        },
+      }),
+      this.prisma.directCostPosting.findMany({
+        where: {
+          companyId: auth.companyId,
+          projectId: { in: allowedIds },
+          state: 'APPROVED',
+        },
+        select: {
+          projectId: true,
+          amount: true,
+          currencyCode: true,
+        },
+      }),
+      this.prisma.projectVariation.findMany({
+        where: {
+          companyId: auth.companyId,
+          projectId: { in: allowedIds },
+          state: 'APPROVED',
+        },
+        select: {
+          projectId: true,
+          id: true,
+          valueDelta: true,
+          currencyCode: true,
+          reversesVariationId: true,
+        },
+      }),
+      this.prisma.clientInvoice.findMany({
+        where: {
+          companyId: auth.companyId,
+          projectId: { in: allowedIds },
+          state: 'APPROVED',
+        },
+        select: {
+          projectId: true,
+          totalAmount: true,
+          currencyCode: true,
+        },
+      }),
+      this.prisma.costForecast.findMany({
+        where: {
+          companyId: auth.companyId,
+          projectId: { in: allowedIds },
+          state: 'APPROVED',
+        },
+        select: {
+          projectId: true,
+          versionNo: true,
+          approvedAt: true,
+          currencyCode: true,
+          lines: {
+            select: { uncommittedEtcAmount: true },
+          },
+        },
+        orderBy: [
+          { projectId: 'asc' },
+          { versionNo: 'desc' },
+          { approvedAt: 'desc' },
+          { id: 'desc' },
+        ],
+      }),
+    ]);
+
+    const group = <T extends { projectId: string }>(rows: T[]) => {
+      const result = new Map<string, T[]>();
+      for (const row of rows) {
+        const values = result.get(row.projectId) ?? [];
+        values.push(row);
+        result.set(row.projectId, values);
+      }
+      return result;
+    };
+
+    const budgetsByProject = group(budgetRevisions);
+    const poByProject = group(purchaseOrders);
+    const agreementsByProject = group(agreements);
+    const invoicesByProject = group(supplierInvoices);
+    const certificationsByProject = group(certifications);
+    const paymentsByProject = group(payments);
+    const postingsByProject = group(directPostings);
+    const variationsByProject = group(projectVariations);
+    const clientInvoicesByProject = group(clientInvoices);
+    const forecastsByProject = group(forecasts);
+
+    return projects.map((project) => {
+      const projectBudgets = budgetsByProject.get(project.id) ?? [];
+      const budgetSelection =
+        selectOriginalAndCurrentBudget(projectBudgets);
+      for (const revision of [
+        budgetSelection.original,
+        budgetSelection.current,
+      ]) {
+        if (revision) {
+          this.assertBaseCurrency(
+            'Budget',
+            revision.currencyCode,
+            company.baseCurrencyCode,
+          );
+        }
+      }
+      const originalBudget = sumCostControlDecimals(
+        budgetSelection.original?.lines.map((line) => line.amount) ?? [],
+      );
+      const revisedBudget = sumCostControlDecimals(
+        budgetSelection.current?.lines.map((line) => line.amount) ?? [],
+      );
+
+      const currentPurchaseOrders = selectCurrentApprovedPurchaseOrders(
+        poByProject.get(project.id) ?? [],
+      );
+      let procurementCommitted = new Prisma.Decimal(0);
+      const selectedLineages = new Set<string>();
+      for (const order of currentPurchaseOrders) {
+        this.assertBaseCurrency(
+          'Procurement commitment',
+          order.currencyCode,
+          company.baseCurrencyCode,
+        );
+        procurementCommitted = sumCostControlDecimals([
+          procurementCommitted,
+          ...order.lines.map((line) => line.amount),
+        ]);
+        for (const line of order.lines) {
+          selectedLineages.add(
+            order.poNumber + '|' + line.quotationAwardId,
+          );
+        }
+      }
+
+      let subcontractCommitted = new Prisma.Decimal(0);
+      const projectAgreements =
+        agreementsByProject.get(project.id) ?? [];
+      for (const agreement of projectAgreements) {
+        this.assertBaseCurrency(
+          'Subcontract commitment',
+          agreement.currencyCode,
+          company.baseCurrencyCode,
+        );
+        const ceiling = sumCostControlDecimals([
+          agreement.originalValue,
+          ...agreement.variations.map(
+            (variation) => variation.valueDelta,
+          ),
+        ]);
+        subcontractCommitted = sumCostControlDecimals([
+          subcontractCommitted,
+          ceiling,
+        ]);
+      }
+
+      let supplierActual = new Prisma.Decimal(0);
+      const supplierActualByLineage = new Map<
+        string,
+        Prisma.Decimal
+      >();
+      for (const invoice of invoicesByProject.get(project.id) ?? []) {
+        this.assertBaseCurrency(
+          'Supplier Actual Cost',
+          invoice.currencyCode,
+          company.baseCurrencyCode,
+        );
+        for (const item of invoice.items) {
+          supplierActual = sumCostControlDecimals([
+            supplierActual,
+            item.amount,
+          ]);
+          const poLine =
+            item.purchaseOrderLine ??
+            item.goodsReceiptItem?.purchaseOrderLine ??
+            null;
+          if (!poLine) continue;
+          const key =
+            poLine.purchaseOrder.poNumber +
+            '|' +
+            poLine.quotationAwardId;
+          if (!selectedLineages.has(key)) continue;
+          supplierActualByLineage.set(
+            key,
+            sumCostControlDecimals([
+              supplierActualByLineage.get(key) ??
+                new Prisma.Decimal(0),
+              item.amount,
+            ]),
+          );
+        }
+      }
+
+      let subcontractActual = new Prisma.Decimal(0);
+      const certifiedByAgreement = new Map<
+        string,
+        Prisma.Decimal
+      >();
+      for (const certification of
+        certificationsByProject.get(project.id) ?? []) {
+        this.assertBaseCurrency(
+          'Subcontract Actual Cost',
+          certification.currencyCode,
+          company.baseCurrencyCode,
+        );
+        subcontractActual = sumCostControlDecimals([
+          subcontractActual,
+          certification.certifiedGross,
+        ]);
+        certifiedByAgreement.set(
+          certification.agreementId,
+          sumCostControlDecimals([
+            certifiedByAgreement.get(certification.agreementId) ??
+              new Prisma.Decimal(0),
+            certification.certifiedGross,
+          ]),
+        );
+      }
+
+      let directActual = new Prisma.Decimal(0);
+      for (const posting of
+        postingsByProject.get(project.id) ?? []) {
+        this.assertBaseCurrency(
+          'Direct Actual Cost',
+          posting.currencyCode,
+          company.baseCurrencyCode,
+        );
+        directActual = sumCostControlDecimals([
+          directActual,
+          posting.amount,
+        ]);
+      }
+
+      let supplierPaid = new Prisma.Decimal(0);
+      let subcontractPaid = new Prisma.Decimal(0);
+      let cashReceived = new Prisma.Decimal(0);
+      for (const payment of
+        paymentsByProject.get(project.id) ?? []) {
+        this.assertBaseCurrency(
+          payment.paymentDirection === 'INBOUND'
+            ? 'Cash Received'
+            : 'Paid Cost',
+          payment.currencyCode,
+          company.baseCurrencyCode,
+        );
+        if (payment.paymentDirection === 'INBOUND') {
+          cashReceived = sumCostControlDecimals([
+            cashReceived,
+            payment.amount,
+          ]);
+          continue;
+        }
+        supplierPaid = sumCostControlDecimals([
+          supplierPaid,
+          ...payment.supplierAllocations.map(
+            (allocation) => allocation.allocatedAmount,
+          ),
+        ]);
+        subcontractPaid = sumCostControlDecimals([
+          subcontractPaid,
+          ...payment.subcontractAllocations.map(
+            (allocation) => allocation.allocatedAmount,
+          ),
+        ]);
+      }
+
+      let remainingProcurement = new Prisma.Decimal(0);
+      for (const order of currentPurchaseOrders) {
+        for (const line of order.lines) {
+          const key =
+            order.poNumber + '|' + line.quotationAwardId;
+          remainingProcurement = sumCostControlDecimals([
+            remainingProcurement,
+            remainingCostCommitment(
+              line.amount,
+              supplierActualByLineage.get(key) ??
+                new Prisma.Decimal(0),
+            ),
+          ]);
+        }
+      }
+
+      let remainingSubcontract = new Prisma.Decimal(0);
+      for (const agreement of projectAgreements) {
+        const ceiling = sumCostControlDecimals([
+          agreement.originalValue,
+          ...agreement.variations.map(
+            (variation) => variation.valueDelta,
+          ),
+        ]);
+        remainingSubcontract = sumCostControlDecimals([
+          remainingSubcontract,
+          remainingCostCommitment(
+            ceiling,
+            certifiedByAgreement.get(agreement.id) ??
+              new Prisma.Decimal(0),
+          ),
+        ]);
+      }
+
+      const currentForecast =
+        forecastsByProject.get(project.id)?.[0] ?? null;
+      if (currentForecast) {
+        this.assertBaseCurrency(
+          'Cost Forecast',
+          currentForecast.currencyCode,
+          company.baseCurrencyCode,
+        );
+      }
+      const uncommittedEtc = sumCostControlDecimals(
+        currentForecast?.lines.map(
+          (line) => line.uncommittedEtcAmount,
+        ) ?? [],
+      );
+
+      const committedTotal = sumCostControlDecimals([
+        procurementCommitted,
+        subcontractCommitted,
+      ]);
+      const actualTotal = sumCostControlDecimals([
+        supplierActual,
+        subcontractActual,
+        directActual,
+      ]);
+      const paidTotal = sumCostControlDecimals([
+        supplierPaid,
+        subcontractPaid,
+      ]);
+      const remainingCommitmentTotal = sumCostControlDecimals([
+        remainingProcurement,
+        remainingSubcontract,
+      ]);
+      const costToComplete = sumCostControlDecimals([
+        remainingCommitmentTotal,
+        uncommittedEtc,
+      ]);
+      const forecastCost = sumCostControlDecimals([
+        actualTotal,
+        costToComplete,
+      ]);
+      const variance = subtractCostControlDecimals(
+        revisedBudget,
+        forecastCost,
+      );
+
+      const projectVariations =
+        variationsByProject.get(project.id) ?? [];
+      for (const variation of projectVariations) {
+        this.assertBaseCurrency(
+          'Project Variation',
+          variation.currencyCode,
+          company.baseCurrencyCode,
+        );
+      }
+      const approvedVariationValue =
+        activeProjectVariationValue(projectVariations);
+      const originalContractValue =
+        project.contractValue ?? new Prisma.Decimal(0);
+      const revisedContractValue = sumCostControlDecimals([
+        originalContractValue,
+        approvedVariationValue,
+      ]);
+
+      let actualRevenue = new Prisma.Decimal(0);
+      for (const invoice of
+        clientInvoicesByProject.get(project.id) ?? []) {
+        this.assertBaseCurrency(
+          'Actual Revenue',
+          invoice.currencyCode,
+          company.baseCurrencyCode,
+        );
+        actualRevenue = sumCostControlDecimals([
+          actualRevenue,
+          invoice.totalAmount,
+        ]);
+      }
+      const forecastRevenue = revisedContractValue;
+      const actualProfit = subtractCostControlDecimals(
+        actualRevenue,
+        actualTotal,
+      );
+      const forecastProfit = subtractCostControlDecimals(
+        forecastRevenue,
+        forecastCost,
+      );
+
+      return {
+        projectId: project.id,
+        baseCurrencyCode: company.baseCurrencyCode,
+        totals: {
+          originalBudget,
+          revisedBudget,
+          committedCost: committedTotal,
+          actualCost: actualTotal,
+          paidCost: paidTotal,
+          remainingCommitment: remainingCommitmentTotal,
+          uncommittedEtc,
+          costToComplete,
+          forecastCost,
+          variance,
+          commercial: {
+            originalContractValue,
+            approvedVariationValue,
+            revisedContractValue,
+            actualRevenue,
+            cashReceived,
+            forecastRevenue,
+            actualProfit,
+            forecastProfit,
+          },
+        },
+      };
+    });
+  }
+
   async projectCostControl(
     auth: AuthenticatedUserContext,
     projectId: string,

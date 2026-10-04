@@ -13,6 +13,36 @@ function check(condition, message) {
   if (!condition) throw new Error(message);
 }
 
+function findProtectedDetailPaths(value, path = 'root') {
+  const found = [];
+  if (Array.isArray(value)) {
+    value.forEach((item, index) => {
+      found.push(...findProtectedDetailPaths(item, path + '[' + index + ']'));
+    });
+    return found;
+  }
+  if (value === null || typeof value !== 'object') return found;
+
+  for (const [key, item] of Object.entries(value)) {
+    const keyPath = path + '.' + key;
+    if (
+      key === 'generalRemarks' ||
+      key === 'paymentNumber' ||
+      key === 'sourceEvidence'
+    ) {
+      found.push(keyPath);
+    }
+    if (
+      (key === 'activities' || key === 'lines' || key === 'rows') &&
+      Array.isArray(item)
+    ) {
+      found.push(keyPath);
+    }
+    found.push(...findProtectedDetailPaths(item, keyPath));
+  }
+  return found;
+}
+
 function record(name) {
   stepResults.push(name);
   process.stdout.write(`✓ ${name}\n`);
@@ -8484,7 +8514,7 @@ await request(admin, '/management/projects', { expected: 403 });
 await request(admin, '/management/projects/' + projectId + '/summary?asOf=2026-10-10&days=14', {
   expected: 403,
 });
-await request(admin, '/management/portfolio', { expected: 403 });
+await request(admin, '/management/portfolio?asOf=2026-10-10&days=14', { expected: 403 });
 
 const managementProjects = await request(pm, '/management/projects');
 check(
@@ -8545,34 +8575,84 @@ check(
   ),
   'V0.8-A Management source traceability did not preserve owning-module source-detail policy.',
 );
-const serializedManagement = JSON.stringify(managementSummary.data.data);
+const managementProtectedDetailPaths = findProtectedDetailPaths(
+  managementSummary.data.data,
+);
 check(
-  !serializedManagement.includes('generalRemarks') &&
-    !serializedManagement.includes('paymentNumber') &&
-    !serializedManagement.includes('sourceEvidence') &&
-    !serializedManagement.includes('"activities"') &&
-    !serializedManagement.includes('"lines"') &&
-    !serializedManagement.includes('"rows"'),
-  'V0.8-A Management summary leaked protected source rows/details.',
+  managementProtectedDetailPaths.length === 0,
+  'V0.8-A Management summary leaked protected source rows/details: ' +
+    managementProtectedDetailPaths.join(', '),
 );
 
-const managementPortfolio = await request(pm, '/management/portfolio');
+const managementPortfolio = await request(
+  pm,
+  '/management/portfolio?asOf=2026-10-10&days=14',
+);
+const portfolioProject = managementPortfolio.data.data.projects.find(
+  (item) => item.project?.id === projectId,
+);
 check(
-  managementPortfolio.data.data.contractVersion === 'V0.8-A' &&
+  managementPortfolio.data.data.contractVersion === 'V0.8-C' &&
     managementPortfolio.data.data.projectCount >= 1 &&
-    managementPortfolio.data.data.projects.some((item) => item.id === projectId) &&
-    managementPortfolio.data.data.scope?.inaccessibleProjectsExcludedBeforeAggregation === true,
-  'V0.8-A Management portfolio did not expose the authorized Project scope.',
+    Boolean(portfolioProject) &&
+    managementPortfolio.data.data.scope?.inaccessibleProjectsExcludedBeforeAggregation === true &&
+    managementPortfolio.data.data.scope?.portfolioPermissionRequired === true,
+  'V0.8-C Executive portfolio did not expose the authorized Project scope.',
+);
+check(
+  managementPortfolio.data.data.baseCurrencyCode === 'SGD' &&
+    Number(managementPortfolio.data.data.totals?.cost?.revisedBudget) >=
+      Number(managementSummary.data.data.domains?.cost?.revisedBudget) &&
+    Number(managementPortfolio.data.data.totals?.finance?.netCashFlow) >=
+      Number(managementSummary.data.data.domains?.finance?.netCashFlow) &&
+    managementPortfolio.data.data.healthPolicy?.overallSeverity ===
+      'NOT_APPROVED' &&
+    managementPortfolio.data.data.healthPolicy?.presentation ===
+      'SOURCE_SIGNALS_ONLY' &&
+    portfolioProject?.health?.overallSeverity?.status === 'UNAVAILABLE' &&
+    Number(
+      portfolioProject?.health?.sourceSignals?.progress?.totalActivities,
+    ) >= 0 &&
+    Number(
+      portfolioProject?.health?.sourceSignals?.progress?.delayedActivities,
+    ) >= 0 &&
+    Number(
+      portfolioProject?.health?.sourceSignals?.progress?.criticalActivities,
+    ) >= 0 &&
+    Number(
+      portfolioProject?.health?.sourceSignals?.progress?.lookaheadActivities,
+    ) >= 0 &&
+    Number(managementPortfolio.data.data.totals?.schedule?.delayed) >= 0 &&
+    Number(managementPortfolio.data.data.totals?.schedule?.critical) >= 0 &&
+    Number(managementPortfolio.data.data.totals?.schedule?.lookahead) >= 0 &&
+    managementPortfolio.data.data.lookaheadDays === 14 &&
+    Number(
+      portfolioProject?.domains?.inventory?.balanceRowCount,
+    ) >= 0 &&
+    managementPortfolio.data.data.boundaries?.boundedPortfolioSourceReads === true &&
+    managementPortfolio.data.data.boundaries?.perProjectAuthorizationFanOut === false &&
+    managementPortfolio.data.data.boundaries?.deterministicHealthSignals === true &&
+    managementPortfolio.data.data.boundaries?.overallHealthSeverityPolicyApproved === false &&
+    managementPortfolio.data.data.boundaries?.manualHealthOverride === false,
+  'V0.8-C Executive portfolio did not reconcile bounded canonical source signals without inventing an overall severity policy.',
+);
+const portfolioProtectedDetailPaths = findProtectedDetailPaths(
+  managementPortfolio.data.data,
+);
+check(
+  portfolioProtectedDetailPaths.length === 0,
+  'V0.8-C Executive portfolio leaked protected source rows/details: ' +
+    portfolioProtectedDetailPaths.join(', '),
 );
 const unassignedManagementPortfolio = await request(
   unassigned,
-  '/management/portfolio',
+  '/management/portfolio?asOf=2026-10-10&days=14',
 );
 check(
   !unassignedManagementPortfolio.data.data.projects.some(
-    (item) => item.id === projectId,
+    (item) => item.project?.id === projectId,
   ),
-  'V0.8-A Management portfolio included an inaccessible Project before aggregation.',
+  'V0.8-C Executive portfolio included an inaccessible Project before aggregation.',
 );
 await request(
   unassigned,
@@ -8581,6 +8661,7 @@ await request(
 );
 record('V0.8-A Management read-model contract composes canonical Schedule/Procurement/Inventory/Cost/Finance aggregates, preserves source-detail boundaries and enforces Management/Project authorization');
 record('V0.8-B Management Project selector preserves dashboard permission and effective Project scope');
+record('V0.8-C Executive portfolio composes authorized cross-Project progress, delayed/critical/lookahead schedule signals, procurement/site/inventory, cost, cash and profitability without protected-detail leakage or an unapproved overall severity policy');
 
 await logout(v07Restricted);
 await logout(pm);
