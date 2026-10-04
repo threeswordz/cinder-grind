@@ -13,6 +13,7 @@ import { InventoryModule } from './inventory/inventory.module';
 import { DocumentsModule } from './documents/documents.module';
 import { EquipmentModule } from './equipment/equipment.module';
 import { FinanceModule } from './finance/finance.module';
+import { ManagementModule } from './management/management.module';
 import { MasterDataModule } from './master-data/master-data.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ProjectsModule } from './projects/projects.module';
@@ -36,6 +37,7 @@ import { WbsModule } from './wbs/wbs.module';
     FinanceModule,
     CostControlModule,
     InventoryModule,
+    ManagementModule,
     SubcontractsModule,
     ReportingModule,
     DocumentsModule,
