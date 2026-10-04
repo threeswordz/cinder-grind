@@ -1,3 +1,5 @@
+**V0.8-A implementation note — 2026-10-04:** Management introduces read-only `GET /api/v1/management/projects/{projectId}/summary` and `GET /api/v1/management/portfolio` contracts. The Project summary composes aggregate-only canonical Scheduling/Site, Procurement, Inventory, V0.7 Cost Control and V0.6 Cash Flow services; it does not expose source rows merely because a caller holds Management permission. Portfolio filtering applies effective Project scope before aggregation. No Management mutation endpoint or duplicate KPI/financial ledger is introduced.
+
 **V0.7-E implementation note — 2026-10-04:** The existing Project Cost Control read surface now carries the Stage-E RPT-009 report contract: server-authoritative Project/WBS/Cost Code filtering, parent-WBS descendant inclusion, explicit Unallocated allocation state, separate Budget/Committed/Actual/Paid/Forecast/Cost-to-Complete/Variance measures, Project-level revenue/profit where no canonical lower-dimensional allocation exists, and permission-sanitized source evidence. The Stage-E report UI consumes this read model; no second reporting ledger is introduced.
 
 **V0.7-A implementation note — 2026-10-03:** Cost Control adds the read-only `GET /api/v1/projects/{projectId}/cost-control` surface with optional `wbsId` and `costCodeId` filters. It derives Original/Revised Budget, Procurement/Subcontract Committed Cost, Supplier/Subcontract Actual Cost and settlement-based Paid Cost from canonical source modules. Parent-WBS filters include descendants; header-level sources without canonical lower-dimensional allocation remain Unallocated and are excluded by WBS/Cost Code filters rather than synthetically prorated. The route requires explicit `cost.control.view` plus backend Company/Project scope. Detailed source records are returned only when the caller also holds the matching source-module view permission. No Cost Control mutation/source ledger is introduced in Stage A.
@@ -5,7 +7,7 @@
 # Construction ERP — API Architecture
 
 **Document Status:** API Architecture Baseline v0.1  
-**Current Phase:** V0.7 Cost Control — COMPLETE AND ACCEPTED / V0.8 Management release entry gate NEXT  
+**Current Phase:** V0.8-A Management Read Model / KPI Contracts — ACTIVE  
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1  
