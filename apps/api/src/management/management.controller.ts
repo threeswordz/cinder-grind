@@ -25,14 +25,10 @@ function authOf(request: AuthenticatedRequest): AuthenticatedUserContext {
 
 function asOfDate(value: string | undefined): Date {
   if (value === undefined || value === '') {
-    const now = new Date();
-    return new Date(
-      Date.UTC(
-        now.getUTCFullYear(),
-        now.getUTCMonth(),
-        now.getUTCDate(),
-      ),
-    );
+    throw new UnprocessableEntityException({
+      code: 'MANAGEMENT_AS_OF_REQUIRED',
+      detail: 'asOf is required and must use YYYY-MM-DD.',
+    });
   }
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
     throw new UnprocessableEntityException({
