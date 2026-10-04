@@ -1,9 +1,11 @@
+**V0.7-E authorization reconciliation — 2026-10-04:** Cost Control reporting remains protected by explicit Cost Control permissions plus effective Project access. Aggregate reporting must not leak source-module Finance/Subcontract detail. Technical `SYS_ADMIN` remains technical authority only and receives no implicit Cost Control business view/approval authority. V0.7-B/C/D implemented the approved Direct Cost, Forecast and Project Variation permission families; Stage E adds no new permission without Change Control.
+
 **V0.7-A implementation note — 2026-10-03:** `cost.control.view` is now seeded as the explicit read authority for the integrated Cost Control read model. It remains subject to effective Project access and does not grant source-module detail permissions. `projects.access_all` only bypasses Project assignment filtering, and technical `SYS_ADMIN` is not implicitly granted `cost.control.view`.
 
 # Construction ERP — Roles & Permissions Model
 
 **Document Status:** Roles & Permissions Baseline v0.1  
-**Current Phase:** Phase 0 — ERP Definition  
+**Current Phase:** V0.7 Cost Control — Stage E implementation / release hardening  
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1

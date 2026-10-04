@@ -1,6 +1,6 @@
-# V0.1 Zero-Cost Self-Hosted UAT
+# Construction ERP — Zero-Cost Self-Hosted UAT
 
-This pack runs the V0.1 release candidate on one computer using only already-approved project components:
+This pack runs the current approved Construction ERP release candidate on one computer using only already-approved project components:
 
 - Node.js / pnpm
 - PostgreSQL 17.11 in Podman
@@ -37,7 +37,7 @@ No cloud account is required.
 
 ## 1. Check out the exact release-candidate branch/head
 
-Use the Stage H PR as the source of truth. Confirm the exact head in GitHub before UAT.
+Use the active release/stage PR and `docs/CURRENT-STATE.md` as coordination references, with live GitHub as the source of truth. Confirm the exact release-candidate head and required CI gates in GitHub before UAT.
 
 ## 2. Create local UAT configuration
 
@@ -104,7 +104,7 @@ bash deploy/uat/smoke.sh
 Then execute the authenticated/business smoke checklist in:
 
 - `docs/V0.1-DEPLOYMENT-ROLLBACK.md`
-- `docs/V0.1-UAT.md`
+- the release-specific UAT evidence document (for V0.7: `docs/V0.7-UAT-EVIDENCE.md`; historical V0.1 evidence remains in `docs/V0.1-UAT.md`)
 
 The scripts do not self-mark those human checks as passed.
 
