@@ -8480,10 +8480,25 @@ check(
 );
 record('V0.7-A rejects historical Budget/PO currency mismatch and restores valid same-currency reporting');
 
+await request(admin, '/management/projects', { expected: 403 });
 await request(admin, '/management/projects/' + projectId + '/summary?asOf=2026-10-10&days=14', {
   expected: 403,
 });
 await request(admin, '/management/portfolio', { expected: 403 });
+
+const managementProjects = await request(pm, '/management/projects');
+check(
+  managementProjects.data.data.some((item) => item.id === projectId),
+  'V0.8-B Management Project selector did not expose the authorized Project.',
+);
+const unassignedManagementProjects = await request(
+  unassigned,
+  '/management/projects',
+);
+check(
+  !unassignedManagementProjects.data.data.some((item) => item.id === projectId),
+  'V0.8-B Management Project selector exposed an inaccessible Project.',
+);
 
 await request(
   pm,
@@ -8565,6 +8580,7 @@ await request(
   { expected: 403 },
 );
 record('V0.8-A Management read-model contract composes canonical Schedule/Procurement/Inventory/Cost/Finance aggregates, preserves source-detail boundaries and enforces Management/Project authorization');
+record('V0.8-B Management Project selector preserves dashboard permission and effective Project scope');
 
 await logout(v07Restricted);
 await logout(pm);
