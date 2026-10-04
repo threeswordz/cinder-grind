@@ -4,7 +4,8 @@
 - Scheduling now supplies bounded canonical portfolio signals for total/completed/critical/delayed/lookahead without protected baseline metadata or per-Project authorization/query fan-out. Reporting and Management preserve those signals, the selected `days` value drives lookahead composition, and the Executive UI presents delayed/critical/lookahead indicators.
 - Regression/live-acceptance coverage now asserts the restored schedule signals and Management forwarding of the selected lookahead window.
 - Repaired material/test head `3ea59c834dee1bbd8d693b0f18d4e5fbd381b50d` passed push CI #2880 and PR CI #2881, including authenticated live acceptance. `CURRENT-STATE.md` was reconciled in `dc2893414aed5c63d56ddca845baebb1038bc0a3`.
-- Current gate: documentation reconciliation exact-head CI, evidence replies/resolution for the three latest review threads, then a clean DEC-022 exact-head re-review before merge.
+- Synchronized documentation/evidence head `f052c021bfc3a495d8522b0530aa356bea1ee95c` passed push CI #2884 and PR CI #2885.
+- Current gate: evidence replies/resolution for the three latest review threads, then a clean DEC-022 exact-head re-review before merge.
 
 ## 2026-10-04 — V0.8-C PR #173 Codex remediation checkpoint
 
