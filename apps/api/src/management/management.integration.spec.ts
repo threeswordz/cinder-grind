@@ -280,7 +280,7 @@ test('V0.8-A Project summary fails before source composition when Project access
   assert.equal(sourceCalled, false);
 });
 
-test('V0.8-C Portfolio scopes Projects before aggregation and derives deterministic health', async () => {
+test('V0.8-C Portfolio uses bounded canonical source reads and exposes source signals without an unapproved severity policy', async () => {
   let receivedWhere: unknown = null;
   const prisma = {
     company: {
@@ -298,10 +298,6 @@ test('V0.8-C Portfolio scopes Projects before aggregation and derives determinis
             plannedCompletionDate: new Date('2026-12-31T00:00:00.000Z'),
             actualStartDate: null,
             actualCompletionDate: null,
-            statusDefinition: {
-              statusCode: 'ACTIVE',
-              statusLabel: 'Active',
-            },
           },
           {
             id: 'project-2',
@@ -311,10 +307,6 @@ test('V0.8-C Portfolio scopes Projects before aggregation and derives determinis
             plannedCompletionDate: new Date('2027-01-31T00:00:00.000Z'),
             actualStartDate: null,
             actualCompletionDate: null,
-            statusDefinition: {
-              statusCode: 'ACTIVE',
-              statusLabel: 'Active',
-            },
           },
         ];
       },
@@ -326,130 +318,115 @@ test('V0.8-C Portfolio scopes Projects before aggregation and derives determinis
       companyId: 'company',
       id: { in: ['project-1', 'project-2'] },
     }),
-    assertAccess: async () => undefined,
   } as unknown as ProjectAccessService;
 
-  const risky = (projectId: string) => projectId === 'project-2';
-
   const reporting = {
-    projectEngineer: async (
-      _auth: AuthenticatedUserContext,
-      projectId: string,
-    ) => ({
-      project: {
-        id: projectId,
-        projectCode: risky(projectId) ? 'P-002' : 'P-001',
-        projectName: risky(projectId)
-          ? 'Scoped Project Two'
-          : 'Scoped Project One',
-        plannedStartDate: new Date('2026-01-01T00:00:00.000Z'),
-        plannedCompletionDate: new Date('2026-12-31T00:00:00.000Z'),
-        actualStartDate: null,
-        actualCompletionDate: null,
+    portfolioSignals: async () => [
+      {
+        projectId: 'project-1',
+        schedule: { total: 10, completed: 4 },
+        procurement: { total: 5, AT_RISK: 0, ON_TIME: 4, UNAVAILABLE: 1 },
+        siteExecution: { recentReportCount: 1, issueCount: 0, delayCount: 0 },
       },
-      asOfDate: '2026-10-04',
-      schedule: {
-        currentBaseline: null,
-        summary: {
-          total: 10,
-          critical: risky(projectId) ? 2 : 0,
-          delayed: risky(projectId) ? 1 : 0,
-          completed: 4,
-        },
-        activities: [{ secretActivityDetail: 'must-not-leak' }],
-        lookahead: {
-          activities: [{ id: 'lookahead', secretLookaheadDetail: 'must-not-leak' }],
-        },
+      {
+        projectId: 'project-2',
+        schedule: { total: 8, completed: 3 },
+        procurement: { total: 4, AT_RISK: 1, ON_TIME: 2, UNAVAILABLE: 1 },
+        siteExecution: { recentReportCount: 1, issueCount: 2, delayCount: 1 },
       },
-      siteExecution: {
-        latestReports: [
-          {
-            reportDate: new Date('2026-10-03T00:00:00.000Z'),
-            generalRemarks: 'must-not-leak',
-            counts: {
-              issues: risky(projectId) ? 1 : 0,
-              delays: 0,
-              inspections: 1,
-            },
-          },
-        ],
-      },
-      equipment: { assignedCount: 1 },
-    }),
-    procurement: async (
-      _auth: AuthenticatedUserContext,
-      projectId: string,
-    ) => ({
-      summary: {
-        total: 5,
-        AT_RISK: risky(projectId) ? 1 : 0,
-        ON_TIME: risky(projectId) ? 3 : 4,
-        UNAVAILABLE: 1,
-        rfq: 4,
-        awarded: 3,
-        purchaseOrder: 2,
-      },
-      lines: [{ secretProcurementDetail: 'must-not-leak' }],
-    }),
+    ],
+    projectEngineer: async () => {
+      throw new Error('portfolio must not fan out through projectEngineer');
+    },
+    procurement: async () => {
+      throw new Error('portfolio must not fan out through procurement');
+    },
   } as unknown as ReportingService;
 
+  const inventory = {
+    portfolioBalanceSummaries: async () => [
+      {
+        projectId: 'project-1',
+        balanceRowCount: 1,
+        warehouseCount: 1,
+        materialCount: 2,
+        uomCount: 1,
+      },
+      {
+        projectId: 'project-2',
+        balanceRowCount: 2,
+        warehouseCount: 1,
+        materialCount: 3,
+        uomCount: 1,
+      },
+    ],
+    balanceSummary: async () => {
+      throw new Error('portfolio must not fan out through balanceSummary');
+    },
+  } as unknown as InventoryReportService;
+
+  const costRow = (projectId: string, forecastCost: string, variance: string, forecastProfit: string) => ({
+    projectId,
+    baseCurrencyCode: 'SGD',
+    totals: {
+      originalBudget: decimal('1000'),
+      revisedBudget: decimal('1200'),
+      committedCost: decimal('500'),
+      actualCost: decimal('200'),
+      paidCost: decimal('90'),
+      remainingCommitment: decimal('300'),
+      uncommittedEtc: decimal('100'),
+      costToComplete: decimal('400'),
+      forecastCost: decimal(forecastCost),
+      variance: decimal(variance),
+      commercial: {
+        originalContractValue: decimal('1500'),
+        approvedVariationValue: decimal('100'),
+        revisedContractValue: decimal('1600'),
+        actualRevenue: decimal('700'),
+        cashReceived: decimal('650'),
+        forecastRevenue: decimal('1600'),
+        actualProfit: decimal('500'),
+        forecastProfit: decimal(forecastProfit),
+      },
+    },
+  });
+
   const costControl = {
-    projectCostControl: async (
-      _auth: AuthenticatedUserContext,
-      projectId: string,
-    ) => ({
-      baseCurrencyCode: 'SGD',
-      totals: {
-        originalBudget: decimal('1000'),
-        revisedBudget: decimal('1200'),
-        committedCost: { total: decimal('500') },
-        actualCost: { total: decimal('200') },
-        paidCost: { total: decimal('90') },
-        remainingCommitment: { total: decimal('300') },
-        uncommittedEtc: decimal('100'),
-        costToComplete: decimal('400'),
-        forecastCost: decimal(risky(projectId) ? '1300' : '600'),
-        variance: decimal(risky(projectId) ? '-100' : '600'),
-        commercial: {
-          originalContractValue: decimal('1500'),
-          approvedVariationValue: decimal('100'),
-          revisedContractValue: decimal('1600'),
-          actualRevenue: decimal('700'),
-          cashReceived: decimal('650'),
-          forecastRevenue: decimal('1600'),
-          actualProfit: decimal('500'),
-          forecastProfit: decimal(risky(projectId) ? '-25' : '1000'),
-        },
-      },
-      sourceEvidence: {
-        supplierActual: { records: [{ secretCostDetail: 'must-not-leak' }] },
-      },
-    }),
+    portfolioProjectTotals: async () => [
+      costRow('project-1', '600', '600', '1000'),
+      costRow('project-2', '1300', '-100', '-25'),
+    ],
+    projectCostControl: async () => {
+      throw new Error('portfolio must not fan out through projectCostControl');
+    },
   } as unknown as CostControlService;
 
   const cashFlow = {
-    projectCashFlow: async () => ({
-      baseCurrencyCode: 'SGD',
-      totals: {
-        inflowAmount: decimal('650'),
-        outflowAmount: decimal('90'),
-        netCashFlow: decimal('560'),
+    portfolioProjectCashFlows: async () => [
+      {
+        projectId: 'project-1',
+        baseCurrencyCode: 'SGD',
+        totals: {
+          inflowAmount: decimal('650'),
+          outflowAmount: decimal('90'),
+          netCashFlow: decimal('560'),
+        },
       },
-      rows: [{ secretPaymentDetail: 'must-not-leak' }],
-    }),
+      {
+        projectId: 'project-2',
+        baseCurrencyCode: 'SGD',
+        totals: {
+          inflowAmount: decimal('300'),
+          outflowAmount: decimal('120'),
+          netCashFlow: decimal('180'),
+        },
+      },
+    ],
+    projectCashFlow: async () => {
+      throw new Error('portfolio must not fan out through projectCashFlow');
+    },
   } as unknown as CashFlowService;
-
-  const inventory = {
-    balanceSummary: async (
-      _auth: AuthenticatedUserContext,
-      filters: { projectId?: string },
-    ) => ({
-      balanceRowCount: filters.projectId === 'project-2' ? 2 : 1,
-      warehouseCount: 1,
-      materialCount: 2,
-      uomCount: 1,
-    }),
-  } as unknown as InventoryReportService;
 
   const service = new ManagementService(
     prisma,
@@ -480,16 +457,18 @@ test('V0.8-C Portfolio scopes Projects before aggregation and derives determinis
     result.projects.map((row) => row.project.id),
     ['project-1', 'project-2'],
   );
-  assert.equal(result.projects[0]?.health.status, 'ON_TRACK');
-  assert.equal(result.projects[1]?.health.status, 'CRITICAL');
-  assert.equal(result.healthSummary.ON_TRACK, 1);
-  assert.equal(result.healthSummary.CRITICAL, 1);
-  assert.equal(result.totals.schedule.activities, 20);
-  assert.equal(typeof result.totals.schedule.activities, 'number');
-  const serializedPortfolio = JSON.stringify(result);
-  assert.equal(serializedPortfolio.includes('must-not-leak'), false);
-  assert.equal(serializedPortfolio.includes('sourceEvidence'), false);
-  assert.equal(serializedPortfolio.includes('generalRemarks'), false);
+  assert.equal(result.healthPolicy.overallSeverity, 'NOT_APPROVED');
+  assert.equal(result.healthPolicy.presentation, 'SOURCE_SIGNALS_ONLY');
+  assert.equal(
+    result.projects[0]?.health.overallSeverity.status,
+    'UNAVAILABLE',
+  );
+  assert.equal(
+    result.projects[1]?.health.sourceSignals.procurement.atRiskLines,
+    1,
+  );
+  assert.equal(result.totals.schedule.activities, 18);
+  assert.equal(result.totals.schedule.completed, 7);
   assert.equal(result.totals.procurement.atRisk, 1);
   assert.equal(result.totals.inventory.balanceRows, 3);
   assert.equal(result.totals.cost.revisedBudget, '2400');
@@ -500,7 +479,14 @@ test('V0.8-C Portfolio scopes Projects before aggregation and derives determinis
     result.scope.inaccessibleProjectsExcludedBeforeAggregation,
     true,
   );
+  assert.equal(result.boundaries.boundedPortfolioSourceReads, true);
+  assert.equal(result.boundaries.perProjectAuthorizationFanOut, false);
   assert.equal(result.boundaries.deterministicHealthSignals, true);
+  assert.equal(result.boundaries.overallHealthSeverityPolicyApproved, false);
+  const serializedPortfolio = JSON.stringify(result);
+  assert.equal(serializedPortfolio.includes('sourceEvidence'), false);
+  assert.equal(serializedPortfolio.includes('generalRemarks'), false);
+  assert.equal(serializedPortfolio.includes('currentBaseline'), false);
 });
 
 test('V0.8-B Management Project selector applies effective Project scope before listing choices', async () => {
