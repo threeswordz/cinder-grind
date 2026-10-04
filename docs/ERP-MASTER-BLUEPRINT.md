@@ -1,7 +1,7 @@
 # Construction ERP — Master Blueprint
 
 **Document Status:** Architecture Baseline v0.1
-**Current Phase:** V0.7 Cost Control — Stage E implementation / release hardening
+**Current Phase:** V0.7 Cost Control — technical implementation complete / human release exit pending
 **System:** Construction ERP
 **Primary Platform:** Web Application
 **Architecture Principle:** Open-Source First
@@ -1673,7 +1673,7 @@ Current Release:
 
 Current Stage:
 
-**V0.7-E — Cost Reporting / Hardening / Release Evidence — ACTIVE**
+**V0.7 Release Exit — Human UAT / Product Owner Acceptance — PENDING**
 
 Live delivery position:
 
@@ -1687,7 +1687,8 @@ Live delivery position:
 - V0.7-B Direct Cost Posting — complete
 - V0.7-C Forecast / ETC / Variance — complete
 - V0.7-D Project Variations / Revenue / Profit — complete
-- V0.7-E Cost Reporting / Hardening / Release Evidence — active
+- V0.7-E Cost Reporting / Hardening / Release Evidence — technically complete
+- V0.7 Release Exit — human UAT / explicit Product / Business Owner acceptance pending
 
 The live GitHub repository, active Issue/PR/CI evidence and `docs/CURRENT-STATE.md` are authoritative for implementation status. Human V0.7 UAT and explicit Product / Business Owner acceptance remain mandatory release-exit gates before V0.8.
 

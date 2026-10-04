@@ -91,4 +91,4 @@ Development/session responsibilities are defined in `docs/DEVELOPMENT-OPERATING-
 
 Completed releases: **V0.1 Foundation, V0.2 Project & Scheduling, V0.3 Procurement, V0.4 Inventory, V0.5 Subcontracts and V0.6 Finance**. V0.5 and V0.6 are accepted.
 
-Current release: **V0.7 Cost Control**. V0.7-A through V0.7-D are technically complete; **V0.7-E Cost Reporting / Hardening / Release Evidence is active** under Issue #151 on `v0.7-e-reporting-hardening-implementation`. Human V0.7 UAT and explicit Product / Business Owner acceptance remain mandatory release-exit gates before V0.8.
+Current release: **V0.7 Cost Control**. V0.7-A through V0.7-E are technically complete. V0.7-E material PR #153 squash-merged as `3db10a025aa996d2721cd5387b752d314a1753dc`; post-merge main CI #2611 passed; Issue #151 is closed completed. **Human V0.7 UAT (AC-V07-051) and explicit Product / Business Owner acceptance (AC-V07-052) remain mandatory release-exit gates before V0.8.**
