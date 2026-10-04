@@ -1,3 +1,11 @@
+## 2026-10-04 — V0.8 Management entry proposal published
+
+- Proposal PR #161 squash-merged as `82278f1975e046ca9b2e40ca168de570dcb93bfa`.
+- Exact-head push CI #2672 and PR CI #2673 passed; post-merge main CI #2674 passed.
+- Scope, AC-V08-001–040, BR-V08-01–16 / D08-01–12, technical baseline, V0.8-A–E stages, estimate and deferrals remain **PROPOSED / NOT APPROVED**.
+- Issue #160 remains open at the Product / Business Owner approval gate.
+- V0.8 implementation remains NOT STARTED and unauthorized.
+
 ## 2026-10-04 — V0.8 Management entry-gate proposal prepared
 
 - V0.7 Cost Control is COMPLETE AND ACCEPTED; final closure PR #159 merged as `668a855bd71cebe21e3a38afc40188377163fb69` and post-merge main CI #2663 passed.
