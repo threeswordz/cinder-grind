@@ -8614,6 +8614,19 @@ check(
       portfolioProject?.health?.sourceSignals?.progress?.totalActivities,
     ) >= 0 &&
     Number(
+      portfolioProject?.health?.sourceSignals?.progress?.delayedActivities,
+    ) >= 0 &&
+    Number(
+      portfolioProject?.health?.sourceSignals?.progress?.criticalActivities,
+    ) >= 0 &&
+    Number(
+      portfolioProject?.health?.sourceSignals?.progress?.lookaheadActivities,
+    ) >= 0 &&
+    Number(managementPortfolio.data.data.totals?.schedule?.delayed) >= 0 &&
+    Number(managementPortfolio.data.data.totals?.schedule?.critical) >= 0 &&
+    Number(managementPortfolio.data.data.totals?.schedule?.lookahead) >= 0 &&
+    managementPortfolio.data.data.lookaheadDays === 14 &&
+    Number(
       portfolioProject?.domains?.inventory?.balanceRowCount,
     ) >= 0 &&
     managementPortfolio.data.data.boundaries?.boundedPortfolioSourceReads === true &&
@@ -8648,7 +8661,7 @@ await request(
 );
 record('V0.8-A Management read-model contract composes canonical Schedule/Procurement/Inventory/Cost/Finance aggregates, preserves source-detail boundaries and enforces Management/Project authorization');
 record('V0.8-B Management Project selector preserves dashboard permission and effective Project scope');
-record('V0.8-C Executive portfolio composes authorized cross-Project progress, schedule/procurement/site/inventory, cost, cash and profitability source signals without protected-detail leakage or an unapproved overall severity policy');
+record('V0.8-C Executive portfolio composes authorized cross-Project progress, delayed/critical/lookahead schedule signals, procurement/site/inventory, cost, cash and profitability without protected-detail leakage or an unapproved overall severity policy');
 
 await logout(v07Restricted);
 await logout(pm);
