@@ -320,21 +320,42 @@ test('V0.8-C Portfolio uses bounded canonical source reads and exposes source si
     }),
   } as unknown as ProjectAccessService;
 
+  let receivedPortfolioDays: 14 | 28 | null = null;
   const reporting = {
-    portfolioSignals: async () => [
+    portfolioSignals: async (
+      _auth: AuthenticatedUserContext,
+      _projectIds: string[],
+      _asOf: Date,
+      days: 14 | 28,
+    ) => {
+      receivedPortfolioDays = days;
+      return [
       {
         projectId: 'project-1',
-        schedule: { total: 10, completed: 4 },
+        schedule: {
+          total: 10,
+          completed: 4,
+          delayed: 1,
+          critical: 2,
+          lookahead: 3,
+        },
         procurement: { total: 5, AT_RISK: 0, ON_TIME: 4, UNAVAILABLE: 1 },
         siteExecution: { recentReportCount: 1, issueCount: 0, delayCount: 0 },
       },
       {
         projectId: 'project-2',
-        schedule: { total: 8, completed: 3 },
+        schedule: {
+          total: 8,
+          completed: 3,
+          delayed: 2,
+          critical: 1,
+          lookahead: 4,
+        },
         procurement: { total: 4, AT_RISK: 1, ON_TIME: 2, UNAVAILABLE: 1 },
         siteExecution: { recentReportCount: 1, issueCount: 2, delayCount: 1 },
       },
-    ],
+    ];
+    },
     projectEngineer: async () => {
       throw new Error('portfolio must not fan out through projectEngineer');
     },
@@ -467,8 +488,16 @@ test('V0.8-C Portfolio uses bounded canonical source reads and exposes source si
     result.projects[1]?.health.sourceSignals.procurement.atRiskLines,
     1,
   );
+  assert.equal(receivedPortfolioDays, 14);
   assert.equal(result.totals.schedule.activities, 18);
   assert.equal(result.totals.schedule.completed, 7);
+  assert.equal(result.totals.schedule.delayed, 3);
+  assert.equal(result.totals.schedule.critical, 3);
+  assert.equal(result.totals.schedule.lookahead, 7);
+  assert.equal(
+    result.projects[1]?.health.sourceSignals.progress.lookaheadActivities,
+    4,
+  );
   assert.equal(result.totals.procurement.atRisk, 1);
   assert.equal(result.totals.inventory.balanceRows, 3);
   assert.equal(result.totals.cost.revisedBudget, '2400');
