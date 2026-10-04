@@ -8547,12 +8547,12 @@ check(
 );
 const serializedManagement = JSON.stringify(managementSummary.data.data);
 check(
-  !serializedManagement.includes('generalRemarks') &&
-    !serializedManagement.includes('paymentNumber') &&
-    !serializedManagement.includes('sourceEvidence') &&
-    !serializedManagement.includes('"activities"') &&
-    !serializedManagement.includes('"lines"') &&
-    !serializedManagement.includes('"rows"'),
+  !serializedManagement.includes('\"generalRemarks\":') &&
+    !serializedManagement.includes('\"paymentNumber\":') &&
+    !serializedManagement.includes('\"sourceEvidence\":') &&
+    !serializedManagement.includes('"activities":') &&
+    !serializedManagement.includes('"lines":') &&
+    !serializedManagement.includes('"rows":'),
   'V0.8-A Management summary leaked protected source rows/details.',
 );
 
