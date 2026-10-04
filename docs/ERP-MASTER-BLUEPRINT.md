@@ -6,7 +6,7 @@
 **Primary Platform:** Web Application
 **Architecture Principle:** Open-Source First
 
-**V0.8-C live checkpoint — 2026-10-04:** Executive / Cross-Project Management Dashboard implementation is active under Issue #172. It remains a read-only derived management layer over canonical modules, with effective Project authorization before aggregation and no duplicate operational/financial source of truth. Current validation corrected an automated acceptance-detector ambiguity around the legitimate scalar aggregate `totals.schedule.activities`; the Management source-detail boundary itself is unchanged.
+**V0.8-C live checkpoint — 2026-10-04:** Executive / Cross-Project Management Dashboard implementation is active under Issue #172 / PR #173. It remains a read-only derived management layer over canonical modules, with effective Project authorization before aggregation and no duplicate operational/financial source of truth. DEC-022 review found five genuine implementation/documentation gaps; remediation now uses bounded canonical portfolio reads, source-signal-only health presentation with no unapproved overall severity policy, protected-detail sanitation, strict date/filter handling and required progress/inventory presentation. Remediation/test head `e1b6842934abec70e20794a184e6e87a1ab6e592` is under validation; Stage C remains incomplete until exact-head/PR CI and clean exact-head review/merge/post-merge closure gates pass.
 
 ---
 
