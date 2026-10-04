@@ -807,7 +807,7 @@ Completed release: **V0.7 Cost Control — COMPLETE AND ACCEPTED**.
 
 Next release: **V0.8 Management**.
 
-Current stage: **V0.8-B Project Engineer & Project Manager Dashboards — NEXT / NOT STARTED**.
+Current stage: **V0.8-B Project Engineer & Project Manager Dashboards — ACTIVE**.
 
 Immediate sequence:
 
@@ -818,8 +818,9 @@ Immediate sequence:
 5. DEC-022 exact-head re-review — **NO MAJOR ISSUES** after the inventory KPI truncation P2 was fixed and regression-covered.
 6. PR #167 — MERGED as `d60c5c051f1eb6aec30399173f33ab05300cc52c`.
 7. Post-merge main CI #2760 — PASS; Issue #166 — CLOSED / COMPLETED.
-8. Establish V0.8-B from exact green main `d60c5c051f1eb6aec30399173f33ab05300cc52c`.
-9. Do not begin V0.8-C until V0.8-B completes its own CI/review/merge/post-merge closure gates.
+8. Issue #169 / branch `v0.8-b-project-management-dashboards` — ACTIVE from exact green main `2b3a10aec1f5ef9dd8c855d9361c5a4f2c64bd68` (main CI #2774 PASS).
+9. Implement the approved Project Engineer & Project Manager dashboards using V0.8-A read models/canonical source semantics; do not broaden protected source detail.
+10. Do not begin V0.8-C until V0.8-B completes its own CI/review/merge/post-merge closure gates.
 
 
 # 23. Baseline Decision
