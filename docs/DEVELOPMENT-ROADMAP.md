@@ -832,7 +832,7 @@ Immediate sequence:
 19. Inventory balance/movement visibility and Finance AP/AR visibility were remediated through canonical source composition; material remediation head `a3302ca2eca4eea88af9d49bd7ebe83109e23eb0` passed CI #2951 including authenticated live acceptance.
 20. The two P1 threads were resolved; fresh DEC-022 re-review on `6fb4e23859ead102ee2b167b31c85de5809fae59` found one genuine P2: Management movement totals could not reliably reconcile to the canonical Inventory movement report after its 2,000-row result cap.
 21. P2 remediation head `11f955f6cfbfe056b8f088faa9da29937ca6b2eb` exposes/reconciles the canonical total movement count while retaining the report's bounded row payload; exact-head CI #2955 PASS.
-22. All three implementation review findings and the later stale-status documentation thread are resolved. Current Stage-D gate: documentation-synchronized exact-head CI → fresh exact-head DEC-022 re-review → squash merge only if clean → post-merge exact-main CI → Issue #175 closure. V0.8-E must not begin before these predecessor gates complete.
+22. All known implementation and documentation review findings are resolved. Current Stage-D gate: documentation-synchronized exact-head CI → fresh exact-head DEC-022 re-review → squash merge only if clean → post-merge exact-main CI → Issue #175 closure. V0.8-E must not begin before these predecessor gates complete.
 
 
 # 23. Baseline Decision
