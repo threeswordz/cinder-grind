@@ -1,3 +1,13 @@
+## 2026-10-04 — V0.8-B Project Engineer & Project Manager Dashboards complete
+
+- Final Stage-B implementation head `4230e6ffff3e1c5a3dc7ee3b7669f86061e704ba` passed exact-head push CI #2796 and PR CI #2797.
+- DEC-022 review identified one genuine P1 AC-V08-003 gap in the Management Project Engineer execution view.
+- The finding was fixed by embedding the existing canonical Project Engineer execution view only for users who already hold `reporting.operational.view`; aggregate Management visibility remains available without protected source-detail privilege broadening.
+- Final exact-head Codex re-review reported **no major issues** and the review thread was resolved.
+- PR #170 squash-merged as `42444cc91912f323d672f63da050b68b8d777b62`; post-merge main CI #2798 passed.
+- Issue #169 closed completed.
+- **V0.8-B is COMPLETE. V0.8-C Executive / Cross-Project Management Dashboard is NEXT.**
+
 ## 2026-10-04 — V0.8-A Management Read Model / KPI Contracts complete
 
 - Final corrected Stage-A material head `93b116af63723869e9b28c9407e67b034088bf18` passed push CI #2758 and PR CI #2759.
