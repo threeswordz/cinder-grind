@@ -135,6 +135,9 @@ export type ManagementPortfolio = {
     schedule: {
       activities: number;
       completed: number;
+      delayed: number;
+      critical: number;
+      lookahead: number;
     };
     procurement: {
       demandLines: number;
@@ -185,6 +188,9 @@ export type ManagementPortfolio = {
         progress: {
           completedActivities: number;
           totalActivities: number;
+          delayedActivities: number;
+          criticalActivities: number;
+          lookaheadActivities: number;
         };
         procurement: {
           atRiskLines: number;
@@ -208,6 +214,9 @@ export type ManagementPortfolio = {
         summary: {
           total: number;
           completed: number;
+          delayed: number;
+          critical: number;
+          lookahead: number;
         };
       };
       siteExecution: {
