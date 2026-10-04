@@ -1,3 +1,11 @@
+## 2026-10-04 — V0.7 Product / Business Owner acceptance
+
+- Product / Business Owner explicitly stated: “I explicitly accept V0.7 Cost Control under AC-V07-051 and AC-V07-052 and authorize V0.7 release closure.”
+- AC-V07-051 is recorded as accepted by the Product / Business Owner based on the prepared and Chat-assisted proxy UAT evidence; this does not invent a claim that the owner manually repeated every UI/API step.
+- AC-V07-052 is explicitly accepted.
+- Proxy evidence: 117/117 API tests PASS, 64/64 authenticated current-release runtime checks PASS, all nine V0.7 walkthrough areas PASS, no blocking business defect identified.
+- Issue #157 tracks the remaining release-closure reconciliation. V0.8 remains blocked until closure completes and post-merge main CI is green.
+
 ## 2026-10-04 — V0.7 Chat-assisted proxy UAT evidence
 
 - Chat executed an evidence-based proxy walkthrough against current `main` `fea2c11ff22f787d30149c8487e6bc470a6c6460`.
