@@ -178,22 +178,17 @@ test('V0.8-A Project summary composes aggregate-only canonical source contracts'
   } as unknown as CashFlowService;
 
   const inventory = {
-    balanceReport: async () => [
-      {
-        warehouseId: 'warehouse-1',
-        materialId: 'material-1',
-        uomId: 'uom-1',
-        quantity: '10.0000',
-        secretInventoryDetail: 'must-not-leak',
-      },
-      {
-        warehouseId: 'warehouse-1',
-        materialId: 'material-2',
-        uomId: 'uom-1',
-        quantity: '5.0000',
-        secretInventoryDetail: 'must-not-leak',
-      },
-    ],
+    balanceSummary: async () => ({
+      balanceRowCount: 1250,
+      warehouseCount: 12,
+      materialCount: 347,
+      uomCount: 5,
+    }),
+    balanceReport: async () => {
+      throw new Error(
+        'Management must not derive KPIs from the capped inventory balance list.',
+      );
+    },
   } as unknown as InventoryReportService;
 
   const service = new ManagementService(
@@ -221,8 +216,10 @@ test('V0.8-A Project summary composes aggregate-only canonical source contracts'
   assert.equal(result.domains.schedule.lookaheadActivityCount, 1);
   assert.equal(result.domains.siteExecution.issueCount, 2);
   assert.equal(result.domains.procurement.summary.AT_RISK, 2);
-  assert.equal(result.domains.inventory.balanceRowCount, 2);
-  assert.equal(result.domains.inventory.warehouseCount, 1);
+  assert.equal(result.domains.inventory.balanceRowCount, 1250);
+  assert.equal(result.domains.inventory.warehouseCount, 12);
+  assert.equal(result.domains.inventory.materialCount, 347);
+  assert.equal(result.domains.inventory.uomCount, 5);
   assert.equal(result.domains.cost.forecastCost, '600');
   assert.equal(result.domains.finance.netCashFlow, '560');
   assert.equal(result.sourceTraceability.cost.sourceViewAvailable, false);
