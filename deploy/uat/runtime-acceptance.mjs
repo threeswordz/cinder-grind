@@ -8605,12 +8605,23 @@ check(
       Number(managementSummary.data.data.domains?.cost?.revisedBudget) &&
     Number(managementPortfolio.data.data.totals?.finance?.netCashFlow) >=
       Number(managementSummary.data.data.domains?.finance?.netCashFlow) &&
-    ['ON_TRACK', 'ATTENTION', 'CRITICAL'].includes(
-      portfolioProject?.health?.status,
-    ) &&
+    managementPortfolio.data.data.healthPolicy?.overallSeverity ===
+      'NOT_APPROVED' &&
+    managementPortfolio.data.data.healthPolicy?.presentation ===
+      'SOURCE_SIGNALS_ONLY' &&
+    portfolioProject?.health?.overallSeverity?.status === 'UNAVAILABLE' &&
+    Number(
+      portfolioProject?.health?.sourceSignals?.progress?.totalActivities,
+    ) >= 0 &&
+    Number(
+      portfolioProject?.domains?.inventory?.balanceRowCount,
+    ) >= 0 &&
+    managementPortfolio.data.data.boundaries?.boundedPortfolioSourceReads === true &&
+    managementPortfolio.data.data.boundaries?.perProjectAuthorizationFanOut === false &&
     managementPortfolio.data.data.boundaries?.deterministicHealthSignals === true &&
+    managementPortfolio.data.data.boundaries?.overallHealthSeverityPolicyApproved === false &&
     managementPortfolio.data.data.boundaries?.manualHealthOverride === false,
-  'V0.8-C Executive portfolio did not reconcile canonical finance/cost measures and deterministic health signals.',
+  'V0.8-C Executive portfolio did not reconcile bounded canonical source signals without inventing an overall severity policy.',
 );
 const portfolioProtectedDetailPaths = findProtectedDetailPaths(
   managementPortfolio.data.data,
@@ -8637,7 +8648,7 @@ await request(
 );
 record('V0.8-A Management read-model contract composes canonical Schedule/Procurement/Inventory/Cost/Finance aggregates, preserves source-detail boundaries and enforces Management/Project authorization');
 record('V0.8-B Management Project selector preserves dashboard permission and effective Project scope');
-record('V0.8-C Executive portfolio composes authorized cross-Project health, schedule, procurement, inventory, cost, cash and profitability indicators without protected-detail leakage');
+record('V0.8-C Executive portfolio composes authorized cross-Project progress, schedule/procurement/site/inventory, cost, cash and profitability source signals without protected-detail leakage or an unapproved overall severity policy');
 
 await logout(v07Restricted);
 await logout(pm);
