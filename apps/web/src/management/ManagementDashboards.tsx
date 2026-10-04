@@ -18,6 +18,7 @@ import {
   ManagementProjectSummary,
   managementApi,
 } from '../api/management';
+import { ProjectEngineerDashboard } from '../reporting/ProjectEngineerDashboard';
 import { GanttLookaheadPanel } from '../scheduling/GanttLookaheadPanel';
 
 type DashboardMode = 'engineer' | 'manager';
@@ -274,6 +275,9 @@ export function ManagementDashboards({
   });
 
   const summary = summaryQuery.data?.data;
+  const canViewEngineerDetail = permissions.includes(
+    'reporting.operational.view',
+  );
   const canViewGantt = permissions.includes('schedule.programme.view');
 
   return (
@@ -362,12 +366,31 @@ export function ManagementDashboards({
                 <SiteCard summary={summary} />
                 <ProcurementCard summary={summary} />
               </Stack>
-              <Alert severity="info">
-                Current-work and source-record detail remains in the owning
-                Scheduling, Site Execution and Procurement modules. This
-                dashboard preserves aggregate visibility without widening
-                source permissions.
-              </Alert>
+              <Card variant="outlined">
+                <CardContent>
+                  <Stack spacing={2}>
+                    <Typography variant="subtitle1">
+                      Current work, progress & upcoming execution
+                    </Typography>
+                    {canViewEngineerDetail ? (
+                      <ProjectEngineerDashboard
+                        fixedProjectId={projectId}
+                        fixedAsOf={asOf}
+                        fixedDays={days}
+                        embedded
+                      />
+                    ) : (
+                      <Alert severity="info">
+                        Aggregate Management indicators are available, but
+                        current-work, activity-progress, lookahead and Daily
+                        Site Report execution detail requires the owning
+                        Reporting permission
+                        <strong> reporting.operational.view</strong>.
+                      </Alert>
+                    )}
+                  </Stack>
+                </CardContent>
+              </Card>
             </>
           ) : (
             <>
