@@ -830,7 +830,9 @@ Immediate sequence:
 17. Initial Stage-D implementation provides dedicated Schedule / Procurement / Inventory / Cost / Finance Management tabs over the existing canonical Project summary, with protected source drilldown retained behind owning-module permissions and no duplicate source truth.
 18. PR #177 ready-for-review head `8352b43394abc70952569136d629abf473328cc8` passed CI #2937; first DEC-022 review identified two genuine P1 gaps under AC-V08-008 and AC-V08-010.
 19. Inventory balance/movement visibility and Finance AP/AR visibility were remediated through canonical source composition; material remediation head `a3302ca2eca4eea88af9d49bd7ebe83109e23eb0` passed CI #2951 including authenticated live acceptance.
-20. Current Stage-D gate: evidence synchronization → resolve the two P1 threads → fresh exact-head DEC-022 re-review → squash merge → post-merge exact-main CI → Issue #175 closure. V0.8-E must not begin before these predecessor gates complete.
+20. The two P1 threads were resolved; fresh DEC-022 re-review on `6fb4e23859ead102ee2b167b31c85de5809fae59` found one genuine P2: Management movement totals could not reliably reconcile to the canonical Inventory movement report after its 2,000-row result cap.
+21. P2 remediation head `11f955f6cfbfe056b8f088faa9da29937ca6b2eb` exposes/reconciles the canonical total movement count while retaining the report's bounded row payload; exact-head CI #2955 PASS.
+22. Current Stage-D gate: durable evidence sync → resolve the now-outdated P2 thread → fresh exact-head DEC-022 re-review → squash merge only if clean → post-merge exact-main CI → Issue #175 closure. V0.8-E must not begin before these predecessor gates complete.
 
 
 # 23. Baseline Decision
