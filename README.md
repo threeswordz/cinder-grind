@@ -91,4 +91,4 @@ Development/session responsibilities are defined in `docs/DEVELOPMENT-OPERATING-
 
 Completed releases: **V0.1 Foundation, V0.2 Project & Scheduling, V0.3 Procurement, V0.4 Inventory, V0.5 Subcontracts, V0.6 Finance and V0.7 Cost Control**. V0.5, V0.6 and V0.7 are accepted.
 
-Current position: **V0.7 Cost Control COMPLETE AND ACCEPTED**. Product / Business Owner accepted AC-V07-051 and AC-V07-052 on 2026-10-04; acceptance-record PR #158 merged as `32ffab318066bec6fad770f5419cfd1942d9556d`, post-merge main CI #2637 passed, and Issue #157 closed completed. **V0.8 Management is NEXT at its release-entry gate; no V0.8 implementation is authorized until its own baseline is approved.**
+Current position: **V0.8 Management ACTIVE**. The V0.8 entry gate is approved under DEC-025 and V0.8-A Management Read Model / KPI Contracts is COMPLETE: PR #167 merged as `d60c5c051f1eb6aec30399173f33ab05300cc52c`, post-merge main CI #2760 passed and Issue #166 closed completed. **V0.8-B Project Engineer & Project Manager Dashboards is NEXT.**
