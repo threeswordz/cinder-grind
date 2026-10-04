@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 
 import { AuthenticatedUserContext } from '../auth/auth.types';
 import { PrismaService } from '../prisma/prisma.service';
@@ -24,6 +25,251 @@ export class ReportingService {
       },
       orderBy: [{ projectName: 'asc' }, { projectCode: 'asc' }],
     });
+  }
+
+  async portfolioSignals(
+    auth: AuthenticatedUserContext,
+    projectIds: string[],
+    asOf: Date,
+  ) {
+    const requestedIds = [...new Set(projectIds)];
+    if (requestedIds.length === 0) return [];
+
+    const scope = await this.access.scopeWhere(auth);
+    const allowedProjects = await this.prisma.project.findMany({
+      where: {
+        AND: [
+          scope,
+          { id: { in: requestedIds }, isActive: true },
+        ],
+      },
+      select: { id: true },
+    });
+    const allowedIds = allowedProjects.map((row) => row.id);
+    if (allowedIds.length === 0) return [];
+
+    const [activities, requests, siteRows] = await Promise.all([
+      this.prisma.activity.findMany({
+        where: {
+          companyId: auth.companyId,
+          projectId: { in: allowedIds },
+          isActive: true,
+        },
+        select: {
+          id: true,
+          projectId: true,
+          progressHistory: {
+            where: { progressDate: { lte: asOf } },
+            select: { percentComplete: true },
+            orderBy: [
+              { progressDate: 'desc' },
+              { createdAt: 'desc' },
+              { id: 'desc' },
+            ],
+            take: 1,
+          },
+        },
+      }),
+      this.prisma.purchaseRequest.findMany({
+        where: {
+          companyId: auth.companyId,
+          projectId: { in: allowedIds },
+        },
+        select: {
+          projectId: true,
+          lines: {
+            select: {
+              id: true,
+              requiredOnSite: true,
+              purchaseOrderLines: {
+                select: {
+                  requiredOnSite: true,
+                  expectedDelivery: true,
+                  purchaseOrder: {
+                    select: {
+                      id: true,
+                      poNumber: true,
+                      revisionNo: true,
+                      cancelledAt: true,
+                      approvalInstance: {
+                        select: { approvalState: true },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      }),
+      this.prisma.$queryRaw<Array<{
+        projectId: string;
+        recentReportCount: number;
+        issueCount: number;
+        delayCount: number;
+      }>>(Prisma.sql`
+        WITH ranked_reports AS (
+          SELECT
+            dsr.id,
+            dsr.project_id,
+            ROW_NUMBER() OVER (
+              PARTITION BY dsr.project_id
+              ORDER BY dsr.report_date DESC, dsr.created_at DESC
+            ) AS rn
+          FROM daily_site_reports dsr
+          WHERE dsr.company_id = ${auth.companyId}::uuid
+            AND dsr.project_id IN (${Prisma.join(
+              allowedIds.map((id) => Prisma.sql`${id}::uuid`),
+            )})
+            AND dsr.report_date <= ${asOf}
+        )
+        SELECT
+          rr.project_id AS "projectId",
+          COUNT(*)::INTEGER AS "recentReportCount",
+          COALESCE(SUM((
+            SELECT COUNT(*) FROM daily_site_report_issues i
+            WHERE i.report_id = rr.id
+          )), 0)::INTEGER AS "issueCount",
+          COALESCE(SUM((
+            SELECT COUNT(*) FROM daily_site_report_delays d
+            WHERE d.report_id = rr.id
+          )), 0)::INTEGER AS "delayCount"
+        FROM ranked_reports rr
+        WHERE rr.rn <= 7
+        GROUP BY rr.project_id
+      `),
+    ]);
+
+    const activityByProject = new Map(
+      allowedIds.map((projectId) => [
+        projectId,
+        { total: 0, completed: 0 },
+      ]),
+    );
+    for (const activity of activities) {
+      const summary = activityByProject.get(activity.projectId)!;
+      summary.total += 1;
+      if (
+        activity.progressHistory[0]?.percentComplete.toNumber() === 100
+      ) {
+        summary.completed += 1;
+      }
+    }
+
+    const poByProjectAndNumber = new Map<
+      string,
+      Map<string, Array<{
+        id: string;
+        revisionNo: number;
+        cancelledAt: Date | null;
+        approvalState: string | null;
+      }>>
+    >();
+    for (const request of requests) {
+      let byNumber = poByProjectAndNumber.get(request.projectId);
+      if (!byNumber) {
+        byNumber = new Map();
+        poByProjectAndNumber.set(request.projectId, byNumber);
+      }
+      for (const line of request.lines) {
+        for (const poLine of line.purchaseOrderLines) {
+          const order = poLine.purchaseOrder;
+          const rows = byNumber.get(order.poNumber) ?? [];
+          if (!rows.some((row) => row.id === order.id)) {
+            rows.push({
+              id: order.id,
+              revisionNo: order.revisionNo,
+              cancelledAt: order.cancelledAt,
+              approvalState:
+                order.approvalInstance?.approvalState ?? null,
+            });
+            byNumber.set(order.poNumber, rows);
+          }
+        }
+      }
+    }
+
+    const currentPoIdsByProject = new Map<string, Set<string>>();
+    for (const projectId of allowedIds) {
+      const ids = new Set<string>();
+      for (const revisions of (
+        poByProjectAndNumber.get(projectId) ?? new Map()
+      ).values()) {
+        const ordered = [...revisions].sort(
+          (left, right) => right.revisionNo - left.revisionNo,
+        );
+        const newest = ordered[0];
+        if (!newest || newest.cancelledAt) continue;
+        if (newest.approvalState === 'REJECTED') {
+          const approved = ordered.find(
+            (row) =>
+              !row.cancelledAt &&
+              row.approvalState === 'APPROVED',
+          );
+          if (approved) ids.add(approved.id);
+        } else {
+          ids.add(newest.id);
+        }
+      }
+      currentPoIdsByProject.set(projectId, ids);
+    }
+
+    const procurementByProject = new Map(
+      allowedIds.map((projectId) => [
+        projectId,
+        {
+          total: 0,
+          AT_RISK: 0,
+          ON_TIME: 0,
+          UNAVAILABLE: 0,
+        },
+      ]),
+    );
+    for (const request of requests) {
+      const summary = procurementByProject.get(request.projectId)!;
+      const currentIds =
+        currentPoIdsByProject.get(request.projectId) ??
+        new Set<string>();
+      for (const line of request.lines) {
+        summary.total += 1;
+        const currentLines = line.purchaseOrderLines.filter((poLine) =>
+          currentIds.has(poLine.purchaseOrder.id),
+        );
+        const risks = currentLines.map((poLine) => {
+          if (!poLine.requiredOnSite || !poLine.expectedDelivery) {
+            return 'UNAVAILABLE' as const;
+          }
+          return poLine.expectedDelivery.getTime() >
+            poLine.requiredOnSite.getTime()
+            ? ('AT_RISK' as const)
+            : ('ON_TIME' as const);
+        });
+        const risk =
+          risks.includes('AT_RISK')
+            ? 'AT_RISK'
+            : risks.includes('UNAVAILABLE')
+              ? 'UNAVAILABLE'
+              : risks[0] ?? 'UNAVAILABLE';
+        summary[risk] += 1;
+      }
+    }
+
+    const siteByProject = new Map(
+      siteRows.map((row) => [row.projectId, row]),
+    );
+
+    return allowedIds.map((projectId) => ({
+      projectId,
+      schedule: activityByProject.get(projectId)!,
+      procurement: procurementByProject.get(projectId)!,
+      siteExecution:
+        siteByProject.get(projectId) ?? {
+          projectId,
+          recentReportCount: 0,
+          issueCount: 0,
+          delayCount: 0,
+        },
+    }));
   }
 
   async procurement(
