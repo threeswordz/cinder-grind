@@ -1,3 +1,11 @@
+## 2026-10-04 — V0.8-C technical closure / V0.8-D next
+
+- Final PR #173 head `cbc916e5a325555d1971b0ceec6ae63445cfcaff` passed push CI #2886 and PR CI #2887, including authenticated live acceptance.
+- All eight genuine findings from two DEC-022 review rounds were fixed/resolved; final exact-head review reported **no major issues**.
+- PR #173 squash-merged as `a73d11024adc8b7b1373b4c962f924a34e354e20`; post-merge main CI #2888 PASS; Issue #172 CLOSED / COMPLETED.
+- V0.8-C Executive / Cross-Project Management Dashboard is technically COMPLETE.
+- Repository status reconciliation is the remaining housekeeping gate before V0.8-D Domain Dashboards is established from exact green main. No runtime/schema/business-rule/governance change is part of that reconciliation.
+
 ## 2026-10-04 — V0.8-C exact-head schedule-signal remediation checkpoint
 
 - After the first five PR #173 Codex findings were fixed and resolved, exact-head DEC-022 re-review of `90b60e9a99ce97c9933f5f7321f8147289f64a56` identified three additional genuine findings: P1 restore canonical delayed/critical/lookahead Schedule signals, P2 apply the selected 14/28-day lookahead to the bounded source calculation, and P2 reconcile stale current-state evidence.
