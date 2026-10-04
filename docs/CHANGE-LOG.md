@@ -3,12 +3,14 @@
 - Pre-flight PR #176 squash-merged as `66ef5bfeae9211b6f1ff10772e4698cc3a9cc133`; post-merge exact-main CI #2912 PASS.
 - Issue #175 / branch `v0.8-d-domain-dashboards` is the active Stage-D implementation.
 - Management Project workspace now provides dedicated Schedule, Procurement, Inventory, Cost and Finance tabs over the existing canonical V0.8-A Project summary.
-- Cost view preserves Budget/Committed/Actual/Paid/Forecast/Cost-to-Complete/Variance distinctions; Finance preserves V0.6 cash-flow semantics and explicitly keeps Paid Cost separate.
-- Inventory remains quantity/dimension reporting only; no valuation is introduced.
-- Portfolio contract now records domain dashboards as delivered while V0.8-E reporting/export remains deferred.
-- No migration, new permission, FX, duplicate scheduler/procurement-risk engine/cost-finance ledger, paid dependency or V0.8-E scope is introduced.
-- Material/test head `77731f5b5d02db36152e471beb0197cbd1139580` passed exact-head CI #2927 including authenticated live acceptance.
-- Draft PR #177 is open; evidence-packaging head `dca20c9213975606d1711a2438df865f51c458fd` passed PR-triggered CI #2932 with no open review threads at this checkpoint. The next gate is ready-for-review followed by the single stable-candidate DEC-022 review.
+- Cost view preserves Budget/Committed/Actual/Paid/Forecast/Cost-to-Complete/Variance distinctions; Finance preserves canonical V0.6 AP / AR / Payment / Project Cash Flow semantics and explicitly keeps Paid Cost separate.
+- Inventory exposes canonical balance-sign and stock-transaction movement indicators without valuation or synthetic cross-material quantity totals.
+- Portfolio contract records domain dashboards as delivered while V0.8-E reporting/export remains deferred.
+- No migration, new Management permission, FX, duplicate scheduler/procurement-risk engine/cost-finance/inventory ledger, paid dependency or V0.8-E scope is introduced.
+- Initial material/test head `77731f5b5d02db36152e471beb0197cbd1139580` passed exact-head CI #2927 including authenticated live acceptance; packaging head `8352b43394abc70952569136d629abf473328cc8` passed CI #2937 and PR #177 was marked Ready.
+- First DEC-022 review on `8352b43394` identified two genuine P1s: missing canonical Inventory balance/movement signals (AC-V08-008) and missing Finance AP/AR positions (AC-V08-010).
+- Both P1s were remediated with canonical source composition plus regression/live reconciliation; material remediation head `a3302ca2eca4eea88af9d49bd7ebe83109e23eb0` passed exact-head CI #2951 including authenticated live acceptance.
+- Next gate: resolve the two P1 review threads and run one fresh exact-head DEC-022 re-review before merge.
 
 ## 2026-10-04 — V0.8-D pre-flight established
 
