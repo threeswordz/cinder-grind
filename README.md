@@ -89,6 +89,6 @@ Current development status is maintained in `docs/CURRENT-STATE.md`.
 
 Development/session responsibilities are defined in `docs/DEVELOPMENT-OPERATING-MODEL.md`: Chat is the default Builder / Release Coordinator, GitHub is the source of truth, CI/tests provide technical evidence, the Product / Business Owner owns approval/UAT gates, and Work is the periodic independent auditor.
 
-Completed releases: **V0.1 Foundation, V0.2 Project & Scheduling, V0.3 Procurement, V0.4 Inventory, V0.5 Subcontracts and V0.6 Finance**. V0.5 and V0.6 are accepted.
+Completed releases: **V0.1 Foundation, V0.2 Project & Scheduling, V0.3 Procurement, V0.4 Inventory, V0.5 Subcontracts, V0.6 Finance and V0.7 Cost Control**. V0.5, V0.6 and V0.7 are accepted.
 
-Current release: **V0.7 Cost Control**. V0.7-A through V0.7-E are technically complete. V0.7-E material PR #153 squash-merged as `3db10a025aa996d2721cd5387b752d314a1753dc`; post-merge main CI #2611 passed; Issue #151 is closed completed. **Human V0.7 UAT (AC-V07-051) and explicit Product / Business Owner acceptance (AC-V07-052) remain mandatory release-exit gates before V0.8.**
+Current position: **V0.7 Cost Control COMPLETE AND ACCEPTED**. Product / Business Owner accepted AC-V07-051 and AC-V07-052 on 2026-10-04; acceptance-record PR #158 merged as `32ffab318066bec6fad770f5419cfd1942d9556d`, post-merge main CI #2637 passed, and Issue #157 closed completed. **V0.8 Management is NEXT at its release-entry gate; no V0.8 implementation is authorized until its own baseline is approved.**
