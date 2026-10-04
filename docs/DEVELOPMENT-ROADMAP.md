@@ -1,7 +1,7 @@
 # Construction ERP — Development Roadmap
 
 **Document Status:** Development Roadmap Baseline v0.1  
-**Current Phase:** V0.7 Cost Control — technical implementation complete / human release exit pending  
+**Current Phase:** V0.7 Cost Control — COMPLETE AND ACCEPTED / V0.8 Management release entry gate NEXT  
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1  
@@ -803,9 +803,11 @@ Create detailed issues shortly before the relevant release/module enters develop
 
 # 22. Current Next Step
 
-Current release: **V0.7 Cost Control — OWNER ACCEPTED / RELEASE CLOSURE IN PROGRESS**.
+Completed release: **V0.7 Cost Control — COMPLETE AND ACCEPTED**.
 
-Current stage: **Release Closure — Issue #157**.
+Next release: **V0.8 Management**.
+
+Current stage: **V0.8 Release Entry Gate — NEXT / NOT STARTED**.
 
 Immediate sequence:
 
@@ -813,11 +815,11 @@ Immediate sequence:
 2. Chat-assisted proxy UAT — PASS; no blocking business defect identified.
 3. AC-V07-051 — **ACCEPTED BY PRODUCT / BUSINESS OWNER on 2026-10-04**.
 4. AC-V07-052 — **EXPLICITLY ACCEPTED BY PRODUCT / BUSINESS OWNER on 2026-10-04**.
-5. Record the acceptance/closure evidence under Issue #157 and validate exact-head CI.
-6. Merge the release-closure record and verify post-merge `main` CI.
-7. Close Issue #157 COMPLETED.
-8. Reconcile repository-wide current-status documentation to **V0.7 COMPLETE + ACCEPTED / V0.8 Management entry gate next**.
-9. Do not begin V0.8 implementation before its own release-entry baseline is approved.
+5. Acceptance-record PR #158 merged as `32ffab318066bec6fad770f5419cfd1942d9556d`; post-merge main CI #2637 — PASS.
+6. Issue #157 — **CLOSED / COMPLETED**.
+7. Prepare the V0.8 Management release-entry proposal: scope, acceptance criteria, business rules/decisions, data/API/test/security baseline, stage sequence, estimates and explicit deferrals.
+8. Obtain Product / Business Owner approval of the V0.8 entry baseline before implementation.
+9. Do not begin V0.8 implementation before the approved entry baseline is merged and its post-merge main CI is green.
 
 
 # 23. Baseline Decision
