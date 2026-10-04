@@ -8558,7 +8558,10 @@ check(
     Number(managementSummary.data.data.domains?.cost?.revisedBudget) ===
       Number(restoredCostControl.data.data.totals.revisedBudget) &&
     Number(managementSummary.data.data.domains?.finance?.netCashFlow) ===
-      Number(managementCashFlow.data.data.totals.netCashFlow),
+      Number(managementCashFlow.data.data.totals.netCashFlow) &&
+    Number(managementSummary.data.data.domains?.inventory?.balanceRowCount) >= 0 &&
+    managementSummary.data.data.domains?.inventory?.quantityAggregation ===
+      'NOT_APPLICABLE_MIXED_MATERIAL_AND_UOM_DIMENSIONS',
   'V0.8-A Management summary did not reconcile to canonical Schedule, Procurement, Cost Control and Cash Flow measures.',
 );
 check(
@@ -8633,7 +8636,8 @@ check(
     managementPortfolio.data.data.boundaries?.perProjectAuthorizationFanOut === false &&
     managementPortfolio.data.data.boundaries?.deterministicHealthSignals === true &&
     managementPortfolio.data.data.boundaries?.overallHealthSeverityPolicyApproved === false &&
-    managementPortfolio.data.data.boundaries?.manualHealthOverride === false,
+    managementPortfolio.data.data.boundaries?.manualHealthOverride === false &&
+    managementPortfolio.data.data.deferredToLaterStages?.domainDashboards === false,
   'V0.8-C Executive portfolio did not reconcile bounded canonical source signals without inventing an overall severity policy.',
 );
 const portfolioProtectedDetailPaths = findProtectedDetailPaths(
@@ -8662,6 +8666,7 @@ await request(
 record('V0.8-A Management read-model contract composes canonical Schedule/Procurement/Inventory/Cost/Finance aggregates, preserves source-detail boundaries and enforces Management/Project authorization');
 record('V0.8-B Management Project selector preserves dashboard permission and effective Project scope');
 record('V0.8-C Executive portfolio composes authorized cross-Project progress, delayed/critical/lookahead schedule signals, procurement/site/inventory, cost, cash and profitability without protected-detail leakage or an unapproved overall severity policy');
+record('V0.8-D dedicated Schedule/Procurement/Inventory/Cost/Finance dashboards reuse the canonical Management project summary, preserve unavailable/permission boundaries and keep cash flow distinct from Paid Cost');
 
 await logout(v07Restricted);
 await logout(pm);
