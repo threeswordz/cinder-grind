@@ -8539,6 +8539,22 @@ const managementCashFlow = await request(
   pm,
   '/finance/projects/' + projectId + '/cash-flow',
 );
+const managementAccountsPayable = await request(
+  pm,
+  '/finance/projects/' + projectId + '/accounts-payable',
+);
+const managementAccountsReceivable = await request(
+  pm,
+  '/finance/projects/' + projectId + '/accounts-receivable',
+);
+const managementInventoryBalances = await request(
+  pm,
+  '/inventory/reports/balances?projectId=' + projectId,
+);
+const managementInventoryMovements = await request(
+  pm,
+  '/inventory/reports/movements?projectId=' + projectId,
+);
 const managementSummary = await request(
   pm,
   '/management/projects/' + projectId + '/summary?asOf=2026-10-10&days=14',
@@ -8559,10 +8575,38 @@ check(
       Number(restoredCostControl.data.data.totals.revisedBudget) &&
     Number(managementSummary.data.data.domains?.finance?.netCashFlow) ===
       Number(managementCashFlow.data.data.totals.netCashFlow) &&
+    Number(managementSummary.data.data.domains?.finance?.accountsPayable?.outstandingAmount) ===
+      managementAccountsPayable.data.data.reduce(
+        (sum, row) => sum + Number(row.outstandingAmount),
+        0,
+      ) &&
+    Number(managementSummary.data.data.domains?.finance?.accountsReceivable?.outstandingAmount) ===
+      managementAccountsReceivable.data.data.reduce(
+        (sum, row) => sum + Number(row.outstandingAmount),
+        0,
+      ) &&
+    managementSummary.data.data.domains?.inventory?.positiveBalanceRowCount ===
+      managementInventoryBalances.data.data.filter(
+        (row) => Number(row.quantity) > 0,
+      ).length &&
+    managementSummary.data.data.domains?.inventory?.negativeBalanceRowCount ===
+      managementInventoryBalances.data.data.filter(
+        (row) => Number(row.quantity) < 0,
+      ).length &&
+    managementSummary.data.data.domains?.inventory?.movementRowCount ===
+      managementInventoryMovements.data.data.length &&
+    managementSummary.data.data.domains?.inventory?.movementSources?.goodsReceipt ===
+      managementInventoryMovements.data.data.filter(
+        (row) => row.sourceType === 'GOODS_RECEIPT',
+      ).length &&
+    managementSummary.data.data.domains?.inventory?.movementSources?.materialIssue ===
+      managementInventoryMovements.data.data.filter(
+        (row) => row.sourceType === 'MATERIAL_ISSUE',
+      ).length &&
     Number(managementSummary.data.data.domains?.inventory?.balanceRowCount) >= 0 &&
     managementSummary.data.data.domains?.inventory?.quantityAggregation ===
       'NOT_APPLICABLE_MIXED_MATERIAL_AND_UOM_DIMENSIONS',
-  'V0.8-A Management summary did not reconcile to canonical Schedule, Procurement, Cost Control and Cash Flow measures.',
+  'V0.8-D Management summary did not reconcile canonical Inventory balance/movement and Finance AP/AR/Payment/Cash Flow measures.',
 );
 check(
   managementSummary.data.data.boundaries?.readOnlyComposition === true &&
@@ -8666,7 +8710,7 @@ await request(
 record('V0.8-A Management read-model contract composes canonical Schedule/Procurement/Inventory/Cost/Finance aggregates, preserves source-detail boundaries and enforces Management/Project authorization');
 record('V0.8-B Management Project selector preserves dashboard permission and effective Project scope');
 record('V0.8-C Executive portfolio composes authorized cross-Project progress, delayed/critical/lookahead schedule signals, procurement/site/inventory, cost, cash and profitability without protected-detail leakage or an unapproved overall severity policy');
-record('V0.8-D dedicated Schedule/Procurement/Inventory/Cost/Finance dashboards reuse the canonical Management project summary, preserve unavailable/permission boundaries and keep cash flow distinct from Paid Cost');
+record('V0.8-D dedicated Schedule/Procurement/Inventory/Cost/Finance dashboards reuse canonical Schedule/Procurement, Inventory balance/movement, Cost Control and Finance AP/AR/Payment/Cash Flow semantics, preserve permission boundaries and keep cash flow distinct from Paid Cost');
 
 await logout(v07Restricted);
 await logout(pm);
