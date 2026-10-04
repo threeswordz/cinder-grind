@@ -26,14 +26,6 @@ function money(currency: string, value: string | null) {
   return value === null ? 'Unavailable' : currency + ' ' + value;
 }
 
-function healthLabel(value: 'ON_TRACK' | 'ATTENTION' | 'CRITICAL') {
-  return value === 'ON_TRACK'
-    ? 'On track'
-    : value === 'ATTENTION'
-      ? 'Attention'
-      : 'Critical';
-}
-
 export function ExecutivePortfolioDashboard() {
   const [asOf, setAsOf] = useState(localDateValue());
   const [days, setDays] = useState<14 | 28>(14);
@@ -82,19 +74,12 @@ export function ExecutivePortfolioDashboard() {
           <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
             <Chip label={'Projects ' + portfolio.projectCount} variant="outlined" />
             <Chip
-              label={'On track ' + portfolio.healthSummary.ON_TRACK}
-              variant="outlined"
-            />
-            <Chip
-              label={'Attention ' + portfolio.healthSummary.ATTENTION}
-              variant="outlined"
-            />
-            <Chip
-              label={'Critical ' + portfolio.healthSummary.CRITICAL}
-              variant="outlined"
-            />
-            <Chip
-              label={'Delayed activities ' + portfolio.totals.schedule.delayed}
+              label={
+                'Progress ' +
+                portfolio.totals.schedule.completed +
+                '/' +
+                portfolio.totals.schedule.activities
+              }
               variant="outlined"
             />
             <Chip
@@ -103,6 +88,14 @@ export function ExecutivePortfolioDashboard() {
             />
             <Chip
               label={'Site issues ' + portfolio.totals.siteExecution.issues}
+              variant="outlined"
+            />
+            <Chip
+              label={'Inventory balance rows ' + portfolio.totals.inventory.balanceRows}
+              variant="outlined"
+            />
+            <Chip
+              label={'Projects with stock ' + portfolio.totals.inventory.projectsWithStock}
               variant="outlined"
             />
           </Stack>
@@ -154,17 +147,25 @@ export function ExecutivePortfolioDashboard() {
                     <Typography variant="subtitle1" sx={{ flexGrow: 1 }}>
                       {row.project.projectCode} · {row.project.projectName}
                     </Typography>
-                    <Chip label={healthLabel(row.health.status)} variant="outlined" />
+                    <Chip label="Source signals only" variant="outlined" />
                   </Stack>
                   <Typography variant="body2" color="text.secondary">
-                    {row.health.drivers.length
-                      ? 'Risk signals: ' + row.health.drivers.join(' · ')
-                      : 'No current derived risk signal requires attention.'}
+                    Overall health severity is not classified because no approved
+                    severity policy exists. Canonical source signals are shown below.
                   </Typography>
                   <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-                    <Chip label={'Delayed ' + row.domains.schedule.summary.delayed} variant="outlined" />
+                    <Chip
+                      label={
+                        'Progress ' +
+                        row.domains.schedule.summary.completed +
+                        '/' +
+                        row.domains.schedule.summary.total
+                      }
+                      variant="outlined"
+                    />
                     <Chip label={'Procurement risk ' + row.domains.procurement.summary.AT_RISK} variant="outlined" />
                     <Chip label={'Site issues ' + row.domains.siteExecution.issueCount} variant="outlined" />
+                    <Chip label={'Inventory rows ' + row.domains.inventory.balanceRowCount} variant="outlined" />
                     <Chip label={'Forecast cost ' + money(portfolio.baseCurrencyCode, row.domains.cost.forecastCost)} variant="outlined" />
                     <Chip label={'Forecast profit ' + money(portfolio.baseCurrencyCode, row.domains.cost.commercial.forecastProfit)} variant="outlined" />
                     <Chip label={'Net cash ' + money(portfolio.baseCurrencyCode, row.domains.finance.netCashFlow)} variant="outlined" />
@@ -175,9 +176,11 @@ export function ExecutivePortfolioDashboard() {
           ))}
 
           <Alert severity="info">
-            Health is derived deterministically from approved source signals.
-            Management cannot override source records, and protected drilldown
-            still requires the owning module permission.
+            Management shows deterministic approved source signals only. No
+            overall health-severity mapping is authoritative until a separate
+            Product / Business Owner policy is approved. Management cannot
+            override source records, and protected drilldown still requires the
+            owning module permission.
           </Alert>
         </>
       ) : null}
