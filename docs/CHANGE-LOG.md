@@ -1,3 +1,11 @@
+## 2026-10-04 — V0.8-C PR #173 Codex remediation checkpoint
+
+- DEC-022 review on PR #173 identified five genuine findings: P1 unapproved overall health-severity mapping, P1 per-Project/N+1 portfolio query fan-out, P1 missing Executive progress/inventory indicators, P2 protected Scheduling baseline metadata exposure, and P2 empty-`asOf` lookahead mismatch.
+- Remediation moves portfolio composition to bounded canonical source reads from Reporting, Inventory, Cost Control and Cash Flow with effective Project scope before aggregation and no per-Project authorization fan-out.
+- Executive health is now source-signal-only; overall severity is explicitly unavailable until a Product / Business Owner severity policy is approved. No implicit `ON_TRACK` / `ATTENTION` / `CRITICAL` business policy remains.
+- Portfolio rows omit protected baseline metadata, empty `asOf` fails closed, and the Executive UI now displays progress and inventory alongside procurement/site/cost/cash/profitability signals.
+- Integration and authenticated live-acceptance coverage were updated to the bounded source-signal contract. Remediation/test head `e1b6842934abec70e20794a184e6e87a1ab6e592` is under validation; exact-head/PR CI plus a clean DEC-022 exact-head re-review remain mandatory before merge.
+
 ## 2026-10-04 — V0.8-C Executive / Cross-Project Management Dashboard validation checkpoint
 
 - Stage-C Executive portfolio implementation is materially present on `v0.8-c-executive-portfolio-dashboard`, including authorized Project aggregation, deterministic health, canonical Schedule/Procurement/Inventory/Cost/Finance composition and the Executive Management workspace.
