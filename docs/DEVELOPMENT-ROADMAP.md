@@ -1,7 +1,7 @@
 # Construction ERP — Development Roadmap
 
 **Document Status:** Development Roadmap Baseline v0.1  
-**Current Phase:** V0.7 Cost Control — COMPLETE AND ACCEPTED / V0.8 Management release entry gate NEXT  
+**Current Phase:** V0.8 Management — ACTIVE / V0.8-A through V0.8-C COMPLETE / V0.8-D NEXT
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1  
@@ -807,7 +807,7 @@ Completed release: **V0.7 Cost Control — COMPLETE AND ACCEPTED**.
 
 Next release: **V0.8 Management**.
 
-Current stage: **V0.8-C Executive / Cross-Project Management Dashboard — ACTIVE**.
+Current stage: **V0.8-D Domain Dashboards — NEXT / NOT STARTED**.
 
 Immediate sequence:
 
@@ -820,12 +820,11 @@ Immediate sequence:
 7. PR #170 — MERGED as `42444cc91912f323d672f63da050b68b8d777b62`.
 8. Post-merge main CI #2798 — PASS; Issue #169 — CLOSED / COMPLETED.
 9. Stage-B closure/status reconciliation PR #171 — MERGED as `5581819419a4602a73ed0249ad8e0377f745d474`; post-merge main CI #2809 PASS.
-10. Issue #172 / branch `v0.8-c-executive-portfolio-dashboard` — ACTIVE from exact green main `5581819419a4602a73ed0249ad8e0377f745d474`.
-11. PR #173 first DEC-022 review identified five genuine findings; all were fixed, regression-covered and resolved. Exact-head re-review of `90b60e9a99ce97c9933f5f7321f8147289f64a56` identified three additional genuine findings: restore canonical delayed/critical/lookahead Schedule signals, apply the selected 14/28-day window to those signals, and reconcile stale current-state evidence.
-12. Stage-C now uses bounded canonical Scheduling/Reporting/Inventory/Cost Control/Cash Flow reads with effective Project scope before aggregation. Scheduling provides total/completed/critical/delayed/lookahead counts without protected baseline metadata or per-Project authorization/query fan-out; Management forwards the selected days and the Executive UI presents the restored Schedule risk/lookahead indicators.
-13. Repaired material/test head `3ea59c834dee1bbd8d693b0f18d4e5fbd381b50d` passed push CI #2880 and PR CI #2881, including authenticated live acceptance. Current-state evidence was reconciled in `dc2893414aed5c63d56ddca845baebb1038bc0a3`; synchronized documentation/evidence head `f052c021bfc3a495d8522b0530aa356bea1ee95c` passed push CI #2884 and PR CI #2885.
-14. Resolve the three latest review threads with evidence, then obtain a clean DEC-022 exact-head re-review. Only then may PR #173 be squash-merged; verify post-merge main CI and close Issue #172.
-15. Do not begin V0.8-D until V0.8-C completes those closure gates.
+10. V0.8-C final PR #173 head `cbc916e5a325555d1971b0ceec6ae63445cfcaff` passed push CI #2886 and PR CI #2887, including authenticated live acceptance.
+11. All eight genuine DEC-022 findings from the two Stage-C review rounds were fixed and resolved; final exact-head review reported **no major issues**.
+12. PR #173 squash-merged as `a73d11024adc8b7b1373b4c962f924a34e354e20`; post-merge main CI #2888 PASS; Issue #172 CLOSED / COMPLETED.
+13. V0.8-C Executive / Cross-Project Management Dashboard is technically COMPLETE.
+14. Complete this Stage-C closure/status reconciliation and verify green post-merge main CI; then establish V0.8-D Domain Dashboards from that exact green main.
 
 
 # 23. Baseline Decision
