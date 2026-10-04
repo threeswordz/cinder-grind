@@ -1,3 +1,12 @@
+## 2026-10-04 — V0.7-E technical completion / human release-exit gate
+
+- V0.7-E material PR #153 squash-merged to `main` as `3db10a025aa996d2721cd5387b752d314a1753dc`.
+- Post-merge main CI #2611 passed, including full workspace regression and authenticated live acceptance.
+- Final reviewed material candidate `bcb1055461a0fb4649268ccfcd7391a02da819ba` passed push CI #2607 and PR CI #2608; all DEC-022 findings were resolved before merge.
+- Evidence-only reconciliation head `4a1d11a177ee0c987a6761e7d49d87a8ee4310ed` passed push CI #2609 and PR CI #2610.
+- Issue #151 closed completed on merge. V0.7-A through V0.7-E are technically complete.
+- AC-V07-051 human UAT and AC-V07-052 explicit Product / Business Owner acceptance remain pending. V0.8 must not begin before explicit V0.7 release closure.
+
 ## 2026-10-04 — V0.7-E final material candidate and review closure evidence
 
 - Final reviewed material candidate `bcb1055461a0fb4649268ccfcd7391a02da819ba` passed exact-head push CI #2607 and PR CI #2608, including full workspace regression and authenticated live acceptance.
