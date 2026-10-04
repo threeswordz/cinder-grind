@@ -286,11 +286,11 @@ export class ManagementService {
   ) {
     return {
       canonicalSource,
-      detailPolicy: 'SOURCE_PERMISSION_REQUIRED' as const,
-      detailPermissionCodes,
-      detailAvailable: detailPermissionCodes.every((permission) =>
+      sourceViewPermissionCodes: detailPermissionCodes,
+      sourceViewAvailable: detailPermissionCodes.every((permission) =>
         auth.permissions.includes(permission),
       ),
+      protectedDetailPolicy: 'OWNING_MODULE_PERMISSION_REQUIRED' as const,
     };
   }
 
