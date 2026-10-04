@@ -65,6 +65,13 @@ function lookaheadDays(value: string | undefined): 14 | 28 {
 export class ManagementController {
   constructor(private readonly management: ManagementService) {}
 
+  @Get('projects')
+  @UseGuards(AuthGuard, PermissionGuard)
+  @RequirePermissions('management.dashboard.view')
+  async projects(@Req() request: AuthenticatedRequest) {
+    return { data: await this.management.projects(authOf(request)) };
+  }
+
   @Get('projects/:projectId/summary')
   @UseGuards(AuthGuard, PermissionGuard)
   @RequirePermissions('management.dashboard.view')

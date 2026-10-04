@@ -25,6 +25,19 @@ export class ManagementService {
     private readonly inventory: InventoryReportService,
   ) {}
 
+  async projects(auth: AuthenticatedUserContext) {
+    const scope = await this.access.scopeWhere(auth);
+    return this.prisma.project.findMany({
+      where: { AND: [scope, { isActive: true }] },
+      select: {
+        id: true,
+        projectCode: true,
+        projectName: true,
+      },
+      orderBy: [{ projectName: 'asc' }, { projectCode: 'asc' }],
+    });
+  }
+
   async projectSummary(
     auth: AuthenticatedUserContext,
     projectId: string,

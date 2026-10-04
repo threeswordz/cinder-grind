@@ -32,7 +32,14 @@ function decimal(value: string) {
   return new Prisma.Decimal(value);
 }
 
-test('V0.8-A Management routes require explicit Management permissions', () => {
+test('V0.8 Management routes require explicit Management permissions', () => {
+  assert.deepEqual(
+    Reflect.getMetadata(
+      REQUIRED_PERMISSIONS_KEY,
+      ManagementController.prototype.projects,
+    ),
+    ['management.dashboard.view'],
+  );
   assert.deepEqual(
     Reflect.getMetadata(
       REQUIRED_PERMISSIONS_KEY,
@@ -333,4 +340,54 @@ test('V0.8-A Portfolio applies effective Project scope before aggregation', asyn
     result.scope.inaccessibleProjectsExcludedBeforeAggregation,
     true,
   );
+});
+
+
+test('V0.8-B Management Project selector applies effective Project scope before listing choices', async () => {
+  let receivedWhere: unknown = null;
+  const prisma = {
+    project: {
+      findMany: async (args: { where: unknown }) => {
+        receivedWhere = args.where;
+        return [
+          {
+            id: 'project-1',
+            projectCode: 'P-001',
+            projectName: 'Scoped Project',
+          },
+        ];
+      },
+    },
+  } as unknown as PrismaService;
+  const access = {
+    scopeWhere: async () => ({
+      companyId: 'company',
+      id: { in: ['project-1'] },
+    }),
+  } as unknown as ProjectAccessService;
+
+  const service = new ManagementService(
+    prisma,
+    access,
+    {} as ReportingService,
+    {} as CostControlService,
+    {} as CashFlowService,
+    {} as InventoryReportService,
+  );
+
+  const result = await service.projects(auth());
+
+  assert.deepEqual(result, [
+    {
+      id: 'project-1',
+      projectCode: 'P-001',
+      projectName: 'Scoped Project',
+    },
+  ]);
+  assert.deepEqual(receivedWhere, {
+    AND: [
+      { companyId: 'company', id: { in: ['project-1'] } },
+      { isActive: true },
+    ],
+  });
 });

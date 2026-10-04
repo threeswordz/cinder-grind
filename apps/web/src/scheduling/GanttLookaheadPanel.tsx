@@ -57,10 +57,17 @@ function taskClass(activity: Activity) {
   return '';
 }
 
-export function GanttLookaheadPanel() {
+export function GanttLookaheadPanel({
+  fixedProjectId,
+  hideTitle = false,
+}: {
+  fixedProjectId?: string;
+  hideTitle?: boolean;
+} = {}) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const ganttRef = useRef<Gantt | null>(null);
-  const [projectId, setProjectId] = useState('');
+  const [selectedProjectId, setSelectedProjectId] = useState('');
+  const projectId = fixedProjectId ?? selectedProjectId;
   const [scope, setScope] = useState<Scope>('gantt');
   const [viewMode, setViewMode] = useState<ViewMode>('Week');
   const [asOf, setAsOf] = useState(localDateValue());
@@ -69,6 +76,7 @@ export function GanttLookaheadPanel() {
   const projects = useQuery({
     queryKey: ['schedule', 'projects'],
     queryFn: schedulingApi.projects,
+    enabled: fixedProjectId === undefined,
   });
 
   const presentation = useQuery({
@@ -165,24 +173,26 @@ export function GanttLookaheadPanel() {
 
   return (
     <Stack spacing={3}>
-      <Typography variant="h6">Gantt & Lookahead</Typography>
+      {!hideTitle ? <Typography variant="h6">Gantt & Lookahead</Typography> : null}
 
-      <TextField
-        select
-        label="Project"
-        value={projectId}
-        onChange={(event) => {
-          setProjectId(event.target.value);
-          setSelectedActivityId('');
-        }}
-        fullWidth
-      >
-        {(projects.data?.data ?? []).map((project) => (
-          <MenuItem key={project.id} value={project.id}>
-            {project.projectCode} — {project.projectName}
-          </MenuItem>
-        ))}
-      </TextField>
+      {fixedProjectId === undefined ? (
+        <TextField
+          select
+          label="Project"
+          value={projectId}
+          onChange={(event) => {
+            setSelectedProjectId(event.target.value);
+            setSelectedActivityId('');
+          }}
+          fullWidth
+        >
+          {(projects.data?.data ?? []).map((project) => (
+            <MenuItem key={project.id} value={project.id}>
+              {project.projectCode} — {project.projectName}
+            </MenuItem>
+          ))}
+        </TextField>
+      ) : null}
 
       <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
         <Button
