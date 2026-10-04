@@ -1,7 +1,7 @@
 # Construction ERP — Master Blueprint
 
 **Document Status:** Architecture Baseline v0.1
-**Current Phase:** V0.7 Cost Control — COMPLETE AND ACCEPTED / V0.8 Management release entry gate NEXT
+**Current Phase:** V0.8 Management — ACTIVE / V0.8-A COMPLETE / V0.8-B NEXT
 **System:** Construction ERP
 **Primary Platform:** Web Application
 **Architecture Principle:** Open-Source First
@@ -1677,7 +1677,7 @@ Next Release:
 
 Current Stage:
 
-**V0.8 Release Entry Gate — NEXT / NOT STARTED**
+**V0.8-B Project Engineer & Project Manager Dashboards — NEXT / NOT STARTED**
 
 Live delivery position:
 
@@ -1687,15 +1687,15 @@ Live delivery position:
 - V0.4 Inventory — complete
 - V0.5 Subcontracts — complete and accepted
 - V0.6 Finance — complete and accepted
-- V0.7-A Integrated Cost Source Read Model — complete
-- V0.7-B Direct Cost Posting — complete
-- V0.7-C Forecast / ETC / Variance — complete
-- V0.7-D Project Variations / Revenue / Profit — complete
-- V0.7-E Cost Reporting / Hardening / Release Evidence — complete
-- V0.7 Release Exit — complete and accepted under AC-V07-051 / AC-V07-052
-- V0.8 Management Release Entry Gate — next / not started
+- V0.7 Cost Control — complete and accepted
+- V0.8 Management Release Entry Gate — complete under DEC-025
+- V0.8-A Management Read Model / KPI Contracts — complete
+- V0.8-B Project Engineer & Project Manager Dashboards — next / not started
+- V0.8-C Executive / Cross-Project Management Dashboard — future
+- V0.8-D Domain Dashboards — future
+- V0.8-E Cross-Module Reporting / Export / Hardening / Release Evidence — future
 
-Acceptance-record PR #158 merged as `32ffab318066bec6fad770f5419cfd1942d9556d`; post-merge main CI #2637 passed; Issue #157 closed completed. The live GitHub repository and `docs/CURRENT-STATE.md` remain authoritative. No V0.8 implementation is authorized until its own release-entry baseline is approved.
+V0.8-A PR #167 merged as `d60c5c051f1eb6aec30399173f33ab05300cc52c`; post-merge main CI #2760 passed; Issue #166 closed completed. The live GitHub repository and `docs/CURRENT-STATE.md` remain authoritative.
 
 
 # 29. Current Architecture Summary
