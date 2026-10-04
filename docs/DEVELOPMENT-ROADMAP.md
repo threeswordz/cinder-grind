@@ -823,7 +823,7 @@ Immediate sequence:
 10. Issue #172 / branch `v0.8-c-executive-portfolio-dashboard` — ACTIVE from exact green main `5581819419a4602a73ed0249ad8e0377f745d474`.
 11. Stage-C implementation is materially present on clean candidate head `06fc017bfa9685a97efab5756e4ac2000334bf91`.
 12. Exact-head CI #2827 — **PASS**, including UAT-pack validation, migrations, workspace validation, full regression and authenticated live acceptance; the aggregate-counter/protected-detail ambiguity is resolved with sentinel regression coverage.
-13. Run the mandatory DEC-022 stable-candidate review, resolve genuine findings, obtain PR CI, squash-merge, verify post-merge main CI and close Issue #172.
+13. PR #173 is OPEN from the synchronized Stage-C candidate. Obtain green PR CI and mandatory DEC-022 stable-candidate review, resolve genuine findings, then squash-merge, verify post-merge main CI and close Issue #172.
 14. Do not begin V0.8-D until V0.8-C completes those closure gates.
 
 
