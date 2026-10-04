@@ -668,7 +668,7 @@ export class ManagementService {
         protectedDetailRequiresSourcePermission: true,
       },
       deferredToLaterStages: {
-        domainDashboards: true,
+        domainDashboards: false,
         reportingExport: true,
       },
     };
