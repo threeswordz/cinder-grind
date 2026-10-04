@@ -197,13 +197,30 @@ function InventoryCard({
     <MetricCard title="Inventory">
       <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
         <Chip label={'Balance rows ' + inventory.balanceRowCount} variant="outlined" />
+        <Chip
+          label={'Positive balances ' + inventory.positiveBalanceRowCount}
+          variant="outlined"
+        />
+        <Chip
+          label={'Negative balances ' + inventory.negativeBalanceRowCount}
+          variant="outlined"
+        />
+        <Chip label={'Movements ' + inventory.movementRowCount} variant="outlined" />
         <Chip label={'Warehouses ' + inventory.warehouseCount} variant="outlined" />
         <Chip label={'Materials ' + inventory.materialCount} variant="outlined" />
         <Chip label={'UOMs ' + inventory.uomCount} variant="outlined" />
       </Stack>
       <Typography variant="body2" color="text.secondary">
-        Stock balance and movement dimensions remain canonical. No inventory
-        valuation or cross-material quantity total is invented by Management.
+        Latest movement: {dateValue(inventory.latestMovementAt)} · Goods receipt{' '}
+        {inventory.movementSources.goodsReceipt} · Issue{' '}
+        {inventory.movementSources.materialIssue} · Return{' '}
+        {inventory.movementSources.materialReturn} · Transfer{' '}
+        {inventory.movementSources.stockTransfer}
+      </Typography>
+      <Typography variant="body2" color="text.secondary">
+        Balance signs and movement counts reuse canonical Inventory transactions.
+        No inventory valuation or cross-material quantity total is invented by
+        Management.
       </Typography>
     </MetricCard>
   );
@@ -309,6 +326,25 @@ function FinanceCard({
     <MetricCard title="Finance & cash flow">
       <Stack spacing={0.5}>
         <Typography variant="body2">
+          Accounts payable outstanding:{' '}
+          {money(
+            summary.baseCurrencyCode,
+            finance.accountsPayable.outstandingAmount,
+          )}{' '}
+          · {finance.accountsPayable.outstandingInvoiceCount} unpaid of{' '}
+          {finance.accountsPayable.approvedInvoiceCount} approved
+        </Typography>
+        <Typography variant="body2">
+          Accounts receivable outstanding:{' '}
+          {money(
+            summary.baseCurrencyCode,
+            finance.accountsReceivable.outstandingAmount,
+          )}{' '}
+          · {finance.accountsReceivable.outstandingInvoiceCount} unpaid of{' '}
+          {finance.accountsReceivable.approvedInvoiceCount} approved
+        </Typography>
+        <Divider />
+        <Typography variant="body2">
           Cash inflow: {money(summary.baseCurrencyCode, finance.inflowAmount)}
         </Typography>
         <Typography variant="body2">
@@ -328,8 +364,8 @@ function FinanceCard({
         </Typography>
       </Stack>
       <Typography variant="body2" color="text.secondary">
-        Project Cash Flow remains the canonical V0.6 payment-level cash view
-        and is not relabelled as Paid Cost.
+        Accounts Payable, Accounts Receivable and Project Cash Flow remain
+        canonical V0.6 positions. Cash Flow is not relabelled as Paid Cost.
       </Typography>
     </MetricCard>
   );
