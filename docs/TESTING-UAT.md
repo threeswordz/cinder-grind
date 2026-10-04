@@ -1,9 +1,9 @@
-**V0.7-E validation note — 2026-10-04:** Stage E is technically complete. PR #153 merged as `3db10a025aa996d2721cd5387b752d314a1753dc` and post-merge main CI #2611 passed. Automated technical evidence covers distinct Budget/Committed/Actual/Paid/Forecast/Cost-to-Complete/Variance measures, Project/WBS/Cost Code reporting, parent-WBS descendants, explicit Unallocated behavior, source-detail sanitation, authorization negatives and authenticated runtime acceptance. This evidence does not satisfy AC-V07-051 human UAT or AC-V07-052 explicit Product / Business Owner acceptance.
+**V0.7 release-closure note — 2026-10-04:** V0.7-A through V0.7-E are technically complete. The Chat-assisted proxy walkthrough passed all nine UAT areas with 117/117 API tests and 64/64 authenticated runtime checks on the accepted evidence path. The Product / Business Owner then explicitly accepted V0.7 under AC-V07-051 and AC-V07-052. Acceptance-record PR #158 merged as `32ffab318066bec6fad770f5419cfd1942d9556d`, post-merge main CI #2637 passed and Issue #157 closed completed.
 
 # Construction ERP — Testing & UAT Approach
 
 **Document Status:** Testing & UAT Baseline v0.1  
-**Current Phase:** V0.7 Cost Control — technical implementation complete / human release exit pending  
+**Current Phase:** V0.7 Cost Control — COMPLETE AND ACCEPTED / V0.8 Management release entry gate NEXT  
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1  

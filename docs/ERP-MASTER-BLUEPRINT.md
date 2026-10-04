@@ -1,7 +1,7 @@
 # Construction ERP — Master Blueprint
 
 **Document Status:** Architecture Baseline v0.1
-**Current Phase:** V0.7 Cost Control — technical implementation complete / human release exit pending
+**Current Phase:** V0.7 Cost Control — COMPLETE AND ACCEPTED / V0.8 Management release entry gate NEXT
 **System:** Construction ERP
 **Primary Platform:** Web Application
 **Architecture Principle:** Open-Source First
@@ -1667,13 +1667,17 @@ Once agreed, important requirements must be transferred into the permanent GitHu
 
 # 28. Current Phase
 
-Current Release:
+Completed Release:
 
-**V0.7 Cost Control**
+**V0.7 Cost Control — COMPLETE AND ACCEPTED**
+
+Next Release:
+
+**V0.8 Management**
 
 Current Stage:
 
-**V0.7 Release Exit — Human UAT / Product Owner Acceptance — PENDING**
+**V0.8 Release Entry Gate — NEXT / NOT STARTED**
 
 Live delivery position:
 
@@ -1687,10 +1691,11 @@ Live delivery position:
 - V0.7-B Direct Cost Posting — complete
 - V0.7-C Forecast / ETC / Variance — complete
 - V0.7-D Project Variations / Revenue / Profit — complete
-- V0.7-E Cost Reporting / Hardening / Release Evidence — technically complete
-- V0.7 Release Exit — human UAT / explicit Product / Business Owner acceptance pending
+- V0.7-E Cost Reporting / Hardening / Release Evidence — complete
+- V0.7 Release Exit — complete and accepted under AC-V07-051 / AC-V07-052
+- V0.8 Management Release Entry Gate — next / not started
 
-The live GitHub repository, active Issue/PR/CI evidence and `docs/CURRENT-STATE.md` are authoritative for implementation status. Human V0.7 UAT and explicit Product / Business Owner acceptance remain mandatory release-exit gates before V0.8.
+Acceptance-record PR #158 merged as `32ffab318066bec6fad770f5419cfd1942d9556d`; post-merge main CI #2637 passed; Issue #157 closed completed. The live GitHub repository and `docs/CURRENT-STATE.md` remain authoritative. No V0.8 implementation is authorized until its own release-entry baseline is approved.
 
 
 # 29. Current Architecture Summary

@@ -5,7 +5,7 @@
 # Construction ERP — API Architecture
 
 **Document Status:** API Architecture Baseline v0.1  
-**Current Phase:** V0.7 Cost Control — technical implementation complete / human release exit pending  
+**Current Phase:** V0.7 Cost Control — COMPLETE AND ACCEPTED / V0.8 Management release entry gate NEXT  
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1  

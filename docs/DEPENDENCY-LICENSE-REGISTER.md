@@ -1,7 +1,7 @@
 # Construction ERP — Dependency License Register
 
 **Document Status:** Dependency License Baseline v0.1  
-**Current Phase:** V0.7 Cost Control — technical implementation complete / human release exit pending  
+**Current Phase:** V0.7 Cost Control — COMPLETE AND ACCEPTED / V0.8 Management release entry gate NEXT  
 **Policy:** Open-Source First  
 **License Verification Date:** 2026-09-26  
 **Version Status:** V0.1-A direct package versions selected and pinned in package manifests.
