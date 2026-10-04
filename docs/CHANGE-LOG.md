@@ -1,3 +1,13 @@
+## 2026-10-04 — V0.8-D Domain Dashboards implementation started
+
+- Pre-flight PR #176 squash-merged as `66ef5bfeae9211b6f1ff10772e4698cc3a9cc133`; post-merge exact-main CI #2912 PASS.
+- Issue #175 / branch `v0.8-d-domain-dashboards` is the active Stage-D implementation.
+- Management Project workspace now provides dedicated Schedule, Procurement, Inventory, Cost and Finance tabs over the existing canonical V0.8-A Project summary.
+- Cost view preserves Budget/Committed/Actual/Paid/Forecast/Cost-to-Complete/Variance distinctions; Finance preserves V0.6 cash-flow semantics and explicitly keeps Paid Cost separate.
+- Inventory remains quantity/dimension reporting only; no valuation is introduced.
+- Portfolio contract now records domain dashboards as delivered while V0.8-E reporting/export remains deferred.
+- No migration, new permission, FX, duplicate scheduler/procurement-risk engine/cost-finance ledger, paid dependency or V0.8-E scope is introduced.
+
 ## 2026-10-04 — V0.8-D pre-flight established
 
 - Stage-C closure/status PR #174 squash-merged as `9a07a50d377aceec65304aa5881f3610d4cd1205`; post-merge exact-main CI #2901 PASS.
