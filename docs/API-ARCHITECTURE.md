@@ -1,3 +1,5 @@
+**V0.8-C implementation/validation note — 2026-10-04:** The existing read-only `GET /api/v1/management/portfolio` contract is extended to V0.8-C Executive portfolio composition across effective authorized Projects. It aggregates canonical Schedule/Site, Procurement, Inventory, V0.7 Cost Control and V0.6 Cash Flow measures, derives deterministic health signals and retains server/Prisma Decimal + Company base-currency authority. The contract does not expose source rows merely because the caller holds `management.portfolio.view`. CI #2822 exposed only an acceptance-detector ambiguity between the valid numeric aggregate `totals.schedule.activities` and source activity collections; fix `5ac822a96dee73f7e8aacafd6dbc91e3be9b9ee4` corrects that test distinction without relaxing the API security boundary.
+
 **V0.8-B closure note — 2026-10-04:** Stage B is COMPLETE. The Management Project selector and Project Engineer / Project Manager dashboard surfaces retain the V0.8-A read-model boundary and permission-safe source reuse. Final head `4230e6ffff3e1c5a3dc7ee3b7669f86061e704ba` passed push/PR CI #2796/#2797; final DEC-022 exact-head re-review reported no major issues after the AC-V08-003 P1 fix; PR #170 merged as `42444cc91912f323d672f63da050b68b8d777b62`; post-merge main CI #2798 passed; Issue #169 closed completed. V0.8-C is next and must preserve the same source-ownership and authorization model.
 
 **V0.8-B implementation note — 2026-10-04:** Management now exposes an authorized `GET /api/v1/management/projects` selector for `management.dashboard.view` users, filtered by effective Project scope before choices are returned. The Project Engineer / Project Manager web dashboards consume the V0.8-A aggregate summary contract. Detailed Gantt/activity drilldown reuses the canonical Scheduling Gantt component and is rendered only when the viewer already holds `schedule.programme.view`; Management permission alone does not broaden source detail.
@@ -11,7 +13,7 @@
 # Construction ERP — API Architecture
 
 **Document Status:** API Architecture Baseline v0.1  
-**Current Phase:** V0.8-C Executive / Cross-Project Management Dashboard — NEXT / NOT STARTED  
+**Current Phase:** V0.8-C Executive / Cross-Project Management Dashboard — ACTIVE / UNDER VALIDATION  
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1  

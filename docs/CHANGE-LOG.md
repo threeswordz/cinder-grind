@@ -1,3 +1,11 @@
+## 2026-10-04 — V0.8-C Executive / Cross-Project Management Dashboard validation checkpoint
+
+- Stage-C Executive portfolio implementation is materially present on `v0.8-c-executive-portfolio-dashboard`, including authorized Project aggregation, deterministic health, canonical Schedule/Procurement/Inventory/Cost/Finance composition and the Executive Management workspace.
+- Exact-head CI #2822 failed in authenticated runtime acceptance because the leak detector treated the valid numeric aggregate key `totals.schedule.activities` as though it were a protected detail collection.
+- Fix commit `5ac822a96dee73f7e8aacafd6dbc91e3be9b9ee4` corrects the detector to distinguish aggregate scalar counters from collection-valued source details while still rejecting `generalRemarks`, `paymentNumber`, `sourceEvidence` and collection-valued `activities` / `lines` / `rows`.
+- Integration regression now injects protected-detail sentinels into canonical source mocks and verifies none reach the portfolio contract.
+- No permission, source-ownership, business-rule, schema, migration or governance boundary is relaxed. Fresh exact-head CI and DEC-022 stable-candidate review remain mandatory.
+
 ## 2026-10-04 — V0.8-C Executive / Cross-Project Management Dashboard started
 
 - V0.8-B closure/status reconciliation PR #171 squash-merged as `5581819419a4602a73ed0249ad8e0377f745d474`; post-merge main CI #2809 passed.

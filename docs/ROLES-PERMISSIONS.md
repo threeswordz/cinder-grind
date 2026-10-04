@@ -1,3 +1,5 @@
+**V0.8-C implementation/validation note — 2026-10-04:** Executive portfolio reads continue to require explicit `management.portfolio.view`; effective Project scope is applied before aggregation, while `projects.access_all` and technical SYS_ADMIN remain insufficient by themselves. Stage C adds no new permission and does not widen source-detail authority. Portfolio aggregate counters may use ordinary scalar field names such as `activities`, but source activity/line/row collections and protected source evidence remain excluded from the Management aggregate contract.
+
 **V0.8-B closure note — 2026-10-04:** Stage B is COMPLETE. `management.dashboard.view` authorizes the scoped Management Project selector and aggregate Project Engineer / Project Manager workspace, while source execution/Gantt detail remains separately gated by the owning source permissions. Final head `4230e6ffff3e1c5a3dc7ee3b7669f86061e704ba` passed push/PR CI #2796/#2797; final DEC-022 exact-head re-review reported no major issues after the AC-V08-003 P1 fix; PR #170 merged; post-merge main CI #2798 passed; Issue #169 closed completed. V0.8-C is next; portfolio access must continue to require explicit `management.portfolio.view` and effective Project scope.
 
 **V0.8-B implementation note — 2026-10-04:** `management.dashboard.view` now authorizes the scoped Management Project selector and aggregate Project Engineer / Project Manager dashboard workspace. Effective Project access is still applied server-side before selection/read. Detailed Gantt/activity drilldown is shown only when the user separately has `schedule.programme.view`; protected source detail remains owned by the source module. `projects.access_all` and SYS_ADMIN still do not imply Management permission.
@@ -11,7 +13,7 @@
 # Construction ERP — Roles & Permissions Model
 
 **Document Status:** Roles & Permissions Baseline v0.1  
-**Current Phase:** V0.8-C Executive / Cross-Project Management Dashboard — NEXT / NOT STARTED  
+**Current Phase:** V0.8-C Executive / Cross-Project Management Dashboard — ACTIVE / UNDER VALIDATION  
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1

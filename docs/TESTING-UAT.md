@@ -2,12 +2,14 @@
 
 **V0.8-A closure note — 2026-10-04:** Stage A is COMPLETE. Final corrected material head `93b116af63723869e9b28c9407e67b034088bf18` passed push CI #2758 and PR CI #2759; DEC-022 exact-head re-review reported no major issues after the inventory KPI truncation P2 was fixed and regression-covered. PR #167 merged as `d60c5c051f1eb6aec30399173f33ab05300cc52c`, post-merge main CI #2760 passed and Issue #166 closed completed. V0.8 human UAT remains a later release-exit gate under AC-V08-039/040.
 
+**V0.8-C validation note — 2026-10-04:** Stage C is active on Issue #172 / `v0.8-c-executive-portfolio-dashboard`. Portfolio acceptance must distinguish legitimate aggregate scalar counters from protected source-detail collections. CI #2822 exposed that `totals.schedule.activities` is a numeric aggregate, not a source activity row collection. Fix `5ac822a96dee73f7e8aacafd6dbc91e3be9b9ee4` keeps protected scalar/detail keys and collection-valued `activities`, `lines` and `rows` fail-closed while allowing legitimate scalar counters; integration coverage injects protected-detail sentinels into canonical sources and verifies sanitation before portfolio delivery. Exact-head CI, DEC-022 stable-candidate review, PR CI, merge and post-merge main CI remain mandatory. AC-V08-039/040 remain release-exit human gates.
+
 **V0.7 release-closure note — 2026-10-04:** V0.7-A through V0.7-E are technically complete. The Chat-assisted proxy walkthrough passed all nine UAT areas with 117/117 API tests and 64/64 authenticated runtime checks on the accepted evidence path. The Product / Business Owner then explicitly accepted V0.7 under AC-V07-051 and AC-V07-052. Acceptance-record PR #158 merged as `32ffab318066bec6fad770f5419cfd1942d9556d`, post-merge main CI #2637 passed and Issue #157 closed completed.
 
 # Construction ERP — Testing & UAT Approach
 
 **Document Status:** Testing & UAT Baseline v0.1  
-**Current Phase:** V0.8-C Executive / Cross-Project Management Dashboard — NEXT / NOT STARTED  
+**Current Phase:** V0.8-C Executive / Cross-Project Management Dashboard — ACTIVE / UNDER VALIDATION  
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1  
@@ -1602,6 +1604,11 @@ Priority testing:
 - analytics consistency
 - access scope
 - exports
+- explicit `management.portfolio.view` enforcement independent from SYS_ADMIN / `projects.access_all`
+- inaccessible Project exclusion before aggregation
+- server/Prisma Decimal and Company base-currency reconciliation
+- deterministic portfolio health composition from approved source signals
+- protected source-detail sanitation without blocking legitimate aggregate scalar counters
 
 ---
 
