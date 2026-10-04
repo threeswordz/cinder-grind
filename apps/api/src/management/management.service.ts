@@ -32,7 +32,7 @@ export class ManagementService {
   ) {
     await this.access.assertAccess(auth, projectId);
 
-    const [engineer, procurement, cost, cashFlow, balances] =
+    const [engineer, procurement, cost, cashFlow, inventorySummary] =
       await Promise.all([
         this.reporting.projectEngineer(
           auth,
@@ -43,7 +43,7 @@ export class ManagementService {
         this.reporting.procurement(auth, projectId),
         this.costControl.projectCostControl(auth, projectId),
         this.cashFlow.projectCashFlow(auth, projectId),
-        this.inventory.balanceReport(auth, { projectId }),
+        this.inventory.balanceSummary(auth, { projectId }),
       ]);
 
     if (cost.baseCurrencyCode !== cashFlow.baseCurrencyCode) {
@@ -60,16 +60,6 @@ export class ManagementService {
         inspections: result.inspections + report.counts.inspections,
       }),
       { issues: 0, delays: 0, inspections: 0 },
-    );
-
-    const inventoryWarehouses = new Set(
-      balances.map((row) => row.warehouseId),
-    );
-    const inventoryMaterials = new Set(
-      balances.map((row) => row.materialId),
-    );
-    const inventoryUoms = new Set(
-      balances.map((row) => row.uomId),
     );
 
     return {
@@ -129,10 +119,10 @@ export class ManagementService {
         },
         inventory: {
           status: 'AVAILABLE' as const,
-          balanceRowCount: balances.length,
-          warehouseCount: inventoryWarehouses.size,
-          materialCount: inventoryMaterials.size,
-          uomCount: inventoryUoms.size,
+          balanceRowCount: inventorySummary.balanceRowCount,
+          warehouseCount: inventorySummary.warehouseCount,
+          materialCount: inventorySummary.materialCount,
+          uomCount: inventorySummary.uomCount,
           quantityAggregation:
             'NOT_APPLICABLE_MIXED_MATERIAL_AND_UOM_DIMENSIONS' as const,
         },
