@@ -34,6 +34,13 @@ type BalanceRow = {
   quantity: Prisma.Decimal;
 };
 
+type BalanceSummaryRow = {
+  balanceRowCount: number;
+  warehouseCount: number;
+  materialCount: number;
+  uomCount: number;
+};
+
 @Injectable()
 export class StockBalanceService {
   constructor(
@@ -50,7 +57,44 @@ export class StockBalanceService {
     });
   }
 
-  async balances(auth: AuthenticatedUserContext, filters: StockBalanceFilters) {
+  private async balanceConditions(
+    auth: AuthenticatedUserContext,
+    filters: StockBalanceFilters,
+  ): Promise<Prisma.Sql[] | null> {
+    if (filters.projectId) {
+      await this.access.assertAccess(auth, filters.projectId);
+    }
+
+    const conditions: Prisma.Sql[] = [
+      Prisma.sql`st.company_id = ${auth.companyId}::uuid`,
+    ];
+
+    if (!this.access.canAccessAll(auth)) {
+      const scope = await this.access.scopeWhere(auth);
+      const projects = await this.prisma.project.findMany({
+        where: scope,
+        select: { id: true },
+      });
+      if (projects.length === 0) return null;
+      conditions.push(
+        Prisma.sql`st.project_id IN (${Prisma.join(projects.map((row) => Prisma.sql`${row.id}::uuid`))})`,
+      );
+    }
+
+    if (filters.projectId) {
+      conditions.push(Prisma.sql`st.project_id = ${filters.projectId}::uuid`);
+    }
+    if (filters.warehouseId) {
+      conditions.push(Prisma.sql`st.warehouse_id = ${filters.warehouseId}::uuid`);
+    }
+    if (filters.materialId) {
+      conditions.push(Prisma.sql`st.material_id = ${filters.materialId}::uuid`);
+    }
+    if (!filters.includeInactiveWarehouses) {
+      conditions.push(Prisma.sql`w.is_active = TRUE`);
+    }
+    if (filters.search) {
+      const pattern = `%${filters.search.replace(/[\\%_]/g, '\\  async balances(auth: AuthenticatedUserContext, filters: StockBalanceFilters) {
     if (filters.projectId) {
       await this.access.assertAccess(auth, filters.projectId);
     }
@@ -94,6 +138,79 @@ export class StockBalanceService {
         OR COALESCE(p.project_name, '') ILIKE ${pattern} ESCAPE '\\'
       )`);
     }
+
+    const having = filters.includeZero
+      ? Prisma.empty
+      : Prisma.sql`HAVING SUM(st.quantity) <> 0`;
+')}%`;
+      conditions.push(Prisma.sql`(
+        w.warehouse_code ILIKE ${pattern} ESCAPE '\\'
+        OR w.warehouse_name ILIKE ${pattern} ESCAPE '\\'
+        OR m.material_code ILIKE ${pattern} ESCAPE '\\'
+        OR m.material_name ILIKE ${pattern} ESCAPE '\\'
+        OR COALESCE(p.project_code, '') ILIKE ${pattern} ESCAPE '\\'
+        OR COALESCE(p.project_name, '') ILIKE ${pattern} ESCAPE '\\'
+      )`);
+    }
+
+    return conditions;
+  }
+
+  async balanceSummary(
+    auth: AuthenticatedUserContext,
+    filters: StockBalanceFilters,
+  ) {
+    const conditions = await this.balanceConditions(auth, filters);
+    if (conditions === null) {
+      return {
+        balanceRowCount: 0,
+        warehouseCount: 0,
+        materialCount: 0,
+        uomCount: 0,
+      };
+    }
+
+    const having = filters.includeZero
+      ? Prisma.empty
+      : Prisma.sql`HAVING SUM(st.quantity) <> 0`;
+
+    const rows = await this.prisma.$queryRaw<BalanceSummaryRow[]>(Prisma.sql`
+      WITH balance_rows AS (
+        SELECT
+          st.project_id AS project_id,
+          w.id AS warehouse_id,
+          m.id AS material_id,
+          u.id AS uom_id
+        FROM stock_transactions st
+        JOIN warehouses w ON w.id = st.warehouse_id AND w.company_id = st.company_id
+        JOIN materials m ON m.id = st.material_id AND m.company_id = st.company_id
+        JOIN units_of_measure u ON u.id = st.uom_id AND u.company_id = st.company_id
+        LEFT JOIN projects p ON p.id = st.project_id AND p.company_id = st.company_id
+        WHERE ${Prisma.join(conditions, ' AND ')}
+        GROUP BY st.project_id, w.id, m.id, u.id
+        ${having}
+      )
+      SELECT
+        COUNT(*)::INTEGER AS "balanceRowCount",
+        COUNT(DISTINCT warehouse_id)::INTEGER AS "warehouseCount",
+        COUNT(DISTINCT material_id)::INTEGER AS "materialCount",
+        COUNT(DISTINCT uom_id)::INTEGER AS "uomCount"
+      FROM balance_rows
+    `);
+
+    return (
+      rows[0] ?? {
+        balanceRowCount: 0,
+        warehouseCount: 0,
+        materialCount: 0,
+        uomCount: 0,
+      }
+    );
+  }
+
+  async balances(auth: AuthenticatedUserContext, filters: StockBalanceFilters) {
+    const conditions = await this.balanceConditions(auth, filters);
+    if (conditions === null) return [];
 
     const having = filters.includeZero
       ? Prisma.empty
