@@ -1,3 +1,11 @@
+## 2026-10-04 — V0.8 Management entry baseline approved
+
+- Product / Business Owner explicitly approved the complete V0.8 Management entry package as proposed: Scope, AC-V08-001–040, BR-V08-01–16, D08-01–12, data/API/security/test baseline, V0.8-A–E stages, 18–30 engineering-day planning estimate plus separate UAT/acceptance window, and explicit deferrals.
+- DEC-025 records the approval with no amendment.
+- `docs/V0.8-ENTRY-GATE.md` is the authoritative approved entry-gate record; `docs/V0.8-ENTRY-GATE-DRAFT.md` is preserved as a superseded historical proposal.
+- V0.8 implementation remains NOT STARTED until exact-head CI, PR CI/applicable review, entry-gate PR merge, green post-merge main CI and Issue #160 closure complete.
+- DEC-008, DEC-016 and DEC-022 remain mandatory.
+
 ## 2026-10-04 — V0.1–V0.7 cross-release integrity audit
 
 - Cross-release technical audit opened under Issue #163 after V0.7 closure and before V0.8 implementation.
