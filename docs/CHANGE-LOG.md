@@ -1,3 +1,11 @@
+## 2026-10-04 — V0.8-D pre-flight established
+
+- Stage-C closure/status PR #174 squash-merged as `9a07a50d377aceec65304aa5881f3610d4cd1205`; post-merge exact-main CI #2901 PASS.
+- Issue #175 opened for the approved V0.8-D Domain Dashboards stage.
+- Pre-flight branch `v0.8-d-preflight` starts from that exact green main.
+- Pre-flight is documentation/status only; V0.8-D application implementation remains NOT STARTED until pre-flight CI/merge/post-merge gates pass.
+- Stage D remains limited to Schedule, Procurement, Inventory, Cost and Finance management dashboards over canonical source semantics; no V0.8-E export/report scope expansion.
+
 ## 2026-10-04 — V0.8-C technical closure / V0.8-D next
 
 - Final PR #173 head `cbc916e5a325555d1971b0ceec6ae63445cfcaff` passed push CI #2886 and PR CI #2887, including authenticated live acceptance.
