@@ -24,6 +24,7 @@ import { StatusesPanel } from './admin/StatusesPanel';
 import { SystemSettingsPanel } from './admin/SystemSettingsPanel';
 import { UsersPanel } from './admin/UsersPanel';
 import { MasterDataPanel } from './master-data/MasterDataPanel';
+import { ManagementDashboards } from './management/ManagementDashboards';
 import { ProjectsPanel } from './projects/ProjectsPanel';
 import { PurchaseRequestsPanel } from './procurement/PurchaseRequestsPanel';
 import { PurchaseOrdersPanel } from './procurement/PurchaseOrdersPanel';
@@ -57,6 +58,12 @@ export function AdminConsole({ user }: { user: CurrentUser }) {
   const sections = useMemo<Section[]>(
     () =>
       [
+        {
+          key: 'management',
+          label: 'Management',
+          permission: 'management.dashboard.view',
+          content: <ManagementDashboards permissions={user.permissions} />,
+        },
         {
           key: 'cost-control',
           label: 'Cost Control',
@@ -338,7 +345,7 @@ export function AdminConsole({ user }: { user: CurrentUser }) {
             <Box sx={{ flexGrow: 1 }}>
               <Typography variant="h6">Construction ERP</Typography>
               <Typography variant="body2" color="text.secondary">
-                V0.7 Cost Control · {user.displayName}
+                V0.8 Management · {user.displayName}
               </Typography>
             </Box>
             <Button
