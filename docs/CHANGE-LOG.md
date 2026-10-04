@@ -1,12 +1,21 @@
-## 2026-10-05 — V0.8-D Domain Dashboards implementation merged / closure active
+## 2026-10-05 — V0.8-E pre-flight established
+
+- V0.8-D Domain Dashboards is technically COMPLETE.
+- PR #177 merged as `ff3dc08a4aee9945bb0b195627e31577f766f691`; exact-main CI #2996 PASS.
+- Closure PR #178 merged as `4c47fd7713eb1faa57bf4ad8270b254a8bca96a7`; exact-main CI #3011 PASS; Issue #175 CLOSED / COMPLETED.
+- Issue #179 opened for V0.8-E Cross-Module Reporting / Export / Hardening / Release Evidence.
+- Pre-flight branch `v0.8-e-preflight` starts from exact green main `4c47fd7713eb1faa57bf4ad8270b254a8bca96a7`.
+- Stage-E pre-flight is documentation/status only. Application implementation remains NOT STARTED until pre-flight CI/review/merge/post-merge gates pass.
+- Approved scope remains canonical cross-module reporting, descriptive/diagnostic analytics, controlled CSV export, permission-safe traceability, hardening/regression and release evidence; explicit V0.8 deferrals remain unchanged.
+
+## 2026-10-05 — V0.8-D Domain Dashboards complete
 
 - Final Stage-D head `e11a77391ebfb43ff4431820ea363964f525f545` passed exact-head CI #2995 including authenticated live acceptance.
 - Final DEC-022 review of that exact head reported **no major issues**; all known implementation and documentation review findings were resolved before merge.
-- PR #177 squash-merged to `main` as `ff3dc08a4aee9945bb0b195627e31577f766f691`.
-- Issue #175 remains OPEN until the Stage-D closure evidence gate is complete.
-- The connected GitHub tooling currently exposes pull-request workflow runs but not the push-triggered exact-main run for merge commit `ff3dc08...`; post-merge exact-main CI is therefore **not yet recorded as PASS** and must not be inferred.
-- Closure branch `v0.8-d-closure-reconcile` reconciles durable status only; no runtime/schema/security/business-rule or governance change is introduced.
-- V0.8-E remains blocked until post-merge exact-main CI evidence is recorded, the closure reconciliation is merged, and Issue #175 is closed.
+- PR #177 squash-merged to `main` as `ff3dc08a4aee9945bb0b195627e31577f766f691`; exact-main CI #2996 PASS.
+- Closure PR #178 final head `170f359fa8fb8540e098a722c6b0aafa7c111d11` passed CI #3010 and clean DEC-022 review; PR #178 squash-merged as `4c47fd7713eb1faa57bf4ad8270b254a8bca96a7`; exact-main CI #3011 PASS.
+- Issue #175 CLOSED / COMPLETED.
+- **V0.8-D Domain Dashboards is technically COMPLETE.**
 
 ## 2026-10-04 — V0.8-D Domain Dashboards implementation started
 
