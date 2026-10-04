@@ -1,3 +1,5 @@
+**V0.8-B closure note — 2026-10-04:** Stage B is COMPLETE. The Management Project selector and Project Engineer / Project Manager dashboard surfaces retain the V0.8-A read-model boundary and permission-safe source reuse. Final head `4230e6ffff3e1c5a3dc7ee3b7669f86061e704ba` passed push/PR CI #2796/#2797; final DEC-022 exact-head re-review reported no major issues after the AC-V08-003 P1 fix; PR #170 merged as `42444cc91912f323d672f63da050b68b8d777b62`; post-merge main CI #2798 passed; Issue #169 closed completed. V0.8-C is next and must preserve the same source-ownership and authorization model.
+
 **V0.8-B implementation note — 2026-10-04:** Management now exposes an authorized `GET /api/v1/management/projects` selector for `management.dashboard.view` users, filtered by effective Project scope before choices are returned. The Project Engineer / Project Manager web dashboards consume the V0.8-A aggregate summary contract. Detailed Gantt/activity drilldown reuses the canonical Scheduling Gantt component and is rendered only when the viewer already holds `schedule.programme.view`; Management permission alone does not broaden source detail.
 
 **V0.8-A implementation note — 2026-10-04:** Management introduces read-only `GET /api/v1/management/projects/{projectId}/summary` and `GET /api/v1/management/portfolio` contracts. The Project summary composes aggregate-only canonical Scheduling/Site, Procurement, Inventory, V0.7 Cost Control and V0.6 Cash Flow services; it does not expose source rows merely because a caller holds Management permission. Portfolio filtering applies effective Project scope before aggregation. No Management mutation endpoint or duplicate KPI/financial ledger is introduced.
@@ -9,7 +11,7 @@
 # Construction ERP — API Architecture
 
 **Document Status:** API Architecture Baseline v0.1  
-**Current Phase:** V0.8-B Project Engineer & Project Manager Dashboards — ACTIVE  
+**Current Phase:** V0.8-C Executive / Cross-Project Management Dashboard — NEXT / NOT STARTED  
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1  
