@@ -1,12 +1,12 @@
 # Construction ERP — Master Requirements Register
 
 **Document Status:** Requirements Baseline v0.1  
-**Current Phase:** V0.7 Cost Control — Stage E implementation / release hardening  
+**Current Phase:** V0.7 Cost Control — technical implementation complete / human release exit pending  
 **Architecture Baseline:** v0.1  
 **Source:** ERP-MASTER-BLUEPRINT.md  
 **Last Structural Review:** V0.7 documentation reconciliation — 2026-10-04
 
-**Live delivery note:** V0.1–V0.6 are complete; V0.7-A through V0.7-D are technically complete; V0.7-E reporting/hardening/release evidence is active. Requirement approval/status remains governed by the approved baselines and Change Control; this note does not rewrite historical requirement approval.
+**Live delivery note:** V0.1–V0.6 are complete; V0.7-A through V0.7-E are technically complete. PR #153 merged and post-merge main CI #2611 passed; human AC-V07-051/052 release-exit gates remain pending. Requirement approval/status remains governed by the approved baselines and Change Control; this note does not rewrite historical requirement approval.
 
 ---
 
