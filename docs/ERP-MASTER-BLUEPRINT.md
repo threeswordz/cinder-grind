@@ -1,7 +1,7 @@
 # Construction ERP — Master Blueprint
 
 **Document Status:** Architecture Baseline v0.1
-**Current Phase:** V0.8 Management — ACTIVE / V0.8-A COMPLETE / V0.8-B COMPLETE / V0.8-C COMPLETE / V0.8-D NEXT
+**Current Phase:** V0.8 Management — ACTIVE / V0.8-A COMPLETE / V0.8-B COMPLETE / V0.8-C COMPLETE / V0.8-D PRE-FLIGHT ACTIVE
 **System:** Construction ERP
 **Primary Platform:** Web Application
 **Architecture Principle:** Open-Source First
@@ -1679,7 +1679,7 @@ Next Release:
 
 Current Stage:
 
-**V0.8-D Domain Dashboards — NEXT / NOT STARTED**
+**V0.8-D Domain Dashboards — PRE-FLIGHT ACTIVE / IMPLEMENTATION NOT STARTED**
 
 Live delivery position:
 
@@ -1694,7 +1694,7 @@ Live delivery position:
 - V0.8-A Management Read Model / KPI Contracts — complete
 - V0.8-B Project Engineer & Project Manager Dashboards — complete
 - V0.8-C Executive / Cross-Project Management Dashboard — complete
-- V0.8-D Domain Dashboards — next / not started
+- V0.8-D Domain Dashboards — pre-flight active / implementation not started
 - V0.8-E Cross-Module Reporting / Export / Hardening / Release Evidence — future
 
 V0.8-B final head `4230e6ffff3e1c5a3dc7ee3b7669f86061e704ba` passed push/PR CI #2796/#2797; final DEC-022 exact-head re-review reported no major issues after the AC-V08-003 P1 fix. PR #170 merged as `42444cc91912f323d672f63da050b68b8d777b62`; post-merge main CI #2798 passed; Issue #169 closed completed. The live GitHub repository and `docs/CURRENT-STATE.md` remain authoritative.
