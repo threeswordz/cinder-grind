@@ -807,17 +807,17 @@ Completed release: **V0.7 Cost Control — COMPLETE AND ACCEPTED**.
 
 Next release: **V0.8 Management**.
 
-Current stage: **V0.8 Release Entry Gate — PROPOSAL PREPARED / APPROVAL PENDING**.
+Current stage: **V0.8 Release Entry Gate — PRODUCT OWNER APPROVED / TECHNICAL CLOSURE IN PROGRESS**.
 
 Immediate sequence:
 
 1. V0.7 Cost Control — COMPLETE AND ACCEPTED.
 2. Issue #160 — OPEN for the V0.8 Management release-entry gate.
-3. Proposal prepared: Scope, AC-V08-001–040, BR-V08-01–16, D08-01–12, data/API/security/test baseline, V0.8-A–E stages, planning estimate and explicit deferrals.
-4. Proposal PR #161 — MERGED as `82278f1975e046ca9b2e40ca168de570dcb93bfa`; post-merge main CI #2674 — PASS.
-5. **Current blocker: Product / Business Owner approval.** Explicitly approve or amend the complete V0.8 entry package.
-6. Record the approved baseline durably; do not convert proposed rules/decisions into approved state without that owner decision.
-7. Merge the approved entry-gate record only after green CI/review.
+3. Proposal PR #161 — MERGED as `82278f1975e046ca9b2e40ca168de570dcb93bfa`; post-merge main CI #2674 — PASS.
+4. V0.1–V0.7 integrity PR #164 — MERGED as `49d50b5c8a8e032a0590b851fbe7612612d0d031`; post-merge main CI #2714 — PASS.
+5. Product / Business Owner explicitly approved the complete V0.8 package on 2026-10-04; DEC-025 records Scope, AC-V08-001–040, BR-V08-01–16, D08-01–12, technical baseline, V0.8-A–E stages, estimate and deferrals exactly as proposed.
+6. Validate the approved entry-gate exact head and open the approval/closure PR.
+7. Satisfy applicable DEC-022 review and PR CI, then squash merge.
 8. Verify post-merge main CI and close Issue #160 COMPLETED.
 9. Only then may V0.8-A implementation begin from the exact green main.
 
