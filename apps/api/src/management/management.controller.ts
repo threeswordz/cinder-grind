@@ -102,15 +102,11 @@ export class ManagementController {
     @Query('asOf') asOf?: string,
     @Query('days') days?: string,
   ) {
-    const options =
-      asOf === undefined || asOf === ''
-        ? undefined
-        : {
-            asOf: asOfDate(asOf),
-            days: lookaheadDays(days),
-          };
     return {
-      data: await this.management.portfolio(authOf(request), options),
+      data: await this.management.portfolio(authOf(request), {
+        asOf: asOfDate(asOf),
+        days: lookaheadDays(days),
+      }),
     };
   }
 }
