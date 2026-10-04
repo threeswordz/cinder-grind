@@ -8547,13 +8547,13 @@ const managementAccountsReceivable = await request(
   pm,
   '/finance/projects/' + projectId + '/accounts-receivable',
 );
-const managementInventoryBalances = await request(
+const managementInventoryBalanceSummary = await request(
   pm,
-  '/inventory/reports/balances?projectId=' + projectId,
+  '/inventory/reports/balance-quantity-summary?projectId=' + projectId,
 );
-const managementInventoryMovements = await request(
+const managementInventoryMovementSummary = await request(
   pm,
-  '/inventory/reports/movements?projectId=' + projectId,
+  '/inventory/reports/movement-summary?projectId=' + projectId,
 );
 const managementSummary = await request(
   pm,
@@ -8586,23 +8586,21 @@ check(
         0,
       ) &&
     managementSummary.data.data.domains?.inventory?.positiveBalanceRowCount ===
-      managementInventoryBalances.data.data.filter(
-        (row) => Number(row.quantity) > 0,
-      ).length &&
+      managementInventoryBalanceSummary.data.data.positiveBalanceRowCount &&
     managementSummary.data.data.domains?.inventory?.negativeBalanceRowCount ===
-      managementInventoryBalances.data.data.filter(
-        (row) => Number(row.quantity) < 0,
-      ).length &&
+      managementInventoryBalanceSummary.data.data.negativeBalanceRowCount &&
+    managementSummary.data.data.domains?.inventory?.zeroBalanceRowCount ===
+      managementInventoryBalanceSummary.data.data.zeroBalanceRowCount &&
     managementSummary.data.data.domains?.inventory?.movementRowCount ===
-      managementInventoryMovements.data.data.length &&
+      managementInventoryMovementSummary.data.data.movementRowCount &&
     managementSummary.data.data.domains?.inventory?.movementSources?.goodsReceipt ===
-      managementInventoryMovements.data.data.filter(
-        (row) => row.sourceType === 'GOODS_RECEIPT',
-      ).length &&
+      managementInventoryMovementSummary.data.data.goodsReceiptRowCount &&
     managementSummary.data.data.domains?.inventory?.movementSources?.materialIssue ===
-      managementInventoryMovements.data.data.filter(
-        (row) => row.sourceType === 'MATERIAL_ISSUE',
-      ).length &&
+      managementInventoryMovementSummary.data.data.materialIssueRowCount &&
+    managementSummary.data.data.domains?.inventory?.movementSources?.materialReturn ===
+      managementInventoryMovementSummary.data.data.materialReturnRowCount &&
+    managementSummary.data.data.domains?.inventory?.movementSources?.stockTransfer ===
+      managementInventoryMovementSummary.data.data.stockTransferRowCount &&
     Number(managementSummary.data.data.domains?.inventory?.balanceRowCount) >= 0 &&
     managementSummary.data.data.domains?.inventory?.quantityAggregation ===
       'NOT_APPLICABLE_MIXED_MATERIAL_AND_UOM_DIMENSIONS',
