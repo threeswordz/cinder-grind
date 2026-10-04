@@ -83,6 +83,23 @@ export function ExecutivePortfolioDashboard() {
               variant="outlined"
             />
             <Chip
+              label={'Delayed activities ' + portfolio.totals.schedule.delayed}
+              variant="outlined"
+            />
+            <Chip
+              label={'Critical activities ' + portfolio.totals.schedule.critical}
+              variant="outlined"
+            />
+            <Chip
+              label={
+                'Lookahead (' +
+                portfolio.lookaheadDays +
+                'd) ' +
+                portfolio.totals.schedule.lookahead
+              }
+              variant="outlined"
+            />
+            <Chip
               label={'Procurement at risk ' + portfolio.totals.procurement.atRisk}
               variant="outlined"
             />
@@ -160,6 +177,23 @@ export function ExecutivePortfolioDashboard() {
                         row.domains.schedule.summary.completed +
                         '/' +
                         row.domains.schedule.summary.total
+                      }
+                      variant="outlined"
+                    />
+                    <Chip
+                      label={'Delayed ' + row.domains.schedule.summary.delayed}
+                      variant="outlined"
+                    />
+                    <Chip
+                      label={'Critical ' + row.domains.schedule.summary.critical}
+                      variant="outlined"
+                    />
+                    <Chip
+                      label={
+                        'Lookahead (' +
+                        portfolio.lookaheadDays +
+                        'd) ' +
+                        row.domains.schedule.summary.lookahead
                       }
                       variant="outlined"
                     />
