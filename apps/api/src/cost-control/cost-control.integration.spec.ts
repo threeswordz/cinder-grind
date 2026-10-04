@@ -347,9 +347,7 @@ test('V0.7-E reporting keeps descendant WBS values and explicit Unallocated dime
         },
       ],
     },
-    projectVariation: {
-      findMany: async () => [{ projectId: 'variation-only-project' }],
-    },
+    projectVariation: { findMany: async () => [] },
     clientInvoice: { findMany: async () => [] },
     costForecast: { findFirst: async () => null },
   };
@@ -1496,7 +1494,9 @@ test('V0.7-E Project selector retains scoped archived Projects with any V0.7-own
     directCostPosting: {
       findMany: async () => [{ projectId: 'archived-project' }],
     },
-    projectVariation: { findMany: async () => [] },
+    projectVariation: {
+      findMany: async () => [{ projectId: 'variation-only-project' }],
+    },
     clientInvoice: { findMany: async () => [] },
     costForecast: {
       findMany: async () => [
