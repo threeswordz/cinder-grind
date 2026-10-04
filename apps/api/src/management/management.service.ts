@@ -272,6 +272,7 @@ export class ManagementService {
           auth,
           projectIds,
           resolvedOptions.asOf,
+          resolvedOptions.days,
         ),
         this.inventory.portfolioBalanceSummaries(auth, projectIds),
         this.costControl.portfolioProjectTotals(auth, projectIds),
@@ -345,6 +346,9 @@ export class ManagementService {
               completedActivities:
                 reporting.schedule.completed,
               totalActivities: reporting.schedule.total,
+              delayedActivities: reporting.schedule.delayed,
+              criticalActivities: reporting.schedule.critical,
+              lookaheadActivities: reporting.schedule.lookahead,
             },
             procurement: {
               atRiskLines: reporting.procurement.AT_RISK,
@@ -488,6 +492,21 @@ export class ManagementService {
           completed: rows.reduce(
             (sum, row) =>
               sum + row.domains.schedule.summary.completed,
+            0,
+          ),
+          delayed: rows.reduce(
+            (sum, row) =>
+              sum + row.domains.schedule.summary.delayed,
+            0,
+          ),
+          critical: rows.reduce(
+            (sum, row) =>
+              sum + row.domains.schedule.summary.critical,
+            0,
+          ),
+          lookahead: rows.reduce(
+            (sum, row) =>
+              sum + row.domains.schedule.summary.lookahead,
             0,
           ),
         },
