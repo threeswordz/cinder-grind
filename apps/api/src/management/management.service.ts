@@ -231,54 +231,295 @@ export class ManagementService {
     };
   }
 
-  async portfolio(auth: AuthenticatedUserContext) {
+  async portfolio(
+    auth: AuthenticatedUserContext,
+    options?: ManagementSummaryOptions,
+  ) {
+    const resolvedOptions =
+      options ??
+      ({
+        asOf: new Date(
+          new Date().toISOString().slice(0, 10) + 'T00:00:00.000Z',
+        ),
+        days: 14,
+      } satisfies ManagementSummaryOptions);
+
     const scope = await this.access.scopeWhere(auth);
-    const projects = await this.prisma.project.findMany({
-      where: { AND: [scope, { isActive: true }] },
-      select: {
-        id: true,
-        projectCode: true,
-        projectName: true,
-        plannedStartDate: true,
-        plannedCompletionDate: true,
-        actualStartDate: true,
-        actualCompletionDate: true,
-        statusDefinition: {
-          select: {
-            statusCode: true,
-            statusLabel: true,
+    const [company, projects] = await Promise.all([
+      this.prisma.company.findUniqueOrThrow({
+        where: { id: auth.companyId },
+        select: { baseCurrencyCode: true },
+      }),
+      this.prisma.project.findMany({
+        where: { AND: [scope, { isActive: true }] },
+        select: {
+          id: true,
+          projectCode: true,
+          projectName: true,
+          plannedStartDate: true,
+          plannedCompletionDate: true,
+          actualStartDate: true,
+          actualCompletionDate: true,
+          statusDefinition: {
+            select: {
+              statusCode: true,
+              statusLabel: true,
+            },
           },
         },
-      },
-      orderBy: [{ projectName: 'asc' }, { projectCode: 'asc' }],
+        orderBy: [{ projectName: 'asc' }, { projectCode: 'asc' }],
+      }),
+    ]);
+
+    const summaries = await Promise.all(
+      projects.map((project) =>
+        this.projectSummary(auth, project.id, resolvedOptions),
+      ),
+    );
+
+    for (const summary of summaries) {
+      if (summary.baseCurrencyCode !== company.baseCurrencyCode) {
+        throw new Error(
+          'Canonical Management portfolio sources returned inconsistent Company base currencies.',
+        );
+      }
+    }
+
+    const rows = summaries.map((summary) => {
+      const attentionDrivers: string[] = [];
+      const criticalDrivers: string[] = [];
+
+      if (summary.domains.schedule.summary.delayed > 0) {
+        attentionDrivers.push('SCHEDULE_DELAY');
+      }
+      if (summary.domains.procurement.summary.AT_RISK > 0) {
+        attentionDrivers.push('PROCUREMENT_AT_RISK');
+      }
+      if (summary.domains.siteExecution.delayCount > 0) {
+        attentionDrivers.push('SITE_DELAY');
+      }
+      if (summary.domains.siteExecution.issueCount > 0) {
+        attentionDrivers.push('SITE_ISSUE');
+      }
+      if (new Prisma.Decimal(summary.domains.cost.variance).lt(0)) {
+        criticalDrivers.push('FORECAST_COST_OVER_BUDGET');
+      }
+      const forecastProfit =
+        summary.domains.cost.commercial.forecastProfit;
+      if (
+        forecastProfit !== null &&
+        new Prisma.Decimal(forecastProfit).lt(0)
+      ) {
+        criticalDrivers.push('FORECAST_LOSS');
+      }
+
+      const health =
+        criticalDrivers.length > 0
+          ? {
+              status: 'CRITICAL' as const,
+              drivers: [...criticalDrivers, ...attentionDrivers],
+            }
+          : attentionDrivers.length > 0
+            ? {
+                status: 'ATTENTION' as const,
+                drivers: attentionDrivers,
+              }
+            : {
+                status: 'ON_TRACK' as const,
+                drivers: [] as string[],
+              };
+
+      return {
+        project: summary.project,
+        health,
+        domains: summary.domains,
+        sourceTraceability: summary.sourceTraceability,
+      };
     });
 
+    const healthSummary = rows.reduce(
+      (result, row) => {
+        result[row.health.status] += 1;
+        return result;
+      },
+      { ON_TRACK: 0, ATTENTION: 0, CRITICAL: 0 },
+    );
+
     return {
-      contractVersion: 'V0.8-A',
-      projectCount: projects.length,
-      projects: projects.map((project) => ({
-        id: project.id,
-        projectCode: project.projectCode,
-        projectName: project.projectName,
-        status: project.statusDefinition,
-        plannedStartDate: this.day(project.plannedStartDate),
-        plannedCompletionDate: this.day(
-          project.plannedCompletionDate,
-        ),
-        actualStartDate: this.day(project.actualStartDate),
-        actualCompletionDate: this.day(
-          project.actualCompletionDate,
-        ),
-      })),
+      contractVersion: 'V0.8-C',
+      asOfDate: resolvedOptions.asOf.toISOString().slice(0, 10),
+      lookaheadDays: resolvedOptions.days,
+      baseCurrencyCode: company.baseCurrencyCode,
+      projectCount: rows.length,
+      healthSummary,
+      totals: {
+        schedule: {
+          activities: rows.reduce(
+            (sum, row) => sum + row.domains.schedule.summary.total,
+            0,
+          ),
+          completed: rows.reduce(
+            (sum, row) => sum + row.domains.schedule.summary.completed,
+            0,
+          ),
+          delayed: rows.reduce(
+            (sum, row) => sum + row.domains.schedule.summary.delayed,
+            0,
+          ),
+          critical: rows.reduce(
+            (sum, row) => sum + row.domains.schedule.summary.critical,
+            0,
+          ),
+          lookahead: rows.reduce(
+            (sum, row) => sum + row.domains.schedule.lookaheadActivityCount,
+            0,
+          ),
+        },
+        procurement: {
+          demandLines: rows.reduce(
+            (sum, row) => sum + row.domains.procurement.summary.total,
+            0,
+          ),
+          atRisk: rows.reduce(
+            (sum, row) => sum + row.domains.procurement.summary.AT_RISK,
+            0,
+          ),
+          onTime: rows.reduce(
+            (sum, row) => sum + row.domains.procurement.summary.ON_TIME,
+            0,
+          ),
+          unavailable: rows.reduce(
+            (sum, row) => sum + row.domains.procurement.summary.UNAVAILABLE,
+            0,
+          ),
+        },
+        siteExecution: {
+          recentReports: rows.reduce(
+            (sum, row) => sum + row.domains.siteExecution.recentReportCount,
+            0,
+          ),
+          issues: rows.reduce(
+            (sum, row) => sum + row.domains.siteExecution.issueCount,
+            0,
+          ),
+          delays: rows.reduce(
+            (sum, row) => sum + row.domains.siteExecution.delayCount,
+            0,
+          ),
+        },
+        inventory: {
+          balanceRows: rows.reduce(
+            (sum, row) => sum + row.domains.inventory.balanceRowCount,
+            0,
+          ),
+          projectsWithStock: rows.filter(
+            (row) => row.domains.inventory.balanceRowCount > 0,
+          ).length,
+        },
+        cost: {
+          originalBudget: this.sumMoney(
+            rows.map((row) => row.domains.cost.originalBudget),
+          ),
+          revisedBudget: this.sumMoney(
+            rows.map((row) => row.domains.cost.revisedBudget),
+          ),
+          committedCost: this.sumMoney(
+            rows.map((row) => row.domains.cost.committedCost),
+          ),
+          actualCost: this.sumMoney(
+            rows.map((row) => row.domains.cost.actualCost),
+          ),
+          paidCost: this.sumMoney(
+            rows.map((row) => row.domains.cost.paidCost),
+          ),
+          forecastCost: this.sumMoney(
+            rows.map((row) => row.domains.cost.forecastCost),
+          ),
+          variance: this.sumMoney(
+            rows.map((row) => row.domains.cost.variance),
+          ),
+        },
+        finance: {
+          inflowAmount: this.sumMoney(
+            rows.map((row) => row.domains.finance.inflowAmount),
+          ),
+          outflowAmount: this.sumMoney(
+            rows.map((row) => row.domains.finance.outflowAmount),
+          ),
+          netCashFlow: this.sumMoney(
+            rows.map((row) => row.domains.finance.netCashFlow),
+          ),
+        },
+        commercial: {
+          revisedContractValue: this.sumMoney(
+            rows.map(
+              (row) =>
+                row.domains.cost.commercial.revisedContractValue,
+            ),
+          ),
+          actualRevenue: this.sumMoney(
+            rows.map((row) => row.domains.cost.commercial.actualRevenue),
+          ),
+          cashReceived: this.sumMoney(
+            rows.map((row) => row.domains.cost.commercial.cashReceived),
+          ),
+          forecastRevenue: this.sumMoney(
+            rows.map(
+              (row) => row.domains.cost.commercial.forecastRevenue,
+            ),
+          ),
+          actualProfit: this.sumOptionalMoney(
+            rows.map((row) => row.domains.cost.commercial.actualProfit),
+          ),
+          forecastProfit: this.sumOptionalMoney(
+            rows.map((row) => row.domains.cost.commercial.forecastProfit),
+          ),
+        },
+      },
+      projects: rows,
       scope: {
         companyIsolated: true,
         inaccessibleProjectsExcludedBeforeAggregation: true,
         projectAccessAllIsSeparateFromManagementPermission: true,
+        portfolioPermissionRequired: true,
       },
-      deferredToStageC: {
-        financialPortfolioAggregation: true,
-        crossProjectHealthScoring: true,
+      boundaries: {
+        readOnlyComposition: true,
+        sourceModulesRemainCanonical: true,
+        deterministicHealthSignals: true,
+        manualHealthOverride: false,
+        financialAuthority: 'POSTGRESQL_PRISMA_DECIMAL',
+        baseCurrencyOnly: true,
+        protectedDetailRequiresSourcePermission: true,
       },
+      deferredToLaterStages: {
+        domainDashboards: true,
+        reportingExport: true,
+      },
+    };
+  }
+
+  private sumMoney(values: string[]): string {
+    return values
+      .reduce(
+        (total, value) => total.plus(value),
+        new Prisma.Decimal(0),
+      )
+      .toFixed();
+  }
+
+  private sumOptionalMoney(values: Array<string | null>) {
+    if (values.some((value) => value === null)) {
+      return {
+        status: 'UNAVAILABLE' as const,
+        value: null,
+        reason: 'ONE_OR_MORE_PROJECT_VALUES_UNAVAILABLE' as const,
+      };
+    }
+    return {
+      status: 'AVAILABLE' as const,
+      value: this.sumMoney(values as string[]),
+      reason: null,
     };
   }
 
