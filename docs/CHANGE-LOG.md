@@ -9,8 +9,10 @@
 - No migration, new Management permission, FX, duplicate scheduler/procurement-risk engine/cost-finance/inventory ledger, paid dependency or V0.8-E scope is introduced.
 - Initial material/test head `77731f5b5d02db36152e471beb0197cbd1139580` passed exact-head CI #2927 including authenticated live acceptance; packaging head `8352b43394abc70952569136d629abf473328cc8` passed CI #2937 and PR #177 was marked Ready.
 - First DEC-022 review on `8352b43394` identified two genuine P1s: missing canonical Inventory balance/movement signals (AC-V08-008) and missing Finance AP/AR positions (AC-V08-010).
-- Both P1s were remediated with canonical source composition plus regression/live reconciliation; material remediation head `a3302ca2eca4eea88af9d49bd7ebe83109e23eb0` passed exact-head CI #2951 including authenticated live acceptance.
-- Next gate: resolve the two P1 review threads and run one fresh exact-head DEC-022 re-review before merge.
+- Both P1s were remediated with canonical source composition plus regression/live reconciliation; material remediation head `a3302ca2eca4eea88af9d49bd7ebe83109e23eb0` passed exact-head CI #2951 including authenticated live acceptance, and both P1 review threads are resolved.
+- DEC-022 re-review on `6fb4e23859ead102ee2b167b31c85de5809fae59` found one genuine P2: Management movement totals were uncapped while the canonical Inventory movement report returns a bounded 2,000-row payload, so high-volume acceptance reconciliation could diverge.
+- P2 remediation head `11f955f6cfbfe056b8f088faa9da29937ca6b2eb` adds a canonical total movement count alongside the bounded report rows and updates acceptance to reconcile equivalent canonical totals/bounds; exact-head CI #2955 PASS.
+- Next gate: close the now-outdated P2 thread, synchronize evidence, run one fresh exact-head DEC-022 re-review, then squash-merge only if clean.
 
 ## 2026-10-04 — V0.8-D pre-flight established
 
