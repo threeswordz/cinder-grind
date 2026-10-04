@@ -814,8 +814,8 @@ Immediate sequence:
 1. V0.7 Cost Control — COMPLETE AND ACCEPTED.
 2. Issue #160 — OPEN for the V0.8 Management release-entry gate.
 3. Proposal prepared: Scope, AC-V08-001–040, BR-V08-01–16, D08-01–12, data/API/security/test baseline, V0.8-A–E stages, planning estimate and explicit deferrals.
-4. Validate the exact proposal head and open the docs-only proposal PR.
-5. Product / Business Owner explicitly approves or amends the complete V0.8 entry package.
+4. Proposal PR #161 — MERGED as `82278f1975e046ca9b2e40ca168de570dcb93bfa`; post-merge main CI #2674 — PASS.
+5. **Current blocker: Product / Business Owner approval.** Explicitly approve or amend the complete V0.8 entry package.
 6. Record the approved baseline durably; do not convert proposed rules/decisions into approved state without that owner decision.
 7. Merge the approved entry-gate record only after green CI/review.
 8. Verify post-merge main CI and close Issue #160 COMPLETED.
