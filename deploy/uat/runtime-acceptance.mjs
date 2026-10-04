@@ -8484,7 +8484,7 @@ await request(admin, '/management/projects', { expected: 403 });
 await request(admin, '/management/projects/' + projectId + '/summary?asOf=2026-10-10&days=14', {
   expected: 403,
 });
-await request(admin, '/management/portfolio', { expected: 403 });
+await request(admin, '/management/portfolio?asOf=2026-10-10&days=14', { expected: 403 });
 
 const managementProjects = await request(pm, '/management/projects');
 check(
@@ -8556,23 +8556,53 @@ check(
   'V0.8-A Management summary leaked protected source rows/details.',
 );
 
-const managementPortfolio = await request(pm, '/management/portfolio');
+const managementPortfolio = await request(
+  pm,
+  '/management/portfolio?asOf=2026-10-10&days=14',
+);
+const portfolioProject = managementPortfolio.data.data.projects.find(
+  (item) => item.project?.id === projectId,
+);
 check(
-  managementPortfolio.data.data.contractVersion === 'V0.8-A' &&
+  managementPortfolio.data.data.contractVersion === 'V0.8-C' &&
     managementPortfolio.data.data.projectCount >= 1 &&
-    managementPortfolio.data.data.projects.some((item) => item.id === projectId) &&
-    managementPortfolio.data.data.scope?.inaccessibleProjectsExcludedBeforeAggregation === true,
-  'V0.8-A Management portfolio did not expose the authorized Project scope.',
+    Boolean(portfolioProject) &&
+    managementPortfolio.data.data.scope?.inaccessibleProjectsExcludedBeforeAggregation === true &&
+    managementPortfolio.data.data.scope?.portfolioPermissionRequired === true,
+  'V0.8-C Executive portfolio did not expose the authorized Project scope.',
+);
+check(
+  managementPortfolio.data.data.baseCurrencyCode === 'SGD' &&
+    Number(managementPortfolio.data.data.totals?.cost?.revisedBudget) >=
+      Number(managementSummary.data.data.domains?.cost?.revisedBudget) &&
+    Number(managementPortfolio.data.data.totals?.finance?.netCashFlow) >=
+      Number(managementSummary.data.data.domains?.finance?.netCashFlow) &&
+    ['ON_TRACK', 'ATTENTION', 'CRITICAL'].includes(
+      portfolioProject?.health?.status,
+    ) &&
+    managementPortfolio.data.data.boundaries?.deterministicHealthSignals === true &&
+    managementPortfolio.data.data.boundaries?.manualHealthOverride === false,
+  'V0.8-C Executive portfolio did not reconcile canonical finance/cost measures and deterministic health signals.',
+);
+const serializedPortfolio = JSON.stringify(managementPortfolio.data.data);
+check(
+  !serializedPortfolio.includes('generalRemarks') &&
+    !serializedPortfolio.includes('paymentNumber') &&
+    !serializedPortfolio.includes('sourceEvidence') &&
+    !serializedPortfolio.includes('"activities"') &&
+    !serializedPortfolio.includes('"lines"') &&
+    !serializedPortfolio.includes('"rows"'),
+  'V0.8-C Executive portfolio leaked protected source rows/details.',
 );
 const unassignedManagementPortfolio = await request(
   unassigned,
-  '/management/portfolio',
+  '/management/portfolio?asOf=2026-10-10&days=14',
 );
 check(
   !unassignedManagementPortfolio.data.data.projects.some(
-    (item) => item.id === projectId,
+    (item) => item.project?.id === projectId,
   ),
-  'V0.8-A Management portfolio included an inaccessible Project before aggregation.',
+  'V0.8-C Executive portfolio included an inaccessible Project before aggregation.',
 );
 await request(
   unassigned,
@@ -8581,6 +8611,7 @@ await request(
 );
 record('V0.8-A Management read-model contract composes canonical Schedule/Procurement/Inventory/Cost/Finance aggregates, preserves source-detail boundaries and enforces Management/Project authorization');
 record('V0.8-B Management Project selector preserves dashboard permission and effective Project scope');
+record('V0.8-C Executive portfolio composes authorized cross-Project health, schedule, procurement, inventory, cost, cash and profitability indicators without protected-detail leakage');
 
 await logout(v07Restricted);
 await logout(pm);
