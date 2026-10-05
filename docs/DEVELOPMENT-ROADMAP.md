@@ -844,9 +844,9 @@ Immediate sequence:
 31. PR #181 squash-merged as `00d3720205d1bdfeb5b3216ad2e91ad72c80f84e`; post-merge exact-main CI #3111 PASS.
 32. **V0.8-E pre-flight / review reconciliation is COMPLETE.**
 33. Existing branch `v0.8-e-reporting-export` was reconciled forward without force-push as two-parent merge commit `d90c4e1e19ce81d02b05ee363e117d2dd4a9deda`, preserving the prior Stage-E implementation work and the complete PR #181 main tree.
-34. **V0.8-E implementation is UNDER VALIDATION** under Issue #179. Draft PR #182 packages the Stage-E report/export/hardening implementation.
-35. PR #182 technical head `9626d4b1b170a7e41af29e5412da2d65643f4974` passed exact-head CI #3152 including authenticated live acceptance after Chat stable-candidate review fixed a stale reporting/export deferral P2 and an AC-V08-015 source-drilldown/permission-parity P1 with regression coverage.
-36. Current Stage-E gate: documentation/evidence reconciliation exact-head CI → mark PR #182 Ready → single DEC-022 exact-head review → resolve genuine findings → squash merge/post-merge exact-main CI → Issue #179 technical closure → human AC-V08-039/040 release-exit gate.
+34. **V0.8-E implementation is UNDER VALIDATION** under Issue #179. PR #182 is READY and mergeable and packages the Stage-E report/export/hardening implementation.
+35. Reviewed packaging head `3b0d17cb69548a2007d32ec88f008818b4fd448b` passed exact-head CI #3179 including authenticated live acceptance. DEC-022 reviewed that exact head and found one genuine P2 limited to stale live-state documentation describing the earlier pre-Ready/#3152 state.
+36. Current Stage-E gate: forward documentation-only P2 remediation → exact-head CI → resolve the P2 review thread → fresh exact-head DEC-022 re-review → squash merge/post-merge exact-main CI → Issue #179 technical closure → human AC-V08-039/040 release-exit gate.
 
 
 # 23. Baseline Decision
