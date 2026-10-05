@@ -805,9 +805,9 @@ Create detailed issues shortly before the relevant release/module enters develop
 
 Completed release: **V0.7 Cost Control — COMPLETE AND ACCEPTED**.
 
-Current release: **V0.8 Management — TECHNICALLY COMPLETE / RELEASE EXIT ACTIVE**.
+Current release: **V0.8 Management — TECHNICALLY COMPLETE / OWNER ACCEPTED / RELEASE CLOSURE ACTIVE**.
 
-Current stage: **V0.8 RELEASE EXIT — V0.8-A through V0.8-E TECHNICALLY COMPLETE / PROXY UAT PASS / HUMAN OWNER CONFIRMATION PENDING**.
+Current stage: **V0.8 RELEASE CLOSURE — V0.8-A through V0.8-E TECHNICALLY COMPLETE / AC-V08-039 AND AC-V08-040 OWNER ACCEPTED / ISSUE #184 ACTIVE**.
 
 Immediate sequence:
 
@@ -847,7 +847,7 @@ Immediate sequence:
 34. **V0.8-E is technically COMPLETE.** PR #182 final head `1092a3b197b346f71e55671b5235aec90b536b81` passed CI #3307/#3308 and clean final DEC-022 review; PR #182 squash-merged as `542b1df9ad866f9b557e06ec2ca366b6131e2f94`; post-merge main CI #3309 PASS; Issue #179 CLOSED / COMPLETED.
 35. Historical Stage-E review checkpoint: the Finance currency-drift P2 was fixed and regression-covered together with the analogous filtered Cost invariant; exact head `4473b942142a32ae11f9abd90df47854a5aad662` passed push CI #3247 and PR CI #3248 including authenticated live acceptance, and that review thread was resolved.
 36. Historical Stage-E review checkpoint: a later DEC-022 review found two additional P2s—non-actionable browser source drilldown and stale live status. Both were fixed; final head `1092a3b197b346f71e55671b5235aec90b536b81` ultimately passed CI #3307/#3308 and clean DEC-022 review before merge.
-37. **Current release-exit gate:** Chat-assisted proxy UAT PASS with no blocking business defect identified → Product / Business Owner human confirmation under AC-V08-039 → explicit acceptance under AC-V08-040 → V0.8 release closure. No successor release begins before those gates close.
+37. **Current release-closure gate:** Chat-assisted proxy UAT PASS with no blocking business defect identified → AC-V08-039 human UAT confirmation ACCEPTED by Product / Business Owner → AC-V08-040 explicit release acceptance ACCEPTED → Issue #184 / PR #185 documentation-only closure → post-merge main CI → Issue #184 close → V0.8 COMPLETE + ACCEPTED. V1.0 Production remains AFTER V0.8 until those closure gates finish.
 
 
 # 23. Baseline Decision
