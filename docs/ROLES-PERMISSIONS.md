@@ -1,4 +1,4 @@
-**V0.8-E implementation authorization note — 2026-10-05:** Pre-flight/review reconciliation is complete under PR #181 / main `00d3720205d1bdfeb5b3216ad2e91ad72c80f84e` / CI #3111, and active branch `v0.8-e-reporting-export` is reconciled at `d90c4e1e19ce81d02b05ee363e117d2dd4a9deda`. Stage E reuses explicit `management.report.export` for controlled export of already-authorized report results; it adds no new permission. Company isolation, effective Project access and Management permissions remain independent checks; `projects.access_all` and technical SYS_ADMIN do not imply Management/report/export authority or protected source detail. Screen and CSV must apply identical authorization/filter boundaries; protected drilldown continues to require owning-module permissions.
+**V0.8-E stable-candidate authorization note — 2026-10-05:** PR #182 technical head `9626d4b1b170a7e41af29e5412da2d65643f4974` passed CI #3152 including authenticated live acceptance. Stage E reuses explicit `management.report.export` for controlled export and adds no new permission. Chat stable-candidate review fixed an AC-V08-015 P1 so advertised source drilldowns now match the owning endpoint permission: Schedule/Procurement use `reporting.operational.view`; Inventory uses `inventory.report.view`; Cost/Commercial use `cost.control.view`; Finance AP/AR/Cash Flow use `finance.ap.view`, `finance.ar.view` and `finance.payment.view` respectively. Company isolation/effective Project access remain mandatory; `projects.access_all` and SYS_ADMIN do not imply Management/export/source-detail authority.
 
 **V0.8-D closure note — 2026-10-05:** Dedicated Schedule, Procurement, Inventory, Cost and Finance Management dashboard tabs reuse canonical source-module semantics with no new Management permission. Final head `e11a77391ebfb43ff4431820ea363964f525f545` passed CI #2995 and clean DEC-022 review; PR #177 merged as `ff3dc08a4aee9945bb0b195627e31577f766f691` with exact-main CI #2996 PASS. Closure PR #178 merged as `4c47fd7713eb1faa57bf4ad8270b254a8bca96a7` with exact-main CI #3011 PASS; Issue #175 closed completed. V0.8-D authorization behavior is technically COMPLETE.
 
@@ -17,7 +17,7 @@
 # Construction ERP — Roles & Permissions Model
 
 **Document Status:** Roles & Permissions Baseline v0.1  
-**Current Phase:** V0.8-E Reporting / Export / Hardening — IMPLEMENTATION ACTIVE  
+**Current Phase:** V0.8-E Reporting / Export / Hardening — UNDER VALIDATION / DEC-022 GATE  
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1
