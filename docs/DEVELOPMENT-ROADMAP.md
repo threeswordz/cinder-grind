@@ -836,7 +836,7 @@ Immediate sequence:
 23. PR #177 squash-merged to `main` as `ff3dc08a4aee9945bb0b195627e31577f766f691`; exact-main CI #2996 PASS.
 24. Stage-D closure PR #178 final head `170f359fa8fb8540e098a722c6b0aafa7c111d11` passed CI #3010 and clean exact-head DEC-022 review; PR #178 squash-merged as `4c47fd7713eb1faa57bf4ad8270b254a8bca96a7`; exact-main CI #3011 PASS; Issue #175 CLOSED / COMPLETED.
 25. **V0.8-D Domain Dashboards is technically COMPLETE.**
-26. Issue #179 remains the open V0.8-E stage tracker.
+26. Historical Stage-E tracker: Issue #179 is CLOSED / COMPLETED after PR #182 merge and post-merge main CI #3309 PASS.
 27. Pre-flight branch `v0.8-e-preflight` reached final head `bd9c3eb351de410821353806837bad0ffddcfb81`; push CI #3036 PASS and PR CI #3037 PASS.
 28. DEC-022 review of that head identified one genuine P2: `README.md` and `docs/LIVE-POSITION-REPORTING-STANDARD.md` still contained obsolete V0.8-B/C/D/E live-position guidance.
 29. PR #180 was merged externally as `2f84928c130f328fb1e02d616c41cacb21dc65e1` before the P2 was resolved; exact-main CI #3038 PASS.
