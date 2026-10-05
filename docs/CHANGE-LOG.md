@@ -4,6 +4,8 @@
 - DEC-022 review found one genuine P2: stale live-position guidance remained in `README.md` and `docs/LIVE-POSITION-REPORTING-STANDARD.md`.
 - PR #180 was merged externally as `2f84928c130f328fb1e02d616c41cacb21dc65e1` before that P2 was resolved; exact-main CI #3038 PASS.
 - Forward remediation PR #181 updates those stale surfaces and records the review-reconciliation gate.
+- Fresh DEC-022 review of PR #181 identified a further genuine P2: additional mandatory live-status headers still pointed to the merged PR #180 / `v0.8-e-preflight` path. The reconciliation sweep now updates Requirements, Blueprint, Testing/UAT, API, permissions, database, dependency, entry-gate and scope live-status surfaces to PR #181.
+- A provisional `v0.8-e-reporting-export` branch exists but is frozen/unpackaged; it is not an authorized Stage-E implementation state and must be reconciled from the exact green post-PR-#181 main before implementation resumes.
 - V0.8-E application implementation remains NOT STARTED until PR #181 exact-head CI, fresh DEC-022 review, merge and exact-main CI pass.
 - No runtime, schema, migration, permission, dependency, business-rule, scope or governance behavior changes in this reconciliation.
 
