@@ -100,7 +100,7 @@ Use these terms consistently:
 - **ACCEPTED** — required Product / Business Owner human UAT/business acceptance for the release has been explicitly completed and durably recorded.
 - **ENTRY APPROVED** — the release entry baseline is approved and closed, but implementation has not yet started.
 - **ACTIVE** — implementation is currently in progress.
-- **PRE-FLIGHT ACTIVE** — an approved stage is in documentation/status pre-flight or review reconciliation; application implementation has not started and remains gated on pre-flight CI/review/merge/post-merge evidence.
+- **PRE-FLIGHT ACTIVE** — an approved stage is in documentation/status pre-flight or review reconciliation; the implementation gate is not cleared. Any provisional work that exists must remain frozen/unpackaged until the pre-flight CI/review/merge/post-merge evidence is complete.
 - **UNDER VALIDATION** — implementation exists, but one or more required technical gates remain before completion.
 - **BLOCKED — CODEX** — use only when a required Codex review is the actual remaining blocker.
 - **BLOCKED — OWNER DECISION** — a Product / Business Owner decision is required before proceeding.
