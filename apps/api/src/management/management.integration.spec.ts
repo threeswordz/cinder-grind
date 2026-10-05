@@ -34,7 +34,10 @@ function decimal(value: string) {
   return new Prisma.Decimal(value);
 }
 
-function managementReportFixture(projectName = 'Management Project') {
+function managementReportFixture(
+  projectName = 'Management Project',
+  periodCashFlowCurrency = 'SGD',
+) {
   let receivedCostFilters: Record<string, string> | null = null;
   let receivedCashPeriod:
     | { fromDate?: Date; toDateExclusive?: Date }
@@ -164,7 +167,7 @@ function managementReportFixture(projectName = 'Management Project') {
       receivedCashPeriod = { ...period };
       const filtered = Boolean(period.fromDate || period.toDateExclusive);
       return {
-        baseCurrencyCode: 'SGD',
+        baseCurrencyCode: filtered ? periodCashFlowCurrency : 'SGD',
         totals: {
           inflowAmount: decimal(filtered ? '10' : '650'),
           outflowAmount: decimal(filtered ? '3' : '90'),
@@ -947,6 +950,34 @@ test('V0.8-E Finance report applies date range only to canonical Project Cash Fl
       (row) => row.metric === 'ACCOUNTS_RECEIVABLE_OUTSTANDING',
     )?.sourceApiPath,
     '/finance/projects/project-1/accounts-receivable',
+  );
+});
+
+test('V0.8-E Finance date-range report fails closed if period cash-flow currency changes after summary', async () => {
+  const fixture = managementReportFixture('Management Project', 'USD');
+
+  await assert.rejects(
+    () =>
+      fixture.service.projectReport(
+        auth([
+          'management.dashboard.view',
+          'finance.ap.view',
+          'finance.ar.view',
+          'finance.payment.view',
+        ]),
+        'project-1',
+        {
+          asOf: new Date('2026-10-10T00:00:00.000Z'),
+          days: 14,
+          domain: 'FINANCE',
+          fromDate: new Date('2026-10-01T00:00:00.000Z'),
+          toDateExclusive: new Date('2026-10-06T00:00:00.000Z'),
+        },
+      ),
+    (error: unknown) =>
+      error instanceof Error &&
+      error.message ===
+        'Canonical Management financial sources returned inconsistent Company base currencies.',
   );
 });
 
