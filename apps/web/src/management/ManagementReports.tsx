@@ -18,6 +18,7 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 
+import { apiUrl } from '../api/client';
 import {
   ManagementReportDomain,
   ManagementReportFilters,
@@ -341,11 +342,23 @@ export function ManagementReports({
                         <Typography variant="body2">
                           {row.canonicalSource}
                         </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {row.sourceViewAvailable
-                            ? 'Protected drilldown permitted'
-                            : 'Aggregate only'}
-                        </Typography>
+                        {row.sourceApiPath ? (
+                          <Button
+                            component="a"
+                            href={apiUrl(row.sourceApiPath)}
+                            target="_blank"
+                            rel="noreferrer"
+                            size="small"
+                            variant="text"
+                            sx={{ alignSelf: 'flex-start', minWidth: 0, px: 0 }}
+                          >
+                            Open source data
+                          </Button>
+                        ) : (
+                          <Typography variant="caption" color="text.secondary">
+                            Aggregate only
+                          </Typography>
+                        )}
                       </Stack>
                     </TableCell>
                   </TableRow>
