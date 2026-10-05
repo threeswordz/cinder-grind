@@ -2,7 +2,7 @@
 
 **Document Status:** Architecture Baseline v0.1
 **Current Phase:** V0.8 Management — ACTIVE / V0.8-A COMPLETE / V0.8-B COMPLETE / V0.8-C COMPLETE / V0.8-D COMPLETE / V0.8-E UNDER VALIDATION / DEC-022 GATE
-**V0.8-E DEC-022 Finance remediation checkpoint — 2026-10-05:** V0.8-D is technically COMPLETE. PR #182 is READY and mergeable. The prior stale-live-state P2 is resolved. Fresh DEC-022 review of `5c415ac10bb61bc83a7d6fe217a02abccbeb4d33` found one genuine Finance period-filter P2: a base-currency change between the Management summary and second filtered cash-flow read could cause filtered totals to carry the stale summary currency. The active branch now enforces base-currency parity and regression-covers the drift. V0.8-E remains UNDER VALIDATION under Issue #179 pending exact-head CI, current P2 thread resolution, fresh DEC-022 exact-head re-review, merge/post-merge CI and technical issue closure.
+**V0.8-E DEC-022 source-drilldown remediation checkpoint — 2026-10-05:** V0.8-D is technically COMPLETE. PR #182 is READY and mergeable. Exact head `4473b942142a32ae11f9abd90df47854a5aad662` passed CI #3247/#3248 and resolved the Finance currency-drift P2. Fresh DEC-022 review found two additional P2s: AC-V08-015 source drilldown was not actionable in the browser and live status lagged the green exact-head evidence. The active branch now consumes permission-safe `sourceApiPath` values as authenticated canonical source-data actions and reconciles the live status. V0.8-E remains UNDER VALIDATION under Issue #179 pending new exact-head CI, both P2 thread resolutions, fresh DEC-022 exact-head re-review, merge/post-merge CI and technical issue closure.
 
 **System:** Construction ERP
 **Primary Platform:** Web Application
