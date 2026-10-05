@@ -414,8 +414,10 @@ export class ManagementService {
       : summary.domains.cost;
 
     if (
-      periodCashFlow &&
-      periodCashFlow.baseCurrencyCode !== summary.baseCurrencyCode
+      (dimensionCost &&
+        dimensionCost.baseCurrencyCode !== summary.baseCurrencyCode) ||
+      (periodCashFlow &&
+        periodCashFlow.baseCurrencyCode !== summary.baseCurrencyCode)
     ) {
       throw new Error(
         'Canonical Management financial sources returned inconsistent Company base currencies.',
