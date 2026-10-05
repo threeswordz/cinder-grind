@@ -1,3 +1,10 @@
+## 2026-10-05 — V0.8-E DEC-022 live-state P2 remediation
+
+- PR #182 is READY and mergeable. Reviewed packaging head `3b0d17cb69548a2007d32ec88f008818b4fd448b` passed exact-head CI #3179, including full workspace regression and authenticated live HTTP acceptance.
+- DEC-022 reviewed that exact head and raised one genuine P2 limited to stale live-state documentation that still described PR #182 as DRAFT, cited the earlier technical head/CI #3152 and treated Ready/final documentation CI as future work.
+- This forward documentation-only remediation reconciles the mandatory live-status surfaces to the actual Ready/#3179/DEC-022 state. It changes no runtime, schema, migration, permission, dependency, business rule, scope or governance behavior.
+- Next gate: exact-head CI on this remediation → resolve the P2 review thread → fresh exact-head DEC-022 re-review → squash merge/post-merge main CI → Issue #179 technical closure. Human AC-V08-039/040 remain separate release-exit gates.
+
 ## 2026-10-05 — V0.8-E stable candidate reached after Chat hardening
 
 - PR #182 technical head `9626d4b1b170a7e41af29e5412da2d65643f4974` passed exact-head CI #3152 including Prisma/schema validation, dependency audit, migration/status checks, full workspace regression, UAT-admin bootstrap and authenticated live HTTP acceptance.
