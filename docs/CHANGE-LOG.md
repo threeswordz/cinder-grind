@@ -5,7 +5,7 @@
 - This forward documentation-only remediation reconciles the mandatory live-status surfaces to the actual Ready/#3179/DEC-022 state. It changes no runtime, schema, migration, permission, dependency, business rule, scope or governance behavior.
 - Next gate: exact-head CI on this remediation → resolve the P2 review thread → fresh exact-head DEC-022 re-review → squash merge/post-merge main CI → Issue #179 technical closure. Human AC-V08-039/040 remain separate release-exit gates.
 
-## 2026-10-05 — V0.8-E stable candidate reached after Chat hardening
+## 2026-10-05 — V0.8-E stable candidate reached after Chat hardening (historical checkpoint)
 
 - PR #182 technical head `9626d4b1b170a7e41af29e5412da2d65643f4974` passed exact-head CI #3152 including Prisma/schema validation, dependency audit, migration/status checks, full workspace regression, UAT-admin bootstrap and authenticated live HTTP acceptance.
 - Chat stable-candidate review fixed two genuine findings before DEC-022: P2 stale `deferredToLaterStages.reportingExport = true` after Stage-E delivery, and P1 AC-V08-015 source-drilldown/owning-permission mismatch across Schedule/Procurement/Inventory/Finance report rows.
