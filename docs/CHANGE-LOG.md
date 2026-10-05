@@ -1,3 +1,11 @@
+## 2026-10-05 — V0.8-E technical closure and Chat-assisted proxy UAT
+
+- PR #182 final exact head `1092a3b197b346f71e55671b5235aec90b536b81` passed push CI #3307 and PR CI #3308, including full workspace regression and authenticated live HTTP acceptance.
+- Final DEC-022 exact-head review reported no major issues after all Stage-E P1/P2 findings were fixed and resolved, including actionable permission-safe source drilldown and base-currency drift hardening.
+- PR #182 squash-merged as `542b1df9ad866f9b557e06ec2ca366b6131e2f94`; post-merge exact-main CI #3309 PASS with 69 authenticated current-release runtime acceptance checks; Issue #179 CLOSED / COMPLETED. V0.8-E is technically COMPLETE.
+- At Product / Business Owner instruction, Chat performed a proxy business UAT walkthrough across Management access/project scope, Project Engineer/Manager/domain dashboards, Executive portfolio, canonical cross-module reconciliation, filters, CSV/print, source drilldown, security negatives and base-currency integrity. Result: **PROXY UAT PASS — no blocking business defect identified**. See `docs/V0.8-UAT-EVIDENCE.md`.
+- The proxy result does not self-sign the human-owner release gates: AC-V08-039 human UAT confirmation and AC-V08-040 explicit Product / Business Owner release acceptance remain pending.
+
 ## 2026-10-05 — V0.8-E DEC-022 source-drilldown and live-state P2 remediation
 
 - Exact PR #182 head `4473b942142a32ae11f9abd90df47854a5aad662` passed push CI #3247 and PR CI #3248, including full workspace regression and authenticated live HTTP acceptance; the Finance currency-drift P2 was fixed/resolved, with the same fail-closed invariant applied to filtered Cost reads.

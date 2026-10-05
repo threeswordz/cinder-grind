@@ -1,4 +1,4 @@
-**V0.8-E DEC-022 source-drilldown remediation API note — 2026-10-05:** PR #182 is READY and mergeable. The Finance currency-drift P2 is fixed/regression-covered together with the analogous filtered Cost invariant; exact head `4473b942142a32ae11f9abd90df47854a5aad662` passed CI #3247/#3248 including authenticated live acceptance. Fresh DEC-022 review found two further P2s: the browser did not make the permission-safe `sourceApiPath` actionable under AC-V08-015, and live status lagged the green exact-head evidence. The API contract remains permission-authoritative and unchanged; the web now consumes non-null `sourceApiPath` as an authenticated canonical source-data link. Combined remediation/status head `de1c8c7bc50f376c07fd27da85c7559b68b9dbda` passes push CI #3279 and PR CI #3280 including authenticated live acceptance; runtime behavior is frozen pending final review. `GET /api/v1/management/reports` and CSV continue to share the same authorized/filter result boundary. No FX, persisted report truth, synthetic allocation or paid reporting dependency is introduced.
+**V0.8 technical-closure API note — 2026-10-05:** V0.8-E is technically COMPLETE. PR #182 final head `1092a3b197b346f71e55671b5235aec90b536b81` passed CI #3307/#3308 and clean final DEC-022 review, squash-merged as `542b1df9ad866f9b557e06ec2ca366b6131e2f94`, and post-merge main CI #3309 passed. `GET /api/v1/management/reports` and CSV share the same authorized/filter result boundary; permission-safe source drilldown is actionable only when the server supplies `sourceApiPath`. No FX, persisted report truth, synthetic allocation or paid reporting dependency is introduced. Proxy UAT is PASS; AC-V08-039/040 human release-exit gates remain pending.
 
 **V0.8-D implementation / closure note — 2026-10-05:** Dedicated Schedule, Procurement, Inventory, Cost and Finance Management dashboard tabs reuse the existing Project summary and canonical source-module semantics. The two initial P1 findings and later high-volume Inventory movement reconciliation P2 were fixed/regression-covered. Final exact head `e11a77391ebfb43ff4431820ea363964f525f545` passed CI #2995 including authenticated live acceptance and clean DEC-022 review; PR #177 merged as `ff3dc08a4aee9945bb0b195627e31577f766f691` with exact-main CI #2996 PASS. Closure PR #178 merged as `4c47fd7713eb1faa57bf4ad8270b254a8bca96a7` with exact-main CI #3011 PASS; Issue #175 closed completed. V0.8-D is technically COMPLETE.
 
@@ -17,7 +17,7 @@
 # Construction ERP — API Architecture
 
 **Document Status:** API Architecture Baseline v0.1  
-**Current Phase:** V0.8-E Reporting / Export / Hardening — UNDER VALIDATION / DEC-022 GATE  
+**Current Phase:** V0.8 Management — TECHNICALLY COMPLETE / PROXY UAT PASS / HUMAN RELEASE EXIT PENDING  
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1  

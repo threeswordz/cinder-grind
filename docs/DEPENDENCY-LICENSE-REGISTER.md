@@ -1,12 +1,12 @@
 # Construction ERP — Dependency License Register
 
 **Document Status:** Dependency License Baseline v0.1  
-**Current Phase:** V0.8 Management — ACTIVE / V0.8-A through V0.8-D COMPLETE / V0.8-E UNDER VALIDATION / DEC-022 GATE  
+**Current Phase:** V0.8 Management — TECHNICALLY COMPLETE / V0.8-A through V0.8-E COMPLETE / PROXY UAT PASS / HUMAN RELEASE EXIT PENDING  
 **Policy:** Open-Source First  
 **License Verification Date:** 2026-09-26  
 **Version Status:** V0.1-A direct package versions selected and pinned in package manifests.
 
-**V0.8-E DEC-022 source-drilldown remediation dependency note — 2026-10-05:** PR #182 is READY and mergeable. Exact head `4473b942142a32ae11f9abd90df47854a5aad662` passed CI #3247/#3248 and resolved the Finance currency-drift P2. Fresh DEC-022 review found two further P2s involving browser consumption of the existing permission-safe `sourceApiPath` and stale live status. The forward fix uses existing MUI/web/API client capabilities and adds no runtime or hosted-service dependency. Combined remediation/status head `de1c8c7bc50f376c07fd27da85c7559b68b9dbda` passes push CI #3279 and PR CI #3280 including authenticated live acceptance; runtime behavior is frozen pending final review. DEC-008 remains mandatory; controlled CSV/reporting remains zero-cost/open-source-first with no mandatory paid BI/reporting service.
+**V0.8 technical-closure dependency note — 2026-10-05:** V0.8-E is technically complete. PR #182 final head `1092a3b197b346f71e55671b5235aec90b536b81` passed CI #3307/#3308 and clean final DEC-022 review, squash-merged as `542b1df9ad866f9b557e06ec2ca366b6131e2f94`, and post-merge main CI #3309 passed. The release introduced no mandatory paid runtime/reporting dependency; DEC-008 remains satisfied. Proxy UAT is PASS; AC-V08-039/040 human release-exit gates remain pending.
 
 ---
 

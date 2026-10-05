@@ -1,11 +1,11 @@
-**V0.8 DEC-022 source-drilldown remediation reconciliation — 2026-10-05:** V0.8-A through V0.8-D are technically complete and V0.8-E is UNDER VALIDATION on PR #182. Exact head `4473b942142a32ae11f9abd90df47854a5aad662` passed CI #3247/#3248 and resolved the Finance currency-drift P2. Fresh DEC-022 review found two further P2s: browser source drilldown was non-actionable and live status lagged the green exact-head evidence. The forward fix is web/status-only and adds no schema or migration. Combined remediation/status head `de1c8c7bc50f376c07fd27da85c7559b68b9dbda` passes push CI #3279 and PR CI #3280 including authenticated live acceptance; runtime behavior is frozen pending final review. Stage E remains a derived read/composition layer over canonical source modules with no editable KPI/report ledger, data warehouse, OLAP store, FX engine or synthetic allocation.
+**V0.8 technical-closure reconciliation — 2026-10-05:** V0.8-A through V0.8-E are technically complete. PR #182 final head `1092a3b197b346f71e55671b5235aec90b536b81` passed CI #3307/#3308 and clean final DEC-022 review, squash-merged as `542b1df9ad866f9b557e06ec2ca366b6131e2f94`, and post-merge main CI #3309 passed. Stage E remains a derived read/composition layer over canonical source modules with no added schema/migration, editable KPI/report ledger, data warehouse, OLAP store, FX engine or synthetic allocation. Proxy UAT is PASS; AC-V08-039/040 human release-exit gates remain pending.
 
 **V0.7 implementation reconciliation — 2026-10-04:** `direct_cost_postings`, `cost_forecasts` / `cost_forecast_lines` and `project_variations` are implemented through forward-only migrations with retained approval/history integrity. Stage E reporting remains a derived read model over canonical source modules and these Cost Control-owned mutation entities; it does not add an editable report ledger.
 
 # Construction ERP — Database ERD
 
 **Document Status:** Database Baseline v0.1  
-**Current Phase:** V0.8 Management — ACTIVE / V0.8-A through V0.8-D COMPLETE / V0.8-E UNDER VALIDATION / DEC-022 GATE  
+**Current Phase:** V0.8 Management — TECHNICALLY COMPLETE / V0.8-A through V0.8-E COMPLETE / PROXY UAT PASS / HUMAN RELEASE EXIT PENDING  
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database:** PostgreSQL  

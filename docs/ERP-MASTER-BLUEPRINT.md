@@ -1,8 +1,8 @@
 # Construction ERP — Master Blueprint
 
 **Document Status:** Architecture Baseline v0.1
-**Current Phase:** V0.8 Management — ACTIVE / V0.8-A COMPLETE / V0.8-B COMPLETE / V0.8-C COMPLETE / V0.8-D COMPLETE / V0.8-E UNDER VALIDATION / DEC-022 GATE
-**V0.8-E DEC-022 source-drilldown remediation checkpoint — 2026-10-05:** V0.8-D is technically COMPLETE. PR #182 is READY and mergeable. Exact head `4473b942142a32ae11f9abd90df47854a5aad662` passed CI #3247/#3248 and resolved the Finance currency-drift P2. Fresh DEC-022 review found two additional P2s: AC-V08-015 source drilldown was not actionable in the browser and live status lagged the green exact-head evidence. The active branch now consumes permission-safe `sourceApiPath` values as authenticated canonical source-data actions and reconciles the live status. Combined remediation/status head `de1c8c7bc50f376c07fd27da85c7559b68b9dbda` passes push CI #3279 and PR CI #3280 including authenticated live acceptance. Runtime behavior is frozen. V0.8-E remains UNDER VALIDATION under Issue #179 pending both P2 thread resolutions, fresh DEC-022 exact-head re-review, merge/post-merge CI and technical issue closure.
+**Current Phase:** V0.8 Management — TECHNICALLY COMPLETE / V0.8-A through V0.8-E COMPLETE / PROXY UAT PASS / HUMAN RELEASE EXIT PENDING
+**V0.8 technical-closure checkpoint — 2026-10-05:** V0.8-A through V0.8-E are technically COMPLETE. PR #182 final head `1092a3b197b346f71e55671b5235aec90b536b81` passed CI #3307/#3308 and clean final DEC-022 review, squash-merged as `542b1df9ad866f9b557e06ec2ca366b6131e2f94`, post-merge main CI #3309 passed with 69 authenticated current-release runtime acceptance checks, and Issue #179 closed completed. Chat-assisted proxy UAT is PASS with no blocking business defect identified. AC-V08-039 human owner confirmation and AC-V08-040 explicit release acceptance remain pending.
 
 **System:** Construction ERP
 **Primary Platform:** Web Application
@@ -1675,13 +1675,13 @@ Completed Release:
 
 **V0.7 Cost Control — COMPLETE AND ACCEPTED**
 
-Next Release:
+Current Release:
 
-**V0.8 Management**
+**V0.8 Management — TECHNICALLY COMPLETE / RELEASE EXIT ACTIVE**
 
 Current Stage:
 
-**V0.8-E Cross-Module Reporting / Export / Hardening / Release Evidence — IMPLEMENTATION ACTIVE**
+**V0.8 RELEASE EXIT — PROXY UAT PASS / HUMAN OWNER CONFIRMATION PENDING**
 
 Live delivery position:
 
@@ -1697,7 +1697,8 @@ Live delivery position:
 - V0.8-B Project Engineer & Project Manager Dashboards — complete
 - V0.8-C Executive / Cross-Project Management Dashboard — complete
 - V0.8-D Domain Dashboards — complete
-- V0.8-E Cross-Module Reporting / Export / Hardening / Release Evidence — implementation active on reconciled branch `v0.8-e-reporting-export`
+- V0.8-E Cross-Module Reporting / Export / Hardening / Release Evidence — technically complete; PR #182 merged as `542b1df9ad866f9b557e06ec2ca366b6131e2f94`, post-merge main CI #3309 PASS, Issue #179 closed completed
+- V0.8 release exit — active; Chat-assisted proxy UAT PASS with no blocking business defect identified, while AC-V08-039 human confirmation and AC-V08-040 explicit Product / Business Owner acceptance remain pending
 
 V0.8-D final head `e11a77391ebfb43ff4431820ea363964f525f545` passed exact-head CI #2995 including authenticated live acceptance; final DEC-022 review reported no major issues. PR #177 squash-merged as `ff3dc08a4aee9945bb0b195627e31577f766f691`; exact-main CI #2996 PASS. Closure PR #178 merged as `4c47fd7713eb1faa57bf4ad8270b254a8bca96a7`; exact-main CI #3011 PASS; Issue #175 closed completed. V0.8-D is technically COMPLETE.
 
