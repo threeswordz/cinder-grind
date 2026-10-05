@@ -474,12 +474,24 @@ export class ManagementService {
     };
 
     const sources = {
-      SCHEDULE: summary.sourceTraceability.scheduleSite,
-      PROCUREMENT: summary.sourceTraceability.procurement,
+      SCHEDULE: this.sourceContract(
+        auth,
+        'V0.2 Scheduling / Site Execution',
+        ['reporting.operational.view'],
+      ),
+      PROCUREMENT: this.sourceContract(
+        auth,
+        'V0.3 Procurement',
+        ['reporting.operational.view'],
+      ),
       INVENTORY: summary.sourceTraceability.inventory,
       COST: summary.sourceTraceability.cost,
       COMMERCIAL: summary.sourceTraceability.cost,
-      FINANCE: summary.sourceTraceability.finance,
+      FINANCE: this.sourceContract(
+        auth,
+        'V0.6 Finance Cash Flow',
+        ['finance.payment.view'],
+      ),
     };
 
     const rows: ManagementReportRow[] = [];
@@ -490,8 +502,21 @@ export class ManagementService {
       status: ManagementReportStatus,
       value: string | number | null,
       unit: 'COUNT' | 'MONEY',
+      sourceOverride?: {
+        canonicalSource: string;
+        permissionCodes: string[];
+        apiPath: string;
+      },
     ) => {
-      const source = sources[domain];
+      const source = sourceOverride
+        ? this.sourceContract(
+            auth,
+            sourceOverride.canonicalSource,
+            sourceOverride.permissionCodes,
+          )
+        : sources[domain];
+      const sourceApiPath =
+        sourceOverride?.apiPath ?? sourcePaths[domain];
       rows.push({
         domain,
         metric,
@@ -504,7 +529,7 @@ export class ManagementService {
         canonicalSource: source.canonicalSource,
         sourceViewAvailable: source.sourceViewAvailable,
         sourceApiPath: source.sourceViewAvailable
-          ? sourcePaths[domain]
+          ? sourceApiPath
           : null,
       });
     };
@@ -614,6 +639,12 @@ export class ManagementService {
       'AVAILABLE',
       summary.domains.inventory.movementRowCount,
       'COUNT',
+      {
+        canonicalSource: 'V0.4 Inventory Movement Reporting',
+        permissionCodes: ['inventory.report.view'],
+        apiPath:
+          '/inventory/reports/movement-summary?projectId=' + projectId,
+      },
     );
 
     const costRows: Array<
@@ -688,6 +719,11 @@ export class ManagementService {
       'AVAILABLE',
       finance.accountsPayable.outstandingAmount,
       'MONEY',
+      {
+        canonicalSource: 'V0.6 Finance Accounts Payable',
+        permissionCodes: ['finance.ap.view'],
+        apiPath: '/finance/projects/' + projectId + '/accounts-payable',
+      },
     );
     add(
       'FINANCE',
@@ -696,6 +732,12 @@ export class ManagementService {
       'AVAILABLE',
       finance.accountsReceivable.outstandingAmount,
       'MONEY',
+      {
+        canonicalSource: 'V0.6 Finance Accounts Receivable',
+        permissionCodes: ['finance.ar.view'],
+        apiPath:
+          '/finance/projects/' + projectId + '/accounts-receivable',
+      },
     );
     add(
       'FINANCE',
