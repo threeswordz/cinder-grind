@@ -316,15 +316,11 @@ export class ManagementService {
     options: ManagementReportOptions,
   ) {
     const dimensionFilter = Boolean(options.wbsId || options.costCodeId);
-    if (
-      dimensionFilter &&
-      options.domain !== 'COST' &&
-      options.domain !== 'COMMERCIAL'
-    ) {
+    if (dimensionFilter && options.domain !== 'COST') {
       throw new UnprocessableEntityException({
         code: 'MANAGEMENT_REPORT_DIMENSION_UNSUPPORTED',
         detail:
-          'WBS/Cost Code filters are supported only for COST or COMMERCIAL Management reports.',
+          'WBS/Cost Code filters are supported only for COST Management reports because commercial/revenue values remain Project-level under the approved V0.7 semantics.',
       });
     }
 
@@ -440,6 +436,25 @@ export class ManagementService {
       '/cost-control' +
       (costQuery ? '?' + costQuery : '');
 
+    const toDateInclusive = options.toDateExclusive
+      ? new Date(options.toDateExclusive.getTime() - 86_400_000)
+      : undefined;
+    const financeQuery = [
+      options.fromDate
+        ? 'fromDate=' + encodeURIComponent(this.day(options.fromDate)!)
+        : '',
+      toDateInclusive
+        ? 'toDate=' + encodeURIComponent(this.day(toDateInclusive)!)
+        : '',
+    ]
+      .filter(Boolean)
+      .join('&');
+    const financeSourcePath =
+      '/finance/projects/' +
+      projectId +
+      '/cash-flow' +
+      (financeQuery ? '?' + financeQuery : '');
+
     const sourcePaths: Record<
       Exclude<ManagementReportDomain, 'ALL'>,
       string
@@ -454,8 +469,8 @@ export class ManagementService {
       PROCUREMENT: '/reporting/projects/' + projectId + '/procurement',
       INVENTORY: '/inventory/reports/balances?projectId=' + projectId,
       COST: costSourcePath,
-      COMMERCIAL: costSourcePath,
-      FINANCE: '/finance/projects/' + projectId + '/cash-flow',
+      COMMERCIAL: '/projects/' + projectId + '/cost-control',
+      FINANCE: financeSourcePath,
     };
 
     const sources = {
@@ -712,10 +727,6 @@ export class ManagementService {
         (options.domain === 'ALL' || row.domain === options.domain) &&
         (!options.status || row.status === options.status),
     );
-
-    const toDateInclusive = options.toDateExclusive
-      ? new Date(options.toDateExclusive.getTime() - 86_400_000)
-      : undefined;
 
     return {
       contractVersion: 'V0.8-E' as const,
@@ -1312,7 +1323,15 @@ export class ManagementService {
   }
 
   private csvCell(value: string | number | boolean | null): string {
-    const text = value === null ? '' : String(value);
+    const raw = value === null ? '' : String(value);
+    const numericString =
+      typeof value === 'string' &&
+      /^-?\d+(?:\.\d+)?$/.test(value);
+    const formulaLike =
+      typeof value === 'string' &&
+      !numericString &&
+      /^[=+@-]/.test(raw.trimStart());
+    const text = formulaLike ? "'" + raw : raw;
     return /[",\r\n]/.test(text)
       ? '"' + text.replaceAll('"', '""') + '"'
       : text;
