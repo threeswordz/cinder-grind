@@ -1,4 +1,4 @@
-**V0.8 technical-closure API note — 2026-10-05:** V0.8-E is technically COMPLETE. PR #182 final head `1092a3b197b346f71e55671b5235aec90b536b81` passed CI #3307/#3308 and clean final DEC-022 review, squash-merged as `542b1df9ad866f9b557e06ec2ca366b6131e2f94`, and post-merge main CI #3309 passed. `GET /api/v1/management/reports` and CSV share the same authorized/filter result boundary; permission-safe source drilldown is actionable only when the server supplies `sourceApiPath`. No FX, persisted report truth, synthetic allocation or paid reporting dependency is introduced. Proxy UAT is PASS; AC-V08-039 human UAT confirmation and AC-V08-040 explicit owner acceptance were accepted by the Product / Business Owner on 2026-10-05. Issue #184 / PR #185 track documentation-only release closure.
+**V0.8 technical-closure API note — 2026-10-05:** V0.8-E is technically COMPLETE. PR #182 final head `1092a3b197b346f71e55671b5235aec90b536b81` passed CI #3307/#3308 and clean final DEC-022 review, squash-merged as `542b1df9ad866f9b557e06ec2ca366b6131e2f94`, and post-merge main CI #3309 passed. `GET /api/v1/management/reports` and CSV share the same authorized/filter result boundary; permission-safe source drilldown is actionable only when the server supplies `sourceApiPath`. No FX, persisted report truth, synthetic allocation or paid reporting dependency is introduced. Proxy UAT is PASS; AC-V08-039 human UAT confirmation and AC-V08-040 explicit owner acceptance were accepted by the Product / Business Owner on 2026-10-05. PR #185 merged as `920d592e7ffe01cb83b106c215fa20adb959cb95`; post-merge main CI #3394 passed; Issue #184 is CLOSED / COMPLETED. V0.8 Management is COMPLETE + ACCEPTED. V1.0 Production / production-readiness is NEXT, subject to its separate entry decision and approved scope.
 
 **V0.8-D implementation / closure note — 2026-10-05:** Dedicated Schedule, Procurement, Inventory, Cost and Finance Management dashboard tabs reuse the existing Project summary and canonical source-module semantics. The two initial P1 findings and later high-volume Inventory movement reconciliation P2 were fixed/regression-covered. Final exact head `e11a77391ebfb43ff4431820ea363964f525f545` passed CI #2995 including authenticated live acceptance and clean DEC-022 review; PR #177 merged as `ff3dc08a4aee9945bb0b195627e31577f766f691` with exact-main CI #2996 PASS. Closure PR #178 merged as `4c47fd7713eb1faa57bf4ad8270b254a8bca96a7` with exact-main CI #3011 PASS; Issue #175 closed completed. V0.8-D is technically COMPLETE.
 
@@ -17,7 +17,7 @@
 # Construction ERP — API Architecture
 
 **Document Status:** API Architecture Baseline v0.1  
-**Current Phase:** V0.8 Management — TECHNICALLY COMPLETE / OWNER ACCEPTED / RELEASE CLOSURE ACTIVE  
+**Current Phase:** V0.8 Management — COMPLETE + ACCEPTED / V1.0 PRODUCTION-READINESS NEXT  
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1  
