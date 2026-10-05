@@ -4,9 +4,9 @@
 **Current Phase:** V0.8-E Cross-Module Reporting / Export / Hardening / Release Evidence — UNDER VALIDATION / DEC-022 GATE  
 **Architecture Baseline:** v0.1  
 **Source:** ERP-MASTER-BLUEPRINT.md  
-**Last Structural Review:** V0.8-E DEC-022 P2 remediation — 2026-10-05
+**Last Structural Review:** V0.8-E DEC-022 Finance currency-drift remediation — 2026-10-05
 
-**Live delivery note:** V0.1–V0.7 are complete and V0.7 Cost Control is accepted. The V0.8 Management entry gate and V0.8-A through V0.8-D are technically complete. V0.8-E is UNDER VALIDATION under Issue #179 / PR #182. PR #182 is READY and mergeable; reviewed packaging head `3b0d17cb69548a2007d32ec88f008818b4fd448b` passed CI #3179 including authenticated live acceptance. DEC-022 reviewed that exact head and found one genuine P2 limited to stale live-state documentation that still described the pre-Ready/#3152 state. This forward documentation-only remediation corrects the live requirements status. Next gate is exact-head CI → resolve P2 thread → fresh exact-head DEC-022 re-review → merge/post-merge CI. Human AC-V08-039/040 UAT and explicit Product / Business Owner release acceptance remain separate release-exit gates. Requirement approval/status remains governed by the approved baselines and Change Control; this note does not rewrite historical requirement approval.
+**Live delivery note:** V0.1–V0.7 are complete and V0.7 Cost Control is accepted. The V0.8 Management entry gate and V0.8-A through V0.8-D are technically complete. V0.8-E is UNDER VALIDATION under Issue #179 / PR #182. PR #182 is READY and mergeable. The prior stale-live-state P2 is resolved. Fresh DEC-022 review of head `5c415ac10bb61bc83a7d6fe217a02abccbeb4d33` found one genuine Finance period-filter P2: a Company base-currency change between the Management summary and second filtered Project Cash Flow read could mislabel period totals. The active branch now fails closed on currency mismatch and regression-covers that drift. Next gate is exact-head CI → resolve the current P2 thread → fresh exact-head DEC-022 re-review → merge/post-merge CI. Human AC-V08-039/040 UAT and explicit Product / Business Owner release acceptance remain separate release-exit gates. Requirement approval/status remains governed by the approved baselines and Change Control; this note does not rewrite historical requirement approval.
 
 ---
 
