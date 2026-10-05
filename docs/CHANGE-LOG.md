@@ -1,3 +1,13 @@
+## 2026-10-05 — V0.8 Management release closure COMPLETE + ACCEPTED
+
+- AC-V08-039 human UAT confirmation and AC-V08-040 explicit Product / Business Owner release acceptance are satisfied.
+- Acceptance-record PR #185 final exact head `5b623ce78b6ab0c87cc5593ac244a96ec0002919` passed push CI #3392 and PR CI #3393, including full workspace regression and authenticated live HTTP acceptance.
+- Final DEC-022 exact-head review reported no major issues and all review threads were resolved.
+- PR #185 squash-merged as `920d592e7ffe01cb83b106c215fa20adb959cb95`; post-merge exact-main CI #3394 PASS.
+- Issue #184 is CLOSED / COMPLETED.
+- **V0.8 Management is COMPLETE + ACCEPTED.**
+- The next roadmap destination is **V1.0 Production / production-readiness**. No V1.0 implementation scope is authorized until a separate Product / Business Owner entry decision / Change Control approval.
+
 ## 2026-10-05 — V0.8 Product / Business Owner UAT acceptance and release-closure authorization
 
 - PR #183 final head `0a0615e604f2adf57eae2ac6193c80108af85232` passed push CI #3353 and PR CI #3354; final DEC-022 exact-head review reported no major issues.
