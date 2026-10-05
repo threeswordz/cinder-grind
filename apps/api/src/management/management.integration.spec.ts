@@ -34,7 +34,7 @@ function decimal(value: string) {
   return new Prisma.Decimal(value);
 }
 
-function managementReportFixture() {
+function managementReportFixture(projectName = 'Management Project') {
   let receivedCostFilters: Record<string, string> | null = null;
   let receivedCashPeriod:
     | { fromDate?: Date; toDateExclusive?: Date }
@@ -49,7 +49,7 @@ function managementReportFixture() {
       project: {
         id: 'project-1',
         projectCode: 'P-001',
-        projectName: 'Management Project',
+        projectName,
         plannedStartDate: new Date('2026-01-01T00:00:00.000Z'),
         plannedCompletionDate: new Date('2026-12-31T00:00:00.000Z'),
         actualStartDate: null,
@@ -92,7 +92,7 @@ function managementReportFixture() {
         project: {
           id: 'project-1',
           projectCode: 'P-001',
-          projectName: 'Management Project',
+          projectName,
         },
         baseCurrencyCode: 'SGD',
         filters: {
@@ -276,7 +276,7 @@ test('V0.8-A Project summary composes aggregate-only canonical source contracts'
       project: {
         id: 'project-1',
         projectCode: 'P-001',
-        projectName: 'Management Project',
+        projectName,
         plannedStartDate: new Date('2026-01-01T00:00:00.000Z'),
         plannedCompletionDate: new Date('2026-12-31T00:00:00.000Z'),
         actualStartDate: null,
@@ -931,21 +931,53 @@ test('V0.8-E Finance report applies date range only to canonical Project Cash Fl
     fixture.getCashPeriod()?.toDateExclusive?.toISOString().slice(0, 10),
     '2026-10-06',
   );
+  assert.equal(
+    report.rows.find((row) => row.metric === 'CASH_INFLOW')?.sourceApiPath,
+    '/finance/projects/project-1/cash-flow?fromDate=2026-10-01&toDate=2026-10-05',
+  );
 });
 
-test('V0.8-E rejects WBS/Cost Code filters outside canonical Cost/Commercial domains', async () => {
+test('V0.8-E rejects WBS/Cost Code filters outside canonical Cost domain', async () => {
   const fixture = managementReportFixture();
-  await assert.rejects(
-    () =>
-      fixture.service.projectReport(auth(), 'project-1', {
-        asOf: new Date('2026-10-10T00:00:00.000Z'),
-        days: 14,
-        domain: 'FINANCE',
-        wbsId: '11111111-1111-4111-8111-111111111111',
-      }),
-    (error: unknown) =>
-      error instanceof UnprocessableEntityException &&
-      (error.getResponse() as { code?: string }).code ===
-        'MANAGEMENT_REPORT_DIMENSION_UNSUPPORTED',
+  for (const domain of ['FINANCE', 'COMMERCIAL'] as const) {
+    await assert.rejects(
+      () =>
+        fixture.service.projectReport(auth(), 'project-1', {
+          asOf: new Date('2026-10-10T00:00:00.000Z'),
+          days: 14,
+          domain,
+          wbsId: '11111111-1111-4111-8111-111111111111',
+        }),
+      (error: unknown) =>
+        error instanceof UnprocessableEntityException &&
+        (error.getResponse() as { code?: string }).code ===
+          'MANAGEMENT_REPORT_DIMENSION_UNSUPPORTED',
+    );
+  }
+});
+
+test('V0.8-E CSV neutralizes spreadsheet formulas while preserving numeric values', async () => {
+  const fixture = managementReportFixture('=HYPERLINK("https://example.invalid","x")');
+  const csv = await fixture.service.projectReportCsv(
+    auth([
+      'management.dashboard.view',
+      'management.report.export',
+      'cost.control.view',
+    ]),
+    'project-1',
+    {
+      asOf: new Date('2026-10-10T00:00:00.000Z'),
+      days: 14,
+      domain: 'COST',
+    },
+  );
+
+  assert.match(
+    csv,
+    /'\=HYPERLINK\("https:\/\/example\.invalid","x"\)/,
+  );
+  assert.match(
+    csv,
+    /COST,REVISED_BUDGET,Revised budget,AVAILABLE,1200,MONEY,SGD/,
   );
 });
