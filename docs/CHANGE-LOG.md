@@ -10,7 +10,7 @@
 - PR #182 technical head `9626d4b1b170a7e41af29e5412da2d65643f4974` passed exact-head CI #3152 including Prisma/schema validation, dependency audit, migration/status checks, full workspace regression, UAT-admin bootstrap and authenticated live HTTP acceptance.
 - Chat stable-candidate review fixed two genuine findings before DEC-022: P2 stale `deferredToLaterStages.reportingExport = true` after Stage-E delivery, and P1 AC-V08-015 source-drilldown/owning-permission mismatch across Schedule/Procurement/Inventory/Finance report rows.
 - Regression coverage now verifies the delivered-reporting deferral state, owning source paths/permission visibility and authenticated live reachability of advertised drilldowns.
-- PR #182 remains DRAFT during documentation/evidence reconciliation. Next gate: exact-head CI → mark Ready → one DEC-022 exact-head review → resolve genuine findings → squash merge/post-merge CI → Issue #179 technical closure.
+- At that historical checkpoint, PR #182 remained DRAFT during documentation/evidence reconciliation; its next gate was exact-head CI → mark Ready → one DEC-022 exact-head review → resolve genuine findings → squash merge/post-merge CI → Issue #179 technical closure.
 - Human AC-V08-039/040 remain separate mandatory release-exit gates and are not self-completed by technical evidence.
 
 ## 2026-10-05 — V0.8-E implementation resumed after pre-flight reconciliation
