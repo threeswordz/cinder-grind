@@ -1,4 +1,4 @@
-**V0.8-E implementation API note — 2026-10-05:** Pre-flight/review reconciliation is complete: PR #181 merged as `00d3720205d1bdfeb5b3216ad2e91ad72c80f84e`, exact-main CI #3111 PASS, and `v0.8-e-reporting-export` was reconciled forward as `d90c4e1e19ce81d02b05ee363e117d2dd4a9deda`. Stage-E implementation is ACTIVE. The branch implements the approved `GET /api/v1/management/reports` and `GET /api/v1/management/reports/export.csv` direction provisionally; technical completion is not yet claimed. Report and CSV must continue to share the same server-authorized filter/result boundary, preserve Company/effective-Project scope, keep protected drilldown behind owning-module permissions, and introduce no persisted report truth, FX, synthetic allocation or paid reporting dependency.
+**V0.8-E stable-candidate API note — 2026-10-05:** PR #182 technical head `9626d4b1b170a7e41af29e5412da2d65643f4974` passed CI #3152 including authenticated live acceptance. `GET /api/v1/management/reports` and `GET /api/v1/management/reports/export.csv` share the same server-authorized read/filter boundary. Chat review corrected AC-V08-015 source traceability so Schedule/Procurement drilldown follows `reporting.operational.view`, Inventory movement identifies the canonical movement-summary source, and Finance AP/AR/Cash Flow rows advertise only their own permission-reachable endpoints. No persisted report truth, FX, synthetic allocation or paid reporting dependency is introduced. Stage E remains under validation until DEC-022, merge, post-merge CI and Issue #179 technical closure complete.
 
 **V0.8-D implementation / closure note — 2026-10-05:** Dedicated Schedule, Procurement, Inventory, Cost and Finance Management dashboard tabs reuse the existing Project summary and canonical source-module semantics. The two initial P1 findings and later high-volume Inventory movement reconciliation P2 were fixed/regression-covered. Final exact head `e11a77391ebfb43ff4431820ea363964f525f545` passed CI #2995 including authenticated live acceptance and clean DEC-022 review; PR #177 merged as `ff3dc08a4aee9945bb0b195627e31577f766f691` with exact-main CI #2996 PASS. Closure PR #178 merged as `4c47fd7713eb1faa57bf4ad8270b254a8bca96a7` with exact-main CI #3011 PASS; Issue #175 closed completed. V0.8-D is technically COMPLETE.
 
@@ -17,7 +17,7 @@
 # Construction ERP — API Architecture
 
 **Document Status:** API Architecture Baseline v0.1  
-**Current Phase:** V0.8-E Reporting / Export / Hardening — IMPLEMENTATION ACTIVE  
+**Current Phase:** V0.8-E Reporting / Export / Hardening — UNDER VALIDATION / DEC-022 GATE  
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1  
