@@ -84,7 +84,13 @@ V0.8 Management       ██████████  COMPLETE + ACCEPTED
   V0.8-D Domain Views ██████████  COMPLETE
   V0.8-E Reporting    ██████████  COMPLETE
   Release Exit        ██████████  COMPLETE + ACCEPTED
-V1.0 Production       ░░░░░░░░░░  NEXT — ENTRY / PRODUCTION-READINESS DECISION
+V1.0 Production       ░░░░░░░░░░  ENTRY PACKAGE PROPOSED — OWNER DECISION
+  V1.0 Entry Gate      ░░░░░░░░░░  BLOCKED — OWNER DECISION
+  V1.0-A Environment   ░░░░░░░░░░  PROPOSED / NOT AUTHORIZED
+  V1.0-B Recovery      ░░░░░░░░░░  PROPOSED / NOT AUTHORIZED
+  V1.0-C Security      ░░░░░░░░░░  PROPOSED / NOT AUTHORIZED
+  V1.0-D Operations    ░░░░░░░░░░  PROPOSED / NOT AUTHORIZED
+  V1.0-E Release       ░░░░░░░░░░  PROPOSED / NOT AUTHORIZED
 ```
 
 Progress bars are qualitative status indicators, not calculated engineering percentages:
@@ -108,7 +114,7 @@ Use these terms consistently:
 - **BLOCKED — UAT** — required human UAT/business acceptance is the actual remaining blocker.
 - **NEXT** — the next authorized implementation stage once all required predecessor conditions are satisfied.
 - **FUTURE** — planned in the approved roadmap but not the current/next authorized stage.
-- **AFTER V0.8** — use for the V1.0 Production / production-readiness destination while V0.8 release exit is still incomplete. Once V0.8 is COMPLETE + ACCEPTED, report V1.0 as **NEXT** only for the entry / production-readiness decision; this does not imply implementation authorization.
+- **AFTER V0.8** — use for the V1.0 Production / production-readiness destination while V0.8 release exit is still incomplete. Once V0.8 is COMPLETE + ACCEPTED, report the live V1.0 entry-decision state from GitHub. While Issue #187 / draft PR #188 are active and unapproved, show **ENTRY PACKAGE PROPOSED / BLOCKED — OWNER DECISION** and keep V1.0-A–E explicitly NOT AUTHORIZED.
 
 Do not label something COMPLETE merely because code exists. Apply the actual repository gates.
 
