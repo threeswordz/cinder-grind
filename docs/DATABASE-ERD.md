@@ -1,11 +1,11 @@
-**V0.8 implementation reconciliation — 2026-10-05:** V0.8-A through V0.8-D are technically complete. V0.8-E Cross-Module Reporting / Export / Hardening / Release Evidence is in pre-flight only; application implementation has not started. Management remains a derived read/composition layer over canonical source modules, with no V0.8 editable KPI/report ledger, data warehouse, OLAP store, FX engine or synthetic allocation introduced.
+**V0.8 implementation reconciliation — 2026-10-05:** V0.8-A through V0.8-D are technically complete. V0.8-E is in pre-flight review reconciliation under PR #181 / `v0.8-e-preflight-review-reconcile`; application implementation has not started and remains gated on PR #181 exact-head CI/review, merge and post-merge exact-main CI. Management remains a derived read/composition layer over canonical source modules, with no V0.8 editable KPI/report ledger, data warehouse, OLAP store, FX engine or synthetic allocation introduced.
 
 **V0.7 implementation reconciliation — 2026-10-04:** `direct_cost_postings`, `cost_forecasts` / `cost_forecast_lines` and `project_variations` are implemented through forward-only migrations with retained approval/history integrity. Stage E reporting remains a derived read model over canonical source modules and these Cost Control-owned mutation entities; it does not add an editable report ledger.
 
 # Construction ERP — Database ERD
 
 **Document Status:** Database Baseline v0.1  
-**Current Phase:** V0.8 Management — ACTIVE / V0.8-A through V0.8-D COMPLETE / V0.8-E PRE-FLIGHT ACTIVE  
+**Current Phase:** V0.8 Management — ACTIVE / V0.8-A through V0.8-D COMPLETE / V0.8-E PRE-FLIGHT REVIEW RECONCILIATION ACTIVE  
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database:** PostgreSQL  
