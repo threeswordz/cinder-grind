@@ -1,7 +1,7 @@
 # Construction ERP — Development Roadmap
 
 **Document Status:** Development Roadmap Baseline v0.1  
-**Current Phase:** V0.8 Management — ACTIVE / V0.8-A through V0.8-D COMPLETE / V0.8-E PRE-FLIGHT ACTIVE
+**Current Phase:** V0.8 Management — ACTIVE / V0.8-A through V0.8-D COMPLETE / V0.8-E IMPLEMENTATION ACTIVE
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1  
@@ -807,7 +807,7 @@ Completed release: **V0.7 Cost Control — COMPLETE AND ACCEPTED**.
 
 Next release: **V0.8 Management**.
 
-Current stage: **V0.8-E Cross-Module Reporting / Export / Hardening / Release Evidence — PRE-FLIGHT ACTIVE / IMPLEMENTATION NOT STARTED**.
+Current stage: **V0.8-E Cross-Module Reporting / Export / Hardening / Release Evidence — IMPLEMENTATION ACTIVE**.
 
 Immediate sequence:
 
