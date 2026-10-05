@@ -1,12 +1,12 @@
 # Construction ERP — Master Requirements Register
 
 **Document Status:** Requirements Baseline v0.1  
-**Current Phase:** V0.8-B Project Engineer & Project Manager Dashboards — NEXT / NOT STARTED  
+**Current Phase:** V0.8-E Cross-Module Reporting / Export / Hardening / Release Evidence — PRE-FLIGHT ACTIVE / IMPLEMENTATION NOT STARTED  
 **Architecture Baseline:** v0.1  
 **Source:** ERP-MASTER-BLUEPRINT.md  
-**Last Structural Review:** V0.7 documentation reconciliation — 2026-10-04
+**Last Structural Review:** V0.8-E pre-flight documentation reconciliation — 2026-10-05
 
-**Live delivery note:** V0.1–V0.7 are complete; V0.7 Cost Control is accepted. V0.8 Management entry baseline is approved under DEC-025. V0.8-A Management Read Model / KPI Contracts is COMPLETE: PR #167 merged as `d60c5c051f1eb6aec30399173f33ab05300cc52c`, post-merge main CI #2760 passed and Issue #166 closed completed. V0.8-B Project Engineer & Project Manager Dashboards is next. Requirement approval/status remains governed by the approved baselines and Change Control; this note does not rewrite historical requirement approval.
+**Live delivery note:** V0.1–V0.7 are complete and V0.7 Cost Control is accepted. The V0.8 Management entry gate is complete under DEC-025. V0.8-A through V0.8-D are technically complete. V0.8-E is now in documentation/status pre-flight under Issue #179 / `v0.8-e-preflight`; application implementation remains NOT STARTED until the pre-flight CI/review/merge/post-merge gates pass. Human AC-V08-039/040 UAT and explicit Product / Business Owner release acceptance remain separate release-exit gates. Requirement approval/status remains governed by the approved baselines and Change Control; this note does not rewrite historical requirement approval.
 
 ---
 
