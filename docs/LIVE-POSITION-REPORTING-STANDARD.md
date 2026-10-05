@@ -76,13 +76,13 @@ V0.7 Cost Control     ██████████  COMPLETE + ACCEPTED
   V0.7-D Variations   ██████████  COMPLETE
   V0.7-E Reporting    ██████████  COMPLETE
   Release Exit        ██████████  COMPLETE + ACCEPTED
-V0.8 Management       ██░░░░░░░░  ACTIVE
+V0.8 Management       ████████░░  ACTIVE
   V0.8 Entry Gate     ██████████  COMPLETE
   V0.8-A Read Model   ██████████  COMPLETE
-  V0.8-B Dashboards   ░░░░░░░░░░  NEXT
-  V0.8-C Executive    ░░░░░░░░░░  FUTURE
-  V0.8-D Domain Views ░░░░░░░░░░  FUTURE
-  V0.8-E Reporting    ░░░░░░░░░░  FUTURE
+  V0.8-B Dashboards   ██████████  COMPLETE
+  V0.8-C Executive    ██████████  COMPLETE
+  V0.8-D Domain Views ██████████  COMPLETE
+  V0.8-E Reporting    ██░░░░░░░░  PRE-FLIGHT ACTIVE
   Release Exit        ░░░░░░░░░░  FUTURE
 ```
 
@@ -100,6 +100,7 @@ Use these terms consistently:
 - **ACCEPTED** — required Product / Business Owner human UAT/business acceptance for the release has been explicitly completed and durably recorded.
 - **ENTRY APPROVED** — the release entry baseline is approved and closed, but implementation has not yet started.
 - **ACTIVE** — implementation is currently in progress.
+- **PRE-FLIGHT ACTIVE** — an approved stage is in documentation/status pre-flight or review reconciliation; the implementation gate is not cleared. Any provisional work that exists must remain frozen/unpackaged until the pre-flight CI/review/merge/post-merge evidence is complete.
 - **UNDER VALIDATION** — implementation exists, but one or more required technical gates remain before completion.
 - **BLOCKED — CODEX** — use only when a required Codex review is the actual remaining blocker.
 - **BLOCKED — OWNER DECISION** — a Product / Business Owner decision is required before proceeding.

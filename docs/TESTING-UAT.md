@@ -1,4 +1,4 @@
-**V0.8-E pre-flight validation note — 2026-10-05:** Issue #179 / `v0.8-e-preflight` is documentation/status only. Stage-E implementation is NOT STARTED. Approved test focus is canonical cross-module report reconciliation; authorized Project/date/status/domain filtering; CSV row/filter/authorization parity; inaccessible-Project and SYS_ADMIN/projects.access_all negatives; protected-detail leakage prevention; Decimal/base-currency fail-closed behavior; full prior-release regression; and authenticated live HTTP report/filter/export acceptance. Human AC-V08-039/040 remain separate release-exit gates.
+**V0.8-E pre-flight review-reconciliation note — 2026-10-05:** Pre-flight PR #180 merged as `2f84928c130f328fb1e02d616c41cacb21dc65e1` with exact-main CI #3038 PASS, but DEC-022 required forward reconciliation of stale live-position documentation. PR #181 / `v0.8-e-preflight-review-reconcile` is the active documentation/status gate; Stage-E implementation is not authorized to proceed until its exact-head CI/review, merge and post-merge exact-main CI complete; provisional `v0.8-e-reporting-export` work remains frozen/unpackaged. The approved later Stage-E test focus remains canonical cross-module report reconciliation; authorized Project/date/status/domain filtering; CSV row/filter/authorization parity; inaccessible-Project and SYS_ADMIN/projects.access_all negatives; protected-detail leakage prevention; Decimal/base-currency fail-closed behavior; full prior-release regression; and authenticated live HTTP report/filter/export acceptance. Human AC-V08-039/040 remain separate release-exit gates.
 
 **V0.8-D validation / closure checkpoint — 2026-10-05:** PR #177 first DEC-022 review found two genuine P1 acceptance gaps and later one high-volume Inventory movement reconciliation P2; all were fixed/regression-covered. Final exact head `e11a77391ebfb43ff4431820ea363964f525f545` passed CI #2995 including authenticated live acceptance, and final DEC-022 review reported no major issues. PR #177 squash-merged as `ff3dc08a4aee9945bb0b195627e31577f766f691`; exact-main CI #2996 PASS. Closure PR #178 final head `170f359fa8fb8540e098a722c6b0aafa7c111d11` passed CI #3010 and clean DEC-022 review; PR #178 merged as `4c47fd7713eb1faa57bf4ad8270b254a8bca96a7`; exact-main CI #3011 PASS; Issue #175 closed completed. V0.8-D is technically COMPLETE. AC-V08-039/040 human UAT / explicit Product-Business Owner acceptance remain later V0.8 release-exit gates.
 
@@ -15,7 +15,7 @@
 # Construction ERP — Testing & UAT Approach
 
 **Document Status:** Testing & UAT Baseline v0.1  
-**Current Phase:** V0.8-E Reporting / Export / Hardening — PRE-FLIGHT ACTIVE / IMPLEMENTATION NOT STARTED  
+**Current Phase:** V0.8-E Reporting / Export / Hardening — PRE-FLIGHT REVIEW RECONCILIATION / IMPLEMENTATION GATE NOT CLEARED  
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1  
