@@ -8774,9 +8774,29 @@ check(
       'DEMAND_LINE_AT_RISK' &&
     managementAtRiskReport.data.data.rows[0]?.status === 'AT_RISK' &&
     Number(managementAtRiskReport.data.data.rows[0]?.value) ===
-      Number(managementSummary.data.data.domains?.procurement?.summary?.AT_RISK),
-  'V0.8-E Management status filtering did not preserve canonical Procurement risk semantics.',
+      Number(managementSummary.data.data.domains?.procurement?.summary?.AT_RISK) &&
+    managementAtRiskReport.data.data.rows[0]?.sourceApiPath ===
+      '/reporting/projects/' + projectId + '/procurement',
+  'V0.8-E Management status filtering did not preserve canonical Procurement risk semantics or owning-source traceability.',
 );
+await request(
+  pm,
+  managementAtRiskReport.data.data.rows[0].sourceApiPath,
+);
+
+const managementInventoryReport = await request(
+  pm,
+  managementReportBase + '&domain=INVENTORY',
+);
+const managementMovementRow = managementInventoryReport.data.data.rows.find(
+  (row) => row.metric === 'MOVEMENT_ROW_COUNT',
+);
+check(
+  managementMovementRow?.sourceApiPath ===
+    '/inventory/reports/movement-summary?projectId=' + projectId,
+  'V0.8-E Inventory movement report row did not identify the canonical movement-summary source.',
+);
+await request(pm, managementMovementRow.sourceApiPath);
 
 const financeFromDate = '2026-10-01';
 const financeToDate = '2026-10-10';
@@ -8803,6 +8823,15 @@ const financeRows = new Map(
     row.value,
   ]),
 );
+const managementApRow = managementFinanceReport.data.data.rows.find(
+  (row) => row.metric === 'ACCOUNTS_PAYABLE_OUTSTANDING',
+);
+const managementArRow = managementFinanceReport.data.data.rows.find(
+  (row) => row.metric === 'ACCOUNTS_RECEIVABLE_OUTSTANDING',
+);
+const managementCashRow = managementFinanceReport.data.data.rows.find(
+  (row) => row.metric === 'CASH_INFLOW',
+);
 check(
   managementFinanceReport.data.data.filters?.fromDate === financeFromDate &&
     managementFinanceReport.data.data.filters?.toDate === financeToDate &&
@@ -8812,17 +8841,22 @@ check(
       Number(canonicalPeriodCashFlow.data.data.totals.outflowAmount) &&
     Number(financeRows.get('NET_CASH_FLOW')) ===
       Number(canonicalPeriodCashFlow.data.data.totals.netCashFlow) &&
-    managementFinanceReport.data.data.rows
-      .find((row) => row.metric === 'CASH_INFLOW')
-      ?.sourceApiPath ===
+    managementCashRow?.sourceApiPath ===
       '/finance/projects/' +
         projectId +
         '/cash-flow?fromDate=' +
         financeFromDate +
         '&toDate=' +
-        financeToDate,
-  'V0.8-E Finance report date range did not reconcile to canonical Project Cash Flow or preserve the selected period in source traceability.',
+        financeToDate &&
+    managementApRow?.sourceApiPath ===
+      '/finance/projects/' + projectId + '/accounts-payable' &&
+    managementArRow?.sourceApiPath ===
+      '/finance/projects/' + projectId + '/accounts-receivable',
+  'V0.8-E Finance report date range did not reconcile to canonical Finance sources or preserve owning-source traceability.',
 );
+await request(pm, managementCashRow.sourceApiPath);
+await request(pm, managementApRow.sourceApiPath);
+await request(pm, managementArRow.sourceApiPath);
 
 await request(
   pm,
