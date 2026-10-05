@@ -1,3 +1,12 @@
+## 2026-10-05 — V0.8-E pre-flight Codex P2 forward reconciliation
+
+- PR #180 final head `bd9c3eb351de410821353806837bad0ffddcfb81` passed push CI #3036 and PR CI #3037.
+- DEC-022 review found one genuine P2: stale live-position guidance remained in `README.md` and `docs/LIVE-POSITION-REPORTING-STANDARD.md`.
+- PR #180 was merged externally as `2f84928c130f328fb1e02d616c41cacb21dc65e1` before that P2 was resolved; exact-main CI #3038 PASS.
+- Forward remediation PR #181 updates those stale surfaces and records the review-reconciliation gate.
+- V0.8-E application implementation remains NOT STARTED until PR #181 exact-head CI, fresh DEC-022 review, merge and exact-main CI pass.
+- No runtime, schema, migration, permission, dependency, business-rule, scope or governance behavior changes in this reconciliation.
+
 ## 2026-10-05 — V0.8-E pre-flight established
 
 - V0.8-D Domain Dashboards is technically COMPLETE.
