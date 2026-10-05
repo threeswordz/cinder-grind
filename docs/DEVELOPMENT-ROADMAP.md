@@ -805,7 +805,7 @@ Create detailed issues shortly before the relevant release/module enters develop
 
 Completed release: **V0.7 Cost Control — COMPLETE AND ACCEPTED**.
 
-Next release: **V0.8 Management**.
+Current release: **V0.8 Management — TECHNICALLY COMPLETE / RELEASE EXIT ACTIVE**.
 
 Current stage: **V0.8 RELEASE EXIT — V0.8-A through V0.8-E TECHNICALLY COMPLETE / PROXY UAT PASS / HUMAN OWNER CONFIRMATION PENDING**.
 
