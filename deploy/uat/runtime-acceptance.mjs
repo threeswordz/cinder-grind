@@ -8811,14 +8811,30 @@ check(
     Number(financeRows.get('CASH_OUTFLOW')) ===
       Number(canonicalPeriodCashFlow.data.data.totals.outflowAmount) &&
     Number(financeRows.get('NET_CASH_FLOW')) ===
-      Number(canonicalPeriodCashFlow.data.data.totals.netCashFlow),
-  'V0.8-E Finance report date range did not reconcile to canonical Project Cash Flow.',
+      Number(canonicalPeriodCashFlow.data.data.totals.netCashFlow) &&
+    managementFinanceReport.data.data.rows
+      .find((row) => row.metric === 'CASH_INFLOW')
+      ?.sourceApiPath ===
+      '/finance/projects/' +
+        projectId +
+        '/cash-flow?fromDate=' +
+        financeFromDate +
+        '&toDate=' +
+        financeToDate,
+  'V0.8-E Finance report date range did not reconcile to canonical Project Cash Flow or preserve the selected period in source traceability.',
 );
 
 await request(
   pm,
   managementReportBase +
     '&domain=FINANCE&wbsId=' +
+    rootWbs.data.data.id,
+  { expected: 422 },
+);
+await request(
+  pm,
+  managementReportBase +
+    '&domain=COMMERCIAL&wbsId=' +
     rootWbs.data.data.id,
   { expected: 422 },
 );
