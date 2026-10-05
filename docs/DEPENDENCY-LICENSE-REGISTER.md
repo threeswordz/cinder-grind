@@ -1,12 +1,12 @@
 # Construction ERP — Dependency License Register
 
 **Document Status:** Dependency License Baseline v0.1  
-**Current Phase:** V0.8 Management — ACTIVE / V0.8-A through V0.8-D COMPLETE / V0.8-E PRE-FLIGHT ACTIVE  
+**Current Phase:** V0.8 Management — ACTIVE / V0.8-A through V0.8-D COMPLETE / V0.8-E PRE-FLIGHT REVIEW RECONCILIATION ACTIVE  
 **Policy:** Open-Source First  
 **License Verification Date:** 2026-09-26  
 **Version Status:** V0.1-A direct package versions selected and pinned in package manifests.
 
-**V0.8-E dependency note — 2026-10-05:** The Stage-E pre-flight introduces no new runtime or hosted-service dependency. DEC-008 remains mandatory; controlled CSV/reporting must remain zero-cost/open-source-first and must not introduce mandatory paid BI/reporting services.
+**V0.8-E dependency note — 2026-10-05:** The active PR #181 pre-flight review reconciliation introduces no runtime or hosted-service dependency. Stage-E implementation is not authorized to proceed until that documentation gate closes. DEC-008 remains mandatory; controlled CSV/reporting must remain zero-cost/open-source-first and must not introduce mandatory paid BI/reporting services.
 
 ---
 
