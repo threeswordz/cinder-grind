@@ -37,6 +37,7 @@ function decimal(value: string) {
 function managementReportFixture(
   projectName = 'Management Project',
   periodCashFlowCurrency = 'SGD',
+  dimensionCostCurrency = 'SGD',
 ) {
   let receivedCostFilters: Record<string, string> | null = null;
   let receivedCashPeriod:
@@ -97,7 +98,7 @@ function managementReportFixture(
           projectCode: 'P-001',
           projectName,
         },
-        baseCurrencyCode: 'SGD',
+        baseCurrencyCode: filtered ? dimensionCostCurrency : 'SGD',
         filters: {
           wbs: filters.wbsId
             ? {
@@ -893,6 +894,32 @@ test('V0.8-E Management cost report reuses canonical WBS/Cost Code filters and C
     /COST,REVISED_BUDGET,Revised budget,AVAILABLE,600,MONEY,SGD/,
   );
   assert.equal(csv.includes('must-not-leak'), false);
+});
+
+test('V0.8-E Cost dimension report fails closed if filtered cost currency changes after summary', async () => {
+  const fixture = managementReportFixture(
+    'Management Project',
+    'SGD',
+    'USD',
+  );
+
+  await assert.rejects(
+    () =>
+      fixture.service.projectReport(
+        auth(['management.dashboard.view', 'cost.control.view']),
+        'project-1',
+        {
+          asOf: new Date('2026-10-10T00:00:00.000Z'),
+          days: 14,
+          domain: 'COST',
+          wbsId: '11111111-1111-4111-8111-111111111111',
+        },
+      ),
+    (error: unknown) =>
+      error instanceof Error &&
+      error.message ===
+        'Canonical Management financial sources returned inconsistent Company base currencies.',
+  );
 });
 
 test('V0.8-E Finance report applies date range only to canonical Project Cash Flow rows', async () => {
