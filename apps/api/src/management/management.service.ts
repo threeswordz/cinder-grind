@@ -1250,7 +1250,7 @@ export class ManagementService {
       },
       deferredToLaterStages: {
         domainDashboards: false,
-        reportingExport: true,
+        reportingExport: false,
       },
     };
   }
