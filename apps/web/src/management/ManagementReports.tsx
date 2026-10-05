@@ -365,7 +365,8 @@ export function ManagementReports({
             Management reporting is read-only composition. Source modules remain
             canonical; protected detail still requires the owning-module
             permission. WBS/Cost Code filters are available through the API only
-            for Cost/Commercial where canonical dimensional attribution exists.
+            for Cost, where canonical dimensional attribution exists. Commercial
+            values remain Project-level and are never synthetically allocated.
           </Alert>
         </>
       ) : null}
