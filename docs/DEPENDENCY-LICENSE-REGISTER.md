@@ -6,7 +6,7 @@
 **License Verification Date:** 2026-09-26  
 **Version Status:** V0.1-A direct package versions selected and pinned in package manifests.
 
-**V0.8-E DEC-022 source-drilldown remediation dependency note — 2026-10-05:** PR #182 is READY and mergeable. Exact head `4473b942142a32ae11f9abd90df47854a5aad662` passed CI #3247/#3248 and resolved the Finance currency-drift P2. Fresh DEC-022 review found two further P2s involving browser consumption of the existing permission-safe `sourceApiPath` and stale live status. The forward fix uses existing MUI/web/API client capabilities and adds no runtime or hosted-service dependency. DEC-008 remains mandatory; controlled CSV/reporting remains zero-cost/open-source-first with no mandatory paid BI/reporting service.
+**V0.8-E DEC-022 source-drilldown remediation dependency note — 2026-10-05:** PR #182 is READY and mergeable. Exact head `4473b942142a32ae11f9abd90df47854a5aad662` passed CI #3247/#3248 and resolved the Finance currency-drift P2. Fresh DEC-022 review found two further P2s involving browser consumption of the existing permission-safe `sourceApiPath` and stale live status. The forward fix uses existing MUI/web/API client capabilities and adds no runtime or hosted-service dependency. Combined remediation/status head `de1c8c7bc50f376c07fd27da85c7559b68b9dbda` passes push CI #3279 and PR CI #3280 including authenticated live acceptance; runtime behavior is frozen pending final review. DEC-008 remains mandatory; controlled CSV/reporting remains zero-cost/open-source-first with no mandatory paid BI/reporting service.
 
 ---
 
