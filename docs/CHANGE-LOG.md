@@ -5,6 +5,7 @@
 - PR #181 squash-merged as `00d3720205d1bdfeb5b3216ad2e91ad72c80f84e`; post-merge exact-main CI #3111 PASS.
 - Existing `v0.8-e-reporting-export` was reconciled forward without force-push as two-parent merge commit `d90c4e1e19ce81d02b05ee363e117d2dd4a9deda`, preserving both the implementation history and the complete PR #181 main tree.
 - V0.8-E implementation is ACTIVE under Issue #179. Technical completion is not yet claimed; reconciled branch CI, hardening/evidence, implementation PR review/merge and later human AC-V08-039/040 remain outstanding gates.
+- Draft implementation PR #182 (`feat(v0.8): Stage-E reporting export and hardening`) is open from `v0.8-e-reporting-export`. It remains DRAFT pending exact-head push/PR CI and Chat stable-candidate review; DEC-022 has not yet been triggered for this implementation PR.
 
 ## 2026-10-05 — V0.8-E pre-flight Codex P2 forward reconciliation
 
