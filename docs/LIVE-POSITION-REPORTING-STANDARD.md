@@ -82,7 +82,7 @@ V0.8 Management       ████████░░  ACTIVE
   V0.8-B Dashboards   ██████████  COMPLETE
   V0.8-C Executive    ██████████  COMPLETE
   V0.8-D Domain Views ██████████  COMPLETE
-  V0.8-E Reporting    ██░░░░░░░░  PRE-FLIGHT ACTIVE
+  V0.8-E Reporting    ████░░░░░░  ACTIVE
   Release Exit        ░░░░░░░░░░  FUTURE
 ```
 
