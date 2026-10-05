@@ -1,4 +1,4 @@
-import { apiRequest } from './client';
+import { apiDownload, apiRequest } from './client';
 
 type Data<T> = { data: T };
 
@@ -292,6 +292,103 @@ export type ManagementPortfolio = {
   };
 };
 
+export type ManagementReportDomain =
+  | 'ALL'
+  | 'SCHEDULE'
+  | 'PROCUREMENT'
+  | 'INVENTORY'
+  | 'COST'
+  | 'COMMERCIAL'
+  | 'FINANCE';
+
+export type ManagementReportStatus =
+  | 'AVAILABLE'
+  | 'UNAVAILABLE'
+  | 'COMPLETED'
+  | 'DELAYED'
+  | 'CRITICAL'
+  | 'LOOKAHEAD'
+  | 'AT_RISK'
+  | 'ON_TIME';
+
+export type ManagementReportFilters = {
+  projectId: string;
+  asOf: string;
+  days: 14 | 28;
+  domain: ManagementReportDomain;
+  status?: ManagementReportStatus;
+  fromDate?: string;
+  toDate?: string;
+  wbsId?: string;
+  costCodeId?: string;
+};
+
+export type ManagementReport = {
+  contractVersion: 'V0.8-E';
+  project: ManagementProjectSummary['project'];
+  asOfDate: string;
+  lookaheadDays: 14 | 28;
+  baseCurrencyCode: string;
+  filters: {
+    domain: ManagementReportDomain;
+    status: ManagementReportStatus | null;
+    fromDate: string | null;
+    toDate: string | null;
+    wbs: { id: string; wbsCode: string; wbsName: string } | null;
+    costCode: { id: string; costCode: string; costName: string } | null;
+    wbsIncludesDescendants: boolean;
+    dateRangeAppliedDomains: readonly 'FINANCE'[];
+  };
+  rowCount: number;
+  rows: Array<{
+    domain: Exclude<ManagementReportDomain, 'ALL'>;
+    metric: string;
+    label: string;
+    status: ManagementReportStatus;
+    value: string | number | null;
+    unit: 'COUNT' | 'MONEY';
+    currencyCode: string | null;
+    canonicalSource: string;
+    sourceViewAvailable: boolean;
+    sourceApiPath: string | null;
+  }>;
+  scope: {
+    companyIsolated: boolean;
+    effectiveProjectAccessRequired: boolean;
+    inaccessibleProjectsExcluded: boolean;
+    managementDashboardPermissionRequired: boolean;
+  };
+  boundaries: {
+    readOnlyComposition: boolean;
+    sourceModulesRemainCanonical: boolean;
+    exportUsesSameAuthorizedResult: boolean;
+    protectedDetailRequiresSourcePermission: boolean;
+    financialAuthority: string;
+    baseCurrencyOnly: boolean;
+    syntheticDimensionalAllocation: boolean;
+    predictiveAnalytics: boolean;
+    persistedReportTruth: boolean;
+  };
+};
+
+function managementReportPath(
+  basePath: string,
+  filters: ManagementReportFilters,
+) {
+  const params = new URLSearchParams({
+    projectId: filters.projectId,
+    asOf: filters.asOf,
+    days: String(filters.days),
+    domain: filters.domain,
+  });
+  if (filters.status) params.set('status', filters.status);
+  if (filters.fromDate) params.set('fromDate', filters.fromDate);
+  if (filters.toDate) params.set('toDate', filters.toDate);
+  if (filters.wbsId) params.set('wbsId', filters.wbsId);
+  if (filters.costCodeId) params.set('costCodeId', filters.costCodeId);
+  return basePath + '?' + params.toString();
+}
+
 function projectSummaryPath(projectId: string, asOf: string, days: 14 | 28) {
   const params = new URLSearchParams({
     asOf,
@@ -316,4 +413,12 @@ export const managementApi = {
       '/management/portfolio?' + params.toString(),
     );
   },
+  report: (filters: ManagementReportFilters) =>
+    apiRequest<Data<ManagementReport>>(
+      managementReportPath('/management/reports', filters),
+    ),
+  exportReport: (filters: ManagementReportFilters) =>
+    apiDownload(
+      managementReportPath('/management/reports/export.csv', filters),
+    ),
 };

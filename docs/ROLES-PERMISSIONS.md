@@ -1,4 +1,4 @@
-**V0.8-E pre-flight review-reconciliation authorization note — 2026-10-05:** PR #181 / `v0.8-e-preflight-review-reconcile` is the active documentation/status gate after PR #180 merged with a genuine DEC-022 stale-live-position P2 still requiring forward reconciliation. Stage-E implementation is not authorized to proceed until PR #181 exact-head CI/review, merge and post-merge exact-main CI complete; provisional `v0.8-e-reporting-export` work remains frozen/unpackaged. The approved Stage E boundary still reuses explicit `management.report.export` for controlled export of already-authorized report results. Company isolation, effective Project access and Management permissions remain independent checks; `projects.access_all` and technical SYS_ADMIN do not imply Management/report/export authority or protected source detail. Screen and CSV must apply identical authorization/filter boundaries; protected drilldown continues to require owning-module permissions. No new permission is approved by this reconciliation.
+**V0.8-E DEC-022 source-drilldown authorization note — 2026-10-05:** PR #182 is READY and mergeable. The Finance currency-drift P2 is fixed and exact head `4473b942142a32ae11f9abd90df47854a5aad662` passed CI #3247/#3248. Fresh DEC-022 review found that permission-safe `sourceApiPath` values were not actionable in the browser. The forward fix renders a source-data action only when the server returns a non-null path; rows without owning-module permission remain aggregate-only. Combined remediation/status head `de1c8c7bc50f376c07fd27da85c7559b68b9dbda` passes push CI #3279 and PR CI #3280 including authenticated live acceptance; runtime behavior is frozen pending final review. No new permission is introduced. Stage E continues to reuse explicit `management.report.export`; Company isolation/effective Project access remain mandatory; `projects.access_all` and SYS_ADMIN do not imply Management/export/source-detail authority.
 
 **V0.8-D closure note — 2026-10-05:** Dedicated Schedule, Procurement, Inventory, Cost and Finance Management dashboard tabs reuse canonical source-module semantics with no new Management permission. Final head `e11a77391ebfb43ff4431820ea363964f525f545` passed CI #2995 and clean DEC-022 review; PR #177 merged as `ff3dc08a4aee9945bb0b195627e31577f766f691` with exact-main CI #2996 PASS. Closure PR #178 merged as `4c47fd7713eb1faa57bf4ad8270b254a8bca96a7` with exact-main CI #3011 PASS; Issue #175 closed completed. V0.8-D authorization behavior is technically COMPLETE.
 
@@ -17,7 +17,7 @@
 # Construction ERP — Roles & Permissions Model
 
 **Document Status:** Roles & Permissions Baseline v0.1  
-**Current Phase:** V0.8-E Reporting / Export / Hardening — PRE-FLIGHT REVIEW RECONCILIATION / IMPLEMENTATION GATE NOT CLEARED  
+**Current Phase:** V0.8-E Reporting / Export / Hardening — UNDER VALIDATION / DEC-022 GATE  
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1

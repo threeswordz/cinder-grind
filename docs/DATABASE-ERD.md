@@ -1,11 +1,11 @@
-**V0.8 implementation reconciliation — 2026-10-05:** V0.8-A through V0.8-D are technically complete. V0.8-E is in pre-flight review reconciliation under PR #181 / `v0.8-e-preflight-review-reconcile`; implementation is not authorized to proceed and the provisional `v0.8-e-reporting-export` branch remains frozen/unpackaged until PR #181 exact-head CI/review, merge and post-merge exact-main CI complete. Management remains a derived read/composition layer over canonical source modules, with no V0.8 editable KPI/report ledger, data warehouse, OLAP store, FX engine or synthetic allocation introduced.
+**V0.8 DEC-022 source-drilldown remediation reconciliation — 2026-10-05:** V0.8-A through V0.8-D are technically complete and V0.8-E is UNDER VALIDATION on PR #182. Exact head `4473b942142a32ae11f9abd90df47854a5aad662` passed CI #3247/#3248 and resolved the Finance currency-drift P2. Fresh DEC-022 review found two further P2s: browser source drilldown was non-actionable and live status lagged the green exact-head evidence. The forward fix is web/status-only and adds no schema or migration. Combined remediation/status head `de1c8c7bc50f376c07fd27da85c7559b68b9dbda` passes push CI #3279 and PR CI #3280 including authenticated live acceptance; runtime behavior is frozen pending final review. Stage E remains a derived read/composition layer over canonical source modules with no editable KPI/report ledger, data warehouse, OLAP store, FX engine or synthetic allocation.
 
 **V0.7 implementation reconciliation — 2026-10-04:** `direct_cost_postings`, `cost_forecasts` / `cost_forecast_lines` and `project_variations` are implemented through forward-only migrations with retained approval/history integrity. Stage E reporting remains a derived read model over canonical source modules and these Cost Control-owned mutation entities; it does not add an editable report ledger.
 
 # Construction ERP — Database ERD
 
 **Document Status:** Database Baseline v0.1  
-**Current Phase:** V0.8 Management — ACTIVE / V0.8-A through V0.8-D COMPLETE / V0.8-E PRE-FLIGHT REVIEW RECONCILIATION ACTIVE  
+**Current Phase:** V0.8 Management — ACTIVE / V0.8-A through V0.8-D COMPLETE / V0.8-E UNDER VALIDATION / DEC-022 GATE  
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database:** PostgreSQL  

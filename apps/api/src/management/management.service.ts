@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnprocessableEntityException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 
 import { AuthenticatedUserContext } from '../auth/auth.types';
@@ -14,6 +14,47 @@ import { ReportingService } from '../reporting/reporting.service';
 export type ManagementSummaryOptions = {
   asOf: Date;
   days: 14 | 28;
+};
+
+export type ManagementReportDomain =
+  | 'ALL'
+  | 'SCHEDULE'
+  | 'PROCUREMENT'
+  | 'INVENTORY'
+  | 'COST'
+  | 'COMMERCIAL'
+  | 'FINANCE';
+
+export type ManagementReportStatus =
+  | 'AVAILABLE'
+  | 'UNAVAILABLE'
+  | 'COMPLETED'
+  | 'DELAYED'
+  | 'CRITICAL'
+  | 'LOOKAHEAD'
+  | 'AT_RISK'
+  | 'ON_TIME';
+
+export type ManagementReportOptions = ManagementSummaryOptions & {
+  domain: ManagementReportDomain;
+  status?: ManagementReportStatus;
+  fromDate?: Date;
+  toDateExclusive?: Date;
+  wbsId?: string;
+  costCodeId?: string;
+};
+
+export type ManagementReportRow = {
+  domain: Exclude<ManagementReportDomain, 'ALL'>;
+  metric: string;
+  label: string;
+  status: ManagementReportStatus;
+  value: string | number | null;
+  unit: 'COUNT' | 'MONEY';
+  currencyCode: string | null;
+  canonicalSource: string;
+  sourceViewAvailable: boolean;
+  sourceApiPath: string | null;
 };
 
 @Injectable()
@@ -267,6 +308,561 @@ export class ManagementService {
         protectedDetailRequiresSourcePermission: true,
       },
     };
+  }
+
+  async projectReport(
+    auth: AuthenticatedUserContext,
+    projectId: string,
+    options: ManagementReportOptions,
+  ) {
+    const dimensionFilter = Boolean(options.wbsId || options.costCodeId);
+    if (dimensionFilter && options.domain !== 'COST') {
+      throw new UnprocessableEntityException({
+        code: 'MANAGEMENT_REPORT_DIMENSION_UNSUPPORTED',
+        detail:
+          'WBS/Cost Code filters are supported only for COST Management reports because commercial/revenue values remain Project-level under the approved V0.7 semantics.',
+      });
+    }
+
+    const periodFilter = Boolean(
+      options.fromDate || options.toDateExclusive,
+    );
+    if (
+      periodFilter &&
+      options.domain !== 'ALL' &&
+      options.domain !== 'FINANCE'
+    ) {
+      throw new UnprocessableEntityException({
+        code: 'MANAGEMENT_REPORT_DATE_RANGE_UNSUPPORTED',
+        detail:
+          'fromDate/toDate are supported only for FINANCE or ALL Management reports.',
+      });
+    }
+
+    const summary = await this.projectSummary(auth, projectId, {
+      asOf: options.asOf,
+      days: options.days,
+    });
+
+    const [dimensionCost, periodCashFlow] = await Promise.all([
+      dimensionFilter
+        ? this.costControl.projectCostControl(auth, projectId, {
+            ...(options.wbsId ? { wbsId: options.wbsId } : {}),
+            ...(options.costCodeId
+              ? { costCodeId: options.costCodeId }
+              : {}),
+          })
+        : null,
+      periodFilter
+        ? this.cashFlow.projectCashFlow(auth, projectId, {
+            ...(options.fromDate ? { fromDate: options.fromDate } : {}),
+            ...(options.toDateExclusive
+              ? { toDateExclusive: options.toDateExclusive }
+              : {}),
+          })
+        : null,
+    ]);
+
+    const cost = dimensionCost
+      ? {
+          status: 'AVAILABLE' as const,
+          originalBudget: this.money(dimensionCost.totals.originalBudget),
+          revisedBudget: this.money(dimensionCost.totals.revisedBudget),
+          committedCost: this.money(
+            dimensionCost.totals.committedCost.total,
+          ),
+          actualCost: this.money(dimensionCost.totals.actualCost.total),
+          paidCost: this.money(dimensionCost.totals.paidCost.total),
+          remainingCommitment: this.money(
+            dimensionCost.totals.remainingCommitment.total,
+          ),
+          uncommittedEtc: this.money(
+            dimensionCost.totals.uncommittedEtc,
+          ),
+          costToComplete: this.money(
+            dimensionCost.totals.costToComplete,
+          ),
+          forecastCost: this.money(dimensionCost.totals.forecastCost),
+          variance: this.money(dimensionCost.totals.variance),
+          commercial: {
+            originalContractValue: this.money(
+              dimensionCost.totals.commercial.originalContractValue,
+            ),
+            approvedVariationValue: this.money(
+              dimensionCost.totals.commercial.approvedVariationValue,
+            ),
+            revisedContractValue: this.money(
+              dimensionCost.totals.commercial.revisedContractValue,
+            ),
+            actualRevenue: this.money(
+              dimensionCost.totals.commercial.actualRevenue,
+            ),
+            cashReceived: this.money(
+              dimensionCost.totals.commercial.cashReceived,
+            ),
+            forecastRevenue: this.money(
+              dimensionCost.totals.commercial.forecastRevenue,
+            ),
+            actualProfit: this.optionalMoney(
+              dimensionCost.totals.commercial.actualProfit,
+            ),
+            forecastProfit: this.optionalMoney(
+              dimensionCost.totals.commercial.forecastProfit,
+            ),
+          },
+        }
+      : summary.domains.cost;
+
+    if (
+      (dimensionCost &&
+        dimensionCost.baseCurrencyCode !== summary.baseCurrencyCode) ||
+      (periodCashFlow &&
+        periodCashFlow.baseCurrencyCode !== summary.baseCurrencyCode)
+    ) {
+      throw new Error(
+        'Canonical Management financial sources returned inconsistent Company base currencies.',
+      );
+    }
+
+    const finance = periodCashFlow
+      ? {
+          ...summary.domains.finance,
+          inflowAmount: this.money(periodCashFlow.totals.inflowAmount),
+          outflowAmount: this.money(periodCashFlow.totals.outflowAmount),
+          netCashFlow: this.money(periodCashFlow.totals.netCashFlow),
+        }
+      : summary.domains.finance;
+
+    const costQuery = [
+      options.wbsId ? 'wbsId=' + encodeURIComponent(options.wbsId) : '',
+      options.costCodeId
+        ? 'costCodeId=' + encodeURIComponent(options.costCodeId)
+        : '',
+    ]
+      .filter(Boolean)
+      .join('&');
+    const costSourcePath =
+      '/projects/' +
+      projectId +
+      '/cost-control' +
+      (costQuery ? '?' + costQuery : '');
+
+    const toDateInclusive = options.toDateExclusive
+      ? new Date(options.toDateExclusive.getTime() - 86_400_000)
+      : undefined;
+    const financeQuery = [
+      options.fromDate
+        ? 'fromDate=' + encodeURIComponent(this.day(options.fromDate)!)
+        : '',
+      toDateInclusive
+        ? 'toDate=' + encodeURIComponent(this.day(toDateInclusive)!)
+        : '',
+    ]
+      .filter(Boolean)
+      .join('&');
+    const financeSourcePath =
+      '/finance/projects/' +
+      projectId +
+      '/cash-flow' +
+      (financeQuery ? '?' + financeQuery : '');
+
+    const sourcePaths: Record<
+      Exclude<ManagementReportDomain, 'ALL'>,
+      string
+    > = {
+      SCHEDULE:
+        '/reporting/projects/' +
+        projectId +
+        '/project-engineer?asOf=' +
+        summary.asOfDate +
+        '&days=' +
+        summary.lookaheadDays,
+      PROCUREMENT: '/reporting/projects/' + projectId + '/procurement',
+      INVENTORY: '/inventory/reports/balances?projectId=' + projectId,
+      COST: costSourcePath,
+      COMMERCIAL: '/projects/' + projectId + '/cost-control',
+      FINANCE: financeSourcePath,
+    };
+
+    const sources = {
+      SCHEDULE: this.sourceContract(
+        auth,
+        'V0.2 Scheduling / Site Execution',
+        ['reporting.operational.view'],
+      ),
+      PROCUREMENT: this.sourceContract(
+        auth,
+        'V0.3 Procurement',
+        ['reporting.operational.view'],
+      ),
+      INVENTORY: summary.sourceTraceability.inventory,
+      COST: summary.sourceTraceability.cost,
+      COMMERCIAL: summary.sourceTraceability.cost,
+      FINANCE: this.sourceContract(
+        auth,
+        'V0.6 Finance Cash Flow',
+        ['finance.payment.view'],
+      ),
+    };
+
+    const rows: ManagementReportRow[] = [];
+    const add = (
+      domain: Exclude<ManagementReportDomain, 'ALL'>,
+      metric: string,
+      label: string,
+      status: ManagementReportStatus,
+      value: string | number | null,
+      unit: 'COUNT' | 'MONEY',
+      sourceOverride?: {
+        canonicalSource: string;
+        permissionCodes: string[];
+        apiPath: string;
+      },
+    ) => {
+      const source = sourceOverride
+        ? this.sourceContract(
+            auth,
+            sourceOverride.canonicalSource,
+            sourceOverride.permissionCodes,
+          )
+        : sources[domain];
+      const sourceApiPath =
+        sourceOverride?.apiPath ?? sourcePaths[domain];
+      rows.push({
+        domain,
+        metric,
+        label,
+        status,
+        value,
+        unit,
+        currencyCode:
+          unit === 'MONEY' ? summary.baseCurrencyCode : null,
+        canonicalSource: source.canonicalSource,
+        sourceViewAvailable: source.sourceViewAvailable,
+        sourceApiPath: source.sourceViewAvailable
+          ? sourceApiPath
+          : null,
+      });
+    };
+
+    add(
+      'SCHEDULE',
+      'ACTIVITY_TOTAL',
+      'Activities',
+      'AVAILABLE',
+      summary.domains.schedule.summary.total,
+      'COUNT',
+    );
+    add(
+      'SCHEDULE',
+      'ACTIVITY_COMPLETED',
+      'Completed activities',
+      'COMPLETED',
+      summary.domains.schedule.summary.completed,
+      'COUNT',
+    );
+    add(
+      'SCHEDULE',
+      'ACTIVITY_DELAYED',
+      'Delayed activities',
+      'DELAYED',
+      summary.domains.schedule.summary.delayed,
+      'COUNT',
+    );
+    add(
+      'SCHEDULE',
+      'ACTIVITY_CRITICAL',
+      'Critical activities',
+      'CRITICAL',
+      summary.domains.schedule.summary.critical,
+      'COUNT',
+    );
+    add(
+      'SCHEDULE',
+      'ACTIVITY_LOOKAHEAD',
+      'Lookahead activities',
+      'LOOKAHEAD',
+      summary.domains.schedule.lookaheadActivityCount,
+      'COUNT',
+    );
+
+    add(
+      'PROCUREMENT',
+      'DEMAND_LINE_TOTAL',
+      'Procurement demand lines',
+      'AVAILABLE',
+      summary.domains.procurement.summary.total,
+      'COUNT',
+    );
+    add(
+      'PROCUREMENT',
+      'DEMAND_LINE_AT_RISK',
+      'At-risk procurement lines',
+      'AT_RISK',
+      summary.domains.procurement.summary.AT_RISK,
+      'COUNT',
+    );
+    add(
+      'PROCUREMENT',
+      'DEMAND_LINE_ON_TIME',
+      'On-time procurement lines',
+      'ON_TIME',
+      summary.domains.procurement.summary.ON_TIME,
+      'COUNT',
+    );
+    add(
+      'PROCUREMENT',
+      'DEMAND_LINE_UNAVAILABLE',
+      'Procurement lines with unavailable schedule risk',
+      'UNAVAILABLE',
+      summary.domains.procurement.summary.UNAVAILABLE,
+      'COUNT',
+    );
+
+    add(
+      'INVENTORY',
+      'BALANCE_ROW_COUNT',
+      'Inventory balance rows',
+      'AVAILABLE',
+      summary.domains.inventory.balanceRowCount,
+      'COUNT',
+    );
+    add(
+      'INVENTORY',
+      'POSITIVE_BALANCE_ROW_COUNT',
+      'Positive inventory balance rows',
+      'AVAILABLE',
+      summary.domains.inventory.positiveBalanceRowCount,
+      'COUNT',
+    );
+    add(
+      'INVENTORY',
+      'NEGATIVE_BALANCE_ROW_COUNT',
+      'Negative inventory balance rows',
+      'AVAILABLE',
+      summary.domains.inventory.negativeBalanceRowCount,
+      'COUNT',
+    );
+    add(
+      'INVENTORY',
+      'MOVEMENT_ROW_COUNT',
+      'Inventory movement rows',
+      'AVAILABLE',
+      summary.domains.inventory.movementRowCount,
+      'COUNT',
+      {
+        canonicalSource: 'V0.4 Inventory Movement Reporting',
+        permissionCodes: ['inventory.report.view'],
+        apiPath:
+          '/inventory/reports/movement-summary?projectId=' + projectId,
+      },
+    );
+
+    const costRows: Array<
+      [string, string, string | null]
+    > = [
+      ['ORIGINAL_BUDGET', 'Original budget', cost.originalBudget],
+      ['REVISED_BUDGET', 'Revised budget', cost.revisedBudget],
+      ['COMMITTED_COST', 'Committed cost', cost.committedCost],
+      ['ACTUAL_COST', 'Actual cost', cost.actualCost],
+      ['PAID_COST', 'Paid cost', cost.paidCost],
+      [
+        'REMAINING_COMMITMENT',
+        'Remaining commitment',
+        cost.remainingCommitment,
+      ],
+      ['UNCOMMITTED_ETC', 'Uncommitted ETC', cost.uncommittedEtc],
+      ['COST_TO_COMPLETE', 'Cost to complete', cost.costToComplete],
+      ['FORECAST_COST', 'Forecast cost', cost.forecastCost],
+      ['VARIANCE', 'Variance', cost.variance],
+    ];
+    for (const [metric, label, value] of costRows) {
+      add('COST', metric, label, 'AVAILABLE', value, 'MONEY');
+    }
+
+    const commercialRows: Array<
+      [string, string, string | null]
+    > = [
+      [
+        'ORIGINAL_CONTRACT_VALUE',
+        'Original contract value',
+        cost.commercial.originalContractValue,
+      ],
+      [
+        'APPROVED_VARIATION_VALUE',
+        'Approved variation value',
+        cost.commercial.approvedVariationValue,
+      ],
+      [
+        'REVISED_CONTRACT_VALUE',
+        'Revised contract value',
+        cost.commercial.revisedContractValue,
+      ],
+      ['ACTUAL_REVENUE', 'Actual revenue', cost.commercial.actualRevenue],
+      ['CASH_RECEIVED', 'Cash received', cost.commercial.cashReceived],
+      [
+        'FORECAST_REVENUE',
+        'Forecast revenue',
+        cost.commercial.forecastRevenue,
+      ],
+      ['ACTUAL_PROFIT', 'Actual profit', cost.commercial.actualProfit],
+      [
+        'FORECAST_PROFIT',
+        'Forecast profit',
+        cost.commercial.forecastProfit,
+      ],
+    ];
+    for (const [metric, label, value] of commercialRows) {
+      add(
+        'COMMERCIAL',
+        metric,
+        label,
+        value === null ? 'UNAVAILABLE' : 'AVAILABLE',
+        value,
+        'MONEY',
+      );
+    }
+
+    add(
+      'FINANCE',
+      'ACCOUNTS_PAYABLE_OUTSTANDING',
+      'Accounts payable outstanding',
+      'AVAILABLE',
+      finance.accountsPayable.outstandingAmount,
+      'MONEY',
+      {
+        canonicalSource: 'V0.6 Finance Accounts Payable',
+        permissionCodes: ['finance.ap.view'],
+        apiPath: '/finance/projects/' + projectId + '/accounts-payable',
+      },
+    );
+    add(
+      'FINANCE',
+      'ACCOUNTS_RECEIVABLE_OUTSTANDING',
+      'Accounts receivable outstanding',
+      'AVAILABLE',
+      finance.accountsReceivable.outstandingAmount,
+      'MONEY',
+      {
+        canonicalSource: 'V0.6 Finance Accounts Receivable',
+        permissionCodes: ['finance.ar.view'],
+        apiPath:
+          '/finance/projects/' + projectId + '/accounts-receivable',
+      },
+    );
+    add(
+      'FINANCE',
+      'CASH_INFLOW',
+      'Cash inflow',
+      'AVAILABLE',
+      finance.inflowAmount,
+      'MONEY',
+    );
+    add(
+      'FINANCE',
+      'CASH_OUTFLOW',
+      'Cash outflow',
+      'AVAILABLE',
+      finance.outflowAmount,
+      'MONEY',
+    );
+    add(
+      'FINANCE',
+      'NET_CASH_FLOW',
+      'Net cash flow',
+      'AVAILABLE',
+      finance.netCashFlow,
+      'MONEY',
+    );
+
+    const filteredRows = rows.filter(
+      (row) =>
+        (options.domain === 'ALL' || row.domain === options.domain) &&
+        (!options.status || row.status === options.status),
+    );
+
+    return {
+      contractVersion: 'V0.8-E' as const,
+      project: summary.project,
+      asOfDate: summary.asOfDate,
+      lookaheadDays: summary.lookaheadDays,
+      baseCurrencyCode: summary.baseCurrencyCode,
+      filters: {
+        domain: options.domain,
+        status: options.status ?? null,
+        fromDate: this.day(options.fromDate),
+        toDate: this.day(toDateInclusive),
+        wbs: dimensionCost?.filters.wbs ?? null,
+        costCode: dimensionCost?.filters.costCode ?? null,
+        wbsIncludesDescendants:
+          dimensionCost?.filters.wbsIncludesDescendants ?? false,
+        dateRangeAppliedDomains: periodFilter
+          ? (['FINANCE'] as const)
+          : ([] as const),
+      },
+      rowCount: filteredRows.length,
+      rows: filteredRows,
+      scope: {
+        companyIsolated: true,
+        effectiveProjectAccessRequired: true,
+        inaccessibleProjectsExcluded: true,
+        managementDashboardPermissionRequired: true,
+      },
+      boundaries: {
+        readOnlyComposition: true,
+        sourceModulesRemainCanonical: true,
+        exportUsesSameAuthorizedResult: true,
+        protectedDetailRequiresSourcePermission: true,
+        financialAuthority: 'POSTGRESQL_PRISMA_DECIMAL' as const,
+        baseCurrencyOnly: true,
+        syntheticDimensionalAllocation: false,
+        predictiveAnalytics: false,
+        persistedReportTruth: false,
+      },
+    };
+  }
+
+  async projectReportCsv(
+    auth: AuthenticatedUserContext,
+    projectId: string,
+    options: ManagementReportOptions,
+  ) {
+    const report = await this.projectReport(auth, projectId, options);
+    const header = [
+      'project_code',
+      'project_name',
+      'as_of_date',
+      'domain',
+      'metric',
+      'label',
+      'status',
+      'value',
+      'unit',
+      'currency_code',
+      'canonical_source',
+      'source_view_available',
+      'source_api_path',
+    ];
+    const lines = report.rows.map((row) =>
+      [
+        report.project.projectCode,
+        report.project.projectName,
+        report.asOfDate,
+        row.domain,
+        row.metric,
+        row.label,
+        row.status,
+        row.value,
+        row.unit,
+        row.currencyCode,
+        row.canonicalSource,
+        row.sourceViewAvailable ? 'true' : 'false',
+        row.sourceApiPath,
+      ]
+        .map((value) => this.csvCell(value))
+        .join(','),
+    );
+    return [header.join(','), ...lines].join('\r\n') + '\r\n';
   }
 
   async portfolio(
@@ -707,7 +1303,7 @@ export class ManagementService {
       },
       deferredToLaterStages: {
         domainDashboards: false,
-        reportingExport: true,
+        reportingExport: false,
       },
     };
   }
@@ -777,6 +1373,21 @@ export class ManagementService {
 
   private optionalMoney(value: Prisma.Decimal | null): string | null {
     return value === null ? null : value.toFixed();
+  }
+
+  private csvCell(value: string | number | boolean | null): string {
+    const raw = value === null ? '' : String(value);
+    const numericString =
+      typeof value === 'string' &&
+      /^-?\d+(?:\.\d+)?$/.test(value);
+    const formulaLike =
+      typeof value === 'string' &&
+      !numericString &&
+      /^[=+@-]/.test(raw.trimStart());
+    const text = formulaLike ? "'" + raw : raw;
+    return /[",\r\n]/.test(text)
+      ? '"' + text.replaceAll('"', '""') + '"'
+      : text;
   }
 
   private day(value: Date | null | undefined): string | null {

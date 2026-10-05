@@ -1,12 +1,12 @@
 # Construction ERP — Master Requirements Register
 
 **Document Status:** Requirements Baseline v0.1  
-**Current Phase:** V0.8-E Cross-Module Reporting / Export / Hardening / Release Evidence — PRE-FLIGHT REVIEW RECONCILIATION / IMPLEMENTATION GATE NOT CLEARED  
+**Current Phase:** V0.8-E Cross-Module Reporting / Export / Hardening / Release Evidence — UNDER VALIDATION / DEC-022 GATE  
 **Architecture Baseline:** v0.1  
 **Source:** ERP-MASTER-BLUEPRINT.md  
-**Last Structural Review:** V0.8-E pre-flight review reconciliation — 2026-10-05
+**Last Structural Review:** V0.8-E DEC-022 source-drilldown/live-state remediation — 2026-10-05
 
-**Live delivery note:** V0.1–V0.7 are complete and V0.7 Cost Control is accepted. The V0.8 Management entry gate is complete under DEC-025 and V0.8-A through V0.8-D are technically complete. Pre-flight PR #180 merged as `2f84928c130f328fb1e02d616c41cacb21dc65e1` with exact-main CI #3038 PASS, but its genuine DEC-022 stale-live-position P2 required forward reconciliation. PR #181 / `v0.8-e-preflight-review-reconcile` is now the active Stage-E pre-flight gate. Implementation is not authorized to proceed until PR #181 passes exact-head CI/review, merges, and passes post-merge exact-main CI; provisional `v0.8-e-reporting-export` work remains frozen/unpackaged. Human AC-V08-039/040 UAT and explicit Product / Business Owner release acceptance remain separate release-exit gates. Requirement approval/status remains governed by the approved baselines and Change Control; this note does not rewrite historical requirement approval.
+**Live delivery note:** V0.1–V0.7 are complete and V0.7 Cost Control is accepted. The V0.8 Management entry gate and V0.8-A through V0.8-D are technically complete. V0.8-E is UNDER VALIDATION under Issue #179 / PR #182. PR #182 is READY and mergeable. Exact head `4473b942142a32ae11f9abd90df47854a5aad662` passed CI #3247/#3248 including authenticated live acceptance and resolved the Finance currency-drift P2. Fresh DEC-022 review found two further P2s: AC-V08-015 source drilldown was not actionable in the browser, and live status lagged the completed CI/thread gate. Both are fixed forward: non-null permission-safe `sourceApiPath` values now render as source-data actions and the live status is reconciled. Combined remediation/status head `de1c8c7bc50f376c07fd27da85c7559b68b9dbda` passes push CI #3279 and PR CI #3280 including authenticated live acceptance. Runtime behavior is frozen; remaining gates are resolve both P2 threads → fresh exact-head DEC-022 re-review → merge/post-merge CI. Human AC-V08-039/040 UAT and explicit Product / Business Owner release acceptance remain separate release-exit gates. Requirement approval/status remains governed by the approved baselines and Change Control; this note does not rewrite historical requirement approval.
 
 ---
 

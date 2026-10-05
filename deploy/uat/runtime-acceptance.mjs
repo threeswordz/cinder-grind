@@ -8705,10 +8705,209 @@ await request(
   '/management/projects/' + projectId + '/summary?asOf=2026-10-10&days=14',
   { expected: 403 },
 );
+
+const managementReportBase =
+  '/management/reports?projectId=' +
+  projectId +
+  '&asOf=2026-10-10&days=14';
+await request(admin, managementReportBase + '&domain=COST', { expected: 403 });
+await request(
+  admin,
+  '/management/reports/export.csv?projectId=' +
+    projectId +
+    '&asOf=2026-10-10&days=14&domain=COST',
+  { expected: 403, accept: 'text/csv' },
+);
+await request(unassigned, managementReportBase + '&domain=COST', {
+  expected: 403,
+});
+
+const canonicalDimensionalCost = await request(
+  pm,
+  '/projects/' +
+    projectId +
+    '/cost-control?wbsId=' +
+    rootWbs.data.data.id +
+    '&costCodeId=' +
+    costCode.data.data.id,
+);
+const managementCostReport = await request(
+  pm,
+  managementReportBase +
+    '&domain=COST&wbsId=' +
+    rootWbs.data.data.id +
+    '&costCodeId=' +
+    costCode.data.data.id,
+);
+const managementRevisedBudgetRow =
+  managementCostReport.data.data.rows.find(
+    (row) => row.metric === 'REVISED_BUDGET',
+  );
+check(
+  managementCostReport.data.data.contractVersion === 'V0.8-E' &&
+    managementCostReport.data.data.project?.id === projectId &&
+    managementCostReport.data.data.filters?.wbs?.id ===
+      rootWbs.data.data.id &&
+    managementCostReport.data.data.filters?.costCode?.id ===
+      costCode.data.data.id &&
+    managementCostReport.data.data.filters?.wbsIncludesDescendants ===
+      true &&
+    managementCostReport.data.data.rows.every(
+      (row) => row.domain === 'COST',
+    ) &&
+    Number(managementRevisedBudgetRow?.value) ===
+      Number(canonicalDimensionalCost.data.data.totals.revisedBudget) &&
+    managementCostReport.data.data.boundaries
+      ?.syntheticDimensionalAllocation === false &&
+    managementCostReport.data.data.boundaries?.persistedReportTruth ===
+      false,
+  'V0.8-E Management Cost report did not reuse canonical WBS/Cost Code filtering and source values.',
+);
+
+const managementAtRiskReport = await request(
+  pm,
+  managementReportBase + '&domain=PROCUREMENT&status=AT_RISK',
+);
+check(
+  managementAtRiskReport.data.data.rows.length === 1 &&
+    managementAtRiskReport.data.data.rows[0]?.metric ===
+      'DEMAND_LINE_AT_RISK' &&
+    managementAtRiskReport.data.data.rows[0]?.status === 'AT_RISK' &&
+    Number(managementAtRiskReport.data.data.rows[0]?.value) ===
+      Number(managementSummary.data.data.domains?.procurement?.summary?.AT_RISK) &&
+    managementAtRiskReport.data.data.rows[0]?.sourceApiPath ===
+      '/reporting/projects/' + projectId + '/procurement',
+  'V0.8-E Management status filtering did not preserve canonical Procurement risk semantics or owning-source traceability.',
+);
+await request(
+  pm,
+  managementAtRiskReport.data.data.rows[0].sourceApiPath,
+);
+
+const managementInventoryReport = await request(
+  pm,
+  managementReportBase + '&domain=INVENTORY',
+);
+const managementMovementRow = managementInventoryReport.data.data.rows.find(
+  (row) => row.metric === 'MOVEMENT_ROW_COUNT',
+);
+check(
+  managementMovementRow?.sourceApiPath ===
+    '/inventory/reports/movement-summary?projectId=' + projectId,
+  'V0.8-E Inventory movement report row did not identify the canonical movement-summary source.',
+);
+await request(pm, managementMovementRow.sourceApiPath);
+
+const financeFromDate = '2026-10-01';
+const financeToDate = '2026-10-10';
+const canonicalPeriodCashFlow = await request(
+  pm,
+  '/finance/projects/' +
+    projectId +
+    '/cash-flow?fromDate=' +
+    financeFromDate +
+    '&toDate=' +
+    financeToDate,
+);
+const managementFinanceReport = await request(
+  pm,
+  managementReportBase +
+    '&domain=FINANCE&fromDate=' +
+    financeFromDate +
+    '&toDate=' +
+    financeToDate,
+);
+const financeRows = new Map(
+  managementFinanceReport.data.data.rows.map((row) => [
+    row.metric,
+    row.value,
+  ]),
+);
+const managementApRow = managementFinanceReport.data.data.rows.find(
+  (row) => row.metric === 'ACCOUNTS_PAYABLE_OUTSTANDING',
+);
+const managementArRow = managementFinanceReport.data.data.rows.find(
+  (row) => row.metric === 'ACCOUNTS_RECEIVABLE_OUTSTANDING',
+);
+const managementCashRow = managementFinanceReport.data.data.rows.find(
+  (row) => row.metric === 'CASH_INFLOW',
+);
+check(
+  managementFinanceReport.data.data.filters?.fromDate === financeFromDate &&
+    managementFinanceReport.data.data.filters?.toDate === financeToDate &&
+    Number(financeRows.get('CASH_INFLOW')) ===
+      Number(canonicalPeriodCashFlow.data.data.totals.inflowAmount) &&
+    Number(financeRows.get('CASH_OUTFLOW')) ===
+      Number(canonicalPeriodCashFlow.data.data.totals.outflowAmount) &&
+    Number(financeRows.get('NET_CASH_FLOW')) ===
+      Number(canonicalPeriodCashFlow.data.data.totals.netCashFlow) &&
+    managementCashRow?.sourceApiPath ===
+      '/finance/projects/' +
+        projectId +
+        '/cash-flow?fromDate=' +
+        financeFromDate +
+        '&toDate=' +
+        financeToDate &&
+    managementApRow?.sourceApiPath ===
+      '/finance/projects/' + projectId + '/accounts-payable' &&
+    managementArRow?.sourceApiPath ===
+      '/finance/projects/' + projectId + '/accounts-receivable',
+  'V0.8-E Finance report date range did not reconcile to canonical Finance sources or preserve owning-source traceability.',
+);
+await request(pm, managementCashRow.sourceApiPath);
+await request(pm, managementApRow.sourceApiPath);
+await request(pm, managementArRow.sourceApiPath);
+
+await request(
+  pm,
+  managementReportBase +
+    '&domain=FINANCE&wbsId=' +
+    rootWbs.data.data.id,
+  { expected: 422 },
+);
+await request(
+  pm,
+  managementReportBase +
+    '&domain=COMMERCIAL&wbsId=' +
+    rootWbs.data.data.id,
+  { expected: 422 },
+);
+
+const managementCsv = await request(
+  pm,
+  '/management/reports/export.csv?projectId=' +
+    projectId +
+    '&asOf=2026-10-10&days=14&domain=COST&wbsId=' +
+    rootWbs.data.data.id +
+    '&costCodeId=' +
+    costCode.data.data.id,
+  { accept: 'text/csv' },
+);
+const managementCsvText = new TextDecoder().decode(managementCsv.data);
+const managementCsvLines = managementCsvText
+  .split('\r\n')
+  .filter((line) => line.length > 0);
+check(
+  (managementCsv.response.headers.get('content-type') ?? '').includes(
+    'text/csv',
+  ) &&
+    (managementCsv.response.headers.get('content-disposition') ?? '').includes(
+      'management-report.csv',
+    ) &&
+    managementCsvLines.length === managementCostReport.data.data.rowCount + 1 &&
+    managementCostReport.data.data.rows.every(
+      (row) =>
+        managementCsvText.includes(row.metric) &&
+        managementCsvText.includes(String(row.value ?? '')),
+    ),
+  'V0.8-E controlled CSV export did not preserve screen filter/result parity.',
+);
+
 record('V0.8-A Management read-model contract composes canonical Schedule/Procurement/Inventory/Cost/Finance aggregates, preserves source-detail boundaries and enforces Management/Project authorization');
 record('V0.8-B Management Project selector preserves dashboard permission and effective Project scope');
 record('V0.8-C Executive portfolio composes authorized cross-Project progress, delayed/critical/lookahead schedule signals, procurement/site/inventory, cost, cash and profitability without protected-detail leakage or an unapproved overall severity policy');
 record('V0.8-D dedicated Schedule/Procurement/Inventory/Cost/Finance dashboards reuse canonical Schedule/Procurement, Inventory balance/movement, Cost Control and Finance AP/AR/Payment/Cash Flow semantics, preserve permission boundaries and keep cash flow distinct from Paid Cost');
+record('V0.8-E cross-module Management reporting reuses canonical dimensional/date/status semantics, rejects unsupported synthetic filtering, enforces Project/Management authorization and exports controlled CSV with screen-result parity');
 
 await logout(v07Restricted);
 await logout(pm);

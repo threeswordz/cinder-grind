@@ -1,7 +1,7 @@
 # Construction ERP — Development Roadmap
 
 **Document Status:** Development Roadmap Baseline v0.1  
-**Current Phase:** V0.8 Management — ACTIVE / V0.8-A through V0.8-D COMPLETE / V0.8-E PRE-FLIGHT REVIEW RECONCILIATION ACTIVE
+**Current Phase:** V0.8 Management — ACTIVE / V0.8-A through V0.8-D COMPLETE / V0.8-E UNDER VALIDATION / DEC-022 GATE
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1  
@@ -807,7 +807,7 @@ Completed release: **V0.7 Cost Control — COMPLETE AND ACCEPTED**.
 
 Next release: **V0.8 Management**.
 
-Current stage: **V0.8-E Cross-Module Reporting / Export / Hardening / Release Evidence — PRE-FLIGHT REVIEW RECONCILIATION ACTIVE / IMPLEMENTATION GATE NOT CLEARED**.
+Current stage: **V0.8-E Cross-Module Reporting / Export / Hardening / Release Evidence — UNDER VALIDATION / DEC-022 GATE**.
 
 Immediate sequence:
 
@@ -840,9 +840,13 @@ Immediate sequence:
 27. Pre-flight branch `v0.8-e-preflight` reached final head `bd9c3eb351de410821353806837bad0ffddcfb81`; push CI #3036 PASS and PR CI #3037 PASS.
 28. DEC-022 review of that head identified one genuine P2: `README.md` and `docs/LIVE-POSITION-REPORTING-STANDARD.md` still contained obsolete V0.8-B/C/D/E live-position guidance.
 29. PR #180 was merged externally as `2f84928c130f328fb1e02d616c41cacb21dc65e1` before the P2 was resolved; exact-main CI #3038 PASS.
-30. Forward reconciliation branch `v0.8-e-preflight-review-reconcile` / PR #181 is the ACTIVE Stage-E pre-flight gate and corrects the stale live-position surfaces plus durable status evidence.
-31. Current Stage-E gate: PR #181 exact-head push/PR CI → fresh DEC-022 review → resolve any genuine finding → squash merge → post-merge exact-main CI. **Stage-E implementation is not authorized to resume until all of those gates complete.**
-32. A provisional `v0.8-e-reporting-export` branch exists with unmerged work created before PR #181 was detected. It is **FROZEN / UNPACKAGED**, carries no merge authority, and must be reconciled from the exact green post-PR-#181 main before implementation resumes.
+30. PR #181 final head `35127fb0fedf027324588b3c0806aade808d7fa8` passed push CI #3109 and PR CI #3110; final DEC-022 exact-head review reported no major issues and all review threads were resolved.
+31. PR #181 squash-merged as `00d3720205d1bdfeb5b3216ad2e91ad72c80f84e`; post-merge exact-main CI #3111 PASS.
+32. **V0.8-E pre-flight / review reconciliation is COMPLETE.**
+33. Existing branch `v0.8-e-reporting-export` was reconciled forward without force-push as two-parent merge commit `d90c4e1e19ce81d02b05ee363e117d2dd4a9deda`, preserving the prior Stage-E implementation work and the complete PR #181 main tree.
+34. **V0.8-E implementation is UNDER VALIDATION** under Issue #179. PR #182 is READY and mergeable and packages the Stage-E report/export/hardening implementation.
+35. The Finance currency-drift P2 was fixed and regression-covered together with the analogous filtered Cost invariant; exact head `4473b942142a32ae11f9abd90df47854a5aad662` passed push CI #3247 and PR CI #3248 including authenticated live acceptance, and that review thread was resolved.
+36. Fresh DEC-022 review of `4473b942142a32ae11f9abd90df47854a5aad662` found two additional genuine P2s: AC-V08-015 source drilldown was not actionable in the browser because `sourceApiPath` had no consumer, and live status still described the completed CI/thread gate as pending. Both are fixed forward: permitted source paths now render as authenticated “Open source data” actions and the live status is reconciled. Combined remediation/status head `de1c8c7bc50f376c07fd27da85c7559b68b9dbda` passes push CI #3279 and PR CI #3280 including authenticated live acceptance; runtime behavior is frozen. Current Stage-E gate: resolve both P2 threads → fresh exact-head DEC-022 re-review → squash merge/post-merge exact-main CI → Issue #179 technical closure → human AC-V08-039/040 release-exit gate.
 
 
 # 23. Baseline Decision

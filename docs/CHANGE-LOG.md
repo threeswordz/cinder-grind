@@ -1,3 +1,42 @@
+## 2026-10-05 — V0.8-E DEC-022 source-drilldown and live-state P2 remediation
+
+- Exact PR #182 head `4473b942142a32ae11f9abd90df47854a5aad662` passed push CI #3247 and PR CI #3248, including full workspace regression and authenticated live HTTP acceptance; the Finance currency-drift P2 was fixed/resolved, with the same fail-closed invariant applied to filtered Cost reads.
+- Fresh DEC-022 review of that exact head found two genuine P2s: Management report rows exposed `sourceApiPath` but the browser rendered only static permission text, leaving AC-V08-015 source drilldown non-actionable; and the live status still described exact-head CI/thread resolution as future work.
+- The forward fix renders an authenticated “Open source data” action whenever the server supplies a non-null permission-safe `sourceApiPath`; rows without source access remain aggregate-only. Live status is reconciled to the #3247/#3248 evidence and current remediation gate.
+- Combined remediation/status head `de1c8c7bc50f376c07fd27da85c7559b68b9dbda` passes push CI #3279 and PR CI #3280 including authenticated live acceptance. Runtime behavior is frozen. No new source permission, route authority, schema, migration, paid dependency, FX behavior or duplicate report truth is introduced. Remaining gates: resolve both P2 threads → fresh exact-head DEC-022 re-review → squash merge/post-merge main CI → Issue #179 technical closure.
+
+## 2026-10-05 — V0.8-E DEC-022 Finance currency-drift P2 remediation
+
+- Fresh DEC-022 review of PR #182 head `5c415ac10bb61bc83a7d6fe217a02abccbeb4d33` found one genuine P2 in the period-filtered Finance cash-flow path.
+- If Company base currency changed after the initial Management summary source reads but before the second filtered Project Cash Flow read completed, filtered cash totals could be substituted while still labeled with the earlier summary currency.
+- The active branch now fails closed unless the period-filtered cash-flow response currency matches the established Management summary currency.
+- Integration regression coverage simulates the mid-read currency change and requires the canonical inconsistent-base-currency failure.
+- No schema, migration, permission, dependency, business-rule scope or FX capability is introduced. Next gates: exact-head CI → resolve the P2 thread → fresh DEC-022 exact-head re-review → squash merge/post-merge main CI → Issue #179 technical closure.
+
+## 2026-10-05 — V0.8-E DEC-022 live-state P2 remediation (historical checkpoint)
+
+- At that checkpoint, PR #182 was READY and mergeable. Reviewed packaging head `3b0d17cb69548a2007d32ec88f008818b4fd448b` passed exact-head CI #3179, including full workspace regression and authenticated live HTTP acceptance.
+- DEC-022 reviewed that exact head and raised one genuine P2 limited to stale live-state documentation that still described PR #182 as DRAFT, cited the earlier technical head/CI #3152 and treated Ready/final documentation CI as future work; that P2 was subsequently fixed and resolved.
+- That forward documentation-only remediation reconciled the mandatory live-status surfaces to the then-current Ready/#3179/DEC-022 state. It changed no runtime, schema, migration, permission, dependency, business rule, scope or governance behavior.
+- At that historical checkpoint, the next gate was exact-head CI on the docs remediation → resolve the P2 review thread → fresh exact-head DEC-022 re-review. The newer Finance currency-drift entry above is authoritative for the current Stage-E gate. Human AC-V08-039/040 remain separate release-exit gates.
+
+## 2026-10-05 — V0.8-E stable candidate reached after Chat hardening (historical checkpoint)
+
+- PR #182 technical head `9626d4b1b170a7e41af29e5412da2d65643f4974` passed exact-head CI #3152 including Prisma/schema validation, dependency audit, migration/status checks, full workspace regression, UAT-admin bootstrap and authenticated live HTTP acceptance.
+- Chat stable-candidate review fixed two genuine findings before DEC-022: P2 stale `deferredToLaterStages.reportingExport = true` after Stage-E delivery, and P1 AC-V08-015 source-drilldown/owning-permission mismatch across Schedule/Procurement/Inventory/Finance report rows.
+- Regression coverage now verifies the delivered-reporting deferral state, owning source paths/permission visibility and authenticated live reachability of advertised drilldowns.
+- At that historical checkpoint, PR #182 remained DRAFT during documentation/evidence reconciliation; its next gate was exact-head CI → mark Ready → one DEC-022 exact-head review → resolve genuine findings → squash merge/post-merge CI → Issue #179 technical closure.
+- Human AC-V08-039/040 remain separate mandatory release-exit gates and are not self-completed by technical evidence.
+
+## 2026-10-05 — V0.8-E implementation resumed after pre-flight reconciliation
+
+- PR #181 final head `35127fb0fedf027324588b3c0806aade808d7fa8` passed push CI #3109 and PR CI #3110, including authenticated live acceptance.
+- Final DEC-022 exact-head review reported no major issues; all PR #181 review threads were resolved.
+- PR #181 squash-merged as `00d3720205d1bdfeb5b3216ad2e91ad72c80f84e`; post-merge exact-main CI #3111 PASS.
+- Existing `v0.8-e-reporting-export` was reconciled forward without force-push as two-parent merge commit `d90c4e1e19ce81d02b05ee363e117d2dd4a9deda`, preserving both the implementation history and the complete PR #181 main tree.
+- V0.8-E implementation is ACTIVE under Issue #179. Technical completion is not yet claimed; reconciled branch CI, hardening/evidence, implementation PR review/merge and later human AC-V08-039/040 remain outstanding gates.
+- Draft implementation PR #182 (`feat(v0.8): Stage-E reporting export and hardening`) is open from `v0.8-e-reporting-export`. It remains DRAFT pending exact-head push/PR CI and Chat stable-candidate review; DEC-022 has not yet been triggered for this implementation PR.
+
 ## 2026-10-05 — V0.8-E pre-flight Codex P2 forward reconciliation
 
 - PR #180 final head `bd9c3eb351de410821353806837bad0ffddcfb81` passed push CI #3036 and PR CI #3037.
