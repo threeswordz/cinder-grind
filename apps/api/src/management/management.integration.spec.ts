@@ -972,9 +972,11 @@ test('V0.8-E CSV neutralizes spreadsheet formulas while preserving numeric value
     },
   );
 
-  assert.match(
-    csv,
-    /'\=HYPERLINK\("https:\/\/example\.invalid","x"\)/,
+  assert.equal(
+    csv.includes(
+      `"'=HYPERLINK(""https://example.invalid"",""x"")"`,
+    ),
+    true,
   );
   assert.match(
     csv,
