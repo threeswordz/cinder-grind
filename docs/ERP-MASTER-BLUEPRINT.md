@@ -1,7 +1,9 @@
 # Construction ERP — Master Blueprint
 
 **Document Status:** Architecture Baseline v0.1
-**Current Phase:** V0.8 Management — ACTIVE / V0.8-A COMPLETE / V0.8-B COMPLETE / V0.8-C COMPLETE / V0.8-D IMPLEMENTATION MERGED / CLOSURE ACTIVE
+**Current Phase:** V0.8 Management — ACTIVE / V0.8-A COMPLETE / V0.8-B COMPLETE / V0.8-C COMPLETE / V0.8-D COMPLETE / V0.8-E PRE-FLIGHT ACTIVE
+**V0.8-E pre-flight checkpoint — 2026-10-05:** V0.8-D is technically COMPLETE: PR #177 merged as `ff3dc08a4aee9945bb0b195627e31577f766f691` with exact-main CI #2996 PASS; closure PR #178 merged as `4c47fd7713eb1faa57bf4ad8270b254a8bca96a7` with exact-main CI #3011 PASS; Issue #175 closed completed. Issue #179 / branch `v0.8-e-preflight` now establishes the approved final V0.8 implementation stage for cross-module reporting, descriptive/diagnostic analytics, controlled CSV export, hardening and release evidence. Application implementation is NOT STARTED until pre-flight merge/post-merge gates complete.
+
 **System:** Construction ERP
 **Primary Platform:** Web Application
 **Architecture Principle:** Open-Source First
@@ -1679,7 +1681,7 @@ Next Release:
 
 Current Stage:
 
-**V0.8-D Domain Dashboards — IMPLEMENTATION MERGED / CLOSURE ACTIVE**
+**V0.8-E Cross-Module Reporting / Export / Hardening / Release Evidence — PRE-FLIGHT ACTIVE / IMPLEMENTATION NOT STARTED**
 
 Live delivery position:
 
@@ -1694,10 +1696,10 @@ Live delivery position:
 - V0.8-A Management Read Model / KPI Contracts — complete
 - V0.8-B Project Engineer & Project Manager Dashboards — complete
 - V0.8-C Executive / Cross-Project Management Dashboard — complete
-- V0.8-D Domain Dashboards — implementation merged / closure evidence pending
-- V0.8-E Cross-Module Reporting / Export / Hardening / Release Evidence — future
+- V0.8-D Domain Dashboards — complete
+- V0.8-E Cross-Module Reporting / Export / Hardening / Release Evidence — pre-flight active / implementation not started
 
-V0.8-D final head `e11a77391ebfb43ff4431820ea363964f525f545` passed exact-head CI #2995 including authenticated live acceptance; final DEC-022 review reported no major issues. PR #177 squash-merged as `ff3dc08a4aee9945bb0b195627e31577f766f691`. Issue #175 remains open only for closure evidence/status reconciliation; V0.8-E remains blocked until the Stage-D closure gate completes.
+V0.8-D final head `e11a77391ebfb43ff4431820ea363964f525f545` passed exact-head CI #2995 including authenticated live acceptance; final DEC-022 review reported no major issues. PR #177 squash-merged as `ff3dc08a4aee9945bb0b195627e31577f766f691`; exact-main CI #2996 PASS. Closure PR #178 merged as `4c47fd7713eb1faa57bf4ad8270b254a8bca96a7`; exact-main CI #3011 PASS; Issue #175 closed completed. V0.8-D is technically COMPLETE.
 
 V0.8-B final head `4230e6ffff3e1c5a3dc7ee3b7669f86061e704ba` passed push/PR CI #2796/#2797; final DEC-022 exact-head re-review reported no major issues after the AC-V08-003 P1 fix. PR #170 merged as `42444cc91912f323d672f63da050b68b8d777b62`; post-merge main CI #2798 passed; Issue #169 closed completed. The live GitHub repository and `docs/CURRENT-STATE.md` remain authoritative.
 

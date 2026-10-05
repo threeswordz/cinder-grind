@@ -1,14 +1,16 @@
+**V0.8 implementation reconciliation — 2026-10-05:** V0.8-A through V0.8-D are technically complete. V0.8-E Cross-Module Reporting / Export / Hardening / Release Evidence is in pre-flight only; application implementation has not started. Management remains a derived read/composition layer over canonical source modules, with no V0.8 editable KPI/report ledger, data warehouse, OLAP store, FX engine or synthetic allocation introduced.
+
 **V0.7 implementation reconciliation — 2026-10-04:** `direct_cost_postings`, `cost_forecasts` / `cost_forecast_lines` and `project_variations` are implemented through forward-only migrations with retained approval/history integrity. Stage E reporting remains a derived read model over canonical source modules and these Cost Control-owned mutation entities; it does not add an editable report ledger.
 
 # Construction ERP — Database ERD
 
 **Document Status:** Database Baseline v0.1  
-**Current Phase:** V0.7 Cost Control — COMPLETE AND ACCEPTED / V0.8 Management release entry gate NEXT  
+**Current Phase:** V0.8 Management — ACTIVE / V0.8-A through V0.8-D COMPLETE / V0.8-E PRE-FLIGHT ACTIVE  
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database:** PostgreSQL  
 **Application ORM:** Prisma ORM  
-**Scope:** Logical database design; no database has been created yet.
+**Scope:** Logical database design plus implementation reconciliation; the live PostgreSQL schema is source-controlled through forward-only Prisma migrations.
 
 **V0.6-D implementation note — 2026-10-03:** `retention_ledger_entries` is now materialized only for payable Subcontract Certification withholding evidence and linked compensating reversal evidence. Implemented entry types are `WITHHOLDING` and `REVERSAL` only; each entry is Company/Project/Agreement/Certification scoped, base-currency constrained, source actor/time bound, duplicate-protected and immutable after insert. Certification approval/reversal materializes the corresponding evidence through forward-only database triggers; historical eligible Certifications are backfilled. This does **not** authorize retention RELEASE or user ADJUSTMENT. DOC-009 continues to use canonical `documents` / `document_links`; the Stage-D forward-only scope guard adds the eight approved Finance/Subcontract targets without creating another file store.
 

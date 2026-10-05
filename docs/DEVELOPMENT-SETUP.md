@@ -9,13 +9,13 @@ Install:
 3. pnpm 12.6.0
 4. Podman Desktop (recommended for the local PostgreSQL container)
 
-No new hosted-service account is required for V0.1-A. A Neon account is not required now.
+No hosted-service account is required for local development. Neon remains optional and is not a required dependency.
 
 ## Setup
 
 ```bash
-git clone https://github.com/threeswordz/construction-erp.git
-cd construction-erp
+git clone https://github.com/threeswordz/cinder-grind.git
+cd cinder-grind
 npm install --global pnpm@12.6.0
 pnpm install --frozen-lockfile
 cp apps/api/.env.example apps/api/.env

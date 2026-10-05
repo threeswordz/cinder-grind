@@ -1,7 +1,7 @@
 # Construction ERP — Development Roadmap
 
 **Document Status:** Development Roadmap Baseline v0.1  
-**Current Phase:** V0.8 Management — ACTIVE / V0.8-A through V0.8-C COMPLETE / V0.8-D IMPLEMENTATION MERGED / CLOSURE ACTIVE
+**Current Phase:** V0.8 Management — ACTIVE / V0.8-A through V0.8-D COMPLETE / V0.8-E PRE-FLIGHT ACTIVE
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1  
@@ -807,7 +807,7 @@ Completed release: **V0.7 Cost Control — COMPLETE AND ACCEPTED**.
 
 Next release: **V0.8 Management**.
 
-Current stage: **V0.8-D Domain Dashboards — IMPLEMENTATION MERGED / CLOSURE ACTIVE**.
+Current stage: **V0.8-E Cross-Module Reporting / Export / Hardening / Release Evidence — PRE-FLIGHT ACTIVE / IMPLEMENTATION NOT STARTED**.
 
 Immediate sequence:
 
@@ -833,8 +833,11 @@ Immediate sequence:
 20. The two P1 threads were resolved; fresh DEC-022 re-review on `6fb4e23859ead102ee2b167b31c85de5809fae59` found one genuine P2: Management movement totals could not reliably reconcile to the canonical Inventory movement report after its 2,000-row result cap.
 21. P2 remediation head `11f955f6cfbfe056b8f088faa9da29937ca6b2eb` exposes/reconciles the canonical total movement count while retaining the report's bounded row payload; exact-head CI #2955 PASS.
 22. Final Stage-D head `e11a77391ebfb43ff4431820ea363964f525f545` passed exact-head CI #2995 including authenticated live acceptance; final DEC-022 review reported no major issues and all review threads were resolved.
-23. PR #177 squash-merged to `main` as `ff3dc08a4aee9945bb0b195627e31577f766f691`.
-24. Current Stage-D closure gate: record/verify post-merge exact-main CI evidence → merge closure/status reconciliation → close Issue #175. Connected GitHub tooling does not expose the push-triggered main run for the merge commit, so that PASS must not be inferred. V0.8-E must not begin before these predecessor gates complete.
+23. PR #177 squash-merged to `main` as `ff3dc08a4aee9945bb0b195627e31577f766f691`; exact-main CI #2996 PASS.
+24. Stage-D closure PR #178 final head `170f359fa8fb8540e098a722c6b0aafa7c111d11` passed CI #3010 and clean exact-head DEC-022 review; PR #178 squash-merged as `4c47fd7713eb1faa57bf4ad8270b254a8bca96a7`; exact-main CI #3011 PASS; Issue #175 CLOSED / COMPLETED.
+25. **V0.8-D Domain Dashboards is technically COMPLETE.**
+26. Issue #179 / branch `v0.8-e-preflight` — ACTIVE from exact green main `4c47fd7713eb1faa57bf4ad8270b254a8bca96a7`.
+27. Current Stage-E gate: pre-flight documentation/status only → exact-head CI / applicable DEC-022 review → pre-flight PR merge → post-merge exact-main CI. Stage-E application implementation must remain NOT STARTED until those predecessor gates complete.
 
 
 # 23. Baseline Decision

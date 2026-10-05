@@ -1,4 +1,6 @@
-**V0.8-D implementation / closure note — 2026-10-05:** Dedicated Schedule, Procurement, Inventory, Cost and Finance Management dashboard tabs reuse the existing V0.8-A Project summary and canonical source-module semantics. No new Management permission is introduced; effective Project access remains mandatory and protected source drilldown still requires owning-module permissions. No schema/migration, inventory valuation, FX, duplicate scheduler/risk engine/cost-finance ledger or paid dependency is introduced. Final head `e11a77391ebfb43ff4431820ea363964f525f545` passed CI #2995 and clean exact-head DEC-022 review; PR #177 merged as `ff3dc08a4aee9945bb0b195627e31577f766f691`. Authorization behavior is technically merged; Stage-D closure still awaits recorded post-merge exact-main CI evidence and Issue #175 closure.
+**V0.8-E pre-flight authorization note — 2026-10-05:** Issue #179 / branch `v0.8-e-preflight` is documentation/status only; implementation has not started. Stage E reuses approved explicit `management.report.export` for controlled export of already-authorized report results. Company isolation, effective Project access and Management permissions remain independent checks; `projects.access_all` and technical SYS_ADMIN do not imply Management/report/export authority or protected source detail. Screen and CSV must apply identical authorization/filter boundaries; protected drilldown continues to require owning-module permissions. No new permission is approved by pre-flight.
+
+**V0.8-D closure note — 2026-10-05:** Dedicated Schedule, Procurement, Inventory, Cost and Finance Management dashboard tabs reuse canonical source-module semantics with no new Management permission. Final head `e11a77391ebfb43ff4431820ea363964f525f545` passed CI #2995 and clean DEC-022 review; PR #177 merged as `ff3dc08a4aee9945bb0b195627e31577f766f691` with exact-main CI #2996 PASS. Closure PR #178 merged as `4c47fd7713eb1faa57bf4ad8270b254a8bca96a7` with exact-main CI #3011 PASS; Issue #175 closed completed. V0.8-D authorization behavior is technically COMPLETE.
 
 **V0.8-C closure note — 2026-10-04:** Stage C is COMPLETE. Executive portfolio reads require explicit `management.portfolio.view`; effective Project scope is applied before aggregation, while `projects.access_all` and technical SYS_ADMIN remain insufficient by themselves. Stage C added no new permission and did not widen source-detail authority. Final PR #173 head `cbc916e5a325555d1971b0ceec6ae63445cfcaff` passed CI #2886/#2887; final DEC-022 exact-head review reported no major issues; PR #173 merged as `a73d11024adc8b7b1373b4c962f924a34e354e20`; post-merge main CI #2888 passed and Issue #172 closed completed.
 
@@ -15,7 +17,7 @@
 # Construction ERP — Roles & Permissions Model
 
 **Document Status:** Roles & Permissions Baseline v0.1  
-**Current Phase:** V0.8-D Domain Dashboards — IMPLEMENTATION MERGED / CLOSURE ACTIVE  
+**Current Phase:** V0.8-E Reporting / Export / Hardening — PRE-FLIGHT ACTIVE / IMPLEMENTATION NOT STARTED  
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1
