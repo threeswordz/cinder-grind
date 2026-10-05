@@ -1,8 +1,8 @@
 # Construction ERP — Master Blueprint
 
 **Document Status:** Architecture Baseline v0.1
-**Current Phase:** V0.8 Management — ACTIVE / V0.8-A COMPLETE / V0.8-B COMPLETE / V0.8-C COMPLETE / V0.8-D COMPLETE / V0.8-E IMPLEMENTATION ACTIVE
-**V0.8-E implementation checkpoint — 2026-10-05:** V0.8-D is technically COMPLETE. Pre-flight/review reconciliation closed through PR #181 final head `35127fb0fedf027324588b3c0806aade808d7fa8`, push CI #3109 / PR CI #3110, clean DEC-022 review, merge `00d3720205d1bdfeb5b3216ad2e91ad72c80f84e`, and exact-main CI #3111 PASS. Existing `v0.8-e-reporting-export` was reconciled forward as `d90c4e1e19ce81d02b05ee363e117d2dd4a9deda`; V0.8-E implementation is ACTIVE under Issue #179.
+**Current Phase:** V0.8 Management — ACTIVE / V0.8-A COMPLETE / V0.8-B COMPLETE / V0.8-C COMPLETE / V0.8-D COMPLETE / V0.8-E UNDER VALIDATION / DEC-022 GATE
+**V0.8-E stable-candidate checkpoint — 2026-10-05:** V0.8-D is technically COMPLETE. PR #182 technical head `9626d4b1b170a7e41af29e5412da2d65643f4974` passed CI #3152 including authenticated live acceptance. Chat stable-candidate review fixed a stale reporting/export deferral P2 and an AC-V08-015 source-drilldown/permission-parity P1 with regression coverage. V0.8-E is UNDER VALIDATION under Issue #179 pending evidence-reconciliation CI, Ready + one DEC-022 exact-head review, merge/post-merge CI and technical issue closure.
 
 **System:** Construction ERP
 **Primary Platform:** Web Application
