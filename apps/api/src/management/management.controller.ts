@@ -178,11 +178,12 @@ function reportOptions(
   }
   const wbsId = optionalUuid(wbsIdValue, 'wbsId');
   const costCodeId = optionalUuid(costCodeIdValue, 'costCodeId');
+  const parsedStatus = reportStatus(status);
   return {
     asOf: asOfDate(asOf),
     days: lookaheadDays(days),
     domain: reportDomain(domain),
-    ...(reportStatus(status) ? { status: reportStatus(status) } : {}),
+    ...(parsedStatus ? { status: parsedStatus } : {}),
     ...(fromDate ? { fromDate } : {}),
     ...(toDate
       ? { toDateExclusive: new Date(toDate.getTime() + 86_400_000) }
