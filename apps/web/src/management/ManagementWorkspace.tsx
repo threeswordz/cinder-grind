@@ -3,8 +3,9 @@ import { useState } from 'react';
 
 import { ExecutivePortfolioDashboard } from './ExecutivePortfolioDashboard';
 import { ManagementDashboards } from './ManagementDashboards';
+import { ManagementReports } from './ManagementReports';
 
-type Mode = 'executive' | 'projects';
+type Mode = 'executive' | 'projects' | 'reports';
 
 export function ManagementWorkspace({
   permissions,
@@ -18,24 +19,31 @@ export function ManagementWorkspace({
   );
 
   if (canPortfolio && !canProjects) return <ExecutivePortfolioDashboard />;
-  if (!canPortfolio && canProjects) {
-    return <ManagementDashboards permissions={permissions} />;
-  }
 
   return (
     <Stack spacing={3}>
       <Tabs
         value={mode}
         onChange={(_event, value: Mode) => setMode(value)}
+        variant="scrollable"
+        scrollButtons="auto"
+        allowScrollButtonsMobile
       >
-        <Tab value="executive" label="Executive" />
-        <Tab value="projects" label="Project & Domain Dashboards" />
+        {canPortfolio ? <Tab value="executive" label="Executive" /> : null}
+        {canProjects ? (
+          <Tab value="projects" label="Project & Domain Dashboards" />
+        ) : null}
+        {canProjects ? <Tab value="reports" label="Reports & Export" /> : null}
       </Tabs>
-      {mode === 'executive' ? (
+      {mode === 'executive' && canPortfolio ? (
         <ExecutivePortfolioDashboard />
-      ) : (
+      ) : null}
+      {mode === 'projects' && canProjects ? (
         <ManagementDashboards permissions={permissions} />
-      )}
+      ) : null}
+      {mode === 'reports' && canProjects ? (
+        <ManagementReports permissions={permissions} />
+      ) : null}
     </Stack>
   );
 }
