@@ -276,7 +276,7 @@ test('V0.8-A Project summary composes aggregate-only canonical source contracts'
       project: {
         id: 'project-1',
         projectCode: 'P-001',
-        projectName,
+        projectName: 'Management Project',
         plannedStartDate: new Date('2026-01-01T00:00:00.000Z'),
         plannedCompletionDate: new Date('2026-12-31T00:00:00.000Z'),
         actualStartDate: null,
