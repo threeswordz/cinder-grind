@@ -1,8 +1,8 @@
 # Construction ERP — Master Blueprint
 
 **Document Status:** Architecture Baseline v0.1
-**Current Phase:** V0.8 Management — ACTIVE / V0.8-A COMPLETE / V0.8-B COMPLETE / V0.8-C COMPLETE / V0.8-D COMPLETE / V0.8-E PRE-FLIGHT ACTIVE
-**V0.8-E pre-flight checkpoint — 2026-10-05:** V0.8-D is technically COMPLETE: PR #177 merged as `ff3dc08a4aee9945bb0b195627e31577f766f691` with exact-main CI #2996 PASS; closure PR #178 merged as `4c47fd7713eb1faa57bf4ad8270b254a8bca96a7` with exact-main CI #3011 PASS; Issue #175 closed completed. Issue #179 / branch `v0.8-e-preflight` now establishes the approved final V0.8 implementation stage for cross-module reporting, descriptive/diagnostic analytics, controlled CSV export, hardening and release evidence. Application implementation is NOT STARTED until pre-flight merge/post-merge gates complete.
+**Current Phase:** V0.8 Management — ACTIVE / V0.8-A COMPLETE / V0.8-B COMPLETE / V0.8-C COMPLETE / V0.8-D COMPLETE / V0.8-E PRE-FLIGHT REVIEW RECONCILIATION ACTIVE
+**V0.8-E pre-flight review checkpoint — 2026-10-05:** V0.8-D is technically COMPLETE. Pre-flight PR #180 reached green exact-head CI (#3036/#3037) and merged as `2f84928c130f328fb1e02d616c41cacb21dc65e1`; exact-main CI #3038 PASS. DEC-022 identified stale live-position guidance, so PR #181 / `v0.8-e-preflight-review-reconcile` is the active forward reconciliation gate. V0.8-E application implementation remains NOT STARTED until PR #181 exact-head CI/review, merge and post-merge exact-main CI complete.
 
 **System:** Construction ERP
 **Primary Platform:** Web Application
