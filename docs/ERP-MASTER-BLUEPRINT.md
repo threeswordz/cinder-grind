@@ -1,7 +1,7 @@
 # Construction ERP — Master Blueprint
 
 **Document Status:** Architecture Baseline v0.1
-**Current Phase:** V0.8 Management — COMPLETE + ACCEPTED / V1.0 PRODUCTION-READINESS NEXT
+**Current Phase:** V1.0 Production Readiness — ENTRY PACKAGE PROPOSED / OWNER APPROVAL PENDING
 **V0.8 technical-closure checkpoint — 2026-10-05:** V0.8-A through V0.8-E are technically COMPLETE. PR #182 final head `1092a3b197b346f71e55671b5235aec90b536b81` passed CI #3307/#3308 and clean final DEC-022 review, squash-merged as `542b1df9ad866f9b557e06ec2ca366b6131e2f94`, post-merge main CI #3309 passed with 69 authenticated current-release runtime acceptance checks, and Issue #179 closed completed. Chat-assisted proxy UAT is PASS with no blocking business defect identified. The Product / Business Owner accepted AC-V08-039 human UAT confirmation and AC-V08-040 explicit release acceptance on 2026-10-05. PR #185 merged as `920d592e7ffe01cb83b106c215fa20adb959cb95`; post-merge main CI #3394 passed; Issue #184 closed completed. V0.8 Management is COMPLETE + ACCEPTED. V1.0 Production / production-readiness is NEXT and requires its own approved entry decision before implementation.
 
 **System:** Construction ERP
@@ -1681,7 +1681,7 @@ Current Release:
 
 Current Stage:
 
-**V1.0 PRODUCTION / PRODUCTION-READINESS — NEXT ROADMAP DESTINATION / ENTRY DECISION NOT YET APPROVED**
+**V1.0 PRODUCTION / PRODUCTION-READINESS — ENTRY PACKAGE PROPOSED / BLOCKED — OWNER DECISION**
 
 Live delivery position:
 
