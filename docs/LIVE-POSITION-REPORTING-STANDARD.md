@@ -76,14 +76,14 @@ V0.7 Cost Control     ██████████  COMPLETE + ACCEPTED
   V0.7-D Variations   ██████████  COMPLETE
   V0.7-E Reporting    ██████████  COMPLETE
   Release Exit        ██████████  COMPLETE + ACCEPTED
-V0.8 Management       █████████░  TECH COMPLETE / RELEASE EXIT
+V0.8 Management       █████████░  OWNER ACCEPTED / RELEASE CLOSURE
   V0.8 Entry Gate     ██████████  COMPLETE
   V0.8-A Read Model   ██████████  COMPLETE
   V0.8-B Dashboards   ██████████  COMPLETE
   V0.8-C Executive    ██████████  COMPLETE
   V0.8-D Domain Views ██████████  COMPLETE
   V0.8-E Reporting    ██████████  COMPLETE
-  Release Exit        ████████░░  ACTIVE — PROXY UAT PASS / OWNER CONFIRMATION PENDING
+  Release Exit        █████████░  ACTIVE — AC-V08-039/040 ACCEPTED / CLOSURE PENDING
 ```
 
 Progress bars are qualitative status indicators, not calculated engineering percentages:

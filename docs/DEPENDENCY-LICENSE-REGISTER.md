@@ -1,12 +1,12 @@
 # Construction ERP — Dependency License Register
 
 **Document Status:** Dependency License Baseline v0.1  
-**Current Phase:** V0.8 Management — TECHNICALLY COMPLETE / V0.8-A through V0.8-E COMPLETE / PROXY UAT PASS / HUMAN RELEASE EXIT PENDING  
+**Current Phase:** V0.8 Management — TECHNICALLY COMPLETE / V0.8-A through V0.8-E COMPLETE / OWNER ACCEPTED / RELEASE CLOSURE ACTIVE  
 **Policy:** Open-Source First  
 **License Verification Date:** 2026-09-26  
 **Version Status:** V0.1-A direct package versions selected and pinned in package manifests.
 
-**V0.8 technical-closure dependency note — 2026-10-05:** V0.8-E is technically complete. PR #182 final head `1092a3b197b346f71e55671b5235aec90b536b81` passed CI #3307/#3308 and clean final DEC-022 review, squash-merged as `542b1df9ad866f9b557e06ec2ca366b6131e2f94`, and post-merge main CI #3309 passed. The release introduced no mandatory paid runtime/reporting dependency; DEC-008 remains satisfied. Proxy UAT is PASS; AC-V08-039/040 human release-exit gates remain pending.
+**V0.8 technical-closure dependency note — 2026-10-05:** V0.8-E is technically complete. PR #182 final head `1092a3b197b346f71e55671b5235aec90b536b81` passed CI #3307/#3308 and clean final DEC-022 review, squash-merged as `542b1df9ad866f9b557e06ec2ca366b6131e2f94`, and post-merge main CI #3309 passed. The release introduced no mandatory paid runtime/reporting dependency; DEC-008 remains satisfied. Proxy UAT is PASS; AC-V08-039/040 were accepted by the Product / Business Owner on 2026-10-05. Issue #184 / PR #185 track documentation-only release closure.
 
 ---
 
