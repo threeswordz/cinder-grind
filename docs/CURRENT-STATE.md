@@ -99,7 +99,7 @@
 - V0.1 cross-module release acceptance scenario: PASS in the Stage H release-candidate regression suite.
 - Open defect check at V0.1 acceptance: no Severity 1 or Severity 2 release-blocking defect recorded.
 - Governance: `AGENTS.md`, `docs/PROJECT-GOVERNANCE.md`, PR governance checklist, DEC-008, DEC-016 and DEC-022 are active. DEC-022 makes Codex a stable-merge-candidate/high-risk independent gate rather than a continuous per-fix reviewer; human UAT and CI/release sequencing are unchanged.
-- Next action: validate the exact PR #182 head with push/PR CI and authenticated live acceptance, complete Chat stable-candidate review/fixes, mark Ready only when green, then run DEC-022 once on the stable exact head before merge.
+- Next action: validate this forward documentation-only P2 remediation on the exact PR #182 head, resolve the current Codex P2 thread when green, run one fresh DEC-022 exact-head re-review, then squash merge, verify post-merge exact-main CI and close Issue #179 before the separate AC-V08-039/040 human release-exit gates.
 
 ## Stage E completed
 
