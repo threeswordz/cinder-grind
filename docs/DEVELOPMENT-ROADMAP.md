@@ -807,7 +807,7 @@ Completed release: **V0.7 Cost Control — COMPLETE AND ACCEPTED**.
 
 Next release: **V0.8 Management**.
 
-Current stage: **V0.8-E Cross-Module Reporting / Export / Hardening / Release Evidence — PRE-FLIGHT REVIEW RECONCILIATION ACTIVE / IMPLEMENTATION NOT STARTED**.
+Current stage: **V0.8-E Cross-Module Reporting / Export / Hardening / Release Evidence — PRE-FLIGHT REVIEW RECONCILIATION ACTIVE / IMPLEMENTATION GATE NOT CLEARED**.
 
 Immediate sequence:
 
@@ -841,7 +841,8 @@ Immediate sequence:
 28. DEC-022 review of that head identified one genuine P2: `README.md` and `docs/LIVE-POSITION-REPORTING-STANDARD.md` still contained obsolete V0.8-B/C/D/E live-position guidance.
 29. PR #180 was merged externally as `2f84928c130f328fb1e02d616c41cacb21dc65e1` before the P2 was resolved; exact-main CI #3038 PASS.
 30. Forward reconciliation branch `v0.8-e-preflight-review-reconcile` / PR #181 is the ACTIVE Stage-E pre-flight gate and corrects the stale live-position surfaces plus durable status evidence.
-31. Current Stage-E gate: PR #181 exact-head push/PR CI → fresh DEC-022 review → resolve any genuine finding → squash merge → post-merge exact-main CI. **Stage-E application implementation remains NOT STARTED until all of those gates complete.**
+31. Current Stage-E gate: PR #181 exact-head push/PR CI → fresh DEC-022 review → resolve any genuine finding → squash merge → post-merge exact-main CI. **Stage-E implementation is not authorized to resume until all of those gates complete.**
+32. A provisional `v0.8-e-reporting-export` branch exists with unmerged work created before PR #181 was detected. It is **FROZEN / UNPACKAGED**, carries no merge authority, and must be reconciled from the exact green post-PR-#181 main before implementation resumes.
 
 
 # 23. Baseline Decision
