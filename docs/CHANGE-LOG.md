@@ -1,3 +1,11 @@
+## 2026-10-05 — V0.8-E DEC-022 Finance currency-drift P2 remediation
+
+- Fresh DEC-022 review of PR #182 head `5c415ac10bb61bc83a7d6fe217a02abccbeb4d33` found one genuine P2 in the period-filtered Finance cash-flow path.
+- If Company base currency changed after the initial Management summary source reads but before the second filtered Project Cash Flow read completed, filtered cash totals could be substituted while still labeled with the earlier summary currency.
+- The active branch now fails closed unless the period-filtered cash-flow response currency matches the established Management summary currency.
+- Integration regression coverage simulates the mid-read currency change and requires the canonical inconsistent-base-currency failure.
+- No schema, migration, permission, dependency, business-rule scope or FX capability is introduced. Next gates: exact-head CI → resolve the P2 thread → fresh DEC-022 exact-head re-review → squash merge/post-merge main CI → Issue #179 technical closure.
+
 ## 2026-10-05 — V0.8-E DEC-022 live-state P2 remediation
 
 - PR #182 is READY and mergeable. Reviewed packaging head `3b0d17cb69548a2007d32ec88f008818b4fd448b` passed exact-head CI #3179, including full workspace regression and authenticated live HTTP acceptance.
