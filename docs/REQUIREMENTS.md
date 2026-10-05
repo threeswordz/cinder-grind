@@ -1,12 +1,12 @@
 # Construction ERP — Master Requirements Register
 
 **Document Status:** Requirements Baseline v0.1  
-**Current Phase:** V0.8-E Cross-Module Reporting / Export / Hardening / Release Evidence — IMPLEMENTATION ACTIVE  
+**Current Phase:** V0.8-E Cross-Module Reporting / Export / Hardening / Release Evidence — UNDER VALIDATION / DEC-022 GATE  
 **Architecture Baseline:** v0.1  
 **Source:** ERP-MASTER-BLUEPRINT.md  
-**Last Structural Review:** V0.8-E implementation handoff reconciliation — 2026-10-05
+**Last Structural Review:** V0.8-E stable-candidate reconciliation — 2026-10-05
 
-**Live delivery note:** V0.1–V0.7 are complete and V0.7 Cost Control is accepted. The V0.8 Management entry gate is complete under DEC-025 and V0.8-A through V0.8-D are technically complete. PR #181 final head `35127fb0fedf027324588b3c0806aade808d7fa8` passed CI #3109/#3110 and clean DEC-022 review, merged as `00d3720205d1bdfeb5b3216ad2e91ad72c80f84e`, and exact-main CI #3111 PASS. `v0.8-e-reporting-export` was reconciled forward as `d90c4e1e19ce81d02b05ee363e117d2dd4a9deda`; V0.8-E implementation is now ACTIVE under Issue #179. Human AC-V08-039/040 UAT and explicit Product / Business Owner release acceptance remain separate release-exit gates. Requirement approval/status remains governed by the approved baselines and Change Control; this note does not rewrite historical requirement approval.
+**Live delivery note:** V0.1–V0.7 are complete and V0.7 Cost Control is accepted. The V0.8 Management entry gate and V0.8-A through V0.8-D are technically complete. V0.8-E is UNDER VALIDATION under Issue #179 / PR #182. Technical head `9626d4b1b170a7e41af29e5412da2d65643f4974` passed CI #3152 including authenticated live acceptance after Chat stable-candidate review fixed a stale delivered-reporting deferral P2 and an AC-V08-015 source-drilldown/permission-parity P1 with regression coverage. Next gate is evidence-reconciliation CI → Ready → single DEC-022 exact-head review. Human AC-V08-039/040 UAT and explicit Product / Business Owner release acceptance remain separate release-exit gates. Requirement approval/status remains governed by the approved baselines and Change Control; this note does not rewrite historical requirement approval.
 
 ---
 
