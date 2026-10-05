@@ -936,6 +936,68 @@ test('V0.8-E Finance report applies date range only to canonical Project Cash Fl
     report.rows.find((row) => row.metric === 'CASH_INFLOW')?.sourceApiPath,
     '/finance/projects/project-1/cash-flow?fromDate=2026-10-01&toDate=2026-10-05',
   );
+  assert.equal(
+    report.rows.find(
+      (row) => row.metric === 'ACCOUNTS_PAYABLE_OUTSTANDING',
+    )?.sourceApiPath,
+    '/finance/projects/project-1/accounts-payable',
+  );
+  assert.equal(
+    report.rows.find(
+      (row) => row.metric === 'ACCOUNTS_RECEIVABLE_OUTSTANDING',
+    )?.sourceApiPath,
+    '/finance/projects/project-1/accounts-receivable',
+  );
+});
+
+test('V0.8-E report drilldown paths use the owning endpoint permission boundary', async () => {
+  const fixture = managementReportFixture();
+  const report = await fixture.service.projectReport(
+    auth([
+      'management.dashboard.view',
+      'reporting.operational.view',
+      'inventory.report.view',
+      'finance.ap.view',
+    ]),
+    'project-1',
+    {
+      asOf: new Date('2026-10-10T00:00:00.000Z'),
+      days: 14,
+      domain: 'ALL',
+    },
+  );
+
+  assert.equal(
+    report.rows.find((row) => row.metric === 'ACTIVITY_TOTAL')
+      ?.sourceApiPath,
+    '/reporting/projects/project-1/project-engineer?asOf=2026-10-10&days=14',
+  );
+  assert.equal(
+    report.rows.find((row) => row.metric === 'DEMAND_LINE_TOTAL')
+      ?.sourceApiPath,
+    '/reporting/projects/project-1/procurement',
+  );
+  assert.equal(
+    report.rows.find((row) => row.metric === 'MOVEMENT_ROW_COUNT')
+      ?.sourceApiPath,
+    '/inventory/reports/movement-summary?projectId=project-1',
+  );
+  assert.equal(
+    report.rows.find(
+      (row) => row.metric === 'ACCOUNTS_PAYABLE_OUTSTANDING',
+    )?.sourceApiPath,
+    '/finance/projects/project-1/accounts-payable',
+  );
+  assert.equal(
+    report.rows.find(
+      (row) => row.metric === 'ACCOUNTS_RECEIVABLE_OUTSTANDING',
+    )?.sourceApiPath,
+    null,
+  );
+  assert.equal(
+    report.rows.find((row) => row.metric === 'CASH_INFLOW')?.sourceApiPath,
+    null,
+  );
 });
 
 test('V0.8-E rejects WBS/Cost Code filters outside canonical Cost domain', async () => {
