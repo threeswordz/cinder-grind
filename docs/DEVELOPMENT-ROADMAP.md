@@ -845,8 +845,8 @@ Immediate sequence:
 32. **V0.8-E pre-flight / review reconciliation is COMPLETE.**
 33. Existing branch `v0.8-e-reporting-export` was reconciled forward without force-push as two-parent merge commit `d90c4e1e19ce81d02b05ee363e117d2dd4a9deda`, preserving the prior Stage-E implementation work and the complete PR #181 main tree.
 34. **V0.8-E implementation is UNDER VALIDATION** under Issue #179. PR #182 is READY and mergeable and packages the Stage-E report/export/hardening implementation.
-35. Reviewed packaging head `3b0d17cb69548a2007d32ec88f008818b4fd448b` passed exact-head CI #3179 including authenticated live acceptance. DEC-022 reviewed that exact head and found one genuine P2 limited to stale live-state documentation describing the earlier pre-Ready/#3152 state.
-36. Current Stage-E gate: forward documentation-only P2 remediation → exact-head CI → resolve the P2 review thread → fresh exact-head DEC-022 re-review → squash merge/post-merge exact-main CI → Issue #179 technical closure → human AC-V08-039/040 release-exit gate.
+35. The stale-live-state P2 was fixed and resolved. Fresh DEC-022 review of head `5c415ac10bb61bc83a7d6fe217a02abccbeb4d33` found one genuine Finance period-filter P2: a Company base-currency change between the summary read and the second filtered cash-flow read could mislabel period totals instead of failing closed.
+36. The active branch now validates filtered cash-flow currency against the established Management summary currency and regression-covers the mid-read drift scenario. Current Stage-E gate: exact-head CI → resolve the current P2 thread → fresh exact-head DEC-022 re-review → squash merge/post-merge exact-main CI → Issue #179 technical closure → human AC-V08-039/040 release-exit gate.
 
 
 # 23. Baseline Decision
