@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { ForbiddenException } from '@nestjs/common';
+import { ForbiddenException, UnprocessableEntityException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 
 import { AuthenticatedUserContext } from '../auth/auth.types';
@@ -34,6 +34,197 @@ function decimal(value: string) {
   return new Prisma.Decimal(value);
 }
 
+function managementReportFixture() {
+  let receivedCostFilters: Record<string, string> | null = null;
+  let receivedCashPeriod:
+    | { fromDate?: Date; toDateExclusive?: Date }
+    | null = null;
+
+  const access = {
+    assertAccess: async () => undefined,
+  } as unknown as ProjectAccessService;
+
+  const reporting = {
+    projectEngineer: async () => ({
+      project: {
+        id: 'project-1',
+        projectCode: 'P-001',
+        projectName: 'Management Project',
+        plannedStartDate: new Date('2026-01-01T00:00:00.000Z'),
+        plannedCompletionDate: new Date('2026-12-31T00:00:00.000Z'),
+        actualStartDate: null,
+        actualCompletionDate: null,
+      },
+      asOfDate: '2026-10-10',
+      schedule: {
+        currentBaseline: null,
+        summary: { total: 10, critical: 2, delayed: 1, completed: 4 },
+        activities: [],
+        lookahead: { window: { days: 14 }, activities: [{ id: 'a-1' }] },
+      },
+      siteExecution: { latestReports: [] },
+      equipment: { assignedCount: 0, assignments: [] },
+    }),
+    procurement: async () => ({
+      project: { id: 'project-1' },
+      summary: {
+        total: 5,
+        AT_RISK: 2,
+        ON_TIME: 2,
+        UNAVAILABLE: 1,
+        rfq: 4,
+        awarded: 3,
+        purchaseOrder: 2,
+      },
+      lines: [],
+    }),
+  } as unknown as ReportingService;
+
+  const costControl = {
+    projectCostControl: async (
+      _auth: AuthenticatedUserContext,
+      _projectId: string,
+      filters: { wbsId?: string; costCodeId?: string } = {},
+    ) => {
+      receivedCostFilters = { ...filters };
+      const filtered = Boolean(filters.wbsId || filters.costCodeId);
+      return {
+        project: {
+          id: 'project-1',
+          projectCode: 'P-001',
+          projectName: 'Management Project',
+        },
+        baseCurrencyCode: 'SGD',
+        filters: {
+          wbs: filters.wbsId
+            ? {
+                id: filters.wbsId,
+                wbsCode: '1',
+                wbsName: 'Root WBS',
+              }
+            : null,
+          costCode: filters.costCodeId
+            ? {
+                id: filters.costCodeId,
+                costCode: 'LAB',
+                costName: 'Labour',
+              }
+            : null,
+          wbsIncludesDescendants: Boolean(filters.wbsId),
+        },
+        totals: {
+          originalBudget: decimal(filtered ? '500' : '1000'),
+          revisedBudget: decimal(filtered ? '600' : '1200'),
+          committedCost: {
+            procurement: decimal('200'),
+            subcontract: decimal('300'),
+            total: decimal(filtered ? '250' : '500'),
+          },
+          actualCost: {
+            supplier: decimal('100'),
+            subcontract: decimal('80'),
+            direct: decimal('20'),
+            total: decimal(filtered ? '100' : '200'),
+          },
+          paidCost: {
+            supplier: decimal('50'),
+            subcontract: decimal('40'),
+            total: decimal(filtered ? '45' : '90'),
+          },
+          remainingCommitment: {
+            procurement: decimal('100'),
+            subcontract: decimal('200'),
+            total: decimal(filtered ? '150' : '300'),
+          },
+          uncommittedEtc: decimal(filtered ? '50' : '100'),
+          costToComplete: decimal(filtered ? '200' : '400'),
+          forecastCost: decimal(filtered ? '300' : '600'),
+          variance: decimal(filtered ? '300' : '600'),
+          commercial: {
+            originalContractValue: decimal('1500'),
+            approvedVariationValue: decimal('100'),
+            revisedContractValue: decimal('1600'),
+            actualRevenue: decimal('700'),
+            cashReceived: decimal('650'),
+            forecastRevenue: decimal('1600'),
+            actualProfit: decimal(filtered ? '250' : '500'),
+            forecastProfit: decimal(filtered ? '500' : '1000'),
+          },
+        },
+      };
+    },
+  } as unknown as CostControlService;
+
+  const cashFlow = {
+    projectCashFlow: async (
+      _auth: AuthenticatedUserContext,
+      _projectId: string,
+      period: { fromDate?: Date; toDateExclusive?: Date } = {},
+    ) => {
+      receivedCashPeriod = { ...period };
+      const filtered = Boolean(period.fromDate || period.toDateExclusive);
+      return {
+        baseCurrencyCode: 'SGD',
+        totals: {
+          inflowAmount: decimal(filtered ? '10' : '650'),
+          outflowAmount: decimal(filtered ? '3' : '90'),
+          netCashFlow: decimal(filtered ? '7' : '560'),
+        },
+        rows: [],
+      };
+    },
+  } as unknown as CashFlowService;
+
+  const finance = {
+    accountsPayable: async () => [
+      { currencyCode: 'SGD', outstandingAmount: decimal('60') },
+    ],
+  } as unknown as FinanceService;
+
+  const clientInvoices = {
+    accountsReceivable: async () => [
+      { currencyCode: 'SGD', outstandingAmount: decimal('120') },
+    ],
+  } as unknown as ClientInvoiceService;
+
+  const inventory = {
+    balanceSummary: async () => ({
+      balanceRowCount: 3,
+      warehouseCount: 1,
+      materialCount: 2,
+      uomCount: 1,
+    }),
+    balanceQuantitySummary: async () => ({
+      positiveBalanceRowCount: 2,
+      negativeBalanceRowCount: 1,
+      zeroBalanceRowCount: 0,
+    }),
+    movementSummary: async () => ({
+      movementRowCount: 4,
+      latestPostedAt: new Date('2026-10-09T00:00:00.000Z'),
+      goodsReceiptRowCount: 1,
+      materialIssueRowCount: 1,
+      materialReturnRowCount: 1,
+      stockTransferRowCount: 1,
+    }),
+  } as unknown as InventoryReportService;
+
+  return {
+    service: new ManagementService(
+      {} as PrismaService,
+      access,
+      reporting,
+      costControl,
+      cashFlow,
+      finance,
+      clientInvoices,
+      inventory,
+    ),
+    getCostFilters: () => receivedCostFilters,
+    getCashPeriod: () => receivedCashPeriod,
+  };
+}
+
 test('V0.8 Management routes require explicit Management permissions', () => {
   assert.deepEqual(
     Reflect.getMetadata(
@@ -55,6 +246,20 @@ test('V0.8 Management routes require explicit Management permissions', () => {
       ManagementController.prototype.portfolio,
     ),
     ['management.portfolio.view'],
+  );
+  assert.deepEqual(
+    Reflect.getMetadata(
+      REQUIRED_PERMISSIONS_KEY,
+      ManagementController.prototype.report,
+    ),
+    ['management.dashboard.view'],
+  );
+  assert.deepEqual(
+    Reflect.getMetadata(
+      REQUIRED_PERMISSIONS_KEY,
+      ManagementController.prototype.reportCsv,
+    ),
+    ['management.dashboard.view', 'management.report.export'],
   );
 });
 
@@ -626,4 +831,121 @@ test('V0.8-B Management Project selector applies effective Project scope before 
       { isActive: true },
     ],
   });
+});
+
+
+test('V0.8-E Management cost report reuses canonical WBS/Cost Code filters and CSV parity', async () => {
+  const fixture = managementReportFixture();
+  const wbsId = '11111111-1111-4111-8111-111111111111';
+  const costCodeId = '22222222-2222-4222-8222-222222222222';
+  const permissions = [
+    'management.dashboard.view',
+    'management.report.export',
+    'cost.control.view',
+  ];
+  const options = {
+    asOf: new Date('2026-10-10T00:00:00.000Z'),
+    days: 14 as const,
+    domain: 'COST' as const,
+    wbsId,
+    costCodeId,
+  };
+
+  const report = await fixture.service.projectReport(
+    auth(permissions),
+    'project-1',
+    options,
+  );
+
+  assert.equal(report.contractVersion, 'V0.8-E');
+  assert.equal(report.filters.wbs?.id, wbsId);
+  assert.equal(report.filters.costCode?.id, costCodeId);
+  assert.equal(report.filters.wbsIncludesDescendants, true);
+  assert.deepEqual(fixture.getCostFilters(), { wbsId, costCodeId });
+  assert.equal(report.rows.every((row) => row.domain === 'COST'), true);
+  assert.equal(
+    report.rows.find((row) => row.metric === 'REVISED_BUDGET')?.value,
+    '600',
+  );
+  assert.equal(
+    report.rows.find((row) => row.metric === 'REVISED_BUDGET')
+      ?.sourceApiPath,
+    '/projects/project-1/cost-control?wbsId=' +
+      encodeURIComponent(wbsId) +
+      '&costCodeId=' +
+      encodeURIComponent(costCodeId),
+  );
+  assert.equal(report.boundaries.syntheticDimensionalAllocation, false);
+  assert.equal(report.boundaries.persistedReportTruth, false);
+
+  const csv = await fixture.service.projectReportCsv(
+    auth(permissions),
+    'project-1',
+    options,
+  );
+  assert.equal(csv.split('\r\n').filter(Boolean).length, report.rowCount + 1);
+  assert.match(
+    csv,
+    /COST,REVISED_BUDGET,Revised budget,AVAILABLE,600,MONEY,SGD/,
+  );
+  assert.equal(csv.includes('must-not-leak'), false);
+});
+
+test('V0.8-E Finance report applies date range only to canonical Project Cash Flow rows', async () => {
+  const fixture = managementReportFixture();
+  const report = await fixture.service.projectReport(
+    auth([
+      'management.dashboard.view',
+      'finance.ap.view',
+      'finance.ar.view',
+      'finance.payment.view',
+    ]),
+    'project-1',
+    {
+      asOf: new Date('2026-10-10T00:00:00.000Z'),
+      days: 14,
+      domain: 'FINANCE',
+      fromDate: new Date('2026-10-01T00:00:00.000Z'),
+      toDateExclusive: new Date('2026-10-06T00:00:00.000Z'),
+    },
+  );
+
+  assert.equal(report.filters.fromDate, '2026-10-01');
+  assert.equal(report.filters.toDate, '2026-10-05');
+  assert.deepEqual(report.filters.dateRangeAppliedDomains, ['FINANCE']);
+  assert.equal(
+    report.rows.find((row) => row.metric === 'CASH_INFLOW')?.value,
+    '10',
+  );
+  assert.equal(
+    report.rows.find(
+      (row) => row.metric === 'ACCOUNTS_PAYABLE_OUTSTANDING',
+    )?.value,
+    '60',
+  );
+  assert.equal(
+    fixture.getCashPeriod()?.fromDate?.toISOString().slice(0, 10),
+    '2026-10-01',
+  );
+  assert.equal(
+    fixture.getCashPeriod()?.toDateExclusive?.toISOString().slice(0, 10),
+    '2026-10-06',
+  );
+});
+
+test('V0.8-E rejects WBS/Cost Code filters outside canonical Cost/Commercial domains', async () => {
+  const fixture = managementReportFixture();
+  await assert.rejects(
+    () =>
+      fixture.service.projectReport(auth(), 'project-1', {
+        asOf: new Date('2026-10-10T00:00:00.000Z'),
+        days: 14,
+        domain: 'FINANCE',
+        wbsId: '11111111-1111-4111-8111-111111111111',
+      }),
+    (error: unknown) =>
+      error instanceof UnprocessableEntityException &&
+      (error.getResponse() as { code?: string }).code ===
+        'MANAGEMENT_REPORT_DIMENSION_UNSUPPORTED',
+  );
 });
