@@ -76,14 +76,15 @@ V0.7 Cost Control     ██████████  COMPLETE + ACCEPTED
   V0.7-D Variations   ██████████  COMPLETE
   V0.7-E Reporting    ██████████  COMPLETE
   Release Exit        ██████████  COMPLETE + ACCEPTED
-V0.8 Management       █████████░  OWNER ACCEPTED / RELEASE CLOSURE
+V0.8 Management       ██████████  COMPLETE + ACCEPTED
   V0.8 Entry Gate     ██████████  COMPLETE
   V0.8-A Read Model   ██████████  COMPLETE
   V0.8-B Dashboards   ██████████  COMPLETE
   V0.8-C Executive    ██████████  COMPLETE
   V0.8-D Domain Views ██████████  COMPLETE
   V0.8-E Reporting    ██████████  COMPLETE
-  Release Exit        █████████░  ACTIVE — AC-V08-039/040 ACCEPTED / CLOSURE PENDING
+  Release Exit        ██████████  COMPLETE + ACCEPTED
+V1.0 Production       ░░░░░░░░░░  NEXT — ENTRY / PRODUCTION-READINESS DECISION
 ```
 
 Progress bars are qualitative status indicators, not calculated engineering percentages:
@@ -107,7 +108,7 @@ Use these terms consistently:
 - **BLOCKED — UAT** — required human UAT/business acceptance is the actual remaining blocker.
 - **NEXT** — the next authorized implementation stage once all required predecessor conditions are satisfied.
 - **FUTURE** — planned in the approved roadmap but not the current/next authorized stage.
-- **AFTER V0.8** — use for the V1.0 Production / production-readiness destination while the approved functional roadmap still ends at V0.8.
+- **AFTER V0.8** — use for the V1.0 Production / production-readiness destination while V0.8 release exit is still incomplete. Once V0.8 is COMPLETE + ACCEPTED, report V1.0 as **NEXT** only for the entry / production-readiness decision; this does not imply implementation authorization.
 
 Do not label something COMPLETE merely because code exists. Apply the actual repository gates.
 
