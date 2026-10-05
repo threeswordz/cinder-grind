@@ -1,11 +1,11 @@
-**V0.8 implementation reconciliation — 2026-10-05:** V0.8-A through V0.8-D are technically complete and V0.8-E implementation is ACTIVE on reconciled branch `v0.8-e-reporting-export` after PR #181 merged as `00d3720205d1bdfeb5b3216ad2e91ad72c80f84e`, exact-main CI #3111 PASS, and branch reconciliation `d90c4e1e19ce81d02b05ee363e117d2dd4a9deda`. Stage E remains a derived read/composition layer over canonical source modules; no V0.8 editable KPI/report ledger, data warehouse, OLAP store, FX engine or synthetic allocation is introduced.
+**V0.8 stable-candidate reconciliation — 2026-10-05:** V0.8-A through V0.8-D are technically complete and V0.8-E is UNDER VALIDATION on PR #182. Technical head `9626d4b1b170a7e41af29e5412da2d65643f4974` passed CI #3152 including migration/status and authenticated live acceptance. Stage E remains a derived read/composition layer over canonical source modules; no schema/migration was added for Stage E and no editable KPI/report ledger, data warehouse, OLAP store, FX engine or synthetic allocation is introduced.
 
 **V0.7 implementation reconciliation — 2026-10-04:** `direct_cost_postings`, `cost_forecasts` / `cost_forecast_lines` and `project_variations` are implemented through forward-only migrations with retained approval/history integrity. Stage E reporting remains a derived read model over canonical source modules and these Cost Control-owned mutation entities; it does not add an editable report ledger.
 
 # Construction ERP — Database ERD
 
 **Document Status:** Database Baseline v0.1  
-**Current Phase:** V0.8 Management — ACTIVE / V0.8-A through V0.8-D COMPLETE / V0.8-E IMPLEMENTATION ACTIVE  
+**Current Phase:** V0.8 Management — ACTIVE / V0.8-A through V0.8-D COMPLETE / V0.8-E UNDER VALIDATION / DEC-022 GATE  
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database:** PostgreSQL  
