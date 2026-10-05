@@ -1,3 +1,11 @@
+## 2026-10-05 — V0.8-E implementation started
+
+- Pre-flight PR #180 final head `bd9c3eb351de410821353806837bad0ffddcfb81` passed push CI #3036 and PR CI #3037.
+- DEC-022 applicable review was satisfied by Chat review + CI because PR #180 was documentation-only; no Codex pass was required.
+- PR #180 squash-merged as `2f84928c130f328fb1e02d616c41cacb21dc65e1`; exact-main CI #3038 PASS.
+- Implementation branch `v0.8-e-reporting-export` starts from that exact green main under Issue #179.
+- Stage-E implementation is now authorized; human AC-V08-039/040 remain later release-exit gates.
+
 ## 2026-10-05 — V0.8-E pre-flight established
 
 - V0.8-D Domain Dashboards is technically COMPLETE.
