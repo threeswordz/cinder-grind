@@ -1,7 +1,7 @@
 # Construction ERP — Development Roadmap
 
 **Document Status:** Development Roadmap Baseline v0.1  
-**Current Phase:** V0.8 Management — TECHNICALLY COMPLETE / PROXY UAT PASS / AC-V08-039/040 RELEASE EXIT PENDING
+**Current Phase:** V0.8 Management — TECHNICALLY COMPLETE / AC-V08-039/040 OWNER ACCEPTED / RELEASE CLOSURE ACTIVE
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1  
