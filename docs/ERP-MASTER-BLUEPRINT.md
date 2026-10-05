@@ -2,7 +2,7 @@
 
 **Document Status:** Architecture Baseline v0.1
 **Current Phase:** V0.8 Management — ACTIVE / V0.8-A COMPLETE / V0.8-B COMPLETE / V0.8-C COMPLETE / V0.8-D COMPLETE / V0.8-E UNDER VALIDATION / DEC-022 GATE
-**V0.8-E stable-candidate checkpoint — 2026-10-05:** V0.8-D is technically COMPLETE. PR #182 technical head `9626d4b1b170a7e41af29e5412da2d65643f4974` passed CI #3152 including authenticated live acceptance. Chat stable-candidate review fixed a stale reporting/export deferral P2 and an AC-V08-015 source-drilldown/permission-parity P1 with regression coverage. V0.8-E is UNDER VALIDATION under Issue #179 pending evidence-reconciliation CI, Ready + one DEC-022 exact-head review, merge/post-merge CI and technical issue closure.
+**V0.8-E DEC-022 remediation checkpoint — 2026-10-05:** V0.8-D is technically COMPLETE. PR #182 is READY and mergeable; reviewed packaging head `3b0d17cb69548a2007d32ec88f008818b4fd448b` passed CI #3179 including authenticated live acceptance. DEC-022 reviewed that exact head and found one genuine P2 limited to stale live-state documentation describing the earlier pre-Ready/#3152 state. This forward documentation-only remediation corrects the live architecture status. V0.8-E remains UNDER VALIDATION under Issue #179 pending exact-head CI, P2 thread resolution, fresh DEC-022 exact-head re-review, merge/post-merge CI and technical issue closure.
 
 **System:** Construction ERP
 **Primary Platform:** Web Application
