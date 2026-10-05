@@ -30,6 +30,13 @@ export function setCsrfToken(value: string | null): void {
   csrfToken = value;
 }
 
+export function apiUrl(path: string): string {
+  if (!path.startsWith('/')) {
+    throw new Error('API path must be relative to the configured API base URL.');
+  }
+  return apiBaseUrl + path;
+}
+
 export async function ensureCsrfToken(): Promise<string> {
   if (csrfToken) return csrfToken;
 
