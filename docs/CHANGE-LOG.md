@@ -1,3 +1,10 @@
+## 2026-10-05 — V0.8-E DEC-022 source-drilldown and live-state P2 remediation
+
+- Exact PR #182 head `4473b942142a32ae11f9abd90df47854a5aad662` passed push CI #3247 and PR CI #3248, including full workspace regression and authenticated live HTTP acceptance; the Finance currency-drift P2 was fixed/resolved, with the same fail-closed invariant applied to filtered Cost reads.
+- Fresh DEC-022 review of that exact head found two genuine P2s: Management report rows exposed `sourceApiPath` but the browser rendered only static permission text, leaving AC-V08-015 source drilldown non-actionable; and the live status still described exact-head CI/thread resolution as future work.
+- The forward fix renders an authenticated “Open source data” action whenever the server supplies a non-null permission-safe `sourceApiPath`; rows without source access remain aggregate-only. Live status is reconciled to the #3247/#3248 evidence and current remediation gate.
+- No new source permission, route authority, schema, migration, paid dependency, FX behavior or duplicate report truth is introduced. Next gates: new exact-head CI → resolve both P2 threads → fresh exact-head DEC-022 re-review → squash merge/post-merge main CI → Issue #179 technical closure.
+
 ## 2026-10-05 — V0.8-E DEC-022 Finance currency-drift P2 remediation
 
 - Fresh DEC-022 review of PR #182 head `5c415ac10bb61bc83a7d6fe217a02abccbeb4d33` found one genuine P2 in the period-filtered Finance cash-flow path.
