@@ -1,3 +1,11 @@
+## 2026-10-05 — V0.8-E implementation resumed after pre-flight reconciliation
+
+- PR #181 final head `35127fb0fedf027324588b3c0806aade808d7fa8` passed push CI #3109 and PR CI #3110, including authenticated live acceptance.
+- Final DEC-022 exact-head review reported no major issues; all PR #181 review threads were resolved.
+- PR #181 squash-merged as `00d3720205d1bdfeb5b3216ad2e91ad72c80f84e`; post-merge exact-main CI #3111 PASS.
+- Existing `v0.8-e-reporting-export` was reconciled forward without force-push as two-parent merge commit `d90c4e1e19ce81d02b05ee363e117d2dd4a9deda`, preserving both the implementation history and the complete PR #181 main tree.
+- V0.8-E implementation is ACTIVE under Issue #179. Technical completion is not yet claimed; reconciled branch CI, hardening/evidence, implementation PR review/merge and later human AC-V08-039/040 remain outstanding gates.
+
 ## 2026-10-05 — V0.8-E pre-flight Codex P2 forward reconciliation
 
 - PR #180 final head `bd9c3eb351de410821353806837bad0ffddcfb81` passed push CI #3036 and PR CI #3037.
