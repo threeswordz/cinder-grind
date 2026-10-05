@@ -91,4 +91,4 @@ Development/session responsibilities are defined in `docs/DEVELOPMENT-OPERATING-
 
 Completed releases: **V0.1 Foundation, V0.2 Project & Scheduling, V0.3 Procurement, V0.4 Inventory, V0.5 Subcontracts, V0.6 Finance and V0.7 Cost Control**. V0.5, V0.6 and V0.7 are accepted.
 
-Current position: **V0.8 Management ACTIVE**. The V0.8 entry gate is approved under DEC-025 and V0.8-A Management Read Model / KPI Contracts is COMPLETE: PR #167 merged as `d60c5c051f1eb6aec30399173f33ab05300cc52c`, post-merge main CI #2760 passed and Issue #166 closed completed. **V0.8-B Project Engineer & Project Manager Dashboards is NEXT.**
+Current position: **V0.8 Management ACTIVE**. The V0.8 entry gate is complete under DEC-025; V0.8-A through V0.8-D are technically COMPLETE. **V0.8-E Cross-Module Reporting / Export / Hardening / Release Evidence is in PRE-FLIGHT ACTIVE / IMPLEMENTATION NOT STARTED** under Issue #179 and PR #180. Application implementation may begin only after the pre-flight exact-head CI/review/merge/post-merge gates pass. Human AC-V08-039/040 UAT and explicit Product / Business Owner release acceptance remain later V0.8 release-exit gates.
