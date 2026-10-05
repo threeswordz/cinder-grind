@@ -1,7 +1,7 @@
 # Construction ERP — Development Roadmap
 
 **Document Status:** Development Roadmap Baseline v0.1  
-**Current Phase:** V0.8 Management — ACTIVE / V0.8-A through V0.8-D COMPLETE / V0.8-E UNDER VALIDATION / DEC-022 GATE
+**Current Phase:** V0.8 Management — TECHNICALLY COMPLETE / PROXY UAT PASS / AC-V08-039/040 RELEASE EXIT PENDING
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1  
@@ -807,7 +807,7 @@ Completed release: **V0.7 Cost Control — COMPLETE AND ACCEPTED**.
 
 Next release: **V0.8 Management**.
 
-Current stage: **V0.8-E Cross-Module Reporting / Export / Hardening / Release Evidence — UNDER VALIDATION / DEC-022 GATE**.
+Current stage: **V0.8 RELEASE EXIT — V0.8-A through V0.8-E TECHNICALLY COMPLETE / PROXY UAT PASS / HUMAN OWNER CONFIRMATION PENDING**.
 
 Immediate sequence:
 
@@ -844,7 +844,7 @@ Immediate sequence:
 31. PR #181 squash-merged as `00d3720205d1bdfeb5b3216ad2e91ad72c80f84e`; post-merge exact-main CI #3111 PASS.
 32. **V0.8-E pre-flight / review reconciliation is COMPLETE.**
 33. Existing branch `v0.8-e-reporting-export` was reconciled forward without force-push as two-parent merge commit `d90c4e1e19ce81d02b05ee363e117d2dd4a9deda`, preserving the prior Stage-E implementation work and the complete PR #181 main tree.
-34. **V0.8-E implementation is UNDER VALIDATION** under Issue #179. PR #182 is READY and mergeable and packages the Stage-E report/export/hardening implementation.
+34. **V0.8-E is technically COMPLETE.** PR #182 final head `1092a3b197b346f71e55671b5235aec90b536b81` passed CI #3307/#3308 and clean final DEC-022 review; PR #182 squash-merged as `542b1df9ad866f9b557e06ec2ca366b6131e2f94`; post-merge main CI #3309 PASS; Issue #179 CLOSED / COMPLETED.
 35. The Finance currency-drift P2 was fixed and regression-covered together with the analogous filtered Cost invariant; exact head `4473b942142a32ae11f9abd90df47854a5aad662` passed push CI #3247 and PR CI #3248 including authenticated live acceptance, and that review thread was resolved.
 36. Fresh DEC-022 review of `4473b942142a32ae11f9abd90df47854a5aad662` found two additional genuine P2s: AC-V08-015 source drilldown was not actionable in the browser because `sourceApiPath` had no consumer, and live status still described the completed CI/thread gate as pending. Both are fixed forward: permitted source paths now render as authenticated “Open source data” actions and the live status is reconciled. Combined remediation/status head `de1c8c7bc50f376c07fd27da85c7559b68b9dbda` passes push CI #3279 and PR CI #3280 including authenticated live acceptance; runtime behavior is frozen. Current Stage-E gate: resolve both P2 threads → fresh exact-head DEC-022 re-review → squash merge/post-merge exact-main CI → Issue #179 technical closure → human AC-V08-039/040 release-exit gate.
 
