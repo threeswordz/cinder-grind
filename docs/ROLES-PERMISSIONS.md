@@ -1,4 +1,4 @@
-**V0.8-E pre-flight authorization note — 2026-10-05:** Issue #179 / branch `v0.8-e-preflight` is documentation/status only; implementation has not started. Stage E reuses approved explicit `management.report.export` for controlled export of already-authorized report results. Company isolation, effective Project access and Management permissions remain independent checks; `projects.access_all` and technical SYS_ADMIN do not imply Management/report/export authority or protected source detail. Screen and CSV must apply identical authorization/filter boundaries; protected drilldown continues to require owning-module permissions. No new permission is approved by pre-flight.
+**V0.8-E pre-flight review-reconciliation authorization note — 2026-10-05:** PR #181 / `v0.8-e-preflight-review-reconcile` is the active documentation/status gate after PR #180 merged with a genuine DEC-022 stale-live-position P2 still requiring forward reconciliation. Stage-E implementation is not authorized to proceed until PR #181 exact-head CI/review, merge and post-merge exact-main CI complete; provisional `v0.8-e-reporting-export` work remains frozen/unpackaged. The approved Stage E boundary still reuses explicit `management.report.export` for controlled export of already-authorized report results. Company isolation, effective Project access and Management permissions remain independent checks; `projects.access_all` and technical SYS_ADMIN do not imply Management/report/export authority or protected source detail. Screen and CSV must apply identical authorization/filter boundaries; protected drilldown continues to require owning-module permissions. No new permission is approved by this reconciliation.
 
 **V0.8-D closure note — 2026-10-05:** Dedicated Schedule, Procurement, Inventory, Cost and Finance Management dashboard tabs reuse canonical source-module semantics with no new Management permission. Final head `e11a77391ebfb43ff4431820ea363964f525f545` passed CI #2995 and clean DEC-022 review; PR #177 merged as `ff3dc08a4aee9945bb0b195627e31577f766f691` with exact-main CI #2996 PASS. Closure PR #178 merged as `4c47fd7713eb1faa57bf4ad8270b254a8bca96a7` with exact-main CI #3011 PASS; Issue #175 closed completed. V0.8-D authorization behavior is technically COMPLETE.
 
@@ -17,7 +17,7 @@
 # Construction ERP — Roles & Permissions Model
 
 **Document Status:** Roles & Permissions Baseline v0.1  
-**Current Phase:** V0.8-E Reporting / Export / Hardening — PRE-FLIGHT ACTIVE / IMPLEMENTATION NOT STARTED  
+**Current Phase:** V0.8-E Reporting / Export / Hardening — PRE-FLIGHT REVIEW RECONCILIATION / IMPLEMENTATION GATE NOT CLEARED  
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1

@@ -1,7 +1,7 @@
 # Construction ERP — Development Roadmap
 
 **Document Status:** Development Roadmap Baseline v0.1  
-**Current Phase:** V0.8 Management — ACTIVE / V0.8-A through V0.8-D COMPLETE / V0.8-E PRE-FLIGHT ACTIVE
+**Current Phase:** V0.8 Management — ACTIVE / V0.8-A through V0.8-D COMPLETE / V0.8-E PRE-FLIGHT REVIEW RECONCILIATION ACTIVE
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1  
@@ -807,7 +807,7 @@ Completed release: **V0.7 Cost Control — COMPLETE AND ACCEPTED**.
 
 Next release: **V0.8 Management**.
 
-Current stage: **V0.8-E Cross-Module Reporting / Export / Hardening / Release Evidence — PRE-FLIGHT ACTIVE / IMPLEMENTATION NOT STARTED**.
+Current stage: **V0.8-E Cross-Module Reporting / Export / Hardening / Release Evidence — PRE-FLIGHT REVIEW RECONCILIATION ACTIVE / IMPLEMENTATION GATE NOT CLEARED**.
 
 Immediate sequence:
 
@@ -836,8 +836,13 @@ Immediate sequence:
 23. PR #177 squash-merged to `main` as `ff3dc08a4aee9945bb0b195627e31577f766f691`; exact-main CI #2996 PASS.
 24. Stage-D closure PR #178 final head `170f359fa8fb8540e098a722c6b0aafa7c111d11` passed CI #3010 and clean exact-head DEC-022 review; PR #178 squash-merged as `4c47fd7713eb1faa57bf4ad8270b254a8bca96a7`; exact-main CI #3011 PASS; Issue #175 CLOSED / COMPLETED.
 25. **V0.8-D Domain Dashboards is technically COMPLETE.**
-26. Issue #179 / branch `v0.8-e-preflight` — ACTIVE from exact green main `4c47fd7713eb1faa57bf4ad8270b254a8bca96a7`.
-27. Current Stage-E gate: pre-flight documentation/status only → exact-head CI / applicable DEC-022 review → pre-flight PR merge → post-merge exact-main CI. Stage-E application implementation must remain NOT STARTED until those predecessor gates complete.
+26. Issue #179 remains the open V0.8-E stage tracker.
+27. Pre-flight branch `v0.8-e-preflight` reached final head `bd9c3eb351de410821353806837bad0ffddcfb81`; push CI #3036 PASS and PR CI #3037 PASS.
+28. DEC-022 review of that head identified one genuine P2: `README.md` and `docs/LIVE-POSITION-REPORTING-STANDARD.md` still contained obsolete V0.8-B/C/D/E live-position guidance.
+29. PR #180 was merged externally as `2f84928c130f328fb1e02d616c41cacb21dc65e1` before the P2 was resolved; exact-main CI #3038 PASS.
+30. Forward reconciliation branch `v0.8-e-preflight-review-reconcile` / PR #181 is the ACTIVE Stage-E pre-flight gate and corrects the stale live-position surfaces plus durable status evidence.
+31. Current Stage-E gate: PR #181 exact-head push/PR CI → fresh DEC-022 review → resolve any genuine finding → squash merge → post-merge exact-main CI. **Stage-E implementation is not authorized to resume until all of those gates complete.**
+32. A provisional `v0.8-e-reporting-export` branch exists with unmerged work created before PR #181 was detected. It is **FROZEN / UNPACKAGED**, carries no merge authority, and must be reconciled from the exact green post-PR-#181 main before implementation resumes.
 
 
 # 23. Baseline Decision

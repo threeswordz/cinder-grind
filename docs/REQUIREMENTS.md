@@ -1,12 +1,12 @@
 # Construction ERP — Master Requirements Register
 
 **Document Status:** Requirements Baseline v0.1  
-**Current Phase:** V0.8-E Cross-Module Reporting / Export / Hardening / Release Evidence — PRE-FLIGHT ACTIVE / IMPLEMENTATION NOT STARTED  
+**Current Phase:** V0.8-E Cross-Module Reporting / Export / Hardening / Release Evidence — PRE-FLIGHT REVIEW RECONCILIATION / IMPLEMENTATION GATE NOT CLEARED  
 **Architecture Baseline:** v0.1  
 **Source:** ERP-MASTER-BLUEPRINT.md  
-**Last Structural Review:** V0.8-E pre-flight documentation reconciliation — 2026-10-05
+**Last Structural Review:** V0.8-E pre-flight review reconciliation — 2026-10-05
 
-**Live delivery note:** V0.1–V0.7 are complete and V0.7 Cost Control is accepted. The V0.8 Management entry gate is complete under DEC-025. V0.8-A through V0.8-D are technically complete. V0.8-E is now in documentation/status pre-flight under Issue #179 / `v0.8-e-preflight`; application implementation remains NOT STARTED until the pre-flight CI/review/merge/post-merge gates pass. Human AC-V08-039/040 UAT and explicit Product / Business Owner release acceptance remain separate release-exit gates. Requirement approval/status remains governed by the approved baselines and Change Control; this note does not rewrite historical requirement approval.
+**Live delivery note:** V0.1–V0.7 are complete and V0.7 Cost Control is accepted. The V0.8 Management entry gate is complete under DEC-025 and V0.8-A through V0.8-D are technically complete. Pre-flight PR #180 merged as `2f84928c130f328fb1e02d616c41cacb21dc65e1` with exact-main CI #3038 PASS, but its genuine DEC-022 stale-live-position P2 required forward reconciliation. PR #181 / `v0.8-e-preflight-review-reconcile` is now the active Stage-E pre-flight gate. Implementation is not authorized to proceed until PR #181 passes exact-head CI/review, merges, and passes post-merge exact-main CI; provisional `v0.8-e-reporting-export` work remains frozen/unpackaged. Human AC-V08-039/040 UAT and explicit Product / Business Owner release acceptance remain separate release-exit gates. Requirement approval/status remains governed by the approved baselines and Change Control; this note does not rewrite historical requirement approval.
 
 ---
 

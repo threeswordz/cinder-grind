@@ -1,8 +1,8 @@
 # Construction ERP — Master Blueprint
 
 **Document Status:** Architecture Baseline v0.1
-**Current Phase:** V0.8 Management — ACTIVE / V0.8-A COMPLETE / V0.8-B COMPLETE / V0.8-C COMPLETE / V0.8-D COMPLETE / V0.8-E PRE-FLIGHT ACTIVE
-**V0.8-E pre-flight checkpoint — 2026-10-05:** V0.8-D is technically COMPLETE: PR #177 merged as `ff3dc08a4aee9945bb0b195627e31577f766f691` with exact-main CI #2996 PASS; closure PR #178 merged as `4c47fd7713eb1faa57bf4ad8270b254a8bca96a7` with exact-main CI #3011 PASS; Issue #175 closed completed. Issue #179 / branch `v0.8-e-preflight` now establishes the approved final V0.8 implementation stage for cross-module reporting, descriptive/diagnostic analytics, controlled CSV export, hardening and release evidence. Application implementation is NOT STARTED until pre-flight merge/post-merge gates complete.
+**Current Phase:** V0.8 Management — ACTIVE / V0.8-A COMPLETE / V0.8-B COMPLETE / V0.8-C COMPLETE / V0.8-D COMPLETE / V0.8-E PRE-FLIGHT REVIEW RECONCILIATION ACTIVE
+**V0.8-E pre-flight review checkpoint — 2026-10-05:** V0.8-D is technically COMPLETE. Pre-flight PR #180 reached green exact-head CI (#3036/#3037) and merged as `2f84928c130f328fb1e02d616c41cacb21dc65e1`; exact-main CI #3038 PASS. DEC-022 identified stale live-position guidance, so PR #181 / `v0.8-e-preflight-review-reconcile` is the active forward reconciliation gate. V0.8-E implementation is not authorized to proceed until PR #181 exact-head CI/review, merge and post-merge exact-main CI complete; provisional `v0.8-e-reporting-export` work remains frozen/unpackaged.
 
 **System:** Construction ERP
 **Primary Platform:** Web Application
@@ -1681,7 +1681,7 @@ Next Release:
 
 Current Stage:
 
-**V0.8-E Cross-Module Reporting / Export / Hardening / Release Evidence — PRE-FLIGHT ACTIVE / IMPLEMENTATION NOT STARTED**
+**V0.8-E Cross-Module Reporting / Export / Hardening / Release Evidence — PRE-FLIGHT REVIEW RECONCILIATION ACTIVE / IMPLEMENTATION GATE NOT CLEARED**
 
 Live delivery position:
 
@@ -1697,7 +1697,7 @@ Live delivery position:
 - V0.8-B Project Engineer & Project Manager Dashboards — complete
 - V0.8-C Executive / Cross-Project Management Dashboard — complete
 - V0.8-D Domain Dashboards — complete
-- V0.8-E Cross-Module Reporting / Export / Hardening / Release Evidence — pre-flight active / implementation not started
+- V0.8-E Cross-Module Reporting / Export / Hardening / Release Evidence — pre-flight review reconciliation active / implementation gate not cleared; provisional branch frozen
 
 V0.8-D final head `e11a77391ebfb43ff4431820ea363964f525f545` passed exact-head CI #2995 including authenticated live acceptance; final DEC-022 review reported no major issues. PR #177 squash-merged as `ff3dc08a4aee9945bb0b195627e31577f766f691`; exact-main CI #2996 PASS. Closure PR #178 merged as `4c47fd7713eb1faa57bf4ad8270b254a8bca96a7`; exact-main CI #3011 PASS; Issue #175 closed completed. V0.8-D is technically COMPLETE.
 
