@@ -1,8 +1,8 @@
 # Construction ERP — Master Blueprint
 
 **Document Status:** Architecture Baseline v0.1
-**Current Phase:** V0.8 Management — ACTIVE / V0.8-A COMPLETE / V0.8-B COMPLETE / V0.8-C COMPLETE / V0.8-D COMPLETE / V0.8-E UNDER VALIDATION / DEC-022 GATE
-**V0.8-E DEC-022 source-drilldown remediation checkpoint — 2026-10-05:** V0.8-D is technically COMPLETE. PR #182 is READY and mergeable. Exact head `4473b942142a32ae11f9abd90df47854a5aad662` passed CI #3247/#3248 and resolved the Finance currency-drift P2. Fresh DEC-022 review found two additional P2s: AC-V08-015 source drilldown was not actionable in the browser and live status lagged the green exact-head evidence. The active branch now consumes permission-safe `sourceApiPath` values as authenticated canonical source-data actions and reconciles the live status. Combined remediation/status head `de1c8c7bc50f376c07fd27da85c7559b68b9dbda` passes push CI #3279 and PR CI #3280 including authenticated live acceptance. Runtime behavior is frozen. V0.8-E remains UNDER VALIDATION under Issue #179 pending both P2 thread resolutions, fresh DEC-022 exact-head re-review, merge/post-merge CI and technical issue closure.
+**Current Phase:** V0.8 Management — TECHNICALLY COMPLETE / V0.8-A through V0.8-E COMPLETE / PROXY UAT PASS / HUMAN RELEASE EXIT PENDING
+**V0.8 technical-closure checkpoint — 2026-10-05:** V0.8-A through V0.8-E are technically COMPLETE. PR #182 final head `1092a3b197b346f71e55671b5235aec90b536b81` passed CI #3307/#3308 and clean final DEC-022 review, squash-merged as `542b1df9ad866f9b557e06ec2ca366b6131e2f94`, post-merge main CI #3309 passed with 69 authenticated current-release runtime acceptance checks, and Issue #179 closed completed. Chat-assisted proxy UAT is PASS with no blocking business defect identified. AC-V08-039 human owner confirmation and AC-V08-040 explicit release acceptance remain pending.
 
 **System:** Construction ERP
 **Primary Platform:** Web Application
