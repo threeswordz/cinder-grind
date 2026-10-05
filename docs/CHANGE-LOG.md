@@ -1,3 +1,13 @@
+## 2026-10-05 — V0.8 Product / Business Owner UAT acceptance and release-closure authorization
+
+- PR #183 final head `0a0615e604f2adf57eae2ac6193c80108af85232` passed push CI #3353 and PR CI #3354; final DEC-022 exact-head review reported no major issues.
+- PR #183 squash-merged as `076b98e3c95cbbec54963785548c84fb95838c06`; post-merge exact-main CI #3355 PASS, including authenticated live acceptance.
+- The Chat-assisted V0.8 proxy UAT remains PASS across all 12 business-facing scenarios with no blocking business defect identified.
+- In direct response to the release-exit confirmation prompt, the Product / Business Owner stated **“yes i accept”**, accepting the proxy UAT as the human UAT confirmation and authorizing V0.8 release closure.
+- AC-V08-039 is therefore **ACCEPTED BY PRODUCT / BUSINESS OWNER**.
+- AC-V08-040 is **EXPLICITLY ACCEPTED BY PRODUCT / BUSINESS OWNER**.
+- Issue #184 tracks the documentation/governance-only closure sequence. No runtime, schema, migration, dependency, authorization, business-rule or scope change is introduced.
+
 ## 2026-10-05 — V0.8-E technical closure and Chat-assisted proxy UAT
 
 - PR #182 final exact head `1092a3b197b346f71e55671b5235aec90b536b81` passed push CI #3307 and PR CI #3308, including full workspace regression and authenticated live HTTP acceptance.
