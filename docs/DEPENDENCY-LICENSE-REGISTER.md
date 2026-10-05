@@ -6,7 +6,7 @@
 **License Verification Date:** 2026-09-26  
 **Version Status:** V0.1-A direct package versions selected and pinned in package manifests.
 
-**V0.8-E stable-candidate dependency note — 2026-10-05:** PR #182 technical head `9626d4b1b170a7e41af29e5412da2d65643f4974` passed CI #3152 dependency audit and authenticated live acceptance. The reporting/export slice introduces no new runtime or hosted-service dependency. DEC-008 remains mandatory; controlled CSV/reporting remains zero-cost/open-source-first with no mandatory paid BI/reporting service.
+**V0.8-E DEC-022 remediation dependency note — 2026-10-05:** PR #182 is READY and mergeable; reviewed packaging head `3b0d17cb69548a2007d32ec88f008818b4fd448b` passed CI #3179 dependency audit and authenticated live acceptance. DEC-022 reviewed that exact head and raised one genuine P2 limited to stale live-state documentation, not dependency behavior. This forward documentation-only remediation adds no runtime or hosted-service dependency. DEC-008 remains mandatory; controlled CSV/reporting remains zero-cost/open-source-first with no mandatory paid BI/reporting service.
 
 ---
 
