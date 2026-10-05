@@ -1,7 +1,7 @@
 # Construction ERP — Development Roadmap
 
 **Document Status:** Development Roadmap Baseline v0.1  
-**Current Phase:** V0.8 Management — ACTIVE / V0.8-A through V0.8-D COMPLETE / V0.8-E IMPLEMENTATION ACTIVE
+**Current Phase:** V0.8 Management — ACTIVE / V0.8-A through V0.8-D COMPLETE / V0.8-E UNDER VALIDATION / DEC-022 GATE
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1  
@@ -807,7 +807,7 @@ Completed release: **V0.7 Cost Control — COMPLETE AND ACCEPTED**.
 
 Next release: **V0.8 Management**.
 
-Current stage: **V0.8-E Cross-Module Reporting / Export / Hardening / Release Evidence — IMPLEMENTATION ACTIVE**.
+Current stage: **V0.8-E Cross-Module Reporting / Export / Hardening / Release Evidence — UNDER VALIDATION / DEC-022 GATE**.
 
 Immediate sequence:
 
@@ -844,8 +844,9 @@ Immediate sequence:
 31. PR #181 squash-merged as `00d3720205d1bdfeb5b3216ad2e91ad72c80f84e`; post-merge exact-main CI #3111 PASS.
 32. **V0.8-E pre-flight / review reconciliation is COMPLETE.**
 33. Existing branch `v0.8-e-reporting-export` was reconciled forward without force-push as two-parent merge commit `d90c4e1e19ce81d02b05ee363e117d2dd4a9deda`, preserving the prior Stage-E implementation work and the complete PR #181 main tree.
-34. **V0.8-E implementation is ACTIVE** under Issue #179. Draft PR #182 now packages the Stage-E report/export/hardening implementation.
-35. Current Stage-E gate: exact-head PR #182 push/PR CI + authenticated live acceptance → Chat stable-candidate review/fixes → mark Ready → single DEC-022 exact-head review → resolve findings → squash merge/post-merge CI → Issue #179 technical closure → human AC-V08-039/040 release-exit gate.
+34. **V0.8-E implementation is UNDER VALIDATION** under Issue #179. Draft PR #182 packages the Stage-E report/export/hardening implementation.
+35. PR #182 technical head `9626d4b1b170a7e41af29e5412da2d65643f4974` passed exact-head CI #3152 including authenticated live acceptance after Chat stable-candidate review fixed a stale reporting/export deferral P2 and an AC-V08-015 source-drilldown/permission-parity P1 with regression coverage.
+36. Current Stage-E gate: documentation/evidence reconciliation exact-head CI → mark PR #182 Ready → single DEC-022 exact-head review → resolve genuine findings → squash merge/post-merge exact-main CI → Issue #179 technical closure → human AC-V08-039/040 release-exit gate.
 
 
 # 23. Baseline Decision
