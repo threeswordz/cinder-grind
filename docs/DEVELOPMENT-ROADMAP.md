@@ -844,7 +844,8 @@ Immediate sequence:
 31. PR #181 squash-merged as `00d3720205d1bdfeb5b3216ad2e91ad72c80f84e`; post-merge exact-main CI #3111 PASS.
 32. **V0.8-E pre-flight / review reconciliation is COMPLETE.**
 33. Existing branch `v0.8-e-reporting-export` was reconciled forward without force-push as two-parent merge commit `d90c4e1e19ce81d02b05ee363e117d2dd4a9deda`, preserving the prior Stage-E implementation work and the complete PR #181 main tree.
-34. **V0.8-E implementation is ACTIVE** under Issue #179. Current gate: reconciled branch CI/authenticated acceptance → focused hardening/evidence → draft implementation PR → stable-candidate DEC-022 review → merge/post-merge CI → human AC-V08-039/040 release-exit gate.
+34. **V0.8-E implementation is ACTIVE** under Issue #179. Draft PR #182 now packages the Stage-E report/export/hardening implementation.
+35. Current Stage-E gate: exact-head PR #182 push/PR CI + authenticated live acceptance → Chat stable-candidate review/fixes → mark Ready → single DEC-022 exact-head review → resolve findings → squash merge/post-merge CI → Issue #179 technical closure → human AC-V08-039/040 release-exit gate.
 
 
 # 23. Baseline Decision
