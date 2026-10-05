@@ -6,7 +6,7 @@
 **License Verification Date:** 2026-09-26  
 **Version Status:** V0.1-A direct package versions selected and pinned in package manifests.
 
-**V0.8-E DEC-022 Finance remediation dependency note — 2026-10-05:** PR #182 is READY and mergeable. Fresh DEC-022 review of `5c415ac10bb61bc83a7d6fe217a02abccbeb4d33` found one Finance base-currency consistency P2; the active branch adds only a fail-closed comparison and regression test, with no new runtime or hosted-service dependency. DEC-008 remains mandatory; controlled CSV/reporting remains zero-cost/open-source-first with no mandatory paid BI/reporting service.
+**V0.8-E DEC-022 source-drilldown remediation dependency note — 2026-10-05:** PR #182 is READY and mergeable. Exact head `4473b942142a32ae11f9abd90df47854a5aad662` passed CI #3247/#3248 and resolved the Finance currency-drift P2. Fresh DEC-022 review found two further P2s involving browser consumption of the existing permission-safe `sourceApiPath` and stale live status. The forward fix uses existing MUI/web/API client capabilities and adds no runtime or hosted-service dependency. DEC-008 remains mandatory; controlled CSV/reporting remains zero-cost/open-source-first with no mandatory paid BI/reporting service.
 
 ---
 
