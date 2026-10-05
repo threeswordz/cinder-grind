@@ -1673,15 +1673,15 @@ Once agreed, important requirements must be transferred into the permanent GitHu
 
 Completed Release:
 
-**V0.7 Cost Control — COMPLETE AND ACCEPTED**
+**V0.8 Management — COMPLETE AND ACCEPTED**
 
 Current Release:
 
-**V0.8 Management — TECHNICALLY COMPLETE / OWNER ACCEPTED / RELEASE CLOSURE ACTIVE**
+**V0.8 Management — COMPLETE + ACCEPTED**
 
 Current Stage:
 
-**V0.8 RELEASE CLOSURE — AC-V08-039/040 OWNER ACCEPTED / ISSUE #184 ACTIVE**
+**V1.0 PRODUCTION / PRODUCTION-READINESS — NEXT ROADMAP DESTINATION / ENTRY DECISION NOT YET APPROVED**
 
 Live delivery position:
 
@@ -1698,7 +1698,7 @@ Live delivery position:
 - V0.8-C Executive / Cross-Project Management Dashboard — complete
 - V0.8-D Domain Dashboards — complete
 - V0.8-E Cross-Module Reporting / Export / Hardening / Release Evidence — technically complete; PR #182 merged as `542b1df9ad866f9b557e06ec2ca366b6131e2f94`, post-merge main CI #3309 PASS, Issue #179 closed completed
-- V0.8 release closure — active; Chat-assisted proxy UAT PASS with no blocking business defect identified; AC-V08-039 human UAT confirmation and AC-V08-040 explicit Product / Business Owner acceptance were accepted on 2026-10-05; Issue #184 / PR #185 track the remaining documentation/governance-only closure
+- V0.8 release closure — COMPLETE + ACCEPTED; Chat-assisted proxy UAT PASS with no blocking business defect identified; AC-V08-039 human UAT confirmation and AC-V08-040 explicit Product / Business Owner acceptance were accepted on 2026-10-05; PR #185 merged as `920d592e7ffe01cb83b106c215fa20adb959cb95`, post-merge main CI #3394 PASS, and Issue #184 is CLOSED / COMPLETED. V1.0 Production / production-readiness is NEXT but is not implementation-authorized until its separate entry decision is approved.
 
 V0.8-D final head `e11a77391ebfb43ff4431820ea363964f525f545` passed exact-head CI #2995 including authenticated live acceptance; final DEC-022 review reported no major issues. PR #177 squash-merged as `ff3dc08a4aee9945bb0b195627e31577f766f691`; exact-main CI #2996 PASS. Closure PR #178 merged as `4c47fd7713eb1faa57bf4ad8270b254a8bca96a7`; exact-main CI #3011 PASS; Issue #175 closed completed. V0.8-D is technically COMPLETE.
 
