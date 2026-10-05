@@ -6,6 +6,7 @@
 - Issue #179 opened for V0.8-E Cross-Module Reporting / Export / Hardening / Release Evidence.
 - Pre-flight branch `v0.8-e-preflight` starts from exact green main `4c47fd7713eb1faa57bf4ad8270b254a8bca96a7`.
 - Stage-E pre-flight is documentation/status only. Application implementation remains NOT STARTED until pre-flight CI/review/merge/post-merge gates pass.
+- Repository-wide stale Markdown reconciliation corrected the Database ERD, Requirements, Dependency License Register, V0.8-D pre-flight closure state and Local Development Setup repository URL while preserving historical point-in-time evidence.
 - Approved scope remains canonical cross-module reporting, descriptive/diagnostic analytics, controlled CSV export, permission-safe traceability, hardening/regression and release evidence; explicit V0.8 deferrals remain unchanged.
 
 ## 2026-10-05 — V0.8-D Domain Dashboards complete
