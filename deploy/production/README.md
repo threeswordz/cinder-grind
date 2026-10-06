@@ -38,6 +38,7 @@ Required critical Production inputs:
 - `VITE_API_BASE_URL` — `/api/v1` for the preferred same-origin topology
 - `DATABASE_URL`
 - absolute persistent `STORAGE_ROOT`
+- `STORAGE_DEPLOYMENT_ID` — stable non-secret identifier unique to this Production deployment; the mounted Documents volume must carry the matching sentinel identity
 
 The API independently fails fast on unsafe/missing critical Production configuration.
 
@@ -63,13 +64,14 @@ Set `RELEASE_COMMIT` in that file to the exact checked-out SHA. Provision the pe
 
 ```bash
 verified_storage_root=/srv/construction-erp/documents  # replace with the exact independently verified mount path
+verified_storage_deployment_id=production-primary         # unique stable ID for this Production deployment
 test -d "$verified_storage_root" && test -w "$verified_storage_root"
-printf '%s\n' 'construction-erp-production-storage-v1' \
+printf 'construction-erp-production-storage-v1:%s\n' "$verified_storage_deployment_id" \
   > "$verified_storage_root/.construction-erp-storage-ready"
 chmod 600 "$verified_storage_root/.construction-erp-storage-ready"
 ```
 
-Then confirm that the protected environment file's `STORAGE_ROOT` is exactly the same verified absolute path before running the deployment scripts. Do not create the sentinel merely because a mountpoint directory exists. If the persistent volume cannot be independently verified, stop the deployment. `prepare-release.sh`, `run-api.sh` and the Production API only **verify** this sentinel; they never create it.
+Then confirm that the protected environment file's `STORAGE_ROOT` is exactly the same verified absolute path **and** its `STORAGE_DEPLOYMENT_ID` exactly matches the sentinel identifier before running the deployment scripts. Do not create the sentinel merely because a mountpoint directory exists. If the persistent volume cannot be independently verified, stop the deployment. `prepare-release.sh`, `run-api.sh` and the Production API only **verify** this sentinel; they never create it.
 
 Use an inactive versioned release checkout rather than building over the currently served release. The reference layout is:
 
@@ -88,7 +90,7 @@ PRODUCTION_ENV_FILE=/secure/path/construction-erp-production.env \
   bash deploy/production/prepare-release.sh
 ```
 
-The preparation gate validates the environment, verifies the exact commit, requires a clean working tree, verifies the persistent Documents storage sentinel, verifies the exact Node.js and pnpm versions declared by the repository, installs the frozen lockfile, generates/validates Prisma, audits Production dependencies, runs non-destructive typecheck/build, applies only forward Prisma migrations, and verifies migration status. **It deliberately does not run the repository integration test suite against the Production database.** Full tests must already be green in CI against isolated CI PostgreSQL for the exact release commit. Before `prisma migrate deploy`, the gate also requires `RECOVERY_POINT_VERIFIED=YES` and a non-secret `RECOVERY_POINT_REFERENCE`. For an upgrade this reference must identify the verified matching database + Documents recovery set; for a genuinely fresh empty deployment it documents the verified empty-state recovery point. V1.0-B supplies the full backup/restore/recovery procedure.
+The preparation gate validates the environment, verifies the exact commit, requires a clean working tree, verifies the deployment-specific persistent Documents storage sentinel, verifies the exact Node.js and pnpm versions declared by the repository, installs the frozen lockfile, generates/validates Prisma, and probes the target PostgreSQL schema before migration. `DEPLOYMENT_MODE=fresh` is accepted only when the target schema contains no base tables; if an existing schema is detected the deployment must use `upgrade` and its recovery/offline safeguards. The gate then audits Production dependencies, runs non-destructive typecheck/build, applies only forward Prisma migrations, and verifies migration status. **It deliberately does not run the repository integration test suite against the Production database.** Full tests must already be green in CI against isolated CI PostgreSQL for the exact release commit. Before `prisma migrate deploy`, the gate also requires `RECOVERY_POINT_VERIFIED=YES` and a non-secret `RECOVERY_POINT_REFERENCE`. For an upgrade this reference must identify the verified matching database + Documents recovery set; for a genuinely fresh empty deployment it documents the verified empty-state recovery point. V1.0-B supplies the full backup/restore/recovery procedure.
 
 ## 3. HTTPS / same-origin boundary
 
