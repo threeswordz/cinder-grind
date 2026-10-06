@@ -1,7 +1,14 @@
 import assert from 'node:assert/strict';
-import test from 'node:test';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import test, { after } from 'node:test';
 
 import { validateProductionConfig } from './production-config';
+
+const testStorageRoot = mkdtempSync(path.join(tmpdir(), 'construction-erp-production-storage-'));
+writeFileSync(path.join(testStorageRoot, '.construction-erp-storage-ready'), 'construction-erp-production-storage-v1\n');
+after(() => rmSync(testStorageRoot, { recursive: true, force: true }));
 
 const valid = (): NodeJS.ProcessEnv => ({
   NODE_ENV: 'production',
@@ -9,7 +16,7 @@ const valid = (): NodeJS.ProcessEnv => ({
   API_PORT: '3000',
   WEB_ORIGIN: 'https://erp.example.com',
   DATABASE_URL: 'postgresql://erp:secret@db.example.com:5432/erp?schema=public',
-  STORAGE_ROOT: '/srv/construction-erp/documents',
+  STORAGE_ROOT: testStorageRoot,
   DOCUMENT_MAX_FILE_BYTES: '26214400',
   SESSION_TTL_HOURS: '8',
   LOGIN_RATE_LIMIT_MAX: '10',
@@ -101,5 +108,28 @@ test('production config rejects padded raw runtime values', () => {
     const env = valid();
     env[name] = raw;
     assert.throws(() => validateProductionConfig(env), /must not contain surrounding whitespace/);
+  }
+});
+
+test('production config refuses startup when persistent storage sentinel is missing', () => {
+  const root = mkdtempSync(path.join(tmpdir(), 'construction-erp-missing-sentinel-'));
+  try {
+    const env = valid();
+    env.STORAGE_ROOT = root;
+    assert.throws(() => validateProductionConfig(env), /storage sentinel is missing/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('production config refuses startup when persistent storage sentinel is invalid', () => {
+  const root = mkdtempSync(path.join(tmpdir(), 'construction-erp-invalid-sentinel-'));
+  try {
+    writeFileSync(path.join(root, '.construction-erp-storage-ready'), 'wrong-storage\n');
+    const env = valid();
+    env.STORAGE_ROOT = root;
+    assert.throws(() => validateProductionConfig(env), /storage sentinel is invalid/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
   }
 });
