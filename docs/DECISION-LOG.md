@@ -518,3 +518,43 @@ Key approved decisions include:
 V0.8 remains a read-only derived management/reporting layer. Source modules remain canonical owners. DEC-008 open-source/zero-cost-first, DEC-016 operating model and DEC-022 stable-candidate review policy remain mandatory.
 
 This owner approval does not by itself start implementation. V0.8-A may begin only after the approved entry-gate branch passes exact-head CI, applicable PR/review gates pass, the entry-gate PR merges, post-merge `main` CI passes and Issue #160 closes completed. V0.8 Release Exit will still require separate Product / Business Owner human UAT and explicit release acceptance.
+
+
+## DEC-026 — V1.0 Production Readiness release entry baseline
+**Status:** APPROVED — Product / Business Owner, 2026-10-06 (Singapore time)
+
+Live GitHub was refreshed before this decision was recorded. V0.8 Management was complete and accepted; main was `452677c931cd0d7592f1135c6d9894f16113314a`; post-merge main CI #3423 passed; Issue #187 and draft PR #188 held the complete V1.0 entry proposal. The refined proposal exact head `c9f0ba865ed25d6451782f4fe57a75632a8ec416` passed push CI #3456 and PR CI #3457, including authenticated live acceptance.
+
+The complete V1.0 Production Readiness package presented immediately before approval included:
+
+- V1.0 Scope and explicit exclusions/deferrals;
+- AC-V10-001–040;
+- BR-V10-01–16;
+- D10-01–12;
+- data/API/security/test baseline;
+- V1.0 pre-flight gap assessment;
+- V1.0-A through V1.0-E stage decomposition;
+- 15–25 engineering-day planning estimate plus a separate Product / Business Owner readiness/UAT/go-no-go window.
+
+The Product / Business Owner then explicitly replied: **“approve”**. In the immediate context, that reply approves the complete V1.0 entry package as presented, with no amendment specified.
+
+Key approved decisions include:
+
+- D10-01 — V1.0 is Production readiness/hardening over V0.1–V0.8, not a new business-feature release.
+- D10-02 — deployment remains provider-neutral; final hosting/provider/cost commitment is a separate owner decision.
+- D10-03 — DEC-008 remains mandatory; owned/self-hosted/open-source options are the default baseline.
+- D10-04 — preserve the modular monolith; no Kubernetes/microservices requirement.
+- D10-05 — environment/host-managed secrets are sufficient baseline; no hosted secret manager is mandatory.
+- D10-06 — HTTPS is mandatory for authenticated Production traffic; same-origin/same-site is preferred where practical.
+- D10-07 — initial operating targets are RPO <=24 hours and RTO <=8 hours.
+- D10-08 — local/self-hosted structured logs + health/readiness + correlation IDs are sufficient baseline; no mandatory external APM/SIEM.
+- D10-09 — controlled repeatable deployment is required; continuous Production deployment is not required initially.
+- D10-10 — harden existing local/session identity; SSO/MFA/external IdP expansion remains deferred unless separately approved.
+- D10-11 — record representative performance/capacity evidence without inventing a contractual SLA.
+- D10-12 — Product / Business Owner retains final V1.0 readiness acceptance and Production go/no-go authority.
+
+The approved security baseline also requires Production authentication rate limiting to use trusted client attribution behind any reverse proxy and remain effective across ordinary application restarts, or explicitly delegate that protection to the approved reverse-proxy boundary.
+
+DEC-008, DEC-016 and DEC-022 remain mandatory. V1.0 remains a production-hardening release; no new ERP business-function scope is implicitly authorized.
+
+This owner approval authorizes the V1.0 entry-gate closure sequence only. **V1.0-A implementation may begin only after PR #188 passes its exact-head closure gates, merges to `main`, post-merge exact-main CI passes and Issue #187 closes completed.** V1.0 Release Exit will still require separate Product / Business Owner readiness/UAT evidence acceptance and explicit go/no-go under AC-V10-039/040.
