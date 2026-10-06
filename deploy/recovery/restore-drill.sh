@@ -15,20 +15,9 @@ done
 [[ "$RESTORE_STORAGE_ROOT" != "$STORAGE_ROOT" ]] || fail "restore drill storage must not equal the source Documents storage"
 
 native_restore_database_url="$(node "$RECOVERY_DIR/postgres-url.mjs" "$RESTORE_DATABASE_URL")"
-
-node - "$DATABASE_URL" "$RESTORE_DATABASE_URL" <<'NODE'
-const [source, target] = process.argv.slice(2).map((raw) => new URL(raw));
-const key = (url) => [
-  url.hostname.toLowerCase(),
-  url.port || '5432',
-  decodeURIComponent(url.pathname.replace(/^\//, '')),
-  url.searchParams.get('schema') || 'public',
-].join('|');
-if (key(source) === key(target)) {
-  process.stderr.write('Recovery safety check failed: restore target resolves to the source PostgreSQL database/schema.\n');
-  process.exit(1);
-}
-NODE
+source_database_identity="$(node "$RECOVERY_DIR/postgres-identity.mjs" "$DATABASE_URL")"
+restore_database_identity="$(node "$RECOVERY_DIR/postgres-identity.mjs" "$RESTORE_DATABASE_URL")"
+[[ "$source_database_identity" != "$restore_database_identity" ]] || fail "restore target resolves to the source PostgreSQL database; a different Prisma schema does not isolate a database-level restore"
 
 if [[ -e "$RESTORE_STORAGE_ROOT" ]]; then
   [[ ! -L "$RESTORE_STORAGE_ROOT" ]] || fail "RESTORE_STORAGE_ROOT must not be a symlink"
