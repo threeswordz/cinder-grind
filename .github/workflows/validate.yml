@@ -123,8 +123,16 @@ jobs:
             echo "Non-canonical WEB_ORIGIN unexpectedly passed."
             exit 1
           fi
+          if env 'WEB_ORIGIN= https://erp.example.com ' node deploy/production/validate-env.mjs > /tmp/padded-web-origin 2>&1; then
+            echo "Padded Production WEB_ORIGIN unexpectedly passed."
+            exit 1
+          fi
           if env 'NODE_ENV= production ' node deploy/production/validate-env.mjs > /tmp/padded-node-env 2>&1; then
             echo "Padded Production NODE_ENV unexpectedly passed."
+            exit 1
+          fi
+          if env 'VITE_API_BASE_URL=/api/v1 ' node deploy/production/validate-env.mjs > /tmp/padded-api-base 2>&1; then
+            echo "Padded Production VITE_API_BASE_URL unexpectedly passed."
             exit 1
           fi
 
