@@ -12,6 +12,20 @@ if [[ ! -d "$STORAGE_ROOT" || ! -w "$STORAGE_ROOT" ]]; then
   exit 1
 fi
 
+expected_node="$(node -p "require('./package.json').engines.node")"
+actual_node="$(node --version | sed 's/^v//')"
+if [[ "$actual_node" != "$expected_node" ]]; then
+  echo "Node.js version mismatch: expected $expected_node, got $actual_node"
+  exit 1
+fi
+
+expected_pnpm="$(node -p "require('./package.json').packageManager.split('@').at(-1)")"
+actual_pnpm="$(pnpm --version)"
+if [[ "$actual_pnpm" != "$expected_pnpm" ]]; then
+  echo "pnpm version mismatch: expected $expected_pnpm, got $actual_pnpm"
+  exit 1
+fi
+
 pnpm install --frozen-lockfile
 pnpm prisma:generate
 pnpm prisma:validate
