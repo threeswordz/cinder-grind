@@ -57,7 +57,17 @@ cp deploy/production/.env.example /secure/path/construction-erp-production.env
 chmod 600 /secure/path/construction-erp-production.env
 ```
 
-Set `RELEASE_COMMIT` in that file to the exact checked-out SHA. Create the persistent document directory with permissions for the application account.
+Set `RELEASE_COMMIT` in that file to the exact checked-out SHA. Provision the persistent document directory with permissions for the application account.
+
+**Persistent storage identity is operator-provisioned, never auto-created by deployment.** After independently verifying that the intended persistent volume/filesystem is actually mounted at `STORAGE_ROOT` using the host's storage/mount tooling, create the sentinel on that verified persistent storage:
+
+```bash
+printf '%s\n' 'construction-erp-production-storage-v1' \
+  > "$STORAGE_ROOT/.construction-erp-storage-ready"
+chmod 600 "$STORAGE_ROOT/.construction-erp-storage-ready"
+```
+
+Do not create the sentinel merely because the mountpoint directory exists. If the persistent volume cannot be independently verified, stop the deployment. `prepare-release.sh`, `run-api.sh` and the Production API only **verify** this sentinel; they never create it.
 
 Use an inactive versioned release checkout rather than building over the currently served release. The reference layout is:
 
