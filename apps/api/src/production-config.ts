@@ -70,7 +70,11 @@ export function validateProductionConfig(env: Environment): void {
     throw new Error('API_PORT must be a valid TCP port.');
   }
 
-  validateWebOrigin(required(env, 'WEB_ORIGIN'));
+  const webOrigin = required(env, 'WEB_ORIGIN');
+  if (env.WEB_ORIGIN !== webOrigin) {
+    throw new Error('WEB_ORIGIN must not contain surrounding whitespace.');
+  }
+  validateWebOrigin(webOrigin);
   validateDatabaseUrl(required(env, 'DATABASE_URL'));
 
   const storageRoot = required(env, 'STORAGE_ROOT');
