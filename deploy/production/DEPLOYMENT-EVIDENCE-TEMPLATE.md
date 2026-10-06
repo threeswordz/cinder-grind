@@ -19,7 +19,8 @@
 - Production dependency audit: PASS / FAIL
 - Prisma migrate deploy: PASS / FAIL
 - Prisma migrate status: PASS / FAIL
-- Full workspace validation/build: PASS / FAIL
+- Exact-release CI full workspace validation: PASS / FAIL
+- Production host typecheck/build: PASS / FAIL
 - HTTPS health smoke: PASS / FAIL
 - HTTPS web smoke: PASS / FAIL
 - Startup/restart/shutdown rehearsal: PASS / FAIL
