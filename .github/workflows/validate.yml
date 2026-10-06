@@ -82,19 +82,19 @@ jobs:
           done < <(node deploy/production/load-env.mjs deploy/production/.env.example)
           RELEASE_COMMIT="$GITHUB_SHA" node deploy/production/validate-env.mjs
 
-          cat > /tmp/production-special.env <<'ENVEOF'
-NODE_ENV=production
-RELEASE_COMMIT=0000000000000000000000000000000000000000
-DEPLOYMENT_MODE=upgrade
-RECOVERY_POINT_VERIFIED=YES
-RECOVERY_POINT_REFERENCE=backup-set-2026-10-06
-API_HOST=127.0.0.1
-API_PORT=3000
-WEB_ORIGIN=https://erp.example.com
-VITE_API_BASE_URL=/api/v1
-DATABASE_URL=postgresql://erp:placeholder@db.example.internal:5432/erp?schema=public
-STORAGE_ROOT="/srv/construction $erp & docs"
-ENVEOF
+          printf '%s\n' \
+            'NODE_ENV=production' \
+            'RELEASE_COMMIT=0000000000000000000000000000000000000000' \
+            'DEPLOYMENT_MODE=upgrade' \
+            'RECOVERY_POINT_VERIFIED=YES' \
+            'RECOVERY_POINT_REFERENCE=backup-set-2026-10-06' \
+            'API_HOST=127.0.0.1' \
+            'API_PORT=3000' \
+            'WEB_ORIGIN=https://erp.example.com' \
+            'VITE_API_BASE_URL=/api/v1' \
+            'DATABASE_URL=postgresql://erp:placeholder@db.example.internal:5432/erp?schema=public' \
+            'STORAGE_ROOT="/srv/construction $erp & docs"' \
+            > /tmp/production-special.env
           found_storage=false
           while IFS= read -r -d '' env_key && IFS= read -r -d '' env_value; do
             if [[ "$env_key" == "STORAGE_ROOT" && "$env_value" == '/srv/construction $erp & docs' ]]; then found_storage=true; fi
