@@ -7,7 +7,7 @@ import test, { after } from 'node:test';
 import { validateProductionConfig } from './production-config';
 
 const testStorageRoot = mkdtempSync(path.join(tmpdir(), 'construction-erp-production-storage-'));
-writeFileSync(path.join(testStorageRoot, '.construction-erp-storage-ready'), 'construction-erp-production-storage-v1\n');
+writeFileSync(path.join(testStorageRoot, '.construction-erp-storage-ready'), 'construction-erp-production-storage-v1:ci-production\n');
 after(() => rmSync(testStorageRoot, { recursive: true, force: true }));
 
 const valid = (): NodeJS.ProcessEnv => ({
@@ -17,6 +17,7 @@ const valid = (): NodeJS.ProcessEnv => ({
   WEB_ORIGIN: 'https://erp.example.com',
   DATABASE_URL: 'postgresql://erp:secret@db.example.com:5432/erp?schema=public',
   STORAGE_ROOT: testStorageRoot,
+  STORAGE_DEPLOYMENT_ID: 'ci-production',
   DOCUMENT_MAX_FILE_BYTES: '26214400',
   SESSION_TTL_HOURS: '8',
   LOGIN_RATE_LIMIT_MAX: '10',
@@ -132,4 +133,29 @@ test('production config refuses startup when persistent storage sentinel is inva
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
+});
+
+
+test('production config rejects a valid sentinel from a different deployment', () => {
+  const root = mkdtempSync(path.join(tmpdir(), 'construction-erp-wrong-deployment-'));
+  try {
+    writeFileSync(
+      path.join(root, '.construction-erp-storage-ready'),
+      'construction-erp-production-storage-v1:staging\n',
+    );
+    const env = valid();
+    env.STORAGE_ROOT = root;
+    assert.throws(
+      () => validateProductionConfig(env),
+      /storage sentinel is invalid for STORAGE_DEPLOYMENT_ID/,
+    );
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('production config rejects unsafe storage deployment identifiers', () => {
+  const env = valid();
+  env.STORAGE_DEPLOYMENT_ID = 'prod/primary';
+  assert.throws(() => validateProductionConfig(env), /STORAGE_DEPLOYMENT_ID must be 3-64 characters/);
 });
