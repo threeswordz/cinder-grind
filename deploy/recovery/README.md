@@ -22,7 +22,7 @@ A recovery set is one logical business-record point containing:
 
 The baseline recovery set is intentionally taken while the application is offline / traffic is drained. This avoids cross-store write races between PostgreSQL metadata and Documents bytes.
 
-Recovery artifacts must be stored outside the repository and outside the live Documents root on access-controlled storage. Scripts use restrictive umask/modes, but host encryption, replication and physical media controls remain operator responsibilities.
+Recovery artifacts must be stored outside the repository and outside the live Documents root on access-controlled storage. Recovery-root containment is checked on canonical paths, including existing symlinks and `..` aliases, before any backup artifact is created. Scripts use restrictive umask/modes, but host encryption, replication and physical media controls remain operator responsibilities.
 
 No script performs reverse migrations, `prisma migrate reset`, `db push`, database dropping or Production restore automatically.
 
@@ -45,7 +45,7 @@ PRODUCTION_ENV_FILE=/etc/construction-erp/production.env \
 bash deploy/recovery/create-recovery-set.sh
 ```
 
-The command fails closed unless the source Documents sentinel matches `STORAGE_DEPLOYMENT_ID`.
+The command fails closed unless the source Documents sentinel matches `STORAGE_DEPLOYMENT_ID`. Database and Documents artifact SHA-256 values are computed with streaming reads so verification does not require loading large backup files into one Node.js buffer.
 
 A completed set contains:
 
@@ -65,7 +65,7 @@ bash deploy/recovery/verify-recovery-set.sh /srv/construction-erp-recovery/<reco
 
 ## 2. Isolated restore drill
 
-Never point the drill at the source Production database or live Documents path.
+Never point the drill at the source Production database or live Documents path. Database identity is compared at host + port + database-name scope; changing only Prisma's `?schema=` parameter does **not** create an isolated restore target because the recovery dump/restore operates at database scope.
 
 Create an empty non-Production PostgreSQL database first, then run:
 
