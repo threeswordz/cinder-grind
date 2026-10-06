@@ -2,7 +2,12 @@
 set -euo pipefail
 source "$(dirname "$0")/common.sh"
 
-base="${WEB_ORIGIN%/}"
+web_base="${WEB_ORIGIN%/}"
+if [[ "$VITE_API_BASE_URL" == "/api/v1" ]]; then
+  api_base="$web_base/api/v1"
+else
+  api_base="${VITE_API_BASE_URL%/}"
+fi
 health_body="$(mktemp)"
 web_body="$(mktemp)"
 cleanup_smoke() {
@@ -10,8 +15,8 @@ cleanup_smoke() {
 }
 trap cleanup_smoke EXIT
 
-echo "Checking HTTPS health endpoint: $base/api/v1/health"
-health_status="$(curl --silent --show-error --proto '=https' --output "$health_body" --write-out '%{http_code}' "$base/api/v1/health")"
+echo "Checking HTTPS health endpoint: $api_base/health"
+health_status="$(curl --silent --show-error --proto '=https' --output "$health_body" --write-out '%{http_code}' "$api_base/health")"
 if [[ ! "$health_status" =~ ^2[0-9][0-9]$ ]]; then
   echo "Health endpoint returned unexpected HTTP status: $health_status"
   exit 1
@@ -32,8 +37,8 @@ if (payload?.status !== 'ok' || payload?.database !== 'ok') {
 }
 NODE
 
-echo "Checking HTTPS web root: $base/"
-web_status="$(curl --silent --show-error --proto '=https' --output "$web_body" --write-out '%{http_code}' "$base/")"
+echo "Checking HTTPS web root: $web_base/"
+web_status="$(curl --silent --show-error --proto '=https' --output "$web_body" --write-out '%{http_code}' "$web_base/")"
 if [[ ! "$web_status" =~ ^2[0-9][0-9]$ ]]; then
   echo "Web root returned unexpected HTTP status: $web_status"
   exit 1
