@@ -65,7 +65,7 @@ bash deploy/recovery/verify-recovery-set.sh /srv/construction-erp-recovery/<reco
 
 ## 2. Isolated restore drill
 
-Never point the drill at the source Production database or live Documents path. Database identity is compared at host + port + database-name scope; changing only Prisma's `?schema=` parameter does **not** create an isolated restore target because the recovery dump/restore operates at database scope.
+Never point the drill at the source Production database or live Documents path. Database identity is resolved through live PostgreSQL connections using the connected server address, server port and `current_database()`, so hostname/DNS aliases and Prisma `?schema=` changes cannot disguise the source database. `RESTORE_STORAGE_ROOT` is canonicalized before use and must be disjoint from live `STORAGE_ROOT` in both directions.
 
 Create an empty non-Production PostgreSQL database first, then run:
 
@@ -84,7 +84,7 @@ The drill:
 3. restores the database with `pg_restore`;
 4. restores the matching Documents archive;
 5. runs Prisma migration status;
-6. verifies every restored LOCAL Document metadata row against the restored byte size/checksum;
+6. verifies every restored LOCAL Document metadata row against the restored byte size/checksum using streaming SHA-256 reads;
 7. records restore duration/evidence.
 
 After the script succeeds, start the API against the restored database/storage and run authenticated non-Production smoke/UAT. CI performs this automatically for the V1.0-B baseline.
