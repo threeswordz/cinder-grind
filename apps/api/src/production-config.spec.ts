@@ -45,7 +45,7 @@ test('production config rejects missing database URL', () => {
 test('production config rejects invalid numeric controls', () => {
   const env = valid();
   env.SESSION_TTL_HOURS = '0';
-  assert.throws(() => validateProductionConfig(env), /SESSION_TTL_HOURS must be a positive integer/);
+  assert.throws(() => validateProductionConfig(env), /SESSION_TTL_HOURS must be an integer from 1 to 168/);
 });
 
 
