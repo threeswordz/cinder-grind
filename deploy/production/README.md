@@ -62,7 +62,7 @@ PRODUCTION_ENV_FILE=/secure/path/construction-erp-production.env \
   bash deploy/production/prepare-release.sh
 ```
 
-The preparation gate validates the environment, verifies the exact commit, requires a clean working tree, installs the frozen lockfile, generates/validates Prisma, audits Production dependencies, applies only forward Prisma migrations, verifies migration status, and runs the full repository validation/build.
+The preparation gate validates the environment, verifies the exact commit, requires a clean working tree, installs the frozen lockfile, generates/validates Prisma, audits Production dependencies, runs non-destructive typecheck/build, applies only forward Prisma migrations, and verifies migration status. **It deliberately does not run the repository integration test suite against the Production database.** Full tests must already be green in CI against isolated CI PostgreSQL for the exact release commit.
 
 ## 3. HTTPS / same-origin boundary
 
