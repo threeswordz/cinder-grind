@@ -3,9 +3,12 @@ import path from 'node:path';
 type Environment = NodeJS.ProcessEnv;
 
 function required(env: Environment, name: string): string {
-  const value = env[name]?.trim();
-  if (!value) {
+  const value = env[name];
+  if (!value || !value.trim()) {
     throw new Error(`${name} is required when NODE_ENV=production.`);
+  }
+  if (value !== value.trim()) {
+    throw new Error(`${name} must not contain surrounding whitespace when NODE_ENV=production.`);
   }
   return value;
 }

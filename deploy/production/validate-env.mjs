@@ -8,8 +8,9 @@ function fail(message) {
 }
 
 function required(name) {
-  const value = env[name]?.trim();
-  if (!value) fail(`${name} is required`);
+  const value = env[name];
+  if (!value || !value.trim()) fail(`${name} is required`);
+  if (value !== value.trim()) fail(`${name} must not contain surrounding whitespace`);
   return value;
 }
 

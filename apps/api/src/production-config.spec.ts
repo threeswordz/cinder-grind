@@ -90,3 +90,16 @@ test('production config rejects padded browser origin', () => {
     /WEB_ORIGIN must not contain surrounding whitespace/,
   );
 });
+
+test('production config rejects padded raw runtime values', () => {
+  for (const [name, raw] of [
+    ['API_HOST', ' 127.0.0.1 '],
+    ['API_PORT', '3000 '],
+    ['DATABASE_URL', ' postgresql://erp:secret@db.example.com:5432/erp?schema=public'],
+    ['STORAGE_ROOT', '/srv/construction-erp/documents '],
+  ] as const) {
+    const env = valid();
+    env[name] = raw;
+    assert.throws(() => validateProductionConfig(env), /must not contain surrounding whitespace/);
+  }
+});

@@ -136,6 +136,19 @@ jobs:
             exit 1
           fi
 
+          # Regression: raw runtime values must fail closed when padded.
+          for padded_setting in \
+            'API_HOST= 127.0.0.1 ' \
+            'API_PORT=3000 ' \
+            'DATABASE_URL= postgresql://erp:placeholder@db.example.internal:5432/erp?schema=public ' \
+            'STORAGE_ROOT= /srv/construction-erp/documents '; do
+            if env "$padded_setting" node deploy/production/validate-env.mjs > /tmp/padded-runtime-value 2>&1; then
+              echo "Padded Production runtime setting unexpectedly passed."
+              exit 1
+            fi
+            grep -q 'must not contain surrounding whitespace' /tmp/padded-runtime-value
+          done
+
           for invalid_api_base in \
             'https://api.example.com/api/v1?tenant=x' \
             'https://user@api.example.com/api/v1' \
