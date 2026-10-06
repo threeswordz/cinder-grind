@@ -12,6 +12,17 @@ if [[ ! -d "$STORAGE_ROOT" || ! -w "$STORAGE_ROOT" ]]; then
   exit 1
 fi
 
+storage_sentinel="$STORAGE_ROOT/.construction-erp-storage-ready"
+storage_sentinel_value="construction-erp-production-storage-v1"
+if [[ "$DEPLOYMENT_MODE" == "fresh" && ! -e "$storage_sentinel" ]]; then
+  printf '%s\n' "$storage_sentinel_value" > "$storage_sentinel"
+fi
+if [[ ! -f "$storage_sentinel" || "$(cat "$storage_sentinel")" != "$storage_sentinel_value" ]]; then
+  echo "Production document storage sentinel is missing or invalid: $storage_sentinel"
+  echo "Do not continue if the intended persistent storage volume is not mounted."
+  exit 1
+fi
+
 expected_node="$(node -p "require('./package.json').engines.node")"
 actual_node="$(node --version | sed 's/^v//')"
 if [[ "$actual_node" != "$expected_node" ]]; then
