@@ -45,6 +45,12 @@ const recoveryReference = required('RECOVERY_POINT_REFERENCE');
 if (!/^[A-Za-z0-9._:/-]{3,200}$/.test(recoveryReference)) {
   fail('RECOVERY_POINT_REFERENCE must be a non-secret evidence identifier using safe characters');
 }
+if (recoveryReference === 'replace-with-verified-recovery-point-reference') {
+  fail('RECOVERY_POINT_REFERENCE must be replaced with actual verified recovery evidence');
+}
+if (deploymentMode === 'upgrade' && recoveryReference === 'fresh-empty-database-and-storage') {
+  fail('Production upgrades require a matching database + Documents recovery-set reference, not the fresh-empty reference');
+}
 
 const releaseCommit = required('RELEASE_COMMIT');
 if (!/^[0-9a-f]{40}$/i.test(releaseCommit)) fail('RELEASE_COMMIT must be a full 40-character Git SHA');
