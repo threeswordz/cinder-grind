@@ -92,6 +92,50 @@ jobs:
         run: pnpm validate
       - name: Bootstrap CI UAT administrator
         run: pnpm --filter @construction-erp/api bootstrap:admin
+      - name: Rehearse Production-mode startup restart and unsafe-config failure
+        env:
+          NODE_ENV: production
+          API_HOST: 127.0.0.1
+          API_PORT: 3001
+          WEB_ORIGIN: https://erp.example.invalid
+          STORAGE_ROOT: /tmp/construction-erp-production-documents
+        run: |
+          mkdir -p "$STORAGE_ROOT"
+
+          start_and_stop() {
+            pnpm start:api > /tmp/construction-erp-production-api.log 2>&1 &
+            api_pid=$!
+            ready=false
+            for attempt in {1..30}; do
+              if curl --fail --silent --show-error http://127.0.0.1:3001/api/v1/health >/dev/null; then
+                ready=true
+                break
+              fi
+              if ! kill -0 "$api_pid" >/dev/null 2>&1; then
+                echo "Production-mode API exited before becoming healthy."
+                cat /tmp/construction-erp-production-api.log
+                exit 1
+              fi
+              sleep 1
+            done
+            if [[ "$ready" != "true" ]]; then
+              echo "Production-mode API did not become healthy."
+              cat /tmp/construction-erp-production-api.log
+              kill "$api_pid" >/dev/null 2>&1 || true
+              exit 1
+            fi
+            kill "$api_pid"
+            wait "$api_pid" || true
+          }
+
+          start_and_stop
+          start_and_stop
+
+          if WEB_ORIGIN=http://unsafe.example.invalid pnpm start:api > /tmp/construction-erp-unsafe-production.log 2>&1; then
+            echo "Unsafe HTTP Production origin unexpectedly started."
+            exit 1
+          fi
+          grep -q "WEB_ORIGIN must use HTTPS" /tmp/construction-erp-unsafe-production.log
       - name: Smoke API startup and run live acceptance
         run: |
           pnpm start:api > /tmp/construction-erp-api.log 2>&1 &
