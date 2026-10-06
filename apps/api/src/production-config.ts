@@ -10,12 +10,16 @@ function required(env: Environment, name: string): string {
   return value;
 }
 
-function positiveInteger(env: Environment, name: string): void {
+function boundedPositiveInteger(
+  env: Environment,
+  name: string,
+  maximum: number,
+): void {
   const raw = env[name];
   if (raw === undefined || raw.trim() === '') return;
   const value = Number(raw);
-  if (!Number.isInteger(value) || value <= 0) {
-    throw new Error(`${name} must be a positive integer.`);
+  if (!Number.isInteger(value) || value < 1 || value > maximum) {
+    throw new Error(`${name} must be an integer from 1 to ${maximum}.`);
   }
 }
 
@@ -34,6 +38,9 @@ function validateWebOrigin(raw: string): void {
   }
   if (url.pathname !== '/' && url.pathname !== '') {
     throw new Error('WEB_ORIGIN must not include a path.');
+  }
+  if (raw !== url.origin) {
+    throw new Error('WEB_ORIGIN must equal its canonical HTTPS origin without a trailing slash.');
   }
 }
 
@@ -67,10 +74,10 @@ export function validateProductionConfig(env: Environment): void {
     throw new Error('STORAGE_ROOT must be an absolute path when NODE_ENV=production.');
   }
 
-  positiveInteger(env, 'DOCUMENT_MAX_FILE_BYTES');
-  positiveInteger(env, 'SESSION_TTL_HOURS');
-  positiveInteger(env, 'LOGIN_RATE_LIMIT_MAX');
-  positiveInteger(env, 'LOGIN_RATE_LIMIT_WINDOW_MINUTES');
+  boundedPositiveInteger(env, 'DOCUMENT_MAX_FILE_BYTES', 2_000_000_000);
+  boundedPositiveInteger(env, 'SESSION_TTL_HOURS', 168);
+  boundedPositiveInteger(env, 'LOGIN_RATE_LIMIT_MAX', 1000);
+  boundedPositiveInteger(env, 'LOGIN_RATE_LIMIT_WINDOW_MINUTES', 1440);
 
   if (env.DOCUMENT_ALLOWED_MIME_TYPES !== undefined && !env.DOCUMENT_ALLOWED_MIME_TYPES.trim()) {
     throw new Error('DOCUMENT_ALLOWED_MIME_TYPES must not be empty when configured.');
