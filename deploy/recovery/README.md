@@ -65,7 +65,7 @@ bash deploy/recovery/verify-recovery-set.sh /srv/construction-erp-recovery/<reco
 
 ## 2. Isolated restore drill
 
-Never point the drill at the source Production database or live Documents path. Database identity is resolved through live PostgreSQL connections using the connected server address, server port and `current_database()`, so hostname/DNS aliases and Prisma `?schema=` changes cannot disguise the source database. `RESTORE_STORAGE_ROOT` is canonicalized before use and must be disjoint from live `STORAGE_ROOT` in both directions.
+Never point the drill at the source Production database or live Documents path. Database identity is resolved through live PostgreSQL connections using the connected server address, server port and `current_database()`, so hostname/DNS aliases and Prisma `?schema=` changes cannot disguise the source database. Native PostgreSQL tools receive a normalized URL with Prisma-only query parameters removed. Before `pg_restore`, the target is also checked for database-wide emptiness rather than only the selected Prisma schema. `RESTORE_STORAGE_ROOT` is canonicalized before use and must be disjoint from live `STORAGE_ROOT` in both directions.
 
 Create an empty non-Production PostgreSQL database first, then run:
 
@@ -80,7 +80,7 @@ bash deploy/recovery/restore-drill.sh /srv/construction-erp-recovery/<recovery-s
 The drill:
 
 1. verifies manifest checksums and archive paths;
-2. proves the target PostgreSQL schema is empty;
+2. proves the target PostgreSQL database is empty at database scope, including rejection of other non-system schemas/user objects;
 3. restores the database with `pg_restore`;
 4. restores the matching Documents archive;
 5. runs Prisma migration status;
