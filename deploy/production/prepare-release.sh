@@ -23,6 +23,7 @@ pnpm audit --prod --audit-level=high
 pnpm typecheck
 pnpm build
 
+echo "Verified recovery point: $RECOVERY_POINT_REFERENCE (deployment mode: $DEPLOYMENT_MODE)"
 pnpm prisma:migrate:deploy
 pnpm --filter @construction-erp/api exec prisma migrate status
 
