@@ -18,6 +18,7 @@ for command_name in pg_dump psql tar node find; do
 done
 
 assert_source_storage_identity
+native_database_url="$(node "$RECOVERY_DIR/postgres-url.mjs" "$DATABASE_URL")"
 mkdir -p "$RECOVERY_ROOT"
 chmod 700 "$RECOVERY_ROOT"
 
@@ -34,14 +35,14 @@ cleanup_incomplete() {
 }
 trap cleanup_incomplete EXIT
 
-pg_dump --format=custom --no-owner --no-privileges --dbname="$DATABASE_URL" > "$set_dir/database.dump"
+pg_dump --format=custom --no-owner --no-privileges --dbname="$native_database_url" > "$set_dir/database.dump"
 chmod 600 "$set_dir/database.dump"
 
 tar --create --gzip --directory="$STORAGE_ROOT" --file="$set_dir/documents.tar.gz" .
 chmod 600 "$set_dir/documents.tar.gz"
 
 document_file_count="$(find "$STORAGE_ROOT" -type f | wc -l | tr -d ' ')"
-postgres_server_version="$(psql "$DATABASE_URL" --no-psqlrc --tuples-only --no-align --command='SHOW server_version' | tr -d '\r\n')"
+postgres_server_version="$(psql "$native_database_url" --no-psqlrc --tuples-only --no-align --command='SHOW server_version' | tr -d '\r\n')"
 pg_dump_version="$(pg_dump --version | tr -d '\r\n')"
 
 RECOVERY_SET_ID="$recovery_set_id" \
