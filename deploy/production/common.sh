@@ -11,10 +11,14 @@ if [[ ! -f "$ENV_FILE" ]]; then
   exit 1
 fi
 
-set -a
-# shellcheck disable=SC1090
-source "$ENV_FILE"
-set +a
+while IFS= read -r -d '' env_key && IFS= read -r -d '' env_value; do
+  if [[ ! "$env_key" =~ ^[A-Z][A-Z0-9_]*$ ]]; then
+    echo "Invalid Production environment key: $env_key"
+    exit 1
+  fi
+  printf -v "$env_key" '%s' "$env_value"
+  export "$env_key"
+done < <(node "$PROD_DIR/load-env.mjs" "$ENV_FILE")
 
 node "$PROD_DIR/validate-env.mjs"
 
