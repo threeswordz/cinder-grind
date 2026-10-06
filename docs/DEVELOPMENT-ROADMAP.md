@@ -1,7 +1,7 @@
 # Construction ERP — Development Roadmap
 
 **Document Status:** Development Roadmap Baseline v0.1  
-**Current Phase:** V1.0-B Backup / Restore / Recovery — NEXT / AUTHORIZED
+**Current Phase:** V1.0-B Backup / Restore / Recovery — STABLE MERGE CANDIDATE / PR #194 DRAFT
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1  
@@ -807,7 +807,7 @@ Completed release: **V0.8 Management — COMPLETE AND ACCEPTED**.
 
 Current release: **V1.0 Production Readiness — ACTIVE**.
 
-Current stage: **V1.0-B BACKUP / RESTORE / RECOVERY — NEXT / AUTHORIZED** after V1.0-A technical completion.
+Current stage: **V1.0-B BACKUP / RESTORE / RECOVERY — STABLE MERGE CANDIDATE / REVIEW GATE** under Issue #193 and draft PR #194. Material candidate `407be538bc59427dc098ac6c0a8b2a9521d89777` passed push CI #3708; documentation-reconciled exact-head push + PR CI and DEC-022 review remain the merge gates.
 
 Immediate sequence:
 
@@ -847,7 +847,7 @@ Immediate sequence:
 34. **V0.8-E is technically COMPLETE.** PR #182 final head `1092a3b197b346f71e55671b5235aec90b536b81` passed CI #3307/#3308 and clean final DEC-022 review; PR #182 squash-merged as `542b1df9ad866f9b557e06ec2ca366b6131e2f94`; post-merge main CI #3309 PASS; Issue #179 CLOSED / COMPLETED.
 35. Historical Stage-E review checkpoint: the Finance currency-drift P2 was fixed and regression-covered together with the analogous filtered Cost invariant; exact head `4473b942142a32ae11f9abd90df47854a5aad662` passed push CI #3247 and PR CI #3248 including authenticated live acceptance, and that review thread was resolved.
 36. Historical Stage-E review checkpoint: a later DEC-022 review found two additional P2s—non-actionable browser source drilldown and stale live status. Both were fixed; final head `1092a3b197b346f71e55671b5235aec90b536b81` ultimately passed CI #3307/#3308 and clean DEC-022 review before merge.
-37. **V0.8 release closure: COMPLETE + ACCEPTED.** Chat-assisted proxy UAT PASS with no blocking business defect identified → AC-V08-039 ACCEPTED → AC-V08-040 ACCEPTED → PR #185 final head `5b623ce78b6ab0c87cc5593ac244a96ec0002919` passed CI #3392/#3393 and clean DEC-022 review → PR #185 merged as `920d592e7ffe01cb83b106c215fa20adb959cb95` → post-merge main CI #3394 PASS → Issue #184 CLOSED / COMPLETED → final status-reconciliation PR #186 merged as `452677c931cd0d7592f1135c6d9894f16113314a` → post-merge main CI #3423 PASS. **V1.0 Production / production-readiness entry gate is COMPLETE under DEC-026.** PR #188 squash-merged as `c4a5a2aa5a5cb81b36c4387b965b24728bb71f91`, post-merge exact-main CI #3475 passed, and Issue #187 closed completed. **V1.0-A Production Environment / Deployment Baseline is COMPLETE.** PR #191 squash-merged as `d9ad5f207fb671c716f1f5b3d76e9c8b59d1657e`; exact-main CI #3667 passed; Issue #190 closed completed. **V1.0-B Backup / Restore / Recovery is NEXT / AUTHORIZED.**
+37. **V0.8 release closure: COMPLETE + ACCEPTED.** Chat-assisted proxy UAT PASS with no blocking business defect identified → AC-V08-039 ACCEPTED → AC-V08-040 ACCEPTED → PR #185 final head `5b623ce78b6ab0c87cc5593ac244a96ec0002919` passed CI #3392/#3393 and clean DEC-022 review → PR #185 merged as `920d592e7ffe01cb83b106c215fa20adb959cb95` → post-merge main CI #3394 PASS → Issue #184 CLOSED / COMPLETED → final status-reconciliation PR #186 merged as `452677c931cd0d7592f1135c6d9894f16113314a` → post-merge main CI #3423 PASS. **V1.0 Production / production-readiness entry gate is COMPLETE under DEC-026.** PR #188 squash-merged as `c4a5a2aa5a5cb81b36c4387b965b24728bb71f91`, post-merge exact-main CI #3475 passed, and Issue #187 closed completed. **V1.0-A Production Environment / Deployment Baseline is COMPLETE.** PR #191 squash-merged as `d9ad5f207fb671c716f1f5b3d76e9c8b59d1657e`; exact-main CI #3667 passed; Issue #190 closed completed. **V1.0-B Backup / Restore / Recovery is ACTIVE at the stable merge-candidate review gate.** Issue #193 remains open; draft PR #194 is open; material candidate `407be538bc59427dc098ac6c0a8b2a9521d89777` passed CI #3708. The approved sequence is durable docs reconciliation → exact-head push + PR CI → one stable-head DEC-022 review → merge → exact-main CI → technical closure/handoff. V1.0-C must not begin before those V1.0-B gates complete.
 
 
 # 23. Baseline Decision
