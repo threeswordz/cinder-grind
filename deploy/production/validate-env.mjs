@@ -31,6 +31,13 @@ const deploymentMode = required('DEPLOYMENT_MODE');
 if (deploymentMode !== 'fresh' && deploymentMode !== 'upgrade') {
   fail('DEPLOYMENT_MODE must be fresh or upgrade');
 }
+const upgradeSiteOffline = required('UPGRADE_SITE_OFFLINE_CONFIRMED');
+if (upgradeSiteOffline !== 'YES' && upgradeSiteOffline !== 'NO') {
+  fail('UPGRADE_SITE_OFFLINE_CONFIRMED must be YES or NO');
+}
+if (deploymentMode === 'upgrade' && upgradeSiteOffline !== 'YES') {
+  fail('UPGRADE_SITE_OFFLINE_CONFIRMED must equal YES before preparing a Production upgrade');
+}
 if (required('RECOVERY_POINT_VERIFIED') !== 'YES') {
   fail('RECOVERY_POINT_VERIFIED must equal YES before Production migrations');
 }
