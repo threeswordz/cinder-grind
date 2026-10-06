@@ -14,6 +14,8 @@ done
 [[ "$RESTORE_DATABASE_URL" != "$DATABASE_URL" ]] || fail "restore drill database must not equal the source database"
 [[ "$RESTORE_STORAGE_ROOT" != "$STORAGE_ROOT" ]] || fail "restore drill storage must not equal the source Documents storage"
 
+native_restore_database_url="$(node "$RECOVERY_DIR/postgres-url.mjs" "$RESTORE_DATABASE_URL")"
+
 node - "$DATABASE_URL" "$RESTORE_DATABASE_URL" <<'NODE'
 const [source, target] = process.argv.slice(2).map((raw) => new URL(raw));
 const key = (url) => [
@@ -50,7 +52,7 @@ node apps/api/scripts/verify-production-target.mjs
 started_epoch="$(date +%s)"
 started_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
-pg_restore --exit-on-error --no-owner --no-privileges --dbname="$RESTORE_DATABASE_URL" < "$set_dir/database.dump"
+pg_restore --exit-on-error --no-owner --no-privileges --dbname="$native_restore_database_url" < "$set_dir/database.dump"
 tar --extract --gzip --directory="$RESTORE_STORAGE_ROOT" --file="$set_dir/documents.tar.gz"
 
 DATABASE_URL="$RESTORE_DATABASE_URL" pnpm --filter @construction-erp/api exec prisma migrate status
