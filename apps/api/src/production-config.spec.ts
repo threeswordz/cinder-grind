@@ -70,3 +70,13 @@ test('production config rejects non-canonical browser origin', () => {
   env.WEB_ORIGIN = 'https://erp.example.com/';
   assert.throws(() => validateProductionConfig(env), /must equal its canonical HTTPS origin/);
 });
+
+
+test('production config rejects padded production NODE_ENV', () => {
+  const env = valid();
+  env.NODE_ENV = ' production ';
+  assert.throws(
+    () => validateProductionConfig(env),
+    /NODE_ENV must equal production exactly without surrounding whitespace/,
+  );
+});
