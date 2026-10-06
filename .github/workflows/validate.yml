@@ -131,8 +131,13 @@ jobs:
           start_and_stop
           start_and_stop
 
-          if WEB_ORIGIN=http://unsafe.example.invalid pnpm start:api > /tmp/construction-erp-unsafe-production.log 2>&1; then
-            echo "Unsafe HTTP Production origin unexpectedly started."
+          set +e
+          WEB_ORIGIN=http://unsafe.example.invalid timeout 5s pnpm start:api > /tmp/construction-erp-unsafe-production.log 2>&1
+          unsafe_status=$?
+          set -e
+          if [[ "$unsafe_status" -eq 0 || "$unsafe_status" -eq 124 ]]; then
+            echo "Unsafe HTTP Production origin did not fail closed."
+            cat /tmp/construction-erp-unsafe-production.log
             exit 1
           fi
           grep -q "WEB_ORIGIN must use HTTPS" /tmp/construction-erp-unsafe-production.log
