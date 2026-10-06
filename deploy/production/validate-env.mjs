@@ -22,6 +22,18 @@ function positiveInteger(name) {
 
 if (required('NODE_ENV') !== 'production') fail('NODE_ENV must equal production');
 
+const deploymentMode = required('DEPLOYMENT_MODE');
+if (deploymentMode !== 'fresh' && deploymentMode !== 'upgrade') {
+  fail('DEPLOYMENT_MODE must be fresh or upgrade');
+}
+if (required('RECOVERY_POINT_VERIFIED') !== 'YES') {
+  fail('RECOVERY_POINT_VERIFIED must equal YES before Production migrations');
+}
+const recoveryReference = required('RECOVERY_POINT_REFERENCE');
+if (!/^[A-Za-z0-9._:/-]{3,200}$/.test(recoveryReference)) {
+  fail('RECOVERY_POINT_REFERENCE must be a non-secret evidence identifier using safe characters');
+}
+
 const releaseCommit = required('RELEASE_COMMIT');
 if (!/^[0-9a-f]{40}$/i.test(releaseCommit)) fail('RELEASE_COMMIT must be a full 40-character Git SHA');
 
