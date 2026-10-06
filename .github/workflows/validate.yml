@@ -467,48 +467,8 @@ jobs:
           chmod +x /tmp/v10-pg-bin/pg_dump /tmp/v10-pg-bin/pg_restore /tmp/v10-pg-bin/psql
           export PATH="/tmp/v10-pg-bin:$PATH"
 
-          # Regression: a Prisma schema change does not isolate a database-level restore.
-          same_database_other_schema="${DATABASE_URL/schema=public/schema=alternate}"
-          test "$(node deploy/recovery/postgres-identity.mjs "$DATABASE_URL")" = \
-            "$(node deploy/recovery/postgres-identity.mjs "$same_database_other_schema")"
-          mkdir -p /tmp/v10-unsafe-empty-recovery-set
-          if RESTORE_ENVIRONMENT=drill \
-            RESTORE_DATABASE_URL="$same_database_other_schema" \
-            RESTORE_STORAGE_ROOT=/tmp/v10-unsafe-restored-documents \
-            PRODUCTION_ENV_FILE=/tmp/v10-recovery-source.env \
-            bash deploy/recovery/restore-drill.sh /tmp/v10-unsafe-empty-recovery-set \
-              > /tmp/v10-same-database-restore.log 2>&1; then
-            echo "Restore drill unexpectedly accepted the source database under another Prisma schema."
-            exit 1
-          fi
-          grep -q 'restore target resolves to the source PostgreSQL database' \
-            /tmp/v10-same-database-restore.log
-
-          # Regression: recovery-root containment must use canonical paths.
-          if RECOVERY_ROOT="$GITHUB_WORKSPACE/../cinder-grind/recovery-artifacts" \
-            RECOVERY_SITE_OFFLINE_CONFIRMED=YES \
-            PRODUCTION_ENV_FILE=/tmp/v10-recovery-source.env \
-            bash deploy/recovery/create-recovery-set.sh \
-              > /tmp/v10-recovery-root-dotdot.log 2>&1; then
-            echo "Recovery root inside the repository via .. unexpectedly passed."
-            exit 1
-          fi
-          grep -q 'RECOVERY_ROOT must be outside the repository' \
-            /tmp/v10-recovery-root-dotdot.log
-
-          rm -f /tmp/v10-storage-link
-          ln -s "$source_storage" /tmp/v10-storage-link
-          if RECOVERY_ROOT=/tmp/v10-storage-link/recovery-root \
-            RECOVERY_SITE_OFFLINE_CONFIRMED=YES \
-            PRODUCTION_ENV_FILE=/tmp/v10-recovery-source.env \
-            bash deploy/recovery/create-recovery-set.sh \
-              > /tmp/v10-recovery-root-symlink.log 2>&1; then
-            echo "Recovery root inside Documents storage via symlink unexpectedly passed."
-            exit 1
-          fi
-          grep -q 'RECOVERY_ROOT must be outside Documents storage' \
-            /tmp/v10-recovery-root-symlink.log
-          rm -f /tmp/v10-storage-link
+          bash deploy/recovery/ci-safety-regressions.sh \
+            "$source_storage" /tmp/v10-recovery-source.env
 
           RECOVERY_ROOT=/tmp/v10-recovery-sets \
           RECOVERY_SITE_OFFLINE_CONFIRMED=YES \
