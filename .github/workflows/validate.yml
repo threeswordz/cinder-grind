@@ -76,6 +76,9 @@ jobs:
           node --check deploy/production/load-env.mjs
           node --check deploy/production/validate-env.mjs
           node --check apps/api/scripts/verify-production-target.mjs
+          bash -n deploy/recovery/*.sh
+          node --check deploy/recovery/manifest.mjs
+          node --check apps/api/scripts/verify-restored-documents.mjs
 
           while IFS= read -r -d '' env_key && IFS= read -r -d '' env_value; do
             printf -v "$env_key" '%s' "$env_value"
@@ -411,3 +414,111 @@ jobs:
 
           echo "API startup smoke passed."
           bash deploy/uat/runtime-acceptance.sh
+      - name: Run V1.0-B paired recovery and isolated restore drill
+        run: |
+          set -euo pipefail
+
+          source_storage="$GITHUB_WORKSPACE/storage"
+          mkdir -p "$source_storage"
+          printf '%s\n' 'construction-erp-production-storage-v1:ci-recovery' > "$source_storage/.construction-erp-storage-ready"
+
+          cat > /tmp/v10-recovery-source.env <<EOF
+          NODE_ENV=production
+          RELEASE_COMMIT=$GITHUB_SHA
+          DATABASE_URL=$DATABASE_URL
+          STORAGE_ROOT=$source_storage
+          STORAGE_DEPLOYMENT_ID=ci-recovery
+          EOF
+          chmod 600 /tmp/v10-recovery-source.env
+
+          mkdir -p /tmp/v10-pg-bin
+          cat > /tmp/v10-pg-bin/pg_dump <<'PG_DUMP'
+          #!/usr/bin/env bash
+          exec docker run --rm --network host postgres:17.11-alpine pg_dump "$@"
+          PG_DUMP
+          cat > /tmp/v10-pg-bin/pg_restore <<'PG_RESTORE'
+          #!/usr/bin/env bash
+          exec docker run --rm --network host postgres:17.11-alpine pg_restore "$@"
+          PG_RESTORE
+          cat > /tmp/v10-pg-bin/psql <<'PSQL'
+          #!/usr/bin/env bash
+          exec docker run --rm --network host postgres:17.11-alpine psql "$@"
+          PSQL
+          chmod +x /tmp/v10-pg-bin/pg_dump /tmp/v10-pg-bin/pg_restore /tmp/v10-pg-bin/psql
+          export PATH="/tmp/v10-pg-bin:$PATH"
+
+          RECOVERY_ROOT=/tmp/v10-recovery-sets \
+          RECOVERY_SITE_OFFLINE_CONFIRMED=YES \
+          PRODUCTION_ENV_FILE=/tmp/v10-recovery-source.env \
+          bash deploy/recovery/create-recovery-set.sh | tee /tmp/v10-recovery-create.log
+          recovery_set="$(tail -n 1 /tmp/v10-recovery-create.log)"
+          test -d "$recovery_set"
+          bash deploy/recovery/verify-recovery-set.sh "$recovery_set"
+
+          admin_url='postgresql://construction_erp:construction_erp_dev_only@localhost:5432/postgres'
+          restore_url='postgresql://construction_erp:construction_erp_dev_only@localhost:5432/construction_erp_restore?schema=public'
+          psql "$admin_url" --no-psqlrc --set=ON_ERROR_STOP=1 --command='CREATE DATABASE construction_erp_restore'
+
+          RESTORE_ENVIRONMENT=drill \
+          RESTORE_DATABASE_URL="$restore_url" \
+          RESTORE_STORAGE_ROOT=/tmp/v10-restored-documents \
+          PRODUCTION_ENV_FILE=/tmp/v10-recovery-source.env \
+          bash deploy/recovery/restore-drill.sh "$recovery_set"
+
+          node - "$recovery_set/restore-drill-evidence.json" <<'NODE'
+          const { readFileSync } = require('node:fs');
+          const evidence = JSON.parse(readFileSync(process.argv[2], 'utf8'));
+          if (evidence.databaseRestore !== 'PASS' ||
+              evidence.migrationStatus !== 'PASS' ||
+              evidence.documentMetadataContentConsistency !== 'PASS') {
+            throw new Error('Restore drill evidence did not record all required PASS gates.');
+          }
+          if (!Number.isFinite(evidence.durationSeconds) || evidence.durationSeconds > 8 * 60 * 60) {
+            throw new Error('Restore drill exceeded the approved 8-hour RTO target.');
+          }
+          NODE
+
+          ROLLBACK_RELEASE_COMMIT="$GITHUB_SHA" \
+          CURRENT_RELEASE_COMMIT="$GITHUB_SHA" \
+          PRODUCTION_ENV_FILE=/tmp/v10-recovery-source.env \
+          bash deploy/recovery/verify-application-rollback.sh
+
+          DATABASE_URL="$restore_url" \
+          STORAGE_ROOT=/tmp/v10-restored-documents \
+          NODE_ENV=test \
+          API_HOST=127.0.0.1 \
+          API_PORT=3002 \
+          WEB_ORIGIN=http://localhost:5173 \
+          pnpm start:api > /tmp/construction-erp-restored-api.log 2>&1 &
+          restored_pid=$!
+          cleanup_restored() {
+            kill "$restored_pid" >/dev/null 2>&1 || true
+          }
+          trap cleanup_restored EXIT
+
+          restored_ready=false
+          for attempt in {1..30}; do
+            if curl --fail --silent --show-error http://127.0.0.1:3002/api/v1/health >/dev/null; then
+              restored_ready=true
+              break
+            fi
+            if ! kill -0 "$restored_pid" >/dev/null 2>&1; then
+              echo "Restored API exited before becoming healthy."
+              cat /tmp/construction-erp-restored-api.log
+              exit 1
+            fi
+            sleep 1
+          done
+          if [[ "$restored_ready" != "true" ]]; then
+            echo "Restored API did not become healthy."
+            cat /tmp/construction-erp-restored-api.log
+            exit 1
+          fi
+
+          UAT_API_BASE_URL=http://127.0.0.1:3002/api/v1 \
+          API_PORT=3002 \
+          DATABASE_URL="$restore_url" \
+          STORAGE_ROOT=/tmp/v10-restored-documents \
+          node deploy/uat/runtime-acceptance.mjs
+
+          echo "V1.0-B isolated recovery drill and authenticated restored-runtime acceptance passed."
