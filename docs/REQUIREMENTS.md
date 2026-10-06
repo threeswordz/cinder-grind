@@ -1,7 +1,7 @@
 # Construction ERP — Master Requirements Register
 
 **Document Status:** Requirements Baseline v0.1  
-**Current Phase:** V1.0 Production Readiness — ENTRY PACKAGE APPROVED / CLOSURE ACTIVE  
+**Current Phase:** V1.0-A Production Environment / Deployment — NEXT / AUTHORIZED  
 **Architecture Baseline:** v0.1  
 **Source:** ERP-MASTER-BLUEPRINT.md  
 **Last Structural Review:** V0.8-E DEC-022 source-drilldown/live-state remediation — 2026-10-05

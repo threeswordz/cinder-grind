@@ -1,7 +1,7 @@
 # Construction ERP — Dependency License Register
 
 **Document Status:** Dependency License Baseline v0.1  
-**Current Phase:** V1.0 Production Readiness — ENTRY PACKAGE APPROVED / CLOSURE ACTIVE  
+**Current Phase:** V1.0-A Production Environment / Deployment — NEXT / AUTHORIZED  
 **Policy:** Open-Source First  
 **License Verification Date:** 2026-09-26  
 **Version Status:** V0.1-A direct package versions selected and pinned in package manifests.
