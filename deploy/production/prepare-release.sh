@@ -14,9 +14,8 @@ fi
 
 storage_sentinel="$STORAGE_ROOT/.construction-erp-storage-ready"
 storage_sentinel_value="construction-erp-production-storage-v1"
-if [[ "$DEPLOYMENT_MODE" == "fresh" && ! -e "$storage_sentinel" ]]; then
-  printf '%s\n' "$storage_sentinel_value" > "$storage_sentinel"
-fi
+# Deliberately never create this marker here. It must be provisioned only after
+# the operator independently verifies the intended persistent volume is mounted.
 if [[ ! -f "$storage_sentinel" || "$(cat "$storage_sentinel")" != "$storage_sentinel_value" ]]; then
   echo "Production document storage sentinel is missing or invalid: $storage_sentinel"
   echo "Do not continue if the intended persistent storage volume is not mounted."
