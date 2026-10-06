@@ -31,8 +31,8 @@ Required critical Production inputs:
 - `RELEASE_COMMIT` — full approved 40-character Git SHA
 - `DEPLOYMENT_MODE` — `fresh` or `upgrade`
 - `UPGRADE_SITE_OFFLINE_CONFIRMED` — `YES` is mandatory for upgrades and may be set only after public traffic is in maintenance/offline and the active API is stopped; fresh deployments use `NO`
-- `RECOVERY_POINT_VERIFIED=YES`
-- `RECOVERY_POINT_REFERENCE` — non-secret evidence identifier for the verified pre-migration recovery point
+- `RECOVERY_POINT_VERIFIED=YES` — must be changed from the fail-closed template default `NO` only after verification
+- `RECOVERY_POINT_REFERENCE` — replace the template placeholder with the real non-secret evidence identifier for the verified pre-migration recovery point; upgrades reject the fresh-empty reference
 - `API_HOST` / `API_PORT`
 - `WEB_ORIGIN` — HTTPS public browser origin
 - `VITE_API_BASE_URL` — `/api/v1` for the preferred same-origin topology
@@ -59,15 +59,17 @@ chmod 600 /secure/path/construction-erp-production.env
 
 Set `RELEASE_COMMIT` in that file to the exact checked-out SHA. Provision the persistent document directory with permissions for the application account.
 
-**Persistent storage identity is operator-provisioned, never auto-created by deployment.** After independently verifying that the intended persistent volume/filesystem is actually mounted at `STORAGE_ROOT` using the host's storage/mount tooling, create the sentinel on that verified persistent storage:
+**Persistent storage identity is operator-provisioned, never auto-created by deployment.** After independently verifying that the intended persistent volume/filesystem is actually mounted using the host's storage/mount tooling, set a local shell variable to the exact absolute path that you verified. Do not assume `STORAGE_ROOT` from the protected environment file has been exported into the shell:
 
 ```bash
+verified_storage_root=/srv/construction-erp/documents  # replace with the exact independently verified mount path
+test -d "$verified_storage_root" && test -w "$verified_storage_root"
 printf '%s\n' 'construction-erp-production-storage-v1' \
-  > "$STORAGE_ROOT/.construction-erp-storage-ready"
-chmod 600 "$STORAGE_ROOT/.construction-erp-storage-ready"
+  > "$verified_storage_root/.construction-erp-storage-ready"
+chmod 600 "$verified_storage_root/.construction-erp-storage-ready"
 ```
 
-Do not create the sentinel merely because the mountpoint directory exists. If the persistent volume cannot be independently verified, stop the deployment. `prepare-release.sh`, `run-api.sh` and the Production API only **verify** this sentinel; they never create it.
+Then confirm that the protected environment file's `STORAGE_ROOT` is exactly the same verified absolute path before running the deployment scripts. Do not create the sentinel merely because a mountpoint directory exists. If the persistent volume cannot be independently verified, stop the deployment. `prepare-release.sh`, `run-api.sh` and the Production API only **verify** this sentinel; they never create it.
 
 Use an inactive versioned release checkout rather than building over the currently served release. The reference layout is:
 
