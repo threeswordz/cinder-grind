@@ -1,5 +1,11 @@
 import { createHash } from 'node:crypto';
-import { chmodSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import {
+  chmodSync,
+  createReadStream,
+  readFileSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
 import path from 'node:path';
 
 function fail(message) {
@@ -7,8 +13,20 @@ function fail(message) {
   process.exit(1);
 }
 
-function sha256(file) {
-  return createHash('sha256').update(readFileSync(file)).digest('hex');
+async function sha256(file) {
+  const hash = createHash('sha256');
+  try {
+    for await (const chunk of createReadStream(file)) {
+      hash.update(chunk);
+    }
+  } catch (error) {
+    fail(
+      `unable to checksum ${path.basename(file)}: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
+  }
+  return hash.digest('hex');
 }
 
 function required(name) {
@@ -17,7 +35,7 @@ function required(name) {
   return value;
 }
 
-function artifact(setDir, name) {
+async function artifact(setDir, name) {
   const target = path.join(setDir, name);
   let stat;
   try {
@@ -26,7 +44,7 @@ function artifact(setDir, name) {
     fail(`missing recovery artifact: ${name}`);
   }
   if (!stat.isFile()) fail(`recovery artifact is not a regular file: ${name}`);
-  return { file: name, bytes: stat.size, sha256: sha256(target) };
+  return { file: name, bytes: stat.size, sha256: await sha256(target) };
 }
 
 const [command, rawSetDir] = process.argv.slice(2);
@@ -54,8 +72,8 @@ if (command === 'create') {
     },
     documentFileCount: Number(required('RECOVERY_DOCUMENT_FILE_COUNT')),
     artifacts: {
-      database: artifact(setDir, 'database.dump'),
-      documents: artifact(setDir, 'documents.tar.gz'),
+      database: await artifact(setDir, 'database.dump'),
+      documents: await artifact(setDir, 'documents.tar.gz'),
     },
   };
 
@@ -82,7 +100,7 @@ if (command === 'verify') {
   if (!/^[A-Za-z0-9][A-Za-z0-9._-]{2,63}$/.test(manifest.storageDeploymentId ?? '')) fail('manifest storageDeploymentId is invalid');
 
   for (const [key, filename] of [['database', 'database.dump'], ['documents', 'documents.tar.gz']]) {
-    const current = artifact(setDir, filename);
+    const current = await artifact(setDir, filename);
     const expected = manifest.artifacts?.[key];
     if (!expected || expected.file !== filename || expected.bytes !== current.bytes || expected.sha256 !== current.sha256) {
       fail(`${filename} does not match manifest evidence`);
