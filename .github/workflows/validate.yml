@@ -318,6 +318,21 @@ jobs:
         run: pnpm --filter @construction-erp/api exec prisma migrate status
       - name: Validate workspace
         run: pnpm validate
+      - name: Reset CI state before authenticated recovery fixture
+        run: |
+          set -euo pipefail
+
+          # The regression suite intentionally creates synthetic Document rows that
+          # do not have matching filesystem bytes. Recovery validation must exercise
+          # a coherent production-like database + Documents pair, not those test
+          # fixtures. Reset only the disposable CI database/storage after the full
+          # workspace regression has already passed.
+          printf '%s\n' 'DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public;' \
+            | pnpm --filter @construction-erp/api exec prisma db execute --stdin --schema prisma/schema.prisma
+          pnpm prisma:migrate:deploy
+
+          rm -rf "$GITHUB_WORKSPACE/storage"
+          mkdir -p "$GITHUB_WORKSPACE/storage"
       - name: Bootstrap CI UAT administrator
         run: pnpm --filter @construction-erp/api bootstrap:admin
       - name: Rehearse Production-mode startup restart and unsafe-config failure
