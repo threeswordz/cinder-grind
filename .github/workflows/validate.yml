@@ -75,6 +75,7 @@ jobs:
           bash -n deploy/production/*.sh
           node --check deploy/production/load-env.mjs
           node --check deploy/production/validate-env.mjs
+          node --check apps/api/scripts/verify-production-target.mjs
 
           while IFS= read -r -d '' env_key && IFS= read -r -d '' env_value; do
             printf -v "$env_key" '%s' "$env_value"
@@ -265,6 +266,29 @@ jobs:
         run: pnpm prisma:generate
       - name: Validate Prisma schema
         run: pnpm prisma:validate
+      - name: Verify fresh Production target database guard
+        run: |
+          DEPLOYMENT_MODE=fresh node apps/api/scripts/verify-production-target.mjs
+
+          printf '%s\n' 'CREATE TABLE "__v10_nonempty_probe" (id integer);' \
+            | pnpm --filter @construction-erp/api exec prisma db execute --stdin --schema prisma/schema.prisma
+
+          set +e
+          DEPLOYMENT_MODE=fresh node apps/api/scripts/verify-production-target.mjs \
+            > /tmp/v10-fresh-target-guard.log 2>&1
+          guard_status=$?
+          set -e
+          if [[ "$guard_status" -eq 0 ]]; then
+            echo "Fresh Production target guard unexpectedly accepted a non-empty database."
+            cat /tmp/v10-fresh-target-guard.log
+            exit 1
+          fi
+          grep -q 'DEPLOYMENT_MODE=fresh requires an empty target schema' /tmp/v10-fresh-target-guard.log
+
+          printf '%s\n' 'DROP TABLE "__v10_nonempty_probe";' \
+            | pnpm --filter @construction-erp/api exec prisma db execute --stdin --schema prisma/schema.prisma
+
+          DEPLOYMENT_MODE=fresh node apps/api/scripts/verify-production-target.mjs
       - name: Audit production dependencies
         run: pnpm audit --prod --audit-level=high
       - name: Apply PostgreSQL migrations
@@ -282,9 +306,10 @@ jobs:
           API_PORT: 3001
           WEB_ORIGIN: https://erp.example.invalid
           STORAGE_ROOT: /tmp/construction-erp-production-documents
+          STORAGE_DEPLOYMENT_ID: ci-production
         run: |
           mkdir -p "$STORAGE_ROOT"
-          printf '%s\n' 'construction-erp-production-storage-v1' > "$STORAGE_ROOT/.construction-erp-storage-ready"
+          printf '%s\n' 'construction-erp-production-storage-v1:ci-production' > "$STORAGE_ROOT/.construction-erp-storage-ready"
 
           start_and_stop() {
             pnpm start:api > /tmp/construction-erp-production-api.log 2>&1 &
@@ -326,7 +351,7 @@ jobs:
             exit 1
           fi
           grep -q 'storage sentinel is missing' /tmp/construction-erp-missing-storage.log
-          printf '%s\n' 'construction-erp-production-storage-v1' > "$STORAGE_ROOT/.construction-erp-storage-ready"
+          printf '%s\n' 'construction-erp-production-storage-v1:ci-production' > "$STORAGE_ROOT/.construction-erp-storage-ready"
 
           set +e
           WEB_ORIGIN=http://unsafe.example.invalid timeout 5s pnpm start:api > /tmp/construction-erp-unsafe-production.log 2>&1
