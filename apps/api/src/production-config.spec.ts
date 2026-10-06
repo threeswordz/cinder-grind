@@ -80,3 +80,13 @@ test('production config rejects padded production NODE_ENV', () => {
     /NODE_ENV must equal production exactly without surrounding whitespace/,
   );
 });
+
+
+test('production config rejects padded browser origin', () => {
+  const env = valid();
+  env.WEB_ORIGIN = ' https://erp.example.com ';
+  assert.throws(
+    () => validateProductionConfig(env),
+    /WEB_ORIGIN must not contain surrounding whitespace/,
+  );
+});
