@@ -1,0 +1,21 @@
+# Caddy 2 example for a single-host, same-origin Production deployment.
+# Replace erp.example.com and /srv/construction-erp with your approved values.
+# `current` should point to the activated, fully prepared versioned release.
+# Caddy's automatic HTTPS provides the TLS boundary; the API remains private on loopback.
+#
+# Equivalent open-source HTTPS reverse proxies are allowed. Caddy is an example,
+# not a mandatory paid or hosted dependency.
+
+erp.example.com {
+	encode zstd gzip
+
+	handle /api/* {
+		reverse_proxy 127.0.0.1:3000
+	}
+
+	handle {
+		root * /srv/construction-erp/current/apps/web/dist
+		try_files {path} /index.html
+		file_server
+	}
+}
