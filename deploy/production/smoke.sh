@@ -47,5 +47,13 @@ if [[ ! -s "$web_body" ]]; then
   echo "Web root returned an empty response body."
   exit 1
 fi
+node - "$web_body" <<'NODE'
+const fs = require('node:fs');
+const html = fs.readFileSync(process.argv[2], 'utf8');
+if (!/<title[^>]*>\s*Construction ERP\s*<\/title>/i.test(html) || !/id=["']root["']/i.test(html)) {
+  process.stderr.write('Web root did not contain the expected Construction ERP application markers.\n');
+  process.exit(1);
+}
+NODE
 
 echo "Production transport/process smoke checks passed."
