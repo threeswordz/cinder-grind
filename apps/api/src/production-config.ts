@@ -1,3 +1,4 @@
+import { accessSync, constants, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 
 type Environment = NodeJS.ProcessEnv;
@@ -47,6 +48,27 @@ function validateWebOrigin(raw: string): void {
   }
 }
 
+const PRODUCTION_STORAGE_SENTINEL = '.construction-erp-storage-ready';
+const PRODUCTION_STORAGE_SENTINEL_VALUE = 'construction-erp-production-storage-v1';
+
+function validateProductionStorage(storageRoot: string): void {
+  try {
+    if (!statSync(storageRoot).isDirectory()) throw new Error('not a directory');
+    accessSync(storageRoot, constants.W_OK);
+  } catch {
+    throw new Error('STORAGE_ROOT must exist and be writable when NODE_ENV=production.');
+  }
+  let sentinel: string;
+  try {
+    sentinel = readFileSync(path.join(storageRoot, PRODUCTION_STORAGE_SENTINEL), 'utf8').trim();
+  } catch {
+    throw new Error('Production document storage sentinel is missing; refusing startup because persistent storage may be unavailable.');
+  }
+  if (sentinel !== PRODUCTION_STORAGE_SENTINEL_VALUE) {
+    throw new Error('Production document storage sentinel is invalid; refusing startup because persistent storage identity is not verified.');
+  }
+}
+
 function validateDatabaseUrl(raw: string): void {
   let url: URL;
   try {
@@ -84,6 +106,7 @@ export function validateProductionConfig(env: Environment): void {
   if (!path.isAbsolute(storageRoot)) {
     throw new Error('STORAGE_ROOT must be an absolute path when NODE_ENV=production.');
   }
+  validateProductionStorage(storageRoot);
 
   boundedPositiveInteger(env, 'DOCUMENT_MAX_FILE_BYTES', 2_000_000_000);
   boundedPositiveInteger(env, 'SESSION_TTL_HOURS', 168);
