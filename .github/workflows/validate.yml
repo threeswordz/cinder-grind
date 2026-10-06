@@ -438,7 +438,7 @@ jobs:
           PG_DUMP
           cat > /tmp/v10-pg-bin/pg_restore <<'PG_RESTORE'
           #!/usr/bin/env bash
-          exec docker run --rm --network host postgres:17.11-alpine pg_restore "$@"
+          exec docker run --rm -i --network host postgres:17.11-alpine pg_restore "$@"
           PG_RESTORE
           cat > /tmp/v10-pg-bin/psql <<'PSQL'
           #!/usr/bin/env bash
