@@ -11,14 +11,32 @@ if [[ ! -f "$ENV_FILE" ]]; then
   exit 1
 fi
 
+umask 077
+env_dump="$(mktemp)"
+cleanup_env_dump() {
+  rm -f "$env_dump"
+}
+trap cleanup_env_dump EXIT
+
+if ! node "$PROD_DIR/load-env.mjs" "$ENV_FILE" > "$env_dump"; then
+  cleanup_env_dump
+  trap - EXIT
+  exit 1
+fi
+
 while IFS= read -r -d '' env_key && IFS= read -r -d '' env_value; do
   if [[ ! "$env_key" =~ ^[A-Z][A-Z0-9_]*$ ]]; then
+    cleanup_env_dump
+    trap - EXIT
     echo "Invalid Production environment key: $env_key"
     exit 1
   fi
   printf -v "$env_key" '%s' "$env_value"
   export "$env_key"
-done < <(node "$PROD_DIR/load-env.mjs" "$ENV_FILE")
+done < "$env_dump"
+
+cleanup_env_dump
+trap - EXIT
 
 node "$PROD_DIR/validate-env.mjs"
 
