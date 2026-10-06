@@ -80,7 +80,7 @@ jobs:
             printf -v "$env_key" '%s' "$env_value"
             export "$env_key"
           done < <(node deploy/production/load-env.mjs deploy/production/.env.example)
-          RELEASE_COMMIT="$GITHUB_SHA" node deploy/production/validate-env.mjs
+          RELEASE_COMMIT="$GITHUB_SHA" RECOVERY_POINT_VERIFIED=YES RECOVERY_POINT_REFERENCE=ci-verified-fresh-empty-state node deploy/production/validate-env.mjs
 
           printf '%s\n' \
             'NODE_ENV=production' \
@@ -109,7 +109,19 @@ jobs:
             exit 1
           fi
 
-          if DEPLOYMENT_MODE=upgrade UPGRADE_SITE_OFFLINE_CONFIRMED=NO node deploy/production/validate-env.mjs > /tmp/unsafe-online-upgrade 2>&1; then
+          if RECOVERY_POINT_VERIFIED=YES RECOVERY_POINT_REFERENCE=replace-with-verified-recovery-point-reference node deploy/production/validate-env.mjs > /tmp/placeholder-recovery-point 2>&1; then
+            echo "Placeholder Production recovery point unexpectedly passed."
+            exit 1
+          fi
+          grep -q 'must be replaced with actual verified recovery evidence' /tmp/placeholder-recovery-point
+
+          if DEPLOYMENT_MODE=upgrade UPGRADE_SITE_OFFLINE_CONFIRMED=YES RECOVERY_POINT_VERIFIED=YES RECOVERY_POINT_REFERENCE=fresh-empty-database-and-storage node deploy/production/validate-env.mjs > /tmp/fresh-reference-upgrade 2>&1; then
+            echo "Fresh-only recovery reference unexpectedly passed for an upgrade."
+            exit 1
+          fi
+          grep -q 'upgrades require a matching database + Documents recovery-set reference' /tmp/fresh-reference-upgrade
+
+          if DEPLOYMENT_MODE=upgrade UPGRADE_SITE_OFFLINE_CONFIRMED=NO RECOVERY_POINT_VERIFIED=YES RECOVERY_POINT_REFERENCE=ci-verified-upgrade-set node deploy/production/validate-env.mjs > /tmp/unsafe-online-upgrade 2>&1; then
             echo "Production upgrade without offline confirmation unexpectedly passed."
             exit 1
           fi
@@ -172,6 +184,8 @@ jobs:
 
           cp deploy/production/.env.example /tmp/production-smoke.env
           sed -i "s/^RELEASE_COMMIT=.*/RELEASE_COMMIT=$GITHUB_SHA/" /tmp/production-smoke.env
+          sed -i 's/^RECOVERY_POINT_VERIFIED=.*/RECOVERY_POINT_VERIFIED=YES/' /tmp/production-smoke.env
+          sed -i 's/^RECOVERY_POINT_REFERENCE=.*/RECOVERY_POINT_REFERENCE=ci-verified-fresh-empty-state/' /tmp/production-smoke.env
           mkdir -p /tmp/v10-smoke-bin
           cat > /tmp/v10-smoke-bin/curl <<'MOCK_CURL'
           #!/usr/bin/env bash
