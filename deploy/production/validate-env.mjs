@@ -110,6 +110,11 @@ if (db.protocol !== 'postgresql:' && db.protocol !== 'postgres:') fail('DATABASE
 const storageRoot = required('STORAGE_ROOT');
 if (!path.isAbsolute(storageRoot)) fail('STORAGE_ROOT must be an absolute path');
 
+const storageDeploymentId = required('STORAGE_DEPLOYMENT_ID');
+if (!/^[A-Za-z0-9][A-Za-z0-9._-]{2,63}$/.test(storageDeploymentId)) {
+  fail('STORAGE_DEPLOYMENT_ID must be 3-64 characters using letters, numbers, dot, underscore or hyphen');
+}
+
 boundedPositiveInteger('DOCUMENT_MAX_FILE_BYTES', 2_000_000_000);
 boundedPositiveInteger('SESSION_TTL_HOURS', 168);
 boundedPositiveInteger('LOGIN_RATE_LIMIT_MAX', 1000);
