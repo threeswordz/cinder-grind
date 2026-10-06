@@ -107,6 +107,91 @@ jobs:
             echo "Unsupported Production environment key unexpectedly passed."
             exit 1
           fi
+
+          for invalid_setting in \
+            SESSION_TTL_HOURS=169 \
+            LOGIN_RATE_LIMIT_MAX=1001 \
+            LOGIN_RATE_LIMIT_WINDOW_MINUTES=1441 \
+            DOCUMENT_MAX_FILE_BYTES=2000000001; do
+            if env "$invalid_setting" node deploy/production/validate-env.mjs > /tmp/invalid-production-env 2>&1; then
+              echo "Out-of-range Production setting unexpectedly passed: $invalid_setting"
+              exit 1
+            fi
+          done
+
+          if WEB_ORIGIN=https://erp.example.com/ node deploy/production/validate-env.mjs > /tmp/noncanonical-origin 2>&1; then
+            echo "Non-canonical WEB_ORIGIN unexpectedly passed."
+            exit 1
+          fi
+
+          for invalid_api_base in \
+            'https://api.example.com/api/v1?tenant=x' \
+            'https://user@api.example.com/api/v1' \
+            'https://api.example.com/api/v1#fragment' \
+            'https://api.example.com/api/v1/'; do
+            if VITE_API_BASE_URL="$invalid_api_base" node deploy/production/validate-env.mjs > /tmp/invalid-api-base 2>&1; then
+              echo "Unsafe absolute VITE_API_BASE_URL unexpectedly passed: $invalid_api_base"
+              exit 1
+            fi
+          done
+
+          cp deploy/production/.env.example /tmp/production-smoke.env
+          sed -i "s/^RELEASE_COMMIT=.*/RELEASE_COMMIT=$GITHUB_SHA/" /tmp/production-smoke.env
+          mkdir -p /tmp/v10-smoke-bin
+          cat > /tmp/v10-smoke-bin/curl <<'MOCK_CURL'
+          #!/usr/bin/env bash
+          set -euo pipefail
+          output_file=""
+          url=""
+          while [[ "$#" -gt 0 ]]; do
+            case "$1" in
+              --output)
+                output_file="$2"
+                shift 2
+                ;;
+              --write-out|--proto)
+                shift 2
+                ;;
+              --silent|--show-error)
+                shift
+                ;;
+              *)
+                url="$1"
+                shift
+                ;;
+            esac
+          done
+          if [[ -z "$output_file" || -z "$url" ]]; then
+            exit 2
+          fi
+          if [[ "${MOCK_SMOKE_MODE:-ok}" == "redirect" ]]; then
+            printf '%s' 'redirect' > "$output_file"
+            printf '302'
+            exit 0
+          fi
+          if [[ "${MOCK_SMOKE_MODE:-ok}" == "bad-health" && "$url" == */api/v1/health ]]; then
+            printf '%s' '{"status":"degraded","database":"ok"}' > "$output_file"
+            printf '200'
+            exit 0
+          fi
+          if [[ "$url" == */api/v1/health ]]; then
+            printf '%s' '{"status":"ok","database":"ok","timestamp":"2026-10-06T00:00:00.000Z"}' > "$output_file"
+          else
+            printf '%s' '<!doctype html><title>Construction ERP</title>' > "$output_file"
+          fi
+          printf '200'
+          MOCK_CURL
+          chmod +x /tmp/v10-smoke-bin/curl
+
+          PATH="/tmp/v10-smoke-bin:$PATH" PRODUCTION_ENV_FILE=/tmp/production-smoke.env bash deploy/production/smoke.sh
+          if PATH="/tmp/v10-smoke-bin:$PATH" MOCK_SMOKE_MODE=redirect PRODUCTION_ENV_FILE=/tmp/production-smoke.env bash deploy/production/smoke.sh; then
+            echo "Redirecting Production smoke target unexpectedly passed."
+            exit 1
+          fi
+          if PATH="/tmp/v10-smoke-bin:$PATH" MOCK_SMOKE_MODE=bad-health PRODUCTION_ENV_FILE=/tmp/production-smoke.env bash deploy/production/smoke.sh; then
+            echo "Invalid Production health payload unexpectedly passed."
+            exit 1
+          fi
       - name: Generate Prisma Client
         run: pnpm prisma:generate
       - name: Validate Prisma schema
