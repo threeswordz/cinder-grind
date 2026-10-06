@@ -56,15 +56,23 @@ expect_failure \
       PRODUCTION_ENV_FILE="$env_file" \
       bash deploy/recovery/create-recovery-set.sh
 
+external_storage=/tmp/v10-external-source-storage
+path_test_env=/tmp/v10-recovery-path-test.env
+rm -rf "$external_storage"
+mkdir -p "$external_storage"
+cp "$env_file" "$path_test_env"
+sed -i "s|^STORAGE_ROOT=.*|STORAGE_ROOT=$external_storage|" "$path_test_env"
+
 rm -f /tmp/v10-storage-link
-ln -s "$source_storage" /tmp/v10-storage-link
+ln -s "$external_storage" /tmp/v10-storage-link
 expect_failure \
   /tmp/v10-recovery-root-symlink.log \
   'RECOVERY_ROOT must be outside Documents storage' \
   env RECOVERY_ROOT=/tmp/v10-storage-link/recovery-root \
       RECOVERY_SITE_OFFLINE_CONFIRMED=YES \
-      PRODUCTION_ENV_FILE="$env_file" \
+      PRODUCTION_ENV_FILE="$path_test_env" \
       bash deploy/recovery/create-recovery-set.sh
-rm -f /tmp/v10-storage-link
+rm -f /tmp/v10-storage-link "$path_test_env"
+rm -rf "$external_storage"
 
 echo "V1.0-B recovery safety regressions passed."
