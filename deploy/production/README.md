@@ -23,12 +23,15 @@ The included Caddy file is an example open-source HTTPS boundary, not a hosting-
 
 ## 1. Production environment contract
 
-Use `.env.example` only as a template. Real Production values, especially `DATABASE_URL`, must be supplied outside Git through a protected host/process-manager environment file or equivalent secret mechanism.
+Use `.env.example` only as a template. Real Production values, especially `DATABASE_URL`, must be supplied outside Git through a protected host/process-manager environment file or equivalent secret mechanism. The deployment scripts parse this as data with Node's `.env` parser; they do **not** shell-source or evaluate file contents, so credentials containing shell metacharacters are preserved as values.
 
 Required critical Production inputs:
 
 - `NODE_ENV=production`
 - `RELEASE_COMMIT` — full approved 40-character Git SHA
+- `DEPLOYMENT_MODE` — `fresh` or `upgrade`
+- `RECOVERY_POINT_VERIFIED=YES`
+- `RECOVERY_POINT_REFERENCE` — non-secret evidence identifier for the verified pre-migration recovery point
 - `API_HOST` / `API_PORT`
 - `WEB_ORIGIN` — HTTPS public browser origin
 - `VITE_API_BASE_URL` — `/api/v1` for the preferred same-origin topology
@@ -62,7 +65,7 @@ PRODUCTION_ENV_FILE=/secure/path/construction-erp-production.env \
   bash deploy/production/prepare-release.sh
 ```
 
-The preparation gate validates the environment, verifies the exact commit, requires a clean working tree, installs the frozen lockfile, generates/validates Prisma, audits Production dependencies, runs non-destructive typecheck/build, applies only forward Prisma migrations, and verifies migration status. **It deliberately does not run the repository integration test suite against the Production database.** Full tests must already be green in CI against isolated CI PostgreSQL for the exact release commit.
+The preparation gate validates the environment, verifies the exact commit, requires a clean working tree, installs the frozen lockfile, generates/validates Prisma, audits Production dependencies, runs non-destructive typecheck/build, applies only forward Prisma migrations, and verifies migration status. **It deliberately does not run the repository integration test suite against the Production database.** Full tests must already be green in CI against isolated CI PostgreSQL for the exact release commit. Before `prisma migrate deploy`, the gate also requires `RECOVERY_POINT_VERIFIED=YES` and a non-secret `RECOVERY_POINT_REFERENCE`. For an upgrade this reference must identify the verified matching database + Documents recovery set; for a genuinely fresh empty deployment it documents the verified empty-state recovery point. V1.0-B supplies the full backup/restore/recovery procedure.
 
 ## 3. HTTPS / same-origin boundary
 
