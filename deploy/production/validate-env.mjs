@@ -45,20 +45,23 @@ required('API_HOST');
 const port = Number(required('API_PORT'));
 if (!Number.isInteger(port) || port <= 0 || port > 65535) fail('API_PORT must be a valid TCP port');
 
+const webOrigin = required('WEB_ORIGIN');
+if (env.WEB_ORIGIN !== webOrigin) fail('WEB_ORIGIN must not contain surrounding whitespace');
 let origin;
 try {
-  origin = new URL(required('WEB_ORIGIN'));
+  origin = new URL(webOrigin);
 } catch {
   fail('WEB_ORIGIN must be a valid absolute URL');
 }
 if (origin.protocol !== 'https:') fail('WEB_ORIGIN must use HTTPS');
 if (origin.username || origin.password || origin.search || origin.hash) fail('WEB_ORIGIN must be a clean origin');
 if (origin.pathname !== '/' && origin.pathname !== '') fail('WEB_ORIGIN must not include a path');
-if (required('WEB_ORIGIN') !== origin.origin) {
+if (webOrigin !== origin.origin) {
   fail('WEB_ORIGIN must equal its canonical HTTPS origin without a trailing slash');
 }
 
 const apiBase = required('VITE_API_BASE_URL');
+if (env.VITE_API_BASE_URL !== apiBase) fail('VITE_API_BASE_URL must not contain surrounding whitespace');
 if (apiBase !== '/api/v1') {
   let apiUrl;
   try {
