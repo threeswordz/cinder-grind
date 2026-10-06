@@ -1,7 +1,7 @@
 # Construction ERP — Development Roadmap
 
 **Document Status:** Development Roadmap Baseline v0.1  
-**Current Phase:** V1.0 Production Readiness — ENTRY PACKAGE PROPOSED / OWNER APPROVAL PENDING
+**Current Phase:** V1.0 Production Readiness — ENTRY PACKAGE APPROVED / CLOSURE ACTIVE
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1  
@@ -807,7 +807,7 @@ Completed release: **V0.8 Management — COMPLETE AND ACCEPTED**.
 
 Current release: **V0.8 Management — COMPLETE AND ACCEPTED**.
 
-Current stage: **V1.0 PRODUCTION / PRODUCTION-READINESS — ENTRY PACKAGE PROPOSED / BLOCKED — OWNER DECISION**.
+Current stage: **V1.0 PRODUCTION / PRODUCTION-READINESS — ENTRY PACKAGE OWNER-APPROVED / CLOSURE ACTIVE**.
 
 Immediate sequence:
 
