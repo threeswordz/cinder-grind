@@ -100,6 +100,13 @@ jobs:
             if [[ "$env_key" == "STORAGE_ROOT" && "$env_value" == '/srv/construction $erp & docs' ]]; then found_storage=true; fi
           done < <(node deploy/production/load-env.mjs /tmp/production-special.env)
           [[ "$found_storage" == "true" ]]
+
+          cp /tmp/production-special.env /tmp/production-unsupported.env
+          printf '%s\n' 'UNSUPPORTED_PRODUCTION_KEY=must-fail' >> /tmp/production-unsupported.env
+          if node deploy/production/load-env.mjs /tmp/production-unsupported.env > /tmp/unsupported-env-output; then
+            echo "Unsupported Production environment key unexpectedly passed."
+            exit 1
+          fi
       - name: Generate Prisma Client
         run: pnpm prisma:generate
       - name: Validate Prisma schema
