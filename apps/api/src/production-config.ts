@@ -57,7 +57,11 @@ function validateDatabaseUrl(raw: string): void {
 }
 
 export function validateProductionConfig(env: Environment): void {
-  if (env.NODE_ENV !== 'production') return;
+  const rawNodeEnv = env.NODE_ENV;
+  if (rawNodeEnv?.trim() === 'production' && rawNodeEnv !== 'production') {
+    throw new Error('NODE_ENV must equal production exactly without surrounding whitespace.');
+  }
+  if (rawNodeEnv !== 'production') return;
 
   required(env, 'API_HOST');
   const apiPort = required(env, 'API_PORT');
