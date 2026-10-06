@@ -13,11 +13,13 @@ function required(name) {
   return value;
 }
 
-function positiveInteger(name) {
+function boundedPositiveInteger(name, maximum) {
   const raw = env[name];
   if (raw === undefined || raw.trim() === '') return;
   const value = Number(raw);
-  if (!Number.isInteger(value) || value <= 0) fail(`${name} must be a positive integer`);
+  if (!Number.isInteger(value) || value < 1 || value > maximum) {
+    fail(`${name} must be an integer from 1 to ${maximum}`);
+  }
 }
 
 if (required('NODE_ENV') !== 'production') fail('NODE_ENV must equal production');
@@ -50,6 +52,9 @@ try {
 if (origin.protocol !== 'https:') fail('WEB_ORIGIN must use HTTPS');
 if (origin.username || origin.password || origin.search || origin.hash) fail('WEB_ORIGIN must be a clean origin');
 if (origin.pathname !== '/' && origin.pathname !== '') fail('WEB_ORIGIN must not include a path');
+if (required('WEB_ORIGIN') !== origin.origin) {
+  fail('WEB_ORIGIN must equal its canonical HTTPS origin without a trailing slash');
+}
 
 const apiBase = required('VITE_API_BASE_URL');
 if (apiBase !== '/api/v1') {
@@ -59,8 +64,16 @@ if (apiBase !== '/api/v1') {
   } catch {
     fail('VITE_API_BASE_URL must be /api/v1 or an absolute HTTPS URL ending in /api/v1');
   }
-  if (apiUrl.protocol !== 'https:' || !apiUrl.pathname.endsWith('/api/v1')) {
-    fail('absolute VITE_API_BASE_URL must use HTTPS and end in /api/v1');
+  if (
+    apiUrl.protocol !== 'https:' ||
+    apiUrl.username ||
+    apiUrl.password ||
+    apiUrl.search ||
+    apiUrl.hash ||
+    apiUrl.pathname !== '/api/v1' ||
+    apiBase !== `${apiUrl.origin}/api/v1`
+  ) {
+    fail('absolute VITE_API_BASE_URL must be a clean canonical HTTPS URL ending exactly in /api/v1');
   }
 }
 
@@ -75,10 +88,10 @@ if (db.protocol !== 'postgresql:' && db.protocol !== 'postgres:') fail('DATABASE
 const storageRoot = required('STORAGE_ROOT');
 if (!path.isAbsolute(storageRoot)) fail('STORAGE_ROOT must be an absolute path');
 
-positiveInteger('DOCUMENT_MAX_FILE_BYTES');
-positiveInteger('SESSION_TTL_HOURS');
-positiveInteger('LOGIN_RATE_LIMIT_MAX');
-positiveInteger('LOGIN_RATE_LIMIT_WINDOW_MINUTES');
+boundedPositiveInteger('DOCUMENT_MAX_FILE_BYTES', 2_000_000_000);
+boundedPositiveInteger('SESSION_TTL_HOURS', 168);
+boundedPositiveInteger('LOGIN_RATE_LIMIT_MAX', 1000);
+boundedPositiveInteger('LOGIN_RATE_LIMIT_WINDOW_MINUTES', 1440);
 
 if (env.DOCUMENT_ALLOWED_MIME_TYPES !== undefined && !env.DOCUMENT_ALLOWED_MIME_TYPES.trim()) {
   fail('DOCUMENT_ALLOWED_MIME_TYPES must not be empty when configured');
