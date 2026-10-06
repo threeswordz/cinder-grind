@@ -5,6 +5,7 @@ import { NestFactory } from '@nestjs/core';
 
 import { AppModule } from './app.module';
 import { ProblemDetailsFilter } from './common/problem-details.filter';
+import { validateProductionConfig } from './production-config';
 
 function getPort(): number {
   const rawPort = process.env.API_PORT ?? '3000';
@@ -16,6 +17,7 @@ function getPort(): number {
 }
 
 async function bootstrap(): Promise<void> {
+  validateProductionConfig(process.env);
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
   const webOrigin = process.env.WEB_ORIGIN ?? 'http://localhost:5173';
 

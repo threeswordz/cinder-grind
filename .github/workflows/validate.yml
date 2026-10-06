@@ -70,6 +70,14 @@ jobs:
           set +a
           test "$BOOTSTRAP_COMPANY_NAME" = "Construction ERP UAT"
           test "$BOOTSTRAP_ADMIN_DISPLAY_NAME" = "UAT System Administrator"
+      - name: Validate production deployment pack
+        run: |
+          bash -n deploy/production/*.sh
+          node --check deploy/production/validate-env.mjs
+          set -a
+          source deploy/production/.env.example
+          set +a
+          RELEASE_COMMIT="$GITHUB_SHA" node deploy/production/validate-env.mjs
       - name: Generate Prisma Client
         run: pnpm prisma:generate
       - name: Validate Prisma schema
