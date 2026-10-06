@@ -80,7 +80,9 @@ jobs:
           node --check deploy/recovery/manifest.mjs
           node --check deploy/recovery/path-safety.mjs
           node --check deploy/recovery/postgres-identity.mjs
+          node --check deploy/recovery/postgres-url-lib.mjs
           node --check deploy/recovery/postgres-url.mjs
+          node --check deploy/recovery/verify-empty-database.mjs
           node --check apps/api/scripts/verify-restored-documents.mjs
           node --check apps/api/scripts/verify-restored-runtime.mjs
 

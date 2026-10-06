@@ -32,6 +32,7 @@ native_restore_database_url="$(node "$RECOVERY_DIR/postgres-url.mjs" "$RESTORE_D
 source_database_identity="$(node "$RECOVERY_DIR/postgres-identity.mjs" "$DATABASE_URL")"
 restore_database_identity="$(node "$RECOVERY_DIR/postgres-identity.mjs" "$RESTORE_DATABASE_URL")"
 [[ "$source_database_identity" != "$restore_database_identity" ]] || fail "restore target resolves to the source PostgreSQL database; hostname aliases or Prisma schema changes do not isolate a database-level restore"
+node "$RECOVERY_DIR/verify-empty-database.mjs" "$RESTORE_DATABASE_URL"
 
 if [[ -e "$RESTORE_STORAGE_ROOT" ]]; then
   [[ -d "$RESTORE_STORAGE_ROOT" ]] || fail "RESTORE_STORAGE_ROOT exists and is not a directory"

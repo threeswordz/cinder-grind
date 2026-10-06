@@ -1,32 +1,17 @@
 import { spawnSync } from 'node:child_process';
-
-const raw = process.argv[2];
+import { normalizePostgresUrl } from './postgres-url-lib.mjs';
 
 function fail(message) {
   process.stderr.write(`PostgreSQL identity check failed: ${message}\n`);
   process.exit(1);
 }
 
-if (!raw) fail('URL argument is required');
-
-let url;
+let nativeUrl;
 try {
-  url = new URL(raw);
-} catch {
-  fail('invalid URL');
+  nativeUrl = normalizePostgresUrl(process.argv[2]);
+} catch (error) {
+  fail(error instanceof Error ? error.message : String(error));
 }
-
-if (!['postgresql:', 'postgres:'].includes(url.protocol)) {
-  fail('PostgreSQL protocol is required');
-}
-
-const databaseName = decodeURIComponent(url.pathname.replace(/^\//, ''));
-if (!databaseName) fail('database name is required');
-
-// Prisma's schema parameter is not part of database-level identity and is not
-// understood by libpq tools. Resolve identity through a live PostgreSQL
-// connection so hostname/DNS aliases cannot disguise the source database.
-url.searchParams.delete('schema');
 
 const sql = `
   SELECT json_build_array(
@@ -39,7 +24,7 @@ const sql = `
 const result = spawnSync(
   'psql',
   [
-    url.toString(),
+    nativeUrl,
     '--no-psqlrc',
     '--set=ON_ERROR_STOP=1',
     '--tuples-only',
@@ -66,23 +51,29 @@ if (lines.length !== 1) {
   fail(`expected one identity row, received ${lines.length}`);
 }
 
-let identity;
+let databaseIdentity;
 try {
-  identity = JSON.parse(lines[0]);
+  databaseIdentity = JSON.parse(lines[0]);
 } catch {
   fail('database returned an invalid identity payload');
 }
 
 if (
-  !Array.isArray(identity) ||
-  identity.length !== 3 ||
-  typeof identity[0] !== 'string' ||
-  !Number.isInteger(identity[1]) ||
-  typeof identity[2] !== 'string' ||
-  !identity[0] ||
-  !identity[2]
+  !Array.isArray(databaseIdentity) ||
+  databaseIdentity.length !== 3 ||
+  typeof databaseIdentity[0] !== 'string' ||
+  !Number.isInteger(databaseIdentity[1]) ||
+  typeof databaseIdentity[2] !== 'string' ||
+  !databaseIdentity[0] ||
+  !databaseIdentity[2]
 ) {
   fail('database returned an incomplete identity payload');
 }
 
-process.stdout.write(JSON.stringify([identity[0].toLowerCase(), identity[1], identity[2]]));
+process.stdout.write(
+  JSON.stringify([
+    databaseIdentity[0].toLowerCase(),
+    databaseIdentity[1],
+    databaseIdentity[2],
+  ]),
+);
