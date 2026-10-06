@@ -78,6 +78,7 @@ jobs:
           node --check apps/api/scripts/verify-production-target.mjs
           bash -n deploy/recovery/*.sh
           node --check deploy/recovery/manifest.mjs
+          node --check deploy/recovery/postgres-url.mjs
           node --check apps/api/scripts/verify-restored-documents.mjs
 
           while IFS= read -r -d '' env_key && IFS= read -r -d '' env_value; do
