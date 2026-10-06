@@ -18,6 +18,8 @@ for command_name in pg_dump psql tar node find; do
 done
 
 assert_source_storage_identity
+DATABASE_URL="$DATABASE_URL" DOCUMENT_STORAGE_ROOT="$STORAGE_ROOT" \
+node apps/api/scripts/verify-restored-documents.mjs
 native_database_url="$(node "$RECOVERY_DIR/postgres-url.mjs" "$DATABASE_URL")"
 mkdir -p "$RECOVERY_ROOT"
 chmod 700 "$RECOVERY_ROOT"
