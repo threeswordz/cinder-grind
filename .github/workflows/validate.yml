@@ -532,10 +532,9 @@ jobs:
             exit 1
           fi
 
-          UAT_API_BASE_URL=http://127.0.0.1:3002/api/v1 \
+          RESTORED_API_BASE_URL=http://127.0.0.1:3002/api/v1 \
           API_PORT=3002 \
           DATABASE_URL="$restore_url" \
-          STORAGE_ROOT=/tmp/v10-restored-documents \
-          node deploy/uat/runtime-acceptance.mjs
+          node apps/api/scripts/verify-restored-runtime.mjs
 
-          echo "V1.0-B isolated recovery drill and authenticated restored-runtime acceptance passed."
+          echo "V1.0-B isolated recovery drill and restored-runtime authentication smoke passed."
