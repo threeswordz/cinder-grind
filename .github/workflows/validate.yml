@@ -123,6 +123,10 @@ jobs:
             echo "Non-canonical WEB_ORIGIN unexpectedly passed."
             exit 1
           fi
+          if env 'NODE_ENV= production ' node deploy/production/validate-env.mjs > /tmp/padded-node-env 2>&1; then
+            echo "Padded Production NODE_ENV unexpectedly passed."
+            exit 1
+          fi
 
           for invalid_api_base in \
             'https://api.example.com/api/v1?tenant=x' \
@@ -164,6 +168,9 @@ jobs:
           if [[ -z "$output_file" || -z "$url" ]]; then
             exit 2
           fi
+          if [[ -n "${MOCK_CURL_LOG:-}" ]]; then
+            printf '%s\n' "$url" >> "$MOCK_CURL_LOG"
+          fi
           if [[ "${MOCK_SMOKE_MODE:-ok}" == "redirect" ]]; then
             printf '%s' 'redirect' > "$output_file"
             printf '302'
@@ -184,6 +191,15 @@ jobs:
           chmod +x /tmp/v10-smoke-bin/curl
 
           PATH="/tmp/v10-smoke-bin:$PATH" PRODUCTION_ENV_FILE=/tmp/production-smoke.env bash deploy/production/smoke.sh
+
+          cp /tmp/production-smoke.env /tmp/production-separated.env
+          sed -i 's|^WEB_ORIGIN=.*|WEB_ORIGIN=https://web.example.com|' /tmp/production-separated.env
+          sed -i 's|^VITE_API_BASE_URL=.*|VITE_API_BASE_URL=https://api.example.com/api/v1|' /tmp/production-separated.env
+          : > /tmp/v10-smoke-urls
+          PATH="/tmp/v10-smoke-bin:$PATH" MOCK_CURL_LOG=/tmp/v10-smoke-urls PRODUCTION_ENV_FILE=/tmp/production-separated.env bash deploy/production/smoke.sh
+          grep -Fxq 'https://api.example.com/api/v1/health' /tmp/v10-smoke-urls
+          grep -Fxq 'https://web.example.com/' /tmp/v10-smoke-urls
+
           if PATH="/tmp/v10-smoke-bin:$PATH" MOCK_SMOKE_MODE=redirect PRODUCTION_ENV_FILE=/tmp/production-smoke.env bash deploy/production/smoke.sh; then
             echo "Redirecting Production smoke target unexpectedly passed."
             exit 1
