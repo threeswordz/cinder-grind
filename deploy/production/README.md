@@ -74,7 +74,7 @@ The preferred initial Production shape serves the web app and API under one HTTP
 - web: `https://erp.example.com/`
 - API: `https://erp.example.com/api/v1`
 
-Build-time `VITE_API_BASE_URL=/api/v1` keeps browser API requests same-origin.
+Build-time `VITE_API_BASE_URL=/api/v1` keeps browser API requests same-origin. An absolute HTTPS API base is accepted only when it uses the same origin as `WEB_ORIGIN`; cross-origin Production browser/API deployment is intentionally rejected while sessions use `SameSite=Lax` cookies. A future cross-site cookie model would require explicit security design and Change Control rather than being enabled implicitly.
 
 `Caddyfile.example` shows an open-source reference. Configure DNS and TLS prerequisites for the chosen environment before exposure. Do not expose the NestJS API directly to the public Internet as a shortcut.
 
