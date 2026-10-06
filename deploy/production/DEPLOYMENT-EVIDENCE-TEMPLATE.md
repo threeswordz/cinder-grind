@@ -12,10 +12,12 @@
 - WEB_ORIGIN:
 - API bind address:
 - STORAGE_ROOT identifier (do not record secret/internal credentials):
+- STORAGE_DEPLOYMENT_ID:
 - Deployment mode: fresh / upgrade
 - Upgrade site offline / maintenance confirmed before preparation (upgrade only): YES / N/A
 - Active release path / versioned release path:
-- Persistent storage sentinel verified: PASS / FAIL
+- Persistent storage sentinel verified against STORAGE_DEPLOYMENT_ID: PASS / FAIL
+- Target database mode verification (fresh-empty / upgrade): PASS / FAIL
 - Recovery point verified before migration: YES / NO
 - Recovery point reference:
 - Environment validation: PASS / FAIL
