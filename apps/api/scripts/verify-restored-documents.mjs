@@ -4,13 +4,13 @@ import path from 'node:path';
 import { PrismaClient } from '@prisma/client';
 
 function fail(message) {
-  process.stderr.write(`Restored Documents verification failed: ${message}\n`);
+  process.stderr.write(`Document storage verification failed: ${message}\n`);
   process.exit(1);
 }
 
-const storageRoot = process.env.RESTORE_STORAGE_ROOT;
+const storageRoot = process.env.DOCUMENT_STORAGE_ROOT ?? process.env.RESTORE_STORAGE_ROOT;
 if (!storageRoot || !path.isAbsolute(storageRoot)) {
-  fail('RESTORE_STORAGE_ROOT must be an absolute path');
+  fail('DOCUMENT_STORAGE_ROOT (or RESTORE_STORAGE_ROOT) must be an absolute path');
 }
 
 const root = path.resolve(storageRoot);
@@ -53,7 +53,7 @@ try {
     }
   }
 
-  process.stdout.write(`Restored Documents verification passed for ${documents.length} LOCAL document record(s).\n`);
+  process.stdout.write(`Document storage verification passed for ${documents.length} LOCAL document record(s).\n`);
 } finally {
   await prisma.$disconnect();
 }
