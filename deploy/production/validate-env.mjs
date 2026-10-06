@@ -77,6 +77,9 @@ if (apiBase !== '/api/v1') {
   ) {
     fail('absolute VITE_API_BASE_URL must be a clean canonical HTTPS URL ending exactly in /api/v1');
   }
+  if (apiUrl.origin !== origin.origin) {
+    fail('absolute VITE_API_BASE_URL must use the same origin as WEB_ORIGIN under the current SameSite=Lax session-cookie policy');
+  }
 }
 
 let db;
