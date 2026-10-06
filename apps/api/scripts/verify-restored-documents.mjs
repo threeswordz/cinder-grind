@@ -1,11 +1,20 @@
 import { createHash } from 'node:crypto';
-import { readFile, stat } from 'node:fs/promises';
+import { createReadStream } from 'node:fs';
+import { stat } from 'node:fs/promises';
 import path from 'node:path';
 import { PrismaClient } from '@prisma/client';
 
 function fail(message) {
   process.stderr.write(`Document storage verification failed: ${message}\n`);
   process.exit(1);
+}
+
+async function sha256File(filePath) {
+  const hash = createHash('sha256');
+  for await (const chunk of createReadStream(filePath)) {
+    hash.update(chunk);
+  }
+  return hash.digest('hex');
 }
 
 const storageRoot = process.env.DOCUMENT_STORAGE_ROOT ?? process.env.RESTORE_STORAGE_ROOT;
@@ -45,8 +54,7 @@ try {
     }
 
     if (document.checksum) {
-      const bytes = await readFile(target);
-      const checksum = createHash('sha256').update(bytes).digest('hex');
+      const checksum = await sha256File(target);
       if (checksum !== document.checksum) {
         fail(`document ${document.id} checksum does not match restored metadata`);
       }

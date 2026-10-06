@@ -9,11 +9,34 @@ env_file="${2:-}"
 }
 
 source_url="${DATABASE_URL:?DATABASE_URL is required}"
-schema_alias_url="${source_url/schema=public/schema=alternate}"
+schema_alias_url="$(node - "$source_url" <<'NODE'
+const url = new URL(process.argv[2]);
+url.searchParams.set('schema', 'alternate');
+process.stdout.write(url.toString());
+NODE
+)"
 source_identity="$(node deploy/recovery/postgres-identity.mjs "$source_url")"
 schema_alias_identity="$(node deploy/recovery/postgres-identity.mjs "$schema_alias_url")"
 if [[ "$source_identity" != "$schema_alias_identity" ]]; then
   echo "Database identity unexpectedly changed when only Prisma schema changed." >&2
+  exit 1
+fi
+
+host_alias_url="$(node - "$schema_alias_url" <<'NODE'
+const url = new URL(process.argv[2]);
+if (url.hostname === 'localhost') {
+  url.hostname = '127.0.0.1';
+} else if (url.hostname === '127.0.0.1') {
+  url.hostname = 'localhost';
+} else {
+  throw new Error(`CI alias regression requires localhost/127.0.0.1, received ${url.hostname}`);
+}
+process.stdout.write(url.toString());
+NODE
+)"
+host_alias_identity="$(node deploy/recovery/postgres-identity.mjs "$host_alias_url")"
+if [[ "$source_identity" != "$host_alias_identity" ]]; then
+  echo "Live database identity unexpectedly changed across localhost/127.0.0.1 aliases." >&2
   exit 1
 fi
 
@@ -43,8 +66,17 @@ expect_failure \
   /tmp/v10-same-database-restore.log \
   'restore target resolves to the source PostgreSQL database' \
   env RESTORE_ENVIRONMENT=drill \
-      RESTORE_DATABASE_URL="$schema_alias_url" \
+      RESTORE_DATABASE_URL="$host_alias_url" \
       RESTORE_STORAGE_ROOT=/tmp/v10-unsafe-restored-documents \
+      PRODUCTION_ENV_FILE="$env_file" \
+      bash deploy/recovery/restore-drill.sh /tmp/v10-unsafe-empty-recovery-set
+
+expect_failure \
+  /tmp/v10-restore-storage-inside-source.log \
+  'RESTORE_STORAGE_ROOT must be outside live Documents storage' \
+  env RESTORE_ENVIRONMENT=drill \
+      RESTORE_DATABASE_URL="$schema_alias_url" \
+      RESTORE_STORAGE_ROOT="$source_storage/drill" \
       PRODUCTION_ENV_FILE="$env_file" \
       bash deploy/recovery/restore-drill.sh /tmp/v10-unsafe-empty-recovery-set
 
@@ -62,6 +94,15 @@ rm -rf "$external_storage"
 mkdir -p "$external_storage"
 cp "$env_file" "$path_test_env"
 sed -i "s|^STORAGE_ROOT=.*|STORAGE_ROOT=$external_storage|" "$path_test_env"
+
+expect_failure \
+  /tmp/v10-restore-storage-contains-source.log \
+  'RESTORE_STORAGE_ROOT must not contain live Documents storage' \
+  env RESTORE_ENVIRONMENT=drill \
+      RESTORE_DATABASE_URL="$schema_alias_url" \
+      RESTORE_STORAGE_ROOT=/tmp \
+      PRODUCTION_ENV_FILE="$path_test_env" \
+      bash deploy/recovery/restore-drill.sh /tmp/v10-unsafe-empty-recovery-set
 
 rm -f /tmp/v10-storage-link
 ln -s "$external_storage" /tmp/v10-storage-link

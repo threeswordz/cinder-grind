@@ -12,24 +12,33 @@ done
 [[ "$RESTORE_ENVIRONMENT" == "drill" ]] || fail "RESTORE_ENVIRONMENT must equal drill"
 [[ "$RESTORE_STORAGE_ROOT" = /* ]] || fail "RESTORE_STORAGE_ROOT must be absolute"
 [[ "$RESTORE_DATABASE_URL" != "$DATABASE_URL" ]] || fail "restore drill database must not equal the source database"
-[[ "$RESTORE_STORAGE_ROOT" != "$STORAGE_ROOT" ]] || fail "restore drill storage must not equal the source Documents storage"
+
+for command_name in pg_restore psql tar node pnpm; do
+  command -v "$command_name" >/dev/null || fail "required command not found: $command_name"
+done
+
+restore_storage_root_raw="$RESTORE_STORAGE_ROOT"
+RESTORE_STORAGE_ROOT="$(
+  node "$RECOVERY_DIR/path-safety.mjs" \
+    restore-storage "$restore_storage_root_raw" "$STORAGE_ROOT"
+)"
+export RESTORE_STORAGE_ROOT
+
+if [[ -e "$restore_storage_root_raw" ]]; then
+  [[ ! -L "$restore_storage_root_raw" ]] || fail "RESTORE_STORAGE_ROOT must not be a symlink"
+fi
 
 native_restore_database_url="$(node "$RECOVERY_DIR/postgres-url.mjs" "$RESTORE_DATABASE_URL")"
 source_database_identity="$(node "$RECOVERY_DIR/postgres-identity.mjs" "$DATABASE_URL")"
 restore_database_identity="$(node "$RECOVERY_DIR/postgres-identity.mjs" "$RESTORE_DATABASE_URL")"
-[[ "$source_database_identity" != "$restore_database_identity" ]] || fail "restore target resolves to the source PostgreSQL database; a different Prisma schema does not isolate a database-level restore"
+[[ "$source_database_identity" != "$restore_database_identity" ]] || fail "restore target resolves to the source PostgreSQL database; hostname aliases or Prisma schema changes do not isolate a database-level restore"
 
 if [[ -e "$RESTORE_STORAGE_ROOT" ]]; then
-  [[ ! -L "$RESTORE_STORAGE_ROOT" ]] || fail "RESTORE_STORAGE_ROOT must not be a symlink"
   [[ -d "$RESTORE_STORAGE_ROOT" ]] || fail "RESTORE_STORAGE_ROOT exists and is not a directory"
   [[ -z "$(find "$RESTORE_STORAGE_ROOT" -mindepth 1 -print -quit)" ]] || fail "RESTORE_STORAGE_ROOT must be empty"
 else
   mkdir -m 700 "$RESTORE_STORAGE_ROOT"
 fi
-
-for command_name in pg_restore tar node pnpm; do
-  command -v "$command_name" >/dev/null || fail "required command not found: $command_name"
-done
 
 EXPECTED_RECOVERY_RELEASE_COMMIT="$RELEASE_COMMIT" \
 EXPECTED_STORAGE_DEPLOYMENT_ID="$STORAGE_DEPLOYMENT_ID" \

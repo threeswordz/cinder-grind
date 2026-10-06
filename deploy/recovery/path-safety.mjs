@@ -43,25 +43,45 @@ function contains(parent, child) {
   return child.startsWith(prefix);
 }
 
-const [command, recoveryRootRaw, repoRootRaw, storageRootRaw] =
-  process.argv.slice(2);
+const [command, firstRaw, secondRaw, thirdRaw] = process.argv.slice(2);
 
-if (command !== 'recovery-root') {
-  fail('usage: path-safety.mjs recovery-root <recovery-root> <repo-root> <storage-root>');
+if (command === 'recovery-root') {
+  const recoveryRoot = canonicalizeAllowMissing(firstRaw, 'RECOVERY_ROOT');
+  const repoRoot = canonicalizeAllowMissing(secondRaw, 'repository root');
+  const storageRoot = canonicalizeAllowMissing(thirdRaw, 'STORAGE_ROOT');
+
+  if (contains(repoRoot, recoveryRoot)) {
+    fail('RECOVERY_ROOT must be outside the repository');
+  }
+  if (contains(storageRoot, recoveryRoot)) {
+    fail('RECOVERY_ROOT must be outside Documents storage');
+  }
+  if (contains(recoveryRoot, storageRoot)) {
+    fail('STORAGE_ROOT must not be inside RECOVERY_ROOT');
+  }
+
+  process.stdout.write(recoveryRoot);
+  process.exit(0);
 }
 
-const recoveryRoot = canonicalizeAllowMissing(recoveryRootRaw, 'RECOVERY_ROOT');
-const repoRoot = canonicalizeAllowMissing(repoRootRaw, 'repository root');
-const storageRoot = canonicalizeAllowMissing(storageRootRaw, 'STORAGE_ROOT');
+if (command === 'restore-storage') {
+  const restoreStorageRoot = canonicalizeAllowMissing(
+    firstRaw,
+    'RESTORE_STORAGE_ROOT',
+  );
+  const storageRoot = canonicalizeAllowMissing(secondRaw, 'STORAGE_ROOT');
 
-if (contains(repoRoot, recoveryRoot)) {
-  fail('RECOVERY_ROOT must be outside the repository');
-}
-if (contains(storageRoot, recoveryRoot)) {
-  fail('RECOVERY_ROOT must be outside Documents storage');
-}
-if (contains(recoveryRoot, storageRoot)) {
-  fail('STORAGE_ROOT must not be inside RECOVERY_ROOT');
+  if (contains(storageRoot, restoreStorageRoot)) {
+    fail('RESTORE_STORAGE_ROOT must be outside live Documents storage');
+  }
+  if (contains(restoreStorageRoot, storageRoot)) {
+    fail('RESTORE_STORAGE_ROOT must not contain live Documents storage');
+  }
+
+  process.stdout.write(restoreStorageRoot);
+  process.exit(0);
 }
 
-process.stdout.write(recoveryRoot);
+fail(
+  'usage: path-safety.mjs recovery-root <recovery-root> <repo-root> <storage-root> | restore-storage <restore-storage-root> <storage-root>',
+);
