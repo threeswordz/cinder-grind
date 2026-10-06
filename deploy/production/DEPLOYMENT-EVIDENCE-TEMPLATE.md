@@ -12,6 +12,9 @@
 - WEB_ORIGIN:
 - API bind address:
 - STORAGE_ROOT identifier (do not record secret/internal credentials):
+- Deployment mode: fresh / upgrade
+- Recovery point verified before migration: YES / NO
+- Recovery point reference:
 - Environment validation: PASS / FAIL
 - Exact-commit verification: PASS / FAIL
 - Frozen-lockfile install: PASS / FAIL
