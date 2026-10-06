@@ -6,12 +6,8 @@ require_env RECOVERY_ROOT
 [[ "$RECOVERY_ROOT" = /* ]] || fail "RECOVERY_ROOT must be an absolute path"
 [[ "${RECOVERY_SITE_OFFLINE_CONFIRMED:-NO}" == "YES" ]] || fail "RECOVERY_SITE_OFFLINE_CONFIRMED must equal YES after traffic is drained and the API is stopped"
 
-case "$RECOVERY_ROOT/" in
-  "$REPO_ROOT/"*|"$STORAGE_ROOT/"*) fail "RECOVERY_ROOT must be outside the repository and Documents storage" ;;
-esac
-case "$STORAGE_ROOT/" in
-  "$RECOVERY_ROOT/"*) fail "STORAGE_ROOT must not be inside RECOVERY_ROOT" ;;
-esac
+RECOVERY_ROOT="$(node "$RECOVERY_DIR/path-safety.mjs" recovery-root "$RECOVERY_ROOT" "$REPO_ROOT" "$STORAGE_ROOT")"
+export RECOVERY_ROOT
 
 for command_name in pg_dump psql tar node find; do
   command -v "$command_name" >/dev/null || fail "required command not found: $command_name"
