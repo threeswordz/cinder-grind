@@ -80,7 +80,10 @@ jobs:
             printf -v "$env_key" '%s' "$env_value"
             export "$env_key"
           done < <(node deploy/production/load-env.mjs deploy/production/.env.example)
-          RELEASE_COMMIT="$GITHUB_SHA" RECOVERY_POINT_VERIFIED=YES RECOVERY_POINT_REFERENCE=ci-verified-fresh-empty-state node deploy/production/validate-env.mjs
+          export RELEASE_COMMIT="$GITHUB_SHA"
+          export RECOVERY_POINT_VERIFIED=YES
+          export RECOVERY_POINT_REFERENCE=ci-verified-fresh-empty-state
+          node deploy/production/validate-env.mjs
 
           printf '%s\n' \
             'NODE_ENV=production' \
