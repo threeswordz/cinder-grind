@@ -88,7 +88,7 @@ jobs:
 
           printf '%s\n' \
             'NODE_ENV=production' \
-            'RELEASE_COMMIT=0000000000000000000000000000000000000000' \
+            "RELEASE_COMMIT=$GITHUB_SHA" \
             'DEPLOYMENT_MODE=upgrade' \
             'UPGRADE_SITE_OFFLINE_CONFIRMED=YES' \
             'RECOVERY_POINT_VERIFIED=YES' \
@@ -98,13 +98,30 @@ jobs:
             'WEB_ORIGIN=https://erp.example.com' \
             'VITE_API_BASE_URL=/api/v1' \
             'DATABASE_URL=postgresql://erp:placeholder@db.example.internal:5432/erp?schema=public' \
-            'STORAGE_ROOT="/srv/construction $erp & docs"' \
+            'STORAGE_ROOT="/tmp/construction $erp & docs"' \
+            'STORAGE_DEPLOYMENT_ID=ci-wrapper' \
             > /tmp/production-special.env
           found_storage=false
           while IFS= read -r -d '' env_key && IFS= read -r -d '' env_value; do
-            if [[ "$env_key" == "STORAGE_ROOT" && "$env_value" == '/srv/construction $erp & docs' ]]; then found_storage=true; fi
+            if [[ "$env_key" == "STORAGE_ROOT" && "$env_value" == '/tmp/construction $erp & docs' ]]; then found_storage=true; fi
           done < <(node deploy/production/load-env.mjs /tmp/production-special.env)
           [[ "$found_storage" == "true" ]]
+
+          # Regression: exercise the documented run-api.sh wrapper itself.
+          wrapper_storage='/tmp/construction $erp & docs'
+          mkdir -p "$wrapper_storage" /tmp/v10-wrapper-bin
+          printf '%s\n' 'construction-erp-production-storage-v1:ci-wrapper' > "$wrapper_storage/.construction-erp-storage-ready"
+          printf '%s\n' '#!/usr/bin/env bash' 'exit 0' > /tmp/v10-wrapper-bin/pnpm
+          chmod +x /tmp/v10-wrapper-bin/pnpm
+          PATH="/tmp/v10-wrapper-bin:$PATH" PRODUCTION_ENV_FILE=/tmp/production-special.env bash deploy/production/run-api.sh
+
+          printf '%s\n' 'construction-erp-production-storage-v1:wrong-deployment' > "$wrapper_storage/.construction-erp-storage-ready"
+          if PATH="/tmp/v10-wrapper-bin:$PATH" PRODUCTION_ENV_FILE=/tmp/production-special.env bash deploy/production/run-api.sh > /tmp/wrong-wrapper-storage 2>&1; then
+            echo "Production run-api wrapper accepted another deployment's storage sentinel."
+            exit 1
+          fi
+          grep -q 'persistent document storage sentinel is missing or invalid' /tmp/wrong-wrapper-storage
+          rm -rf "$wrapper_storage" /tmp/v10-wrapper-bin
 
           cp /tmp/production-special.env /tmp/production-unsupported.env
           printf '%s\n' 'UNSUPPORTED_PRODUCTION_KEY=must-fail' >> /tmp/production-unsupported.env
