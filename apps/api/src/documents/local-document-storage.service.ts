@@ -54,8 +54,12 @@ export class LocalDocumentStorage extends DocumentStorage {
 
   private async assertProductionStorageReady(): Promise<void> {
     try {
+      const deploymentId = process.env.STORAGE_DEPLOYMENT_ID;
+      if (!deploymentId) throw new Error('missing storage deployment identity');
       const sentinel = await readFile(path.join(this.root, '.construction-erp-storage-ready'), 'utf8');
-      if (sentinel.trim() !== 'construction-erp-production-storage-v1') throw new Error('invalid sentinel');
+      if (sentinel.trim() !== `construction-erp-production-storage-v1:${deploymentId}`) {
+        throw new Error('invalid sentinel');
+      }
     } catch {
       throw new ServiceUnavailableException({
         code: 'DOCUMENT_STORAGE_UNAVAILABLE',
