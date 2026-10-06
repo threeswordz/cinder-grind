@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ServiceUnavailableException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { mkdir, readFile, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -13,13 +18,18 @@ export class LocalDocumentStorage extends DocumentStorage {
   );
 
   async put(bytes: Buffer): Promise<StoredDocument> {
-    await mkdir(this.root, { recursive: true });
+    if (process.env.NODE_ENV === 'production') {
+      await this.assertProductionStorageReady();
+    } else {
+      await mkdir(this.root, { recursive: true });
+    }
     const storageKey = randomUUID();
     await writeFile(this.resolveKey(storageKey), bytes, { flag: 'wx' });
     return { storageProvider: 'LOCAL', storageKey };
   }
 
   async read(storageKey: string): Promise<Buffer> {
+    if (process.env.NODE_ENV === 'production') await this.assertProductionStorageReady();
     try {
       return await readFile(this.resolveKey(storageKey));
     } catch (error) {
@@ -34,10 +44,23 @@ export class LocalDocumentStorage extends DocumentStorage {
   }
 
   async remove(storageKey: string): Promise<void> {
+    if (process.env.NODE_ENV === 'production') await this.assertProductionStorageReady();
     try {
       await unlink(this.resolveKey(storageKey));
     } catch (error) {
       if (this.errorCode(error) !== 'ENOENT') throw error;
+    }
+  }
+
+  private async assertProductionStorageReady(): Promise<void> {
+    try {
+      const sentinel = await readFile(path.join(this.root, '.construction-erp-storage-ready'), 'utf8');
+      if (sentinel.trim() !== 'construction-erp-production-storage-v1') throw new Error('invalid sentinel');
+    } catch {
+      throw new ServiceUnavailableException({
+        code: 'DOCUMENT_STORAGE_UNAVAILABLE',
+        detail: 'Persistent document storage is unavailable.',
+      });
     }
   }
 
