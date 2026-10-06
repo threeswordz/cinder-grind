@@ -22,7 +22,9 @@ function boundedPositiveInteger(name, maximum) {
   }
 }
 
-if (required('NODE_ENV') !== 'production') fail('NODE_ENV must equal production');
+const nodeEnv = required('NODE_ENV');
+if (env.NODE_ENV !== nodeEnv) fail('NODE_ENV must not contain surrounding whitespace');
+if (nodeEnv !== 'production') fail('NODE_ENV must equal production');
 
 const deploymentMode = required('DEPLOYMENT_MODE');
 if (deploymentMode !== 'fresh' && deploymentMode !== 'upgrade') {
