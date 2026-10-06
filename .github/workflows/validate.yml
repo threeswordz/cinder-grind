@@ -333,6 +333,7 @@ jobs:
 
           rm -rf "$GITHUB_WORKSPACE/storage"
           mkdir -p "$GITHUB_WORKSPACE/storage"
+          : > "$GITHUB_WORKSPACE/storage/.gitkeep"
       - name: Bootstrap CI UAT administrator
         run: pnpm --filter @construction-erp/api bootstrap:admin
       - name: Rehearse Production-mode startup restart and unsafe-config failure
