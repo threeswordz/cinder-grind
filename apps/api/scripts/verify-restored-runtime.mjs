@@ -107,16 +107,33 @@ try {
     fail(`restored document download returned HTTP ${download.status}`);
   }
 
-  const downloadedBytes = Buffer.from(await download.arrayBuffer());
-  if (downloadedBytes.length !== downloadCandidate.fileSizeBytes) {
+  if (!download.body) {
+    fail('restored document download did not return a readable response body');
+  }
+
+  const downloadedHash = createHash('sha256');
+  let downloadedByteCount = 0;
+  const reader = download.body.getReader();
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    downloadedByteCount += value.byteLength;
+    if (downloadedByteCount > downloadCandidate.fileSizeBytes) {
+      fail(
+        `restored document download exceeded expected size: expected ${downloadCandidate.fileSizeBytes}, received more than ${downloadCandidate.fileSizeBytes}`,
+      );
+    }
+    downloadedHash.update(value);
+  }
+
+  if (downloadedByteCount !== downloadCandidate.fileSizeBytes) {
     fail(
-      `restored document download size mismatch: expected ${downloadCandidate.fileSizeBytes}, received ${downloadedBytes.length}`,
+      `restored document download size mismatch: expected ${downloadCandidate.fileSizeBytes}, received ${downloadedByteCount}`,
     );
   }
 
-  const downloadedChecksum = createHash('sha256')
-    .update(downloadedBytes)
-    .digest('hex');
+  const downloadedChecksum = downloadedHash.digest('hex');
   if (downloadedChecksum !== downloadCandidate.checksum) {
     fail('restored document download checksum does not match restored metadata');
   }
