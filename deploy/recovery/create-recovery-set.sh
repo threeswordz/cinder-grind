@@ -24,6 +24,12 @@ trap cleanup_recovery EXIT
 
 assert_source_storage_identity
 DATABASE_URL="$DATABASE_URL" DOCUMENT_STORAGE_ROOT="$STORAGE_ROOT" node apps/api/scripts/verify-restored-documents.mjs
+
+unsafe_storage_link="$(find "$STORAGE_ROOT" -type l -print -quit)"
+[[ -z "$unsafe_storage_link" ]] || fail "Documents storage contains a symbolic link and cannot form a self-contained recovery set: $unsafe_storage_link"
+unsafe_hardlink="$(find "$STORAGE_ROOT" -type f -links +1 -print -quit)"
+[[ -z "$unsafe_hardlink" ]] || fail "Documents storage contains a multiply-linked file and cannot form a self-contained recovery set: $unsafe_hardlink"
+
 prepare_native_postgres_auth "$DATABASE_URL" native_database_url source_pgpass_file
 
 mkdir -p "$RECOVERY_ROOT"
