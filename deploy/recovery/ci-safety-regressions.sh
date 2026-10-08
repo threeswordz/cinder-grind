@@ -101,6 +101,25 @@ if (pgpass !== '\\:\\:1:5432:recovery_db:recovery_user:ipv6-secret\n') {
 }
 NODE
 
+unix_socket_probe_url="$(SOURCE_DATABASE_URL="$source_url" node <<'NODE'
+const url = new URL(process.env.SOURCE_DATABASE_URL);
+url.searchParams.set('host', '/var/run/postgresql');
+process.stdout.write(url.toString());
+NODE
+)"
+prepare_native_auth "$unix_socket_probe_url" unix_socket_probe_native unix_socket_probe_pgpass
+node - "$unix_socket_probe_native" "$unix_socket_probe_pgpass" <<'NODE'
+const { readFileSync } = require('node:fs');
+const native = new URL(process.argv[2]);
+if (native.searchParams.get('host') !== '/var/run/postgresql') {
+  throw new Error('Unix-socket host was not preserved in the native PostgreSQL URL');
+}
+const pgpass = readFileSync(process.argv[3], 'utf8');
+if (!pgpass.startsWith('*:')) {
+  throw new Error(`PGPASSFILE Unix-socket host was not scoped through a wildcard entry: ${JSON.stringify(pgpass)}`);
+}
+NODE
+
 prepare_native_auth "$source_url" native_source_url source_pgpass
 
 document_storage_key="$(
