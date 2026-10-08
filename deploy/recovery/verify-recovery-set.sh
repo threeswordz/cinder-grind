@@ -9,11 +9,6 @@ if [[ -z "$set_dir" ]]; then
 fi
 
 node "$RECOVERY_DIR/manifest.mjs" verify "$set_dir"
-
-if tar --list --gzip --file="$set_dir/documents.tar.gz" \
-  | grep -Eq '(^/|(^|/)\.\.(/|$))'; then
-  echo "Recovery Documents archive contains an unsafe path." >&2
-  exit 1
-fi
+bash "$RECOVERY_DIR/verify-documents-archive.sh" "$set_dir/documents.tar.gz"
 
 echo "Recovery set archive paths verified."
