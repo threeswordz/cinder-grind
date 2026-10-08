@@ -52,7 +52,11 @@ try {
   }
   const username = authorityUser || queryUser;
 
-  const host = url.searchParams.get('host') || url.hostname;
+  const configuredHost = url.searchParams.get('host') || url.hostname;
+  const host =
+    configuredHost.startsWith('[') && configuredHost.endsWith(']')
+      ? configuredHost.slice(1, -1)
+      : configuredHost;
   const port = url.searchParams.get('port') || url.port || '5432';
   const databaseName = decode(url.pathname.replace(/^\//, ''), 'database name');
 
