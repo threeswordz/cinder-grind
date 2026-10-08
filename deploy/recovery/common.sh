@@ -18,6 +18,38 @@ require_env() {
   fi
 }
 
+declare -a RECOVERY_NATIVE_AUTH_FILES=()
+
+prepare_native_postgres_auth() {
+  local raw_url="$1"
+  local url_var="$2"
+  local pgpass_var="$3"
+  local pgpass_file
+  local native_url
+
+  pgpass_file="$(mktemp)"
+  chmod 600 "$pgpass_file"
+
+  if ! native_url="$(
+    POSTGRES_RAW_URL="$raw_url" PGPASSFILE="$pgpass_file"       node "$RECOVERY_DIR/postgres-url.mjs"
+  )"; then
+    rm -f "$pgpass_file"
+    fail "unable to prepare protected PostgreSQL native-tool authentication"
+  fi
+
+  RECOVERY_NATIVE_AUTH_FILES+=("$pgpass_file")
+  printf -v "$url_var" '%s' "$native_url"
+  printf -v "$pgpass_var" '%s' "$pgpass_file"
+}
+
+cleanup_native_postgres_auth() {
+  local auth_file
+  for auth_file in "${RECOVERY_NATIVE_AUTH_FILES[@]:-}"; do
+    [[ -n "$auth_file" ]] && rm -f "$auth_file"
+  done
+  RECOVERY_NATIVE_AUTH_FILES=()
+}
+
 if [[ ! -f "$ENV_FILE" ]]; then
   fail "missing Production environment file: $ENV_FILE"
 fi
