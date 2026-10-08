@@ -8,7 +8,11 @@ function fail(message) {
 
 let nativeUrl;
 try {
-  nativeUrl = normalizePostgresUrl(process.argv[2]);
+  const supplied = new URL(process.argv[2] ?? '');
+  if (supplied.password || supplied.searchParams.has('password')) {
+    fail('credential-bearing URL arguments are prohibited; use a protected PGPASSFILE');
+  }
+  nativeUrl = normalizePostgresUrl(supplied.toString());
 } catch (error) {
   fail(error instanceof Error ? error.message : String(error));
 }
