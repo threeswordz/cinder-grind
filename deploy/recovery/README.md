@@ -45,7 +45,7 @@ PRODUCTION_ENV_FILE=/etc/construction-erp/production.env \
 bash deploy/recovery/create-recovery-set.sh
 ```
 
-The command fails closed unless the source Documents sentinel matches `STORAGE_DEPLOYMENT_ID`. Database and Documents artifact SHA-256 values are computed with streaming reads so verification does not require loading large backup files into one Node.js buffer.
+The command fails closed unless the source Documents sentinel matches `STORAGE_DEPLOYMENT_ID`. Native PostgreSQL tooling receives a credential-free connection URL; password authentication is supplied through a temporary mode-`0600` `PGPASSFILE` that is removed on exit, so database passwords are not placed in `pg_dump` / `psql` / `pg_restore` process arguments. Database and Documents artifact SHA-256 values are computed with streaming reads so verification does not require loading large backup files into one Node.js buffer.
 
 A completed set contains:
 
@@ -65,7 +65,7 @@ bash deploy/recovery/verify-recovery-set.sh /srv/construction-erp-recovery/<reco
 
 ## 2. Isolated restore drill
 
-Never point the drill at the source Production database or live Documents path. Database identity is resolved through live PostgreSQL connections using the connected server address, server port and `current_database()`, so hostname/DNS aliases and Prisma `?schema=` changes cannot disguise the source database. Native PostgreSQL tools receive a normalized URL with Prisma-only query parameters removed. Before `pg_restore`, the target is also checked for database-wide emptiness rather than only the selected Prisma schema. `RESTORE_STORAGE_ROOT` is canonicalized before use and must be disjoint from live `STORAGE_ROOT` in both directions.
+Never point the drill at the source Production database or live Documents path. Database identity is resolved through live PostgreSQL connections using the connected server address, server port and `current_database()`, so hostname/DNS aliases and Prisma `?schema=` changes cannot disguise the source database. Native PostgreSQL tools receive a normalized, credential-free URL with Prisma-only query parameters removed; password authentication is provided only through the protected temporary `PGPASSFILE`. Before `pg_restore`, the target is also checked for database-wide emptiness rather than only the selected Prisma schema. `RESTORE_STORAGE_ROOT` is canonicalized before use and must be disjoint from live `STORAGE_ROOT` in both directions.
 
 Create an empty non-Production PostgreSQL database first, then run:
 
