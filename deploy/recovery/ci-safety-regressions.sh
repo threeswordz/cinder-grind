@@ -60,7 +60,13 @@ run_restore_failure_case() {
   local restore_storage="$2"
   local production_env="$3"
 
-  RESTORE_ENVIRONMENT=drill   RESTORE_DATABASE_URL="$restore_url"   RESTORE_STORAGE_ROOT="$restore_storage"   PRODUCTION_ENV_FILE="$production_env"     bash deploy/recovery/restore-drill.sh /tmp/v10-unsafe-empty-recovery-set
+  RESTORE_ENVIRONMENT=drill \
+  RESTORE_DATABASE_URL="$restore_url" \
+  RESTORE_STORAGE_ROOT="$restore_storage" \
+  RESTORE_RUNTIME_UID="$(id -u)" \
+  RESTORE_RUNTIME_GID="$(id -g)" \
+  PRODUCTION_ENV_FILE="$production_env" \
+    bash deploy/recovery/restore-drill.sh /tmp/v10-unsafe-empty-recovery-set
 }
 
 credential_probe_url='postgresql://recovery_user:argv-secret%3Awith%5Cchars@localhost:5432/recovery_db?schema=public&connection_limit=3'
@@ -86,6 +92,63 @@ expect_failure   /tmp/v10-identity-credential-argv.log   'credential-bearing URL
 expect_failure   /tmp/v10-emptydb-credential-argv.log   'credential-bearing URL arguments are prohibited'   node deploy/recovery/verify-empty-database.mjs "$credential_probe_url"
 
 prepare_native_auth "$source_url" native_source_url source_pgpass
+
+document_storage_key="$(
+  PGPASSFILE="$source_pgpass" \
+    psql "$native_source_url" --no-psqlrc --set=ON_ERROR_STOP=1 --tuples-only --no-align \
+      --command="SELECT storage_key FROM documents WHERE storage_provider = 'LOCAL' ORDER BY id LIMIT 1"
+)"
+if [[ -n "$document_storage_key" ]]; then
+  document_path="$source_storage/$document_storage_key"
+  [[ -f "$document_path" ]] || {
+    echo "Expected coherent LOCAL document fixture is missing: $document_path" >&2
+    exit 1
+  }
+  external_document=/tmp/v10-symlink-external-document
+  original_document=/tmp/v10-symlink-original-document
+  cp "$document_path" "$external_document"
+  mv "$document_path" "$original_document"
+  ln -s "$external_document" "$document_path"
+
+  run_document_verifier() {
+    DOCUMENT_STORAGE_ROOT="$source_storage" node apps/api/scripts/verify-restored-documents.mjs
+  }
+  expect_failure \
+    /tmp/v10-document-symlink.log \
+    'storage target must not be a symbolic link' \
+    run_document_verifier
+
+  rm -f "$document_path" "$external_document"
+  mv "$original_document" "$document_path"
+fi
+
+rm -rf /tmp/v10-archive-safety
+mkdir -p /tmp/v10-archive-safety/input
+printf '%s\n' unsafe > /tmp/v10-archive-safety/input/first
+for i in $(seq 1 2500); do
+  printf '%s\n' "$i" > "/tmp/v10-archive-safety/input/filler-$i"
+done
+tar --create --gzip --file=/tmp/v10-archive-safety/unsafe-path.tar.gz \
+  --transform='s|^first$|../escape|' \
+  --directory=/tmp/v10-archive-safety/input .
+# Rebuild with the unsafe member first so the historical grep -q + pipefail bug
+# would short-circuit tar before it consumed the large remainder.
+tar --create --gzip --file=/tmp/v10-archive-safety/unsafe-path.tar.gz \
+  --transform='s|^first$|../escape|' \
+  --directory=/tmp/v10-archive-safety/input first $(printf 'filler-%s ' $(seq 1 2500))
+expect_failure \
+  /tmp/v10-unsafe-archive-path.log \
+  'contains an unsafe path' \
+  bash deploy/recovery/verify-documents-archive.sh /tmp/v10-archive-safety/unsafe-path.tar.gz
+
+ln -s /tmp/v10-link-target /tmp/v10-archive-safety/input/link-entry
+tar --create --gzip --file=/tmp/v10-archive-safety/symlink.tar.gz \
+  --directory=/tmp/v10-archive-safety/input link-entry
+expect_failure \
+  /tmp/v10-unsafe-archive-link.log \
+  'contains a symbolic or hard link' \
+  bash deploy/recovery/verify-documents-archive.sh /tmp/v10-archive-safety/symlink.tar.gz
+rm -rf /tmp/v10-archive-safety
 
 prisma_parameter_url="$(SOURCE_DATABASE_URL="$source_url" node <<'NODE'
 const url = new URL(process.env.SOURCE_DATABASE_URL);
@@ -204,7 +267,19 @@ PGPASSFILE="$admin_pgpass" psql "$native_admin_url" --no-psqlrc --set=ON_ERROR_S
 PGPASSFILE="$admin_pgpass" psql "$native_admin_url" --no-psqlrc --set=ON_ERROR_STOP=1 --command='CREATE DATABASE v10_shared_restore'
 PGPASSFILE="$shared_restore_pgpass" psql "$native_shared_restore_url" --no-psqlrc --set=ON_ERROR_STOP=1 --command='CREATE SCHEMA occupied; CREATE TABLE occupied.guard (id integer)'
 
-expect_failure   /tmp/v10-nonempty-database-restore.log   'target database must be empty at database scope'   run_restore_failure_case "$shared_restore_url" /tmp/v10-nonempty-database-documents "$env_file"
+expect_failure \
+  /tmp/v10-nonempty-database-restore.log \
+  'target database must be empty at database scope' \
+  run_restore_failure_case "$shared_restore_url" /tmp/v10-nonempty-database-documents "$env_file"
+
+PGPASSFILE="$shared_restore_pgpass" \
+  psql "$native_shared_restore_url" --no-psqlrc --set=ON_ERROR_STOP=1 \
+    --command='DROP SCHEMA occupied CASCADE; SELECT lo_create(424242);'
+
+expect_failure \
+  /tmp/v10-large-object-database-restore.log \
+  'large-object:424242' \
+  run_restore_failure_case "$shared_restore_url" /tmp/v10-large-object-database-documents "$env_file"
 
 PGPASSFILE="$admin_pgpass" psql "$native_admin_url" --no-psqlrc --set=ON_ERROR_STOP=1 --command='DROP DATABASE v10_shared_restore WITH (FORCE)'
 
