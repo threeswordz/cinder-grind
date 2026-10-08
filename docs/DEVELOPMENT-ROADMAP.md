@@ -1,7 +1,7 @@
 # Construction ERP — Development Roadmap
 
 **Document Status:** Development Roadmap Baseline v0.1  
-**Current Phase:** V1.0-B Backup / Restore / Recovery — SEVENTH CODEX REMEDIATION GREEN / DOCUMENTATION RECONCILIATION + FINAL STABLE-HEAD RE-REVIEW GATE  
+**Current Phase:** V1.0-B Backup / Restore / Recovery — EIGHTH CODEX DOCUMENTATION REMEDIATION / FINAL STABLE-HEAD RE-REVIEW GATE  
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1  
@@ -807,7 +807,7 @@ Completed release: **V0.8 Management — COMPLETE AND ACCEPTED**.
 
 Current release: **V1.0 Production Readiness — ACTIVE**.
 
-Current stage: **V1.0-B BACKUP / RESTORE / RECOVERY — SEVENTH CODEX REMEDIATION GREEN / DOCUMENTATION RECONCILIATION + FINAL STABLE-HEAD RE-REVIEW GATE** under Issue #193 and ready PR #194. The seventh DEC-022 review of `3c257a890bdae60918efb3d98d4970e71354aec8` identified two additional genuine P2 recovery findings: restored-runtime evidence did not prove API-level document-byte access, and Documents archive verification did not reject FIFO/device-style special entries. Both are remediated on `d5398159f6407e42132a1d02ee48a7f381b5b16c` with authenticated API download/size/SHA-256 validation plus regular-file/directory-only archive and source-storage enforcement; push CI #3814 and PR CI #3815 PASS. After this documentation reconciliation passes exact-head CI, one final DEC-022 re-review is required before merge.
+Current stage: **V1.0-B BACKUP / RESTORE / RECOVERY — EIGHTH CODEX DOCUMENTATION REMEDIATION / FINAL STABLE-HEAD RE-REVIEW GATE** under Issue #193 and ready PR #194. The eighth DEC-022 review of exact documentation head `8b1c5992240013ccbbad24798e58679a398a72d0` identified one documentation P1: the documented isolated-restore command omitted mandatory `RESTORE_RUNTIME_UID` / `RESTORE_RUNTIME_GID` inputs. The runbook now derives those numeric values from the actual API runtime host account and explains the ownership requirement; no runtime behavior changed. Across eight review rounds, 18 genuine findings (6 P1 / 12 P2) have been identified and remediated. Exact-head CI, thread resolution and one final DEC-022 re-review are required before merge.
 
 Immediate sequence:
 
@@ -847,7 +847,7 @@ Immediate sequence:
 34. **V0.8-E is technically COMPLETE.** PR #182 final head `1092a3b197b346f71e55671b5235aec90b536b81` passed CI #3307/#3308 and clean final DEC-022 review; PR #182 squash-merged as `542b1df9ad866f9b557e06ec2ca366b6131e2f94`; post-merge main CI #3309 PASS; Issue #179 CLOSED / COMPLETED.
 35. Historical Stage-E review checkpoint: the Finance currency-drift P2 was fixed and regression-covered together with the analogous filtered Cost invariant; exact head `4473b942142a32ae11f9abd90df47854a5aad662` passed push CI #3247 and PR CI #3248 including authenticated live acceptance, and that review thread was resolved.
 36. Historical Stage-E review checkpoint: a later DEC-022 review found two additional P2s—non-actionable browser source drilldown and stale live status. Both were fixed; final head `1092a3b197b346f71e55671b5235aec90b536b81` ultimately passed CI #3307/#3308 and clean DEC-022 review before merge.
-37. **V0.8 release closure: COMPLETE + ACCEPTED.** Chat-assisted proxy UAT PASS with no blocking business defect identified → AC-V08-039 ACCEPTED → AC-V08-040 ACCEPTED → PR #185 merged → Issue #184 CLOSED / COMPLETED → final status reconciliation complete. **V1.0 entry gate is COMPLETE under DEC-026. V1.0-A is COMPLETE. V1.0-B Backup / Restore / Recovery is ACTIVE at the seventh-remediation documentation/final re-review gate.** Issue #193 remains open; PR #194 is ready. Across seven DEC-022 review rounds 17 genuine findings (5 P1 / 12 P2) were identified and remediated. Exact seventh-remediation head `d5398159f6407e42132a1d02ee48a7f381b5b16c` passed push CI #3814 and PR CI #3815, including the hardened recovery drill, and all 17 threads are resolved. The approved sequence is documentation-reconciled exact-head CI → one final DEC-022 re-review → squash merge → exact-main CI → Issue #193 closure → technical closure/handoff. V1.0-C must not begin before those V1.0-B gates complete.
+37. **V0.8 release closure: COMPLETE + ACCEPTED.** Chat-assisted proxy UAT PASS with no blocking business defect identified → AC-V08-039 ACCEPTED → AC-V08-040 ACCEPTED → PR #185 merged → Issue #184 CLOSED / COMPLETED → final status reconciliation complete. **V1.0 entry gate is COMPLETE under DEC-026. V1.0-A is COMPLETE. V1.0-B Backup / Restore / Recovery is ACTIVE at the eighth-review documentation-remediation/final re-review gate.** Issue #193 remains open; PR #194 is ready. Across eight DEC-022 review rounds 18 genuine findings (6 P1 / 12 P2) were identified and remediated; the eighth finding is documentation-only and corrects the operator restore command to supply the mandatory API runtime UID/GID. The seventh runtime-remediation head `d5398159f6407e42132a1d02ee48a7f381b5b16c` passed push CI #3814 and PR CI #3815, including the hardened recovery drill. The approved sequence is documentation-remediation exact-head CI → resolve the eighth P1 thread → one final DEC-022 re-review → squash merge → exact-main CI → Issue #193 closure → technical closure/handoff. V1.0-C must not begin before those V1.0-B gates complete.
 
 
 # 23. Baseline Decision
