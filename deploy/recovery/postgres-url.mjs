@@ -57,6 +57,7 @@ try {
     configuredHost.startsWith('[') && configuredHost.endsWith(']')
       ? configuredHost.slice(1, -1)
       : configuredHost;
+  const pgpassHost = host.startsWith('/') ? '*' : host;
   const port = url.searchParams.get('port') || url.port || '5432';
   const databaseName = decode(url.pathname.replace(/^\//, ''), 'database name');
 
@@ -69,7 +70,7 @@ try {
   url.searchParams.delete('passfile');
 
   if (password) {
-    const line = [host, port, databaseName, username, password]
+    const line = [pgpassHost, port, databaseName, username, password]
       .map((value) => escapePgpass(value))
       .join(':');
     appendFileSync(pgpassFile, `${line}\n`, { encoding: 'utf8', mode: 0o600 });
