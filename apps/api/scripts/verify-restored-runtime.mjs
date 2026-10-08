@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { PrismaClient } from '@prisma/client';
 
 function fail(message) {
@@ -53,15 +54,75 @@ try {
     fail('restored authenticated identity does not match the bootstrap administrator');
   }
 
+  const restoredAdmin = await prisma.user.findFirst({
+    where: { email: adminEmail.toLowerCase(), isActive: true },
+    select: { companyId: true },
+  });
+  if (!restoredAdmin) {
+    fail('restored bootstrap administrator was not found in the restored database');
+  }
+
   const restoredDocuments = await prisma.document.count({
-    where: { storageProvider: 'LOCAL' },
+    where: { companyId: restoredAdmin.companyId, storageProvider: 'LOCAL' },
   });
   if (restoredDocuments < 1) {
-    fail('restored database contains no LOCAL document metadata');
+    fail('restored database contains no LOCAL document metadata for the bootstrap administrator company');
+  }
+
+  const downloadCandidate = await prisma.document.findFirst({
+    where: {
+      companyId: restoredAdmin.companyId,
+      storageProvider: 'LOCAL',
+      checksum: { not: null },
+      links: { some: { entityType: 'PROJECT' } },
+    },
+    select: {
+      id: true,
+      checksum: true,
+      fileSizeBytes: true,
+      links: {
+        where: { entityType: 'PROJECT' },
+        select: { entityId: true },
+        take: 1,
+      },
+    },
+    orderBy: [{ uploadedAt: 'asc' }, { id: 'asc' }],
+  });
+  if (!downloadCandidate?.checksum || downloadCandidate.links.length < 1) {
+    fail('restored database contains no checksum-backed LOCAL document linked to a Project');
+  }
+
+  const projectId = downloadCandidate.links[0].entityId;
+  const download = await fetch(
+    baseUrl +
+      `/documents/projects/${encodeURIComponent(projectId)}/${encodeURIComponent(downloadCandidate.id)}/download`,
+    {
+      headers: {
+        Accept: '*/*',
+        Cookie: cookie,
+      },
+    },
+  );
+  if (download.status !== 200) {
+    fail(`restored document download returned HTTP ${download.status}`);
+  }
+
+  const downloadedBytes = Buffer.from(await download.arrayBuffer());
+  if (downloadedBytes.length !== downloadCandidate.fileSizeBytes) {
+    fail(
+      `restored document download size mismatch: expected ${downloadCandidate.fileSizeBytes}, received ${downloadedBytes.length}`,
+    );
+  }
+
+  const downloadedChecksum = createHash('sha256')
+    .update(downloadedBytes)
+    .digest('hex');
+  if (downloadedChecksum !== downloadCandidate.checksum) {
+    fail('restored document download checksum does not match restored metadata');
   }
 
   process.stdout.write(
-    `Restored runtime smoke PASSED: authenticated administrator and found ${restoredDocuments} restored LOCAL document record(s).\n`,
+    `Restored runtime smoke PASSED: authenticated administrator, found ${restoredDocuments} restored LOCAL document record(s), and downloaded/verified document ${downloadCandidate.id}.\n`,
   );
 } finally {
   await prisma.$disconnect();
