@@ -76,6 +76,11 @@ const sql = `
 
     SELECT 'publication', pubname
     FROM pg_publication
+
+    UNION ALL
+
+    SELECT 'large-object', oid::text
+    FROM pg_largeobject_metadata
   )
   SELECT kind || ':' || object_name
   FROM findings
