@@ -511,7 +511,7 @@ jobs:
           PRODUCTION_ENV_FILE=/tmp/v10-recovery-source.env \
           bash deploy/recovery/restore-drill.sh "$recovery_set"
 
-          test -z "$(find /tmp/v10-restored-documents \\( ! -uid "$(id -u)" -o ! -gid "$(id -g)" \\) -print -quit)"
+          test -z "$(find /tmp/v10-restored-documents \( ! -uid "$(id -u)" -o ! -gid "$(id -g)" \) -print -quit)"
 
           node - "$recovery_set/restore-drill-evidence.json" <<'NODE'
           const { readFileSync } = require('node:fs');
