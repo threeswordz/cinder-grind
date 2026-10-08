@@ -1,9 +1,24 @@
 import { spawnSync } from 'node:child_process';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { normalizePostgresUrl } from './postgres-url-lib.mjs';
 
 function fail(message) {
   process.stderr.write(`Restore database emptiness check failed: ${message}\n`);
   process.exit(1);
+}
+
+function run(command, args) {
+  const result = spawnSync(command, args, { encoding: 'utf8' });
+  if (result.error) {
+    fail(`unable to run ${command}: ${result.error.message}`);
+  }
+  if (result.status !== 0) {
+    const detail = (result.stderr || result.stdout || '').trim();
+    fail(detail || `${command} exited with status ${result.status}`);
+  }
+  return result.stdout;
 }
 
 let nativeUrl;
@@ -17,108 +32,74 @@ try {
   fail(error instanceof Error ? error.message : String(error));
 }
 
-const sql = `
-  WITH findings(kind, object_name) AS (
-    SELECT 'schema', nspname
-    FROM pg_namespace
-    WHERE nspname NOT IN ('pg_catalog', 'information_schema', 'public')
-      AND nspname NOT LIKE 'pg_toast%'
-      AND nspname NOT LIKE 'pg_temp_%'
+const tempRoot = mkdtempSync(join(tmpdir(), 'construction-erp-emptydb-'));
 
-    UNION ALL
+try {
+  const schemaArchive = join(tempRoot, 'schema.dump');
 
-    SELECT 'relation', c.relname
-    FROM pg_class c
-    JOIN pg_namespace n ON n.oid = c.relnamespace
-    WHERE n.nspname = 'public'
+  run('pg_dump', [
+    '--schema-only',
+    '--format=custom',
+    '--no-owner',
+    '--no-privileges',
+    '--no-comments',
+    '--file',
+    schemaArchive,
+    nativeUrl,
+  ]);
 
-    UNION ALL
+  const tocLines = run('pg_restore', ['--list', schemaArchive])
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line && !line.startsWith(';'));
 
-    SELECT 'routine', p.proname
-    FROM pg_proc p
-    JOIN pg_namespace n ON n.oid = p.pronamespace
-    WHERE n.nspname = 'public'
+  const allowedFreshDatabaseEntry = (line) => {
+    const match = line.match(/^\d+;\s+\d+\s+\d+\s+(.+)$/);
+    const entry = match?.[1] ?? '';
 
-    UNION ALL
+    return (
+      entry === 'ENCODING - ENCODING' ||
+      entry === 'STDSTRINGS - STDSTRINGS' ||
+      entry === 'SEARCHPATH - SEARCHPATH' ||
+      /^SCHEMA - public(?:\s+\S+)?$/.test(entry) ||
+      /^EXTENSION - plpgsql(?:\s+\S+)?$/.test(entry)
+    );
+  };
 
-    SELECT 'type', t.typname
-    FROM pg_type t
-    JOIN pg_namespace n ON n.oid = t.typnamespace
-    WHERE n.nspname = 'public'
-      AND t.typtype IN ('b', 'c', 'd', 'e', 'r', 'm')
+  const schemaFindings = tocLines
+    .filter((line) => !allowedFreshDatabaseEntry(line))
+    .slice(0, 20)
+    .map((line) => `schema-object:${line}`);
 
-    UNION ALL
-
-    SELECT 'collation', c.collname
-    FROM pg_collation c
-    JOIN pg_namespace n ON n.oid = c.collnamespace
-    WHERE n.nspname = 'public'
-
-    UNION ALL
-
-    SELECT 'conversion', c.conname
-    FROM pg_conversion c
-    JOIN pg_namespace n ON n.oid = c.connamespace
-    WHERE n.nspname = 'public'
-
-    UNION ALL
-
-    SELECT 'extension', extname
-    FROM pg_extension
-    WHERE extname <> 'plpgsql'
-
-    UNION ALL
-
-    SELECT 'event-trigger', evtname
-    FROM pg_event_trigger
-
-    UNION ALL
-
-    SELECT 'publication', pubname
-    FROM pg_publication
-
-    UNION ALL
-
-    SELECT 'large-object', oid::text
+  const largeObjectSql = `
+    SELECT 'large-object:' || oid::text
     FROM pg_largeobject_metadata
-  )
-  SELECT kind || ':' || object_name
-  FROM findings
-  ORDER BY kind, object_name
-  LIMIT 20
-`;
+    ORDER BY oid
+    LIMIT 20
+  `;
 
-const result = spawnSync(
-  'psql',
-  [
+  const largeObjectFindings = run('psql', [
     nativeUrl,
     '--no-psqlrc',
     '--set=ON_ERROR_STOP=1',
     '--tuples-only',
     '--no-align',
     '--command',
-    sql,
-  ],
-  { encoding: 'utf8' },
-);
+    largeObjectSql,
+  ])
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
 
-if (result.error) {
-  fail(`unable to run psql: ${result.error.message}`);
+  const findings = [...schemaFindings, ...largeObjectFindings].slice(0, 20);
+
+  if (findings.length > 0) {
+    fail(
+      `target database must be empty at database scope; found existing user object(s): ${findings.join(', ')}`,
+    );
+  }
+
+  process.stdout.write('Restore target database is empty at database scope.\n');
+} finally {
+  rmSync(tempRoot, { recursive: true, force: true });
 }
-if (result.status !== 0) {
-  const detail = (result.stderr || result.stdout || '').trim();
-  fail(detail || `psql exited with status ${result.status}`);
-}
-
-const findings = result.stdout
-  .split(/\r?\n/)
-  .map((line) => line.trim())
-  .filter(Boolean);
-
-if (findings.length > 0) {
-  fail(
-    `target database must be empty at database scope; found existing user object(s): ${findings.join(', ')}`,
-  );
-}
-
-process.stdout.write('Restore target database is empty at database scope.\n');
