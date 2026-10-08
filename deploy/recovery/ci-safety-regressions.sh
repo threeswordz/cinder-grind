@@ -91,6 +91,16 @@ expect_failure   /tmp/v10-identity-credential-argv.log   'credential-bearing URL
 
 expect_failure   /tmp/v10-emptydb-credential-argv.log   'credential-bearing URL arguments are prohibited'   node deploy/recovery/verify-empty-database.mjs "$credential_probe_url"
 
+ipv6_credential_probe_url='postgresql://recovery_user:ipv6-secret@[::1]:5432/recovery_db'
+prepare_native_auth "$ipv6_credential_probe_url" ipv6_credential_probe_native ipv6_credential_probe_pgpass
+node - "$ipv6_credential_probe_pgpass" <<'NODE'
+const { readFileSync } = require('node:fs');
+const pgpass = readFileSync(process.argv[2], 'utf8');
+if (pgpass !== '\\:\\:1:5432:recovery_db:recovery_user:ipv6-secret\n') {
+  throw new Error(`PGPASSFILE IPv6 host was not normalized correctly: ${JSON.stringify(pgpass)}`);
+}
+NODE
+
 prepare_native_auth "$source_url" native_source_url source_pgpass
 
 document_storage_key="$(
@@ -280,6 +290,15 @@ expect_failure \
   /tmp/v10-large-object-database-restore.log \
   'large-object:424242' \
   run_restore_failure_case "$shared_restore_url" /tmp/v10-large-object-database-documents "$env_file"
+
+PGPASSFILE="$shared_restore_pgpass" \
+  psql "$native_shared_restore_url" --no-psqlrc --set=ON_ERROR_STOP=1 \
+    --command='SELECT lo_unlink(424242); CREATE TEXT SEARCH CONFIGURATION public.restore_probe (COPY = pg_catalog.english);'
+
+expect_failure \
+  /tmp/v10-text-search-config-database-restore.log \
+  'target database must be empty at database scope' \
+  run_restore_failure_case "$shared_restore_url" /tmp/v10-text-search-config-database-documents "$env_file"
 
 PGPASSFILE="$admin_pgpass" psql "$native_admin_url" --no-psqlrc --set=ON_ERROR_STOP=1 --command='DROP DATABASE v10_shared_restore WITH (FORCE)'
 
