@@ -158,6 +158,16 @@ expect_failure \
   /tmp/v10-unsafe-archive-link.log \
   'contains a symbolic or hard link' \
   bash deploy/recovery/verify-documents-archive.sh /tmp/v10-archive-safety/symlink.tar.gz
+
+rm -f /tmp/v10-archive-safety/input/link-entry
+mkfifo /tmp/v10-archive-safety/input/fifo-entry
+tar --create --gzip --file=/tmp/v10-archive-safety/fifo.tar.gz \
+  --directory=/tmp/v10-archive-safety/input fifo-entry
+expect_failure \
+  /tmp/v10-unsafe-archive-fifo.log \
+  'unsupported special entry type' \
+  bash deploy/recovery/verify-documents-archive.sh /tmp/v10-archive-safety/fifo.tar.gz
+
 rm -rf /tmp/v10-archive-safety
 
 prisma_parameter_url="$(SOURCE_DATABASE_URL="$source_url" node <<'NODE'
