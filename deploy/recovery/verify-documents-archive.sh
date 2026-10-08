@@ -31,5 +31,9 @@ if grep -Eq '^[lh]' "$verbose_file"; then
   echo "Recovery Documents archive contains a symbolic or hard link." >&2
   exit 1
 fi
+if grep -Ev '^[-d]' "$verbose_file" >/dev/null; then
+  echo "Recovery Documents archive contains an unsupported special entry type; only regular files and directories are allowed." >&2
+  exit 1
+fi
 
 echo "Recovery Documents archive paths and entry types verified."
