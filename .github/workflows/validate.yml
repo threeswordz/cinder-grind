@@ -456,15 +456,30 @@ jobs:
           mkdir -p /tmp/v10-pg-bin
           cat > /tmp/v10-pg-bin/pg_dump <<'PG_DUMP'
           #!/usr/bin/env bash
-          exec docker run --rm --network host postgres:17.11-alpine pg_dump "$@"
+          set -euo pipefail
+          docker_args=(--rm --network host)
+          if [[ -n "${PGPASSFILE:-}" ]]; then
+            docker_args+=(--volume "$PGPASSFILE:/tmp/construction-erp-pgpass:ro" --env PGPASSFILE=/tmp/construction-erp-pgpass)
+          fi
+          exec docker run "${docker_args[@]}" postgres:17.11-alpine pg_dump "$@"
           PG_DUMP
           cat > /tmp/v10-pg-bin/pg_restore <<'PG_RESTORE'
           #!/usr/bin/env bash
-          exec docker run --rm -i --network host postgres:17.11-alpine pg_restore "$@"
+          set -euo pipefail
+          docker_args=(--rm -i --network host)
+          if [[ -n "${PGPASSFILE:-}" ]]; then
+            docker_args+=(--volume "$PGPASSFILE:/tmp/construction-erp-pgpass:ro" --env PGPASSFILE=/tmp/construction-erp-pgpass)
+          fi
+          exec docker run "${docker_args[@]}" postgres:17.11-alpine pg_restore "$@"
           PG_RESTORE
           cat > /tmp/v10-pg-bin/psql <<'PSQL'
           #!/usr/bin/env bash
-          exec docker run --rm --network host postgres:17.11-alpine psql "$@"
+          set -euo pipefail
+          docker_args=(--rm --network host)
+          if [[ -n "${PGPASSFILE:-}" ]]; then
+            docker_args+=(--volume "$PGPASSFILE:/tmp/construction-erp-pgpass:ro" --env PGPASSFILE=/tmp/construction-erp-pgpass)
+          fi
+          exec docker run "${docker_args[@]}" postgres:17.11-alpine psql "$@"
           PSQL
           chmod +x /tmp/v10-pg-bin/pg_dump /tmp/v10-pg-bin/pg_restore /tmp/v10-pg-bin/psql
           export PATH="/tmp/v10-pg-bin:$PATH"
@@ -482,7 +497,11 @@ jobs:
 
           admin_url='postgresql://construction_erp:construction_erp_dev_only@localhost:5432/postgres'
           restore_url='postgresql://construction_erp:construction_erp_dev_only@localhost:5432/construction_erp_restore?schema=public'
-          psql "$admin_url" --no-psqlrc --set=ON_ERROR_STOP=1 --command='CREATE DATABASE construction_erp_restore'
+          admin_pgpass="$(mktemp)"
+          chmod 600 "$admin_pgpass"
+          native_admin_url="$(POSTGRES_RAW_URL="$admin_url" PGPASSFILE="$admin_pgpass" node deploy/recovery/postgres-url.mjs)"
+          PGPASSFILE="$admin_pgpass" psql "$native_admin_url" --no-psqlrc --set=ON_ERROR_STOP=1 --command='CREATE DATABASE construction_erp_restore'
+          rm -f "$admin_pgpass"
 
           RESTORE_ENVIRONMENT=drill \
           RESTORE_DATABASE_URL="$restore_url" \
