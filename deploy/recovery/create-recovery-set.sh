@@ -29,6 +29,8 @@ unsafe_storage_link="$(find "$STORAGE_ROOT" -type l -print -quit)"
 [[ -z "$unsafe_storage_link" ]] || fail "Documents storage contains a symbolic link and cannot form a self-contained recovery set: $unsafe_storage_link"
 unsafe_hardlink="$(find "$STORAGE_ROOT" -type f -links +1 -print -quit)"
 [[ -z "$unsafe_hardlink" ]] || fail "Documents storage contains a multiply-linked file and cannot form a self-contained recovery set: $unsafe_hardlink"
+unsafe_special="$(find "$STORAGE_ROOT" -mindepth 1 ! -type f ! -type d -print -quit)"
+[[ -z "$unsafe_special" ]] || fail "Documents storage contains an unsupported special entry; only regular files and directories are allowed: $unsafe_special"
 
 prepare_native_postgres_auth "$DATABASE_URL" native_database_url source_pgpass_file
 
