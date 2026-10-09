@@ -5,7 +5,8 @@
 # Construction ERP — Database ERD
 
 **Document Status:** Database Baseline v0.1  
-**Current Phase:** V1.0-B Backup / Restore / Recovery — NEXT / AUTHORIZED  
+**Current Phase:** V1.0-C Security Hardening — NEXT / NOT STARTED  
+**V1.0-B technical-closure note — 2026-10-09:** Backup / Restore / Recovery is COMPLETE. The stage introduced recovery tooling and evidence only; no V1.0-B business-schema migration or destructive reverse-migration path was introduced. PR #194 merged as `3d7e6e05cafe6ed0407ce8ec2c5aca89ea196c7e`; exact-main CI #3838 PASS; Issue #193 CLOSED / COMPLETED. V1.0-C Security Hardening is NEXT / NOT STARTED.
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database:** PostgreSQL  
