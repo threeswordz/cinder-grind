@@ -1,7 +1,7 @@
 # Construction ERP — Development Roadmap
 
 **Document Status:** Development Roadmap Baseline v0.1  
-**Current Phase:** V1.0-B Backup / Restore / Recovery — NINTH CODEX REMEDIATION GREEN / FINAL STABLE-HEAD VALIDATION + RE-REVIEW GATE  
+**Current Phase:** V1.0-B Backup / Restore / Recovery — COMPLETE; V1.0-C Security Hardening — NEXT / NOT STARTED  
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1  
@@ -807,7 +807,7 @@ Completed release: **V0.8 Management — COMPLETE AND ACCEPTED**.
 
 Current release: **V1.0 Production Readiness — ACTIVE**.
 
-Current stage: **V1.0-B BACKUP / RESTORE / RECOVERY — NINTH CODEX REMEDIATION GREEN / FINAL STABLE-HEAD VALIDATION + RE-REVIEW GATE** under Issue #193 and ready PR #194. The ninth DEC-022 review of exact head `4f47cc4a7d77d63dec76a26a3cc5de59f70edb26` identified one P1 and one P2: Unix-domain socket PostgreSQL URLs could miss PGPASSFILE matching, and the restored-runtime document smoke buffered the complete response. Both are remediated on `ae3417b9d78a75269b1044e252a21024c216e96b`; push CI #3830 and PR CI #3831 PASS, including the full recovery drill. Across nine review rounds, all 20 genuine findings (7 P1 / 13 P2) are remediated. Final documentation/status reconciliation, exact-head CI and one DEC-022 re-review remain before merge.
+Current stage: **V1.0-B BACKUP / RESTORE / RECOVERY — COMPLETE. V1.0-C SECURITY HARDENING — NEXT / NOT STARTED.** Final V1.0-B exact head `ce085b910aa65d00a2786be97f9ca0947e65fe80` passed push CI #3836 and PR CI #3837; final DEC-022 review reported no major issues. PR #194 squash-merged as `3d7e6e05cafe6ed0407ce8ec2c5aca89ea196c7e`; exact-main CI #3838 PASS; Issue #193 CLOSED / COMPLETED. Across nine review rounds all 20 genuine findings (7 P1 / 13 P2) were remediated and all threads resolved. V1.0-C implementation has not started.
 
 Immediate sequence:
 
@@ -847,7 +847,7 @@ Immediate sequence:
 34. **V0.8-E is technically COMPLETE.** PR #182 final head `1092a3b197b346f71e55671b5235aec90b536b81` passed CI #3307/#3308 and clean final DEC-022 review; PR #182 squash-merged as `542b1df9ad866f9b557e06ec2ca366b6131e2f94`; post-merge main CI #3309 PASS; Issue #179 CLOSED / COMPLETED.
 35. Historical Stage-E review checkpoint: the Finance currency-drift P2 was fixed and regression-covered together with the analogous filtered Cost invariant; exact head `4473b942142a32ae11f9abd90df47854a5aad662` passed push CI #3247 and PR CI #3248 including authenticated live acceptance, and that review thread was resolved.
 36. Historical Stage-E review checkpoint: a later DEC-022 review found two additional P2s—non-actionable browser source drilldown and stale live status. Both were fixed; final head `1092a3b197b346f71e55671b5235aec90b536b81` ultimately passed CI #3307/#3308 and clean DEC-022 review before merge.
-37. **V0.8 release closure: COMPLETE + ACCEPTED.** Chat-assisted proxy UAT PASS with no blocking business defect identified → AC-V08-039 ACCEPTED → AC-V08-040 ACCEPTED → PR #185 merged → Issue #184 CLOSED / COMPLETED → final status reconciliation complete. **V1.0 entry gate is COMPLETE under DEC-026. V1.0-A is COMPLETE. V1.0-B Backup / Restore / Recovery is ACTIVE at the final stable-head validation/re-review gate.** Issue #193 remains open; PR #194 is ready. Across nine DEC-022 review rounds all 20 genuine findings (7 P1 / 13 P2) are remediated and all threads are resolved. The ninth remediation head `ae3417b9d78a75269b1044e252a21024c216e96b` passed push CI #3830 and PR CI #3831, including the full recovery drill. The approved sequence is final documentation/status reconciliation → exact-head push + PR CI → one final DEC-022 re-review → squash merge → exact-main CI → Issue #193 closure → technical closure/handoff. V1.0-C must not begin before those V1.0-B gates complete.
+37. **V0.8 release closure: COMPLETE + ACCEPTED.** Chat-assisted proxy UAT PASS with no blocking business defect identified → AC-V08-039 ACCEPTED → AC-V08-040 ACCEPTED → PR #185 merged → Issue #184 CLOSED / COMPLETED → final status reconciliation complete. **V1.0 entry gate is COMPLETE under DEC-026. V1.0-A is COMPLETE. V1.0-B Backup / Restore / Recovery is COMPLETE. V1.0-C Security Hardening is NEXT / NOT STARTED.** Final V1.0-B head `ce085b910aa65d00a2786be97f9ca0947e65fe80` passed push CI #3836 and PR CI #3837 with clean DEC-022 review; PR #194 squash-merged as `3d7e6e05cafe6ed0407ce8ec2c5aca89ea196c7e`; exact-main CI #3838 PASS; Issue #193 CLOSED / COMPLETED. Across nine DEC-022 review rounds all 20 genuine findings (7 P1 / 13 P2) were remediated and all threads resolved. The next authorized action after this closure/handoff documentation merge is V1.0-C pre-flight from the resulting green `main`; implementation must not begin before that handoff.
 
 
 # 23. Baseline Decision
