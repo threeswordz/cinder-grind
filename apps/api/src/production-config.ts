@@ -126,6 +126,14 @@ export function validateProductionConfig(env: Environment): void {
   if (!path.isAbsolute(storageRoot)) {
     throw new Error('STORAGE_ROOT must be an absolute path when NODE_ENV=production.');
   }
+  if (
+    env.DOCUMENT_UPLOAD_TEMP_ROOT !== undefined &&
+    !path.isAbsolute(env.DOCUMENT_UPLOAD_TEMP_ROOT.trim())
+  ) {
+    throw new Error(
+      'DOCUMENT_UPLOAD_TEMP_ROOT must be an absolute path when configured.',
+    );
+  }
   const storageDeploymentId = required(env, 'STORAGE_DEPLOYMENT_ID');
   if (!/^[A-Za-z0-9][A-Za-z0-9._-]{2,63}$/.test(storageDeploymentId)) {
     throw new Error('STORAGE_DEPLOYMENT_ID must be 3-64 characters using letters, numbers, dot, underscore or hyphen.');

@@ -111,6 +111,13 @@ if (db.protocol !== 'postgresql:' && db.protocol !== 'postgres:') fail('DATABASE
 const storageRoot = required('STORAGE_ROOT');
 if (!path.isAbsolute(storageRoot)) fail('STORAGE_ROOT must be an absolute path');
 
+if (
+  env.DOCUMENT_UPLOAD_TEMP_ROOT !== undefined &&
+  !path.isAbsolute(env.DOCUMENT_UPLOAD_TEMP_ROOT.trim())
+) {
+  fail('DOCUMENT_UPLOAD_TEMP_ROOT must be an absolute path when configured');
+}
+
 const storageDeploymentId = required('STORAGE_DEPLOYMENT_ID');
 if (!/^[A-Za-z0-9][A-Za-z0-9._-]{2,63}$/.test(storageDeploymentId)) {
   fail('STORAGE_DEPLOYMENT_ID must be 3-64 characters using letters, numbers, dot, underscore or hyphen');

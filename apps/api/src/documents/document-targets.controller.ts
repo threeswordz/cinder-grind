@@ -24,10 +24,12 @@ import {
   documentString,
   documentUuid,
 } from './document-validation';
+import { UploadedDocumentFile } from './document-policy.service';
 import {
-  documentMaxBytes,
-  UploadedDocumentFile,
-} from './document-policy.service';
+  documentUploadLimits,
+  documentUploadStorage,
+} from './document-upload-storage';
+
 import {
   DocumentTargetsService,
   DocumentTargetType,
@@ -114,7 +116,8 @@ export class DocumentTargetsController {
   @RequirePermissions('documents.document.upload', 'documents.document.link')
   @UseInterceptors(
     FileInterceptor('file', {
-      limits: { fileSize: documentMaxBytes() },
+      limits: documentUploadLimits(),
+      storage: documentUploadStorage(),
     }),
   )
   async upload(
