@@ -1,12 +1,12 @@
 # Construction ERP — Master Requirements Register
 
 **Document Status:** Requirements Baseline v0.1  
-**Current Phase:** V1.0-B Backup / Restore / Recovery — NEXT / AUTHORIZED  
+**Current Phase:** V1.0-C Security Hardening — NEXT / NOT STARTED  
 **Architecture Baseline:** v0.1  
 **Source:** ERP-MASTER-BLUEPRINT.md  
 **Last Structural Review:** V0.8-E DEC-022 source-drilldown/live-state remediation — 2026-10-05
 
-**Live delivery note:** V0.1–V0.7 are complete and V0.7 Cost Control is accepted. V0.8-A through V0.8-E are technically complete. PR #182 final head `1092a3b197b346f71e55671b5235aec90b536b81` passed CI #3307/#3308 and clean final DEC-022 review, squash-merged as `542b1df9ad866f9b557e06ec2ca366b6131e2f94`, post-merge main CI #3309 passed, and Issue #179 closed completed. Chat-assisted proxy UAT is PASS with no blocking business defect identified. AC-V08-039 human UAT confirmation and AC-V08-040 explicit release acceptance were accepted by the Product / Business Owner on 2026-10-05. PR #185 merged as `920d592e7ffe01cb83b106c215fa20adb959cb95`; post-merge main CI #3394 passed; Issue #184 closed completed. V0.8 Management is COMPLETE + ACCEPTED. V1.0 Production / production-readiness is NEXT and requires its own approved entry decision before implementation. Requirement approval/status remains governed by the approved baselines and Change Control; this note does not rewrite historical requirement approval.
+**Live delivery note:** V0.1–V0.8 are complete and accepted at their applicable release gates. V1.0 entry is complete under DEC-026; V1.0-A is COMPLETE; V1.0-B Backup / Restore / Recovery is COMPLETE after final exact-head CI #3836/#3837, clean DEC-022 review, PR #194 squash merge as `3d7e6e05cafe6ed0407ce8ec2c5aca89ea196c7e`, exact-main CI #3838 PASS and Issue #193 closure. V1.0-C Security Hardening is NEXT / NOT STARTED. Requirement approval/status remains governed by the approved baselines and Change Control; this live note does not rewrite historical requirement approval.
 
 ---
 

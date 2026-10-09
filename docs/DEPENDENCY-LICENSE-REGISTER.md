@@ -1,12 +1,13 @@
 # Construction ERP — Dependency License Register
 
 **Document Status:** Dependency License Baseline v0.1  
-**Current Phase:** V1.0-B Backup / Restore / Recovery — NEXT / AUTHORIZED  
+**Current Phase:** V1.0-C Security Hardening — NEXT / NOT STARTED  
+**V1.0-B technical-closure note — 2026-10-09:** Backup / Restore / Recovery is COMPLETE and remains compliant with DEC-008 open-source / zero-cost-first. No mandatory paid backup, storage or recovery dependency was introduced. PR #194 merged as `3d7e6e05cafe6ed0407ce8ec2c5aca89ea196c7e`; exact-main CI #3838 PASS; Issue #193 CLOSED / COMPLETED. V1.0-C Security Hardening is NEXT / NOT STARTED.
 **Policy:** Open-Source First  
 **License Verification Date:** 2026-09-26  
 **Version Status:** V0.1-A direct package versions selected and pinned in package manifests.
 
-**V0.8 technical-closure dependency note — 2026-10-05:** V0.8-E is technically complete. PR #182 final head `1092a3b197b346f71e55671b5235aec90b536b81` passed CI #3307/#3308 and clean final DEC-022 review, squash-merged as `542b1df9ad866f9b557e06ec2ca366b6131e2f94`, and post-merge main CI #3309 passed. The release introduced no mandatory paid runtime/reporting dependency; DEC-008 remains satisfied. Proxy UAT is PASS; AC-V08-039/040 were accepted by the Product / Business Owner on 2026-10-05. PR #185 merged as `920d592e7ffe01cb83b106c215fa20adb959cb95`; post-merge main CI #3394 PASS; Issue #184 is CLOSED / COMPLETED. V0.8 Management is COMPLETE + ACCEPTED. V1.0 Production / production-readiness is NEXT and requires a separate approved entry decision before implementation.
+**V0.8 technical-closure dependency note — 2026-10-05:** V0.8-E is technically complete. PR #182 final head `1092a3b197b346f71e55671b5235aec90b536b81` passed CI #3307/#3308 and clean final DEC-022 review, squash-merged as `542b1df9ad866f9b557e06ec2ca366b6131e2f94`, and post-merge main CI #3309 passed. The release introduced no mandatory paid runtime/reporting dependency; DEC-008 remains satisfied. Proxy UAT is PASS; AC-V08-039/040 were accepted by the Product / Business Owner on 2026-10-05. PR #185 merged as `920d592e7ffe01cb83b106c215fa20adb959cb95`; post-merge main CI #3394 PASS; Issue #184 is CLOSED / COMPLETED. V0.8 Management is COMPLETE + ACCEPTED. At that 2026-10-05 checkpoint, V1.0 Production / production-readiness was NEXT and required a separate approved entry decision before implementation.
 
 ---
 

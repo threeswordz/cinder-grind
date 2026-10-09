@@ -1,11 +1,12 @@
-**V0.8 technical-closure reconciliation — 2026-10-05:** V0.8-A through V0.8-E are technically complete. PR #182 final head `1092a3b197b346f71e55671b5235aec90b536b81` passed CI #3307/#3308 and clean final DEC-022 review, squash-merged as `542b1df9ad866f9b557e06ec2ca366b6131e2f94`, and post-merge main CI #3309 passed. Stage E remains a derived read/composition layer over canonical source modules with no added schema/migration, editable KPI/report ledger, data warehouse, OLAP store, FX engine or synthetic allocation. Proxy UAT is PASS; AC-V08-039/040 were accepted by the Product / Business Owner on 2026-10-05. PR #185 merged as `920d592e7ffe01cb83b106c215fa20adb959cb95`; post-merge main CI #3394 PASS; Issue #184 is CLOSED / COMPLETED. V0.8 Management is COMPLETE + ACCEPTED. V1.0 Production / production-readiness is NEXT and requires a separate approved entry decision before implementation.
+**V0.8 technical-closure reconciliation — 2026-10-05:** V0.8-A through V0.8-E are technically complete. PR #182 final head `1092a3b197b346f71e55671b5235aec90b536b81` passed CI #3307/#3308 and clean final DEC-022 review, squash-merged as `542b1df9ad866f9b557e06ec2ca366b6131e2f94`, and post-merge main CI #3309 passed. Stage E remains a derived read/composition layer over canonical source modules with no added schema/migration, editable KPI/report ledger, data warehouse, OLAP store, FX engine or synthetic allocation. Proxy UAT is PASS; AC-V08-039/040 were accepted by the Product / Business Owner on 2026-10-05. PR #185 merged as `920d592e7ffe01cb83b106c215fa20adb959cb95`; post-merge main CI #3394 PASS; Issue #184 is CLOSED / COMPLETED. V0.8 Management is COMPLETE + ACCEPTED. At that 2026-10-05 checkpoint, V1.0 Production / production-readiness was NEXT and required a separate approved entry decision before implementation.
 
 **V0.7 implementation reconciliation — 2026-10-04:** `direct_cost_postings`, `cost_forecasts` / `cost_forecast_lines` and `project_variations` are implemented through forward-only migrations with retained approval/history integrity. Stage E reporting remains a derived read model over canonical source modules and these Cost Control-owned mutation entities; it does not add an editable report ledger.
 
 # Construction ERP — Database ERD
 
 **Document Status:** Database Baseline v0.1  
-**Current Phase:** V1.0-B Backup / Restore / Recovery — NEXT / AUTHORIZED  
+**Current Phase:** V1.0-C Security Hardening — NEXT / NOT STARTED  
+**V1.0-B technical-closure note — 2026-10-09:** Backup / Restore / Recovery is COMPLETE. The stage introduced recovery tooling and evidence only; no V1.0-B business-schema migration or destructive reverse-migration path was introduced. PR #194 merged as `3d7e6e05cafe6ed0407ce8ec2c5aca89ea196c7e`; exact-main CI #3838 PASS; Issue #193 CLOSED / COMPLETED. V1.0-C Security Hardening is NEXT / NOT STARTED.
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database:** PostgreSQL  
