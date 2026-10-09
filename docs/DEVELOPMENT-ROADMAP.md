@@ -1,7 +1,7 @@
 # Construction ERP — Development Roadmap
 
 **Document Status:** Development Roadmap Baseline v0.1  
-**Current Phase:** V1.0-C Security Hardening — PRE-FLIGHT UNDER VALIDATION / IMPLEMENTATION NOT STARTED  
+**Current Phase:** V1.0-C Security Hardening — ACTIVE  
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1  
@@ -807,7 +807,7 @@ Completed release: **V0.8 Management — COMPLETE AND ACCEPTED**.
 
 Current release: **V1.0 Production Readiness — ACTIVE**.
 
-Current stage: **V1.0-C SECURITY HARDENING — PRE-FLIGHT UNDER VALIDATION / IMPLEMENTATION NOT STARTED.** V1.0-B closure/handoff PR #195 merged as `60eeae6b641c23a149e6c033784c5439d72cb7a1`; exact-main CI #3882 PASS. Issue #196 is OPEN and documentation-only pre-flight PR #197 is OPEN from that exact green main. The pre-flight binds AC-V10-017–026 and approved security rules to the existing implementation inventory and identified hardening gaps. No V1.0-C application/schema implementation has started.
+Current stage: **V1.0-C SECURITY HARDENING — ACTIVE.** Pre-flight PR #197 squash-merged as `8998b406006b2d31b25e3dec4cd2a69c7bcb5312`; exact-main CI #3901 PASS. Issue #196 remains OPEN and implementation branch `v1.0-c-security-hardening` is ACTIVE from that exact green main. AC-V10-017–026 and approved security rules are binding; implementation PR/Codex review are deferred until the stable merge candidate under DEC-022.
 
 Immediate sequence:
 
