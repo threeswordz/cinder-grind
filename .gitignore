@@ -44,6 +44,10 @@ vite.config.ts.timestamp-*
 /storage/*
 !/storage/.gitkeep
 
+# Local backup / recovery artifacts
+/backups/
+/recovery-artifacts/
+
 # OS / editor
 .DS_Store
 Thumbs.db
