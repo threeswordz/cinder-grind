@@ -17,8 +17,8 @@
 # Construction ERP — Testing & UAT Approach
 
 **Document Status:** Testing & UAT Baseline v0.1  
-**Current Phase:** V1.0-C Security Hardening — PRE-FLIGHT UNDER VALIDATION / IMPLEMENTATION NOT STARTED  
-**V1.0-B technical-closure note — 2026-10-09:** Backup / Restore / Recovery is COMPLETE. Final exact-head push CI #3836 and PR CI #3837 passed; final DEC-022 review reported no major issues; PR #194 merged as `3d7e6e05cafe6ed0407ce8ec2c5aca89ea196c7e`; exact-main CI #3838 passed including full workspace regression, authenticated live acceptance and the paired recovery/isolated restore drill; Issue #193 CLOSED / COMPLETED. V1.0-C Security Hardening is PRE-FLIGHT UNDER VALIDATION / IMPLEMENTATION NOT STARTED under Issue #196 / PR #197; application/schema implementation is not authorized until PR #197 passes exact-head CI and DEC-022 review, merges, and the resulting exact-main CI is green.
+**Current Phase:** V1.0-C Security Hardening — UNDER VALIDATION / STABLE MERGE CANDIDATE  
+**V1.0-B technical-closure note — 2026-10-09:** Backup / Restore / Recovery is COMPLETE. Final exact-head push CI #3836 and PR CI #3837 passed; final DEC-022 review reported no major issues; PR #194 merged as `3d7e6e05cafe6ed0407ce8ec2c5aca89ea196c7e`; exact-main CI #3838 passed including full workspace regression, authenticated live acceptance and the paired recovery/isolated restore drill; Issue #193 CLOSED / COMPLETED. V1.0-C Security Hardening is UNDER VALIDATION / STABLE MERGE CANDIDATE under Issue #196 / PR #198. AC-V10-017–026 implementation is complete; runtime/test head `eef815faf22bba165c625e4c919b5f08360a894e` passed CI #3910. Merge remains blocked on final documentation-reconciled exact-head push + PR CI and DEC-022 stable-head review.
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1  
