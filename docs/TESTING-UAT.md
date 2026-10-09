@@ -17,7 +17,8 @@
 # Construction ERP — Testing & UAT Approach
 
 **Document Status:** Testing & UAT Baseline v0.1  
-**Current Phase:** V1.0-B Backup / Restore / Recovery — NEXT / AUTHORIZED  
+**Current Phase:** V1.0-C Security Hardening — NEXT / NOT STARTED  
+**V1.0-B technical-closure note — 2026-10-09:** Backup / Restore / Recovery is COMPLETE. Final exact-head push CI #3836 and PR CI #3837 passed; final DEC-022 review reported no major issues; PR #194 merged as `3d7e6e05cafe6ed0407ce8ec2c5aca89ea196c7e`; exact-main CI #3838 passed including full workspace regression, authenticated live acceptance and the paired recovery/isolated restore drill; Issue #193 CLOSED / COMPLETED. V1.0-C Security Hardening is NEXT / NOT STARTED.
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1  
