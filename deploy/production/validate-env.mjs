@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { isIP } from 'node:net';
 
 const env = process.env;
 
@@ -119,6 +120,27 @@ boundedPositiveInteger('DOCUMENT_MAX_FILE_BYTES', 2_000_000_000);
 boundedPositiveInteger('SESSION_TTL_HOURS', 168);
 boundedPositiveInteger('LOGIN_RATE_LIMIT_MAX', 1000);
 boundedPositiveInteger('LOGIN_RATE_LIMIT_WINDOW_MINUTES', 1440);
+boundedPositiveInteger('REQUEST_BODY_MAX_BYTES', 10_485_760);
+
+if (env.TRUSTED_PROXY_ADDRESSES !== undefined) {
+  const trustedProxyAddresses = env.TRUSTED_PROXY_ADDRESSES
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean);
+  if (
+    trustedProxyAddresses.length === 0 ||
+    trustedProxyAddresses.some((value) => isIP(value) === 0)
+  ) {
+    fail('TRUSTED_PROXY_ADDRESSES must contain only comma-separated IP addresses');
+  }
+}
+
+if (
+  env.OPENAPI_ENABLED !== undefined &&
+  env.OPENAPI_ENABLED.trim().toLowerCase() !== 'false'
+) {
+  fail('OPENAPI_ENABLED must be false when NODE_ENV=production');
+}
 
 if (env.DOCUMENT_ALLOWED_MIME_TYPES !== undefined && !env.DOCUMENT_ALLOWED_MIME_TYPES.trim()) {
   fail('DOCUMENT_ALLOWED_MIME_TYPES must not be empty when configured');

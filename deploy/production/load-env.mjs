@@ -34,6 +34,9 @@ const allowed = new Set([
   'SESSION_TTL_HOURS',
   'LOGIN_RATE_LIMIT_MAX',
   'LOGIN_RATE_LIMIT_WINDOW_MINUTES',
+  'REQUEST_BODY_MAX_BYTES',
+  'TRUSTED_PROXY_ADDRESSES',
+  'OPENAPI_ENABLED',
 ]);
 
 for (const [key, value] of Object.entries(parsed)) {
