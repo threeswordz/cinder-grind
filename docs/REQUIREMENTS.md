@@ -1,12 +1,12 @@
 # Construction ERP — Master Requirements Register
 
 **Document Status:** Requirements Baseline v0.1  
-**Current Phase:** V1.0-C Security Hardening — PRE-FLIGHT UNDER VALIDATION / IMPLEMENTATION NOT STARTED  
+**Current Phase:** V1.0-C Security Hardening — UNDER VALIDATION / STABLE MERGE CANDIDATE  
 **Architecture Baseline:** v0.1  
 **Source:** ERP-MASTER-BLUEPRINT.md  
 **Last Structural Review:** V0.8-E DEC-022 source-drilldown/live-state remediation — 2026-10-05
 
-**Live delivery note:** V0.1–V0.8 are complete and accepted at their applicable release gates. V1.0 entry is complete under DEC-026; V1.0-A is COMPLETE; V1.0-B Backup / Restore / Recovery is COMPLETE after final exact-head CI #3836/#3837, clean DEC-022 review, PR #194 squash merge as `3d7e6e05cafe6ed0407ce8ec2c5aca89ea196c7e`, exact-main CI #3838 PASS and Issue #193 closure. V1.0-C Security Hardening is PRE-FLIGHT UNDER VALIDATION / IMPLEMENTATION NOT STARTED under Issue #196 / PR #197. Application/schema implementation is not authorized until PR #197 passes exact-head CI and DEC-022 review, merges, and the resulting exact-main CI is green. Requirement approval/status remains governed by the approved baselines and Change Control; this live note does not rewrite historical requirement approval.
+**Live delivery note:** V0.1–V0.8 are complete and accepted at their applicable release gates. V1.0 entry is complete under DEC-026; V1.0-A is COMPLETE; V1.0-B Backup / Restore / Recovery is COMPLETE after final exact-head CI #3836/#3837, clean DEC-022 review, PR #194 squash merge as `3d7e6e05cafe6ed0407ce8ec2c5aca89ea196c7e`, exact-main CI #3838 PASS and Issue #193 closure. V1.0-C Security Hardening is UNDER VALIDATION / STABLE MERGE CANDIDATE under Issue #196 / PR #198. Implementation is complete for AC-V10-017–026 on branch `v1.0-c-security-hardening`; merge remains blocked on exact-head push + PR CI and the required DEC-022 stable-head review because this stage changes security boundaries and includes a forward migration. Requirement approval/status remains governed by the approved baselines and Change Control; this live note does not rewrite historical requirement approval.
 
 ---
 
