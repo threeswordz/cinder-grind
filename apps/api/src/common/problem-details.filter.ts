@@ -20,6 +20,26 @@ type HttpExceptionBody = {
   errors?: unknown;
 };
 
+export function safeRequestPath(url: string | undefined): string {
+  if (!url) return '';
+  try {
+    return new URL(url, 'http://local.invalid').pathname;
+  } catch {
+    return '';
+  }
+}
+
+export function productionErrorLogContext(
+  exception: unknown,
+  request: CorrelatedRequest,
+) {
+  return {
+    errorName: exception instanceof Error ? exception.name : 'UnknownError',
+    path: safeRequestPath(request.url),
+    correlationId: request.correlationId ?? '',
+  };
+}
+
 @Catch()
 export class ProblemDetailsFilter implements ExceptionFilter {
   private readonly logger = new Logger(ProblemDetailsFilter.name);
@@ -29,9 +49,7 @@ export class ProblemDetailsFilter implements ExceptionFilter {
     const request = http.getRequest<CorrelatedRequest>();
     const response = http.getResponse<HttpResponse>();
     const isHttpException = exception instanceof HttpException;
-    const status = isHttpException
-      ? exception.getStatus()
-      : HttpStatus.INTERNAL_SERVER_ERROR;
+    const status = isHttpException ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
     const exceptionBody = isHttpException ? exception.getResponse() : undefined;
     const body: HttpExceptionBody =
       typeof exceptionBody === 'object' && exceptionBody !== null
@@ -46,10 +64,18 @@ export class ProblemDetailsFilter implements ExceptionFilter {
       typeof body.code === 'string' ? body.code : this.defaultCode(status);
 
     if (!isHttpException) {
-      this.logger.error(
-        'Unhandled request error',
-        exception instanceof Error ? exception.stack : String(exception),
-      );
+      if (process.env.NODE_ENV === 'production') {
+        this.logger.error(
+          `Unhandled request error ${JSON.stringify(
+            productionErrorLogContext(exception, request),
+          )}`,
+        );
+      } else {
+        this.logger.error(
+          'Unhandled request error',
+          exception instanceof Error ? exception.stack : String(exception),
+        );
+      }
     }
 
     response.status(status);
@@ -60,7 +86,7 @@ export class ProblemDetailsFilter implements ExceptionFilter {
       status,
       code,
       detail,
-      instance: request.url ?? '',
+      instance: safeRequestPath(request.url),
       correlationId: request.correlationId ?? '',
       ...(Array.isArray(body.errors) ? { errors: body.errors } : {}),
     });
@@ -70,9 +96,7 @@ export class ProblemDetailsFilter implements ExceptionFilter {
     if (typeof body.detail === 'string') return body.detail;
     if (typeof body.message === 'string') return body.message;
     if (Array.isArray(body.message)) {
-      return body.message
-        .filter((item): item is string => typeof item === 'string')
-        .join(' ');
+      return body.message.filter((item): item is string => typeof item === 'string').join(' ');
     }
     return exception.message;
   }
