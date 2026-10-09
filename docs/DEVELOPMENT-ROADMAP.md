@@ -807,7 +807,7 @@ Completed release: **V0.8 Management — COMPLETE AND ACCEPTED**.
 
 Current release: **V1.0 Production Readiness — ACTIVE**.
 
-Current stage: **V1.0-C SECURITY HARDENING — PRE-FLIGHT UNDER VALIDATION / IMPLEMENTATION NOT STARTED.** V1.0-B closure/handoff PR #195 merged as `60eeae6b641c23a149e6c033784c5439d72cb7a1`; exact-main CI #3882 PASS. Issue #196 is OPEN and documentation-only pre-flight PR #197 is OPEN from that exact green main. The pre-flight binds AC-V10-017–025 and approved security rules to the existing implementation inventory and identified hardening gaps. No V1.0-C application/schema implementation has started.
+Current stage: **V1.0-C SECURITY HARDENING — PRE-FLIGHT UNDER VALIDATION / IMPLEMENTATION NOT STARTED.** V1.0-B closure/handoff PR #195 merged as `60eeae6b641c23a149e6c033784c5439d72cb7a1`; exact-main CI #3882 PASS. Issue #196 is OPEN and documentation-only pre-flight PR #197 is OPEN from that exact green main. The pre-flight binds AC-V10-017–026 and approved security rules to the existing implementation inventory and identified hardening gaps. No V1.0-C application/schema implementation has started.
 
 Immediate sequence:
 
