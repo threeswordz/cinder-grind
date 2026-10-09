@@ -230,7 +230,7 @@ export class DocumentsService {
             storageProvider: stored.storageProvider,
             storageKey: stored.storageKey,
             mimeType: normalized.mimeType,
-            fileSizeBytes: file.buffer.length,
+            fileSizeBytes: file.size,
             uploadedByUserId: context.auth.userId,
             checksum,
           },
