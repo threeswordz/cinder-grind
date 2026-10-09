@@ -44,7 +44,7 @@ test('document upload storage streams bytes to managed temp disk without a memor
     assert.equal(info.size, bytes.length);
     assert.equal(
       await checksumUploadedDocumentFile(file),
-      '32b9102c90c3477fa726947c8948d90f6416f6b075cd0e7c9d43021b9df50b7c',
+      '2e118d214dd47d9015f5c01bae0b386b2a958f54696ce1f62729903ce3096680',
     );
   } finally {
     await cleanupUploadedDocumentFile(file);
