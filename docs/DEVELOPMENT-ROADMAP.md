@@ -1,7 +1,7 @@
 # Construction ERP — Development Roadmap
 
 **Document Status:** Development Roadmap Baseline v0.1  
-**Current Phase:** V1.0-B Backup / Restore / Recovery — COMPLETE; V1.0-C Security Hardening — NEXT / NOT STARTED  
+**Current Phase:** V1.0-C Security Hardening — PRE-FLIGHT UNDER VALIDATION / IMPLEMENTATION NOT STARTED  
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1  
@@ -807,7 +807,7 @@ Completed release: **V0.8 Management — COMPLETE AND ACCEPTED**.
 
 Current release: **V1.0 Production Readiness — ACTIVE**.
 
-Current stage: **V1.0-B BACKUP / RESTORE / RECOVERY — COMPLETE. V1.0-C SECURITY HARDENING — NEXT / NOT STARTED.** Final V1.0-B exact head `ce085b910aa65d00a2786be97f9ca0947e65fe80` passed push CI #3836 and PR CI #3837; final DEC-022 review reported no major issues. PR #194 squash-merged as `3d7e6e05cafe6ed0407ce8ec2c5aca89ea196c7e`; exact-main CI #3838 PASS; Issue #193 CLOSED / COMPLETED. Across nine review rounds all 20 genuine findings (8 P1 / 12 P2) were remediated and all threads resolved. V1.0-C implementation has not started.
+Current stage: **V1.0-C SECURITY HARDENING — PRE-FLIGHT UNDER VALIDATION / IMPLEMENTATION NOT STARTED.** V1.0-B closure/handoff PR #195 merged as `60eeae6b641c23a149e6c033784c5439d72cb7a1`; exact-main CI #3882 PASS. Issue #196 is OPEN and documentation-only pre-flight PR #197 is OPEN from that exact green main. The pre-flight binds AC-V10-017–025 and approved security rules to the existing implementation inventory and identified hardening gaps. No V1.0-C application/schema implementation has started.
 
 Immediate sequence:
 
