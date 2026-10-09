@@ -1,7 +1,8 @@
 # Construction ERP — Dependency License Register
 
 **Document Status:** Dependency License Baseline v0.1  
-**Current Phase:** V1.0-B Backup / Restore / Recovery — NEXT / AUTHORIZED  
+**Current Phase:** V1.0-C Security Hardening — NEXT / NOT STARTED  
+**V1.0-B technical-closure note — 2026-10-09:** Backup / Restore / Recovery is COMPLETE and remains compliant with DEC-008 open-source / zero-cost-first. No mandatory paid backup, storage or recovery dependency was introduced. PR #194 merged as `3d7e6e05cafe6ed0407ce8ec2c5aca89ea196c7e`; exact-main CI #3838 PASS; Issue #193 CLOSED / COMPLETED. V1.0-C Security Hardening is NEXT / NOT STARTED.
 **Policy:** Open-Source First  
 **License Verification Date:** 2026-09-26  
 **Version Status:** V0.1-A direct package versions selected and pinned in package manifests.
