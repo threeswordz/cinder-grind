@@ -20,7 +20,7 @@
 
 **Document Status:** API Architecture Baseline v0.1  
 **Current Phase:** V1.0-D Operations / Observability / Performance Readiness — PRE-FLIGHT ACTIVE / IMPLEMENTATION NOT STARTED  
-**V1.0-B technical-closure note — 2026-10-09:** Backup / Restore / Recovery is COMPLETE. PR #194 squash-merged as `3d7e6e05cafe6ed0407ce8ec2c5aca89ea196c7e`; exact-main CI #3838 PASS; Issue #193 CLOSED / COMPLETED. Recovery tooling preserves existing application/API business semantics and introduces no new business API authority. At that 2026-10-09 V1.0-B closure checkpoint, V1.0-C was the active successor stage. Current delivery status is the 2026-10-10 handoff state above: V1.0-C COMPLETE; V1.0-D NEXT / PRE-FLIGHT ONLY, NOT STARTED.
+**V1.0-B technical-closure note — 2026-10-09:** Backup / Restore / Recovery is COMPLETE. PR #194 squash-merged as `3d7e6e05cafe6ed0407ce8ec2c5aca89ea196c7e`; exact-main CI #3838 PASS; Issue #193 CLOSED / COMPLETED. Recovery tooling preserves existing application/API business semantics and introduces no new business API authority. At that 2026-10-09 V1.0-B closure checkpoint, V1.0-C was the active successor stage. Current delivery status is the 2026-10-10 active pre-flight state above: V1.0-C COMPLETE; V1.0-D PRE-FLIGHT ACTIVE under Issue #200 / PR #201, with implementation NOT STARTED.
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1  

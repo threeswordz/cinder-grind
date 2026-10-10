@@ -1684,7 +1684,7 @@ Current Release:
 
 Current Stage:
 
-**V1.0-D OPERATIONS / OBSERVABILITY / PERFORMANCE READINESS — NEXT / PRE-FLIGHT AUTHORIZED, NOT STARTED**
+**V1.0-D OPERATIONS / OBSERVABILITY / PERFORMANCE READINESS — PRE-FLIGHT ACTIVE / IMPLEMENTATION NOT STARTED**
 
 Live delivery position:
 
@@ -1706,7 +1706,7 @@ Live delivery position:
 - V1.0-A Production Environment / Deployment Baseline — COMPLETE; PR #191 merged as `d9ad5f207fb671c716f1f5b3d76e9c8b59d1657e`; closure reconciliation PR #192 merged as `2b631c3820b462236ce9b486b699ae8dd70d9400`; exact-main CI #3682 PASS; Issue #190 CLOSED / COMPLETED.
 - V1.0-B Backup / Restore / Recovery — COMPLETE; final exact head `ce085b910aa65d00a2786be97f9ca0947e65fe80` passed push CI #3836 / PR CI #3837 and clean DEC-022 review; PR #194 merged as `3d7e6e05cafe6ed0407ce8ec2c5aca89ea196c7e`; exact-main CI #3838 PASS; Issue #193 CLOSED / COMPLETED.
 - V1.0-C Security Hardening — COMPLETE; PR #198 squash-merged as `feb98b9e58e471a4190ac4bac531d6289d5fa4f4`; exact-main CI #3944 PASS; Issue #196 CLOSED / COMPLETED; final material DEC-022 review clean after all four findings were resolved.
-- V1.0-D Operations / Observability / Performance Readiness — NEXT / PRE-FLIGHT AUTHORIZED, NOT STARTED. Begin only with the documentation-only pre-flight from the green V1.0-C handoff main.
+- V1.0-D Operations / Observability / Performance Readiness — PRE-FLIGHT ACTIVE under Issue #200 / PR #201 / branch `v1.0-d-preflight`; application/schema implementation remains NOT STARTED until pre-flight CI, DEC-022 review, merge and exact-main CI complete.
 
 V0.8-D final head `e11a77391ebfb43ff4431820ea363964f525f545` passed exact-head CI #2995 including authenticated live acceptance; final DEC-022 review reported no major issues. PR #177 squash-merged as `ff3dc08a4aee9945bb0b195627e31577f766f691`; exact-main CI #2996 PASS. Closure PR #178 merged as `4c47fd7713eb1faa57bf4ad8270b254a8bca96a7`; exact-main CI #3011 PASS; Issue #175 closed completed. V0.8-D is technically COMPLETE.
 
