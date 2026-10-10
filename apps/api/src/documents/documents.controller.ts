@@ -27,10 +27,13 @@ import {
   documentUuid,
   nonemptyDocumentUpdate,
 } from './document-validation';
+import { UploadedDocumentFile } from './document-policy.service';
 import {
-  documentMaxBytes,
-  UploadedDocumentFile,
-} from './document-policy.service';
+  DocumentUploadCleanupInterceptor,
+  documentUploadLimits,
+  documentUploadStorage,
+} from './document-upload-storage';
+
 import { DocumentsService } from './documents.service';
 
 const authOf = (request: AuthenticatedRequest) => request.auth!;
@@ -166,8 +169,10 @@ export class DocumentsController {
   @RequirePermissions('documents.document.upload', 'documents.document.link')
   @UseInterceptors(
     FileInterceptor('file', {
-      limits: { fileSize: documentMaxBytes() },
+      limits: documentUploadLimits(),
+      storage: documentUploadStorage(),
     }),
+    new DocumentUploadCleanupInterceptor(),
   )
   async uploadProjectDocument(
     @Req() request: AuthenticatedRequest,

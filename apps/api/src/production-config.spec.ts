@@ -18,10 +18,14 @@ const valid = (): NodeJS.ProcessEnv => ({
   DATABASE_URL: 'postgresql://erp:secret@db.example.com:5432/erp?schema=public',
   STORAGE_ROOT: testStorageRoot,
   STORAGE_DEPLOYMENT_ID: 'ci-production',
+  DOCUMENT_UPLOAD_TEMP_ROOT: path.join(testStorageRoot, 'uploads'),
   DOCUMENT_MAX_FILE_BYTES: '26214400',
   SESSION_TTL_HOURS: '8',
   LOGIN_RATE_LIMIT_MAX: '10',
   LOGIN_RATE_LIMIT_WINDOW_MINUTES: '15',
+  REQUEST_BODY_MAX_BYTES: '1048576',
+  TRUSTED_PROXY_ADDRESSES: '127.0.0.1,::1',
+  OPENAPI_ENABLED: 'false',
 });
 
 test('production config accepts a complete HTTPS production contract', () => {
@@ -158,4 +162,37 @@ test('production config rejects unsafe storage deployment identifiers', () => {
   const env = valid();
   env.STORAGE_DEPLOYMENT_ID = 'prod/primary';
   assert.throws(() => validateProductionConfig(env), /STORAGE_DEPLOYMENT_ID must be 3-64 characters/);
+});
+
+test('production config rejects unsafe trusted proxy addresses', () => {
+  const env = valid();
+  env.TRUSTED_PROXY_ADDRESSES = '127.0.0.1,*';
+  assert.throws(
+    () => validateProductionConfig(env),
+    /TRUSTED_PROXY_ADDRESSES must contain only comma-separated IP addresses/,
+  );
+});
+
+test('production config rejects interactive OpenAPI exposure', () => {
+  const env = valid();
+  env.OPENAPI_ENABLED = 'true';
+  assert.throws(() => validateProductionConfig(env), /OPENAPI_ENABLED must be false/);
+});
+
+test('production config rejects excessive request body limits', () => {
+  const env = valid();
+  env.REQUEST_BODY_MAX_BYTES = '10485761';
+  assert.throws(
+    () => validateProductionConfig(env),
+    /REQUEST_BODY_MAX_BYTES must be an integer from 1 to 10485760/,
+  );
+});
+
+test('production config rejects relative document upload temp root', () => {
+  const env = valid();
+  env.DOCUMENT_UPLOAD_TEMP_ROOT = './uploads';
+  assert.throws(
+    () => validateProductionConfig(env),
+    /DOCUMENT_UPLOAD_TEMP_ROOT must be an absolute path/,
+  );
 });

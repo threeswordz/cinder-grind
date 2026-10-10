@@ -396,6 +396,17 @@ model UserSession {
   @@map("user_sessions")
 }
 
+model LoginRateLimitBucket {
+  clientKey    String   @id @map("client_key") @db.VarChar(64)
+  attemptCount Int      @map("attempt_count")
+  resetAt      DateTime @map("reset_at") @db.Timestamptz(6)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([resetAt])
+  @@map("login_rate_limit_buckets")
+}
+
 model ApprovalWorkflow {
   id           String   @id @default(uuid()) @db.Uuid
   companyId    String   @map("company_id") @db.Uuid

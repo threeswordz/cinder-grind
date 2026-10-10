@@ -4,7 +4,6 @@ import {
   NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
-import { createHash } from 'node:crypto';
 import { Prisma } from '@prisma/client';
 
 import { AuditService } from '../audit/audit.service';
@@ -12,6 +11,10 @@ import { AuthenticatedUserContext } from '../auth/auth.types';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProjectAccessService } from '../projects/project-access.service';
 import { DocumentPolicyService, UploadedDocumentFile } from './document-policy.service';
+import {
+  cleanupUploadedDocumentFile,
+  checksumUploadedDocumentFile,
+} from './document-upload-storage';
 import { DocumentStorage } from './document-storage';
 
 type AuditContext = {
@@ -193,8 +196,9 @@ export class DocumentsService {
     documentTypeId: string,
     file: UploadedDocumentFile,
   ) {
-    await this.access.assertAccess(context.auth, projectId);
-    const normalized = this.policy.validate(file);
+    try {
+      await this.access.assertAccess(context.auth, projectId);
+      const normalized = this.policy.validate(file);
 
     const type = await this.prisma.documentType.findFirst({
       where: {
@@ -211,8 +215,10 @@ export class DocumentsService {
       });
     }
 
-    const checksum = createHash('sha256').update(file.buffer).digest('hex');
-    const stored = await this.storage.put(file.buffer);
+      const checksum = await checksumUploadedDocumentFile(file);
+      const stored = file.path
+        ? await this.storage.putFile(file.path)
+        : await this.storage.put(file.buffer!);
 
     try {
       const row = await this.prisma.$transaction(async (tx) => {
@@ -224,7 +230,7 @@ export class DocumentsService {
             storageProvider: stored.storageProvider,
             storageKey: stored.storageKey,
             mimeType: normalized.mimeType,
-            fileSizeBytes: file.buffer.length,
+            fileSizeBytes: file.size,
             uploadedByUserId: context.auth.userId,
             checksum,
           },
@@ -280,9 +286,12 @@ export class DocumentsService {
       });
 
       return this.toDocumentDto(row);
-    } catch (error) {
-      await this.storage.remove(stored.storageKey);
-      throw error;
+      } catch (error) {
+        await this.storage.remove(stored.storageKey);
+        throw error;
+      }
+    } finally {
+      await cleanupUploadedDocumentFile(file);
     }
   }
 

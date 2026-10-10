@@ -24,10 +24,12 @@ import {
 import { CsrfGuard } from '../auth/csrf.guard';
 import { PermissionGuard } from '../authorization/permission.guard';
 import { RequirePermissions } from '../authorization/permissions.decorator';
+import { UploadedDocumentFile } from '../documents/document-policy.service';
 import {
-  documentMaxBytes,
-  UploadedDocumentFile,
-} from '../documents/document-policy.service';
+  DocumentUploadCleanupInterceptor,
+  documentUploadLimits,
+  documentUploadStorage,
+} from '../documents/document-upload-storage';
 import {
   DailySiteReportCreateInput,
   DailySiteReportUpdateInput,
@@ -445,8 +447,10 @@ export class SiteExecutionController {
   @RequirePermissions('site.daily_report.edit')
   @UseInterceptors(
     FileInterceptor('file', {
-      limits: { fileSize: documentMaxBytes() },
+      limits: documentUploadLimits(),
+      storage: documentUploadStorage(),
     }),
+    new DocumentUploadCleanupInterceptor(),
   )
   async uploadPhoto(
     @Req() request: AuthenticatedRequest,

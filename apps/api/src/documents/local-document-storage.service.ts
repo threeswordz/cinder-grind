@@ -5,7 +5,8 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
-import { mkdir, readFile, unlink, writeFile } from 'node:fs/promises';
+import { constants } from 'node:fs';
+import { copyFile, mkdir, readFile, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import { DocumentStorage, StoredDocument } from './document-storage';
@@ -26,6 +27,27 @@ export class LocalDocumentStorage extends DocumentStorage {
     const storageKey = randomUUID();
     await writeFile(this.resolveKey(storageKey), bytes, { flag: 'wx' });
     return { storageProvider: 'LOCAL', storageKey };
+  }
+
+  async putFile(sourcePath: string): Promise<StoredDocument> {
+    if (process.env.NODE_ENV === 'production') {
+      await this.assertProductionStorageReady();
+    } else {
+      await mkdir(this.root, { recursive: true });
+    }
+    const storageKey = randomUUID();
+    const target = this.resolveKey(storageKey);
+    try {
+      await copyFile(sourcePath, target, constants.COPYFILE_EXCL);
+      return { storageProvider: 'LOCAL', storageKey };
+    } catch (error) {
+      try {
+        await unlink(target);
+      } catch {
+        // Best-effort cleanup of a partially copied destination.
+      }
+      throw error;
+    }
   }
 
   async read(storageKey: string): Promise<Buffer> {

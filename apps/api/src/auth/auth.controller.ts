@@ -12,6 +12,7 @@ import {
 import { AuthGuard } from './auth.guard';
 import { AuthService } from './auth.service';
 import { AuthenticatedRequest } from './auth.types';
+import { loginRateLimitKey } from './client-identity';
 import {
   buildClearedSessionCookie,
   buildSessionCookie,
@@ -47,11 +48,11 @@ export class AuthController {
     @Res({ passthrough: true }) response: HeaderResponse,
   ) {
     const input = parseLoginInput(body);
-    const clientKey = request.socket?.remoteAddress ?? 'unknown';
-    this.loginRateLimit.consume(clientKey);
+    const clientKey = loginRateLimitKey(request);
+    await this.loginRateLimit.consume(clientKey);
 
     const result = await this.authService.login(input.email, input.password);
-    this.loginRateLimit.reset(clientKey);
+    await this.loginRateLimit.reset(clientKey);
     const maxAgeSeconds = Math.max(
       0,
       Math.floor((result.expiresAt.getTime() - Date.now()) / 1000),

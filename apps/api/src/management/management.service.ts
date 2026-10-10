@@ -57,6 +57,21 @@ export type ManagementReportRow = {
   sourceApiPath: string | null;
 };
 
+export function protectedSourceContract(
+  auth: AuthenticatedUserContext,
+  canonicalSource: string,
+  detailPermissionCodes: readonly string[],
+) {
+  return {
+    canonicalSource,
+    sourceViewPermissionCodes: [...detailPermissionCodes],
+    sourceViewAvailable: detailPermissionCodes.every((permission) =>
+      auth.permissions.includes(permission),
+    ),
+    protectedDetailPolicy: 'OWNING_MODULE_PERMISSION_REQUIRED' as const,
+  };
+}
+
 @Injectable()
 export class ManagementService {
   constructor(
@@ -1357,14 +1372,7 @@ export class ManagementService {
     canonicalSource: string,
     detailPermissionCodes: string[],
   ) {
-    return {
-      canonicalSource,
-      sourceViewPermissionCodes: detailPermissionCodes,
-      sourceViewAvailable: detailPermissionCodes.every((permission) =>
-        auth.permissions.includes(permission),
-      ),
-      protectedDetailPolicy: 'OWNING_MODULE_PERMISSION_REQUIRED' as const,
-    };
+    return protectedSourceContract(auth, canonicalSource, detailPermissionCodes);
   }
 
   private money(value: Prisma.Decimal): string {

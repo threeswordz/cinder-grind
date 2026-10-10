@@ -1,5 +1,6 @@
 import { accessSync, constants, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
+import { isIP } from 'node:net';
 
 type Environment = NodeJS.ProcessEnv;
 
@@ -25,6 +26,25 @@ function boundedPositiveInteger(
   if (!Number.isInteger(value) || value < 1 || value > maximum) {
     throw new Error(`${name} must be an integer from 1 to ${maximum}.`);
   }
+}
+
+export function requestBodyMaxBytes(env: Environment = process.env): number {
+  const raw = env.REQUEST_BODY_MAX_BYTES?.trim();
+  if (!raw) return 1_048_576;
+  const value = Number(raw);
+  if (!Number.isInteger(value) || value < 1 || value > 10_485_760) {
+    throw new Error('REQUEST_BODY_MAX_BYTES must be an integer from 1 to 10485760.');
+  }
+  return value;
+}
+
+export function trustedProxyAddresses(env: Environment = process.env): Set<string> {
+  const raw = env.TRUSTED_PROXY_ADDRESSES?.trim() || '127.0.0.1,::1';
+  const values = raw.split(',').map((value) => value.trim()).filter(Boolean);
+  if (values.length === 0 || values.some((value) => isIP(value) === 0)) {
+    throw new Error('TRUSTED_PROXY_ADDRESSES must contain only comma-separated IP addresses.');
+  }
+  return new Set(values);
 }
 
 function validateWebOrigin(raw: string): void {
@@ -106,6 +126,14 @@ export function validateProductionConfig(env: Environment): void {
   if (!path.isAbsolute(storageRoot)) {
     throw new Error('STORAGE_ROOT must be an absolute path when NODE_ENV=production.');
   }
+  if (
+    env.DOCUMENT_UPLOAD_TEMP_ROOT !== undefined &&
+    !path.isAbsolute(env.DOCUMENT_UPLOAD_TEMP_ROOT.trim())
+  ) {
+    throw new Error(
+      'DOCUMENT_UPLOAD_TEMP_ROOT must be an absolute path when configured.',
+    );
+  }
   const storageDeploymentId = required(env, 'STORAGE_DEPLOYMENT_ID');
   if (!/^[A-Za-z0-9][A-Za-z0-9._-]{2,63}$/.test(storageDeploymentId)) {
     throw new Error('STORAGE_DEPLOYMENT_ID must be 3-64 characters using letters, numbers, dot, underscore or hyphen.');
@@ -113,9 +141,18 @@ export function validateProductionConfig(env: Environment): void {
   validateProductionStorage(storageRoot, storageDeploymentId);
 
   boundedPositiveInteger(env, 'DOCUMENT_MAX_FILE_BYTES', 2_000_000_000);
+  requestBodyMaxBytes(env);
   boundedPositiveInteger(env, 'SESSION_TTL_HOURS', 168);
   boundedPositiveInteger(env, 'LOGIN_RATE_LIMIT_MAX', 1000);
   boundedPositiveInteger(env, 'LOGIN_RATE_LIMIT_WINDOW_MINUTES', 1440);
+  trustedProxyAddresses(env);
+
+  if (
+    env.OPENAPI_ENABLED !== undefined &&
+    env.OPENAPI_ENABLED.trim().toLowerCase() !== 'false'
+  ) {
+    throw new Error('OPENAPI_ENABLED must be false when NODE_ENV=production.');
+  }
 
   if (env.DOCUMENT_ALLOWED_MIME_TYPES !== undefined && !env.DOCUMENT_ALLOWED_MIME_TYPES.trim()) {
     throw new Error('DOCUMENT_ALLOWED_MIME_TYPES must not be empty when configured.');

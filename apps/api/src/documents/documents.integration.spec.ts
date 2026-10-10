@@ -312,7 +312,7 @@ test('Project Documents enforce scope, safe storage and metadata boundaries', as
 
     assert.equal(created.fileName, source.originalname);
     assert.equal(created.storageProvider, 'LOCAL');
-    assert.equal(created.fileSizeBytes, source.buffer.length);
+    assert.equal(created.fileSizeBytes, source.size);
     assert.equal('storageKey' in created, false);
     assert.equal(JSON.stringify(created).includes(tempRoot), false);
 

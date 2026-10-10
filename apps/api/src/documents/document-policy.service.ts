@@ -23,7 +23,8 @@ export type UploadedDocumentFile = {
   originalname: string;
   mimetype: string;
   size: number;
-  buffer: Buffer;
+  buffer?: Buffer;
+  path?: string;
 };
 
 export function documentMaxBytes(): number {
@@ -46,13 +47,20 @@ export class DocumentPolicyService {
   );
 
   validate(file: UploadedDocumentFile): { fileName: string; mimeType: string } {
-    if (file.size < 1 || file.buffer.length < 1) {
+    if (
+      file.size < 1 ||
+      (file.buffer !== undefined && file.buffer.length < 1) ||
+      (file.buffer === undefined && file.path === undefined)
+    ) {
       throw new UnprocessableEntityException({
         code: 'EMPTY_DOCUMENT',
         detail: 'Uploaded document must not be empty.',
       });
     }
-    if (file.size > this.maxBytes || file.buffer.length > this.maxBytes) {
+    if (
+      file.size > this.maxBytes ||
+      (file.buffer !== undefined && file.buffer.length > this.maxBytes)
+    ) {
       throw new PayloadTooLargeException({
         code: 'DOCUMENT_TOO_LARGE',
         detail: 'Uploaded document exceeds the configured size limit.',
