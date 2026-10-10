@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
 import test from 'node:test';
 import { Readable } from 'node:stream';
 import { ExecutionContext } from '@nestjs/common';
@@ -93,4 +95,40 @@ test('upload cleanup interceptor removes staged files when downstream validation
     /validation failed/,
   );
   await assert.rejects(() => readFile(info.path));
+});
+
+
+test('document upload storage removes partial temp files when the source stream aborts', async () => {
+  const tempRoot = await mkdtemp(path.join(os.tmpdir(), 'construction-erp-upload-fail-'));
+  const previousRoot = process.env.DOCUMENT_UPLOAD_TEMP_ROOT;
+  process.env.DOCUMENT_UPLOAD_TEMP_ROOT = tempRoot;
+
+  try {
+    const storage = documentUploadStorage();
+    let emitted = false;
+    const failingStream = new Readable({
+      read() {
+        if (emitted) return;
+        emitted = true;
+        this.push(Buffer.from('partial-upload'));
+        this.destroy(new Error('simulated upload abort'));
+      },
+    });
+
+    await assert.rejects(
+      () =>
+        new Promise<void>((resolve, reject) => {
+          storage._handleFile({}, { stream: failingStream }, (error) => {
+            if (error) reject(error);
+            else resolve();
+          });
+        }),
+      /simulated upload abort/,
+    );
+    assert.deepEqual(await readdir(tempRoot), []);
+  } finally {
+    if (previousRoot === undefined) delete process.env.DOCUMENT_UPLOAD_TEMP_ROOT;
+    else process.env.DOCUMENT_UPLOAD_TEMP_ROOT = previousRoot;
+    await rm(tempRoot, { recursive: true, force: true });
+  }
 });
