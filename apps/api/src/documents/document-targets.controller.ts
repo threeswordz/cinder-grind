@@ -26,6 +26,7 @@ import {
 } from './document-validation';
 import { UploadedDocumentFile } from './document-policy.service';
 import {
+  DocumentUploadCleanupInterceptor,
   documentUploadLimits,
   documentUploadStorage,
 } from './document-upload-storage';
@@ -119,6 +120,7 @@ export class DocumentTargetsController {
       limits: documentUploadLimits(),
       storage: documentUploadStorage(),
     }),
+    new DocumentUploadCleanupInterceptor(),
   )
   async upload(
     @Req() request: AuthenticatedRequest,
