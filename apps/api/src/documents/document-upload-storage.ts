@@ -86,17 +86,22 @@ export function documentUploadStorage() {
         await ensureTempRoot(root);
         const filename = randomUUID();
         const target = path.join(root, filename);
-        await pipeline(
-          file.stream,
-          createWriteStream(target, { flags: 'wx', mode: 0o600 }),
-        );
-        const stat = await lstat(target);
-        return {
-          destination: root,
-          filename,
-          path: target,
-          size: stat.size,
-        };
+        try {
+          await pipeline(
+            file.stream,
+            createWriteStream(target, { flags: 'wx', mode: 0o600 }),
+          );
+          const stat = await lstat(target);
+          return {
+            destination: root,
+            filename,
+            path: target,
+            size: stat.size,
+          };
+        } catch (error) {
+          await rm(target, { force: true }).catch(() => undefined);
+          throw error;
+        }
       })().then(
         (info) => callback(null, info),
         (error: unknown) =>
