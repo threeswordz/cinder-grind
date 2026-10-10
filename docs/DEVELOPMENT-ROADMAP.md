@@ -807,7 +807,7 @@ Completed release: **V0.8 Management — COMPLETE AND ACCEPTED**.
 
 Current release: **V1.0 Production Readiness — ACTIVE**.
 
-Current stage: **V1.0-D OPERATIONS / OBSERVABILITY / PERFORMANCE READINESS — NEXT / PRE-FLIGHT AUTHORIZED, NOT STARTED.** V1.0-C Security Hardening is technically COMPLETE: PR #198 squash-merged as `feb98b9e58e471a4190ac4bac531d6289d5fa4f4`; exact-main CI #3944 PASS. Final material head `0c0f7755386d160e706e5e65b218f66a7b77e63f` passed push CI #3930 / PR CI #3931; all four genuine DEC-022 findings (3 P1 / 1 P2) were remediated and resolved, and final material re-review reported no major issues. Final docs-only packaging head `206cd6d3e4994bc303ec446725bee0dd8a1c409f` passed push CI #3942 / PR CI #3943. Issue #196 is CLOSED / COMPLETED. This V1.0-C closure/handoff reconciliation is documentation-only. After it merges and exact-main CI passes, open the V1.0-D stage issue and pre-flight; no V1.0-D runtime/schema implementation begins before its pre-flight gates complete.
+Current stage: **V1.0-D OPERATIONS / OBSERVABILITY / PERFORMANCE READINESS — PRE-FLIGHT ACTIVE / IMPLEMENTATION NOT STARTED.** V1.0-C Security Hardening is technically COMPLETE. V1.0-C closure/handoff PR #199 squash-merged as `bcb18e8411798013b3c4ba7de21738067dfadcd8`; exact-main CI #3985 PASS. V1.0-D Issue #200 and pre-flight PR #201 are OPEN on branch `v1.0-d-preflight`. The documentation-only AC-V10-027–034 inventory is active; V1.0-D application/schema implementation remains NOT STARTED until PR #201 passes exact-head CI, DEC-022 review, squash merge and resulting exact-main CI.
 
 Immediate sequence:
 
