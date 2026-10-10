@@ -1,10 +1,10 @@
 # Construction ERP — Master Blueprint
 
-**Current delivery status — 2026-10-10:** V1.0-A, V1.0-B and V1.0-C are technically COMPLETE. V1.0-C PR #198 squash-merged as `feb98b9e58e471a4190ac4bac531d6289d5fa4f4`; exact-main CI #3944 PASS; Issue #196 CLOSED / COMPLETED. V1.0-D Operations / Observability / Performance Readiness has ACTIVE documentation-only pre-flight under Issue #200 / PR #201 / branch `v1.0-d-preflight`. V1.0-D application/schema implementation is NOT STARTED and remains gated on exact-head CI, DEC-022 review, pre-flight merge and resulting exact-main CI. V1.0-E and AC-V10-039/040 Product / Business Owner release-exit gates remain later.**
+**Current delivery status — 2026-10-10:** V1.0-A, V1.0-B and V1.0-C are technically COMPLETE. V1.0-C PR #198 squash-merged as `feb98b9e58e471a4190ac4bac531d6289d5fa4f4`; exact-main CI #3944 PASS; Issue #196 CLOSED / COMPLETED. V1.0-D Operations / Observability / Performance Readiness pre-flight is COMPLETE under Issue #200 / PR #201. PR #201 squash-merged as `8f346c1c158ae5a04895f63b4190921ee2474016`; exact-main CI #4002 PASS. V1.0-D application/schema implementation is AUTHORIZED but NOT STARTED and must begin from a fresh branch based on exact green `main`. V1.0-E and AC-V10-039/040 Product / Business Owner release-exit gates remain later.**
 
 **Document Status:** Architecture Baseline v0.1
-**Current Phase:** V1.0-D Operations / Observability / Performance Readiness — PRE-FLIGHT ACTIVE / IMPLEMENTATION NOT STARTED  
-**V1.0-B technical-closure note — 2026-10-09:** Backup / Restore / Recovery is COMPLETE. Final exact head `ce085b910aa65d00a2786be97f9ca0947e65fe80` passed CI #3836/#3837 and clean DEC-022 review; PR #194 squash-merged as `3d7e6e05cafe6ed0407ce8ec2c5aca89ea196c7e`; exact-main CI #3838 PASS; Issue #193 CLOSED / COMPLETED. At that 2026-10-09 V1.0-B closure checkpoint, V1.0-C was the active successor. Current delivery status is V1.0-C COMPLETE and V1.0-D PRE-FLIGHT ACTIVE under Issue #200 / PR #201, with implementation NOT STARTED.
+**Current Phase:** V1.0-D Operations / Observability / Performance Readiness — PRE-FLIGHT COMPLETE / IMPLEMENTATION AUTHORIZED, NOT STARTED  
+**V1.0-B technical-closure note — 2026-10-09:** Backup / Restore / Recovery is COMPLETE. Final exact head `ce085b910aa65d00a2786be97f9ca0947e65fe80` passed CI #3836/#3837 and clean DEC-022 review; PR #194 squash-merged as `3d7e6e05cafe6ed0407ce8ec2c5aca89ea196c7e`; exact-main CI #3838 PASS; Issue #193 CLOSED / COMPLETED. At that 2026-10-09 V1.0-B closure checkpoint, V1.0-C was the active successor. Current delivery status is V1.0-C COMPLETE and V1.0-D PRE-FLIGHT COMPLETE after PR #201 merge and exact-main CI #4002 PASS; implementation is AUTHORIZED but NOT STARTED.
 **V0.8 technical-closure checkpoint — 2026-10-05:** V0.8-A through V0.8-E are technically COMPLETE. PR #182 final head `1092a3b197b346f71e55671b5235aec90b536b81` passed CI #3307/#3308 and clean final DEC-022 review, squash-merged as `542b1df9ad866f9b557e06ec2ca366b6131e2f94`, post-merge main CI #3309 passed with 69 authenticated current-release runtime acceptance checks, and Issue #179 closed completed. Chat-assisted proxy UAT is PASS with no blocking business defect identified. The Product / Business Owner accepted AC-V08-039 human UAT confirmation and AC-V08-040 explicit release acceptance on 2026-10-05. PR #185 merged as `920d592e7ffe01cb83b106c215fa20adb959cb95`; post-merge main CI #3394 passed; Issue #184 closed completed. V0.8 Management is COMPLETE + ACCEPTED. At that 2026-10-05 checkpoint, V1.0 Production / production-readiness was NEXT and required its own approved entry decision before implementation.
 
 **System:** Construction ERP
@@ -1684,7 +1684,7 @@ Current Release:
 
 Current Stage:
 
-**V1.0-D OPERATIONS / OBSERVABILITY / PERFORMANCE READINESS — PRE-FLIGHT ACTIVE / IMPLEMENTATION NOT STARTED**
+**V1.0-D OPERATIONS / OBSERVABILITY / PERFORMANCE READINESS — PRE-FLIGHT COMPLETE / IMPLEMENTATION AUTHORIZED, NOT STARTED**
 
 Live delivery position:
 
@@ -1706,7 +1706,7 @@ Live delivery position:
 - V1.0-A Production Environment / Deployment Baseline — COMPLETE; PR #191 merged as `d9ad5f207fb671c716f1f5b3d76e9c8b59d1657e`; closure reconciliation PR #192 merged as `2b631c3820b462236ce9b486b699ae8dd70d9400`; exact-main CI #3682 PASS; Issue #190 CLOSED / COMPLETED.
 - V1.0-B Backup / Restore / Recovery — COMPLETE; final exact head `ce085b910aa65d00a2786be97f9ca0947e65fe80` passed push CI #3836 / PR CI #3837 and clean DEC-022 review; PR #194 merged as `3d7e6e05cafe6ed0407ce8ec2c5aca89ea196c7e`; exact-main CI #3838 PASS; Issue #193 CLOSED / COMPLETED.
 - V1.0-C Security Hardening — COMPLETE; PR #198 squash-merged as `feb98b9e58e471a4190ac4bac531d6289d5fa4f4`; exact-main CI #3944 PASS; Issue #196 CLOSED / COMPLETED; final material DEC-022 review clean after all four findings were resolved.
-- V1.0-D Operations / Observability / Performance Readiness — PRE-FLIGHT ACTIVE under Issue #200 / PR #201 / branch `v1.0-d-preflight`; application/schema implementation remains NOT STARTED until pre-flight CI, DEC-022 review, merge and exact-main CI complete.
+- V1.0-D Operations / Observability / Performance Readiness — PRE-FLIGHT COMPLETE after PR #201 merge as `8f346c1c158ae5a04895f63b4190921ee2474016` and exact-main CI #4002 PASS; application/schema implementation is AUTHORIZED but NOT STARTED and must begin from a fresh branch on exact green `main`.
 
 V0.8-D final head `e11a77391ebfb43ff4431820ea363964f525f545` passed exact-head CI #2995 including authenticated live acceptance; final DEC-022 review reported no major issues. PR #177 squash-merged as `ff3dc08a4aee9945bb0b195627e31577f766f691`; exact-main CI #2996 PASS. Closure PR #178 merged as `4c47fd7713eb1faa57bf4ad8270b254a8bca96a7`; exact-main CI #3011 PASS; Issue #175 closed completed. V0.8-D is technically COMPLETE.
 
