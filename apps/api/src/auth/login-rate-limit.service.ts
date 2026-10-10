@@ -5,6 +5,7 @@ import { PrismaService } from '../prisma/prisma.service';
 
 const DEFAULT_MAX_ATTEMPTS = 10;
 const DEFAULT_WINDOW_MINUTES = 15;
+const PURGE_BATCH_SIZE = 100;
 
 @Injectable()
 export class LoginRateLimitService {
@@ -23,6 +24,7 @@ export class LoginRateLimitService {
       1440,
       'LOGIN_RATE_LIMIT_WINDOW_MINUTES',
     );
+    await this.purgeExpiredBuckets();
     const resetAt = new Date(Date.now() + windowMinutes * 60 * 1000);
 
     const rows = await this.prisma.$queryRaw<Array<{ attempt_count: number }>>(
@@ -57,6 +59,21 @@ export class LoginRateLimitService {
 
   async reset(clientKey: string): Promise<void> {
     await this.prisma.loginRateLimitBucket.deleteMany({ where: { clientKey } });
+  }
+
+  private async purgeExpiredBuckets(): Promise<void> {
+    await this.prisma.$executeRaw(
+      Prisma.sql`
+        DELETE FROM "login_rate_limit_buckets"
+        WHERE "client_key" IN (
+          SELECT "client_key"
+          FROM "login_rate_limit_buckets"
+          WHERE "reset_at" <= NOW()
+          ORDER BY "reset_at" ASC, "client_key" ASC
+          LIMIT ${PURGE_BATCH_SIZE}
+        )
+      `,
+    );
   }
 
   private readPositiveInteger(
