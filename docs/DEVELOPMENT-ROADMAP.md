@@ -1,7 +1,7 @@
 # Construction ERP — Development Roadmap
 
 **Document Status:** Development Roadmap Baseline v0.1  
-**Current Phase:** V1.0-D Operations / Observability / Performance Readiness — NEXT / PRE-FLIGHT AUTHORIZED, NOT STARTED  
+**Current Phase:** V1.0-D Operations / Observability / Performance Readiness — PRE-FLIGHT ACTIVE / IMPLEMENTATION NOT STARTED  
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1  
