@@ -7,6 +7,13 @@ import { Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 
 import {
+  CallHandler,
+  ExecutionContext,
+  NestInterceptor,
+} from '@nestjs/common';
+import { Observable } from 'rxjs';
+
+import {
   documentMaxBytes,
   UploadedDocumentFile,
 } from './document-policy.service';
@@ -142,4 +149,45 @@ export async function checksumUploadedDocumentFile(
     hash.update(chunk);
   }
   return hash.digest('hex');
+}
+
+
+export class DocumentUploadCleanupInterceptor implements NestInterceptor {
+  intercept(
+    context: ExecutionContext,
+    next: CallHandler,
+  ): Observable<unknown> {
+    const request = context
+      .switchToHttp()
+      .getRequest<{ file?: UploadedDocumentFile }>();
+
+    return new Observable((subscriber) => {
+      let terminal = false;
+      const cleanup = async () => {
+        if (request.file) await cleanupUploadedDocumentFile(request.file);
+      };
+      const subscription = next.handle().subscribe({
+        next: (value) => subscriber.next(value),
+        error: (error: unknown) => {
+          terminal = true;
+          void cleanup().then(
+            () => subscriber.error(error),
+            (cleanupError: unknown) => subscriber.error(cleanupError),
+          );
+        },
+        complete: () => {
+          terminal = true;
+          void cleanup().then(
+            () => subscriber.complete(),
+            (cleanupError: unknown) => subscriber.error(cleanupError),
+          );
+        },
+      });
+
+      return () => {
+        subscription.unsubscribe();
+        if (!terminal) void cleanup().catch(() => undefined);
+      };
+    });
+  }
 }
