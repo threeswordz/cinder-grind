@@ -7,8 +7,8 @@
 # Construction ERP — Database ERD
 
 **Document Status:** Database Baseline v0.1  
-**Current Phase:** V1.0-C Security Hardening — UNDER VALIDATION / STABLE MERGE CANDIDATE  
-**V1.0-B technical-closure note — 2026-10-09:** Backup / Restore / Recovery is COMPLETE. The stage introduced recovery tooling and evidence only; no V1.0-B business-schema migration or destructive reverse-migration path was introduced. PR #194 merged as `3d7e6e05cafe6ed0407ce8ec2c5aca89ea196c7e`; exact-main CI #3838 PASS; Issue #193 CLOSED / COMPLETED. V1.0-C Security Hardening is UNDER VALIDATION / STABLE MERGE CANDIDATE under Issue #196 / PR #198. AC-V10-017–026 implementation is complete; runtime/test head `eef815faf22bba165c625e4c919b5f08360a894e` passed CI #3910. Merge remains blocked on final documentation-reconciled exact-head push + PR CI and DEC-022 stable-head review.
+**Current Phase:** V1.0-D Operations / Observability / Performance Readiness — NEXT / PRE-FLIGHT AUTHORIZED, NOT STARTED  
+**V1.0-B technical-closure note — 2026-10-09:** Backup / Restore / Recovery is COMPLETE. The stage introduced recovery tooling and evidence only; no V1.0-B business-schema migration or destructive reverse-migration path was introduced. PR #194 merged as `3d7e6e05cafe6ed0407ce8ec2c5aca89ea196c7e`; exact-main CI #3838 PASS; Issue #193 CLOSED / COMPLETED. At that 2026-10-09 V1.0-B closure checkpoint, V1.0-C was the active successor stage. Current delivery status is the 2026-10-10 handoff state above: V1.0-C COMPLETE; V1.0-D NEXT / PRE-FLIGHT ONLY, NOT STARTED.
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database:** PostgreSQL  
