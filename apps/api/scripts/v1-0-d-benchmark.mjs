@@ -148,36 +148,56 @@ const projectReadFlow = await runFlow('erp-project-list-read', async () => {
   return result.durationMs;
 });
 
-const projectMutationFlow = await runFlow(
-  'erp-project-description-update-and-restore',
-  async (index) => {
-    const marker = `V1.0-D benchmark ${process.pid}-${Date.now()}-${index}`;
-    let mutated = false;
-    try {
-      const result = await authorizedRequest(`projects/${projectId}`, {
-        method: 'PATCH',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ description: marker }),
-      });
-      mutated = true;
-      return result.durationMs;
-    } finally {
-      if (mutated) {
-        await authorizedRequest(`projects/${projectId}`, {
+async function restoreProjectDescription() {
+  return authorizedRequest(`projects/${projectId}`, {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ description: originalDescription }),
+  });
+}
+
+let projectMutationFlow;
+let mutationFlowError;
+try {
+  projectMutationFlow = await runFlow(
+    'erp-project-description-update-and-restore',
+    async (index) => {
+      const marker = `V1.0-D benchmark ${process.pid}-${Date.now()}-${index}`;
+      let mutationMayHaveBeenSent = false;
+      try {
+        mutationMayHaveBeenSent = true;
+        const result = await authorizedRequest(`projects/${projectId}`, {
           method: 'PATCH',
           headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ description: originalDescription }),
+          body: JSON.stringify({ description: marker }),
         });
+        return result.durationMs;
+      } finally {
+        if (mutationMayHaveBeenSent) {
+          await restoreProjectDescription();
+        }
       }
-    }
-  },
-  1,
-);
+    },
+    1,
+  );
+} catch (error) {
+  mutationFlowError = error;
+}
+
+// Always make one final idempotent restore attempt after the mutation flow. A
+// failed response is ambiguous: the server may still have committed the PATCH,
+// so final state is determined by the authoritative read below.
+try {
+  await restoreProjectDescription();
+} catch {
+  // Verification below decides whether cleanup actually succeeded.
+}
 
 const verification = await authorizedRequest(`projects/${projectId}`);
 if ((verification.data?.data?.description ?? null) !== originalDescription) {
   throw new Error('Benchmark cleanup did not restore the Project description.');
 }
+if (mutationFlowError) throw mutationFlowError;
 
 console.log(
   JSON.stringify({
