@@ -59,6 +59,32 @@ test('production readiness keeps the deployment sentinel and cleans only its pro
   });
 });
 
+
+test('production reads validate storage identity without requiring write capacity', async () => {
+  await withStorageEnvironment('production', async (root) => {
+    process.env.STORAGE_DEPLOYMENT_ID = 'read-spec';
+    await writeFile(
+      path.join(root, '.construction-erp-storage-ready'),
+      'construction-erp-production-storage-v1:read-spec\n',
+      { mode: 0o600 },
+    );
+
+    const storageKey = '11111111-1111-4111-8111-111111111111';
+    await writeFile(path.join(root, storageKey), 'existing-document');
+
+    const storage = new LocalDocumentStorage();
+    (
+      storage as unknown as {
+        probeWriteReadiness: () => Promise<void>;
+      }
+    ).probeWriteReadiness = async () => {
+      throw Object.assign(new Error('disk full'), { code: 'ENOSPC' });
+    };
+
+    assert.equal((await storage.read(storageKey)).toString('utf8'), 'existing-document');
+  });
+});
+
 test('production rollback removal validates storage identity without requiring a write probe', async () => {
   await withStorageEnvironment('production', async (root) => {
     process.env.STORAGE_DEPLOYMENT_ID = 'rollback-spec';

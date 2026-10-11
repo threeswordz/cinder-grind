@@ -112,7 +112,9 @@ export class LocalDocumentStorage extends DocumentStorage {
   }
 
   async read(storageKey: string): Promise<Buffer> {
-    if (process.env.NODE_ENV === 'production') await this.assertReady();
+    if (process.env.NODE_ENV === 'production') {
+      await this.assertStorageIdentityReady();
+    }
     try {
       return await readFile(this.resolveKey(storageKey));
     } catch (error) {
