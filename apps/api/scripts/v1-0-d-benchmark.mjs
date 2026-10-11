@@ -46,14 +46,22 @@ const concurrency = positiveInteger(
 async function request(path, init = {}) {
   const startedAt = performance.now();
   const response = await fetch(new URL(path, baseUrl), init);
+  const contentType = response.headers.get('content-type') ?? '';
+  const data = contentType.includes('application/json')
+    ? await response.json()
+    : await response.arrayBuffer();
   const durationMs = performance.now() - startedAt;
+
   if (!response.ok) {
-    const body = await response.text();
+    const detail =
+      data instanceof ArrayBuffer
+        ? `non-JSON response (${data.byteLength} bytes)`
+        : JSON.stringify(data).slice(0, 200);
     throw new Error(
-      `${init.method ?? 'GET'} ${path} failed with ${response.status}: ${body.slice(0, 200)}`,
+      `${init.method ?? 'GET'} ${path} failed with ${response.status}: ${detail}`,
     );
   }
-  return { response, durationMs };
+  return { response, data, durationMs };
 }
 
 const login = await request('auth/login', {
@@ -64,8 +72,7 @@ const login = await request('auth/login', {
 const setCookie = login.response.headers.get('set-cookie');
 if (!setCookie) throw new Error('Benchmark login did not return a session cookie.');
 const cookie = setCookie.split(';', 1)[0];
-const loginBody = await login.response.json();
-const csrfToken = loginBody?.data?.csrfToken;
+const csrfToken = login.data?.data?.csrfToken;
 if (typeof csrfToken !== 'string' || !csrfToken) {
   throw new Error('Benchmark login did not return a CSRF token.');
 }
@@ -80,9 +87,8 @@ async function authorizedRequest(path, init = {}) {
 }
 
 const projectFixtureResponse = await authorizedRequest('projects');
-const projectFixtureBody = await projectFixtureResponse.response.json();
-const projectFixture = Array.isArray(projectFixtureBody?.data)
-  ? projectFixtureBody.data.find((item) => item?.isActive !== false)
+const projectFixture = Array.isArray(projectFixtureResponse.data?.data)
+  ? projectFixtureResponse.data.data.find((item) => item?.isActive !== false)
   : undefined;
 if (!projectFixture?.id) {
   throw new Error(
@@ -134,13 +140,11 @@ async function runFlow(name, operation, flowConcurrency = concurrency) {
 
 const readinessFlow = await runFlow('readiness', async () => {
   const result = await request('health/ready');
-  await result.response.arrayBuffer();
   return result.durationMs;
 });
 
 const projectReadFlow = await runFlow('erp-project-list-read', async () => {
   const result = await authorizedRequest('projects');
-  await result.response.arrayBuffer();
   return result.durationMs;
 });
 
@@ -156,16 +160,14 @@ const projectMutationFlow = await runFlow(
         body: JSON.stringify({ description: marker }),
       });
       mutated = true;
-      await result.response.arrayBuffer();
       return result.durationMs;
     } finally {
       if (mutated) {
-        const cleanup = await authorizedRequest(`projects/${projectId}`, {
+        await authorizedRequest(`projects/${projectId}`, {
           method: 'PATCH',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify({ description: originalDescription }),
         });
-        await cleanup.response.arrayBuffer();
       }
     }
   },
@@ -173,8 +175,7 @@ const projectMutationFlow = await runFlow(
 );
 
 const verification = await authorizedRequest(`projects/${projectId}`);
-const verificationBody = await verification.response.json();
-if ((verificationBody?.data?.description ?? null) !== originalDescription) {
+if ((verification.data?.data?.description ?? null) !== originalDescription) {
   throw new Error('Benchmark cleanup did not restore the Project description.');
 }
 
@@ -186,6 +187,7 @@ console.log(
     node: process.version,
     iterationsPerFlow: iterations,
     requestedReadConcurrency: concurrency,
+    timing: 'end-to-end through complete response-body consumption',
     fixture: {
       projectId: 'existing-authorized-project',
       businessMutation: 'Project description update with deterministic restore',

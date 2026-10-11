@@ -1,0 +1,60 @@
+import assert from 'node:assert/strict';
+import { mkdtemp, readdir, rm, writeFile } from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+import test from 'node:test';
+
+import { LocalDocumentStorage } from './local-document-storage.service';
+
+async function withStorageEnvironment(
+  nodeEnv: string,
+  run: (root: string) => Promise<void>,
+): Promise<void> {
+  const root = await mkdtemp(
+    path.join(os.tmpdir(), 'construction-erp-storage-ready-'),
+  );
+  const previousRoot = process.env.STORAGE_ROOT;
+  const previousNodeEnv = process.env.NODE_ENV;
+  const previousDeploymentId = process.env.STORAGE_DEPLOYMENT_ID;
+
+  process.env.STORAGE_ROOT = root;
+  process.env.NODE_ENV = nodeEnv;
+  try {
+    await run(root);
+  } finally {
+    if (previousRoot === undefined) delete process.env.STORAGE_ROOT;
+    else process.env.STORAGE_ROOT = previousRoot;
+    if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = previousNodeEnv;
+    if (previousDeploymentId === undefined) delete process.env.STORAGE_DEPLOYMENT_ID;
+    else process.env.STORAGE_DEPLOYMENT_ID = previousDeploymentId;
+    await rm(root, { recursive: true, force: true });
+  }
+}
+
+test('local document storage readiness performs and cleans up a real write probe', async () => {
+  await withStorageEnvironment('test', async (root) => {
+    const storage = new LocalDocumentStorage();
+    await storage.assertReady();
+    assert.deepEqual(await readdir(root), []);
+  });
+});
+
+test('production readiness keeps the deployment sentinel and cleans only its probe', async () => {
+  await withStorageEnvironment('production', async (root) => {
+    process.env.STORAGE_DEPLOYMENT_ID = 'readiness-spec';
+    await writeFile(
+      path.join(root, '.construction-erp-storage-ready'),
+      'construction-erp-production-storage-v1:readiness-spec\n',
+      { mode: 0o600 },
+    );
+
+    const storage = new LocalDocumentStorage();
+    await storage.assertReady();
+
+    assert.deepEqual(
+      (await readdir(root)).sort(),
+      ['.construction-erp-storage-ready'],
+    );
+  });
+});

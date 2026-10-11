@@ -35,11 +35,38 @@ export class LocalDocumentStorage extends DocumentStorage {
         await mkdir(this.root, { recursive: true });
         await access(this.root, constants.R_OK | constants.W_OK);
       }
+      await this.probeWriteReadiness();
     } catch {
       throw new ServiceUnavailableException({
         code: 'DOCUMENT_STORAGE_UNAVAILABLE',
         detail: 'Persistent document storage is unavailable.',
       });
+    }
+  }
+
+  private async probeWriteReadiness(): Promise<void> {
+    const probePath = path.join(
+      this.root,
+      `.construction-erp-readiness-${randomUUID()}`,
+    );
+    let created = false;
+    try {
+      await writeFile(probePath, Buffer.from('ready'), {
+        flag: 'wx',
+        mode: 0o600,
+      });
+      created = true;
+      await unlink(probePath);
+      created = false;
+    } finally {
+      if (created) {
+        try {
+          await unlink(probePath);
+        } catch {
+          // Best-effort cleanup; the readiness call still fails with the
+          // original write/unlink error so operators do not receive a false OK.
+        }
+      }
     }
   }
 
