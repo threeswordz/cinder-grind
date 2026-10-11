@@ -438,6 +438,21 @@ jobs:
           echo "API startup smoke passed."
           bash deploy/uat/runtime-acceptance.sh
 
+          # Regression: parser failures must still receive a server correlation
+          # ID and produce the matching request-completion operational event.
+          parser_status="$(curl --silent --show-error \
+            --dump-header /tmp/v1-0-d-parser-headers \
+            --output /tmp/v1-0-d-parser-body \
+            --write-out '%{http_code}' \
+            --header 'Content-Type: application/json' \
+            --data-binary '{"email":' \
+            http://127.0.0.1:3000/api/v1/auth/login)"
+          test "$parser_status" = "400"
+          parser_correlation="$(awk 'BEGIN { IGNORECASE=1 } /^X-Correlation-ID:/ { gsub("\\r", "", $2); print $2 }' /tmp/v1-0-d-parser-headers | tail -n 1)"
+          test -n "$parser_correlation"
+          grep -F "\"correlationId\":\"$parser_correlation\"" /tmp/construction-erp-api.log \
+            | grep -Fq '"status":400'
+
           BENCHMARK_NON_PRODUCTION_CONFIRMED=YES \
           BENCHMARK_ENVIRONMENT=ci \
           BENCHMARK_BASE_URL=http://127.0.0.1:3000/api/v1 \
