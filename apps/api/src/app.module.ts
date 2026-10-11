@@ -1,4 +1,4 @@
-import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 import { AdministrationModule } from './administration/administration.module';
 import { ApprovalModule } from './approval/approval.module';
@@ -6,8 +6,6 @@ import { AuditModule } from './audit/audit.module';
 import { AuthModule } from './auth/auth.module';
 import { AuthorizationModule } from './authorization/authorization.module';
 import { BudgetModule } from './budget/budget.module';
-import { CorrelationIdMiddleware } from './common/correlation-id.middleware';
-import { OperationalLoggingMiddleware } from './common/operational-logging.middleware';
 import { CostControlModule } from './cost-control/cost-control.module';
 import { HealthModule } from './health/health.module';
 import { InventoryModule } from './inventory/inventory.module';
@@ -51,8 +49,4 @@ import { WbsModule } from './wbs/wbs.module';
     MasterDataModule,
   ],
 })
-export class AppModule implements NestModule {
-  configure(consumer: MiddlewareConsumer): void {
-    consumer.apply(CorrelationIdMiddleware, OperationalLoggingMiddleware).forRoutes('*');
-  }
-}
+export class AppModule {}
