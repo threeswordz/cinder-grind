@@ -1,7 +1,7 @@
 # Construction ERP — Development Roadmap
 
 **Document Status:** Development Roadmap Baseline v0.1  
-**Current Phase:** V1.0-D Operations / Observability / Performance Readiness — IMPLEMENTATION ACTIVE / D1 GREEN / D2–D5 MATERIAL CANDIDATE  
+**Current Phase:** V1.0-D Operations / Observability / Performance Readiness — STABLE-CANDIDATE EVIDENCE RECONCILIATION / PR #203 DRAFT  
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1  
@@ -807,7 +807,7 @@ Completed release: **V0.8 Management — COMPLETE AND ACCEPTED**.
 
 Current release: **V1.0 Production Readiness — ACTIVE**.
 
-Current stage: **V1.0-D OPERATIONS / OBSERVABILITY / PERFORMANCE READINESS — IMPLEMENTATION ACTIVE / D1 GREEN / D2–D5 MATERIAL CANDIDATE.** PR #202 squash-merged as `810c8b31142083ee51b1d93f9b43313c02572264`; exact-main CI #4010 PASS. Branch `v1.0-d-operations-readiness` was created from that exact green main. D1 passed push CI #4012. D2–D5 now cover structured local logging/rotation, operations runbook, bounded representative benchmark evidence and explicit material-effect concurrency/idempotency evidence; exact-head candidate CI is next.
+Current stage: **V1.0-D OPERATIONS / OBSERVABILITY / PERFORMANCE READINESS — STABLE-CANDIDATE EVIDENCE RECONCILIATION / PR #203 DRAFT.** Material implementation head `f24bd5a9133fd1089f97d7fcbe719a4517e239db` passed push CI #4015 end-to-end, including full regression, Production fail-closed rehearsal, authenticated live acceptance, bounded non-Production benchmark and recovery drill. Final benchmark/status evidence is being committed before exact-head push + PR CI and one DEC-022 stable-candidate review.
 
 Immediate sequence:
 
