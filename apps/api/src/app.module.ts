@@ -7,6 +7,7 @@ import { AuthModule } from './auth/auth.module';
 import { AuthorizationModule } from './authorization/authorization.module';
 import { BudgetModule } from './budget/budget.module';
 import { CorrelationIdMiddleware } from './common/correlation-id.middleware';
+import { OperationalLoggingMiddleware } from './common/operational-logging.middleware';
 import { CostControlModule } from './cost-control/cost-control.module';
 import { HealthModule } from './health/health.module';
 import { InventoryModule } from './inventory/inventory.module';
@@ -52,6 +53,6 @@ import { WbsModule } from './wbs/wbs.module';
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {
-    consumer.apply(CorrelationIdMiddleware).forRoutes('*');
+    consumer.apply(CorrelationIdMiddleware, OperationalLoggingMiddleware).forRoutes('*');
   }
 }

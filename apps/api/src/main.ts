@@ -1,14 +1,18 @@
 import 'reflect-metadata';
 import 'dotenv/config';
 
+import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 
 import { AppModule } from './app.module';
 import { corsOriginPolicy } from './common/cors-origin';
+import { serializeOperationalEvent } from './common/operational-log';
 import { ProblemDetailsFilter } from './common/problem-details.filter';
 import { securityHeadersMiddleware } from './common/security-headers';
 import { requestBodyMaxBytes, validateProductionConfig } from './production-config';
+
+const operationalLogger = new Logger('Operational');
 
 function getPort(): number {
   const rawPort = process.env.API_PORT ?? '3000';
@@ -46,7 +50,21 @@ async function bootstrap(): Promise<void> {
   httpAdapter.disable?.('x-powered-by');
 
   const apiHost = process.env.API_HOST ?? '127.0.0.1';
-  await app.listen(getPort(), apiHost);
+  const apiPort = getPort();
+  await app.listen(apiPort, apiHost);
+  operationalLogger.log(
+    serializeOperationalEvent('service.start', {
+      nodeEnv: process.env.NODE_ENV ?? 'development',
+      port: apiPort,
+    }),
+  );
 }
 
-void bootstrap();
+void bootstrap().catch((error: unknown) => {
+  operationalLogger.error(
+    serializeOperationalEvent('service.start.failed', {
+      errorName: error instanceof Error ? error.name : 'UnknownError',
+    }),
+  );
+  process.exitCode = 1;
+});

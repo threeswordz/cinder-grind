@@ -1,12 +1,12 @@
 # Construction ERP — Master Requirements Register
 
 **Document Status:** Requirements Baseline v0.1  
-**Current Phase:** V1.0-D Operations / Observability / Performance Readiness — PRE-FLIGHT COMPLETE / IMPLEMENTATION AUTHORIZED, NOT STARTED  
+**Current Phase:** V1.0-D Operations / Observability / Performance Readiness — IMPLEMENTATION ACTIVE / D1 GREEN / D2–D5 MATERIAL CANDIDATE  
 **Architecture Baseline:** v0.1  
 **Source:** ERP-MASTER-BLUEPRINT.md  
 **Last Structural Review:** V0.8-E DEC-022 source-drilldown/live-state remediation — 2026-10-05
 
-**Live delivery note:** V0.1–V0.8 are complete and accepted at their applicable release gates. V1.0 entry is complete under DEC-026; V1.0-A, V1.0-B and V1.0-C are technically COMPLETE. V1.0-C PR #198 merged as `feb98b9e58e471a4190ac4bac531d6289d5fa4f4`; exact-main CI #3944 PASS; Issue #196 CLOSED / COMPLETED. V1.0-D pre-flight is COMPLETE: PR #201 squash-merged as `8f346c1c158ae5a04895f63b4190921ee2474016` and exact-main CI #4002 PASS. Implementation is AUTHORIZED but remains NOT STARTED. V1.0-E and AC-V10-039/040 remain later release-exit gates.
+**Live delivery note:** V0.1–V0.8 are complete and accepted at their applicable release gates. V1.0 entry is complete under DEC-026; V1.0-A, V1.0-B and V1.0-C are technically COMPLETE. V1.0-C PR #198 merged as `feb98b9e58e471a4190ac4bac531d6289d5fa4f4`; exact-main CI #3944 PASS; Issue #196 CLOSED / COMPLETED. V1.0-D Operations / Observability / Performance Readiness implementation is ACTIVE under Issue #200 on branch `v1.0-d-operations-readiness`. D1 readiness/correlation passed push CI #4012; D2–D5 are implemented on the current material candidate and await exact-head validation. No schema migration or new runtime dependency is introduced. V1.0-E and AC-V10-039/040 remain later release-exit gates.
 
 ---
 
