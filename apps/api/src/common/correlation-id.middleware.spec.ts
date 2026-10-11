@@ -8,10 +8,11 @@ type TestRequest = {
   correlationId?: string;
 };
 
-test('correlation middleware preserves a safe supplied identifier', () => {
+test('correlation middleware replaces a safe client-supplied identifier', () => {
   const middleware = new CorrelationIdMiddleware();
+  const supplied = 'request_123-abc';
   const request: TestRequest = {
-    headers: { 'x-correlation-id': 'request_123-abc' },
+    headers: { 'x-correlation-id': supplied },
   };
   let headerValue = '';
   let nextCalled = false;
@@ -22,12 +23,13 @@ test('correlation middleware preserves a safe supplied identifier', () => {
     () => { nextCalled = true; },
   );
 
-  assert.equal(request.correlationId, 'request_123-abc');
-  assert.equal(headerValue, 'request_123-abc');
+  assert.match(request.correlationId ?? '', /^[0-9a-f-]{36}$/i);
+  assert.notEqual(request.correlationId, supplied);
+  assert.equal(headerValue, request.correlationId);
   assert.equal(nextCalled, true);
 });
 
-test('correlation middleware replaces unsafe supplied identifiers', () => {
+test('correlation middleware replaces an unsafe client-supplied identifier', () => {
   const middleware = new CorrelationIdMiddleware();
   const request: TestRequest = {
     headers: { 'x-correlation-id': 'unsafe\r\nheader' },
