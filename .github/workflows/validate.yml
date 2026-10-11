@@ -393,7 +393,7 @@ jobs:
             cat /tmp/construction-erp-missing-storage.log
             exit 1
           fi
-          grep -q 'storage sentinel is missing' /tmp/construction-erp-missing-storage.log
+          grep -q '"reason":"storage_sentinel_missing_or_invalid"' /tmp/construction-erp-missing-storage.log
           printf '%s\n' 'construction-erp-production-storage-v1:ci-production' > "$STORAGE_ROOT/.construction-erp-storage-ready"
 
           set +e
@@ -405,7 +405,7 @@ jobs:
             cat /tmp/construction-erp-unsafe-production.log
             exit 1
           fi
-          grep -q "WEB_ORIGIN must use HTTPS" /tmp/construction-erp-unsafe-production.log
+          grep -q '"reason":"web_origin_requires_https"' /tmp/construction-erp-unsafe-production.log
       - name: Smoke API startup and run live acceptance
         run: |
           pnpm start:api > /tmp/construction-erp-api.log 2>&1 &

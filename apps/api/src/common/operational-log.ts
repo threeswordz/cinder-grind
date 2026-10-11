@@ -55,3 +55,18 @@ export function buildRequestOperationalEvent(input: {
     input.timestamp,
   );
 }
+
+export function startupFailureReason(error: unknown): string {
+  const message = error instanceof Error ? error.message : '';
+  if (
+    message.includes('Production document storage sentinel is missing') ||
+    message.includes('Production document storage sentinel is invalid') ||
+    message.includes('STORAGE_ROOT must exist and be writable')
+  ) {
+    return 'storage_sentinel_missing_or_invalid';
+  }
+  if (message.includes('WEB_ORIGIN must use HTTPS')) {
+    return 'web_origin_requires_https';
+  }
+  return 'startup_failed';
+}

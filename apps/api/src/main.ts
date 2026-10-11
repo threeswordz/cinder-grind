@@ -7,7 +7,7 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 
 import { AppModule } from './app.module';
 import { corsOriginPolicy } from './common/cors-origin';
-import { serializeOperationalEvent } from './common/operational-log';
+import { serializeOperationalEvent, startupFailureReason } from './common/operational-log';
 import { ProblemDetailsFilter } from './common/problem-details.filter';
 import { securityHeadersMiddleware } from './common/security-headers';
 import { requestBodyMaxBytes, validateProductionConfig } from './production-config';
@@ -64,6 +64,7 @@ void bootstrap().catch((error: unknown) => {
   operationalLogger.error(
     serializeOperationalEvent('service.start.failed', {
       errorName: error instanceof Error ? error.name : 'UnknownError',
+      reason: startupFailureReason(error),
     }),
   );
   process.exitCode = 1;

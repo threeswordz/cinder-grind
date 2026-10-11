@@ -6,6 +6,7 @@ import {
   buildRequestOperationalEvent,
   safeOperationalPath,
   serializeOperationalEvent,
+  startupFailureReason,
 } from './operational-log';
 
 test('operational paths strip query strings and fragments', () => {
@@ -80,5 +81,22 @@ test('operational event builder preserves only explicit low-cardinality fields',
       releaseCommit: 'abc123',
       deploymentMode: 'upgrade',
     },
+  );
+});
+
+test('startup failure reasons are classified without exposing raw messages', () => {
+  assert.equal(
+    startupFailureReason(
+      new Error('Production document storage sentinel is missing; refusing startup because persistent storage may be unavailable.'),
+    ),
+    'storage_sentinel_missing_or_invalid',
+  );
+  assert.equal(
+    startupFailureReason(new Error('WEB_ORIGIN must use HTTPS when NODE_ENV=production.')),
+    'web_origin_requires_https',
+  );
+  assert.equal(
+    startupFailureReason(new Error('password=super-secret')),
+    'startup_failed',
   );
 });
