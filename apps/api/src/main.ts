@@ -6,8 +6,10 @@ import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 
 import { AppModule } from './app.module';
+import { CorrelationIdMiddleware } from './common/correlation-id.middleware';
 import { corsOriginPolicy } from './common/cors-origin';
 import { serializeOperationalEvent, startupFailureReason } from './common/operational-log';
+import { OperationalLoggingMiddleware } from './common/operational-logging.middleware';
 import { ProblemDetailsFilter } from './common/problem-details.filter';
 import { securityHeadersMiddleware } from './common/security-headers';
 import { requestBodyMaxBytes, validateProductionConfig } from './production-config';
@@ -32,6 +34,18 @@ async function bootstrap(): Promise<void> {
   const bodyLimit = requestBodyMaxBytes();
 
   app.setGlobalPrefix('api/v1');
+
+  // Install correlation and completion logging at the adapter level before
+  // body parsing so malformed/oversized requests remain observable.
+  const correlationIdMiddleware = new CorrelationIdMiddleware();
+  const operationalLoggingMiddleware = new OperationalLoggingMiddleware();
+  app.use((request, response, next) =>
+    correlationIdMiddleware.use(request, response, next),
+  );
+  app.use((request, response, next) =>
+    operationalLoggingMiddleware.use(request, response, next),
+  );
+
   app.useBodyParser('json', { limit: bodyLimit });
   app.useBodyParser('urlencoded', { limit: bodyLimit, extended: true });
   app.enableCors({
