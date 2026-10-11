@@ -148,56 +148,26 @@ const projectReadFlow = await runFlow('erp-project-list-read', async () => {
   return result.durationMs;
 });
 
-async function restoreProjectDescription() {
-  return authorizedRequest(`projects/${projectId}`, {
-    method: 'PATCH',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ description: originalDescription }),
-  });
-}
-
-let projectMutationFlow;
-let mutationFlowError;
-try {
-  projectMutationFlow = await runFlow(
-    'erp-project-description-update-and-restore',
-    async (index) => {
-      const marker = `V1.0-D benchmark ${process.pid}-${Date.now()}-${index}`;
-      let mutationMayHaveBeenSent = false;
-      try {
-        mutationMayHaveBeenSent = true;
-        const result = await authorizedRequest(`projects/${projectId}`, {
-          method: 'PATCH',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ description: marker }),
-        });
-        return result.durationMs;
-      } finally {
-        if (mutationMayHaveBeenSent) {
-          await restoreProjectDescription();
-        }
-      }
-    },
-    1,
-  );
-} catch (error) {
-  mutationFlowError = error;
-}
-
-// Always make one final idempotent restore attempt after the mutation flow. A
-// failed response is ambiguous: the server may still have committed the PATCH,
-// so final state is determined by the authoritative read below.
-try {
-  await restoreProjectDescription();
-} catch {
-  // Verification below decides whether cleanup actually succeeded.
-}
+const projectMutationFlow = await runFlow(
+  'erp-project-description-idempotent-update',
+  async () => {
+    // Write the fixture's already-authoritative value. This still exercises the
+    // authenticated Project mutation transaction + audit path, while a late or
+    // ambiguous response cannot leave a benchmark marker behind.
+    const result = await authorizedRequest(`projects/${projectId}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ description: originalDescription }),
+    });
+    return result.durationMs;
+  },
+  1,
+);
 
 const verification = await authorizedRequest(`projects/${projectId}`);
 if ((verification.data?.data?.description ?? null) !== originalDescription) {
-  throw new Error('Benchmark cleanup did not restore the Project description.');
+  throw new Error('Benchmark Project description changed unexpectedly.');
 }
-if (mutationFlowError) throw mutationFlowError;
 
 console.log(
   JSON.stringify({
@@ -210,12 +180,12 @@ console.log(
     timing: 'end-to-end through complete response-body consumption',
     fixture: {
       projectId: 'existing-authorized-project',
-      businessMutation: 'Project description update with deterministic restore',
+      businessMutation: 'Idempotent Project description update using the existing authoritative value',
     },
     flows: [readinessFlow, projectReadFlow, projectMutationFlow],
     limitations: [
       'Results apply only to the tested non-Production environment and fixture.',
-      'Project mutation concurrency is intentionally 1 so each measured update is restored deterministically before the next sample.',
+      'Project mutation concurrency is intentionally 1 and writes the fixture\'s existing description value, so an ambiguous or delayed response cannot leave benchmark state behind.',
       'Audit evidence from the reversible Project update remains part of the non-Production fixture.',
       'This evidence is not a contractual SLA, universal capacity ceiling, or hosting-size guarantee.',
     ],
