@@ -186,7 +186,7 @@ console.log(
     limitations: [
       'Results apply only to the tested non-Production environment and fixture.',
       'Project mutation concurrency is intentionally 1 and writes the fixture\'s existing description value, so an ambiguous or delayed response cannot leave benchmark state behind.',
-      'Audit evidence from the reversible Project update remains part of the non-Production fixture.',
+      'Audit evidence from the idempotent Project update remains part of the non-Production fixture.',
       'This evidence is not a contractual SLA, universal capacity ceiling, or hosting-size guarantee.',
     ],
   }),
