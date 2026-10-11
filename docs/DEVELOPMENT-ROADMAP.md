@@ -807,7 +807,7 @@ Completed release: **V0.8 Management — COMPLETE AND ACCEPTED**.
 
 Current release: **V1.0 Production Readiness — ACTIVE**.
 
-Current stage: **V1.0-D OPERATIONS / OBSERVABILITY / PERFORMANCE READINESS — PRE-FLIGHT COMPLETE / IMPLEMENTATION AUTHORIZED, NOT STARTED.** Pre-flight PR #201 final exact head `8c8307c7c9120c38db0b9b728b38bff47b371b8d` passed push CI #4000 / PR CI #4001 and clean fresh DEC-022 re-review after the single P2 documentation-consistency finding was remediated. PR #201 squash-merged as `8f346c1c158ae5a04895f63b4190921ee2474016`; exact-main CI #4002 PASS. Begin V1.0-D implementation only from a fresh branch based on this exact green main.
+Current stage: **V1.0-D OPERATIONS / OBSERVABILITY / PERFORMANCE READINESS — PRE-FLIGHT COMPLETE / IMPLEMENTATION AUTHORIZED, NOT STARTED.** Pre-flight PR #201 final exact head `8c8307c7c9120c38db0b9b728b38bff47b371b8d` passed push CI #4000 / PR CI #4001 and clean fresh DEC-022 re-review after the single P2 documentation-consistency finding was remediated. PR #201 squash-merged as `8f346c1c158ae5a04895f63b4190921ee2474016`; exact-main CI #4002 PASS. Do not begin V1.0-D implementation until this closure reconciliation merges and its resulting exact-main CI passes; then create the fresh implementation branch from that resulting exact green `main`.
 
 Immediate sequence:
 
