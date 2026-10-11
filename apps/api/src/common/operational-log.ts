@@ -31,12 +31,12 @@ export function serializeOperationalEvent(
 }
 
 export function buildRequestOperationalEvent(input: {
-  method?: string;
-  url?: string;
+  method?: string | undefined;
+  url?: string | undefined;
   statusCode: number;
   durationMs: number;
-  correlationId?: string;
-  timestamp?: string;
+  correlationId?: string | undefined;
+  timestamp?: string | undefined;
 }): Record<string, OperationalLogValue> {
   const path = safeOperationalPath(input.url);
   const isLogin = path === '/api/v1/auth/login';
