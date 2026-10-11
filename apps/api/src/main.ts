@@ -26,7 +26,6 @@ function getPort(): number {
 async function bootstrap(): Promise<void> {
   validateProductionConfig(process.env);
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
-    bufferLogs: true,
     bodyParser: false,
   });
   const webOrigin = process.env.WEB_ORIGIN ?? 'http://localhost:5173';

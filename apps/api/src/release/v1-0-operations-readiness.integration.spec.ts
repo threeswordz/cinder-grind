@@ -13,7 +13,7 @@ test('V1.0-D CI retains material idempotency/concurrency regressions', () => {
 
   for (const required of [
     'dist/approval/approval.integration.spec.js',
-    'dist/inventory/inventory.integration.spec.js',
+    'dist/procurement/purchase-order.integration.spec.js',
     'dist/subcontracts/subcontracts-claims-concurrency.integration.spec.js',
     'dist/finance/finance.integration.spec.js',
   ]) {
