@@ -1,12 +1,12 @@
 # Construction ERP — Master Requirements Register
 
 **Document Status:** Requirements Baseline v0.1  
-**Current Phase:** V1.0-D Operations / Observability / Performance Readiness — CODEX REMEDIATION HEAD GREEN / RE-REVIEW PENDING  
+**Current Phase:** V1.0-D Operations / Observability / Performance Readiness — FINAL CODEX EVIDENCE RECONCILIATION  
 **Architecture Baseline:** v0.1  
 **Source:** ERP-MASTER-BLUEPRINT.md  
 **Last Structural Review:** V0.8-E DEC-022 source-drilldown/live-state remediation — 2026-10-05
 
-**Live delivery note:** V0.1–V0.8 are complete and accepted at their applicable release gates. V1.0 entry is complete under DEC-026; V1.0-A, V1.0-B and V1.0-C are technically COMPLETE. V1.0-C PR #198 merged as `feb98b9e58e471a4190ac4bac531d6289d5fa4f4`; exact-main CI #3944 PASS; Issue #196 CLOSED / COMPLETED. V1.0-D Operations / Observability / Performance Readiness is in CODEX REMEDIATION EVIDENCE RECONCILIATION under Issue #200 / PR #203 / branch `v1.0-d-operations-readiness`. First stable-candidate Codex review found 2 P1 / 1 P2 genuine findings; all three are remediated on head `8729de04ccebe82c2a3ad12a4872f588e68a54f2`, which passed exact-head push CI #4019 and PR CI #4020 end-to-end. Final evidence-only reconciliation plus one DEC-022 material re-review remain before merge. No schema migration or new runtime dependency is introduced. V1.0-E and AC-V10-039/040 remain later release-exit gates.
+**Live delivery note:** V0.1–V0.8 are complete and accepted at their applicable release gates. V1.0 entry is complete under DEC-026; V1.0-A, V1.0-B and V1.0-C are technically COMPLETE. V1.0-C PR #198 merged as `feb98b9e58e471a4190ac4bac531d6289d5fa4f4`; exact-main CI #3944 PASS; Issue #196 CLOSED / COMPLETED. V1.0-D Operations / Observability / Performance Readiness is at FINAL CODEX EVIDENCE RECONCILIATION under Issue #200 / PR #203. Across two review rounds Codex found 5 genuine findings total (3 P1 / 2 P2); all are remediated. Second remediation head `232687bc36a1a45bff3d6e909cc4d89708aea30f` passed push CI #4023 and PR CI #4024 end-to-end, including real storage write/delete readiness probing, complete-response benchmark timing, full regression, live acceptance and recovery drill. Final evidence-only exact-head CI plus one final DEC-022 review remain before merge. No schema migration or new runtime dependency is introduced. V1.0-E and AC-V10-039/040 remain later release-exit gates.
 
 ---
 
