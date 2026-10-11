@@ -49,7 +49,9 @@ pnpm typecheck
 pnpm build
 
 echo "Verified recovery point: $RECOVERY_POINT_REFERENCE (deployment mode: $DEPLOYMENT_MODE)"
+printf '{"event":"migration.start","releaseCommit":"%s","deploymentMode":"%s"}\n' "$RELEASE_COMMIT" "$DEPLOYMENT_MODE"
 pnpm prisma:migrate:deploy
+printf '{"event":"migration.complete","releaseCommit":"%s","deploymentMode":"%s"}\n' "$RELEASE_COMMIT" "$DEPLOYMENT_MODE"
 pnpm --filter @construction-erp/api exec prisma migrate status
 
 echo "Production release $RELEASE_COMMIT prepared successfully."

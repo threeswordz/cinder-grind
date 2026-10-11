@@ -7,6 +7,8 @@ import {
   Logger,
 } from '@nestjs/common';
 
+import { serializeOperationalEvent } from './operational-log';
+
 type CorrelatedRequest = { url?: string; correlationId?: string };
 type HttpResponse = {
   status(code: number): HttpResponse;
@@ -64,18 +66,12 @@ export class ProblemDetailsFilter implements ExceptionFilter {
       typeof body.code === 'string' ? body.code : this.defaultCode(status);
 
     if (!isHttpException) {
-      if (process.env.NODE_ENV === 'production') {
-        this.logger.error(
-          `Unhandled request error ${JSON.stringify(
-            productionErrorLogContext(exception, request),
-          )}`,
-        );
-      } else {
-        this.logger.error(
-          'Unhandled request error',
-          exception instanceof Error ? exception.stack : String(exception),
-        );
-      }
+      this.logger.error(
+        serializeOperationalEvent(
+          'http.unhandled_error',
+          productionErrorLogContext(exception, request),
+        ),
+      );
     }
 
     response.status(status);

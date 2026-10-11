@@ -76,6 +76,7 @@ jobs:
           node --check deploy/production/load-env.mjs
           node --check deploy/production/validate-env.mjs
           node --check apps/api/scripts/verify-production-target.mjs
+          node --check apps/api/scripts/v1-0-d-benchmark.mjs
           bash -n deploy/recovery/*.sh
           node --check deploy/recovery/manifest.mjs
           node --check deploy/recovery/path-safety.mjs
@@ -392,7 +393,7 @@ jobs:
             cat /tmp/construction-erp-missing-storage.log
             exit 1
           fi
-          grep -q 'storage sentinel is missing' /tmp/construction-erp-missing-storage.log
+          grep -q '"reason":"storage_sentinel_missing_or_invalid"' /tmp/construction-erp-missing-storage.log
           printf '%s\n' 'construction-erp-production-storage-v1:ci-production' > "$STORAGE_ROOT/.construction-erp-storage-ready"
 
           set +e
@@ -404,7 +405,7 @@ jobs:
             cat /tmp/construction-erp-unsafe-production.log
             exit 1
           fi
-          grep -q "WEB_ORIGIN must use HTTPS" /tmp/construction-erp-unsafe-production.log
+          grep -q '"reason":"web_origin_requires_https"' /tmp/construction-erp-unsafe-production.log
       - name: Smoke API startup and run live acceptance
         run: |
           pnpm start:api > /tmp/construction-erp-api.log 2>&1 &
@@ -436,6 +437,31 @@ jobs:
 
           echo "API startup smoke passed."
           bash deploy/uat/runtime-acceptance.sh
+
+          # Regression: parser failures must still receive a server correlation
+          # ID and produce the matching request-completion operational event.
+          parser_status="$(curl --silent --show-error \
+            --dump-header /tmp/v1-0-d-parser-headers \
+            --output /tmp/v1-0-d-parser-body \
+            --write-out '%{http_code}' \
+            --header 'Content-Type: application/json' \
+            --data-binary '{"email":' \
+            http://127.0.0.1:3000/api/v1/auth/login)"
+          test "$parser_status" = "400"
+          parser_correlation="$(awk 'BEGIN { IGNORECASE=1 } /^X-Correlation-ID:/ { gsub("\\r", "", $2); print $2 }' /tmp/v1-0-d-parser-headers | tail -n 1)"
+          test -n "$parser_correlation"
+          grep -F "\"correlationId\":\"$parser_correlation\"" /tmp/construction-erp-api.log \
+            | grep -Fq '"status":400'
+
+          BENCHMARK_NON_PRODUCTION_CONFIRMED=YES \
+          BENCHMARK_ENVIRONMENT=ci \
+          BENCHMARK_BASE_URL=http://127.0.0.1:3000/api/v1 \
+          BENCHMARK_EMAIL="$BOOTSTRAP_ADMIN_EMAIL" \
+          BENCHMARK_PASSWORD="$BOOTSTRAP_ADMIN_PASSWORD" \
+          BENCHMARK_ITERATIONS=12 \
+          BENCHMARK_CONCURRENCY=2 \
+          node apps/api/scripts/v1-0-d-benchmark.mjs | tee /tmp/v1-0-d-benchmark.json
+          grep -q '"benchmark":"v1.0-d-representative-capacity"' /tmp/v1-0-d-benchmark.json
       - name: Run V1.0-B paired recovery and isolated restore drill
         run: |
           set -euo pipefail

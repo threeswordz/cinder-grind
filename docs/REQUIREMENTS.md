@@ -1,12 +1,12 @@
 # Construction ERP — Master Requirements Register
 
 **Document Status:** Requirements Baseline v0.1  
-**Current Phase:** V1.0-D Operations / Observability / Performance Readiness — PRE-FLIGHT COMPLETE / IMPLEMENTATION AUTHORIZED, NOT STARTED  
+**Current Phase:** V1.0-D Operations / Observability / Performance Readiness — FINAL CODEX EVIDENCE RECONCILIATION  
 **Architecture Baseline:** v0.1  
 **Source:** ERP-MASTER-BLUEPRINT.md  
 **Last Structural Review:** V0.8-E DEC-022 source-drilldown/live-state remediation — 2026-10-05
 
-**Live delivery note:** V0.1–V0.8 are complete and accepted at their applicable release gates. V1.0 entry is complete under DEC-026; V1.0-A, V1.0-B and V1.0-C are technically COMPLETE. V1.0-C PR #198 merged as `feb98b9e58e471a4190ac4bac531d6289d5fa4f4`; exact-main CI #3944 PASS; Issue #196 CLOSED / COMPLETED. V1.0-D pre-flight is COMPLETE: PR #201 squash-merged as `8f346c1c158ae5a04895f63b4190921ee2474016` and exact-main CI #4002 PASS. Implementation is AUTHORIZED but remains NOT STARTED. V1.0-E and AC-V10-039/040 remain later release-exit gates.
+**Live delivery note:** V0.1–V0.8 are complete and accepted at their applicable release gates. V1.0 entry is complete under DEC-026; V1.0-A, V1.0-B and V1.0-C are technically COMPLETE. V1.0-C PR #198 merged as `feb98b9e58e471a4190ac4bac531d6289d5fa4f4`; exact-main CI #3944 PASS; Issue #196 CLOSED / COMPLETED. V1.0-D Operations / Observability / Performance Readiness is at FINAL DEC-022 DOCUMENTATION RECONCILIATION under Issue #200 / PR #203. Across six Codex review rounds, 12 genuine findings total (3 P1 / 9 P2) were identified. The 10 code/runtime/test findings are remediated on final material head `3a2a823bdaa72269fd3d43ade3e427accd957f7b`, which passed exact-head push CI #4053 and PR CI #4054 end-to-end, including full workspace regression, parser-failure correlation/logging coverage, real document-storage readiness probing plus rollback-safe cleanup, authenticated live acceptance, body-inclusive representative Project read/idempotent-update benchmark, and paired recovery/restore drill. The tenth and eleventh documentation/status P2s are remediated; the sixth review identified a twelfth P2 in the Production document read path, remediated on `3a2a823bdaa72269fd3d43ade3e427accd957f7b` so existing downloads do not depend on write-capacity readiness. Its resulting exact-head CI and one final DEC-022 exact-head review remain required before merge. No schema migration or new runtime dependency is introduced. V1.0-E and AC-V10-039/040 Product / Business Owner release-exit gates remain later.
 
 ---
 

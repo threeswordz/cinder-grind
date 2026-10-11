@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { constants } from 'node:fs';
-import { copyFile, mkdir, readFile, unlink, writeFile } from 'node:fs/promises';
+import { access, copyFile, mkdir, readFile, unlink, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import { DocumentStorage, StoredDocument } from './document-storage';
@@ -18,23 +18,84 @@ export class LocalDocumentStorage extends DocumentStorage {
     process.env.STORAGE_ROOT ?? '../../storage',
   );
 
-  async put(bytes: Buffer): Promise<StoredDocument> {
-    if (process.env.NODE_ENV === 'production') {
-      await this.assertProductionStorageReady();
-    } else {
-      await mkdir(this.root, { recursive: true });
+  async assertReady(): Promise<void> {
+    try {
+      await this.assertStorageIdentity();
+      await this.probeWriteReadiness();
+    } catch {
+      throw this.storageUnavailable();
     }
+  }
+
+  private async assertStorageIdentity(): Promise<void> {
+    if (process.env.NODE_ENV === 'production') {
+      const deploymentId = process.env.STORAGE_DEPLOYMENT_ID;
+      if (!deploymentId) throw new Error('missing storage deployment identity');
+      await access(this.root, constants.R_OK | constants.W_OK);
+      const sentinel = await readFile(
+        path.join(this.root, '.construction-erp-storage-ready'),
+        'utf8',
+      );
+      if (sentinel.trim() !== `construction-erp-production-storage-v1:${deploymentId}`) {
+        throw new Error('invalid sentinel');
+      }
+      return;
+    }
+
+    await mkdir(this.root, { recursive: true });
+    await access(this.root, constants.R_OK | constants.W_OK);
+  }
+
+  private async assertStorageIdentityReady(): Promise<void> {
+    try {
+      await this.assertStorageIdentity();
+    } catch {
+      throw this.storageUnavailable();
+    }
+  }
+
+  private storageUnavailable(): ServiceUnavailableException {
+    return new ServiceUnavailableException({
+      code: 'DOCUMENT_STORAGE_UNAVAILABLE',
+      detail: 'Persistent document storage is unavailable.',
+    });
+  }
+
+  private async probeWriteReadiness(): Promise<void> {
+    const probePath = path.join(
+      this.root,
+      `.construction-erp-readiness-${randomUUID()}`,
+    );
+    let created = false;
+    try {
+      await writeFile(probePath, Buffer.from('ready'), {
+        flag: 'wx',
+        mode: 0o600,
+      });
+      created = true;
+      await unlink(probePath);
+      created = false;
+    } finally {
+      if (created) {
+        try {
+          await unlink(probePath);
+        } catch {
+          // Best-effort cleanup; the readiness call still fails with the
+          // original write/unlink error so operators do not receive a false OK.
+        }
+      }
+    }
+  }
+
+  async put(bytes: Buffer): Promise<StoredDocument> {
+    await this.assertReady();
     const storageKey = randomUUID();
     await writeFile(this.resolveKey(storageKey), bytes, { flag: 'wx' });
     return { storageProvider: 'LOCAL', storageKey };
   }
 
   async putFile(sourcePath: string): Promise<StoredDocument> {
-    if (process.env.NODE_ENV === 'production') {
-      await this.assertProductionStorageReady();
-    } else {
-      await mkdir(this.root, { recursive: true });
-    }
+    await this.assertReady();
     const storageKey = randomUUID();
     const target = this.resolveKey(storageKey);
     try {
@@ -51,7 +112,9 @@ export class LocalDocumentStorage extends DocumentStorage {
   }
 
   async read(storageKey: string): Promise<Buffer> {
-    if (process.env.NODE_ENV === 'production') await this.assertProductionStorageReady();
+    if (process.env.NODE_ENV === 'production') {
+      await this.assertStorageIdentityReady();
+    }
     try {
       return await readFile(this.resolveKey(storageKey));
     } catch (error) {
@@ -66,27 +129,13 @@ export class LocalDocumentStorage extends DocumentStorage {
   }
 
   async remove(storageKey: string): Promise<void> {
-    if (process.env.NODE_ENV === 'production') await this.assertProductionStorageReady();
+    if (process.env.NODE_ENV === 'production') {
+      await this.assertStorageIdentityReady();
+    }
     try {
       await unlink(this.resolveKey(storageKey));
     } catch (error) {
       if (this.errorCode(error) !== 'ENOENT') throw error;
-    }
-  }
-
-  private async assertProductionStorageReady(): Promise<void> {
-    try {
-      const deploymentId = process.env.STORAGE_DEPLOYMENT_ID;
-      if (!deploymentId) throw new Error('missing storage deployment identity');
-      const sentinel = await readFile(path.join(this.root, '.construction-erp-storage-ready'), 'utf8');
-      if (sentinel.trim() !== `construction-erp-production-storage-v1:${deploymentId}`) {
-        throw new Error('invalid sentinel');
-      }
-    } catch {
-      throw new ServiceUnavailableException({
-        code: 'DOCUMENT_STORAGE_UNAVAILABLE',
-        detail: 'Persistent document storage is unavailable.',
-      });
     }
   }
 
