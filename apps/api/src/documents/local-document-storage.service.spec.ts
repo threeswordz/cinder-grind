@@ -58,3 +58,34 @@ test('production readiness keeps the deployment sentinel and cleans only its pro
     );
   });
 });
+
+test('production rollback removal validates storage identity without requiring a write probe', async () => {
+  await withStorageEnvironment('production', async (root) => {
+    process.env.STORAGE_DEPLOYMENT_ID = 'rollback-spec';
+    await writeFile(
+      path.join(root, '.construction-erp-storage-ready'),
+      'construction-erp-production-storage-v1:rollback-spec\n',
+      { mode: 0o600 },
+    );
+
+    const storageKey = '00000000-0000-4000-8000-000000000000';
+    await writeFile(path.join(root, storageKey), 'rollback-me');
+
+    const storage = new LocalDocumentStorage();
+    (
+      storage as unknown as {
+        probeWriteReadiness: () => Promise<void>;
+      }
+    ).probeWriteReadiness = async () => {
+      throw Object.assign(new Error('disk full'), { code: 'ENOSPC' });
+    };
+
+    await storage.remove(storageKey);
+
+    assert.deepEqual(
+      (await readdir(root)).sort(),
+      ['.construction-erp-storage-ready'],
+    );
+  });
+});
+
