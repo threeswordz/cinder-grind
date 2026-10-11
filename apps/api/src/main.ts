@@ -39,12 +39,8 @@ async function bootstrap(): Promise<void> {
   // body parsing so malformed/oversized requests remain observable.
   const correlationIdMiddleware = new CorrelationIdMiddleware();
   const operationalLoggingMiddleware = new OperationalLoggingMiddleware();
-  app.use((request, response, next) =>
-    correlationIdMiddleware.use(request, response, next),
-  );
-  app.use((request, response, next) =>
-    operationalLoggingMiddleware.use(request, response, next),
-  );
+  app.use(correlationIdMiddleware.use.bind(correlationIdMiddleware));
+  app.use(operationalLoggingMiddleware.use.bind(operationalLoggingMiddleware));
 
   app.useBodyParser('json', { limit: bodyLimit });
   app.useBodyParser('urlencoded', { limit: bodyLimit, extended: true });
