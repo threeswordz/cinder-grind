@@ -807,7 +807,7 @@ Completed release: **V0.8 Management — COMPLETE AND ACCEPTED**.
 
 Current release: **V1.0 Production Readiness — ACTIVE**.
 
-Current stage: **V1.0-D OPERATIONS / OBSERVABILITY / PERFORMANCE READINESS — FINAL DEC-022 DOCUMENTATION RECONCILIATION.** Across six Codex review rounds, 12 genuine findings total (3 P1 / 9 P2) were identified. The 10 code/runtime/test findings are remediated on final material head `3a2a823bdaa72269fd3d43ade3e427accd957f7b`, push CI #4053 / PR CI #4054 PASS. The tenth and eleventh documentation/status P2s are remediated; the sixth review identified a twelfth P2 in the Production document read path, remediated on `3a2a823bdaa72269fd3d43ade3e427accd957f7b` so existing downloads do not depend on write-capacity readiness. Exact-head CI and one final Codex re-review remain before merge.
+Current stage: **V1.0-D TECHNICALLY COMPLETE — V1.0-E NEXT / NOT STARTED.** Final exact head `611132a6a488c06f710e9d7fbd067f51f9fa8a6c` passed push CI #4055 / PR CI #4056 and clean final DEC-022 exact-head re-review. PR #203 squash-merged as `853ccdb73f5a8cb7cc2ec16edf49eeb50005692f`; exact-main CI #4057 PASS. Across six review rounds, all 12 genuine findings (3 P1 / 9 P2) are remediated. Closure reconciliation PR #204 is documentation-only and does not begin V1.0-E.
 
 Immediate sequence:
 
