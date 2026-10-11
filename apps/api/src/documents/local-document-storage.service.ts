@@ -20,28 +20,45 @@ export class LocalDocumentStorage extends DocumentStorage {
 
   async assertReady(): Promise<void> {
     try {
-      if (process.env.NODE_ENV === 'production') {
-        const deploymentId = process.env.STORAGE_DEPLOYMENT_ID;
-        if (!deploymentId) throw new Error('missing storage deployment identity');
-        await access(this.root, constants.R_OK | constants.W_OK);
-        const sentinel = await readFile(
-          path.join(this.root, '.construction-erp-storage-ready'),
-          'utf8',
-        );
-        if (sentinel.trim() !== `construction-erp-production-storage-v1:${deploymentId}`) {
-          throw new Error('invalid sentinel');
-        }
-      } else {
-        await mkdir(this.root, { recursive: true });
-        await access(this.root, constants.R_OK | constants.W_OK);
-      }
+      await this.assertStorageIdentity();
       await this.probeWriteReadiness();
     } catch {
-      throw new ServiceUnavailableException({
-        code: 'DOCUMENT_STORAGE_UNAVAILABLE',
-        detail: 'Persistent document storage is unavailable.',
-      });
+      throw this.storageUnavailable();
     }
+  }
+
+  private async assertStorageIdentity(): Promise<void> {
+    if (process.env.NODE_ENV === 'production') {
+      const deploymentId = process.env.STORAGE_DEPLOYMENT_ID;
+      if (!deploymentId) throw new Error('missing storage deployment identity');
+      await access(this.root, constants.R_OK | constants.W_OK);
+      const sentinel = await readFile(
+        path.join(this.root, '.construction-erp-storage-ready'),
+        'utf8',
+      );
+      if (sentinel.trim() !== `construction-erp-production-storage-v1:${deploymentId}`) {
+        throw new Error('invalid sentinel');
+      }
+      return;
+    }
+
+    await mkdir(this.root, { recursive: true });
+    await access(this.root, constants.R_OK | constants.W_OK);
+  }
+
+  private async assertStorageIdentityReady(): Promise<void> {
+    try {
+      await this.assertStorageIdentity();
+    } catch {
+      throw this.storageUnavailable();
+    }
+  }
+
+  private storageUnavailable(): ServiceUnavailableException {
+    return new ServiceUnavailableException({
+      code: 'DOCUMENT_STORAGE_UNAVAILABLE',
+      detail: 'Persistent document storage is unavailable.',
+    });
   }
 
   private async probeWriteReadiness(): Promise<void> {
@@ -110,7 +127,9 @@ export class LocalDocumentStorage extends DocumentStorage {
   }
 
   async remove(storageKey: string): Promise<void> {
-    if (process.env.NODE_ENV === 'production') await this.assertReady();
+    if (process.env.NODE_ENV === 'production') {
+      await this.assertStorageIdentityReady();
+    }
     try {
       await unlink(this.resolveKey(storageKey));
     } catch (error) {
