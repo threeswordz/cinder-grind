@@ -67,7 +67,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-if [[ "$RC_POSTGRES_TOOOL_MODE" == "docker" ]]; then
+if [[ "$RC_POSTGRES_TOOL_MODE" == "docker" ]]; then
   command -v docker >/dev/null || fail "required command not found: docker"
   cat > "$tool_dir/psql" <<'PSQL'
 #!/usr/bin/env bash
