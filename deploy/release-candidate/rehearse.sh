@@ -51,15 +51,20 @@ mkdir -p "$tool_dir" "$storage_root" "$recovery_root" "$tls_dir"
 api_pid=""
 proxy_pid=""
 admin_pgpass=""
+# Track only databases created successfully by this invocation.
+created_databases=()
 
 cleanup() {
   set +e
   [[ -n "$proxy_pid" ]] && kill "$proxy_pid" >/dev/null 2>&1
   [[ -n "$api_pid" ]] && kill "$api_pid" >/dev/null 2>&1
   if [[ -n "$admin_pgpass" && -f "$admin_pgpass" && -n "${native_admin_url:-}" ]]; then
-    for db in construction_erp_v10e_restore construction_erp_v10e_upgrade construction_erp_v10e_fresh; do
-      PGPASSFILE="$admin_pgpass" psql "$native_admin_url" --no-psqlrc --set=ON_ERROR_STOP=1 \
-        --command="DROP DATABASE IF EXISTS \"$db\" WITH (FORCE)" >/dev/null 2>&1
+    for db in "${created_databases[@]}"; do
+      # Defensive validation: never interpolate an unvalidated identifier in SQL.
+      if [[ "$db" =~ ^construction_erp_v10e_(fresh|upgrade)_[a-f0-9]{12}$ ]]; then
+        PGPASSFILE="$admin_pgpass" psql "$native_admin_url" --no-psqlrc --set=ON_ERROR_STOP=1 \
+          --command="DROP DATABASE IF EXISTS \"$db\" WITH (FORCE)" >/dev/null 2>&1
+      fi
     done
   fi
   [[ -n "$admin_pgpass" ]] && rm -f "$admin_pgpass"
@@ -108,24 +113,30 @@ fi
 database_url() {
   RC_BASE_DATABASE_URL="$RC_BASE_DATABASE_URL" node "$RC_DIR/database-url.mjs" "$1"
 }
-fresh_url="$(database_url construction_erp_v10e_fresh)"
-upgrade_url="$(database_url construction_erp_v10e_upgrade)"
+# Unique names for concurrent runs; collision means fail closed (never drop/reuse).
+run_token="$(node -e "process.stdout.write(require('node:crypto').randomBytes(6).toString('hex'))")"
+fresh_database="construction_erp_v10e_fresh_${run_token}"
+upgrade_database="construction_erp_v10e_upgrade_${run_token}"
+fresh_url="$(database_url "$fresh_database")"
+upgrade_url="$(database_url "$upgrade_database")"
 admin_url="$(database_url postgres)"
 
 admin_pgpass="$(mktemp)"
 chmod 600 "$admin_pgpass"
 native_admin_url="$(POSTGRES_RAW_URL="$admin_url" PGPASSFILE="$admin_pgpass" node deploy/recovery/postgres-url.mjs)"
 
-reset_database() {
+create_rehearsal_database() {
   local database_name="$1"
-  PGPASSFILE="$admin_pgpass" psql "$native_admin_url" --no-psqlrc --set=ON_ERROR_STOP=1 \
-    --command="DROP DATABASE IF EXISTS \"$database_name\" WITH (FORCE)"
+  [[ "$database_name" =~ ^construction_erp_v10e_(fresh|upgrade)_[a-f0-9]{12}$ ]] \
+    || fail "invalid rehearsal database name"
+  # CREATE fails if the name already exists. Never drop an existing database.
   PGPASSFILE="$admin_pgpass" psql "$native_admin_url" --no-psqlrc --set=ON_ERROR_STOP=1 \
     --command="CREATE DATABASE \"$database_name\""
+  created_databases+=("$database_name")
 }
 
-reset_database construction_erp_v10e_fresh
-reset_database construction_erp_v10e_upgrade
+create_rehearsal_database "$fresh_database"
+create_rehearsal_database "$upgrade_database"
 
 echo "[V1.0-E] Fresh migration-from-zero rehearsal"
 DATABASE_URL="$fresh_url" DEPLOYMENT_MODE=fresh node apps/api/scripts/verify-production-target.mjs
