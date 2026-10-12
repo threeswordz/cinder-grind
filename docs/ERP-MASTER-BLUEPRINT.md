@@ -1707,7 +1707,7 @@ Live delivery position:
 - V1.0-B Backup / Restore / Recovery — COMPLETE; final exact head `ce085b910aa65d00a2786be97f9ca0947e65fe80` passed push CI #3836 / PR CI #3837 and clean DEC-022 review; PR #194 merged as `3d7e6e05cafe6ed0407ce8ec2c5aca89ea196c7e`; exact-main CI #3838 PASS; Issue #193 CLOSED / COMPLETED.
 - V1.0-C Security Hardening — COMPLETE; PR #198 squash-merged as `feb98b9e58e471a4190ac4bac531d6289d5fa4f4`; exact-main CI #3944 PASS; Issue #196 CLOSED / COMPLETED; final material DEC-022 review clean after all four findings were resolved.
 - V1.0-D Operations / Observability / Performance Readiness — TECHNICALLY COMPLETE; final exact head `611132a6a488c06f710e9d7fbd067f51f9fa8a6c` passed push CI #4055 / PR CI #4056 and clean final DEC-022 exact-head re-review; PR #203 squash-merged as `853ccdb73f5a8cb7cc2ec16edf49eeb50005692f`; exact-main CI #4057 PASS; all 12 genuine findings (3 P1 / 9 P2) remediated.
-- V1.0-E Release Candidate / Deployment Rehearsal / Go-No-Go — NEXT / NOT STARTED; AC-V10-039/040 remain Product / Business Owner release-exit gates.
+- V1.0-E Release Candidate / Deployment Rehearsal / Go-No-Go — PRE-FLIGHT ACTIVE / IMPLEMENTATION NOT STARTED under Issue #205; AC-V10-039/040 remain Product / Business Owner release-exit gates.
 
 V0.8-D final head `e11a77391ebfb43ff4431820ea363964f525f545` passed exact-head CI #2995 including authenticated live acceptance; final DEC-022 review reported no major issues. PR #177 squash-merged as `ff3dc08a4aee9945bb0b195627e31577f766f691`; exact-main CI #2996 PASS. Closure PR #178 merged as `4c47fd7713eb1faa57bf4ad8270b254a8bca96a7`; exact-main CI #3011 PASS; Issue #175 closed completed. V0.8-D is technically COMPLETE.
 
