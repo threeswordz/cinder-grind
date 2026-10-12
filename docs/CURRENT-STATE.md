@@ -1,6 +1,6 @@
 # Construction ERP — Current State
 
-**Last verified:** 2026-10-11
+**Last verified:** 2026-10-12
 **Source of truth:** Live GitHub repository state
 
 **Interpretation rule:** The top `Current Release`, `Current Stage`, completed-stage and active Issue/PR bullets are the live status. Lower sections preserve chronological point-in-time checkpoints for auditability; historical words such as `open`, `pending`, `blocked`, `active` or `next` describe that checkpoint and do not override the live status above.
