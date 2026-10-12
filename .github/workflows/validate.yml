@@ -32,6 +32,7 @@ jobs:
           --health-retries 10
 
     env:
+      EXACT_RELEASE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
       RELEASE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
       DATABASE_URL: postgresql://construction_erp:construction_erp_dev_only@localhost:5432/construction_erp?schema=public
       API_HOST: 127.0.0.1
@@ -99,7 +100,7 @@ jobs:
             printf -v "$env_key" '%s' "$env_value"
             export "$env_key"
           done < <(node deploy/production/load-env.mjs deploy/production/.env.example)
-          export RELEASE_COMMIT
+          export RELEASE_COMMIT="$EXACT_RELEASE_COMMIT"
           export RECOVERY_POINT_VERIFIED=YES
           export RECOVERY_POINT_REFERENCE=ci-verified-fresh-empty-state
           node deploy/production/validate-env.mjs
