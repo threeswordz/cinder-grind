@@ -8,7 +8,7 @@
 
 **Document Status:** Database Baseline v0.1  
 **Current Phase:** V1.0-D TECHNICALLY COMPLETE — V1.0-E NEXT / NOT STARTED  
-**V1.0-B technical-closure note — 2026-10-09:** Backup / Restore / Recovery is COMPLETE. The stage introduced recovery tooling and evidence only; no V1.0-B business-schema migration or destructive reverse-migration path was introduced. PR #194 merged as `3d7e6e05cafe6ed0407ce8ec2c5aca89ea196c7e`; exact-main CI #3838 PASS; Issue #193 CLOSED / COMPLETED. At that 2026-10-09 V1.0-B closure checkpoint, V1.0-C was the active successor stage. Current delivery status is the 2026-10-10 post-pre-flight state above: V1.0-C COMPLETE; V1.0-D PRE-FLIGHT COMPLETE after PR #201 merge and exact-main CI #4002 PASS; implementation is AUTHORIZED but NOT STARTED.
+**V1.0-B technical-closure note — 2026-10-09:** Backup / Restore / Recovery is COMPLETE. The stage introduced recovery tooling and evidence only; no V1.0-B business-schema migration or destructive reverse-migration path was introduced. PR #194 merged as `3d7e6e05cafe6ed0407ce8ec2c5aca89ea196c7e`; exact-main CI #3838 PASS; Issue #193 CLOSED / COMPLETED. At that 2026-10-09 V1.0-B closure checkpoint, V1.0-C was the active successor stage. Historical 2026-10-10 post-pre-flight checkpoint: V1.0-C was COMPLETE and V1.0-D pre-flight had completed after PR #201 merge and exact-main CI #4002 PASS; implementation was authorized but had not yet started. The live delivery status is the 2026-10-11 completion statement above.
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database:** PostgreSQL  
