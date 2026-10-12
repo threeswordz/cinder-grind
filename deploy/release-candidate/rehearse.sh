@@ -10,14 +10,20 @@ fail() {
   exit 1
 }
 
-: "${RC_NON_PRODUCTION_CONFIRMED:?RC_NON_PRODUCTION_CONFIRMED is required}"
-: "${RC_PREVIOUS_RELEASE_COMMIT:?RC_PREVIOUS_RELEASE_COMMIT is required}"
+: "${RC_NON_PRODUCTION_CONFIRMED:=}"
+: "${RC_PREVIOUS_RELEASE_COMMIT:=}"
 : "${RC_BASE_DATABASE_URL:=${DATABASE_URL:-}}"
 : "${RELEASE_COMMIT:=${GITHUB_SHA:-}}"
 : "${RC_ENVIRONMENT:=ci}"
 : "${RC_EVIDENCE_FILE:=/tmp/v1-0-e-rehearsal.json}"
 : "${RC_POSTGRES_TOOL_MODE:=docker}"
 
+# Invalidate any prior PASS record before validating or executing this invocation.
+printf '%s\n' '{"version":1,"rehearsalStatus":"INCOMPLETE"}' > "$RC_EVIDENCE_FILE"
+chmod 600 "$RC_EVIDENCE_FILE"
+
+[[ -n "$RC_NON_PRODUCTION_CONFIRMED" ]] || fail "RC_NON_PRODUCTION_CONFIRMED is required"
+[[ -n "$RC_PREVIOUS_RELEASE_COMMIT" ]] || fail "RC_PREVIOUS_RELEASE_COMMIT is required"
 [[ "$RC_NON_PRODUCTION_CONFIRMED" == "YES" ]] || fail "RC_NON_PRODUCTION_CONFIRMED must equal YES"
 [[ "$RC_ENVIRONMENT" != "production" ]] || fail "rehearsal must not run in Production"
 [[ "$RELEASE_COMMIT" =~ ^[0-9a-fA-F]{40}$ ]] || fail "RELEASE_COMMIT must be a full Git SHA"
@@ -92,6 +98,43 @@ cleanup() {
     echo "V1.0-E release-candidate rehearsal failed: database cleanup was incomplete" >&2
     exit 1
   fi
+
+  # Only successful cleanup may replace the INCOMPLETE marker with PASS evidence.
+  if ! node - "$RC_EVIDENCE_FILE" "$RELEASE_COMMIT" "$RC_PREVIOUS_RELEASE_COMMIT" "$RC_ENVIRONMENT" "$recovery_reference" <<'NODE'
+const { writeFileSync } = require('node:fs');
+const [path, releaseCommit, previousReleaseCommit, environment, recoveryReference] = process.argv.slice(2);
+const evidence = {
+  version: 1,
+  releaseCommit,
+  previousReleaseCommit,
+  environment,
+  exactCheckout: 'PASS',
+  cleanTree: 'PASS',
+  migrationHistoryUnchanged: 'PASS',
+  prismaSchemaUnchanged: 'PASS',
+  freshMigration: 'PASS',
+  upgradeRehearsal: 'PASS',
+  verifiedRecoveryPoint: 'PASS',
+  recoveryReference,
+  productionPreparation: 'PASS',
+  authenticatedLiveAcceptance: 'PASS',
+  productionSafeSmoke: 'PASS',
+  rollbackReadiness: 'PASS',
+  rollbackDecision: 'application-only rollback is schema-compatible because migration history and Prisma schema are unchanged; otherwise the rehearsal fails closed',
+  humanReleaseGates: {
+    'AC-V10-039': 'NOT_COMPLETED',
+    'AC-V10-040': 'NOT_COMPLETED',
+  },
+};
+writeFileSync(path, JSON.stringify(evidence, null, 2) + '\n', { mode: 0o600 });
+NODE
+  then
+    echo "V1.0-E release-candidate rehearsal failed: could not persist final PASS evidence" >&2
+    exit 1
+  fi
+
+  echo "V1.0-E exact release-candidate Production-like rehearsal PASSED for $RELEASE_COMMIT"
+  echo "Evidence: $RC_EVIDENCE_FILE"
   exit 0
 }
 trap cleanup EXIT
@@ -293,35 +336,3 @@ proxy_pid=""
 kill "$api_pid" >/dev/null 2>&1 || true
 wait "$api_pid" 2>/dev/null || true
 api_pid=""
-
-node - "$RC_EVIDENCE_FILE" "$RELEASE_COMMIT" "$RC_PREVIOUS_RELEASE_COMMIT" "$RC_ENVIRONMENT" "$recovery_reference" <<'NODE'
-const { writeFileSync } = require('node:fs');
-const [path, releaseCommit, previousReleaseCommit, environment, recoveryReference] = process.argv.slice(2);
-const evidence = {
-  version: 1,
-  releaseCommit,
-  previousReleaseCommit,
-  environment,
-  exactCheckout: 'PASS',
-  cleanTree: 'PASS',
-  migrationHistoryUnchanged: 'PASS',
-  prismaSchemaUnchanged: 'PASS',
-  freshMigration: 'PASS',
-  upgradeRehearsal: 'PASS',
-  verifiedRecoveryPoint: 'PASS',
-  recoveryReference,
-  productionPreparation: 'PASS',
-  authenticatedLiveAcceptance: 'PASS',
-  productionSafeSmoke: 'PASS',
-  rollbackReadiness: 'PASS',
-  rollbackDecision: 'application-only rollback is schema-compatible because migration history and Prisma schema are unchanged; otherwise the rehearsal fails closed',
-  humanReleaseGates: {
-    'AC-V10-039': 'NOT_COMPLETED',
-    'AC-V10-040': 'NOT_COMPLETED',
-  },
-};
-writeFileSync(path, JSON.stringify(evidence, null, 2) + '\n', { mode: 0o600 });
-NODE
-
-echo "V1.0-E exact release-candidate Production-like rehearsal PASSED for $RELEASE_COMMIT"
-echo "Evidence: $RC_EVIDENCE_FILE"
