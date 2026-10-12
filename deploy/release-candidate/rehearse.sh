@@ -55,20 +55,44 @@ admin_pgpass=""
 created_databases=()
 
 cleanup() {
+  local original_status=$?
+  local cleanup_failed=0
+  trap - EXIT
   set +e
+
   [[ -n "$proxy_pid" ]] && kill "$proxy_pid" >/dev/null 2>&1
   [[ -n "$api_pid" ]] && kill "$api_pid" >/dev/null 2>&1
+
   if [[ -n "$admin_pgpass" && -f "$admin_pgpass" && -n "${native_admin_url:-}" ]]; then
     for db in "${created_databases[@]}"; do
       # Defensive validation: never interpolate an unvalidated identifier in SQL.
       if [[ "$db" =~ ^construction_erp_v10e_(fresh|upgrade)_[a-f0-9]{12}$ ]]; then
-        PGPASSFILE="$admin_pgpass" psql "$native_admin_url" --no-psqlrc --set=ON_ERROR_STOP=1 \
-          --command="DROP DATABASE IF EXISTS \"$db\" WITH (FORCE)" >/dev/null 2>&1
+        if ! PGPASSFILE="$admin_pgpass" psql "$native_admin_url" --no-psqlrc --set=ON_ERROR_STOP=1 \
+          --command="DROP DATABASE IF EXISTS \"$db\" WITH (FORCE)" >/dev/null 2>&1; then
+          echo "V1.0-E release-candidate rehearsal cleanup failed for database: $db" >&2
+          cleanup_failed=1
+        fi
+      else
+        echo "V1.0-E release-candidate rehearsal cleanup refused unexpected database name: $db" >&2
+        cleanup_failed=1
       fi
     done
+  elif (( ${#created_databases[@]} > 0 )); then
+    echo "V1.0-E release-candidate rehearsal cleanup cannot access PostgreSQL credentials/admin URL" >&2
+    cleanup_failed=1
   fi
+
   [[ -n "$admin_pgpass" ]] && rm -f "$admin_pgpass"
   rm -rf "$tmp_root"
+
+  if (( original_status != 0 )); then
+    exit "$original_status"
+  fi
+  if (( cleanup_failed != 0 )); then
+    echo "V1.0-E release-candidate rehearsal failed: database cleanup was incomplete" >&2
+    exit 1
+  fi
+  exit 0
 }
 trap cleanup EXIT
 
