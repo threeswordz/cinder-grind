@@ -67,6 +67,21 @@ admin_pgpass=""
 # Track only databases created successfully by this invocation.
 created_databases=()
 
+# Durable provenance is captured after the PostgreSQL tool mode is configured.
+git_version=""
+node_version=""
+pnpm_version=""
+postgresql_client_version=""
+openssl_version=""
+ci_provider="native"
+ci_workflow=""
+ci_workflow_ref=""
+ci_run_id=""
+ci_run_number=""
+ci_run_attempt=""
+ci_job=""
+ci_repository=""
+
 cleanup() {
   local original_status=$?
   local cleanup_failed=0
@@ -107,14 +122,53 @@ cleanup() {
   fi
 
   # Only successful cleanup may replace the INCOMPLETE marker with PASS evidence.
-  if ! node - "$RC_EVIDENCE_FILE" "$RELEASE_COMMIT" "$RC_PREVIOUS_RELEASE_COMMIT" "$RC_ENVIRONMENT" "$recovery_reference" <<'NODE'
+  if ! node - "$RC_EVIDENCE_FILE" "$RELEASE_COMMIT" "$RC_PREVIOUS_RELEASE_COMMIT" "$RC_ENVIRONMENT" "$recovery_reference" \
+    "$git_version" "$node_version" "$pnpm_version" "$postgresql_client_version" "$openssl_version" \
+    "$ci_provider" "$ci_workflow" "$ci_workflow_ref" "$ci_run_id" "$ci_run_number" "$ci_run_attempt" "$ci_job" "$ci_repository" <<'NODE'
 const { writeFileSync } = require('node:fs');
-const [path, releaseCommit, previousReleaseCommit, environment, recoveryReference] = process.argv.slice(2);
-const evidence = {
-  version: 1,
+const [
+  path,
   releaseCommit,
   previousReleaseCommit,
   environment,
+  recoveryReference,
+  gitVersion,
+  nodeVersion,
+  pnpmVersion,
+  postgresqlClientVersion,
+  opensslVersion,
+  ciProvider,
+  ciWorkflow,
+  ciWorkflowRef,
+  ciRunId,
+  ciRunNumber,
+  ciRunAttempt,
+  ciJob,
+  ciRepository,
+] = process.argv.slice(2);
+const nullable = (value) => value === '' ? null : value;
+const evidence = {
+  version: 2,
+  releaseCommit,
+  previousReleaseCommit,
+  environment,
+  toolVersions: {
+    git: gitVersion,
+    node: nodeVersion,
+    pnpm: pnpmVersion,
+    postgresqlClient: postgresqlClientVersion,
+    openssl: opensslVersion,
+  },
+  ci: {
+    provider: ciProvider,
+    workflow: nullable(ciWorkflow),
+    workflowRef: nullable(ciWorkflowRef),
+    runId: nullable(ciRunId),
+    runNumber: nullable(ciRunNumber),
+    runAttempt: nullable(ciRunAttempt),
+    job: nullable(ciJob),
+    repository: nullable(ciRepository),
+  },
   exactCheckout: 'PASS',
   cleanTree: 'PASS',
   migrationHistoryUnchanged: 'PASS',
@@ -182,6 +236,34 @@ else
   for command_name in psql pg_dump pg_restore; do
     command -v "$command_name" >/dev/null || fail "native PostgreSQL command not found: $command_name"
   done
+fi
+
+git_version="$(git --version)"
+node_version="$(node --version)"
+pnpm_version="$(pnpm --version)"
+postgresql_client_version="$(psql --version)"
+openssl_version="$(openssl version)"
+
+for provenance_value in "$git_version" "$node_version" "$pnpm_version" "$postgresql_client_version" "$openssl_version"; do
+  [[ -n "$provenance_value" ]] || fail "required tool/runtime provenance could not be captured"
+done
+
+if [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then
+  ci_provider="github-actions"
+  : "${GITHUB_WORKFLOW:?GITHUB_WORKFLOW is required in GitHub Actions}"
+  : "${GITHUB_WORKFLOW_REF:?GITHUB_WORKFLOW_REF is required in GitHub Actions}"
+  : "${GITHUB_RUN_ID:?GITHUB_RUN_ID is required in GitHub Actions}"
+  : "${GITHUB_RUN_NUMBER:?GITHUB_RUN_NUMBER is required in GitHub Actions}"
+  : "${GITHUB_RUN_ATTEMPT:?GITHUB_RUN_ATTEMPT is required in GitHub Actions}"
+  : "${GITHUB_JOB:?GITHUB_JOB is required in GitHub Actions}"
+  : "${GITHUB_REPOSITORY:?GITHUB_REPOSITORY is required in GitHub Actions}"
+  ci_workflow="$GITHUB_WORKFLOW"
+  ci_workflow_ref="$GITHUB_WORKFLOW_REF"
+  ci_run_id="$GITHUB_RUN_ID"
+  ci_run_number="$GITHUB_RUN_NUMBER"
+  ci_run_attempt="$GITHUB_RUN_ATTEMPT"
+  ci_job="$GITHUB_JOB"
+  ci_repository="$GITHUB_REPOSITORY"
 fi
 
 database_url() {
