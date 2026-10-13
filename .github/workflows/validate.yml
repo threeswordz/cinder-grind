@@ -32,6 +32,8 @@ jobs:
           --health-retries 10
 
     env:
+      EXACT_RELEASE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
+      RELEASE_COMMIT: ${{ github.event.pull_request.head.sha || github.sha }}
       DATABASE_URL: postgresql://construction_erp:construction_erp_dev_only@localhost:5432/construction_erp?schema=public
       API_HOST: 127.0.0.1
       API_PORT: 3000
@@ -45,8 +47,11 @@ jobs:
       BOOTSTRAP_ADMIN_PASSWORD: Ci-Uat-Admin-Password-2026!
 
     steps:
-      - name: Checkout
+      - name: Checkout exact workflow commit
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - name: Set up pnpm
         uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
         with:
@@ -86,19 +91,23 @@ jobs:
           node --check deploy/recovery/verify-empty-database.mjs
           node --check apps/api/scripts/verify-restored-documents.mjs
           node --check apps/api/scripts/verify-restored-runtime.mjs
+          bash -n deploy/release-candidate/*.sh
+          node --check deploy/release-candidate/database-url.mjs
+          node --check deploy/release-candidate/https-proxy.mjs
+          node --check deploy/release-candidate/verify-evidence.mjs
 
           while IFS= read -r -d '' env_key && IFS= read -r -d '' env_value; do
             printf -v "$env_key" '%s' "$env_value"
             export "$env_key"
           done < <(node deploy/production/load-env.mjs deploy/production/.env.example)
-          export RELEASE_COMMIT="$GITHUB_SHA"
+          export RELEASE_COMMIT="$EXACT_RELEASE_COMMIT"
           export RECOVERY_POINT_VERIFIED=YES
           export RECOVERY_POINT_REFERENCE=ci-verified-fresh-empty-state
           node deploy/production/validate-env.mjs
 
           printf '%s\n' \
             'NODE_ENV=production' \
-            "RELEASE_COMMIT=$GITHUB_SHA" \
+            "RELEASE_COMMIT=$RELEASE_COMMIT" \
             'DEPLOYMENT_MODE=upgrade' \
             'UPGRADE_SITE_OFFLINE_CONFIRMED=YES' \
             'RECOVERY_POINT_VERIFIED=YES' \
@@ -214,7 +223,7 @@ jobs:
           VITE_API_BASE_URL='https://erp.example.com/api/v1' node deploy/production/validate-env.mjs
 
           cp deploy/production/.env.example /tmp/production-smoke.env
-          sed -i "s/^RELEASE_COMMIT=.*/RELEASE_COMMIT=$GITHUB_SHA/" /tmp/production-smoke.env
+          sed -i "s/^RELEASE_COMMIT=.*/RELEASE_COMMIT=$RELEASE_COMMIT/" /tmp/production-smoke.env
           sed -i 's/^RECOVERY_POINT_VERIFIED=.*/RECOVERY_POINT_VERIFIED=YES/' /tmp/production-smoke.env
           sed -i 's/^RECOVERY_POINT_REFERENCE=.*/RECOVERY_POINT_REFERENCE=ci-verified-fresh-empty-state/' /tmp/production-smoke.env
           mkdir -p /tmp/v10-smoke-bin
@@ -324,6 +333,15 @@ jobs:
         run: pnpm --filter @construction-erp/api exec prisma migrate status
       - name: Validate workspace
         run: pnpm validate
+      - name: Rehearse V1.0-E exact release candidate
+        env:
+          RC_NON_PRODUCTION_CONFIRMED: YES
+          RC_ENVIRONMENT: ci
+          RC_PREVIOUS_RELEASE_COMMIT: a625a7ef14dd36eb0aa0996bd8e7f4f6d0548ba3
+          RC_BASE_DATABASE_URL: ${{ env.DATABASE_URL }}
+          RC_POSTGRES_TOOL_MODE: docker
+          RC_EVIDENCE_FILE: /tmp/v1-0-e-rehearsal.json
+        run: bash deploy/release-candidate/rehearse.sh
       - name: Reset CI state before authenticated recovery fixture
         run: |
           set -euo pipefail
@@ -472,7 +490,7 @@ jobs:
 
           cat > /tmp/v10-recovery-source.env <<EOF
           NODE_ENV=production
-          RELEASE_COMMIT=$GITHUB_SHA
+          RELEASE_COMMIT=$RELEASE_COMMIT
           DATABASE_URL=$DATABASE_URL
           STORAGE_ROOT=$source_storage
           STORAGE_DEPLOYMENT_ID=ci-recovery
@@ -553,8 +571,8 @@ jobs:
           }
           NODE
 
-          ROLLBACK_RELEASE_COMMIT="$GITHUB_SHA" \
-          CURRENT_RELEASE_COMMIT="$GITHUB_SHA" \
+          ROLLBACK_RELEASE_COMMIT="$RELEASE_COMMIT" \
+          CURRENT_RELEASE_COMMIT="$RELEASE_COMMIT" \
           PRODUCTION_ENV_FILE=/tmp/v10-recovery-source.env \
           bash deploy/recovery/verify-application-rollback.sh
 
@@ -596,3 +614,25 @@ jobs:
           node apps/api/scripts/verify-restored-runtime.mjs
 
           echo "V1.0-B isolated recovery drill and restored-runtime authentication smoke passed."
+
+          node - "$RELEASE_COMMIT" /tmp/v1-0-e-recovery.json <<'NODE'
+          const { writeFileSync } = require('node:fs');
+          const [releaseCommit, path] = process.argv.slice(2);
+          writeFileSync(path, JSON.stringify({
+            version: 1,
+            releaseCommit,
+            pairedRecoverySet: 'PASS',
+            isolatedRestore: 'PASS',
+            restoredRuntimeAuthentication: 'PASS',
+          }, null, 2) + '\n', { mode: 0o600 });
+          NODE
+      - name: Verify V1.0-E consolidated technical evidence
+        run: |
+          node deploy/release-candidate/verify-evidence.mjs \
+            /tmp/v1-0-e-rehearsal.json \
+            /tmp/v1-0-e-recovery.json \
+            | tee /tmp/v1-0-e-consolidated-evidence.json
+          grep -q '"AC-V10-035": "PASS"' /tmp/v1-0-e-consolidated-evidence.json
+          grep -q '"AC-V10-038": "PASS"' /tmp/v1-0-e-consolidated-evidence.json
+          grep -q '"AC-V10-039": "HUMAN_GATE_NOT_COMPLETED"' /tmp/v1-0-e-consolidated-evidence.json
+          grep -q '"AC-V10-040": "HUMAN_GATE_NOT_COMPLETED"' /tmp/v1-0-e-consolidated-evidence.json
