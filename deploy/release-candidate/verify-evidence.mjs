@@ -40,25 +40,24 @@ for (const key of ['git', 'node', 'pnpm', 'postgresqlClient', 'openssl']) {
 }
 
 if (!rehearsal.ci || typeof rehearsal.ci !== 'object') fail('CI provenance is missing');
-if (process.env.GITHUB_ACTIONS === 'true') {
-  const expectedCi = {
-    provider: 'github-actions',
-    workflow: process.env.GITHUB_WORKFLOW,
-    workflowRef: process.env.GITHUB_WORKFLOW_REF,
-    runId: process.env.GITHUB_RUN_ID,
-    runNumber: process.env.GITHUB_RUN_NUMBER,
-    runAttempt: process.env.GITHUB_RUN_ATTEMPT,
-    job: process.env.GITHUB_JOB,
-    repository: process.env.GITHUB_REPOSITORY,
-  };
-  for (const [key, value] of Object.entries(expectedCi)) {
-    if (!value) fail('expected GitHub Actions provenance ' + key + ' is unavailable');
-    if (rehearsal.ci[key] !== value) {
-      fail('CI provenance ' + key + ' does not match the current GitHub Actions run');
-    }
+if (process.env.GITHUB_ACTIONS !== 'true') {
+  fail('AC-V10-036 PASS requires consolidation inside the matching GitHub Actions run; native rehearsal evidence alone is insufficient');
+}
+const expectedCi = {
+  provider: 'github-actions',
+  workflow: process.env.GITHUB_WORKFLOW,
+  workflowRef: process.env.GITHUB_WORKFLOW_REF,
+  runId: process.env.GITHUB_RUN_ID,
+  runNumber: process.env.GITHUB_RUN_NUMBER,
+  runAttempt: process.env.GITHUB_RUN_ATTEMPT,
+  job: process.env.GITHUB_JOB,
+  repository: process.env.GITHUB_REPOSITORY,
+};
+for (const [key, value] of Object.entries(expectedCi)) {
+  if (!value) fail('expected GitHub Actions provenance ' + key + ' is unavailable');
+  if (rehearsal.ci[key] !== value) {
+    fail('CI provenance ' + key + ' does not match the current GitHub Actions run');
   }
-} else if (rehearsal.ci.provider !== 'native') {
-  fail('non-CI rehearsal evidence must identify provider as native');
 }
 
 for (const key of [
