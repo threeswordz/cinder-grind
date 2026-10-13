@@ -7,6 +7,7 @@ The rehearsal is deliberately **non-Production only**. `RC_NON_PRODUCTION_CONFIR
 ## What the rehearsal proves
 
 - the workflow is running from one exact 40-character candidate SHA and a clean checkout;
+- durable rehearsal evidence records Git/Node/pnpm/PostgreSQL-client/OpenSSL versions and, when executed in GitHub Actions, the exact workflow/ref, run ID/number/attempt, job and repository identity;
 - the approved previous release is present in Git history and is an ancestor of the candidate;
 - V1.0-E has not silently changed Prisma migration history or the Prisma schema; a change fails closed and requires an explicitly reviewed migration-aware fixture;
 - migration-from-zero completes in an isolated PostgreSQL database;
@@ -16,7 +17,7 @@ The rehearsal is deliberately **non-Production only**. `RC_NON_PRODUCTION_CONFIR
 - the canonical `deploy/production/smoke.sh` passes through a loopback HTTPS boundary;
 - rollback readiness is recorded only when the prior and candidate migration/schema contracts are unchanged.
 
-The normal CI then runs the existing paired database + Documents recovery set, isolated restore and restored-runtime authentication drill for the same exact candidate. `verify-evidence.mjs` consolidates both evidence streams and refuses to mark AC-V10-039/040 complete.
+The normal CI then runs the existing paired database + Documents recovery set, isolated restore and restored-runtime authentication drill for the same exact candidate. `verify-evidence.mjs` validates the persisted runtime/tool provenance, requires the rehearsal CI identity to match the current GitHub Actions run, consolidates both evidence streams, and refuses to mark AC-V10-039/040 complete.
 
 ## CI invocation
 
