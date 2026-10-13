@@ -558,3 +558,18 @@ The approved security baseline also requires Production authentication rate limi
 DEC-008, DEC-016 and DEC-022 remain mandatory. V1.0 remains a production-hardening release; no new ERP business-function scope is implicitly authorized.
 
 This owner approval authorizes the V1.0 entry-gate closure sequence only. **V1.0-A implementation may begin only after PR #188 passes its exact-head closure gates, merges to `main`, post-merge exact-main CI passes and Issue #187 closes completed.** V1.0 Release Exit will still require separate Product / Business Owner readiness/UAT evidence acceptance and explicit go/no-go under AC-V10-039/040.
+
+
+## DEC-027 — V1.0 Production Readiness release-exit acceptance
+**Status:** APPROVED — Product / Business Owner, 2026-10-13 (Singapore time)
+
+After V1.0-A through V1.0-E technical acceptance was complete through AC-V10-038, PR #207 had merged as `28637e075b62314add6f14d2333380a0ddd2322f`, exact-main CI #4211 had passed, technical closure reconciliation PR #208 had merged as `98af737b9002602657914a23d807c90711524df9`, and exact-main CI #4214 had passed, the Product / Business Owner explicitly stated:
+
+> “I explicitly accept the V1.0 production-readiness/UAT evidence under AC-V10-039, accept V1.0 under AC-V10-040, and authorize V1.0 release closure / Production go-no-go.”
+
+Record this as explicit completion of the human-only release-exit authority gates:
+
+- **AC-V10-039 — ACCEPTED:** the Product / Business Owner explicitly accepts the V1.0 production-readiness/UAT evidence.
+- **AC-V10-040 — ACCEPTED / PRODUCTION GO-NO-GO AUTHORIZED:** V1.0 is explicitly accepted and V1.0 release closure / Production go-no-go is authorized.
+
+This decision does not claim that a Production deployment has already occurred. It does not expand V1.0 scope, change architecture, add a dependency, waive CI, or authorize a successor release to begin before the V1.0 closure sequence is durably completed. The acceptance record must pass the normal docs-only exact-head CI → squash merge → exact-main CI sequence, after which Issue #205 may close completed.
