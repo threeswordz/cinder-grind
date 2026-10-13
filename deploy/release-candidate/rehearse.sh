@@ -271,6 +271,33 @@ database_url() {
 }
 # Unique names for concurrent runs; collision means fail closed (never drop/reuse).
 run_token="$(node -e "process.stdout.write(require('node:crypto').randomBytes(6).toString('hex'))")"
+
+# Derive run-specific loopback ports so concurrent or stale rehearsal services cannot
+# satisfy another invocation's readiness probes. Distinct ranges keep API/proxy ports
+# separate while preserving valid non-privileged TCP ports.
+read -r api_port proxy_port < <(
+  RUN_TOKEN="$run_token" node <<'NODE'
+const token = process.env.RUN_TOKEN;
+const apiPort = 20000 + (Number.parseInt(token.slice(0, 8), 16) % 20000);
+const proxyPort = 40000 + (Number.parseInt(token.slice(4, 12), 16) % 20000);
+process.stdout.write(`${apiPort} ${proxyPort}\n`);
+NODE
+)
+
+assert_loopback_port_available() {
+  local port="$1"
+  PORT="$port" node <<'NODE'
+const net = require('node:net');
+const port = Number(process.env.PORT);
+const server = net.createServer();
+server.unref();
+server.once('error', () => process.exit(1));
+server.listen({ host: '127.0.0.1', port, exclusive: true }, () => {
+  server.close((error) => process.exit(error ? 1 : 0));
+});
+NODE
+}
+
 fresh_database="construction_erp_v10e_fresh_${run_token}"
 upgrade_database="construction_erp_v10e_upgrade_${run_token}"
 fresh_url="$(database_url "$fresh_database")"
@@ -346,8 +373,8 @@ UPGRADE_SITE_OFFLINE_CONFIRMED=YES
 RECOVERY_POINT_VERIFIED=YES
 RECOVERY_POINT_REFERENCE=$recovery_reference
 API_HOST=127.0.0.1
-API_PORT=3003
-WEB_ORIGIN=https://127.0.0.1:3443
+API_PORT=$api_port
+WEB_ORIGIN=https://127.0.0.1:$proxy_port
 VITE_API_BASE_URL=/api/v1
 DATABASE_URL=$upgrade_url
 STORAGE_ROOT=$storage_root
@@ -369,25 +396,32 @@ echo "[V1.0-E] Run actual Production preparation path as an offline upgrade"
 PRODUCTION_ENV_FILE="$production_env" bash deploy/production/prepare-release.sh
 
 echo "[V1.0-E] Start exact candidate in Production mode"
+assert_loopback_port_available "$api_port" \
+  || fail "run-specific API port $api_port is already occupied"
 PRODUCTION_ENV_FILE="$production_env" bash deploy/production/run-api.sh > "$tmp_root/api.log" 2>&1 &
 api_pid=$!
 api_ready=false
 for attempt in {1..30}; do
-  if curl --fail --silent --show-error http://127.0.0.1:3003/api/v1/health >/dev/null; then
-    api_ready=true
-    break
-  fi
   if ! kill -0 "$api_pid" >/dev/null 2>&1; then
     cat "$tmp_root/api.log"
     fail "Production-mode candidate API exited before becoming healthy"
+  fi
+  if curl --fail --silent --show-error "http://127.0.0.1:$api_port/api/v1/health" >/dev/null; then
+    sleep 0.2
+    if ! kill -0 "$api_pid" >/dev/null 2>&1; then
+      cat "$tmp_root/api.log"
+      fail "candidate API exited after readiness probe; refusing another process's listener"
+    fi
+    api_ready=true
+    break
   fi
   sleep 1
 done
 [[ "$api_ready" == "true" ]] || { cat "$tmp_root/api.log"; fail "candidate API did not become healthy"; }
 
 echo "[V1.0-E] Run authenticated full-system live acceptance"
-UAT_API_BASE_URL=http://127.0.0.1:3003/api/v1 \
-API_PORT=3003 \
+UAT_API_BASE_URL="http://127.0.0.1:$api_port/api/v1" \
+API_PORT="$api_port" \
 BOOTSTRAP_ADMIN_EMAIL=rc-admin@example.invalid \
 BOOTSTRAP_ADMIN_PASSWORD='Rc-Admin-Password-2026!' \
 bash deploy/uat/runtime-acceptance.sh
@@ -396,9 +430,11 @@ echo "[V1.0-E] Run canonical Production-safe smoke through loopback HTTPS"
 openssl req -x509 -newkey rsa:2048 -nodes \
   -keyout "$tls_dir/key.pem" -out "$tls_dir/cert.pem" -days 1 \
   -subj '/CN=127.0.0.1' -addext 'subjectAltName=IP:127.0.0.1' >/dev/null 2>&1
+assert_loopback_port_available "$proxy_port" \
+  || fail "run-specific HTTPS proxy port $proxy_port is already occupied"
 RC_PROXY_HOST=127.0.0.1 \
-RC_PROXY_PORT=3443 \
-RC_API_ORIGIN=http://127.0.0.1:3003 \
+RC_PROXY_PORT="$proxy_port" \
+RC_API_ORIGIN="http://127.0.0.1:$api_port" \
 RC_WEB_ROOT="$REPO_ROOT/apps/web/dist" \
 RC_TLS_KEY="$tls_dir/key.pem" \
 RC_TLS_CERT="$tls_dir/cert.pem" \
@@ -406,13 +442,18 @@ node "$RC_DIR/https-proxy.mjs" > "$tmp_root/proxy.log" 2>&1 &
 proxy_pid=$!
 proxy_ready=false
 for attempt in {1..30}; do
-  if CURL_CA_BUNDLE="$tls_dir/cert.pem" curl --fail --silent --show-error https://127.0.0.1:3443/ >/dev/null; then
-    proxy_ready=true
-    break
-  fi
   if ! kill -0 "$proxy_pid" >/dev/null 2>&1; then
     cat "$tmp_root/proxy.log"
     fail "loopback HTTPS proxy exited before becoming healthy"
+  fi
+  if CURL_CA_BUNDLE="$tls_dir/cert.pem" curl --fail --silent --show-error "https://127.0.0.1:$proxy_port/" >/dev/null; then
+    sleep 0.2
+    if ! kill -0 "$proxy_pid" >/dev/null 2>&1; then
+      cat "$tmp_root/proxy.log"
+      fail "loopback HTTPS proxy exited after readiness probe; refusing another process's listener"
+    fi
+    proxy_ready=true
+    break
   fi
   sleep 1
 done
