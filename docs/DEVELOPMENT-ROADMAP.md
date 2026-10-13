@@ -1,7 +1,7 @@
 # Construction ERP — Development Roadmap
 
 **Document Status:** Development Roadmap Baseline v0.1  
-**Current Phase:** V1.0 RELEASE EXIT OWNER ACCEPTED — CLOSURE RECONCILIATION ACTIVE  
+**Current Phase:** V1.0 COMPLETE + ACCEPTED  
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1  
@@ -805,9 +805,9 @@ Create detailed issues shortly before the relevant release/module enters develop
 
 Completed release: **V0.8 Management — COMPLETE AND ACCEPTED**.
 
-Current release: **V1.0 Production Readiness — OWNER ACCEPTED / CLOSURE RECONCILIATION ACTIVE**.
+Current release: **V1.0 Production Readiness — COMPLETE + ACCEPTED**.
 
-Current stage: **V1.0 RELEASE EXIT — OWNER ACCEPTED / CLOSURE RECONCILIATION ACTIVE.** V1.0 technical acceptance AC-V10-001–038 is complete. On 2026-10-13 the Product / Business Owner explicitly accepted AC-V10-039/040 and authorized V1.0 release closure / Production go-no-go. Issue #205 remains open only until the acceptance-record PR, exact-head CI, squash merge and exact-main CI closure sequence completes; no Production deployment is claimed.
+Current stage: **V1.0 RELEASE EXIT COMPLETE.** V1.0 technical acceptance AC-V10-001–038 is complete; AC-V10-039/040 were explicitly accepted by the Product / Business Owner on 2026-10-13. PR #209 merged as `8f5d4f56b38a373ef6d7233b46bcdb218345bf62`; exact-main CI #4233 PASS; Issue #205 CLOSED / COMPLETED. Production go/no-go is authorized; no Production deployment is claimed by this closure record.
 
 Immediate sequence:
 
