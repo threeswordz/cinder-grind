@@ -4,7 +4,8 @@
 
 - Exact release-candidate SHA:
 - Previous approved release SHA:
-- CI workflow/run:
+- CI workflow/run (provider, workflow/ref, run ID/number/attempt, job, repository):
+- Runtime/tool versions (Git / Node / pnpm / PostgreSQL client / OpenSSL):
 - Production-like environment identifier:
 - Fresh migration-from-zero: PASS / FAIL
 - Upgrade rehearsal from supported current state: PASS / FAIL
