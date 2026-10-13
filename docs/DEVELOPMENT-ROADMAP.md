@@ -1,7 +1,7 @@
 # Construction ERP — Development Roadmap
 
 **Document Status:** Development Roadmap Baseline v0.1  
-**Current Phase:** V1.0-E TECHNICALLY COMPLETE — OWNER RELEASE EXIT PENDING  
+**Current Phase:** V1.0 RELEASE EXIT OWNER ACCEPTED — CLOSURE RECONCILIATION ACTIVE  
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1  
@@ -805,9 +805,9 @@ Create detailed issues shortly before the relevant release/module enters develop
 
 Completed release: **V0.8 Management — COMPLETE AND ACCEPTED**.
 
-Current release: **V1.0 Production Readiness — ACTIVE**.
+Current release: **V1.0 Production Readiness — OWNER ACCEPTED / CLOSURE RECONCILIATION ACTIVE**.
 
-Current stage: **V1.0-E TECHNICALLY COMPLETE / PRODUCT OWNER RELEASE EXIT PENDING.** Final exact head `ddc78e859bc72c2d35234ae9d7f12330a608e5b9` passed CI #4209/#4210 and clean DEC-022 review; PR #207 squash-merged as `28637e075b62314add6f14d2333380a0ddd2322f`; exact-main CI #4211 PASS. AC-V10-035–038 are technically complete. Issue #205 remains open only for AC-V10-039/040 Product / Business Owner release-exit gates; no Production authorization is implied.
+Current stage: **V1.0 RELEASE EXIT — OWNER ACCEPTED / CLOSURE RECONCILIATION ACTIVE.** V1.0 technical acceptance AC-V10-001–038 is complete. On 2026-10-13 the Product / Business Owner explicitly accepted AC-V10-039/040 and authorized V1.0 release closure / Production go-no-go. Issue #205 remains open only until the acceptance-record PR, exact-head CI, squash merge and exact-main CI closure sequence completes; no Production deployment is claimed.
 
 Immediate sequence:
 
