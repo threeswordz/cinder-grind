@@ -807,7 +807,7 @@ Completed release: **V0.8 Management — COMPLETE AND ACCEPTED**.
 
 Current release: **V1.0 Production Readiness — ACTIVE**.
 
-Current stage: **V1.0-E IMPLEMENTATION ACTIVE.** V1.0-D is CLOSED / COMPLETE: final implementation head `611132a6a488c06f710e9d7fbd067f51f9fa8a6c` passed push CI #4055 / PR CI #4056 and clean final DEC-022 review; PR #203 squash-merged as `853ccdb73f5a8cb7cc2ec16edf49eeb50005692f`; closure PR #204 squash-merged as `00410468ce4ba52398ef7413c0282f84bf24dab4`; exact-main CI #4107 PASS; Issue #200 CLOSED / COMPLETED. Issue #205 tracks the V1.0-E pre-flight; implementation remains blocked until the pre-flight PR and resulting exact-main CI are green.
+Current stage: **V1.0-E IMPLEMENTATION ACTIVE.** V1.0-D is CLOSED / COMPLETE: final implementation head `611132a6a488c06f710e9d7fbd067f51f9fa8a6c` passed push CI #4055 / PR CI #4056 and clean final DEC-022 review; PR #203 squash-merged as `853ccdb73f5a8cb7cc2ec16edf49eeb50005692f`; closure PR #204 squash-merged as `00410468ce4ba52398ef7413c0282f84bf24dab4`; exact-main CI #4107 PASS; Issue #200 CLOSED / COMPLETED. Issue #205 tracks V1.0-E delivery. The documentation-only pre-flight PR #206 squash-merged as `a625a7ef14dd36eb0aa0996bd8e7f4f6d0548ba3` after exact-head CI #4150 PASS and clean DEC-022 review; resulting exact-main CI #4151 PASS. V1.0-E implementation is ACTIVE in PR #207 (release candidate / deployment rehearsal / go-no-go evidence); final exact-head CI and clean DEC-022 review, squash merge, and resulting exact-main CI remain mandatory before technical closure. AC-V10-039/040 remain Product / Business Owner-only release-exit gates; no Production authorization is implied.
 
 Immediate sequence:
 
