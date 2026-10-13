@@ -28,6 +28,39 @@ if (rehearsal.releaseCommit !== expected || recovery.releaseCommit !== expected)
   fail('evidence release SHA does not match the exact workflow commit');
 }
 
+if (rehearsal.version !== 2) fail('rehearsal evidence schema version is not 2');
+
+if (!rehearsal.toolVersions || typeof rehearsal.toolVersions !== 'object') {
+  fail('tool/runtime provenance is missing');
+}
+for (const key of ['git', 'node', 'pnpm', 'postgresqlClient', 'openssl']) {
+  if (typeof rehearsal.toolVersions[key] !== 'string' || rehearsal.toolVersions[key].trim() === '') {
+    fail('tool/runtime provenance ' + key + ' is missing');
+  }
+}
+
+if (!rehearsal.ci || typeof rehearsal.ci !== 'object') fail('CI provenance is missing');
+if (process.env.GITHUB_ACTIONS === 'true') {
+  const expectedCi = {
+    provider: 'github-actions',
+    workflow: process.env.GITHUB_WORKFLOW,
+    workflowRef: process.env.GITHUB_WORKFLOW_REF,
+    runId: process.env.GITHUB_RUN_ID,
+    runNumber: process.env.GITHUB_RUN_NUMBER,
+    runAttempt: process.env.GITHUB_RUN_ATTEMPT,
+    job: process.env.GITHUB_JOB,
+    repository: process.env.GITHUB_REPOSITORY,
+  };
+  for (const [key, value] of Object.entries(expectedCi)) {
+    if (!value) fail('expected GitHub Actions provenance ' + key + ' is unavailable');
+    if (rehearsal.ci[key] !== value) {
+      fail('CI provenance ' + key + ' does not match the current GitHub Actions run');
+    }
+  }
+} else if (rehearsal.ci.provider !== 'native') {
+  fail('non-CI rehearsal evidence must identify provider as native');
+}
+
 for (const key of [
   'exactCheckout',
   'cleanTree',
@@ -49,8 +82,12 @@ for (const key of ['pairedRecoverySet', 'isolatedRestore', 'restoredRuntimeAuthe
 }
 
 const consolidated = {
-  version: 1,
+  version: 2,
   releaseCommit: expected,
+  provenance: {
+    toolVersions: rehearsal.toolVersions,
+    ci: rehearsal.ci,
+  },
   acceptance: {
     'AC-V10-035': 'PASS',
     'AC-V10-036': 'PASS',
