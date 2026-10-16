@@ -1,7 +1,7 @@
 # Construction ERP — Development Roadmap
 
 **Document Status:** Development Roadmap Baseline v0.1  
-**Current Phase:** V1.0 COMPLETE + ACCEPTED; V1.1-A ENTRY TECHNICAL CI PASS / FINAL DOCS + ISSUE CLOSURE (DEC-028, 2026-10-17)  
+**Current Phase:** V1.0 COMPLETE + ACCEPTED; V1.1-A ENTRY COMPLETE / V1.1-B ROLE UI FOUNDATION ACTIVE (DEC-028, 2026-10-17)  
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1  
@@ -11,14 +11,14 @@
 
 ---
 
-## Active successor — V1.1 Business Workflow & Role UI (DEC-028; entry technical merge/CI passed)
+## Active successor — V1.1 Business Workflow & Role UI (entry closed; V1.1-B active)
 
-**Approval date:** 2026-10-17. **Owner decision:** DEC-028. **Entry Issue/PR:** #211 / #212. **Technical status:** entry PR #212 squash-merged as `cd5b0c77e576ba140210d284ea1cbad4149bb0fd`; final head `ecde63858d0b37a84fbce4e21cefec3f4cdb6739` passed CI #4319/#4320 after two Codex P2 comments were fixed/threads resolved. Post-merge exact-main CI #4321 PASS. **Final docs reconciliation PR and Issue #211 closure remain; V1.1-B waits for them.**
+**Approval date:** 2026-10-17. **Owner decision:** DEC-028. **V1.1-A:** PR #212 merged, post-merge CI #4321 PASS; PR #213 head `ccbbb031652d6c828f634843513e09ba3542b5c3` passed push/PR CI #4325/#4326 and resolved Codex P2, squash-merged `dae72ecec3492b62d3fd2f626a624fe801fda411`; post-merge exact-main CI #4327 PASS; Issue #211 CLOSED. **Current V1.1-B:** Issue #214 / branch `v1.1-b-role-ui-foundation`, implementation and stage technical gates pending; V1.1-C waits.
 
 | Stage | Approved bounded delivery | Gate |
 |---|---|---|
-| V1.1-A | Entry/scope/54-workflow traceability and eight-persona permission/data/API/security/test baselines | DEC-028 approved; PR #212 CI/review/merge/main #4321 PASS; final docs/Issue #211 closure PENDING |
-| V1.1-B | Role-first modular responsive app shell, permission-derived Home/My Work and grouped navigation | Entry closure complete first |
+| V1.1-A | Entry/scope/54-workflow traceability and eight-persona permission/data/API/security/test baselines | **COMPLETE:** DEC-028, PR #212 + #213 merged, exact-main CI #4327 PASS, Issue #211 closed |
+| V1.1-B | Role-first modular responsive app shell, permission-derived Home/My Work and grouped navigation | **ACTIVE** Issue #214 / stage branch; exact-head CI, review, merge and exact-main CI pending |
 | V1.1-C | Existing Procurement→Finance, Subcontract→Finance and Project→Cost/Management source-linked journeys | B technically complete and accepted applicable stage gates |
 | V1.1-D | UX/accessibility/security/compatibility hardening only, no new business rules | C gates complete; separately approved change control required for policy/diagnostics |
 | V1.1-E | Eight-persona UAT/evidence, locale/THB/Company-Project security regression, release exit | D technical gates and Product Owner human AC-V11-029/030 |

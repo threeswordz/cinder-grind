@@ -24,8 +24,12 @@ function dateValue(value: string | null | undefined) {
 
 export function PurchaseRequestsPanel({
   permissions,
+  initialProjectId,
+  initialRequestId,
 }: {
   permissions: string[];
+  initialProjectId?: string;
+  initialRequestId?: string;
 }) {
   const queryClient = useQueryClient();
   const canView = permissions.includes('procurement.pr.view');
@@ -34,8 +38,14 @@ export function PurchaseRequestsPanel({
   const canApprove = permissions.includes('procurement.pr.approve');
   const canCancel = permissions.includes('procurement.pr.cancel');
 
-  const [projectId, setProjectId] = useState('');
-  const [requestId, setRequestId] = useState('');
+  const [projectId, setProjectId] = useState(initialProjectId ?? '');
+  const [requestId, setRequestId] = useState(initialRequestId ?? '');
+  useEffect(() => {
+    if (initialProjectId && initialRequestId) {
+      setProjectId(initialProjectId);
+      setRequestId(initialRequestId);
+    }
+  }, [initialProjectId, initialRequestId]);
   const [remarks, setRemarks] = useState('');
   const [workflowCode, setWorkflowCode] = useState('');
   const [approvalComment, setApprovalComment] = useState('');
