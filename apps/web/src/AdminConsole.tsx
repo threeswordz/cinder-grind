@@ -320,7 +320,6 @@ export function AdminConsole({ user }: { user: CurrentUser }) {
     selectedKey && sections.some((section) => section.key === selectedKey)
       ? selectedKey
       : (sections[0]?.key ?? null);
-  const activeSection = sections.find((section) => section.key === activeKey);
 
   const logoutMutation = useMutation({
     mutationFn: logout,

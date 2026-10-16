@@ -28,8 +28,8 @@ export function PurchaseRequestsPanel({
   initialRequestId,
 }: {
   permissions: string[];
-  initialProjectId?: string;
-  initialRequestId?: string;
+  initialProjectId?: string | undefined;
+  initialRequestId?: string | undefined;
 }) {
   const queryClient = useQueryClient();
   const canView = permissions.includes('procurement.pr.view');
