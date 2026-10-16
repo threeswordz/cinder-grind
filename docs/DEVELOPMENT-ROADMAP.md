@@ -1,7 +1,7 @@
 # Construction ERP — Development Roadmap
 
 **Document Status:** Development Roadmap Baseline v0.1  
-**Current Phase:** V1.0 COMPLETE + ACCEPTED  
+**Current Phase:** V1.0 COMPLETE + ACCEPTED; V1.1 ENTRY PACKAGE APPROVED / CLOSURE ACTIVE (DEC-028, 2026-10-17)  
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1  
@@ -10,6 +10,22 @@
 **Testing & UAT Baseline:** v0.1
 
 ---
+
+## Active successor — V1.1 Business Workflow & Role UI (DEC-028 entry approved; closure active)
+
+**Approval date:** 2026-10-17. **Owner decision:** DEC-028. **Entry Issue/PR:** #211 / #212. **Technical status:** entry documents approved, not merged or post-merge validated yet; V1.1-B application implementation NOT AUTHORIZED until those gates complete.
+
+| Stage | Approved bounded delivery | Gate |
+|---|---|---|
+| V1.1-A | Entry/scope/54-workflow traceability and eight-persona permission/data/API/security/test baselines | DEC-028 approved; exact-head PR CI/review, merge, post-merge main CI, Issue #211 closure PENDING |
+| V1.1-B | Role-first modular responsive app shell, permission-derived Home/My Work and grouped navigation | Entry closure complete first |
+| V1.1-C | Existing Procurement→Finance, Subcontract→Finance and Project→Cost/Management source-linked journeys | B technically complete and accepted applicable stage gates |
+| V1.1-D | UX/accessibility/security/compatibility hardening only, no new business rules | C gates complete; separately approved change control required for policy/diagnostics |
+| V1.1-E | Eight-persona UAT/evidence, locale/THB/Company-Project security regression, release exit | D technical gates and Product Owner human AC-V11-029/030 |
+
+**Approval boundaries:** AC-V11-001–030 + BR-V11-01–18 source-preserving rules, stage sequence and English/Thai/zh-TW UI direction. D11-03–07/11/12 new policy and D11-13 User Support/Diagnostics implementation remain deferred; AC-V11-031–036 are not V1.1 obligations. No new mandatory paid dependency, backend rewrite, schema write, impersonation, approval bypass or Production deployment authorization. **Planning range:** 23–39 engineering days plus separately 2–4 business days human UAT (nonbinding).
+
+**Approved baselines:** `docs/V1.1-SCOPE.md`, `docs/V1.1-ACCEPTANCE-CRITERIA.md`, `docs/V1.1-BUSINESS-RULES.md`, `docs/V1.1-DATA-API-SECURITY-TEST-BASELINE.md`. Earlier roadmap entries and historical checkpoints are retained for audit.
 
 # 1. Purpose
 
@@ -850,9 +866,9 @@ Immediate sequence:
 37. **V0.8 release closure: COMPLETE + ACCEPTED.** Chat-assisted proxy UAT PASS with no blocking business defect identified → AC-V08-039 ACCEPTED → AC-V08-040 ACCEPTED → PR #185 merged → Issue #184 CLOSED / COMPLETED → final status reconciliation complete. **V1.0 entry gate is COMPLETE under DEC-026. V1.0-A is COMPLETE. V1.0-B Backup / Restore / Recovery is COMPLETE. V1.0-C Security Hardening is COMPLETE; V1.0-D Operations / Observability / Performance Readiness is technically COMPLETE for AC-V10-027–034. Final exact head `611132a6a488c06f710e9d7fbd067f51f9fa8a6c` passed push CI #4055 and PR CI #4056; the final DEC-022 exact-head re-review reported no major issues with zero unresolved review threads. PR #203 squash-merged as `853ccdb73f5a8cb7cc2ec16edf49eeb50005692f`; exact-main CI #4057 PASS, including full workspace regression, Production startup/restart and unsafe-config fail-closed checks, authenticated live acceptance, and paired recovery/isolated restore. Across six Codex review rounds, 12 genuine findings total (3 P1 / 9 P2) were remediated. No schema migration or new runtime dependency was introduced. Closure reconciliation PR #204 squash-merged as `00410468ce4ba52398ef7413c0282f84bf24dab4`; exact-main CI #4107 PASS; Issue #200 CLOSED / COMPLETED. V1.0-E Release Candidate / Deployment Rehearsal / Go-No-Go is technically COMPLETE for AC-V10-035–038. Final exact head `ddc78e859bc72c2d35234ae9d7f12330a608e5b9` passed push CI #4209 / PR CI #4210 and clean final DEC-022 exact-head review; PR #207 squash-merged as `28637e075b62314add6f14d2333380a0ddd2322f`; exact-main CI #4211 PASS, including workspace regression, exact-RC rehearsal, Production restart/fail-closed checks, authenticated live acceptance, paired recovery/isolated restore and consolidated technical evidence. Issue #205 remains OPEN for AC-V10-039/040 Product / Business Owner readiness/UAT evidence acceptance and explicit V1.0/Production go-no-go. No Production authorization has been given.
 
 
-# 23. Baseline Decision
+# 23. Historical V0.1–V1.0 Baseline Decision (see active DEC-028 successor above)
 
-The approved build order is:
+The historical build order was:
 
 ```text
 Phase 0 Definition
@@ -873,7 +889,9 @@ V0.7 Cost Control
        ↓
 V0.8 Management
        ↓
-V1.0 Production / Production Readiness (ACTIVE under approved DEC-026 scope)
+V1.0 Production / Production Readiness (COMPLETE + ACCEPTED under DEC-027)
+       ↓
+V1.1 Business Workflow & Role UI (DEC-028 ENTRY APPROVED; TECHNICAL CLOSURE ACTIVE)
 ```
 
 **Status: Development Roadmap Baseline v0.1**
