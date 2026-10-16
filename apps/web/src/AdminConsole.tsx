@@ -1,19 +1,8 @@
 import { ReactNode, useMemo, useState } from 'react';
-import {
-  Alert,
-  AppBar,
-  Box,
-  Button,
-  Container,
-  Stack,
-  Tab,
-  Tabs,
-  Toolbar,
-  Typography,
-} from '@mui/material';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { CurrentUser, logout } from './api/auth';
+import { RoleWorkspaceShell } from './role-ui/RoleWorkspaceShell';
 import { CostControlWorkspace } from './cost-control/CostControlWorkspace';
 import { ApprovalPanel } from './admin/ApprovalPanel';
 import { BudgetPanel } from './budget/BudgetPanel';
@@ -54,6 +43,7 @@ type Section = {
 export function AdminConsole({ user }: { user: CurrentUser }) {
   const queryClient = useQueryClient();
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
+  const [linkedPr, setLinkedPr] = useState<{ projectId: string; requestId: string } | null>(null);
 
   const sections = useMemo<Section[]>(
     () =>
@@ -116,7 +106,7 @@ export function AdminConsole({ user }: { user: CurrentUser }) {
           key: 'purchase-requests',
           label: 'Purchase Requests',
           permission: '__procurement__',
-          content: <PurchaseRequestsPanel permissions={user.permissions} />,
+          content: <PurchaseRequestsPanel permissions={user.permissions} initialProjectId={linkedPr?.projectId} initialRequestId={linkedPr?.requestId} />,
         },
         {
           key: 'budget',
@@ -323,14 +313,13 @@ export function AdminConsole({ user }: { user: CurrentUser }) {
               ? user.permissions.some((permission) => permission.startsWith('documents.'))
               : user.permissions.includes(section.permission),
       ),
-    [user.permissions],
+    [user.permissions, linkedPr],
   );
 
   const activeKey =
     selectedKey && sections.some((section) => section.key === selectedKey)
       ? selectedKey
       : (sections[0]?.key ?? null);
-  const activeSection = sections.find((section) => section.key === activeKey);
 
   const logoutMutation = useMutation({
     mutationFn: logout,
@@ -340,61 +329,17 @@ export function AdminConsole({ user }: { user: CurrentUser }) {
   });
 
   return (
-    <>
-      <AppBar position="static" color="default" elevation={0}>
-        <Toolbar>
-          <Stack
-            direction="row"
-            spacing={2}
-            alignItems="center"
-            sx={{ width: '100%' }}
-          >
-            <Box sx={{ flexGrow: 1 }}>
-              <Typography variant="h6">Construction ERP</Typography>
-              <Typography variant="body2" color="text.secondary">
-                V0.8 Management · {user.displayName}
-              </Typography>
-            </Box>
-            <Button
-              onClick={() => logoutMutation.mutate()}
-              disabled={logoutMutation.isPending}
-            >
-              Sign out
-            </Button>
-          </Stack>
-        </Toolbar>
-      </AppBar>
-
-      <Container maxWidth="lg">
-        <Box sx={{ py: 3 }}>
-          {sections.length === 0 ? (
-            <Alert severity="warning">
-              Your account is authenticated but has no available application permissions.
-            </Alert>
-          ) : (
-            <Stack spacing={3}>
-              <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-                <Tabs
-                  value={activeKey}
-                  onChange={(_event, value: string) => setSelectedKey(value)}
-                  variant="scrollable"
-                  scrollButtons="auto"
-                >
-                  {sections.map((section) => (
-                    <Tab
-                      key={section.key}
-                      value={section.key}
-                      label={section.label}
-                    />
-                  ))}
-                </Tabs>
-              </Box>
-
-              {activeSection?.content}
-            </Stack>
-          )}
-        </Box>
-      </Container>
-    </>
+    <RoleWorkspaceShell
+      user={user}
+      sections={sections}
+      activeKey={activeKey}
+      onSelect={setSelectedKey}
+      onOpenPr={(projectId, requestId) => {
+        setLinkedPr({ projectId, requestId });
+        setSelectedKey('purchase-requests');
+      }}
+      onLogout={() => logoutMutation.mutate()}
+      logoutPending={logoutMutation.isPending}
+    />
   );
 }
