@@ -1,7 +1,7 @@
 # Construction ERP — Development Roadmap
 
 **Document Status:** Development Roadmap Baseline v0.1  
-**Current Phase:** V1.0 COMPLETE + ACCEPTED  
+**Current Phase:** V1.0 COMPLETE + ACCEPTED; V1.1 ENTRY PACKAGE APPROVED / CLOSURE ACTIVE (DEC-028, 2026-10-17)  
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1  
@@ -10,6 +10,22 @@
 **Testing & UAT Baseline:** v0.1
 
 ---
+
+## Active successor — V1.1 Business Workflow & Role UI (DEC-028 entry approved; closure active)
+
+**Approval date:** 2026-10-17. **Owner decision:** DEC-028. **Entry Issue/PR:** #211 / #212. **Technical status:** entry documents approved, not merged or post-merge validated yet; V1.1-B application implementation NOT AUTHORIZED until those gates complete.
+
+| Stage | Approved bounded delivery | Gate |
+|---|---|---|
+| V1.1-A | Entry/scope/54-workflow traceability and eight-persona permission/data/API/security/test baselines | DEC-028 approved; exact-head PR CI/review, merge, post-merge main CI, Issue #211 closure PENDING |
+| V1.1-B | Role-first modular responsive app shell, permission-derived Home/My Work and grouped navigation | Entry closure complete first |
+| V1.1-C | Existing Procurement→Finance, Subcontract→Finance and Project→Cost/Management source-linked journeys | B technically complete and accepted applicable stage gates |
+| V1.1-D | UX/accessibility/security/compatibility hardening only, no new business rules | C gates complete; separately approved change control required for policy/diagnostics |
+| V1.1-E | Eight-persona UAT/evidence, locale/THB/Company-Project security regression, release exit | D technical gates and Product Owner human AC-V11-029/030 |
+
+**Approval boundaries:** AC-V11-001–030 + BR-V11-01–18 source-preserving rules, stage sequence and English/Thai/zh-TW UI direction. D11-03–07/11/12 new policy and D11-13 User Support/Diagnostics implementation remain deferred; AC-V11-031–036 are not V1.1 obligations. No new mandatory paid dependency, backend rewrite, schema write, impersonation, approval bypass or Production deployment authorization. **Planning range:** 23–39 engineering days plus separately 2–4 business days human UAT (nonbinding).
+
+**Approved baselines:** `docs/V1.1-SCOPE.md`, `docs/V1.1-ACCEPTANCE-CRITERIA.md`, `docs/V1.1-BUSINESS-RULES.md`, `docs/V1.1-DATA-API-SECURITY-TEST-BASELINE.md`. Earlier roadmap entries and historical checkpoints are retained for audit.
 
 # 1. Purpose
 

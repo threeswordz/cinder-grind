@@ -573,3 +573,28 @@ Record this as explicit completion of the human-only release-exit authority gate
 - **AC-V10-040 — ACCEPTED / PRODUCTION GO-NO-GO AUTHORIZED:** V1.0 is explicitly accepted and V1.0 release closure / Production go-no-go is authorized.
 
 This decision does not claim that a Production deployment has already occurred. It does not expand V1.0 scope, change architecture, add a dependency, waive CI, or authorize a successor release without its own approved entry package. The acceptance-record branch passed exact-head push CI #4231 and PR CI #4232; PR #209 squash-merged as `8f5d4f56b38a373ef6d7233b46bcdb218345bf62`; exact-main CI #4233 PASS; Issue #205 CLOSED / COMPLETED. **V1.0 Production Readiness is COMPLETE + ACCEPTED.**
+
+
+## DEC-028 — Bounded V1.1 Business Workflow & Role UI release-entry approval
+**Status:** APPROVED — Product / Business Owner, 2026-10-17 (Singapore time)
+
+At the V1.1 planning checkpoint, accepted V1.0 main was `8d00f7f096fe42514a3aa2d90352a6bc609dd670` with exact-main CI #4252 PASS. Planning Issue #211 and draft PR #212 contained the V1.1 Scope, AC-V11-001–030, BR-V11-01–18, Data/API/Security/Test Baseline, 54-item workflow mapping, eight-persona role/permission source-code inventory, UI blueprint, living mockup design direction, owner decision packet and a separate optional User Support & Diagnostics concept. The reviewed draft head `58f1529bb9edd13e25c85fbfb9f7cffd54681df1` passed exact-head push CI #4313 and PR CI #4314.
+
+The Product / Business Owner explicitly stated:
+
+> “you have my explicit approval of the bounded V1.1 release-entry package”
+
+**Approved V1.1 interpretation (D11-01–13):**
+
+- **D11-01 — Bounded scope:** V1.1 covers an incremental, modular role-first UI and integration of **existing already-approved source transactions and workflows**, no backend rewrite or shadow financial/stock/approval ledgers.
+- **D11-02 — Identity/roles:** the signed-in user automatically receives their administrator-assigned effective Role(s)/permissions through `/auth/me`; **NO Switch Role, View-As or impersonation**. Actual staff grants/approval steps require UAT verification, never inferred from names.
+- **D11-08/09 — UX/language/workbench:** grouped responsive navigation, Home/My Work, user/Company/Project-context from authorized APIs, incremental reusable layouts, and approved screen chrome/locales English/Thai/Traditional Chinese. Existing stored status, currency/THB semantics, authorization, source state and history remain unchanged. New aggregate endpoints require scoped review.
+- **D11-03/04/05/06/07/11/12 — DEFERRED business policy:** new K/T/H series, construction-start BOQ rules, GR maker/checker/partial receipt changes, Nancy/Ben self-approval exceptions, changing existing SC-vs-Variation policy, stock-transfer receiving transactions and new unlimited payment limits are **NOT APPROVED**. AC-V11-017–022 test existing approved business behavior as **non-regression**, not permission to implement these policy changes.
+- **D11-10 — DEFERRED broader modules:** customer Quotation AR, advanced progress billing, non-Project cash, petty cash, VAT/WHT/GL, HR/attendance/payroll, fixed assets, cheque handling, FX and the other 54-workflow gaps outside already delivered source capabilities require separate scope/Change Control.
+- **D11-13 — User Support & Diagnostics:** owner previously welcomed the idea, but **implementation is expressly excluded from the bounded V1.1 entry package**. No new `admin.user_diagnostics.view`, cross-user diagnostic API, impersonation or new protected-record access is authorized. Separate owner security/API/audit/retention decision required before inclusion in any release; proposed AC-V11-031–036 are not accepted obligations for this release.
+- **Stage sequence:** V1.1-A entry/baselines, V1.1-B modular shell, V1.1-C canonical end-to-end journeys, V1.1-D usability/accessibility/security/non-regression hardening without new rules, V1.1-E technical tests and real eight-persona UAT/release exit.
+- **Planning:** the 23–39 engineering-day estimate plus separate 2–4 business-day UAT range is a nonbinding approved planning basis for the bounded UX-only scope, not a deadline, resource commitment or assurance of production deployment.
+
+**Required gates:** This approval authorizes the **V1.1 entry-gate documentation/CI/review/merge closure**, not immediate application code, mutation of current Production data, unreviewed runtime permission grants, or V1.1 human UAT/release acceptance. Keep DEC-008, DEC-016, DEC-022 and one-writer governance. Final entry exact-head push/PR CI and applicable review must pass; merge PR #212 only after evidence, verify post-merge exact-main CI and close Issue #211 completed. Only then authorize V1.1-B; each B–E stage retains its own technical review/CI/merge and human owner AC-V11-029/030 exit.
+
+**Approval baselines:** `docs/V1.1-SCOPE.md`, `docs/V1.1-ACCEPTANCE-CRITERIA.md`, `docs/V1.1-BUSINESS-RULES.md`, `docs/V1.1-DATA-API-SECURITY-TEST-BASELINE.md` and the supporting source traceability/role/UX drafts in PR #212. No predecessor release history or already executed migration is amended.
