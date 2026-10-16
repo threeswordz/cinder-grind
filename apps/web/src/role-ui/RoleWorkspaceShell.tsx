@@ -45,6 +45,7 @@ const labels: Record<Locale, Record<string, string>> = {
     queueUnavailable: 'A source-backed purchasing list is unavailable for your current permissions.',
     sourceOnly: 'Approval eligibility is not inferred from permissions; open the source module for configured approval steps.',
     open: 'Open in Purchase Requests', number: 'Purchase request', status: 'Status',
+    lineOne: 'line', lineMany: 'lines', statusDraft: 'Draft', statusRejected: 'Rejected', language: 'Interface language',
     error: 'The authorized source could not be loaded. Try again or contact your administrator.',
     loading: 'Loading authorized records…', empty: 'Select an authorized project to see your purchasing work.',
     'projects': 'Projects', 'wbs': 'WBS & Cost Codes', 'scheduling': 'Scheduling',
@@ -71,6 +72,7 @@ const labels: Record<Locale, Record<string, string>> = {
     queueUnavailable: 'สิทธิ์ปัจจุบันไม่อนุญาตให้ดูรายการงานจัดซื้อ',
     sourceOnly: 'สิทธิ์อนุมัติขึ้นกับขั้นตอนที่กำหนดในระบบ โปรดตรวจสอบในโมดูลต้นทาง',
     open: 'เปิดใบขอซื้อ', number: 'เลขที่ใบขอซื้อ', status: 'สถานะ',
+    lineOne: 'รายการ', lineMany: 'รายการ', statusDraft: 'ฉบับร่าง', statusRejected: 'ถูกปฏิเสธ', language: 'ภาษาของระบบ',
     error: 'โหลดข้อมูลที่ได้รับอนุญาตไม่ได้ โปรดลองอีกครั้งหรือติดต่อผู้ดูแล',
     loading: 'กำลังโหลดข้อมูลที่ได้รับอนุญาต…', empty: 'เลือกโครงการที่เข้าถึงได้เพื่อดูงานจัดซื้อ',
     projects: 'โครงการ', wbs: 'WBS และรหัสต้นทุน', scheduling: 'แผนงาน', 'site-execution': 'งานหน้างาน',
@@ -97,6 +99,7 @@ const labels: Record<Locale, Record<string, string>> = {
     queueUnavailable: '目前權限無法讀取採購工作清單。',
     sourceOnly: '不能僅依權限推斷審批資格；請在原模組確認設定的審批步驟。',
     open: '開啟採購申請', number: '採購申請編號', status: '狀態',
+    lineOne: '筆明細', lineMany: '筆明細', statusDraft: '草稿', statusRejected: '已駁回', language: '介面語言',
     error: '無法讀取授權資料，請重試或聯絡管理員。',
     loading: '正在載入授權資料…', empty: '請選擇有權存取的專案以查看採購工作。',
     projects: '專案', wbs: 'WBS 與成本代碼', scheduling: '工程排程', 'site-execution': '工地執行',
@@ -310,9 +313,9 @@ export function RoleWorkspaceShell({
                 <Stack direction={{ xs: 'column', sm: 'row' }} alignItems={{ sm: 'center' }} spacing={1.5}>
                   <Box sx={{ flexGrow: 1 }}>
                     <Typography variant="subtitle1" fontWeight={600}>{pr.prNumber}</Typography>
-                    <Typography variant="body2" color="text.secondary">{t('number', 'Purchase request')} · {pr._count.lines} lines</Typography>
+                    <Typography variant="body2" color="text.secondary">{t('number', 'Purchase request')} · {pr._count.lines} {t(pr._count.lines === 1 ? 'lineOne' : 'lineMany', pr._count.lines === 1 ? 'line' : 'lines')}</Typography>
                   </Box>
-                  <Chip size="small" label={pr.lifecycleState} color={pr.lifecycleState === 'REJECTED' ? 'warning' : 'default'} />
+                  <Chip size="small" label={pr.lifecycleState === 'REJECTED' ? t('statusRejected', 'Rejected') : t('statusDraft', 'Draft')} color={pr.lifecycleState === 'REJECTED' ? 'warning' : 'default'} />
                   <Button variant="outlined" onClick={() => openPr(pr.id)}>
                     {t('open', 'Open in Purchase Requests')}
                   </Button>
@@ -337,7 +340,7 @@ export function RoleWorkspaceShell({
             </Typography>
           </Box>
           <FormControl size="small" sx={{ minWidth: 90 }}>
-            <Select aria-label="Interface language" value={locale} onChange={(event) => setLocale(event.target.value as Locale)}>
+            <Select aria-label={t('language', 'Interface language')} value={locale} onChange={(event) => setLocale(event.target.value as Locale)}>
               <MenuItem value="en">EN</MenuItem>
               <MenuItem value="th">ไทย</MenuItem>
               <MenuItem value="zh-TW">繁中</MenuItem>
