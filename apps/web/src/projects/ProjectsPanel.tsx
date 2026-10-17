@@ -5,6 +5,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { projectsApi, ProjectRecord } from '../api/projects';
+import { costControlApi } from '../api/cost-control';
 import {
   canOpenSourceLink,
   canWriteSourceForm,
@@ -51,6 +52,18 @@ export function ProjectsPanel({
     queryKey: ['projects', search, active],
     queryFn: () => projectsApi.list(search, active),
   });
+  // Reuse Cost Control's own authenticated source list instead of guessing
+  // archived Project eligibility from contract value or status.
+  const costProjects = useQuery({
+    queryKey: ['cost-control-projects'],
+    queryFn: costControlApi.projects,
+    enabled: Boolean(onOpenSource && canOpenSourceLink('cost-control', permissions)),
+  });
+  const canOpenCostProject = (project: ProjectRecord) =>
+    costProjects.isSuccess &&
+    !costProjects.isFetching &&
+    Boolean(resolveLinkedProjectId(project.id, costProjects.data?.data ?? []));
+
   const options = useQuery({
     queryKey: ['projects', 'edit-options'],
     queryFn: projectsApi.editOptions,
@@ -108,6 +121,7 @@ export function ProjectsPanel({
     project: ProjectRecord,
   ) {
     if (!onOpenSource || !canOpenSourceLink(sectionKey, permissions)) return;
+    if (sectionKey === 'cost-control' && !canOpenCostProject(project)) return;
     const target = sourceLinkTarget(
       sectionKey,
       project.id,
@@ -119,7 +133,10 @@ export function ProjectsPanel({
   }
 
   const refresh = async () => {
-    await queryClient.invalidateQueries({ queryKey: ['projects'] });
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['projects'] }),
+      queryClient.invalidateQueries({ queryKey: ['cost-control-projects'] }),
+    ]);
   };
 
   const save = useMutation({
@@ -253,7 +270,9 @@ export function ProjectsPanel({
                   onOpenSource ? (
                     <Button size="small" onClick={() => openProjectSource('site-execution', project)}>Site</Button>
                   ) : null}
-                  {canOpenSourceLink('cost-control', permissions) && onOpenSource ? (
+                  {canOpenSourceLink('cost-control', permissions) &&
+                  canOpenCostProject(project) &&
+                  onOpenSource ? (
                     <Button size="small" onClick={() => openProjectSource('cost-control', project)}>Cost</Button>
                   ) : null}
                   {project.isActive &&
