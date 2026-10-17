@@ -6,8 +6,10 @@ import { useEffect, useState } from 'react';
 
 import { inventoryApi } from '../api/inventory';
 import {
+  canOpenSourceLink,
   resolveLinkedProjectId,
   resolveLinkedRecordId,
+  sourceLinkTarget,
   type SourceLinkTarget,
 } from '../role-ui/source-link-policy';
 
@@ -94,6 +96,9 @@ export function GoodsReceiptsPanel({
   const chosenLines = (selectedOrder?.lines ?? []).filter((line) => Boolean(lineQuantities[line.id]?.trim()));
   const validQuantity = (value: string) => /^(?:0|[1-9]\d{0,13})(?:\.\d{1,4})?$/.test(value) && Number(value) > 0;
   const current = detail.data?.data;
+  const sourceOrder = (orders.data?.data ?? []).find(
+    (order) => order.id === current?.purchaseOrderId,
+  );
   useEffect(() => {
     if (!current) return;
     setDraftQuantities(Object.fromEntries((current.items ?? []).map((item) => [item.id, item.quantity])));
@@ -233,6 +238,25 @@ export function GoodsReceiptsPanel({
           <CardContent>
             <Stack spacing={2}>
               <Typography variant="subtitle1">{current.receiptNumber}</Typography>
+              {onOpenSource &&
+              canOpenSourceLink('purchase-orders', permissions) ? (
+                <Button
+                  size="small"
+                  variant="outlined"
+                  sx={{ alignSelf: 'flex-start' }}
+                  onClick={() => {
+                    const target = sourceLinkTarget(
+                      'purchase-orders',
+                      current.projectId,
+                      current.purchaseOrderId,
+                    );
+                    if (target) onOpenSource(target);
+                  }}
+                >
+                  Open source Purchase Order
+                  {sourceOrder ? ' · ' + sourceOrder.poNumber : ''}
+                </Button>
+              ) : null}
               <Typography variant="body2">
                 {current.items?.map((item) =>
                   item.description + ': ' + item.quantity + ' ' + item.uomCodeSnapshot,
