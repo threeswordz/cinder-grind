@@ -13,7 +13,7 @@
 
 ## Active successor — V1.1 Business Workflow & Role UI (DEC-028; V1.1-C1 Procurement→Finance)
 
-**Approval:** 2026-10-17 under DEC-028. **V1.1-A complete** (Issue #211; CI #4327). **V1.1-B technically complete** (Issue #214; main CI #4366). **V1.1-C preflight complete:** PR #218 final `04b3921517c223e6d9727751a50e5e14effe78d4`, CI #4370/#4371 PASS, Codex P2 resolved, merged `1537368fb43ca480d206e5b8992c0d9600d35fc7`, exact-main CI #4372 PASS. **C1 Procurement→Finance is UNDER VALIDATION** on `v1.1-c1-procure-to-pay-links`: canonical source-link policy plus fail-closed Project/record selection and source lineage PR→RFQ/quotation→PO→GR→supplier invoice→payment. Material runtime head `66d34391f3ce2b470c5b79eabd6e01884d148f21`; final CI/review/merge/post-main still required. C2/C3 and V1.1 human UAT remain unstarted.
+**Approval:** 2026-10-17 under DEC-028. **V1.1-A complete** (Issue #211; CI #4327). **V1.1-B technically complete** (Issue #214; main CI #4366). **V1.1-C preflight complete:** PR #218 final `04b3921517c223e6d9727751a50e5e14effe78d4`, CI #4370/#4371 PASS, Codex P2 resolved, merged `1537368fb43ca480d206e5b8992c0d9600d35fc7`, exact-main CI #4372 PASS. **C1 Procurement→Finance is UNDER VALIDATION** on `v1.1-c1-procure-to-pay-links`: canonical source-link policy plus fail-closed Project/record selection and source lineage PR→RFQ/quotation→PO→GR→supplier invoice→payment. Material runtime head `dc406cd1d1ede43689a8c788a09b81c0da2f73ad`; final CI/review/merge/post-main still required. C2/C3 and V1.1 human UAT remain unstarted.
 
 | Stage | Approved bounded delivery | Gate |
 |---|---|---|
