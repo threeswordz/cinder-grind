@@ -21,8 +21,10 @@ import {
   paymentApi,
 } from '../api/finance';
 import {
+  canOpenSourceLink,
   resolveLinkedProjectId,
   resolveLinkedRecordId,
+  sourceLinkTarget,
   type SourceLinkTarget,
 } from '../role-ui/source-link-policy';
 
@@ -437,6 +439,7 @@ export function PaymentFinanceWorkspace({ permissions, initialProjectId, initial
     ? [
         ...current.supplierAllocations.map((allocation) => ({
           id: allocation.id,
+          targetId: allocation.supplierInvoice.id,
           targetType: 'SUPPLIER_INVOICE' as PaymentAllocationTarget,
           label:
             allocation.supplierInvoice.supplierInvoiceNumber +
@@ -446,12 +449,14 @@ export function PaymentFinanceWorkspace({ permissions, initialProjectId, initial
         })),
         ...current.clientAllocations.map((allocation) => ({
           id: allocation.id,
+          targetId: allocation.clientInvoice.id,
           targetType: 'CLIENT_INVOICE' as PaymentAllocationTarget,
           label: allocation.clientInvoice.clientInvoiceNumber,
           amount: allocation.allocatedAmount,
         })),
         ...current.subcontractAllocations.map((allocation) => ({
           id: allocation.id,
+          targetId: allocation.subcontractCertification.id,
           targetType: 'SUBCONTRACT_CERTIFICATION' as PaymentAllocationTarget,
           label: allocation.subcontractCertification.certificationNumber,
           amount: allocation.allocatedAmount,
@@ -665,6 +670,24 @@ export function PaymentFinanceWorkspace({ permissions, initialProjectId, initial
                       {allocation.label} · {current.currencyCode}{' '}
                       {allocation.amount}
                     </Typography>
+                    {allocation.targetType === 'SUPPLIER_INVOICE' &&
+                    onOpenSource &&
+                    canOpenSourceLink('finance', permissions) ? (
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        onClick={() => {
+                          const target = sourceLinkTarget(
+                            'finance',
+                            current.projectId,
+                            allocation.targetId,
+                          );
+                          if (target) onOpenSource(target);
+                        }}
+                      >
+                        Open supplier invoice
+                      </Button>
+                    ) : null}
                     {draft && canEdit ? (
                       <Button
                         size="small"
