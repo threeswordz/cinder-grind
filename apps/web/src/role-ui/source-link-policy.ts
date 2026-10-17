@@ -4,13 +4,21 @@ export type SourceLinkSection =
   | 'purchase-orders'
   | 'inventory'
   | 'finance'
-  | 'payments';
+  | 'payments'
+  | 'subcontracts';
+
+export type SourceLinkRecordKind =
+  | 'subcontract-agreement'
+  | 'subcontract-work-order'
+  | 'subcontract-claim'
+  | 'subcontract-certification';
 
 export type SourceLinkTarget = {
   sectionKey: SourceLinkSection;
   projectId: string;
   recordId: string;
   childRecordId?: string;
+  recordKind?: SourceLinkRecordKind;
 };
 
 const SOURCE_VIEW_PERMISSIONS: Record<SourceLinkSection, readonly string[]> = {
@@ -20,6 +28,11 @@ const SOURCE_VIEW_PERMISSIONS: Record<SourceLinkSection, readonly string[]> = {
   inventory: ['inventory.receipt.view'],
   finance: ['finance.supplier_invoice.view'],
   payments: ['finance.payment.view'],
+  subcontracts: [
+    'subcontracts.agreement.view',
+    'subcontracts.claim.view',
+    'subcontracts.certification.view',
+  ],
 };
 
 export function canOpenSourceLink(
@@ -79,6 +92,7 @@ export function sourceLinkTarget(
   projectId: string,
   recordId: string,
   childRecordId?: string,
+  recordKind?: SourceLinkRecordKind,
 ): SourceLinkTarget | null {
   if (!projectId || !recordId) return null;
   return {
@@ -86,5 +100,6 @@ export function sourceLinkTarget(
     projectId,
     recordId,
     ...(childRecordId ? { childRecordId } : {}),
+    ...(recordKind ? { recordKind } : {}),
   };
 }
