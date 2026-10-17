@@ -431,9 +431,14 @@ function AgreementsPanel({
   useEffect(() => {
     if (!initialProjectId || !projects.isSuccess || projects.isFetching) return;
     if (!consumeSourceLinkKey(appliedProjectSourceLink, initialProjectId)) return;
-    setProjectFilter(
-      resolveLinkedProjectId(initialProjectId, projects.data?.data ?? []),
+    const resolvedProjectId = resolveLinkedProjectId(
+      initialProjectId,
+      projects.data?.data ?? [],
     );
+    setSelectedId('');
+    setSelectedWorkOrderId('');
+    setNewMode(false);
+    setProjectFilter(resolvedProjectId);
   }, [
     initialProjectId,
     projects.isSuccess,
@@ -1894,6 +1899,12 @@ export function SubcontractsWorkspace({
       ) : null}
       {tab === 'agreements' && canSeeAgreements ? (
         <AgreementsPanel
+          key={
+            initialSource?.recordKind === 'subcontract-agreement' ||
+            initialSource?.recordKind === 'subcontract-work-order'
+              ? `${initialSource.recordKind}:${initialSource.projectId}:${initialSource.recordId}:${initialSource.childRecordId ?? ''}`
+              : 'agreements-default'
+          }
           permissions={permissions}
           initialProjectId={initialSource?.projectId}
           initialAgreementId={
@@ -1912,6 +1923,12 @@ export function SubcontractsWorkspace({
       ) : null}
       {tab === 'claims' && canSeeClaims ? (
         <ClaimsPanel
+          key={
+            initialSource?.recordKind === 'subcontract-claim' ||
+            initialSource?.recordKind === 'subcontract-certification'
+              ? `${initialSource.recordKind}:${initialSource.projectId}:${initialSource.recordId}:${initialSource.childRecordId ?? ''}`
+              : 'claims-default'
+          }
           permissions={permissions}
           initialProjectId={
             linkedCertificationRecord?.projectId ??
