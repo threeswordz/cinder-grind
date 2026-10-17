@@ -93,8 +93,15 @@ export function PurchaseRequestsPanel({
   ]);
 
   useEffect(() => {
-    if (!initialRequestId || !requests.isSuccess) return;
-    const sourceLinkKey = `${projectId}:${initialRequestId}`;
+    if (
+      !initialProjectId ||
+      projectId !== initialProjectId ||
+      !initialRequestId ||
+      !requests.isSuccess
+    ) {
+      return;
+    }
+    const sourceLinkKey = `${initialProjectId}:${initialRequestId}`;
     if (!consumeSourceLinkKey(appliedRequestSourceLink, sourceLinkKey)) return;
     setRequestId(
       resolveLinkedRecordId(
@@ -103,7 +110,13 @@ export function PurchaseRequestsPanel({
         requests.data?.data ?? [],
       ),
     );
-  }, [initialRequestId, projectId, requests.isSuccess, requests.data]);
+  }, [
+    initialProjectId,
+    initialRequestId,
+    projectId,
+    requests.isSuccess,
+    requests.data,
+  ]);
 
   const selected = useQuery({
     queryKey: ['procurement', 'request', requestId],
