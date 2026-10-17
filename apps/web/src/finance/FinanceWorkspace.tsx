@@ -26,8 +26,10 @@ import {
   SupplierInvoiceLineInput,
 } from '../api/finance';
 import {
+  canOpenSourceLink,
   resolveLinkedProjectId,
   resolveLinkedRecordId,
+  sourceLinkTarget,
   type SourceLinkTarget,
 } from '../role-ui/source-link-policy';
 
@@ -876,6 +878,44 @@ export function FinanceWorkspace({ permissions, initialProjectId, initialInvoice
                             line.goodsReceiptItem.lineNo
                           : ''}
                       </Typography>
+                      {onOpenSource ? (
+                        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                          {line.purchaseOrderLine &&
+                          canOpenSourceLink('purchase-orders', permissions) ? (
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              onClick={() => {
+                                const target = sourceLinkTarget(
+                                  'purchase-orders',
+                                  current.projectId,
+                                  line.purchaseOrderLine!.purchaseOrder.id,
+                                );
+                                if (target) onOpenSource(target);
+                              }}
+                            >
+                              Open PO {line.purchaseOrderLine.purchaseOrder.poNumber}
+                            </Button>
+                          ) : null}
+                          {line.goodsReceiptItem &&
+                          canOpenSourceLink('inventory', permissions) ? (
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              onClick={() => {
+                                const target = sourceLinkTarget(
+                                  'inventory',
+                                  current.projectId,
+                                  line.goodsReceiptItem!.goodsReceipt.id,
+                                );
+                                if (target) onOpenSource(target);
+                              }}
+                            >
+                              Open GR {line.goodsReceiptItem.goodsReceipt.receiptNumber}
+                            </Button>
+                          ) : null}
+                        </Stack>
+                      ) : null}
                       <Stack
                         direction={{ xs: 'column', md: 'row' }}
                         spacing={1}
