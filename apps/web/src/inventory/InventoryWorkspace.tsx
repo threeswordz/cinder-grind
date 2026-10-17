@@ -28,8 +28,8 @@ export function InventoryWorkspace({
   onOpenSource,
 }: {
   permissions: string[];
-  initialProjectId?: string;
-  initialReceiptId?: string;
+  initialProjectId?: string | undefined;
+  initialReceiptId?: string | undefined;
   onOpenSource?: (target: SourceLinkTarget) => void;
 }) {
   const canSeeWarehouses = permissions.includes('inventory.warehouse.view');
