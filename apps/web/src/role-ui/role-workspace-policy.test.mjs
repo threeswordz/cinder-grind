@@ -3,7 +3,25 @@ import test from 'node:test';
 import {
   visibleNavigationKeys, mayReadMyPurchaseRequests, isAccessibleProject,
   selectedAccessibleProject, ownEditablePurchaseRequests, verifiedPurchaseRequestLink,
+  effectiveUiQueryScope, projectContextQueryKey, myPurchaseRequestsQueryKey,
 } from './role-workspace-policy.ts';
+
+test('D3 query scope isolates user, Company, permission and Project changes', () => {
+  const permissions = ['projects.project.view', 'procurement.pr.view'];
+  const copy = [...permissions];
+  const a = effectiveUiQueryScope('user-A', 'company-A', permissions);
+  assert.equal(a, effectiveUiQueryScope('user-A', 'company-A', [...permissions].reverse()));
+  assert.equal(a, effectiveUiQueryScope('user-A', 'company-A', [...permissions, permissions[0]]));
+  assert.deepEqual(permissions, copy);
+  assert.notEqual(a, effectiveUiQueryScope('user-B', 'company-A', permissions));
+  assert.notEqual(a, effectiveUiQueryScope('user-A', 'company-B', permissions));
+  assert.notEqual(a, effectiveUiQueryScope('user-A', 'company-A', ['projects.project.view']));
+  assert.notEqual(a, effectiveUiQueryScope('user-A', 'company-A', [...permissions, 'finance.payment.view']));
+  assert.deepEqual(projectContextQueryKey(a, 'procurement'), ['v1.1', 'project-context', a, 'procurement']);
+  assert.notDeepEqual(projectContextQueryKey(a, 'procurement'), projectContextQueryKey(a, 'projects'));
+  assert.deepEqual(myPurchaseRequestsQueryKey(a, 'project-A'), ['v1.1', 'my-prs', a, 'project-A']);
+  assert.notDeepEqual(myPurchaseRequestsQueryKey(a, 'project-A'), myPurchaseRequestsQueryKey(a, 'project-B'));
+});
 
 const projects = [{ id: 'project-A' }, { id: 'project-B' }];
 const rows = [

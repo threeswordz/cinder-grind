@@ -14,6 +14,7 @@ import { labels, translate, type Locale } from './role-workspace-i18n';
 import {
   visibleNavigationKeys, mayReadMyPurchaseRequests, selectedAccessibleProject,
   isAccessibleProject, ownEditablePurchaseRequests, verifiedPurchaseRequestLink,
+  effectiveUiQueryScope, projectContextQueryKey, myPurchaseRequestsQueryKey,
 } from './role-workspace-policy';
 
 export type SourceSection = {
@@ -64,9 +65,10 @@ export function RoleWorkspaceShell({
   const sourceKeys = useMemo(() => sections.map((item) => item.key), [sections]);
   const canReadPr = mayReadMyPurchaseRequests(user.permissions, sourceKeys);
   const projectSource = canReadPr ? 'procurement' : user.permissions.includes('projects.project.view') ? 'projects' : 'none';
+  const queryScope = effectiveUiQueryScope(user.id, user.companyId, user.permissions);
 
   const projectQuery = useQuery({
-    queryKey: ['v1.1', 'project-context', user.id, user.companyId, projectSource],
+    queryKey: projectContextQueryKey(queryScope, projectSource),
     queryFn: async (): Promise<ProjectOption[]> => {
       if (projectSource === 'procurement') {
         const result = await procurementApi.projects();
@@ -88,7 +90,7 @@ export function RoleWorkspaceShell({
   }, [projectQuery.isSuccess, projectQuery.data, user.id, user.companyId]);
 
   const prQuery = useQuery({
-    queryKey: ['v1.1', 'my-prs', user.id, user.companyId, selectedProjectId],
+    queryKey: myPurchaseRequestsQueryKey(queryScope, selectedProjectId),
     queryFn: () => procurementApi.requests(selectedProjectId),
     enabled: screen === 'work' && canReadPr && Boolean(selectedProjectId) &&
       projectQuery.isSuccess && isAccessibleProject(selectedProjectId, projects),

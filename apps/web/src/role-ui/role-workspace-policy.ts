@@ -1,5 +1,16 @@
 // V1.1-B: presentation-only guards over backend-authorized source data.
 // The backend remains authoritative for permissions, Project scope and record actions.
+// UI cache identity only; source APIs remain the authorization authority.
+export function effectiveUiQueryScope(userId: string, companyId: string, permissions: readonly string[]): string {
+  return JSON.stringify([userId, companyId, [...new Set(permissions)].sort()]);
+}
+export function projectContextQueryKey(scope: string, source: string) {
+  return ['v1.1', 'project-context', scope, source] as const;
+}
+export function myPurchaseRequestsQueryKey(scope: string, projectId: string) {
+  return ['v1.1', 'my-prs', scope, projectId] as const;
+}
+
 export type ProjectChoice = { id: string };
 
 export type EditablePurchaseRequest = {
