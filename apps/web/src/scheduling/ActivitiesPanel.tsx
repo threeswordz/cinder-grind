@@ -314,9 +314,14 @@ export function ActivitiesPanel({
   ]);
 
   useEffect(() => {
+    if (!initialActivityId || !initialProjectId) {
+      // Clearing a source link must also clear its consumed key so a later
+      // navigation to the same Activity can be selected again.
+      setLinkedActivityId('');
+      appliedActivitySource.current = '';
+      return;
+    }
     if (
-      !initialActivityId ||
-      !initialProjectId ||
       projectId !== initialProjectId ||
       !activities.isSuccess ||
       activities.isFetching
@@ -342,9 +347,14 @@ export function ActivitiesPanel({
   ]);
 
   useEffect(() => {
+    if (!initialWbsId || !initialProjectId) {
+      // A second click on the active Scheduling tab drops the source props
+      // without remounting this panel; discard the stale WBS highlight.
+      setLinkedWbsId('');
+      appliedWbsSource.current = '';
+      return;
+    }
     if (
-      !initialWbsId ||
-      !initialProjectId ||
       projectId !== initialProjectId ||
       !options.isSuccess ||
       options.isFetching
