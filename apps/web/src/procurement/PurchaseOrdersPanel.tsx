@@ -108,7 +108,7 @@ export function PurchaseOrdersPanel({ permissions, initialProjectId, initialOrde
   });
 
   useEffect(() => {
-    if (!initialProjectId || !projects.isSuccess) return;
+    if (!initialProjectId || !projects.isSuccess || projects.isFetching) return;
     const sourceLinkKey = `${initialProjectId}:${initialOrderId ?? ''}`;
     if (!consumeSourceLinkKey(appliedProjectSourceLink, sourceLinkKey)) return;
     setProjectId(
@@ -118,6 +118,7 @@ export function PurchaseOrdersPanel({ permissions, initialProjectId, initialOrde
     initialProjectId,
     initialOrderId,
     projects.isSuccess,
+    projects.isFetching,
     projects.data,
   ]);
 
@@ -158,7 +159,8 @@ export function PurchaseOrdersPanel({ permissions, initialProjectId, initialOrde
       !initialProjectId ||
       projectId !== initialProjectId ||
       !initialOrderId ||
-      !orders.isSuccess
+      !orders.isSuccess ||
+      orders.isFetching
     ) {
       return;
     }
@@ -176,6 +178,7 @@ export function PurchaseOrdersPanel({ permissions, initialProjectId, initialOrde
     initialOrderId,
     projectId,
     orders.isSuccess,
+    orders.isFetching,
     orders.data,
   ]);
 
