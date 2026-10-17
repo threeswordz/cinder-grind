@@ -3,7 +3,7 @@ export type Locale = 'en' | 'th' | 'zh-TW';
 // Presentation-only translations. Domain codes, status values and persisted records are never translated.
 export const labels: Record<Locale, Record<string, string>> = {
   en: {
-    home: 'Home', work: 'My Work', menu: 'Menu', signOut: 'Sign out', overview: 'Overview',
+    home: 'Home', work: 'My Work', menu: 'Menu', closeMenu: 'Close menu', primaryNavigation: 'Main navigation', signOut: 'Sign out', overview: 'Overview',
     projectsGroup: 'Projects & Site', procurementGroup: 'Purchasing & Inventory',
     commercialGroup: 'Commercial & Finance', managementGroup: 'Management', adminGroup: 'Administration',
     companySession: 'Company session', context: 'Project context', noProject: 'No accessible projects',
@@ -31,7 +31,7 @@ export const labels: Record<Locale, Record<string, string>> = {
     'numbering': 'Numbering', 'system': 'System Settings',
   },
   th: {
-    home: 'หน้าหลัก', work: 'งานของฉัน', menu: 'เมนู', signOut: 'ออกจากระบบ', overview: 'ภาพรวม',
+    home: 'หน้าหลัก', work: 'งานของฉัน', menu: 'เมนู', closeMenu: 'ปิดเมนู', primaryNavigation: 'เมนูนำทางหลัก', signOut: 'ออกจากระบบ', overview: 'ภาพรวม',
     projectsGroup: 'โครงการและหน้างาน', procurementGroup: 'จัดซื้อและคลังสินค้า',
     commercialGroup: 'ต้นทุนและการเงิน', managementGroup: 'ผู้บริหาร', adminGroup: 'การดูแลระบบ',
     companySession: 'บริษัทที่เข้าสู่ระบบ', context: 'บริบทโครงการ', noProject: 'ไม่มีโครงการที่เข้าถึงได้',
@@ -58,7 +58,7 @@ export const labels: Record<Locale, Record<string, string>> = {
     numbering: 'เลขที่เอกสาร', system: 'ตั้งค่าระบบ',
   },
   'zh-TW': {
-    home: '首頁', work: '我的工作', menu: '選單', signOut: '登出', overview: '總覽',
+    home: '首頁', work: '我的工作', menu: '選單', closeMenu: '關閉選單', primaryNavigation: '主要導覽', signOut: '登出', overview: '總覽',
     projectsGroup: '專案與工地', procurementGroup: '採購與庫存',
     commercialGroup: '商務與財務', managementGroup: '管理階層', adminGroup: '系統管理',
     companySession: '登入公司', context: '專案範圍', noProject: '沒有可存取的專案',
