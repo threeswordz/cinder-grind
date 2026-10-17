@@ -2,11 +2,12 @@ import {
   Alert, Button, Card, CardContent, Chip, MenuItem, Stack, TextField, Typography,
 } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { inventoryApi } from '../api/inventory';
 import {
   canOpenSourceLink,
+  consumeSourceLinkKey,
   resolveLinkedProjectId,
   resolveLinkedRecordId,
   sourceLinkTarget,
@@ -31,6 +32,8 @@ export function GoodsReceiptsPanel({
   const canApprove = permissions.includes('inventory.receipt.approve');
   const canReverse = permissions.includes('inventory.receipt.reverse');
   const [projectId, setProjectId] = useState('');
+  const appliedProjectSourceLink = useRef('');
+  const appliedReceiptSourceLink = useRef('');
   const [purchaseOrderId, setPurchaseOrderId] = useState('');
   const [lineQuantities, setLineQuantities] = useState<Record<string, string>>({});
   const [warehouseId, setWarehouseId] = useState('');
@@ -65,14 +68,30 @@ export function GoodsReceiptsPanel({
   });
   useEffect(() => {
     if (!initialProjectId || !projects.isSuccess) return;
+    const sourceLinkKey = `${initialProjectId}:${initialReceiptId ?? ''}`;
+    if (!consumeSourceLinkKey(appliedProjectSourceLink, sourceLinkKey)) return;
     setProjectId(
       resolveLinkedProjectId(initialProjectId, projects.data?.data ?? []),
     );
     setSelectedId('');
-  }, [initialProjectId, projects.isSuccess, projects.data]);
+  }, [
+    initialProjectId,
+    initialReceiptId,
+    projects.isSuccess,
+    projects.data,
+  ]);
 
   useEffect(() => {
-    if (!initialReceiptId || !receipts.isSuccess) return;
+    if (
+      !initialProjectId ||
+      projectId !== initialProjectId ||
+      !initialReceiptId ||
+      !receipts.isSuccess
+    ) {
+      return;
+    }
+    const sourceLinkKey = `${initialProjectId}:${initialReceiptId}`;
+    if (!consumeSourceLinkKey(appliedReceiptSourceLink, sourceLinkKey)) return;
     setSelectedId(
       resolveLinkedRecordId(
         initialReceiptId,
@@ -80,7 +99,13 @@ export function GoodsReceiptsPanel({
         receipts.data?.data ?? [],
       ),
     );
-  }, [initialReceiptId, projectId, receipts.isSuccess, receipts.data]);
+  }, [
+    initialProjectId,
+    initialReceiptId,
+    projectId,
+    receipts.isSuccess,
+    receipts.data,
+  ]);
 
   const detail = useQuery({
     queryKey: ['goods-receipt', selectedId],
