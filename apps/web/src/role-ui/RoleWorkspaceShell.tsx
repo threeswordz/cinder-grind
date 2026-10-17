@@ -5,7 +5,7 @@ import {
   ListItemText, MenuItem, Select, Stack, Toolbar, Typography, useMediaQuery,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import type { CurrentUser } from '../api/auth';
 import { procurementApi } from '../api/procurement';
@@ -15,6 +15,7 @@ import {
   visibleNavigationKeys, mayReadMyPurchaseRequests, selectedAccessibleProject,
   isAccessibleProject, ownEditablePurchaseRequests, verifiedPurchaseRequestLink,
   effectiveUiQueryScope, projectContextQueryKey, myPurchaseRequestsQueryKey,
+  clearRoleWorkspaceQueries, isRoleWorkspaceQueryReady,
 } from './role-workspace-policy';
 
 export type SourceSection = {
@@ -49,6 +50,8 @@ export function RoleWorkspaceShell({
   const [screen, setScreen] = useState<Screen>('home');
   const [mobileMenu, setMobileMenu] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState('');
+  const [readyQueryScope, setReadyQueryScope] = useState<string | null>(null);
+  const queryClient = useQueryClient();
   const navigationRef = useRef<HTMLElement | null>(null);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -66,6 +69,16 @@ export function RoleWorkspaceShell({
   const canReadPr = mayReadMyPurchaseRequests(user.permissions, sourceKeys);
   const projectSource = canReadPr ? 'procurement' : user.permissions.includes('projects.project.view') ? 'projects' : 'none';
   const queryScope = effectiveUiQueryScope(user.id, user.companyId, user.permissions);
+  const activeQueryScope = JSON.stringify([queryScope, projectSource]);
+  const queriesReady = isRoleWorkspaceQueryReady(readyQueryScope, activeQueryScope);
+
+  // Do not show a cached result on a new or returning authenticated scope.
+  // Rendering stays gated until previous V1.1 Project/PR cache entries are gone.
+  useEffect(() => {
+    clearRoleWorkspaceQueries(queryClient);
+    setSelectedProjectId('');
+    setReadyQueryScope(activeQueryScope);
+  }, [queryClient, activeQueryScope]);
 
   const projectQuery = useQuery({
     queryKey: projectContextQueryKey(queryScope, projectSource),
@@ -77,26 +90,32 @@ export function RoleWorkspaceShell({
       const result = await projectsApi.list('', 'true');
       return result.data.map((p) => ({ id: p.id, label: p.projectCode + ' — ' + p.projectName }));
     },
-    enabled: projectSource !== 'none',
+    enabled: queriesReady && projectSource !== 'none',
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: 'always',
   });
 
-  const projects = projectQuery.data ?? [];
+  const projects = queriesReady && projectQuery.isSuccess && !projectQuery.isFetching ? projectQuery.data ?? [] : [];
   useEffect(() => {
-    if (!projectQuery.isSuccess) {
+    if (!queriesReady || !projectQuery.isSuccess || projectQuery.isFetching) {
       setSelectedProjectId('');
       return;
     }
     setSelectedProjectId((current) => selectedAccessibleProject(current, projects));
-  }, [projectQuery.isSuccess, projectQuery.data, user.id, user.companyId]);
+  }, [queriesReady, projectQuery.isSuccess, projectQuery.isFetching, projectQuery.data, user.id, user.companyId]);
 
   const prQuery = useQuery({
     queryKey: myPurchaseRequestsQueryKey(queryScope, selectedProjectId),
     queryFn: () => procurementApi.requests(selectedProjectId),
-    enabled: screen === 'work' && canReadPr && Boolean(selectedProjectId) &&
-      projectQuery.isSuccess && isAccessibleProject(selectedProjectId, projects),
+    enabled: queriesReady && screen === 'work' && canReadPr && Boolean(selectedProjectId) &&
+      projectQuery.isSuccess && !projectQuery.isFetching &&
+      isAccessibleProject(selectedProjectId, projects),
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: 'always',
   });
   const myEditableRequests = ownEditablePurchaseRequests(
-    prQuery.data?.data ?? [], user.id, user.companyId, selectedProjectId, projects,
+    queriesReady && !prQuery.isFetching ? prQuery.data?.data ?? [] : [],
+    user.id, user.companyId, selectedProjectId, projects,
   );
 
   const openSection = (key: string) => {
@@ -107,7 +126,7 @@ export function RoleWorkspaceShell({
   };
   const openPr = (requestId: string) => {
     const link = verifiedPurchaseRequestLink(requestId, selectedProjectId, projects, myEditableRequests);
-    if (!canReadPr || !link) return;
+    if (!queriesReady || prQuery.isFetching || !canReadPr || !link) return;
     onOpenPr(link.projectId, link.requestId);
     setScreen('module');
     setMobileMenu(false);
@@ -170,8 +189,8 @@ export function RoleWorkspaceShell({
 
   const projectControl = projectSource !== 'none' ? (
     <Box sx={{ minWidth: { xs: '100%', sm: 250 }, maxWidth: 370 }}>
-      {projectQuery.isError ? <Alert severity="error" lang={locale}>{t('error', 'Unable to load project context.')}</Alert> :
-        projectQuery.isPending ? <Stack direction="row" spacing={1} alignItems="center" role="status" aria-live="polite" lang={locale}>
+      {queriesReady && projectQuery.isError ? <Alert severity="error" lang={locale}>{t('error', 'Unable to load project context.')}</Alert> :
+        !queriesReady || projectQuery.isPending || projectQuery.isFetching ? <Stack direction="row" spacing={1} alignItems="center" role="status" aria-live="polite" lang={locale}>
           <CircularProgress size={20} aria-label={t('loading', 'Loading')} />
           <Typography variant="body2">{t('loading', 'Loading authorized records…')}</Typography>
         </Stack> :
@@ -232,7 +251,7 @@ export function RoleWorkspaceShell({
 
   const work = (
     <Stack spacing={2} sx={{ minWidth: 0, overflowWrap: 'anywhere' }}
-      aria-busy={Boolean(selectedProjectId) && canReadPr && prQuery.isPending}>
+      aria-busy={!queriesReady || (Boolean(selectedProjectId) && canReadPr && (prQuery.isPending || prQuery.isFetching))}>
       <Typography variant="h5" fontWeight={700} lang={locale}>{t('work', 'My Work')}</Typography>
       <Typography color="text.secondary" lang={locale}>{t('workIntro', 'Your purchasing work in the selected project.')}</Typography>
       {projectControl}
@@ -240,9 +259,9 @@ export function RoleWorkspaceShell({
         {t('contextHint', 'This context is for My Work only; legacy modules keep their own authorized filters.')}
       </Typography>}
       {!canReadPr ? <Alert severity="info" role="status" lang={locale}>{t('queueUnavailable', 'Purchasing list unavailable for your permissions.')}</Alert> :
-        projectQuery.isError || projectQuery.isPending ? null :
+        !queriesReady || projectQuery.isError || projectQuery.isPending || projectQuery.isFetching ? null :
         !selectedProjectId ? <Alert severity="info" role="status" lang={locale}>{t('empty', 'Select an authorized project to view purchasing work.')}</Alert> :
-        prQuery.isPending ? <Stack direction="row" spacing={1} alignItems="center" role="status" aria-live="polite" lang={locale}><CircularProgress size={20} /><Typography>{t('loading', 'Loading records…')}</Typography></Stack> :
+        prQuery.isPending || prQuery.isFetching ? <Stack direction="row" spacing={1} alignItems="center" role="status" aria-live="polite" lang={locale}><CircularProgress size={20} /><Typography>{t('loading', 'Loading records…')}</Typography></Stack> :
         prQuery.isError ? <Alert severity="error" lang={locale}>{t('error', 'Unable to load authorized source.')}</Alert> :
         myEditableRequests.length === 0 ? <Alert severity="info" role="status" lang={locale}>{t('noQueue', 'No editable purchase requests created by you.')}</Alert> :
         <Stack spacing={1}>

@@ -1,3 +1,5 @@
+import type { QueryClient } from '@tanstack/react-query';
+
 // V1.1-B: presentation-only guards over backend-authorized source data.
 // The backend remains authoritative for permissions, Project scope and record actions.
 // UI cache identity only; source APIs remain the authorization authority.
@@ -9,6 +11,18 @@ export function projectContextQueryKey(scope: string, source: string) {
 }
 export function myPurchaseRequestsQueryKey(scope: string, projectId: string) {
   return ['v1.1', 'my-prs', scope, projectId] as const;
+}
+
+// Returning A → B → A must never resurrect A's old Project/PR snapshot.
+// This only clears V1.1 workspace cache entries; the backend still authorizes.
+export function clearRoleWorkspaceQueries(client: Pick<QueryClient, 'removeQueries'>): void {
+  client.removeQueries({ queryKey: ['v1.1', 'project-context'] });
+  client.removeQueries({ queryKey: ['v1.1', 'my-prs'] });
+}
+
+// Withhold workspace query data before the cache purge has completed.
+export function isRoleWorkspaceQueryReady(readyScope: string | null, activeScope: string): boolean {
+  return readyScope === activeScope;
 }
 
 export type ProjectChoice = { id: string };

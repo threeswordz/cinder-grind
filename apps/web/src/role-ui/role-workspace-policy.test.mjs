@@ -5,6 +5,7 @@ import {
   visibleNavigationKeys, mayReadMyPurchaseRequests, isAccessibleProject,
   selectedAccessibleProject, ownEditablePurchaseRequests, verifiedPurchaseRequestLink,
   effectiveUiQueryScope, projectContextQueryKey, myPurchaseRequestsQueryKey,
+  clearRoleWorkspaceQueries, isRoleWorkspaceQueryReady,
 } from './role-workspace-policy.ts';
 
 test('D3 query scope isolates user, Company, permission and Project changes', () => {
@@ -62,6 +63,41 @@ test('D3 React Query rejects previous context cache after effective permission, 
     assert.deepEqual(first, second);
     assert.equal(requests, 1, 'concurrent identical keys deduplicate fetches');
     assert.deepEqual(client.getQueryData(prKey), [{ id: 'a-draft' }]);
+  } finally {
+    client.clear();
+  }
+});
+
+test('D3 P1: returning A → B → A cannot reactivate cached Project/PR data', () => {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  try {
+    const scopeA = effectiveUiQueryScope('user-A', 'company-A', ['procurement.pr.view']);
+    const scopeB = effectiveUiQueryScope('user-A', 'company-A', ['projects.project.view']);
+    const keyA = projectContextQueryKey(scopeA, 'procurement');
+    const prA = myPurchaseRequestsQueryKey(scopeA, 'project-A');
+    const keyB = projectContextQueryKey(scopeB, 'projects');
+    const prB = myPurchaseRequestsQueryKey(scopeB, 'project-B');
+    const unrelated = ['projects', 'legacy-cache'];
+    client.setQueryData(unrelated, { unrelated: true });
+    client.setQueryData(keyA, [{ id: 'now-revoked-project-A' }]);
+    client.setQueryData(prA, [{ id: 'revoked-pr-A' }]);
+    assert.equal(isRoleWorkspaceQueryReady(null, scopeA), false);
+    assert.equal(isRoleWorkspaceQueryReady(scopeA, scopeB), false);
+    clearRoleWorkspaceQueries(client);
+    assert.equal(client.getQueryData(keyA), undefined);
+    assert.equal(client.getQueryData(prA), undefined);
+
+    client.setQueryData(keyB, [{ id: 'project-B' }]);
+    client.setQueryData(prB, [{ id: 'pr-B' }]);
+    assert.equal(isRoleWorkspaceQueryReady(scopeB, scopeA), false);
+    // B's data and even the previously cached A bucket must go before A is ready.
+    clearRoleWorkspaceQueries(client);
+    assert.equal(client.getQueryData(keyA), undefined);
+    assert.equal(client.getQueryData(prA), undefined);
+    assert.equal(client.getQueryData(keyB), undefined);
+    assert.equal(client.getQueryData(prB), undefined);
+    assert.equal(isRoleWorkspaceQueryReady(scopeA, scopeA), true);
+    assert.deepEqual(client.getQueryData(unrelated), { unrelated: true });
   } finally {
     client.clear();
   }
