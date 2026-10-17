@@ -28,8 +28,10 @@ import {
   purchaseOrdersApi,
 } from '../api/purchase-orders';
 import {
+  canOpenSourceLink,
   resolveLinkedProjectId,
   resolveLinkedRecordId,
+  sourceLinkTarget,
   type SourceLinkTarget,
 } from '../role-ui/source-link-policy';
 
@@ -596,6 +598,65 @@ export function PurchaseOrdersPanel({ permissions, initialProjectId, initialOrde
                           'PR'}{' '}
                         → {line.rfq?.rfqNumber ?? 'RFQ'} → Supplier Award
                       </Typography>
+                      {onOpenSource ? (
+                        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                          {line.purchaseRequestLine?.purchaseRequest &&
+                          canOpenSourceLink('purchase-requests', permissions) ? (
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              onClick={() => {
+                                const target = sourceLinkTarget(
+                                  'purchase-requests',
+                                  current.projectId,
+                                  line.purchaseRequestLine!.purchaseRequest.id,
+                                );
+                                if (target) onOpenSource(target);
+                              }}
+                            >
+                              Open {line.purchaseRequestLine.purchaseRequest.prNumber}
+                            </Button>
+                          ) : null}
+                          {line.rfq &&
+                          canOpenSourceLink('sourcing', permissions) ? (
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              onClick={() => {
+                                const target = sourceLinkTarget(
+                                  'sourcing',
+                                  current.projectId,
+                                  line.rfqId,
+                                );
+                                if (target) onOpenSource(target);
+                              }}
+                            >
+                              Open {line.rfq.rfqNumber}
+                            </Button>
+                          ) : null}
+                          {line.supplierQuotation &&
+                          permissions.includes('procurement.quotation.view') ? (
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              onClick={() => {
+                                const target = sourceLinkTarget(
+                                  'sourcing',
+                                  current.projectId,
+                                  line.rfqId,
+                                  line.supplierQuotationId,
+                                );
+                                if (target) onOpenSource(target);
+                              }}
+                            >
+                              Open supplier quotation
+                              {line.supplierQuotation.supplierReference
+                                ? ' · ' + line.supplierQuotation.supplierReference
+                                : ''}
+                            </Button>
+                          ) : null}
+                        </Stack>
+                      ) : null}
                       <Stack
                         direction={{ xs: 'column', md: 'row' }}
                         spacing={1}
