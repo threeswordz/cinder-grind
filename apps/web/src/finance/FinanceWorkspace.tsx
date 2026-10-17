@@ -27,6 +27,7 @@ import {
 } from '../api/finance';
 import {
   canOpenSourceLink,
+  consumeSourceLinkKey,
   resolveLinkedProjectId,
   resolveLinkedRecordId,
   sourceLinkTarget,
@@ -106,6 +107,8 @@ export function FinanceWorkspace({ permissions, initialProjectId, initialInvoice
 
   const [projectId, setProjectId] = useState('');
   const [invoiceId, setInvoiceId] = useState('');
+  const appliedProjectSourceLink = useRef('');
+  const appliedInvoiceSourceLink = useRef('');
 
   const [createSupplierId, setCreateSupplierId] = useState('');
   const [createSupplierReference, setCreateSupplierReference] = useState('');
@@ -150,10 +153,17 @@ export function FinanceWorkspace({ permissions, initialProjectId, initialInvoice
 
   useEffect(() => {
     if (!initialProjectId || !projects.isSuccess) return;
+    const sourceLinkKey = `${initialProjectId}:${initialInvoiceId ?? ''}`;
+    if (!consumeSourceLinkKey(appliedProjectSourceLink, sourceLinkKey)) return;
     setProjectId(
       resolveLinkedProjectId(initialProjectId, projects.data?.data ?? []),
     );
-  }, [initialProjectId, projects.isSuccess, projects.data]);
+  }, [
+    initialProjectId,
+    initialInvoiceId,
+    projects.isSuccess,
+    projects.data,
+  ]);
 
   useEffect(() => {
     if (initialProjectId) return;
@@ -182,7 +192,16 @@ export function FinanceWorkspace({ permissions, initialProjectId, initialInvoice
   });
 
   useEffect(() => {
-    if (!initialInvoiceId || !invoices.isSuccess) return;
+    if (
+      !initialProjectId ||
+      projectId !== initialProjectId ||
+      !initialInvoiceId ||
+      !invoices.isSuccess
+    ) {
+      return;
+    }
+    const sourceLinkKey = `${initialProjectId}:${initialInvoiceId}`;
+    if (!consumeSourceLinkKey(appliedInvoiceSourceLink, sourceLinkKey)) return;
     setInvoiceId(
       resolveLinkedRecordId(
         initialInvoiceId,
@@ -190,7 +209,13 @@ export function FinanceWorkspace({ permissions, initialProjectId, initialInvoice
         invoices.data?.data ?? [],
       ),
     );
-  }, [initialInvoiceId, projectId, invoices.isSuccess, invoices.data]);
+  }, [
+    initialProjectId,
+    initialInvoiceId,
+    projectId,
+    invoices.isSuccess,
+    invoices.data,
+  ]);
 
   useEffect(() => {
     if (initialInvoiceId || invoices.isFetching) return;
