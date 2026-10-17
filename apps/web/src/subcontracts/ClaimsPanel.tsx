@@ -20,8 +20,10 @@ import {
 } from '../api/subcontracts';
 import { CertificationSection } from './CertificationSection';
 import {
+  canOpenSourceLink,
   consumeSourceLinkKey,
   resolveLinkedRecordId,
+  sourceLinkTarget,
   type SourceLinkTarget,
 } from '../role-ui/source-link-policy';
 
@@ -518,6 +520,26 @@ export function ClaimsPanel({
                   label={selectedClaim.state}
                   color={actionColor(selectedClaim.state)}
                 />
+                {onOpenSource &&
+                canOpenSourceLink('subcontracts', permissions) &&
+                permissions.includes('subcontracts.agreement.view') ? (
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    onClick={() => {
+                      const target = sourceLinkTarget(
+                        'subcontracts',
+                        selectedClaim.projectId,
+                        selectedClaim.agreementId,
+                        undefined,
+                        'subcontract-agreement',
+                      );
+                      if (target) onOpenSource(target);
+                    }}
+                  >
+                    Open agreement
+                  </Button>
+                ) : null}
               </Stack>
 
               <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
@@ -568,26 +590,54 @@ export function ClaimsPanel({
               <Typography variant="subtitle2">Claim lines</Typography>
               <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
                 {selectedClaim.lines.map((line) => (
-                  <Chip
+                  <Stack
                     key={line.id}
-                    label={
-                      'Line ' +
-                      line.lineNo +
-                      ' · ' +
-                      selectedClaim.currencyCode +
-                      ' ' +
-                      line.amount +
-                      (line.workOrder
-                        ? ' · ' + line.workOrder.workOrderNumber
-                        : ' · Agreement scope')
-                    }
-                    color={line.id === selectedLineId ? 'primary' : 'default'}
-                    onClick={
-                      selectedClaim.state === 'DRAFT' && agreementActive
-                        ? () => setSelectedLineId(line.id)
-                        : undefined
-                    }
-                  />
+                    direction="row"
+                    spacing={0.5}
+                    alignItems="center"
+                  >
+                    <Chip
+                      label={
+                        'Line ' +
+                        line.lineNo +
+                        ' · ' +
+                        selectedClaim.currencyCode +
+                        ' ' +
+                        line.amount +
+                        (line.workOrder
+                          ? ' · ' + line.workOrder.workOrderNumber
+                          : ' · Agreement scope')
+                      }
+                      color={line.id === selectedLineId ? 'primary' : 'default'}
+                      onClick={
+                        selectedClaim.state === 'DRAFT' && agreementActive
+                          ? () => setSelectedLineId(line.id)
+                          : undefined
+                      }
+                    />
+                    {line.workOrder &&
+                    onOpenSource &&
+                    canOpenSourceLink('subcontracts', permissions) &&
+                    permissions.includes('subcontracts.agreement.view') &&
+                    permissions.includes('subcontracts.work_order.view') ? (
+                      <Button
+                        size="small"
+                        variant="text"
+                        onClick={() => {
+                          const target = sourceLinkTarget(
+                            'subcontracts',
+                            selectedClaim.projectId,
+                            selectedClaim.agreementId,
+                            line.workOrder?.id,
+                            'subcontract-work-order',
+                          );
+                          if (target) onOpenSource(target);
+                        }}
+                      >
+                        Open work order
+                      </Button>
+                    ) : null}
+                  </Stack>
                 ))}
               </Stack>
 
