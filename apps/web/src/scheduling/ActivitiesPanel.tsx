@@ -177,6 +177,7 @@ export function ActivitiesPanel({
 
   const rows = activities.data?.data ?? [];
   const optionData = options.data?.data;
+  const activeWbsIds = new Set((optionData?.wbs ?? []).map((wbs) => wbs.id));
 
   const treeRows = useMemo(() => {
     const result: Array<{ row: ActivityRecord; depth: number }> = [];
@@ -472,7 +473,9 @@ export function ActivitiesPanel({
                     WBS
                   </Button>
                 ) : null}
-                {onOpenSource && canOpenSourceLink('budget', permissions) ? (
+                {activeWbsIds.has(row.wbsId) &&
+                onOpenSource &&
+                canOpenSourceLink('budget', permissions) ? (
                   <Button onClick={() => openSource('budget', 'wbs', row.wbsId)}>
                     Budget
                   </Button>
@@ -482,7 +485,9 @@ export function ActivitiesPanel({
                     Site
                   </Button>
                 ) : null}
-                {onOpenSource && canOpenSourceLink('cost-control', permissions) ? (
+                {activeWbsIds.has(row.wbsId) &&
+                onOpenSource &&
+                canOpenSourceLink('cost-control', permissions) ? (
                   <Button onClick={() => openSource('cost-control', 'wbs', row.wbsId)}>
                     Cost
                   </Button>
