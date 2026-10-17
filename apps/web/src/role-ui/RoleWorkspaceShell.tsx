@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   Alert, AppBar, Box, Button, Card, CardContent, Chip, CircularProgress, Container,
   Divider, Drawer, FormControl, InputLabel, List, ListItemButton,
@@ -48,9 +48,18 @@ export function RoleWorkspaceShell({
   const [screen, setScreen] = useState<Screen>('home');
   const [mobileMenu, setMobileMenu] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState('');
+  const navigationRef = useRef<HTMLElement | null>(null);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const t = (key: string, fallback: string) => translate(locale, key, fallback);
+
+  // The temporary MUI Drawer traps focus and restores it to its opener on close.
+  // Explicitly enter the first visible control when the mobile drawer opens.
+  useEffect(() => {
+    if (isMobile && mobileMenu) {
+      navigationRef.current?.querySelector<HTMLElement>('button, [role="button"]')?.focus();
+    }
+  }, [isMobile, mobileMenu]);
   const sectionByKey = useMemo(() => new Map(sections.map((item) => [item.key, item])), [sections]);
   const sourceKeys = useMemo(() => sections.map((item) => item.key), [sections]);
   const canReadPr = mayReadMyPurchaseRequests(user.permissions, sourceKeys);
@@ -107,13 +116,21 @@ export function RoleWorkspaceShell({
   };
   const activeSection = activeKey ? sectionByKey.get(activeKey) : undefined;
   const navButton = (key: 'home' | 'work', view: Screen) => (
-    <ListItemButton selected={screen === view} onClick={() => selectScreen(view)} key={key}>
+    <ListItemButton selected={screen === view} aria-current={screen === view ? 'page' : undefined} onClick={() => selectScreen(view)} key={key}>
       <ListItemText primary={t(key, key)} />
     </ListItemButton>
   );
 
   const navigation = (
-    <Box sx={{ overflowY: 'auto', py: 1, height: '100%' }}>
+    <Box component="nav" id="v11-primary-navigation" ref={navigationRef}
+      aria-label={t('primaryNavigation', 'Main navigation')}
+      sx={{ overflowY: 'auto', py: 1, height: '100%' }}>
+      {isMobile && <Box sx={{ display: 'flex', justifyContent: 'flex-end', px: 1 }}>
+        <Button size="small" onClick={() => setMobileMenu(false)}
+          sx={{ minHeight: 44, minWidth: 44 }}>
+          {t('closeMenu', 'Close menu')}
+        </Button>
+      </Box>}
       <Typography variant="overline" sx={{ px: 2 }} color="text.secondary">
         {t('overview', 'Overview')}
       </Typography>
@@ -135,6 +152,7 @@ export function RoleWorkspaceShell({
                 <ListItemButton
                   key={key}
                   selected={screen === 'module' && key === activeKey}
+                  aria-current={screen === 'module' && key === activeKey ? 'page' : undefined}
                   onClick={() => openSection(key)}
                   sx={{ pl: 3 }}
                 >
@@ -244,8 +262,10 @@ export function RoleWorkspaceShell({
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
       <AppBar color="inherit" position="sticky" elevation={0} sx={{ borderBottom: 1, borderColor: 'divider' }}>
-        <Toolbar sx={{ gap: 2 }}>
-          {isMobile && <Button onClick={() => setMobileMenu(true)} aria-label={t('menu', 'Menu')}>{t('menu', 'Menu')}</Button>}
+        <Toolbar sx={{ gap: { xs: 1, md: 2 }, flexWrap: { xs: 'wrap', md: 'nowrap' }, py: { xs: 1, md: 0 } }}>
+          {isMobile && <Button onClick={() => setMobileMenu(true)} aria-label={t('menu', 'Menu')}
+            aria-controls="v11-primary-navigation" aria-expanded={mobileMenu}
+            sx={{ minHeight: 44, minWidth: 44 }}>{t('menu', 'Menu')}</Button>}
           <Box sx={{ flexGrow: 1, minWidth: 0 }}>
             <Typography variant="h6" fontWeight={700}>Construction ERP</Typography>
             <Typography variant="caption" color="text.secondary">
