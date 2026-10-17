@@ -168,8 +168,11 @@ export function RoleWorkspaceShell({
 
   const projectControl = projectSource !== 'none' ? (
     <Box sx={{ minWidth: { xs: '100%', sm: 250 }, maxWidth: 370 }}>
-      {projectQuery.isError ? <Alert severity="warning">{t('error', 'Unable to load project context.')}</Alert> :
-        projectQuery.isPending ? <CircularProgress size={20} aria-label={t('loading', 'Loading')} /> :
+      {projectQuery.isError ? <Alert severity="error">{t('error', 'Unable to load project context.')}</Alert> :
+        projectQuery.isPending ? <Stack direction="row" spacing={1} alignItems="center" role="status" aria-live="polite">
+          <CircularProgress size={20} aria-label={t('loading', 'Loading')} />
+          <Typography variant="body2">{t('loading', 'Loading authorized records…')}</Typography>
+        </Stack> :
         projects.length === 0 ? <Alert severity="info" role="status">{t('noProject', 'No accessible projects')}</Alert> :
         <FormControl size="small" fullWidth>
           <InputLabel id="v11-project-label">{t('context', 'Project context')}</InputLabel>
@@ -210,7 +213,7 @@ export function RoleWorkspaceShell({
         </Card>
       </Stack>
       <Typography variant="h6">{t('shortcuts', 'Your workspaces')}</Typography>
-      {sections.length === 0 ? <Alert severity="info">{t('noModules', 'No application modules are available.')}</Alert> :
+      {sections.length === 0 ? <Alert severity="info" role="status">{t('noModules', 'No application modules are available.')}</Alert> :
         <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(195px, 100%), 1fr))', gap: 2 }}>
           {sections.slice(0, 8).map((section) => (
             <Card variant="outlined" key={section.key}>
@@ -258,7 +261,7 @@ export function RoleWorkspaceShell({
             </Card>
           ))}
         </Stack>}
-      <Alert severity="info">{t('sourceOnly', 'Approval eligibility is evaluated in the source module.')}</Alert>
+      <Alert severity="info" role="note">{t('sourceOnly', 'Approval eligibility is evaluated in the source module.')}</Alert>
     </Stack>
   );
 
