@@ -484,16 +484,20 @@ export function CostControlWorkspace({
           {canOpenSourceLink('projects', permissions) ? (
             <Button onClick={() => openSource('projects')}>Project</Button>
           ) : null}
-          {canOpenSourceLink('wbs', permissions) ? (
+          {selectedProject?.isActive &&
+          canOpenSourceLink('wbs', permissions) ? (
             <Button onClick={() => openSource('wbs')}>WBS</Button>
           ) : null}
-          {canOpenSourceLink('budget', permissions) ? (
+          {selectedProject?.isActive &&
+          canOpenSourceLink('budget', permissions) ? (
             <Button onClick={() => openSource('budget')}>Budget</Button>
           ) : null}
-          {canOpenSourceLink('site-execution', permissions) ? (
+          {selectedProject?.isActive &&
+          canOpenSourceLink('site-execution', permissions) ? (
             <Button onClick={() => openSource('site-execution')}>Site</Button>
           ) : null}
-          {canOpenSourceLink('management', permissions) ? (
+          {selectedProject?.isActive &&
+          canOpenSourceLink('management', permissions) ? (
             <Button onClick={() => openSource('management')}>Management</Button>
           ) : null}
         </Stack>
