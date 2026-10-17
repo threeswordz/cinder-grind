@@ -13,7 +13,7 @@
 
 ## Active successor — V1.1 Business Workflow & Role UI (DEC-028; V1.1-B handoff closure)
 
-**Approval date:** 2026-10-17. **Owner decision:** DEC-028. **Entry V1.1-A:** PR #212 + #213 merged, main CI #4327 PASS, Issue #211 CLOSED. **Stage V1.1-B implementation:** final head `e04cdeaaff1c5013f5b5315b389283750c12aee3` passed exact-head push/PR CI #4333/#4334, Codex P2 localization finding fixed/thread resolved; PR #215 squash-merged `acf943392e81d4fb70f499304c5ce2bd677ea434`, exact-main CI #4335 PASS. PR #216 received one genuine Codex P2 requesting Stage-B behavior validation. Source-scope/deep-link tests, locale-key checks and desktop/mobile SSR checks are being integrated; PR #216 exact-head CI and review remain PENDING. Final merge/post-main CI and live Issue #214 closure remain stage gates; V1.1-C is blocked.
+**Approval date:** 2026-10-17. **Owner decision:** DEC-028. **Entry V1.1-A:** PR #212 + #213 merged, main CI #4327 PASS, Issue #211 CLOSED. **Stage V1.1-B implementation:** final head `e04cdeaaff1c5013f5b5315b389283750c12aee3` passed exact-head push/PR CI #4333/#4334, Codex P2 localization finding fixed/thread resolved; PR #215 squash-merged `acf943392e81d4fb70f499304c5ce2bd677ea434`, exact-main CI #4335 PASS. PR #216 received one genuine Codex P2 requesting Stage-B behavior validation. Source-scope/deep-link tests, locale-key checks and desktop/mobile SSR checks were integrated; **14/14 web tests PASS**, PR #216 test-bearing head `228fc10d` push CI #4362 and PR CI #4363 **SUCCESS**. Final docs head CI, review-thread resolution, merge and post-main CI remain gates. Final merge/post-main CI and live Issue #214 closure remain stage gates; V1.1-C is blocked.
 
 | Stage | Approved bounded delivery | Gate |
 |---|---|---|
