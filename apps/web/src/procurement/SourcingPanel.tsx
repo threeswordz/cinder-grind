@@ -115,7 +115,7 @@ export function SourcingPanel({
     enabled: Boolean(canView && projectId),
   });
   useEffect(() => {
-    if (!initialProjectId || !projects.isSuccess) return;
+    if (!initialProjectId || !projects.isSuccess || projects.isFetching) return;
     const sourceLinkKey =
       `${initialProjectId}:${initialRfqId ?? ''}:${initialQuotationId ?? ''}`;
     if (!consumeSourceLinkKey(appliedProjectSourceLink, sourceLinkKey)) return;
@@ -137,7 +137,8 @@ export function SourcingPanel({
       !initialProjectId ||
       projectId !== initialProjectId ||
       !initialRfqId ||
-      !rfqs.isSuccess
+      !rfqs.isSuccess ||
+      rfqs.isFetching
     ) {
       return;
     }
@@ -285,7 +286,7 @@ export function SourcingPanel({
   }, [current?.lines]);
 
   useEffect(() => {
-    if (!current) return;
+    if (!current || detail.isFetching) return;
     if (
       initialProjectId &&
       projectId === initialProjectId &&
