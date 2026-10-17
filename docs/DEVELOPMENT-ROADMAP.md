@@ -1,7 +1,7 @@
 # Construction ERP — Development Roadmap
 
 **Document Status:** Development Roadmap Baseline v0.1  
-**Current Phase:** V1.0 COMPLETE + ACCEPTED; V1.1-A/B technically COMPLETE; V1.1-C preflight + C1 COMPLETE; C2 Subcontract→Finance runtime technically COMPLETE with closure reconciliation ACTIVE under Issue #217  
+**Current Phase:** V1.0 COMPLETE + ACCEPTED; V1.1-A/B technically COMPLETE; V1.1-C preflight + C1/C2 COMPLETE; C3 Project→Cost/Management ACTIVE under Issue #217  
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1  
@@ -11,15 +11,15 @@
 
 ---
 
-## Active successor — V1.1 Business Workflow & Role UI (DEC-028; V1.1-C2 Subcontract→Finance)
+## Active successor — V1.1 Business Workflow & Role UI (DEC-028; V1.1-C3 Project→Cost/Management)
 
-**Approval:** 2026-10-17 under DEC-028. **V1.1-A complete** (Issue #211; CI #4327). **V1.1-B technically complete** (Issue #214; main CI #4366). **V1.1-C preflight complete** (PR #218 / main CI #4372). **C1 Procurement→Finance CLOSED:** final head `1eded763d2fbd02332b86280341eb7537454af08`, CI #4451/#4452, clean DEC-022 review, PR #219 merged `b2181cc12ab00be8fc56cb42dc375707a0fe8610`, main CI #4453; closure PR #220 merged `8ab24847aea7860576f7604b1d9d66b8beaaa5cf`, exact-main CI #4461 PASS. **C2 Subcontract→Finance runtime is technically COMPLETE:** final exact head `673d7030f356ede71d279bc007a2885308bef7e7` passed push CI #4485 / PR CI #4486 and clean DEC-022 review; PR #221 merged as `e08d69870ed51ad933980eab84c40e54a1a31e2c`; exact-main CI #4487 PASS. Documentation-only closure reconciliation is active on `v1.1-c2-closure-reconcile`; C3 and V1.1 human UAT remain unstarted until this closure reconciliation merges and exact-main CI passes.
+**Approval:** 2026-10-17 under DEC-028. **V1.1-A complete** (Issue #211; CI #4327). **V1.1-B technically complete** (Issue #214; main CI #4366). **V1.1-C preflight complete** (PR #218 / main CI #4372). **C1 Procurement→Finance CLOSED:** closure PR #220 merged `8ab24847aea7860576f7604b1d9d66b8beaaa5cf`, exact-main CI #4461 PASS. **C2 Subcontract→Finance CLOSED:** final runtime head `673d7030f356ede71d279bc007a2885308bef7e7` passed CI #4485/#4486 and clean DEC-022 review; PR #221 merged `e08d69870ed51ad933980eab84c40e54a1a31e2c`, main CI #4487; closure PR #222 merged `d783bf1e63a1342053a52bc14a53bb6d1b40b762`, exact-main CI #4491 PASS. **C3 Project→Cost/Management is ACTIVE** on `v1.1-c3-project-cost-management-links` for permission-safe source navigation among existing Project, WBS/Activity, BOQ original/revisions, Site Execution, Cost Control and Management views. V1.1 human UAT remains unstarted.
 
 | Stage | Approved bounded delivery | Gate |
 |---|---|---|
 | V1.1-A | Entry/scope/54-workflow traceability and eight-persona permission/data/API/security/test baselines | **COMPLETE:** PRs #212/#213, main CI #4327, Issue #211 CLOSED |
 | V1.1-B | Role-first modular responsive app shell, sourced Home/My Work and grouped navigation | **TECHNICALLY COMPLETE:** PRs #215/#216, 14 web tests, exact-main CI #4366 PASS, Issue #214 CLOSED |
-| V1.1-C | Source-owned Procurement→Finance (C1), Subcontract→Finance (C2), Project→Cost/Management (C3) | **C1 CLOSED; C2 RUNTIME TECHNICALLY COMPLETE / CLOSURE RECONCILIATION ACTIVE:** PR #221 merged `e08d6987…`, exact-main CI #4487 PASS; docs-only closure PR required before C3 starts |
+| V1.1-C | Source-owned Procurement→Finance (C1), Subcontract→Finance (C2), Project→Cost/Management (C3) | **C1/C2 CLOSED; C3 ACTIVE:** C2 closure PR #222 merged `d783bf1e…`, exact-main CI #4491 PASS; C3 source-link implementation active with original-budget and authorized-portfolio non-regression boundaries |
 | V1.1-D | UX/accessibility/security/compatibility hardening only | After C stage closure |
 | V1.1-E | Eight-persona UAT/evidence, locale/THB/Company-Project security regression and release exit | After D + Product Owner human AC-V11-029/030 |
 
