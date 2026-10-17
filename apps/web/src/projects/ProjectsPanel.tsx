@@ -7,6 +7,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { projectsApi, ProjectRecord } from '../api/projects';
 import {
   canOpenSourceLink,
+  canWriteSourceForm,
   consumeSourceLinkKey,
   resolveLinkedProjectId,
   sourceLinkTarget,
@@ -187,6 +188,7 @@ export function ProjectsPanel({
 
   function submit(event: FormEvent) {
     event.preventDefault();
+    if (!canWriteSourceForm(canCreate, canEdit, Boolean(selected))) return;
     save.mutate();
   }
 
@@ -271,7 +273,7 @@ export function ProjectsPanel({
         ))}
       </Stack>
 
-      {(canCreate || (selected && canEdit)) ? (
+      {canWriteSourceForm(canCreate, canEdit, Boolean(selected)) ? (
         <Card variant="outlined">
           <CardContent>
             <Stack component="form" spacing={2} onSubmit={submit}>
