@@ -262,7 +262,7 @@ export function RoleWorkspaceShell({
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
       <AppBar color="inherit" position="sticky" elevation={0} sx={{ borderBottom: 1, borderColor: 'divider' }}>
-        <Toolbar sx={{ gap: 2 }}>
+        <Toolbar sx={{ gap: { xs: 1, md: 2 }, flexWrap: { xs: 'wrap', md: 'nowrap' }, py: { xs: 1, md: 0 } }}>
           {isMobile && <Button onClick={() => setMobileMenu(true)} aria-label={t('menu', 'Menu')}
             aria-controls="v11-primary-navigation" aria-expanded={mobileMenu}
             sx={{ minHeight: 44, minWidth: 44 }}>{t('menu', 'Menu')}</Button>}
