@@ -20,8 +20,8 @@ export function GoodsReceiptsPanel({
   onOpenSource,
 }: {
   permissions: string[];
-  initialProjectId?: string;
-  initialReceiptId?: string;
+  initialProjectId?: string | undefined;
+  initialReceiptId?: string | undefined;
   onOpenSource?: (target: SourceLinkTarget) => void;
 }) {
   const queryClient = useQueryClient();
