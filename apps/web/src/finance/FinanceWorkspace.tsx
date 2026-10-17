@@ -25,9 +25,17 @@ import {
   SupplierInvoiceItem,
   SupplierInvoiceLineInput,
 } from '../api/finance';
+import {
+  resolveLinkedProjectId,
+  resolveLinkedRecordId,
+  type SourceLinkTarget,
+} from '../role-ui/source-link-policy';
 
 type Props = {
   permissions: string[];
+  initialProjectId?: string;
+  initialInvoiceId?: string;
+  onOpenSource?: (target: SourceLinkTarget) => void;
 };
 
 type LineDraft = {
@@ -84,7 +92,7 @@ function editDraft(line: SupplierInvoiceItem): LineDraft {
   };
 }
 
-export function FinanceWorkspace({ permissions }: Props) {
+export function FinanceWorkspace({ permissions, initialProjectId, initialInvoiceId, onOpenSource }: Props) {
   const queryClient = useQueryClient();
 
   const canView = permissions.includes('finance.supplier_invoice.view');
@@ -139,12 +147,20 @@ export function FinanceWorkspace({ permissions }: Props) {
   });
 
   useEffect(() => {
+    if (!initialProjectId || !projects.isSuccess) return;
+    setProjectId(
+      resolveLinkedProjectId(initialProjectId, projects.data?.data ?? []),
+    );
+  }, [initialProjectId, projects.isSuccess, projects.data]);
+
+  useEffect(() => {
+    if (initialProjectId) return;
     const values = projects.data?.data ?? [];
     if (!projectId && values[0]) setProjectId(values[0].id);
     if (projectId && !values.some((project) => project.id === projectId)) {
       setProjectId(values[0]?.id ?? '');
     }
-  }, [projectId, projects.data]);
+  }, [initialProjectId, projectId, projects.data]);
 
   useEffect(() => {
     setInvoiceId('');
@@ -164,13 +180,24 @@ export function FinanceWorkspace({ permissions }: Props) {
   });
 
   useEffect(() => {
-    if (invoices.isFetching) return;
+    if (!initialInvoiceId || !invoices.isSuccess) return;
+    setInvoiceId(
+      resolveLinkedRecordId(
+        initialInvoiceId,
+        projectId,
+        invoices.data?.data ?? [],
+      ),
+    );
+  }, [initialInvoiceId, projectId, invoices.isSuccess, invoices.data]);
+
+  useEffect(() => {
+    if (initialInvoiceId || invoices.isFetching) return;
     const values = invoices.data?.data ?? [];
     if (!invoiceId && values[0]) setInvoiceId(values[0].id);
     if (invoiceId && !values.some((invoice) => invoice.id === invoiceId)) {
       setInvoiceId(values[0]?.id ?? '');
     }
-  }, [invoiceId, invoices.data, invoices.isFetching]);
+  }, [initialInvoiceId, invoiceId, invoices.data, invoices.isFetching]);
 
   const detail = useQuery({
     queryKey: ['finance-supplier-invoice', invoiceId],
