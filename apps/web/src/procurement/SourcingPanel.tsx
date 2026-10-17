@@ -13,7 +13,7 @@ import {
   Typography,
 } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Dispatch, SetStateAction, useEffect, useMemo, useState } from 'react';
+import { Dispatch, SetStateAction, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   RfqComparison,
@@ -22,6 +22,7 @@ import {
 } from '../api/sourcing';
 import {
   canOpenSourceLink,
+  consumeSourceLinkKey,
   resolveLinkedChildRecordId,
   resolveLinkedProjectId,
   resolveLinkedRecordId,
@@ -62,6 +63,9 @@ export function SourcingPanel({
 
   const [projectId, setProjectId] = useState('');
   const [rfqId, setRfqId] = useState('');
+  const appliedProjectSourceLink = useRef('');
+  const appliedRfqSourceLink = useRef('');
+  const appliedQuotationSourceLink = useRef('');
   const [closingDate, setClosingDate] = useState('');
   const [rfqRemarks, setRfqRemarks] = useState('');
   const [selectedDemand, setSelectedDemand] = useState<Record<string, string>>(
@@ -112,20 +116,38 @@ export function SourcingPanel({
   });
   useEffect(() => {
     if (!initialProjectId || !projects.isSuccess) return;
+    const sourceLinkKey =
+      `${initialProjectId}:${initialRfqId ?? ''}:${initialQuotationId ?? ''}`;
+    if (!consumeSourceLinkKey(appliedProjectSourceLink, sourceLinkKey)) return;
     setProjectId(
       resolveLinkedProjectId(initialProjectId, projects.data?.data ?? []),
     );
     setRfqId('');
     startNewQuotation();
-  }, [initialProjectId, projects.isSuccess, projects.data]);
+  }, [
+    initialProjectId,
+    initialRfqId,
+    initialQuotationId,
+    projects.isSuccess,
+    projects.data,
+  ]);
 
   useEffect(() => {
     if (!initialRfqId || !rfqs.isSuccess) return;
+    const sourceLinkKey =
+      `${projectId}:${initialRfqId}:${initialQuotationId ?? ''}`;
+    if (!consumeSourceLinkKey(appliedRfqSourceLink, sourceLinkKey)) return;
     setRfqId(
       resolveLinkedRecordId(initialRfqId, projectId, rfqs.data?.data ?? []),
     );
     startNewQuotation();
-  }, [initialRfqId, projectId, rfqs.isSuccess, rfqs.data]);
+  }, [
+    initialRfqId,
+    initialQuotationId,
+    projectId,
+    rfqs.isSuccess,
+    rfqs.data,
+  ]);
 
   const detail = useQuery({
     queryKey: [
@@ -257,13 +279,16 @@ export function SourcingPanel({
   useEffect(() => {
     if (!current) return;
     if (initialQuotationId) {
-      setQuotationId(
-        resolveLinkedChildRecordId(
-          initialQuotationId,
-          current.quotations ?? [],
-        ),
-      );
-      return;
+      const sourceLinkKey = `${current.id}:${initialQuotationId}`;
+      if (consumeSourceLinkKey(appliedQuotationSourceLink, sourceLinkKey)) {
+        setQuotationId(
+          resolveLinkedChildRecordId(
+            initialQuotationId,
+            current.quotations ?? [],
+          ),
+        );
+        return;
+      }
     }
     if (
       quotationId &&
