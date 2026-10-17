@@ -1,5 +1,5 @@
 import { Alert, Stack, Tab, Tabs } from '@mui/material';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { GoodsReceiptsPanel } from './GoodsReceiptsPanel';
 import { MaterialIssuesPanel } from './MaterialIssuesPanel';
@@ -56,6 +56,8 @@ export function InventoryWorkspace({
                 ? 'transfers'
                 : 'reports';
   const [selected, setSelected] = useState<InventoryTab>(first);
+  const appliedReceiptProjectSourceLink = useRef('');
+  const appliedReceiptSourceLink = useRef('');
   useEffect(() => {
     if (initialReceiptId && canSeeReceipts) setSelected('receipts');
   }, [initialReceiptId, canSeeReceipts]);
@@ -108,6 +110,8 @@ export function InventoryWorkspace({
           permissions={permissions}
           initialProjectId={initialProjectId}
           initialReceiptId={initialReceiptId}
+          appliedProjectSourceLink={appliedReceiptProjectSourceLink}
+          appliedReceiptSourceLink={appliedReceiptSourceLink}
           onOpenSource={onOpenSource}
         />
       ) : active === 'stock' ? (
