@@ -57,13 +57,27 @@ export function AdminConsole({ user }: { user: CurrentUser }) {
           key: 'management',
           label: 'Management',
           permission: '__management__',
-          content: <ManagementWorkspace permissions={user.permissions} />,
+          content: <ManagementWorkspace
+            permissions={user.permissions}
+            initialProjectId={linkedSource?.sectionKey === 'management' ? linkedSource.projectId : undefined}
+            onOpenSource={openSource}
+          />,
         },
         {
           key: 'cost-control',
           label: 'Cost Control',
           permission: '__cost_control__',
-          content: <CostControlWorkspace permissions={user.permissions} />,
+          content: <CostControlWorkspace
+            permissions={user.permissions}
+            initialProjectId={linkedSource?.sectionKey === 'cost-control' ? linkedSource.projectId : undefined}
+            initialWbsId={
+              linkedSource?.sectionKey === 'cost-control' &&
+              linkedSource.recordKind === 'wbs'
+                ? linkedSource.childRecordId
+                : undefined
+            }
+            onOpenSource={openSource}
+          />,
         },
         {
           key: 'finance',
@@ -145,7 +159,17 @@ export function AdminConsole({ user }: { user: CurrentUser }) {
           key: 'budget',
           label: 'BOQ & Budget',
           permission: '__budget__',
-          content: <BudgetPanel permissions={user.permissions} />,
+          content: <BudgetPanel
+            permissions={user.permissions}
+            initialProjectId={linkedSource?.sectionKey === 'budget' ? linkedSource.projectId : undefined}
+            initialRevisionId={
+              linkedSource?.sectionKey === 'budget' &&
+              linkedSource.recordKind === 'budget-revision'
+                ? linkedSource.childRecordId
+                : undefined
+            }
+            onOpenSource={openSource}
+          />,
         },
         {
           key: 'procurement-report',
@@ -190,13 +214,39 @@ export function AdminConsole({ user }: { user: CurrentUser }) {
           key: 'site-execution',
           label: 'Site Execution',
           permission: '__site_execution__',
-          content: <SiteExecutionPanel permissions={user.permissions} />,
+          content: <SiteExecutionPanel
+            permissions={user.permissions}
+            initialProjectId={linkedSource?.sectionKey === 'site-execution' ? linkedSource.projectId : undefined}
+            initialReportId={
+              linkedSource?.sectionKey === 'site-execution' &&
+              linkedSource.recordKind === 'site-report'
+                ? linkedSource.childRecordId
+                : undefined
+            }
+            onOpenSource={openSource}
+          />,
         },
         {
           key: 'scheduling',
           label: 'Scheduling',
           permission: '__scheduling__',
-          content: <SchedulingPanel permissions={user.permissions} />,
+          content: <SchedulingPanel
+            permissions={user.permissions}
+            initialProjectId={linkedSource?.sectionKey === 'scheduling' ? linkedSource.projectId : undefined}
+            initialActivityId={
+              linkedSource?.sectionKey === 'scheduling' &&
+              linkedSource.recordKind === 'activity'
+                ? linkedSource.childRecordId
+                : undefined
+            }
+            initialWbsId={
+              linkedSource?.sectionKey === 'scheduling' &&
+              linkedSource.recordKind === 'wbs'
+                ? linkedSource.childRecordId
+                : undefined
+            }
+            onOpenSource={openSource}
+          />,
         },
         {
           key: 'documents',
@@ -208,13 +258,27 @@ export function AdminConsole({ user }: { user: CurrentUser }) {
           key: 'wbs',
           label: 'WBS & Cost Codes',
           permission: '__wbs__',
-          content: <WbsPanel permissions={user.permissions} />,
+          content: <WbsPanel
+            permissions={user.permissions}
+            initialProjectId={linkedSource?.sectionKey === 'wbs' ? linkedSource.projectId : undefined}
+            initialWbsId={
+              linkedSource?.sectionKey === 'wbs' &&
+              linkedSource.recordKind === 'wbs'
+                ? linkedSource.childRecordId
+                : undefined
+            }
+            onOpenSource={openSource}
+          />,
         },
         {
           key: 'projects',
           label: 'Projects',
           permission: 'projects.project.view',
-          content: <ProjectsPanel permissions={user.permissions} />,
+          content: <ProjectsPanel
+            permissions={user.permissions}
+            initialProjectId={linkedSource?.sectionKey === 'projects' ? linkedSource.projectId : undefined}
+            onOpenSource={openSource}
+          />,
         },
         {
           key: 'master-data',
