@@ -1,4 +1,4 @@
-import { FormEvent, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Button,
@@ -18,6 +18,16 @@ import {
   ActivityRecord,
   schedulingApi,
 } from '../api/scheduling';
+import {
+  canOpenSourceLink,
+  consumeSourceLinkKey,
+  resolveLinkedChildRecordId,
+  resolveLinkedProjectId,
+  resolveLinkedRecordId,
+  sourceLinkTarget,
+  type SourceLinkSection,
+  type SourceLinkTarget,
+} from '../role-ui/source-link-policy';
 
 type ActivityForm = {
   wbsId: string;
@@ -94,8 +104,16 @@ function asBody(form: ActivityForm, projectId?: string) {
 
 export function ActivitiesPanel({
   permissions,
+  initialProjectId,
+  initialActivityId,
+  initialWbsId,
+  onOpenSource,
 }: {
   permissions: string[];
+  initialProjectId?: string | undefined;
+  initialActivityId?: string | undefined;
+  initialWbsId?: string | undefined;
+  onOpenSource?: ((target: SourceLinkTarget) => void) | undefined;
 }) {
   const queryClient = useQueryClient();
   const canView = permissions.includes('schedule.programme.view');
@@ -116,6 +134,11 @@ export function ActivitiesPanel({
     dependencyType: 'FS',
     lagWorkDays: '0',
   });
+  const [linkedActivityId, setLinkedActivityId] = useState('');
+  const [linkedWbsId, setLinkedWbsId] = useState('');
+  const appliedProjectSource = useRef('');
+  const appliedActivitySource = useRef('');
+  const appliedWbsSource = useRef('');
 
   const projects = useQuery({
     queryKey: ['schedule', 'projects'],
@@ -270,6 +293,99 @@ export function ActivitiesPanel({
     onSuccess: refresh,
   });
 
+  useEffect(() => {
+    if (!initialProjectId || !projects.isSuccess || projects.isFetching) return;
+    if (!consumeSourceLinkKey(appliedProjectSource, initialProjectId)) return;
+    const resolved = resolveLinkedProjectId(
+      initialProjectId,
+      projects.data?.data ?? [],
+    );
+    setProjectId(resolved);
+    setLinkedActivityId('');
+    setLinkedWbsId('');
+    resetActivity();
+    resetDependency();
+  }, [
+    initialProjectId,
+    projects.data,
+    projects.isFetching,
+    projects.isSuccess,
+  ]);
+
+  useEffect(() => {
+    if (
+      !initialActivityId ||
+      !initialProjectId ||
+      projectId !== initialProjectId ||
+      !activities.isSuccess ||
+      activities.isFetching
+    ) {
+      return;
+    }
+    const sourceKey = initialProjectId + ':' + initialActivityId;
+    if (!consumeSourceLinkKey(appliedActivitySource, sourceKey)) return;
+    setLinkedActivityId(
+      resolveLinkedRecordId(
+        initialActivityId,
+        initialProjectId,
+        activities.data?.data ?? [],
+      ),
+    );
+  }, [
+    activities.data,
+    activities.isFetching,
+    activities.isSuccess,
+    initialActivityId,
+    initialProjectId,
+    projectId,
+  ]);
+
+  useEffect(() => {
+    if (
+      !initialWbsId ||
+      !initialProjectId ||
+      projectId !== initialProjectId ||
+      !options.isSuccess ||
+      options.isFetching
+    ) {
+      return;
+    }
+    const sourceKey = initialProjectId + ':' + initialWbsId;
+    if (!consumeSourceLinkKey(appliedWbsSource, sourceKey)) return;
+    setLinkedWbsId(
+      resolveLinkedChildRecordId(initialWbsId, options.data?.data.wbs ?? []),
+    );
+  }, [
+    initialProjectId,
+    initialWbsId,
+    options.data,
+    options.isFetching,
+    options.isSuccess,
+    projectId,
+  ]);
+
+  const openSource = (
+    sectionKey: SourceLinkSection,
+    recordKind: 'project' | 'wbs',
+    childRecordId?: string,
+  ) => {
+    if (
+      !onOpenSource ||
+      !projectId ||
+      !canOpenSourceLink(sectionKey, permissions)
+    ) {
+      return;
+    }
+    const target = sourceLinkTarget(
+      sectionKey,
+      projectId,
+      projectId,
+      childRecordId,
+      recordKind,
+    );
+    if (target) onOpenSource(target);
+  };
+
   if (!canView) return null;
 
   return (
@@ -316,7 +432,15 @@ export function ActivitiesPanel({
       ) : null}
 
       {treeRows.map(({ row, depth }) => (
-        <Card key={row.id} variant="outlined">
+        <Card
+          key={row.id}
+          variant="outlined"
+          sx={
+            row.id === linkedActivityId || row.wbsId === linkedWbsId
+              ? { borderColor: 'primary.main', borderWidth: 2 }
+              : undefined
+          }
+        >
           <CardContent>
             <Stack
               direction={{ xs: 'column', md: 'row' }}
@@ -342,7 +466,27 @@ export function ActivitiesPanel({
                   {row.isActive ? 'Active' : 'Inactive'}
                 </Typography>
               </div>
-              <Stack direction="row" spacing={1}>
+              <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+                {onOpenSource && canOpenSourceLink('wbs', permissions) ? (
+                  <Button onClick={() => openSource('wbs', 'wbs', row.wbsId)}>
+                    WBS
+                  </Button>
+                ) : null}
+                {onOpenSource && canOpenSourceLink('budget', permissions) ? (
+                  <Button onClick={() => openSource('budget', 'wbs', row.wbsId)}>
+                    Budget
+                  </Button>
+                ) : null}
+                {onOpenSource && canOpenSourceLink('site-execution', permissions) ? (
+                  <Button onClick={() => openSource('site-execution', 'project')}>
+                    Site
+                  </Button>
+                ) : null}
+                {onOpenSource && canOpenSourceLink('cost-control', permissions) ? (
+                  <Button onClick={() => openSource('cost-control', 'wbs', row.wbsId)}>
+                    Cost
+                  </Button>
+                ) : null}
                 {canEdit ? <Button onClick={() => editActivity(row)}>Edit</Button> : null}
                 {canArchive ? (
                   <Button onClick={() => toggleActivity.mutate(row)}>
