@@ -129,6 +129,7 @@ export function CertificationSection({
   useEffect(() => {
     if (!canView) return;
     if (initialCertificationId) {
+      if (!certifications.isSuccess || certifications.isFetching) return;
       const sourceLinkKey = `${claim.id}:${initialCertificationId}`;
       if (
         consumeSourceLinkKey(appliedCertificationSourceLink, sourceLinkKey)
@@ -156,6 +157,8 @@ export function CertificationSection({
     canView,
     claim.id,
     claimCertifications,
+    certifications.isSuccess,
+    certifications.isFetching,
     initialCertificationId,
     selectedId,
   ]);
