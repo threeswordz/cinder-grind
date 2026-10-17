@@ -48,6 +48,17 @@ test('C3 Project-to-Management links preserve owning read boundaries', () => {
   assert.equal(canOpenSourceLink('management', ['management.dashboard.view']), true);
 });
 
+test('C3 WBS-scoped Budget links require owning BOQ read while project revisions stay accessible', () => {
+  assert.equal(canOpenSourceLink('budget', ['budget.revision.view']), true);
+  assert.equal(canOpenSourceLink('budget', ['budget.revision.view'], 'wbs'), false);
+  assert.equal(canOpenSourceLink('budget', ['budget.revision.approve'], 'wbs'), false);
+  assert.equal(canOpenSourceLink('budget', ['budget.boq.view'], 'wbs'), true);
+  assert.equal(canOpenSourceLink('budget', ['budget.boq.manage'], 'wbs'), true);
+  assert.equal(canOpenSourceLink('budget', [], 'wbs'), false);
+  assert.equal(canOpenSourceLink('budget', ['budget.revision.view'], 'project'), true);
+  assert.equal(canOpenSourceLink('budget', ['budget.revision.view'], 'budget-revision'), true);
+});
+
 test('sourcing link accepts RFQ-view or quotation-view but not mutation-only permission', () => {
   assert.equal(canOpenSourceLink('sourcing', ['procurement.rfq.manage']), false);
   assert.equal(canOpenSourceLink('sourcing', ['procurement.rfq.view']), true);
