@@ -133,15 +133,23 @@ export function SourcingPanel({
   ]);
 
   useEffect(() => {
-    if (!initialRfqId || !rfqs.isSuccess) return;
+    if (
+      !initialProjectId ||
+      projectId !== initialProjectId ||
+      !initialRfqId ||
+      !rfqs.isSuccess
+    ) {
+      return;
+    }
     const sourceLinkKey =
-      `${projectId}:${initialRfqId}:${initialQuotationId ?? ''}`;
+      `${initialProjectId}:${initialRfqId}:${initialQuotationId ?? ''}`;
     if (!consumeSourceLinkKey(appliedRfqSourceLink, sourceLinkKey)) return;
     setRfqId(
       resolveLinkedRecordId(initialRfqId, projectId, rfqs.data?.data ?? []),
     );
     startNewQuotation();
   }, [
+    initialProjectId,
     initialRfqId,
     initialQuotationId,
     projectId,
@@ -278,8 +286,15 @@ export function SourcingPanel({
 
   useEffect(() => {
     if (!current) return;
-    if (initialQuotationId) {
-      const sourceLinkKey = `${current.id}:${initialQuotationId}`;
+    if (
+      initialProjectId &&
+      projectId === initialProjectId &&
+      initialRfqId &&
+      current.id === initialRfqId &&
+      initialQuotationId
+    ) {
+      const sourceLinkKey =
+        `${initialProjectId}:${initialRfqId}:${initialQuotationId}`;
       if (consumeSourceLinkKey(appliedQuotationSourceLink, sourceLinkKey)) {
         setQuotationId(
           resolveLinkedChildRecordId(
@@ -298,7 +313,14 @@ export function SourcingPanel({
     ) {
       setQuotationId('');
     }
-  }, [current, quotationId, initialQuotationId]);
+  }, [
+    current,
+    quotationId,
+    initialProjectId,
+    initialRfqId,
+    initialQuotationId,
+    projectId,
+  ]);
 
   useEffect(() => {
     if (!selectedQuotation) {
