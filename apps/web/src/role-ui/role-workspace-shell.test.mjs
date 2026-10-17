@@ -76,6 +76,7 @@ test('responsive V1.1 role shell renders only supplied authorized modules', asyn
     await t.test('no module permission means no module card/nav disclosure', () => {
       const html = render(false, []);
       assert.match(html, /No application modules are available/);
+      assert.match(html, /role="status"/);
       assert.doesNotMatch(html, /Purchase Requests/);
       assert.match(html, /aria-label="Main navigation"/);
       assert.match(html, /aria-current="page"/);
