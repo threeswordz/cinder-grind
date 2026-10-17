@@ -1,9 +1,107 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { QueryClient } from '@tanstack/react-query';
 import {
   visibleNavigationKeys, mayReadMyPurchaseRequests, isAccessibleProject,
   selectedAccessibleProject, ownEditablePurchaseRequests, verifiedPurchaseRequestLink,
+  effectiveUiQueryScope, projectContextQueryKey, myPurchaseRequestsQueryKey,
+  clearRoleWorkspaceQueries, isRoleWorkspaceQueryReady,
 } from './role-workspace-policy.ts';
+
+test('D3 query scope isolates user, Company, permission and Project changes', () => {
+  const permissions = ['projects.project.view', 'procurement.pr.view'];
+  const copy = [...permissions];
+  const a = effectiveUiQueryScope('user-A', 'company-A', permissions);
+  assert.equal(a, effectiveUiQueryScope('user-A', 'company-A', [...permissions].reverse()));
+  assert.equal(a, effectiveUiQueryScope('user-A', 'company-A', [...permissions, permissions[0]]));
+  assert.deepEqual(permissions, copy);
+  assert.notEqual(a, effectiveUiQueryScope('user-B', 'company-A', permissions));
+  assert.notEqual(a, effectiveUiQueryScope('user-A', 'company-B', permissions));
+  assert.notEqual(a, effectiveUiQueryScope('user-A', 'company-A', ['projects.project.view']));
+  assert.notEqual(a, effectiveUiQueryScope('user-A', 'company-A', [...permissions, 'finance.payment.view']));
+  assert.deepEqual(projectContextQueryKey(a, 'procurement'), ['v1.1', 'project-context', a, 'procurement']);
+  assert.notDeepEqual(projectContextQueryKey(a, 'procurement'), projectContextQueryKey(a, 'projects'));
+  assert.deepEqual(myPurchaseRequestsQueryKey(a, 'project-A'), ['v1.1', 'my-prs', a, 'project-A']);
+  assert.notDeepEqual(myPurchaseRequestsQueryKey(a, 'project-A'), myPurchaseRequestsQueryKey(a, 'project-B'));
+});
+
+test('D3 React Query rejects previous context cache after effective permission, Company or Project changes', async () => {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  try {
+    const permissionSet = ['procurement.pr.view', 'projects.project.view'];
+    const scope = effectiveUiQueryScope('user-A', 'company-A', permissionSet);
+    const projectKey = projectContextQueryKey(scope, 'procurement');
+    const prKey = myPurchaseRequestsQueryKey(scope, 'project-A');
+
+    client.setQueryData(projectKey, [{ id: 'project-A' }]);
+    client.setQueryData(prKey, [{ id: 'a-draft' }]);
+    assert.deepEqual(client.getQueryData(projectKey), [{ id: 'project-A' }]);
+    assert.deepEqual(client.getQueryData(prKey), [{ id: 'a-draft' }]);
+
+    const downgraded = effectiveUiQueryScope('user-A', 'company-A', ['projects.project.view']);
+    const otherCompany = effectiveUiQueryScope('user-A', 'company-B', permissionSet);
+    const otherUser = effectiveUiQueryScope('user-B', 'company-A', permissionSet);
+    for (const changed of [downgraded, otherCompany, otherUser]) {
+      assert.equal(client.getQueryData(projectContextQueryKey(changed, 'procurement')), undefined);
+      assert.equal(client.getQueryData(myPurchaseRequestsQueryKey(changed, 'project-A')), undefined);
+    }
+    assert.equal(client.getQueryData(projectContextQueryKey(scope, 'projects')), undefined);
+    assert.equal(client.getQueryData(myPurchaseRequestsQueryKey(scope, 'project-B')), undefined);
+
+    // A mocked query function counts deduplicated concurrent calls; this does
+    // not measure a deployed API response, pagination, network latency or UAT.
+    let requests = 0;
+    const secondKey = myPurchaseRequestsQueryKey(scope, 'project-B');
+    const query = () => client.fetchQuery({
+      queryKey: secondKey,
+      queryFn: async () => {
+        requests += 1;
+        return [{ id: 'project-B-only' }];
+      },
+    });
+    const [first, second] = await Promise.all([query(), query()]);
+    assert.deepEqual(first, second);
+    assert.equal(requests, 1, 'concurrent identical keys deduplicate fetches');
+    assert.deepEqual(client.getQueryData(prKey), [{ id: 'a-draft' }]);
+  } finally {
+    client.clear();
+  }
+});
+
+test('D3 P1: returning A → B → A cannot reactivate cached Project/PR data', () => {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  try {
+    const scopeA = effectiveUiQueryScope('user-A', 'company-A', ['procurement.pr.view']);
+    const scopeB = effectiveUiQueryScope('user-A', 'company-A', ['projects.project.view']);
+    const keyA = projectContextQueryKey(scopeA, 'procurement');
+    const prA = myPurchaseRequestsQueryKey(scopeA, 'project-A');
+    const keyB = projectContextQueryKey(scopeB, 'projects');
+    const prB = myPurchaseRequestsQueryKey(scopeB, 'project-B');
+    const unrelated = ['projects', 'legacy-cache'];
+    client.setQueryData(unrelated, { unrelated: true });
+    client.setQueryData(keyA, [{ id: 'now-revoked-project-A' }]);
+    client.setQueryData(prA, [{ id: 'revoked-pr-A' }]);
+    assert.equal(isRoleWorkspaceQueryReady(null, scopeA), false);
+    assert.equal(isRoleWorkspaceQueryReady(scopeA, scopeB), false);
+    clearRoleWorkspaceQueries(client);
+    assert.equal(client.getQueryData(keyA), undefined);
+    assert.equal(client.getQueryData(prA), undefined);
+
+    client.setQueryData(keyB, [{ id: 'project-B' }]);
+    client.setQueryData(prB, [{ id: 'pr-B' }]);
+    assert.equal(isRoleWorkspaceQueryReady(scopeB, scopeA), false);
+    // B's data and even the previously cached A bucket must go before A is ready.
+    clearRoleWorkspaceQueries(client);
+    assert.equal(client.getQueryData(keyA), undefined);
+    assert.equal(client.getQueryData(prA), undefined);
+    assert.equal(client.getQueryData(keyB), undefined);
+    assert.equal(client.getQueryData(prB), undefined);
+    assert.equal(isRoleWorkspaceQueryReady(scopeA, scopeA), true);
+    assert.deepEqual(client.getQueryData(unrelated), { unrelated: true });
+  } finally {
+    client.clear();
+  }
+});
 
 const projects = [{ id: 'project-A' }, { id: 'project-B' }];
 const rows = [
@@ -34,6 +132,8 @@ test('Project context only accepts Project IDs returned by authorized source', (
   assert.equal(selectedAccessibleProject('project-B', projects), 'project-B');
   assert.equal(selectedAccessibleProject('project-Z', projects), 'project-A');
   assert.equal(selectedAccessibleProject('project-A', []), '');
+  assert.equal(selectedAccessibleProject('project-B', [...projects]), 'project-B');
+  assert.equal(selectedAccessibleProject('project-B', [{ id: 'project-A' }]), 'project-A');
 });
 
 test('only current subject draft/rejected PRs in Company and selected Project are shown', () => {
