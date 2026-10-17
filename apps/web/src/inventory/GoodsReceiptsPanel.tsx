@@ -2,7 +2,7 @@ import {
   Alert, Button, Card, CardContent, Chip, MenuItem, Stack, TextField, Typography,
 } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { inventoryApi } from '../api/inventory';
 import {
@@ -18,11 +18,15 @@ export function GoodsReceiptsPanel({
   permissions,
   initialProjectId,
   initialReceiptId,
+  appliedProjectSourceLink,
+  appliedReceiptSourceLink,
   onOpenSource,
 }: {
   permissions: string[];
   initialProjectId?: string | undefined;
   initialReceiptId?: string | undefined;
+  appliedProjectSourceLink: { current: string };
+  appliedReceiptSourceLink: { current: string };
   onOpenSource?: ((target: SourceLinkTarget) => void) | undefined;
 }) {
   const queryClient = useQueryClient();
@@ -32,8 +36,6 @@ export function GoodsReceiptsPanel({
   const canApprove = permissions.includes('inventory.receipt.approve');
   const canReverse = permissions.includes('inventory.receipt.reverse');
   const [projectId, setProjectId] = useState('');
-  const appliedProjectSourceLink = useRef('');
-  const appliedReceiptSourceLink = useRef('');
   const [purchaseOrderId, setPurchaseOrderId] = useState('');
   const [lineQuantities, setLineQuantities] = useState<Record<string, string>>({});
   const [warehouseId, setWarehouseId] = useState('');
