@@ -50,7 +50,7 @@ export function SourcingPanel({
   initialProjectId?: string | undefined;
   initialRfqId?: string | undefined;
   initialQuotationId?: string | undefined;
-  onOpenSource?: (target: SourceLinkTarget) => void;
+  onOpenSource?: ((target: SourceLinkTarget) => void) | undefined;
 }) {
   const queryClient = useQueryClient();
   const canViewRfq = permissions.includes('procurement.rfq.view');
