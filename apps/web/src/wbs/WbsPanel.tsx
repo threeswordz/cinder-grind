@@ -14,6 +14,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CostCodeRecord, wbsApi, WbsRecord } from '../api/wbs';
 import {
   canOpenSourceLink,
+  canWriteSourceForm,
   consumeSourceLinkKey,
   resolveLinkedChildRecordId,
   resolveLinkedProjectId,
@@ -243,6 +244,18 @@ export function WbsPanel({
             ))}
           </TextField>
 
+          {projectId && canWbsCreate ? (
+            <Button
+              variant="outlined"
+              onClick={() => {
+                setSelected(null);
+                setWf(emptyWbsForm);
+              }}
+            >
+              New WBS
+            </Button>
+          ) : null}
+
           {projectId && onOpenSource ? (
             <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
               {canOpenSourceLink('projects', permissions) ? (
@@ -345,12 +358,13 @@ export function WbsPanel({
             </Card>
           ))}
 
-          {projectId && (canWbsCreate || (selected && canWbsEdit)) ? (
+          {projectId && canWriteSourceForm(canWbsCreate, canWbsEdit, Boolean(selected)) ? (
             <Stack
               component="form"
               spacing={2}
               onSubmit={(event: FormEvent) => {
                 event.preventDefault();
+                if (!canWriteSourceForm(canWbsCreate, canWbsEdit, Boolean(selected))) return;
                 saveWbs.mutate();
               }}
             >
