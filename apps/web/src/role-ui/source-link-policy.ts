@@ -71,7 +71,9 @@ export function canOpenSourceLink(
   // WBS-focused Budget navigation needs the owning BOQ/options read path;
   // project-level revision history remains available to revision-only viewers.
   if (sectionKey === 'budget' && recordKind === 'wbs') {
-    return permissions.includes('budget.boq.view') || permissions.includes('budget.boq.manage');
+    // The BOQ project/options read API requires the explicit view permission;
+    // `budget.boq.manage` by itself cannot read this linked source.
+    return permissions.includes('budget.boq.view');
   }
   return SOURCE_VIEW_PERMISSIONS[sectionKey].some((permission) =>
     permissions.includes(permission),
