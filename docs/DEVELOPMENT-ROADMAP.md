@@ -1,7 +1,7 @@
 # Construction ERP — Development Roadmap
 
 **Document Status:** Development Roadmap Baseline v0.1  
-**Current Phase:** V1.0 COMPLETE + ACCEPTED; V1.1-A/B technically COMPLETE; V1.1-C preflight COMPLETE; C1 Procurement→Finance technically COMPLETE; C1 closure reconciliation ACTIVE under Issue #217  
+**Current Phase:** V1.0 COMPLETE + ACCEPTED; V1.1-A/B technically COMPLETE; V1.1-C preflight + C1 COMPLETE; C2 Subcontract→Finance ACTIVE under Issue #217  
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1  
@@ -11,15 +11,15 @@
 
 ---
 
-## Active successor — V1.1 Business Workflow & Role UI (DEC-028; V1.1-C1 Procurement→Finance)
+## Active successor — V1.1 Business Workflow & Role UI (DEC-028; V1.1-C2 Subcontract→Finance)
 
-**Approval:** 2026-10-17 under DEC-028. **V1.1-A complete** (Issue #211; CI #4327). **V1.1-B technically complete** (Issue #214; main CI #4366). **V1.1-C preflight complete:** PR #218 merged `1537368fb43ca480d206e5b8992c0d9600d35fc7`, exact-main CI #4372 PASS. **C1 Procurement→Finance runtime is technically COMPLETE:** final exact head `1eded763d2fbd02332b86280341eb7537454af08` passed push CI #4451 / PR CI #4452 and clean DEC-022 review; PR #219 squash-merged as `b2181cc12ab00be8fc56cb42dc375707a0fe8610`; exact-main CI #4453 PASS. Documentation-only closure reconciliation is active on `v1.1-c1-closure-reconcile`; C2/C3 and V1.1 human UAT remain unstarted until this closure reconciliation merges and exact-main CI passes.
+**Approval:** 2026-10-17 under DEC-028. **V1.1-A complete** (Issue #211; CI #4327). **V1.1-B technically complete** (Issue #214; main CI #4366). **V1.1-C preflight complete** (PR #218 / main CI #4372). **C1 Procurement→Finance CLOSED:** final head `1eded763d2fbd02332b86280341eb7537454af08`, CI #4451/#4452, clean DEC-022 review, PR #219 merged `b2181cc12ab00be8fc56cb42dc375707a0fe8610`, main CI #4453; closure PR #220 merged `8ab24847aea7860576f7604b1d9d66b8beaaa5cf`, exact-main CI #4461 PASS. **C2 Subcontract→Finance is ACTIVE** on `v1.1-c2-subcontract-finance-links` for permission-safe source navigation among existing Agreement/Work Order, Claim/Assessment, Certification, Retention and Payment/AP references. C3 and V1.1 human UAT remain unstarted.
 
 | Stage | Approved bounded delivery | Gate |
 |---|---|---|
 | V1.1-A | Entry/scope/54-workflow traceability and eight-persona permission/data/API/security/test baselines | **COMPLETE:** PRs #212/#213, main CI #4327, Issue #211 CLOSED |
 | V1.1-B | Role-first modular responsive app shell, sourced Home/My Work and grouped navigation | **TECHNICALLY COMPLETE:** PRs #215/#216, 14 web tests, exact-main CI #4366 PASS, Issue #214 CLOSED |
-| V1.1-C | Source-owned Procurement→Finance (C1), Subcontract→Finance (C2), Project→Cost/Management (C3) | **C1 RUNTIME TECHNICALLY COMPLETE / CLOSURE RECONCILIATION ACTIVE:** PR #219 merged `b2181cc1…`, main CI #4453 PASS; docs-only closure PR required before C2 starts; C2/C3 otherwise unstarted |
+| V1.1-C | Source-owned Procurement→Finance (C1), Subcontract→Finance (C2), Project→Cost/Management (C3) | **C1 CLOSED; C2 ACTIVE:** C1 closure PR #220 merged `8ab24847…`, main CI #4461 PASS; C2 source-link implementation active; C3 blocked |
 | V1.1-D | UX/accessibility/security/compatibility hardening only | After C stage closure |
 | V1.1-E | Eight-persona UAT/evidence, locale/THB/Company-Project security regression and release exit | After D + Product Owner human AC-V11-029/030 |
 
