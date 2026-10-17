@@ -168,6 +168,12 @@ export function AdminConsole({ user }: { user: CurrentUser }) {
                 ? linkedSource.childRecordId
                 : undefined
             }
+            initialWbsId={
+              linkedSource?.sectionKey === 'budget' &&
+              linkedSource.recordKind === 'wbs'
+                ? linkedSource.childRecordId
+                : undefined
+            }
             onOpenSource={openSource}
           />,
         },
