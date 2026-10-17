@@ -5,13 +5,25 @@ export type SourceLinkSection =
   | 'inventory'
   | 'finance'
   | 'payments'
-  | 'subcontracts';
+  | 'subcontracts'
+  | 'projects'
+  | 'wbs'
+  | 'scheduling'
+  | 'budget'
+  | 'site-execution'
+  | 'cost-control'
+  | 'management';
 
 export type SourceLinkRecordKind =
   | 'subcontract-agreement'
   | 'subcontract-work-order'
   | 'subcontract-claim'
-  | 'subcontract-certification';
+  | 'subcontract-certification'
+  | 'project'
+  | 'wbs'
+  | 'activity'
+  | 'budget-revision'
+  | 'site-report';
 
 export type SourceLinkTarget = {
   sectionKey: SourceLinkSection;
@@ -33,6 +45,13 @@ const SOURCE_VIEW_PERMISSIONS: Record<SourceLinkSection, readonly string[]> = {
     'subcontracts.claim.view',
     'subcontracts.certification.view',
   ],
+  projects: ['projects.project.view'],
+  wbs: ['wbs.wbs.view'],
+  scheduling: ['schedule.programme.view'],
+  budget: ['budget.boq.view', 'budget.revision.view'],
+  'site-execution': ['site.daily_report.view'],
+  'cost-control': ['cost.control.view'],
+  management: ['management.dashboard.view'],
 };
 
 export function canOpenSourceLink(
