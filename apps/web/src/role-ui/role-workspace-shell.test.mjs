@@ -16,7 +16,7 @@ test('responsive V1.1 role shell renders only supplied authorized modules', asyn
       id: 'user-A', companyId: 'company-A', email: 'a@example.test', displayName: 'Test User',
       roleCodes: ['STORE_STAFF'], permissions: ['procurement.pr.view'],
     };
-    const render = (mobile, sections) => {
+    const render = (mobile, sections, renderUser = user) => {
       const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
       const theme = createTheme({
         components: { MuiUseMediaQuery: { defaultProps: { ssrMatchMedia: () => ({ matches: mobile }) } } },
@@ -25,7 +25,7 @@ test('responsive V1.1 role shell renders only supplied authorized modules', asyn
         React.createElement(QueryClientProvider, { client },
           React.createElement(ThemeProvider, { theme },
             React.createElement(RoleWorkspaceShell, {
-              user, sections, activeKey: sections[0]?.key ?? null,
+              user: renderUser, sections, activeKey: sections[0]?.key ?? null,
               onSelect: () => {}, onOpenPr: () => {}, onLogout: () => {}, logoutPending: false,
             }),
           ),
@@ -64,8 +64,8 @@ test('responsive V1.1 role shell renders only supplied authorized modules', asyn
       const longName = 'จ'.repeat(96) + '請'.repeat(96);
       const html = render(true, [{
         key: 'purchase-requests', label: 'Purchase Requests',
-        content: React.createElement('span', null, longName),
-      }]);
+        content: React.createElement('span', null, 'Canonical source panel'),
+      }], { ...user, displayName: longName });
       assert.match(html, /lang="en"/);
       assert.match(html, /aria-controls="v11-primary-navigation"/);
       // Server rendering covers text preservation, not browser layout/overflow behavior.
