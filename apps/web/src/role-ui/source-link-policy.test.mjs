@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   canOpenSourceLink,
+  consumeSourceLinkKey,
   resolveLinkedProjectId,
   resolveLinkedRecordId,
   resolveLinkedChildRecordId,
@@ -63,4 +64,13 @@ test('source targets never encode empty Project or record identities', () => {
       childRecordId: 'quote-A',
     },
   );
+});
+
+
+test('incoming source link identity is consumed only once until the target changes', () => {
+  const applied = { current: '' };
+  assert.equal(consumeSourceLinkKey(applied, 'project-A:row-A'), true);
+  assert.equal(consumeSourceLinkKey(applied, 'project-A:row-A'), false);
+  assert.equal(consumeSourceLinkKey(applied, 'project-A:row-B'), true);
+  assert.equal(consumeSourceLinkKey(applied, ''), false);
 });
