@@ -1,5 +1,5 @@
 import { Alert, Stack, Tab, Tabs } from '@mui/material';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { GoodsReceiptsPanel } from './GoodsReceiptsPanel';
 import { MaterialIssuesPanel } from './MaterialIssuesPanel';
@@ -9,6 +9,7 @@ import { StockBalancePanel } from './StockBalancePanel';
 import { StockTransfersPanel } from './StockTransfersPanel';
 import { InventoryReportsPanel } from './InventoryReportsPanel';
 import { WarehousesPanel } from './WarehousesPanel';
+import type { SourceLinkTarget } from '../role-ui/source-link-policy';
 
 type InventoryTab =
   | 'warehouses'
@@ -20,7 +21,17 @@ type InventoryTab =
   | 'transfers'
   | 'reports';
 
-export function InventoryWorkspace({ permissions }: { permissions: string[] }) {
+export function InventoryWorkspace({
+  permissions,
+  initialProjectId,
+  initialReceiptId,
+  onOpenSource,
+}: {
+  permissions: string[];
+  initialProjectId?: string | undefined;
+  initialReceiptId?: string | undefined;
+  onOpenSource?: ((target: SourceLinkTarget) => void) | undefined;
+}) {
   const canSeeWarehouses = permissions.includes('inventory.warehouse.view');
   const canSeeReceipts = permissions.includes('inventory.receipt.view');
   const canSeeStock = permissions.includes('inventory.stock.view');
@@ -45,6 +56,11 @@ export function InventoryWorkspace({ permissions }: { permissions: string[] }) {
                 ? 'transfers'
                 : 'reports';
   const [selected, setSelected] = useState<InventoryTab>(first);
+  const appliedReceiptProjectSourceLink = useRef('');
+  const appliedReceiptSourceLink = useRef('');
+  useEffect(() => {
+    if (initialReceiptId && canSeeReceipts) setSelected('receipts');
+  }, [initialReceiptId, canSeeReceipts]);
   if (
     !canSeeWarehouses &&
     !canSeeReceipts &&
@@ -90,7 +106,14 @@ export function InventoryWorkspace({ permissions }: { permissions: string[] }) {
       {active === 'warehouses' ? (
         <WarehousesPanel permissions={permissions} />
       ) : active === 'receipts' ? (
-        <GoodsReceiptsPanel permissions={permissions} />
+        <GoodsReceiptsPanel
+          permissions={permissions}
+          initialProjectId={initialProjectId}
+          initialReceiptId={initialReceiptId}
+          appliedProjectSourceLink={appliedReceiptProjectSourceLink}
+          appliedReceiptSourceLink={appliedReceiptSourceLink}
+          onOpenSource={onOpenSource}
+        />
       ) : active === 'stock' ? (
         <StockBalancePanel />
       ) : active === 'reservations' ? (

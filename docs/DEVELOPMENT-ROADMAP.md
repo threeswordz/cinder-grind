@@ -1,7 +1,7 @@
 # Construction ERP — Development Roadmap
 
 **Document Status:** Development Roadmap Baseline v0.1  
-**Current Phase:** V1.0 COMPLETE + ACCEPTED; V1.1-A/B technically COMPLETE; V1.1-C source-linked journey PRE-FLIGHT ACTIVE under Issue #217 (runtime NOT started)  
+**Current Phase:** V1.0 COMPLETE + ACCEPTED; V1.1-A/B technically COMPLETE; V1.1-C preflight COMPLETE; C1 Procurement→Finance UNDER VALIDATION under Issue #217  
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1  
@@ -11,19 +11,19 @@
 
 ---
 
-## Active successor — V1.1 Business Workflow & Role UI (DEC-028; V1.1-C preflight)
+## Active successor — V1.1 Business Workflow & Role UI (DEC-028; V1.1-C1 Procurement→Finance)
 
-**Approval:** 2026-10-17 under DEC-028. **V1.1-A complete** (Issue #211 closed; CI #4327 PASS). **V1.1-B technically complete** (Issue #214 CLOSED). B implementation PR #215 merged as `acf943392e81d4fb70f499304c5ce2bd677ea434` and B Codex P2/test+closure PR #216 merged as `5798fff36fa2fe1b1b215c6c92ebf2a4f4684376`; new role-shell regression 14/14 PASS, final exact-head CI #4364/#4365 PASS, exact-main **CI #4366 PASS**. **V1.1-C** Stage Issue #217 OPEN and `v1.1-c-preflight-source-journeys` documents the source-journey preflight only. C implementation/role UAT not claimed; successor stage remains gated by preflight merge/post-main CI.
+**Approval:** 2026-10-17 under DEC-028. **V1.1-A complete** (Issue #211; CI #4327). **V1.1-B technically complete** (Issue #214; main CI #4366). **V1.1-C preflight complete:** PR #218 final `04b3921517c223e6d9727751a50e5e14effe78d4`, CI #4370/#4371 PASS, Codex P2 resolved, merged `1537368fb43ca480d206e5b8992c0d9600d35fc7`, exact-main CI #4372 PASS. **C1 Procurement→Finance is UNDER VALIDATION** on `v1.1-c1-procure-to-pay-links`: canonical source-link policy plus fail-closed Project/record selection and source lineage PR→RFQ/quotation→PO→GR→supplier invoice→payment. Material runtime head `dc406cd1d1ede43689a8c788a09b81c0da2f73ad`; final CI/review/merge/post-main still required. C2/C3 and V1.1 human UAT remain unstarted.
 
 | Stage | Approved bounded delivery | Gate |
 |---|---|---|
 | V1.1-A | Entry/scope/54-workflow traceability and eight-persona permission/data/API/security/test baselines | **COMPLETE:** PRs #212/#213, main CI #4327, Issue #211 CLOSED |
 | V1.1-B | Role-first modular responsive app shell, sourced Home/My Work and grouped navigation | **TECHNICALLY COMPLETE:** PRs #215/#216, 14 web tests, exact-main CI #4366 PASS, Issue #214 CLOSED |
-| V1.1-C | Source-owned Procurement→Finance (C1), Subcontract→Finance (C2), Project→Cost/Management (C3) | **PREFLIGHT ACTIVE:** Issue #217; source inventory/technical planning only; runtime implementation NOT STARTED |
+| V1.1-C | Source-owned Procurement→Finance (C1), Subcontract→Finance (C2), Project→Cost/Management (C3) | **C1 UNDER VALIDATION:** preflight COMPLETE (PR #218 / main CI #4372); C1 runtime source links implemented on active branch, final CI/review/merge pending; C2/C3 blocked |
 | V1.1-D | UX/accessibility/security/compatibility hardening only | After C stage closure |
 | V1.1-E | Eight-persona UAT/evidence, locale/THB/Company-Project security regression and release exit | After D + Product Owner human AC-V11-029/030 |
 
-**Preflight file:** `docs/V1.1-C-PREFLIGHT.md` inventories actual source UI gaps, permissions and test boundaries; no new business rules, runtime features or human acceptance.
+**Preflight file:** `docs/V1.1-C-PREFLIGHT.md` is CLOSED/COMPLETE and inventories source UI gaps, permissions and test boundaries. **C1 evidence:** `docs/V1.1-C1-STAGE-EVIDENCE.md`. No new business rules or human acceptance are implied.
 
 **Approval boundaries:** AC-V11-001–030 + BR-V11-01–18 source-preserving rules, stage sequence and English/Thai/zh-TW UI direction. D11-03–07/11/12 new policy and D11-13 User Support/Diagnostics implementation remain deferred; AC-V11-031–036 are not V1.1 obligations. No new mandatory paid dependency, backend rewrite, schema write, impersonation, approval bypass or Production deployment authorization. **Planning range:** 23–39 engineering days plus separately 2–4 business days human UAT (nonbinding).
 

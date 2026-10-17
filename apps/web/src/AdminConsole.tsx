@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { CurrentUser, logout } from './api/auth';
 import { RoleWorkspaceShell } from './role-ui/RoleWorkspaceShell';
+import type { SourceLinkTarget } from './role-ui/source-link-policy';
 import { CostControlWorkspace } from './cost-control/CostControlWorkspace';
 import { ApprovalPanel } from './admin/ApprovalPanel';
 import { BudgetPanel } from './budget/BudgetPanel';
@@ -43,7 +44,11 @@ type Section = {
 export function AdminConsole({ user }: { user: CurrentUser }) {
   const queryClient = useQueryClient();
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
-  const [linkedPr, setLinkedPr] = useState<{ projectId: string; requestId: string } | null>(null);
+  const [linkedSource, setLinkedSource] = useState<SourceLinkTarget | null>(null);
+  const openSource = (target: SourceLinkTarget) => {
+    setLinkedSource(target);
+    setSelectedKey(target.sectionKey);
+  };
 
   const sections = useMemo<Section[]>(
     () =>
@@ -64,7 +69,12 @@ export function AdminConsole({ user }: { user: CurrentUser }) {
           key: 'finance',
           label: 'Finance',
           permission: '__finance__',
-          content: <FinanceWorkspace permissions={user.permissions} />,
+          content: <FinanceWorkspace
+            permissions={user.permissions}
+            initialProjectId={linkedSource?.sectionKey === 'finance' ? linkedSource.projectId : undefined}
+            initialInvoiceId={linkedSource?.sectionKey === 'finance' ? linkedSource.recordId : undefined}
+            onOpenSource={openSource}
+          />,
         },
         {
           key: 'client-finance',
@@ -76,7 +86,12 @@ export function AdminConsole({ user }: { user: CurrentUser }) {
           key: 'payments',
           label: 'Payments',
           permission: '__payments__',
-          content: <PaymentFinanceWorkspace permissions={user.permissions} />,
+          content: <PaymentFinanceWorkspace
+            permissions={user.permissions}
+            initialProjectId={linkedSource?.sectionKey === 'payments' ? linkedSource.projectId : undefined}
+            initialPaymentId={linkedSource?.sectionKey === 'payments' ? linkedSource.recordId : undefined}
+            onOpenSource={openSource}
+          />,
         },
         {
           key: 'retention',
@@ -94,19 +109,34 @@ export function AdminConsole({ user }: { user: CurrentUser }) {
           key: 'purchase-orders',
           label: 'Purchase Orders',
           permission: '__purchase_orders__',
-          content: <PurchaseOrdersPanel permissions={user.permissions} />,
+          content: <PurchaseOrdersPanel
+            permissions={user.permissions}
+            initialProjectId={linkedSource?.sectionKey === 'purchase-orders' ? linkedSource.projectId : undefined}
+            initialOrderId={linkedSource?.sectionKey === 'purchase-orders' ? linkedSource.recordId : undefined}
+            onOpenSource={openSource}
+          />,
         },
         {
           key: 'sourcing',
           label: 'RFQ & Quotations',
           permission: '__sourcing__',
-          content: <SourcingPanel permissions={user.permissions} />,
+          content: <SourcingPanel
+            permissions={user.permissions}
+            initialProjectId={linkedSource?.sectionKey === 'sourcing' ? linkedSource.projectId : undefined}
+            initialRfqId={linkedSource?.sectionKey === 'sourcing' ? linkedSource.recordId : undefined}
+            initialQuotationId={linkedSource?.sectionKey === 'sourcing' ? linkedSource.childRecordId : undefined}
+            onOpenSource={openSource}
+          />,
         },
         {
           key: 'purchase-requests',
           label: 'Purchase Requests',
           permission: '__procurement__',
-          content: <PurchaseRequestsPanel permissions={user.permissions} initialProjectId={linkedPr?.projectId} initialRequestId={linkedPr?.requestId} />,
+          content: <PurchaseRequestsPanel
+            permissions={user.permissions}
+            initialProjectId={linkedSource?.sectionKey === 'purchase-requests' ? linkedSource.projectId : undefined}
+            initialRequestId={linkedSource?.sectionKey === 'purchase-requests' ? linkedSource.recordId : undefined}
+          />,
         },
         {
           key: 'budget',
@@ -136,7 +166,12 @@ export function AdminConsole({ user }: { user: CurrentUser }) {
           key: 'inventory',
           label: 'Inventory',
           permission: '__inventory__',
-          content: <InventoryWorkspace permissions={user.permissions} />,
+          content: <InventoryWorkspace
+            permissions={user.permissions}
+            initialProjectId={linkedSource?.sectionKey === 'inventory' ? linkedSource.projectId : undefined}
+            initialReceiptId={linkedSource?.sectionKey === 'inventory' ? linkedSource.recordId : undefined}
+            onOpenSource={openSource}
+          />,
         },
         {
           key: 'equipment',
@@ -313,7 +348,7 @@ export function AdminConsole({ user }: { user: CurrentUser }) {
               ? user.permissions.some((permission) => permission.startsWith('documents.'))
               : user.permissions.includes(section.permission),
       ),
-    [user.permissions, linkedPr],
+    [user.permissions, linkedSource],
   );
 
   const activeKey =
@@ -333,11 +368,17 @@ export function AdminConsole({ user }: { user: CurrentUser }) {
       user={user}
       sections={sections}
       activeKey={activeKey}
-      onSelect={setSelectedKey}
-      onOpenPr={(projectId, requestId) => {
-        setLinkedPr({ projectId, requestId });
-        setSelectedKey('purchase-requests');
+      onSelect={(key) => {
+        setLinkedSource(null);
+        setSelectedKey(key);
       }}
+      onOpenPr={(projectId, requestId) =>
+        openSource({
+          sectionKey: 'purchase-requests',
+          projectId,
+          recordId: requestId,
+        })
+      }
       onLogout={() => logoutMutation.mutate()}
       logoutPending={logoutMutation.isPending}
     />

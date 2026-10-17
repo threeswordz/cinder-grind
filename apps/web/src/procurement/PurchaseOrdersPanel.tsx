@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Box,
@@ -27,9 +27,20 @@ import {
   PurchaseOrderLine,
   purchaseOrdersApi,
 } from '../api/purchase-orders';
+import {
+  canOpenSourceLink,
+  consumeSourceLinkKey,
+  resolveLinkedProjectId,
+  resolveLinkedRecordId,
+  sourceLinkTarget,
+  type SourceLinkTarget,
+} from '../role-ui/source-link-policy';
 
 type Props = {
   permissions: string[];
+  initialProjectId?: string | undefined;
+  initialOrderId?: string | undefined;
+  onOpenSource?: ((target: SourceLinkTarget) => void) | undefined;
 };
 
 type LineDraft = {
@@ -64,7 +75,7 @@ function lineDraft(line: PurchaseOrderLine): LineDraft {
   };
 }
 
-export function PurchaseOrdersPanel({ permissions }: Props) {
+export function PurchaseOrdersPanel({ permissions, initialProjectId, initialOrderId, onOpenSource }: Props) {
   const queryClient = useQueryClient();
   const canView = permissions.includes('procurement.po.view');
   const canCreate = permissions.includes('procurement.po.create');
@@ -77,6 +88,8 @@ export function PurchaseOrdersPanel({ permissions }: Props) {
 
   const [projectId, setProjectId] = useState('');
   const [orderId, setOrderId] = useState('');
+  const appliedProjectSourceLink = useRef('');
+  const appliedOrderSourceLink = useRef('');
   const [selectedAwards, setSelectedAwards] = useState<string[]>([]);
   const [createRemarks, setCreateRemarks] = useState('');
   const [headerRemarks, setHeaderRemarks] = useState('');
@@ -95,12 +108,28 @@ export function PurchaseOrdersPanel({ permissions }: Props) {
   });
 
   useEffect(() => {
+    if (!initialProjectId || !projects.isSuccess || projects.isFetching) return;
+    const sourceLinkKey = `${initialProjectId}:${initialOrderId ?? ''}`;
+    if (!consumeSourceLinkKey(appliedProjectSourceLink, sourceLinkKey)) return;
+    setProjectId(
+      resolveLinkedProjectId(initialProjectId, projects.data?.data ?? []),
+    );
+  }, [
+    initialProjectId,
+    initialOrderId,
+    projects.isSuccess,
+    projects.isFetching,
+    projects.data,
+  ]);
+
+  useEffect(() => {
+    if (initialProjectId) return;
     const values = projects.data?.data ?? [];
     if (!projectId && values[0]) setProjectId(values[0].id);
     if (projectId && !values.some((project) => project.id === projectId)) {
       setProjectId(values[0]?.id ?? '');
     }
-  }, [projectId, projects.data]);
+  }, [initialProjectId, projectId, projects.data]);
 
   useEffect(() => {
     setOrderId('');
@@ -126,13 +155,41 @@ export function PurchaseOrdersPanel({ permissions }: Props) {
   });
 
   useEffect(() => {
-    if (orders.isFetching) return;
+    if (
+      !initialProjectId ||
+      projectId !== initialProjectId ||
+      !initialOrderId ||
+      !orders.isSuccess ||
+      orders.isFetching
+    ) {
+      return;
+    }
+    const sourceLinkKey = `${initialProjectId}:${initialOrderId}`;
+    if (!consumeSourceLinkKey(appliedOrderSourceLink, sourceLinkKey)) return;
+    setOrderId(
+      resolveLinkedRecordId(
+        initialOrderId,
+        projectId,
+        orders.data?.data ?? [],
+      ),
+    );
+  }, [
+    initialProjectId,
+    initialOrderId,
+    projectId,
+    orders.isSuccess,
+    orders.isFetching,
+    orders.data,
+  ]);
+
+  useEffect(() => {
+    if (initialOrderId || orders.isFetching) return;
     const values = orders.data?.data ?? [];
     if (!orderId && values[0]) setOrderId(values[0].id);
     if (orderId && !values.some((order) => order.id === orderId)) {
       setOrderId(values[0]?.id ?? '');
     }
-  }, [orderId, orders.data, orders.isFetching]);
+  }, [initialOrderId, orderId, orders.data, orders.isFetching]);
 
   const detail = useQuery({
     queryKey: ['purchase-order', orderId],
@@ -569,6 +626,65 @@ export function PurchaseOrdersPanel({ permissions }: Props) {
                           'PR'}{' '}
                         → {line.rfq?.rfqNumber ?? 'RFQ'} → Supplier Award
                       </Typography>
+                      {onOpenSource ? (
+                        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                          {line.purchaseRequestLine?.purchaseRequest &&
+                          canOpenSourceLink('purchase-requests', permissions) ? (
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              onClick={() => {
+                                const target = sourceLinkTarget(
+                                  'purchase-requests',
+                                  current.projectId,
+                                  line.purchaseRequestLine!.purchaseRequest.id,
+                                );
+                                if (target) onOpenSource(target);
+                              }}
+                            >
+                              Open {line.purchaseRequestLine.purchaseRequest.prNumber}
+                            </Button>
+                          ) : null}
+                          {line.rfq &&
+                          canOpenSourceLink('sourcing', permissions) ? (
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              onClick={() => {
+                                const target = sourceLinkTarget(
+                                  'sourcing',
+                                  current.projectId,
+                                  line.rfqId,
+                                );
+                                if (target) onOpenSource(target);
+                              }}
+                            >
+                              Open {line.rfq.rfqNumber}
+                            </Button>
+                          ) : null}
+                          {line.supplierQuotation &&
+                          permissions.includes('procurement.quotation.view') ? (
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              onClick={() => {
+                                const target = sourceLinkTarget(
+                                  'sourcing',
+                                  current.projectId,
+                                  line.rfqId,
+                                  line.supplierQuotationId,
+                                );
+                                if (target) onOpenSource(target);
+                              }}
+                            >
+                              Open supplier quotation
+                              {line.supplierQuotation.supplierReference
+                                ? ' · ' + line.supplierQuotation.supplierReference
+                                : ''}
+                            </Button>
+                          ) : null}
+                        </Stack>
+                      ) : null}
                       <Stack
                         direction={{ xs: 'column', md: 'row' }}
                         spacing={1}

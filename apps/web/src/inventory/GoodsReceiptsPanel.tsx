@@ -5,8 +5,30 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 
 import { inventoryApi } from '../api/inventory';
+import {
+  canOpenSourceLink,
+  consumeSourceLinkKey,
+  resolveLinkedProjectId,
+  resolveLinkedRecordId,
+  sourceLinkTarget,
+  type SourceLinkTarget,
+} from '../role-ui/source-link-policy';
 
-export function GoodsReceiptsPanel({ permissions }: { permissions: string[] }) {
+export function GoodsReceiptsPanel({
+  permissions,
+  initialProjectId,
+  initialReceiptId,
+  appliedProjectSourceLink,
+  appliedReceiptSourceLink,
+  onOpenSource,
+}: {
+  permissions: string[];
+  initialProjectId?: string | undefined;
+  initialReceiptId?: string | undefined;
+  appliedProjectSourceLink: { current: string };
+  appliedReceiptSourceLink: { current: string };
+  onOpenSource?: ((target: SourceLinkTarget) => void) | undefined;
+}) {
   const queryClient = useQueryClient();
   const canCreate = permissions.includes('inventory.receipt.create');
   const canSubmit = permissions.includes('inventory.receipt.submit');
@@ -46,6 +68,50 @@ export function GoodsReceiptsPanel({ permissions }: { permissions: string[] }) {
     queryFn: () => inventoryApi.goodsReceipts(projectId),
     enabled: Boolean(projectId),
   });
+  useEffect(() => {
+    if (!initialProjectId || !projects.isSuccess || projects.isFetching) return;
+    const sourceLinkKey = `${initialProjectId}:${initialReceiptId ?? ''}`;
+    if (!consumeSourceLinkKey(appliedProjectSourceLink, sourceLinkKey)) return;
+    setProjectId(
+      resolveLinkedProjectId(initialProjectId, projects.data?.data ?? []),
+    );
+    setSelectedId('');
+  }, [
+    initialProjectId,
+    initialReceiptId,
+    projects.isSuccess,
+    projects.isFetching,
+    projects.data,
+  ]);
+
+  useEffect(() => {
+    if (
+      !initialProjectId ||
+      projectId !== initialProjectId ||
+      !initialReceiptId ||
+      !receipts.isSuccess ||
+      receipts.isFetching
+    ) {
+      return;
+    }
+    const sourceLinkKey = `${initialProjectId}:${initialReceiptId}`;
+    if (!consumeSourceLinkKey(appliedReceiptSourceLink, sourceLinkKey)) return;
+    setSelectedId(
+      resolveLinkedRecordId(
+        initialReceiptId,
+        projectId,
+        receipts.data?.data ?? [],
+      ),
+    );
+  }, [
+    initialProjectId,
+    initialReceiptId,
+    projectId,
+    receipts.isSuccess,
+    receipts.isFetching,
+    receipts.data,
+  ]);
+
   const detail = useQuery({
     queryKey: ['goods-receipt', selectedId],
     queryFn: () => inventoryApi.goodsReceipt(selectedId),
@@ -60,6 +126,9 @@ export function GoodsReceiptsPanel({ permissions }: { permissions: string[] }) {
   const chosenLines = (selectedOrder?.lines ?? []).filter((line) => Boolean(lineQuantities[line.id]?.trim()));
   const validQuantity = (value: string) => /^(?:0|[1-9]\d{0,13})(?:\.\d{1,4})?$/.test(value) && Number(value) > 0;
   const current = detail.data?.data;
+  const sourceOrder = (orders.data?.data ?? []).find(
+    (order) => order.id === current?.purchaseOrderId,
+  );
   useEffect(() => {
     if (!current) return;
     setDraftQuantities(Object.fromEntries((current.items ?? []).map((item) => [item.id, item.quantity])));
@@ -199,6 +268,25 @@ export function GoodsReceiptsPanel({ permissions }: { permissions: string[] }) {
           <CardContent>
             <Stack spacing={2}>
               <Typography variant="subtitle1">{current.receiptNumber}</Typography>
+              {onOpenSource &&
+              canOpenSourceLink('purchase-orders', permissions) ? (
+                <Button
+                  size="small"
+                  variant="outlined"
+                  sx={{ alignSelf: 'flex-start' }}
+                  onClick={() => {
+                    const target = sourceLinkTarget(
+                      'purchase-orders',
+                      current.projectId,
+                      current.purchaseOrderId,
+                    );
+                    if (target) onOpenSource(target);
+                  }}
+                >
+                  Open source Purchase Order
+                  {sourceOrder ? ' · ' + sourceOrder.poNumber : ''}
+                </Button>
+              ) : null}
               <Typography variant="body2">
                 {current.items?.map((item) =>
                   item.description + ': ' + item.quantity + ' ' + item.uomCodeSnapshot,

@@ -11,12 +11,17 @@ import {
   Typography,
 } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   procurementApi,
   PurchaseRequestLine,
 } from '../api/procurement';
+import {
+  consumeSourceLinkKey,
+  resolveLinkedProjectId,
+  resolveLinkedRecordId,
+} from '../role-ui/source-link-policy';
 
 function dateValue(value: string | null | undefined) {
   return value ? value.slice(0, 10) : '';
@@ -38,14 +43,10 @@ export function PurchaseRequestsPanel({
   const canApprove = permissions.includes('procurement.pr.approve');
   const canCancel = permissions.includes('procurement.pr.cancel');
 
-  const [projectId, setProjectId] = useState(initialProjectId ?? '');
-  const [requestId, setRequestId] = useState(initialRequestId ?? '');
-  useEffect(() => {
-    if (initialProjectId && initialRequestId) {
-      setProjectId(initialProjectId);
-      setRequestId(initialRequestId);
-    }
-  }, [initialProjectId, initialRequestId]);
+  const [projectId, setProjectId] = useState('');
+  const [requestId, setRequestId] = useState('');
+  const appliedProjectSourceLink = useRef('');
+  const appliedRequestSourceLink = useRef('');
   const [remarks, setRemarks] = useState('');
   const [workflowCode, setWorkflowCode] = useState('');
   const [approvalComment, setApprovalComment] = useState('');
@@ -76,6 +77,50 @@ export function PurchaseRequestsPanel({
     queryFn: () => procurementApi.requests(projectId),
     enabled: Boolean(canView && projectId),
   });
+  useEffect(() => {
+    if (!initialProjectId || !projects.isSuccess || projects.isFetching) return;
+    const sourceLinkKey = `${initialProjectId}:${initialRequestId ?? ''}`;
+    if (!consumeSourceLinkKey(appliedProjectSourceLink, sourceLinkKey)) return;
+    setProjectId(
+      resolveLinkedProjectId(initialProjectId, projects.data?.data ?? []),
+    );
+    setRequestId('');
+  }, [
+    initialProjectId,
+    initialRequestId,
+    projects.isSuccess,
+    projects.isFetching,
+    projects.data,
+  ]);
+
+  useEffect(() => {
+    if (
+      !initialProjectId ||
+      projectId !== initialProjectId ||
+      !initialRequestId ||
+      !requests.isSuccess ||
+      requests.isFetching
+    ) {
+      return;
+    }
+    const sourceLinkKey = `${initialProjectId}:${initialRequestId}`;
+    if (!consumeSourceLinkKey(appliedRequestSourceLink, sourceLinkKey)) return;
+    setRequestId(
+      resolveLinkedRecordId(
+        initialRequestId,
+        projectId,
+        requests.data?.data ?? [],
+      ),
+    );
+  }, [
+    initialProjectId,
+    initialRequestId,
+    projectId,
+    requests.isSuccess,
+    requests.isFetching,
+    requests.data,
+  ]);
+
   const selected = useQuery({
     queryKey: ['procurement', 'request', requestId],
     queryFn: () => procurementApi.request(requestId),

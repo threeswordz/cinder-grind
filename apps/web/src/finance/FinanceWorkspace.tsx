@@ -25,9 +25,20 @@ import {
   SupplierInvoiceItem,
   SupplierInvoiceLineInput,
 } from '../api/finance';
+import {
+  canOpenSourceLink,
+  consumeSourceLinkKey,
+  resolveLinkedProjectId,
+  resolveLinkedRecordId,
+  sourceLinkTarget,
+  type SourceLinkTarget,
+} from '../role-ui/source-link-policy';
 
 type Props = {
   permissions: string[];
+  initialProjectId?: string | undefined;
+  initialInvoiceId?: string | undefined;
+  onOpenSource?: ((target: SourceLinkTarget) => void) | undefined;
 };
 
 type LineDraft = {
@@ -84,7 +95,7 @@ function editDraft(line: SupplierInvoiceItem): LineDraft {
   };
 }
 
-export function FinanceWorkspace({ permissions }: Props) {
+export function FinanceWorkspace({ permissions, initialProjectId, initialInvoiceId, onOpenSource }: Props) {
   const queryClient = useQueryClient();
 
   const canView = permissions.includes('finance.supplier_invoice.view');
@@ -96,6 +107,8 @@ export function FinanceWorkspace({ permissions }: Props) {
 
   const [projectId, setProjectId] = useState('');
   const [invoiceId, setInvoiceId] = useState('');
+  const appliedProjectSourceLink = useRef('');
+  const appliedInvoiceSourceLink = useRef('');
 
   const [createSupplierId, setCreateSupplierId] = useState('');
   const [createSupplierReference, setCreateSupplierReference] = useState('');
@@ -139,12 +152,28 @@ export function FinanceWorkspace({ permissions }: Props) {
   });
 
   useEffect(() => {
+    if (!initialProjectId || !projects.isSuccess || projects.isFetching) return;
+    const sourceLinkKey = `${initialProjectId}:${initialInvoiceId ?? ''}`;
+    if (!consumeSourceLinkKey(appliedProjectSourceLink, sourceLinkKey)) return;
+    setProjectId(
+      resolveLinkedProjectId(initialProjectId, projects.data?.data ?? []),
+    );
+  }, [
+    initialProjectId,
+    initialInvoiceId,
+    projects.isSuccess,
+    projects.isFetching,
+    projects.data,
+  ]);
+
+  useEffect(() => {
+    if (initialProjectId) return;
     const values = projects.data?.data ?? [];
     if (!projectId && values[0]) setProjectId(values[0].id);
     if (projectId && !values.some((project) => project.id === projectId)) {
       setProjectId(values[0]?.id ?? '');
     }
-  }, [projectId, projects.data]);
+  }, [initialProjectId, projectId, projects.data]);
 
   useEffect(() => {
     setInvoiceId('');
@@ -164,13 +193,41 @@ export function FinanceWorkspace({ permissions }: Props) {
   });
 
   useEffect(() => {
-    if (invoices.isFetching) return;
+    if (
+      !initialProjectId ||
+      projectId !== initialProjectId ||
+      !initialInvoiceId ||
+      !invoices.isSuccess ||
+      invoices.isFetching
+    ) {
+      return;
+    }
+    const sourceLinkKey = `${initialProjectId}:${initialInvoiceId}`;
+    if (!consumeSourceLinkKey(appliedInvoiceSourceLink, sourceLinkKey)) return;
+    setInvoiceId(
+      resolveLinkedRecordId(
+        initialInvoiceId,
+        projectId,
+        invoices.data?.data ?? [],
+      ),
+    );
+  }, [
+    initialProjectId,
+    initialInvoiceId,
+    projectId,
+    invoices.isSuccess,
+    invoices.isFetching,
+    invoices.data,
+  ]);
+
+  useEffect(() => {
+    if (initialInvoiceId || invoices.isFetching) return;
     const values = invoices.data?.data ?? [];
     if (!invoiceId && values[0]) setInvoiceId(values[0].id);
     if (invoiceId && !values.some((invoice) => invoice.id === invoiceId)) {
       setInvoiceId(values[0]?.id ?? '');
     }
-  }, [invoiceId, invoices.data, invoices.isFetching]);
+  }, [initialInvoiceId, invoiceId, invoices.data, invoices.isFetching]);
 
   const detail = useQuery({
     queryKey: ['finance-supplier-invoice', invoiceId],
@@ -849,6 +906,44 @@ export function FinanceWorkspace({ permissions }: Props) {
                             line.goodsReceiptItem.lineNo
                           : ''}
                       </Typography>
+                      {onOpenSource ? (
+                        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                          {line.purchaseOrderLine &&
+                          canOpenSourceLink('purchase-orders', permissions) ? (
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              onClick={() => {
+                                const target = sourceLinkTarget(
+                                  'purchase-orders',
+                                  current.projectId,
+                                  line.purchaseOrderLine!.purchaseOrder.id,
+                                );
+                                if (target) onOpenSource(target);
+                              }}
+                            >
+                              Open PO {line.purchaseOrderLine.purchaseOrder.poNumber}
+                            </Button>
+                          ) : null}
+                          {line.goodsReceiptItem &&
+                          canOpenSourceLink('inventory', permissions) ? (
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              onClick={() => {
+                                const target = sourceLinkTarget(
+                                  'inventory',
+                                  current.projectId,
+                                  line.goodsReceiptItem!.goodsReceipt.id,
+                                );
+                                if (target) onOpenSource(target);
+                              }}
+                            >
+                              Open GR {line.goodsReceiptItem.goodsReceipt.receiptNumber}
+                            </Button>
+                          ) : null}
+                        </Stack>
+                      ) : null}
                       <Stack
                         direction={{ xs: 'column', md: 'row' }}
                         spacing={1}

@@ -20,9 +20,20 @@ import {
   PaymentDirection,
   paymentApi,
 } from '../api/finance';
+import {
+  canOpenSourceLink,
+  consumeSourceLinkKey,
+  resolveLinkedProjectId,
+  resolveLinkedRecordId,
+  sourceLinkTarget,
+  type SourceLinkTarget,
+} from '../role-ui/source-link-policy';
 
 type Props = {
   permissions: string[];
+  initialProjectId?: string | undefined;
+  initialPaymentId?: string | undefined;
+  onOpenSource?: ((target: SourceLinkTarget) => void) | undefined;
 };
 
 function key() {
@@ -39,7 +50,7 @@ function dateValue(value: string | null | undefined) {
   return value ? value.slice(0, 10) : '';
 }
 
-export function PaymentFinanceWorkspace({ permissions }: Props) {
+export function PaymentFinanceWorkspace({ permissions, initialProjectId, initialPaymentId, onOpenSource }: Props) {
   const queryClient = useQueryClient();
   const canView = permissions.includes('finance.payment.view');
   const canCreate = permissions.includes('finance.payment.create');
@@ -51,6 +62,8 @@ export function PaymentFinanceWorkspace({ permissions }: Props) {
 
   const [projectId, setProjectId] = useState('');
   const [paymentId, setPaymentId] = useState('');
+  const appliedProjectSourceLink = useRef('');
+  const appliedPaymentSourceLink = useRef('');
   const [direction, setDirection] = useState<PaymentDirection>('OUTBOUND');
   const [counterparty, setCounterparty] = useState('');
   const [paymentDate, setPaymentDate] = useState(
@@ -91,12 +104,28 @@ export function PaymentFinanceWorkspace({ permissions }: Props) {
   });
 
   useEffect(() => {
+    if (!initialProjectId || !projects.isSuccess || projects.isFetching) return;
+    const sourceLinkKey = `${initialProjectId}:${initialPaymentId ?? ''}`;
+    if (!consumeSourceLinkKey(appliedProjectSourceLink, sourceLinkKey)) return;
+    setProjectId(
+      resolveLinkedProjectId(initialProjectId, projects.data?.data ?? []),
+    );
+  }, [
+    initialProjectId,
+    initialPaymentId,
+    projects.isSuccess,
+    projects.isFetching,
+    projects.data,
+  ]);
+
+  useEffect(() => {
+    if (initialProjectId) return;
     const rows = projects.data?.data ?? [];
     if (!projectId && rows[0]) setProjectId(rows[0].id);
     if (projectId && !rows.some((project) => project.id === projectId)) {
       setProjectId(rows[0]?.id ?? '');
     }
-  }, [projectId, projects.data]);
+  }, [initialProjectId, projectId, projects.data]);
 
   useEffect(() => {
     setPaymentId('');
@@ -117,13 +146,41 @@ export function PaymentFinanceWorkspace({ permissions }: Props) {
   });
 
   useEffect(() => {
-    if (payments.isFetching) return;
+    if (
+      !initialProjectId ||
+      projectId !== initialProjectId ||
+      !initialPaymentId ||
+      !payments.isSuccess ||
+      payments.isFetching
+    ) {
+      return;
+    }
+    const sourceLinkKey = `${initialProjectId}:${initialPaymentId}`;
+    if (!consumeSourceLinkKey(appliedPaymentSourceLink, sourceLinkKey)) return;
+    setPaymentId(
+      resolveLinkedRecordId(
+        initialPaymentId,
+        projectId,
+        payments.data?.data ?? [],
+      ),
+    );
+  }, [
+    initialProjectId,
+    initialPaymentId,
+    projectId,
+    payments.isSuccess,
+    payments.isFetching,
+    payments.data,
+  ]);
+
+  useEffect(() => {
+    if (initialPaymentId || payments.isFetching) return;
     const rows = payments.data?.data ?? [];
     if (!paymentId && rows[0]) setPaymentId(rows[0].id);
     if (paymentId && !rows.some((payment) => payment.id === paymentId)) {
       setPaymentId(rows[0]?.id ?? '');
     }
-  }, [paymentId, payments.data, payments.isFetching]);
+  }, [initialPaymentId, paymentId, payments.data, payments.isFetching]);
 
   const detail = useQuery({
     queryKey: ['finance-payment', paymentId],
@@ -410,6 +467,7 @@ export function PaymentFinanceWorkspace({ permissions }: Props) {
     ? [
         ...current.supplierAllocations.map((allocation) => ({
           id: allocation.id,
+          targetId: allocation.supplierInvoice.id,
           targetType: 'SUPPLIER_INVOICE' as PaymentAllocationTarget,
           label:
             allocation.supplierInvoice.supplierInvoiceNumber +
@@ -419,12 +477,14 @@ export function PaymentFinanceWorkspace({ permissions }: Props) {
         })),
         ...current.clientAllocations.map((allocation) => ({
           id: allocation.id,
+          targetId: allocation.clientInvoice.id,
           targetType: 'CLIENT_INVOICE' as PaymentAllocationTarget,
           label: allocation.clientInvoice.clientInvoiceNumber,
           amount: allocation.allocatedAmount,
         })),
         ...current.subcontractAllocations.map((allocation) => ({
           id: allocation.id,
+          targetId: allocation.subcontractCertification.id,
           targetType: 'SUBCONTRACT_CERTIFICATION' as PaymentAllocationTarget,
           label: allocation.subcontractCertification.certificationNumber,
           amount: allocation.allocatedAmount,
@@ -638,6 +698,24 @@ export function PaymentFinanceWorkspace({ permissions }: Props) {
                       {allocation.label} · {current.currencyCode}{' '}
                       {allocation.amount}
                     </Typography>
+                    {allocation.targetType === 'SUPPLIER_INVOICE' &&
+                    onOpenSource &&
+                    canOpenSourceLink('finance', permissions) ? (
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        onClick={() => {
+                          const target = sourceLinkTarget(
+                            'finance',
+                            current.projectId,
+                            allocation.targetId,
+                          );
+                          if (target) onOpenSource(target);
+                        }}
+                      >
+                        Open supplier invoice
+                      </Button>
+                    ) : null}
                     {draft && canEdit ? (
                       <Button
                         size="small"

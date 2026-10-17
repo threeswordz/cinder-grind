@@ -13,13 +13,22 @@ import {
   Typography,
 } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Dispatch, SetStateAction, useEffect, useMemo, useState } from 'react';
+import { Dispatch, SetStateAction, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   RfqComparison,
   SupplierQuotation,
   sourcingApi,
 } from '../api/sourcing';
+import {
+  canOpenSourceLink,
+  consumeSourceLinkKey,
+  resolveLinkedChildRecordId,
+  resolveLinkedProjectId,
+  resolveLinkedRecordId,
+  sourceLinkTarget,
+  type SourceLinkTarget,
+} from '../role-ui/source-link-policy';
 
 function dateValue(value: string | null | undefined) {
   return value ? value.slice(0, 10) : '';
@@ -33,8 +42,16 @@ type OfferDraft = {
 
 export function SourcingPanel({
   permissions,
+  initialProjectId,
+  initialRfqId,
+  initialQuotationId,
+  onOpenSource,
 }: {
   permissions: string[];
+  initialProjectId?: string | undefined;
+  initialRfqId?: string | undefined;
+  initialQuotationId?: string | undefined;
+  onOpenSource?: ((target: SourceLinkTarget) => void) | undefined;
 }) {
   const queryClient = useQueryClient();
   const canViewRfq = permissions.includes('procurement.rfq.view');
@@ -46,6 +63,9 @@ export function SourcingPanel({
 
   const [projectId, setProjectId] = useState('');
   const [rfqId, setRfqId] = useState('');
+  const appliedProjectSourceLink = useRef('');
+  const appliedRfqSourceLink = useRef('');
+  const appliedQuotationSourceLink = useRef('');
   const [closingDate, setClosingDate] = useState('');
   const [rfqRemarks, setRfqRemarks] = useState('');
   const [selectedDemand, setSelectedDemand] = useState<Record<string, string>>(
@@ -94,6 +114,52 @@ export function SourcingPanel({
         : sourcingApi.quotationRfqs(projectId),
     enabled: Boolean(canView && projectId),
   });
+  useEffect(() => {
+    if (!initialProjectId || !projects.isSuccess || projects.isFetching) return;
+    const sourceLinkKey =
+      `${initialProjectId}:${initialRfqId ?? ''}:${initialQuotationId ?? ''}`;
+    if (!consumeSourceLinkKey(appliedProjectSourceLink, sourceLinkKey)) return;
+    setProjectId(
+      resolveLinkedProjectId(initialProjectId, projects.data?.data ?? []),
+    );
+    setRfqId('');
+    startNewQuotation();
+  }, [
+    initialProjectId,
+    initialRfqId,
+    initialQuotationId,
+    projects.isSuccess,
+    projects.isFetching,
+    projects.data,
+  ]);
+
+  useEffect(() => {
+    if (
+      !initialProjectId ||
+      projectId !== initialProjectId ||
+      !initialRfqId ||
+      !rfqs.isSuccess ||
+      rfqs.isFetching
+    ) {
+      return;
+    }
+    const sourceLinkKey =
+      `${initialProjectId}:${initialRfqId}:${initialQuotationId ?? ''}`;
+    if (!consumeSourceLinkKey(appliedRfqSourceLink, sourceLinkKey)) return;
+    setRfqId(
+      resolveLinkedRecordId(initialRfqId, projectId, rfqs.data?.data ?? []),
+    );
+    startNewQuotation();
+  }, [
+    initialProjectId,
+    initialRfqId,
+    initialQuotationId,
+    projectId,
+    rfqs.isSuccess,
+    rfqs.isFetching,
+    rfqs.data,
+  ]);
+
   const detail = useQuery({
     queryKey: [
       'sourcing',
@@ -212,9 +278,36 @@ export function SourcingPanel({
       ) ?? null,
     [current?.quotations, quotationId],
   );
+  const sourcePurchaseRequests = useMemo(() => {
+    const unique = new Map<string, { id: string; prNumber: string }>();
+    for (const line of current?.lines ?? []) {
+      const request = line.purchaseRequestLine.purchaseRequest;
+      unique.set(request.id, { id: request.id, prNumber: request.prNumber });
+    }
+    return [...unique.values()];
+  }, [current?.lines]);
 
   useEffect(() => {
-    if (!current) return;
+    if (!current || detail.isFetching) return;
+    if (
+      initialProjectId &&
+      projectId === initialProjectId &&
+      initialRfqId &&
+      current.id === initialRfqId &&
+      initialQuotationId
+    ) {
+      const sourceLinkKey =
+        `${initialProjectId}:${initialRfqId}:${initialQuotationId}`;
+      if (consumeSourceLinkKey(appliedQuotationSourceLink, sourceLinkKey)) {
+        setQuotationId(
+          resolveLinkedChildRecordId(
+            initialQuotationId,
+            current.quotations ?? [],
+          ),
+        );
+        return;
+      }
+    }
     if (
       quotationId &&
       !(current.quotations ?? []).some(
@@ -223,7 +316,15 @@ export function SourcingPanel({
     ) {
       setQuotationId('');
     }
-  }, [current, quotationId]);
+  }, [
+    current,
+    quotationId,
+    initialProjectId,
+    initialRfqId,
+    initialQuotationId,
+    projectId,
+    detail.isFetching,
+  ]);
 
   useEffect(() => {
     if (!selectedQuotation) {
@@ -515,6 +616,32 @@ export function SourcingPanel({
                 </Typography>
                 {current.remarks ? (
                   <Typography variant="body2">{current.remarks}</Typography>
+                ) : null}
+                {onOpenSource &&
+                canOpenSourceLink('purchase-requests', permissions) &&
+                sourcePurchaseRequests.length ? (
+                  <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                    <Typography variant="body2" color="text.secondary">
+                      Source Purchase Request:
+                    </Typography>
+                    {sourcePurchaseRequests.map((request) => (
+                      <Button
+                        key={request.id}
+                        size="small"
+                        variant="outlined"
+                        onClick={() => {
+                          const target = sourceLinkTarget(
+                            'purchase-requests',
+                            current.projectId,
+                            request.id,
+                          );
+                          if (target) onOpenSource(target);
+                        }}
+                      >
+                        Open {request.prNumber}
+                      </Button>
+                    ))}
+                  </Stack>
                 ) : null}
                 <Divider />
                 <Typography variant="subtitle2">
