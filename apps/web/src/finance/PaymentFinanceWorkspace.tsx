@@ -32,7 +32,7 @@ type Props = {
   permissions: string[];
   initialProjectId?: string | undefined;
   initialPaymentId?: string | undefined;
-  onOpenSource?: (target: SourceLinkTarget) => void;
+  onOpenSource?: ((target: SourceLinkTarget) => void) | undefined;
 };
 
 function key() {
