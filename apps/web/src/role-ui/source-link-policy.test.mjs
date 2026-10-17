@@ -73,6 +73,19 @@ test('linked Project fails closed unless returned by the authorized source list'
   assert.equal(resolveLinkedProjectId(undefined, projects), '');
 });
 
+test('C3 Project Cost links honor Cost Control source inclusion, not just archived status', () => {
+  const archivedWithHistory = { id: 'archived-historical', isActive: false };
+  const archivedWithoutHistory = { id: 'archived-empty', isActive: false };
+  const costSourceList = [{ id: archivedWithHistory.id }, { id: 'active-cost' }];
+  assert.equal(
+    resolveLinkedProjectId(archivedWithHistory.id, costSourceList),
+    archivedWithHistory.id,
+  );
+  assert.equal(resolveLinkedProjectId(archivedWithoutHistory.id, costSourceList), '');
+  assert.equal(resolveLinkedProjectId('cross-project-not-authorized', costSourceList), '');
+  assert.equal(resolveLinkedProjectId('archived-empty', []), '');
+});
+
 test('linked record must match both ID and selected Project', () => {
   const rows = [
     { id: 'row-A', projectId: 'project-A' },
