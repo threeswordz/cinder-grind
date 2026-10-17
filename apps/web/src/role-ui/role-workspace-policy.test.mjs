@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { QueryClient } from '@tanstack/react-query';
 import {
   visibleNavigationKeys, mayReadMyPurchaseRequests, isAccessibleProject,
   selectedAccessibleProject, ownEditablePurchaseRequests, verifiedPurchaseRequestLink,
@@ -21,6 +22,49 @@ test('D3 query scope isolates user, Company, permission and Project changes', ()
   assert.notDeepEqual(projectContextQueryKey(a, 'procurement'), projectContextQueryKey(a, 'projects'));
   assert.deepEqual(myPurchaseRequestsQueryKey(a, 'project-A'), ['v1.1', 'my-prs', a, 'project-A']);
   assert.notDeepEqual(myPurchaseRequestsQueryKey(a, 'project-A'), myPurchaseRequestsQueryKey(a, 'project-B'));
+});
+
+test('D3 React Query rejects previous context cache after effective permission, Company or Project changes', async () => {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  try {
+    const permissionSet = ['procurement.pr.view', 'projects.project.view'];
+    const scope = effectiveUiQueryScope('user-A', 'company-A', permissionSet);
+    const projectKey = projectContextQueryKey(scope, 'procurement');
+    const prKey = myPurchaseRequestsQueryKey(scope, 'project-A');
+
+    client.setQueryData(projectKey, [{ id: 'project-A' }]);
+    client.setQueryData(prKey, [{ id: 'a-draft' }]);
+    assert.deepEqual(client.getQueryData(projectKey), [{ id: 'project-A' }]);
+    assert.deepEqual(client.getQueryData(prKey), [{ id: 'a-draft' }]);
+
+    const downgraded = effectiveUiQueryScope('user-A', 'company-A', ['projects.project.view']);
+    const otherCompany = effectiveUiQueryScope('user-A', 'company-B', permissionSet);
+    const otherUser = effectiveUiQueryScope('user-B', 'company-A', permissionSet);
+    for (const changed of [downgraded, otherCompany, otherUser]) {
+      assert.equal(client.getQueryData(projectContextQueryKey(changed, 'procurement')), undefined);
+      assert.equal(client.getQueryData(myPurchaseRequestsQueryKey(changed, 'project-A')), undefined);
+    }
+    assert.equal(client.getQueryData(projectContextQueryKey(scope, 'projects')), undefined);
+    assert.equal(client.getQueryData(myPurchaseRequestsQueryKey(scope, 'project-B')), undefined);
+
+    // A mocked query function counts deduplicated concurrent calls; this does
+    // not measure a deployed API response, pagination, network latency or UAT.
+    let requests = 0;
+    const secondKey = myPurchaseRequestsQueryKey(scope, 'project-B');
+    const query = () => client.fetchQuery({
+      queryKey: secondKey,
+      queryFn: async () => {
+        requests += 1;
+        return [{ id: 'project-B-only' }];
+      },
+    });
+    const [first, second] = await Promise.all([query(), query()]);
+    assert.deepEqual(first, second);
+    assert.equal(requests, 1, 'concurrent identical keys deduplicate fetches');
+    assert.deepEqual(client.getQueryData(prKey), [{ id: 'a-draft' }]);
+  } finally {
+    client.clear();
+  }
 });
 
 const projects = [{ id: 'project-A' }, { id: 'project-B' }];
