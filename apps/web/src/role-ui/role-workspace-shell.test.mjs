@@ -44,8 +44,11 @@ test('responsive V1.1 role shell renders only supplied authorized modules', asyn
       assert.match(html, /My Work/);
       assert.match(html, /<nav[^>]*id="v11-primary-navigation"/);
       assert.match(html, /aria-label="Main navigation"/);
-      assert.match(html, /<nav[^>]*lang="en"/);
-      assert.match(html, /<header[^>]*lang="en"/);
+      assert.doesNotMatch(html, /<nav[^>]*lang="en"/);
+      assert.doesNotMatch(html, /<header[^>]*lang="en"/);
+      assert.match(html, /<span lang="en">Welcome<\/span>/);
+      assert.match(html, /<span lang="en">Home<\/span>/);
+      assert.match(html, /STORE_STAFF/);
       assert.match(html, /aria-current="page"/);
       assert.doesNotMatch(html, /Close menu/);
       assert.doesNotMatch(html, /Switch Role|Impersonat/);
