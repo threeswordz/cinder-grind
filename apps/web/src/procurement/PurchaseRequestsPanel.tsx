@@ -78,7 +78,7 @@ export function PurchaseRequestsPanel({
     enabled: Boolean(canView && projectId),
   });
   useEffect(() => {
-    if (!initialProjectId || !projects.isSuccess) return;
+    if (!initialProjectId || !projects.isSuccess || projects.isFetching) return;
     const sourceLinkKey = `${initialProjectId}:${initialRequestId ?? ''}`;
     if (!consumeSourceLinkKey(appliedProjectSourceLink, sourceLinkKey)) return;
     setProjectId(
@@ -97,7 +97,8 @@ export function PurchaseRequestsPanel({
       !initialProjectId ||
       projectId !== initialProjectId ||
       !initialRequestId ||
-      !requests.isSuccess
+      !requests.isSuccess ||
+      requests.isFetching
     ) {
       return;
     }
