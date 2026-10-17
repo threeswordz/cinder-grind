@@ -30,3 +30,19 @@ test('required navigation and My Work labels exist for all locales', () => {
     }
   }
 });
+
+
+test('all three locales distinguish nonurgent, error and busy UI copy without changing codes', () => {
+  const keys = ['noProject', 'noQueue', 'queueUnavailable', 'loading', 'error', 'empty', 'contextHint'];
+  for (const key of keys) {
+    const english = translate('en', key, '');
+    assert.ok(english.length);
+    assert.match(translate('th', key, ''), /[\u0E00-\u0E7F]/, 'Thai ' + key);
+    assert.match(translate('zh-TW', key, ''), /[\u3400-\u9FFF]/, 'Traditional Chinese ' + key);
+  }
+  for (const code of ['DRAFT', 'REJECTED', 'THB', 'K-123']) {
+    for (const locale of ['en', 'th', 'zh-TW']) {
+      assert.equal(translate(locale, 'notAnInterfaceLabel', code), code);
+    }
+  }
+});
