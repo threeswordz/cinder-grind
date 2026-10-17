@@ -1,7 +1,7 @@
 # Construction ERP — Development Roadmap
 
 **Document Status:** Development Roadmap Baseline v0.1  
-**Current Phase:** V1.0 COMPLETE + ACCEPTED; V1.1-A/B technically COMPLETE; V1.1-C preflight/C1/C2/C3 runtime technically COMPLETE; Stage-C documentation-only closure active (Issue #217)  
+**Current Phase:** V1.0 COMPLETE + ACCEPTED; V1.1-A/B/C technically COMPLETE and C Issue #217 CLOSED; V1.1-D0 UX/accessibility/security/compatibility docs-only preflight ACTIVE (Issue #225); D1–D3 gated; E future  
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1  
@@ -11,19 +11,19 @@
 
 ---
 
-## Active successor — V1.1 Business Workflow & Role UI (DEC-028; V1.1-C full-stage exit reconciliation)
+## Active successor — V1.1 Business Workflow & Role UI (DEC-028; V1.1-D0 UX Hardening Preflight)
 
-**Approval:** 2026-10-17 under DEC-028. V1.1-A entry and V1.1-B role-first UI are technically COMPLETE (Issue #211 / main CI #4327; Issue #214 / main CI #4366). V1.1-C preflight PR #218 and C1 Procurement→Finance closure PR #220 are complete (main CI #4372 / #4461). C2 Subcontract→Finance closure PR #222 is complete (main CI #4491). **C3 Project→Cost/Management runtime is technically COMPLETE:** final PR #223 exact head `c82d07ec3929e95a98a93c3d83b2883dc41c4d9e` passed push #4552 and PR #4553, 12 genuine P2 findings were fixed/resolved, the final DEC-022 exact-head review was clean, and PR #223 squash-merged as `dc4b92a11f4e7b87230c38ec0e3e828f024de761` with exact-main CI #4554 SUCCESS. **Current gate: separate documentation-only Stage-C exit reconciliation** and Issue #217 closure; V1.1-D cannot begin until that gate passes. Eight-persona human V1.1-E UAT has not occurred.
+**Approval:** 2026-10-17 under DEC-028. V1.1-A entry and V1.1-B role-first UI technically COMPLETE (CI #4327 / #4366). V1.1-C Procurement→Finance, Subcontract→Finance and Project→Cost/Management all technically COMPLETE, full-stage closure Issue #217 CLOSED. C3 runtime PR #223 final Codex CLEAN, merged `dc4b92a11f4e7b87230c38ec0e3e828f024de761`, exact-main CI #4554 PASS. Stage C docs PR #224 final Codex CLEAN, merged `f9e9b846948fd007858e898503e979af17135a09`, exact-main CI #4562 PASS. **Now D0 documentation-only preflight (Issue #225)** from that exact green main, inventory role-first UI, keyboard/mobile/a11y, 3-locale chrome, Company/Project/permission scoping and AC-V11-017–022 non-regression. D1 runtime remains blocked until D0 docs PR/review/CI/merge/post-main closure. V1.1-E eight-persona human UAT and Product Owner AC-V11-029/030 acceptance have not occurred.
 
 | Stage | Approved bounded delivery | Gate |
 |---|---|---|
 | V1.1-A | Entry/scope/54-workflow traceability and eight-persona permission/data/API/security/test baselines | **COMPLETE:** PRs #212/#213, main CI #4327, Issue #211 CLOSED |
 | V1.1-B | Role-first modular responsive app shell, sourced Home/My Work and grouped navigation | **TECHNICALLY COMPLETE:** PRs #215/#216, 14 web tests, exact-main CI #4366 PASS, Issue #214 CLOSED |
-| V1.1-C | Source-owned Procurement→Finance (C1), Subcontract→Finance (C2), Project→Cost/Management (C3) | **C1/C2/C3 TECHNICALLY COMPLETE; STAGE EXIT DOCS ACTIVE:** C3 PR #223 merged `dc4b92a…`; exact-main CI #4554 PASS; Issue #217 stays OPEN until docs closure PR final CI/merge/post-main validation |
-| V1.1-D | UX/accessibility/security/compatibility hardening only | After C stage closure |
+| V1.1-C | Source-owned Procurement→Finance (C1), Subcontract→Finance (C2), Project→Cost/Management (C3) | **FULL STAGE TECHNICALLY COMPLETE / CLOSED:** runtime #223 main CI #4554 PASS; full-docs closure #224 main CI #4562 PASS; Issue #217 CLOSED |
+| V1.1-D | UX/accessibility/security/compatibility hardening only; AC-V11-017–022 existing-business-rule non-regression | **D0 PRE-FLIGHT ACTIVE** under Issue #225, docs-only; D1–D3 runtime separately gated, no new backend/business policy |
 | V1.1-E | Eight-persona UAT/evidence, locale/THB/Company-Project security regression and release exit | After D + Product Owner human AC-V11-029/030 |
 
-**Stage evidence:** `docs/V1.1-C-PREFLIGHT.md` (C preflight closed); `docs/V1.1-C1-STAGE-EVIDENCE.md` (C1 closed); `docs/V1.1-C2-STAGE-EVIDENCE.md` (C2 closed); `docs/V1.1-C3-STAGE-EVIDENCE.md` (C3 runtime technically complete; Stage-C closure docs gate active). No new business rules, human UAT or release acceptance are implied.
+**Stage evidence:** `docs/V1.1-C-PREFLIGHT.md`, `docs/V1.1-C1-STAGE-EVIDENCE.md`, `docs/V1.1-C2-STAGE-EVIDENCE.md`, `docs/V1.1-C3-STAGE-EVIDENCE.md` now establish full C closure. **D0 preflight:** `docs/V1.1-D0-PREFLIGHT.md` defines source inventory, D1–D3 slices, AC-V11-017–022 non-regression, and no-runtime-before-preflight gate. No V1.1 human acceptance or Production deployment is implied.
 
 **Approval boundaries:** AC-V11-001–030 + BR-V11-01–18 source-preserving rules, stage sequence and English/Thai/zh-TW UI direction. D11-03–07/11/12 new policy and D11-13 User Support/Diagnostics implementation remain deferred; AC-V11-031–036 are not V1.1 obligations. No new mandatory paid dependency, backend rewrite, schema write, impersonation, approval bypass or Production deployment authorization. **Planning range:** 23–39 engineering days plus separately 2–4 business days human UAT (nonbinding).
 
