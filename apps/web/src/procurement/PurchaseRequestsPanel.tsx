@@ -17,6 +17,10 @@ import {
   procurementApi,
   PurchaseRequestLine,
 } from '../api/procurement';
+import {
+  resolveLinkedProjectId,
+  resolveLinkedRecordId,
+} from '../role-ui/source-link-policy';
 
 function dateValue(value: string | null | undefined) {
   return value ? value.slice(0, 10) : '';
@@ -38,14 +42,8 @@ export function PurchaseRequestsPanel({
   const canApprove = permissions.includes('procurement.pr.approve');
   const canCancel = permissions.includes('procurement.pr.cancel');
 
-  const [projectId, setProjectId] = useState(initialProjectId ?? '');
-  const [requestId, setRequestId] = useState(initialRequestId ?? '');
-  useEffect(() => {
-    if (initialProjectId && initialRequestId) {
-      setProjectId(initialProjectId);
-      setRequestId(initialRequestId);
-    }
-  }, [initialProjectId, initialRequestId]);
+  const [projectId, setProjectId] = useState('');
+  const [requestId, setRequestId] = useState('');
   const [remarks, setRemarks] = useState('');
   const [workflowCode, setWorkflowCode] = useState('');
   const [approvalComment, setApprovalComment] = useState('');
@@ -76,6 +74,25 @@ export function PurchaseRequestsPanel({
     queryFn: () => procurementApi.requests(projectId),
     enabled: Boolean(canView && projectId),
   });
+  useEffect(() => {
+    if (!initialProjectId || !projects.isSuccess) return;
+    setProjectId(
+      resolveLinkedProjectId(initialProjectId, projects.data?.data ?? []),
+    );
+    setRequestId('');
+  }, [initialProjectId, projects.isSuccess, projects.data]);
+
+  useEffect(() => {
+    if (!initialRequestId || !requests.isSuccess) return;
+    setRequestId(
+      resolveLinkedRecordId(
+        initialRequestId,
+        projectId,
+        requests.data?.data ?? [],
+      ),
+    );
+  }, [initialRequestId, projectId, requests.isSuccess, requests.data]);
+
   const selected = useQuery({
     queryKey: ['procurement', 'request', requestId],
     queryFn: () => procurementApi.request(requestId),
