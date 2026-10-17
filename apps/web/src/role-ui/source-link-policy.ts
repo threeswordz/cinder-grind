@@ -54,6 +54,15 @@ const SOURCE_VIEW_PERMISSIONS: Record<SourceLinkSection, readonly string[]> = {
   management: ['management.dashboard.view'],
 };
 
+/** Keep create-only staff in create mode; opening a record never grants edit. */
+export function canWriteSourceForm(
+  canCreate: boolean,
+  canEdit: boolean,
+  existingRecordSelected: boolean,
+): boolean {
+  return existingRecordSelected ? canEdit : canCreate;
+}
+
 export function canOpenSourceLink(
   sectionKey: SourceLinkSection,
   permissions: readonly string[],
