@@ -39,7 +39,7 @@ type Props = {
   permissions: string[];
   initialProjectId?: string | undefined;
   initialOrderId?: string | undefined;
-  onOpenSource?: (target: SourceLinkTarget) => void;
+  onOpenSource?: ((target: SourceLinkTarget) => void) | undefined;
 };
 
 type LineDraft = {
