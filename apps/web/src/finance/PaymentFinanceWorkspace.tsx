@@ -104,7 +104,7 @@ export function PaymentFinanceWorkspace({ permissions, initialProjectId, initial
   });
 
   useEffect(() => {
-    if (!initialProjectId || !projects.isSuccess) return;
+    if (!initialProjectId || !projects.isSuccess || projects.isFetching) return;
     const sourceLinkKey = `${initialProjectId}:${initialPaymentId ?? ''}`;
     if (!consumeSourceLinkKey(appliedProjectSourceLink, sourceLinkKey)) return;
     setProjectId(
@@ -114,6 +114,7 @@ export function PaymentFinanceWorkspace({ permissions, initialProjectId, initial
     initialProjectId,
     initialPaymentId,
     projects.isSuccess,
+    projects.isFetching,
     projects.data,
   ]);
 
@@ -149,7 +150,8 @@ export function PaymentFinanceWorkspace({ permissions, initialProjectId, initial
       !initialProjectId ||
       projectId !== initialProjectId ||
       !initialPaymentId ||
-      !payments.isSuccess
+      !payments.isSuccess ||
+      payments.isFetching
     ) {
       return;
     }
@@ -167,6 +169,7 @@ export function PaymentFinanceWorkspace({ permissions, initialProjectId, initial
     initialPaymentId,
     projectId,
     payments.isSuccess,
+    payments.isFetching,
     payments.data,
   ]);
 
