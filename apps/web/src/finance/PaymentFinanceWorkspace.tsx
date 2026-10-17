@@ -22,6 +22,7 @@ import {
 } from '../api/finance';
 import {
   canOpenSourceLink,
+  consumeSourceLinkKey,
   resolveLinkedProjectId,
   resolveLinkedRecordId,
   sourceLinkTarget,
@@ -61,6 +62,8 @@ export function PaymentFinanceWorkspace({ permissions, initialProjectId, initial
 
   const [projectId, setProjectId] = useState('');
   const [paymentId, setPaymentId] = useState('');
+  const appliedProjectSourceLink = useRef('');
+  const appliedPaymentSourceLink = useRef('');
   const [direction, setDirection] = useState<PaymentDirection>('OUTBOUND');
   const [counterparty, setCounterparty] = useState('');
   const [paymentDate, setPaymentDate] = useState(
@@ -102,10 +105,17 @@ export function PaymentFinanceWorkspace({ permissions, initialProjectId, initial
 
   useEffect(() => {
     if (!initialProjectId || !projects.isSuccess) return;
+    const sourceLinkKey = `${initialProjectId}:${initialPaymentId ?? ''}`;
+    if (!consumeSourceLinkKey(appliedProjectSourceLink, sourceLinkKey)) return;
     setProjectId(
       resolveLinkedProjectId(initialProjectId, projects.data?.data ?? []),
     );
-  }, [initialProjectId, projects.isSuccess, projects.data]);
+  }, [
+    initialProjectId,
+    initialPaymentId,
+    projects.isSuccess,
+    projects.data,
+  ]);
 
   useEffect(() => {
     if (initialProjectId) return;
@@ -135,7 +145,16 @@ export function PaymentFinanceWorkspace({ permissions, initialProjectId, initial
   });
 
   useEffect(() => {
-    if (!initialPaymentId || !payments.isSuccess) return;
+    if (
+      !initialProjectId ||
+      projectId !== initialProjectId ||
+      !initialPaymentId ||
+      !payments.isSuccess
+    ) {
+      return;
+    }
+    const sourceLinkKey = `${initialProjectId}:${initialPaymentId}`;
+    if (!consumeSourceLinkKey(appliedPaymentSourceLink, sourceLinkKey)) return;
     setPaymentId(
       resolveLinkedRecordId(
         initialPaymentId,
@@ -143,7 +162,13 @@ export function PaymentFinanceWorkspace({ permissions, initialProjectId, initial
         payments.data?.data ?? [],
       ),
     );
-  }, [initialPaymentId, projectId, payments.isSuccess, payments.data]);
+  }, [
+    initialProjectId,
+    initialPaymentId,
+    projectId,
+    payments.isSuccess,
+    payments.data,
+  ]);
 
   useEffect(() => {
     if (initialPaymentId || payments.isFetching) return;
