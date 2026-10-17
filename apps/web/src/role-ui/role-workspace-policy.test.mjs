@@ -132,6 +132,8 @@ test('Project context only accepts Project IDs returned by authorized source', (
   assert.equal(selectedAccessibleProject('project-B', projects), 'project-B');
   assert.equal(selectedAccessibleProject('project-Z', projects), 'project-A');
   assert.equal(selectedAccessibleProject('project-A', []), '');
+  assert.equal(selectedAccessibleProject('project-B', [...projects]), 'project-B');
+  assert.equal(selectedAccessibleProject('project-B', [{ id: 'project-A' }]), 'project-A');
 });
 
 test('only current subject draft/rejected PRs in Company and selected Project are shown', () => {

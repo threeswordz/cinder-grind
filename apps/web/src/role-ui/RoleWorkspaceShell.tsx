@@ -97,10 +97,13 @@ export function RoleWorkspaceShell({
 
   const projects = queriesReady && projectQuery.isSuccess && !projectQuery.isFetching ? projectQuery.data ?? [] : [];
   useEffect(() => {
-    if (!queriesReady || !projectQuery.isSuccess || projectQuery.isFetching) {
+    if (!queriesReady) {
       setSelectedProjectId('');
       return;
     }
+    // A background refetch must not erase the user's still-authorized choice.
+    // Current rows remain hidden until an authoritative source refresh succeeds.
+    if (!projectQuery.isSuccess || projectQuery.isFetching) return;
     setSelectedProjectId((current) => selectedAccessibleProject(current, projects));
   }, [queriesReady, projectQuery.isSuccess, projectQuery.isFetching, projectQuery.data, user.id, user.companyId]);
 
