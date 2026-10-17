@@ -67,7 +67,7 @@ export function GoodsReceiptsPanel({
     enabled: Boolean(projectId),
   });
   useEffect(() => {
-    if (!initialProjectId || !projects.isSuccess) return;
+    if (!initialProjectId || !projects.isSuccess || projects.isFetching) return;
     const sourceLinkKey = `${initialProjectId}:${initialReceiptId ?? ''}`;
     if (!consumeSourceLinkKey(appliedProjectSourceLink, sourceLinkKey)) return;
     setProjectId(
@@ -78,6 +78,7 @@ export function GoodsReceiptsPanel({
     initialProjectId,
     initialReceiptId,
     projects.isSuccess,
+    projects.isFetching,
     projects.data,
   ]);
 
@@ -86,7 +87,8 @@ export function GoodsReceiptsPanel({
       !initialProjectId ||
       projectId !== initialProjectId ||
       !initialReceiptId ||
-      !receipts.isSuccess
+      !receipts.isSuccess ||
+      receipts.isFetching
     ) {
       return;
     }
@@ -104,6 +106,7 @@ export function GoodsReceiptsPanel({
     initialReceiptId,
     projectId,
     receipts.isSuccess,
+    receipts.isFetching,
     receipts.data,
   ]);
 
