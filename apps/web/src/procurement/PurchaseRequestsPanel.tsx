@@ -11,13 +11,14 @@ import {
   Typography,
 } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   procurementApi,
   PurchaseRequestLine,
 } from '../api/procurement';
 import {
+  consumeSourceLinkKey,
   resolveLinkedProjectId,
   resolveLinkedRecordId,
 } from '../role-ui/source-link-policy';
@@ -44,6 +45,8 @@ export function PurchaseRequestsPanel({
 
   const [projectId, setProjectId] = useState('');
   const [requestId, setRequestId] = useState('');
+  const appliedProjectSourceLink = useRef('');
+  const appliedRequestSourceLink = useRef('');
   const [remarks, setRemarks] = useState('');
   const [workflowCode, setWorkflowCode] = useState('');
   const [approvalComment, setApprovalComment] = useState('');
@@ -76,14 +79,23 @@ export function PurchaseRequestsPanel({
   });
   useEffect(() => {
     if (!initialProjectId || !projects.isSuccess) return;
+    const sourceLinkKey = `${initialProjectId}:${initialRequestId ?? ''}`;
+    if (!consumeSourceLinkKey(appliedProjectSourceLink, sourceLinkKey)) return;
     setProjectId(
       resolveLinkedProjectId(initialProjectId, projects.data?.data ?? []),
     );
     setRequestId('');
-  }, [initialProjectId, projects.isSuccess, projects.data]);
+  }, [
+    initialProjectId,
+    initialRequestId,
+    projects.isSuccess,
+    projects.data,
+  ]);
 
   useEffect(() => {
     if (!initialRequestId || !requests.isSuccess) return;
+    const sourceLinkKey = `${projectId}:${initialRequestId}`;
+    if (!consumeSourceLinkKey(appliedRequestSourceLink, sourceLinkKey)) return;
     setRequestId(
       resolveLinkedRecordId(
         initialRequestId,
