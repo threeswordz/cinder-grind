@@ -42,9 +42,11 @@ function sourceRecordText(record: Record<string, unknown>) {
 export function CostControlReportPanel({
   projectId,
   canView,
+  initialWbsId,
 }: {
   projectId: string;
   canView: boolean;
+  initialWbsId?: string | undefined;
 }) {
   const [wbsId, setWbsId] = useState('');
   const [costCodeId, setCostCodeId] = useState('');
@@ -53,6 +55,10 @@ export function CostControlReportPanel({
     setWbsId('');
     setCostCodeId('');
   }, [projectId]);
+
+  useEffect(() => {
+    setWbsId(initialWbsId ?? '');
+  }, [initialWbsId, projectId]);
 
   const report = useQuery({
     queryKey: ['cost-control-rpt009', projectId, wbsId, costCodeId],

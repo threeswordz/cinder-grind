@@ -1,10 +1,20 @@
-import { FormEvent, useState } from 'react';
+import { FormEvent, useEffect, useRef, useState } from 'react';
 import {
   Alert, Button, Card, CardContent, MenuItem, Stack, TextField, Typography,
 } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { projectsApi, ProjectRecord } from '../api/projects';
+import { costControlApi } from '../api/cost-control';
+import {
+  canOpenSourceLink,
+  canWriteSourceForm,
+  consumeSourceLinkKey,
+  resolveLinkedProjectId,
+  sourceLinkTarget,
+  type SourceLinkSection,
+  type SourceLinkTarget,
+} from '../role-ui/source-link-policy';
 
 const emptyProject = {
   projectCode: '', projectName: '', customerId: '', statusDefinitionId: '',
@@ -13,7 +23,15 @@ const emptyProject = {
   actualStartDate: '', actualCompletionDate: '',
 };
 
-export function ProjectsPanel({ permissions }: { permissions: string[] }) {
+export function ProjectsPanel({
+  permissions,
+  initialProjectId,
+  onOpenSource,
+}: {
+  permissions: string[];
+  initialProjectId?: string | undefined;
+  onOpenSource?: ((target: SourceLinkTarget) => void) | undefined;
+}) {
   const queryClient = useQueryClient();
   const canCreate = permissions.includes('projects.project.create');
   const canEdit = permissions.includes('projects.project.edit');
@@ -28,11 +46,24 @@ export function ProjectsPanel({ permissions }: { permissions: string[] }) {
   const [projectRole, setProjectRole] = useState('');
   const [contactName, setContactName] = useState('');
   const [contactEmail, setContactEmail] = useState('');
+  const appliedSourceProject = useRef('');
 
   const projects = useQuery({
     queryKey: ['projects', search, active],
     queryFn: () => projectsApi.list(search, active),
   });
+  // Reuse Cost Control's own authenticated source list instead of guessing
+  // archived Project eligibility from contract value or status.
+  const costProjects = useQuery({
+    queryKey: ['cost-control-projects'],
+    queryFn: costControlApi.projects,
+    enabled: Boolean(onOpenSource && canOpenSourceLink('cost-control', permissions)),
+  });
+  const canOpenCostProject = (project: ProjectRecord) =>
+    costProjects.isSuccess &&
+    !costProjects.isFetching &&
+    Boolean(resolveLinkedProjectId(project.id, costProjects.data?.data ?? []));
+
   const options = useQuery({
     queryKey: ['projects', 'edit-options'],
     queryFn: projectsApi.editOptions,
@@ -54,8 +85,58 @@ export function ProjectsPanel({ permissions }: { permissions: string[] }) {
     enabled: Boolean(selected && canViewTeam),
   });
 
+  useEffect(() => {
+    if (!initialProjectId) return;
+    if (search !== '' || active !== 'all') {
+      setSearch('');
+      setActive('all');
+      return;
+    }
+    if (!projects.isSuccess || projects.isFetching) return;
+    if (!consumeSourceLinkKey(appliedSourceProject, initialProjectId)) return;
+    const resolvedProjectId = resolveLinkedProjectId(
+      initialProjectId,
+      projects.data?.data ?? [],
+    );
+    const linkedProject = (projects.data?.data ?? []).find(
+      (project) => project.id === resolvedProjectId,
+    );
+    if (linkedProject) {
+      edit(linkedProject);
+      return;
+    }
+    setSelected(null);
+    setForm(emptyProject);
+  }, [
+    active,
+    initialProjectId,
+    projects.data,
+    projects.isFetching,
+    projects.isSuccess,
+    search,
+  ]);
+
+  function openProjectSource(
+    sectionKey: SourceLinkSection,
+    project: ProjectRecord,
+  ) {
+    if (!onOpenSource || !canOpenSourceLink(sectionKey, permissions)) return;
+    if (sectionKey === 'cost-control' && !canOpenCostProject(project)) return;
+    const target = sourceLinkTarget(
+      sectionKey,
+      project.id,
+      project.id,
+      undefined,
+      'project',
+    );
+    if (target) onOpenSource(target);
+  }
+
   const refresh = async () => {
-    await queryClient.invalidateQueries({ queryKey: ['projects'] });
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['projects'] }),
+      queryClient.invalidateQueries({ queryKey: ['cost-control-projects'] }),
+    ]);
   };
 
   const save = useMutation({
@@ -124,6 +205,7 @@ export function ProjectsPanel({ permissions }: { permissions: string[] }) {
 
   function submit(event: FormEvent) {
     event.preventDefault();
+    if (!canWriteSourceForm(canCreate, canEdit, Boolean(selected))) return;
     save.mutate();
   }
 
@@ -146,7 +228,15 @@ export function ProjectsPanel({ permissions }: { permissions: string[] }) {
       {projects.isError ? <Alert severity="error">Unable to load Projects.</Alert> : null}
       <Stack spacing={1}>
         {(projects.data?.data ?? []).map((project) => (
-          <Card key={project.id} variant="outlined">
+          <Card
+            key={project.id}
+            variant="outlined"
+            sx={
+              selected?.id === project.id
+                ? { borderColor: 'primary.main', borderWidth: 2 }
+                : undefined
+            }
+          >
             <CardContent>
               <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} justifyContent="space-between">
                 <div>
@@ -158,8 +248,38 @@ export function ProjectsPanel({ permissions }: { permissions: string[] }) {
                     {project.plannedStartDate.slice(0, 10)} → {project.plannedCompletionDate.slice(0, 10)} · Contract {project.contractValue}
                   </Typography>
                 </div>
-                <Stack direction="row" spacing={1}>
-                  {(canEdit || canViewTeam) ? <Button size="small" onClick={() => edit(project)}>Open</Button> : null}
+                <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+                  <Button size="small" onClick={() => edit(project)}>Open</Button>
+                  {project.isActive &&
+                  canOpenSourceLink('wbs', permissions) &&
+                  onOpenSource ? (
+                    <Button size="small" onClick={() => openProjectSource('wbs', project)}>WBS</Button>
+                  ) : null}
+                  {project.isActive &&
+                  canOpenSourceLink('scheduling', permissions) &&
+                  onOpenSource ? (
+                    <Button size="small" onClick={() => openProjectSource('scheduling', project)}>Schedule</Button>
+                  ) : null}
+                  {project.isActive &&
+                  canOpenSourceLink('budget', permissions) &&
+                  onOpenSource ? (
+                    <Button size="small" onClick={() => openProjectSource('budget', project)}>Budget</Button>
+                  ) : null}
+                  {project.isActive &&
+                  canOpenSourceLink('site-execution', permissions) &&
+                  onOpenSource ? (
+                    <Button size="small" onClick={() => openProjectSource('site-execution', project)}>Site</Button>
+                  ) : null}
+                  {canOpenSourceLink('cost-control', permissions) &&
+                  canOpenCostProject(project) &&
+                  onOpenSource ? (
+                    <Button size="small" onClick={() => openProjectSource('cost-control', project)}>Cost</Button>
+                  ) : null}
+                  {project.isActive &&
+                  canOpenSourceLink('management', permissions) &&
+                  onOpenSource ? (
+                    <Button size="small" onClick={() => openProjectSource('management', project)}>Management</Button>
+                  ) : null}
                   {canArchive ? (
                     <Button size="small" onClick={() => toggle.mutate(project)}>
                       {project.isActive ? 'Archive' : 'Reactivate'}
@@ -172,7 +292,7 @@ export function ProjectsPanel({ permissions }: { permissions: string[] }) {
         ))}
       </Stack>
 
-      {(canCreate || (selected && canEdit)) ? (
+      {canWriteSourceForm(canCreate, canEdit, Boolean(selected)) ? (
         <Card variant="outlined">
           <CardContent>
             <Stack component="form" spacing={2} onSubmit={submit}>

@@ -24,11 +24,23 @@ import {
   costControlApi,
   DirectCostDetail,
 } from '../api/cost-control';
+import {
+  canOpenSourceLink,
+  consumeSourceLinkKey,
+  resolveLinkedChildRecordId,
+  resolveLinkedProjectId,
+  sourceLinkTarget,
+  type SourceLinkSection,
+  type SourceLinkTarget,
+} from '../role-ui/source-link-policy';
 import { CostControlReportPanel } from './CostControlReportPanel';
 import { ProjectVariationPanel } from './ProjectVariationPanel';
 
 type Props = {
   permissions: string[];
+  initialProjectId?: string | undefined;
+  initialWbsId?: string | undefined;
+  onOpenSource?: ((target: SourceLinkTarget) => void) | undefined;
 };
 
 function key() {
@@ -49,7 +61,12 @@ function message(error: unknown) {
   return 'The request could not be completed.';
 }
 
-export function CostControlWorkspace({ permissions }: Props) {
+export function CostControlWorkspace({
+  permissions,
+  initialProjectId,
+  initialWbsId,
+  onOpenSource,
+}: Props) {
   const queryClient = useQueryClient();
 
   const canView = permissions.includes('cost.control.view');
@@ -62,6 +79,7 @@ export function CostControlWorkspace({ permissions }: Props) {
 
   const [projectId, setProjectId] = useState('');
   const [postingId, setPostingId] = useState('');
+  const [linkedWbsId, setLinkedWbsId] = useState('');
 
   const [createPostingDate, setCreatePostingDate] = useState(today);
   const [createDescription, setCreateDescription] = useState('');
@@ -86,6 +104,8 @@ export function CostControlWorkspace({ permissions }: Props) {
   const [reversalReference, setReversalReference] = useState('');
   const [reversalCreateKey, setReversalCreateKey] = useState(key);
 
+  const appliedProjectSource = useRef('');
+  const appliedWbsSource = useRef('');
   const retryActionKeys = useRef(new Map<string, string>());
   const actionKey = (signature: string) => {
     const existing = retryActionKeys.current.get(signature);
@@ -106,11 +126,24 @@ export function CostControlWorkspace({ permissions }: Props) {
 
   useEffect(() => {
     const values = projects.data?.data ?? [];
+    if (initialProjectId) {
+      if (!projects.isSuccess || projects.isFetching) return;
+      if (consumeSourceLinkKey(appliedProjectSource, initialProjectId)) {
+        setProjectId(resolveLinkedProjectId(initialProjectId, values));
+      }
+      return;
+    }
     if (!projectId && values[0]) setProjectId(values[0].id);
     if (projectId && !values.some((project) => project.id === projectId)) {
       setProjectId(values[0]?.id ?? '');
     }
-  }, [projectId, projects.data]);
+  }, [
+    initialProjectId,
+    projectId,
+    projects.data,
+    projects.isFetching,
+    projects.isSuccess,
+  ]);
 
   const selectedProject = (projects.data?.data ?? []).find(
     (project) => project.id === projectId,
@@ -121,6 +154,7 @@ export function CostControlWorkspace({ permissions }: Props) {
     setPostingId('');
     setCreateWbsId('');
     setCreateCostCodeId('');
+    setLinkedWbsId('');
   }, [projectId]);
 
   const options = useQuery({
@@ -135,6 +169,37 @@ export function CostControlWorkspace({ permissions }: Props) {
       setCreateCostCodeId(values[0].id);
     }
   }, [createCostCodeId, options.data]);
+
+  useEffect(() => {
+    if (!initialWbsId || !initialProjectId) {
+      setLinkedWbsId('');
+      appliedWbsSource.current = '';
+      return;
+    }
+    if (
+      projectId !== initialProjectId ||
+      !options.isSuccess ||
+      options.isFetching
+    ) {
+      return;
+    }
+    const sourceKey = initialProjectId + ':' + initialWbsId;
+    if (!consumeSourceLinkKey(appliedWbsSource, sourceKey)) return;
+    setLinkedWbsId(
+      resolveLinkedChildRecordId(initialWbsId, options.data?.data.wbs ?? []),
+    );
+  }, [
+    initialProjectId,
+    initialWbsId,
+    options.data,
+    options.isFetching,
+    options.isSuccess,
+    projectId,
+  ]);
+
+  const linkedWbs = (options.data?.data.wbs ?? []).find(
+    (row) => row.id === linkedWbsId,
+  );
 
   const readModel = useQuery({
     queryKey: ['cost-control-read-model', projectId],
@@ -327,6 +392,25 @@ export function CostControlWorkspace({ permissions }: Props) {
     },
   });
 
+  const openSource = (sectionKey: SourceLinkSection) => {
+    if (
+      !onOpenSource ||
+      !projectId ||
+      !canOpenSourceLink(sectionKey, permissions)
+    ) {
+      return;
+    }
+    const includeWbs = sectionKey === 'wbs' && Boolean(linkedWbsId);
+    const target = sourceLinkTarget(
+      sectionKey,
+      projectId,
+      projectId,
+      includeWbs ? linkedWbsId : undefined,
+      includeWbs ? 'wbs' : 'project',
+    );
+    if (target) onOpenSource(target);
+  };
+
   const busy =
     createPosting.isPending ||
     saveDraft.isPending ||
@@ -397,6 +481,38 @@ export function CostControlWorkspace({ permissions }: Props) {
           </MenuItem>
         ))}
       </TextField>
+
+      {projectId && onOpenSource ? (
+        <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+          {canOpenSourceLink('projects', permissions) ? (
+            <Button onClick={() => openSource('projects')}>Project</Button>
+          ) : null}
+          {selectedProject?.isActive &&
+          canOpenSourceLink('wbs', permissions) ? (
+            <Button onClick={() => openSource('wbs')}>WBS</Button>
+          ) : null}
+          {selectedProject?.isActive &&
+          canOpenSourceLink('budget', permissions) ? (
+            <Button onClick={() => openSource('budget')}>Budget</Button>
+          ) : null}
+          {selectedProject?.isActive &&
+          canOpenSourceLink('site-execution', permissions) ? (
+            <Button onClick={() => openSource('site-execution')}>Site</Button>
+          ) : null}
+          {selectedProject?.isActive &&
+          canOpenSourceLink('management', permissions) ? (
+            <Button onClick={() => openSource('management')}>Management</Button>
+          ) : null}
+        </Stack>
+      ) : null}
+
+      {linkedWbs ? (
+        <Alert severity="info">
+          Cost reporting opened from WBS {linkedWbs.wbsCode} · {linkedWbs.wbsName}.
+          This context filters the read-only Cost report only; Direct Cost draft
+          inputs are not pre-filled.
+        </Alert>
+      ) : null}
 
       {readModel.data ? (
         <Card variant="outlined">
@@ -563,7 +679,11 @@ export function CostControlWorkspace({ permissions }: Props) {
         </Card>
       ) : null}
 
-      <CostControlReportPanel projectId={projectId} canView={canView} />
+      <CostControlReportPanel
+        projectId={projectId}
+        canView={canView}
+        initialWbsId={linkedWbsId || undefined}
+      />
 
       <ForecastPanel permissions={permissions} projectId={projectId} />
 

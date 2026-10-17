@@ -11,13 +11,22 @@ import {
   Typography,
 } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   BoqItem,
   BoqSection,
   budgetApi,
 } from '../api/budget';
+import {
+  canOpenSourceLink,
+  consumeSourceLinkKey,
+  resolveLinkedChildRecordId,
+  resolveLinkedProjectId,
+  sourceLinkTarget,
+  type SourceLinkSection,
+  type SourceLinkTarget,
+} from '../role-ui/source-link-policy';
 
 function money(value: string | number | null | undefined) {
   if (value === null || value === undefined) return '—';
@@ -31,8 +40,16 @@ function money(value: string | number | null | undefined) {
 
 export function BudgetPanel({
   permissions,
+  initialProjectId,
+  initialRevisionId,
+  initialWbsId,
+  onOpenSource,
 }: {
   permissions: string[];
+  initialProjectId?: string | undefined;
+  initialRevisionId?: string | undefined;
+  initialWbsId?: string | undefined;
+  onOpenSource?: ((target: SourceLinkTarget) => void) | undefined;
 }) {
   const queryClient = useQueryClient();
   const canManage = permissions.includes('budget.boq.manage');
@@ -68,6 +85,11 @@ export function BudgetPanel({
   const [revisionNote, setRevisionNote] = useState('');
   const [workflowCode, setWorkflowCode] = useState('');
   const [approvalComment, setApprovalComment] = useState('');
+  const [linkedRevisionId, setLinkedRevisionId] = useState('');
+  const [linkedWbsId, setLinkedWbsId] = useState('');
+  const appliedProjectSource = useRef('');
+  const appliedRevisionSource = useRef('');
+  const appliedWbsSource = useRef('');
 
   const projects = useQuery({
     queryKey: ['budget', 'projects', canViewBoq ? 'boq' : 'revision'],
@@ -84,7 +106,7 @@ export function BudgetPanel({
   const options = useQuery({
     queryKey: ['budget', 'options', projectId],
     queryFn: () => budgetApi.options(projectId),
-    enabled: Boolean(projectId && canManage),
+    enabled: Boolean(projectId && canViewBoq && (canManage || initialWbsId)),
   });
   const revisions = useQuery({
     queryKey: ['budget', 'revisions', projectId],
@@ -272,6 +294,113 @@ export function BudgetPanel({
     setItemSortOrder(String(row.sortOrder));
   }
 
+  useEffect(() => {
+    if (!initialProjectId || !projects.isSuccess || projects.isFetching) return;
+    if (!consumeSourceLinkKey(appliedProjectSource, initialProjectId)) return;
+    const resolved = resolveLinkedProjectId(
+      initialProjectId,
+      projects.data?.data ?? [],
+    );
+    setProjectId(resolved);
+    setLinkedRevisionId('');
+    setLinkedWbsId('');
+    clearSection();
+    clearItem();
+  }, [
+    initialProjectId,
+    projects.data,
+    projects.isFetching,
+    projects.isSuccess,
+  ]);
+
+  useEffect(() => {
+    if (!initialWbsId) {
+      setLinkedWbsId('');
+      appliedWbsSource.current = '';
+      return;
+    }
+    if (
+      !initialProjectId ||
+      projectId !== initialProjectId ||
+      !options.isSuccess ||
+      options.isFetching
+    ) {
+      return;
+    }
+    const sourceKey = initialProjectId + ':' + initialWbsId;
+    if (!consumeSourceLinkKey(appliedWbsSource, sourceKey)) return;
+    setLinkedWbsId(
+      resolveLinkedChildRecordId(initialWbsId, options.data?.data.wbs ?? []),
+    );
+  }, [
+    initialProjectId,
+    initialWbsId,
+    options.data,
+    options.isFetching,
+    options.isSuccess,
+    projectId,
+  ]);
+
+  useEffect(() => {
+    if (!initialRevisionId) {
+      setLinkedRevisionId('');
+      appliedRevisionSource.current = '';
+      return;
+    }
+    if (
+      !initialProjectId ||
+      projectId !== initialProjectId ||
+      !revisions.isSuccess ||
+      revisions.isFetching
+    ) {
+      return;
+    }
+    const sourceKey = initialProjectId + ':' + initialRevisionId;
+    if (!consumeSourceLinkKey(appliedRevisionSource, sourceKey)) return;
+    setLinkedRevisionId(
+      resolveLinkedChildRecordId(
+        initialRevisionId,
+        revisions.data?.data ?? [],
+      ),
+    );
+  }, [
+    initialProjectId,
+    initialRevisionId,
+    projectId,
+    revisions.data,
+    revisions.isFetching,
+    revisions.isSuccess,
+  ]);
+
+  const linkedWbs = (options.data?.data.wbs ?? []).find(
+    (row) => row.id === linkedWbsId,
+  );
+  const visibleBoqItems = linkedWbsId
+    ? (currentBoq?.items ?? []).filter((row) => row.wbsId === linkedWbsId)
+    : (currentBoq?.items ?? []);
+
+  const openSource = (
+    sectionKey: SourceLinkSection,
+    recordKind: 'project' | 'wbs',
+    childRecordId?: string,
+  ) => {
+    if (
+      !onOpenSource ||
+      !projectId ||
+      !canOpenSourceLink(sectionKey, permissions)
+    ) {
+      return;
+    }
+    const target = sourceLinkTarget(
+      sectionKey,
+      projectId,
+      projectId,
+      childRecordId,
+      recordKind,
+    );
+    if (target) onOpenSource(target);
+  };
+
   return (
     <Stack spacing={3}>
       <Typography variant="h6">BOQ & Budget</Typography>
@@ -282,6 +411,8 @@ export function BudgetPanel({
         value={projectId}
         onChange={(event) => {
           setProjectId(event.target.value);
+          setLinkedRevisionId('');
+          setLinkedWbsId('');
           clearSection();
           clearItem();
         }}
@@ -293,6 +424,31 @@ export function BudgetPanel({
           </MenuItem>
         ))}
       </TextField>
+
+      {projectId && onOpenSource ? (
+        <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+          {canOpenSourceLink('projects', permissions) ? (
+            <Button onClick={() => openSource('projects', 'project')}>Project</Button>
+          ) : null}
+          {canOpenSourceLink('site-execution', permissions) ? (
+            <Button onClick={() => openSource('site-execution', 'project')}>Site</Button>
+          ) : null}
+          {canOpenSourceLink('cost-control', permissions) ? (
+            <Button onClick={() => openSource('cost-control', 'project')}>Cost</Button>
+          ) : null}
+          {canOpenSourceLink('management', permissions) ? (
+            <Button onClick={() => openSource('management', 'project')}>Management</Button>
+          ) : null}
+        </Stack>
+      ) : null}
+
+      {linkedWbs ? (
+        <Alert severity="info">
+          Budget opened from WBS {linkedWbs.wbsCode} · {linkedWbs.wbsName}.
+          BOQ items below are filtered to this validated WBS; Project-level
+          Budget revision history remains canonical and unchanged.
+        </Alert>
+      ) : null}
 
       {error ? (
         <Alert severity="error">
@@ -355,9 +511,9 @@ export function BudgetPanel({
                   ) : null}
                 </Stack>
                 <Typography variant="body2" color="text.secondary">
-                  Active BOQ total:{' '}
+                  {linkedWbs ? 'Linked WBS active BOQ total:' : 'Active BOQ total:'}{' '}
                   {money(
-                    currentBoq.items
+                    visibleBoqItems
                       .filter((row) => row.isActive)
                       .reduce((sum, row) => sum + Number(row.amount), 0),
                   )}
@@ -448,7 +604,7 @@ export function BudgetPanel({
             <CardContent>
               <Stack spacing={2}>
                 <Typography variant="subtitle1">BOQ Items</Typography>
-                {(currentBoq.items ?? []).map((row) => (
+                {visibleBoqItems.map((row) => (
                   <Card key={row.id} variant="outlined">
                     <CardContent>
                       <Stack spacing={1}>
@@ -638,7 +794,15 @@ export function BudgetPanel({
                 </Stack>
 
                 {(revisions.data?.data ?? []).map((row) => (
-                  <Card key={row.id} variant="outlined">
+                  <Card
+                    key={row.id}
+                    variant="outlined"
+                    sx={
+                      linkedRevisionId === row.id
+                        ? { borderColor: 'primary.main', borderWidth: 2 }
+                        : undefined
+                    }
+                  >
                     <CardContent>
                       <Stack spacing={1}>
                         <Stack
