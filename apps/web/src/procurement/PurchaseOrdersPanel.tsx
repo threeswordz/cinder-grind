@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Box,
@@ -29,6 +29,7 @@ import {
 } from '../api/purchase-orders';
 import {
   canOpenSourceLink,
+  consumeSourceLinkKey,
   resolveLinkedProjectId,
   resolveLinkedRecordId,
   sourceLinkTarget,
@@ -87,6 +88,8 @@ export function PurchaseOrdersPanel({ permissions, initialProjectId, initialOrde
 
   const [projectId, setProjectId] = useState('');
   const [orderId, setOrderId] = useState('');
+  const appliedProjectSourceLink = useRef('');
+  const appliedOrderSourceLink = useRef('');
   const [selectedAwards, setSelectedAwards] = useState<string[]>([]);
   const [createRemarks, setCreateRemarks] = useState('');
   const [headerRemarks, setHeaderRemarks] = useState('');
@@ -106,10 +109,17 @@ export function PurchaseOrdersPanel({ permissions, initialProjectId, initialOrde
 
   useEffect(() => {
     if (!initialProjectId || !projects.isSuccess) return;
+    const sourceLinkKey = `${initialProjectId}:${initialOrderId ?? ''}`;
+    if (!consumeSourceLinkKey(appliedProjectSourceLink, sourceLinkKey)) return;
     setProjectId(
       resolveLinkedProjectId(initialProjectId, projects.data?.data ?? []),
     );
-  }, [initialProjectId, projects.isSuccess, projects.data]);
+  }, [
+    initialProjectId,
+    initialOrderId,
+    projects.isSuccess,
+    projects.data,
+  ]);
 
   useEffect(() => {
     if (initialProjectId) return;
@@ -144,7 +154,16 @@ export function PurchaseOrdersPanel({ permissions, initialProjectId, initialOrde
   });
 
   useEffect(() => {
-    if (!initialOrderId || !orders.isSuccess) return;
+    if (
+      !initialProjectId ||
+      projectId !== initialProjectId ||
+      !initialOrderId ||
+      !orders.isSuccess
+    ) {
+      return;
+    }
+    const sourceLinkKey = `${initialProjectId}:${initialOrderId}`;
+    if (!consumeSourceLinkKey(appliedOrderSourceLink, sourceLinkKey)) return;
     setOrderId(
       resolveLinkedRecordId(
         initialOrderId,
@@ -152,7 +171,13 @@ export function PurchaseOrdersPanel({ permissions, initialProjectId, initialOrde
         orders.data?.data ?? [],
       ),
     );
-  }, [initialOrderId, projectId, orders.isSuccess, orders.data]);
+  }, [
+    initialProjectId,
+    initialOrderId,
+    projectId,
+    orders.isSuccess,
+    orders.data,
+  ]);
 
   useEffect(() => {
     if (initialOrderId || orders.isFetching) return;
