@@ -11,13 +11,22 @@ import {
   Typography,
 } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   BoqItem,
   BoqSection,
   budgetApi,
 } from '../api/budget';
+import {
+  canOpenSourceLink,
+  consumeSourceLinkKey,
+  resolveLinkedChildRecordId,
+  resolveLinkedProjectId,
+  sourceLinkTarget,
+  type SourceLinkSection,
+  type SourceLinkTarget,
+} from '../role-ui/source-link-policy';
 
 function money(value: string | number | null | undefined) {
   if (value === null || value === undefined) return '—';
@@ -31,8 +40,14 @@ function money(value: string | number | null | undefined) {
 
 export function BudgetPanel({
   permissions,
+  initialProjectId,
+  initialRevisionId,
+  onOpenSource,
 }: {
   permissions: string[];
+  initialProjectId?: string | undefined;
+  initialRevisionId?: string | undefined;
+  onOpenSource?: ((target: SourceLinkTarget) => void) | undefined;
 }) {
   const queryClient = useQueryClient();
   const canManage = permissions.includes('budget.boq.manage');
@@ -68,6 +83,9 @@ export function BudgetPanel({
   const [revisionNote, setRevisionNote] = useState('');
   const [workflowCode, setWorkflowCode] = useState('');
   const [approvalComment, setApprovalComment] = useState('');
+  const [linkedRevisionId, setLinkedRevisionId] = useState('');
+  const appliedProjectSource = useRef('');
+  const appliedRevisionSource = useRef('');
 
   const projects = useQuery({
     queryKey: ['budget', 'projects', canViewBoq ? 'boq' : 'revision'],
@@ -272,6 +290,73 @@ export function BudgetPanel({
     setItemSortOrder(String(row.sortOrder));
   }
 
+  useEffect(() => {
+    if (!initialProjectId || !projects.isSuccess || projects.isFetching) return;
+    if (!consumeSourceLinkKey(appliedProjectSource, initialProjectId)) return;
+    const resolved = resolveLinkedProjectId(
+      initialProjectId,
+      projects.data?.data ?? [],
+    );
+    setProjectId(resolved);
+    setLinkedRevisionId('');
+    clearSection();
+    clearItem();
+  }, [
+    initialProjectId,
+    projects.data,
+    projects.isFetching,
+    projects.isSuccess,
+  ]);
+
+  useEffect(() => {
+    if (
+      !initialRevisionId ||
+      !initialProjectId ||
+      projectId !== initialProjectId ||
+      !revisions.isSuccess ||
+      revisions.isFetching
+    ) {
+      return;
+    }
+    const sourceKey = initialProjectId + ':' + initialRevisionId;
+    if (!consumeSourceLinkKey(appliedRevisionSource, sourceKey)) return;
+    setLinkedRevisionId(
+      resolveLinkedChildRecordId(
+        initialRevisionId,
+        revisions.data?.data ?? [],
+      ),
+    );
+  }, [
+    initialProjectId,
+    initialRevisionId,
+    projectId,
+    revisions.data,
+    revisions.isFetching,
+    revisions.isSuccess,
+  ]);
+
+  const openSource = (
+    sectionKey: SourceLinkSection,
+    recordKind: 'project' | 'wbs',
+    childRecordId?: string,
+  ) => {
+    if (
+      !onOpenSource ||
+      !projectId ||
+      !canOpenSourceLink(sectionKey, permissions)
+    ) {
+      return;
+    }
+    const target = sourceLinkTarget(
+      sectionKey,
+      projectId,
+      projectId,
+      childRecordId,
+      recordKind,
+    );
+    if (target) onOpenSource(target);
+  };
+
   return (
     <Stack spacing={3}>
       <Typography variant="h6">BOQ & Budget</Typography>
@@ -293,6 +378,23 @@ export function BudgetPanel({
           </MenuItem>
         ))}
       </TextField>
+
+      {projectId && onOpenSource ? (
+        <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+          {canOpenSourceLink('projects', permissions) ? (
+            <Button onClick={() => openSource('projects', 'project')}>Project</Button>
+          ) : null}
+          {canOpenSourceLink('site-execution', permissions) ? (
+            <Button onClick={() => openSource('site-execution', 'project')}>Site</Button>
+          ) : null}
+          {canOpenSourceLink('cost-control', permissions) ? (
+            <Button onClick={() => openSource('cost-control', 'project')}>Cost</Button>
+          ) : null}
+          {canOpenSourceLink('management', permissions) ? (
+            <Button onClick={() => openSource('management', 'project')}>Management</Button>
+          ) : null}
+        </Stack>
+      ) : null}
 
       {error ? (
         <Alert severity="error">
@@ -449,7 +551,15 @@ export function BudgetPanel({
               <Stack spacing={2}>
                 <Typography variant="subtitle1">BOQ Items</Typography>
                 {(currentBoq.items ?? []).map((row) => (
-                  <Card key={row.id} variant="outlined">
+                  <Card
+                    key={row.id}
+                    variant="outlined"
+                    sx={
+                      linkedRevisionId === row.id
+                        ? { borderColor: 'primary.main', borderWidth: 2 }
+                        : undefined
+                    }
+                  >
                     <CardContent>
                       <Stack spacing={1}>
                         <Stack
