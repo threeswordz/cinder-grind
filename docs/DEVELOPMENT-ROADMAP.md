@@ -13,7 +13,7 @@
 
 ## Active successor — V1.1 Business Workflow & Role UI (DEC-028; V1.1-E1 technical release assurance)
 
-**Approval / handoff:** V1.1-A/B/C/D are technically COMPLETE. V1.1-E0 preflight PR #234 final corrected head `e200a776192f1eac5e554f03b1930b093be8f534` passed push/PR CI #4663/#4664 and final exact-head Codex re-review with no major issues; squash-merged `d39d5e9317ef8d8799a5af9c24c8cb14a5b1264c`, exact-main CI #4665 SUCCESS. **V1.1-E1 TECHNICAL RELEASE ASSURANCE is ACTIVE under Issue #233 / branch `v1.1-e1-technical-assurance`.** E1 is limited to AC-V11-026/027 automated candidate evidence and no runtime/business-policy redesign. AC-V11-023–025 interactive UAT and AC-V11-029/030 human owner gates remain open.
+**Approval / handoff:** V1.1-A/B/C/D are technically COMPLETE. V1.1-E0 preflight PR #234 final corrected head `e200a776192f1eac5e554f03b1930b093be8f534` passed push/PR CI #4663/#4664 and final exact-head Codex re-review with no major issues; squash-merged `d39d5e9317ef8d8799a5af9c24c8cb14a5b1264c`, exact-main CI #4665 SUCCESS. **V1.1-E1 TECHNICAL RELEASE ASSURANCE is ACTIVE under Issue #233 / branch `v1.1-e1-technical-assurance`.** E1 is limited to the automated/non-browser portion of AC-V11-026 plus AC-V11-027 technical evidence; **AC-V11-026 remains open until real-browser regression is evidenced in E2**. AC-V11-023–025 interactive UAT and AC-V11-029/030 human owner gates remain open.
 
 | Stage | Approved bounded delivery | Gate |
 |---|---|---|
@@ -21,7 +21,7 @@
 | V1.1-B | Role-first modular responsive app shell, sourced Home/My Work and grouped navigation | **TECHNICALLY COMPLETE:** PRs #215/#216, 14 web tests, exact-main CI #4366 PASS, Issue #214 CLOSED |
 | V1.1-C | Source-owned Procurement→Finance (C1), Subcontract→Finance (C2), Project→Cost/Management (C3) | **FULL STAGE TECHNICALLY COMPLETE / CLOSED:** runtime #223 main CI #4554 PASS; full-docs closure #224 main CI #4562 PASS; Issue #217 CLOSED |
 | V1.1-D | UX/accessibility/security/compatibility hardening only; AC-V11-017–022 existing-business-rule non-regression | **TECHNICALLY COMPLETE:** D0 #226 main CI #4583; D1 #227/#228 main CI #4597/#4605; D2 #229/#230 main CI #4627/#4631; D3 #231 main CI #4643; full closure #232 main CI #4651; Issue #225 CLOSED / COMPLETED |
-| V1.1-E | Eight-persona UAT/evidence, locale/THB/Company-Project security regression and release exit | **E1 TECHNICAL ASSURANCE ACTIVE** under Issue #233; E0 preflight complete via PR #234/main CI #4665; human AC-V11-023–025 and AC-V11-029/030 remain open |
+| V1.1-E | Eight-persona UAT/evidence, locale/THB/Company-Project security regression and release exit | **E1 TECHNICAL ASSURANCE ACTIVE** under Issue #233; E0 complete via PR #234/main CI #4665; E1 covers automated/non-browser AC-V11-026 + AC-V11-027; real-browser AC-V11-026 and AC-V11-023–025/029/030 remain open for E2/owner gates |
 
 **Stage evidence:** `docs/V1.1-C-PREFLIGHT.md`, C1/C2/C3 evidence and `docs/V1.1-D-STAGE-CLOSURE.md` establish V1.1-C/D completion. `docs/V1.1-E-UAT-PREFLIGHT.md` is the E0 human/technical evidence plan; `docs/V1.1-E-TECHNICAL-EVIDENCE.md` tracks E1 exact-candidate CI/security/startup/recovery evidence. No eight-persona human UAT acceptance or Production deployment is implied.
 
