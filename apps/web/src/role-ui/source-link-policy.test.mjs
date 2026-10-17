@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   canOpenSourceLink,
+  canWriteSourceForm,
   consumeSourceLinkKey,
   resolveLinkedProjectId,
   resolveLinkedRecordId,
@@ -114,6 +115,15 @@ test('source targets never encode empty Project or record identities', () => {
       recordKind: 'wbs',
     },
   );
+});
+
+test('C3 create-only users cannot submit edits after opening existing Project/WBS records', () => {
+  assert.equal(canWriteSourceForm(true, false, false), true);
+  assert.equal(canWriteSourceForm(true, false, true), false);
+  assert.equal(canWriteSourceForm(false, true, false), false);
+  assert.equal(canWriteSourceForm(false, true, true), true);
+  assert.equal(canWriteSourceForm(true, true, true), true);
+  assert.equal(canWriteSourceForm(false, false, true), false);
 });
 
 test('incoming source link identity is consumed only once until the target changes', () => {
