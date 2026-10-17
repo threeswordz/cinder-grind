@@ -20,6 +20,12 @@ import {
   SupplierQuotation,
   sourcingApi,
 } from '../api/sourcing';
+import {
+  resolveLinkedChildRecordId,
+  resolveLinkedProjectId,
+  resolveLinkedRecordId,
+  type SourceLinkTarget,
+} from '../role-ui/source-link-policy';
 
 function dateValue(value: string | null | undefined) {
   return value ? value.slice(0, 10) : '';
@@ -33,8 +39,16 @@ type OfferDraft = {
 
 export function SourcingPanel({
   permissions,
+  initialProjectId,
+  initialRfqId,
+  initialQuotationId,
+  onOpenSource,
 }: {
   permissions: string[];
+  initialProjectId?: string;
+  initialRfqId?: string;
+  initialQuotationId?: string;
+  onOpenSource?: (target: SourceLinkTarget) => void;
 }) {
   const queryClient = useQueryClient();
   const canViewRfq = permissions.includes('procurement.rfq.view');
@@ -94,6 +108,23 @@ export function SourcingPanel({
         : sourcingApi.quotationRfqs(projectId),
     enabled: Boolean(canView && projectId),
   });
+  useEffect(() => {
+    if (!initialProjectId || !projects.isSuccess) return;
+    setProjectId(
+      resolveLinkedProjectId(initialProjectId, projects.data?.data ?? []),
+    );
+    setRfqId('');
+    startNewQuotation();
+  }, [initialProjectId, projects.isSuccess, projects.data]);
+
+  useEffect(() => {
+    if (!initialRfqId || !rfqs.isSuccess) return;
+    setRfqId(
+      resolveLinkedRecordId(initialRfqId, projectId, rfqs.data?.data ?? []),
+    );
+    startNewQuotation();
+  }, [initialRfqId, projectId, rfqs.isSuccess, rfqs.data]);
+
   const detail = useQuery({
     queryKey: [
       'sourcing',
@@ -215,6 +246,15 @@ export function SourcingPanel({
 
   useEffect(() => {
     if (!current) return;
+    if (initialQuotationId) {
+      setQuotationId(
+        resolveLinkedChildRecordId(
+          initialQuotationId,
+          current.quotations ?? [],
+        ),
+      );
+      return;
+    }
     if (
       quotationId &&
       !(current.quotations ?? []).some(
@@ -223,7 +263,7 @@ export function SourcingPanel({
     ) {
       setQuotationId('');
     }
-  }, [current, quotationId]);
+  }, [current, quotationId, initialQuotationId]);
 
   useEffect(() => {
     if (!selectedQuotation) {
