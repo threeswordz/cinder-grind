@@ -373,7 +373,7 @@ export function ActivitiesPanel({
     if (
       !onOpenSource ||
       !projectId ||
-      !canOpenSourceLink(sectionKey, permissions)
+      !canOpenSourceLink(sectionKey, permissions, recordKind)
     ) {
       return;
     }
@@ -475,7 +475,7 @@ export function ActivitiesPanel({
                 ) : null}
                 {activeWbsIds.has(row.wbsId) &&
                 onOpenSource &&
-                canOpenSourceLink('budget', permissions) ? (
+                canOpenSourceLink('budget', permissions, 'wbs') ? (
                   <Button onClick={() => openSource('budget', 'wbs', row.wbsId)}>
                     Budget
                   </Button>
