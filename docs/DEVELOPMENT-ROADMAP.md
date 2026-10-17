@@ -13,12 +13,12 @@
 
 ## Active successor — V1.1 Business Workflow & Role UI (DEC-028; V1.1-B handoff closure)
 
-**Approval date:** 2026-10-17. **Owner decision:** DEC-028. **Entry V1.1-A:** PR #212 + #213 merged, main CI #4327 PASS, Issue #211 CLOSED. **Stage V1.1-B implementation:** final head `e04cdeaaff1c5013f5b5315b389283750c12aee3` passed exact-head push/PR CI #4333/#4334, Codex P2 localization finding fixed/thread resolved; PR #215 squash-merged `acf943392e81d4fb70f499304c5ce2bd677ea434`, exact-main CI #4335 PASS. Final documentation reconciliation PR and **live Issue #214 closure** remain the authoritative last stage gates. V1.1-C stays blocked until these gates pass.
+**Approval date:** 2026-10-17. **Owner decision:** DEC-028. **Entry V1.1-A:** PR #212 + #213 merged, main CI #4327 PASS, Issue #211 CLOSED. **Stage V1.1-B implementation:** final head `e04cdeaaff1c5013f5b5315b389283750c12aee3` passed exact-head push/PR CI #4333/#4334, Codex P2 localization finding fixed/thread resolved; PR #215 squash-merged `acf943392e81d4fb70f499304c5ce2bd677ea434`, exact-main CI #4335 PASS. PR #216 received one genuine Codex P2 requesting Stage-B behavior validation. Source-scope/deep-link tests, locale-key checks and desktop/mobile SSR checks are being integrated; PR #216 exact-head CI and review remain PENDING. Final merge/post-main CI and live Issue #214 closure remain stage gates; V1.1-C is blocked.
 
 | Stage | Approved bounded delivery | Gate |
 |---|---|---|
 | V1.1-A | Entry/scope/54-workflow traceability and eight-persona permission/data/API/security/test baselines | **COMPLETE:** DEC-028, PR #212 + #213 merged, exact-main CI #4327 PASS, Issue #211 closed |
-| V1.1-B | Role-first modular responsive app shell, permission-derived Home/My Work and grouped navigation | **IMPLEMENTATION MERGED / #4335 PASS:** PR #215; final docs CI/merge and live Issue #214 closure required before V1.1-C |
+| V1.1-B | Role-first modular responsive app shell, permission-derived Home/My Work and grouped navigation | **IMPLEMENTATION MERGED / #4335 PASS; CLOSURE UNDER VALIDATION:** PR #216 P2 technical UI checks/review, CI/merge/post-main and live Issue #214 closure required before V1.1-C |
 | V1.1-C | Existing Procurement→Finance, Subcontract→Finance and Project→Cost/Management source-linked journeys | B technically complete and accepted applicable stage gates |
 | V1.1-D | UX/accessibility/security/compatibility hardening only, no new business rules | C gates complete; separately approved change control required for policy/diagnostics |
 | V1.1-E | Eight-persona UAT/evidence, locale/THB/Company-Project security regression, release exit | D technical gates and Product Owner human AC-V11-029/030 |
