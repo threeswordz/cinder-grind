@@ -44,6 +44,8 @@ test('responsive V1.1 role shell renders only supplied authorized modules', asyn
       assert.match(html, /My Work/);
       assert.match(html, /<nav[^>]*id="v11-primary-navigation"/);
       assert.match(html, /aria-label="Main navigation"/);
+      assert.match(html, /<nav[^>]*lang="en"/);
+      assert.match(html, /<header[^>]*lang="en"/);
       assert.match(html, /aria-current="page"/);
       assert.doesNotMatch(html, /Close menu/);
       assert.doesNotMatch(html, /Switch Role|Impersonat/);
@@ -56,6 +58,19 @@ test('responsive V1.1 role shell renders only supplied authorized modules', asyn
       assert.match(html, /aria-controls="v11-primary-navigation"/);
       assert.match(html, /aria-expanded="false"/);
       assert.match(html, /Purchase Requests/);
+    });
+
+    await t.test('very long source-backed identity and labels retain their exact text in responsive shell', () => {
+      const longName = 'จ'.repeat(96) + '請'.repeat(96);
+      const html = render(true, [{
+        key: 'purchase-requests', label: 'Purchase Requests',
+        content: React.createElement('span', null, longName),
+      }]);
+      assert.match(html, /lang="en"/);
+      assert.match(html, /aria-controls="v11-primary-navigation"/);
+      // Server rendering covers text preservation, not browser layout/overflow behavior.
+      assert.ok(html.includes('จ'.repeat(96)));
+      assert.doesNotMatch(html, /Switch Role|Impersonat/);
     });
 
     await t.test('no module permission means no module card/nav disclosure', () => {
