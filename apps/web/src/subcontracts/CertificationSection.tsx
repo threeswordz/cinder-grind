@@ -18,6 +18,13 @@ import {
   ClaimRecord,
   subcontractsApi,
 } from '../api/subcontracts';
+import {
+  canOpenSourceLink,
+  consumeSourceLinkKey,
+  resolveLinkedChildRecordId,
+  sourceLinkTarget,
+  type SourceLinkTarget,
+} from '../role-ui/source-link-policy';
 
 function certificationColor(state: string) {
   if (state === 'APPROVED') return 'success' as const;
@@ -31,12 +38,16 @@ export function CertificationSection({
   claimedAmount,
   agreementActive,
   permissions,
+  initialCertificationId,
+  onOpenSource,
   onReplacementCreated,
 }: {
   claim: ClaimRecord;
   claimedAmount: string;
   agreementActive: boolean;
   permissions: string[];
+  initialCertificationId?: string | undefined;
+  onOpenSource?: ((target: SourceLinkTarget) => void) | undefined;
   onReplacementCreated: (claimId: string) => void;
 }) {
   const client = useQueryClient();
@@ -57,6 +68,7 @@ export function CertificationSection({
   const [reason, setReason] = useState('');
   const retryActionKeys = useRef(new Map<string, string>());
   const actionSignature = useRef<string | null>(null);
+  const appliedCertificationSourceLink = useRef('');
 
   const retryActionKey = (signature: string) => {
     const current = retryActionKeys.current.get(signature);
@@ -116,6 +128,21 @@ export function CertificationSection({
 
   useEffect(() => {
     if (!canView) return;
+    if (initialCertificationId) {
+      if (!certifications.isSuccess || certifications.isFetching) return;
+      const sourceLinkKey = `${claim.id}:${initialCertificationId}`;
+      if (
+        consumeSourceLinkKey(appliedCertificationSourceLink, sourceLinkKey)
+      ) {
+        setSelectedId(
+          resolveLinkedChildRecordId(
+            initialCertificationId,
+            claimCertifications,
+          ),
+        );
+      }
+      return;
+    }
     if (claimCertifications.length === 0) {
       setSelectedId('');
       return;
@@ -128,7 +155,11 @@ export function CertificationSection({
   }, [
     activeCertification,
     canView,
+    claim.id,
     claimCertifications,
+    certifications.isSuccess,
+    certifications.isFetching,
+    initialCertificationId,
     selectedId,
   ]);
 
@@ -520,6 +551,24 @@ export function CertificationSection({
                                       : '')
                                   : ''}
                               </Typography>
+                              {onOpenSource &&
+                              canOpenSourceLink('payments', permissions) ? (
+                                <Button
+                                  size="small"
+                                  variant="outlined"
+                                  sx={{ alignSelf: 'flex-start' }}
+                                  onClick={() => {
+                                    const target = sourceLinkTarget(
+                                      'payments',
+                                      selected.projectId,
+                                      allocation.payment.id,
+                                    );
+                                    if (target) onOpenSource(target);
+                                  }}
+                                >
+                                  Open payment
+                                </Button>
+                              ) : null}
                             </Stack>
                           </CardContent>
                         </Card>

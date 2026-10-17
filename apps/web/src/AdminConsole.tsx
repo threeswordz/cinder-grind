@@ -97,7 +97,10 @@ export function AdminConsole({ user }: { user: CurrentUser }) {
           key: 'retention',
           label: 'Retention',
           permission: 'finance.retention.view',
-          content: <RetentionFinanceWorkspace permissions={user.permissions} />,
+          content: <RetentionFinanceWorkspace
+            permissions={user.permissions}
+            onOpenSource={openSource}
+          />,
         },
         {
           key: 'finance-reports',
@@ -160,7 +163,11 @@ export function AdminConsole({ user }: { user: CurrentUser }) {
           key: 'subcontracts',
           label: 'Subcontracts',
           permission: '__subcontracts__',
-          content: <SubcontractsWorkspace permissions={user.permissions} />,
+          content: <SubcontractsWorkspace
+            permissions={user.permissions}
+            initialSource={linkedSource?.sectionKey === 'subcontracts' ? linkedSource : undefined}
+            onOpenSource={openSource}
+          />,
         },
         {
           key: 'inventory',

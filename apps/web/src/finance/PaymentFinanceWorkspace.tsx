@@ -716,6 +716,28 @@ export function PaymentFinanceWorkspace({ permissions, initialProjectId, initial
                         Open supplier invoice
                       </Button>
                     ) : null}
+                    {allocation.targetType === 'SUBCONTRACT_CERTIFICATION' &&
+                    onOpenSource &&
+                    canOpenSourceLink('subcontracts', permissions) &&
+                    permissions.includes('subcontracts.claim.view') &&
+                    permissions.includes('subcontracts.certification.view') ? (
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        onClick={() => {
+                          const target = sourceLinkTarget(
+                            'subcontracts',
+                            current.projectId,
+                            allocation.targetId,
+                            undefined,
+                            'subcontract-certification',
+                          );
+                          if (target) onOpenSource(target);
+                        }}
+                      >
+                        Open certification
+                      </Button>
+                    ) : null}
                     {draft && canEdit ? (
                       <Button
                         size="small"

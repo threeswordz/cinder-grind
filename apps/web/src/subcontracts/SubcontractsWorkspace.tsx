@@ -25,6 +25,15 @@ import {
   subcontractsApi,
 } from '../api/subcontracts';
 import { ClaimsPanel } from './ClaimsPanel';
+import {
+  canOpenSourceLink,
+  consumeSourceLinkKey,
+  resolveLinkedChildRecordId,
+  resolveLinkedProjectId,
+  resolveLinkedRecordId,
+  sourceLinkTarget,
+  type SourceLinkTarget,
+} from '../role-ui/source-link-policy';
 import { VariationsReportingPanel } from './VariationsReportingPanel';
 
 function SubcontractorsPanel({ permissions }: { permissions: string[] }) {
@@ -329,7 +338,19 @@ function ApprovalTrail({
   );
 }
 
-function AgreementsPanel({ permissions }: { permissions: string[] }) {
+function AgreementsPanel({
+  permissions,
+  initialProjectId,
+  initialAgreementId,
+  initialWorkOrderId,
+  onOpenSource,
+}: {
+  permissions: string[];
+  initialProjectId?: string | undefined;
+  initialAgreementId?: string | undefined;
+  initialWorkOrderId?: string | undefined;
+  onOpenSource?: ((target: SourceLinkTarget) => void) | undefined;
+}) {
   const client = useQueryClient();
   const canCreate = permissions.includes('subcontracts.agreement.create');
   const canEdit = permissions.includes('subcontracts.agreement.edit');
@@ -377,6 +398,9 @@ function AgreementsPanel({ permissions }: { permissions: string[] }) {
   const agreementActionSignature = useRef<string | null>(null);
   const revisionActionSignature = useRef<string | null>(null);
   const workOrderActionSignature = useRef<string | null>(null);
+  const appliedProjectSourceLink = useRef('');
+  const appliedAgreementSourceLink = useRef('');
+  const appliedWorkOrderSourceLink = useRef('');
 
   const retryActionKey = (signature: string) => {
     const existing = retryActionKeys.current.get(signature);
@@ -403,6 +427,24 @@ function AgreementsPanel({ permissions }: { permissions: string[] }) {
     queryKey: ['subcontracts', 'projects'],
     queryFn: subcontractsApi.projects,
   });
+
+  useEffect(() => {
+    if (!initialProjectId || !projects.isSuccess || projects.isFetching) return;
+    if (!consumeSourceLinkKey(appliedProjectSourceLink, initialProjectId)) return;
+    const resolvedProjectId = resolveLinkedProjectId(
+      initialProjectId,
+      projects.data?.data ?? [],
+    );
+    setSelectedId('');
+    setSelectedWorkOrderId('');
+    setNewMode(false);
+    setProjectFilter(resolvedProjectId);
+  }, [
+    initialProjectId,
+    projects.isSuccess,
+    projects.isFetching,
+    projects.data,
+  ]);
   const subcontractors = useQuery({
     queryKey: ['subcontracts', 'agreement-subcontractors'],
     queryFn: subcontractsApi.agreementSubcontractors,
@@ -428,6 +470,35 @@ function AgreementsPanel({ permissions }: { permissions: string[] }) {
       null,
     [agreements.data?.data, selectedId],
   );
+
+  useEffect(() => {
+    if (
+      !initialProjectId ||
+      !initialAgreementId ||
+      projectFilter !== initialProjectId ||
+      !agreements.isSuccess ||
+      agreements.isFetching
+    ) {
+      return;
+    }
+    const sourceLinkKey = `${initialProjectId}:${initialAgreementId}`;
+    if (!consumeSourceLinkKey(appliedAgreementSourceLink, sourceLinkKey)) return;
+    setSelectedId(
+      resolveLinkedRecordId(
+        initialAgreementId,
+        initialProjectId,
+        agreements.data?.data ?? [],
+      ),
+    );
+    setNewMode(false);
+  }, [
+    initialProjectId,
+    initialAgreementId,
+    projectFilter,
+    agreements.isSuccess,
+    agreements.isFetching,
+    agreements.data,
+  ]);
 
   const versions = useQuery({
     queryKey: ['subcontracts', 'agreement-versions', selectedId],
@@ -456,6 +527,33 @@ function AgreementsPanel({ permissions }: { permissions: string[] }) {
       ) ?? null,
     [workOrders.data?.data, selectedWorkOrderId],
   );
+
+  useEffect(() => {
+    if (
+      !initialAgreementId ||
+      selectedId !== initialAgreementId ||
+      !initialWorkOrderId ||
+      !workOrders.isSuccess ||
+      workOrders.isFetching
+    ) {
+      return;
+    }
+    const sourceLinkKey = `${initialAgreementId}:${initialWorkOrderId}`;
+    if (!consumeSourceLinkKey(appliedWorkOrderSourceLink, sourceLinkKey)) return;
+    setSelectedWorkOrderId(
+      resolveLinkedChildRecordId(
+        initialWorkOrderId,
+        workOrders.data?.data ?? [],
+      ),
+    );
+  }, [
+    initialAgreementId,
+    initialWorkOrderId,
+    selectedId,
+    workOrders.isSuccess,
+    workOrders.isFetching,
+    workOrders.data,
+  ]);
 
   const activeRevision = useMemo(
     () =>
@@ -870,6 +968,27 @@ function AgreementsPanel({ permissions }: { permissions: string[] }) {
                                 : 'default'
                       }
                     />
+                  ) : null}
+                  {selected &&
+                  onOpenSource &&
+                  canOpenSourceLink('subcontracts', permissions) &&
+                  permissions.includes('subcontracts.claim.view') ? (
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      onClick={() => {
+                        const target = sourceLinkTarget(
+                          'subcontracts',
+                          selected.projectId,
+                          selected.id,
+                          undefined,
+                          'subcontract-claim',
+                        );
+                        if (target) onOpenSource(target);
+                      }}
+                    >
+                      Open claims
+                    </Button>
                   ) : null}
                 </Stack>
 
@@ -1685,14 +1804,21 @@ function AgreementsPanel({ permissions }: { permissions: string[] }) {
 
 export function SubcontractsWorkspace({
   permissions,
+  initialSource,
+  onOpenSource,
 }: {
   permissions: string[];
+  initialSource?: SourceLinkTarget | undefined;
+  onOpenSource?: ((target: SourceLinkTarget) => void) | undefined;
 }) {
   const canSeeRegister = permissions.includes(
     'subcontracts.subcontractor.view',
   );
   const canSeeAgreements = permissions.includes('subcontracts.agreement.view');
   const canSeeClaims = permissions.includes('subcontracts.claim.view');
+  const canSeeCertification = permissions.includes(
+    'subcontracts.certification.view',
+  );
   const canSeeVariations =
     permissions.includes('subcontracts.variation.view') ||
     permissions.includes('subcontracts.report.view');
@@ -1705,6 +1831,54 @@ export function SubcontractsWorkspace({
           ? 'claims'
           : 'variations',
   );
+
+  const linkedCertification = useQuery({
+    queryKey: [
+      'subcontracts',
+      'source-certification',
+      initialSource?.recordId ?? '',
+    ],
+    queryFn: () => subcontractsApi.certification(initialSource?.recordId ?? ''),
+    enabled:
+      canSeeClaims &&
+      canSeeCertification &&
+      initialSource?.recordKind === 'subcontract-certification' &&
+      Boolean(initialSource.recordId),
+  });
+  const linkedCertificationRecord =
+    linkedCertification.data?.data &&
+    linkedCertification.data.data.projectId === initialSource?.projectId
+      ? linkedCertification.data.data
+      : null;
+
+  useEffect(() => {
+    if (
+      initialSource?.recordKind === 'subcontract-certification' &&
+      linkedCertification.isSuccess &&
+      linkedCertificationRecord &&
+      canSeeClaims
+    ) {
+      setTab('claims');
+    }
+  }, [
+    canSeeClaims,
+    initialSource?.recordKind,
+    linkedCertification.isSuccess,
+    linkedCertificationRecord,
+  ]);
+
+  useEffect(() => {
+    if (
+      (initialSource?.recordKind === 'subcontract-agreement' ||
+        initialSource?.recordKind === 'subcontract-work-order') &&
+      canSeeAgreements
+    ) {
+      setTab('agreements');
+    }
+    if (initialSource?.recordKind === 'subcontract-claim' && canSeeClaims) {
+      setTab('claims');
+    }
+  }, [canSeeAgreements, canSeeClaims, initialSource?.recordKind]);
 
   if (!canSeeRegister && !canSeeAgreements && !canSeeClaims && !canSeeVariations) {
     return <Alert severity="warning">No Subcontracts permission is assigned.</Alert>;
@@ -1724,10 +1898,59 @@ export function SubcontractsWorkspace({
         <SubcontractorsPanel permissions={permissions} />
       ) : null}
       {tab === 'agreements' && canSeeAgreements ? (
-        <AgreementsPanel permissions={permissions} />
+        <AgreementsPanel
+          key={
+            initialSource?.recordKind === 'subcontract-agreement' ||
+            initialSource?.recordKind === 'subcontract-work-order'
+              ? `${initialSource.recordKind}:${initialSource.projectId}:${initialSource.recordId}:${initialSource.childRecordId ?? ''}`
+              : 'agreements-default'
+          }
+          permissions={permissions}
+          initialProjectId={initialSource?.projectId}
+          initialAgreementId={
+            initialSource?.recordKind === 'subcontract-agreement' ||
+            initialSource?.recordKind === 'subcontract-work-order'
+              ? initialSource.recordId
+              : undefined
+          }
+          initialWorkOrderId={
+            initialSource?.recordKind === 'subcontract-work-order'
+              ? initialSource.childRecordId
+              : undefined
+          }
+          onOpenSource={onOpenSource}
+        />
       ) : null}
       {tab === 'claims' && canSeeClaims ? (
-        <ClaimsPanel permissions={permissions} />
+        <ClaimsPanel
+          key={
+            initialSource?.recordKind === 'subcontract-claim' ||
+            initialSource?.recordKind === 'subcontract-certification'
+              ? `${initialSource.recordKind}:${initialSource.projectId}:${initialSource.recordId}:${initialSource.childRecordId ?? ''}`
+              : 'claims-default'
+          }
+          permissions={permissions}
+          initialProjectId={
+            linkedCertificationRecord?.projectId ??
+            (initialSource?.recordKind === 'subcontract-claim'
+              ? initialSource.projectId
+              : undefined)
+          }
+          initialAgreementId={
+            linkedCertificationRecord?.agreementId ??
+            (initialSource?.recordKind === 'subcontract-claim'
+              ? initialSource.recordId
+              : undefined)
+          }
+          initialClaimId={
+            linkedCertificationRecord?.claimId ??
+            (initialSource?.recordKind === 'subcontract-claim'
+              ? initialSource.childRecordId
+              : undefined)
+          }
+          initialCertificationId={linkedCertificationRecord?.id}
+          onOpenSource={onOpenSource}
+        />
       ) : null}
       {tab === 'variations' && canSeeVariations ? (
         <VariationsReportingPanel permissions={permissions} />

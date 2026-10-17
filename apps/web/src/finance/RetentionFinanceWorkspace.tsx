@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   Alert,
+  Button,
   Card,
   CardContent,
   Chip,
@@ -13,11 +14,18 @@ import {
 import { useQuery } from '@tanstack/react-query';
 
 import { retentionApi } from '../api/finance';
+import {
+  canOpenSourceLink,
+  sourceLinkTarget,
+  type SourceLinkTarget,
+} from '../role-ui/source-link-policy';
 
 export function RetentionFinanceWorkspace({
   permissions,
+  onOpenSource,
 }: {
   permissions: string[];
+  onOpenSource?: ((target: SourceLinkTarget) => void) | undefined;
 }) {
   const canView = permissions.includes('finance.retention.view');
   const [projectId, setProjectId] = useState('');
@@ -113,6 +121,28 @@ export function RetentionFinanceWorkspace({
                 {row.agreement.subcontractor.subcontractorCode} ·{' '}
                 {row.agreement.subcontractor.subcontractorName}
               </Typography>
+              {onOpenSource &&
+              canOpenSourceLink('subcontracts', permissions) &&
+              permissions.includes('subcontracts.claim.view') &&
+              permissions.includes('subcontracts.certification.view') ? (
+                <Button
+                  size="small"
+                  variant="outlined"
+                  sx={{ alignSelf: 'flex-start' }}
+                  onClick={() => {
+                    const target = sourceLinkTarget(
+                      'subcontracts',
+                      projectId,
+                      row.id,
+                      undefined,
+                      'subcontract-certification',
+                    );
+                    if (target) onOpenSource(target);
+                  }}
+                >
+                  Open certification
+                </Button>
+              ) : null}
               {row.financeState === 'UNSUPPORTED_CURRENCY' ? (
                 <Alert severity="warning">
                   {row.currencyCode} Certification is outside the Company base

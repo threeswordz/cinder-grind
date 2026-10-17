@@ -22,6 +22,13 @@ test('C1 source links require exact owning view permission', () => {
   assert.equal(canOpenSourceLink('payments', ['finance.payment.view']), true);
 });
 
+test('C2 Subcontracts source links require an owning read permission', () => {
+  assert.equal(canOpenSourceLink('subcontracts', ['subcontracts.agreement.approve']), false);
+  assert.equal(canOpenSourceLink('subcontracts', ['subcontracts.agreement.view']), true);
+  assert.equal(canOpenSourceLink('subcontracts', ['subcontracts.claim.view']), true);
+  assert.equal(canOpenSourceLink('subcontracts', ['subcontracts.certification.view']), true);
+});
+
 test('sourcing link accepts RFQ-view or quotation-view but not mutation-only permission', () => {
   assert.equal(canOpenSourceLink('sourcing', ['procurement.rfq.manage']), false);
   assert.equal(canOpenSourceLink('sourcing', ['procurement.rfq.view']), true);
@@ -64,8 +71,22 @@ test('source targets never encode empty Project or record identities', () => {
       childRecordId: 'quote-A',
     },
   );
+  assert.deepEqual(
+    sourceLinkTarget(
+      'subcontracts',
+      'project-A',
+      'certification-A',
+      undefined,
+      'subcontract-certification',
+    ),
+    {
+      sectionKey: 'subcontracts',
+      projectId: 'project-A',
+      recordId: 'certification-A',
+      recordKind: 'subcontract-certification',
+    },
+  );
 });
-
 
 test('incoming source link identity is consumed only once until the target changes', () => {
   const applied = { current: '' };
