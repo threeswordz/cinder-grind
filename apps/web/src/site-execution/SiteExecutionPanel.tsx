@@ -12,7 +12,7 @@ import {
   Typography,
 } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { equipmentApi } from '../api/equipment';
 import {
@@ -25,6 +25,15 @@ import {
   ProgressLineInput,
   siteExecutionApi,
 } from '../api/site-execution';
+import {
+  canOpenSourceLink,
+  consumeSourceLinkKey,
+  resolveLinkedChildRecordId,
+  resolveLinkedProjectId,
+  sourceLinkTarget,
+  type SourceLinkSection,
+  type SourceLinkTarget,
+} from '../role-ui/source-link-policy';
 
 function localDateValue(date = new Date()) {
   const year = date.getFullYear();
@@ -76,8 +85,14 @@ const emptyInspection = (): InspectionLineInput => ({
 
 export function SiteExecutionPanel({
   permissions,
+  initialProjectId,
+  initialReportId,
+  onOpenSource,
 }: {
   permissions: string[];
+  initialProjectId?: string | undefined;
+  initialReportId?: string | undefined;
+  onOpenSource?: ((target: SourceLinkTarget) => void) | undefined;
 }) {
   const queryClient = useQueryClient();
   const canCreate = permissions.includes('site.daily_report.create');
@@ -109,6 +124,8 @@ export function SiteExecutionPanel({
   >([]);
   const [documentTypeId, setDocumentTypeId] = useState('');
   const [photo, setPhoto] = useState<File | null>(null);
+  const appliedProjectSource = useRef('');
+  const appliedReportSource = useRef('');
 
   const projects = useQuery({
     queryKey: ['site-execution', 'projects'],
@@ -367,6 +384,64 @@ export function SiteExecutionPanel({
     setPhoto(null);
   };
 
+  useEffect(() => {
+    if (!initialProjectId || !projects.isSuccess || projects.isFetching) return;
+    if (!consumeSourceLinkKey(appliedProjectSource, initialProjectId)) return;
+    const resolved = resolveLinkedProjectId(
+      initialProjectId,
+      projects.data?.data ?? [],
+    );
+    setProjectId(resolved);
+    resetForNew();
+  }, [
+    initialProjectId,
+    projects.data,
+    projects.isFetching,
+    projects.isSuccess,
+  ]);
+
+  useEffect(() => {
+    if (
+      !initialReportId ||
+      !initialProjectId ||
+      projectId !== initialProjectId ||
+      !reports.isSuccess ||
+      reports.isFetching
+    ) {
+      return;
+    }
+    const sourceKey = initialProjectId + ':' + initialReportId;
+    if (!consumeSourceLinkKey(appliedReportSource, sourceKey)) return;
+    setSelectedId(
+      resolveLinkedChildRecordId(initialReportId, reports.data?.data ?? []),
+    );
+  }, [
+    initialProjectId,
+    initialReportId,
+    projectId,
+    reports.data,
+    reports.isFetching,
+    reports.isSuccess,
+  ]);
+
+  const openSource = (sectionKey: SourceLinkSection) => {
+    if (
+      !onOpenSource ||
+      !projectId ||
+      !canOpenSourceLink(sectionKey, permissions)
+    ) {
+      return;
+    }
+    const target = sourceLinkTarget(
+      sectionKey,
+      projectId,
+      projectId,
+      undefined,
+      'project',
+    );
+    if (target) onOpenSource(target);
+  };
+
   const error =
     saveMutation.error ??
     submitMutation.error ??
@@ -396,6 +471,25 @@ export function SiteExecutionPanel({
 
       {projectId ? (
         <>
+          {onOpenSource ? (
+            <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+              {canOpenSourceLink('projects', permissions) ? (
+                <Button onClick={() => openSource('projects')}>Project</Button>
+              ) : null}
+              {canOpenSourceLink('scheduling', permissions) ? (
+                <Button onClick={() => openSource('scheduling')}>Schedule</Button>
+              ) : null}
+              {canOpenSourceLink('budget', permissions) ? (
+                <Button onClick={() => openSource('budget')}>Budget</Button>
+              ) : null}
+              {canOpenSourceLink('cost-control', permissions) ? (
+                <Button onClick={() => openSource('cost-control')}>Cost</Button>
+              ) : null}
+              {canOpenSourceLink('management', permissions) ? (
+                <Button onClick={() => openSource('management')}>Management</Button>
+              ) : null}
+            </Stack>
+          ) : null}
           <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
             {canCreate ? (
               <Button variant="outlined" onClick={resetForNew}>
