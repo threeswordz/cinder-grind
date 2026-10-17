@@ -21,9 +21,11 @@ import {
   sourcingApi,
 } from '../api/sourcing';
 import {
+  canOpenSourceLink,
   resolveLinkedChildRecordId,
   resolveLinkedProjectId,
   resolveLinkedRecordId,
+  sourceLinkTarget,
   type SourceLinkTarget,
 } from '../role-ui/source-link-policy';
 
@@ -243,6 +245,14 @@ export function SourcingPanel({
       ) ?? null,
     [current?.quotations, quotationId],
   );
+  const sourcePurchaseRequests = useMemo(() => {
+    const unique = new Map<string, { id: string; prNumber: string }>();
+    for (const line of current?.lines ?? []) {
+      const request = line.purchaseRequestLine.purchaseRequest;
+      unique.set(request.id, { id: request.id, prNumber: request.prNumber });
+    }
+    return [...unique.values()];
+  }, [current?.lines]);
 
   useEffect(() => {
     if (!current) return;
@@ -555,6 +565,32 @@ export function SourcingPanel({
                 </Typography>
                 {current.remarks ? (
                   <Typography variant="body2">{current.remarks}</Typography>
+                ) : null}
+                {onOpenSource &&
+                canOpenSourceLink('purchase-requests', permissions) &&
+                sourcePurchaseRequests.length ? (
+                  <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                    <Typography variant="body2" color="text.secondary">
+                      Source Purchase Request:
+                    </Typography>
+                    {sourcePurchaseRequests.map((request) => (
+                      <Button
+                        key={request.id}
+                        size="small"
+                        variant="outlined"
+                        onClick={() => {
+                          const target = sourceLinkTarget(
+                            'purchase-requests',
+                            current.projectId,
+                            request.id,
+                          );
+                          if (target) onOpenSource(target);
+                        }}
+                      >
+                        Open {request.prNumber}
+                      </Button>
+                    ))}
+                  </Stack>
                 ) : null}
                 <Divider />
                 <Typography variant="subtitle2">
