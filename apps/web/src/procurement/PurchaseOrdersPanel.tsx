@@ -27,9 +27,17 @@ import {
   PurchaseOrderLine,
   purchaseOrdersApi,
 } from '../api/purchase-orders';
+import {
+  resolveLinkedProjectId,
+  resolveLinkedRecordId,
+  type SourceLinkTarget,
+} from '../role-ui/source-link-policy';
 
 type Props = {
   permissions: string[];
+  initialProjectId?: string;
+  initialOrderId?: string;
+  onOpenSource?: (target: SourceLinkTarget) => void;
 };
 
 type LineDraft = {
@@ -64,7 +72,7 @@ function lineDraft(line: PurchaseOrderLine): LineDraft {
   };
 }
 
-export function PurchaseOrdersPanel({ permissions }: Props) {
+export function PurchaseOrdersPanel({ permissions, initialProjectId, initialOrderId, onOpenSource }: Props) {
   const queryClient = useQueryClient();
   const canView = permissions.includes('procurement.po.view');
   const canCreate = permissions.includes('procurement.po.create');
@@ -95,12 +103,20 @@ export function PurchaseOrdersPanel({ permissions }: Props) {
   });
 
   useEffect(() => {
+    if (!initialProjectId || !projects.isSuccess) return;
+    setProjectId(
+      resolveLinkedProjectId(initialProjectId, projects.data?.data ?? []),
+    );
+  }, [initialProjectId, projects.isSuccess, projects.data]);
+
+  useEffect(() => {
+    if (initialProjectId) return;
     const values = projects.data?.data ?? [];
     if (!projectId && values[0]) setProjectId(values[0].id);
     if (projectId && !values.some((project) => project.id === projectId)) {
       setProjectId(values[0]?.id ?? '');
     }
-  }, [projectId, projects.data]);
+  }, [initialProjectId, projectId, projects.data]);
 
   useEffect(() => {
     setOrderId('');
@@ -126,13 +142,24 @@ export function PurchaseOrdersPanel({ permissions }: Props) {
   });
 
   useEffect(() => {
-    if (orders.isFetching) return;
+    if (!initialOrderId || !orders.isSuccess) return;
+    setOrderId(
+      resolveLinkedRecordId(
+        initialOrderId,
+        projectId,
+        orders.data?.data ?? [],
+      ),
+    );
+  }, [initialOrderId, projectId, orders.isSuccess, orders.data]);
+
+  useEffect(() => {
+    if (initialOrderId || orders.isFetching) return;
     const values = orders.data?.data ?? [];
     if (!orderId && values[0]) setOrderId(values[0].id);
     if (orderId && !values.some((order) => order.id === orderId)) {
       setOrderId(values[0]?.id ?? '');
     }
-  }, [orderId, orders.data, orders.isFetching]);
+  }, [initialOrderId, orderId, orders.data, orders.isFetching]);
 
   const detail = useQuery({
     queryKey: ['purchase-order', orderId],
