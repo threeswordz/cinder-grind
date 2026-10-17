@@ -1,7 +1,7 @@
 # Construction ERP — Development Roadmap
 
 **Document Status:** Development Roadmap Baseline v0.1  
-**Current Phase:** V1.0 COMPLETE + ACCEPTED; V1.1-A ENTRY COMPLETE / V1.1-B ROLE UI FOUNDATION ACTIVE (DEC-028, 2026-10-17)  
+**Current Phase:** V1.0 COMPLETE + ACCEPTED; V1.1-A COMPLETE; V1.1-B IMPLEMENTATION MERGED / EXACT-MAIN CI #4335 PASS, FINAL DOC/ISSUE #214 CLOSURE TRACKED  
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1  
@@ -11,14 +11,14 @@
 
 ---
 
-## Active successor — V1.1 Business Workflow & Role UI (entry closed; V1.1-B active)
+## Active successor — V1.1 Business Workflow & Role UI (DEC-028; V1.1-B handoff closure)
 
-**Approval date:** 2026-10-17. **Owner decision:** DEC-028. **V1.1-A:** PR #212 merged, post-merge CI #4321 PASS; PR #213 head `ccbbb031652d6c828f634843513e09ba3542b5c3` passed push/PR CI #4325/#4326 and resolved Codex P2, squash-merged `dae72ecec3492b62d3fd2f626a624fe801fda411`; post-merge exact-main CI #4327 PASS; Issue #211 CLOSED. **Current V1.1-B:** Issue #214 / branch `v1.1-b-role-ui-foundation`, implementation and stage technical gates pending; V1.1-C waits.
+**Approval date:** 2026-10-17. **Owner decision:** DEC-028. **Entry V1.1-A:** PR #212 + #213 merged, main CI #4327 PASS, Issue #211 CLOSED. **Stage V1.1-B implementation:** final head `e04cdeaaff1c5013f5b5315b389283750c12aee3` passed exact-head push/PR CI #4333/#4334, Codex P2 localization finding fixed/thread resolved; PR #215 squash-merged `acf943392e81d4fb70f499304c5ce2bd677ea434`, exact-main CI #4335 PASS. PR #216 received one genuine Codex P2 requesting Stage-B behavior validation. Source-scope/deep-link tests, locale-key checks and desktop/mobile SSR checks were integrated; **14/14 web tests PASS**, PR #216 test-bearing head `228fc10d` push CI #4362 and PR CI #4363 **SUCCESS**. Final docs head CI, review-thread resolution, merge and post-main CI remain gates. Final merge/post-main CI and live Issue #214 closure remain stage gates; V1.1-C is blocked.
 
 | Stage | Approved bounded delivery | Gate |
 |---|---|---|
 | V1.1-A | Entry/scope/54-workflow traceability and eight-persona permission/data/API/security/test baselines | **COMPLETE:** DEC-028, PR #212 + #213 merged, exact-main CI #4327 PASS, Issue #211 closed |
-| V1.1-B | Role-first modular responsive app shell, permission-derived Home/My Work and grouped navigation | **ACTIVE** Issue #214 / stage branch; exact-head CI, review, merge and exact-main CI pending |
+| V1.1-B | Role-first modular responsive app shell, permission-derived Home/My Work and grouped navigation | **IMPLEMENTATION MERGED / #4335 PASS; CLOSURE UNDER VALIDATION:** PR #216 P2 technical UI checks/review, CI/merge/post-main and live Issue #214 closure required before V1.1-C |
 | V1.1-C | Existing Procurement→Finance, Subcontract→Finance and Project→Cost/Management source-linked journeys | B technically complete and accepted applicable stage gates |
 | V1.1-D | UX/accessibility/security/compatibility hardening only, no new business rules | C gates complete; separately approved change control required for policy/diagnostics |
 | V1.1-E | Eight-persona UAT/evidence, locale/THB/Company-Project security regression, release exit | D technical gates and Product Owner human AC-V11-029/030 |

@@ -1,0 +1,63 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import React from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { createTheme, ThemeProvider } from '@mui/material/styles';
+import { createServer } from 'vite';
+
+// Component-level server render: production TSX through Vite, no new test dependencies.
+// Browser click/focus/touch UAT remains separate and must not be inferred from SSR.
+test('responsive V1.1 role shell renders only supplied authorized modules', async (t) => {
+  const vite = await createServer({ root: process.cwd(), server: { middlewareMode: true }, appType: 'custom' });
+  try {
+    const { RoleWorkspaceShell } = await vite.ssrLoadModule('/src/role-ui/RoleWorkspaceShell.tsx');
+    const user = {
+      id: 'user-A', companyId: 'company-A', email: 'a@example.test', displayName: 'Test User',
+      roleCodes: ['STORE_STAFF'], permissions: ['procurement.pr.view'],
+    };
+    const render = (mobile, sections) => {
+      const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+      const theme = createTheme({
+        components: { MuiUseMediaQuery: { defaultProps: { ssrMatchMedia: () => ({ matches: mobile }) } } },
+      });
+      return renderToStaticMarkup(
+        React.createElement(QueryClientProvider, { client },
+          React.createElement(ThemeProvider, { theme },
+            React.createElement(RoleWorkspaceShell, {
+              user, sections, activeKey: sections[0]?.key ?? null,
+              onSelect: () => {}, onOpenPr: () => {}, onLogout: () => {}, logoutPending: false,
+            }),
+          ),
+        ),
+      );
+    };
+    const permitted = [{
+      key: 'purchase-requests', label: 'Purchase Requests',
+      content: React.createElement('span', null, 'Canonical source panel'),
+    }];
+
+    await t.test('desktop Home shows source module and assigned role, without role switching', () => {
+      const html = render(false, permitted);
+      assert.match(html, /Purchase Requests/);
+      assert.match(html, /STORE_STAFF/);
+      assert.match(html, /My Work/);
+      assert.doesNotMatch(html, /Switch Role|Impersonat/);
+      assert.doesNotMatch(html, /Approval Matrix/);
+    });
+
+    await t.test('mobile has responsive menu trigger and retains authorized shortcut', () => {
+      const html = render(true, permitted);
+      assert.match(html, /aria-label="Menu"/);
+      assert.match(html, /Purchase Requests/);
+    });
+
+    await t.test('no module permission means no module card/nav disclosure', () => {
+      const html = render(false, []);
+      assert.match(html, /No application modules are available/);
+      assert.doesNotMatch(html, /Purchase Requests/);
+    });
+  } finally {
+    await vite.close();
+  }
+});
