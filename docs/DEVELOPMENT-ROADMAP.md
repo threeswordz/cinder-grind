@@ -1,7 +1,7 @@
 # Construction ERP — Development Roadmap
 
 **Document Status:** Development Roadmap Baseline v0.1  
-**Current Phase:** V1.0 COMPLETE + ACCEPTED; V1.1-A/B/C/D technically COMPLETE; V1.1-D full closure PR #232 merged `5ca4bb264ca2a4a55e6afe3c31529af4522b8926`, exact-main CI #4651 SUCCESS, Issue #225 CLOSED; V1.1-E E0 release-assurance/UAT preflight ACTIVE under Issue #233  
+**Current Phase:** V1.0 COMPLETE + ACCEPTED; V1.1-A/B/C/D technically COMPLETE; V1.1-E0 preflight COMPLETE (PR #234, exact-main CI #4665); V1.1-E1 technical release assurance ACTIVE under Issue #233  
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1  
@@ -11,9 +11,9 @@
 
 ---
 
-## Active successor — V1.1 Business Workflow & Role UI (DEC-028; V1.1-E release assurance preflight)
+## Active successor — V1.1 Business Workflow & Role UI (DEC-028; V1.1-E1 technical release assurance)
 
-**Approval / handoff:** V1.1-A/B/C/D have completed their technical gates under DEC-028. Stage-D full closure PR #232 final exact head `2906871247f96da1e36e2abb26d15cd4ba32e256` passed push/PR CI #4649/#4650 and final exact-head Codex review with no major issues; squash-merged `5ca4bb264ca2a4a55e6afe3c31529af4522b8926`, exact-main CI #4651 SUCCESS; Issue #225 CLOSED / COMPLETED. **V1.1-E E0 PRE-FLIGHT is ACTIVE under Issue #233 / branch `v1.1-e0-uat-preflight`.** E0 prepares status and evidence for AC-V11-023–028 only. Eight-persona human UAT and AC-V11-029/030 Product / Business Owner acceptance have not occurred.
+**Approval / handoff:** V1.1-A/B/C/D are technically COMPLETE. V1.1-E0 preflight PR #234 final corrected head `e200a776192f1eac5e554f03b1930b093be8f534` passed push/PR CI #4663/#4664 and final exact-head Codex re-review with no major issues; squash-merged `d39d5e9317ef8d8799a5af9c24c8cb14a5b1264c`, exact-main CI #4665 SUCCESS. **V1.1-E1 TECHNICAL RELEASE ASSURANCE is ACTIVE under Issue #233 / branch `v1.1-e1-technical-assurance`.** E1 is limited to AC-V11-026/027 automated candidate evidence and no runtime/business-policy redesign. AC-V11-023–025 interactive UAT and AC-V11-029/030 human owner gates remain open.
 
 | Stage | Approved bounded delivery | Gate |
 |---|---|---|
@@ -21,9 +21,9 @@
 | V1.1-B | Role-first modular responsive app shell, sourced Home/My Work and grouped navigation | **TECHNICALLY COMPLETE:** PRs #215/#216, 14 web tests, exact-main CI #4366 PASS, Issue #214 CLOSED |
 | V1.1-C | Source-owned Procurement→Finance (C1), Subcontract→Finance (C2), Project→Cost/Management (C3) | **FULL STAGE TECHNICALLY COMPLETE / CLOSED:** runtime #223 main CI #4554 PASS; full-docs closure #224 main CI #4562 PASS; Issue #217 CLOSED |
 | V1.1-D | UX/accessibility/security/compatibility hardening only; AC-V11-017–022 existing-business-rule non-regression | **TECHNICALLY COMPLETE:** D0 #226 main CI #4583; D1 #227/#228 main CI #4597/#4605; D2 #229/#230 main CI #4627/#4631; D3 #231 main CI #4643; full closure #232 main CI #4651; Issue #225 CLOSED / COMPLETED |
-| V1.1-E | Eight-persona UAT/evidence, locale/THB/Company-Project security regression and release exit | **E0 PRE-FLIGHT ACTIVE** under Issue #233; AC-V11-029/030 remain human Product / Business Owner gates |
+| V1.1-E | Eight-persona UAT/evidence, locale/THB/Company-Project security regression and release exit | **E1 TECHNICAL ASSURANCE ACTIVE** under Issue #233; E0 preflight complete via PR #234/main CI #4665; human AC-V11-023–025 and AC-V11-029/030 remain open |
 
-**Stage evidence:** `docs/V1.1-C-PREFLIGHT.md`, `docs/V1.1-C1-STAGE-EVIDENCE.md`, `docs/V1.1-C2-STAGE-EVIDENCE.md`, `docs/V1.1-C3-STAGE-EVIDENCE.md` establish V1.1-C closure. `docs/V1.1-D0-PREFLIGHT.md`, `docs/V1.1-D1-STAGE-EVIDENCE.md`, `docs/V1.1-D2-STAGE-EVIDENCE.md`, `docs/V1.1-D3-STAGE-EVIDENCE.md` and `docs/V1.1-D-STAGE-CLOSURE.md` establish V1.1-D technical closure through PR #232 / main CI #4651 / closed Issue #225. **V1.1-E preflight:** `docs/V1.1-E-UAT-PREFLIGHT.md` defines the configured-persona, journey, negative-security, locale/accessibility and owner-gate evidence package. No V1.1 human acceptance or Production deployment is implied.
+**Stage evidence:** `docs/V1.1-C-PREFLIGHT.md`, C1/C2/C3 evidence and `docs/V1.1-D-STAGE-CLOSURE.md` establish V1.1-C/D completion. `docs/V1.1-E-UAT-PREFLIGHT.md` is the E0 human/technical evidence plan; `docs/V1.1-E-TECHNICAL-EVIDENCE.md` tracks E1 exact-candidate CI/security/startup/recovery evidence. No eight-persona human UAT acceptance or Production deployment is implied.
 
 **Approval boundaries:** AC-V11-001–030 + BR-V11-01–18 source-preserving rules, stage sequence and English/Thai/zh-TW UI direction. D11-03–07/11/12 new policy and D11-13 User Support/Diagnostics implementation remain deferred; AC-V11-031–036 are not V1.1 obligations. No new mandatory paid dependency, backend rewrite, schema write, impersonation, approval bypass or Production deployment authorization. **Planning range:** 23–39 engineering days plus separately 2–4 business days human UAT (nonbinding).
 
