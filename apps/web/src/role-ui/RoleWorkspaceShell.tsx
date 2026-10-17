@@ -10,7 +10,7 @@ import { useQuery } from '@tanstack/react-query';
 import type { CurrentUser } from '../api/auth';
 import { procurementApi } from '../api/procurement';
 import { projectsApi } from '../api/projects';
-import { translate, type Locale } from './role-workspace-i18n';
+import { labels, translate, type Locale } from './role-workspace-i18n';
 import {
   visibleNavigationKeys, mayReadMyPurchaseRequests, selectedAccessibleProject,
   isAccessibleProject, ownEditablePurchaseRequests, verifiedPurchaseRequestLink,
@@ -117,21 +117,21 @@ export function RoleWorkspaceShell({
   const activeSection = activeKey ? sectionByKey.get(activeKey) : undefined;
   const navButton = (key: 'home' | 'work', view: Screen) => (
     <ListItemButton selected={screen === view} aria-current={screen === view ? 'page' : undefined} onClick={() => selectScreen(view)} key={key}>
-      <ListItemText primary={t(key, key)} sx={{ minWidth: 0, overflowWrap: 'anywhere' }} />
+      <ListItemText primary={<span lang={locale}>{t(key, key)}</span>} sx={{ minWidth: 0, overflowWrap: 'anywhere' }} />
     </ListItemButton>
   );
 
   const navigation = (
-    <Box component="nav" id="v11-primary-navigation" ref={navigationRef} lang={locale}
+    <Box component="nav" id="v11-primary-navigation" ref={navigationRef}
       aria-label={t('primaryNavigation', 'Main navigation')}
       sx={{ overflowY: 'auto', overflowX: 'hidden', py: 1, height: '100%' }}>
       {isMobile && <Box sx={{ display: 'flex', justifyContent: 'flex-end', px: 1 }}>
-        <Button size="small" onClick={() => setMobileMenu(false)}
+        <Button size="small" lang={locale} onClick={() => setMobileMenu(false)}
           sx={{ minHeight: 44, minWidth: 44 }}>
           {t('closeMenu', 'Close menu')}
         </Button>
       </Box>}
-      <Typography variant="overline" sx={{ px: 2, overflowWrap: 'anywhere' }} color="text.secondary">
+      <Typography variant="overline" lang={locale} sx={{ px: 2, overflowWrap: 'anywhere' }} color="text.secondary">
         {t('overview', 'Overview')}
       </Typography>
       <List dense disablePadding>
@@ -144,7 +144,7 @@ export function RoleWorkspaceShell({
         if (!permitted.length) return null;
         return (
           <Box key={group.key} sx={{ mb: 1 }}>
-            <Typography variant="overline" sx={{ px: 2, overflowWrap: 'anywhere' }} color="text.secondary">
+            <Typography variant="overline" lang={locale} sx={{ px: 2, overflowWrap: 'anywhere' }} color="text.secondary">
               {t(group.key, group.key)}
             </Typography>
             <List dense disablePadding>
@@ -156,7 +156,7 @@ export function RoleWorkspaceShell({
                   onClick={() => openSection(key)}
                   sx={{ pl: 3 }}
                 >
-                  <ListItemText primary={t(key, sectionByKey.get(key)?.label ?? key)} sx={{ minWidth: 0, overflowWrap: 'anywhere' }} />
+                  <ListItemText primary={<span lang={labels[locale][key] ? locale : undefined}>{t(key, sectionByKey.get(key)?.label ?? key)}</span>} sx={{ minWidth: 0, overflowWrap: 'anywhere' }} />
                 </ListItemButton>
               ))}
             </List>
@@ -168,14 +168,14 @@ export function RoleWorkspaceShell({
 
   const projectControl = projectSource !== 'none' ? (
     <Box sx={{ minWidth: { xs: '100%', sm: 250 }, maxWidth: 370 }}>
-      {projectQuery.isError ? <Alert severity="error">{t('error', 'Unable to load project context.')}</Alert> :
-        projectQuery.isPending ? <Stack direction="row" spacing={1} alignItems="center" role="status" aria-live="polite">
+      {projectQuery.isError ? <Alert severity="error" lang={locale}>{t('error', 'Unable to load project context.')}</Alert> :
+        projectQuery.isPending ? <Stack direction="row" spacing={1} alignItems="center" role="status" aria-live="polite" lang={locale}>
           <CircularProgress size={20} aria-label={t('loading', 'Loading')} />
           <Typography variant="body2">{t('loading', 'Loading authorized records…')}</Typography>
         </Stack> :
-        projects.length === 0 ? <Alert severity="info" role="status">{t('noProject', 'No accessible projects')}</Alert> :
+        projects.length === 0 ? <Alert severity="info" role="status" lang={locale}>{t('noProject', 'No accessible projects')}</Alert> :
         <FormControl size="small" fullWidth>
-          <InputLabel id="v11-project-label">{t('context', 'Project context')}</InputLabel>
+          <InputLabel id="v11-project-label" lang={locale}>{t('context', 'Project context')}</InputLabel>
           <Select
             labelId="v11-project-label"
             label={t('context', 'Project context')}
@@ -189,21 +189,21 @@ export function RoleWorkspaceShell({
   ) : null;
 
   const home = (
-    <Stack spacing={3} lang={locale} sx={{ minWidth: 0, overflowWrap: 'anywhere' }}>
+    <Stack spacing={3} sx={{ minWidth: 0, overflowWrap: 'anywhere' }}>
       <Box>
-        <Typography variant="h4" fontWeight={700}>{t('welcome', 'Welcome')}, {user.displayName}</Typography>
-        <Typography color="text.secondary">{t('roleHint', 'Permissions come from your signed-in account.')}</Typography>
+        <Typography variant="h4" fontWeight={700}><span lang={locale}>{t('welcome', 'Welcome')}</span>, {user.displayName}</Typography>
+        <Typography color="text.secondary" lang={locale}>{t('roleHint', 'Permissions come from your signed-in account.')}</Typography>
       </Box>
       <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
         <Card variant="outlined" sx={{ flex: 1 }}>
           <CardContent>
-            <Typography color="text.secondary" variant="body2">{t('sources', 'Available modules')}</Typography>
+            <Typography color="text.secondary" variant="body2" lang={locale}>{t('sources', 'Available modules')}</Typography>
             <Typography variant="h4">{sections.length}</Typography>
           </CardContent>
         </Card>
         <Card variant="outlined" sx={{ flex: 2 }}>
           <CardContent>
-            <Typography color="text.secondary" variant="body2">{t('role', 'Assigned roles')}</Typography>
+            <Typography color="text.secondary" variant="body2" lang={locale}>{t('role', 'Assigned roles')}</Typography>
             <Stack direction="row" useFlexGap flexWrap="wrap" gap={1} sx={{ mt: 1 }}>
               {user.roleCodes.map((code) => <Chip key={code} label={code} variant="outlined" size="small"
                 sx={{ maxWidth: '100%', height: 'auto', '& .MuiChip-label': { whiteSpace: 'normal', overflowWrap: 'anywhere', py: 0.5 } }} />)}
@@ -212,13 +212,13 @@ export function RoleWorkspaceShell({
           </CardContent>
         </Card>
       </Stack>
-      <Typography variant="h6">{t('shortcuts', 'Your workspaces')}</Typography>
-      {sections.length === 0 ? <Alert severity="info" role="status">{t('noModules', 'No application modules are available.')}</Alert> :
+      <Typography variant="h6" lang={locale}>{t('shortcuts', 'Your workspaces')}</Typography>
+      {sections.length === 0 ? <Alert severity="info" role="status" lang={locale}>{t('noModules', 'No application modules are available.')}</Alert> :
         <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(195px, 100%), 1fr))', gap: 2 }}>
           {sections.slice(0, 8).map((section) => (
             <Card variant="outlined" key={section.key}>
               <CardContent>
-                <Button onClick={() => openSection(section.key)} sx={{ textAlign: 'left', justifyContent: 'flex-start', overflowWrap: 'anywhere' }}>
+                <Button onClick={() => openSection(section.key)} lang={labels[locale][section.key] ? locale : undefined} sx={{ textAlign: 'left', justifyContent: 'flex-start', overflowWrap: 'anywhere' }}>
                   {t(section.key, section.label)}
                 </Button>
               </CardContent>
@@ -229,20 +229,20 @@ export function RoleWorkspaceShell({
   );
 
   const work = (
-    <Stack spacing={2} lang={locale} sx={{ minWidth: 0, overflowWrap: 'anywhere' }}
+    <Stack spacing={2} sx={{ minWidth: 0, overflowWrap: 'anywhere' }}
       aria-busy={Boolean(selectedProjectId) && canReadPr && prQuery.isPending}>
-      <Typography variant="h5" fontWeight={700}>{t('work', 'My Work')}</Typography>
-      <Typography color="text.secondary">{t('workIntro', 'Your purchasing work in the selected project.')}</Typography>
+      <Typography variant="h5" fontWeight={700} lang={locale}>{t('work', 'My Work')}</Typography>
+      <Typography color="text.secondary" lang={locale}>{t('workIntro', 'Your purchasing work in the selected project.')}</Typography>
       {projectControl}
-      {projectSource !== 'none' && <Typography variant="caption" color="text.secondary">
+      {projectSource !== 'none' && <Typography variant="caption" color="text.secondary" lang={locale}>
         {t('contextHint', 'This context is for My Work only; legacy modules keep their own authorized filters.')}
       </Typography>}
-      {!canReadPr ? <Alert severity="info" role="status">{t('queueUnavailable', 'Purchasing list unavailable for your permissions.')}</Alert> :
+      {!canReadPr ? <Alert severity="info" role="status" lang={locale}>{t('queueUnavailable', 'Purchasing list unavailable for your permissions.')}</Alert> :
         projectQuery.isError || projectQuery.isPending ? null :
-        !selectedProjectId ? <Alert severity="info" role="status">{t('empty', 'Select an authorized project to view purchasing work.')}</Alert> :
-        prQuery.isPending ? <Stack direction="row" spacing={1} alignItems="center" role="status" aria-live="polite"><CircularProgress size={20} /><Typography>{t('loading', 'Loading records…')}</Typography></Stack> :
-        prQuery.isError ? <Alert severity="error">{t('error', 'Unable to load authorized source.')}</Alert> :
-        myEditableRequests.length === 0 ? <Alert severity="info" role="status">{t('noQueue', 'No editable purchase requests created by you.')}</Alert> :
+        !selectedProjectId ? <Alert severity="info" role="status" lang={locale}>{t('empty', 'Select an authorized project to view purchasing work.')}</Alert> :
+        prQuery.isPending ? <Stack direction="row" spacing={1} alignItems="center" role="status" aria-live="polite" lang={locale}><CircularProgress size={20} /><Typography>{t('loading', 'Loading records…')}</Typography></Stack> :
+        prQuery.isError ? <Alert severity="error" lang={locale}>{t('error', 'Unable to load authorized source.')}</Alert> :
+        myEditableRequests.length === 0 ? <Alert severity="info" role="status" lang={locale}>{t('noQueue', 'No editable purchase requests created by you.')}</Alert> :
         <Stack spacing={1}>
           {myEditableRequests.map((pr) => (
             <Card key={pr.id} variant="outlined">
@@ -250,10 +250,10 @@ export function RoleWorkspaceShell({
                 <Stack direction={{ xs: 'column', sm: 'row' }} alignItems={{ sm: 'center' }} spacing={1.5}>
                   <Box sx={{ flexGrow: 1 }}>
                     <Typography variant="subtitle1" fontWeight={600}>{pr.prNumber}</Typography>
-                    <Typography variant="body2" color="text.secondary">{t('number', 'Purchase request')} · {pr._count.lines} {t(pr._count.lines === 1 ? 'lineOne' : 'lineMany', pr._count.lines === 1 ? 'line' : 'lines')}</Typography>
+                    <Typography variant="body2" color="text.secondary"><span lang={locale}>{t('number', 'Purchase request')}</span> · {pr._count.lines} <span lang={locale}>{t(pr._count.lines === 1 ? 'lineOne' : 'lineMany', pr._count.lines === 1 ? 'line' : 'lines')}</span></Typography>
                   </Box>
-                  <Chip size="small" label={pr.lifecycleState === 'REJECTED' ? t('statusRejected', 'Rejected') : t('statusDraft', 'Draft')} color={pr.lifecycleState === 'REJECTED' ? 'warning' : 'default'} />
-                  <Button variant="outlined" onClick={() => openPr(pr.id)}>
+                  <Chip size="small" lang={locale} label={pr.lifecycleState === 'REJECTED' ? t('statusRejected', 'Rejected') : t('statusDraft', 'Draft')} color={pr.lifecycleState === 'REJECTED' ? 'warning' : 'default'} />
+                  <Button variant="outlined" lang={locale} onClick={() => openPr(pr.id)}>
                     {t('open', 'Open in Purchase Requests')}
                   </Button>
                 </Stack>
@@ -261,21 +261,21 @@ export function RoleWorkspaceShell({
             </Card>
           ))}
         </Stack>}
-      <Alert severity="info" role="note">{t('sourceOnly', 'Approval eligibility is evaluated in the source module.')}</Alert>
+      <Alert severity="info" role="note" lang={locale}>{t('sourceOnly', 'Approval eligibility is evaluated in the source module.')}</Alert>
     </Stack>
   );
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
-      <AppBar lang={locale} color="inherit" position="sticky" elevation={0} sx={{ borderBottom: 1, borderColor: 'divider' }}>
+      <AppBar color="inherit" position="sticky" elevation={0} sx={{ borderBottom: 1, borderColor: 'divider' }}>
         <Toolbar sx={{ gap: { xs: 1, md: 2 }, flexWrap: { xs: 'wrap', md: 'nowrap' }, py: { xs: 1, md: 0 } }}>
-          {isMobile && <Button onClick={() => setMobileMenu(true)} aria-label={t('menu', 'Menu')}
+          {isMobile && <Button lang={locale} onClick={() => setMobileMenu(true)} aria-label={t('menu', 'Menu')}
             aria-controls="v11-primary-navigation" aria-expanded={mobileMenu}
             sx={{ minHeight: 44, minWidth: 44 }}>{t('menu', 'Menu')}</Button>}
           <Box sx={{ flexGrow: 1, minWidth: 0 }}>
             <Typography variant="h6" fontWeight={700}>Construction ERP</Typography>
             <Typography variant="caption" color="text.secondary">
-              {t('companySession', 'Company session')} · {user.companyId.slice(0, 8)}
+              <span lang={locale}>{t('companySession', 'Company session')}</span> · {user.companyId.slice(0, 8)}
             </Typography>
           </Box>
           <FormControl size="small" sx={{ minWidth: 90 }}>
@@ -285,7 +285,7 @@ export function RoleWorkspaceShell({
               <MenuItem value="zh-TW">繁中</MenuItem>
             </Select>
           </FormControl>
-          <Button onClick={onLogout} disabled={logoutPending}>{t('signOut', 'Sign out')}</Button>
+          <Button lang={locale} onClick={onLogout} disabled={logoutPending}>{t('signOut', 'Sign out')}</Button>
         </Toolbar>
       </AppBar>
       <Box sx={{ display: 'flex' }}>
@@ -304,8 +304,8 @@ export function RoleWorkspaceShell({
         <Container component="main" maxWidth="xl" sx={{ py: 3, minWidth: 0, flex: 1 }}>
           <Stack spacing={2}>
             {screen === 'module' && activeSection &&
-              <Typography variant="body2" color="text.secondary" lang={locale} sx={{ overflowWrap: 'anywhere' }}>
-                {t('home', 'Home')} / {t(activeSection.key, activeSection.label)}
+              <Typography variant="body2" color="text.secondary" sx={{ overflowWrap: 'anywhere' }}>
+                <span lang={locale}>{t('home', 'Home')}</span> / <span lang={labels[locale][activeSection.key] ? locale : undefined}>{t(activeSection.key, activeSection.label)}</span>
               </Typography>}
             {screen === 'home' ? home : screen === 'work' ? work :
               activeSection ? activeSection.content : <Alert severity="warning">{t('noModules', 'No available module.')}</Alert>}
