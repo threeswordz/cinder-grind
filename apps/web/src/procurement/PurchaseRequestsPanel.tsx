@@ -89,6 +89,7 @@ export function PurchaseRequestsPanel({
     initialProjectId,
     initialRequestId,
     projects.isSuccess,
+    projects.isFetching,
     projects.data,
   ]);
 
@@ -116,6 +117,7 @@ export function PurchaseRequestsPanel({
     initialRequestId,
     projectId,
     requests.isSuccess,
+    requests.isFetching,
     requests.data,
   ]);
 
