@@ -171,9 +171,12 @@ export function CostControlWorkspace({
   }, [createCostCodeId, options.data]);
 
   useEffect(() => {
+    if (!initialWbsId || !initialProjectId) {
+      setLinkedWbsId('');
+      appliedWbsSource.current = '';
+      return;
+    }
     if (
-      !initialWbsId ||
-      !initialProjectId ||
       projectId !== initialProjectId ||
       !options.isSuccess ||
       options.isFetching
