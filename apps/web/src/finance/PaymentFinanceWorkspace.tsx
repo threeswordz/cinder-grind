@@ -20,9 +20,17 @@ import {
   PaymentDirection,
   paymentApi,
 } from '../api/finance';
+import {
+  resolveLinkedProjectId,
+  resolveLinkedRecordId,
+  type SourceLinkTarget,
+} from '../role-ui/source-link-policy';
 
 type Props = {
   permissions: string[];
+  initialProjectId?: string;
+  initialPaymentId?: string;
+  onOpenSource?: (target: SourceLinkTarget) => void;
 };
 
 function key() {
@@ -39,7 +47,7 @@ function dateValue(value: string | null | undefined) {
   return value ? value.slice(0, 10) : '';
 }
 
-export function PaymentFinanceWorkspace({ permissions }: Props) {
+export function PaymentFinanceWorkspace({ permissions, initialProjectId, initialPaymentId, onOpenSource }: Props) {
   const queryClient = useQueryClient();
   const canView = permissions.includes('finance.payment.view');
   const canCreate = permissions.includes('finance.payment.create');
@@ -91,12 +99,20 @@ export function PaymentFinanceWorkspace({ permissions }: Props) {
   });
 
   useEffect(() => {
+    if (!initialProjectId || !projects.isSuccess) return;
+    setProjectId(
+      resolveLinkedProjectId(initialProjectId, projects.data?.data ?? []),
+    );
+  }, [initialProjectId, projects.isSuccess, projects.data]);
+
+  useEffect(() => {
+    if (initialProjectId) return;
     const rows = projects.data?.data ?? [];
     if (!projectId && rows[0]) setProjectId(rows[0].id);
     if (projectId && !rows.some((project) => project.id === projectId)) {
       setProjectId(rows[0]?.id ?? '');
     }
-  }, [projectId, projects.data]);
+  }, [initialProjectId, projectId, projects.data]);
 
   useEffect(() => {
     setPaymentId('');
@@ -117,13 +133,24 @@ export function PaymentFinanceWorkspace({ permissions }: Props) {
   });
 
   useEffect(() => {
-    if (payments.isFetching) return;
+    if (!initialPaymentId || !payments.isSuccess) return;
+    setPaymentId(
+      resolveLinkedRecordId(
+        initialPaymentId,
+        projectId,
+        payments.data?.data ?? [],
+      ),
+    );
+  }, [initialPaymentId, projectId, payments.isSuccess, payments.data]);
+
+  useEffect(() => {
+    if (initialPaymentId || payments.isFetching) return;
     const rows = payments.data?.data ?? [];
     if (!paymentId && rows[0]) setPaymentId(rows[0].id);
     if (paymentId && !rows.some((payment) => payment.id === paymentId)) {
       setPaymentId(rows[0]?.id ?? '');
     }
-  }, [paymentId, payments.data, payments.isFetching]);
+  }, [initialPaymentId, paymentId, payments.data, payments.isFetching]);
 
   const detail = useQuery({
     queryKey: ['finance-payment', paymentId],
