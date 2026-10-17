@@ -30,8 +30,8 @@ import {
 
 type Props = {
   permissions: string[];
-  initialProjectId?: string;
-  initialPaymentId?: string;
+  initialProjectId?: string | undefined;
+  initialPaymentId?: string | undefined;
   onOpenSource?: (target: SourceLinkTarget) => void;
 };
 
