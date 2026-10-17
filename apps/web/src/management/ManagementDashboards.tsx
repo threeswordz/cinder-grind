@@ -1,5 +1,6 @@
 import {
   Alert,
+  Button,
   Card,
   CardContent,
   Chip,
@@ -12,12 +13,20 @@ import {
   Typography,
 } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
-import { ReactNode, useState } from 'react';
+import { ReactNode, useEffect, useRef, useState } from 'react';
 
 import {
   ManagementProjectSummary,
   managementApi,
 } from '../api/management';
+import {
+  canOpenSourceLink,
+  consumeSourceLinkKey,
+  resolveLinkedProjectId,
+  sourceLinkTarget,
+  type SourceLinkSection,
+  type SourceLinkTarget,
+} from '../role-ui/source-link-policy';
 import { ProjectEngineerDashboard } from '../reporting/ProjectEngineerDashboard';
 import { GanttLookaheadPanel } from '../scheduling/GanttLookaheadPanel';
 
@@ -400,13 +409,18 @@ function ScheduleDetail({
 
 export function ManagementDashboards({
   permissions,
+  initialProjectId,
+  onOpenSource,
 }: {
   permissions: string[];
+  initialProjectId?: string | undefined;
+  onOpenSource?: ((target: SourceLinkTarget) => void) | undefined;
 }) {
   const [mode, setMode] = useState<DashboardMode>('engineer');
   const [projectId, setProjectId] = useState('');
   const [asOf, setAsOf] = useState(localDateValue());
   const [days, setDays] = useState<14 | 28>(14);
+  const appliedProjectSource = useRef('');
 
   const projects = useQuery({
     queryKey: ['management', 'projects'],
@@ -418,11 +432,42 @@ export function ManagementDashboards({
     enabled: Boolean(projectId && asOf),
   });
 
+  useEffect(() => {
+    if (!initialProjectId || !projects.isSuccess || projects.isFetching) return;
+    if (!consumeSourceLinkKey(appliedProjectSource, initialProjectId)) return;
+    setProjectId(
+      resolveLinkedProjectId(initialProjectId, projects.data?.data ?? []),
+    );
+  }, [
+    initialProjectId,
+    projects.data,
+    projects.isFetching,
+    projects.isSuccess,
+  ]);
+
   const summary = summaryQuery.data?.data;
   const canViewEngineerDetail = permissions.includes(
     'reporting.operational.view',
   );
   const canViewGantt = permissions.includes('schedule.programme.view');
+
+  const openSource = (sectionKey: SourceLinkSection) => {
+    if (
+      !onOpenSource ||
+      !projectId ||
+      !canOpenSourceLink(sectionKey, permissions)
+    ) {
+      return;
+    }
+    const target = sourceLinkTarget(
+      sectionKey,
+      projectId,
+      projectId,
+      undefined,
+      'project',
+    );
+    if (target) onOpenSource(target);
+  };
 
   return (
     <Stack spacing={3}>
@@ -483,6 +528,29 @@ export function ManagementDashboards({
           <MenuItem value={28}>4 weeks</MenuItem>
         </TextField>
       </Stack>
+
+      {projectId && onOpenSource ? (
+        <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+          {canOpenSourceLink('projects', permissions) ? (
+            <Button onClick={() => openSource('projects')}>Project</Button>
+          ) : null}
+          {canOpenSourceLink('wbs', permissions) ? (
+            <Button onClick={() => openSource('wbs')}>WBS</Button>
+          ) : null}
+          {canOpenSourceLink('scheduling', permissions) ? (
+            <Button onClick={() => openSource('scheduling')}>Schedule</Button>
+          ) : null}
+          {canOpenSourceLink('budget', permissions) ? (
+            <Button onClick={() => openSource('budget')}>Budget</Button>
+          ) : null}
+          {canOpenSourceLink('site-execution', permissions) ? (
+            <Button onClick={() => openSource('site-execution')}>Site</Button>
+          ) : null}
+          {canOpenSourceLink('cost-control', permissions) ? (
+            <Button onClick={() => openSource('cost-control')}>Cost</Button>
+          ) : null}
+        </Stack>
+      ) : null}
 
       {projects.isError ? (
         <Alert severity="error">Unable to load authorized Projects.</Alert>
