@@ -22,7 +22,7 @@ export function GoodsReceiptsPanel({
   permissions: string[];
   initialProjectId?: string | undefined;
   initialReceiptId?: string | undefined;
-  onOpenSource?: (target: SourceLinkTarget) => void;
+  onOpenSource?: ((target: SourceLinkTarget) => void) | undefined;
 }) {
   const queryClient = useQueryClient();
   const canCreate = permissions.includes('inventory.receipt.create');
