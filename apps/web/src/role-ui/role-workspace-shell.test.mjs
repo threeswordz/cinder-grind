@@ -42,6 +42,10 @@ test('responsive V1.1 role shell renders only supplied authorized modules', asyn
       assert.match(html, /Purchase Requests/);
       assert.match(html, /STORE_STAFF/);
       assert.match(html, /My Work/);
+      assert.match(html, /<nav[^>]*id="v11-primary-navigation"/);
+      assert.match(html, /aria-label="Main navigation"/);
+      assert.match(html, /aria-current="page"/);
+      assert.doesNotMatch(html, /Close menu/);
       assert.doesNotMatch(html, /Switch Role|Impersonat/);
       assert.doesNotMatch(html, /Approval Matrix/);
     });
@@ -49,6 +53,8 @@ test('responsive V1.1 role shell renders only supplied authorized modules', asyn
     await t.test('mobile has responsive menu trigger and retains authorized shortcut', () => {
       const html = render(true, permitted);
       assert.match(html, /aria-label="Menu"/);
+      assert.match(html, /aria-controls="v11-primary-navigation"/);
+      assert.match(html, /aria-expanded="false"/);
       assert.match(html, /Purchase Requests/);
     });
 
@@ -56,6 +62,9 @@ test('responsive V1.1 role shell renders only supplied authorized modules', asyn
       const html = render(false, []);
       assert.match(html, /No application modules are available/);
       assert.doesNotMatch(html, /Purchase Requests/);
+      assert.match(html, /aria-label="Main navigation"/);
+      assert.match(html, /aria-current="page"/);
+      assert.doesNotMatch(html, /Approval Matrix|Switch Role|Impersonat/);
     });
   } finally {
     await vite.close();
