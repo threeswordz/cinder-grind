@@ -129,6 +129,7 @@ export function SourcingPanel({
     initialRfqId,
     initialQuotationId,
     projects.isSuccess,
+    projects.isFetching,
     projects.data,
   ]);
 
@@ -155,6 +156,7 @@ export function SourcingPanel({
     initialQuotationId,
     projectId,
     rfqs.isSuccess,
+    rfqs.isFetching,
     rfqs.data,
   ]);
 
@@ -321,6 +323,7 @@ export function SourcingPanel({
     initialRfqId,
     initialQuotationId,
     projectId,
+    detail.isFetching,
   ]);
 
   useEffect(() => {
