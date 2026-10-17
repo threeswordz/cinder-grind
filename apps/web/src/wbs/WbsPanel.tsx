@@ -300,7 +300,8 @@ export function WbsPanel({
                   </div>
                   <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
                     <Button onClick={() => editW(row)}>Open</Button>
-                    {onOpenSource &&
+                    {row.isActive &&
+                    onOpenSource &&
                     canOpenSourceLink('scheduling', permissions) ? (
                       <Button
                         onClick={() =>
@@ -310,14 +311,17 @@ export function WbsPanel({
                         Activities
                       </Button>
                     ) : null}
-                    {onOpenSource && canOpenSourceLink('budget', permissions) ? (
+                    {row.isActive &&
+                    onOpenSource &&
+                    canOpenSourceLink('budget', permissions) ? (
                       <Button
                         onClick={() => openSource('budget', 'wbs', row.id)}
                       >
                         Budget
                       </Button>
                     ) : null}
-                    {onOpenSource &&
+                    {row.isActive &&
+                    onOpenSource &&
                     canOpenSourceLink('cost-control', permissions) ? (
                       <Button
                         onClick={() =>
