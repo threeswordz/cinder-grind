@@ -65,6 +65,15 @@ export function resolveLinkedChildRecordId(
     : '';
 }
 
+export function consumeSourceLinkKey(
+  lastApplied: { current: string },
+  key: string,
+): boolean {
+  if (!key || lastApplied.current === key) return false;
+  lastApplied.current = key;
+  return true;
+}
+
 export function sourceLinkTarget(
   sectionKey: SourceLinkSection,
   projectId: string,
