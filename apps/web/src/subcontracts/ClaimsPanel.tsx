@@ -19,6 +19,11 @@ import {
   subcontractsApi,
 } from '../api/subcontracts';
 import { CertificationSection } from './CertificationSection';
+import {
+  consumeSourceLinkKey,
+  resolveLinkedRecordId,
+  type SourceLinkTarget,
+} from '../role-ui/source-link-policy';
 
 function amountToCents(value: string) {
   const [whole = '0', fraction = ''] = value.split('.');
@@ -48,7 +53,21 @@ function actionColor(state: string) {
   return 'default' as const;
 }
 
-export function ClaimsPanel({ permissions }: { permissions: string[] }) {
+export function ClaimsPanel({
+  permissions,
+  initialProjectId,
+  initialAgreementId,
+  initialClaimId,
+  initialCertificationId,
+  onOpenSource,
+}: {
+  permissions: string[];
+  initialProjectId?: string | undefined;
+  initialAgreementId?: string | undefined;
+  initialClaimId?: string | undefined;
+  initialCertificationId?: string | undefined;
+  onOpenSource?: ((target: SourceLinkTarget) => void) | undefined;
+}) {
   const client = useQueryClient();
   const canView = permissions.includes('subcontracts.claim.view');
   const canCreate = permissions.includes('subcontracts.claim.create');
@@ -76,6 +95,8 @@ export function ClaimsPanel({ permissions }: { permissions: string[] }) {
   const [assessedAmount, setAssessedAmount] = useState('');
   const [assessmentReason, setAssessmentReason] = useState('');
   const [assessmentRejectReason, setAssessmentRejectReason] = useState('');
+  const appliedAgreementSourceLink = useRef('');
+  const appliedClaimSourceLink = useRef('');
 
   const retryActionKeys = useRef(new Map<string, string>());
   const activeActionSignature = useRef<string | null>(null);
@@ -109,6 +130,32 @@ export function ClaimsPanel({ permissions }: { permissions: string[] }) {
       ) ?? null,
     [agreements.data?.data, agreementId],
   );
+
+  useEffect(() => {
+    if (
+      !initialProjectId ||
+      !initialAgreementId ||
+      !agreements.isSuccess ||
+      agreements.isFetching
+    ) {
+      return;
+    }
+    const sourceLinkKey = `${initialProjectId}:${initialAgreementId}`;
+    if (!consumeSourceLinkKey(appliedAgreementSourceLink, sourceLinkKey)) return;
+    setAgreementId(
+      resolveLinkedRecordId(
+        initialAgreementId,
+        initialProjectId,
+        agreements.data?.data ?? [],
+      ),
+    );
+  }, [
+    initialProjectId,
+    initialAgreementId,
+    agreements.isSuccess,
+    agreements.isFetching,
+    agreements.data,
+  ]);
   const agreementActive =
     selectedAgreement?.approvalState === 'APPROVED' &&
     !selectedAgreement.cancelledAt;
@@ -131,6 +178,37 @@ export function ClaimsPanel({ permissions }: { permissions: string[] }) {
       null,
     [claims.data?.data, selectedClaimId],
   );
+
+  useEffect(() => {
+    if (
+      !initialProjectId ||
+      !initialAgreementId ||
+      agreementId !== initialAgreementId ||
+      !initialClaimId ||
+      !claims.isSuccess ||
+      claims.isFetching
+    ) {
+      return;
+    }
+    const sourceLinkKey =
+      `${initialProjectId}:${initialAgreementId}:${initialClaimId}`;
+    if (!consumeSourceLinkKey(appliedClaimSourceLink, sourceLinkKey)) return;
+    setSelectedClaimId(
+      resolveLinkedRecordId(
+        initialClaimId,
+        initialProjectId,
+        claims.data?.data ?? [],
+      ),
+    );
+  }, [
+    initialProjectId,
+    initialAgreementId,
+    initialClaimId,
+    agreementId,
+    claims.isSuccess,
+    claims.isFetching,
+    claims.data,
+  ]);
 
   const selectedLine = useMemo(
     () =>
@@ -701,6 +779,8 @@ export function ClaimsPanel({ permissions }: { permissions: string[] }) {
                 claimedAmount={claimAmount}
                 agreementActive={agreementActive}
                 permissions={permissions}
+                initialCertificationId={initialCertificationId}
+                onOpenSource={onOpenSource}
                 onReplacementCreated={(claimId) => setSelectedClaimId(claimId)}
               />
 
