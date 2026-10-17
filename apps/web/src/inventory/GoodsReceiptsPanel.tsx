@@ -5,8 +5,23 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 
 import { inventoryApi } from '../api/inventory';
+import {
+  resolveLinkedProjectId,
+  resolveLinkedRecordId,
+  type SourceLinkTarget,
+} from '../role-ui/source-link-policy';
 
-export function GoodsReceiptsPanel({ permissions }: { permissions: string[] }) {
+export function GoodsReceiptsPanel({
+  permissions,
+  initialProjectId,
+  initialReceiptId,
+  onOpenSource,
+}: {
+  permissions: string[];
+  initialProjectId?: string;
+  initialReceiptId?: string;
+  onOpenSource?: (target: SourceLinkTarget) => void;
+}) {
   const queryClient = useQueryClient();
   const canCreate = permissions.includes('inventory.receipt.create');
   const canSubmit = permissions.includes('inventory.receipt.submit');
@@ -46,6 +61,25 @@ export function GoodsReceiptsPanel({ permissions }: { permissions: string[] }) {
     queryFn: () => inventoryApi.goodsReceipts(projectId),
     enabled: Boolean(projectId),
   });
+  useEffect(() => {
+    if (!initialProjectId || !projects.isSuccess) return;
+    setProjectId(
+      resolveLinkedProjectId(initialProjectId, projects.data?.data ?? []),
+    );
+    setSelectedId('');
+  }, [initialProjectId, projects.isSuccess, projects.data]);
+
+  useEffect(() => {
+    if (!initialReceiptId || !receipts.isSuccess) return;
+    setSelectedId(
+      resolveLinkedRecordId(
+        initialReceiptId,
+        projectId,
+        receipts.data?.data ?? [],
+      ),
+    );
+  }, [initialReceiptId, projectId, receipts.isSuccess, receipts.data]);
+
   const detail = useQuery({
     queryKey: ['goods-receipt', selectedId],
     queryFn: () => inventoryApi.goodsReceipt(selectedId),
