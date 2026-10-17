@@ -152,7 +152,7 @@ export function FinanceWorkspace({ permissions, initialProjectId, initialInvoice
   });
 
   useEffect(() => {
-    if (!initialProjectId || !projects.isSuccess) return;
+    if (!initialProjectId || !projects.isSuccess || projects.isFetching) return;
     const sourceLinkKey = `${initialProjectId}:${initialInvoiceId ?? ''}`;
     if (!consumeSourceLinkKey(appliedProjectSourceLink, sourceLinkKey)) return;
     setProjectId(
@@ -162,6 +162,7 @@ export function FinanceWorkspace({ permissions, initialProjectId, initialInvoice
     initialProjectId,
     initialInvoiceId,
     projects.isSuccess,
+    projects.isFetching,
     projects.data,
   ]);
 
@@ -196,7 +197,8 @@ export function FinanceWorkspace({ permissions, initialProjectId, initialInvoice
       !initialProjectId ||
       projectId !== initialProjectId ||
       !initialInvoiceId ||
-      !invoices.isSuccess
+      !invoices.isSuccess ||
+      invoices.isFetching
     ) {
       return;
     }
@@ -214,6 +216,7 @@ export function FinanceWorkspace({ permissions, initialProjectId, initialInvoice
     initialInvoiceId,
     projectId,
     invoices.isSuccess,
+    invoices.isFetching,
     invoices.data,
   ]);
 
