@@ -170,7 +170,7 @@ export function RoleWorkspaceShell({
     <Box sx={{ minWidth: { xs: '100%', sm: 250 }, maxWidth: 370 }}>
       {projectQuery.isError ? <Alert severity="warning">{t('error', 'Unable to load project context.')}</Alert> :
         projectQuery.isPending ? <CircularProgress size={20} aria-label={t('loading', 'Loading')} /> :
-        projects.length === 0 ? <Alert severity="info">{t('noProject', 'No accessible projects')}</Alert> :
+        projects.length === 0 ? <Alert severity="info" role="status">{t('noProject', 'No accessible projects')}</Alert> :
         <FormControl size="small" fullWidth>
           <InputLabel id="v11-project-label">{t('context', 'Project context')}</InputLabel>
           <Select
@@ -236,10 +236,10 @@ export function RoleWorkspaceShell({
       </Typography>}
       {!canReadPr ? <Alert severity="info" role="status">{t('queueUnavailable', 'Purchasing list unavailable for your permissions.')}</Alert> :
         projectQuery.isError || projectQuery.isPending ? null :
-        !selectedProjectId ? <Alert severity="info">{t('empty', 'Select an authorized project to view purchasing work.')}</Alert> :
+        !selectedProjectId ? <Alert severity="info" role="status">{t('empty', 'Select an authorized project to view purchasing work.')}</Alert> :
         prQuery.isPending ? <Stack direction="row" spacing={1} alignItems="center" role="status" aria-live="polite"><CircularProgress size={20} /><Typography>{t('loading', 'Loading records…')}</Typography></Stack> :
         prQuery.isError ? <Alert severity="error">{t('error', 'Unable to load authorized source.')}</Alert> :
-        myEditableRequests.length === 0 ? <Alert severity="info">{t('noQueue', 'No editable purchase requests created by you.')}</Alert> :
+        myEditableRequests.length === 0 ? <Alert severity="info" role="status">{t('noQueue', 'No editable purchase requests created by you.')}</Alert> :
         <Stack spacing={1}>
           {myEditableRequests.map((pr) => (
             <Card key={pr.id} variant="outlined">
