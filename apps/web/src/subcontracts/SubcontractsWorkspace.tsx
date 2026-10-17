@@ -25,6 +25,7 @@ import {
   subcontractsApi,
 } from '../api/subcontracts';
 import { ClaimsPanel } from './ClaimsPanel';
+import type { SourceLinkTarget } from '../role-ui/source-link-policy';
 import { VariationsReportingPanel } from './VariationsReportingPanel';
 
 function SubcontractorsPanel({ permissions }: { permissions: string[] }) {
@@ -1685,14 +1686,21 @@ function AgreementsPanel({ permissions }: { permissions: string[] }) {
 
 export function SubcontractsWorkspace({
   permissions,
+  initialSource,
+  onOpenSource,
 }: {
   permissions: string[];
+  initialSource?: SourceLinkTarget | undefined;
+  onOpenSource?: ((target: SourceLinkTarget) => void) | undefined;
 }) {
   const canSeeRegister = permissions.includes(
     'subcontracts.subcontractor.view',
   );
   const canSeeAgreements = permissions.includes('subcontracts.agreement.view');
   const canSeeClaims = permissions.includes('subcontracts.claim.view');
+  const canSeeCertification = permissions.includes(
+    'subcontracts.certification.view',
+  );
   const canSeeVariations =
     permissions.includes('subcontracts.variation.view') ||
     permissions.includes('subcontracts.report.view');
@@ -1705,6 +1713,41 @@ export function SubcontractsWorkspace({
           ? 'claims'
           : 'variations',
   );
+
+  const linkedCertification = useQuery({
+    queryKey: [
+      'subcontracts',
+      'source-certification',
+      initialSource?.recordId ?? '',
+    ],
+    queryFn: () => subcontractsApi.certification(initialSource?.recordId ?? ''),
+    enabled:
+      canSeeClaims &&
+      canSeeCertification &&
+      initialSource?.recordKind === 'subcontract-certification' &&
+      Boolean(initialSource.recordId),
+  });
+  const linkedCertificationRecord =
+    linkedCertification.data?.data &&
+    linkedCertification.data.data.projectId === initialSource?.projectId
+      ? linkedCertification.data.data
+      : null;
+
+  useEffect(() => {
+    if (
+      initialSource?.recordKind === 'subcontract-certification' &&
+      linkedCertification.isSuccess &&
+      linkedCertificationRecord &&
+      canSeeClaims
+    ) {
+      setTab('claims');
+    }
+  }, [
+    canSeeClaims,
+    initialSource?.recordKind,
+    linkedCertification.isSuccess,
+    linkedCertificationRecord,
+  ]);
 
   if (!canSeeRegister && !canSeeAgreements && !canSeeClaims && !canSeeVariations) {
     return <Alert severity="warning">No Subcontracts permission is assigned.</Alert>;
@@ -1727,7 +1770,14 @@ export function SubcontractsWorkspace({
         <AgreementsPanel permissions={permissions} />
       ) : null}
       {tab === 'claims' && canSeeClaims ? (
-        <ClaimsPanel permissions={permissions} />
+        <ClaimsPanel
+          permissions={permissions}
+          initialProjectId={linkedCertificationRecord?.projectId}
+          initialAgreementId={linkedCertificationRecord?.agreementId}
+          initialClaimId={linkedCertificationRecord?.claimId}
+          initialCertificationId={linkedCertificationRecord?.id}
+          onOpenSource={onOpenSource}
+        />
       ) : null}
       {tab === 'variations' && canSeeVariations ? (
         <VariationsReportingPanel permissions={permissions} />
