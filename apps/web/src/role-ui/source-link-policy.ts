@@ -66,7 +66,13 @@ export function canWriteSourceForm(
 export function canOpenSourceLink(
   sectionKey: SourceLinkSection,
   permissions: readonly string[],
+  recordKind?: SourceLinkRecordKind,
 ): boolean {
+  // WBS-focused Budget navigation needs the owning BOQ/options read path;
+  // project-level revision history remains available to revision-only viewers.
+  if (sectionKey === 'budget' && recordKind === 'wbs') {
+    return permissions.includes('budget.boq.view') || permissions.includes('budget.boq.manage');
+  }
   return SOURCE_VIEW_PERMISSIONS[sectionKey].some((permission) =>
     permissions.includes(permission),
   );
