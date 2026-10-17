@@ -53,7 +53,8 @@ test('C3 WBS-scoped Budget links require owning BOQ read while project revisions
   assert.equal(canOpenSourceLink('budget', ['budget.revision.view'], 'wbs'), false);
   assert.equal(canOpenSourceLink('budget', ['budget.revision.approve'], 'wbs'), false);
   assert.equal(canOpenSourceLink('budget', ['budget.boq.view'], 'wbs'), true);
-  assert.equal(canOpenSourceLink('budget', ['budget.boq.manage'], 'wbs'), true);
+  assert.equal(canOpenSourceLink('budget', ['budget.boq.manage'], 'wbs'), false);
+  assert.equal(canOpenSourceLink('budget', ['budget.boq.manage', 'budget.boq.view'], 'wbs'), true);
   assert.equal(canOpenSourceLink('budget', [], 'wbs'), false);
   assert.equal(canOpenSourceLink('budget', ['budget.revision.view'], 'project'), true);
   assert.equal(canOpenSourceLink('budget', ['budget.revision.view'], 'budget-revision'), true);
