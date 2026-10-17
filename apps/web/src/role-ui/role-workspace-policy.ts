@@ -58,10 +58,10 @@ export function verifiedPurchaseRequestLink(
   requestId: string,
   projectId: string,
   accessibleProjects: readonly ProjectChoice[],
-  visibleRows: readonly { id: string }[],
+  visibleRows: readonly { id: string; projectId: string }[],
 ): { projectId: string; requestId: string } | null {
   if (!requestId || !isAccessibleProject(projectId, accessibleProjects) ||
-      !visibleRows.some((row) => row.id === requestId)) {
+      !visibleRows.some((row) => row.id === requestId && row.projectId === projectId)) {
     return null;
   }
   return { projectId, requestId };
