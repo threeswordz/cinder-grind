@@ -231,22 +231,32 @@ export function ProjectsPanel({
                 </div>
                 <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
                   <Button size="small" onClick={() => edit(project)}>Open</Button>
-                  {canOpenSourceLink('wbs', permissions) && onOpenSource ? (
+                  {project.isActive &&
+                  canOpenSourceLink('wbs', permissions) &&
+                  onOpenSource ? (
                     <Button size="small" onClick={() => openProjectSource('wbs', project)}>WBS</Button>
                   ) : null}
-                  {canOpenSourceLink('scheduling', permissions) && onOpenSource ? (
+                  {project.isActive &&
+                  canOpenSourceLink('scheduling', permissions) &&
+                  onOpenSource ? (
                     <Button size="small" onClick={() => openProjectSource('scheduling', project)}>Schedule</Button>
                   ) : null}
-                  {canOpenSourceLink('budget', permissions) && onOpenSource ? (
+                  {project.isActive &&
+                  canOpenSourceLink('budget', permissions) &&
+                  onOpenSource ? (
                     <Button size="small" onClick={() => openProjectSource('budget', project)}>Budget</Button>
                   ) : null}
-                  {canOpenSourceLink('site-execution', permissions) && onOpenSource ? (
+                  {project.isActive &&
+                  canOpenSourceLink('site-execution', permissions) &&
+                  onOpenSource ? (
                     <Button size="small" onClick={() => openProjectSource('site-execution', project)}>Site</Button>
                   ) : null}
                   {canOpenSourceLink('cost-control', permissions) && onOpenSource ? (
                     <Button size="small" onClick={() => openProjectSource('cost-control', project)}>Cost</Button>
                   ) : null}
-                  {canOpenSourceLink('management', permissions) && onOpenSource ? (
+                  {project.isActive &&
+                  canOpenSourceLink('management', permissions) &&
+                  onOpenSource ? (
                     <Button size="small" onClick={() => openProjectSource('management', project)}>Management</Button>
                   ) : null}
                   {canArchive ? (
