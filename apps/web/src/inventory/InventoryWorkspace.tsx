@@ -30,7 +30,7 @@ export function InventoryWorkspace({
   permissions: string[];
   initialProjectId?: string | undefined;
   initialReceiptId?: string | undefined;
-  onOpenSource?: (target: SourceLinkTarget) => void;
+  onOpenSource?: ((target: SourceLinkTarget) => void) | undefined;
 }) {
   const canSeeWarehouses = permissions.includes('inventory.warehouse.view');
   const canSeeReceipts = permissions.includes('inventory.receipt.view');
