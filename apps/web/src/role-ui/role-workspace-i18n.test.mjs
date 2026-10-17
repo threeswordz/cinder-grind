@@ -24,6 +24,7 @@ test('required navigation and My Work labels exist for all locales', () => {
   for (const locale of ['en', 'th', 'zh-TW']) {
     for (const key of ['home', 'work', 'menu', 'signOut', 'context', 'chooseProject',
       'noProject', 'noQueue', 'queueUnavailable', 'sourceOnly', 'open', 'lineOne', 'lineMany',
+      'primaryNavigation', 'closeMenu',
       'statusDraft', 'statusRejected', 'language', 'loading', 'error']) {
       assert.ok(translate(locale, key, '').trim(), locale + ':' + key);
     }
