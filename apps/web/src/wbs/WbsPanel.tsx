@@ -190,7 +190,7 @@ export function WbsPanel({
     recordKind: 'project' | 'wbs',
     wbsId?: string,
   ) => {
-    if (!onOpenSource || !canOpenSourceLink(sectionKey, permissions) || !projectId) {
+    if (!onOpenSource || !canOpenSourceLink(sectionKey, permissions, recordKind) || !projectId) {
       return;
     }
     const target = sourceLinkTarget(
@@ -326,7 +326,7 @@ export function WbsPanel({
                     ) : null}
                     {row.isActive &&
                     onOpenSource &&
-                    canOpenSourceLink('budget', permissions) ? (
+                    canOpenSourceLink('budget', permissions, 'wbs') ? (
                       <Button
                         onClick={() => openSource('budget', 'wbs', row.id)}
                       >
