@@ -47,9 +47,9 @@ export function SourcingPanel({
   onOpenSource,
 }: {
   permissions: string[];
-  initialProjectId?: string;
-  initialRfqId?: string;
-  initialQuotationId?: string;
+  initialProjectId?: string | undefined;
+  initialRfqId?: string | undefined;
+  initialQuotationId?: string | undefined;
   onOpenSource?: (target: SourceLinkTarget) => void;
 }) {
   const queryClient = useQueryClient();
