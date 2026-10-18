@@ -108,7 +108,36 @@ Then execute the authenticated/business smoke checklist in:
 
 The scripts do not self-mark those human checks as passed.
 
-## 7. Persistent data
+
+## 7. V1.1-E2 configuration readiness
+
+Before starting the eight-persona browser walkthroughs, map the exact local UAT accounts and Project in the ignored `deploy/uat/.env`:
+
+```text
+E2_PROJECT_ID=<active UAT Project UUID>
+E2_NANCY_EMAIL=<Nancy UAT account>
+E2_BEN_EMAIL=<Ben UAT account>
+E2_KHAIMOOK_EMAIL=<Khaimook UAT account>
+E2_JAI_EMAIL=<Jai UAT account>
+E2_STORE_SITE_EMAIL=<Store Site UAT account>
+E2_FOREMAN_EMAIL=<Foreman UAT account>
+E2_PORN_EMAIL=<Porn UAT account>
+E2_KOH_EMAIL=<Koh UAT account>
+```
+
+If the bootstrap administrator credentials are no longer valid, also set `E2_ADMIN_EMAIL` and `E2_ADMIN_PASSWORD`. These values stay local and must not be committed.
+
+With the API running, execute:
+
+```bash
+bash deploy/uat/e2-readiness.sh
+```
+
+The check is **read-only**. It verifies the eight accounts are distinct and active, have active Roles, required Project-journey users have active Employee links and membership in the configured Project, and required Approval Matrix entity types exist. It never creates or grants business authority. It writes a non-secret JSON readiness record to `$UAT_DATA_ROOT/evidence/v1.1-e2-readiness.json` and exits nonzero with **BLOCKED** details when configuration is incomplete.
+
+A `READY_FOR_INTERACTIVE_UAT` result is only a configuration precondition. It does not satisfy AC-V11-023–026 and does not replace real browser/persona/journey/accessibility evidence.
+
+## 8. Persistent data
 
 PostgreSQL uses the named Podman volume configured by `UAT_DB_VOLUME`.
 
@@ -122,7 +151,7 @@ by default.
 
 Stopping the container does not delete PostgreSQL data.
 
-## 8. Stop
+## 9. Stop
 
 Stop the API/web foreground processes with Ctrl+C, then:
 
@@ -132,7 +161,7 @@ bash deploy/uat/stop.sh
 
 Do not delete the Podman volume or document directory until UAT evidence/backups are no longer required.
 
-## 9. Evidence to record
+## 10. Evidence to record
 
 Before Product / Business Owner sign-off, record:
 
@@ -148,7 +177,7 @@ Before Product / Business Owner sign-off, record:
 V0.1 remains incomplete until the human gates in Issue #27 are explicitly recorded.
 
 
-## 10. Credential mismatch recovery for a fresh UAT database
+## 11. Credential mismatch recovery for a fresh UAT database
 
 PostgreSQL initializes the database user's password only when the named data volume is first created. If `UAT_DB_PASSWORD` is changed in `deploy/uat/.env` after that first initialization, the application will receive an authentication failure even though the new password is valid text.
 

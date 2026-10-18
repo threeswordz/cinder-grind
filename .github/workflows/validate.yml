@@ -68,6 +68,7 @@ jobs:
           bash -n deploy/uat/*.sh
           node --check deploy/uat/serve-web.mjs
           node --check deploy/uat/runtime-acceptance.mjs
+          node --check deploy/uat/e2-readiness.mjs
       - name: Validate UAT environment template
         run: |
           set -a
