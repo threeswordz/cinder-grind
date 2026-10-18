@@ -1,7 +1,7 @@
 # Construction ERP — Development Roadmap
 
 **Document Status:** Development Roadmap Baseline v0.1  
-**Current Phase:** V1.0 COMPLETE + ACCEPTED; V1.1-A/B/C/D/E1 technically COMPLETE; E1 PR #235 and main CI #4688 SUCCESS; E1 docs reconciliation ACTIVE; E2 UAT NEXT under Issue #233  
+**Current Phase:** V1.0 COMPLETE + ACCEPTED; V1.1-A/B/C/D/E1 technically COMPLETE; E1 docs closure PR #236 / exact-main CI #4692 SUCCESS; E2 eight-persona browser UAT PREPARATION ACTIVE under Issue #233  
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1  
@@ -11,9 +11,9 @@
 
 ---
 
-## Active successor — V1.1 Business Workflow & Role UI (DEC-028; E1 docs closure → E2 eight-persona UAT)
+## Active successor — V1.1 Business Workflow & Role UI (DEC-028; V1.1-E2 eight-persona UAT preparation)
 
-**Approval / handoff:** PR #235 exact head `3eded0112a97b6bf36ab7b1597fba087c38c03c8` passed push/PR CI #4686/#4687, final Codex review had no major issues after the genuine P2 findings were resolved, and was squash-merged `8b5320515aa32c0f78991be27680821733c8d7e5`; exact-main CI #4688 SUCCESS. Only the automated/non-browser E1 technical assurance is complete. AC-V11-026 real-browser regression, AC-V11-023–025 interactive UAT, and owner AC-V11-029/030 remain OPEN. E1 documentation reconciliation is active on `v1.1-e1-closure-reconcile`; E2 begins only after its exact-main green predecessor.
+**Approval / handoff:** E1 docs PR #236 head `b1ec4d810caeed76bf5bc8d73f77f70128a17836` passed exact-head push/PR CI #4690/#4691 and completed clean Codex review; squash-merged as `ca14c76491e138f28427a045818a70c65e7732a8`, with exact-main post-merge CI #4692 SUCCESS. E1 automated/non-browser technical and documentation closure is COMPLETE. E2 UAT PREPARATION is ACTIVE under Issue #233, with one writer branch `v1.1-e2-uat-preparation`. **No real-browser tests, eight-persona walkthroughs or human acceptance have yet been recorded as passed.** AC-V11-023–026 and AC-V11-029/030 remain OPEN; Production deployment is not claimed. E2 evidence and execution controls are documented in `docs/V1.1-E2-UAT-EXECUTION.md`; all real-browser and human acceptance remains unclaimed.
 
 | Stage | Approved bounded delivery | Gate |
 |---|---|---|
@@ -21,7 +21,7 @@
 | V1.1-B | Role-first modular responsive app shell, sourced Home/My Work and grouped navigation | **TECHNICALLY COMPLETE:** PRs #215/#216, 14 web tests, exact-main CI #4366 PASS, Issue #214 CLOSED |
 | V1.1-C | Source-owned Procurement→Finance (C1), Subcontract→Finance (C2), Project→Cost/Management (C3) | **FULL STAGE TECHNICALLY COMPLETE / CLOSED:** runtime #223 main CI #4554 PASS; full-docs closure #224 main CI #4562 PASS; Issue #217 CLOSED |
 | V1.1-D | UX/accessibility/security/compatibility hardening only; AC-V11-017–022 existing-business-rule non-regression | **TECHNICALLY COMPLETE:** D0 #226 main CI #4583; D1 #227/#228 main CI #4597/#4605; D2 #229/#230 main CI #4627/#4631; D3 #231 main CI #4643; full closure #232 main CI #4651; Issue #225 CLOSED / COMPLETED |
-| V1.1-E | Eight-persona UAT/evidence, three source-owned journeys, locale/THB/Company-Project security and release exit | **E1 TECHNICALLY COMPLETE:** PR #235, CI #4686/#4687/#4688 SUCCESS, clean final review. E1 docs reconciliation ACTIVE, E2 browser/UAT NEXT. AC-V11-023–026/029/030 OPEN under Issue #233. |
+| V1.1-E | Eight-persona UAT/evidence, locale/THB/Company-Project security regression and release exit | **E0/E1 COMPLETE:** PR #235 main CI #4688 and E1 docs PR #236 main CI #4692 PASS. **E2 UAT PREPARATION ACTIVE**; no interactive test results yet. AC-V11-023–026 and owner AC-V11-029/030 OPEN under Issue #233. |
 
 **Stage evidence:** `docs/V1.1-C-PREFLIGHT.md`, C1/C2/C3 evidence and `docs/V1.1-D-STAGE-CLOSURE.md` establish V1.1-C/D completion. `docs/V1.1-E-UAT-PREFLIGHT.md` is the E0 human/technical evidence plan; `docs/V1.1-E-TECHNICAL-EVIDENCE.md` tracks E1 exact-candidate CI/security/startup/recovery evidence. No eight-persona human UAT acceptance or Production deployment is implied.
 
