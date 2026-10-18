@@ -91,6 +91,10 @@ The normal delivery flow remains:
 
 **Product / Business Owner approves scope → Chat builds stage → GitHub records implementation → CI/tests validate → Chat fixes defects → PR/review → merge → post-merge CI → next stage**
 
+To avoid repeated administrative PRs under **DEC-030**, prefer one coherent implementation/test/documentation/closure PR **if the existing predecessor and release gates allow it**. A separate preflight or docs-only closure PR is appropriate only where a required gate must be completed before implementation starts, the diff/review risk warrants isolation, or evidence cannot responsibly be included in the same PR. This does **not** allow implementation before an entry gate closes.
+
+Maintain live stage/release position in `docs/CURRENT-STATE.md`; update scope, acceptance, testing, and other affected source documents for actual changes, and use a link to Current State in place of repeatedly copying long status histories. Preserve dated historical evidence. The concise PR template is a prompt to check **applicable** controls, not a waiver of CI, Codex, security, cost, Change Control, or Product Owner UAT.
+
 ## Codex review economy policy — DEC-022
 
 Codex is a scarce independent review gate, not the continuous development reviewer. The default delivery pattern is:
@@ -151,7 +155,7 @@ When the Product / Business Owner asks for the Construction ERP `live position`,
 
 1. re-fetch live GitHub state before reporting;
 2. follow `docs/LIVE-POSITION-REPORTING-STANDARD.md`;
-3. show the full V0.1 → V0.8 roadmap plus the V1.0 Production destination;
+3. show the full V0.1 → V0.8 roadmap, V1.0 Production Readiness and any approved active successor from live GitHub;
 4. show V0.6-A through V0.6-E individually;
 5. use the standard status vocabulary; and
 6. state the current exact position, current blocker and immediate next action.
