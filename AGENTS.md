@@ -90,3 +90,17 @@ If the desired outcome requires changing an approved rule, stop and obtain expli
 - Work remains the periodic broad auditor; required human UAT/business acceptance remains human.
 
 See `docs/DEVELOPMENT-OPERATING-MODEL.md` and DEC-022.
+
+
+## 6. Engineering-quality execution (PStack-inspired, no new platform)
+
+These execution practices complement, but do **not** amend or supersede, Sections 1–5, `docs/PROJECT-GOVERNANCE.md`, approved decisions, release scope, or acceptance gates. PStack is an inspiration for engineering discipline, **not** an installed dependency, an additional implementing authority, a new business requirement, or permission to run autonomous merges.
+
+- **Establish evidence before editing.** Identify the expected and observed behavior, governing requirement/acceptance criteria, active branch and CI baseline. Reproduce defects where practical; do not infer a root cause from a symptom.
+- **Prefer the smallest coherent correction.** Fix the root cause. Remove needless code before adding abstractions or compatibility layers; avoid speculative scope, redundant validations and second sources of truth.
+- **Model the actual domain and check the blast radius.** Before a material change, identify affected callers, Company/Project authorization boundaries, persisted states, API contracts, dependent modules, and Finance/Inventory/approval consequences where relevant. Keep invalid states and unauthorized paths impossible where practical.
+- **Make a checkable change.** For a defect, add a failing regression test first when feasible. Test observable business outcomes and denial paths rather than internal implementation details. Exercise retries, duplicate requests, concurrency and idempotency when the affected workflow warrants it.
+- **Prove results with the existing gates.** Split larger work into individually verifiable units; inspect the actual diff and run appropriate local/runtime checks plus required exact-head, PR and post-merge CI. A successful build, unit test or SSR rendering is not a substitute for real-browser evidence or Product Owner human UAT. Follow `docs/TESTING-UAT.md` for the authoritative testing and acceptance process.
+- **Convert repeated mistakes into enforceable safeguards.** Prefer a targeted test, type constraint, lint/check or existing CI assertion over duplicating the same instruction across Markdown files. Keep detailed rules in their existing authoritative owner documents and reference them here rather than duplicating their requirements.
+
+Parallel **read-only** analysis may assist the designated writer. No PStack-style subagent may independently write to the active stage branch, bypass required Codex reviews, self-approve human gates, introduce unapproved costs or scope, or deploy/merge outside existing governance. Codex remains governed by DEC-022. Read-only documentation audits remain permitted under `docs/DEVELOPMENT-OPERATING-MODEL.md` and do not add new owner approval gates.
