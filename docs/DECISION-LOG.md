@@ -613,3 +613,14 @@ The owner approved a lightweight alternative to deep-reviewing all 151 Markdown 
 - Substantively review **changed or implicated** governance/current-state and active-release specifications, escalating genuine conflicts by impact. Preserve accepted historical release documents as point-in-time evidence rather than rewriting them solely because the project advanced.
 - Follow **DEC-022** for mandatory stable-head, high-risk Codex review; do not routinely request a deep Codex pass on every historical Markdown file. **DEC-016** continues to govern periodic broad Work audits.
 - This decision adds **no separate policy file, new mandatory release gate, paid service, or change to approval, security, exact-head/PR/post-main CI, human UAT, or V1.1-E2 release acceptance**. Do not self-approve V1.1 human gates.
+
+## DEC-030 — Lean PR and status-documentation maintenance
+**Status:** APPROVED — Product / Business Owner, 2026-10-19 (Singapore time)
+
+At the owner's explicit request to fix unnecessary process overhead:
+
+- Prefer **one coherent PR** containing implementation, applicable tests and affected documentation/closure evidence **when existing approved entry, review, sequencing and release gates permit**. Do not mandate separate preflight or docs-reconciliation PRs for administrative convenience; use separate PRs where predecessor gates, review independence or risk actually require them.
+- Keep `docs/CURRENT-STATE.md` authoritative for **current** release status. Other impacted docs should normally link to it instead of copying long current-status narratives. Preserve historical dated checkpoints and audit evidence; update factual source requirements only where affected.
+- Use the concise PR checklist while keeping all applicable security, open-source/zero-cost, schema/migration, CI, Codex and human-acceptance controls. CI routing itself is **unchanged**: full validation and exact-head/PR/post-merge evidence continue to apply. Revisit lighter docs-only CI only with tested, fail-closed classification and explicit Change Control.
+
+No new release or UAT gate, runtime scope, architecture, business behavior or authorization change is approved. DEC-008, DEC-016, DEC-022, DEC-028 and DEC-029 remain in force; V1.1-E2 remains open.
