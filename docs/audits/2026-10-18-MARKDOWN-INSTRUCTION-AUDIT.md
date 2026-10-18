@@ -7,9 +7,9 @@
 
 ## 1. Avoid a second auditing system
 
-Another authorized writer opened [PR #243](https://github.com/threeswordz/cinder-grind/pull/243) to implement the lean DEC-029 Markdown inventory in `tools/audit-markdown.mjs` and the existing CI. This audit report **does not introduce another scanner, approval gate, mandatory policy page, AI provider, dependency or implementation owner**. The overlapping scanner/tests/CI step originally prototyped in draft PR #242 have been withdrawn with forward commits; the sole ongoing implementation is PR #243.
+The designated writer delivered [PR #243](https://github.com/threeswordz/cinder-grind/pull/243), the canonical lean DEC-029 inventory in `tools/audit-markdown.mjs` and the existing CI. PR #243 squash-merged as `b8b12d944512db97efa1d81595aac49c5e88b248`, and exact-main post-merge CI **#4748 SUCCESS**. This audit report **does not introduce another scanner, approval gate, mandatory policy page, AI provider, dependency or implementation owner**. The overlapping scanner/tests/CI step originally prototyped in draft PR #242 were withdrawn with forward commits. Only distinct factual documentation reconciliation remains here.
 
-**DEC-029 conflict flagged:** PR #243 initially added a separate `docs/DOCUMENTATION-REVIEW-POLICY.md` while its own newly approved DEC-029 expressly says no separate policy file. [Review finding and coordination](https://github.com/threeswordz/cinder-grind/pull/243#issuecomment-6251908747) were posted for the designated PR #243 writer. Do not imply that either PR is ready to merge until that conflict and the recorded Codex code-review P2 are reconciled.
+**DEC-029 conflict corrected:** PR #243 initially included a separate `docs/DOCUMENTATION-REVIEW-POLICY.md`, contrary to the DEC-029 text that expressly forbade adding another policy file. [The independent finding](https://github.com/threeswordz/cinder-grind/pull/243#issuecomment-6251908747) was reported to the designated writer; the final merged PR changed only Decision Log DEC-029, its one scanner and one advisory CI step. The fence-indentation Codex P2 was resolved in that PR. Neither event establishes an all-file Codex semantic attestation.
 
 ## 2. What was actually verified
 
@@ -42,7 +42,7 @@ These are **factual status/label corrections only**. No original requirement, bu
 
 The approved DEC-029 approach uses one all-file **mechanical inventory**, then risk-based substantive review of changed/current/high-authority/implicated Markdown, with Work as periodic broad auditor under DEC-016 and required stable-head Codex gates under DEC-022. This audit's original request for exhaustive Codex coverage remains separately stated, but neither an ordinary PR review nor the mechanical scan should be presented as proof of 152/152 semantic review.
 
-Before marking this audit report closed, reconcile the DEC-029-owned scanner PR, review the above current-status corrections against higher-authority files, and report each remaining conflict with exact path/line/owner and disposition. If a reviewer did **not** inspect every file, say so explicitly. Preserve dated historical evidence. Do not create duplicate work or a second documentation policy.
+Before marking this audit report closed, verify the factual current-status corrections against higher-authority files and obtain the applicable exact-head CI/Codex review of these changed documents; report each remaining conflict with exact path/line/owner and disposition. If a reviewer did **not** inspect every file, say so explicitly. Preserve dated historical evidence. Do not create duplicate work or a second documentation policy.
 
 ## 5. Release boundary
 
