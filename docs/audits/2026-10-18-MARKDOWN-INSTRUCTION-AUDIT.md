@@ -1,6 +1,6 @@
 # Repository-wide Markdown instruction consistency audit
 
-**Status:** EXECUTION IN PROGRESS — not certified complete.  
+**Status:** INITIAL MECHANICAL COVERAGE VERIFIED; targeted status-drift corrections staged; final exact-head CI and independent full-scope Codex semantic review PENDING.  
 **Owner authorization:** Product / Business Owner explicitly requested an intentional, exhaustive Codex audit rather than relying on PR-only review.  
 **Initial authoritative source:** `main` commit `7e668d08e4e563280e08b57bb96f50885585c82d`, 2026-10-18 SGT.  
 **Initial inventory:** 151 tracked Markdown files. The audit PR adds this report, so CI checks the entire candidate checkout, not just that initial inventory.
@@ -61,3 +61,15 @@ Cross-document questions to verify with exact path/line citations:
 - [ ] After merge, exact-main CI and audit closure evidence are recorded.
 
 **Boundary:** This is a documentation/governance audit, not V1.1 UAT acceptance, scope expansion, Production deployment or authority to rewrite executed migrations. Issue #233 remains the V1.1 release-exit source of truth.
+
+## 7. First mechanical evidence and triage (candidate `f8ae448f4ba5b36aff5251c5eeef70e4fed86fc8`)
+
+- GitHub PR validation **#4736 SUCCESS**, including the scanner self-test and full workspace/regression checks: https://github.com/threeswordz/cinder-grind/actions/runs/39141422061.
+- Initial audit checkout: `f8ae448f4ba5b36aff5251c5eeef70e4fed86fc8`.
+- **152/152 tracked Markdown documents**, **29,019 physical lines** and **2,796 potential directive lines** scanned. Inventory digest SHA256: `0682f3f4276f1ed8753ff43700844609090f6febe815ffd8e1bd9c4616d85305`.
+- 17 status heuristic leads manually classified: **11 explicitly historical preflight snapshots**, **3 clearly marked unapproved V1.1 proposal drafts**, and **3 truthful outstanding V1.1-E/E2 UAT or technical-evidence statuses**. None of these 17 alone is an active normative contradiction. There were no missing relative inline links and no exact repeated-current-instruction matches under the scanner's narrow normalization rules.
+- The scanner did **not** detect the stale V1.0 “current” labels in several shared technical documents. This is a known limitation of automated heuristics and is why full semantic reconciliation remains required.
+
+**Targeted factual corrections already staged on this audit branch:** `docs/LIVE-POSITION-REPORTING-STANDARD.md` now labels the dated V1.0 entry progress block as an *illustration* and acknowledges approved V1.1 as the active successor without changing the user-required full-roadmap format. `docs/DEPENDENCY-LICENSE-REGISTER.md` now directs readers to the canonical live current state and correctly identifies V1.1-E2 as active. `docs/API-ARCHITECTURE.md` and `docs/ROLES-PERMISSIONS.md` label their detailed 2026-10-13 V1.0 banners as historical rather than claiming they are the latest release position. All underlying technical and release history remains intact.
+
+**Caveats:** These results were measured on the earlier `f8ae448f` head; the current amended head must receive its own exact-head CI and fresh inventory digest. The complete **semantic 152-file Codex coverage attestation has not yet been received**; do not treat the 152-file mechanical inventory as proof of semantic review.
