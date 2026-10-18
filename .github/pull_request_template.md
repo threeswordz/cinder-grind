@@ -1,39 +1,18 @@
-## Scope / Requirements
+## Scope and evidence
 
-- Stage / Release:
-- Requirement IDs:
-- Acceptance Criteria:
-- Related Issue:
+- **Release / stage / issue:**
+- **Requirement IDs / acceptance criteria** (or docs-only rationale):
+- **What changed and what remains deferred:**
+- **Tests / CI / review evidence:**
 
-## Architecture / Governance Check
+## Applicable governance checks
 
-- [ ] I reviewed `AGENTS.md` and `docs/PROJECT-GOVERNANCE.md`.
-- [ ] Change is within the current approved release/stage scope.
-- [ ] No unapproved business rule was introduced.
-- [ ] No mandatory paid dependency, cloud service or recurring subscription was introduced without explicit approval.
-- [ ] Open-source-first / zero-cost-first constraints are preserved.
-- [ ] Modular-monolith and PostgreSQL/Prisma decisions are preserved.
-- [ ] Project → WBS → Activity architecture is preserved.
-- [ ] WBS and Cost Code remain independent dimensions.
-- [ ] Project-scope authorization and System Administrator separation are preserved.
-- [ ] Decision Log was reviewed and no approved decision is silently overridden.
-- [ ] Future-release scope was not pulled forward without approval.
+- [ ] Within the approved stage/scope; any business-rule, architecture, paid-dependency or governance change has explicit owner-approved Change Control.
+- [ ] DEC-008 zero-cost/open-source-first and the approved modular-monolith, PostgreSQL/Prisma, Project → WBS → Activity and independent Cost Code architecture are preserved (or separately approved).
+- [ ] Where impacted, backend Company/Project authorization, maker-checker, SYS_ADMIN business-authority separation, audit integrity and data isolation are verified.
+- [ ] Secrets are not committed; any migrations are forward-only, with data-integrity checks appropriate to the change.
+- [ ] Applicable exact-head CI, tests, and required DEC-022 independent review have passed; genuine review findings are resolved or explicitly waived under the existing process.
+- [ ] Impacted source documents are updated; `docs/CURRENT-STATE.md` is updated **if the live status changed**, without duplicating dated status narratives elsewhere.
+- [ ] Human UAT and business/release acceptance are recorded only with actual Product Owner evidence/approval; technical tests do not self-approve them.
 
-## Security / Data
-
-- [ ] Backend authorization remains enforced.
-- [ ] Company and Project isolation are preserved where applicable.
-- [ ] Audit/security controls remain intact.
-- [ ] Migrations/data integrity changes are source-controlled and tested where applicable.
-- [ ] Secrets, credentials and physical server paths are not committed/exposed.
-
-## Validation
-
-- [ ] Applicable unit/integration/security/regression tests pass.
-- [ ] CI is green on the exact merge head.
-- [ ] Documentation / `CURRENT-STATE.md` is current before merge.
-- [ ] Required human UAT/business approval has not been self-approved by development/automation.
-
-## Change-control note
-
-If any box cannot be checked because an approved project rule must change, do not merge under the existing decision. Record explicit Product / Business Owner approval and update the Decision Log/scope first.
+**After merge:** verify required post-merge `main` CI before claiming stage/release closure or starting a gated successor. For untouched categories, explain “not applicable” instead of introducing imaginary work. Existing governance and release gates take precedence over this checklist.
