@@ -1,7 +1,7 @@
 # Construction ERP — Development Roadmap
 
 **Document Status:** Development Roadmap Baseline v0.1  
-**Current Phase:** V1.0 COMPLETE + ACCEPTED; V1.1-A/B/C/D/E1 technically COMPLETE; E2 preparation PR #237/main CI #4698 SUCCESS; V1.1-E2 execution readiness ACTIVE under Issue #233  
+**Current Phase:** V1.0 COMPLETE + ACCEPTED; V1.1-A/B/C/D/E1 technically COMPLETE; E2 preparation + readiness tooling COMPLETE (PR #238/main CI #4706); local E2 configuration readiness verification NEXT under Issue #233  
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1  
@@ -11,9 +11,9 @@
 
 ---
 
-## Active successor — V1.1 Business Workflow & Role UI (DEC-028; V1.1-E2 execution readiness → interactive UAT)
+## Active successor — V1.1 Business Workflow & Role UI (DEC-028; local E2 readiness check → interactive UAT)
 
-**Approval / handoff:** E2 preparation PR #237 final corrected head `31745a278d2345aedf8bc1c14c4814b1bca5b12e` passed push/PR CI #4696/#4697, final Codex re-review was clean after one genuine P2 fix, squash-merged `75f55939d51e50c14e3e70f779dfa32ec88cbd48`, and exact-main CI #4698 SUCCESS. E2 preparation is COMPLETE. E2 now verifies environment/persona configuration through a local read-only readiness check before actual browser UAT. It does not seed roles, approvals or Projects and does not satisfy AC-V11-023–026.
+**Approval / handoff:** E2 readiness-support PR #238 final head `43b92e6ebe474e96a06b3b65e0b57cd7754cddc5` passed push/PR CI #4704/#4705. Three genuine Codex P2 findings were fixed (inactive-role permission evidence, non-executable approval steps, and missing GOODS_RECEIPT/SUBCONTRACT_WORK_ORDER prerequisites), all threads were resolved, final exact-head review found no major issues, PR #238 squash-merged `5920770bb409c08f830d3c3dd102aa384e78240e`, and exact-main CI #4706 SUCCESS. The next step is to execute that checker against the actual local UAT accounts/Project/Approval Matrix. READY is only a configuration precondition; interactive/browser evidence remains unclaimed.
 
 | Stage | Approved bounded delivery | Gate |
 |---|---|---|
@@ -21,7 +21,7 @@
 | V1.1-B | Role-first modular responsive app shell, sourced Home/My Work and grouped navigation | **TECHNICALLY COMPLETE:** PRs #215/#216, 14 web tests, exact-main CI #4366 PASS, Issue #214 CLOSED |
 | V1.1-C | Source-owned Procurement→Finance (C1), Subcontract→Finance (C2), Project→Cost/Management (C3) | **FULL STAGE TECHNICALLY COMPLETE / CLOSED:** runtime #223 main CI #4554 PASS; full-docs closure #224 main CI #4562 PASS; Issue #217 CLOSED |
 | V1.1-D | UX/accessibility/security/compatibility hardening only; AC-V11-017–022 existing-business-rule non-regression | **TECHNICALLY COMPLETE:** D0 #226 main CI #4583; D1 #227/#228 main CI #4597/#4605; D2 #229/#230 main CI #4627/#4631; D3 #231 main CI #4643; full closure #232 main CI #4651; Issue #225 CLOSED / COMPLETED |
-| V1.1-E | Eight-persona UAT/evidence, locale/THB/Company-Project security regression and release exit | **E0/E1 + E2 PREPARATION COMPLETE:** PR #237/main CI #4698 PASS. **E2 EXECUTION READINESS ACTIVE:** verify existing users/Roles/Project membership/Approval Matrix with zero-dependency local checker; interactive tests remain NOT RUN. AC-V11-023–026/029/030 OPEN. |
+| V1.1-E | Eight-persona UAT/evidence, locale/THB/Company-Project security regression and release exit | **E0/E1 + E2 PREPARATION/READINESS TOOLING COMPLETE:** PR #238/main CI #4706 PASS. **LOCAL READINESS CHECK NEXT:** configure exact UAT emails + Project and run the read-only checker; interactive tests remain NOT RUN. AC-V11-023–026/029/030 OPEN. |
 
 **Stage evidence:** `docs/V1.1-C-PREFLIGHT.md`, C1/C2/C3 evidence and `docs/V1.1-D-STAGE-CLOSURE.md` establish V1.1-C/D completion. `docs/V1.1-E-UAT-PREFLIGHT.md` is the E0 human/technical evidence plan; `docs/V1.1-E-TECHNICAL-EVIDENCE.md` tracks E1 exact-candidate CI/security/startup/recovery evidence. No eight-persona human UAT acceptance or Production deployment is implied.
 
