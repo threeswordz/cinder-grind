@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
+import { copyFile, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { dirname, join } from 'node:path';
 import { once } from 'node:events';
 import { createServer } from 'node:http';
 import { test } from 'node:test';
@@ -7,9 +10,9 @@ import { fileURLToPath } from 'node:url';
 
 const checker = fileURLToPath(new URL('./e2-readiness.mjs', import.meta.url));
 
-function runChecker(overrides) {
+function runChecker(overrides, { script = checker, runtime = process.execPath } = {}) {
   return new Promise((resolve, reject) => {
-    const child = spawn(process.execPath, [checker], {
+    const child = spawn(runtime, [script], {
       env: {
         ...process.env,
         UAT_DATA_ROOT: '',
@@ -43,6 +46,8 @@ test('reject unsafe UAT API URLs before attempting administrator login', async (
     'http://some-user:secret@127.0.0.1:3000/api/v1',
     'http://127.0.0.1:3000/api/v1?password=hidden',
     'http://127.0.0.1:3000/api/v1#secret',
+    'http://127.0.0.1:3000/api/v1?',
+    'http://127.0.0.1:3000/api/v1#',
     'not a URL',
   ];
   for (const url of forbidden) {
@@ -54,6 +59,49 @@ test('reject unsafe UAT API URLs before attempting administrator login', async (
     assert.ok(report.blocked.some((item) => item.code === 'UNSAFE_UAT_API_URL'));
     assert.ok(!result.stdout.includes('some-user:secret'));
     assert.ok(!result.stdout.includes('password=hidden'));
+  }
+});
+
+test('documented shell entrypoint never echoes an unsafe URL or credential', async () => {
+  const fixture = await mkdtemp(join(tmpdir(), 'erp-e2-shell-'));
+  const path = join(fixture, 'deploy', 'uat');
+  try {
+    await mkdir(path, { recursive: true });
+    for (const name of ['common.sh', 'e2-readiness.sh', 'e2-readiness.mjs']) {
+      await copyFile(join(dirname(checker), name), join(path, name));
+    }
+    await writeFile(
+      join(path, '.env'),
+      [
+        'UAT_DB_CONTAINER=fixture',
+        'UAT_DB_VOLUME=fixture-volume',
+        'UAT_DB_PORT=55432',
+        'UAT_DB_NAME=fixture',
+        'UAT_DB_USER=fixture',
+        'UAT_DB_PASSWORD=dummy',
+        'API_HOST=127.0.0.1',
+        'API_PORT=3000',
+        'WEB_HOST=127.0.0.1',
+        'WEB_PORT=4173',
+        'UAT_DATA_ROOT=' + join(fixture, 'data'),
+        'UAT_API_BASE_URL=http://some-user:secret@127.0.0.1:3000/api/v1?password=hidden',
+        'E2_ADMIN_EMAIL=uat-admin@example.test',
+        'E2_ADMIN_PASSWORD=dummy-secret-never-send',
+      ].join('\n') + '\n',
+      { mode: 0o600 },
+    );
+    const result = await runChecker({}, {
+      script: join(path, 'e2-readiness.sh'),
+      runtime: 'bash',
+    });
+    assert.equal(result.code, 2);
+    assert.match(result.stdout, /UNSAFE_UAT_API_URL/);
+    assert.ok(!result.stdout.includes('some-user:secret'));
+    assert.ok(!result.stdout.includes('password=hidden'));
+    assert.ok(!result.stderr.includes('some-user:secret'));
+    assert.ok(!result.stderr.includes('password=hidden'));
+  } finally {
+    await rm(fixture, { recursive: true, force: true });
   }
 });
 
