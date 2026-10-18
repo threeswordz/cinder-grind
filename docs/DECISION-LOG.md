@@ -603,3 +603,13 @@ The Product / Business Owner explicitly stated:
 
 
 **DEC-028 V1.1-B technical checkpoint (2026-10-17; evidence, not a new business decision):** V1.1-A final documentation PR #213 merged to `dae72ecec3492b62d3fd2f626a624fe801fda411`, exact-main CI #4327 PASS and Issue #211 CLOSED. Stage V1.1-B under Issue #214 delivered responsive authenticated permission-derived grouped navigation, Home/My Work and source PR draft/rejected read slice with en/th/zh-TW; no new backend approvals, business policy, schema/migrations, diagnostics API or recurring cost. PR #215 final head `e04cdeaaff1c5013f5b5315b389283750c12aee3` passed exact-head push/PR CI #4333/#4334, one automatic Codex P2 localization finding remediated and thread resolved. PR #215 squash-merged as `acf943392e81d4fb70f499304c5ce2bd677ea434`, exact-main CI #4335 PASS. Final documentation reconciliation and Issue #214 administrative closure remain separately gated. Product Owner V1.1 human UAT/release acceptance and actual Production deployment are not asserted.
+
+## DEC-029 — Lean, risk-based Markdown review
+**Status:** APPROVED — Product / Business Owner, 2026-10-18 (Singapore time)
+
+The owner approved a lightweight alternative to deep-reviewing all 151 Markdown files, then explicitly requested simplification rather than additional documentation policy.
+
+- Run the dependency-free `node tools/audit-markdown.mjs` in existing CI to inventory **all current Markdown files** and flag candidate missing relative inline links. Link findings are advisory by default. An automated scan **does not** prove line-by-line coverage, correct release status, or absence of conflicting instructions.
+- Substantively review **changed or implicated** governance/current-state and active-release specifications, escalating genuine conflicts by impact. Preserve accepted historical release documents as point-in-time evidence rather than rewriting them solely because the project advanced.
+- Follow **DEC-022** for mandatory stable-head, high-risk Codex review; do not routinely request a deep Codex pass on every historical Markdown file. **DEC-016** continues to govern periodic broad Work audits.
+- This decision adds **no separate policy file, new mandatory release gate, paid service, or change to approval, security, exact-head/PR/post-main CI, human UAT, or V1.1-E2 release acceptance**. Do not self-approve V1.1 human gates.
