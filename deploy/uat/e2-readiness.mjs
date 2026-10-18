@@ -8,7 +8,9 @@ const baseUrl =
 function isApprovedLocalApiUrl(candidate) {
   try {
     const url = new URL(candidate);
+    const expected = 'http://127.0.0.1:' + String(process.env.API_PORT ?? '3000') + '/api/v1';
     return (
+      candidate === expected &&
       url.protocol === 'http:' &&
       url.hostname === '127.0.0.1' &&
       url.port === String(process.env.API_PORT ?? '3000') &&
