@@ -118,16 +118,6 @@ Periodic audit flow:
 
 Work does not replace technical CI and does not replace Product / Business Owner UAT/business acceptance.
 
-## Risk-based Markdown documentation review — DEC-029
-
-The Product / Business Owner approved the risk-based documentation policy in `docs/DOCUMENTATION-REVIEW-POLICY.md` on 2026-10-18:
-
-- Automatically inventory/check every Markdown file in CI; the script's link findings are advisory by default, not a substitute for substantive review.
-- Prioritize modified or implicated critical governance/current-state documents (P0), active V1.1 workflow/security/role/UI/API/test/release documents (P1), and genuine cross-release conflicts.
-- Preserve accepted V0.1–V1.0 historical evidence; dated historical statements are not stale merely because a later stage has advanced.
-- Use Codex at stable material/high-risk boundaries consistent with DEC-022, not for routine exhaustive line-by-line reviews of every old Markdown file. Work remains the periodic broad auditor.
-- Report scanned versus deeply reviewed counts and audit limitations explicitly. The policy introduces no new review/UAT/release gate and does not displace DEC-008/016/022/028.
-
 ## 8. Recommended audit checkpoints
 
 Work should be used periodically rather than continuously. Suitable checkpoints include:
