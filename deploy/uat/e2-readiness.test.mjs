@@ -62,6 +62,22 @@ test('reject unsafe UAT API URLs before attempting administrator login', async (
   }
 });
 
+test('accepts the canonical loopback API on HTTP default port 80 without a network request', async () => {
+  const result = await runChecker({
+    API_PORT: '80',
+    UAT_API_BASE_URL: 'http://127.0.0.1:80/api/v1',
+    E2_ADMIN_EMAIL: '',
+    E2_ADMIN_PASSWORD: '',
+    BOOTSTRAP_ADMIN_EMAIL: '',
+    BOOTSTRAP_ADMIN_PASSWORD: '',
+  });
+  assert.equal(result.code, 2);
+  const report = JSON.parse(result.stdout);
+  assert.equal(report.baseUrl, 'http://127.0.0.1:80/api/v1');
+  assert.ok(report.blocked.some((item) => item.code === 'ADMIN_CREDENTIALS_MISSING'));
+  assert.ok(!report.blocked.some((item) => item.code === 'UNSAFE_UAT_API_URL'));
+});
+
 test('documented shell entrypoint never echoes an unsafe URL or credential', async () => {
   const fixture = await mkdtemp(join(tmpdir(), 'erp-e2-shell-'));
   const path = join(fixture, 'deploy', 'uat');
