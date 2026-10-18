@@ -270,8 +270,9 @@ try {
       item.roleCodes = userRoleCodes(user);
 
       const roleIds = (user.userRoles ?? [])
-        .map((entry) => entry?.role?.id)
-        .filter(Boolean);
+        .map((entry) => entry?.role)
+        .filter((role) => role && role.isActive !== false)
+        .map((role) => role.id);
       item.permissionCodes = rolePermissionCodes(roleIds, rolesById);
 
       if (!item.active) {
@@ -376,20 +377,49 @@ try {
       }
     }
 
-    const activeWorkflows = workflows.filter((workflow) => workflow.isActive !== false);
+    const activeWorkflows = workflows.filter(
+      (workflow) => workflow.isActive !== false,
+    );
     for (const entityType of requiredApprovalEntityTypes) {
       const matches = activeWorkflows.filter(
         (workflow) => workflow.entityType === entityType,
       );
+      const executable = matches.filter((workflow) => {
+        const steps = workflow.steps ?? [];
+        return (
+          steps.length > 0 &&
+          steps.every((step) => {
+            const activeRoleCount = new Set(
+              (step.stepRoles ?? [])
+                .map((entry) => entry?.role)
+                .filter((role) => role && role.isActive !== false)
+                .map((role) => role.id),
+            ).size;
+            return (
+              Number.isInteger(step.requiredApprovals) &&
+              step.requiredApprovals >= 1 &&
+              activeRoleCount >= step.requiredApprovals
+            );
+          })
+        );
+      });
       report.approvalWorkflows.push({
         entityType,
-        configured: matches.length > 0,
+        configured: executable.length > 0,
         workflowCodes: matches.map((workflow) => workflow.workflowCode).sort(),
+        executableWorkflowCodes: executable
+          .map((workflow) => workflow.workflowCode)
+          .sort(),
       });
       if (matches.length === 0) {
         block(
           'APPROVAL_WORKFLOW_MISSING',
           `No active Approval Matrix workflow is configured for ${entityType}.`,
+        );
+      } else if (executable.length === 0) {
+        block(
+          'APPROVAL_WORKFLOW_NOT_EXECUTABLE',
+          `Active Approval Matrix workflows for ${entityType} do not have enough active Role assignments on every approval step.`,
         );
       }
     }
