@@ -93,7 +93,7 @@ The normal delivery flow remains:
 
 To avoid repeated administrative PRs under **DEC-030**, prefer one coherent implementation/test/documentation/closure PR **if the existing predecessor and release gates allow it**. A separate preflight or docs-only closure PR is appropriate only where a required gate must be completed before implementation starts, the diff/review risk warrants isolation, or evidence cannot responsibly be included in the same PR. This does **not** allow implementation before an entry gate closes.
 
-Maintain live stage/release position in `docs/CURRENT-STATE.md`; update scope, acceptance, testing, and other affected source documents for actual changes, and use a link to Current State in place of repeatedly copying long status histories. Preserve dated historical evidence. The concise PR template is a prompt to check **applicable** controls, not a waiver of CI, Codex, security, cost, Change Control, or Product Owner UAT.
+Maintain the **documented current-stage checkpoint** in `docs/CURRENT-STATE.md`, always verifying it against fresh GitHub Issues/PRs/CI; update scope, acceptance, testing, and other affected source documents for actual changes, and link to Current State instead of repeatedly copying long status histories. Preserve dated historical evidence. The concise PR template is a prompt to check **applicable** controls, not a waiver of CI, Codex, security, cost, Change Control, or Product Owner UAT.
 
 ## Codex review economy policy — DEC-022
 
