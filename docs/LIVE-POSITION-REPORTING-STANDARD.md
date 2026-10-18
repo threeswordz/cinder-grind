@@ -52,8 +52,11 @@ V0.7 Cost Control
 MANAGEMENT LAYER
 V0.8 Management
 
-FINAL DESTINATION
-V1.0 Production
+PRODUCTION READINESS
+V1.0 Production Readiness
+
+ACTIVE APPROVED SUCCESSOR
+V1.1 Business Workflow & Role UI (stages/status from live GitHub)
 ```
 
 The labels for V0.6-A through V0.6-E are concise presentation labels for the approved V0.6 build stages. If the approved V0.6 scope changes through Change Control, the reporting labels must be updated to match the repository.
@@ -93,6 +96,8 @@ V1.0 Production       ░░░░░░░░░░  ENTRY PACKAGE APPROVED —
   V1.0-E Release       ░░░░░░░░░░  FUTURE
 ```
 
+**Historical illustration only:** The V1.0 entry status in the example above shows an earlier checkpoint; it is not today's live position. For V1.1 and any later approved release, use the real source-controlled stage breakdown and status from `docs/CURRENT-STATE.md` and `docs/DEVELOPMENT-ROADMAP.md` without altering the full-roadmap, V0.6-A–E and status-vocabulary requirements.
+
 Progress bars are qualitative status indicators, not calculated engineering percentages:
 
 - `██████████` = completed applicable gates for that displayed unit;
@@ -131,9 +136,7 @@ Keep this summary concise unless the Product / Business Owner asks for more deta
 
 ## 7. Current roadmap destination
 
-The approved Development Roadmap currently ends functionally at **V0.8 Management**.
-
-The reporting view should therefore show **V1.0 Production** as the destination after V0.8, representing production-readiness/hardening and release decision work rather than inventing a V0.9 feature release.
+The original functional core ends at **V0.8 Management**, followed by **V1.0 Production Readiness**. Those releases are now COMPLETE + ACCEPTED; **V1.1 Business Workflow & Role UI** is the approved active successor under DEC-028, with release exit still pending human UAT. For subsequent releases, always derive the current destination, stages and completion flags from live `docs/DEVELOPMENT-ROADMAP.md`, `docs/CURRENT-STATE.md` and GitHub evidence; never treat this dated example as the active release position.
 
 If the approved roadmap later adds V0.9 or changes the production destination, follow the newer approved repository baseline.
 
