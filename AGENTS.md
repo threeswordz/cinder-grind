@@ -91,12 +91,6 @@ If the desired outcome requires changing an approved rule, stop and obtain expli
 
 See `docs/DEVELOPMENT-OPERATING-MODEL.md` and DEC-022.
 
-### Markdown documentation audit — DEC-029
-
-- Apply `docs/DOCUMENTATION-REVIEW-POLICY.md`: advisory whole-repository Markdown scan, substantive P0/P1 change-impact review, and preservation of historical release evidence.
-- Do not describe a mechanical inventory/local-link check as a full semantic review. Codex still follows the stable-candidate and high-risk gates in DEC-022.
-- The documentation check is advisory by default and creates no new release or human acceptance gate.
-
 
 ## 6. Engineering-quality execution (PStack-inspired, no new platform)
 
