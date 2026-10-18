@@ -69,6 +69,8 @@ jobs:
           node --check deploy/uat/serve-web.mjs
           node --check deploy/uat/runtime-acceptance.mjs
           node --check deploy/uat/e2-readiness.mjs
+          node --check deploy/uat/e2-readiness.test.mjs
+          node --test deploy/uat/e2-readiness.test.mjs
       - name: Validate UAT environment template
         run: |
           set -a
