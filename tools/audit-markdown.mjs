@@ -21,31 +21,27 @@ function walk(dir) {
 walk(root);
 files.sort();
 
-function tier(path) {
-  if (['AGENTS.md', 'docs/PROJECT-GOVERNANCE.md', 'docs/DECISION-LOG.md', 'docs/DEVELOPMENT-OPERATING-MODEL.md', 'docs/CURRENT-STATE.md', 'docs/LIVE-POSITION-REPORTING-STANDARD.md'].includes(path)) return 'P0';
-  if (path.startsWith('docs/V1.1-') || path === 'docs/ROLES-PERMISSIONS.md' || path === 'docs/TESTING-UAT.md') return 'P1';
-  if (/^docs\/V(?:0\.[1-8]|1\.0)-/.test(path)) return 'P2';
-  return 'Other';
-}
-
-const counts = { P0: 0, P1: 0, P2: 0, Other: 0 };
 const findings = [];
 for (const absolutePath of files) {
   const path = relative(root, absolutePath).split(sep).join('/');
-  counts[tier(path)]++;
   const lines = readFileSync(absolutePath, 'utf8').split(/\r?\n/);
   let fence = null;
   for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
     const line = lines[lineIndex];
-    const trimmed = line.trimStart();
-    const fenceMatch = trimmed.match(/^(`{3,}|~{3,})/);
-    if (fenceMatch) {
-      const marker = fenceMatch[1][0];
-      if (!fence) fence = marker;
-      else if (fence === marker) fence = null;
+    // Markdown fenced blocks allow at most three leading spaces.
+    const fenceMatch = line.match(/^ {0,3}(`{3,}|~{3,})(.*)$/);
+    if (fence) {
+      if (fenceMatch && fenceMatch[1][0] === fence.char &&
+          fenceMatch[1].length >= fence.length && fenceMatch[2].trim() === "") fence = null;
       continue;
     }
-    if (fence) continue;
+    if (/^(?: {4}|\t)/.test(line)) continue; // indented code is not a fence
+    if (fenceMatch) {
+      const marker = fenceMatch[1];
+      if (marker[0] === "~" || !fenceMatch[2].includes("`"))
+        fence = { char: marker[0], length: marker.length };
+      continue;
+    }
     // Link detection is intentionally conservative: skip URLs, fragments and
     // complex Markdown constructs that need a full parser. No false claim of
     // full semantic/link coverage is made.
@@ -64,7 +60,7 @@ for (const absolutePath of files) {
   }
 }
 
-console.log(`Markdown inventory: ${files.length} files (P0 ${counts.P0}, P1 ${counts.P1}, P2 ${counts.P2}, Other ${counts.Other}).`);
+console.log(`Markdown inventory: ${files.length} files.`);
 console.log(`Advisory local-link findings: ${findings.length}.`);
 for (const item of findings.slice(0, 75)) console.log(`  - ${item}`);
 if (findings.length > 75) console.log(`  ... ${findings.length - 75} more; inspect locally for the complete list.`);
