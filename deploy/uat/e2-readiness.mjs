@@ -9,11 +9,12 @@ function isApprovedLocalApiUrl(candidate) {
   try {
     const url = new URL(candidate);
     const expected = 'http://127.0.0.1:' + String(process.env.API_PORT ?? '3000') + '/api/v1';
+    const expectedUrl = new URL(expected);
     return (
       candidate === expected &&
       url.protocol === 'http:' &&
       url.hostname === '127.0.0.1' &&
-      url.port === String(process.env.API_PORT ?? '3000') &&
+      url.port === expectedUrl.port &&
       url.pathname === '/api/v1' &&
       url.username === '' &&
       url.password === '' &&
