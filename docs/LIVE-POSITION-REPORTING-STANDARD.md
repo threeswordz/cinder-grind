@@ -52,8 +52,11 @@ V0.7 Cost Control
 MANAGEMENT LAYER
 V0.8 Management
 
-FINAL DESTINATION
-V1.0 Production
+PRODUCTION READINESS
+V1.0 Production Readiness
+
+ACTIVE APPROVED SUCCESSOR
+V1.1 Business Workflow & Role UI (stages/status from live GitHub)
 ```
 
 The labels for V0.6-A through V0.6-E are concise presentation labels for the approved V0.6 build stages. If the approved V0.6 scope changes through Change Control, the reporting labels must be updated to match the repository.
