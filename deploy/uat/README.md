@@ -127,6 +127,8 @@ E2_KOH_EMAIL=<Koh UAT account>
 
 If the bootstrap administrator credentials are no longer valid, also set `E2_ADMIN_EMAIL` and `E2_ADMIN_PASSWORD`. These values stay local and must not be committed.
 
+The readiness checker sends the configured administrator login only to the exact loopback API endpoint `http://127.0.0.1:$API_PORT/api/v1`; an unsafe `UAT_API_BASE_URL` override (including URL credentials, query, fragment, wrong port/host or redirects) fails closed. The wrapper does not echo the override. Do not configure a remote endpoint or expose this local UAT service.
+
 With the API running, execute:
 
 ```bash
