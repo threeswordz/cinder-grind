@@ -4,6 +4,26 @@ import { join } from 'node:path';
 const baseUrl =
   process.env.UAT_API_BASE_URL ??
   `http://127.0.0.1:${process.env.API_PORT ?? '3000'}/api/v1`;
+// The UAT administrator password must never be posted outside the approved loopback API.
+function isApprovedLocalApiUrl(candidate) {
+  try {
+    const url = new URL(candidate);
+    return (
+      url.protocol === 'http:' &&
+      url.hostname === '127.0.0.1' &&
+      url.port === String(process.env.API_PORT ?? '3000') &&
+      url.pathname === '/api/v1' &&
+      url.username === '' &&
+      url.password === '' &&
+      url.search === '' &&
+      url.hash === ''
+    );
+  } catch {
+    return false;
+  }
+}
+
+const baseUrlIsSafe = isApprovedLocalApiUrl(baseUrl);
 const adminEmail =
   process.env.E2_ADMIN_EMAIL || process.env.BOOTSTRAP_ADMIN_EMAIL;
 const adminPassword =
@@ -37,7 +57,7 @@ const requiredApprovalEntityTypes = [
 const report = {
   schema: 'construction-erp-v1.1-e2-readiness-v1',
   generatedAt: new Date().toISOString(),
-  baseUrl,
+  baseUrl: baseUrlIsSafe ? baseUrl : null,
   status: 'BLOCKED',
   companyId: null,
   project: null,
@@ -76,6 +96,7 @@ async function readBody(response) {
 async function login(email, password) {
   const response = await fetch(baseUrl + '/auth/login', {
     method: 'POST',
+    redirect: 'error',
     headers: {
       Accept: 'application/json',
       'Content-Type': 'application/json',
@@ -104,6 +125,7 @@ async function request(session, path, { method = 'GET', json, expected = 200 } =
   }
   const response = await fetch(baseUrl + path, {
     method,
+    redirect: 'error',
     headers,
     body: json === undefined ? undefined : JSON.stringify(json),
   });
@@ -166,7 +188,14 @@ async function persist() {
 
 let session;
 try {
-  if (!adminEmail || !adminPassword) {
+  if (!baseUrlIsSafe) {
+    block(
+      'UNSAFE_UAT_API_URL',
+      'UAT_API_BASE_URL must be exactly http://127.0.0.1:<API_PORT>/api/v1 with no credentials, query or fragment; off-host and redirected authentication are forbidden.',
+    );
+    await persist();
+    process.exitCode = 2;
+  } else if (!adminEmail || !adminPassword) {
     block(
       'ADMIN_CREDENTIALS_MISSING',
       'Set E2_ADMIN_EMAIL/E2_ADMIN_PASSWORD or valid BOOTSTRAP_ADMIN_EMAIL/BOOTSTRAP_ADMIN_PASSWORD in the ignored local UAT environment.',
