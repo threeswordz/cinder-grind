@@ -1,7 +1,7 @@
 # Construction ERP — Development Roadmap
 
 **Document Status:** Development Roadmap Baseline v0.1  
-**Current Phase:** V1.0 COMPLETE + ACCEPTED; V1.1-A/B/C/D technically COMPLETE; V1.1-E0 preflight COMPLETE (PR #234, exact-main CI #4665); V1.1-E1 technical release assurance ACTIVE under Issue #233  
+**Current Phase:** V1.0 COMPLETE + ACCEPTED; V1.1-A/B/C/D/E1 technically COMPLETE; E1 PR #235 and main CI #4688 SUCCESS; E1 docs reconciliation ACTIVE; E2 UAT NEXT under Issue #233  
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1  
@@ -11,9 +11,9 @@
 
 ---
 
-## Active successor — V1.1 Business Workflow & Role UI (DEC-028; V1.1-E1 technical release assurance)
+## Active successor — V1.1 Business Workflow & Role UI (DEC-028; E1 docs closure → E2 eight-persona UAT)
 
-**Approval / handoff:** V1.1-A/B/C/D are technically COMPLETE. V1.1-E0 preflight PR #234 final corrected head `e200a776192f1eac5e554f03b1930b093be8f534` passed push/PR CI #4663/#4664 and final exact-head Codex re-review with no major issues; squash-merged `d39d5e9317ef8d8799a5af9c24c8cb14a5b1264c`, exact-main CI #4665 SUCCESS. **V1.1-E1 TECHNICAL RELEASE ASSURANCE is ACTIVE under Issue #233 / branch `v1.1-e1-technical-assurance`.** E1 is limited to the automated/non-browser portion of AC-V11-026 plus AC-V11-027 technical evidence; **AC-V11-026 remains open until real-browser regression is evidenced in E2**. AC-V11-023–025 interactive UAT and AC-V11-029/030 human owner gates remain open.
+**Approval / handoff:** PR #235 exact head `3eded0112a97b6bf36ab7b1597fba087c38c03c8` passed push/PR CI #4686/#4687, final Codex review had no major issues after the genuine P2 findings were resolved, and was squash-merged `8b5320515aa32c0f78991be27680821733c8d7e5`; exact-main CI #4688 SUCCESS. Only the automated/non-browser E1 technical assurance is complete. AC-V11-026 real-browser regression, AC-V11-023–025 interactive UAT, and owner AC-V11-029/030 remain OPEN. E1 documentation reconciliation is active on `v1.1-e1-closure-reconcile`; E2 begins only after its exact-main green predecessor.
 
 | Stage | Approved bounded delivery | Gate |
 |---|---|---|
@@ -21,7 +21,7 @@
 | V1.1-B | Role-first modular responsive app shell, sourced Home/My Work and grouped navigation | **TECHNICALLY COMPLETE:** PRs #215/#216, 14 web tests, exact-main CI #4366 PASS, Issue #214 CLOSED |
 | V1.1-C | Source-owned Procurement→Finance (C1), Subcontract→Finance (C2), Project→Cost/Management (C3) | **FULL STAGE TECHNICALLY COMPLETE / CLOSED:** runtime #223 main CI #4554 PASS; full-docs closure #224 main CI #4562 PASS; Issue #217 CLOSED |
 | V1.1-D | UX/accessibility/security/compatibility hardening only; AC-V11-017–022 existing-business-rule non-regression | **TECHNICALLY COMPLETE:** D0 #226 main CI #4583; D1 #227/#228 main CI #4597/#4605; D2 #229/#230 main CI #4627/#4631; D3 #231 main CI #4643; full closure #232 main CI #4651; Issue #225 CLOSED / COMPLETED |
-| V1.1-E | Eight-persona UAT/evidence, locale/THB/Company-Project security regression and release exit | **E1 TECHNICAL ASSURANCE ACTIVE** under Issue #233; E0 complete via PR #234/main CI #4665; E1 covers automated/non-browser AC-V11-026 + AC-V11-027; real-browser AC-V11-026 and AC-V11-023–025/029/030 remain open for E2/owner gates |
+| V1.1-E | Eight-persona UAT/evidence, three source-owned journeys, locale/THB/Company-Project security and release exit | **E1 TECHNICALLY COMPLETE:** PR #235, CI #4686/#4687/#4688 SUCCESS, clean final review. E1 docs reconciliation ACTIVE, E2 browser/UAT NEXT. AC-V11-023–026/029/030 OPEN under Issue #233. |
 
 **Stage evidence:** `docs/V1.1-C-PREFLIGHT.md`, C1/C2/C3 evidence and `docs/V1.1-D-STAGE-CLOSURE.md` establish V1.1-C/D completion. `docs/V1.1-E-UAT-PREFLIGHT.md` is the E0 human/technical evidence plan; `docs/V1.1-E-TECHNICAL-EVIDENCE.md` tracks E1 exact-candidate CI/security/startup/recovery evidence. No eight-persona human UAT acceptance or Production deployment is implied.
 
