@@ -64,7 +64,7 @@ mapfile -t new_migrations < <(printf '%s\n' "${new_migrations[@]}" | sort -u)
 (( ${#new_migrations[@]} > 0 )) || fail "no new forward migrations detected"
 migration_list="$(IFS=,; printf '%s' "${new_migrations[*]}")"
 
-for command_name in git node pnpm tar; do
+for command_name in git node pnpm tar curl openssl; do
   command -v "$command_name" >/dev/null || fail "required command not found: $command_name"
 done
 
@@ -74,10 +74,13 @@ previous_root="$tmp_root/previous-release"
 storage_root="$tmp_root/documents"
 rollback_storage="$tmp_root/rollback-documents"
 recovery_root="$tmp_root/recovery"
+tls_dir="$tmp_root/tls"
 production_env="$tmp_root/production.env"
 recovery_env="$tmp_root/recovery.env"
-mkdir -p "$tool_dir" "$previous_root" "$storage_root" "$rollback_storage" "$recovery_root"
+mkdir -p "$tool_dir" "$previous_root" "$storage_root" "$rollback_storage" "$recovery_root" "$tls_dir"
 
+api_pid=""
+proxy_pid=""
 admin_pgpass=""
 upgrade_pgpass=""
 rollback_pgpass=""
@@ -124,12 +127,36 @@ git_version="$(git --version)"
 node_version="$(node --version)"
 pnpm_version="$(pnpm --version)"
 postgresql_client_version="$(psql --version)"
+openssl_version="$(openssl version)"
 
 database_url() {
   RC_BASE_DATABASE_URL="$RC_BASE_DATABASE_URL" node "$RC_DIR/database-url.mjs" "$1"
 }
 
 run_token="$(node -e "process.stdout.write(require('node:crypto').randomBytes(6).toString('hex'))")"
+read -r api_port proxy_port < <(
+  RUN_TOKEN="$run_token" node <<'NODE'
+const token = process.env.RUN_TOKEN;
+const apiPort = 20000 + (Number.parseInt(token.slice(0, 8), 16) % 20000);
+const proxyPort = 40000 + (Number.parseInt(token.slice(4, 12), 16) % 20000);
+process.stdout.write(`${apiPort} ${proxyPort}\n`);
+NODE
+)
+
+assert_loopback_port_available() {
+  local port="$1"
+  PORT="$port" node <<'NODE'
+const net = require('node:net');
+const port = Number(process.env.PORT);
+const server = net.createServer();
+server.unref();
+server.once('error', () => process.exit(1));
+server.listen({ host: '127.0.0.1', port, exclusive: true }, () => {
+  server.close((error) => process.exit(error ? 1 : 0));
+});
+NODE
+}
+
 fresh_database="construction_erp_v10e_fresh_${run_token}"
 upgrade_database="construction_erp_v10e_upgrade_${run_token}"
 rollback_database="construction_erp_v10e_rollback_${run_token}"
@@ -153,6 +180,16 @@ create_database() {
 cleanup_resources() {
   local failed=0
   set +e
+  if [[ -n "$proxy_pid" ]]; then
+    kill "$proxy_pid" >/dev/null 2>&1 || true
+    wait "$proxy_pid" 2>/dev/null || true
+    proxy_pid=""
+  fi
+  if [[ -n "$api_pid" ]]; then
+    kill "$api_pid" >/dev/null 2>&1 || true
+    wait "$api_pid" 2>/dev/null || true
+    api_pid=""
+  fi
   for db in "${created_databases[@]}"; do
     if [[ "$db" =~ ^construction_erp_v10e_(fresh|upgrade|rollback)_[a-f0-9]{12}$ ]]; then
       PGPASSFILE="$admin_pgpass" psql "$native_admin_url" --no-psqlrc --set=ON_ERROR_STOP=1 \
@@ -236,8 +273,8 @@ UPGRADE_SITE_OFFLINE_CONFIRMED=YES
 RECOVERY_POINT_VERIFIED=YES
 RECOVERY_POINT_REFERENCE=$recovery_reference
 API_HOST=127.0.0.1
-API_PORT=3001
-WEB_ORIGIN=https://erp.example.invalid
+API_PORT=$api_port
+WEB_ORIGIN=https://127.0.0.1:$proxy_port
 VITE_API_BASE_URL=/api/v1
 DATABASE_URL=$upgrade_url
 STORAGE_ROOT=$storage_root
@@ -266,6 +303,76 @@ for migration_name in "${new_migrations[@]}"; do
     --command="SELECT COUNT(*) FROM \"_prisma_migrations\" WHERE \"migration_name\" = '${migration_name}' AND \"finished_at\" IS NOT NULL AND \"rolled_back_at\" IS NULL" | tr -d '\r\n ')"
   [[ "$applied_count" == "1" ]] || fail "candidate migration was not applied exactly once: $migration_name"
 done
+
+echo "[V1.0-E migration-aware] Start exact candidate on upgraded previous-release data"
+assert_loopback_port_available "$api_port" || fail "run-specific API port $api_port is already occupied"
+PRODUCTION_ENV_FILE="$production_env" bash deploy/production/run-api.sh > "$tmp_root/api.log" 2>&1 &
+api_pid=$!
+api_ready=false
+for attempt in {1..30}; do
+  if ! kill -0 "$api_pid" >/dev/null 2>&1; then
+    cat "$tmp_root/api.log"
+    fail "Production-mode candidate API exited before becoming healthy on upgraded data"
+  fi
+  if curl --fail --silent --show-error "http://127.0.0.1:$api_port/api/v1/health" >/dev/null; then
+    sleep 0.2
+    if ! kill -0 "$api_pid" >/dev/null 2>&1; then
+      cat "$tmp_root/api.log"
+      fail "candidate API exited after upgraded-data readiness probe"
+    fi
+    api_ready=true
+    break
+  fi
+  sleep 1
+done
+[[ "$api_ready" == "true" ]] || { cat "$tmp_root/api.log"; fail "candidate API did not become healthy on upgraded data"; }
+
+echo "[V1.0-E migration-aware] Run authenticated acceptance against upgraded previous-release data"
+UAT_API_BASE_URL="http://127.0.0.1:$api_port/api/v1" \
+API_PORT="$api_port" \
+BOOTSTRAP_ADMIN_EMAIL=rc-admin@example.invalid \
+BOOTSTRAP_ADMIN_PASSWORD='Rc-Admin-Password-2026!' \
+bash deploy/uat/runtime-acceptance.sh
+
+echo "[V1.0-E migration-aware] Run Production-safe HTTPS smoke against upgraded previous-release data"
+openssl req -x509 -newkey rsa:2048 -nodes \
+  -keyout "$tls_dir/key.pem" -out "$tls_dir/cert.pem" -days 1 \
+  -subj '/CN=127.0.0.1' -addext 'subjectAltName=IP:127.0.0.1' >/dev/null 2>&1
+assert_loopback_port_available "$proxy_port" || fail "run-specific HTTPS proxy port $proxy_port is already occupied"
+RC_PROXY_HOST=127.0.0.1 \
+RC_PROXY_PORT="$proxy_port" \
+RC_API_ORIGIN="http://127.0.0.1:$api_port" \
+RC_WEB_ROOT="$REPO_ROOT/apps/web/dist" \
+RC_TLS_KEY="$tls_dir/key.pem" \
+RC_TLS_CERT="$tls_dir/cert.pem" \
+node "$RC_DIR/https-proxy.mjs" > "$tmp_root/proxy.log" 2>&1 &
+proxy_pid=$!
+proxy_ready=false
+for attempt in {1..30}; do
+  if ! kill -0 "$proxy_pid" >/dev/null 2>&1; then
+    cat "$tmp_root/proxy.log"
+    fail "loopback HTTPS proxy exited before becoming healthy"
+  fi
+  if CURL_CA_BUNDLE="$tls_dir/cert.pem" curl --fail --silent --show-error "https://127.0.0.1:$proxy_port/" >/dev/null; then
+    sleep 0.2
+    if ! kill -0 "$proxy_pid" >/dev/null 2>&1; then
+      cat "$tmp_root/proxy.log"
+      fail "loopback HTTPS proxy exited after readiness probe"
+    fi
+    proxy_ready=true
+    break
+  fi
+  sleep 1
+done
+[[ "$proxy_ready" == "true" ]] || { cat "$tmp_root/proxy.log"; fail "loopback HTTPS proxy did not become healthy"; }
+CURL_CA_BUNDLE="$tls_dir/cert.pem" PRODUCTION_ENV_FILE="$production_env" bash deploy/production/smoke.sh
+
+kill "$proxy_pid" >/dev/null 2>&1 || true
+wait "$proxy_pid" 2>/dev/null || true
+proxy_pid=""
+kill "$api_pid" >/dev/null 2>&1 || true
+wait "$api_pid" 2>/dev/null || true
+api_pid=""
 
 echo "[V1.0-E migration-aware] Restore paired pre-upgrade recovery into isolated rollback target"
 rollback_pgpass="$(mktemp)"
@@ -323,13 +430,13 @@ fi
 trap - EXIT
 
 node - "$RC_EVIDENCE_FILE" "$RELEASE_COMMIT" "$RC_PREVIOUS_RELEASE_COMMIT" "$RC_ENVIRONMENT" \
-  "$recovery_reference" "$git_version" "$node_version" "$pnpm_version" "$postgresql_client_version" \
+  "$recovery_reference" "$git_version" "$node_version" "$pnpm_version" "$postgresql_client_version" "$openssl_version" \
   "$ci_provider" "$ci_workflow" "$ci_workflow_ref" "$ci_run_id" "$ci_run_number" "$ci_run_attempt" \
   "$ci_job" "$ci_repository" "$migration_list" <<'NODE'
 const { writeFileSync } = require('node:fs');
 const [
   path, releaseCommit, previousReleaseCommit, environment, recoveryReference,
-  gitVersion, nodeVersion, pnpmVersion, postgresqlClientVersion,
+  gitVersion, nodeVersion, pnpmVersion, postgresqlClientVersion, opensslVersion,
   ciProvider, ciWorkflow, ciWorkflowRef, ciRunId, ciRunNumber, ciRunAttempt,
   ciJob, ciRepository, migrationList,
 ] = process.argv.slice(2);
@@ -345,6 +452,7 @@ writeFileSync(path, JSON.stringify({
     node: nodeVersion,
     pnpm: pnpmVersion,
     postgresqlClient: postgresqlClientVersion,
+    openssl: opensslVersion,
   },
   ci: {
     provider: ciProvider,
@@ -368,6 +476,8 @@ writeFileSync(path, JSON.stringify({
   recoveryReference,
   productionPreparation: 'PASS',
   migrationAwareUpgrade: 'PASS',
+  authenticatedLiveAcceptance: 'PASS',
+  productionSafeSmoke: 'PASS',
   rollbackRestore: 'PASS',
   rollbackPreviousMigrationStatus: 'PASS',
   rollbackCandidateMigrationsAbsent: 'PASS',
