@@ -33,7 +33,7 @@ if (rehearsal.releaseMode === 'migration-aware-sql-only') {
   if (!rehearsal.toolVersions || typeof rehearsal.toolVersions !== 'object') {
     fail('migration-aware tool/runtime provenance is missing');
   }
-  for (const key of ['git', 'node', 'pnpm', 'postgresqlClient']) {
+  for (const key of ['git', 'node', 'pnpm', 'postgresqlClient', 'openssl']) {
     if (typeof rehearsal.toolVersions[key] !== 'string' || rehearsal.toolVersions[key].trim() === '') {
       fail('migration-aware tool/runtime provenance ' + key + ' is missing');
     }
@@ -71,6 +71,8 @@ if (rehearsal.releaseMode === 'migration-aware-sql-only') {
     'verifiedRecoveryPoint',
     'productionPreparation',
     'migrationAwareUpgrade',
+    'authenticatedLiveAcceptance',
+    'productionSafeSmoke',
     'rollbackRestore',
     'rollbackPreviousMigrationStatus',
     'rollbackCandidateMigrationsAbsent',
