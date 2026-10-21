@@ -3117,3 +3117,52 @@ test('V1.1-E2 Supplier Invoice PO and GR-only sources must match retained invoic
     { description: 'Unlinked allowed line', amount: new Prisma.Decimal('1.00') },
   );
 });
+
+test('V1.1-E2 Finance source options hide mismatched or unknown PO and GR currencies', async () => {
+  let poWhere: unknown;
+  let grWhere: unknown;
+  const empty = { findMany: async () => [] };
+  const db = {
+    company: { findUniqueOrThrow: async () => ({ baseCurrencyCode: 'THB' }) },
+    supplier: empty,
+    wbsElement: empty,
+    costCode: empty,
+    purchaseOrderLine: {
+      findMany: async (args: { where: unknown }) => {
+        poWhere = args.where;
+        return [];
+      },
+    },
+    goodsReceiptItem: {
+      findMany: async (args: { where: unknown }) => {
+        grWhere = args.where;
+        return [];
+      },
+    },
+  } as unknown as PrismaService;
+  const access = {
+    assertAccess: async () => undefined,
+  } as unknown as ProjectAccessService;
+  const finance = new FinanceService(
+    db,
+    access,
+    {} as ApprovalService,
+    {} as AuditService,
+    {} as NumberSequenceService,
+  );
+  const response = await finance.options(auth('company', 'maker'), 'project');
+  assert.equal(response.baseCurrencyCode, 'THB');
+  assert.equal(
+    (poWhere as { purchaseOrder: { currencyCode: string } })
+      .purchaseOrder.currencyCode,
+    'THB',
+    'PO options must exclude SGD and NULL/unknown retained source currency.',
+  );
+  assert.equal(
+    (grWhere as {
+      purchaseOrderLine: { purchaseOrder: { currencyCode: string } };
+    }).purchaseOrderLine.purchaseOrder.currencyCode,
+    'THB',
+    'Posted GR options must inherit the same known-currency filter from their PO.',
+  );
+});
