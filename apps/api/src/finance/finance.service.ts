@@ -354,6 +354,7 @@ export class FinanceService {
         context.auth.companyId,
         projectId,
         input.supplierId,
+        company.baseCurrencyCode,
         line,
       );
     }
@@ -384,6 +385,7 @@ export class FinanceService {
               context.auth.companyId,
               projectId,
               input.supplierId,
+              company.baseCurrencyCode,
               line,
             );
           }
@@ -577,6 +579,7 @@ export class FinanceService {
         invoice.companyId,
         invoice.projectId,
         invoice.supplierId,
+        invoice.currencyCode,
         input,
       );
       const max = await tx.supplierInvoiceItem.aggregate({
@@ -655,6 +658,7 @@ export class FinanceService {
         invoice.companyId,
         invoice.projectId,
         invoice.supplierId,
+        invoice.currencyCode,
         merged,
       );
       await tx.supplierInvoiceItem.update({
@@ -778,6 +782,7 @@ export class FinanceService {
             current.companyId,
             current.projectId,
             current.supplierId,
+            current.currencyCode,
             line,
           );
         }
@@ -979,6 +984,7 @@ export class FinanceService {
         invoice.companyId,
         invoice.projectId,
         invoice.supplierId,
+        invoice.currencyCode,
         line,
       );
     }
@@ -989,6 +995,7 @@ export class FinanceService {
     companyId: string,
     projectId: string,
     supplierId: string,
+    invoiceCurrencyCode: string,
     line: SupplierInvoiceLineInput,
   ) {
     if (!line.description.trim()) {
@@ -1028,6 +1035,7 @@ export class FinanceService {
               companyId: true,
               projectId: true,
               supplierId: true,
+              currencyCode: true,
               cancelledAt: true,
               nextRevision: { select: { id: true } },
               approvalInstance: { select: { approvalState: true } },
@@ -1048,6 +1056,15 @@ export class FinanceService {
           'PO source must be a current approved PO line for the same Company, Supplier and Project.',
         );
       }
+      if (
+        !poLine.purchaseOrder.currencyCode ||
+        poLine.purchaseOrder.currencyCode !== invoiceCurrencyCode
+      ) {
+        throw new UnprocessableEntityException({
+          code: 'SUPPLIER_INVOICE_SOURCE_CURRENCY_MISMATCH',
+          detail: 'PO source currency must be known and match the Supplier Invoice currency.',
+        });
+      }
       poLineId = poLine.id;
     }
     if (line.goodsReceiptItemId) {
@@ -1055,6 +1072,9 @@ export class FinanceService {
         where: { id: line.goodsReceiptItemId },
         select: {
           purchaseOrderLineId: true,
+          purchaseOrderLine: {
+            select: { purchaseOrder: { select: { currencyCode: true } } },
+          },
           goodsReceipt: {
             select: {
               companyId: true,
@@ -1077,6 +1097,15 @@ export class FinanceService {
         throw this.scopeError(
           'Goods Receipt source must be a posted, non-reversed item for the same Company, Supplier and Project.',
         );
+      }
+      if (
+        !grItem.purchaseOrderLine.purchaseOrder.currencyCode ||
+        grItem.purchaseOrderLine.purchaseOrder.currencyCode !== invoiceCurrencyCode
+      ) {
+        throw new UnprocessableEntityException({
+          code: 'SUPPLIER_INVOICE_SOURCE_CURRENCY_MISMATCH',
+          detail: 'Goods Receipt PO source currency must be known and match the Supplier Invoice currency.',
+        });
       }
       if (poLineId && grItem.purchaseOrderLineId !== poLineId) {
         throw this.scopeError(
