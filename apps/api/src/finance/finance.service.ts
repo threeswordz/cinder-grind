@@ -91,12 +91,12 @@ export class FinanceService {
 
   async options(auth: AuthenticatedUserContext, projectId: string) {
     await this.access.assertAccess(auth, projectId);
-    const [company, suppliers, wbs, costCodes, poLines, grItems] =
+    const company = await this.prisma.company.findUniqueOrThrow({
+      where: { id: auth.companyId },
+      select: { baseCurrencyCode: true },
+    });
+    const [suppliers, wbs, costCodes, poLines, grItems] =
       await Promise.all([
-        this.prisma.company.findUniqueOrThrow({
-          where: { id: auth.companyId },
-          select: { baseCurrencyCode: true },
-        }),
         this.prisma.supplier.findMany({
           where: { companyId: auth.companyId, isActive: true },
           select: { id: true, supplierCode: true, supplierName: true },
@@ -117,6 +117,7 @@ export class FinanceService {
             purchaseOrder: {
               companyId: auth.companyId,
               projectId,
+              currencyCode: company.baseCurrencyCode,
               cancelledAt: null,
               nextRevision: null,
               approvalInstance: { approvalState: 'APPROVED' },
@@ -145,6 +146,9 @@ export class FinanceService {
               projectId,
               postedAt: { not: null },
               reversedAt: null,
+            },
+            purchaseOrderLine: {
+              purchaseOrder: { currencyCode: company.baseCurrencyCode },
             },
           },
           select: {
