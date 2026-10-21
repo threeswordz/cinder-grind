@@ -28,7 +28,7 @@ chmod 600 "$RC_EVIDENCE_FILE"
 
 normalized_environment="${RC_ENVIRONMENT,,}"
 normalized_environment="${normalized_environment#"${normalized_environment%%[![:space:]]*}"}"
-normalized_environment="${normalized_environment%"${normalized_environment##*[![:space:]]}"
+normalized_environment="${normalized_environment%"${normalized_environment##*[![:space:]]}"}"
 [[ -n "$normalized_environment" && "$normalized_environment" != "production" ]] || fail "rehearsal must use a non-Production environment"
 RC_ENVIRONMENT="$normalized_environment"
 
