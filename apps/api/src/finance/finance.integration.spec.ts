@@ -48,6 +48,7 @@ test('V0.6-A routes retain explicit Supplier Invoice permissions', () => {
     ['projects', ['finance.supplier_invoice.view']],
     ['workflowOptions', ['finance.supplier_invoice.submit']],
     ['options', ['finance.supplier_invoice.view']],
+    ['invoiceOptions', ['finance.supplier_invoice.view']],
     ['list', ['finance.supplier_invoice.view']],
     ['get', ['finance.supplier_invoice.view']],
     ['byPurchaseOrderLine', ['finance.supplier_invoice.view']],
@@ -3118,24 +3119,27 @@ test('V1.1-E2 Supplier Invoice PO and GR-only sources must match retained invoic
   );
 });
 
-test('V1.1-E2 Finance source options hide mismatched or unknown PO and GR currencies', async () => {
-  let poWhere: unknown;
-  let grWhere: unknown;
+test('V1.1-E2 Finance source options use Company currency for create and retained currency for edit', async () => {
+  const poWheres: unknown[] = [];
+  const grWheres: unknown[] = [];
   const empty = { findMany: async () => [] };
   const db = {
     company: { findUniqueOrThrow: async () => ({ baseCurrencyCode: 'THB' }) },
+    supplierInvoice: {
+      findFirst: async () => ({ projectId: 'project', currencyCode: 'SGD' }),
+    },
     supplier: empty,
     wbsElement: empty,
     costCode: empty,
     purchaseOrderLine: {
       findMany: async (args: { where: unknown }) => {
-        poWhere = args.where;
+        poWheres.push(args.where);
         return [];
       },
     },
     goodsReceiptItem: {
       findMany: async (args: { where: unknown }) => {
-        grWhere = args.where;
+        grWheres.push(args.where);
         return [];
       },
     },
@@ -3150,19 +3154,40 @@ test('V1.1-E2 Finance source options hide mismatched or unknown PO and GR curren
     {} as AuditService,
     {} as NumberSequenceService,
   );
-  const response = await finance.options(auth('company', 'maker'), 'project');
-  assert.equal(response.baseCurrencyCode, 'THB');
+  const actor = auth('company', 'maker');
+  const createResponse = await finance.options(actor, 'project');
+  assert.equal(createResponse.baseCurrencyCode, 'THB');
   assert.equal(
-    (poWhere as { purchaseOrder: { currencyCode: string } })
+    (poWheres[0] as { purchaseOrder: { currencyCode: string } })
       .purchaseOrder.currencyCode,
     'THB',
-    'PO options must exclude SGD and NULL/unknown retained source currency.',
+    'Create PO options must use the current Company currency.',
   );
   assert.equal(
-    (grWhere as {
+    (grWheres[0] as {
       purchaseOrderLine: { purchaseOrder: { currencyCode: string } };
     }).purchaseOrderLine.purchaseOrder.currencyCode,
     'THB',
-    'Posted GR options must inherit the same known-currency filter from their PO.',
+    'Create GR options must use the current Company currency.',
+  );
+
+  const editResponse = await finance.invoiceOptions(actor, 'invoice');
+  assert.equal(
+    editResponse.baseCurrencyCode,
+    'THB',
+    'Response still reports the authoritative current Company base currency.',
+  );
+  assert.equal(
+    (poWheres[1] as { purchaseOrder: { currencyCode: string } })
+      .purchaseOrder.currencyCode,
+    'SGD',
+    'Draft edit PO options must follow the retained invoice currency.',
+  );
+  assert.equal(
+    (grWheres[1] as {
+      purchaseOrderLine: { purchaseOrder: { currencyCode: string } };
+    }).purchaseOrderLine.purchaseOrder.currencyCode,
+    'SGD',
+    'Draft edit GR options must follow the retained invoice currency.',
   );
 });
