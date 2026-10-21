@@ -91,10 +91,33 @@ export class FinanceService {
 
   async options(auth: AuthenticatedUserContext, projectId: string) {
     await this.access.assertAccess(auth, projectId);
+    return this.optionsForCurrency(auth, projectId);
+  }
+
+  async invoiceOptions(auth: AuthenticatedUserContext, invoiceId: string) {
+    const invoice = await this.prisma.supplierInvoice.findFirst({
+      where: { id: invoiceId, companyId: auth.companyId },
+      select: { projectId: true, currencyCode: true },
+    });
+    if (!invoice) throw this.notFound();
+    await this.access.assertAccess(auth, invoice.projectId);
+    return this.optionsForCurrency(
+      auth,
+      invoice.projectId,
+      invoice.currencyCode,
+    );
+  }
+
+  private async optionsForCurrency(
+    auth: AuthenticatedUserContext,
+    projectId: string,
+    retainedCurrencyCode?: string,
+  ) {
     const company = await this.prisma.company.findUniqueOrThrow({
       where: { id: auth.companyId },
       select: { baseCurrencyCode: true },
     });
+    const sourceCurrencyCode = retainedCurrencyCode ?? company.baseCurrencyCode;
     const [suppliers, wbs, costCodes, poLines, grItems] =
       await Promise.all([
         this.prisma.supplier.findMany({
@@ -117,7 +140,7 @@ export class FinanceService {
             purchaseOrder: {
               companyId: auth.companyId,
               projectId,
-              currencyCode: company.baseCurrencyCode,
+              currencyCode: sourceCurrencyCode,
               cancelledAt: null,
               nextRevision: null,
               approvalInstance: { approvalState: 'APPROVED' },
@@ -148,7 +171,7 @@ export class FinanceService {
               reversedAt: null,
             },
             purchaseOrderLine: {
-              purchaseOrder: { currencyCode: company.baseCurrencyCode },
+              purchaseOrder: { currencyCode: sourceCurrencyCode },
             },
           },
           select: {
