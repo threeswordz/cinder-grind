@@ -3017,3 +3017,103 @@ test('V0.6-C Payments preserve Project scope, settlement ceilings, idempotency a
     await prisma.$disconnect();
   }
 });
+
+test('V1.1-E2 Supplier Invoice PO and GR-only sources must match retained invoice currency', async () => {
+  // Isolated Finance source-check regression: no database mutation, migration,
+  // Company default change, or historical PO currency update.
+  const finance = new FinanceService(
+    {} as PrismaService,
+    {} as ProjectAccessService,
+    {} as ApprovalService,
+    {} as AuditService,
+    {} as NumberSequenceService,
+  ) as unknown as {
+    assertLineReferences: (
+      db: PrismaService,
+      companyId: string,
+      projectId: string,
+      supplierId: string,
+      invoiceCurrencyCode: string,
+      line: {
+        description: string;
+        amount: Prisma.Decimal;
+        purchaseOrderLineId?: string;
+        goodsReceiptItemId?: string;
+      },
+    ) => Promise<void>;
+  };
+
+  async function checkSource(
+    sourceCurrency: string | null,
+    lineage: 'po' | 'gr' | 'both',
+    invoiceCurrency = 'THB',
+  ) {
+    const sourceOrder = {
+      companyId: 'company',
+      projectId: 'project',
+      supplierId: 'supplier',
+      cancelledAt: null,
+      nextRevision: null,
+      approvalInstance: { approvalState: 'APPROVED' },
+      currencyCode: sourceCurrency,
+    };
+    const db = {
+      purchaseOrderLine: {
+        findFirst: async () => ({ id: 'po-line', purchaseOrder: sourceOrder }),
+      },
+      goodsReceiptItem: {
+        findFirst: async () => ({
+          purchaseOrderLineId: 'po-line',
+          purchaseOrderLine: { purchaseOrder: { currencyCode: sourceCurrency } },
+          goodsReceipt: {
+            companyId: 'company',
+            projectId: 'project',
+            supplierId: 'supplier',
+            postedAt: new Date('2026-10-21T00:00:00Z'),
+            reversedAt: null,
+          },
+        }),
+      },
+    } as unknown as PrismaService;
+    await finance.assertLineReferences(
+      db,
+      'company',
+      'project',
+      'supplier',
+      invoiceCurrency,
+      {
+        description: 'Source-linked material',
+        amount: new Prisma.Decimal('100.00'),
+        ...(lineage !== 'gr' ? { purchaseOrderLineId: 'po-line' } : {}),
+        ...(lineage !== 'po' ? { goodsReceiptItemId: 'gr-item' } : {}),
+      },
+    );
+  }
+
+  for (const currency of ['SGD', null]) {
+    for (const lineage of ['po', 'gr', 'both'] as const) {
+      await assert.rejects(
+        () => checkSource(currency, lineage),
+        (error: unknown) =>
+          error instanceof UnprocessableEntityException &&
+          (error.getResponse() as { code?: string }).code ===
+            'SUPPLIER_INVOICE_SOURCE_CURRENCY_MISMATCH',
+        `Fail closed for ${String(currency)} ${lineage} source on THB invoice`,
+      );
+    }
+  }
+  for (const lineage of ['po', 'gr', 'both'] as const) {
+    await checkSource('THB', lineage);
+  }
+  // The guard compares the *retained invoice* currency rather than imposing
+  // an unapproved permanent THB-only policy.
+  await checkSource('SGD', 'po', 'SGD');
+  await finance.assertLineReferences(
+    {} as PrismaService,
+    'company',
+    'project',
+    'supplier',
+    'THB',
+    { description: 'Unlinked allowed line', amount: new Prisma.Decimal('1.00') },
+  );
+});
