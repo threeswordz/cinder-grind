@@ -88,6 +88,16 @@ export class FinanceController {
     return { data: await this.finance.options(authOf(request), projectId) };
   }
 
+  @Get('supplier-invoices/:invoiceId/options')
+  @UseGuards(AuthGuard, PermissionGuard)
+  @RequirePermissions('finance.supplier_invoice.view')
+  async invoiceOptions(
+    @Req() request: AuthenticatedRequest,
+    @Param('invoiceId', new ParseUUIDPipe({ version: '4' })) invoiceId: string,
+  ) {
+    return { data: await this.finance.invoiceOptions(authOf(request), invoiceId) };
+  }
+
   @Get('projects/:projectId/supplier-invoices')
   @UseGuards(AuthGuard, PermissionGuard)
   @RequirePermissions('finance.supplier_invoice.view')
