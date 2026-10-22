@@ -183,6 +183,10 @@ export const financeApi = {
     apiRequest<Data<SupplierInvoiceOptions>>(
       '/finance/projects/' + projectId + '/supplier-invoice-options',
     ),
+  invoiceOptions: (invoiceId: string) =>
+    apiRequest<Data<SupplierInvoiceOptions>>(
+      '/finance/supplier-invoices/' + invoiceId + '/options',
+    ),
   list: (projectId: string) =>
     apiRequest<Data<SupplierInvoiceListItem[]>>(
       '/finance/projects/' + projectId + '/supplier-invoices',

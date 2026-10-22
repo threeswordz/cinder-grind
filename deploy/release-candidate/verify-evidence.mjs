@@ -28,6 +28,95 @@ if (rehearsal.releaseCommit !== expected || recovery.releaseCommit !== expected)
   fail('evidence release SHA does not match the exact workflow commit');
 }
 
+if (rehearsal.releaseMode === 'migration-aware-sql-only') {
+  if (rehearsal.version !== 3) fail('migration-aware rehearsal evidence schema version is not 3');
+  if (!rehearsal.toolVersions || typeof rehearsal.toolVersions !== 'object') {
+    fail('migration-aware tool/runtime provenance is missing');
+  }
+  for (const key of ['git', 'node', 'pnpm', 'postgresqlClient', 'openssl']) {
+    if (typeof rehearsal.toolVersions[key] !== 'string' || rehearsal.toolVersions[key].trim() === '') {
+      fail('migration-aware tool/runtime provenance ' + key + ' is missing');
+    }
+  }
+
+  if (!rehearsal.ci || typeof rehearsal.ci !== 'object') fail('migration-aware CI provenance is missing');
+  if (process.env.GITHUB_ACTIONS !== 'true') {
+    fail('migration-aware PASS requires consolidation inside the matching GitHub Actions run');
+  }
+  const migrationExpectedCi = {
+    provider: 'github-actions',
+    workflow: process.env.GITHUB_WORKFLOW,
+    workflowRef: process.env.GITHUB_WORKFLOW_REF,
+    runId: process.env.GITHUB_RUN_ID,
+    runNumber: process.env.GITHUB_RUN_NUMBER,
+    runAttempt: process.env.GITHUB_RUN_ATTEMPT,
+    job: process.env.GITHUB_JOB,
+    repository: process.env.GITHUB_REPOSITORY,
+  };
+  for (const [key, value] of Object.entries(migrationExpectedCi)) {
+    if (!value) fail('expected GitHub Actions provenance ' + key + ' is unavailable');
+    if (rehearsal.ci[key] !== value) {
+      fail('migration-aware CI provenance ' + key + ' does not match the current GitHub Actions run');
+    }
+  }
+
+  for (const key of [
+    'exactCheckout',
+    'cleanTree',
+    'migrationHistoryChanged',
+    'prismaSchemaUnchanged',
+    'forwardOnlyNewMigrations',
+    'freshMigration',
+    'previousReleaseFixture',
+    'verifiedRecoveryPoint',
+    'productionPreparation',
+    'migrationAwareUpgrade',
+    'authenticatedLiveAcceptance',
+    'productionSafeSmoke',
+    'rollbackRestore',
+    'rollbackPreviousMigrationStatus',
+    'rollbackCandidateMigrationsAbsent',
+    'rollbackDocuments',
+    'applicationOnlyRollbackProhibited',
+    'rollbackReadiness',
+  ]) {
+    if (rehearsal[key] !== 'PASS') fail('migration-aware rehearsal gate ' + key + ' did not PASS');
+  }
+  if (!Array.isArray(rehearsal.migrationNames) || rehearsal.migrationNames.length === 0) {
+    fail('migration-aware evidence is missing forward migration names');
+  }
+  for (const name of rehearsal.migrationNames) {
+    if (typeof name !== 'string' || !/^[0-9]{14}_[A-Za-z0-9_]+$/.test(name)) {
+      fail('migration-aware evidence contains an invalid migration name');
+    }
+  }
+  for (const key of ['pairedRecoverySet', 'isolatedRestore', 'restoredRuntimeAuthentication']) {
+    if (recovery[key] !== 'PASS') fail('recovery gate ' + key + ' did not PASS');
+  }
+
+  const migrationConsolidated = {
+    version: 3,
+    releaseMode: rehearsal.releaseMode,
+    releaseCommit: expected,
+    provenance: {
+      toolVersions: rehearsal.toolVersions,
+      ci: rehearsal.ci,
+    },
+    acceptance: {
+      'AC-V10-035': 'PASS',
+      'AC-V10-036': 'PASS',
+      'AC-V10-037': 'PASS',
+      'AC-V10-038': 'PASS',
+      'AC-V10-039': 'HUMAN_GATE_NOT_COMPLETED',
+      'AC-V10-040': 'HUMAN_GATE_NOT_COMPLETED',
+    },
+    rehearsal,
+    recovery,
+  };
+  process.stdout.write(JSON.stringify(migrationConsolidated, null, 2) + '\n');
+  process.exit(0);
+}
+
 if (rehearsal.version !== 2) fail('rehearsal evidence schema version is not 2');
 
 if (!rehearsal.toolVersions || typeof rehearsal.toolVersions !== 'object') {

@@ -48,6 +48,7 @@ test('V0.6-A routes retain explicit Supplier Invoice permissions', () => {
     ['projects', ['finance.supplier_invoice.view']],
     ['workflowOptions', ['finance.supplier_invoice.submit']],
     ['options', ['finance.supplier_invoice.view']],
+    ['invoiceOptions', ['finance.supplier_invoice.view']],
     ['list', ['finance.supplier_invoice.view']],
     ['get', ['finance.supplier_invoice.view']],
     ['byPurchaseOrderLine', ['finance.supplier_invoice.view']],
@@ -3016,4 +3017,177 @@ test('V0.6-C Payments preserve Project scope, settlement ceilings, idempotency a
   } finally {
     await prisma.$disconnect();
   }
+});
+
+test('V1.1-E2 Supplier Invoice PO and GR-only sources must match retained invoice currency', async () => {
+  // Isolated Finance source-check regression: no database mutation, migration,
+  // Company default change, or historical PO currency update.
+  const finance = new FinanceService(
+    {} as PrismaService,
+    {} as ProjectAccessService,
+    {} as ApprovalService,
+    {} as AuditService,
+    {} as NumberSequenceService,
+  ) as unknown as {
+    assertLineReferences: (
+      db: PrismaService,
+      companyId: string,
+      projectId: string,
+      supplierId: string,
+      invoiceCurrencyCode: string,
+      line: {
+        description: string;
+        amount: Prisma.Decimal;
+        purchaseOrderLineId?: string;
+        goodsReceiptItemId?: string;
+      },
+    ) => Promise<void>;
+  };
+
+  async function checkSource(
+    sourceCurrency: string | null,
+    lineage: 'po' | 'gr' | 'both',
+    invoiceCurrency = 'THB',
+  ) {
+    const sourceOrder = {
+      companyId: 'company',
+      projectId: 'project',
+      supplierId: 'supplier',
+      cancelledAt: null,
+      nextRevision: null,
+      approvalInstance: { approvalState: 'APPROVED' },
+      currencyCode: sourceCurrency,
+    };
+    const db = {
+      purchaseOrderLine: {
+        findFirst: async () => ({ id: 'po-line', purchaseOrder: sourceOrder }),
+      },
+      goodsReceiptItem: {
+        findFirst: async () => ({
+          purchaseOrderLineId: 'po-line',
+          purchaseOrderLine: { purchaseOrder: { currencyCode: sourceCurrency } },
+          goodsReceipt: {
+            companyId: 'company',
+            projectId: 'project',
+            supplierId: 'supplier',
+            postedAt: new Date('2026-10-21T00:00:00Z'),
+            reversedAt: null,
+          },
+        }),
+      },
+    } as unknown as PrismaService;
+    await finance.assertLineReferences(
+      db,
+      'company',
+      'project',
+      'supplier',
+      invoiceCurrency,
+      {
+        description: 'Source-linked material',
+        amount: new Prisma.Decimal('100.00'),
+        ...(lineage !== 'gr' ? { purchaseOrderLineId: 'po-line' } : {}),
+        ...(lineage !== 'po' ? { goodsReceiptItemId: 'gr-item' } : {}),
+      },
+    );
+  }
+
+  for (const currency of ['SGD', null]) {
+    for (const lineage of ['po', 'gr', 'both'] as const) {
+      await assert.rejects(
+        () => checkSource(currency, lineage),
+        (error: unknown) =>
+          error instanceof UnprocessableEntityException &&
+          (error.getResponse() as { code?: string }).code ===
+            'SUPPLIER_INVOICE_SOURCE_CURRENCY_MISMATCH',
+        `Fail closed for ${String(currency)} ${lineage} source on THB invoice`,
+      );
+    }
+  }
+  for (const lineage of ['po', 'gr', 'both'] as const) {
+    await checkSource('THB', lineage);
+  }
+  // The guard compares the *retained invoice* currency rather than imposing
+  // an unapproved permanent THB-only policy.
+  await checkSource('SGD', 'po', 'SGD');
+  await finance.assertLineReferences(
+    {} as PrismaService,
+    'company',
+    'project',
+    'supplier',
+    'THB',
+    { description: 'Unlinked allowed line', amount: new Prisma.Decimal('1.00') },
+  );
+});
+
+test('V1.1-E2 Finance source options use Company currency for create and retained currency for edit', async () => {
+  const poWheres: unknown[] = [];
+  const grWheres: unknown[] = [];
+  const empty = { findMany: async () => [] };
+  const db = {
+    company: { findUniqueOrThrow: async () => ({ baseCurrencyCode: 'THB' }) },
+    supplierInvoice: {
+      findFirst: async () => ({ projectId: 'project', currencyCode: 'SGD' }),
+    },
+    supplier: empty,
+    wbsElement: empty,
+    costCode: empty,
+    purchaseOrderLine: {
+      findMany: async (args: { where: unknown }) => {
+        poWheres.push(args.where);
+        return [];
+      },
+    },
+    goodsReceiptItem: {
+      findMany: async (args: { where: unknown }) => {
+        grWheres.push(args.where);
+        return [];
+      },
+    },
+  } as unknown as PrismaService;
+  const access = {
+    assertAccess: async () => undefined,
+  } as unknown as ProjectAccessService;
+  const finance = new FinanceService(
+    db,
+    access,
+    {} as ApprovalService,
+    {} as AuditService,
+    {} as NumberSequenceService,
+  );
+  const actor = auth('company', 'maker');
+  const createResponse = await finance.options(actor, 'project');
+  assert.equal(createResponse.baseCurrencyCode, 'THB');
+  assert.equal(
+    (poWheres[0] as { purchaseOrder: { currencyCode: string } })
+      .purchaseOrder.currencyCode,
+    'THB',
+    'Create PO options must use the current Company currency.',
+  );
+  assert.equal(
+    (grWheres[0] as {
+      purchaseOrderLine: { purchaseOrder: { currencyCode: string } };
+    }).purchaseOrderLine.purchaseOrder.currencyCode,
+    'THB',
+    'Create GR options must use the current Company currency.',
+  );
+
+  const editResponse = await finance.invoiceOptions(actor, 'invoice');
+  assert.equal(
+    editResponse.baseCurrencyCode,
+    'THB',
+    'Response still reports the authoritative current Company base currency.',
+  );
+  assert.equal(
+    (poWheres[1] as { purchaseOrder: { currencyCode: string } })
+      .purchaseOrder.currencyCode,
+    'SGD',
+    'Draft edit PO options must follow the retained invoice currency.',
+  );
+  assert.equal(
+    (grWheres[1] as {
+      purchaseOrderLine: { purchaseOrder: { currencyCode: string } };
+    }).purchaseOrderLine.purchaseOrder.currencyCode,
+    'SGD',
+    'Draft edit GR options must follow the retained invoice currency.',
+  );
 });

@@ -43,6 +43,14 @@ actual_commit="$(git rev-parse HEAD)"
 git cat-file -e "$RC_PREVIOUS_RELEASE_COMMIT^{commit}" 2>/dev/null || fail "previous release commit is unavailable; use full Git history"
 git merge-base --is-ancestor "$RC_PREVIOUS_RELEASE_COMMIT" "$RELEASE_COMMIT" || fail "previous release commit is not an ancestor of the candidate"
 
+# Preserve the accepted zero-migration rehearsal exactly for application-only candidates.
+# A migration-bearing candidate must use the separately reviewed fail-closed path.
+if ! git diff --quiet "$RC_PREVIOUS_RELEASE_COMMIT" "$RELEASE_COMMIT" -- apps/api/prisma/migrations; then
+  export RC_NON_PRODUCTION_CONFIRMED RC_PREVIOUS_RELEASE_COMMIT RC_BASE_DATABASE_URL
+  export RELEASE_COMMIT RC_ENVIRONMENT RC_EVIDENCE_FILE RC_POSTGRES_TOOL_MODE
+  exec bash "$RC_DIR/rehearse-migration.sh"
+fi
+
 git diff --quiet "$RC_PREVIOUS_RELEASE_COMMIT" "$RELEASE_COMMIT" -- apps/api/prisma/migrations \
   || fail "migration history changed; this zero-migration V1.0-E rehearsal cannot claim application-only rollback readiness"
 git diff --quiet "$RC_PREVIOUS_RELEASE_COMMIT" "$RELEASE_COMMIT" -- apps/api/prisma/schema.prisma \

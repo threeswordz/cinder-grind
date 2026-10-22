@@ -826,6 +826,83 @@ test('V0.3-D Purchase Orders preserve awarded-source traceability, approval and 
     const posted = await receipts.approve({ auth: checkerAuth }, first.id, 'receipt-first');
     assert.equal(posted.stockTransactions.length, 1);
     assert.equal(posted.stockTransactions[0]?.quantity.toString(), '3');
+
+    // V1.1-E2: exercise the actual PostgreSQL invoice source guard, not
+    // FinanceService. Each transaction rolls back on purpose: no historical PO,
+    // Goods Receipt, Company default or Invoice state survives the regression.
+    const receiptSource = await prisma.goodsReceiptItem.findFirstOrThrow({
+      where: { goodsReceiptId: first.id, purchaseOrderLineId: sourceLine.id },
+      select: { id: true },
+    });
+    const invoiceSourceFixture = (currencyCode: string, caseKey: string) => ({
+      companyId: company.id,
+      projectId: project.id,
+      supplierId: supplier.id,
+      supplierInvoiceNumber: 'SI-SOURCE-' + suffix + '-' + caseKey,
+      supplierReference: 'SI-SOURCE-' + suffix + '-' + caseKey,
+      invoiceDate: today,
+      currencyCode,
+      createKey: randomUUID(),
+      createPayloadHash: 'b'.repeat(64),
+      createdByUserId: maker.id,
+    });
+    for (const [caseKey, sourceIds] of [
+      ['PO', { purchaseOrderLineId: sourceLine.id }],
+      ['GR', { goodsReceiptItemId: receiptSource.id }],
+      ['BOTH', { purchaseOrderLineId: sourceLine.id, goodsReceiptItemId: receiptSource.id }],
+    ] as const) {
+      await assert.rejects(
+        () => prisma.$transaction(async (tx) => {
+          await tx.company.update({
+            where: { id: company.id },
+            data: { baseCurrencyCode: 'THB' },
+          });
+          const invoice = await tx.supplierInvoice.create({
+            data: invoiceSourceFixture('THB', caseKey),
+          });
+          // Direct Prisma mutation must be rejected regardless of service API.
+          await tx.supplierInvoiceItem.create({
+            data: {
+              companyId: company.id,
+              projectId: project.id,
+              supplierInvoiceId: invoice.id,
+              lineNo: 1,
+              description: 'Currency mismatch rejected by database',
+              amount: new Prisma.Decimal('1.00'),
+              ...sourceIds,
+            },
+          });
+        }),
+        /SUPPLIER_INVOICE_SOURCE_CURRENCY_MISMATCH/,
+        'Direct database ' + caseKey + ' link must reject retained SGD source on THB invoice.',
+      );
+    }
+    // Matching source currencies must still allow the same direct database
+    // insert, including a GR-only link. Explicit rollback prevents test-data
+    // pollution or changes to procurement/stock history.
+    const rollbackCurrencySuccess = new Error('ROLLBACK_VALID_SOURCE_CURRENCY_REGRESSION');
+    await assert.rejects(
+      () => prisma.$transaction(async (tx) => {
+        const invoice = await tx.supplierInvoice.create({
+          data: invoiceSourceFixture('SGD', 'MATCH'),
+        });
+        const linked = await tx.supplierInvoiceItem.create({
+          data: {
+            companyId: company.id,
+            projectId: project.id,
+            supplierInvoiceId: invoice.id,
+            lineNo: 1,
+            description: 'Currency-match database regression',
+            amount: new Prisma.Decimal('1.00'),
+            goodsReceiptItemId: receiptSource.id,
+          },
+        });
+        assert.equal(linked.goodsReceiptItemId, receiptSource.id);
+        throw rollbackCurrencySuccess;
+      }),
+      (error: unknown) => error === rollbackCurrencySuccess,
+    );
+
     const retried = await receipts.approve({ auth: checkerAuth }, first.id, 'receipt-first');
     assert.equal(retried.stockTransactions.length, 1);
 

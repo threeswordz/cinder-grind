@@ -186,6 +186,12 @@ export function FinanceWorkspace({ permissions, initialProjectId, initialInvoice
     enabled: canView && Boolean(projectId),
   });
 
+  const editOptions = useQuery({
+    queryKey: ['finance-supplier-invoice-edit-options', invoiceId],
+    queryFn: () => financeApi.invoiceOptions(invoiceId),
+    enabled: canView && Boolean(invoiceId),
+  });
+
   const invoices = useQuery({
     queryKey: ['finance-supplier-invoices', projectId],
     queryFn: () => financeApi.list(projectId),
@@ -275,6 +281,9 @@ export function FinanceWorkspace({ permissions, initialProjectId, initialInvoice
       }),
       queryClient.invalidateQueries({
         queryKey: ['finance-supplier-invoice-options', projectId],
+      }),
+      queryClient.invalidateQueries({
+        queryKey: ['finance-supplier-invoice-edit-options', id],
       }),
     ]);
   };
@@ -421,22 +430,22 @@ export function FinanceWorkspace({ permissions, initialProjectId, initialInvoice
 
   const invoicePoOptions = useMemo(
     () =>
-      (options.data?.data.purchaseOrderLines ?? []).filter(
+      (editOptions.data?.data.purchaseOrderLines ?? []).filter(
         (line) =>
           !current?.supplierId ||
           line.purchaseOrder.supplierId === current.supplierId,
       ),
-    [current?.supplierId, options.data],
+    [current?.supplierId, editOptions.data],
   );
 
   const invoiceGrOptions = useMemo(
     () =>
-      (options.data?.data.goodsReceiptItems ?? []).filter(
+      (editOptions.data?.data.goodsReceiptItems ?? []).filter(
         (line) =>
           !current?.supplierId ||
           line.goodsReceipt.supplierId === current.supplierId,
       ),
-    [current?.supplierId, options.data],
+    [current?.supplierId, editOptions.data],
   );
 
   const updateCreateLine = (
