@@ -12,7 +12,7 @@ export function CompanyPanel() {
   });
   const [companyCode, setCompanyCode] = useState('');
   const [companyName, setCompanyName] = useState('');
-  const [baseCurrencyCode, setBaseCurrencyCode] = useState('SGD');
+  const [baseCurrencyCode, setBaseCurrencyCode] = useState('THB');
 
   useEffect(() => {
     if (!query.data) return;
@@ -65,7 +65,7 @@ export function CompanyPanel() {
             label="Base Currency"
             value={baseCurrencyCode}
             onChange={(event) => setBaseCurrencyCode(event.target.value)}
-            helperText="Three-letter currency code, e.g. SGD or THB."
+            helperText="Thai baht (THB) is the operating currency. Existing records retain their source currency."
             required
           />
           <Button type="submit" variant="contained" disabled={mutation.isPending}>
