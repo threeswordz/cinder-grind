@@ -11,6 +11,7 @@ import type { CurrentUser } from '../api/auth';
 import { procurementApi } from '../api/procurement';
 import { projectsApi } from '../api/projects';
 import { labels, translate, type Locale } from './role-workspace-i18n';
+import { dismissMobileNavigation } from './mobile-menu-keyboard';
 import {
   visibleNavigationKeys, mayReadMyPurchaseRequests, selectedAccessibleProject,
   isAccessibleProject, ownEditablePurchaseRequests, verifiedPurchaseRequestLink,
@@ -148,6 +149,9 @@ export function RoleWorkspaceShell({
   const navigation = (
     <Box component="nav" id="v11-primary-navigation" ref={navigationRef}
       aria-label={t('primaryNavigation', 'Main navigation')}
+      onKeyDownCapture={(event) => dismissMobileNavigation(
+        event, isMobile, mobileMenu, () => setMobileMenu(false),
+      )}
       sx={{ overflowY: 'auto', overflowX: 'hidden', py: 1, height: '100%' }}>
       {isMobile && <Box sx={{ display: 'flex', justifyContent: 'flex-end', px: 1 }}>
         <Button size="small" lang={locale} onClick={() => setMobileMenu(false)}
