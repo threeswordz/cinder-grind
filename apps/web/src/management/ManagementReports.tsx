@@ -17,6 +17,9 @@ import {
 } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
+
+import { ManagementPrintDocument } from './ManagementPrintDocument';
 
 import { apiUrl } from '../api/client';
 import {
@@ -383,6 +386,12 @@ export function ManagementReports({
           </Alert>
         </>
       ) : null}
+      {report.data?.data && typeof document !== 'undefined'
+        ? createPortal(
+            <ManagementPrintDocument report={report.data.data} />,
+            document.body,
+          )
+        : null}
     </Stack>
   );
 }
