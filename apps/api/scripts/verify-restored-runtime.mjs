@@ -69,30 +69,38 @@ try {
     fail('restored database contains no LOCAL document metadata for the bootstrap administrator company');
   }
 
-  const downloadCandidate = await prisma.document.findFirst({
-    where: {
-      companyId: restoredAdmin.companyId,
-      storageProvider: 'LOCAL',
-      checksum: { not: null },
-      links: { some: { entityType: 'PROJECT' } },
-    },
-    select: {
-      id: true,
-      checksum: true,
-      fileSizeBytes: true,
-      links: {
-        where: { entityType: 'PROJECT' },
-        select: { entityId: true },
-        take: 1,
-      },
-    },
-    orderBy: [{ uploadedAt: 'asc' }, { id: 'asc' }],
+  // The restored administrator has document authority, not implicit Finance or
+  // Inventory authority. Select the smoke fixture through authenticated APIs;
+  // strict archive verification still checks every restored LOCAL document.
+  const projectsResponse = await fetch(baseUrl + '/documents/projects', {
+    headers: { Accept: 'application/json', Cookie: cookie },
   });
-  if (!downloadCandidate?.checksum || downloadCandidate.links.length < 1) {
-    fail('restored database contains no checksum-backed LOCAL document linked to a Project');
+  if (projectsResponse.status !== 200) fail('restored authorized document Projects could not be listed');
+  const projectsBody = await projectsResponse.json();
+  let downloadCandidate;
+  let projectId;
+  for (const project of projectsBody.data) {
+    const list = await fetch(baseUrl + '/documents/projects/' + encodeURIComponent(project.id), {
+      headers: { Accept: 'application/json', Cookie: cookie },
+    });
+    if (list.status !== 200) fail('restored authorized Project documents could not be listed');
+    const listed = await list.json();
+    const visible = listed.data.find((row) => row.storageProvider === 'LOCAL' && row.checksum);
+    if (!visible) continue;
+    downloadCandidate = await prisma.document.findFirst({
+      where: {
+        id: visible.id, companyId: restoredAdmin.companyId,
+        storageProvider: 'LOCAL', checksum: { not: null },
+        links: { some: { entityType: 'PROJECT', entityId: project.id } },
+      },
+      select: { id: true, checksum: true, fileSizeBytes: true },
+    });
+    projectId = project.id;
+    break;
   }
-
-  const projectId = downloadCandidate.links[0].entityId;
+  if (!downloadCandidate?.checksum || !projectId) {
+    fail('restored administrator has no authorized checksum-backed LOCAL document for runtime smoke');
+  }
   const download = await fetch(
     baseUrl +
       `/documents/projects/${encodeURIComponent(projectId)}/${encodeURIComponent(downloadCandidate.id)}/download`,

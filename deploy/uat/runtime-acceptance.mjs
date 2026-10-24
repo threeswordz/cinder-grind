@@ -6302,6 +6302,72 @@ check(
 );
 record('V0.6-D DOC-009 exposes all eight approved Finance/Subcontract targets through the canonical Project-owned Documents abstraction');
 
+// Real HTTP regression: a document reader has Project scope but no Finance or
+// Subcontract source authority. Generic Project paths must not bypass it.
+const sourceDocumentReaderRole = await request(admin, '/admin/roles', {
+  method: 'POST',
+  json: { roleCode: 'UAT_DOC_SOURCE_READER_' + suffix, roleName: 'Document source denial ' + suffix },
+  expected: 201,
+});
+await request(admin, '/admin/roles/' + sourceDocumentReaderRole.data.data.id + '/permissions', {
+  method: 'PUT',
+  json: { permissionCodes: ['projects.access_all', 'documents.document.view', 'documents.document.archive'] },
+});
+const sourceDocumentReaderPassword = 'Uat-Doc-' + suffix + '-Strong-2026!';
+const sourceDocumentReaderUser = await request(admin, '/admin/users', {
+  method: 'POST',
+  json: {
+    email: 'uat-doc-source-' + suffix.toLowerCase() + '@example.com',
+    displayName: 'Document source reader ' + suffix,
+    password: sourceDocumentReaderPassword,
+    roleIds: [sourceDocumentReaderRole.data.data.id],
+  },
+  expected: 201,
+});
+const sourceDocumentReader = await login(sourceDocumentReaderUser.data.data.email, sourceDocumentReaderPassword);
+const sourceDocumentReaderIdentity = await request(sourceDocumentReader, '/auth/me');
+check(
+  !sourceDocumentReaderIdentity.data.data.permissions.includes('finance.supplier_invoice.view') &&
+  !sourceDocumentReaderIdentity.data.data.permissions.includes('subcontracts.certification.view'),
+  'Document denial actor unexpectedly has protected source permissions.',
+);
+const invoiceDocumentBytes = new TextEncoder().encode('%PDF-1.4 Invoice source permission ' + suffix);
+const invoiceDocumentForm = new FormData();
+invoiceDocumentForm.set('documentTypeId', documentType.data.data.id);
+invoiceDocumentForm.set('file', new Blob([invoiceDocumentBytes], { type: 'application/pdf' }), 'source-invoice-' + suffix + '.pdf');
+const invoiceDocument = await request(pm, '/documents/projects/' + projectId + '/targets/SUPPLIER_INVOICE/' + supplierInvoiceId, {
+  method: 'POST', body: invoiceDocumentForm, expected: 201,
+});
+const sourceDocumentReaderList = await request(sourceDocumentReader, '/documents/projects/' + projectId);
+for (const [entityType, entityId, protectedDocumentId] of [
+  ['SUPPLIER_INVOICE', supplierInvoiceId, invoiceDocument.data.data.id],
+  ['SUBCONTRACT_CERTIFICATION', stageECertification.data.data.id, stageDCertDocument.data.data.id],
+]) {
+  check(!sourceDocumentReaderList.data.data.some((row) => row.id === protectedDocumentId), 'Generic Project list leaked protected document metadata.');
+  const genericPath = '/documents/projects/' + projectId + '/' + protectedDocumentId;
+  const targetPath = '/documents/projects/' + projectId + '/targets/' + entityType + '/' + entityId;
+  await request(sourceDocumentReader, targetPath, { expected: 403 });
+  await request(sourceDocumentReader, targetPath + '/' + protectedDocumentId + '/download', { expected: 403 });
+  await request(sourceDocumentReader, genericPath + '/download', { expected: 404 });
+  for (const action of ['archive', 'reactivate']) {
+    await request(sourceDocumentReader, genericPath + '/' + action, { method: 'POST', expected: 404 });
+    await request(sourceDocumentReader, targetPath + '/' + protectedDocumentId + '/' + action, { method: 'POST', expected: 403 });
+  }
+}
+check(sourceDocumentReaderList.data.data.some((row) => row.id === documentId), 'Source protection hid an ordinary Project-only document.');
+await request(sourceDocumentReader, '/documents/projects/' + projectId + '/' + documentId + '/download', { accept: '*/*' });
+const authorizedInvoiceDownload = await request(pm, '/documents/projects/' + projectId + '/' + invoiceDocument.data.data.id + '/download', { accept: '*/*' });
+check(
+  Buffer.from(authorizedInvoiceDownload.data).equals(Buffer.from(invoiceDocumentBytes)),
+  'Authorized Invoice source reader did not receive the original attachment bytes.',
+);
+for (const [action, active] of [['archive', false], ['reactivate', true]]) {
+  const changed = await request(pm, '/documents/projects/' + projectId + '/' + invoiceDocument.data.data.id + '/' + action, { method: 'POST', expected: 201 });
+  check(changed.data.data.isActive === active, 'Authorized document lifecycle action failed.');
+}
+await logout(sourceDocumentReader);
+record('V1.1-E2 Project document paths preserve Finance/Subcontract source permissions for metadata, bytes and lifecycle actions');
+
 const stageEExpandedWorkOrder = await request(
   pm,
   '/subcontracts/agreements/' + stageEAgreementId + '/work-orders',

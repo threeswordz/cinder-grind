@@ -11,6 +11,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { ProjectAccessService } from '../projects/project-access.service';
 import { UploadedDocumentFile } from './document-policy.service';
 import { DocumentsService } from './documents.service';
+import { DOCUMENT_SOURCE_VIEW_PERMISSIONS } from './document-source-permissions';
 
 export type DocumentTargetType =
   | 'WBS'
@@ -299,6 +300,7 @@ export class DocumentTargetsService {
         },
       },
       include: {
+        links: { select: { entityType: true, entityId: true } },
         documentType: {
           select: {
             id: true,
@@ -313,7 +315,8 @@ export class DocumentTargetsService {
       orderBy: [{ uploadedAt: 'desc' }, { fileName: 'asc' }],
     });
 
-    return rows.map((row) => this.toDto(row));
+    const visible = await this.documents.filterSourceDocuments(auth, projectId, rows);
+    return visible.map((row) => this.toDto(row));
   }
 
   async upload(
@@ -331,40 +334,13 @@ export class DocumentTargetsService {
       entityId,
     );
 
-    const document = await this.documents.uploadProjectDocument(
+    return this.documents.uploadProjectDocument(
       context,
       projectId,
       documentTypeId,
       file,
+      { entityType, entityId },
     );
-
-    await this.prisma.$transaction(async (tx) => {
-      const link = await tx.documentLink.create({
-        data: {
-          documentId: document.id,
-          entityType,
-          entityId,
-          linkedByUserId: context.auth.userId,
-        },
-      });
-      await this.audit.record(
-        {
-          ...context,
-          entityType: 'DOCUMENT_LINK',
-          entityId: link.id,
-          action: 'CREATE',
-          newValues: {
-            documentId: document.id,
-            entityType,
-            entityId,
-            projectId,
-          },
-        },
-        tx,
-      );
-    });
-
-    return document;
   }
 
   async download(
@@ -627,22 +603,7 @@ export class DocumentTargetsService {
     auth: AuthenticatedUserContext,
     entityType: DocumentTargetType,
   ) {
-    const permission: Partial<Record<DocumentTargetType, string>> = {
-      GOODS_RECEIPT: 'inventory.receipt.view',
-      MATERIAL_RESERVATION: 'inventory.reservation.view',
-      MATERIAL_ISSUE: 'inventory.issue.view',
-      MATERIAL_RETURN: 'inventory.return.view',
-      STOCK_TRANSFER: 'inventory.transfer.view',
-      SUPPLIER_INVOICE: 'finance.supplier_invoice.view',
-      CLIENT_INVOICE: 'finance.client_invoice.view',
-      PAYMENT: 'finance.payment.view',
-      SUBCONTRACT_AGREEMENT: 'subcontracts.agreement.view',
-      SUBCONTRACT_WORK_ORDER: 'subcontracts.work_order.view',
-      SUBCONTRACT_CLAIM: 'subcontracts.claim.view',
-      SUBCONTRACT_CERTIFICATION: 'subcontracts.certification.view',
-      SUBCONTRACT_VARIATION: 'subcontracts.variation.view',
-    };
-    const required = permission[entityType];
+    const required = DOCUMENT_SOURCE_VIEW_PERMISSIONS[entityType];
     if (required && !auth.permissions.includes(required)) {
       throw new ForbiddenException({
         code: 'DOCUMENT_TARGET_PERMISSION_DENIED',

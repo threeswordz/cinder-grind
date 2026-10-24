@@ -958,7 +958,7 @@ export class SiteExecutionService {
 
   async listDocuments(auth: AuthenticatedUserContext, reportId: string) {
     const report = await this.reportForAccess(auth, reportId);
-    return this.prisma.document.findMany({
+    const rows = await this.prisma.document.findMany({
       where: {
         companyId: auth.companyId,
         links: {
@@ -969,6 +969,7 @@ export class SiteExecutionService {
         },
       },
       select: {
+        links: { select: { entityType: true, entityId: true } },
         id: true,
         fileName: true,
         mimeType: true,
@@ -988,6 +989,8 @@ export class SiteExecutionService {
       },
       orderBy: [{ uploadedAt: 'desc' }, { fileName: 'asc' }],
     });
+    const visible = await this.documents.filterSourceDocuments(auth, report.projectId, rows);
+    return visible.map(({ links: _links, ...document }) => document);
   }
 
   async uploadPhoto(
@@ -1061,9 +1064,9 @@ export class SiteExecutionService {
             },
           },
         },
-        select: { id: true },
+        select: { id: true, links: { select: { entityType: true, entityId: true } } },
       });
-      if (!document) {
+      if (!document || !(await this.documents.filterSourceDocuments(context.auth, report.projectId, [document], tx)).length) {
         throw new UnprocessableEntityException({
           code: 'DAILY_SITE_REPORT_DOCUMENT_INVALID',
           detail:

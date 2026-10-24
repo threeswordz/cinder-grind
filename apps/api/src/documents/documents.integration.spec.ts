@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { randomUUID } from 'node:crypto';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, readdir, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import {
@@ -564,6 +564,22 @@ test('Project Documents enforce scope, safe storage and metadata boundaries', as
       },
     });
     assert.ok(auditCount >= 4);
+
+    // Exercise the real database trigger/transaction and storage cleanup, not
+    // only the service double: a rejected source link must publish nothing.
+    const beforeDocuments = await prisma.document.count({ where: { companyId: company.id } });
+    const beforeLinks = await prisma.documentLink.count({ where: { document: { companyId: company.id } } });
+    const beforeBytes = (await readdir(tempRoot)).sort();
+    await assert.rejects(() => service.uploadProjectDocument(
+      { auth: scoped }, project.id, type.id, uploadFile('rejected-source.pdf'),
+      { entityType: 'WBS', entityId: randomUUID() },
+    ));
+    assert.equal(await prisma.document.count({ where: { companyId: company.id } }), beforeDocuments);
+    assert.equal(await prisma.documentLink.count({ where: { document: { companyId: company.id } } }), beforeLinks);
+    assert.equal(await prisma.auditLog.count({
+      where: { companyId: company.id, entityType: { in: ['DOCUMENT', 'DOCUMENT_LINK', 'DOCUMENT_TYPE'] } },
+    }), auditCount);
+    assert.deepEqual((await readdir(tempRoot)).sort(), beforeBytes);
   } finally {
     await prisma.$disconnect();
     if (previousRoot === undefined) delete process.env.STORAGE_ROOT;
