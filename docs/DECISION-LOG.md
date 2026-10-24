@@ -636,3 +636,33 @@ In the active UAT conversation the owner stated “entire ERP system should be i
 - Authorized local UAT configuration: add only the two named register permissions to `UAT_E2_JAI_J2_PREPARER`, restricted to the existing verified Jai account; create at most one clearly labelled `UAT-E2-SC-001` test subcontractor through Jai's authenticated API. No broad role changes, business approvals or Approval Matrix changes.
 - The separate Budget Revision workflow proposal has not been approved by this instruction; preserve the two existing instances and all Original Budget history.
 - No V1.1 owner UAT/release acceptance, Production deployment or review waiver is granted.
+
+## DEC-032 — Local V1.1-E2 recovery evidence exception
+**Status:** APPROVED — Product / Business Owner, 2026-10-24 (Singapore time). **Local E2 recovery evidence only; no V1.1 UAT/release acceptance.**
+
+The owner replied **“approve”** to the [specific recovery disposition](https://github.com/threeswordz/cinder-grind/issues/233#issuecomment-6386237994), after being told that the full saved-snapshot Document check remains BLOCKED. The [approval receipt](https://github.com/threeswordz/cinder-grind/issues/233#issuecomment-6386260157) records the decision. This is the sole exception to the local recovery-evidence treatment in `V1.1-E-TECHNICAL-EVIDENCE.md` section 3; the original acceptance criteria and Production recovery controls otherwise remain unchanged.
+
+- **Accepted evidence for this local V1.1-E2 exercise:** green CI paired recovery on reviewed runtime `c2df1a7e24848bdee52153bcc4eb531c3b4de3b9` (main CI #4824), plus the owner-reported isolated restore of the saved database, all 125 migration names/checksums, expected Company/Project and all **7/7 LOCAL Document records of UAT Company `475466ac-a6f1-4b57-bb75-b9f7ee132d2f`**. Temporary-resource cleanup also passed in the supplied first-drill JSON. Full restored API/browser operation was not exercised by this local copy drill.
+- **Retained limitation:** strict whole-snapshot Document completeness is **BLOCKED**: 21 LOCAL records, 7 verified and 14 missing files. Do not relabel the original backup or runner verdict as a complete paired-recovery PASS. The eight foreign Company identities and 14 record IDs were corroborated by the owner's read-only inventory against exact repository fixture names; Company prefixes alone never authorize an exemption.
+- **Exact snapshot:** `~/Construction-ERP-UAT-Backups/20261024T144153Z-pre-v11-finance-guard`, source checkout `9aedbf206080ab1bd8b1c8c235c43e7bef6f4918`. Restore evidence: `~/.construction-erp-uat/evidence/restore-drill/20261024T151255Z-b5fbd608de.json` and `20261024T152003Z-7edc45f44d.json`. Local paths identify owner-held evidence, not files independently inspected in GitHub.
+- Preserve the backup, every fixture row/Company and all audit/history. **No deletion, archival, relabel, fabricated/reconstructed file, backup rewriting, trigger bypass, schema/migration change or permission grant is authorized.** The isolation correction in PR #254 prevents future full validation from targeting retained UAT; it does not repair these older missing fixture bytes.
+- This decision applies only to the exact saved snapshot and the following 14 synthetic records. It is **not** a general filter, prefix-based rule, future-backup exemption, or permission to overlook another missing business/Company document. The strict verifier remains unchanged.
+
+| Fixture Company | Document ID |
+|---|---|
+| DOC-791a2387 | `a0a42ddd-a83c-40ea-abf0-487beb9321fd` |
+| DOC-c74bc5e9 | `eb2745f8-cc42-4eb3-9886-574b406a8aef` |
+| DOC-c74bc5e9 | `e8f3a534-cd9c-497a-b773-fc1e094f6a35` |
+| DOC-c74bc5e9 | `42ae0ef2-0da4-4292-b796-57e42e635516` |
+| DOC-c74bc5e9 | `8c62e7e6-e484-4b6c-b5bc-2ce5fc522bbb` |
+| DOC-63531d70 | `c40d59b9-4396-49c8-937b-ae69f94ef557` |
+| DOC-63531d70 | `a5fda915-83d8-45ee-9f1f-a5cd675ee9f3` |
+| DOC-63531d70 | `a5220919-26f6-4887-905b-f598e2021fe9` |
+| DOC-63531d70 | `b7eb4bf0-41fd-43ab-89f2-1db4f04d819d` |
+| V01-c72d465a | `9373cd98-4725-4297-af4d-eb80a43a9210` |
+| V01-075d28eb | `526b2e84-81fe-450e-a300-03a047663d3f` |
+| V01-fe599806 | `d4f138b3-5d4c-468d-ba55-9d9cc9adac8c` |
+| SE-14a395a9 | `a9eca7b2-aa3a-4700-9c25-5f93169e4020` |
+| SE-636f5c67 | `8d35c333-5f04-48cb-81ec-02fb6b587212` |
+
+Production still requires its normal complete paired recovery/restore proof. Exact-head/PR/post-main CI, applicable DEC-022 review, source authorization/history protections and zero-cost constraints remain in force. **AC-V11-029 UAT acceptance, AC-V11-030 release acceptance and Production deployment are not approved by this decision.** Formal E2 criteria are not automatically checked by the owner's limited approval. See the [owner decision packet](V1.1-E2-OWNER-DECISION-PACKET.md) for the actual evidence and remaining review limits.
