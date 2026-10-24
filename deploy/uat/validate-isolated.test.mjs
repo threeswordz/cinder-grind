@@ -54,23 +54,25 @@ test('full workspace gate gets only the new database/storage and retains origina
   const fixture = harness({ readyFailures: 2 });
   await validateIsolated(fixture);
   const pnpm = fixture.calls.filter((call) => call.command === 'pnpm');
-  assert.deepEqual(pnpm.map((call) => call.args), [['prisma:migrate:deploy'], ['validate']]);
+  assert.deepEqual(pnpm.map((call) => call.args), [['prisma:migrate:deploy'], ['typecheck'], ['test'], ['build']]);
   for (const call of pnpm) {
     assert.match(call.env.DATABASE_URL, /^postgresql:\/\/erp_validation:[a-f0-9]+@127\.0\.0\.1:61234\/erp_validation\?schema=public$/);
     assert.equal(call.env.STORAGE_ROOT, '/temporary/owned');
-    assert.equal(call.env.NODE_ENV, 'test');
+    assert.equal(call.env.NODE_ENV, call.args[0] === 'build' ? 'production' : 'test');
     assert.ok(!JSON.stringify(call.env).includes('do-not-expose'));
   }
   assert.equal(source.DATABASE_URL, retained);
   assert.deepEqual(fixture.removed(), { removedStorage: true, removedContainer: true });
 });
 
-for (const fault of ['prisma:migrate:deploy', 'validate']) {
+for (const fault of ['prisma:migrate:deploy', 'typecheck', 'test', 'build']) {
   test('failed ' + fault + ' stops and cleans only owned resources', async () => {
     const fixture = harness({ fault });
     await assert.rejects(validateIsolated(fixture), /command failed/);
     assert.deepEqual(fixture.removed(), { removedStorage: true, removedContainer: true });
-    if (fault === 'prisma:migrate:deploy') assert.ok(!fixture.calls.some((call) => call.command === 'pnpm' && call.args[0] === 'validate'));
+    const phases = ['prisma:migrate:deploy', 'typecheck', 'test', 'build'];
+    assert.deepEqual(fixture.calls.filter((call) => call.command === 'pnpm').map((call) => call.args[0]),
+      phases.slice(0, phases.indexOf(fault) + 1));
   });
 }
 

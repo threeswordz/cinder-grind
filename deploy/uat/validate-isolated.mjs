@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process';
 import { randomBytes, randomUUID } from 'node:crypto';
-import { chmod, mkdtemp, rm } from 'node:fs/promises';
+import { chmod, mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -9,6 +9,7 @@ const image = 'docker.io/library/postgres:17.11-alpine';
 const label = 'io.construction-erp.validation';
 const dataPath = '/var/lib/postgresql/data';
 const root = fileURLToPath(new URL('../..', import.meta.url));
+const validationPhases = ['typecheck', 'test', 'build'];
 
 function requireSafe(condition, message) {
   if (!condition) throw new Error(message);
@@ -65,6 +66,9 @@ export async function validateIsolated({ engine = 'podman', env = process.env,
   removeStorage = (path) => rm(path, { recursive: true, force: true }),
   protectStorage = (path) => chmod(path, 0o700), log = console.log } = {}) {
   requireSafe(['podman', 'docker'].includes(engine), 'Unsupported validation container engine.');
+  const workspace = JSON.parse(await readFile(new URL('../../package.json', import.meta.url), 'utf8'));
+  requireSafe(workspace.scripts?.validate === validationPhases.map((phase) => 'pnpm ' + phase).join(' && '),
+    'Workspace validation gate changed; reconcile isolated phases before running.');
   const token = randomUUID();
   const name = 'erp-validation-' + token;
   requireSafe(name !== env.UAT_DB_CONTAINER, 'Validation container must differ from retained UAT.');
@@ -108,7 +112,12 @@ export async function validateIsolated({ engine = 'podman', env = process.env,
     const testEnv = childEnvironment(env, databaseUrl, storage);
     log('Running migrations and full workspace validation on disposable PostgreSQL/storage.');
     await checked('pnpm', ['prisma:migrate:deploy'], { env: testEnv, inherit: true });
-    await checked('pnpm', ['validate'], { env: testEnv, inherit: true });
+    // Preserve every phase of the root validate gate, while keeping test-only
+    // NODE_ENV out of the release web build (Vite otherwise emits DEV code).
+    for (const phase of validationPhases) {
+      const phaseEnv = phase === 'build' ? { ...testEnv, NODE_ENV: 'production' } : testEnv;
+      await checked('pnpm', [phase], { env: phaseEnv, inherit: true });
+    }
   } catch (error) {
     failure = error;
   } finally {
