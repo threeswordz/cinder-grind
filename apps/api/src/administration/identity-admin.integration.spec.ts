@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { randomUUID } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 import {
   ForbiddenException,
   UnprocessableEntityException,
@@ -214,7 +214,8 @@ test('user and role administration respects company boundaries and revokes sessi
     const session = await prisma.userSession.create({
       data: {
         userId: created.id,
-        tokenHash: 'a'.repeat(64),
+        // The test may run repeatedly against retained UAT data; never reuse a global token hash.
+        tokenHash: randomBytes(32).toString('hex'),
         csrfTokenHash: 'b'.repeat(64),
         expiresAt: new Date(Date.now() + 60_000),
       },
