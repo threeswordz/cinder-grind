@@ -75,6 +75,8 @@ jobs:
           node --check deploy/uat/e2-readiness.mjs
           node --check deploy/uat/e2-readiness.test.mjs
           node --test deploy/uat/e2-readiness.test.mjs
+          node --check deploy/uat/validate-isolated.mjs
+          node --test deploy/uat/validate-isolated.test.mjs
       - name: Validate UAT environment template
         run: |
           set -a
@@ -339,7 +341,7 @@ jobs:
       - name: Verify migration status
         run: pnpm --filter @construction-erp/api exec prisma migrate status
       - name: Validate workspace
-        run: pnpm validate
+        run: node deploy/uat/validate-isolated.mjs --engine docker
       - name: Rehearse V1.0-E exact release candidate
         env:
           RC_NON_PRODUCTION_CONFIRMED: YES
