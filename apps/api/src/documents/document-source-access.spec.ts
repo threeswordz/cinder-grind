@@ -6,6 +6,7 @@ import { AuthenticatedUserContext } from '../auth/auth.types';
 import { AuditService } from '../audit/audit.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProjectAccessService } from '../projects/project-access.service';
+import { SiteExecutionService } from '../site-execution/site-execution.service';
 import { DocumentPolicyService } from './document-policy.service';
 import { DocumentStorage } from './document-storage';
 import { DocumentsService } from './documents.service';
@@ -31,7 +32,7 @@ function fixture() {
     row('certification', [projectLink, { entityType: 'SUBCONTRACT_CERTIFICATION', entityId: 'cert-source' }]),
     row('combined', [projectLink, { entityType: 'SUPPLIER_INVOICE', entityId: 'invoice-source' },
       { entityType: 'SUBCONTRACT_CERTIFICATION', entityId: 'cert-source' },
-      { entityType: 'WBS', entityId: 'wbs' }]),
+      { entityType: 'WBS', entityId: 'wbs' }, { entityType: 'DAILY_SITE_REPORT', entityId: 'site' }]),
     row('other-project-source', [projectLink, { entityType: 'PROJECT', entityId: 'other-project' },
       { entityType: 'SUPPLIER_INVOICE', entityId: 'other-invoice' }]),
     row('transfer', [projectLink, { entityType: 'STOCK_TRANSFER', entityId: 'transfer-source' }]),
@@ -54,6 +55,7 @@ function fixture() {
       { sourceProjectId: projectId, destinationProjectId: 'other-project' },
     ] }] },
     wbsElement: { findFirst: async () => ({ id: 'wbs' }) },
+    dailySiteReport: { findFirst: async () => ({ id: 'site', projectId, status: 'DRAFT' }) },
     $transaction: async (fn: (tx: unknown) => unknown) => fn(db),
   };
   const access = {
@@ -66,7 +68,8 @@ function fixture() {
   const storage = { read: async (key: string) => { effects.reads.push(key); return Buffer.from('safe'); } } as unknown as DocumentStorage;
   const service = new DocumentsService(db as unknown as PrismaService, access, audit, storage, new DocumentPolicyService());
   const targets = new DocumentTargetsService(db as unknown as PrismaService, access, audit, service);
-  return { service, targets, rows, effects };
+  const site = new SiteExecutionService(db as unknown as PrismaService, access, audit, service);
+  return { service, targets, site, rows, effects };
 }
 function actor(extra: string[] = []): AuthenticatedUserContext {
   return {
@@ -127,6 +130,14 @@ test('generic document access retains all linked Project and Stock Transfer scop
   for (const id of ['other-project-source', 'transfer']) {
     assert.equal((await service.downloadProjectDocument(authorized, projectId, id)).bytes.toString(), 'safe');
   }
+});
+
+test('Site document metadata cannot reveal a protected source through a second attachment alias', async () => {
+  const { site } = fixture();
+  assert.deepEqual(await site.listDocuments(actor(['finance.supplier_invoice.view']), 'site'), []);
+  const visible = await site.listDocuments(actor(['finance.supplier_invoice.view', 'subcontracts.certification.view']), 'site');
+  assert.equal(visible[0]?.id, 'combined');
+  assert.equal('links' in visible[0]!, false);
 });
 
 test('a failed source association rolls back the upload instead of publishing a Project-only document', async () => {
