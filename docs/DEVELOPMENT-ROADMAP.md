@@ -1,7 +1,7 @@
 # Construction ERP — Development Roadmap
 
 **Document Status:** Development Roadmap Baseline v0.1  
-**Current Phase:** V0.1–V1.0 COMPLETE + ACCEPTED; V1.1 A/B/C/D/E0/E1 COMPLETE; E2 UNDER VALIDATION. Current evidence, blockers and exact candidate are maintained in [CURRENT-STATE.md](CURRENT-STATE.md) and Issue #233; AC-V11-023–030 remain OPEN.
+**Current Phase:** V0.1–V1.0 COMPLETE + ACCEPTED; V1.1 A/B/C/D/E0/E1 COMPLETE; E2 UNDER VALIDATION; the local recovery evidence exception is APPROVED under DEC-032, with whole-snapshot completeness still BLOCKED. Current evidence, blockers and exact candidate are maintained in [CURRENT-STATE.md](CURRENT-STATE.md) and Issue #233; AC-V11-023–030 remain OPEN.
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1  
@@ -21,7 +21,7 @@
 | V1.1-B | Role-first modular responsive app shell, sourced Home/My Work and grouped navigation | **TECHNICALLY COMPLETE:** PRs #215/#216, 14 web tests, exact-main CI #4366 PASS, Issue #214 CLOSED |
 | V1.1-C | Source-owned Procurement→Finance (C1), Subcontract→Finance (C2), Project→Cost/Management (C3) | **FULL STAGE TECHNICALLY COMPLETE / CLOSED:** runtime #223 main CI #4554 PASS; full-docs closure #224 main CI #4562 PASS; Issue #217 CLOSED |
 | V1.1-D | UX/accessibility/security/compatibility hardening only; AC-V11-017–022 existing-business-rule non-regression | **TECHNICALLY COMPLETE:** D0 #226 main CI #4583; D1 #227/#228 main CI #4597/#4605; D2 #229/#230 main CI #4627/#4631; D3 #231 main CI #4643; full closure #232 main CI #4651; Issue #225 CLOSED / COMPLETED |
-| V1.1-E | Eight-persona UAT/evidence, locale/THB/Company-Project security regression and release exit | **E0/E1 and readiness tooling COMPLETE; E2 UNDER VALIDATION.** Bounded J1/J2/J3, browser, authorization and interaction/document evidence is recorded in Current State / Issue #233. All AC-V11-023–030 remain OPEN until remaining coverage, technical/CI/review/recovery, documentation and HUMAN owner gates are satisfied. |
+| V1.1-E | Eight-persona UAT/evidence, locale/THB/Company-Project security regression and release exit | **E0/E1 and readiness tooling COMPLETE; E2 UNDER VALIDATION.** Bounded J1/J2/J3, eight-persona observations, 11 additional permission/Project/Company read denials and post-upgrade interaction/document evidence are mapped in the [owner decision packet](V1.1-E2-OWNER-DECISION-PACKET.md). DEC-032 accepts the named local recovery evidence only; full saved-snapshot Document completeness stays BLOCKED. All AC-V11-023–030 remain OPEN until remaining coverage, technical/CI/review/recovery, documentation and HUMAN owner gates are satisfied. |
 
 **Stage evidence:** `docs/V1.1-C-PREFLIGHT.md`, C1/C2/C3 evidence and `docs/V1.1-D-STAGE-CLOSURE.md` establish V1.1-C/D completion. `docs/V1.1-E-UAT-PREFLIGHT.md` is the E0 human/technical evidence plan; `docs/V1.1-E-TECHNICAL-EVIDENCE.md` tracks E1 exact-candidate CI/security/startup/recovery evidence. No eight-persona human UAT acceptance or Production deployment is implied.
 
