@@ -55,13 +55,16 @@ bash deploy/uat/prepare-release.sh
 
 This:
 
-1. starts PostgreSQL in Podman
-2. installs the frozen dependency graph
-3. generates/validates Prisma
-4. runs the production dependency audit
-5. applies all migrations
-6. verifies migration status
-7. executes the complete typecheck/test/build gate
+1. installs the frozen dependency graph and generates/validates Prisma
+2. runs the production dependency audit
+3. starts a new disposable PostgreSQL 17.11 container on a random loopback port, with tmpfs data and a private temporary Documents directory
+4. applies migrations and executes the **complete** typecheck/test/build gate only against those disposable resources
+5. verifies cleanup of its own container/storage; any failure stops preparation
+6. only after successful validation, starts the retained UAT PostgreSQL and applies/verifies the intended migrations there
+
+The full integration suite creates test Companies/users/documents. It must never run against retained UAT data or document storage. The isolation runner constructs its own database URL; it accepts no externally supplied test database target and removes inherited UAT/bootstrap/alternate PostgreSQL credentials from the test environment. It never resets, cleans or removes the retained UAT container/volume/documents. Resource identity, loopback port and tmpfs mounts are verified before tests; cleanup is limited to the exact newly created labeled container and private temporary directory.
+
+The standalone full gate is `node deploy/uat/validate-isolated.mjs` (Podman on the Mac). CI uses the same runner with `--engine docker`, keeping the full regression suite and all subsequent release/runtime/recovery gates. No paid service or new npm dependency is required. A passed CI run does not establish successful owner-Mac execution. Update to a reviewed, merged, green candidate and retain a verified backup before intentionally upgrading existing UAT; this script does not itself establish a recovery point.
 
 ## 4. Bootstrap the first UAT administrator
 

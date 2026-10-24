@@ -1,7 +1,7 @@
 # Construction ERP — Development Roadmap
 
 **Document Status:** Development Roadmap Baseline v0.1  
-**Current Phase:** V1.0 COMPLETE + ACCEPTED; V1.1-A/B/C/D/E1 COMPLETE; E2 local UAT underway — J1 THB authenticated API positive path PASS (limited), J2/J3 read-only preflight BLOCKED_PRECONDITIONS; full browser/security/recovery and owner AC-V11-029/030 remain OPEN (Issue #233).
+**Current Phase:** V0.1–V1.0 COMPLETE + ACCEPTED; V1.1 A/B/C/D/E0/E1 COMPLETE; E2 UNDER VALIDATION. Current evidence, blockers and exact candidate are maintained in [CURRENT-STATE.md](CURRENT-STATE.md) and Issue #233; AC-V11-023–030 remain OPEN.
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1  
@@ -13,7 +13,7 @@
 
 ## Active successor — V1.1 Business Workflow & Role UI (DEC-028; E2 local UAT → owner evidence gates)
 
-**Current execution checkpoint (2026-10-22):** Live `main` `6495470d7fccb2da9fd67cc85a92e98f990901ff`, exact-head main CI #4758 SUCCESS, no open PRs before this docs-only reconciliation. Owner-supplied Mac UAT: eight distinct role-linked personas and local E2 configuration readiness evidenced; J1 THB PR→payment authenticated API positive path PASS, maker/checker denials observed, but not full browser/human acceptance. J2 missing authorized creator/submitter/assessor eligibility, zero subcontract fixtures; J3 existing Project/BOQ/Site fixtures but missing Budget Revision/Project Variation action eligibility and mixed/unlabeled historical currencies. Approval workflow `BLOCKED_APPROVAL_STEP_OR_MAKER_CHECKER` is composite; do not infer missing matrices. See [E2 execution ledger](V1.1-E2-UAT-EXECUTION.md) and [Issue #233](https://github.com/threeswordz/cinder-grind/issues/233).
+**Current execution checkpoint (2026-10-24):** See [CURRENT-STATE.md](CURRENT-STATE.md) for the canonical live-document checkpoint and [Issue #233 consolidated local evidence](https://github.com/threeswordz/cinder-grind/issues/233#issuecomment-6385132444). Bounded J1/J2/J3 API/rework, historical five-role browser, additional direct-read denials, J3 source links, Ben accessibility/responsive and valid document evidence have PASS observations with stated provenance. Complete role/Company/document mapping, Schedule Baseline disposition, final-candidate technical/recovery evidence, documentation closure and owner gates remain open. Historical blanket J2/J3 prerequisite blocks do not describe the latest execution state.
 
 | Stage | Approved bounded delivery | Gate |
 |---|---|---|
@@ -21,7 +21,7 @@
 | V1.1-B | Role-first modular responsive app shell, sourced Home/My Work and grouped navigation | **TECHNICALLY COMPLETE:** PRs #215/#216, 14 web tests, exact-main CI #4366 PASS, Issue #214 CLOSED |
 | V1.1-C | Source-owned Procurement→Finance (C1), Subcontract→Finance (C2), Project→Cost/Management (C3) | **FULL STAGE TECHNICALLY COMPLETE / CLOSED:** runtime #223 main CI #4554 PASS; full-docs closure #224 main CI #4562 PASS; Issue #217 CLOSED |
 | V1.1-D | UX/accessibility/security/compatibility hardening only; AC-V11-017–022 existing-business-rule non-regression | **TECHNICALLY COMPLETE:** D0 #226 main CI #4583; D1 #227/#228 main CI #4597/#4605; D2 #229/#230 main CI #4627/#4631; D3 #231 main CI #4643; full closure #232 main CI #4651; Issue #225 CLOSED / COMPLETED |
-| V1.1-E | Eight-persona UAT/evidence, locale/THB/Company-Project security regression and release exit | **E0/E1 and readiness tooling COMPLETE; E2 PARTIAL UAT IN PROGRESS.** J1 authenticated THB API positive path PASS (scope-limited); J2/J3 preflight BLOCKED on UAT role/approval/test-data/currency prerequisites. All AC-V11-023–030 remain OPEN, including real-browser, locale/a11y, security/recovery and HUMAN owner acceptance. |
+| V1.1-E | Eight-persona UAT/evidence, locale/THB/Company-Project security regression and release exit | **E0/E1 and readiness tooling COMPLETE; E2 UNDER VALIDATION.** Bounded J1/J2/J3, browser, authorization and interaction/document evidence is recorded in Current State / Issue #233. All AC-V11-023–030 remain OPEN until remaining coverage, technical/CI/review/recovery, documentation and HUMAN owner gates are satisfied. |
 
 **Stage evidence:** `docs/V1.1-C-PREFLIGHT.md`, C1/C2/C3 evidence and `docs/V1.1-D-STAGE-CLOSURE.md` establish V1.1-C/D completion. `docs/V1.1-E-UAT-PREFLIGHT.md` is the E0 human/technical evidence plan; `docs/V1.1-E-TECHNICAL-EVIDENCE.md` tracks E1 exact-candidate CI/security/startup/recovery evidence. No eight-persona human UAT acceptance or Production deployment is implied.
 

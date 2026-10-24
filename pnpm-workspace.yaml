@@ -13,3 +13,6 @@ allowBuilds:
 # Remove once the selected Prisma line consumes deepmerge-ts >= 8.0.0 upstream.
 overrides:
   deepmerge-ts: 8.0.2
+  # Security advisories GHSA-27r3-jxmh-p828 and GHSA-q7qp-rjg7-q26m.
+  body-parser: 2.4.0
+  multer: 2.5.0
