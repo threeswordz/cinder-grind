@@ -624,3 +624,15 @@ At the owner's explicit request to fix unnecessary process overhead:
 - Use the concise PR checklist while keeping all applicable security, open-source/zero-cost, schema/migration, CI, Codex and human-acceptance controls. CI routing itself is **unchanged**: full validation and exact-head/PR/post-merge evidence continue to apply. Revisit lighter docs-only CI only with tested, fail-closed classification and explicit Change Control.
 
 No new release or UAT gate, runtime scope, architecture, business behavior or authorization change is approved. DEC-008, DEC-016, DEC-022, DEC-028 and DEC-029 remain in force; V1.1-E2 remains open.
+
+
+## DEC-031 — Owner-directed THB operating currency and local J2 fixture authorization
+**Status:** APPROVED REQUIREMENT — Product / Business Owner, 2026-10-23 (Singapore time); implementation and release gates remain open.
+
+In the active UAT conversation the owner stated “entire ERP system should be in Thai baht”, approved adding `subcontracts.subcontractor.view` and `subcontracts.subcontractor.manage` to Jai's isolated local UAT role, and then instructed “fix it for me automatically”.
+
+- The operating requirement is THB for new ERP business operations. Preserve retained currency, amounts, approvals and audit history of historical SGD/NULL records; no FX, relabel, trigger bypass or executed-migration rewrite.
+- The first correction changes new Agreement/reset and initial Company Settings UI defaults to THB. This is a bounded correction, **not evidence of complete API/database THB-only enforcement**. Remaining policy enforcement and schema-default changes stay tracked under Issue #246 and require regression/forward-only migration/DEC-022 gates before deployment.
+- Authorized local UAT configuration: add only the two named register permissions to `UAT_E2_JAI_J2_PREPARER`, restricted to the existing verified Jai account; create at most one clearly labelled `UAT-E2-SC-001` test subcontractor through Jai's authenticated API. No broad role changes, business approvals or Approval Matrix changes.
+- The separate Budget Revision workflow proposal has not been approved by this instruction; preserve the two existing instances and all Original Budget history.
+- No V1.1 owner UAT/release acceptance, Production deployment or review waiver is granted.

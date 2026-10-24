@@ -374,7 +374,7 @@ function AgreementsPanel({
   const [subcontractorId, setSubcontractorId] = useState('');
   const [value, setValue] = useState('');
   const [scope, setScope] = useState('');
-  const [currency, setCurrency] = useState('SGD');
+  const [currency, setCurrency] = useState('THB');
   const [retentionRate, setRetentionRate] = useState('0.00');
   const [retentionCap, setRetentionCap] = useState('');
   const [statusId, setStatusId] = useState('');
@@ -824,7 +824,7 @@ function AgreementsPanel({
     setSubcontractorId('');
     setValue('');
     setScope('');
-    setCurrency('SGD');
+    setCurrency('THB');
     setRetentionRate('0.00');
     setRetentionCap('');
     setStatusId('');
