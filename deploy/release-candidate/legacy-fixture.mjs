@@ -69,11 +69,16 @@ try {
     assert.equal((await prisma.purchaseOrder.findUniqueOrThrow({ where: { id: fixture.knownPoId } })).currencyCode, 'SGD');
     // Column checks are possible only on the upgraded candidate. Restored old
     // schema deliberately has no such columns and is checked by the old client.
-    const columns = await prisma.$queryRawUnsafe(`SELECT table_name, column_name FROM information_schema.columns WHERE table_schema = 'public' AND ((table_name = 'projects' AND column_name = 'contract_currency_code') OR (table_name IN ('boqs','supplier_quotations','quotation_awards') AND column_name = 'currency_code'))`);
+    const columns = await prisma.$queryRawUnsafe(`SELECT table_name, column_name, data_type, character_maximum_length, is_nullable, column_default FROM information_schema.columns WHERE table_schema = 'public' AND ((table_name = 'projects' AND column_name = 'contract_currency_code') OR (table_name IN ('boqs','supplier_quotations','quotation_awards') AND column_name = 'currency_code'))`);
     if (columns.length) {
       assert.equal(columns.length, 4);
-      for (const { table_name: table, column_name: column } of columns) {
+      for (const { table_name: table, column_name: column, data_type: dataType,
+        character_maximum_length: length, is_nullable: nullable, column_default: defaultValue } of columns) {
         assert.ok(provenanceColumns.includes(column));
+        assert.equal(dataType, 'character varying');
+        assert.equal(length, 3);
+        assert.equal(nullable, 'YES');
+        assert.equal(defaultValue, null, 'New provenance must not infer a default for old rows');
         const [result] = await prisma.$queryRawUnsafe(`SELECT count(*)::text AS count FROM "${table}" WHERE "${column}" IS NOT NULL`);
         assert.equal(result.count, '0', 'Legacy monetary provenance must remain unknown');
         const [source] = await prisma.$queryRawUnsafe(`SELECT id FROM "${table}" LIMIT 1`);

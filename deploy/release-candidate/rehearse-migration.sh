@@ -372,8 +372,19 @@ mkdir -p "$tmp_root/uploads"
 echo "[V1.0-E migration-aware] Execute actual Production preparation path"
 PRODUCTION_ENV_FILE="$production_env" bash deploy/production/prepare-release.sh
 
+candidate_admin_email=rc-admin@example.invalid
 if [[ "$schema_mode" == "migration-aware-thb-schema" ]]; then
   DATABASE_URL="$upgrade_url" node "$RC_DIR/legacy-fixture.mjs" verify "$previous_root" "$tmp_root/legacy.json" "$tmp_root/legacy-snapshot.json"
+  # The acceptance runner deliberately creates Company-unique numbering and
+  # approval configuration. Do not rerun it over the retained legacy Company,
+  # clear its configuration, or rewrite historical SGD sources for new policy.
+  candidate_admin_email=rc-candidate-admin@example.invalid
+  DATABASE_URL="$upgrade_url" BOOTSTRAP_COMPANY_CODE=V12RCNEW \
+    BOOTSTRAP_COMPANY_NAME="V1.2 Candidate Acceptance" \
+    BOOTSTRAP_ADMIN_EMAIL="$candidate_admin_email" \
+    BOOTSTRAP_ADMIN_DISPLAY_NAME="Candidate System Administrator" \
+    BOOTSTRAP_ADMIN_PASSWORD='Rc-Admin-Password-2026!' \
+    pnpm --filter @construction-erp/api bootstrap:admin
 fi
 
 upgrade_pgpass="$(mktemp)"
@@ -411,7 +422,7 @@ done
 echo "[V1.0-E migration-aware] Run authenticated acceptance against upgraded previous-release data"
 UAT_API_BASE_URL="http://127.0.0.1:$api_port/api/v1" \
 API_PORT="$api_port" \
-BOOTSTRAP_ADMIN_EMAIL=rc-admin@example.invalid \
+BOOTSTRAP_ADMIN_EMAIL="$candidate_admin_email" \
 BOOTSTRAP_ADMIN_PASSWORD='Rc-Admin-Password-2026!' \
 bash deploy/uat/runtime-acceptance.sh
 
