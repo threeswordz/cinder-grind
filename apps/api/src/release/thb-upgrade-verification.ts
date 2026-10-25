@@ -13,6 +13,8 @@ import { ProjectVariationService } from '../cost-control/project-variation.servi
 import { CostControlService } from '../cost-control/cost-control.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProjectAccessService } from '../projects/project-access.service';
+import { GoodsReceiptService } from '../inventory/goods-receipt.service';
+import { InventoryQuantityService } from '../inventory/inventory-quantity.service';
 import { SubcontractsCertificationService } from '../subcontracts/subcontracts-certification.service';
 import { legacyFixture } from './legacy-fixture';
 
@@ -123,6 +125,20 @@ export async function verifyThbUpgrade(prisma: PrismaService, requireRetention: 
     await assert.rejects(directCost.create({ auth: originalMaker }, historical.projectId,
       { ...originalInput, description: 'Changed historical create payload' }));
     assert.deepEqual([await prisma.directCostPosting.count(), await prisma.auditLog.count()], countsBefore);
+    const historicalReceipt = await prisma.goodsReceipt.findFirstOrThrow({ where: {
+      companyId: certification.companyId, reversedAt: { not: null }, purchaseOrder: { currencyCode: 'SGD' },
+    } });
+    assert.ok(historicalReceipt.reversalKey && historicalReceipt.reversalReason && historicalReceipt.reversedByUserId);
+    const receiptActor = await actualAuth(historicalReceipt.reversedByUserId);
+    assert.ok(receiptActor.permissions.includes('inventory.receipt.reverse'));
+    const receipts = new GoodsReceiptService(prisma, access, audit, approvals, numbers, new InventoryQuantityService(prisma));
+    const ledgerCount = await prisma.stockTransaction.count();
+    const historicalReceiptReplay = await receipts.reverse({ auth: receiptActor }, historicalReceipt.id,
+      historicalReceipt.reversalKey, historicalReceipt.reversalReason);
+    assert.equal(historicalReceiptReplay.id, historicalReceipt.id);
+    await assert.rejects(receipts.reverse({ auth: receiptActor }, historicalReceipt.id,
+      historicalReceipt.reversalKey, 'Changed historical reversal reason'));
+    assert.equal(await prisma.stockTransaction.count(), ledgerCount);
     // Preserve #248's raw PO, GR-only and combined mismatch regressions on
     // real approved/posted SGD sources created by the previous runtime.
     const receipt = await prisma.goodsReceipt.findFirstOrThrow({ where: {

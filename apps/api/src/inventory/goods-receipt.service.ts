@@ -365,7 +365,12 @@ export class GoodsReceiptService {
     return this.prisma.$transaction(async (tx) => {
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${'receipt-reverse:' + id}))`;
       const receipt = await this.get(context.auth, id, tx);
-      if (receipt.reversedAt && receipt.reversalKey === reversalKey) return receipt;
+      if (receipt.reversedAt && receipt.reversalKey === reversalKey) {
+        if (receipt.reversalReason !== reason) {
+          throw new ConflictException({ code: 'RECEIPT_REVERSAL_REPLAY_CONFLICT' });
+        }
+        return receipt;
+      }
       if (!receipt.postedAt || receipt.reversedAt) {
         throw new ConflictException({ code: 'RECEIPT_NOT_REVERSIBLE' });
       }

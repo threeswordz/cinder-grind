@@ -66,7 +66,8 @@ function cookieFrom(response) {
 
 async function readBody(response) {
   const type = response.headers.get('content-type') ?? '';
-  if (type.includes('application/json')) return response.json();
+  const mediaType = type.split(';', 1)[0].trim().toLowerCase();
+  if (mediaType === 'application/json' || mediaType === 'application/problem+json') return response.json();
   return response.arrayBuffer();
 }
 

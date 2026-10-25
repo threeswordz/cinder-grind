@@ -2297,6 +2297,11 @@ test('V0.3-D Purchase Orders preserve awarded-source traceability, approval and 
     );
     const repeat = await receipts.reverse({ auth: makerAuth }, first.id, 'receipt-reverse', 'Integration reversal');
     assert.equal(repeat.stockTransactions.length, 2);
+    await assert.rejects(
+      receipts.reverse({ auth: makerAuth }, first.id, 'receipt-reverse', 'Changed reversal reason'),
+      (error: unknown) => error instanceof ConflictException &&
+        (error.getResponse() as { code?: string }).code === 'RECEIPT_REVERSAL_REPLAY_CONFLICT',
+    );
 
     assert.deepEqual(
       await balances.balances(makerAuth, {
