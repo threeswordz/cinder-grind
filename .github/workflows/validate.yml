@@ -104,6 +104,8 @@ jobs:
           node --check deploy/release-candidate/database-url.mjs
           node --check deploy/release-candidate/https-proxy.mjs
           node --check deploy/release-candidate/verify-evidence.mjs
+          node --check deploy/release-candidate/legacy-fixture.mjs
+          node --test deploy/release-candidate/*.test.mjs
 
           while IFS= read -r -d '' env_key && IFS= read -r -d '' env_value; do
             printf -v "$env_key" '%s' "$env_value"
@@ -346,7 +348,7 @@ jobs:
         env:
           RC_NON_PRODUCTION_CONFIRMED: YES
           RC_ENVIRONMENT: ci
-          RC_PREVIOUS_RELEASE_COMMIT: a625a7ef14dd36eb0aa0996bd8e7f4f6d0548ba3
+          RC_PREVIOUS_RELEASE_COMMIT: 65857a384005e1734028ffb6945b1077ed3449e5
           RC_BASE_DATABASE_URL: ${{ env.DATABASE_URL }}
           RC_POSTGRES_TOOL_MODE: docker
           RC_EVIDENCE_FILE: /tmp/v1-0-e-rehearsal.json

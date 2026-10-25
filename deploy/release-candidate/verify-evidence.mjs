@@ -28,8 +28,22 @@ if (rehearsal.releaseCommit !== expected || recovery.releaseCommit !== expected)
   fail('evidence release SHA does not match the exact workflow commit');
 }
 
-if (rehearsal.releaseMode === 'migration-aware-sql-only') {
-  if (rehearsal.version !== 3) fail('migration-aware rehearsal evidence schema version is not 3');
+if (['migration-aware-sql-only', 'migration-aware-thb-schema'].includes(rehearsal.releaseMode)) {
+  const schemaAware = rehearsal.releaseMode === 'migration-aware-thb-schema';
+  if (rehearsal.version !== (schemaAware ? 4 : 3)) fail('migration-aware rehearsal evidence schema version does not match its mode');
+  if (schemaAware) {
+    if (!/^[0-9a-f]{40}$/.test(rehearsal.previousReleaseCommit ?? '') ||
+        rehearsal.previousRuntimeCommit !== rehearsal.previousReleaseCommit) {
+      fail('restored previous runtime identity does not match the pre-upgrade release');
+    }
+    for (const key of ['boundedSchemaContract','previousRuntimeClientBuild',
+      'genuineLegacySgdNullFixture','historicalRowsUnchanged',
+      'restoredPreviousRuntimeAuthenticationDownload']) {
+      if (rehearsal[key] !== 'PASS') fail('schema-aware rehearsal gate ' + key + ' did not PASS');
+    }
+  } else if (rehearsal.prismaSchemaUnchanged !== 'PASS') {
+    fail('SQL-only rehearsal must prove unchanged Prisma schema');
+  }
   if (!rehearsal.toolVersions || typeof rehearsal.toolVersions !== 'object') {
     fail('migration-aware tool/runtime provenance is missing');
   }
@@ -64,7 +78,6 @@ if (rehearsal.releaseMode === 'migration-aware-sql-only') {
     'exactCheckout',
     'cleanTree',
     'migrationHistoryChanged',
-    'prismaSchemaUnchanged',
     'forwardOnlyNewMigrations',
     'freshMigration',
     'previousReleaseFixture',
@@ -95,7 +108,7 @@ if (rehearsal.releaseMode === 'migration-aware-sql-only') {
   }
 
   const migrationConsolidated = {
-    version: 3,
+    version: schemaAware ? 4 : 3,
     releaseMode: rehearsal.releaseMode,
     releaseCommit: expected,
     provenance: {
@@ -117,6 +130,7 @@ if (rehearsal.releaseMode === 'migration-aware-sql-only') {
   process.exit(0);
 }
 
+if (rehearsal.releaseMode !== undefined) fail('unknown rehearsal release mode');
 if (rehearsal.version !== 2) fail('rehearsal evidence schema version is not 2');
 
 if (!rehearsal.toolVersions || typeof rehearsal.toolVersions !== 'object') {
