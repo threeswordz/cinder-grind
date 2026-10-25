@@ -4624,6 +4624,12 @@ const agreementPayload = {
   operationalStatusId: subcontractStatus.data.data.id,
   createKey: 'uat-v05a-' + suffix,
 };
+const deniedForeignAgreement = await request(pm, '/subcontracts/agreements', {
+  method: 'POST', json: { ...agreementPayload, currencyCode: 'SGD', createKey: 'denied-foreign-' + suffix }, expected: 422,
+});
+check(deniedForeignAgreement.data.code === 'ERP_THB_PROVENANCE_REQUIRED',
+  'Foreign Agreement denial must return the safe THB policy API contract.');
+record('V1.2 authenticated foreign Agreement create is denied by the THB database policy with a safe 422 contract');
 const agreement = await request(pm, '/subcontracts/agreements', {
   method: 'POST',
   json: agreementPayload,

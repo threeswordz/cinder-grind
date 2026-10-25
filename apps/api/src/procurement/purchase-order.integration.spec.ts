@@ -844,7 +844,7 @@ test('V0.3-D Purchase Orders preserve awarded-source traceability, approval and 
     // New foreign invoice roots are denied before any source handoff. The
     // historical SGD PO/GR mismatch cases run against the genuine previous-
     // runtime sources in verifyThbUpgrade, never fabricated under this policy.
-    await assert.rejects(prisma.supplierInvoice.create({ data: invoiceSourceFixture('SGD', 'DENIED') }), /ERP_THB/);
+    await assert.rejects(prisma.supplierInvoice.create({ data: invoiceSourceFixture('SGD', 'DENIED') }), /SUPPLIER_INVOICE_BASE_CURRENCY_REQUIRED/);
     // Matching source currencies must still allow the same direct database
     // insert, including a GR-only link. Explicit rollback prevents test-data
     // pollution or changes to procurement/stock history.

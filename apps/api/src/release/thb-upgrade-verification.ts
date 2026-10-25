@@ -39,6 +39,13 @@ export async function verifyThbUpgrade(prisma: PrismaService, requireRetention: 
   const maker = await actualAuth(fixture.userId);
   const checker = await actualAuth(fixture.checkerId);
   assert.ok(maker.permissions.includes('admin.company.manage'));
+  if (requireRetention) {
+    assert.equal((await prisma.company.findUniqueOrThrow({ where: { id: fixture.companyId } })).baseCurrencyCode, 'SGD');
+    await assert.rejects(prisma.purchaseOrder.create({ data: {
+      companyId: fixture.companyId, projectId: fixture.projectId, supplierId: fixture.supplierId,
+      poNumber: 'DENIED-' + randomUUID(), createdByUserId: fixture.userId,
+    } }), /ERP_THB_COMPANY_REQUIRED/);
+  }
   await administration.updateCompany({ auth: maker }, { baseCurrencyCode: 'THB' });
   assert.ok(await prisma.auditLog.count({ where: { companyId: maker.companyId, entityType: 'COMPANY', action: 'UPDATE_SETTINGS' } }));
   assert.equal((await prisma.purchaseOrder.findUniqueOrThrow({ where: { id: fixture.knownPoId } })).currencyCode, 'SGD');
@@ -92,6 +99,30 @@ export async function verifyThbUpgrade(prisma: PrismaService, requireRetention: 
     const adminAuth = await actualAuth(administrator.id);
     assert.ok(adminAuth.permissions.includes('admin.company.manage'));
     await administration.updateCompany({ auth: adminAuth }, { baseCurrencyCode: 'THB' });
+    // Reconstruct the immutable original request from its real CREATE audit,
+    // rather than its subsequently edited fields. Exact historical retries are
+    // reads; changed payloads remain conflicts after the Company transition.
+    const historical = await prisma.directCostPosting.findFirstOrThrow({ where: {
+      companyId: certification.companyId, currencyCode: 'SGD', reversesPostingId: null, state: 'APPROVED',
+    } });
+    const originalAudit = await prisma.auditLog.findFirstOrThrow({ where: {
+      entityType: 'DIRECT_COST_POSTING', entityId: historical.id, action: 'CREATE_DRAFT',
+    } });
+    const original = originalAudit.newValues as Record<string, Prisma.JsonValue>;
+    const originalMaker = await actualAuth(historical.createdByUserId);
+    assert.ok(originalMaker.permissions.includes('cost.direct_posting.create'));
+    const originalInput = {
+      postingDate: new Date(String(original.postingDate)), description: String(original.description),
+      reference: original.reference === null ? null : String(original.reference),
+      amount: new Prisma.Decimal(String(original.amount)), wbsId: original.wbsId === null ? null : String(original.wbsId),
+      costCodeId: String(original.costCodeId), createKey: historical.createKey,
+    };
+    const countsBefore = [await prisma.directCostPosting.count(), await prisma.auditLog.count()];
+    const historicalRetries = await Promise.all([1,2].map(() => directCost.create({ auth: originalMaker }, historical.projectId, originalInput)));
+    assert.ok(historicalRetries.every((row) => row.id === historical.id && row.currencyCode === 'SGD'));
+    await assert.rejects(directCost.create({ auth: originalMaker }, historical.projectId,
+      { ...originalInput, description: 'Changed historical create payload' }));
+    assert.deepEqual([await prisma.directCostPosting.count(), await prisma.auditLog.count()], countsBefore);
     // Preserve #248's raw PO, GR-only and combined mismatch regressions on
     // real approved/posted SGD sources created by the previous runtime.
     const receipt = await prisma.goodsReceipt.findFirstOrThrow({ where: {
