@@ -841,37 +841,10 @@ test('V0.3-D Purchase Orders preserve awarded-source traceability, approval and 
       createPayloadHash: 'b'.repeat(64),
       createdByUserId: maker.id,
     });
-    for (const [caseKey, sourceIds] of [
-      ['PO', { purchaseOrderLineId: sourceLine.id }],
-      ['GR', { goodsReceiptItemId: receiptSource.id }],
-      ['BOTH', { purchaseOrderLineId: sourceLine.id, goodsReceiptItemId: receiptSource.id }],
-    ] as const) {
-      await assert.rejects(
-        () => prisma.$transaction(async (tx) => {
-          await tx.company.update({
-            where: { id: company.id },
-            data: { baseCurrencyCode: 'THB' },
-          });
-          const invoice = await tx.supplierInvoice.create({
-            data: invoiceSourceFixture('THB', caseKey),
-          });
-          // Direct Prisma mutation must be rejected regardless of service API.
-          await tx.supplierInvoiceItem.create({
-            data: {
-              companyId: company.id,
-              projectId: project.id,
-              supplierInvoiceId: invoice.id,
-              lineNo: 1,
-              description: 'Currency mismatch rejected by database',
-              amount: new Prisma.Decimal('1.00'),
-              ...sourceIds,
-            },
-          });
-        }),
-        /SUPPLIER_INVOICE_SOURCE_CURRENCY_MISMATCH/,
-        'Direct database ' + caseKey + ' link must reject retained SGD source on THB invoice.',
-      );
-    }
+    // New foreign invoice roots are denied before any source handoff. The
+    // historical SGD PO/GR mismatch cases run against the genuine previous-
+    // runtime sources in verifyThbUpgrade, never fabricated under this policy.
+    await assert.rejects(prisma.supplierInvoice.create({ data: invoiceSourceFixture('SGD', 'DENIED') }), /ERP_THB/);
     // Matching source currencies must still allow the same direct database
     // insert, including a GR-only link. Explicit rollback prevents test-data
     // pollution or changes to procurement/stock history.
@@ -879,7 +852,7 @@ test('V0.3-D Purchase Orders preserve awarded-source traceability, approval and 
     await assert.rejects(
       () => prisma.$transaction(async (tx) => {
         const invoice = await tx.supplierInvoice.create({
-          data: invoiceSourceFixture('SGD', 'MATCH'),
+          data: invoiceSourceFixture('THB', 'MATCH'),
         });
         const linked = await tx.supplierInvoiceItem.create({
           data: {

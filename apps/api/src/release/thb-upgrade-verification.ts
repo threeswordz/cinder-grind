@@ -92,6 +92,33 @@ export async function verifyThbUpgrade(prisma: PrismaService, requireRetention: 
     const adminAuth = await actualAuth(administrator.id);
     assert.ok(adminAuth.permissions.includes('admin.company.manage'));
     await administration.updateCompany({ auth: adminAuth }, { baseCurrencyCode: 'THB' });
+    // Preserve #248's raw PO, GR-only and combined mismatch regressions on
+    // real approved/posted SGD sources created by the previous runtime.
+    const receipt = await prisma.goodsReceipt.findFirstOrThrow({ where: {
+      companyId: certification.companyId, postedAt: { not: null }, reversedAt: null,
+      purchaseOrder: { currencyCode: 'SGD' }, items: { some: {} },
+    }, include: { items: true } });
+    const sourceLine = receipt.items[0]!;
+    const retainedPo = await prisma.purchaseOrder.findUniqueOrThrow({ where: { id: receipt.purchaseOrderId } });
+    assert.equal(retainedPo.currencyCode, 'SGD');
+    for (const sourceIds of [
+      { purchaseOrderLineId: sourceLine.purchaseOrderLineId },
+      { goodsReceiptItemId: sourceLine.id },
+      { purchaseOrderLineId: sourceLine.purchaseOrderLineId, goodsReceiptItemId: sourceLine.id },
+    ]) {
+      await assert.rejects(prisma.$transaction(async (tx) => {
+        const invoice = await tx.supplierInvoice.create({ data: {
+          companyId: receipt.companyId, projectId: receipt.projectId, supplierId: receipt.supplierId,
+          supplierInvoiceNumber: 'LEGACY-SOURCE-' + randomUUID(), supplierReference: randomUUID(),
+          invoiceDate: new Date('2026-10-25'), currencyCode: 'THB', createKey: randomUUID(),
+          createPayloadHash: 'b'.repeat(64), createdByUserId: receipt.createdByUserId,
+        } });
+        await tx.supplierInvoiceItem.create({ data: {
+          companyId: receipt.companyId, projectId: receipt.projectId, supplierInvoiceId: invoice.id,
+          lineNo: 1, description: 'Historical source mismatch must remain denied', amount: '1', ...sourceIds,
+        } });
+      }), /SUPPLIER_INVOICE_SOURCE_CURRENCY_MISMATCH/);
+    }
     const approver = await actualAuth(certification.approvedByUserId);
     assert.ok(approver.permissions.includes('subcontracts.certification.reverse'));
     const service = new SubcontractsCertificationService(prisma, access, approvals, audit, numbers);

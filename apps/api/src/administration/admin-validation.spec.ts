@@ -7,8 +7,11 @@ import {
   validateSystemSettingKey,
 } from './admin-validation';
 
-test('currency code is normalized to uppercase', () => {
-  assert.equal(validateCurrencyCode('sgd'), 'SGD');
+test('THB operating currency is normalized and foreign overrides are rejected', () => {
+  assert.equal(validateCurrencyCode('thb'), 'THB');
+  for (const currency of ['sgd', 'SGD', 'USD', '']) {
+    assert.throws(() => validateCurrencyCode(currency), UnprocessableEntityException);
+  }
 });
 
 test('system settings reject secret-like keys', () => {

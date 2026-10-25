@@ -1507,15 +1507,15 @@ test('V0.6-B Client Invoice preserves scope, maker-checker, retained history and
       const supplierApprovalStep = await prisma.approvalStep.findFirstOrThrow({
         where: { approvalWorkflowId: supplierWorkflow.id, stepNo: 1 },
       });
-      const unrelatedApprovalInstance = await prisma.approvalInstance.create({
-        data: {
-          companyId: company.id,
-          approvalWorkflowId: supplierWorkflow.id,
-          entityType: 'SUPPLIER_INVOICE',
-          entityId: randomUUID(),
-          currentStepNo: 1,
-          approvalState: 'SUBMITTED',
-        },
+      const unrelatedSupplier = await supplierFinance.createInvoice({ auth: makerAuth }, project.id, {
+        supplierId: supplier.id, supplierReference: 'UNRELATED-' + suffix,
+        invoiceDate: new Date('2026-10-02'), createKey: randomUUID(),
+        lines: [{ description: 'Real unrelated approval source', amount: new Decimal('1') }],
+      });
+      const unrelatedSubmitted = await supplierFinance.submit({ auth: makerAuth }, unrelatedSupplier.id,
+        supplierWorkflow.workflowCode, randomUUID());
+      const unrelatedApprovalInstance = await prisma.approvalInstance.findUniqueOrThrow({
+        where: { id: unrelatedSubmitted.approvalInstanceId! },
       });
       const unrelatedApprovalAction = await prisma.approvalAction.create({
         data: {

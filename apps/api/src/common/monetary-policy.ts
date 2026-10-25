@@ -10,8 +10,13 @@ const policyDetails = {
 // Match only our database contract and a Prisma database error. Do not expose
 // SQL, credentials or arbitrary exception text in a public API response.
 export function monetaryPolicyException(error: unknown): UnprocessableEntityException | undefined {
-  if (!(error instanceof Prisma.PrismaClientKnownRequestError) || !['P2004','P2010'].includes(error.code)) return;
-  const databaseError = String(error.meta?.database_error ?? error.meta?.message ?? '');
+  let databaseError: string;
+  if (error instanceof Prisma.PrismaClientKnownRequestError && ['P2004','P2010'].includes(error.code)) {
+    databaseError = String(error.meta?.database_error ?? error.meta?.message ?? '');
+  } else if (error instanceof Prisma.PrismaClientUnknownRequestError &&
+    /PostgresError \{ code: "P1201", message: "ERP_THB_[A-Z_]+"/.test(error.message)) {
+    databaseError = error.message;
+  } else return;
   for (const [code, detail] of Object.entries(policyDetails)) {
     if (databaseError.includes(code)) return new UnprocessableEntityException({ code, detail });
   }
