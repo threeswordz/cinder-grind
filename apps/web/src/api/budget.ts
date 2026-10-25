@@ -59,6 +59,7 @@ export type BoqItem = {
 };
 
 export type Boq = {
+  currencyCode: string | null;
   id: string;
   companyId: string;
   projectId: string;
@@ -75,6 +76,7 @@ export type BudgetWorkflow = {
 };
 
 export type BudgetRevisionListItem = {
+  currencyCode: string | null;
   id: string;
   companyId: string;
   projectId: string;
@@ -125,6 +127,7 @@ export type BudgetRevision = BudgetRevisionListItem & {
 };
 
 export type BudgetSummaryPart = {
+  currencyCode: string | null;
   id: string;
   revisionNo: number;
   revisionNumber: string;

@@ -75,7 +75,7 @@ export class ClientInvoiceService {
       }),
     ]);
     if (!project) throw this.notFound();
-    return { baseCurrencyCode: company.baseCurrencyCode, customers };
+    return { baseCurrencyCode: 'THB', companyCurrencyCode: company.baseCurrencyCode, monetaryActivityAllowed: company.baseCurrencyCode === 'THB', customers };
   }
 
   async list(auth: AuthenticatedUserContext, projectId: string) {

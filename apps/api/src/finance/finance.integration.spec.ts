@@ -83,7 +83,7 @@ test('V0.6-A Supplier Invoice preserves Project scope, approval history, totals 
       data: {
         companyCode: 'FIN-' + suffix,
         companyName: 'Finance Test ' + suffix,
-        baseCurrencyCode: 'SGD',
+        baseCurrencyCode: 'THB',
       },
     });
     const customer = await prisma.customer.create({
@@ -273,7 +273,7 @@ test('V0.6-A Supplier Invoice preserves Project scope, approval history, totals 
       draftInput,
     );
     assert.match(created.supplierInvoiceNumber, /^SI2610-\d{3}$/);
-    assert.equal(created.currencyCode, 'SGD');
+    assert.equal(created.currencyCode, company.baseCurrencyCode);
     assert.equal(created.totalAmount.toFixed(2), '200.00');
     assert.equal(created.projectId, project.id);
     assert.equal(created.items.length, 2);
@@ -636,7 +636,7 @@ test('V0.6-B Client Invoice preserves scope, maker-checker, retained history and
       data: {
         companyCode: 'FINB-' + suffix,
         companyName: 'Finance B Test ' + suffix,
-        baseCurrencyCode: 'SGD',
+        baseCurrencyCode: 'THB',
       },
     });
     await assert.rejects(
@@ -681,7 +681,7 @@ test('V0.6-B Client Invoice preserves scope, maker-checker, retained history and
       data: {
         companyCode: 'FINB-F-' + suffix,
         companyName: 'Finance B Foreign Company ' + suffix,
-        baseCurrencyCode: 'SGD',
+        baseCurrencyCode: 'THB',
       },
     });
     const foreignCustomer = await prisma.customer.create({
@@ -951,7 +951,7 @@ test('V0.6-B Client Invoice preserves scope, maker-checker, retained history and
       },
     );
     assert.match(draft.clientInvoiceNumber, /^CI2610-\d{3}$/);
-    assert.equal(draft.currencyCode, 'SGD');
+    assert.equal(draft.currencyCode, company.baseCurrencyCode);
     assert.equal(draft.totalAmount.toFixed(2), '125.50');
 
     const samePeriodDateEdit = await clientFinance.update(
@@ -1507,15 +1507,15 @@ test('V0.6-B Client Invoice preserves scope, maker-checker, retained history and
       const supplierApprovalStep = await prisma.approvalStep.findFirstOrThrow({
         where: { approvalWorkflowId: supplierWorkflow.id, stepNo: 1 },
       });
-      const unrelatedApprovalInstance = await prisma.approvalInstance.create({
-        data: {
-          companyId: company.id,
-          approvalWorkflowId: supplierWorkflow.id,
-          entityType: 'SUPPLIER_INVOICE',
-          entityId: randomUUID(),
-          currentStepNo: 1,
-          approvalState: 'SUBMITTED',
-        },
+      const unrelatedSupplier = await supplierFinance.createInvoice({ auth: makerAuth }, project.id, {
+        supplierId: supplier.id, supplierReference: 'UNRELATED-' + suffix,
+        invoiceDate: new Date('2026-10-02'), createKey: randomUUID(),
+        lines: [{ description: 'Real unrelated approval source', amount: new Decimal('1') }],
+      });
+      const unrelatedSubmitted = await supplierFinance.submit({ auth: makerAuth }, unrelatedSupplier.id,
+        supplierWorkflow.workflowCode, randomUUID());
+      const unrelatedApprovalInstance = await prisma.approvalInstance.findUniqueOrThrow({
+        where: { id: unrelatedSubmitted.approvalInstanceId! },
       });
       const unrelatedApprovalAction = await prisma.approvalAction.create({
         data: {
@@ -1652,7 +1652,7 @@ test('V0.6-B Client Invoice preserves scope, maker-checker, retained history and
             customerId: customer.id,
             clientInvoiceNumber: 'CI2610-999999',
             invoiceDate: new Date('2026-10-02T00:00:00.000Z'),
-            currencyCode: 'SGD',
+            currencyCode: company.baseCurrencyCode,
             state: 'APPROVED',
             createKey: randomUUID(),
             createPayloadHash: '1'.repeat(64),
@@ -1673,7 +1673,7 @@ test('V0.6-B Client Invoice preserves scope, maker-checker, retained history and
             customerId: customer.id,
             clientInvoiceNumber: 'CI2610-999998',
             invoiceDate: new Date('2026-10-02T00:00:00.000Z'),
-            currencyCode: 'SGD',
+            currencyCode: company.baseCurrencyCode,
             state: 'DRAFT',
             createKey: randomUUID(),
             createPayloadHash: '2'.repeat(64),
@@ -2067,7 +2067,7 @@ test('V0.6-C Payments preserve Project scope, settlement ceilings, idempotency a
       data: {
         companyCode: 'FINC-' + suffix,
         companyName: 'Finance C Test ' + suffix,
-        baseCurrencyCode: 'SGD',
+        baseCurrencyCode: 'THB',
       },
     });
     const customer = await prisma.customer.create({

@@ -6,6 +6,7 @@ if (!adminEmail || !adminPassword) {
   throw new Error('BOOTSTRAP_ADMIN_EMAIL and BOOTSTRAP_ADMIN_PASSWORD are required.');
 }
 
+const OPERATING_CURRENCY = 'THB';
 const suffix = Date.now().toString(36).toUpperCase();
 const stepResults = [];
 
@@ -65,7 +66,8 @@ function cookieFrom(response) {
 
 async function readBody(response) {
   const type = response.headers.get('content-type') ?? '';
-  if (type.includes('application/json')) return response.json();
+  const mediaType = type.split(';', 1)[0].trim().toLowerCase();
+  if (mediaType === 'application/json' || mediaType === 'application/problem+json') return response.json();
   return response.arrayBuffer();
 }
 
@@ -126,6 +128,8 @@ async function logout(session) {
 
 const admin = await login(adminEmail, adminPassword);
 const me = await request(admin, '/auth/me');
+const operatingCompany = await request(admin, '/admin/company');
+check(operatingCompany.data.data.baseCurrencyCode === OPERATING_CURRENCY, 'New monetary acceptance requires an explicitly configured THB Company. Historical records must not be relabelled.');
 check(me.data.data.email === adminEmail.toLowerCase(), 'Authenticated administrator identity mismatch.');
 check(
   !me.data.data.permissions.includes('procurement.pr.cancel'),
@@ -2238,7 +2242,7 @@ const financeOptions = await request(
 const receiptAItemId = receiptADraft.data.data.items[0]?.id;
 check(receiptAItemId, 'V0.6-A source Goods Receipt item was not available.');
 check(
-  financeOptions.data.data.baseCurrencyCode === 'SGD' &&
+  financeOptions.data.data.baseCurrencyCode === OPERATING_CURRENCY &&
     financeOptions.data.data.purchaseOrderLines.some(
       (line) => line.id === revisedPoLineId,
     ) &&
@@ -2277,7 +2281,7 @@ const supplierInvoiceId = supplierInvoice.data.data.id;
 check(
   /^SI2610-\d{3}$/.test(supplierInvoice.data.data.supplierInvoiceNumber) &&
     supplierInvoice.data.data.state === 'DRAFT' &&
-    supplierInvoice.data.data.currencyCode === 'SGD' &&
+    supplierInvoice.data.data.currencyCode === OPERATING_CURRENCY &&
     String(supplierInvoice.data.data.totalAmount) === '29.25' &&
     supplierInvoice.data.data.projectId === projectId &&
     supplierInvoice.data.data.items[0]?.purchaseOrderLineId === revisedPoLineId &&
@@ -2489,7 +2493,7 @@ const clientInvoiceOptions = await request(
   '/finance/projects/' + projectId + '/client-invoice-options',
 );
 check(
-  clientInvoiceOptions.data.data.baseCurrencyCode === 'SGD' &&
+  clientInvoiceOptions.data.data.baseCurrencyCode === OPERATING_CURRENCY &&
     clientInvoiceOptions.data.data.customers.some(
       (item) => item.id === customerId,
     ),
@@ -2532,7 +2536,7 @@ const clientInvoiceId = clientInvoice.data.data.id;
 check(
   /^CI2610-\d{3}$/.test(clientInvoice.data.data.clientInvoiceNumber) &&
     clientInvoice.data.data.state === 'DRAFT' &&
-    clientInvoice.data.data.currencyCode === 'SGD' &&
+    clientInvoice.data.data.currencyCode === OPERATING_CURRENCY &&
     clientInvoice.data.data.projectId === projectId &&
     clientInvoice.data.data.customerId === customerId &&
     String(clientInvoice.data.data.totalAmount) === '500',
@@ -2803,7 +2807,7 @@ const paymentOptions = await request(
   '/finance/projects/' + projectId + '/payment-options',
 );
 check(
-  paymentOptions.data.data.baseCurrencyCode === 'SGD' &&
+  paymentOptions.data.data.baseCurrencyCode === OPERATING_CURRENCY &&
     paymentOptions.data.data.supplierInvoices.some(
       (invoice) => invoice.id === supplierInvoiceId,
     ) &&
@@ -2852,7 +2856,7 @@ check(
     outboundPayment.data.data.paymentDirection === 'OUTBOUND' &&
     outboundPayment.data.data.supplierId === sourcingSupplierB.data.data.id &&
     outboundPayment.data.data.state === 'DRAFT' &&
-    outboundPayment.data.data.currencyCode === 'SGD' &&
+    outboundPayment.data.data.currencyCode === OPERATING_CURRENCY &&
     String(outboundPayment.data.data.amount) === '20',
   'V0.6-C outbound Payment did not retain stable identity, Project, direction, counterparty, base currency and amount.',
 );
@@ -3256,16 +3260,16 @@ await request(
 
 await request(admin, '/admin/company', {
   method: 'PATCH',
-  json: { baseCurrencyCode: 'USD' },
+  json: { baseCurrencyCode: 'USD' }, expected: 422,
 });
 await request(
   pm,
   '/finance/projects/' + projectId + '/cash-flow',
-  { expected: 422 },
+  { expected: 200 },
 );
 await request(admin, '/admin/company', {
   method: 'PATCH',
-  json: { baseCurrencyCode: 'SGD' },
+  json: { baseCurrencyCode: 'SGD' }, expected: 422,
 });
 const restoredStageECashFlow = await request(
   pm,
@@ -3275,7 +3279,7 @@ check(
   Number(restoredStageECashFlow.data.data.totals.netCashFlow) === 118,
   'V0.6-E restoring Company base currency did not restore valid Project Cash Flow.',
 );
-record('V0.6-E rejects historical Payment currency when current Company base currency differs, preventing unsupported FX/mixed-currency aggregation');
+record('V1.2 prevents foreign Company operating-currency overrides and preserves THB Cash Flow; historical foreign aggregation remains covered by legacy regression');
 
 record('V0.6-E authenticated Project Cash Flow counts approved non-cancelled Payment amounts once, supports Payment-date filtering, preserves unallocated settlement evidence, excludes cancelled history and enforces SYS_ADMIN/Project denial');
 
@@ -4617,10 +4621,16 @@ const agreementPayload = {
   subcontractorId,
   originalValue: '125000.00',
   scopeOfWork: 'Groundworks package ' + suffix,
-  currencyCode: 'SGD',
+  currencyCode: OPERATING_CURRENCY,
   operationalStatusId: subcontractStatus.data.data.id,
   createKey: 'uat-v05a-' + suffix,
 };
+const deniedForeignAgreement = await request(pm, '/subcontracts/agreements', {
+  method: 'POST', json: { ...agreementPayload, currencyCode: 'SGD', createKey: 'denied-foreign-' + suffix }, expected: 422,
+});
+check(deniedForeignAgreement.data.code === 'ERP_THB_PROVENANCE_REQUIRED',
+  'Foreign Agreement denial must return the safe THB policy API contract.');
+record('V1.2 authenticated foreign Agreement create is denied by the THB database policy with a safe 422 contract');
 const agreement = await request(pm, '/subcontracts/agreements', {
   method: 'POST',
   json: agreementPayload,
@@ -4942,7 +4952,7 @@ check(
     agreementVersions.data.data.every(
       (version) =>
         String(version.originalValue) === '125000' &&
-        version.currencyCode === 'SGD',
+        version.currencyCode === OPERATING_CURRENCY,
     ),
   'V0.5-B retained Agreement versions lost the approved commercial snapshot.',
 );
@@ -4954,7 +4964,7 @@ const cancellableAgreement = await request(pm, '/subcontracts/agreements', {
     subcontractorId,
     originalValue: '1000.00',
     scopeOfWork: 'Cancellation-only package ' + suffix,
-    currencyCode: 'SGD',
+    currencyCode: OPERATING_CURRENCY,
     operationalStatusId: subcontractStatus.data.data.id,
     createKey: 'uat-v05b-cancellable-' + suffix,
   },
@@ -5278,7 +5288,7 @@ const claimGuardAgreement = await request(pm, '/subcontracts/agreements', {
     subcontractorId,
     originalValue: '1000.00',
     scopeOfWork: 'Stage C Claim cancellation guard ' + suffix,
-    currencyCode: 'SGD',
+    currencyCode: OPERATING_CURRENCY,
     operationalStatusId: subcontractStatus.data.data.id,
     createKey: 'uat-v05c-claim-guard-agreement-' + suffix,
   },
@@ -5388,7 +5398,7 @@ const stageDAgreement = await request(pm, '/subcontracts/agreements', {
     subcontractorId,
     originalValue: '1000.00',
     scopeOfWork: 'Stage D certification and retention package ' + suffix,
-    currencyCode: 'SGD',
+    currencyCode: OPERATING_CURRENCY,
     retentionRate: '2.50',
     retentionCap: '5.01',
     operationalStatusId: subcontractStatus.data.data.id,
@@ -5964,7 +5974,7 @@ const stageEAgreement = await request(pm, '/subcontracts/agreements', {
     subcontractorId,
     originalValue: '1000.00',
     scopeOfWork: 'Stage E Variation and reporting package ' + suffix,
-    currencyCode: 'SGD',
+    currencyCode: OPERATING_CURRENCY,
     retentionRate: '5.00',
     operationalStatusId: subcontractStatus.data.data.id,
     createKey: 'uat-v05e-agreement-' + suffix,
@@ -6120,7 +6130,7 @@ check(
   /^SVO\d{4}-\d{3}$/.test(stageEVariation.data.data.variationNumber) &&
     stageEVariation.data.data.state === 'DRAFT' &&
     Number(stageEVariation.data.data.valueDelta) === 250 &&
-    stageEVariation.data.data.currencyCode === 'SGD',
+    stageEVariation.data.data.currencyCode === OPERATING_CURRENCY,
   'V0.5-E Variation did not retain SVOYYMM-### identity, signed delta or inherited currency.',
 );
 const stageEVariationRetry = await request(
@@ -8562,19 +8572,19 @@ check(
 record('V0.7-E RPT-009 Cost Reporting exposes Project/WBS/Cost Code dimensions, parent-WBS descendant filtering, explicit Unallocated states and sanitized source traceability');
 
 await request(admin, '/admin/company', {
-  method: 'PATCH', json: { baseCurrencyCode: 'USD' },
+  method: 'PATCH', json: { baseCurrencyCode: 'USD' }, expected: 422,
 });
-await request(pm, '/projects/' + projectId + '/cost-control', { expected: 422 });
+await request(pm, '/projects/' + projectId + '/cost-control', { expected: 200 });
 await request(admin, '/admin/company', {
-  method: 'PATCH', json: { baseCurrencyCode: 'SGD' },
+  method: 'PATCH', json: { baseCurrencyCode: 'SGD' }, expected: 422,
 });
 const restoredCostControl = await request(pm, '/projects/' + projectId + '/cost-control');
 check(
-  restoredCostControl.data.data.baseCurrencyCode === 'SGD' &&
+  restoredCostControl.data.data.baseCurrencyCode === OPERATING_CURRENCY &&
     restoredCostControl.data.data.totals.originalBudget === v07CostControl.data.data.totals.originalBudget,
   'V0.7-A historical source currency was not retained after restoring the Company currency.',
 );
-record('V0.7-A rejects historical Budget/PO currency mismatch and restores valid same-currency reporting');
+record('V1.2 rejects foreign operating-currency overrides and preserves verified THB Budget/PO reporting');
 
 await request(admin, '/management/projects', { expected: 403 });
 await request(admin, '/management/projects/' + projectId + '/summary?asOf=2026-10-10&days=14', {
@@ -8629,7 +8639,7 @@ check(
   managementSummary.data.data.contractVersion === 'V0.8-A' &&
     managementSummary.data.data.project?.id === projectId &&
     managementSummary.data.data.lookaheadDays === 14 &&
-    managementSummary.data.data.baseCurrencyCode === 'SGD',
+    managementSummary.data.data.baseCurrencyCode === OPERATING_CURRENCY,
   'V0.8-A Project Management summary contract identity was incorrect.',
 );
 check(
@@ -8711,7 +8721,7 @@ check(
   'V0.8-C Executive portfolio did not expose the authorized Project scope.',
 );
 check(
-  managementPortfolio.data.data.baseCurrencyCode === 'SGD' &&
+  managementPortfolio.data.data.baseCurrencyCode === OPERATING_CURRENCY &&
     Number(managementPortfolio.data.data.totals?.cost?.revisedBudget) >=
       Number(managementSummary.data.data.domains?.cost?.revisedBudget) &&
     Number(managementPortfolio.data.data.totals?.finance?.netCashFlow) >=

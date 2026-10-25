@@ -78,7 +78,7 @@ test('V0.5-C retains Claim history, separates assessment and enforces commercial
       data: {
         companyCode: 'SCC-' + suffix,
         companyName: 'Subcontracts Stage C ' + suffix,
-        baseCurrencyCode: 'SGD',
+        baseCurrencyCode: 'THB',
       },
     });
     const customer = await prisma.customer.create({
@@ -150,7 +150,7 @@ test('V0.5-C retains Claim history, separates assessment and enforces commercial
         agreementNumber: 'SC2609-C' + suffix.slice(0, 2).toUpperCase(),
         originalValue: '1000.00',
         scopeOfWork: 'Stage C agreement-scope package',
-        currencyCode: 'SGD',
+        currencyCode: company.baseCurrencyCode,
         approvalState: 'APPROVED',
         firstApprovedAt: new Date(),
         createdByUserId: maker.id,
@@ -164,7 +164,7 @@ test('V0.5-C retains Claim history, separates assessment and enforces commercial
         agreementNumber: 'SC2609-X' + suffix.slice(0, 2).toUpperCase(),
         originalValue: '1000.00',
         scopeOfWork: 'Other Project package',
-        currencyCode: 'SGD',
+        currencyCode: company.baseCurrencyCode,
         approvalState: 'APPROVED',
         firstApprovedAt: new Date(),
         createdByUserId: maker.id,
@@ -322,7 +322,7 @@ test('V0.5-C retains Claim history, separates assessment and enforces commercial
         agreementNumber: 'SC2609-B' + suffix.slice(0, 2).toUpperCase(),
         originalValue: '1000.00',
         scopeOfWork: 'Assessment amount database-bound fixture',
-        currencyCode: 'SGD',
+        currencyCode: company.baseCurrencyCode,
         approvalState: 'APPROVED',
         firstApprovedAt: new Date(),
         createdByUserId: maker.id,
@@ -1196,7 +1196,7 @@ test('V0.5-C retains Claim history, separates assessment and enforces commercial
         agreementNumber: 'SC2609-H' + suffix.slice(0, 2).toUpperCase(),
         originalValue: '1000.00',
         scopeOfWork: 'Cancelled Agreement retained-history package',
-        currencyCode: 'SGD',
+        currencyCode: company.baseCurrencyCode,
         approvalState: 'APPROVED',
         firstApprovedAt: new Date(),
         createdByUserId: maker.id,
@@ -1336,17 +1336,6 @@ test('V0.5-C retains Claim history, separates assessment and enforces commercial
         workflowName: 'Stage C WO fixture',
       },
     });
-    const instance = await prisma.approvalInstance.create({
-      data: {
-        companyId: company.id,
-        approvalWorkflowId: workflowRow.id,
-        entityType: 'SUBCONTRACT_WORK_ORDER',
-        entityId: randomUUID(),
-        currentStepNo: 1,
-        approvalState: 'APPROVED',
-        completedAt: new Date(),
-      },
-    });
     const woAgreement = await prisma.subcontractAgreement.create({
       data: {
         companyId: company.id,
@@ -1355,7 +1344,7 @@ test('V0.5-C retains Claim history, separates assessment and enforces commercial
         agreementNumber: 'SC2609-W' + suffix.slice(0, 2).toUpperCase(),
         originalValue: '1000.00',
         scopeOfWork: 'Work Order claim package',
-        currencyCode: 'SGD',
+        currencyCode: company.baseCurrencyCode,
         approvalState: 'APPROVED',
         firstApprovedAt: new Date(),
         createdByUserId: maker.id,
@@ -1370,14 +1359,28 @@ test('V0.5-C retains Claim history, separates assessment and enforces commercial
         workOrderNumber: 'WO-001',
         scopeOfWork: 'Approved Work Order fixture',
         amount: '300.00',
-        approvalState: 'APPROVED',
-        approvalInstanceId: instance.id,
         createdByUserId: maker.id,
-        submittedByUserId: maker.id,
-        submittedAt: new Date(),
-        decidedAt: new Date(),
       },
     });
+    const instance = await prisma.approvalInstance.create({
+      data: {
+        companyId: company.id,
+        approvalWorkflowId: workflowRow.id,
+        entityType: 'SUBCONTRACT_WORK_ORDER',
+        entityId: wo.id,
+        currentStepNo: 1,
+        approvalState: 'APPROVED',
+        completedAt: new Date(),
+      },
+    });
+
+    await prisma.subcontractWorkOrder.update({ where: { id: wo.id }, data: {
+      approvalState: 'SUBMITTED', approvalInstanceId: instance.id,
+      submittedByUserId: maker.id, submittedAt: new Date(),
+    } });
+    await prisma.subcontractWorkOrder.update({ where: { id: wo.id }, data: {
+      approvalState: 'APPROVED', decidedAt: new Date(),
+    } });
 
     const woClaim = await claims.createClaim(
       { auth: makerAuth },
@@ -1456,17 +1459,6 @@ test('V0.5-C retains Claim history, separates assessment and enforces commercial
       'cumulative active Claim allocation per Work Order cannot exceed its approved amount',
     );
 
-    const otherWorkflowInstance = await prisma.approvalInstance.create({
-      data: {
-        companyId: company.id,
-        approvalWorkflowId: workflowRow.id,
-        entityType: 'SUBCONTRACT_WORK_ORDER',
-        entityId: randomUUID(),
-        currentStepNo: 1,
-        approvalState: 'APPROVED',
-        completedAt: new Date(),
-      },
-    });
     const otherWo = await prisma.subcontractWorkOrder.create({
       data: {
         companyId: company.id,
@@ -1476,14 +1468,28 @@ test('V0.5-C retains Claim history, separates assessment and enforces commercial
         workOrderNumber: 'WO-001',
         scopeOfWork: 'Other Project Work Order',
         amount: '100.00',
-        approvalState: 'APPROVED',
-        approvalInstanceId: otherWorkflowInstance.id,
         createdByUserId: maker.id,
-        submittedByUserId: maker.id,
-        submittedAt: new Date(),
-        decidedAt: new Date(),
       },
     });
+    const otherWorkflowInstance = await prisma.approvalInstance.create({
+      data: {
+        companyId: company.id,
+        approvalWorkflowId: workflowRow.id,
+        entityType: 'SUBCONTRACT_WORK_ORDER',
+        entityId: otherWo.id,
+        currentStepNo: 1,
+        approvalState: 'APPROVED',
+        completedAt: new Date(),
+      },
+    });
+
+    await prisma.subcontractWorkOrder.update({ where: { id: otherWo.id }, data: {
+      approvalState: 'SUBMITTED', approvalInstanceId: otherWorkflowInstance.id,
+      submittedByUserId: maker.id, submittedAt: new Date(),
+    } });
+    await prisma.subcontractWorkOrder.update({ where: { id: otherWo.id }, data: {
+      approvalState: 'APPROVED', decidedAt: new Date(),
+    } });
 
     await assert.rejects(
       () =>

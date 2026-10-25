@@ -63,4 +63,9 @@ test('schema-aware evidence fails closed for missing history/recovery/runtime pr
   const sql = evidence('migration-aware-sql-only');
   delete sql.prismaSchemaUnchanged;
   assert.notEqual(verify(sql).status, 0);
+  const policy = evidence('migration-aware-thb-schema');
+  policy.migrationNames = ['20261025120000_v1_2_thb_monetary_policy'];
+  assert.notEqual(verify(policy).status, 0);
+  policy.thbPolicyUpgrade = 'PASS';
+  assert.equal(verify(policy).status, 0);
 });

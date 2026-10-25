@@ -826,6 +826,9 @@ export class SourcingService {
 
   async comparison(auth: AuthenticatedUserContext, rfqId: string) {
     const rfq = await this.getRfq(auth, rfqId);
+    if (rfq.quotations.some((quotation) => quotation.currencyCode !== 'THB')) {
+      throw new UnprocessableEntityException({ code: 'ERP_THB_PROVENANCE_REQUIRED', detail: 'Quotation comparison requires verified THB prices. Historical unknown prices remain available as source history.' });
+    }
     const quotationBySupplier = new Map(
       rfq.quotations.map((quotation) => [
         quotation.supplierId,

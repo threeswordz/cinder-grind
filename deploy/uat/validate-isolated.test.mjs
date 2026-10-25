@@ -20,6 +20,11 @@ function harness({ fault, port = '61234', readyFailures = 0, mountFault = false,
   let removedContainer = false;
   const run = async (command, args, options) => {
     calls.push({ command, args, env: options.env });
+    if (command === 'bash' && args[0] === 'deploy/uat/prepare-legacy-validation.sh') {
+      assert.notEqual(options.env.DATABASE_URL, retained);
+      assert.equal(options.env.LEGACY_NON_PRODUCTION_CONFIRMED, 'YES');
+      return { code: fault === 'legacy-fixture' ? 7 : 0, stdout: '' };
+    }
     if (command === 'pnpm') return { code: fault === args[0] ? 7 : 0, stdout: '' };
     if (args[0] === 'run') {
       if (fault === 'run') return { code: 1, stdout: '' };
@@ -93,6 +98,13 @@ test('identity mismatch never removes the unexpected container', async () => {
 
 test('cleanup failure cannot report a successful gate', async () => {
   await assert.rejects(validateIsolated(harness({ fault: 'cleanup' })), /cleanup/);
+});
+
+test('legacy fixture failure stops before candidate migrations/tests and cleans only disposable resources', async () => {
+  const fixture = harness({ fault: 'legacy-fixture' });
+  await assert.rejects(validateIsolated(fixture), /command failed/);
+  assert.ok(!fixture.calls.some((call) => call.command === 'pnpm'));
+  assert.deepEqual(fixture.removed(), { removedStorage: true, removedContainer: true });
 });
 
 test('engine creation failure never runs tests or removes a retained container', async () => {

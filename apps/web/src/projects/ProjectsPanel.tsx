@@ -1,3 +1,4 @@
+import { CurrencyLabel } from '../role-ui/monetary-presentation';
 import { FormEvent, useEffect, useRef, useState } from 'react';
 import {
   Alert, Button, Card, CardContent, MenuItem, Stack, TextField, Typography,
@@ -245,7 +246,7 @@ export function ProjectsPanel({
                     {project.customer.customerName} · {project.statusDefinition.statusLabel} · {project.isActive ? 'Active' : 'Archived'}
                   </Typography>
                   <Typography variant="body2">
-                    {project.plannedStartDate.slice(0, 10)} → {project.plannedCompletionDate.slice(0, 10)} · Contract {project.contractValue}
+                    {project.plannedStartDate.slice(0, 10)} → {project.plannedCompletionDate.slice(0, 10)} · Contract <CurrencyLabel code={project.contractCurrencyCode} /> {project.contractValue}
                   </Typography>
                 </div>
                 <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
@@ -310,7 +311,7 @@ export function ProjectsPanel({
                   <MenuItem key={item.id} value={item.id}>{String(item.statusCode)} · {String(item.statusLabel)}</MenuItem>
                 ))}
               </TextField>
-              <TextField label="Contract Value" type="number" value={form.contractValue} onChange={(e) => setForm({ ...form, contractValue: e.target.value })} required />
+              <TextField label="Contract Value (new contracts: THB)" type="number" value={form.contractValue} onChange={(e) => setForm({ ...form, contractValue: e.target.value })} required />
               <TextField label="Location" value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} />
               <TextField label="Description" multiline minRows={2} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>

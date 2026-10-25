@@ -1,3 +1,4 @@
+import { CurrencyLabel } from '../role-ui/monetary-presentation';
 import {
   Alert,
   Button,
@@ -511,7 +512,7 @@ export function BudgetPanel({
                   ) : null}
                 </Stack>
                 <Typography variant="body2" color="text.secondary">
-                  {linkedWbs ? 'Linked WBS active BOQ total:' : 'Active BOQ total:'}{' '}
+                  {linkedWbs ? 'Linked WBS active BOQ total:' : 'Active BOQ total:'}{' '}<CurrencyLabel code={currentBoq?.currencyCode} />{' '}
                   {money(
                     visibleBoqItems
                       .filter((row) => row.isActive)
@@ -779,15 +780,13 @@ export function BudgetPanel({
                 <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
                   <Chip
                     label={
-                      'Original Budget · ' +
-                      money(summary.data?.data.original?.total)
+                      <>Original Budget · <CurrencyLabel code={summary.data?.data.original?.currencyCode} /> {money(summary.data?.data.original?.total)}</>
                     }
                     variant="outlined"
                   />
                   <Chip
                     label={
-                      'Current Revised Budget · ' +
-                      money(summary.data?.data.current?.total)
+                      <>Current Revised Budget · <CurrencyLabel code={summary.data?.data.current?.currencyCode} /> {money(summary.data?.data.current?.total)}</>
                     }
                     variant="outlined"
                   />
@@ -811,7 +810,7 @@ export function BudgetPanel({
                           alignItems={{ sm: 'center' }}
                         >
                           <Typography sx={{ flexGrow: 1 }}>
-                            {row.revisionNumber} · Revision {row.revisionNo}
+                            {row.revisionNumber} · Revision {row.revisionNo} · <CurrencyLabel code={row.currencyCode} />
                           </Typography>
                           {row.isOriginal ? (
                             <Chip size="small" label="ORIGINAL" />

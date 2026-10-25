@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 
 import { serializeOperationalEvent } from './operational-log';
+import { monetaryPolicyException } from './monetary-policy';
 
 type CorrelatedRequest = { url?: string; correlationId?: string };
 type HttpResponse = {
@@ -47,12 +48,14 @@ export class ProblemDetailsFilter implements ExceptionFilter {
   private readonly logger = new Logger(ProblemDetailsFilter.name);
 
   catch(exception: unknown, host: ArgumentsHost): void {
+    exception = monetaryPolicyException(exception) ?? exception;
     const http = host.switchToHttp();
     const request = http.getRequest<CorrelatedRequest>();
     const response = http.getResponse<HttpResponse>();
-    const isHttpException = exception instanceof HttpException;
-    const status = isHttpException ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
-    const exceptionBody = isHttpException ? exception.getResponse() : undefined;
+    const httpException = exception instanceof HttpException ? exception : undefined;
+    const isHttpException = httpException !== undefined;
+    const status = httpException?.getStatus() ?? HttpStatus.INTERNAL_SERVER_ERROR;
+    const exceptionBody = httpException?.getResponse();
     const body: HttpExceptionBody =
       typeof exceptionBody === 'object' && exceptionBody !== null
         ? (exceptionBody as HttpExceptionBody)

@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
+import { seedLegacyCorrections } from './legacy-corrections.mjs';
 
 // Always use the real previous-release client, including after isolated restore.
 const [mode, previousRoot, manifestPath, snapshotPath] = process.argv.slice(2);
@@ -54,7 +55,12 @@ try {
     assert.equal(knownPo.currencyCode, 'SGD');
     assert.equal((await prisma.purchaseOrder.findUniqueOrThrow({ where: { id: fixture.unknownPoId } })).currencyCode, null);
     assert.equal((await prisma.budgetRevision.findUniqueOrThrow({ where: { id: fixture.unknownBudgetId } })).currencyCode, null);
-    protect(manifestPath, { ...fixture, knownPoId: knownPo.id });
+    const project = await prisma.project.create({ data: { companyId: fixture.companyId, customerId: fixture.customerId, projectCode: 'KNOWN-SGD', projectName: 'Known historical budget', contractValue: '100', plannedStartDate: new Date('2026-01-01'), plannedCompletionDate: new Date('2026-12-31') } });
+    await prisma.boq.create({ data: { companyId: fixture.companyId, projectId: project.id } });
+    const budget = await prisma.budgetRevision.create({ data: { companyId: fixture.companyId, projectId: project.id, revisionNo: 1, revisionNumber: 'LEGACY-SGD-BUDGET', createdByUserId: fixture.userId } });
+    assert.equal(budget.currencyCode, 'SGD');
+    const corrections = await seedLegacyCorrections(prisma, fixture);
+    protect(manifestPath, { ...fixture, ...corrections, knownPoId: knownPo.id, knownBudgetId: budget.id });
   } else if (mode === 'snapshot') {
     if (!snapshotPath) throw new Error('Snapshot path required');
     protect(snapshotPath, await snapshot());

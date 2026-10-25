@@ -54,7 +54,7 @@ test('V0.5-C serializes Claim commercial races on the Agreement boundary', async
       data: {
         companyCode: 'SCC-R-' + suffix,
         companyName: 'Stage C Concurrency ' + suffix,
-        baseCurrencyCode: 'SGD',
+        baseCurrencyCode: 'THB',
       },
     });
     const customer = await prisma.customer.create({
@@ -130,7 +130,7 @@ test('V0.5-C serializes Claim commercial races on the Agreement boundary', async
             'SC2609-' + code + suffix.slice(0, 3).toUpperCase(),
           originalValue: value,
           scopeOfWork: 'Concurrency fixture ' + code,
-          currencyCode: 'SGD',
+          currencyCode: company.baseCurrencyCode,
           approvalState: 'APPROVED',
           firstApprovedAt: new Date(),
           createdByUserId: maker.id,
@@ -279,17 +279,6 @@ test('V0.5-C serializes Claim commercial races on the Agreement boundary', async
         workflowName: 'Stage C Concurrency Work Order',
       },
     });
-    const approvalInstance = await prisma.approvalInstance.create({
-      data: {
-        companyId: company.id,
-        approvalWorkflowId: approvalWorkflow.id,
-        entityType: 'SUBCONTRACT_WORK_ORDER',
-        entityId: randomUUID(),
-        currentStepNo: 1,
-        approvalState: 'APPROVED',
-        completedAt: new Date(),
-      },
-    });
     const workOrder = await prisma.subcontractWorkOrder.create({
       data: {
         companyId: company.id,
@@ -299,14 +288,28 @@ test('V0.5-C serializes Claim commercial races on the Agreement boundary', async
         workOrderNumber: 'WO-001',
         scopeOfWork: 'Concurrency Work Order',
         amount: '700.00',
-        approvalState: 'APPROVED',
-        approvalInstanceId: approvalInstance.id,
         createdByUserId: maker.id,
-        submittedByUserId: maker.id,
-        submittedAt: new Date(),
-        decidedAt: new Date(),
       },
     });
+    const approvalInstance = await prisma.approvalInstance.create({
+      data: {
+        companyId: company.id,
+        approvalWorkflowId: approvalWorkflow.id,
+        entityType: 'SUBCONTRACT_WORK_ORDER',
+        entityId: workOrder.id,
+        currentStepNo: 1,
+        approvalState: 'APPROVED',
+        completedAt: new Date(),
+      },
+    });
+
+    await prisma.subcontractWorkOrder.update({ where: { id: workOrder.id }, data: {
+      approvalState: 'SUBMITTED', approvalInstanceId: approvalInstance.id,
+      submittedByUserId: maker.id, submittedAt: new Date(),
+    } });
+    await prisma.subcontractWorkOrder.update({ where: { id: workOrder.id }, data: {
+      approvalState: 'APPROVED', decidedAt: new Date(),
+    } });
     const workOrderClaimA = await createDraft(
       workOrderAgreement.id,
       '2027-01-01',
@@ -540,7 +543,7 @@ test('V0.5-C serializes Claim commercial races on the Agreement boundary', async
           claimNumber: 'SCL-PAIR-A-' + suffix,
           periodStart: concurrentPeriodStart,
           periodEnd: concurrentPeriodEnd,
-          currencyCode: 'SGD',
+          currencyCode: company.baseCurrencyCode,
           state: 'DRAFT',
           createdByUserId: maker.id,
         },
@@ -557,7 +560,7 @@ test('V0.5-C serializes Claim commercial races on the Agreement boundary', async
           claimNumber: 'SCL-PAIR-T-' + suffix,
           periodStart: concurrentPeriodStart,
           periodEnd: concurrentPeriodEnd,
-          currencyCode: 'SGD',
+          currencyCode: company.baseCurrencyCode,
           state: 'WITHDRAWN',
           createdByUserId: maker.id,
           submittedByUserId: maker.id,

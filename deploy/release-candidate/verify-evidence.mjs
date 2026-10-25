@@ -41,6 +41,9 @@ if (['migration-aware-sql-only', 'migration-aware-thb-schema'].includes(rehearsa
       'restoredPreviousRuntimeAuthenticationDownload']) {
       if (rehearsal[key] !== 'PASS') fail('schema-aware rehearsal gate ' + key + ' did not PASS');
     }
+    if (rehearsal.migrationNames?.some((name) => name.endsWith('_v1_2_thb_monetary_policy')) && rehearsal.thbPolicyUpgrade !== 'PASS') {
+      fail('THB policy upgrade/correction proof did not PASS');
+    }
   } else if (rehearsal.prismaSchemaUnchanged !== 'PASS') {
     fail('SQL-only rehearsal must prove unchanged Prisma schema');
   }

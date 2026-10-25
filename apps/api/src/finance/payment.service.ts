@@ -114,7 +114,7 @@ export class PaymentService {
           orderBy: [{ subcontractorName: 'asc' }, { subcontractorCode: 'asc' }],
         }),
         this.prisma.supplierInvoice.findMany({
-          where: { companyId: auth.companyId, projectId, state: 'APPROVED' },
+          where: { companyId: auth.companyId, projectId, state: 'APPROVED', currencyCode: 'THB' },
           select: {
             id: true,
             supplierId: true,
@@ -126,7 +126,7 @@ export class PaymentService {
           orderBy: [{ invoiceDate: 'asc' }, { supplierInvoiceNumber: 'asc' }],
         }),
         this.prisma.clientInvoice.findMany({
-          where: { companyId: auth.companyId, projectId, state: 'APPROVED' },
+          where: { companyId: auth.companyId, projectId, state: 'APPROVED', currencyCode: 'THB' },
           select: {
             id: true,
             customerId: true,
@@ -142,6 +142,7 @@ export class PaymentService {
             projectId,
             state: 'APPROVED',
             reversedAt: null,
+            currencyCode: 'THB',
             netCertifiedAmount: { not: null },
           },
           select: {
@@ -167,7 +168,7 @@ export class PaymentService {
       ]);
     if (!project) throw this.notFound();
     return {
-      baseCurrencyCode: company.baseCurrencyCode,
+      baseCurrencyCode: 'THB', companyCurrencyCode: company.baseCurrencyCode, monetaryActivityAllowed: company.baseCurrencyCode === 'THB',
       suppliers,
       customers,
       subcontractors,
