@@ -23,4 +23,10 @@ The normal CI then runs the existing paired database + Documents recovery set, i
 
 CI provides the last exact green pre-flight main commit as `RC_PREVIOUS_RELEASE_COMMIT`, the exact workflow SHA as `RELEASE_COMMIT`, and the disposable PostgreSQL service URL as `RC_BASE_DATABASE_URL`.
 
-No paid service, hosted CI extension, schema migration or new runtime dependency is introduced.
+## Bounded V1.2 schema mode (DEC-033)
+
+Application-only and SQL-only modes remain distinct and fail closed. When the Prisma schema changes, `schema-contract.mjs` admits only the four approved nullable monetary-root provenance fields and the Company SGD→THB default transition; it rejects unrelated models, required/defaulted provenance and other schema changes. Migration history must remain additive.
+
+The schema-aware path checks out the exact previous release in a detached temporary worktree, installs its pinned lockfile, generates its own Prisma client and builds its API. It creates genuine NULL PO/Budget history before the existing provenance migration, completes the untouched previous-release migrations, creates SGD sources and runs the actual previous authenticated acceptance fixture with real LOCAL Documents. It snapshots every business/approval/ledger/audit table and old migration checksums before paired backup. The candidate runs the actual preparation/upgrade and authenticated acceptance/HTTPS smoke; unchanged-history and immutable-NULL checks run immediately after upgrade. Paired restore goes to separate database/Documents resources; the matching previous client/application authenticates and downloads a checksum-verified restored document. Candidate migrations must be absent there. Version-4 evidence binds these extra gates to the exact previous runtime and current CI run. Application-only rollback remains prohibited across schema changes.
+
+The first B dependency adds the four nullable fields and immutability only. It deliberately leaves legacy NULLs, Company defaults and application monetary behavior unchanged. Full new-business THB policy, truthful reporting/UI and targeted policy regressions remain dependent B work under #246; passing this rehearsal alone does not complete THB-01–09 or human THB-10. No private Mac data, paid service or new runtime dependency is used.

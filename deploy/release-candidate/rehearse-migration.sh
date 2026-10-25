@@ -41,8 +41,16 @@ git merge-base --is-ancestor "$RC_PREVIOUS_RELEASE_COMMIT" "$RELEASE_COMMIT" || 
 if git diff --quiet "$RC_PREVIOUS_RELEASE_COMMIT" "$RELEASE_COMMIT" -- apps/api/prisma/migrations; then
   fail "migration-aware rehearsal requires at least one forward migration"
 fi
-git diff --quiet "$RC_PREVIOUS_RELEASE_COMMIT" "$RELEASE_COMMIT" -- apps/api/prisma/schema.prisma \
-  || fail "bounded migration-aware rehearsal supports SQL-only migrations with unchanged Prisma schema"
+schema_mode="migration-aware-sql-only"
+if ! git diff --quiet "$RC_PREVIOUS_RELEASE_COMMIT" "$RELEASE_COMMIT" -- apps/api/prisma/schema.prisma; then
+  previous_schema_check="$(mktemp)"
+  git show "$RC_PREVIOUS_RELEASE_COMMIT:apps/api/prisma/schema.prisma" > "$previous_schema_check"
+  if ! schema_mode="$(node "$RC_DIR/schema-contract.mjs" "$previous_schema_check" apps/api/prisma/schema.prisma)"; then
+    rm -f "$previous_schema_check"
+    fail "schema evolution is outside the bounded DEC-033 contract"
+  fi
+  rm -f "$previous_schema_check"
+fi
 
 migration_change_lines=()
 while IFS= read -r line; do
@@ -84,6 +92,7 @@ proxy_pid=""
 admin_pgpass=""
 upgrade_pgpass=""
 rollback_pgpass=""
+previous_worktree=false
 created_databases=()
 
 if [[ "$RC_POSTGRES_TOOL_MODE" == "docker" ]]; then
@@ -201,6 +210,9 @@ cleanup_resources() {
   [[ -n "$admin_pgpass" ]] && rm -f "$admin_pgpass"
   [[ -n "$upgrade_pgpass" ]] && rm -f "$upgrade_pgpass"
   [[ -n "$rollback_pgpass" ]] && rm -f "$rollback_pgpass"
+  if [[ "$previous_worktree" == "true" ]]; then
+    git worktree remove --force "$previous_root" >/dev/null 2>&1 || failed=1
+  fi
   rm -rf "$tmp_root"
   set -e
   return "$failed"
@@ -224,31 +236,96 @@ DATABASE_URL="$fresh_url" pnpm prisma:migrate:deploy
 DATABASE_URL="$fresh_url" pnpm --filter @construction-erp/api exec prisma migrate status
 
 echo "[V1.0-E migration-aware] Build exact previous-release schema fixture"
-git archive "$RC_PREVIOUS_RELEASE_COMMIT" apps/api/prisma | tar --extract --directory="$previous_root"
+if [[ "$schema_mode" == "migration-aware-thb-schema" ]]; then
+  git worktree add --detach "$previous_root" "$RC_PREVIOUS_RELEASE_COMMIT"
+  previous_worktree=true
+  (
+    cd "$previous_root"
+    [[ "$(git rev-parse HEAD)" == "$RC_PREVIOUS_RELEASE_COMMIT" ]] || fail "previous runtime checkout mismatch"
+    pnpm install --frozen-lockfile --ignore-scripts
+    pnpm prisma:generate
+    pnpm build:api
+  )
+else
+  git archive "$RC_PREVIOUS_RELEASE_COMMIT" apps/api/prisma | tar --extract --directory="$previous_root"
+fi
 previous_schema="$previous_root/apps/api/prisma/schema.prisma"
 [[ -f "$previous_schema" ]] || fail "previous-release Prisma schema archive is missing"
 DATABASE_URL="$upgrade_url" DEPLOYMENT_MODE=fresh node apps/api/scripts/verify-production-target.mjs
+if [[ "$schema_mode" == "migration-aware-thb-schema" ]]; then
+  # Genuine unknown sources are created before the historical provenance
+  # migration, then brought through the untouched previous migration chain.
+  prefix_prisma="$tmp_root/historical-prisma"
+  mkdir -p "$prefix_prisma/migrations"
+  cp "$previous_schema" "$prefix_prisma/schema.prisma"
+  cp "$previous_root/apps/api/prisma/migrations/migration_lock.toml" "$prefix_prisma/migrations/"
+  for directory in "$previous_root"/apps/api/prisma/migrations/*/; do
+    name="$(basename "$directory")"
+    if [[ "$name" < "20261003083000_v0_7_a_source_currency_provenance" ]]; then
+      cp -a "$directory" "$prefix_prisma/migrations/$name"
+    fi
+  done
+  DATABASE_URL="$upgrade_url" pnpm --filter @construction-erp/api exec prisma migrate deploy --schema "$prefix_prisma/schema.prisma"
+  DATABASE_URL="$upgrade_url" node "$RC_DIR/legacy-fixture.mjs" early "$previous_root" "$tmp_root/legacy.json"
+fi
 DATABASE_URL="$upgrade_url" pnpm --filter @construction-erp/api exec prisma migrate deploy --schema "$previous_schema"
 DATABASE_URL="$upgrade_url" pnpm --filter @construction-erp/api exec prisma migrate status --schema "$previous_schema"
 
-if [[ ! -f apps/api/dist/scripts/bootstrap-admin.js ]]; then
-  pnpm build:api
-fi
+bootstrap_root="$REPO_ROOT"
+if [[ "$schema_mode" == "migration-aware-thb-schema" ]]; then bootstrap_root="$previous_root"; fi
+if [[ ! -f "$bootstrap_root/apps/api/dist/scripts/bootstrap-admin.js" ]]; then pnpm --dir "$bootstrap_root" build:api; fi
 DATABASE_URL="$upgrade_url" \
 BOOTSTRAP_COMPANY_CODE=V10ERC \
 BOOTSTRAP_COMPANY_NAME="V1.0-E RC Migration Rehearsal" \
 BOOTSTRAP_ADMIN_EMAIL=rc-admin@example.invalid \
 BOOTSTRAP_ADMIN_DISPLAY_NAME="RC System Administrator" \
 BOOTSTRAP_ADMIN_PASSWORD='Rc-Admin-Password-2026!' \
-pnpm --filter @construction-erp/api bootstrap:admin
+pnpm --dir "$bootstrap_root" --filter @construction-erp/api bootstrap:admin
 
 storage_deployment_id="v10e-${GITHUB_RUN_ID:-local}"
 printf 'construction-erp-production-storage-v1:%s\n' "$storage_deployment_id" > "$storage_root/.construction-erp-storage-ready"
 chmod 600 "$storage_root/.construction-erp-storage-ready"
 
+start_previous_runtime() {
+  local database="$1" documents="$2"
+  [[ "$(git -C "$previous_root" rev-parse HEAD)" == "$RC_PREVIOUS_RELEASE_COMMIT" ]] || fail "restored runtime checkout mismatch"
+  assert_loopback_port_available "$api_port" || fail "previous runtime API port is occupied"
+  DATABASE_URL="$database" STORAGE_ROOT="$documents" NODE_ENV=test \
+    API_HOST=127.0.0.1 API_PORT="$api_port" WEB_ORIGIN=http://localhost:5173 \
+    LOGIN_RATE_LIMIT_MAX=1000 LOGIN_RATE_LIMIT_WINDOW_MINUTES=15 \
+    node "$previous_root/apps/api/dist/main.js" > "$tmp_root/previous-api.log" 2>&1 &
+  api_pid=$!
+  local ready=false
+  for attempt in {1..30}; do
+    if ! kill -0 "$api_pid" >/dev/null 2>&1; then cat "$tmp_root/previous-api.log"; fail "previous runtime exited"; fi
+    if curl --fail --silent "http://127.0.0.1:$api_port/api/v1/health" >/dev/null; then ready=true; break; fi
+    sleep 1
+  done
+  [[ "$ready" == "true" ]] || { cat "$tmp_root/previous-api.log"; fail "previous runtime not healthy"; }
+}
+
+if [[ "$schema_mode" == "migration-aware-thb-schema" ]]; then
+  DATABASE_URL="$upgrade_url" node "$RC_DIR/legacy-fixture.mjs" late "$previous_root" "$tmp_root/legacy.json"
+  start_previous_runtime "$upgrade_url" "$storage_root"
+  UAT_API_BASE_URL="http://127.0.0.1:$api_port/api/v1" \
+    BOOTSTRAP_ADMIN_EMAIL=rc-admin@example.invalid BOOTSTRAP_ADMIN_PASSWORD='Rc-Admin-Password-2026!' \
+    node "$previous_root/deploy/uat/runtime-acceptance.mjs"
+  kill "$api_pid"
+  wait "$api_pid" 2>/dev/null || true
+  api_pid=""
+  DATABASE_URL="$upgrade_url" RESTORE_STORAGE_ROOT="$storage_root" node "$previous_root/apps/api/scripts/verify-restored-documents.mjs"
+  DATABASE_URL="$upgrade_url" node "$RC_DIR/legacy-fixture.mjs" snapshot "$previous_root" "$tmp_root/legacy.json" "$tmp_root/legacy-snapshot.json"
+fi
+
+recovery_tool_root="$REPO_ROOT"
+recovery_release="$RELEASE_COMMIT"
+if [[ "$schema_mode" == "migration-aware-thb-schema" ]]; then
+  recovery_tool_root="$previous_root"
+  recovery_release="$RC_PREVIOUS_RELEASE_COMMIT"
+fi
 cat > "$recovery_env" <<EOF
 NODE_ENV=production
-RELEASE_COMMIT=$RELEASE_COMMIT
+RELEASE_COMMIT=$recovery_release
 DATABASE_URL=$upgrade_url
 STORAGE_ROOT=$storage_root
 STORAGE_DEPLOYMENT_ID=$storage_deployment_id
@@ -259,10 +336,10 @@ echo "[V1.0-E migration-aware] Create paired pre-upgrade recovery set"
 RECOVERY_ROOT="$recovery_root" \
 RECOVERY_SITE_OFFLINE_CONFIRMED=YES \
 PRODUCTION_ENV_FILE="$recovery_env" \
-bash deploy/recovery/create-recovery-set.sh | tee "$tmp_root/recovery-create.log"
+bash "$recovery_tool_root/deploy/recovery/create-recovery-set.sh" | tee "$tmp_root/recovery-create.log"
 recovery_set="$(tail -n 1 "$tmp_root/recovery-create.log")"
 [[ -d "$recovery_set" ]] || fail "recovery set was not created"
-bash deploy/recovery/verify-recovery-set.sh "$recovery_set"
+EXPECTED_RECOVERY_RELEASE_COMMIT="$recovery_release" bash "$recovery_tool_root/deploy/recovery/verify-recovery-set.sh" "$recovery_set"
 recovery_reference="$(basename "$recovery_set")"
 
 cat > "$production_env" <<EOF
@@ -294,6 +371,10 @@ mkdir -p "$tmp_root/uploads"
 
 echo "[V1.0-E migration-aware] Execute actual Production preparation path"
 PRODUCTION_ENV_FILE="$production_env" bash deploy/production/prepare-release.sh
+
+if [[ "$schema_mode" == "migration-aware-thb-schema" ]]; then
+  DATABASE_URL="$upgrade_url" node "$RC_DIR/legacy-fixture.mjs" verify "$previous_root" "$tmp_root/legacy.json" "$tmp_root/legacy-snapshot.json"
+fi
 
 upgrade_pgpass="$(mktemp)"
 chmod 600 "$upgrade_pgpass"
@@ -405,6 +486,17 @@ candidate_status=$?
 set -e
 [[ "$candidate_status" -ne 0 ]] || fail "candidate migration status unexpectedly treats pre-upgrade restore as current"
 
+if [[ "$schema_mode" == "migration-aware-thb-schema" ]]; then
+  DATABASE_URL="$rollback_url" node "$RC_DIR/legacy-fixture.mjs" verify "$previous_root" "$tmp_root/legacy.json" "$tmp_root/legacy-snapshot.json"
+  start_previous_runtime "$rollback_url" "$rollback_storage"
+  RESTORED_API_BASE_URL="http://127.0.0.1:$api_port/api/v1" DATABASE_URL="$rollback_url" \
+    BOOTSTRAP_ADMIN_EMAIL=rc-admin@example.invalid BOOTSTRAP_ADMIN_PASSWORD='Rc-Admin-Password-2026!' \
+    node "$previous_root/apps/api/scripts/verify-restored-runtime.mjs"
+  kill "$api_pid"
+  wait "$api_pid" 2>/dev/null || true
+  api_pid=""
+fi
+
 ci_provider="native"
 ci_workflow=""
 ci_workflow_ref=""
@@ -432,18 +524,18 @@ trap - EXIT
 node - "$RC_EVIDENCE_FILE" "$RELEASE_COMMIT" "$RC_PREVIOUS_RELEASE_COMMIT" "$RC_ENVIRONMENT" \
   "$recovery_reference" "$git_version" "$node_version" "$pnpm_version" "$postgresql_client_version" "$openssl_version" \
   "$ci_provider" "$ci_workflow" "$ci_workflow_ref" "$ci_run_id" "$ci_run_number" "$ci_run_attempt" \
-  "$ci_job" "$ci_repository" "$migration_list" <<'NODE'
+  "$ci_job" "$ci_repository" "$migration_list" "$schema_mode" <<'NODE'
 const { writeFileSync } = require('node:fs');
 const [
   path, releaseCommit, previousReleaseCommit, environment, recoveryReference,
   gitVersion, nodeVersion, pnpmVersion, postgresqlClientVersion, opensslVersion,
   ciProvider, ciWorkflow, ciWorkflowRef, ciRunId, ciRunNumber, ciRunAttempt,
-  ciJob, ciRepository, migrationList,
+  ciJob, ciRepository, migrationList, schemaMode,
 ] = process.argv.slice(2);
 const nullable = (value) => value === '' ? null : value;
 writeFileSync(path, JSON.stringify({
-  version: 3,
-  releaseMode: 'migration-aware-sql-only',
+  version: schemaMode === 'migration-aware-thb-schema' ? 4 : 3,
+  releaseMode: schemaMode,
   releaseCommit,
   previousReleaseCommit,
   environment,
@@ -467,7 +559,14 @@ writeFileSync(path, JSON.stringify({
   exactCheckout: 'PASS',
   cleanTree: 'PASS',
   migrationHistoryChanged: 'PASS',
-  prismaSchemaUnchanged: 'PASS',
+  ...(schemaMode === 'migration-aware-thb-schema' ? {
+    boundedSchemaContract: 'PASS',
+    previousRuntimeCommit: previousReleaseCommit,
+    previousRuntimeClientBuild: 'PASS',
+    genuineLegacySgdNullFixture: 'PASS',
+    historicalRowsUnchanged: 'PASS',
+    restoredPreviousRuntimeAuthenticationDownload: 'PASS',
+  } : { prismaSchemaUnchanged: 'PASS' }),
   forwardOnlyNewMigrations: 'PASS',
   migrationNames: migrationList.split(',').filter(Boolean),
   freshMigration: 'PASS',

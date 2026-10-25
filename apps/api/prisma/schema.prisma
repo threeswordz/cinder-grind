@@ -594,6 +594,7 @@ model Project {
   customerId         String   @map("customer_id") @db.Uuid
   statusDefinitionId String?  @map("status_definition_id") @db.Uuid
   contractValue      Decimal  @map("contract_value") @db.Decimal(18, 2)
+  contractCurrencyCode String? @map("contract_currency_code") @db.VarChar(3)
   location           String?  @db.VarChar(500)
   description        String?  @db.Text
   plannedStartDate   DateTime @map("planned_start_date") @db.Date
@@ -2057,6 +2058,7 @@ model Boq {
   companyId String   @map("company_id") @db.Uuid
   projectId String   @unique @map("project_id") @db.Uuid
   boqName   String   @default("Project BOQ") @map("boq_name") @db.VarChar(200)
+  currencyCode String? @map("currency_code") @db.VarChar(3)
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
@@ -2331,6 +2333,7 @@ model SupplierQuotation {
   rfqId             String    @map("rfq_id") @db.Uuid
   supplierId        String    @map("supplier_id") @db.Uuid
   supplierReference String?   @map("supplier_reference") @db.VarChar(150)
+  currencyCode      String?   @map("currency_code") @db.VarChar(3)
   quotationDate     DateTime  @map("quotation_date") @db.Date
   validityDate      DateTime? @map("validity_date") @db.Date
   remarks           String?   @db.Text
@@ -2386,6 +2389,7 @@ model QuotationAward {
   rfqId                    String   @map("rfq_id") @db.Uuid
   rfqLineId                String   @unique @map("rfq_line_id") @db.Uuid
   supplierQuotationId      String   @map("supplier_quotation_id") @db.Uuid
+  currencyCode             String?  @map("currency_code") @db.VarChar(3)
   supplierQuotationLineId  String   @unique @map("supplier_quotation_line_id") @db.Uuid
   supplierId               String   @map("supplier_id") @db.Uuid
   supplierCodeSnapshot     String   @map("supplier_code_snapshot") @db.VarChar(50)
