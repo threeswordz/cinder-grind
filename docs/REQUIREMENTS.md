@@ -1,7 +1,7 @@
 # Construction ERP — Master Requirements Register
 
 **Document Status:** Requirements Baseline v0.1  
-**Current Phase:** V0.1–V1.1 COMPLETE + ACCEPTED; V1.2 THB-only Monetary Hardening entry scope APPROVED under DEC-033 / Issue #246; entry CI/merge/post-main must close before runtime implementation. See [Current State](CURRENT-STATE.md).
+**Current Phase:** V0.1–V1.1 COMPLETE + ACCEPTED; V1.2 A/B COMPLETE, C targeted UAT/release exit PENDING under #246. DEC-034 / #266 records approved future BOQ scope and entry preparation; successor entry/feature coding remain pending. See [Current State](CURRENT-STATE.md).
 **Architecture Baseline:** v0.1  
 **Source:** ERP-MASTER-BLUEPRINT.md  
 **Last Structural Review:** V0.8-E DEC-022 source-drilldown/live-state remediation — 2026-10-05
@@ -196,6 +196,20 @@ GitHub Issues will later reference the Requirement ID when implementation work i
 | BUD-008 | Budget by WBS | Budget values shall be allocatable and reportable by WBS. | Support work-package cost control. | Must Have | V0.3 Procurement | WBS-001,BUD-003 | Approved budget can be summarized by WBS. | Approved |
 | BUD-009 | Budget by Cost Code | Budget values shall be allocatable and reportable by Cost Code. | Support cost-type control. | Must Have | V0.3 Procurement | WBS-004,BUD-003 | Approved budget can be summarized by Cost Code. | Approved |
 | BUD-010 | Budget Availability to Other Modules | Approved BOQ and budget information shall be available to Procurement and Cost Control without duplicating ownership. | Connect commercial baseline to downstream modules. | Must Have | V0.3 Procurement | BUD-006 | Procurement and Cost Control can reference approved budget data while BOQ & Budget remains the owner. | Approved |
+
+### Approved future BOQ first package — DEC-034 / #266
+
+These requirements are approved as future scope, not delivered behavior or a completed successor entry gate. The [canonical scope/role/open-input/acceptance baseline](BOQ-COMMERCIAL-SCOPE.md) defines the boundary. V1.2-C owner gates and the unresolved entry inputs remain required before successor feature coding. Existing BUD-001–010 and approved history remain unchanged.
+
+| ID | Requirement | Description | Business Reason | Priority | Target Release | Dependencies | Acceptance Criteria | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| BUD-011 | BOQ disclosure | Apply Full Cost, Quantity Only and No Access independently of action permissions and customer-price authority. | Protect cost and customer pricing without relying on hidden UI fields. | Must Have | BOQ package #266; future | FND-004, BUD-001, SYS-009 | BQC-AC-001–002/010; role scope and undecided Nancy extent follow canonical baseline. | Approved scope; entry PENDING |
+| BUD-012 | Linked Customer BOQ versions | Independently approve immutable Customer BOQ versions linked to approved cost-source revisions/items; preserve Original Budget. | Separate cost control and customer commercial history. | Must Have | BOQ package #266; future | BUD-003–006 | BQC-AC-004/007/011; no silent resync or history rewrite. | Approved scope; entry PENDING |
+| BUD-013 | Explicit mapping and pricing contract | Retain customer quantity/UOM and reviewed source mappings/pricing rationale; reject undefined assumptions. | Make source lineage and calculations checkable. | Must Have | BOQ package #266; future | BUD-002, BUD-012, MST-005 | BQC-AC-006–007/011; representative mappings and pricing rules remain entry inputs. | Approved scope; entry PENDING |
+| BUD-014 | Separate scoped approvals | Ben function prepares both BOQs; Khaimook function approves Internal cost; Nancy function approves Customer BOQ through Company-scoped configured authority. | Preserve maker/checker and distinct business decisions. | Must Have | BOQ package #266; future | FND-005, BUD-006, BUD-012 | BQC-AC-005/010–011; no name-based checks, self-approval or implicit SYS_ADMIN business authority. | Approved scope; entry PENDING |
+| BUD-015 | Consistent disclosure surfaces | Preserve authorized disclosure across relevant API/UI/history/summaries/export/print/documents/drilldowns/caches. | Prevent alternative-route exposure of confidential fields. | Must Have | BOQ package #266; future | BUD-011–014 | BQC-AC-002–003/010 with actual role/context/Company/Project denials. | Approved scope; entry PENDING |
+| BUD-016 | Preserved money/history and upgrade integrity | Preserve THB policy, Decimal precision, approved history and canonical recognition; use minimum forward-only schema and compatible paired recovery proof. | Avoid duplicate economic effects or unsafe legacy/schema reinterpretation. | Must Have | BOQ package #266; future | SYS-009–011, BUD-012–015 | BQC-AC-008–014; no estimate-created Actual/Paid posting, relabel/backfill or weakened rehearsal guard. | Approved scope; entry PENDING |
+
 
 ## Site Execution
 
