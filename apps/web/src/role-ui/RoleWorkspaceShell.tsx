@@ -12,6 +12,7 @@ import { procurementApi } from '../api/procurement';
 import { projectsApi } from '../api/projects';
 import { labels, translate, type Locale } from './role-workspace-i18n';
 import { dismissMobileNavigation } from './mobile-menu-keyboard';
+import { MonetaryLocaleContext, MonetaryPolicyNotice } from './monetary-presentation';
 import {
   visibleNavigationKeys, mayReadMyPurchaseRequests, selectedAccessibleProject,
   isAccessibleProject, ownEditablePurchaseRequests, verifiedPurchaseRequestLink,
@@ -294,6 +295,7 @@ export function RoleWorkspaceShell({
   );
 
   return (
+    <MonetaryLocaleContext.Provider value={locale}>
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
       <AppBar color="inherit" position="sticky" elevation={0} sx={{ borderBottom: 1, borderColor: 'divider' }}>
         <Toolbar sx={{ gap: { xs: 1, md: 2 }, flexWrap: { xs: 'wrap', md: 'nowrap' }, py: { xs: 1, md: 0 } }}>
@@ -335,11 +337,13 @@ export function RoleWorkspaceShell({
               <Typography variant="body2" color="text.secondary" sx={{ overflowWrap: 'anywhere' }}>
                 <span lang={locale}>{t('home', 'Home')}</span> / <span lang={labels[locale][activeSection.key] ? locale : undefined}>{t(activeSection.key, activeSection.label)}</span>
               </Typography>}
+            {screen === 'module' && activeSection && ['projects','budget','sourcing','purchase-orders','subcontracts','finance','client-finance','payments','retention','finance-reports','cost-control','management','company'].includes(activeSection.key) && <MonetaryPolicyNotice />}
             {screen === 'home' ? home : screen === 'work' ? work :
               activeSection ? activeSection.content : <Alert severity="warning">{t('noModules', 'No available module.')}</Alert>}
           </Stack>
         </Container>
       </Box>
     </Box>
+    </MonetaryLocaleContext.Provider>
   );
 }

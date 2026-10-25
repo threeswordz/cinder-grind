@@ -47,6 +47,7 @@ export type PoAward = {
 };
 
 export type PurchaseOrderListItem = {
+  currencyCode: string | null;
   id: string;
   companyId: string;
   projectId: string;

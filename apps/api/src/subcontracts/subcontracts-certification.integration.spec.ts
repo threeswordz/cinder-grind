@@ -75,7 +75,7 @@ test('V0.5-D certifies assessed Claims with retained withholding, history and co
       data: {
         companyCode: 'SCD-' + suffix,
         companyName: 'Subcontracts Stage D ' + suffix,
-        baseCurrencyCode: 'SGD',
+        baseCurrencyCode: 'THB',
       },
     });
     const customer = await prisma.customer.create({
@@ -217,7 +217,7 @@ test('V0.5-D certifies assessed Claims with retained withholding, history and co
             'SC2610-' + label + suffix.slice(0, 2).toUpperCase(),
           originalValue: input.originalValue,
           scopeOfWork: 'Stage D ' + label + ' package',
-          currencyCode: 'SGD',
+          currencyCode: company.baseCurrencyCode,
           retentionRate: input.retentionRate,
           retentionCap: input.retentionCap ?? null,
           approvalState: 'APPROVED',
@@ -298,7 +298,7 @@ test('V0.5-D certifies assessed Claims with retained withholding, history and co
             claimId: claimOne.id,
             assessmentId: claimOne.assessment!.id,
             certificationNumber: 'SCT2610-998',
-            currencyCode: 'SGD',
+            currencyCode: company.baseCurrencyCode,
             certifiedGross: '50.00',
             createdByUserId: maker.id,
           },
@@ -315,7 +315,7 @@ test('V0.5-D certifies assessed Claims with retained withholding, history and co
             claimId: claimOne.id,
             assessmentId: claimOne.assessment!.id,
             certificationNumber: 'SCT2610-999',
-            currencyCode: 'SGD',
+            currencyCode: company.baseCurrencyCode,
             certifiedGross: '100.01',
             createdByUserId: maker.id,
           },
@@ -536,10 +536,10 @@ test('V0.5-D certifies assessed Claims with retained withholding, history and co
     assert.equal(approvedThree.retainedAmount?.toFixed(2), '0.00');
     assert.equal(approvedThree.netCertifiedAmount?.toFixed(2), '100.00');
 
-    await prisma.company.update({
+    await assert.rejects(prisma.company.update({
       where: { id: company.id },
       data: { baseCurrencyCode: 'USD' },
-    });
+    }));
 
     const reversedOne = await certifications.reverseCertification(
       { auth: checkerAuth },
@@ -576,21 +576,21 @@ test('V0.5-D certifies assessed Claims with retained withholding, history and co
     assert.ok(reversedRetentionRow);
     assert.equal(reversedRetentionRow.financeState, 'REVERSED');
     assert.equal(reversedRetentionRow.retentionBalance?.toFixed(2), '0.00');
-    assert.equal(reversedRetentionRow.currencyCode, 'SGD');
+    assert.equal(reversedRetentionRow.currencyCode, company.baseCurrencyCode);
     assert.equal(
       reversedRetentionRow.baseCurrencyCode,
-      'USD',
-      'historical withholding must remain reversible after a later Company base-currency change',
+      company.baseCurrencyCode,
+      'withholding must remain reversible while a foreign operating-policy override is denied',
     );
     assert.deepEqual(
       reversedEntries.map((entry) => entry.currencyCode),
-      ['SGD', 'SGD'],
+      [company.baseCurrencyCode, company.baseCurrencyCode],
       'compensating reversal must reuse the original withholding currency without FX conversion',
     );
 
     await prisma.company.update({
       where: { id: company.id },
-      data: { baseCurrencyCode: 'SGD' },
+      data: { baseCurrencyCode: 'THB' },
     });
 
     const replacement = await claims.createReplacement(

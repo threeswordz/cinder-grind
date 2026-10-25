@@ -9,6 +9,7 @@ export type ProjectOption = {
 };
 
 export type ProjectRecord = {
+  contractCurrencyCode: string | null;
   id: string;
   projectCode: string;
   projectName: string;

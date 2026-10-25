@@ -111,6 +111,7 @@ export type QuotationLine = {
 };
 
 export type SupplierQuotation = {
+  currencyCode: string | null;
   id: string;
   companyId: string;
   rfqId: string;
@@ -125,6 +126,7 @@ export type SupplierQuotation = {
 };
 
 export type QuotationAward = {
+  currencyCode: string | null;
   id: string;
   rfqId: string;
   rfqLineId: string;

@@ -1,3 +1,4 @@
+import { CurrencyLabel } from '../role-ui/monetary-presentation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
@@ -521,7 +522,7 @@ export function PurchaseOrdersPanel({ permissions, initialProjectId, initialOrde
               >
                 {(orders.data?.data ?? []).map((order) => (
                   <MenuItem key={order.id} value={order.id}>
-                    {order.poNumber} · Rev {order.revisionNo} ·{' '}
+                    {order.poNumber} · <CurrencyLabel code={order.currencyCode} /> · Rev {order.revisionNo} ·{' '}
                     {order.supplier.supplierCode} · {order.lifecycleState}
                   </MenuItem>
                 ))}
@@ -552,7 +553,7 @@ export function PurchaseOrdersPanel({ permissions, initialProjectId, initialOrde
                 >
                   <Box>
                     <Typography variant="h6">
-                      {current.poNumber} · Revision {current.revisionNo}
+                      {current.poNumber} · <CurrencyLabel code={current.currencyCode} /> · Revision {current.revisionNo}
                     </Typography>
                     <Typography color="text.secondary">
                       {current.project.projectCode} ·{' '}

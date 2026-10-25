@@ -251,6 +251,7 @@ export class CostControlService {
       select: {
         id: true,
         contractValue: true,
+        contractCurrencyCode: true,
       },
     });
     const allowedIds = projects.map((row) => row.id);
@@ -491,6 +492,7 @@ export class CostControlService {
     const forecastsByProject = group(forecasts);
 
     return projects.map((project) => {
+      this.assertBaseCurrency('Project contract', project.contractCurrencyCode, company.baseCurrencyCode);
       const projectBudgets = budgetsByProject.get(project.id) ?? [];
       const budgetSelection =
         selectOriginalAndCurrentBudget(projectBudgets);
@@ -830,6 +832,7 @@ export class CostControlService {
           projectCode: true,
           projectName: true,
           contractValue: true,
+        contractCurrencyCode: true,
         },
       }),
       this.prisma.company.findUniqueOrThrow({
@@ -856,6 +859,8 @@ export class CostControlService {
         orderBy: [{ costCode: 'asc' }, { id: 'asc' }],
       }),
     ]);
+
+    this.assertBaseCurrency('Project contract', project.contractCurrencyCode, company.baseCurrencyCode);
 
     const dimensions = this.dimensionContext(
       filters,
@@ -2276,7 +2281,7 @@ export class CostControlService {
     currencyCode: string | null,
     baseCurrencyCode: string,
   ) {
-    if (currencyCode === null) {
+    if (currencyCode == null) {
       throw new UnprocessableEntityException({
         code: 'COST_CONTROL_CURRENCY_UNVERIFIED',
         detail: source + ' cannot be aggregated because its historical currency is unverified. No currency is inferred or converted.',

@@ -1,3 +1,4 @@
+import { CurrencyLabel } from '../role-ui/monetary-presentation';
 import {
   Alert,
   Button,
@@ -769,7 +770,7 @@ export function SourcingPanel({
                         <MenuItem key={quotation.id} value={quotation.id}>
                           {supplier?.supplierCodeSnapshot ??
                             quotation.supplierId}{' '}
-                          · {quotation.supplierReference || 'No reference'}
+                          · {quotation.supplierReference || 'No reference'} · <CurrencyLabel code={quotation.currencyCode} />
                         </MenuItem>
                       );
                     })}

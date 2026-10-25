@@ -1052,8 +1052,8 @@ function AgreementsPanel({
                   <TextField
                     label="Currency"
                     value={currency}
-                    disabled={!newMode && !canEditSelectedDraft}
-                    onChange={(event) => setCurrency(event.target.value)}
+                    slotProps={{ input: { readOnly: true } }}
+                    helperText="New agreements use THB. Historical currency is retained."
                   />
                   <TextField
                     select

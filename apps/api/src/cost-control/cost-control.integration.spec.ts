@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 
+import { legacyFixture } from '../release/legacy-fixture';
 import { AuditService } from '../audit/audit.service';
 import { REQUIRED_PERMISSIONS_KEY } from '../authorization/permissions.decorator';
 import { PrismaService } from '../prisma/prisma.service';
@@ -36,7 +37,7 @@ test('V0.7-A Budget and PO currency checks work without other Finance sources', 
             approvalInstance: { completedAt: new Date() }, lines: [] }
         : { id: 'po', poNumber: 'PO-1', revisionNo: 0, currencyCode, cancelledAt: null, lines: [] };
       const prisma = {
-        project: { findFirstOrThrow: async () => ({ id: 'project' }) },
+        project: { findFirstOrThrow: async () => ({ id: 'project', contractCurrencyCode: 'SGD' }) },
         company: { findUniqueOrThrow: async () => ({ baseCurrencyCode: 'SGD' }) },
         wbsElement: { findMany: async () => [] },
         costCode: { findMany: async () => [] },
@@ -67,55 +68,33 @@ test('V0.7-A Budget and PO currency checks work without other Finance sources', 
   }
 });
 
-test('V0.7-A source currency is captured, retained and inherited across Company changes', async () => {
+test('V0.7-A source currency is retained across THB policy transition; unsafe legacy revisions stay blocked', async () => {
   const prisma = new PrismaService();
   await prisma.$connect();
   try {
-    const suffix = randomUUID();
-    const company = await prisma.company.create({ data: {
-      companyCode: 'CC-' + suffix, companyName: 'Currency provenance', baseCurrencyCode: 'SGD',
-    } });
-    const customer = await prisma.customer.create({ data: {
-      companyId: company.id, customerCode: 'C-' + suffix, customerName: 'Currency customer',
-    } });
-    const user = await prisma.user.create({ data: {
-      companyId: company.id, email: suffix + '@example.com', displayName: 'Currency maker', passwordHash: 'x',
-    } });
-    const supplier = await prisma.supplier.create({ data: {
-      companyId: company.id, supplierCode: 'S-' + suffix, supplierName: 'Currency supplier',
-    } });
-    const project = await prisma.project.create({ data: {
-      companyId: company.id, projectCode: 'P-' + suffix, projectName: 'Currency project', customerId: customer.id,
-      contractValue: '100', plannedStartDate: new Date('2026-10-01'), plannedCompletionDate: new Date('2027-01-01'),
-    } });
-    const budget = await prisma.budgetRevision.create({ data: {
-      companyId: company.id, projectId: project.id, revisionNo: 1, revisionNumber: 'BR-' + suffix, createdByUserId: user.id,
-    } });
-    const po = await prisma.purchaseOrder.create({ data: {
-      companyId: company.id, projectId: project.id, supplierId: supplier.id, poNumber: 'PO-' + suffix, createdByUserId: user.id,
-    } });
+    const fixture = legacyFixture();
+    const budget = await prisma.budgetRevision.findUniqueOrThrow({ where: { id: fixture.knownBudgetId } });
+    const po = await prisma.purchaseOrder.findUniqueOrThrow({ where: { id: fixture.knownPoId } });
     assert.equal(budget.currencyCode, 'SGD');
     assert.equal(po.currencyCode, 'SGD');
-    await prisma.company.update({ where: { id: company.id }, data: { baseCurrencyCode: 'USD' } });
+    await prisma.company.update({ where: { id: fixture.companyId }, data: { baseCurrencyCode: 'THB' } });
     assert.equal((await prisma.budgetRevision.findUniqueOrThrow({ where: { id: budget.id } })).currencyCode, 'SGD');
     assert.equal((await prisma.purchaseOrder.findUniqueOrThrow({ where: { id: po.id } })).currencyCode, 'SGD');
-    await assert.rejects(() => prisma.purchaseOrder.update({ where: { id: po.id }, data: { currencyCode: 'USD' } }));
-    await assert.rejects(() => prisma.budgetRevision.update({ where: { id: budget.id }, data: { currencyCode: 'USD' } }));
-    const budgetRevision = await prisma.budgetRevision.create({ data: {
-      companyId: company.id, projectId: project.id, revisionNo: 2, revisionNumber: 'BR2-' + suffix, createdByUserId: user.id,
-    } });
-    assert.equal(budgetRevision.currencyCode, 'SGD');
-    await assert.rejects(() => prisma.purchaseOrder.create({ data: {
-      companyId: company.id, projectId: project.id, supplierId: supplier.id, poNumber: 'FORGED-' + suffix,
-      createdByUserId: user.id, currencyCode: 'SGD',
+    await assert.rejects(prisma.purchaseOrder.update({ where: { id: po.id }, data: { currencyCode: 'THB' } }));
+    await assert.rejects(prisma.budgetRevision.update({ where: { id: budget.id }, data: { currencyCode: 'THB' } }));
+    await assert.rejects(prisma.budgetRevision.create({ data: {
+      companyId: fixture.companyId, projectId: budget.projectId, revisionNo: 2, revisionNumber: randomUUID(), createdByUserId: fixture.userId,
+    } }));
+    await assert.rejects(prisma.purchaseOrder.create({ data: {
+      companyId: fixture.companyId, projectId: fixture.projectId, supplierId: fixture.supplierId, poNumber: randomUUID(), createdByUserId: fixture.userId, currencyCode: 'SGD',
     } }));
     const newPo = await prisma.purchaseOrder.create({ data: {
-      companyId: company.id, projectId: project.id, supplierId: supplier.id, poNumber: 'NEW-' + suffix, createdByUserId: user.id,
+      companyId: fixture.companyId, projectId: fixture.projectId, supplierId: fixture.supplierId, poNumber: randomUUID(), createdByUserId: fixture.userId,
     } });
-    assert.equal(newPo.currencyCode, 'USD');
-  } finally {
-    await prisma.$disconnect();
-  }
+    assert.equal(newPo.currencyCode, 'THB');
+    assert.equal((await prisma.purchaseOrder.findUniqueOrThrow({ where: { id: fixture.unknownPoId } })).currencyCode, null);
+    assert.equal((await prisma.budgetRevision.findUniqueOrThrow({ where: { id: fixture.unknownBudgetId } })).currencyCode, null);
+  } finally { await prisma.$disconnect(); }
 });
 
 test('V0.7-A route requires explicit Cost Control permission', () => {
@@ -263,7 +242,7 @@ test('V0.7-C Remaining Commitment uses exact Decimal arithmetic and floors at ze
 test('V0.7-E reporting keeps descendant WBS values and explicit Unallocated dimensions', async () => {
   const prisma = {
     project: {
-      findFirstOrThrow: async () => ({
+      findFirstOrThrow: async () => ({ contractCurrencyCode: 'SGD',
         id: 'project',
         projectCode: 'P-RPT',
         projectName: 'Reporting project',
@@ -399,7 +378,7 @@ test('V0.7-E reporting keeps descendant WBS values and explicit Unallocated dime
 test('V0.7-C integrated forecast reduces only canonically linked PO commitment', async () => {
   const prisma = {
     project: {
-      findFirstOrThrow: async () => ({
+      findFirstOrThrow: async () => ({ contractCurrencyCode: 'SGD',
         id: 'project',
         projectCode: 'P-1',
         projectName: 'Project',
@@ -526,7 +505,7 @@ test('V0.7-C integrated forecast reduces only canonically linked PO commitment',
 test('V0.7-C Remaining Commitment validates currency for linked Actual even when invoice dimensions are filtered out', async () => {
   const prisma = {
     project: {
-      findFirstOrThrow: async () => ({
+      findFirstOrThrow: async () => ({ contractCurrencyCode: 'SGD',
         id: 'project',
         projectCode: 'P-CURRENCY',
         projectName: 'Currency regression',
@@ -659,7 +638,7 @@ test('V0.7-C Forecast service creates a versioned draft with real PostgreSQL gua
       data: {
         companyCode: 'FC-' + suffix,
         companyName: 'Forecast create company',
-        baseCurrencyCode: 'SGD',
+        baseCurrencyCode: 'THB',
       },
     });
     const customer = await prisma.customer.create({
@@ -1124,14 +1103,14 @@ test('V0.7-B database guards Direct Cost dimensional scope and normal-posting si
       data: {
         companyCode: 'DC-' + suffix,
         companyName: 'Direct Cost company',
-        baseCurrencyCode: 'SGD',
+        baseCurrencyCode: 'THB',
       },
     });
     const otherCompany = await prisma.company.create({
       data: {
         companyCode: 'DX-' + suffix,
         companyName: 'Other Direct Cost company',
-        baseCurrencyCode: 'SGD',
+        baseCurrencyCode: 'THB',
       },
     });
     const customer = await prisma.customer.create({
@@ -1183,7 +1162,7 @@ test('V0.7-B database guards Direct Cost dimensional scope and normal-posting si
         postingDate: new Date('2026-10-03'),
         description: 'Manual approved-scope expense draft',
         amount: '123.45',
-        currencyCode: 'SGD',
+        currencyCode: company.baseCurrencyCode,
         createKey: randomUUID(),
         createPayloadHash: 'a'.repeat(64),
         createdByUserId: user.id,
@@ -1200,7 +1179,7 @@ test('V0.7-B database guards Direct Cost dimensional scope and normal-posting si
           postingDate: new Date('2026-10-03'),
           description: 'Negative normal posting must fail closed',
           amount: '-1.00',
-          currencyCode: 'SGD',
+          currencyCode: company.baseCurrencyCode,
           createKey: randomUUID(),
           createPayloadHash: 'b'.repeat(64),
           createdByUserId: user.id,
@@ -1217,7 +1196,7 @@ test('V0.7-B database guards Direct Cost dimensional scope and normal-posting si
           postingDate: new Date('2026-10-03'),
           description: 'Cross-company Cost Code must fail closed',
           amount: '1.00',
-          currencyCode: 'SGD',
+          currencyCode: company.baseCurrencyCode,
           createKey: randomUUID(),
           createPayloadHash: 'c'.repeat(64),
           createdByUserId: user.id,
@@ -1256,170 +1235,14 @@ test('V0.7-B database freezes terminal evidence and permits exact reversal after
   const prisma = new PrismaService();
   await prisma.$connect();
   try {
-    const suffix = randomUUID();
-    const company = await prisma.company.create({
-      data: {
-        companyCode: 'DH-' + suffix,
-        companyName: 'Direct Cost hardening company',
-        baseCurrencyCode: 'SGD',
-      },
-    });
-    const customer = await prisma.customer.create({
-      data: {
-        companyId: company.id,
-        customerCode: 'DH-C-' + suffix,
-        customerName: 'Direct Cost hardening customer',
-      },
-    });
-    const maker = await prisma.user.create({
-      data: {
-        companyId: company.id,
-        email: 'dh-maker-' + suffix + '@example.com',
-        displayName: 'Direct Cost hardening maker',
-        passwordHash: 'x',
-      },
-    });
-    const approverEmployee = await prisma.employee.create({
-      data: {
-        companyId: company.id,
-        employeeCode: 'DH-E-' + suffix,
-        employeeName: 'Direct Cost hardening approver employee',
-      },
-    });
-    const approver = await prisma.user.create({
-      data: {
-        companyId: company.id,
-        employeeId: approverEmployee.id,
-        email: 'dh-approver-' + suffix + '@example.com',
-        displayName: 'Direct Cost hardening approver',
-        passwordHash: 'x',
-      },
-    });
-    const project = await prisma.project.create({
-      data: {
-        companyId: company.id,
-        projectCode: 'DH-P-' + suffix,
-        projectName: 'Direct Cost hardening project',
-        customerId: customer.id,
-        contractValue: '100',
-        plannedStartDate: new Date('2026-10-01'),
-        plannedCompletionDate: new Date('2027-01-01'),
-      },
-    });
-    await prisma.projectMember.create({
-      data: {
-        projectId: project.id,
-        employeeId: approverEmployee.id,
-        projectRole: 'Cost Control Approver',
-      },
-    });
-    const costCode = await prisma.costCode.create({
-      data: {
-        companyId: company.id,
-        costCode: 'DH-' + suffix,
-        costName: 'Direct Cost hardening',
-      },
-    });
-    const original = await prisma.directCostPosting.create({
-      data: {
-        companyId: company.id,
-        projectId: project.id,
-        costCodeId: costCode.id,
-        postingDate: new Date('2026-10-03'),
-        description: 'Hardening source posting',
-        amount: '88.75',
-        currencyCode: 'SGD',
-        createKey: randomUUID(),
-        createPayloadHash: 'd'.repeat(64),
-        createdByUserId: maker.id,
-      },
-    });
-    const workflow = await prisma.approvalWorkflow.create({
-      data: {
-        companyId: company.id,
-        workflowCode: 'DH-WF-' + suffix,
-        entityType: 'DIRECT_COST_POSTING',
-        workflowName: 'Direct Cost hardening workflow',
-      },
-    });
-    const step = await prisma.approvalStep.create({
-      data: {
-        approvalWorkflowId: workflow.id,
-        stepNo: 1,
-        stepName: 'Approve Direct Cost',
-        requiredApprovals: 1,
-      },
-    });
-    const role = await prisma.role.create({
-      data: {
-        companyId: company.id,
-        roleCode: 'DH-APPROVER-' + suffix,
-        roleName: 'Direct Cost Hardening Approver',
-      },
-    });
-    const approvePermission = await prisma.permission.findUniqueOrThrow({
-      where: { permissionCode: 'cost.direct_posting.approve' },
-    });
-    await prisma.rolePermission.create({
-      data: { roleId: role.id, permissionId: approvePermission.id },
-    });
-    await prisma.userRole.create({
-      data: {
-        companyId: company.id,
-        userId: approver.id,
-        roleId: role.id,
-      },
-    });
-    await prisma.approvalStepRole.create({
-      data: { approvalStepId: step.id, roleId: role.id },
-    });
-    const instance = await prisma.approvalInstance.create({
-      data: {
-        companyId: company.id,
-        approvalWorkflowId: workflow.id,
-        entityType: 'DIRECT_COST_POSTING',
-        entityId: original.id,
-        currentStepNo: 1,
-        approvalState: 'SUBMITTED',
-      },
-    });
-    const submittedAt = new Date('2026-10-03T01:00:00.000Z');
-    await prisma.directCostPosting.update({
-      where: { id: original.id },
-      data: {
-        state: 'SUBMITTED',
-        approvalInstanceId: instance.id,
-        submittedByUserId: maker.id,
-        submittedAt,
-      },
-    });
-    const hardeningDecision = await prisma.approvalAction.create({
-      data: {
-        approvalInstanceId: instance.id,
-        approvalStepId: step.id,
-        action: 'APPROVE',
-        actionByUserId: approver.id,
-        comment: 'Authorized hardening approval evidence',
-      },
-    });
-    await prisma.approvalInstance.update({
-      where: { id: instance.id },
-      data: {
-        approvalState: 'APPROVED',
-        completedAt: hardeningDecision.actionAt,
-      },
-    });
-    const approvedAt = hardeningDecision.actionAt;
-    await prisma.directCostPosting.update({
-      where: { id: original.id },
-      data: {
-        state: 'APPROVED',
-        approvedByUserId: approver.id,
-        approvedAt,
-        decidedAt: approvedAt,
-      },
-    });
-
+    const fixture = legacyFixture();
+    const company = await prisma.company.findUniqueOrThrow({ where: { id: fixture.companyId } });
+    const maker = await prisma.user.findUniqueOrThrow({ where: { id: fixture.userId } });
+    const original = await prisma.directCostPosting.findUniqueOrThrow({ where: { id: fixture.directCostId } });
+    const project = await prisma.project.findUniqueOrThrow({ where: { id: fixture.projectId } });
+    const costCode = await prisma.costCode.findUniqueOrThrow({ where: { id: fixture.costCodeId } });
+    assert.equal(original.currencyCode, 'SGD');
+    assert.equal(original.state, 'APPROVED');
     await assert.rejects(() =>
       prisma.directCostPosting.update({
         where: { id: original.id },
@@ -1453,7 +1276,7 @@ test('V0.7-B database freezes terminal evidence and permits exact reversal after
 
     await prisma.company.update({
       where: { id: company.id },
-      data: { baseCurrencyCode: 'USD' },
+      data: { baseCurrencyCode: 'THB' },
     });
     const directCost = new DirectCostService(
       prisma,
@@ -1657,7 +1480,7 @@ test('V0.7-B terminal Direct Cost approval requires authorized retained evidence
       data: {
         companyCode: 'DA-' + suffix,
         companyName: 'Direct Cost approval evidence company',
-        baseCurrencyCode: 'SGD',
+        baseCurrencyCode: 'THB',
       },
     });
     const customer = await prisma.customer.create({
@@ -1747,7 +1570,7 @@ test('V0.7-B terminal Direct Cost approval requires authorized retained evidence
         postingDate: new Date('2026-10-03'),
         description: 'Approval evidence posting',
         amount: '25.00',
-        currencyCode: 'SGD',
+        currencyCode: company.baseCurrencyCode,
         createKey: randomUUID(),
         createPayloadHash: '9'.repeat(64),
         createdByUserId: maker.id,
@@ -1883,7 +1706,7 @@ test('V0.7-B terminal Direct Cost approval requires authorized retained evidence
         postingDate: new Date('2026-10-03'),
         description: 'Concurrent Direct Cost approval race',
         amount: '26.00',
-        currencyCode: 'SGD',
+        currencyCode: company.baseCurrencyCode,
         createKey: randomUUID(),
         createPayloadHash: '8'.repeat(64),
         createdByUserId: maker.id,
@@ -2119,7 +1942,7 @@ test('V0.7-D active Project Variation value excludes approved compensating rever
 test('V0.7-D commercial measures keep revenue, cash and Project-level profit separate', async () => {
   const prisma = {
     project: {
-      findFirstOrThrow: async () => ({
+      findFirstOrThrow: async () => ({ contractCurrencyCode: 'SGD',
         id: 'project',
         projectCode: 'P-1',
         projectName: 'Project',
@@ -2211,7 +2034,7 @@ test('V0.7-D commercial measures keep revenue, cash and Project-level profit sep
 test('V0.7-D refuses to fabricate WBS or Cost Code profitability', async () => {
   const prisma = {
     project: {
-      findFirstOrThrow: async () => ({
+      findFirstOrThrow: async () => ({ contractCurrencyCode: 'SGD',
         id: 'project',
         projectCode: 'P-1',
         projectName: 'Project',
@@ -2263,7 +2086,7 @@ test('V0.7-D Project Variation database guards approval authority and terminal h
       data: {
         companyCode: 'PVH-' + suffix,
         companyName: 'Project Variation hardening company',
-        baseCurrencyCode: 'SGD',
+        baseCurrencyCode: 'THB',
       },
     });
     const customer = await prisma.customer.create({
@@ -2331,7 +2154,7 @@ test('V0.7-D Project Variation database guards approval authority and terminal h
         variationNumber: 'PV-' + suffix,
         description: 'Hardening variation',
         valueDelta: '125.50',
-        currencyCode: 'SGD',
+        currencyCode: company.baseCurrencyCode,
         createKey: randomUUID(),
         createPayloadHash: 'a'.repeat(64),
         createdByUserId: maker.id,
@@ -2506,7 +2329,7 @@ test('V0.7-D Project Variation database guards approval authority and terminal h
         variationNumber: 'PV-REJECT-' + suffix,
         description: 'Rejected evidence binding variation',
         valueDelta: '-10.00',
-        currencyCode: 'SGD',
+        currencyCode: company.baseCurrencyCode,
         createKey: randomUUID(),
         createPayloadHash: 'd'.repeat(64),
         createdByUserId: maker.id,
@@ -2585,7 +2408,7 @@ test('V0.7-D Project Variation database guards approval authority and terminal h
           variationNumber: duplicateNumber,
           description: 'Concurrent A',
           valueDelta: '1.00',
-          currencyCode: 'SGD',
+          currencyCode: company.baseCurrencyCode,
           createKey: randomUUID(),
           createPayloadHash: 'b'.repeat(64),
           createdByUserId: maker.id,
@@ -2598,7 +2421,7 @@ test('V0.7-D Project Variation database guards approval authority and terminal h
           variationNumber: duplicateNumber,
           description: 'Concurrent B',
           valueDelta: '2.00',
-          currencyCode: 'SGD',
+          currencyCode: company.baseCurrencyCode,
           createKey: randomUUID(),
           createPayloadHash: 'c'.repeat(64),
           createdByUserId: maker.id,

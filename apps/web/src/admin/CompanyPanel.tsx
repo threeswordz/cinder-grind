@@ -22,11 +22,11 @@ export function CompanyPanel() {
   }, [query.data]);
 
   const mutation = useMutation({
-    mutationFn: () =>
+    mutationFn: (setThb: boolean) =>
       adminApi.updateCompany({
         companyCode,
         companyName,
-        baseCurrencyCode,
+        ...(setThb ? { baseCurrencyCode: 'THB' } : {}),
       }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['admin', 'company'] });
@@ -35,7 +35,7 @@ export function CompanyPanel() {
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    mutation.mutate();
+    mutation.mutate(false);
   }
 
   return (
@@ -64,10 +64,14 @@ export function CompanyPanel() {
           <TextField
             label="Base Currency"
             value={baseCurrencyCode}
-            onChange={(event) => setBaseCurrencyCode(event.target.value)}
+            slotProps={{ input: { readOnly: true } }}
             helperText="Thai baht (THB) is the operating currency. Existing records retain their source currency."
             required
           />
+          {baseCurrencyCode !== 'THB' && <Alert severity="warning">
+            New monetary activity is blocked until this Company deliberately uses THB. Historical records will keep their original currency.
+            <Button disabled={mutation.isPending || !query.data} onClick={() => mutation.mutate(true)}>Set operating currency to THB</Button>
+          </Alert>}
           <Button type="submit" variant="contained" disabled={mutation.isPending}>
             Save Company Settings
           </Button>

@@ -45,7 +45,7 @@ test('V0.5-B retains agreement decisions and enforces Work Order allocation ceil
       data: {
         companyCode: 'SCB-' + suffix,
         companyName: 'Subcontracts Stage B ' + suffix,
-        baseCurrencyCode: 'SGD',
+        baseCurrencyCode: 'THB',
       },
     });
     const customer = await prisma.customer.create({
@@ -102,7 +102,7 @@ test('V0.5-B retains agreement decisions and enforces Work Order allocation ceil
       data: {
         companyCode: 'SCB-X-' + suffix,
         companyName: 'Other Stage B Company ' + suffix,
-        baseCurrencyCode: 'SGD',
+        baseCurrencyCode: 'THB',
       },
     });
     const otherCompanyCostCode = await prisma.costCode.create({
@@ -234,7 +234,7 @@ test('V0.5-B retains agreement decisions and enforces Work Order allocation ceil
         agreementNumber: 'SC2609-' + suffix.slice(0, 3).toUpperCase(),
         originalValue: '1000.00',
         scopeOfWork: 'Stage B structural package',
-        currencyCode: 'SGD',
+        currencyCode: company.baseCurrencyCode,
         operationalStatusId: statusA.id,
         createKey: 'stage-a-create-' + suffix,
         createPayloadHash: 'a'.repeat(64),
@@ -679,7 +679,7 @@ test('V0.5-B retains agreement decisions and enforces Work Order allocation ceil
         agreementNumber: 'SC2609-C' + suffix.slice(0, 2).toUpperCase(),
         originalValue: '500.00',
         scopeOfWork: 'Cancellation test package',
-        currencyCode: 'SGD',
+        currencyCode: company.baseCurrencyCode,
         operationalStatusId: statusA.id,
         createdByUserId: maker.id,
       },
@@ -731,7 +731,7 @@ test('V0.5-B retains agreement decisions and enforces Work Order allocation ceil
         agreementNumber: 'SC2609-REV-' + suffix,
         originalValue: '800.00',
         scopeOfWork: 'Concurrent administrative revision package',
-        currencyCode: 'SGD',
+        currencyCode: company.baseCurrencyCode,
         operationalStatusId: statusA.id,
         createdByUserId: maker.id,
       },
@@ -791,7 +791,7 @@ test('V0.5-B retains agreement decisions and enforces Work Order allocation ceil
         agreementNumber: 'SC2609-M' + suffix.slice(0, 2).toUpperCase(),
         originalValue: '700.00',
         scopeOfWork: 'Two-step approval package',
-        currencyCode: 'SGD',
+        currencyCode: company.baseCurrencyCode,
         operationalStatusId: statusA.id,
         createdByUserId: maker.id,
       },
@@ -839,7 +839,7 @@ test('V0.5-B retains agreement decisions and enforces Work Order allocation ceil
           agreementNumber: 'SC2609-S' + suffix.slice(0, 2).toUpperCase(),
           originalValue: '300.00',
           scopeOfWork: 'Cancellation versus submission race package',
-          currencyCode: 'SGD',
+          currencyCode: company.baseCurrencyCode,
           operationalStatusId: statusA.id,
           createdByUserId: maker.id,
         },
@@ -907,7 +907,7 @@ test('V0.5-B retains agreement decisions and enforces Work Order allocation ceil
         agreementNumber: 'SC2609-A' + suffix.slice(0, 2).toUpperCase(),
         originalValue: '300.00',
         scopeOfWork: 'Cancellation versus approval race package',
-        currencyCode: 'SGD',
+        currencyCode: company.baseCurrencyCode,
         operationalStatusId: statusA.id,
         createdByUserId: maker.id,
       },

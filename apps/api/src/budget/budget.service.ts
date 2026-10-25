@@ -990,6 +990,7 @@ export class BudgetService {
     id: string;
     revisionNo: number;
     revisionNumber: string;
+    currencyCode: string | null;
     approvalInstance: { completedAt: Date | null } | null;
     lines: Array<{
       amount: Prisma.Decimal;
@@ -1050,6 +1051,7 @@ export class BudgetService {
       id: revision.id,
       revisionNo: revision.revisionNo,
       revisionNumber: revision.revisionNumber,
+      currencyCode: revision.currencyCode,
       approvedAt: revision.approvalInstance?.completedAt ?? null,
       total,
       byWbs: [...byWbs.values()],

@@ -1,7 +1,7 @@
 # Construction ERP — Development Roadmap
 
 **Document Status:** Development Roadmap Baseline v0.1  
-**Current Phase:** V0.1–V1.1 COMPLETE + ACCEPTED. **V1.2 THB-only Monetary Hardening A COMPLETE / B ACTIVE**, DEC-033 / #246. B provenance/schema-aware assurance dependency is UNDER VALIDATION; dependent THB enforcement and C targeted UAT/owner release exit remain PENDING. [Approved scope](V1.2-THB-SCOPE.md); exact checkpoint in [CURRENT-STATE.md](CURRENT-STATE.md). Production remains NOT AUTHORIZED.
+**Current Phase:** V0.1–V1.1 COMPLETE + ACCEPTED. **V1.2 THB-only Monetary Hardening A COMPLETE / B ACTIVE**, DEC-033 / #246. B provenance/schema-aware assurance dependency is COMPLETE; dependent THB enforcement is UNDER VALIDATION, and C targeted UAT/owner release exit remain PENDING. [Approved scope](V1.2-THB-SCOPE.md); exact checkpoint in [CURRENT-STATE.md](CURRENT-STATE.md). Production remains NOT AUTHORIZED.
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1  
@@ -18,7 +18,7 @@ The owner approved the [bounded currency/provenance/schema-assurance scope](V1.2
 | Stage | Approved delivery | Gate |
 |---|---|---|
 | V1.2-A | Entry requirements SYS-009–011, THB-01–10, D12-01–04, Decision Log/current-state/roadmap | **COMPLETE:** #263, main `65857a384005e1734028ffb6945b1077ed3449e5`, exact-main CI SUCCESS / #246 closure receipt. |
-| V1.2-B | Existing-module THB policy, minimum new-root provenance, truthful UI/reports, forward-only schema and bounded upgrade/recovery proof | **ACTIVE:** provenance/schema-aware recovery dependency UNDER VALIDATION; dependent policy still pending. Existing isolated regression, stable-candidate DEC-022 review, PR/merge/main gates apply to both. |
+| V1.2-B | Existing-module THB policy, minimum new-root provenance, truthful UI/reports, forward-only schema and bounded upgrade/recovery proof | **ACTIVE:** provenance/schema-aware recovery dependency COMPLETE through #264/main CI; dependent policy/UI/reporting and regression UNDER VALIDATION. Existing isolated regression, stable-candidate DEC-022 review, PR/merge/main gates apply to both. |
 | V1.2-C | Targeted affected user UAT, final evidence and separate owner UAT/release-exit acceptance | **PENDING** B completion. No unnecessary replay of unchanged V1.1 tests; no Production authorization. |
 
 ## Accepted release — V1.1 Business Workflow & Role UI (DEC-028)

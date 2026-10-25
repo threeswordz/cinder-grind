@@ -54,7 +54,7 @@ test('V0.5-C serializes Claim commercial races on the Agreement boundary', async
       data: {
         companyCode: 'SCC-R-' + suffix,
         companyName: 'Stage C Concurrency ' + suffix,
-        baseCurrencyCode: 'SGD',
+        baseCurrencyCode: 'THB',
       },
     });
     const customer = await prisma.customer.create({
@@ -130,7 +130,7 @@ test('V0.5-C serializes Claim commercial races on the Agreement boundary', async
             'SC2609-' + code + suffix.slice(0, 3).toUpperCase(),
           originalValue: value,
           scopeOfWork: 'Concurrency fixture ' + code,
-          currencyCode: 'SGD',
+          currencyCode: company.baseCurrencyCode,
           approvalState: 'APPROVED',
           firstApprovedAt: new Date(),
           createdByUserId: maker.id,
@@ -540,7 +540,7 @@ test('V0.5-C serializes Claim commercial races on the Agreement boundary', async
           claimNumber: 'SCL-PAIR-A-' + suffix,
           periodStart: concurrentPeriodStart,
           periodEnd: concurrentPeriodEnd,
-          currencyCode: 'SGD',
+          currencyCode: company.baseCurrencyCode,
           state: 'DRAFT',
           createdByUserId: maker.id,
         },
@@ -557,7 +557,7 @@ test('V0.5-C serializes Claim commercial races on the Agreement boundary', async
           claimNumber: 'SCL-PAIR-T-' + suffix,
           periodStart: concurrentPeriodStart,
           periodEnd: concurrentPeriodEnd,
-          currencyCode: 'SGD',
+          currencyCode: company.baseCurrencyCode,
           state: 'WITHDRAWN',
           createdByUserId: maker.id,
           submittedByUserId: maker.id,

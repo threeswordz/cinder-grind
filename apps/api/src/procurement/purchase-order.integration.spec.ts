@@ -694,21 +694,16 @@ test('V0.3-D Purchase Orders preserve awarded-source traceability, approval and 
       (error: unknown) => error instanceof ConflictException,
     );
 
-    assert.equal(approved.currencyCode, 'SGD');
-    await prisma.company.update({ where: { id: company.id }, data: { baseCurrencyCode: 'USD' } });
-    await assert.rejects(
-      () => new CostControlService(prisma, access).projectCostControl(makerAuth, project.id),
-      (error: unknown) => error instanceof UnprocessableEntityException &&
-        (error.getResponse() as { code: string }).code === 'COST_CONTROL_CURRENCY_UNSUPPORTED',
-      'A PO-only Project must not reinterpret retained SGD commitment as USD.',
-    );
+    assert.equal(approved.currencyCode, company.baseCurrencyCode);
+    await assert.rejects(prisma.company.update({ where: { id: company.id }, data: { baseCurrencyCode: 'USD' } }));
+    await new CostControlService(prisma, access).projectCostControl(makerAuth, project.id);
     const revision = await purchaseOrders.revise(
       { auth: makerAuth },
       draft.id,
       'Supplier delivery and price update.',
     );
-    assert.equal(revision.currencyCode, 'SGD', 'A revision must retain the original denomination.');
-    await prisma.company.update({ where: { id: company.id }, data: { baseCurrencyCode: 'SGD' } });
+    assert.equal(revision.currencyCode, company.baseCurrencyCode, 'A revision must retain the original denomination.');
+    await prisma.company.update({ where: { id: company.id }, data: { baseCurrencyCode: 'THB' } });
     await new CostControlService(prisma, access).projectCostControl(makerAuth, project.id);
     assert.equal(revision.poNumber, draft.poNumber);
     assert.equal(revision.revisionNo, 1);

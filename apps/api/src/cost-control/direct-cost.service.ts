@@ -200,7 +200,7 @@ export class DirectCostService {
     if (!project) throw this.notFound();
     return {
       project,
-      baseCurrencyCode: company.baseCurrencyCode,
+      baseCurrencyCode: 'THB', companyCurrencyCode: company.baseCurrencyCode, monetaryActivityAllowed: company.baseCurrencyCode === 'THB',
       wbs,
       costCodes,
     };

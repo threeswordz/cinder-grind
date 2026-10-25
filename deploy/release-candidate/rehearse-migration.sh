@@ -375,6 +375,7 @@ PRODUCTION_ENV_FILE="$production_env" bash deploy/production/prepare-release.sh
 candidate_admin_email=rc-admin@example.invalid
 if [[ "$schema_mode" == "migration-aware-thb-schema" ]]; then
   DATABASE_URL="$upgrade_url" node "$RC_DIR/legacy-fixture.mjs" verify "$previous_root" "$tmp_root/legacy.json" "$tmp_root/legacy-snapshot.json"
+  DATABASE_URL="$upgrade_url" ERP_LEGACY_FIXTURE="$tmp_root/legacy.json" node "$RC_DIR/verify-thb-upgrade.mjs"
   # The acceptance runner deliberately creates Company-unique numbering and
   # approval configuration. Do not rerun it over the retained legacy Company,
   # clear its configuration, or rewrite historical SGD sources for new policy.
@@ -577,6 +578,7 @@ writeFileSync(path, JSON.stringify({
     genuineLegacySgdNullFixture: 'PASS',
     historicalRowsUnchanged: 'PASS',
     restoredPreviousRuntimeAuthenticationDownload: 'PASS',
+    thbPolicyUpgrade: 'PASS',
   } : { prismaSchemaUnchanged: 'PASS' }),
   forwardOnlyNewMigrations: 'PASS',
   migrationNames: migrationList.split(',').filter(Boolean),

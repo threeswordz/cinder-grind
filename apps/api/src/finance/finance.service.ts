@@ -117,7 +117,7 @@ export class FinanceService {
       where: { id: auth.companyId },
       select: { baseCurrencyCode: true },
     });
-    const sourceCurrencyCode = retainedCurrencyCode ?? company.baseCurrencyCode;
+    const sourceCurrencyCode = retainedCurrencyCode ?? 'THB';
     const [suppliers, wbs, costCodes, poLines, grItems] =
       await Promise.all([
         this.prisma.supplier.findMany({
@@ -137,6 +137,8 @@ export class FinanceService {
         }),
         this.prisma.purchaseOrderLine.findMany({
           where: {
+            quotationAward: { currencyCode: 'THB' },
+            supplierQuotation: { currencyCode: 'THB' },
             purchaseOrder: {
               companyId: auth.companyId,
               projectId,
@@ -171,6 +173,8 @@ export class FinanceService {
               reversedAt: null,
             },
             purchaseOrderLine: {
+              quotationAward: { currencyCode: 'THB' },
+              supplierQuotation: { currencyCode: 'THB' },
               purchaseOrder: { currencyCode: sourceCurrencyCode },
             },
           },
@@ -194,7 +198,9 @@ export class FinanceService {
         }),
       ]);
     return {
-      baseCurrencyCode: company.baseCurrencyCode,
+      baseCurrencyCode: 'THB',
+      companyCurrencyCode: company.baseCurrencyCode,
+      monetaryActivityAllowed: company.baseCurrencyCode === 'THB' && sourceCurrencyCode === 'THB',
       suppliers,
       wbs,
       costCodes,

@@ -18,7 +18,7 @@ function requireSafe(condition, message) {
 export function childEnvironment(source, databaseUrl, storageRoot) {
   const env = { ...source };
   for (const key of Object.keys(env)) {
-    if (/^(UAT_|E2_|BOOTSTRAP_|PG)/.test(key) || ['DIRECT_URL', 'SHADOW_DATABASE_URL'].includes(key)) delete env[key];
+    if (/^(UAT_|E2_|BOOTSTRAP_|PG|LEGACY_)/.test(key) || ['DIRECT_URL', 'SHADOW_DATABASE_URL', 'ERP_LEGACY_FIXTURE'].includes(key)) delete env[key];
   }
   return { ...env, DATABASE_URL: databaseUrl, STORAGE_ROOT: storageRoot, NODE_ENV: 'test' };
 }
@@ -110,6 +110,10 @@ export async function validateIsolated({ engine = 'podman', env = process.env,
     requireSafe(ready, 'Disposable validation PostgreSQL did not become ready.');
     const databaseUrl = `postgresql://${user}:${password}@127.0.0.1:${port}/${database}?schema=public`;
     const testEnv = childEnvironment(env, databaseUrl, storage);
+    testEnv.ERP_LEGACY_FIXTURE = join(storage, 'legacy-fixture.json');
+    await checked('bash', ['deploy/uat/prepare-legacy-validation.sh'], {
+      env: { ...testEnv, LEGACY_NON_PRODUCTION_CONFIRMED: 'YES' }, inherit: true,
+    });
     log('Running migrations and full workspace validation on disposable PostgreSQL/storage.');
     await checked('pnpm', ['prisma:migrate:deploy'], { env: testEnv, inherit: true });
     // Preserve every phase of the root validate gate, while keeping test-only

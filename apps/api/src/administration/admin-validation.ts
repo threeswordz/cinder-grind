@@ -113,8 +113,8 @@ export function validateUuid(value: string, field: string): string {
 
 export function validateCurrencyCode(value: string): string {
   const normalized = value.toUpperCase();
-  if (!/^[A-Z]{3}$/.test(normalized)) {
-    throw invalid('baseCurrencyCode', 'Use a three-letter currency code.');
+  if (normalized !== 'THB') {
+    throw invalid('baseCurrencyCode', 'The operating currency must be THB. Historical source currencies are preserved.');
   }
   return normalized;
 }
