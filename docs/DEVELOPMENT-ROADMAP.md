@@ -1,7 +1,7 @@
 # Construction ERP — Development Roadmap
 
 **Document Status:** Development Roadmap Baseline v0.1  
-**Current Phase:** V0.1–V1.1 COMPLETE + ACCEPTED. **V1.2 THB-only Monetary Hardening A COMPLETE / B ACTIVE**, DEC-033 / #246. B provenance/schema-aware assurance dependency is COMPLETE; dependent THB enforcement is UNDER VALIDATION, and C targeted UAT/owner release exit remain PENDING. [Approved scope](V1.2-THB-SCOPE.md); exact checkpoint in [CURRENT-STATE.md](CURRENT-STATE.md). Production remains NOT AUTHORIZED.
+**Current Phase:** V0.1–V1.1 COMPLETE + ACCEPTED. **V1.2 A/B COMPLETE / C targeted owner UAT NEXT**, #246. DEC-034/#266 records approved future BOQ scope and entry preparation; no successor implementation/entry closure is claimed. [Current State](CURRENT-STATE.md) owns the exact checkpoint. Production remains NOT AUTHORIZED.
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1  
@@ -13,13 +13,25 @@
 
 ## Active successor — V1.2 THB-only Monetary Hardening (DEC-033)
 
-The owner approved the [bounded currency/provenance/schema-assurance scope](V1.2-THB-SCOPE.md) on 2026-10-25 ([exact decision](https://github.com/threeswordz/cinder-grind/issues/246#issuecomment-6394359755)). Track existing #246. B first validates additive provenance and compatible prior-runtime recovery before its dependent cross-module monetary guards. Full THB enforcement is not yet delivered. Preserve accepted V1.1 and every historical currency/transaction/approval; BOQ/HR/Payroll/field-security redesign and #245 remain separate.
+The owner approved the [bounded currency/provenance/schema-assurance scope](V1.2-THB-SCOPE.md) on 2026-10-25 ([exact decision](https://github.com/threeswordz/cinder-grind/issues/246#issuecomment-6394359755)). Track existing #246. B is COMPLETE through #264/#265 and exact-main CI 40190475484; the [closure receipt](https://github.com/threeswordz/cinder-grind/issues/246#issuecomment-6397315502) verifies review/merge/main gates. THB-only new monetary activity is technically delivered; targeted owner UAT and separate release exit remain pending. Preserve accepted V1.1 and every historical currency/transaction/approval; BOQ/HR/Payroll/field-security redesign and #245 remain separate.
 
 | Stage | Approved delivery | Gate |
 |---|---|---|
 | V1.2-A | Entry requirements SYS-009–011, THB-01–10, D12-01–04, Decision Log/current-state/roadmap | **COMPLETE:** #263, main `65857a384005e1734028ffb6945b1077ed3449e5`, exact-main CI SUCCESS / #246 closure receipt. |
-| V1.2-B | Existing-module THB policy, minimum new-root provenance, truthful UI/reports, forward-only schema and bounded upgrade/recovery proof | **ACTIVE:** provenance/schema-aware recovery dependency COMPLETE through #264/main CI; dependent policy/UI/reporting and regression UNDER VALIDATION. Existing isolated regression, stable-candidate DEC-022 review, PR/merge/main gates apply to both. |
-| V1.2-C | Targeted affected user UAT, final evidence and separate owner UAT/release-exit acceptance | **PENDING** B completion. No unnecessary replay of unchanged V1.1 tests; no Production authorization. |
+| V1.2-B | Existing-module THB policy, minimum new-root provenance, truthful UI/reports, forward-only schema and bounded upgrade/recovery proof | **COMPLETE:** #264/#265, main `bebffb4a7e3edc019e8a6e88e989fffbcc75d53a`, exact-main CI SUCCESS; #246 closure receipt. |
+| V1.2-C | Targeted affected user UAT, final evidence and separate owner UAT/release-exit acceptance | **NEXT:** actual human acceptance PENDING. [Targeted instructions](V1.2-TARGETED-UAT.md); no Production authorization. |
+
+## Approved future package — BOQ Disclosure and Linked Customer BOQ Versions (DEC-034)
+
+[#266](https://github.com/threeswordz/cinder-grind/issues/266) records the owner's approved first slice and [canonical scope/role/open-input/acceptance baseline](BOQ-COMMERCIAL-SCOPE.md). No successor release number is assigned; V1.2 remains primary active release.
+
+| Work | Position |
+|---|---|
+| First-package scope / entry preparation | **APPROVED SCOPE:** documentation publication gates tracked in #266; not entry COMPLETE. |
+| Required predecessor and entry inputs | **PENDING:** V1.2 owner UAT/release exit, expressly open disclosure/mapping/pricing inputs and applicable normal entry gates. |
+| Feature implementation | **FUTURE:** no runtime/schema/permission changes before the required entry conditions. |
+| Targeted human UAT / separate release exit | **FUTURE:** not accepted by scope approval. |
+| Advanced costing and HR/Attendance/Payroll | Separate **P1** increments; policy/design preparation in parallel, without unconfirmed formulas, actors or recognition rules. |
 
 ## Accepted release — V1.1 Business Workflow & Role UI (DEC-028)
 
