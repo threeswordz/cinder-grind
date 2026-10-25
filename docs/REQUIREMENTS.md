@@ -1,12 +1,12 @@
 # Construction ERP — Master Requirements Register
 
 **Document Status:** Requirements Baseline v0.1  
-**Current Phase:** V1.0 COMPLETE + ACCEPTED / V1.1 entry PR + exact-main CI COMPLETE, final documentation & Issue #211 closure ACTIVE under DEC-028  
+**Current Phase:** V0.1–V1.1 COMPLETE + ACCEPTED; V1.2 THB-only Monetary Hardening entry scope APPROVED under DEC-033 / Issue #246; entry CI/merge/post-main must close before runtime implementation. See [Current State](CURRENT-STATE.md).
 **Architecture Baseline:** v0.1  
 **Source:** ERP-MASTER-BLUEPRINT.md  
 **Last Structural Review:** V0.8-E DEC-022 source-drilldown/live-state remediation — 2026-10-05
 
-**V1.1 approved successor scope:** DEC-028 (2026-10-17) approves *only* the bounded role-first UI and integration of V0.1–V1.0 source workflows. AC-V11-001–030 and BR-V11-01–18 are in the V1.1 canonical baselines; the 54-workflow source mapping is a gap/traceability register, NOT evidence of 54 delivered features. New backend rules, diagnostics API, unimplemented features and actual Production deployment remain excluded. Entry PR #212 merged as `cd5b0c77e576ba140210d284ea1cbad4149bb0fd` with exact-head CI #4319/#4320 PASS and post-merge exact-main CI #4321 PASS. Final docs handoff and Issue #211 closure are required before V1.1-B implementation.
+**Historical V1.1 approved successor scope:** DEC-028 (2026-10-17) approves *only* the bounded role-first UI and integration of V0.1–V1.0 source workflows. AC-V11-001–030 and BR-V11-01–18 are in the V1.1 canonical baselines; the 54-workflow source mapping is a gap/traceability register, NOT evidence of 54 delivered features. New backend rules, diagnostics API, unimplemented features and actual Production deployment remain excluded. Entry PR #212 merged as `cd5b0c77e576ba140210d284ea1cbad4149bb0fd` with exact-head CI #4319/#4320 PASS and post-merge exact-main CI #4321 PASS. Final docs handoff and Issue #211 closure are required before V1.1-B implementation.
 
 **Historical V1.0 delivery note:** V0.1–V0.8 are complete and accepted at their applicable release gates. V1.0 entry is complete under DEC-026; V1.0-A, V1.0-B and V1.0-C are technically COMPLETE. V1.0-C PR #198 merged as `feb98b9e58e471a4190ac4bac531d6289d5fa4f4`; exact-main CI #3944 PASS; Issue #196 CLOSED / COMPLETED. V1.0-D Operations / Observability / Performance Readiness is technically COMPLETE for AC-V10-027–034. Final exact head `611132a6a488c06f710e9d7fbd067f51f9fa8a6c` passed push CI #4055 and PR CI #4056; the final DEC-022 exact-head re-review reported no major issues with zero unresolved review threads. PR #203 squash-merged as `853ccdb73f5a8cb7cc2ec16edf49eeb50005692f`; exact-main CI #4057 PASS, including full workspace regression, Production startup/restart and unsafe-config fail-closed checks, authenticated live acceptance, and paired recovery/isolated restore. Across six Codex review rounds, 12 genuine findings total (3 P1 / 9 P2) were remediated. No schema migration or new runtime dependency was introduced. Closure reconciliation PR #204 squash-merged as `00410468ce4ba52398ef7413c0282f84bf24dab4`; exact-main CI #4107 PASS; Issue #200 CLOSED / COMPLETED. V1.0-E Release Candidate / Deployment Rehearsal / Go-No-Go is technically COMPLETE for AC-V10-035–038. Final exact head `ddc78e859bc72c2d35234ae9d7f12330a608e5b9` passed push CI #4209 / PR CI #4210 and clean final DEC-022 exact-head review; PR #207 squash-merged as `28637e075b62314add6f14d2333380a0ddd2322f`; exact-main CI #4211 PASS. On 2026-10-13 the Product / Business Owner explicitly accepted AC-V10-039/040 and authorized V1.0 release closure / Production go-no-go. Acceptance-record PR #209 squash-merged as `8f5d4f56b38a373ef6d7233b46bcdb218345bf62`; exact-main CI #4233 PASS; Issue #205 CLOSED / COMPLETED. V1.0 Production Readiness is COMPLETE + ACCEPTED. Production go/no-go is authorized; this does not claim that a Production deployment has already occurred.
 
@@ -383,6 +383,9 @@ GitHub Issues will later reference the Requirement ID when implementation work i
 | SYS-006 | Single Data Owner | Each business record shall have one primary owning module and other modules shall reference rather than duplicate the source record. | Maintain one source of truth. | Must Have | V0.1 Foundation | None | Architecture and implementation do not create competing masters for the same business entity. | Approved |
 | SYS-007 | Forward and Backward Transaction Traceability | Where business processes chain transactions, users shall be able to trace predecessor and successor records. | Support audit and investigation. | Must Have | V0.3 Procurement | FND-011 | Relevant transaction screens/APIs expose source and downstream references. | Approved |
 | SYS-008 | Inactive Master Data | Master data shall generally be deactivated/archived instead of deleted when historically referenced. | Preserve referential integrity. | Must Have | V0.1 Foundation | SYS-002 | Inactive master records remain historically visible but are not selectable for new transactions when prohibited. | Approved |
+| SYS-009 | THB-only New Monetary Business | Enforce THB and verified provenance for new monetary roots/handoffs across the existing V1.2 scope; no ordinary admin currency override. | Deliver the owner-approved operating currency without unsafe mixed/unknown monetary lineage. | Must Have | V1.2 THB-only Monetary Hardening | FND-003, SYS-006, SYS-007 | [THB-01–03/06/07](V1.2-THB-SCOPE.md#4-acceptance-criteria), D12-01/03 and DEC-033; no inferred legacy relabel. | Approved |
+| SYS-010 | Historical Currency Integrity and Exact Corrections | Preserve original currency/NULL, amounts and history; retain only existing exact source-linked corrective operations in original denomination. | Keep prior commercial, approval, Finance and stock evidence auditable while new business becomes THB-only. | Must Have | V1.2 THB-only Monetary Hardening | SYS-001, SYS-002, SYS-006 | [THB-04/05](V1.2-THB-SCOPE.md#4-acceptance-criteria), D12-02/03; no new foreign procurement/settlement or increased exposure. | Approved |
+| SYS-011 | Bounded Schema-bearing Upgrade Evidence | Prove necessary V1.2 additive schema/default/provenance upgrades and paired database/Documents recovery with compatible restored runtime. | Safely evolve persisted currency behavior without bypassing accepted assurance. | Must Have | V1.2 THB-only Monetary Hardening | ARCH-009, SYS-002, SYS-009, SYS-010 | [THB-08/09](V1.2-THB-SCOPE.md#4-acceptance-criteria), D12-04; existing rehearsal modes and migration history preserved. | Approved |
 
 ## Architecture & Technology
 
@@ -450,6 +453,9 @@ Canonical release values are:
 - V0.6 Finance
 - V0.7 Cost Control
 - V0.8 Management
+- V1.0 Production Readiness
+- V1.1 Business Workflow & Role UI
+- V1.2 THB-only Monetary Hardening
 - Future
 
 If a requirement is moved between releases after approval, the change must be recorded through Change Control.
@@ -485,6 +491,8 @@ Audit result:
 ---
 
 # 11. Open Business Rules for Later Detailed Design
+
+**Historical v0.1 list:** Later approved decisions govern topics resolved since this baseline. In particular DEC-031/033 and SYS-009–011 now establish the bounded V1.2 THB-only policy; the list below is not an instruction to reopen that currency decision.
 
 The following areas are intentionally **not yet approved requirements** because they were not defined in Architecture Baseline v0.1.
 

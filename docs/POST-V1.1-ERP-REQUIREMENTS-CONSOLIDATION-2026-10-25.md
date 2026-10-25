@@ -2,6 +2,8 @@
 
 **Recorded:** 2026-10-25 (Asia/Singapore)
 **Status:** Owner-directed requirements intake and **PROPOSED successor design**, **NOT** implementation approval, a release-entry decision, a permission grant, a payroll policy approval, completed gap verification, UAT acceptance, or Production authorization.
+
+**Later narrow approval — 2026-10-25:** V1.1 is COMPLETE + ACCEPTED / #233 CLOSED. The owner subsequently approved **only the THB-only successor scope/four policies/schema-assurance extension** under DEC-033 and [V1.2-THB-SCOPE.md](V1.2-THB-SCOPE.md), tracked by #246. Its entry gate must close before runtime implementation. Other BOQ/HR/Site proposals below keep their original status; no role grants, payroll policy or Production authority is added. Older P0/open-V1.1 wording below is the intake checkpoint, not current live state.
 **Repository:** `threeswordz/cinder-grind`
 **Scope boundary:** V1.1-E2 remains under Issue [#233](https://github.com/threeswordz/cinder-grind/issues/233), with AC-V11-023–030 open. Do not incorporate new functionality into V1.1 by implication.
 
