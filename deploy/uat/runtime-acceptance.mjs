@@ -1296,6 +1296,34 @@ const projectBoq = await request(
   },
 );
 const boqId = projectBoq.data.data.id;
+
+// Reuse this journey's real Project, BOQ and approval workflow. A working
+// BOQ/draft/submitted revision is not an approved Budget baseline.
+async function checkMissingApprovedBudget(stage) {
+  const summary = (await request(pm, `/budget/projects/${projectId}/summary`)).data.data;
+  const approved = (await request(pm, `/budget/projects/${projectId}/approved`)).data.data;
+  const revisions = (await request(pm, `/budget/projects/${projectId}/revisions`)).data.data;
+  const cost = (await request(pm, `/projects/${projectId}/cost-control`)).data.data;
+  check(summary.projectId === projectId && summary.original === null && summary.current === null && approved === null,
+    `${stage}: missing approved Budget must remain null, never a fabricated zero-valued revision.`);
+  check(revisions.every((row) => row.isOriginal === false && row.isCurrent === false),
+    `${stage}: an unapproved revision must not become Original or Current.`);
+  for (const measure of ['originalBudget', 'revisedBudget']) {
+    const evidence = cost.sourceEvidence[measure];
+    check(String(cost.totals[measure]) === '0' && evidence.recordCount === 0 &&
+      evidence.recordsVisible === true && Array.isArray(evidence.records) && evidence.records.length === 0,
+    `${stage}: zero aggregation must retain empty approved-source evidence.`);
+  }
+  const report = (await request(pm,
+    `/management/reports?projectId=${projectId}&asOf=2026-10-10&days=14&domain=COST`)).data.data;
+  for (const metric of ['ORIGINAL_BUDGET', 'REVISED_BUDGET']) {
+    const rows = report.rows.filter((row) => row.metric === metric);
+    check(rows.length === 1 && rows[0].value === '0' && report.baseCurrencyCode === OPERATING_CURRENCY,
+      `${stage}: Management must not substitute the unapproved working BOQ/draft for approved Budget totals.`);
+  }
+}
+
+await checkMissingApprovedBudget('Working BOQ only');
 const boqSection = await request(pm, '/budget/boqs/' + boqId + '/sections', {
   method: 'POST',
   json: {
@@ -1345,6 +1373,7 @@ check(
   /^BR26-\d{3}$/.test(budgetDraft1.data.data.revisionNumber),
   'Budget Revision business number was not generated from the configured sequence.',
 );
+await checkMissingApprovedBudget('Draft Budget');
 
 await request(pm, '/budget/items/' + boqItem.data.data.id, {
   method: 'PATCH',
@@ -1372,6 +1401,8 @@ check(
   submittedBudget1.data.data.approvalInstance?.approvalState === 'SUBMITTED',
   'Draft Budget Revision did not enter approval.',
 );
+await checkMissingApprovedBudget('Submitted Budget');
+record('V1.2-C missing approved Budget stays null through working BOQ, draft and submitted stages; zero Cost totals have no approved source');
 await request(
   pm,
   '/budget/revisions/' + budgetDraft1.data.data.id + '/approve',
