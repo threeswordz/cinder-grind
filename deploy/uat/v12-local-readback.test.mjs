@@ -135,3 +135,11 @@ test('an absent nested field cannot impersonate a retained explicit null', () =>
   const record = { id, projectId, kind: 'historicalPo', expected: { 'lines.0.amount': null } };
   assert.throws(() => assertRecord({ id, projectId, companyId, lines: null }, record, companyId));
 });
+
+test('missing or non-decimal historical amounts cannot pass as preserved money', () => {
+  const id = randomUUID();
+  for (const amount of [null, true, 'unknown', '1,205.00']) {
+    assert.throws(() => validatePlan({ ...plan(), records: [{ kind: 'historicalPo', id, projectId,
+      expected: { currencyCode: null, 'lines.0.amount': amount } }] }));
+  }
+});

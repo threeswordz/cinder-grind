@@ -42,8 +42,10 @@ export function validatePlan(plan) {
       }
     } else {
       assert.ok(own(record.expected, 'currencyCode') && ['SGD', null].includes(record.expected.currencyCode));
-      assert.ok(Object.keys(record.expected).some((key) => /^lines\.\d+\.amount$/.test(key)),
+      const amounts = Object.entries(record.expected).filter(([key]) => /^lines\.\d+\.amount$/.test(key));
+      assert.ok(amounts.length > 0,
         'Historical readback needs an owner-recorded original line amount.');
+      for (const [, amount] of amounts) assert.match(amount, /^-?\d+(?:\.\d+)?$/);
     }
     // Only literal scalar comparisons; no arbitrary expressions or request paths.
     for (const [path, value] of Object.entries(record.expected)) {
@@ -226,21 +228,21 @@ async function main(args) {
     await receipt.sync();
   }
   try {
-  const report = await readback(plan, { email: process.env.V12_READBACK_EMAIL, password: process.env.V12_READBACK_PASSWORD });
-  if (prior) {
-    assert.equal(prior.actorId, report.actorId);
-    assert.equal(prior.companyId, report.companyId);
-    assert.equal(prior.projectId, report.projectId);
-    assert.deepEqual(report.checks, prior.checks, 'Readback changed since prior receipt.');
-    assert.deepEqual(report.observations, prior.observations, 'HTTP read outcomes changed.');
-    console.log(JSON.stringify({ ...report, priorReadbackUnchanged: true }, null, 2));
-  } else {
-    await receipt.truncate(0);
-    await receipt.write(JSON.stringify(report, null, 2) + '\n', 0, 'utf8');
-    await receipt.sync();
-    console.log(JSON.stringify(report, null, 2));
-  }
-  process.exitCode = report.status === 'PASS' ? 0 : report.status === 'BLOCKED' ? 2 : 1;
+    const report = await readback(plan, { email: process.env.V12_READBACK_EMAIL, password: process.env.V12_READBACK_PASSWORD });
+    if (prior) {
+      assert.equal(prior.actorId, report.actorId);
+      assert.equal(prior.companyId, report.companyId);
+      assert.equal(prior.projectId, report.projectId);
+      assert.deepEqual(report.checks, prior.checks, 'Readback changed since prior receipt.');
+      assert.deepEqual(report.observations, prior.observations, 'HTTP read outcomes changed.');
+      console.log(JSON.stringify({ ...report, priorReadbackUnchanged: true }, null, 2));
+    } else {
+      await receipt.truncate(0);
+      await receipt.write(JSON.stringify(report, null, 2) + '\n', 0, 'utf8');
+      await receipt.sync();
+      console.log(JSON.stringify(report, null, 2));
+    }
+    process.exitCode = report.status === 'PASS' ? 0 : report.status === 'BLOCKED' ? 2 : 1;
   } finally { await receipt?.close(); }
 }
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
