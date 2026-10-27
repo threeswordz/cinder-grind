@@ -1,7 +1,7 @@
 // Disposable browser regression; no API, database, credentials or retained fixtures.
 import assert from 'node:assert/strict';
 import { spawn, spawnSync } from 'node:child_process';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, rm } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import os from 'node:os';
 import path from 'node:path';
@@ -9,7 +9,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const root = fileURLToPath(new URL('../../apps/web/', import.meta.url));
 const require = createRequire(path.join(root, 'package.json'));
-const { createServer } = await import(pathToFileURL(require.resolve('vite')).href);
+const { createServer, transformWithOxc } = await import(pathToFileURL(require.resolve('vite')).href);
 const chrome = ['google-chrome', 'chromium', 'chromium-browser'].find(bin => spawnSync(bin, ['--version'], { stdio: 'ignore' }).status === 0);
 assert.ok(chrome, 'Chromium is required for real-browser evidence; no SSR fallback.');
 const temporary = await mkdtemp(path.join(os.tmpdir(), 'erp-budget-browser-'));
@@ -75,7 +75,7 @@ const vite = await createServer({
   plugins: [{ name: 'budget-browser-fixture',
     configureServer(server) { server.middlewares.use((req,res,next) => { if(req.url !== '/__budget-check') return next(); res.setHeader('Content-Type','text/html');res.end('<!doctype html><html><body><div id="root"></div><script type="module" src="/__budget-check.tsx"></script></body></html>'); }); },
     resolveId(id) { if(id === '/__budget-check.tsx') return '\0budget-browser-fixture.tsx'; },
-    load(id) { if(id === '\0budget-browser-fixture.tsx') return harness; },
+    async load(id) { if(id === '\0budget-browser-fixture.tsx') return transformWithOxc(harness, path.join(root, '__budget-check.tsx'), { lang: 'tsx', jsx: { runtime: 'automatic' } }); },
   }],
 });
 try {
@@ -90,6 +90,6 @@ try {
     child.on('close',code=>{clearTimeout(timeout);resolve({code,out,err});});
   });
   assert.equal(result.code,0,result.err.slice(-2000));
-  assert.match(result.out,/data-result="PASS"/,result.out.slice(-4000));
+  assert.match(result.out,/data-result="PASS"/,(result.out.match(/data-error="[^"]*"/) ?? [result.out.slice(-4000)])[0]);
   console.log('BUDGET_PRESENCE_BROWSER_PASS — actual Cost workspace/report, Management Cost and print DOM; absent/approved-zero; EN/TH/zh-TW; no API/database');
 } finally { await vite.close(); await rm(temporary,{recursive:true,force:true}); }

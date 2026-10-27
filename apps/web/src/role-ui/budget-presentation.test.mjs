@@ -28,6 +28,7 @@ test('Budget presentation distinguishes absent, approved zero and partial baseli
       assert.equal(render(BudgetBaselineNotice, { baseline: { original: true, current: true } }), '');
       assert.notEqual(render(BudgetBaselineMessage, { baseline: { original: false, current: true } }), '');
       assert.notEqual(render(BudgetBaselineMessage, { baseline: { original: true, current: false }, portfolio: true }), '');
+      if (locale === 'en') assert.doesNotMatch(render(BudgetBaselineMessage, { baseline: { original: false, current: true }, portfolio: true }), /variance/);
     }
   } finally { await vite.close(); }
 });
