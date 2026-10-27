@@ -308,7 +308,9 @@ export async function restore(context, planFile, setDir, { run = runProcess, sle
     } finally { await dump.close(); }
     evidence.databaseRestore = 'PASS';
     const actual = await databaseEvidence(restored, run);
-    safe(digest(actual) === digest(baseline), 'RESTORED_DATABASE_MISMATCH');
+    await writeFile(path.join(drill, 'restored-database-evidence.json'), JSON.stringify(actual, null, 2) + '\n', { flag: 'wx', mode: 0o600 });
+    const differences = Object.keys(baseline).filter(key => digest(actual[key]) !== digest(baseline[key]));
+    safe(digest(actual) === digest(baseline), 'RESTORED_DATABASE_MISMATCH_' + differences.join('_').toUpperCase());
     safe(await query(restored, `SELECT count(*) FROM public.documents WHERE storage_provider='LOCAL';`, run) === 0, 'RESTORED_LOCAL_DOCUMENTS_NOT_EMPTY');
     evidence.databaseEvidenceMatch = 'PASS';
     await checked(run, 'tar', ['--extract', '--gzip', '--no-same-owner', '--directory=' + storage, '--file=' + path.join(target, 'documents.tar.gz')], { env: cleanEnvironment() });

@@ -345,6 +345,8 @@ jobs:
         run: pnpm prisma:migrate:deploy
       - name: Verify migration status
         run: pnpm --filter @construction-erp/api exec prisma migrate status
+      - name: Run V1.2-C empty UAT capture and disposable container restore
+        run: node deploy/uat/v12-empty-recovery-ci.mjs
       - name: Validate workspace
         run: node deploy/uat/validate-isolated.mjs --engine docker
       - name: Rehearse V1.0-E exact release candidate
@@ -494,8 +496,6 @@ jobs:
           BENCHMARK_CONCURRENCY=2 \
           node apps/api/scripts/v1-0-d-benchmark.mjs | tee /tmp/v1-0-d-benchmark.json
           grep -q '"benchmark":"v1.0-d-representative-capacity"' /tmp/v1-0-d-benchmark.json
-      - name: Run V1.2-C empty UAT capture and disposable container restore
-        run: node deploy/uat/v12-empty-recovery-ci.mjs
       - name: Run V1.0-B paired recovery and isolated restore drill
         run: |
           set -euo pipefail
