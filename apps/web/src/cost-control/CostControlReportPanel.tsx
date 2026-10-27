@@ -1,3 +1,4 @@
+import { BudgetBaselineNotice, BudgetValue } from '../role-ui/budget-presentation';
 import { useEffect, useState } from 'react';
 import {
   Alert,
@@ -103,6 +104,8 @@ export function CostControlReportPanel({
             </Typography>
           </Stack>
 
+          <BudgetBaselineNotice baseline={data.budgetBaseline} />
+
           <Stack direction={{ xs: 'column', md: 'row' }} spacing={1}>
             <TextField
               select
@@ -142,13 +145,13 @@ export function CostControlReportPanel({
           ) : null}
 
           <Stack direction={{ xs: 'column', md: 'row' }} spacing={1} flexWrap="wrap">
-            <Chip label={'Budget ' + currency + ' ' + data.totals.revisedBudget} />
+            <Chip label={<>Budget <BudgetValue available={data.budgetBaseline.current} currency={currency} value={data.totals.revisedBudget} /></>} />
             <Chip label={'Committed ' + currency + ' ' + data.totals.committedCost.total} />
             <Chip label={'Actual ' + currency + ' ' + data.totals.actualCost.total} />
             <Chip label={'Paid ' + currency + ' ' + data.totals.paidCost.total} />
             <Chip label={'Forecast ' + currency + ' ' + data.totals.forecastCost} />
             <Chip label={'Cost to Complete ' + currency + ' ' + data.totals.costToComplete} />
-            <Chip label={'Variance ' + currency + ' ' + data.totals.variance} />
+            <Chip label={<>Variance <BudgetValue available={data.budgetBaseline.current} currency={currency} value={data.totals.variance} /></>} />
           </Stack>
 
           <TableContainer>
@@ -196,13 +199,13 @@ export function CostControlReportPanel({
                           : 'Unallocated Cost Code'}
                       </TableCell>
                       <TableCell>{row.allocationState}</TableCell>
-                      <TableCell align="right">{row.revisedBudget}</TableCell>
+                      <TableCell align="right"><BudgetValue available={data.budgetBaseline.current} value={row.revisedBudget} /></TableCell>
                       <TableCell align="right">{row.committedCost.total}</TableCell>
                       <TableCell align="right">{row.actualCost.total}</TableCell>
                       <TableCell align="right">{row.paidCost.total}</TableCell>
                       <TableCell align="right">{row.forecastCost}</TableCell>
                       <TableCell align="right">{row.costToComplete}</TableCell>
-                      <TableCell align="right">{row.variance}</TableCell>
+                      <TableCell align="right"><BudgetValue available={data.budgetBaseline.current} value={row.variance} /></TableCell>
                     </TableRow>
                   ))
                 )}

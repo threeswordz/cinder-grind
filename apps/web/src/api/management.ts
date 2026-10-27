@@ -1,3 +1,4 @@
+import type { BudgetBaseline } from './cost-control';
 import { apiDownload, apiRequest } from './client';
 
 type Data<T> = { data: T };
@@ -76,6 +77,7 @@ export type ManagementProjectSummary = {
       quantityAggregation: string;
     };
     cost: {
+      budgetBaseline: BudgetBaseline;
       status: 'AVAILABLE';
       originalBudget: string;
       revisedBudget: string;
@@ -176,6 +178,7 @@ export type ManagementPortfolio = {
       projectsWithStock: number;
     };
     cost: {
+      budgetBaseline: BudgetBaseline;
       originalBudget: string;
       revisedBudget: string;
       committedCost: string;
@@ -324,6 +327,7 @@ export type ManagementReportFilters = {
 };
 
 export type ManagementReport = {
+  budgetBaseline: BudgetBaseline;
   contractVersion: 'V0.8-E';
   project: ManagementProjectSummary['project'];
   asOfDate: string;

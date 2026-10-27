@@ -1286,6 +1286,33 @@ check(
   'Approved Schedule Baseline did not become current.',
 );
 
+// Disposable CI only: observe source absence, a submitted draft, then final approval.
+async function checkBudgetPresence(approved) {
+  const cost = await request(pm, '/projects/' + projectId + '/cost-control');
+  check(cost.data.data.budgetBaseline.original === approved && cost.data.data.budgetBaseline.current === approved,
+    'Cost baseline availability disagrees with final-approved Budget state.');
+  const summary = await request(pm, '/management/projects/' + projectId + '/summary?asOf=2026-10-10&days=14');
+  check(summary.data.data.domains.cost.budgetBaseline.current === approved,
+    'Management summary lost canonical Budget availability.');
+  for (const dimension of ['', '&wbsId=' + rootWbs.data.data.id + '&costCodeId=' + costCode.data.data.id]) {
+    const path = '/management/reports?projectId=' + projectId + '&asOf=2026-10-10&days=14&domain=COST' + dimension;
+    const result = await request(pm, path);
+    for (const metric of ['ORIGINAL_BUDGET', 'REVISED_BUDGET', 'VARIANCE']) {
+      const row = result.data.data.rows.find(row => row.metric === metric);
+      check(row?.status === (approved ? 'AVAILABLE' : 'UNAVAILABLE') && (approved ? row.value !== null : row.value === null),
+        'Budget/variance report availability must distinguish absent or submitted-only Budget from approved Budget.');
+    }
+    const unavailable = await request(pm, path + '&status=UNAVAILABLE');
+    check(unavailable.data.data.rowCount === (approved ? 0 : 3), 'Missing Budget report status filter is inconsistent.');
+    const csv = await request(pm, path.replace('/management/reports?', '/management/reports/export.csv?'), { accept: 'text/csv' });
+    const text = new TextDecoder().decode(csv.data);
+    check(approved ? text.includes('REVISED_BUDGET,Revised budget,AVAILABLE,') : text.includes('REVISED_BUDGET,Revised budget (no approved Budget),UNAVAILABLE,,MONEY,THB'),
+      'Budget CSV does not preserve the authorized report missing-baseline result.');
+  }
+}
+await checkBudgetPresence(false);
+record('V1.2 absent approved Budget: Cost/Management summary, filtered reports and CSV availability');
+
 const projectBoq = await request(
   pm,
   '/budget/projects/' + projectId + '/boq',
@@ -1412,6 +1439,9 @@ await request(
     expected: 403,
   },
 );
+await checkBudgetPresence(false);
+record('V1.2 submitted-only Budget remains unavailable');
+
 const approvedBudget1 = await request(
   checker,
   '/budget/revisions/' + budgetDraft1.data.data.id + '/approve',
@@ -1437,6 +1467,9 @@ check(
     String(budgetSummary1.data.data.current?.total) === '250',
   'Original Budget summary was not derived from the first approved revision.',
 );
+
+await checkBudgetPresence(true);
+record('V1.2 approved Budget enables Budget and variance report values');
 
 const budgetDraft2 = await request(
   pm,

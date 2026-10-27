@@ -791,6 +791,7 @@ export class CostControlService {
       return {
         projectId: project.id,
         baseCurrencyCode: company.baseCurrencyCode,
+        budgetBaseline: { original: budgetSelection.original !== null, current: budgetSelection.current !== null },
         totals: {
           originalBudget,
           revisedBudget,
@@ -1879,6 +1880,7 @@ export class CostControlService {
     return {
       project,
       baseCurrencyCode: company.baseCurrencyCode,
+      budgetBaseline: { original: budgetSelection.original !== null, current: budgetSelection.current !== null },
       filters: {
         wbs: dimensions.selectedWbs,
         costCode: dimensions.selectedCostCode,

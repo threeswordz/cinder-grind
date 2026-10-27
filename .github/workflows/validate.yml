@@ -80,6 +80,9 @@ jobs:
           node --test deploy/uat/validate-isolated.test.mjs
           node --check deploy/uat/v12-local-readback.mjs
           node --test deploy/uat/v12-local-readback.test.mjs
+          node --check deploy/uat/v12-empty-recovery.mjs
+          node --test deploy/uat/v12-empty-recovery.test.mjs
+          node --check deploy/uat/v12-empty-recovery-ci.mjs
       - name: Validate UAT environment template
         run: |
           set -a
@@ -345,8 +348,12 @@ jobs:
         run: pnpm prisma:migrate:deploy
       - name: Verify migration status
         run: pnpm --filter @construction-erp/api exec prisma migrate status
+      - name: Run V1.2-C empty UAT capture and disposable container restore
+        run: node deploy/uat/v12-empty-recovery-ci.mjs
       - name: Validate workspace
         run: node deploy/uat/validate-isolated.mjs --engine docker
+      - name: Verify Budget availability in a real disposable browser
+        run: node deploy/uat/budget-presence-browser.mjs
       - name: Rehearse V1.0-E exact release candidate
         env:
           RC_NON_PRODUCTION_CONFIRMED: YES

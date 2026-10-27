@@ -30,6 +30,7 @@ test('Management Print View uses only the authorized report and print-only layou
     }));
     const report = {
       contractVersion: 'V0.8-E',
+      budgetBaseline: { original: true, current: true },
       project: { id: 'project-test', projectCode: 'UAT-E2-J3-THB-001', projectName: 'Budget & Cost Test' },
       asOfDate: '2026-10-25',
       lookaheadDays: 14,
@@ -81,6 +82,22 @@ test('Management Print View uses only the authorized report and print-only layou
       assert.match(html, /Budget &amp; Cost Test/);
       assert.doesNotMatch(html, /never-print-this-api-path/);
       assert.doesNotMatch(html, /PRINT VIEW|SIGN OUT|Select Project|CSV export requires/);
+    });
+
+    await t.test('missing Budget warning and unavailable values survive print without claiming approved zero', () => {
+      const html = renderToStaticMarkup(React.createElement(ManagementPrintDocument, { report: {
+        ...report, budgetBaseline: { original: false, current: false }, rowCount: 1,
+        rows: [{ ...rows[0], metric: 'ORIGINAL_BUDGET', label: 'Original budget (no approved Budget)', status: 'UNAVAILABLE', value: null }],
+      } }));
+      assert.match(html, /No approved Budget/);
+      assert.match(html, /UNAVAILABLE/);
+      assert.match(html, /Unavailable/);
+      assert.doesNotMatch(html, /THB 0|THB 1000|never-print-this-api-path/);
+      const zero = renderToStaticMarkup(React.createElement(ManagementPrintDocument, { report: {
+        ...report, rowCount: 1, rows: [{ ...rows[0], value: '0' }],
+      } }));
+      assert.match(zero, /THB 0/);
+      assert.doesNotMatch(zero, /No approved Budget/);
     });
 
     await t.test('empty result and unknown currency keep truthful values', () => {

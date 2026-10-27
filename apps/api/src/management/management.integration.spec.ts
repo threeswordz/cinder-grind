@@ -38,6 +38,8 @@ function managementReportFixture(
   projectName = 'Management Project',
   periodCashFlowCurrency = 'SGD',
   dimensionCostCurrency = 'SGD',
+  budgetBaseline = { original: true, current: true },
+  budgetValue?: string,
 ) {
   let receivedCostFilters: Record<string, string> | null = null;
   let receivedCashPeriod:
@@ -99,6 +101,7 @@ function managementReportFixture(
           projectName,
         },
         baseCurrencyCode: filtered ? dimensionCostCurrency : 'SGD',
+        budgetBaseline,
         filters: {
           wbs: filters.wbsId
             ? {
@@ -117,8 +120,8 @@ function managementReportFixture(
           wbsIncludesDescendants: Boolean(filters.wbsId),
         },
         totals: {
-          originalBudget: decimal(filtered ? '500' : '1000'),
-          revisedBudget: decimal(filtered ? '600' : '1200'),
+          originalBudget: decimal(budgetValue ?? (filtered ? '500' : '1000')),
+          revisedBudget: decimal(budgetValue ?? (filtered ? '600' : '1200')),
           committedCost: {
             procurement: decimal('200'),
             subcontract: decimal('300'),
@@ -337,6 +340,7 @@ test('V0.8-A Project summary composes aggregate-only canonical source contracts'
     projectCostControl: async () => ({
       project: { id: 'project-1' },
       baseCurrencyCode: 'SGD',
+      budgetBaseline: { original: true, current: true },
       totals: {
         originalBudget: decimal('1000.00'),
         revisedBudget: decimal('1200.00'),
@@ -386,6 +390,7 @@ test('V0.8-A Project summary composes aggregate-only canonical source contracts'
   const cashFlow = {
     projectCashFlow: async () => ({
       baseCurrencyCode: 'SGD',
+      budgetBaseline: { original: true, current: true },
       totals: {
         inflowAmount: decimal('650.00'),
         outflowAmount: decimal('90.00'),
@@ -654,6 +659,7 @@ test('V0.8-C Portfolio uses bounded canonical source reads and exposes source si
   const costRow = (projectId: string, forecastCost: string, variance: string, forecastProfit: string) => ({
     projectId,
     baseCurrencyCode: 'SGD',
+    budgetBaseline: { original: true, current: true },
     totals: {
       originalBudget: decimal('1000'),
       revisedBudget: decimal('1200'),
@@ -678,10 +684,11 @@ test('V0.8-C Portfolio uses bounded canonical source reads and exposes source si
     },
   });
 
+  let secondBudgetAvailable = true;
   const costControl = {
     portfolioProjectTotals: async () => [
       costRow('project-1', '600', '600', '1000'),
-      costRow('project-2', '1300', '-100', '-25'),
+      { ...costRow('project-2', '1300', '-100', '-25'), budgetBaseline: { original: secondBudgetAvailable, current: secondBudgetAvailable } },
     ],
     projectCostControl: async () => {
       throw new Error('portfolio must not fan out through projectCostControl');
@@ -781,6 +788,13 @@ test('V0.8-C Portfolio uses bounded canonical source reads and exposes source si
   assert.equal(result.boundaries.overallHealthSeverityPolicyApproved, false);
   assert.equal(result.deferredToLaterStages.domainDashboards, false);
   assert.equal(result.deferredToLaterStages.reportingExport, false);
+  assert.deepEqual(result.totals.cost.budgetBaseline, { original: true, current: true });
+  secondBudgetAvailable = false;
+  const partial = await service.portfolio(auth(['management.portfolio.view']), { asOf: new Date('2026-10-04'), days: 14 });
+  assert.deepEqual(partial.totals.cost.budgetBaseline, { original: false, current: false });
+  assert.equal(partial.projects[0]?.domains.cost.budgetBaseline.current, true);
+  assert.equal(partial.projects[1]?.domains.cost.budgetBaseline.current, false);
+  assert.equal(partial.totals.cost.forecastCost, result.totals.cost.forecastCost);
   const serializedPortfolio = JSON.stringify(result);
   assert.equal(serializedPortfolio.includes('sourceEvidence'), false);
   assert.equal(serializedPortfolio.includes('generalRemarks'), false);
@@ -1103,4 +1117,45 @@ test('V0.8-E CSV neutralizes spreadsheet formulas while preserving numeric value
     csv,
     /COST,REVISED_BUDGET,Revised budget,AVAILABLE,1200,MONEY,SGD/,
   );
+});
+
+
+test('V1.2 absent Budget is unavailable in Management summaries/reports/CSV; approved zero stays available', async () => {
+  for (const baseline of [
+    { original: false, current: false },
+    { original: true, current: true },
+    { original: false, current: true },
+  ]) {
+    const fixture = managementReportFixture('Budget presence', 'SGD', 'SGD', baseline, '0');
+    const actor = auth(['management.dashboard.view', 'management.report.export']);
+    const options = { asOf: new Date('2026-10-10'), days: 14 as const, domain: 'COST' as const };
+    const summary = await fixture.service.projectSummary(actor, 'project-1', options);
+    assert.deepEqual(summary.domains.cost.budgetBaseline, baseline);
+    // Canonical arithmetic is preserved; availability never comes from numeric zero.
+    assert.equal(summary.domains.cost.originalBudget, '0');
+    for (const filter of [{}, { costCodeId: '22222222-2222-4222-8222-222222222222' }]) {
+      const report = await fixture.service.projectReport(actor, 'project-1', { ...options, ...filter });
+      assert.deepEqual(report.budgetBaseline, baseline);
+      for (const [metric, available] of [
+        ['ORIGINAL_BUDGET', baseline.original], ['REVISED_BUDGET', baseline.current], ['VARIANCE', baseline.current],
+      ] as const) {
+        const row = report.rows.find(row => row.metric === metric)!;
+        assert.equal(row.status, available ? 'AVAILABLE' : 'UNAVAILABLE');
+        if (available && metric !== 'VARIANCE') assert.equal(row.value, '0');
+        if (!available) {
+          assert.equal(row.value, null);
+          assert.match(row.label, /no approved Budget/);
+          assert.equal(row.sourceViewAvailable, false);
+        }
+      }
+      const committed = report.rows.find(row => row.metric === 'COMMITTED_COST')!;
+      assert.equal(committed.status, 'AVAILABLE');
+      assert.equal(committed.value, 'costCodeId' in filter ? '250' : '500');
+      const unavailable = await fixture.service.projectReport(actor, 'project-1', { ...options, ...filter, status: 'UNAVAILABLE' });
+      assert.equal(unavailable.rowCount, Number(!baseline.original) + 2 * Number(!baseline.current));
+      const csv = await fixture.service.projectReportCsv(actor, 'project-1', { ...options, ...filter });
+      if (!baseline.current) assert.match(csv, /COST,REVISED_BUDGET,Revised budget \(no approved Budget\),UNAVAILABLE,,MONEY,SGD/);
+      else assert.match(csv, /COST,REVISED_BUDGET,Revised budget,AVAILABLE,0,MONEY,SGD/);
+    }
+  }
 });
