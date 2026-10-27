@@ -5,7 +5,7 @@ import { mkdtemp, mkdir, writeFile, readFile, rm, symlink, chmod } from 'node:fs
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { createPlan, capture, readSource, loadContext, assertEmptyStorage, assertOffline, assertOwnedTarget,
-  candidate, retainedSourceId, runProcess, cleanEnvironment } from './v12-empty-recovery.mjs';
+  candidate, retainedSourceId, runProcess, cleanEnvironment, canonicalSchemaObjects } from './v12-empty-recovery.mjs';
 
 async function fixture(t, fault) {
   const home = await mkdtemp(path.join(tmpdir(), 'v12-recovery-test-'));
@@ -185,4 +185,18 @@ for (const fault of ['restore', 'restored-metadata', 'fingerprint', 'cleanup']) 
   };
   await assert.rejects(restore(f.context, f.plan, set, { run }), fault === 'restore' ? /RECOVERY_COMMAND_FAILED/ : fault === 'cleanup' ? /OWNED_TARGET_CLEANUP_FAILED/ : /RESTORED_/);
   assert.equal(removed, true);
+});
+
+
+test('observed PostgreSQL varchar literal-array round trip preserves exact checks and validation', () => {
+  const source = "CHECK (((state)::text = ANY ((ARRAY['DRAFT'::character varying, 'SUBMITTED'::character varying])::text[])))";
+  const restored = "CHECK (((state)::text = ANY (ARRAY[('DRAFT'::character varying)::text, ('SUBMITTED'::character varying)::text])))";
+  const entry = (definition, validated = true) => [{ kind: 'constraint', key: 'full.constraint.name', definition: { definition, validated } }];
+  assert.deepEqual(canonicalSchemaObjects(entry(source)), canonicalSchemaObjects(entry(restored)));
+  assert.notDeepEqual(canonicalSchemaObjects(entry(source)), canonicalSchemaObjects(entry(restored.replace('DRAFT', 'OTHER'))));
+  assert.notDeepEqual(canonicalSchemaObjects(entry(source)), canonicalSchemaObjects(entry(restored, false)));
+  const bounded = source.replaceAll('character varying', 'character varying(2)');
+  assert.deepEqual(canonicalSchemaObjects(entry(bounded)), entry(bounded));
+  const expression = source.replace("'DRAFT'::character varying", "lower('DRAFT'::character varying)");
+  assert.deepEqual(canonicalSchemaObjects(entry(expression)), entry(expression));
 });

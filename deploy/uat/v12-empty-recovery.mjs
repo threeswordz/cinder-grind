@@ -209,7 +209,7 @@ async function query(source, sql, run) {
 // pg_restore legitimately assigns new OIDs/reorders dependency-safe statements.
 export const schemaEvidenceSQL = `
 WITH objects(kind,key,definition) AS (
-  SELECT 'relation',c.relname,jsonb_build_object('kind',c.relkind,'persistence',c.relpersistence,
+  SELECT 'relation',c.relname::text,jsonb_build_object('kind',c.relkind,'persistence',c.relpersistence,
     'rowSecurity',c.relrowsecurity,'forceRowSecurity',c.relforcerowsecurity,'options',c.reloptions)
   FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind IN ('r','p','v','m','S')
   UNION ALL
@@ -247,6 +247,18 @@ WITH objects(kind,key,definition) AS (
 )
 SELECT coalesce(jsonb_agg(jsonb_build_object('kind',kind,'key',key,'definition',definition) ORDER BY kind,key,definition),'[]') FROM objects;`;
 
+// pg_dump round-trips an unbounded varchar literal array cast to text[] as
+// the same individual literals cast to text. Normalize only that exact form;
+// preserve every literal, order, validation flag and all other expressions.
+export function canonicalSchemaObjects(objects) {
+  const literal = "'(?:''|[^'])*'::character varying";
+  const array = new RegExp("\\(ARRAY\\[(" + literal + "(?:, " + literal + ")*)\\]\\)::text\\[\\]", 'g');
+  return objects.map(object => object.kind !== 'constraint' || !object.definition?.definition?.startsWith('CHECK ') ? object : {
+    ...object, definition: { ...object.definition, definition: object.definition.definition.replace(array, (_, values) =>
+      'ARRAY[' + [...values.matchAll(new RegExp(literal, 'g'))].map(match => '(' + match[0] + ')::text').join(', ') + ']') },
+  });
+}
+
 export async function databaseEvidence(source, run = runProcess) {
   const tables = await query(source, `SELECT coalesce(json_agg(tablename ORDER BY tablename),'[]') FROM pg_tables WHERE schemaname='public';`, run);
   safe(tables.length > 0 && tables.includes('_prisma_migrations') && tables.includes('documents'), 'SOURCE_SCHEMA_MISSING');
@@ -258,7 +270,7 @@ export async function databaseEvidence(source, run = runProcess) {
   const rows = await query(source, `SELECT json_agg(evidence ORDER BY evidence->>'table') FROM (${pieces.join(' UNION ALL ')}) all_tables;`, run);
   const sequences = await query(source, `SELECT coalesce(jsonb_agg(to_jsonb(s) ORDER BY sequencename),'[]') FROM (SELECT schemaname,sequencename,data_type::text,start_value::text,min_value::text,max_value::text,increment_by::text,cycle,cache_size::text,last_value::text FROM pg_sequences WHERE schemaname='public') s;`, run);
   const migrations = await query(source, `SELECT coalesce(json_agg(json_build_object('name',migration_name,'checksum',checksum,'finished',finished_at IS NOT NULL,'rolledBack',rolled_back_at IS NOT NULL) ORDER BY migration_name),'[]') FROM public._prisma_migrations;`, run);
-  const schemaObjects = await query(source, schemaEvidenceSQL, run);
+  const schemaObjects = canonicalSchemaObjects(await query(source, schemaEvidenceSQL, run));
   safe(Array.isArray(schemaObjects) && schemaObjects.length > 0, 'SCHEMA_EVIDENCE_MISSING');
   return { schema: 'v12-database-evidence-v1', tables: rows, sequences, migrations,
     schemaObjects, schemaHash: digest(schemaObjects) };
