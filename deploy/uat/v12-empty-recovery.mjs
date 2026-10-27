@@ -253,9 +253,16 @@ SELECT coalesce(jsonb_agg(jsonb_build_object('kind',kind,'key',key,'definition',
 export function canonicalSchemaObjects(objects) {
   const literal = "'(?:''|[^'])*'::character varying";
   const array = new RegExp("\\(ARRAY\\[(" + literal + "(?:, " + literal + ")*)\\]\\)::text\\[\\]", 'g');
-  return objects.map(object => object.kind !== 'constraint' || !object.definition?.definition?.startsWith('CHECK ') ? object : {
-    ...object, definition: { ...object.definition, definition: object.definition.definition.replace(array, (_, values) =>
-      'ARRAY[' + [...values.matchAll(new RegExp(literal, 'g'))].map(match => '(' + match[0] + ')::text').join(', ') + ']') },
+  const grouped = "CHECK ((((sequence_no >= 1) AND (sequence_no <= 999)) AND ((work_order_number)::text = ('WO-'::text || lpad((sequence_no)::text, 3, '0'::text)))))";
+  const flat = "CHECK (((sequence_no >= 1) AND (sequence_no <= 999) AND ((work_order_number)::text = ('WO-'::text || lpad((sequence_no)::text, 3, '0'::text)))))";
+  return objects.map(object => {
+    if (!['constraint', 'index'].includes(object.kind) || typeof object.definition?.definition !== 'string') return object;
+    let definition = object.definition.definition.replace(array, (_, values) =>
+      'ARRAY[' + [...values.matchAll(new RegExp(literal, 'g'))].map(match => '(' + match[0] + ')::text').join(', ') + ']');
+    // This exact scalar work-order CHECK is also flattened by PostgreSQL's
+    // boolean reparse. No general parentheses/operator rewriting is allowed.
+    if (object.kind === 'constraint' && object.key === 'subcontract_work_orders.work_orders_number_check' && definition === grouped) definition = flat;
+    return { ...object, definition: { ...object.definition, definition } };
   });
 }
 

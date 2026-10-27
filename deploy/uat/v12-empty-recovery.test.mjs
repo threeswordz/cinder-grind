@@ -200,3 +200,19 @@ test('observed PostgreSQL varchar literal-array round trip preserves exact check
   const expression = source.replace("'DRAFT'::character varying", "lower('DRAFT'::character varying)");
   assert.deepEqual(canonicalSchemaObjects(entry(expression)), entry(expression));
 });
+
+
+test('known scalar Work Order conjunction round trip preserves every bound and operator', () => {
+  const source = "CHECK ((((sequence_no >= 1) AND (sequence_no <= 999)) AND ((work_order_number)::text = ('WO-'::text || lpad((sequence_no)::text, 3, '0'::text)))))";
+  const restored = "CHECK (((sequence_no >= 1) AND (sequence_no <= 999) AND ((work_order_number)::text = ('WO-'::text || lpad((sequence_no)::text, 3, '0'::text)))))";
+  const entry = definition => [{ kind: 'constraint', key: 'subcontract_work_orders.work_orders_number_check', definition: { definition, validated: true } }];
+  assert.deepEqual(canonicalSchemaObjects(entry(source)), canonicalSchemaObjects(entry(restored)));
+  for (const changed of [restored.replace('999', '998'), restored.replace('>= 1', '> 1'), restored.replace("'WO-'", "'OTHER-'"), restored.replace('3,', '4,')]) {
+    assert.notDeepEqual(canonicalSchemaObjects(entry(source)), canonicalSchemaObjects(entry(changed)));
+  }
+  const index = definition => [{ kind: 'index', key: 'index', definition: { definition: 'CREATE UNIQUE INDEX idx WHERE ' + definition } }];
+  const arraySource = "(state = ANY ((ARRAY['DRAFT'::character varying])::text[]))";
+  const arrayRestored = "(state = ANY (ARRAY[('DRAFT'::character varying)::text]))";
+  assert.deepEqual(canonicalSchemaObjects(index(arraySource)), canonicalSchemaObjects(index(arrayRestored)));
+  assert.notDeepEqual(canonicalSchemaObjects(index(arraySource)), canonicalSchemaObjects(index(arrayRestored.replace('DRAFT', 'APPROVED'))));
+});
