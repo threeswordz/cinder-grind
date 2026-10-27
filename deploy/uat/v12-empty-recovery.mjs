@@ -205,6 +205,48 @@ async function query(source, sql, run) {
     '--no-psqlrc', '--no-password', '--quiet', '--tuples-only', '--no-align', '--set=ON_ERROR_STOP=1', '--command', sql], { env: source.env }));
 }
 
+// Stable logical definitions, excluding catalog OIDs and dump emission order.
+// pg_restore legitimately assigns new OIDs/reorders dependency-safe statements.
+export const schemaEvidenceSQL = `
+WITH objects(kind,key,definition) AS (
+  SELECT 'relation',c.relname,jsonb_build_object('kind',c.relkind,'persistence',c.relpersistence,
+    'rowSecurity',c.relrowsecurity,'forceRowSecurity',c.relforcerowsecurity,'options',c.reloptions)
+  FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind IN ('r','p','v','m','S')
+  UNION ALL
+  SELECT 'column',c.relname||'.'||a.attname,jsonb_build_object('position',row_number() OVER (PARTITION BY c.oid ORDER BY a.attnum),
+    'type',format_type(a.atttypid,a.atttypmod),'notNull',a.attnotnull,'identity',a.attidentity,'generated',a.attgenerated,
+    'default',pg_get_expr(d.adbin,d.adrelid),'collation',co.collname)
+  FROM pg_attribute a JOIN pg_class c ON c.oid=a.attrelid JOIN pg_namespace n ON n.oid=c.relnamespace
+    LEFT JOIN pg_attrdef d ON d.adrelid=a.attrelid AND d.adnum=a.attnum LEFT JOIN pg_collation co ON co.oid=a.attcollation
+  WHERE n.nspname='public' AND c.relkind IN ('r','p','v','m') AND a.attnum>0 AND NOT a.attisdropped
+  UNION ALL
+  SELECT 'constraint',CASE WHEN con.conrelid<>0 THEN con.conrelid::regclass::text ELSE con.contypid::regtype::text END||'.'||con.conname,
+    jsonb_build_object('definition',pg_get_constraintdef(con.oid),'validated',con.convalidated)
+  FROM pg_constraint con JOIN pg_namespace n ON n.oid=con.connamespace WHERE n.nspname='public'
+  UNION ALL
+  SELECT 'index',c.relname,jsonb_build_object('definition',pg_get_indexdef(i.indexrelid),'valid',i.indisvalid,
+    'ready',i.indisready,'replicaIdentity',i.indisreplident)
+  FROM pg_index i JOIN pg_class c ON c.oid=i.indexrelid JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public'
+  UNION ALL
+  SELECT 'routine',p.proname||'('||pg_get_function_identity_arguments(p.oid)||')',to_jsonb(pg_get_functiondef(p.oid))
+  FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public' AND p.prokind IN ('f','p','w')
+  UNION ALL
+  SELECT 'trigger',c.relname||'.'||t.tgname,jsonb_build_object('definition',pg_get_triggerdef(t.oid),'enabled',t.tgenabled)
+  FROM pg_trigger t JOIN pg_class c ON c.oid=t.tgrelid JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND NOT t.tgisinternal
+  UNION ALL
+  SELECT 'enum',t.typname,jsonb_agg(e.enumlabel ORDER BY e.enumsortorder)
+  FROM pg_type t JOIN pg_namespace n ON n.oid=t.typnamespace JOIN pg_enum e ON e.enumtypid=t.oid WHERE n.nspname='public' GROUP BY t.typname
+  UNION ALL
+  SELECT 'domain',t.typname,jsonb_build_object('type',format_type(t.typbasetype,t.typtypmod),'notNull',t.typnotnull,'default',t.typdefault)
+  FROM pg_type t JOIN pg_namespace n ON n.oid=t.typnamespace WHERE n.nspname='public' AND t.typtype='d'
+  UNION ALL
+  SELECT 'view',c.relname,to_jsonb(pg_get_viewdef(c.oid)) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+  WHERE n.nspname='public' AND c.relkind IN ('v','m')
+  UNION ALL
+  SELECT 'policy',tablename||'.'||policyname,to_jsonb(p) FROM pg_policies p WHERE schemaname='public'
+)
+SELECT coalesce(jsonb_agg(jsonb_build_object('kind',kind,'key',key,'definition',definition) ORDER BY kind,key,definition),'[]') FROM objects;`;
+
 export async function databaseEvidence(source, run = runProcess) {
   const tables = await query(source, `SELECT coalesce(json_agg(tablename ORDER BY tablename),'[]') FROM pg_tables WHERE schemaname='public';`, run);
   safe(tables.length > 0 && tables.includes('_prisma_migrations') && tables.includes('documents'), 'SOURCE_SCHEMA_MISSING');
@@ -214,14 +256,12 @@ export async function databaseEvidence(source, run = runProcess) {
     return `SELECT json_build_object('table','${name}','rows',count(*),'hash',encode(sha256(convert_to(coalesce(string_agg(h,'' ORDER BY h),''),'UTF8')),'hex')) AS evidence FROM (SELECT encode(sha256(convert_to(to_jsonb(t)::text,'UTF8')),'hex') h FROM public.${quote(name)} t) rows`;
   });
   const rows = await query(source, `SELECT json_agg(evidence ORDER BY evidence->>'table') FROM (${pieces.join(' UNION ALL ')}) all_tables;`, run);
-  const sequences = await query(source, `SELECT coalesce(jsonb_agg(to_jsonb(s) ORDER BY sequencename),'[]') FROM (SELECT schemaname,sequencename,start_value::text,min_value::text,max_value::text,increment_by::text,cycle,cache_size::text,last_value::text FROM pg_sequences WHERE schemaname='public') s;`, run);
+  const sequences = await query(source, `SELECT coalesce(jsonb_agg(to_jsonb(s) ORDER BY sequencename),'[]') FROM (SELECT schemaname,sequencename,data_type::text,start_value::text,min_value::text,max_value::text,increment_by::text,cycle,cache_size::text,last_value::text FROM pg_sequences WHERE schemaname='public') s;`, run);
   const migrations = await query(source, `SELECT coalesce(json_agg(json_build_object('name',migration_name,'checksum',checksum,'finished',finished_at IS NOT NULL,'rolledBack',rolled_back_at IS NOT NULL) ORDER BY migration_name),'[]') FROM public._prisma_migrations;`, run);
-  const schema = await checked(run, 'podman', [...source.prefix, 'pg_dump', ...source.connection,
-    '--no-password', '--schema-only', '--no-owner', '--no-privileges', '--no-tablespaces'], { env: source.env });
-  // PG17.11 emits random psql restrict keys. Ignore these and comments only.
-  const canonicalSchema = schema.split('\n').filter(line => !/^(--|\\(?:un)?restrict\b)/.test(line)).join('\n');
+  const schemaObjects = await query(source, schemaEvidenceSQL, run);
+  safe(Array.isArray(schemaObjects) && schemaObjects.length > 0, 'SCHEMA_EVIDENCE_MISSING');
   return { schema: 'v12-database-evidence-v1', tables: rows, sequences, migrations,
-    schemaHash: createHash('sha256').update(canonicalSchema).digest('hex') };
+    schemaHash: digest(schemaObjects) };
 }
 
 async function verifyMigrations(context, evidence) {

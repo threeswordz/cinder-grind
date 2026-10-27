@@ -151,7 +151,7 @@ for (const fault of ['restore', 'restored-metadata', 'fingerprint', 'cleanup']) 
   await mkdir(path.join(f.retained, 'apps/api/prisma/migrations'), { recursive: true });
   const set = path.join(f.root, 'set'); await mkdir(set, { mode: 0o700 });
   const baseline = { schema: 'v12-database-evidence-v1', tables: [], sequences: [], migrations: [],
-    schemaHash: createHash('sha256').update('schema SQL').digest('hex') };
+    schemaHash: createHash('sha256').update(JSON.stringify([{ kind: 'relation', key: 'documents' }])).digest('hex') };
   await writeFile(path.join(set, 'source-evidence.json'), JSON.stringify(baseline));
   await writeFile(path.join(set, 'database.dump'), 'mock dump');
   await runProcess('tar', ['-czf', path.join(set, 'documents.tar.gz'), '-C', f.storage, '.']);
@@ -176,10 +176,10 @@ for (const fault of ['restore', 'restored-metadata', 'fingerprint', 'cleanup']) 
       HostConfig: { NetworkMode: 'none', Tmpfs: { '/var/lib/postgresql/data': 'rw' } }, Mounts: [], NetworkSettings: { Ports: {} } }]) };
     if (args[0] === 'rm') { assert.deepEqual(args, ['rm', '--force', targetId]); removed = true; return { code: fault === 'cleanup' ? 1 : 0, stdout: '' }; }
     if (args.includes('pg_restore')) return { code: fault === 'restore' ? 1 : 0, stdout: '' };
-    if (args.includes('pg_dump')) return { code: 0, stdout: fault === 'fingerprint' ? 'changed SQL' : 'schema SQL' };
+
     if (args.includes('pg_isready')) return { code: 0, stdout: '' };
     const sql = args[args.indexOf('--command') + 1];
-    const data = sql.includes('pg_class') ? true : sql.includes('pg_tables') ? ['_prisma_migrations', 'documents'] :
+    const data = sql.includes('WITH objects') ? (fault === 'fingerprint' ? [{ kind: 'changed' }] : [{ kind: 'relation', key: 'documents' }]) : sql.includes('pg_class') ? true : sql.includes('pg_tables') ? ['_prisma_migrations', 'documents'] :
       sql.includes('count(*) FROM public.documents') ? (fault === 'restored-metadata' ? 1 : 0) : [];
     return { code: 0, stdout: JSON.stringify(data) };
   };

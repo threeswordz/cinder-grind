@@ -85,12 +85,29 @@ try {
   assert.equal(evidence.status, 'EMPTY_STORE_RESTORE_PASS');
   assert.equal(evidence.cleanup, 'PASS');
   assert.equal(evidence.uploadedDocumentBytes, 'NOT_TESTED_EMPTY_STORE');
+  // Actual post-restore schema/content tampering must still fail the comparisons.
+  for (const [kind, sql, expected] of [
+    ['schema', 'ALTER TABLE public.documents ADD COLUMN recovery_tamper TEXT;', /SCHEMAHASH/],
+    ['row', "UPDATE public.companies SET company_name='Unexpected target change';", /TABLES/],
+  ]) {
+    const tamperedRun = async (cmd, args, options) => {
+      const result = await run(cmd, args, options);
+      if (cmd === 'podman' && args.includes('pg_restore') && result.code === 0) {
+        const targetId = args[args.indexOf('--interactive') + 1];
+        assert.notEqual(targetId, id);
+        await command('docker', ['exec', targetId, 'psql', '-U', 'erp_restore', '-d', 'erp_restore', '--set=ON_ERROR_STOP=1', '--command', sql]);
+      }
+      return result;
+    };
+    await assert.rejects(restore(context, plan, set, { run: tamperedRun }), expected);
+    console.log('V12_RECOVERY_CI_' + kind.toUpperCase() + '_TAMPER_REFUSED');
+  }
   // An actual byte corruption must refuse before creating any target container.
   const dump = await open(path.join(set, 'database.dump'), 'r+');
   try { await dump.write(Buffer.from('bad'), 0, 3, 0); } finally { await dump.close(); }
   await assert.rejects(restore(context, plan, set, { run }));
   console.log(JSON.stringify({ regression: 'V12_EMPTY_CAPTURE_RESTORE_PASS',
-    connectedClientRefusal: 'PASS', corruptDumpRefusal: 'PASS', ...evidence }));
+    connectedClientRefusal: 'PASS', schemaTamperRefusal: 'PASS', rowTamperRefusal: 'PASS', corruptDumpRefusal: 'PASS', ...evidence }));
 } finally {
   if (id) {
     const [info] = JSON.parse(await command('docker', ['container', 'inspect', id]));
