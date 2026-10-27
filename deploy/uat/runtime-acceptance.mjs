@@ -1341,12 +1341,17 @@ async function checkMissingApprovedBudget(stage) {
       evidence.recordsVisible === true && Array.isArray(evidence.records) && evidence.records.length === 0,
     `${stage}: zero aggregation must retain empty approved-source evidence.`);
   }
+  // Raw source aggregates may be zero, but an absent approved Budget is not
+  // a real zero Budget. The reporting layer must expose its unavailability.
+  check(cost.budgetBaseline.original === false && cost.budgetBaseline.current === false,
+    `${stage}: unapproved BOQ/draft must not establish a Budget baseline.`);
   const report = (await request(pm,
     `/management/reports?projectId=${projectId}&asOf=2026-10-10&days=14&domain=COST`)).data.data;
   for (const metric of ['ORIGINAL_BUDGET', 'REVISED_BUDGET']) {
     const rows = report.rows.filter((row) => row.metric === metric);
-    check(rows.length === 1 && rows[0].value === '0' && report.baseCurrencyCode === OPERATING_CURRENCY,
-      `${stage}: Management must not substitute the unapproved working BOQ/draft for approved Budget totals.`);
+    check(rows.length === 1 && rows[0].status === 'UNAVAILABLE' && rows[0].value === null &&
+      report.baseCurrencyCode === OPERATING_CURRENCY,
+      `${stage}: an unapproved working BOQ/draft cannot become an available Budget total.`);
   }
 }
 
