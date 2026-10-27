@@ -77,6 +77,9 @@ jobs:
           node --test deploy/uat/e2-readiness.test.mjs
           node --check deploy/uat/validate-isolated.mjs
           node --test deploy/uat/validate-isolated.test.mjs
+          node --check deploy/uat/v12-empty-recovery.mjs
+          node --test deploy/uat/v12-empty-recovery.test.mjs
+          node --check deploy/uat/v12-empty-recovery-ci.mjs
       - name: Validate UAT environment template
         run: |
           set -a
@@ -491,6 +494,8 @@ jobs:
           BENCHMARK_CONCURRENCY=2 \
           node apps/api/scripts/v1-0-d-benchmark.mjs | tee /tmp/v1-0-d-benchmark.json
           grep -q '"benchmark":"v1.0-d-representative-capacity"' /tmp/v1-0-d-benchmark.json
+      - name: Run V1.2-C empty UAT capture and disposable container restore
+        run: node deploy/uat/v12-empty-recovery-ci.mjs
       - name: Run V1.0-B paired recovery and isolated restore drill
         run: |
           set -euo pipefail

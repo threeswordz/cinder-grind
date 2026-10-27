@@ -146,3 +146,7 @@ Use `deploy/recovery/RECOVERY-EVIDENCE-TEMPLATE.md`.
 ## 6. Open-source / zero-cost-first
 
 The baseline uses PostgreSQL-native `pg_dump` / `pg_restore`, ordinary filesystem archives, Node.js and shell tooling. No managed backup service, cloud provider or paid storage product is required.
+
+## Empty retained V12 UAT
+
+The Production entry points above must not be repointed at UAT or supplied a fabricated storage sentinel. The bounded [V1.2-C empty-store procedure](../../docs/V1.2-C-EMPTY-RECOVERY.md) uses container clients, explicit zero-file/zero-LOCAL-row evidence and new disposable restore resources. Its separate CI/review gates precede Mac execution; it does not prove uploaded-byte recovery or human acceptance.

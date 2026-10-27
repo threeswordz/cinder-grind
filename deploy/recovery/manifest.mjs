@@ -3,7 +3,7 @@ import {
   chmodSync,
   createReadStream,
   readFileSync,
-  statSync,
+  lstatSync,
   writeFileSync,
 } from 'node:fs';
 import path from 'node:path';
@@ -39,11 +39,11 @@ async function artifact(setDir, name) {
   const target = path.join(setDir, name);
   let stat;
   try {
-    stat = statSync(target);
+    stat = lstatSync(target);
   } catch {
     fail(`missing recovery artifact: ${name}`);
   }
-  if (!stat.isFile()) fail(`recovery artifact is not a regular file: ${name}`);
+  if (!stat.isFile() || stat.isSymbolicLink() || stat.nlink !== 1) fail(`recovery artifact is not a regular file: ${name}`);
   return { file: name, bytes: stat.size, sha256: await sha256(target) };
 }
 
@@ -71,14 +71,20 @@ if (command === 'create') {
       schema: databaseUrl.searchParams.get('schema') || 'public',
     },
     documentFileCount: Number(required('RECOVERY_DOCUMENT_FILE_COUNT')),
+    ...(process.env.RECOVERY_EMPTY_LOCAL_STORE ? { emptyLocalStore: process.env.RECOVERY_EMPTY_LOCAL_STORE,
+      sourceEvidenceHash: createHash('sha256').update(JSON.stringify(JSON.parse(readFileSync(path.join(setDir, 'source-evidence.json'), 'utf8')))).digest('hex') } : {}),
     artifacts: {
       database: await artifact(setDir, 'database.dump'),
       documents: await artifact(setDir, 'documents.tar.gz'),
     },
   };
 
-  if (!Number.isSafeInteger(manifest.documentFileCount) || manifest.documentFileCount < 1) {
-    fail('RECOVERY_DOCUMENT_FILE_COUNT must be at least 1');
+  if (!Number.isSafeInteger(manifest.documentFileCount) || manifest.documentFileCount < 0) {
+    fail('RECOVERY_DOCUMENT_FILE_COUNT must be a nonnegative integer');
+  }
+
+  if (manifest.documentFileCount === 0 && manifest.emptyLocalStore !== 'uat-empty-local-v1') {
+    fail('zero files require explicit UAT empty LOCAL store evidence');
   }
 
   writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n', { flag: 'wx', mode: 0o600 });
@@ -95,6 +101,14 @@ if (command === 'verify') {
     fail(`unable to read manifest.json: ${error instanceof Error ? error.message : String(error)}`);
   }
 
+  if (!Number.isSafeInteger(manifest.documentFileCount) || manifest.documentFileCount < 0) fail('invalid documentFileCount');
+  if (manifest.documentFileCount === 0 && (manifest.emptyLocalStore !== 'uat-empty-local-v1' || !/^[a-f0-9]{64}$/.test(manifest.sourceEvidenceHash ?? ''))) fail('missing explicit empty UAT evidence');
+  if (manifest.emptyLocalStore === 'uat-empty-local-v1') {
+    let sourceEvidence;
+    try { sourceEvidence = JSON.parse(readFileSync(path.join(setDir, 'source-evidence.json'), 'utf8')); } catch { fail('source evidence is missing or invalid'); }
+    if (createHash('sha256').update(JSON.stringify(sourceEvidence)).digest('hex') !== manifest.sourceEvidenceHash) fail('source evidence does not match manifest');
+  }
+  if (manifest.emptyLocalStore && manifest.documentFileCount !== 0) fail('empty evidence conflicts with file count');
   if (manifest.version !== 1) fail('unsupported manifest version');
   if (!/^[0-9a-f]{40}$/i.test(manifest.releaseCommit ?? '')) fail('manifest releaseCommit is invalid');
   if (!/^[A-Za-z0-9][A-Za-z0-9._-]{2,63}$/.test(manifest.storageDeploymentId ?? '')) fail('manifest storageDeploymentId is invalid');
