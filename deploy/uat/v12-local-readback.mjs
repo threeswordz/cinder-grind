@@ -82,7 +82,12 @@ export function assertRecord(row, record, companyId) {
       record.kind === 'workOrder' ? row.approvalInstance?.actions?.findLast((a) => a.action === 'APPROVE')?.actionByUserId :
       row.approvedByUserId;
     assert.ok(uuid.test(row.createdByUserId) && uuid.test(row.submittedByUserId) && uuid.test(checker));
-    assert.notEqual(checker, row.submittedByUserId);
+    // Match the maker passed to ApprovalService by each owning service.
+    // assessClaim requires an authorized assessor, but no identity separation.
+    if (record.kind !== 'claim') {
+      const maker = record.kind === 'workOrder' ? row.submittedByUserId : row.createdByUserId;
+      assert.notEqual(checker, maker);
+    }
   }
 }
 

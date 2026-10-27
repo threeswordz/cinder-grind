@@ -105,8 +105,51 @@ test('retained maker/checker evidence is required for approved Work Order readba
     createdByUserId: maker, submittedByUserId: maker,
     approvalInstance: { actions: [{ action: 'APPROVE', actionByUserId: checker }] } };
   assertRecord(row, record, companyId);
+  // Work Order approval separates the checker from the submitter, not creator.
+  assertRecord({ ...row, createdByUserId: checker }, record, companyId);
   assert.throws(() => assertRecord({ ...row, submittedByUserId: checker }, record, companyId));
   assert.throws(() => assertRecord({ ...row, approvalInstance: null }, record, companyId));
+});
+
+for (const kind of ['certification', 'variation']) {
+  test(kind + ' readback compares the checker with the creator, not the submitter', async () => {
+    const id = randomUUID(), creator = randomUUID(), checker = randomUUID();
+    const expected = { state: 'APPROVED', currencyCode: 'THB', ...(kind === 'certification'
+      ? { certifiedGross: '500', retainedAmount: '25', netCertifiedAmount: '475' }
+      : { valueDelta: '500' }) };
+    const record = { kind, id, projectId, expected };
+    const row = { id, projectId, companyId, ...expected, createdByUserId: creator,
+      submittedByUserId: checker, approvedByUserId: checker };
+    const p = validatePlan({ ...plan(), records: [record] });
+    // These owning services allow a different creator's record to be submitted
+    // and approved by the same checker. They reject creator/checker collisions.
+    assertRecord(row, record, companyId);
+    assert.throws(() => assertRecord({ ...row, approvedByUserId: creator }, record, companyId));
+    assert.throws(() => assertRecord({ ...row, createdByUserId: null }, record, companyId));
+    assert.throws(() => assertRecord({ ...row, approvedByUserId: null }, record, companyId));
+    const result = await run(p, harness({ record: { id, row },
+      permissions: ['budget.revision.view', 'subcontracts.' + kind + '.view'] }));
+    assert.equal(result.checks.find((c) => c.name === kind + ':' + id).status, 'PASS');
+  });
+}
+
+test('Claim assessment readback requires identities without inventing assessor separation', async () => {
+  const id = randomUUID();
+  const record = { kind: 'claim', id, projectId, expected: { state: 'ASSESSED', currencyCode: 'THB',
+    'assessment.state': 'ASSESSED', 'assessment.assessedAmount': '500' } };
+  const row = { id, projectId, companyId, state: 'ASSESSED', currencyCode: 'THB',
+    createdByUserId: actorId, submittedByUserId: actorId,
+    assessment: { state: 'ASSESSED', assessedAmount: '500', assessedByUserId: actorId } };
+  const p = validatePlan({ ...plan(), records: [record] });
+  assertRecord(row, record, companyId);
+  assert.throws(() => assertRecord({ ...row, assessment: { ...row.assessment, assessedByUserId: null } }, record, companyId));
+  const allowed = await run(p, harness({ record: { id, row }, permissions:
+    ['budget.revision.view', 'subcontracts.claim.view', 'subcontracts.assessment.view'] }));
+  assert.equal(allowed.checks.find((c) => c.name === 'claim:' + id).status, 'PASS');
+  const denied = harness({ record: { id, row }, permissions: ['budget.revision.view', 'subcontracts.claim.view'] });
+  const blocked = await run(p, denied);
+  assert.equal(blocked.checks.find((c) => c.name === 'claim:' + id).reason, 'MISSING_EXISTING_READ_PERMISSION');
+  assert.ok(!denied.calls.some((c) => c.path.endsWith('/' + id)));
 });
 
 test('known boundary fixtures require exact denial codes; access_all cannot prove unassigned-Project denial', async () => {
