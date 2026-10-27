@@ -1,6 +1,6 @@
 // Real disposable regression, not a retained-UAT entry point.
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, writeFile, readFile, rm, open } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, readFile, readdir, rm, open } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { randomBytes } from 'node:crypto';
@@ -81,7 +81,21 @@ try {
   console.log('V12_RECOVERY_CI_CAPTURE');
   await capture(context, plan, set, { run });
   console.log('V12_RECOVERY_CI_RESTORE');
-  const evidence = await restore(context, plan, set, { run });
+  let evidence;
+  try { evidence = await restore(context, plan, set, { run }); }
+  catch (error) {
+    const before = JSON.parse(await readFile(path.join(set, 'source-evidence.json'), 'utf8'));
+    for (const name of await readdir(set)) if (name.startsWith('drill-')) {
+      const after = JSON.parse(await readFile(path.join(set, name, 'restored-database-evidence.json'), 'utf8'));
+      const map = new Map(after.schemaObjects.map(o => [o.kind + ':' + o.key, o]));
+      // This CI-created schema contains public repository definitions only.
+      // Never print routine bodies or retained row values.
+      const differences = before.schemaObjects.filter(o => JSON.stringify(o) !== JSON.stringify(map.get(o.kind + ':' + o.key)))
+        .map(o => ({ kind: o.kind, key: o.key, ...(o.kind === 'routine' ? {} : { before: o.definition, after: map.get(o.kind + ':' + o.key)?.definition }) }));
+      console.log('V12_CI_SCHEMA_DIAGNOSTIC ' + JSON.stringify(differences.slice(0, 12)));
+    }
+    throw error;
+  }
   assert.equal(evidence.status, 'EMPTY_STORE_RESTORE_PASS');
   assert.equal(evidence.cleanup, 'PASS');
   assert.equal(evidence.uploadedDocumentBytes, 'NOT_TESTED_EMPTY_STORE');

@@ -150,7 +150,7 @@ for (const fault of ['restore', 'restored-metadata', 'fingerprint', 'cleanup']) 
   const plan = await createPlan(f.context, f.plan, { run: f.run });
   await mkdir(path.join(f.retained, 'apps/api/prisma/migrations'), { recursive: true });
   const set = path.join(f.root, 'set'); await mkdir(set, { mode: 0o700 });
-  const baseline = { schema: 'v12-database-evidence-v1', tables: [], sequences: [], migrations: [],
+  const baseline = { schema: 'v12-database-evidence-v1', tables: [], sequences: [], migrations: [], schemaObjects: [{ kind: 'relation', key: 'documents' }],
     schemaHash: createHash('sha256').update(JSON.stringify([{ kind: 'relation', key: 'documents' }])).digest('hex') };
   await writeFile(path.join(set, 'source-evidence.json'), JSON.stringify(baseline));
   await writeFile(path.join(set, 'database.dump'), 'mock dump');

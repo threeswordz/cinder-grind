@@ -261,7 +261,7 @@ export async function databaseEvidence(source, run = runProcess) {
   const schemaObjects = await query(source, schemaEvidenceSQL, run);
   safe(Array.isArray(schemaObjects) && schemaObjects.length > 0, 'SCHEMA_EVIDENCE_MISSING');
   return { schema: 'v12-database-evidence-v1', tables: rows, sequences, migrations,
-    schemaHash: digest(schemaObjects) };
+    schemaObjects, schemaHash: digest(schemaObjects) };
 }
 
 async function verifyMigrations(context, evidence) {
