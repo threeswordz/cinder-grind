@@ -11,7 +11,7 @@ export async function seedLegacyCorrections(prisma, fixture) {
   await prisma.projectMember.create({ data: { projectId, employeeId: employee.id, projectRole: 'Legacy approver' } });
   const costCode = await prisma.costCode.create({ data: { companyId, costCode: 'LEGACY-COST', costName: 'Legacy source dimension' } });
   const makerRole = await prisma.role.create({ data: { companyId, roleCode: 'LEGACY-MAKER', roleName: 'Disposable legacy maker' } });
-  for (const permissionCode of ['projects.access_all','admin.company.manage','cost.direct_posting.create','cost.direct_posting.submit','cost.variation.create','cost.variation.submit']) {
+  for (const permissionCode of ['projects.access_all','procurement.po.view','budget.revision.view','admin.company.manage','cost.direct_posting.create','cost.direct_posting.submit','cost.variation.create','cost.variation.submit']) {
     const permission = await prisma.permission.findUniqueOrThrow({ where: { permissionCode } });
     await prisma.rolePermission.create({ data: { roleId: makerRole.id, permissionId: permission.id } });
   }

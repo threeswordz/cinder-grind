@@ -246,6 +246,26 @@ test('Project scope and Team/Contact boundaries are enforced in PostgreSQL', asy
     const noProjects = await service.listProjects(unlinkedAuth);
     assert.equal(noProjects.length, 0);
 
+    // A known existing foreign fixture distinguishes Company isolation from a
+    // nonexistent UUID. Even access_all is confined to the actor's Company.
+    const otherStatus = await prisma.statusDefinition.create({ data: {
+      companyId: otherCompany.id, entityType: 'PROJECT',
+      statusCode: 'ACTIVE-' + suffix, statusLabel: 'Active',
+    } });
+    const foreignProject = await prisma.project.create({ data: {
+      companyId: otherCompany.id, customerId: otherCustomer.id,
+      statusDefinitionId: otherStatus.id, projectCode: 'FOREIGN-' + suffix,
+      projectName: 'Known existing foreign Project', contractValue: '500000.00',
+      plannedStartDate: new Date('2026-11-01T00:00:00Z'),
+      plannedCompletionDate: new Date('2027-01-31T00:00:00Z'),
+    } });
+    assert.equal((await prisma.project.findUniqueOrThrow({ where: { id: foreignProject.id } })).companyId, otherCompany.id);
+    for (const actor of [scopedAuth, allAuth]) {
+      await assert.rejects(() => service.getProject(actor, foreignProject.id),
+        (error: unknown) => error instanceof Error && 'status' in error && error.status === 404);
+      assert.ok(!(await service.listProjects(actor)).some(row => row.id === foreignProject.id));
+    }
+
     await assert.rejects(
       () => access.assertAccess(unlinkedAuth, project.id),
       (error: unknown) => error instanceof ForbiddenException,

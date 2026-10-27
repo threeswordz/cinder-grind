@@ -2,7 +2,8 @@ name: Validate Construction ERP
 
 on:
   pull_request:
-    branches: [main]
+    # Keep the full PR gate for the evidence-closure follow-up stacked on #268.
+    branches: [main, 'v1.2-c-uat-coverage']
   push:
     branches: [main, 'v*']
 

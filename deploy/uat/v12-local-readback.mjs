@@ -17,6 +17,7 @@ const kinds = {
   historicalPo: ['procurement/purchase-orders', 'procurement.po.view'],
   historicalBudget: ['budget/revisions', 'budget.revision.view'],
 };
+const checkKinds = ['missingBudget', ...Object.keys(kinds), 'foreignCompany', 'unassignedProject'];
 const own = (object, key) => Object.hasOwn(object, key);
 const fingerprint = (value) => createHash('sha256').update(JSON.stringify(value)).digest('hex');
 const requiredFields = {
@@ -26,12 +27,23 @@ const requiredFields = {
   variation: { state: 'APPROVED', currencyCode: 'THB', valueDelta: undefined },
 };
 
+export function createPlan() {
+  return { schema: 'v12-c-passive-plan-v2', candidate, projectCode: 'V12-THB-001',
+    requestedChecks: ['missingBudget'], records: [], boundaries: [] };
+}
+
 export function validatePlan(plan) {
-  assert.equal(plan.schema, 'v12-c-passive-plan-v1');
+  assert.ok(['v12-c-passive-plan-v1', 'v12-c-passive-plan-v2'].includes(plan.schema));
+  if (plan.schema === 'v12-c-passive-plan-v2') {
+    assert.ok(Array.isArray(plan.requestedChecks) && plan.requestedChecks.length > 0);
+    assert.equal(new Set(plan.requestedChecks).size, plan.requestedChecks.length);
+    assert.ok(plan.requestedChecks.every(kind => checkKinds.includes(kind)));
+  } else assert.ok(!own(plan, 'requestedChecks'), 'Legacy plans cannot change their coverage selection.');
   assert.equal(plan.candidate, candidate);
   assert.equal(plan.projectCode, 'V12-THB-001');
   assert.ok(Array.isArray(plan.records) && Array.isArray(plan.boundaries));
   for (const record of plan.records) {
+    if (plan.schema === 'v12-c-passive-plan-v2') assert.ok(plan.requestedChecks.includes(record.kind), 'Record kind must be selected explicitly.');
     assert.ok(own(kinds, record.kind) && uuid.test(record.id) && uuid.test(record.projectId));
     assert.ok(record.expected && Object.keys(record.expected).length > 0);
     if (requiredFields[record.kind]) {
@@ -54,6 +66,7 @@ export function validatePlan(plan) {
     }
   }
   for (const boundary of plan.boundaries) {
+    if (plan.schema === 'v12-c-passive-plan-v2') assert.ok(plan.requestedChecks.includes(boundary.kind), 'Boundary kind must be selected explicitly.');
     assert.ok(['foreignCompany', 'unassignedProject'].includes(boundary.kind));
     assert.ok(uuid.test(boundary.projectId));
     assert.ok(typeof boundary.fixtureEvidence === 'string' && boundary.fixtureEvidence.trim().length > 0);
@@ -102,11 +115,15 @@ export async function readback(plan, { email, password, fetcher = fetch } = {}) 
   validatePlan(plan);
   assert.ok(email && password, 'Use the hidden-password shell wrapper.');
   const observations = [];
-  const report = { schema: 'v12-c-passive-readback-v1', candidate,
+  const legacy = plan.schema === 'v12-c-passive-plan-v1';
+  const requested = kind => legacy || plan.requestedChecks.includes(kind);
+  const report = { schema: legacy ? 'v12-c-passive-readback-v1' : 'v12-c-passive-readback-v2', candidate,
     candidateEvidence: 'LOCAL_CHECKOUT_ONLY_SERVER_REVISION_NOT_ATTESTED',
     generatedAt: new Date().toISOString(), planHash: fingerprint(plan),
     businessWrites: false, authenticationSessionsUsed: true, ownerUatAcceptance: false,
     productionAuthorized: false, checks: [] };
+  if (!legacy) report.coverage = { scope: 'SELECTED_LOCAL_READBACK_ONLY', requestedChecks: [...plan.requestedChecks],
+    notRequestedChecks: checkKinds.filter(kind => !requested(kind)), notRequestedAreNotPass: true };
   let cookie, csrf;
   async function request(path, method = 'GET', body) {
     assert.ok(safePath(path));
@@ -157,7 +174,7 @@ export async function readback(plan, { email, password, fetcher = fetch } = {}) 
     const project = matches[0];
     assert.ok(uuid.test(project.id));
     report.projectId = project.id;
-    await check('Budget without approved baseline', ['budget.revision.view'], async () => {
+    if (requested('missingBudget')) await check('Budget without approved baseline', ['budget.revision.view'], async () => {
       const summary = present(await request(`/budget/projects/${project.id}/summary`));
       const approved = present(await request(`/budget/projects/${project.id}/approved`));
       assert.equal(summary.projectId, project.id);
@@ -165,7 +182,9 @@ export async function readback(plan, { email, password, fetcher = fetch } = {}) 
       assert.equal(summary.current, null);
       assert.equal(approved, null);
     });
+    else report.checks.push({ name: 'Budget without approved baseline', status: 'NOT_REQUESTED' });
     for (const kind of Object.keys(kinds)) {
+      if (!requested(kind)) { report.checks.push({ name: kind, status: 'NOT_REQUESTED' }); continue; }
       const records = plan.records.filter((record) => record.kind === kind);
       if (!records.length) report.checks.push({ name: kind, status: 'BLOCKED', reason: 'NO_OWNER_IDENTIFIED_RECORD_AND_EXPECTED_VALUES' });
       for (const record of records) await check(kind + ':' + record.id,
@@ -176,6 +195,7 @@ export async function readback(plan, { email, password, fetcher = fetch } = {}) 
       });
     }
     for (const kind of ['foreignCompany', 'unassignedProject']) {
+      if (!requested(kind)) { report.checks.push({ name: kind, status: 'NOT_REQUESTED' }); continue; }
       const fixtures = plan.boundaries.filter((item) => item.kind === kind);
       if (!fixtures.length) report.checks.push({ name: kind, status: 'BLOCKED', reason: 'NO_KNOWN_EXISTING_BOUNDARY_FIXTURE' });
       for (const fixture of fixtures) await check(kind, ['projects.project.view'], async () => {
@@ -207,9 +227,8 @@ export async function readback(plan, { email, password, fetcher = fetch } = {}) 
 async function main(args) {
   const [mode, planFile, checkout, receiptFile] = args;
   if (mode === '--plan' && args.length === 2) {
-    await writeFile(planFile, JSON.stringify({ schema: 'v12-c-passive-plan-v1', candidate,
-      projectCode: 'V12-THB-001', records: [], boundaries: [] }, null, 2) + '\n', { flag: 'wx', mode: 0o600 });
-    console.log('PLAN_CREATED — no network or database access. Add only known existing records; see docs/V1.2-C-AUTOMATION.md.');
+    await writeFile(planFile, JSON.stringify(createPlan(), null, 2) + '\n', { flag: 'wx', mode: 0o600 });
+    console.log('PLAN_CREATED — selected local Budget readback only; no network or database access. Optional checks require explicit selection and existing fixtures; see docs/V1.2-C-AUTOMATION.md.');
     return;
   }
   assert.ok(['--check', '--verify'].includes(mode) && args.length === 4,
@@ -222,7 +241,7 @@ async function main(args) {
   let receipt;
   if (mode === '--verify') {
     prior = JSON.parse(await readFile(receiptFile, 'utf8'));
-    assert.equal(prior.schema, 'v12-c-passive-readback-v1');
+    assert.equal(prior.schema, plan.schema === 'v12-c-passive-plan-v1' ? 'v12-c-passive-readback-v1' : 'v12-c-passive-readback-v2');
     assert.equal(prior.candidate, candidate);
     assert.equal(prior.planHash, fingerprint(plan));
     assert.equal(prior.businessWrites, false);
@@ -239,6 +258,7 @@ async function main(args) {
       assert.equal(prior.companyId, report.companyId);
       assert.equal(prior.projectId, report.projectId);
       assert.deepEqual(report.checks, prior.checks, 'Readback changed since prior receipt.');
+      assert.deepEqual(report.coverage, prior.coverage, 'Readback coverage changed since prior receipt.');
       assert.deepEqual(report.observations, prior.observations, 'HTTP read outcomes changed.');
       console.log(JSON.stringify({ ...report, priorReadbackUnchanged: true }, null, 2));
     } else {

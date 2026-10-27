@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import test from 'node:test';
-import { candidate, validatePlan, readback, assertRecord } from './v12-local-readback.mjs';
+import { candidate, createPlan, validatePlan, readback, assertRecord } from './v12-local-readback.mjs';
 
 const companyId = randomUUID(), projectId = randomUUID(), actorId = randomUUID();
 const plan = () => ({ schema: 'v12-c-passive-plan-v1', candidate, projectCode: 'V12-THB-001', records: [], boundaries: [] });
@@ -184,5 +184,70 @@ test('missing or non-decimal historical amounts cannot pass as preserved money',
   for (const amount of [null, true, 'unknown', '1,205.00']) {
     assert.throws(() => validatePlan({ ...plan(), records: [{ kind: 'historicalPo', id, projectId,
       expected: { currencyCode: null, 'lines.0.amount': amount } }] }));
+  }
+});
+
+
+const selectedPlan = (requestedChecks = ['missingBudget']) => ({
+  ...plan(), schema: 'v12-c-passive-plan-v2', requestedChecks,
+});
+
+test('v2 selected Budget readback passes without inventing eight optional fixture blockers', async () => {
+  const h = harness();
+  assert.deepEqual(createPlan(), selectedPlan());
+  const result = await run(createPlan(), h);
+  assert.equal(result.schema, 'v12-c-passive-readback-v2');
+  assert.equal(result.status, 'PASS');
+  assert.equal(result.checks.filter(c => c.status === 'PASS').length, 1);
+  assert.equal(result.checks.filter(c => c.status === 'NOT_REQUESTED').length, 8);
+  assert.equal(result.checks.some(c => c.status === 'BLOCKED'), false);
+  assert.deepEqual(result.coverage.requestedChecks, ['missingBudget']);
+  assert.equal(result.coverage.scope, 'SELECTED_LOCAL_READBACK_ONLY');
+  assert.equal(result.ownerUatAcceptance, false);
+  assert.equal(result.productionAuthorized, false);
+  assert.equal(result.businessWrites, false);
+  assert.ok(!h.calls.some(c => /subcontracts|purchase-orders|budget\/revisions/.test(c.path)));
+});
+
+test('v2 explicitly requested missing fixtures remain BLOCKED rather than skipped or passed', async () => {
+  for (const kind of ['workOrder','claim','certification','variation','historicalPo','historicalBudget','foreignCompany','unassignedProject']) {
+    const h = harness();
+    const result = await run(selectedPlan([kind]), h);
+    assert.equal(result.status, 'BLOCKED');
+    assert.equal(result.checks.find(c => c.name === kind).status, 'BLOCKED');
+    assert.equal(result.checks.filter(c => c.status === 'NOT_REQUESTED').length, 8);
+    assert.ok(!h.calls.some(c => c.path.includes('/budget/')));
+  }
+});
+
+test('v2 never masks selected data mismatch, missing permission, SYS_ADMIN or logout failure', async () => {
+  for (const [options, expected] of [
+    [{ original: {total:'0'} }, 'FAIL'], [{ permissions:['projects.project.view'] }, 'BLOCKED'],
+    [{ roles:['SYS_ADMIN'] }, 'FAIL'], [{ logoutStatus:403 }, 'FAIL'],
+  ]) assert.equal((await run(selectedPlan(), harness(options))).status, expected);
+});
+
+test('selection is explicit, nonempty and unique; fixtures cannot be silently excluded; legacy plans cannot be downgraded', () => {
+  const id = randomUUID();
+  for (const requestedChecks of [[], ['missingBudget','missingBudget'], ['unknown'], 'missingBudget'])
+    assert.throws(() => validatePlan(selectedPlan(requestedChecks)));
+  assert.throws(() => validatePlan({ ...plan(), requestedChecks:['missingBudget'] }));
+  assert.throws(() => validatePlan({ ...selectedPlan(), records:[{kind:'historicalPo',id,projectId,expected:{currencyCode:'SGD','lines.0.amount':'1'}}] }));
+  assert.throws(() => validatePlan({ ...selectedPlan(), boundaries:[{kind:'foreignCompany',projectId:id,fixtureEvidence:'known receipt'}] }));
+});
+
+
+test('v2 selected existing record executes its checks and cannot hide a mismatched source', async () => {
+  const id = randomUUID(), creator = randomUUID(), checker = randomUUID();
+  const record = { kind:'variation',id,projectId,expected:{state:'APPROVED',currencyCode:'THB',valueDelta:'500'} };
+  const row = { id,projectId,companyId,...record.expected,createdByUserId:creator,submittedByUserId:creator,approvedByUserId:checker };
+  const p = { ...selectedPlan(['variation']), records:[record] };
+  for (const [observed, expected] of [[row,'PASS'],[{...row,valueDelta:'501'},'FAIL'],[{...row,companyId:randomUUID()},'FAIL']]) {
+    const h = harness({record:{id,row:observed},permissions:['subcontracts.variation.view']});
+    const result = await run(p,h);
+    assert.equal(result.status,expected);
+    assert.equal(result.checks.find(c=>c.name==='variation:'+id).status,expected);
+    assert.ok(h.calls.some(c=>c.path==='/subcontracts/variations/'+id));
+    assert.ok(!h.calls.some(c=>c.path.includes('/budget/')));
   }
 });
