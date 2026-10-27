@@ -232,7 +232,10 @@ export type CostControlDimensionMeasures = {
   variance: string;
 };
 
+export type BudgetBaseline = { original: boolean; current: boolean };
+
 export type CostControlReadModel = {
+  budgetBaseline: BudgetBaseline;
   project: {
     id: string;
     projectCode: string;

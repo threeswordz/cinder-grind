@@ -344,6 +344,8 @@ jobs:
         run: pnpm --filter @construction-erp/api exec prisma migrate status
       - name: Validate workspace
         run: node deploy/uat/validate-isolated.mjs --engine docker
+      - name: Verify Budget availability in a real disposable browser
+        run: node deploy/uat/budget-presence-browser.mjs
       - name: Rehearse V1.0-E exact release candidate
         env:
           RC_NON_PRODUCTION_CONFIRMED: YES

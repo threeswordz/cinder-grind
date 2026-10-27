@@ -1,3 +1,4 @@
+import { BudgetBaselineNotice } from '../role-ui/budget-presentation';
 import {
   Alert,
   Button,
@@ -306,6 +307,8 @@ export function ManagementReports({
               </Stack>
             </CardContent>
           </Card>
+
+          {['ALL', 'COST'].includes(report.data.data.filters.domain) ? <BudgetBaselineNotice baseline={report.data.data.budgetBaseline} /> : null}
 
           <TableContainer component={Card} variant="outlined">
             <Table size="small">

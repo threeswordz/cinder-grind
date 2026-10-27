@@ -233,6 +233,7 @@ export class ManagementService {
         },
         cost: {
           status: 'AVAILABLE' as const,
+          budgetBaseline: cost.budgetBaseline,
           originalBudget: this.money(cost.totals.originalBudget),
           revisedBudget: this.money(cost.totals.revisedBudget),
           committedCost: this.money(
@@ -381,6 +382,7 @@ export class ManagementService {
     const cost = dimensionCost
       ? {
           status: 'AVAILABLE' as const,
+          budgetBaseline: dimensionCost.budgetBaseline,
           originalBudget: this.money(dimensionCost.totals.originalBudget),
           revisedBudget: this.money(dimensionCost.totals.revisedBudget),
           committedCost: this.money(
@@ -692,7 +694,12 @@ export class ManagementService {
       ['VARIANCE', 'Variance', cost.variance],
     ];
     for (const [metric, label, value] of costRows) {
-      add('COST', metric, label, 'AVAILABLE', value, 'MONEY');
+      const available = metric === 'ORIGINAL_BUDGET'
+        ? cost.budgetBaseline.original
+        : metric === 'REVISED_BUDGET' || metric === 'VARIANCE'
+          ? cost.budgetBaseline.current : true;
+      add('COST', metric, available ? label : label + ' (no approved Budget)',
+        available ? 'AVAILABLE' : 'UNAVAILABLE', available ? value : null, 'MONEY');
     }
 
     const commercialRows: Array<
@@ -798,6 +805,7 @@ export class ManagementService {
 
     return {
       contractVersion: 'V0.8-E' as const,
+      budgetBaseline: cost.budgetBaseline,
       project: summary.project,
       asOfDate: summary.asOfDate,
       lookaheadDays: summary.lookaheadDays,
@@ -1043,6 +1051,7 @@ export class ManagementService {
           },
           cost: {
             status: 'AVAILABLE' as const,
+            budgetBaseline: cost.budgetBaseline,
             originalBudget:
               cost.totals.originalBudget.toFixed(),
             revisedBudget:
@@ -1210,6 +1219,10 @@ export class ManagementService {
           ).length,
         },
         cost: {
+          budgetBaseline: {
+            original: rows.every(row => row.domains.cost.budgetBaseline.original),
+            current: rows.every(row => row.domains.cost.budgetBaseline.current),
+          },
           originalBudget: this.sumMoney(
             rows.map(
               (row) => row.domains.cost.originalBudget,

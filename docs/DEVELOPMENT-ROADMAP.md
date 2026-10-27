@@ -1,7 +1,7 @@
 # Construction ERP — Development Roadmap
 
 **Document Status:** Development Roadmap Baseline v0.1  
-**Current Phase:** V0.1–V1.1 COMPLETE + ACCEPTED. **V1.2 A/B COMPLETE / C targeted owner UAT NEXT**, #246. DEC-034/#266 records approved future BOQ scope and entry preparation; no successor implementation/entry closure is claimed. [Current State](CURRENT-STATE.md) owns the exact checkpoint. Production remains NOT AUTHORIZED.
+**Current Phase:** V0.1–V1.1 COMPLETE + ACCEPTED. **V1.2 A/B COMPLETE / C targeted owner UAT UNDER VALIDATION**, #246. DEC-034/#266 records approved future BOQ scope and entry preparation; no successor implementation/entry closure is claimed. [Current State](CURRENT-STATE.md) owns the exact checkpoint. Production remains NOT AUTHORIZED.
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1  
@@ -19,7 +19,7 @@ The owner approved the [bounded currency/provenance/schema-assurance scope](V1.2
 |---|---|---|
 | V1.2-A | Entry requirements SYS-009–011, THB-01–10, D12-01–04, Decision Log/current-state/roadmap | **COMPLETE:** #263, main `65857a384005e1734028ffb6945b1077ed3449e5`, exact-main CI SUCCESS / #246 closure receipt. |
 | V1.2-B | Existing-module THB policy, minimum new-root provenance, truthful UI/reports, forward-only schema and bounded upgrade/recovery proof | **COMPLETE:** #264/#265, main `bebffb4a7e3edc019e8a6e88e989fffbcc75d53a`, exact-main CI SUCCESS; #246 closure receipt. |
-| V1.2-C | Targeted affected user UAT, final evidence and separate owner UAT/release-exit acceptance | **NEXT:** actual human acceptance PENDING. [Targeted instructions](V1.2-TARGETED-UAT.md); no Production authorization. |
+| V1.2-C | Targeted affected user UAT, final evidence and separate owner UAT/release-exit acceptance | **UNDER VALIDATION:** actual human acceptance PENDING; preserve existing receipts and [evidence disposition](V1.2-C-EVIDENCE-DISPOSITION.md). [Targeted instructions](V1.2-TARGETED-UAT.md); no Production authorization. |
 
 ## Approved future package — BOQ Disclosure and Linked Customer BOQ Versions (DEC-034)
 
