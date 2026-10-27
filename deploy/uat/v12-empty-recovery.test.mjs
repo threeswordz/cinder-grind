@@ -28,7 +28,7 @@ async function fixture(t, fault) {
     if (args.includes('--version')) return { code: 0, stdout: args[2] + ' (PostgreSQL) 17.11' };
     if (args.includes('pg_dump')) { dumps++; throw Error('Unexpected dump'); }
     assert.ok(args.includes('PGOPTIONS=-c default_transaction_read_only=on'));
-    return { code: 0, stdout: JSON.stringify({ database: 'erp_uat', readOnly: fault === 'readwrite' ? 'off' : 'on', version: 170011,
+    return { code: 0, stdout: JSON.stringify({ database: 'erp_uat', readOnly: fault === 'readwrite' ? 'off' : 'on', version: 170011, systemIdentifier: '1234567890123456789',
       company: fault !== 'company', project: true, localDocuments: fault === 'metadata' ? 1 : 0, otherClients: fault === 'clients' ? 1 : 0 }) };
   };
   const context = await loadContext(retained, { home, run });
@@ -121,4 +121,68 @@ test('empty manifest is explicit, checksum-bound and rejects disguised nonempty 
   manifest.artifacts.documents.sha256 = createHash('sha256').update(bytes).digest('hex');
   await writeFile(path.join(set, 'manifest.json'), JSON.stringify(manifest));
   assert.notEqual((await runProcess('bash', ['deploy/recovery/verify-recovery-set.sh', set])).code, 0);
+});
+
+for (const reason of ['appeared-file', 'appeared-metadata', 'configuration-file']) test('capture rechecks ' + reason + ' after plan', async t => {
+  const f = await fixture(t);
+  await createPlan(f.context, f.plan, { run: f.run });
+  let run = f.run;
+  if (reason === 'appeared-file') await writeFile(path.join(f.storage, 'later-upload'), 'bytes');
+  if (reason === 'appeared-metadata') run = async (cmd, args, options) => {
+    const result = await f.run(cmd, args, options);
+    if (args.includes('--command')) { const data = JSON.parse(result.stdout); data.localDocuments = 1; result.stdout = JSON.stringify(data); }
+    return result;
+  };
+  if (reason === 'configuration-file') {
+    f.context.revalidate = async () => {
+      const latest = await loadContext(f.retained, { home: f.home, run: f.run });
+      assert.equal(latest.configHash, f.context.configHash, 'SOURCE_CONFIGURATION_CHANGED');
+    };
+    await writeFile(path.join(f.retained, 'deploy/uat/.env'), (await readFile(path.join(f.retained, 'deploy/uat/.env'), 'utf8')) + '\n# configuration changed\n');
+  }
+  await assert.rejects(capture(f.context, f.plan, path.join(f.root, 'set'), { run, offline: async () => {} }));
+  assert.equal(f.dumps(), 0);
+});
+
+for (const fault of ['restore', 'restored-metadata', 'fingerprint', 'cleanup']) test('restore failure ' + fault + ' never reports success or removes source', async t => {
+  const { restore } = await import('./v12-empty-recovery.mjs');
+  const f = await fixture(t);
+  const plan = await createPlan(f.context, f.plan, { run: f.run });
+  await mkdir(path.join(f.retained, 'apps/api/prisma/migrations'), { recursive: true });
+  const set = path.join(f.root, 'set'); await mkdir(set, { mode: 0o700 });
+  const baseline = { schema: 'v12-database-evidence-v1', tables: [], sequences: [], migrations: [],
+    schemaHash: createHash('sha256').update('schema SQL').digest('hex') };
+  await writeFile(path.join(set, 'source-evidence.json'), JSON.stringify(baseline));
+  await writeFile(path.join(set, 'database.dump'), 'mock dump');
+  await runProcess('tar', ['-czf', path.join(set, 'documents.tar.gz'), '-C', f.storage, '.']);
+  const env = cleanEnvironment({ DATABASE_URL: 'postgresql://127.0.0.1/erp_uat', RELEASE_COMMIT: candidate,
+    STORAGE_DEPLOYMENT_ID: 'v12uat-' + plan.sourceHash.slice(0, 32), RECOVERY_SET_ID: 'mock-set', RECOVERY_CREATED_AT: new Date().toISOString(),
+    RECOVERY_DOCUMENT_FILE_COUNT: '0', RECOVERY_EMPTY_LOCAL_STORE: 'uat-empty-local-v1', POSTGRES_SERVER_VERSION: '17.11', PG_DUMP_VERSION: '17.11' });
+  assert.equal((await runProcess('node', ['deploy/recovery/manifest.mjs', 'create', set], { env })).code, 0);
+  await writeFile(path.join(set, 'RECOVERY-SET.READY'), 'mock-set\n');
+  const targetId = 'b'.repeat(64);
+  let name, token, removed = false;
+  const run = async (command, args, options) => {
+    if (command !== 'podman') return runProcess(command, args, options);
+    assert.ok(!args.includes(retainedSourceId), 'No target command may address source');
+    assert.ok(!JSON.stringify(options?.env ?? {}).includes('never-print-this'));
+    if (args[0] === 'run') {
+      name = args[args.indexOf('--name') + 1]; token = args[args.indexOf('--label') + 1].split('=')[1];
+      assert.ok(args.includes('--network=none'));
+      return { code: 0, stdout: targetId };
+    }
+    if (args[0] === 'container') return { code: 0, stdout: JSON.stringify([{ Id: targetId, Name: name,
+      Config: { Image: 'docker.io/library/postgres:17.11-alpine', Labels: { 'io.construction-erp.recovery': token } },
+      HostConfig: { NetworkMode: 'none', Tmpfs: { '/var/lib/postgresql/data': 'rw' } }, Mounts: [], NetworkSettings: { Ports: {} } }]) };
+    if (args[0] === 'rm') { assert.deepEqual(args, ['rm', '--force', targetId]); removed = true; return { code: fault === 'cleanup' ? 1 : 0, stdout: '' }; }
+    if (args.includes('pg_restore')) return { code: fault === 'restore' ? 1 : 0, stdout: '' };
+    if (args.includes('pg_dump')) return { code: 0, stdout: fault === 'fingerprint' ? 'changed SQL' : 'schema SQL' };
+    if (args.includes('pg_isready')) return { code: 0, stdout: '' };
+    const sql = args[args.indexOf('--command') + 1];
+    const data = sql.includes('pg_class') ? true : sql.includes('pg_tables') ? ['_prisma_migrations', 'documents'] :
+      sql.includes('count(*) FROM public.documents') ? (fault === 'restored-metadata' ? 1 : 0) : [];
+    return { code: 0, stdout: JSON.stringify(data) };
+  };
+  await assert.rejects(restore(f.context, f.plan, set, { run }), fault === 'restore' ? /RECOVERY_COMMAND_FAILED/ : fault === 'cleanup' ? /OWNED_TARGET_CLEANUP_FAILED/ : /RESTORED_/);
+  assert.equal(removed, true);
 });

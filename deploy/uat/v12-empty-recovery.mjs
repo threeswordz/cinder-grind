@@ -1,4 +1,4 @@
-// Empty-store V12 UAT capture only. No restore, migrations, grants or source writes.
+// Empty-store V12 UAT capture and disposable restore. No retained business writes/grants/migrations.
 import { spawn } from 'node:child_process';
 import { createHash, randomBytes } from 'node:crypto';
 import { mkdir, open, readFile, readdir, lstat, realpath, writeFile, unlink } from 'node:fs/promises';
@@ -85,7 +85,7 @@ export async function readSource(context, run = runProcess) {
   const prefix = ['exec', '--env', 'PGPASSWORD', '--env', 'PGOPTIONS=-c default_transaction_read_only=on', source.id];
   const connection = ['--host=/var/run/postgresql', '--port=5432', '--username', source.user, '--dbname', source.database];
   const sql = `SELECT json_build_object('database',current_database(),'readOnly',current_setting('transaction_read_only'),
-    'version',current_setting('server_version_num')::int,'localDocuments',(SELECT count(*) FROM public.documents WHERE storage_provider='LOCAL'),
+    'version',current_setting('server_version_num')::int,'systemIdentifier',(SELECT system_identifier::text FROM pg_control_system()),'localDocuments',(SELECT count(*) FROM public.documents WHERE storage_provider='LOCAL'),
     'company',EXISTS(SELECT 1 FROM public.companies WHERE company_code='V12UAT'),
     'project',EXISTS(SELECT 1 FROM public.projects p JOIN public.companies c ON c.id=p.company_id WHERE p.id='e30da8b5-315c-4c0f-946b-da56086e646c' AND c.company_code='V12UAT' AND p.project_code='V12-THB-001'),
     'otherClients',(SELECT count(*) FROM pg_stat_activity WHERE pid<>pg_backend_pid() AND backend_type='client backend'));`;
@@ -94,6 +94,8 @@ export async function readSource(context, run = runProcess) {
   safe(observed.database === source.database && observed.readOnly === 'on' && observed.version === 170011 &&
     observed.company === true && observed.project === true, 'SOURCE_DATABASE_MISMATCH');
   safe(observed.localDocuments === 0, 'LOCAL_DOCUMENTS_REQUIRE_BYTES');
+  safe(/^[0-9]+$/.test(observed.systemIdentifier ?? ''), 'SOURCE_SYSTEM_IDENTITY');
+  source.systemIdentifier = observed.systemIdentifier;
   await assertEmptyStorage(context.storage);
   return { source, observed, env, prefix, connection };
 }
@@ -211,8 +213,8 @@ export async function databaseEvidence(source, run = runProcess) {
     safe(/^[A-Za-z_][A-Za-z0-9_]*$/.test(name), 'UNSUPPORTED_TABLE_NAME');
     return `SELECT json_build_object('table','${name}','rows',count(*),'hash',encode(sha256(convert_to(coalesce(string_agg(h,'' ORDER BY h),''),'UTF8')),'hex')) AS evidence FROM (SELECT encode(sha256(convert_to(to_jsonb(t)::text,'UTF8')),'hex') h FROM public.${quote(name)} t) rows`;
   });
-  const rows = await query(source, `SELECT json_agg(evidence) FROM (${pieces.join(' UNION ALL ')}) all_tables;`, run);
-  const sequences = await query(source, `SELECT coalesce(jsonb_agg(to_jsonb(s) ORDER BY sequencename),'[]') FROM (SELECT schemaname,sequencename,start_value,min_value,max_value,increment_by,cycle,cache_size,last_value FROM pg_sequences WHERE schemaname='public') s;`, run);
+  const rows = await query(source, `SELECT json_agg(evidence ORDER BY evidence->>'table') FROM (${pieces.join(' UNION ALL ')}) all_tables;`, run);
+  const sequences = await query(source, `SELECT coalesce(jsonb_agg(to_jsonb(s) ORDER BY sequencename),'[]') FROM (SELECT schemaname,sequencename,start_value::text,min_value::text,max_value::text,increment_by::text,cycle,cache_size::text,last_value::text FROM pg_sequences WHERE schemaname='public') s;`, run);
   const migrations = await query(source, `SELECT coalesce(json_agg(json_build_object('name',migration_name,'checksum',checksum,'finished',finished_at IS NOT NULL,'rolledBack',rolled_back_at IS NOT NULL) ORDER BY migration_name),'[]') FROM public._prisma_migrations;`, run);
   const schema = await checked(run, 'podman', [...source.prefix, 'pg_dump', ...source.connection,
     '--no-password', '--schema-only', '--no-owner', '--no-privileges', '--no-tablespaces'], { env: source.env });
@@ -276,6 +278,8 @@ export async function restore(context, planFile, setDir, { run = runProcess, sle
   let failure;
   await writeFile(evidenceFile, JSON.stringify(evidence, null, 2) + '\n', { flag: 'wx', mode: 0o600 });
   try {
+    evidence.disposableContainer = { name, token };
+    await writeFile(evidenceFile, JSON.stringify(evidence, null, 2) + '\n', { mode: 0o600 });
     const env = cleanEnvironment({ POSTGRES_PASSWORD: randomBytes(32).toString('hex') });
     // No published ports, networks, existing volumes, host mounts or retained credentials.
     id = (await checked(run, 'podman', ['run', '--detach', '--name', name,
@@ -288,13 +292,13 @@ export async function restore(context, planFile, setDir, { run = runProcess, sle
     await assertOwnedTarget(id, name, token, run);
     let ready = false;
     for (let n = 0; n < 60; n++) {
-      if ((await run('podman', ['exec', id, 'pg_isready', '-U', 'erp_restore', '-d', 'erp_restore'], { env: cleanEnvironment() })).code === 0) { ready = true; break; }
+      if ((await run('podman', ['exec', id, 'pg_isready', '--host=127.0.0.1', '-U', 'erp_restore', '-d', 'erp_restore'], { env: cleanEnvironment() })).code === 0) { ready = true; break; }
       await sleep(500);
     }
     safe(ready, 'RESTORE_DATABASE_NOT_READY');
     const restored = { prefix: ['exec', '--env', 'PGOPTIONS=-c default_transaction_read_only=on', id],
       connection: ['--host=/var/run/postgresql', '--port=5432', '--username', 'erp_restore', '--dbname', 'erp_restore'], env: cleanEnvironment() };
-    const empty = await query(restored, `SELECT (SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname NOT IN ('pg_catalog','information_schema') AND n.nspname NOT LIKE 'pg_toast%')=0;`, run);
+    const empty = await query(restored, `SELECT to_json((SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname NOT IN ('pg_catalog','information_schema') AND n.nspname NOT LIKE 'pg_toast%')=0);`, run);
     safe(empty === true, 'RESTORE_DATABASE_NOT_EMPTY');
     await assertOwnedTarget(id, name, token, run);
     const dump = await open(path.join(target, 'database.dump'), 'r');

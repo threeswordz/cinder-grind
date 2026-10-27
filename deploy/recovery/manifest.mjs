@@ -87,6 +87,8 @@ if (command === 'create') {
     fail('zero files require explicit UAT empty LOCAL store evidence');
   }
 
+  if (manifest.emptyLocalStore && (manifest.emptyLocalStore !== 'uat-empty-local-v1' || manifest.documentFileCount !== 0)) fail('empty evidence conflicts with file count');
+
   writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n', { flag: 'wx', mode: 0o600 });
   chmodSync(manifestPath, 0o600);
   process.stdout.write(`${manifest.recoverySetId}\n`);

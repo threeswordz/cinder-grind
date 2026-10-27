@@ -35,7 +35,7 @@ try {
   const port = info.NetworkSettings.Ports['5432/tcp'][0].HostPort;
   let ready = false;
   for (let n = 0; n < 60; n++) {
-    if ((await run('docker', ['exec', id, 'pg_isready', '-U', 'erp_uat', '-d', 'erp_uat'])).code === 0) { ready = true; break; }
+    if ((await run('docker', ['exec', id, 'pg_isready', '--host=127.0.0.1', '-U', 'erp_uat', '-d', 'erp_uat'])).code === 0) { ready = true; break; }
     await new Promise(resolve => setTimeout(resolve, 500));
   }
   assert.ok(ready, 'CI_SOURCE_NOT_READY');
@@ -78,7 +78,9 @@ try {
       "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE query='SELECT pg_sleep(30);' AND pid<>pg_backend_pid();"]);
     if (client.exitCode === null) await new Promise(resolve => client.once('exit', resolve));
   }
+  console.log('V12_RECOVERY_CI_CAPTURE');
   await capture(context, plan, set, { run });
+  console.log('V12_RECOVERY_CI_RESTORE');
   const evidence = await restore(context, plan, set, { run });
   assert.equal(evidence.status, 'EMPTY_STORE_RESTORE_PASS');
   assert.equal(evidence.cleanup, 'PASS');
