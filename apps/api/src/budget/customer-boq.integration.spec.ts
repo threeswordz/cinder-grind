@@ -1,0 +1,191 @@
+import assert from 'node:assert/strict';
+import { randomUUID } from 'node:crypto';
+import test from 'node:test';
+
+import { ConflictException, ForbiddenException, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
+
+import { NumberSequenceService } from '../administration/number-sequence.service';
+import { ApprovalService } from '../approval/approval.service';
+import { AuditService } from '../audit/audit.service';
+import { AuthenticatedUserContext } from '../auth/auth.types';
+import { AuthorizationService } from '../authorization/authorization.service';
+import { ProjectScopeService } from '../authorization/project-scope.service';
+import { PrismaService } from '../prisma/prisma.service';
+import { ProjectAccessService } from '../projects/project-access.service';
+import { BudgetService } from './budget.service';
+import { CustomerBoqDraft, CustomerBoqService } from './customer-boq.service';
+
+// Disposable database only: the normal registered suite/upgrade rehearsal supplies DATABASE_URL.
+// No grant seeds, person-name checks, public routes or retained fixtures are used.
+async function fixture(db: PrismaService) {
+  const suffix = randomUUID().slice(0, 8);
+  const company = await db.company.create({ data: { companyCode: 'CBQ-' + suffix, companyName: 'Customer BOQ fixture' } });
+  const customer = await db.customer.create({ data: { companyId: company.id, customerCode: 'C', customerName: 'Customer' } });
+  const project = await db.project.create({ data: { companyId: company.id, customerId: customer.id, projectCode: 'P', projectName: 'Project', contractValue: '1000', plannedStartDate: new Date('2026-01-01'), plannedCompletionDate: new Date('2026-12-31') } });
+  const uom = await db.unitOfMeasure.create({ data: { companyId: company.id, uomCode: 'EA', uomName: 'Each', decimalPlaces: 0 } });
+  const codes = ['budget.boq.view', 'budget.revision.view', 'budget.customer.view', 'budget.customer.manage', 'budget.customer.submit', 'budget.customer.approve'];
+  for (const permissionCode of codes) await db.permission.upsert({ where: { permissionCode }, update: {}, create: { permissionCode, moduleCode: 'BUDGET' } });
+  const role = await db.role.create({ data: { companyId: company.id, roleCode: 'COMMERCIAL', roleName: 'Commercial', rolePermissions: { create: codes.map((permissionCode) => ({ permission: { connect: { permissionCode } } })) } } });
+  const actors: AuthenticatedUserContext[] = [];
+  for (let i = 0; i < 4; i++) {
+    const employee = await db.employee.create({ data: { companyId: company.id, employeeCode: 'E' + i, employeeName: 'Actor' } });
+    const user = await db.user.create({ data: { companyId: company.id, employeeId: employee.id, email: suffix + '-' + i + '@example.invalid', displayName: 'Actor', passwordHash: 'not-a-login', userRoles: { create: { companyId: company.id, roleId: role.id } } } });
+    if (i !== 3) await db.projectMember.create({ data: { projectId: project.id, employeeId: employee.id, projectRole: 'Commercial' } });
+    actors.push({ sessionId: randomUUID(), userId: user.id, companyId: company.id, email: user.email, displayName: user.displayName, roleCodes: [role.roleCode], permissions: codes, csrfTokenHash: '' });
+  }
+  const [maker, checker, editor, outsider] = actors as [AuthenticatedUserContext, AuthenticatedUserContext, AuthenticatedUserContext, AuthenticatedUserContext];
+  const access = new ProjectAccessService(db, new ProjectScopeService(new AuthorizationService()));
+  const audit = new AuditService(db), approvals = new ApprovalService(db);
+  const budget = new BudgetService(db, access, audit, approvals, new NumberSequenceService(db));
+  const service = new CustomerBoqService(db, access, audit, approvals);
+  async function workflow(entityType: string) {
+    return db.approvalWorkflow.create({ data: { companyId: company.id, entityType, workflowCode: entityType, workflowName: entityType,
+      steps: { create: { stepNo: 1, stepName: 'Checker', requiredApprovals: 1, stepRoles: { create: { roleId: role.id } } } } } });
+  }
+  await workflow('BUDGET_REVISION'); const wf = await workflow('CUSTOMER_BOQ');
+  await db.numberSequence.create({ data: { companyId: company.id, entityType: 'BUDGET_REVISION', sequenceCode: 'BUDGET_REVISION', formatTemplate: 'CBYY-###', resetRule: 'YEARLY' } });
+  const boq = await budget.createBoq({ auth: maker }, project.id, 'Source');
+  const section = await budget.createSection({ auth: maker }, boq.id, { sectionCode: 'A', sectionName: 'Cost', sortOrder: 0 });
+  await budget.createItem({ auth: maker }, boq.id, { sectionId: section.id, itemCode: 'A1', description: 'Approved cost', quantity: new Prisma.Decimal(10), uomId: uom.id, rate: new Prisma.Decimal(100), sortOrder: 0 });
+  const draft = await budget.createRevisionDraft({ auth: maker }, project.id);
+  await budget.submitRevision({ auth: maker }, draft.id, 'BUDGET_REVISION');
+  const source = await budget.approveRevision({ auth: checker }, draft.id, 'Approved cost');
+  const pending = await budget.createRevisionDraft({ auth: maker }, project.id);
+  const sourceLine = (await db.budgetRevisionLine.findFirstOrThrow({ where: { budgetRevisionId: source.id } }));
+  const lineKey = randomUUID();
+  function input(rate = '120'): CustomerBoqDraft {
+    return { sourceRevisionId: source.id, reason: 'Prepare customer offer', lines: [{ lineId: lineKey, description: 'Customer work', quantity: '10', uomId: uom.id, method: 'MANUAL', manualRate: rate, mappings: [{ sourceLineId: sourceLine.id, sharePercent: '100' }] }] };
+  }
+  return { db, company, project, uom, role, maker, checker, editor, outsider, access, audit, approvals, service, source, pending, sourceLine, input, wf };
+}
+
+test('Customer BOQ persistence uses real scoped grants, immutable history, configured approvals and transaction safety', async (t) => {
+  const db = new PrismaService(); await db.$connect();
+  try {
+    const f = await fixture(db);
+    const foreign = await fixture(db);
+    const { service, maker, checker, editor, project, input } = f;
+    const ctx = { auth: maker }, pid = project.id;
+    const originalSource = await db.budgetRevision.findUniqueOrThrow({ where: { id: f.source.id }, include: { lines: true } });
+    const beforeFinancial = await Promise.all([db.stockTransaction.count(), db.payment.count(), db.directCostPosting.count()]);
+    let version!: Awaited<ReturnType<CustomerBoqService['create']>>;
+    let submitted!: Awaited<ReturnType<CustomerBoqService['submit']>>;
+    let instance!: string;
+
+    await t.test('create stores approved source IDs, exact inputs/results and cost snapshots; receipt discloses no money', async () => {
+      version = await service.create(ctx, pid, randomUUID(), input());
+      assert.deepEqual(Object.keys(version).sort(), ['approvalState', 'editNo', 'id']);
+      const { version: stored } = await service.history(maker, pid, version.id);
+      assert.equal(stored.currencyCode, 'THB'); assert.equal(stored.sourceRevisionId, f.source.id);
+      assert.equal(stored.edits[0]!.totalAmount.toFixed(2), '1200.00');
+      const line = stored.edits[0]!.lines[0]!;
+      assert.equal(line.rate.toFixed(4), '120.0000'); assert.equal(line.mappings[0]!.sourceLineId, f.sourceLine.id);
+      assert.equal(line.mappings[0]!.allocatedCost.toFixed(10), '1000.0000000000');
+      assert.equal((line.mappings[0]!.sourceSnapshot as { amount: string }).amount, '1000.0000');
+    });
+    await t.test('identical concurrent retries return one immutable receipt and create one version/audit', async () => {
+      const request = randomUUID(); const count = await db.customerBoqVersion.count({ where: { projectId: pid } });
+      const results = await Promise.all([service.create(ctx, pid, request, input()), service.create(ctx, pid, request, input())]);
+      assert.deepEqual(results[0], results[1]); assert.equal(await db.customerBoqVersion.count({ where: { projectId: pid } }), count + 1);
+      assert.equal(await db.auditLog.count({ where: { entityType: 'CUSTOMER_BOQ', entityId: results[0]!.id, action: 'CREATE' } }), 1);
+      await assert.rejects(service.create(ctx, pid, request, input('115')), ConflictException);
+    });
+    await t.test('distinct concurrent creates allocate distinct Project version numbers', async () => {
+      const receipts = await Promise.all([service.create(ctx, pid, randomUUID(), input()), service.create(ctx, pid, randomUUID(), input())]);
+      const rows = await db.customerBoqVersion.findMany({ where: { id: { in: receipts.map((r) => r.id) } } });
+      assert.equal(new Set(rows.map((r) => r.versionNo)).size, 2);
+    });
+    await t.test('forged caller roles/permissions, SYS_ADMIN label, unassigned Project and foreign Company cannot read or write', async () => {
+      const fake = { ...f.outsider, permissions: [...maker.permissions, 'projects.access_all'], roleCodes: ['SYS_ADMIN'] };
+      await assert.rejects(service.history(fake, pid, version.id), ForbiddenException);
+      await assert.rejects(service.create({ auth: fake }, pid, randomUUID(), input()), ForbiddenException);
+      await assert.rejects(service.history(foreign.maker, pid, version.id), NotFoundException);
+      await assert.rejects(service.history(maker, foreign.project.id, version.id), NotFoundException);
+    });
+    await t.test('missing/unapproved/cross-scope source and foreign UOM/mapping fail without a partial version or replay', async () => {
+      const count = await db.customerBoqVersion.count({ where: { projectId: pid } });
+      for (const sourceRevisionId of [randomUUID(), f.pending.id, foreign.source.id]) await assert.rejects(service.create(ctx, pid, randomUUID(), { ...input(), sourceRevisionId }), UnprocessableEntityException);
+      const badUom = input(); badUom.lines[0]!.uomId = foreign.uom.id;
+      await assert.rejects(service.create(ctx, pid, randomUUID(), badUom), UnprocessableEntityException);
+      const badMap = input(); badMap.lines[0]!.mappings = [{ sourceLineId: foreign.sourceLine.id, sharePercent: '100' }];
+      await assert.rejects(service.create(ctx, pid, randomUUID(), badMap), UnprocessableEntityException);
+      assert.equal(await db.customerBoqVersion.count({ where: { projectId: pid } }), count);
+    });
+    await t.test('real UOM precision overrides spoofed inputs; integer UOM rejects fraction', async () => {
+      const draft = input(); draft.lines[0]!.quantity = '0.5'; draft.lines[0]!.mappingReason = 'Fractional';
+      Object.assign(draft.lines[0]!, { uomDecimalPlaces: 4, previousRate: '999' });
+      await assert.rejects(service.create(ctx, pid, randomUUID(), draft), UnprocessableEntityException);
+    });
+    await t.test('competing edits have exactly one winner; persisted prior rate and reason are retained', async () => {
+      const outcomes = await Promise.allSettled([service.edit(ctx, pid, randomUUID(), version.id, 1, { ...input('115'), reason: 'Negotiated discount' }),
+        service.edit({ auth: editor }, pid, randomUUID(), version.id, 1, { ...input('110'), reason: 'Other negotiation' })]);
+      assert.equal(outcomes.filter((x) => x.status === 'fulfilled').length, 1);
+      assert.equal(outcomes.filter((x) => x.status === 'rejected' && x.reason instanceof ConflictException).length, 1);
+      const { version: row } = await service.history(maker, pid, version.id);
+      assert.equal(row.edits.length, 2); assert.equal(row.edits[0]!.totalAmount.toFixed(2), '1200.00');
+      const snapshot = row.edits[1]!.lines[0]!.pricingSnapshot as { previousRate: string; pricingReason: string };
+      assert.equal(snapshot.previousRate, '120.0000'); assert.ok(snapshot.pricingReason);
+    });
+    await t.test('audit failure rolls back version, lines, mappings and replay atomically', async () => {
+      class FailingAudit extends AuditService { override async record(): Promise<void> { throw new Error('isolated audit failure'); } }
+      const failing = new CustomerBoqService(db, f.access, new FailingAudit(db), f.approvals);
+      const count = await db.customerBoqVersion.count({ where: { projectId: pid } }); const request = randomUUID();
+      await assert.rejects(failing.create(ctx, pid, request, input()), /isolated audit failure/);
+      assert.equal(await db.customerBoqVersion.count({ where: { projectId: pid } }), count);
+      assert.equal(await db.customerBoqReplay.count({ where: { requestId: request } }), 0);
+    });
+    await t.test('database denies update/delete and append into a retained edit, including before submission', async () => {
+      const edit = await db.customerBoqEdit.findFirstOrThrow({ where: { versionId: version.id, editNo: 1 } });
+      const line = await db.customerBoqLine.findFirstOrThrow({ where: { editId: edit.id } });
+      await assert.rejects(db.customerBoqEdit.update({ where: { id: edit.id }, data: { reason: 'Rewrite' } }), /append-only/);
+      await assert.rejects(db.customerBoqLine.delete({ where: { id: line.id } }), /append-only/);
+      await assert.rejects(db.customerBoqLine.create({ data: { ...line, id: randomUUID(), lineKey: randomUUID(), uomSnapshot: line.uomSnapshot as Prisma.InputJsonValue, pricingSnapshot: line.pricingSnapshot as Prisma.InputJsonValue } }), /retained Customer BOQ edit/);
+      await assert.rejects(db.customerBoqVersion.delete({ where: { id: version.id } }), /cannot be deleted/);
+    });
+    await t.test('submission requires configured workflow; freezes contents; stale instance and self-approval fail', async () => {
+      await assert.rejects(service.submit(ctx, pid, randomUUID(), version.id, 2, 'MISSING'), UnprocessableEntityException);
+      assert.equal((await service.history(maker, pid, version.id)).version.approvalInstanceId, null);
+      submitted = await service.submit(ctx, pid, randomUUID(), version.id, 2, f.wf.workflowCode);
+      instance = (await service.history(maker, pid, version.id)).version.approvalInstanceId!;
+      assert.equal(submitted.approvalState, 'SUBMITTED');
+      await assert.rejects(service.edit(ctx, pid, randomUUID(), version.id, 2, input()), ConflictException);
+      await assert.rejects(service.decide({ auth: checker }, pid, randomUUID(), version.id, randomUUID(), 'APPROVE', 'stale'), ConflictException);
+      await assert.rejects(service.decide(ctx, pid, randomUUID(), version.id, instance, 'APPROVE', 'self'), ForbiddenException);
+    });
+    await t.test('rejection, new edit, resubmission and concurrent approvals preserve old instance/actions and yield one final decision', async () => {
+      await service.decide({ auth: checker }, pid, randomUUID(), version.id, instance, 'REJECT', 'Revise offer');
+      const edit = await service.edit(ctx, pid, randomUUID(), version.id, 2, { ...input('112'), reason: 'Revised offer' });
+      assert.equal(edit.editNo, 3);
+      await service.submit(ctx, pid, randomUUID(), version.id, 3, f.wf.workflowCode);
+      const fresh = (await service.history(maker, pid, version.id)).version.approvalInstanceId!;
+      assert.notEqual(fresh, instance);
+      const outcomes = await Promise.allSettled([service.decide({ auth: checker }, pid, randomUUID(), version.id, fresh, 'APPROVE', 'Approved'), service.decide({ auth: checker }, pid, randomUUID(), version.id, fresh, 'APPROVE', 'Duplicate')]);
+      assert.equal(outcomes.filter((x) => x.status === 'fulfilled').length, 1);
+      const history = await service.history(maker, pid, version.id);
+      assert.equal(history.version.approvalInstance?.approvalState, 'APPROVED');
+      assert.deepEqual(history.approvals.map((a) => a.approvalState).sort(), ['APPROVED', 'REJECTED']);
+      assert.equal(history.approvals.reduce((n, a) => n + a.actions.length, 0), 2);
+      await assert.rejects(service.edit(ctx, pid, randomUUID(), version.id, 3, input()), ConflictException);
+      await assert.rejects(db.customerBoqVersion.update({ where: { id: version.id }, data: { currentEditNo: 4 } }), /immutable/);
+    });
+    await t.test('approved change creates new linked version; earlier history remains byte-for-byte stable', async () => {
+      const before = JSON.stringify(await service.history(maker, pid, version.id));
+      const next = await service.create(ctx, pid, randomUUID(), { ...input('113'), previousVersionId: version.id, reason: 'New commercial revision' });
+      assert.notEqual(next.id, version.id); assert.equal(next.approvalState, 'DRAFT');
+      assert.equal((await service.history(maker, pid, next.id)).version.previousVersionId, version.id);
+      assert.equal(JSON.stringify(await service.history(maker, pid, version.id)), before);
+    });
+    await t.test('revoking a persisted capability denies prior history and replay despite stale caller flags', async () => {
+      const request = randomUUID(); await service.create(ctx, pid, request, input());
+      const permission = await db.permission.findUniqueOrThrow({ where: { permissionCode: 'budget.customer.view' } });
+      await db.rolePermission.delete({ where: { roleId_permissionId: { roleId: f.role.id, permissionId: permission.id } } });
+      await assert.rejects(service.history(maker, pid, version.id), ForbiddenException);
+      await assert.rejects(service.create(ctx, pid, request, input()), ForbiddenException);
+    });
+    await t.test('all operations leave approved source and stock/payment/direct-cost ledgers unchanged', async () => {
+      assert.deepEqual(await db.budgetRevision.findUniqueOrThrow({ where: { id: f.source.id }, include: { lines: true } }), originalSource);
+      assert.deepEqual(await Promise.all([db.stockTransaction.count(), db.payment.count(), db.directCostPosting.count()]), beforeFinancial);
+    });
+  } finally { await db.$disconnect(); }
+});

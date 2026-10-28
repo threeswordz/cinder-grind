@@ -362,7 +362,11 @@ jobs:
           RC_BASE_DATABASE_URL: ${{ env.DATABASE_URL }}
           RC_POSTGRES_TOOL_MODE: docker
           RC_EVIDENCE_FILE: /tmp/v1-0-e-rehearsal.json
-        run: bash deploy/release-candidate/rehearse.sh
+        run: |
+          bash deploy/release-candidate/rehearse.sh
+          RC_PREVIOUS_RELEASE_COMMIT=fc52a867c96a8b3a369b480b9799bad1a5e9f399 \
+            RC_EVIDENCE_FILE=/tmp/v1-3-customer-boq-rehearsal.json \
+            bash deploy/release-candidate/rehearse.sh
       - name: Reset CI state before authenticated recovery fixture
         run: |
           set -euo pipefail
@@ -657,3 +661,13 @@ jobs:
           grep -q '"AC-V10-038": "PASS"' /tmp/v1-0-e-consolidated-evidence.json
           grep -q '"AC-V10-039": "HUMAN_GATE_NOT_COMPLETED"' /tmp/v1-0-e-consolidated-evidence.json
           grep -q '"AC-V10-040": "HUMAN_GATE_NOT_COMPLETED"' /tmp/v1-0-e-consolidated-evidence.json
+          node deploy/release-candidate/verify-evidence.mjs \
+            /tmp/v1-3-customer-boq-rehearsal.json /tmp/v1-0-e-recovery.json \
+            > /tmp/v1-3-customer-boq-consolidated-evidence.json
+          node --input-type=module - <<'NODE'
+          import { readFileSync } from 'node:fs';
+          const data = JSON.parse(readFileSync('/tmp/v1-3-customer-boq-consolidated-evidence.json', 'utf8'));
+          if (data.releaseMode !== 'migration-aware-customer-boq-schema' ||
+              data.rehearsal.previousReleaseCommit !== 'fc52a867c96a8b3a369b480b9799bad1a5e9f399' ||
+              data.rehearsal.customerBoqPersistenceUpgrade !== 'PASS') throw new Error('Actual predecessor Customer BOQ upgrade contract missing.');
+          NODE

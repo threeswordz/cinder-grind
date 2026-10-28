@@ -1,3 +1,4 @@
+import { assertHistoricalTables } from './historical-snapshot.mjs';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -67,7 +68,7 @@ try {
   } else {
     const before = load(snapshotPath);
     const after = await snapshot();
-    assert.deepEqual(after.tables, before.tables, 'Historical business/approval/stock/Finance/audit rows changed');
+    assertHistoricalTables(before.tables, after.tables);
     for (const migration of before.migrations) assert.deepEqual(after.migrations.find((row) => row.migration_name === migration.migration_name), migration, 'Historical migration checksum changed');
     const fixture = load(manifestPath);
     assert.equal((await prisma.purchaseOrder.findUniqueOrThrow({ where: { id: fixture.unknownPoId } })).currencyCode, null);
