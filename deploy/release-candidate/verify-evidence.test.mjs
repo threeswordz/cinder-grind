@@ -69,3 +69,15 @@ test('schema-aware evidence fails closed for missing history/recovery/runtime pr
   policy.thbPolicyUpgrade = 'PASS';
   assert.equal(verify(policy).status, 0);
 });
+
+test('Customer BOQ evidence requires version5, predecessor runtime/restore and executed persistence upgrade', () => {
+  const data = { ...evidence('migration-aware-customer-boq-schema'), version: 5,
+    migrationNames: ['20261028140000_v1_3_customer_boq_versions'], customerBoqPersistenceUpgrade: 'PASS' };
+  delete data.genuineLegacySgdNullFixture; delete data.historicalRowsUnchanged;
+  assert.equal(verify(data).status, 0);
+  for (const key of ['customerBoqPersistenceUpgrade', 'boundedSchemaContract', 'previousRuntimeClientBuild', 'restoredPreviousRuntimeAuthenticationDownload', 'rollbackDocuments']) {
+    const bad = { ...data }; delete bad[key]; assert.notEqual(verify(bad).status, 0, key);
+  }
+  assert.notEqual(verify({ ...data, version: 4 }).status, 0);
+  assert.notEqual(verify({ ...data, migrationNames: [...data.migrationNames, '20261025120000_v1_2_thb_monetary_policy'], thbPolicyUpgrade: 'PASS' }).status, 0);
+});

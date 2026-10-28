@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
 
 // DEC-033 authorizes these four nullable provenance columns and the Company
@@ -9,6 +10,49 @@ export const provenanceFields = {
   SupplierQuotation: ['currencyCode', 'currency_code'],
   QuotationAward: ['currencyCode', 'currency_code'],
 };
+
+// DEC-037/BUD-012-016: exact five-model persistence increment, not a general
+// successor-schema exemption. Any field/relation/type change needs new review.
+const customerModels = {
+  "CustomerBoqVersion": "d94d38e73dd11a6b477eefaf35688c27e81eab55297885053e16c7a54f64a0d2",
+  "CustomerBoqEdit": "dc00b0b27c3315ced8c37d2ff6f367fa6d9acb26ce3851887b309cff28c29974",
+  "CustomerBoqLine": "7d92e3a85a52c8842b0f407eb331280c927d3ceec738fac654fc995e4d1ba529",
+  "CustomerBoqMapping": "dea45a67e083d34609b51a208c591fc185e6951b47f58d238cc2fad36736e39d",
+  "CustomerBoqReplay": "fdfd1d49188f0498e116a1e60f8dff85dfcc6c4c9e24c0a4bfbb1556b1c5c9b0"
+};
+const customerRelations = {
+  Company: ['customerBoqVersions CustomerBoqVersion[]', 'customerBoqReplays CustomerBoqReplay[]'],
+  Project: ['customerBoqVersions CustomerBoqVersion[]'],
+  User: ['createdCustomerBoqVersions CustomerBoqVersion[] @relation("CustomerBoqCreator")',
+    'submittedCustomerBoqVersions CustomerBoqVersion[] @relation("CustomerBoqSubmitter")',
+    'customerBoqEdits CustomerBoqEdit[]', 'customerBoqReplays CustomerBoqReplay[]'],
+  BudgetRevision: ['customerBoqVersions CustomerBoqVersion[]'],
+  BudgetRevisionLine: ['customerBoqMappings CustomerBoqMapping[]'],
+  UnitOfMeasure: ['customerBoqLines CustomerBoqLine[]'],
+  ApprovalInstance: ['customerBoqVersion CustomerBoqVersion?'],
+};
+function stripCustomer(schema) {
+  const models = new Set(), relations = new Set();
+  const stripped = schema.replace(/^model (\w+) \{[\s\S]*?^\}/gm, (block, name) => {
+    if (Object.hasOwn(customerModels, name)) {
+      if (models.has(name) || createHash('sha256').update(block.replace(/\s+/g, ' ')).digest('hex') !== customerModels[name]) {
+        throw new Error('Customer BOQ schema differs from the exact reviewed persistence contract.');
+      }
+      models.add(name); return '';
+    }
+    return block.split('\n').filter((line) => {
+      const normalized = line.trim().replace(/\s+/g, ' ');
+      if (!(customerRelations[name] ?? []).includes(normalized)) return true;
+      const key = name + ':' + normalized;
+      if (relations.has(key)) throw new Error('Duplicate Customer BOQ relation.');
+      relations.add(key); return false;
+    }).join('\n');
+  }).replace('// Independently approved commercial versions; edits and their source links are append-only.', '');
+  if ((models.size && models.size !== 5) || (relations.size && relations.size !== 11) || Boolean(models.size) !== Boolean(relations.size)) {
+    throw new Error('Partial Customer BOQ schema is not supported.');
+  }
+  return { text: stripped, present: models.size === 5 };
+}
 
 function normalize(schema, candidate) {
   let model;
@@ -35,13 +79,16 @@ function normalize(schema, candidate) {
 
 export function classifySchema(previous, candidate) {
   if (previous === candidate) return 'migration-aware-sql-only';
-  const before = normalize(previous, true);
-  const after = normalize(candidate, true);
+  const oldCustomer = stripCustomer(previous);
+  const newCustomer = stripCustomer(candidate);
+  if (oldCustomer.present && !newCustomer.present) throw new Error('Customer BOQ schema removal is prohibited.');
+  const before = normalize(oldCustomer.text, true);
+  const after = normalize(newCustomer.text, true);
   if (before.text !== after.text || after.found.size !== 4 || ![0, 4].includes(before.found.size) ||
       (/baseCurrencyCode\s+String\s+@default\("THB"\)/.test(previous) && /baseCurrencyCode\s+String\s+@default\("SGD"\)/.test(candidate))) {
     throw new Error('Schema change is outside the bounded DEC-033 provenance/default contract.');
   }
-  return 'migration-aware-thb-schema';
+  return newCustomer.present && !oldCustomer.present ? 'migration-aware-customer-boq-schema' : 'migration-aware-thb-schema';
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

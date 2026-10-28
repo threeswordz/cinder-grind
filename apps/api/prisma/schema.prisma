@@ -8,6 +8,9 @@ datasource db {
 }
 
 model Company {
+  customerBoqVersions CustomerBoqVersion[]
+  customerBoqReplays CustomerBoqReplay[]
+
   id               String   @id @default(uuid()) @db.Uuid
   companyCode      String   @unique @map("company_code") @db.VarChar(50)
   companyName      String   @map("company_name") @db.VarChar(200)
@@ -129,6 +132,8 @@ model Supplier {
 }
 
 model UnitOfMeasure {
+  customerBoqLines CustomerBoqLine[]
+
   id            String  @id @default(uuid()) @db.Uuid
   companyId     String  @map("company_id") @db.Uuid
   uomCode       String  @map("uom_code") @db.VarChar(30)
@@ -212,6 +217,11 @@ model Employee {
 }
 
 model User {
+  createdCustomerBoqVersions CustomerBoqVersion[] @relation("CustomerBoqCreator")
+  submittedCustomerBoqVersions CustomerBoqVersion[] @relation("CustomerBoqSubmitter")
+  customerBoqEdits CustomerBoqEdit[]
+  customerBoqReplays CustomerBoqReplay[]
+
   id           String    @id @default(uuid()) @db.Uuid
   companyId    String    @map("company_id") @db.Uuid
   employeeId   String?   @unique @map("employee_id") @db.Uuid
@@ -455,6 +465,8 @@ model ApprovalStepRole {
 }
 
 model ApprovalInstance {
+  customerBoqVersion CustomerBoqVersion?
+
   id                 String    @id @default(uuid()) @db.Uuid
   companyId          String    @map("company_id") @db.Uuid
   approvalWorkflowId String    @map("approval_workflow_id") @db.Uuid
@@ -587,6 +599,8 @@ model SystemSetting {
 
 
 model Project {
+  customerBoqVersions CustomerBoqVersion[]
+
   id                 String   @id @default(uuid()) @db.Uuid
   companyId          String   @map("company_id") @db.Uuid
   projectCode        String   @map("project_code") @db.VarChar(50)
@@ -2123,6 +2137,8 @@ model BoqItem {
 }
 
 model BudgetRevision {
+  customerBoqVersions CustomerBoqVersion[]
+
   id                 String    @id @default(uuid()) @db.Uuid
   companyId          String    @map("company_id") @db.Uuid
   projectId          String    @map("project_id") @db.Uuid
@@ -2151,6 +2167,8 @@ model BudgetRevision {
 }
 
 model BudgetRevisionLine {
+  customerBoqMappings CustomerBoqMapping[]
+
   id               String   @id @default(uuid()) @db.Uuid
   budgetRevisionId String   @map("budget_revision_id") @db.Uuid
   boqItemId        String   @map("boq_item_id") @db.Uuid
@@ -2972,4 +2990,98 @@ model CostActionReplay {
   @@unique([companyId, userId, actionKey])
   @@index([companyId, entityType, entityId])
   @@map("cost_action_replays")
+}
+
+// Independently approved commercial versions; edits and their source links are append-only.
+model CustomerBoqVersion {
+  id String @id @default(uuid()) @db.Uuid
+  companyId String @map("company_id") @db.Uuid
+  projectId String @map("project_id") @db.Uuid
+  versionNo Int @map("version_no")
+  sourceRevisionId String @map("source_revision_id") @db.Uuid
+  previousVersionId String? @map("previous_version_id") @db.Uuid
+  currencyCode String @map("currency_code") @db.VarChar(3)
+  currentEditNo Int @map("current_edit_no")
+  approvalInstanceId String? @unique @map("approval_instance_id") @db.Uuid
+  createdByUserId String @map("created_by_user_id") @db.Uuid
+  submittedByUserId String? @map("submitted_by_user_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  submittedAt DateTime? @map("submitted_at") @db.Timestamptz(6)
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  source BudgetRevision @relation(fields: [sourceRevisionId], references: [id], onDelete: Restrict)
+  previousVersion CustomerBoqVersion? @relation("CustomerBoqPredecessor", fields: [previousVersionId], references: [id], onDelete: Restrict)
+  nextVersions CustomerBoqVersion[] @relation("CustomerBoqPredecessor")
+  approvalInstance ApprovalInstance? @relation(fields: [approvalInstanceId], references: [id], onDelete: Restrict)
+  createdBy User @relation("CustomerBoqCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  submittedBy User? @relation("CustomerBoqSubmitter", fields: [submittedByUserId], references: [id], onDelete: Restrict)
+  edits CustomerBoqEdit[]
+  @@unique([projectId, versionNo])
+  @@index([companyId, projectId])
+  @@map("customer_boq_versions")
+}
+
+model CustomerBoqEdit {
+  id String @id @default(uuid()) @db.Uuid
+  versionId String @map("version_id") @db.Uuid
+  editNo Int @map("edit_no")
+  actorUserId String @map("actor_user_id") @db.Uuid
+  reason String @db.Text
+  totalAmount Decimal @map("total_amount") @db.Decimal(20, 2)
+  sourceCoverage Json @map("source_coverage")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  version CustomerBoqVersion @relation(fields: [versionId], references: [id], onDelete: Restrict)
+  actor User @relation(fields: [actorUserId], references: [id], onDelete: Restrict)
+  lines CustomerBoqLine[]
+  @@unique([versionId, editNo])
+  @@map("customer_boq_edits")
+}
+
+model CustomerBoqLine {
+  id String @id @default(uuid()) @db.Uuid
+  editId String @map("edit_id") @db.Uuid
+  lineKey String @map("line_key") @db.Uuid
+  sortOrder Int @map("sort_order")
+  description String @db.VarChar(500)
+  quantity Decimal @db.Decimal(18, 4)
+  uomId String @map("uom_id") @db.Uuid
+  uomSnapshot Json @map("uom_snapshot")
+  rate Decimal @db.Decimal(18, 4)
+  amount Decimal @db.Decimal(20, 2)
+  // Exact calculation inputs/results include cost basis, rationale and rounding diagnostic.
+  pricingSnapshot Json @map("pricing_snapshot")
+  edit CustomerBoqEdit @relation(fields: [editId], references: [id], onDelete: Restrict)
+  uom UnitOfMeasure @relation(fields: [uomId], references: [id], onDelete: Restrict)
+  mappings CustomerBoqMapping[]
+  @@unique([editId, lineKey])
+  @@map("customer_boq_lines")
+}
+
+model CustomerBoqMapping {
+  id String @id @default(uuid()) @db.Uuid
+  lineId String @map("line_id") @db.Uuid
+  sourceLineId String @map("source_line_id") @db.Uuid
+  sharePercent Decimal @map("share_percent") @db.Decimal(7, 4)
+  allocatedCost Decimal @map("allocated_cost") @db.Decimal(26, 10)
+  sourceSnapshot Json @map("source_snapshot")
+  line CustomerBoqLine @relation(fields: [lineId], references: [id], onDelete: Restrict)
+  sourceLine BudgetRevisionLine @relation(fields: [sourceLineId], references: [id], onDelete: Restrict)
+  @@unique([lineId, sourceLineId])
+  @@map("customer_boq_mappings")
+}
+
+model CustomerBoqReplay {
+  id String @id @default(uuid()) @db.Uuid
+  companyId String @map("company_id") @db.Uuid
+  actorUserId String @map("actor_user_id") @db.Uuid
+  requestId String @map("request_id") @db.Uuid
+  payloadHash String @map("payload_hash") @db.VarChar(64)
+  receipt Json
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  company Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  actor User @relation(fields: [actorUserId], references: [id], onDelete: Restrict)
+  @@unique([companyId, actorUserId, requestId])
+  @@map("customer_boq_replays")
 }

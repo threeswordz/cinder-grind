@@ -47,9 +47,14 @@ if ! git diff --quiet "$RC_PREVIOUS_RELEASE_COMMIT" "$RELEASE_COMMIT" -- apps/ap
   git show "$RC_PREVIOUS_RELEASE_COMMIT:apps/api/prisma/schema.prisma" > "$previous_schema_check"
   if ! schema_mode="$(node "$RC_DIR/schema-contract.mjs" "$previous_schema_check" apps/api/prisma/schema.prisma)"; then
     rm -f "$previous_schema_check"
-    fail "schema evolution is outside the bounded DEC-033 contract"
+    fail "schema evolution is outside the bounded reviewed contracts"
   fi
   rm -f "$previous_schema_check"
+fi
+
+legacy_upgrade=false
+if ! git cat-file -e "$RC_PREVIOUS_RELEASE_COMMIT:apps/api/prisma/migrations/20261025120000_v1_2_thb_monetary_policy/migration.sql" 2>/dev/null; then
+  legacy_upgrade=true
 fi
 
 migration_change_lines=()
@@ -236,7 +241,7 @@ DATABASE_URL="$fresh_url" pnpm prisma:migrate:deploy
 DATABASE_URL="$fresh_url" pnpm --filter @construction-erp/api exec prisma migrate status
 
 echo "[V1.0-E migration-aware] Build exact previous-release schema fixture"
-if [[ "$schema_mode" == "migration-aware-thb-schema" ]]; then
+if [[ "$schema_mode" != "migration-aware-sql-only" ]]; then
   git worktree add --detach "$previous_root" "$RC_PREVIOUS_RELEASE_COMMIT"
   previous_worktree=true
   (
@@ -252,7 +257,7 @@ fi
 previous_schema="$previous_root/apps/api/prisma/schema.prisma"
 [[ -f "$previous_schema" ]] || fail "previous-release Prisma schema archive is missing"
 DATABASE_URL="$upgrade_url" DEPLOYMENT_MODE=fresh node apps/api/scripts/verify-production-target.mjs
-if [[ "$schema_mode" == "migration-aware-thb-schema" ]]; then
+if [[ "$schema_mode" != "migration-aware-sql-only" && "$legacy_upgrade" == true ]]; then
   # Genuine unknown sources are created before the historical provenance
   # migration, then brought through the untouched previous migration chain.
   prefix_prisma="$tmp_root/historical-prisma"
@@ -272,7 +277,7 @@ DATABASE_URL="$upgrade_url" pnpm --filter @construction-erp/api exec prisma migr
 DATABASE_URL="$upgrade_url" pnpm --filter @construction-erp/api exec prisma migrate status --schema "$previous_schema"
 
 bootstrap_root="$REPO_ROOT"
-if [[ "$schema_mode" == "migration-aware-thb-schema" ]]; then bootstrap_root="$previous_root"; fi
+if [[ "$schema_mode" != "migration-aware-sql-only" ]]; then bootstrap_root="$previous_root"; fi
 if [[ ! -f "$bootstrap_root/apps/api/dist/scripts/bootstrap-admin.js" ]]; then pnpm --dir "$bootstrap_root" build:api; fi
 DATABASE_URL="$upgrade_url" \
 BOOTSTRAP_COMPANY_CODE=V10ERC \
@@ -304,8 +309,10 @@ start_previous_runtime() {
   [[ "$ready" == "true" ]] || { cat "$tmp_root/previous-api.log"; fail "previous runtime not healthy"; }
 }
 
-if [[ "$schema_mode" == "migration-aware-thb-schema" ]]; then
-  DATABASE_URL="$upgrade_url" node "$RC_DIR/legacy-fixture.mjs" late "$previous_root" "$tmp_root/legacy.json"
+if [[ "$schema_mode" != "migration-aware-sql-only" ]]; then
+  if [[ "$legacy_upgrade" == true ]]; then
+    DATABASE_URL="$upgrade_url" node "$RC_DIR/legacy-fixture.mjs" late "$previous_root" "$tmp_root/legacy.json"
+  fi
   start_previous_runtime "$upgrade_url" "$storage_root"
   UAT_API_BASE_URL="http://127.0.0.1:$api_port/api/v1" \
     BOOTSTRAP_ADMIN_EMAIL=rc-admin@example.invalid BOOTSTRAP_ADMIN_PASSWORD='Rc-Admin-Password-2026!' \
@@ -314,12 +321,14 @@ if [[ "$schema_mode" == "migration-aware-thb-schema" ]]; then
   wait "$api_pid" 2>/dev/null || true
   api_pid=""
   DATABASE_URL="$upgrade_url" RESTORE_STORAGE_ROOT="$storage_root" node "$previous_root/apps/api/scripts/verify-restored-documents.mjs"
-  DATABASE_URL="$upgrade_url" node "$RC_DIR/legacy-fixture.mjs" snapshot "$previous_root" "$tmp_root/legacy.json" "$tmp_root/legacy-snapshot.json"
+  if [[ "$legacy_upgrade" == true ]]; then
+    DATABASE_URL="$upgrade_url" node "$RC_DIR/legacy-fixture.mjs" snapshot "$previous_root" "$tmp_root/legacy.json" "$tmp_root/legacy-snapshot.json"
+  fi
 fi
 
 recovery_tool_root="$REPO_ROOT"
 recovery_release="$RELEASE_COMMIT"
-if [[ "$schema_mode" == "migration-aware-thb-schema" ]]; then
+if [[ "$schema_mode" != "migration-aware-sql-only" ]]; then
   recovery_tool_root="$previous_root"
   recovery_release="$RC_PREVIOUS_RELEASE_COMMIT"
 fi
@@ -372,10 +381,20 @@ mkdir -p "$tmp_root/uploads"
 echo "[V1.0-E migration-aware] Execute actual Production preparation path"
 PRODUCTION_ENV_FILE="$production_env" bash deploy/production/prepare-release.sh
 
+
+
 candidate_admin_email=rc-admin@example.invalid
-if [[ "$schema_mode" == "migration-aware-thb-schema" ]]; then
+if [[ "$schema_mode" != "migration-aware-sql-only" && "$legacy_upgrade" == true ]]; then
   DATABASE_URL="$upgrade_url" node "$RC_DIR/legacy-fixture.mjs" verify "$previous_root" "$tmp_root/legacy.json" "$tmp_root/legacy-snapshot.json"
   DATABASE_URL="$upgrade_url" ERP_LEGACY_FIXTURE="$tmp_root/legacy.json" node "$RC_DIR/verify-thb-upgrade.mjs"
+fi
+if [[ "$schema_mode" == "migration-aware-customer-boq-schema" ]]; then
+  # Exercise persisted source mappings/replay/approvals on the upgraded database,
+  # using disposable records, before claiming the successor persistence contract.
+  DATABASE_URL="$upgrade_url" node --test apps/api/dist/budget/customer-boq.integration.spec.js
+fi
+
+if [[ "$schema_mode" != "migration-aware-sql-only" ]]; then
   # The acceptance runner deliberately creates Company-unique numbering and
   # approval configuration. Do not rerun it over the retained legacy Company,
   # clear its configuration, or rewrite historical SGD sources for new policy.
@@ -498,8 +517,10 @@ candidate_status=$?
 set -e
 [[ "$candidate_status" -ne 0 ]] || fail "candidate migration status unexpectedly treats pre-upgrade restore as current"
 
-if [[ "$schema_mode" == "migration-aware-thb-schema" ]]; then
-  DATABASE_URL="$rollback_url" node "$RC_DIR/legacy-fixture.mjs" verify "$previous_root" "$tmp_root/legacy.json" "$tmp_root/legacy-snapshot.json"
+if [[ "$schema_mode" != "migration-aware-sql-only" ]]; then
+  if [[ "$legacy_upgrade" == true ]]; then
+    DATABASE_URL="$rollback_url" node "$RC_DIR/legacy-fixture.mjs" verify "$previous_root" "$tmp_root/legacy.json" "$tmp_root/legacy-snapshot.json"
+  fi
   start_previous_runtime "$rollback_url" "$rollback_storage"
   RESTORED_API_BASE_URL="http://127.0.0.1:$api_port/api/v1" DATABASE_URL="$rollback_url" \
     BOOTSTRAP_ADMIN_EMAIL=rc-admin@example.invalid BOOTSTRAP_ADMIN_PASSWORD='Rc-Admin-Password-2026!' \
@@ -536,17 +557,17 @@ trap - EXIT
 node - "$RC_EVIDENCE_FILE" "$RELEASE_COMMIT" "$RC_PREVIOUS_RELEASE_COMMIT" "$RC_ENVIRONMENT" \
   "$recovery_reference" "$git_version" "$node_version" "$pnpm_version" "$postgresql_client_version" "$openssl_version" \
   "$ci_provider" "$ci_workflow" "$ci_workflow_ref" "$ci_run_id" "$ci_run_number" "$ci_run_attempt" \
-  "$ci_job" "$ci_repository" "$migration_list" "$schema_mode" <<'NODE'
+  "$ci_job" "$ci_repository" "$migration_list" "$schema_mode" "$legacy_upgrade" <<'NODE'
 const { writeFileSync } = require('node:fs');
 const [
   path, releaseCommit, previousReleaseCommit, environment, recoveryReference,
   gitVersion, nodeVersion, pnpmVersion, postgresqlClientVersion, opensslVersion,
   ciProvider, ciWorkflow, ciWorkflowRef, ciRunId, ciRunNumber, ciRunAttempt,
-  ciJob, ciRepository, migrationList, schemaMode,
+  ciJob, ciRepository, migrationList, schemaMode, legacyUpgrade,
 ] = process.argv.slice(2);
 const nullable = (value) => value === '' ? null : value;
 writeFileSync(path, JSON.stringify({
-  version: schemaMode === 'migration-aware-thb-schema' ? 4 : 3,
+  version: schemaMode === 'migration-aware-customer-boq-schema' ? 5 : schemaMode === 'migration-aware-thb-schema' ? 4 : 3,
   releaseMode: schemaMode,
   releaseCommit,
   previousReleaseCommit,
@@ -571,15 +592,14 @@ writeFileSync(path, JSON.stringify({
   exactCheckout: 'PASS',
   cleanTree: 'PASS',
   migrationHistoryChanged: 'PASS',
-  ...(schemaMode === 'migration-aware-thb-schema' ? {
+  ...(schemaMode !== 'migration-aware-sql-only' ? {
     boundedSchemaContract: 'PASS',
     previousRuntimeCommit: previousReleaseCommit,
     previousRuntimeClientBuild: 'PASS',
-    genuineLegacySgdNullFixture: 'PASS',
-    historicalRowsUnchanged: 'PASS',
+    ...(legacyUpgrade === 'true' ? { genuineLegacySgdNullFixture: 'PASS', historicalRowsUnchanged: 'PASS', thbPolicyUpgrade: 'PASS' } : {}),
     restoredPreviousRuntimeAuthenticationDownload: 'PASS',
-    thbPolicyUpgrade: 'PASS',
   } : { prismaSchemaUnchanged: 'PASS' }),
+  ...(schemaMode === 'migration-aware-customer-boq-schema' ? { customerBoqPersistenceUpgrade: 'PASS' } : {}),
   forwardOnlyNewMigrations: 'PASS',
   migrationNames: migrationList.split(',').filter(Boolean),
   freshMigration: 'PASS',

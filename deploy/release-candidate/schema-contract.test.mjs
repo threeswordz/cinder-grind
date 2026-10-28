@@ -28,3 +28,22 @@ test('schema classification rejects unrelated/removal/required/defaulted/partial
     candidate + '\nmodel Unapproved {\n id String @id\n}',
   ]) assert.throws(() => classifySchema(previous, invalid));
 });
+
+test('Customer BOQ classifier admits only the exact five new models and parent relations', async () => {
+  const { readFileSync } = await import('node:fs');
+  const current = readFileSync(new URL('../../apps/api/prisma/schema.prisma', import.meta.url), 'utf8');
+  // The real predecessor schema, independently stored by Git, is the baseline.
+  const { execFileSync } = await import('node:child_process');
+  const baseline = execFileSync('git', ['show', 'fc52a867c96a8b3a369b480b9799bad1a5e9f399:apps/api/prisma/schema.prisma'], { encoding: 'utf8' });
+  assert.equal(classifySchema(baseline, current), 'migration-aware-customer-boq-schema');
+  for (const invalid of [
+    current.replace('sharePercent Decimal @map("share_percent") @db.Decimal(7, 4)', 'sharePercent Float'),
+    current.replace('currentEditNo Int @map("current_edit_no")', 'currentEditNo Int @default(1) @map("current_edit_no")'),
+    current.replace('customerBoqVersion CustomerBoqVersion?', ''),
+    current.replace('model CustomerBoqReplay {', 'model OtherReplay {'),
+    current.replace(/baseCurrencyCode\s+String\s+@default\("THB"\)/, 'baseCurrencyCode String @default("USD")'),
+    current.replace(/contractValue\s+Decimal/, 'contractValue Float'),
+    current + '\nmodel Unreviewed {\n id String @id\n}',
+  ]) assert.throws(() => classifySchema(baseline, invalid));
+  assert.throws(() => classifySchema(current, baseline));
+});

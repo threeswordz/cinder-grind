@@ -40,7 +40,10 @@ try {
   }
   assert.ok(ready, 'CI_SOURCE_NOT_READY');
   // Only this new container receives migration/fixture writes.
-  await command('pnpm', ['prisma:migrate:deploy'], { env: cleanEnvironment({
+  // Match this intentionally pinned historical fixture's migration chain exactly.
+  // Current successor migrations are exercised by their own upgrade/recovery gate.
+  await command('pnpm', ['--filter', '@construction-erp/api', 'exec', 'prisma', 'migrate', 'deploy',
+    '--schema', path.join(retained, 'apps/api/prisma/schema.prisma')], { env: cleanEnvironment({
     DATABASE_URL: `postgresql://erp_uat:${token}@127.0.0.1:${port}/erp_uat?schema=public` }) });
   const sql = `INSERT INTO companies(id,company_code,company_name,updated_at) VALUES ('c5d2d5be-0e92-4e97-9038-6c387912d369','V12UAT','Disposable V12 recovery',now());
     INSERT INTO customers(id,company_id,customer_code,customer_name,updated_at) VALUES ('11111111-1111-4111-8111-111111111111','c5d2d5be-0e92-4e97-9038-6c387912d369','RECOVERY-CUSTOMER','Disposable recovery customer',now());

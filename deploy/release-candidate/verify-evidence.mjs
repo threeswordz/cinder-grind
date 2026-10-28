@@ -28,18 +28,24 @@ if (rehearsal.releaseCommit !== expected || recovery.releaseCommit !== expected)
   fail('evidence release SHA does not match the exact workflow commit');
 }
 
-if (['migration-aware-sql-only', 'migration-aware-thb-schema'].includes(rehearsal.releaseMode)) {
-  const schemaAware = rehearsal.releaseMode === 'migration-aware-thb-schema';
-  if (rehearsal.version !== (schemaAware ? 4 : 3)) fail('migration-aware rehearsal evidence schema version does not match its mode');
+if (['migration-aware-sql-only', 'migration-aware-thb-schema', 'migration-aware-customer-boq-schema'].includes(rehearsal.releaseMode)) {
+  const customerSchema = rehearsal.releaseMode === 'migration-aware-customer-boq-schema';
+  const schemaAware = rehearsal.releaseMode !== 'migration-aware-sql-only';
+  if (rehearsal.version !== (customerSchema ? 5 : schemaAware ? 4 : 3)) fail('migration-aware rehearsal evidence schema version does not match its mode');
   if (schemaAware) {
     if (!/^[0-9a-f]{40}$/.test(rehearsal.previousReleaseCommit ?? '') ||
         rehearsal.previousRuntimeCommit !== rehearsal.previousReleaseCommit) {
       fail('restored previous runtime identity does not match the pre-upgrade release');
     }
     for (const key of ['boundedSchemaContract','previousRuntimeClientBuild',
-      'genuineLegacySgdNullFixture','historicalRowsUnchanged',
       'restoredPreviousRuntimeAuthenticationDownload']) {
       if (rehearsal[key] !== 'PASS') fail('schema-aware rehearsal gate ' + key + ' did not PASS');
+    }
+    if (customerSchema && rehearsal.customerBoqPersistenceUpgrade !== 'PASS') fail('Customer BOQ upgrade/persistence proof did not PASS');
+    if (!customerSchema || rehearsal.migrationNames?.some((name) => name.endsWith('_v1_2_thb_monetary_policy'))) {
+      for (const key of ['genuineLegacySgdNullFixture', 'historicalRowsUnchanged']) {
+        if (rehearsal[key] !== 'PASS') fail('historical migration proof ' + key + ' did not PASS');
+      }
     }
     if (rehearsal.migrationNames?.some((name) => name.endsWith('_v1_2_thb_monetary_policy')) && rehearsal.thbPolicyUpgrade !== 'PASS') {
       fail('THB policy upgrade/correction proof did not PASS');
@@ -111,7 +117,7 @@ if (['migration-aware-sql-only', 'migration-aware-thb-schema'].includes(rehearsa
   }
 
   const migrationConsolidated = {
-    version: schemaAware ? 4 : 3,
+    version: customerSchema ? 5 : schemaAware ? 4 : 3,
     releaseMode: rehearsal.releaseMode,
     releaseCommit: expected,
     provenance: {
