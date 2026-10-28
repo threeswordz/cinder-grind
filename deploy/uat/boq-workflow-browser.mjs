@@ -126,15 +126,38 @@ try {
   await vite.listen();
   const address = vite.httpServer.address();
   const url = 'http://127.0.0.1:' + address.port + '/__boq-check';
-  const result = await new Promise((resolve,reject) => {
-    const child = spawn(chrome, ['--headless','--window-size=1440,1000','--no-sandbox','--disable-gpu','--disable-dev-shm-usage','--no-proxy-server','--user-data-dir='+temporary,'--virtual-time-budget=40000','--dump-dom',url], { stdio:['ignore','pipe','pipe'] });
-    let out='',err='';child.stdout.on('data',chunk=>out+=chunk);child.stderr.on('data',chunk=>err+=chunk);
-    const timeout=setTimeout(()=>{child.kill('SIGKILL');reject(new Error('Browser timed out'));},60000);
-    child.on('error',error=>{clearTimeout(timeout);reject(error);});
-    child.on('close',code=>{clearTimeout(timeout);resolve({code,out,err});});
-  });
-  assert.equal(result.code,0,result.err.slice(-2000));
-  const failure=(result.out.match(/data-error="[^"]*"/)??[result.out.slice(-2000)])[0];
-  assert.ok(/data-result="PASS"/.test(result.out),failure);
+  // Drive this disposable Chrome through its own loopback protocol endpoint.
+  // Virtual-time --dump-dom can outrun animation frames used by real print UI.
+  // Real elapsed time preserves React/RAF behavior; no browser API is stubbed.
+  const child=spawn(chrome,['--headless','--window-size=1440,1000','--no-sandbox','--disable-gpu','--disable-dev-shm-usage','--no-proxy-server','--disable-background-timer-throttling','--disable-renderer-backgrounding','--remote-debugging-address=127.0.0.1','--remote-debugging-port=0','--user-data-dir='+temporary,'about:blank'],{stdio:['ignore','ignore','pipe']});
+  let ws;
+  try {
+    const endpoint=await new Promise((resolve,reject)=>{
+      let err='';const timeout=setTimeout(()=>reject(new Error('Disposable Chrome protocol startup timed out')),15000);
+      child.stderr.on('data',chunk=>{err+=chunk;const found=err.match(/DevTools listening on (ws:\/\/[^\s]+)/);if(found){clearTimeout(timeout);resolve(found[1]);}});
+      child.once('error',error=>{clearTimeout(timeout);reject(error);});
+      child.once('close',code=>{clearTimeout(timeout);reject(new Error('Disposable Chrome exited '+code+': '+err.slice(-1000)));});
+    });
+    ws=new WebSocket(endpoint);
+    await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(new Error('Chrome protocol connection timed out')),10000);ws.addEventListener('open',()=>{clearTimeout(timer);resolve();},{once:true});ws.addEventListener('error',()=>{clearTimeout(timer);reject(new Error('Chrome protocol connection failed'));},{once:true});});
+    let sequence=0;const pending=new Map();
+    ws.addEventListener('message',event=>{const message=JSON.parse(event.data);const callback=pending.get(message.id);if(!callback)return;pending.delete(message.id);clearTimeout(callback.timer);if(message.error)callback.reject(new Error(JSON.stringify(message.error)));else callback.resolve(message.result);});
+    const command=(method,params={},sessionId)=>new Promise((resolve,reject)=>{const id=++sequence;const timer=setTimeout(()=>{pending.delete(id);reject(new Error('Chrome protocol timed out: '+method));},10000);pending.set(id,{resolve,reject,timer});ws.send(JSON.stringify({id,method,params,...(sessionId?{sessionId}:{})}));});
+    const target=await command('Target.createTarget',{url:'about:blank'});
+    const {sessionId}=await command('Target.attachToTarget',{targetId:target.targetId,flatten:true});
+    await command('Page.enable',{},sessionId);await command('Runtime.enable',{},sessionId);
+    await command('Page.navigate',{url},sessionId);await command('Page.bringToFront',{},sessionId);
+    const deadline=Date.now()+60000;let state;
+    while(Date.now()<deadline){
+      const read=await command('Runtime.evaluate',{expression:'({result:document.body?.dataset.result,error:document.body?.dataset.error})',returnByValue:true},sessionId);
+      state=read.result?.value;
+      if(state?.result)break;
+      await new Promise(resolve=>setTimeout(resolve,100));
+    }
+    assert.equal(state?.result,'PASS',state?.error??'Actual browser did not finish the workflow');
+  } finally {
+    ws?.close();
+    if(child.exitCode===null){child.kill('SIGTERM');await new Promise(resolve=>{const timer=setTimeout(()=>{child.kill('SIGKILL');resolve();},3000);child.once('close',()=>{clearTimeout(timer);resolve();});});}
+  }
   console.log('BOQ_WORKFLOW_BROWSER_PASS — actual Customer/Quantity UI, exact payload/retry, preview race, stored rounding, submit/checker/history, fresh print/CSV and actual App identity/Company/permission cache replacement; mocked transport only');
 } finally { await vite.close(); await rm(temporary,{recursive:true,force:true}); }
