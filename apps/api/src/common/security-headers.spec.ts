@@ -12,10 +12,15 @@ test('security middleware emits defensive API headers and Production HSTS', () =
     () => { nextCalled = true; },
   );
 
+  assert.equal(headers.get('Cache-Control'), 'private, no-store');
   assert.equal(headers.get('X-Content-Type-Options'), 'nosniff');
   assert.equal(headers.get('X-Frame-Options'), 'DENY');
   assert.equal(headers.get('Referrer-Policy'), 'no-referrer');
   assert.equal(headers.get('Strict-Transport-Security'), 'max-age=31536000');
   assert.match(headers.get('Content-Security-Policy') ?? '', /frame-ancestors 'none'/);
   assert.equal(nextCalled, true);
+  const nonProduction = new Map<string,string>();
+  securityHeadersMiddleware(false)({}, {setHeader:(name,value)=>nonProduction.set(name,value)},()=>{});
+  assert.equal(nonProduction.get('Cache-Control'),'private, no-store');
+  assert.equal(nonProduction.has('Strict-Transport-Security'),false);
 });

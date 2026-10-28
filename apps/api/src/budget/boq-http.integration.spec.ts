@@ -9,6 +9,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from '../app.module';
 import { SessionService } from '../auth/session.service';
 import { AuthenticatedUserContext } from '../auth/auth.types';
+import { securityHeadersMiddleware } from '../common/security-headers';
 import { ProblemDetailsFilter } from '../common/problem-details.filter';
 import { PrismaService } from '../prisma/prisma.service';
 import { customerBoqFixture } from './customer-boq-test-fixture';
@@ -18,7 +19,7 @@ test('public BOQ HTTP workflow enforces persisted disclosure, CSRF, maker/checke
   const storage=await mkdtemp(path.join(os.tmpdir(),'erp-boq-http-'));
   const oldRoot=process.env.STORAGE_ROOT;process.env.STORAGE_ROOT=storage;
   const app=await NestFactory.create(AppModule,{logger:false});
-  app.setGlobalPrefix('api/v1');app.useGlobalFilters(new ProblemDetailsFilter());
+  app.setGlobalPrefix('api/v1');app.use(securityHeadersMiddleware(false));app.useGlobalFilters(new ProblemDetailsFilter());
   await app.listen(0,'127.0.0.1');
   const base=(await app.getUrl())+'/api/v1';
   try{
@@ -49,6 +50,8 @@ test('public BOQ HTTP workflow enforces persisted disclosure, CSRF, maker/checke
       assert.deepEqual(options.data.sources.map((s:{id:string})=>s.id),[f.source.id]);
       assert.equal(options.data.sources[0].lines[0].id,f.sourceLine.id);
       assert.equal((await get(f.maker,'/budget/customer/projects')).headers.get('cache-control'),'private, no-store');
+      const cost=await get(f.maker,'/budget/projects/'+pid+'/boq');assert.equal(cost.headers.get('cache-control'),'private, no-store');
+      assert.equal((await cost.json()).data.items[0].rate,'100');
       await get(f.outsider,root+'/options',403);
       await get(foreign.maker,root+'/options',404);
       await grants(f.outsider,[]);await get(f.outsider,'/budget/customer/projects',403);
@@ -147,7 +150,7 @@ test('public BOQ HTTP workflow enforces persisted disclosure, CSRF, maker/checke
         await assert.rejects(()=>db.documentLink.create({data:{documentId,entityType:entityType!,entityId:entityId!,linkedByUserId:f.maker.userId}}),/same Company|matching Project|does not exist|Unsupported/);
       }
       const generic='/documents/projects/'+pid;
-      const full=await get(f.maker,target+'/'+documentId+'/download');assert.deepEqual(Buffer.from(await full.arrayBuffer()),bytes);
+      const full=await get(f.maker,target+'/'+documentId+'/download');assert.equal(full.headers.get('cache-control'),'private, no-store');assert.deepEqual(Buffer.from(await full.arrayBuffer()),bytes);
       assert.deepEqual((await(await get(f.editor,generic)).json()).data,[]);
       await get(f.editor,generic+'/'+documentId+'/download',404);await get(f.editor,target,403);
       await post(f.editor,generic+'/'+documentId+'/archive',{},404);

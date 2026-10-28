@@ -128,7 +128,7 @@ try {
   const url = 'http://127.0.0.1:' + address.port + '/__boq-check';
   // Drive this disposable Chrome through its own loopback protocol endpoint.
   // Virtual-time --dump-dom can outrun animation frames used by real print UI.
-  // Real elapsed time preserves React/RAF behavior; no browser API is stubbed.
+  // Real elapsed time preserves React/RAF behavior; no animation callback is stubbed.
   const child=spawn(chrome,['--headless','--window-size=1440,1000','--no-sandbox','--disable-gpu','--disable-dev-shm-usage','--no-proxy-server','--disable-background-timer-throttling','--disable-renderer-backgrounding','--remote-debugging-address=127.0.0.1','--remote-debugging-port=0','--user-data-dir='+temporary,'about:blank'],{stdio:['ignore','ignore','pipe']});
   let ws;
   try {

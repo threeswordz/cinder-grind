@@ -3,6 +3,9 @@ type Next = () => void;
 
 export function securityHeadersMiddleware(production: boolean) {
   return (_request: unknown, response: HeaderResponse, next: Next): void => {
+    // Authenticated ERP fields and document bytes must not outlive authority
+    // in browser/proxy HTTP caches. React Query's scoped in-memory cache is separate.
+    response.setHeader('Cache-Control', 'private, no-store');
     response.setHeader('X-Content-Type-Options', 'nosniff');
     response.setHeader('X-Frame-Options', 'DENY');
     response.setHeader('Referrer-Policy', 'no-referrer');
