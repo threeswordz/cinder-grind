@@ -1,7 +1,7 @@
 # Construction ERP — Master Requirements Register
 
 **Document Status:** Requirements Baseline v0.1  
-**Current Phase:** V0.1–V1.1 COMPLETE + ACCEPTED; V1.2 A/B COMPLETE, C targeted UAT/release exit PENDING under #246. DEC-034 / #266 records approved future BOQ scope and entry preparation; successor entry/feature coding remain pending. See [Current State](CURRENT-STATE.md).
+**Current Phase:** V0.1–V1.1 COMPLETE + ACCEPTED; V1.2 technical implementation COMPLETE and separate owner UAT/release exit ACCEPTED under DEC-036. [Release-exit record](V1.2-RELEASE-EXIT.md) and #246 retain final acceptance-publication gates/closure evidence. DEC-034/#266 remains approved future BOQ scope/entry preparation; no successor feature implementation or Production authorization.
 **Architecture Baseline:** v0.1  
 **Source:** ERP-MASTER-BLUEPRINT.md  
 **Last Structural Review:** V0.8-E DEC-022 source-drilldown/live-state remediation — 2026-10-05
@@ -199,7 +199,7 @@ GitHub Issues will later reference the Requirement ID when implementation work i
 
 ### Approved future BOQ first package — DEC-034 / #266
 
-These requirements are approved as future scope, not delivered behavior or a completed successor entry gate. The [canonical scope/role/open-input/acceptance baseline](BOQ-COMMERCIAL-SCOPE.md) defines the boundary. V1.2-C owner gates and the unresolved entry inputs remain required before successor feature coding. Existing BUD-001–010 and approved history remain unchanged.
+These requirements are approved as future scope, not delivered behavior or a completed successor entry gate. The [canonical scope/role/open-input/acceptance baseline](BOQ-COMMERCIAL-SCOPE.md) defines the boundary. Verify V1.2 final repository closure in #246, resolve the remaining BOQ entry inputs and complete normal successor entry gates before feature coding; V1.2 owner UAT/release exit are accepted under DEC-036. Existing BUD-001–010 and approved history remain unchanged.
 
 | ID | Requirement | Description | Business Reason | Priority | Target Release | Dependencies | Acceptance Criteria | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |

@@ -714,3 +714,20 @@ Supporting evidence: completed clean reviews on all four constituent heads (#268
 The Builder is authorized to record this decision and perform normal PR #272 integration **after successful exact-final-head push/PR CI**. Verify the documentation-only delta from the audited code candidate, use a head-SHA guard for normal merge, then verify successful exact-main CI before technical closure. Reconcile #268–271 as superseded only after integration; do not merge their changes again. Actual final-head/merge/main-CI receipts belong in PR #272 and #246; this decision does not predict their results.
 
 This does not waive CI, historical integrity, security, DEC-008, approved scope, forward-only migrations, THB-10 human UAT acceptance or separate V1.2 release exit. Completed THB owner observations remain completed; optional missing Mac fixtures are NOT EXECUTED, NOT FAILED, with technical coverage in existing CI. Preserve Mac-empty versus CI-nonempty/restored-runtime provenance. No repeat UAT, new retained fixtures/grants, recovery/smoke repetition, Production deployment or successor implementation is authorized. **Owner UAT acceptance and separate release exit remain PENDING; Production NOT AUTHORIZED.**
+
+## DEC-036 — V1.2 human UAT and separate release-exit acceptance / final documentation closure
+
+**Status:** ACCEPTED — Product / Business Owner, 2026-10-28 SGT; V1.2 at runtime main `e122277d53a60347113f22314fe5aeab70658955`, within the documented scope and evidence limits. Production deployment remains NOT AUTHORIZED.
+
+The owner made two separate explicit decisions in sequence:
+
+1. **Human UAT acceptance:** “I accept V1.2 THB UAT based on the recorded owner results and CI evidence, with the documented limitations.” [Actual acceptance receipt](https://github.com/threeswordz/cinder-grind/issues/246#issuecomment-6465324652).
+2. **Release-exit acceptance / closure authority:** “I approve V1.2 release exit and final documentation closure for main `e122277d53a60347113f22314fe5aeab70658955`, with the documented scope and limitations. Production deployment remains unauthorized”. [Actual separate approval receipt](https://github.com/threeswordz/cinder-grind/issues/246#issuecomment-6465466988).
+
+These are the owner's actual THB-10 decisions, not self-approval by development, CI, Codex or Work. The [release-exit evidence record](V1.2-RELEASE-EXIT.md) links the accepted runtime, integration/CI, independent audit/review and bounded owner/CI provenance. DEC-035's pre-merge review waiver and the subsequent completed clean Codex Code Review remain distinct historical events; neither is rewritten as the other.
+
+The approval authorizes one coherent final decision/evidence/status documentation change through applicable normal exact-head push/PR CI, merge and exact-main CI, then closure of #246. Verify actual publication results in the live tracker before declaring repository closure. No additional human acceptance is required merely for documentation-only publication with unchanged runtime/schema/security/business behavior; no repeated owner UAT or optional Mac fixtures are required.
+
+Preserve every accepted observation and historical currency/amount/NULL, approval, audit, Original Budget and ledger. Eight optional Mac categories remain NOT EXECUTED, NOT FAILED; the Mac empty-store drill/smoke is not nonempty uploaded-byte or compatible restored-runtime proof, which remains separately evidenced by disposable CI. The changed Budget UI has automated browser/HTTP/CSV/print proof, not after-change owner-Mac observation. Other recorded historical limits remain intact.
+
+This acceptance does not authorize Production deployment, successor feature coding, new grants/data, paid services, new business rules, FX/history relabel or a bypass of future review/CI/entry gates. #266 remains approved future BOQ scope/entry preparation; resolve its remaining inputs and close its own entry conditions before implementation. DEC-008/016/022/033 and the single-writer model remain in force.
