@@ -1,7 +1,7 @@
 # Construction ERP — Development Roadmap
 
 **Document Status:** Development Roadmap Baseline v0.1  
-**Current Phase:** V0.1–V1.1 COMPLETE + ACCEPTED. **V1.2 technical implementation COMPLETE; owner UAT and separate release exit ACCEPTED**, DEC-036. Final acceptance-record publication/closure evidence is tracked in #246 / [Current State](CURRENT-STATE.md). DEC-034/#266 remains approved future BOQ scope/entry preparation; no successor feature coding or entry closure is claimed. Production NOT AUTHORIZED.
+**Current Phase:** V0.1–V1.2 COMPLETE + ACCEPTED; #246 CLOSED. V1.3 BOQ / #266 entry baseline and business inputs OWNER APPROVED under DEC-037; PR #274 final publication/merge/exact-main gates precede runtime implementation. Complete [HR requirements](HR-PAYROLL-REQUIREMENTS-TH-2026-10-27.md) publication is separately owner authorized; HR follows BOQ in stages. Production NOT AUTHORIZED.
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1  
@@ -21,17 +21,16 @@ The owner approved the [bounded scope](V1.2-THB-SCOPE.md) under DEC-033, then se
 | V1.2-B | Existing-module THB policy, minimum new-root provenance, truthful UI/reports, forward-only schema and bounded upgrade/recovery proof | **COMPLETE:** #264/#265, main `bebffb4a7e3edc019e8a6e88e989fffbcc75d53a`, exact-main CI SUCCESS; #246 closure receipt. |
 | V1.2-C | Preserve completed UAT and technical evidence; integrated assurance and separate owner UAT/release exit | **Technical integration COMPLETE; both human decisions OWNER ACCEPTED**, DEC-036. [Release-exit record](V1.2-RELEASE-EXIT.md); actual final acceptance-publication gates/closure in #246. No repeat tests or Production authorization. |
 
-## Approved future package — BOQ Disclosure and Linked Customer BOQ Versions (DEC-034)
+## V1.3 — BOQ Disclosure and Linked Customer BOQ Versions (DEC-034 / DEC-037)
 
-[#266](https://github.com/threeswordz/cinder-grind/issues/266) records the owner's approved first slice and [canonical scope/role/open-input/acceptance baseline](BOQ-COMMERCIAL-SCOPE.md). No successor release number is assigned; V1.2 remains primary active release.
+[#266](https://github.com/threeswordz/cinder-grind/issues/266) remains the package tracker. [Canonical scope](BOQ-COMMERCIAL-SCOPE.md), [entry contract](BOQ-ENTRY-PREPARATION.md), BUD-011–016 and BQC-AC-001–014 govern the same approved bounded package. Owner approvals of access/pricing choices and C1–C5/E1–E8 are complete; do not ask again.
 
-| Work | Position |
+| Stage | Delivery and gate |
 |---|---|
-| First-package scope / entry preparation | **APPROVED SCOPE:** documentation publication gates tracked in #266; not entry COMPLETE. |
-| Required predecessor and entry inputs | V1.2 owner UAT and release exit ACCEPTED; verify final repository closure in #246. Existing owner access/pricing selections are recorded in #266; remaining representative mapping/edge inputs and normal BOQ entry gates remain required. |
-| Feature implementation | **FUTURE:** no runtime/schema/permission changes before the required entry conditions. |
-| Targeted human UAT / separate release exit | **FUTURE:** not accepted by scope approval. |
-| Advanced costing and HR/Attendance/Payroll | Separate **P1** increments; policy/design preparation in parallel, without unconfirmed formulas, actors or recognition rules. |
+| V1.3-A — Entry | Resolved scope/inputs/acceptance, DEC-037, complete authorized HR source and handoff in PR #274. OWNER APPROVED; final exact-head/review/merge/main gates pending. |
+| V1.3-B — Implementation | Disclosure and independently approved linked Customer BOQ versions, adopted calculations/mappings, affected Documents/report/cache/export/locale consumers, integrity and bounded upgrade/recovery evidence. Starts after A closes; no HR runtime or advanced costing expansion. |
+| V1.3-C — Assurance and exit | Stable-candidate DEC-022 review, integrated exact-head/merge/main evidence, targeted new BOQ human UAT acceptance and separate release exit. Completed V1.2 UAT stays closed. |
+| HR / Attendance / Payroll | Separate P1 following BOQ in stages. Complete [requirements source](HR-PAYROLL-REQUIREMENTS-TH-2026-10-27.md) and [handoff](HR-PAYROLL-ENTRY-PREPARATION.md) published with explicit owner authorization; no HR feature entry, grants, statutory assumptions or rollout. |
 
 ## Accepted release — V1.1 Business Workflow & Role UI (DEC-028)
 

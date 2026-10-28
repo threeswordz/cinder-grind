@@ -697,6 +697,12 @@ The owner replied **“proceed approved”** after the concrete *Construction-ER
 
 **Sequencing:** V1.2 is still primary active release; A/B COMPLETE, C owner UAT and separate release exit PENDING under #246. Durable approval/scope preparation is permitted; successor feature coding and a claim of entry COMPLETE wait for required V1.2 closure, resolved entry inputs and existing applicable documentation/CI/review/merge/main gates. No predecessor waiver, automatic business acceptance or Production authority. DEC-008/016/022/029/030/033 and one-writer governance remain in force.
 
+### DEC-034 dated reconciliation — 2026-10-28 SGT
+
+The approval-time open-input and predecessor wording above is historical. [Owner selections](https://github.com/threeswordz/cinder-grind/issues/266#issuecomment-6398077094) subsequently resolved Nancy's full working/approved cost reads within authorized Projects, Porn's Project-only contract/billed/paid summary, manual/markup methods and the presented four-place rate/quantity/two-place half-up line/summed-line/revision baseline. These decisions are carried into [canonical BOQ scope](BOQ-COMMERCIAL-SCOPE.md); no extra grants or commercial rates are inferred.
+
+V1.2 is COMPLETE + ACCEPTED under DEC-036, #246 CLOSED / COMPLETED. The owner then instructed “proceed building with your recommendation” after BOQ first, HR next in stages and HR documentation preparation during BOQ delivery were presented. This progresses the approved package; it does not answer previously unresolved source allocation, derived-rate rounding or zero/discount edges. [BOQ entry preparation](BOQ-ENTRY-PREPARATION.md) provides the source-verified technical surface map and concrete synthetic **PROPOSED** C1–C5/E1–E8 decision; necessary input and entry gates still precede runtime coding. HR documentation preparation remains separate; no private HR requirements, HR policy exception or HR release entry is published here. No review, human acceptance or Production gate is waived.
+
 ## DEC-035 — One-time V1.2-C integrated Codex review waiver / governed merge authorization
 
 **Status:** APPROVED — Product / Business Owner, 2026-10-28 SGT; PR #272 only, under DEC-022.
@@ -731,3 +737,16 @@ The approval authorizes one coherent final decision/evidence/status documentatio
 Preserve every accepted observation and historical currency/amount/NULL, approval, audit, Original Budget and ledger. Eight optional Mac categories remain NOT EXECUTED, NOT FAILED; the Mac empty-store drill/smoke is not nonempty uploaded-byte or compatible restored-runtime proof, which remains separately evidenced by disposable CI. The changed Budget UI has automated browser/HTTP/CSV/print proof, not after-change owner-Mac observation. Other recorded historical limits remain intact.
 
 This acceptance does not authorize Production deployment, successor feature coding, new grants/data, paid services, new business rules, FX/history relabel or a bypass of future review/CI/entry gates. #266 remains approved future BOQ scope/entry preparation; resolve its remaining inputs and close its own entry conditions before implementation. DEC-008/016/022/033 and the single-writer model remain in force.
+
+
+## DEC-037 — V1.3 BOQ entry rules/examples and complete HR requirements publication
+
+**Status:** OWNER APPROVED — 2026-10-28 SGT. [Actual approval receipt](https://github.com/threeswordz/cinder-grind/pull/274#issuecomment-6467656281).
+
+The owner explicitly stated: “I approve BOQ rules C1–C5 and examples E1–E8 in PR #274.” The owner separately stated: “and approve to publish the complete HR requirements to this GitHub repository”. The approved packet was PR #274 head `2bd6b29d3be6dfe13681c6769b97df0194c06a16`.
+
+- Adopt C1–C5 and E1–E8 exactly as presented in [BOQ entry baseline](BOQ-ENTRY-PREPARATION.md): one approved verified-THB cost revision per Customer version, explicit cost shares and rationale, rate-first four-place half-up derived rates/two-place line amounts, UOM-compatible positive quantities, explicit zero-price reasons, and reasoned manual discounts/new approved revisions. E5's 0.99 result from a 1.00 basis is deliberately adopted. Synthetic example numbers are not real customer rates or ERP PASS claims.
+- V1.3 coordinates the already-approved BOQ Disclosure and Linked Customer BOQ Versions package under #266/BUD-011–016/BQC-AC-001–014. V1.3-A publishes this resolved entry baseline; V1.3-B implements the bounded package; V1.3-C consolidates assurance and separate human UAT/release-exit decisions. Runtime starts only after A's normal merge/exact-main gate. This decomposition changes coordination, not business scope.
+- Publish the complete existing [2026-10-27 Thai HR compilation](HR-PAYROLL-REQUIREMENTS-TH-2026-10-27.md), version4, SHA-256 `102d8023e8e8cbe65fd3ee6cb0e99cfd314f2307ba19ff1ed386b1a0786da0cf`, without omissions or silent policy edits. The [HR handoff](HR-PAYROLL-ENTRY-PREPARATION.md) distinguishes recorded answers from remaining conflicts/design/configuration work. This explicit repository-destination authorization resolves the earlier automatic publication rejection.
+- HR publication does not itself approve implementation, statutory correctness, new grants, a maker/checker exception, payroll use or rollout. BOQ remains first; HR follows in stages. No private BOQ workbook content is authorized by the HR publication decision.
+- Preserve completed V1.2 owner/CI evidence and acceptance. No repeated THB UAT, new Mac fixtures, historical/recovery/smoke exercises, Production deployment, history relabel/backfill, paid service, architecture expansion or review waiver is authorized. DEC-008/016/022/033/034/036 and normal CI/review/merge/human gates remain.
