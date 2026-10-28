@@ -1,6 +1,6 @@
 # BOQ Disclosure and Linked Customer BOQ Versions
 
-**Status:** V1.3 BOQ package / V1.3-A entry baseline OWNER APPROVED, publication/merge/exact-main gates pending — 2026-10-28 SGT. DEC-037 records approval of C1–C5/E1–E8. [Entry baseline](BOQ-ENTRY-PREPARATION.md) contains the adopted contract and exact delivery gates. Feature coding has not started.
+**Status:** V1.3-A entry COMPLETE through #274/main `f5d70871593bb89539c574381a687f3d67884c04`, exact-main CI40680993646 SUCCESS. V1.3-B implementation IN PROGRESS under #275; [pricing-core evidence](V1.3-B-IMPLEMENTATION.md) covers the first bounded increment only. Full Customer BOQ workflows/disclosure/UI/persistence and BQC acceptance are not complete. DEC-037's C1–C5/E1–E8 approvals remain unchanged.
 
 **Tracker:** [#266](https://github.com/threeswordz/cinder-grind/issues/266) · **Decision:** DEC-034 · **Requirements:** BUD-011–016 · **Acceptance:** BQC-AC-001–014.
 
@@ -60,7 +60,7 @@ Authorized totals and known quantities may reconstruct a price, particularly on 
 | D3 — Pricing/precision/revisions | Manual rates and percentage markup, up-to-four-place quantities/rates, half-up two-place lines, summed rounded lines and newly approved revisions are owner selected. C3–C5/E4–E8 resolve source basis, derived-rate rounding, discount/zero/fractional edges under DEC-037. | Implement the exact adopted examples in [entry baseline](BOQ-ENTRY-PREPARATION.md). Target gross margin remains deferred; no actual rate/percentage is assumed. |
 | D4 — First slice | **APPROVED:** disclosure and linked Customer BOQ versions together; broader costing and lifecycle work remain separate. | No repeat approval of this package or the THB scope is needed. Resolve only genuinely open inputs. |
 
-V1.2 owner UAT/release closure is COMPLETE. BOQ business-input decisions are OWNER APPROVED. Entry remains pending applicable scope/requirements/acceptance/CI/review/merge/main publication gates; actual completion is recorded in #266 after they pass.
+V1.2 owner UAT/release closure is COMPLETE. BOQ business-input decisions are OWNER APPROVED. Entry publication/CI/review/merge/main gates are COMPLETE through #274/main CI40680993646, as recorded in #266. V1.3-B implementation is tracked by #275.
 
 ## 5. Requirement / acceptance contract
 
