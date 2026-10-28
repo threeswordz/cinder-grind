@@ -95,7 +95,7 @@ test('Customer BOQ persistence uses real scoped grants, immutable history, confi
       const line = row.lines[0]!;
       assert.equal(line.rate.toFixed(4), '0.0033');
       assert.equal(line.mappings[0]!.allocatedCost.toFixed(10), '1.0000000000');
-      assert.deepEqual({ ...(line.pricingSnapshot as Record<string, unknown>), mappings: undefined }.targetAmount, '1.00');
+      assert.equal((line.pricingSnapshot as { targetAmount: string }).targetAmount, '1.00');
       assert.equal((line.pricingSnapshot as { rateRoundingDifference: string }).rateRoundingDifference, '-0.01');
     });
     await t.test('identical concurrent retries return one immutable receipt and create one version/audit', async () => {
