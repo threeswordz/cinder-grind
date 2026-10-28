@@ -61,3 +61,12 @@ test('Customer BOQ transport accepts exact decimal strings and rejects caller-ow
   const bad=draft();Object.assign(bad.lines[0]!.mappings[0]!,{allocatedCost:'1'});assert.throws(()=>customerDraft(bad),UnprocessableEntityException);
   assert.throws(()=>customerDraft({...draft(),totalAmount:'1'}),UnprocessableEntityException);
 });
+
+test('quantity projection preserves scalar revision Cost Codes and safely projects working Cost Code objects',()=>{
+  const snapshot=quantityRecord({id,costCodeId:id,costCode:'CONCRETE',costName:'Concrete',quantity:'2.5000',rate:'900.0000'}) as Record<string,unknown>;
+  assert.equal(snapshot.costCode,'CONCRETE');assert.equal(snapshot.costName,'Concrete');assert.equal(snapshot.costCodeId,id);assert.equal(snapshot.quantity,'2.5000');assert.equal('rate' in snapshot,false);
+  const working=quantityRecord({id,costCode:{id,costCode:'CONCRETE',costName:'Concrete',rate:'900.0000',notes:'SECRET'}}) as Record<string,unknown>;
+  assert.deepEqual(working.costCode,{id,costCode:'CONCRETE',costName:'Concrete'});
+  assert.equal((quantityRecord({costCode:null}) as Record<string,unknown>).costCode,null);
+  assert.equal('costCode' in (quantityRecord({costCode:[{rate:'900.0000'}]}) as Record<string,unknown>),false,'unexpected nested arrays are not authorized scalar labels');
+});

@@ -21,6 +21,7 @@ export async function customerBoqFixture(db: PrismaService) {
   const customer = await db.customer.create({ data: { companyId: company.id, customerCode: 'C', customerName: 'Customer' } });
   const project = await db.project.create({ data: { companyId: company.id, customerId: customer.id, projectCode: 'P', projectName: 'Project', contractValue: '1000', plannedStartDate: new Date('2026-01-01'), plannedCompletionDate: new Date('2026-12-31') } });
   const uom = await db.unitOfMeasure.create({ data: { companyId: company.id, uomCode: 'EA', uomName: 'Each', decimalPlaces: 0 } });
+  const costCode=await db.costCode.create({data:{companyId:company.id,costCode:'CONCRETE',costName:'Concrete'}});
   const codes = ['budget.boq.view', 'budget.revision.view', 'budget.customer.view', 'budget.customer.manage', 'budget.customer.submit', 'budget.customer.approve'];
   for (const permissionCode of codes) await db.permission.upsert({ where: { permissionCode }, update: {}, create: { permissionCode, moduleCode: 'BUDGET' } });
   const role = await db.role.create({ data: { companyId: company.id, roleCode: 'COMMERCIAL', roleName: 'Commercial', rolePermissions: { create: codes.map((permissionCode) => ({ permission: { connect: { permissionCode } } })) } } });
@@ -44,7 +45,7 @@ export async function customerBoqFixture(db: PrismaService) {
   await db.numberSequence.create({ data: { companyId: company.id, entityType: 'BUDGET_REVISION', sequenceCode: 'BUDGET_REVISION', formatTemplate: 'CBYY-###', resetRule: 'YEARLY' } });
   const boq = await budget.createBoq({ auth: maker }, project.id, 'Source');
   const section = await budget.createSection({ auth: maker }, boq.id, { sectionCode: 'A', sectionName: 'Cost', sortOrder: 0 });
-  await budget.createItem({ auth: maker }, boq.id, { sectionId: section.id, itemCode: 'A1', description: 'Approved cost', quantity: new Prisma.Decimal(10), uomId: uom.id, rate: new Prisma.Decimal(100), sortOrder: 0 });
+  await budget.createItem({ auth: maker }, boq.id, { sectionId: section.id, itemCode: 'A1', description: 'Approved cost', quantity: new Prisma.Decimal(10), uomId: uom.id, costCodeId:costCode.id, rate: new Prisma.Decimal(100), sortOrder: 0 });
   const draft = await budget.createRevisionDraft({ auth: maker }, project.id);
   await budget.submitRevision({ auth: maker }, draft.id, 'BUDGET_REVISION');
   const source = await budget.approveRevision({ auth: checker }, draft.id, 'Approved cost');
@@ -54,5 +55,5 @@ export async function customerBoqFixture(db: PrismaService) {
   function input(rate = '120'): CustomerBoqDraft {
     return { sourceRevisionId: source.id, reason: 'Prepare customer offer', lines: [{ lineId: lineKey, description: 'Customer work', quantity: '10', uomId: uom.id, method: 'MANUAL', manualRate: rate, mappings: [{ sourceLineId: sourceLine.id, sharePercent: '100' }] }] };
   }
-  return { db, company, project, uom, role, maker, checker, editor, outsider, access, audit, approvals, service, source, pending, sourceLine, input, wf };
+  return { db, company, project, uom, costCode, role, maker, checker, editor, outsider, access, audit, approvals, service, source, pending, sourceLine, input, wf };
 }

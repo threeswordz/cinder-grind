@@ -35,8 +35,15 @@ export function quantityRecord(value: unknown): unknown {
     uom: ['id','uomCode','uomName','decimalPlaces'], wbs: ['id','wbsCode','wbsName'], costCode: ['id','costCode','costName'],
     approvalInstance: ['id','approvalState','currentStepNo','startedAt','completedAt'],
   })) if (Object.hasOwn(row,key)) {
-    const child = row[key] as Record<string,unknown> | null;
-    out[key] = child === null ? null : Object.fromEntries(fields.filter((f) => Object.hasOwn(child!, f)).map((f) => [f, child![f]]));
+    const child = row[key];
+    // Approved revision snapshots store a scalar code; working items carry the
+    // relation object. Preserve that distinction without copying unknown shapes.
+    if (key === 'costCode' && typeof child === 'string') out[key] = child;
+    else if (child === null) out[key] = null;
+    else if (typeof child === 'object' && !Array.isArray(child)) {
+      const record = child as Record<string,unknown>;
+      out[key] = Object.fromEntries(fields.filter((f) => Object.hasOwn(record,f)).map((f) => [f,record[f]]));
+    } else delete out[key];
   }
   return out;
 }
