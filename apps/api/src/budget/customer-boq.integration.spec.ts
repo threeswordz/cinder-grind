@@ -84,6 +84,20 @@ test('Customer BOQ persistence uses real scoped grants, immutable history, confi
       assert.equal(line.mappings[0]!.allocatedCost.toFixed(10), '1000.0000000000');
       assert.equal((line.mappings[0]!.sourceSnapshot as { amount: string }).amount, '1000.0000');
     });
+    await t.test('persisted markup keeps the adopted rate-first discrepancy and ten-place allocated cost', async () => {
+      const draft = input();
+      draft.lines = [{ lineId: randomUUID(), description: 'Allocated customer work', quantity: '300', uomId: f.uom.id,
+        method: 'MARKUP', markupPercent: '0', mappingReason: 'Allocate 0.1 percent of approved cost to independent customer quantity',
+        mappings: [{ sourceLineId: f.sourceLine.id, sharePercent: '0.1' }] }];
+      const receipt = await service.create(ctx, pid, randomUUID(), draft);
+      const row = (await service.history(maker, pid, receipt.id)).version.edits[0]!;
+      assert.equal(row.totalAmount.toFixed(2), '0.99');
+      const line = row.lines[0]!;
+      assert.equal(line.rate.toFixed(4), '0.0033');
+      assert.equal(line.mappings[0]!.allocatedCost.toFixed(10), '1.0000000000');
+      assert.deepEqual({ ...(line.pricingSnapshot as Record<string, unknown>), mappings: undefined }.targetAmount, '1.00');
+      assert.equal((line.pricingSnapshot as { rateRoundingDifference: string }).rateRoundingDifference, '-0.01');
+    });
     await t.test('identical concurrent retries return one immutable receipt and create one version/audit', async () => {
       const request = randomUUID(); const count = await db.customerBoqVersion.count({ where: { projectId: pid } });
       const results = await Promise.all([service.create(ctx, pid, request, input()), service.create(ctx, pid, request, input())]);
@@ -152,6 +166,19 @@ test('Customer BOQ persistence uses real scoped grants, immutable history, confi
       await assert.rejects(service.edit(ctx, pid, randomUUID(), version.id, 2, input()), ConflictException);
       await assert.rejects(service.decide({ auth: checker }, pid, randomUUID(), version.id, randomUUID(), 'APPROVE', 'stale'), ConflictException);
       await assert.rejects(service.decide(ctx, pid, randomUUID(), version.id, instance, 'APPROVE', 'self'), ForbiddenException);
+    });
+    await t.test('explicit action grants never bypass the configured approval step role', async () => {
+      const otherRole = await db.role.create({ data: { companyId: f.company.id, roleCode: 'OTHER', roleName: 'Other commercial role',
+        rolePermissions: { create: maker.permissions.map((permissionCode) => ({ permission: { connect: { permissionCode } } })) } } });
+      await db.userRole.deleteMany({ where: { userId: checker.userId } });
+      await db.userRole.create({ data: { companyId: f.company.id, userId: checker.userId, roleId: otherRole.id } });
+      try {
+        await assert.rejects(service.decide({ auth: checker }, pid, randomUUID(), version.id, instance, 'APPROVE', 'Wrong configured step role'), ForbiddenException);
+        assert.equal((await service.history(checker, pid, version.id)).version.approvalInstance?.approvalState, 'SUBMITTED');
+      } finally {
+        await db.userRole.deleteMany({ where: { userId: checker.userId } });
+        await db.userRole.create({ data: { companyId: f.company.id, userId: checker.userId, roleId: f.role.id } });
+      }
     });
     await t.test('rejection, new edit, resubmission and concurrent approvals preserve old instance/actions and yield one final decision', async () => {
       await service.decide({ auth: checker }, pid, randomUUID(), version.id, instance, 'REJECT', 'Revise offer');
