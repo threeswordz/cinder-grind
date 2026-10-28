@@ -2,7 +2,7 @@
 
 **Date:** 2026-10-28 SGT · **Tracker:** [#266](https://github.com/threeswordz/cinder-grind/issues/266) · **Scope:** [BOQ Disclosure and Linked Customer BOQ Versions](BOQ-COMMERCIAL-SCOPE.md), BUD-011–016 / BQC-AC-001–014.
 
-**Position: V1.3-A entry baseline OWNER APPROVED; publication/merge/exact-main gates pending; feature coding NOT STARTED.** The owner explicitly approved C1–C5 and E1–E8 in PR #274 and separately authorized publication of the complete HR requirements ([approval receipt](https://github.com/threeswordz/cinder-grind/pull/274#issuecomment-6467656281)). This closes the remaining business-input decision. The examples are adopted acceptance examples with synthetic numbers, not actual owner prices or completed ERP tests. V1.3 coordinates the already-approved BOQ package; no new scope is added. Runtime work starts only after this entry PR merges and exact-main CI succeeds.
+**Position: V1.3-A entry COMPLETE.** PR #274 merged as `f5d70871593bb89539c574381a687f3d67884c04`; exact-main CI40680993646 SUCCESS,31/31. The owner-approved C1–C5/E1–E8 and complete HR source are published under DEC-037. V1.3-B is now in progress under #275; [implementation evidence](V1.3-B-IMPLEMENTATION.md) distinguishes the first pricing core from remaining workflows/disclosure/persistence/UI. Older preparation/publication wording below records the entry checkpoint; #266/#275 carry actual live gates. No repeat input approval or V1.2 UAT is needed.
 
 ## 1. Verified predecessor, authority and writer
 
@@ -82,4 +82,4 @@ Private retained role assignments and Approval Matrix rows have not been inspect
 4. **V1.3-C assurance/acceptance:** successor human review is limited to the new affected BOQ behavior, with separate UAT acceptance and release exit. Do not restart completed V1.2 scenarios or require another Mac recovery/fixture exercise.
 5. The complete [HR requirements](HR-PAYROLL-REQUIREMENTS-TH-2026-10-27.md) and [staged handoff](HR-PAYROLL-ENTRY-PREPARATION.md) are published with explicit owner authorization. HR feature coding follows this BOQ package and its gates. Advanced costing, customer quotation/progress billing, payroll, #245 and Production remain outside this package.
 
-**Next gate:** final exact-head push/PR CI, focused documentation review, merge and exact-main CI, then V1.3-B implementation. No further approval of the BOQ package, adopted rules/examples or HR publication is needed. Human V1.3 UAT/release exit remain later separate decisions. Production remains NOT AUTHORIZED.
+**Next gate:** V1.3-B implementation and its normal exact-head CI/independent-review/merge/main gates. V1.3-A entry publication is COMPLETE through #274/main CI40680993646. No further approval of the BOQ package, adopted rules/examples or HR publication is needed. Human V1.3 UAT/release exit remain later separate decisions. Production remains NOT AUTHORIZED.

@@ -1,7 +1,7 @@
 # Construction ERP — Development Roadmap
 
 **Document Status:** Development Roadmap Baseline v0.1  
-**Current Phase:** V0.1–V1.2 COMPLETE + ACCEPTED; #246 CLOSED. V1.3 BOQ / #266 entry baseline and business inputs OWNER APPROVED under DEC-037; PR #274 final publication/merge/exact-main gates precede runtime implementation. Complete [HR requirements](HR-PAYROLL-REQUIREMENTS-TH-2026-10-27.md) publication is separately owner authorized; HR follows BOQ in stages. Production NOT AUTHORIZED.
+**Current Phase:** V0.1–V1.2 COMPLETE + ACCEPTED; V1.3-A entry COMPLETE through #274/main CI40680993646. V1.3-B BOQ implementation IN PROGRESS under #275, first internal pricing-core increment. [Implementation evidence](V1.3-B-IMPLEMENTATION.md) separates completed code/tests from pending review and remaining package work. HR requirements are published; HR implementation follows BOQ in stages. Production NOT AUTHORIZED.
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1  
@@ -27,8 +27,8 @@ The owner approved the [bounded scope](V1.2-THB-SCOPE.md) under DEC-033, then se
 
 | Stage | Delivery and gate |
 |---|---|
-| V1.3-A — Entry | Resolved scope/inputs/acceptance, DEC-037, complete authorized HR source and handoff in PR #274. OWNER APPROVED; final exact-head/review/merge/main gates pending. |
-| V1.3-B — Implementation | Disclosure and independently approved linked Customer BOQ versions, adopted calculations/mappings, affected Documents/report/cache/export/locale consumers, integrity and bounded upgrade/recovery evidence. Starts after A closes; no HR runtime or advanced costing expansion. |
+| V1.3-A — Entry | Resolved scope/inputs/acceptance, DEC-037, complete authorized HR source and handoff in PR #274. COMPLETE through #274/main `f5d70871593bb89539c574381a687f3d67884c04`, exact-main CI40680993646 SUCCESS. |
+| V1.3-B — Implementation | Disclosure and independently approved linked Customer BOQ versions, adopted calculations/mappings, affected Documents/report/cache/export/locale consumers, integrity and bounded upgrade/recovery evidence. IN PROGRESS under #275; first internal pricing core only. Remaining workflows/disclosure/persistence/UI and assurance stay outstanding; no HR runtime or advanced costing expansion. |
 | V1.3-C — Assurance and exit | Stable-candidate DEC-022 review, integrated exact-head/merge/main evidence, targeted new BOQ human UAT acceptance and separate release exit. Completed V1.2 UAT stays closed. |
 | HR / Attendance / Payroll | Separate P1 following BOQ in stages. Complete [requirements source](HR-PAYROLL-REQUIREMENTS-TH-2026-10-27.md) and [handoff](HR-PAYROLL-ENTRY-PREPARATION.md) published with explicit owner authorization; no HR feature entry, grants, statutory assumptions or rollout. |
 
