@@ -1,6 +1,7 @@
 // Disposable browser regression; no API, database, credentials or retained fixtures.
 import assert from 'node:assert/strict';
 import { spawn, spawnSync } from 'node:child_process';
+import {createServer as createHttpServer} from 'node:http';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import os from 'node:os';
@@ -9,9 +10,9 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const root = fileURLToPath(new URL('../../apps/web/', import.meta.url));
 const require = createRequire(path.join(root, 'package.json'));
-const { createServer, transformWithOxc } = await import(pathToFileURL(require.resolve('vite')).href);
+const { build, transformWithOxc } = await import(pathToFileURL(require.resolve('vite')).href);
+const {default:reactPlugin}=await import(pathToFileURL(require.resolve('@vitejs/plugin-react')).href);
 const chrome = ['google-chrome', 'chromium', 'chromium-browser'].find(bin => spawnSync(bin, ['--version'], { stdio: 'ignore' }).status === 0);
-assert.ok(chrome, 'Chromium is required for real-browser evidence; no SSR fallback.');
 const temporary = await mkdtemp(path.join(os.tmpdir(), 'erp-boq-browser-'));
 const harness = String.raw`
 import React from 'react';
@@ -118,18 +119,39 @@ async function run(){
 }
 run().catch(error=>{document.body.dataset.result='FAIL';document.body.dataset.error=error.message+'; stage='+stage+'; projectReads='+projectReads+'; choices='+JSON.stringify([...document.querySelectorAll('[role=option]')].map(n=>n.textContent))+'; ui='+text().slice(-1800);});
 `;
-const vite = await createServer({
-  root, configFile: false, server: { host: '127.0.0.1', port: 0, hmr: false },
-  plugins: [{ name: 'boq-browser-fixture',
-    configureServer(server) { server.middlewares.use((req,res,next) => { if(req.url !== '/__boq-check') return next(); res.setHeader('Content-Type','text/html');res.end('<!doctype html><html><body><div id="root"></div><script type="module" src="/__boq-check.tsx"></script></body></html>'); }); },
-    resolveId(id) { if(id === '/__boq-check.tsx') return '\0boq-browser-fixture.tsx'; },
-    async load(id) { if(id === '\0boq-browser-fixture.tsx') return transformWithOxc(harness, path.join(root, '__boq-check.tsx'), { lang: 'tsx', jsx: { runtime: 'automatic' } }); },
-  }],
-});
+let server;
 try {
-  await vite.listen();
-  const address = vite.httpServer.address();
-  const url = 'http://127.0.0.1:' + address.port + '/__boq-check';
+  // Dev-server optimization previously supplied different React generations to
+  // a late-mounted Quantity screen and its renderer. Serve one immutable bundle;
+  // development React deliberately retains actual StrictMode effect replay.
+  const built=await build({root,configFile:false,mode:'development',
+    resolve:{dedupe:['react','react-dom']},define:{'process.env.NODE_ENV':JSON.stringify('development')},
+    build:{write:false,minify:false,rollupOptions:{input:'/__boq-check.tsx'}},
+    plugins:[reactPlugin(),{name:'boq-browser-fixture',
+      resolveId(id){if(id==='/__boq-check.tsx')return '\0boq-browser-fixture.tsx';},
+      async load(id){if(id==='\0boq-browser-fixture.tsx')return transformWithOxc(harness,path.join(root,'__boq-check.tsx'),{lang:'tsx',jsx:{runtime:'automatic'}});},
+    }],
+  });
+  const output=(Array.isArray(built)?built:[built]).flatMap(bundle=>bundle.output);
+  const modules=[...new Set(output.filter(file=>file.type==='chunk').flatMap(file=>Object.keys(file.modules)))];
+  const reactCopies=modules.filter(id=>/\/react\/cjs\/react\.(development|production)\.js$/.test(id));
+  assert.equal(reactCopies.length,1,'Fixture must contain exactly one React runtime');
+  assert.match(reactCopies[0],/react\.development\.js$/,'StrictMode must use development React');
+  assert.equal(modules.filter(id=>/\/react-dom\/cjs\/react-dom-client\.development\.js$/.test(id)).length,1,'Fixture must contain one matching development renderer');
+  const entry=output.find(file=>file.type==='chunk'&&file.isEntry);assert.ok(entry,'Browser fixture entry missing');
+  const files=new Map(output.map(file=>['/'+file.fileName,file]));
+  const css=output.filter(file=>file.fileName.endsWith('.css')).map(file=>'<link rel="stylesheet" href="/'+file.fileName+'">').join('');
+  const html='<!doctype html><html><head>'+css+'</head><body><div id="root"></div><script type="module" src="/'+entry.fileName+'"></script></body></html>';
+  assert.ok(chrome,'Chromium is required for real-browser evidence; no SSR fallback.');
+  server=createHttpServer((req,res)=>{
+    const pathname=(req.url??'/').split('?',1)[0];res.setHeader('Cache-Control','no-store');
+    if(pathname==='/__boq-check'){res.setHeader('Content-Type','text/html; charset=utf-8');res.end(html);return;}
+    const file=files.get(pathname);if(!file){res.writeHead(404);res.end();return;}
+    res.setHeader('Content-Type',file.fileName.endsWith('.css')?'text/css; charset=utf-8':'text/javascript; charset=utf-8');
+    res.end(file.type==='chunk'?file.code:file.source);
+  });
+  await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',resolve);});
+  const url='http://127.0.0.1:'+server.address().port+'/__boq-check';
   // Drive this disposable Chrome through its own loopback protocol endpoint.
   // Virtual-time --dump-dom can outrun animation frames used by real print UI.
   // Real elapsed time preserves React/RAF behavior; no animation callback is stubbed.
@@ -165,4 +187,4 @@ try {
     if(child.exitCode===null){child.kill('SIGTERM');await new Promise(resolve=>{const timer=setTimeout(()=>{child.kill('SIGKILL');resolve();},3000);child.once('close',()=>{clearTimeout(timer);resolve();});});}
   }
   console.log('BOQ_WORKFLOW_BROWSER_PASS — actual Customer/Quantity UI, exact payload/retry, preview race, stored rounding, submit/checker/history, fresh print/CSV and actual App identity/Company/permission cache replacement; mocked transport only');
-} finally { await vite.close(); await rm(temporary,{recursive:true,force:true}); }
+} finally { if(server)await new Promise((resolve,reject)=>server.close(error=>error?reject(error):resolve()));await rm(temporary,{recursive:true,force:true}); }
