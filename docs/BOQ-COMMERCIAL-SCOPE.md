@@ -1,12 +1,12 @@
 # BOQ Disclosure and Linked Customer BOQ Versions
 
-**Status:** OWNER-APPROVED FIRST-PACKAGE SCOPE / ENTRY PREPARATION — 2026-10-25 SGT. This future scope is not an active successor release or a completed release-entry gate.
+**Status:** OWNER-APPROVED FIRST-PACKAGE SCOPE / ENTRY PREPARATION — reconciled 2026-10-28 SGT. The owner instructed proceeding BOQ first, HR next in stages. [Entry preparation](BOQ-ENTRY-PREPARATION.md) carries resolved owner selections and the concrete remaining mapping/calculation decision. Feature coding has not started; entry is not COMPLETE.
 
 **Tracker:** [#266](https://github.com/threeswordz/cinder-grind/issues/266) · **Decision:** DEC-034 · **Requirements:** BUD-011–016 · **Acceptance:** BQC-AC-001–014.
 
 The owner replied **“proceed approved”** after the concrete *Construction-ERP-BOQ-Seven-Role-Gap-Assessment-2026-10-25.md* and proposed first package were presented. Its reviewed source was main `bebffb4a7e3edc019e8a6e88e989fffbcc75d53a`. This records package approval and entry preparation, not answers to cells expressly left undecided. No release number is assigned.
 
-V1.2 remains the primary active release: A/B COMPLETE, C targeted owner UAT and separate release exit PENDING under [#246](https://github.com/threeswordz/cinder-grind/issues/246). Future feature coding waits for required predecessor closure, resolved entry inputs and the normal successor entry gates. Scope-record documentation may be prepared without implementing future functionality or changing current grants. Production remains NOT AUTHORIZED.
+V1.2 is COMPLETE + ACCEPTED, [#246 CLOSED / COMPLETED](https://github.com/threeswordz/cinder-grind/issues/246#issuecomment-6465837484), final main `b8bfd798967d61d9d312f790db5912fb572ce851`, exact-main CI40666561990 SUCCESS. No repeat owner THB UAT is needed. The predecessor gate is satisfied; necessary unresolved BOQ entry inputs and normal entry publication gates still precede feature coding. Scope-record documentation may be prepared without implementing future functionality or changing current grants. Production remains NOT AUTHORIZED.
 
 ## 1. Reuse and verified gaps
 
@@ -35,17 +35,17 @@ The focused assessment also found separate lifecycle differences in plan/urgent 
 
 ## 3. Role-visibility baseline
 
-The owner's approval adopts the concrete direction below for the future package. It does not grant live permissions, attest account configuration or resolve the expressly undecided Nancy cell. Exact technical permissions, combined-role behavior and existing-grant reconciliation must be verified against this baseline before activation; unresolved access must not silently become a wider grant.
+The owner's approval and [recorded selections](https://github.com/threeswordz/cinder-grind/issues/266#issuecomment-6398077094) adopt the direction below. Nancy's extent and Porn's summary granularity are resolved. This does not grant live permissions or attest account configuration. Exact technical permissions, combined-role behavior and existing-grant reconciliation must be verified before activation; unresolved access must not silently become a wider grant.
 
 | Business function | Internal Cost BOQ | Customer line prices / markup / margins | Action/scope boundary |
 |---|---|---|---|
 | Ben | Full Cost in authorized Projects | Full commercial detail | Prepares/submits; another authorized person approves. |
-| Nancy | Cost basis needed for commercial review; **extent of internal line-cost detail remains PENDING** | Full commercial detail | Approves Customer BOQ; no inferred blanket cost/cross-Company grant. |
+| Nancy | Full working and approved Internal Cost BOQs in authorized Projects | Full commercial detail | Approves Customer BOQ; no inferred cross-Company, Internal edit/approval or self-approval right. |
 | Khaimook | Full Cost in assigned approval scope | No customer price detail | Approves Internal Cost BOQ; additional warehouse read remains separate. |
 | Jai / Purchasing | Quantity Only in explicitly authorized purchasing Projects | No customer price detail | Procurement prices remain governed by Procurement permissions; no new Company membership. |
 | Store Site | Quantity Only in assigned/relevant Projects | No customer price detail | No rates, cost totals or rate-bearing documents through quantity views. |
 | Foreman | Quantity Only in assigned/relevant Projects | No customer price detail | Project membership alone adds no commercial authority. |
-| Porn | No blanket internal BOQ line-cost grant; separately authorized Finance documents/totals | No customer line-price/margin detail | Safe contract/billing/payment summary fields require the finalized disclosure contract. |
+| Porn | No blanket internal BOQ line-cost grant; separately authorized Finance documents/totals | No customer line quantities/prices, source-cost breakdown or margins | New BOQ-related summary: authorized Project-level contract/billed/paid totals only; no BOQ WBS/line filters. Existing Finance authority remains separately reconciled. |
 
 Quantity Only must not carry hidden monetary fields in payloads or expose them through history, direct IDs, alternative reports, attachments, exports or cached data. A rate-bearing document is not made safe merely by hiding a UI link.
 
@@ -55,12 +55,12 @@ Authorized totals and known quantities may reconstruct a price, particularly on 
 
 | Input | Current disposition | Concrete preparation |
 |---|---|---|
-| D1 — Disclosure/actions | Concrete matrix direction approved; Nancy internal line-cost extent, precise Finance summary granularity and effective permission combinations remain open. | Prepare the endpoint/document/export/capability matrix and reconcile existing grants before activation. Do not mutate current roles to make the future matrix appear implemented. |
-| D2 — Source mappings | Representative owner cost/customer examples are not supplied or inspected. | Define same-UOM, independent customer quantity/UOM, split/roll-up and L/S cases where relevant. Synthetic test examples may be prepared and labelled as such; they do not establish the owner's mapping policy. |
-| D3 — Pricing/precision/revisions | Initial pricing method(s), cost-basis selection, discounts/rejection rules and customer line/total precision remain open. | Distinguish manual price, markup and target gross margin. Preserve current cost precision; no inferred profit percentage or unapproved conversion formula. Define source selection and immutable customer revision behavior before coding it. |
+| D1 — Disclosure/actions | Nancy full working/approved cost reads in authorized Projects and Porn Project-only totals are owner selected. Effective combined permissions and existing-grant reconciliation remain technical work. | Use the [entry surface map](BOQ-ENTRY-PREPARATION.md). Do not mutate current roles to make the future matrix appear implemented. |
+| D2 — Source mappings | Representative source/mapping examples remain unresolved in the recorded owner-selection receipt. C1/C2 and E1–E3 in [entry preparation](BOQ-ENTRY-PREPARATION.md) are PROPOSED for owner adoption or correction. | Explicit source IDs, independent quantity/UOM and split/roll-up shares; no inferred conversions. Do not call synthetic prices actual owner prices or accepted examples. |
+| D3 — Pricing/precision/revisions | Manual rates and percentage markup, up-to-four-place quantities/rates, half-up two-place lines, summed rounded lines and newly approved revisions are owner selected. Source basis, derived-rate rounding, discount/zero/fractional edges remain open. | C3–C5/E4–E8 in [entry preparation](BOQ-ENTRY-PREPARATION.md) make the exact missing decision concrete. Target gross margin remains deferred; no actual rate/percentage is assumed. |
 | D4 — First slice | **APPROVED:** disclosure and linked Customer BOQ versions together; broader costing and lifecycle work remain separate. | No repeat approval of this package or the THB scope is needed. Resolve only genuinely open inputs. |
 
-Entry is not COMPLETE until V1.2 owner UAT/release closure, the necessary input decisions and applicable scope/requirements/acceptance/CI/review/merge/main gates are actually satisfied. Publication of this document fulfills preparation only.
+V1.2 owner UAT/release closure is COMPLETE. Entry remains pending the necessary BOQ input decisions and applicable scope/requirements/acceptance/CI/review/merge/main gates. Publication of preparation does not itself accept proposed examples or complete entry.
 
 ## 5. Requirement / acceptance contract
 
@@ -88,15 +88,15 @@ Use disposable isolated PostgreSQL/Documents for full suites. Do not replay unch
 ## 6. Separate P1 work and exclusions
 
 - **P1 costing increment:** Detailed/Lump Sum/Hybrid cost components/coverage, automatic UOM/assembly formulas and their representative calculation/precision decisions.
-- **P1 HR / Attendance / Payroll:** policy preparation in parallel remains authorized planning. Employee master and Site manpower headcount are reusable inputs, not payroll. Roles, pay/OT/leave cycles, effective rates, privacy, statutory treatment, accounting/bank/export handoffs and one expense-recognition contract remain unconfirmed. Do not record unconfirmed HR role conclusions as approved rules.
+- **P1 HR / Attendance / Payroll:** the owner instructed BOQ first, HR next in stages, with HR documentation preparation during BOQ delivery. HR runtime implementation, payroll calculations, grants and rollout are outside this package. Private HR requirements are not included in this publication.
 - Separate lifecycle decisions: plan/urgent material issues and thresholds, dispatch/receipt acknowledgment, broader warehouse/Company access, subcontract work acceptance, Customer quotations/progress billing and payment-proposal-versus-execution recognition.
 - Outside this first slice: petty cash, fixed assets/depreciation, #245 multi-Project PO/Invoice/Payment, FX/GL/tax, paid dependency/infrastructure and Production.
 - No legacy relabel/backfill, approved-history rewrite, destructive migration, force-push, branch deletion or unauthorized live permission/Approval Matrix change.
 
 ## 7. Delivery order and authority
 
-1. Record the approved future scope and entry preparation under #266 through one coherent documentation PR; retain V1.2 as primary active release.
-2. Complete V1.2-C targeted UAT and its separate owner release exit. Resolve D1–D3 with only the genuinely missing inputs; preparation may proceed in parallel without successor feature coding.
+1. Preserve published DEC-034 scope and the verified V1.2 COMPLETE + ACCEPTED closure. The owner instructed progressing BOQ first, HR next in stages.
+2. Resolve only remaining D2/D3 business inputs using the concrete entry packet; carry forward D1 and selected D3 choices. HR documentation preparation may proceed without HR feature coding. No completed V1.2 UAT is reopened.
 3. Establish the resolved successor entry baseline through existing governance and applicable normal gates. Assign the release coordination number then; do not claim it already entered development.
 4. Implement the approved slice with one active writer, meaningful denials/integrity/upgrade tests and stable-candidate DEC-022 review; merge normally and verify exact-main CI.
 5. Targeted successor human UAT and separate release exit remain required.

@@ -697,6 +697,12 @@ The owner replied **“proceed approved”** after the concrete *Construction-ER
 
 **Sequencing:** V1.2 is still primary active release; A/B COMPLETE, C owner UAT and separate release exit PENDING under #246. Durable approval/scope preparation is permitted; successor feature coding and a claim of entry COMPLETE wait for required V1.2 closure, resolved entry inputs and existing applicable documentation/CI/review/merge/main gates. No predecessor waiver, automatic business acceptance or Production authority. DEC-008/016/022/029/030/033 and one-writer governance remain in force.
 
+### DEC-034 dated reconciliation — 2026-10-28 SGT
+
+The approval-time open-input and predecessor wording above is historical. [Owner selections](https://github.com/threeswordz/cinder-grind/issues/266#issuecomment-6398077094) subsequently resolved Nancy's full working/approved cost reads within authorized Projects, Porn's Project-only contract/billed/paid summary, manual/markup methods and the presented four-place rate/quantity/two-place half-up line/summed-line/revision baseline. These decisions are carried into [canonical BOQ scope](BOQ-COMMERCIAL-SCOPE.md); no extra grants or commercial rates are inferred.
+
+V1.2 is COMPLETE + ACCEPTED under DEC-036, #246 CLOSED / COMPLETED. The owner then instructed “proceed building with your recommendation” after BOQ first, HR next in stages and HR documentation preparation during BOQ delivery were presented. This progresses the approved package; it does not answer previously unresolved source allocation, derived-rate rounding or zero/discount edges. [BOQ entry preparation](BOQ-ENTRY-PREPARATION.md) provides the source-verified technical surface map and concrete synthetic **PROPOSED** C1–C5/E1–E8 decision; necessary input and entry gates still precede runtime coding. HR documentation preparation remains separate; no private HR requirements, HR policy exception or HR release entry is published here. No review, human acceptance or Production gate is waived.
+
 ## DEC-035 — One-time V1.2-C integrated Codex review waiver / governed merge authorization
 
 **Status:** APPROVED — Product / Business Owner, 2026-10-28 SGT; PR #272 only, under DEC-022.

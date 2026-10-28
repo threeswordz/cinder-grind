@@ -1,7 +1,7 @@
 # Construction ERP — Development Roadmap
 
 **Document Status:** Development Roadmap Baseline v0.1  
-**Current Phase:** V0.1–V1.1 COMPLETE + ACCEPTED. **V1.2 technical implementation COMPLETE; owner UAT and separate release exit ACCEPTED**, DEC-036. Final acceptance-record publication/closure evidence is tracked in #246 / [Current State](CURRENT-STATE.md). DEC-034/#266 remains approved future BOQ scope/entry preparation; no successor feature coding or entry closure is claimed. Production NOT AUTHORIZED.
+**Current Phase:** V0.1–V1.2 COMPLETE + ACCEPTED; final V1.2 publication/main-CI verified and #246 CLOSED / COMPLETED. The owner instructed proceeding BOQ first, HR next in stages. DEC-034/#266 [BOQ entry preparation](BOQ-ENTRY-PREPARATION.md) is IN PROGRESS; no successor feature coding or entry closure is claimed. HR documentation preparation remains separate; private HR materials are not included here. Production NOT AUTHORIZED.
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1  
@@ -23,15 +23,15 @@ The owner approved the [bounded scope](V1.2-THB-SCOPE.md) under DEC-033, then se
 
 ## Approved future package — BOQ Disclosure and Linked Customer BOQ Versions (DEC-034)
 
-[#266](https://github.com/threeswordz/cinder-grind/issues/266) records the owner's approved first slice and [canonical scope/role/open-input/acceptance baseline](BOQ-COMMERCIAL-SCOPE.md). No successor release number is assigned; V1.2 remains primary active release.
+[#266](https://github.com/threeswordz/cinder-grind/issues/266) records the owner's approved first slice and [canonical scope/role/open-input/acceptance baseline](BOQ-COMMERCIAL-SCOPE.md). V1.2 is closed; BOQ entry preparation is the current work. No successor release number is assigned and no feature entry is claimed.
 
 | Work | Position |
 |---|---|
 | First-package scope / entry preparation | **APPROVED SCOPE:** documentation publication gates tracked in #266; not entry COMPLETE. |
-| Required predecessor and entry inputs | V1.2 owner UAT and release exit ACCEPTED; verify final repository closure in #246. Existing owner access/pricing selections are recorded in #266; remaining representative mapping/edge inputs and normal BOQ entry gates remain required. |
+| Required predecessor and entry inputs | V1.2 COMPLETE + ACCEPTED, #246 CLOSED / COMPLETED. Existing owner access/pricing selections are recorded in #266; [remaining concrete mapping/calculation decision](BOQ-ENTRY-PREPARATION.md) and normal BOQ entry gates remain required. |
 | Feature implementation | **FUTURE:** no runtime/schema/permission changes before the required entry conditions. |
 | Targeted human UAT / separate release exit | **FUTURE:** not accepted by scope approval. |
-| Advanced costing and HR/Attendance/Payroll | Separate **P1** increments; policy/design preparation in parallel, without unconfirmed formulas, actors or recognition rules. |
+| Advanced costing and HR/Attendance/Payroll | Separate **P1** increments. HR follows BOQ in stages; documentation preparation remains separate. No payroll feature entry or statutory/recognition assumptions. |
 
 ## Accepted release — V1.1 Business Workflow & Role UI (DEC-028)
 
