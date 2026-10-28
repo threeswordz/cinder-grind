@@ -16,14 +16,16 @@ const temporary = await mkdtemp(path.join(os.tmpdir(), 'erp-boq-browser-'));
 const harness = String.raw`
 import React from 'react';
 import {createRoot} from 'react-dom/client';
-import {QueryClient,QueryClientProvider} from '@tanstack/react-query';
+import {QueryClient,QueryClientProvider,useQuery} from '@tanstack/react-query';
 import {CustomerBoqPanel} from '/src/budget/CustomerBoqPanel.tsx';
 import {BudgetWorkspace} from '/src/budget/BudgetWorkspace.tsx';
 import {MonetaryLocaleContext} from '/src/role-ui/monetary-presentation.tsx';
 import App from '/src/App.tsx';
+import {fetchCurrentUser} from '/src/api/auth.ts';
+import {effectiveUiQueryScope} from '/src/role-ui/role-workspace-policy.ts';
 const pid='11111111-1111-4111-8111-111111111111',sid='22222222-2222-4222-8222-222222222222',uid='33333333-3333-4333-8333-333333333333',sourceLine='44444444-4444-4444-8444-444444444444',vid='55555555-5555-4555-8555-555555555555';
 const all=['budget.boq.view','budget.revision.view','budget.customer.view','budget.customer.manage','budget.customer.submit','budget.customer.approve'];
-let stage='initial',projectChoices=0;
+let stage='initial',projectChoices=0,appMode=false;
 let signedIn=true,deferHistory=false,delayedHistory=[];
 let actor='maker',state='DRAFT',edits=[],saved,attempts=[],rejectFirstSave=true,previewResolve,delayPreview=false,historyReads=0,projectReads=0,exportReads=0,printCalls=0,locale='en';
 let user={id:uid,companyId:pid,email:'browser@example.invalid',displayName:'Browser actor',roleCodes:['MAKER'],permissions:all};
@@ -68,7 +70,7 @@ window.fetch=async(url,init={})=>{
 };
 const root=createRoot(document.getElementById('root'));
 let cache=new QueryClient({defaultOptions:{queries:{retry:false},mutations:{retry:false}}});
-function render(){root.render(<MonetaryLocaleContext.Provider value={locale}><QueryClientProvider client={cache}><CustomerBoqPanel key={actor} permissions={all}/></QueryClientProvider></MonetaryLocaleContext.Provider>);}
+function render(){root.render(<MonetaryLocaleContext.Provider value={locale}><QueryClientProvider client={cache}><section data-test-actor={actor}><CustomerBoqPanel key={actor} permissions={all}/></section></QueryClientProvider></MonetaryLocaleContext.Provider>);}
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 const check=(value,message)=>{if(!value)throw new Error(message);};
 async function until(fn,message){for(let i=0;i<120;i++){if(fn())return;await wait(30);}throw new Error(message);}
@@ -79,7 +81,7 @@ async function button(label){await until(()=>buttons(label).some(b=>!b.disabled)
 const labelled=(node,label)=>(node.getAttribute('aria-labelledby')??'').split(' ').some(id=>document.getElementById(id)?.textContent===label);
 async function select(label,choice){await until(()=>[...scope().querySelectorAll('[role="combobox"]')].some(n=>labelled(n,label)),'Missing selector '+label);const el=[...scope().querySelectorAll('[role="combobox"]')].find(n=>labelled(n,label));el.dispatchEvent(new MouseEvent('mousedown',{bubbles:true,button:0}));await until(()=>[...document.querySelectorAll('[role="option"]')].some(n=>n.textContent.includes(choice)),'Missing choice '+choice);[...document.querySelectorAll('[role="option"]')].find(n=>n.textContent.includes(choice)).click();await wait(80);}
 async function input(label,value){const labels=[...scope().querySelectorAll('label')];const lab=labels.find(n=>n.textContent.replace(/\s*\*$/,'')===label);check(lab,'Missing input '+label);const el=document.getElementById(lab.htmlFor);check(el?.tagName==='INPUT','Expected input '+label);Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(el,value);el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));await wait(40);}
-async function chooseProject(){stage='project-'+(++projectChoices);await select('Project','Browser project');await until(()=>text().includes('New draft'),'Customer workspace not loaded');}
+async function chooseProject(){stage='project-'+(++projectChoices);if(!appMode)await until(()=>document.querySelector('[data-test-actor="'+actor+'"]'),'Actor render did not commit');await select('Project','Browser project');await until(()=>text().includes('New draft'),'Customer workspace not loaded');}
 async function chooseVersion(){await select('Version','#1');await until(()=>text().includes('Immutable history'),'Stored version not loaded');}
 async function run(){
   render();await chooseProject();
@@ -95,17 +97,19 @@ async function run(){
   for(const [language,label] of [['th','客戶'],['zh-TW','客戶工程量清單']]){locale=language;render();await wait(100);check(language==='th'?text().includes('BOQ สำหรับลูกค้า'):text().includes(label),'Locale presentation missing '+language);}
   // Exercise the real root App, including its keyed AuthenticatedWorkspace cache.
   const outer=new QueryClient({defaultOptions:{queries:{retry:false}}});
-  function appRender(){root.render(<QueryClientProvider client={outer}><App/></QueryClientProvider>);}
+  function AuthProbe(){const {data}=useQuery({queryKey:['current-user'],queryFn:fetchCurrentUser,retry:false});return <output id="auth-probe" data-scope={data?effectiveUiQueryScope(data.id,data.companyId,data.permissions,data.roleCodes):''}/>;}
+  const authRendered=()=>until(()=>document.getElementById('auth-probe')?.getAttribute('data-scope')===effectiveUiQueryScope(user.id,user.companyId,user.permissions,user.roleCodes),'Auth scope render did not commit');
+  function appRender(){appMode=true;root.render(<React.StrictMode><QueryClientProvider client={outer}><App/><AuthProbe/></QueryClientProvider></React.StrictMode>);}
   appRender();await until(()=>text().includes('Browser actor'),'Real App did not authenticate');
   async function nav(){const node=[...document.querySelectorAll('button,a,[role=button]')].find(n=>n.textContent==='BOQ & Budget');check(node,'Real Budget navigation missing');node.click();await wait(100);}
   await nav();await chooseProject();await chooseVersion();check(text().includes('0.99'),'Full-cost root did not load commercial data');
   const firstProjects=projectReads;deferHistory=true;await button('Refresh');await until(()=>delayedHistory.length,'Old-scope request was not captured');
-  user={...user,permissions:['budget.quantity.view'],roleCodes:['QUANTITY']};await outer.invalidateQueries({queryKey:['current-user']});await until(()=>!text().includes('0.0033'),'Old commercial DOM survived permission downgrade');await nav();await select('Project','Quantity project');await until(()=>text().includes('Visible quantity work'),'Quantity DOM missing');deferHistory=false;delayedHistory.forEach(resolve=>resolve());await wait(100);check(!text().includes('0.99')&&!text().includes('1000'),'Quantity workspace reused money from old cache or late old response');
-  user={...user,permissions:all,roleCodes:['CHECKER']};await outer.invalidateQueries({queryKey:['current-user']});await nav();await chooseProject();await chooseVersion();check(projectReads>firstProjects,'A-B-A reused the old business cache');
-  const priorProjects=projectReads;user={...user,id:sid,companyId:uid};await outer.invalidateQueries({queryKey:['current-user']});await until(()=>!text().includes('0.0033'),'Identity/Company switch retained old commercial DOM');await nav();await chooseProject();check(projectReads>priorProjects,'New identity/Company reused the old Project cache');
-  await chooseVersion();const beforeRole=projectReads;user={...user,roleCodes:['OTHER_CHECKER']};await outer.invalidateQueries({queryKey:['current-user']});await until(()=>!text().includes('0.0033'),'Role-only change retained old commercial DOM');await nav();await chooseProject();check(projectReads>beforeRole,'Role-only change reused old business cache');await chooseVersion();
+  user={...user,permissions:['budget.quantity.view'],roleCodes:['QUANTITY']};await outer.invalidateQueries({queryKey:['current-user']});await authRendered();await until(()=>!text().includes('0.0033'),'Old commercial DOM survived permission downgrade');await nav();await select('Project','Quantity project');await until(()=>text().includes('Visible quantity work'),'Quantity DOM missing');deferHistory=false;delayedHistory.forEach(resolve=>resolve());await wait(100);check(!text().includes('0.99')&&!text().includes('1000'),'Quantity workspace reused money from old cache or late old response');
+  user={...user,permissions:all,roleCodes:['CHECKER']};await outer.invalidateQueries({queryKey:['current-user']});await authRendered();await nav();await chooseProject();await chooseVersion();check(projectReads>firstProjects,'A-B-A reused the old business cache');
+  const priorProjects=projectReads;user={...user,id:sid,companyId:uid};await outer.invalidateQueries({queryKey:['current-user']});await authRendered();await until(()=>!text().includes('0.0033'),'Identity/Company switch retained old commercial DOM');await nav();await chooseProject();check(projectReads>priorProjects,'New identity/Company reused the old Project cache');
+  await chooseVersion();const beforeRole=projectReads;user={...user,roleCodes:['OTHER_CHECKER']};await outer.invalidateQueries({queryKey:['current-user']});await authRendered();await until(()=>!text().includes('0.0033'),'Role-only change retained old commercial DOM');await nav();await chooseProject();check(projectReads>beforeRole,'Role-only change reused old business cache');await chooseVersion();
   const logout=[...document.querySelectorAll('button')].find(n=>n.textContent==='Sign out');check(logout,'Sign out missing');logout.click();await until(()=>text().includes('Sign in to the'),'Logout did not return to the actual LoginScreen');check(!text().includes('0.99'),'Logout retained commercial data');
-  user={...user,id:uid,companyId:pid,roleCodes:['QUANTITY'],permissions:['budget.quantity.view']};await input('Email','browser@example.invalid');await input('Password','Disposable-browser-password');await button('Sign in');await until(()=>text().includes('Browser actor'),'New sign-in did not authenticate');await nav();await select('Project','Quantity project');await until(()=>text().includes('Visible quantity work'),'New sign-in quantity screen missing');check(!text().includes('0.0033')&&!text().includes('0.99'),'A new signed-in identity reused commercial data');
+  user={...user,id:uid,companyId:pid,roleCodes:['QUANTITY'],permissions:['budget.quantity.view']};await input('Email','browser@example.invalid');await input('Password','Disposable-browser-password');await button('Sign in');await until(()=>text().includes('Browser actor'),'New sign-in did not authenticate');await authRendered();await nav();await select('Project','Quantity project');await until(()=>text().includes('Visible quantity work'),'New sign-in quantity screen missing');check(!text().includes('0.0033')&&!text().includes('0.99'),'A new signed-in identity reused commercial data');
   document.body.dataset.result='PASS';outer.clear();cache.clear();root.unmount();
 }
 run().catch(error=>{document.body.dataset.result='FAIL';document.body.dataset.error=error.message+'; stage='+stage+'; projectReads='+projectReads+'; choices='+JSON.stringify([...document.querySelectorAll('[role=option]')].map(n=>n.textContent))+'; ui='+text().slice(-1800);});

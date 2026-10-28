@@ -1,6 +1,6 @@
 # BOQ Disclosure and Linked Customer BOQ Versions
 
-**Status:** V1.3-A entry COMPLETE through #274/main `f5d70871593bb89539c574381a687f3d67884c04`, exact-main CI40680993646 SUCCESS. V1.3-B implementation IN PROGRESS under #275; [pricing-core evidence](V1.3-B-IMPLEMENTATION.md) covers the first bounded increment only. Full Customer BOQ workflows/disclosure/UI/persistence and BQC acceptance are not complete. DEC-037's C1–C5/E1–E8 approvals remain unchanged.
+**Status:** V1.3-A entry COMPLETE through #274; V1.3-B implementation IN PROGRESS under #275. Pricing #276 and persistence/configured approval #277 are technically complete at main `0a7040aebc966263737f492c740b01381e230736` / exact-main CI40716408188 SUCCESS. [Public disclosure/workflow candidate](V1.3-B-PUBLIC-WORKFLOW.md) is under validation; Project-only Finance summary, remaining navigation/access reconciliation and integrated gates remain. Full BQC acceptance is not claimed. DEC-037's C1–C5/E1–E8 approvals remain unchanged.
 
 **Tracker:** [#266](https://github.com/threeswordz/cinder-grind/issues/266) · **Decision:** DEC-034 · **Requirements:** BUD-011–016 · **Acceptance:** BQC-AC-001–014.
 
