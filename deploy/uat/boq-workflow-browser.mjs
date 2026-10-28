@@ -23,6 +23,8 @@ import {MonetaryLocaleContext} from '/src/role-ui/monetary-presentation.tsx';
 import App from '/src/App.tsx';
 const pid='11111111-1111-4111-8111-111111111111',sid='22222222-2222-4222-8222-222222222222',uid='33333333-3333-4333-8333-333333333333',sourceLine='44444444-4444-4444-8444-444444444444',vid='55555555-5555-4555-8555-555555555555';
 const all=['budget.boq.view','budget.revision.view','budget.customer.view','budget.customer.manage','budget.customer.submit','budget.customer.approve'];
+let stage='initial',projectChoices=0;
+let signedIn=true,deferHistory=false,delayedHistory=[];
 let actor='maker',state='DRAFT',edits=[],saved,attempts=[],rejectFirstSave=true,previewResolve,delayPreview=false,historyReads=0,projectReads=0,exportReads=0,printCalls=0,locale='en';
 let user={id:uid,companyId:pid,email:'browser@example.invalid',displayName:'Browser actor',roleCodes:['MAKER'],permissions:all};
 const options={sources:[{id:sid,revisionNo:1,revisionNumber:'COST-R1',currencyCode:'THB',lines:[{id:sourceLine,itemCode:'C1',description:'Source work',quantity:'10',uomId:uid,uomCode:'EA',rate:'100',amount:'1000'}]}],uoms:[{id:uid,uomCode:'EA',uomName:'Each',decimalPlaces:0}],workflows:[{workflowCode:'CUSTOMER_BOQ',workflowName:'Commercial checker'}]};
@@ -33,9 +35,10 @@ window.print=()=>{printCalls++;};
 const clicks=[];HTMLAnchorElement.prototype.click=function(){clicks.push(this.download);};
 window.fetch=async(url,init={})=>{
   const path=new URL(String(url),location.href).pathname.replace('/api/v1',''),method=init.method??'GET',body=init.body?JSON.parse(init.body):undefined;
-  if(path==='/auth/me')return json(user);
+  if(path==='/auth/me')return signedIn?json(user):new Response(JSON.stringify({code:'AUTHENTICATION_REQUIRED'}),{status:401,headers:{'Content-Type':'application/problem+json'}});
+  if(path==='/auth/login'){signedIn=true;return json({user,csrfToken:'browser-login-csrf',expiresAt:'2026-10-30T00:00:00Z'});}
   if(path==='/auth/csrf')return json({csrfToken:'browser-csrf'});
-  if(path==='/auth/logout')return new Response(null,{status:204});
+  if(path==='/auth/logout'){signedIn=false;return new Response(null,{status:204});}
   if(path==='/budget/customer/projects'){projectReads++;return json([{id:pid,projectCode:'P',projectName:'Browser project'}]);}
   if(path.endsWith('/options')&&path.includes('/budget/customer/'))return json(options);
   if(path.endsWith('/versions')&&method==='GET')return json(saved?[{id:vid,versionNo:1,sourceRevisionId:sid,currentEditNo:edits.length,approvalState:state,totalAmount:'0.99',currencyCode:'THB'}]:[]);
@@ -55,7 +58,7 @@ window.fetch=async(url,init={})=>{
   if(path.endsWith('/submit')){state='SUBMITTED';return json({id:vid,editNo:edits.length,approvalState:state},201);}
   if(path.endsWith('/decision')){if(actor!=='checker')throw new Error('Maker UI exposed approval');state=body.decision==='APPROVE'?'APPROVED':'REJECTED';return json({id:vid,editNo:edits.length,approvalState:state},201);}
   if(path.endsWith('/export')){exportReads++;return new Response('Description,Rate,Amount\nWork,0.0033,0.99',{headers:{'Content-Type':'text/csv','Content-Disposition':'attachment; filename="customer-boq.csv"'}});}
-  if(path.endsWith('/versions/'+vid)){historyReads++;return json(history());}
+  if(path.endsWith('/versions/'+vid)){historyReads++;const snapshot=structuredClone(history());if(deferHistory)return new Promise(resolve=>delayedHistory.push(()=>resolve(json(snapshot))));return json(snapshot);}
   if(path==='/budget/quantity/projects')return json([{id:pid,projectCode:'P',projectName:'Quantity project'}]);
   if(path.startsWith('/budget/quantity/')&&path.endsWith('/revisions'))return json([]);
   if(path.startsWith('/budget/quantity/')&&path.endsWith('/boq'))return json({id:'working',boqName:'Work',items:[{id:'item',itemCode:'Q1',description:'Visible quantity work',quantity:'300',uomCode:'EA'}]});
@@ -76,7 +79,7 @@ async function button(label){await until(()=>buttons(label).some(b=>!b.disabled)
 const labelled=(node,label)=>(node.getAttribute('aria-labelledby')??'').split(' ').some(id=>document.getElementById(id)?.textContent===label);
 async function select(label,choice){await until(()=>[...scope().querySelectorAll('[role="combobox"]')].some(n=>labelled(n,label)),'Missing selector '+label);const el=[...scope().querySelectorAll('[role="combobox"]')].find(n=>labelled(n,label));el.dispatchEvent(new MouseEvent('mousedown',{bubbles:true,button:0}));await until(()=>[...document.querySelectorAll('[role="option"]')].some(n=>n.textContent.includes(choice)),'Missing choice '+choice);[...document.querySelectorAll('[role="option"]')].find(n=>n.textContent.includes(choice)).click();await wait(80);}
 async function input(label,value){const labels=[...scope().querySelectorAll('label')];const lab=labels.find(n=>n.textContent.replace(/\s*\*$/,'')===label);check(lab,'Missing input '+label);const el=document.getElementById(lab.htmlFor);check(el?.tagName==='INPUT','Expected input '+label);Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set.call(el,value);el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));await wait(40);}
-async function chooseProject(){await select('Project','Browser project');await until(()=>text().includes('New draft'),'Customer workspace not loaded');}
+async function chooseProject(){stage='project-'+(++projectChoices);await select('Project','Browser project');await until(()=>text().includes('New draft'),'Customer workspace not loaded');}
 async function chooseVersion(){await select('Version','#1');await until(()=>text().includes('Immutable history'),'Stored version not loaded');}
 async function run(){
   render();await chooseProject();
@@ -96,13 +99,16 @@ async function run(){
   appRender();await until(()=>text().includes('Browser actor'),'Real App did not authenticate');
   async function nav(){const node=[...document.querySelectorAll('button,a,[role=button]')].find(n=>n.textContent==='BOQ & Budget');check(node,'Real Budget navigation missing');node.click();await wait(100);}
   await nav();await chooseProject();await chooseVersion();check(text().includes('0.99'),'Full-cost root did not load commercial data');
-  const firstProjects=projectReads;
-  user={...user,permissions:['budget.quantity.view'],roleCodes:['QUANTITY']};await outer.invalidateQueries({queryKey:['current-user']});await until(()=>!text().includes('0.0033'),'Old commercial DOM survived permission downgrade');await nav();await select('Project','Quantity project');await until(()=>text().includes('Visible quantity work'),'Quantity DOM missing');check(!text().includes('0.99')&&!text().includes('1000'),'Quantity workspace reused money from old cache');
+  const firstProjects=projectReads;deferHistory=true;await button('Refresh');await until(()=>delayedHistory.length,'Old-scope request was not captured');
+  user={...user,permissions:['budget.quantity.view'],roleCodes:['QUANTITY']};await outer.invalidateQueries({queryKey:['current-user']});await until(()=>!text().includes('0.0033'),'Old commercial DOM survived permission downgrade');await nav();await select('Project','Quantity project');await until(()=>text().includes('Visible quantity work'),'Quantity DOM missing');deferHistory=false;delayedHistory.forEach(resolve=>resolve());await wait(100);check(!text().includes('0.99')&&!text().includes('1000'),'Quantity workspace reused money from old cache or late old response');
   user={...user,permissions:all,roleCodes:['CHECKER']};await outer.invalidateQueries({queryKey:['current-user']});await nav();await chooseProject();await chooseVersion();check(projectReads>firstProjects,'A-B-A reused the old business cache');
   const priorProjects=projectReads;user={...user,id:sid,companyId:uid};await outer.invalidateQueries({queryKey:['current-user']});await until(()=>!text().includes('0.0033'),'Identity/Company switch retained old commercial DOM');await nav();await chooseProject();check(projectReads>priorProjects,'New identity/Company reused the old Project cache');
+  await chooseVersion();const beforeRole=projectReads;user={...user,roleCodes:['OTHER_CHECKER']};await outer.invalidateQueries({queryKey:['current-user']});await until(()=>!text().includes('0.0033'),'Role-only change retained old commercial DOM');await nav();await chooseProject();check(projectReads>beforeRole,'Role-only change reused old business cache');await chooseVersion();
+  const logout=[...document.querySelectorAll('button')].find(n=>n.textContent==='Sign out');check(logout,'Sign out missing');logout.click();await until(()=>text().includes('Sign in to the'),'Logout did not return to the actual LoginScreen');check(!text().includes('0.99'),'Logout retained commercial data');
+  user={...user,id:uid,companyId:pid,roleCodes:['QUANTITY'],permissions:['budget.quantity.view']};await input('Email','browser@example.invalid');await input('Password','Disposable-browser-password');await button('Sign in');await until(()=>text().includes('Browser actor'),'New sign-in did not authenticate');await nav();await select('Project','Quantity project');await until(()=>text().includes('Visible quantity work'),'New sign-in quantity screen missing');check(!text().includes('0.0033')&&!text().includes('0.99'),'A new signed-in identity reused commercial data');
   document.body.dataset.result='PASS';outer.clear();cache.clear();root.unmount();
 }
-run().catch(error=>{document.body.dataset.result='FAIL';document.body.dataset.error=error.message;});
+run().catch(error=>{document.body.dataset.result='FAIL';document.body.dataset.error=error.message+'; stage='+stage+'; projectReads='+projectReads+'; choices='+JSON.stringify([...document.querySelectorAll('[role=option]')].map(n=>n.textContent))+'; ui='+text().slice(-1800);});
 `;
 const vite = await createServer({
   root, configFile: false, server: { host: '127.0.0.1', port: 0, hmr: false },
@@ -124,6 +130,7 @@ try {
     child.on('close',code=>{clearTimeout(timeout);resolve({code,out,err});});
   });
   assert.equal(result.code,0,result.err.slice(-2000));
-  assert.match(result.out,/data-result="PASS"/,(result.out.match(/data-error="[^"]*"/) ?? [result.out.slice(-4000)])[0]);
+  const failure=(result.out.match(/data-error="[^"]*"/)??[result.out.slice(-2000)])[0];
+  assert.ok(/data-result="PASS"/.test(result.out),failure);
   console.log('BOQ_WORKFLOW_BROWSER_PASS — actual Customer/Quantity UI, exact payload/retry, preview race, stored rounding, submit/checker/history, fresh print/CSV and actual App identity/Company/permission cache replacement; mocked transport only');
 } finally { await vite.close(); await rm(temporary,{recursive:true,force:true}); }

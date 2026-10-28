@@ -88,6 +88,7 @@ test('public BOQ HTTP workflow enforces persisted disclosure, CSRF, maker/checke
         const response=await get(f.editor,url);assert.equal(response.headers.get('cache-control'),'private, no-store');
         assert.doesNotMatch(await response.text(),/"(?:rate|amount|totalAmount|currencyCode|revisionNote|notes|actions|pricingSnapshot)"/);
       }
+      await get(f.editor,'/budget/quantity/projects/'+pid.toUpperCase()+'/revisions/'+f.source.id.toUpperCase());
       for(const url of ['/budget/projects/'+pid+'/boq','/budget/projects/'+pid+'/revisions','/budget/revisions/'+f.source.id,root+'/options',root+'/versions/'+id,root+'/versions/'+id+'/export'])await get(f.editor,url,403);
       const patched=await call(f.editor,'/budget/projects/'+pid+'/boq',{boqName:'Updated work'},true,'PATCH');assert.equal(patched.status,200,await patched.clone().text());
       assert.deepEqual(Object.keys((await patched.json()).data).sort(),['id','projectId']);

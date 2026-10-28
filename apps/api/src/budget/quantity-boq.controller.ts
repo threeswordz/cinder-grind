@@ -34,7 +34,7 @@ export class QuantityBoqController {
   revision(@Req() r: AuthenticatedRequest, @Param('projectId', new ParseUUIDPipe({version:'4'})) p: string,
     @Param('id', new ParseUUIDPipe({version:'4'})) id: string) {
     return this.read(r, async (a) => { const row = await this.budget.getRevision(a,id);
-      if (row.projectId !== p) throw new ForbiddenException({code:'BOQ_PROJECT_MISMATCH',detail:'Revision belongs to another Project.'});
+      if (row.projectId !== p.toLowerCase()) throw new ForbiddenException({code:'BOQ_PROJECT_MISMATCH',detail:'Revision belongs to another Project.'});
       return quantityRecord(row); });
   }
 }
