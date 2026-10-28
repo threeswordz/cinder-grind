@@ -19,7 +19,8 @@ Before reporting implementation status, re-fetch live GitHub state. At minimum r
 6. latest applicable exact-head / PR / post-merge CI;
 7. `docs/CURRENT-STATE.md`;
 8. `docs/DEVELOPMENT-ROADMAP.md`;
-9. applicable release scope / acceptance criteria / business rules.
+9. applicable release scope / acceptance criteria / business rules;
+10. [Production / Go-Live Readiness Register](PRODUCTION-GO-LIVE-READINESS.md) and its [cross-release Issue #278](https://github.com/threeswordz/cinder-grind/issues/278), with *fresh* security/hosting/cutover evidence when available.
 
 Conversation memory may help with presentation preference, but it must not override live repository state.
 
@@ -134,9 +135,24 @@ Immediately after the roadmap visual, show:
 
 Keep this summary concise unless the Product / Business Owner asks for more detail.
 
+## 6A. Mandatory Production / Go-Live dashboard (owner addition, 2026-10-28)
+
+The owner explicitly requested that **from now on** every Construction ERP live-position report show the **remaining path to actual Production/go-live**, visually, **in addition to** the complete feature/release roadmap. The durable gate definitions, evidence, initial state and safe pilot interpretation are in [Production / Go-Live Readiness Register](PRODUCTION-GO-LIVE-READINESS.md), tracked through [#278](https://github.com/threeswordz/cinder-grind/issues/278).
+
+After the mandatory roadmap, show:
+
+1. **Go-live gate visual** — verified-complete categories, actively progressing, pending/unknown/conditional categories; count verified categories out of ten in the current **full-scope** planning baseline. Distinguish a limited pilot if separately authorized.
+2. **Gap table** — GL-01 through GL-10: area, current evidence-bound status, work missing, priority and relevant existing Issue/PR/decision. Do not count the V1.0 Production *engineering* release as proof of actual hosting, backup scheduling or go-live.
+3. **Specific next milestone** — what the existing designated implementation owner does next, which targeted new UAT/acceptance still applies, which operational evidence remains unverified, and whether an actual owner approval is needed.
+4. **Standing release and Production protection** — accepted V1.1/V1.2 THB work remains accepted; never reschedule old UAT as a new blocker. No unauthorized data/grant/schema/Production mutations or hidden salary/commercial exposures.
+
+Gate statuses are **VERIFIED COMPLETE / ACTIVE / PENDING / UNVERIFIED / CONDITIONAL FOR PILOT**. A lack of hosted-environment evidence is **UNVERIFIED, not FAILED**. A green CI result is technical evidence, not deployment evidence; an accepted release is not automatically a live Production site. Count `2/10` only where all ten categories and their specific evidence remain applicable and confirmed; it is **not 20% code completion** and must be recalculated when evidence changes. For limited pilots, identify explicitly approved exclusions and controlled external handoffs; never mark deferred features delivered.
+
+Future updates to this presentation standard do **not** approve new implementation scope, business permission grants, HR/statutory policy, paid infrastructure, data migration, release exit or deployment. The designated Builder owns #275 BOQ implementation; this dashboard must not start a competing writer, branch or test run.
+
 ## 7. Current roadmap destination
 
-The original functional core ends at **V0.8 Management**, followed by **V1.0 Production Readiness**. Those releases are now COMPLETE + ACCEPTED; **V1.1 Business Workflow & Role UI** is the approved active successor under DEC-028, with release exit still pending human UAT. For subsequent releases, always derive the current destination, stages and completion flags from live `docs/DEVELOPMENT-ROADMAP.md`, `docs/CURRENT-STATE.md` and GitHub evidence; never treat this dated example as the active release position.
+The original functional core ends at **V0.8 Management**, followed by **V1.0 Production Readiness**. Both are COMPLETE + ACCEPTED. **At the 2026-10-28 checkpoint, V1.1 and V1.2 are also COMPLETE + ACCEPTED, and V1.3-B BOQ is ACTIVE under #275**; the accepted #276/#277 internal increments are not full user-facing BOQ completion. For every later report derive the current destination, stage and gates from live `docs/DEVELOPMENT-ROADMAP.md`, `docs/CURRENT-STATE.md`, linked #266/#275 and GitHub evidence; never treat this dated checkpoint or the older historical examples as current. Actual Production remains NOT AUTHORIZED unless a new explicit go/no-go exists.
 
 If the approved roadmap later adds V0.9 or changes the production destination, follow the newer approved repository baseline.
 
