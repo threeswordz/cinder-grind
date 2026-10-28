@@ -17,6 +17,8 @@ import { GoodsReceiptService } from '../inventory/goods-receipt.service';
 import { InventoryQuantityService } from '../inventory/inventory-quantity.service';
 import { SubcontractsCertificationService } from '../subcontracts/subcontracts-certification.service';
 import { legacyFixture } from './legacy-fixture';
+import { PurchaseOrderService } from '../procurement/purchase-order.service';
+import { BudgetService } from '../budget/budget.service';
 
 export async function verifyThbUpgrade(prisma: PrismaService, requireRetention: boolean) {
   const fixture = legacyFixture();
@@ -53,6 +55,24 @@ export async function verifyThbUpgrade(prisma: PrismaService, requireRetention: 
   assert.equal((await prisma.purchaseOrder.findUniqueOrThrow({ where: { id: fixture.knownPoId } })).currencyCode, 'SGD');
   assert.equal((await prisma.purchaseOrder.findUniqueOrThrow({ where: { id: fixture.unknownPoId } })).currencyCode, null);
   assert.equal((await prisma.project.findUniqueOrThrow({ where: { id: fixture.projectId } })).contractCurrencyCode, null);
+  // Use actual previous-release role grants and the owning services, not only raw row reads.
+  assert.ok(maker.permissions.includes('procurement.po.view') && maker.permissions.includes('budget.revision.view'));
+  const orders = new PurchaseOrderService(prisma, access, audit, approvals, numbers);
+  const budgets = new BudgetService(prisma, access, audit, approvals, numbers);
+  for (const [id, currency] of [[fixture.knownPoId, 'SGD'], [fixture.unknownPoId, null]] as const) {
+    const row = await orders.getOrder(maker, id);
+    assert.equal(row.id, id);
+    assert.equal(row.companyId, fixture.companyId);
+    assert.equal(row.currencyCode, currency);
+  }
+  for (const [id, currency] of [[fixture.knownBudgetId, 'SGD'], [fixture.unknownBudgetId, null]] as const) {
+    const row = await budgets.getRevision(maker, id);
+    assert.equal(row.id, id);
+    assert.equal(row.companyId, fixture.companyId);
+    assert.equal(row.currencyCode, currency);
+  }
+  console.log('THB_HISTORICAL_SOURCE_READ_PASS — authorized owning-service PO/Budget reads preserve genuine SGD/NULL identity.');
+
   for (const [table, id] of [['purchase_orders',fixture.knownPoId],['purchase_orders',fixture.unknownPoId],
     ['budget_revisions',fixture.knownBudgetId],['budget_revisions',fixture.unknownBudgetId],['boqs',fixture.boqId]]) {
     await assert.rejects(prisma.$queryRawUnsafe('SELECT erp_thb_assert_source($1::text, $2::uuid)', table, id), /ERP_THB/);

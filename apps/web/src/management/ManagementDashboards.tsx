@@ -1,3 +1,4 @@
+import { BudgetBaselineNotice, BudgetValue } from '../role-ui/budget-presentation';
 import {
   Alert,
   Button,
@@ -243,12 +244,13 @@ function CostCard({
   const cost = summary.domains.cost;
   return (
     <MetricCard title="Cost Control">
+      <BudgetBaselineNotice baseline={cost.budgetBaseline} />
       <Stack spacing={0.5}>
         <Typography variant="body2">
-          Original budget: {money(summary.baseCurrencyCode, cost.originalBudget)}
+          Original budget: <BudgetValue available={cost.budgetBaseline.original} currency={summary.baseCurrencyCode} value={cost.originalBudget} />
         </Typography>
         <Typography variant="body2">
-          Revised budget: {money(summary.baseCurrencyCode, cost.revisedBudget)}
+          Revised budget: <BudgetValue available={cost.budgetBaseline.current} currency={summary.baseCurrencyCode} value={cost.revisedBudget} />
         </Typography>
         <Typography variant="body2">
           Committed: {money(summary.baseCurrencyCode, cost.committedCost)}
@@ -275,7 +277,7 @@ function CostCard({
           Forecast cost: {money(summary.baseCurrencyCode, cost.forecastCost)}
         </Typography>
         <Typography variant="body2">
-          Variance: {money(summary.baseCurrencyCode, cost.variance)}
+          Variance: <BudgetValue available={cost.budgetBaseline.current} currency={summary.baseCurrencyCode} value={cost.variance} />
         </Typography>
       </Stack>
     </MetricCard>

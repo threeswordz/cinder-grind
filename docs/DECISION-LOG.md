@@ -696,3 +696,21 @@ The owner replied **“proceed approved”** after the concrete *Construction-ER
 - Detailed/Lump Sum/Hybrid component costing and automatic UOM/assembly formulas remain a separate P1 increment. HR/Attendance/Payroll stays P1 with policy preparation in parallel; no unconfirmed HR actor, calculation or expense-recognition policy is approved. The broader inventory/commercial/subcontract/warehouse/Company lifecycle differences, petty cash/assets/depreciation, #245, FX/GL/tax, paid infrastructure and Production remain outside the first slice.
 
 **Sequencing:** V1.2 is still primary active release; A/B COMPLETE, C owner UAT and separate release exit PENDING under #246. Durable approval/scope preparation is permitted; successor feature coding and a claim of entry COMPLETE wait for required V1.2 closure, resolved entry inputs and existing applicable documentation/CI/review/merge/main gates. No predecessor waiver, automatic business acceptance or Production authority. DEC-008/016/022/029/030/033 and one-writer governance remain in force.
+
+## DEC-035 — One-time V1.2-C integrated Codex review waiver / governed merge authorization
+
+**Status:** APPROVED — Product / Business Owner, 2026-10-28 SGT; PR #272 only, under DEC-022.
+
+After receiving the PR-specific risk assessment and exact waiver/merge wording, the owner instructed:
+
+> check what's wrong with the codex review , when it s done then work on "I approve the recorded DEC-022 waiver for PR #272, accept the residual review risk, and authorize the Builder’s governed merge subject to successful CI."
+
+The requested diagnosis is complete. The combined review at `45806c06af4b7d8a4d7ebfc2514a1e26d5df457d` failed because of [Codex code-review usage limits](https://github.com/threeswordz/cinder-grind/pull/272#issuecomment-6447192321); no later completed review or actual unresolved review finding was present. Current account allowance/reset time was not exposed by GitHub. No repeated quota-blocked trigger, paid credits or account-setting change is authorized or required. [Owner authority and diagnostic receipt](https://github.com/threeswordz/cinder-grind/pull/272#issuecomment-6461951202).
+
+This records the owner's one-time waiver of the **missing combined independent Codex review**, not a clean review and not an auditor granting its own waiver. It covers PR #272's audited implementation at `45806c06af4b7d8a4d7ebfc2514a1e26d5df457d` plus only the decision/evidence documentation needed to record this authority. Any material runtime, schema, security or business-behavior change requires reassessment under DEC-022.
+
+Supporting evidence: completed clean reviews on all four constituent heads (#268–271), [source-integrity assessment](https://github.com/threeswordz/cinder-grind/pull/272#issuecomment-6461331517), successful exact-code-head push CI40537920226 / PR CI40537927802 (31/31 steps each), and [independent Work audit](https://github.com/threeswordz/cinder-grind/pull/272#issuecomment-6461549770), which found no new blocking defect. Accepted residual risk is the absence of a completed combined independent Codex assessment, particularly cross-module/report/UI interactions and the shared recovery surface.
+
+The Builder is authorized to record this decision and perform normal PR #272 integration **after successful exact-final-head push/PR CI**. Verify the documentation-only delta from the audited code candidate, use a head-SHA guard for normal merge, then verify successful exact-main CI before technical closure. Reconcile #268–271 as superseded only after integration; do not merge their changes again. Actual final-head/merge/main-CI receipts belong in PR #272 and #246; this decision does not predict their results.
+
+This does not waive CI, historical integrity, security, DEC-008, approved scope, forward-only migrations, THB-10 human UAT acceptance or separate V1.2 release exit. Completed THB owner observations remain completed; optional missing Mac fixtures are NOT EXECUTED, NOT FAILED, with technical coverage in existing CI. Preserve Mac-empty versus CI-nonempty/restored-runtime provenance. No repeat UAT, new retained fixtures/grants, recovery/smoke repetition, Production deployment or successor implementation is authorized. **Owner UAT acceptance and separate release exit remain PENDING; Production NOT AUTHORIZED.**

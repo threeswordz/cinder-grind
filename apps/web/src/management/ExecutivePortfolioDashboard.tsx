@@ -1,3 +1,4 @@
+import { BudgetBaselineNotice, BudgetValue } from '../role-ui/budget-presentation';
 import {
   Alert,
   Card,
@@ -121,14 +122,15 @@ export function ExecutivePortfolioDashboard() {
             <CardContent>
               <Stack spacing={0.5}>
                 <Typography variant="subtitle1">Portfolio commercial position</Typography>
+                <BudgetBaselineNotice baseline={portfolio.totals.cost.budgetBaseline} portfolio />
                 <Typography variant="body2">
-                  Revised budget: {money(portfolio.baseCurrencyCode, portfolio.totals.cost.revisedBudget)}
+                  Revised budget: <BudgetValue available={portfolio.totals.cost.budgetBaseline.current} currency={portfolio.baseCurrencyCode} value={portfolio.totals.cost.revisedBudget} />
                 </Typography>
                 <Typography variant="body2">
                   Forecast cost: {money(portfolio.baseCurrencyCode, portfolio.totals.cost.forecastCost)}
                 </Typography>
                 <Typography variant="body2">
-                  Variance: {money(portfolio.baseCurrencyCode, portfolio.totals.cost.variance)}
+                  Variance: <BudgetValue available={portfolio.totals.cost.budgetBaseline.current} currency={portfolio.baseCurrencyCode} value={portfolio.totals.cost.variance} />
                 </Typography>
                 <Typography variant="body2">
                   Forecast revenue: {money(portfolio.baseCurrencyCode, portfolio.totals.commercial.forecastRevenue)}

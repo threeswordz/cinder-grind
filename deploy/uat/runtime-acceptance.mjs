@@ -1286,6 +1286,33 @@ check(
   'Approved Schedule Baseline did not become current.',
 );
 
+// Disposable CI only: observe source absence, a submitted draft, then final approval.
+async function checkBudgetPresence(approved) {
+  const cost = await request(pm, '/projects/' + projectId + '/cost-control');
+  check(cost.data.data.budgetBaseline.original === approved && cost.data.data.budgetBaseline.current === approved,
+    'Cost baseline availability disagrees with final-approved Budget state.');
+  const summary = await request(pm, '/management/projects/' + projectId + '/summary?asOf=2026-10-10&days=14');
+  check(summary.data.data.domains.cost.budgetBaseline.current === approved,
+    'Management summary lost canonical Budget availability.');
+  for (const dimension of ['', '&wbsId=' + rootWbs.data.data.id + '&costCodeId=' + costCode.data.data.id]) {
+    const path = '/management/reports?projectId=' + projectId + '&asOf=2026-10-10&days=14&domain=COST' + dimension;
+    const result = await request(pm, path);
+    for (const metric of ['ORIGINAL_BUDGET', 'REVISED_BUDGET', 'VARIANCE']) {
+      const row = result.data.data.rows.find(row => row.metric === metric);
+      check(row?.status === (approved ? 'AVAILABLE' : 'UNAVAILABLE') && (approved ? row.value !== null : row.value === null),
+        'Budget/variance report availability must distinguish absent or submitted-only Budget from approved Budget.');
+    }
+    const unavailable = await request(pm, path + '&status=UNAVAILABLE');
+    check(unavailable.data.data.rowCount === (approved ? 0 : 3), 'Missing Budget report status filter is inconsistent.');
+    const csv = await request(pm, path.replace('/management/reports?', '/management/reports/export.csv?'), { accept: 'text/csv' });
+    const text = new TextDecoder().decode(csv.data);
+    check(approved ? text.includes('REVISED_BUDGET,Revised budget,AVAILABLE,') : text.includes('REVISED_BUDGET,Revised budget (no approved Budget),UNAVAILABLE,,MONEY,THB'),
+      'Budget CSV does not preserve the authorized report missing-baseline result.');
+  }
+}
+await checkBudgetPresence(false);
+record('V1.2 absent approved Budget: Cost/Management summary, filtered reports and CSV availability');
+
 const projectBoq = await request(
   pm,
   '/budget/projects/' + projectId + '/boq',
@@ -1296,6 +1323,39 @@ const projectBoq = await request(
   },
 );
 const boqId = projectBoq.data.data.id;
+
+// Reuse this journey's real Project, BOQ and approval workflow. A working
+// BOQ/draft/submitted revision is not an approved Budget baseline.
+async function checkMissingApprovedBudget(stage) {
+  const summary = (await request(pm, `/budget/projects/${projectId}/summary`)).data.data;
+  const approved = (await request(pm, `/budget/projects/${projectId}/approved`)).data.data;
+  const revisions = (await request(pm, `/budget/projects/${projectId}/revisions`)).data.data;
+  const cost = (await request(pm, `/projects/${projectId}/cost-control`)).data.data;
+  check(summary.projectId === projectId && summary.original === null && summary.current === null && approved === null,
+    `${stage}: missing approved Budget must remain null, never a fabricated zero-valued revision.`);
+  check(revisions.every((row) => row.isOriginal === false && row.isCurrent === false),
+    `${stage}: an unapproved revision must not become Original or Current.`);
+  for (const measure of ['originalBudget', 'revisedBudget']) {
+    const evidence = cost.sourceEvidence[measure];
+    check(String(cost.totals[measure]) === '0' && evidence.recordCount === 0 &&
+      evidence.recordsVisible === true && Array.isArray(evidence.records) && evidence.records.length === 0,
+    `${stage}: zero aggregation must retain empty approved-source evidence.`);
+  }
+  // Raw source aggregates may be zero, but an absent approved Budget is not
+  // a real zero Budget. The reporting layer must expose its unavailability.
+  check(cost.budgetBaseline.original === false && cost.budgetBaseline.current === false,
+    `${stage}: unapproved BOQ/draft must not establish a Budget baseline.`);
+  const report = (await request(pm,
+    `/management/reports?projectId=${projectId}&asOf=2026-10-10&days=14&domain=COST`)).data.data;
+  for (const metric of ['ORIGINAL_BUDGET', 'REVISED_BUDGET']) {
+    const rows = report.rows.filter((row) => row.metric === metric);
+    check(rows.length === 1 && rows[0].status === 'UNAVAILABLE' && rows[0].value === null &&
+      report.baseCurrencyCode === OPERATING_CURRENCY,
+      `${stage}: an unapproved working BOQ/draft cannot become an available Budget total.`);
+  }
+}
+
+await checkMissingApprovedBudget('Working BOQ only');
 const boqSection = await request(pm, '/budget/boqs/' + boqId + '/sections', {
   method: 'POST',
   json: {
@@ -1345,6 +1405,7 @@ check(
   /^BR26-\d{3}$/.test(budgetDraft1.data.data.revisionNumber),
   'Budget Revision business number was not generated from the configured sequence.',
 );
+await checkMissingApprovedBudget('Draft Budget');
 
 await request(pm, '/budget/items/' + boqItem.data.data.id, {
   method: 'PATCH',
@@ -1372,6 +1433,8 @@ check(
   submittedBudget1.data.data.approvalInstance?.approvalState === 'SUBMITTED',
   'Draft Budget Revision did not enter approval.',
 );
+await checkMissingApprovedBudget('Submitted Budget');
+record('V1.2-C missing approved Budget stays null through working BOQ, draft and submitted stages; zero Cost totals have no approved source');
 await request(
   pm,
   '/budget/revisions/' + budgetDraft1.data.data.id + '/approve',
@@ -1381,6 +1444,9 @@ await request(
     expected: 403,
   },
 );
+await checkBudgetPresence(false);
+record('V1.2 submitted-only Budget remains unavailable');
+
 const approvedBudget1 = await request(
   checker,
   '/budget/revisions/' + budgetDraft1.data.data.id + '/approve',
@@ -1406,6 +1472,9 @@ check(
     String(budgetSummary1.data.data.current?.total) === '250',
   'Original Budget summary was not derived from the first approved revision.',
 );
+
+await checkBudgetPresence(true);
+record('V1.2 approved Budget enables Budget and variance report values');
 
 const budgetDraft2 = await request(
   pm,

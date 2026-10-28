@@ -2535,3 +2535,34 @@ test('V0.7-D serialized Project Variation writes retry P2034 and fail as control
     );
   }
 });
+
+
+test('V1.2 Cost Budget availability comes from approved revisions, independent of zero totals, filters or detail grants', async () => {
+  for (const approved of [false, true]) {
+    const rows = approved ? [{ id: 'approved-zero', revisionNo: 1, revisionNumber: 'BR-1', currencyCode: 'THB',
+      approvalInstance: { completedAt: new Date('2026-10-27') }, lines: [] }] : [];
+    const prisma = {
+      project: { findFirstOrThrow: async () => ({ id: 'project', contractValue: new Prisma.Decimal(0), contractCurrencyCode: 'THB' }) },
+      company: { findUniqueOrThrow: async () => ({ baseCurrencyCode: 'THB' }) },
+      wbsElement: { findMany: async () => [] },
+      costCode: { findMany: async () => [{ id: 'cc', costCode: 'CC', costName: 'Unused dimension' }] },
+      budgetRevision: { findMany: async () => rows },
+      purchaseOrder: { findMany: async () => [] }, subcontractAgreement: { findMany: async () => [] },
+      supplierInvoice: { findMany: async () => [] }, subcontractCertification: { findMany: async () => [] },
+      payment: { findMany: async () => [] }, directCostPosting: { findMany: async () => [] },
+      projectVariation: { findMany: async () => [] }, clientInvoice: { findMany: async () => [] },
+      costForecast: { findFirst: async () => null },
+    };
+    const service = new CostControlService(prisma as unknown as PrismaService, { assertAccess: async () => {} } as never);
+    for (const permissions of [[], ['budget.revision.view']]) {
+      for (const filters of [{}, { costCodeId: 'cc' }]) {
+        const result = await service.projectCostControl({ companyId: 'company', permissions } as never, 'project', filters);
+        assert.deepEqual(result.budgetBaseline, { original: approved, current: approved });
+        assert.equal(result.totals.originalBudget.toFixed(), '0');
+        assert.equal(result.totals.revisedBudget.toFixed(), '0');
+        // There may be zero visible contribution records even for an approved zero baseline.
+        assert.equal(result.sourceEvidence.originalBudget.records?.length ?? 0, 0);
+      }
+    }
+  }
+});

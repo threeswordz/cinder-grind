@@ -1,3 +1,4 @@
+import { BudgetBaselineNotice, BudgetValue } from '../role-ui/budget-presentation';
 import { useEffect, useRef, useState } from 'react';
 import {
   Alert,
@@ -519,21 +520,16 @@ export function CostControlWorkspace({
           <CardContent>
             <Stack spacing={2}>
               <Typography variant="h6">Integrated Cost Position</Typography>
+              <BudgetBaselineNotice baseline={readModel.data.data.budgetBaseline} />
               <Stack direction={{ xs: 'column', md: 'row' }} spacing={1}>
                 <Chip
                   label={
-                    'Original Budget ' +
-                    readModel.data.data.baseCurrencyCode +
-                    ' ' +
-                    readModel.data.data.totals.originalBudget
+                    <>Original Budget <BudgetValue available={readModel.data.data.budgetBaseline.original} currency={readModel.data.data.baseCurrencyCode} value={readModel.data.data.totals.originalBudget} /></>
                   }
                 />
                 <Chip
                   label={
-                    'Revised Budget ' +
-                    readModel.data.data.baseCurrencyCode +
-                    ' ' +
-                    readModel.data.data.totals.revisedBudget
+                    <>Revised Budget <BudgetValue available={readModel.data.data.budgetBaseline.current} currency={readModel.data.data.baseCurrencyCode} value={readModel.data.data.totals.revisedBudget} /></>
                   }
                 />
                 <Chip
@@ -586,10 +582,7 @@ export function CostControlWorkspace({
                 />
                 <Chip
                   label={
-                    'Variance ' +
-                    readModel.data.data.baseCurrencyCode +
-                    ' ' +
-                    readModel.data.data.totals.variance
+                    <>Variance <BudgetValue available={readModel.data.data.budgetBaseline.current} currency={readModel.data.data.baseCurrencyCode} value={readModel.data.data.totals.variance} /></>
                   }
                 />
                 <Chip
