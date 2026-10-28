@@ -32,7 +32,9 @@ function required(value: string, field: string, max = 4000) {
   return value.trim();
 }
 function uuid(value: string, field: string) {
-  if (!UUID.test(value)) throw budgetInvalid(field, 'Use a valid record identity.');
+  if (typeof value !== 'string' || !UUID.test(value) || value !== value.toLowerCase()) {
+    throw budgetInvalid(field, 'Use a canonical lowercase UUID record identity.');
+  }
 }
 function conflict() { return new ConflictException({ code: 'CUSTOMER_BOQ_CONFLICT', detail: 'The Customer BOQ has changed or is no longer editable. Refresh before continuing.' }); }
 
@@ -223,8 +225,12 @@ export class CustomerBoqService {
           return receipt;
         }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, timeout: 20000 });
       } catch (error) {
-        if (error instanceof Prisma.PrismaClientKnownRequestError && attempt < 3 &&
-          (['P2034', 'P2002'].includes(error.code) || (error.code === 'P2010' && ['40001', '40P01'].includes(String(error.meta?.code))))) continue;
+        const retryable = error instanceof Prisma.PrismaClientKnownRequestError &&
+          (['P2034', 'P2002'].includes(error.code) || (error.code === 'P2010' && ['40001', '40P01'].includes(String(error.meta?.code))));
+        if (retryable) {
+          if (attempt < 3) continue;
+          throw conflict();
+        }
         throw error;
       }
     }

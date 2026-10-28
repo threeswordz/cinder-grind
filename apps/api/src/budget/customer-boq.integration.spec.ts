@@ -126,10 +126,12 @@ test('Customer BOQ persistence uses real scoped grants, immutable history, confi
       await assert.rejects(service.create(ctx, pid, randomUUID(), badMap), UnprocessableEntityException);
       assert.equal(await db.customerBoqVersion.count({ where: { projectId: pid } }), count);
     });
-    await t.test('real UOM precision overrides spoofed inputs; integer UOM rejects fraction', async () => {
+    await t.test('persisted UOM precision and canonical identities reject spoofed inputs and aliases', async () => {
       const draft = input(); draft.lines[0]!.quantity = '0.5'; draft.lines[0]!.mappingReason = 'Fractional';
       Object.assign(draft.lines[0]!, { uomDecimalPlaces: 4, previousRate: '999' });
       await assert.rejects(service.create(ctx, pid, randomUUID(), draft), UnprocessableEntityException);
+      const alias = input(); alias.lines[0]!.lineId = 'AAAAAAAA-AAAA-4AAA-8AAA-AAAAAAAAAAAA';
+      await assert.rejects(service.create(ctx, pid, randomUUID(), alias), UnprocessableEntityException);
     });
     await t.test('competing edits have exactly one winner; persisted prior rate and reason are retained', async () => {
       const outcomes = await Promise.allSettled([service.edit(ctx, pid, randomUUID(), version.id, 1, { ...input('115'), reason: 'Negotiated discount' }),
@@ -189,6 +191,7 @@ test('Customer BOQ persistence uses real scoped grants, immutable history, confi
       assert.notEqual(fresh, instance);
       const outcomes = await Promise.allSettled([service.decide({ auth: checker }, pid, randomUUID(), version.id, fresh, 'APPROVE', 'Approved'), service.decide({ auth: checker }, pid, randomUUID(), version.id, fresh, 'APPROVE', 'Duplicate')]);
       assert.equal(outcomes.filter((x) => x.status === 'fulfilled').length, 1);
+      assert.equal(outcomes.filter((x) => x.status === 'rejected' && x.reason instanceof ConflictException).length, 1);
       const history = await service.history(maker, pid, version.id);
       assert.equal(history.version.approvalInstance?.approvalState, 'APPROVED');
       assert.deepEqual(history.approvals.map((a) => a.approvalState).sort(), ['APPROVED', 'REJECTED']);
