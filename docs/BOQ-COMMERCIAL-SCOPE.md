@@ -1,12 +1,12 @@
 # BOQ Disclosure and Linked Customer BOQ Versions
 
-**Status:** OWNER-APPROVED FIRST-PACKAGE SCOPE / ENTRY PREPARATION — reconciled 2026-10-28 SGT. The owner instructed proceeding BOQ first, HR next in stages. [Entry preparation](BOQ-ENTRY-PREPARATION.md) carries resolved owner selections and the concrete remaining mapping/calculation decision. Feature coding has not started; entry is not COMPLETE.
+**Status:** V1.3 BOQ package / V1.3-A entry baseline OWNER APPROVED, publication/merge/exact-main gates pending — 2026-10-28 SGT. DEC-037 records approval of C1–C5/E1–E8. [Entry baseline](BOQ-ENTRY-PREPARATION.md) contains the adopted contract and exact delivery gates. Feature coding has not started.
 
 **Tracker:** [#266](https://github.com/threeswordz/cinder-grind/issues/266) · **Decision:** DEC-034 · **Requirements:** BUD-011–016 · **Acceptance:** BQC-AC-001–014.
 
-The owner replied **“proceed approved”** after the concrete *Construction-ERP-BOQ-Seven-Role-Gap-Assessment-2026-10-25.md* and proposed first package were presented. Its reviewed source was main `bebffb4a7e3edc019e8a6e88e989fffbcc75d53a`. This records package approval and entry preparation, not answers to cells expressly left undecided. No release number is assigned.
+The owner replied **“proceed approved”** after the concrete *Construction-ERP-BOQ-Seven-Role-Gap-Assessment-2026-10-25.md* and proposed first package were presented. Its reviewed source was main `bebffb4a7e3edc019e8a6e88e989fffbcc75d53a`. This records package approval and entry preparation, not answers to cells expressly left undecided. V1.3 is the coordination label assigned to this approved package; it does not change its scope.
 
-V1.2 is COMPLETE + ACCEPTED, [#246 CLOSED / COMPLETED](https://github.com/threeswordz/cinder-grind/issues/246#issuecomment-6465837484), final main `b8bfd798967d61d9d312f790db5912fb572ce851`, exact-main CI40666561990 SUCCESS. No repeat owner THB UAT is needed. The predecessor gate is satisfied; necessary unresolved BOQ entry inputs and normal entry publication gates still precede feature coding. Scope-record documentation may be prepared without implementing future functionality or changing current grants. Production remains NOT AUTHORIZED.
+V1.2 is COMPLETE + ACCEPTED, [#246 CLOSED / COMPLETED](https://github.com/threeswordz/cinder-grind/issues/246#issuecomment-6465837484), final main `b8bfd798967d61d9d312f790db5912fb572ce851`, exact-main CI40666561990 SUCCESS. No repeat owner THB UAT is needed. The predecessor gate is satisfied; the owner has resolved the remaining BOQ business inputs; normal entry publication gates still precede feature coding. Scope-record documentation may be prepared without implementing future functionality or changing current grants. Production remains NOT AUTHORIZED.
 
 ## 1. Reuse and verified gaps
 
@@ -56,15 +56,15 @@ Authorized totals and known quantities may reconstruct a price, particularly on 
 | Input | Current disposition | Concrete preparation |
 |---|---|---|
 | D1 — Disclosure/actions | Nancy full working/approved cost reads in authorized Projects and Porn Project-only totals are owner selected. Effective combined permissions and existing-grant reconciliation remain technical work. | Use the [entry surface map](BOQ-ENTRY-PREPARATION.md). Do not mutate current roles to make the future matrix appear implemented. |
-| D2 — Source mappings | Representative source/mapping examples remain unresolved in the recorded owner-selection receipt. C1/C2 and E1–E3 in [entry preparation](BOQ-ENTRY-PREPARATION.md) are PROPOSED for owner adoption or correction. | Explicit source IDs, independent quantity/UOM and split/roll-up shares; no inferred conversions. Do not call synthetic prices actual owner prices or accepted examples. |
-| D3 — Pricing/precision/revisions | Manual rates and percentage markup, up-to-four-place quantities/rates, half-up two-place lines, summed rounded lines and newly approved revisions are owner selected. Source basis, derived-rate rounding, discount/zero/fractional edges remain open. | C3–C5/E4–E8 in [entry preparation](BOQ-ENTRY-PREPARATION.md) make the exact missing decision concrete. Target gross margin remains deferred; no actual rate/percentage is assumed. |
+| D2 — Source mappings | C1/C2 and E1–E3 in [entry baseline](BOQ-ENTRY-PREPARATION.md) are OWNER APPROVED under DEC-037; synthetic values are adopted business examples, not actual owner prices. | Explicit source IDs, independent quantity/UOM and split/roll-up shares; no inferred conversions. Do not call synthetic prices actual owner prices or accepted examples. |
+| D3 — Pricing/precision/revisions | Manual rates and percentage markup, up-to-four-place quantities/rates, half-up two-place lines, summed rounded lines and newly approved revisions are owner selected. C3–C5/E4–E8 resolve source basis, derived-rate rounding, discount/zero/fractional edges under DEC-037. | Implement the exact adopted examples in [entry baseline](BOQ-ENTRY-PREPARATION.md). Target gross margin remains deferred; no actual rate/percentage is assumed. |
 | D4 — First slice | **APPROVED:** disclosure and linked Customer BOQ versions together; broader costing and lifecycle work remain separate. | No repeat approval of this package or the THB scope is needed. Resolve only genuinely open inputs. |
 
-V1.2 owner UAT/release closure is COMPLETE. Entry remains pending the necessary BOQ input decisions and applicable scope/requirements/acceptance/CI/review/merge/main gates. Publication of preparation does not itself accept proposed examples or complete entry.
+V1.2 owner UAT/release closure is COMPLETE. BOQ business-input decisions are OWNER APPROVED. Entry remains pending applicable scope/requirements/acceptance/CI/review/merge/main publication gates; actual completion is recorded in #266 after they pass.
 
 ## 5. Requirement / acceptance contract
 
-These are future implementation obligations, not PASS claims. Open-input-dependent cases are BLOCKED until their required rules are resolved.
+These are future implementation obligations, not PASS claims. The business-input rules are adopted in C1–C5/E1–E8; acceptance remains NOT EXECUTED until actual implementation evidence exists.
 
 | ID | Required observable evidence | Requirements |
 |---|---|---|
@@ -74,7 +74,7 @@ These are future implementation obligations, not PASS claims. Open-input-depende
 | BQC-AC-004 | Working cost BOQ and first-approved Original Budget remain canonical; all old approved snapshots persist unchanged. Independently approved customer versions retain exact cost-source IDs and never silently resync. | BUD-012 |
 | BQC-AC-005 | Ben-function preparation, Khaimook-function Internal approval and Nancy-function Customer approval use real persisted permissions/workflow steps. Maker/checker, action rights and exact actor scope pass; no SYS_ADMIN or self-approval bypass. | BUD-014 |
 | BQC-AC-006 | Explicit customer quantity/UOM and the agreed mapping cases preserve same-Company/Project approved THB source lineage. Reject invalid/cyclic/cross-scope/unknown legacy links and undefined conversion assumptions. | BUD-013 |
-| BQC-AC-007 | Approved pricing/precision/revision examples match independent Decimal expectations. Distinguish supported methods; unsupported assumptions fail explicitly. This case remains BLOCKED pending D3. | BUD-012, BUD-013 |
+| BQC-AC-007 | Approved C1–C5/E1–E8 pricing/precision/revision examples match independent Decimal expectations. Distinguish supported methods; unsupported assumptions fail explicitly. No runtime PASS is claimed at entry. | BUD-012, BUD-013 |
 | BQC-AC-008 | New money is THB-only through API/database/source handoffs; historical SGD/NULL/approved records and exact supported corrections remain truthful and immutable. No backfill or replacement evades V1.2 guards. | BUD-016, SYS-009–011 |
 | BQC-AC-009 | Estimates and Customer BOQ pricing create no duplicate commitment, Actual/Paid posting, stock effect or editable financial ledger. Affected canonical read models keep recognition semantics. | BUD-016 |
 | BQC-AC-010 | Wrong Company/Project/user/action, confidential source/document and conflicting effective-access paths fail. Project-wide access does not imply Company or business approval authority. | BUD-011, BUD-014–015 |
@@ -88,7 +88,7 @@ Use disposable isolated PostgreSQL/Documents for full suites. Do not replay unch
 ## 6. Separate P1 work and exclusions
 
 - **P1 costing increment:** Detailed/Lump Sum/Hybrid cost components/coverage, automatic UOM/assembly formulas and their representative calculation/precision decisions.
-- **P1 HR / Attendance / Payroll:** the owner instructed BOQ first, HR next in stages, with HR documentation preparation during BOQ delivery. HR runtime implementation, payroll calculations, grants and rollout are outside this package. Private HR requirements are not included in this publication.
+- **P1 HR / Attendance / Payroll:** the owner instructed BOQ first, HR next in stages, and explicitly authorized publication of the complete [Thai requirements](HR-PAYROLL-REQUIREMENTS-TH-2026-10-27.md). [HR entry preparation](HR-PAYROLL-ENTRY-PREPARATION.md) preserves settled answers and specific remaining policy/design work. HR runtime, payroll calculations, grants, policy exceptions and rollout remain outside V1.3.
 - Separate lifecycle decisions: plan/urgent material issues and thresholds, dispatch/receipt acknowledgment, broader warehouse/Company access, subcontract work acceptance, Customer quotations/progress billing and payment-proposal-versus-execution recognition.
 - Outside this first slice: petty cash, fixed assets/depreciation, #245 multi-Project PO/Invoice/Payment, FX/GL/tax, paid dependency/infrastructure and Production.
 - No legacy relabel/backfill, approved-history rewrite, destructive migration, force-push, branch deletion or unauthorized live permission/Approval Matrix change.
@@ -96,8 +96,8 @@ Use disposable isolated PostgreSQL/Documents for full suites. Do not replay unch
 ## 7. Delivery order and authority
 
 1. Preserve published DEC-034 scope and the verified V1.2 COMPLETE + ACCEPTED closure. The owner instructed progressing BOQ first, HR next in stages.
-2. Resolve only remaining D2/D3 business inputs using the concrete entry packet; carry forward D1 and selected D3 choices. HR documentation preparation may proceed without HR feature coding. No completed V1.2 UAT is reopened.
-3. Establish the resolved successor entry baseline through existing governance and applicable normal gates. Assign the release coordination number then; do not claim it already entered development.
+2. C1–C5/E1–E8 and HR publication are owner approved under DEC-037. Publish the resolved V1.3-A baseline and complete its normal entry gates. No completed V1.2 UAT is reopened.
+3. Establish the resolved successor entry baseline through existing governance and applicable normal gates. Use V1.3 as the coordination label; do not claim runtime implementation has started until entry publication gates pass.
 4. Implement the approved slice with one active writer, meaningful denials/integrity/upgrade tests and stable-candidate DEC-022 review; merge normally and verify exact-main CI.
 5. Targeted successor human UAT and separate release exit remain required.
 
