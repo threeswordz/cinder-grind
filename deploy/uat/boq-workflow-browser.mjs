@@ -94,7 +94,7 @@ async function run(){
   const outer=new QueryClient({defaultOptions:{queries:{retry:false}}});
   function appRender(){root.render(<QueryClientProvider client={outer}><App/></QueryClientProvider>);}
   appRender();await until(()=>text().includes('Browser actor'),'Real App did not authenticate');
-  async function nav(){const node=[...document.querySelectorAll('button,a')].find(n=>n.textContent==='BOQ & Budget');check(node,'Real Budget navigation missing');node.click();await wait(100);}
+  async function nav(){const node=[...document.querySelectorAll('button,a,[role=button]')].find(n=>n.textContent==='BOQ & Budget');check(node,'Real Budget navigation missing');node.click();await wait(100);}
   await nav();await chooseProject();await chooseVersion();check(text().includes('0.99'),'Full-cost root did not load commercial data');
   const firstProjects=projectReads;
   user={...user,permissions:['budget.quantity.view'],roleCodes:['QUANTITY']};await outer.invalidateQueries({queryKey:['current-user']});await until(()=>!text().includes('0.0033'),'Old commercial DOM survived permission downgrade');await nav();await select('Project','Quantity project');await until(()=>text().includes('Visible quantity work'),'Quantity DOM missing');check(!text().includes('0.99')&&!text().includes('1000'),'Quantity workspace reused money from old cache');
@@ -117,7 +117,7 @@ try {
   const address = vite.httpServer.address();
   const url = 'http://127.0.0.1:' + address.port + '/__boq-check';
   const result = await new Promise((resolve,reject) => {
-    const child = spawn(chrome, ['--headless','--no-sandbox','--disable-gpu','--disable-dev-shm-usage','--no-proxy-server','--user-data-dir='+temporary,'--virtual-time-budget=40000','--dump-dom',url], { stdio:['ignore','pipe','pipe'] });
+    const child = spawn(chrome, ['--headless','--window-size=1440,1000','--no-sandbox','--disable-gpu','--disable-dev-shm-usage','--no-proxy-server','--user-data-dir='+temporary,'--virtual-time-budget=40000','--dump-dom',url], { stdio:['ignore','pipe','pipe'] });
     let out='',err='';child.stdout.on('data',chunk=>out+=chunk);child.stderr.on('data',chunk=>err+=chunk);
     const timeout=setTimeout(()=>{child.kill('SIGKILL');reject(new Error('Browser timed out'));},60000);
     child.on('error',error=>{clearTimeout(timeout);reject(error);});

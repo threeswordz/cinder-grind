@@ -134,6 +134,17 @@ test('public BOQ HTTP workflow enforces persisted disclosure, CSRF, maker/checke
       const target='/documents/projects/'+pid+'/targets/CUSTOMER_BOQ/'+id;
       const upload=await fetch(base+target,{method:'POST',headers:{Cookie:'erp_session='+token.sessionToken,'x-csrf-token':token.csrfToken},body:form});
       assert.equal(upload.status,201,await upload.clone().text());documentId=(await upload.json() as {data:{id:string}}).data.id;
+      // Database integrity must recognize all three real sources and retain
+      // same-Company/matching-Project/unknown-target denial independently of HTTP.
+      const boq=await db.boq.findUniqueOrThrow({where:{projectId:pid}});
+      for(const [entityType,entityId] of [['BOQ',boq.id],['BUDGET_REVISION',f.source.id]])
+        await db.documentLink.create({data:{documentId,entityType:entityType!,entityId:entityId!,linkedByUserId:f.maker.userId}});
+      const otherProject=await db.project.create({data:{companyId:f.company.id,customerId:f.project.customerId,projectCode:'OTHER',projectName:'Other scope',contractValue:'1',plannedStartDate:new Date('2026-01-01'),plannedCompletionDate:new Date('2026-12-31')}});
+      const otherBoq=await db.boq.create({data:{companyId:f.company.id,projectId:otherProject.id}});
+      const foreignVersion=await foreign.service.create({auth:foreign.maker},foreign.project.id,randomUUID(),foreign.input());
+      for(const [entityType,entityId] of [['BOQ',otherBoq.id],['BUDGET_REVISION',foreign.source.id],['CUSTOMER_BOQ',foreignVersion.id],['CUSTOMER_BOQ',randomUUID()],['UNSUPPORTED',randomUUID()]]){
+        await assert.rejects(()=>db.documentLink.create({data:{documentId,entityType:entityType!,entityId:entityId!,linkedByUserId:f.maker.userId}}),/same Company|matching Project|does not exist|Unsupported/);
+      }
       const generic='/documents/projects/'+pid;
       const full=await get(f.maker,target+'/'+documentId+'/download');assert.deepEqual(Buffer.from(await full.arrayBuffer()),bytes);
       assert.deepEqual((await(await get(f.editor,generic)).json()).data,[]);

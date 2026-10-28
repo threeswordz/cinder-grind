@@ -41,7 +41,7 @@ type Section = {
   content: ReactNode;
 };
 
-export function AdminConsole({ user, onLogoutSuccess }: { user: CurrentUser; onLogoutSuccess?: () => Promise<unknown> }) {
+export function AdminConsole({ user, onLogoutSuccess }: { user: CurrentUser; onLogoutSuccess: () => Promise<unknown> }) {
   const queryClient = useQueryClient();
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [linkedSource, setLinkedSource] = useState<SourceLinkTarget | null>(null);
@@ -438,8 +438,7 @@ export function AdminConsole({ user, onLogoutSuccess }: { user: CurrentUser; onL
     onSuccess: async () => {
       await queryClient.cancelQueries();
       queryClient.clear();
-      if (onLogoutSuccess) await onLogoutSuccess();
-      else await queryClient.resetQueries({ queryKey: ['current-user'] });
+      await onLogoutSuccess();
     },
   });
 
