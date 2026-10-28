@@ -1,7 +1,7 @@
 # Construction ERP — Master Requirements Register
 
 **Document Status:** Requirements Baseline v0.1  
-**Current Phase:** V0.1–V1.2 COMPLETE + ACCEPTED. V1.3-A entry is complete; V1.3-B is active under #275/#266. Pricing #276 and persistence/configured approval #277 are technically complete; [public disclosure/workflow candidate](V1.3-B-PUBLIC-WORKFLOW.md) is under validation. BUD-011–016 remain the same approved package, with Project-only Finance summary and integrated gates still outstanding. Production NOT AUTHORIZED.
+**Current Phase:** V0.1–V1.2 COMPLETE + ACCEPTED. V1.3-A entry is complete; V1.3-B is active under #275/#266. Pricing #276 and persistence/configured approval #277 are technically complete; [public disclosure/workflow increment](V1.3-B-PUBLIC-WORKFLOW.md) has executed code-head evidence under #280; actual review/merge/main receipts govern technical closure. BUD-011–016 remain the same approved package, with Project-only Finance summary and integrated gates still outstanding. Production NOT AUTHORIZED.
 **Architecture Baseline:** v0.1  
 **Source:** ERP-MASTER-BLUEPRINT.md  
 **Last Structural Review:** V0.8-E DEC-022 source-drilldown/live-state remediation — 2026-10-05

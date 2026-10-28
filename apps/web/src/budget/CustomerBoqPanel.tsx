@@ -45,9 +45,9 @@ function CustomerProject({projectId,permissions}:{projectId:string;permissions:s
   const draft:CustomerDraft={sourceRevisionId:sourceId,reason,lines,...(previous?{previousVersionId:previous}:{})};
   const serialized=JSON.stringify(draft);
   const requestId=useMemo(()=>crypto.randomUUID(),[serialized,id,editNo]);
-  const submitId=useMemo(()=>crypto.randomUUID(),[id,editNo,workflow]);
-  const approveId=useMemo(()=>crypto.randomUUID(),[id,v?.approvalInstanceId,note]);
-  const rejectId=useMemo(()=>crypto.randomUUID(),[id,v?.approvalInstanceId,note]);
+  const submitId=useMemo(()=>crypto.randomUUID(),[id,editNo,workflow,v?.approvalInstanceId,state]);
+  const approveId=useMemo(()=>crypto.randomUUID(),[id,v?.approvalInstanceId,v?.approvalInstance?.currentStepNo,state,note]);
+  const rejectId=useMemo(()=>crypto.randomUUID(),[id,v?.approvalInstanceId,v?.approvalInstance?.currentStepNo,state,note]);
   const refresh=async()=>{await cache.invalidateQueries({queryKey:['customer-boq']});};
   const preview=useMutation({mutationFn:async()=>({payload:id+'|'+serialized,response:await customerBoqApi.preview(projectId,draft,id||undefined)})});
   const validPreview=preview.data?.payload===id+'|'+serialized?preview.data.response.data:undefined;

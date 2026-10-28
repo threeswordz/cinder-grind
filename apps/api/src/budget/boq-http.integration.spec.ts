@@ -95,6 +95,17 @@ test('public BOQ HTTP workflow enforces persisted disclosure, CSRF, maker/checke
       for(const url of ['/budget/projects/'+pid+'/boq','/budget/projects/'+pid+'/revisions','/budget/revisions/'+f.source.id,root+'/options',root+'/versions/'+id,root+'/versions/'+id+'/export'])await get(f.editor,url,403);
       const patched=await call(f.editor,'/budget/projects/'+pid+'/boq',{boqName:'Updated work'},true,'PATCH');assert.equal(patched.status,200,await patched.clone().text());
       assert.deepEqual(Object.keys((await patched.json()).data).sort(),['id','projectId']);
+      await grants(f.editor,['budget.quantity.view','budget.boq.manage','budget.revision.view']);
+      const workingItem=await db.boqItem.findFirstOrThrow({where:{boq:{projectId:pid}}});
+      const crafted=await call(f.editor,'/budget/items/'+workingItem.id+'?x=/revisions/',{description:'Working-cost disclosure regression'},true,'PATCH');
+      assert.equal(crafted.status,200,await crafted.clone().text());
+      const receipt=await crafted.json();assert.equal(receipt.data.id,workingItem.id);
+      assert.doesNotMatch(JSON.stringify(receipt),/"(?:rate|amount|notes|description)"/,'query text cannot upgrade a working-cost mutation receipt');
+      assert.equal((await db.boqItem.findUniqueOrThrow({where:{id:workingItem.id}})).rate.toFixed(4),'100.0000');
+      await grants(f.editor,['budget.boq.view','budget.revision.submit']);
+      const mixed=await post(f.editor,'/BUDGET/REVISIONS/'+f.pending.id+'/SUBMIT',{workflowCode:'BUDGET_REVISION'});
+      assert.doesNotMatch(JSON.stringify(await mixed.json()),/"(?:rate|amount|lines|revisionNote)"/,'case-insensitive routes retain revision disclosure authority');
+      await grants(f.editor,codes);
       const reports=['/projects/'+pid+'/cost-control','/cost-control/projects/'+pid+'/forecast-options','/cost-control/projects/'+pid+'/forecasts','/cost-control/forecasts/'+randomUUID(),'/management/projects/'+pid+'/summary?asOf=2026-10-28','/management/reports?projectId='+pid+'&asOf=2026-10-28','/management/reports/export.csv?projectId='+pid+'&asOf=2026-10-28','/management/portfolio?asOf=2026-10-28'];
       for(const url of reports){const r=await get(f.editor,url,403);assert.equal((await r.json()).code,'BOQ_COST_DISCLOSURE_DENIED');}
       await get(f.editor,'/budget/quantity/projects/'+foreign.project.id+'/revisions',404);
@@ -108,6 +119,12 @@ test('public BOQ HTTP workflow enforces persisted disclosure, CSRF, maker/checke
       assert.equal((await(await get(f.checker,root+'/versions/'+id)).json()).data.allowedActions.decide,true);
       await post(f.maker,root+'/versions/'+id+'/decision',{requestId:randomUUID(),expectedInstanceId:instance,decision:'APPROVE'},403);
       await post(f.checker,root+'/versions/'+id+'/decision',{requestId:randomUUID(),expectedInstanceId:instance,decision:'REJECT',comment:'Revise'});
+      // A rejected version can be resubmitted without an edit. A new user
+      // action needs a fresh key; an identical retry keeps its original key.
+      await post(f.maker,root+'/versions/'+id+'/submit',{requestId:randomUUID(),expectedEditNo:2,workflowCode:f.wf.workflowCode});
+      const unchanged=(await(await get(f.checker,root+'/versions/'+id)).json()).data;
+      assert.notEqual(unchanged.version.approvalInstanceId,instance);
+      await post(f.checker,root+'/versions/'+id+'/decision',{requestId:randomUUID(),expectedInstanceId:unchanged.version.approvalInstanceId,decision:'REJECT',comment:'Revise offer'});
       await post(f.maker,root+'/versions/'+id+'/edit',{requestId:randomUUID(),expectedEditNo:2,draft:{...f.input('112'),reason:'Revised offer'}});
       await post(f.maker,root+'/versions/'+id+'/submit',{requestId:randomUUID(),expectedEditNo:3,workflowCode:f.wf.workflowCode});
       const next=(await(await get(f.checker,root+'/versions/'+id)).json()).data;assert.notEqual(next.version.approvalInstanceId,instance);
@@ -115,9 +132,24 @@ test('public BOQ HTTP workflow enforces persisted disclosure, CSRF, maker/checke
       await post(f.checker,root+'/versions/'+id+'/decision',{requestId:randomUUID(),expectedInstanceId:next.version.approvalInstanceId,decision:'APPROVE'});
       const final=(await(await get(f.maker,root+'/versions/'+id)).json()).data;
       assert.equal(final.version.approvalInstance.approvalState,'APPROVED');assert.equal(final.version.edits.length,3);
-      assert.deepEqual(final.approvals.map((a:{approvalState:string})=>a.approvalState).sort(),['APPROVED','REJECTED']);
+      assert.deepEqual(final.approvals.map((a:{approvalState:string})=>a.approvalState).sort(),['APPROVED','REJECTED','REJECTED']);
       assert.deepEqual(final.allowedActions,{edit:false,submit:false,decide:false});
       await post(f.maker,root+'/versions/'+id+'/edit',{requestId:randomUUID(),expectedEditNo:3,draft:f.input()},409);
+    });
+    await t.test('a checker eligible for consecutive steps uses a new action key while identical step retries keep one effect',async()=>{
+      const wf=await db.approvalWorkflow.create({data:{companyId:f.company.id,entityType:'CUSTOMER_BOQ',workflowCode:'CUSTOMER_BOQ_TWO_STEP',workflowName:'Two configured steps',steps:{create:[1,2].map(stepNo=>({stepNo,stepName:'Step '+stepNo,requiredApprovals:1,stepRoles:{create:{roleId:f.role.id}}}))}}});
+      const row=(await(await post(f.maker,root+'/versions',{requestId:randomUUID(),draft:f.input()})).json()).data;
+      const url=root+'/versions/'+row.id;
+      await post(f.maker,url+'/submit',{requestId:randomUUID(),expectedEditNo:1,workflowCode:wf.workflowCode});
+      const before=(await(await get(f.checker,url)).json()).data;
+      const first={requestId:randomUUID(),expectedInstanceId:before.version.approvalInstanceId,decision:'APPROVE'};
+      const one=(await(await post(f.checker,url+'/decision',first)).json()).data;assert.equal(one.approvalState,'SUBMITTED');
+      assert.deepEqual((await(await post(f.checker,url+'/decision',first)).json()).data,one);
+      const mid=(await(await get(f.checker,url)).json()).data;
+      assert.equal(mid.version.approvalInstance.currentStepNo,2);assert.equal(mid.version.approvalInstanceId,before.version.approvalInstanceId);assert.equal(mid.allowedActions.decide,true);
+      await post(f.checker,url+'/decision',{...first,requestId:randomUUID()});
+      const final=(await(await get(f.checker,url)).json()).data;
+      assert.equal(final.version.approvalInstance.approvalState,'APPROVED');assert.equal(final.approvals[0].actions.length,2);
     });
     await t.test('CSV reads the stored current commercial snapshot with four-place rate/two-place amount and never includes internal cost snapshots',async()=>{
       const r=await get(f.maker,root+'/versions/'+id+'/export');

@@ -42,6 +42,11 @@ test('action-only Budget mutation responses are minimal while explicit full read
     assert.deepEqual(await run(url,'POST',['budget.revision.view']),value);
   }
   assert.doesNotMatch(JSON.stringify(await run('/budget/items/'+id,'PATCH',['budget.boq.manage','budget.revision.view'])),/123|456|789|SECRET/);
+  const crafted=await run('/budget/items/'+id+'?x=/revisions/','PATCH',['budget.boq.manage','budget.revision.view']);
+  assert.doesNotMatch(JSON.stringify(crafted),/123|456|789|SECRET|totalAmount|lines/,'query text cannot grant working-cost disclosure');
+  assert.deepEqual(await run('/budget/items/'+id+'?x=/revisions/','PATCH',['budget.boq.view']),value,'query text cannot remove a legitimate working-cost read either');
+  assert.doesNotMatch(JSON.stringify(await run('/BUDGET/REVISIONS/'+id+'/SUBMIT','POST',['budget.boq.view','budget.revision.submit'])),/123|456|789|SECRET/,'case-insensitive routing cannot select the wrong owning read');
+  assert.deepEqual(await run('/BUDGET/REVISIONS/'+id+'/SUBMIT','POST',['budget.revision.view']),value);
   assert.deepEqual(await run('/budget/items/'+id,'PATCH',['budget.boq.view']),value);
   assert.deepEqual(await run('/budget/projects','GET',[]),value,'read guard remains responsible for GET authorization');
 });
