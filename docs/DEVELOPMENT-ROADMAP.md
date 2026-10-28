@@ -1,7 +1,7 @@
 # Construction ERP — Development Roadmap
 
 **Document Status:** Development Roadmap Baseline v0.1  
-**Current Phase:** V0.1–V1.1 COMPLETE + ACCEPTED. **V1.2 A/B COMPLETE / C governed integration and formal human acceptance PENDING**, #246. DEC-034/#266 records approved future BOQ scope and entry preparation; no successor implementation/entry closure is claimed. [Current State](CURRENT-STATE.md) owns the exact checkpoint. Production remains NOT AUTHORIZED.
+**Current Phase:** V0.1–V1.1 COMPLETE + ACCEPTED. **V1.2 technical implementation COMPLETE; owner UAT and separate release exit ACCEPTED**, DEC-036. Final acceptance-record publication/closure evidence is tracked in #246 / [Current State](CURRENT-STATE.md). DEC-034/#266 remains approved future BOQ scope/entry preparation; no successor feature coding or entry closure is claimed. Production NOT AUTHORIZED.
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1  
@@ -11,15 +11,15 @@
 
 ---
 
-## Active successor — V1.2 THB-only Monetary Hardening (DEC-033)
+## V1.2 THB-only Monetary Hardening — owner accepted (DEC-033 / DEC-036)
 
-The owner approved the [bounded currency/provenance/schema-assurance scope](V1.2-THB-SCOPE.md) on 2026-10-25 ([exact decision](https://github.com/threeswordz/cinder-grind/issues/246#issuecomment-6394359755)). Track existing #246. B is COMPLETE through #264/#265 and exact-main CI 40190475484; the [closure receipt](https://github.com/threeswordz/cinder-grind/issues/246#issuecomment-6397315502) verifies review/merge/main gates. THB-only new monetary activity is technically delivered. Completed owner THB observations and disposable CI are preserved; no repeat UAT is required. DEC-035 records the owner's PR #272 review waiver/merge authority after diagnosing the Codex quota failure. Exact-final-head CI/integration/post-main gates and separate formal owner UAT/release-exit decisions remain required; actual technical outcomes are recorded in #246. Preserve accepted V1.1 and every historical currency/transaction/approval; BOQ/HR/Payroll/field-security redesign and #245 remain separate.
+The owner approved the [bounded scope](V1.2-THB-SCOPE.md) under DEC-033, then separately accepted UAT and release exit under DEC-036. [Release-exit evidence](V1.2-RELEASE-EXIT.md) records the verified #263–265 implementation, #272 integrated main/CI, completed independent Code Review and human receipts. Final documentation publication retains normal exact-head/PR/merge/main gates with actual results in #246. Preserve all accepted owner/CI provenance; no repeat UAT, historical rewrite or Production deployment. BOQ/HR/Payroll/field-security redesign and #245 remain separate.
 
 | Stage | Approved delivery | Gate |
 |---|---|---|
 | V1.2-A | Entry requirements SYS-009–011, THB-01–10, D12-01–04, Decision Log/current-state/roadmap | **COMPLETE:** #263, main `65857a384005e1734028ffb6945b1077ed3449e5`, exact-main CI SUCCESS / #246 closure receipt. |
 | V1.2-B | Existing-module THB policy, minimum new-root provenance, truthful UI/reports, forward-only schema and bounded upgrade/recovery proof | **COMPLETE:** #264/#265, main `bebffb4a7e3edc019e8a6e88e989fffbcc75d53a`, exact-main CI SUCCESS; #246 closure receipt. |
-| V1.2-C | Preserve completed affected UAT and technical evidence; governed integration and separate owner UAT/release-exit acceptance | **UNDER VALIDATION:** DEC-035 records the PR #272 review waiver/merge authority; final-head/integration/exact-main CI require live verification. Formal human UAT acceptance and release exit PENDING. Preserve [evidence closure](V1.2-C-EVIDENCE-CLOSURE.md) and [disposition](V1.2-C-EVIDENCE-DISPOSITION.md); no repeat tests or Production authorization. |
+| V1.2-C | Preserve completed UAT and technical evidence; integrated assurance and separate owner UAT/release exit | **Technical integration COMPLETE; both human decisions OWNER ACCEPTED**, DEC-036. [Release-exit record](V1.2-RELEASE-EXIT.md); actual final acceptance-publication gates/closure in #246. No repeat tests or Production authorization. |
 
 ## Approved future package — BOQ Disclosure and Linked Customer BOQ Versions (DEC-034)
 
@@ -28,7 +28,7 @@ The owner approved the [bounded currency/provenance/schema-assurance scope](V1.2
 | Work | Position |
 |---|---|
 | First-package scope / entry preparation | **APPROVED SCOPE:** documentation publication gates tracked in #266; not entry COMPLETE. |
-| Required predecessor and entry inputs | **PENDING:** V1.2 owner UAT/release exit, expressly open disclosure/mapping/pricing inputs and applicable normal entry gates. |
+| Required predecessor and entry inputs | V1.2 owner UAT and release exit ACCEPTED; verify final repository closure in #246. Existing owner access/pricing selections are recorded in #266; remaining representative mapping/edge inputs and normal BOQ entry gates remain required. |
 | Feature implementation | **FUTURE:** no runtime/schema/permission changes before the required entry conditions. |
 | Targeted human UAT / separate release exit | **FUTURE:** not accepted by scope approval. |
 | Advanced costing and HR/Attendance/Payroll | Separate **P1** increments; policy/design preparation in parallel, without unconfirmed formulas, actors or recognition rules. |
