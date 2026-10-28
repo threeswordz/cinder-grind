@@ -11,9 +11,12 @@ import { PrismaService } from '../prisma/prisma.service';
 import { ProjectAccessService } from '../projects/project-access.service';
 import { UploadedDocumentFile } from './document-policy.service';
 import { DocumentsService } from './documents.service';
-import { DOCUMENT_SOURCE_VIEW_PERMISSIONS } from './document-source-permissions';
+import { DOCUMENT_SOURCE_VIEW_PERMISSIONS, documentSourcePermissions } from './document-source-permissions';
 
 export type DocumentTargetType =
+  | 'BOQ'
+  | 'BUDGET_REVISION'
+  | 'CUSTOMER_BOQ'
   | 'WBS'
   | 'ACTIVITY'
   | 'PURCHASE_REQUEST'
@@ -58,6 +61,7 @@ export class DocumentTargetsService {
     const accessibleProjectIds = accessibleProjects.map((row) => row.id);
     const can = (permission: string) => auth.permissions.includes(permission);
     const [
+      boqs, budgetRevisions, customerBoqs,
       wbs,
       activities,
       purchaseRequests,
@@ -78,6 +82,9 @@ export class DocumentTargetsService {
       subcontractCertifications,
       subcontractVariations,
     ] = await Promise.all([
+      can('budget.boq.view') ? this.prisma.boq.findMany({where:{companyId:auth.companyId,projectId},select:{id:true,boqName:true}}) : Promise.resolve([]),
+      can('budget.revision.view') ? this.prisma.budgetRevision.findMany({where:{companyId:auth.companyId,projectId},select:{id:true,revisionNumber:true},orderBy:{revisionNo:'desc'}}) : Promise.resolve([]),
+      ['budget.boq.view','budget.revision.view','budget.customer.view'].every(can) ? this.prisma.customerBoqVersion.findMany({where:{companyId:auth.companyId,projectId},select:{id:true,versionNo:true},orderBy:{versionNo:'desc'}}) : Promise.resolve([]),
       this.prisma.wbsElement.findMany({
         where: { projectId, isActive: true },
         select: { id: true, wbsCode: true, wbsName: true, parentId: true },
@@ -262,6 +269,7 @@ export class DocumentTargetsService {
         : Promise.resolve([]),
     ]);
     return {
+      boqs, budgetRevisions, customerBoqs,
       wbs,
       activities,
       purchaseRequests,
@@ -400,6 +408,15 @@ export class DocumentTargetsService {
   ) {
     await this.access.assertAccess(auth, projectId);
     this.assertTargetPermission(auth, entityType);
+
+    if (entityType === 'BOQ' || entityType === 'BUDGET_REVISION' || entityType === 'CUSTOMER_BOQ') {
+      const where = { id: entityId, companyId: auth.companyId, projectId };
+      const row = entityType === 'BOQ' ? await this.prisma.boq.findFirst({ where, select: { id: true } }) :
+        entityType === 'BUDGET_REVISION' ? await this.prisma.budgetRevision.findFirst({ where, select: { id: true } }) :
+        await this.prisma.customerBoqVersion.findFirst({ where, select: { id: true } });
+      if (!row) throw this.targetNotFound();
+      return;
+    }
 
     if (entityType === 'WBS') {
       const row = await this.prisma.wbsElement.findFirst({
@@ -603,8 +620,8 @@ export class DocumentTargetsService {
     auth: AuthenticatedUserContext,
     entityType: DocumentTargetType,
   ) {
-    const required = DOCUMENT_SOURCE_VIEW_PERMISSIONS[entityType];
-    if (required && !auth.permissions.includes(required)) {
+    const required = documentSourcePermissions(entityType);
+    if (!required.every((p) => auth.permissions.includes(p))) {
       throw new ForbiddenException({
         code: 'DOCUMENT_TARGET_PERMISSION_DENIED',
         detail:

@@ -9,6 +9,7 @@ import { AuthenticatedUserContext } from '../auth/auth.types';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProjectAccessService } from '../projects/project-access.service';
 import { budgetInvalid } from './budget-validation';
+import { persistedBudgetActor } from './budget-disclosure';
 import { CustomerBoqPricingLine, priceCustomerBoq } from './customer-boq-pricing';
 
 type Context = { auth: AuthenticatedUserContext; correlationId?: string };
@@ -38,7 +39,7 @@ function uuid(value: string, field: string) {
 }
 function conflict() { return new ConflictException({ code: 'CUSTOMER_BOQ_CONFLICT', detail: 'The Customer BOQ has changed or is no longer editable. Refresh before continuing.' }); }
 
-/** Internal service only. No controller/module activation or grant seeds yet.
+/** Scoped commercial workflow; capability catalog entries never assign user grants.
  * Reads require BOTH explicit full-source-cost and customer-price capabilities.
  * Mutation receipts contain no financial values. Never expose its graph to a quantity/Finance reader.
  */
@@ -50,10 +51,25 @@ export class CustomerBoqService {
   async history(auth: AuthenticatedUserContext, projectId: string, id: string) {
     uuid(id, 'id');
     return this.prisma.$transaction(async (tx) => {
-      await this.authorize(tx, auth, projectId);
+      auth = await this.authorize(tx, auth, projectId);
       const version = await this.load(tx, auth.companyId, projectId, id);
       const approvals = await tx.approvalInstance.findMany({ where: { companyId: auth.companyId, entityType: ENTITY, entityId: id }, orderBy: { startedAt: 'asc' }, include: { actions: true } });
-      return { version, approvals };
+      const state = version.approvalInstance?.approvalState;
+      let decide = false;
+      if (state === 'SUBMITTED' && auth.permissions.includes('budget.customer.approve') &&
+          version.createdByUserId !== auth.userId && version.submittedByUserId !== auth.userId &&
+          !version.edits.some(e => e.actorUserId === auth.userId)) {
+        const step = await tx.approvalStep.findFirst({ where: {
+          approvalWorkflowId: version.approvalInstance!.approvalWorkflowId, stepNo: version.approvalInstance!.currentStepNo,
+        }, include: { stepRoles: { include: { role: true } } } });
+        const prior = approvals.find(a => a.id === version.approvalInstanceId)?.actions.some(a =>
+          a.approvalStepId === step?.id && a.actionByUserId === auth.userId);
+        decide = Boolean(step?.stepRoles.some(r => r.role.isActive && r.role.companyId === auth.companyId && auth.roleCodes.includes(r.role.roleCode)) && !prior);
+      }
+      return { version, approvals, allowedActions: {
+        edit: this.editable(state) && auth.permissions.includes('budget.customer.manage'),
+        submit: this.editable(state) && auth.permissions.includes('budget.customer.submit'), decide,
+      } };
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
   }
 
@@ -106,7 +122,7 @@ export class CustomerBoqService {
   }
 
   decide(context: Context, projectId: string, requestId: string, id: string, expectedInstanceId: string,
-    decision: 'APPROVE' | 'REJECT', comment: string) {
+    decision: 'APPROVE' | 'REJECT', comment?: string) {
     return this.write(context, projectId, requestId, 'approve', { operation: decision, id, expectedInstanceId, comment }, async (tx, auth) => {
       if (!['APPROVE', 'REJECT'].includes(decision)) throw budgetInvalid('decision', 'Choose APPROVE or REJECT.');
       const row = await this.load(tx, auth.companyId, projectId, id);
@@ -116,7 +132,7 @@ export class CustomerBoqService {
       this.approvals.assertMakerChecker(row.submittedByUserId!, auth.userId);
       // Every editor is a maker of this exact commercial version, not only its creator.
       if (row.edits.some((edit) => edit.actorUserId === auth.userId)) throw new ForbiddenException({ code: 'MAKER_CHECKER_VIOLATION', detail: 'An editor cannot approve or reject this Customer BOQ version.' });
-      const note = required(comment, 'comment');
+      const note = comment === undefined || !comment.trim() ? undefined : required(comment, 'comment');
       const approval = decision === 'APPROVE' ?
         await this.approvals.approve(expectedInstanceId, auth, row.createdByUserId, note, undefined, tx) :
         await this.approvals.reject(expectedInstanceId, auth, row.createdByUserId, note, tx);
@@ -126,17 +142,56 @@ export class CustomerBoqService {
     });
   }
 
+  async projects(supplied: AuthenticatedUserContext) {
+    return this.prisma.$transaction(async (tx) => {
+      const auth = await persistedBudgetActor(tx, supplied);
+      this.assertRead(auth);
+      const scope = await this.access.scopeWhere(auth, tx);
+      return tx.project.findMany({ where: { AND: [scope, { isActive: true }] },
+        select: { id: true, projectCode: true, projectName: true }, orderBy: { projectCode: 'asc' } });
+    });
+  }
+  async options(auth: AuthenticatedUserContext, projectId: string) {
+    return this.prisma.$transaction(async (tx) => {
+      await this.authorize(tx, auth, projectId);
+      const [sources, uoms, workflows] = await Promise.all([
+        tx.budgetRevision.findMany({ where: { companyId: auth.companyId, projectId, currencyCode: 'THB', company: { isActive: true, baseCurrencyCode: 'THB' }, project: { isActive: true, contractCurrencyCode: 'THB' }, approvalInstance: { is: { approvalState: 'APPROVED' } } },
+          select: { id: true, revisionNo: true, revisionNumber: true, currencyCode: true, lines: { orderBy: { sortOrder: 'asc' },
+            select: { id: true, itemCode: true, description: true, quantity: true, uomId: true, uomCode: true, rate: true, amount: true } } }, orderBy: { revisionNo: 'desc' } }),
+        tx.unitOfMeasure.findMany({ where: { companyId: auth.companyId, isActive: true }, select: { id: true, uomCode: true, uomName: true, decimalPlaces: true }, orderBy: { uomCode: 'asc' } }),
+        tx.approvalWorkflow.findMany({ where: { companyId: auth.companyId, entityType: ENTITY, isActive: true }, select: { workflowCode: true, workflowName: true }, orderBy: { workflowCode: 'asc' } }),
+      ]);
+      return { sources, uoms, workflows };
+    });
+  }
+  async list(auth: AuthenticatedUserContext, projectId: string) {
+    return this.prisma.$transaction(async (tx) => {
+      await this.authorize(tx, auth, projectId);
+      const rows = await tx.customerBoqVersion.findMany({ where: { companyId: auth.companyId, projectId }, orderBy: { versionNo: 'desc' },
+        include: { approvalInstance: { select: { approvalState: true } }, edits: { select: { editNo: true, totalAmount: true } } } });
+      return rows.map(({ edits, approvalInstance, ...v }) => ({ ...v, approvalState: approvalInstance?.approvalState ?? 'DRAFT',
+        totalAmount: edits.find((e) => e.editNo === v.currentEditNo)!.totalAmount }));
+    });
+  }
+  async preview(context: Context, projectId: string, draft: CustomerBoqDraft, versionId?: string) {
+    return this.prisma.$transaction(async (tx) => {
+      const auth = await this.authorize(tx, context.auth, projectId, 'manage');
+      const before = versionId ? await this.load(tx, auth.companyId, projectId, versionId) :
+        draft.previousVersionId ? await this.load(tx, auth.companyId, projectId, draft.previousVersionId) : undefined;
+      return (await this.price(tx, auth, projectId, draft, before)).result;
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+  }
+  private assertRead(auth: AuthenticatedUserContext, action?: string) {
+    const needs = ['budget.boq.view', 'budget.revision.view', 'budget.customer.view', ...(action ? ['budget.customer.' + action] : [])];
+    if (!needs.every((p) => auth.permissions.includes(p))) throw new ForbiddenException({ code: 'CUSTOMER_BOQ_PERMISSION_DENIED', detail: 'Explicit source-cost, customer-price and applicable action authority are required.' });
+  }
+
   private editable(state: string | undefined) { return state === undefined || state === 'REJECTED'; }
 
   private async authorize(tx: Prisma.TransactionClient, supplied: AuthenticatedUserContext, projectId: string, action?: string) {
     uuid(projectId, 'projectId');
-    // Resolve current persisted effective roles/grants inside the transaction; caller flags/names are not authority.
-    const user = await tx.user.findFirst({ where: { id: supplied.userId, companyId: supplied.companyId, isActive: true, company: { isActive: true } },
-      include: { userRoles: { include: { role: { include: { rolePermissions: { include: { permission: true } } } } } } } });
-    const roles = user?.userRoles.map((r) => r.role).filter((r) => r.isActive && r.companyId === supplied.companyId) ?? [];
-    const auth = { ...supplied, roleCodes: roles.map((r) => r.roleCode), permissions: [...new Set(roles.flatMap((r) => r.rolePermissions.map((p) => p.permission.permissionCode)))] };
-    const needs = ['budget.boq.view', 'budget.revision.view', 'budget.customer.view', ...(action ? ['budget.customer.' + action] : [])];
-    if (!user || !needs.every((p) => auth.permissions.includes(p))) throw new ForbiddenException({ code: 'CUSTOMER_BOQ_PERMISSION_DENIED', detail: 'Explicit source-cost, customer-price and applicable action authority are required.' });
+    const auth = await persistedBudgetActor(tx, supplied);
+    this.assertRead(auth, action);
     await this.access.assertAccess(auth, projectId, tx);
     return auth;
   }

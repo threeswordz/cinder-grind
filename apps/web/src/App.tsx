@@ -3,7 +3,8 @@ import { useQuery } from '@tanstack/react-query';
 
 import { fetchCurrentUser } from './api/auth';
 import { ApiError } from './api/client';
-import { AdminConsole } from './AdminConsole';
+import { AuthenticatedWorkspace } from './AuthenticatedWorkspace';
+import { effectiveUiQueryScope } from './role-ui/role-workspace-policy';
 import { LoginScreen } from './LoginScreen';
 
 export default function App() {
@@ -11,6 +12,8 @@ export default function App() {
     queryKey: ['current-user'],
     queryFn: fetchCurrentUser,
     retry: false,
+    refetchOnWindowFocus: true,
+    refetchInterval: 15000,
   });
 
   if (authQuery.isPending) {
@@ -48,5 +51,5 @@ export default function App() {
     );
   }
 
-  return <AdminConsole user={authQuery.data} />;
+  return <AuthenticatedWorkspace key={effectiveUiQueryScope(authQuery.data.id,authQuery.data.companyId,authQuery.data.permissions,authQuery.data.roleCodes)} user={authQuery.data} onLogoutSuccess={()=>authQuery.refetch()}/>;
 }

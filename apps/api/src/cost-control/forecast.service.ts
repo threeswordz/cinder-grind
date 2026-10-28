@@ -1,3 +1,4 @@
+import { assertCostReportDisclosure } from '../budget/budget-disclosure';
 import { createHash } from 'node:crypto';
 
 import {
@@ -68,6 +69,7 @@ export class ForecastService {
   }
 
   async options(auth: AuthenticatedUserContext, projectId: string) {
+    assertCostReportDisclosure(auth);
     this.assertPermission(auth, 'cost.forecast.view');
     await this.access.assertAccess(auth, projectId);
     const [company, project, wbs, costCodes] = await Promise.all([
@@ -105,6 +107,7 @@ export class ForecastService {
   }
 
   async list(auth: AuthenticatedUserContext, projectId: string) {
+    assertCostReportDisclosure(auth);
     this.assertPermission(auth, 'cost.forecast.view');
     await this.access.assertAccess(auth, projectId);
     return this.prisma.costForecast.findMany({
@@ -115,6 +118,7 @@ export class ForecastService {
   }
 
   async get(auth: AuthenticatedUserContext, forecastId: string) {
+    assertCostReportDisclosure(auth);
     this.assertSourcePermission(auth);
     const forecast = await this.visibleForecast(auth, forecastId, this.prisma);
     return this.hydrate(forecast, this.prisma);
@@ -125,6 +129,7 @@ export class ForecastService {
     projectId: string,
     input: CostForecastDraftInput,
   ) {
+    assertCostReportDisclosure(context.auth);
     this.assertPermission(context.auth, 'cost.forecast.manage');
     await this.access.assertAccess(context.auth, projectId);
     this.assertLineAmounts(input.lines);
@@ -259,6 +264,7 @@ export class ForecastService {
     forecastId: string,
     input: CostForecastDraftUpdate,
   ) {
+    assertCostReportDisclosure(context.auth);
     this.assertPermission(context.auth, 'cost.forecast.manage');
     if (input.lines) this.assertLineAmounts(input.lines);
     const result = await this.serializedForecastWrite(
@@ -346,6 +352,7 @@ export class ForecastService {
     workflowCode: string,
     actionKey: string,
   ) {
+    assertCostReportDisclosure(context.auth);
     this.assertPermission(context.auth, 'cost.forecast.manage');
     const result = await this.serializedForecastWrite(
       context.auth,
@@ -422,6 +429,7 @@ export class ForecastService {
     actionKey: string,
     comment?: string,
   ) {
+    assertCostReportDisclosure(context.auth);
     this.assertPermission(context.auth, 'cost.forecast.approve');
     const result = await this.serializedForecastWrite(
       context.auth,
@@ -507,6 +515,7 @@ export class ForecastService {
     actionKey: string,
     comment?: string,
   ) {
+    assertCostReportDisclosure(context.auth);
     this.assertPermission(context.auth, 'cost.forecast.approve');
     const result = await this.serializedForecastWrite(
       context.auth,

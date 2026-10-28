@@ -9,6 +9,10 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { ProjectsModule } from '../projects/projects.module';
 import { BudgetController } from './budget.controller';
 import { BudgetService } from './budget.service';
+import { CustomerBoqService } from './customer-boq.service';
+import { CustomerBoqController } from './customer-boq.controller';
+import { QuantityBoqController } from './quantity-boq.controller';
+import { BudgetDisclosureInterceptor } from './budget-disclosure.interceptor';
 
 @Module({
   imports: [
@@ -20,8 +24,8 @@ import { BudgetService } from './budget.service';
     ApprovalModule,
     AdministrationModule,
   ],
-  controllers: [BudgetController],
-  providers: [BudgetService],
+  controllers: [BudgetController, CustomerBoqController, QuantityBoqController],
+  providers: [BudgetService, CustomerBoqService, BudgetDisclosureInterceptor],
   exports: [BudgetService],
 })
 export class BudgetModule {}

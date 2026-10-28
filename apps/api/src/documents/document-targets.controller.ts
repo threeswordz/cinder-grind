@@ -44,6 +44,9 @@ const auditContext = (request: AuthenticatedRequest) => ({
 
 function targetType(value: string): DocumentTargetType {
   const supported: DocumentTargetType[] = [
+    'BOQ',
+    'BUDGET_REVISION',
+    'CUSTOMER_BOQ',
     'WBS',
     'ACTIVITY',
     'PURCHASE_REQUEST',

@@ -3,8 +3,8 @@ import type { QueryClient } from '@tanstack/react-query';
 // V1.1-B: presentation-only guards over backend-authorized source data.
 // The backend remains authoritative for permissions, Project scope and record actions.
 // UI cache identity only; source APIs remain the authorization authority.
-export function effectiveUiQueryScope(userId: string, companyId: string, permissions: readonly string[]): string {
-  return JSON.stringify([userId, companyId, [...new Set(permissions)].sort()]);
+export function effectiveUiQueryScope(userId: string, companyId: string, permissions: readonly string[], roleCodes: readonly string[] = []): string {
+  return JSON.stringify([userId, companyId, [...new Set(permissions)].sort(), [...new Set(roleCodes)].sort()]);
 }
 export function projectContextQueryKey(scope: string, source: string) {
   return ['v1.1', 'project-context', scope, source] as const;

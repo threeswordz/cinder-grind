@@ -1,3 +1,4 @@
+import { assertCostReportDisclosure } from '../budget/budget-disclosure';
 import { Injectable, UnprocessableEntityException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 
@@ -103,6 +104,7 @@ export class ManagementService {
     projectId: string,
     options: ManagementSummaryOptions,
   ) {
+    assertCostReportDisclosure(auth);
     await this.access.assertAccess(auth, projectId);
 
     const [
@@ -331,6 +333,7 @@ export class ManagementService {
     projectId: string,
     options: ManagementReportOptions,
   ) {
+    assertCostReportDisclosure(auth);
     const dimensionFilter = Boolean(options.wbsId || options.costCodeId);
     if (dimensionFilter && options.domain !== 'COST') {
       throw new UnprocessableEntityException({
@@ -850,6 +853,7 @@ export class ManagementService {
     projectId: string,
     options: ManagementReportOptions,
   ) {
+    assertCostReportDisclosure(auth);
     const report = await this.projectReport(auth, projectId, options);
     const header = [
       'project_code',
@@ -892,6 +896,7 @@ export class ManagementService {
     auth: AuthenticatedUserContext,
     options?: ManagementSummaryOptions,
   ) {
+    assertCostReportDisclosure(auth);
     const resolvedOptions =
       options ??
       ({
