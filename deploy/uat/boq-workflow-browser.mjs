@@ -140,8 +140,8 @@ try {
     });
     ws=new WebSocket(endpoint);
     await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(new Error('Chrome protocol connection timed out')),10000);ws.addEventListener('open',()=>{clearTimeout(timer);resolve();},{once:true});ws.addEventListener('error',()=>{clearTimeout(timer);reject(new Error('Chrome protocol connection failed'));},{once:true});});
-    let sequence=0;const pending=new Map();
-    ws.addEventListener('message',event=>{const message=JSON.parse(event.data);const callback=pending.get(message.id);if(!callback)return;pending.delete(message.id);clearTimeout(callback.timer);if(message.error)callback.reject(new Error(JSON.stringify(message.error)));else callback.resolve(message.result);});
+    let sequence=0;const pending=new Map(),browserErrors=[];
+    ws.addEventListener('message',event=>{const message=JSON.parse(event.data);if(message.method==='Runtime.exceptionThrown')browserErrors.push(message.params.exceptionDetails.exception?.description??message.params.exceptionDetails.text);if(message.method==='Runtime.consoleAPICalled'&&message.params.type==='error')browserErrors.push(message.params.args.map(a=>a.description??a.value??'').join(' '));const callback=pending.get(message.id);if(!callback)return;pending.delete(message.id);clearTimeout(callback.timer);if(message.error)callback.reject(new Error(JSON.stringify(message.error)));else callback.resolve(message.result);});
     const command=(method,params={},sessionId)=>new Promise((resolve,reject)=>{const id=++sequence;const timer=setTimeout(()=>{pending.delete(id);reject(new Error('Chrome protocol timed out: '+method));},10000);pending.set(id,{resolve,reject,timer});ws.send(JSON.stringify({id,method,params,...(sessionId?{sessionId}:{})}));});
     const target=await command('Target.createTarget',{url:'about:blank'});
     const {sessionId}=await command('Target.attachToTarget',{targetId:target.targetId,flatten:true});
@@ -154,7 +154,7 @@ try {
       if(state?.result)break;
       await new Promise(resolve=>setTimeout(resolve,100));
     }
-    assert.equal(state?.result,'PASS',state?.error??'Actual browser did not finish the workflow');
+    assert.equal(state?.result,'PASS',(state?.error??'Actual browser did not finish the workflow')+'; browserErrors='+browserErrors.slice(-5).join(' | ').slice(0,5000));
   } finally {
     ws?.close();
     if(child.exitCode===null){child.kill('SIGTERM');await new Promise(resolve=>{const timer=setTimeout(()=>{child.kill('SIGKILL');resolve();},3000);child.once('close',()=>{clearTimeout(timer);resolve();});});}
