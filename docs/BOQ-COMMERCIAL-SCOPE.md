@@ -66,7 +66,7 @@ V1.2 owner UAT/release closure is COMPLETE. BOQ business-input decisions are OWN
 
 ## 5. Requirement / acceptance contract
 
-The criteria below remain the unchanged acceptance contract. Actual software technical evidence, retained-configuration limitations and separate human gates are mapped in the [consolidated packet](V1.3-BOQ-CLOSURE-PACKET.md); technical PASS does not self-approve business acceptance.
+The criteria below remain the unchanged acceptance contract. Actual software technical evidence, retained-configuration limitations and separate human gates are mapped in the [consolidated packet](V1.3-BOQ-CLOSURE-PACKET.md); technical PASS does not self-approve business acceptance. DEC-038 and the [V1.3 release-exit record](V1.3-RELEASE-EXIT.md) now record both actual separate Owner decisions and the resolved retained-evidence disposition; final publication gates remain live in #266. No requirement or historical observation is changed.
 
 | ID | Required observable evidence | Requirements |
 |---|---|---|

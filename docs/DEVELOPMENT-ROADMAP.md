@@ -1,9 +1,9 @@
 # Construction ERP — Development Roadmap
 
-**2026-10-29 integrated BOQ checkpoint:** Runtime increments #276/#277/#280/#281 are technically COMPLETE on main `826edaadb7efdea0ed85720cf006c244a9402dd2`, [CI40811812549](https://github.com/threeswordz/cinder-grind/actions/runs/40811812549) SUCCESS31/31,255 API/44 web and three fresh browser profiles; final independent Codex clean. [Consolidated evidence/decision preparation](V1.3-BOQ-CLOSURE-PACKET.md) maps every criterion. [Read-only access reconciliation](V1.3-B-ACCESS-RECONCILIATION.md) is prepared; fresh retained configuration and runtime identity remain UNVERIFIED because this workspace has no retained-runtime connection. #275/#266 remain OPEN; no configuration activation, human acceptance, next-stage start or Production authority is inferred.
+**Current checkpoint:** see [Current State](CURRENT-STATE.md). DEC-038 and the [V1.3 release-exit record](V1.3-RELEASE-EXIT.md) record the accepted runtime, separate Owner decisions and preserved evidence limits; final documentation integration/CI/parent closure are tracked in #266.
 
 **Document Status:** Development Roadmap Baseline v0.1  
-**Current Phase:** V1.3-B integrated closure ACTIVE. Runtime #276/#277/#280/#281 technically COMPLETE on main826edaadb7efdea0ed85720cf006c244a9402dd2 / CI40811812549 PASS; read-only retained configuration evidence remains UNVERIFIED. V1.3-C is NEXT only after B closure. HR requirements published; runtime follows BOQ in stages. Production NOT AUTHORIZED.
+**Current Phase:** V1.3 Owner business/UAT and separate release exit ACCEPTED; final documentation publication gates in #266. HR employee/employment/privacy entry preparation follows successful closure; HR coding/grants/schema and Production remain unauthorized.
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1  
@@ -30,8 +30,8 @@ The owner approved the [bounded scope](V1.2-THB-SCOPE.md) under DEC-033, then se
 | Stage | Delivery and gate |
 |---|---|
 | V1.3-A — Entry | Resolved scope/inputs/acceptance, DEC-037, complete authorized HR source and handoff in PR #274. COMPLETE through #274/main `f5d70871593bb89539c574381a687f3d67884c04`, exact-main CI40680993646 SUCCESS. |
-| V1.3-B — Implementation | Runtime increments #276/#277/#280/#281 COMPLETE with clean independent review and exact-main CI. Integrated closure remains ACTIVE under #275 pending retained configuration/runtime evidence; [criterion disposition](V1.3-BOQ-CLOSURE-PACKET.md). No retained changes or automatic C start. |
-| V1.3-C — Assurance and exit | Stable-candidate DEC-022 review, integrated exact-head/merge/main evidence, targeted new BOQ human UAT acceptance and separate release exit. Completed V1.2 UAT stays closed. |
+| V1.3-B — Implementation | COMPLETE / #275 CLOSED. Runtime increments and required retained configuration/runtime disposition resolved; [criterion disposition](V1.3-BOQ-CLOSURE-PACKET.md). Actual isolated activation used separate Owner authorization; no further change is implied. |
+| V1.3-C — Assurance and exit | Both separate Owner decisions ACCEPTED (DEC-038). Final acceptance-document publication uses normal exact-head/PR/merge/main gates; #266 records actual integration/closure. [Release-exit record](V1.3-RELEASE-EXIT.md) preserves all evidence/fixture/human-observation limits; no UAT repetition. |
 | HR / Attendance / Payroll | Separate P1 following BOQ in stages. Complete [requirements source](HR-PAYROLL-REQUIREMENTS-TH-2026-10-27.md) and [handoff](HR-PAYROLL-ENTRY-PREPARATION.md) published with explicit owner authorization; no HR feature entry, grants, statutory assumptions or rollout. |
 
 ## Accepted release — V1.1 Business Workflow & Role UI (DEC-028)
