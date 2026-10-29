@@ -99,8 +99,9 @@ export class HrController {
 
   @Get('companies/:companyId/access')
   @RequirePermissions('hr.access.manage')
-  async access(@Req() request: AuthenticatedRequest, @Param('companyId') companyId: string) {
-    return { data: await this.hr.accessList(auth(request), companyId) };
+  async access(@Req() request: AuthenticatedRequest, @Param('companyId') companyId: string, @Query() query: unknown) {
+    const value = input.object(query, ['after']);
+    return { data: await this.hr.accessList(auth(request), companyId, value.after === undefined ? undefined : input.uuid(value.after)) };
   }
 
   @Post('companies/:companyId/access')

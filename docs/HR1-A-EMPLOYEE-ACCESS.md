@@ -36,7 +36,7 @@ All routes are under `/api/v1/hr`, existing AuthGuard/PermissionGuard convention
 | POST …/private/:category/revisions | Expected-version encrypted snapshot/correction; category/manage |
 | POST …/private/:category/reveal | Explicit selected-version values; category/view |
 | POST …/private/:category/reason | Private correction reason; category/view and identity/view |
-| GET/POST companies/:companyId/access | Target-owned technical scope administration; no self-grant |
+| GET/POST companies/:companyId/access | Target-owned technical scope administration; no self-grant. GET returns `{items,nextCursor}`, at most100 grants; continue with `?after=<nextCursor>` to inspect/revoke every active or revoked entry. |
 | GET projects/:projectId/employees | Existing persisted Project scope and hr.operational.view; only ID/code/name/job title |
 
 ## Disposable validation and bounded upgrade/recovery

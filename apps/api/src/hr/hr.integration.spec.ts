@@ -200,7 +200,7 @@ test('HR employee/private HTTP and database contracts use disposable scoped iden
       assert.deepEqual((await post(a.admin, root + '/access', grant)).data, first.data);
       await post(a.outsider, employeeRoot + '/private/bank/reveal', { version: 1 }, 404); // entitlement alone grants no action.
       await post(a.admin, root + '/access', { ...grant, requestId: randomUUID() }, 409);
-      const scopes = (await call(a.admin, root + '/access')).data;
+      const scopes = (await call(a.admin, root + '/access')).data.items;
       assert.ok(scopes.every((s: any) => !Object.hasOwn(s, 'ciphertext')));
       const keyConfig = process.env.HR_PRIVATE_KEYS;
       delete process.env.HR_PRIVATE_KEYS;
@@ -211,6 +211,46 @@ test('HR employee/private HTTP and database contracts use disposable scoped iden
         await assert.rejects(f.service.privateRead(a.hr.auth, f.company.id, f.legacy.id, 'bank', 1), ServiceUnavailableException);
       } finally { process.env.HR_PRIVATE_KEYS = keyConfig; }
 
+    });
+    await t.test('access pagination reaches every active and revoked grant and permits revoking a later-page grant', async () => {
+      const users = Array.from({ length: 30 }, (_, index) => ({ id: randomUUID(), companyId: f.company.id,
+        email: `scope-page-${index}-${f.suffix}@example.invalid`, displayName: 'Synthetic pagination subject', passwordHash: 'not-a-login' }));
+      await db.user.createMany({ data: users });
+      const grants = users.flatMap(user => ['employment','identity','bank','documents'].map(category => ({
+        id: randomUUID(), companyId: f.company.id, userId: user.id, category, isActive: false,
+        reasonCode: 'ACCESS_REVOKED', updatedByUserId: a.admin.auth.userId,
+      })));
+      await db.hrCompanyAccess.createMany({ data: grants });
+      const ids = new Set<string>(grants.map(g => g.id));
+      const expected = await db.hrCompanyAccess.findMany({ where: { companyId: f.company.id }, orderBy: { id: 'asc' } });
+      const late = expected.filter(g => ids.has(g.id)).at(-1)!;
+      assert.ok(expected.findIndex(g => g.id === late.id) >= 100);
+      await db.hrCompanyAccess.update({ where: { id: late.id }, data: { isActive: true, version: late.version + 1 } });
+      const seen: any[] = [];
+      let after: string | null = null;
+      do {
+        const page: { items: any[]; nextCursor: string | null } = (await call(a.admin, root + '/access' + (after ? '?after=' + after : ''))).data;
+        assert.ok(page.items.length > 0 && page.items.length <= 100);
+        seen.push(...page.items);
+        assert.ok(seen.length <= expected.length); // A repeated cursor must fail, not loop.
+        assert.equal(page.nextCursor, seen.length < expected.length ? page.items.at(-1).id : null);
+        after = page.nextCursor;
+      } while (after !== null);
+      assert.deepEqual(seen.map(g => g.id), expected.map(g => g.id));
+      assert.equal(new Set(seen.map(g => g.id)).size, expected.length);
+      assert.ok(seen.some(g => !g.isActive));
+      const visible = seen.find(g => g.id === late.id)!;
+      assert.equal(visible.isActive, true); assert.equal(visible.version, late.version + 1);
+      await post(a.admin, root + '/access', { requestId: randomUUID(), userId: visible.userId, category: visible.category,
+        isActive: false, expectedVersion: visible.version, reasonCode: 'ACCESS_REVOKED' });
+      const revoked = await db.hrCompanyAccess.findUniqueOrThrow({ where: { id: late.id } });
+      assert.equal(revoked.isActive, false); assert.equal(revoked.version, visible.version + 1);
+      assert.deepEqual((await call(a.admin, root + '/access?after=' + seen.at(-1).id)).data, { items: [], nextCursor: null });
+      await call(a.admin, root + '/access?after=invalid', 422);
+      await call(a.admin, root + '/access?unexpected=1', 422);
+      await call(a.hr, root + '/access?after=' + late.id, 403);
+      await call(a.otherAdmin, root + '/access?after=' + late.id, 404);
+      await call(a.admin, foreign + '/access?after=' + late.id, 404);
     });
     await t.test('revoked entitlements, inactive roles/Companies/users and revoked sessions fail on subsequent requests', async () => {
       const grant = await db.hrCompanyAccess.findUniqueOrThrow({ where: { companyId_userId_category: { companyId: f.company.id, userId: a.hr.auth.userId, category: 'bank' } } });

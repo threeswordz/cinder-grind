@@ -277,10 +277,14 @@ export class HrService {
     });
   }
 
-  accessList(supplied: AuthenticatedUserContext, companyId: string) {
-    return this.read(supplied, [{ companyId, category: 'access', action: 'manage' }], tx =>
-      tx.hrCompanyAccess.findMany({ where: { companyId }, orderBy: { id: 'asc' }, take: 100,
-        select: { id: true, userId: true, category: true, isActive: true, version: true, reasonCode: true, updatedAt: true } }));
+  accessList(supplied: AuthenticatedUserContext, companyId: string, after?: string) {
+    if (after !== undefined) input.uuid(after);
+    return this.read(supplied, [{ companyId, category: 'access', action: 'manage' }], async tx => {
+      const rows = await tx.hrCompanyAccess.findMany({ where: { companyId, ...(after ? { id: { gt: after } } : {}) },
+        orderBy: { id: 'asc' }, take: 101,
+        select: { id: true, userId: true, category: true, isActive: true, version: true, reasonCode: true, updatedAt: true } });
+      return { items: rows.slice(0, 100), nextCursor: rows.length > 100 ? rows[99]!.id : null };
+    });
   }
 
   privateHistory(supplied: AuthenticatedUserContext, companyId: string, employeeId: string, category: input.PrivateCategory) {
