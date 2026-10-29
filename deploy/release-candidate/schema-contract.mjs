@@ -1,3 +1,4 @@
+import { stripHrSchema } from './hr-schema-contract.mjs';
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
@@ -77,7 +78,7 @@ function normalize(schema, candidate) {
     .join('\n') };
 }
 
-export function classifySchema(previous, candidate) {
+function classifyBaseSchema(previous, candidate) {
   if (previous === candidate) return 'migration-aware-sql-only';
   const oldCustomer = stripCustomer(previous);
   const newCustomer = stripCustomer(candidate);
@@ -89,6 +90,19 @@ export function classifySchema(previous, candidate) {
     throw new Error('Schema change is outside the bounded DEC-033 provenance/default contract.');
   }
   return newCustomer.present && !oldCustomer.present ? 'migration-aware-customer-boq-schema' : 'migration-aware-thb-schema';
+}
+
+export function classifySchema(previous, candidate) {
+  if (previous === candidate) return 'migration-aware-sql-only';
+  const before = stripHrSchema(previous), after = stripHrSchema(candidate);
+  if (before.present && !after.present) throw new Error('HR schema removal is prohibited.');
+  if (!before.present && after.present) {
+    if (before.text.replace(/\s+/g,' ').trim() === after.text.replace(/\s+/g,' ').trim()) return 'migration-aware-hr-schema';
+    const base = classifyBaseSchema(before.text, after.text);
+    if (base !== 'migration-aware-customer-boq-schema') throw new Error('HR upgrade cannot absorb an unrelated schema change.');
+    return 'migration-aware-hr-customer-boq-schema';
+  }
+  return classifyBaseSchema(before.text, after.text);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

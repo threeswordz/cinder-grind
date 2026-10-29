@@ -400,10 +400,24 @@ export class MasterDataService {
   ) {
     try {
       return await this.prisma.$transaction(async (tx) => {
+        // Serialize with HR reference creation before checking historical code.
+        await tx.$executeRaw`SELECT id FROM employees WHERE id=${id}::uuid AND company_id=${context.auth.companyId}::uuid FOR UPDATE`;
+
         const before = await tx.employee.findFirst({
           where: { id, companyId: context.auth.companyId },
         });
         if (!before) throw this.notFound('Employee');
+        if (data.employeeCode !== undefined && data.employeeCode !== before.employeeCode) {
+          const references = await Promise.all([
+            tx.hrEmployment.count({ where: { employeeId: id } }),
+            tx.hrPrivateRevision.count({ where: { employeeId: id } }),
+            tx.hrPersonLink.count({ where: { employeeId: id } }),
+          ]);
+          if (references.some(Boolean)) throw new ConflictException({
+            code: 'HR_EMPLOYEE_HISTORY_PROTECTED', detail: 'Referenced HR Employee identity and code must be preserved.',
+          });
+        }
+
 
         if (data.isActive === false && before.isActive) {
           const activeUser = await tx.user.findFirst({

@@ -8,6 +8,12 @@ datasource db {
 }
 
 model Company {
+  hrCompanyAccess HrCompanyAccess[]
+  hrEmployments HrEmployment[]
+  hrEmploymentRevisions HrEmploymentRevision[]
+  hrPrivateRevisions HrPrivateRevision[]
+  hrPersonLinks HrPersonLink[]
+  hrReplays HrReplay[]
   customerBoqVersions CustomerBoqVersion[]
   customerBoqReplays CustomerBoqReplay[]
 
@@ -194,6 +200,10 @@ model Material {
 }
 
 model Employee {
+  hrEmployment HrEmployment?
+  hrPrivateRevisions HrPrivateRevision[]
+  hrPersonLink HrPersonLink?
+  @@unique([companyId, id])
   id           String   @id @default(uuid()) @db.Uuid
   companyId    String   @map("company_id") @db.Uuid
   employeeCode String   @map("employee_code") @db.VarChar(50)
@@ -217,6 +227,13 @@ model Employee {
 }
 
 model User {
+  hrAccessSubjects HrCompanyAccess[] @relation("HrAccessSubject")
+  hrAccessChanges HrCompanyAccess[] @relation("HrAccessActor")
+  hrEmploymentRevisions HrEmploymentRevision[] @relation("HrEmploymentActor")
+  hrPrivateRevisions HrPrivateRevision[] @relation("HrPrivateActor")
+  hrPeople HrPerson[] @relation("HrPersonActor")
+  hrPersonLinks HrPersonLink[] @relation("HrPersonLinkActor")
+  hrReplays HrReplay[] @relation("HrReplayActor")
   createdCustomerBoqVersions CustomerBoqVersion[] @relation("CustomerBoqCreator")
   submittedCustomerBoqVersions CustomerBoqVersion[] @relation("CustomerBoqSubmitter")
   customerBoqEdits CustomerBoqEdit[]
@@ -599,6 +616,7 @@ model SystemSetting {
 
 
 model Project {
+  hrEmploymentRevisions HrEmploymentRevision[]
   customerBoqVersions CustomerBoqVersion[]
 
   id                 String   @id @default(uuid()) @db.Uuid
@@ -3084,4 +3102,119 @@ model CustomerBoqReplay {
   actor User @relation(fields: [actorUserId], references: [id], onDelete: Restrict)
   @@unique([companyId, actorUserId, requestId])
   @@map("customer_boq_replays")
+}
+
+// DEC-039: protected HR records; no private scalar added to canonical Employee.
+model HrCompanyAccess {
+  id String @id @default(uuid()) @db.Uuid
+  companyId String @map("company_id") @db.Uuid
+  userId String @map("user_id") @db.Uuid
+  category String @db.VarChar(30)
+  isActive Boolean @default(true) @map("is_active")
+  version Int @default(1)
+  reasonCode String @map("reason_code") @db.VarChar(40)
+  updatedByUserId String @map("updated_by_user_id") @db.Uuid
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  company Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  subject User @relation("HrAccessSubject", fields: [userId], references: [id], onDelete: Restrict)
+  updatedBy User @relation("HrAccessActor", fields: [companyId, updatedByUserId], references: [companyId, id], onDelete: Restrict)
+  @@unique([companyId, userId, category])
+  @@index([userId, isActive])
+  @@map("hr_company_access")
+}
+
+model HrEmployment {
+  id String @id @default(uuid()) @db.Uuid
+  companyId String @map("company_id") @db.Uuid
+  employeeId String @map("employee_id") @db.Uuid
+  currentVersion Int @default(0) @map("current_version")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  company Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  employee Employee @relation(fields: [companyId, employeeId], references: [companyId, id], onDelete: Restrict)
+  revisions HrEmploymentRevision[]
+  @@unique([companyId, employeeId])
+  @@unique([companyId, id])
+  @@map("hr_employments")
+}
+
+model HrEmploymentRevision {
+  id String @id @default(uuid()) @db.Uuid
+  companyId String @map("company_id") @db.Uuid
+  employmentId String @map("employment_id") @db.Uuid
+  version Int
+  payBasis String @map("pay_basis") @db.VarChar(10)
+  employmentForm String @map("employment_form") @db.VarChar(20)
+  siteKind String @map("site_kind") @db.VarChar(10)
+  startDate DateTime @map("start_date") @db.Date
+  endDate DateTime? @map("end_date") @db.Date
+  projectId String? @map("project_id") @db.Uuid
+  ciphertext String @db.Text
+  actorUserId String @map("actor_user_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  company Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  employment HrEmployment @relation(fields: [companyId, employmentId], references: [companyId, id], onDelete: Restrict)
+  project Project? @relation(fields: [companyId, projectId], references: [companyId, id], onDelete: Restrict)
+  actor User @relation("HrEmploymentActor", fields: [actorUserId], references: [id], onDelete: Restrict)
+  @@unique([employmentId, version])
+  @@index([companyId, projectId])
+  @@map("hr_employment_revisions")
+}
+
+model HrPrivateRevision {
+  id String @id @default(uuid()) @db.Uuid
+  companyId String @map("company_id") @db.Uuid
+  employeeId String @map("employee_id") @db.Uuid
+  category String @db.VarChar(20)
+  version Int
+  ciphertext String @db.Text
+  actorUserId String @map("actor_user_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  company Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  employee Employee @relation(fields: [companyId, employeeId], references: [companyId, id], onDelete: Restrict)
+  actor User @relation("HrPrivateActor", fields: [actorUserId], references: [id], onDelete: Restrict)
+  @@unique([employeeId, category, version])
+  @@index([companyId, employeeId])
+  @@map("hr_private_revisions")
+}
+
+model HrPerson {
+  id String @id @default(uuid()) @db.Uuid
+  createdByUserId String @map("created_by_user_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  createdBy User @relation("HrPersonActor", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  links HrPersonLink[]
+  @@map("hr_people")
+}
+
+model HrPersonLink {
+  id String @id @default(uuid()) @db.Uuid
+  companyId String @map("company_id") @db.Uuid
+  employeeId String @map("employee_id") @db.Uuid
+  personId String @map("person_id") @db.Uuid
+  ciphertext String @db.Text
+  verifiedByUserId String @map("verified_by_user_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  company Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  employee Employee @relation(fields: [companyId, employeeId], references: [companyId, id], onDelete: Restrict)
+  person HrPerson @relation(fields: [personId], references: [id], onDelete: Restrict)
+  verifiedBy User @relation("HrPersonLinkActor", fields: [verifiedByUserId], references: [id], onDelete: Restrict)
+  @@unique([companyId, employeeId])
+  @@index([personId])
+  @@map("hr_person_links")
+}
+
+model HrReplay {
+  id String @id @default(uuid()) @db.Uuid
+  companyId String @map("company_id") @db.Uuid
+  actorUserId String @map("actor_user_id") @db.Uuid
+  requestId String @map("request_id") @db.Uuid
+  operation String @db.VarChar(30)
+  keyId String @map("key_id") @db.VarChar(32)
+  digest String @db.VarChar(64)
+  receipt Json
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  company Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  actor User @relation("HrReplayActor", fields: [actorUserId], references: [id], onDelete: Restrict)
+  @@unique([companyId, actorUserId, requestId])
+  @@map("hr_replays")
 }

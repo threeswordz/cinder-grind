@@ -374,6 +374,9 @@ jobs:
           RC_PREVIOUS_RELEASE_COMMIT=fc52a867c96a8b3a369b480b9799bad1a5e9f399 \
             RC_EVIDENCE_FILE=/tmp/v1-3-customer-boq-rehearsal.json \
             bash deploy/release-candidate/rehearse.sh
+          RC_PREVIOUS_RELEASE_COMMIT=e86ed846f30ac3feeb09f74ba9084571b9955520 \
+            RC_EVIDENCE_FILE=/tmp/hr1-a-employee-rehearsal.json \
+            bash deploy/release-candidate/rehearse.sh
       - name: Reset CI state before authenticated recovery fixture
         run: |
           set -euo pipefail
@@ -674,7 +677,16 @@ jobs:
           node --input-type=module - <<'NODE'
           import { readFileSync } from 'node:fs';
           const data = JSON.parse(readFileSync('/tmp/v1-3-customer-boq-consolidated-evidence.json', 'utf8'));
-          if (data.releaseMode !== 'migration-aware-customer-boq-schema' ||
+          if (!['migration-aware-customer-boq-schema','migration-aware-hr-customer-boq-schema'].includes(data.releaseMode) ||
               data.rehearsal.previousReleaseCommit !== 'fc52a867c96a8b3a369b480b9799bad1a5e9f399' ||
               data.rehearsal.customerBoqPersistenceUpgrade !== 'PASS') throw new Error('Actual predecessor Customer BOQ upgrade contract missing.');
+          NODE
+          node deploy/release-candidate/verify-evidence.mjs \
+            /tmp/hr1-a-employee-rehearsal.json /tmp/v1-0-e-recovery.json \
+            > /tmp/hr1-a-employee-consolidated-evidence.json
+          node --input-type=module - <<'NODE'
+          import { readFileSync } from 'node:fs';
+          const data = JSON.parse(readFileSync('/tmp/hr1-a-employee-consolidated-evidence.json','utf8'));
+          if (data.releaseMode !== 'migration-aware-hr-schema' || data.rehearsal.previousReleaseCommit !== 'e86ed846f30ac3feeb09f74ba9084571b9955520') throw new Error('Exact HR predecessor contract missing');
+          for (const key of ['hrPredecessorPreservation','hrPredecessorRollback','hrEmployeeUpgradeTests','hrEncryptedRecordRecovery']) if (data.rehearsal[key] !== 'PASS') throw new Error('HR proof missing: '+key);
           NODE
