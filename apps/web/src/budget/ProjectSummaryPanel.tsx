@@ -18,6 +18,8 @@ export function ProjectSummaryPanel(){
     requestAnimationFrame(()=>requestAnimationFrame(()=>{if(mounted.current&&current.current===p)window.print();}));
   }});
   const download=useMutation({mutationFn:async(p:string)=>({p,blob:(await apiDownload(root+'/'+p+'/export')).blob}),onSuccess:({p,blob})=>{if(mounted.current&&current.current===p)saveBlob(blob,'project-summary.csv');}});
+  const unavailable=summary.isError||print.isError||download.isError;
+  useEffect(()=>{if(unavailable)setPrinted(null);},[unavailable]);
   const rows=(s:Summary)=><table aria-label={t('projectSummary')}><tbody>
     <tr><th>{t('contractTotal')}</th><td>{s.currencyCode} {s.contractAmount}</td></tr>
     <tr><th>{t('billedTotal')}</th><td>{s.currencyCode} {s.billedAmount}</td></tr>
@@ -27,14 +29,14 @@ export function ProjectSummaryPanel(){
     <Typography variant="h6">{t('projectSummary')}</Typography><Alert severity="info">{t('summaryMeaning')}</Alert>
     <Typography>{t('summaryInference')}</Typography>
     {projects.isError||summary.isError||print.isError||download.isError?<Alert severity="error">{t('summaryError')}</Alert>:null}
-    <TextField select label={t('project')} value={project} onChange={e=>{setProject(e.target.value);setPrinted(null);}}><MenuItem value="">—</MenuItem>{projects.data?.data.map(p=><MenuItem key={p.id} value={p.id}>{p.projectCode} · {p.projectName}</MenuItem>)}</TextField>
-    {summary.isFetching?<Typography>{t('loading')}</Typography>:summary.data&&project?<>
+    <TextField select label={t('project')} value={project} onChange={e=>{setProject(e.target.value);setPrinted(null);print.reset();download.reset();}}><MenuItem value="">—</MenuItem>{projects.data?.data.map(p=><MenuItem key={p.id} value={p.id}>{p.projectCode} · {p.projectName}</MenuItem>)}</TextField>
+    {project?<Button onClick={()=>{print.reset();download.reset();void summary.refetch();}}>{t('refresh')}</Button>:null}
+    {summary.isFetching?<Typography>{t('loading')}</Typography>:!unavailable&&summary.data&&project?<>
       {rows(summary.data.data)}<Stack direction="row" spacing={1}>
         <Button disabled={print.isPending} onClick={()=>print.mutate(project)}>{t('print')}</Button>
         <Button disabled={download.isPending} onClick={()=>download.mutate(project)}>{t('export')}</Button>
-        <Button onClick={()=>{void summary.refetch();}}>{t('refresh')}</Button>
       </Stack></>:null}
-    {printed?<section id="project-summary-print" style={{display:'none'}}><style>{'@media print{body *{visibility:hidden!important}#project-summary-print,#project-summary-print *{visibility:visible!important}#project-summary-print{display:block!important;position:absolute;inset:0;background:white;color:black}#project-summary-print td,#project-summary-print th{padding:6px;border:1px solid black}}'}</style>
+    {printed&&!unavailable?<section id="project-summary-print" style={{display:'none'}}><style>{'@media print{body *{visibility:hidden!important}#project-summary-print,#project-summary-print *{visibility:visible!important}#project-summary-print{display:block!important;position:absolute;inset:0;background:white;color:black}#project-summary-print td,#project-summary-print th{padding:6px;border:1px solid black}}'}</style>
       <h1>{t('projectSummary')}</h1><p>{printed.project.projectCode} · {printed.project.projectName}</p>{rows(printed)}<p>{t('summaryMeaning')}</p>
     </section>:null}
   </Stack></CardContent></Card>;

@@ -26,7 +26,7 @@ import {fetchCurrentUser} from '/src/api/auth.ts';
 import {effectiveUiQueryScope} from '/src/role-ui/role-workspace-policy.ts';
 const pid='11111111-1111-4111-8111-111111111111',sid='22222222-2222-4222-8222-222222222222',uid='33333333-3333-4333-8333-333333333333',sourceLine='44444444-4444-4444-8444-444444444444',vid='55555555-5555-4555-8555-555555555555';
 const all=['budget.boq.view','budget.revision.view','budget.customer.view','budget.customer.manage','budget.customer.submit','budget.customer.approve'];
-let stage='initial',projectChoices=0,appMode=false,linkMode=false,summaryReads=0;
+let stage='initial',projectChoices=0,appMode=false,linkMode=false,summaryReads=0,summaryForbidden=false;
 let signedIn=true,deferHistory=false,delayedHistory=[];
 let instanceId=null,currentStepNo=1,approvalRound=0,submitRequests=[],decisionRequests=[];const actionReplays=new Map();
 let actor='maker',state='DRAFT',edits=[],saved,attempts=[],rejectFirstSave=true,previewResolve,delayPreview=false,historyReads=0,projectReads=0,exportReads=0,printCalls=0,locale='en';
@@ -45,7 +45,7 @@ window.fetch=async(url,init={})=>{
   if(path==='/auth/logout'){signedIn=false;return new Response(null,{status:204});}
   if(path==='/budget/summary/projects')return json([{id:pid,projectCode:'P',projectName:'Summary project'}]);
   if(path.startsWith('/budget/summary/')&&path.endsWith('/export'))return new Response('Contract,Billed,Received\n1125.50,200.30,20.30\n',{headers:{'Content-Type':'text/csv','Content-Disposition':'attachment; filename=project-summary.csv'}});
-  if(path==='/budget/summary/projects/'+pid){summaryReads++;return json({project:{id:pid,projectCode:'P',projectName:'Summary project'},currencyCode:'THB',contractAmount:'1125.50',billedAmount:'200.30',receivedAmount:'20.30'});}
+  if(path==='/budget/summary/projects/'+pid){summaryReads++;if(summaryForbidden)return new Response(JSON.stringify({code:'PERMISSION_DENIED'}),{status:403,headers:{'Content-Type':'application/problem+json'}});return json({project:{id:pid,projectCode:'P',projectName:'Summary project'},currencyCode:'THB',contractAmount:'1125.50',billedAmount:'200.30',receivedAmount:'20.30'});}
   if(path==='/budget/customer/projects'){projectReads++;return json([{id:pid,projectCode:'P',projectName:'Browser project'}]);}
   if(path.endsWith('/options')&&path.includes('/budget/customer/'))return json(options);
   if(path.endsWith('/versions')&&method==='GET')return json(saved?[{id:vid,versionNo:1,sourceRevisionId:sid,currentEditNo:edits.length,approvalState:state,totalAmount:'0.99',currencyCode:'THB'}]:[]);
@@ -121,6 +121,7 @@ async function run(){
   user={...user,id:uid,companyId:pid,roleCodes:['QUANTITY'],permissions:['budget.quantity.view']};await input('Email','browser@example.invalid');await input('Password','Disposable-browser-password');await button('Sign in');await until(()=>text().includes('Browser actor'),'New sign-in did not authenticate');await authRendered();await nav();await select('Project','Quantity project');await until(()=>text().includes('Visible quantity work'),'New sign-in quantity screen missing');check(!text().includes('0.0033')&&!text().includes('0.99'),'A new signed-in identity reused commercial data');
   user={...user,permissions:['budget.project_summary.view'],roleCodes:['SUMMARY']};await outer.invalidateQueries({queryKey:['current-user']});await authRendered();await nav();await select('Project','Summary project');await until(()=>text().includes('1125.50'),'Summary totals missing');check(text().includes('200.30')&&text().includes('20.30')&&!text().includes('0.0033')&&!text().includes('Visible quantity work'),'Summary leaked a priced or quantity source');
   const summaryBefore=summaryReads,printBefore=printCalls;await button('Print');await until(()=>printCalls===printBefore+1,'Summary print did not execute');check(summaryReads>summaryBefore,'Summary print reused cached totals');check(document.getElementById('project-summary-print').textContent.includes('1125.50'),'Summary print lost exact totals');await button('Export CSV');await until(()=>clicks.includes('project-summary.csv'),'Summary CSV missing');
+  summaryForbidden=true;await button('Refresh');await until(()=>text().includes('Totals are unavailable'),'Summary denial not presented');check(!text().includes('1125.50')&&!document.getElementById('project-summary-print'),'A failed fresh authorization retained old totals or a printable snapshot');summaryForbidden=false;await button('Refresh');await until(()=>text().includes('1125.50'),'Summary refresh did not recover');
   user={...user,permissions:[],roleCodes:['NONE']};await outer.invalidateQueries({queryKey:['current-user']});await authRendered();await until(()=>!text().includes('1125.50'),'Summary survived permission revocation');
   // Source links resolve only through the authorized quantity Project/revision
   // lists. The WBS selection filters only the already-whitelisted quantity DTO.

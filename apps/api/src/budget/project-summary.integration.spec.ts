@@ -19,6 +19,7 @@ test('Project summary and seven-function disclosure use actual persisted HTTP au
   const db=new PrismaService();await db.$connect();
   const app=await NestFactory.create(AppModule,{logger:false});app.setGlobalPrefix('api/v1');app.use(securityHeadersMiddleware(false));app.useGlobalFilters(new ProblemDetailsFilter());await app.listen(0,'127.0.0.1');
   try{
+    const catalog=await db.permission.findUniqueOrThrow({where:{permissionCode:PROJECT_SUMMARY_VIEW}});assert.equal(catalog.id,'b0130000-0000-4000-8000-000000000006');assert.equal(catalog.moduleCode,'BUDGET');assert.equal(catalog.description,'Read Project contract billed and received totals without BOQ detail');
     const f=await customerBoqFixture(db),foreign=await customerBoqFixture(db),pid=f.project.id;
     const sessions=new SessionService(db),token=await sessions.create(f.editor.userId),outsideToken=await sessions.create(f.outsider.userId),foreignToken=await sessions.create(foreign.maker.userId);
     const base=(await app.getUrl())+'/api/v1';
