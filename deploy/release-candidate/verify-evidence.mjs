@@ -28,10 +28,11 @@ if (rehearsal.releaseCommit !== expected || recovery.releaseCommit !== expected)
   fail('evidence release SHA does not match the exact workflow commit');
 }
 
-if (['migration-aware-sql-only', 'migration-aware-thb-schema', 'migration-aware-customer-boq-schema'].includes(rehearsal.releaseMode)) {
-  const customerSchema = rehearsal.releaseMode === 'migration-aware-customer-boq-schema';
+if (['migration-aware-sql-only', 'migration-aware-thb-schema', 'migration-aware-customer-boq-schema', 'migration-aware-hr-schema', 'migration-aware-hr-customer-boq-schema'].includes(rehearsal.releaseMode)) {
+  const customerSchema = ['migration-aware-customer-boq-schema','migration-aware-hr-customer-boq-schema'].includes(rehearsal.releaseMode);
+  const hrSchema = ['migration-aware-hr-schema','migration-aware-hr-customer-boq-schema'].includes(rehearsal.releaseMode);
   const schemaAware = rehearsal.releaseMode !== 'migration-aware-sql-only';
-  if (rehearsal.version !== (customerSchema ? 5 : schemaAware ? 4 : 3)) fail('migration-aware rehearsal evidence schema version does not match its mode');
+  if (rehearsal.version !== (hrSchema ? (customerSchema ? 7 : 6) : customerSchema ? 5 : schemaAware ? 4 : 3)) fail('migration-aware rehearsal evidence schema version does not match its mode');
   if (schemaAware) {
     if (!/^[0-9a-f]{40}$/.test(rehearsal.previousReleaseCommit ?? '') ||
         rehearsal.previousRuntimeCommit !== rehearsal.previousReleaseCommit) {
@@ -42,7 +43,12 @@ if (['migration-aware-sql-only', 'migration-aware-thb-schema', 'migration-aware-
       if (rehearsal[key] !== 'PASS') fail('schema-aware rehearsal gate ' + key + ' did not PASS');
     }
     if (customerSchema && rehearsal.customerBoqPersistenceUpgrade !== 'PASS') fail('Customer BOQ upgrade/persistence proof did not PASS');
-    if (!customerSchema || rehearsal.migrationNames?.some((name) => name.endsWith('_v1_2_thb_monetary_policy'))) {
+    if (hrSchema) {
+      for (const key of ['hrPredecessorPreservation','hrEmployeeUpgradeTests','hrEncryptedRecordRecovery']) if (rehearsal[key] !== 'PASS') fail('HR upgrade proof ' + key + ' did not PASS');
+      if (!rehearsal.migrationNames?.includes('20261029140000_hr1_a_employee_access')) fail('Exact bounded HR migration missing');
+      if (rehearsal.hrPrivateAttachmentRecovery !== 'NOT_IMPLEMENTED_THIS_INCREMENT') fail('HR attachment recovery scope must stay explicit');
+    }
+    if ((!customerSchema && !hrSchema) || rehearsal.migrationNames?.some((name) => name.endsWith('_v1_2_thb_monetary_policy'))) {
       for (const key of ['genuineLegacySgdNullFixture', 'historicalRowsUnchanged']) {
         if (rehearsal[key] !== 'PASS') fail('historical migration proof ' + key + ' did not PASS');
       }

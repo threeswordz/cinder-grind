@@ -52,6 +52,15 @@ if ! git diff --quiet "$RC_PREVIOUS_RELEASE_COMMIT" "$RELEASE_COMMIT" -- apps/ap
   rm -f "$previous_schema_check"
 fi
 
+hr_schema=false
+customer_schema=false
+export HR_SCHEMA_UPGRADE=NO
+if [[ "$schema_mode" == "migration-aware-hr-schema" || "$schema_mode" == "migration-aware-hr-customer-boq-schema" ]]; then
+  hr_schema=true
+  export HR_SCHEMA_UPGRADE=YES
+fi
+if [[ "$schema_mode" == "migration-aware-customer-boq-schema" || "$schema_mode" == "migration-aware-hr-customer-boq-schema" ]]; then customer_schema=true; fi
+
 legacy_upgrade=false
 if ! git cat-file -e "$RC_PREVIOUS_RELEASE_COMMIT:apps/api/prisma/migrations/20261025120000_v1_2_thb_monetary_policy/migration.sql" 2>/dev/null; then
   legacy_upgrade=true
@@ -97,6 +106,7 @@ proxy_pid=""
 admin_pgpass=""
 upgrade_pgpass=""
 rollback_pgpass=""
+hr_pgpass=""
 previous_worktree=false
 created_databases=()
 
@@ -174,9 +184,11 @@ NODE
 fresh_database="construction_erp_v10e_fresh_${run_token}"
 upgrade_database="construction_erp_v10e_upgrade_${run_token}"
 rollback_database="construction_erp_v10e_rollback_${run_token}"
+hr_database="construction_erp_v10e_hrrestore_${run_token}"
 fresh_url="$(database_url "$fresh_database")"
 upgrade_url="$(database_url "$upgrade_database")"
 rollback_url="$(database_url "$rollback_database")"
+hr_url="$(database_url "$hr_database")"
 admin_url="$(database_url postgres)"
 
 admin_pgpass="$(mktemp)"
@@ -185,7 +197,7 @@ native_admin_url="$(POSTGRES_RAW_URL="$admin_url" PGPASSFILE="$admin_pgpass" nod
 
 create_database() {
   local name="$1"
-  [[ "$name" =~ ^construction_erp_v10e_(fresh|upgrade|rollback)_[a-f0-9]{12}$ ]] || fail "invalid rehearsal database name"
+  [[ "$name" =~ ^construction_erp_v10e_(fresh|upgrade|rollback|hrrestore)_[a-f0-9]{12}$ ]] || fail "invalid rehearsal database name"
   PGPASSFILE="$admin_pgpass" psql "$native_admin_url" --no-psqlrc --set=ON_ERROR_STOP=1 \
     --command="CREATE DATABASE \"$name\""
   created_databases+=("$name")
@@ -205,7 +217,7 @@ cleanup_resources() {
     api_pid=""
   fi
   for db in "${created_databases[@]}"; do
-    if [[ "$db" =~ ^construction_erp_v10e_(fresh|upgrade|rollback)_[a-f0-9]{12}$ ]]; then
+    if [[ "$db" =~ ^construction_erp_v10e_(fresh|upgrade|rollback|hrrestore)_[a-f0-9]{12}$ ]]; then
       PGPASSFILE="$admin_pgpass" psql "$native_admin_url" --no-psqlrc --set=ON_ERROR_STOP=1 \
         --command="DROP DATABASE IF EXISTS \"$db\" WITH (FORCE)" >/dev/null 2>&1 || failed=1
     else
@@ -215,6 +227,7 @@ cleanup_resources() {
   [[ -n "$admin_pgpass" ]] && rm -f "$admin_pgpass"
   [[ -n "$upgrade_pgpass" ]] && rm -f "$upgrade_pgpass"
   [[ -n "$rollback_pgpass" ]] && rm -f "$rollback_pgpass"
+  [[ -n "$hr_pgpass" ]] && rm -f "$hr_pgpass"
   if [[ "$previous_worktree" == "true" ]]; then
     git worktree remove --force "$previous_root" >/dev/null 2>&1 || failed=1
   fi
@@ -234,6 +247,7 @@ trap on_exit EXIT
 create_database "$fresh_database"
 create_database "$upgrade_database"
 create_database "$rollback_database"
+if [[ "$hr_schema" == true ]]; then create_database "$hr_database"; fi
 
 echo "[V1.0-E migration-aware] Fresh candidate migration-from-zero"
 DATABASE_URL="$fresh_url" DEPLOYMENT_MODE=fresh node apps/api/scripts/verify-production-target.mjs
@@ -326,6 +340,10 @@ if [[ "$schema_mode" != "migration-aware-sql-only" ]]; then
   fi
 fi
 
+if [[ "$hr_schema" == true ]]; then
+  DATABASE_URL="$upgrade_url" node "$RC_DIR/hr-upgrade.mjs" snapshot "$previous_root" "$tmp_root/hr-predecessor.json"
+fi
+
 recovery_tool_root="$REPO_ROOT"
 recovery_release="$RELEASE_COMMIT"
 if [[ "$schema_mode" != "migration-aware-sql-only" ]]; then
@@ -384,14 +402,21 @@ PRODUCTION_ENV_FILE="$production_env" bash deploy/production/prepare-release.sh
 
 
 candidate_admin_email=rc-admin@example.invalid
+if [[ "$hr_schema" == true ]]; then
+  DATABASE_URL="$upgrade_url" node "$RC_DIR/hr-upgrade.mjs" verify "$previous_root" "$tmp_root/hr-predecessor.json"
+fi
 if [[ "$schema_mode" != "migration-aware-sql-only" && "$legacy_upgrade" == true ]]; then
   DATABASE_URL="$upgrade_url" node "$RC_DIR/legacy-fixture.mjs" verify "$previous_root" "$tmp_root/legacy.json" "$tmp_root/legacy-snapshot.json"
   DATABASE_URL="$upgrade_url" ERP_LEGACY_FIXTURE="$tmp_root/legacy.json" node "$RC_DIR/verify-thb-upgrade.mjs"
 fi
-if [[ "$schema_mode" == "migration-aware-customer-boq-schema" ]]; then
+if [[ "$customer_schema" == true ]]; then
   # Exercise persisted source mappings/replay/approvals on the upgraded database,
   # using disposable records, before claiming the successor persistence contract.
   DATABASE_URL="$upgrade_url" node --test apps/api/dist/budget/customer-boq.integration.spec.js
+fi
+
+if [[ "$hr_schema" == true ]]; then
+  DATABASE_URL="$upgrade_url" node --test apps/api/dist/hr/hr.integration.spec.js
 fi
 
 if [[ "$schema_mode" != "migration-aware-sql-only" ]]; then
@@ -410,6 +435,16 @@ fi
 upgrade_pgpass="$(mktemp)"
 chmod 600 "$upgrade_pgpass"
 native_upgrade_url="$(POSTGRES_RAW_URL="$upgrade_url" PGPASSFILE="$upgrade_pgpass" node deploy/recovery/postgres-url.mjs)"
+if [[ "$hr_schema" == true ]]; then
+  DATABASE_URL="$upgrade_url" node "$RC_DIR/hr-upgrade.mjs" protect "$previous_root" "$tmp_root/hr-protected.json" "$tmp_root/hr-external-keys.json"
+  PGPASSFILE="$upgrade_pgpass" pg_dump --format=custom --no-owner --no-privileges --dbname="$native_upgrade_url" > "$tmp_root/hr-protected.dump"
+  chmod 600 "$tmp_root/hr-protected.dump"
+  hr_pgpass="$(mktemp)"
+  chmod 600 "$hr_pgpass"
+  native_hr_url="$(POSTGRES_RAW_URL="$hr_url" PGPASSFILE="$hr_pgpass" node deploy/recovery/postgres-url.mjs)"
+  PGPASSFILE="$hr_pgpass" pg_restore --exit-on-error --no-owner --no-privileges --dbname="$native_hr_url" < "$tmp_root/hr-protected.dump"
+  DATABASE_URL="$hr_url" node "$RC_DIR/hr-upgrade.mjs" restored "$previous_root" "$tmp_root/hr-protected.json" "$tmp_root/hr-external-keys.json"
+fi
 for migration_name in "${new_migrations[@]}"; do
   applied_count="$(PGPASSFILE="$upgrade_pgpass" psql "$native_upgrade_url" --no-psqlrc --tuples-only --no-align \
     --command="SELECT COUNT(*) FROM \"_prisma_migrations\" WHERE \"migration_name\" = '${migration_name}' AND \"finished_at\" IS NOT NULL AND \"rolled_back_at\" IS NULL" | tr -d '\r\n ')"
@@ -566,8 +601,10 @@ const [
   ciJob, ciRepository, migrationList, schemaMode, legacyUpgrade,
 ] = process.argv.slice(2);
 const nullable = (value) => value === '' ? null : value;
+const hrSchema = ['migration-aware-hr-schema','migration-aware-hr-customer-boq-schema'].includes(schemaMode);
+const customerSchema = ['migration-aware-customer-boq-schema','migration-aware-hr-customer-boq-schema'].includes(schemaMode);
 writeFileSync(path, JSON.stringify({
-  version: schemaMode === 'migration-aware-customer-boq-schema' ? 5 : schemaMode === 'migration-aware-thb-schema' ? 4 : 3,
+  version: hrSchema ? (customerSchema ? 7 : 6) : customerSchema ? 5 : schemaMode === 'migration-aware-thb-schema' ? 4 : 3,
   releaseMode: schemaMode,
   releaseCommit,
   previousReleaseCommit,
@@ -599,7 +636,8 @@ writeFileSync(path, JSON.stringify({
     ...(legacyUpgrade === 'true' ? { genuineLegacySgdNullFixture: 'PASS', historicalRowsUnchanged: 'PASS', thbPolicyUpgrade: 'PASS' } : {}),
     restoredPreviousRuntimeAuthenticationDownload: 'PASS',
   } : { prismaSchemaUnchanged: 'PASS' }),
-  ...(schemaMode === 'migration-aware-customer-boq-schema' ? { customerBoqPersistenceUpgrade: 'PASS' } : {}),
+  ...(customerSchema ? { customerBoqPersistenceUpgrade: 'PASS' } : {}),
+  ...(hrSchema ? { hrPredecessorPreservation: 'PASS', hrEmployeeUpgradeTests: 'PASS', hrEncryptedRecordRecovery: 'PASS', hrPrivateAttachmentRecovery: 'NOT_IMPLEMENTED_THIS_INCREMENT' } : {}),
   forwardOnlyNewMigrations: 'PASS',
   migrationNames: migrationList.split(',').filter(Boolean),
   freshMigration: 'PASS',
