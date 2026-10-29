@@ -164,7 +164,7 @@ export class HrService {
     return this.write(supplied, companyId, requestId, 'EMPLOYEE_CREATE', data, requirements, async (tx, auth) => {
       if (data.predecessor) {
         const source = await this.employee(tx, data.predecessor.companyId, data.predecessor.employeeId);
-        if (source.employeeCode === data.employeeCode) throw conflict();
+        if (source.employeeCode.trim().toUpperCase() === data.employeeCode) throw conflict();
       }
       const row = await tx.employee.create({ data: { companyId, employeeCode: data.employeeCode,
         employeeName: data.employeeName, jobTitle: data.jobTitle } });

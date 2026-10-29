@@ -54,7 +54,7 @@ export async function hrFixture(db: PrismaService) {
   };
   const project = await makeProject(company.id, 'SITE'), unassigned = await makeProject(company.id, 'UNASSIGNED'), foreignProject = await makeProject(other.id, 'FOREIGN');
   for (const site of [pm,store,foreman]) await db.projectMember.create({ data: { projectId: project.id, employeeId: site.employee!.id, projectRole: 'Synthetic site role' } });
-  const legacy = await db.employee.create({ data: { companyId: company.id, employeeCode: 'LEGACY-' + suffix,
+  const legacy = await db.employee.create({ data: { companyId: company.id, employeeCode: 'Legacy-' + suffix,
     employeeName: 'Synthetic existing worker', jobTitle: 'Site worker', email: 'public-' + suffix + '@example.invalid', phone: 'public-contact' } });
   const legacyUser = await db.user.create({ data: { companyId: company.id, employeeId: legacy.id, email: 'legacy-' + suffix + '@example.invalid',
     displayName: 'Synthetic existing account', passwordHash: 'sessions-only-not-a-login' } });

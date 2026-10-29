@@ -174,7 +174,7 @@ test('HR employee/private HTTP and database contracts use disposable scoped iden
       assert.deepEqual(await db.employee.findUniqueOrThrow({ where: { id: f.legacy.id } }), original.employee);
       assert.deepEqual(await db.user.findUniqueOrThrow({ where: { id: f.legacyUser.id } }), original.user);
       assert.deepEqual(await db.projectMember.findUniqueOrThrow({ where: { id: f.legacyMember.id } }), original.member);
-      await post(a.hr, foreign + '/employees', { requestId: randomUUID(), employeeCode: f.legacy.employeeCode,
+      await post(a.hr, foreign + '/employees', { requestId: randomUUID(), employeeCode: f.legacy.employeeCode.toUpperCase(),
         employeeName: 'Must use a new code', facts: hrFacts(), predecessor: source }, 409);
       await post(a.hr, root + '/employees', { requestId: randomUUID(), employeeCode: 'INVALID-' + f.suffix,
         employeeName: 'Invalid source', facts: hrFacts(), predecessor: { ...source, companyId: f.hidden.id } }, 404);
