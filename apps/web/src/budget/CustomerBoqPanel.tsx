@@ -1,10 +1,11 @@
-import {useEffect,useMemo,useState} from 'react';
+import {useEffect,useMemo,useRef,useState} from 'react';
 import {useMutation,useQuery,useQueryClient} from '@tanstack/react-query';
 import {Alert,Button,Card,CardContent,Chip,Divider,MenuItem,Stack,TextField,Typography} from '@mui/material';
 import {customerBoqApi,CustomerDraft,CustomerHistory,CustomerLineInput} from '../api/customer-boq';
 import {documentsApi} from '../api/documents';
 import {ApiError} from '../api/client';
 import {useBoqText,BoqTextKey} from './boq-i18n';
+import {useBudgetPrintSnapshot} from './budget-print';
 
 const newLine=():CustomerLineInput=>({lineId:crypto.randomUUID(),description:'',quantity:'1',uomId:'',method:'MANUAL',manualRate:'',mappings:[{sourceLineId:'',sharePercent:'100'}]});
 export function saveBlob(blob:Blob,name:string){const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;a.click();URL.revokeObjectURL(url);}
@@ -24,7 +25,9 @@ function CustomerProject({projectId,permissions}:{projectId:string;permissions:s
   const [id,setId]=useState(''),[sourceId,setSourceId]=useState(''),[previous,setPrevious]=useState<string|undefined>(),[reason,setReason]=useState('');
   const [lines,setLines]=useState<CustomerLineInput[]>([newLine()]),[workflow,setWorkflow]=useState(''),[note,setNote]=useState('');
   const [baseline,setBaseline]=useState(''),[hydrated,setHydrated]=useState('');
-  const [editNo,setEditNo]=useState(1),[printData,setPrintData]=useState<CustomerHistory|null>(null),[historyEdit,setHistoryEdit]=useState(0);
+  const [editNo,setEditNo]=useState(1),[historyEdit,setHistoryEdit]=useState(0);
+  const [printData,setPrintData,printSnapshot]=useBudgetPrintSnapshot<CustomerHistory>();
+  const printContext=useRef('');printContext.current=projectId+'|'+id;
   const options=useQuery({queryKey:['customer-boq','options',projectId],queryFn:()=>customerBoqApi.options(projectId)});
   const versions=useQuery({queryKey:['customer-boq','versions',projectId],queryFn:()=>customerBoqApi.list(projectId)});
   const history=useQuery({queryKey:['customer-boq','history',projectId,id],queryFn:()=>customerBoqApi.history(projectId,id),enabled:Boolean(id)});
@@ -57,7 +60,7 @@ function CustomerProject({projectId,permissions}:{projectId:string;permissions:s
   const approve=useMutation({mutationFn:()=>customerBoqApi.decide(projectId,id,approveId,v!.approvalInstanceId!,'APPROVE',note),onSuccess:refresh});
   const reject=useMutation({mutationFn:()=>customerBoqApi.decide(projectId,id,rejectId,v!.approvalInstanceId!,'REJECT',note),onSuccess:refresh});
   const exportCsv=useMutation({mutationFn:()=>customerBoqApi.export(projectId,id),onSuccess:r=>saveBlob(r.blob,r.fileName??'customer-boq.csv')});
-  const print=useMutation({mutationFn:()=>customerBoqApi.history(projectId,id),onSuccess:r=>{setPrintData(r.data);requestAnimationFrame(()=>requestAnimationFrame(()=>window.print()));}});
+  const print=useMutation({mutationFn:()=>customerBoqApi.history(projectId,id),onSuccess:r=>printSnapshot(r.data,()=>printContext.current===projectId+'|'+r.data.version.id)});
   const failure=[options.error,versions.error,history.error,preview.error,save.error,submit.error,approve.error,reject.error,exportCsv.error,print.error].find(Boolean);
   function patch(index:number,value:Partial<CustomerLineInput>){setLines(old=>old.map((l,i)=>i===index?{...l,...value}:l));preview.reset();}
   function reset(){setId('');setSourceId('');setPrevious(undefined);setReason('');setLines([newLine()]);setEditNo(1);setBaseline('');setPrintData(null);preview.reset();save.reset();}

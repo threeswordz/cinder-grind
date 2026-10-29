@@ -1,6 +1,14 @@
 import {useContext} from 'react';
 import {MonetaryLocaleContext} from '../role-ui/monetary-presentation';
 const labels = {
+  wholeProject:['Show whole Project','แสดงทั้งโครงการ','顯示整個專案'],
+  projectSummary:['Project commercial totals','ยอดสัญญาและการรับเงินรายโครงการ','專案商務總額'],
+  contractTotal:['Contract including active approved variations','สัญญารวมงานเปลี่ยนแปลงที่อนุมัติและยังมีผล','合約總額（含有效已核准變更）'],
+  billedTotal:['Billed: approved Client Invoices','ยอดเรียกเก็บ: ใบแจ้งหนี้ลูกค้าที่อนุมัติ','已請款：已核准客戶發票'],
+  receivedTotal:['Received: approved inbound Payments','รับชำระ: รายการรับเงินที่อนุมัติ','已收款：已核准收款'],
+  summaryMeaning:['Whole-Project totals only. Contract includes active approved variations; billed includes approved Client Invoices; received includes approved non-cancelled inbound Payments, including unallocated receipts. Received is not Paid Cost or an invoice allocation balance.','แสดงเฉพาะยอดรวมทั้งโครงการ สัญญารวมงานเปลี่ยนแปลงที่อนุมัติและยังมีผล ยอดเรียกเก็บรวมใบแจ้งหนี้ลูกค้าที่อนุมัติ ยอดรับชำระรวมรายการรับเงินที่อนุมัติและไม่ยกเลิก รวมเงินที่ยังไม่จัดสรร ยอดนี้ไม่ใช่ต้นทุนจ่ายแล้วหรือยอดจัดสรรใบแจ้งหนี้','僅顯示整個專案總額。合約包含有效已核准變更；請款包含已核准客戶發票；收款包含已核准且未取消的收款（含未分配款項）。收款並非已付成本或發票分配餘額。'],
+  summaryInference:['Authorized totals and independently known quantities may allow price inference. Source Finance permissions remain separate.','ยอดรวมที่มีสิทธิ์ดูร่วมกับปริมาณที่ทราบจากแหล่งอื่นอาจใช้คำนวณราคาย้อนกลับได้ สิทธิ์เอกสารการเงินแยกต่างหาก','授權總額與另行已知數量可能推算價格。來源財務權限仍獨立管理。'],
+  summaryError:['Totals are unavailable. Refresh or check access and recorded source currencies; no currency conversion is performed.','ไม่สามารถแสดงยอดรวม โปรดโหลดใหม่หรือตรวจสอบสิทธิ์และสกุลเงินที่บันทึกไว้ ระบบไม่แปลงสกุลเงิน','無法取得總額。請重新整理或檢查權限與來源幣別；系統不進行匯率轉換。'],
   unsaved:['Save your changes before submitting this version.','บันทึกการแก้ไขก่อนส่งฉบับนี้อนุมัติ','請先儲存變更，再送審此版本。'],
   original:['Original','ฉบับตั้งต้น','原始版本'],current:['Current','ฉบับปัจจุบัน','目前版本'],
   customer:['Customer BOQ','BOQ สำหรับลูกค้า','客戶工程量清單'],quantityOnly:['Quantity Only','ดูเฉพาะปริมาณ','僅限數量'],

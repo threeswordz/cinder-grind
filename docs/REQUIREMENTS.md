@@ -1,5 +1,7 @@
 # Construction ERP — Master Requirements Register
 
+**Current V1.3-B checkpoint — 2026-10-29 SGT:** #280 public workflow/disclosure is technically COMPLETE: main `6c58a436766c604b4eb5eacad755310f835044e3`, exact-main CI40805375352 SUCCESS31/31,246 API/43 web, final Codex clean. [Project totals and source-access reconciliation](V1.3-B-PROJECT-SUMMARY.md) is the next approved implementation candidate; exact-head/review/merge/main gates remain pending. #275/#266 remain OPEN; no business-rule change, retained activation, full-package acceptance or Production authorization. Earlier checkpoint text below is historical.
+
 **Document Status:** Requirements Baseline v0.1  
 **Current Phase:** V0.1–V1.2 COMPLETE + ACCEPTED. V1.3-A entry is complete; V1.3-B is active under #275/#266. Pricing #276 and persistence/configured approval #277 are technically complete; [public disclosure/workflow increment](V1.3-B-PUBLIC-WORKFLOW.md) has executed code-head evidence under #280; actual review/merge/main receipts govern technical closure. BUD-011–016 remain the same approved package, with Project-only Finance summary and integrated gates still outstanding. Production NOT AUTHORIZED.
 **Architecture Baseline:** v0.1  

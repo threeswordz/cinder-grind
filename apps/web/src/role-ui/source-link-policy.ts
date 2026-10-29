@@ -48,7 +48,7 @@ const SOURCE_VIEW_PERMISSIONS: Record<SourceLinkSection, readonly string[]> = {
   projects: ['projects.project.view'],
   wbs: ['wbs.wbs.view'],
   scheduling: ['schedule.programme.view'],
-  budget: ['budget.boq.view', 'budget.revision.view'],
+  budget: ['budget.boq.view', 'budget.revision.view', 'budget.quantity.view'],
   'site-execution': ['site.daily_report.view'],
   'cost-control': ['cost.control.view'],
   management: ['management.dashboard.view'],
@@ -73,7 +73,10 @@ export function canOpenSourceLink(
   if (sectionKey === 'budget' && recordKind === 'wbs') {
     // The BOQ project/options read API requires the explicit view permission;
     // `budget.boq.manage` by itself cannot read this linked source.
-    return permissions.includes('budget.boq.view');
+    return permissions.includes('budget.boq.view') || permissions.includes('budget.quantity.view');
+  }
+  if (sectionKey === 'budget' && recordKind === 'budget-revision') {
+    return permissions.includes('budget.revision.view') || permissions.includes('budget.quantity.view');
   }
   return SOURCE_VIEW_PERMISSIONS[sectionKey].some((permission) =>
     permissions.includes(permission),
