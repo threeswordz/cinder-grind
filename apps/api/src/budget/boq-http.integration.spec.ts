@@ -186,10 +186,17 @@ test('public BOQ HTTP workflow enforces persisted disclosure, CSRF, maker/checke
       }
       const generic='/documents/projects/'+pid;
       const full=await get(f.maker,target+'/'+documentId+'/download');assert.equal(full.headers.get('cache-control'),'private, no-store');assert.deepEqual(Buffer.from(await full.arrayBuffer()),bytes);
-      assert.deepEqual((await(await get(f.editor,generic)).json()).data,[]);
-      await get(f.editor,generic+'/'+documentId+'/download',404);await get(f.editor,target,403);
-      await post(f.editor,generic+'/'+documentId+'/archive',{},404);
-      const options=(await(await get(f.editor,generic+'/targets/options')).json()).data;assert.deepEqual(options.customerBoqs,[]);assert.deepEqual(options.budgetRevisions,[]);assert.deepEqual(options.boqs,[]);
+      const unclassifiedForm=new FormData();unclassifiedForm.set('documentTypeId',type.id);unclassifiedForm.set('file',new Blob([bytes],{type:'application/pdf'}),'unclassified.pdf');
+      const unclassifiedUpload=await fetch(base+generic,{method:'POST',headers:{Cookie:'erp_session='+token.sessionToken,'x-csrf-token':token.csrfToken},body:unclassifiedForm});assert.equal(unclassifiedUpload.status,201,await unclassifiedUpload.clone().text());const unclassifiedId=(await unclassifiedUpload.json() as {data:{id:string}}).data.id;
+      assert.deepEqual(Buffer.from(await(await get(f.maker,generic+'/'+unclassifiedId+'/download')).arrayBuffer()),bytes);
+      for(const limited of ['budget.quantity.view','budget.project_summary.view']){
+        await grants(f.editor,[limited,...docs]);
+        assert.deepEqual((await(await get(f.editor,generic)).json()).data,[]);
+        await get(f.editor,generic+'/'+documentId+'/download',404);await get(f.editor,target,403);
+        await post(f.editor,generic+'/'+documentId+'/archive',{},404);
+        await get(f.editor,generic+'/'+unclassifiedId+'/download',404);await post(f.editor,generic+'/'+unclassifiedId+'/archive',{},404);
+        const options=(await(await get(f.editor,generic+'/targets/options')).json()).data;assert.deepEqual(options.customerBoqs,[]);assert.deepEqual(options.budgetRevisions,[]);assert.deepEqual(options.boqs,[]);
+      }
       await grants(f.maker,['budget.boq.view',...docs]);await get(f.maker,target,403);await get(f.maker,generic+'/'+documentId+'/download',404);
       await grants(f.maker,[...all,...docs]);await get(f.maker,generic+'/'+documentId+'/download');
     });

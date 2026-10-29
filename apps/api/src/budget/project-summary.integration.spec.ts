@@ -62,6 +62,8 @@ test('Project summary and seven-function disclosure use actual persisted HTTP au
       for(const c of cases){functionRoles.set(c.name,(await grants(c.codes,undefined,c.name)).id);await read('/budget/projects/'+pid+'/boq',c.full?200:403);await read('/budget/customer/projects/'+pid+'/versions',c.customer?200:403);await read('/budget/quantity/projects/'+pid+'/boq',c.quantity?200:403);await read('/budget/summary/projects/'+pid,c.summary?200:403);}
     });
     await t.test('Project summary is exactly three whole-Project totals, with safe CSV, no filters or source grants',async()=>{
+      await grants([PROJECT_SUMMARY_VIEW,'cost.control.view','management.dashboard.view','cost.forecast.view']);
+      for(const path of ['/projects/'+pid+'/cost-control','/management/projects/'+pid+'/summary?asOf=2026-10-01','/cost-control/projects/'+pid+'/forecast-options']){const denied=await read(path,403);assert.equal((await denied.json() as any).code,'BOQ_COST_DISCLOSURE_DENIED');}
       await grants([PROJECT_SUMMARY_VIEW]);const response=await read('/budget/summary/projects/'+pid.toUpperCase());assert.equal(response.headers.get('cache-control'),'private, no-store');
       const value=await response.json() as any;assert.deepEqual(value.data,{project:{id:pid,projectCode:'P',projectName:'Project'},currencyCode:'THB',contractAmount:'1125.50',billedAmount:'200.30',receivedAmount:'20.30'});
       for(const query of ['wbsId='+randomUUID(),'costCodeId='+randomUUID(),'lineId='+f.sourceLine.id,'asOf=2026-10-01']){await read('/budget/summary/projects/'+pid+'?'+query,422);await read('/budget/summary/projects/'+pid+'/export?'+query,422);}

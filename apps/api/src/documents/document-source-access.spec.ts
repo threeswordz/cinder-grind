@@ -203,3 +203,14 @@ test('BOQ source documents require every cost/commercial read capability across 
   const finance=actor(['budget.quantity.view','finance.supplier_invoice.view']);
   assert.equal((await service.downloadProjectDocument(finance,projectId,'invoice')).bytes.toString(),'safe','explicit Finance source authority remains separate');
 });
+
+test('summary authority never opens unclassified Project bytes while separately authorized Finance sources remain available',async()=>{
+  const {service,effects}=fixture();
+  const summary=actor(['budget.project_summary.view']);
+  assert.deepEqual(await service.listProjectDocuments(summary,projectId),[]);
+  await assert.rejects(()=>service.downloadProjectDocument(summary,projectId,'ordinary'),notFound);
+  await assert.rejects(()=>service.setProjectDocumentActive({auth:summary},projectId,'ordinary',false),notFound);
+  assert.equal(effects.reads.length,0);assert.equal(effects.writes,0);
+  const finance=actor(['budget.project_summary.view','finance.supplier_invoice.view']);
+  assert.equal((await service.downloadProjectDocument(finance,projectId,'invoice')).bytes.toString(),'safe');
+});

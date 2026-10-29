@@ -4,9 +4,9 @@ import { AuthenticatedUserContext } from '../auth/auth.types';
 import { activeProjectVariationValue, sumCostControlDecimals } from '../cost-control/cost-control.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProjectAccessService } from '../projects/project-access.service';
-import { persistedBudgetActor } from './budget-disclosure';
+import { persistedBudgetActor, PROJECT_SUMMARY_VIEW } from './budget-disclosure';
 
-export const PROJECT_SUMMARY_VIEW = 'budget.project_summary.view';
+export { PROJECT_SUMMARY_VIEW } from './budget-disclosure';
 
 @Injectable()
 export class ProjectSummaryService {

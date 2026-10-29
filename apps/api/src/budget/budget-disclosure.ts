@@ -3,11 +3,12 @@ import { Prisma } from '@prisma/client';
 import { AuthenticatedUserContext } from '../auth/auth.types';
 
 export const QUANTITY_VIEW = 'budget.quantity.view';
-export function quantityWithoutCost(auth: AuthenticatedUserContext, kind: 'BOQ' | 'REVISION' = 'REVISION') {
-  return auth.permissions.includes(QUANTITY_VIEW) && !auth.permissions.includes(kind === 'BOQ' ? 'budget.boq.view' : 'budget.revision.view');
+export const PROJECT_SUMMARY_VIEW = 'budget.project_summary.view';
+export function restrictedBudgetWithoutCost(auth: AuthenticatedUserContext, kind: 'BOQ' | 'REVISION' = 'REVISION') {
+  return [QUANTITY_VIEW,PROJECT_SUMMARY_VIEW].some(p=>auth.permissions.includes(p)) && !auth.permissions.includes(kind === 'BOQ' ? 'budget.boq.view' : 'budget.revision.view');
 }
 export function assertCostReportDisclosure(auth: AuthenticatedUserContext) {
-  if (quantityWithoutCost(auth)) throw new ForbiddenException({ code: 'BOQ_COST_DISCLOSURE_DENIED', detail: 'This report contains protected Budget costs. Explicit full Budget read authority is required.' });
+  if (restrictedBudgetWithoutCost(auth)) throw new ForbiddenException({ code: 'BOQ_COST_DISCLOSURE_DENIED', detail: 'This report contains protected Budget costs. Explicit full Budget read authority is required.' });
 }
 export async function persistedBudgetActor(tx: Prisma.TransactionClient, supplied: AuthenticatedUserContext) {
   const user = await tx.user.findFirst({ where: { id: supplied.userId, companyId: supplied.companyId, isActive: true, company: { isActive: true } },

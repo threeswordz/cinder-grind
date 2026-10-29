@@ -70,3 +70,8 @@ test('quantity projection preserves scalar revision Cost Codes and safely projec
   assert.equal((quantityRecord({costCode:null}) as Record<string,unknown>).costCode,null);
   assert.equal('costCode' in (quantityRecord({costCode:[{rate:'900.0000'}]}) as Record<string,unknown>),false,'unexpected nested arrays are not authorized scalar labels');
 });
+
+test('summary plus alternate report roles cannot infer full Budget costs without explicit revision read',()=>{
+  for(const extra of [[],['cost.control.view'],['management.dashboard.view'],['budget.boq.view']])assert.throws(()=>assertCostReportDisclosure(actor(['budget.project_summary.view',...extra])),ForbiddenException);
+  assert.doesNotThrow(()=>assertCostReportDisclosure(actor(['budget.project_summary.view','budget.revision.view'])));
+});

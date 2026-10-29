@@ -17,6 +17,7 @@ import {
 } from './document-upload-storage';
 import { DocumentStorage } from './document-storage';
 import { DOCUMENT_SOURCE_VIEW_PERMISSIONS, documentSourcePermissions } from './document-source-permissions';
+import { PROJECT_SUMMARY_VIEW, QUANTITY_VIEW } from '../budget/budget-disclosure';
 
 type DocumentSourceLink = { entityType: string; entityId: string };
 
@@ -205,9 +206,9 @@ export class DocumentsService {
     db: Prisma.TransactionClient = this.prisma,
   ): Promise<T[]> {
     // An unclassified old Project/WBS upload is never assumed price-free.
-    // A quantity grant adds no access to it. Explicit owning-record document
+    // Quantity or aggregate-summary grants add no access to it. Owning-record
     // authority remains independently required for classified business sources.
-    const restrictUnclassified = auth.permissions.includes('budget.quantity.view') &&
+    const restrictUnclassified = [QUANTITY_VIEW,PROJECT_SUMMARY_VIEW].some(p=>auth.permissions.includes(p)) &&
       !['budget.boq.view','budget.revision.view'].every((p) => auth.permissions.includes(p));
     const permitted = rows.filter((row) => (!restrictUnclassified || row.links.some((link) => Boolean(DOCUMENT_SOURCE_VIEW_PERMISSIONS[link.entityType]))) && row.links.every((link) => {
       return documentSourcePermissions(link.entityType).every((permission) => auth.permissions.includes(permission));
