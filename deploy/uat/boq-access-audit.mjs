@@ -17,7 +17,14 @@ export function validateTarget(baseUrl,companyId,projectId){
 }
 
 export function projectFacts({companyId,projectId,emails,observations,generatedAt}){
-  const list=key=>observations[key]?.status===200&&Array.isArray(observations[key].data)?observations[key].data:null;
+  const list=key=>{
+    const rows=observations[key]?.status===200&&Array.isArray(observations[key].data)?observations[key].data:null;
+    if(!rows||!rows.every(r=>r&&typeof r==='object'&&!Array.isArray(r)))return null;
+    if(key==='users'&&!rows.every(r=>typeof r.id==='string'&&typeof r.email==='string'))return null;
+    if(key==='employees'&&!rows.every(r=>typeof r.id==='string'))return null;
+    if(key==='members'&&!rows.every(r=>typeof r.employeeId==='string'&&typeof r.isActive==='boolean'))return null;
+    return rows;
+  };
   const users=list('users'),roles=list('roles'),employees=list('employees'),members=list('members'),workflows=list('workflows');
   if(roles?.some(r=>typeof r.companyId==='string'&&r.companyId!==companyId)||workflows?.some(w=>typeof w.companyId==='string'&&w.companyId!==companyId))fail('FOREIGN_CONFIGURATION');
   const roleMap=new Map((roles??[]).filter(r=>r.companyId===companyId).map(r=>[r.id,r]));
@@ -32,8 +39,8 @@ export function projectFacts({companyId,projectId,emails,observations,generatedA
     const complete=Boolean(roles&&assignments&&assigned.every(Boolean)&&assigned.every(r=>typeof r.isActive==='boolean'&&typeof r.id==='string'&&typeof r.roleCode==='string'&&Array.isArray(r.rolePermissions)&&r.rolePermissions.every(p=>typeof p.permission?.permissionCode==='string')));
     const active=(assigned??[]).filter(r=>r?.isActive===true);
     const permissions=complete?sorted(active.flatMap(r=>r.rolePermissions.map(p=>p.permission.permissionCode))):null;
-    const activeEmployee=user.employeeId?(employees?employees.some(e=>e.id===user.employeeId):null):false;
-    const membership=user.employeeId?(members?members.some(m=>m.employeeId===user.employeeId&&m.isActive===true):null):false;
+    const activeEmployee=typeof user.employeeId==='string'?(employees?employees.some(e=>e.id===user.employeeId):null):user.employeeId===null?false:null;
+    const membership=typeof user.employeeId==='string'?(members?members.some(m=>m.employeeId===user.employeeId&&m.isActive===true):null):user.employeeId===null?false:null;
     const scope=!projectVerified?'UNVERIFIED':activeUser===false?'DENIED':activeUser===null?'UNVERIFIED':permissions?.includes('projects.access_all')?'ACCESS_ALL':activeEmployee===true&&membership===true?'ASSIGNED':activeEmployee===null||membership===null||permissions===null?'UNVERIFIED':'DENIED';
     return {function:key,status:complete?'FACTS_CAPTURED':'ROLE_DEFINITIONS_UNVERIFIED',userId:user.id,activeUser,
       activeEmployee,activeProjectMember:membership,projectScope:scope,activeRoleIds:active.map(r=>r.id),roleCodes:active.map(r=>r.roleCode).sort(),permissions};

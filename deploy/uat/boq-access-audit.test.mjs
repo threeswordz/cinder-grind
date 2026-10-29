@@ -105,3 +105,10 @@ test('missing scope or step metadata stays unverified rather than foreign or emp
   assert.equal(report.actors[0].projectScope,'UNVERIFIED');assert.equal(report.actors[0].permissions,null);
   assert.equal(report.workflows[0].status,'STEP_DEFINITIONS_UNVERIFIED');assert.equal(report.workflows[1].status,'COMPANY_SCOPE_UNVERIFIED');assert.deepEqual(report.workflows[1].steps[0].mappedCandidates,[]);
 });
+
+
+test('partial actor/employee/member row shapes do not fabricate absent users or denied membership',()=>{
+  const source=observations();delete source.users.data[0].employeeId;source.employees.data=[{count:3}];source.members.data=[{employeeId:'e0'}];
+  let report=projectFacts({companyId,projectId,emails,observations:source,generatedAt:'test'});assert.equal(report.actors[0].activeEmployee,null);assert.equal(report.actors[0].activeProjectMember,null);assert.equal(report.actors[0].projectScope,'UNVERIFIED');
+  source.users.data=[{count:3}];report=projectFacts({companyId,projectId,emails,observations:source,generatedAt:'test'});assert.equal(report.actors[0].status,'USERS_UNVERIFIED');
+});
