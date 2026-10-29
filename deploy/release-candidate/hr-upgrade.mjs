@@ -8,17 +8,19 @@ import { hrCatalog, verifyHrCatalog } from './hr-catalog-contract.mjs';
 import { assertHistoricalTables } from './historical-snapshot.mjs';
 
 const [mode, previousRoot, manifestPath, keyPath] = process.argv.slice(2);
+let target; try { target = new URL(process.env.DATABASE_URL ?? ''); } catch { throw new Error('Invalid disposable HR proof target.'); }
 if (process.env.GITHUB_ACTIONS !== 'true' || process.env.RC_NON_PRODUCTION_CONFIRMED !== 'YES' ||
-    !/^\/construction_erp_v10e_(upgrade|hrrestore)_[a-f0-9]{12}$/.test(new URL(process.env.DATABASE_URL).pathname) ||
-    !['snapshot','verify','protect','restored'].includes(mode) || !previousRoot || !manifestPath) {
+    !['localhost','127.0.0.1','[::1]'].includes(target.hostname) ||
+    !/^\/construction_erp_v10e_(upgrade|hrrestore|rollback)_[a-f0-9]{12}$/.test(target.pathname) ||
+    !['snapshot','verify','rollback','protect','restored'].includes(mode) || !previousRoot || !manifestPath) {
   throw new Error('HR upgrade proof requires the exact disposable CI rehearsal context.');
 }
 const candidate = createRequire(resolve('apps/api/package.json'));
-const runtime = mode === 'snapshot' ? createRequire(resolve(previousRoot,'apps/api/package.json')) : candidate;
+const runtime = ['snapshot','rollback'].includes(mode) ? createRequire(resolve(previousRoot,'apps/api/package.json')) : candidate;
 const { PrismaClient } = runtime('@prisma/client');
 const db = new PrismaClient();
 const protect = (path,value) => writeFileSync(path, JSON.stringify(value), {mode:0o600});
-const load = path => JSON.parse(readFileSync(path,'utf8'));
+const load = path => {try{return JSON.parse(readFileSync(path,'utf8'));}catch{throw new Error('Protected CI proof input is unavailable or invalid.');}};
 const digest = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
 const knownCatalog = [...boqCatalog,...hrCatalog];
 const provenanceColumns = { projects:['contract_currency_code'], boqs:['currency_code'], supplier_quotations:['currency_code'], quotation_awards:['currency_code'] };
@@ -26,10 +28,10 @@ const provenanceColumns = { projects:['contract_currency_code'], boqs:['currency
 async function snapshot(before) {
   const tables = await db.$queryRaw`SELECT tablename FROM pg_tables WHERE schemaname='public' AND tablename <> '_prisma_migrations' ORDER BY tablename`;
   const catalog = await db.permission.findMany({where:{id:{in:knownCatalog.map(p=>p.id)}}});
-  const present = catalog.map(p=>p.id);
+  const present = catalog.map(p=>p.id).sort();
   const rawCatalog = await db.$queryRaw`SELECT * FROM permissions`;
   verifyBoqCatalog(rawCatalog.filter(p=>boqCatalog.some(x=>x.id===p.id)));
-  verifyHrCatalog(rawCatalog.filter(p=>hrCatalog.some(x=>x.id===p.id)),mode!=='snapshot');
+  verifyHrCatalog(rawCatalog.filter(p=>hrCatalog.some(x=>x.id===p.id)),!['snapshot','rollback'].includes(mode));
   // Existing catalog rows are included in the digest, including creation dates.
   // Only exact reviewed definitions absent in the predecessor may be separated.
   const excluded = knownCatalog.filter(p=>!(before?.catalogPresent??present).includes(p.id)).map(p=>p.id);
@@ -57,11 +59,16 @@ async function service(){
 }
 try {
   if(mode==='snapshot') protect(manifestPath,await snapshot());
-  else if(mode==='verify'){
+  else if(mode==='verify'||mode==='rollback'){
     const before=load(manifestPath),after=await snapshot(before);
-    assertHistoricalTables(before.tables,after.tables,true);
+    if(mode==='rollback'){
+      assert.deepEqual(after.tables,before.tables,'Restored predecessor rows/table inventory changed');
+      assert.deepEqual(after.columns,before.columns,'Restored predecessor columns changed');
+      assert.deepEqual(after.catalogPresent,before.catalogPresent,'Restored predecessor catalog changed');
+      assert.deepEqual(after.migrations,before.migrations,'Restored predecessor migrations changed');
+    }else assertHistoricalTables(before.tables,after.tables,true);
     for(const migration of before.migrations)assert.deepEqual(after.migrations.find(m=>m.migration_name===migration.migration_name),migration);
-    console.log('HR_PREDECESSOR_ROWS_AND_MIGRATIONS_PRESERVED');
+    console.log(mode==='rollback'?'HR_EXACT_PREDECESSOR_ROLLBACK_ROWS_PRESERVED':'HR_PREDECESSOR_ROWS_AND_MIGRATIONS_PRESERVED');
   } else {
     if(!keyPath)throw new Error('External disposable key custody file required');
     if(mode==='protect') protect(keyPath,{keys:{recover1:randomBytes(32).toString('base64'),recover2:randomBytes(32).toString('base64')},active:'recover1'});
@@ -96,10 +103,12 @@ try {
         for(const [name,category,version] of [['identity','identity',1],['bank1','bank',1],['bank2','bank',2]])assert.equal(digest(await hr.privateRead(auth,f.companyId,f.employeeId,category,version)),f.expected[name]);
         assert.equal(digest(await hr.employmentReason(auth,f.companyId,f.employeeId,f.revisionId)),f.expected.reason);
         const valid=process.env.HR_PRIVATE_KEYS;
-        delete process.env.HR_PRIVATE_KEYS;await assert.rejects(hr.privateRead(auth,f.companyId,f.employeeId,'bank',1));
+        const unavailable = error => error?.getResponse?.().code === 'HR_PRIVATE_UNAVAILABLE';
+        delete process.env.HR_PRIVATE_KEYS;await assert.rejects(hr.privateRead(auth,f.companyId,f.employeeId,'bank',1),unavailable);
         process.env.HR_PRIVATE_KEYS=JSON.stringify({recover1:randomBytes(32).toString('base64'),recover2:randomBytes(32).toString('base64')});
-        await assert.rejects(hr.privateRead(auth,f.companyId,f.employeeId,'bank',1));
+        await assert.rejects(hr.privateRead(auth,f.companyId,f.employeeId,'bank',1),unavailable);
         process.env.HR_PRIVATE_KEYS=valid;
+        assert.equal(digest(await hr.privateRead(auth,f.companyId,f.employeeId,'bank',2)),f.expected.bank2);
         console.log('HR_ENCRYPTED_RECORD_RESTORE_AND_EXTERNAL_KEY_CUSTODY_PASS');
       }
     } finally {await prisma.$disconnect();}

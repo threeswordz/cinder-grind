@@ -85,11 +85,11 @@ test('Customer BOQ evidence requires version5, predecessor runtime/restore and e
 test('bounded HR evidence preserves earlier modes and requires executed preservation, HTTP upgrade and external-key record recovery', () => {
   for (const [mode,version,customer] of [['migration-aware-hr-schema',6,false],['migration-aware-hr-customer-boq-schema',7,true]]) {
     const data={...evidence(mode),version,migrationNames:['20261029140000_hr1_a_employee_access'],
-      hrPredecessorPreservation:'PASS',hrEmployeeUpgradeTests:'PASS',hrEncryptedRecordRecovery:'PASS',
+      hrPredecessorPreservation:'PASS',hrPredecessorRollback:'PASS',hrEmployeeUpgradeTests:'PASS',hrEncryptedRecordRecovery:'PASS',
       hrPrivateAttachmentRecovery:'NOT_IMPLEMENTED_THIS_INCREMENT',...(customer?{customerBoqPersistenceUpgrade:'PASS'}:{})};
     delete data.genuineLegacySgdNullFixture;delete data.historicalRowsUnchanged;
     assert.equal(verify(data).status,0);
-    for(const key of ['hrPredecessorPreservation','hrEmployeeUpgradeTests','hrEncryptedRecordRecovery','boundedSchemaContract','restoredPreviousRuntimeAuthenticationDownload','hrPrivateAttachmentRecovery']) {
+    for(const key of ['hrPredecessorPreservation','hrPredecessorRollback','hrEmployeeUpgradeTests','hrEncryptedRecordRecovery','boundedSchemaContract','restoredPreviousRuntimeAuthenticationDownload','hrPrivateAttachmentRecovery']) {
       const bad={...data};delete bad[key];assert.notEqual(verify(bad).status,0,key);
     }
     assert.notEqual(verify({...data,version:5}).status,0);

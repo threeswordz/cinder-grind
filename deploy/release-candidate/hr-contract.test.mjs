@@ -51,3 +51,12 @@ test('HR catalog is exactly ten capability definitions and creates no role or us
   assert.doesNotMatch(sql,/INSERT\s+INTO\s+"?(role_permissions|user_roles|hr_company_access|employees)"?/i);
   for(const row of hrCatalog)for(const key of ['permission_code','description'])assert.ok(sql.includes("'"+row[key]+"'"));
 });
+
+
+test('pre-upgrade rollback uses original-table verification and upgraded HR requires its complete new group',()=>{
+  const script=readFileSync(new URL('./rehearse-migration.sh',import.meta.url),'utf8');
+  assert.ok(script.includes('HR_SCHEMA_UPGRADE=NO DATABASE_URL="$rollback_url" node "$RC_DIR/legacy-fixture.mjs" verify'));
+  const original={employees:{count:'1',digest:'original'}};
+  assertHistoricalTables(original,original);
+  assert.throws(()=>assertHistoricalTables(original,original,true));
+});

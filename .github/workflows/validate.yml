@@ -688,5 +688,5 @@ jobs:
           import { readFileSync } from 'node:fs';
           const data = JSON.parse(readFileSync('/tmp/hr1-a-employee-consolidated-evidence.json','utf8'));
           if (data.releaseMode !== 'migration-aware-hr-schema' || data.rehearsal.previousReleaseCommit !== 'e86ed846f30ac3feeb09f74ba9084571b9955520') throw new Error('Exact HR predecessor contract missing');
-          for (const key of ['hrPredecessorPreservation','hrEmployeeUpgradeTests','hrEncryptedRecordRecovery']) if (data.rehearsal[key] !== 'PASS') throw new Error('HR proof missing: '+key);
+          for (const key of ['hrPredecessorPreservation','hrPredecessorRollback','hrEmployeeUpgradeTests','hrEncryptedRecordRecovery']) if (data.rehearsal[key] !== 'PASS') throw new Error('HR proof missing: '+key);
           NODE

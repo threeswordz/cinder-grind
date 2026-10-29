@@ -1,6 +1,6 @@
 import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { AuditService } from '../audit/audit.service';
 import { AuthenticatedUserContext } from '../auth/auth.types';
 import { normalizeMasterCode } from '../master-data/master-validation';
@@ -83,9 +83,17 @@ export class HrService {
       const auth = await this.actor(tx, supplied);
       for (const requirement of requirements) await this.require(tx, auth, requirement);
       const previous = await tx.hrReplay.findUnique({ where: { companyId_actorUserId_requestId: { companyId, actorUserId: auth.userId, requestId } } });
+      if (previous && previous.operation !== operation) throw conflict();
       const canonical = Buffer.from(input.stable({ operation, companyId, actorUserId: auth.userId, body }), 'utf8');
       let fingerprint: { keyId: string; digest: string };
-      try { fingerprint = this.crypto.fingerprint(canonical, previous?.keyId); } finally { canonical.fill(0); }
+      try {
+        // Scope administration contains only identifiers, fixed reason codes and
+        // booleans. It must remain revocable while private keys are unavailable.
+        if (operation === 'ACCESS_CHANGE') {
+          if (previous && previous.keyId !== 'scope-public-v1') throw conflict();
+          fingerprint = { keyId: 'scope-public-v1', digest: createHash('sha256').update(canonical).digest('hex') };
+        } else fingerprint = this.crypto.fingerprint(canonical, previous?.keyId);
+      } finally { canonical.fill(0); }
       if (previous) {
         if (previous.operation !== operation || previous.digest !== fingerprint.digest) throw conflict();
         return previous.receipt as Receipt;

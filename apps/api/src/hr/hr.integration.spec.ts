@@ -202,6 +202,15 @@ test('HR employee/private HTTP and database contracts use disposable scoped iden
       await post(a.admin, root + '/access', { ...grant, requestId: randomUUID() }, 409);
       const scopes = (await call(a.admin, root + '/access')).data;
       assert.ok(scopes.every((s: any) => !Object.hasOwn(s, 'ciphertext')));
+      const keyConfig = process.env.HR_PRIVATE_KEYS;
+      delete process.env.HR_PRIVATE_KEYS;
+      try {
+        // Revocation is technical metadata and does not depend on private keys.
+        await post(a.admin, root + '/access', { ...grant, requestId: randomUUID(), isActive: false,
+          expectedVersion: 1, reasonCode: 'ACCESS_REVOKED' });
+        await assert.rejects(f.service.privateRead(a.hr.auth, f.company.id, f.legacy.id, 'bank', 1), ServiceUnavailableException);
+      } finally { process.env.HR_PRIVATE_KEYS = keyConfig; }
+
     });
     await t.test('revoked entitlements, inactive roles/Companies/users and revoked sessions fail on subsequent requests', async () => {
       const grant = await db.hrCompanyAccess.findUniqueOrThrow({ where: { companyId_userId_category: { companyId: f.company.id, userId: a.hr.auth.userId, category: 'bank' } } });
@@ -214,6 +223,11 @@ test('HR employee/private HTTP and database contracts use disposable scoped iden
       await db.company.update({ where: { id: f.other.id }, data: { isActive: false } });
       await call(a.hr, foreign + '/employees', 404);
       await db.company.update({ where: { id: f.other.id }, data: { isActive: true } });
+
+      await db.user.update({ where: { id: a.nancy.user.id }, data: { isActive: false } });
+      await post(a.nancy, employeeRoot + '/private/bank/reveal', { version: 1 }, 401);
+      await assert.rejects(f.service.privateRead(a.nancy.auth, f.company.id, f.legacy.id, 'bank', 1), NotFoundException);
+      await db.user.update({ where: { id: a.nancy.user.id }, data: { isActive: true } });
       await db.user.update({ where: { id: a.outsider.user.id }, data: { isActive: false } });
       await post(a.admin, root + '/access', { requestId: randomUUID(), userId: a.outsider.user.id, category: 'identity', isActive: true, expectedVersion: 0, reasonCode: 'OWNER_APPROVED_SCOPE' }, 404);
       await db.user.update({ where: { id: a.outsider.user.id }, data: { isActive: true } });
