@@ -4,18 +4,19 @@ import {Alert,Button,Card,CardContent,MenuItem,Stack,TextField,Typography} from 
 import {apiDownload,apiRequest} from '../api/client';
 import {saveBlob} from './CustomerBoqPanel';
 import {useBoqText} from './boq-i18n';
+import {useBudgetPrintSnapshot} from './budget-print';
 
 type Summary={project:{id:string;projectCode:string;projectName:string};currencyCode:string;contractAmount:string;billedAmount:string;receivedAmount:string};
 const root='/budget/summary/projects';
 export function ProjectSummaryPanel(){
-  const t=useBoqText(),[project,setProject]=useState(''),[printed,setPrinted]=useState<Summary|null>(null);
+  const t=useBoqText(),[project,setProject]=useState('');
+  const [printed,setPrinted,printSnapshot]=useBudgetPrintSnapshot<Summary>();
   const current=useRef(project),mounted=useRef(true);current.current=project;
   useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;};},[]);
   const projects=useQuery({queryKey:['project-summary','projects'],queryFn:()=>apiRequest<{data:Summary['project'][]}>(root)});
   const summary=useQuery({queryKey:['project-summary',project],queryFn:()=>apiRequest<{data:Summary}>(root+'/'+project),enabled:Boolean(project)});
   const print=useMutation({mutationFn:async(p:string)=>({p,value:(await apiRequest<{data:Summary}>(root+'/'+p)).data}),onSuccess:({p,value})=>{
-    if(!mounted.current||current.current!==p)return;setPrinted(value);
-    requestAnimationFrame(()=>requestAnimationFrame(()=>{if(mounted.current&&current.current===p)window.print();}));
+    printSnapshot(value,()=>current.current===p);
   }});
   const download=useMutation({mutationFn:async(p:string)=>({p,blob:(await apiDownload(root+'/'+p+'/export')).blob}),onSuccess:({p,blob})=>{if(mounted.current&&current.current===p)saveBlob(blob,'project-summary.csv');}});
   const unavailable=summary.isError||print.isError||download.isError;
@@ -25,7 +26,7 @@ export function ProjectSummaryPanel(){
     <tr><th>{t('billedTotal')}</th><td>{s.currencyCode} {s.billedAmount}</td></tr>
     <tr><th>{t('receivedTotal')}</th><td>{s.currencyCode} {s.receivedAmount}</td></tr>
   </tbody></table>;
-  return <Card variant="outlined"><CardContent><Stack spacing={2}>
+  return <Card data-testid="project-summary-workspace" variant="outlined"><CardContent><Stack spacing={2}>
     <Typography variant="h6">{t('projectSummary')}</Typography><Alert severity="info">{t('summaryMeaning')}</Alert>
     <Typography>{t('summaryInference')}</Typography>
     {projects.isError||summary.isError||print.isError||download.isError?<Alert severity="error">{t('summaryError')}</Alert>:null}
