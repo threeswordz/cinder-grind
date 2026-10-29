@@ -1,3 +1,4 @@
+import { boqCatalog, verifyBoqCatalog } from './boq-catalog-contract.mjs';
 import { assertHistoricalTables } from './historical-snapshot.mjs';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
@@ -25,10 +26,15 @@ async function snapshot() {
     if (!/^[a-z_]+$/.test(tablename)) throw new Error('Unexpected fixture table name');
     // The old and upgraded rows must be byte-for-byte equal after excluding
     // ONLY the new nullable columns, not amounts, labels, states or audit.
+    const catalogIds = boqCatalog.map(row => row.id);
+    if (tablename === 'permissions') {
+      const additions = await prisma.$queryRawUnsafe('SELECT * FROM permissions WHERE id = ANY($1::uuid[])', catalogIds);
+      verifyBoqCatalog(additions);
+    }
     const [row] = await prisma.$queryRawUnsafe(`SELECT count(*)::text AS count,
       encode(sha256(convert_to(coalesce(string_agg((to_jsonb(t) - $1::text[])::text, E'\n' ORDER BY (to_jsonb(t) - $1::text[])::text), ''), 'UTF8')), 'hex') AS digest
-      FROM "${tablename}" t`, tablename === 'projects' ? ['contract_currency_code'] :
-      ['boqs','supplier_quotations','quotation_awards'].includes(tablename) ? ['currency_code'] : []);
+      FROM "${tablename}" t ${tablename === 'permissions' ? 'WHERE id <> ALL($2::uuid[])' : ''}`, ...(tablename === 'permissions' ? [[], catalogIds] : [tablename === 'projects' ? ['contract_currency_code'] :
+      ['boqs','supplier_quotations','quotation_awards'].includes(tablename) ? ['currency_code'] : []]));
     hashes[tablename] = row;
   }
   const migrations = await prisma.$queryRawUnsafe(`SELECT migration_name, checksum FROM "_prisma_migrations" WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL ORDER BY migration_name`);

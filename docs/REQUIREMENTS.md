@@ -1,7 +1,7 @@
 # Construction ERP — Master Requirements Register
 
 **Document Status:** Requirements Baseline v0.1  
-**Current Phase:** V0.1–V1.1 COMPLETE + ACCEPTED; V1.2 technical implementation COMPLETE and separate owner UAT/release exit ACCEPTED under DEC-036. [Release-exit record](V1.2-RELEASE-EXIT.md) and #246 retain final acceptance-publication gates/closure evidence. DEC-034/#266 remains approved future BOQ scope/entry preparation; no successor feature implementation or Production authorization.
+**Current Phase:** V0.1–V1.2 COMPLETE + ACCEPTED. V1.3-A entry is complete; V1.3-B is active under #275/#266. Pricing #276 and persistence/configured approval #277 are technically complete; [public disclosure/workflow increment](V1.3-B-PUBLIC-WORKFLOW.md) has executed code-head evidence under #280; actual review/merge/main receipts govern technical closure. BUD-011–016 remain the same approved package, with Project-only Finance summary and integrated gates still outstanding. Production NOT AUTHORIZED.
 **Architecture Baseline:** v0.1  
 **Source:** ERP-MASTER-BLUEPRINT.md  
 **Last Structural Review:** V0.8-E DEC-022 source-drilldown/live-state remediation — 2026-10-05
@@ -197,9 +197,9 @@ GitHub Issues will later reference the Requirement ID when implementation work i
 | BUD-009 | Budget by Cost Code | Budget values shall be allocatable and reportable by Cost Code. | Support cost-type control. | Must Have | V0.3 Procurement | WBS-004,BUD-003 | Approved budget can be summarized by Cost Code. | Approved |
 | BUD-010 | Budget Availability to Other Modules | Approved BOQ and budget information shall be available to Procurement and Cost Control without duplicating ownership. | Connect commercial baseline to downstream modules. | Must Have | V0.3 Procurement | BUD-006 | Procurement and Cost Control can reference approved budget data while BOQ & Budget remains the owner. | Approved |
 
-### Approved future BOQ first package — DEC-034 / #266
+### Approved BOQ first package — DEC-034 / DEC-037 / #266
 
-These requirements are approved as future scope, not delivered behavior or a completed successor entry gate. The [canonical scope/role/open-input/acceptance baseline](BOQ-COMMERCIAL-SCOPE.md) defines the boundary. Verify V1.2 final repository closure in #246, resolve the remaining BOQ entry inputs and complete normal successor entry gates before feature coding; V1.2 owner UAT/release exit are accepted under DEC-036. Existing BUD-001–010 and approved history remain unchanged.
+These requirements are approved scope under DEC-034/037, with C1–C5/E1–E8 adopted and V1.3-A entry complete. The [canonical scope/acceptance baseline](BOQ-COMMERCIAL-SCOPE.md) remains authoritative; [Current State](CURRENT-STATE.md) and #275/#266 distinguish completed cores from the public integration candidate and remaining package. No business rule or BUD-001–010/approved history changes here; no acceptance is inferred from technical implementation.
 
 | ID | Requirement | Description | Business Reason | Priority | Target Release | Dependencies | Acceptance Criteria | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |

@@ -176,3 +176,30 @@ test('a failed source association rolls back the upload instead of publishing a 
   assert.equal(links.length, 0);
   assert.equal(removed, 1);
 });
+
+test('BOQ source documents require every cost/commercial read capability across generic metadata, bytes, archive and WBS aliases',async()=>{
+  const {service,targets,rows,effects}=fixture();
+  rows.push(row('cost-boq',[projectLink,{entityType:'BOQ',entityId:'boq'}]),
+    row('cost-revision',[projectLink,{entityType:'BUDGET_REVISION',entityId:'revision'}]),
+    row('customer-boq',[projectLink,{entityType:'CUSTOMER_BOQ',entityId:'customer'},{entityType:'WBS',entityId:'wbs'}]),
+    row('mixed-boq',[projectLink,{entityType:'BOQ',entityId:'boq'},{entityType:'CUSTOMER_BOQ',entityId:'customer'}]));
+  const quantity=actor(['budget.quantity.view']);
+  assert.deepEqual(await service.listProjectDocuments(quantity,projectId),[],'unclassified old bytes are not presumed quantity safe');
+  for(const permissions of [['budget.quantity.view'],['budget.boq.view'],['budget.revision.view'],['budget.customer.view'],['budget.boq.view','budget.revision.view']]){
+    const reader=actor(permissions);
+    for(const id of ['customer-boq','mixed-boq']){
+      await assert.rejects(()=>service.downloadProjectDocument(reader,projectId,id),notFound);
+      await assert.rejects(()=>service.setProjectDocumentActive({auth:reader},projectId,id,false),notFound);
+    }
+    assert.deepEqual(await targets.list(reader,projectId,'WBS','wbs'),[]);
+  }
+  assert.deepEqual(effects.reads,[]);assert.equal(effects.writes,0);
+  const cost=actor(['budget.boq.view']);
+  assert.equal((await service.downloadProjectDocument(cost,projectId,'cost-boq')).bytes.toString(),'safe');
+  await assert.rejects(()=>service.downloadProjectDocument(cost,projectId,'cost-revision'),notFound);
+  const commercial=actor(['budget.boq.view','budget.revision.view','budget.customer.view']);
+  assert.equal((await service.downloadProjectDocument(commercial,projectId,'customer-boq')).bytes.toString(),'safe');
+  assert.deepEqual((await targets.list(commercial,projectId,'WBS','wbs')).map(r=>r.id),['customer-boq']);
+  const finance=actor(['budget.quantity.view','finance.supplier_invoice.view']);
+  assert.equal((await service.downloadProjectDocument(finance,projectId,'invoice')).bytes.toString(),'safe','explicit Finance source authority remains separate');
+});

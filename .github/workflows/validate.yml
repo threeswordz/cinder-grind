@@ -353,7 +353,12 @@ jobs:
       - name: Validate workspace
         run: node deploy/uat/validate-isolated.mjs --engine docker
       - name: Verify Budget availability in a real disposable browser
-        run: node deploy/uat/budget-presence-browser.mjs
+        run: |
+          node deploy/uat/budget-presence-browser.mjs
+          # Reproduce the observed root-screen startup race in fresh profiles.
+          for attempt in 1 2 3; do
+            node deploy/uat/boq-workflow-browser.mjs
+          done
       - name: Rehearse V1.0-E exact release candidate
         env:
           RC_NON_PRODUCTION_CONFIRMED: YES

@@ -8,6 +8,7 @@ import {
   Post,
   Req,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 
 import { AuthGuard } from '../auth/auth.guard';
@@ -30,6 +31,7 @@ import {
   budgetUuid,
 } from './budget-validation';
 import { BudgetService } from './budget.service';
+import { BudgetDisclosureInterceptor } from './budget-disclosure.interceptor';
 
 function authOf(request: AuthenticatedRequest): AuthenticatedUserContext {
   if (!request.auth) throw new Error('Authentication context is missing.');
@@ -46,6 +48,7 @@ function auditContext(request: AuthenticatedRequest) {
 }
 
 @Controller('budget')
+@UseInterceptors(BudgetDisclosureInterceptor)
 export class BudgetController {
   constructor(private readonly budget: BudgetService) {}
 

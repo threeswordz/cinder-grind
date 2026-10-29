@@ -64,6 +64,9 @@ export function DocumentTargetPanel({
   const targetChoices = useMemo(() => {
     const data = options.data?.data;
     if (!data) return [];
+    if(entityType==='BOQ') return (data.boqs??[]).map(row=>({id:row.id,label:row.boqName}));
+    if(entityType==='BUDGET_REVISION') return (data.budgetRevisions??[]).map(row=>({id:row.id,label:row.revisionNumber}));
+    if(entityType==='CUSTOMER_BOQ') return (data.customerBoqs??[]).map(row=>({id:row.id,label:'Customer BOQ #'+row.versionNo}));
     if (entityType === 'WBS') {
       return data.wbs.map((row) => ({ id: row.id, label: row.wbsCode + ' · ' + row.wbsName }));
     }
@@ -268,6 +271,9 @@ export function DocumentTargetPanel({
           }}
           sx={{ minWidth: 180 }}
         >
+          <MenuItem value="BOQ">Working cost BOQ</MenuItem>
+          <MenuItem value="BUDGET_REVISION">Cost revision</MenuItem>
+          <MenuItem value="CUSTOMER_BOQ">Customer BOQ</MenuItem>
           <MenuItem value="WBS">WBS</MenuItem>
           <MenuItem value="ACTIVITY">Activity</MenuItem>
           <MenuItem value="PURCHASE_REQUEST">Purchase Request</MenuItem>

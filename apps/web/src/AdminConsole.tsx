@@ -6,7 +6,7 @@ import { RoleWorkspaceShell } from './role-ui/RoleWorkspaceShell';
 import type { SourceLinkTarget } from './role-ui/source-link-policy';
 import { CostControlWorkspace } from './cost-control/CostControlWorkspace';
 import { ApprovalPanel } from './admin/ApprovalPanel';
-import { BudgetPanel } from './budget/BudgetPanel';
+import { BudgetWorkspace } from './budget/BudgetWorkspace';
 import { CompanyPanel } from './admin/CompanyPanel';
 import { NumberingPanel } from './admin/NumberingPanel';
 import { RolesPanel } from './admin/RolesPanel';
@@ -41,7 +41,7 @@ type Section = {
   content: ReactNode;
 };
 
-export function AdminConsole({ user }: { user: CurrentUser }) {
+export function AdminConsole({ user, onLogoutSuccess }: { user: CurrentUser; onLogoutSuccess: () => Promise<unknown> }) {
   const queryClient = useQueryClient();
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [linkedSource, setLinkedSource] = useState<SourceLinkTarget | null>(null);
@@ -159,7 +159,7 @@ export function AdminConsole({ user }: { user: CurrentUser }) {
           key: 'budget',
           label: 'BOQ & Budget',
           permission: '__budget__',
-          content: <BudgetPanel
+          content: <BudgetWorkspace
             permissions={user.permissions}
             initialProjectId={linkedSource?.sectionKey === 'budget' ? linkedSource.projectId : undefined}
             initialRevisionId={
@@ -436,7 +436,9 @@ export function AdminConsole({ user }: { user: CurrentUser }) {
   const logoutMutation = useMutation({
     mutationFn: logout,
     onSuccess: async () => {
-      await queryClient.resetQueries({ queryKey: ['current-user'] });
+      await queryClient.cancelQueries();
+      queryClient.clear();
+      await onLogoutSuccess();
     },
   });
 

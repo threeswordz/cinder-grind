@@ -16,6 +16,9 @@ export type DocumentType = {
 };
 
 export type DocumentTargetType =
+  | 'BOQ'
+  | 'BUDGET_REVISION'
+  | 'CUSTOMER_BOQ'
   | 'WBS'
   | 'ACTIVITY'
   | 'PURCHASE_REQUEST'
@@ -37,6 +40,9 @@ export type DocumentTargetType =
   | 'SUBCONTRACT_VARIATION';
 
 export type DocumentTargetOptions = {
+  boqs: {id:string;boqName:string}[];
+  budgetRevisions: {id:string;revisionNumber:string}[];
+  customerBoqs: {id:string;versionNo:number}[];
   wbs: Array<{
     id: string;
     wbsCode: string;

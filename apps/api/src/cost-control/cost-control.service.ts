@@ -1,3 +1,4 @@
+import { assertCostReportDisclosure } from '../budget/budget-disclosure';
 import { Injectable, UnprocessableEntityException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 
@@ -237,6 +238,7 @@ export class CostControlService {
     auth: AuthenticatedUserContext,
     projectIds: string[],
   ) {
+    assertCostReportDisclosure(auth);
     const requestedIds = [...new Set(projectIds)];
     if (requestedIds.length === 0) return [];
 
@@ -823,6 +825,7 @@ export class CostControlService {
     projectId: string,
     filters: CostControlFilters = {},
   ) {
+    assertCostReportDisclosure(auth);
     await this.access.assertAccess(auth, projectId);
 
     const [project, company, wbsRows, costCodes] = await Promise.all([

@@ -57,11 +57,9 @@ export function BudgetPanel({
   const canSubmit = permissions.includes('budget.revision.submit');
   const canApprove = permissions.includes('budget.revision.approve');
   const canViewBoq =
-    permissions.includes('budget.boq.view') || canManage;
+    permissions.includes('budget.boq.view');
   const canViewRevision =
-    permissions.includes('budget.revision.view') ||
-    canSubmit ||
-    canApprove;
+    permissions.includes('budget.revision.view');
 
   const [projectId, setProjectId] = useState('');
   const [boqName, setBoqName] = useState('Project BOQ');
