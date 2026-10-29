@@ -27,11 +27,11 @@ test('Project summary preserves canonical variation reversals and exact large to
 
 
 test('zero Project totals remain distinct from missing currency provenance',async()=>{
-  for(const currency of ['THB',null]){
+  for(const currency of ['THB','SGD',null]){
     const tx={user:{findFirst:async()=>({userRoles:[{role:{companyId:'c',isActive:true,roleCode:'SUMMARY',rolePermissions:[{permission:{permissionCode:PROJECT_SUMMARY_VIEW}}]}}]})},
-      project:{findFirst:async()=>({id:'p',projectCode:'P',projectName:'Project',contractValue:new Prisma.Decimal(0),contractCurrencyCode:currency})},company:{findUniqueOrThrow:async()=>({baseCurrencyCode:'THB'})},projectVariation:{findMany:async()=>[]},clientInvoice:{findMany:async()=>[]},payment:{findMany:async()=>[]}};
+      project:{findFirst:async()=>({id:'p',projectCode:'P',projectName:'Project',contractValue:new Prisma.Decimal(0),contractCurrencyCode:currency})},company:{findUniqueOrThrow:async()=>({baseCurrencyCode:currency??'THB'})},projectVariation:{findMany:async()=>[]},clientInvoice:{findMany:async()=>[]},payment:{findMany:async()=>[]}};
     const service=new ProjectSummaryService({$transaction:async(fn:any)=>fn(tx)} as never,{assertAccess:async()=>{}} as never);
     if(currency===null)await assert.rejects(service.summary({userId:'u',companyId:'c'} as never,'p'),(e:any)=>e.getResponse().code==='PROJECT_SUMMARY_CURRENCY_UNVERIFIED');
-    else{const result=await service.summary({userId:'u',companyId:'c'} as never,'p');assert.equal(result.contractAmount,'0.00');assert.equal(result.billedAmount,'0.00');assert.equal(result.receivedAmount,'0.00');}
+    else{const result=await service.summary({userId:'u',companyId:'c'} as never,'p');assert.equal(result.currencyCode,currency);assert.equal(result.contractAmount,'0.00');assert.equal(result.billedAmount,'0.00');assert.equal(result.receivedAmount,'0.00');}
   }
 });

@@ -17,7 +17,7 @@ export function QuantityBoqPanel({initialProjectId,initialRevisionId,initialWbsI
   const applied=useRef('');
   const [wbs,setWbs]=useState('');
   useEffect(()=>{
-    if(!projects.isSuccess||!initialProjectId)return;
+    if(!projects.isSuccess||projects.isFetching||!initialProjectId)return;
     const key=JSON.stringify([initialProjectId,initialRevisionId,initialWbsId]);if(applied.current===key)return;
     if(!projects.data.data.some(p=>p.id===initialProjectId)){applied.current=key;return;}
     setProject(initialProjectId);setPrintRows(null);setWbs(initialWbsId??'');
@@ -26,7 +26,7 @@ export function QuantityBoqPanel({initialProjectId,initialRevisionId,initialWbsI
       setRevision(revisions.data.data.some(r=>r.id===initialRevisionId)?initialRevisionId:'');
     }else setRevision('');
     applied.current=key;
-  },[initialProjectId,initialRevisionId,initialWbsId,projects.isSuccess,projects.data,project,revisions.isSuccess,revisions.isFetching,revisions.data]);
+  },[initialProjectId,initialRevisionId,initialWbsId,projects.isSuccess,projects.isFetching,projects.data,project,revisions.isSuccess,revisions.isFetching,revisions.data]);
   const fresh=useMutation({mutationFn:async()=>{
     // Re-authorize before browser print rather than printing a stale cache entry.
     const path=root+'/projects/'+project+(revision?'/revisions/'+revision:'/boq');
