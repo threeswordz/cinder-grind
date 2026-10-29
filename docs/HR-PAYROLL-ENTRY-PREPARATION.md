@@ -1,6 +1,6 @@
 # HR / Attendance / Payroll — preserved requirements and staged preparation
 
-**Date:** 2026-10-28 SGT · **Position:** P1, documentation preparation only; no HR feature entry, payroll calculation, grants, rollout or Production authorization.
+**Current HR1-A position — 2026-10-29 SGT:** [Owner approved](https://github.com/threeswordz/cinder-grind/issues/283#issuecomment-6495792364) the bounded employee/employment/privacy scope, identity model, HR-only Company access and private-data matrix (DEC-039). [HR1-A entry contract](HR1-A-ENTRY-CONTRACT.md) must pass normal publication CI/merge/exact-main gates before its already-authorized implementation begins. No retained activation, payroll/later HR stage or Production authority. The original broader preparation below remains the source-preserving handoff, not a reason to re-ask approved HR1-A decisions.
 
 The owner instructed “proceed building with your recommendation” after BOQ first, HR next in stages was recommended, then explicitly approved publication of the complete HR requirements to this repository ([receipt](https://github.com/threeswordz/cinder-grind/pull/274#issuecomment-6467656281)). The approved BOQ package stays under [#266](https://github.com/threeswordz/cinder-grind/issues/266). Prepare HR documentation during that delivery; do not start two competing feature implementations.
 
