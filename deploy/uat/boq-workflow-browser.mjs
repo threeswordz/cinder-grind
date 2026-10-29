@@ -26,7 +26,7 @@ import {fetchCurrentUser} from '/src/api/auth.ts';
 import {effectiveUiQueryScope} from '/src/role-ui/role-workspace-policy.ts';
 const pid='11111111-1111-4111-8111-111111111111',sid='22222222-2222-4222-8222-222222222222',uid='33333333-3333-4333-8333-333333333333',sourceLine='44444444-4444-4444-8444-444444444444',vid='55555555-5555-4555-8555-555555555555';
 const all=['budget.boq.view','budget.revision.view','budget.customer.view','budget.customer.manage','budget.customer.submit','budget.customer.approve'];
-let stage='initial',projectChoices=0,appMode=false;
+let stage='initial',projectChoices=0,appMode=false,linkMode=false,summaryReads=0;
 let signedIn=true,deferHistory=false,delayedHistory=[];
 let instanceId=null,currentStepNo=1,approvalRound=0,submitRequests=[],decisionRequests=[];const actionReplays=new Map();
 let actor='maker',state='DRAFT',edits=[],saved,attempts=[],rejectFirstSave=true,previewResolve,delayPreview=false,historyReads=0,projectReads=0,exportReads=0,printCalls=0,locale='en';
@@ -43,6 +43,9 @@ window.fetch=async(url,init={})=>{
   if(path==='/auth/login'){signedIn=true;return json({user,csrfToken:'browser-login-csrf',expiresAt:'2026-10-30T00:00:00Z'});}
   if(path==='/auth/csrf')return json({csrfToken:'browser-csrf'});
   if(path==='/auth/logout'){signedIn=false;return new Response(null,{status:204});}
+  if(path==='/budget/summary/projects')return json([{id:pid,projectCode:'P',projectName:'Summary project'}]);
+  if(path.startsWith('/budget/summary/')&&path.endsWith('/export'))return new Response('Contract,Billed,Received\n1125.50,200.30,20.30\n',{headers:{'Content-Type':'text/csv','Content-Disposition':'attachment; filename=project-summary.csv'}});
+  if(path==='/budget/summary/projects/'+pid){summaryReads++;return json({project:{id:pid,projectCode:'P',projectName:'Summary project'},currencyCode:'THB',contractAmount:'1125.50',billedAmount:'200.30',receivedAmount:'20.30'});}
   if(path==='/budget/customer/projects'){projectReads++;return json([{id:pid,projectCode:'P',projectName:'Browser project'}]);}
   if(path.endsWith('/options')&&path.includes('/budget/customer/'))return json(options);
   if(path.endsWith('/versions')&&method==='GET')return json(saved?[{id:vid,versionNo:1,sourceRevisionId:sid,currentEditNo:edits.length,approvalState:state,totalAmount:'0.99',currencyCode:'THB'}]:[]);
@@ -64,7 +67,8 @@ window.fetch=async(url,init={})=>{
   if(path.endsWith('/export')){exportReads++;return new Response('Description,Rate,Amount\nWork,0.0033,0.99',{headers:{'Content-Type':'text/csv','Content-Disposition':'attachment; filename="customer-boq.csv"'}});}
   if(path.endsWith('/versions/'+vid)){historyReads++;const snapshot=structuredClone(history());if(deferHistory)return new Promise(resolve=>delayedHistory.push(()=>resolve(json(snapshot))));return json(snapshot);}
   if(path==='/budget/quantity/projects')return json([{id:pid,projectCode:'P',projectName:'Quantity project'}]);
-  if(path.startsWith('/budget/quantity/')&&path.endsWith('/revisions'))return json([]);
+  if(path.startsWith('/budget/quantity/')&&path.endsWith('/revisions'))return json(linkMode?[{id:vid,revisionNumber:'Q-R1',lifecycleState:'APPROVED',isOriginal:true,isCurrent:true}]:[]);
+  if(path==='/budget/quantity/projects/'+pid+'/revisions/'+vid)return json({id:vid,revisionNumber:'Q-R1',lifecycleState:'APPROVED',lines:[{id:'q1',itemCode:'Q1',description:'Linked quantity work',quantity:'7',wbsId:sourceLine,uomCode:'EA'},{id:'q2',itemCode:'Q2',description:'Other WBS quantity',quantity:'8',wbsId:uid,uomCode:'EA'}]});
   if(path.startsWith('/budget/quantity/')&&path.endsWith('/boq'))return json({id:'working',boqName:'Work',items:[{id:'item',itemCode:'Q1',description:'Visible quantity work',quantity:'300',uomCode:'EA'}]});
   if(path==='/budget/projects'||path==='/budget/revision-projects')return json([]);
   if(path==='/budget/revision-workflow-options')return json([]);
@@ -115,6 +119,14 @@ async function run(){
   await chooseVersion();const beforeRole=projectReads;user={...user,roleCodes:['OTHER_CHECKER']};await outer.invalidateQueries({queryKey:['current-user']});await authRendered();await until(()=>!text().includes('0.0033'),'Role-only change retained old commercial DOM');await nav();await chooseProject();check(projectReads>beforeRole,'Role-only change reused old business cache');await chooseVersion();
   const logout=[...document.querySelectorAll('button')].find(n=>n.textContent==='Sign out');check(logout,'Sign out missing');logout.click();await until(()=>text().includes('Sign in to the'),'Logout did not return to the actual LoginScreen');check(!text().includes('0.99'),'Logout retained commercial data');
   user={...user,id:uid,companyId:pid,roleCodes:['QUANTITY'],permissions:['budget.quantity.view']};await input('Email','browser@example.invalid');await input('Password','Disposable-browser-password');await button('Sign in');await until(()=>text().includes('Browser actor'),'New sign-in did not authenticate');await authRendered();await nav();await select('Project','Quantity project');await until(()=>text().includes('Visible quantity work'),'New sign-in quantity screen missing');check(!text().includes('0.0033')&&!text().includes('0.99'),'A new signed-in identity reused commercial data');
+  user={...user,permissions:['budget.project_summary.view'],roleCodes:['SUMMARY']};await outer.invalidateQueries({queryKey:['current-user']});await authRendered();await nav();await select('Project','Summary project');await until(()=>text().includes('1125.50'),'Summary totals missing');check(text().includes('200.30')&&text().includes('20.30')&&!text().includes('0.0033')&&!text().includes('Visible quantity work'),'Summary leaked a priced or quantity source');
+  const summaryBefore=summaryReads,printBefore=printCalls;await button('Print');await until(()=>printCalls===printBefore+1,'Summary print did not execute');check(summaryReads>summaryBefore,'Summary print reused cached totals');check(document.getElementById('project-summary-print').textContent.includes('1125.50'),'Summary print lost exact totals');await button('Export CSV');await until(()=>clicks.includes('project-summary.csv'),'Summary CSV missing');
+  user={...user,permissions:[],roleCodes:['NONE']};await outer.invalidateQueries({queryKey:['current-user']});await authRendered();await until(()=>!text().includes('1125.50'),'Summary survived permission revocation');
+  // Source links resolve only through the authorized quantity Project/revision
+  // lists. The WBS selection filters only the already-whitelisted quantity DTO.
+  linkMode=true;appMode=false;cache.clear();root.render(<MonetaryLocaleContext.Provider value="en"><QueryClientProvider client={cache}><BudgetWorkspace key="linked" permissions={['budget.quantity.view']} initialProjectId={pid} initialRevisionId={vid} initialWbsId={sourceLine}/></QueryClientProvider></MonetaryLocaleContext.Provider>);
+  await until(()=>text().includes('Linked quantity work'),'Quantity revision source link did not open');check(!text().includes('Other WBS quantity'),'Linked WBS filter ignored');await button('Show whole Project');await until(()=>text().includes('Other WBS quantity'),'Whole Project quantities unavailable');
+  root.render(<MonetaryLocaleContext.Provider value="en"><QueryClientProvider client={cache}><BudgetWorkspace key="foreign-link" permissions={['budget.quantity.view']} initialProjectId={uid} initialRevisionId={vid}/></QueryClientProvider></MonetaryLocaleContext.Provider>);await wait(100);check(!text().includes('Linked quantity work')&&!text().includes('Other WBS quantity'),'Unauthorized linked Project selected cached quantity data');
   document.body.dataset.result='PASS';outer.clear();cache.clear();root.unmount();
 }
 run().catch(error=>{document.body.dataset.result='FAIL';document.body.dataset.error=error.message+'; stage='+stage+'; projectReads='+projectReads+'; choices='+JSON.stringify([...document.querySelectorAll('[role=option]')].map(n=>n.textContent))+'; ui='+text().slice(-1800);});
@@ -186,5 +198,5 @@ try {
     ws?.close();
     if(child.exitCode===null){child.kill('SIGTERM');await new Promise(resolve=>{const timer=setTimeout(()=>{child.kill('SIGKILL');resolve();},3000);child.once('close',()=>{clearTimeout(timer);resolve();});});}
   }
-  console.log('BOQ_WORKFLOW_BROWSER_PASS — actual Customer/Quantity UI, exact payload/retry, preview race, stored rounding, submit/checker/history, fresh print/CSV and actual App identity/Company/permission cache replacement; mocked transport only');
+  console.log('BOQ_WORKFLOW_BROWSER_PASS — actual Customer/Quantity UI, exact payload/retry, preview race, stored rounding, submit/checker/history, fresh print/CSV Project summary/fresh print/CSV, quantity source links and actual App identity/Company/permission cache replacement; mocked transport only');
 } finally { if(server)await new Promise((resolve,reject)=>server.close(error=>error?reject(error):resolve()));await rm(temporary,{recursive:true,force:true}); }

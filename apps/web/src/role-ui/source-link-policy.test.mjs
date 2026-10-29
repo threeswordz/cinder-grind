@@ -158,3 +158,10 @@ test('incoming source link identity is consumed only once until the target chang
   assert.equal(consumeSourceLinkKey(applied, 'project-A:row-B'), true);
   assert.equal(consumeSourceLinkKey(applied, ''), false);
 });
+
+
+test('quantity source links and summary-only grants remain separate from full BOQ/history authority',()=>{
+  for(const kind of ['wbs','budget-revision','project'])assert.equal(canOpenSourceLink('budget',['budget.quantity.view'],kind),true);
+  assert.equal(canOpenSourceLink('budget',['budget.boq.view'],'budget-revision'),false);
+  for(const kind of ['wbs','budget-revision','project'])assert.equal(canOpenSourceLink('budget',['budget.project_summary.view'],kind),false);
+});

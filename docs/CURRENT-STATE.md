@@ -1,5 +1,8 @@
 # Construction ERP — Current State
 
+- **2026-10-29 V1.3-B public workflow COMPLETE / Project-summary increment IN PROGRESS:** PR #280 merged as `6c58a436766c604b4eb5eacad755310f835044e3`; exact-main CI40805375352 SUCCESS31/31,246 API/43 web and three fresh browser profiles. Final independent Codex review clean on `2849629fe2b46847d938f8e96112c05785176847`, all findings resolved, reviewed/local/merged tree identical. [Project summary/source-access candidate](V1.3-B-PROJECT-SUMMARY.md) implements the remaining approved Project-only totals, quantity source navigation and disposable seven-function checks on `v1.3-b-project-summary`; current-head CI/review/merge/main gates remain pending. No retained grants/workflow activation or full-package acceptance is claimed; #275/#266 remain OPEN. Production NOT AUTHORIZED.
+
+
 **Last reconciled:** 2026-10-29 SGT (public BOQ disclosure/workflow evidence; remaining package consumers)
 **Source of truth:** Live GitHub repository state
 

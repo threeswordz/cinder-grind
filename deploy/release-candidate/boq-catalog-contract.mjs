@@ -5,6 +5,7 @@ export const boqCatalog = [
   ['budget.customer.manage','Prepare Customer BOQ versions and edits'],
   ['budget.customer.submit','Submit Customer BOQ for configured approval'],
   ['budget.customer.approve','Decide Customer BOQ through configured maker-checker'],
+  ['budget.project_summary.view','Read Project contract billed and received totals without BOQ detail'],
 ].map(([code,description],i)=>({id:'b0130000-0000-4000-8000-'+String(i+1).padStart(12,'0'),permission_code:code,module_code:'BUDGET',description}));
 // Only these exact NEW catalog definitions may be separated from the old table
 // hash. Role assignments, old permission definitions and every business row stay strict.

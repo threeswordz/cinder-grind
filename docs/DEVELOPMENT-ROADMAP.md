@@ -1,5 +1,7 @@
 # Construction ERP — Development Roadmap
 
+**Current V1.3-B checkpoint — 2026-10-29 SGT:** #280 public workflow/disclosure is technically COMPLETE: main `6c58a436766c604b4eb5eacad755310f835044e3`, exact-main CI40805375352 SUCCESS31/31,246 API/43 web, final Codex clean. [Project totals and source-access reconciliation](V1.3-B-PROJECT-SUMMARY.md) is the next approved implementation candidate; exact-head/review/merge/main gates remain pending. #275/#266 remain OPEN; no business-rule change, retained activation, full-package acceptance or Production authorization. Earlier checkpoint text below is historical.
+
 **Document Status:** Development Roadmap Baseline v0.1  
 **Current Phase:** V0.1–V1.2 COMPLETE + ACCEPTED; V1.3-A entry COMPLETE through #274/main CI40680993646. V1.3-B BOQ implementation IN PROGRESS under #275, pricing core COMPLETE through #276/main CI40689212843, persistence/configured approval COMPLETE through #277/main CI40716408188; public disclosure/workflow implementation/evidence under #280; actual review/merge/main receipts govern its technical closure. [Implementation evidence](V1.3-B-IMPLEMENTATION.md) separates completed code/tests from pending review and remaining package work. HR requirements are published; HR implementation follows BOQ in stages. Production NOT AUTHORIZED.
 **Architecture Baseline:** v0.1  

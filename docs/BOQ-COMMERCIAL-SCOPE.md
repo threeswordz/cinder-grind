@@ -1,5 +1,7 @@
 # BOQ Disclosure and Linked Customer BOQ Versions
 
+**Current V1.3-B checkpoint — 2026-10-29 SGT:** #280 public workflow/disclosure is technically COMPLETE: main `6c58a436766c604b4eb5eacad755310f835044e3`, exact-main CI40805375352 SUCCESS31/31,246 API/43 web, final Codex clean. [Project totals and source-access reconciliation](V1.3-B-PROJECT-SUMMARY.md) is the next approved implementation candidate; exact-head/review/merge/main gates remain pending. #275/#266 remain OPEN; no business-rule change, retained activation, full-package acceptance or Production authorization. Earlier checkpoint text below is historical.
+
 **Status:** V1.3-A entry COMPLETE through #274; V1.3-B implementation IN PROGRESS under #275. Pricing #276 and persistence/configured approval #277 are technically complete at main `0a7040aebc966263737f492c740b01381e230736` / exact-main CI40716408188 SUCCESS. [Public disclosure/workflow increment](V1.3-B-PUBLIC-WORKFLOW.md) has executed code-head evidence under #280; actual review/merge/main receipts govern technical closure; Project-only Finance summary, remaining navigation/access reconciliation and integrated gates remain. Full BQC acceptance is not claimed. DEC-037's C1–C5/E1–E8 approvals remain unchanged.
 
 **Tracker:** [#266](https://github.com/threeswordz/cinder-grind/issues/266) · **Decision:** DEC-034 · **Requirements:** BUD-011–016 · **Acceptance:** BQC-AC-001–014.

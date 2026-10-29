@@ -13,6 +13,8 @@ import { CustomerBoqService } from './customer-boq.service';
 import { CustomerBoqController } from './customer-boq.controller';
 import { QuantityBoqController } from './quantity-boq.controller';
 import { BudgetDisclosureInterceptor } from './budget-disclosure.interceptor';
+import { ProjectSummaryController } from './project-summary.controller';
+import { ProjectSummaryService } from './project-summary.service';
 
 @Module({
   imports: [
@@ -24,8 +26,8 @@ import { BudgetDisclosureInterceptor } from './budget-disclosure.interceptor';
     ApprovalModule,
     AdministrationModule,
   ],
-  controllers: [BudgetController, CustomerBoqController, QuantityBoqController],
-  providers: [BudgetService, CustomerBoqService, BudgetDisclosureInterceptor],
+  controllers: [BudgetController, CustomerBoqController, QuantityBoqController, ProjectSummaryController],
+  providers: [BudgetService, CustomerBoqService, BudgetDisclosureInterceptor, ProjectSummaryService],
   exports: [BudgetService],
 })
 export class BudgetModule {}
