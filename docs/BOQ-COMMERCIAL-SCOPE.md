@@ -1,8 +1,8 @@
 # BOQ Disclosure and Linked Customer BOQ Versions
 
-**Current V1.3-B checkpoint — 2026-10-29 SGT:** #280 public workflow/disclosure is technically COMPLETE: main `6c58a436766c604b4eb5eacad755310f835044e3`, exact-main CI40805375352 SUCCESS31/31,246 API/43 web, final Codex clean. [Project totals and source-access reconciliation](V1.3-B-PROJECT-SUMMARY.md) is the next approved implementation candidate; exact-head/review/merge/main gates remain pending. #275/#266 remain OPEN; no business-rule change, retained activation, full-package acceptance or Production authorization. Earlier checkpoint text below is historical.
+**2026-10-29 integrated BOQ checkpoint:** Runtime increments #276/#277/#280/#281 are technically COMPLETE on main `826edaadb7efdea0ed85720cf006c244a9402dd2`, [CI40811812549](https://github.com/threeswordz/cinder-grind/actions/runs/40811812549) SUCCESS31/31,255 API/44 web and three fresh browser profiles; final independent Codex clean. [Consolidated evidence/decision preparation](V1.3-BOQ-CLOSURE-PACKET.md) maps every criterion. [Read-only access reconciliation](V1.3-B-ACCESS-RECONCILIATION.md) is prepared; fresh retained configuration and runtime identity remain UNVERIFIED because this workspace has no retained-runtime connection. #275/#266 remain OPEN; no configuration activation, human acceptance, next-stage start or Production authority is inferred.
 
-**Status:** V1.3-A entry COMPLETE through #274; V1.3-B implementation IN PROGRESS under #275. Pricing #276 and persistence/configured approval #277 are technically complete at main `0a7040aebc966263737f492c740b01381e230736` / exact-main CI40716408188 SUCCESS. [Public disclosure/workflow increment](V1.3-B-PUBLIC-WORKFLOW.md) has executed code-head evidence under #280; actual review/merge/main receipts govern technical closure; Project-only Finance summary, remaining navigation/access reconciliation and integrated gates remain. Full BQC acceptance is not claimed. DEC-037's C1–C5/E1–E8 approvals remain unchanged.
+**Status:** V1.3-A COMPLETE; B runtime implementation technically COMPLETE; integrated closure ACTIVE under #275. Retained activation and human/business acceptance are not attested. Approved rules/examples/acceptance criteria remain unchanged.
 
 **Tracker:** [#266](https://github.com/threeswordz/cinder-grind/issues/266) · **Decision:** DEC-034 · **Requirements:** BUD-011–016 · **Acceptance:** BQC-AC-001–014.
 
@@ -66,7 +66,7 @@ V1.2 owner UAT/release closure is COMPLETE. BOQ business-input decisions are OWN
 
 ## 5. Requirement / acceptance contract
 
-These are future implementation obligations, not PASS claims. The business-input rules are adopted in C1–C5/E1–E8; acceptance remains NOT EXECUTED until actual implementation evidence exists.
+The criteria below remain the unchanged acceptance contract. Actual software technical evidence, retained-configuration limitations and separate human gates are mapped in the [consolidated packet](V1.3-BOQ-CLOSURE-PACKET.md); technical PASS does not self-approve business acceptance.
 
 | ID | Required observable evidence | Requirements |
 |---|---|---|
