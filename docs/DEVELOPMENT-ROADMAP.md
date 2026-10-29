@@ -3,7 +3,7 @@
 **Current checkpoint:** see [Current State](CURRENT-STATE.md). DEC-038 and the [V1.3 release-exit record](V1.3-RELEASE-EXIT.md) record the accepted runtime, separate Owner decisions and preserved evidence limits; final documentation integration/CI/parent closure are tracked in #266.
 
 **Document Status:** Development Roadmap Baseline v0.1  
-**Current Phase:** HR1-A employee/employment/privacy entry OWNER APPROVED (DEC-039); [entry publication](HR1-A-ENTRY-CONTRACT.md) active under #283, runtime implementation only after entry CI/merge/main gates. V1.3 COMPLETE + ACCEPTED/#266 CLOSED; no retained activation or Production authority.
+**Current Phase:** HR1-A employee/employment/privacy implementation active (DEC-039); entry #285/main CI40870435229 passed. [Private-core increment](HR1-A-PRIVATE-CORE.md) begins the approved implementation under #283. V1.3 COMPLETE + ACCEPTED/#266 CLOSED; no retained activation or Production authority.
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1  
@@ -32,11 +32,11 @@ The owner approved the [bounded scope](V1.2-THB-SCOPE.md) under DEC-033, then se
 | V1.3-A — Entry | Resolved scope/inputs/acceptance, DEC-037, complete authorized HR source and handoff in PR #274. COMPLETE through #274/main `f5d70871593bb89539c574381a687f3d67884c04`, exact-main CI40680993646 SUCCESS. |
 | V1.3-B — Implementation | COMPLETE / #275 CLOSED. Runtime increments and required retained configuration/runtime disposition resolved; [criterion disposition](V1.3-BOQ-CLOSURE-PACKET.md). Actual isolated activation used separate Owner authorization; no further change is implied. |
 | V1.3-C — Assurance and exit | Both separate Owner decisions ACCEPTED (DEC-038). Final acceptance-document publication uses normal exact-head/PR/merge/main gates; #266 records actual integration/closure. [Release-exit record](V1.3-RELEASE-EXIT.md) preserves all evidence/fixture/human-observation limits; no UAT repetition. |
-| HR / Attendance / Payroll | Separate P1 following BOQ in stages. Complete [requirements source](HR-PAYROLL-REQUIREMENTS-TH-2026-10-27.md) and [handoff](HR-PAYROLL-ENTRY-PREPARATION.md) published with explicit owner authorization; no HR feature entry, grants, statutory assumptions or rollout. |
+| HR / Attendance / Payroll | Separate P1 following BOQ in stages. Complete [requirements source](HR-PAYROLL-REQUIREMENTS-TH-2026-10-27.md) and [handoff](HR-PAYROLL-ENTRY-PREPARATION.md) published with explicit owner authorization. HR1-A entry is complete and bounded implementation is active below; no retained grants, statutory assumptions or rollout. |
 
 ## HR1-A — Employee/employment and privacy (DEC-039)
 
-The [approved entry contract](HR1-A-ENTRY-CONTRACT.md), HR-001–008/HRA-AC-001–014 and #283 define the first bounded slice. Publish approved entry/CI/merge/main first; then implement canonical employee/history, explicit HR-only Company/category access, encrypted private records/Documents and safe UI with disposable tests and role UAT. Stable-candidate privacy/auth/schema review and normal integration gates remain mandatory. Implementation authority is already granted after entry; no second scope approval is needed. Attendance (HR1-B), half-month submission/history (HR1-C), later leave/OT/payroll and retained activation/rollout remain separately gated; the broader HR requirements are preserved.
+The [approved entry contract](HR1-A-ENTRY-CONTRACT.md), HR-001–008/HRA-AC-001–014 and #283 define the first bounded slice. Entry #285 and exact-main CI40870435229 are complete; the [private-core implementation](HR1-A-PRIVATE-CORE.md) starts the slice. Continue canonical employee/history, explicit HR-only Company/category access, encrypted private records/Documents and safe UI with disposable tests and role UAT. Stable-candidate privacy/auth/schema review and normal integration gates remain mandatory. Implementation authority is already granted after entry; no second scope approval is needed. Attendance (HR1-B), half-month submission/history (HR1-C), later leave/OT/payroll and retained activation/rollout remain separately gated; the broader HR requirements are preserved.
 
 ## Accepted release — V1.1 Business Workflow & Role UI (DEC-028)
 
