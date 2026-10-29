@@ -750,3 +750,19 @@ The owner explicitly stated: “I approve BOQ rules C1–C5 and examples E1–E8
 - Publish the complete existing [2026-10-27 Thai HR compilation](HR-PAYROLL-REQUIREMENTS-TH-2026-10-27.md), version4, SHA-256 `102d8023e8e8cbe65fd3ee6cb0e99cfd314f2307ba19ff1ed386b1a0786da0cf`, without omissions or silent policy edits. The [HR handoff](HR-PAYROLL-ENTRY-PREPARATION.md) distinguishes recorded answers from remaining conflicts/design/configuration work. This explicit repository-destination authorization resolves the earlier automatic publication rejection.
 - HR publication does not itself approve implementation, statutory correctness, new grants, a maker/checker exception, payroll use or rollout. BOQ remains first; HR follows in stages. No private BOQ workbook content is authorized by the HR publication decision.
 - Preserve completed V1.2 owner/CI evidence and acceptance. No repeated THB UAT, new Mac fixtures, historical/recovery/smoke exercises, Production deployment, history relabel/backfill, paid service, architecture expansion or review waiver is authorized. DEC-008/016/022/033/034/036 and normal CI/review/merge/human gates remain.
+
+
+## DEC-038 — V1.3 BOQ business/UAT acceptance and separate release exit / final documentation closure
+
+**Status:** OWNER ACCEPTED / APPROVED — 2026-10-29 SGT, accepted runtime main `f496c3b082251367b81669f9464e7a601668a527` and documented scope/limitations. **Production deployment remains NOT AUTHORIZED.**
+
+The Owner made two separate explicit decisions in sequence:
+
+1. [Business/UAT acceptance](https://github.com/threeswordz/cinder-grind/issues/266#issuecomment-6495112867): “I accept V1.3 BOQ business/UAT acceptance for main `f496c3b082251367b81669f9464e7a601668a527` based on the final recorded evidence and documented scope/limitations.”
+2. [Release exit / final documentation authority](https://github.com/threeswordz/cinder-grind/issues/266#issuecomment-6495211143): “I approve V1.3 release exit and final documentation closure for main `f496c3b082251367b81669f9464e7a601668a527`, with the documented scope and limitations. Production deployment remains unauthorized.”
+
+[Technical B closure](https://github.com/threeswordz/cinder-grind/issues/275#issuecomment-6495043480) and the [final retained evidence](https://github.com/threeswordz/cinder-grind/issues/275#issuecomment-6494918207) precede those decisions:88 recorded PASS,0 FAIL,0 required technical blockers,13 historical technical criteria,31 explicit supplemental retained fixture limits supported by accepted CI. Offline reconciliation corrected3 recorded null-envelope interpretation failures with exact body fingerprints and preserved original execution timestamps/reports; it ran0 new tests. The generated report's2 then-pending human decisions are now accepted separately, not silently rewritten as technical executions. The [release-exit record](V1.3-RELEASE-EXIT.md) preserves the runtime/configuration/provenance, empty-versus-populated fixture and physical-print/human-observation boundaries.
+
+The Owner authorizes one coherent final acceptance/decision/current-state documentation change through normal exact-head push/PR CI, governed merge and exact-main CI, then #266 closure. Verify actual publication results before claiming repository closure; keep runtime/source acceptance anchored to the SHA above. This documentation-only change does not invalidate completed unchanged application reviews under DEC-022 or authorize repeated UAT.
+
+No Production deployment, HR implementation entry, new grants/business data, payroll setting, self-approval exception, paid dependency, historical relabel/backfill, policy change or review waiver is authorized. HR remains staged after BOQ, with existing requirements preserved and explicit bounded entry approval still required. DEC-008/016/022/029/030/034/037, data/approval history and normal successor gates remain unchanged.
