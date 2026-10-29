@@ -542,3 +542,19 @@ Current status:
 Next Phase 0 activity after approval of this register:
 
 **Database ERD**
+
+
+## HR1-A Employee/employment and privacy (DEC-039)
+
+Owner-approved first slice only; [entry contract](HR1-A-ENTRY-CONTRACT.md) and #283 hold actual entry/implementation gates. The complete Thai HR source remains unchanged; later attendance/payroll requirements are not deleted or prematurely implemented.
+
+| ID | Requirement | Source / acceptance |
+|---|---|---|
+| HR-001 | Preserve canonical Company Employee IDs/codes and history; new Employee/code on rehire/transfer; verified protected person linking only. | HR source§3; HRA-AC-001/007/009 |
+| HR-002 | Explicit persisted HR-only target-Company/category scope plus persisted action capability; no session impersonation, other-module grant or implicit SYS_ADMIN business access. | Approved HR1-A identity/access; HRA-AC-002/003 |
+| HR-003 | Enforce the approved operational/identity/document/bank matrix on server projections and every direct/alternate path; salary-free Project-operational views. | Approved matrix / HR source§1/12/18; HRA-AC-003/004 |
+| HR-004 | Separate encrypted private fields/history/attachments; mask by default; no raw private values in generic DTOs, logs/audit/errors/search/export/cache. | HR source§3/12/18; HRA-AC-004/005/006 |
+| HR-005 | Reasoned immutable employment/private correction history, scoped references, replay and concurrent-write protection; no fabricated history or automatic matching. | HR source§3; HRA-AC-007/008 |
+| HR-006 | Provide authorized employee/history/private-data UI with EN/TH/zh-TW and correct identity/Company/cache lifecycle. | Existing locale direction / approved HR1-A deliverable; HRA-AC-011 |
+| HR-007 | No attendance/payroll/Finance/stock/BOQ/DPR side effect; actual retained activation and later policy/rollout approvals remain separate. | Approved exclusions; HRA-AC-010/014 |
+| HR-008 | Minimum forward-only HR schema, strict bounded upgrade/recovery, disposable registered tests, independent high-risk review, exact CI and reusable truthful role UAT. | DEC-022/039; HRA-AC-012/013/014 |
