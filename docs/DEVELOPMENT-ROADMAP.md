@@ -3,7 +3,7 @@
 **Current checkpoint:** see [Current State](CURRENT-STATE.md). DEC-038 and the [V1.3 release-exit record](V1.3-RELEASE-EXIT.md) record the accepted runtime, separate Owner decisions and preserved evidence limits; final documentation integration/CI/parent closure are tracked in #266.
 
 **Document Status:** Development Roadmap Baseline v0.1  
-**Current Phase:** HR1-A employee/employment/privacy entry OWNER APPROVED (DEC-039); [entry publication](HR1-A-ENTRY-CONTRACT.md) active under #283, runtime implementation only after entry CI/merge/main gates. V1.3 COMPLETE + ACCEPTED/#266 CLOSED; no retained activation or Production authority.
+**Current Phase:** HR1-A employee/employment/privacy implementation active (DEC-039); entry #285/main CI40870435229 passed. [Private-core increment](HR1-A-PRIVATE-CORE.md) begins the approved implementation under #283. V1.3 COMPLETE + ACCEPTED/#266 CLOSED; no retained activation or Production authority.
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1  
