@@ -16,7 +16,7 @@ import {
   checksumUploadedDocumentFile,
 } from './document-upload-storage';
 import { DocumentStorage } from './document-storage';
-import { DOCUMENT_SOURCE_VIEW_PERMISSIONS, documentSourcePermissions } from './document-source-permissions';
+import { DOCUMENT_SOURCE_VIEW_PERMISSIONS, documentSourcePermissions, isHrPrivateDocumentSource } from './document-source-permissions';
 import { PROJECT_SUMMARY_VIEW, QUANTITY_VIEW } from '../budget/budget-disclosure';
 
 type DocumentSourceLink = { entityType: string; entityId: string };
@@ -210,9 +210,14 @@ export class DocumentsService {
     // authority remains independently required for classified business sources.
     const restrictUnclassified = [QUANTITY_VIEW,PROJECT_SUMMARY_VIEW].some(p=>auth.permissions.includes(p)) &&
       !['budget.boq.view','budget.revision.view'].every((p) => auth.permissions.includes(p));
-    const permitted = rows.filter((row) => (!restrictUnclassified || row.links.some((link) => Boolean(DOCUMENT_SOURCE_VIEW_PERMISSIONS[link.entityType]))) && row.links.every((link) => {
-      return documentSourcePermissions(link.entityType).every((permission) => auth.permissions.includes(permission));
-    }));
+    const permitted = rows.filter((row) =>
+      // An HR-private association always defeats every generic alias,
+      // including a separately forged PROJECT, WBS or transaction link.
+      row.links.every(link => !isHrPrivateDocumentSource(link.entityType)) &&
+      (!restrictUnclassified || row.links.some((link) => Boolean(DOCUMENT_SOURCE_VIEW_PERMISSIONS[link.entityType]))) &&
+      row.links.every((link) => {
+        return documentSourcePermissions(link.entityType).every((permission) => auth.permissions.includes(permission));
+      }));
     const protectedRows = permitted.filter((row) => row.links.some(
       (link) => Boolean(DOCUMENT_SOURCE_VIEW_PERMISSIONS[link.entityType]),
     ));
