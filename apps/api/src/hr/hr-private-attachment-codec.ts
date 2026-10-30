@@ -86,10 +86,10 @@ export function openHrPrivateAttachment(
     const parsed: unknown = JSON.parse(metadata.toString('utf8'));
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) unavailable();
     const row = parsed as Record<string, unknown>;
-    const originalname = row.originalname, mimetype = row.mimetype;
+    const originalname: string = typeof row.originalname === 'string' ? row.originalname : unavailable();
+    const mimetype: string = typeof row.mimetype === 'string' ? row.mimetype : unavailable();
     const size = row.size, encryptedDigest = row.encryptedDigest;
     if (Object.keys(row).sort().join(',') !== 'encryptedDigest,mimetype,originalname,size' ||
-        typeof originalname !== 'string' || typeof mimetype !== 'string' ||
         typeof size !== 'number' || !Number.isSafeInteger(size) ||
         size < 1 || size > HR_PRIVATE_ATTACHMENT_MAX_BYTES ||
         typeof encryptedDigest !== 'string' || !/^[0-9a-f]{64}$/.test(encryptedDigest)) unavailable();
