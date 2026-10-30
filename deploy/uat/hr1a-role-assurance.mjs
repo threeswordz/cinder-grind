@@ -100,9 +100,12 @@ function classify(expectAllow, status) {
   return 'FAIL_UNEXPECTED_HTTP';
 }
 
-async function responseJson(response) {
-  const cache=(response.headers.get('cache-control')||'').toLowerCase().split(',').map(x=>x.trim());
-  if(!cache.includes('no-store'))fail('UNSAFE_CACHE_POLICY');
+function hasNoStore(response) {
+  return (response.headers.get('cache-control')||'').toLowerCase().split(',')
+    .map(x=>x.trim()).includes('no-store');
+}
+async function responseJson(response, requireNoStore=true) {
+  if(requireNoStore && !hasNoStore(response))fail('UNSAFE_CACHE_POLICY');
   const length = Number(response.headers.get('content-length') || '0');
   if (length > 1048576) fail('UNBOUNDED_RESPONSE');
   const media = (response.headers.get('content-type') || '').split(';',1)[0].trim().toLowerCase();
@@ -133,9 +136,13 @@ export async function inspectActor({baseUrl,companyId,projectId,employeeId,key,a
     const raw=login.headers.get('set-cookie')?.split(';',1)[0];
     if(!/^erp_session=[A-Za-z0-9_-]{20,}$/.test(raw??''))fail('INVALID_SESSION_COOKIE');
     cookie=raw;
-    const loginPayload=await responseJson(login);
+    // First recover the cleanup token even from an unsafe-cache login response:
+    // rejecting it earlier would strand the privileged session behind CsrfGuard.
+    // The unsafe response is NEVER used to authorize a business read.
+    const loginPayload=await responseJson(login,false);
     csrf=loginPayload?.data?.csrfToken;
     if(typeof csrf!=='string'||!csrf)fail('INVALID_CSRF');
+    if(!hasNoStore(login))fail('UNSAFE_CACHE_POLICY');
     if(loginPayload?.data?.user?.id!==actor.userId || loginPayload?.data?.user?.companyId!==actor.companyId) fail('WRONG_LOGIN_IDENTITY');
     const me=await request('/auth/me');
     if(me.status!==200)fail('IDENTITY_UNVERIFIED');
