@@ -570,10 +570,10 @@ set -e
 
 if [[ "$schema_mode" != "migration-aware-sql-only" ]]; then
   if [[ "$legacy_upgrade" == true ]]; then
-    HR_SCHEMA_UPGRADE=NO DATABASE_URL="$rollback_url" node "$RC_DIR/legacy-fixture.mjs" verify "$previous_root" "$tmp_root/legacy.json" "$tmp_root/legacy-snapshot.json"
+    HR_SCHEMA_UPGRADE=NO HR_DOCUMENT_SCHEMA_UPGRADE=NO DATABASE_URL="$rollback_url" node "$RC_DIR/legacy-fixture.mjs" verify "$previous_root" "$tmp_root/legacy.json" "$tmp_root/legacy-snapshot.json"
   fi
   if [[ "$hr_proof" == true ]]; then
-    DATABASE_URL="$rollback_url" node "$RC_DIR/hr-upgrade.mjs" rollback "$previous_root" "$tmp_root/hr-predecessor.json"
+    HR_DOCUMENT_SCHEMA_UPGRADE=NO DATABASE_URL="$rollback_url" node "$RC_DIR/hr-upgrade.mjs" rollback "$previous_root" "$tmp_root/hr-predecessor.json"
   fi
   start_previous_runtime "$rollback_url" "$rollback_storage"
   RESTORED_API_BASE_URL="http://127.0.0.1:$api_port/api/v1" DATABASE_URL="$rollback_url" \
