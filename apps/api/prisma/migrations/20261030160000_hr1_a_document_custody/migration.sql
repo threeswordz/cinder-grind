@@ -169,14 +169,39 @@ BEGIN
   SELECT "company_id" INTO linker_company
   FROM "users" WHERE "id" = NEW."linked_by_user_id";
 
-  IF document_company IS NULL OR linker_company IS NULL
-     OR document_company <> linker_company THEN
-    RAISE EXCEPTION 'Document and linker must belong to the same Company';
+  IF document_company IS NULL OR linker_company IS NULL THEN
+    RAISE EXCEPTION 'Document or linking user does not exist';
   END IF;
 
   IF NEW."entity_type" = 'HR_ATTACHMENT' THEN
+    -- This is the ONLY exception to the generic same-Company linker rule:
+    -- explicit native role capability plus live target-Company HR entitlement.
+    -- An authorized cross-Company HR user remains the real audit actor.
+    IF NOT EXISTS (
+      SELECT 1
+      FROM users u
+      JOIN companies native_company ON native_company.id=u.company_id
+        AND native_company.is_active
+      JOIN hr_company_access grant_scope ON grant_scope.user_id=u.id
+        AND grant_scope.company_id=document_company
+        AND grant_scope.category='documents' AND grant_scope.is_active
+      JOIN companies target_company ON target_company.id=grant_scope.company_id
+        AND target_company.is_active
+      WHERE u.id=NEW."linked_by_user_id" AND u.is_active
+        AND EXISTS (
+          SELECT 1 FROM user_roles ur
+          JOIN roles r ON r.id=ur.role_id
+            AND r.company_id=u.company_id AND r.is_active
+          JOIN role_permissions rp ON rp.role_id=r.id
+          JOIN permissions p ON p.id=rp.permission_id
+          WHERE ur.user_id=u.id AND ur.company_id=u.company_id
+            AND p.permission_code='hr.documents.manage'
+        )
+    ) THEN
+      RAISE EXCEPTION 'HR_ATTACHMENT_LINK_ACCESS_DENIED' USING ERRCODE='23514';
+    END IF;
     -- No Project association: a canonical private file belongs to precisely
-    -- the named Employee and the same Company as the canonical Document/linker.
+    -- the target-Company Employee. Native uploader Company may differ.
     IF NOT EXISTS (
       SELECT 1 FROM employees WHERE id = NEW."entity_id"
         AND company_id = document_company
@@ -200,6 +225,12 @@ BEGIN
       RAISE EXCEPTION 'HR_ATTACHMENT_LINK_PRIVATE' USING ERRCODE='23514';
     END IF;
     RETURN NEW;
+  END IF;
+
+  -- Every legacy Project/WBS/Finance/Stock/BOQ source keeps its original,
+  -- strict same-Company linker requirement. No cross-Company generic path.
+  IF document_company <> linker_company THEN
+    RAISE EXCEPTION 'Document and linker must belong to the same Company';
   END IF;
 
   IF NEW."entity_type" = 'PROJECT' THEN
