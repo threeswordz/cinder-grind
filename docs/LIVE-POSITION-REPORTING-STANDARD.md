@@ -56,8 +56,18 @@ V0.8 Management
 PRODUCTION READINESS
 V1.0 Production Readiness
 
-ACTIVE APPROVED SUCCESSOR
-V1.1 Business Workflow & Role UI (stages/status from live GitHub)
+ACCEPTED SUCCESSORS (re-verify live status before reporting)
+V1.1 Business Workflow & Role UI (A–E)
+V1.2 THB-only Monetary Hardening (A–C)
+V1.3 BOQ Disclosure and Linked Customer BOQ Versions (A–C)
+
+CURRENT APPROVED IMPLEMENTATION (verify exact PR/CI)
+HR1-A Employee / Employment / Privacy
+
+SEPARATELY GATED FUTURE OR DEFERRED
+HR1-B / HR1-C / leave / OT / payroll
+Operational material/stock workflow candidates — approval-specific
+New Accounting development — deferred under Issue #288
 ```
 
 The labels for V0.6-A through V0.6-E are concise presentation labels for the approved V0.6 build stages. If the approved V0.6 scope changes through Change Control, the reporting labels must be updated to match the repository.
@@ -144,15 +154,17 @@ After the mandatory roadmap, show:
 1. **Go-live gate visual** — verified-complete categories, actively progressing, pending/unknown/conditional categories; count verified categories out of ten in the current **full-scope** planning baseline. Distinguish a limited pilot if separately authorized.
 2. **Gap table** — GL-01 through GL-10: area, current evidence-bound status, work missing, priority and relevant existing Issue/PR/decision. Do not count the V1.0 Production *engineering* release as proof of actual hosting, backup scheduling or go-live.
 3. **Specific next milestone** — what the existing designated implementation owner does next, which targeted new UAT/acceptance still applies, which operational evidence remains unverified, and whether an actual owner approval is needed.
-4. **Standing release and Production protection** — accepted V1.1/V1.2 THB work remains accepted; never reschedule old UAT as a new blocker. No unauthorized data/grant/schema/Production mutations or hidden salary/commercial exposures.
+4. **Latest role requirement-to-code fit** — compare all relevant approved role requirements to implemented, partial, missing, deferred and *retained configuration not verified* status; use the preserved 112-ID [execution disposition](ROLE-REQUIREMENTS-2026-10-30/13-execution-disposition.md), not the earlier accounting-first ranking.
+5. **Concrete next actions** — sequence actual current PR/CI/review, authorized feature work, separately gated operational package, and the real Production setup/cutover obligations. Distinguish outstanding technical work from decisions and owner business acceptance.
+6. **Standing release and Production protection** — accepted V1.1/V1.2/V1.3 releases remain accepted; never reschedule old UAT as a new blocker. No unauthorized data/grant/schema/Production mutations or hidden salary/commercial exposures.
 
-Gate statuses are **VERIFIED COMPLETE / ACTIVE / PENDING / UNVERIFIED / CONDITIONAL FOR PILOT**. A lack of hosted-environment evidence is **UNVERIFIED, not FAILED**. A green CI result is technical evidence, not deployment evidence; an accepted release is not automatically a live Production site. Count `2/10` only where all ten categories and their specific evidence remain applicable and confirmed; it is **not 20% code completion** and must be recalculated when evidence changes. For limited pilots, identify explicitly approved exclusions and controlled external handoffs; never mark deferred features delivered.
+Gate statuses are **VERIFIED COMPLETE / ACTIVE / PENDING / UNVERIFIED / CONDITIONAL FOR PILOT**. A lack of hosted-environment evidence is **UNVERIFIED, not FAILED**. A green CI result is technical evidence, not deployment evidence; an accepted release is not automatically a live Production site. [Issue #278](https://github.com/threeswordz/cinder-grind/issues/278) documents a later **3/10 verified** checkpoint after V1.3 business acceptance; its earlier **2/10** snapshot is historical. Always recalculate from current evidence. These are gate counts, **not engineering percentages**. For limited pilots, identify explicitly approved exclusions and controlled external handoffs; never mark deferred features delivered.
 
-Future updates to this presentation standard do **not** approve new implementation scope, business permission grants, HR/statutory policy, paid infrastructure, data migration, release exit or deployment. The designated Builder owns #275 BOQ implementation; this dashboard must not start a competing writer, branch or test run.
+Future updates to this presentation standard do **not** approve new implementation scope, business permission grants, HR/statutory policy, paid infrastructure, data migration, release exit or deployment. The approved HR1-A single writer is tracked under [#283](https://github.com/threeswordz/cinder-grind/issues/283). The corrected execution order is [#288](https://github.com/threeswordz/cinder-grind/issues/288): Accounting deferred; the next operational physical-count [#289](https://github.com/threeswordz/cinder-grind/issues/289) is only a candidate. Reporting does not start competing coding or new UAT.
 
 ## 7. Current roadmap destination
 
-The original functional core ends at **V0.8 Management**, followed by **V1.0 Production Readiness**. Both are COMPLETE + ACCEPTED. **At the 2026-10-28 checkpoint, V1.1 and V1.2 are also COMPLETE + ACCEPTED, and V1.3-B BOQ is ACTIVE under #275**; the accepted #276/#277 internal increments are not full user-facing BOQ completion. For every later report derive the current destination, stage and gates from live `docs/DEVELOPMENT-ROADMAP.md`, `docs/CURRENT-STATE.md`, linked #266/#275 and GitHub evidence; never treat this dated checkpoint or the older historical examples as current. Actual Production remains NOT AUTHORIZED unless a new explicit go/no-go exists.
+The original functional core ends at **V0.8 Management**, followed by **V1.0 Production Readiness**. These engineering releases and V1.1/V1.2/V1.3 were accepted at their individual gates. At the **2026-10-30** checkpoint, V1.3 #266/#275 are closed and accepted under DEC-038; the bounded **HR1-A** implementation is active under #283 (not yet Owner business accepted), while new Accounting is deferred under #288. Every later report must derive exact current main, stage, PR, CI and gates from live `docs/DEVELOPMENT-ROADMAP.md`, `docs/CURRENT-STATE.md`, #278/#283/#288 and GitHub evidence. Older checkpoints in this document are illustrations only. Actual Production deployment remains NOT AUTHORIZED without a separate go/no-go and real Production evidence.
 
 If the approved roadmap later adds V0.9 or changes the production destination, follow the newer approved repository baseline.
 
