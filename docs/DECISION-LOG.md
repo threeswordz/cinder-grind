@@ -779,3 +779,19 @@ Adopt [HR1-A-ENTRY-CONTRACT.md](HR1-A-ENTRY-CONTRACT.md), HR-001–008/HRA-AC-00
 The approval authorizes one coherent entry scope/data/DTO/permission/test publication through normal CI/merge/exact-main gates, then governed HR1-A implementation with one active writer, disposable CI and reusable role UAT alongside the code. Do not ask for the same scope/identity/privacy decision again after entry. Authorization/privacy/schema implementation still requires stable-candidate independent review and normal exact-head/PR/main gates; no waiver is granted.
 
 Excluded: attendance/submission, leave/OT, wages/rate approval/payroll/statutory formulas, self-approval substitution, bank/payment/accountant files, Finance/labour-cost posting and Production. Actual retained grants/data activation, HR business acceptance and rollout are not approved by entry. No paid service, historical backfill/overwrite, automatic person matching or interview restart is authorized. Later stage-specific undecided inputs remain explicit rather than blocking this approved employee/privacy slice.
+
+
+## DEC-040 — PR #293-only separate push-CI evidence waiver (not a review or PR-CI waiver)
+
+**Status:** APPROVED — Product / Business Owner, 2026-10-30 SGT. **Applies only to HR1-A private attachment foundation PR #293**, final reviewed **application code** head `ecd30ae07f8769c3d3d4801ad848c0f5f79673ad` and its documentation-only decision/evidence follow-up. [Durable Owner instruction receipt](https://github.com/threeswordz/cinder-grind/pull/293#issuecomment-6526578177).
+
+The owner explicitly stated: “i approve the pr 293 only push CI evidence waiver thank you”.
+
+This is a narrow exception to the requirement to **independently verify a distinct push-triggered CI run** for this single PR. The connected GitHub commit workflow lookup exposes PR-triggered runs only; no push-run completion is claimed, and absence of independently surfaced push evidence is neither a failed test nor proof a run occurred. The waiver does **not** exempt the exact final PR-head CI, unchanged-code independent security review, review-thread closure, normal non-forced expected-head guarded merge, and exact-main post-merge CI.
+
+Evidence **before decision publication**:
+- Reviewed application head `ecd30ae07f8769c3d3d4801ad848c0f5f79673ad` has [PR CI 41061344499](https://github.com/threeswordz/cinder-grind/actions/runs/41061344499) SUCCESS31/31 (including compiler, registered attachment crypto/alias regression, disposable browser/rehearsal/recovery gates).
+- The [independent final Codex Code Review](https://github.com/threeswordz/cinder-grind/pull/293#issuecomment-6519959971) completed clean on precisely that application head: `has_any_findings=false` and `has_unresolved_findings=false`; both original P2 threads were resolved with source-backed fixes.
+- The new Decision Log/public evidence change is **documentation only** and does not alter the audited application behavior, schema, encryption, permissions, business policy, dependency or migrations. Under DEC-022 it does not invalidate that clean independent runtime review. Fresh PR CI on the **final documentation-inclusive head** remains mandatory before merge.
+
+**Limitations:** This exception is not reusable for #294, HR1-A successor #295, another release, or any future feature branch. Any subsequent material application/security/schema change requires reassessment, normal applicable review and CI. HR1-A full business/UAT acceptance, retained Company/user grants or data activation, Accounting/Finance deferred scope, and real Production deployment remain separately gated and **not authorized**. GitHub must record actual merge/main-CI evidence after execution; none is presumed by this decision.
