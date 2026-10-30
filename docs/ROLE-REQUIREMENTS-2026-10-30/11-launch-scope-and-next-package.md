@@ -1,0 +1,24 @@
+# Corrected sequencing, launch boundary and next operational package
+
+**Source of authority:** [Owner #288](https://github.com/threeswordz/cinder-grind/issues/288), 30 Oct 2026. This replaces the original audit's **WF-BUDGET-01 accounting/budget/expense-first recommendation**, but preserves its requirements, source references and old risk flags in the role and traceability evidence. Baseline: main `4fd3635ed06510dc4759e00061cfc92d6cbad2bc`, [exact-main CI 40892651348](https://github.com/threeswordz/cinder-grind/actions/runs/40892651348) SUCCESS. See [112-row disposition](13-execution-disposition.md).
+
+## Verified implementation versus requirements versus readiness
+
+- **Approved HR1-A implementation lane:** entry #285, private crypto #286, employee/employment/history/scoped HR Company access backend #287 merged. Remaining already-approved work: protected private attachments, employee/history UI, EN/TH/Traditional Chinese, cache/privacy/browser, reusable role assurance and consolidated evidence + separate Owner acceptance. **Only the existing #283 designated implementation writer may continue that branch**. No attendance/leave/OT/payroll/Finance posting, retained grants, or Production from this approval.
+- **Role requirements lane (this branch):** 112 original evidence-backed requirements reconciled to #288. A named actor, approval, generic module, assessment status or green CI is not proof of completed specific workflow or retained role configuration. Documentation/Issue work adds **zero application-code progress**.
+- **New candidate operational stage:** [#289](https://github.com/threeswordz/cinder-grind/issues/289) physical stock count, mapping SS12/PM08/FM05/NANCY-07, **not yet approved for coding**. Stock quantity ledger and dimension-locking exist; count capture/approval/adjustment not documented as implemented. Alternative new packages for Foreman → Store material request and approved-plan issue remain separate. Do **not** automatically build all three.
+- **Accounting stays deferred:** new AP/AR, financial billing/receipts, payments, cheques, GL, tax, depreciation, bank reconciliation, payroll-to-Finance, and cross-module budget/expense-first. Existing BOQ/operational Finance approval/security controls remain enforced; current HR1-A narrow Porn bank read remains. #245 multi-Project invoice/payment attribution is separately gated.
+
+## Stock-count candidate boundary — only pending scope approval
+
+Store Site of each assigned site records physical counts and evidence; Khaimook independently approves physical quantity adjustment; Foreman has **no** variance/proposal/approval rights. Nancy sets material-category count frequency (exact frequency still unknown). Proposed count snapshot uses Company/Warehouse/Material/Project/UOM with existing stock ledger and reservation checks; submitted immutable revisions; one auditable posted quantity-only adjustment on explicitly approved policy; no second ledger or valuation. Stale ledger/reservation state, insufficient available stock, cross-Project view, wrong UOM, duplicate/replayed approval and concurrent issue/receipt must fail closed. [#289](https://github.com/threeswordz/cinder-grind/issues/289) records ten SC-AC-01–10 cases and SC-D01–05 entry questions.
+
+Financial write-off, disposal, damage/loss remediation (SS13), new grants, multi-Company transfers, payment/Finance, material issue/PR/plan redesign and retained application/database mutation are **excluded**. BEN02 emergency spending limit is unanswered and no bypass is inferred.
+
+## Ordered actions
+
+1. #283 sole writer completes existing approved HR1-A UI/private attachments/privacy/role-assurance work; normal stable-head independent review, exact-head push/PR CI, normal merge, exact-main CI and separate Owner HR acceptance. No repeat scope permission request.
+2. Review this **docs-only** role reconciliation and merge on applicable CI, preserving other active branches and draft #279. Do not count it as feature delivery.
+3. Owner chooses and explicitly approves one bounded operational scope; for physical count resolve SC-D01 quantity posting vs capture-only, SC-D02 central/multi-Project physical allocation, SC-D03 absent approver/independence and SC-D04 minimum evidence; SC-D05 cadence is for later scheduler.
+4. After ownership/gates, assign one writer, implement selected scope with synthetic disposable data, reusable automation and **one consolidated evidence packet**, high-risk Codex at stable merge candidate, exact-head/PR/normal merge/main CI and affected-path Owner business acceptance. Do not repeat closed V1.2 THB or V1.3 BOQ UAT.
+5. For actual Production, #278 still requires named-role real configuration validation, HTTPS/secrets/access hardening, backups/restored runtime, monitoring/operations, support/training, actual cutover/go-no-go and explicit Production authorization. No release percentage or deployment date is proven by these 112 records.

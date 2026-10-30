@@ -1,9 +1,14 @@
 # Construction ERP — Development Roadmap
 
+**Verified GitHub live checkpoint — 30 October 2026 SGT:** main `4fd3635ed06510dc4759e00061cfc92d6cbad2bc`, [exact-main CI40892651348](https://github.com/threeswordz/cinder-grind/actions/runs/40892651348) SUCCESS31/31. Approved HR1-A #285 entry, #286 private core, and [#287 employee/employment/history/explicit HR-only Company access backend](https://github.com/threeswordz/cinder-grind/pull/287) are **technically merged**, not still waiting for backend validation. **Full HR1-A is not complete**: protected private attachments, history/UI/locales/cache/browser, reusable role assurance, consolidated criteria and separate Owner HR business acceptance remain. No live HR grants/retained data or Production activation. The older dated HR backend-under-validation entry below is historical.
+
+**Latest execution directive (30 October 2026):** [#288](https://github.com/threeswordz/cinder-grind/issues/288) defers **new** Accounting intake/development, preserves approved operational/BOQ/financial controls and the HR1-A privacy matrix, and continues [#283](https://github.com/threeswordz/cinder-grind/issues/283) under its existing sole writer. The source-preserving 112-row [role requirements baseline](ROLE-REQUIREMENTS-2026-10-30/README.md) and corrected [execution dispositions](ROLE-REQUIREMENTS-2026-10-30/13-execution-disposition.md) supersede the previous assessment's accounting/budget-expense-first prioritization. [#289](https://github.com/threeswordz/cinder-grind/issues/289) is **one proposed physical-count stage only**; Owner scope/SC-D decisions are required before coding. No change to #245's Finance gate or the separate Production go/no-go.
+
+
 **Current checkpoint:** see [Current State](CURRENT-STATE.md). DEC-038 and the [V1.3 release-exit record](V1.3-RELEASE-EXIT.md) record the accepted runtime, separate Owner decisions and preserved evidence limits; final documentation integration/CI/parent closure are tracked in #266.
 
 **Document Status:** Development Roadmap Baseline v0.1  
-**Current Phase:** HR1-A employee/employment/privacy implementation active (DEC-039); entry #285/main CI40870435229 passed. [Private-core increment](HR1-A-PRIVATE-CORE.md) #286 is complete; [employee/access backend](HR1-A-EMPLOYEE-ACCESS.md) is under validation under #283. V1.3 COMPLETE + ACCEPTED/#266 CLOSED; no retained activation or Production authority.
+**Current Phase:** HR1-A approved implementation remains ACTIVE under #283: entry #285, private-core #286 and employee/access backend #287 technically MERGED; remaining private Documents/UI/locales/privacy/browser/role assurance and Owner acceptance pending. V1.3 COMPLETE + ACCEPTED/#266 CLOSED; Accounting NEW development DEFERRED under #288; operational candidate #289 is NOT approved for coding; Production not authorized.
 **Architecture Baseline:** v0.1  
 **Requirements Baseline:** v0.1  
 **Database Baseline:** v0.1  
