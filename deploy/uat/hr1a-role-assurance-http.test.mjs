@@ -21,7 +21,7 @@ function fixture({mismatch=false,unexpectedPrivate=false,brokenLogout=false,wron
       {'set-cookie':'erp_session='+'q'.repeat(43)+'; HttpOnly',
        ...(unsafeCache?{'cache-control':'public, max-age=60'}:{})});
     if(path==='/auth/me')return reply(200,{id:userId,companyId,email:actor.email,roleCodes:wrongRoles?['UNEXPECTED_ROLE']:['HR_TEST_ROLE']});
-    if(path==='/auth/logout')return reply(brokenLogout?500:204);
+    if(path==='/auth/logout')return reply(options.headers['x-csrf-token']!=='csrf-fixture'?403:brokenLogout?500:204);
     if(path.endsWith('/employment'))return denyEmployment?reply(404):reply(200,{employee:{id:employeeId,employeeCode:'E01',employeeName:'Synthetic',
       jobTitle:'Tester',isActive:true},employment:validEmployment?{id:'hr',currentVersion:1,revisions:[{
         id:'r',version:1,payBasis:'MONTHLY',employmentForm:'PERMANENT',siteKind:'SITE',
@@ -136,10 +136,12 @@ test('unexpected HTTP 200 for BEN identity/bank is a failure even when revisions
   assert.equal(report.checks.find(x=>x.kind==='bank').status,'FAIL_UNAUTHORIZED_READ');
 });
 
-test('unsafe caching of an authenticated response fails before any HR reads',async()=>{
+test('unsafe cached login is rejected but privileged session is still revoked with actual CSRF',async()=>{
   const {fetchImpl,calls}=fixture({unsafeCache:true});
   const report=await inspectActor({...args,key:'KOH',fetchImpl});
   assert.equal(report.status,'FAIL_TRANSPORT_OR_BINDING');
+  assert.equal(report.logoutHttpStatus,204);
   assert.equal(calls.some(x=>x.path.startsWith('/hr/')),false);
   assert.equal(calls.at(-1).path,'/auth/logout');
+  assert.equal(calls.at(-1).headers['x-csrf-token'],'csrf-fixture');
 });
