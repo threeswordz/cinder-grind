@@ -101,6 +101,8 @@ function classify(expectAllow, status) {
 }
 
 async function responseJson(response) {
+  const cache=(response.headers.get('cache-control')||'').toLowerCase().split(',').map(x=>x.trim());
+  if(!cache.includes('no-store'))fail('UNSAFE_CACHE_POLICY');
   const length = Number(response.headers.get('content-length') || '0');
   if (length > 1048576) fail('UNBOUNDED_RESPONSE');
   const media = (response.headers.get('content-type') || '').split(';',1)[0].trim().toLowerCase();
