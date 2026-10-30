@@ -100,6 +100,10 @@ BEGIN
     END IF;
   END IF;
   IF TG_OP IN ('INSERT','UPDATE') THEN
+    -- Serialize every link on the canonical Document row with the private
+    -- attachment's existing FOR UPDATE lock. A concurrent Project alias
+    -- cannot pass before its rival private insert becomes visible.
+    PERFORM 1 FROM documents WHERE id = NEW.document_id FOR UPDATE;
     IF EXISTS(
       SELECT 1 FROM hr_document_attachments h
       WHERE h.document_id=NEW.document_id AND
