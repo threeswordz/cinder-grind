@@ -181,10 +181,25 @@ test('HR attachment ownership is same-Company, private-link-only, versioned and 
 
     // Revocation immediately prevents new private associations. It must not
     // grant generic document/Project source-link authority across Companies.
+    // The same live entitlement must still exist when the append-only
+    // private row is persisted, not just at source-link creation time.
+    const beforeRevocationDoc = await db.document.create({ data: {
+      companyId: foreign.id, documentTypeId: foreignType.id,
+      fileName: 'hr-private.enc', mimeType: 'application/octet-stream',
+      fileSizeBytes: 345, storageProvider: 'LOCAL', storageKey: randomUUID(),
+      checksum: 'a'.repeat(64), uploadedByUserId: actor.id,
+    } });
+    await db.documentLink.create({ data: { documentId: beforeRevocationDoc.id,
+      entityType: 'HR_ATTACHMENT', entityId: otherEmployee.id, linkedByUserId: actor.id } });
     await db.hrCompanyAccess.update({ where: { id: targetGrant.id }, data: {
       isActive: false, version: targetGrant.version + 1,
       reasonCode: 'ACCESS_REVOKED', updatedByUserId: foreignAdmin.id,
     } });
+    await assert.rejects(db.hrDocumentAttachment.create({ data: {
+      companyId: foreign.id, employeeId: otherEmployee.id,
+      documentId: beforeRevocationDoc.id, version: 2,
+      encryptedMetadata: sealedMetadata, actorUserId: actor.id,
+    } }));
     const afterRevocation = await db.document.create({ data: {
       companyId: foreign.id, documentTypeId: foreignType.id,
       fileName: 'hr-private.enc', mimeType: 'application/octet-stream',
@@ -199,6 +214,34 @@ test('HR attachment ownership is same-Company, private-link-only, versioned and 
       documentId: afterRevocation.id, entityType: 'PROJECT',
       entityId: project.id, linkedByUserId: actor.id,
     } }));
+
+    // Even an independently authorized document steward cannot falsely
+    // attribute a different uploader's canonical file or HR source link.
+    const otherWriter = await db.user.create({ data: { companyId: company.id,
+      email: 'hda-writer-' + suffix + '@example.invalid',
+      displayName: 'Synthetic second document steward', passwordHash: 'not-a-login' } });
+    await db.userRole.create({ data: {
+      companyId: company.id, userId: otherWriter.id, roleId: role.id,
+    } });
+    await db.hrCompanyAccess.create({ data: { companyId: company.id,
+      userId: otherWriter.id, category: 'documents', isActive: true,
+      reasonCode: 'OWNER_APPROVED_SCOPE', updatedByUserId: admin.id,
+    } });
+    const uploaderMismatch = await mkDocument();
+    await db.documentLink.create({ data: { documentId: uploaderMismatch.id,
+      entityType: 'HR_ATTACHMENT', entityId: employee.id, linkedByUserId: actor.id } });
+    await assert.rejects(db.hrDocumentAttachment.create({ data: { companyId: company.id,
+      employeeId: employee.id, documentId: uploaderMismatch.id, version: 4,
+      encryptedMetadata: sealedMetadata, actorUserId: otherWriter.id,
+    } }));
+    const linkerMismatch = await mkDocument({ uploadedByUserId: otherWriter.id });
+    await db.documentLink.create({ data: { documentId: linkerMismatch.id,
+      entityType: 'HR_ATTACHMENT', entityId: employee.id, linkedByUserId: actor.id } });
+    await assert.rejects(db.hrDocumentAttachment.create({ data: { companyId: company.id,
+      employeeId: employee.id, documentId: linkerMismatch.id, version: 4,
+      encryptedMetadata: sealedMetadata, actorUserId: otherWriter.id,
+    } }));
+    assert.equal(await db.hrDocumentAttachment.count({ where: { employeeId: employee.id } }), 3);
   } finally {
     await db.$disconnect();
   }
