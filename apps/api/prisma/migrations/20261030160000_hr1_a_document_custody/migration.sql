@@ -22,6 +22,8 @@ CREATE UNIQUE INDEX "hr_document_attachments_document_id_key"
   ON "hr_document_attachments"("document_id");
 CREATE UNIQUE INDEX "hr_document_attachments_company_id_employee_id_version_key"
   ON "hr_document_attachments"("company_id", "employee_id", "version");
+CREATE UNIQUE INDEX "hr_document_attachments_company_id_document_id_key"
+  ON "hr_document_attachments"("company_id", "document_id");
 CREATE INDEX "hr_document_attachments_company_id_employee_id_idx"
   ON "hr_document_attachments"("company_id", "employee_id");
 
