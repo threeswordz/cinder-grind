@@ -1,0 +1,12 @@
+# Construction ERP — 112 role requirements, corrected execution baseline
+
+**Owner directive:** [#288](https://github.com/threeswordz/cinder-grind/issues/288) overrides the earlier accounting- and budget/expense-first recommendation. **Verified source commit:** `4fd3635ed06510dc4759e00061cfc92d6cbad2bc`, [exact-main CI 40892651348](https://github.com/threeswordz/cinder-grind/actions/runs/40892651348) SUCCESS. This is a requirements/evidence publication, not code, configuration, human UAT or Production readiness.
+
+**Start with [13-execution-disposition.md](13-execution-disposition.md)** for the 112 stable IDs and corrected active/deferred lanes; use [11-launch-scope-and-next-package.md](11-launch-scope-and-next-package.md) for real next steps, [00-shared-workflows.md](00-shared-workflows.md) for handoffs, [10-traceability-gap-register.md](10-traceability-gap-register.md) for original code/evidence gaps and [12-decisions-and-sources.md](12-decisions-and-sources.md) for supersessions. Old L0/L1/L2 flags describe original audit risk **not current priority**.
+
+**Role sources:** [Ben](01-ben.md), [Nancy](02-nancy.md), [Khaimook](03-khaimook.md), [Jai](04-jai.md), [Store Site](05-store-site.md), [Foreman](06-foreman.md), [Porn — deferred Accounting reference](07-porn.md), [Koh — HR index](08-koh.md). The unchanged complete [Thai HR source](../HR-PAYROLL-REQUIREMENTS-TH-2026-10-27.md) governs Koh and HR1-A. Machine-readable 112-row [execution inventory](data/requirements-execution.json) preserves original risk/implementation observation separately from current lane; each MD contains full original requirement, source, evidence and unanswered detail.
+
+- **HR:** #283 writer continues approved HR1-A; no ownership takeover, no repeated entry approval, no attendance/leave/OT/payroll.
+- **Accounting:** deferred new AP/AR, financial billing/receipts, payment execution, cheques, bank reconciliation, GL, tax, depreciation, payroll-to-Finance and budget/expense-first extension. Existing Finance controls, Nancy's operational/BOQ approvals and explicitly scoped Porn HR bank-read remain intact.
+- **Operational proposal:** [#289 physical count](https://github.com/threeswordz/cinder-grind/issues/289), candidate only, specific Owner approval required before coding. Material-request/approved-plan alternatives await a separate selection. #245 future multi-Project Finance gate not bypassed.
+- **Open PR #279:** unchanged unrelated draft. Completed THB/BOQ acceptance retained, no repeated human UAT or Mac commands.
