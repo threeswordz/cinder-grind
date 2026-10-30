@@ -12,8 +12,8 @@ test('HR schema is exactly seven protected models and eighteen parent additions;
   const current=readFileSync(new URL('../../apps/api/prisma/schema.prisma',import.meta.url),'utf8');
   const previous=execFileSync('git',['show','e86ed846f30ac3feeb09f74ba9084571b9955520:apps/api/prisma/schema.prisma'],{encoding:'utf8'});
   const older=execFileSync('git',['show','fc52a867c96a8b3a369b480b9799bad1a5e9f399:apps/api/prisma/schema.prisma'],{encoding:'utf8'});
-  assert.equal(classifySchema(previous,current),'migration-aware-hr-schema');
-  assert.equal(classifySchema(older,current),'migration-aware-hr-customer-boq-schema');
+  assert.equal(classifySchema(previous,current),'migration-aware-hr-document-hr-schema');
+  assert.equal(classifySchema(older,current),'migration-aware-hr-document-hr-customer-boq-schema');
   assert.equal(classifySchema(previous,previous),'migration-aware-sql-only');
   for(const invalid of [
     current.replace('model HrReplay {','model ArbitraryReplay {'),
