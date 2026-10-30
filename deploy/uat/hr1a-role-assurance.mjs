@@ -1,6 +1,5 @@
 // HR1-A retained-role read-only assurance. No business/configuration mutations.
 // Login/logout are the ONLY POST routes; no private reveal or document download.
-import assert from 'node:assert/strict';
 import { mkdir, lstat, realpath, open, readFile } from 'node:fs/promises';
 import { randomUUID, createHash } from 'node:crypto';
 import { resolve, sep } from 'node:path';
@@ -48,10 +47,7 @@ export function validateActors(actors) {
 function safeKeys(value, allowed) {
   return plain(value) && Object.keys(value).every(k => allowed.has(k) && !banned.test(k));
 }
-function noSecretKeys(value) {
-  if (Array.isArray(value)) return value.every(noSecretKeys);
-  return !plain(value) || Object.entries(value).every(([k,v]) => !banned.test(k) && noSecretKeys(v));
-}
+
 function validateData(kind, data, companyId, employeeId) {
   if (kind === 'employment') {
     if (!plain(data) || Object.keys(data).sort().join(',') !== 'employee,employment' ||
@@ -106,7 +102,9 @@ async function responseJson(response) {
   if (media !== 'application/json' && media !== 'application/problem+json') fail('UNEXPECTED_MEDIA');
   const body = await response.text();
   if (body.length > 1048576) fail('UNBOUNDED_RESPONSE');
-  try { return JSON.parse(body); } catch { fail('INVALID_JSON'); }
+  let parsed; try { parsed=JSON.parse(body); } catch { fail('INVALID_JSON'); }
+  if(!plain(parsed) || Object.keys(parsed).join(',')!=='data') fail('UNSAFE_RESPONSE_ENVELOPE');
+  return parsed;
 }
 function onlyStatus(response) {
   return response.status === 403 || response.status === 404 || response.status === 401;
