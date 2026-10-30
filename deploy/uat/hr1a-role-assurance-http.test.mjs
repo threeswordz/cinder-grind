@@ -10,15 +10,16 @@ const baseUrl='http://127.0.0.1:3001/api/v1';
 const actor={email:'synthetic@example.invalid',password:'synthetic-only',userId,companyId,expectedRoleCodes:['HR_TEST_ROLE']};
 const args={baseUrl,companyId,projectId,employeeId,actor};
 const reply=(status,data,headers={})=>new Response(data===undefined?null:JSON.stringify({data}),{status,
-  headers:{'content-type':'application/json',...headers}});
+  headers:{'content-type':'application/json','cache-control':'private, no-store',...headers}});
 
-function fixture({mismatch=false,unexpectedPrivate=false,brokenLogout=false,wrongRoles=false,extraPrivate=false,extraEmployment=false,emptyProject=false,denyEmployment=false,validPrivate=false,validEmployment=false,emptyPrivate=false}={}){
+function fixture({mismatch=false,unexpectedPrivate=false,brokenLogout=false,wrongRoles=false,unsafeCache=false,extraPrivate=false,extraEmployment=false,emptyProject=false,denyEmployment=false,validPrivate=false,validEmployment=false,emptyPrivate=false}={}){
   const calls=[];
   const fetchImpl=async(url,options)=>{
     const path=url.slice(baseUrl.length);
     calls.push({path,method:options.method,headers:options.headers,body:options.body,redirect:options.redirect});
     if(path==='/auth/login')return reply(201,{user:{id:mismatch?employeeId:userId,companyId},csrfToken:'csrf-fixture'},
-      {'set-cookie':'erp_session='+'q'.repeat(43)+'; HttpOnly'});
+      {'set-cookie':'erp_session='+'q'.repeat(43)+'; HttpOnly',
+       ...(unsafeCache?{'cache-control':'public, max-age=60'}:{})});
     if(path==='/auth/me')return reply(200,{id:userId,companyId,email:actor.email,roleCodes:wrongRoles?['UNEXPECTED_ROLE']:['HR_TEST_ROLE']});
     if(path==='/auth/logout')return reply(brokenLogout?500:204);
     if(path.endsWith('/employment'))return denyEmployment?reply(404):reply(200,{employee:{id:employeeId,employeeCode:'E01',employeeName:'Synthetic',
@@ -133,4 +134,12 @@ test('unexpected HTTP 200 for BEN identity/bank is a failure even when revisions
   assert.equal(report.status,'FAIL');
   assert.equal(report.checks.find(x=>x.kind==='identity').status,'FAIL_UNAUTHORIZED_READ');
   assert.equal(report.checks.find(x=>x.kind==='bank').status,'FAIL_UNAUTHORIZED_READ');
+});
+
+test('unsafe caching of an authenticated response fails before any HR reads',async()=>{
+  const {fetchImpl,calls}=fixture({unsafeCache:true});
+  const report=await inspectActor({...args,key:'KOH',fetchImpl});
+  assert.equal(report.status,'FAIL_TRANSPORT_OR_BINDING');
+  assert.equal(calls.some(x=>x.path.startsWith('/hr/')),false);
+  assert.equal(calls.at(-1).path,'/auth/logout');
 });
