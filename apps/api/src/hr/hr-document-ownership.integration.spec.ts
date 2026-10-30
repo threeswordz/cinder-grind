@@ -121,6 +121,27 @@ test('HR attachment ownership is same-Company, private-link-only, versioned and 
       await assert.rejects(attach(invalidTypeDocument.id, 3));
     }
     assert.equal(await db.hrDocumentAttachment.count({ where: { employeeId: employee.id } }), 2);
+
+    // Two independent upload transactions race for the SAME next version:
+    // exactly one committed Document+HR link+append-only attachment survives.
+    // The loser must roll back its entire canonical Document and source link.
+    const competingIds = [randomUUID(), randomUUID()];
+    const writeVersion3 = (id: string) => db.$transaction(async tx => {
+      await tx.document.create({ data: { id, companyId: company.id, documentTypeId: type.id,
+        fileName: 'hr-private.enc', mimeType: 'application/octet-stream',
+        fileSizeBytes: 345, storageProvider: 'LOCAL', storageKey: randomUUID(),
+        checksum: 'a'.repeat(64), uploadedByUserId: actor.id } });
+      await tx.documentLink.create({ data: { documentId: id, entityType: 'HR_ATTACHMENT',
+        entityId: employee.id, linkedByUserId: actor.id } });
+      await tx.hrDocumentAttachment.create({ data: { companyId: company.id, employeeId: employee.id,
+        documentId: id, version: 3, encryptedMetadata: sealedMetadata, actorUserId: actor.id } });
+    });
+    const races = await Promise.allSettled(competingIds.map(writeVersion3));
+    assert.equal(races.filter(result => result.status === 'fulfilled').length, 1);
+    assert.equal(races.filter(result => result.status === 'rejected').length, 1);
+    assert.equal(await db.hrDocumentAttachment.count({ where: { employeeId: employee.id } }), 3);
+    assert.equal(await db.document.count({ where: { id: { in: competingIds } } }), 1);
+    assert.equal(await db.documentLink.count({ where: { documentId: { in: competingIds } } }), 1);
   } finally {
     await db.$disconnect();
   }
