@@ -172,7 +172,10 @@ async function privateInput(path) {
   if(typeof path!=='string'||!path)fail('PRIVATE_INPUT_REQUIRED');
   const stat=await lstat(path);
   if(!stat.isFile()||stat.isSymbolicLink()||(stat.mode&0o077)!==0)fail('PRIVATE_FILE_MODE_REQUIRED');
-  const source=JSON.parse(await readFile(path,'utf8'));
+  const repository=await realpath(fileURLToPath(new URL('../../',import.meta.url)));
+  const actual=await realpath(path);
+  if(actual===repository||actual.startsWith(repository+sep))fail('PUBLIC_INPUT_DENIED');
+  const source=JSON.parse(await readFile(actual,'utf8'));
   if(!plain(source))fail('PRIVATE_INPUT_INVALID');
   return source;
 }
