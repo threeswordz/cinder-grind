@@ -68,7 +68,7 @@ test('tampering, truncated ciphertext and removed/wrong historical keys deny wit
   const f=fixture(), id=scope(), original=upload();
   const first=sealHrPrivateAttachment(f.crypto,f.policy,id,original);
   const corrupt=Buffer.from(first.encryptedBytes);
-  corrupt[corrupt.length-8] ^= 1;
+  corrupt.writeUInt8(corrupt.readUInt8(corrupt.length - 8) ^ 1, corrupt.length - 8);
   denied(()=>openHrPrivateAttachment(f.crypto,f.policy,id,corrupt,first.encryptedMetadata));
   denied(()=>openHrPrivateAttachment(f.crypto,f.policy,id,Buffer.from('invalid'),first.encryptedMetadata));
   denied(()=>openHrPrivateAttachment(f.crypto,f.policy,id,first.encryptedBytes,'{}'));
@@ -84,6 +84,27 @@ test('tampering, truncated ciphertext and removed/wrong historical keys deny wit
   f.env.HR_PRIVATE_KEYS=JSON.stringify(f.keys);
   denied(()=>openHrPrivateAttachment(f.crypto,f.policy,id,first.encryptedBytes,first.encryptedMetadata));
   original.buffer.fill(0);
+});
+
+test('metadata authenticates the exact ciphertext; same-scope envelopes cannot substitute for each other',()=>{
+  const f=fixture(), id=scope(), original=upload();
+  const first=sealHrPrivateAttachment(f.crypto,f.policy,id,original);
+  const alternate={ ...upload(), buffer: Buffer.from('SYNTHETIC_CONFIDENTIAL_ALTERNATE_CONTENT') };
+  const second=sealHrPrivateAttachment(f.crypto,f.policy,id,alternate);
+  assert.notEqual(first.encryptedChecksum,second.encryptedChecksum);
+  // Both metadata and file envelopes are valid AES-GCM records for the same
+  // Company/employee/document/version, but only their original pair is valid.
+  denied(()=>openHrPrivateAttachment(f.crypto,f.policy,id,
+    Buffer.from(first.encryptedMetadata,'utf8'),first.encryptedMetadata));
+  denied(()=>openHrPrivateAttachment(f.crypto,f.policy,id,
+    first.encryptedBytes,first.encryptedBytes.toString('utf8')));
+  denied(()=>openHrPrivateAttachment(f.crypto,f.policy,id,
+    first.encryptedBytes,second.encryptedMetadata));
+  denied(()=>openHrPrivateAttachment(f.crypto,f.policy,id,
+    second.encryptedBytes,first.encryptedMetadata));
+  const opened=openHrPrivateAttachment(f.crypto,f.policy,id,second.encryptedBytes,second.encryptedMetadata);
+  try { assert.deepEqual(opened.bytes,alternate.buffer); }
+  finally { opened.bytes.fill(0); original.buffer.fill(0); alternate.buffer.fill(0); }
 });
 
 test('rejects empty, oversized, unsafe-name and unsupported MIME files before ciphertext creation',()=>{
