@@ -12,7 +12,7 @@ const args={baseUrl,companyId,projectId,employeeId,actor};
 const reply=(status,data,headers={})=>new Response(data===undefined?null:JSON.stringify({data}),{status,
   headers:{'content-type':'application/json',...headers}});
 
-function fixture({mismatch=false,unexpectedPrivate=false,brokenLogout=false,extraPrivate=false,extraEmployment=false,emptyProject=false,denyEmployment=false}={}){
+function fixture({mismatch=false,unexpectedPrivate=false,brokenLogout=false,extraPrivate=false,extraEmployment=false,emptyProject=false,denyEmployment=false,validPrivate=false}={}){
   const calls=[];
   const fetchImpl=async(url,options)=>{
     const path=url.slice(baseUrl.length);
@@ -25,6 +25,7 @@ function fixture({mismatch=false,unexpectedPrivate=false,brokenLogout=false,extr
       jobTitle:'Tester',isActive:true},employment:null,...(extraEmployment?{rawValues:{unknown:'private'}}:{})});
     if(path.includes('/private/'))return extraPrivate
       ? reply(200,{version:1,values:{accountNumber:'••••'},rawValues:{accountNumber:'12345'}})
+      : validPrivate?reply(200,{version:1,values:path.endsWith('/identity')?{identityNumber:'••••'}:{accountNumber:'••••'}})
       : unexpectedPrivate?reply(200,{version:1,values:{accountNumber:'12345'}}):reply(404);
     if(path.startsWith('/hr/projects/'))return reply(200,emptyProject?[]:[{id:employeeId,employeeCode:'E01',employeeName:'Synthetic',jobTitle:'Tester'}]);
     return reply(404);
@@ -83,4 +84,19 @@ test('missing physical project fixture is BLOCKED, not a vacuous PASS',async()=>
   const report=await inspectActor({...args,key:'FOREMAN',fetchImpl});
   assert.equal(report.status,'BLOCKED_CONFIGURATION');
   assert.equal(report.checks.find(x=>x.kind==='project').status,'BLOCKED_CONFIGURATION');
+});
+
+test('complete synthetic KOH role permits only masked private data and never exports response fields',async()=>{
+  const {fetchImpl}=fixture({validPrivate:true});
+  const report=await inspectActor({...args,key:'KOH',fetchImpl});
+  assert.equal(report.status,'PASS');
+  assert.equal(report.checks.filter(x=>x.status==='PASS').length,3);
+  assert.equal(JSON.stringify(report).includes('identityNumber'),false);
+  assert.equal(JSON.stringify(report).includes('accountNumber'),false);
+});
+test('complete synthetic Foreman role denies HR private data and checks a real Project employee fixture',async()=>{
+  const {fetchImpl}=fixture({denyEmployment:true});
+  const report=await inspectActor({...args,key:'FOREMAN',fetchImpl});
+  assert.equal(report.status,'PASS');
+  assert.equal(report.checks.find(x=>x.kind==='project').status,'PASS');
 });
