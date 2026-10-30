@@ -78,6 +78,8 @@ jobs:
           node --test deploy/uat/e2-readiness.test.mjs
           node --check deploy/uat/boq-access-audit.mjs
           node --test deploy/uat/boq-access-audit.test.mjs
+          node --check deploy/uat/hr1a-role-assurance.mjs
+          node --test deploy/uat/hr1a-role-assurance.test.mjs deploy/uat/hr1a-role-assurance-http.test.mjs
           node --check deploy/uat/validate-isolated.mjs
           node --test deploy/uat/validate-isolated.test.mjs
           node --check deploy/uat/v12-local-readback.mjs
