@@ -12,7 +12,7 @@ const args={baseUrl,companyId,projectId,employeeId,actor};
 const reply=(status,data,headers={})=>new Response(data===undefined?null:JSON.stringify({data}),{status,
   headers:{'content-type':'application/json',...headers}});
 
-function fixture({mismatch=false,unexpectedPrivate=false,brokenLogout=false,wrongRoles=false,extraPrivate=false,extraEmployment=false,emptyProject=false,denyEmployment=false,validPrivate=false}={}){
+function fixture({mismatch=false,unexpectedPrivate=false,brokenLogout=false,wrongRoles=false,extraPrivate=false,extraEmployment=false,emptyProject=false,denyEmployment=false,validPrivate=false,validEmployment=false,emptyPrivate=false}={}){
   const calls=[];
   const fetchImpl=async(url,options)=>{
     const path=url.slice(baseUrl.length);
@@ -22,9 +22,13 @@ function fixture({mismatch=false,unexpectedPrivate=false,brokenLogout=false,wron
     if(path==='/auth/me')return reply(200,{id:userId,companyId,email:actor.email,roleCodes:wrongRoles?['UNEXPECTED_ROLE']:['HR_TEST_ROLE']});
     if(path==='/auth/logout')return reply(brokenLogout?500:204);
     if(path.endsWith('/employment'))return denyEmployment?reply(404):reply(200,{employee:{id:employeeId,employeeCode:'E01',employeeName:'Synthetic',
-      jobTitle:'Tester',isActive:true},employment:null,...(extraEmployment?{rawValues:{unknown:'private'}}:{})});
+      jobTitle:'Tester',isActive:true},employment:validEmployment?{id:'hr',currentVersion:1,revisions:[{
+        id:'r',version:1,payBasis:'MONTHLY',employmentForm:'PERMANENT',siteKind:'SITE',
+        startDate:'2026-10-30',endDate:null,projectId:null,createdAt:'2026-10-30T00:00:00.000Z'}]}:null,
+      ...(extraEmployment?{rawValues:{unknown:'private'}}:{})});
     if(path.includes('/private/'))return extraPrivate
       ? reply(200,{version:1,values:{accountNumber:'••••'},rawValues:{accountNumber:'12345'}})
+      : emptyPrivate?reply(200,{version:0,values:{}})
       : validPrivate?reply(200,{version:1,values:path.endsWith('/identity')?{identityNumber:'••••'}:{accountNumber:'••••'}})
       : unexpectedPrivate?reply(200,{version:1,values:{accountNumber:'12345'}}):reply(404);
     if(path.startsWith('/hr/projects/'))return reply(200,emptyProject?[]:[{id:employeeId,employeeCode:'E01',employeeName:'Synthetic',jobTitle:'Tester'}]);
@@ -87,7 +91,7 @@ test('missing physical project fixture is BLOCKED, not a vacuous PASS',async()=>
 });
 
 test('complete synthetic KOH role permits only masked private data and never exports response fields',async()=>{
-  const {fetchImpl}=fixture({validPrivate:true});
+  const {fetchImpl}=fixture({validPrivate:true,validEmployment:true});
   const report=await inspectActor({...args,key:'KOH',fetchImpl});
   assert.equal(report.status,'PASS');
   assert.equal(report.checks.filter(x=>x.status==='PASS').length,3);
@@ -107,4 +111,12 @@ test('unexpected role combination cannot be certified as the requested function'
   assert.equal(report.status,'FAIL_TRANSPORT_OR_BINDING');
   assert.equal(calls.some(x=>x.path.startsWith('/hr/')),false);
   assert.equal(calls.at(-1).path,'/auth/logout');
+});
+
+test('existing employee without HR history or private values is BLOCKED fixture, not a false PASS',async()=>{
+  const {fetchImpl}=fixture({emptyPrivate:true});
+  const report=await inspectActor({...args,key:'KOH',fetchImpl});
+  assert.equal(report.status,'BLOCKED_CONFIGURATION');
+  assert.equal(report.checks.find(x=>x.kind==='employment').status,'BLOCKED_CONFIGURATION');
+  assert.equal(report.checks.find(x=>x.kind==='identity').status,'BLOCKED_CONFIGURATION');
 });
