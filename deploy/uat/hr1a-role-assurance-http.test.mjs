@@ -7,19 +7,19 @@ const projectId='22222222-2222-4222-8222-222222222222';
 const employeeId='33333333-3333-4333-8333-333333333333';
 const userId='44444444-4444-4444-8444-444444444444';
 const baseUrl='http://127.0.0.1:3001/api/v1';
-const actor={email:'synthetic@example.invalid',password:'synthetic-only',userId,companyId};
+const actor={email:'synthetic@example.invalid',password:'synthetic-only',userId,companyId,expectedRoleCodes:['HR_TEST_ROLE']};
 const args={baseUrl,companyId,projectId,employeeId,actor};
 const reply=(status,data,headers={})=>new Response(data===undefined?null:JSON.stringify({data}),{status,
   headers:{'content-type':'application/json',...headers}});
 
-function fixture({mismatch=false,unexpectedPrivate=false,brokenLogout=false,extraPrivate=false,extraEmployment=false,emptyProject=false,denyEmployment=false,validPrivate=false}={}){
+function fixture({mismatch=false,unexpectedPrivate=false,brokenLogout=false,wrongRoles=false,extraPrivate=false,extraEmployment=false,emptyProject=false,denyEmployment=false,validPrivate=false}={}){
   const calls=[];
   const fetchImpl=async(url,options)=>{
     const path=url.slice(baseUrl.length);
     calls.push({path,method:options.method,headers:options.headers,body:options.body,redirect:options.redirect});
     if(path==='/auth/login')return reply(201,{user:{id:mismatch?employeeId:userId,companyId},csrfToken:'csrf-fixture'},
       {'set-cookie':'erp_session='+'q'.repeat(43)+'; HttpOnly'});
-    if(path==='/auth/me')return reply(200,{id:userId,companyId,email:actor.email});
+    if(path==='/auth/me')return reply(200,{id:userId,companyId,email:actor.email,roleCodes:wrongRoles?['UNEXPECTED_ROLE']:['HR_TEST_ROLE']});
     if(path==='/auth/logout')return reply(brokenLogout?500:204);
     if(path.endsWith('/employment'))return denyEmployment?reply(404):reply(200,{employee:{id:employeeId,employeeCode:'E01',employeeName:'Synthetic',
       jobTitle:'Tester',isActive:true},employment:null,...(extraEmployment?{rawValues:{unknown:'private'}}:{})});
@@ -99,4 +99,12 @@ test('complete synthetic Foreman role denies HR private data and checks a real P
   const report=await inspectActor({...args,key:'FOREMAN',fetchImpl});
   assert.equal(report.status,'PASS');
   assert.equal(report.checks.find(x=>x.kind==='project').status,'PASS');
+});
+
+test('unexpected role combination cannot be certified as the requested function',async()=>{
+  const {fetchImpl,calls}=fixture({wrongRoles:true});
+  const report=await inspectActor({...args,key:'KOH',fetchImpl});
+  assert.equal(report.status,'FAIL_TRANSPORT_OR_BINDING');
+  assert.equal(calls.some(x=>x.path.startsWith('/hr/')),false);
+  assert.equal(calls.at(-1).path,'/auth/logout');
 });
