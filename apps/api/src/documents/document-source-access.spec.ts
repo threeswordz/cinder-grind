@@ -36,6 +36,10 @@ function fixture() {
     row('other-project-source', [projectLink, { entityType: 'PROJECT', entityId: 'other-project' },
       { entityType: 'SUPPLIER_INVOICE', entityId: 'other-invoice' }]),
     row('transfer', [projectLink, { entityType: 'STOCK_TRANSFER', entityId: 'transfer-source' }]),
+    row('hr-private', [projectLink, { entityType: 'HR_PRIVATE_EMPLOYEE', entityId: 'hr-employee' }]),
+    row('hr-mixed-alias', [projectLink, { entityType: 'WBS', entityId: 'wbs' },
+      { entityType: 'HR_PRIVATE_EMPLOYEE', entityId: 'hr-employee' }]),
+    row('hr-forged-case', [projectLink, { entityType: 'hr_private_employee', entityId: 'hr-employee' }]),
   ];
   const effects = { reads: [] as string[], writes: 0, audits: 0 };
   const document = {
@@ -213,4 +217,25 @@ test('summary authority never opens unclassified Project bytes while separately 
   assert.equal(effects.reads.length,0);assert.equal(effects.writes,0);
   const finance=actor(['budget.project_summary.view','finance.supplier_invoice.view']);
   assert.equal((await service.downloadProjectDocument(finance,projectId,'invoice')).bytes.toString(),'safe');
+});
+
+test('HR-private mixed aliases deny generic document list, direct download, metadata and archive for all Project roles',async()=>{
+  const {service,targets,effects,rows}=fixture();
+  const full=actor(['projects.access_all','budget.boq.view','budget.revision.view',
+    'finance.supplier_invoice.view','subcontracts.certification.view','hr.identity.view','hr.documents.view',
+    'documents.document.view','documents.document.archive']);
+  const hidden=['hr-private','hr-mixed-alias','hr-forged-case'];
+  const listed=await service.listProjectDocuments(full,projectId);
+  for(const id of hidden){
+    assert.equal(listed.some(x=>x.id===id),false,'HR-private metadata leaked: '+id);
+    await assert.rejects(()=>service.downloadProjectDocument(full,projectId,id),notFound);
+    for(const active of [false,true])
+      await assert.rejects(()=>service.setProjectDocumentActive({auth:full},projectId,id,active),notFound);
+  }
+  const alias=await targets.list(full,projectId,'WBS','wbs');
+  assert.equal(alias.some(x=>hidden.includes(x.id)),false);
+  assert.ok(rows.filter(x=>hidden.includes(x.id)).every(x=>x.isActive));
+  assert.equal(effects.reads.some(x=>hidden.includes(x)),false);
+  assert.equal(effects.writes,0);
+  assert.equal(effects.audits,0);
 });
