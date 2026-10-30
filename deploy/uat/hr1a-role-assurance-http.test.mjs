@@ -120,3 +120,17 @@ test('existing employee without HR history or private values is BLOCKED fixture,
   assert.equal(report.checks.find(x=>x.kind==='employment').status,'BLOCKED_CONFIGURATION');
   assert.equal(report.checks.find(x=>x.kind==='identity').status,'BLOCKED_CONFIGURATION');
 });
+
+test('unexpected HTTP 200 for JAI employment is a failure even when no HR episode exists',async()=>{
+  const {fetchImpl}=fixture();
+  const report=await inspectActor({...args,key:'JAI',fetchImpl});
+  assert.equal(report.status,'FAIL');
+  assert.equal(report.checks.find(x=>x.kind==='employment').status,'FAIL_UNAUTHORIZED_READ');
+});
+test('unexpected HTTP 200 for BEN identity/bank is a failure even when revisions are empty',async()=>{
+  const {fetchImpl}=fixture({emptyPrivate:true});
+  const report=await inspectActor({...args,key:'BEN',fetchImpl});
+  assert.equal(report.status,'FAIL');
+  assert.equal(report.checks.find(x=>x.kind==='identity').status,'FAIL_UNAUTHORIZED_READ');
+  assert.equal(report.checks.find(x=>x.kind==='bank').status,'FAIL_UNAUTHORIZED_READ');
+});
