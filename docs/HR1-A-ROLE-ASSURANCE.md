@@ -40,11 +40,14 @@ The operator may create a private **0600** JSON file OUTSIDE the Git working tre
       "email": "synthetic@example.invalid",
       "password": "synthetic-example-only",
       "userId": "44444444-4444-4444-8444-444444444444",
-      "companyId": "11111111-1111-4111-8111-111111111111"
+      "companyId": "11111111-1111-4111-8111-111111111111",
+      "expectedRoleCodes": ["HR_TEST_ROLE"]
     }
   }
 }
 ```
+
+The input must bind each actor to its **exact expected persisted login role-code set**. If `/auth/me` differs, all HR probes for that actor stop and the result fails; this prevents relabeling an authorized identity as a different business persona. 
 
 All IDs/identities above are **synthetic placeholders**, not verified users, records or authorization. Leave unconfigured functions absent; each is explicitly marked BLOCKED. `expectedBuildSha` is a **declaration only**; the existing API does not expose a trusted runtime build/DB identity. Therefore even all-positive reads produce `READ_ONLY_CHECKS_PASSED_ATTESTATION_PENDING`, never HR Owner acceptance. An independent verified deployment-to-commit and DB binding must accompany any retained evidence. No speculative release proof is recorded.
 
