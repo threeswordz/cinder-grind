@@ -12,7 +12,7 @@ const args={baseUrl,companyId,projectId,employeeId,actor};
 const reply=(status,data,headers={})=>new Response(data===undefined?null:JSON.stringify({data}),{status,
   headers:{'content-type':'application/json',...headers}});
 
-function fixture({mismatch=false,unexpectedPrivate=false,brokenLogout=false,extraPrivate=false,extraEmployment=false,emptyProject=false}={}){
+function fixture({mismatch=false,unexpectedPrivate=false,brokenLogout=false,extraPrivate=false,extraEmployment=false,emptyProject=false,denyEmployment=false}={}){
   const calls=[];
   const fetchImpl=async(url,options)=>{
     const path=url.slice(baseUrl.length);
@@ -21,7 +21,7 @@ function fixture({mismatch=false,unexpectedPrivate=false,brokenLogout=false,extr
       {'set-cookie':'erp_session='+'q'.repeat(43)+'; HttpOnly'});
     if(path==='/auth/me')return reply(200,{id:userId,companyId,email:actor.email});
     if(path==='/auth/logout')return reply(brokenLogout?500:204);
-    if(path.endsWith('/employment'))return reply(200,{employee:{id:employeeId,employeeCode:'E01',employeeName:'Synthetic',
+    if(path.endsWith('/employment'))return denyEmployment?reply(404):reply(200,{employee:{id:employeeId,employeeCode:'E01',employeeName:'Synthetic',
       jobTitle:'Tester',isActive:true},employment:null,...(extraEmployment?{rawValues:{unknown:'private'}}:{})});
     if(path.includes('/private/'))return extraPrivate
       ? reply(200,{version:1,values:{accountNumber:'••••'},rawValues:{accountNumber:'12345'}})
@@ -79,7 +79,7 @@ test('rejects unexpected sensitive top-level employment projections',async()=>{
   assert.equal(report.checks.find(x=>x.kind==='employment').status,'FAIL_UNSAFE_PROJECTION');
 });
 test('missing physical project fixture is BLOCKED, not a vacuous PASS',async()=>{
-  const {fetchImpl}=fixture({emptyProject:true});
+  const {fetchImpl}=fixture({emptyProject:true,denyEmployment:true});
   const report=await inspectActor({...args,key:'FOREMAN',fetchImpl});
   assert.equal(report.status,'BLOCKED_CONFIGURATION');
   assert.equal(report.checks.find(x=>x.kind==='project').status,'BLOCKED_CONFIGURATION');
