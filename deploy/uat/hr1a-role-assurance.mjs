@@ -37,8 +37,11 @@ export function validateTarget({baseUrl,companyId,projectId,employeeId,expectedB
 export function validateActors(actors) {
   if (!plain(actors) || Object.keys(actors).some(x => !functions.includes(x))) fail('INVALID_ACTOR_MAP');
   for (const [key,actor] of Object.entries(actors)) {
-    if (!plain(actor) || Object.keys(actor).some(x => !['email','password','userId','companyId'].includes(x)) ||
+    if (!plain(actor) || Object.keys(actor).some(x => !['email','password','userId','companyId','expectedRoleCodes'].includes(x)) ||
         !uuid.test(actor.userId ?? '') || !uuid.test(actor.companyId ?? '') ||
+        !Array.isArray(actor.expectedRoleCodes) || actor.expectedRoleCodes.length < 1 ||
+        actor.expectedRoleCodes.length > 16 || new Set(actor.expectedRoleCodes).size !== actor.expectedRoleCodes.length ||
+        !actor.expectedRoleCodes.every(code=>typeof code==='string'&&/^[A-Z0-9_:-]{2,80}$/.test(code)) ||
         typeof actor.email !== 'string' || !/^[^@\s]+@[^@\s]+$/.test(actor.email) ||
         typeof actor.password !== 'string' || !actor.password) fail('INVALID_ACTOR_BINDING_' + key);
   }
@@ -134,7 +137,10 @@ export async function inspectActor({baseUrl,companyId,projectId,employeeId,key,a
     if(me.status!==200)fail('IDENTITY_UNVERIFIED');
     const identity=(await responseJson(me))?.data;
     if(identity?.id!==actor.userId || identity?.companyId!==actor.companyId ||
-       identity?.email?.toLowerCase()!==actor.email.toLowerCase())fail('IDENTITY_MISMATCH');
+       identity?.email?.toLowerCase()!==actor.email.toLowerCase() ||
+       !Array.isArray(identity.roleCodes) ||
+       [...identity.roleCodes].sort().join('|')!==[...actor.expectedRoleCodes].sort().join('|'))
+      fail('IDENTITY_OR_ROLE_MISMATCH');
     const routes={
       employment:'/hr/companies/'+companyId+'/employees/'+employeeId+'/employment',
       identity:'/hr/companies/'+companyId+'/employees/'+employeeId+'/private/identity',
