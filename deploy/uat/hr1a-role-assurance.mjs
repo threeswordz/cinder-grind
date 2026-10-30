@@ -153,12 +153,16 @@ export async function inspectActor({baseUrl,companyId,projectId,employeeId,key,a
       if(allow===null) continue;
       const response=await request(routes[kind]);
       let state=classify(allow,response.status);
-      if(response.status===200){
+      if(response.status===200 && allow===false) {
+        // A denied route returning success is an authorization failure even
+        // when its body happens to contain an empty/unpopulated fixture.
+        state='FAIL_UNAUTHORIZED_READ';
+      } else if(response.status===200) {
         const data=(await responseJson(response))?.data;
         try { validateData(kind,data,companyId,employeeId); }
         catch(error) { state=error instanceof Error && ['MISSING_PROJECT_FIXTURE','MISSING_EMPLOYMENT_FIXTURE','MISSING_PRIVATE_FIXTURE'].includes(error.message)
           ? 'BLOCKED_CONFIGURATION' : 'FAIL_UNSAFE_PROJECTION'; }
-      }else if(!onlyStatus(response))state='FAIL_UNEXPECTED_HTTP';
+      } else if(!onlyStatus(response))state='FAIL_UNEXPECTED_HTTP';
       result.checks.push({kind,status:state,httpStatus:response.status});
     }
     result.status=result.checks.some(x=>x.status.startsWith('FAIL'))?'FAIL':
