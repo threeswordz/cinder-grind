@@ -49,20 +49,23 @@ export function sealHrPrivateAttachment(
     size: file.buffer.length, buffer: file.buffer,
   });
   const aad = binding(scope);
+  // The encrypted metadata authenticates the exact ciphertext digest, so
+  // separately valid envelopes cannot be swapped even for the same record.
+  const encryptedBytes = Buffer.from(crypto.seal(file.buffer, aad), 'utf8');
+  const encryptedDigest = createHash('sha256').update(encryptedBytes).digest('hex');
   const metadata = Buffer.from(JSON.stringify({
     originalname: normalized.fileName, mimetype: normalized.mimeType,
-    size: file.buffer.length,
+    size: file.buffer.length, encryptedDigest,
   }), 'utf8');
   try {
     // Each AES-GCM seal obtains a fresh nonce, even under the same immutable
     // Company/employee/document ID/version binding. No plaintext temp file.
     const encryptedMetadata = crypto.seal(metadata, aad);
-    const encryptedBytes = Buffer.from(crypto.seal(file.buffer, aad), 'utf8');
     return {
       encryptedMetadata, encryptedBytes, genericFileName: 'hr-private.enc',
       genericMimeType: 'application/octet-stream',
       genericSizeBytes: encryptedBytes.length,
-      encryptedChecksum: createHash('sha256').update(encryptedBytes).digest('hex'),
+      encryptedChecksum: encryptedDigest,
     };
   } finally { metadata.fill(0); }
 }
@@ -83,14 +86,19 @@ export function openHrPrivateAttachment(
     const parsed: unknown = JSON.parse(metadata.toString('utf8'));
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) unavailable();
     const row = parsed as Record<string, unknown>;
-    if (Object.keys(row).sort().join(',') !== 'mimetype,originalname,size' ||
-        typeof row.originalname !== 'string' || typeof row.mimetype !== 'string' ||
-        typeof row.size !== 'number' || !Number.isSafeInteger(row.size) ||
-        row.size < 1 || row.size > HR_PRIVATE_ATTACHMENT_MAX_BYTES) unavailable();
+    const originalname = row.originalname, mimetype = row.mimetype;
+    const size = row.size, encryptedDigest = row.encryptedDigest;
+    if (Object.keys(row).sort().join(',') !== 'encryptedDigest,mimetype,originalname,size' ||
+        typeof originalname !== 'string' || typeof mimetype !== 'string' ||
+        typeof size !== 'number' || !Number.isSafeInteger(size) ||
+        size < 1 || size > HR_PRIVATE_ATTACHMENT_MAX_BYTES ||
+        typeof encryptedDigest !== 'string' || !/^[0-9a-f]{64}$/.test(encryptedDigest)) unavailable();
+    // Reject a valid but substituted envelope before decrypting the file.
+    if (createHash('sha256').update(encryptedBytes).digest('hex') !== encryptedDigest) unavailable();
     plaintext = crypto.open(encryptedBytes.toString('utf8'), aad);
-    if (plaintext.length !== row.size) unavailable();
+    if (plaintext.length !== size) unavailable();
     const normalized = policy.validate({
-      originalname: row.originalname, mimetype: row.mimetype,
+      originalname, mimetype,
       size: plaintext.length, buffer: plaintext,
     });
     return { originalname: normalized.fileName, mimetype: normalized.mimeType, bytes: plaintext };
