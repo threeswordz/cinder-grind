@@ -20,6 +20,12 @@ test('HR attachment ownership is same-Company, private-link-only, versioned and 
     const employee = await db.employee.create({ data: { companyId: company.id, employeeCode: 'HDA-' + suffix, employeeName: 'Synthetic worker A' } });
     const otherEmployee = await db.employee.create({ data: { companyId: foreign.id, employeeCode: 'HDB-' + suffix, employeeName: 'Synthetic worker B' } });
     const actor = await db.user.create({ data: { companyId: company.id, email: 'hda-' + suffix + '@example.invalid', displayName: 'Synthetic HR actor', passwordHash: 'not-a-login' } });
+    const customer = await db.customer.create({ data: { companyId: company.id,
+      customerCode: 'HDA-' + suffix, customerName: 'Synthetic Document Project customer' } });
+    const project = await db.project.create({ data: { companyId: company.id, customerId: customer.id,
+      projectCode: 'HDA-PROJ-' + suffix, projectName: 'Synthetic authorized Project',
+      contractValue: '0', contractCurrencyCode: 'THB', plannedStartDate: new Date('2026-01-01'),
+      plannedCompletionDate: new Date('2027-01-01') } });
     const type = await db.documentType.create({ data: { companyId: company.id, documentTypeCode: 'GEN-' + suffix, documentTypeName: 'Generic evidence' } });
     assert.equal(isHrPrivateDocumentSource('HR_ATTACHMENT'), true);
     const mkDocument = (overrides: Record<string, unknown> = {}) => db.document.create({ data: {
@@ -54,7 +60,7 @@ test('HR attachment ownership is same-Company, private-link-only, versioned and 
     await assert.rejects(db.documentLink.update({ where: { id: link.id }, data: { entityType: 'PROJECT' } }));
     await assert.rejects(db.documentLink.delete({ where: { id: link.id } }));
     await assert.rejects(db.documentLink.create({ data: {
-      documentId: document.id, entityType: 'PROJECT', entityId: randomUUID(), linkedByUserId: actor.id,
+      documentId: document.id, entityType: 'PROJECT', entityId: project.id, linkedByUserId: actor.id,
     } }));
     await assert.rejects(db.document.update({ where: { id: document.id }, data: { fileName: 'identity.pdf' } }));
     await assert.rejects(db.employee.update({ where: { id: employee.id }, data: { employeeCode: 'MOVED-' + suffix } }));
@@ -79,7 +85,7 @@ test('HR attachment ownership is same-Company, private-link-only, versioned and 
         fileSizeBytes: 345, storageProvider: 'LOCAL', storageKey: randomUUID(),
         checksum: 'a'.repeat(64), uploadedByUserId: actor.id } });
       await tx.documentLink.create({ data: { documentId: mixed, entityType: 'PROJECT',
-        entityId: randomUUID(), linkedByUserId: actor.id } });
+        entityId: project.id, linkedByUserId: actor.id } });
       await tx.documentLink.create({ data: { documentId: mixed, entityType: 'HR_ATTACHMENT',
         entityId: employee.id, linkedByUserId: actor.id } });
       await tx.hrDocumentAttachment.create({ data: { companyId: company.id, employeeId: employee.id,
@@ -90,8 +96,8 @@ test('HR attachment ownership is same-Company, private-link-only, versioned and 
     // Canonical private storage metadata is required before a custody row is
     // allowed; a caller cannot register an ordinary named PDF as HR ciphertext.
     const named = await mkDocument({ fileName: 'passport.pdf' });
-    await db.documentLink.create({ data: { documentId: named.id, entityType: 'HR_ATTACHMENT',
-      entityId: employee.id, linkedByUserId: actor.id } });
+    await assert.rejects(db.documentLink.create({ data: { documentId: named.id,
+      entityType: 'HR_ATTACHMENT', entityId: employee.id, linkedByUserId: actor.id } }));
     await assert.rejects(attach(named.id, 3));
     assert.equal(await db.hrDocumentAttachment.count({ where: { employeeId: employee.id } }), 2);
   } finally {
