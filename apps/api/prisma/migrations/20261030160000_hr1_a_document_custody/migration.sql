@@ -42,6 +42,33 @@ ALTER TABLE "hr_document_attachments" ADD CONSTRAINT "hr_document_attachments_ac
 
 -- Lock the owning Employee and Document while checking the next append-only
 -- version. No new file may have a different Company or a public filename/MIME.
+-- Reuse exactly the persisted entitlement plus native role check when
+-- inserting both HR source links and their immutable canonical attachment.
+-- This does not replace the API's transaction/session CSRF/actor validation.
+CREATE FUNCTION hr_has_document_authority(actor UUID, target UUID)
+RETURNS BOOLEAN LANGUAGE SQL STABLE AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM users u
+    JOIN companies native_company ON native_company.id=u.company_id
+      AND native_company.is_active
+    JOIN hr_company_access grant_scope ON grant_scope.user_id=u.id
+      AND grant_scope.company_id=target
+      AND grant_scope.category='documents' AND grant_scope.is_active
+    JOIN companies target_company ON target_company.id=grant_scope.company_id
+      AND target_company.is_active
+    WHERE u.id=actor AND u.is_active
+      AND EXISTS (
+        SELECT 1 FROM user_roles ur
+        JOIN roles r ON r.id=ur.role_id AND r.company_id=u.company_id
+          AND r.is_active
+        JOIN role_permissions rp ON rp.role_id=r.id
+        JOIN permissions p ON p.id=rp.permission_id
+        WHERE ur.user_id=u.id AND ur.company_id=u.company_id
+          AND p.permission_code='hr.documents.manage'
+      )
+  );
+$$;
+
 CREATE FUNCTION hr_attachment_reference_guard() RETURNS trigger LANGUAGE plpgsql AS $$
 DECLARE next_version INTEGER;
 BEGIN
@@ -50,7 +77,11 @@ BEGIN
   IF NOT FOUND THEN
     RAISE EXCEPTION 'HR_ATTACHMENT_SCOPE_INVALID' USING ERRCODE='23503';
   END IF;
+  IF NOT hr_has_document_authority(NEW.actor_user_id, NEW.company_id) THEN
+    RAISE EXCEPTION 'HR_ATTACHMENT_ACTOR_ACCESS_DENIED' USING ERRCODE='23514';
+  END IF;
   PERFORM 1 FROM documents WHERE id=NEW.document_id AND company_id=NEW.company_id
+    AND uploaded_by_user_id=NEW.actor_user_id
     AND file_name='hr-private.enc' AND mime_type='application/octet-stream'
     AND storage_provider='LOCAL' AND file_size_bytes > 0
     AND checksum ~ '^[0-9a-f]{64}$'
@@ -79,6 +110,7 @@ BEGIN
   IF NOT EXISTS(
     SELECT 1 FROM document_links WHERE document_id=NEW.document_id
       AND entity_type='HR_ATTACHMENT' AND entity_id=NEW.employee_id
+      AND linked_by_user_id=NEW.actor_user_id
   ) OR EXISTS(
     SELECT 1 FROM document_links WHERE document_id=NEW.document_id
       AND (entity_type <> 'HR_ATTACHMENT' OR entity_id <> NEW.employee_id)
@@ -177,27 +209,7 @@ BEGIN
     -- This is the ONLY exception to the generic same-Company linker rule:
     -- explicit native role capability plus live target-Company HR entitlement.
     -- An authorized cross-Company HR user remains the real audit actor.
-    IF NOT EXISTS (
-      SELECT 1
-      FROM users u
-      JOIN companies native_company ON native_company.id=u.company_id
-        AND native_company.is_active
-      JOIN hr_company_access grant_scope ON grant_scope.user_id=u.id
-        AND grant_scope.company_id=document_company
-        AND grant_scope.category='documents' AND grant_scope.is_active
-      JOIN companies target_company ON target_company.id=grant_scope.company_id
-        AND target_company.is_active
-      WHERE u.id=NEW."linked_by_user_id" AND u.is_active
-        AND EXISTS (
-          SELECT 1 FROM user_roles ur
-          JOIN roles r ON r.id=ur.role_id
-            AND r.company_id=u.company_id AND r.is_active
-          JOIN role_permissions rp ON rp.role_id=r.id
-          JOIN permissions p ON p.id=rp.permission_id
-          WHERE ur.user_id=u.id AND ur.company_id=u.company_id
-            AND p.permission_code='hr.documents.manage'
-        )
-    ) THEN
+    IF NOT hr_has_document_authority(NEW."linked_by_user_id", document_company) THEN
       RAISE EXCEPTION 'HR_ATTACHMENT_LINK_ACCESS_DENIED' USING ERRCODE='23514';
     END IF;
     -- No Project association: a canonical private file belongs to precisely
