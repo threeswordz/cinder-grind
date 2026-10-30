@@ -16,6 +16,7 @@ const exactModel = `model HrDocumentAttachment {
   actor User @relation("HrDocumentActor", fields: [actorUserId], references: [id], onDelete: Restrict)
 
   @@unique([companyId, employeeId, version])
+  @@unique([companyId, documentId])
   @@index([companyId, employeeId])
   @@map("hr_document_attachments")
 }`;
