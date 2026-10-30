@@ -54,20 +54,41 @@ function noSecretKeys(value) {
 }
 function validateData(kind, data, companyId, employeeId) {
   if (kind === 'employment') {
-    if (!plain(data) || !safeKeys(data.employee,allowedEmployee) || data.employee.id !== employeeId ||
+    if (!plain(data) || Object.keys(data).sort().join(',') !== 'employee,employment' ||
+        !safeKeys(data.employee,allowedEmployee) || data.employee.id !== employeeId ||
+        typeof data.employee.employeeCode !== 'string' || typeof data.employee.employeeName !== 'string' ||
+        !['string','object'].includes(typeof data.employee.jobTitle) ||
+        (data.employee.jobTitle !== null && typeof data.employee.jobTitle !== 'string') ||
+        typeof data.employee.isActive !== 'boolean' ||
         !(data.employment === null || (plain(data.employment) &&
-          Object.keys(data.employment).every(k=>['id','currentVersion','revisions'].includes(k)) &&
+          Object.keys(data.employment).sort().join(',') === 'currentVersion,id,revisions' &&
+          typeof data.employment.id === 'string' && Number.isInteger(data.employment.currentVersion) &&
           Array.isArray(data.employment.revisions) &&
           data.employment.revisions.every(x => plain(x) &&
-            Object.keys(x).every(k=>['id','version','payBasis','employmentForm','siteKind','startDate','endDate','projectId','createdAt'].includes(k))))))
+            Object.keys(x).sort().join(',') === 'createdAt,employmentForm,endDate,id,payBasis,projectId,siteKind,startDate,version' &&
+            typeof x.id === 'string' && Number.isInteger(x.version) && x.version >= 1 &&
+            typeof x.payBasis === 'string' && typeof x.employmentForm === 'string' &&
+            typeof x.siteKind === 'string' && typeof x.startDate === 'string'))))
       fail('UNSAFE_EMPLOYMENT_PROJECTION');
   } else if (kind === 'project') {
-    if (!Array.isArray(data) || data.length > 100 || !data.every(x=>safeKeys(x,allowedOperational))) fail('UNSAFE_PROJECT_PROJECTION');
+    if (!Array.isArray(data) || data.length > 100 || !data.every(x =>
+        safeKeys(x,allowedOperational) && typeof x.id === 'string' &&
+        typeof x.employeeCode === 'string' && typeof x.employeeName === 'string' &&
+        (x.jobTitle === null || typeof x.jobTitle === 'string')))
+      fail('UNSAFE_PROJECT_PROJECTION');
+    // A positive project check with no actual relevant fixture proves nothing.
+    if (!data.some(row => row.id === employeeId)) fail('MISSING_PROJECT_FIXTURE');
   } else if (kind === 'identity' || kind === 'bank') {
-    if (!plain(data) || !Number.isInteger(data.version) || data.version < 0 || !plain(data.values) ||
-        !Object.values(data.values).every(x=>x === '••••')) fail('PRIVATE_VALUE_EXPOSED');
+    const fields=kind === 'identity'
+      ? new Set(['identityNumber','passportNumber','address','contactPhone','contactEmail',
+        'emergencyContact','dateOfBirth','workPermitNumber'])
+      : new Set(['bankName','accountNumber','accountHolder']);
+    if (!plain(data) || Object.keys(data).sort().join(',') !== 'values,version' ||
+        !Number.isInteger(data.version) || data.version < 0 || !plain(data.values) ||
+        !Object.entries(data.values).every(([key,value])=>fields.has(key)&&value === '••••'))
+      fail('PRIVATE_VALUE_EXPOSED');
   }
-  // Never write data, names, masked values or identity markers to the report.
+  // Never write source data, names, masked values or identity markers to the report.
 }
 function classify(expectAllow, status) {
   if (expectAllow === null) return 'NOT_APPLICABLE';
@@ -128,7 +149,9 @@ export async function inspectActor({baseUrl,companyId,projectId,employeeId,key,a
       let state=classify(allow,response.status);
       if(response.status===200){
         const data=(await responseJson(response))?.data;
-        try{validateData(kind,data,companyId,employeeId);}catch{state='FAIL_UNSAFE_PROJECTION';}
+        try { validateData(kind,data,companyId,employeeId); }
+        catch(error) { state=error instanceof Error && error.message==='MISSING_PROJECT_FIXTURE'
+          ? 'BLOCKED_CONFIGURATION' : 'FAIL_UNSAFE_PROJECTION'; }
       }else if(!onlyStatus(response))state='FAIL_UNEXPECTED_HTTP';
       result.checks.push({kind,status:state,httpStatus:response.status});
     }
