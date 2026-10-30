@@ -24,3 +24,13 @@ export function documentSourcePermissions(entityType: string): readonly string[]
   const required = DOCUMENT_SOURCE_VIEW_PERMISSIONS[entityType];
   return required ? [required] : [];
 }
+
+/**
+ * Private HR attachment links are never a generic Project/WBS/transaction
+ * document entitlement. A mixed Project/source alias must not expose metadata
+ * or bytes even if the actor owns the Project or has documents.* permissions.
+ * Dedicated HR routes (HR Company/category authorization) are the only path.
+ */
+export function isHrPrivateDocumentSource(entityType: string): boolean {
+  return typeof entityType === 'string' && entityType.toUpperCase().startsWith('HR_');
+}
