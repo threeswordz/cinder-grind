@@ -64,7 +64,7 @@ The collector requires a strict localhost API URL (`127.0.0.1`, explicit port, e
 
 ## Honest evidence limits and next governed work
 
-- This tooling checks *one explicitly identified employee and Project*, not all employees, whole-company grants or full access lists. Captured responses are sequential, not atomic.
+- This tooling checks *one explicitly identified employee and Project*, not all employees, whole-company grants or full access lists. A successful HTTP response with no HR history, no private revision/value or no matching Project employee fixture is explicitly **BLOCKED_CONFIGURATION** (not false PASS); such a missing fixture is not treated as a failed business action. Captured responses are sequential, not atomic.
 - It cannot prove a real runtime/build/DB fingerprint. Results need a separately verified runtime binding; a declared commit is insufficient.
 - It does not create data or validate actual UI/browser, document bytes, encryption, grant configuration, direct-link bypasses or paid hours.
 - Its CI tests use synthetic HTTP mocks. No retained runtime execution or Owner human UAT is claimed.
