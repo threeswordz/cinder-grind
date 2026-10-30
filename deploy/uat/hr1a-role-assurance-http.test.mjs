@@ -12,7 +12,7 @@ const args={baseUrl,companyId,projectId,employeeId,actor};
 const reply=(status,data,headers={})=>new Response(data===undefined?null:JSON.stringify({data}),{status,
   headers:{'content-type':'application/json',...headers}});
 
-function fixture({mismatch=false,unexpectedPrivate=false,brokenLogout=false}={}){
+function fixture({mismatch=false,unexpectedPrivate=false,brokenLogout=false,extraPrivate=false,extraEmployment=false,emptyProject=false}={}){
   const calls=[];
   const fetchImpl=async(url,options)=>{
     const path=url.slice(baseUrl.length);
@@ -22,9 +22,11 @@ function fixture({mismatch=false,unexpectedPrivate=false,brokenLogout=false}={})
     if(path==='/auth/me')return reply(200,{id:userId,companyId,email:actor.email});
     if(path==='/auth/logout')return reply(brokenLogout?500:204);
     if(path.endsWith('/employment'))return reply(200,{employee:{id:employeeId,employeeCode:'E01',employeeName:'Synthetic',
-      jobTitle:'Tester',isActive:true},employment:null});
-    if(path.includes('/private/'))return unexpectedPrivate?reply(200,{version:1,values:{accountNumber:'12345'}}):reply(404);
-    if(path.startsWith('/hr/projects/'))return reply(200,[{id:employeeId,employeeCode:'E01',employeeName:'Synthetic',jobTitle:'Tester'}]);
+      jobTitle:'Tester',isActive:true},employment:null,...(extraEmployment?{rawValues:{unknown:'private'}}:{})});
+    if(path.includes('/private/'))return extraPrivate
+      ? reply(200,{version:1,values:{accountNumber:'••••'},rawValues:{accountNumber:'12345'}})
+      : unexpectedPrivate?reply(200,{version:1,values:{accountNumber:'12345'}}):reply(404);
+    if(path.startsWith('/hr/projects/'))return reply(200,emptyProject?[]:[{id:employeeId,employeeCode:'E01',employeeName:'Synthetic',jobTitle:'Tester'}]);
     return reply(404);
   };
   return {calls,fetchImpl};
@@ -61,4 +63,24 @@ test('logout failure is never treated as a successful check',async()=>{
   const {fetchImpl}=fixture({brokenLogout:true});
   const report=await inspectActor({...args,key:'KOH',fetchImpl});
   assert.equal(report.status,'FAIL_LOGOUT_UNVERIFIED');
+});
+
+test('rejects additional unmasked private fields even when expected values are masked',async()=>{
+  const {fetchImpl}=fixture({extraPrivate:true});
+  const report=await inspectActor({...args,key:'KOH',fetchImpl});
+  assert.equal(report.status,'FAIL');
+  assert.ok(report.checks.some(x=>x.kind==='bank'&&x.status==='FAIL_UNSAFE_PROJECTION'));
+  assert.equal(JSON.stringify(report).includes('12345'),false);
+});
+test('rejects unexpected sensitive top-level employment projections',async()=>{
+  const {fetchImpl}=fixture({extraEmployment:true});
+  const report=await inspectActor({...args,key:'KOH',fetchImpl});
+  assert.equal(report.status,'FAIL');
+  assert.equal(report.checks.find(x=>x.kind==='employment').status,'FAIL_UNSAFE_PROJECTION');
+});
+test('missing physical project fixture is BLOCKED, not a vacuous PASS',async()=>{
+  const {fetchImpl}=fixture({emptyProject:true});
+  const report=await inspectActor({...args,key:'FOREMAN',fetchImpl});
+  assert.equal(report.status,'BLOCKED_CONFIGURATION');
+  assert.equal(report.checks.find(x=>x.kind==='project').status,'BLOCKED_CONFIGURATION');
 });
