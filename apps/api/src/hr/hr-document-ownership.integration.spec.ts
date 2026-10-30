@@ -20,6 +20,19 @@ test('HR attachment ownership is same-Company, private-link-only, versioned and 
     const employee = await db.employee.create({ data: { companyId: company.id, employeeCode: 'HDA-' + suffix, employeeName: 'Synthetic worker A' } });
     const otherEmployee = await db.employee.create({ data: { companyId: foreign.id, employeeCode: 'HDB-' + suffix, employeeName: 'Synthetic worker B' } });
     const actor = await db.user.create({ data: { companyId: company.id, email: 'hda-' + suffix + '@example.invalid', displayName: 'Synthetic HR actor', passwordHash: 'not-a-login' } });
+    const admin = await db.user.create({ data: { companyId: company.id,
+      email: 'hda-admin-' + suffix + '@example.invalid',
+      displayName: 'Synthetic scoped access administrator', passwordHash: 'not-a-login' } });
+    const foreignAdmin = await db.user.create({ data: { companyId: foreign.id,
+      email: 'hdb-admin-' + suffix + '@example.invalid',
+      displayName: 'Synthetic foreign Company administrator', passwordHash: 'not-a-login' } });
+    const role = await db.role.create({ data: { companyId: company.id,
+      roleCode: 'HRDOC-' + suffix, roleName: 'Synthetic document steward' } });
+    const manage = await db.permission.findUniqueOrThrow({ where: { permissionCode: 'hr.documents.manage' } });
+    await db.rolePermission.create({ data: { roleId: role.id, permissionId: manage.id } });
+    await db.userRole.create({ data: { companyId: company.id, userId: actor.id, roleId: role.id } });
+    await db.hrCompanyAccess.create({ data: { companyId: company.id, userId: actor.id,
+      category: 'documents', isActive: true, reasonCode: 'OWNER_APPROVED_SCOPE', updatedByUserId: admin.id } });
     const customer = await db.customer.create({ data: { companyId: company.id,
       customerCode: 'HDA-' + suffix, customerName: 'Synthetic Document Project customer' } });
     const project = await db.project.create({ data: { companyId: company.id, customerId: customer.id,
@@ -142,6 +155,50 @@ test('HR attachment ownership is same-Company, private-link-only, versioned and 
     assert.equal(await db.hrDocumentAttachment.count({ where: { employeeId: employee.id } }), 3);
     assert.equal(await db.document.count({ where: { id: { in: competingIds } } }), 1);
     assert.equal(await db.documentLink.count({ where: { documentId: { in: competingIds } } }), 1);
+
+    // Target-Company HR-only scope is allowed without changing the actor's
+    // session/native Company, but both the native documents.manage capability
+    // and an active explicit target documents entitlement are mandatory.
+    const foreignTypeDoc = await db.document.create({ data: { companyId: foreign.id,
+      documentTypeId: foreignType.id, fileName: 'hr-private.enc',
+      mimeType: 'application/octet-stream', fileSizeBytes: 345,
+      storageProvider: 'LOCAL', storageKey: randomUUID(), checksum: 'a'.repeat(64),
+      uploadedByUserId: actor.id } });
+    await assert.rejects(db.documentLink.create({ data: { documentId: foreignTypeDoc.id,
+      entityType: 'HR_ATTACHMENT', entityId: otherEmployee.id, linkedByUserId: actor.id } }));
+    const targetGrant = await db.hrCompanyAccess.create({ data: {
+      companyId: foreign.id, userId: actor.id, category: 'documents', isActive: true,
+      reasonCode: 'OWNER_APPROVED_SCOPE', updatedByUserId: foreignAdmin.id,
+    } });
+    await db.documentLink.create({ data: { documentId: foreignTypeDoc.id,
+      entityType: 'HR_ATTACHMENT', entityId: otherEmployee.id, linkedByUserId: actor.id } });
+    const otherCustody = await db.hrDocumentAttachment.create({ data: {
+      companyId: foreign.id, employeeId: otherEmployee.id, documentId: foreignTypeDoc.id,
+      version: 1, encryptedMetadata: sealedMetadata, actorUserId: actor.id,
+    } });
+    assert.equal(otherCustody.companyId, foreign.id);
+    assert.equal(otherCustody.actorUserId, actor.id);
+
+    // Revocation immediately prevents new private associations. It must not
+    // grant generic document/Project source-link authority across Companies.
+    await db.hrCompanyAccess.update({ where: { id: targetGrant.id }, data: {
+      isActive: false, version: targetGrant.version + 1,
+      reasonCode: 'ACCESS_REVOKED', updatedByUserId: foreignAdmin.id,
+    } });
+    const afterRevocation = await db.document.create({ data: {
+      companyId: foreign.id, documentTypeId: foreignType.id,
+      fileName: 'hr-private.enc', mimeType: 'application/octet-stream',
+      fileSizeBytes: 345, storageProvider: 'LOCAL', storageKey: randomUUID(),
+      checksum: 'a'.repeat(64), uploadedByUserId: actor.id,
+    } });
+    await assert.rejects(db.documentLink.create({ data: {
+      documentId: afterRevocation.id, entityType: 'HR_ATTACHMENT',
+      entityId: otherEmployee.id, linkedByUserId: actor.id,
+    } }));
+    await assert.rejects(db.documentLink.create({ data: {
+      documentId: afterRevocation.id, entityType: 'PROJECT',
+      entityId: project.id, linkedByUserId: actor.id,
+    } }));
   } finally {
     await db.$disconnect();
   }
