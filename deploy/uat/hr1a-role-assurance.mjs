@@ -69,6 +69,7 @@ function validateData(kind, data, companyId, employeeId) {
             typeof x.payBasis === 'string' && typeof x.employmentForm === 'string' &&
             typeof x.siteKind === 'string' && typeof x.startDate === 'string'))))
       fail('UNSAFE_EMPLOYMENT_PROJECTION');
+    if(data.employment===null || data.employment.revisions.length===0)fail('MISSING_EMPLOYMENT_FIXTURE');
   } else if (kind === 'project') {
     if (!Array.isArray(data) || data.length > 100 || !data.every(x =>
         safeKeys(x,allowedOperational) && typeof x.id === 'string' &&
@@ -86,6 +87,7 @@ function validateData(kind, data, companyId, employeeId) {
         !Number.isInteger(data.version) || data.version < 0 || !plain(data.values) ||
         !Object.entries(data.values).every(([key,value])=>fields.has(key)&&value === '••••'))
       fail('PRIVATE_VALUE_EXPOSED');
+    if(data.version===0 || Object.keys(data.values).length===0)fail('MISSING_PRIVATE_FIXTURE');
   }
   // Never write source data, names, masked values or identity markers to the report.
 }
@@ -154,7 +156,7 @@ export async function inspectActor({baseUrl,companyId,projectId,employeeId,key,a
       if(response.status===200){
         const data=(await responseJson(response))?.data;
         try { validateData(kind,data,companyId,employeeId); }
-        catch(error) { state=error instanceof Error && error.message==='MISSING_PROJECT_FIXTURE'
+        catch(error) { state=error instanceof Error && ['MISSING_PROJECT_FIXTURE','MISSING_EMPLOYMENT_FIXTURE','MISSING_PRIVATE_FIXTURE'].includes(error.message)
           ? 'BLOCKED_CONFIGURATION' : 'FAIL_UNSAFE_PROJECTION'; }
       }else if(!onlyStatus(response))state='FAIL_UNEXPECTED_HTTP';
       result.checks.push({kind,status:state,httpStatus:response.status});
