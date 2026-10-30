@@ -100,6 +100,27 @@ test('HR attachment ownership is same-Company, private-link-only, versioned and 
       entityType: 'HR_ATTACHMENT', entityId: employee.id, linkedByUserId: actor.id } }));
     await assert.rejects(attach(named.id, 3));
     assert.equal(await db.hrDocumentAttachment.count({ where: { employeeId: employee.id } }), 2);
+
+    // A generic Document Type is not automatically a Company-owned HR type:
+    // reject foreign-Company IDs and inactive types even if generic Document
+    // creation itself accepted their globally unique ID.
+    const foreignType = await db.documentType.create({ data: {
+      companyId: foreign.id, documentTypeCode: 'FOR-' + suffix,
+      documentTypeName: 'Synthetic foreign-Company type',
+    } });
+    const inactiveType = await db.documentType.create({ data: {
+      companyId: company.id, documentTypeCode: 'OFF-' + suffix,
+      documentTypeName: 'Synthetic inactive type', isActive: false,
+    } });
+    for (const id of [foreignType.id, inactiveType.id]) {
+      const invalidTypeDocument = await mkDocument({ documentTypeId: id });
+      await assert.rejects(db.documentLink.create({ data: {
+        documentId: invalidTypeDocument.id, entityType: 'HR_ATTACHMENT',
+        entityId: employee.id, linkedByUserId: actor.id,
+      } }));
+      await assert.rejects(attach(invalidTypeDocument.id, 3));
+    }
+    assert.equal(await db.hrDocumentAttachment.count({ where: { employeeId: employee.id } }), 2);
   } finally {
     await db.$disconnect();
   }
