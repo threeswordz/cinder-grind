@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import { createHash } from 'node:crypto';
 
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -66,6 +67,49 @@ export class InventoryQuantityService {
           : Prisma.empty}
     `);
     return new Prisma.Decimal(rows[0]?.quantity ?? 0);
+  }
+
+  // Snapshot identity is additional to net quantity. Ledger rows are
+  // append-only, so a transaction count detects +N/-N ABA movements.
+  // Reservation identity/status/version and its append-only audit event count
+  // detect releases/replacements or same-quantity reservation churn.
+  // Evaluate under the existing exact-dimension stock lock, in the caller's
+  // serializable transaction; never use client timestamps as sole proof.
+  async snapshotVersion(db: Db, dimension: StockDimension) {
+    const where = {
+      companyId: dimension.companyId,
+      projectId: dimension.projectId,
+      warehouseId: dimension.warehouseId,
+      materialId: dimension.materialId,
+      uomId: dimension.uomId,
+    };
+    const [ledgerEventCount, reservations] = await Promise.all([
+      db.stockTransaction.count({ where }),
+      db.materialReservation.findMany({
+        where,
+        select: {
+          id: true, status: true, quantity: true, updatedAt: true,
+        },
+        orderBy: { id: 'asc' },
+      }),
+    ]);
+    const audits = reservations.length ? await db.auditLog.groupBy({
+      by: ['entityId'],
+      where: {
+        companyId: dimension.companyId,
+        entityType: 'MATERIAL_RESERVATION',
+        entityId: { in: reservations.map(row => row.id) },
+      },
+      _count: { id: true },
+    }) : [];
+    const auditById = new Map(audits.map(row => [row.entityId, row._count.id]));
+    const canonical = reservations.map(row => [
+      row.id, row.status, row.quantity.toString(), row.updatedAt.toISOString(),
+      auditById.get(row.id) ?? 0,
+    ]);
+    const reservationFingerprint = createHash('sha256')
+      .update(JSON.stringify(canonical)).digest('hex');
+    return { ledgerEventCount, reservationFingerprint };
   }
 
   async available(
