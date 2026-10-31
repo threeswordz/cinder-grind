@@ -12,6 +12,7 @@ import { UploadedDocumentFile } from '../documents/document-policy.service';
 import { DocumentsService } from '../documents/documents.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProjectAccessService } from '../projects/project-access.service';
+import { buildWeeklySiteSummary, isSevenCalendarDays } from './site-weekly-summary';
 
 type AuditContext = {
   auth: AuthenticatedUserContext;
@@ -221,6 +222,51 @@ export class SiteExecutionService {
       ),
       manpowerLines: undefined,
     }));
+  }
+
+  // FM01-A: no new permissions or persistence; the canonical list enforces Project scope.
+  async weekly(
+    auth: AuthenticatedUserContext,
+    projectId: string,
+    from: Date,
+    to: Date,
+  ) {
+    if (!isSevenCalendarDays(from, to)) {
+      throw new UnprocessableEntityException({
+        code: 'SITE_WEEK_WINDOW_INVALID',
+        detail: 'Select exactly seven consecutive calendar dates.',
+      });
+    }
+    const sources = await this.list(auth, projectId, from, to);
+    const ids = sources.map(source => source.id);
+    const lines = ids.length ? await this.prisma.dailySiteReportProgressLine.findMany({
+      where: {
+        reportId: { in: ids },
+        report: { companyId: auth.companyId, projectId },
+      },
+      select: {
+        reportId: true,
+        activityId: true,
+        percentComplete: true,
+        note: true,
+        activity: { select: { activityCode: true, activityName: true } },
+      },
+      orderBy: [{ reportId: 'asc' }, { activityId: 'asc' }],
+    }) : [];
+    return buildWeeklySiteSummary(
+      projectId,
+      from,
+      to,
+      sources,
+      lines.map(line => ({
+        reportId: line.reportId,
+        activityId: line.activityId,
+        activityCode: line.activity.activityCode,
+        activityName: line.activity.activityName,
+        percentComplete: line.percentComplete.toString(),
+        note: line.note,
+      })),
+    );
   }
 
   async get(auth: AuthenticatedUserContext, id: string) {

@@ -15,6 +15,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { equipmentApi } from '../api/equipment';
+import { WeeklySiteSummaryPanel } from './WeeklySiteSummaryPanel';
 import {
   DelayLineInput,
   EquipmentUsageLineInput,
@@ -490,6 +491,10 @@ export function SiteExecutionPanel({
               ) : null}
             </Stack>
           ) : null}
+          <WeeklySiteSummaryPanel
+            projectId={projectId}
+            onOpenReport={(id) => setSelectedId(id)}
+          />
           <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
             {canCreate ? (
               <Button variant="outlined" onClick={resetForNew}>
