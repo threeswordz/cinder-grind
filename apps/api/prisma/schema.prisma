@@ -12,6 +12,7 @@ model Company {
   hrEmployments HrEmployment[]
   hrEmploymentRevisions HrEmploymentRevision[]
   hrPrivateRevisions HrPrivateRevision[]
+  hrDocumentAttachments HrDocumentAttachment[]
   hrPersonLinks HrPersonLink[]
   hrReplays HrReplay[]
   customerBoqVersions CustomerBoqVersion[]
@@ -202,6 +203,7 @@ model Material {
 model Employee {
   hrEmployment HrEmployment?
   hrPrivateRevisions HrPrivateRevision[]
+  hrDocumentAttachments HrDocumentAttachment[]
   hrPersonLink HrPersonLink?
   @@unique([companyId, id])
   id           String   @id @default(uuid()) @db.Uuid
@@ -231,6 +233,7 @@ model User {
   hrAccessChanges HrCompanyAccess[] @relation("HrAccessActor")
   hrEmploymentRevisions HrEmploymentRevision[] @relation("HrEmploymentActor")
   hrPrivateRevisions HrPrivateRevision[] @relation("HrPrivateActor")
+  hrDocumentAttachments HrDocumentAttachment[] @relation("HrDocumentActor")
   hrPeople HrPerson[] @relation("HrPersonActor")
   hrPersonLinks HrPersonLink[] @relation("HrPersonLinkActor")
   hrReplays HrReplay[] @relation("HrReplayActor")
@@ -1048,7 +1051,9 @@ model Document {
   documentType DocumentType @relation(fields: [documentTypeId], references: [id], onDelete: Restrict)
   uploadedBy   User         @relation("DocumentUploader", fields: [uploadedByUserId], references: [id], onDelete: Restrict)
   links        DocumentLink[]
+  hrDocumentAttachment HrDocumentAttachment?
 
+  @@unique([companyId, id])
   @@index([companyId, isActive, uploadedAt])
   @@index([documentTypeId])
   @@index([uploadedByUserId])
@@ -3201,6 +3206,32 @@ model HrPersonLink {
   @@unique([companyId, employeeId])
   @@index([personId])
   @@map("hr_person_links")
+}
+
+
+// Private HR file custody points at the canonical Document byte identity.
+// Company is enforced on BOTH Employee and Document foreign keys. A dedicated
+// HR source link is committed in the same transaction; generic Project/WBS
+// access is never an HR authorization surface.
+model HrDocumentAttachment {
+  id String @id @default(uuid()) @db.Uuid
+  companyId String @map("company_id") @db.Uuid
+  employeeId String @map("employee_id") @db.Uuid
+  documentId String @unique @map("document_id") @db.Uuid
+  version Int
+  encryptedMetadata String @map("encrypted_metadata") @db.Text
+  actorUserId String @map("actor_user_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  employee Employee @relation(fields: [companyId, employeeId], references: [companyId, id], onDelete: Restrict)
+  document Document @relation(fields: [companyId, documentId], references: [companyId, id], onDelete: Restrict)
+  actor User @relation("HrDocumentActor", fields: [actorUserId], references: [id], onDelete: Restrict)
+
+  @@unique([companyId, employeeId, version])
+  @@unique([companyId, documentId])
+  @@index([companyId, employeeId])
+  @@map("hr_document_attachments")
 }
 
 model HrReplay {

@@ -66,7 +66,8 @@ try {
       assert.deepEqual(after.columns,before.columns,'Restored predecessor columns changed');
       assert.deepEqual(after.catalogPresent,before.catalogPresent,'Restored predecessor catalog changed');
       assert.deepEqual(after.migrations,before.migrations,'Restored predecessor migrations changed');
-    }else assertHistoricalTables(before.tables,after.tables,true);
+    }else assertHistoricalTables(before.tables,after.tables,
+      process.env.HR_SCHEMA_UPGRADE === 'YES', process.env.HR_DOCUMENT_SCHEMA_UPGRADE === 'YES');
     for(const migration of before.migrations)assert.deepEqual(after.migrations.find(m=>m.migration_name===migration.migration_name),migration);
     console.log(mode==='rollback'?'HR_EXACT_PREDECESSOR_ROLLBACK_ROWS_PRESERVED':'HR_PREDECESSOR_ROWS_AND_MIGRATIONS_PRESERVED');
   } else {

@@ -28,11 +28,19 @@ if (rehearsal.releaseCommit !== expected || recovery.releaseCommit !== expected)
   fail('evidence release SHA does not match the exact workflow commit');
 }
 
-if (['migration-aware-sql-only', 'migration-aware-thb-schema', 'migration-aware-customer-boq-schema', 'migration-aware-hr-schema', 'migration-aware-hr-customer-boq-schema'].includes(rehearsal.releaseMode)) {
-  const customerSchema = ['migration-aware-customer-boq-schema','migration-aware-hr-customer-boq-schema'].includes(rehearsal.releaseMode);
-  const hrSchema = ['migration-aware-hr-schema','migration-aware-hr-customer-boq-schema'].includes(rehearsal.releaseMode);
+const hrDocumentSchema = typeof rehearsal.releaseMode === 'string' &&
+  rehearsal.releaseMode.startsWith('migration-aware-hr-document-');
+const historicalMode = !hrDocumentSchema ? rehearsal.releaseMode :
+  rehearsal.releaseMode === 'migration-aware-hr-document-schema' ? 'migration-aware-sql-only' :
+  'migration-aware-' + rehearsal.releaseMode.slice('migration-aware-hr-document-'.length);
+if (['migration-aware-sql-only', 'migration-aware-thb-schema', 'migration-aware-customer-boq-schema', 'migration-aware-hr-schema', 'migration-aware-hr-customer-boq-schema'].includes(historicalMode) &&
+    (!hrDocumentSchema || ['migration-aware-hr-document-schema', 'migration-aware-hr-document-thb-schema',
+      'migration-aware-hr-document-customer-boq-schema', 'migration-aware-hr-document-hr-schema',
+      'migration-aware-hr-document-hr-customer-boq-schema'].includes(rehearsal.releaseMode))) {
+  const customerSchema = ['migration-aware-customer-boq-schema','migration-aware-hr-customer-boq-schema'].includes(historicalMode);
+  const hrSchema = ['migration-aware-hr-schema','migration-aware-hr-customer-boq-schema'].includes(historicalMode);
   const schemaAware = rehearsal.releaseMode !== 'migration-aware-sql-only';
-  if (rehearsal.version !== (hrSchema ? (customerSchema ? 7 : 6) : customerSchema ? 5 : schemaAware ? 4 : 3)) fail('migration-aware rehearsal evidence schema version does not match its mode');
+  if (rehearsal.version !== (hrDocumentSchema ? 8 : hrSchema ? (customerSchema ? 7 : 6) : customerSchema ? 5 : schemaAware ? 4 : 3)) fail('migration-aware rehearsal evidence schema version does not match its mode');
   if (schemaAware) {
     if (!/^[0-9a-f]{40}$/.test(rehearsal.previousReleaseCommit ?? '') ||
         rehearsal.previousRuntimeCommit !== rehearsal.previousReleaseCommit) {
@@ -43,10 +51,14 @@ if (['migration-aware-sql-only', 'migration-aware-thb-schema', 'migration-aware-
       if (rehearsal[key] !== 'PASS') fail('schema-aware rehearsal gate ' + key + ' did not PASS');
     }
     if (customerSchema && rehearsal.customerBoqPersistenceUpgrade !== 'PASS') fail('Customer BOQ upgrade/persistence proof did not PASS');
-    if (hrSchema) {
+    if (hrSchema || hrDocumentSchema) {
       for (const key of ['hrPredecessorPreservation','hrPredecessorRollback','hrEmployeeUpgradeTests','hrEncryptedRecordRecovery']) if (rehearsal[key] !== 'PASS') fail('HR upgrade proof ' + key + ' did not PASS');
-      if (!rehearsal.migrationNames?.includes('20261029140000_hr1_a_employee_access')) fail('Exact bounded HR migration missing');
+      if (hrSchema && !rehearsal.migrationNames?.includes('20261029140000_hr1_a_employee_access')) fail('Exact bounded HR migration missing');
       if (rehearsal.hrPrivateAttachmentRecovery !== 'NOT_IMPLEMENTED_THIS_INCREMENT') fail('HR attachment recovery scope must stay explicit');
+    }
+    if (hrDocumentSchema) {
+      if (!rehearsal.migrationNames?.includes('20261030160000_hr1_a_document_custody')) fail('Exact bounded HR attachment migration missing');
+      for (const key of ['hrDocumentCustodyUpgrade','hrDocumentSchemaOnly']) if (rehearsal[key] !== 'PASS') fail('HR attachment custody upgrade ' + key + ' did not PASS');
     }
     if ((!customerSchema && !hrSchema) || rehearsal.migrationNames?.some((name) => name.endsWith('_v1_2_thb_monetary_policy'))) {
       for (const key of ['genuineLegacySgdNullFixture', 'historicalRowsUnchanged']) {
@@ -123,7 +135,7 @@ if (['migration-aware-sql-only', 'migration-aware-thb-schema', 'migration-aware-
   }
 
   const migrationConsolidated = {
-    version: customerSchema ? 5 : schemaAware ? 4 : 3,
+    version: hrDocumentSchema ? 8 : customerSchema ? 5 : schemaAware ? 4 : 3,
     releaseMode: rehearsal.releaseMode,
     releaseCommit: expected,
     provenance: {

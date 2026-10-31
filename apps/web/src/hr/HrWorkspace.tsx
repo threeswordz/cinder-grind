@@ -194,7 +194,7 @@ export function HrWorkspace({ user }: { user: CurrentUser }) {
                 </TableRow>)}</TableBody>
             </Table></TableContainer>}
         </Paper>
-        {!companiesQuery.isFetching && !employeesQuery.isFetching && employeeId &&
+        {!companiesQuery.isError && !employeesQuery.isError && employeeId &&
           (['identity', 'bank'] as const)
             .filter(kind => user.permissions.includes('hr.' + kind + '.view') &&
               companies.some(company => company.id === companyId &&
@@ -202,6 +202,7 @@ export function HrWorkspace({ user }: { user: CurrentUser }) {
                 company.permissions.includes('hr.' + kind + '.view')))
             .map(kind => <HrPrivatePanel key={companyId + ':' + employeeId + ':' + kind}
               companyId={companyId} employeeId={employeeId} category={kind} language={language}
+              revalidating={companiesQuery.isFetching || employeesQuery.isFetching}
               canManage={user.permissions.includes('hr.' + kind + '.manage') &&
                 companies.some(company => company.id === companyId &&
                   company.permissions.includes('hr.' + kind + '.manage'))} />)}

@@ -43,9 +43,9 @@ const translations = {
 
 const labelForField = (field: string) => field.replace(/([A-Z])/g, ' $1').replace(/^./, letter => letter.toUpperCase());
 
-export function HrPrivatePanel({ companyId, employeeId, category, canManage, language }: {
+export function HrPrivatePanel({ companyId, employeeId, category, canManage, language, revalidating }: {
   companyId: string; employeeId: string; category: HrPrivateCategory;
-  canManage: boolean; language: Language;
+  canManage: boolean; language: Language; revalidating: boolean;
 }) {
   const queryClient = useQueryClient();
   const key = ['hr1-a', companyId, employeeId, 'masked', category];
@@ -98,6 +98,13 @@ export function HrPrivatePanel({ companyId, employeeId, category, canManage, lan
     }
   }, [masked.isFetching, history.isFetching, masked.isError, history.isError]);
 
+  useEffect(() => {
+    if (!revalidating) return;
+    operation.current++;
+    setBusy(false);
+    setRevealed(null);
+  }, [revalidating]);
+
   const hide = () => { operation.current++; setRevealed(null); };
 
   const reveal = async (version: number) => {
@@ -149,7 +156,9 @@ export function HrPrivatePanel({ companyId, employeeId, category, canManage, lan
   };
 
   const fields = hrPrivateFields[category];
-  const metadataUnavailable = !masked.isSuccess || masked.isFetching ||
+  // Keep the edit and retry key mounted across routine polling, while hiding
+  // private values and withholding actions until authority is revalidated.
+  const metadataUnavailable = revalidating || !masked.isSuccess || masked.isFetching ||
     history.isFetching || !history.isSuccess;
   return <Paper variant="outlined" sx={{ p: 2 }}>
     <Stack spacing={2}>
