@@ -28,19 +28,24 @@ if (rehearsal.releaseCommit !== expected || recovery.releaseCommit !== expected)
   fail('evidence release SHA does not match the exact workflow commit');
 }
 
-const hrDocumentSchema = typeof rehearsal.releaseMode === 'string' &&
-  rehearsal.releaseMode.startsWith('migration-aware-hr-document-');
-const historicalMode = !hrDocumentSchema ? rehearsal.releaseMode :
-  rehearsal.releaseMode === 'migration-aware-hr-document-schema' ? 'migration-aware-sql-only' :
-  'migration-aware-' + rehearsal.releaseMode.slice('migration-aware-hr-document-'.length);
+const stockCountSchema = typeof rehearsal.releaseMode === 'string' &&
+  rehearsal.releaseMode.startsWith('migration-aware-stock-count-');
+const afterStock = !stockCountSchema ? rehearsal.releaseMode :
+  rehearsal.releaseMode === 'migration-aware-stock-count-schema' ? 'migration-aware-sql-only' :
+  'migration-aware-' + rehearsal.releaseMode.slice('migration-aware-stock-count-'.length);
+const hrDocumentSchema = typeof afterStock === 'string' &&
+  afterStock.startsWith('migration-aware-hr-document-');
+const historicalMode = !hrDocumentSchema ? afterStock :
+  afterStock === 'migration-aware-hr-document-schema' ? 'migration-aware-sql-only' :
+  'migration-aware-' + afterStock.slice('migration-aware-hr-document-'.length);
 if (['migration-aware-sql-only', 'migration-aware-thb-schema', 'migration-aware-customer-boq-schema', 'migration-aware-hr-schema', 'migration-aware-hr-customer-boq-schema'].includes(historicalMode) &&
     (!hrDocumentSchema || ['migration-aware-hr-document-schema', 'migration-aware-hr-document-thb-schema',
       'migration-aware-hr-document-customer-boq-schema', 'migration-aware-hr-document-hr-schema',
-      'migration-aware-hr-document-hr-customer-boq-schema'].includes(rehearsal.releaseMode))) {
+      'migration-aware-hr-document-hr-customer-boq-schema'].includes(afterStock))) {
   const customerSchema = ['migration-aware-customer-boq-schema','migration-aware-hr-customer-boq-schema'].includes(historicalMode);
   const hrSchema = ['migration-aware-hr-schema','migration-aware-hr-customer-boq-schema'].includes(historicalMode);
   const schemaAware = rehearsal.releaseMode !== 'migration-aware-sql-only';
-  if (rehearsal.version !== (hrDocumentSchema ? 8 : hrSchema ? (customerSchema ? 7 : 6) : customerSchema ? 5 : schemaAware ? 4 : 3)) fail('migration-aware rehearsal evidence schema version does not match its mode');
+  if (rehearsal.version !== (stockCountSchema ? 9 : hrDocumentSchema ? 8 : hrSchema ? (customerSchema ? 7 : 6) : customerSchema ? 5 : schemaAware ? 4 : 3)) fail('migration-aware rehearsal evidence schema version does not match its mode');
   if (schemaAware) {
     if (!/^[0-9a-f]{40}$/.test(rehearsal.previousReleaseCommit ?? '') ||
         rehearsal.previousRuntimeCommit !== rehearsal.previousReleaseCommit) {
@@ -59,6 +64,12 @@ if (['migration-aware-sql-only', 'migration-aware-thb-schema', 'migration-aware-
     if (hrDocumentSchema) {
       if (!rehearsal.migrationNames?.includes('20261030160000_hr1_a_document_custody')) fail('Exact bounded HR attachment migration missing');
       for (const key of ['hrDocumentCustodyUpgrade','hrDocumentSchemaOnly']) if (rehearsal[key] !== 'PASS') fail('HR attachment custody upgrade ' + key + ' did not PASS');
+    }
+    if (stockCountSchema) {
+      if (!rehearsal.migrationNames?.includes('20261031163000_op_stock_count_01')) fail('Exact bounded stock-count migration missing');
+      for (const key of ['stockCountSchemaUpgrade','stockCountHistoricalPreservation']) {
+        if (rehearsal[key] !== 'PASS') fail('Stock-count upgrade proof ' + key + ' did not PASS');
+      }
     }
     if ((!customerSchema && !hrSchema) || rehearsal.migrationNames?.some((name) => name.endsWith('_v1_2_thb_monetary_policy'))) {
       for (const key of ['genuineLegacySgdNullFixture', 'historicalRowsUnchanged']) {
@@ -135,7 +146,7 @@ if (['migration-aware-sql-only', 'migration-aware-thb-schema', 'migration-aware-
   }
 
   const migrationConsolidated = {
-    version: hrDocumentSchema ? 8 : customerSchema ? 5 : schemaAware ? 4 : 3,
+    version: stockCountSchema ? 9 : hrDocumentSchema ? 8 : customerSchema ? 5 : schemaAware ? 4 : 3,
     releaseMode: rehearsal.releaseMode,
     releaseCommit: expected,
     provenance: {
