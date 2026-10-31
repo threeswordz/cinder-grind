@@ -214,7 +214,10 @@ export function HrWorkspace({ user }: { user: CurrentUser }) {
             company.permissions.includes('hr.documents.view')) &&
           <HrDocumentsPanel key={companyId + ':' + employeeId} userId={user.id}
             companyId={companyId} employeeId={employeeId} language={language}
-            revalidating={companiesQuery.isFetching || employeesQuery.isFetching} />}
+            revalidating={companiesQuery.isFetching || employeesQuery.isFetching}
+            canManage={user.permissions.includes('hr.documents.manage') &&
+              companies.some(company => company.id === companyId &&
+                company.permissions.includes('hr.documents.manage'))} />}
       </>}
   </Stack>;
 }
