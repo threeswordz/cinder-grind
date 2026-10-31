@@ -581,7 +581,7 @@ set -e
 
 if [[ "$schema_mode" != "migration-aware-sql-only" ]]; then
   if [[ "$legacy_upgrade" == true ]]; then
-    HR_SCHEMA_UPGRADE=NO HR_DOCUMENT_SCHEMA_UPGRADE=NO DATABASE_URL="$rollback_url" node "$RC_DIR/legacy-fixture.mjs" verify "$previous_root" "$tmp_root/legacy.json" "$tmp_root/legacy-snapshot.json"
+    HR_SCHEMA_UPGRADE=NO HR_DOCUMENT_SCHEMA_UPGRADE=NO STOCK_COUNT_SCHEMA_UPGRADE=NO DATABASE_URL="$rollback_url" node "$RC_DIR/legacy-fixture.mjs" verify "$previous_root" "$tmp_root/legacy.json" "$tmp_root/legacy-snapshot.json"
   fi
   if [[ "$hr_proof" == true ]]; then
     HR_DOCUMENT_SCHEMA_UPGRADE=NO DATABASE_URL="$rollback_url" node "$RC_DIR/hr-upgrade.mjs" rollback "$previous_root" "$tmp_root/hr-predecessor.json"
