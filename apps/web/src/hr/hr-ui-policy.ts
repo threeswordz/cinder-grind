@@ -13,7 +13,7 @@ export function employmentCompanies(companies: readonly HrCompanyChoice[]): HrCo
 }
 
 export function selectedHrCompany(requestedId: string, companies: readonly HrCompanyChoice[]): string {
-  if (requestedId && companies.some(company => company.id === requestedId)) return requestedId;
+  if (requestedId) return companies.some(company => company.id === requestedId) ? requestedId : '';
   return companies[0]?.id ?? '';
 }
 

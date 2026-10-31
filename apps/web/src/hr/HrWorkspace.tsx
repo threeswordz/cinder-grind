@@ -22,6 +22,7 @@ const labels = {
     choose: 'Select an employee to view their recorded history.',
     unavailable: 'HR data is unavailable or your access has changed.',
     noCompany: 'No authorized HR employment Company is available.',
+    chooseCompany: 'Previous HR Company access is no longer available. Select another authorized Company.',
     scope: 'Read-only employee and employment-history view. Financial details and private documents are excluded.',
   },
   th: {
@@ -35,6 +36,7 @@ const labels = {
     choose: 'เลือกพนักงานเพื่อดูประวัติการจ้างงาน',
     unavailable: 'ไม่สามารถเข้าถึงข้อมูลฝ่ายบุคคลหรือสิทธิ์การเข้าถึงเปลี่ยนแปลง',
     noCompany: 'ไม่มีบริษัทที่ได้รับสิทธิ์ดูข้อมูลการจ้างงาน',
+    chooseCompany: 'สิทธิ์เข้าถึงบริษัทเดิมไม่พร้อมใช้งาน กรุณาเลือกบริษัทที่ได้รับอนุญาต',
     scope: 'ดูข้อมูลพนักงานและประวัติการจ้างงานเท่านั้น ไม่แสดงข้อมูลการเงินหรือเอกสารส่วนตัว',
   },
   'zh-TW': {
@@ -48,6 +50,7 @@ const labels = {
     choose: '請選擇員工查看聘僱記錄',
     unavailable: '人事資料無法使用，或您的存取權限已變更',
     noCompany: '沒有獲授權檢視聘僱資料的公司',
+    chooseCompany: '原選定公司已無存取權限，請另選有權限的公司',
     scope: '僅供檢視員工和聘僱歷史，不包含財務資料或私人文件',
   },
 } satisfies Record<Language, Record<string, string>>;
@@ -114,6 +117,7 @@ export function HrWorkspace({ user }: { user: CurrentUser }) {
       <TextField select size="small" label={t.company} value={companyId}
         disabled={!companies.length || companiesQuery.isError}
         onChange={event => changeCompany(event.target.value)} sx={{ minWidth: 220 }}>
+        <MenuItem disabled value="">—</MenuItem>
         {companies.map(company => <MenuItem key={company.id} value={company.id}>
           {company.companyCode} — {company.companyName}
         </MenuItem>)}
@@ -122,7 +126,8 @@ export function HrWorkspace({ user }: { user: CurrentUser }) {
     <Alert severity="info">{t.scope}</Alert>
     {companiesQuery.isPending ? <CircularProgress size={24}/> : companiesQuery.isError ?
       <Alert severity="warning">{t.unavailable}</Alert> : !companies.length ?
-      <Alert severity="info">{t.noCompany}</Alert> : <>
+      <Alert severity="info">{t.noCompany}</Alert> : !companyId ?
+      <Alert severity="warning">{t.chooseCompany}</Alert> : <>
         <Paper variant="outlined">
           <Box sx={{ display: 'flex', justifyContent: 'flex-end', p: 1 }}>
             <Button onClick={() => void employeesQuery.refetch()} disabled={employeesQuery.isFetching}>{t.reload}</Button>

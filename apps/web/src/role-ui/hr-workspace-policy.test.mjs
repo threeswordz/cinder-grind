@@ -15,8 +15,9 @@ test('HR employment selection accepts only backend-listed Company category and v
   const permitted = employmentCompanies(choices);
   assert.deepEqual(permitted.map(company => company.id), ['company-a','company-e']);
   assert.equal(selectedHrCompany('company-e', permitted), 'company-e');
-  assert.equal(selectedHrCompany('company-b', permitted), 'company-a');
-  assert.equal(selectedHrCompany('forged-cross-company', permitted), 'company-a');
+  assert.equal(selectedHrCompany('company-b', permitted), '');
+  assert.equal(selectedHrCompany('forged-cross-company', permitted), '');
+  assert.equal(selectedHrCompany('', permitted), 'company-a');
   assert.equal(selectedHrCompany('company-e', []), '');
 });
 
