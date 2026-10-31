@@ -364,6 +364,10 @@ jobs:
           for attempt in 1 2 3; do
             node deploy/uat/boq-workflow-browser.mjs
           done
+      - name: Verify HR1-A employee UI in a real disposable browser
+        run: |
+          node --check deploy/uat/hr1a-employee-browser.mjs
+          node deploy/uat/hr1a-employee-browser.mjs
       - name: Rehearse V1.0-E exact release candidate
         env:
           RC_NON_PRODUCTION_CONFIRMED: YES
