@@ -2,6 +2,7 @@ import { spawn } from 'node:child_process';
 import { randomBytes, randomUUID } from 'node:crypto';
 import { chmod, mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
+import { createConnection } from 'node:net';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -10,6 +11,25 @@ const label = 'io.construction-erp.validation';
 const dataPath = '/var/lib/postgresql/data';
 const root = fileURLToPath(new URL('../..', import.meta.url));
 const validationPhases = ['typecheck', 'test', 'build'];
+
+// Docker's in-container pg_isready can succeed before the loopback published
+// port is reachable from this runner. Probe only the exact newly verified
+// ephemeral 127.0.0.1 port, never an existing/retained database endpoint.
+export function probeLoopbackPostgres(port) {
+  return new Promise(resolve => {
+    const socket = createConnection({ host: '127.0.0.1', port: Number(port) });
+    let complete = false;
+    const finish = ready => {
+      if (complete) return;
+      complete = true;
+      socket.destroy();
+      resolve(ready);
+    };
+    socket.setTimeout(500, () => finish(false));
+    socket.once('connect', () => finish(true));
+    socket.once('error', () => finish(false));
+  });
+}
 
 function requireSafe(condition, message) {
   if (!condition) throw new Error(message);
@@ -62,6 +82,7 @@ export async function runProcess(command, args, { env, inherit = false, signal }
 
 export async function validateIsolated({ engine = 'podman', env = process.env,
   run = runProcess, signal, sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+  probeHost = probeLoopbackPostgres,
   makeStorage = () => mkdtemp(join(tmpdir(), 'erp-validation-')),
   removeStorage = (path) => rm(path, { recursive: true, force: true }),
   protectStorage = (path) => chmod(path, 0o700), log = console.log } = {}) {
@@ -108,6 +129,14 @@ export async function validateIsolated({ engine = 'podman', env = process.env,
       await sleep(500);
     }
     requireSafe(ready, 'Disposable validation PostgreSQL did not become ready.');
+    // In-container readiness is necessary but insufficient: fail closed if
+    // Docker's port mapping is still unavailable to the actual CI process.
+    let loopbackReady = false;
+    for (let attempt = 0; attempt < 60; attempt++) {
+      if (await probeHost(port)) { loopbackReady = true; break; }
+      await sleep(500);
+    }
+    requireSafe(loopbackReady, 'Disposable validation PostgreSQL loopback port is unreachable.');
     const databaseUrl = `postgresql://${user}:${password}@127.0.0.1:${port}/${database}?schema=public`;
     const testEnv = childEnvironment(env, databaseUrl, storage);
     testEnv.ERP_LEGACY_FIXTURE = join(storage, 'legacy-fixture.json');

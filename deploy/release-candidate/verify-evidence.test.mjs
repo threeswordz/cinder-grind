@@ -98,3 +98,22 @@ test('bounded HR evidence preserves earlier modes and requires executed preserva
     if(customer){const bad={...data};delete bad.customerBoqPersistenceUpgrade;assert.notEqual(verify(bad).status,0);}
   }
 });
+
+test('HR document custody recovery evidence requires nonempty DB/store/key/restored API proof', () => {
+  const data = { ...evidence('migration-aware-hr-document-hr-schema'), version: 8,
+    migrationNames: ['20261029140000_hr1_a_employee_access', '20261030160000_hr1_a_document_custody'],
+    hrPredecessorPreservation: 'PASS', hrPredecessorRollback: 'PASS',
+    hrEmployeeUpgradeTests: 'PASS', hrEncryptedRecordRecovery: 'PASS',
+    hrDocumentCustodyUpgrade: 'PASS', hrDocumentSchemaOnly: 'PASS',
+    hrPrivateAttachmentRecovery: 'PASS' };
+  delete data.genuineLegacySgdNullFixture; delete data.historicalRowsUnchanged;
+  assert.equal(verify(data).status, 0);
+  for (const key of ['hrPrivateAttachmentRecovery', 'hrDocumentCustodyUpgrade',
+    'hrDocumentSchemaOnly', 'hrEncryptedRecordRecovery']) {
+    const broken = { ...data };
+    delete broken[key];
+    assert.notEqual(verify(broken).status, 0, 'Missing HR recovery evidence: ' + key);
+  }
+  assert.notEqual(verify({ ...data, hrPrivateAttachmentRecovery: 'NOT_IMPLEMENTED_THIS_INCREMENT' }).status, 0);
+  assert.notEqual(verify({ ...data, version: 7 }).status, 0);
+});

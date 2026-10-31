@@ -1,7 +1,10 @@
 import 'reflect-metadata';
 import assert from 'node:assert/strict';
-import { randomBytes, randomUUID } from 'node:crypto';
+import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import test from 'node:test';
+import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import path from 'node:path';
+import { tmpdir } from 'node:os';
 import { NestFactory } from '@nestjs/core';
 import { ConflictException, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 import { AppModule } from '../app.module';
@@ -10,10 +13,15 @@ import { securityHeadersMiddleware } from '../common/security-headers';
 import { ProblemDetailsFilter } from '../common/problem-details.filter';
 import { PrismaService } from '../prisma/prisma.service';
 import { HrService } from './hr.service';
+import { LocalDocumentStorage } from '../documents/local-document-storage.service';
+import { DocumentPolicyService } from '../documents/document-policy.service';
 import { hrFacts, hrFixture } from './hr-test-fixture';
 
 test('HR employee/private HTTP and database contracts use disposable scoped identities, immutable history and exact authority', async t => {
   const savedKeys = process.env.HR_PRIVATE_KEYS, savedActive = process.env.HR_PRIVATE_ACTIVE_KEY_ID;
+  const savedStorage = process.env.STORAGE_ROOT;
+  const temporaryHrStorage = await mkdtemp(path.join(tmpdir(), 'erp-hr-attachment-http-'));
+  process.env.STORAGE_ROOT = temporaryHrStorage;
   const keys = { test1: randomBytes(32).toString('base64') };
   process.env.HR_PRIVATE_KEYS = JSON.stringify(keys); process.env.HR_PRIVATE_ACTIVE_KEY_ID = 'test1';
   const db = new PrismaService(); await db.$connect();
@@ -287,7 +295,7 @@ test('HR employee/private HTTP and database contracts use disposable scoped iden
     });
     await t.test('audit failure rolls back canonical Employee, history and replay together', async () => {
       class FailingAudit extends AuditService { override async record(): Promise<void> { throw new Error('Synthetic audit unavailable'); } }
-      const failing = new HrService(db, new FailingAudit(db), f.projects, f.crypto);
+      const failing = new HrService(db, new FailingAudit(db), f.projects, f.crypto, new LocalDocumentStorage(), new DocumentPolicyService());
       const before = await db.employee.count(), requestId = randomUUID();
       await assert.rejects(failing.create(a.hr.auth, f.company.id, { requestId, employeeCode: 'ROLLBACK-' + f.suffix, employeeName: 'Must roll back', facts: hrFacts() }));
       assert.equal(await db.employee.count(), before); assert.equal(await db.hrReplay.count({ where: { requestId } }), 0);
@@ -374,6 +382,158 @@ test('HR employee/private HTTP and database contracts use disposable scoped iden
       await call(a.hr, path, 403);
       await db.role.update({ where: { id: a.hr.role.id }, data: { isActive: true } });
     });
+
+    await t.test('private encrypted HR upload/download is byte-exact, Company-scoped and replay safe', async () => {
+      // The preceding attachment-history test created the employee's immutable
+      // version 1 custody record using synthetic placeholder ciphertext.
+      // This test exercises a REAL encrypted version 2 stored in disposable
+      // memory->ciphertext storage, never an existing retained document.
+      const type = await db.documentType.create({ data: {
+        companyId: f.company.id, documentTypeCode: 'HRA-FILE-' + f.suffix,
+        documentTypeName: 'Synthetic ordinary evidence type',
+      } });
+      const bytes = Buffer.from('SYNTHETIC-HR-DOCUMENT-BYTES-' + f.suffix, 'utf8');
+      const documentPath = employeeRoot + '/documents';
+      const foreignType = await db.documentType.create({ data: {
+        companyId: f.other.id, documentTypeCode: 'HRA-FOREIGN-' + f.suffix,
+        documentTypeName: 'Synthetic foreign-Company type',
+      } });
+      const inactiveType = await db.documentType.create({ data: {
+        companyId: f.company.id, documentTypeCode: 'HRA-INACTIVE-' + f.suffix,
+        documentTypeName: 'Synthetic inactive evidence type', isActive: false,
+      } });
+      const options = (await call(a.hr, root + '/document-types')).data;
+      assert.ok(options.items.some((item: any) => item.id === type.id));
+      assert.equal(options.items.some((item: any) => item.id === foreignType.id), false);
+      assert.equal(options.items.some((item: any) => item.id === inactiveType.id), false);
+      assert.ok(options.items.every((item: any) =>
+        Object.keys(item).sort().join(',') === 'documentTypeCode,documentTypeName,id'));
+      await call(a.ben, root + '/document-types', 403);
+      await call(a.nancy, root + '/document-types', 403);
+      await call(a.hr, root + '/document-types?after=not-a-uuid', 422);
+      await call(a.hr, root + '/document-types?unrecognized=1', 422);
+      await call(a.hr, foreign + '/document-types', 404);
+      const requestId = randomUUID();
+      const upload = (actor: Actor, key: string, expectedVersion = '1',
+        payload = bytes, csrf = true) => {
+        const form = new FormData();
+        form.set('requestId', key);
+        form.set('documentTypeId', type.id);
+        form.set('expectedVersion', expectedVersion);
+        form.set('file', new Blob([payload], { type: 'text/plain' }), 'synthetic-private.txt');
+        return fetch(base + documentPath, { method: 'POST',
+          headers: { Cookie: 'erp_session=' + actor.session.sessionToken,
+            ...(csrf ? { 'x-csrf-token': actor.session.csrfToken } : {}) },
+          body: form,
+        });
+      };
+      const blocked = await upload(a.ben, randomUUID());
+      assert.equal(blocked.status, 403);
+      const noCsrf = await upload(a.hr, randomUUID(), '1', bytes, false);
+      assert.equal(noCsrf.status, 403);
+      // No completed upload may be created by a rejected or revoked actor.
+      const storedBefore = await db.hrDocumentAttachment.count({ where: { companyId: f.company.id, employeeId: f.legacy.id } });
+      const deniedBytes = Buffer.from('PRIVATE-REJECTED-ACCESS');
+      await assert.rejects(f.service.uploadDocument(a.ben.auth, f.company.id,
+        f.legacy.id, { requestId: randomUUID(), documentTypeId: type.id, expectedVersion: '1' },
+        { originalname: 'synthetic-private.txt', mimetype: 'text/plain', buffer: deniedBytes }));
+      assert.ok(deniedBytes.every(byte => byte === 0), 'Rejected private upload buffers must be erased');
+      const rejectedMime = Buffer.from('PRIVATE-INVALID-MIME');
+      await assert.rejects(f.service.uploadDocument(a.hr.auth, f.company.id,
+        f.legacy.id, { requestId: randomUUID(), documentTypeId: type.id, expectedVersion: '1' },
+        { originalname: 'synthetic-private.txt', mimetype: 'application/x-executable', buffer: rejectedMime }));
+      assert.ok(rejectedMime.every(byte => byte === 0), 'Invalid private MIME bytes must be erased');
+      assert.equal(await db.hrDocumentAttachment.count({
+        where: { companyId: f.company.id, employeeId: f.legacy.id },
+      }), storedBefore);
+      const response = await upload(a.hr, requestId);
+      assert.equal(response.status, 201, await response.clone().text());
+      assert.equal(response.headers.get('cache-control'), 'private, no-store');
+      const receipt = (await response.json() as any).data;
+      assert.equal(receipt.version, 2);
+      const row = await db.hrDocumentAttachment.findUniqueOrThrow({ where: { id: receipt.id },
+        include: { document: true } });
+      assert.equal(row.companyId, f.company.id);
+      assert.equal(row.employeeId, f.legacy.id);
+      assert.equal(row.document.fileName, 'hr-private.enc');
+      assert.equal(row.document.mimeType, 'application/octet-stream');
+      assert.notEqual(row.document.checksum, createHash('sha256').update(bytes).digest('hex'));
+      assert.equal(JSON.stringify(row).includes(bytes.toString('utf8')), false);
+      assert.equal(JSON.stringify(row).includes('synthetic-private.txt'), false);
+      assert.deepEqual((await db.documentLink.findMany({ where: { documentId: row.documentId } }))
+        .map(l => [l.entityType, l.entityId]), [['HR_ATTACHMENT', f.legacy.id]]);
+      const storagePath = path.join(temporaryHrStorage, row.document.storageKey);
+      const cipher = await readFile(storagePath);
+      assert.equal(cipher.includes(bytes), false);
+      assert.equal(createHash('sha256').update(cipher).digest('hex'), row.document.checksum);
+
+      const download = (actor: Actor, pathSuffix = '/' + receipt.id + '/download') => fetch(
+        base + documentPath + pathSuffix, {
+          headers: { Cookie: 'erp_session=' + actor.session.sessionToken },
+        });
+      const authorized = await download(a.hr);
+      assert.equal(authorized.status, 200, await authorized.clone().text());
+      assert.equal(authorized.headers.get('cache-control'), 'private, no-store');
+      assert.equal(authorized.headers.get('content-type')?.startsWith('text/plain'), true);
+      assert.deepEqual(Buffer.from(await authorized.arrayBuffer()), bytes);
+      assert.match(authorized.headers.get('content-disposition') ?? '', /synthetic-private.txt/);
+      for (const actor of [a.ben,a.porn,a.store,a.foreman,a.admin]) {
+        const denied = await download(actor);
+        assert.equal(denied.status, 403);
+      }
+      assert.equal((await download(a.nancy)).status, 404);
+      assert.equal((await fetch(base + foreign + '/employees/' + f.legacy.id + '/documents/' + receipt.id + '/download', {
+        headers: { Cookie: 'erp_session=' + a.hr.session.sessionToken },
+      })).status, 404);
+
+      const replay = await upload(a.hr, requestId);
+      assert.equal(replay.status, 201, await replay.clone().text());
+      assert.deepEqual((await replay.json() as any).data, receipt);
+      assert.equal(await db.hrDocumentAttachment.count({ where: {
+        companyId: f.company.id, employeeId: f.legacy.id,
+      } }), 2);
+      assert.equal((await readdir(temporaryHrStorage)).filter(name => /^[0-9a-f]{8}-/.test(name)).length, 1);
+      const changed = await upload(a.hr, requestId, '1',
+        Buffer.from('DIFFERENT-SYNTHETIC-PRIVATE-BYTES'));
+      assert.equal(changed.status, 409);
+      const stale = await upload(a.hr, randomUUID(), '1');
+      assert.equal(stale.status, 409);
+      assert.equal(await db.hrDocumentAttachment.count({ where: {
+        companyId: f.company.id, employeeId: f.legacy.id,
+      } }), 2);
+      // An actual entitlement revocation must block the dedicated download
+      // even for someone who previously downloaded the exact same bytes.
+      const grant = await db.hrCompanyAccess.findUniqueOrThrow({ where: {
+        companyId_userId_category: { companyId: f.company.id, userId: a.hr.user.id, category: 'documents' },
+      } });
+      await db.hrCompanyAccess.update({ where: { id: grant.id },
+        data: { isActive: false, version: grant.version + 1, reasonCode: 'ACCESS_REVOKED' } });
+      try {
+        assert.equal((await download(a.hr)).status, 404);
+        assert.notEqual((await upload(a.hr, randomUUID(), '2')).status, 201);
+      } finally {
+        await db.hrCompanyAccess.update({ where: { id: grant.id },
+          data: { isActive: true, version: grant.version + 2, reasonCode: 'SCOPE_CORRECTION' } });
+      }
+
+      const savedKeysForFailure = process.env.HR_PRIVATE_KEYS;
+      delete process.env.HR_PRIVATE_KEYS;
+      try {
+        const noKey = await download(a.hr);
+        assert.equal(noKey.status, 503);
+        assert.equal((await noKey.text()).includes(bytes.toString('utf8')), false);
+      } finally { process.env.HR_PRIVATE_KEYS = savedKeysForFailure; }
+      const originalCipher = Buffer.from(cipher);
+      await writeFile(storagePath, Buffer.from('SYNTHETIC-TAMPERED-CIPHERTEXT'));
+      try {
+        const tampered = await download(a.hr);
+        assert.notEqual(tampered.status, 200);
+      } finally { await writeFile(storagePath, originalCipher); }
+      const restoredDownload = await download(a.hr);
+      assert.equal(restoredDownload.status, 200);
+      assert.deepEqual(Buffer.from(await restoredDownload.arrayBuffer()), bytes);
+    });
+
     await t.test('private payloads/history/replay/audit remain encrypted or metadata-only; excluded ledgers are untouched', async () => {
       const companyIds = [f.company.id,f.other.id];
       const rows = await Promise.all([db.hrEmploymentRevision.findMany({ where: { companyId: { in: companyIds } } }),
@@ -386,5 +546,7 @@ test('HR employee/private HTTP and database contracts use disposable scoped iden
     await app.close(); await db.$disconnect();
     if (savedKeys === undefined) delete process.env.HR_PRIVATE_KEYS; else process.env.HR_PRIVATE_KEYS = savedKeys;
     if (savedActive === undefined) delete process.env.HR_PRIVATE_ACTIVE_KEY_ID; else process.env.HR_PRIVATE_ACTIVE_KEY_ID = savedActive;
+    if (savedStorage === undefined) delete process.env.STORAGE_ROOT; else process.env.STORAGE_ROOT = savedStorage;
+    await rm(temporaryHrStorage, { recursive: true, force: true });
   }
 });
