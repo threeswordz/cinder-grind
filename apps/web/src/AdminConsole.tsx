@@ -33,6 +33,7 @@ import { RetentionFinanceWorkspace } from './finance/RetentionFinanceWorkspace';
 import { InventoryWorkspace } from './inventory/InventoryWorkspace';
 import { SubcontractsWorkspace } from './subcontracts/SubcontractsWorkspace';
 import { WbsPanel } from './wbs/WbsPanel';
+import { HrWorkspace } from './hr/HrWorkspace';
 
 type Section = {
   key: string;
@@ -53,6 +54,12 @@ export function AdminConsole({ user, onLogoutSuccess }: { user: CurrentUser; onL
   const sections = useMemo<Section[]>(
     () =>
       [
+        {
+          key: 'hr',
+          label: 'HR / Employees',
+          permission: 'hr.employment.view',
+          content: <HrWorkspace user={user} />,
+        },
         {
           key: 'management',
           label: 'Management',
