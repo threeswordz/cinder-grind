@@ -52,19 +52,30 @@ if ! git diff --quiet "$RC_PREVIOUS_RELEASE_COMMIT" "$RELEASE_COMMIT" -- apps/ap
   rm -f "$previous_schema_check"
 fi
 
+stock_count_schema=false
 hr_schema=false
 hr_document_schema=false
 hr_proof=false
 customer_schema=false
-historical_mode="$schema_mode"
+successor_mode="$schema_mode"
+export STOCK_COUNT_SCHEMA_UPGRADE=NO
 export HR_SCHEMA_UPGRADE=NO
 export HR_DOCUMENT_SCHEMA_UPGRADE=NO
-if [[ "$schema_mode" == "migration-aware-hr-document-schema" ]]; then
+if [[ "$schema_mode" == "migration-aware-stock-count-schema" ]]; then
+  stock_count_schema=true
+  successor_mode="migration-aware-sql-only"
+elif [[ "$schema_mode" == migration-aware-stock-count-* ]]; then
+  stock_count_schema=true
+  successor_mode="migration-aware-${schema_mode#migration-aware-stock-count-}"
+fi
+if [[ "$stock_count_schema" == true ]]; then export STOCK_COUNT_SCHEMA_UPGRADE=YES; fi
+historical_mode="$successor_mode"
+if [[ "$successor_mode" == "migration-aware-hr-document-schema" ]]; then
   hr_document_schema=true
   historical_mode="migration-aware-sql-only"
-elif [[ "$schema_mode" == migration-aware-hr-document-* ]]; then
+elif [[ "$successor_mode" == migration-aware-hr-document-* ]]; then
   hr_document_schema=true
-  historical_mode="migration-aware-${schema_mode#migration-aware-hr-document-}"
+  historical_mode="migration-aware-${successor_mode#migration-aware-hr-document-}"
 fi
 if [[ "$hr_document_schema" == true ]]; then export HR_DOCUMENT_SCHEMA_UPGRADE=YES; fi
 if [[ "$historical_mode" == "migration-aware-hr-schema" || "$historical_mode" == "migration-aware-hr-customer-boq-schema" ]]; then
@@ -620,13 +631,16 @@ const [
   ciJob, ciRepository, migrationList, schemaMode, legacyUpgrade,
 ] = process.argv.slice(2);
 const nullable = (value) => value === '' ? null : value;
-const hrDocumentSchema = schemaMode.startsWith('migration-aware-hr-document-');
-const priorMode = !hrDocumentSchema ? schemaMode : schemaMode === 'migration-aware-hr-document-schema'
-  ? 'migration-aware-sql-only' : 'migration-aware-' + schemaMode.slice('migration-aware-hr-document-'.length);
+const stockCountSchema = schemaMode.startsWith('migration-aware-stock-count-');
+const afterStock = !stockCountSchema ? schemaMode : schemaMode === 'migration-aware-stock-count-schema'
+  ? 'migration-aware-sql-only' : 'migration-aware-' + schemaMode.slice('migration-aware-stock-count-'.length);
+const hrDocumentSchema = afterStock.startsWith('migration-aware-hr-document-');
+const priorMode = !hrDocumentSchema ? afterStock : afterStock === 'migration-aware-hr-document-schema'
+  ? 'migration-aware-sql-only' : 'migration-aware-' + afterStock.slice('migration-aware-hr-document-'.length);
 const hrSchema = ['migration-aware-hr-schema','migration-aware-hr-customer-boq-schema'].includes(priorMode);
 const customerSchema = ['migration-aware-customer-boq-schema','migration-aware-hr-customer-boq-schema'].includes(priorMode);
 writeFileSync(path, JSON.stringify({
-  version: hrDocumentSchema ? 8 : hrSchema ? (customerSchema ? 7 : 6) : customerSchema ? 5 : schemaMode === 'migration-aware-thb-schema' ? 4 : 3,
+  version: stockCountSchema ? 9 : hrDocumentSchema ? 8 : hrSchema ? (customerSchema ? 7 : 6) : customerSchema ? 5 : schemaMode === 'migration-aware-thb-schema' ? 4 : 3,
   releaseMode: schemaMode,
   releaseCommit,
   previousReleaseCommit,
@@ -661,6 +675,7 @@ writeFileSync(path, JSON.stringify({
   ...(customerSchema ? { customerBoqPersistenceUpgrade: 'PASS' } : {}),
   ...(hrSchema || hrDocumentSchema ? { hrPredecessorPreservation: 'PASS', hrPredecessorRollback: 'PASS', hrEmployeeUpgradeTests: 'PASS', hrEncryptedRecordRecovery: 'PASS', hrPrivateAttachmentRecovery: 'NOT_IMPLEMENTED_THIS_INCREMENT' } : {}),
   ...(hrDocumentSchema ? { hrDocumentCustodyUpgrade: 'PASS', hrDocumentSchemaOnly: 'PASS' } : {}),
+  ...(stockCountSchema ? { stockCountSchemaUpgrade: 'PASS', stockCountHistoricalPreservation: 'PASS' } : {}),
   forwardOnlyNewMigrations: 'PASS',
   migrationNames: migrationList.split(',').filter(Boolean),
   freshMigration: 'PASS',
