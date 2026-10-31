@@ -199,7 +199,10 @@ export class StockCountService {
       await this.validateDimensions(context.auth, input, tx);
       const dimension = this.dimension(context.auth.companyId, input);
       await this.quantities.lock(tx, dimension);
-      const snapshot = await this.quantities.available(tx, dimension);
+      const [snapshot, snapshotVersion] = await Promise.all([
+        this.quantities.available(tx, dimension),
+        this.quantities.snapshotVersion(tx, dimension),
+      ]);
       const variance = input.actualQuantity.minus(snapshot.onHand);
       const row = await tx.stockCount.create({
         data: {
@@ -211,6 +214,8 @@ export class StockCountService {
           countedAt: input.countedAt,
           expectedOnHand: snapshot.onHand,
           expectedReserved: snapshot.reserved,
+          expectedLedgerEventCount: snapshotVersion.ledgerEventCount,
+          expectedReservationFingerprint: snapshotVersion.reservationFingerprint,
           actualQuantity: input.actualQuantity,
           varianceQuantity: variance,
           evidenceReference: input.evidenceReference ?? null,
@@ -257,8 +262,11 @@ export class StockCountService {
       await this.validateDimensions(context.auth, before, tx);
       const dimension = this.dimension(context.auth.companyId, before);
       await this.quantities.lock(tx, dimension);
-      const current = await this.quantities.available(tx, dimension);
-      this.assertSnapshotFresh(before, current);
+      const [current, snapshotVersion] = await Promise.all([
+        this.quantities.available(tx, dimension),
+        this.quantities.snapshotVersion(tx, dimension),
+      ]);
+      this.assertSnapshotFresh(before, { ...current, ...snapshotVersion });
       this.assertEvidence(before.varianceQuantity, before.evidenceReference);
       const row = await tx.stockCount.update({
         where: { id },
@@ -314,8 +322,11 @@ export class StockCountService {
       await this.validateDimensions(context.auth, before, tx);
       const dimension = this.dimension(context.auth.companyId, before);
       await this.quantities.lock(tx, dimension);
-      const current = await this.quantities.available(tx, dimension);
-      this.assertSnapshotFresh(before, current);
+      const [current, snapshotVersion] = await Promise.all([
+        this.quantities.available(tx, dimension),
+        this.quantities.snapshotVersion(tx, dimension),
+      ]);
+      this.assertSnapshotFresh(before, { ...current, ...snapshotVersion });
       this.assertEvidence(before.varianceQuantity, before.evidenceReference);
 
       const approved = await tx.stockCount.update({
@@ -458,10 +469,14 @@ export class StockCountService {
   }
 
   private assertSnapshotFresh(
-    row: { expectedOnHand: Prisma.Decimal; expectedReserved: Prisma.Decimal },
-    current: { onHand: Prisma.Decimal; reserved: Prisma.Decimal },
+    row: { expectedOnHand: Prisma.Decimal; expectedReserved: Prisma.Decimal;
+      expectedLedgerEventCount: number; expectedReservationFingerprint: string },
+    current: { onHand: Prisma.Decimal; reserved: Prisma.Decimal;
+      ledgerEventCount: number; reservationFingerprint: string },
   ) {
-    if (!row.expectedOnHand.equals(current.onHand) || !row.expectedReserved.equals(current.reserved)) {
+    if (!row.expectedOnHand.equals(current.onHand) || !row.expectedReserved.equals(current.reserved)
+      || row.expectedLedgerEventCount !== current.ledgerEventCount
+      || row.expectedReservationFingerprint !== current.reservationFingerprint) {
       throw new ConflictException({
         code: 'STOCK_COUNT_SNAPSHOT_STALE',
         detail: 'Stock or reservations changed after the physical count snapshot. Record a new count.',
@@ -504,13 +519,17 @@ export class StockCountService {
   private auditValues(row: {
     projectId: string; warehouseId: string; materialId: string; uomId: string;
     countedAt: Date; expectedOnHand: Prisma.Decimal; expectedReserved: Prisma.Decimal;
+    expectedLedgerEventCount: number; expectedReservationFingerprint: string;
     actualQuantity: Prisma.Decimal; varianceQuantity: Prisma.Decimal; status: string; version: number;
     evidenceReference?: string | null;
   }) {
     return {
       projectId: row.projectId, warehouseId: row.warehouseId, materialId: row.materialId, uomId: row.uomId,
       countedAt: row.countedAt, expectedOnHand: row.expectedOnHand.toString(),
-      expectedReserved: row.expectedReserved.toString(), actualQuantity: row.actualQuantity.toString(),
+      expectedReserved: row.expectedReserved.toString(),
+      expectedLedgerEventCount: row.expectedLedgerEventCount,
+      expectedReservationFingerprint: row.expectedReservationFingerprint,
+      actualQuantity: row.actualQuantity.toString(),
       varianceQuantity: row.varianceQuantity.toString(), evidenceRecorded: Boolean(row.evidenceReference?.trim()),
       status: row.status, version: row.version,
     };
