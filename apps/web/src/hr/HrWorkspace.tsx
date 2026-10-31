@@ -9,6 +9,7 @@ import type { CurrentUser } from '../api/auth';
 import { getHrCompanies, getHrEmployees, getHrEmploymentHistory } from './hr-api';
 import { employmentCompanies, selectedHrCompany, selectedHrEmployee } from './hr-ui-policy';
 import { HrCreateEmployee } from './HrCreateEmployee';
+import { HrPrivatePanel } from './HrPrivatePanel';
 
 type Language = 'en' | 'th' | 'zh-TW';
 const labels = {
@@ -193,6 +194,17 @@ export function HrWorkspace({ user }: { user: CurrentUser }) {
                 </TableRow>)}</TableBody>
             </Table></TableContainer>}
         </Paper>
+        {!companiesQuery.isFetching && !employeesQuery.isFetching && employeeId &&
+          (['identity', 'bank'] as const)
+            .filter(kind => user.permissions.includes('hr.' + kind + '.view') &&
+              companies.some(company => company.id === companyId &&
+                company.categories.includes(kind) &&
+                company.permissions.includes('hr.' + kind + '.view')))
+            .map(kind => <HrPrivatePanel key={companyId + ':' + employeeId + ':' + kind}
+              companyId={companyId} employeeId={employeeId} category={kind} language={language}
+              canManage={user.permissions.includes('hr.' + kind + '.manage') &&
+                companies.some(company => company.id === companyId &&
+                  company.permissions.includes('hr.' + kind + '.manage'))} />)}
       </>}
   </Stack>;
 }
