@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { assessOnboarding, COMPANIES, DATASETS, CANONICALIZATION, emptyTemplate } from '../uat/gl09-onboarding-reconcile.mjs';
+import { assessOnboarding, COMPANIES, DATASETS, CANONICALIZATION, emptyTemplate, fingerprintBusinessKeys } from '../uat/gl09-onboarding-reconcile.mjs';
 
 const NOW = Date.parse('2026-11-01T02:00:00Z');
 const EMPTY = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
@@ -139,4 +139,31 @@ test('empty template is not executable proof or a populated real data extract', 
   assert.equal(template.target.datasets.length, 0);
   assert.equal(template.handoff.trainingRecorded, false);
   assert.equal(template.datasetKinds.length, 10);
+});
+
+test('offline fingerprint stable by key order and never exposes private key values', () => {
+  const a = fingerprintBusinessKeys({companyKey:'MKE',dataset:'PROJECTS',keys:['PROJECT-20','PROJECT-01']});
+  const b = fingerprintBusinessKeys({companyKey:'MKE',dataset:'PROJECTS',keys:['PROJECT-01','PROJECT-20']});
+  assert.deepEqual(a,b);
+  assert.equal(a.count,2);
+  assert.match(a.sha256,/^[a-f0-9]{64}$/);
+  assert.equal(a.dataQualityChecks,'NOT_RUN');
+  assert.equal(JSON.stringify(a).includes('PROJECT-01'),false);
+});
+test('domain separation and length-framing prevent cross-company or key ambiguity', () => {
+  const input={companyKey:'MKE',dataset:'PROJECTS',keys:['ab','c']};
+  const a=fingerprintBusinessKeys(input).sha256;
+  assert.notEqual(a,fingerprintBusinessKeys({...input,companyKey:'TCJ'}).sha256);
+  assert.notEqual(a,fingerprintBusinessKeys({...input,dataset:'MATERIALS'}).sha256);
+  assert.notEqual(a,fingerprintBusinessKeys({...input,keys:['a','bc']}).sha256);
+  assert.equal(fingerprintBusinessKeys({...input,keys:[]}).sha256,EMPTY);
+});
+test('refuses duplicate, non-NFC, whitespace, control, extra fields and oversized business keys', () => {
+  const input={companyKey:'TCJ',dataset:'SUPPLIERS',keys:['VENDOR-A']};
+  assert.throws(()=>fingerprintBusinessKeys({...input,keys:['x','x']}),/DUPLICATE_BUSINESS_KEY/);
+  assert.throws(()=>fingerprintBusinessKeys({...input,keys:['e'+String.fromCharCode(0x0301)]}),/NONCANONICAL_BUSINESS_KEY/);
+  assert.throws(()=>fingerprintBusinessKeys({...input,keys:[' x ']}),/NONCANONICAL_BUSINESS_KEY/);
+  assert.throws(()=>fingerprintBusinessKeys({...input,keys:['x'+String.fromCharCode(10)]}),/NONCANONICAL_BUSINESS_KEY/);
+  assert.throws(()=>fingerprintBusinessKeys({...input,keys:['x'.repeat(257)]}),/BUSINESS_KEY_TOO_LONG/);
+  assert.throws(()=>fingerprintBusinessKeys({...input,credentials:'SECRET'}),/INVALID_CANONICAL_FINGERPRINT_INPUT/);
 });

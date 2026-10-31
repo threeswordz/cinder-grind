@@ -1,4 +1,5 @@
 // GL-09 offline reconciliation preflight. No network, DB connection, writes or approvals.
+import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -127,6 +128,51 @@ export function assessOnboarding(input, { now = Date.now() } = {}) {
     networkRequests: 0, retainedDataReads: 0, dataWrites: 0,
   };
 }
+
+/**
+ * Fingerprint a pre-mapped, caller-supplied list of stable business keys.
+ * No source keys or sensitive input content are returned in results/errors.
+ * This does not certify the mapping, key provenance or non-key record fields.
+ */
+export function fingerprintBusinessKeys(input) {
+  if (!input || typeof input !== 'object' || Array.isArray(input) ||
+      !COMPANIES.includes(input.companyKey) || !DATASETS.includes(input.dataset) ||
+      Object.keys(input).some(k => !['companyKey', 'dataset', 'keys'].includes(k)) ||
+      !Array.isArray(input.keys) || input.keys.length > 10000)
+    throw new Error('INVALID_CANONICAL_FINGERPRINT_INPUT');
+  const seen = new Set(), buffers = [];
+  for (const value of input.keys) {
+    if (typeof value !== 'string' || !value ||
+        value.normalize('NFC') !== value || value !== value.trim() ||
+        /[\u0000-\u001f\u007f]/u.test(value))
+      throw new Error('NONCANONICAL_BUSINESS_KEY');
+    const bytes = Buffer.from(value, 'utf8');
+    if (bytes.length > 256) throw new Error('BUSINESS_KEY_TOO_LONG');
+    if (seen.has(value)) throw new Error('DUPLICATE_BUSINESS_KEY');
+    seen.add(value);
+    buffers.push(bytes);
+  }
+  buffers.sort(Buffer.compare);
+  const hash = createHash('sha256'), LF = String.fromCharCode(10);
+  if (buffers.length) {
+    hash.update([CANONICALIZATION, input.companyKey, input.dataset, ''].join(LF));
+    for (const bytes of buffers) {
+      hash.update(String(bytes.length) + ':');
+      hash.update(bytes);
+      hash.update(LF);
+    }
+  }
+  return {
+    companyKey: input.companyKey,
+    dataset: input.dataset,
+    count: buffers.length,
+    sha256: hash.digest('hex'),
+    canonicalization: CANONICALIZATION,
+    provenance: 'CALLER_SUPPLIED_KEYS_NOT_INDEPENDENTLY_VERIFIED',
+    dataQualityChecks: 'NOT_RUN',
+  };
+}
+
 export function emptyTemplate() {
   return {
     version: 1, capturedAt: 'UTC-YYYY-MM-DDTHH:MM:SSZ',
@@ -146,6 +192,14 @@ export function emptyTemplate() {
 async function main(args) {
   if (args.length === 1 && args[0] === '--template') {
     process.stdout.write(JSON.stringify(emptyTemplate(), null, 2) + '\n');
+    return;
+  }
+  if (args.length === 2 && args[0] === '--fingerprint') {
+    const bytes = await readFile(resolve(args[1]));
+    if (bytes.length > 1024 * 1024) throw Error('INPUT_TOO_LARGE');
+    let data;
+    try { data = JSON.parse(bytes.toString('utf8')); } catch { throw Error('INVALID_JSON'); }
+    process.stdout.write(JSON.stringify(fingerprintBusinessKeys(data), null, 2) + String.fromCharCode(10));
     return;
   }
   if (args.length !== 2 || args[0] !== '--evaluate') throw Error('USAGE_TEMPLATE_OR_EVALUATE');

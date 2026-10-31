@@ -7,6 +7,7 @@
     node deploy/uat/gl09-onboarding-reconcile.mjs --template
     node --test deploy/release-candidate/gl09-onboarding-reconcile.test.mjs
     node deploy/uat/gl09-onboarding-reconcile.mjs --evaluate /secure/private/gl09-evidence.json
+    node deploy/uat/gl09-onboarding-reconcile.mjs --fingerprint /secure/private/one-dataset-business-keys.json
 
 Template values are placeholders, never actual MKE/TCJ evidence. An operator may only prepare *aggregated, sanitized metadata* after separate authorization for the actual source and target. Never put employee names, salary, banking, customer costs, document bytes, private IDs, passwords, source rows, or authentication tokens in GitHub/CI. This tool has no HTTP/DB connectivity, write or import mechanism.
 
@@ -27,3 +28,11 @@ A scopeReference is merely operator-supplied text; it **cannot** approve pilot e
 Even apparently matching inputs produce DECLARED_RECONCILIATION_CONSISTENT_INDEPENDENT_PROOF_PENDING. The output always fixes realCompanyConfigurationsVerified=false, independentEvidenceVerified=false, actualBusinessAcceptance=false, productionAuthorized=false, gl09GateClosed=false; zero network requests, retained data reads and writes. Real role grants/approval steps, actual data comparisons, cutover/backups, training, independent reconciliation, support and Owner go/no-go still require authorized operating evidence.
 
 Nine synthetic regression tests are included through the existing release-candidate test glob. No Production, migration, role, Finance, HR, stock count or CI workflow changes are included.
+
+## Repeatable business-key fingerprint generation (additional GL09 preparation)
+
+The new `--fingerprint` mode reads **only a locally supplied private JSON file** with exactly three fields: `companyKey` (MKE or TCJ), `dataset` (one of the ten declared kinds) and `keys` (array of already mapped stable business identifiers). No HTTP/API/DB calls. It never prints business identifiers, credentials, or file contents. The returned metadata contains Company, dataset, row count, SHA-256, marker, and `dataQualityChecks: NOT_RUN`; independent rejected/duplicate/foreign-Company counts are NOT automatically zero or approved.
+
+Canonical business-key hashing v1: each key must be NFC Unicode, trimmed, nonempty, without ASCII control/DEL characters, <=256 UTF-8 bytes. Duplicates fail closed. Keys are sorted by raw UTF-8 byte order. For nonempty sets, the hash input starts with the canonicalization marker, Company and dataset, each followed by LF; each business key is then encoded as decimal UTF-8 byte length + colon + UTF-8 bytes + LF. Empty sets use SHA-256 of zero bytes, as before. The result is **reproducible for the same mapped keys regardless of row order**.
+
+This is **business-key equality only**, not reconciliation of financial amounts, approval-step grants, employee status, documents' contents, or full business records. The operator must independently verify source/target key mapping, field-level values, external-accountant handoff, and all real Company configuration with explicit retained access authorization. Matching fingerprints cannot authorize cutover, prove identities or close GL-09.
