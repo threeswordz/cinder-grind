@@ -71,7 +71,8 @@ if (['migration-aware-sql-only', 'migration-aware-thb-schema', 'migration-aware-
         if (rehearsal[key] !== 'PASS') fail('Stock-count upgrade proof ' + key + ' did not PASS');
       }
     }
-    if ((!customerSchema && !hrSchema) || rehearsal.migrationNames?.some((name) => name.endsWith('_v1_2_thb_monetary_policy'))) {
+    if ((!customerSchema && !hrSchema && !stockCountSchema) ||
+        rehearsal.migrationNames?.some((name) => name.endsWith('_v1_2_thb_monetary_policy'))) {
       for (const key of ['genuineLegacySgdNullFixture', 'historicalRowsUnchanged']) {
         if (rehearsal[key] !== 'PASS') fail('historical migration proof ' + key + ' did not PASS');
       }
