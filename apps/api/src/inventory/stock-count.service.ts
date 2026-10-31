@@ -411,7 +411,10 @@ export class StockCountService {
         where: { id: input.warehouseId, companyId: auth.companyId, projectId: input.projectId, isSiteWarehouse: true, isActive: true },
         select: { id: true },
       }),
-      db.material.findFirst({ where: { id: input.materialId, companyId: auth.companyId, isActive: true }, select: { id: true } }),
+      db.material.findFirst({
+        where: { id: input.materialId, companyId: auth.companyId, isActive: true },
+        select: { id: true, defaultUomId: true },
+      }),
       db.unitOfMeasure.findFirst({ where: { id: input.uomId, companyId: auth.companyId, isActive: true }, select: { id: true } }),
     ]);
     if (!project || !warehouse || !material || !uom) {
@@ -419,6 +422,29 @@ export class StockCountService {
         code: 'STOCK_COUNT_DIMENSION_INVALID',
         detail: 'Use one active Project-owned site Warehouse, Material and UOM in the same Company.',
       });
+    }
+
+    // A Company-wide active UOM is not automatically a valid dimension for any Material.
+    // Match the canonical options endpoint: default UOM or an existing stock-ledger
+    // Material/UOM dimension in this exact Company, Project and site Warehouse.
+    // Otherwise an API caller could post a physical adjustment against an invented UOM.
+    if (material.defaultUomId !== input.uomId) {
+      const existingDimension = await db.stockTransaction.findFirst({
+        where: {
+          companyId: auth.companyId,
+          projectId: input.projectId,
+          warehouseId: input.warehouseId,
+          materialId: input.materialId,
+          uomId: input.uomId,
+        },
+        select: { id: true },
+      });
+      if (!existingDimension) {
+        throw new UnprocessableEntityException({
+          code: 'STOCK_COUNT_MATERIAL_UOM_INVALID',
+          detail: 'Choose the Material default UOM or a UOM already used for this site stock dimension.',
+        });
+      }
     }
   }
 
