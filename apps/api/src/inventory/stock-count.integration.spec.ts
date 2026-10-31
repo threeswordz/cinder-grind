@@ -5,6 +5,7 @@ import test from 'node:test';
 import { ConflictException, ForbiddenException, UnprocessableEntityException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 
+import { NumberSequenceService } from '../administration/number-sequence.service';
 import { AuditService } from '../audit/audit.service';
 import { AuthenticatedUserContext } from '../auth/auth.types';
 import { AuthorizationService } from '../authorization/authorization.service';
@@ -12,6 +13,7 @@ import { ProjectScopeService } from '../authorization/project-scope.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProjectAccessService } from '../projects/project-access.service';
 import { InventoryQuantityService } from './inventory-quantity.service';
+import { MaterialReservationService } from './material-reservation.service';
 import { InventoryReportService } from './inventory-report.service';
 import { StockBalanceService } from './stock-balance.service';
 import { StockCountService } from './stock-count.service';
@@ -77,6 +79,8 @@ test('OP-STOCK-COUNT-01 quantity-only reconciliation is scoped, stale-safe, rese
     const access = new ProjectAccessService(prisma, new ProjectScopeService(new AuthorizationService()));
     const quantities = new InventoryQuantityService(prisma);
     const service = new StockCountService(prisma, access, new AuditService(prisma), quantities);
+    const reservationService = new MaterialReservationService(prisma, access,
+      new AuditService(prisma), new NumberSequenceService(prisma), quantities);
     const reports = new InventoryReportService(
       prisma,
       access,
@@ -304,6 +308,74 @@ test('OP-STOCK-COUNT-01 quantity-only reconciliation is scoped, stale-safe, rese
       (error: unknown) => error instanceof ConflictException,
       'different reservation identity/history must stale the original count snapshot',
     );
+
+    // Reservation release/cancellation must serialize on the exact same
+    // dimension lock as a count approval. The test holds the lock in one
+    // disposable transaction, then starts a real reservation service call.
+    // A prior implementation could complete release/cancel while this lock
+    // was held, making count validation/decision ordering ambiguous.
+    const countBeforeRelease = await service.create({ auth: storeAuth }, {
+      projectId: project.id, warehouseId: site.id, materialId: material.id, uomId: uom.id,
+      countedAt: new Date(), actualQuantity: abaBefore,
+    });
+    const countBeforeReleaseSubmitted = await service.submit(
+      { auth: storeAuth }, countBeforeRelease.id, countBeforeRelease.version,
+    );
+    let releaseSettled = false;
+    let releaseWhileLocked = false;
+    let releasePromise!: Promise<unknown>;
+    await prisma.$transaction(async tx => {
+      await quantities.lock(tx, dimension);
+      releasePromise = reservationService.release(
+        { auth: storeAuth }, replacementReservation.id, 'synthetic counted-stock release',
+      ).finally(() => { releaseSettled = true; });
+      await new Promise(resolve => setTimeout(resolve, 600));
+      releaseWhileLocked = releaseSettled;
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+    await releasePromise;
+    assert.equal(releaseWhileLocked, false,
+      'reservation release must wait for the exact inventory stock-dimension lock');
+    await assert.rejects(() => service.approve(
+      { auth: managerAuth }, countBeforeRelease.id, countBeforeReleaseSubmitted.version,
+      'SC-RELEASE-RACE-' + suffix,
+    ), (error: unknown) => error instanceof ConflictException,
+    'approval must reject a reservation release committed after physical count');
+    assert.equal(await prisma.stockTransaction.count({ where: { stockCountId: countBeforeRelease.id } }), 0);
+
+    const cancellableReservation = await prisma.materialReservation.create({ data: {
+      companyId: company.id, projectId: project.id, warehouseId: site.id, materialId: material.id, uomId: uom.id,
+      reservationNumber: 'SC-CANCEL-' + suffix, quantity: new Prisma.Decimal(1),
+      createdByUserId: store.id,
+    } });
+    await prisma.materialReservation.update({ where: { id: cancellableReservation.id },
+      data: { status: 'ACTIVE', activatedByUserId: store.id, activatedAt: new Date() } });
+    const countBeforeCancel = await service.create({ auth: storeAuth }, {
+      projectId: project.id, warehouseId: site.id, materialId: material.id, uomId: uom.id,
+      countedAt: new Date(), actualQuantity: abaBefore,
+    });
+    const countBeforeCancelSubmitted = await service.submit(
+      { auth: storeAuth }, countBeforeCancel.id, countBeforeCancel.version,
+    );
+    let cancelSettled = false;
+    let cancelWhileLocked = false;
+    let cancelPromise!: Promise<unknown>;
+    await prisma.$transaction(async tx => {
+      await quantities.lock(tx, dimension);
+      cancelPromise = reservationService.cancel(
+        { auth: storeAuth }, cancellableReservation.id, 'synthetic counted-stock cancel',
+      ).finally(() => { cancelSettled = true; });
+      await new Promise(resolve => setTimeout(resolve, 600));
+      cancelWhileLocked = cancelSettled;
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+    await cancelPromise;
+    assert.equal(cancelWhileLocked, false,
+      'reservation cancellation must wait for the exact inventory stock-dimension lock');
+    await assert.rejects(() => service.approve(
+      { auth: managerAuth }, countBeforeCancel.id, countBeforeCancelSubmitted.version,
+      'SC-CANCEL-RACE-' + suffix,
+    ), (error: unknown) => error instanceof ConflictException,
+    'approval must reject a reservation cancellation committed after physical count');
+    assert.equal(await prisma.stockTransaction.count({ where: { stockCountId: countBeforeCancel.id } }), 0);
 
     // SQL history guard must also protect new immutable snapshot coordinates,
     // even when an actor supplies an otherwise valid optimistic version.
