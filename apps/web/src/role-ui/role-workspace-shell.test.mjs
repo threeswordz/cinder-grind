@@ -83,7 +83,7 @@ test('responsive V1.1 role shell renders only supplied authorized modules', asyn
       const html = render(false, [hrSection], hrUser);
       assert.match(html, /People &amp; HR/);
       assert.match(html, /Employees &amp; HR/);
-      assert.match(html, /Synthetic employment panel/);
+      assert.match(html, /UAT_HR_STAFF/);
       assert.doesNotMatch(render(false, [], hrUser), /Employees &amp; HR|Synthetic employment panel/);
     });
 
