@@ -244,6 +244,80 @@ test('OP-STOCK-COUNT-01 quantity-only reconciliation is scoped, stale-safe, rese
       'new stock ledger events must make the count stale even if on-hand returns to the same total',
     );
 
+    // Also reject at independent approval after the count was already submitted.
+    const abaAwaitingDecision = await service.create({ auth: storeAuth }, {
+      projectId: project.id, warehouseId: site.id, materialId: material.id, uomId: uom.id,
+      countedAt: new Date(), actualQuantity: abaBefore,
+    });
+    const abaAwaitingSubmitted = await service.submit(
+      { auth: storeAuth }, abaAwaitingDecision.id, abaAwaitingDecision.version,
+    );
+    const abaSecondUp = await service.create({ auth: storeAuth }, {
+      projectId: project.id, warehouseId: site.id, materialId: material.id, uomId: uom.id,
+      countedAt: new Date(), actualQuantity: abaBefore.plus(1), evidenceReference: 'approval ABA up',
+    });
+    const abaSecondUpSubmitted = await service.submit(
+      { auth: storeAuth }, abaSecondUp.id, abaSecondUp.version,
+    );
+    await service.approve({ auth: managerAuth }, abaSecondUp.id,
+      abaSecondUpSubmitted.version, 'SC-ABA-APPROVAL-UP-' + suffix);
+    const abaSecondDown = await service.create({ auth: storeAuth }, {
+      projectId: project.id, warehouseId: site.id, materialId: material.id, uomId: uom.id,
+      countedAt: new Date(), actualQuantity: abaBefore, evidenceReference: 'approval ABA down',
+    });
+    const abaSecondDownSubmitted = await service.submit(
+      { auth: storeAuth }, abaSecondDown.id, abaSecondDown.version,
+    );
+    await service.approve({ auth: managerAuth }, abaSecondDown.id,
+      abaSecondDownSubmitted.version, 'SC-ABA-APPROVAL-DOWN-' + suffix);
+    assert.equal((await quantities.onHand(prisma, dimension)).toString(), abaBefore.toString());
+    await assert.rejects(() => service.approve(
+      { auth: managerAuth }, abaAwaitingDecision.id,
+      abaAwaitingSubmitted.version, 'SC-ABA-STALE-DECISION-' + suffix,
+    ), (error: unknown) => error instanceof ConflictException,
+    'approval cannot accept a stale historical ledger count after net-zero movements');
+    assert.equal(await prisma.stockTransaction.count({ where: {
+      stockCountId: abaAwaitingDecision.id,
+    }}), 0, 'a stale attempted approval may not create a ledger effect');
+
+    // A different reservation can replace the previous ACTIVE reservation for
+    // the same quantity: this remains a different reservation history.
+    const abaReservationDraft = await service.create({ auth: storeAuth }, {
+      projectId: project.id, warehouseId: site.id, materialId: material.id, uomId: uom.id,
+      countedAt: new Date(), actualQuantity: abaBefore,
+    });
+    const replacementReservation = await prisma.materialReservation.create({ data: {
+      companyId: company.id, projectId: project.id, warehouseId: site.id,
+      materialId: material.id, uomId: uom.id,
+      reservationNumber: 'SC-ABA-RSV-' + suffix,
+      quantity: new Prisma.Decimal(2), createdByUserId: store.id,
+    }});
+    await prisma.materialReservation.update({ where: { id: reservation.id },
+      data: { status: 'RELEASED', releasedByUserId: store.id, releasedAt: new Date(),
+        releaseReason: 'synthetic replacement' } });
+    await prisma.materialReservation.update({ where: { id: replacementReservation.id },
+      data: { status: 'ACTIVE', activatedByUserId: store.id, activatedAt: new Date() } });
+    assert.equal((await quantities.activeReserved(prisma, dimension)).toString(), '2',
+      'same aggregate reservation quantity must remain for the ABA reproduction');
+    await assert.rejects(
+      () => service.submit({ auth: storeAuth }, abaReservationDraft.id, abaReservationDraft.version),
+      (error: unknown) => error instanceof ConflictException,
+      'different reservation identity/history must stale the original count snapshot',
+    );
+
+    // SQL history guard must also protect new immutable snapshot coordinates,
+    // even when an actor supplies an otherwise valid optimistic version.
+    await assert.rejects(() => prisma.stockCount.update({
+      where: { id: abaDraft.id },
+      data: { expectedLedgerEventCount: abaDraft.expectedLedgerEventCount + 1,
+        version: abaDraft.version + 1 },
+    }), 'snapshot ledger event coordinate must be immutable');
+    await assert.rejects(() => prisma.stockCount.update({
+      where: { id: abaDraft.id },
+      data: { expectedReservationFingerprint: 'f'.repeat(64),
+        version: abaDraft.version + 1 },
+    }), 'snapshot reservation coordinate must be immutable');
+
     await assert.rejects(() => prisma.stockCount.update({
       where: { id: plus.id }, data: { evidenceReference: 'tampered', version: plusApproved.version + 1 },
     }), 'approved count history must be immutable');
