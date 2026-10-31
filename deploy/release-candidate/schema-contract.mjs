@@ -1,4 +1,5 @@
 import { stripHrSchema } from './hr-schema-contract.mjs';
+import { stripHrDocumentSchema } from './hr-document-schema-contract.mjs';
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
@@ -92,7 +93,7 @@ function classifyBaseSchema(previous, candidate) {
   return newCustomer.present && !oldCustomer.present ? 'migration-aware-customer-boq-schema' : 'migration-aware-thb-schema';
 }
 
-export function classifySchema(previous, candidate) {
+function classifyPriorContracts(previous, candidate) {
   if (previous === candidate) return 'migration-aware-sql-only';
   const before = stripHrSchema(previous), after = stripHrSchema(candidate);
   if (before.present && !after.present) throw new Error('HR schema removal is prohibited.');
@@ -103,6 +104,25 @@ export function classifySchema(previous, candidate) {
     return 'migration-aware-hr-customer-boq-schema';
   }
   return classifyBaseSchema(before.text, after.text);
+}
+
+export function classifySchema(previous, candidate) {
+  if (previous === candidate) return 'migration-aware-sql-only';
+  // Strip only the EXACT approved five parent additions and one new model.
+  // Classify the historical THB/Customer BOQ/HR contracts independently; the
+  // new mode does not relax their previously reviewed constraints.
+  const oldDocument = stripHrDocumentSchema(previous);
+  const newDocument = stripHrDocumentSchema(candidate);
+  if (oldDocument.present && !newDocument.present) {
+    throw new Error('HR private Document custody removal is prohibited.');
+  }
+  const base = classifyPriorContracts(oldDocument.text, newDocument.text);
+  if (!oldDocument.present && newDocument.present) {
+    return base === 'migration-aware-sql-only'
+      ? 'migration-aware-hr-document-schema'
+      : 'migration-aware-hr-document-' + base.slice('migration-aware-'.length);
+  }
+  return base;
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

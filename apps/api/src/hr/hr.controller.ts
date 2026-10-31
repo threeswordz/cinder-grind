@@ -41,6 +41,19 @@ export class HrController {
     return { data: await this.hr.history(auth(request), companyId, employeeId) };
   }
 
+
+  @Get('companies/:companyId/employees/:employeeId/documents')
+  @RequirePermissions('hr.documents.view')
+  async documentHistory(@Req() request: AuthenticatedRequest, @Param('companyId') companyId: string,
+    @Param('employeeId') employeeId: string, @Query() query: unknown) {
+    const value = input.object(query, ['after']);
+    const after = value.after === undefined ? 0 : (() => {
+      if (typeof value.after !== 'string' || !/^(0|[1-9][0-9]{0,9})$/.test(value.after)) return input.invalid();
+      return input.integer(Number(value.after));
+    })();
+    return { data: await this.hr.documentHistory(auth(request), companyId, employeeId, after) };
+  }
+
   @Post('companies/:companyId/employees/:employeeId/employment')
   @RequirePermissions('hr.employment.manage')
   @UseGuards(CsrfGuard)

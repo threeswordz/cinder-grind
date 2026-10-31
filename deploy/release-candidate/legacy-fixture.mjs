@@ -77,7 +77,8 @@ try {
   } else {
     const before = load(snapshotPath);
     const after = await snapshot();
-    assertHistoricalTables(before.tables, after.tables, process.env.HR_SCHEMA_UPGRADE === 'YES');
+    assertHistoricalTables(before.tables, after.tables,
+      process.env.HR_SCHEMA_UPGRADE === 'YES', process.env.HR_DOCUMENT_SCHEMA_UPGRADE === 'YES');
     for (const migration of before.migrations) assert.deepEqual(after.migrations.find((row) => row.migration_name === migration.migration_name), migration, 'Historical migration checksum changed');
     const fixture = load(manifestPath);
     assert.equal((await prisma.purchaseOrder.findUniqueOrThrow({ where: { id: fixture.unknownPoId } })).currencyCode, null);

@@ -160,6 +160,23 @@ export class HrService {
     });
   }
 
+
+  // Dedicated HR-only, masked attachment history. This is never a generic
+  // Document list or a grant to access encrypted bytes/original filenames.
+  documentHistory(supplied: AuthenticatedUserContext, companyId: string, employeeId: string, afterVersion = 0) {
+    input.uuid(employeeId);
+    input.integer(afterVersion);
+    return this.read(supplied, [{ companyId, category: 'documents', action: 'view' }], async tx => {
+      await this.employee(tx, companyId, employeeId);
+      const rows = await tx.hrDocumentAttachment.findMany({
+        where: { companyId, employeeId, version: { gt: afterVersion } },
+        orderBy: { version: 'asc' }, take: 100,
+        select: { id: true, version: true, createdAt: true },
+      });
+      return { items: rows, nextCursor: rows.length === 100 ? rows[99]!.version : null };
+    });
+  }
+
   create(supplied: AuthenticatedUserContext, companyId: string, raw: unknown) {
     const value = input.object(raw, ['requestId','employeeCode','employeeName','jobTitle','facts','predecessor']);
     const facts = input.employmentFacts(value.facts), requestId = input.uuid(value.requestId);

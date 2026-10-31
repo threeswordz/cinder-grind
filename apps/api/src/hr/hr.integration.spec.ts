@@ -305,6 +305,75 @@ test('HR employee/private HTTP and database contracts use disposable scoped iden
       await assert.rejects(f.service.privateRead(a.hr.auth, f.company.id, f.legacy.id, 'bank', 1), ServiceUnavailableException);
       process.env.HR_PRIVATE_KEYS = JSON.stringify(keys); process.env.HR_PRIVATE_ACTIVE_KEY_ID = 'test1';
     });
+    await t.test('dedicated HR attachment history denies cross-scope, forged grants and private metadata leaks', async () => {
+      const view = await db.permission.findUniqueOrThrow({ where: { permissionCode: 'hr.documents.view' } });
+      const manage = await db.permission.findUniqueOrThrow({ where: { permissionCode: 'hr.documents.manage' } });
+      await db.rolePermission.createMany({ data: [
+        { roleId: a.hr.role.id, permissionId: view.id },
+        { roleId: a.hr.role.id, permissionId: manage.id },
+        { roleId: a.nancy.role.id, permissionId: view.id },
+      ] });
+      await db.hrCompanyAccess.createMany({ data: [a.hr, a.nancy].map(actor => ({
+        companyId: f.company.id, userId: actor.user.id, category: 'documents',
+        reasonCode: 'OWNER_APPROVED_SCOPE', updatedByUserId: a.admin.user.id,
+      })) });
+      const type = await db.documentType.create({ data: {
+        companyId: f.company.id, documentTypeCode: 'HR-READ-' + f.suffix,
+        documentTypeName: 'Generic synthetic document type',
+      } });
+      const doc = await db.document.create({ data: {
+        companyId: f.company.id, documentTypeId: type.id,
+        fileName: 'hr-private.enc', mimeType: 'application/octet-stream',
+        fileSizeBytes: 345, storageProvider: 'LOCAL', storageKey: randomUUID(),
+        checksum: 'b'.repeat(64), uploadedByUserId: a.hr.user.id,
+      } });
+      await db.documentLink.create({ data: {
+        documentId: doc.id, entityType: 'HR_ATTACHMENT',
+        entityId: f.legacy.id, linkedByUserId: a.hr.user.id,
+      } });
+      const attachment = await db.hrDocumentAttachment.create({ data: {
+        companyId: f.company.id, employeeId: f.legacy.id,
+        documentId: doc.id, version: 1,
+        encryptedMetadata: '{"v":1,"k":"synthetic","n":"nonce","t":"tag","c":"fake-synthetic-ciphertext"}',
+        actorUserId: a.hr.user.id,
+      } });
+      const path = employeeRoot + '/documents';
+      for (const actor of [a.hr, a.nancy]) {
+        const data = (await call(actor, path)).data;
+        assert.deepEqual(data.items, [{ id: attachment.id, version: 1, createdAt: attachment.createdAt.toISOString() }]);
+        assert.equal(data.nextCursor, null);
+        const response = JSON.stringify(data);
+        for (const forbidden of ['storageKey', 'checksum', 'encryptedMetadata', 'fileName', 'mimeType', 'documentTypeId', doc.id, doc.storageKey])
+          assert.equal(response.includes(forbidden), false);
+      }
+      assert.deepEqual((await call(a.hr, path + '?after=1')).data, { items: [], nextCursor: null });
+      assert.deepEqual((await call(a.hr, path + '?after=0')).data.items.map((r: any) => r.id), [attachment.id]);
+      for (const invalid of ['after=-1','after=01','after=xyz','after=2147483647','unexpected=1']) {
+        await call(a.hr, path + '?' + invalid, 422);
+      }
+      for (const actor of [a.ben, a.porn, a.store, a.foreman, a.admin]) {
+        await call(actor, path, 403);
+      }
+      // The earlier session-revocation contract intentionally revoked outsider:
+      // authentication must fail (401) before any document permission check.
+      await call(a.outsider, path, 401);
+      await call(a.hr, root + '/employees/' + randomUUID() + '/documents', 404);
+      await call(a.hr, foreign + '/employees/' + f.legacy.id + '/documents', 404);
+      const docsGrant = await db.hrCompanyAccess.findUniqueOrThrow({ where: {
+        companyId_userId_category: { companyId: f.company.id, userId: a.nancy.user.id, category: 'documents' },
+      } });
+      // HR entitlement changes are versioned and target-owned; exercise the
+      // actual approval/administration route rather than bypassing SQL guards.
+      await post(a.admin, root + '/access', {
+        requestId: randomUUID(), userId: a.nancy.user.id,
+        category: 'documents', isActive: false, expectedVersion: docsGrant.version,
+        reasonCode: 'ACCESS_REVOKED',
+      });
+      await call(a.nancy, path, 404);
+      await db.role.update({ where: { id: a.hr.role.id }, data: { isActive: false } });
+      await call(a.hr, path, 403);
+      await db.role.update({ where: { id: a.hr.role.id }, data: { isActive: true } });
+    });
     await t.test('private payloads/history/replay/audit remain encrypted or metadata-only; excluded ledgers are untouched', async () => {
       const companyIds = [f.company.id,f.other.id];
       const rows = await Promise.all([db.hrEmploymentRevision.findMany({ where: { companyId: { in: companyIds } } }),

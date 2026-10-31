@@ -53,13 +53,26 @@ if ! git diff --quiet "$RC_PREVIOUS_RELEASE_COMMIT" "$RELEASE_COMMIT" -- apps/ap
 fi
 
 hr_schema=false
+hr_document_schema=false
+hr_proof=false
 customer_schema=false
+historical_mode="$schema_mode"
 export HR_SCHEMA_UPGRADE=NO
-if [[ "$schema_mode" == "migration-aware-hr-schema" || "$schema_mode" == "migration-aware-hr-customer-boq-schema" ]]; then
+export HR_DOCUMENT_SCHEMA_UPGRADE=NO
+if [[ "$schema_mode" == "migration-aware-hr-document-schema" ]]; then
+  hr_document_schema=true
+  historical_mode="migration-aware-sql-only"
+elif [[ "$schema_mode" == migration-aware-hr-document-* ]]; then
+  hr_document_schema=true
+  historical_mode="migration-aware-${schema_mode#migration-aware-hr-document-}"
+fi
+if [[ "$hr_document_schema" == true ]]; then export HR_DOCUMENT_SCHEMA_UPGRADE=YES; fi
+if [[ "$historical_mode" == "migration-aware-hr-schema" || "$historical_mode" == "migration-aware-hr-customer-boq-schema" ]]; then
   hr_schema=true
   export HR_SCHEMA_UPGRADE=YES
 fi
-if [[ "$schema_mode" == "migration-aware-customer-boq-schema" || "$schema_mode" == "migration-aware-hr-customer-boq-schema" ]]; then customer_schema=true; fi
+if [[ "$historical_mode" == "migration-aware-customer-boq-schema" || "$historical_mode" == "migration-aware-hr-customer-boq-schema" ]]; then customer_schema=true; fi
+if [[ "$hr_schema" == true || "$hr_document_schema" == true ]]; then hr_proof=true; fi
 
 legacy_upgrade=false
 if ! git cat-file -e "$RC_PREVIOUS_RELEASE_COMMIT:apps/api/prisma/migrations/20261025120000_v1_2_thb_monetary_policy/migration.sql" 2>/dev/null; then
@@ -247,7 +260,7 @@ trap on_exit EXIT
 create_database "$fresh_database"
 create_database "$upgrade_database"
 create_database "$rollback_database"
-if [[ "$hr_schema" == true ]]; then create_database "$hr_database"; fi
+if [[ "$hr_proof" == true ]]; then create_database "$hr_database"; fi
 
 echo "[V1.0-E migration-aware] Fresh candidate migration-from-zero"
 DATABASE_URL="$fresh_url" DEPLOYMENT_MODE=fresh node apps/api/scripts/verify-production-target.mjs
@@ -340,7 +353,7 @@ if [[ "$schema_mode" != "migration-aware-sql-only" ]]; then
   fi
 fi
 
-if [[ "$hr_schema" == true ]]; then
+if [[ "$hr_proof" == true ]]; then
   DATABASE_URL="$upgrade_url" node "$RC_DIR/hr-upgrade.mjs" snapshot "$previous_root" "$tmp_root/hr-predecessor.json"
 fi
 
@@ -402,7 +415,7 @@ PRODUCTION_ENV_FILE="$production_env" bash deploy/production/prepare-release.sh
 
 
 candidate_admin_email=rc-admin@example.invalid
-if [[ "$hr_schema" == true ]]; then
+if [[ "$hr_proof" == true ]]; then
   DATABASE_URL="$upgrade_url" node "$RC_DIR/hr-upgrade.mjs" verify "$previous_root" "$tmp_root/hr-predecessor.json"
 fi
 if [[ "$schema_mode" != "migration-aware-sql-only" && "$legacy_upgrade" == true ]]; then
@@ -415,8 +428,11 @@ if [[ "$customer_schema" == true ]]; then
   DATABASE_URL="$upgrade_url" node --test apps/api/dist/budget/customer-boq.integration.spec.js
 fi
 
-if [[ "$hr_schema" == true ]]; then
+if [[ "$hr_proof" == true ]]; then
   DATABASE_URL="$upgrade_url" node --test apps/api/dist/hr/hr.integration.spec.js
+fi
+if [[ "$hr_document_schema" == true ]]; then
+  DATABASE_URL="$upgrade_url" node --test apps/api/dist/hr/hr-document-ownership.integration.spec.js
 fi
 
 if [[ "$schema_mode" != "migration-aware-sql-only" ]]; then
@@ -435,7 +451,7 @@ fi
 upgrade_pgpass="$(mktemp)"
 chmod 600 "$upgrade_pgpass"
 native_upgrade_url="$(POSTGRES_RAW_URL="$upgrade_url" PGPASSFILE="$upgrade_pgpass" node deploy/recovery/postgres-url.mjs)"
-if [[ "$hr_schema" == true ]]; then
+if [[ "$hr_proof" == true ]]; then
   DATABASE_URL="$upgrade_url" node "$RC_DIR/hr-upgrade.mjs" protect "$previous_root" "$tmp_root/hr-protected.json" "$tmp_root/hr-external-keys.json"
   PGPASSFILE="$upgrade_pgpass" pg_dump --format=custom --no-owner --no-privileges --dbname="$native_upgrade_url" > "$tmp_root/hr-protected.dump"
   chmod 600 "$tmp_root/hr-protected.dump"
@@ -554,10 +570,10 @@ set -e
 
 if [[ "$schema_mode" != "migration-aware-sql-only" ]]; then
   if [[ "$legacy_upgrade" == true ]]; then
-    HR_SCHEMA_UPGRADE=NO DATABASE_URL="$rollback_url" node "$RC_DIR/legacy-fixture.mjs" verify "$previous_root" "$tmp_root/legacy.json" "$tmp_root/legacy-snapshot.json"
+    HR_SCHEMA_UPGRADE=NO HR_DOCUMENT_SCHEMA_UPGRADE=NO DATABASE_URL="$rollback_url" node "$RC_DIR/legacy-fixture.mjs" verify "$previous_root" "$tmp_root/legacy.json" "$tmp_root/legacy-snapshot.json"
   fi
-  if [[ "$hr_schema" == true ]]; then
-    DATABASE_URL="$rollback_url" node "$RC_DIR/hr-upgrade.mjs" rollback "$previous_root" "$tmp_root/hr-predecessor.json"
+  if [[ "$hr_proof" == true ]]; then
+    HR_DOCUMENT_SCHEMA_UPGRADE=NO DATABASE_URL="$rollback_url" node "$RC_DIR/hr-upgrade.mjs" rollback "$previous_root" "$tmp_root/hr-predecessor.json"
   fi
   start_previous_runtime "$rollback_url" "$rollback_storage"
   RESTORED_API_BASE_URL="http://127.0.0.1:$api_port/api/v1" DATABASE_URL="$rollback_url" \
@@ -604,10 +620,13 @@ const [
   ciJob, ciRepository, migrationList, schemaMode, legacyUpgrade,
 ] = process.argv.slice(2);
 const nullable = (value) => value === '' ? null : value;
-const hrSchema = ['migration-aware-hr-schema','migration-aware-hr-customer-boq-schema'].includes(schemaMode);
-const customerSchema = ['migration-aware-customer-boq-schema','migration-aware-hr-customer-boq-schema'].includes(schemaMode);
+const hrDocumentSchema = schemaMode.startsWith('migration-aware-hr-document-');
+const priorMode = !hrDocumentSchema ? schemaMode : schemaMode === 'migration-aware-hr-document-schema'
+  ? 'migration-aware-sql-only' : 'migration-aware-' + schemaMode.slice('migration-aware-hr-document-'.length);
+const hrSchema = ['migration-aware-hr-schema','migration-aware-hr-customer-boq-schema'].includes(priorMode);
+const customerSchema = ['migration-aware-customer-boq-schema','migration-aware-hr-customer-boq-schema'].includes(priorMode);
 writeFileSync(path, JSON.stringify({
-  version: hrSchema ? (customerSchema ? 7 : 6) : customerSchema ? 5 : schemaMode === 'migration-aware-thb-schema' ? 4 : 3,
+  version: hrDocumentSchema ? 8 : hrSchema ? (customerSchema ? 7 : 6) : customerSchema ? 5 : schemaMode === 'migration-aware-thb-schema' ? 4 : 3,
   releaseMode: schemaMode,
   releaseCommit,
   previousReleaseCommit,
@@ -640,7 +659,8 @@ writeFileSync(path, JSON.stringify({
     restoredPreviousRuntimeAuthenticationDownload: 'PASS',
   } : { prismaSchemaUnchanged: 'PASS' }),
   ...(customerSchema ? { customerBoqPersistenceUpgrade: 'PASS' } : {}),
-  ...(hrSchema ? { hrPredecessorPreservation: 'PASS', hrPredecessorRollback: 'PASS', hrEmployeeUpgradeTests: 'PASS', hrEncryptedRecordRecovery: 'PASS', hrPrivateAttachmentRecovery: 'NOT_IMPLEMENTED_THIS_INCREMENT' } : {}),
+  ...(hrSchema || hrDocumentSchema ? { hrPredecessorPreservation: 'PASS', hrPredecessorRollback: 'PASS', hrEmployeeUpgradeTests: 'PASS', hrEncryptedRecordRecovery: 'PASS', hrPrivateAttachmentRecovery: 'NOT_IMPLEMENTED_THIS_INCREMENT' } : {}),
+  ...(hrDocumentSchema ? { hrDocumentCustodyUpgrade: 'PASS', hrDocumentSchemaOnly: 'PASS' } : {}),
   forwardOnlyNewMigrations: 'PASS',
   migrationNames: migrationList.split(',').filter(Boolean),
   freshMigration: 'PASS',
