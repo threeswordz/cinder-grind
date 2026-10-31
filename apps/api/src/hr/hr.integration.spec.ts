@@ -351,9 +351,12 @@ test('HR employee/private HTTP and database contracts use disposable scoped iden
       for (const invalid of ['after=-1','after=01','after=xyz','after=2147483647','unexpected=1']) {
         await call(a.hr, path + '?' + invalid, 422);
       }
-      for (const actor of [a.ben, a.porn, a.store, a.foreman, a.admin, a.outsider]) {
+      for (const actor of [a.ben, a.porn, a.store, a.foreman, a.admin]) {
         await call(actor, path, 403);
       }
+      // The earlier session-revocation contract intentionally revoked outsider:
+      // authentication must fail (401) before any document permission check.
+      await call(a.outsider, path, 401);
       await call(a.hr, root + '/employees/' + randomUUID() + '/documents', 404);
       await call(a.hr, foreign + '/employees/' + f.legacy.id + '/documents', 404);
       await db.hrCompanyAccess.update({ where: {
