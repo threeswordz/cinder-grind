@@ -111,7 +111,8 @@ export function HrDocumentsPanel({ userId, companyId, employeeId, language, reva
     // same-body POST retries after a background metadata version refresh.
     const body = pending.current ?? {
       file, documentTypeId: typeId, requestId,
-      expectedVersion: docs.data.items.at(-1)?.version ?? 0,
+      expectedVersion: docs.data?.items.length
+        ? docs.data.items[docs.data.items.length - 1]!.version : 0,
     };
     pending.current = body;
     const turn = ++generation.current;
