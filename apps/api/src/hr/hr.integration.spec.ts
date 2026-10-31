@@ -10,6 +10,8 @@ import { securityHeadersMiddleware } from '../common/security-headers';
 import { ProblemDetailsFilter } from '../common/problem-details.filter';
 import { PrismaService } from '../prisma/prisma.service';
 import { HrService } from './hr.service';
+import { LocalDocumentStorage } from '../documents/local-document-storage.service';
+import { DocumentPolicyService } from '../documents/document-policy.service';
 import { hrFacts, hrFixture } from './hr-test-fixture';
 
 test('HR employee/private HTTP and database contracts use disposable scoped identities, immutable history and exact authority', async t => {
@@ -287,7 +289,7 @@ test('HR employee/private HTTP and database contracts use disposable scoped iden
     });
     await t.test('audit failure rolls back canonical Employee, history and replay together', async () => {
       class FailingAudit extends AuditService { override async record(): Promise<void> { throw new Error('Synthetic audit unavailable'); } }
-      const failing = new HrService(db, new FailingAudit(db), f.projects, f.crypto);
+      const failing = new HrService(db, new FailingAudit(db), f.projects, f.crypto, new LocalDocumentStorage(), new DocumentPolicyService());
       const before = await db.employee.count(), requestId = randomUUID();
       await assert.rejects(failing.create(a.hr.auth, f.company.id, { requestId, employeeCode: 'ROLLBACK-' + f.suffix, employeeName: 'Must roll back', facts: hrFacts() }));
       assert.equal(await db.employee.count(), before); assert.equal(await db.hrReplay.count({ where: { requestId } }), 0);

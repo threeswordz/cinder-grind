@@ -1,4 +1,4 @@
-import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { createHash, randomUUID } from 'node:crypto';
 import { AuditService } from '../audit/audit.service';
@@ -6,6 +6,10 @@ import { AuthenticatedUserContext } from '../auth/auth.types';
 import { normalizeMasterCode } from '../master-data/master-validation';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProjectAccessService } from '../projects/project-access.service';
+import { DocumentStorage } from '../documents/document-storage';
+import { DocumentPolicyService } from '../documents/document-policy.service';
+import { sealHrPrivateAttachment, openHrPrivateAttachment,
+  HR_PRIVATE_ATTACHMENT_MAX_BYTES, type HrAttachmentFile } from './hr-private-attachment-codec';
 import { HrPrivateCrypto, HrPrivateBinding } from './hr-private-crypto';
 import * as input from './hr-input';
 
@@ -21,7 +25,9 @@ const conflict = () => new ConflictException({ code: 'HR_CONFLICT', detail: 'The
 @Injectable()
 export class HrService {
   constructor(private readonly prisma: PrismaService, private readonly audit: AuditService,
-    private readonly projects: ProjectAccessService, private readonly crypto: HrPrivateCrypto) {}
+    private readonly projects: ProjectAccessService, private readonly crypto: HrPrivateCrypto,
+    @Inject(DocumentStorage) private readonly storage: DocumentStorage,
+    private readonly policy: DocumentPolicyService) {}
 
   private async actor(tx: Tx, supplied: AuthenticatedUserContext): Promise<AuthenticatedUserContext> {
     input.uuid(supplied.userId); input.uuid(supplied.companyId); input.uuid(supplied.sessionId);
@@ -278,6 +284,135 @@ export class HrService {
         await this.record(tx, auth, companyId, employeeId, 'PRIVATE_REVISION', { category, revisionId: id, version, reasonRecorded: true });
         return { id, version };
       });
+  }
+
+
+  /**
+   * HR-only memory upload. The authenticated actor and explicit target-Company
+   * document entitlement are checked BEFORE any ciphertext reaches storage,
+   * and again within the serializable, replay-guarded canonical transaction.
+   * Neither the original name nor plaintext checksum enters generic Documents,
+   * AuditLog or HR replay receipts. Never use a Project attachment alias.
+   */
+  async uploadDocument(supplied: AuthenticatedUserContext, companyId: string,
+    employeeId: string, raw: unknown, file: HrAttachmentFile): Promise<Receipt> {
+    input.uuid(companyId); input.uuid(employeeId);
+    const body = input.object(raw, ['requestId','documentTypeId','expectedVersion']);
+    const requestId = input.uuid(body.requestId), documentTypeId = input.uuid(body.documentTypeId);
+    if (typeof body.expectedVersion !== 'string' ||
+      !/^(0|[1-9][0-9]{0,8})$/.test(body.expectedVersion)) input.invalid();
+    const expectedVersion = input.integer(Number(body.expectedVersion));
+    if (!file || !Buffer.isBuffer(file.buffer) ||
+      file.buffer.length < 1 || file.buffer.length > HR_PRIVATE_ATTACHMENT_MAX_BYTES) input.invalid();
+    const normalized = this.policy.validate({
+      originalname: file.originalname, mimetype: file.mimetype,
+      size: file.buffer.length, buffer: file.buffer,
+    });
+    // This early authorization precedes file-storage side effects. The write
+    // transaction repeats it; neither proof survives a revoke or session end.
+    await this.read(supplied, [{ companyId, category: 'documents', action: 'manage' }], async tx => {
+      await this.employee(tx, companyId, employeeId);
+      if (!await tx.documentType.count({ where: { id: documentTypeId, companyId, isActive: true } }))
+        throw notFound();
+    });
+    const fileFingerprint = createHash('sha256').update(file.buffer).digest('hex');
+    const canonical = { employeeId, documentTypeId, expectedVersion,
+      fileName: normalized.fileName, mimeType: normalized.mimeType,
+      fileSizeBytes: file.buffer.length, fileFingerprint };
+    const attachmentId = randomUUID(), documentId = randomUUID();
+    const version = expectedVersion + 1;
+    const sealed = sealHrPrivateAttachment(this.crypto, this.policy,
+      { companyId, employeeId, recordId: attachmentId, version }, file);
+    let key: string | null = null;
+    try {
+      const stored = await this.storage.put(sealed.encryptedBytes);
+      key = stored.storageKey;
+      const result = await this.write(supplied, companyId, requestId,
+        'DOCUMENT_UPLOAD', canonical, [{ companyId, category: 'documents', action: 'manage' }],
+        async (tx, auth) => {
+          await this.employee(tx, companyId, employeeId);
+          if (!await tx.documentType.count({ where: { id: documentTypeId, companyId, isActive: true } }))
+            throw notFound();
+          const last = await tx.hrDocumentAttachment.findFirst({
+            where: { companyId, employeeId }, orderBy: { version: 'desc' },
+            select: { version: true },
+          });
+          if ((last?.version ?? 0) !== expectedVersion) throw conflict();
+          await tx.document.create({ data: {
+            id: documentId, companyId, documentTypeId,
+            fileName: sealed.genericFileName, mimeType: sealed.genericMimeType,
+            fileSizeBytes: sealed.genericSizeBytes, checksum: sealed.encryptedChecksum,
+            storageProvider: stored.storageProvider, storageKey: stored.storageKey,
+            uploadedByUserId: auth.userId,
+          } });
+          await tx.documentLink.create({ data: {
+            documentId, entityType: 'HR_ATTACHMENT', entityId: employeeId,
+            linkedByUserId: auth.userId,
+          } });
+          await tx.hrDocumentAttachment.create({ data: {
+            id: attachmentId, companyId, employeeId, documentId, version,
+            actorUserId: auth.userId, encryptedMetadata: sealed.encryptedMetadata,
+          } });
+          await this.record(tx, auth, companyId, employeeId, 'DOCUMENT_UPLOAD', {
+            attachmentId, version, documentId, encrypted: true,
+          });
+          return { id: attachmentId, version };
+        });
+      // Replays return the original receipt, not the speculative attachment.
+      // Delete only the newly created orphan ciphertext in that case.
+      if (result.id !== attachmentId) {
+        await this.storage.remove(stored.storageKey);
+        key = null;
+      }
+      return result;
+    } catch (error) {
+      if (key) await this.storage.remove(key);
+      throw error;
+    } finally {
+      sealed.encryptedBytes.fill(0);
+      file.buffer.fill(0);
+    }
+  }
+
+  /**
+   * Fetch encrypted bytes through canonical storage only AFTER persisted
+   * authorization, then revalidate again before decrypting / returning the
+   * response. No generic Document download permission is accepted.
+   */
+  async downloadDocument(supplied: AuthenticatedUserContext, companyId: string,
+    employeeId: string, attachmentId: string) {
+    input.uuid(companyId); input.uuid(employeeId); input.uuid(attachmentId);
+    const requirement: Requirement = { companyId, category: 'documents', action: 'view' };
+    const fetchRow = (tx: Tx) => tx.hrDocumentAttachment.findFirst({
+      where: { id: attachmentId, companyId, employeeId, document: { isActive: true } },
+      include: { document: { select: { storageProvider: true, storageKey: true, checksum: true } } },
+    });
+    const initial = await this.read(supplied, [requirement], async tx => {
+      await this.employee(tx, companyId, employeeId);
+      const found = await fetchRow(tx);
+      if (!found || found.document.storageProvider !== 'LOCAL') throw notFound();
+      return { storageKey: found.document.storageKey };
+    });
+    const encrypted = await this.storage.read(initial.storageKey);
+    try {
+      return await this.read(supplied, [requirement], async (tx, auth) => {
+        const row = await fetchRow(tx);
+        if (!row || row.document.storageProvider !== 'LOCAL' ||
+            row.document.storageKey !== initial.storageKey ||
+            createHash('sha256').update(encrypted).digest('hex') !== row.document.checksum)
+          throw notFound();
+        const opened = openHrPrivateAttachment(this.crypto, this.policy,
+          { companyId, employeeId, recordId: row.id, version: row.version },
+          encrypted, row.encryptedMetadata);
+        await this.record(tx, auth, companyId, employeeId, 'DOCUMENT_DOWNLOAD', {
+          attachmentId: row.id, version: row.version,
+        });
+        return { bytes: opened.bytes, fileName: opened.originalname,
+          mimeType: opened.mimetype, fileSizeBytes: opened.bytes.length };
+      });
+    } finally {
+      encrypted.fill(0);
+    }
   }
 
   privateRead(supplied: AuthenticatedUserContext, companyId: string, employeeId: string, category: input.PrivateCategory, version?: number) {

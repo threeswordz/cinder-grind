@@ -31,6 +31,6 @@ import { LocalDocumentStorage } from './local-document-storage.service';
     DocumentPolicyService,
     { provide: DocumentStorage, useClass: LocalDocumentStorage },
   ],
-  exports: [DocumentsService, DocumentStorage],
+  exports: [DocumentsService, DocumentStorage, DocumentPolicyService],
 })
 export class DocumentsModule {}
