@@ -1951,6 +1951,8 @@ model StockCount {
   countedAt                DateTime  @map("counted_at") @db.Timestamptz(6)
   expectedOnHand           Decimal   @map("expected_on_hand") @db.Decimal(18, 4)
   expectedReserved         Decimal   @map("expected_reserved") @db.Decimal(18, 4)
+  expectedLedgerEventCount Int       @default(0) @map("expected_ledger_event_count")
+  expectedReservationFingerprint String @default("0000000000000000000000000000000000000000000000000000000000000000") @map("expected_reservation_fingerprint") @db.VarChar(64)
   actualQuantity           Decimal   @map("actual_quantity") @db.Decimal(18, 4)
   varianceQuantity         Decimal   @map("variance_quantity") @db.Decimal(18, 4)
   evidenceReference        String?   @map("evidence_reference") @db.Text
