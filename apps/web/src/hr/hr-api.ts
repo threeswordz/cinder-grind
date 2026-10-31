@@ -64,3 +64,30 @@ export async function getHrEmploymentHistory(companyId: string, employeeId: stri
   const result = await apiRequest<unknown>(route);
   return z.object({ data: historySchema }).parse(result).data;
 }
+
+/** HR1-A operational enrolment only: no salary, bank, identity or payroll fields. */
+export type HrEmployeeCreate = {
+  requestId: string;
+  employeeCode: string;
+  employeeName: string;
+  jobTitle: string | null;
+  facts: {
+    payBasis: 'MONTHLY' | 'DAILY';
+    employmentForm: 'PROBATION' | 'PERMANENT' | 'FIXED_TERM' | 'TEMPORARY';
+    siteKind: 'OFFICE' | 'SITE';
+    startDate: string;
+    endDate: string | null;
+    projectId: string | null;
+    hiringApprovalReference: string;
+    reason: string;
+  };
+};
+
+export async function createHrEmployee(companyId: string, value: HrEmployeeCreate): Promise<{ id: string; version: number }> {
+  const result = await apiRequest<unknown>('/hr/companies/' + encodeURIComponent(companyId) + '/employees', {
+    method: 'POST', body: JSON.stringify(value),
+  });
+  return z.object({
+    data: z.object({ id: z.string().uuid(), version: z.number().int().positive() }),
+  }).parse(result).data;
+}

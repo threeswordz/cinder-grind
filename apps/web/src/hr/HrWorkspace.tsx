@@ -8,6 +8,7 @@ import {
 import type { CurrentUser } from '../api/auth';
 import { getHrCompanies, getHrEmployees, getHrEmploymentHistory } from './hr-api';
 import { employmentCompanies, selectedHrCompany, selectedHrEmployee } from './hr-ui-policy';
+import { HrCreateEmployee } from './HrCreateEmployee';
 
 type Language = 'en' | 'th' | 'zh-TW';
 const labels = {
@@ -128,6 +129,17 @@ export function HrWorkspace({ user }: { user: CurrentUser }) {
       <Alert severity="warning">{t.unavailable}</Alert> : !companies.length ?
       <Alert severity="info">{t.noCompany}</Alert> : !companyId ?
       <Alert severity="warning">{t.chooseCompany}</Alert> : <>
+        {user.permissions.includes('hr.employment.manage') &&
+          companies.some(company => company.id === companyId &&
+            company.permissions.includes('hr.employment.manage')) &&
+          <HrCreateEmployee key={companyId} companyId={companyId} language={language}
+            onCreated={() => {
+              setRequestedEmployee('');
+              setPageCursors(['']);
+              void queryClient.invalidateQueries({
+                queryKey: ['hr1-a', user.id, user.companyId, companyId, 'employees'],
+              });
+            }} />}
         <Paper variant="outlined">
           <Box sx={{ display: 'flex', justifyContent: 'flex-end', p: 1 }}>
             <Button onClick={() => void employeesQuery.refetch()} disabled={employeesQuery.isFetching}>{t.reload}</Button>
