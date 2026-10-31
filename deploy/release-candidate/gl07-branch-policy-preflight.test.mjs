@@ -36,6 +36,7 @@ test('ruleset must enforce main and cannot quietly exempt default branch',()=>{
   {...original,enforcement:'evaluate'},
   {...original,conditions:{ref_name:{include:['~DEFAULT_BRANCH'],exclude:['refs/heads/main']}}},
   {...original,conditions:{ref_name:{include:['refs/heads/feature'],exclude:[]}}},
+  {...original,conditions:{ref_name:{include:['~DEFAULT_BRANCH'],exclude:['refs/heads/m*']}}},
   {...original,conditions:{ref_name:{include:['~DEFAULT_BRANCH']}}},
  ])assert.equal(targetApplies(changed),false);
 });

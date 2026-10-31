@@ -19,7 +19,7 @@ The CI-registered synthetic tests execute through the existing `node --test depl
 ## Policy proposal tested (not applied)
 
 - Branch protection reports `main.protected=true`.
-- An active branch ruleset targets default branch with no exclusion.
+- An active branch ruleset targets default branch with no exclusion. All nonempty exclusion lists are conservatively flagged, including wildcard patterns, because they could exempt main and require an administrator to inspect them.
 - The active applicable rules collectively require the exact check context `validate`, at least one PR approving review, block force pushes (`non_fast_forward`) and block branch deletion (`deletion`).
 - Any bypass actors or missing bypass metadata are flagged for security/admin inspection instead of automatically whitelisted.
 
@@ -28,3 +28,5 @@ The tool checks these source/readback attributes, **not actual enforcement in a 
 **Current independently observed position, 31 Oct 2026 SGT:** `main.protected=false`, repository rulesets `[]`, detailed protection API inaccessible to connector (403). This is a known outstanding gap. Passing exact-head CI alone does not make main protected.
 
 The provided input is untrusted operational evidence. No cryptographic attestation or verified timestamp is performed, and the script intentionally prints only summarized status/gaps, not raw private settings. Output includes `changesApplied=false`, `productionGateClosed=false`, `productionAuthorized=false` and `mainProtectionIndependentlyConfirmed=false` even for a matching proposed configuration. No Accounting, HR, stock, MKE/TCJ or Production changes.
+
+**Snapshot fidelity:** GitHub's ruleset listing may omit individual rule definitions. Obtain a full authorized read-only detail for each ruleset before preparing the sanitized snapshot. Missing rule details fail closed; never fill in presumed settings.

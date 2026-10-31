@@ -14,8 +14,8 @@ export function targetApplies(ruleset){
   const exclude=ruleset.conditions?.ref_name?.exclude;
   if(!Array.isArray(include)||!Array.isArray(exclude))return false;
   const matches=include.includes('~DEFAULT_BRANCH')||include.includes('refs/heads/main');
-  const excluded=exclude.includes('~DEFAULT_BRANCH')||exclude.includes('refs/heads/main')||
-    exclude.includes('~ALL')||exclude.includes('refs/heads/*');
+  // Fail closed: even an unfamiliar ref glob can exclude main. Admin review required for any exclusions.
+  const excluded=exclude.length>0;
   return matches&&!excluded;
 }
 export function analyzeSnapshot(snapshot){
