@@ -67,6 +67,7 @@ export function HrPrivatePanel({ companyId, employeeId, category, canManage, lan
     const hide = () => {
       if (document.visibilityState !== 'hidden') return;
       operation.current++;
+      setBusy(false);
       setRevealed(null);
       setSecret('');
       setReason('');
@@ -92,6 +93,7 @@ export function HrPrivatePanel({ companyId, employeeId, category, canManage, lan
   useEffect(() => {
     if (masked.isFetching || history.isFetching || masked.isError || history.isError) {
       operation.current++;
+      setBusy(false);
       setRevealed(null);
     }
   }, [masked.isFetching, history.isFetching, masked.isError, history.isError]);
