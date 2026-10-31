@@ -139,8 +139,10 @@ async function run(){
   check(submitBodies.length===1&&submitBodies[0].expectedVersion===1,'Submit optimistic version missing');
 
   render(['inventory.stock_count.view','inventory.stock_count.approve']);
-  await until(()=>text().includes('SUBMITTED'),'Reviewer lost submitted count');
-  check(!text().includes('Save draft count'),'Reviewer unexpectedly received Store Site create action');
+  await until(
+    ()=>text().includes('SUBMITTED')&&text().includes('Review')&&!text().includes('Save draft count'),
+    'Reviewer permission projection did not replace Store Site actions',
+  );
   await click('Review');
   await click('Approve quantity adjustment');
   await until(()=>text().includes('Synthetic uncertain response'),'Uncertain approval response not surfaced');
