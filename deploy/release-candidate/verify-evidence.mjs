@@ -54,7 +54,7 @@ if (['migration-aware-sql-only', 'migration-aware-thb-schema', 'migration-aware-
     if (hrSchema || hrDocumentSchema) {
       for (const key of ['hrPredecessorPreservation','hrPredecessorRollback','hrEmployeeUpgradeTests','hrEncryptedRecordRecovery']) if (rehearsal[key] !== 'PASS') fail('HR upgrade proof ' + key + ' did not PASS');
       if (hrSchema && !rehearsal.migrationNames?.includes('20261029140000_hr1_a_employee_access')) fail('Exact bounded HR migration missing');
-      if (rehearsal.hrPrivateAttachmentRecovery !== 'NOT_IMPLEMENTED_THIS_INCREMENT') fail('HR attachment recovery scope must stay explicit');
+      if (rehearsal.hrPrivateAttachmentRecovery !== (hrDocumentSchema ? 'PASS' : 'NOT_IMPLEMENTED_THIS_INCREMENT')) fail('HR attachment recovery proof missing or misreported');
     }
     if (hrDocumentSchema) {
       if (!rehearsal.migrationNames?.includes('20261030160000_hr1_a_document_custody')) fail('Exact bounded HR attachment migration missing');
