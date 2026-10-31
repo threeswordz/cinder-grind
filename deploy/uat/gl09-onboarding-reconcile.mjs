@@ -28,7 +28,7 @@ function validRow(row) {
   return row && typeof row === 'object' && !Array.isArray(row) &&
     COMPANIES.includes(row.companyKey) && DATASETS.includes(row.dataset) &&
     int(row.count) && typeof row.sha256 === 'string' && SHA256.test(row.sha256) &&
-    (row.count !== 0 || row.sha256.toLowerCase() === EMPTY_SHA256) &&
+    ((row.count === 0) === (row.sha256.toLowerCase() === EMPTY_SHA256)) &&
     int(row.rejectedRows) && int(row.duplicateRows) && int(row.foreignCompanyReferences);
 }
 const key = row => row.companyKey + '/' + row.dataset;
