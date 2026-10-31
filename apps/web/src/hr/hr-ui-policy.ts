@@ -7,7 +7,7 @@ export type HrCompanyChoice = {
   permissions: readonly string[];
 };
 
-export function employmentCompanies(companies: readonly HrCompanyChoice[]): HrCompanyChoice[] {
+export function employmentCompanies<T extends HrCompanyChoice>(companies: readonly T[]): T[] {
   return companies.filter(company => company.categories.includes('employment') &&
     company.permissions.includes('hr.employment.view'));
 }
