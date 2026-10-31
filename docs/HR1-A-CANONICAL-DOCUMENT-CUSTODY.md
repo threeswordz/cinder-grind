@@ -23,6 +23,12 @@ This is the minimum forward-only relational foundation to tie **one immutable pr
 
 The existing CI migration, prior-release upgrade/preservation/rollback, Prisma generation, API tests and disposable recovery stages remain mandatory. Any failures on those gates must be corrected before review/merge.
 
+## Dedicated attachment metadata history (subsequent bounded increment in this PR)
+
+The existing persisted HR session/role and explicit target-Company `documents` entitlement now protect a dedicated `GET /api/v1/hr/companies/:companyId/employees/:employeeId/documents` history endpoint. It returns only immutable attachment `id`, `version` and `createdAt` through a bounded, version-cursor page (at most 100 entries), and no storage pointer, original filename, MIME, encrypted metadata, checksum, generic Document Type or private bytes. The endpoint uses `hr.documents.view`, revalidates actual persisted session/role and target-Company scope in the HR serializable read transaction, and never routes through ordinary Project/document access.
+
+Synthetic HTTP coverage is registered in the existing HR integration suite: authorized HR and separately permitted Finance-manager view, unauthorized role denial, wrong-Company/employee, revoked Company entitlement, disabled role, strict cursor/query validation and metadata absence. This read-only surface is **not** proof of encrypted upload/download, actual file-store restore or retained configuration; these remain required before HR1-A acceptance.
+
 ## Next governed increment within approved #295
 
 Implement dedicated CSRF-protected memory-only upload, protected metadata list/history and authorized no-store file download, using:
