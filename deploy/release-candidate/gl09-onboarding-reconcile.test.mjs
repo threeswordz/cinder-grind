@@ -66,6 +66,19 @@ test('different counts or canonical fingerprints are independently blocked', () 
   assert.ok(codes(audit(canonicalization)).includes('FINGERPRINT_CANONICALIZATION_NOT_AGREED'));
 });
 
+test('nonempty dataset count cannot masquerade as a canonical empty-set fingerprint', () => {
+  const inconsistent = snapshot();
+  inconsistent.source.datasets[0].sha256 = EMPTY;
+  inconsistent.target.datasets[0].sha256 = EMPTY;
+  assert.ok(codes(audit(inconsistent)).includes('SOURCE_DATASET_ROW_INVALID'));
+  assert.ok(codes(audit(inconsistent)).includes('TARGET_DATASET_ROW_INVALID'));
+  assert.ok(codes(audit(inconsistent)).includes('DATASET_NOT_PRESENT_BOTH_SIDES'));
+
+  const emptyWrong = snapshot();
+  emptyWrong.target.datasets[1].sha256 = 'a'.repeat(64);
+  assert.ok(codes(audit(emptyWrong)).includes('TARGET_DATASET_ROW_INVALID'));
+});
+
 test('cross-Company references, duplicates and rejected rows cannot be hidden', () => {
   for (const field of ['foreignCompanyReferences', 'duplicateRows', 'rejectedRows']) {
     const value = snapshot();
