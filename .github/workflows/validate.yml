@@ -364,6 +364,8 @@ jobs:
           for attempt in 1 2 3; do
             node deploy/uat/boq-workflow-browser.mjs
           done
+      - name: Verify FM01-A weekly site report in actual disposable Chromium
+        run: node deploy/uat/fm01a-weekly-browser.mjs
       - name: Rehearse V1.0-E exact release candidate
         env:
           RC_NON_PRODUCTION_CONFIRMED: YES
