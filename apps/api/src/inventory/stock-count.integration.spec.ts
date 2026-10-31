@@ -216,6 +216,34 @@ test('OP-STOCK-COUNT-01 quantity-only reconciliation is scoped, stale-safe, rese
     assert.equal(shortageApproved.stockTransaction?.quantity.toString(), '-3');
     assert.equal((await quantities.onHand(prisma, dimension)).toString(), '1');
 
+    // SC-AC-05 ABA regression: canonical append-only movements can change
+    // between count and submission and then return on-hand to the original
+    // numeric snapshot. A recount is still required, even if sums match.
+    const abaBefore = await quantities.onHand(prisma, dimension);
+    const abaDraft = await service.create({ auth: storeAuth }, {
+      projectId: project.id, warehouseId: site.id, materialId: material.id, uomId: uom.id,
+      countedAt: new Date(), actualQuantity: abaBefore,
+    });
+    const abaUp = await service.create({ auth: storeAuth }, {
+      projectId: project.id, warehouseId: site.id, materialId: material.id, uomId: uom.id,
+      countedAt: new Date(), actualQuantity: abaBefore.plus(1), evidenceReference: 'ABA test up',
+    });
+    const abaUpSubmitted = await service.submit({ auth: storeAuth }, abaUp.id, abaUp.version);
+    await service.approve({ auth: managerAuth }, abaUp.id, abaUpSubmitted.version, 'SC-ABA-UP-' + suffix);
+    const abaDown = await service.create({ auth: storeAuth }, {
+      projectId: project.id, warehouseId: site.id, materialId: material.id, uomId: uom.id,
+      countedAt: new Date(), actualQuantity: abaBefore, evidenceReference: 'ABA test down',
+    });
+    const abaDownSubmitted = await service.submit({ auth: storeAuth }, abaDown.id, abaDown.version);
+    await service.approve({ auth: managerAuth }, abaDown.id, abaDownSubmitted.version, 'SC-ABA-DOWN-' + suffix);
+    assert.equal((await quantities.onHand(prisma, dimension)).toString(), abaBefore.toString(),
+      'canonical adjustments must restore the aggregate for this ABA test');
+    await assert.rejects(
+      () => service.submit({ auth: storeAuth }, abaDraft.id, abaDraft.version),
+      (error: unknown) => error instanceof ConflictException,
+      'new stock ledger events must make the count stale even if on-hand returns to the same total',
+    );
+
     await assert.rejects(() => prisma.stockCount.update({
       where: { id: plus.id }, data: { evidenceReference: 'tampered', version: plusApproved.version + 1 },
     }), 'approved count history must be immutable');
