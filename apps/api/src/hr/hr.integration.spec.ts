@@ -359,9 +359,16 @@ test('HR employee/private HTTP and database contracts use disposable scoped iden
       await call(a.outsider, path, 401);
       await call(a.hr, root + '/employees/' + randomUUID() + '/documents', 404);
       await call(a.hr, foreign + '/employees/' + f.legacy.id + '/documents', 404);
-      await db.hrCompanyAccess.update({ where: {
+      const docsGrant = await db.hrCompanyAccess.findUniqueOrThrow({ where: {
         companyId_userId_category: { companyId: f.company.id, userId: a.nancy.user.id, category: 'documents' },
-      }, data: { isActive: false } });
+      } });
+      // HR entitlement changes are versioned and target-owned; exercise the
+      // actual approval/administration route rather than bypassing SQL guards.
+      await post(a.admin, root + '/access', {
+        requestId: randomUUID(), userId: a.nancy.user.id,
+        category: 'documents', isActive: false, expectedVersion: docsGrant.version,
+        reasonCode: 'ACCESS_REVOKED',
+      });
       await call(a.nancy, path, 404);
       await db.role.update({ where: { id: a.hr.role.id }, data: { isActive: false } });
       await call(a.hr, path, 403);
