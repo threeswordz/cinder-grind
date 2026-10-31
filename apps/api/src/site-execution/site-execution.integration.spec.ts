@@ -523,7 +523,10 @@ test('Stage E keeps Daily Site Reports project-scoped, immutable after submissio
     assert.equal(weekly.days[0]?.report?.progressObservations[0]?.percentComplete, '65');
     assert.equal(weekly.days[0]?.report?.progressObservations[0]?.note, 'Daily site progress');
     assert.equal(weekly.totals.submittedDays, 1);
-    assert.equal(weekly.totals.missingDays, 6);
+    assert.equal(weekly.totals.draftDays, 1);
+    assert.equal(weekly.days[2]?.status, 'DRAFT');
+    assert.equal(weekly.days[2]?.report?.id, guardReport.id);
+    assert.equal(weekly.totals.missingDays, 5);
     assert.equal(weekly.totals.issues, 1);
     assert.equal(weekly.totals.delays, 1);
     assert.equal(weekly.totals.inspections, 1);
