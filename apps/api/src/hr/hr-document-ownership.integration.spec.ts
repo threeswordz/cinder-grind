@@ -215,6 +215,32 @@ test('HR attachment ownership is same-Company, private-link-only, versioned and 
       entityId: project.id, linkedByUserId: actor.id,
     } }));
 
+    // SQL must reject new private source links when the native role,
+    // current user or target Company becomes inactive, even though an
+    // earlier HR Company entitlement remains persisted as active. Generic
+    // Document creation in these negative fixtures must not grant access.
+    const assertDisabledSourceDenied = async () => {
+      const deniedDocument = await mkDocument();
+      await assert.rejects(db.documentLink.create({ data: {
+        documentId: deniedDocument.id, entityType: 'HR_ATTACHMENT',
+        entityId: employee.id, linkedByUserId: actor.id,
+      } }));
+      assert.equal(await db.documentLink.count({
+        where: { documentId: deniedDocument.id },
+      }), 0);
+    };
+    await db.role.update({ where: { id: role.id }, data: { isActive: false } });
+    await assertDisabledSourceDenied();
+    await db.role.update({ where: { id: role.id }, data: { isActive: true } });
+
+    await db.user.update({ where: { id: actor.id }, data: { isActive: false } });
+    await assertDisabledSourceDenied();
+    await db.user.update({ where: { id: actor.id }, data: { isActive: true } });
+
+    await db.company.update({ where: { id: company.id }, data: { isActive: false } });
+    await assertDisabledSourceDenied();
+    await db.company.update({ where: { id: company.id }, data: { isActive: true } });
+
     // Even an independently authorized document steward cannot falsely
     // attribute a different uploader's canonical file or HR source link.
     const otherWriter = await db.user.create({ data: { companyId: company.id,
