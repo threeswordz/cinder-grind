@@ -60,6 +60,9 @@ test('OP-STOCK-COUNT-01 quantity-only reconciliation is scoped, stale-safe, rese
     const uom = await prisma.unitOfMeasure.create({ data: {
       companyId: company.id, uomCode: 'EA-' + suffix, uomName: 'Each', decimalPlaces: 4,
     }});
+    const alternativeUom = await prisma.unitOfMeasure.create({ data: {
+      companyId: company.id, uomCode: 'BOX-' + suffix, uomName: 'Box', decimalPlaces: 4,
+    }});
     const material = await prisma.material.create({ data: {
       companyId: company.id, materialCode: 'MAT-' + suffix, materialName: 'Count Material', defaultUomId: uom.id,
     }});
@@ -97,6 +100,18 @@ test('OP-STOCK-COUNT-01 quantity-only reconciliation is scoped, stale-safe, rese
       projectId: project.id, warehouseId: central.id, materialId: material.id, uomId: uom.id,
       countedAt: new Date(), actualQuantity: new Prisma.Decimal(1), evidenceReference: 'inspection',
     }), (error: unknown) => error instanceof UnprocessableEntityException);
+
+    // A same-Company active UOM is NOT automatically valid for this Material/warehouse.
+    // The UI offers only the default UOM or an already posted stock dimension.
+    await assert.rejects(() => service.create({ auth: storeAuth }, {
+      projectId: project.id, warehouseId: site.id, materialId: material.id, uomId: alternativeUom.id,
+      countedAt: new Date(), actualQuantity: new Prisma.Decimal(8), evidenceReference: 'invalid unit',
+    }), (error: unknown) => error instanceof UnprocessableEntityException,
+    'stock count must reject a never-used, non-default UOM for the selected Material/site');
+    assert.equal(await prisma.stockCount.count({ where: {
+      companyId: company.id, projectId: project.id, warehouseId: site.id,
+      materialId: material.id, uomId: alternativeUom.id,
+    }}), 0);
 
     const plus = await service.create({ auth: storeAuth }, {
       projectId: project.id, warehouseId: site.id, materialId: material.id, uomId: uom.id,
