@@ -138,11 +138,11 @@ FOR EACH ROW EXECUTE FUNCTION protect_stock_count_history();
 
 INSERT INTO "permissions" ("id","permission_code","module_code","description")
 VALUES
- (gen_random_uuid(),'inventory.stock_count.view','INVENTORY','View physical stock counts within effective Project scope'),
- (gen_random_uuid(),'inventory.stock_count.create','INVENTORY','Record a physical stock count draft for a Project site warehouse'),
- (gen_random_uuid(),'inventory.stock_count.edit','INVENTORY','Correct an unsigned physical stock count draft'),
- (gen_random_uuid(),'inventory.stock_count.submit','INVENTORY','Submit a physical stock count for independent review'),
- (gen_random_uuid(),'inventory.stock_count.approve','INVENTORY','Approve or reject physical stock counts and post quantity-only reconciliation')
+ ('b0310000-0000-4000-8000-000000000001','inventory.stock_count.view','INVENTORY','View physical stock counts within effective Project scope'),
+ ('b0310000-0000-4000-8000-000000000002','inventory.stock_count.create','INVENTORY','Record a physical stock count draft for a Project site warehouse'),
+ ('b0310000-0000-4000-8000-000000000003','inventory.stock_count.edit','INVENTORY','Correct an unsigned physical stock count draft'),
+ ('b0310000-0000-4000-8000-000000000004','inventory.stock_count.submit','INVENTORY','Submit a physical stock count for independent review'),
+ ('b0310000-0000-4000-8000-000000000005','inventory.stock_count.approve','INVENTORY','Approve or reject physical stock counts and post quantity-only reconciliation')
 ON CONFLICT ("permission_code") DO NOTHING;
 
 -- No automatic role grants: Store Site/Khaimook mapping remains reviewed configuration.
