@@ -5,6 +5,7 @@ import test from 'node:test';
 import {
   ConflictException,
   ForbiddenException,
+  NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
@@ -540,6 +541,11 @@ test('Stage E keeps Daily Site Reports project-scoped, immutable after submissio
       () => service.weekly(siteAuth, otherProject.id, weekFrom, weekTo),
       (error: unknown) => error instanceof ForbiddenException,
       'weekly read must deny a different Project even within the same Company',
+    );
+    await assert.rejects(
+      () => service.weekly(auth(randomUUID(), user.id), project.id, weekFrom, weekTo),
+      (error: unknown) => error instanceof NotFoundException,
+      'weekly read must not disclose an existing Project to a different Company context',
     );
     await assert.rejects(
       () => service.weekly(siteAuth, project.id, weekFrom, new Date('2026-10-12T00:00:00.000Z')),
