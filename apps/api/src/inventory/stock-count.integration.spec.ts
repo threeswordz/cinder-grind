@@ -147,6 +147,10 @@ test('OP-STOCK-COUNT-01 quantity-only reconciliation is scoped, stale-safe, rese
       { auth: managerAuth }, selfMade.id, selfSubmitted.version, 'SC-SELF-' + suffix,
     ), (error: unknown) => error instanceof ForbiddenException);
 
+    const reservationSnapshot = await service.create({ auth: storeAuth }, {
+      projectId: project.id, warehouseId: site.id, materialId: material.id, uomId: uom.id,
+      countedAt: new Date(), actualQuantity: new Prisma.Decimal(1), evidenceReference: 'physical shortage observed',
+    });
     const reservation = await prisma.materialReservation.create({ data: {
       companyId: company.id, projectId: project.id, warehouseId: site.id, materialId: material.id, uomId: uom.id,
       reservationNumber: 'SC-RSV-' + suffix, quantity: new Prisma.Decimal(2), createdByUserId: store.id,
@@ -154,12 +158,21 @@ test('OP-STOCK-COUNT-01 quantity-only reconciliation is scoped, stale-safe, rese
     await prisma.materialReservation.update({ where: { id: reservation.id }, data: {
       status: 'ACTIVE', activatedByUserId: store.id, activatedAt: new Date(),
     }});
-    const reserved = await service.create({ auth: storeAuth }, {
+    await assert.rejects(() => service.submit(
+      { auth: storeAuth }, reservationSnapshot.id, reservationSnapshot.version,
+    ), (error: unknown) => error instanceof ConflictException,
+    'reservation changes after the physical snapshot must force a recount/review');
+
+    const shortage = await service.create({ auth: storeAuth }, {
       projectId: project.id, warehouseId: site.id, materialId: material.id, uomId: uom.id,
-      countedAt: new Date(), actualQuantity: new Prisma.Decimal(1), evidenceReference: 'reserved conflict',
+      countedAt: new Date(), actualQuantity: new Prisma.Decimal(1), evidenceReference: 'verified shortage below reservation',
     });
-    await assert.rejects(() => service.submit({ auth: storeAuth }, reserved.id, reserved.version),
-      (error: unknown) => error instanceof ConflictException);
+    const shortageSubmitted = await service.submit({ auth: storeAuth }, shortage.id, shortage.version);
+    const shortageApproved = await service.approve(
+      { auth: managerAuth }, shortage.id, shortageSubmitted.version, 'SC-SHORT-' + suffix,
+    );
+    assert.equal(shortageApproved.stockTransaction?.quantity.toString(), '-3');
+    assert.equal((await quantities.onHand(prisma, dimension)).toString(), '1');
 
     await assert.rejects(() => prisma.stockCount.update({
       where: { id: plus.id }, data: { evidenceReference: 'tampered', version: plusApproved.version + 1 },
