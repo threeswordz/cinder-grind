@@ -682,7 +682,10 @@ jobs:
           node --input-type=module - <<'NODE'
           import { readFileSync } from 'node:fs';
           const data = JSON.parse(readFileSync('/tmp/v1-3-customer-boq-consolidated-evidence.json', 'utf8'));
-          if (!['migration-aware-hr-document-customer-boq-schema','migration-aware-hr-document-hr-customer-boq-schema'].includes(data.releaseMode) ||
+          const customerMode = data.releaseMode.startsWith('migration-aware-stock-count-')
+            ? 'migration-aware-' + data.releaseMode.slice('migration-aware-stock-count-'.length)
+            : data.releaseMode;
+          if (!['migration-aware-hr-document-customer-boq-schema','migration-aware-hr-document-hr-customer-boq-schema'].includes(customerMode) ||
               data.rehearsal.previousReleaseCommit !== 'fc52a867c96a8b3a369b480b9799bad1a5e9f399' ||
               data.rehearsal.customerBoqPersistenceUpgrade !== 'PASS') throw new Error('Actual predecessor Customer BOQ upgrade contract missing.');
           NODE
@@ -692,6 +695,9 @@ jobs:
           node --input-type=module - <<'NODE'
           import { readFileSync } from 'node:fs';
           const data = JSON.parse(readFileSync('/tmp/hr1-a-employee-consolidated-evidence.json','utf8'));
-          if (data.releaseMode !== 'migration-aware-hr-document-hr-schema' || data.rehearsal.previousReleaseCommit !== 'e86ed846f30ac3feeb09f74ba9084571b9955520') throw new Error('Exact HR predecessor contract missing');
+          const hrMode = data.releaseMode.startsWith('migration-aware-stock-count-')
+            ? 'migration-aware-' + data.releaseMode.slice('migration-aware-stock-count-'.length)
+            : data.releaseMode;
+          if (hrMode !== 'migration-aware-hr-document-hr-schema' || data.rehearsal.previousReleaseCommit !== 'e86ed846f30ac3feeb09f74ba9084571b9955520') throw new Error('Exact HR predecessor contract missing');
           for (const key of ['hrPredecessorPreservation','hrPredecessorRollback','hrEmployeeUpgradeTests','hrEncryptedRecordRecovery']) if (data.rehearsal[key] !== 'PASS') throw new Error('HR proof missing: '+key);
           NODE
