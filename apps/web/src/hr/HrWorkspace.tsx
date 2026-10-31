@@ -10,6 +10,7 @@ import { getHrCompanies, getHrEmployees, getHrEmploymentHistory } from './hr-api
 import { employmentCompanies, selectedHrCompany, selectedHrEmployee } from './hr-ui-policy';
 import { HrCreateEmployee } from './HrCreateEmployee';
 import { HrPrivatePanel } from './HrPrivatePanel';
+import { HrDocumentsPanel } from './HrDocumentsPanel';
 
 type Language = 'en' | 'th' | 'zh-TW';
 const labels = {
@@ -206,6 +207,17 @@ export function HrWorkspace({ user }: { user: CurrentUser }) {
               canManage={user.permissions.includes('hr.' + kind + '.manage') &&
                 companies.some(company => company.id === companyId &&
                   company.permissions.includes('hr.' + kind + '.manage'))} />)}
+        {!companiesQuery.isError && !employeesQuery.isError && employeeId &&
+          user.permissions.includes('hr.documents.view') &&
+          companies.some(company => company.id === companyId &&
+            company.categories.includes('documents') &&
+            company.permissions.includes('hr.documents.view')) &&
+          <HrDocumentsPanel key={companyId + ':' + employeeId} userId={user.id}
+            companyId={companyId} employeeId={employeeId} language={language}
+            revalidating={companiesQuery.isFetching || employeesQuery.isFetching}
+            canManage={user.permissions.includes('hr.documents.manage') &&
+              companies.some(company => company.id === companyId &&
+                company.permissions.includes('hr.documents.manage'))} />}
       </>}
   </Stack>;
 }
