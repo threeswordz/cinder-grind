@@ -412,6 +412,21 @@ test('HR employee/private HTTP and database contracts use disposable scoped iden
       assert.equal(blocked.status, 403);
       const noCsrf = await upload(a.hr, randomUUID(), '1', bytes, false);
       assert.equal(noCsrf.status, 403);
+      // No completed upload may be created by a rejected or revoked actor.
+      const storedBefore = await db.hrDocumentAttachment.count({ where: { companyId: f.company.id, employeeId: f.legacy.id } });
+      const deniedBytes = Buffer.from('PRIVATE-REJECTED-ACCESS');
+      await assert.rejects(f.service.uploadDocument(a.ben.auth, f.company.id,
+        f.legacy.id, { requestId: randomUUID(), documentTypeId: type.id, expectedVersion: '1' },
+        { originalname: 'synthetic-private.txt', mimetype: 'text/plain', buffer: deniedBytes }));
+      assert.ok(deniedBytes.every(byte => byte === 0), 'Rejected private upload buffers must be erased');
+      const rejectedMime = Buffer.from('PRIVATE-INVALID-MIME');
+      await assert.rejects(f.service.uploadDocument(a.hr.auth, f.company.id,
+        f.legacy.id, { requestId: randomUUID(), documentTypeId: type.id, expectedVersion: '1' },
+        { originalname: 'synthetic-private.txt', mimetype: 'application/x-executable', buffer: rejectedMime }));
+      assert.ok(rejectedMime.every(byte => byte === 0), 'Invalid private MIME bytes must be erased');
+      assert.equal(await db.hrDocumentAttachment.count({
+        where: { companyId: f.company.id, employeeId: f.legacy.id },
+      }), storedBefore);
       const response = await upload(a.hr, requestId);
       assert.equal(response.status, 201, await response.clone().text());
       assert.equal(response.headers.get('cache-control'), 'private, no-store');
@@ -462,6 +477,25 @@ test('HR employee/private HTTP and database contracts use disposable scoped iden
       const changed = await upload(a.hr, requestId, '1',
         Buffer.from('DIFFERENT-SYNTHETIC-PRIVATE-BYTES'));
       assert.equal(changed.status, 409);
+      const stale = await upload(a.hr, randomUUID(), '1');
+      assert.equal(stale.status, 409);
+      assert.equal(await db.hrDocumentAttachment.count({ where: {
+        companyId: f.company.id, employeeId: f.legacy.id,
+      } }), 2);
+      // An actual entitlement revocation must block the dedicated download
+      // even for someone who previously downloaded the exact same bytes.
+      const grant = await db.hrCompanyAccess.findUniqueOrThrow({ where: {
+        companyId_userId_category: { companyId: f.company.id, userId: a.hr.user.id, category: 'documents' },
+      } });
+      await db.hrCompanyAccess.update({ where: { id: grant.id },
+        data: { isActive: false, version: grant.version + 1, reasonCode: 'ACCESS_REVOKED' } });
+      try {
+        assert.equal((await download(a.hr)).status, 404);
+        assert.notEqual((await upload(a.hr, randomUUID(), '2')).status, 201);
+      } finally {
+        await db.hrCompanyAccess.update({ where: { id: grant.id },
+          data: { isActive: true, version: grant.version + 2, reasonCode: 'SCOPE_CORRECTION' } });
+      }
 
       const savedKeysForFailure = process.env.HR_PRIVATE_KEYS;
       delete process.env.HR_PRIVATE_KEYS;

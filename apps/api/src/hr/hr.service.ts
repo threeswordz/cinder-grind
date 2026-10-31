@@ -296,14 +296,18 @@ export class HrService {
    */
   async uploadDocument(supplied: AuthenticatedUserContext, companyId: string,
     employeeId: string, raw: unknown, file: HrAttachmentFile): Promise<Receipt> {
+    // Multipart memory must be cleared for every failure path, including a
+    // missing role, CSRF-validated but revoked HR grant, malformed metadata,
+    // rejected MIME and any orphan-storage cleanup error.
+    if (!file || !Buffer.isBuffer(file.buffer)) input.invalid();
+    try {
     input.uuid(companyId); input.uuid(employeeId);
     const body = input.object(raw, ['requestId','documentTypeId','expectedVersion']);
     const requestId = input.uuid(body.requestId), documentTypeId = input.uuid(body.documentTypeId);
     if (typeof body.expectedVersion !== 'string' ||
       !/^(0|[1-9][0-9]{0,8})$/.test(body.expectedVersion)) input.invalid();
     const expectedVersion = input.integer(Number(body.expectedVersion));
-    if (!file || !Buffer.isBuffer(file.buffer) ||
-      file.buffer.length < 1 || file.buffer.length > HR_PRIVATE_ATTACHMENT_MAX_BYTES) input.invalid();
+    if (file.buffer.length < 1 || file.buffer.length > HR_PRIVATE_ATTACHMENT_MAX_BYTES) input.invalid();
     const normalized = this.policy.validate({
       originalname: file.originalname, mimetype: file.mimetype,
       size: file.buffer.length, buffer: file.buffer,
@@ -370,6 +374,8 @@ export class HrService {
       throw error;
     } finally {
       sealed.encryptedBytes.fill(0);
+    }
+    } finally {
       file.buffer.fill(0);
     }
   }
