@@ -58,6 +58,9 @@ export function HrPrivatePanel({ companyId, employeeId, category, canManage, lan
   const [requestId, setRequestId] = useState(() => crypto.randomUUID());
   const [notice, setNotice] = useState<'error' | 'success' | null>(null);
   const operation = useRef(0);
+  // The retry identity binds the full *submitted* body, not the latest masked
+  // version obtained later from a background permission/data revalidation.
+  const pendingWrite = useRef<Parameters<typeof updateHrPrivate>[3] | null>(null);
   const t = translations[language];
 
   // A private reveal never enters React Query, persistent storage, audit
@@ -71,11 +74,13 @@ export function HrPrivatePanel({ companyId, employeeId, category, canManage, lan
       setRevealed(null);
       setSecret('');
       setReason('');
+      pendingWrite.current = null;
       setRequestId(crypto.randomUUID());
     };
     document.addEventListener('visibilitychange', hide);
     return () => {
       operation.current++;
+      pendingWrite.current = null;
       document.removeEventListener('visibilitychange', hide);
     };
   }, []);
@@ -125,6 +130,7 @@ export function HrPrivatePanel({ companyId, employeeId, category, canManage, lan
   };
   const edit = (nextField: string, nextSecret: string, nextReason: string) => {
     setField(nextField); setSecret(nextSecret); setReason(nextReason);
+    pendingWrite.current = null;
     setRequestId(crypto.randomUUID());
     setNotice(null);
     hide();
@@ -132,14 +138,20 @@ export function HrPrivatePanel({ companyId, employeeId, category, canManage, lan
   const save = async () => {
     if (!canManage || busy || !masked.isSuccess || masked.isFetching || !secret.trim() || !reason.trim()) return;
     if (!(hrPrivateFields[category] as readonly string[]).includes(field)) return;
+    // A POST may commit even when its response is lost. Retain exactly the
+    // original request body (including expectedVersion) until confirmed or an
+    // explicit edit; background refresh must not mutate the replay fingerprint.
+    const submitted = pendingWrite.current ?? {
+      requestId, expectedVersion: masked.data.version,
+      values: { [field]: secret.trim() }, reason: reason.trim(),
+    };
+    pendingWrite.current = submitted;
     hide(); setBusy(true); setNotice(null);
     const turn = ++operation.current;
     try {
-      await updateHrPrivate(companyId, employeeId, category, {
-        requestId, expectedVersion: masked.data.version,
-        values: { [field]: secret.trim() }, reason: reason.trim(),
-      });
+      await updateHrPrivate(companyId, employeeId, category, submitted);
       if (turn !== operation.current) return;
+      pendingWrite.current = null;
       setSecret(''); setReason(''); setRequestId(crypto.randomUUID());
       setNotice('success');
       await Promise.all([
