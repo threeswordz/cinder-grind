@@ -167,7 +167,7 @@ Future updates to this presentation standard do **not** approve new implementati
 
 **Owner direction:** Whenever the Owner asks for "live position", preserve the following **same section order**, while independently fetching and updating all live values. This is a formatting/traceability commitment, not a freeze of current SHA, feature status, counts, or execution order. A concise question may use fewer details, but the full status request uses this order.
 
-1. **Executive dashboard:** source time (SGT), verified exact \`main\` SHA and main CI, open implementation PR count, 3/10-style verified GL category count (recalculated), accepted release baseline and production authorization.
+1. **Executive dashboard:** source time (SGT), verified exact `main` SHA and main CI, open implementation PR count, 3/10-style verified GL category count (recalculated), accepted release baseline and production authorization.
 2. **Full chronological implementation roadmap:** V0.1–V0.8, always expose V0.6-A–E; V1.0-A–E; V1.1-A–E; V1.2-A–C; V1.3-A–C; HR1-A and any later explicitly approved operational slices. Indicate accepted/complete versus draft, blocked, deferred or future, *not* invented percentages.
 3. **What is in progress:** all active implementation Issues, PRs, exact HEAD SHAs, draft/ready/merged state, exact-HEAD push and PR CI conclusions, mandatory review findings/gates, dependency order and predecessor health. Separate complete code from completed release.
 4. **Production/go-live readiness GL-01 through GL-10:** gate visual and full table, exact evidence, real-runtime unknowns, mandatory pilot controls, latest actual verified 3/10-style count. No claim that CI is hosting/UAT.
@@ -177,7 +177,7 @@ Future updates to this presentation standard do **not** approve new implementati
 8. **Chat-only work currently possible:** existing-scope defects/tests, focused review/evidence, GL-04/07/08/09/10 read-only preparedness and next-stage proposal only when scope is not approved.
 9. **Numbered, evidence-bound execution queue:** P0 release/review and true launch gates first, then *proposed* P1 operational scopes and deferred/future features. Identify owner/tool/predecessor and exact exit condition; label P0/P1/P2 as recommendations, not an authorization.
 10. **Decisions actually needed from the Owner:** no reasking past approved scope/THB/BOQ UAT, no merged/retained/Production changes implied by a status request.
-11. **Final checkpoint comparison:** exact \`main\`, open PR numbers+SHA+review/CI, GL counts, deployment status and what changed versus previous live report.
+11. **Final checkpoint comparison:** exact `main`, open PR numbers+SHA+review/CI, GL counts, deployment status and what changed versus previous live report.
 
 **Strictness:** No static "3/10", open-PR count, run status, branch protection status or frozen 112-ID classifications may be presented as newly verified without re-reading their sources. The 112-ID assessment dated 2026-10-30 is historical; newly coded but unmerged #300/#302 must not silently change "on-main implemented" counts. If a source is unavailable, mark **UNVERIFIED**. Do not omit the GL-01–10 table, old accepted release stages, next action, or relevant blockers simply because coding has recently advanced.
 
