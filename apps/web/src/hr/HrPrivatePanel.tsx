@@ -87,6 +87,15 @@ export function HrPrivatePanel({ companyId, employeeId, category, canManage, lan
     queryKey: historyKey, queryFn: () => getHrPrivateHistory(companyId, employeeId, category),
     retry: false, refetchOnWindowFocus: true, refetchInterval: 15000, gcTime: 0,
   });
+  // Revalidating permissions/source metadata invalidates any earlier reveal,
+  // including a revocation that arrives while the same employee is selected.
+  useEffect(() => {
+    if (masked.isFetching || history.isFetching || masked.isError || history.isError) {
+      operation.current++;
+      setRevealed(null);
+    }
+  }, [masked.isFetching, history.isFetching, masked.isError, history.isError]);
+
   const hide = () => { operation.current++; setRevealed(null); };
 
   const reveal = async (version: number) => {
