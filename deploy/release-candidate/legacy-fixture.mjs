@@ -1,4 +1,5 @@
 import {hrCatalog,verifyHrCatalog} from './hr-catalog-contract.mjs';
+import {stockCountCatalog,verifyStockCountCatalog} from './stock-count-catalog-contract.mjs';
 import { boqCatalog, verifyBoqCatalog } from './boq-catalog-contract.mjs';
 import { assertHistoricalTables } from './historical-snapshot.mjs';
 import assert from 'node:assert/strict';
@@ -28,16 +29,22 @@ async function snapshot() {
     // The old and upgraded rows must be byte-for-byte equal after excluding
     // ONLY the new nullable columns, not amounts, labels, states or audit.
     const hrApproved = process.env.HR_SCHEMA_UPGRADE === 'YES';
-    const catalogIds = [...boqCatalog,...(hrApproved ? hrCatalog : [])].map(row => row.id);
+    const stockCountApproved = process.env.STOCK_COUNT_SCHEMA_UPGRADE === 'YES';
+    const catalogIds = [...boqCatalog,...(hrApproved ? hrCatalog : []),
+      ...(stockCountApproved ? stockCountCatalog : [])].map(row => row.id);
     if (tablename === 'permissions') {
       const additions = await prisma.$queryRawUnsafe('SELECT * FROM permissions WHERE id = ANY($1::uuid[])', catalogIds);
       verifyBoqCatalog(additions.filter(row => boqCatalog.some(x=>x.id===row.id)));
       if(hrApproved) verifyHrCatalog(additions.filter(row=>hrCatalog.some(x=>x.id===row.id)));
+      if(stockCountApproved) verifyStockCountCatalog(additions.filter(row=>stockCountCatalog.some(x=>x.id===row.id)));
     }
+    const excludedColumns = tablename === 'projects' ? ['contract_currency_code'] :
+      ['boqs','supplier_quotations','quotation_awards'].includes(tablename) ? ['currency_code'] :
+      (tablename === 'stock_transactions' && stockCountApproved ? ['stock_count_id'] : []);
     const [row] = await prisma.$queryRawUnsafe(`SELECT count(*)::text AS count,
       encode(sha256(convert_to(coalesce(string_agg((to_jsonb(t) - $1::text[])::text, E'\n' ORDER BY (to_jsonb(t) - $1::text[])::text), ''), 'UTF8')), 'hex') AS digest
-      FROM "${tablename}" t ${tablename === 'permissions' ? 'WHERE id <> ALL($2::uuid[])' : ''}`, ...(tablename === 'permissions' ? [[], catalogIds] : [tablename === 'projects' ? ['contract_currency_code'] :
-      ['boqs','supplier_quotations','quotation_awards'].includes(tablename) ? ['currency_code'] : []]));
+      FROM "${tablename}" t ${tablename === 'permissions' ? 'WHERE id <> ALL($2::uuid[])' : ''}`,
+      ...(tablename === 'permissions' ? [excludedColumns, catalogIds] : [excludedColumns]));
     hashes[tablename] = row;
   }
   const migrations = await prisma.$queryRawUnsafe(`SELECT migration_name, checksum FROM "_prisma_migrations" WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL ORDER BY migration_name`);
@@ -78,7 +85,8 @@ try {
     const before = load(snapshotPath);
     const after = await snapshot();
     assertHistoricalTables(before.tables, after.tables,
-      process.env.HR_SCHEMA_UPGRADE === 'YES', process.env.HR_DOCUMENT_SCHEMA_UPGRADE === 'YES');
+      process.env.HR_SCHEMA_UPGRADE === 'YES', process.env.HR_DOCUMENT_SCHEMA_UPGRADE === 'YES',
+      process.env.STOCK_COUNT_SCHEMA_UPGRADE === 'YES');
     for (const migration of before.migrations) assert.deepEqual(after.migrations.find((row) => row.migration_name === migration.migration_name), migration, 'Historical migration checksum changed');
     const fixture = load(manifestPath);
     assert.equal((await prisma.purchaseOrder.findUniqueOrThrow({ where: { id: fixture.unknownPoId } })).currencyCode, null);

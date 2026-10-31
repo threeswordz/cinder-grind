@@ -5,11 +5,12 @@ import {createHash} from 'node:crypto';
 import test from 'node:test';
 import {classifySchema} from './schema-contract.mjs';
 import {hrTables} from './hr-schema-contract.mjs';
+import {stripStockCountSchema} from './stock-count-schema-contract.mjs';
 import {hrCatalog,verifyHrCatalog} from './hr-catalog-contract.mjs';
 import {assertHistoricalTables} from './historical-snapshot.mjs';
 
 test('HR schema is exactly seven protected models and eighteen parent additions; earlier modes remain separate',()=>{
-  const current=readFileSync(new URL('../../apps/api/prisma/schema.prisma',import.meta.url),'utf8');
+  const current=stripStockCountSchema(readFileSync(new URL('../../apps/api/prisma/schema.prisma',import.meta.url),'utf8')).text;
   const previous=execFileSync('git',['show','e86ed846f30ac3feeb09f74ba9084571b9955520:apps/api/prisma/schema.prisma'],{encoding:'utf8'});
   const older=execFileSync('git',['show','fc52a867c96a8b3a369b480b9799bad1a5e9f399:apps/api/prisma/schema.prisma'],{encoding:'utf8'});
   assert.equal(classifySchema(previous,current),'migration-aware-hr-document-hr-schema');
@@ -55,7 +56,7 @@ test('HR catalog is exactly ten capability definitions and creates no role or us
 
 test('pre-upgrade rollback uses original-table verification and upgraded HR requires its complete new group',()=>{
   const script=readFileSync(new URL('./rehearse-migration.sh',import.meta.url),'utf8');
-  assert.ok(script.includes('HR_SCHEMA_UPGRADE=NO HR_DOCUMENT_SCHEMA_UPGRADE=NO DATABASE_URL="$rollback_url" node "$RC_DIR/legacy-fixture.mjs" verify'));
+  assert.ok(script.includes('HR_SCHEMA_UPGRADE=NO HR_DOCUMENT_SCHEMA_UPGRADE=NO STOCK_COUNT_SCHEMA_UPGRADE=NO DATABASE_URL="$rollback_url" node "$RC_DIR/legacy-fixture.mjs" verify'));
   const original={employees:{count:'1',digest:'original'}};
   assertHistoricalTables(original,original);
   assert.throws(()=>assertHistoricalTables(original,original,true));

@@ -22,6 +22,8 @@ import { StockBalanceController } from './stock-balance.controller';
 import { StockBalanceService } from './stock-balance.service';
 import { StockTransferController } from './stock-transfer.controller';
 import { StockTransferService } from './stock-transfer.service';
+import { StockCountController } from './stock-count.controller';
+import { StockCountService } from './stock-count.service';
 
 @Module({
   imports: [
@@ -40,6 +42,7 @@ import { StockTransferService } from './stock-transfer.service';
     StockBalanceController,
     MaterialMovementController,
     StockTransferController,
+    StockCountController,
   ],
   providers: [
     InventoryService,
@@ -51,6 +54,7 @@ import { StockTransferService } from './stock-transfer.service';
     MaterialIssueService,
     MaterialReturnService,
     StockTransferService,
+    StockCountService,
   ],
   exports: [
     InventoryService,
@@ -62,6 +66,7 @@ import { StockTransferService } from './stock-transfer.service';
     MaterialIssueService,
     MaterialReturnService,
     StockTransferService,
+    StockCountService,
   ],
 })
 export class InventoryModule {}

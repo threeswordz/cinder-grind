@@ -48,7 +48,7 @@ test('an added custody table is empty, old tables are byte-identical and other a
 
 test('rollback tests the exact predecessor WITHOUT new HR custody tables', () => {
   const script = readFileSync(new URL('./rehearse-migration.sh', import.meta.url), 'utf8');
-  assert.ok(script.includes('HR_SCHEMA_UPGRADE=NO HR_DOCUMENT_SCHEMA_UPGRADE=NO DATABASE_URL="$rollback_url" node "$RC_DIR/legacy-fixture.mjs" verify'));
+  assert.ok(script.includes('HR_SCHEMA_UPGRADE=NO HR_DOCUMENT_SCHEMA_UPGRADE=NO STOCK_COUNT_SCHEMA_UPGRADE=NO DATABASE_URL="$rollback_url" node "$RC_DIR/legacy-fixture.mjs" verify'));
   assert.ok(script.includes('HR_DOCUMENT_SCHEMA_UPGRADE=NO DATABASE_URL="$rollback_url" node "$RC_DIR/hr-upgrade.mjs" rollback'));
   // Candidate (fresh/upgraded) checks still require the bounded new table.
   assert.ok(script.includes('export HR_DOCUMENT_SCHEMA_UPGRADE=YES'));

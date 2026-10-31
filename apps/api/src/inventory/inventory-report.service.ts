@@ -32,6 +32,7 @@ type InventoryMovementSummaryRow = {
   materialIssueRowCount: number;
   materialReturnRowCount: number;
   stockTransferRowCount: number;
+  stockCountRowCount: number;
 };
 
 type MovementRow = {
@@ -151,7 +152,10 @@ export class InventoryReportService {
           )::INTEGER AS "materialReturnRowCount",
           COUNT(*) FILTER (
             WHERE st.stock_transfer_item_id IS NOT NULL
-          )::INTEGER AS "stockTransferRowCount"
+          )::INTEGER AS "stockTransferRowCount",
+          COUNT(*) FILTER (
+            WHERE st.stock_count_id IS NOT NULL
+          )::INTEGER AS "stockCountRowCount"
         FROM stock_transactions st
         WHERE st.company_id = ${auth.companyId}::uuid
           AND st.project_id = ${projectId}::uuid
@@ -165,6 +169,7 @@ export class InventoryReportService {
         materialIssueRowCount: 0,
         materialReturnRowCount: 0,
         stockTransferRowCount: 0,
+        stockCountRowCount: 0,
       }
     );
   }
@@ -216,6 +221,7 @@ export class InventoryReportService {
         MATERIAL_ISSUE: Prisma.sql`st.material_issue_item_id`,
         MATERIAL_RETURN: Prisma.sql`st.material_return_item_id`,
         STOCK_TRANSFER: Prisma.sql`st.stock_transfer_item_id`,
+        STOCK_COUNT: Prisma.sql`st.stock_count_id`,
       };
       const column = sourceColumn[filters.sourceType];
       if (!column) return [];
@@ -254,13 +260,15 @@ export class InventoryReportService {
           WHEN st.material_issue_item_id IS NOT NULL THEN 'MATERIAL_ISSUE'
           WHEN st.material_return_item_id IS NOT NULL THEN 'MATERIAL_RETURN'
           WHEN st.stock_transfer_item_id IS NOT NULL THEN 'STOCK_TRANSFER'
+          WHEN st.stock_count_id IS NOT NULL THEN 'STOCK_COUNT'
           ELSE 'UNKNOWN'
         END AS "sourceType",
         COALESCE(
           st.goods_receipt_id,
           st.material_issue_id,
           st.material_return_id,
-          st.stock_transfer_id
+          st.stock_transfer_id,
+          st.stock_count_id
         ) AS "sourceId",
         COALESCE(
           gr.receipt_number,
