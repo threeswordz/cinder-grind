@@ -84,6 +84,15 @@ test('OP-STOCK-COUNT-01 quantity-only reconciliation is scoped, stale-safe, rese
     ]);
     const managerAuth = auth(company.id, manager.id, ['inventory.stock_count.view','inventory.stock_count.approve']);
 
+    const choices = await service.choices(storeAuth, project.id, site.id);
+    assert.equal(choices.items.some(item =>
+      item.materialId === material.id && item.uomId === uom.id
+    ), true);
+    await assert.rejects(
+      () => service.choices(storeAuth, project.id, central.id),
+      (error: unknown) => error instanceof UnprocessableEntityException,
+    );
+
     await assert.rejects(() => service.create({ auth: storeAuth }, {
       projectId: project.id, warehouseId: central.id, materialId: material.id, uomId: uom.id,
       countedAt: new Date(), actualQuantity: new Prisma.Decimal(1), evidenceReference: 'inspection',

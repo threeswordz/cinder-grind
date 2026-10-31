@@ -128,7 +128,7 @@ export function InventoryReportsPanel() {
           <TextField select label="Source" value={sourceType}
             onChange={(event) => setSourceType(event.target.value)}>
             <MenuItem value="">All sources</MenuItem>
-            {['GOODS_RECEIPT', 'MATERIAL_ISSUE', 'MATERIAL_RETURN', 'STOCK_TRANSFER'].map((type) => (
+            {['GOODS_RECEIPT', 'MATERIAL_ISSUE', 'MATERIAL_RETURN', 'STOCK_TRANSFER', 'STOCK_COUNT'].map((type) => (
               <MenuItem key={type} value={type}>{type.replaceAll('_', ' ')}</MenuItem>
             ))}
           </TextField>

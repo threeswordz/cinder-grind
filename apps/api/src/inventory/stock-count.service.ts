@@ -60,6 +60,117 @@ export class StockCountService {
     });
   }
 
+  async choices(
+    auth: AuthenticatedUserContext,
+    projectId: string,
+    warehouseId: string,
+    after?: string,
+  ) {
+    await this.access.assertAccess(auth, projectId);
+    const warehouse = await this.prisma.warehouse.findFirst({
+      where: {
+        id: warehouseId,
+        companyId: auth.companyId,
+        projectId,
+        isSiteWarehouse: true,
+        isActive: true,
+      },
+      select: { id: true },
+    });
+    if (!warehouse) {
+      throw new UnprocessableEntityException({
+        code: 'STOCK_COUNT_WAREHOUSE_INVALID',
+        detail: 'Choose an active Project-owned site Warehouse.',
+      });
+    }
+
+    const rows = await this.prisma.material.findMany({
+      where: {
+        companyId: auth.companyId,
+        isActive: true,
+        ...(after ? { id: { gt: after } } : {}),
+      },
+      orderBy: { id: 'asc' },
+      take: 101,
+      select: {
+        id: true,
+        materialCode: true,
+        materialName: true,
+        defaultUom: {
+          select: { id: true, uomCode: true, uomName: true, isActive: true },
+        },
+      },
+    });
+    const page = rows.slice(0, 100);
+    const materialIds = page.map(row => row.id);
+    const existing = materialIds.length
+      ? await this.prisma.stockTransaction.findMany({
+          where: {
+            companyId: auth.companyId,
+            projectId,
+            warehouseId,
+            materialId: { in: materialIds },
+          },
+          distinct: ['materialId', 'uomId'],
+          select: {
+            materialId: true,
+            uomId: true,
+            uom: {
+              select: { uomCode: true, uomName: true, isActive: true },
+            },
+          },
+        })
+      : [];
+    const byMaterial = new Map<string, typeof existing>();
+    for (const item of existing) {
+      const values = byMaterial.get(item.materialId) ?? [];
+      values.push(item);
+      byMaterial.set(item.materialId, values);
+    }
+
+    const items: Array<{
+      materialId: string;
+      materialCode: string;
+      materialName: string;
+      uomId: string;
+      uomCode: string;
+      uomName: string;
+    }> = [];
+    for (const material of page) {
+      const seen = new Set<string>();
+      if (material.defaultUom.isActive) {
+        items.push({
+          materialId: material.id,
+          materialCode: material.materialCode,
+          materialName: material.materialName,
+          uomId: material.defaultUom.id,
+          uomCode: material.defaultUom.uomCode,
+          uomName: material.defaultUom.uomName,
+        });
+        seen.add(material.defaultUom.id);
+      }
+      for (const existingDimension of byMaterial.get(material.id) ?? []) {
+        if (!existingDimension.uom.isActive || seen.has(existingDimension.uomId)) continue;
+        items.push({
+          materialId: material.id,
+          materialCode: material.materialCode,
+          materialName: material.materialName,
+          uomId: existingDimension.uomId,
+          uomCode: existingDimension.uom.uomCode,
+          uomName: existingDimension.uom.uomName,
+        });
+        seen.add(existingDimension.uomId);
+      }
+    }
+    items.sort((a, b) =>
+      a.materialCode.localeCompare(b.materialCode) || a.uomCode.localeCompare(b.uomCode),
+    );
+    return {
+      items,
+      nextCursor: rows.length > 100 ? page[99]!.id : null,
+    };
+  }
+
   async list(auth: AuthenticatedUserContext, projectId: string) {
     await this.access.assertAccess(auth, projectId);
     return this.prisma.stockCount.findMany({

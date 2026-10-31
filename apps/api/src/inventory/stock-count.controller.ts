@@ -1,5 +1,5 @@
 import { Prisma } from '@prisma/client';
-import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 
 import { AuthGuard } from '../auth/auth.guard';
 import { AuthenticatedRequest, AuthenticatedUserContext } from '../auth/auth.types';
@@ -63,6 +63,28 @@ export class StockCountController {
   async warehouses(@Req() request: AuthenticatedRequest,
     @Param('projectId', new ParseUUIDPipe({ version: '4' })) projectId: string) {
     return { data: await this.counts.siteWarehouses(authOf(request), projectId) };
+  }
+
+  @Get('projects/:projectId/stock-count-choices')
+  @UseGuards(AuthGuard, PermissionGuard)
+  @RequirePermissions('inventory.stock_count.view')
+  async choices(
+    @Req() request: AuthenticatedRequest,
+    @Param('projectId', new ParseUUIDPipe({ version: '4' })) projectId: string,
+    @Query('warehouseId') warehouseId: unknown,
+    @Query('after') after: unknown,
+  ) {
+    const afterId = after === undefined || after === ''
+      ? undefined
+      : inventoryUuid(after, 'after');
+    return {
+      data: await this.counts.choices(
+        authOf(request),
+        projectId,
+        inventoryUuid(warehouseId, 'warehouseId'),
+        afterId,
+      ),
+    };
   }
 
   @Get('projects/:projectId/stock-counts')

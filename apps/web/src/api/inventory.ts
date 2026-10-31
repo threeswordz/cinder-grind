@@ -8,6 +8,51 @@ export type InventoryProject = {
   projectName: string;
 };
 
+export type StockCountChoice = {
+  materialId: string;
+  materialCode: string;
+  materialName: string;
+  uomId: string;
+  uomCode: string;
+  uomName: string;
+};
+
+export type StockCount = {
+  id: string;
+  companyId: string;
+  projectId: string;
+  warehouseId: string;
+  materialId: string;
+  uomId: string;
+  countedAt: string;
+  expectedOnHand: string;
+  expectedReserved: string;
+  actualQuantity: string;
+  varianceQuantity: string;
+  evidenceReference: string | null;
+  status: 'DRAFT' | 'SUBMITTED' | 'APPROVED' | 'REJECTED';
+  version: number;
+  createdByUserId: string;
+  submittedByUserId: string | null;
+  decidedByUserId: string | null;
+  decisionComment: string | null;
+  postKey: string | null;
+  createdAt: string;
+  updatedAt: string;
+  submittedAt: string | null;
+  decidedAt: string | null;
+  warehouse: { warehouseCode: string; warehouseName: string; isSiteWarehouse: boolean };
+  material: { materialCode: string; materialName: string };
+  uom: { uomCode: string; uomName: string };
+  stockTransaction: {
+    id: string;
+    movementType: string;
+    quantity: string;
+    effectKey: string;
+    postedAt: string;
+  } | null;
+};
+
 export type StockBalanceRecord = {
   warehouseId: string;
   warehouseCode: string;
@@ -261,6 +306,79 @@ export const inventoryApi = {
 
   stockProjects: () =>
     apiRequest<Data<InventoryProject[]>>('/inventory/stock-projects'),
+
+  stockCountProjects: () =>
+    apiRequest<Data<InventoryProject[]>>('/inventory/stock-count-projects'),
+
+  stockCountWarehouses: (projectId: string) =>
+    apiRequest<Data<Array<{
+      id: string;
+      warehouseCode: string;
+      warehouseName: string;
+      projectId: string;
+    }>>>('/inventory/projects/' + projectId + '/stock-count-warehouses'),
+
+  stockCountChoices: (projectId: string, warehouseId: string, after = '') =>
+    apiRequest<Data<{ items: StockCountChoice[]; nextCursor: string | null }>>(
+      query('/inventory/projects/' + projectId + '/stock-count-choices', {
+        warehouseId,
+        after: after || undefined,
+      }),
+    ),
+
+  stockCounts: (projectId: string) =>
+    apiRequest<Data<StockCount[]>>('/inventory/projects/' + projectId + '/stock-counts'),
+
+  stockCount: (id: string) =>
+    apiRequest<Data<StockCount>>('/inventory/stock-counts/' + id),
+
+  createStockCount: (body: {
+    projectId: string;
+    warehouseId: string;
+    materialId: string;
+    uomId: string;
+    countedAt: string;
+    actualQuantity: string;
+    evidenceReference?: string | null;
+  }) =>
+    apiRequest<Data<StockCount>>('/inventory/stock-counts', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
+
+  updateStockCount: (id: string, body: {
+    expectedVersion: number;
+    countedAt?: string;
+    actualQuantity?: string;
+    evidenceReference?: string | null;
+  }) =>
+    apiRequest<Data<StockCount>>('/inventory/stock-counts/' + id, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    }),
+
+  submitStockCount: (id: string, expectedVersion: number) =>
+    apiRequest<Data<StockCount>>('/inventory/stock-counts/' + id + '/submit', {
+      method: 'POST',
+      body: JSON.stringify({ expectedVersion }),
+    }),
+
+  approveStockCount: (
+    id: string,
+    expectedVersion: number,
+    postKey: string,
+    comment?: string,
+  ) =>
+    apiRequest<Data<StockCount>>('/inventory/stock-counts/' + id + '/approve', {
+      method: 'POST',
+      body: JSON.stringify({ expectedVersion, postKey, comment }),
+    }),
+
+  rejectStockCount: (id: string, expectedVersion: number, comment: string) =>
+    apiRequest<Data<StockCount>>('/inventory/stock-counts/' + id + '/reject', {
+      method: 'POST',
+      body: JSON.stringify({ expectedVersion, comment }),
+    }),
 
   stockBalances: (filters: {
     projectId?: string;
