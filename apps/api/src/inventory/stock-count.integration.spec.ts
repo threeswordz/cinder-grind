@@ -12,6 +12,8 @@ import { ProjectScopeService } from '../authorization/project-scope.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProjectAccessService } from '../projects/project-access.service';
 import { InventoryQuantityService } from './inventory-quantity.service';
+import { InventoryReportService } from './inventory-report.service';
+import { StockBalanceService } from './stock-balance.service';
 import { StockCountService } from './stock-count.service';
 
 function auth(companyId: string, userId: string, permissions: string[]): AuthenticatedUserContext {
@@ -72,6 +74,11 @@ test('OP-STOCK-COUNT-01 quantity-only reconciliation is scoped, stale-safe, rese
     const access = new ProjectAccessService(prisma, new ProjectScopeService(new AuthorizationService()));
     const quantities = new InventoryQuantityService(prisma);
     const service = new StockCountService(prisma, access, new AuditService(prisma), quantities);
+    const reports = new InventoryReportService(
+      prisma,
+      access,
+      new StockBalanceService(prisma, access),
+    );
     const storeAuth = auth(company.id, store.id, [
       'inventory.stock_count.view','inventory.stock_count.create','inventory.stock_count.edit','inventory.stock_count.submit',
     ]);
@@ -93,6 +100,17 @@ test('OP-STOCK-COUNT-01 quantity-only reconciliation is scoped, stale-safe, rese
     );
     assert.equal(plusApproved.status, 'APPROVED');
     assert.equal(plusApproved.stockTransaction?.quantity.toString(), '5');
+    const movementSummary = await reports.movementSummary(managerAuth, project.id);
+    assert.equal(movementSummary.stockCountRowCount, 1);
+    const countMovements = await reports.movementReport(managerAuth, {
+      projectId: project.id,
+      sourceType: 'STOCK_COUNT',
+    });
+    assert.equal(countMovements.length, 1);
+    assert.equal(countMovements[0]?.sourceType, 'STOCK_COUNT');
+    assert.equal(countMovements[0]?.sourceId, plus.id);
+    assert.equal(countMovements[0]?.sourceNumber, null);
+    assert.equal(countMovements[0]?.movementType, 'STOCK_COUNT_ADJUSTMENT');
     const dimension = { companyId: company.id, projectId: project.id, warehouseId: site.id, materialId: material.id, uomId: uom.id };
     assert.equal((await quantities.onHand(prisma, dimension)).toString(), '5');
 

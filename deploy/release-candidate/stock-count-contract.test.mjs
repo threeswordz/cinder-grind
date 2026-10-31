@@ -11,7 +11,7 @@ test('OP-STOCK-COUNT-01 classifier admits exactly one model and ten parent/sourc
   const current = readFileSync(new URL('../../apps/api/prisma/schema.prisma', import.meta.url), 'utf8');
   const previous = execFileSync('git', ['show',
     'cb6abf378e903aa5c5a60be3a3d3db54e8c430d3:apps/api/prisma/schema.prisma'], { encoding: 'utf8' });
-  assert.equal(classifySchema(previous, current), 'migration-aware-stock-count-schema');
+  assert.equal(classifySchema(previous, current), 'migration-aware-stock-count-thb-schema');
   assert.equal(stripStockCountSchema(current).present, true);
   for (const invalid of [
     current.replace('varianceQuantity         Decimal', 'varianceQuantity         Float'),
