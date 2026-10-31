@@ -394,6 +394,25 @@ test('HR employee/private HTTP and database contracts use disposable scoped iden
       } });
       const bytes = Buffer.from('SYNTHETIC-HR-DOCUMENT-BYTES-' + f.suffix, 'utf8');
       const documentPath = employeeRoot + '/documents';
+      const foreignType = await db.documentType.create({ data: {
+        companyId: f.other.id, documentTypeCode: 'HRA-FOREIGN-' + f.suffix,
+        documentTypeName: 'Synthetic foreign-Company type',
+      } });
+      const inactiveType = await db.documentType.create({ data: {
+        companyId: f.company.id, documentTypeCode: 'HRA-INACTIVE-' + f.suffix,
+        documentTypeName: 'Synthetic inactive evidence type', isActive: false,
+      } });
+      const options = (await call(a.hr, root + '/document-types')).data;
+      assert.ok(options.items.some((item: any) => item.id === type.id));
+      assert.equal(options.items.some((item: any) => item.id === foreignType.id), false);
+      assert.equal(options.items.some((item: any) => item.id === inactiveType.id), false);
+      assert.ok(options.items.every((item: any) =>
+        Object.keys(item).sort().join(',') === 'documentTypeCode,documentTypeName,id'));
+      await call(a.ben, root + '/document-types', 403);
+      await call(a.nancy, root + '/document-types', 403);
+      await call(a.hr, root + '/document-types?after=not-a-uuid', 422);
+      await call(a.hr, root + '/document-types?unrecognized=1', 422);
+      await call(a.hr, foreign + '/document-types', 404);
       const requestId = randomUUID();
       const upload = (actor: Actor, key: string, expectedVersion = '1',
         payload = bytes, csrf = true) => {

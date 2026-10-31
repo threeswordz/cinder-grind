@@ -57,6 +57,15 @@ export class HrController {
     return { data: await this.hr.documentHistory(auth(request), companyId, employeeId, after) };
   }
 
+  @Get('companies/:companyId/document-types')
+  @RequirePermissions('hr.documents.manage')
+  async hrDocumentTypes(@Req() request: AuthenticatedRequest,
+    @Param('companyId') companyId: string, @Query() query: unknown) {
+    const fields = input.object(query, ['after']);
+    return { data: await this.hr.documentTypeOptions(auth(request), companyId,
+      fields.after === undefined ? undefined : input.uuid(fields.after)) };
+  }
+
   @Post('companies/:companyId/employees/:employeeId/documents')
   @RequirePermissions('hr.documents.manage')
   @UseGuards(CsrfGuard)

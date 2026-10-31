@@ -294,6 +294,24 @@ export class HrService {
    * Neither the original name nor plaintext checksum enters generic Documents,
    * AuditLog or HR replay receipts. Never use a Project attachment alias.
    */
+  /**
+   * HR-only active generic Document Type choices. An HR document-grant user
+   * can choose a valid Company-owned type without receiving generic
+   * Document, Project or SYS_ADMIN lookup rights.
+   */
+  documentTypeOptions(supplied: AuthenticatedUserContext, companyId: string, after?: string) {
+    if (after !== undefined) input.uuid(after);
+    return this.read(supplied, [{ companyId, category: 'documents', action: 'manage' }], async tx => {
+      const rows = await tx.documentType.findMany({
+        where: { companyId, isActive: true, ...(after ? { id: { gt: after } } : {}) },
+        orderBy: { id: 'asc' }, take: 101,
+        select: { id: true, documentTypeCode: true, documentTypeName: true },
+      });
+      return { items: rows.slice(0, 100),
+        nextCursor: rows.length > 100 ? rows[99]!.id : null };
+    });
+  }
+
   async uploadDocument(supplied: AuthenticatedUserContext, companyId: string,
     employeeId: string, raw: unknown, file: HrAttachmentFile): Promise<Receipt> {
     // Multipart memory must be cleared for every failure path, including a
