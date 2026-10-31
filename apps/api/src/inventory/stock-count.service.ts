@@ -149,7 +149,6 @@ export class StockCountService {
       const current = await this.quantities.available(tx, dimension);
       this.assertSnapshotFresh(before, current);
       this.assertEvidence(before.varianceQuantity, before.evidenceReference);
-      this.assertReservations(before.actualQuantity, current.reserved);
       const row = await tx.stockCount.update({
         where: { id },
         data: {
@@ -206,7 +205,6 @@ export class StockCountService {
       await this.quantities.lock(tx, dimension);
       const current = await this.quantities.available(tx, dimension);
       this.assertSnapshotFresh(before, current);
-      this.assertReservations(before.actualQuantity, current.reserved);
       this.assertEvidence(before.varianceQuantity, before.evidenceReference);
 
       const approved = await tx.stockCount.update({
@@ -339,15 +337,6 @@ export class StockCountService {
       throw new UnprocessableEntityException({
         code: 'STOCK_COUNT_VARIANCE_EVIDENCE_REQUIRED',
         detail: 'A non-zero physical variance requires inspection evidence.',
-      });
-    }
-  }
-
-  private assertReservations(actual: Prisma.Decimal, reserved: Prisma.Decimal) {
-    if (actual.lessThan(reserved)) {
-      throw new ConflictException({
-        code: 'STOCK_COUNT_RESERVED_STOCK_VIOLATION',
-        detail: 'Counted stock cannot fall below active reserved quantity.',
       });
     }
   }
