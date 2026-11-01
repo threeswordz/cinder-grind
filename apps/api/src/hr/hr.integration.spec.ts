@@ -1,6 +1,7 @@
 import 'reflect-metadata';
 import assert from 'node:assert/strict';
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
+import { spawn, spawnSync } from 'node:child_process';
 import test from 'node:test';
 import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -27,6 +28,19 @@ test('HR employee/private HTTP and database contracts use disposable scoped iden
   const db = new PrismaService(); await db.$connect();
   const app = await NestFactory.create(AppModule, { logger: false });
   app.setGlobalPrefix('api/v1'); app.use(securityHeadersMiddleware(false)); app.useGlobalFilters(new ProblemDetailsFilter());
+  // Synthetic test-only browser bootstrap: actual HttpOnly session cookie,
+  // ephemeral Nest server, no mocked HTTP and no retained permissions.
+  let liveBrowser: { token: string; html: string } | null = null;
+  app.getHttpAdapter().getInstance().get('/__hr-real-browser', (_req: any, res: any) => {
+    if (!liveBrowser) return res.status(404).end();
+    res.setHeader('Content-Type', 'text/html');
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.setHeader('Set-Cookie', 'erp_session=' + liveBrowser.token + '; HttpOnly; SameSite=Strict; Path=/');
+    // Limited to this synthetic bootstrap. Never change the ERP CSP.
+    res.setHeader('Content-Security-Policy',
+      "default-src 'none'; script-src 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'");
+    return res.status(200).end(liveBrowser.html);
+  });
   await app.listen(0, '127.0.0.1');
   const base = await app.getUrl() + '/api/v1';
   try {
@@ -537,6 +551,91 @@ test('HR employee/private HTTP and database contracts use disposable scoped iden
       const restoredDownload = await download(a.hr);
       assert.equal(restoredDownload.status, 200);
       assert.deepEqual(Buffer.from(await restoredDownload.arrayBuffer()), bytes);
+    });
+
+    await t.test('real Chromium HR HTTP -> encrypted document storage, CSRF and Company isolation', async () => {
+      const chrome = ['google-chrome', 'chromium', 'chromium-browser']
+        .find(binary => spawnSync(binary, ['--version'], { stdio: 'ignore' }).status === 0);
+      assert.ok(chrome, 'Chromium required for the real HTTP browser contract');
+      const companyId = f.company.id, employeeId = f.legacy.id, foreignId = f.other.id;
+      const documentType = await db.documentType.findFirstOrThrow({
+        where: { companyId, documentTypeCode: 'HRA-FILE-' + f.suffix },
+      });
+      const before = await db.hrDocumentAttachment.count({ where: { companyId, employeeId } });
+      assert.equal(before, 2);
+      const bytes = 'SYNTHETIC_BROWSER_ENCRYPTED_BYTES';
+      // Native browser fetch: NO intercepted/mock transport. The independent
+      // Chromium React fixture tests UI rendering; this proves real HTTP/DB/bytes.
+      const browserJs = [
+        'const company=' + JSON.stringify(companyId) + ',employee=' + JSON.stringify(employeeId)
+          + ',foreign=' + JSON.stringify(foreignId) + ',type=' + JSON.stringify(documentType.id) + ';',
+        'const root="/api/v1/hr/companies/"+company+"/employees/"+employee+"/documents";',
+        'const check=(v,msg)=>{if(!v)throw Error(msg);};',
+        'async function run(){',
+        ' const history=await fetch(root);',
+        ' check(history.status===200&&history.headers.get("cache-control")==="private, no-store","History not authorized/private");',
+        ' const data=(await history.json()).data;',
+        ' check(data.items.length===2 && data.items.some(x=>x.version===2),"Encrypted history missing");',
+        ' check(!JSON.stringify(data).includes("encryptedMetadata"),"Private metadata exposed");',
+        ' check((await fetch(root,{credentials:"omit"})).status===401,"Unauthenticated browser read allowed");',
+        ' check((await fetch("/api/v1/hr/companies/"+foreign+"/employees/"+employee+"/documents")).status===404,"Cross-Company access allowed");',
+        ' const form=()=>{const f=new FormData();f.set("requestId",crypto.randomUUID());',
+        ' f.set("expectedVersion","2");f.set("documentTypeId",type);',
+        ' f.set("file",new File(["' + bytes + '"],"browser.txt",{type:"text/plain"}));return f;};',
+        ' check((await fetch(root,{method:"POST",body:form()})).status===403,"Mutation without CSRF was allowed");',
+        ' const csrf=await fetch("/api/v1/auth/csrf");',
+        ' check(csrf.status===200,"Real session CSRF endpoint failed");',
+        ' const token=(await csrf.json()).data.csrfToken;',
+        ' check(typeof token==="string" && token.length>12,"Missing CSRF token");',
+        ' const saved=await fetch(root,{method:"POST",body:form(),headers:{"X-CSRF-Token":token}});',
+        ' check(saved.status===201,"Real authenticated multipart upload failed");',
+        ' const receipt=(await saved.json()).data;',
+        ' check(receipt.version===3,"Versioned attachment not committed");',
+        ' const rows=(await (await fetch(root)).json()).data.items;',
+        ' check(rows.some(x=>x.id===receipt.id&&x.version===3),"Uploaded attachment not in history");',
+        ' check(!JSON.stringify(rows).includes("browser.txt"),"Sensitive filename exposed");',
+        ' const file=await fetch(root+"/"+receipt.id+"/download");',
+        ' check(file.status===200&&file.headers.get("cache-control")==="private, no-store","Encrypted file download unavailable/unsafe");',
+        ' check((await file.text())==="' + bytes + '","Decrypted browser file bytes differ");',
+        ' document.body.dataset.result="PASS";',
+        '}',
+        'run().catch(e=>{document.body.dataset.result="FAIL";document.body.dataset.error=String(e.message);});',
+      ].join('\n');
+      liveBrowser = { token: a.hr.session.sessionToken,
+        html: '<!doctype html><html><body><script>' + browserJs + '</script></body></html>' };
+      const profile = await mkdtemp(path.join(tmpdir(), 'erp-hr-chromium-'));
+      try {
+        const url = await app.getUrl() + '/__hr-real-browser';
+        const result = await new Promise<{ status: number | null; output: string }>((resolve, reject) => {
+          const child = spawn(chrome, ['--headless', '--no-sandbox', '--disable-gpu',
+            '--disable-dev-shm-usage', '--no-proxy-server', '--user-data-dir=' + profile,
+            '--virtual-time-budget=30000', '--dump-dom', url], { stdio: ['ignore', 'pipe', 'pipe'] });
+          let output = '';
+          child.stdout.on('data', (chunk: Buffer) => {
+            output += String(chunk);
+            if (output.length > 200000) child.kill('SIGKILL');
+          });
+          child.stderr.resume();
+          const timer = setTimeout(() => { child.kill('SIGKILL'); reject(Error('HR browser timed out')); }, 90000);
+          child.once('error', error => { clearTimeout(timer); reject(error); });
+          child.once('close', status => { clearTimeout(timer); resolve({ status, output }); });
+        });
+        assert.equal(result.status, 0, 'Chromium browser could not run');
+        assert.match(result.output, /data-result="PASS"/,
+          result.output.match(/data-error="[^"]*"/)?.[0] ?? 'Real HTTP browser contract failed');
+        const rows = await db.hrDocumentAttachment.findMany({ where: { companyId, employeeId },
+          orderBy: { version: 'desc' }, include: { document: true } });
+        assert.equal(rows.length, before + 1);
+        assert.equal(rows[0].version, 3);
+        assert.equal(rows[0].document.fileName, 'hr-private.enc');
+        const stored = await readFile(path.join(temporaryHrStorage, rows[0].document.storageKey));
+        assert.equal(stored.includes(Buffer.from(bytes)), false);
+        assert.equal(rows[0].document.checksum, createHash('sha256').update(stored).digest('hex'));
+        console.log('HR1A_BROWSER_REAL_HTTP_ENCRYPTED_FILE_PASS');
+      } finally {
+        liveBrowser = null;
+        await rm(profile, { recursive: true, force: true });
+      }
     });
 
     await t.test('private payloads/history/replay/audit remain encrypted or metadata-only; excluded ledgers are untouched', async () => {
