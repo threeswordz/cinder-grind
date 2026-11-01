@@ -60,6 +60,7 @@ If the desired outcome requires changing an approved rule, stop and obtain expli
 ## 4. Release discipline
 
 - Do not begin the next stage before the current stage's completion gates are satisfied.
+- **DEC-042:** No human/manual/Owner/milestone UAT during approved development PRs or interim technical stages. After all other required technical, CI/review and non-UAT gates pass, mark pending UAT **DEFERRED TO PRE-PRODUCTION PROTOTYPE** and proceed to the next approved technical development stage. Run one full multi-role business UAT only after the integrated, technically ready non-Production prototype is frozen. Preserve existing automated test and independent review gates, non-UAT Owner approvals, GL gates and separate Production authorization. DEC-042 supersedes DEC-041 interim UAT timing.
 - Human UAT/business acceptance must not be self-approved by development or automation.
 - Every release/stage PR must complete the governance checklist in the pull-request template.
 - Update documentation and CI evidence before merge.
