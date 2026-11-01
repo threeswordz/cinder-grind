@@ -1,5 +1,6 @@
 import { stripHrSchema } from './hr-schema-contract.mjs';
 import { stripHrDocumentSchema } from './hr-document-schema-contract.mjs';
+import { stripStockCountSchema } from './stock-count-schema-contract.mjs';
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
@@ -106,11 +107,8 @@ function classifyPriorContracts(previous, candidate) {
   return classifyBaseSchema(before.text, after.text);
 }
 
-export function classifySchema(previous, candidate) {
+function classifyBeforeStockCount(previous, candidate) {
   if (previous === candidate) return 'migration-aware-sql-only';
-  // Strip only the EXACT approved five parent additions and one new model.
-  // Classify the historical THB/Customer BOQ/HR contracts independently; the
-  // new mode does not relax their previously reviewed constraints.
   const oldDocument = stripHrDocumentSchema(previous);
   const newDocument = stripHrDocumentSchema(candidate);
   if (oldDocument.present && !newDocument.present) {
@@ -121,6 +119,22 @@ export function classifySchema(previous, candidate) {
     return base === 'migration-aware-sql-only'
       ? 'migration-aware-hr-document-schema'
       : 'migration-aware-hr-document-' + base.slice('migration-aware-'.length);
+  }
+  return base;
+}
+
+export function classifySchema(previous, candidate) {
+  if (previous === candidate) return 'migration-aware-sql-only';
+  const oldStockCount = stripStockCountSchema(previous);
+  const newStockCount = stripStockCountSchema(candidate);
+  if (oldStockCount.present && !newStockCount.present) {
+    throw new Error('Stock count schema removal is prohibited.');
+  }
+  const base = classifyBeforeStockCount(oldStockCount.text, newStockCount.text);
+  if (!oldStockCount.present && newStockCount.present) {
+    return base === 'migration-aware-sql-only'
+      ? 'migration-aware-stock-count-schema'
+      : 'migration-aware-stock-count-' + base.slice('migration-aware-'.length);
   }
   return base;
 }
