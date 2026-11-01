@@ -5,7 +5,7 @@ export const labels: Record<Locale, Record<string, string>> = {
   en: {
     home: 'Home', work: 'My Work', menu: 'Menu', closeMenu: 'Close menu', primaryNavigation: 'Main navigation', signOut: 'Sign out', overview: 'Overview',
     projectsGroup: 'Projects & Site', procurementGroup: 'Purchasing & Inventory',
-    commercialGroup: 'Commercial & Finance', managementGroup: 'Management', adminGroup: 'Administration',
+    commercialGroup: 'Commercial & Finance', managementGroup: 'Management', adminGroup: 'Administration', hrGroup: 'People & HR',
     companySession: 'Company session', context: 'Project context', noProject: 'No accessible projects',
     chooseProject: 'Select project', role: 'Assigned roles', welcome: 'Welcome', shortcuts: 'Your workspaces',
     sources: 'Available modules', roleHint: 'Permissions come from your signed-in account.',
@@ -28,12 +28,12 @@ export const labels: Record<Locale, Record<string, string>> = {
     'retention': 'Retention', 'finance-reports': 'Finance Reports', 'management': 'Management',
     'master-data': 'Master Data', 'company': 'Company', 'users': 'Users',
     'roles': 'Roles & Permissions', 'approvals': 'Approval Matrix', 'statuses': 'Statuses',
-    'numbering': 'Numbering', 'system': 'System Settings',
+    'numbering': 'Numbering', 'system': 'System Settings', 'hr': 'Employees & HR',
   },
   th: {
     home: 'หน้าหลัก', work: 'งานของฉัน', menu: 'เมนู', closeMenu: 'ปิดเมนู', primaryNavigation: 'เมนูนำทางหลัก', signOut: 'ออกจากระบบ', overview: 'ภาพรวม',
     projectsGroup: 'โครงการและหน้างาน', procurementGroup: 'จัดซื้อและคลังสินค้า',
-    commercialGroup: 'ต้นทุนและการเงิน', managementGroup: 'ผู้บริหาร', adminGroup: 'การดูแลระบบ',
+    commercialGroup: 'ต้นทุนและการเงิน', managementGroup: 'ผู้บริหาร', adminGroup: 'การดูแลระบบ', hrGroup: 'ฝ่ายบุคคล',
     companySession: 'บริษัทที่เข้าสู่ระบบ', context: 'บริบทโครงการ', noProject: 'ไม่มีโครงการที่เข้าถึงได้',
     chooseProject: 'เลือกโครงการ', role: 'บทบาทที่ได้รับ', welcome: 'ยินดีต้อนรับ', shortcuts: 'พื้นที่ทำงาน',
     sources: 'โมดูลที่เข้าถึงได้', roleHint: 'สิทธิ์มาจากบัญชีผู้ใช้ที่เข้าสู่ระบบ',
@@ -55,12 +55,12 @@ export const labels: Record<Locale, Record<string, string>> = {
     retention: 'เงินประกันผลงาน', 'finance-reports': 'รายงานการเงิน', management: 'รายงานผู้บริหาร',
     'master-data': 'ข้อมูลหลัก', company: 'บริษัท', users: 'ผู้ใช้งาน',
     roles: 'บทบาทและสิทธิ์', approvals: 'ลำดับการอนุมัติ', statuses: 'สถานะ',
-    numbering: 'เลขที่เอกสาร', system: 'ตั้งค่าระบบ',
+    numbering: 'เลขที่เอกสาร', system: 'ตั้งค่าระบบ', hr: 'พนักงานและฝ่ายบุคคล',
   },
   'zh-TW': {
     home: '首頁', work: '我的工作', menu: '選單', closeMenu: '關閉選單', primaryNavigation: '主要導覽', signOut: '登出', overview: '總覽',
     projectsGroup: '專案與工地', procurementGroup: '採購與庫存',
-    commercialGroup: '商務與財務', managementGroup: '管理階層', adminGroup: '系統管理',
+    commercialGroup: '商務與財務', managementGroup: '管理階層', adminGroup: '系統管理', hrGroup: '人事管理',
     companySession: '登入公司', context: '專案範圍', noProject: '沒有可存取的專案',
     chooseProject: '選擇專案', role: '指派的角色', welcome: '歡迎', shortcuts: '可用工作區',
     sources: '可存取模組', roleHint: '權限由您登入的帳號決定。',
@@ -82,7 +82,7 @@ export const labels: Record<Locale, Record<string, string>> = {
     retention: '保留款', 'finance-reports': '財務報表', management: '管理報表',
     'master-data': '主檔資料', company: '公司', users: '使用者',
     roles: '角色與權限', approvals: '核准矩陣', statuses: '狀態',
-    numbering: '單號設定', system: '系統設定',
+    numbering: '單號設定', system: '系統設定', hr: '員工與人事',
   },
 };
 

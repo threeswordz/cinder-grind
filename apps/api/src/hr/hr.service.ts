@@ -272,9 +272,15 @@ export class HrService {
         await this.employee(tx, companyId, employeeId);
         const prior = await tx.hrPrivateRevision.findFirst({ where: { companyId, employeeId, category }, orderBy: { version: 'desc' } });
         if ((prior?.version ?? 0) !== data.expectedVersion) throw conflict();
+        // This is an immutable complete snapshot. A single-field correction
+        // must preserve unchanged encrypted fields from the preceding version.
+        const previousValues = prior ? input.privateValues(category, this.open(prior.ciphertext, {
+          companyId, employeeId, category, recordId: prior.id, version: prior.version,
+        }).values) : {};
+        const mergedValues = { ...previousValues, ...data.values };
         const id = randomUUID(), version = data.expectedVersion + 1;
         await tx.hrPrivateRevision.create({ data: { id, companyId, employeeId, category, version, actorUserId: auth.userId,
-          ciphertext: this.seal({ values: data.values, reason: data.reason }, { companyId, employeeId, category, recordId: id, version }) } });
+          ciphertext: this.seal({ values: mergedValues, reason: data.reason }, { companyId, employeeId, category, recordId: id, version }) } });
         await this.record(tx, auth, companyId, employeeId, 'PRIVATE_REVISION', { category, revisionId: id, version, reasonRecorded: true });
         return { id, version };
       });

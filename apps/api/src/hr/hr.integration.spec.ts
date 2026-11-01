@@ -295,6 +295,11 @@ test('HR employee/private HTTP and database contracts use disposable scoped iden
     await t.test('key rotation retains historical decrypt/replay; missing and removed keys fail safely', async () => {
       const request = { requestId: randomUUID(), expectedVersion: 1, values: { accountNumber: secretBank + '_V2' }, reason: secretReason };
       const first = await f.service.privateWrite(a.hr.auth, f.company.id, f.legacy.id, 'bank', request);
+      const newBank = (await f.service.privateRead(a.hr.auth, f.company.id, f.legacy.id, 'bank', 2)).values;
+      assert.equal(newBank.accountNumber, secretBank + '_V2');
+      assert.equal(newBank.bankName, 'Synthetic bank');
+      assert.equal(newBank.accountHolder, 'Synthetic holder');
+      assert.equal((await f.service.privateRead(a.hr.auth, f.company.id, f.legacy.id, 'bank', 1)).values.accountNumber, secretBank);
       process.env.HR_PRIVATE_KEYS = JSON.stringify({ ...keys, test2: randomBytes(32).toString('base64') }); process.env.HR_PRIVATE_ACTIVE_KEY_ID = 'test2';
       assert.deepEqual(await f.service.privateWrite(a.hr.auth, f.company.id, f.legacy.id, 'bank', request), first);
       assert.equal((await f.service.privateRead(a.hr.auth, f.company.id, f.legacy.id, 'bank', 1)).values.accountNumber, secretBank);
