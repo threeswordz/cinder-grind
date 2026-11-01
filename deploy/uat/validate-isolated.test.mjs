@@ -12,7 +12,7 @@ const source = { PATH: process.env.PATH, DATABASE_URL: retained, STORAGE_ROOT: '
   UAT_DB_PORT: '55432', UAT_DB_CONTAINER: 'retained-container', UAT_DB_PASSWORD: 'do-not-expose',
   E2_ADMIN_PASSWORD: 'do-not-expose', BOOTSTRAP_ADMIN_PASSWORD: 'do-not-expose', PGPASSWORD: 'do-not-expose' };
 
-function harness({ fault, port = '61234', readyFailures = 0, mountFault = false, identityFault = false } = {}) {
+function harness({ fault, port = '61234', readyFailures = 0, hostReadyFailures = 0, mountFault = false, identityFault = false } = {}) {
   const calls = [];
   const id = 'a'.repeat(64);
   let name, token;
@@ -50,6 +50,7 @@ function harness({ fault, port = '61234', readyFailures = 0, mountFault = false,
     throw new Error('Unexpected test command');
   };
   return { calls, run, engine: 'docker', env: source, sleep: async () => {},
+    probeHost: async port => { calls.push({ command: 'host-probe', args: [port], env: {} }); return hostReadyFailures-- <= 0; },
     makeStorage: async () => '/temporary/owned', protectStorage: async () => {},
     removeStorage: async (path) => { assert.equal(path, '/temporary/owned'); removedStorage = true; },
     log: () => {}, removed: () => ({ removedStorage, removedContainer }) };
@@ -80,6 +81,26 @@ for (const fault of ['prisma:migrate:deploy', 'typecheck', 'test', 'build']) {
       phases.slice(0, phases.indexOf(fault) + 1));
   });
 }
+
+test('in-container readiness is insufficient until the isolated published loopback port is reachable', async () => {
+  const fixture = harness({ hostReadyFailures: 2 });
+  await validateIsolated(fixture);
+  const probes = fixture.calls.filter(call => call.command === 'host-probe');
+  assert.equal(probes.length, 3);
+  assert.ok(probes.every(call => call.args[0] === '61234'));
+  const lastProbe = fixture.calls.lastIndexOf(probes.at(-1));
+  const legacy = fixture.calls.findIndex(call => call.command === 'bash');
+  assert.ok(lastProbe < legacy, 'No migration/fixture may start before loopback verification');
+  assert.deepEqual(fixture.removed(), { removedStorage: true, removedContainer: true });
+});
+
+test('unreachable published loopback port fails closed and cleans owned resources before fixture', async () => {
+  const fixture = harness({ hostReadyFailures: 70 });
+  await assert.rejects(validateIsolated(fixture), /loopback port is unreachable/);
+  assert.equal(fixture.calls.filter(call => call.command === 'host-probe').length, 60);
+  assert.equal(fixture.calls.some(call => call.command === 'bash' || call.command === 'pnpm'), false);
+  assert.deepEqual(fixture.removed(), { removedStorage: true, removedContainer: true });
+});
 
 test('port collision and persistent mounts fail before tests, but owned cleanup remains safe', async () => {
   for (const options of [{ port: '55432' }, { mountFault: true }]) {

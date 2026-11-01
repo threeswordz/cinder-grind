@@ -1,5 +1,8 @@
-import { Body, Controller, Get, Param, Post, Query, Req, UnauthorizedException, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, Req, StreamableFile, UnauthorizedException, UseGuards, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { AuthGuard } from '../auth/auth.guard';
+import { HR_PRIVATE_ATTACHMENT_MAX_BYTES } from './hr-private-attachment-codec';
+import type { UploadedDocumentFile } from '../documents/document-policy.service';
 import { AuthenticatedRequest } from '../auth/auth.types';
 import { CsrfGuard } from '../auth/csrf.guard';
 import { PermissionGuard } from '../authorization/permission.guard';
@@ -52,6 +55,42 @@ export class HrController {
       return input.integer(Number(value.after));
     })();
     return { data: await this.hr.documentHistory(auth(request), companyId, employeeId, after) };
+  }
+
+  @Get('companies/:companyId/document-types')
+  @RequirePermissions('hr.documents.manage')
+  async hrDocumentTypes(@Req() request: AuthenticatedRequest,
+    @Param('companyId') companyId: string, @Query() query: unknown) {
+    const fields = input.object(query, ['after']);
+    return { data: await this.hr.documentTypeOptions(auth(request), companyId,
+      fields.after === undefined ? undefined : input.uuid(fields.after)) };
+  }
+
+  @Post('companies/:companyId/employees/:employeeId/documents')
+  @RequirePermissions('hr.documents.manage')
+  @UseGuards(CsrfGuard)
+  // Explicit memory-only multipart; no diskStorage / upload temp paths.
+  @UseInterceptors(FileInterceptor('file', {
+    limits: { fileSize: HR_PRIVATE_ATTACHMENT_MAX_BYTES, files: 1, fields: 3, parts: 4 },
+  }))
+  async documentUpload(@Req() request: AuthenticatedRequest,
+    @Param('companyId') companyId: string, @Param('employeeId') employeeId: string,
+    @UploadedFile() file: UploadedDocumentFile | undefined, @Body() body: unknown) {
+    if (!file || !Buffer.isBuffer(file.buffer)) input.invalid();
+    return { data: await this.hr.uploadDocument(auth(request), companyId, employeeId, body,
+      { originalname: file.originalname, mimetype: file.mimetype, buffer: file.buffer! }) };
+  }
+
+  @Get('companies/:companyId/employees/:employeeId/documents/:attachmentId/download')
+  @RequirePermissions('hr.documents.view')
+  async documentDownload(@Req() request: AuthenticatedRequest,
+    @Param('companyId') companyId: string, @Param('employeeId') employeeId: string,
+    @Param('attachmentId') attachmentId: string) {
+    const item = await this.hr.downloadDocument(auth(request), companyId, employeeId, attachmentId);
+    return new StreamableFile(item.bytes, {
+      type: item.mimeType, length: item.fileSizeBytes,
+      disposition: "attachment; filename*=UTF-8''" + encodeURIComponent(item.fileName),
+    });
   }
 
   @Post('companies/:companyId/employees/:employeeId/employment')
