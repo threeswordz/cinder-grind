@@ -173,7 +173,7 @@ export function HrDocumentsPanel({ userId, companyId, employeeId, language, reva
                   {item.documentTypeCode} — {item.documentTypeName}
                 </MenuItem>)}
               </TextField>}
-          {types.isSuccess && types.data.items.length > 0 &&
+          {types.isSuccess && (types.data.items.length > 0 || typePages.length > 1) &&
             <Stack direction="row" gap={1}>
               <Button disabled={typePages.length <= 1 || busy || uploading}
                 onClick={() => { setTypePages(old => old.slice(0,-1)); setTypeId(''); resetUpload(); }}>{t.previous}</Button>
