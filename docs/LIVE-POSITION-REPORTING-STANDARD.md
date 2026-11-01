@@ -1,5 +1,7 @@
 # Construction ERP — Live Position Reporting Standard
 
+**DEC-042 prospective UAT reporting:** During technical development, show all pending manual/Owner/module/role UAT as **DEFERRED TO PRE-PRODUCTION PROTOTYPE**, not an immediate coding/technical-integration blocker, PASS or OWNER ACCEPTED. Show one full integrated pre-Production UAT as future mandatory prototype-exit gate before Production go/no-go; report unchanged automated CI, Codex, non-UAT Owner decisions, GL-01–GL-10 and explicit deployment authorization separately. DEC-042 supersedes DEC-041's interim cadence; do not rewrite historical accepted release evidence.
+
 **Status:** APPROVED — Product / Business Owner, 2026-10-01 (Singapore time)  
 **Purpose:** Keep Construction ERP project-position reporting consistent and recoverable across new Chat sessions.
 
@@ -149,7 +151,7 @@ Keep this summary concise unless the Product / Business Owner asks for more deta
 
 The owner explicitly requested that **from now on** every Construction ERP live-position report show the **remaining path to actual Production/go-live**, visually, **in addition to** the complete feature/release roadmap. The durable gate definitions, evidence, initial state and safe pilot interpretation are in [Production / Go-Live Readiness Register](PRODUCTION-GO-LIVE-READINESS.md), tracked through [#278](https://github.com/threeswordz/cinder-grind/issues/278).
 
-After the mandatory roadmap, show:
+Within the fixed owner-facing order in §6B, show the following full go-live evidence (the GL-01–10 table remains mandatory):
 
 1. **Go-live gate visual** — verified-complete categories, actively progressing, pending/unknown/conditional categories; count verified categories out of ten in the current **full-scope** planning baseline. Distinguish a limited pilot if separately authorized.
 2. **Gap table** — GL-01 through GL-10: area, current evidence-bound status, work missing, priority and relevant existing Issue/PR/decision. Do not count the V1.0 Production *engineering* release as proof of actual hosting, backup scheduling or go-live.
@@ -160,7 +162,29 @@ After the mandatory roadmap, show:
 
 Gate statuses are **VERIFIED COMPLETE / ACTIVE / PENDING / UNVERIFIED / CONDITIONAL FOR PILOT**. A lack of hosted-environment evidence is **UNVERIFIED, not FAILED**. A green CI result is technical evidence, not deployment evidence; an accepted release is not automatically a live Production site. [Issue #278](https://github.com/threeswordz/cinder-grind/issues/278) documents a later **3/10 verified** checkpoint after V1.3 business acceptance; its earlier **2/10** snapshot is historical. Always recalculate from current evidence. These are gate counts, **not engineering percentages**. For limited pilots, identify explicitly approved exclusions and controlled external handoffs; never mark deferred features delivered.
 
-Future updates to this presentation standard do **not** approve new implementation scope, business permission grants, HR/statutory policy, paid infrastructure, data migration, release exit or deployment. The approved HR1-A single writer is tracked under [#283](https://github.com/threeswordz/cinder-grind/issues/283). The corrected execution order is [#288](https://github.com/threeswordz/cinder-grind/issues/288): Accounting deferred; the next operational physical-count [#289](https://github.com/threeswordz/cinder-grind/issues/289) is only a candidate. Reporting does not start competing coding or new UAT.
+Future updates to this presentation standard do **not** approve new implementation scope, business permission grants, HR/statutory policy, paid infrastructure, data migration, release exit or deployment. The approved HR1-A single writer is tracked under [#283](https://github.com/threeswordz/cinder-grind/issues/283). The corrected execution order is [#288](https://github.com/threeswordz/cinder-grind/issues/288): Accounting deferred; physical-count [#289](https://github.com/threeswordz/cinder-grind/issues/289) and [#300](https://github.com/threeswordz/cinder-grind/pull/300) supply its scope/integration evidence. Reporting does not start competing coding or new UAT.
+
+## 6B. Fixed owner-facing live-position order (approved 2026-10-31 SGT)
+
+**Owner direction:** Whenever the Owner asks for "live position", preserve the following **same section order**, while independently fetching and updating all live values. This is a formatting/traceability commitment, not a freeze of current SHA, feature status, counts, or execution order. A concise question may use fewer details, but the full status request uses this order.
+
+1. **Executive dashboard:** source time (SGT), verified exact `main` SHA and main CI, open implementation PR count, 3/10-style verified GL category count (recalculated), accepted release baseline and production authorization.
+2. **Full chronological implementation roadmap:** V0.1–V0.8, always expose V0.6-A–E; V1.0-A–E; V1.1-A–E; V1.2-A–C; V1.3-A–C; HR1-A and any later explicitly approved operational slices. Indicate accepted/complete versus draft, blocked, deferred or future, *not* invented percentages.
+3. **What is in progress:** all active implementation Issues, PRs, exact HEAD SHAs, draft/ready/merged state, exact-HEAD push and PR CI conclusions, mandatory review findings/gates, dependency order and predecessor health. Separate complete code from completed release.
+4. **Production/go-live readiness GL-01 through GL-10:** gate visual and full table, exact evidence, real-runtime unknowns, mandatory pilot controls, latest actual verified 3/10-style count. No claim that CI is hosting/UAT.
+5. **Seven-role requirements and exact gap fit:** use all 112 source-stable IDs, show frozen source assessment versus new implementation/integration deltas, each relevant actor, configured/unverified grants and required operational acceptance. Preserve Porn as a distinct deferred Accounting role where the eight source role files are relevant.
+6. **Critical pending business rules and future modules:** named FM/BEN/PM/SS/PUR gaps, HR1-B/C, Accounting and #245 deferrals, unknown decisions; do not promote unapproved scopes into active coding.
+7. **Tool/authority matrix:** what Chat can build/test/review; which exact PRs require independent Codex (DEC-022); what Work can audit; and Owner-only scope, live grant/data, Production and UAT decisions. Distinguish quota error from code failure, and a technical green build from approval.
+8. **Chat-only work currently possible:** existing-scope defects/tests, focused review/evidence, GL-04/07/08/09/10 read-only preparedness and next-stage proposal only when scope is not approved.
+9. **Numbered, evidence-bound execution queue:** P0 release/review and true launch gates first, then *proposed* P1 operational scopes and deferred/future features. Identify owner/tool/predecessor and exact exit condition; label P0/P1/P2 as recommendations, not an authorization.
+10. **Decisions actually needed from the Owner:** no reasking past approved scope/THB/BOQ UAT, no merged/retained/Production changes implied by a status request.
+11. **Final checkpoint comparison:** exact `main`, open PR numbers+SHA+review/CI, GL counts, deployment status and what changed versus previous live report.
+
+**Strictness:** No static gate count, open-PR count, CI conclusion, branch-protection status or frozen 112-ID classification may be presented as newly verified without reading its source. The 2026-10-30 assessment is historical; count a later implementation as on-main only after its actual governed merge and verified CI, and never infer retained grants or Owner acceptance from it. Mark unavailable sources UNVERIFIED. Retain the GL-01–10 table, accepted release stages, blockers and next action.
+
+**Execution priorities and tool boundary:** Follow the latest explicit Owner instruction and live Issues/PRs. At the 2 November 2026 checkpoint Stock Count #300, Weekly Reporting #302 and HR #297/#298/#299 are merged; technical completion requires applicable exact-main CI. Approved readiness preparation follows #303 → #306 → #307 → #308 → #309. All pending human UAT/acceptance is DEFERRED TO PRE-PRODUCTION PROTOTYPE under DEC-042; no interim UAT blocks approved technical progression. #288 continues to defer Accounting. Chat/CI handle approved implementation; DEC-022 governs stable-candidate independent Codex review; Work remains the optional broad auditor. Re-check actual tool availability, rather than copying an old quota hold. Neither a general continue instruction nor green CI waives required review, human acceptance, retained activation or Production authorization. Do not repeat accepted THB/BOQ UAT.
+
+**Supporting controlled handoffs:** [GL04 launch-role verification plan](GL04-LAUNCH-ROLE-VERIFICATION-PLAN.md) and [GL07–GL10 production evidence plan](GL07-GL10-LAUNCH-EVIDENCE-PLAN.md). They are evidence templates only, not proof of activated role configuration or actual Production readiness.
 
 ## 7. Current roadmap destination
 
