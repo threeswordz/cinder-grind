@@ -6,6 +6,8 @@ import { ProjectScopeService } from '../authorization/project-scope.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProjectAccessService } from '../projects/project-access.service';
 import { HrPrivateCrypto } from './hr-private-crypto';
+import { LocalDocumentStorage } from '../documents/local-document-storage.service';
+import { DocumentPolicyService } from '../documents/document-policy.service';
 import { HrService } from './hr.service';
 
 /** Synthetic disposable fixtures only; never run against retained data. */
@@ -60,7 +62,7 @@ export async function hrFixture(db: PrismaService) {
     displayName: 'Synthetic existing account', passwordHash: 'sessions-only-not-a-login' } });
   const legacyMember = await db.projectMember.create({ data: { projectId: project.id, employeeId: legacy.id, projectRole: 'Existing worker' } });
   const projects = new ProjectAccessService(db, new ProjectScopeService(new AuthorizationService()));
-  const crypto = new HrPrivateCrypto(), audit = new AuditService(db), service = new HrService(db, audit, projects, crypto);
+  const crypto = new HrPrivateCrypto(), audit = new AuditService(db), service = new HrService(db, audit, projects, crypto, new LocalDocumentStorage(), new DocumentPolicyService());
   const actors = { admin, otherAdmin, hr, nancy, ben, porn, pm, store, foreman, outsider };
   return { company, other, hidden, actors, project, unassigned, foreignProject, legacy, legacyUser, legacyMember, service, crypto, projects, sessions, suffix };
 }

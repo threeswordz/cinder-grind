@@ -6,6 +6,7 @@ import { MaterialIssuesPanel } from './MaterialIssuesPanel';
 import { MaterialReservationsPanel } from './MaterialReservationsPanel';
 import { MaterialReturnsPanel } from './MaterialReturnsPanel';
 import { StockBalancePanel } from './StockBalancePanel';
+import { StockCountsPanel } from './StockCountsPanel';
 import { StockTransfersPanel } from './StockTransfersPanel';
 import { InventoryReportsPanel } from './InventoryReportsPanel';
 import { WarehousesPanel } from './WarehousesPanel';
@@ -15,6 +16,7 @@ type InventoryTab =
   | 'warehouses'
   | 'receipts'
   | 'stock'
+  | 'counts'
   | 'reservations'
   | 'issues'
   | 'returns'
@@ -35,6 +37,7 @@ export function InventoryWorkspace({
   const canSeeWarehouses = permissions.includes('inventory.warehouse.view');
   const canSeeReceipts = permissions.includes('inventory.receipt.view');
   const canSeeStock = permissions.includes('inventory.stock.view');
+  const canSeeCounts = permissions.includes('inventory.stock_count.view');
   const canSeeReservations = permissions.includes('inventory.reservation.view');
   const canSeeIssues = permissions.includes('inventory.issue.view');
   const canSeeReturns = permissions.includes('inventory.return.view');
@@ -46,8 +49,10 @@ export function InventoryWorkspace({
       ? 'receipts'
       : canSeeStock
         ? 'stock'
-        : canSeeReservations
-          ? 'reservations'
+        : canSeeCounts
+          ? 'counts'
+          : canSeeReservations
+            ? 'reservations'
           : canSeeIssues
             ? 'issues'
             : canSeeReturns
@@ -65,6 +70,7 @@ export function InventoryWorkspace({
     !canSeeWarehouses &&
     !canSeeReceipts &&
     !canSeeStock &&
+    !canSeeCounts &&
     !canSeeReservations &&
     !canSeeIssues &&
     !canSeeReturns &&
@@ -80,8 +86,10 @@ export function InventoryWorkspace({
         ? 'receipts'
         : selected === 'stock' && canSeeStock
           ? 'stock'
-          : selected === 'reservations' && canSeeReservations
-            ? 'reservations'
+          : selected === 'counts' && canSeeCounts
+            ? 'counts'
+            : selected === 'reservations' && canSeeReservations
+              ? 'reservations'
             : selected === 'issues' && canSeeIssues
               ? 'issues'
               : selected === 'returns' && canSeeReturns
@@ -97,6 +105,7 @@ export function InventoryWorkspace({
         {canSeeWarehouses ? <Tab value="warehouses" label="Warehouses" /> : null}
         {canSeeReceipts ? <Tab value="receipts" label="Goods Receipts" /> : null}
         {canSeeStock ? <Tab value="stock" label="Stock Balance" /> : null}
+        {canSeeCounts ? <Tab value="counts" label="Stock Counts" /> : null}
         {canSeeReservations ? <Tab value="reservations" label="Reservations" /> : null}
         {canSeeIssues ? <Tab value="issues" label="Material Issues" /> : null}
         {canSeeReturns ? <Tab value="returns" label="Material Returns" /> : null}
@@ -116,6 +125,8 @@ export function InventoryWorkspace({
         />
       ) : active === 'stock' ? (
         <StockBalancePanel />
+      ) : active === 'counts' ? (
+        <StockCountsPanel permissions={permissions} />
       ) : active === 'reservations' ? (
         <MaterialReservationsPanel permissions={permissions} />
       ) : active === 'issues' ? (
