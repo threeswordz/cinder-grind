@@ -122,9 +122,11 @@ export async function validateIsolated({ engine = 'podman', env = process.env,
     const port = inspectOwned(inspect[0], expected);
     const retainedPort = env.DATABASE_URL ? new URL(env.DATABASE_URL).port || '5432' : env.UAT_DB_PORT;
     requireSafe(port !== retainedPort && port !== env.UAT_DB_PORT, 'Validation port overlaps retained database configuration.');
+    // The image's temporary bootstrap server accepts Unix sockets before the
+    // final TCP server starts. A Docker proxy accepting TCP is insufficient.
     let ready = false;
     for (let attempt = 0; attempt < 60; attempt++) {
-      const result = await run(engine, ['exec', id, 'pg_isready', '-U', user, '-d', database], { env: setupEnv, signal });
+      const result = await run(engine, ['exec', id, 'pg_isready', '-h', '127.0.0.1', '-U', user, '-d', database], { env: setupEnv, signal });
       if (result.code === 0) { ready = true; break; }
       await sleep(500);
     }

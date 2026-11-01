@@ -12,18 +12,19 @@ const source = { PATH: process.env.PATH, DATABASE_URL: retained, STORAGE_ROOT: '
   UAT_DB_PORT: '55432', UAT_DB_CONTAINER: 'retained-container', UAT_DB_PASSWORD: 'do-not-expose',
   E2_ADMIN_PASSWORD: 'do-not-expose', BOOTSTRAP_ADMIN_PASSWORD: 'do-not-expose', PGPASSWORD: 'do-not-expose' };
 
-function harness({ fault, port = '61234', readyFailures = 0, hostReadyFailures = 0, mountFault = false, identityFault = false } = {}) {
+function harness({ requireTcpReady = false, tcpReadyFailures = 0, fault, port = '61234', readyFailures = 0, hostReadyFailures = 0, mountFault = false, identityFault = false } = {}) {
   const calls = [];
   const id = 'a'.repeat(64);
   let name, token;
   let removedStorage = false;
   let removedContainer = false;
+  let tcpReady = false;
   const run = async (command, args, options) => {
     calls.push({ command, args, env: options.env });
     if (command === 'bash' && args[0] === 'deploy/uat/prepare-legacy-validation.sh') {
       assert.notEqual(options.env.DATABASE_URL, retained);
       assert.equal(options.env.LEGACY_NON_PRODUCTION_CONFIRMED, 'YES');
-      return { code: fault === 'legacy-fixture' ? 7 : 0, stdout: '' };
+      return { code: fault === 'legacy-fixture' || requireTcpReady && !tcpReady ? 7 : 0, stdout: '' };
     }
     if (command === 'pnpm') return { code: fault === args[0] ? 7 : 0, stdout: '' };
     if (args[0] === 'run') {
@@ -41,7 +42,15 @@ function harness({ fault, port = '61234', readyFailures = 0, hostReadyFailures =
       HostConfig: { Tmpfs: { '/var/lib/postgresql/data': 'rw,nosuid,size=1024m' } },
       NetworkSettings: { Ports: { '5432/tcp': [{ HostIp: '127.0.0.1', HostPort: port }] } },
     }]) };
-    if (args[0] === 'exec') return { code: readyFailures-- > 0 ? 1 : 0, stdout: '' };
+    if (args[0] === 'exec') {
+      // Official PostgreSQL bootstrap can accept Unix-socket connections before
+      // its final TCP server starts; Docker's published proxy can already accept TCP.
+      if (args.includes('-h') && args[args.indexOf('-h') + 1] === '127.0.0.1') {
+        if (tcpReadyFailures-- > 0) return { code: 1, stdout: '' };
+        tcpReady = true;
+      }
+      return { code: readyFailures-- > 0 ? 1 : 0, stdout: '' };
+    }
     if (args[0] === 'rm') {
       assert.deepEqual(args, ['rm', '--force', id]);
       removedContainer = true;
@@ -81,6 +90,19 @@ for (const fault of ['prisma:migrate:deploy', 'typecheck', 'test', 'build']) {
       phases.slice(0, phases.indexOf(fault) + 1));
   });
 }
+
+test('Unix-only bootstrap plus accepting Docker proxy cannot start the legacy fixture before final PostgreSQL TCP readiness', async () => {
+  const fixture = harness({ requireTcpReady: true, tcpReadyFailures: 2 });
+  await validateIsolated(fixture);
+  const readiness = fixture.calls.filter(call => call.args[0] === 'exec');
+  assert.equal(readiness.length, 3);
+  for (const call of readiness) {
+    assert.deepEqual(call.args.slice(2), ['pg_isready', '-h', '127.0.0.1', '-U', 'erp_validation', '-d', 'erp_validation']);
+  }
+  const legacy = fixture.calls.findIndex(call => call.command === 'bash');
+  assert.ok(fixture.calls.lastIndexOf(readiness.at(-1)) < legacy);
+  assert.deepEqual(fixture.removed(), { removedStorage: true, removedContainer: true });
+});
 
 test('in-container readiness is insufficient until the isolated published loopback port is reachable', async () => {
   const fixture = harness({ hostReadyFailures: 2 });
