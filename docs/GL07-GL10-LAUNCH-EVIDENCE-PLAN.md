@@ -51,13 +51,13 @@ Predecessors: GL-07/08/09 evidence and scoped GL-04 business function fit; GL-05
 
 **Fail-closed:** An unresolved independent security review, unauthorized Finance/HR exposure, broken maker/checker, unknown backup restore or unreviewed retained data prevents go-live; green GitHub CI is not a waiver. GL-07/08/09/10 must never be marked complete from documentation-only preparation.
 
-## Action ownership while Codex and Work are unavailable
+## Action ownership and authority
 
-| Task | Chat now | Codex / Work later | Owner/operator authorization |
+| Task | Chat | Independent review/audit | Owner/operator authorization |
 |---|---|---|---|
 | Read-only role/source/CI audit, evidence templates | Yes | Work optional broad audit | None |
 | Review/fix an approved branch's genuine defect; synthetic CI | Yes | Codex mandatory for high-risk stable candidate | No new policy |
-| #300 stock-ledger and #302 authenticated weekly review | Chat focused proof ready | Codex independent final review required | Do not waive |
+| #300 stock-ledger and #302 authenticated weekly review | Technical integration complete at 1 November checkpoint | Final Codex reviews CLEAN; material later changes follow DEC-022 | Owner affected-path acceptance remains separate |
 | HR privacy #297–299 stack review | Chat integration/evidence preparation | Codex independently reviews material access/schema/privacy | Later business UAT |
 | Branch protection/ruleset activation | Chat proposal only | Work may independently assess | Authorized repository admin/Owner |
 | Real MKE/TCJ roles/data, hosted infra, backups, cutover | Chat scripts and exact checklist only | Security/operational audit | Separate scoped Owner/authorized operator approval |
