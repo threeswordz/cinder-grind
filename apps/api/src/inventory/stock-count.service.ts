@@ -329,7 +329,7 @@ export class StockCountService {
       // transaction waits. FOR UPDATE detects a post-snapshot Warehouse change
       // as a serialization failure, rather than posting into an inactive site.
       await tx.$queryRawUnsafe(
-        'SELECT id FROM "Warehouse" WHERE id = $1::uuid FOR UPDATE',
+        'SELECT id FROM "warehouses" WHERE id = $1::uuid FOR UPDATE',
         before.warehouseId,
       );
       await this.validateDimensions(context.auth, before, tx);
