@@ -95,12 +95,23 @@ export function inspectRoute(source,[id,file,verb,path,permission]){
   return {id,result:'AUTH_PERMISSION_GUARDS_MISSING'};
  return {id,file:'apps/api/src/'+file,route:verb.toUpperCase()+' '+path,permission,result:'SOURCE_DECORATORS_FOUND'};
 }
+// Conservative readback of the repository's fixed block-mapping layout.
+// Unknown/inline/aliased layouts fail closed; this never evaluates YAML.
+function mappingLines(source,name){
+ const lines=source.split(/\r?\n/),matches=[];
+ for(let i=0;i<lines.length;i++)if(new RegExp('^'+name+':\\s*(?:#.*)?$').test(lines[i]))matches.push(i);
+ if(matches.length!==1)return [];
+ const start=matches[0]+1;let end=start;
+ while(end<lines.length&&(!/^[^\s#]/.test(lines[end])||!lines[end].trim()))end++;
+ return lines.slice(start,end);
+}
 export function inspectWorkflow(source){
- const missing=[];
- if(!/^\s*pull_request\s*:/m.test(source))missing.push('PR_TRIGGER_MISSING');
- if(!/^\s*push\s*:/m.test(source))missing.push('PUSH_TRIGGER_MISSING');
- if(!/^\s*validate\s*:/m.test(source))missing.push('VALIDATE_JOB_MISSING');
- if(!/^\s*contents:\s*read\s*$/m.test(source))missing.push('CONTENTS_READ_MISSING');
+ const missing=[],on=mappingLines(source,'on'),jobs=mappingLines(source,'jobs'),permissions=mappingLines(source,'permissions');
+ const one=(lines,pattern)=>lines.filter(line=>pattern.test(line)).length===1;
+ if(!one(on,/^  pull_request:\s*(?:#.*)?$/))missing.push('PR_TRIGGER_MISSING');
+ if(!one(on,/^  push:\s*(?:#.*)?$/))missing.push('PUSH_TRIGGER_MISSING');
+ if(!one(jobs,/^  validate:\s*(?:#.*)?$/))missing.push('VALIDATE_JOB_MISSING');
+ if(!one(permissions,/^  contents:\s*read\s*(?:#.*)?$/))missing.push('CONTENTS_READ_MISSING');
  return {expectedCheckContext:'validate',sourceWorkflowChecks:missing.length?'FAILED':'PASS',
   missing,mainProtected:'UNVERIFIED_FROM_SOURCE',enforcedRulesets:'UNVERIFIED_FROM_SOURCE'};
 }

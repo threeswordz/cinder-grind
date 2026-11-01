@@ -64,6 +64,14 @@ test('green CI workflow source never implies branch protection is enforced',()=>
  assert.equal(inspectWorkflow(ci).mainProtected,'UNVERIFIED_FROM_SOURCE');
  assert.equal(inspectWorkflow(ci.replace('  validate:','  wrong:')).sourceWorkflowChecks,'FAILED');
 });
+test('workflow checks require the actual top-level mappings, not similarly named nested values',()=>{
+ const decoy=ci.replace('  validate:','  replacement:')+'env:\n  validate: \"decoy\"\n';
+ assert.equal(inspectWorkflow(decoy).sourceWorkflowChecks,'FAILED');
+ const write=ci.replace('  contents: read','  contents: write')+'env:\n  contents: read\n';
+ assert.equal(inspectWorkflow(write).sourceWorkflowChecks,'FAILED');
+ const triggers=ci.replace('on:','env:');
+ assert.equal(inspectWorkflow(triggers).sourceWorkflowChecks,'FAILED');
+});
 test('source PASS cannot certify retained permissions, human acceptance or go-live',async()=>{
  const fixtures=new Map([
   ['docs/ROLE-REQUIREMENTS-2026-10-30/13-execution-disposition.md',markdown()],
