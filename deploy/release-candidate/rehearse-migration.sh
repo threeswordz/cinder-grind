@@ -452,14 +452,27 @@ upgrade_pgpass="$(mktemp)"
 chmod 600 "$upgrade_pgpass"
 native_upgrade_url="$(POSTGRES_RAW_URL="$upgrade_url" PGPASSFILE="$upgrade_pgpass" node deploy/recovery/postgres-url.mjs)"
 if [[ "$hr_proof" == true ]]; then
-  DATABASE_URL="$upgrade_url" node "$RC_DIR/hr-upgrade.mjs" protect "$previous_root" "$tmp_root/hr-protected.json" "$tmp_root/hr-external-keys.json"
+  if [[ "$hr_document_schema" == true ]]; then
+    mkdir -p "$tmp_root/hr-attachment-source" "$tmp_root/hr-attachment-restored"
+    chmod 700 "$tmp_root/hr-attachment-source" "$tmp_root/hr-attachment-restored"
+    HR_ATTACHMENT_RECOVERY_STORAGE_ROOT="$tmp_root/hr-attachment-source" DATABASE_URL="$upgrade_url" \
+      node "$RC_DIR/hr-upgrade.mjs" protect "$previous_root" "$tmp_root/hr-protected.json" "$tmp_root/hr-external-keys.json"
+    cp -a "$tmp_root/hr-attachment-source/." "$tmp_root/hr-attachment-restored/"
+  else
+    DATABASE_URL="$upgrade_url" node "$RC_DIR/hr-upgrade.mjs" protect "$previous_root" "$tmp_root/hr-protected.json" "$tmp_root/hr-external-keys.json"
+  fi
   PGPASSFILE="$upgrade_pgpass" pg_dump --format=custom --no-owner --no-privileges --dbname="$native_upgrade_url" > "$tmp_root/hr-protected.dump"
   chmod 600 "$tmp_root/hr-protected.dump"
   hr_pgpass="$(mktemp)"
   chmod 600 "$hr_pgpass"
   native_hr_url="$(POSTGRES_RAW_URL="$hr_url" PGPASSFILE="$hr_pgpass" node deploy/recovery/postgres-url.mjs)"
   PGPASSFILE="$hr_pgpass" pg_restore --exit-on-error --no-owner --no-privileges --dbname="$native_hr_url" < "$tmp_root/hr-protected.dump"
-  DATABASE_URL="$hr_url" node "$RC_DIR/hr-upgrade.mjs" restored "$previous_root" "$tmp_root/hr-protected.json" "$tmp_root/hr-external-keys.json"
+  if [[ "$hr_document_schema" == true ]]; then
+    HR_ATTACHMENT_RECOVERY_STORAGE_ROOT="$tmp_root/hr-attachment-restored" DATABASE_URL="$hr_url" \
+      node "$RC_DIR/hr-upgrade.mjs" restored "$previous_root" "$tmp_root/hr-protected.json" "$tmp_root/hr-external-keys.json"
+  else
+    DATABASE_URL="$hr_url" node "$RC_DIR/hr-upgrade.mjs" restored "$previous_root" "$tmp_root/hr-protected.json" "$tmp_root/hr-external-keys.json"
+  fi
 fi
 for migration_name in "${new_migrations[@]}"; do
   applied_count="$(PGPASSFILE="$upgrade_pgpass" psql "$native_upgrade_url" --no-psqlrc --tuples-only --no-align \
@@ -659,7 +672,7 @@ writeFileSync(path, JSON.stringify({
     restoredPreviousRuntimeAuthenticationDownload: 'PASS',
   } : { prismaSchemaUnchanged: 'PASS' }),
   ...(customerSchema ? { customerBoqPersistenceUpgrade: 'PASS' } : {}),
-  ...(hrSchema || hrDocumentSchema ? { hrPredecessorPreservation: 'PASS', hrPredecessorRollback: 'PASS', hrEmployeeUpgradeTests: 'PASS', hrEncryptedRecordRecovery: 'PASS', hrPrivateAttachmentRecovery: 'NOT_IMPLEMENTED_THIS_INCREMENT' } : {}),
+  ...(hrSchema || hrDocumentSchema ? { hrPredecessorPreservation: 'PASS', hrPredecessorRollback: 'PASS', hrEmployeeUpgradeTests: 'PASS', hrEncryptedRecordRecovery: 'PASS', hrPrivateAttachmentRecovery: hrDocumentSchema ? 'PASS' : 'NOT_IMPLEMENTED_THIS_INCREMENT' } : {}),
   ...(hrDocumentSchema ? { hrDocumentCustodyUpgrade: 'PASS', hrDocumentSchemaOnly: 'PASS' } : {}),
   forwardOnlyNewMigrations: 'PASS',
   migrationNames: migrationList.split(',').filter(Boolean),
