@@ -1,5 +1,6 @@
 // GL-04/GL-07 source-only preflight: no HTTP, credentials or Production attestation.
 import {readFile} from 'node:fs/promises';
+import {createHash} from 'node:crypto';
 import {dirname,resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 export const ROLE_COUNTS={ben:12,nancy:12,khaimook:18,jai:15,store:21,foreman:6,porn:20,koh:8};
@@ -47,6 +48,13 @@ export function parseRoleCensus(markdown){
  const states=Object.fromEntries(Object.keys(SOURCE_STATES).map(k=>[k,rows.filter(r=>r.status===k).length]));
  if(rows.length!==112||Object.entries(ROLE_COUNTS).some(([k,v])=>roles[k]!==v)||
     Object.entries(SOURCE_STATES).some(([k,v])=>states[k]!==v))throw Error('ROLE_BASELINE_CHANGED_RECONCILE_FIRST');
+ // Exact sorted (stable ID, role, frozen assessment) tuples from approved
+ // role-baseline commit 646b2877335097ee204d5ec0ccc043c2e1fce548.
+ // A digest avoids duplicating 112 policy rows; count-preserving edits still deny.
+ const tuples=rows.map(({id,role,status})=>[id,role,status])
+  .sort((a,b)=>a[0]<b[0]?-1:a[0]>b[0]?1:0);
+ if(createHash('sha256').update(JSON.stringify(tuples)).digest('hex')!=='301b0b292c5d55ca1de08b41b760d52185d9f349fa2763c75eea6bb5f5583e39')
+  throw Error('ROLE_BASELINE_CHANGED_RECONCILE_FIRST');
  return {count:rows.length,roles,states};
 }
 export function inspectRoute(source,[id,file,verb,path,permission]){
