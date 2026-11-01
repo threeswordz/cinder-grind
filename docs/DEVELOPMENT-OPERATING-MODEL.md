@@ -114,7 +114,7 @@ Rules:
 7. **High-risk surfaces still require independent review.** Authorization, permissions, Finance/payment/accounting behavior, migrations, audit/history immutability, concurrency and data-integrity changes require Codex at the stable merge candidate unless the Product / Business Owner grants an explicit PR-specific waiver recorded in the Decision Log.
 8. **Low-risk documentation-only changes normally use Chat + CI.** Codex is not a default requirement for documentation/reporting-only PRs unless an approved stage/release gate explicitly says otherwise.
 9. **Release-level audit remains separate.** Work remains the periodic broad auditor for architecture, security, technical debt, cross-release integration and production readiness; Codex should be concentrated on stable code boundaries rather than repeated intermediate commits.
-10. **Human gates are unchanged.** CI, Chat, Codex and Work do not self-approve required Product / Business Owner UAT/business acceptance.
+10. **Human acceptance remains human; timing changed under DEC-042.** No prospective interim manual UAT is required during development; defer its acceptance to the integrated prototype. CI, Chat, Codex and Work cannot self-approve final business UAT.
 
 For an already-reviewed PR, a new Codex pass is required only if a later change materially affects code/schema/security/business behavior covered by that review, or if an explicit approved gate requires a new confirmation.
 
