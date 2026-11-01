@@ -5,6 +5,7 @@ import test from 'node:test';
 import {
   ConflictException,
   ForbiddenException,
+  NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
@@ -504,6 +505,52 @@ test('Stage E keeps Daily Site Reports project-scoped, immutable after submissio
           data: { correctionNote: 'Must remain append-only.' },
         }),
       'Daily Site Report corrections must be append-only',
+    );
+
+    // FM01-A derived weekly read model: original source history is not overwritten by corrections.
+    const weekFrom = new Date('2026-10-05T00:00:00.000Z');
+    const weekTo = new Date('2026-10-11T00:00:00.000Z');
+    const weekly = await service.weekly(siteAuth, project.id, weekFrom, weekTo);
+    assert.equal(weekly.projectId, project.id);
+    assert.equal(weekly.days.length, 7);
+    assert.equal(weekly.days[0]?.status, 'SUBMITTED');
+    assert.equal(weekly.days[1]?.status, 'MISSING');
+    assert.equal(weekly.missingDayMeaning, 'UNKNOWN_WORKDAY_OR_HOLIDAY');
+    assert.equal(weekly.reviewState, 'READ_ONLY_NO_APPROVAL');
+    assert.equal(weekly.days[0]?.report?.id, created.id);
+    assert.equal(weekly.days[0]?.report?.totalManpower, 9);
+    assert.equal(weekly.days[0]?.report?.counts.corrections, 1);
+    assert.equal(weekly.days[0]?.report?.progressObservations[0]?.activityId, activity.id);
+    assert.equal(weekly.days[0]?.report?.progressObservations[0]?.percentComplete, '65');
+    assert.equal(weekly.days[0]?.report?.progressObservations[0]?.note, 'Daily site progress');
+    assert.equal(weekly.totals.submittedDays, 1);
+    assert.equal(weekly.totals.draftDays, 1);
+    assert.equal(weekly.days[2]?.status, 'DRAFT');
+    assert.equal(weekly.days[2]?.report?.id, guardReport.id);
+    assert.equal(weekly.totals.missingDays, 5);
+    assert.equal(weekly.totals.issues, 1);
+    assert.equal(weekly.totals.delays, 1);
+    assert.equal(weekly.totals.inspections, 1);
+
+    await assert.rejects(
+      () => service.weekly(auth(company.id, unassigned.id), project.id, weekFrom, weekTo),
+      (error: unknown) => error instanceof ForbiddenException,
+      'weekly read must deny users without persisted Project membership',
+    );
+    await assert.rejects(
+      () => service.weekly(siteAuth, otherProject.id, weekFrom, weekTo),
+      (error: unknown) => error instanceof ForbiddenException,
+      'weekly read must deny a different Project even within the same Company',
+    );
+    await assert.rejects(
+      () => service.weekly(auth(randomUUID(), user.id), project.id, weekFrom, weekTo),
+      (error: unknown) => error instanceof NotFoundException,
+      'weekly read must not disclose an existing Project to a different Company context',
+    );
+    await assert.rejects(
+      () => service.weekly(siteAuth, project.id, weekFrom, new Date('2026-10-12T00:00:00.000Z')),
+      (error: unknown) => error instanceof UnprocessableEntityException,
+      'weekly read must reject a period longer than seven calendar dates',
     );
 
     const auditCount = await prisma.auditLog.count({
