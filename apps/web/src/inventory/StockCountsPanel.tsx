@@ -44,6 +44,7 @@ export function StockCountsPanel({ permissions }: { permissions: string[] }) {
   const [actualQuantity, setActualQuantity] = useState('');
   const [evidenceReference, setEvidenceReference] = useState('');
   const [editId, setEditId] = useState('');
+  const [editVersion, setEditVersion] = useState<number | null>(null);
   const [editCountedAt, setEditCountedAt] = useState('');
   const [editActualQuantity, setEditActualQuantity] = useState('');
   const [editEvidence, setEditEvidence] = useState('');
@@ -93,7 +94,9 @@ export function StockCountsPanel({ permissions }: { permissions: string[] }) {
     onSuccess: async result => {
       setMutationError(null);
       if (result.data.status === 'APPROVED') postKeys.delete(result.data.id);
-      if (result.data.status !== 'DRAFT') setEditId('');
+      // Reopen explicitly after any successful write to pin the new version.
+      setEditId('');
+      setEditVersion(null);
       if (result.data.status !== 'SUBMITTED') {
         setReviewId('');
         setDecisionComment('');
@@ -107,6 +110,7 @@ export function StockCountsPanel({ permissions }: { permissions: string[] }) {
   const createReady = canCreate && Boolean(projectId && warehouseId && selectedChoice) &&
     validQuantity(actualQuantity) && Boolean(countedAt);
   const editReady = Boolean(editCount) && editCount?.status === 'DRAFT' &&
+    editVersion !== null && editCount.version === editVersion &&
     validQuantity(editActualQuantity) && Boolean(editCountedAt);
 
   return (
@@ -236,6 +240,7 @@ export function StockCountsPanel({ permissions }: { permissions: string[] }) {
                     {row.status === 'DRAFT' && canEdit ? (
                       <Button size="small" onClick={() => {
                         setEditId(row.id);
+                        setEditVersion(row.version);
                         setEditCountedAt(localDateTime(new Date(row.countedAt)));
                         setEditActualQuantity(row.actualQuantity);
                         setEditEvidence(row.evidenceReference ?? '');
@@ -265,6 +270,11 @@ export function StockCountsPanel({ permissions }: { permissions: string[] }) {
         <Paper variant="outlined" sx={{ p: 2 }}>
           <Stack spacing={2}>
             <Typography variant="subtitle1">Edit draft — {editCount.material.materialCode} / {editCount.uom.uomCode}</Typography>
+            {editVersion !== null && editCount.version !== editVersion ? (
+              <Alert severity="warning">
+                This draft changed while you were editing. Cancel and reopen it to use the latest version; your unsaved edits have not overwritten anyone else's changes.
+              </Alert>
+            ) : null}
             <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
               <TextField label="Counted at" type="datetime-local" value={editCountedAt}
                 onChange={event => setEditCountedAt(event.target.value)} InputLabelProps={{ shrink: true }} />
@@ -276,10 +286,10 @@ export function StockCountsPanel({ permissions }: { permissions: string[] }) {
                 sx={{ flexGrow: 1 }} />
             </Stack>
             <Stack direction="row" spacing={1}>
-              <Button onClick={() => setEditId('')}>Cancel</Button>
+              <Button onClick={() => { setEditId(''); setEditVersion(null); }}>Cancel</Button>
               <Button variant="contained" disabled={!editReady || mutation.isPending}
                 onClick={() => perform(() => inventoryApi.updateStockCount(editCount.id, {
-                  expectedVersion: editCount.version,
+                  expectedVersion: editVersion!,
                   countedAt: new Date(editCountedAt).toISOString(),
                   actualQuantity: editActualQuantity,
                   evidenceReference: editEvidence.trim() || null,

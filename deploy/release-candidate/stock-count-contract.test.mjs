@@ -35,3 +35,12 @@ test('stock-count catalog is exactly five definitions and migration creates no r
     for (const key of ['id','permission_code','description']) assert.ok(sql.includes(row[key]));
   }
 });
+
+test('Stock Count edit pins its original version and disables stale background revalidation writes', () => {
+  const panel = readFileSync(new URL('../../apps/web/src/inventory/StockCountsPanel.tsx', import.meta.url), 'utf8');
+  assert.match(panel, /setEditVersion\(row\.version\)/);
+  assert.match(panel, /editCount\.version === editVersion/);
+  assert.match(panel, /expectedVersion: editVersion!/);
+  assert.doesNotMatch(panel, /expectedVersion: editCount\.version/);
+  assert.match(panel, /Cancel and reopen it to use the latest version/);
+});

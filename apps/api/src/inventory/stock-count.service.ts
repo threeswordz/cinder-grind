@@ -319,6 +319,19 @@ export class StockCountService {
           detail: 'The stock count maker or submitter cannot approve the same count.',
         });
       }
+      // Archival holds this Warehouse mutex. Acquire it BEFORE the stock
+      // dimension lock, and retain it until the ledger adjustment commits.
+      await tx.$executeRawUnsafe(
+        'SELECT pg_advisory_xact_lock(hashtext($1))',
+        'inventory-warehouse:' + before.warehouseId,
+      );
+      // A READ COMMITTED archival update may complete while this Serializable
+      // transaction waits. FOR UPDATE detects a post-snapshot Warehouse change
+      // as a serialization failure, rather than posting into an inactive site.
+      await tx.$queryRawUnsafe(
+        'SELECT id FROM "Warehouse" WHERE id = $1::uuid FOR UPDATE',
+        before.warehouseId,
+      );
       await this.validateDimensions(context.auth, before, tx);
       const dimension = this.dimension(context.auth.companyId, before);
       await this.quantities.lock(tx, dimension);

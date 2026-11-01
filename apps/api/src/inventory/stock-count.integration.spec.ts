@@ -377,6 +377,45 @@ test('OP-STOCK-COUNT-01 quantity-only reconciliation is scoped, stale-safe, rese
     'approval must reject a reservation cancellation committed after physical count');
     assert.equal(await prisma.stockTransaction.count({ where: { stockCountId: countBeforeCancel.id } }), 0);
 
+    // Codex P2: an approval waiting behind Warehouse archival must fail
+    // closed, not commit quantity into a newly archived site Warehouse.
+    const raceWarehouse = await prisma.warehouse.create({ data: {
+      companyId: company.id, projectId: project.id,
+      warehouseCode: 'SC-ARCHIVE-' + suffix,
+      warehouseName: 'Archival serialization warehouse', isSiteWarehouse: true,
+    } });
+    const raceCount = await service.create({ auth: storeAuth }, {
+      projectId: project.id, warehouseId: raceWarehouse.id, materialId: material.id, uomId: uom.id,
+      countedAt: new Date(), actualQuantity: new Prisma.Decimal(1),
+      evidenceReference: 'synthetic physical count before archival',
+    });
+    const raceSubmitted = await service.submit({ auth: storeAuth }, raceCount.id, raceCount.version);
+    let raceSettled = false;
+    let raceApproval!: Promise<{ approved: boolean; error?: unknown }>;
+    await prisma.$transaction(async tx => {
+      await tx.$executeRawUnsafe(
+        'SELECT pg_advisory_xact_lock(hashtext($1))',
+        'inventory-warehouse:' + raceWarehouse.id,
+      );
+      raceApproval = service.approve(
+        { auth: managerAuth }, raceCount.id, raceSubmitted.version, 'SC-ARCHIVE-RACE-' + suffix,
+      ).then(
+        () => { raceSettled = true; return { approved: true }; },
+        (error: unknown) => { raceSettled = true; return { approved: false, error }; },
+      );
+      await new Promise(resolve => setTimeout(resolve, 600));
+      assert.equal(raceSettled, false,
+        'positive count approval must wait for the Warehouse archival mutex');
+      await tx.warehouse.update({ where: { id: raceWarehouse.id }, data: { isActive: false } });
+    });
+    const raceResult = await raceApproval;
+    assert.equal(raceResult.approved, false,
+      'approval must fail closed after archival changes Warehouse under the mutex');
+    assert.equal(await prisma.stockTransaction.count({ where: { stockCountId: raceCount.id } }), 0,
+      'an archived Warehouse must not receive a delayed stock-count adjustment');
+    assert.equal((await prisma.stockCount.findUnique({ where: { id: raceCount.id } }))?.status,
+      'SUBMITTED', 'failed approval must preserve the submitted count');
+
     // SQL history guard must also protect new immutable snapshot coordinates,
     // even when an actor supplies an otherwise valid optimistic version.
     await assert.rejects(() => prisma.stockCount.update({
