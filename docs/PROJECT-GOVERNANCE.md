@@ -106,6 +106,8 @@ A stage may merge only when its applicable completion gates pass.
 
 The next stage must not begin until required predecessor gates are complete unless the approved roadmap explicitly permits parallel work.
 
+**DEC-042 prospective gate change:** Pending manual/role/module/Owner UAT and its associated acceptance now move to the integrated pre-Production prototype. No interim human UAT is a prerequisite for approved technical PR/stage progression after remaining technical, CI, review, prerequisite and non-UAT approvals are complete. Label technically completed stages **UAT DEFERRED**, not business-accepted. Preserve historical accepted UAT and all GL-01–GL-10, real-world retention/permissions, security and deployment approvals.
+
 Human UAT/business acceptance must not be marked complete by development or CI.
 
 Independent review execution follows the approved operating model and Decision Log. DEC-022 requires Codex to be concentrated on stable merge candidates and material/high-risk re-review rather than repeated reviews of unstable intermediate heads. This changes review timing/economy, not applicable CI, security, Change Control or human UAT gates.
