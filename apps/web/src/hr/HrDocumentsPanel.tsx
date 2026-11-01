@@ -10,21 +10,21 @@ const translations = {
     empty: 'No protected documents.', version: 'Version', download: 'Download',
     error: 'Protected documents are unavailable or access has changed.',
     previous: 'Previous', next: 'Next', add: 'Upload protected document',
-    file: 'Private file', type: 'Evidence type', submit: 'Encrypt and upload',
+    file: 'Private file', selectedFile: 'Selected file', type: 'Evidence type', submit: 'Encrypt and upload',
     invalid: 'Choose an authorized evidence type and a file up to 8 MiB.',
     saved: 'Protected document uploaded.', typeUnavailable: 'No authorized evidence type is available.' },
   th: { title: 'เอกสารฝ่ายบุคคลที่ปกป้อง', note: 'แสดงเฉพาะข้อมูลเอกสาร ต้องได้รับสิทธิ์ก่อนดาวน์โหลด',
     empty: 'ยังไม่มีเอกสารส่วนตัว', version: 'เวอร์ชัน', download: 'ดาวน์โหลด',
     error: 'ไม่สามารถเข้าถึงเอกสารส่วนตัวหรือสิทธิ์เปลี่ยนแปลง',
     previous: 'ก่อนหน้า', next: 'ถัดไป', add: 'อัปโหลดเอกสารส่วนตัว',
-    file: 'ไฟล์ส่วนตัว', type: 'ประเภทหลักฐาน', submit: 'เข้ารหัสและอัปโหลด',
+    file: 'ไฟล์ส่วนตัว', selectedFile: 'ไฟล์ที่เลือก', type: 'ประเภทหลักฐาน', submit: 'เข้ารหัสและอัปโหลด',
     invalid: 'เลือกประเภทหลักฐานและไฟล์ขนาดไม่เกิน 8 MiB',
     saved: 'อัปโหลดเอกสารสำเร็จ', typeUnavailable: 'ไม่พบประเภทหลักฐานที่ได้รับสิทธิ์' },
   'zh-TW': { title: '受保護人事文件', note: '只顯示文件中繼資料；下載內容需要權限。',
     empty: '尚無私人文件', version: '版本', download: '下載',
     error: '私人文件無法使用或權限已變更',
     previous: '上一頁', next: '下一頁', add: '上傳受保護文件',
-    file: '私人檔案', type: '證明類型', submit: '加密並上傳',
+    file: '私人檔案', selectedFile: '已選檔案', type: '證明類型', submit: '加密並上傳',
     invalid: '請選擇獲授權的證明類型，以及不超過 8 MiB 的檔案。',
     saved: '已上傳受保護文件', typeUnavailable: '沒有可用的授權證明類型' },
 } satisfies Record<Language, Record<string, string>>;
@@ -173,7 +173,7 @@ export function HrDocumentsPanel({ userId, companyId, employeeId, language, reva
                   {item.documentTypeCode} — {item.documentTypeName}
                 </MenuItem>)}
               </TextField>}
-          {types.isSuccess && types.data.items.length > 0 &&
+          {types.isSuccess && (types.data.items.length > 0 || typePages.length > 1) &&
             <Stack direction="row" gap={1}>
               <Button disabled={typePages.length <= 1 || busy || uploading}
                 onClick={() => { setTypePages(old => old.slice(0,-1)); setTypeId(''); resetUpload(); }}>{t.previous}</Button>
@@ -183,6 +183,12 @@ export function HrDocumentsPanel({ userId, companyId, employeeId, language, reva
           <input key={fileKey} type="file" aria-label={t.file} disabled={uploading}
             accept=".pdf,.jpg,.jpeg,.png,.txt,.csv,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
             onChange={event => { if (!uploading) { setFile(event.target.files?.[0] ?? null); resetUpload(); } }} />
+          {/* React Query polling may remount the native chooser while keeping its
+              in-memory File state. Always show the retained upload identity;
+              never cache the private name or bytes in React Query/storage. */}
+          {file && <Typography variant="body2" data-testid="hr-selected-file-name">
+            {t.selectedFile}: {file.name}
+          </Typography>}
           <Button variant="contained" disabled={!canUpload} onClick={() => void doUpload()}>{t.submit}</Button>
           {file && (file.size < 1 || file.size > 8 * 1024 * 1024) && <Alert severity="warning">{t.invalid}</Alert>}
         </>}
