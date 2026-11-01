@@ -44,3 +44,13 @@ test('Stock Count edit pins its original version and disables stale background r
   assert.doesNotMatch(panel, /expectedVersion: editCount\.version/);
   assert.match(panel, /Cancel and reopen it to use the latest version/);
 });
+
+test('Stock Count approval Warehouse row lock is compatible with FK KEY SHARE', () => {
+  const service = readFileSync(new URL('../../apps/api/src/inventory/stock-count.service.ts', import.meta.url), 'utf8');
+  const approval = service.split('  async approve(')[1]?.split('  async reject(')[0];
+  assert.ok(approval, 'StockCount approval method exists');
+  assert.match(approval, /SELECT id FROM "warehouses" WHERE id = \$1::uuid FOR SHARE/);
+  assert.doesNotMatch(approval, /SELECT id FROM "warehouses" WHERE id = \$1::uuid FOR UPDATE/);
+  assert.ok(approval.indexOf('inventory-warehouse:') < approval.indexOf('this.quantities.lock(tx, dimension)'),
+    'Warehouse mutex must be acquired before the canonical dimension lock');
+});

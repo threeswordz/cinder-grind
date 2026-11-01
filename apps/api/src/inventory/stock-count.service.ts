@@ -325,11 +325,14 @@ export class StockCountService {
         'SELECT pg_advisory_xact_lock(hashtext($1))',
         'inventory-warehouse:' + before.warehouseId,
       );
-      // A READ COMMITTED archival update may complete while this Serializable
-      // transaction waits. FOR UPDATE detects a post-snapshot Warehouse change
-      // as a serialization failure, rather than posting into an inactive site.
+      // FOR SHARE conflicts with archival's row-level NO KEY UPDATE but is
+      // compatible with the KEY SHARE obtained by StockCount's Warehouse FK
+      // during draft creation. FOR UPDATE would deadlock with a count create
+      // holding the dimension advisory lock while this approval waits on it.
+      // Serializable isolation fails closed if archival changed this row
+      // after the count decision's transaction snapshot was established.
       await tx.$queryRawUnsafe(
-        'SELECT id FROM "warehouses" WHERE id = $1::uuid FOR UPDATE',
+        'SELECT id FROM "warehouses" WHERE id = $1::uuid FOR SHARE',
         before.warehouseId,
       );
       await this.validateDimensions(context.auth, before, tx);

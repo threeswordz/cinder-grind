@@ -416,6 +416,41 @@ test('OP-STOCK-COUNT-01 quantity-only reconciliation is scoped, stale-safe, rese
     assert.equal((await prisma.stockCount.findUnique({ where: { id: raceCount.id } }))?.status,
       'SUBMITTED', 'failed approval must preserve the submitted count');
 
+    // Codex P2 regression: Warehouse row SHARE and FK KEY SHARE must coexist
+    // while approval-equivalent code waits for the dimension advisory lock.
+    // A row FOR UPDATE here forms a lock cycle with StockCount creation,
+    // which needs the Warehouse FK KEY SHARE after taking the dimension lock.
+    let compatibleRowLockHeld = false;
+    let waitingDimension!: Promise<void>;
+    await prisma.$transaction(async tx => {
+      await quantities.lock(tx, dimension);
+      waitingDimension = prisma.$transaction(async contender => {
+        await contender.$queryRawUnsafe(
+          'SELECT id FROM "warehouses" WHERE id = $1::uuid FOR SHARE', site.id,
+        );
+        compatibleRowLockHeld = true;
+        await quantities.lock(contender, dimension);
+      }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+      for (let tick = 0; tick < 50 && !compatibleRowLockHeld; tick++) {
+        await new Promise(resolve => setTimeout(resolve, 20));
+      }
+      assert.equal(compatibleRowLockHeld, true, 'second transaction must hold Warehouse SHARE');
+      const live = await quantities.available(tx, dimension);
+      const history = await quantities.snapshotVersion(tx, dimension);
+      await tx.stockCount.create({ data: {
+        companyId: company.id, projectId: project.id, warehouseId: site.id,
+        materialId: material.id, uomId: uom.id, countedAt: new Date(),
+        expectedOnHand: live.onHand, expectedReserved: live.reserved,
+        expectedLedgerEventCount: history.ledgerEventCount,
+        expectedReservationFingerprint: history.reservationFingerprint,
+        actualQuantity: live.onHand, varianceQuantity: new Prisma.Decimal(0),
+        createdByUserId: store.id,
+      } });
+      // Committing this insertion releases the dimension lock and must allow
+      // the row-share holder to finish, without deadlock or generic HTTP 500.
+    });
+    await waitingDimension;
+
     // SQL history guard must also protect new immutable snapshot coordinates,
     // even when an actor supplies an otherwise valid optimistic version.
     await assert.rejects(() => prisma.stockCount.update({
