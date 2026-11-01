@@ -24,6 +24,7 @@ test('count-preserving ID substitution, status swaps and role swaps cannot alter
  };
  assert.throws(()=>parseRoleCensus(swap('BEN01','BEN-BASE-04','implementation_observation')),/ROLE_BASELINE_CHANGED/);
  assert.throws(()=>parseRoleCensus(swap('BEN01','NANCY-01','role')),/ROLE_BASELINE_CHANGED/);
+ assert.throws(()=>parseRoleCensus(markdown([{id:'UNAPPROVED99',role:'unknown',implementation_observation:'implemented'},...baseline])),/UNKNOWN_SOURCE_ROLE/);
  assert.equal(parseRoleCensus(markdown([...baseline].reverse())).count,112,'Row ordering is not an approved requirement attribute');
 });
 test('route permission must belong to the same guarded handler',()=>{
@@ -31,6 +32,32 @@ test('route permission must belong to the same guarded handler',()=>{
  assert.equal(inspectRoute(decorated('wrong.view'),route).result,'PERMISSION_DECORATOR_MISSING');
  assert.equal(inspectRoute(decorated(route[4],'@UseGuards(AuthGuard)'),route).result,'AUTH_PERMISSION_GUARDS_MISSING');
  assert.equal(inspectRoute(decorated().replace("@Post('"+route[3]+"')","@Post('different')"),route).result,'ROUTE_NOT_FOUND');
+});
+test('commented method/class decorators cannot count as active source protection',()=>{
+ const guards='@UseGuards(AuthGuard, PermissionGuard)';
+ assert.equal(inspectRoute(decorated().replace(guards,'// '+guards),route).result,'AUTH_PERMISSION_GUARDS_MISSING');
+ const perm="@RequirePermissions('"+route[4]+"')";
+ assert.equal(inspectRoute(decorated().replace(perm,'/* '+perm+' */'),route).result,'PERMISSION_DECORATOR_MISSING');
+ const scoped="@Controller('x')\n// "+guards+"\nexport class Mock {\n@Post('"+route[3]+"')\n"+perm+"\nasync action(){}\n}";
+ assert.equal(inspectRoute(scoped,route).result,'AUTH_PERMISSION_GUARDS_MISSING');
+ const block=scoped.replace('// '+guards,'/* '+guards+' */');
+ assert.equal(inspectRoute(block,route).result,'AUTH_PERMISSION_GUARDS_MISSING');
+});
+test('AST inspection uses each actual owning class and ignores comments/strings/malformed source',()=>{
+ const perm="@RequirePermissions('"+route[4]+"')",path="@Post('"+route[3]+"')";
+ const protectedClass="@Controller('a')\n@UseGuards(AuthGuard,PermissionGuard)\nexport class First { @Get('unrelated') async other(){} }\n";
+ const target="@Controller('b')\nexport class Second { "+path+"\n"+perm+"\nasync action(){} }";
+ assert.equal(inspectRoute(protectedClass+target,route).result,'AUTH_PERMISSION_GUARDS_MISSING');
+ assert.equal(inspectRoute(decorated().replace("@Controller('test')","/* @Controller('test') */"),route).result,'CONTROLLER_DECORATOR_MISSING');
+ assert.equal(inspectRoute(decorated().replace(path,'// '+path),route).result,'ROUTE_NOT_FOUND');
+ assert.equal(inspectRoute(decorated().replace(path,'const fake="'+path+'";'),route).result,'ROUTE_NOT_FOUND');
+ assert.equal(inspectRoute("@Controller('x')\n@UseGuards(AuthGuard,PermissionGuard)\nexport class Mock { "+path+"\n"+perm+"\nasync action(){} }",route).result,'SOURCE_DECORATORS_FOUND');
+ assert.equal(inspectRoute(decorated().slice(0,-1),route).result,'SOURCE_PARSE_ERROR');
+});
+test('conflicting active route/permission decorators cannot hide the effective handler metadata',()=>{
+ const path="@Post('"+route[3]+"')",perm="@RequirePermissions('"+route[4]+"')";
+ assert.equal(inspectRoute(decorated().replace(path,path+"\n@Get('different')"),route).result,'AMBIGUOUS_ROUTE');
+ assert.equal(inspectRoute(decorated().replace(perm,perm+"\n@RequirePermissions('wrong.view')"),route).result,'AMBIGUOUS_PERMISSION_DECORATORS');
 });
 test('green CI workflow source never implies branch protection is enforced',()=>{
  assert.equal(inspectWorkflow(ci).sourceWorkflowChecks,'PASS');
@@ -48,7 +75,7 @@ test('source PASS cannot certify retained permissions, human acceptance or go-li
    '@'+r[2]+"('"+r[3]+"')\n@UseGuards(AuthGuard, PermissionGuard)\n@RequirePermissions('"+r[4]+"')\nasync action"+r[0]+"(){}\n");
  }
  let reads=0;
- const read=async path=>{reads++;const value=fixtures.get(path.replace(/^\/fake\//,''));if(typeof value!=='string')throw Error('UNEXPECTED_INPUT');return value;};
+ const read=async path=>{reads++;const value=fixtures.get(path.replace(/^\/fake\//,''));if(typeof value!=='string')throw Error('UNEXPECTED_INPUT');return path.includes('/apps/api/')?value+'\n}':value;};
  const out=await auditSource('/fake',{read});
  assert.equal(out.status,'SOURCE_CHECKS_PASS_RUNTIME_UNVERIFIED');
  assert.equal(out.census.count,112);assert.equal(out.gl04.probes.length,ROUTES.length);

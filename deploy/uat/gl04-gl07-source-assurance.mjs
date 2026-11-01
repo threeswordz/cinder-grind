@@ -1,6 +1,9 @@
 // GL-04/GL-07 source-only preflight: no HTTP, credentials or Production attestation.
 import {readFile} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
+import {createRequire} from 'node:module';
+// Reuse the API's already-pinned development compiler; never import/execute app controllers.
+const ts=createRequire(new URL('../../apps/api/package.json',import.meta.url))('typescript');
 import {dirname,resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 export const ROLE_COUNTS={ben:12,nancy:12,khaimook:18,jai:15,store:21,foreman:6,porn:20,koh:8};
@@ -38,7 +41,8 @@ export function parseRoleCensus(markdown){
  for(const line of markdown.split(/\r?\n/)){
   if(!line.startsWith('|'))continue;
   const cells=line.split('|').slice(1,-1).map(s=>s.trim());
-  if(cells.length!==6||!/^[A-Z][A-Z0-9-]*$/.test(cells[0])||!Object.hasOwn(ROLE_COUNTS,cells[1]))continue;
+  if(cells.length!==6||!/^[A-Z][A-Z0-9-]*$/.test(cells[0]))continue;
+  if(!Object.hasOwn(ROLE_COUNTS,cells[1]))throw Error('UNKNOWN_SOURCE_ROLE:'+cells[0]);
   if(seen.has(cells[0]))throw Error('DUPLICATE_STABLE_ID:'+cells[0]);
   seen.add(cells[0]);
   if(!Object.hasOwn(SOURCE_STATES,cells[4]))throw Error('UNKNOWN_SOURCE_STATUS:'+cells[0]);
@@ -57,22 +61,38 @@ export function parseRoleCensus(markdown){
   throw Error('ROLE_BASELINE_CHANGED_RECONCILE_FIRST');
  return {count:rows.length,roles,states};
 }
+const decoratorCalls=(node,name)=>(ts.canHaveDecorators(node)?ts.getDecorators(node)||[]:[])
+ .map(decorator=>decorator.expression)
+ .filter(expression=>ts.isCallExpression(expression)&&ts.isIdentifier(expression.expression)&&expression.expression.text===name);
+const literal=(node,value)=>ts.isStringLiteral(node)&&node.text===value;
 export function inspectRoute(source,[id,file,verb,path,permission]){
- const endpoints=[...source.matchAll(/@(Get|Post|Patch|Put|Delete)\s*\(\s*['"]([^'"]+)['"]\s*\)/g)];
- const matches=endpoints.filter(m=>m[1]===verb&&m[2]===path);
+ const ast=ts.createSourceFile(file,source,ts.ScriptTarget.Latest,true,ts.ScriptKind.TS);
+ if(ast.parseDiagnostics.length)return {id,result:'SOURCE_PARSE_ERROR'};
+ const matches=[];
+ const visit=node=>{
+  if(ts.isClassDeclaration(node))for(const method of node.members){
+   if(!ts.isMethodDeclaration(method))continue;
+   for(const call of decoratorCalls(method,verb)){
+    if(call.arguments.length===1&&literal(call.arguments[0],path))matches.push({method,owner:node});
+   }
+  }
+  ts.forEachChild(node,visit);
+ };
+ visit(ast);
  if(matches.length!==1)return {id,result:matches.length?'AMBIGUOUS_ROUTE':'ROUTE_NOT_FOUND'};
- const index=matches[0].index,next=endpoints.find(m=>m.index>index);
- const window=source.slice(index,next?next.index:source.length);
- const method=window.search(/\basync\s+[A-Za-z_$][\w$]*\s*\(/);
- if(method<0)return {id,result:'HANDLER_NOT_FOUND'};
- const decorators=window.slice(0,method);
- const perms=[...decorators.matchAll(/@RequirePermissions\s*\(([^)]*)\)/g)]
-   .flatMap(m=>[...m[1].matchAll(/['"]([^'"]+)['"]/g)].map(v=>v[1]));
- if(!perms.includes(permission))return {id,result:'PERMISSION_DECORATOR_MISSING'};
- const classStart=source.indexOf('export class ');
- const classDecorators=classStart<0?'':source.slice(Math.max(0,source.lastIndexOf('@Controller(',classStart)),classStart);
- if(!/@UseGuards\s*\([^)]*\bAuthGuard\b[^)]*\bPermissionGuard\b[^)]*\)/.test(decorators+' '+classDecorators))
-    return {id,result:'AUTH_PERMISSION_GUARDS_MISSING'};
+ const {method,owner}=matches[0];
+ const httpDecorators=['Get','Post','Patch','Put','Delete','Options','Head','All']
+  .flatMap(name=>decoratorCalls(method,name));
+ if(httpDecorators.length!==1)return {id,result:'AMBIGUOUS_ROUTE'};
+ if(!decoratorCalls(owner,'Controller').length)return {id,result:'CONTROLLER_DECORATOR_MISSING'};
+ const permissions=decoratorCalls(method,'RequirePermissions');
+ if(permissions.length>1)return {id,result:'AMBIGUOUS_PERMISSION_DECORATORS'};
+ if(!permissions.some(call=>call.arguments.some(arg=>literal(arg,permission))))
+  return {id,result:'PERMISSION_DECORATOR_MISSING'};
+ const guards=[...decoratorCalls(owner,'UseGuards'),...decoratorCalls(method,'UseGuards')]
+  .flatMap(call=>[...call.arguments]).filter(ts.isIdentifier).map(node=>node.text);
+ if(!['AuthGuard','PermissionGuard'].every(name=>guards.includes(name)))
+  return {id,result:'AUTH_PERMISSION_GUARDS_MISSING'};
  return {id,file:'apps/api/src/'+file,route:verb.toUpperCase()+' '+path,permission,result:'SOURCE_DECORATORS_FOUND'};
 }
 export function inspectWorkflow(source){
