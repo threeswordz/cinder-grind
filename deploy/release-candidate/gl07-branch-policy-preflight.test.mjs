@@ -56,6 +56,26 @@ test('no unreviewed bypass actors or unverifiable ruleset actor field',()=>{
  delete s.rulesets[0].bypass_actors;
  assert.ok(analyzeSnapshot(s).gaps.includes('BYPASS_ACTORS_UNVERIFIED'));
 });
+test('a matching ruleset cannot mask missing or malformed applicable rule details',()=>{
+ for(const details of [undefined,null,'not-a-rule-list',[null],[{}],[['deletion']]]){
+  const s=snapshot();
+  const incomplete={...activeRuleset(),rules:details};
+  if(details===undefined)delete incomplete.rules;
+  s.rulesets.push(incomplete);
+  const result=analyzeSnapshot(s);
+  assert.equal(result.proposedPolicyMatchesReadback,false);
+  assert.ok(result.gaps.includes('APPLICABLE_RULESET_RULE_DETAILS_UNVERIFIED'));
+  assert.equal(result.productionGateClosed,false);
+ }
+});
+test('complete applicable rulesets may collectively supply controls, including a known empty set',()=>{
+ const s=snapshot();
+ const rules=s.rulesets[0].rules;
+ s.rulesets[0].rules=rules.slice(0,2);
+ s.rulesets.push({...activeRuleset(),rules:rules.slice(2)});
+ s.rulesets.push({...activeRuleset(),rules:[]});
+ assert.equal(analyzeSnapshot(s).proposedPolicyMatchesReadback,true);
+});
 test('reject wrong repository, branch and malformed snapshot',()=>{
  assert.throws(()=>analyzeSnapshot({...snapshot(),repository:{full_name:'someone/other',default_branch:'main'}}),/INVALID_GITHUB_SETTINGS_SNAPSHOT/);
  assert.throws(()=>analyzeSnapshot({...snapshot(),branch:{name:'staging',protected:true}}),/INVALID_GITHUB_SETTINGS_SNAPSHOT/);

@@ -29,6 +29,12 @@ export function analyzeSnapshot(snapshot){
   if(snapshot.branch.protected!==true)gaps.push('MAIN_BRANCH_NOT_PROTECTED');
   const rulesets=snapshot.rulesets.filter(targetApplies);
   if(rulesets.length===0)gaps.push('NO_ACTIVE_DEFAULT_BRANCH_RULESET');
+  // Listing responses can omit rules. Another complete ruleset must not
+  // turn that incomplete readback into a fully verified policy match.
+  if(rulesets.some(x=>!Array.isArray(x.rules)||x.rules.some(rule=>
+      !rule||typeof rule!=='object'||Array.isArray(rule)||
+      typeof rule.type!=='string'||rule.type.trim().length===0)))
+    gaps.push('APPLICABLE_RULESET_RULE_DETAILS_UNVERIFIED');
   const activeRules=rulesets.flatMap(x=>Array.isArray(x.rules)?x.rules:[]);
   const types=activeRules.map(x=>x?.type);
   const requiredStatuses=activeRules.filter(x=>x?.type==='required_status_checks')

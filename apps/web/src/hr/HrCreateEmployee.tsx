@@ -58,6 +58,7 @@ export function HrCreateEmployee({ companyId, language, onCreated }: {
   const [success, setSuccess] = useState(false);
   const t = translations[language];
   const change = <K extends keyof Fields>(key: K, value: Fields[K]) => {
+    if (busy) return;
     setFields(previous => ({ ...previous, [key]: value }));
     // A changed body must never reuse a previous idempotency key.
     setRequestId(crypto.randomUUID());
@@ -105,40 +106,40 @@ export function HrCreateEmployee({ companyId, language, onCreated }: {
       {error && <Alert severity="warning">{t.error}</Alert>}
       {success && <Alert severity="success">{t.success}</Alert>}
       <Stack direction={{ xs: 'column', md: 'row' }} gap={2}>
-        <TextField fullWidth size="small" required label={t.code} value={fields.employeeCode}
+        <TextField disabled={busy} fullWidth size="small" required label={t.code} value={fields.employeeCode}
           inputProps={{ maxLength: 50 }} onChange={e => change('employeeCode', e.target.value)} />
-        <TextField fullWidth size="small" required label={t.name} value={fields.employeeName}
+        <TextField disabled={busy} fullWidth size="small" required label={t.name} value={fields.employeeName}
           inputProps={{ maxLength: 200 }} onChange={e => change('employeeName', e.target.value)} />
-        <TextField fullWidth size="small" label={t.job} value={fields.jobTitle}
+        <TextField disabled={busy} fullWidth size="small" label={t.job} value={fields.jobTitle}
           inputProps={{ maxLength: 150 }} onChange={e => change('jobTitle', e.target.value)} />
       </Stack>
       <Stack direction={{ xs: 'column', md: 'row' }} gap={2}>
-        <TextField select fullWidth size="small" label={t.pay} value={fields.payBasis}
+        <TextField disabled={busy} select fullWidth size="small" label={t.pay} value={fields.payBasis}
           onChange={e => change('payBasis', e.target.value as Fields['payBasis'])}>
           <MenuItem value="MONTHLY">MONTHLY</MenuItem><MenuItem value="DAILY">DAILY</MenuItem>
         </TextField>
-        <TextField select fullWidth size="small" label={t.form} value={fields.employmentForm}
+        <TextField disabled={busy} select fullWidth size="small" label={t.form} value={fields.employmentForm}
           onChange={e => change('employmentForm', e.target.value as Fields['employmentForm'])}>
           <MenuItem value="PROBATION">PROBATION</MenuItem><MenuItem value="PERMANENT">PERMANENT</MenuItem>
           <MenuItem value="FIXED_TERM">FIXED_TERM</MenuItem><MenuItem value="TEMPORARY">TEMPORARY</MenuItem>
         </TextField>
-        <TextField select fullWidth size="small" label={t.site} value={fields.siteKind}
+        <TextField disabled={busy} select fullWidth size="small" label={t.site} value={fields.siteKind}
           onChange={e => change('siteKind', e.target.value as Fields['siteKind'])}>
           <MenuItem value="OFFICE">OFFICE</MenuItem><MenuItem value="SITE">SITE</MenuItem>
         </TextField>
       </Stack>
       <Stack direction={{ xs: 'column', md: 'row' }} gap={2}>
-        <TextField fullWidth required size="small" type="date" label={t.start} value={fields.startDate}
+        <TextField disabled={busy} fullWidth required size="small" type="date" label={t.start} value={fields.startDate}
           InputLabelProps={{ shrink: true }} onChange={e => change('startDate', e.target.value)} />
-        <TextField fullWidth size="small" type="date" label={t.end} value={fields.endDate}
+        <TextField disabled={busy} fullWidth size="small" type="date" label={t.end} value={fields.endDate}
           InputLabelProps={{ shrink: true }} onChange={e => change('endDate', e.target.value)} />
-        <TextField fullWidth size="small" label={t.project} value={fields.projectId}
+        <TextField disabled={busy} fullWidth size="small" label={t.project} value={fields.projectId}
           onChange={e => change('projectId', e.target.value)} />
       </Stack>
-      <TextField fullWidth required size="small" label={t.approval}
+      <TextField disabled={busy} fullWidth required size="small" label={t.approval}
         value={fields.hiringApprovalReference} inputProps={{ maxLength: 200 }}
         onChange={e => change('hiringApprovalReference', e.target.value)} />
-      <TextField fullWidth required size="small" label={t.reason} value={fields.reason}
+      <TextField disabled={busy} fullWidth required size="small" label={t.reason} value={fields.reason}
         onChange={e => change('reason', e.target.value)} />
       <Button variant="contained" disabled={!valid || busy} onClick={() => void submit()}>{t.add}</Button>
     </Stack>
