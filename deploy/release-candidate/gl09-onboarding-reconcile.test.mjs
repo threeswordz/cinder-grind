@@ -135,6 +135,18 @@ test('stale, future and impossible timestamps cannot pass as a current source-to
   assert.ok(codes(audit(impossible)).includes('SOURCE_SNAPSHOT_TIME_UNVERIFIED'));
 });
 
+test('a newer wrapper cannot extend source/target snapshot freshness beyond 48 hours at evaluation',()=>{
+ const stale=snapshot();stale.capturedAt='2026-10-30T03:00:00Z';
+ stale.source.capturedAt=stale.target.capturedAt='2026-10-28T04:00:00Z';
+ assert.ok(codes(audit(stale)).includes('SOURCE_SNAPSHOT_TIME_UNVERIFIED'));
+ assert.ok(codes(audit(stale)).includes('TARGET_SNAPSHOT_TIME_UNVERIFIED'));
+ const boundary=snapshot();boundary.source.capturedAt=boundary.target.capturedAt='2026-10-30T02:00:00Z';
+ assert.deepEqual(codes(audit(boundary)),[],'Exactly 48 hours remains valid');
+ const justOld=structuredClone(boundary);justOld.target.capturedAt='2026-10-30T01:59:59Z';
+ assert.ok(codes(audit(justOld)).includes('TARGET_SNAPSHOT_TIME_UNVERIFIED'));
+ assert.ok(!codes(audit(justOld)).includes('SOURCE_SNAPSHOT_TIME_UNVERIFIED'));
+});
+
 test('external source registers use an explicit source reference instead of invented Git history', () => {
   const x = snapshot();
   x.source.kind = 'EXTERNAL_REGISTER';

@@ -83,7 +83,7 @@ export function assessOnboarding(input, { now = Date.now() } = {}) {
     gap(gaps, 'FINGERPRINT_CANONICALIZATION_NOT_AGREED');
   for (const [name, snapshot] of [['SOURCE', source], ['TARGET', target]]) {
     const ms = dateMillis(snapshot.capturedAt);
-    if (ms === null || captured === null || ms > captured || captured - ms > MAX_AGE_MS)
+    if (ms === null || captured === null || ms > captured || now - ms > MAX_AGE_MS)
       gap(gaps, name + '_SNAPSHOT_TIME_UNVERIFIED');
   }
   const src = rowsByKey(source.datasets, 'SOURCE', gaps);
