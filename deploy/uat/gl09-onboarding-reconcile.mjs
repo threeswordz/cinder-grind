@@ -142,7 +142,7 @@ export function fingerprintBusinessKeys(input) {
     throw new Error('INVALID_CANONICAL_FINGERPRINT_INPUT');
   const seen = new Set(), buffers = [];
   for (const value of input.keys) {
-    if (typeof value !== 'string' || !value ||
+    if (typeof value !== 'string' || !value || !value.isWellFormed() ||
         value.normalize('NFC') !== value || value !== value.trim() ||
         /[\u0000-\u001f\u007f]/u.test(value))
       throw new Error('NONCANONICAL_BUSINESS_KEY');

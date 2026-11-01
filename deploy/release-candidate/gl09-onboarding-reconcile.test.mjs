@@ -180,3 +180,17 @@ test('refuses duplicate, non-NFC, whitespace, control, extra fields and oversize
   assert.throws(()=>fingerprintBusinessKeys({...input,keys:['x'.repeat(257)]}),/BUSINESS_KEY_TOO_LONG/);
   assert.throws(()=>fingerprintBusinessKeys({...input,credentials:'SECRET'}),/INVALID_CANONICAL_FINGERPRINT_INPUT/);
 });
+test('invalid Unicode keys cannot collapse into the same replacement-byte fingerprint', () => {
+  const input={companyKey:'MKE',dataset:'PROJECTS'};
+  for(const code of [0xd800,0xd801,0xdc00]){
+    assert.throws(()=>fingerprintBusinessKeys({...input,keys:[String.fromCharCode(code)]}),
+      /NONCANONICAL_BUSINESS_KEY/);
+  }
+  // Both a real replacement character and a valid surrogate pair are valid
+  // Unicode. Reject malformed input rather than replacing or banning either.
+  const replacement=fingerprintBusinessKeys({...input,keys:[String.fromCodePoint(0xfffd)]});
+  const paired=fingerprintBusinessKeys({...input,keys:[String.fromCodePoint(0x1f600)]});
+  assert.equal(replacement.count,1);
+  assert.equal(paired.count,1);
+  assert.notEqual(replacement.sha256,paired.sha256);
+});

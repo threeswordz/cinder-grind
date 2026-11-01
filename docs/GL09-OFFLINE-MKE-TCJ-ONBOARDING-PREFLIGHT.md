@@ -27,7 +27,7 @@ A scopeReference is merely operator-supplied text; it **cannot** approve pilot e
 
 Even apparently matching inputs produce DECLARED_RECONCILIATION_CONSISTENT_INDEPENDENT_PROOF_PENDING. The output always fixes realCompanyConfigurationsVerified=false, independentEvidenceVerified=false, actualBusinessAcceptance=false, productionAuthorized=false, gl09GateClosed=false; zero network requests, retained data reads and writes. Real role grants/approval steps, actual data comparisons, cutover/backups, training, independent reconciliation, support and Owner go/no-go still require authorized operating evidence.
 
-Nine synthetic regression tests are included through the existing release-candidate test glob. No Production, migration, role, Finance, HR, stock count or CI workflow changes are included.
+Fourteen synthetic regression tests are included through the existing release-candidate test glob. No Production, migration, role, Finance, HR, stock count or CI workflow changes are included.
 
 ## Repeatable business-key fingerprint generation (additional GL09 preparation)
 
@@ -36,3 +36,5 @@ The new `--fingerprint` mode reads **only a locally supplied private JSON file**
 Canonical business-key hashing v1: each key must be NFC Unicode, trimmed, nonempty, without ASCII control/DEL characters, <=256 UTF-8 bytes. Duplicates fail closed. Keys are sorted by raw UTF-8 byte order. For nonempty sets, the hash input starts with the canonicalization marker, Company and dataset, each followed by LF; each business key is then encoded as decimal UTF-8 byte length + colon + UTF-8 bytes + LF. Empty sets use SHA-256 of zero bytes, as before. The result is **reproducible for the same mapped keys regardless of row order**.
 
 This is **business-key equality only**, not reconciliation of financial amounts, approval-step grants, employee status, documents' contents, or full business records. The operator must independently verify source/target key mapping, field-level values, external-accountant handoff, and all real Company configuration with explicit retained access authorization. Matching fingerprints cannot authorize cutover, prove identities or close GL-09.
+
+Business keys must also be well-formed Unicode. Unpaired UTF-16 surrogates are rejected with the existing generic `NONCANONICAL_BUSINESS_KEY` error before UTF-8 conversion; otherwise distinct invalid strings would both be replaced by the same U+FFFD bytes and yield an identical digest. A failing-before regression covers that collision and preserves valid surrogate pairs and literal U+FFFD characters. Valid canonical v1 key fingerprints remain unchanged.
