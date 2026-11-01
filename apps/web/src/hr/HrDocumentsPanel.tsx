@@ -189,7 +189,7 @@ export function HrDocumentsPanel({ userId, companyId, employeeId, language, reva
           {file && <Typography variant="body2" data-testid="hr-selected-file-name">
             {t.selectedFile}: {file.name}
           </Typography>}
-          <Button variant="contained" disabled={!canUpload onClick={() => void doUpload()}>{t.submit}</Button>
+          <Button variant="contained" disabled={!canUpload} onClick={() => void doUpload()}>{t.submit}</Button>
           {file && (file.size < 1 || file.size > 8 * 1024 * 1024) && <Alert severity="warning">{t.invalid}</Alert>}
         </>}
       </>}
