@@ -1,6 +1,7 @@
 // Disposable browser regression; no API, database, credentials or retained fixtures.
 import assert from 'node:assert/strict';
 import { spawn, spawnSync } from 'node:child_process';
+import { createServer as createHttpServer } from 'node:http';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import os from 'node:os';
@@ -9,7 +10,8 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const root = fileURLToPath(new URL('../../apps/web/', import.meta.url));
 const require = createRequire(path.join(root, 'package.json'));
-const { createServer, transformWithOxc } = await import(pathToFileURL(require.resolve('vite')).href);
+const { build, transformWithOxc } = await import(pathToFileURL(require.resolve('vite')).href);
+const { default: reactPlugin } = await import(pathToFileURL(require.resolve('@vitejs/plugin-react')).href);
 const chrome = ['google-chrome', 'chromium', 'chromium-browser'].find(bin => spawnSync(bin, ['--version'], { stdio: 'ignore' }).status === 0);
 assert.ok(chrome, 'Chromium is required for real-browser evidence; no SSR fallback.');
 const temporary = await mkdtemp(path.join(os.tmpdir(), 'erp-budget-browser-'));
@@ -70,18 +72,50 @@ async function run() {
 }
 run().catch(error=>{document.body.dataset.result='FAIL';document.body.dataset.error=error.message;});
 `;
-const vite = await createServer({
-  root, configFile: false, server: { host: '127.0.0.1', port: 0, hmr: false },
-  plugins: [{ name: 'budget-browser-fixture',
-    configureServer(server) { server.middlewares.use((req,res,next) => { if(req.url !== '/__budget-check') return next(); res.setHeader('Content-Type','text/html');res.end('<!doctype html><html><body><div id="root"></div><script type="module" src="/__budget-check.tsx"></script></body></html>'); }); },
-    resolveId(id) { if(id === '/__budget-check.tsx') return '\0budget-browser-fixture.tsx'; },
-    async load(id) { if(id === '\0budget-browser-fixture.tsx') return transformWithOxc(harness, path.join(root, '__budget-check.tsx'), { lang: 'tsx', jsx: { runtime: 'automatic' } }); },
-  }],
-});
+let server;
 try {
-  await vite.listen();
-  const address = vite.httpServer.address();
-  const url = 'http://127.0.0.1:' + address.port + '/__budget-check';
+  // Serve a complete immutable fixture bundle. A dev optimizer reload could
+  // otherwise finish dump-dom on an empty root before any assertion executes.
+  const built = await build({
+    root, configFile: false, mode: 'development',
+    resolve: { dedupe: ['react', 'react-dom'] },
+    define: { 'process.env.NODE_ENV': JSON.stringify('development') },
+    build: { write: false, minify: false, rollupOptions: { input: '/__budget-check.tsx' } },
+    plugins: [reactPlugin(), {
+      name: 'budget-browser-fixture',
+      resolveId(id) { if (id === '/__budget-check.tsx') return '\0budget-browser-fixture.tsx'; },
+      async load(id) {
+        if (id === '\0budget-browser-fixture.tsx') return transformWithOxc(harness,
+          path.join(root, '__budget-check.tsx'), { lang: 'tsx', jsx: { runtime: 'automatic' } });
+      },
+    }],
+  });
+  const output = (Array.isArray(built) ? built : [built]).flatMap(bundle => bundle.output);
+  const modules = [...new Set(output.filter(file => file.type === 'chunk').flatMap(file => Object.keys(file.modules)))];
+  assert.equal(modules.filter(id => /\/react\/cjs\/react\.development\.js$/.test(id)).length, 1,
+    'Budget fixture must contain one development React runtime');
+  assert.equal(modules.filter(id => /\/react-dom\/cjs\/react-dom-client\.development\.js$/.test(id)).length, 1,
+    'Budget fixture must contain one matching renderer');
+  const entry = output.find(file => file.type === 'chunk' && file.isEntry);
+  assert.ok(entry, 'Budget fixture bundle entry missing');
+  const files = new Map(output.map(file => ['/' + file.fileName, file]));
+  const css = output.filter(file => file.fileName.endsWith('.css'))
+    .map(file => '<link rel="stylesheet" href="/' + file.fileName + '">').join('');
+  const html = '<!doctype html><html><head>' + css + '</head><body><div id="root"></div>' +
+    '<script type="module" src="/' + entry.fileName + '"></script></body></html>';
+  server = createHttpServer((req, res) => {
+    const pathname = (req.url ?? '/').split('?', 1)[0];
+    res.setHeader('Cache-Control', 'no-store');
+    if (pathname === '/__budget-check') {
+      res.setHeader('Content-Type', 'text/html; charset=utf-8'); res.end(html); return;
+    }
+    const file = files.get(pathname);
+    if (!file) { res.writeHead(404); res.end(); return; }
+    res.setHeader('Content-Type', file.fileName.endsWith('.css') ? 'text/css; charset=utf-8' : 'text/javascript; charset=utf-8');
+    res.end(file.type === 'chunk' ? file.code : file.source);
+  });
+  await new Promise((resolve, reject) => { server.once('error', reject); server.listen(0, '127.0.0.1', resolve); });
+  const url = 'http://127.0.0.1:' + server.address().port + '/__budget-check';
   const result = await new Promise((resolve,reject) => {
     const child = spawn(chrome, ['--headless','--no-sandbox','--disable-gpu','--disable-dev-shm-usage','--no-proxy-server','--user-data-dir='+temporary,'--virtual-time-budget=15000','--dump-dom',url], { stdio:['ignore','pipe','pipe'] });
     let out='',err='';child.stdout.on('data',chunk=>out+=chunk);child.stderr.on('data',chunk=>err+=chunk);
@@ -92,4 +126,7 @@ try {
   assert.equal(result.code,0,result.err.slice(-2000));
   assert.match(result.out,/data-result="PASS"/,(result.out.match(/data-error="[^"]*"/) ?? [result.out.slice(-4000)])[0]);
   console.log('BUDGET_PRESENCE_BROWSER_PASS — actual Cost workspace/report, Management Cost and print DOM; absent/approved-zero; EN/TH/zh-TW; no API/database');
-} finally { await vite.close(); await rm(temporary,{recursive:true,force:true}); }
+} finally {
+  if (server?.listening) await new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
+  await rm(temporary, { recursive: true, force: true });
+}

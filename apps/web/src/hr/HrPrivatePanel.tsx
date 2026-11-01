@@ -72,12 +72,16 @@ export function HrPrivatePanel({ companyId, employeeId, category, canManage, lan
   const historyKey = ['hr1-a', companyId, employeeId, 'private-history', category];
   const [revealed, setRevealed] = useState<{ version: number; values: Record<string, string> } | null>(null);
   const [busy, setBusy] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [field, setField] = useState<string>(hrPrivateFields[category][0]);
   const [secret, setSecret] = useState('');
   const [reason, setReason] = useState('');
   const [requestId, setRequestId] = useState(() => crypto.randomUUID());
   const [notice, setNotice] = useState<'error' | 'success' | null>(null);
   const operation = useRef(0);
+  // Reveals are invalidated by metadata polling; a write receipt must still
+  // refresh its source. Only concealment/context teardown invalidates its UI.
+  const writeOperation = useRef(0);
   // The retry identity binds the full *submitted* body, not the latest masked
   // version obtained later from a background permission/data revalidation.
   const pendingWrite = useRef<Parameters<typeof updateHrPrivate>[3] | null>(null);
@@ -91,6 +95,7 @@ export function HrPrivatePanel({ companyId, employeeId, category, canManage, lan
     const hide = () => {
       if (document.visibilityState !== 'hidden') return;
       operation.current++;
+      writeOperation.current++;
       setBusy(false);
       setRevealed(null);
       setSecret('');
@@ -101,6 +106,7 @@ export function HrPrivatePanel({ companyId, employeeId, category, canManage, lan
     document.addEventListener('visibilitychange', hide);
     return () => {
       operation.current++;
+      writeOperation.current++;
       pendingWrite.current = null;
       document.removeEventListener('visibilitychange', hide);
     };
@@ -150,6 +156,7 @@ export function HrPrivatePanel({ companyId, employeeId, category, canManage, lan
     }
   };
   const edit = (nextField: string, nextSecret: string, nextReason: string) => {
+    if (saving) return;
     setField(nextField); setSecret(nextSecret); setReason(nextReason);
     pendingWrite.current = null;
     setRequestId(crypto.randomUUID());
@@ -157,7 +164,7 @@ export function HrPrivatePanel({ companyId, employeeId, category, canManage, lan
     hide();
   };
   const save = async () => {
-    if (!canManage || busy || !masked.isSuccess || masked.isFetching || !secret.trim() || !reason.trim()) return;
+    if (!canManage || busy || saving || !masked.isSuccess || masked.isFetching || !secret.trim() || !reason.trim()) return;
     if (!(hrPrivateFields[category] as readonly string[]).includes(field)) return;
     // A POST may commit even when its response is lost. Retain exactly the
     // original request body (including expectedVersion) until confirmed or an
@@ -167,14 +174,15 @@ export function HrPrivatePanel({ companyId, employeeId, category, canManage, lan
       values: { [field]: secret.trim() }, reason: reason.trim(),
     };
     pendingWrite.current = submitted;
-    hide(); setBusy(true); setNotice(null);
-    const turn = ++operation.current;
+    hide(); setBusy(true); setSaving(true); setNotice(null);
+    const turn = ++writeOperation.current;
     try {
       await updateHrPrivate(companyId, employeeId, category, submitted);
-      if (turn !== operation.current) return;
-      pendingWrite.current = null;
-      setSecret(''); setReason(''); setRequestId(crypto.randomUUID());
-      setNotice('success');
+      if (turn === writeOperation.current) {
+        pendingWrite.current = null;
+        setSecret(''); setReason(''); setRequestId(crypto.randomUUID());
+        setNotice('success');
+      }
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: key }),
         queryClient.invalidateQueries({ queryKey: historyKey }),
@@ -182,9 +190,10 @@ export function HrPrivatePanel({ companyId, employeeId, category, canManage, lan
     } catch {
       // Same-body uncertain failure reuses requestId. Changed input gets a
       // fresh key, while the server enforces version and rechecks access.
-      if (turn === operation.current) setNotice('error');
+      if (turn === writeOperation.current) setNotice('error');
     } finally {
-      if (turn === operation.current) setBusy(false);
+      setSaving(false);
+      if (turn === writeOperation.current) setBusy(false);
     }
   };
 
@@ -204,7 +213,7 @@ export function HrPrivatePanel({ companyId, employeeId, category, canManage, lan
           <Button onClick={() => {
             hide();
             void Promise.all([masked.refetch(), history.refetch()]);
-          }} disabled={busy}>{t.refresh}</Button>
+          }} disabled={busy || saving}>{t.refresh}</Button>
           {revealed && <Button color="warning" onClick={hide}>{t.hide}</Button>}
         </Stack>
         {masked.data.version === 0 ? <Typography>{t.missing}</Typography> :
@@ -215,7 +224,7 @@ export function HrPrivatePanel({ companyId, employeeId, category, canManage, lan
         <Typography variant="subtitle2">{t.history}</Typography>
         {history.data.map(item => <Stack key={item.id} direction="row" alignItems="center" gap={1}>
           <Typography sx={{ flexGrow: 1 }}>#{item.version} — {item.createdAt.slice(0, 10)}</Typography>
-          <Button size="small" disabled={busy} onClick={() => void reveal(item.version)}>{t.reveal}</Button>
+          <Button size="small" disabled={busy || saving} onClick={() => void reveal(item.version)}>{t.reveal}</Button>
         </Stack>)}
         {revealed && <Alert severity="warning">
           <Typography>{t.visible}</Typography>
@@ -228,16 +237,16 @@ export function HrPrivatePanel({ companyId, employeeId, category, canManage, lan
       {canManage && !metadataUnavailable && <>
         <Divider />
         <Typography variant="subtitle1">{t.manage}</Typography>
-        <TextField select size="small" label={t.field} value={field}
+        <TextField select size="small" label={t.field} value={field} disabled={saving}
           onChange={event => edit(event.target.value, secret, reason)}>
           {fields.map(name => <MenuItem key={name} value={name}>{labelForField(name)}</MenuItem>)}
         </TextField>
-        <TextField size="small" label={t.secret} type="password" value={secret}
+        <TextField size="small" label={t.secret} type="password" value={secret} disabled={saving}
           autoComplete="off" inputProps={{ maxLength: 1000 }}
           onChange={event => edit(field, event.target.value, reason)} />
-        <TextField size="small" label={t.reason} value={reason} inputProps={{ maxLength: 1000 }}
+        <TextField size="small" label={t.reason} value={reason} disabled={saving} inputProps={{ maxLength: 1000 }}
           onChange={event => edit(field, secret, event.target.value)} />
-        <Button variant="contained" disabled={busy || !secret.trim() || !reason.trim()}
+        <Button variant="contained" disabled={busy || saving || !secret.trim() || !reason.trim()}
           onClick={() => void save()}>{t.save}</Button>
       </>}
     </Stack>
