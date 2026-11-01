@@ -1,5 +1,7 @@
 # Construction ERP — Live Position Reporting Standard
 
+**DEC-042 prospective UAT reporting:** During technical development, show all pending manual/Owner/module/role UAT as **DEFERRED TO PRE-PRODUCTION PROTOTYPE**, not an immediate coding/technical-integration blocker, PASS or OWNER ACCEPTED. Show one full integrated pre-Production UAT as future mandatory prototype-exit gate before Production go/no-go; report unchanged automated CI, Codex, non-UAT Owner decisions, GL-01–GL-10 and explicit deployment authorization separately. DEC-042 supersedes DEC-041's interim cadence; do not rewrite historical accepted release evidence.
+
 **Status:** APPROVED — Product / Business Owner, 2026-10-01 (Singapore time)  
 **Purpose:** Keep Construction ERP project-position reporting consistent and recoverable across new Chat sessions.
 
