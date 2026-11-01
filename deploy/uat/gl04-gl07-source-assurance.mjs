@@ -7,11 +7,11 @@ export const SOURCE_STATES={'implemented':4,'configuration-only':10,'partially i
 export const ACTORS=[
  ['Ben','PO/subcontract approval and customer BOQ; no self/delegated approval'],
  ['Nancy','Customer BOQ/Finance permissions; narrow HR privacy, no write-off assumption'],
- ['Khaimook','PR/GR review; #300 stock count independent checker only after integration'],
+ ['Khaimook','PR/GR review; independent stock-count checker only with separately verified grants'],
  ['Jai','RFQ/PO maker; no PO self-approval or #245 multi-Project assumption'],
  ['Store Site','PR/GR/issue; #300 count maker only, no count approval'],
- ['Foreman','Project-scoped daily reports, no PR/count; #302 weekly not yet merged'],
- ['Koh','HR Company/category entitlement, #297-299 drafts not active'],
+ ['Foreman','Project-scoped daily and read-only weekly reports; no PR/count authority'],
+ ['Koh','HR Company/category entitlement; integration does not prove retained role activation'],
  ['Porn','Existing Accounting, narrowly granted HR bank view only'],
 ];
 export const ROUTES=[
@@ -24,6 +24,9 @@ export const ROUTES=[
  ['STORE_ISSUE_CREATE','inventory/material-movement.controller.ts','Post','material-issues','inventory.issue.create'],
  ['FOREMAN_DAILY_VIEW','site-execution/site-execution.controller.ts','Get','reports','site.daily_report.view'],
  ['FOREMAN_DAILY_SUBMIT','site-execution/site-execution.controller.ts','Post','reports/:id/submit','site.daily_report.submit'],
+ ['FOREMAN_WEEKLY_VIEW','site-execution/site-execution.controller.ts','Get','reports/weekly','site.daily_report.view'],
+ ['STORE_COUNT_CREATE','inventory/stock-count.controller.ts','Post','stock-counts','inventory.stock_count.create'],
+ ['PM_COUNT_APPROVE','inventory/stock-count.controller.ts','Post','stock-counts/:id/approve','inventory.stock_count.approve'],
  ['KOH_EMPLOYMENT_VIEW','hr/hr.controller.ts','Get','companies/:companyId/employees','hr.employment.view'],
  ['KOH_DOCUMENT_VIEW','hr/hr.controller.ts','Get','companies/:companyId/employees/:employeeId/documents','hr.documents.view'],
  ['HR_ACCESS_ADMIN','hr/hr.controller.ts','Post','companies/:companyId/access','hr.access.manage'],
@@ -88,7 +91,7 @@ export async function auditSource(root,{read=readFile}={}){
   sourceOnly:true,networkRequests:0,retainedDataReads:0,businessWrites:0,grantsApplied:false,
   productionAuthorized:false,ownerBusinessAcceptance:false,goLiveGatesClosed:0,
   census,gl04:{probes,actorReadbacks:ACTORS.map(([role,verify])=>({role,verify,retainedConfiguration:'NOT_RUN'})),
-    unmergedCandidatePRs:[297,298,299,300,302]},gl07:workflow,anomalyCount:anomalies};
+    trackedPRs:[297,298,299,300,302],integrationStatus:'VERIFY_LIVE_GITHUB_NOT_INFERRED_FROM_SOURCE'},gl07:workflow,anomalyCount:anomalies};
 }
 if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)){
  if(process.argv.length!==3||!['--check','--plan'].includes(process.argv[2])){
