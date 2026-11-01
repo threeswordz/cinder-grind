@@ -2,13 +2,13 @@
 
 **Scope:** P0 read-only source verification for #304 and #305 under Production tracker #278. This stage does not grant business roles, alter app state, or authorize real MKE/TCJ/Production access.
 
-## Run with Node (standard library only)
+## Run with Node and the existing TypeScript development compiler
 
     node deploy/uat/gl04-gl07-source-assurance.mjs --plan
     node --test deploy/uat/gl04-gl07-source-assurance.test.mjs
     node deploy/uat/gl04-gl07-source-assurance.mjs --check
 
-The command reads local repository files only. It checks 112 unique historical role requirement IDs and the approved baseline counts; matches selected existing controller routes to their own method, permission and Auth/PermissionGuard decorators; and checks that GitHub Actions source names the validate job with PR/push triggers and read-only contents scope. Negative tests cover duplicate ID, source status drift, adjacent decorators, missing guards and altered CI job.
+Install the existing workspace development dependencies with `pnpm install --frozen-lockfile` first. The checker reuses the API package's already-pinned TypeScript 5.9.3 compiler API; it adds no package or runtime service and never imports/executes application controllers. The command reads local repository files only. It checks 112 unique historical role requirement IDs and the approved baseline counts; matches selected existing controller routes to their own method, permission and Auth/PermissionGuard decorators; and checks that GitHub Actions source names the validate job with PR/push triggers and read-only contents scope. Negative tests cover duplicate ID, source status drift, adjacent decorators, missing guards and altered CI job.
 
 **Interpretation:** SOURCE_CHECKS_PASS_RUNTIME_UNVERIFIED means source checks passed, not that MKE/TCJ users, Project assignments, effective grants, approval steps, branch protection, hosted backups, actual restore or Owner UAT were checked. Runner output must retain NOT_RUN/UNVERIFIED. No CI result can close GL-04/GL-07 or claim Production go-live. A mismatch requires investigation, not an automatic allegation of an exploit.
 
@@ -19,3 +19,5 @@ The selected route census includes Stock Count creation/independent approval and
 Repeated actual CI failures reached `prepare-legacy-validation.sh` before the ephemeral published database was available. A reproduced bootstrap regression shows the existing readiness check can accept PostgreSQL's temporary Unix-socket server while Docker's TCP proxy already accepts connections. The narrow correction makes in-container `pg_isready` explicitly target `-h 127.0.0.1`; the existing published-loopback check, exact container/mount/port guards, credentials, phases and cleanup remain unchanged. The regression FAILS before / PASSES after; all 16 isolation tests pass locally. This prevents that demonstrated premature-readiness state, without claiming it independently proves the root cause of every historical runner failure. Full fresh CI remains required.
 
 **Independent P2 correction:** the frozen baseline now verifies a SHA-256 digest of the sorted stable-ID/role/historical-classification tuples from approved role-baseline commit `646b2877335097ee204d5ec0ccc043c2e1fce548`, in addition to counts and uniqueness. Replacing an ID or swapping two classifications/roles without changing aggregate counts fails closed; reordering rows remains valid. This preserves the historical assessment, not a present-day completion census. The count-preserving negative regression failed before and passes after the correction.
+
+**Independent decorator P2 correction:** route, permission and method/class guard checks now inspect actual TypeScript decorator syntax and each method's owning class. Commented-out decorators, comment/string lookalikes, guards on another class, ambiguous routes and malformed source cannot certify the inspected route. The original comment false-pass is reproduced by a failing regression; method/class/comment/parse negatives and active class guards are checked after the correction. Source inspection still does not certify runtime authorization or real role grants.
