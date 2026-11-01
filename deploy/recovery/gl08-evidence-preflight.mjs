@@ -29,9 +29,11 @@ export function evaluateRecoveryEvidence(input,{now=Date.now()}={}){
   add('SNAPSHOT_TIME_MISSING_OR_STALE');
  if(m.version!==1||!COMMIT.test(m.releaseCommit??'')||
     typeof m.recoverySetId!=='string'||!/^[A-Za-z0-9._-]{6,128}$/.test(m.recoverySetId)||
-    typeof m.storageDeploymentId!=='string'||!/^[A-Za-z0-9._-]{3,64}$/.test(m.storageDeploymentId))
+    typeof m.storageDeploymentId!=='string'||!/^[A-Za-z0-9][A-Za-z0-9._-]{2,63}$/.test(m.storageDeploymentId))
   add('MANIFEST_IDENTITY_INVALID');
- if(created===null||observed===null||created>observed||observed-created>RPO_MS)
+ // A recent observation may itself be nearly an hour old. It must not
+ // extend the approved RPO beyond 24 hours at the time of evaluation.
+ if(created===null||observed===null||created>observed||created>now||now-created>RPO_MS)
   add('RECOVERY_POINT_RPO_UNVERIFIED');
  if(!Number.isSafeInteger(m.documentFileCount)||m.documentFileCount<=0)
   add('POPULATED_DOCUMENT_SET_NOT_PROVEN');
@@ -77,6 +79,7 @@ export function evaluateRecoveryEvidence(input,{now=Date.now()}={}){
   sourceIdentity:gaps.includes('MANIFEST_IDENTITY_INVALID')?'INVALID':'CLAIMED_ONLY',
   rpoTargetHours:24,rtoTargetHours:8,
   observedBackupAgeMinutes:observed!==null&&created!==null&&created<=observed?(observed-created)/60000:null,
+  evaluatedBackupAgeMinutes:created!==null&&created<=now?(now-created)/60000:null,
   observedRestoreMinutes:measuredRestoreMinutes,
   gaps,
  };

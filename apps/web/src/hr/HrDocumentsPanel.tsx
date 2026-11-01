@@ -43,9 +43,13 @@ export function HrDocumentsPanel({ userId, companyId, employeeId, language, reva
   const [fileKey, setFileKey] = useState(0);
   const [requestId, setRequestId] = useState(() => crypto.randomUUID());
   const [busy, setBusy] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState(false);
   const [saved, setSaved] = useState(false);
   const generation = useRef(0);
+  // Polling invalidates decrypted downloads, but cannot discard a committed
+  // upload receipt. Concealment and context teardown still suppress its UI.
+  const uploadGeneration = useRef(0);
   const pending = useRef<PendingUpload | null>(null);
   const cursor = pages[pages.length - 1] ?? 0;
   const typeAfter = typePages[typePages.length - 1] || '';
@@ -71,21 +75,26 @@ export function HrDocumentsPanel({ userId, companyId, employeeId, language, reva
     const conceal = () => {
       if (document.visibilityState !== 'hidden') return;
       generation.current++;
+      uploadGeneration.current++;
       pending.current = null;
       setFile(null); setTypeId(''); setRequestId(crypto.randomUUID());
       setBusy(false); setFileKey(current => current + 1);
     };
     document.addEventListener('visibilitychange', conceal);
-    return () => { generation.current++; pending.current = null; document.removeEventListener('visibilitychange', conceal); };
+    return () => {
+      generation.current++; uploadGeneration.current++; pending.current = null;
+      document.removeEventListener('visibilitychange', conceal);
+    };
   }, []);
 
   const resetUpload = () => {
+    if (uploading) return;
     pending.current = null;
     setRequestId(crypto.randomUUID());
     setError(false); setSaved(false);
   };
   const doDownload = async (id: string, version: number) => {
-    if (revalidating || docs.isFetching || !docs.isSuccess || busy) return;
+    if (revalidating || docs.isFetching || !docs.isSuccess || busy || uploading) return;
     const turn = ++generation.current;
     setBusy(true); setError(false);
     try {
@@ -100,10 +109,15 @@ export function HrDocumentsPanel({ userId, companyId, employeeId, language, reva
     } catch { if (turn === generation.current) setError(true); }
     finally { if (turn === generation.current) setBusy(false); }
   };
+  // An uncertain POST retries its original fingerprint even if that evidence
+  // type is now archived or the committed row filled a history page. The
+  // backend rechecks current authority and only permits an exact saved replay.
+  // A fresh upload still needs an active type and the latest history page.
   const canUpload = canManage && !revalidating && docs.isSuccess && !docs.isFetching &&
-    docs.data.nextCursor === null && types.isSuccess && !types.isFetching &&
-    types.data.items.some(item => item.id === typeId) &&
-    file !== null && file.size > 0 && file.size <= 8 * 1024 * 1024 && !busy;
+    types.isSuccess && !types.isFetching && !busy && !uploading &&
+    (pending.current !== null || (docs.data.nextCursor === null &&
+      types.data.items.some(item => item.id === typeId) &&
+      file !== null && file.size > 0 && file.size <= 8 * 1024 * 1024));
   const doUpload = async () => {
     if (!canUpload || !file) return;
     // No plaintext bytes or browser File objects go into React Query. Persist
@@ -117,17 +131,18 @@ export function HrDocumentsPanel({ userId, companyId, employeeId, language, reva
       expectedVersion: docs.data?.items.at(-1)?.version ?? cursor,
     };
     pending.current = body;
-    const turn = ++generation.current;
-    setBusy(true); setError(false); setSaved(false);
+    const turn = ++uploadGeneration.current;
+    setUploading(true); setError(false); setSaved(false);
     try {
       await uploadHrDocument(companyId, employeeId, body);
-      if (turn !== generation.current) return;
-      pending.current = null;
-      setFile(null); setFileKey(current => current + 1); setTypeId('');
-      setRequestId(crypto.randomUUID()); setSaved(true);
+      if (turn === uploadGeneration.current) {
+        pending.current = null;
+        setFile(null); setFileKey(current => current + 1); setTypeId('');
+        setRequestId(crypto.randomUUID()); setSaved(true);
+      }
       await queryClient.invalidateQueries({ queryKey: key });
-    } catch { if (turn === generation.current) setError(true); }
-    finally { if (turn === generation.current) setBusy(false); }
+    } catch { if (turn === uploadGeneration.current) setError(true); }
+    finally { setUploading(false); }
   };
   const unavailable = revalidating || docs.isFetching || !docs.isSuccess;
   return <Paper variant="outlined" sx={{ p: 2 }}>
@@ -139,34 +154,35 @@ export function HrDocumentsPanel({ userId, companyId, employeeId, language, reva
         {docs.data.items.length === 0 ? <Typography>{t.empty}</Typography> :
           docs.data.items.map(item => <Stack key={item.id} direction="row" gap={2} alignItems="center">
             <Typography sx={{ flexGrow: 1 }}>{t.version} #{item.version} — {item.createdAt.slice(0,10)}</Typography>
-            <Button size="small" disabled={busy || revalidating}
+            <Button size="small" disabled={busy || uploading || revalidating}
               onClick={() => void doDownload(item.id,item.version)}>{t.download}</Button>
           </Stack>)}
         <Stack direction="row" gap={1}>
-          <Button disabled={pages.length <= 1 || busy}
+          <Button disabled={pages.length <= 1 || busy || uploading}
             onClick={() => setPages(old => old.slice(0,-1))}>{t.previous}</Button>
-          <Button disabled={docs.data.nextCursor === null || busy}
+          <Button disabled={docs.data.nextCursor === null || busy || uploading}
             onClick={() => setPages(old => [...old,docs.data.nextCursor!])}>{t.next}</Button>
         </Stack>
         {canManage && <>
           <Typography variant="subtitle1">{t.add}</Typography>
           {types.isError ? <Alert severity="warning">{t.typeUnavailable}</Alert> :
             types.isFetching || !types.isSuccess ? <CircularProgress size={22}/> :
-              <TextField select label={t.type} size="small" value={typeId}
-                onChange={event => { setTypeId(event.target.value); resetUpload(); }}>
+              <TextField select label={t.type} size="small" value={typeId} disabled={uploading}
+                onChange={event => { if (!uploading) { setTypeId(event.target.value); resetUpload(); } }}>
                 {types.data.items.map(item => <MenuItem key={item.id} value={item.id}>
                   {item.documentTypeCode} — {item.documentTypeName}
                 </MenuItem>)}
               </TextField>}
           {types.isSuccess && types.data.items.length > 0 &&
             <Stack direction="row" gap={1}>
-              <Button disabled={typePages.length <= 1 || busy}
+              <Button disabled={typePages.length <= 1 || busy || uploading}
                 onClick={() => { setTypePages(old => old.slice(0,-1)); setTypeId(''); resetUpload(); }}>{t.previous}</Button>
-              <Button disabled={types.data.nextCursor === null || busy}
+              <Button disabled={types.data.nextCursor === null || busy || uploading}
                 onClick={() => { setTypePages(old => [...old,types.data.nextCursor!]); setTypeId(''); resetUpload(); }}>{t.next}</Button>
             </Stack>}
-          <input key={fileKey} type="file" aria-label={t.file} accept=".pdf,.jpg,.jpeg,.png,.txt,.csv,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
-            onChange={event => { setFile(event.target.files?.[0] ?? null); resetUpload(); }} />
+          <input key={fileKey} type="file" aria-label={t.file} disabled={uploading}
+            accept=".pdf,.jpg,.jpeg,.png,.txt,.csv,.doc,.docx,.xls,.xlsx,.ppt,.pptx"
+            onChange={event => { if (!uploading) { setFile(event.target.files?.[0] ?? null); resetUpload(); } }} />
           <Button variant="contained" disabled={!canUpload} onClick={() => void doUpload()}>{t.submit}</Button>
           {file && (file.size < 1 || file.size > 8 * 1024 * 1024) && <Alert severity="warning">{t.invalid}</Alert>}
         </>}

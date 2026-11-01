@@ -43,6 +43,23 @@ test('older than 24h backup or stale local evidence fails closed',()=>{
  const z=receipts();z.observedAt='2026-10-31T12:10:00Z';
  assert.ok(audit(z).gaps.includes('SNAPSHOT_TIME_MISSING_OR_STALE'));
 });
+test('RPO age uses the evaluation clock rather than an earlier fresh observation',()=>{
+ const x=receipts();
+ x.observedAt='2026-10-31T11:01:00Z';
+ x.manifest.createdAt='2026-10-30T11:30:00Z';
+ const result=audit(x);
+ assert.ok(result.gaps.includes('RECOVERY_POINT_RPO_UNVERIFIED'));
+ assert.equal(result.evaluatedBackupAgeMinutes,1470);
+ const boundary=receipts();boundary.manifest.createdAt='2026-10-30T12:00:00Z';
+ assert.deepEqual(audit(boundary).gaps,[]);
+ assert.equal(audit(boundary).evaluatedBackupAgeMinutes,1440);
+});
+test('storage identity follows the canonical recovery manifest identifier constraint',()=>{
+ for(const id of ['.deployment','_deployment','-deployment']){
+  const x=receipts();x.manifest.storageDeploymentId=id;x.restore.sourceStorageDeploymentId=id;
+  assert.ok(audit(x).gaps.includes('MANIFEST_IDENTITY_INVALID'));
+ }
+});
 test('off-host copies must preserve both artifact digests and independent location claim',()=>{
  const x=receipts();x.offHost.artifactHashes.documents='d'.repeat(64);
  assert.ok(audit(x).gaps.includes('OFFHOST_HASH_PAIR_UNVERIFIED'));
