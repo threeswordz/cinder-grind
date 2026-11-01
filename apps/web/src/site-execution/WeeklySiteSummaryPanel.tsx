@@ -73,7 +73,11 @@ export function WeeklySiteSummaryPanel({
     enabled: Boolean(projectId && to),
   });
   // Do not display cached data from a previous Project after the selector changes.
-  const data = week.data?.data.projectId === projectId && !week.isFetching
+  // React Query can retain the previous successful payload after a denied
+  // refetch. Never re-display private sources unless the CURRENT query is
+  // successful; loading/error states must fail closed even for the same Project.
+  const data = week.isSuccess && !week.isFetching && !week.isError &&
+    week.data?.data.projectId === projectId
     ? week.data.data : null;
 
   return (
