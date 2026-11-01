@@ -1,12 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {readFileSync} from 'node:fs';
 import {ROLE_COUNTS,SOURCE_STATES,ROUTES,parseRoleCensus,inspectRoute,inspectWorkflow,auditSource} from './gl04-gl07-source-assurance.mjs';
 
-const markdown=()=>{
- const ids=Object.entries(ROLE_COUNTS).flatMap(([role,n])=>Array.from({length:n},(_,i)=>[role.toUpperCase()+'-'+String(i).padStart(2,'0'),role]));
- const states=Object.entries(SOURCE_STATES).flatMap(([status,n])=>Array(n).fill(status));
- return ids.map(([id,role],i)=>'| '+id+' | '+role+' | Synthetic | L0 | '+states[i]+' | OPERATIONAL_REVIEW_ONLY |').join('\n');
-};
+const baseline=JSON.parse(readFileSync(new URL('../../docs/ROLE-REQUIREMENTS-2026-10-30/data/requirements-execution.json',import.meta.url),'utf8')).records;
+const markdown=(records=baseline)=>records.map(row=>'| '+row.id+' | '+row.role+' | Synthetic | L0 | '+row.implementation_observation+' | OPERATIONAL_REVIEW_ONLY |').join('\n');
 const route=ROUTES[0];
 const decorated=(perm=route[4],guards='@UseGuards(AuthGuard, PermissionGuard)')=>
  "@Controller('test')\nexport class Mock {\n@Post('"+route[3]+"')\n"+guards+"\n@RequirePermissions('"+perm+"')\nasync action(){}\n@Get('other')\n@RequirePermissions('"+route[4]+"')\nasync other(){}\n}";
@@ -15,8 +13,18 @@ const ci='on:\n  pull_request:\n  push:\npermissions:\n  contents: read\njobs:\n
 test('baseline must preserve all 112 distinct IDs and source classifications',()=>{
  const c=parseRoleCensus(markdown());
  assert.equal(c.count,112);assert.equal(c.roles.store,21);assert.equal(c.states['partially implemented'],67);
- assert.throws(()=>parseRoleCensus(markdown().replace('BEN-00','BEN-01')),/DUPLICATE_STABLE_ID/);
+ assert.throws(()=>parseRoleCensus(markdown().replace('| BEN01 |','| BEN02 |')),/DUPLICATE_STABLE_ID/);
  assert.throws(()=>parseRoleCensus(markdown().replace('partially implemented','implemented')),/ROLE_BASELINE_CHANGED/);
+});
+test('count-preserving ID substitution, status swaps and role swaps cannot alter the approved frozen tuple set',()=>{
+ assert.throws(()=>parseRoleCensus(markdown().replace('| BEN01 |','| INVENTED99 |')),/ROLE_BASELINE_CHANGED/);
+ const swap=(first,second,field)=>{
+  const records=structuredClone(baseline),a=records.find(x=>x.id===first),b=records.find(x=>x.id===second);
+  [a[field],b[field]]=[b[field],a[field]];return markdown(records);
+ };
+ assert.throws(()=>parseRoleCensus(swap('BEN01','BEN-BASE-04','implementation_observation')),/ROLE_BASELINE_CHANGED/);
+ assert.throws(()=>parseRoleCensus(swap('BEN01','NANCY-01','role')),/ROLE_BASELINE_CHANGED/);
+ assert.equal(parseRoleCensus(markdown([...baseline].reverse())).count,112,'Row ordering is not an approved requirement attribute');
 });
 test('route permission must belong to the same guarded handler',()=>{
  assert.equal(inspectRoute(decorated(),route).result,'SOURCE_DECORATORS_FOUND');
