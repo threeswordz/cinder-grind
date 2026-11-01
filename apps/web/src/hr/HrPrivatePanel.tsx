@@ -41,7 +41,27 @@ const translations = {
   },
 } satisfies Record<Language, Record<string, string>>;
 
-const labelForField = (field: string) => field.replace(/([A-Z])/g, ' $1').replace(/^./, letter => letter.toUpperCase());
+type PrivateField = (typeof hrPrivateFields)[HrPrivateCategory][number];
+const fieldLabels = {
+  en: {
+    identityNumber: 'Identity Number', passportNumber: 'Passport Number', address: 'Address',
+    contactPhone: 'Contact Phone', contactEmail: 'Contact Email', emergencyContact: 'Emergency Contact',
+    dateOfBirth: 'Date Of Birth', workPermitNumber: 'Work Permit Number',
+    bankName: 'Bank Name', accountNumber: 'Account Number', accountHolder: 'Account Holder',
+  },
+  th: {
+    identityNumber: 'เลขประจำตัว', passportNumber: 'หมายเลขหนังสือเดินทาง', address: 'ที่อยู่',
+    contactPhone: 'เบอร์โทรศัพท์', contactEmail: 'อีเมลติดต่อ', emergencyContact: 'ผู้ติดต่อฉุกเฉิน',
+    dateOfBirth: 'วันเกิด', workPermitNumber: 'เลขที่ใบอนุญาตทำงาน',
+    bankName: 'ชื่อธนาคาร', accountNumber: 'เลขบัญชี', accountHolder: 'ชื่อเจ้าของบัญชี',
+  },
+  'zh-TW': {
+    identityNumber: '身分證號碼', passportNumber: '護照號碼', address: '地址',
+    contactPhone: '聯絡電話', contactEmail: '聯絡電子郵件', emergencyContact: '緊急聯絡人',
+    dateOfBirth: '出生日期', workPermitNumber: '工作許可證號碼',
+    bankName: '銀行名稱', accountNumber: '銀行帳號', accountHolder: '帳戶持有人',
+  },
+} satisfies Record<Language, Record<PrivateField, string>>;
 
 export function HrPrivatePanel({ companyId, employeeId, category, canManage, language, revalidating }: {
   companyId: string; employeeId: string; category: HrPrivateCategory;
@@ -62,6 +82,7 @@ export function HrPrivatePanel({ companyId, employeeId, category, canManage, lan
   // version obtained later from a background permission/data revalidation.
   const pendingWrite = useRef<Parameters<typeof updateHrPrivate>[3] | null>(null);
   const t = translations[language];
+  const labelForField = (name: PrivateField) => fieldLabels[language][name];
 
   // A private reveal never enters React Query, persistent storage, audit
   // output, logs or a global event. Pending responses are discarded on hide,

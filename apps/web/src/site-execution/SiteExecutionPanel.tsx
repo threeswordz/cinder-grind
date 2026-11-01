@@ -15,6 +15,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { equipmentApi } from '../api/equipment';
+import { WeeklySiteSummaryPanel } from './WeeklySiteSummaryPanel';
 import {
   DelayLineInput,
   EquipmentUsageLineInput,
@@ -303,6 +304,9 @@ export function SiteExecutionPanel({
         queryClient.invalidateQueries({
           queryKey: ['site-execution', 'report', result.data.id],
         }),
+        queryClient.invalidateQueries({
+          queryKey: ['site-execution', 'weekly', projectId],
+        }),
       ]);
     },
   });
@@ -316,6 +320,9 @@ export function SiteExecutionPanel({
         }),
         queryClient.invalidateQueries({
           queryKey: ['site-execution', 'report', selectedId],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ['site-execution', 'weekly', projectId],
         }),
       ]);
     },
@@ -342,9 +349,14 @@ export function SiteExecutionPanel({
       setCorrectionNote('');
       setCorrectionProgress([]);
       setCorrectionEquipment([]);
-      await queryClient.invalidateQueries({
-        queryKey: ['site-execution', 'report', selectedId],
-      });
+      await Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: ['site-execution', 'report', selectedId],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ['site-execution', 'weekly', projectId],
+        }),
+      ]);
     },
   });
 
@@ -490,6 +502,10 @@ export function SiteExecutionPanel({
               ) : null}
             </Stack>
           ) : null}
+          <WeeklySiteSummaryPanel
+            projectId={projectId}
+            onOpenReport={(id) => setSelectedId(id)}
+          />
           <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
             {canCreate ? (
               <Button variant="outlined" onClick={resetForNew}>

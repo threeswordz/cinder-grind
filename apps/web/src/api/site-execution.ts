@@ -103,6 +103,53 @@ export type DailySiteReportPayload = {
   inspections?: InspectionLineInput[];
 };
 
+export type WeeklySiteSummary = {
+  projectId: string;
+  from: string;
+  to: string;
+  reviewState: 'READ_ONLY_NO_APPROVAL';
+  missingDayMeaning: 'UNKNOWN_WORKDAY_OR_HOLIDAY';
+  days: Array<{
+    date: string;
+    status: 'MISSING' | 'DRAFT' | 'SUBMITTED';
+    report: null | {
+      id: string;
+      createdBy: { id: string; displayName: string };
+      submittedAt: string | null;
+      weatherObservation: string | null;
+      generalRemarks: string | null;
+      totalManpower: number;
+      counts: {
+        materialUsage: number;
+        equipmentUsage: number;
+        progressLines: number;
+        issues: number;
+        delays: number;
+        inspections: number;
+        corrections: number;
+      };
+      progressObservations: Array<{
+        reportId: string;
+        activityId: string;
+        activityCode: string;
+        activityName: string;
+        percentComplete: string;
+        note: string | null;
+      }>;
+      detailPath: string;
+    };
+  }>;
+  totals: {
+    submittedDays: number;
+    draftDays: number;
+    missingDays: number;
+    recordedDays: number;
+    issues: number;
+    delays: number;
+    inspections: number;
+  };
+};
+
 export type DailySiteReportSummary = {
   id: string;
   companyId: string;
@@ -295,6 +342,10 @@ export const siteExecutionApi = {
   reports: (projectId: string, from?: string, to?: string) =>
     apiRequest<Data<DailySiteReportSummary[]>>(
       query('/site-execution/reports', { projectId, from, to }),
+    ),
+  weekly: (projectId: string, from: string, to: string) =>
+    apiRequest<Data<WeeklySiteSummary>>(
+      query('/site-execution/reports/weekly', { projectId, from, to }),
     ),
   report: (id: string) =>
     apiRequest<Data<DailySiteReportDetail>>(
