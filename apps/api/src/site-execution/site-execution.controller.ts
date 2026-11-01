@@ -356,6 +356,28 @@ export class SiteExecutionController {
     };
   }
 
+  @Get('reports/weekly')
+  @UseGuards(AuthGuard, PermissionGuard)
+  @RequirePermissions('site.daily_report.view')
+  async weekly(
+    @Req() request: AuthenticatedRequest,
+    @Query('projectId') rawProjectId?: string,
+    @Query('from') rawFrom?: string,
+    @Query('to') rawTo?: string,
+  ) {
+    if (!rawProjectId) siteInvalid('projectId', 'Is required.');
+    if (!rawFrom) siteInvalid('from', 'Is required.');
+    if (!rawTo) siteInvalid('to', 'Is required.');
+    return {
+      data: await this.site.weekly(
+        authOf(request),
+        siteUuid(rawProjectId, 'projectId'),
+        siteDate(rawFrom, 'from'),
+        siteDate(rawTo, 'to'),
+      ),
+    };
+  }
+
   @Post('reports')
   @UseGuards(AuthGuard, CsrfGuard, PermissionGuard)
   @RequirePermissions('site.daily_report.create')
