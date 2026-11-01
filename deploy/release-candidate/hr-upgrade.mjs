@@ -5,6 +5,7 @@ import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
 import { boqCatalog, verifyBoqCatalog } from './boq-catalog-contract.mjs';
 import { hrCatalog, verifyHrCatalog } from './hr-catalog-contract.mjs';
+import { stockCountCatalog, verifyStockCountCatalog } from './stock-count-catalog-contract.mjs';
 import { assertHistoricalTables } from './historical-snapshot.mjs';
 
 const [mode, previousRoot, manifestPath, keyPath] = process.argv.slice(2);
@@ -22,8 +23,15 @@ const db = new PrismaClient();
 const protect = (path,value) => writeFileSync(path, JSON.stringify(value), {mode:0o600});
 const load = path => {try{return JSON.parse(readFileSync(path,'utf8'));}catch{throw new Error('Protected CI proof input is unavailable or invalid.');}};
 const digest = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
-const knownCatalog = [...boqCatalog,...hrCatalog];
-const provenanceColumns = { projects:['contract_currency_code'], boqs:['currency_code'], supplier_quotations:['currency_code'], quotation_awards:['currency_code'] };
+const stockCountApproved = process.env.STOCK_COUNT_SCHEMA_UPGRADE === 'YES';
+const knownCatalog = [...boqCatalog,...hrCatalog,...(stockCountApproved ? stockCountCatalog : [])];
+const provenanceColumns = {
+  projects:['contract_currency_code'],
+  boqs:['currency_code'],
+  supplier_quotations:['currency_code'],
+  quotation_awards:['currency_code'],
+  ...(stockCountApproved ? { stock_transactions:['stock_count_id'] } : {}),
+};
 
 async function snapshot(before) {
   const tables = await db.$queryRaw`SELECT tablename FROM pg_tables WHERE schemaname='public' AND tablename <> '_prisma_migrations' ORDER BY tablename`;
@@ -32,6 +40,12 @@ async function snapshot(before) {
   const rawCatalog = await db.$queryRaw`SELECT * FROM permissions`;
   verifyBoqCatalog(rawCatalog.filter(p=>boqCatalog.some(x=>x.id===p.id)));
   verifyHrCatalog(rawCatalog.filter(p=>hrCatalog.some(x=>x.id===p.id)),!['snapshot','rollback'].includes(mode));
+  if (stockCountApproved) {
+    verifyStockCountCatalog(
+      rawCatalog.filter(p=>stockCountCatalog.some(x=>x.id===p.id)),
+      !['snapshot','rollback'].includes(mode),
+    );
+  }
   // Existing catalog rows are included in the digest, including creation dates.
   // Only exact reviewed definitions absent in the predecessor may be separated.
   const excluded = knownCatalog.filter(p=>!(before?.catalogPresent??present).includes(p.id)).map(p=>p.id);
@@ -66,8 +80,13 @@ try {
       assert.deepEqual(after.columns,before.columns,'Restored predecessor columns changed');
       assert.deepEqual(after.catalogPresent,before.catalogPresent,'Restored predecessor catalog changed');
       assert.deepEqual(after.migrations,before.migrations,'Restored predecessor migrations changed');
-    }else assertHistoricalTables(before.tables,after.tables,
-      process.env.HR_SCHEMA_UPGRADE === 'YES', process.env.HR_DOCUMENT_SCHEMA_UPGRADE === 'YES');
+    }else assertHistoricalTables(
+      before.tables,
+      after.tables,
+      process.env.HR_SCHEMA_UPGRADE === 'YES',
+      process.env.HR_DOCUMENT_SCHEMA_UPGRADE === 'YES',
+      stockCountApproved,
+    );
     for(const migration of before.migrations)assert.deepEqual(after.migrations.find(m=>m.migration_name===migration.migration_name),migration);
     console.log(mode==='rollback'?'HR_EXACT_PREDECESSOR_ROLLBACK_ROWS_PRESERVED':'HR_PREDECESSOR_ROWS_AND_MIGRATIONS_PRESERVED');
   } else {

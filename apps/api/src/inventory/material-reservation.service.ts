@@ -338,6 +338,11 @@ export class MaterialReservationService {
       if (row.status !== 'ACTIVE') {
         throw new ConflictException({ code: 'RESERVATION_NOT_ACTIVE' });
       }
+      // Release/cancel must serialize against a physical stock count decision
+      // on the same Company/Project/site-Warehouse/Material/UOM dimension.
+      // Activation and inventory posting already use this canonical lock.
+      // Serializable isolation fails closed if the row changes while waiting.
+      await this.quantities.lock(tx, this.dimension(context.auth.companyId, row));
       const at = new Date();
       const updated = await tx.materialReservation.update({
         where: { id },
