@@ -76,6 +76,17 @@ test('responsive V1.1 role shell renders only supplied authorized modules', asyn
       assert.doesNotMatch(html, /Switch Role|Impersonat/);
     });
 
+    await t.test('HR employee navigation uses its own group and never appears without an HR source', () => {
+      const hrSection = { key: 'hr', label: 'HR / Employees',
+        content: React.createElement('span', null, 'Synthetic employment panel') };
+      const hrUser = { ...user, roleCodes: ['UAT_HR_STAFF'], permissions: ['hr.employment.view'] };
+      const html = render(false, [hrSection], hrUser);
+      assert.match(html, /People &amp; HR/);
+      assert.match(html, /Employees &amp; HR/);
+      assert.match(html, /UAT_HR_STAFF/);
+      assert.doesNotMatch(render(false, [], hrUser), /Employees &amp; HR|Synthetic employment panel/);
+    });
+
     await t.test('no module permission means no module card/nav disclosure', () => {
       const html = render(false, []);
       assert.match(html, /No application modules are available/);

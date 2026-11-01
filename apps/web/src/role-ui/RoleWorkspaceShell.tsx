@@ -34,6 +34,7 @@ const groups = [
   { key: 'procurementGroup', keys: ['purchase-requests', 'sourcing', 'purchase-orders', 'inventory', 'procurement-report'] },
   { key: 'commercialGroup', keys: ['budget', 'subcontracts', 'cost-control', 'finance', 'client-finance', 'payments', 'retention', 'finance-reports'] },
   { key: 'managementGroup', keys: ['management'] },
+  { key: 'hrGroup', keys: ['hr'] },
   { key: 'adminGroup', keys: ['master-data', 'company', 'users', 'roles', 'approvals', 'statuses', 'numbering', 'system'] },
 ] as const;
 
