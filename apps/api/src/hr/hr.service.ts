@@ -332,10 +332,20 @@ export class HrService {
     });
     // This early authorization precedes file-storage side effects. The write
     // transaction repeats it; neither proof survives a revoke or session end.
-    await this.read(supplied, [{ companyId, category: 'documents', action: 'manage' }], async tx => {
+    await this.read(supplied, [{ companyId, category: 'documents', action: 'manage' }], async (tx, auth) => {
       await this.employee(tx, companyId, employeeId);
-      if (!await tx.documentType.count({ where: { id: documentTypeId, companyId, isActive: true } }))
-        throw notFound();
+      // A committed, same-actor request may be safely retried after its
+      // Document Type is archived. The WRITE transaction rechecks persisted
+      // authorization and verifies the entire encrypted replay fingerprint
+      // before returning that receipt. Type activity is creation-only.
+      const committed = await tx.hrReplay.findUnique({
+        where: { companyId_actorUserId_requestId: {
+          companyId, actorUserId: auth.userId, requestId,
+        } },
+      });
+      if (!committed && !await tx.documentType.count({
+        where: { id: documentTypeId, companyId, isActive: true },
+      })) throw notFound();
     });
     const fileFingerprint = createHash('sha256').update(file.buffer).digest('hex');
     const canonical = { employeeId, documentTypeId, expectedVersion,

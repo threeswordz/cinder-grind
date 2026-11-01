@@ -496,6 +496,26 @@ test('HR employee/private HTTP and database contracts use disposable scoped iden
       const changed = await upload(a.hr, requestId, '1',
         Buffer.from('DIFFERENT-SYNTHETIC-PRIVATE-BYTES'));
       assert.equal(changed.status, 409);
+      // Codex P2: an exact lost-response upload retry remains valid when its
+      // formerly active Document Type was subsequently archived. A new upload
+      // cannot use the archived type, and a changed replay body still conflicts.
+      await db.documentType.update({ where: { id: type.id }, data: { isActive: false } });
+      try {
+        const retiredReplay = await upload(a.hr, requestId);
+        assert.equal(retiredReplay.status, 201, await retiredReplay.clone().text());
+        assert.deepEqual((await retiredReplay.json() as any).data, receipt);
+        assert.equal((await upload(a.hr, requestId, '1',
+          Buffer.from('DIFFERENT-SYNTHETIC-PRIVATE-BYTES'))).status, 409);
+        assert.equal((await upload(a.hr, randomUUID(), '2')).status, 404,
+          'archived Document Type cannot be chosen for a new attachment');
+        assert.equal(await db.hrDocumentAttachment.count({ where: {
+          companyId: f.company.id, employeeId: f.legacy.id,
+        } }), 2, 'replay must not create a new attachment');
+        assert.equal((await readdir(temporaryHrStorage)).filter(name =>
+          /^[0-9a-f]{8}-/.test(name)).length, 1, 'speculative replay ciphertext must be deleted');
+      } finally {
+        await db.documentType.update({ where: { id: type.id }, data: { isActive: true } });
+      }
       const stale = await upload(a.hr, randomUUID(), '1');
       assert.equal(stale.status, 409);
       assert.equal(await db.hrDocumentAttachment.count({ where: {
