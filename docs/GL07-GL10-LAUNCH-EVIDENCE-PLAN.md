@@ -44,7 +44,7 @@ Do not generate fictitious source data or write public credentials/private emplo
 Predecessors: GL-07/08/09 evidence and scoped GL-04 business function fit; GL-05/06 only conditionally excluded if **explicit limited-pilot boundary with named external controlled HR/accounting reconciliations** is approved. Required launch packet:
 - frozen and independently reviewed release SHA on `main`, exact-main CI, dependency/P1 findings closed;
 - approved pilot Company/site/user/workflow list and disabled/unavailable functionality inventory (not a hidden omission);
-- new affected-path UAT for count/weekly/HR only when merged and activated; accepted V1.1 THB/V1.3 BOQ human UAT is preserved, not repeated;
+- one comprehensive human multi-role/cross-module UAT on the frozen technically green pre-Production prototype under DEC-042, tracing deferred count/weekly/HR and other in-scope criteria; no interim development UAT and no replay of historical accepted THB/BOQ acceptance;
 - staged backup and populated isolated restore, HTTPS/readiness and no-write business smoke, tested rollback and measured RPO/RTO;
 - operating-day contacts, incident escalation, support/training, cutover and post-cutover reconciliation, signed go/no-go decision;
 - **separately explicit Owner authorization before actual Production deployment**, then observed release identity and operational startup evidence.
@@ -57,8 +57,8 @@ Predecessors: GL-07/08/09 evidence and scoped GL-04 business function fit; GL-05
 |---|---|---|---|
 | Read-only role/source/CI audit, evidence templates | Yes | Work optional broad audit | None |
 | Review/fix an approved branch's genuine defect; synthetic CI | Yes | Codex mandatory for high-risk stable candidate | No new policy |
-| #300 stock-ledger and #302 authenticated weekly review | Technical integration complete at 1 November checkpoint | Final Codex reviews CLEAN; material later changes follow DEC-022 | Owner affected-path acceptance remains separate |
-| HR privacy #297–299 stack review | Chat integration/evidence preparation | Codex independently reviews material access/schema/privacy | Later business UAT |
+| #300 stock-ledger and #302 authenticated weekly review | Technical integration complete at 1 November checkpoint | Final Codex reviews CLEAN; material later changes follow DEC-022 | Human acceptance deferred to integrated pre-Production prototype (DEC-042) |
+| HR privacy #297–299 integration | Merged; verify final exact-main CI and criteria disposition | Preserve actual independent review receipts; new material changes follow DEC-022 | Human UAT deferred to integrated prototype (DEC-042) |
 | Branch protection/ruleset activation | Chat proposal only | Work may independently assess | Authorized repository admin/Owner |
 | Real MKE/TCJ roles/data, hosted infra, backups, cutover | Chat scripts and exact checklist only | Security/operational audit | Separate scoped Owner/authorized operator approval |
 | Go-live | No deployment authority from this plan | Neither tool can approve human UAT | Explicit Product / Business Owner go/no-go |
