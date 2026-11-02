@@ -179,6 +179,11 @@ export class InventoryService {
           await this.assertActiveProject(context.auth, projectId, tx);
         }
 
+        if (projectId !== before.projectId &&
+            await tx.materialUsagePlan.findFirst({where:{warehouseId:id},select:{id:true}})) {
+          throw this.materialPlanWarehouseScopeConflict();
+        }
+
         const row = await tx.warehouse.update({
           where: { id },
           data: {
@@ -219,6 +224,11 @@ export class InventoryService {
         return row;
       });
     } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003' &&
+          ['material_usage_plans_warehouse_scope_fkey', 'material_usage_plans_warehouse_scope_fkey (index)']
+            .includes(String(error.meta?.field_name))) {
+        throw this.materialPlanWarehouseScopeConflict();
+      }
       this.throwUnique(error);
       throw error;
     }
@@ -358,6 +368,10 @@ export class InventoryService {
         detail: 'A Site Warehouse must belong to a Project.',
       });
     }
+  }
+
+  private materialPlanWarehouseScopeConflict() {
+    return new ConflictException({code:'MATERIAL_PLAN_WAREHOUSE_SCOPE_IMMUTABLE'});
   }
 
   private throwUnique(error: unknown): void {

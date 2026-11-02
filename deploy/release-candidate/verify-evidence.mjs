@@ -71,6 +71,7 @@ if (['migration-aware-sql-only', 'migration-aware-thb-schema', 'migration-aware-
     }
     if(materialPlanSchema){
       if(!rehearsal.migrationNames?.includes('20261102140000_op_material_plan_01_a'))fail('Exact material plan migration missing');
+      if(!rehearsal.migrationNames?.includes('20261103010000_material_plan_warehouse_scope'))fail('Material plan warehouse scope migration missing');
       for(const key of ['materialPlanSchemaUpgrade','materialPlanHistoricalPreservation','materialPlanHttpUpgrade','materialPlanPopulatedRecovery'])if(rehearsal[key]!=='PASS')fail('Material plan upgrade proof missing: '+key);
     }
     if(materialRequestSchema){

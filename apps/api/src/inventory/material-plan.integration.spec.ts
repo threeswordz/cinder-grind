@@ -2,12 +2,14 @@ import 'reflect-metadata';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {randomUUID} from 'node:crypto';
+import {Prisma} from '@prisma/client';
 import {NestFactory} from '@nestjs/core';
 import {AppModule} from '../app.module';
 import {PrismaService} from '../prisma/prisma.service';
 import {securityHeadersMiddleware} from '../common/security-headers';
 import {ProblemDetailsFilter} from '../common/problem-details.filter';
 import {materialPlanFixture} from './material-plan-test-fixture';
+import {InventoryService} from './inventory.service';
 
 test('MP-AC-01–06 foundation authenticates quantity-only plans and immutable independent decisions',async t=>{
  const db=new PrismaService();await db.$connect();const app=await NestFactory.create(AppModule,{logger:false});app.setGlobalPrefix('api/v1');app.use(securityHeadersMiddleware(false));app.useGlobalFilters(new ProblemDetailsFilter());await app.listen(0,'127.0.0.1');
@@ -84,6 +86,49 @@ test('MP-AC-01–06 foundation authenticates quantity-only plans and immutable i
    const first=(await call(f.store,'/'+id+'/revisions')).data;assert.equal(first.items.length,25);assert.equal(first.items[0].revisionNo,29);
    const second=(await call(f.store,'/'+id+'/revisions?after='+first.nextCursor)).data;assert.equal(second.items.length,4);assert.equal(second.nextCursor,null);assert.equal(new Set([...first.items,...second.items].map((r:any)=>r.id)).size,29);
    await call(f.store,'/'+id+'/revisions?after='+randomUUID(),422);
+  });
+  await t.test('plan warehouse scope survives authorized reassignment, concurrent creation and later allocation revision',async()=>{
+   await f.grant(f.manager,['inventory.warehouse.view','inventory.warehouse.edit','projects.access_all']);
+   const inventory=app.get(InventoryService);
+   const freshWarehouse=()=>db.warehouse.create({data:{companyId:f.company.id,projectId:f.project.id,warehouseCode:'MP-'+randomUUID(),warehouseName:'Plan-only warehouse',isSiteWarehouse:true}});
+   const wh=await freshWarehouse();
+   assert.equal(await db.stockTransaction.count({where:{warehouseId:wh.id}}),0);
+   assert.equal(await db.materialRequest.count({where:{warehouseId:wh.id}}),0);
+   // The same authorized actor can move an unreferenced warehouse.
+   await inventory.updateWarehouse({auth:f.manager.auth},wh.id,{projectId:f.unassigned.id});
+   await inventory.updateWarehouse({auth:f.manager.auth},wh.id,{projectId:f.project.id});
+   const input={...f.input('2','PLAN-ONLY'),warehouseId:wh.id,lines:[{budgetRevisionLineId:f.source2.id,materialId:f.material2.id,uomId:f.uom.id,quantity:'2'}]};
+   let p=(await call(f.store,'',201,input)).data;
+   const patch=async(body:unknown,status:number)=>{
+    const r=await fetch(await app.getUrl()+'/api/v1/inventory/warehouses/'+wh.id,{method:'PATCH',headers:{Cookie:'erp_session='+f.manager.session.sessionToken,'x-csrf-token':f.manager.session.csrfToken,'Content-Type':'application/json'},body:JSON.stringify(body)});
+    assert.equal(r.status,status,await r.clone().text());return r.json() as Promise<any>;
+   };
+   assert.equal((await patch({projectId:f.unassigned.id},409)).code,'MATERIAL_PLAN_WAREHOUSE_SCOPE_IMMUTABLE');
+   p=(await call(f.store,'/'+p.id+'/submit',201,{requestKey:randomUUID(),expectedVersion:p.version})).data;
+   p=(await call(f.manager,'/'+p.id+'/decision',201,{requestKey:randomUUID(),expectedVersion:p.version,decision:'APPROVE',comment:'Plan-only warehouse checker'})).data;
+   await patch({projectId:f.unassigned.id},409);
+   await patch({projectId:null,isSiteWarehouse:false},409);
+   await assert.rejects(()=>db.warehouse.update({where:{id:wh.id},data:{projectId:f.unassigned.id}}),e=>e instanceof Prisma.PrismaClientKnownRequestError&&e.code==='P2003'&&String(e.meta?.field_name).includes('material_usage_plans_warehouse_scope_fkey'));
+   await patch({warehouseName:'Descriptive edit remains allowed',projectId:f.project.id},200);
+   p=(await call(f.store,'/'+p.id+'/revisions',201,{requestKey:randomUUID(),expectedVersion:p.version,validFrom:input.validFrom,validTo:input.validTo,reason:'Release allocation after denied move',lines:[{...input.lines[0],quantity:'1'}]})).data;
+   p=(await call(f.store,'/'+p.id+'/submit',201,{requestKey:randomUUID(),expectedVersion:p.version})).data;
+   await call(f.manager,'/'+p.id+'/decision',201,{requestKey:randomUUID(),expectedVersion:p.version,decision:'APPROVE',comment:'Reduced allocation remains usable'});
+   const detail=(await call(f.store,'/'+p.id)).data;assert.equal(detail.projectId,f.project.id);assert.equal(detail.approvedRevision.lines[0].quantity,'1.0000');
+   const old=(await call(f.store,'/'+p.id+'/revisions')).data;assert.equal(old.items.length,2);
+   // Exercise both operations concurrently against fresh warehouses with no
+   // stock/request guard. PostgreSQL must never commit an orphaned plan scope.
+   for(let n=0;n<3;n++){
+    const racing=await freshWarehouse();
+    const outcomes=await Promise.allSettled([
+     f.service.create({auth:f.store.auth},{...input,requestKey:randomUUID(),warehouseId:racing.id,workPackageCode:'RACE-'+n}),
+     inventory.updateWarehouse({auth:f.manager.auth},racing.id,{projectId:f.unassigned.id}),
+    ]);
+    assert.ok(outcomes.some(r=>r.status==='rejected'),'create and scope move must not both commit');
+    for(const outcome of outcomes)if(outcome.status==='rejected')assert.ok([409,422].includes(outcome.reason?.getStatus?.()),'race must return a controlled scope conflict');
+    const row=await db.warehouse.findUniqueOrThrow({where:{id:racing.id}});
+    const plans=await db.materialUsagePlan.findMany({where:{warehouseId:racing.id}});
+    for(const plan of plans){assert.equal(plan.companyId,row.companyId);assert.equal(plan.projectId,row.projectId);}
+   }
   });
   await t.test('persisted grant revocation and forged access-all do not survive replay or direct reads',async()=>{
    const p=await db.permission.findUniqueOrThrow({where:{permissionCode:'inventory.material_plan.view'}});const old=f.store.auth;
