@@ -79,8 +79,12 @@ test('source PASS cannot certify retained permissions, human acceptance or go-li
  ]);
  for(const r of ROUTES){
   const file='apps/api/src/'+r[1];
-  fixtures.set(file,(fixtures.get(file)||"@Controller('x')\nexport class Mock {\n")+
-   '@'+r[2]+"('"+r[3]+"')\n@UseGuards(AuthGuard, PermissionGuard)\n@RequirePermissions('"+r[4]+"')\nasync action"+r[0]+"(){}\n");
+  const options=r[5]||{},controller=options.controller||'x';
+  const method=r[3]===''?'@'+r[2]+'()':'@'+r[2]+"('"+r[3]+"')";
+  const guards=['AuthGuard',...(options.csrf?['CsrfGuard']:[]),'PermissionGuard'];
+  const permissions=[r[4],...(options.extraPermissions||[])];
+  fixtures.set(file,(fixtures.get(file)||"@Controller('"+controller+"')\nexport class Mock {\n")+
+   method+'\n@UseGuards('+guards.join(', ')+')\n@RequirePermissions('+permissions.map(p=>"'"+p+"'").join(', ')+')\nasync action'+r[0]+'(){}\n');
  }
  let reads=0;
  const read=async path=>{reads++;const value=fixtures.get(path.replace(/^\/fake\//,''));if(typeof value!=='string')throw Error('UNEXPECTED_INPUT');return path.includes('/apps/api/')?value+'\n}':value;};
@@ -94,4 +98,46 @@ test('source PASS cannot certify retained permissions, human acceptance or go-li
  fixtures.set(file,fixtures.get(file).replace("@RequirePermissions('"+route[4]+"')","@RequirePermissions('wrong.view')"));
  const bad=await auditSource('/fake',{read});
  assert.equal(bad.status,'SOURCE_CHECK_FAILED');assert.ok(bad.anomalyCount>0);
+});
+
+const materialFixture=(r,{controller,permissions,guards,path}={})=>{
+ const opts=r[5]||{},root=controller??opts.controller??'x';
+ const rights=permissions??[r[4],...(opts.extraPermissions||[])];
+ const checks=guards??['AuthGuard',...(opts.csrf?['CsrfGuard']:[]),'PermissionGuard'];
+ const endpoint=path??r[3],method='@'+r[2]+(endpoint===''?'()':"('"+endpoint+"')");
+ return "@Controller('"+root+"')\nexport class Mock {\n"+method+
+  '\n@UseGuards('+checks.join(', ')+')\n@RequirePermissions('+
+  rights.map(p=>"'"+p+"'").join(', ')+')\nasync action(){}\n}';
+};
+test('all nine material-request source routes retain required permissions, controller path and write CSRF',()=>{
+ const routes=ROUTES.filter(r=>r[5]?.controller==='inventory/material-requests');
+ assert.equal(routes.length,9);
+ for(const r of routes){
+  const source=materialFixture(r),rights=[r[4],...(r[5].extraPermissions||[])];
+  assert.equal(inspectRoute(source,r).result,'SOURCE_DECORATORS_FOUND',r[0]);
+  assert.equal(inspectRoute(materialFixture(r,{controller:'wrong-root'}),r).result,'CONTROLLER_PATH_MISMATCH',r[0]);
+  assert.equal(inspectRoute(materialFixture(r,{path:'wrong-path'}),r).result,'ROUTE_NOT_FOUND',r[0]);
+  for(const removed of rights)
+   assert.equal(inspectRoute(materialFixture(r,{permissions:rights.filter(p=>p!==removed)}),r).result,'PERMISSION_DECORATOR_MISSING',r[0]+':'+removed);
+  for(const removed of ['AuthGuard','PermissionGuard'])
+   assert.equal(inspectRoute(source.replace(removed,'UnrelatedGuard'),r).result,'AUTH_PERMISSION_GUARDS_MISSING',r[0]+':'+removed);
+  const wrongVerb=r[2]==='Get'?'Post':'Get';
+  assert.equal(inspectRoute(source.replace('@'+r[2]+'(', '@'+wrongVerb+'('),r).result,'ROUTE_NOT_FOUND',r[0]+':verb');
+  const decoy="\n@Get('unrelated')\n@UseGuards(AuthGuard, CsrfGuard, PermissionGuard)\n@RequirePermissions("+rights.map(p=>"'"+p+"'").join(', ')+")\nasync sibling(){}\n";
+  const missingGuards=source.replace('@UseGuards(AuthGuard, '+(r[5].csrf?'CsrfGuard, ':'')+'PermissionGuard)','@UseGuards(UnrelatedGuard)');
+  assert.equal(inspectRoute(missingGuards.replace('async action(){}','async action(){}'+decoy),r).result,'AUTH_PERMISSION_GUARDS_MISSING',r[0]+':sibling');
+  if(r[5].csrf){
+   assert.equal(inspectRoute(materialFixture(r,{guards:['AuthGuard','PermissionGuard']}),r).result,'CSRF_GUARD_MISSING',r[0]);
+   assert.equal(inspectRoute(materialFixture(r,{guards:['PermissionGuard','CsrfGuard']}),r).result,'AUTH_PERMISSION_GUARDS_MISSING',r[0]);
+  }
+ }
+});
+test('receipt check must not borrow evidence permission from another method',()=>{
+ const r=ROUTES.find(r=>r[0]==='STORE_MR_RECEIPT'),source=materialFixture(r);
+ const tampered=source.replace("'documents.document.view'","'unrelated.document.view'");
+ assert.equal(inspectRoute(tampered,r).result,'PERMISSION_DECORATOR_MISSING');
+ const decoy="\n@Get('decoy')\n@UseGuards(AuthGuard, CsrfGuard, PermissionGuard)\n@RequirePermissions('documents.document.view')\nasync other(){}\n";
+ assert.equal(inspectRoute(tampered.replace('async action(){}','async action(){}'+decoy),r).result,'PERMISSION_DECORATOR_MISSING');
+ assert.equal(inspectRoute(source.replace('CsrfGuard,','/* CsrfGuard, */'),r).result,'CSRF_GUARD_MISSING');
+ assert.equal(inspectRoute(source.replace('@UseGuards(AuthGuard, CsrfGuard, PermissionGuard)','// @UseGuards(AuthGuard, CsrfGuard, PermissionGuard)'),r).result,'AUTH_PERMISSION_GUARDS_MISSING');
 });

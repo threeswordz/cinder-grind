@@ -13,8 +13,8 @@ export const ACTORS=[
  ['Nancy','Customer BOQ/Finance permissions; narrow HR privacy, no write-off assumption'],
  ['Khaimook','PR/GR review; independent stock-count checker only with separately verified grants'],
  ['Jai','RFQ/PO maker; no PO self-approval or #245 multi-Project assumption'],
- ['Store Site','PR/GR/issue; #300 count maker only, no count approval'],
- ['Foreman','Project-scoped daily and read-only weekly reports; no PR/count authority'],
+ ['Store Site','PR/GR/issue; #300 count maker and #315 Store-recorded request/receipt source; effective grants not verified'],
+ ['Foreman','Project-scoped daily and read-only weekly reports; #315 Store-recorded Foreman request source does not grant Foreman PR/count authority'],
  ['Koh','HR Company/category entitlement; integration does not prove retained role activation'],
  ['Porn','Existing Accounting, narrowly granted HR bank view only'],
 ];
@@ -35,6 +35,15 @@ export const ROUTES=[
  ['KOH_DOCUMENT_VIEW','hr/hr.controller.ts','Get','companies/:companyId/employees/:employeeId/documents','hr.documents.view'],
  ['HR_ACCESS_ADMIN','hr/hr.controller.ts','Post','companies/:companyId/access','hr.access.manage'],
  ['NANCY_CUSTOMER_BOQ_APPROVE','budget/customer-boq.controller.ts','Post','projects/:projectId/versions/:id/decision','budget.customer.approve'],
+ ["MR_PROJECTS","inventory/material-request.controller.ts","Get","projects","inventory.material_request.view",{"controller":"inventory/material-requests"}],
+ ["MR_CHOICES","inventory/material-request.controller.ts","Get","choices","inventory.material_request.view",{"controller":"inventory/material-requests"}],
+ ["MR_LIST","inventory/material-request.controller.ts","Get","","inventory.material_request.view",{"controller":"inventory/material-requests"}],
+ ["MR_DETAIL","inventory/material-request.controller.ts","Get",":id","inventory.material_request.view",{"controller":"inventory/material-requests"}],
+ ["MR_ISSUE_CHOICES","inventory/material-request.controller.ts","Get",":id/issue-choices","inventory.material_request.view",{"controller":"inventory/material-requests","extraPermissions":["inventory.issue.view"]}],
+ ["STORE_MR_CAPTURE","inventory/material-request.controller.ts","Post","","inventory.material_request.view",{"controller":"inventory/material-requests","extraPermissions":["inventory.material_request.create"],"csrf":true}],
+ ["STORE_MR_EDIT","inventory/material-request.controller.ts","Post",":id/revisions","inventory.material_request.view",{"controller":"inventory/material-requests","extraPermissions":["inventory.material_request.edit"],"csrf":true}],
+ ["STORE_MR_LINK","inventory/material-request.controller.ts","Post",":id/issue-links","inventory.material_request.view",{"controller":"inventory/material-requests","extraPermissions":["inventory.material_request.link","inventory.issue.view"],"csrf":true}],
+ ["STORE_MR_RECEIPT","inventory/material-request.controller.ts","Post",":id/receipts","inventory.material_request.view",{"controller":"inventory/material-requests","extraPermissions":["inventory.material_request.acknowledge","inventory.issue.view","documents.document.view"],"csrf":true}],
 ];
 export function parseRoleCensus(markdown){
  const rows=[],seen=new Set();
@@ -65,7 +74,7 @@ const decoratorCalls=(node,name)=>(ts.canHaveDecorators(node)?ts.getDecorators(n
  .map(decorator=>decorator.expression)
  .filter(expression=>ts.isCallExpression(expression)&&ts.isIdentifier(expression.expression)&&expression.expression.text===name);
 const literal=(node,value)=>ts.isStringLiteral(node)&&node.text===value;
-export function inspectRoute(source,[id,file,verb,path,permission]){
+export function inspectRoute(source,[id,file,verb,path,permission,options={}]){
  const ast=ts.createSourceFile(file,source,ts.ScriptTarget.Latest,true,ts.ScriptKind.TS);
  if(ast.parseDiagnostics.length)return {id,result:'SOURCE_PARSE_ERROR'};
  const matches=[];
@@ -73,7 +82,7 @@ export function inspectRoute(source,[id,file,verb,path,permission]){
   if(ts.isClassDeclaration(node))for(const method of node.members){
    if(!ts.isMethodDeclaration(method))continue;
    for(const call of decoratorCalls(method,verb)){
-    if(call.arguments.length===1&&literal(call.arguments[0],path))matches.push({method,owner:node});
+    if((path===''&&call.arguments.length===0)||(call.arguments.length===1&&literal(call.arguments[0],path)))matches.push({method,owner:node});
    }
   }
   ts.forEachChild(node,visit);
@@ -84,15 +93,20 @@ export function inspectRoute(source,[id,file,verb,path,permission]){
  const httpDecorators=['Get','Post','Patch','Put','Delete','Options','Head','All']
   .flatMap(name=>decoratorCalls(method,name));
  if(httpDecorators.length!==1)return {id,result:'AMBIGUOUS_ROUTE'};
- if(!decoratorCalls(owner,'Controller').length)return {id,result:'CONTROLLER_DECORATOR_MISSING'};
+ const controllers=decoratorCalls(owner,'Controller');
+ if(!controllers.length)return {id,result:'CONTROLLER_DECORATOR_MISSING'};
+ if(options.controller&&(controllers.length!==1||controllers[0].arguments.length!==1||!literal(controllers[0].arguments[0],options.controller)))
+  return {id,result:'CONTROLLER_PATH_MISMATCH'};
  const permissions=decoratorCalls(method,'RequirePermissions');
  if(permissions.length>1)return {id,result:'AMBIGUOUS_PERMISSION_DECORATORS'};
- if(!permissions.some(call=>call.arguments.some(arg=>literal(arg,permission))))
+ const requiredPermissions=[permission,...(options.extraPermissions||[])];
+ if(!permissions.some(call=>requiredPermissions.every(code=>call.arguments.some(arg=>literal(arg,code)))))
   return {id,result:'PERMISSION_DECORATOR_MISSING'};
  const guards=[...decoratorCalls(owner,'UseGuards'),...decoratorCalls(method,'UseGuards')]
   .flatMap(call=>[...call.arguments]).filter(ts.isIdentifier).map(node=>node.text);
  if(!['AuthGuard','PermissionGuard'].every(name=>guards.includes(name)))
   return {id,result:'AUTH_PERMISSION_GUARDS_MISSING'};
+ if(options.csrf&&!guards.includes('CsrfGuard'))return {id,result:'CSRF_GUARD_MISSING'};
  return {id,file:'apps/api/src/'+file,route:verb.toUpperCase()+' '+path,permission,result:'SOURCE_DECORATORS_FOUND'};
 }
 // Conservative readback of the repository's fixed block-mapping layout.
@@ -130,7 +144,7 @@ export async function auditSource(root,{read=readFile}={}){
   sourceOnly:true,networkRequests:0,retainedDataReads:0,businessWrites:0,grantsApplied:false,
   productionAuthorized:false,ownerBusinessAcceptance:false,goLiveGatesClosed:0,
   census,gl04:{probes,actorReadbacks:ACTORS.map(([role,verify])=>({role,verify,retainedConfiguration:'NOT_RUN'})),
-    trackedPRs:[297,298,299,300,302],integrationStatus:'VERIFY_LIVE_GITHUB_NOT_INFERRED_FROM_SOURCE'},gl07:workflow,anomalyCount:anomalies};
+    trackedPRs:[297,298,299,300,302,315],integrationStatus:'VERIFY_LIVE_GITHUB_NOT_INFERRED_FROM_SOURCE'},gl07:workflow,anomalyCount:anomalies};
 }
 if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)){
  if(process.argv.length!==3||!['--check','--plan'].includes(process.argv[2])){
