@@ -155,3 +155,8 @@ test('unknown packet/fixture fields fail closed rather than implying private act
  check(p=>p.secrets='PRIVATE_VALUE','UNEXPECTED_PACKET_FIELD');
  check(p=>p.fixture.employeeName='PRIVATE_PERSON','SYNTHETIC_FIXTURE_SCOPE_UNVERIFIED');
 });
+test('one request-audit receipt cannot represent different actors, outcomes or scope',()=>{
+ check(p=>{for(const s of p.scenarios)s.requestAuditId='CASE-AUDIT-REUSED';},'REQUEST_AUDIT_RECEIPT_REUSED');
+ check(p=>row(p,'FOREMAN_COUNT_DENIED').requestAuditId=row(p,'STORE_COUNT_CREATE').requestAuditId,'REQUEST_AUDIT_RECEIPT_REUSED');
+ check(p=>row(p,'STORE_OTHER_COMPANY_DENIED').requestAuditId=row(p,'STORE_OTHER_PROJECT_DENIED').requestAuditId,'REQUEST_AUDIT_RECEIPT_REUSED');
+});

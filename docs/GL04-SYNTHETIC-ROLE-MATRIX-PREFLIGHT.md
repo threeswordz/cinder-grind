@@ -34,3 +34,8 @@ The script's `.test.mjs` tests are automatically picked up by the existing `node
 **No material-plan branch overlap:** This preparation may be reviewed/merged independently on its own stable head, but does not unblock [Material Plan A PR #320](https://github.com/threeswordz/cinder-grind/pull/320), whose mandatory independent Codex review/guarded merge/main CI must occur first before increment B. Separate freeze checker [PR #321](https://github.com/threeswordz/cinder-grind/pull/321) is also still a draft. The current new code changes no application API, database, stock ledger, production settings, user grants or approved business rules.
 
 Human business UAT stays **DEFERRED UNTIL THE FROZEN INTEGRATED PROTOTYPE** (DEC-042). Real GL04, GL07–10, Production and MKE/TCJ onboarding remain unauthorized/unverified as applicable.
+
+
+## Independent review correction — 3 November 2026 SGT
+
+Codex [finding4445515376](https://github.com/threeswordz/cinder-grind/pull/322#discussion_r4445515376) showed that one request-audit receipt could be reused across contradictory actor/outcome/scope probes. A new regression failed on the reviewed source, then passed after requiring distinct request-audit IDs for these 24 distinct HTTP operations. Shared aggregate evidence artifacts remain valid; only request identity reuse is rejected. Output retains stable gap codes/scenario IDs and never echoes private receipt IDs. Local17 groups PASS; native final-head CI and independent final review remain pending. This correction supplies no real runtime proof, role grants, human acceptance or GL closure.

@@ -115,6 +115,7 @@ export function assessRoleMatrix(input,{now=Date.now(),expectedSha}={}){
   index.set(row.id,row);
  }
  let checked=0;
+ const requestAudits=new Set();
  const rowKeys=['id','actor','actorKey','company','project','permission','expectedOutcome','transport',
   'httpStatus','observedAt','evidenceId','requestAuditId','separation'];
  const separationKeys=['actorKey','makerKey','immutableDecisionEvidenceId','eligibilityEvidenceId'];
@@ -122,6 +123,12 @@ export function assessRoleMatrix(input,{now=Date.now(),expectedSha}={}){
   const row=index.get(s.id);
   if(!row){add('SCENARIO_NOT_OBSERVED',s.id);continue;}
   checked++;
+  // These fixed probes are distinct HTTP operations across actors, scopes or
+  // outcomes. One request audit cannot serve as two contradictory observations.
+  if(artifact(row.requestAuditId)){
+   if(requestAudits.has(row.requestAuditId))add('REQUEST_AUDIT_RECEIPT_REUSED',s.id);
+   requestAudits.add(row.requestAuditId);
+  }
   if(Object.keys(row).some(k=>!rowKeys.includes(k)))add('UNEXPECTED_SCENARIO_FIELD',s.id);
   const boundActorKey=f?.actorBindings?.[s.actor]?.key;
   if(!TOKEN.test(row.actorKey??'')||row.actorKey!==boundActorKey)
