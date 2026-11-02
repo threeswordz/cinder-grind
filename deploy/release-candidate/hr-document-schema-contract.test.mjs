@@ -1,3 +1,4 @@
+import {stripMaterialRequestSchema} from './material-request-schema-contract.mjs';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
@@ -6,7 +7,7 @@ import { classifySchema } from './schema-contract.mjs';
 import { hrDocumentTables, stripHrDocumentSchema } from './hr-document-schema-contract.mjs';
 import { assertHistoricalTables } from './historical-snapshot.mjs';
 
-const current = readFileSync(new URL('../../apps/api/prisma/schema.prisma', import.meta.url), 'utf8');
+const current = stripMaterialRequestSchema(readFileSync(new URL('../../apps/api/prisma/schema.prisma', import.meta.url), 'utf8')).text;
 const predecessor = stripHrDocumentSchema(current).text;
 
 test('only the exact Company/Employee/Document bounded HR custody model introduces the new schema mode', () => {

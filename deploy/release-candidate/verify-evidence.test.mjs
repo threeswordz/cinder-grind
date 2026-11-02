@@ -117,3 +117,14 @@ test('HR document custody recovery evidence requires nonempty DB/store/key/resto
   assert.notEqual(verify({ ...data, hrPrivateAttachmentRecovery: 'NOT_IMPLEMENTED_THIS_INCREMENT' }).status, 0);
   assert.notEqual(verify({ ...data, version: 7 }).status, 0);
 });
+
+test('DEC-043 material-request evidence requires version10, exact migration, preserved history and signed receipt restored runtime',()=>{
+ const data={...evidence('migration-aware-material-request-schema'),version:10,migrationNames:['20261102080000_op_material_request_01'],
+  materialRequestSchemaUpgrade:'PASS',materialRequestHistoricalPreservation:'PASS',materialRequestHttpUpgrade:'PASS',materialRequestSignedReceiptRecovery:'PASS'};
+ assert.equal(verify(data).status,0);
+ for(const key of ['materialRequestSchemaUpgrade','materialRequestHistoricalPreservation','materialRequestHttpUpgrade','materialRequestSignedReceiptRecovery']){
+  const bad={...data};delete bad[key];assert.notEqual(verify(bad).status,0,key);
+ }
+ assert.notEqual(verify({...data,version:9}).status,0);
+ assert.notEqual(verify({...data,migrationNames:['20261102080000_other']}).status,0);
+});

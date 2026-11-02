@@ -249,11 +249,19 @@ export class DocumentsService {
       transfer.items.every((item) => projectIds.has(item.sourceProjectId) && projectIds.has(item.destinationProjectId)),
     ).map((transfer) => transfer.id));
 
+    const requestIds = [...new Set(protectedRows.flatMap(row => row.links
+      .filter(link => link.entityType === 'MATERIAL_REQUEST').map(link => link.entityId)))];
+    const requests = requestIds.length ? await db.materialRequest.findMany({
+      where: { id: { in: requestIds }, companyId: auth.companyId, projectId }, select: { id: true },
+    }) : [];
+    const accessibleRequests = new Set(requests.map(row => row.id));
+
     return permitted.filter((row) => {
       const protectedSource = row.links.some((link) => Boolean(DOCUMENT_SOURCE_VIEW_PERMISSIONS[link.entityType]));
       return row.links.every((link) => {
         if (protectedSource && link.entityType === 'PROJECT') return projectIds.has(link.entityId);
         if (link.entityType === 'STOCK_TRANSFER') return accessibleTransfers.has(link.entityId);
+        if (link.entityType === 'MATERIAL_REQUEST') return accessibleRequests.has(link.entityId);
         return true;
       });
     });

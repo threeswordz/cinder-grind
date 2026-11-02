@@ -7,6 +7,7 @@ export const DOCUMENT_SOURCE_VIEW_PERMISSIONS: Readonly<Record<string, string>> 
   GOODS_RECEIPT: 'inventory.receipt.view',
   MATERIAL_RESERVATION: 'inventory.reservation.view',
   MATERIAL_ISSUE: 'inventory.issue.view',
+  MATERIAL_REQUEST: 'inventory.material_request.view',
   MATERIAL_RETURN: 'inventory.return.view',
   STOCK_TRANSFER: 'inventory.transfer.view',
   SUPPLIER_INVOICE: 'finance.supplier_invoice.view',

@@ -8,6 +8,8 @@ datasource db {
 }
 
 model Company {
+  materialRequests MaterialRequest[]
+  materialRequestOperations MaterialRequestOperation[]
   hrCompanyAccess HrCompanyAccess[]
   hrEmployments HrEmployment[]
   hrEmploymentRevisions HrEmploymentRevision[]
@@ -140,6 +142,7 @@ model Supplier {
 }
 
 model UnitOfMeasure {
+  materialRequestLines MaterialRequestLine[]
   customerBoqLines CustomerBoqLine[]
 
   id            String  @id @default(uuid()) @db.Uuid
@@ -173,6 +176,7 @@ model UnitOfMeasure {
 }
 
 model Material {
+  materialRequestLines MaterialRequestLine[]
   id               String   @id @default(uuid()) @db.Uuid
   companyId        String   @map("company_id") @db.Uuid
   materialCode     String   @map("material_code") @db.VarChar(80)
@@ -204,6 +208,9 @@ model Material {
 }
 
 model Employee {
+  requestedMaterialRequests MaterialRequest[] @relation("MaterialRequestRequester")
+  receivedMaterialRequestReceipts MaterialRequestReceipt[] @relation("MaterialRequestRecipient")
+  issuedMaterialRequestReceipts MaterialRequestReceipt[] @relation("MaterialRequestIssuer")
   hrEmployment HrEmployment?
   hrPrivateRevisions HrPrivateRevision[]
   hrDocumentAttachments HrDocumentAttachment[]
@@ -232,6 +239,12 @@ model Employee {
 }
 
 model User {
+  createdMaterialRequests MaterialRequest[] @relation("MaterialRequestCreator")
+  updatedMaterialRequests MaterialRequest[] @relation("MaterialRequestEditor")
+  materialRequestRevisions MaterialRequestRevision[]
+  materialRequestIssueLinks MaterialRequestIssueLink[]
+  materialRequestReceipts MaterialRequestReceipt[]
+  materialRequestOperations MaterialRequestOperation[]
   hrAccessSubjects HrCompanyAccess[] @relation("HrAccessSubject")
   hrAccessChanges HrCompanyAccess[] @relation("HrAccessActor")
   hrEmploymentRevisions HrEmploymentRevision[] @relation("HrEmploymentActor")
@@ -625,6 +638,7 @@ model SystemSetting {
 
 
 model Project {
+  materialRequests MaterialRequest[]
   hrEmploymentRevisions HrEmploymentRevision[]
   customerBoqVersions CustomerBoqVersion[]
 
@@ -733,6 +747,7 @@ model ProjectContact {
 
 
 model WbsElement {
+  materialRequestLines MaterialRequestLine[]
   id          String   @id @default(uuid()) @db.Uuid
   projectId   String   @map("project_id") @db.Uuid
   parentId    String?  @map("parent_id") @db.Uuid
@@ -768,6 +783,7 @@ model WbsElement {
 }
 
 model CostCode {
+  materialRequestLines MaterialRequestLine[]
   id          String   @id @default(uuid()) @db.Uuid
   companyId   String   @map("company_id") @db.Uuid
   costCode    String   @map("cost_code") @db.VarChar(80)
@@ -864,6 +880,7 @@ model WorkingCalendarException {
 }
 
 model Activity {
+  materialRequestLines MaterialRequestLine[]
   id                      String   @id @default(uuid()) @db.Uuid
   companyId               String   @map("company_id") @db.Uuid
   projectId               String   @map("project_id") @db.Uuid
@@ -1039,6 +1056,7 @@ model DocumentType {
 }
 
 model Document {
+  materialRequestReceipts MaterialRequestReceipt[]
   id               String   @id @default(uuid()) @db.Uuid
   companyId        String   @map("company_id") @db.Uuid
   documentTypeId   String   @map("document_type_id") @db.Uuid
@@ -1597,6 +1615,7 @@ model SubcontractVariation {
 }
 
 model Warehouse {
+  materialRequests MaterialRequest[]
   id              String   @id @default(uuid()) @db.Uuid
   companyId       String   @map("company_id") @db.Uuid
   warehouseCode   String   @map("warehouse_code") @db.VarChar(80)
@@ -1785,6 +1804,7 @@ model MaterialIssue {
 }
 
 model MaterialIssueItem {
+  materialRequestLink MaterialRequestIssueLink?
   id              String   @id @default(uuid()) @db.Uuid
   materialIssueId String   @map("material_issue_id") @db.Uuid
   lineNo          Int      @map("line_no")
@@ -3300,4 +3320,143 @@ model HrReplay {
   actor User @relation("HrReplayActor", fields: [actorUserId], references: [id], onDelete: Restrict)
   @@unique([companyId, actorUserId, requestId])
   @@map("hr_replays")
+}
+
+
+model MaterialRequest {
+  id String @id @default(uuid()) @db.Uuid
+  companyId String @map("company_id") @db.Uuid
+  projectId String @map("project_id") @db.Uuid
+  warehouseId String @map("warehouse_id") @db.Uuid
+  requesterEmployeeId String @map("requester_employee_id") @db.Uuid
+  requestDate DateTime @map("request_date") @db.Date
+  remarks String? @db.Text
+  version Int @default(1)
+  createdByUserId String @map("created_by_user_id") @db.Uuid
+  updatedByUserId String @map("updated_by_user_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  warehouse Warehouse @relation(fields: [warehouseId], references: [id], onDelete: Restrict)
+  requester Employee @relation("MaterialRequestRequester", fields: [requesterEmployeeId], references: [id], onDelete: Restrict)
+  createdBy User @relation("MaterialRequestCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  updatedBy User @relation("MaterialRequestEditor", fields: [updatedByUserId], references: [id], onDelete: Restrict)
+  lines MaterialRequestLine[]
+  revisions MaterialRequestRevision[]
+  issueLinks MaterialRequestIssueLink[]
+  receipts MaterialRequestReceipt[]
+  operations MaterialRequestOperation[]
+
+  @@index([companyId, projectId, createdAt])
+  @@map("material_requests")
+}
+
+model MaterialRequestLine {
+  id String @id @default(uuid()) @db.Uuid
+  requestId String @map("request_id") @db.Uuid
+  lineNo Int @map("line_no")
+  materialId String @map("material_id") @db.Uuid
+  uomId String @map("uom_id") @db.Uuid
+  requestedQuantity Decimal @map("requested_quantity") @db.Decimal(18, 4)
+  wbsId String? @map("wbs_id") @db.Uuid
+  costCodeId String? @map("cost_code_id") @db.Uuid
+  activityId String? @map("activity_id") @db.Uuid
+  remarks String? @db.Text
+
+  request MaterialRequest @relation(fields: [requestId], references: [id], onDelete: Restrict)
+  material Material @relation(fields: [materialId], references: [id], onDelete: Restrict)
+  uom UnitOfMeasure @relation(fields: [uomId], references: [id], onDelete: Restrict)
+  wbs WbsElement? @relation(fields: [wbsId], references: [id], onDelete: Restrict)
+  costCode CostCode? @relation(fields: [costCodeId], references: [id], onDelete: Restrict)
+  activity Activity? @relation(fields: [activityId], references: [id], onDelete: Restrict)
+  issueLinks MaterialRequestIssueLink[]
+
+  @@unique([requestId, lineNo])
+  @@map("material_request_lines")
+}
+
+model MaterialRequestRevision {
+  id String @id @default(uuid()) @db.Uuid
+  requestId String @map("request_id") @db.Uuid
+  version Int
+  action String @db.VarChar(20)
+  actorUserId String @map("actor_user_id") @db.Uuid
+  reason String @db.Text
+  snapshot Json @db.JsonB
+  recordedAt DateTime @default(now()) @map("recorded_at") @db.Timestamptz(6)
+
+  request MaterialRequest @relation(fields: [requestId], references: [id], onDelete: Restrict)
+  actor User @relation(fields: [actorUserId], references: [id], onDelete: Restrict)
+  operation MaterialRequestOperation?
+
+  @@unique([requestId, version])
+  @@map("material_request_revisions")
+}
+
+model MaterialRequestIssueLink {
+  id String @id @default(uuid()) @db.Uuid
+  requestId String @map("request_id") @db.Uuid
+  requestLineId String @map("request_line_id") @db.Uuid
+  materialIssueItemId String @unique @map("material_issue_item_id") @db.Uuid
+  linkedByUserId String @map("linked_by_user_id") @db.Uuid
+  linkedAt DateTime @default(now()) @map("linked_at") @db.Timestamptz(6)
+
+  request MaterialRequest @relation(fields: [requestId], references: [id], onDelete: Restrict)
+  requestLine MaterialRequestLine @relation(fields: [requestLineId], references: [id], onDelete: Restrict)
+  issueItem MaterialIssueItem @relation(fields: [materialIssueItemId], references: [id], onDelete: Restrict)
+  linkedBy User @relation(fields: [linkedByUserId], references: [id], onDelete: Restrict)
+  receipts MaterialRequestReceipt[]
+
+  @@index([requestId, requestLineId])
+  @@map("material_request_issue_links")
+}
+
+model MaterialRequestReceipt {
+  id String @id @default(uuid()) @db.Uuid
+  requestId String @map("request_id") @db.Uuid
+  issueLinkId String @map("issue_link_id") @db.Uuid
+  recipientEmployeeId String @map("recipient_employee_id") @db.Uuid
+  issuerEmployeeId String @map("issuer_employee_id") @db.Uuid
+  receivedAt DateTime @map("received_at") @db.Timestamptz(6)
+  documentId String @map("document_id") @db.Uuid
+  evidenceChecksum String @map("evidence_checksum") @db.VarChar(64)
+  signedEvidenceConfirmed Boolean @map("signed_evidence_confirmed")
+  supersedesReceiptId String? @unique @map("supersedes_receipt_id") @db.Uuid
+  reason String @db.Text
+  recordedByUserId String @map("recorded_by_user_id") @db.Uuid
+  recordedAt DateTime @default(now()) @map("recorded_at") @db.Timestamptz(6)
+
+  request MaterialRequest @relation(fields: [requestId], references: [id], onDelete: Restrict)
+  issueLink MaterialRequestIssueLink @relation(fields: [issueLinkId], references: [id], onDelete: Restrict)
+  recipient Employee @relation("MaterialRequestRecipient", fields: [recipientEmployeeId], references: [id], onDelete: Restrict)
+  issuer Employee @relation("MaterialRequestIssuer", fields: [issuerEmployeeId], references: [id], onDelete: Restrict)
+  document Document @relation(fields: [documentId], references: [id], onDelete: Restrict)
+  recordedBy User @relation(fields: [recordedByUserId], references: [id], onDelete: Restrict)
+  supersedes MaterialRequestReceipt? @relation("MaterialRequestReceiptCorrection", fields: [supersedesReceiptId], references: [id], onDelete: Restrict)
+  correction MaterialRequestReceipt? @relation("MaterialRequestReceiptCorrection")
+
+  @@index([requestId, issueLinkId, recordedAt])
+  @@map("material_request_receipts")
+}
+
+model MaterialRequestOperation {
+  id String @id @default(uuid()) @db.Uuid
+  companyId String @map("company_id") @db.Uuid
+  actorUserId String @map("actor_user_id") @db.Uuid
+  action String @db.VarChar(20)
+  requestKey String @map("request_key") @db.VarChar(120)
+  bodyDigest String @map("body_digest") @db.VarChar(64)
+  requestId String @map("request_id") @db.Uuid
+  revisionId String @unique @map("revision_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  actor User @relation(fields: [actorUserId], references: [id], onDelete: Restrict)
+  request MaterialRequest @relation(fields: [requestId], references: [id], onDelete: Restrict)
+  revision MaterialRequestRevision @relation(fields: [revisionId], references: [id], onDelete: Restrict)
+
+  @@unique([companyId, actorUserId, action, requestKey])
+  @@map("material_request_operations")
 }

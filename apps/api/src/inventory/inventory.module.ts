@@ -1,3 +1,6 @@
+import { DocumentsModule } from '../documents/documents.module';
+import { MaterialRequestController } from './material-request.controller';
+import { MaterialRequestService } from './material-request.service';
 import { Module } from '@nestjs/common';
 
 import { AdministrationModule } from '../administration/administration.module';
@@ -27,6 +30,7 @@ import { StockCountService } from './stock-count.service';
 
 @Module({
   imports: [
+    DocumentsModule,
     PrismaModule,
     AuthModule,
     AuthorizationModule,
@@ -36,6 +40,7 @@ import { StockCountService } from './stock-count.service';
     AdministrationModule,
   ],
   controllers: [
+    MaterialRequestController,
     InventoryController,
     InventoryReportController,
     GoodsReceiptController,
@@ -45,6 +50,7 @@ import { StockCountService } from './stock-count.service';
     StockCountController,
   ],
   providers: [
+    MaterialRequestService,
     InventoryService,
     InventoryReportService,
     GoodsReceiptService,
@@ -57,6 +63,7 @@ import { StockCountService } from './stock-count.service';
     StockCountService,
   ],
   exports: [
+    MaterialRequestService,
     InventoryService,
     InventoryReportService,
     GoodsReceiptService,

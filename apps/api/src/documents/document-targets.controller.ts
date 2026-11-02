@@ -56,6 +56,7 @@ function targetType(value: string): DocumentTargetType {
     'GOODS_RECEIPT',
     'MATERIAL_RESERVATION',
     'MATERIAL_ISSUE',
+    'MATERIAL_REQUEST',
     'MATERIAL_RETURN',
     'STOCK_TRANSFER',
     'SUPPLIER_INVOICE',

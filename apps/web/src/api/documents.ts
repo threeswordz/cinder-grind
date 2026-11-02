@@ -28,6 +28,7 @@ export type DocumentTargetType =
   | 'GOODS_RECEIPT'
   | 'MATERIAL_RESERVATION'
   | 'MATERIAL_ISSUE'
+  | 'MATERIAL_REQUEST'
   | 'MATERIAL_RETURN'
   | 'STOCK_TRANSFER'
   | 'SUPPLIER_INVOICE'
@@ -40,6 +41,7 @@ export type DocumentTargetType =
   | 'SUBCONTRACT_VARIATION';
 
 export type DocumentTargetOptions = {
+  materialRequests?: Array<{id:string;requestDate:string}>;
   boqs: {id:string;boqName:string}[];
   budgetRevisions: {id:string;revisionNumber:string}[];
   customerBoqs: {id:string;versionNo:number}[];

@@ -510,6 +510,15 @@ export class IdentityAdminService {
     permissionCodes: string[],
   ) {
     const uniqueCodes = [...new Set(permissionCodes)];
+    if (uniqueCodes.some(code => code.startsWith('inventory.material_request.') && code !== 'inventory.material_request.view') && !uniqueCodes.includes('inventory.material_request.view')) {
+      throw new UnprocessableEntityException({code:'MATERIAL_REQUEST_VIEW_REQUIRED'});
+    }
+    if (uniqueCodes.includes('inventory.material_request.link') && !uniqueCodes.includes('inventory.issue.view')) {
+      throw new UnprocessableEntityException({code:'MATERIAL_REQUEST_ISSUE_VIEW_REQUIRED'});
+    }
+    if (uniqueCodes.includes('inventory.material_request.acknowledge') && !['inventory.issue.view','documents.document.view'].every(p=>uniqueCodes.includes(p))) {
+      throw new UnprocessableEntityException({code:'MATERIAL_REQUEST_RECEIPT_VIEW_REQUIRED'});
+    }
     const subcontractPermissionGroups = [
       {
         view: 'subcontracts.subcontractor.view',

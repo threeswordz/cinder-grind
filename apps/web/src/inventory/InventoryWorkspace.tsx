@@ -1,3 +1,7 @@
+import { MaterialRequestsPanel } from './MaterialRequestsPanel';
+import { useContext } from 'react';
+import { MonetaryLocaleContext } from '../role-ui/monetary-presentation';
+import { materialRequestLabels } from './material-request-labels';
 import { Alert, Stack, Tab, Tabs } from '@mui/material';
 import { useEffect, useRef, useState } from 'react';
 
@@ -13,6 +17,7 @@ import { WarehousesPanel } from './WarehousesPanel';
 import type { SourceLinkTarget } from '../role-ui/source-link-policy';
 
 type InventoryTab =
+  | 'requests'
   | 'warehouses'
   | 'receipts'
   | 'stock'
@@ -34,6 +39,8 @@ export function InventoryWorkspace({
   initialReceiptId?: string | undefined;
   onOpenSource?: ((target: SourceLinkTarget) => void) | undefined;
 }) {
+  const requestText = materialRequestLabels[useContext(MonetaryLocaleContext)];
+  const canSeeRequests = permissions.includes('inventory.material_request.view');
   const canSeeWarehouses = permissions.includes('inventory.warehouse.view');
   const canSeeReceipts = permissions.includes('inventory.receipt.view');
   const canSeeStock = permissions.includes('inventory.stock.view');
@@ -43,7 +50,7 @@ export function InventoryWorkspace({
   const canSeeReturns = permissions.includes('inventory.return.view');
   const canSeeTransfers = permissions.includes('inventory.transfer.view');
   const canSeeReports = permissions.includes('inventory.report.view');
-  const first: InventoryTab = canSeeWarehouses
+  const first: InventoryTab = canSeeRequests ? 'requests' : canSeeWarehouses
     ? 'warehouses'
     : canSeeReceipts
       ? 'receipts'
@@ -67,6 +74,7 @@ export function InventoryWorkspace({
     if (initialReceiptId && canSeeReceipts) setSelected('receipts');
   }, [initialReceiptId, canSeeReceipts]);
   if (
+    !canSeeRequests &&
     !canSeeWarehouses &&
     !canSeeReceipts &&
     !canSeeStock &&
@@ -80,7 +88,7 @@ export function InventoryWorkspace({
     return <Alert severity="info">Inventory view permission is required.</Alert>;
   }
   const active: InventoryTab =
-    selected === 'warehouses' && canSeeWarehouses
+    selected === 'requests' && canSeeRequests ? 'requests' : selected === 'warehouses' && canSeeWarehouses
       ? 'warehouses'
       : selected === 'receipts' && canSeeReceipts
         ? 'receipts'
@@ -102,6 +110,7 @@ export function InventoryWorkspace({
   return (
     <Stack spacing={2}>
       <Tabs value={active} onChange={(_event, value: InventoryTab) => setSelected(value)}>
+        {canSeeRequests ? <Tab value="requests" label={requestText.title} /> : null}
         {canSeeWarehouses ? <Tab value="warehouses" label="Warehouses" /> : null}
         {canSeeReceipts ? <Tab value="receipts" label="Goods Receipts" /> : null}
         {canSeeStock ? <Tab value="stock" label="Stock Balance" /> : null}
@@ -112,7 +121,9 @@ export function InventoryWorkspace({
         {canSeeTransfers ? <Tab value="transfers" label="Stock Transfers" /> : null}
         {canSeeReports ? <Tab value="reports" label="Reports" /> : null}
       </Tabs>
-      {active === 'warehouses' ? (
+      {active === 'requests' ? (
+        <MaterialRequestsPanel permissions={permissions}/>
+      ) : active === 'warehouses' ? (
         <WarehousesPanel permissions={permissions} />
       ) : active === 'receipts' ? (
         <GoodsReceiptsPanel
