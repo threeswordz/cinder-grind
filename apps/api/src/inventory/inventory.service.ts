@@ -11,6 +11,7 @@ import { AuditService } from '../audit/audit.service';
 import { AuthenticatedUserContext } from '../auth/auth.types';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProjectAccessService } from '../projects/project-access.service';
+import { isMaterialPlanWarehouseScopeConflict } from './material-plan-errors';
 
 type AuditContext = {
   auth: AuthenticatedUserContext;
@@ -224,9 +225,7 @@ export class InventoryService {
         return row;
       });
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003' &&
-          ['material_usage_plans_warehouse_scope_fkey', 'material_usage_plans_warehouse_scope_fkey (index)']
-            .includes(String(error.meta?.field_name))) {
+      if (isMaterialPlanWarehouseScopeConflict(error)) {
         throw this.materialPlanWarehouseScopeConflict();
       }
       this.throwUnique(error);

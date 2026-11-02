@@ -17,3 +17,12 @@ export function materialPlanIntegrityException(error:unknown):ConflictException|
   error.message.includes('PostgresError { code: "P0001", message: "'+message+'"')))
   return new ConflictException({code:'MATERIAL_PLAN_INTEGRITY_CONFLICT'});
 }
+
+// Native Prisma may identify a SQL-only composite FK in its exact constraint
+// message rather than meta.field_name. Never classify another FK/server error.
+export function isMaterialPlanWarehouseScopeConflict(error:unknown):boolean{
+ const name='material_usage_plans_warehouse_scope_fkey';
+ return error instanceof Prisma.PrismaClientKnownRequestError&&error.code==='P2003'&&
+  ([name,name+' (index)'].includes(String(error.meta?.field_name))||
+   error.message.includes('Foreign key constraint violated on the constraint: `'+name+'`'));
+}

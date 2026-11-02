@@ -2,7 +2,7 @@ import 'reflect-metadata';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {randomUUID} from 'node:crypto';
-import {Prisma} from '@prisma/client';
+import {isMaterialPlanWarehouseScopeConflict} from './material-plan-errors';
 import {NestFactory} from '@nestjs/core';
 import {AppModule} from '../app.module';
 import {PrismaService} from '../prisma/prisma.service';
@@ -108,7 +108,7 @@ test('MP-AC-01–06 foundation authenticates quantity-only plans and immutable i
    p=(await call(f.manager,'/'+p.id+'/decision',201,{requestKey:randomUUID(),expectedVersion:p.version,decision:'APPROVE',comment:'Plan-only warehouse checker'})).data;
    await patch({projectId:f.unassigned.id},409);
    await patch({projectId:null,isSiteWarehouse:false},409);
-   await assert.rejects(()=>db.warehouse.update({where:{id:wh.id},data:{projectId:f.unassigned.id}}),e=>e instanceof Prisma.PrismaClientKnownRequestError&&e.code==='P2003'&&String(e.meta?.field_name).includes('material_usage_plans_warehouse_scope_fkey'));
+   await assert.rejects(()=>db.warehouse.update({where:{id:wh.id},data:{projectId:f.unassigned.id}}),isMaterialPlanWarehouseScopeConflict);
    await patch({warehouseName:'Descriptive edit remains allowed',projectId:f.project.id},200);
    p=(await call(f.store,'/'+p.id+'/revisions',201,{requestKey:randomUUID(),expectedVersion:p.version,validFrom:input.validFrom,validTo:input.validTo,reason:'Release allocation after denied move',lines:[{...input.lines[0],quantity:'1'}]})).data;
    p=(await call(f.store,'/'+p.id+'/submit',201,{requestKey:randomUUID(),expectedVersion:p.version})).data;

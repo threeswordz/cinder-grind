@@ -13,7 +13,7 @@ test('material plan input preserves exact quantities, valid dates and strict rep
 });
 
 import {Prisma} from '@prisma/client';
-import {materialPlanIntegrityException} from './material-plan-errors';
+import {materialPlanIntegrityException,isMaterialPlanWarehouseScopeConflict} from './material-plan-errors';
 test('only exact Prisma material-plan allocation guards become safe conflicts',()=>{
  const message='PostgresError { code: "P0001", message: "Material plan cumulative source allocation exceeded", severity: "ERROR" }';
  const unknown=(text:string)=>new Prisma.PrismaClientUnknownRequestError(text,{clientVersion:'6.19.3'});
@@ -24,6 +24,15 @@ test('only exact Prisma material-plan allocation guards become safe conflicts',(
 });
 
 import {MaterialPlanService} from './material-plan.service';
+test('warehouse scope conflict recognizes the native exact constraint without broad FK or server error masking',()=>{
+ const message='Foreign key constraint violated on the constraint: `material_usage_plans_warehouse_scope_fkey`';
+ const known=(text:string,code='P2003',meta?:Record<string,unknown>)=>new Prisma.PrismaClientKnownRequestError(text,{clientVersion:'6.19.3',code,...(meta?{meta}:{})});
+ assert.equal(isMaterialPlanWarehouseScopeConflict(known(message)),true);
+ assert.equal(isMaterialPlanWarehouseScopeConflict(known('metadata-only','P2003',{field_name:'material_usage_plans_warehouse_scope_fkey (index)'})),true);
+ assert.equal(isMaterialPlanWarehouseScopeConflict(known(message.replace('_warehouse_scope_fkey','_another_fkey'))),false);
+ assert.equal(isMaterialPlanWarehouseScopeConflict(known(message,'P2034')),false);
+ assert.equal(isMaterialPlanWarehouseScopeConflict(new Error(message)),false);
+});
 import {ConflictException} from '@nestjs/common';
 test('exhausted serializable retries return a bounded conflict without leaking database details',async()=>{
  let attempts=0;
