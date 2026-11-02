@@ -84,7 +84,7 @@ test('source PASS cannot certify retained permissions, human acceptance or go-li
   const guards=['AuthGuard',...(options.csrf?['CsrfGuard']:[]),'PermissionGuard'];
   const permissions=[r[4],...(options.extraPermissions||[])];
   fixtures.set(file,(fixtures.get(file)||"@Controller('"+controller+"')\nexport class Mock {\n")+
-   method+'\n@UseGuards('+guards.join(', ')+')\n@RequirePermissions('+permissions.map(p=>"'"+p+"'").join(', ')+')\nasync action"+r[0]+"(){}\n");
+   method+'\n@UseGuards('+guards.join(', ')+')\n@RequirePermissions('+permissions.map(p=>"'"+p+"'").join(', ')+')\nasync action'+r[0]+'(){}\n');
  }
  let reads=0;
  const read=async path=>{reads++;const value=fixtures.get(path.replace(/^\/fake\//,''));if(typeof value!=='string')throw Error('UNEXPECTED_INPUT');return path.includes('/apps/api/')?value+'\n}':value;};
