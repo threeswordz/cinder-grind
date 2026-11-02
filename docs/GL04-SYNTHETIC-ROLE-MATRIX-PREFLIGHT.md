@@ -23,7 +23,7 @@ node deploy/release-candidate/gl04-synthetic-role-matrix-preflight.mjs --evaluat
 ### Status classification
 
 - For `ALLOW`, accepted HTTP codes are **200/201/204**; for `DENY_AUTH`, **401/403/404**; for `DENY_POLICY`, **403/409**. A server error, HTTP 409 used to disguise an authorization failure, or a missing scenario blocks structural consistency.
-- Each of the 24 rows must match its source-declared actor, synthetic Company/Project, permission and captured timestamp, and provide opaque references (placeholders and URLs are rejected). The source and runtime SHAs must equal the externally supplied exact main SHA. A strict UTC captured timestamp must be no older than 48 hours (or more than 5 minutes in the future).
+- Each of the 24 rows must match its source-declared actor, synthetic Company/Project, permission and individual UTC observation timestamp no more than two hours before the packet capture time, and provide opaque references (placeholders and URLs are rejected). The source and runtime SHAs must equal the externally supplied exact main SHA. A strict UTC captured timestamp must be no older than 48 hours (or more than 5 minutes in the future).
 - Unknown top-level/fixture/scenario fields reject, and output reports **only stable gap codes and scenario IDs**. This is deliberate: never surface private user info or content through GitHub checks.
 - The role assertions are temporary synthetic targets. They are not hard-coded runtime grants or authorization for real MKE/TCJ actor changes. The separate dedicated HR1-A loopback role-assurance runner remains available for deeper authenticated privacy checks.
 
