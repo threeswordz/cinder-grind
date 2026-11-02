@@ -7,15 +7,27 @@ function packet(){
  const p=emptyRoleMatrixTemplate();
  p.mainSha=p.runtimeSha=SHA;p.capturedAt=ISO;
  p.fixture.fixtureEvidenceId='CASE-FIXTURE-001';
+ for(const [role,binding] of Object.entries(p.fixture.actorBindings)){
+  binding.key='ACTOR_'+role.replaceAll('_','');
+  binding.roleEvidenceId='CASE-ROLE-'+role;
+ }
+ const makers={
+  BEN_PO_APPROVE:'JAI',KHAIMOOK_GR_APPROVE:'STORE_SITE',
+  KHAIMOOK_COUNT_APPROVE:'STORE_SITE',NANCY_CUSTOMER_BOQ_APPROVE:'BEN'
+ };
  for(const row of p.scenarios){
   const s=SCENARIOS.find(x=>x.id===row.id);
   row.httpStatus=s.outcome==='ALLOW'?200:s.outcome==='DENY_AUTH'?403:409;
+  row.actorKey=p.fixture.actorBindings[row.actor].key;
   row.observedAt=ISO;row.evidenceId='CASE-RUNTIME-'+row.id;
   row.requestAuditId='CASE-AUDIT-'+row.id;
   if(row.separation){
-   row.separation.actorKey='ACTOR_02';
-   row.separation.makerKey=s.outcome==='DENY_POLICY'?'ACTOR_02':'ACTOR_01';
+   row.separation.actorKey=row.actorKey;
+   row.separation.makerKey=s.outcome==='DENY_POLICY'?row.actorKey:
+      p.fixture.actorBindings[makers[row.id]].key;
    row.separation.immutableDecisionEvidenceId='CASE-DECISION-'+row.id;
+   if(s.outcome==='DENY_POLICY')
+     row.separation.eligibilityEvidenceId='CASE-ELIGIBILITY-'+row.id;
   }
  }
  return p;
@@ -79,6 +91,28 @@ test('missing, duplicate and unexpected scenarios cannot be silently counted',()
  check(p=>p.scenarios.push({...p.scenarios[0],id:'UNKNOWN'}),'UNEXPECTED_OR_INVALID_SCENARIO');
  check(p=>p.scenarios={},'SCENARIO_ARRAY_INVALID');
 });
+test('synthetic role identity must be distinct and stable across positive and negative probes',()=>{
+ check(p=>p.fixture.actorBindings.KOH.key=p.fixture.actorBindings.PORN.key,'SYNTHETIC_FIXTURE_SCOPE_UNVERIFIED');
+ check(p=>delete p.fixture.actorBindings.JAI,'SYNTHETIC_FIXTURE_SCOPE_UNVERIFIED');
+ check(p=>p.fixture.actorBindings.STORE_SITE.roleEvidenceId='FILL_ROLE','SYNTHETIC_FIXTURE_SCOPE_UNVERIFIED');
+ check(p=>row(p,'FOREMAN_COUNT_DENIED').actorKey=p.fixture.actorBindings.STORE_SITE.key,'ACTOR_BINDING_MISMATCH');
+ check(p=>row(p,'STORE_OTHER_COMPANY_DENIED').actorKey=p.fixture.actorBindings.JAI.key,'ACTOR_BINDING_MISMATCH');
+ check(p=>row(p,'STORE_COUNT_CREATE').actorKey='ACTOR_FAKE','ACTOR_BINDING_MISMATCH');
+});
+test('successful approval must cite its correct maker role, not merely a different token',()=>{
+ check(p=>row(p,'BEN_PO_APPROVE').separation.makerKey=p.fixture.actorBindings.FOREMAN.key,
+   'INDEPENDENT_APPROVAL_NOT_TRACED');
+ check(p=>row(p,'KHAIMOOK_COUNT_APPROVE').separation.makerKey=p.fixture.actorBindings.JAI.key,
+   'INDEPENDENT_APPROVAL_NOT_TRACED');
+ check(p=>row(p,'NANCY_CUSTOMER_BOQ_APPROVE').separation.makerKey=p.fixture.actorBindings.KOH.key,
+   'INDEPENDENT_APPROVAL_NOT_TRACED');
+ check(p=>row(p,'JAI_PO_SELF_APPROVE').separation.actorKey=p.fixture.actorBindings.BEN.key,
+   'MAKER_CHECKER_DENIAL_NOT_TRACED');
+ check(p=>delete row(p,'STORE_COUNT_SELF_APPROVE').separation.eligibilityEvidenceId,
+   'MAKER_CHECKER_DENIAL_NOT_TRACED');
+ check(p=>row(p,'FOREMAN_WEEKLY_VIEW').separation={actorKey:'ACTOR_FAKE'},
+   'UNEXPECTED_SEPARATION_ON_UNRELATED_SCENARIO');
+});
 test('scenario role, Company, Project, permission, transport and provenance are pinned',()=>{
  check(p=>row(p,'FOREMAN_COUNT_DENIED').actor='STORE_SITE','SCENARIO_PROVENANCE_OR_SCOPE_INVALID');
  check(p=>row(p,'STORE_OTHER_COMPANY_DENIED').company='PROTO_A','SCENARIO_PROVENANCE_OR_SCOPE_INVALID');
@@ -97,14 +131,14 @@ test('authorization denials cannot be faked with 409, and 500 is never a PASS',(
 test('positive independent approvals require different maker/checker actor keys',()=>{
  for(const id of ['BEN_PO_APPROVE','KHAIMOOK_GR_APPROVE','KHAIMOOK_COUNT_APPROVE',
   'NANCY_CUSTOMER_BOQ_APPROVE']){
-  check(p=>row(p,id).separation.makerKey='ACTOR_02','INDEPENDENT_APPROVAL_NOT_TRACED');
+  check(p=>row(p,id).separation.makerKey=row(p,id).separation.actorKey,'INDEPENDENT_APPROVAL_NOT_TRACED');
   check(p=>row(p,id).separation.actorKey='','INDEPENDENT_APPROVAL_NOT_TRACED');
  }
 });
 test('self-approval negative traces require the *same* actor key',()=>{
  for(const id of ['JAI_PO_SELF_APPROVE','STORE_COUNT_SELF_APPROVE',
   'BEN_CUSTOMER_BOQ_SELF_APPROVE']){
-  check(p=>row(p,id).separation.makerKey='ACTOR_01','MAKER_CHECKER_DENIAL_NOT_TRACED');
+  check(p=>row(p,id).separation.makerKey='ACTOR_INVALID','MAKER_CHECKER_DENIAL_NOT_TRACED');
   check(p=>row(p,id).separation.actorKey='','MAKER_CHECKER_DENIAL_NOT_TRACED');
  }
 });
