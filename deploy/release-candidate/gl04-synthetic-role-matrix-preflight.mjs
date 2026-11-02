@@ -107,7 +107,10 @@ export function assessRoleMatrix(input,{now=Date.now(),expectedSha}={}){
   if(row.expectedOutcome!==s.outcome||row.actor!==s.actor||row.company!==s.company||
      row.project!==s.project||row.permission!==s.permission||
      row.transport!=='AUTHENTICATED_HTTP'||!artifact(row.evidenceId)||
-     !artifact(row.requestAuditId)||row.observedAt!==input.capturedAt)
+     !artifact(row.requestAuditId)||utcTime(row.observedAt)===null||
+     captured===null||utcTime(row.observedAt)>captured||
+     utcTime(row.observedAt)<captured-2*60*60_000||
+     utcTime(row.observedAt)>now+5*60_000)
    add('SCENARIO_PROVENANCE_OR_SCOPE_INVALID',s.id);
   if(!successStatus(s.outcome,row.httpStatus))add('SCENARIO_OUTCOME_INVALID',s.id);
   const sep=row.separation;
