@@ -11,6 +11,7 @@ import { AuditService } from '../audit/audit.service';
 import { AuthenticatedUserContext } from '../auth/auth.types';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProjectAccessService } from '../projects/project-access.service';
+import { isMaterialPlanWarehouseScopeConflict } from './material-plan-errors';
 
 type AuditContext = {
   auth: AuthenticatedUserContext;
@@ -179,6 +180,11 @@ export class InventoryService {
           await this.assertActiveProject(context.auth, projectId, tx);
         }
 
+        if (projectId !== before.projectId &&
+            await tx.materialUsagePlan.findFirst({where:{warehouseId:id},select:{id:true}})) {
+          throw this.materialPlanWarehouseScopeConflict();
+        }
+
         const row = await tx.warehouse.update({
           where: { id },
           data: {
@@ -219,6 +225,9 @@ export class InventoryService {
         return row;
       });
     } catch (error) {
+      if (isMaterialPlanWarehouseScopeConflict(error)) {
+        throw this.materialPlanWarehouseScopeConflict();
+      }
       this.throwUnique(error);
       throw error;
     }
@@ -358,6 +367,10 @@ export class InventoryService {
         detail: 'A Site Warehouse must belong to a Project.',
       });
     }
+  }
+
+  private materialPlanWarehouseScopeConflict() {
+    return new ConflictException({code:'MATERIAL_PLAN_WAREHOUSE_SCOPE_IMMUTABLE'});
   }
 
   private throwUnique(error: unknown): void {

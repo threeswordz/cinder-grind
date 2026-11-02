@@ -398,6 +398,14 @@ jobs:
           RC_PREVIOUS_RELEASE_COMMIT=3a5ae8a92083a2bd03f4159b1e84d0565e7e78ec \
             RC_EVIDENCE_FILE=/tmp/material-request-rehearsal.json \
             bash deploy/release-candidate/rehearse.sh
+      - name: Rehearse exact material-plan entry predecessor
+        env:
+          RC_PREVIOUS_RELEASE_COMMIT: 34e022d5807d3e16458437a02ebba669ba838c6a
+          RC_NON_PRODUCTION_CONFIRMED: 'YES'
+          RC_POSTGRES_TOOL_MODE: docker
+          RC_BASE_DATABASE_URL: ${{ env.DATABASE_URL }}
+          RC_EVIDENCE_FILE: /tmp/material-plan-rehearsal.json
+        run: bash deploy/release-candidate/rehearse.sh
       - name: Reset CI state before authenticated recovery fixture
         run: |
           set -euo pipefail
@@ -698,7 +706,7 @@ jobs:
           node --input-type=module - <<'NODE'
           import { readFileSync } from 'node:fs';
           const data = JSON.parse(readFileSync('/tmp/v1-3-customer-boq-consolidated-evidence.json', 'utf8'));
-          const beforeCustomer = (await import('./deploy/release-candidate/material-request-schema-contract.mjs')).materialRequestMode(data.releaseMode).prior;
+          const beforeCustomer = (await import('./deploy/release-candidate/material-request-schema-contract.mjs')).materialRequestMode((await import('./deploy/release-candidate/material-plan-schema-contract.mjs')).materialPlanMode(data.releaseMode).prior).prior;
           const customerMode = beforeCustomer.startsWith('migration-aware-stock-count-')
             ? 'migration-aware-' + beforeCustomer.slice('migration-aware-stock-count-'.length)
             : beforeCustomer;
@@ -712,7 +720,7 @@ jobs:
           node --input-type=module - <<'NODE'
           import { readFileSync } from 'node:fs';
           const data = JSON.parse(readFileSync('/tmp/hr1-a-employee-consolidated-evidence.json','utf8'));
-          const beforeHr = (await import('./deploy/release-candidate/material-request-schema-contract.mjs')).materialRequestMode(data.releaseMode).prior;
+          const beforeHr = (await import('./deploy/release-candidate/material-request-schema-contract.mjs')).materialRequestMode((await import('./deploy/release-candidate/material-plan-schema-contract.mjs')).materialPlanMode(data.releaseMode).prior).prior;
           const hrMode = beforeHr.startsWith('migration-aware-stock-count-')
             ? 'migration-aware-' + beforeHr.slice('migration-aware-stock-count-'.length)
             : beforeHr;
@@ -725,6 +733,15 @@ jobs:
           node --input-type=module - <<'NODE'
           import {readFileSync} from 'node:fs';
           const data=JSON.parse(readFileSync('/tmp/material-request-consolidated-evidence.json','utf8'));
-          if(data.releaseMode!=='migration-aware-material-request-schema'||data.rehearsal.previousReleaseCommit!=='3a5ae8a92083a2bd03f4159b1e84d0565e7e78ec')throw Error('Exact material request predecessor proof missing');
+          if((await import('./deploy/release-candidate/material-plan-schema-contract.mjs')).materialPlanMode(data.releaseMode).prior!=='migration-aware-material-request-schema'||data.rehearsal.previousReleaseCommit!=='3a5ae8a92083a2bd03f4159b1e84d0565e7e78ec')throw Error('Exact material request predecessor proof missing');
           for(const key of ['materialRequestSchemaUpgrade','materialRequestHistoricalPreservation','materialRequestHttpUpgrade','materialRequestSignedReceiptRecovery'])if(data.rehearsal[key]!=='PASS')throw Error('Material request proof missing: '+key);
+          NODE
+          node deploy/release-candidate/verify-evidence.mjs \
+            /tmp/material-plan-rehearsal.json /tmp/v1-0-e-recovery.json \
+            > /tmp/material-plan-consolidated-evidence.json
+          node --input-type=module - <<'NODE'
+          import {readFileSync} from 'node:fs';
+          const data=JSON.parse(readFileSync('/tmp/material-plan-consolidated-evidence.json','utf8'));
+          if(data.releaseMode!=='migration-aware-material-plan-schema'||data.rehearsal.previousReleaseCommit!=='34e022d5807d3e16458437a02ebba669ba838c6a')throw Error('Exact material plan predecessor proof missing');
+          for(const key of ['materialPlanSchemaUpgrade','materialPlanHistoricalPreservation','materialPlanHttpUpgrade','materialPlanPopulatedRecovery'])if(data.rehearsal[key]!=='PASS')throw Error('Material plan proof missing: '+key);
           NODE

@@ -128,3 +128,11 @@ test('DEC-043 material-request evidence requires version10, exact migration, pre
  assert.notEqual(verify({...data,version:9}).status,0);
  assert.notEqual(verify({...data,migrationNames:['20261102080000_other']}).status,0);
 });
+
+test('DEC-044 plan foundation evidence requires version11 and all exact upgrade/history/restored-runtime gates',()=>{
+ const data={...evidence('migration-aware-material-plan-schema'),version:11,migrationNames:['20261102140000_op_material_plan_01_a','20261103010000_material_plan_warehouse_scope'],materialPlanSchemaUpgrade:'PASS',materialPlanHistoricalPreservation:'PASS',materialPlanHttpUpgrade:'PASS',materialPlanPopulatedRecovery:'PASS'};
+ assert.equal(verify(data).status,0);
+ for(const key of ['materialPlanSchemaUpgrade','materialPlanHistoricalPreservation','materialPlanHttpUpgrade','materialPlanPopulatedRecovery']){const bad={...data};delete bad[key];assert.notEqual(verify(bad).status,0,key);}
+ assert.notEqual(verify({...data,version:10}).status,0);assert.notEqual(verify({...data,migrationNames:['20261102140000_unapproved']}).status,0);
+ assert.notEqual(verify({...data,migrationNames:['20261102140000_op_material_plan_01_a']}).status,0);
+});

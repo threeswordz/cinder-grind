@@ -8,6 +8,8 @@ datasource db {
 }
 
 model Company {
+  materialUsagePlans MaterialUsagePlan[]
+  materialUsagePlanOperations MaterialUsagePlanOperation[]
   materialRequests MaterialRequest[]
   materialRequestOperations MaterialRequestOperation[]
   hrCompanyAccess HrCompanyAccess[]
@@ -142,6 +144,7 @@ model Supplier {
 }
 
 model UnitOfMeasure {
+  materialUsagePlanLines MaterialUsagePlanLine[]
   materialRequestLines MaterialRequestLine[]
   customerBoqLines CustomerBoqLine[]
 
@@ -176,6 +179,7 @@ model UnitOfMeasure {
 }
 
 model Material {
+  materialUsagePlanLines MaterialUsagePlanLine[]
   materialRequestLines MaterialRequestLine[]
   id               String   @id @default(uuid()) @db.Uuid
   companyId        String   @map("company_id") @db.Uuid
@@ -239,6 +243,11 @@ model Employee {
 }
 
 model User {
+  createdMaterialUsagePlans MaterialUsagePlan[] @relation("MaterialUsagePlanCreator")
+  createdMaterialUsagePlanRevisions MaterialUsagePlanRevision[] @relation("MaterialUsagePlanRevisionCreator")
+  submittedMaterialUsagePlanRevisions MaterialUsagePlanRevision[] @relation("MaterialUsagePlanSubmitter")
+  decidedMaterialUsagePlanRevisions MaterialUsagePlanRevision[] @relation("MaterialUsagePlanDecider")
+  materialUsagePlanOperations MaterialUsagePlanOperation[]
   createdMaterialRequests MaterialRequest[] @relation("MaterialRequestCreator")
   updatedMaterialRequests MaterialRequest[] @relation("MaterialRequestEditor")
   materialRequestRevisions MaterialRequestRevision[]
@@ -638,6 +647,7 @@ model SystemSetting {
 
 
 model Project {
+  materialUsagePlans MaterialUsagePlan[]
   materialRequests MaterialRequest[]
   hrEmploymentRevisions HrEmploymentRevision[]
   customerBoqVersions CustomerBoqVersion[]
@@ -1615,6 +1625,7 @@ model SubcontractVariation {
 }
 
 model Warehouse {
+  materialUsagePlans MaterialUsagePlan[]
   materialRequests MaterialRequest[]
   id              String   @id @default(uuid()) @db.Uuid
   companyId       String   @map("company_id") @db.Uuid
@@ -2232,6 +2243,7 @@ model BoqItem {
 }
 
 model BudgetRevision {
+  materialUsagePlans MaterialUsagePlan[]
   customerBoqVersions CustomerBoqVersion[]
 
   id                 String    @id @default(uuid()) @db.Uuid
@@ -2262,6 +2274,7 @@ model BudgetRevision {
 }
 
 model BudgetRevisionLine {
+  materialUsagePlanLines MaterialUsagePlanLine[]
   customerBoqMappings CustomerBoqMapping[]
 
   id               String   @id @default(uuid()) @db.Uuid
@@ -3459,4 +3472,90 @@ model MaterialRequestOperation {
 
   @@unique([companyId, actorUserId, action, requestKey])
   @@map("material_request_operations")
+}
+
+model MaterialUsagePlan {
+  id String @id @default(uuid()) @db.Uuid
+  companyId String @map("company_id") @db.Uuid
+  projectId String @map("project_id") @db.Uuid
+  warehouseId String @map("warehouse_id") @db.Uuid
+  budgetRevisionId String @map("budget_revision_id") @db.Uuid
+  workPackageCode String @map("work_package_code") @db.VarChar(80)
+  version Int @default(1)
+  createdByUserId String @map("created_by_user_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  company Company @relation(fields:[companyId], references:[id], onDelete:Restrict)
+  project Project @relation(fields:[projectId], references:[id], onDelete:Restrict)
+  warehouse Warehouse @relation(fields:[warehouseId], references:[id], onDelete:Restrict)
+  budgetRevision BudgetRevision @relation(fields:[budgetRevisionId], references:[id], onDelete:Restrict)
+  createdBy User @relation("MaterialUsagePlanCreator", fields:[createdByUserId], references:[id], onDelete:Restrict)
+  revisions MaterialUsagePlanRevision[]
+  operations MaterialUsagePlanOperation[]
+  @@unique([companyId,projectId,warehouseId,workPackageCode])
+  @@index([companyId,projectId,id])
+  @@map("material_usage_plans")
+}
+
+model MaterialUsagePlanRevision {
+  id String @id @default(uuid()) @db.Uuid
+  planId String @map("plan_id") @db.Uuid
+  revisionNo Int @map("revision_no")
+  validFrom DateTime @map("valid_from") @db.Date
+  validTo DateTime @map("valid_to") @db.Date
+  reason String @db.VarChar(2000)
+  status String @default("DRAFT") @db.VarChar(20)
+  createdByUserId String @map("created_by_user_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  submittedByUserId String? @map("submitted_by_user_id") @db.Uuid
+  submittedAt DateTime? @map("submitted_at") @db.Timestamptz(6)
+  decidedByUserId String? @map("decided_by_user_id") @db.Uuid
+  decidedAt DateTime? @map("decided_at") @db.Timestamptz(6)
+  decisionComment String? @map("decision_comment") @db.VarChar(2000)
+  plan MaterialUsagePlan @relation(fields:[planId], references:[id], onDelete:Restrict)
+  createdBy User @relation("MaterialUsagePlanRevisionCreator", fields:[createdByUserId], references:[id], onDelete:Restrict)
+  submittedBy User? @relation("MaterialUsagePlanSubmitter", fields:[submittedByUserId], references:[id], onDelete:Restrict)
+  decidedBy User? @relation("MaterialUsagePlanDecider", fields:[decidedByUserId], references:[id], onDelete:Restrict)
+  lines MaterialUsagePlanLine[]
+  operations MaterialUsagePlanOperation[]
+  @@unique([planId,revisionNo])
+  @@index([planId,status,revisionNo])
+  @@map("material_usage_plan_revisions")
+}
+
+model MaterialUsagePlanLine {
+  id String @id @default(uuid()) @db.Uuid
+  revisionId String @map("revision_id") @db.Uuid
+  budgetRevisionLineId String @map("budget_revision_line_id") @db.Uuid
+  materialId String @map("material_id") @db.Uuid
+  uomId String @map("uom_id") @db.Uuid
+  quantity Decimal @db.Decimal(18,4)
+  revision MaterialUsagePlanRevision @relation(fields:[revisionId], references:[id], onDelete:Restrict)
+  budgetRevisionLine BudgetRevisionLine @relation(fields:[budgetRevisionLineId], references:[id], onDelete:Restrict)
+  material Material @relation(fields:[materialId], references:[id], onDelete:Restrict)
+  uom UnitOfMeasure @relation(fields:[uomId], references:[id], onDelete:Restrict)
+  @@unique([revisionId,budgetRevisionLineId])
+  @@index([budgetRevisionLineId])
+  @@map("material_usage_plan_lines")
+}
+
+model MaterialUsagePlanOperation {
+  id String @id @default(uuid()) @db.Uuid
+  companyId String @map("company_id") @db.Uuid
+  actorUserId String @map("actor_user_id") @db.Uuid
+  action String @db.VarChar(20)
+  requestKey String @map("request_key") @db.Uuid
+  bodyDigest String @map("body_digest") @db.VarChar(64)
+  planId String @map("plan_id") @db.Uuid
+  revisionId String @map("revision_id") @db.Uuid
+  planVersion Int @map("plan_version")
+  snapshot Json @db.JsonB
+  outcome Json @db.JsonB
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  company Company @relation(fields:[companyId], references:[id], onDelete:Restrict)
+  actor User @relation(fields:[actorUserId], references:[id], onDelete:Restrict)
+  plan MaterialUsagePlan @relation(fields:[planId], references:[id], onDelete:Restrict)
+  revision MaterialUsagePlanRevision @relation(fields:[revisionId], references:[id], onDelete:Restrict)
+  @@unique([companyId,actorUserId,action,requestKey])
+  @@unique([planId,planVersion])
+  @@map("material_usage_plan_operations")
 }

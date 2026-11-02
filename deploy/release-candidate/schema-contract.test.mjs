@@ -1,3 +1,4 @@
+import {stripMaterialPlanSchema} from './material-plan-schema-contract.mjs';
 import {stripMaterialRequestSchema} from './material-request-schema-contract.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
@@ -36,7 +37,7 @@ test('schema classification rejects unrelated/removal/required/defaulted/partial
 test('Customer BOQ classifier admits only the exact five new models and parent relations', async () => {
   const { readFileSync } = await import('node:fs');
   const current = stripHrDocumentSchema(stripHrSchema(stripStockCountSchema(
-    stripMaterialRequestSchema(readFileSync(new URL('../../apps/api/prisma/schema.prisma', import.meta.url), 'utf8')).text,
+    stripMaterialRequestSchema(stripMaterialPlanSchema(readFileSync(new URL('../../apps/api/prisma/schema.prisma', import.meta.url), 'utf8')).text).text,
   ).text).text).text;
   // The real predecessor schema, independently stored by Git, is the baseline.
   const { execFileSync } = await import('node:child_process');

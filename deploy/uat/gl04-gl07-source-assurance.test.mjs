@@ -141,3 +141,14 @@ test('receipt check must not borrow evidence permission from another method',()=
  assert.equal(inspectRoute(source.replace('CsrfGuard,','/* CsrfGuard, */'),r).result,'CSRF_GUARD_MISSING');
  assert.equal(inspectRoute(source.replace('@UseGuards(AuthGuard, CsrfGuard, PermissionGuard)','// @UseGuards(AuthGuard, CsrfGuard, PermissionGuard)'),r).result,'AUTH_PERMISSION_GUARDS_MISSING');
 });
+
+test('all ten plan foundation routes pin owning controller, permissions, method and write CSRF',()=>{
+ const routes=ROUTES.filter(r=>r[5]?.controller==='inventory/material-plans');assert.equal(routes.length,10);
+ for(const r of routes){const source=materialFixture(r),rights=[r[4],...(r[5].extraPermissions||[])];assert.equal(inspectRoute(source,r).result,'SOURCE_DECORATORS_FOUND');
+  assert.equal(inspectRoute(materialFixture(r,{controller:'wrong-root'}),r).result,'CONTROLLER_PATH_MISMATCH');
+  assert.equal(inspectRoute(source.replace('@'+r[2]+'(','@'+(r[2]==='Get'?'Post':'Get')+'('),r).result,'ROUTE_NOT_FOUND');
+  for(const right of rights)assert.equal(inspectRoute(materialFixture(r,{permissions:rights.filter(p=>p!==right)}),r).result,'PERMISSION_DECORATOR_MISSING');
+  for(const guard of ['AuthGuard','PermissionGuard'])assert.equal(inspectRoute(source.replace(guard,'UnrelatedGuard'),r).result,'AUTH_PERMISSION_GUARDS_MISSING');
+  if(r[5].csrf)assert.equal(inspectRoute(source.replace('CsrfGuard,','/* CsrfGuard, */'),r).result,'CSRF_GUARD_MISSING');
+ }
+});

@@ -102,6 +102,22 @@ test('user and role administration respects company boundaries and revokes sessi
       },
     );
 
+    for (const codes of [
+      ['inventory.material_plan.approve'],
+      ['inventory.material_plan.view', 'inventory.material_plan.create'],
+      ['inventory.material_plan.create', 'budget.quantity.view'],
+    ]) {
+      await assert.rejects(
+        () => service.replaceRolePermissions({ auth }, role.id, codes),
+        (error: unknown) => error instanceof UnprocessableEntityException,
+        'Material plan actions require explicit plan view and source quantity access',
+      );
+    }
+    await service.replaceRolePermissions({ auth }, role.id, [
+      'inventory.material_plan.view', 'inventory.material_plan.create', 'budget.quantity.view',
+    ]);
+    assert.equal(await prisma.rolePermission.count({ where: { roleId: role.id } }), 3);
+
     await assert.rejects(
       () =>
         service.replaceRolePermissions({ auth }, role.id, [
