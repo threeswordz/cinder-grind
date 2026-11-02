@@ -100,6 +100,7 @@ export function DocumentTargetPanel({
         label: row.reservationNumber + ' · ' + row.status,
       }));
     }
+    if (entityType === 'MATERIAL_REQUEST') return (data.materialRequests ?? []).map(row => ({id:row.id,label:row.requestDate.slice(0,10)+' · '+row.id}));
     if (entityType === 'MATERIAL_ISSUE') {
       return data.materialIssues.map((row) => ({ id: row.id, label: row.issueNumber }));
     }
@@ -282,7 +283,8 @@ export function DocumentTargetPanel({
           <MenuItem value="PURCHASE_ORDER">Purchase Order</MenuItem>
           <MenuItem value="GOODS_RECEIPT">Goods Receipt</MenuItem>
           <MenuItem value="MATERIAL_RESERVATION">Material Reservation</MenuItem>
-          <MenuItem value="MATERIAL_ISSUE">Material Issue</MenuItem>
+          <MenuItem value="MATERIAL_REQUEST">Material Request</MenuItem>
+            <MenuItem value="MATERIAL_ISSUE">Material Issue</MenuItem>
           <MenuItem value="MATERIAL_RETURN">Material Return</MenuItem>
           <MenuItem value="STOCK_TRANSFER">Stock Transfer</MenuItem>
           <MenuItem value="SUPPLIER_INVOICE">Supplier Invoice</MenuItem>

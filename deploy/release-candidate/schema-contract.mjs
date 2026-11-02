@@ -1,3 +1,4 @@
+import { stripMaterialRequestSchema } from './material-request-schema-contract.mjs';
 import { stripHrSchema } from './hr-schema-contract.mjs';
 import { stripHrDocumentSchema } from './hr-document-schema-contract.mjs';
 import { stripStockCountSchema } from './stock-count-schema-contract.mjs';
@@ -123,7 +124,7 @@ function classifyBeforeStockCount(previous, candidate) {
   return base;
 }
 
-export function classifySchema(previous, candidate) {
+function classifyBeforeMaterialRequest(previous, candidate) {
   if (previous === candidate) return 'migration-aware-sql-only';
   const oldStockCount = stripStockCountSchema(previous);
   const newStockCount = stripStockCountSchema(candidate);
@@ -137,6 +138,15 @@ export function classifySchema(previous, candidate) {
       : 'migration-aware-stock-count-' + base.slice('migration-aware-'.length);
   }
   return base;
+}
+
+export function classifySchema(previous,candidate){
+ if(previous===candidate)return 'migration-aware-sql-only';
+ const before=stripMaterialRequestSchema(previous),after=stripMaterialRequestSchema(candidate);
+ if(before.present&&!after.present)throw Error('Material request schema removal is prohibited');
+ const base=before.text.replace(/\s+/g,' ').trim()===after.text.replace(/\s+/g,' ').trim()?'migration-aware-sql-only':classifyBeforeMaterialRequest(before.text,after.text);
+ if(!before.present&&after.present)return base==='migration-aware-sql-only'?'migration-aware-material-request-schema':'migration-aware-material-request-'+base.slice('migration-aware-'.length);
+ return base;
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

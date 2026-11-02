@@ -1,3 +1,4 @@
+import {createHash} from 'node:crypto';
 import {
   ConflictException,
   Injectable,
@@ -249,11 +250,19 @@ export class DocumentsService {
       transfer.items.every((item) => projectIds.has(item.sourceProjectId) && projectIds.has(item.destinationProjectId)),
     ).map((transfer) => transfer.id));
 
+    const requestIds = [...new Set(protectedRows.flatMap(row => row.links
+      .filter(link => link.entityType === 'MATERIAL_REQUEST').map(link => link.entityId)))];
+    const requests = requestIds.length ? await db.materialRequest.findMany({
+      where: { id: { in: requestIds }, companyId: auth.companyId, projectId }, select: { id: true },
+    }) : [];
+    const accessibleRequests = new Set(requests.map(row => row.id));
+
     return permitted.filter((row) => {
       const protectedSource = row.links.some((link) => Boolean(DOCUMENT_SOURCE_VIEW_PERMISSIONS[link.entityType]));
       return row.links.every((link) => {
         if (protectedSource && link.entityType === 'PROJECT') return projectIds.has(link.entityId);
         if (link.entityType === 'STOCK_TRANSFER') return accessibleTransfers.has(link.entityId);
+        if (link.entityType === 'MATERIAL_REQUEST') return accessibleRequests.has(link.entityId);
         return true;
       });
     });
@@ -389,9 +398,10 @@ export class DocumentsService {
     auth: AuthenticatedUserContext,
     projectId: string,
     documentId: string,
+    db: Prisma.TransactionClient = this.prisma,
   ) {
-    await this.access.assertAccess(auth, projectId);
-    const row = await this.prisma.document.findFirst({
+    await this.access.assertAccess(auth, projectId, db);
+    const row = await db.document.findFirst({
       where: {
         id: documentId,
         companyId: auth.companyId,
@@ -405,15 +415,21 @@ export class DocumentsService {
         mimeType: true,
         fileSizeBytes: true,
         storageKey: true,
+        checksum: true,
         links: { select: { entityType: true, entityId: true } },
       },
     });
     if (!row) throw this.documentNotFound();
-    if (!(await this.filterSourceDocuments(auth, projectId, [row])).length) {
+    if (!(await this.filterSourceDocuments(auth, projectId, [row], db)).length) {
       throw this.documentNotFound();
     }
 
     const bytes = await this.storage.read(row.storageKey);
+    if (row.links.some(link => link.entityType === 'MATERIAL_REQUEST') &&
+        (!row.checksum || bytes.length !== row.fileSizeBytes || createHash('sha256').update(bytes).digest('hex') !== row.checksum)) {
+      throw new UnprocessableEntityException({code: 'MATERIAL_REQUEST_EVIDENCE_INTEGRITY_FAILED'});
+    }
+
     return {
       id: row.id,
       fileName: row.fileName,

@@ -26,6 +26,7 @@ export type DocumentTargetType =
   | 'GOODS_RECEIPT'
   | 'MATERIAL_RESERVATION'
   | 'MATERIAL_ISSUE'
+  | 'MATERIAL_REQUEST'
   | 'MATERIAL_RETURN'
   | 'STOCK_TRANSFER'
   | 'SUPPLIER_INVOICE'
@@ -61,6 +62,7 @@ export class DocumentTargetsService {
     const accessibleProjectIds = accessibleProjects.map((row) => row.id);
     const can = (permission: string) => auth.permissions.includes(permission);
     const [
+      materialRequests,
       boqs, budgetRevisions, customerBoqs,
       wbs,
       activities,
@@ -82,6 +84,7 @@ export class DocumentTargetsService {
       subcontractCertifications,
       subcontractVariations,
     ] = await Promise.all([
+      can('inventory.material_request.view') ? this.prisma.materialRequest.findMany({where:{companyId:auth.companyId,projectId},select:{id:true,requestDate:true},orderBy:{id:'asc'}}) : Promise.resolve([]),
       can('budget.boq.view') ? this.prisma.boq.findMany({where:{companyId:auth.companyId,projectId},select:{id:true,boqName:true}}) : Promise.resolve([]),
       can('budget.revision.view') ? this.prisma.budgetRevision.findMany({where:{companyId:auth.companyId,projectId},select:{id:true,revisionNumber:true},orderBy:{revisionNo:'desc'}}) : Promise.resolve([]),
       ['budget.boq.view','budget.revision.view','budget.customer.view'].every(can) ? this.prisma.customerBoqVersion.findMany({where:{companyId:auth.companyId,projectId},select:{id:true,versionNo:true},orderBy:{versionNo:'desc'}}) : Promise.resolve([]),
@@ -269,6 +272,7 @@ export class DocumentTargetsService {
         : Promise.resolve([]),
     ]);
     return {
+      materialRequests,
       boqs, budgetRevisions, customerBoqs,
       wbs,
       activities,
@@ -489,6 +493,14 @@ export class DocumentTargetsService {
       const row = await this.prisma.materialReservation.findFirst({
         where: { id: entityId, projectId, companyId: auth.companyId },
         select: { id: true },
+      });
+      if (!row) throw this.targetNotFound();
+      return;
+    }
+
+    if (entityType === 'MATERIAL_REQUEST') {
+      const row = await this.prisma.materialRequest.findFirst({
+        where: { id: entityId, projectId, companyId: auth.companyId }, select: { id: true },
       });
       if (!row) throw this.targetNotFound();
       return;

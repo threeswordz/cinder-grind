@@ -1,3 +1,4 @@
+import {materialRequestCatalog,verifyMaterialRequestCatalog} from './material-request-catalog-contract.mjs';
 import assert from 'node:assert/strict';
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -35,7 +36,8 @@ const protect = (path,value) => writeFileSync(path, JSON.stringify(value), {mode
 const load = path => {try{return JSON.parse(readFileSync(path,'utf8'));}catch{throw new Error('Protected CI proof input is unavailable or invalid.');}};
 const digest = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
 const stockCountApproved = process.env.STOCK_COUNT_SCHEMA_UPGRADE === 'YES';
-const knownCatalog = [...boqCatalog,...hrCatalog,...(stockCountApproved ? stockCountCatalog : [])];
+const materialRequestApproved=process.env.MATERIAL_REQUEST_SCHEMA_UPGRADE==='YES';
+const knownCatalog = [...boqCatalog,...hrCatalog,...(stockCountApproved ? stockCountCatalog : []),...(materialRequestApproved ? materialRequestCatalog : [])];
 const provenanceColumns = {
   projects:['contract_currency_code'],
   boqs:['currency_code'],
@@ -59,6 +61,7 @@ async function snapshot(before) {
   }
   // Existing catalog rows are included in the digest, including creation dates.
   // Only exact reviewed definitions absent in the predecessor may be separated.
+  if(materialRequestApproved)verifyMaterialRequestCatalog(rawCatalog.filter(p=>materialRequestCatalog.some(x=>x.id===p.id)),!['snapshot','rollback'].includes(mode));
   const excluded = knownCatalog.filter(p=>!(before?.catalogPresent??present).includes(p.id)).map(p=>p.id);
   const hashes={}, columns={};
   for(const {tablename:name} of tables){
@@ -96,7 +99,7 @@ try {
       after.tables,
       process.env.HR_SCHEMA_UPGRADE === 'YES',
       process.env.HR_DOCUMENT_SCHEMA_UPGRADE === 'YES',
-      stockCountApproved,
+      stockCountApproved, materialRequestApproved,
     );
     for(const migration of before.migrations)assert.deepEqual(after.migrations.find(m=>m.migration_name===migration.migration_name),migration);
     console.log(mode==='rollback'?'HR_EXACT_PREDECESSOR_ROLLBACK_ROWS_PRESERVED':'HR_PREDECESSOR_ROWS_AND_MIGRATIONS_PRESERVED');
