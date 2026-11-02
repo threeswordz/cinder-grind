@@ -119,6 +119,13 @@ test('all nine material-request source routes retain required permissions, contr
   assert.equal(inspectRoute(materialFixture(r,{path:'wrong-path'}),r).result,'ROUTE_NOT_FOUND',r[0]);
   for(const removed of rights)
    assert.equal(inspectRoute(materialFixture(r,{permissions:rights.filter(p=>p!==removed)}),r).result,'PERMISSION_DECORATOR_MISSING',r[0]+':'+removed);
+  for(const removed of ['AuthGuard','PermissionGuard'])
+   assert.equal(inspectRoute(source.replace(removed,'UnrelatedGuard'),r).result,'AUTH_PERMISSION_GUARDS_MISSING',r[0]+':'+removed);
+  const wrongVerb=r[2]==='Get'?'Post':'Get';
+  assert.equal(inspectRoute(source.replace('@'+r[2]+'(', '@'+wrongVerb+'('),r).result,'ROUTE_NOT_FOUND',r[0]+':verb');
+  const decoy="\n@Get('unrelated')\n@UseGuards(AuthGuard, CsrfGuard, PermissionGuard)\n@RequirePermissions("+rights.map(p=>"'"+p+"'").join(', ')+")\nasync sibling(){}\n";
+  const missingGuards=source.replace('@UseGuards(AuthGuard, '+(r[5].csrf?'CsrfGuard, ':'')+'PermissionGuard)','@UseGuards(UnrelatedGuard)');
+  assert.equal(inspectRoute(missingGuards.replace('async action(){}','async action(){}'+decoy),r).result,'AUTH_PERMISSION_GUARDS_MISSING',r[0]+':sibling');
   if(r[5].csrf){
    assert.equal(inspectRoute(materialFixture(r,{guards:['AuthGuard','PermissionGuard']}),r).result,'CSRF_GUARD_MISSING',r[0]);
    assert.equal(inspectRoute(materialFixture(r,{guards:['PermissionGuard','CsrfGuard']}),r).result,'AUTH_PERMISSION_GUARDS_MISSING',r[0]);
