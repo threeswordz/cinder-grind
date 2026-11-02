@@ -130,14 +130,16 @@ export class MaterialRequestService {
         return { ...row, revisions: row.revisions.map(v => ({ id: v.id, version: v.version, action: v.action, reason: v.reason, recordedAt: v.recordedAt, actor: v.actor,
                 // Only request facts/line quantities are exposed from historical snapshots, never raw relation/Document payloads.
                 facts: this.revisionFacts(v.snapshot) })), lines: row.lines.map(line => {
-                let issued = new Prisma.Decimal(0), acknowledged = new Prisma.Decimal(0);
+                let issued = 0n, acknowledged = 0n;
+                const units=(q:Prisma.Decimal)=>BigInt(q.toFixed(4).replace('.', ''));
+                const formatted=(q:bigint)=>{const digits=q.toString().padStart(5,'0');return digits.slice(0,-4)+'.'+digits.slice(-4);};
                 const links = line.issueLinks.map(link => {
                     const issue = link.issueItem.materialIssue, posted = Boolean(issue.postedAt && !issue.reversedAt);
                     if (posted)
-                        issued = issued.plus(link.issueItem.quantity);
+                        issued += units(link.issueItem.quantity);
                     const receipt = link.receipts.find(r => !r.correction);
                     if (posted && receipt)
-                        acknowledged = acknowledged.plus(link.issueItem.quantity);
+                        acknowledged += units(link.issueItem.quantity);
                     return { id: link.id, linkedAt: link.linkedAt, quantity: link.issueItem.quantity.toFixed(4), currentlyIssued: posted,
                         issue: sourceVisible ? issue : null, materialIssueItemId: sourceVisible ? link.materialIssueItemId : null,
                         receipts: link.receipts.map(r => ({ id: r.id, recipientEmployeeId: r.recipientEmployeeId, issuerEmployeeId: r.issuerEmployeeId,
@@ -147,8 +149,8 @@ export class MaterialRequestService {
                 });
                 return { id: line.id, lineNo: line.lineNo, materialId: line.materialId, material: line.material, uomId: line.uomId, uom: line.uom,
                     requestedQuantity: line.requestedQuantity.toFixed(4), wbsId: line.wbsId, costCodeId: line.costCodeId, activityId: line.activityId, remarks: line.remarks,
-                    issuedQuantity: issued.toFixed(4), acknowledgedQuantity: acknowledged.toFixed(4),
-                    fulfillment: issued.eq(0) ? 'NOT_ISSUED' : issued.lt(line.requestedQuantity) ? 'PARTIAL' : issued.eq(line.requestedQuantity) ? 'FULFILLED' : 'OVER_FULFILLED', issueLinks: links };
+                    issuedQuantity: formatted(issued), acknowledgedQuantity: formatted(acknowledged),
+                    fulfillment: issued===0n ? 'NOT_ISSUED' : issued<units(line.requestedQuantity) ? 'PARTIAL' : issued===units(line.requestedQuantity) ? 'FULFILLED' : 'OVER_FULFILLED', issueLinks: links };
             }) };
     }
     private revisionFacts(snapshot: Prisma.JsonValue) {
@@ -328,6 +330,7 @@ export class MaterialRequestService {
                     AND: [{ links: { some: { entityType: 'MATERIAL_REQUEST', entityId: id } } }, { links: { some: { entityType: 'PROJECT', entityId: r.projectId } } }] }, include: { links: { select: { entityType: true, entityId: true } } } });
             if (!doc || !doc.checksum || !(await this.documents.filterSourceDocuments(auth, r.projectId, [doc], tx)).length)
                 this.invalid('MATERIAL_REQUEST_EVIDENCE_INVALID');
+            await this.documents.downloadProjectDocument(auth, r.projectId, doc.id, tx);
             await this.bump(tx, auth, r);
             await tx.materialRequestReceipt.create({ data: { requestId: id, issueLinkId: link.id, recipientEmployeeId: input.recipientEmployeeId, issuerEmployeeId: input.issuerEmployeeId,
                     receivedAt: new Date(input.receivedAt), documentId: doc.id, evidenceChecksum: doc.checksum, signedEvidenceConfirmed: true, supersedesReceiptId: input.supersedesReceiptId, reason: input.reason, recordedByUserId: auth.userId } });

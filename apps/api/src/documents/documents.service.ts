@@ -1,3 +1,4 @@
+import {createHash} from 'node:crypto';
 import {
   ConflictException,
   Injectable,
@@ -397,9 +398,10 @@ export class DocumentsService {
     auth: AuthenticatedUserContext,
     projectId: string,
     documentId: string,
+    db: Prisma.TransactionClient = this.prisma,
   ) {
-    await this.access.assertAccess(auth, projectId);
-    const row = await this.prisma.document.findFirst({
+    await this.access.assertAccess(auth, projectId, db);
+    const row = await db.document.findFirst({
       where: {
         id: documentId,
         companyId: auth.companyId,
@@ -413,15 +415,21 @@ export class DocumentsService {
         mimeType: true,
         fileSizeBytes: true,
         storageKey: true,
+        checksum: true,
         links: { select: { entityType: true, entityId: true } },
       },
     });
     if (!row) throw this.documentNotFound();
-    if (!(await this.filterSourceDocuments(auth, projectId, [row])).length) {
+    if (!(await this.filterSourceDocuments(auth, projectId, [row], db)).length) {
       throw this.documentNotFound();
     }
 
     const bytes = await this.storage.read(row.storageKey);
+    if (row.links.some(link => link.entityType === 'MATERIAL_REQUEST') &&
+        (!row.checksum || bytes.length !== row.fileSizeBytes || createHash('sha256').update(bytes).digest('hex') !== row.checksum)) {
+      throw new UnprocessableEntityException({code: 'MATERIAL_REQUEST_EVIDENCE_INTEGRITY_FAILED'});
+    }
+
     return {
       id: row.id,
       fileName: row.fileName,

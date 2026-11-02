@@ -1,4 +1,4 @@
-// Actual disposable Chromium FM01-A workflow; zero live API/DB connections.
+// Actual disposable Chromium material-request workflow; zero live API/DB connections.
 import assert from 'node:assert/strict';
 import {spawn,spawnSync} from 'node:child_process';
 import {mkdtemp,rm,readFile} from 'node:fs/promises';
@@ -11,7 +11,7 @@ const require=createRequire(path.join(root,'package.json'));
 const {createServer,transformWithOxc}=await import(pathToFileURL(require.resolve('vite')).href);
 const chrome=['google-chrome','chromium','chromium-browser'].find(bin=>spawnSync(bin,['--version'],{stdio:'ignore'}).status===0);
 assert.ok(chrome,'Real Chromium required; no SSR fallback');
-const temporary=await mkdtemp(path.join(os.tmpdir(),'erp-fm01a-browser-'));
+const temporary=await mkdtemp(path.join(os.tmpdir(),'erp-material-request-browser-'));
 const harness=await readFile(new URL('./material-request-browser-fixture.tsx',import.meta.url),'utf8');
 const vite=await createServer({
  root,configFile:false,server:{host:'127.0.0.1',port:0,hmr:false},
@@ -35,7 +35,7 @@ try {
   {stdio:['ignore','pipe','pipe']});
   let out='',err='';
   child.stdout.on('data',chunk=>out+=chunk);child.stderr.on('data',chunk=>err+=chunk);
-  const timeout=setTimeout(()=>{child.kill('SIGKILL');reject(new Error('Weekly browser timed out'));},60000);
+  const timeout=setTimeout(()=>{child.kill('SIGKILL');reject(new Error('Material request browser timed out'));},60000);
   child.on('error',error=>{clearTimeout(timeout);reject(error);});
   child.on('close',code=>{clearTimeout(timeout);resolve({code,out,err});});
  });

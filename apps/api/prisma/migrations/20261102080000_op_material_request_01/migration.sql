@@ -589,3 +589,36 @@ BEGIN
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
+
+-- A referenced master must not silently move a captured request into another scope.
+CREATE FUNCTION erp_material_request_reference_identity() RETURNS trigger LANGUAGE plpgsql AS $$
+DECLARE referenced boolean:=false;
+BEGIN
+ IF jsonb_build_array(to_jsonb(NEW)->'company_id',to_jsonb(NEW)->'project_id') IS NOT DISTINCT FROM
+    jsonb_build_array(to_jsonb(OLD)->'company_id',to_jsonb(OLD)->'project_id') THEN RETURN NEW; END IF;
+ IF TG_TABLE_NAME='warehouses' THEN referenced:=EXISTS(SELECT 1 FROM material_requests WHERE warehouse_id=OLD.id);
+ ELSIF TG_TABLE_NAME='projects' THEN referenced:=EXISTS(SELECT 1 FROM material_requests WHERE project_id=OLD.id);
+ ELSIF TG_TABLE_NAME='employees' THEN referenced:=EXISTS(SELECT 1 FROM material_requests WHERE requester_employee_id=OLD.id)
+   OR EXISTS(SELECT 1 FROM material_request_receipts WHERE recipient_employee_id=OLD.id OR issuer_employee_id=OLD.id);
+ ELSIF TG_TABLE_NAME='materials' THEN referenced:=EXISTS(SELECT 1 FROM material_request_lines WHERE material_id=OLD.id);
+ ELSIF TG_TABLE_NAME='units_of_measure' THEN referenced:=EXISTS(SELECT 1 FROM material_request_lines WHERE uom_id=OLD.id);
+ ELSIF TG_TABLE_NAME='wbs_elements' THEN referenced:=EXISTS(SELECT 1 FROM material_request_lines WHERE wbs_id=OLD.id);
+ ELSIF TG_TABLE_NAME='cost_codes' THEN referenced:=EXISTS(SELECT 1 FROM material_request_lines WHERE cost_code_id=OLD.id);
+ ELSIF TG_TABLE_NAME='activities' THEN referenced:=EXISTS(SELECT 1 FROM material_request_lines WHERE activity_id=OLD.id);
+ ELSIF TG_TABLE_NAME='users' THEN referenced:=EXISTS(SELECT 1 FROM material_requests WHERE created_by_user_id=OLD.id OR updated_by_user_id=OLD.id)
+   OR EXISTS(SELECT 1 FROM material_request_revisions WHERE actor_user_id=OLD.id)
+   OR EXISTS(SELECT 1 FROM material_request_issue_links WHERE linked_by_user_id=OLD.id)
+   OR EXISTS(SELECT 1 FROM material_request_receipts WHERE recorded_by_user_id=OLD.id);
+ END IF;
+ IF referenced THEN RAISE EXCEPTION 'Referenced material request scope identity is immutable'; END IF;
+ RETURN NEW;
+END $$;
+CREATE TRIGGER mr_warehouse_identity BEFORE UPDATE OF company_id,project_id ON warehouses FOR EACH ROW EXECUTE FUNCTION erp_material_request_reference_identity();
+CREATE TRIGGER mr_project_identity BEFORE UPDATE OF company_id ON projects FOR EACH ROW EXECUTE FUNCTION erp_material_request_reference_identity();
+CREATE TRIGGER mr_employee_identity BEFORE UPDATE OF company_id ON employees FOR EACH ROW EXECUTE FUNCTION erp_material_request_reference_identity();
+CREATE TRIGGER mr_material_identity BEFORE UPDATE OF company_id ON materials FOR EACH ROW EXECUTE FUNCTION erp_material_request_reference_identity();
+CREATE TRIGGER mr_uom_identity BEFORE UPDATE OF company_id ON units_of_measure FOR EACH ROW EXECUTE FUNCTION erp_material_request_reference_identity();
+CREATE TRIGGER mr_wbs_identity BEFORE UPDATE OF project_id ON wbs_elements FOR EACH ROW EXECUTE FUNCTION erp_material_request_reference_identity();
+CREATE TRIGGER mr_cost_code_identity BEFORE UPDATE OF company_id ON cost_codes FOR EACH ROW EXECUTE FUNCTION erp_material_request_reference_identity();
+CREATE TRIGGER mr_activity_identity BEFORE UPDATE OF company_id,project_id ON activities FOR EACH ROW EXECUTE FUNCTION erp_material_request_reference_identity();
+CREATE TRIGGER mr_actor_identity BEFORE UPDATE OF company_id ON users FOR EACH ROW EXECUTE FUNCTION erp_material_request_reference_identity();

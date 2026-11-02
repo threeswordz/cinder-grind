@@ -2,7 +2,7 @@ import 'reflect-metadata';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { randomUUID } from 'node:crypto';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { NestFactory } from '@nestjs/core';
@@ -49,6 +49,9 @@ test('MR-AC-01–07 scoped request/issue/explicit signed receipt HTTP and databa
             requestId = created.id;
             await call(f.store, root, 409, { ...input, remarks: 'different body' });
             assert.deepEqual(await effects(), before, 'capture/replay never posts stock or Finance');
+            const emptyWarehouse=await db.warehouse.create({data:{companyId:f.company.id,projectId:f.project.id,warehouseCode:'REQUEST-ONLY',warehouseName:'Request-only warehouse',isSiteWarehouse:true}});
+            await call(f.store,root,201,{...f.input(),warehouseId:emptyWarehouse.id});
+            await assert.rejects(()=>db.warehouse.update({where:{id:emptyWarehouse.id},data:{projectId:f.unassigned.id}}),'a request-only warehouse cannot silently move Project');
             const detail = (await call(f.store, root + '/' + requestId)).data;
             lineId = detail.lines[0].id;
             assert.equal(detail.lines[0].requestedQuantity, '10.0000');
@@ -127,6 +130,12 @@ test('MR-AC-01–07 scoped request/issue/explicit signed receipt HTTP and databa
             assert.equal(denied.status, 403);
             const bytes = await f.targets.download(f.store.auth, f.project.id, 'MATERIAL_REQUEST', requestId, docId);
             assert.deepEqual(bytes.bytes, f.bytes);
+            const stored=await db.document.findUniqueOrThrow({where:{id:docId}});
+            const ownFile=path.resolve(storage,stored.storageKey);assert.ok(ownFile.startsWith(storage+path.sep));
+            await writeFile(ownFile,Buffer.from('tampered signed evidence'));
+            await assert.rejects(()=>f.targets.download(f.store.auth,f.project.id,'MATERIAL_REQUEST',requestId,docId));
+            await writeFile(ownFile,f.bytes);
+
         });
         await t.test('partial 6 then 4 reconciles; canonical reversal changes totals while retaining signed evidence', async () => {
             const second = await f.issue('4'), d = (await call(f.store, root + '/' + requestId)).data;

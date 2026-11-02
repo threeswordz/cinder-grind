@@ -39,6 +39,7 @@ api.command = async (suffix, body: any) => {
     }
     else if (suffix.endsWith('/receipts')) {
         check(body.signedEvidenceConfirmed === true, 'Receipt lacks explicit signed confirmation');
+        check(body.recipientEmployeeId === 'employee-a' && body.issuerEmployeeId === 'issuer-a' && body.documentId === 'doc-a' && Number.isFinite(Date.parse(body.receivedAt)), 'Receipt lost actual actors, evidence or time');
         current.version++;
         current.lines[0].acknowledgedQuantity = '6.0000';
         current.lines[0].issueLinks[0].receipts = [{ id: 'receipt-a', recipientEmployeeId: 'employee-a', issuerEmployeeId: 'issuer-a', recipient: { employeeName: 'Synthetic Foreman' }, issuer: { employeeName: 'Synthetic Store' }, receivedAt: body.receivedAt, recordedAt: '2026-11-02T02:00:00Z', recordedBy: { displayName: 'Store' }, supersedesReceiptId: null, superseded: false, reason: body.reason, documentId: 'doc-a', evidenceChecksum: 'a'.repeat(64) }];
@@ -69,7 +70,7 @@ const visible = () => document.getElementById('root')!.textContent ?? '';
 const button = (text: string) => [...document.querySelectorAll('button')].filter(x => x.textContent?.trim() === text).at(-1) as HTMLButtonElement | undefined;
 async function click(text: string) { await wait(() => button(text) && !button(text)!.disabled, 'Button unavailable ' + text); button(text)!.click(); await pause(100); }
 function field(label: string) { const l = [...document.querySelectorAll('label')].find(x => x.textContent === label); check(l, 'Missing field ' + label); return document.getElementById(l!.htmlFor)!; }
-async function choose(label: string, option: string) { field(label).click(); await wait(() => [...document.querySelectorAll('[role=option]')].some(x => x.textContent === option), 'Option unavailable ' + option); ([...document.querySelectorAll('[role=option]')].find(x => x.textContent === option) as HTMLElement).click(); await pause(100); }
+async function choose(label: string, option: string) { field(label).dispatchEvent(new MouseEvent('mousedown', {bubbles:true, button:0})); await wait(() => [...document.querySelectorAll('[role=option]')].some(x => x.textContent === option), 'Option unavailable ' + option); ([...document.querySelectorAll('[role=option]')].find(x => x.textContent === option) as HTMLElement).click(); await wait(() => !document.querySelector('[role=option]'), 'Select menu did not close'); }
 async function input(label: string, value: string) { const el = field(label); Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(el, value); el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); await pause(60); }
 async function run() {
     render();
