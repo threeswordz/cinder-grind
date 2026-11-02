@@ -5,6 +5,7 @@ import {PrismaService} from '../prisma/prisma.service';
 import {ProjectAccessService} from '../projects/project-access.service';
 import {AuditService} from '../audit/audit.service';
 import {AuthenticatedUserContext} from '../auth/auth.types';
+import {materialPlanIntegrityException} from './material-plan-errors';
 import {MP_VIEW,MPContent,mpId,mpCreate,mpRevise,mpAction,mpInvalid} from './material-plan-contract';
 type Db=Prisma.TransactionClient|PrismaService;
 type Context={auth:AuthenticatedUserContext;correlationId?:string};
@@ -99,7 +100,7 @@ export class MaterialPlanService{
    const outcome={id:result.id,projectId:current.projectId,version:current.version,revisionId:result.revisionId,revisionNo:revision.revisionNo,status:revision.status} satisfies Prisma.InputJsonValue;
    await tx.materialUsagePlanOperation.create({data:{companyId:auth.companyId,actorUserId:auth.userId,action,requestKey:key,bodyDigest:digest,planId:result.id,revisionId:result.revisionId,planVersion:current.version,snapshot:snap!.snapshot,outcome}});
    await this.audit.record({...context,auth,entityType:'MATERIAL_USAGE_PLAN',entityId:result.id,action,newValues:{version:current.version,revisionId:result.revisionId}},tx);return outcome;
-  },{isolationLevel:Prisma.TransactionIsolationLevel.Serializable});}catch(error){if(error instanceof Prisma.PrismaClientKnownRequestError&&error.code==='P2034'&&attempt<2)continue;if(error instanceof Prisma.PrismaClientKnownRequestError&&error.code==='P2002')conflict('MATERIAL_PLAN_DUPLICATE');if(error instanceof Prisma.PrismaClientKnownRequestError&&['P2003','P2004'].includes(error.code))conflict('MATERIAL_PLAN_INTEGRITY_CONFLICT');throw error;}
+  },{isolationLevel:Prisma.TransactionIsolationLevel.Serializable});}catch(error){if(error instanceof Prisma.PrismaClientKnownRequestError&&error.code==='P2034'&&attempt<2)continue;if(error instanceof Prisma.PrismaClientKnownRequestError&&error.code==='P2002')conflict('MATERIAL_PLAN_DUPLICATE');const integrity=materialPlanIntegrityException(error);if(integrity)throw integrity;throw error;}
   throw new ConflictException({code:'MATERIAL_PLAN_RETRY_REQUIRED'});
  }
  async create(context:Context,value:unknown){const input=mpCreate(value);return this.operation(context,'CREATE',input.requestKey,input,undefined,input.projectId,async(auth,tx)=>{

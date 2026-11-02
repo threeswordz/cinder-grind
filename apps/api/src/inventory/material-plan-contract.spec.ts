@@ -11,3 +11,14 @@ test('material plan input preserves exact quantities, valid dates and strict rep
  assert.throws(()=>mpRevise({...body,expectedVersion:1}));assert.throws(()=>mpAction({requestKey:randomUUID(),expectedVersion:1,decision:'APPROVED',comment:'x'},true));
  for(const v of [0,-1,1.1,2147483647,'1'])assert.throws(()=>mpVersion(v));
 });
+
+import {Prisma} from '@prisma/client';
+import {materialPlanIntegrityException} from './material-plan-errors';
+test('only exact Prisma material-plan allocation guards become safe conflicts',()=>{
+ const message='PostgresError { code: "P0001", message: "Material plan cumulative source allocation exceeded", severity: "ERROR" }';
+ const unknown=(text:string)=>new Prisma.PrismaClientUnknownRequestError(text,{clientVersion:'6.19.3'});
+ const result=materialPlanIntegrityException(unknown(message));assert.equal(result?.getStatus(),409);assert.deepEqual(result?.getResponse(),{code:'MATERIAL_PLAN_INTEGRITY_CONFLICT'});
+ assert.equal(materialPlanIntegrityException(unknown(message.replace('P0001','42P01'))),undefined);
+ assert.equal(materialPlanIntegrityException(unknown(message.replace('Material plan cumulative source allocation exceeded','unrelated failure'))),undefined);
+ assert.equal(materialPlanIntegrityException(new Error(message)),undefined);
+});
