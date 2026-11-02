@@ -1,3 +1,4 @@
+import {stripMaterialPlanSchema} from './material-plan-schema-contract.mjs';
 import {stripMaterialRequestSchema} from './material-request-schema-contract.mjs';
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
@@ -11,7 +12,7 @@ import {hrCatalog,verifyHrCatalog} from './hr-catalog-contract.mjs';
 import {assertHistoricalTables} from './historical-snapshot.mjs';
 
 test('HR schema is exactly seven protected models and eighteen parent additions; earlier modes remain separate',()=>{
-  const current=stripStockCountSchema(stripMaterialRequestSchema(readFileSync(new URL('../../apps/api/prisma/schema.prisma',import.meta.url),'utf8')).text).text;
+  const current=stripStockCountSchema(stripMaterialRequestSchema(stripMaterialPlanSchema(readFileSync(new URL('../../apps/api/prisma/schema.prisma',import.meta.url),'utf8')).text).text).text;
   const previous=execFileSync('git',['show','e86ed846f30ac3feeb09f74ba9084571b9955520:apps/api/prisma/schema.prisma'],{encoding:'utf8'});
   const older=execFileSync('git',['show','fc52a867c96a8b3a369b480b9799bad1a5e9f399:apps/api/prisma/schema.prisma'],{encoding:'utf8'});
   assert.equal(classifySchema(previous,current),'migration-aware-hr-document-hr-schema');

@@ -44,6 +44,16 @@ export const ROUTES=[
  ["STORE_MR_EDIT","inventory/material-request.controller.ts","Post",":id/revisions","inventory.material_request.view",{"controller":"inventory/material-requests","extraPermissions":["inventory.material_request.edit"],"csrf":true}],
  ["STORE_MR_LINK","inventory/material-request.controller.ts","Post",":id/issue-links","inventory.material_request.view",{"controller":"inventory/material-requests","extraPermissions":["inventory.material_request.link","inventory.issue.view"],"csrf":true}],
  ["STORE_MR_RECEIPT","inventory/material-request.controller.ts","Post",":id/receipts","inventory.material_request.view",{"controller":"inventory/material-requests","extraPermissions":["inventory.material_request.acknowledge","inventory.issue.view","documents.document.view"],"csrf":true}],
+ ["MP_PROJECTS", "inventory/material-plan.controller.ts", "Get", "projects", "inventory.material_plan.view", {"controller": "inventory/material-plans"}],
+ ["MP_CHOICES", "inventory/material-plan.controller.ts", "Get", "choices", "inventory.material_plan.view", {"controller": "inventory/material-plans"}],
+ ["MP_LIST", "inventory/material-plan.controller.ts", "Get", "", "inventory.material_plan.view", {"controller": "inventory/material-plans"}],
+ ["MP_DETAIL", "inventory/material-plan.controller.ts", "Get", ":id", "inventory.material_plan.view", {"controller": "inventory/material-plans"}],
+ ["MP_HISTORY", "inventory/material-plan.controller.ts", "Get", ":id/revisions", "inventory.material_plan.view", {"controller": "inventory/material-plans"}],
+ ["MP_REVISION", "inventory/material-plan.controller.ts", "Get", ":id/revisions/:revisionId", "inventory.material_plan.view", {"controller": "inventory/material-plans"}],
+ ["MP_CREATE", "inventory/material-plan.controller.ts", "Post", "", "inventory.material_plan.view", {"controller": "inventory/material-plans", "extraPermissions": ["inventory.material_plan.create"], "csrf": true}],
+ ["MP_REVISE", "inventory/material-plan.controller.ts", "Post", ":id/revisions", "inventory.material_plan.view", {"controller": "inventory/material-plans", "extraPermissions": ["inventory.material_plan.revise"], "csrf": true}],
+ ["MP_SUBMIT", "inventory/material-plan.controller.ts", "Post", ":id/submit", "inventory.material_plan.view", {"controller": "inventory/material-plans", "extraPermissions": ["inventory.material_plan.submit"], "csrf": true}],
+ ["MP_DECIDE", "inventory/material-plan.controller.ts", "Post", ":id/decision", "inventory.material_plan.view", {"controller": "inventory/material-plans", "extraPermissions": ["inventory.material_plan.approve"], "csrf": true}],
 ];
 export function parseRoleCensus(markdown){
  const rows=[],seen=new Set();

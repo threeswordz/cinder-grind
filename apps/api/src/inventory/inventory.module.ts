@@ -1,3 +1,5 @@
+import {MaterialPlanController} from './material-plan.controller';
+import {MaterialPlanService} from './material-plan.service';
 import { DocumentsModule } from '../documents/documents.module';
 import { MaterialRequestController } from './material-request.controller';
 import { MaterialRequestService } from './material-request.service';
@@ -40,6 +42,7 @@ import { StockCountService } from './stock-count.service';
     AdministrationModule,
   ],
   controllers: [
+    MaterialPlanController,
     MaterialRequestController,
     InventoryController,
     InventoryReportController,
@@ -50,6 +53,7 @@ import { StockCountService } from './stock-count.service';
     StockCountController,
   ],
   providers: [
+    MaterialPlanService,
     MaterialRequestService,
     InventoryService,
     InventoryReportService,
@@ -63,6 +67,7 @@ import { StockCountService } from './stock-count.service';
     StockCountService,
   ],
   exports: [
+    MaterialPlanService,
     MaterialRequestService,
     InventoryService,
     InventoryReportService,
