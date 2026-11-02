@@ -131,6 +131,6 @@ test('receipt check must not borrow evidence permission from another method',()=
  assert.equal(inspectRoute(tampered,r).result,'PERMISSION_DECORATOR_MISSING');
  const decoy="\n@Get('decoy')\n@UseGuards(AuthGuard, CsrfGuard, PermissionGuard)\n@RequirePermissions('documents.document.view')\nasync other(){}\n";
  assert.equal(inspectRoute(tampered.replace('async action(){}','async action(){}'+decoy),r).result,'PERMISSION_DECORATOR_MISSING');
- assert.equal(inspectRoute(source.replace('CsrfGuard','/* CsrfGuard */'),r).result,'CSRF_GUARD_MISSING');
+ assert.equal(inspectRoute(source.replace('CsrfGuard,','/* CsrfGuard, */'),r).result,'CSRF_GUARD_MISSING');
  assert.equal(inspectRoute(source.replace('@UseGuards(AuthGuard, CsrfGuard, PermissionGuard)','// @UseGuards(AuthGuard, CsrfGuard, PermissionGuard)'),r).result,'AUTH_PERMISSION_GUARDS_MISSING');
 });
