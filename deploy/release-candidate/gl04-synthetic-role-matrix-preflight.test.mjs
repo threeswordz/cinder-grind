@@ -53,6 +53,13 @@ test('strict UTC freshness denies impossible, stale and future dates',()=>{
  check(p=>p.capturedAt='2026-10-30T08:00:00Z','CAPTURE_TIME_NOT_CURRENT');
  check(p=>p.capturedAt='2026-11-03T09:00:00Z','CAPTURE_TIME_NOT_CURRENT');
 });
+test('per-probe UTC times need not be identical, but must be within two hours before capture',()=>{
+ const p=packet();
+ row(p,'STORE_PR_CREATE').observedAt='2026-11-03T07:59:00Z';
+ assert.deepEqual(audit(p).gaps,[]);
+ check(p=>row(p,'STORE_PR_CREATE').observedAt='2026-11-03T05:59:59Z','SCENARIO_PROVENANCE_OR_SCOPE_INVALID');
+ check(p=>row(p,'STORE_PR_CREATE').observedAt='2026-11-03T08:00:01Z','SCENARIO_PROVENANCE_OR_SCOPE_INVALID');
+});
 test('no Production, retained, unauthenticated or premature human UAT inputs',()=>{
  check(p=>p.retainedReads=true,'ISOLATION_OR_UAT_BOUNDARY_UNVERIFIED');
  check(p=>p.productionConnected=true,'ISOLATION_OR_UAT_BOUNDARY_UNVERIFIED');
