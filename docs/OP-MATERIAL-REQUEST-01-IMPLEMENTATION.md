@@ -1,6 +1,6 @@
 # OP-MATERIAL-REQUEST-01 implementation and assurance
 
-**Authority:** [approved entry](OP-MATERIAL-REQUEST-01-ENTRY.md), DEC-043, FM04/SS07/partial SS08 and [#313](https://github.com/threeswordz/cinder-grind/issues/313). Entry #314 merged as `3a5ae8a92083a2bd03f4159b1e84d0565e7e78ec`; exact-main CI41405779758 SUCCESS. This feature is UNDER VALIDATION until its actual PR/review/merge/main receipts are recorded in #313. Human UAT remains DEFERRED TO PRE-PRODUCTION PROTOTYPE (DEC-042).
+**Authority:** [approved entry](OP-MATERIAL-REQUEST-01-ENTRY.md), DEC-043, FM04/SS07/partial SS08 and [#313](https://github.com/threeswordz/cinder-grind/issues/313). Entry #314 merged as `3a5ae8a92083a2bd03f4159b1e84d0565e7e78ec`; exact-main CI41405779758 SUCCESS. The bounded runtime gates and independent review passed on the runtime head below. #313 owns actual final documentation-head CI, guarded merge, exact-main and technical-integration receipts. Human UAT remains DEFERRED TO PRE-PRODUCTION PROTOTYPE (DEC-042).
 
 ## Delivered candidate boundary
 
@@ -20,13 +20,15 @@ All routes are under `/inventory/material-requests`: projects, scoped paged choi
 
 The forward-only migration adds six request/line/revision/link/receipt/operation tables and five permission definitions, with no retained grant and no stock source column. Scoped foreign keys/guards, positive four-place quantities, append-only records, immutable signed evidence, exact snapshot/replay evidence and unique source links protect direct database paths. No previous executed migration is edited. The canonical Document-link guard is carried forward unchanged except for one explicitly owned request target branch.
 
-## Registered technical evidence
+## Technical evidence on reviewed runtime head
+
+Runtime head `8625d445f9ba54f4e77e339f67785eee4f144f09` passed [push41413239214](https://github.com/threeswordz/cinder-grind/actions/runs/41413239214) / [PR41413245765](https://github.com/threeswordz/cinder-grind/actions/runs/41413245765), all35 steps each, on native PostgreSQL17.11:303 API /49 web /63 release tests, all five actual Chromium gates, all four predecessor upgrades and four populated signed-receipt DB+file restored HTTP/history/checksum/scope proofs. Existing historical ledgers/rows, HR ciphertext/attachment custody, isolated startup/fail-closed and consolidated paired recovery also pass. The [independent Codex review](https://github.com/threeswordz/cinder-grind/pull/315#issuecomment-6572749712) completed with no findings/unresolved findings and zero inline threads. Subsequent evidence-only documentation changes preserve that reviewed runtime; final-head/merge/main receipts remain in #313.
 
 | Criterion | Candidate evidence and boundary |
 |---|---|
 | MR-AC-01 | Registered HTTP/database suite: real session/CSRF/permission denial, Store capture, no Foreman PR/issue/count grant, SYS_ADMIN denial. Actual retained role configuration remains unverified. |
 | MR-AC-02 | Existing canonical physical-count stock seed and independently approved issue 6 then 4; exact linked totals, no effect from capture/link/retry and unposted source denied. |
-| MR-AC-03 | Same-key concurrent capture/revision replay, changed body and stale version conflicts, immutable original facts; browser committed-response-loss recovery and stale-background-version controls. Native PostgreSQL concurrency proof remains separate from supplemental PGlite execution. |
+| MR-AC-03 | Same-key concurrent capture/revision replay, changed body and stale version conflicts, immutable original facts; browser committed-response-loss recovery and stale-background-version controls. Native PostgreSQL17.11 execution passed; supplemental PGlite is not the native concurrency/recovery proof. |
 | MR-AC-04 | Wrong warehouse/requester and Company/body/dates/quantity cases, unassigned actor and forged access-all denial; canonical source checks and mixed inaccessible Project evidence rejection. |
 | MR-AC-05 | Upload alone leaves acknowledgment zero; explicit actual actors/confirmation, same-key receipt retry, immutable Document/checksum/link/receipt, append-only correction and byte-equal authorized download. |
 | MR-AC-06 | Canonical issue reversal changes current fulfillment and retains signed original/corrected receipt history. |
