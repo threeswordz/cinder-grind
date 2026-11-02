@@ -29,3 +29,11 @@ test('historical snapshots admit only the complete empty plan group and preserve
  assert.throws(()=>assertHistoricalTables(before,{...before,...added,material_usage_plan_operations:{count:'1',digest:'changed'}},false,false,false,false,true));
  assert.throws(()=>assertHistoricalTables(before,{...before,...added,stock_transactions:empty},false,false,false,false,true));delete added.material_usage_plan_lines;assert.throws(()=>assertHistoricalTables(before,{...before,...added},false,false,false,false,true));
 });
+
+test('catalog accepts only generated creation timestamps beside exact new permission definitions',()=>{
+ const actual=materialPlanCatalog.map(row=>({...row,created_at:new Date('2026-11-02T14:08:05.829Z')}));
+ verifyMaterialPlanCatalog(actual,true);
+ assert.throws(()=>verifyMaterialPlanCatalog(actual.map((row,i)=>i?row:{...row,description:'Changed business capability'}),true));
+ assert.throws(()=>verifyMaterialPlanCatalog(actual.map((row,i)=>i?row:{...row,created_at:'invalid'}),true));
+ assert.throws(()=>verifyMaterialPlanCatalog(actual.map((row,i)=>i?row:{...row,unapprovedField:true}),true));
+});
