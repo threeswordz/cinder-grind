@@ -22,3 +22,14 @@ test('only exact Prisma material-plan allocation guards become safe conflicts',(
  assert.equal(materialPlanIntegrityException(unknown(message.replace('Material plan cumulative source allocation exceeded','unrelated failure'))),undefined);
  assert.equal(materialPlanIntegrityException(new Error(message)),undefined);
 });
+
+import {MaterialPlanService} from './material-plan.service';
+import {ConflictException} from '@nestjs/common';
+test('exhausted serializable retries return a bounded conflict without leaking database details',async()=>{
+ let attempts=0;
+ const db={$transaction:async()=>{attempts++;throw new Prisma.PrismaClientKnownRequestError('synthetic serialization failure',{code:'P2034',clientVersion:'6.19.3'});}};
+ const service=new MaterialPlanService(db as any,{} as any,{} as any);
+ const body={requestKey:randomUUID(),projectId:randomUUID(),warehouseId:randomUUID(),budgetRevisionId:randomUUID(),workPackageCode:'Retry',validFrom:'2026-11-01',validTo:'2026-11-30',reason:'Synthetic retry',lines:[{budgetRevisionLineId:randomUUID(),materialId:randomUUID(),uomId:randomUUID(),quantity:'1'}]};
+ await assert.rejects(()=>service.create({auth:{} as any},body),(error:unknown)=>error instanceof ConflictException && error.getStatus()===409 && (error.getResponse() as any).code==='MATERIAL_PLAN_RETRY_REQUIRED');
+ assert.equal(attempts,3);
+});
