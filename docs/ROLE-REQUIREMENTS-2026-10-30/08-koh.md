@@ -15,7 +15,7 @@ This is a reconciled business-requirements and source-assessment record, not a s
 
 **Historical persona label:** UAT_HR_STAFF is a historical UAT label, not proof of a production HR role. This is not proof of live permissions.
 
-This file is a role index into the existing HR package, not a replacement policy document. The complete unchanged Thai source is included at [sources/HR-PAYROLL-REQUIREMENTS-TH-2026-10-27.md](sources/HR-PAYROLL-REQUIREMENTS-TH-2026-10-27.md). Use the pinned [HR1-A entry contract](https://github.com/threeswordz/cinder-grind/blob/4fd3635ed06510dc4759e00061cfc92d6cbad2bc/docs/HR1-A-ENTRY-CONTRACT.md) for the approved current slice; attendance, leave/OT and payroll remain separately gated.
+This file is a role index into the existing HR package, not a replacement policy document. The complete unchanged Thai source is included at [HR-PAYROLL-REQUIREMENTS-TH-2026-10-27.md](../HR-PAYROLL-REQUIREMENTS-TH-2026-10-27.md). Use the pinned [HR1-A entry contract](https://github.com/threeswordz/cinder-grind/blob/4fd3635ed06510dc4759e00061cfc92d6cbad2bc/docs/HR1-A-ENTRY-CONTRACT.md) for the approved current slice; attendance, leave/OT and payroll remain separately gated.
 
 **Stage boundary:** KOH-01/02 are in the approved #283 HR1-A slice; KOH-03–08 are later HR stages, not expansion of HR1-A. The unchanged complete HR requirements document remains authoritative.
 
