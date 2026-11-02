@@ -47,7 +47,25 @@ export const SCENARIOS=Object.freeze([
 ].map(([id,actor,company,project,permission,outcome])=>Object.freeze({id,actor,company,project,permission,outcome})));
 
 export const ACTOR_FUNCTIONS=Object.freeze(['BEN','NANCY','KHAIMOOK','JAI','STORE_SITE','FOREMAN','KOH','PORN','SYS_ADMIN']);
-const independentIds=['BEN_PO_APPROVE','KHAIMOOK_GR_APPROVE','KHAIMOOK_COUNT_APPROVE','NANCY_CUSTOMER_BOQ_APPROVE'];
+const MAKER_FOR_APPROVAL=Object.freeze({
+ BEN_PO_APPROVE:'JAI',KHAIMOOK_GR_APPROVE:'STORE_SITE',
+ KHAIMOOK_COUNT_APPROVE:'STORE_SITE',NANCY_CUSTOMER_BOQ_APPROVE:'BEN'
+});
+const independentIds=Object.keys(MAKER_FOR_APPROVAL);
+// Distinct opaque synthetic identities are required for all functional roles.
+// No real identity, email, credential or employee information belongs in this packet.
+function validActorBindings(bindings){
+ if(!safe(bindings)||Object.keys(bindings).length!==ACTOR_FUNCTIONS.length||
+    !ACTOR_FUNCTIONS.every(role=>Object.hasOwn(bindings,role)))return false;
+ const tokens=[];
+ for(const role of ACTOR_FUNCTIONS){
+  const row=bindings[role];
+  if(!safe(row)||Object.keys(row).sort().join(',')!=='key,roleEvidenceId'||
+     !TOKEN.test(row.key??'')||!artifact(row.roleEvidenceId))return false;
+  tokens.push(row.key);
+ }
+ return new Set(tokens).size===ACTOR_FUNCTIONS.length;
+}
 const successStatus=(outcome,status)=>Number.isInteger(status)&&
  (outcome==='ALLOW'?[200,201,204].includes(status):
   outcome==='DENY_AUTH'?[401,403,404].includes(status):[403,409].includes(status));
@@ -76,12 +94,13 @@ export function assessRoleMatrix(input,{now=Date.now(),expectedSha}={}){
    add('ISOLATION_OR_UAT_BOUNDARY_UNVERIFIED');
  const captured=utcTime(input.capturedAt);
  if(captured===null||captured>now+5*60_000||captured<now-48*60*60_000)add('CAPTURE_TIME_NOT_CURRENT');
- const f=input.fixture,fixtureKeys=['positiveCompany','denialCompany','projectA','projectB','functions','fixtureEvidenceId'];
+ const f=input.fixture,fixtureKeys=['positiveCompany','denialCompany','projectA','projectB','functions','fixtureEvidenceId','actorBindings'];
  if(!safe(f)||Object.keys(f).some(k=>!fixtureKeys.includes(k))||
     f.positiveCompany!=='PROTO_A'||f.denialCompany!=='PROTO_B'||
     f.projectA!=='SITE_A'||f.projectB!=='SITE_B'||!Array.isArray(f.functions)||
     f.functions.length!==ACTOR_FUNCTIONS.length||new Set(f.functions).size!==ACTOR_FUNCTIONS.length||
-    !ACTOR_FUNCTIONS.every(k=>f.functions.includes(k))||!artifact(f.fixtureEvidenceId))
+    !ACTOR_FUNCTIONS.every(k=>f.functions.includes(k))||!artifact(f.fixtureEvidenceId)||
+    !validActorBindings(f.actorBindings))
    add('SYNTHETIC_FIXTURE_SCOPE_UNVERIFIED');
  const evidence=input.scenarios;
  if(!Array.isArray(evidence)||evidence.length>SCENARIOS.length*2){
@@ -96,14 +115,17 @@ export function assessRoleMatrix(input,{now=Date.now(),expectedSha}={}){
   index.set(row.id,row);
  }
  let checked=0;
- const rowKeys=['id','actor','company','project','permission','expectedOutcome','transport',
+ const rowKeys=['id','actor','actorKey','company','project','permission','expectedOutcome','transport',
   'httpStatus','observedAt','evidenceId','requestAuditId','separation'];
- const separationKeys=['actorKey','makerKey','immutableDecisionEvidenceId'];
+ const separationKeys=['actorKey','makerKey','immutableDecisionEvidenceId','eligibilityEvidenceId'];
  for(const s of SCENARIOS){
   const row=index.get(s.id);
   if(!row){add('SCENARIO_NOT_OBSERVED',s.id);continue;}
   checked++;
   if(Object.keys(row).some(k=>!rowKeys.includes(k)))add('UNEXPECTED_SCENARIO_FIELD',s.id);
+  const boundActorKey=f?.actorBindings?.[s.actor]?.key;
+  if(!TOKEN.test(row.actorKey??'')||row.actorKey!==boundActorKey)
+   add('ACTOR_BINDING_MISMATCH',s.id);
   if(row.expectedOutcome!==s.outcome||row.actor!==s.actor||row.company!==s.company||
      row.project!==s.project||row.permission!==s.permission||
      row.transport!=='AUTHENTICATED_HTTP'||!artifact(row.evidenceId)||
@@ -117,13 +139,18 @@ export function assessRoleMatrix(input,{now=Date.now(),expectedSha}={}){
   if(safe(sep)&&Object.keys(sep).some(k=>!separationKeys.includes(k)))
    add('UNEXPECTED_SEPARATION_FIELD',s.id);
   if(s.outcome==='DENY_POLICY'&&
-    (!safe(sep)||sep.actorKey!==sep.makerKey||!TOKEN.test(sep.actorKey??'')||
-     !TOKEN.test(sep.makerKey??'')||!artifact(sep.immutableDecisionEvidenceId)))
+    (!safe(sep)||sep.actorKey!==row.actorKey||sep.actorKey!==sep.makerKey||
+     !TOKEN.test(sep.makerKey??'')||!artifact(sep.immutableDecisionEvidenceId)||
+     !artifact(sep.eligibilityEvidenceId)))
     add('MAKER_CHECKER_DENIAL_NOT_TRACED',s.id);
   if(s.outcome==='ALLOW'&&independentIds.includes(s.id)&&
-    (!safe(sep)||sep.actorKey===sep.makerKey||!TOKEN.test(sep.actorKey??'')||
-     !TOKEN.test(sep.makerKey??'')||!artifact(sep.immutableDecisionEvidenceId)))
+    (!safe(sep)||sep.actorKey!==row.actorKey||
+     sep.makerKey!==f?.actorBindings?.[MAKER_FOR_APPROVAL[s.id]]?.key||
+     sep.actorKey===sep.makerKey||!TOKEN.test(sep.makerKey??'')||
+     !artifact(sep.immutableDecisionEvidenceId)))
     add('INDEPENDENT_APPROVAL_NOT_TRACED',s.id);
+  if(s.outcome!=='DENY_POLICY'&&!independentIds.includes(s.id)&&sep!==undefined)
+   add('UNEXPECTED_SEPARATION_ON_UNRELATED_SCENARIO',s.id);
  }
  return result(gaps,checked);
 }
@@ -135,14 +162,18 @@ export function emptyRoleMatrixTemplate(){
   retainedReads:false,productionConnected:false,transport:'AUTHENTICATED_HTTP',
   realRoleGrantsModified:false,humanUatPerformed:false,
   fixture:{positiveCompany:'PROTO_A',denialCompany:'PROTO_B',projectA:'SITE_A',projectB:'SITE_B',
-   functions:[...ACTOR_FUNCTIONS],fixtureEvidenceId:'FILL_PRIVATE_EVIDENCE_ID'},
+   functions:[...ACTOR_FUNCTIONS],fixtureEvidenceId:'FILL_PRIVATE_EVIDENCE_ID',
+   actorBindings:Object.fromEntries(ACTOR_FUNCTIONS.map(role=>[role,{
+    key:'FILL_ROLE_ACTOR_TOKEN',roleEvidenceId:'FILL_PRIVATE_ROLE_BINDING_EVIDENCE'
+   }]))},
   scenarios:SCENARIOS.map(({id,actor,company,project,permission,outcome})=>({
-   id,actor,company,project,permission,expectedOutcome:outcome,
+   id,actor,actorKey:'FILL_ROLE_ACTOR_TOKEN',company,project,permission,expectedOutcome:outcome,
    transport:'AUTHENTICATED_HTTP',httpStatus:null,observedAt:'FILL_CAPTURE_TIME',
    evidenceId:'FILL_PRIVATE_EVIDENCE_ID',requestAuditId:'FILL_PRIVATE_AUDIT_ID',
    ...((outcome==='DENY_POLICY'||independentIds.includes(id))?{separation:{
     actorKey:'FILL_SYNTHETIC_ACTOR_TOKEN',makerKey:'FILL_SYNTHETIC_MAKER_TOKEN',
-    immutableDecisionEvidenceId:'FILL_PRIVATE_EVIDENCE_ID'}}:{})
+    immutableDecisionEvidenceId:'FILL_PRIVATE_EVIDENCE_ID',
+    ...(outcome==='DENY_POLICY'?{eligibilityEvidenceId:'FILL_APPROVER_ELIGIBILITY_EVIDENCE'}:{})}}:{})
   })),
  };
 }
