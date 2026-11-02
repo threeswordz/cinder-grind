@@ -82,6 +82,8 @@ jobs:
           node --test deploy/uat/hr1a-role-assurance.test.mjs deploy/uat/hr1a-role-assurance-http.test.mjs
           node --check deploy/uat/gl04-gl07-source-assurance.mjs
           node --test deploy/uat/gl04-gl07-source-assurance.test.mjs
+          node --check deploy/uat/prototype-freeze-preflight.mjs
+          node --test deploy/uat/prototype-freeze-preflight.test.mjs
           node deploy/uat/gl04-gl07-source-assurance.mjs --check > /tmp/gl04-gl07-source-assurance.json
           node --check deploy/uat/validate-isolated.mjs
           node --test deploy/uat/validate-isolated.test.mjs
