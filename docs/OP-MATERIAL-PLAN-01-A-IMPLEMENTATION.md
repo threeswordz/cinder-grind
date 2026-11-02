@@ -1,5 +1,7 @@
 # OP-MATERIAL-PLAN-01 A — plan foundation
 
+**Technical integration COMPLETE — 3 November 2026 SGT:** #320 guarded squash main `9970150baccbb1a3d3c3079b28ba326f9e3f2b86`; exact-main [41494031446](https://github.com/threeswordz/cinder-grind/actions/runs/41494031446) SUCCESS36/36. Reviewed head `bea019ae23a6d6cad00896b80d9a7665b7a0cc37` passed push41490906459/PR41490914073 and independent final [Codex6583299427](https://github.com/threeswordz/cinder-grind/pull/320#issuecomment-6583299427) CLEAN after the warehouse-scope correction, with its discussion resolved. Native318 API/49 web, five browser suites, predecessor upgrades and populated recovery passed. Integrated tree `0a605aaa9d182aa8d9c0e0450b99a3d81f1f0d41` equals reviewed A plus separately reviewed #321's four additive paths. Earlier candidate/pending/failure entries below preserve their actual history. B now follows the [B implementation record](OP-MATERIAL-PLAN-01-B-IMPLEMENTATION.md); no within-plan posting or human acceptance is claimed by A.
+
 Bounded implementation under DEC-044, #318 and [entry contract](OP-MATERIAL-PLAN-01-ENTRY.md). Entry #319 merged at `34e022d5807d3e16458437a02ebba669ba838c6a`; exact-main41450868013 SUCCESS. The current Work session is sole writer of `v1-material-plan-a-foundation-20261102`.
 
 ## Behavior and ownership

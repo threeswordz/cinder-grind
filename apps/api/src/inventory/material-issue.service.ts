@@ -352,143 +352,156 @@ export class MaterialIssueService {
       context.auth,
       issue.createdByUserId,
       comment,
-      async (tx) => {
-        const current = await this.get(context.auth, id, tx);
-        if (current.postedAt || current.reversedAt) {
-          throw new ConflictException({ code: 'MATERIAL_ISSUE_ALREADY_POSTED' });
-        }
-        await this.validateHeader(
-          context.auth,
-          current.projectId,
-          current.warehouseId,
-          current.issuedToEmployeeId,
-          tx,
-        );
-        for (const item of current.items) {
-          await this.validateLine(
-            context.auth,
-            current,
-            {
-              materialId: item.materialId,
-              quantity: item.quantity,
-              uomId: item.uomId,
-              reservationId: item.reservationId,
-              wbsId: item.wbsId,
-              costCodeId: item.costCodeId,
-              activityId: item.activityId,
-              remarks: item.remarks,
-            },
-            tx,
-          );
-        }
-
-        const dimensions = new Map<string, StockDimension>();
-        for (const item of current.items) {
-          const dimension = this.dimension(current, item);
-          dimensions.set(this.quantities.key(dimension), dimension);
-        }
-        for (const key of [...dimensions.keys()].sort()) {
-          await this.quantities.lock(tx, dimensions.get(key)!);
-        }
-        const reservationIds = current.items
-          .map((item) => item.reservationId)
-          .filter((value): value is string => Boolean(value))
-          .sort();
-        for (const reservationId of reservationIds) {
-          await tx.$executeRawUnsafe(
-            'SELECT pg_advisory_xact_lock(hashtext($1))',
-            'inventory-reservation:' + reservationId,
-          );
-        }
-
-        const now = new Date();
-        await tx.materialIssue.update({
-          where: { id },
-          data: {
-            postedAt: now,
-            postedByUserId: context.auth.userId,
-            postKey,
-          },
-        });
-
-        for (const item of current.items) {
-          if (item.reservationId) {
-            const reservation = await tx.materialReservation.findUnique({
-              where: { id: item.reservationId },
-            });
-            if (
-              !reservation ||
-              reservation.status !== 'ACTIVE' ||
-              reservation.companyId !== current.companyId ||
-              reservation.projectId !== current.projectId ||
-              reservation.warehouseId !== current.warehouseId ||
-              reservation.materialId !== item.materialId ||
-              reservation.uomId !== item.uomId ||
-              !reservation.quantity.equals(item.quantity)
-            ) {
-              throw new ConflictException({
-                code: 'MATERIAL_ISSUE_RESERVATION_CHANGED',
-              });
-            }
-          }
-
-          const dimension = this.dimension(current, item);
-          const available = await this.quantities.available(
-            tx,
-            dimension,
-            item.reservationId ?? undefined,
-          );
-          if (item.quantity.greaterThan(available.available)) {
-            throw new ConflictException({
-              code: 'MATERIAL_ISSUE_INSUFFICIENT_AVAILABLE',
-              detail: 'Issue would consume negative or stock reserved for another active Reservation.',
-            });
-          }
-
-          await tx.stockTransaction.create({
-            data: {
-              companyId: current.companyId,
-              warehouseId: current.warehouseId,
-              materialId: item.materialId,
-              projectId: current.projectId,
-              uomId: item.uomId,
-              materialIssueId: current.id,
-              materialIssueItemId: item.id,
-              wbsId: item.wbsId,
-              costCodeId: item.costCodeId,
-              activityId: item.activityId,
-              movementType: 'MATERIAL_ISSUE',
-              quantity: item.quantity.negated(),
-              effectKey: 'material-issue:' + item.id,
-              postedByUserId: context.auth.userId,
-            },
-          });
-          if (item.reservationId) {
-            await tx.materialReservation.update({
-              where: { id: item.reservationId },
-              data: {
-                status: 'FULFILLED',
-                fulfilledAt: now,
-                fulfilledByUserId: context.auth.userId,
-              },
-            });
-          }
-        }
-
-        await this.audit.record({
-          ...context,
-          entityType: 'MATERIAL_ISSUE',
-          entityId: id,
-          action: 'APPROVE_POST',
-          newValues: {
-            postKey,
-            postedAt: now,
-            lineCount: current.items.length,
-          },
-        }, tx);
-      },
+      async (tx) => this.postInTransaction(context, id, postKey, tx),
     );
     return this.get(context.auth, id);
+  }
+
+  /**
+   * Canonical stock/reservation posting inside the caller's authorized atomic
+   * transaction. This grants no approval authority and has no controller route.
+   * The existing approval-completion callback remains its sole caller in B1.
+   * Plan-policy callers may be added only with B's scoped authorization proof.
+   */
+  async postInTransaction(
+    context: AuditContext,
+    id: string,
+    postKey: string,
+    tx: Prisma.TransactionClient,
+  ): Promise<void> {
+    const current = await this.get(context.auth, id, tx);
+    if (current.postedAt || current.reversedAt) {
+      throw new ConflictException({ code: 'MATERIAL_ISSUE_ALREADY_POSTED' });
+    }
+    await this.validateHeader(
+      context.auth,
+      current.projectId,
+      current.warehouseId,
+      current.issuedToEmployeeId,
+      tx,
+    );
+    for (const item of current.items) {
+      await this.validateLine(
+        context.auth,
+        current,
+        {
+          materialId: item.materialId,
+          quantity: item.quantity,
+          uomId: item.uomId,
+          reservationId: item.reservationId,
+          wbsId: item.wbsId,
+          costCodeId: item.costCodeId,
+          activityId: item.activityId,
+          remarks: item.remarks,
+        },
+        tx,
+      );
+    }
+
+    const dimensions = new Map<string, StockDimension>();
+    for (const item of current.items) {
+      const dimension = this.dimension(current, item);
+      dimensions.set(this.quantities.key(dimension), dimension);
+    }
+    for (const key of [...dimensions.keys()].sort()) {
+      await this.quantities.lock(tx, dimensions.get(key)!);
+    }
+    const reservationIds = current.items
+      .map((item) => item.reservationId)
+      .filter((value): value is string => Boolean(value))
+      .sort();
+    for (const reservationId of reservationIds) {
+      await tx.$executeRawUnsafe(
+        'SELECT pg_advisory_xact_lock(hashtext($1))',
+        'inventory-reservation:' + reservationId,
+      );
+    }
+
+    const now = new Date();
+    await tx.materialIssue.update({
+      where: { id },
+      data: {
+        postedAt: now,
+        postedByUserId: context.auth.userId,
+        postKey,
+      },
+    });
+
+    for (const item of current.items) {
+      if (item.reservationId) {
+        const reservation = await tx.materialReservation.findUnique({
+          where: { id: item.reservationId },
+        });
+        if (
+          !reservation ||
+          reservation.status !== 'ACTIVE' ||
+          reservation.companyId !== current.companyId ||
+          reservation.projectId !== current.projectId ||
+          reservation.warehouseId !== current.warehouseId ||
+          reservation.materialId !== item.materialId ||
+          reservation.uomId !== item.uomId ||
+          !reservation.quantity.equals(item.quantity)
+        ) {
+          throw new ConflictException({
+            code: 'MATERIAL_ISSUE_RESERVATION_CHANGED',
+          });
+        }
+      }
+
+      const dimension = this.dimension(current, item);
+      const available = await this.quantities.available(
+        tx,
+        dimension,
+        item.reservationId ?? undefined,
+      );
+      if (item.quantity.greaterThan(available.available)) {
+        throw new ConflictException({
+          code: 'MATERIAL_ISSUE_INSUFFICIENT_AVAILABLE',
+          detail: 'Issue would consume negative or stock reserved for another active Reservation.',
+        });
+      }
+
+      await tx.stockTransaction.create({
+        data: {
+          companyId: current.companyId,
+          warehouseId: current.warehouseId,
+          materialId: item.materialId,
+          projectId: current.projectId,
+          uomId: item.uomId,
+          materialIssueId: current.id,
+          materialIssueItemId: item.id,
+          wbsId: item.wbsId,
+          costCodeId: item.costCodeId,
+          activityId: item.activityId,
+          movementType: 'MATERIAL_ISSUE',
+          quantity: item.quantity.negated(),
+          effectKey: 'material-issue:' + item.id,
+          postedByUserId: context.auth.userId,
+        },
+      });
+      if (item.reservationId) {
+        await tx.materialReservation.update({
+          where: { id: item.reservationId },
+          data: {
+            status: 'FULFILLED',
+            fulfilledAt: now,
+            fulfilledByUserId: context.auth.userId,
+          },
+        });
+      }
+    }
+
+    await this.audit.record({
+      ...context,
+      entityType: 'MATERIAL_ISSUE',
+      entityId: id,
+      action: 'APPROVE_POST',
+      newValues: {
+        postKey,
+        postedAt: now,
+        lineCount: current.items.length,
+      },
+    }, tx);
   }
 
   async reject(context: AuditContext, id: string, comment?: string) {
