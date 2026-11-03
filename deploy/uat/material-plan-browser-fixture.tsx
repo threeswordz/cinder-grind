@@ -168,8 +168,11 @@ async function run(){
  // Old cached approved quantities and the post button must not survive a 403.
  deny=true;
  await browserQuery.invalidateQueries({queryKey:['material-plan-issues']});
- await until(()=>button('Check complete issue')?.disabled&&
-  !text().includes('Within plan')&&!text().includes('Issue stock within plan'),
+ await until(()=>{
+  const candidate=[...document.querySelectorAll('button')].find(x=>x.textContent?.trim()==='Check complete issue');
+  return (!candidate || candidate.disabled || candidate.getAttribute('aria-disabled')==='true') &&
+   !text().includes('Within plan')&&!text().includes('Issue stock within plan');
+ },
   'Stale plan preview/posting authority survived revoked source access');
  check(effects===0,'Revoked preview caused a stock effect');
  deny=false;
