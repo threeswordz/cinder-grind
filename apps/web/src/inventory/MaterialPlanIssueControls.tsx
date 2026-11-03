@@ -167,7 +167,10 @@ export function MaterialPlanIssueControls({
     if (pending || actionMutation.isPending) return;
     setSaved(false); setPending(action); actionMutation.mutate(action);
   };
-  const review = history.items[0];
+  // Approve only the latest freshly authorized source record, never a stale
+  // parent-prop snapshot or an older history page after a concurrent change.
+  const review = historyPages.length === 1 && visibleHistory?.binding?.issueId === issue.id
+    ? visibleHistory.items[0] : undefined;
   const submittedApproval = visibleHistory && review?.mode === 'OVERAGE' &&
     review.approval?.approvalState === 'SUBMITTED' ? review : null;
   const approvals = submittedApproval?.approval?.actions.filter(a => a.action === 'APPROVE').length ?? 0;
