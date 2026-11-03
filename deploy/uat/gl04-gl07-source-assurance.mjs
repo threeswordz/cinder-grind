@@ -54,6 +54,14 @@ export const ROUTES=[
  ["MP_REVISE", "inventory/material-plan.controller.ts", "Post", ":id/revisions", "inventory.material_plan.view", {"controller": "inventory/material-plans", "extraPermissions": ["inventory.material_plan.revise"], "csrf": true}],
  ["MP_SUBMIT", "inventory/material-plan.controller.ts", "Post", ":id/submit", "inventory.material_plan.view", {"controller": "inventory/material-plans", "extraPermissions": ["inventory.material_plan.submit"], "csrf": true}],
  ["MP_DECIDE", "inventory/material-plan.controller.ts", "Post", ":id/decision", "inventory.material_plan.view", {"controller": "inventory/material-plans", "extraPermissions": ["inventory.material_plan.approve"], "csrf": true}],
+ ["MPI_POLICY", "inventory/material-plan-issue.controller.ts", "Get", "projects/:id/policy", "inventory.material_plan.view", {"controller": "inventory/material-plan-issues", "extraPermissions": ["inventory.issue.view"]}],
+ ["MPI_ENABLE", "inventory/material-plan-issue.controller.ts", "Post", "projects/:id/enable", "inventory.material_plan.view", {"controller": "inventory/material-plan-issues", "extraPermissions": ["inventory.material_plan.prototype.enable"], "csrf": true}],
+ ["MPI_HISTORY", "inventory/material-plan-issue.controller.ts", "Get", "issues/:id", "inventory.material_plan.view", {"controller": "inventory/material-plan-issues", "extraPermissions": ["inventory.issue.view"]}],
+ ["MPI_PREVIEW", "inventory/material-plan-issue.controller.ts", "Post", "issues/:id/preview", "inventory.material_plan.view", {"controller": "inventory/material-plan-issues", "extraPermissions": ["inventory.issue.view"], "csrf": true}],
+ ["MPI_POST", "inventory/material-plan-issue.controller.ts", "Post", "issues/:id/within-plan", "inventory.material_plan.view", {"controller": "inventory/material-plan-issues", "extraPermissions": ["inventory.issue.view", "inventory.material_plan.issue.post"], "csrf": true}],
+ ["MPI_OVERAGE", "inventory/material-plan-issue.controller.ts", "Post", "issues/:id/overage", "inventory.material_plan.view", {"controller": "inventory/material-plan-issues", "extraPermissions": ["inventory.issue.view", "inventory.material_plan.issue.post"], "csrf": true}],
+ ["MPI_REVIEW", "inventory/material-plan-issue.controller.ts", "Post", "authorizations/:id/review", "inventory.material_plan.view", {"controller": "inventory/material-plan-issues", "extraPermissions": ["inventory.issue.view", "inventory.material_plan.overage.review"], "csrf": true}],
+ ["MPI_DECIDE", "inventory/material-plan-issue.controller.ts", "Post", "authorizations/:id/decision", "inventory.material_plan.view", {"controller": "inventory/material-plan-issues", "extraPermissions": ["inventory.issue.view", "inventory.material_plan.overage.approve"], "csrf": true}],
 ];
 export function parseRoleCensus(markdown){
  const rows=[],seen=new Set();

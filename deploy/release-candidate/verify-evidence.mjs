@@ -1,3 +1,4 @@
+import {planIssueMode} from './material-plan-issue-schema-contract.mjs';
 import {materialPlanMode} from './material-plan-schema-contract.mjs';
 import {materialRequestMode} from './material-request-schema-contract.mjs';
 import { readFileSync } from 'node:fs';
@@ -30,6 +31,7 @@ if (rehearsal.releaseCommit !== expected || recovery.releaseCommit !== expected)
   fail('evidence release SHA does not match the exact workflow commit');
 }
 
+const {present:planIssueSchema}=planIssueMode(rehearsal.releaseMode);
 const {present:materialPlanSchema,prior:beforeRequest}=materialPlanMode(rehearsal.releaseMode);
 const {present:materialRequestSchema,prior:beforeStock}=materialRequestMode(beforeRequest);
 const stockCountSchema = typeof beforeStock === 'string' &&
@@ -49,7 +51,7 @@ if (['migration-aware-sql-only', 'migration-aware-thb-schema', 'migration-aware-
   const customerSchema = ['migration-aware-customer-boq-schema','migration-aware-hr-customer-boq-schema'].includes(historicalMode);
   const hrSchema = ['migration-aware-hr-schema','migration-aware-hr-customer-boq-schema'].includes(historicalMode);
   const schemaAware = rehearsal.releaseMode !== 'migration-aware-sql-only';
-  if (rehearsal.version !== (materialPlanSchema ? 11 : materialRequestSchema ? 10 : stockCountSchema ? 9 : hrDocumentSchema ? 8 : hrSchema ? (customerSchema ? 7 : 6) : customerSchema ? 5 : schemaAware ? 4 : 3)) fail('migration-aware rehearsal evidence schema version does not match its mode');
+  if (rehearsal.version !== (planIssueSchema ? 12 : materialPlanSchema ? 11 : materialRequestSchema ? 10 : stockCountSchema ? 9 : hrDocumentSchema ? 8 : hrSchema ? (customerSchema ? 7 : 6) : customerSchema ? 5 : schemaAware ? 4 : 3)) fail('migration-aware rehearsal evidence schema version does not match its mode');
   if (schemaAware) {
     if (!/^[0-9a-f]{40}$/.test(rehearsal.previousReleaseCommit ?? '') ||
         rehearsal.previousRuntimeCommit !== rehearsal.previousReleaseCommit) {
@@ -69,6 +71,10 @@ if (['migration-aware-sql-only', 'migration-aware-thb-schema', 'migration-aware-
       if (!rehearsal.migrationNames?.includes('20261030160000_hr1_a_document_custody')) fail('Exact bounded HR attachment migration missing');
       for (const key of ['hrDocumentCustodyUpgrade','hrDocumentSchemaOnly']) if (rehearsal[key] !== 'PASS') fail('HR attachment custody upgrade ' + key + ' did not PASS');
     }
+    if(planIssueSchema){
+      if(!rehearsal.migrationNames?.includes('20261103080000_material_plan_issue_controls'))fail('Exact material plan issue migration missing');
+      for(const key of ['materialPlanIssueSchemaUpgrade','materialPlanIssueHistoricalPreservation','materialPlanIssueHttpUpgrade','materialPlanIssuePopulatedRecovery','materialPlanIssueSignedReceiptRecovery'])if(rehearsal[key]!=='PASS')fail('Material plan issue proof missing: '+key);
+    }
     if(materialPlanSchema){
       if(!rehearsal.migrationNames?.includes('20261102140000_op_material_plan_01_a'))fail('Exact material plan migration missing');
       if(!rehearsal.migrationNames?.includes('20261103010000_material_plan_warehouse_scope'))fail('Material plan warehouse scope migration missing');
@@ -84,7 +90,7 @@ if (['migration-aware-sql-only', 'migration-aware-thb-schema', 'migration-aware-
         if (rehearsal[key] !== 'PASS') fail('Stock-count upgrade proof ' + key + ' did not PASS');
       }
     }
-    if ((!customerSchema && !hrSchema && !stockCountSchema && !materialRequestSchema && !materialPlanSchema) ||
+    if ((!customerSchema && !hrSchema && !stockCountSchema && !materialRequestSchema && !materialPlanSchema && !planIssueSchema) ||
         rehearsal.migrationNames?.some((name) => name.endsWith('_v1_2_thb_monetary_policy'))) {
       for (const key of ['genuineLegacySgdNullFixture', 'historicalRowsUnchanged']) {
         if (rehearsal[key] !== 'PASS') fail('historical migration proof ' + key + ' did not PASS');
@@ -160,7 +166,7 @@ if (['migration-aware-sql-only', 'migration-aware-thb-schema', 'migration-aware-
   }
 
   const migrationConsolidated = {
-    version: materialPlanSchema ? 11 : materialRequestSchema ? 10 : stockCountSchema ? 9 : hrDocumentSchema ? 8 : customerSchema ? 5 : schemaAware ? 4 : 3,
+    version: planIssueSchema ? 12 : materialPlanSchema ? 11 : materialRequestSchema ? 10 : stockCountSchema ? 9 : hrDocumentSchema ? 8 : customerSchema ? 5 : schemaAware ? 4 : 3,
     releaseMode: rehearsal.releaseMode,
     releaseCommit: expected,
     provenance: {

@@ -510,6 +510,9 @@ export class IdentityAdminService {
     permissionCodes: string[],
   ) {
     const uniqueCodes = [...new Set(permissionCodes)];
+    if (uniqueCodes.some(code => ['inventory.material_plan.issue.post','inventory.material_plan.overage.review','inventory.material_plan.overage.approve'].includes(code)) && !uniqueCodes.includes('inventory.issue.view')) {
+      throw new UnprocessableEntityException({code:'MATERIAL_PLAN_ISSUE_PERMISSION_DEPENDENCY_REQUIRED'});
+    }
     if (uniqueCodes.some(code => code.startsWith('inventory.material_plan.') && code !== 'inventory.material_plan.view') &&
       (!uniqueCodes.includes('inventory.material_plan.view') || !['budget.quantity.view','budget.revision.view'].some(p=>uniqueCodes.includes(p)))) {
       throw new UnprocessableEntityException({code:'MATERIAL_PLAN_VIEW_AND_SOURCE_REQUIRED'});

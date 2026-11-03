@@ -8,6 +8,8 @@ datasource db {
 }
 
 model Company {
+  materialPlanPolicies MaterialPlanProjectPolicy[]
+  materialPlanIssueOperations MaterialPlanIssueOperation[]
   materialUsagePlans MaterialUsagePlan[]
   materialUsagePlanOperations MaterialUsagePlanOperation[]
   materialRequests MaterialRequest[]
@@ -243,6 +245,9 @@ model Employee {
 }
 
 model User {
+  enabledMaterialPlanPolicies MaterialPlanProjectPolicy[] @relation("MaterialPlanPolicyEnabler")
+  createdMaterialPlanIssueAuthorizations MaterialPlanIssueAuthorization[] @relation("MaterialPlanIssueAuthor")
+  materialPlanIssueOperations MaterialPlanIssueOperation[]
   createdMaterialUsagePlans MaterialUsagePlan[] @relation("MaterialUsagePlanCreator")
   createdMaterialUsagePlanRevisions MaterialUsagePlanRevision[] @relation("MaterialUsagePlanRevisionCreator")
   submittedMaterialUsagePlanRevisions MaterialUsagePlanRevision[] @relation("MaterialUsagePlanSubmitter")
@@ -466,6 +471,7 @@ model LoginRateLimitBucket {
 }
 
 model ApprovalWorkflow {
+  materialPlanPolicies MaterialPlanProjectPolicy[]
   id           String   @id @default(uuid()) @db.Uuid
   companyId    String   @map("company_id") @db.Uuid
   workflowCode String   @map("workflow_code") @db.VarChar(80)
@@ -513,6 +519,7 @@ model ApprovalStepRole {
 }
 
 model ApprovalInstance {
+  materialPlanIssueAuthorization MaterialPlanIssueAuthorization?
   customerBoqVersion CustomerBoqVersion?
 
   id                 String    @id @default(uuid()) @db.Uuid
@@ -647,6 +654,7 @@ model SystemSetting {
 
 
 model Project {
+  materialPlanPolicy MaterialPlanProjectPolicy?
   materialUsagePlans MaterialUsagePlan[]
   materialRequests MaterialRequest[]
   hrEmploymentRevisions HrEmploymentRevision[]
@@ -1774,6 +1782,7 @@ model MaterialReservation {
 }
 
 model MaterialIssue {
+  materialPlanBinding MaterialPlanIssueBinding?
   id                 String    @id @default(uuid()) @db.Uuid
   companyId          String    @map("company_id") @db.Uuid
   projectId          String    @map("project_id") @db.Uuid
@@ -1815,6 +1824,7 @@ model MaterialIssue {
 }
 
 model MaterialIssueItem {
+  materialPlanAllocations MaterialPlanIssueAllocation[]
   materialRequestLink MaterialRequestIssueLink?
   id              String   @id @default(uuid()) @db.Uuid
   materialIssueId String   @map("material_issue_id") @db.Uuid
@@ -3475,6 +3485,7 @@ model MaterialRequestOperation {
 }
 
 model MaterialUsagePlan {
+  issueAllocations MaterialPlanIssueAllocation[]
   id String @id @default(uuid()) @db.Uuid
   companyId String @map("company_id") @db.Uuid
   projectId String @map("project_id") @db.Uuid
@@ -3523,6 +3534,7 @@ model MaterialUsagePlanRevision {
 }
 
 model MaterialUsagePlanLine {
+  issueAllocations MaterialPlanIssueAllocation[]
   id String @id @default(uuid()) @db.Uuid
   revisionId String @map("revision_id") @db.Uuid
   budgetRevisionLineId String @map("budget_revision_line_id") @db.Uuid
@@ -3558,4 +3570,101 @@ model MaterialUsagePlanOperation {
   @@unique([companyId,actorUserId,action,requestKey])
   @@unique([planId,planVersion])
   @@map("material_usage_plan_operations")
+}
+
+
+model MaterialPlanProjectPolicy {
+  id String @id @default(uuid()) @db.Uuid
+  companyId String @map("company_id") @db.Uuid
+  projectId String @unique @map("project_id") @db.Uuid
+  approvalWorkflowId String @map("approval_workflow_id") @db.Uuid
+  enabledByUserId String @map("enabled_by_user_id") @db.Uuid
+  syntheticOnly Boolean @default(true) @map("synthetic_only")
+  reason String @db.VarChar(2000)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  company Company @relation(fields:[companyId], references:[id], onDelete:Restrict)
+  project Project @relation(fields:[projectId], references:[id], onDelete:Restrict)
+  workflow ApprovalWorkflow @relation(fields:[approvalWorkflowId], references:[id], onDelete:Restrict)
+  enabledBy User @relation("MaterialPlanPolicyEnabler", fields:[enabledByUserId], references:[id], onDelete:Restrict)
+  bindings MaterialPlanIssueBinding[]
+  operations MaterialPlanIssueOperation[]
+  @@index([companyId,projectId])
+  @@map("material_plan_project_policies")
+}
+
+model MaterialPlanIssueBinding {
+  issueId String @id @map("issue_id") @db.Uuid
+  policyId String @map("policy_id") @db.Uuid
+  authorizationId String? @unique @map("authorization_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  issue MaterialIssue @relation(fields:[issueId], references:[id], onDelete:Restrict)
+  policy MaterialPlanProjectPolicy @relation(fields:[policyId], references:[id], onDelete:Restrict)
+  postedAuthorization MaterialPlanIssueAuthorization? @relation("MaterialPlanPostedAuthorization",fields:[authorizationId],references:[id],onDelete:Restrict)
+  authorizations MaterialPlanIssueAuthorization[] @relation("MaterialPlanIssueAuthorizations")
+  operations MaterialPlanIssueOperation[]
+  @@index([policyId,issueId])
+  @@map("material_plan_issue_bindings")
+}
+
+model MaterialPlanIssueAuthorization {
+  id String @id @default(uuid()) @db.Uuid
+  issueId String @map("issue_id") @db.Uuid
+  sequence Int
+  mode String @db.VarChar(20)
+  bodyDigest String @map("body_digest") @db.VarChar(64)
+  approvalInstanceId String? @unique @map("approval_instance_id") @db.Uuid
+  workflowDigest String? @map("workflow_digest") @db.VarChar(64)
+  createdByUserId String @map("created_by_user_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  binding MaterialPlanIssueBinding @relation("MaterialPlanIssueAuthorizations",fields:[issueId],references:[issueId],onDelete:Restrict)
+  approval ApprovalInstance? @relation(fields:[approvalInstanceId],references:[id],onDelete:Restrict)
+  createdBy User @relation("MaterialPlanIssueAuthor",fields:[createdByUserId],references:[id],onDelete:Restrict)
+  postedBinding MaterialPlanIssueBinding? @relation("MaterialPlanPostedAuthorization")
+  lines MaterialPlanIssueAllocation[]
+  operations MaterialPlanIssueOperation[]
+  @@unique([issueId,sequence])
+  @@index([issueId,id])
+  @@map("material_plan_issue_authorizations")
+}
+
+model MaterialPlanIssueAllocation {
+  id String @id @default(uuid()) @db.Uuid
+  authorizationId String @map("authorization_id") @db.Uuid
+  issueItemId String @map("issue_item_id") @db.Uuid
+  planId String @map("plan_id") @db.Uuid
+  planLineId String @map("plan_line_id") @db.Uuid
+  planVersion Int @map("plan_version")
+  quantity Decimal @db.Decimal(18,4)
+  overageQuantity Decimal @map("overage_quantity") @db.Decimal(18,4)
+  authorization MaterialPlanIssueAuthorization @relation(fields:[authorizationId],references:[id],onDelete:Restrict)
+  item MaterialIssueItem @relation(fields:[issueItemId],references:[id],onDelete:Restrict)
+  plan MaterialUsagePlan @relation(fields:[planId],references:[id],onDelete:Restrict)
+  planLine MaterialUsagePlanLine @relation(fields:[planLineId],references:[id],onDelete:Restrict)
+  @@unique([authorizationId,issueItemId])
+  @@index([planId,planLineId])
+  @@index([issueItemId])
+  @@map("material_plan_issue_allocations")
+}
+
+model MaterialPlanIssueOperation {
+  id String @id @default(uuid()) @db.Uuid
+  companyId String @map("company_id") @db.Uuid
+  actorUserId String @map("actor_user_id") @db.Uuid
+  action String @db.VarChar(20)
+  requestKey String @map("request_key") @db.Uuid
+  bodyDigest String @map("body_digest") @db.VarChar(64)
+  policyId String @map("policy_id") @db.Uuid
+  issueId String? @map("issue_id") @db.Uuid
+  authorizationId String? @map("authorization_id") @db.Uuid
+  snapshot Json @db.JsonB
+  outcome Json @db.JsonB
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  company Company @relation(fields:[companyId],references:[id],onDelete:Restrict)
+  actor User @relation(fields:[actorUserId],references:[id],onDelete:Restrict)
+  policy MaterialPlanProjectPolicy @relation(fields:[policyId],references:[id],onDelete:Restrict)
+  binding MaterialPlanIssueBinding? @relation(fields:[issueId],references:[issueId],onDelete:Restrict)
+  authorization MaterialPlanIssueAuthorization? @relation(fields:[authorizationId],references:[id],onDelete:Restrict)
+  @@unique([companyId,actorUserId,action,requestKey])
+  @@index([issueId,id])
+  @@map("material_plan_issue_operations")
 }

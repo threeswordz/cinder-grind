@@ -5,6 +5,7 @@ import {Prisma} from '@prisma/client';
 // connector. Translate only this module's exact guard messages and SQLSTATE;
 // unrelated database/programming failures must still surface as server errors.
 const guardMessages=[
+ 'Material plan issue revision below effective consumption',
  'Material plan source or material scope invalid',
  'Material plan approved mapping is immutable',
  'Material plan approved source mapping or basis conflicts',

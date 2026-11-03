@@ -1,3 +1,4 @@
+import {planIssueMode} from './material-plan-issue-schema-contract.mjs';
 import {createHash} from 'node:crypto';
 const models={
   "MaterialUsagePlan": "e5f76ba5b234c6ef2f607748fa162715645f77d30d3301a95cc412f6fd7f3028",
@@ -55,6 +56,7 @@ export function stripMaterialPlanSchema(schema){
  return {text,present:found.size===4};
 }
 export function materialPlanMode(mode){
+ mode=planIssueMode(mode).prior;
  const present=typeof mode==='string'&&mode.startsWith('migration-aware-material-plan-');
  return {present,prior:!present?mode:mode==='migration-aware-material-plan-schema'?'migration-aware-sql-only':'migration-aware-'+mode.slice('migration-aware-material-plan-'.length)};
 }

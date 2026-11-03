@@ -152,3 +152,14 @@ test('all ten plan foundation routes pin owning controller, permissions, method 
   if(r[5].csrf)assert.equal(inspectRoute(source.replace('CsrfGuard,','/* CsrfGuard, */'),r).result,'CSRF_GUARD_MISSING');
  }
 });
+
+test('all eight plan issue routes pin independent action rights, controller and CSRF on writes',()=>{
+ const routes=ROUTES.filter(r=>r[5]?.controller==='inventory/material-plan-issues');assert.equal(routes.length,8);
+ for(const r of routes){const source=materialFixture(r),rights=[r[4],...r[5].extraPermissions];
+  assert.equal(inspectRoute(source,r).result,'SOURCE_DECORATORS_FOUND');
+  assert.equal(inspectRoute(materialFixture(r,{controller:'wrong-root'}),r).result,'CONTROLLER_PATH_MISMATCH');
+  for(const right of rights)assert.equal(inspectRoute(materialFixture(r,{permissions:rights.filter(p=>p!==right)}),r).result,'PERMISSION_DECORATOR_MISSING');
+  for(const guard of ['AuthGuard','PermissionGuard'])assert.equal(inspectRoute(source.replace(guard,'UnrelatedGuard'),r).result,'AUTH_PERMISSION_GUARDS_MISSING');
+  if(r[5].csrf)assert.equal(inspectRoute(source.replace('CsrfGuard,','/* CsrfGuard, */'),r).result,'CSRF_GUARD_MISSING');
+ }
+});

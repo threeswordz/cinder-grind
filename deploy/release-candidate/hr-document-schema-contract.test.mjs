@@ -1,3 +1,4 @@
+import {stripPlanIssueSchema} from './material-plan-issue-schema-contract.mjs';
 import {stripMaterialPlanSchema} from './material-plan-schema-contract.mjs';
 import {stripMaterialRequestSchema} from './material-request-schema-contract.mjs';
 import assert from 'node:assert/strict';
@@ -8,7 +9,7 @@ import { classifySchema } from './schema-contract.mjs';
 import { hrDocumentTables, stripHrDocumentSchema } from './hr-document-schema-contract.mjs';
 import { assertHistoricalTables } from './historical-snapshot.mjs';
 
-const current = stripMaterialRequestSchema(stripMaterialPlanSchema(readFileSync(new URL('../../apps/api/prisma/schema.prisma', import.meta.url), 'utf8')).text).text;
+const current = stripMaterialRequestSchema(stripMaterialPlanSchema(stripPlanIssueSchema(readFileSync(new URL('../../apps/api/prisma/schema.prisma', import.meta.url), 'utf8')).text).text).text;
 const predecessor = stripHrDocumentSchema(current).text;
 
 test('only the exact Company/Employee/Document bounded HR custody model introduces the new schema mode', () => {

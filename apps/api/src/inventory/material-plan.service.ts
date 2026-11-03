@@ -1,3 +1,4 @@
+import {materialPlanActor,materialPlanSourceRight} from './material-plan-actor';
 import {ConflictException,ForbiddenException,Injectable,NotFoundException,UnprocessableEntityException} from '@nestjs/common';
 import {Prisma} from '@prisma/client';
 import {createHash} from 'node:crypto';
@@ -21,14 +22,8 @@ const invalid=(code:string):never=>{throw new UnprocessableEntityException({code
 @Injectable()
 export class MaterialPlanService{
  constructor(private readonly prisma:PrismaService,private readonly access:ProjectAccessService,private readonly audit:AuditService){}
- private async authorize(auth:AuthenticatedUserContext,extra:string[]=[],db:Db=this.prisma){
-  const session=await db.userSession.findFirst({where:{id:auth.sessionId,userId:auth.userId,revokedAt:null,expiresAt:{gt:new Date()},user:{companyId:auth.companyId,isActive:true,company:{isActive:true}}},
-   select:{user:{select:{userRoles:{select:{role:{select:{companyId:true,isActive:true,rolePermissions:{select:{permission:{select:{permissionCode:true}}}}}}}}}}}});
-  const permissions=[...new Set(session?.user.userRoles.filter(x=>x.role.isActive&&x.role.companyId===auth.companyId).flatMap(x=>x.role.rolePermissions.map(p=>p.permission.permissionCode))??[])];
-  if(!session||![MP_VIEW,...extra].every(p=>auth.permissions.includes(p)&&permissions.includes(p)))throw new ForbiddenException({code:'MATERIAL_PLAN_PERMISSION_DENIED'});
-  return {...auth,permissions};
- }
- private sourceRight(auth:AuthenticatedUserContext){if(!['budget.quantity.view','budget.revision.view'].some(p=>auth.permissions.includes(p)))throw new ForbiddenException({code:'MATERIAL_PLAN_SOURCE_PERMISSION_DENIED'});}
+ private authorize(auth:AuthenticatedUserContext,extra:string[]=[],db:Db=this.prisma){return materialPlanActor(auth,db,extra);}
+ private sourceRight(auth:AuthenticatedUserContext){materialPlanSourceRight(auth);}
  private async header(auth:AuthenticatedUserContext,id:string,db:Db){
   const p=await db.materialUsagePlan.findFirst({where:{id,companyId:auth.companyId},select:headerSelect});if(!p)throw new NotFoundException({code:'MATERIAL_PLAN_NOT_FOUND'});
   await this.access.assertAccess(auth,p.projectId,db);return p;
@@ -37,7 +32,8 @@ export class MaterialPlanService{
  private async detail(auth:AuthenticatedUserContext,id:string,db:Db){
   const p=await this.header(auth,id,db);
   const [latest,approved]=await Promise.all([db.materialUsagePlanRevision.findFirst({where:{planId:id},orderBy:{revisionNo:'desc'},select:revisionSelect}),db.materialUsagePlanRevision.findFirst({where:{planId:id,status:'APPROVED'},orderBy:{revisionNo:'desc'},select:revisionSelect})]);
-  return {...p,latestRevision:this.presentRevision(latest),approvedRevision:this.presentRevision(approved),issueEnforcement:'NOT_ENABLED_BY_FOUNDATION'};
+  const policy=await db.materialPlanProjectPolicy.findUnique({where:{projectId:p.projectId},select:{id:true}});
+  return {...p,latestRevision:this.presentRevision(latest),approvedRevision:this.presentRevision(approved),issueEnforcement:policy?'ENABLED_FOR_NEW_SYNTHETIC_ISSUES':'NOT_ENABLED_BY_FOUNDATION'};
  }
  async projects(supplied:AuthenticatedUserContext){const auth=await this.authorize(supplied);return this.prisma.project.findMany({where:{AND:[await this.access.scopeWhere(auth),{isActive:true}]},select:{id:true,projectCode:true,projectName:true},orderBy:{id:'asc'},take:100});}
  async choices(supplied:AuthenticatedUserContext,projectId:string,kind:string,budgetRevisionId?:string,after?:string){
