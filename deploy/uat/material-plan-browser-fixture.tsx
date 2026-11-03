@@ -129,11 +129,12 @@ async function input(label,value){
  el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));await pause(50);
 }
 function render(kind,locale,permissions,authHistory=history){
+ // A changed authenticated scope/actor must mount a new UI and query cache.
  fixtureHistory=authHistory;
  browserQuery=new QueryClient({defaultOptions:{queries:{retry:false},mutations:{retry:false}}});
  root.render(<MonetaryLocaleContext.Provider value={locale}><QueryClientProvider client={browserQuery}>{
    kind==='plans'?<MaterialPlansPanel permissions={permissions}/>:
-     <MaterialPlanIssueControls issue={issue} permissions={permissions} history={authHistory} onChanged={async()=>{}}/>
+     <MaterialPlanIssueControls key={[kind,locale,...permissions].join(':')} issue={issue} permissions={permissions} history={authHistory} onChanged={async()=>{}}/>
  }</QueryClientProvider></MonetaryLocaleContext.Provider>);
 }
 async function run(){
@@ -194,7 +195,7 @@ async function run(){
  await until(()=>text().includes('核准計畫領料控制'),'Chinese issue labels absent');
  render('issues','en',reviewer,{...history,items:[reviewAuth]});
  await until(()=>text().includes('Independent overage review')&&text().includes('#1'),
-  'Independent overage authorization and source history absent');
+  'Independent overage authorization and source history absent: '+text().slice(-750));
  await input('Decision comment','Synthetic independent review');
  await click('Approve');
  await until(()=>decisions.length===1,'Reviewer decision absent');
@@ -203,7 +204,7 @@ async function run(){
   actions:[{id:'f',action:'APPROVE',actionByUserId:active,comment:'First independent approval'}]}};
  render('issues','en',approver,{...history,items:[final]});
  await until(()=>text().includes('Final independent overage decision')&&text().includes('#1'),
-  'Final-stage authorization history absent');
+  'Final-stage authorization history absent: '+text().slice(-750));
  await input('Decision comment','Synthetic separate final approval');
  await click('Approve');
  await until(()=>decisions.length===2,'Final decision absent');
