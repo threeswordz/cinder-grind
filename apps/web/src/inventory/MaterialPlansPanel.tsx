@@ -21,21 +21,6 @@ const validQuantity = (v: string) =>
   /^(?:0|[1-9]\d{0,13})(?:\.\d{1,4})?$/.test(v) && Number(v) > 0;
 const pageOptions = { retry: false, gcTime: 0, refetchOnWindowFocus: true } as const;
 
-function OptionPages({
-  cursor, setCursor, previous, next, disabled,
-}: {
-  cursor: string[]; setCursor: (v: string[]) => void;
-  previous: string; next: string; disabled?: boolean;
-}) {
-  return <Stack direction="row" spacing={1}>
-    <Button size="small" disabled={disabled || cursor.length < 2}
-      onClick={() => setCursor(cursor.slice(0, -1))}>{previous}</Button>
-    <Button size="small" disabled={disabled || !cursor.at(-1)}
-      onClick={() => setCursor([...cursor.slice(0, -1), cursor.at(-1)!])} sx={{ display: 'none' }} />
-    {/* Next-page cursor is supplied by the caller's separate control. */}
-  </Stack>;
-}
-
 export function MaterialPlansPanel({ permissions }: { permissions: string[] }) {
   const t = materialPlanLabels[useContext(MonetaryLocaleContext)];
   const cache = useQueryClient();
@@ -68,23 +53,25 @@ export function MaterialPlansPanel({ permissions }: { permissions: string[] }) {
     queryKey: ['material-plan-ui', 'projects', permissions.join(',')],
     queryFn: api.projects, enabled: view, ...pageOptions,
   });
+  const authorizedProject = projects.isSuccess && !projects.isFetching &&
+    projects.data.data.some(p => p.id === projectId);
   const plans = useQuery({
     queryKey: ['material-plan-ui', 'list', projectId, listPages.at(-1)],
     queryFn: () => api.list(projectId, listPages.at(-1) ?? ''),
-    enabled: view && Boolean(projectId), ...pageOptions,
+    enabled: view && authorizedProject, ...pageOptions,
   });
   const detail = useQuery({
     queryKey: ['material-plan-ui', 'detail', planId],
     queryFn: () => api.get(planId),
-    enabled: view && Boolean(planId), ...pageOptions,
+    enabled: view && authorizedProject && Boolean(planId), ...pageOptions,
   });
   const history = useQuery({
     queryKey: ['material-plan-ui', 'history', planId, historyPages.at(-1)],
     queryFn: () => api.history(planId, historyPages.at(-1) ?? ''),
-    enabled: view && Boolean(planId), ...pageOptions,
+    enabled: view && authorizedProject && Boolean(planId), ...pageOptions,
   });
   const editing = mode === 'CREATE' ? can('create') : can('revise');
-  const choicesEnabled = view && Boolean(projectId) && editing;
+  const choicesEnabled = view && authorizedProject && editing;
   const choices = (kind: 'warehouses' | 'materials' | 'revisions' | 'source-lines') => {
     const after = pagesFor(kind).at(-1) ?? '';
     return {
@@ -98,10 +85,17 @@ export function MaterialPlansPanel({ permissions }: { permissions: string[] }) {
   const revisions = useQuery(choices('revisions'));
   const materials = useQuery(choices('materials'));
   const sourceLines = useQuery(choices('source-lines'));
-  const current: MaterialPlan | null = detail.data?.data.id === planId ? detail.data.data : null;
+  // React Query can retain previously authorized data after a failed refetch.
+  // Mask the old snapshot during access revalidation and on denial.
+  const current: MaterialPlan | null = authorizedProject && detail.isSuccess && !detail.isFetching &&
+    detail.data.data.id === planId && detail.data.data.projectId === projectId ? detail.data.data : null;
   const selected = current?.latestRevision ?? null;
-  const sourceRows = sourceLines.data?.data.items ?? [];
-  const materialRows = materials.data?.data.items ?? [];
+  const sourceRows = authorizedProject && sourceLines.isSuccess && !sourceLines.isFetching ? sourceLines.data.data.items : [];
+  const materialRows = authorizedProject && materials.isSuccess && !materials.isFetching ? materials.data.data.items : [];
+  const plansPage = authorizedProject && plans.isSuccess && !plans.isFetching ? plans.data.data : null;
+  const historyPage = current && history.isSuccess && !history.isFetching ? history.data.data : null;
+  const warehousePage = authorizedProject && warehouses.isSuccess && !warehouses.isFetching ? warehouses.data.data : null;
+  const revisionPage = authorizedProject && revisions.isSuccess && !revisions.isFetching ? revisions.data.data : null;
 
   const mutation = useMutation({
     mutationFn: (intent: Intent) => {
@@ -152,7 +146,9 @@ export function MaterialPlansPanel({ permissions }: { permissions: string[] }) {
   const contentValid = validFrom !== '' && validTo >= validFrom && reason.trim() !== '' &&
     lines.length > 0 && lines.every(l => Boolean(l.budgetRevisionLineId && l.materialId && l.uomId) && validQuantity(l.quantity)) &&
     new Set(lines.map(l => l.budgetRevisionLineId)).size === lines.length;
-  const canSave = editing && !pending && !mutation.isPending && contentValid &&
+  const canSave = editing && authorizedProject && Boolean(warehousePage && revisionPage) &&
+    sourceLines.isSuccess && !sourceLines.isFetching && materials.isSuccess && !materials.isFetching &&
+    !pending && !mutation.isPending && contentValid &&
     Boolean(projectId && warehouseId && basisId && packageCode.trim()) &&
     (mode !== 'REVISE' || Boolean(current));
   const submitForm = () => {
@@ -197,7 +193,7 @@ export function MaterialPlansPanel({ permissions }: { permissions: string[] }) {
     <TextField select size="small" label={t.project} value={projectId} sx={{ maxWidth: 520 }}
       onChange={e => resetProject(e.target.value)} disabled={Boolean(pending)}>
       <MenuItem value="">{t.select}</MenuItem>
-      {(projects.data?.data ?? []).map(p =>
+      {(projects.isSuccess && !projects.isFetching ? projects.data.data : []).map(p =>
         <MenuItem key={p.id} value={p.id}>{p.projectCode} — {p.projectName}</MenuItem>)}
     </TextField>
     {pending ? <Alert severity="warning">{t.pending}<Stack direction="row" spacing={1}>
@@ -212,17 +208,17 @@ export function MaterialPlansPanel({ permissions }: { permissions: string[] }) {
           <Typography variant="subtitle1">{t.plan}</Typography>
           {plans.isError ? <Alert severity="error">{t.error}</Alert> : null}
           <Stack direction="row" gap={1} flexWrap="wrap">
-            {(plans.data?.data.items ?? []).map(p =>
+            {(plansPage?.items ?? []).map(p =>
               <Chip key={p.id} variant={planId === p.id ? 'filled' : 'outlined'}
                 color={planId === p.id ? 'primary' : 'default'}
                 label={p.workPackageCode + ' · v' + p.version}
                 onClick={() => { setPlanId(p.id); setHistoryPages(['']); setMode('CREATE'); }} />)}
           </Stack>
-          {plans.isSuccess && !plans.data.data.items.length ? <Alert severity="info">{t.empty}</Alert> : null}
+          {plansPage && !plansPage.items.length ? <Alert severity="info">{t.empty}</Alert> : null}
           <Stack direction="row" spacing={1}>
             <Button disabled={listPages.length < 2} onClick={() => setListPages(x => x.slice(0, -1))}>{t.previous}</Button>
-            <Button disabled={!plans.data?.data.nextCursor}
-              onClick={() => plans.data?.data.nextCursor && setListPages(x => [...x, plans.data!.data.nextCursor!])}>{t.next}</Button>
+            <Button disabled={!plansPage?.nextCursor}
+              onClick={() => plansPage?.nextCursor && setListPages(x => [...x, plansPage.nextCursor!])}>{t.next}</Button>
             <Button onClick={() => void refresh()}>{t.refresh}</Button>
           </Stack>
         </Stack>
@@ -268,13 +264,13 @@ export function MaterialPlansPanel({ permissions }: { permissions: string[] }) {
           <Divider />
           <Typography variant="subtitle2">{t.history}</Typography>
           {history.isError ? <Alert severity="error">{t.error}</Alert> : null}
-          {(history.data?.data.items ?? []).map(row =>
+          {(historyPage?.items ?? []).map(row =>
             <Typography key={row.id} variant="body2">#{row.revisionNo} · {row.status} · {row.reason}</Typography>)}
           <Stack direction="row" spacing={1}>
             <Button disabled={historyPages.length < 2}
               onClick={() => setHistoryPages(x => x.slice(0, -1))}>{t.previous}</Button>
-            <Button disabled={!history.data?.data.nextCursor}
-              onClick={() => history.data?.data.nextCursor && setHistoryPages(x => [...x, history.data!.data.nextCursor!])}>{t.next}</Button>
+            <Button disabled={!historyPage?.nextCursor}
+              onClick={() => historyPage?.nextCursor && setHistoryPages(x => [...x, historyPage.nextCursor!])}>{t.next}</Button>
           </Stack>
         </Stack> : <Typography variant="body2">{t.noSelection}</Typography>}
       </Paper> : null}
@@ -285,19 +281,19 @@ export function MaterialPlansPanel({ permissions }: { permissions: string[] }) {
             <TextField select fullWidth label={t.warehouse} value={warehouseId} disabled={mode === 'REVISE' || Boolean(pending) || warehouses.isError}
               onChange={e => setWarehouseId(e.target.value)}>
               <MenuItem value="">{t.select}</MenuItem>
-              {(warehouses.data?.data.items ?? []).map(w =>
+              {(warehousePage?.items ?? []).map(w =>
                 <MenuItem key={w.id} value={w.id}>{w.warehouseCode} — {w.warehouseName}</MenuItem>)}
             </TextField>
             <TextField select fullWidth label={t.basis} value={basisId} disabled={mode === 'REVISE' || Boolean(pending) || revisions.isError}
               onChange={e => { setBasisId(e.target.value); setLines([]); }}>
               <MenuItem value="">{t.select}</MenuItem>
-              {(revisions.data?.data.items ?? []).map(r =>
+              {(revisionPage?.items ?? []).map(r =>
                 <MenuItem key={r.id} value={r.id}>{r.revisionNumber ?? r.id}</MenuItem>)}
             </TextField>
           </Stack>
           {mode === 'CREATE' ? <Stack direction="row" spacing={1}>
-            {chooser('warehouses', warehouses.data?.data.items ?? [], warehouses.data?.data.nextCursor ?? null, warehouses.isError)}
-            {chooser('revisions', revisions.data?.data.items ?? [], revisions.data?.data.nextCursor ?? null, revisions.isError)}
+            {chooser('warehouses', warehousePage?.items ?? [], warehousePage?.nextCursor ?? null, warehouses.isError)}
+            {chooser('revisions', revisionPage?.items ?? [], revisionPage?.nextCursor ?? null, revisions.isError)}
           </Stack> : null}
           <TextField label={t.workPackage} value={packageCode} disabled={mode === 'REVISE' || Boolean(pending)}
             inputProps={{ maxLength: 80 }} onChange={e => setPackageCode(e.target.value)} />
@@ -311,9 +307,8 @@ export function MaterialPlansPanel({ permissions }: { permissions: string[] }) {
             onChange={e => setReason(e.target.value)} />
           <Typography variant="subtitle2">{t.lines}</Typography>
           {basisId && sourceLines.isError ? <Alert severity="error">{t.error}</Alert> : null}
-          {basisId && sourceLines.isSuccess && sourceRows.length === 0 ? <Alert severity="info">{t.noSource}</Alert> : null}
+          {basisId && sourceLines.isSuccess && !sourceLines.isFetching && sourceRows.length === 0 ? <Alert severity="info">{t.noSource}</Alert> : null}
           {lines.map((line, index) => {
-            const source = sourceRows.find(s => s.id === line.budgetRevisionLineId);
             const matchingMaterials = materialRows.filter(m => m.defaultUomId === line.uomId);
             return <Box key={index} sx={{ p: 1, border: 1, borderRadius: 1, borderColor: 'divider' }}>
               <Stack spacing={1}>
@@ -324,7 +319,6 @@ export function MaterialPlansPanel({ permissions }: { permissions: string[] }) {
                     setLine(index, { budgetRevisionLineId: e.target.value, uomId: chosen?.uomId ?? '', materialId: '' });
                   }}>
                   <MenuItem value="">{t.select}</MenuItem>
-                  {source && !sourceRows.some(r => r.id === source.id) ? <MenuItem value={source.id}>{source.id}</MenuItem> : null}
                   {sourceRows.map(s =>
                     <MenuItem key={s.id} value={s.id}>{s.itemCode} · {s.description} · {s.quantity} {s.uomCode}</MenuItem>)}
                   {line.budgetRevisionLineId && !sourceRows.some(s => s.id === line.budgetRevisionLineId) ?
@@ -352,8 +346,8 @@ export function MaterialPlansPanel({ permissions }: { permissions: string[] }) {
           {basisId ? <Stack direction="row" spacing={1}>
             <Button disabled={Boolean(pending) || lines.length >= 100}
               onClick={() => setLines(old => [...old, { budgetRevisionLineId: '', materialId: '', uomId: '', quantity: '' }])}>{t.addLine}</Button>
-            {chooser('source-lines', sourceRows, sourceLines.data?.data.nextCursor ?? null, sourceLines.isError)}
-            {chooser('materials', materialRows, materials.data?.data.nextCursor ?? null, materials.isError)}
+            {chooser('source-lines', sourceRows, sourceLines.isSuccess && !sourceLines.isFetching ? sourceLines.data.data.nextCursor : null, sourceLines.isError)}
+            {chooser('materials', materialRows, materials.isSuccess && !materials.isFetching ? materials.data.data.nextCursor : null, materials.isError)}
           </Stack> : null}
           {!contentValid && lines.length > 0 ? <Alert severity="info">{t.invalid}</Alert> : null}
           <Button variant="contained" disabled={!canSave} onClick={submitForm}>
