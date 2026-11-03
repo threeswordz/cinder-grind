@@ -33,8 +33,10 @@ test('only exact module P0001 guard failures are translated; unrelated database 
  assert.equal(mpiIntegrity(raw('P0001','Unrelated server failure')),undefined);
 });
 test('exhausted plan issue serializable retries are bounded and cannot return server success or duplicate work',async()=>{
- let attempts=0;const db={$transaction:async()=>{attempts++;throw new Prisma.PrismaClientKnownRequestError('serialization',{clientVersion:'6.19.3',code:'P2034'});}};
- const service=new MaterialPlanIssueService(db as any,{} as any,{} as any,{} as any,{} as any);
- await assert.rejects(()=>service.withinPlan({auth:{} as any},randomUUID(),{requestKey:randomUUID(),bindings:[{issueItemId:randomUUID(),planLineId:randomUUID(),expectedPlanVersion:1}]}),(e:any)=>e.getStatus()===409&&e.getResponse().code==='MATERIAL_PLAN_ISSUE_RETRY_REQUIRED');
- assert.equal(attempts,3);
+ for(const meta of [undefined,{code:'40001'},{code:'40P01'}]){
+  let attempts=0;const db={$transaction:async()=>{attempts++;throw new Prisma.PrismaClientKnownRequestError('serialization',{clientVersion:'6.19.3',code:meta?'P2010':'P2034',...(meta?{meta}:{})});}};
+  const service=new MaterialPlanIssueService(db as any,{} as any,{} as any,{} as any,{} as any);
+  await assert.rejects(()=>service.withinPlan({auth:{} as any},randomUUID(),{requestKey:randomUUID(),bindings:[{issueItemId:randomUUID(),planLineId:randomUUID(),expectedPlanVersion:1}]}),(e:any)=>e?.getStatus?.()===409&&e.getResponse().code==='MATERIAL_PLAN_ISSUE_RETRY_REQUIRED');
+  assert.equal(attempts,3);
+ }
 });

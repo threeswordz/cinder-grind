@@ -33,7 +33,7 @@ export class MaterialPlanIssueService{
  private async retry<T>(work:(tx:Tx)=>Promise<T>):Promise<T>{
   for(let attempt=0;attempt<3;attempt++)try{return await this.prisma.$transaction(work,{isolationLevel:Prisma.TransactionIsolationLevel.Serializable,timeout:30000});}
   catch(error){
-   if(error instanceof Prisma.PrismaClientKnownRequestError&&['P2034','P2002'].includes(error.code)){if(attempt<2)continue;conflict('MATERIAL_PLAN_ISSUE_RETRY_REQUIRED');}
+   if(error instanceof Prisma.PrismaClientKnownRequestError&&(['P2034','P2002'].includes(error.code)||(error.code==='P2010'&&['40001','40P01'].includes(String(error.meta?.code))))){if(attempt<2)continue;conflict('MATERIAL_PLAN_ISSUE_RETRY_REQUIRED');}
    const integrity=mpiIntegrity(error)??materialPlanIntegrityException(error);if(integrity)throw integrity;throw error;
   }
   return conflict('MATERIAL_PLAN_ISSUE_RETRY_REQUIRED');
