@@ -4,7 +4,7 @@ export const materialPlanIssueLabels: Record<Locale, Record<string, string>> = {
   en: {
     title: 'Approved plan issue controls', subtitle: 'The server enforces approved quantities and stock availability at final posting. Preview never posts stock.',
     policy: 'Synthetic plan policy enabled', choosePlan: 'Approved plan', chooseLine: 'Matching plan allocation',
-    select: 'Select', source: 'Issue item', preview: 'Check complete issue', matched: 'Within plan',
+    select: 'Select', previous: 'Previous', next: 'Next', source: 'Issue item', preview: 'Check complete issue', matched: 'Within plan',
     overage: 'Above approved plan', overageQuantity: 'Overage quantity',
     allowance: 'Allowance', used: 'Previously consumed', remaining: 'Remaining before this issue',
     post: 'Issue stock within plan', submit: 'Submit overage for independent approval', refresh: 'Refresh source',
@@ -25,7 +25,7 @@ export const materialPlanIssueLabels: Record<Locale, Record<string, string>> = {
   th: {
     title: 'การเบิกตามแผนอนุมัติ', subtitle: 'เซิร์ฟเวอร์ตรวจจำนวนตามแผนและสต็อกที่จ่ายได้เมื่อผ่านรายการจริง การตรวจสอบเบื้องต้นไม่ตัดสต็อก',
     policy: 'เปิดใช้นโยบายแผนจำลอง', choosePlan: 'แผนที่อนุมัติ', chooseLine: 'รายการจัดสรรที่ตรงกัน',
-    select: 'เลือก', source: 'รายการเบิก', preview: 'ตรวจทุกรายการ', matched: 'ภายในแผน',
+    select: 'เลือก', previous: 'ก่อนหน้า', next: 'ถัดไป', source: 'รายการเบิก', preview: 'ตรวจทุกรายการ', matched: 'ภายในแผน',
     overage: 'เกินแผนอนุมัติ', overageQuantity: 'จำนวนที่เกินแผน',
     allowance: 'จำนวนตามแผน', used: 'ใช้ไปแล้ว', remaining: 'คงเหลือก่อนเบิก',
     post: 'จ่ายวัสดุภายในแผน', submit: 'ส่งรายการเกินแผนเพื่ออนุมัติอิสระ', refresh: 'รีเฟรชข้อมูล',
@@ -46,7 +46,7 @@ export const materialPlanIssueLabels: Record<Locale, Record<string, string>> = {
   'zh-TW': {
     title: '核准計畫領料控制', subtitle: '伺服器在最後過帳時檢查核准數量及實際庫存；預覽不會進行出庫。',
     policy: '已啟用模擬計畫政策', choosePlan: '已核准計畫', chooseLine: '相符的配置明細',
-    select: '選擇', source: '發料項目', preview: '檢查整張發料單', matched: '計畫內',
+    select: '選擇', previous: '上一頁', next: '下一頁', source: '發料項目', preview: '檢查整張發料單', matched: '計畫內',
     overage: '超出核准計畫', overageQuantity: '超額數量',
     allowance: '配置數量', used: '既有耗用', remaining: '本次發料前剩餘',
     post: '按計畫出庫', submit: '送交獨立超額審核', refresh: '重新整理來源',
