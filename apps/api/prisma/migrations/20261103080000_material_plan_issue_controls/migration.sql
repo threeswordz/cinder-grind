@@ -346,7 +346,7 @@ BEGIN
   THEN RAISE EXCEPTION 'Material plan issue policy scope invalid'; END IF;
  ELSIF TG_TABLE_NAME='material_plan_issue_bindings' THEN
   SELECT * INTO STRICT h FROM material_issues WHERE id=NEW.issue_id;SELECT * INTO STRICT p FROM material_plan_project_policies WHERE id=NEW.policy_id;
-  IF pg_trigger_depth()<2 OR h.created_at<>transaction_timestamp() OR h.company_id<>p.company_id OR h.project_id<>p.project_id OR NEW.authorization_id IS NOT NULL
+  IF pg_trigger_depth()<2 OR NOT EXISTS(SELECT 1 FROM material_issues WHERE id=NEW.issue_id AND xmin::text=(txid_current()%4294967296)::text) OR h.company_id<>p.company_id OR h.project_id<>p.project_id OR NEW.authorization_id IS NOT NULL
   THEN RAISE EXCEPTION 'Material plan issue historical scope cannot change'; END IF;
   NEW.created_at:=transaction_timestamp();
  ELSIF TG_TABLE_NAME='material_plan_issue_authorizations' THEN

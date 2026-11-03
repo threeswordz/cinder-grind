@@ -32,6 +32,8 @@ test('MP-AC-07–13 actual authenticated plan posting, overage, consumption and 
   });
   await t.test('historical drafts retain canonical legacy approval; only newly created enabled issues are pinned',async()=>{
    assert.equal(await db.materialPlanIssueBinding.findUnique({where:{issueId:f.historical.id}}),null);
+   const enabled=await db.materialPlanProjectPolicy.findUniqueOrThrow({where:{projectId:f.project.id}});
+   await assert.rejects(()=>db.$transaction(tx=>tx.materialPlanIssueBinding.create({data:{issueId:f.historical.id,policyId:enabled.id}}),{isolationLevel:Prisma.TransactionIsolationLevel.Serializable}));
    await f.issues.submit({auth:f.store.auth},f.historical.id,'MR-ISSUE');await f.issues.approve({auth:f.manager.auth},f.historical.id,randomUUID());
    const issue=await f.issue('3',false);directId=issue.id;assert.ok(await db.materialPlanIssueBinding.findUnique({where:{issueId:directId}}));
    await assert.rejects(()=>f.issues.submit({auth:f.store.auth},directId,'MR-ISSUE'),(e:any)=>e.getStatus()===409&&e.getResponse().code==='MATERIAL_PLAN_ISSUE_PATH_REQUIRED');
