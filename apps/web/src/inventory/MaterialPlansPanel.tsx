@@ -202,7 +202,7 @@ export function MaterialPlansPanel({ permissions }: { permissions: string[] }) {
     </Stack></Alert> : null}
     {mutation.isError ? <Alert severity="error">{t.error}</Alert> : null}
     {saved ? <Alert severity="success">{t.saved}</Alert> : null}
-    {projectId ? <>
+    {authorizedProject ? <>
       <Paper variant="outlined" sx={{ p: 2 }}>
         <Stack spacing={1}>
           <Typography variant="subtitle1">{t.plan}</Typography>
