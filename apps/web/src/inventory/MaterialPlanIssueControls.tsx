@@ -88,6 +88,7 @@ export function MaterialPlanIssueControls({
   const canApprove = can('inventory.material_plan.overage.approve');
   const [pins, setPins] = useState<Record<string, Pin>>({});
   const [pages, setPages] = useState<string[]>(['']);
+  const [historyPages, setHistoryPages] = useState<string[]>(['']);
   const [preview, setPreview] = useState<{ fingerprint: string; value: PlanIssuePreview } | null>(null);
   const [pending, setPending] = useState<Action | null>(null);
   const [comment, setComment] = useState('');
@@ -98,6 +99,12 @@ export function MaterialPlanIssueControls({
     enabled: canPost && !issue.postedAt && !issue.reversedAt,
     ...noCache,
   });
+  const historyPage = useQuery({
+    queryKey: ['material-plan-issues', 'history', issue.id, historyPages.at(-1)],
+    queryFn: () => api.history(issue.id, historyPages.at(-1) ?? ''),
+    enabled: history.binding !== null, ...noCache,
+  });
+  const visibleHistory = historyPage.isSuccess && !historyPage.isFetching ? historyPage.data.data : null;
   const issueLines = issue.items ?? [];
   const planIds = [...new Set(Object.values(pins).map(pin => pin.planId))].sort();
   // Verify all selected sources on the current session before even enabling
@@ -238,13 +245,19 @@ export function MaterialPlanIssueControls({
       </Stack>
     </Paper> : null}
     <Typography variant="subtitle2">{t.history}</Typography>
-    {!history.items.length ? <Typography variant="body2">{t.none}</Typography> : null}
-    {history.items.map(h => <Stack key={h.id} spacing={0.5}>
+    {historyPage.isError ? <Alert severity="error">{t.denied}</Alert> : null}
+    {visibleHistory && !visibleHistory.items.length ? <Typography variant="body2">{t.none}</Typography> : null}
+    {(visibleHistory?.items ?? []).map(h => <Stack key={h.id} spacing={0.5}>
       <Typography variant="body2">#{h.sequence} · {t.mode}: {h.mode} · {t.stage}: {h.approval?.approvalState ?? 'DIRECT'}</Typography>
       {h.lines.map(l => <Typography key={l.issueItemId} variant="caption">
         {l.issueItemId.slice(0, 8)} · {l.quantity} · {t.overageQuantity}: {l.overageQuantity}
       </Typography>)}
     </Stack>)}
+    <Stack direction="row" spacing={1}>
+      <Button disabled={historyPages.length < 2} onClick={() => setHistoryPages(old => old.slice(0, -1))}>{t.previous}</Button>
+      <Button disabled={!visibleHistory?.nextCursor} onClick={() => visibleHistory?.nextCursor &&
+        setHistoryPages(old => [...old, visibleHistory.nextCursor!])}>{t.next}</Button>
+    </Stack>
     <Alert severity="info">{t.signed}</Alert>
   </Stack>;
 }
