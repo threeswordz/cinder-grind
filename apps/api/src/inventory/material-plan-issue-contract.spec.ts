@@ -22,6 +22,10 @@ test('only exact module P0001 guard failures are translated; unrelated database 
  assert.equal(mpiIntegrity(err(msg.replace('P0001','42P01'))),undefined);
  assert.equal(mpiIntegrity(err(msg.replace('allowance or approval stale','unrelated server failure'))),undefined);
  assert.equal(mpiIntegrity(new Error(msg)),undefined);
+ const commit='Error in connector: Error querying the database: ERROR: Material plan issue operation proof required';
+ assert.equal(mpiIntegrity(err(commit))?.getStatus(),409);
+ assert.equal(mpiIntegrity(err(commit+' unrelated suffix')),undefined);
+ assert.equal(mpiIntegrity(new Error(commit)),undefined);
  const raw=(code:string,message:string)=>new Prisma.PrismaClientKnownRequestError('Raw query failed',{clientVersion:'6.19.3',code:'P2010',meta:{code,message}});
  assert.equal(mpiIntegrity(raw('P0001','Material plan issue allowance or approval stale'))?.getStatus(),409);
  assert.equal(mpiIntegrity(raw('P0001','ERROR: Material plan issue allowance or approval stale'))?.getStatus(),409);
