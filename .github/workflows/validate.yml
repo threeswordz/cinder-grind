@@ -358,6 +358,10 @@ jobs:
         run: pnpm prisma:migrate:deploy
       - name: Verify migration status
         run: pnpm --filter @construction-erp/api exec prisma migrate status
+      - name: Verify material-plan issue PostgreSQL controls
+        run: |
+          pnpm --filter @construction-erp/api build
+          node --test --test-concurrency=1 apps/api/dist/inventory/material-plan-issue-contract.spec.js apps/api/dist/inventory/material-plan-issue.integration.spec.js
       - name: Run V1.2-C empty UAT capture and disposable container restore
         run: node deploy/uat/v12-empty-recovery-ci.mjs
       - name: Validate workspace
@@ -405,6 +409,14 @@ jobs:
           RC_POSTGRES_TOOL_MODE: docker
           RC_BASE_DATABASE_URL: ${{ env.DATABASE_URL }}
           RC_EVIDENCE_FILE: /tmp/material-plan-rehearsal.json
+        run: bash deploy/release-candidate/rehearse.sh
+      - name: Rehearse exact material-plan B1 predecessor
+        env:
+          RC_PREVIOUS_RELEASE_COMMIT: 5209c30a1b7b282a603ba09d4a5bd82a700a183f
+          RC_NON_PRODUCTION_CONFIRMED: 'YES'
+          RC_POSTGRES_TOOL_MODE: docker
+          RC_BASE_DATABASE_URL: ${{ env.DATABASE_URL }}
+          RC_EVIDENCE_FILE: /tmp/material-plan-issue-rehearsal.json
         run: bash deploy/release-candidate/rehearse.sh
       - name: Reset CI state before authenticated recovery fixture
         run: |
@@ -742,6 +754,15 @@ jobs:
           node --input-type=module - <<'NODE'
           import {readFileSync} from 'node:fs';
           const data=JSON.parse(readFileSync('/tmp/material-plan-consolidated-evidence.json','utf8'));
-          if(data.releaseMode!=='migration-aware-material-plan-schema'||data.rehearsal.previousReleaseCommit!=='34e022d5807d3e16458437a02ebba669ba838c6a')throw Error('Exact material plan predecessor proof missing');
+          if((await import('./deploy/release-candidate/material-plan-issue-schema-contract.mjs')).planIssueMode(data.releaseMode).prior!=='migration-aware-material-plan-schema'||data.rehearsal.previousReleaseCommit!=='34e022d5807d3e16458437a02ebba669ba838c6a')throw Error('Exact material plan predecessor proof missing');
           for(const key of ['materialPlanSchemaUpgrade','materialPlanHistoricalPreservation','materialPlanHttpUpgrade','materialPlanPopulatedRecovery'])if(data.rehearsal[key]!=='PASS')throw Error('Material plan proof missing: '+key);
+          NODE
+          node deploy/release-candidate/verify-evidence.mjs \
+            /tmp/material-plan-issue-rehearsal.json /tmp/v1-0-e-recovery.json \
+            > /tmp/material-plan-issue-consolidated-evidence.json
+          node --input-type=module <<'NODE'
+          import {readFileSync} from 'node:fs';
+          const data=JSON.parse(readFileSync('/tmp/material-plan-issue-consolidated-evidence.json','utf8'));
+          if(data.releaseMode!=='migration-aware-plan-issue-schema'||data.rehearsal.previousReleaseCommit!=='5209c30a1b7b282a603ba09d4a5bd82a700a183f')throw Error('Exact material plan issue predecessor proof missing');
+          for(const key of ['materialPlanIssueSchemaUpgrade','materialPlanIssueHistoricalPreservation','materialPlanIssueHttpUpgrade','materialPlanIssuePopulatedRecovery','materialPlanIssueSignedReceiptRecovery'])if(data.rehearsal[key]!=='PASS')throw Error('Material plan issue proof missing: '+key);
           NODE

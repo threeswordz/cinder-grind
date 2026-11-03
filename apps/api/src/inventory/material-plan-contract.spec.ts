@@ -21,6 +21,10 @@ test('only exact Prisma material-plan allocation guards become safe conflicts',(
  assert.equal(materialPlanIntegrityException(unknown(message.replace('P0001','42P01'))),undefined);
  assert.equal(materialPlanIntegrityException(unknown(message.replace('Material plan cumulative source allocation exceeded','unrelated failure'))),undefined);
  assert.equal(materialPlanIntegrityException(new Error(message)),undefined);
+ const commit='Error in connector: Error querying the database: ERROR: Material plan issue revision below effective consumption';
+ assert.equal(materialPlanIntegrityException(unknown(commit))?.getStatus(),409);
+ assert.equal(materialPlanIntegrityException(unknown(commit+' unrelated suffix')),undefined);
+ assert.equal(materialPlanIntegrityException(new Error(commit)),undefined);
 });
 
 import {MaterialPlanService} from './material-plan.service';

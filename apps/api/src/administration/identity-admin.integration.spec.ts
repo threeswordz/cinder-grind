@@ -104,6 +104,9 @@ test('user and role administration respects company boundaries and revokes sessi
 
     for (const codes of [
       ['inventory.material_plan.approve'],
+      ['inventory.material_plan.view','budget.quantity.view','inventory.material_plan.issue.post'],
+      ['inventory.material_plan.view','budget.quantity.view','inventory.material_plan.overage.review'],
+      ['inventory.material_plan.view','budget.quantity.view','inventory.material_plan.overage.approve'],
       ['inventory.material_plan.view', 'inventory.material_plan.create'],
       ['inventory.material_plan.create', 'budget.quantity.view'],
     ]) {

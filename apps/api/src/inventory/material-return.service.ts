@@ -1,3 +1,4 @@
+import {lockMaterialPlanLineages} from './material-plan-issue-locks';
 import {
   ConflictException,
   Injectable,
@@ -364,6 +365,8 @@ export class MaterialReturnService {
         if (current.postedAt || current.reversedAt) {
           throw new ConflictException({ code: 'MATERIAL_RETURN_ALREADY_POSTED' });
         }
+        const linked=await tx.materialIssueItem.findMany({where:{id:{in:current.items.map(i=>i.materialIssueItemId)}},select:{materialIssueId:true}});
+        await lockMaterialPlanLineages(tx,linked.map(i=>i.materialIssueId));
         for (const sourceId of current.items
           .map((item) => item.materialIssueItemId)
           .sort()) {
@@ -507,6 +510,8 @@ export class MaterialReturnService {
     reason: string,
   ) {
     return this.prisma.$transaction(async (tx) => {
+      const sourceItems=await tx.materialReturnItem.findMany({where:{materialReturnId:id},select:{materialIssueItem:{select:{materialIssueId:true}}}});
+      await lockMaterialPlanLineages(tx,sourceItems.map(i=>i.materialIssueItem.materialIssueId));
       await tx.$executeRawUnsafe(
         'SELECT pg_advisory_xact_lock(hashtext($1))',
         'material-return-reverse:' + id,

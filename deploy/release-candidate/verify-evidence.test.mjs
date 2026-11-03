@@ -136,3 +136,12 @@ test('DEC-044 plan foundation evidence requires version11 and all exact upgrade/
  assert.notEqual(verify({...data,version:10}).status,0);assert.notEqual(verify({...data,migrationNames:['20261102140000_unapproved']}).status,0);
  assert.notEqual(verify({...data,migrationNames:['20261102140000_op_material_plan_01_a']}).status,0);
 });
+
+test('DEC-044 B requires version12 and executed exact predecessor/history/HTTP/paired receipt recovery proofs',()=>{
+ const keys=['materialPlanIssueSchemaUpgrade','materialPlanIssueHistoricalPreservation','materialPlanIssueHttpUpgrade','materialPlanIssuePopulatedRecovery','materialPlanIssueSignedReceiptRecovery'];
+ const data={...evidence('migration-aware-plan-issue-schema'),version:12,migrationNames:['20261103080000_material_plan_issue_controls'],...Object.fromEntries(keys.map(k=>[k,'PASS']))};
+ delete data.genuineLegacySgdNullFixture;delete data.historicalRowsUnchanged;
+ const result=verify(data);assert.equal(result.status,0,result.stderr);assert.equal(JSON.parse(result.stdout).version,12);
+ for(const key of [...keys,'rollbackDocuments','restoredPreviousRuntimeAuthenticationDownload']){const bad={...data};delete bad[key];assert.notEqual(verify(bad).status,0,key);}
+ assert.notEqual(verify({...data,version:11}).status,0);assert.notEqual(verify({...data,migrationNames:['20261103080000_other']}).status,0);
+});

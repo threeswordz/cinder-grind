@@ -2,9 +2,11 @@ import {ConflictException} from '@nestjs/common';
 import {Prisma} from '@prisma/client';
 
 // PostgreSQL RAISE EXCEPTION is reported as an unknown request by Prisma's
-// connector. Translate only this module's exact guard messages and SQLSTATE;
+// connector. Commit failures use an exact plain connector message instead.
+// Translate only this module's exact guard formats (and SQLSTATE when supplied);
 // unrelated database/programming failures must still surface as server errors.
 const guardMessages=[
+ 'Material plan issue revision below effective consumption',
  'Material plan source or material scope invalid',
  'Material plan approved mapping is immutable',
  'Material plan approved source mapping or basis conflicts',
@@ -14,7 +16,7 @@ export function materialPlanIntegrityException(error:unknown):ConflictException|
  if(error instanceof Prisma.PrismaClientKnownRequestError && ['P2003','P2004'].includes(error.code))
   return new ConflictException({code:'MATERIAL_PLAN_INTEGRITY_CONFLICT'});
  if(error instanceof Prisma.PrismaClientUnknownRequestError && guardMessages.some(message=>
-  error.message.includes('PostgresError { code: "P0001", message: "'+message+'"')))
+  (error.message.includes('PostgresError { code: "P0001", message: "'+message+'"')||error.message==='Error in connector: Error querying the database: ERROR: '+message)))
   return new ConflictException({code:'MATERIAL_PLAN_INTEGRITY_CONFLICT'});
 }
 

@@ -1,3 +1,4 @@
+import {lockMaterialPlanLineages} from './material-plan-issue-locks';
 import {
   ConflictException,
   Injectable,
@@ -295,6 +296,7 @@ export class MaterialIssueService {
   async submit(context: AuditContext, id: string, workflowCode: string) {
     return this.prisma.$transaction(async (tx) => {
       const issue = await this.get(context.auth, id, tx);
+      await this.requireLegacyPath(id,tx);
       if (
         issue.submittedAt ||
         issue.postedAt ||
@@ -338,6 +340,7 @@ export class MaterialIssueService {
     comment?: string,
   ) {
     const issue = await this.get(context.auth, id);
+    await this.requireLegacyPath(id,this.prisma);
     if (issue.postedAt && issue.postKey === postKey) return issue;
     if (
       !issue.approvalInstanceId ||
@@ -360,8 +363,8 @@ export class MaterialIssueService {
   /**
    * Canonical stock/reservation posting inside the caller's authorized atomic
    * transaction. This grants no approval authority and has no controller route.
-   * The existing approval-completion callback remains its sole caller in B1.
-   * Plan-policy callers may be added only with B's scoped authorization proof.
+   * The legacy approval callback and B's scoped plan-policy posting path use
+   * this owner; B supplies authorization provenance in the same transaction.
    */
   async postInTransaction(
     context: AuditContext,
@@ -535,6 +538,7 @@ export class MaterialIssueService {
     reason: string,
   ) {
     return this.prisma.$transaction(async (tx) => {
+      await lockMaterialPlanLineages(tx,[id]);
       await tx.$executeRawUnsafe(
         'SELECT pg_advisory_xact_lock(hashtext($1))',
         'material-issue-reverse:' + id,
@@ -647,6 +651,10 @@ export class MaterialIssueService {
       }, tx);
       return this.get(context.auth, id, tx);
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+  }
+
+  private async requireLegacyPath(id:string,db:Db){
+    if(await db.materialPlanIssueBinding.findUnique({where:{issueId:id},select:{issueId:true}}))throw new ConflictException({code:'MATERIAL_PLAN_ISSUE_PATH_REQUIRED'});
   }
 
   private async validateHeader(
