@@ -144,11 +144,14 @@ async function run(){
  await click('WP-1 · v3');
  await until(()=>text().includes('Approved synthetic quantities'),'Approved plan details absent');
  check(!text().includes('NEVER_DISPLAY_COST_BOQ_PRICE'),'Secret BOQ fields disclosed');
- // A failed refresh must mask previously authorized plan details and choices.
+ await click('Edit as new revision');
+ await until(()=>text().includes('Work package'),'Authorized revision form not loaded');
+ // A failed refresh must mask both fetched rows and a prefilled protected revision form.
  deny=true;
  await browserQuery.invalidateQueries({queryKey:['material-plan-ui']});
- await until(()=>!text().includes('Approved synthetic quantities')&&!text().includes('WP-1'),
-  'Revoked Project/plan data remained visible after a 403 refetch');
+ await until(()=>!text().includes('Approved synthetic quantities')&&!text().includes('WP-1')&&
+  !text().includes('Work package'),
+  'Revoked Project/plan values or prefilled revision form remained visible after a 403 refetch');
  deny=false;
  await browserQuery.invalidateQueries({queryKey:['material-plan-ui']});
  await until(()=>text().includes('WP-1'),'Authorized plan list failed to recover after scope restoration');
