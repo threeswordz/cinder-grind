@@ -168,7 +168,7 @@ export function MaterialPlanIssueControls({
     setSaved(false); setPending(action); actionMutation.mutate(action);
   };
   const review = history.items[0];
-  const submittedApproval = review?.mode === 'OVERAGE' &&
+  const submittedApproval = visibleHistory && review?.mode === 'OVERAGE' &&
     review.approval?.approvalState === 'SUBMITTED' ? review : null;
   const approvals = submittedApproval?.approval?.actions.filter(a => a.action === 'APPROVE').length ?? 0;
   const stage: 'REVIEW' | 'DECIDE' = approvals === 0 ? 'REVIEW' : 'DECIDE';
