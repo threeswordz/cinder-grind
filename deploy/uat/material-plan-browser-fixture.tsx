@@ -60,20 +60,21 @@ const store=['inventory.material_plan.view','inventory.material_plan.create','in
 const reviewer=['inventory.material_plan.view','inventory.issue.view','inventory.material_plan.overage.review'];
 const approver=['inventory.material_plan.view','inventory.issue.view','inventory.material_plan.overage.approve'];
 let creates=0, previews=0, effects=0, issueCalls=[], decisions=[], receivedKeys=new Set();
+let deny=false, browserQuery=null;
 const check=(v,msg)=>{if(!v)throw Error(msg);};
 const clone=v=>structuredClone(v);
 const data=value=>({data:clone(value)});
-plansApi.projects=async()=>data([{id:project,projectCode:'P-001',projectName:'Synthetic Project'}]);
-plansApi.list=async()=>data({items:[row],nextCursor:null});
-plansApi.get=async()=>data(plan);
-plansApi.history=async()=>data({items:[{id:revision,revisionNo:2,status:'APPROVED',
- reason:'Approved synthetic quantities',createdByUserId:author}],nextCursor:null});
-plansApi.choices=async(_project,kind)=>data({items:
+plansApi.projects=async()=>{if(deny)throw Error('403 revoked Project');return data([{id:project,projectCode:'P-001',projectName:'Synthetic Project'}]);};
+plansApi.list=async()=>{if(deny)throw Error('403 revoked plan list');return data({items:[row],nextCursor:null});};
+plansApi.get=async()=>{if(deny)throw Error('403 revoked plan detail');return data(plan);};
+plansApi.history=async()=>{if(deny)throw Error('403 revoked plan history');return data({items:[{id:revision,revisionNo:2,status:'APPROVED',
+ reason:'Approved synthetic quantities',createdByUserId:author}],nextCursor:null});};
+plansApi.choices=async(_project,kind)=>{if(deny)throw Error('403 revoked choices');return data({items:
  kind==='warehouses'?[{id:warehouse,warehouseCode:'SITE-A',warehouseName:'Site warehouse'}]:
  kind==='materials'?[{id:material,materialCode:'MAT-A',materialName:'Synthetic steel',defaultUomId:unit}]:
  kind==='revisions'?[{id:basis,revisionNo:1,revisionNumber:'BOQ-COST-1'}]:
  kind==='source-lines'?[{id:source,itemCode:'BOQ-001',description:'Synthetic steel only',
-  quantity:'10.0000',uomId:unit,uomCode:'EA'}]:[],nextCursor:null});
+  quantity:'10.0000',uomId:unit,uomCode:'EA'}]:[],nextCursor:null});};
 plansApi.create=async body=>{creates++;return data({id:planId,projectId:project,revisionId:revision,version:1,status:'DRAFT'});};
 issueApi.preview=async (_issue, bindings)=>{
  previews++;check(bindings.length===1&&bindings[0].issueItemId===issueItem&&
@@ -123,8 +124,8 @@ async function input(label,value){
  el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));await pause(50);
 }
 function render(kind,locale,permissions,authHistory=history){
- const query=new QueryClient({defaultOptions:{queries:{retry:false},mutations:{retry:false}}});
- root.render(<MonetaryLocaleContext.Provider value={locale}><QueryClientProvider client={query}>{
+ browserQuery=new QueryClient({defaultOptions:{queries:{retry:false},mutations:{retry:false}}});
+ root.render(<MonetaryLocaleContext.Provider value={locale}><QueryClientProvider client={browserQuery}>{
    kind==='plans'?<MaterialPlansPanel permissions={permissions}/>:
      <MaterialPlanIssueControls issue={issue} permissions={permissions} history={authHistory} onChanged={async()=>{}}/>
  }</QueryClientProvider></MonetaryLocaleContext.Provider>);
@@ -137,6 +138,14 @@ async function run(){
  await click('WP-1 · v3');
  await until(()=>text().includes('Approved synthetic quantities'),'Approved plan details absent');
  check(!text().includes('NEVER_DISPLAY_COST_BOQ_PRICE'),'Secret BOQ fields disclosed');
+ // A failed refresh must mask previously authorized plan details and choices.
+ deny=true;
+ await browserQuery.invalidateQueries({queryKey:['material-plan-ui']});
+ await until(()=>!text().includes('Approved synthetic quantities')&&!text().includes('WP-1'),
+  'Revoked Project/plan data remained visible after a 403 refetch');
+ deny=false;
+ await browserQuery.invalidateQueries({queryKey:['material-plan-ui']});
+ await until(()=>text().includes('WP-1'),'Authorized plan list failed to recover after scope restoration');
  render('plans','th',store);
  await until(()=>text().includes('แผนการใช้วัสดุ'),'Thai plan labels absent');
  render('plans','zh-TW',store);
@@ -149,6 +158,18 @@ async function run(){
  await click('Check complete issue');
  await until(()=>text().includes('Within plan'),'Canonical issue preview absent');
  check(previews===1,'Unexpected preview count');
+ // Authorization can disappear between a successful preview and posting.
+ // Old cached approved quantities and the post button must not survive a 403.
+ deny=true;
+ await browserQuery.invalidateQueries({queryKey:['material-plan-issues']});
+ await until(()=>button('Check complete issue')?.disabled&&
+  !text().includes('Within plan')&&!text().includes('Issue stock within plan'),
+  'Stale plan preview/posting authority survived revoked source access');
+ check(effects===0,'Revoked preview caused a stock effect');
+ deny=false;
+ await browserQuery.invalidateQueries({queryKey:['material-plan-issues']});
+ await click('Check complete issue');
+ await until(()=>text().includes('Within plan'),'Source recovery did not require fresh preview');
  await click('Issue stock within plan');
  await until(()=>text().includes('A posting/approval outcome could not be confirmed'),'Uncertain posting not surfaced');
  check(effects===1,'Posting fixture missed the committed effect');
