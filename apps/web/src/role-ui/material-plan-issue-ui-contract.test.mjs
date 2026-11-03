@@ -41,6 +41,9 @@ test('C issue review and final decision are distinct and backend owned', () => {
   assert.match(ui, /'REVIEW' \| 'DECIDE'/);
   assert.match(ui, /canReview/);
   assert.match(ui, /canApprove/);
+  assert.match(ui, /historyPages\.length === 1 && visibleHistory\?\.binding\?\.issueId === issue\.id/);
+  assert.match(ui, /\? visibleHistory\.items\[0\] : undefined/);
+  assert.doesNotMatch(ui, /const review = history\.items\[0\]/);
   assert.doesNotMatch(ui, /approveAs|setCurrentApprover|SYS_ADMIN|impersonate/);
 });
 
