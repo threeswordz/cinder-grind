@@ -1,6 +1,6 @@
 import { useContext, useState } from 'react';
 import { Alert, Button, Chip, MenuItem, Paper, Stack, TextField, Typography } from '@mui/material';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 import { type MaterialIssue } from '../api/inventory';
 import { materialPlansApi, type PlanSummary } from '../api/material-plans';
 import {
@@ -34,7 +34,7 @@ function IssuePlanLine({
     enabled: Boolean(pin?.planId),
     ...noCache,
   });
-  const current = detail.data?.data;
+  const current = detail.isSuccess && !detail.isFetching ? detail.data.data : null;
   const approved = current?.approvedRevision;
   const matching = current && current.projectId === issue.projectId &&
     current.warehouseId === issue.warehouseId &&
@@ -99,6 +99,19 @@ export function MaterialPlanIssueControls({
     ...noCache,
   });
   const issueLines = issue.items ?? [];
+  const planIds = [...new Set(Object.values(pins).map(pin => pin.planId))].sort();
+  // Verify all selected sources on the current session before even enabling
+  // preview/post. Old cached plan data is never a posting authority.
+  const planChecks = useQueries({ queries: planIds.map(id => ({
+    queryKey: ['material-plan-issues', 'plan', id],
+    queryFn: () => materialPlansApi.get(id),
+    enabled: canPost, ...noCache,
+  })) });
+  const verifiedPlans = new Map(planIds.flatMap((id, index) => {
+    const check = planChecks[index];
+    return check?.isSuccess && !check.isFetching ? [[id, check.data.data] as const] : [];
+  }));
+  const availablePlans = plans.isSuccess && !plans.isFetching ? plans.data.data : null;
   const bindings: PlanIssueBinding[] = issueLines.flatMap(l =>
     pins[l.id]?.planLineId && pins[l.id]!.expectedPlanVersion > 0 ?
       [{ issueItemId: l.id, planLineId: pins[l.id]!.planLineId, expectedPlanVersion: pins[l.id]!.expectedPlanVersion }] : []);
@@ -107,9 +120,20 @@ export function MaterialPlanIssueControls({
     items: issueLines.map(l => [l.id, l.quantity, l.materialId, l.uomId]),
     bindings: [...bindings].sort((a, b) => a.issueItemId.localeCompare(b.issueItemId)),
   });
-  const complete = issueLines.length > 0 && bindings.length === issueLines.length &&
-    new Set(bindings.map(x => x.issueItemId)).size === issueLines.length;
-  const applicablePreview = preview?.fingerprint === fingerprint ? preview.value : null;
+  const complete = Boolean(availablePlans) && issueLines.length > 0 && bindings.length === issueLines.length &&
+    new Set(bindings.map(x => x.issueItemId)).size === issueLines.length &&
+    issueLines.every(item => {
+      const pin = pins[item.id];
+      if (!pin) return false;
+      const plan = verifiedPlans.get(pin.planId);
+      const effective = plan?.approvedRevision;
+      return Boolean(plan && effective && plan.projectId === issue.projectId &&
+        plan.warehouseId === issue.warehouseId && plan.version === pin.expectedPlanVersion &&
+        issue.issueDate >= effective.validFrom && issue.issueDate <= effective.validTo &&
+        effective.lines.some(line => line.id === pin.planLineId &&
+          line.materialId === item.materialId && line.uomId === item.uomId));
+    });
+  const applicablePreview = complete && preview?.fingerprint === fingerprint ? preview.value : null;
   const previewMutation = useMutation({
     mutationFn: (value: PlanIssueBinding[]) => api.preview(issue.id, value),
     onSuccess: result => { setPreview({ fingerprint, value: result.data }); setSaved(false); },
@@ -161,7 +185,7 @@ export function MaterialPlanIssueControls({
     {canPost && !issue.postedAt && !issue.reversedAt ? <Stack spacing={1}>
       {plans.isError ? <Alert severity="error">{t.denied}</Alert> : null}
       {issueLines.map(l => <IssuePlanLine key={l.id} line={l} issue={issue}
-        planChoices={plans.data?.data.items ?? []} pin={pins[l.id]}
+        planChoices={availablePlans?.items ?? []} pin={pins[l.id]}
         disabled={Boolean(pending) || actionMutation.isPending}
         onChange={value => {
           setPins(old => {
@@ -172,8 +196,8 @@ export function MaterialPlanIssueControls({
         }} />)}
       <Stack direction="row" spacing={1}>
         <Button disabled={pages.length < 2} onClick={() => setPages(old => old.slice(0, -1))}>{t.refresh}</Button>
-        <Button disabled={!plans.data?.data.nextCursor}
-          onClick={() => plans.data?.data.nextCursor && setPages(old => [...old, plans.data!.data.nextCursor!])}>{t.choosePlan} →</Button>
+        <Button disabled={!availablePlans?.nextCursor}
+          onClick={() => availablePlans?.nextCursor && setPages(old => [...old, availablePlans.nextCursor!])}>{t.choosePlan} →</Button>
         <Button onClick={() => { setPreview(null); void client.invalidateQueries({ queryKey: ['material-plan-issues'] }); }}>{t.refresh}</Button>
       </Stack>
       {!complete ? <Alert severity="info">{t.incomplete}</Alert> : null}
