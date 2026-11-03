@@ -13,10 +13,13 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 
 import { inventoryApi } from '../api/inventory';
+import { materialPlanIssuesApi } from '../api/material-plan-issues';
+import { MaterialPlanIssueControls } from './MaterialPlanIssueControls';
 
 export function MaterialIssuesPanel({ permissions }: { permissions: string[] }) {
   const queryClient = useQueryClient();
   const canCreate = permissions.includes('inventory.issue.create');
+  const canReadPlan = permissions.includes('inventory.material_plan.view') && permissions.includes('inventory.issue.view');
   const canSubmit = permissions.includes('inventory.issue.submit');
   const canApprove = permissions.includes('inventory.issue.approve');
   const canReverse = permissions.includes('inventory.issue.reverse');
@@ -68,6 +71,29 @@ export function MaterialIssuesPanel({ permissions }: { permissions: string[] }) 
     queryFn: () => inventoryApi.materialIssue(selectedId),
     enabled: Boolean(selectedId),
   });
+  const planPolicy = useQuery({
+    queryKey: ['material-plan-issues', 'policy', projectId],
+    queryFn: () => materialPlanIssuesApi.policy(projectId),
+    enabled: canReadPlan && Boolean(projectId),
+    retry: false,
+    gcTime: 0,
+    refetchOnWindowFocus: true,
+  });
+  const planHistory = useQuery({
+    queryKey: ['material-plan-issues', 'history', selectedId],
+    queryFn: () => materialPlanIssuesApi.history(selectedId),
+    enabled: canReadPlan && Boolean(selectedId),
+    retry: false,
+    gcTime: 0,
+    refetchOnWindowFocus: true,
+  });
+  // An enabled Project may still contain legitimate pre-policy historical issues.
+  // A recorded issue binding, not a date or name, selects the governed new path.
+  const enabledPlanRecord = canReadPlan && planPolicy.data?.data.enabled === true &&
+    planHistory.isSuccess && planHistory.data.data.binding !== null;
+  const legacyIssue = !canReadPlan ||
+    (planPolicy.isSuccess && (planPolicy.data.data.enabled === false ||
+      (planHistory.isSuccess && planHistory.data.data.binding === null)));
   const selectedStock = stock.data?.data.find(
     (row) => [row.warehouseId, row.materialId, row.uomId].join(':') === stockKey,
   );
@@ -84,6 +110,9 @@ export function MaterialIssuesPanel({ permissions }: { permissions: string[] }) 
       queryClient.invalidateQueries({ queryKey: ['issue-reservations'] }),
       queryClient.invalidateQueries({ queryKey: ['material-reservations'] }),
       queryClient.invalidateQueries({ queryKey: ['stock-balances'] }),
+      queryClient.invalidateQueries({ queryKey: ['material-plan-issues'] }),
+      queryClient.invalidateQueries({ queryKey: ['material-plan-ui'] }),
+      queryClient.invalidateQueries({ queryKey: ['material-requests'] }),
     ]);
   };
   const mutation = useMutation({
@@ -114,9 +143,9 @@ export function MaterialIssuesPanel({ permissions }: { permissions: string[] }) 
     <Stack spacing={2}>
       <Typography variant="h6">Material Issues</Typography>
       <Alert severity="info">
-        Final approval atomically posts negative stock. Linked Reservations are fully
-        fulfilled in the same transaction; stock reserved by another active Reservation
-        cannot be consumed.
+        The authorized issue workflow or approved plan action atomically posts negative stock.
+        Linked Reservations are fulfilled in the same transaction; stock reserved by another
+        active Reservation cannot be consumed.
       </Alert>
       {mutationError ? (
         <Alert severity="error">
@@ -305,7 +334,14 @@ export function MaterialIssuesPanel({ permissions }: { permissions: string[] }) 
                   ?.map((row) => row.movementType + ' ' + row.quantity)
                   .join(' · ') || 'none'}
               </Typography>
-              {canSubmit && !current.submittedAt ? (
+              {canReadPlan && (planPolicy.isError || planHistory.isError) ? (
+                <Alert severity="error">Material Plan policy/history could not be verified. New plan actions remain unavailable.</Alert>
+              ) : null}
+              {enabledPlanRecord && planHistory.data ? (
+                <MaterialPlanIssueControls key={current.id} issue={current} permissions={permissions}
+                  history={planHistory.data.data} onChanged={refresh} />
+              ) : null}
+              {canSubmit && legacyIssue && !current.submittedAt ? (
                 <Stack spacing={1}>
                   <TextField
                     select
@@ -332,7 +368,7 @@ export function MaterialIssuesPanel({ permissions }: { permissions: string[] }) 
                   </Button>
                 </Stack>
               ) : null}
-              {canApprove &&
+              {canApprove && legacyIssue &&
               current.approvalInstance?.approvalState === 'SUBMITTED' ? (
                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
                   <Button
