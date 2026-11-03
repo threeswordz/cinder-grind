@@ -358,6 +358,10 @@ jobs:
         run: pnpm prisma:migrate:deploy
       - name: Verify migration status
         run: pnpm --filter @construction-erp/api exec prisma migrate status
+      - name: Verify material-plan issue PostgreSQL controls
+        run: |
+          pnpm --filter @construction-erp/api build
+          node --test --test-concurrency=1 apps/api/dist/inventory/material-plan-issue-contract.spec.js apps/api/dist/inventory/material-plan-issue.integration.spec.js
       - name: Run V1.2-C empty UAT capture and disposable container restore
         run: node deploy/uat/v12-empty-recovery-ci.mjs
       - name: Validate workspace

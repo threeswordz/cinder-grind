@@ -24,6 +24,7 @@ test('only exact module P0001 guard failures are translated; unrelated database 
  assert.equal(mpiIntegrity(new Error(msg)),undefined);
  const raw=(code:string,message:string)=>new Prisma.PrismaClientKnownRequestError('Raw query failed',{clientVersion:'6.19.3',code:'P2010',meta:{code,message}});
  assert.equal(mpiIntegrity(raw('P0001','Material plan issue allowance or approval stale'))?.getStatus(),409);
+ assert.equal(mpiIntegrity(raw('P0001','ERROR: Material plan issue allowance or approval stale'))?.getStatus(),409);
  assert.equal(mpiIntegrity(raw('42P01','Material plan issue allowance or approval stale')),undefined);
  assert.equal(mpiIntegrity(raw('P0001','Unrelated server failure')),undefined);
 });

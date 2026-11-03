@@ -532,6 +532,8 @@ CREATE FUNCTION erp_mpi_action_immutable() RETURNS trigger LANGUAGE plpgsql AS $
 BEGIN
  IF EXISTS(SELECT 1 FROM approval_instances WHERE id=OLD.approval_instance_id AND entity_type='MATERIAL_PLAN_OVERAGE')
  THEN RAISE EXCEPTION 'Material plan issue history immutable'; END IF;
- IF TG_OP='DELETE' THEN RETURN OLD; END IF;RETURN NEW;
+ IF TG_OP='DELETE' THEN RETURN OLD; END IF;
+ IF EXISTS(SELECT 1 FROM approval_instances WHERE id=NEW.approval_instance_id AND entity_type='MATERIAL_PLAN_OVERAGE')
+ THEN RAISE EXCEPTION 'Material plan issue history immutable'; END IF;RETURN NEW;
 END $$;
 CREATE TRIGGER mpi_action_immutable BEFORE UPDATE OR DELETE ON approval_actions FOR EACH ROW EXECUTE FUNCTION erp_mpi_action_immutable();

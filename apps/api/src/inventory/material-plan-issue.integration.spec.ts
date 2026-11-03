@@ -2,6 +2,8 @@ import 'reflect-metadata';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {randomUUID} from 'node:crypto';
+import {inspect} from 'node:util';
+const conflictStatus=(e:any)=>{assert.equal(e?.getStatus?.(),409,inspect(e));return true;};
 import {Prisma} from '@prisma/client';
 import {NestFactory} from '@nestjs/core';
 import {AppModule} from '../app.module';
@@ -70,7 +72,7 @@ test('MP-AC-07–13 actual authenticated plan posting, overage, consumption and 
   await t.test('reasoned revisions carry usage; newly effective revisions invalidate pending decisions without relabelling posted history',async()=>{
    let plan=await f.service.get(f.store.auth,f.plan.id);
    const revision=(qty:string)=>({requestKey:randomUUID(),expectedVersion:plan.version,validFrom:'2026-11-01',validTo:'2026-12-31',reason:'Synthetic carried consumption',lines:[{budgetRevisionLineId:f.source.id,materialId:f.material.id,uomId:f.uom.id,quantity:qty}]});
-   await assert.rejects(()=>f.service.revise({auth:f.store.auth},plan.id,revision('6')),(e:any)=>e.getStatus()===409);
+   await assert.rejects(()=>f.service.revise({auth:f.store.auth},plan.id,revision('6')),conflictStatus);
    const pending=await f.issue('2',false);replacementIssue=pending.id;const old=(await call(f.store,'/issues/'+pending.id+'/overage',201,await f.pin(pending.id))).data;
    await f.service.revise({auth:f.store.auth},plan.id,revision('8'));plan=await f.service.get(f.store.auth,plan.id);
    await f.service.submit({auth:f.store.auth},plan.id,{requestKey:randomUUID(),expectedVersion:plan.version});plan=await f.service.get(f.store.auth,plan.id);
@@ -113,7 +115,7 @@ test('MP-AC-10–11 combined allowance races, same-key replay and whole mixed-ba
   assert.equal(results.filter(x=>x.status==='fulfilled').length,1);for(const r of results)if(r.status==='rejected')assert.equal(r.reason.getStatus(),409);
   const once=await f.issue('1',false),input=await f.pin(once.id),same=await Promise.all([f.controls.withinPlan({auth:f.store.auth},once.id,input),f.controls.withinPlan({auth:f.store.auth},once.id,input)]);assert.deepEqual(same[0],same[1]);assert.equal(await db.stockTransaction.count({where:{materialIssueId:once.id}}),1);
   const mixed=await f.issues.create({auth:f.store.auth},{projectId:f.project.id,warehouseId:f.warehouse.id,issueDate:new Date('2026-11-02'),lines:[{materialId:f.material.id,uomId:f.uom.id,quantity:new Prisma.Decimal('1')},{materialId:f.material.id,uomId:f.uom.id,quantity:new Prisma.Decimal('1')}]});
-  const real=await f.pin(mixed.id);await assert.rejects(()=>f.controls.withinPlan({auth:f.store.auth},mixed.id,real),(e:any)=>e.getStatus()===409);assert.equal(await db.stockTransaction.count({where:{materialIssueId:mixed.id}}),0);assert.equal(await db.materialPlanIssueAuthorization.count({where:{issueId:mixed.id}}),0);
+  const real=await f.pin(mixed.id);await assert.rejects(()=>f.controls.withinPlan({auth:f.store.auth},mixed.id,real),conflictStatus);assert.equal(await db.stockTransaction.count({where:{materialIssueId:mixed.id}}),0);assert.equal(await db.materialPlanIssueAuthorization.count({where:{issueId:mixed.id}}),0);
   const denied=await f.issue('1',false);await assert.rejects(()=>f.controls.withinPlan({auth:f.store.auth},denied.id,{requestKey:randomUUID(),bindings:[{issueItemId:denied.items[0]!.id,planLineId:randomUUID(),expectedPlanVersion:f.plan.version}]}),(e:any)=>e.getStatus()===422);
  }finally{await db.$disconnect();}
 });
@@ -143,7 +145,7 @@ test('MP-AC-09 final posting revalidates the earlier reviewer grant and preserve
   await f.controls.decide({auth:f.manager.auth},pending.authorizationId,d(),'REVIEW');
   const capability=await db.permission.findUniqueOrThrow({where:{permissionCode:MPI.review}});
   await db.rolePermission.deleteMany({where:{roleId:f.manager.role.id,permissionId:capability.id}});
-  await assert.rejects(()=>f.controls.decide({auth:f.ben.auth},pending.authorizationId,d(),'DECIDE'),(e:any)=>e.getStatus()===409);
+  await assert.rejects(()=>f.controls.decide({auth:f.ben.auth},pending.authorizationId,d(),'DECIDE'),conflictStatus);
   assert.equal(await db.stockTransaction.count({where:{materialIssueId:issue.id}}),0);
   await f.grant(f.manager,[MPI.review]);await f.controls.decide({auth:f.ben.auth},pending.authorizationId,d(),'DECIDE');
   const auth=await db.materialPlanIssueAuthorization.findUniqueOrThrow({where:{id:pending.authorizationId}});

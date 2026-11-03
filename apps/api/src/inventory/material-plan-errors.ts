@@ -14,6 +14,7 @@ const guardMessages=[
 export function materialPlanIntegrityException(error:unknown):ConflictException|undefined{
  if(error instanceof Prisma.PrismaClientKnownRequestError && ['P2003','P2004'].includes(error.code))
   return new ConflictException({code:'MATERIAL_PLAN_INTEGRITY_CONFLICT'});
+ if(error instanceof Prisma.PrismaClientKnownRequestError&&error.code==='P2028'&&guardMessages.some(message=>String(error.meta?.error)==='Transaction failed to commit. Underlying error: ERROR: '+message))return new ConflictException({code:'MATERIAL_PLAN_INTEGRITY_CONFLICT'});
  if(error instanceof Prisma.PrismaClientUnknownRequestError && guardMessages.some(message=>
   error.message.includes('PostgresError { code: "P0001", message: "'+message+'"')))
   return new ConflictException({code:'MATERIAL_PLAN_INTEGRITY_CONFLICT'});
