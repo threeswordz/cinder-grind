@@ -43,7 +43,7 @@ test('C issue review and final decision are distinct and backend owned', () => {
 test('C issue locale and server source links cover EN TH Traditional Chinese', () => {
   for (const locale of ['en:', 'th:', "'zh-TW':"]) assert.ok(labels.includes(locale), locale);
   for (const name of ['title:', 'post:', 'submit:', 'overage:', 'review:', 'final:', 'pending:', 'signed:'])
-    assert.equal(labels.split(name).length - 1, 3, name);
+    assert.equal((labels.match(new RegExp('\\b' + name, 'g')) ?? []).length, 3, name);
   assert.match(issues, /material-requests/);
   assert.match(ui, /t\.signed/);
 });
