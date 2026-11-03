@@ -60,7 +60,7 @@ const store=['inventory.material_plan.view','inventory.material_plan.create','in
 const reviewer=['inventory.material_plan.view','inventory.issue.view','inventory.material_plan.overage.review'];
 const approver=['inventory.material_plan.view','inventory.issue.view','inventory.material_plan.overage.approve'];
 let creates=0, previews=0, effects=0, issueCalls=[], decisions=[], receivedKeys=new Set();
-let deny=false, browserQuery=null;
+let deny=false, browserQuery=null, fixtureHistory=history;
 const check=(v,msg)=>{if(!v)throw Error(msg);};
 const clone=v=>structuredClone(v);
 const data=value=>({data:clone(value)});
@@ -76,6 +76,11 @@ plansApi.choices=async(_project,kind)=>{if(deny)throw Error('403 revoked choices
  kind==='source-lines'?[{id:source,itemCode:'BOQ-001',description:'Synthetic steel only',
   quantity:'10.0000',uomId:unit,uomCode:'EA'}]:[],nextCursor:null});};
 plansApi.create=async body=>{creates++;return data({id:planId,projectId:project,revisionId:revision,version:1,status:'DRAFT'});};
+issueApi.history=async (_issue, after='')=>{
+ if(deny)throw Error('403 revoked issue authorization history');
+ if(after)check(fixtureHistory.nextCursor===after,'Unknown history cursor');
+ return data(fixtureHistory);
+};
 issueApi.preview=async (_issue, bindings)=>{
  previews++;check(bindings.length===1&&bindings[0].issueItemId===issueItem&&
   bindings[0].planLineId===planLine&&bindings[0].expectedPlanVersion===3,
@@ -124,6 +129,7 @@ async function input(label,value){
  el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));await pause(50);
 }
 function render(kind,locale,permissions,authHistory=history){
+ fixtureHistory=authHistory;
  browserQuery=new QueryClient({defaultOptions:{queries:{retry:false},mutations:{retry:false}}});
  root.render(<MonetaryLocaleContext.Provider value={locale}><QueryClientProvider client={browserQuery}>{
    kind==='plans'?<MaterialPlansPanel permissions={permissions}/>:
@@ -181,7 +187,8 @@ async function run(){
  render('issues','zh-TW',store);
  await until(()=>text().includes('核准計畫領料控制'),'Chinese issue labels absent');
  render('issues','en',reviewer,{...history,items:[reviewAuth]});
- await until(()=>text().includes('Independent overage review'),'Independent review screen absent');
+ await until(()=>text().includes('Independent overage review')&&text().includes('#1'),
+  'Independent overage authorization and source history absent');
  await input('Decision comment','Synthetic independent review');
  await click('Approve');
  await until(()=>decisions.length===1,'Reviewer decision absent');
@@ -189,7 +196,8 @@ async function run(){
  const final={...reviewAuth,approval:{...reviewAuth.approval,currentStepNo:2,
   actions:[{id:'f',action:'APPROVE',actionByUserId:active,comment:'First independent approval'}]}};
  render('issues','en',approver,{...history,items:[final]});
- await until(()=>text().includes('Final independent overage decision'),'Final-stage screen absent');
+ await until(()=>text().includes('Final independent overage decision')&&text().includes('#1'),
+  'Final-stage authorization history absent');
  await input('Decision comment','Synthetic separate final approval');
  await click('Approve');
  await until(()=>decisions.length===2,'Final decision absent');
