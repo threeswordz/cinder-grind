@@ -9,9 +9,10 @@ const api = read('../api/material-plan-issues.ts');
 const labels = read('../inventory/material-plan-issue-labels.ts');
 
 test('C issue UI preserves legacy paths only for nonenabled or unbound historical issues', () => {
-  assert.match(issues, /planPolicy\.data\?\.data\.enabled === true/);
-  assert.match(issues, /planHistory\.data\.data\.binding !== null/);
-  assert.match(issues, /planHistory\.data\.data\.binding === null/);
+  assert.match(issues, /const scopedPolicy = authorizedProject && planPolicy\.isSuccess && !planPolicy\.isFetching/);
+  assert.match(issues, /const scopedHistory = authorizedProject && planHistory\.isSuccess && !planHistory\.isFetching/);
+  assert.match(issues, /scopedPolicy\?\.enabled === true && scopedHistory\?\.binding != null/);
+  assert.match(issues, /scopedPolicy\.enabled === false \|\| scopedHistory\?\.binding === null/);
   assert.match(issues, /canSubmit && legacyIssue/);
   assert.match(issues, /canApprove && legacyIssue/);
 });
@@ -19,6 +20,9 @@ test('C issue UI preserves legacy paths only for nonenabled or unbound historica
 test('C issue posting requires a complete pin set and an explicit preview outcome', () => {
   assert.match(ui, /issueLines\.length > 0 && bindings\.length === issueLines\.length/);
   assert.match(ui, /new Set\(bindings\.map\(x => x\.issueItemId\)\)/);
+  assert.match(ui, /const verifiedPlans = new Map\(/);
+  assert.match(ui, /planChecks\[index\]/);
+  assert.match(ui, /!check\.isFetching/);
   assert.match(ui, /preview\?\.fingerprint === fingerprint/);
   assert.match(ui, /applicablePreview\.result === 'WITHIN_PLAN'/);
   assert.match(ui, /api\.withinPlan\(/);
