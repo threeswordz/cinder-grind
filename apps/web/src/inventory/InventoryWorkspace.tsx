@@ -1,4 +1,6 @@
 import { MaterialRequestsPanel } from './MaterialRequestsPanel';
+import { MaterialPlansPanel } from './MaterialPlansPanel';
+import { materialPlanLabels } from './material-plan-labels';
 import { useContext } from 'react';
 import { MonetaryLocaleContext } from '../role-ui/monetary-presentation';
 import { materialRequestLabels } from './material-request-labels';
@@ -18,6 +20,7 @@ import type { SourceLinkTarget } from '../role-ui/source-link-policy';
 
 type InventoryTab =
   | 'requests'
+  | 'plans'
   | 'warehouses'
   | 'receipts'
   | 'stock'
@@ -39,8 +42,11 @@ export function InventoryWorkspace({
   initialReceiptId?: string | undefined;
   onOpenSource?: ((target: SourceLinkTarget) => void) | undefined;
 }) {
-  const requestText = materialRequestLabels[useContext(MonetaryLocaleContext)];
+  const locale = useContext(MonetaryLocaleContext);
+  const requestText = materialRequestLabels[locale];
+  const planText = materialPlanLabels[locale];
   const canSeeRequests = permissions.includes('inventory.material_request.view');
+  const canSeePlans = permissions.includes('inventory.material_plan.view');
   const canSeeWarehouses = permissions.includes('inventory.warehouse.view');
   const canSeeReceipts = permissions.includes('inventory.receipt.view');
   const canSeeStock = permissions.includes('inventory.stock.view');
@@ -50,7 +56,7 @@ export function InventoryWorkspace({
   const canSeeReturns = permissions.includes('inventory.return.view');
   const canSeeTransfers = permissions.includes('inventory.transfer.view');
   const canSeeReports = permissions.includes('inventory.report.view');
-  const first: InventoryTab = canSeeRequests ? 'requests' : canSeeWarehouses
+  const first: InventoryTab = canSeeRequests ? 'requests' : canSeePlans ? 'plans' : canSeeWarehouses
     ? 'warehouses'
     : canSeeReceipts
       ? 'receipts'
@@ -75,6 +81,7 @@ export function InventoryWorkspace({
   }, [initialReceiptId, canSeeReceipts]);
   if (
     !canSeeRequests &&
+    !canSeePlans &&
     !canSeeWarehouses &&
     !canSeeReceipts &&
     !canSeeStock &&
@@ -88,7 +95,7 @@ export function InventoryWorkspace({
     return <Alert severity="info">Inventory view permission is required.</Alert>;
   }
   const active: InventoryTab =
-    selected === 'requests' && canSeeRequests ? 'requests' : selected === 'warehouses' && canSeeWarehouses
+    selected === 'requests' && canSeeRequests ? 'requests' : selected === 'plans' && canSeePlans ? 'plans' : selected === 'warehouses' && canSeeWarehouses
       ? 'warehouses'
       : selected === 'receipts' && canSeeReceipts
         ? 'receipts'
@@ -111,6 +118,7 @@ export function InventoryWorkspace({
     <Stack spacing={2}>
       <Tabs value={active} onChange={(_event, value: InventoryTab) => setSelected(value)}>
         {canSeeRequests ? <Tab value="requests" label={requestText.title} /> : null}
+        {canSeePlans ? <Tab value="plans" label={planText.title} /> : null}
         {canSeeWarehouses ? <Tab value="warehouses" label="Warehouses" /> : null}
         {canSeeReceipts ? <Tab value="receipts" label="Goods Receipts" /> : null}
         {canSeeStock ? <Tab value="stock" label="Stock Balance" /> : null}
@@ -123,6 +131,8 @@ export function InventoryWorkspace({
       </Tabs>
       {active === 'requests' ? (
         <MaterialRequestsPanel permissions={permissions}/>
+      ) : active === 'plans' ? (
+        <MaterialPlansPanel permissions={permissions} />
       ) : active === 'warehouses' ? (
         <WarehousesPanel permissions={permissions} />
       ) : active === 'receipts' ? (

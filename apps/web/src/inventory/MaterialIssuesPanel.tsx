@@ -13,10 +13,13 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 
 import { inventoryApi } from '../api/inventory';
+import { materialPlanIssuesApi } from '../api/material-plan-issues';
+import { MaterialPlanIssueControls } from './MaterialPlanIssueControls';
 
 export function MaterialIssuesPanel({ permissions }: { permissions: string[] }) {
   const queryClient = useQueryClient();
   const canCreate = permissions.includes('inventory.issue.create');
+  const canReadPlan = permissions.includes('inventory.material_plan.view') && permissions.includes('inventory.issue.view');
   const canSubmit = permissions.includes('inventory.issue.submit');
   const canApprove = permissions.includes('inventory.issue.approve');
   const canReverse = permissions.includes('inventory.issue.reverse');
@@ -37,26 +40,30 @@ export function MaterialIssuesPanel({ permissions }: { permissions: string[] }) 
   const projects = useQuery({
     queryKey: ['issue-projects'],
     queryFn: inventoryApi.issueProjects,
+    retry: false, gcTime: 0, refetchOnWindowFocus: true,
   });
+  const authorizedProject = projects.isSuccess && !projects.isFetching &&
+    projects.data.data.some(p => p.id === projectId);
   const warehouses = useQuery({
     queryKey: ['issue-warehouses', projectId],
     queryFn: () => inventoryApi.issueWarehouses(projectId),
-    enabled: Boolean(projectId),
+    enabled: authorizedProject,
   });
   const stock = useQuery({
     queryKey: ['issue-stock', projectId, warehouseId],
     queryFn: () => inventoryApi.issueStock(projectId, warehouseId || undefined),
-    enabled: Boolean(projectId),
+    enabled: authorizedProject,
   });
   const reservations = useQuery({
     queryKey: ['issue-reservations', projectId],
     queryFn: () => inventoryApi.issueReservations(projectId),
-    enabled: Boolean(projectId),
+    enabled: authorizedProject,
   });
   const issues = useQuery({
     queryKey: ['material-issues', projectId],
     queryFn: () => inventoryApi.materialIssues(projectId),
-    enabled: Boolean(projectId),
+    enabled: authorizedProject,
+    retry: false, gcTime: 0, refetchOnWindowFocus: true,
   });
   const workflows = useQuery({
     queryKey: ['issue-workflows'],
@@ -66,12 +73,39 @@ export function MaterialIssuesPanel({ permissions }: { permissions: string[] }) 
   const detail = useQuery({
     queryKey: ['material-issue', selectedId],
     queryFn: () => inventoryApi.materialIssue(selectedId),
-    enabled: Boolean(selectedId),
+    enabled: authorizedProject && Boolean(selectedId),
+    retry: false, gcTime: 0, refetchOnWindowFocus: true,
   });
-  const selectedStock = stock.data?.data.find(
+  const planPolicy = useQuery({
+    queryKey: ['material-plan-issues', 'policy', projectId],
+    queryFn: () => materialPlanIssuesApi.policy(projectId),
+    enabled: canReadPlan && authorizedProject,
+    retry: false,
+    gcTime: 0,
+    refetchOnWindowFocus: true,
+  });
+  const planHistory = useQuery({
+    queryKey: ['material-plan-issues', 'history', selectedId],
+    queryFn: () => materialPlanIssuesApi.history(selectedId),
+    enabled: canReadPlan && authorizedProject && Boolean(selectedId),
+    retry: false,
+    gcTime: 0,
+    refetchOnWindowFocus: true,
+  });
+  // An enabled Project may still contain legitimate pre-policy historical issues.
+  // A recorded issue binding, not a date or name, selects the governed new path.
+  const scopedPolicy = authorizedProject && planPolicy.isSuccess && !planPolicy.isFetching ? planPolicy.data.data : null;
+  const scopedHistory = authorizedProject && planHistory.isSuccess && !planHistory.isFetching ? planHistory.data.data : null;
+  // Never reuse a cached policy/history verdict after Company/Project permission changes.
+  const enabledPlanRecord = canReadPlan && scopedPolicy?.enabled === true && scopedHistory?.binding != null;
+  const legacyIssue = authorizedProject && (!canReadPlan || (scopedPolicy &&
+    (scopedPolicy.enabled === false || scopedHistory?.binding === null)));
+  const selectedStock = authorizedProject && stock.isSuccess && !stock.isFetching ? stock.data.data.find(
     (row) => [row.warehouseId, row.materialId, row.uomId].join(':') === stockKey,
-  );
-  const current = detail.data?.data;
+  ) : undefined;
+  const current = authorizedProject && detail.isSuccess && !detail.isFetching &&
+    detail.data.data.projectId === projectId && detail.data.data.id === selectedId ? detail.data.data : null;
+  const visibleIssues = authorizedProject && issues.isSuccess && !issues.isFetching ? issues.data.data : [];
   const validQuantity =
     /^(?:0|[1-9]\d{0,13})(?:\.\d{1,4})?$/.test(quantity) &&
     Number(quantity) > 0;
@@ -84,6 +118,9 @@ export function MaterialIssuesPanel({ permissions }: { permissions: string[] }) 
       queryClient.invalidateQueries({ queryKey: ['issue-reservations'] }),
       queryClient.invalidateQueries({ queryKey: ['material-reservations'] }),
       queryClient.invalidateQueries({ queryKey: ['stock-balances'] }),
+      queryClient.invalidateQueries({ queryKey: ['material-plan-issues'] }),
+      queryClient.invalidateQueries({ queryKey: ['material-plan-ui'] }),
+      queryClient.invalidateQueries({ queryKey: ['material-requests'] }),
     ]);
   };
   const mutation = useMutation({
@@ -101,7 +138,8 @@ export function MaterialIssuesPanel({ permissions }: { permissions: string[] }) 
   const chooseReservation = (id: string) => {
     setReservationId(id);
     if (!id) return;
-    const reservation = reservations.data?.data.find((row) => row.id === id);
+    const reservation = authorizedProject && reservations.isSuccess && !reservations.isFetching ?
+      reservations.data.data.find((row) => row.id === id) : undefined;
     if (!reservation) return;
     setWarehouseId(reservation.warehouseId);
     setStockKey(
@@ -114,9 +152,9 @@ export function MaterialIssuesPanel({ permissions }: { permissions: string[] }) 
     <Stack spacing={2}>
       <Typography variant="h6">Material Issues</Typography>
       <Alert severity="info">
-        Final approval atomically posts negative stock. Linked Reservations are fully
-        fulfilled in the same transaction; stock reserved by another active Reservation
-        cannot be consumed.
+        The authorized issue workflow or approved plan action atomically posts negative stock.
+        Linked Reservations are fulfilled in the same transaction; stock reserved by another
+        active Reservation cannot be consumed.
       </Alert>
       {mutationError ? (
         <Alert severity="error">
@@ -137,14 +175,14 @@ export function MaterialIssuesPanel({ permissions }: { permissions: string[] }) 
         sx={{ maxWidth: 520 }}
       >
         <MenuItem value="">Select Project</MenuItem>
-        {(projects.data?.data ?? []).map((project) => (
+        {(projects.isSuccess && !projects.isFetching ? projects.data.data : []).map((project) => (
           <MenuItem key={project.id} value={project.id}>
             {project.projectCode} — {project.projectName}
           </MenuItem>
         ))}
       </TextField>
 
-      {projectId && canCreate ? (
+      {authorizedProject && canCreate ? (
         <Card variant="outlined">
           <CardContent>
             <Stack spacing={2}>
@@ -156,7 +194,7 @@ export function MaterialIssuesPanel({ permissions }: { permissions: string[] }) 
                 onChange={(event) => chooseReservation(event.target.value)}
               >
                 <MenuItem value="">No linked Reservation</MenuItem>
-                {(reservations.data?.data ?? []).map((reservation) => (
+                {(authorizedProject && reservations.isSuccess && !reservations.isFetching ? reservations.data.data : []).map((reservation) => (
                   <MenuItem key={reservation.id} value={reservation.id}>
                     {reservation.reservationNumber} · {reservation.quantity}{' '}
                     {reservation.uom?.uomCode ?? ''}
@@ -175,7 +213,7 @@ export function MaterialIssuesPanel({ permissions }: { permissions: string[] }) 
                 disabled={Boolean(reservationId)}
               >
                 <MenuItem value="">Select Warehouse</MenuItem>
-                {(warehouses.data?.data ?? []).map((warehouse) => (
+                {(authorizedProject && warehouses.isSuccess && !warehouses.isFetching ? warehouses.data.data : []).map((warehouse) => (
                   <MenuItem key={warehouse.id} value={warehouse.id}>
                     {warehouse.warehouseCode} — {warehouse.warehouseName}
                   </MenuItem>
@@ -189,7 +227,7 @@ export function MaterialIssuesPanel({ permissions }: { permissions: string[] }) 
                 disabled={Boolean(reservationId)}
               >
                 <MenuItem value="">Select stock</MenuItem>
-                {(stock.data?.data ?? []).map((row) => {
+                {(authorizedProject && stock.isSuccess && !stock.isFetching ? stock.data.data : []).map((row) => {
                   const key = [row.warehouseId, row.materialId, row.uomId].join(':');
                   return (
                     <MenuItem key={key} value={key}>
@@ -250,13 +288,13 @@ export function MaterialIssuesPanel({ permissions }: { permissions: string[] }) 
         </Card>
       ) : null}
 
-      {projectId ? (
+      {authorizedProject ? (
         <Card variant="outlined">
           <CardContent>
             <Stack spacing={2}>
               <Typography variant="subtitle1">Issue register</Typography>
               <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                {(issues.data?.data ?? []).map((row) => (
+                {visibleIssues.map((row) => (
                   <Chip
                     key={row.id}
                     label={
@@ -274,7 +312,7 @@ export function MaterialIssuesPanel({ permissions }: { permissions: string[] }) 
                   />
                 ))}
               </Stack>
-              {issues.isSuccess && !issues.data.data.length ? (
+              {issues.isSuccess && !issues.isFetching && !visibleIssues.length ? (
                 <Alert severity="info">No Material Issues for this Project.</Alert>
               ) : null}
             </Stack>
@@ -305,7 +343,14 @@ export function MaterialIssuesPanel({ permissions }: { permissions: string[] }) 
                   ?.map((row) => row.movementType + ' ' + row.quantity)
                   .join(' · ') || 'none'}
               </Typography>
-              {canSubmit && !current.submittedAt ? (
+              {canReadPlan && (planPolicy.isError || planHistory.isError) ? (
+                <Alert severity="error">Material Plan policy/history could not be verified. New plan actions remain unavailable.</Alert>
+              ) : null}
+              {enabledPlanRecord && scopedHistory ? (
+                <MaterialPlanIssueControls key={current.id} issue={current} permissions={permissions}
+                  history={scopedHistory} onChanged={refresh} />
+              ) : null}
+              {canSubmit && legacyIssue && !current.submittedAt ? (
                 <Stack spacing={1}>
                   <TextField
                     select
@@ -332,7 +377,7 @@ export function MaterialIssuesPanel({ permissions }: { permissions: string[] }) 
                   </Button>
                 </Stack>
               ) : null}
-              {canApprove &&
+              {canApprove && legacyIssue &&
               current.approvalInstance?.approvalState === 'SUBMITTED' ? (
                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
                   <Button
