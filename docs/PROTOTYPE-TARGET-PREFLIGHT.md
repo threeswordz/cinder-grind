@@ -47,6 +47,25 @@ node deploy/uat/prototype-target-preflight.mjs /private/prototype-target.json EX
 
 Historical reserved workstation ports (`3000`, `3001`, `3002`, `4173`, `4174`, `4175`, `5432`, `55434`) and non-loopback HTTP origins are refused to protect previously identified development environments. **This static list is not an exhaustive port-occupancy audit.** Actual bindability, service ownership, DB isolation, filesystem provenance and storage separation must still be independently inspected. No implicit Company/project/business grants are supplied by the JSON.
 
+## Additional temporary loopback bindability check — unmerged GL08 preparation
+
+**Integration boundary:** `deploy/uat/prototype-target-port-preflight.mjs` is presently on a separate Chat-owned preparation branch, not on accepted `main`. Only use it **after its own governed integration and exact-main CI**, against an independently authorized non-retained target. Never copy and run an unreviewed branch script against a retained/Production workstation environment.
+
+When it is merged into an exact, clean integrated main checkout, use the **same** owner-only `0600` private manifest and same exact SHA:
+
+```sh
+node deploy/uat/prototype-target-port-preflight.mjs /private/prototype-target.json EXACT_INTEGRATED_MAIN_40_HEX_SHA
+```
+
+The command calls the existing read-only target checker first. **Only if that succeeds**, it briefly attempts an exclusive bind of all three declared `127.0.0.1` ports (API, web and PostgreSQL). It does not connect to existing processes, authenticate, inspect a database, start a server, reserve a port, modify configuration or create persistent files. It closes all successfully opened listeners, including on later failures. A cleanup error reports `PORT_RELEASE_UNVERIFIED` and `portsHeldAfterCheck: "UNKNOWN"` rather than a false cleanup success. Responses contain only stable gap codes, never manifest values, credentials or paths.
+
+- `PORTS_TEMPORARILY_BINDABLE`: *observed at that moment only*. This is **not** a guarantee of future availability; another process can bind immediately afterward.
+- `PORT_PREFLIGHT_BLOCKED`: existing target check failed, a declared port is occupied/unsafe, the local socket operation failed or release could not be verified.
+- CLI exit `0` = temporary bindability; `1` = blocked; `2` = invalid input/read failure. **No exit state** establishes a running ERP, safe ownership of retained services, applied role grants, material-plan activation, HR recovery, GL-08 completion or authorization to deploy.
+- The six focused local Node tests are registered for **future native CI**, without touching the GitHub workflow shared with Material Plan C, by placement under `deploy/release-candidate/prototype-target-port-preflight.test.mjs`. The existing `node --test deploy/release-candidate/*.test.mjs` glob will discover them when this branch is reviewed and proposed through a separate applicable merge gate. Do not claim a passing CI run for this unmerged branch.
+
+**Safety constraint:** The preflight has a time-of-check/time-of-use race and is not sufficient to activate a prototype; a separately authorized operator must independently check actual running services, port/process ownership, DB/database identity, persistent Documents and HR key isolation, and live authenticated browser/role tests before any future prototype freeze.
+
 ## Still required before freeze and Production
 
 - PR #325 Material Plan C clean independent DEC-022 review, guarded merge and post-main CI before claiming an integrated C build. Do not waive or substitute this preflight for that review.
