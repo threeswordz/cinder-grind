@@ -19,7 +19,8 @@ function outcome(gaps, inspected) {
   return {
     purpose: 'ISOLATED_PROTOTYPE_PORT_PREFLIGHT',
     status: gaps.length ? 'PORT_PREFLIGHT_BLOCKED' : 'PORTS_TEMPORARILY_BINDABLE',
-    gaps, checkedPorts: inspected, portsHeldAfterCheck: 0,
+    gaps, checkedPorts: inspected,
+    portsHeldAfterCheck: gaps.includes('PORT_RELEASE_UNVERIFIED') ? 'UNKNOWN' : 0,
     persistentFilesChanged: 0, servicesContacted: 0, databasesOpened: 0,
     runtimeRunningVerified: false, portsReservedForStartup: false,
     effectiveGrantsVerified: false, prototypeFreezeCertified: false,
