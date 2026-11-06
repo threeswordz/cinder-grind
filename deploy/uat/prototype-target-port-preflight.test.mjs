@@ -60,6 +60,7 @@ test('unknown bind errors and close failures fail closed, no secret error string
       : {close:async()=>{throw new Error('private cleanup details');}},
   });
   assert.deepEqual(res.gaps,['PORT_WEB_PROBE_FAILED','PORT_RELEASE_UNVERIFIED']);
+  assert.equal(res.portsHeldAfterCheck,'UNKNOWN');
   assert.doesNotMatch(JSON.stringify(res),/private/);
 });
 
