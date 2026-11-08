@@ -385,6 +385,10 @@ jobs:
           node deploy/uat/hr1a-employee-browser.mjs
       - name: Verify material request and receipt UI in real disposable Chromium
         run: node deploy/uat/material-request-browser.mjs
+      - name: Verify Material Plan C workflows in real disposable Chromium
+        run: |
+          node --check deploy/uat/material-plan-browser.mjs
+          node deploy/uat/material-plan-browser.mjs
       - name: Rehearse V1.0-E exact release candidate
         env:
           RC_NON_PRODUCTION_CONFIRMED: YES
