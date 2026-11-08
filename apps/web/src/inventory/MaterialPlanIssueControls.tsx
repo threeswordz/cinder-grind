@@ -12,7 +12,7 @@ import { materialPlanIssueLabels } from './material-plan-issue-labels';
 
 type Line = NonNullable<MaterialIssue['items']>[number];
 type Pin = { planId: string; planLineId: string; expectedPlanVersion: number };
-type Action =
+export type PlanIssueIntent =
   | { kind: 'DIRECT' | 'SUBMIT'; issueId: string; requestKey: string; bindings: PlanIssueBinding[] }
   | { kind: 'REVIEW' | 'DECIDE'; authorizationId: string; requestKey: string; decision: 'APPROVE' | 'REJECT'; comment: string };
 const noCache = { retry: false, gcTime: 0, refetchOnWindowFocus: true } as const;
@@ -38,7 +38,7 @@ function IssuePlanLine({
   const approved = current?.approvedRevision;
   const matching = current && current.projectId === issue.projectId &&
     current.warehouseId === issue.warehouseId &&
-    approved && issue.issueDate >= approved.validFrom && issue.issueDate <= approved.validTo
+    approved && issue.issueDate.slice(0, 10) >= approved.validFrom && issue.issueDate.slice(0, 10) <= approved.validTo
     ? approved.lines.filter(l => l.materialId === line.materialId && l.uomId === line.uomId)
     : [];
   const approvedPlan = Boolean(approved && current && matching.length);
@@ -73,12 +73,14 @@ function IssuePlanLine({
 }
 
 export function MaterialPlanIssueControls({
-  issue, permissions, history, onChanged,
+  issue, permissions, history, onChanged, pending, onPendingChange,
 }: {
   issue: MaterialIssue;
   permissions: string[];
   history: PlanIssueHistory;
   onChanged: () => Promise<void>;
+  pending: PlanIssueIntent | null;
+  onPendingChange: (intent: PlanIssueIntent | null, expectedRequestKey?: string) => void;
 }) {
   const t = materialPlanIssueLabels[useContext(MonetaryLocaleContext)];
   const client = useQueryClient();
@@ -90,7 +92,6 @@ export function MaterialPlanIssueControls({
   const [pages, setPages] = useState<string[]>(['']);
   const [historyPages, setHistoryPages] = useState<string[]>(['']);
   const [preview, setPreview] = useState<{ fingerprint: string; value: PlanIssuePreview } | null>(null);
-  const [pending, setPending] = useState<Action | null>(null);
   const [comment, setComment] = useState('');
   const [saved, setSaved] = useState(false);
   const plans = useQuery({
@@ -136,7 +137,7 @@ export function MaterialPlanIssueControls({
       const effective = plan?.approvedRevision;
       return Boolean(plan && effective && plan.projectId === issue.projectId &&
         plan.warehouseId === issue.warehouseId && plan.version === pin.expectedPlanVersion &&
-        issue.issueDate >= effective.validFrom && issue.issueDate <= effective.validTo &&
+        issue.issueDate.slice(0, 10) >= effective.validFrom && issue.issueDate.slice(0, 10) <= effective.validTo &&
         effective.lines.some(line => line.id === pin.planLineId &&
           line.materialId === item.materialId && line.uomId === item.uomId));
     });
@@ -146,7 +147,7 @@ export function MaterialPlanIssueControls({
     onSuccess: result => { setPreview({ fingerprint, value: result.data }); setSaved(false); },
   });
   const actionMutation = useMutation({
-    mutationFn: (intent: Action) => {
+    mutationFn: (intent: PlanIssueIntent) => {
       switch (intent.kind) {
         case 'DIRECT': return api.withinPlan(intent.issueId, intent.requestKey, intent.bindings);
         case 'SUBMIT': return api.submitOverage(intent.issueId, intent.requestKey, intent.bindings);
@@ -154,8 +155,8 @@ export function MaterialPlanIssueControls({
         case 'DECIDE': return api.decide(intent.authorizationId, 'decision', intent.requestKey, intent.decision, intent.comment);
       }
     },
-    onSuccess: async () => {
-      setPending(null); setPreview(null); setSaved(true);
+    onSuccess: async (_result, intent) => {
+      onPendingChange(null, intent.requestKey); setPreview(null); setSaved(true);
       await Promise.all([
         client.invalidateQueries({ queryKey: ['material-plan-issues'] }),
         client.invalidateQueries({ queryKey: ['material-plan-ui'] }),
@@ -163,10 +164,16 @@ export function MaterialPlanIssueControls({
       ]);
     },
   });
-  const send = (action: Action) => {
+  const send = (action: PlanIssueIntent) => {
     if (pending || actionMutation.isPending) return;
-    setSaved(false); setPending(action); actionMutation.mutate(action);
+    setSaved(false); onPendingChange(action); actionMutation.mutate(action);
   };
+  // A lost-response intent must survive unmounting during access revalidation.
+  // Parent state retains the exact request key/body; backend guards the replay.
+  const retryAuthorized = pending && (
+    pending.kind === 'DIRECT' || pending.kind === 'SUBMIT' ? canPost :
+      pending.kind === 'REVIEW' ? canReview : canApprove
+  );
   // Approve only the latest freshly authorized source record, never a stale
   // parent-prop snapshot or an older history page after a concurrent change.
   const review = historyPages.length === 1 && visibleHistory?.binding?.issueId === issue.id
@@ -183,9 +190,9 @@ export function MaterialPlanIssueControls({
     <Chip color="info" label={t.policy} sx={{ alignSelf: 'flex-start' }} />
     {pending ? <Alert severity="warning">{t.pending}
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
-        <Button disabled={actionMutation.isPending} onClick={() => actionMutation.mutate(pending)}>{t.retry}</Button>
+        <Button disabled={!retryAuthorized || actionMutation.isPending} onClick={() => actionMutation.mutate(pending)}>{t.retry}</Button>
         <Button disabled={actionMutation.isPending} onClick={() => {
-          setPending(null); setPreview(null); actionMutation.reset(); void onChanged();
+          onPendingChange(null, pending.requestKey); setPreview(null); actionMutation.reset(); void onChanged();
         }}>{t.clear}</Button>
       </Stack>
     </Alert> : null}
