@@ -157,6 +157,16 @@ async function run(){
  check(!text().includes('NEVER_DISPLAY_COST_BOQ_PRICE'),'Secret BOQ fields disclosed');
  await click('Edit as new revision');
  await until(()=>text().includes('Work package'),'Authorized revision form not loaded');
+ await input('Reason','Synthetic bounded revision');
+ await until(()=>button('Save revision')&&!button('Save revision').disabled,'Valid prepared revision cannot be saved');
+ // Concurrent author changes the source while our editor retains old fields.
+ // Source refetch must reject the stale save rather than borrow version 4.
+ plan.version=4;
+ await browserQuery.invalidateQueries({queryKey:['material-plan-ui','detail',planId]});
+ await until(()=>text().includes('The plan has changed'),'Concurrent plan edit did not flag stale source');
+ check(button('Save revision')?.disabled,'Stale revision save used a newer source version');
+ plan.version=3;
+ await browserQuery.invalidateQueries({queryKey:['material-plan-ui','detail',planId]});
  // A failed refresh must mask both fetched rows and a prefilled protected revision form.
  deny=true;
  await browserQuery.invalidateQueries({queryKey:['material-plan-ui']});
