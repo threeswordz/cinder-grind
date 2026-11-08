@@ -63,3 +63,12 @@ test('C issue date checks normalize the ISO timestamp to its exact calendar day'
   assert.equal((ui.match(/issue\.issueDate\.slice\(0, 10\)/g) ?? []).length, 4);
   assert.doesNotMatch(ui, /issue\.issueDate >= (?:approved|effective)\.validFrom/);
 });
+
+test('C preview retains the fingerprint actually submitted with in-flight bindings', () => {
+  assert.match(ui, /mutationFn: \(intent: \{ bindings: PlanIssueBinding\[\]; fingerprint: string \}\)/);
+  assert.match(ui, /api\.preview\(issue\.id, intent\.bindings\)/);
+  assert.match(ui, /onSuccess: \(result, intent\) => \{/);
+  assert.match(ui, /fingerprint: intent\.fingerprint/);
+  assert.match(ui, /previewMutation\.mutate\(\{ bindings, fingerprint \}\)/);
+  assert.doesNotMatch(ui, /setPreview\(\{ fingerprint, value: result\.data \}\)/);
+});
