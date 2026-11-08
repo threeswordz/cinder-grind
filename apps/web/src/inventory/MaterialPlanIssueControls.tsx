@@ -143,8 +143,13 @@ export function MaterialPlanIssueControls({
     });
   const applicablePreview = complete && preview?.fingerprint === fingerprint ? preview.value : null;
   const previewMutation = useMutation({
-    mutationFn: (value: PlanIssueBinding[]) => api.preview(issue.id, value),
-    onSuccess: result => { setPreview({ fingerprint, value: result.data }); setSaved(false); },
+    // Capture the precise source fingerprint passed to the asynchronous preview.
+    // Never relabel a response after selectors change while the request is in flight.
+    mutationFn: (intent: { bindings: PlanIssueBinding[]; fingerprint: string }) =>
+      api.preview(issue.id, intent.bindings),
+    onSuccess: (result, intent) => {
+      setPreview({ fingerprint: intent.fingerprint, value: result.data }); setSaved(false);
+    },
   });
   const actionMutation = useMutation({
     mutationFn: (intent: PlanIssueIntent) => {
@@ -220,7 +225,7 @@ export function MaterialPlanIssueControls({
       {!complete ? <Alert severity="info">{t.incomplete}</Alert> : null}
       <Button variant="outlined"
         disabled={!complete || Boolean(pending) || previewMutation.isPending || plans.isError}
-        onClick={() => { setPreview(null); previewMutation.mutate(bindings); }}>{t.preview}</Button>
+        onClick={() => { setPreview(null); previewMutation.mutate({ bindings, fingerprint }); }}>{t.preview}</Button>
       {applicablePreview ? <Stack spacing={1}>
         <Alert severity={applicablePreview.result === 'WITHIN_PLAN' ? 'success' : 'warning'}>
           {applicablePreview.result === 'WITHIN_PLAN' ? t.matched : t.overage}
