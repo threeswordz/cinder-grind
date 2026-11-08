@@ -30,7 +30,11 @@ test('C issue posting requires a complete pin set and an explicit preview outcom
 });
 
 test('C issue controls preserve a stable operation intent for unknown commit response', () => {
-  assert.match(ui, /const \[pending, setPending\]/);
+  assert.match(issues, /const \[pendingPlanActions, setPendingPlanActions\]/);
+  assert.match(issues, /pending=\{pendingPlanActions\[current\.id\] \?\? null\}/);
+  assert.match(issues, /expectedRequestKey && old\[issueId\]\?\.requestKey !== expectedRequestKey/);
+  assert.match(ui, /onPendingChange\(action\); actionMutation\.mutate\(action\)/);
+  assert.match(ui, /onPendingChange\(null, intent\.requestKey\)/);
   assert.match(ui, /actionMutation\.mutate\(pending\)/);
   assert.match(ui, /requestKey: crypto\.randomUUID\(\)/);
   assert.match(api, /method: 'POST'/);
@@ -53,4 +57,9 @@ test('C issue locale and server source links cover EN TH Traditional Chinese', (
     assert.equal((labels.match(new RegExp('\\b' + name, 'g')) ?? []).length, 3, name);
   assert.match(issues, /material-requests/);
   assert.match(ui, /t\.signed/);
+});
+
+test('C issue date checks normalize the ISO timestamp to its exact calendar day', () => {
+  assert.equal((ui.match(/issue\.issueDate\.slice\(0, 10\)/g) ?? []).length, 4);
+  assert.doesNotMatch(ui, /issue\.issueDate >= (?:approved|effective)\.validFrom/);
 });
