@@ -32,6 +32,8 @@ export function MaterialPlansPanel({ permissions }: { permissions: string[] }) {
   const [historyPages, setHistoryPages] = useState<string[]>(['']);
   const [choicePages, setChoicePages] = useState<Record<string, string[]>>({});
   const [mode, setMode] = useState<'CREATE' | 'REVISE'>('CREATE');
+  // Pin the editor to its originally loaded, authorized plan version.
+  const [revisionBase, setRevisionBase] = useState<{ planId: string; version: number } | null>(null);
   const [warehouseId, setWarehouseId] = useState('');
   const [basisId, setBasisId] = useState('');
   const [packageCode, setPackageCode] = useState('');
@@ -112,6 +114,7 @@ export function MaterialPlansPanel({ permissions }: { permissions: string[] }) {
       setPlanId(result.data.id);
       setHistoryPages(['']);
       setMode('CREATE');
+      setRevisionBase(null);
       await cache.invalidateQueries({ queryKey: ['material-plan-ui'] });
     },
   });
@@ -127,11 +130,12 @@ export function MaterialPlansPanel({ permissions }: { permissions: string[] }) {
   };
   const resetProject = (id: string) => {
     setProjectId(id); setPlanId(''); setListPages(['']); setHistoryPages(['']);
-    setChoicePages({}); setMode('CREATE'); setBasisId(''); setWarehouseId('');
+    setChoicePages({}); setMode('CREATE'); setRevisionBase(null); setBasisId(''); setWarehouseId('');
     setPackageCode(''); setLines([]); setReason(''); setComment('');
   };
   const fillRevision = (p: MaterialPlan) => {
     if (!p.latestRevision || !can('revise')) return;
+    setRevisionBase({ planId: p.id, version: p.version });
     setMode('REVISE');
     setWarehouseId(p.warehouseId); setBasisId(p.budgetRevisionId);
     setPackageCode(p.workPackageCode);
@@ -146,7 +150,10 @@ export function MaterialPlansPanel({ permissions }: { permissions: string[] }) {
   const contentValid = validFrom !== '' && validTo >= validFrom && reason.trim() !== '' &&
     lines.length > 0 && lines.every(l => Boolean(l.budgetRevisionLineId && l.materialId && l.uomId) && validQuantity(l.quantity)) &&
     new Set(lines.map(l => l.budgetRevisionLineId)).size === lines.length;
-  const canSave = editing && authorizedProject && Boolean(warehousePage && revisionPage) &&
+  const revisionUnchanged = mode !== 'REVISE' || Boolean(
+    revisionBase && current && current.id === revisionBase.planId && current.version === revisionBase.version
+  );
+  const canSave = editing && authorizedProject && revisionUnchanged && Boolean(warehousePage && revisionPage) &&
     sourceLines.isSuccess && !sourceLines.isFetching && materials.isSuccess && !materials.isFetching &&
     !pending && !mutation.isPending && contentValid &&
     Boolean(projectId && warehouseId && basisId && packageCode.trim()) &&
@@ -158,8 +165,8 @@ export function MaterialPlansPanel({ permissions }: { permissions: string[] }) {
       ...body, requestKey: crypto.randomUUID(), projectId, warehouseId,
       budgetRevisionId: basisId, workPackageCode: packageCode.trim(),
     } });
-    else if (current) dispatch({ kind: 'REVISE', id: current.id, body: {
-      ...body, requestKey: crypto.randomUUID(), expectedVersion: current.version,
+    else if (current && revisionBase && revisionUnchanged) dispatch({ kind: 'REVISE', id: current.id, body: {
+      ...body, requestKey: crypto.randomUUID(), expectedVersion: revisionBase.version,
     } });
   };
   const decide = (decision: 'APPROVE' | 'REJECT') => {
@@ -212,7 +219,7 @@ export function MaterialPlansPanel({ permissions }: { permissions: string[] }) {
               <Chip key={p.id} variant={planId === p.id ? 'filled' : 'outlined'}
                 color={planId === p.id ? 'primary' : 'default'}
                 label={p.workPackageCode + ' · v' + p.version}
-                onClick={() => { setPlanId(p.id); setHistoryPages(['']); setMode('CREATE'); }} />)}
+                onClick={() => { setPlanId(p.id); setHistoryPages(['']); setMode('CREATE'); setRevisionBase(null); }} />)}
           </Stack>
           {plansPage && !plansPage.items.length ? <Alert severity="info">{t.empty}</Alert> : null}
           <Stack direction="row" spacing={1}>
@@ -349,6 +356,8 @@ export function MaterialPlansPanel({ permissions }: { permissions: string[] }) {
             {chooser('source-lines', sourceRows, sourceLines.isSuccess && !sourceLines.isFetching ? sourceLines.data.data.nextCursor : null, sourceLines.isError)}
             {chooser('materials', materialRows, materials.isSuccess && !materials.isFetching ? materials.data.data.nextCursor : null, materials.isError)}
           </Stack> : null}
+          {mode === 'REVISE' && current && !revisionUnchanged ?
+            <Alert severity="warning">{t.stale}</Alert> : null}
           {!contentValid && lines.length > 0 ? <Alert severity="info">{t.invalid}</Alert> : null}
           <Button variant="contained" disabled={!canSave} onClick={submitForm}>
             {mode === 'REVISE' ? t.revise : t.create}
