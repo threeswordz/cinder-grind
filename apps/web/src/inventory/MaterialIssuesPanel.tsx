@@ -14,7 +14,7 @@ import { useState } from 'react';
 
 import { inventoryApi } from '../api/inventory';
 import { materialPlanIssuesApi } from '../api/material-plan-issues';
-import { MaterialPlanIssueControls } from './MaterialPlanIssueControls';
+import { MaterialPlanIssueControls, type PlanIssueIntent } from './MaterialPlanIssueControls';
 
 export function MaterialIssuesPanel({ permissions }: { permissions: string[] }) {
   const queryClient = useQueryClient();
@@ -36,6 +36,18 @@ export function MaterialIssuesPanel({ permissions }: { permissions: string[] }) 
   const [mutationError, setMutationError] = useState<unknown>(null);
   const [postKeys] = useState(() => new Map<string, string>());
   const [reversalKeys] = useState(() => new Map<string, string>());
+  // Persist pending intents beyond privilege-masking refetch/unmount.
+  // Render them only when current issue, policy and history are reauthorized.
+  const [pendingPlanActions, setPendingPlanActions] = useState<Record<string, PlanIssueIntent>>({});
+  const updatePendingPlanAction = (issueId: string, intent: PlanIssueIntent | null, expectedRequestKey?: string) => {
+    setPendingPlanActions(old => {
+      if (expectedRequestKey && old[issueId]?.requestKey !== expectedRequestKey) return old;
+      if (!intent && !old[issueId]) return old;
+      const next = { ...old };
+      if (intent) next[issueId] = intent; else delete next[issueId];
+      return next;
+    });
+  };
 
   const projects = useQuery({
     queryKey: ['issue-projects'],
@@ -348,7 +360,10 @@ export function MaterialIssuesPanel({ permissions }: { permissions: string[] }) 
               ) : null}
               {enabledPlanRecord && scopedHistory ? (
                 <MaterialPlanIssueControls key={current.id} issue={current} permissions={permissions}
-                  history={scopedHistory} onChanged={refresh} />
+                  history={scopedHistory} onChanged={refresh}
+                  pending={pendingPlanActions[current.id] ?? null}
+                  onPendingChange={(intent, expectedRequestKey) =>
+                    updatePendingPlanAction(current.id, intent, expectedRequestKey)} />
               ) : null}
               {canSubmit && legacyIssue && !current.submittedAt ? (
                 <Stack spacing={1}>
