@@ -18,7 +18,11 @@ test('C plan client uses canonical guarded source endpoints and no alternative s
 test('C plan actions use server version and preserve requestKey on ambiguous result', () => {
   assert.match(panel, /const \[pending, setPending\]/);
   assert.match(panel, /mutation\.mutate\(pending\)/);
-  assert.match(panel, /expectedVersion: current\.version/);
+  assert.match(panel, /expectedVersion: revisionBase\.version/);
+  assert.match(panel, /setRevisionBase\(\{ planId: p\.id, version: p\.version \}\)/);
+  assert.match(panel, /current\.version === revisionBase\.version/);
+  assert.match(panel, /revisionUnchanged && Boolean\(warehousePage/);
+  assert.match(panel, /setRevisionBase\(null\)/);
   assert.match(panel, /kind: 'DECIDE'/);
   assert.match(panel, /'APPROVE' \| 'REJECT'/);
 });
