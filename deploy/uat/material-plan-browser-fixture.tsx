@@ -15,6 +15,8 @@ const material='33333333-3333-4333-8333-333333333333';
 const unit='44444444-4444-4444-8444-444444444444';
 const planId='55555555-5555-4555-8555-555555555555';
 const planLine='66666666-6666-4666-8666-666666666666';
+const planLineAlternate='12121212-1212-4121-8121-121212121212';
+const alternateSource='13131313-1313-4131-8131-131313131313';
 const issueId='77777777-7777-4777-8777-777777777777';
 const issueItem='88888888-8888-4888-8888-888888888888';
 const revision='99999999-9999-4999-8999-999999999999';
@@ -28,6 +30,8 @@ const approved={
   reason:'Approved synthetic quantities',createdByUserId:author,submittedByUserId:author,
   decidedByUserId:active,decisionComment:'Authorized independent approval',
   lines:[{id:planLine,budgetRevisionLineId:source,materialId:material,uomId:unit,quantity:'10.0000',
+    material:{materialCode:'MAT-A',materialName:'Synthetic steel'},uom:{uomCode:'EA'}}],
+    {id:planLineAlternate,budgetRevisionLineId:alternateSource,materialId:material,uomId:unit,quantity:'2.0000',
     material:{materialCode:'MAT-A',materialName:'Synthetic steel'},uom:{uomCode:'EA'}}],
 };
 const plan={
@@ -62,6 +66,7 @@ const reviewer=['inventory.material_plan.view','inventory.issue.view','inventory
 const approver=['inventory.material_plan.view','inventory.issue.view','inventory.material_plan.overage.approve'];
 let creates=0, previews=0, effects=0, issueCalls=[], decisions=[], receivedKeys=new Set();
 let deny=false, browserQuery=null, fixtureHistory=history;
+let holdPreview=false, releasePreview=null;
 const check=(v,msg)=>{if(!v)throw Error(msg);};
 const clone=v=>structuredClone(v);
 const data=value=>({data:clone(value)});
@@ -84,11 +89,18 @@ issueApi.history=async (_issue, after='')=>{
 };
 issueApi.preview=async (_issue, bindings)=>{
  previews++;check(bindings.length===1&&bindings[0].issueItemId===issueItem&&
-  bindings[0].planLineId===planLine&&bindings[0].expectedPlanVersion===3,
+  [planLine,planLineAlternate].includes(bindings[0].planLineId)&&bindings[0].expectedPlanVersion===3,
   'Preview did not bind exactly to approved line/version');
- return data({issueId,result:'WITHIN_PLAN',overageQuantity:'0.0000',
-  items:[{issueItemId:issueItem,planId,planLineId:planLine,planVersion:3,quantity:'4.0000',
-   overageQuantity:'0.0000',allowance:'10.0000',used:'0.0000',remaining:'10.0000'}]});
+ if(holdPreview){
+  holdPreview=false;
+  await new Promise(resolve=>{releasePreview=resolve;});
+ }
+ const primary=bindings[0].planLineId===planLine;
+ return data({issueId,result:primary?'WITHIN_PLAN':'OVERAGE_REQUIRED',
+  overageQuantity:primary?'0.0000':'2.0000',
+  items:[{issueItemId:issueItem,planId,planLineId:bindings[0].planLineId,planVersion:3,quantity:'4.0000',
+   overageQuantity:primary?'0.0000':'2.0000',
+   allowance:primary?'10.0000':'2.0000',used:'0.0000',remaining:primary?'10.0000':'2.0000'}]});
 };
 issueApi.withinPlan=async(id,key,bindings)=>{
  issueCalls.push({id,key,bindings:clone(bindings)});
@@ -184,10 +196,23 @@ async function run(){
  await until(()=>text().includes('Approved plan issue controls'),'Issue plan control absent');
  check(button('Check complete issue')?.disabled,'Unbound issue preview enabled');
  await choose('Approved plan','WP-1');
- await choose('Matching plan allocation','MAT-A');
+ await choose('Matching plan allocation','10.0000');
+ // Deliberately hold a preview and change to another complete, authorized
+ // allocation before it resolves. A stale response must not become authority
+ // for the newly selected bindings.
+ holdPreview=true;
+ await click('Check complete issue');
+ await until(()=>typeof releasePreview==='function','Delayed preview was not started');
+ await choose('Matching plan allocation','2.0000');
+ releasePreview(); releasePreview=null;
+ await until(()=>text().includes('The issue or selected plan changed'),
+  'In-flight preview response was incorrectly relabeled for the new allocation');
+ check(!text().includes('Within plan')&&!text().includes('Above approved plan'),
+  'An old preview enabled a mismatched allocation');
+ await choose('Matching plan allocation','10.0000');
  await click('Check complete issue');
  await until(()=>text().includes('Within plan'),'Canonical issue preview absent');
- check(previews===1,'Unexpected preview count');
+ check(previews===2,'Unexpected preview count');
  // Authorization can disappear between a successful preview and posting.
  // Old cached approved quantities and the post button must not survive a 403.
  deny=true;
