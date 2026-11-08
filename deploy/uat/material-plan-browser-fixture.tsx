@@ -41,7 +41,8 @@ const row={id:plan.id,companyId:plan.companyId,projectId:plan.projectId,warehous
   version:plan.version,createdByUserId:plan.createdByUserId};
 const issue={
  id:issueId,issueNumber:'MI-SYN-1',projectId:project,warehouseId:warehouse,
- issueDate:now,issuedToEmployeeId:null,remarks:null,createdAt:now,submittedAt:null,
+ // Native Prisma issue date serializes as UTC midnight on the plan's final valid day.
+ issueDate:'2026-11-30T00:00:00.000Z',issuedToEmployeeId:null,remarks:null,createdAt:now,submittedAt:null,
  postedAt:null,reversedAt:null,
  items:[{id:issueItem,lineNo:1,materialId:material,uomId:unit,quantity:'4.0000',
   reservationId:null,wbsId:null,costCodeId:null,activityId:null,
@@ -128,13 +129,22 @@ async function input(label,value){
  Object.getOwnPropertyDescriptor(proto,'value').set.call(el,value);
  el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));await pause(50);
 }
+function IssueScopeHarness({permissions,authHistory}){
+ const [pending,setPending]=React.useState(null);
+ const [visible,setVisible]=React.useState(true);
+ window.__fixtureSetIssueVisible=setVisible;
+ return visible?<MaterialPlanIssueControls issue={issue} permissions={permissions}
+   history={authHistory} onChanged={async()=>{}} pending={pending}
+   onPendingChange={(intent,expectedKey)=>setPending(old=>
+     expectedKey&&old?.requestKey!==expectedKey?old:intent)}/>:null;
+}
 function render(kind,locale,permissions,authHistory=history){
  // A changed authenticated scope/actor must mount a new UI and query cache.
  fixtureHistory=authHistory;
  browserQuery=new QueryClient({defaultOptions:{queries:{retry:false},mutations:{retry:false}}});
  root.render(<MonetaryLocaleContext.Provider value={locale}><QueryClientProvider client={browserQuery}>{
    kind==='plans'?<MaterialPlansPanel permissions={permissions}/>:
-     <MaterialPlanIssueControls key={[kind,locale,...permissions].join(':')} issue={issue} permissions={permissions} history={authHistory} onChanged={async()=>{}}/>
+     <IssueScopeHarness key={[kind,locale,...permissions].join(':')} permissions={permissions} authHistory={authHistory}/>
  }</QueryClientProvider></MonetaryLocaleContext.Provider>);
 }
 async function run(){
@@ -186,6 +196,11 @@ async function run(){
  await click('Issue stock within plan');
  await until(()=>text().includes('A posting/approval outcome could not be confirmed'),'Uncertain posting not surfaced');
  check(effects===1,'Posting fixture missed the committed effect');
+ // Revalidation may unmount controls; replay must retain the exact original request.
+ window.__fixtureSetIssueVisible(false);
+ await until(()=>!text().includes('Approved plan issue controls'),'Revalidation did not mask issue detail');
+ window.__fixtureSetIssueVisible(true);
+ await until(()=>text().includes('Retry same operation'),'Exact-key intent lost after remount');
  await click('Retry same operation');
  await until(()=>text().includes('Server action recorded'),'Identical retry did not recover');
  check(issueCalls.length===2&&issueCalls[0].key===issueCalls[1].key&&effects===1,'Retry duplicated or changed issue effect');
