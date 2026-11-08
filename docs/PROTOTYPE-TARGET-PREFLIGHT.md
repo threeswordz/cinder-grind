@@ -47,9 +47,28 @@ node deploy/uat/prototype-target-preflight.mjs /private/prototype-target.json EX
 
 Historical reserved workstation ports (`3000`, `3001`, `3002`, `4173`, `4174`, `4175`, `5432`, `55434`) and non-loopback HTTP origins are refused to protect previously identified development environments. **This static list is not an exhaustive port-occupancy audit.** Actual bindability, service ownership, DB isolation, filesystem provenance and storage separation must still be independently inspected. No implicit Company/project/business grants are supplied by the JSON.
 
+## Additional temporary loopback bindability check
+
+**Integration boundary:** `deploy/uat/prototype-target-port-preflight.mjs` carries the existing three-file #305 preparation into a governed safety increment. Verify its actual PR/main integration and CI receipts in #305 before operational use, against an independently authorized non-retained target. Never copy and run an unreviewed branch script against a retained/Production workstation environment.
+
+When it is merged into an exact, clean integrated main checkout, use the **same** owner-only `0600` private manifest and same exact SHA:
+
+```sh
+node deploy/uat/prototype-target-port-preflight.mjs /private/prototype-target.json EXACT_INTEGRATED_MAIN_40_HEX_SHA
+```
+
+The command calls the existing read-only target checker first. **Only if that succeeds**, it briefly attempts an exclusive bind of all three declared `127.0.0.1` ports (API, web and PostgreSQL). It does not connect to existing processes, authenticate, inspect a database, start ERP/PostgreSQL, reserve a port for later startup, modify configuration or create persistent files. It closes all successfully opened listeners, including on later failures. A cleanup error reports `PORT_RELEASE_UNVERIFIED` and `portsHeldAfterCheck: "UNKNOWN"` rather than a false cleanup success. Responses contain only stable gap codes, never manifest values, credentials or paths.
+
+- `PORTS_TEMPORARILY_BINDABLE`: *observed at that moment only*. This is **not** a guarantee of future availability; another process can bind immediately afterward.
+- `PORT_PREFLIGHT_BLOCKED`: existing target check failed, a declared port is occupied/unsafe, the local socket operation failed or release could not be verified.
+- CLI exit `0` = temporary bindability; `1` = blocked; `2` = invalid input/read failure. **No exit state** establishes a running ERP, safe ownership of retained services, applied role grants, material-plan activation, HR recovery, GL-08 completion or authorization to deploy.
+- The six focused regressions plus one combined real temporary-Git/directory/socket regression are registered through `deploy/release-candidate/prototype-target-port-preflight.test.mjs` and the existing `node --test deploy/release-candidate/*.test.mjs` glob. No workflow or existing gate is changed. The combined regression uses the actual target assessor, proves all ports released after success and a busy-database failure, and proves a dirty checkout prevents binding. Native CI receipts remain separate from local test results.
+
+**Safety constraint:** The preflight has a time-of-check/time-of-use race and is not sufficient to activate a prototype; a separately authorized operator must independently check actual running services, port/process ownership, DB/database identity, persistent Documents and HR key isolation, and live authenticated browser/role tests before any future prototype freeze.
+
 ## Still required before freeze and Production
 
-- PR #325 Material Plan C clean independent DEC-022 review, guarded merge and post-main CI before claiming an integrated C build. Do not waive or substitute this preflight for that review.
+- Material Plan C #325 and test-only #327 have completed independent review, guarded integration and exact-main CI; [Current State](CURRENT-STATE.md) records exact evidence. Preserve those controls for any later material source change; this preflight never substitutes for required review.
 - On an approved isolated non-retained host, collect *actual* running API/web/DB identities, authenticated role Company/Project and maker-checker denials, Chromium/browser and populated DB+Documents+external HR key recovery evidence, including byte equality.
 - Feed independently inspected receipts into the existing private prototype-freeze preflight. Complete one integrated human UAT only **after** the prototype is frozen under DEC-042. Actual retained MKE/TCJ permissions, GL-07 branch enforcement, hosted GL-08 recovery, GL-09 onboarding, GL-10 go/no-go and Production deployment are separate decisions. Existing 3/10 verified Production gates are not changed.
 

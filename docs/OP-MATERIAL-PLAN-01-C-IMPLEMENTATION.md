@@ -1,4 +1,16 @@
-# OP-MATERIAL-PLAN-01 C — integrated UI and technical closure (active, not accepted)
+# OP-MATERIAL-PLAN-01 C — technically integrated; human UAT deferred
+
+## Verified technical exit — 9 November 2026 SGT
+
+C #325 was independently reviewed clean at exact head `8d56b850727ff82177edb69c5782b1b6fead22b6`. The four findings (date boundary, pending retry across unmount, editor version pin and asynchronous preview fingerprint) were corrected with registered regressions; all threads were resolved after the final review. Exact-head push [42488379527](https://github.com/threeswordz/cinder-grind/actions/runs/42488379527) and PR [42488383171](https://github.com/threeswordz/cinder-grind/actions/runs/42488383171) passed39/39. Guarded squash main `2364695772d4b76ee89a5a88b9a5f271b0cd7d6b` has reviewed-equivalent tree `425d0f6aed0ea16b9893585b5e14b7e0f20cd44a`; separate exact-main [42490939803](https://github.com/threeswordz/cinder-grind/actions/runs/42490939803) passed39/39. [Final receipt](https://github.com/threeswordz/cinder-grind/pull/325#issuecomment-6722997099).
+
+MP-AC-01–13 retain A/B technical evidence. MP-AC-14's registered three-locale C Chromium **synthetic transport** and separately authenticated native backend tests passed. MP-AC-15 review/CI/upgrade/recovery/integration gates passed. MP-AC-16 human business/usability acceptance remains **DEFERRED TO FROZEN PRE-PRODUCTION PROTOTYPE**, not accepted or waived. Full authenticated deployed browser/role/recovery evidence remains a prototype-freeze task; synthetic browser tests do not satisfy that later runtime boundary.
+
+Subsequent test-only #327 adds the bounded authenticated request/plan issue/receipt/report/reversal regression; its exact-main and review closure are recorded in [Current State](CURRENT-STATE.md). No production-capable enablement, retained grants/data, prototype freeze, GL closure or Production authority is claimed.
+
+## Historical pre-merge implementation record
+
+The following draft/evidence/checklist text describes the earlier candidate and is preserved for provenance. Its pending integration wording is superseded by the verified exit above.
 
 **Authority:** DEC-044 / #318 approved D1–D5 and MP-AC-14–16. **Predecessor satisfied:** Material Plan A #320 and B1 #323 were integrated and B2 #324 was guarded squash-merged as main `49a708838989773585c94631197ca674938fa3ff`; exact-main [CI41579615490](https://github.com/threeswordz/cinder-grind/actions/runs/41579615490) COMPLETED SUCCESS. The resulting B2 tree `38ce2e3dc27ae67aade0be10b23d092fd524302b` matches the final independently reviewed B2 tree. C is the next approved stage, with one designated Chat writer on `v1-material-plan-c-ui-20261103-chat` and [draft #325](https://github.com/threeswordz/cinder-grind/pull/325). No app change has merged from C.
 
