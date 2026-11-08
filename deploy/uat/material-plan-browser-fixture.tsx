@@ -30,7 +30,7 @@ const approved={
   reason:'Approved synthetic quantities',createdByUserId:author,submittedByUserId:author,
   decidedByUserId:active,decisionComment:'Authorized independent approval',
   lines:[{id:planLine,budgetRevisionLineId:source,materialId:material,uomId:unit,quantity:'10.0000',
-    material:{materialCode:'MAT-A',materialName:'Synthetic steel'},uom:{uomCode:'EA'}}],
+    material:{materialCode:'MAT-A',materialName:'Synthetic steel'},uom:{uomCode:'EA'}},
     {id:planLineAlternate,budgetRevisionLineId:alternateSource,materialId:material,uomId:unit,quantity:'2.0000',
     material:{materialCode:'MAT-A',materialName:'Synthetic steel'},uom:{uomCode:'EA'}}],
 };
