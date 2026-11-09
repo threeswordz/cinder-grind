@@ -30,9 +30,9 @@ git clone --no-checkout https://github.com/threeswordz/cinder-grind.git "$HOME/C
 git -C "$HOME/Construction-ERP-Prototype-Checkout" checkout --detach "$MAIN_SHA"
 # Confirm the clone's exact SHA; never relax this check.
 test "$(git -C "$HOME/Construction-ERP-Prototype-Checkout" rev-parse HEAD)" = "$MAIN_SHA" || exit 1
-# The scaffold stays outside the clean Git checkout; use the local operator kit folder.
-KIT_DIR='<ABSOLUTE_PATH_TO_UNPACKED_OPERATOR_KIT>'
-node "$KIT_DIR/prototype-target-scaffold.mjs" --plan --sha "$MAIN_SHA"
+# The reviewed scaffold is tracked in this exact clean Git checkout.
+cd "$HOME/Construction-ERP-Prototype-Checkout"
+node deploy/uat/prototype-target-scaffold.mjs --plan --sha "$MAIN_SHA"
 ```
 
 Expected *plan-only* status: `OPERATOR_PLAN_READY`. Plan mode does **not** create files or bind ports. It refuses a dirty/wrong-origin/wrong-SHA checkout, mismatched Node, unsafe home or pre-existing runtime root. The command prints no tokens or private paths.
@@ -40,7 +40,7 @@ Expected *plan-only* status: `OPERATOR_PLAN_READY`. Plan mode does **not** creat
 After the operator confirms no collisions and has explicit authority to create **only new empty synthetic resources**:
 
 ```bash
-node "$KIT_DIR/prototype-target-scaffold.mjs" --prepare --sha "$MAIN_SHA" --confirm CREATE_FRESH_SYNTHETIC_ONLY
+node deploy/uat/prototype-target-scaffold.mjs --prepare --sha "$MAIN_SHA" --confirm CREATE_FRESH_SYNTHETIC_ONLY
 ```
 
 Expected status: `FRESH_PRIVATE_TARGET_PREPARED`. This means **private empty directories and a local manifest only**. It does not start Postgres, apply migrations, create users, activate policies, touch retained data, verify actual permissions, create a restore, or certify the prototype. It fails closed if the target already exists and deliberately never deletes anything on failure. Inspect any partial newly created root manually; do not use `rm -rf` or retry with an existing path.
@@ -66,7 +66,7 @@ After a genuinely green freeze candidate is recorded, DEC-042 permits the one co
 
 ## 4. CI and risk boundary
 
-- The standalone scaffold uses built-in Node and Git; no new package, paid service or network call occurs *inside* the script. It loads the existing verified target assessor from the exact clean checkout; never copy files into the checkout to run it.
+- The scaffold is source-controlled in the exact clean Git checkout. It uses built-in Node and Git; no new package, paid service or network call occurs *inside* the script. It imports the existing verified target assessor from that same checked-out exact SHA.
 - It **only creates brand-new private paths** after the exact clean `main` checkout exists, owner/operator opt-in is provided and preconditions pass. It never force-writes, removes, or rewrites an existing directory/manifest.
 - Its synthetic regression tests create disposable Git repositories, check no-write failure modes and modes `0700`/`0600`, and are registered through the existing `node --test deploy/release-candidate/*.test.mjs` CI glob.
-- This standalone operator-kit candidate is **not yet merged or independently Codex-reviewed**. It must be submitted into governed GitHub source control, pass exact-head PR and push CI and **independent Codex review under DEC-022** before being recommended for actual Mac execution. No manual human UAT is conducted by CI.
+- This source-controlled candidate is **not yet merged or independently Codex-reviewed**. PR #329 must pass exact-head PR and push CI and **independent Codex review under DEC-022**, then guarded merge and exact-main CI before being recommended for actual Mac execution. No manual human UAT is conducted by CI.
