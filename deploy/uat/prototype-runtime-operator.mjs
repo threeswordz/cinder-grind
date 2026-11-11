@@ -48,6 +48,16 @@ export function childEnvironment(original=process.env){
   env.NO_COLOR='1'; env.CI='true';
   return env;
 }
+export function checkoutInspector(git,original,execute=raw){
+  const env=childEnvironment(original);
+  return async path=>{
+    const options={cwd:path,env,timeout:10000};
+    const [head,status]=await Promise.all([
+      execute(git,['rev-parse','HEAD'],options),execute(git,['status','--porcelain'],options)]);
+    demand(head.code===0&&status.code===0,'CHECKOUT_INSPECTION_FAILED');
+    return {head:head.stdout.trim(),clean:status.stdout.trim()===''};
+  };
+}
 export function manifestMatches(m,home){
   const root=join(home,'Construction-ERP-Prototype-Runtime');
   return m?.expectedMainSha===SHA && m.mode==='isolated-synthetic' &&
@@ -176,9 +186,14 @@ export async function operator(mode){
   demand(collision.code===1,collision.code===0?'CONTAINER_ALREADY_EXISTS_NO_REUSE':'CONTAINER_LOOKUP_FAILED');
   const {assessPrototypeTarget}=await import(pathToFileURL(join(checkout,'deploy/uat/prototype-target-preflight.mjs')).href);
   const {assessPrototypePorts}=await import(pathToFileURL(join(checkout,'deploy/uat/prototype-target-port-preflight.mjs')).href);
-  const target=await assessPrototypeTarget(manifest,SHA);
+  // The existing assessor's default Git subprocess would inherit the operator
+  // environment. Supply the same sanitized inspection used by this coordinator.
+  const inspectCheckout=checkoutInspector(tools.git,env);
+  const assessTarget=()=>assessPrototypeTarget(manifest,SHA,{inspectCheckout});
+  const assessPorts=()=>assessPrototypePorts(manifest,SHA,{assess:assessTarget});
+  const target=await assessTarget();
   demand(target.status==='LOCAL_SAFETY_PREREQUISITES_OBSERVED'&&target.gaps.length===0,'TARGET_PREFLIGHT_FAILED');
-  const ports=await assessPrototypePorts(manifest,SHA);
+  const ports=await assessPorts();
   demand(ports.status==='PORTS_TEMPORARILY_BINDABLE'&&ports.gaps.length===0,'PORT_PREFLIGHT_FAILED');
   if(mode==='--plan')return {...baseResult(),operatorMainSha,status:'RUNTIME_PLAN_READY',persistentFilesCreated:0};
 
@@ -216,7 +231,7 @@ export async function operator(mode){
   await stage('PULL_APPROVED_POSTGRES',tools.podman,['pull',IMAGE]);
   const image=imageIdentity(await requireRun(tools.podman,['image','inspect','--format','{{.Id}}',IMAGE],options,'IMAGE_INSPECTION_FAILED'));
   demand(image!==null,'IMAGE_ID_INVALID');
-  demand((await assessPrototypePorts(manifest,SHA)).status==='PORTS_TEMPORARILY_BINDABLE','PORT_CHANGED_BEFORE_CREATE');
+  demand((await assessPorts()).status==='PORTS_TEMPORARILY_BINDABLE','PORT_CHANGED_BEFORE_CREATE');
   const cid=await stage('CREATE_NEW_POSTGRES',tools.podman,['create','--name',CONTAINER,'--pull=never',
     '--label','erp.prototype.source='+SHA,'--label','erp.prototype.scope=synthetic-only',
     '--restart=no','--userns=keep-id:uid=70,gid=70','--user=70:70',

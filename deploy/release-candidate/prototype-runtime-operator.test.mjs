@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {SHA,CONTAINER,childEnvironment,manifestMatches,localConnection,ownedContainer,toolingOnly,gitBlobSha,operator}
+import {SHA,CONTAINER,childEnvironment,checkoutInspector,manifestMatches,localConnection,ownedContainer,toolingOnly,gitBlobSha,operator}
   from '../uat/prototype-runtime-operator.mjs';
 
 const home='/Users/synthetic';
@@ -29,6 +29,25 @@ test('fresh runtime children never inherit retained DB/key/container/Git/preload
     GIT_DIR:'/old/.git',GIT_WORK_TREE:'/old',NPM_TOKEN:'private'});
   assert.deepEqual(Object.keys(env).sort(),['CI','HOME','NO_COLOR','PATH','USER']);
   assert.equal(JSON.stringify(env).includes('private'),false);
+});
+test('existing target assessor Git inspections also use sanitized environments and preserve clean/head evidence',async()=>{
+  const calls=[];
+  const execute=async(exe,args,options)=>{
+    calls.push({exe,args,options});
+    return {code:0,stdout:args[0]==='rev-parse'?SHA+'\n':'',stderr:''};
+  };
+  const inspect=checkoutInspector('/trusted/git',{PATH:'/trusted',DATABASE_URL:'retained',
+    GIT_DIR:'/retained/.git',NODE_OPTIONS:'private-preload',HR_PRIVATE_KEYS:'private'},execute);
+  assert.deepEqual(await inspect('/synthetic/checkout'),{head:SHA,clean:true});
+  assert.equal(calls.length,2);
+  for(const c of calls){
+    assert.equal(c.exe,'/trusted/git');assert.equal(c.options.cwd,'/synthetic/checkout');
+    assert.deepEqual(Object.keys(c.options.env).sort(),['CI','NO_COLOR','PATH']);
+  }
+  const dirty=checkoutInspector('/trusted/git',{},async(exe,args)=>({code:0,stdout:args[0]==='status'?' M changed\n':SHA}));
+  assert.equal((await dirty('/synthetic/checkout')).clean,false);
+  const broken=checkoutInspector('/trusted/git',{},async()=>({code:1,stdout:''}));
+  await assert.rejects(broken('/synthetic/checkout'),e=>e.safeCode==='CHECKOUT_INSPECTION_FAILED');
 });
 test('only the prepared synthetic source, storage and exact endpoints are accepted',()=>{
   assert.equal(manifestMatches(fixture(),home),true);
