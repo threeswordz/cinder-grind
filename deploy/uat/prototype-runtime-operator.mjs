@@ -58,6 +58,15 @@ export function checkoutInspector(git,original,execute=raw){
     return {head:head.stdout.trim(),clean:status.stdout.trim()===''};
   };
 }
+export async function waitForPostgres(probe,delay=pause){
+  // The official image starts a temporary Unix-socket-only initialization
+  // server. Require TCP before treating initialization as complete.
+  for(let n=0;n<60;n++){
+    if(await probe(['pg_isready','-h','127.0.0.1','-U','proto_runtime','-d','proto_a_01'])===0)return true;
+    await delay(1000);
+  }
+  return false;
+}
 export function manifestMatches(m,home){
   const root=join(home,'Construction-ERP-Prototype-Runtime');
   return m?.expectedMainSha===SHA && m.mode==='isolated-synthetic' &&
@@ -248,11 +257,7 @@ export async function operator(mode){
   }
   await verifyContainer();
   await stage('START_NEW_POSTGRES',tools.podman,['start',cid]);
-  let ready=false;
-  for(let n=0;n<60;n++){
-    const r=await raw(tools.podman,['exec',cid,'pg_isready','-U','proto_runtime','-d','proto_a_01'],options);
-    if(r.code===0){ready=true;break;}await pause(1000);
-  }
+  const ready=await waitForPostgres(async args=>(await raw(tools.podman,['exec',cid,...args],options)).code);
   demand(ready,'NEW_POSTGRES_NOT_READY');await verifyContainer(true);
   const sql=async query=>requireRun(tools.podman,['exec',cid,'psql','--no-psqlrc','-U','proto_runtime','-d','proto_a_01',
     '-At','-v','ON_ERROR_STOP=1','-c',query],options,'OWN_DATABASE_CHECK_FAILED');

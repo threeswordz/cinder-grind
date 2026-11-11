@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {SHA,CONTAINER,childEnvironment,checkoutInspector,manifestMatches,localConnection,ownedContainer,toolingOnly,gitBlobSha,operator}
+import {SHA,CONTAINER,childEnvironment,checkoutInspector,waitForPostgres,manifestMatches,localConnection,ownedContainer,toolingOnly,gitBlobSha,operator}
   from '../uat/prototype-runtime-operator.mjs';
 
 const home='/Users/synthetic';
@@ -48,6 +48,19 @@ test('existing target assessor Git inspections also use sanitized environments a
   assert.equal((await dirty('/synthetic/checkout')).clean,false);
   const broken=checkoutInspector('/trusted/git',{},async()=>({code:1,stdout:''}));
   await assert.rejects(broken('/synthetic/checkout'),e=>e.safeCode==='CHECKOUT_INSPECTION_FAILED');
+});
+test('temporary Unix-only initialization is not ready; wait for final TCP service and bound failure retries',async()=>{
+  let calls=0;
+  const probe=async args=>{
+    calls++;
+    const tcp=args[args.indexOf('-h')+1]==='127.0.0.1';
+    return tcp?(calls>=3?0:1):0;
+  };
+  assert.equal(await waitForPostgres(probe,async()=>{}),true);
+  assert.equal(calls,3);
+  calls=0;
+  assert.equal(await waitForPostgres(async()=>{calls++;return 1;},async()=>{}),false);
+  assert.equal(calls,60);
 });
 test('only the prepared synthetic source, storage and exact endpoints are accepted',()=>{
   assert.equal(manifestMatches(fixture(),home),true);
