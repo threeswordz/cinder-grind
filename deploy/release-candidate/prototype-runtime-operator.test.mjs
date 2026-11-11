@@ -62,6 +62,13 @@ test('new container identity binds ID, image, scope, nonroot UID, restart and ex
     const c=container();change(c);assert.equal(ownedContainer(c,expected),false);
   }
 });
+test('Podman native unprefixed image IDs and empty no-restart readback retain the exact same identity',()=>{
+  const c=container();c.Image='b'.repeat(64);c.HostConfig.RestartPolicy.Name='';
+  assert.equal(ownedContainer(c,expected),true);
+  assert.equal(ownedContainer(c,{...expected,image:'b'.repeat(64)}),true);
+  assert.equal(ownedContainer(c,{...expected,image:'b'.repeat(12)}),false);
+  c.Image='postgres:17.11-alpine';assert.equal(ownedContainer(c,expected),false);
+});
 test('database binding rejects public exposure, retained ports and additional services',()=>{
   for(const change of [x=>x.HostConfig.PortBindings['5432/tcp'][0].HostIp='0.0.0.0',
     x=>x.HostConfig.PortBindings['5432/tcp'][0].HostPort='55432',

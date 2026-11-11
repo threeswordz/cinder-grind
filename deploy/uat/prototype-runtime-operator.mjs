@@ -27,6 +27,7 @@ const pause=ms=>new Promise(r=>setTimeout(r,ms));
 const fail=code=>{throw Object.assign(new Error(code),{safeCode:code});};
 const demand=(value,code)=>{if(!value)fail(code);};
 const hash=s=>createHash('sha256').update(s).digest('hex');
+export function imageIdentity(value){return typeof value==='string'?/^(?:sha256:)?([a-f0-9]{64})$/.exec(value)?.[1]??null:null;}
 export function gitBlobSha(bytes){return createHash('sha1').update('blob '+bytes.length+'\0').update(bytes).digest('hex');}
 export function toolingOnly(compare){
   return compare?.status==='ahead' && Array.isArray(compare.files) && compare.files.length>0 &&
@@ -72,10 +73,10 @@ export function localConnection(connections){
 export function ownedContainer(c,{id,image,dbRoot}){
   const bindings=c?.HostConfig?.PortBindings;
   const ports=bindings?.['5432/tcp'];
-  return c?.Id===id && c.Image===image && c.Name?.replace(/^\//,'')===CONTAINER &&
+  return c?.Id===id && imageIdentity(image)!==null && imageIdentity(c.Image)===imageIdentity(image) && c.Name?.replace(/^\//,'')===CONTAINER &&
     c.Config?.Labels?.['erp.prototype.source']===SHA &&
     c.Config?.Labels?.['erp.prototype.scope']==='synthetic-only' &&
-    c.Config?.User==='70:70' && c.HostConfig?.RestartPolicy?.Name==='no' &&
+    c.Config?.User==='70:70' && ['','no'].includes(c.HostConfig?.RestartPolicy?.Name) &&
     Array.isArray(c.Mounts) && c.Mounts.length===1 &&
     c.Mounts[0].Type==='bind' && c.Mounts[0].Source===dbRoot &&
     c.Mounts[0].Destination==='/var/lib/postgresql/data' && c.Mounts[0].RW===true &&
@@ -213,8 +214,8 @@ export async function operator(mode){
   await stage('VALIDATE_PRISMA',tools.pnpm,['prisma:validate'],runtimeEnv);
   await stage('BUILD_REVIEWED_APPLICATION',tools.pnpm,['build'],{...env,NODE_ENV:'production',VITE_API_BASE_URL:API+'/api/v1'});
   await stage('PULL_APPROVED_POSTGRES',tools.podman,['pull',IMAGE]);
-  const image=await requireRun(tools.podman,['image','inspect','--format','{{.Id}}',IMAGE],options,'IMAGE_INSPECTION_FAILED');
-  demand(/^sha256:[a-f0-9]{64}$/.test(image),'IMAGE_ID_INVALID');
+  const image=imageIdentity(await requireRun(tools.podman,['image','inspect','--format','{{.Id}}',IMAGE],options,'IMAGE_INSPECTION_FAILED'));
+  demand(image!==null,'IMAGE_ID_INVALID');
   demand((await assessPrototypePorts(manifest,SHA)).status==='PORTS_TEMPORARILY_BINDABLE','PORT_CHANGED_BEFORE_CREATE');
   const cid=await stage('CREATE_NEW_POSTGRES',tools.podman,['create','--name',CONTAINER,'--pull=never',
     '--label','erp.prototype.source='+SHA,'--label','erp.prototype.scope=synthetic-only',
