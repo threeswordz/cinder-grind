@@ -360,7 +360,7 @@ async function preflight(){
   for(const [kind,port,entry] of [['api',33071,join(checkout,'apps/api/dist/main.js')],['web',44171,join(checkout,'deploy/uat/serve-web.mjs')]]){
     const p=await privateFile(join(root,kind+'-owned.json'));
     demand(p.sourceSha===SOURCE&&p.entry===entry&&Number.isSafeInteger(p.pid)&&p.pid>1,'WRONG_OWNED_PROCESS');
-    demand(await command('/bin/ps',['-p',String(p.pid),'-o','command='],checkout)===process.execPath+' '+entry,'PROCESS_COMMAND_CHANGED');
+    demand(await command('/bin/ps',['-ww','-p',String(p.pid),'-o','command='],checkout)===process.execPath+' '+entry,'PROCESS_COMMAND_CHANGED');
     const listener=await command('lsof',['-nP','-a','-p',String(p.pid),'-iTCP:'+port,'-sTCP:LISTEN'],checkout);
     demand(listener.includes('127.0.0.1:'+port)&&!listener.includes('*:'+port),'WRONG_OWNED_LISTENER');
   }
