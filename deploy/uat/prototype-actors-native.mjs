@@ -5,11 +5,14 @@ import {randomBytes,randomUUID} from 'node:crypto';
 import {createRequire} from 'node:module';
 import {fileURLToPath} from 'node:url';
 import {join,resolve} from 'node:path';
-import {mkdtemp,rm} from 'node:fs/promises';
+import {mkdtemp,rm,readFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {spawn} from 'node:child_process';
 import {once} from 'node:events';
-import {provision,pristine,httpClient,initialJourneys,safeEnvironment} from './prototype-actors.mjs';
+import {createServer} from 'node:http';
+import {provision,pristine,httpClient,initialJourneys,safeEnvironment,ROLES} from './prototype-actors.mjs';
+import {startBrowser,browserReadback} from './prototype-browser.mjs';
+import {populatedIdentity,businessFingerprint} from './prototype-browser-operator.mjs';
 
 assert.equal(process.platform,'linux','Native actor harness is Linux CI only');
 assert.equal(process.env.GITHUB_ACTIONS,'true','Native actor harness is CI only');
@@ -31,7 +34,7 @@ const env={...safeEnvironment(),CI:'true',NODE_ENV:'uat',DATABASE_URL:ownUrl.hre
   STORAGE_ROOT:join(temporary,'documents'),DOCUMENT_UPLOAD_TEMP_ROOT:join(temporary,'uploads'),
   HR_PRIVATE_KEYS:JSON.stringify({native:randomBytes(32).toString('base64')}),HR_PRIVATE_ACTIVE_KEY_ID:'native'};
 const adminPassword=randomBytes(32).toString('hex');
-let created=false,server,phase='CREATE_DATABASE';
+let created=false,server,webServer,browser,phase='CREATE_DATABASE';
 async function run(exe,args,childEnv){
   const p=spawn(exe,args,{cwd:root,env:childEnv,stdio:['ignore','pipe','pipe']});
   // Never forward raw child logs (bootstrap/build/connection errors may contain secrets).
@@ -69,7 +72,7 @@ try{
   assert.ok(healthy,'Native isolated API not ready');
   const client=httpClient('http://127.0.0.1:31319/api/v1',env.WEB_ORIGIN);
   phase='INITIAL_JOURNEYS';
-  await initialJourneys(db,fixture,prepared.actors,client,{userId:fixture.adminUserId,email:'proto-admin@example.invalid',
+  const initial=await initialJourneys(db,fixture,prepared.actors,client,{userId:fixture.adminUserId,email:'proto-admin@example.invalid',
     password:adminPassword,expectedRoleCodes:['SYS_ADMIN']});
   assert.ok(client.observations.length>90,'Expected nontrivial authenticated HTTP matrix');
   assert.equal(client.observations.filter(x=>x.id.endsWith('_LOGOUT')).length,9);
@@ -80,11 +83,48 @@ try{
   assert.ok(ciphertexts.every(x=>!x.ciphertext.includes('SYNTHETIC_PRIVATE_ID')&&!x.ciphertext.includes('SYNTHETIC_ACCOUNT')));
   assert.equal(await db.userSession.count({where:{revokedAt:null}}),0,'No active actor sessions left');
   console.log('PROTOTYPE_ACTOR_NATIVE_PASS: '+client.observations.length+' actual HTTP checks; eight real logins, Company/Project/action/privacy denial, independent quantity count/replay, request non-posting, HR encryption, daily/weekly. Not Mac/browser/UAT/recovery proof.');
+  phase='BUILD_ACTUAL_BROWSER_APP';
+  const out=join(temporary,'web');
+  await run('pnpm',['--filter','@construction-erp/web','exec','vite','build','--outDir',out],
+    {...safeEnvironment(),VITE_API_BASE_URL:'http://127.0.0.1:31319/api/v1'});
+  // Serve the actual immutable Vite build, with no injected script or mocked
+  // fetch. Refuse anything outside this exclusively created temporary output.
+  webServer=createServer(async(req,res)=>{
+    try{
+      const path=new URL(req.url,'http://127.0.0.1:44319').pathname;
+      const file=resolve(out,'.'+decodeURIComponent(path));
+      if(req.method!=='GET'||!file.startsWith(out+'/')&&file!==out){res.writeHead(404);res.end();return;}
+      const target=path==='/'?join(out,'index.html'):file;
+      const bytes=await readFile(target);
+      res.setHeader('Content-Type',target.endsWith('.js')?'text/javascript':target.endsWith('.css')?'text/css':'text/html');
+      res.setHeader('Cache-Control','no-store');res.end(bytes);
+    }catch{res.writeHead(404);res.end();}
+  });
+  await new Promise((resolve,reject)=>{webServer.once('error',reject);webServer.listen(44319,'127.0.0.1',resolve);});
+  phase='REAL_BROWSER_READBACK';
+  const adminPermissions=await populatedIdentity(db,prepared.actors,fixture);
+  const before=await businessFingerprint(db);
+  const actors={...Object.fromEntries(Object.entries(prepared.actors).map(([key,actor])=>[key,
+    {...actor,permissions:ROLES[key].permissions}])),
+    SYS_ADMIN:{userId:fixture.adminUserId,email:'proto-admin@example.invalid',password:adminPassword,
+      expectedRoleCodes:['SYS_ADMIN'],permissions:adminPermissions}};
+  // GitHub's Ubuntu image provides Google Chrome, also used by existing tests.
+  browser=await startBrowser('/usr/bin/google-chrome',temporary);
+  const result=await browserReadback({protocol:browser.protocol,api:'http://127.0.0.1:31319/api/v1',
+    web:env.WEB_ORIGIN,actors,fixture,initial});
+  await browser.stop();browser=undefined;
+  assert.equal(await businessFingerprint(db),before,'Browser readback must not modify business records or grants');
+  assert.equal(await db.userSession.count({where:{revokedAt:null}}),0,'Browser sessions must be revoked');
+  assert.equal(result.functionalActors,8);assert.equal(result.technicalAdminProbed,true);
+  assert.ok(result.browserChecks>100);
+  console.log('PROTOTYPE_BROWSER_NATIVE_PASS: '+result.browserChecks+' actual Chrome/built-app/authenticated-server checks, eight actors plus technical admin, real UI login/logout and locale/HR rows, browser-session authorization readbacks, unchanged business state. Not Mac/full workflow/UAT/recovery proof.');
 }catch(e){
   // Never forward Prisma/HTTP/bootstrap exceptions or private fixture details.
   console.error('PROTOTYPE_ACTOR_NATIVE_FAILED: '+phase+' '+(e.safeCode??(/^P\d{4}$/.test(e.code??'')?e.code:'NATIVE_ASSERTION_OR_SETUP_FAILED')));
   process.exitCode=1;
 }finally{
+  if(browser)await browser.stop();
+  if(webServer)await new Promise(resolve=>webServer.close(resolve));
   if(server&&server.exitCode===null){
     const closed=once(server,'close');server.kill('SIGTERM');
     const timer=setTimeout(()=>server.kill('SIGKILL'),5000);
