@@ -368,6 +368,8 @@ jobs:
         run: node deploy/uat/v12-empty-recovery-ci.mjs
       - name: Validate workspace
         run: node deploy/uat/validate-isolated.mjs --engine docker
+      - name: Verify synthetic actor coordinator on isolated PostgreSQL and authenticated HTTP
+        run: node deploy/uat/prototype-actors-native.mjs
       - name: Verify Budget availability in a real disposable browser
         run: |
           node deploy/uat/budget-presence-browser.mjs
