@@ -1,6 +1,5 @@
 // Actual browser transport over Chrome's private debugging pipe. No HTTP mocks.
 import {spawn} from 'node:child_process';
-import {once} from 'node:events';
 import {randomUUID} from 'node:crypto';
 import {mkdtemp,rm} from 'node:fs/promises';
 import {join} from 'node:path';
@@ -72,23 +71,27 @@ export async function startBrowser(executable,profileParent){
     '--disable-gpu','--no-proxy-server','--password-store=basic','--user-data-dir='+profile];
   if(ci)args.push('--no-sandbox','--disable-dev-shm-usage');
   const child=spawn(executable,args,{env:safeEnvironment(),stdio:['ignore','ignore','ignore','pipe','pipe']});
-  const exited=once(child,'close').catch(()=>[]);
+  const exited=new Promise(resolve=>child.once('close',resolve));
   const protocol=new PipeProtocol(child.stdio[4],child.stdio[3]);
   child.on('error',()=>protocol.close());child.on('exit',()=>protocol.close());
-  let stopped=false;
-  async function stop(){
-    if(stopped)return;stopped=true;
+  let stopping;
+  function stop(){return stopping??=stopOnce();}
+  async function stopOnce(){
     if(child.exitCode===null&&child.signalCode===null){
       child.kill('SIGTERM');
-      const timeout=setTimeout(()=>child.kill('SIGKILL'),5000);
-      try{await exited;}finally{clearTimeout(timeout);}
+      const timeout=setTimeout(()=>{try{child.kill('SIGKILL');}catch{}},5000);
+      let deadline;
+      try{await Promise.race([exited,new Promise((_,reject)=>{deadline=setTimeout(()=>reject(
+        Object.assign(new Error(),{safeCode:'BROWSER_EXIT_UNCONFIRMED_COPY_PRESERVED'})),15000);})]);}
+      finally{clearTimeout(timeout);clearTimeout(deadline);}
     }
+    await exited;
     protocol.close();
     // Only the exclusively created profile is removed, after our Chrome exits.
     await rm(profile,{recursive:true,force:true});
   }
   try{await protocol.send('Browser.getVersion');return {protocol,stop};}
-  catch(e){await stop();throw e;}
+  catch(e){await stop();e.browserProcessExited=true;throw e;}
 }
 
 async function evaluate(p,session,fn,arg){

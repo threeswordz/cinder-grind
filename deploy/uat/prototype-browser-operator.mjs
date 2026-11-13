@@ -9,15 +9,17 @@ import {execFile} from 'node:child_process';
 import {promisify} from 'node:util';
 import {SOURCE,API,WEB,ROLES,validReady,validConfig,validContainer,privateFile,safeEnvironment,isEntry} from './prototype-actors.mjs';
 import {startBrowser,browserReadback} from './prototype-browser.mjs';
+import {discoverBrowser,prepareBrowser} from './prototype-browser-executable.mjs';
 
 const ACTOR_MAIN='28b043bd545f0d4d6f11dd34d3d877ea94c0e095';
 const SELF='deploy/uat/prototype-browser-operator.mjs';
-const modules=[SELF,'deploy/uat/prototype-browser.mjs','deploy/uat/prototype-actors.mjs'];
+const modules=[SELF,'deploy/uat/prototype-browser.mjs','deploy/uat/prototype-actors.mjs','deploy/uat/prototype-browser-executable.mjs'];
 const allowed=new Set([...modules,'deploy/uat/prototype-runtime-operator.mjs',
   'deploy/release-candidate/prototype-runtime-operator.test.mjs','docs/PROTOTYPE-RUNTIME-OPERATOR.md',
   'docs/CURRENT-STATE.md','deploy/uat/prototype-actors-native.mjs',
   'deploy/release-candidate/prototype-actors.test.mjs','docs/PROTOTYPE-ACTOR-OPERATOR.md',
   '.github/workflows/validate.yml','deploy/release-candidate/prototype-browser.test.mjs',
+  'deploy/release-candidate/prototype-browser-executable.test.mjs',
   'docs/PROTOTYPE-BROWSER-OPERATOR.md']);
 const demand=(ok,code)=>{if(!ok)throw Object.assign(new Error(code),{safeCode:code});};
 const sha=b=>createHash('sha256').update(b).digest('hex');
@@ -173,15 +175,7 @@ async function preflight(){
   demand(sha(await readFile(join(checkout,'apps/web/dist/index.html')))===ready.webIndexSha256,'WEB_BUILD_CHANGED');
   const health=await jsonFetch(API+'/health/ready');
   demand(health.status==='ok'&&health.database==='ok'&&health.documentStorage==='ok','RUNTIME_NOT_READY');
-  let chrome;
-  for(const candidate of ['/Applications/Google Chrome.app/Contents/MacOS/Google Chrome','/Applications/Chromium.app/Contents/MacOS/Chromium',
-    join(home,'Applications/Google Chrome.app/Contents/MacOS/Google Chrome'),join(home,'Applications/Chromium.app/Contents/MacOS/Chromium')]){
-    try{const s=await lstat(candidate);if(s.isFile()&&!s.isSymbolicLink()&&[0,process.getuid()].includes(s.uid)&&!(s.mode&0o022)&&
-      (s.mode&0o111)&&await realpath(candidate)===candidate){chrome=candidate;break;}}catch(e){if(e.code!=='ENOENT')throw e;}
-  }
-  demand(chrome,'EXISTING_CHROME_OR_CHROMIUM_REQUIRED');
-  const browserVersion=await command(chrome,['--version'],checkout);
-  demand(/^(Google Chrome|Chromium) \d+\.\d+\.\d+\.\d+/.test(browserVersion),'BROWSER_VERSION_UNRECOGNIZED');
+  const browserSelection=await discoverBrowser();
   const req=createRequire(join(checkout,'apps/api/package.json')),{PrismaClient}=req('@prisma/client');
   const db=new PrismaClient({datasources:{db:{url:'postgresql://proto_runtime:'+config.databasePassword+'@127.0.0.1:55471/proto_a_01?schema=public'}},log:[]});
   try{
@@ -198,7 +192,7 @@ async function preflight(){
       request=await db.materialRequest.findUnique({where:{id:evidence.results.requestId}});
     demand(count?.companyId===fixture.companyId&&count.projectId===fixture.projectId&&count.status==='APPROVED'&&
       request?.companyId===fixture.companyId&&request.projectId===fixture.projectId,'BROWSER_POPULATED_RECORDS_MISSING');
-    return {root,db,chrome,browserVersion,operatorMainSha:main,fixture,initial:evidence.results,
+    return {root,db,browserSelection,operatorMainSha:main,fixture,initial:evidence.results,
       actors:{...Object.fromEntries(Object.entries(actors).map(([k,a])=>[k,{...a,permissions:ROLES[k].permissions}])),
         SYS_ADMIN:{userId:fixture.adminUserId,email:config.adminEmail,password:config.adminPassword,
           expectedRoleCodes:['SYS_ADMIN'],permissions:adminPermissions}}};
@@ -207,28 +201,38 @@ async function preflight(){
 
 export async function operator(mode){
   demand(['--plan','--verify'].includes(mode),'USE_PLAN_OR_VERIFY');
-  const context=await preflight();let browser;
+  const context=await preflight();let browser,executable,copyMayBeRemoved=true;
   try{
-    if(mode==='--plan')return {...summary('SYNTHETIC_BROWSER_PLAN_READY'),persistentFilesCreated:0};
+    if(mode==='--plan')return {...summary('SYNTHETIC_BROWSER_PLAN_READY'),persistentFilesCreated:0,
+      privateBrowserCopyRequired:context.browserSelection.strategy==='private-copy'};
     process.umask(0o077);
+    executable=await prepareBrowser(context.browserSelection,context.root);
+    const browserVersion=await command(executable.executable,['--version'],context.root);
+    demand(/^(Google Chrome|Chromium) \d+\.\d+\.\d+\.\d+/.test(browserVersion),'BROWSER_VERSION_UNRECOGNIZED');
     const before=await businessFingerprint(context.db);
     const existingSessions=(await context.db.userSession.findMany({where:{revokedAt:null},select:{id:true}})).map(s=>s.id);
     await exclusive(join(context.root,'browser-started.json'),{sourceSha:SOURCE,observedAt:new Date().toISOString()});
     console.log('STEP: PRIVATE_CHROME_AUTHENTICATED_READBACK');
-    browser=await startBrowser(context.chrome,context.root);
+    copyMayBeRemoved=false;
+    try{browser=await startBrowser(executable.executable,context.root);}
+    catch(e){copyMayBeRemoved=e.browserProcessExited===true;throw e;}
     const results=await browserReadback({...context,protocol:browser.protocol,api:API,web:WEB});
-    await browser.stop();browser=undefined;
+    await browser.stop();copyMayBeRemoved=true;browser=undefined;
+    await executable.cleanup();executable=undefined;
     demand(await businessFingerprint(context.db)===before,'BROWSER_BUSINESS_STATE_CHANGED');
     demand(await context.db.userSession.count({where:{revokedAt:null,id:{notIn:existingSessions}}})===0,
       'BROWSER_SERVER_SESSION_NOT_REVOKED');
     await exclusive(join(context.root,'browser-evidence-private.json'),{...results,sourceSha:SOURCE,
-      operatorMainSha:context.operatorMainSha,browserVersion:context.browserVersion,businessFingerprint:before});
+      operatorMainSha:context.operatorMainSha,browserVersion,businessFingerprint:before});
     const result={...summary('SYNTHETIC_BROWSER_INITIAL_READBACK_VERIFIED'),operatorMainSha:context.operatorMainSha,
       functionalActors:8,technicalAdminProbed:true,browserChecks:results.browserChecks,
       initialAuthenticatedBrowserVerified:true,businessStateUnchanged:true,browserSessionsRevoked:true,
       observedAt:new Date().toISOString(),next:'COMPLETE_MATERIAL_PLAN_SUBCONTRACT_DOCUMENT_JOURNEYS_AND_POPULATED_RECOVERY'};
     await exclusive(join(context.root,'browser-ready.json'),result);return result;
-  }finally{try{if(browser)await browser.stop();}finally{await context.db.$disconnect();}}
+  }finally{
+    try{if(browser){await browser.stop();copyMayBeRemoved=true;}}
+    finally{try{if(executable&&copyMayBeRemoved)await executable.cleanup();}finally{await context.db.$disconnect();}}
+  }
 }
 if(await isEntry(process.argv[1],import.meta.url)){
   try{demand(process.argv.length===3,'USE_PLAN_OR_VERIFY');console.log(JSON.stringify(await operator(process.argv[2]),null,2));}
