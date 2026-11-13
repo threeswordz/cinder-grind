@@ -22,6 +22,14 @@ export function allowedRequest(url,method,api,web){
 
 // Errors deliberately contain no raw Chrome messages, evaluated expressions,
 // responses, credentials or protocol payloads.
+export function browserTimeoutStage(method){
+  // Stable, non-sensitive labels only. Never echo arbitrary CDP method names,
+  // expressions, parameters, Chrome errors or private payloads.
+  if(method==='Browser.getVersion')return 'VERSION_HANDSHAKE';
+  if(method==='Target.createBrowserContext')return 'CONTEXT_CREATION';
+  return 'OTHER_COMMAND';
+}
+
 export class PipeProtocol{
   constructor(input,output){
     this.input=input;this.output=output;this.sequence=0;this.pending=new Map();this.buffer=Buffer.alloc(0);
@@ -49,7 +57,8 @@ export class PipeProtocol{
     if(this.closed)return Promise.reject(Object.assign(new Error(),{safeCode:'BROWSER_PIPE_CLOSED'}));
     return new Promise((resolve,reject)=>{
       const id=++this.sequence;
-      const timeout=setTimeout(()=>{this.pending.delete(id);reject(Object.assign(new Error(),{safeCode:'BROWSER_COMMAND_TIMEOUT'}));},20000);
+      const timeout=setTimeout(()=>{this.pending.delete(id);reject(Object.assign(new Error(),{
+        safeCode:'BROWSER_COMMAND_TIMEOUT',safeStage:browserTimeoutStage(method)}));},20000);
       this.pending.set(id,{resolve,reject,timeout});
       this.output.write(JSON.stringify({id,method,params,...(sessionId?{sessionId}:{})})+'\0');
     });
