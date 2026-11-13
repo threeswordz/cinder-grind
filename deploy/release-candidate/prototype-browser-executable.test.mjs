@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {mkdtemp,mkdir,writeFile,readFile,chmod,lstat,readdir,realpath,symlink,link,cp,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {GOOGLE_REQUIREMENT,executablePolicy,inspectExecutable,auditBundle,prepareBrowser} from '../uat/prototype-browser-executable.mjs';
+import {GOOGLE_REQUIREMENT,executablePolicy,inspectExecutable,auditBundle,prepareBrowser,finderInfoFailure} from '../uat/prototype-browser-executable.mjs';
 import {startBrowser} from '../uat/prototype-browser.mjs';
 
 const uid=process.getuid();
@@ -36,7 +36,7 @@ async function fixture(t){
   const run=async(exe,args)=>{
     calls.push({exe,args});
     if(exe==='/usr/bin/codesign'){
-      assert.deepEqual(args.slice(0,-1),['--verify','--deep','--strict','--all-architectures','-R','='+GOOGLE_REQUIREMENT]);
+      assert.deepEqual(args.slice(0,-1),['--verify','--deep','--strict','--all-architectures','--verbose=2','-R','='+GOOGLE_REQUIREMENT]);
       return;
     }
     assert.equal(exe,'/usr/bin/ditto');assert.deepEqual(args.slice(0,-2),['--rsrc','--extattr','--qtn','--noacl']);
@@ -165,4 +165,132 @@ test('failed owned browser launch confirms process exit before profile removal',
     await assert.rejects(startBrowser(executable,f.parent),e=>e.browserProcessExited===true);
     assert.deepEqual(await readdir(f.parent),[]);
   }
+});
+
+const finderName='com.apple.FinderInfo';
+const finderRelative='Contents/Frameworks/Google Chrome Framework.framework';
+const nativeFinderError=app=>({code:1,killed:false,signal:null,
+  stdout:'file with invalid attached data: Disallowed xattr '+finderName+' found on '+join(app,finderRelative)+'\n',
+  stderr:app+': resource fork, Finder information, or similar detritus not allowed\n'});
+async function finderFixture(t,options={}){
+  const f=await fixture(t),framework=join(f.app,finderRelative),value='00'.repeat(32);
+  await mkdir(framework,{recursive:true});
+  const attrs=new Map([[framework,new Map([[finderName,value],['com.apple.quarantine','preserve-framework-quarantine']])],
+    [f.app,new Map([['com.apple.quarantine','preserve-root-quarantine']])]]);
+  let copy;
+  const run=async(exe,args)=>{
+    f.calls.push({exe,args});
+    if(exe==='/usr/bin/codesign'){
+      assert.ok(args.includes('--deep')&&args.includes('--all-architectures'));
+      assert.equal(args[args.indexOf('-R')+1],'='+GOOGLE_REQUIREMENT);
+      const app=args.at(-1),strict=args.includes('--strict');
+      if(app===f.app){
+        if(strict&&attrs.get(framework)?.has(finderName)){
+          const native=nativeFinderError(f.app);
+          if(options.nonFinderFailure)native.stderr+=f.app+': a sealed resource is missing or invalid\n';
+          throw Object.assign(new Error(),{safeCode:'BROWSER_SIGNATURE_VERIFICATION_FAILED',
+            finderInfoOnly:finderInfoFailure(native,f.app)});
+        }
+        if(!strict&&options.sourcePolicyFailure)throw Object.assign(new Error(),{safeCode:'SOURCE_POLICY_REJECTED'});
+      }else{
+        assert.equal(app,copy);assert.equal(strict,true,'execution copy always requires full strict verification');
+        if(attrs.get(join(copy,finderRelative))?.has(finderName)||options.copySignatureFailure)
+          throw Object.assign(new Error(),{safeCode:'COPY_SIGNATURE_REJECTED'});
+      }
+      return '';
+    }
+    if(exe==='/usr/bin/ditto'){
+      await f.run(exe,args);copy=args.at(-1);
+      attrs.set(join(copy,finderRelative),new Map(attrs.get(framework)));
+      attrs.set(copy,new Map(attrs.get(f.app)));
+      if(options.copyFinderDrift)attrs.get(join(copy,finderRelative)).set(finderName,'11'.repeat(32));
+      return '';
+    }
+    assert.equal(exe,'/usr/bin/xattr');
+    if(args[0]==='-px'){
+      assert.equal(args[1],finderName);
+      const v=attrs.get(args[2])?.get(finderName);
+      assert.ok(v,'attribute snapshot must exist');return v;
+    }
+    if(args[0]==='-d'){
+      assert.equal(args[1],finderName);assert.equal(args[2],join(copy,finderRelative));
+      assert.notEqual(args[2],framework,'installed source must never be modified');
+      if(!options.ignoreRemoval)attrs.get(args[2]).delete(finderName);
+      return '';
+    }
+    assert.equal(args.length,1);return [...(attrs.get(args[0])??new Map()).keys()].join('\n');
+  };
+  return {...f,framework,value,attrs,run,options:{...f.options,run},copy:()=>copy};
+}
+test('observed FinderInfo source can be planned read-only after complete Google verification',async t=>{
+  const f=await finderFixture(t);
+  const selected=await inspectExecutable(f.executable,f.options);
+  assert.equal(selected.finderInfoHex,f.value);
+  assert.ok(f.calls.some(c=>c.exe==='/usr/bin/codesign'&&!c.args.includes('--strict')));
+  assert.deepEqual(await readdir(f.parent),[]);
+  assert.equal(f.attrs.get(f.framework).get(finderName),f.value);
+  assert.equal(f.calls.filter(c=>c.exe==='/usr/bin/ditto'||c.args[0]==='-d').length,0);
+});
+test('native FinderInfo exception requires the exact observed attribute/path and no other failure',()=>{
+  const app='/Applications/Google Chrome.app',good=nativeFinderError(app);
+  good.stderr='--prepared:'+app+'/Contents/Frameworks/example\n--validated:'+app+'/Contents/Frameworks/example\n'+good.stderr;
+  assert.equal(finderInfoFailure(good,app),true);
+  for(const e of [{...good,code:2},{...good,code:'ETIMEDOUT'},{...good,killed:true},{...good,signal:'SIGTERM'},
+    {...good,stdout:''},{...good,stderr:''},{...good,stdout:good.stdout.replace(finderName,'com.apple.ResourceFork')},
+    {...good,stdout:good.stdout.replace(finderRelative,'Contents/Other.framework')},
+    {...good,stderr:good.stderr+'test-requirement: code failed to satisfy specified code requirement(s)\n'},
+    {...good,stderr:good.stderr+'a sealed resource is missing or invalid\n'},
+    {...good,stderr:good.stderr+'--prepared:/outside/Another.app\n'}])
+    assert.equal(finderInfoFailure(e,app),false);
+});
+test('only the owned copy loses FinderInfo; quarantine and installed metadata/code remain unchanged',async t=>{
+  const f=await finderFixture(t),source=await readFile(f.executable),mode=(await lstat(f.executable)).mode;
+  const selected=await inspectExecutable(f.executable,f.options),prepared=await prepareBrowser(selected,f.parent,f.options);
+  assert.equal(f.attrs.get(f.framework).get(finderName),f.value);
+  assert.equal(f.attrs.get(f.app).get('com.apple.quarantine'),'preserve-root-quarantine');
+  assert.equal(f.attrs.get(f.copy()).get('com.apple.quarantine'),'preserve-root-quarantine');
+  const copied=f.attrs.get(join(f.copy(),finderRelative));
+  assert.equal(copied.has(finderName),false);
+  assert.equal(copied.get('com.apple.quarantine'),'preserve-framework-quarantine');
+  assert.deepEqual(await readFile(prepared.executable),source);
+  assert.equal((await lstat(f.executable)).mode,mode);
+  const deletes=f.calls.filter(c=>c.exe==='/usr/bin/xattr'&&c.args[0]==='-d');
+  assert.deepEqual(deletes.map(c=>c.args),[['-d',finderName,join(f.copy(),finderRelative)]]);
+  assert.ok(f.calls.some(c=>c.exe==='/usr/bin/codesign'&&c.args.at(-1)===f.copy()&&c.args.includes('--strict')));
+  assert.equal(f.calls.some(c=>c.exe==='/usr/bin/codesign'&&c.args.at(-1)===f.copy()&&!c.args.includes('--strict')),false);
+  await prepared.cleanup();assert.deepEqual(await readdir(f.parent),[]);
+  assert.deepEqual(await readFile(f.executable),source);
+});
+test('FinderInfo never permits an untrusted source or another strict failure to reach copying',async t=>{
+  for(const options of [{sourcePolicyFailure:true},{nonFinderFailure:true}]){
+    const f=await finderFixture(t,options);
+    await assert.rejects(inspectExecutable(f.executable,f.options));
+    assert.deepEqual(await readdir(f.parent),[]);
+    assert.equal(f.calls.some(c=>c.exe==='/usr/bin/ditto'||c.args[0]==='-d'),false);
+    assert.equal(f.attrs.get(f.framework).get(finderName),f.value);
+  }
+});
+test('copied metadata drift, failed removal and final strict failure block and clean only the private copy',async t=>{
+  for(const options of [{copyFinderDrift:true},{ignoreRemoval:true},{copySignatureFailure:true}]){
+    const f=await finderFixture(t,options),selected=await inspectExecutable(f.executable,f.options);
+    await assert.rejects(prepareBrowser(selected,f.parent,f.options));
+    assert.deepEqual(await readdir(f.parent),[]);
+    assert.equal(f.attrs.get(f.framework).get(finderName),f.value);
+    assert.equal(f.attrs.get(f.app).get('com.apple.quarantine'),'preserve-root-quarantine');
+    assert.equal(f.calls.some(c=>c.exe==='/usr/bin/codesign'&&c.args.at(-1)===f.copy()&&!c.args.includes('--strict')),false);
+  }
+});
+test('source FinderInfo drift is refused before copy preparation',async t=>{
+  const f=await finderFixture(t),selected=await inspectExecutable(f.executable,f.options);
+  f.attrs.get(f.framework).set(finderName,'11'.repeat(32));
+  await assert.rejects(prepareBrowser(selected,f.parent,f.options),e=>e.safeCode==='BROWSER_INSTALLATION_CHANGED');
+  assert.equal(f.calls.some(c=>c.exe==='/usr/bin/ditto'||c.args[0]==='-d'),false);
+  assert.deepEqual(await readdir(f.parent),[]);
+});
+test('FinderInfo path aliases cannot redirect a metadata operation',async t=>{
+  const f=await finderFixture(t);
+  await rm(f.framework,{recursive:true});await symlink(join(f.app,'Contents','MacOS'),f.framework);
+  await assert.rejects(inspectExecutable(f.executable,f.options),e=>e.safeCode==='BROWSER_FINDERINFO_PATH_UNSAFE');
+  assert.equal(f.calls.some(c=>c.exe==='/usr/bin/xattr'),false);
+  assert.deepEqual(await readdir(f.parent),[]);
 });

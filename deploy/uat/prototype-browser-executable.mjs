@@ -12,9 +12,24 @@ const execute=promisify(execFile);
 export const GOOGLE_REQUIREMENT='identifier "com.google.Chrome" and anchor apple generic and '+
   'certificate 1[field.1.2.840.113635.100.6.2.6] and '+
   'certificate leaf[field.1.2.840.113635.100.6.1.13] and certificate leaf[subject.OU] = "EQHXZ8M8AV"';
+const FINDERINFO='com.apple.FinderInfo';
+const FINDER_DIRECTORY='Contents/Frameworks/Google Chrome Framework.framework';
+// Recognize only the observed native failure, never a general verification error.
+// Log paths are compared, not used to choose a mutation target.
+export function finderInfoFailure(error,app){
+  if(error?.code!==1||error.signal||error.killed)return false;
+  const detail='file with invalid attached data: Disallowed xattr '+FINDERINFO+' found on '+join(app,FINDER_DIRECTORY);
+  const summary=app+': resource fork, Finder information, or similar detritus not allowed';
+  const lines=(String(error.stdout??'')+'\n'+String(error.stderr??'')).split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+  return lines.includes(detail)&&lines.includes(summary)&&lines.every(s=>s===detail||s===summary||
+    s.startsWith('--prepared:'+app+'/')||s.startsWith('--validated:'+app+'/'));
+}
 async function command(exe,args){
-  try{await execute(exe,args,{env:safeEnvironment(),timeout:120000,maxBuffer:1048576});}
-  catch{demand(false,'BROWSER_SIGNATURE_OR_COPY_FAILED');}
+  try{return (await execute(exe,args,{env:{...safeEnvironment(),LANG:'C',LC_ALL:'C'},timeout:120000,maxBuffer:1048576})).stdout.trim();}
+  catch(error){throw Object.assign(new Error(),{
+    safeCode:exe==='/usr/bin/codesign'?'BROWSER_SIGNATURE_VERIFICATION_FAILED':
+      exe==='/usr/bin/xattr'?'BROWSER_FINDERINFO_COMMAND_FAILED':'BROWSER_PRIVATE_COPY_COMMAND_FAILED',
+    finderInfoOnly:exe==='/usr/bin/codesign'&&finderInfoFailure(error,args.at(-1))});}
 }
 const inside=(root,path)=>{const r=relative(root,path);return r===''||(!isAbsolute(r)&&r!=='..'&&!r.startsWith('../'));};
 const same=(a,b)=>a.dev===b.dev&&a.ino===b.ino&&a.size===b.size&&a.mtimeMs===b.mtimeMs&&a.mode===b.mode&&a.uid===b.uid;
@@ -28,9 +43,20 @@ export function executablePolicy(s,uid,google){
   if(!(s.mode&0o022))return 'installed';
   return google&&s.uid===uid&&(s.mode&0o777)===0o775?'private-copy':null;
 }
-async function signature(app,run){
+async function signature(app,run,strict=true){
   // Without '=', codesign treats this argument as a requirement FILE path.
-  await run('/usr/bin/codesign',['--verify','--deep','--strict','--all-architectures','-R','='+GOOGLE_REQUIREMENT,app]);
+  await run('/usr/bin/codesign',['--verify','--deep',...(strict?['--strict']:[]),
+    '--all-architectures','--verbose=2','-R','='+GOOGLE_REQUIREMENT,app]);
+}
+async function finderDirectory(app){
+  const path=join(app,FINDER_DIRECTORY),s=await lstat(path);
+  demand(s.isDirectory()&&!s.isSymbolicLink()&&await realpath(path)===path,'BROWSER_FINDERINFO_PATH_UNSAFE');
+  return path;
+}
+async function finderSnapshot(app,run){
+  const value=String(await run('/usr/bin/xattr',['-px',FINDERINFO,await finderDirectory(app)])).replace(/\s/g,'').toLowerCase();
+  demand(/^[a-f0-9]{64}$/.test(value),'BROWSER_FINDERINFO_SNAPSHOT_INVALID');
+  return value;
 }
 // Do not follow directory links during traversal. Framework links must resolve
 // within this same bundle; sockets/devices/FIFOs, special bits and world writes fail.
@@ -58,11 +84,20 @@ export async function inspectExecutable(candidate,{home=homedir(),uid=process.ge
   const google=candidate.endsWith('/Google Chrome.app/Contents/MacOS/Google Chrome');
   const strategy=executablePolicy(s,uid,google);
   demand(strategy&&await realpath(candidate)===candidate&&await realpath(app)===app,'BROWSER_EXECUTABLE_UNSAFE');
+  let finderInfoHex;
   if(strategy==='private-copy'){
-    await auditBundle(app,{uid});await signature(app,run);
+    await auditBundle(app,{uid});
+    try{await signature(app,run);}
+    catch(error){
+      if(error.finderInfoOnly!==true)throw error;
+      finderInfoHex=await finderSnapshot(app,run);
+      // Read/copy only: authenticate all source code and Google's complete
+      // requirement despite this one sideband attribute. Never execute source.
+      await signature(app,run,false);
+    }
     demand(same(s,await lstat(candidate)),'BROWSER_INSTALLATION_CHANGED');
   }
-  return {executable:candidate,app,strategy,identity:s};
+  return {executable:candidate,app,strategy,identity:s,finderInfoHex};
 }
 export async function discoverBrowser(options={}){
   for(const candidate of browserCandidates(options.home)){
@@ -77,7 +112,8 @@ export async function discoverBrowser(options={}){
 export async function prepareBrowser(selection,parent,{home=homedir(),uid=process.getuid(),run=command}={}){
   // Re-derive every security decision; never trust a caller-supplied strategy.
   const fresh=await inspectExecutable(selection.executable,{home,uid,run});
-  demand(same(selection.identity,fresh.identity)&&selection.strategy===fresh.strategy,'BROWSER_INSTALLATION_CHANGED');
+  demand(same(selection.identity,fresh.identity)&&selection.strategy===fresh.strategy&&
+    selection.finderInfoHex===fresh.finderInfoHex,'BROWSER_INSTALLATION_CHANGED');
   if(fresh.strategy==='installed')return {executable:fresh.executable,cleanup:async()=>{}};
   const p=await lstat(parent);
   demand(p.isDirectory()&&!p.isSymbolicLink()&&p.uid===uid&&!(p.mode&0o077)&&await realpath(parent)===parent,
@@ -96,8 +132,20 @@ export async function prepareBrowser(selection,parent,{home=homedir(),uid=proces
     // inherited source ACLs; only this new owned copy has permissions narrowed.
     await run('/usr/bin/ditto',['--rsrc','--extattr','--qtn','--noacl',fresh.app,copy]);
     await auditBundle(copy,{uid,copied:true,protect:true});
-    await auditBundle(copy,{uid,copied:true});await signature(copy,run);
+    await auditBundle(copy,{uid,copied:true});
+    if(fresh.finderInfoHex){
+      demand(await finderSnapshot(copy,run)===fresh.finderInfoHex,'BROWSER_COPY_FINDERINFO_CHANGED');
+      // Only the audited, owned private framework directory. Preserve quarantine,
+      // ResourceFork, signing attributes and every other attribute everywhere.
+      const path=await finderDirectory(copy);
+      await run('/usr/bin/xattr',['-d',FINDERINFO,path]);
+      const remaining=String(await run('/usr/bin/xattr',[path])).split(/\r?\n/).map(s=>s.trim());
+      demand(!remaining.includes(FINDERINFO),'BROWSER_COPY_FINDERINFO_REMOVAL_FAILED');
+    }
+    // Mandatory before returning any executable, including the FinderInfo case.
+    await signature(copy,run);
     demand(same(fresh.identity,await lstat(fresh.executable)),'BROWSER_INSTALLATION_CHANGED');
+    if(fresh.finderInfoHex)demand(await finderSnapshot(fresh.app,run)===fresh.finderInfoHex,'BROWSER_INSTALLATION_CHANGED');
     const executable=join(copy,'Contents','MacOS','Google Chrome'),s=await lstat(executable);
     demand(executablePolicy(s,uid,true)==='installed'&&await realpath(executable)===executable,'BROWSER_COPY_EXECUTABLE_UNSAFE');
     return {executable,cleanup};
