@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {PassThrough} from 'node:stream';
 import {randomUUID} from 'node:crypto';
-import {allowedRequest,PipeProtocol,browserReadback} from '../uat/prototype-browser.mjs';
+import {allowedRequest,PipeProtocol,browserReadback,browserTimeoutStage} from '../uat/prototype-browser.mjs';
 import {SOURCE,ROLES} from '../uat/prototype-actors.mjs';
 import {validActorReceipt,validPrivateActors,toolingOnly,summary,operator} from '../uat/prototype-browser-operator.mjs';
 
@@ -20,6 +20,14 @@ test('browser boundary permits real loopback reads and authentication only',()=>
     ['data:text/html,test','GET'],['ws://127.0.0.1:33071','GET'],['http://127.0.0.1:55432','GET']])
     assert.equal(allowedRequest(url,method,api,web),false,url);
 });
+test('timeout stage labels never expose private protocol operations or payloads',()=>{
+  assert.equal(browserTimeoutStage('Browser.getVersion'),'VERSION_HANDSHAKE');
+  assert.equal(browserTimeoutStage('Target.createBrowserContext'),'CONTEXT_CREATION');
+  for(const method of ['Runtime.evaluate','Target.attachToTarget','PRIVATE_CREDENTIAL_COMMAND',''])
+    assert.equal(browserTimeoutStage(method),'OTHER_COMMAND');
+  assert.equal(browserTimeoutStage({secret:'PRIVATE_DO_NOT_LOG'}),'OTHER_COMMAND');
+});
+
 test('pipe parses fragmented and coalesced messages without leaking payloads',async()=>{
   const input=new PassThrough(),output=new PassThrough(),p=new PipeProtocol(input,output);
   const sent=[];output.on('data',chunk=>sent.push(JSON.parse(chunk.subarray(0,-1).toString())));
