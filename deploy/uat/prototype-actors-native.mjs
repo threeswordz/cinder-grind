@@ -101,7 +101,7 @@ try{
     }catch{res.writeHead(404);res.end();}
   });
   await new Promise((resolve,reject)=>{webServer.once('error',reject);webServer.listen(44319,'127.0.0.1',resolve);});
-  phase='REAL_BROWSER_READBACK';
+  phase='BROWSER_VERSION_HANDSHAKE';
   const adminPermissions=await populatedIdentity(db,prepared.actors,fixture);
   const before=await businessFingerprint(db);
   const actors={...Object.fromEntries(Object.entries(prepared.actors).map(([key,actor])=>[key,
@@ -110,6 +110,7 @@ try{
       expectedRoleCodes:['SYS_ADMIN'],permissions:adminPermissions}};
   // GitHub's Ubuntu image provides Google Chrome, also used by existing tests.
   browser=await startBrowser('/usr/bin/google-chrome',temporary);
+  phase='REAL_BROWSER_READBACK';
   const result=await browserReadback({protocol:browser.protocol,api:'http://127.0.0.1:31319/api/v1',
     web:env.WEB_ORIGIN,actors,fixture,initial});
   await browser.stop();browser=undefined;
@@ -120,7 +121,9 @@ try{
   console.log('PROTOTYPE_BROWSER_NATIVE_PASS: '+result.browserChecks+' actual Chrome/built-app/authenticated-server checks, eight actors plus technical admin, real UI login/logout and locale/HR rows, browser-session authorization readbacks, unchanged business state. Not Mac/full workflow/UAT/recovery proof.');
 }catch(e){
   // Never forward Prisma/HTTP/bootstrap exceptions or private fixture details.
-  console.error('PROTOTYPE_ACTOR_NATIVE_FAILED: '+phase+' '+(e.safeCode??(/^P\d{4}$/.test(e.code??'')?e.code:'NATIVE_ASSERTION_OR_SETUP_FAILED')));
+  const safeStage=['VERSION_HANDSHAKE','CONTEXT_CREATION'].includes(e?.safeStage)?e.safeStage:'UNCLASSIFIED';
+  console.error('PROTOTYPE_ACTOR_NATIVE_FAILED: '+phase+' '+
+    (e.safeCode??(/^P\\d{4}$/.test(e.code??'')?e.code:'NATIVE_ASSERTION_OR_SETUP_FAILED'))+' '+safeStage);
   process.exitCode=1;
 }finally{
   if(browser)await browser.stop();
