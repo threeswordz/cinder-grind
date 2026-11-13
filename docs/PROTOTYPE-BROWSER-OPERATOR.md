@@ -1,6 +1,6 @@
 # Populated synthetic prototype — initial actual browser readback
 
-Authority: [#305 bounded runtime/actor/recovery plan](https://github.com/threeswordz/cinder-grind/issues/305#issuecomment-6797754260) and [Owner authorization6797969134](https://github.com/threeswordz/cinder-grind/issues/305#issuecomment-6797969134). The current Builder is sole writer of the bounded follow-up `vproto-browser-finderinfo-20261113`. This increment changes tooling only, not application code, schema, dependencies, grants, approval rules or existing stock.
+Authority: [#305 bounded runtime/actor/recovery plan](https://github.com/threeswordz/cinder-grind/issues/305#issuecomment-6797754260) and [Owner authorization6797969134](https://github.com/threeswordz/cinder-grind/issues/305#issuecomment-6797969134). The current Builder is sole writer of the bounded follow-up `vproto-browser-root-finderinfo-20261113`. This increment changes tooling only, not application code, schema, dependencies, grants, approval rules or existing stock.
 
 ## Verified predecessor and operator capability
 
@@ -41,6 +41,14 @@ The helper recognises only exit1 with the exact observed FinderInfo attribute/pa
 After creating/protecting/auditing the new owned copy, require its same FinderInfo snapshot and remove **only** `com.apple.FinderInfo` on that exact copied framework directory, using a non-recursive targeted deletion. Quarantine, ResourceFork, signing attributes and all other metadata remain; the installed source is untouched. Confirm removal, require full strict/deep/all-architecture Google verification of the whole copy, and recheck installed executable/attribute identity before returning an executable. A second FinderInfo location or any other remaining signature/strict failure still blocks; no fallback applies to the final copy. Metadata drift or cleanup failure removes only the owned temporary copy, preserving source/runtime/actors. The operator's browser/session/fingerprint and owned-process-exit gates are unchanged.
 
 Actual temporary-filesystem tests cover readonly planning, the exact native error classifier, copied-only deletion, quarantine/source-byte preservation, source trust rejection, unknown strict failures, metadata drift, failed removal, final strict rejection and path aliases, under ordinary-user and root execution. Mocked xattr/codesign contracts are not actual Mac metadata/copy proof; that remains due from the reviewed green-main operator receipt.
+
+### Observed private-copy root FinderInfo
+
+The Owner's subsequent actual Mac plan passed (`SYNTHETIC_BROWSER_PLAN_READY`), but verify returned `BROWSER_SIGNATURE_VERIFICATION_FAILED`. A bounded native stage diagnostic established: installed-source strict verification names only the previously observed framework FinderInfo; the complete Google requirement without strictness passes; the final **private-copy** strict verification then names `com.apple.FinderInfo` on the copied **app root**. Browser launch is false and temporary-copy cleanup completed. This establishes the additional copied location, not whether the copy operation or another native action introduced its metadata.
+
+Within the same authenticated-source FinderInfo case, after the copied framework correction, inspect only the audited canonical owned app root for this exact attribute. If present, require its valid 32-byte snapshot, delete only `com.apple.FinderInfo` on that root, and verify absence. Do not recurse, remove ResourceFork/quarantine/other attributes, modify installed Chrome, or broaden source signature acceptance to a new location. Full strict/deep/all-architecture Google verification of the complete execution copy remains mandatory and any remaining failure blocks and cleans the owned copy.
+
+The regression reproduces the root-attribute failure before the fix. Positive coverage preserves source bytes/metadata and root/framework quarantine; negative coverage rejects malformed root metadata, failed removal, remaining ResourceFork and any other final signature failure. Linux/native-command mocks establish the CLI and custody behavior only. Actual Mac private-copy/browser success is still unverified until the reviewed green-main operator returns its receipt; startup, actor setup and runtime reset must not be repeated.
 
 ## What the actual browser does
 

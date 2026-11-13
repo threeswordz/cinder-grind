@@ -48,15 +48,20 @@ async function signature(app,run,strict=true){
   await run('/usr/bin/codesign',['--verify','--deep',...(strict?['--strict']:[]),
     '--all-architectures','--verbose=2','-R','='+GOOGLE_REQUIREMENT,app]);
 }
-async function finderDirectory(app){
-  const path=join(app,FINDER_DIRECTORY),s=await lstat(path);
+async function finderDirectory(app,root=false){
+  const path=root?app:join(app,FINDER_DIRECTORY),s=await lstat(path);
   demand(s.isDirectory()&&!s.isSymbolicLink()&&await realpath(path)===path,'BROWSER_FINDERINFO_PATH_UNSAFE');
   return path;
 }
-async function finderSnapshot(app,run){
-  const value=String(await run('/usr/bin/xattr',['-px',FINDERINFO,await finderDirectory(app)])).replace(/\s/g,'').toLowerCase();
+async function finderSnapshot(app,run,root=false){
+  const value=String(await run('/usr/bin/xattr',['-px',FINDERINFO,await finderDirectory(app,root)])).replace(/\s/g,'').toLowerCase();
   demand(/^[a-f0-9]{64}$/.test(value),'BROWSER_FINDERINFO_SNAPSHOT_INVALID');
   return value;
+}
+async function removeFinderInfo(path,run){
+  await run('/usr/bin/xattr',['-d',FINDERINFO,path]);
+  const remaining=String(await run('/usr/bin/xattr',[path])).split(/\r?\n/).map(s=>s.trim());
+  demand(!remaining.includes(FINDERINFO),'BROWSER_COPY_FINDERINFO_REMOVAL_FAILED');
 }
 // Do not follow directory links during traversal. Framework links must resolve
 // within this same bundle; sockets/devices/FIFOs, special bits and world writes fail.
@@ -138,9 +143,16 @@ export async function prepareBrowser(selection,parent,{home=homedir(),uid=proces
       // Only the audited, owned private framework directory. Preserve quarantine,
       // ResourceFork, signing attributes and every other attribute everywhere.
       const path=await finderDirectory(copy);
-      await run('/usr/bin/xattr',['-d',FINDERINFO,path]);
-      const remaining=String(await run('/usr/bin/xattr',[path])).split(/\r?\n/).map(s=>s.trim());
-      demand(!remaining.includes(FINDERINFO),'BROWSER_COPY_FINDERINFO_REMOVAL_FAILED');
+      await removeFinderInfo(path,run);
+      // Actual Mac strict verification also identified this attribute on the
+      // private app root after copying. Normalize only that known copied path;
+      // never broaden source acceptance or clear recursive/other metadata.
+      const root=await finderDirectory(copy,true);
+      const attrs=String(await run('/usr/bin/xattr',[root])).split(/\r?\n/).map(s=>s.trim());
+      if(attrs.includes(FINDERINFO)){
+        await finderSnapshot(copy,run,true);
+        await removeFinderInfo(root,run);
+      }
     }
     // Mandatory before returning any executable, including the FinderInfo case.
     await signature(copy,run);

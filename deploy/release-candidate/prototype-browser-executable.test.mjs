@@ -194,7 +194,8 @@ async function finderFixture(t,options={}){
         if(!strict&&options.sourcePolicyFailure)throw Object.assign(new Error(),{safeCode:'SOURCE_POLICY_REJECTED'});
       }else{
         assert.equal(app,copy);assert.equal(strict,true,'execution copy always requires full strict verification');
-        if(attrs.get(join(copy,finderRelative))?.has(finderName)||options.copySignatureFailure)
+        if(attrs.get(join(copy,finderRelative))?.has(finderName)||attrs.get(copy)?.has(finderName)||
+          options.copySignatureFailure||attrs.get(copy)?.has('com.apple.ResourceFork'))
           throw Object.assign(new Error(),{safeCode:'COPY_SIGNATURE_REJECTED'});
       }
       return '';
@@ -203,6 +204,8 @@ async function finderFixture(t,options={}){
       await f.run(exe,args);copy=args.at(-1);
       attrs.set(join(copy,finderRelative),new Map(attrs.get(framework)));
       attrs.set(copy,new Map(attrs.get(f.app)));
+      if(options.copyRootFinder)attrs.get(copy).set(finderName,options.invalidRootFinder?'00':'22'.repeat(32));
+      if(options.copyRootResourceFork)attrs.get(copy).set('com.apple.ResourceFork','preserve-resource-fork');
       if(options.copyFinderDrift)attrs.get(join(copy,finderRelative)).set(finderName,'11'.repeat(32));
       return '';
     }
@@ -213,9 +216,9 @@ async function finderFixture(t,options={}){
       assert.ok(v,'attribute snapshot must exist');return v;
     }
     if(args[0]==='-d'){
-      assert.equal(args[1],finderName);assert.equal(args[2],join(copy,finderRelative));
-      assert.notEqual(args[2],framework,'installed source must never be modified');
-      if(!options.ignoreRemoval)attrs.get(args[2]).delete(finderName);
+      assert.equal(args[1],finderName);assert.ok([copy,join(copy,finderRelative)].includes(args[2]));
+      assert.ok(![f.app,framework].includes(args[2]),'installed source must never be modified');
+      if(!(args[2]===copy?options.ignoreRootRemoval:options.ignoreRemoval))attrs.get(args[2]).delete(finderName);
       return '';
     }
     assert.equal(args.length,1);return [...(attrs.get(args[0])??new Map()).keys()].join('\n');
@@ -238,6 +241,7 @@ test('native FinderInfo exception requires the exact observed attribute/path and
   for(const e of [{...good,code:2},{...good,code:'ETIMEDOUT'},{...good,killed:true},{...good,signal:'SIGTERM'},
     {...good,stdout:''},{...good,stderr:''},{...good,stdout:good.stdout.replace(finderName,'com.apple.ResourceFork')},
     {...good,stdout:good.stdout.replace(finderRelative,'Contents/Other.framework')},
+    {...good,stdout:good.stdout.replace(join(app,finderRelative),app)},
     {...good,stderr:good.stderr+'test-requirement: code failed to satisfy specified code requirement(s)\n'},
     {...good,stderr:good.stderr+'a sealed resource is missing or invalid\n'},
     {...good,stderr:good.stderr+'--prepared:/outside/Another.app\n'}])
@@ -293,4 +297,51 @@ test('FinderInfo path aliases cannot redirect a metadata operation',async t=>{
   await assert.rejects(inspectExecutable(f.executable,f.options),e=>e.safeCode==='BROWSER_FINDERINFO_PATH_UNSAFE');
   assert.equal(f.calls.some(c=>c.exe==='/usr/bin/xattr'),false);
   assert.deepEqual(await readdir(f.parent),[]);
+});
+
+test('observed private-copy root FinderInfo is removed only on that owned root before mandatory strict verification',async t=>{
+  const f=await finderFixture(t,{copyRootFinder:true}),source=await readFile(f.executable);
+  const selected=await inspectExecutable(f.executable,f.options),prepared=await prepareBrowser(selected,f.parent,f.options);
+  assert.equal(f.attrs.get(f.app).has(finderName),false,'installed root metadata stays unchanged');
+  assert.equal(f.attrs.get(f.framework).get(finderName),f.value,'installed framework stays unchanged');
+  assert.equal(f.attrs.get(f.copy()).has(finderName),false);
+  assert.equal(f.attrs.get(f.copy()).get('com.apple.quarantine'),'preserve-root-quarantine');
+  assert.equal(f.attrs.get(join(f.copy(),finderRelative)).get('com.apple.quarantine'),'preserve-framework-quarantine');
+  const deletes=f.calls.filter(c=>c.exe==='/usr/bin/xattr'&&c.args[0]==='-d');
+  assert.deepEqual(deletes.map(c=>c.args),[
+    ['-d',finderName,join(f.copy(),finderRelative)],['-d',finderName,f.copy()]]);
+  const signatures=f.calls.filter(c=>c.exe==='/usr/bin/codesign'&&c.args.at(-1)===f.copy());
+  assert.equal(signatures.length,1);assert.ok(signatures[0].args.includes('--strict'));
+  assert.deepEqual(await readFile(prepared.executable),source);
+  await prepared.cleanup();assert.deepEqual(await readdir(f.parent),[]);
+});
+
+test('invalid copied root FinderInfo and unsuccessful removal fail closed and clean the private copy',async t=>{
+  for(const options of [{copyRootFinder:true,invalidRootFinder:true},{copyRootFinder:true,ignoreRootRemoval:true}]){
+    const f=await finderFixture(t,options),selected=await inspectExecutable(f.executable,f.options);
+    const code=options.invalidRootFinder?'BROWSER_FINDERINFO_SNAPSHOT_INVALID':'BROWSER_COPY_FINDERINFO_REMOVAL_FAILED';
+    await assert.rejects(prepareBrowser(selected,f.parent,f.options),e=>e.safeCode===code);
+    assert.deepEqual(await readdir(f.parent),[]);
+    assert.equal(f.attrs.get(f.app).has(finderName),false);
+    assert.equal(f.attrs.get(f.framework).get(finderName),f.value);
+    assert.equal(f.attrs.get(f.copy()).get('com.apple.quarantine'),'preserve-root-quarantine');
+    assert.equal(f.calls.some(c=>c.exe==='/usr/bin/codesign'&&c.args.at(-1)===f.copy()),false);
+    if(options.invalidRootFinder)assert.equal(f.calls.some(c=>c.exe==='/usr/bin/xattr'&&
+      c.args[0]==='-d'&&c.args.at(-1)===f.copy()),false);
+  }
+});
+
+test('root FinderInfo correction does not remove ResourceFork or permit any remaining strict failure',async t=>{
+  for(const options of [{copyRootFinder:true,copyRootResourceFork:true},{copyRootFinder:true,copySignatureFailure:true}]){
+    const f=await finderFixture(t,options),selected=await inspectExecutable(f.executable,f.options);
+    await assert.rejects(prepareBrowser(selected,f.parent,f.options),e=>e.safeCode==='COPY_SIGNATURE_REJECTED');
+    assert.deepEqual(await readdir(f.parent),[]);
+    assert.equal(f.attrs.get(f.copy()).get('com.apple.quarantine'),'preserve-root-quarantine');
+    if(options.copyRootResourceFork)assert.equal(f.attrs.get(f.copy()).get('com.apple.ResourceFork'),'preserve-resource-fork');
+    assert.ok(f.calls.filter(c=>c.exe==='/usr/bin/xattr'&&c.args[0]==='-d')
+      .every(c=>c.args[1]===finderName&&[f.copy(),join(f.copy(),finderRelative)].includes(c.args[2])));
+    assert.ok(f.calls.filter(c=>c.exe==='/usr/bin/codesign'&&c.args.at(-1)===f.copy())
+      .every(c=>c.args.includes('--strict')));
+    assert.equal(f.attrs.get(f.framework).get(finderName),f.value);
+  }
 });
