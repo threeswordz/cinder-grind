@@ -101,7 +101,6 @@ try{
     }catch{res.writeHead(404);res.end();}
   });
   await new Promise((resolve,reject)=>{webServer.once('error',reject);webServer.listen(44319,'127.0.0.1',resolve);});
-  phase='BROWSER_VERSION_HANDSHAKE';
   const adminPermissions=await populatedIdentity(db,prepared.actors,fixture);
   const before=await businessFingerprint(db);
   const actors={...Object.fromEntries(Object.entries(prepared.actors).map(([key,actor])=>[key,
@@ -109,6 +108,7 @@ try{
     SYS_ADMIN:{userId:fixture.adminUserId,email:'proto-admin@example.invalid',password:adminPassword,
       expectedRoleCodes:['SYS_ADMIN'],permissions:adminPermissions}};
   // GitHub's Ubuntu image provides Google Chrome, also used by existing tests.
+  phase='BROWSER_VERSION_HANDSHAKE';
   browser=await startBrowser('/usr/bin/google-chrome',temporary);
   phase='REAL_BROWSER_READBACK';
   const result=await browserReadback({protocol:browser.protocol,api:'http://127.0.0.1:31319/api/v1',
