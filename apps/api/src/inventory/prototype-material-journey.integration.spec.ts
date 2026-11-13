@@ -157,7 +157,8 @@ test('P0 integrated material journey: request -> approved plan issue -> signed r
         body: multipart,
       });
       assert.equal(uploaded.status, 201, await uploaded.clone().text());
-      const signedDocument = (await uploaded.json()).data;
+      const signedDocument = ((await uploaded.json()) as { data: { id: string } }).data;
+      assert.match(signedDocument.id, /^[a-f0-9-]{36}$/);
       const downloadPath = uploadPath + '/' + signedDocument.id + '/download';
       const downloaded = await fetch(base + downloadPath, {
         headers: { Cookie: 'erp_session=' + f.store.session.sessionToken },
