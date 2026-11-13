@@ -138,7 +138,36 @@ test('P0 integrated material journey: request -> approved plan issue -> signed r
       assert.equal((await balance()).toFixed(4), '17.0000');
 
       // Evidence upload alone is not recipient acknowledgment or stock effect.
-      const signedDocument = await f.upload(requestId);
+      // Exercise the canonical multipart Documents route rather than the
+      // fixture's direct service upload. The receipt must refer to these real
+      // protected bytes; upload alone never acknowledges or changes stock.
+      const signedType = await db.documentType.findFirstOrThrow({
+        where: { companyId: f.company.id, documentTypeCode: 'SIGNED' },
+      });
+      const uploadPath = '/documents/projects/' + f.project.id + '/targets/MATERIAL_REQUEST/' + requestId;
+      const multipart = new FormData();
+      multipart.set('documentTypeId', signedType.id);
+      multipart.set('file', new Blob([f.bytes.toString('utf8')], { type: 'application/pdf' }), 'signed-receipt.pdf');
+      const uploaded = await fetch(base + uploadPath, {
+        method: 'POST',
+        headers: {
+          Cookie: 'erp_session=' + f.store.session.sessionToken,
+          'x-csrf-token': f.store.session.csrfToken,
+        },
+        body: multipart,
+      });
+      assert.equal(uploaded.status, 201, await uploaded.clone().text());
+      const signedDocument = (await uploaded.json()).data;
+      const downloadPath = uploadPath + '/' + signedDocument.id + '/download';
+      const downloaded = await fetch(base + downloadPath, {
+        headers: { Cookie: 'erp_session=' + f.store.session.sessionToken },
+      });
+      assert.equal(downloaded.status, 200);
+      assert.deepEqual(Buffer.from(await downloaded.arrayBuffer()), f.bytes);
+      const deniedDownload = await fetch(base + downloadPath, {
+        headers: { Cookie: 'erp_session=' + f.foreman.session.sessionToken },
+      });
+      assert.equal(deniedDownload.status, 403);
       const afterUpload = (await call(f.store, requests + '/' + requestId)).data;
       assert.equal(afterUpload.lines[0].acknowledgedQuantity, '0.0000');
       const receipt = {
