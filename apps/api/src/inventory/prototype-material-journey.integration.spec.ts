@@ -94,7 +94,21 @@ test('P0 integrated material journey: request -> approved plan issue -> signed r
       // The approved Cost BOQ-backed plan exists in the shared fixture; enabling
       // its policy is synthetic-only and needs a separate explicitly granted actor.
       await call(f.ben, planIssues + '/projects/' + f.project.id + '/enable', 201, f.enableInput());
-      const issue = await f.issue('3', false);
+      // Exercise the deployed Material Issue entrypoint instead of creating the
+      // new issue directly through the fixture service. This tests a missing
+      // authentication/CSRF boundary without duplicating posting business logic.
+      const issueInput = {
+        projectId: f.project.id, warehouseId: f.warehouse.id,
+        issueDate: '2026-11-02', issuedToEmployeeId: f.foreman.employee.id,
+        remarks: 'Synthetic approved-plan material issue',
+        lines: [{ materialId: f.material.id, uomId: f.uom.id, quantity: '3.0000' }],
+      };
+      await call(f.foreman, '/inventory/material-issues', 403, issueInput);
+      await call(f.store, '/inventory/material-issues', 403, issueInput, false);
+      const createdIssue = (await call(f.store, '/inventory/material-issues', 201, issueInput)).data;
+      const issue = (await call(f.store, '/inventory/material-issues/' + createdIssue.id)).data;
+      assert.equal(issue.id, createdIssue.id);
+      assert.equal(issue.items.length, 1);
       assert.ok(await db.materialPlanIssueBinding.findUnique({ where: { issueId: issue.id } }));
       const draftLink = {
         requestKey: randomUUID(), expectedVersion: original.version,
@@ -147,7 +161,11 @@ test('P0 integrated material journey: request -> approved plan issue -> signed r
 
       // A canonical reversal is reflected across the request projection,
       // stock ledger and source-derived report. Signed evidence remains a record.
-      await f.issues.reverse({ auth: f.store.auth }, issue.id, randomUUID(), 'Synthetic physical issue reversal');
+      // Verify the actual guarded HTTP reversal boundary and its stock/readback effects.
+      await call(f.foreman, '/inventory/material-issues/' + issue.id + '/reverse', 403,
+        { reversalKey: randomUUID(), reason: 'Foreman cannot reverse a material issue' });
+      await call(f.store, '/inventory/material-issues/' + issue.id + '/reverse', 201,
+        { reversalKey: randomUUID(), reason: 'Synthetic physical issue reversal' });
       const reversed = (await call(f.store, requests + '/' + requestId)).data;
       assert.equal(reversed.lines[0].issuedQuantity, '0.0000');
       assert.equal(reversed.lines[0].acknowledgedQuantity, '0.0000');
