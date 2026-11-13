@@ -73,6 +73,17 @@ test('protected installed executables require no private copy or new signature e
   assert.equal(selection.strategy,'installed');assert.equal(prepared.executable,f.executable);
   await prepared.cleanup();assert.deepEqual(f.calls,[]);assert.deepEqual(await readdir(f.parent),[]);
 });
+test('read-only source directories stay unchanged while owned copy remains safely cleanable',async t=>{
+  const f=await fixture(t),resources=join(f.app,'Contents','Resources');
+  await mkdir(resources);await writeFile(join(resources,'read-only'),'resource');await chmod(resources,0o555);
+  try{
+    const selection=await inspectExecutable(f.executable,f.options),prepared=await prepareBrowser(selection,f.parent,f.options);
+    assert.equal((await lstat(resources)).mode&0o777,0o555);
+    const copy=join(f.parent,(await readdir(f.parent))[0],'Google Chrome.app','Contents','Resources');
+    assert.equal((await lstat(copy)).mode&0o777,0o700);
+    await prepared.cleanup();assert.deepEqual(await readdir(f.parent),[]);
+  }finally{await chmod(resources,0o755);}
+});
 test('wrong path, symlinked executable and changed source cannot enter the copy route',async t=>{
   const f=await fixture(t);
   await assert.rejects(inspectExecutable(join(f.root,'other-Chrome'),f.options),e=>e.safeCode==='BROWSER_EXECUTABLE_PATH_NOT_APPROVED');
@@ -130,6 +141,8 @@ test('unsafe private parent and forged strategy fail before copy; source permiss
 });
 test('failed owned browser launch confirms process exit before profile removal',async t=>{
   const f=await fixture(t);
-  await assert.rejects(startBrowser('/bin/false',f.parent),e=>e.browserProcessExited===true);
-  assert.deepEqual(await readdir(f.parent),[]);
+  for(const executable of ['/bin/false',join(f.root,'missing-browser')]){
+    await assert.rejects(startBrowser(executable,f.parent),e=>e.browserProcessExited===true);
+    assert.deepEqual(await readdir(f.parent),[]);
+  }
 });

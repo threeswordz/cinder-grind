@@ -44,7 +44,7 @@ export async function auditBundle(app,{uid=process.getuid(),copied=false,protect
     demand((s.isFile()||s.isDirectory())&&!(s.mode&0o7000)&&!(s.mode&0o002),'BROWSER_BUNDLE_ENTRY_UNSAFE');
     demand(await realpath(path)===path,'BROWSER_BUNDLE_PATH_UNSAFE');
     if(copied&&s.isFile())demand(s.nlink===1,'BROWSER_COPY_HARDLINK_REFUSED');
-    if(protect){demand(copied,'BROWSER_SOURCE_PERMISSION_CHANGE_REFUSED');await chmod(path,s.mode&0o700);}
+    if(protect){demand(copied,'BROWSER_SOURCE_PERMISSION_CHANGE_REFUSED');await chmod(path,s.isDirectory()?0o700:s.mode&0o700);}
     if(copied&&!protect)demand(!(s.mode&0o077),'BROWSER_COPY_PERMISSIONS_UNSAFE');
     if(s.isDirectory())for(const name of await readdir(path))await visit(join(path,name));
   };
