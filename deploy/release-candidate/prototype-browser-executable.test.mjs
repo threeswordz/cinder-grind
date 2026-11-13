@@ -96,7 +96,12 @@ test('wrong path, symlinked executable and changed source cannot enter the copy 
 });
 test('source unsafe owner, world-write, special bits and escaping/broken bundle links fail before copy',async t=>{
   const f=await fixture(t),outside=join(f.root,'outside');await writeFile(outside,'private sentinel');
-  await assert.rejects(auditBundle(f.app,{uid:uid+101}),e=>e.safeCode==='BROWSER_BUNDLE_OWNER_UNSAFE');
+  // Source bundles may be root-owned even when the operator UID differs.
+  // A root-run fixture therefore remains a valid source, not a foreign owner.
+  if(uid===0)await assert.doesNotReject(auditBundle(f.app,{uid:101}));
+  else await assert.rejects(auditBundle(f.app,{uid:uid+101}),e=>e.safeCode==='BROWSER_BUNDLE_OWNER_UNSAFE');
+  // Copied entries require the exact operator owner, including under root.
+  await assert.rejects(auditBundle(f.app,{uid:uid+101,copied:true}),e=>e.safeCode==='BROWSER_BUNDLE_OWNER_UNSAFE');
   for(const mode of [0o777,0o2755]){
     const file=join(f.app,'unsafe');await writeFile(file,'fixture');await chmod(file,mode);
     await assert.rejects(inspectExecutable(f.executable,f.options),e=>e.safeCode==='BROWSER_BUNDLE_ENTRY_UNSAFE');
