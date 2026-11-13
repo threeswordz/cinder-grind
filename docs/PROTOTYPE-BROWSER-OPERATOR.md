@@ -26,6 +26,12 @@ Verify mode creates a new owned0700 `browser-app-*` directory under the already 
 
 Reference implementation for Google's certificate requirement: [Chromium binary integrity analyzer](https://chromium.googlesource.com/chromium/src/+/4a8573cb240df29b0e4d9820303538fb28e31d84/chrome/browser/safe_browsing/incident_reporting/binary_integrity_analyzer_mac.cc). Apple documents [explicit requirement and recursive signature verification](https://developer.apple.com/library/archive/documentation/Security/Conceptual/CodeSigningGuide/Procedures/Procedures.html). These are verification operations only, never signing/repair commands.
 
+### Inline requirement argument correction
+
+The actual Mac plan from merged #333 returned `BROWSER_SIGNATURE_OR_COPY_FAILED` during discovery, before copy preparation, Chrome execution, browser login or markers. Inspection identified a definite launcher defect: `execFile` passed the bare requirement expression as the separate argument after `-R`. Apple codesign interprets that form as a **requirement filename**; inline source text must begin with `=`. The helper now passes `['-R', '=' + GOOGLE_REQUIREMENT]`, preserving the complete stable Chrome identifier, Apple trust chain, Google team, strict/deep/all-architecture verification and copy controls. [Apple TN3127's command example](https://developer.apple.com/documentation/technotes/tn3127-inside-code-signing-requirements) explicitly uses `-R '=anchor ...'`.
+
+The regression asserts the documented inline/file distinction independently of the mocked policy argument. It fails on #333's original invocation and passes with the corrected literal, under ordinary-user and root test execution. Linux tests remain CLI-contract evidence, not actual Apple signature proof. The returned generic failure code alone does not establish whether installed Chrome has a valid signature; that remains unverified until actual Mac execution of the reviewed, green-main correction. No signature bypass, install, permission repair, actor rerun or runtime reset is authorized or needed by this argument correction.
+
 ## What the actual browser does
 
 The real immutable Vite app loads from loopback44171 and uses the existing real API33071. No injected app, fixture response, fetch replacement or synthetic network fulfillment is used. Chrome Fetch interception only continues allowed requests to the real server or denies them.

@@ -29,7 +29,8 @@ export function executablePolicy(s,uid,google){
   return google&&s.uid===uid&&(s.mode&0o777)===0o775?'private-copy':null;
 }
 async function signature(app,run){
-  await run('/usr/bin/codesign',['--verify','--deep','--strict','--all-architectures','-R',GOOGLE_REQUIREMENT,app]);
+  // Without '=', codesign treats this argument as a requirement FILE path.
+  await run('/usr/bin/codesign',['--verify','--deep','--strict','--all-architectures','-R','='+GOOGLE_REQUIREMENT,app]);
 }
 // Do not follow directory links during traversal. Framework links must resolve
 // within this same bundle; sockets/devices/FIFOs, special bits and world writes fail.
