@@ -123,7 +123,7 @@ try{
   // Never forward Prisma/HTTP/bootstrap exceptions or private fixture details.
   const safeStage=['VERSION_HANDSHAKE','CONTEXT_CREATION'].includes(e?.safeStage)?e.safeStage:'UNCLASSIFIED';
   console.error('PROTOTYPE_ACTOR_NATIVE_FAILED: '+phase+' '+
-    (e.safeCode??(/^P\\d{4}$/.test(e.code??'')?e.code:'NATIVE_ASSERTION_OR_SETUP_FAILED'))+' '+safeStage);
+    (e.safeCode??(/^P\d{4}$/.test(e.code??'')?e.code:'NATIVE_ASSERTION_OR_SETUP_FAILED'))+' '+safeStage);
   process.exitCode=1;
 }finally{
   if(browser)await browser.stop();
