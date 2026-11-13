@@ -124,6 +124,8 @@ jobs:
           node --check deploy/release-candidate/hr-document-schema-contract.mjs
           node --check deploy/release-candidate/legacy-fixture.mjs
           node --test deploy/release-candidate/*.test.mjs
+          # Root-owned source fixtures remain valid; copied ownership stays exact.
+          sudo --non-interactive "$(command -v node)" --test deploy/release-candidate/prototype-browser-executable.test.mjs
 
           while IFS= read -r -d '' env_key && IFS= read -r -d '' env_value; do
             printf -v "$env_key" '%s' "$env_value"
