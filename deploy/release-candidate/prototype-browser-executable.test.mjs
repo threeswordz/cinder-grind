@@ -36,7 +36,7 @@ async function fixture(t){
   const run=async(exe,args)=>{
     calls.push({exe,args});
     if(exe==='/usr/bin/codesign'){
-      assert.deepEqual(args.slice(0,-1),['--verify','--deep','--strict','--all-architectures','-R',GOOGLE_REQUIREMENT]);
+      assert.deepEqual(args.slice(0,-1),['--verify','--deep','--strict','--all-architectures','-R','='+GOOGLE_REQUIREMENT]);
       return;
     }
     assert.equal(exe,'/usr/bin/ditto');assert.deepEqual(args.slice(0,-2),['--rsrc','--extattr','--qtn','--noacl']);
@@ -51,6 +51,21 @@ test('inspection verifies source without executing it, copying it or creating ta
   assert.equal(selected.strategy,'private-copy');assert.deepEqual(await readdir(f.parent),before);
   assert.equal((await lstat(f.executable)).mode,s.mode);
   assert.equal(f.calls.length,1);assert.equal(f.calls[0].exe,'/usr/bin/codesign');
+});
+test('codesign consumes the explicit requirement as inline text, never as a filename',async t=>{
+  const f=await fixture(t);let checks=0;
+  await inspectExecutable(f.executable,{...f.options,run:async(exe,args)=>{
+    assert.equal(exe,'/usr/bin/codesign');
+    const requirement=args[args.indexOf('-R')+1];
+    // Apple codesign accepts a requirement file path or '=literal text'.
+    // This is an independent CLI-contract assertion, not the policy constant.
+    assert.ok(requirement.startsWith('='),'codesign would open a requirement filename instead of compiling inline text');
+    assert.equal(requirement.slice(1),GOOGLE_REQUIREMENT);
+    assert.ok(requirement.includes('identifier "com.google.Chrome"'));
+    assert.ok(requirement.includes('"EQHXZ8M8AV"'));
+    checks++;
+  }});
+  assert.equal(checks,1);assert.deepEqual(await readdir(f.parent),[]);
 });
 test('private copy is owned, protected, signature-reverified and exclusively cleaned; source stays unchanged',async t=>{
   const f=await fixture(t),source=await lstat(f.executable),bytes=await readFile(f.executable);
