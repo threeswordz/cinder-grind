@@ -9,8 +9,10 @@ import {join,resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {spawn} from 'node:child_process';
 import {once} from 'node:events';
-import {SOURCE,safeEnvironment} from './prototype-actors.mjs';
+import {SOURCE,safeEnvironment,provision} from './prototype-actors.mjs';
 import {materialJourneyHttp} from './prototype-material-http.mjs';
+import {inspectMaterialConfiguration} from './prototype-material-configuration.mjs';
+import {businessFingerprint} from './prototype-browser-operator.mjs';
 
 async function native(){
 assert.equal(process.platform,'linux');assert.equal(process.env.GITHUB_ACTIONS,'true');
@@ -47,6 +49,28 @@ try{
   const {PrismaService}=require('./dist/prisma/prisma.service.js');
   db=new PrismaService();await db.$connect();
   const identity=await db.$queryRawUnsafe('SELECT current_database() AS name');assert.equal(identity[0].name,name);
+  phase='READ_ONLY_CONFIGURATION';
+  // Existing provisioner is fixture setup on this unique disposable DB only.
+  // No initial HTTP/browser suite is rerun merely to test the read-only core.
+  const {PasswordService}=require('./dist/auth/password.service.js');
+  const prepared=await provision(db,new PasswordService()),prototypeFixture=await prepared.commit();
+  const before=await businessFingerprint(db);
+  const configuration=await inspectMaterialConfiguration(db,{sourceSha:SOURCE,actors:prepared.actors,fixture:prototypeFixture});
+  assert.equal(configuration.readOnlyTransactionVerified,true);assert.equal(configuration.configurationApplied,false);
+  assert.equal(configuration.sourceMapping,'SOURCE_PREPARATION_REQUIRED');
+  assert.equal(configuration.sourceMappingVerified,false);assert.equal(configuration.targetCustodyVerified,false);
+  assert.equal(configuration.productionAuthorized,false);
+  assert.deepEqual(configuration.roleDeltas.KHAIMOOK.journeyMissing,
+    ['inventory.issue.view','inventory.material_plan.overage.review']);
+  assert.equal(await businessFingerprint(db),before,'Read-only inspection must preserve records and grants');
+  // Prove PostgreSQL itself refuses mutation under the transaction mode used by
+  // the inspector, rather than relying only on a no-write coding convention.
+  await assert.rejects(db.$transaction(async tx=>{
+    await tx.$executeRawUnsafe('SET TRANSACTION READ ONLY');
+    await tx.company.update({where:{id:prototypeFixture.companyId},data:{companyName:'MUST_NOT_COMMIT'}});
+  }),e=>JSON.stringify(e).includes('25006')||String(e.message).includes('read-only transaction'));
+  assert.equal(await businessFingerprint(db),before);
+  console.log('MATERIAL_CONFIG_NATIVE_PASS: real PostgreSQL READ ONLY snapshot and mutation refusal; original synthetic grants unchanged. Not Mac custody/configuration or full journey proof.');
   phase='REUSE_DISPOSABLE_FIXTURE';
   const {materialPlanFixture}=require('./dist/inventory/material-plan-test-fixture.js');
   const f=await materialPlanFixture(db);
