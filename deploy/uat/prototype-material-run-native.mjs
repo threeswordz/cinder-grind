@@ -4,16 +4,21 @@
 import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
 import {randomBytes,randomUUID} from 'node:crypto';
-import {mkdtemp,rm} from 'node:fs/promises';
+import {mkdtemp,rm,readFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join,resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {execFile} from 'node:child_process';
 import {promisify} from 'node:util';
+import {createServer} from 'node:http';
+import {spawnSync} from 'node:child_process';
 import {SOURCE,safeEnvironment,provision} from './prototype-actors.mjs';
 import {planMaterialConfiguration,applyMaterialConfiguration} from './prototype-material-configure.mjs';
 import {executeMaterialRun} from './prototype-material-run.mjs';
 import {businessFingerprint} from './prototype-browser-operator.mjs';
+import {startBrowser} from './prototype-browser.mjs';
+import {materialUiRevision} from './prototype-material-ui.mjs';
+import {materialUiSnapshot,verifyMaterialUiPreservation} from './prototype-material-ui-state.mjs';
 const execute=promisify(execFile);
 async function native(){
   assert.equal(process.platform,'linux');assert.equal(process.env.GITHUB_ACTIONS,'true');
@@ -31,7 +36,7 @@ async function native(){
     WEB_ORIGIN:'http://127.0.0.1:44319',STORAGE_ROOT:join(temporary,'documents'),DOCUMENT_UPLOAD_TEMP_ROOT:join(temporary,'uploads'),
     HR_PRIVATE_KEYS:JSON.stringify({native:randomBytes(32).toString('base64')}),HR_PRIVATE_ACTIVE_KEY_ID:'native'};
   async function run(exe,args,childEnv){await execute(exe,args,{cwd:root,env:childEnv,timeout:120000,maxBuffer:2097152});}
-  let created=false,db,app,phase='UNIQUE_DATABASE';
+  let created=false,db,app,webServer,browser,phase='UNIQUE_DATABASE';
   try{
     await base.$executeRawUnsafe('CREATE DATABASE "'+name+'"');created=true;
     phase='MIGRATE';await run('pnpm',['prisma:migrate:deploy'],env);
@@ -71,8 +76,23 @@ async function native(){
     phase='AUTHENTICATED_API_JOURNEY';
     const {NestFactory}=require('@nestjs/core'),{AppModule}=require('./dist/app.module.js'),
       {securityHeadersMiddleware}=require('./dist/common/security-headers.js'),{ProblemDetailsFilter}=require('./dist/common/problem-details.filter.js');
+    const {corsOriginPolicy}=require('./dist/common/cors-origin.js');
     app=await NestFactory.create(AppModule,{logger:false});app.setGlobalPrefix('api/v1');
+    // Browser runs on the separate owned web origin. Reuse the production
+    // origin policy and credentials setting; Node fetch alone cannot prove it.
+    app.enableCors({origin:corsOriginPolicy(env.WEB_ORIGIN),credentials:true,
+      methods:['GET','POST','PATCH','PUT','DELETE','OPTIONS']});
     app.use(securityHeadersMiddleware(false));app.useGlobalFilters(new ProblemDetailsFilter());await app.listen(31319,'127.0.0.1');
+    phase='BROWSER_CORS_CONTRACT';
+    const cors=await fetch('http://127.0.0.1:31319/api/v1/auth/me',{headers:{Origin:env.WEB_ORIGIN}});
+    assert.equal(cors.status,401);assert.equal(cors.headers.get('access-control-allow-origin'),env.WEB_ORIGIN);
+    assert.equal(cors.headers.get('access-control-allow-credentials'),'true');
+    const preflight=await fetch('http://127.0.0.1:31319/api/v1/auth/login',{method:'OPTIONS',
+      headers:{Origin:env.WEB_ORIGIN,'Access-Control-Request-Method':'POST','Access-Control-Request-Headers':'content-type'}});
+    assert.equal(preflight.status,204);assert.equal(preflight.headers.get('access-control-allow-origin'),env.WEB_ORIGIN);
+    const foreign=await fetch('http://127.0.0.1:31319/api/v1/auth/me',{headers:{Origin:'https://example.invalid'}});
+    assert.equal(foreign.headers.get('access-control-allow-origin'),null);
+    phase='AUTHENTICATED_API_JOURNEY';
     const receipts=new Map();
     const result=await executeMaterialRun(db,binding,configuration,{api:'http://127.0.0.1:31319/api/v1',web:env.WEB_ORIGIN},
       async(key,value)=>{assert.equal(receipts.has(key),false);receipts.set(key,value);});
@@ -83,17 +103,48 @@ async function native(){
     assert.equal(await db.stockTransaction.count(),5);assert.equal(await db.document.count(),1);
     assert.equal(result.productionAuthorized,false);
     console.log('MATERIAL_RUN_NATIVE_PASS: same guarded configuration and authenticated API execution core; source Ben->Khaimook, plan Store->Khaimook, direct issue, Khaimook->Ben overage, protected receipt bytes/history, canonical 20->17->13->20, Finance unchanged and revoked API sessions. Not Mac/UI/recovery/freeze proof.');
+    // Extend this existing owned fixture with the missing UI boundary. Do not
+    // create a second API journey, database, count or stock cycle for it.
+    phase='RETAINED_REQUEST_UI';
+    const uiBinding={...binding,configuration,journey:receipts.get('journey')};
+    const beforeUi=await materialUiSnapshot(db,uiBinding);
+    const out=join(temporary,'web');
+    await run('pnpm',['--filter','@construction-erp/web','exec','vite','build','--outDir',out],
+      {...safeEnvironment(),VITE_API_BASE_URL:'http://127.0.0.1:31319/api/v1'});
+    webServer=createServer(async(req,res)=>{
+      try{
+        const path=new URL(req.url,env.WEB_ORIGIN).pathname,file=resolve(out,'.'+decodeURIComponent(path));
+        if(req.method!=='GET'||file!==out&&!file.startsWith(out+'/')){res.writeHead(404);res.end();return;}
+        const target=path==='/'?join(out,'index.html'):file,bytes=await readFile(target);
+        res.setHeader('Content-Type',target.endsWith('.js')?'text/javascript':target.endsWith('.css')?'text/css':
+          target.endsWith('.svg')?'image/svg+xml':'text/html');res.setHeader('Cache-Control','no-store');res.end(bytes);
+      }catch{res.writeHead(404);res.end();}
+    });
+    await new Promise((resolve,reject)=>{webServer.once('error',reject);webServer.listen(44319,'127.0.0.1',resolve);});
+    const chrome=['google-chrome','chromium','chromium-browser'].find(bin=>spawnSync(bin,['--version'],{stdio:'ignore'}).status===0);
+    assert.ok(chrome,'Existing CI Chromium required');browser=await startBrowser(chrome,temporary);
+    const ui=await materialUiRevision(browser.protocol,{sourceSha:SOURCE,api:'http://127.0.0.1:31319/api/v1',web:env.WEB_ORIGIN,
+      companyId:fixture.companyId,projectId:fixture.projectId,warehouseId:fixture.warehouseId,
+      requestId:uiBinding.journey.requestId,documentId:uiBinding.journey.documentId,
+      actors:Object.fromEntries(['STORE_SITE','FOREMAN'].map(key=>[key,{...prepared.actors[key],permissions:beforeUi.permissions[key]}]))});
+    await browser.stop();browser=undefined;
+    verifyMaterialUiPreservation(beforeUi,await materialUiSnapshot(db,uiBinding));
+    assert.equal(ui.status,'MATERIAL_RETAINED_REQUEST_UI_REVISION_VERIFIED');
+    assert.equal(ui.signedHistoryPreserved,true);assert.equal(ui.uiSessionsRevoked,true);
+    assert.equal(await db.stockTransaction.count(),5);assert.equal(await db.document.count(),1);
+    console.log('MATERIAL_UI_NATIVE_PASS: real built React/MUI request revision on retained API-run records, Foreman read-only view, unchanged stock/Finance/grants, preserved signed history and revoked browser sessions. No repeated API stock cycle or full role/UI/recovery/freeze claim.');
   }catch(e){
-    console.error('MATERIAL_RUN_NATIVE_FAILED: '+phase+' '+(/^[A-Z0-9_]+$/.test(e.safeCode??'')?e.safeCode:'NATIVE_ASSERTION_OR_SETUP_FAILED'));
+    console.error('MATERIAL_RUN_NATIVE_FAILED: '+phase+' '+(/^[A-Z0-9_]+$/.test(e.safeCode??'')?e.safeCode:'NATIVE_ASSERTION_OR_SETUP_FAILED')+
+      (e.cleanupFailed===true?' CLEANUP_ALSO_FAILED':''));
     process.exitCode=1;
   }finally{
-    try{if(app)await app.close();}finally{
+    try{if(browser)await browser.stop();}finally{try{if(webServer)await new Promise(resolve=>webServer.close(resolve));}finally{try{if(app)await app.close();}finally{
       try{if(db)await db.$disconnect();}finally{
         try{if(created)await base.$executeRawUnsafe('DROP DATABASE "'+name+'" WITH (FORCE)');}
         finally{await base.$disconnect();assert.ok(resolve(temporary).startsWith(resolve(tmpdir())+'/erp-material-run-'));
           await rm(temporary,{recursive:true,force:true});}
       }
-    }
+    }}}
   }
 }
 await native().catch(()=>{console.error('MATERIAL_RUN_NATIVE_FAILED: GUARD_OR_CLEANUP_FAILED');process.exitCode=1;});
