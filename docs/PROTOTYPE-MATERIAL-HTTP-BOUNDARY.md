@@ -1,0 +1,34 @@
+# Bounded Material Journey HTTP transport — #338 increment
+
+**Authority:** [#338](https://github.com/threeswordz/cinder-grind/issues/338), existing synthetic authority under [#305](https://github.com/threeswordz/cinder-grind/issues/305), DEC-043/044. This increment implements only the missing request boundary around existing APIs. It does not rebuild a business scenario or provide a runnable Mac operator.
+
+## Implemented boundary
+
+`deploy/uat/prototype-material-http.mjs` reuses the existing `httpClient` login/CSRF/JSON observation helper. Every request passes a literal method/path check before transport. Origins are the exact owned Mac loopback pair, or the existing fixed Linux GitHub Actions native pair; there is no general target URL override. The binding is copied at construction so later caller edits cannot retarget it.
+
+The allowed surface is limited to the approved Material Plan/create/submit/decision, canonical Issue/create/read/reverse, plan-policy enable/preview/post/overage/review/decision, Request/create/read/link/receipt, scoped stock/report reads, source-linked signed Document upload/download and authentication. Generic Finance/HR/admin, stock-count provisioning, old business IDs, arbitrary origins, encoded/dot traversal, unrelated queries, PATCH/DELETE and redirects are refused.
+
+Creation responses supply **pending read-only IDs**, including Material Request's small `id/version/revisionId` action receipt. A successful parent readback must match the bound Company, Project and warehouse before subsequent mutations are permitted. Issue/plan/request child identifiers are learned from matching scoped parent readbacks, authorizations from the owned issue's overage response, and Document identifiers from that run's source-linked multipart upload. No public registration method accepts arbitrary historical IDs. Source mappings/material/UOM/warehouse and recipient/issuer identities are bounded; numerical/state/approval rules remain with the canonical API.
+
+The helper permits an in-scope wrong-role or missing-CSRF request so the actual API can prove a denial. A boundary refusal occurs before network traffic and is **not** an API denial or evidence of maker-checker policy. Missing-permission denial is not an eligible-maker self-approval test.
+
+File upload uses real multipart FormData with a fixed synthetic PDF filename/type and bound Document type; download returns actual bytes for the operator's checksum assertion. Upload does not acknowledge a receipt, and the helper cannot certify a human signature/UAT. Transport exceptions expose constant safe codes. Observations contain probe code, HTTP status, expected status, time and the existing helper's request ID where available; no bodies, cookies, tokens or file bytes are printed.
+
+## Technical evidence and its limits
+
+- `deploy/release-candidate/prototype-material-http.test.mjs` exercises target/caller-mutation/path/method/old-ID/source binding, pending-to-scoped promotion, malformed scope responses, child identifiers, multipart/byte paths, missing-CSRF forwarding and safe errors. Its injected transport is **helper-level evidence only**, not a second business test suite or actual API/browser proof. Existing CI picks it up through the release-candidate test glob.
+- `deploy/uat/prototype-material-http-native.mjs` is a **Linux GitHub Actions-only** actual API compatibility check. Before resources, it requires pinned Node 24.21.0 and the exact existing CI base DB identity. It creates a unique `material_http_ci_<uuid>` database, migrates/bootstrap-seeds it, and reuses the existing disposable material-plan fixture. Only that owned database and temporary files are dropped. It cannot run on the Mac prototype or a supplied persistent target.
+- The native check uses existing fixture sessions with actual cookies/CSRF. It checks real Plan action/readback shapes, independent plan decision, draft Issue and Request readbacks, protected multipart upload/byte download and wrong-role/Project denials through the new helper. It does **not** claim new login proof, within/overage posting, full signed acknowledgment, stock reversal, real browser or populated recovery. Existing suites retain those business assertions; full #338 still needs its own deployed operator/native full-core evidence.
+- Local helper checks use the workspace Node version; exact pinned-node native/full CI results must be read from GitHub. No existing automated gate is removed or relaxed.
+
+## Remaining work before any Mac handoff
+
+1. Read the actual populated target and verify private runtime/actor/browser receipts, exact source/build/schema/process/container identities, effective grants and existing resources. Never rerun startup, actors or completed initial browser verification. This helper does not perform or attest that preflight.
+2. Compare actual grants/workflows/approved Cost BOQ source/Document type/number sequence; reuse sufficient existing resources and apply only a guarded, audited, necessary synthetic configuration delta with exact before-state and private no-overwrite markers. No direct SQL approvals or broad role union.
+3. Implement one representative authenticated API/UI write journey using this transport and the existing browser protocol with a separately narrow write boundary. Preserve initial receipts and unrelated records; revoke sessions and preserve partial evidence on failure. The completed read-only browser transport is unchanged.
+4. Exercise the same operator core in the unique disposable native target; finish exact-head push/PR CI, independent stable-head DEC-022 review, guarded merge and exact-main CI before an immutable Mac command. No review is requested while the operator is still changing; no self-approval or quota waiver.
+5. Reconcile [all 112 IDs](ROLE-REQUIREMENTS-2026-10-30/14-preproduction-reconciliation.md) and required residual delivery/dispositions, observe actual protected files/populated recovery, then audit/freeze and comprehensive human UAT.
+
+The old operator `toolingOnly()` allowlists remain unchanged. This new module/report/native helper, #340's instrumentation and #339's test-only API-source delta must be reconciled by the new operator's provenance check rather than widening or rerunning an old operator.
+
+**No milestone closure:** prototype remains 4/8, full Production GL 3/10. Retained MKE/TCJ changes, new Accounting/payroll/#245, Production deployment and human acceptance remain outside this increment.
