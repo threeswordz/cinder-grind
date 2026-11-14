@@ -161,7 +161,7 @@ test('FM03 wrapper before historical predecessor checks remains mandatory in con
   const workflow = readFileSync(new URL('../../.github/workflows/validate.yml', import.meta.url), 'utf8');
   const evidenceStep = workflow.split('- name: Verify V1.0-E consolidated technical evidence')[1];
   assert.ok(evidenceStep, 'Consolidated evidence step must exist');
-  assert.equal((evidenceStep.match(/siteIssueMode\\(data\\.releaseMode\\)\\.prior/g) ?? []).length, 5,
+  assert.equal((evidenceStep.match(/siteIssueMode\(data\.releaseMode\)\.prior/g) ?? []).length, 5,
     'Five exact historical predecessor assertions must peel the FM03 schema wrapper');
   const { siteIssueMode } = await import('./site-issue-schema-contract.mjs');
   const { materialPlanMode } = await import('./material-plan-schema-contract.mjs');
