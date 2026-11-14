@@ -1,3 +1,4 @@
+import {stripSiteIssueSchema} from './site-issue-schema-contract.mjs';
 import {stripPlanIssueSchema} from './material-plan-issue-schema-contract.mjs';
 import {stripMaterialPlanSchema} from './material-plan-schema-contract.mjs';
 import {stripMaterialRequestSchema} from './material-request-schema-contract.mjs';
@@ -11,7 +12,7 @@ import { stockCountCatalog, verifyStockCountCatalog } from './stock-count-catalo
 import { stripStockCountSchema } from './stock-count-schema-contract.mjs';
 
 test('OP-STOCK-COUNT-01 classifier admits exactly one model and ten parent/source additions', () => {
-  const current = stripMaterialRequestSchema(stripMaterialPlanSchema(stripPlanIssueSchema(readFileSync(new URL('../../apps/api/prisma/schema.prisma', import.meta.url), 'utf8')).text).text).text;
+  const current = stripMaterialRequestSchema(stripMaterialPlanSchema(stripPlanIssueSchema(stripSiteIssueSchema(readFileSync(new URL('../../apps/api/prisma/schema.prisma', import.meta.url), 'utf8')).text).text).text).text;
   const previous = execFileSync('git', ['show',
     'cb6abf378e903aa5c5a60be3a3d3db54e8c430d3:apps/api/prisma/schema.prisma'], { encoding: 'utf8' });
   assert.equal(classifySchema(previous, current), 'migration-aware-stock-count-thb-schema');

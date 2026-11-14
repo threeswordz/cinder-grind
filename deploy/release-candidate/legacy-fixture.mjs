@@ -1,3 +1,5 @@
+import {siteIssueCatalog,verifySiteIssueCatalog} from './site-issue-catalog-contract.mjs';
+const siteIssueApproved=process.env.SITE_ISSUE_SCHEMA_UPGRADE==='YES';
 import {planIssueCatalog,verifyPlanIssueCatalog} from './material-plan-issue-catalog-contract.mjs';
 const planIssueApproved=process.env.MATERIAL_PLAN_ISSUE_SCHEMA_UPGRADE==='YES';
 import {materialPlanCatalog,verifyMaterialPlanCatalog} from './material-plan-catalog-contract.mjs';
@@ -37,7 +39,7 @@ async function snapshot() {
     const stockCountApproved = process.env.STOCK_COUNT_SCHEMA_UPGRADE === 'YES';
 const materialRequestApproved=process.env.MATERIAL_REQUEST_SCHEMA_UPGRADE==='YES';
     const catalogIds = [...boqCatalog,...(hrApproved ? hrCatalog : []),
-      ...(stockCountApproved ? stockCountCatalog : []),...(materialRequestApproved ? materialRequestCatalog : []),...(materialPlanApproved ? materialPlanCatalog : []),...(planIssueApproved ? planIssueCatalog : [])].map(row => row.id);
+      ...(stockCountApproved ? stockCountCatalog : []),...(materialRequestApproved ? materialRequestCatalog : []),...(materialPlanApproved ? materialPlanCatalog : []),...(planIssueApproved ? planIssueCatalog : []),...(siteIssueApproved ? siteIssueCatalog : [])].map(row => row.id);
     if (tablename === 'permissions') {
       const additions = await prisma.$queryRawUnsafe('SELECT * FROM permissions WHERE id = ANY($1::uuid[])', catalogIds);
       verifyBoqCatalog(additions.filter(row => boqCatalog.some(x=>x.id===row.id)));
@@ -46,6 +48,7 @@ const materialRequestApproved=process.env.MATERIAL_REQUEST_SCHEMA_UPGRADE==='YES
       if(materialRequestApproved)verifyMaterialRequestCatalog(additions.filter(row=>materialRequestCatalog.some(x=>x.id===row.id)));
       if(materialPlanApproved)verifyMaterialPlanCatalog(additions.filter(row=>materialPlanCatalog.some(x=>x.id===row.id)));
       if(planIssueApproved)verifyPlanIssueCatalog(additions.filter(row=>planIssueCatalog.some(x=>x.id===row.id)));
+      if(siteIssueApproved)verifySiteIssueCatalog(additions.filter(row=>siteIssueCatalog.some(x=>x.id===row.id)));
     }
     const excludedColumns = tablename === 'projects' ? ['contract_currency_code'] :
       ['boqs','supplier_quotations','quotation_awards'].includes(tablename) ? ['currency_code'] :
@@ -95,7 +98,7 @@ try {
     const after = await snapshot();
     assertHistoricalTables(before.tables, after.tables,
       process.env.HR_SCHEMA_UPGRADE === 'YES', process.env.HR_DOCUMENT_SCHEMA_UPGRADE === 'YES',
-      process.env.STOCK_COUNT_SCHEMA_UPGRADE === 'YES', process.env.MATERIAL_REQUEST_SCHEMA_UPGRADE === 'YES',materialPlanApproved,planIssueApproved);
+      process.env.STOCK_COUNT_SCHEMA_UPGRADE === 'YES', process.env.MATERIAL_REQUEST_SCHEMA_UPGRADE === 'YES',materialPlanApproved,planIssueApproved,siteIssueApproved);
     for (const migration of before.migrations) assert.deepEqual(after.migrations.find((row) => row.migration_name === migration.migration_name), migration, 'Historical migration checksum changed');
     const fixture = load(manifestPath);
     assert.equal((await prisma.purchaseOrder.findUniqueOrThrow({ where: { id: fixture.unknownPoId } })).currencyCode, null);
