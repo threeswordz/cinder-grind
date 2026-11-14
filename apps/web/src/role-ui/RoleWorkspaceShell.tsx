@@ -39,7 +39,7 @@ const groups = [
 ] as const;
 
 export function RoleWorkspaceShell({
-  user, sections, activeKey, onSelect, onOpenPr, onLogout, logoutPending,
+  user, sections, activeKey, onSelect, onOpenPr, onLogout, logoutPending, alerts,
 }: {
   user: CurrentUser;
   sections: SourceSection[];
@@ -48,6 +48,7 @@ export function RoleWorkspaceShell({
   onOpenPr: (projectId: string, requestId: string) => void;
   onLogout: () => void;
   logoutPending: boolean;
+  alerts?: (openModule: (key: string) => void) => ReactNode;
 }) {
   const [locale, setLocale] = useState<Locale>('en');
   const [screen, setScreen] = useState<Screen>('home');
@@ -334,6 +335,7 @@ export function RoleWorkspaceShell({
         </Drawer>
         <Container component="main" maxWidth="xl" sx={{ py: 3, minWidth: 0, flex: 1 }}>
           <Stack spacing={2}>
+            {alerts?.(openSection)}
             {screen === 'module' && activeSection &&
               <Typography variant="body2" color="text.secondary" sx={{ overflowWrap: 'anywhere' }}>
                 <span lang={locale}>{t('home', 'Home')}</span> / <span lang={labels[locale][activeSection.key] ? locale : undefined}>{t(activeSection.key, activeSection.label)}</span>

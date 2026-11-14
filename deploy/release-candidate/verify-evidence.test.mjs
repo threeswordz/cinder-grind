@@ -145,3 +145,14 @@ test('DEC-044 B requires version12 and executed exact predecessor/history/HTTP/p
  for(const key of [...keys,'rollbackDocuments','restoredPreviousRuntimeAuthenticationDownload']){const bad={...data};delete bad[key];assert.notEqual(verify(bad).status,0,key);}
  assert.notEqual(verify({...data,version:11}).status,0);assert.notEqual(verify({...data,migrationNames:['20261103080000_other']}).status,0);
 });
+
+test('FM03 evidence requires exact migration, version13 and executed upgrade/HTTP/populated recovery gates',()=>{
+ const data={...evidence('migration-aware-site-issue-schema'),version:13,migrationNames:['20261114140000_fm03_site_issue_lifecycle']};
+ const keys=['siteIssueSchemaUpgrade','siteIssueHistoricalPreservation','siteIssueHttpUpgrade','siteIssuePopulatedRecovery'];
+ for(const key of keys)data[key]='PASS';
+ assert.equal(verify(data).status,0);
+ for(const key of keys){const bad={...data};delete bad[key];assert.notEqual(verify(bad).status,0,key);}
+ assert.notEqual(verify({...data,version:12}).status,0);
+ assert.notEqual(verify({...data,migrationNames:['20261114140000_unreviewed']}).status,0);
+ assert.notEqual(verify({...data,rollbackDocuments:undefined}).status,0);
+});

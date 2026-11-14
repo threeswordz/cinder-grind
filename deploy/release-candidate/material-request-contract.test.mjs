@@ -1,3 +1,4 @@
+import {stripSiteIssueSchema} from './site-issue-schema-contract.mjs';
 import {stripPlanIssueSchema} from './material-plan-issue-schema-contract.mjs';
 import {stripMaterialPlanSchema} from './material-plan-schema-contract.mjs';
 import assert from 'node:assert/strict';
@@ -9,7 +10,7 @@ import {classifySchema} from './schema-contract.mjs';
 import {stripMaterialRequestSchema,materialRequestTables,materialRequestMode} from './material-request-schema-contract.mjs';
 import {materialRequestCatalog,verifyMaterialRequestCatalog} from './material-request-catalog-contract.mjs';
 import {assertHistoricalTables} from './historical-snapshot.mjs';
-const current=stripMaterialPlanSchema(stripPlanIssueSchema(readFileSync(new URL('../../apps/api/prisma/schema.prisma',import.meta.url),'utf8')).text).text;
+const current=stripMaterialPlanSchema(stripPlanIssueSchema(stripSiteIssueSchema(readFileSync(new URL('../../apps/api/prisma/schema.prisma',import.meta.url),'utf8')).text).text).text;
 const previous=execFileSync('git',['show','3a5ae8a92083a2bd03f4159b1e84d0565e7e78ec:apps/api/prisma/schema.prisma'],{encoding:'utf8'});
 test('DEC-043 admits exactly six request/history/link/receipt/replay models, no stock source addition',()=>{
  assert.equal(classifySchema(previous,current),'migration-aware-material-request-schema');
