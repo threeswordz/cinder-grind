@@ -78,28 +78,39 @@ try{
   // Never export this setup to the Mac operator or treat it as approval proof.
   const dimensions=Object.fromEntries(['companyId','projectId','warehouseId','materialId','uomId']
     .map(k=>[k,prototypeFixture[k]]));
-  const count=await db.stockCount.create({data:{...dimensions,countedAt:new Date(),status:'APPROVED',
-    actualQuantity:'20.0000',varianceQuantity:'20.0000',expectedOnHand:'0.0000',expectedReserved:'0.0000',
-    createdByUserId:prepared.actors.STORE_SITE.userId,submittedByUserId:prepared.actors.STORE_SITE.userId,
-    decidedByUserId:prepared.actors.KHAIMOOK.userId,postKey:randomUUID()}});
-  const movement=await db.stockTransaction.create({data:{...dimensions,stockCountId:count.id,
-    movementType:'STOCK_COUNT_ADJUSTMENT',quantity:'20.0000',effectKey:'stock-count:'+count.id+':'+count.postKey,
-    postedByUserId:prepared.actors.KHAIMOOK.userId}});
+  // Count effect is a deferred DB constraint: the saved count and its single
+  // effect must be inserted in the same transaction, with full state facts.
+  const {count,movement}=await db.$transaction(async tx=>{
+    const count=await tx.stockCount.create({data:{...dimensions,countedAt:new Date(),status:'APPROVED',
+      actualQuantity:'20.0000',varianceQuantity:'20.0000',expectedOnHand:'0.0000',expectedReserved:'0.0000',
+      evidenceReference:'Disposable precondition fixture; not workflow execution evidence',
+      createdByUserId:prepared.actors.STORE_SITE.userId,submittedByUserId:prepared.actors.STORE_SITE.userId,
+      submittedAt:new Date(),decidedByUserId:prepared.actors.KHAIMOOK.userId,decidedAt:new Date(),postKey:randomUUID()}});
+    const movement=await tx.stockTransaction.create({data:{...dimensions,stockCountId:count.id,
+      movementType:'STOCK_COUNT_ADJUSTMENT',quantity:'20.0000',effectKey:'stock-count:'+count.id+':'+count.postKey,
+      postedByUserId:prepared.actors.KHAIMOOK.userId}});
+    return {count,movement};
+  });
   const stockBefore=await businessFingerprint(db),binding={sourceSha:SOURCE,actors:prepared.actors,
     fixture:prototypeFixture,initial:{stockCountId:count.id}};
   const preconditions=await inspectMaterialPreconditions(db,binding);
   assert.equal(preconditions.stockPreconditionVerified,true);assert.equal(preconditions.onHand,'20.0000');
   assert.equal(preconditions.sourceMappingVerified,false);assert.equal(preconditions.writeJourneyAuthorized,false);
   assert.equal(await businessFingerprint(db),stockBefore);
-  // Same new read-only core must fail when a real persisted quantity drifts.
-  await db.stockTransaction.update({where:{id:movement.id},data:{quantity:'19.9999'}});
-  await assert.rejects(inspectMaterialPreconditions(db,binding),e=>e.safeCode==='MATERIAL_STOCK_HISTORY_CHANGED');
-  await db.stockTransaction.update({where:{id:movement.id},data:{quantity:'20.0000'}});
+  // Existing ledger immutability stays enforced; do not disable triggers or
+  // rewrite/delete history to manufacture a test. Retain this fixture until
+  // the unique owned DB is dropped in finally.
+  await assert.rejects(db.stockTransaction.update({where:{id:movement.id},data:{quantity:'19.9999'}}),
+    e=>String(e.message).includes('Stock Transactions are append-only'));
   assert.equal(await businessFingerprint(db),stockBefore);
-  // Cleanup this seed only, before the independent existing HTTP fixture.
-  await db.stockTransaction.delete({where:{id:movement.id}});await db.stockCount.delete({where:{id:count.id}});
-  assert.equal(await businessFingerprint(db),before);
-  console.log('MATERIAL_PRECONDITIONS_NATIVE_PASS: real read-only original-stock inspection, unchanged fingerprint and persisted drift refusal. Not Mac/build custody, source approval or journey proof.');
+  // A persisted reservation changes the precondition even with on-hand 20.
+  await db.materialReservation.create({data:{...dimensions,reservationNumber:'PROTO-PREFLIGHT-DRIFT',quantity:'1.0000',
+    status:'DRAFT',createdByUserId:prepared.actors.STORE_SITE.userId}});
+  const driftBefore=await businessFingerprint(db),reservationsBefore=await db.materialReservation.findMany();
+  await assert.rejects(inspectMaterialPreconditions(db,binding),e=>e.safeCode==='MATERIAL_STOCK_HISTORY_CHANGED');
+  assert.equal(await businessFingerprint(db),driftBefore);
+  assert.deepEqual(await db.materialReservation.findMany(),reservationsBefore);
+  console.log('MATERIAL_PRECONDITIONS_NATIVE_PASS: real read-only original-stock inspection, unchanged fingerprints, ledger immutability and persisted reservation drift refusal. Not Mac/build custody, source approval or journey proof.');
   phase='REUSE_DISPOSABLE_FIXTURE';
   const {materialPlanFixture}=require('./dist/inventory/material-plan-test-fixture.js');
   const f=await materialPlanFixture(db);
