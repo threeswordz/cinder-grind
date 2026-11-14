@@ -17,7 +17,7 @@ export async function siteIssueRecovery(mode,manifestPath,databaseUrl){
  const {NestFactory}=require('@nestjs/core'),{AppModule}=require('./dist/app.module.js');
  const {ProblemDetailsFilter}=require('./dist/common/problem-details.filter.js'),{securityHeadersMiddleware}=require('./dist/common/security-headers.js');
  const app=await NestFactory.create(AppModule,{logger:false});app.setGlobalPrefix('api/v1');app.use(securityHeadersMiddleware(false));app.useGlobalFilters(new ProblemDetailsFilter());
- const sessions=new Map();
+ const sessions=new Map();let phase='DATABASE_IDENTITY';
  try{
   assert.equal((await db.$queryRawUnsafe('SELECT current_database() AS name'))[0].name,url.pathname.slice(1));
   await app.listen(0,'127.0.0.1');const api=await app.getUrl()+'/api/v1';
@@ -28,6 +28,7 @@ export async function siteIssueRecovery(mode,manifestPath,databaseUrl){
    assert.equal(r.status,status,key+' recovery HTTP '+path);
    if(r.status===204)return;return (await r.json()).data;
   }
+  phase='AUTHENTICATION';
   for(const [key,actor]of Object.entries(f.actors)){
    const r=await fetch(api+'/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:actor.email,password:actor.password})});
    assert.equal(r.status,201);const v=(await r.json()).data;assert.equal(v.user.id,actor.userId);sessions.set(key,{cookie:r.headers.get('set-cookie').split(';')[0],csrf:v.csrfToken});
@@ -35,6 +36,7 @@ export async function siteIssueRecovery(mode,manifestPath,databaseUrl){
   const report=()=>db.dailySiteReport.findUniqueOrThrow({where:{id:f.report.id},include:{issues:true}});
   const snapshot=async()=>({routing:await db.siteIssueRouting.findMany({where:{companyId:f.company.id},orderBy:{projectId:'asc'}}),issues:await db.siteIssue.findMany({where:{companyId:f.company.id},include:{events:{orderBy:{version:'asc'}}},orderBy:{id:'asc'}}),report:await report()});
   if(mode==='protect'){
+   phase='PROTECT_HISTORY';
    const original=JSON.stringify(await report());
    await call('CONFIG','/site-issues/projects/'+f.assigned.id+'/routing',{requestKey:randomUUID(),expectedVersion:0,ownerUserId:f.actors.OWNER.userId,escalationUserId:f.actors.MANAGER.userId,reason:'Explicit synthetic recovery routing'});
    const input=extra=>({requestKey:randomUUID(),projectId:f.assigned.id,reportId:f.report.id,activityId:f.activity.id,description:'Synthetic populated FM03 recovery',category:'GENERAL',affectsCostOrDelivery:false,workStopped:true,deliveryDelayRisk:false,...extra});
@@ -53,19 +55,26 @@ export async function siteIssueRecovery(mode,manifestPath,databaseUrl){
    await writeFile(manifestPath,JSON.stringify(state),{flag:'wx',mode:0o600});
    console.log('FM03_POPULATED_HISTORY_AND_PENDING_ESCALATION_PROTECTED');
   }else{
+   phase='RESTORED_BUSINESS_SNAPSHOT';
    assert.deepEqual(JSON.parse(JSON.stringify(await snapshot())),state.snapshot);
+   phase='RESTORED_AUTHENTICATED_HISTORY';
    assert.deepEqual(await call('REPORTER','/site-issues/'+state.closed),state.history);
+   phase='RESTORED_ACCESS_DENIALS';
    await call('OUTSIDER','/site-issues/'+state.closed,undefined,403);
    await call(null,'/site-issues/'+state.closed,undefined,401);
    await call('CONFIG','/site-issues/'+state.closed,undefined,403);
+   phase='RESTORED_PENDING_ESCALATION';
    const alert=await call('MANAGER','/site-issues/escalations');assert.equal(alert.total,1);assert.equal(alert.items[0].id,state.pending);
    assert.deepEqual(JSON.parse(JSON.stringify(await snapshot())),state.snapshot);
    console.log('FM03_RESTORED_HISTORY_ESCALATION_SCOPE_AND_ORIGINAL_REPORT_PASS');
   }
+  phase='UNCHANGED_BUSINESS_STATE';
   for(const model of ['stockTransaction','payment','directCostPosting','hrEmployment'])assert.equal(await db[model].count({where:{companyId:f.company.id}}),0);
+  phase='SESSION_REVOCATION';
   for(const key of sessions.keys())await call(key,'/auth/logout',{},204);
   assert.equal(await db.userSession.count({where:{userId:{in:Object.values(f.actors).map(a=>a.userId)},revokedAt:null}}),0);
- }finally{
+ }catch{throw Object.assign(new Error('FM03 recovery check failed'),{safeCode:'FM03_RECOVERY_'+phase});}
+ finally{
   // Revoke any remaining synthetic sessions even when an assertion fails.
   for(const s of sessions.values())await db.userSession.updateMany({where:{tokenHash:createHash('sha256').update(decodeURIComponent(s.cookie.split('=').slice(1).join('='))).digest('hex'),revokedAt:null},data:{revokedAt:new Date()}}).catch(()=>{});
   try{await app.close();}finally{await db.$disconnect();}
@@ -76,5 +85,5 @@ if(process.argv[1]&&import.meta.url===pathToFileURL(resolve(process.argv[1])).hr
  assert.equal(process.env.GITHUB_ACTIONS,'true');assert.equal(process.env.RC_NON_PRODUCTION_CONFIRMED,'YES');assert.equal(process.env.SITE_ISSUE_SCHEMA_UPGRADE,'YES');
  assert.match(url.pathname,/^\/construction_erp_v10e_(?:upgrade|hrrestore)_[a-f0-9]{12}$/);
  assert.match(manifest??'',/^\/tmp\/construction-erp-v10e-migration\.[^/]+\/site-issue-protected\.json$/);
- try{await siteIssueRecovery(mode,manifest,url.href);}catch{console.error('FM03_POPULATED_RECOVERY_FAILED');process.exitCode=1;}
+ try{await siteIssueRecovery(mode,manifest,url.href);}catch(e){console.error(/^FM03_RECOVERY_[A-Z_]+$/.test(e.safeCode??'')?e.safeCode:'FM03_POPULATED_RECOVERY_FAILED');process.exitCode=1;}
 }

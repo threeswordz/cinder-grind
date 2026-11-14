@@ -82,6 +82,9 @@ test('FM03 actual authenticated HTTP enforces lifecycle, severity, scope, immuta
       assert.equal(detail.reporterUserId, f.actors.REPORTER.userId);
       assert.equal(detail.ownerUserId, f.actors.OWNER.userId);
       assert.equal(detail.version, 1); assert.ok(detail.escalatedAt);
+      // Public detail must remain identical across restored database query plans.
+      assert.deepEqual(detail.people.map((p: { id: string }) => p.id),
+        [f.actors.REPORTER.userId, f.actors.OWNER.userId, f.actors.MANAGER.userId].sort());
       assert.doesNotMatch(JSON.stringify(detail), /passwordHash|csrfTokenHash|accountNumber/);
     });
     await t.test('assigned owner follow-up, own Foreman recheck and final closure retain rejected and successful verification', async () => {

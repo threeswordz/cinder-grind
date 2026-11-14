@@ -162,7 +162,7 @@ export class SiteIssueService {
         orderBy: { version: 'desc' }, take: 101, select: { id: true, version: true, action: true, status: true,
           note: true, facts: true, recordedAt: true, actor: { select: { id: true, displayName: true } } } });
       const people = await tx.user.findMany({ where: { companyId: a.companyId, id: { in: [issue.reporterUserId, issue.ownerUserId, issue.escalationUserId] } },
-        select: { id: true, displayName: true } });
+        select: { id: true, displayName: true }, orderBy: { id: 'asc' } });
       return { ...issue, people, events: events.slice(0, 100), nextBeforeVersion: events.length > 100 ? events[99]!.version : null };
     });
   }
