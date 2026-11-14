@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {randomUUID} from 'node:crypto';
 import {SOURCE} from '../uat/prototype-actors.mjs';
-import {validMaterialUiBinding,materialUiAllowedRequest,verifyMaterialUiRevision,materialUiRevision,UI_NOTE,UI_REASON} from '../uat/prototype-material-ui.mjs';
+import {validMaterialUiBinding,materialUiAllowedRequest,verifyMaterialUiRevision,verifyMaterialUiForemanReadback,materialUiRevision,UI_NOTE,UI_REASON} from '../uat/prototype-material-ui.mjs';
 import {validMaterialRunReceipt,MATERIAL_MAIN,verifyMaterialUiPreservation} from '../uat/prototype-material-ui-state.mjs';
 import {toolingOnly,operator} from '../uat/prototype-material-ui-operator.mjs';
 
@@ -69,6 +69,24 @@ test('observed UI revision must preserve signed evidence, old revisions and ever
     a=>a.lines[0].issueLinks[0].receipts[0].documentId=randomUUID(),a=>a.revisions[0].reason='OVERWRITTEN',
     a=>a.revisions[1].reason='UNRELATED',a=>a.revisions[1].action='ACKNOWLEDGE']){
     const a=structuredClone(t.after);change(a);assert.throws(()=>verifyMaterialUiRevision(t.before,a,t.b));
+  }
+});
+test('Foreman sees the same retained revision with issue-source and Document identifiers masked',()=>{
+  const {after:store}=fixture(),link=store.lines[0].issueLinks[0];
+  link.issue={id:randomUUID(),issueNumber:'SYNTHETIC',reversedAt:'2026-11-14T00:00:00.000Z'};
+  link.materialIssueItemId=randomUUID();link.receipts[0].evidenceChecksum='a'.repeat(64);
+  const foreman=structuredClone(store),visible=foreman.lines[0].issueLinks[0];
+  visible.issue=null;visible.materialIssueItemId=null;visible.receipts[0].documentId=null;visible.receipts[0].evidenceChecksum=null;
+  const original=structuredClone(store);
+  verifyMaterialUiForemanReadback(store,foreman);assert.deepEqual(store,original);
+  for(const change of [r=>r.lines[0].issueLinks[0].issue=link.issue,
+    r=>r.lines[0].issueLinks[0].materialIssueItemId=link.materialIssueItemId,
+    r=>r.lines[0].issueLinks[0].receipts[0].documentId=link.receipts[0].documentId,
+    r=>r.lines[0].issueLinks[0].receipts[0].evidenceChecksum=link.receipts[0].evidenceChecksum,
+    r=>r.lines[0].requestedQuantity='9.0000',r=>r.version++,r=>r.revisions.shift(),
+    r=>r.lines[0].issueLinks[0].receipts[0].reason='CHANGED']){
+    const changed=structuredClone(foreman);change(changed);
+    assert.throws(()=>verifyMaterialUiForemanReadback(store,changed),e=>e.safeCode==='MATERIAL_UI_FOREMAN_READBACK_CHANGED');
   }
 });
 test('the exact completed Mac API receipt is required, and it cannot claim subsequent milestones',()=>{

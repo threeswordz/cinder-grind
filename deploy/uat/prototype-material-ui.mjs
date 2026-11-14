@@ -68,6 +68,17 @@ export function verifyMaterialUiRevision(before,after,b){
     added[0].action==='REVISE'&&added[0].version===after.version&&added[0].reason===UI_REASON&&
     added[0].facts.remarks===UI_NOTE,'MATERIAL_UI_REVISION_HISTORY_CHANGED');
 }
+export function verifyMaterialUiForemanReadback(store,foreman){
+  // Existing MaterialRequestService.present deliberately hides issue-source
+  // and protected Document references from this unchanged read-only role.
+  // Compare every other retained fact and require those fields to be null.
+  const expected=structuredClone(store);
+  for(const line of expected.lines)for(const link of line.issueLinks){
+    link.issue=null;link.materialIssueItemId=null;
+    for(const receipt of link.receipts){receipt.documentId=null;receipt.evidenceChecksum=null;}
+  }
+  demand(same(foreman,expected),'MATERIAL_UI_FOREMAN_READBACK_CHANGED');
+}
 async function evaluate(p,session,fn,arg){
   const r=await p.send('Runtime.evaluate',{expression:'('+fn.toString()+')('+JSON.stringify(arg)+')',awaitPromise:true,returnByValue:true},session);
   demand(!r.exceptionDetails&&r.result?.type!=='error','MATERIAL_UI_PAGE_EVALUATION_FAILED');return r.result.value;
@@ -156,7 +167,7 @@ export async function materialUiRevision(protocol,binding){
           after=await readRequest(p,session,b);verifyMaterialUiRevision(before,after,b);
           observations.push({actor:key,check:'ACTUAL_REACT_REQUEST_REVISION_RETAINED_SIGNED_HISTORY',passed:true});
         }else{
-          const observed=await readRequest(p,session,b);demand(same(observed,after),'MATERIAL_UI_FOREMAN_READBACK_CHANGED');
+          const observed=await readRequest(p,session,b);verifyMaterialUiForemanReadback(after,observed);
           demand(await evaluate(p,session,reason=>document.querySelector('main')?.textContent.includes(reason)&&
             ![...document.querySelectorAll('main button')].some(e=>e.textContent==='Revise request'),UI_REASON),'MATERIAL_UI_FOREMAN_EDIT_EXPOSED');
           observations.push({actor:key,check:'REVISED_REQUEST_VISIBLE_WITHOUT_EDIT_RIGHT',passed:true});
