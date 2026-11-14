@@ -16,7 +16,8 @@ test('FM03 actual authenticated HTTP enforces lifecycle, severity, scope, immuta
   const target = new URL(process.env.DATABASE_URL ?? '');
   assert.equal(process.platform, 'linux');
   assert.ok(['localhost', '127.0.0.1'].includes(target.hostname));
-  assert.match(target.pathname, /^\/(?:construction_erp|fm03_[a-f0-9]{32}|construction_erp_v10e_(?:upgrade|hrrestore)_[a-f0-9]{12})$/);
+  assert.ok(target.pathname === '/erp_validation' && target.username === 'erp_validation' ||
+    /^\/(?:construction_erp|fm03_[a-f0-9]{32}|construction_erp_v10e_(?:upgrade|hrrestore)_[a-f0-9]{12})$/.test(target.pathname));
   const storage = await mkdtemp(join(tmpdir(), 'fm03-http-')), oldStorage = process.env.STORAGE_ROOT;
   process.env.STORAGE_ROOT = storage;
   const db = new PrismaService(); await db.$connect();

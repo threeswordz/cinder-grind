@@ -175,6 +175,13 @@ export function SiteIssuesPanel({ user, initialLink }: { user: CurrentUser; init
           {current ? <Card variant="outlined"><CardContent><Stack spacing={1}>
             <Typography variant="h6">{current.description}</Typography>
             <Chip label={text(current.status)}/>
+            <Typography>{t.category}: {text('category_' + current.category)}</Typography>
+            <Stack direction="row" spacing={1} flexWrap="wrap">
+              {current.affectsCostOrDelivery ? <Chip label={t.affects}/> : null}
+              {current.workStopped ? <Chip label={t.stopped} color="warning"/> : null}
+              {current.deliveryDelayRisk ? <Chip label={t.delay} color="warning"/> : null}
+            </Stack>
+            {current.assetSeverity ? <Typography>{t.assetAssessment}: {text(current.assetSeverity)}</Typography> : null}
             <Typography>{t.reporter}: {label(current.reporterUserId)} · {t.owner}: {label(current.ownerUserId)}</Typography>
             <Typography>{t.recipient}: {label(current.escalationUserId)}</Typography>
             {current.escalatedAt ? <Alert severity="warning">{t.escalated} · {new Date(current.escalatedAt).toLocaleString()}</Alert> : null}
