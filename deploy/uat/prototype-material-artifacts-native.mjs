@@ -22,6 +22,9 @@ async function native(){
     await run('git',['clone','--shared','--no-checkout',root,checkout],root);
     await run('git',['checkout','--detach',SOURCE],checkout);
     for(const sub of ['','apps/api','apps/web'])await symlink(join(root,sub,'node_modules'),join(checkout,sub,'node_modules'),'dir');
+    // Directory-only node_modules/ ignores do not match symlinks in Git.
+    // Exclude only this clone's three injected dependency links, never source.
+    await appendFile(join(checkout,'.git/info/exclude'),'\n/node_modules\n/apps/api/node_modules\n/apps/web/node_modules\n');
     const requireApi=createRequire(join(checkout,'apps/api/package.json')),requireWeb=createRequire(join(checkout,'apps/web/package.json'));
     await run(process.execPath,[requireApi.resolve('typescript/bin/tsc'),'-p','tsconfig.build.json'],join(checkout,'apps/api'));
     await run(process.execPath,[join(requireWeb.resolve('vite/package.json'),'../bin/vite.js'),'build'],join(checkout,'apps/web'),

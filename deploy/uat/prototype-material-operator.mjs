@@ -9,8 +9,6 @@ import {execFile} from 'node:child_process';
 import {promisify} from 'node:util';
 import {SOURCE,API,WEB,validReady,validConfig,validContainer,privateFile,safeEnvironment,isEntry} from './prototype-actors.mjs';
 import {validActorReceipt,validPrivateActors,businessFingerprint} from './prototype-browser-operator.mjs';
-import {inspectMaterialConfiguration} from './prototype-material-configuration.mjs';
-import {inspectMaterialPreconditions} from './prototype-material-preconditions.mjs';
 import {verifyMaterialArtifacts} from './prototype-material-artifacts.mjs';
 import {planMaterialConfiguration,applyMaterialConfiguration} from './prototype-material-configure.mjs';
 import {executeMaterialRun} from './prototype-material-run.mjs';
@@ -165,9 +163,9 @@ async function preflight(mode){
         /^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/.test(selected.documentTypeId??''),'MATERIAL_DOCUMENT_TYPE_SELECTION_INVALID');
       binding.documentTypeId=selected.documentTypeId;
     }catch(e){if(e.code!=='ENOENT')throw e;}
-    const configuration=await inspectMaterialConfiguration(db,binding),
-      preconditions=await inspectMaterialPreconditions(db,binding);
-    const delta=await planMaterialConfiguration(db,binding);
+    const delta=await planMaterialConfiguration(db,binding),
+      configuration={...delta.configuration,readOnlyTransactionVerified:true},
+      preconditions={...delta.preconditions,readOnlyTransactionVerified:true};
     if(mode==='--execute'){
       // Same invocation re-establishes target/build/process/schema and the
       // original receipt state. A previous --plan receipt never authorizes this.
