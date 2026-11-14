@@ -103,3 +103,34 @@ test('new operator accepts only reviewed tool paths and exact Owner governance b
   let calls=0;await assert.rejects(materialUiRevision({send:()=>{calls++;}},{sourceSha:'bad'}),e=>e.safeCode==='MATERIAL_UI_BINDING_INVALID');
   assert.equal(calls,0);
 });
+test('session cleanup failure preserves the original UI failure and still disposes the context',async()=>{
+  const {b}=fixture(),calls=[];
+  const primary=Object.assign(new Error('PRIVATE_PROTOCOL_DETAIL'),{safeCode:'BROWSER_PROTOCOL_COMMAND_FAILED'});
+  const protocol={listeners:new Set(),send:async(method)=>{
+    calls.push(method);
+    if(method==='Target.createBrowserContext')return {browserContextId:'owned-context'};
+    if(method==='Target.createTarget')return {targetId:'owned-target'};
+    if(method==='Target.attachToTarget')return {sessionId:'owned-session'};
+    if(method==='Page.navigate')throw primary;
+    if(method==='Runtime.evaluate')throw Object.assign(new Error(),{safeCode:'BROWSER_PROTOCOL_COMMAND_FAILED'});
+    return {};
+  }};
+  await assert.rejects(materialUiRevision(protocol,b),e=>e===primary&&e.safeCode==='BROWSER_PROTOCOL_COMMAND_FAILED'&&e.cleanupFailed===true);
+  assert.equal(calls.filter(m=>m==='Target.disposeBrowserContext').length,1);
+  assert.equal(protocol.listeners.size,0);
+});
+test('a failed context disposal also preserves the original failure and attempts final cleanup',async()=>{
+  const {b}=fixture(),calls=[];
+  const primary=Object.assign(new Error(),{safeCode:'BROWSER_PROTOCOL_COMMAND_FAILED'});
+  const protocol={listeners:new Set(),send:async(method)=>{
+    calls.push(method);
+    if(method==='Target.createBrowserContext')return {browserContextId:'owned-context'};
+    if(method==='Target.createTarget')return {targetId:'owned-target'};
+    if(method==='Target.attachToTarget')return {sessionId:'owned-session'};
+    if(['Page.navigate','Runtime.evaluate','Target.disposeBrowserContext'].includes(method))throw primary;
+    return {};
+  }};
+  await assert.rejects(materialUiRevision(protocol,b),e=>e===primary&&e.safeCode==='BROWSER_PROTOCOL_COMMAND_FAILED'&&e.cleanupFailed===true);
+  assert.equal(calls.filter(m=>m==='Target.disposeBrowserContext').length,2);
+  assert.equal(protocol.listeners.size,0);
+});

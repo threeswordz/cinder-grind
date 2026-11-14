@@ -85,14 +85,14 @@ async function readRequest(p,s,b){
 }
 export async function materialUiRevision(protocol,binding){
   const b=structuredClone(binding);demand(validMaterialUiBinding(b),'MATERIAL_UI_BINDING_INVALID');
-  const p=protocol,observations=[],violations=[],contexts=new Set(),sessions=new Map();let before,after;
+  const p=protocol,observations=[],violations=[],contexts=new Set(),sessions=new Map(),closingSessions=new Set();let before,after;
   const intercept=event=>{
     if(event.method!=='Fetch.requestPaused')return;
     const actor=sessions.get(event.sessionId),{requestId,request}=event.params;
     const allowed=actor&&materialUiAllowedRequest(request,b,actor,before);
     if(!allowed)violations.push('MATERIAL_UI_REQUEST_REFUSED');
     p.send(allowed?'Fetch.continueRequest':'Fetch.failRequest',allowed?{requestId}:{requestId,errorReason:'BlockedByClient'},event.sessionId)
-      .catch(()=>violations.push('MATERIAL_UI_INTERCEPTION_FAILED'));
+      .catch(()=>{if(!closingSessions.has(event.sessionId))violations.push('MATERIAL_UI_INTERCEPTION_FAILED');});
   };
   p.listeners.add(intercept);
   try{
@@ -163,6 +163,7 @@ export async function materialUiRevision(protocol,binding){
         }
       }catch(e){primary=e;throw e;}
       finally{
+        let cleanupError;
         try{if(session){
           const revoked=await evaluate(p,session,async api=>{
             const me=await fetch(api+'/auth/me',{credentials:'include',redirect:'error'});if(me.status===401)return true;
@@ -171,8 +172,12 @@ export async function materialUiRevision(protocol,binding){
             const r=await fetch(api+'/auth/logout',{method:'POST',credentials:'include',redirect:'error',headers:{'X-CSRF-Token':token}});
             return r.status===204&&(await fetch(api+'/auth/me',{credentials:'include',redirect:'error'})).status===401;
           },b.api);demand(revoked,'MATERIAL_UI_SESSION_REVOCATION_FAILED');
-        }}catch{if(primary)primary.safeCode='MATERIAL_UI_SESSION_REVOCATION_FAILED';else throw Object.assign(new Error(),{safeCode:'MATERIAL_UI_SESSION_REVOCATION_FAILED'});}
-        finally{await p.send('Target.disposeBrowserContext',{browserContextId});contexts.delete(browserContextId);if(session)sessions.delete(session);}
+        }}catch{cleanupError=Object.assign(new Error(),{safeCode:'MATERIAL_UI_SESSION_REVOCATION_FAILED'});}
+        if(session)closingSessions.add(session);
+        try{await p.send('Target.disposeBrowserContext',{browserContextId});contexts.delete(browserContextId);}
+        catch{cleanupError??=Object.assign(new Error(),{safeCode:'MATERIAL_UI_CONTEXT_CLEANUP_FAILED'});}
+        finally{if(session)sessions.delete(session);}
+        if(cleanupError){if(primary)primary.cleanupFailed=true;else throw cleanupError;}
       }
       demand(violations.length===0,'MATERIAL_UI_UNDECLARED_REQUEST');
     }

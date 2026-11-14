@@ -76,8 +76,23 @@ async function native(){
     phase='AUTHENTICATED_API_JOURNEY';
     const {NestFactory}=require('@nestjs/core'),{AppModule}=require('./dist/app.module.js'),
       {securityHeadersMiddleware}=require('./dist/common/security-headers.js'),{ProblemDetailsFilter}=require('./dist/common/problem-details.filter.js');
+    const {corsOriginPolicy}=require('./dist/common/cors-origin.js');
     app=await NestFactory.create(AppModule,{logger:false});app.setGlobalPrefix('api/v1');
+    // Browser runs on the separate owned web origin. Reuse the production
+    // origin policy and credentials setting; Node fetch alone cannot prove it.
+    app.enableCors({origin:corsOriginPolicy(env.WEB_ORIGIN),credentials:true,
+      methods:['GET','POST','PATCH','PUT','DELETE','OPTIONS']});
     app.use(securityHeadersMiddleware(false));app.useGlobalFilters(new ProblemDetailsFilter());await app.listen(31319,'127.0.0.1');
+    phase='BROWSER_CORS_CONTRACT';
+    const cors=await fetch('http://127.0.0.1:31319/api/v1/auth/me',{headers:{Origin:env.WEB_ORIGIN}});
+    assert.equal(cors.status,401);assert.equal(cors.headers.get('access-control-allow-origin'),env.WEB_ORIGIN);
+    assert.equal(cors.headers.get('access-control-allow-credentials'),'true');
+    const preflight=await fetch('http://127.0.0.1:31319/api/v1/auth/login',{method:'OPTIONS',
+      headers:{Origin:env.WEB_ORIGIN,'Access-Control-Request-Method':'POST','Access-Control-Request-Headers':'content-type'}});
+    assert.equal(preflight.status,204);assert.equal(preflight.headers.get('access-control-allow-origin'),env.WEB_ORIGIN);
+    const foreign=await fetch('http://127.0.0.1:31319/api/v1/auth/me',{headers:{Origin:'https://example.invalid'}});
+    assert.equal(foreign.headers.get('access-control-allow-origin'),null);
+    phase='AUTHENTICATED_API_JOURNEY';
     const receipts=new Map();
     const result=await executeMaterialRun(db,binding,configuration,{api:'http://127.0.0.1:31319/api/v1',web:env.WEB_ORIGIN},
       async(key,value)=>{assert.equal(receipts.has(key),false);receipts.set(key,value);});
@@ -119,7 +134,8 @@ async function native(){
     assert.equal(await db.stockTransaction.count(),5);assert.equal(await db.document.count(),1);
     console.log('MATERIAL_UI_NATIVE_PASS: real built React/MUI request revision on retained API-run records, Foreman read-only view, unchanged stock/Finance/grants, preserved signed history and revoked browser sessions. No repeated API stock cycle or full role/UI/recovery/freeze claim.');
   }catch(e){
-    console.error('MATERIAL_RUN_NATIVE_FAILED: '+phase+' '+(/^[A-Z0-9_]+$/.test(e.safeCode??'')?e.safeCode:'NATIVE_ASSERTION_OR_SETUP_FAILED'));
+    console.error('MATERIAL_RUN_NATIVE_FAILED: '+phase+' '+(/^[A-Z0-9_]+$/.test(e.safeCode??'')?e.safeCode:'NATIVE_ASSERTION_OR_SETUP_FAILED')+
+      (e.cleanupFailed===true?' CLEANUP_ALSO_FAILED':''));
     process.exitCode=1;
   }finally{
     try{if(browser)await browser.stop();}finally{try{if(webServer)await new Promise(resolve=>webServer.close(resolve));}finally{try{if(app)await app.close();}finally{
