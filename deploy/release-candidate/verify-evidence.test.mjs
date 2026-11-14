@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -155,4 +155,28 @@ test('FM03 evidence requires exact migration, version13 and executed upgrade/HTT
  assert.notEqual(verify({...data,version:12}).status,0);
  assert.notEqual(verify({...data,migrationNames:['20261114140000_unreviewed']}).status,0);
  assert.notEqual(verify({...data,rollbackDocuments:undefined}).status,0);
+});
+
+test('FM03 wrapper before historical predecessor checks remains mandatory in consolidated CI', async () => {
+  const workflow = readFileSync(new URL('../../.github/workflows/validate.yml', import.meta.url), 'utf8');
+  const evidenceStep = workflow.split('- name: Verify V1.0-E consolidated technical evidence')[1];
+  assert.ok(evidenceStep, 'Consolidated evidence step must exist');
+  assert.equal((evidenceStep.match(/siteIssueMode\\(data\\.releaseMode\\)\\.prior/g) ?? []).length, 5,
+    'Five exact historical predecessor assertions must peel the FM03 schema wrapper');
+  const { siteIssueMode } = await import('./site-issue-schema-contract.mjs');
+  const { materialPlanMode } = await import('./material-plan-schema-contract.mjs');
+  const { materialRequestMode } = await import('./material-request-schema-contract.mjs');
+  const { planIssueMode } = await import('./material-plan-issue-schema-contract.mjs');
+  const prefixed = suffix => 'migration-aware-site-issue-' + suffix;
+  const customer = materialRequestMode(materialPlanMode(siteIssueMode(prefixed(
+    'plan-issue-material-plan-material-request-stock-count-hr-document-customer-boq-schema')).prior).prior).prior;
+  assert.equal(customer, 'migration-aware-stock-count-hr-document-customer-boq-schema');
+  const hr = materialRequestMode(materialPlanMode(siteIssueMode(prefixed(
+    'plan-issue-material-plan-material-request-stock-count-hr-document-hr-schema')).prior).prior).prior;
+  assert.equal(hr, 'migration-aware-stock-count-hr-document-hr-schema');
+  assert.equal(materialPlanMode(siteIssueMode(prefixed(
+    'plan-issue-material-plan-material-request-schema')).prior).prior, 'migration-aware-material-request-schema');
+  assert.equal(planIssueMode(siteIssueMode(prefixed(
+    'plan-issue-material-plan-schema')).prior).prior, 'migration-aware-material-plan-schema');
+  assert.equal(siteIssueMode(prefixed('plan-issue-schema')).prior, 'migration-aware-plan-issue-schema');
 });
