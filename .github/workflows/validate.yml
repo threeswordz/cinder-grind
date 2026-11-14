@@ -373,7 +373,10 @@ jobs:
       - name: Verify synthetic actors and actual authenticated browser on isolated PostgreSQL
         run: node deploy/uat/prototype-actors-native.mjs
       - name: Verify bounded material HTTP compatibility on unique disposable PostgreSQL
-        run: node deploy/uat/prototype-material-http-native.mjs
+        run: |
+          node deploy/uat/prototype-material-http-native.mjs
+          node deploy/uat/prototype-material-run-native.mjs
+          node deploy/uat/prototype-material-artifacts-native.mjs
       - name: Verify Budget availability in a real disposable browser
         run: |
           node deploy/uat/budget-presence-browser.mjs

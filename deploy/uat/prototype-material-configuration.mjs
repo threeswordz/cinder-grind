@@ -47,6 +47,16 @@ export async function inspectMaterialConfiguration(db,binding){
     await tx.$executeRawUnsafe('SET TRANSACTION READ ONLY');
     const settings=await tx.$queryRawUnsafe("SELECT current_setting('transaction_read_only') AS mode");
     demand(settings.length===1&&settings[0].mode==='on','MATERIAL_CONFIG_READ_ONLY_REQUIRED');
+    return {...await inspectMaterialConfigurationState(tx,b),readOnlyTransactionVerified:true};
+  },{isolationLevel:'RepeatableRead',timeout:30000});
+}
+
+// Shared state rules; caller owns the transaction and its access mode.
+export async function inspectMaterialConfigurationState(tx,binding){
+  const b=structuredClone(binding),f=b?.fixture,a=b?.actors;
+  demand(b?.sourceSha===SOURCE&&validPrivateActors({sourceSha:b.sourceSha,actors:a})&&
+    ['companyId','adminUserId','foreignCompanyId','projectId','unassignedProjectId','foreignProjectId',
+      'uomId','materialId','warehouseId'].every(k=>uuid(f?.[k])),'MATERIAL_CONFIG_BINDING_INVALID');
     await populatedIdentity(tx,a,f);
     const employees=await tx.employee.findMany({select:{id:true,companyId:true,isActive:true}}),
       members=await tx.projectMember.findMany({select:{employeeId:true,projectId:true,isActive:true}});
@@ -85,7 +95,7 @@ export async function inspectMaterialConfiguration(db,binding){
     demand(!sequence||(sequence.entityType==='MATERIAL_ISSUE'&&sequence.formatTemplate==='MIYYMM-###'&&sequence.resetRule==='MONTHLY'),
       'MATERIAL_CONFIG_NUMBER_SEQUENCE_CONFLICT');
     return {purpose:'SYNTHETIC_MATERIAL_CONFIGURATION_SNAPSHOT_ONLY',sourceSha:SOURCE,
-      status:'MATERIAL_CONFIGURATION_INSPECTED',readOnlyTransactionVerified:true,configurationApplied:false,
+      status:'MATERIAL_CONFIGURATION_INSPECTED',configurationApplied:false,
       roleDeltas:deltas,approvedSourceRevisions:approvedSources,
       sourceMapping:approvedSources?'EXPLICIT_MAPPING_AND_APPROVAL_PROVENANCE_REQUIRED':'SOURCE_PREPARATION_REQUIRED',
       matchingOverageWorkflows:overage,matchingSourceWorkflows:source,activeDocumentTypes:documentTypes,
@@ -96,5 +106,4 @@ export async function inspectMaterialConfiguration(db,binding){
       fullBusinessRoleMatrixVerified:false,fullAuthenticatedBrowserJourneysVerified:false,
       populatedRecoveryVerified:false,prototypeFrozen:false,humanUatCompleted:false,productionAuthorized:false,
       secretsPrinted:false};
-  },{isolationLevel:'RepeatableRead',timeout:30000});
 }

@@ -47,3 +47,57 @@ The companion `prototype-material-configuration.mjs` supplies the **read-only co
 The old operator `toolingOnly()` allowlists remain unchanged. This new module/report/native helper, #340's instrumentation and #339's test-only API-source delta must be reconciled by the new operator's provenance check rather than widening or rerunning an old operator.
 
 **No milestone closure:** prototype remains 4/8, full Production GL 3/10. Retained MKE/TCJ changes, new Accounting/payroll/#245, Production deployment and human acceptance remain outside this increment.
+
+## 14 November continuation — execute the missing boundary
+
+Owner direction: stop repeating completed tests/checks and finish the eight
+prototype milestones. Existing startup, actor provisioning and initial browser
+receipts remain immutable. This continuation implements the missing deployed
+API execution path; it does not add another business feature or certify the
+whole workflow milestone.
+
+- `prototype-material-artifacts.mjs` compares **every API and web emitted filename
+  and byte** with fresh output from the unchanged pinned checkout. Both compilers
+  write only to an invocation-owned temporary directory; no in-place rebuild,
+  restart, migration or database access. Unexpected files, symlinks, writable or
+  multiply linked files, source/output drift and loaded production dotenv files
+  block. Exact compiler versions are required. This is file-byte evidence, not
+  process-memory or renewed dependency-installation attestation.
+- `prototype-material-configure.mjs` reuses the existing identity/grant/stock
+  state rules **inside its serializable write transaction**, compares an exact
+  before-state digest, adds missing synthetic capabilities only, reuses a unique
+  compatible workflow/sequence or creates a missing one, and records a create-once
+  audit marker. Conflicting workflows/sequences, ambiguous or private Document
+  types, prior configuration and unexpected existing source drafts block. No
+  business approval, policy enablement, source, issue or stock is created here.
+- `prototype-material-source.mjs` creates a missing explicit ten-unit synthetic
+  Cost BOQ using only bounded existing authenticated HTTP routes: Ben creates and
+  submits; Khaimook approves. Existing approved source requires the private exact
+  mapping/provenance; an existing unmapped BOQ is never rebuilt or guessed.
+- `prototype-material-journey.mjs` / `prototype-material-run.mjs` compose the same
+  existing APIs for Store plan → independent Khaimook approval → three-unit direct
+  issue → protected receipt bytes/acknowledgment → four-unit overage with Khaimook
+  review then Ben approval → both canonical reversals. Expected source-ledger
+  arithmetic is 20→17→13→20 with retained signed history and no Finance changes.
+  Actual authenticated API sessions are revoked on success/failure; partial
+  observations remain private. No initial 123-HTTP/126-browser suite is replayed.
+- The Mac coordinator has a reviewed-main-gated `--execute` branch. The initial
+  receipts, original count and private credentials are read, never reprovisioned.
+  It re-establishes custody in the executing invocation, creates no-overwrite
+  private start/configuration/journey/session receipts and refuses any rerun
+  after a partial start. A previous plan is never execution authority. Failed
+  writes are reported as potentially applied, never falsely unchanged.
+
+`--execute` is **not ready for Owner handoff** until this exact implementation's
+native CI, independent DEC-022 review, governed integration and exact-main CI
+finish. Current local verification covers changed helper rules only. The new
+unique-DB native coordinator and pinned-source fresh-output native harness are
+registered in the existing CI step; results must be inspected before claiming
+native execution success. Previous-head green CI does not certify this change.
+
+Actual React/MUI write interaction remains separate: this implementation must
+report `actualUiJourneyVerified: false`. Actual Mac execution, other required
+workflow mappings, ordinary/HR file-byte proof, populated separate recovery,
+112-ID gap delivery/disposition and final audit/freeze remain open. No milestone
+is closed by writing this code. Human UAT remains deferred to the frozen
+prototype; Production and retained MKE/TCJ activation remain unauthorized.

@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-// #338 read-only Mac plan. Never starts actors/browser or applies configuration.
+// #338 guarded Mac material follow-up. Preserves initial runtime/actor/browser receipts.
 import {homedir} from 'node:os';
 import {join} from 'node:path';
-import {lstat,realpath,readFile,readdir} from 'node:fs/promises';
+import {lstat,realpath,readFile,readdir,open} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import {createRequire} from 'node:module';
 import {execFile} from 'node:child_process';
@@ -11,21 +11,25 @@ import {SOURCE,API,WEB,validReady,validConfig,validContainer,privateFile,safeEnv
 import {validActorReceipt,validPrivateActors,businessFingerprint} from './prototype-browser-operator.mjs';
 import {inspectMaterialConfiguration} from './prototype-material-configuration.mjs';
 import {inspectMaterialPreconditions} from './prototype-material-preconditions.mjs';
+import {verifyMaterialArtifacts} from './prototype-material-artifacts.mjs';
+import {planMaterialConfiguration,applyMaterialConfiguration} from './prototype-material-configure.mjs';
+import {executeMaterialRun} from './prototype-material-run.mjs';
 
 const PREDECESSOR='76295ef9ecc3ada2dca2549cf514f3fbdc6a634b';
 const modules=['prototype-material-operator.mjs','prototype-material-preconditions.mjs',
-  'prototype-material-configuration.mjs','prototype-actors.mjs','prototype-browser-operator.mjs',
+  'prototype-material-configuration.mjs','prototype-material-artifacts.mjs','prototype-material-configure.mjs',
+  'prototype-material-source.mjs','prototype-material-journey.mjs','prototype-material-run.mjs','prototype-material-http.mjs','prototype-actors.mjs','prototype-browser-operator.mjs',
   'prototype-browser.mjs','prototype-browser-executable.mjs'].map(x=>'deploy/uat/'+x);
 const allowed=new Set([
   '.github/workflows/validate.yml','docs/CURRENT-STATE.md',
   'deploy/uat/prototype-runtime-operator.mjs','deploy/uat/prototype-actors.mjs',
   'deploy/uat/prototype-actors-native.mjs','deploy/uat/prototype-browser.mjs',
   'deploy/uat/prototype-browser-operator.mjs','deploy/uat/prototype-browser-executable.mjs',
-  'deploy/uat/prototype-material-http.mjs','deploy/uat/prototype-material-http-native.mjs',
+  'deploy/uat/prototype-material-http.mjs','deploy/uat/prototype-material-http-native.mjs','deploy/uat/prototype-material-run-native.mjs','deploy/uat/prototype-material-artifacts-native.mjs',
   'deploy/uat/prototype-material-configuration.mjs','deploy/uat/prototype-material-preconditions.mjs',
-  'deploy/uat/prototype-material-operator.mjs',
+  ...['operator','artifacts','configure','source','journey','run'].map(x=>'deploy/uat/prototype-material-'+x+'.mjs'),
   ...['prototype-runtime-operator','prototype-actors','prototype-browser','prototype-browser-executable',
-    'prototype-material-http','prototype-material-configuration','prototype-material-preconditions','prototype-material-operator']
+    'prototype-material-artifacts','prototype-material-configure','prototype-material-source','prototype-material-journey','prototype-material-run','prototype-material-http','prototype-material-configuration','prototype-material-preconditions','prototype-material-operator']
     .map(x=>'deploy/release-candidate/'+x+'.test.mjs'),
   ...['PROTOTYPE-RUNTIME-OPERATOR','PROTOTYPE-ACTOR-OPERATOR','PROTOTYPE-BROWSER-OPERATOR',
     'PROTOTYPE-MATERIAL-HTTP-BOUNDARY'].map(x=>'docs/'+x+'.md'),
@@ -65,14 +69,19 @@ export function validBrowserProof(r,e){
     e.browserChecks===126&&e.observations?.length===126&&e.observations.every(o=>o.passed===true)&&
     /^[a-f0-9]{64}$/.test(e.businessFingerprint??'');
 }
-async function preflight(){
+async function exclusive(path,value){
+  const file=await open(path,'wx',0o600);
+  try{await file.writeFile(JSON.stringify(value,null,2)+'\n');}finally{await file.close();}
+}
+async function preflight(mode){
   demand(process.platform==='darwin'&&process.getuid()>0,'NONROOT_MAC_OPERATOR_REQUIRED');
   demand(process.versions.node==='24.21.0','NODE_24_21_0_REQUIRED');
   demand(!Object.keys(process.env).some(k=>/^PRISMA_|^NODE_OPTIONS$|^NODE_PATH$/.test(k)),'INHERITED_RUNTIME_OVERRIDE_REFUSED');
   const home=homedir(),checkout=join(home,'Construction-ERP-Prototype-Checkout'),root=join(home,'Construction-ERP-Prototype-Runtime');
   await directory(home);await directory(checkout);await directory(root,true);
   for(const sub of ['db','documents','hrkeys','logs','uploads'])await directory(join(root,sub),true);
-  for(const file of ['material-started.json','material-ready.json','material-evidence-private.json','material-configuration-started.json']){
+  for(const file of ['material-started.json','material-ready.json','material-evidence-private.json','material-configuration-started.json','material-configuration-private.json',
+    'material-journey-private.json','material-sessions-private.json','material-failure-private.json']){
     try{await lstat(join(root,file));demand(false,'MATERIAL_PRIOR_FOLLOWUP_REFUSED');}
     catch(e){if(e.code!=='ENOENT')throw e;}
   }
@@ -131,6 +140,7 @@ async function preflight(){
   demand(sha(await readFile(join(checkout,'apps/web/dist/index.html')))===ready.webIndexSha256,'WEB_BUILD_CHANGED');
   const health=await jsonFetch(API+'/health/ready');
   demand(health.status==='ok'&&health.database==='ok'&&health.documentStorage==='ok','RUNTIME_NOT_READY');
+  const artifacts=await verifyMaterialArtifacts(checkout);
   const req=createRequire(join(checkout,'apps/api/package.json')),{PrismaClient}=req('@prisma/client');
   const db=new PrismaClient({datasources:{db:{url:'postgresql://proto_runtime:'+config.databasePassword+'@127.0.0.1:55471/proto_a_01?schema=public'}},log:[]});
   try{
@@ -149,14 +159,34 @@ async function preflight(){
       request.warehouseId===fixture.warehouseId,'MATERIAL_ORIGINAL_REQUEST_CHANGED');
     try{binding.sourceMapping=await privateFile(join(root,'material-source-mapping-private.json'));}
     catch(e){if(e.code!=='ENOENT')throw e;}
+    try{
+      const selected=await privateFile(join(root,'material-document-type-private.json'));
+      demand(Object.keys(selected).sort().join(',')==='documentTypeId,sourceSha'&&selected.sourceSha===SOURCE&&
+        /^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/.test(selected.documentTypeId??''),'MATERIAL_DOCUMENT_TYPE_SELECTION_INVALID');
+      binding.documentTypeId=selected.documentTypeId;
+    }catch(e){if(e.code!=='ENOENT')throw e;}
     const configuration=await inspectMaterialConfiguration(db,binding),
       preconditions=await inspectMaterialPreconditions(db,binding);
+    const delta=await planMaterialConfiguration(db,binding);
+    if(mode==='--execute'){
+      // Same invocation re-establishes target/build/process/schema and the
+      // original receipt state. A previous --plan receipt never authorizes this.
+      await exclusive(join(root,'material-started.json'),{sourceSha:SOURCE,operatorMainSha:main,
+        startedAt:new Date().toISOString(),expectedStateSha256:delta.stateSha256});
+      const applied=await applyMaterialConfiguration(db,binding,delta.stateSha256);
+      await exclusive(join(root,'material-configuration-private.json'),applied);
+      const result=await executeMaterialRun(db,binding,applied,{api:API,web:WEB},
+        (kind,value)=>exclusive(join(root,'material-'+kind+'-private.json'),value));
+      const ready={...result,operatorMainSha:main,compiledArtifactBytesVerified:true,
+        actualUiJourneyVerified:false,prototypeFrozen:false};
+      await exclusive(join(root,'material-ready.json'),ready);return ready;
+    }
     // This is observation only. A future write operation must repeat every
     // check and compare exact state inside its locked configuration transaction.
     return {status:'MATERIAL_READ_ONLY_PLAN_OBSERVED',sourceSha:SOURCE,operatorMainSha:main,
       runtimeReceiptsProcessesContainerAndSchemaVerified:true,
-      runtimeArtifactComparisonRequired:true,targetCustodyVerified:false,
-      configuration,preconditions,persistentFilesCreated:0,configurationApplied:false,
+      runtimeArtifactComparisonRequired:false,compiledArtifactBytesVerified:true,artifacts,targetCustodyVerified:true,
+      configuration,preconditions,configurationStateSha256:delta.stateSha256,persistentFilesCreated:0,configurationApplied:false,
       writeJourneyAuthorized:false,fullAuthenticatedBrowserJourneysVerified:false,
       populatedRecoveryVerified:false,prototypeFrozen:false,humanUatCompleted:false,
       productionAuthorized:false,secretsPrinted:false};
@@ -164,12 +194,12 @@ async function preflight(){
 }
 
 export async function operator(mode){
-  demand(mode==='--plan','MATERIAL_READ_ONLY_PLAN_ONLY');
-  return preflight();
+  demand(['--plan','--execute'].includes(mode),'MATERIAL_USE_PLAN_OR_EXECUTE');
+  return preflight(mode);
 }
 if(await isEntry(process.argv[1],import.meta.url)){
-  try{demand(process.argv.length===3,'MATERIAL_READ_ONLY_PLAN_ONLY');console.log(JSON.stringify(await operator(process.argv[2]),null,2));}
-  catch(e){console.log(JSON.stringify({status:'MATERIAL_READ_ONLY_PLAN_BLOCKED',
-    code:e.safeCode??'MATERIAL_OPERATOR_FAILED',configurationApplied:false,writeJourneyAuthorized:false,
+  try{demand(process.argv.length===3,'MATERIAL_USE_PLAN_OR_EXECUTE');console.log(JSON.stringify(await operator(process.argv[2]),null,2));}
+  catch(e){console.log(JSON.stringify({status:'MATERIAL_OPERATOR_BLOCKED',
+    code:e.safeCode??'MATERIAL_OPERATOR_FAILED',configurationMayHaveBeenApplied:process.argv[2]==='--execute',writeJourneyAuthorized:false,
     productionAuthorized:false,secretsPrinted:false},null,2));process.exitCode=1;}
 }

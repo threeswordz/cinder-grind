@@ -3,10 +3,10 @@ import assert from 'node:assert/strict';
 import {SOURCE} from '../uat/prototype-actors.mjs';
 import {toolingOnly,validBrowserProof,operator} from '../uat/prototype-material-operator.mjs';
 
-test('material operator allows no write mode or non-Mac target access',async()=>{
+test('material operator refuses unsupported modes and non-Mac target access',async()=>{
   for(const mode of ['--configure','--verify','--run','--reset',undefined])
-    await assert.rejects(operator(mode),e=>e.safeCode==='MATERIAL_READ_ONLY_PLAN_ONLY');
-  if(process.platform!=='darwin')await assert.rejects(operator('--plan'),e=>e.safeCode==='NONROOT_MAC_OPERATOR_REQUIRED');
+    await assert.rejects(operator(mode),e=>e.safeCode==='MATERIAL_USE_PLAN_OR_EXECUTE');
+  if(process.platform!=='darwin')for(const mode of ['--plan','--execute'])await assert.rejects(operator(mode),e=>e.safeCode==='NONROOT_MAC_OPERATOR_REQUIRED');
 });
 test('new operator provenance bounds tooling and pins the separately reviewed API test blob',()=>{
   const file={filename:'deploy/uat/prototype-material-operator.mjs',status:'added'};

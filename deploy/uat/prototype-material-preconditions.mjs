@@ -26,6 +26,21 @@ export async function inspectMaterialPreconditions(db,binding){
     await tx.$executeRawUnsafe('SET TRANSACTION READ ONLY');
     const mode=await tx.$queryRawUnsafe("SELECT current_setting('transaction_read_only') AS mode");
     demand(mode.length===1&&mode[0].mode==='on','MATERIAL_PRECONDITION_READ_ONLY_REQUIRED');
+    return {...await inspectMaterialPreconditionsState(tx,b),readOnlyTransactionVerified:true};
+  },{isolationLevel:'RepeatableRead',timeout:30000});
+}
+
+// Shared state rules; caller owns the transaction and its access mode.
+export async function inspectMaterialPreconditionsState(tx,binding){
+  const b=structuredClone(binding),f=b?.fixture,a=b?.actors,m=b?.sourceMapping;
+  demand(b?.sourceSha===SOURCE&&validPrivateActors(b)&&
+    ['companyId','projectId','warehouseId','materialId','uomId'].every(k=>uuid(f?.[k]))&&
+    uuid(b.initial?.stockCountId),'MATERIAL_PRECONDITION_BINDING_INVALID');
+  if(m!==undefined)demand(m&&Object.keys(m).sort().join(',')===
+    'budgetRevisionId,budgetRevisionLineId,materialId,quantity,uomId'&&
+    ['budgetRevisionId','budgetRevisionLineId','materialId','uomId'].every(k=>uuid(m[k]))&&
+    m.materialId===f.materialId&&m.uomId===f.uomId&&m.quantity==='10.0000',
+    'MATERIAL_EXPLICIT_SOURCE_MAPPING_INVALID');
     const count=await tx.stockCount.findUnique({where:{id:b.initial.stockCountId}});
     const same=row=>row&&['companyId','projectId','warehouseId','materialId','uomId'].every(k=>row[k]===f[k]);
     demand(same(count)&&count.status==='APPROVED'&&quantity(count.actualQuantity)===200000n&&
@@ -65,10 +80,9 @@ export async function inspectMaterialPreconditions(db,binding){
       demand(line?.uomId===m.uomId&&quantity(line.quantity)===100000n&&line.wbsId===null&&line.costCodeId===null,
         'MATERIAL_SOURCE_QUANTITY_OR_DIMENSIONS_INVALID');
     }
-    return {status:'MATERIAL_PRECONDITIONS_INSPECTED',sourceSha:SOURCE,readOnlyTransactionVerified:true,
+    return {status:'MATERIAL_PRECONDITIONS_INSPECTED',sourceSha:SOURCE,
       stockPreconditionVerified:true,onHand:'20.0000',reserved:'0.0000',canonicalLedgerEvents:1,
       sourceMappingVerified:!!m,sourceMapping:m?'EXPLICIT_SOURCE_PROVENANCE_VERIFIED':
         sources?'EXPLICIT_MAPPING_REQUIRED':'SOURCE_PREPARATION_REQUIRED',
       configurationApplied:false,writeJourneyAuthorized:false,productionAuthorized:false,secretsPrinted:false};
-  },{isolationLevel:'RepeatableRead',timeout:30000});
 }
