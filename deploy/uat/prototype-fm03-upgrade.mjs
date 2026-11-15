@@ -204,6 +204,7 @@ export async function upgrade(operatorMainSha){
     demand(inspected.length===1&&actors.validContainer(inspected[0],container,join(root,'db')),'FM03_OWNED_CONTAINER_REQUIRED');
     const sql=(name,query)=>command('podman',['exec',container.id,'psql','--no-psqlrc','-U','proto_runtime','-d',name,'-At','-v','ON_ERROR_STOP=1','-c',query],checkout);
     demand(await sql('proto_a_01','SELECT current_database()')==='proto_a_01'&&
+      await sql('proto_a_01',"SELECT count(*) FROM pg_database d JOIN pg_roles r ON r.oid=d.datdba WHERE d.datname='proto_a_01' AND r.rolname='proto_runtime' AND d.datallowconn AND NOT d.datistemplate")==='1'&&
       /^17\.11(?:\D|$)/.test(await sql('proto_a_01','SHOW server_version')),'FM03_POSTGRES_IDENTITY_REQUIRED');
     demand(await sql('proto_a_01',"SELECT count(*) FROM pg_database WHERE datname='"+RESTORE_DB+"'")==='0','FM03_RESTORE_TARGET_EXISTS_NO_OVERWRITE');
     const initialHealth=await json(API+'/health/ready',5000);
@@ -252,7 +253,7 @@ export async function upgrade(operatorMainSha){
     const dump=join(preservation,'postgresql.custom');
     await databaseStream(container.id,['pg_dump','-U','proto_runtime','-d','proto_a_01','--format=custom','--no-owner','--no-acl'],checkout,dump);
     demand((await lstat(dump)).size>1024,'FM03_POPULATED_DUMP_REQUIRED');
-    phase='RESTORE_PROOF';await command('podman',['exec',container.id,'createdb','-U','proto_runtime','--template=template0',RESTORE_DB],checkout);
+    phase='RESTORE_PROOF';await command('podman',['exec',container.id,'createdb','-U','proto_runtime','--owner=proto_runtime','--template=template0',RESTORE_DB],checkout);
     await databaseStream(container.id,['pg_restore','--exit-on-error','--no-owner','--no-privileges','-U','proto_runtime','-d',RESTORE_DB],checkout,dump,true);
     const restored=database(RESTORE_DB);try{demand(state.digest(await state.fm03Snapshot(restored))===state.digest(before),'FM03_POPULATED_RESTORE_ROWS_DIFFER');}finally{await restored.$disconnect();}
     const keys=await privateJson(join(root,'hrkeys/keyring.json'));
