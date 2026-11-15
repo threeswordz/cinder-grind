@@ -8,6 +8,8 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { ProjectsModule } from '../projects/projects.module';
 import { SiteExecutionController } from './site-execution.controller';
 import { SiteExecutionService } from './site-execution.service';
+import { SiteIssueController } from './site-issue.controller';
+import { SiteIssueService } from './site-issue.service';
 
 @Module({
   imports: [
@@ -18,7 +20,7 @@ import { SiteExecutionService } from './site-execution.service';
     ProjectsModule,
     DocumentsModule,
   ],
-  controllers: [SiteExecutionController],
-  providers: [SiteExecutionService],
+  controllers: [SiteExecutionController, SiteIssueController],
+  providers: [SiteExecutionService, SiteIssueService],
 })
 export class SiteExecutionModule {}
