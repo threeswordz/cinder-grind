@@ -1,3 +1,4 @@
+import {receivingActor} from '../inventory/receiving-actor';
 import {
   ForbiddenException,
   Injectable,
@@ -491,6 +492,7 @@ export class DocumentTargetsService {
     }
 
     if (entityType === 'RECEIVING_DELIVERY') {
+      await receivingActor(auth,this.prisma);
       const row=await this.prisma.receivingDelivery.findFirst({where:{id:entityId,projectId,companyId:auth.companyId},select:{id:true}});
       if(!row)throw this.targetNotFound();
       return;

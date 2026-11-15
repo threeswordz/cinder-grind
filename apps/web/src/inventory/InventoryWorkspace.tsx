@@ -141,7 +141,7 @@ export function InventoryWorkspace({
         {canSeeReports ? <Tab value="reports" label="Reports" /> : null}
       </Tabs>
       {active === 'receiving' ? (
-        <ReceivingPanel permissions={permissions} userId={userId} companyId={companyId} onOpenGr={(projectId,id)=>{setReceivingGr({projectId,id});setSelected('receipts');}}/>
+        <ReceivingPanel permissions={permissions} userId={userId} companyId={companyId} onOpenGr={(projectId,id)=>{appliedReceiptProjectSourceLink.current='';appliedReceiptSourceLink.current='';setReceivingGr({projectId,id});setSelected('receipts');}}/>
       ) : active === 'requests' ? (
         <MaterialRequestsPanel permissions={permissions}/>
       ) : active === 'plans' ? (

@@ -12,7 +12,7 @@ Each new controlled delivery retains a delivery note, receiver name/signature ev
 
 New explicit capabilities have no automatic role grants. Project custody enforcement is enabled explicitly for authorized **non-Production synthetic** technical execution only, with an immutable audited policy record; no retained MKE/TCJ activation is implied. Activation refuses pending legacy GR drafts so they are not silently backfilled or grandfathered into a bypass. After activation, every new GR must reference a checked delivery. Existing posted/reversed receipts and all historical stock/Finance/HR/Documents remain unchanged. The application remains generic by Company/Project and effective permissions, without hard-coded user names.
 
-All writes use live session/Company/effective role rights, persisted Project access, operation keys, expected versions and serializable transactions. Source dimensions, PO/grant/evidence integrity, custody state/history and canonical GR posting are also constrained in PostgreSQL. Technical administrators gain no capture/check/approval rights implicitly.
+All reads and writes require a live session, active same-Company Employee and current effective role rights; projects.access_all bypasses assignment filtering only. Receiving Documents enforce that same prerequisite through owning-target and generic aliases. Writes additionally use persisted Project access, operation keys, expected versions and serializable transactions. Source dimensions, PO/grant/evidence integrity, custody state/history and canonical GR posting are also constrained in PostgreSQL. Technical administrators gain no capture/check/approval rights implicitly.
 
 ## Observable exits
 
@@ -25,8 +25,8 @@ All writes use live session/Company/effective role rights, persisted Project acc
 | RC-AC05 | Store capture → independent Jai document check → existing configured Khaimook GR approval; no self-check or technical-admin business bypass. |
 | RC-AC06 | Custody-bound GR uses canonical approval, cumulative PO limits, exactly-once stock posting and reversal; no parallel ledger. |
 | RC-AC07 | Replays, stale versions, concurrent commands and source/evidence/grant drift fail safely without duplicate effects or lost history. |
-| RC-AC08 | Company/Project/actor/session/CSRF and protected-document denials hold server-side, with bounded privacy-safe API projections. |
-| RC-AC09 | Real trilingual responsive capture/link/evidence/check/GR navigation, uncertainty retries and stale-draft refusal. |
+| RC-AC08 | Company/Project/actor/active-Employee/session/CSRF and protected-document denials hold server-side, with bounded privacy-safe API projections. |
+| RC-AC09 | Real trilingual responsive capture/link/evidence/check/GR navigation, including reopening the same GR after tab unmount, uncertainty retries and stale-draft refusal. |
 | RC-AC10 | Additive predecessor migration preserves every prior row/grant/file; populated custody and evidence survive separate restore with authenticated readback/denials. |
 | RC-AC11 | Exact-head applicable CI, independent stable DEC-022 review, guarded integration/tree equality and exact-main CI. |
 | RC-AC12 | Separate reviewed post-FM03 populated Mac deployment/journey; comprehensive human UAT deferred to the frozen prototype. |

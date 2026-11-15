@@ -215,6 +215,11 @@ export async function runReceivingBrowser(databaseUrl){
       gr=await db.goodsReceipt.findUniqueOrThrow({where:{deliveryId}});assert.equal(gr.postedAt,null);
       await evaluate(p,s,()=>{[...document.querySelectorAll('[data-testid="receiving-detail"] button')].find(e=>e.textContent.startsWith('Open GR for submission / approval')).click();return true;});
       await until(p,s,()=>[...document.querySelectorAll('button')].some(e=>e.textContent==='Submit for approval'),null,'RECEIVING_BROWSER_GR_NAVIGATION');
+      await until(p,s,number=>[...document.querySelectorAll('main .MuiTypography-subtitle1')].some(e=>e.textContent===number),gr.receiptNumber,'RECEIVING_BROWSER_FIRST_GR_SELECTION');
+      await click(p,s,'Receiving custody','[role="tab"]');
+      await select(p,s,'Project',f.project.id);await open(p,s);
+      await evaluate(p,s,()=>{[...document.querySelectorAll('[data-testid="receiving-detail"] button')].find(e=>e.textContent.startsWith('Open GR for submission / approval')).click();return true;});
+      await until(p,s,number=>[...document.querySelectorAll('main .MuiTypography-subtitle1')].some(e=>e.textContent===number),gr.receiptNumber,'RECEIVING_BROWSER_REPEAT_GR_SELECTION');
       // Existing canonical GR form remains the approval authority.
       await select(p,s,'Approval workflow',f.receiptWorkflow.workflowCode,'main');
       await click(p,s,'Submit for approval','main button');

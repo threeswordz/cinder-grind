@@ -1,3 +1,4 @@
+import {receivingActor} from '../inventory/receiving-actor';
 import {createHash} from 'node:crypto';
 import {
   ConflictException,
@@ -258,6 +259,7 @@ export class DocumentsService {
     const accessibleRequests = new Set(requests.map(row => row.id));
 
     const deliveryIds=[...new Set(protectedRows.flatMap(row=>row.links.filter(link=>link.entityType==='RECEIVING_DELIVERY').map(link=>link.entityId)))];
+    if(deliveryIds.length)await receivingActor(auth,db);
     const deliveries=deliveryIds.length?await db.receivingDelivery.findMany({where:{id:{in:deliveryIds},companyId:auth.companyId,projectId},select:{id:true}}):[];
     const accessibleDeliveries=new Set(deliveries.map(row=>row.id));
 

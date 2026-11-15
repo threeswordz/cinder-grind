@@ -102,6 +102,27 @@ test('receiving actual HTTP holds physical goods until independent evidence chec
    const checked=await detail();assert.equal(checked.status,'CHECKED');assert.equal(checked.usable,false);assert.equal(await balance(),'0.0000');
    assert.ok((await call(f.viewer,root+'/deliveries/'+id)).evidence.every((e:any)=>e.documentId===null&&e.checksum===null&&e.fileName===null));
   });
+  await t.test('all-Project permission never bypasses an active linked Employee for receiving and evidence reads',async()=>{
+   const extra=await db.permission.findMany({where:{permissionCode:{in:['projects.access_all','documents.document.view']}}});assert.equal(extra.length,2);
+   await db.rolePermission.createMany({data:extra.map(permission=>({roleId:f.viewer.role.id,permissionId:permission.id}))});
+   const evidence=(await detail()).evidence[0].documentId,target='/documents/projects/'+f.project.id+'/targets/RECEIVING_DELIVERY/'+id;
+   const reads=[root+'/projects',root+'/projects/'+f.project.id+'/deliveries',root+'/projects/'+f.project.id+'/policy',root+'/projects/'+f.project.id+'/choices/materials',root+'/deliveries/'+id,target,'/documents/projects/'+f.project.id];
+   try{
+    await call(f.viewer,root+'/deliveries/'+id);await call(f.viewer,target);
+    for(const detached of [false,true]){
+     if(detached){await db.employee.update({where:{id:f.viewer.employee.id},data:{isActive:true}});await db.user.update({where:{id:f.viewer.user.id},data:{employeeId:null}});}
+     else await db.employee.update({where:{id:f.viewer.employee.id},data:{isActive:false}});
+     for(const path of reads)await call(f.viewer,path,403);
+     for(const path of [target+'/'+evidence+'/download','/documents/projects/'+f.project.id+'/'+evidence+'/download']){
+      const response=await fetch(base+path,{headers:{Cookie:'erp_session='+f.viewer.session.sessionToken}});assert.equal(response.status,403,'Receiving evidence requires an active linked Employee');
+     }
+    }
+   }finally{
+    await db.user.update({where:{id:f.viewer.user.id},data:{employeeId:f.viewer.employee.id}});await db.employee.update({where:{id:f.viewer.employee.id},data:{isActive:true}});
+    await db.rolePermission.deleteMany({where:{roleId:f.viewer.role.id,permissionId:{in:extra.map(p=>p.id)}}});
+   }
+   await call(f.viewer,root+'/deliveries/'+id);
+  });
   let grId='';
   await t.test('GR creation uses exact checked quantities; draft and submission cannot release stock',async()=>{
    const d=await detail(),body={projectId:f.project.id,purchaseOrderId:f.po.id,warehouseId:f.warehouse.id,lines:[{purchaseOrderLineId:f.po.lines[0]!.id,quantity:'3.0000'}]};
