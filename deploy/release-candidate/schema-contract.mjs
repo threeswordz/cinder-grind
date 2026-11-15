@@ -1,3 +1,4 @@
+import {stripSiteIssueSchema} from './site-issue-schema-contract.mjs';
 import {stripPlanIssueSchema} from './material-plan-issue-schema-contract.mjs';
 import {stripMaterialPlanSchema} from './material-plan-schema-contract.mjs';
 import { stripMaterialRequestSchema } from './material-request-schema-contract.mjs';
@@ -159,12 +160,20 @@ function classifyBeforePlanIssue(previous,candidate){
  return !before.present&&after.present?(base==='migration-aware-sql-only'?'migration-aware-material-plan-schema':'migration-aware-material-plan-'+base.slice('migration-aware-'.length)):base;
 }
 
-export function classifySchema(previous,candidate){
+function classifyBeforeSiteIssue(previous,candidate){
  if(previous===candidate)return 'migration-aware-sql-only';
  const before=stripPlanIssueSchema(previous),after=stripPlanIssueSchema(candidate);
  if(before.present&&!after.present)throw Error('Material plan issue schema removal prohibited');
  const base=classifyBeforePlanIssue(before.text,after.text);
  return !before.present&&after.present?(base==='migration-aware-sql-only'?'migration-aware-plan-issue-schema':'migration-aware-plan-issue-'+base.slice('migration-aware-'.length)):base;
+}
+
+export function classifySchema(previous,candidate){
+ if(previous===candidate)return 'migration-aware-sql-only';
+ const before=stripSiteIssueSchema(previous),after=stripSiteIssueSchema(candidate);
+ if(before.present&&!after.present)throw Error('Site issue schema removal prohibited');
+ const base=before.text.replace(/\s+/g,' ').trim()===after.text.replace(/\s+/g,' ').trim()?'migration-aware-sql-only':classifyBeforeSiteIssue(before.text,after.text);
+ return !before.present&&after.present?(base==='migration-aware-sql-only'?'migration-aware-site-issue-schema':'migration-aware-site-issue-'+base.slice('migration-aware-'.length)):base;
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -144,4 +144,39 @@ test('DEC-044 B requires version12 and executed exact predecessor/history/HTTP/p
  const result=verify(data);assert.equal(result.status,0,result.stderr);assert.equal(JSON.parse(result.stdout).version,12);
  for(const key of [...keys,'rollbackDocuments','restoredPreviousRuntimeAuthenticationDownload']){const bad={...data};delete bad[key];assert.notEqual(verify(bad).status,0,key);}
  assert.notEqual(verify({...data,version:11}).status,0);assert.notEqual(verify({...data,migrationNames:['20261103080000_other']}).status,0);
+});
+
+test('FM03 evidence requires exact migration, version13 and executed upgrade/HTTP/populated recovery gates',()=>{
+ const data={...evidence('migration-aware-site-issue-schema'),version:13,migrationNames:['20261114140000_fm03_site_issue_lifecycle']};
+ const keys=['siteIssueSchemaUpgrade','siteIssueHistoricalPreservation','siteIssueHttpUpgrade','siteIssuePopulatedRecovery'];
+ for(const key of keys)data[key]='PASS';
+ assert.equal(verify(data).status,0);
+ for(const key of keys){const bad={...data};delete bad[key];assert.notEqual(verify(bad).status,0,key);}
+ assert.notEqual(verify({...data,version:12}).status,0);
+ assert.notEqual(verify({...data,migrationNames:['20261114140000_unreviewed']}).status,0);
+ assert.notEqual(verify({...data,rollbackDocuments:undefined}).status,0);
+});
+
+test('FM03 wrapper before historical predecessor checks remains mandatory in consolidated CI', async () => {
+  const workflow = readFileSync(new URL('../../.github/workflows/validate.yml', import.meta.url), 'utf8');
+  const evidenceStep = workflow.split('- name: Verify V1.0-E consolidated technical evidence')[1];
+  assert.ok(evidenceStep, 'Consolidated evidence step must exist');
+  assert.equal((evidenceStep.match(/siteIssueMode\(data\.releaseMode\)\.prior/g) ?? []).length, 5,
+    'Five exact historical predecessor assertions must peel the FM03 schema wrapper');
+  const { siteIssueMode } = await import('./site-issue-schema-contract.mjs');
+  const { materialPlanMode } = await import('./material-plan-schema-contract.mjs');
+  const { materialRequestMode } = await import('./material-request-schema-contract.mjs');
+  const { planIssueMode } = await import('./material-plan-issue-schema-contract.mjs');
+  const prefixed = suffix => 'migration-aware-site-issue-' + suffix;
+  const customer = materialRequestMode(materialPlanMode(siteIssueMode(prefixed(
+    'plan-issue-material-plan-material-request-stock-count-hr-document-customer-boq-schema')).prior).prior).prior;
+  assert.equal(customer, 'migration-aware-stock-count-hr-document-customer-boq-schema');
+  const hr = materialRequestMode(materialPlanMode(siteIssueMode(prefixed(
+    'plan-issue-material-plan-material-request-stock-count-hr-document-hr-schema')).prior).prior).prior;
+  assert.equal(hr, 'migration-aware-stock-count-hr-document-hr-schema');
+  assert.equal(materialPlanMode(siteIssueMode(prefixed(
+    'plan-issue-material-plan-material-request-schema')).prior).prior, 'migration-aware-material-request-schema');
+  assert.equal(planIssueMode(siteIssueMode(prefixed(
+    'plan-issue-material-plan-schema')).prior).prior, 'migration-aware-material-plan-schema');
+  assert.equal(siteIssueMode(prefixed('plan-issue-schema')).prior, 'migration-aware-plan-issue-schema');
 });

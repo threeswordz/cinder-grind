@@ -1,3 +1,5 @@
+import {siteIssueCatalog,verifySiteIssueCatalog} from './site-issue-catalog-contract.mjs';
+const siteIssueApproved=process.env.SITE_ISSUE_SCHEMA_UPGRADE==='YES';
 import {planIssueCatalog,verifyPlanIssueCatalog} from './material-plan-issue-catalog-contract.mjs';
 const planIssueApproved=process.env.MATERIAL_PLAN_ISSUE_SCHEMA_UPGRADE==='YES';
 import {materialPlanCatalog,verifyMaterialPlanCatalog} from './material-plan-catalog-contract.mjs';
@@ -41,7 +43,7 @@ const load = path => {try{return JSON.parse(readFileSync(path,'utf8'));}catch{th
 const digest = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
 const stockCountApproved = process.env.STOCK_COUNT_SCHEMA_UPGRADE === 'YES';
 const materialRequestApproved=process.env.MATERIAL_REQUEST_SCHEMA_UPGRADE==='YES';
-const knownCatalog = [...boqCatalog,...hrCatalog,...(stockCountApproved ? stockCountCatalog : []),...(materialRequestApproved ? materialRequestCatalog : []),...(materialPlanApproved ? materialPlanCatalog : []),...(planIssueApproved ? planIssueCatalog : [])];
+const knownCatalog = [...boqCatalog,...hrCatalog,...(stockCountApproved ? stockCountCatalog : []),...(materialRequestApproved ? materialRequestCatalog : []),...(materialPlanApproved ? materialPlanCatalog : []),...(planIssueApproved ? planIssueCatalog : []),...(siteIssueApproved ? siteIssueCatalog : [])];
 const provenanceColumns = {
   projects:['contract_currency_code'],
   boqs:['currency_code'],
@@ -68,6 +70,7 @@ async function snapshot(before) {
   if(materialRequestApproved)verifyMaterialRequestCatalog(rawCatalog.filter(p=>materialRequestCatalog.some(x=>x.id===p.id)),!['snapshot','rollback'].includes(mode));
   if(materialPlanApproved)verifyMaterialPlanCatalog(rawCatalog.filter(p=>materialPlanCatalog.some(x=>x.id===p.id)),!['snapshot','rollback'].includes(mode));
   if(planIssueApproved)verifyPlanIssueCatalog(rawCatalog.filter(p=>planIssueCatalog.some(x=>x.id===p.id)),!['snapshot','rollback'].includes(mode));
+  if(siteIssueApproved)verifySiteIssueCatalog(rawCatalog.filter(p=>siteIssueCatalog.some(x=>x.id===p.id)),!['snapshot','rollback'].includes(mode));
   const excluded = knownCatalog.filter(p=>!(before?.catalogPresent??present).includes(p.id)).map(p=>p.id);
   const hashes={}, columns={};
   for(const {tablename:name} of tables){
@@ -105,7 +108,7 @@ try {
       after.tables,
       process.env.HR_SCHEMA_UPGRADE === 'YES',
       process.env.HR_DOCUMENT_SCHEMA_UPGRADE === 'YES',
-      stockCountApproved, materialRequestApproved,materialPlanApproved,planIssueApproved,
+      stockCountApproved, materialRequestApproved,materialPlanApproved,planIssueApproved,siteIssueApproved,
     );
     for(const migration of before.migrations)assert.deepEqual(after.migrations.find(m=>m.migration_name===migration.migration_name),migration);
     console.log(mode==='rollback'?'HR_EXACT_PREDECESSOR_ROLLBACK_ROWS_PRESERVED':'HR_PREDECESSOR_ROWS_AND_MIGRATIONS_PRESERVED');
