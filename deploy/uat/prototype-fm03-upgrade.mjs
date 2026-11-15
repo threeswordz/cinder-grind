@@ -69,6 +69,18 @@ export async function privateInventory(root){
   }
   await visit(root,'');return entries;
 }
+// Pair database references with preserved bytes. HR Document checksums cover
+// encrypted envelopes, so verification does not need or expose HR plaintext.
+export function verifyDocumentInventory(documents,inventory){
+  demand(Array.isArray(documents)&&Array.isArray(inventory),'FM03_DOCUMENT_INVENTORY_REQUIRED');
+  const files=new Map(inventory.filter(e=>typeof e[1]==='number').map(e=>[e[0],e]));
+  for(const d of documents){
+    const entry=files.get(d.storage_key);
+    demand(d.storage_provider==='LOCAL'&&/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(d.storage_key)&&
+      Number.isSafeInteger(d.file_size_bytes)&&d.file_size_bytes>=0&&/^[a-f0-9]{64}$/.test(d.checksum??'')&&
+      entry?.[1]===d.file_size_bytes&&entry?.[2]===d.checksum,'FM03_DOCUMENT_BYTES_NOT_RECOVERABLE');
+  }
+}
 async function fileHash(path){const h=createHash('sha256');for await(const b of createReadStream(path))h.update(b);return h.digest('hex');}
 async function stage(target,label,exe,args,cwd,env=environment(),timeout=300000){
   await seal(join(target,label+'-started.json'),{stage:label,at:new Date().toISOString()});
@@ -235,6 +247,7 @@ export async function upgrade(operatorMainSha){
       }else{demand(s.isFile()&&s.nlink===1,'FM03_UNSAFE_RUNTIME_FILE');inventories[name]=await fileHash(from);
         await cp(from,join(preservation,name),{force:false,errorOnExist:true});demand(await fileHash(join(preservation,name))===inventories[name],'FM03_PRESERVED_RECEIPT_BYTES_CHANGED');}
     }
+    verifyDocumentInventory(before.documents,inventories.documents);
     await seal(join(target,'file-inventories-private.json'),inventories);demand(await quiet()==='0','FM03_SOURCE_TRAFFIC_RESUMED');
     const dump=join(preservation,'postgresql.custom');
     await databaseStream(container.id,['pg_dump','-U','proto_runtime','-d','proto_a_01','--format=custom','--no-owner','--no-acl'],checkout,dump);

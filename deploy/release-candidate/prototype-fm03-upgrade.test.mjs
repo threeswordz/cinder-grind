@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {mkdtemp,mkdir,writeFile,cp,symlink,link,rm} from 'node:fs/promises';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
-import {privateInventory,validUpgradeDelta,upgrade} from '../uat/prototype-fm03-upgrade.mjs';
+import {privateInventory,verifyDocumentInventory,validUpgradeDelta,upgrade} from '../uat/prototype-fm03-upgrade.mjs';
 import {verifyFm03Migration,fm03Snapshot,digest} from '../uat/prototype-fm03-state.mjs';
 import {siteIssueCatalog} from './site-issue-catalog-contract.mjs';
 import {siteIssueTables} from './site-issue-schema-contract.mjs';
@@ -43,6 +43,16 @@ test('migration admits only the exact empty FM03 table/catalog addition and immu
     x=>x.role_permissions.push({id:'unapproved-grant'}),x=>x.permissions.pop(),x=>x.site_issues.push({id:'prepopulated'}),
     x=>x.unexpected_table=[],x=>x._prisma_migrations[0].checksum='rewritten']){
     const bad=structuredClone(after);change(bad);assert.throws(()=>verifyFm03Migration(before,bad));
+  }
+});
+test('Document recovery pairs every retained row with exact ordinary, signed or encrypted file bytes',()=>{
+  const key='df73e6aa-76d3-4c14-81bd-dae91754d627',checksum='a'.repeat(64);
+  const rows=[{storage_provider:'LOCAL',storage_key:key,file_size_bytes:4,checksum}];
+  verifyDocumentInventory(rows,[['','directory'],[key,4,checksum]]);
+  for(const entries of [[],[[key,3,checksum]],[[key,4,'b'.repeat(64)]],[[key,'directory']]])
+    assert.throws(()=>verifyDocumentInventory(rows,entries),e=>e.safeCode==='FM03_DOCUMENT_BYTES_NOT_RECOVERABLE');
+  for(const change of [d=>d.storage_provider='REMOTE',d=>d.storage_key='../escape',d=>d.checksum=null]){
+    const bad=structuredClone(rows);change(bad[0]);assert.throws(()=>verifyDocumentInventory(bad,[[key,4,checksum]]));
   }
 });
 test('the coordinator has no Linux execution or configurable database/source escape hatch',async()=>{
