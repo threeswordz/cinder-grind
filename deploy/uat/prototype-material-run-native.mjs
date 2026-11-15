@@ -1,10 +1,13 @@
+import {executeFm03Browser} from './prototype-fm03-browser.mjs';
+import {privateInventory,verifyDocumentInventory} from './prototype-fm03-upgrade.mjs';
+import {fm03Snapshot,configureFm03,digest,fm03BrowserBinding,verifyFm03JourneyPreservation} from './prototype-fm03-state.mjs';
 // One unique disposable DB for the NEW coordinator's complete API flow.
 // Never accepts a target URL, existing DB or Mac execution; no initial browser,
 // startup or 123-check actor scenarios are replayed here.
 import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
 import {randomBytes,randomUUID} from 'node:crypto';
-import {mkdtemp,rm,readFile} from 'node:fs/promises';
+import {mkdtemp,mkdir,rm,readFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join,resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -35,6 +38,8 @@ async function native(){
   const env={...safeEnvironment(),CI:'true',NODE_ENV:'uat',DATABASE_URL:own.href,API_HOST:'127.0.0.1',API_PORT:'31319',
     WEB_ORIGIN:'http://127.0.0.1:44319',STORAGE_ROOT:join(temporary,'documents'),DOCUMENT_UPLOAD_TEMP_ROOT:join(temporary,'uploads'),
     HR_PRIVATE_KEYS:JSON.stringify({native:randomBytes(32).toString('base64')}),HR_PRIVATE_ACTIVE_KEY_ID:'native'};
+  // Match the populated Mac's private storage root before the app creates files.
+  await mkdir(env.STORAGE_ROOT,{mode:0o700});
   async function run(exe,args,childEnv){await execute(exe,args,{cwd:root,env:childEnv,timeout:120000,maxBuffer:2097152});}
   let created=false,db,app,webServer,browser,phase='UNIQUE_DATABASE';
   try{
@@ -133,6 +138,31 @@ async function native(){
     assert.equal(ui.signedHistoryPreserved,true);assert.equal(ui.uiSessionsRevoked,true);
     assert.equal(await db.stockTransaction.count(),5);assert.equal(await db.document.count(),1);
     console.log('MATERIAL_UI_NATIVE_PASS: real built React/MUI request revision on retained API-run records, Foreman read-only view, unchanged stock/Finance/grants, preserved signed history and revoked browser sessions. No repeated API stock cycle or full role/UI/recovery/freeze claim.');
+    // Reuse this now-populated signed material fixture for the new FM03
+    // deployment engine. No second material cycle, actor setup or database.
+    phase='FM03_POPULATED_DELTA';
+    const fmBinding={...binding,configuration},fmBefore=await fm03Snapshot(db);
+    verifyDocumentInventory(fmBefore.documents,await privateInventory(env.STORAGE_ROOT));
+    // Reproduce a membership change after the earlier snapshot. A fresh state
+    // digest must not authorize another user to inherit the capability delta.
+    const extraMember=await db.userRole.create({data:{companyId:fixture.companyId,userId:prepared.actors.NANCY.userId,
+      roleId:prepared.actors.KHAIMOOK.roleId}});
+    try{await assert.rejects(configureFm03(db,fmBinding,digest(await fm03Snapshot(db))),e=>e.safeCode==='FM03_ROLE_MEMBERSHIP_MUST_BE_EXCLUSIVE');}
+    finally{await db.userRole.delete({where:{id:extraMember.id}});}
+    const hrManage=await db.permission.findUniqueOrThrow({where:{permissionCode:'hr.identity.manage'}});
+    const extraRight=await db.rolePermission.create({data:{roleId:prepared.actors.KHAIMOOK.roleId,permissionId:hrManage.id}});
+    try{await assert.rejects(configureFm03(db,fmBinding,digest(await fm03Snapshot(db))),e=>e.safeCode==='FM03_EXISTING_ROLE_GRANT_MATRIX_CHANGED');}
+    finally{await db.rolePermission.delete({where:{id:extraRight.id}});}
+    assert.equal(digest(await fm03Snapshot(db)),digest(fmBefore));
+    await assert.rejects(configureFm03(db,fmBinding,'0'.repeat(64)),e=>e.safeCode==='FM03_CONFIGURATION_STATE_DRIFT');
+    const fmConfig=await configureFm03(db,fmBinding,digest(fmBefore));
+    await assert.rejects(configureFm03(db,fmBinding,digest(await fm03Snapshot(db))),e=>e.safeCode==='FM03_CONFIGURATION_OR_JOURNEY_ALREADY_EXISTS'||e.safeCode==='FM03_GRANT_CATALOG_OR_PRIOR_DELTA_INVALID'||e.safeCode==='FM03_EXISTING_ROLE_GRANT_MATRIX_CHANGED');
+    browser=await startBrowser(chrome,temporary);
+    const fmResult=await executeFm03Browser(browser.protocol,fm03BrowserBinding(fmBinding,
+      {api:'http://127.0.0.1:31319/api/v1',web:env.WEB_ORIGIN}),db);
+    await browser.stop();browser=undefined;
+    verifyFm03JourneyPreservation(fmBefore,await fm03Snapshot(db),fmConfig,fmBinding,fmResult);
+    console.log('FM03_POPULATED_ENGINE_NATIVE_PASS: existing synthetic actors, minimal exact grants, real lifecycle/unresolved/refollowup/closure/severe alert, Company/Project/actor denial, EN/TH/zh-TW and retained material/signed/private/history/session preservation. Not Mac upgrade/recovery/freeze proof.');
   }catch(e){
     console.error('MATERIAL_RUN_NATIVE_FAILED: '+phase+' '+(/^[A-Z0-9_]+$/.test(e.safeCode??'')?e.safeCode:'NATIVE_ASSERTION_OR_SETUP_FAILED')+
       (e.cleanupFailed===true?' CLEANUP_ALSO_FAILED':''));
