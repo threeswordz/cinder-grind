@@ -1,3 +1,5 @@
+import {executeFm03Browser} from './prototype-fm03-browser.mjs';
+import {fm03Snapshot,configureFm03,digest,fm03BrowserBinding,verifyFm03JourneyPreservation} from './prototype-fm03-state.mjs';
 // One unique disposable DB for the NEW coordinator's complete API flow.
 // Never accepts a target URL, existing DB or Mac execution; no initial browser,
 // startup or 123-check actor scenarios are replayed here.
@@ -133,6 +135,19 @@ async function native(){
     assert.equal(ui.signedHistoryPreserved,true);assert.equal(ui.uiSessionsRevoked,true);
     assert.equal(await db.stockTransaction.count(),5);assert.equal(await db.document.count(),1);
     console.log('MATERIAL_UI_NATIVE_PASS: real built React/MUI request revision on retained API-run records, Foreman read-only view, unchanged stock/Finance/grants, preserved signed history and revoked browser sessions. No repeated API stock cycle or full role/UI/recovery/freeze claim.');
+    // Reuse this now-populated signed material fixture for the new FM03
+    // deployment engine. No second material cycle, actor setup or database.
+    phase='FM03_POPULATED_DELTA';
+    const fmBefore=await fm03Snapshot(db);
+    await assert.rejects(configureFm03(db,binding,'0'.repeat(64)),e=>e.safeCode==='FM03_CONFIGURATION_STATE_DRIFT');
+    const fmConfig=await configureFm03(db,binding,digest(fmBefore));
+    await assert.rejects(configureFm03(db,binding,digest(await fm03Snapshot(db))),e=>e.safeCode==='FM03_CONFIGURATION_OR_JOURNEY_ALREADY_EXISTS'||e.safeCode==='FM03_GRANT_CATALOG_OR_PRIOR_DELTA_INVALID');
+    browser=await startBrowser(chrome,temporary);
+    const fmResult=await executeFm03Browser(browser.protocol,fm03BrowserBinding(binding,
+      {api:'http://127.0.0.1:31319/api/v1',web:env.WEB_ORIGIN}),db);
+    await browser.stop();browser=undefined;
+    verifyFm03JourneyPreservation(fmBefore,await fm03Snapshot(db),fmConfig,binding,fmResult);
+    console.log('FM03_POPULATED_ENGINE_NATIVE_PASS: existing synthetic actors, minimal exact grants, real lifecycle/unresolved/refollowup/closure/severe alert, Company/Project/actor denial, EN/TH/zh-TW and retained material/signed/private/history/session preservation. Not Mac upgrade/recovery/freeze proof.');
   }catch(e){
     console.error('MATERIAL_RUN_NATIVE_FAILED: '+phase+' '+(/^[A-Z0-9_]+$/.test(e.safeCode??'')?e.safeCode:'NATIVE_ASSERTION_OR_SETUP_FAILED')+
       (e.cleanupFailed===true?' CLEANUP_ALSO_FAILED':''));
