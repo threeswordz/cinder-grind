@@ -29,7 +29,9 @@ export class SiteIssueController {
   @Get('escalations')
   @UseGuards(AuthGuard, PermissionGuard)
   @RequirePermissions('site.issue.view', 'site.issue.escalation.view')
-  async escalations(@Req() r: AuthenticatedRequest) { return { data: await this.issues.escalations(context(r).auth) }; }
+  async escalations(@Req() r: AuthenticatedRequest, @Query('after') after?: string) {
+    return { data: await this.issues.escalations(context(r).auth, after === undefined ? undefined : siteUuid(after, 'after')) };
+  }
 
   @Get('projects/:projectId/routing')
   @UseGuards(AuthGuard)

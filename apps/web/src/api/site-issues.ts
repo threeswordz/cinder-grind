@@ -22,7 +22,7 @@ export type IssueOptions = {
   activities: Array<{ id: string; activityCode: string; activityName: string }>;
   reports: Array<{ id: string; reportDate: string; status: string }>;
 };
-export type IssueAlerts = { total: number; items: Array<{ id: string; description: string; status: IssueState;
+export type IssueAlerts = { total: number; nextCursor: string | null; items: Array<{ id: string; description: string; status: IssueState;
   escalatedAt: string; project: { id: string; projectCode: string; projectName: string } }> };
 export type IssueOperation = { path: string; body: Record<string, unknown> };
 export const siteIssuesApi = {
@@ -33,7 +33,7 @@ export const siteIssuesApi = {
   list: (projectId: string, after: string) => apiRequest<Data<{ items: IssueSummary[]; nextCursor: string | null }>>(
     '/site-issues?projectId=' + encodeURIComponent(projectId) + (after ? '&after=' + encodeURIComponent(after) : '')),
   get: (id: string, before?: number) => apiRequest<Data<IssueDetail>>('/site-issues/' + id + (before ? '?beforeVersion=' + before : '')),
-  alerts: () => apiRequest<Data<IssueAlerts>>('/site-issues/escalations'),
+  alerts: (after: string) => apiRequest<Data<IssueAlerts>>('/site-issues/escalations' + (after ? '?after=' + encodeURIComponent(after) : '')),
   send: ({ path, body }: IssueOperation) => apiRequest<Data<{ id?: string; projectId?: string; version: number; eventId?: string }>>(
     '/site-issues' + path, { method: 'POST', body: JSON.stringify(body) }),
 };

@@ -13,16 +13,25 @@ const identity = (user: CurrentUser) => [user.companyId, user.id, [...user.permi
 export function SiteIssueAlerts({ user, onOpen }: { user: CurrentUser; onOpen: (link: SiteIssueLink) => void }) {
   const t = siteIssueLabels[useContext(MonetaryLocaleContext)];
   const can = user.permissions.includes('site.issue.view') && user.permissions.includes('site.issue.escalation.view');
-  const query = useQuery({ queryKey: ['fm03', identity(user), 'alerts'], queryFn: siteIssuesApi.alerts,
+  const scope = identity(user);
+  const [pagination, setPagination] = useState({ scope, cursors: [''] });
+  const cursors = pagination.scope === scope ? pagination.cursors : [''];
+  const query = useQuery({ queryKey: ['fm03', scope, 'alerts', cursors.at(-1)], queryFn: () => siteIssuesApi.alerts(cursors.at(-1) ?? ''),
     enabled: can, retry: false, refetchInterval: 15000, gcTime: 0, refetchOnWindowFocus: true });
   if (!can) return null;
-  if (query.isError) return <Alert severity="warning">{t.unavailable}</Alert>;
+  if (query.isError) return <Alert severity="warning">{t.unavailable}
+    <Button onClick={() => { setPagination({ scope, cursors: [''] }); void query.refetch(); }}>{t.refresh}</Button>
+  </Alert>;
   if (!query.isSuccess || !query.data.data.total) return null;
   return <Alert severity="error" data-testid="site-issue-alerts" sx={{ mb: 2 }}>
     <Typography>{t.alerts}: {query.data.data.total}</Typography>
-    {query.data.data.items.slice(0, 5).map(i => <Button key={i.id} onClick={() => onOpen({ projectId: i.project.id, id: i.id })}>
+    {query.data.data.items.map(i => <Button key={i.id} onClick={() => onOpen({ projectId: i.project.id, id: i.id })}>
       {t.open}: {i.project.projectCode} · {i.description}
     </Button>)}
+    <Stack direction="row">
+      <Button disabled={query.isFetching || cursors.length === 1} onClick={() => setPagination({ scope, cursors: cursors.slice(0, -1) })}>{t.previous}</Button>
+      <Button disabled={query.isFetching || !query.data.data.nextCursor} onClick={() => setPagination({ scope, cursors: [...cursors, query.data.data.nextCursor!] })}>{t.next}</Button>
+    </Stack>
   </Alert>;
 }
 
@@ -39,6 +48,7 @@ export function SiteIssuesPanel({ user, initialLink }: { user: CurrentUser; init
   const [affects, setAffects] = useState(false), [stopped, setStopped] = useState(false), [delay, setDelay] = useState(false);
   const [note, setNote] = useState(''), [assetSeverity, setAsset] = useState('');
   const [owner, setOwner] = useState(''), [recipient, setRecipient] = useState(''), [reason, setReason] = useState('');
+  const [routingPin, setRoutingPin] = useState<number | null>(null);
   const [pending, setPending] = useState<IssueOperation | null>(null), pendingRef = useRef<IssueOperation | null>(null);
   const [message, setMessage] = useState<'saved' | 'unavailable' | 'uncertain' | null>(null);
   const base = ['fm03', scope];
@@ -59,8 +69,9 @@ export function SiteIssuesPanel({ user, initialLink }: { user: CurrentUser; init
     ? detail.data.data : null;
   const mutation = useMutation({
     mutationFn: siteIssuesApi.send,
-    onSuccess: async result => {
-      pendingRef.current = null; setPending(null); setMessage('saved'); setNote(''); setAsset(''); setReason('');
+    onSuccess: async (result, operation) => {
+      pendingRef.current = null; setPending(null); setMessage('saved'); setNote(''); setAsset('');
+      if (operation.path.endsWith('/routing')) { setRoutingPin(null); setOwner(''); setRecipient(''); setReason(''); }
       if (result.data.id) { setSelected(result.data.id); setPin(result.data.version); setBefore(undefined); setDescription(''); }
       await cache.invalidateQueries({ queryKey: base });
     },
@@ -83,12 +94,19 @@ export function SiteIssuesPanel({ user, initialLink }: { user: CurrentUser; init
   useEffect(() => {
     setSelected(''); setPin(null); setBefore(undefined); setPages(['']); setReport(''); setActivity('');
     setDescription(''); setCategory('GENERAL'); setAffects(false); setStopped(false); setDelay(false);
-    setOwner(''); setRecipient(''); setReason(''); setNote(''); setAsset(''); setMessage(null);
+    setOwner(''); setRecipient(''); setReason(''); setRoutingPin(null); setNote(''); setAsset(''); setMessage(null);
     if (initialLink?.projectId === projectId) setSelected(initialLink.id);
   }, [projectId, scope, initialLink]);
   useEffect(() => { if (pin === null && current) setPin(current.version); }, [current, pin]);
   if (!view && !configure) return null;
   const frozen = pending !== null || mutation.isPending;
+  const routingReady = authorized && routing.isSuccess && !routing.isFetching;
+  const routingStale = routingPin !== null && routing.isSuccess && routingPin !== (routing.data.data?.version ?? 0);
+  function editRouting(edit: () => void) {
+    if (frozen || !routingReady) return;
+    if (routingPin === null) setRoutingPin(routing.data?.data?.version ?? 0);
+    edit();
+  }
   const stale = Boolean(current && pin !== current.version);
   const ownerAction = Boolean(current && current.ownerUserId === user.id);
   const verification = Boolean(current && current.reporterUserId === user.id && current.status === 'AWAITING_VERIFICATION' && can('verify'));
@@ -122,17 +140,21 @@ export function SiteIssuesPanel({ user, initialLink }: { user: CurrentUser; init
         {configure ? <Card variant="outlined"><CardContent><Stack spacing={1}>
           <Typography variant="h6">{t.routing}</Typography>
           {candidates.isError ? <Alert severity="error">{t.unavailable}</Alert> : null}
-          <TextField select label={t.owner} value={owner} disabled={frozen} onChange={e => setOwner(e.target.value)}>
+          {routingStale ? <Alert severity="warning">{t.routingStale}</Alert> : null}
+          <Button disabled={frozen} onClick={() => {
+            setRoutingPin(null); setOwner(''); setRecipient(''); setReason(''); void routing.refetch();
+          }}>{t.refreshRouting}</Button>
+          <TextField select label={t.owner} value={owner} disabled={frozen || !routingReady || routingStale} onChange={e => editRouting(() => setOwner(e.target.value))}>
             <MenuItem value="">{t.select}</MenuItem>{candidates.isSuccess ? candidates.data.data.owners.map(p =>
               <MenuItem key={p.id} value={p.id}>{p.displayName}</MenuItem>) : null}
           </TextField>
-          <TextField select label={t.recipient} value={recipient} disabled={frozen} onChange={e => setRecipient(e.target.value)}>
+          <TextField select label={t.recipient} value={recipient} disabled={frozen || !routingReady || routingStale} onChange={e => editRouting(() => setRecipient(e.target.value))}>
             <MenuItem value="">{t.select}</MenuItem>{candidates.isSuccess ? candidates.data.data.recipients.map(p =>
               <MenuItem key={p.id} value={p.id}>{p.displayName}</MenuItem>) : null}
           </TextField>
-          <TextField label={t.routeReason} value={reason} disabled={frozen} onChange={e => setReason(e.target.value)}/>
-          <Button disabled={frozen || !routing.isSuccess || routing.isFetching || !candidates.isSuccess || !owner || !recipient || owner === recipient || !reason.trim()}
-            onClick={() => send('/projects/' + projectId + '/routing', { expectedVersion: routing.data?.data?.version ?? 0,
+          <TextField label={t.routeReason} value={reason} disabled={frozen || !routingReady || routingStale} onChange={e => editRouting(() => setReason(e.target.value))}/>
+          <Button disabled={frozen || !routingReady || routingStale || routingPin === null || !candidates.isSuccess || !owner || !recipient || owner === recipient || !reason.trim()}
+            onClick={() => send('/projects/' + projectId + '/routing', { expectedVersion: routingPin,
               ownerUserId: owner, escalationUserId: recipient, reason: reason.trim() })}>{t.saveRouting}</Button>
         </Stack></CardContent></Card> : null}
         {view && can('report') ? <Card variant="outlined"><CardContent><Stack spacing={1}>

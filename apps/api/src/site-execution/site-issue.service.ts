@@ -143,16 +143,24 @@ export class SiteIssueService {
       return { items: rows.slice(0, 100), nextCursor: rows.length > 100 ? rows[99]!.id : null };
     });
   }
-  async escalations(auth: AuthenticatedUserContext) {
+  async escalations(auth: AuthenticatedUserContext, after?: string) {
     return this.transaction(async tx => {
       const a = await this.live(tx, auth, ['site.issue.escalation.view']);
-      const where: Prisma.SiteIssueWhereInput = { companyId: a.companyId, escalationUserId: a.userId,
-        escalatedAt: { not: null }, status: { not: 'CLOSED' }, project: await this.access.scopeWhere(a, tx) };
+      const addressed: Prisma.SiteIssueWhereInput = { companyId: a.companyId, escalationUserId: a.userId,
+        escalatedAt: { not: null }, project: await this.access.scopeWhere(a, tx) };
+      const where: Prisma.SiteIssueWhereInput = { ...addressed, status: { not: 'CLOSED' } };
       const total = await tx.siteIssue.count({ where });
+      // A closed cursor remains usable when a case closes between page reads.
+      // Resolve it within the recipient's live Company/Project boundary.
+      if (after && !await tx.siteIssue.findFirst({ where: { ...addressed, id: after }, select: { id: true } })) {
+        throw new NotFoundException();
+      }
       const rows = await tx.siteIssue.findMany({ where, select: { id: true, description: true, status: true,
         escalatedAt: true, project: { select: { id: true, projectCode: true, projectName: true } } },
-        orderBy: [{ escalatedAt: 'asc' }, { id: 'asc' }], take: 100 });
-      return { total, items: rows.map(r => ({ ...r, description: r.description.slice(0, 200) })) };
+        ...(after ? { cursor: { id: after }, skip: 1 } : {}),
+        orderBy: [{ escalatedAt: 'asc' }, { id: 'asc' }], take: 6 });
+      return { total, items: rows.slice(0, 5).map(r => ({ ...r, description: r.description.slice(0, 200) })),
+        nextCursor: rows.length > 5 ? rows[4]!.id : null };
     });
   }
   async get(auth: AuthenticatedUserContext, id: string, beforeVersion?: number) {

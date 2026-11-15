@@ -130,6 +130,38 @@ test('FM03 actual authenticated HTTP enforces lifecycle, severity, scope, immuta
       await call('OWNER', '/' + created.id + '/follow-up', 201, { requestKey: randomUUID(), expectedVersion: 1, note: 'Assessment retained', assetSeverity: 'NOT_SEVERE' });
       assert.equal((await call('REPORTER', '/' + created.id)).data.escalatedAt, before.escalatedAt);
     });
+    await t.test('addressed escalation pagination reaches every case without dropping later severe reports', async () => {
+      const expected = new Set<string>();
+      for (let i = 0; i < 9; i++) expected.add((await call('REPORTER', '', 201,
+        f.input({ workStopped: true, description: 'Paginated severe case ' + i }))).data.id);
+      const first = (await call('MANAGER', '/escalations')).data;
+      assert.equal(first.items.length, 5); assert.ok(first.nextCursor);
+      const seen = new Set<string>(); let page = first;
+      for (let i = 0; ; i++) {
+        assert.ok(i < 10, 'Pagination must terminate');
+        for (const item of page.items) { assert.equal(seen.has(item.id), false); seen.add(item.id); }
+        if (!page.nextCursor) break;
+        page = (await call('MANAGER', '/escalations?after=' + page.nextCursor)).data;
+      }
+      assert.equal(seen.size, first.total); assert.ok([...expected].every(id => seen.has(id)));
+      await call('MANAGER', '/escalations?after=' + randomUUID(), 404);
+      await call('MANAGER', '/escalations?after=bad-cursor', 422);
+      await call('OWNER', '/escalations?after=' + first.nextCursor, 403);
+      // Close the page boundary after it was returned. Later addressed cases
+      // remain reachable with the same cursor and no timestamp round trip.
+      const cursor = first.nextCursor;
+      let current = (await call('REPORTER', '/' + cursor)).data;
+      if (current.status === 'OPEN') {
+        await call('OWNER', '/' + cursor + '/follow-up', 201, { requestKey: randomUUID(), expectedVersion: current.version,
+          note: 'Resolve paginated boundary', ...(current.category === 'ASSET_LOSS_DAMAGE' ? { assetSeverity: 'NOT_SEVERE' } : {}) });
+        current = (await call('REPORTER', '/' + cursor)).data;
+      }
+      await call('REPORTER', '/' + cursor + '/verify', 201, { requestKey: randomUUID(), expectedVersion: current.version,
+        note: 'Verify paginated boundary', resolved: true });
+      await call('OWNER', '/' + cursor + '/close', 201, { requestKey: randomUUID(), expectedVersion: current.version + 1,
+        note: 'Close paginated boundary' });
+      assert.ok((await call('MANAGER', '/escalations?after=' + cursor)).data.items.length > 0);
+    });
     await t.test('PostgreSQL refuses history edits, immutable identity drift and state updates without matching actor events', async () => {
       const event = await db.siteIssueEvent.findFirstOrThrow({ where: { issueId: id } });
       await assert.rejects(db.siteIssueEvent.update({ where: { id: event.id }, data: { note: 'Replace history' } }));

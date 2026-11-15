@@ -12,7 +12,7 @@ import {join,resolve} from 'node:path';
 import {fileURLToPath,pathToFileURL} from 'node:url';
 import {PipeProtocol} from './prototype-browser.mjs';
 import {prepareFm03Upgrade} from '../release-candidate/site-issue-predecessor.mjs';
-import {safeEnvironment} from './prototype-actors.mjs';
+import {safeEnvironment,httpClient} from './prototype-actors.mjs';
 const execute=promisify(execFile),root=fileURLToPath(new URL('../../',import.meta.url));
 const apiRoot=join(root,'apps/api'),require=createRequire(join(apiRoot,'package.json'));
 const API='http://127.0.0.1:31327/api/v1',WEB='http://127.0.0.1:44327';
@@ -40,7 +40,7 @@ async function field(p,s,label,value){
   },{label,value});
 }
 async function select(p,s,label,value){
-  await until(p,s,label=>[...document.querySelectorAll('[data-testid="site-issues"] label')].some(e=>e.textContent===label),label,'FM03_BROWSER_SELECT_UNAVAILABLE');
+  await until(p,s,label=>[...document.querySelectorAll('[data-testid="site-issues"] label')].some(e=>{const input=document.getElementById(e.htmlFor);return e.textContent===label&&input&&!input.disabled&&input.getAttribute('aria-disabled')!=='true';}),label,'FM03_BROWSER_SELECT_UNAVAILABLE');
   await evaluate(p,s,label=>{const l=[...document.querySelectorAll('[data-testid="site-issues"] label')].find(e=>e.textContent===label);document.getElementById(l.htmlFor).dispatchEvent(new MouseEvent('mousedown',{bubbles:true,button:0}));return true;},label);
   await until(p,s,value=>[...document.querySelectorAll('[role="option"]')].some(e=>e.getAttribute('data-value')===value),value,'FM03_BROWSER_OPTION_UNAVAILABLE');
   await evaluate(p,s,value=>{[...document.querySelectorAll('[role="option"]')].find(e=>e.getAttribute('data-value')===value).click();return true;},value);
@@ -153,7 +153,29 @@ export async function runFm03Browser(databaseUrl){
     await actor('CONFIG',async(p,s)=>{
       await workspace(p,s);await select(p,s,'Follow-up owner',f.actors.OWNER.userId);
       await select(p,s,'Escalation recipient',f.actors.MANAGER.userId);
-      await field(p,s,'Reason for routing change','Synthetic explicit project routing');await click(p,s,'Save routing');
+      await field(p,s,'Reason for routing change','Unsaved routing draft pinned before concurrent edit');
+      // A second real session commits while the first browser retains its draft.
+      const client=httpClient(API,WEB),other=await client.login('CONFIG_CONCURRENT',
+        {...f.actors.CONFIG,expectedRoleCodes:['SYS_ADMIN']},f.company.id);
+      try{
+        await client.call(other,'ROUTING_CONCURRENT','/site-issues/projects/'+f.assigned.id+'/routing',201,
+          {requestKey:randomUUID(),expectedVersion:0,ownerUserId:f.actors.OTHER_OWNER.userId,
+            escalationUserId:f.actors.MANAGER.userId,reason:'Intervening configuration by second authenticated session'});
+      }finally{await client.logout('CONFIG_CONCURRENT',other);}
+      await p.send('Page.bringToFront',{},s);
+      await evaluate(p,s,()=>{window.dispatchEvent(new Event('visibilitychange'));return true;});
+      await until(p,s,()=>document.querySelector('[data-testid="site-issues"]')?.textContent.includes('Routing changed.'),null,'FM03_BROWSER_ROUTING_DRAFT_NOT_STALE');
+      demand(await evaluate(p,s,()=>{
+        const box=document.querySelector('[data-testid="site-issues"]');
+        const reason=[...box.querySelectorAll('label')].find(e=>e.textContent==='Reason for routing change');
+        return document.getElementById(reason.htmlFor).value==='Unsaved routing draft pinned before concurrent edit'&&
+          [...box.querySelectorAll('button')].find(e=>e.textContent==='Save routing').disabled;
+      }),'FM03_BROWSER_ROUTING_DRAFT_OVERWRITES_CONCURRENT_EDIT');
+      assert.equal((await db.siteIssueRouting.findUniqueOrThrow({where:{projectId:f.assigned.id}})).ownerUserId,f.actors.OTHER_OWNER.userId);
+      await click(p,s,'Discard routing draft and refresh');
+      await select(p,s,'Follow-up owner',f.actors.OWNER.userId);
+      await select(p,s,'Escalation recipient',f.actors.MANAGER.userId);
+      await field(p,s,'Reason for routing change','Synthetic explicit project routing after reconciliation');await click(p,s,'Save routing');
       await until(p,s,()=>document.querySelector('[data-testid="site-issues"]')?.textContent.includes('Recorded.'),null,'FM03_BROWSER_ROUTING_NOT_SAVED');
       demand(await evaluate(p,s,()=>![...document.querySelectorAll('[data-testid="site-issues"] button')].some(e=>e.textContent==='Report issue')), 'FM03_BROWSER_ADMIN_BUSINESS_ACTION');
     });
@@ -190,7 +212,21 @@ export async function runFm03Browser(databaseUrl){
         await click(p,s,resolved?'Verify resolved':'Verify unresolved');await requestState(p,s,issueId,resolved?'VERIFIED':'OPEN',resolved?5:3);
       });
     }
+    // Retain five older unresolved alerts; a sixth must have an actionable page.
+    const client=httpClient(API,WEB),reporter=await client.login('REPORTER_ALERTS',
+      {...f.actors.REPORTER,expectedRoleCodes:['FM3_REPORTER']},f.company.id);
+    const additional=[];
+    try{
+      for(let i=0;i<5;i++)additional.push((await client.call(reporter,'EXTRA_ALERT_'+i,'/site-issues',201,
+        f.input({workStopped:true,description:'Additional browser alert '+i}))).value.data.id);
+    }finally{await client.logout('REPORTER_ALERTS',reporter);}
     await actor('MANAGER',async(p,s)=>{
+      const next='[data-testid="site-issue-alerts"] button';
+      await click(p,s,'Next page',next);
+      await until(p,s,()=>[...document.querySelectorAll('[data-testid="site-issue-alerts"] button')].some(e=>e.textContent.includes('Additional browser alert 4')),null,'FM03_BROWSER_SIXTH_ESCALATION_INACCESSIBLE');
+      await evaluate(p,s,()=>{[...document.querySelectorAll('[data-testid="site-issue-alerts"] button')].find(e=>e.textContent.includes('Additional browser alert 4')).click();return true;});
+      await until(p,s,()=>document.querySelector('[data-testid="site-issues"]')?.textContent.includes('Additional browser alert 4'),null,'FM03_BROWSER_SIXTH_ALERT_NAVIGATION_FAILED');
+      await click(p,s,'Previous page',next);
       await until(p,s,()=>Boolean(document.querySelector('[data-testid="site-issue-alerts"] button')),null,'FM03_BROWSER_MANAGEMENT_ALERT_MISSING');
       await evaluate(p,s,()=>{document.querySelector('[data-testid="site-issue-alerts"] button').click();return true;});
       await until(p,s,description=>document.querySelector('[data-testid="site-issues"]')?.textContent.includes(description),description,'FM03_BROWSER_ALERT_NAVIGATION_FAILED');
