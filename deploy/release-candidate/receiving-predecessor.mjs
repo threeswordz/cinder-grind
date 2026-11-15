@@ -1,0 +1,55 @@
+// Exact post-FM03 populated d2b79080 predecessor → receiving. No historical acceptance/backfill.
+import assert from 'node:assert/strict';
+import {createRequire} from 'node:module';
+import {execFile} from 'node:child_process';
+import {promisify} from 'node:util';
+import {mkdtemp,mkdir,writeFile,rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {resolve,join} from 'node:path';
+import {randomUUID} from 'node:crypto';
+import {safeEnvironment} from '../uat/prototype-actors.mjs';
+import {stripReceivingSchema} from './receiving-schema-contract.mjs';
+import {receivingCatalog,verifyReceivingCatalog} from './receiving-catalog-contract.mjs';
+import {assertHistoricalTables} from './historical-snapshot.mjs';
+const execute=promisify(execFile),previous='d2b790801119fb1b5b4176ad416086ee7363d091';
+const require=createRequire(resolve('apps/api/package.json'));
+export async function prepareReceivingUpgrade(databaseUrl){
+ const u=new URL(databaseUrl);assert.equal(process.platform,'linux');assert.equal(process.versions.node,'24.21.0');
+ assert.ok(['127.0.0.1','localhost'].includes(u.hostname)&&Number(u.port)>0);assert.match(u.pathname,/^\/receiving_[a-f0-9]{32}$/);
+ const temp=await mkdtemp(join(tmpdir(),'erp-receiving-predecessor-'));
+ const {PrismaClient}=require('@prisma/client'),db=new PrismaClient({datasources:{db:{url:u.href}},log:[]});
+ try{
+  const git=async args=>(await execute('git',args,{maxBuffer:16777216})).stdout;
+  const schema=await git(['show',previous+':apps/api/prisma/schema.prisma']);
+  const {readFile}=await import('node:fs/promises');
+  assert.equal(stripReceivingSchema(await readFile('apps/api/prisma/schema.prisma','utf8')).text.replace(/\s+/g,' ').trim(),schema.replace(/\s+/g,' ').trim());
+  await writeFile(join(temp,'schema.prisma'),schema,{mode:0o600});
+  const names=(await git(['ls-tree','-r','--name-only',previous,'apps/api/prisma/migrations'])).trim().split('\n');
+  for(const name of names){const rel=name.slice('apps/api/prisma/'.length),path=join(temp,rel);await mkdir(resolve(path,'..'),{recursive:true});await writeFile(path,await git(['show',previous+':'+name]),{mode:0o600});}
+  await execute('pnpm',['--filter','@construction-erp/api','exec','prisma','migrate','deploy','--schema',join(temp,'schema.prisma')],{env:{...safeEnvironment(),DATABASE_URL:u.href},timeout:120000,maxBuffer:2097152});
+  const tag=randomUUID(),company=await db.company.create({data:{companyCode:'RC-PRE-'+tag,companyName:'Synthetic populated receiving predecessor'}});
+  const customer=await db.customer.create({data:{companyId:company.id,customerCode:'PRE',customerName:'Synthetic predecessor customer'}});
+  const supplier=await db.supplier.create({data:{companyId:company.id,supplierCode:'PRE',supplierName:'Synthetic predecessor supplier'}});
+  const user=await db.user.create({data:{companyId:company.id,email:tag+'@example.invalid',displayName:'Synthetic predecessor',passwordHash:'unusable-synthetic-fixture'}});
+  const project=await db.project.create({data:{companyId:company.id,customerId:customer.id,projectCode:'PRE',projectName:'Preserved predecessor',contractValue:'0',plannedStartDate:new Date('2026-01-01'),plannedCompletionDate:new Date('2026-12-31')}});
+  const warehouse=await db.warehouse.create({data:{companyId:company.id,projectId:project.id,warehouseCode:'PRE',warehouseName:'Predecessor store',isSiteWarehouse:true}});
+  const po=await db.purchaseOrder.create({data:{companyId:company.id,projectId:project.id,supplierId:supplier.id,poNumber:'PRE-PO',createdByUserId:user.id}});
+  // Genuine pre-existing unposted GR stays unbound. Its Project is never enabled by migration.
+  await db.goodsReceipt.create({data:{companyId:company.id,projectId:project.id,supplierId:supplier.id,purchaseOrderId:po.id,warehouseId:warehouse.id,receiptNumber:'PRE-GR',createdByUserId:user.id},select:{id:true}});
+  await db.dailySiteReport.create({data:{companyId:company.id,projectId:project.id,createdByUserId:user.id,reportDate:new Date('2026-11-14'),issues:{create:{issueText:'Retained issue observation before receiving'}}}});
+  async function snapshot(candidate){
+   const result={},tables=await db.$queryRawUnsafe("SELECT tablename FROM pg_tables WHERE schemaname='public' AND tablename <> '_prisma_migrations' ORDER BY tablename");
+   for(const {tablename}of tables){
+    assert.match(tablename,/^[a-z_]+$/);
+    if(candidate&&tablename==='permissions')verifyReceivingCatalog(await db.$queryRawUnsafe('SELECT * FROM permissions WHERE id=ANY($1::uuid[])',receivingCatalog.map(p=>p.id)),true);
+    const filter=candidate&&tablename==='permissions',columns=candidate&&tablename==='goods_receipts'?['delivery_id']:[];
+    if(columns.length)assert.equal((await db.$queryRawUnsafe('SELECT count(*)::text AS n FROM goods_receipts WHERE delivery_id IS NOT NULL'))[0].n,'0','Historical GR receiving provenance must stay null');
+    const [row]=await db.$queryRawUnsafe(`SELECT count(*)::text AS count,encode(sha256(convert_to(coalesce(string_agg((to_jsonb(t)-$1::text[])::text,E'\\n' ORDER BY (to_jsonb(t)-$1::text[])::text),''),'UTF8')),'hex') AS digest FROM "${tablename}" t ${filter?'WHERE id <> ALL($2::uuid[])':''}`,columns,...(filter?[receivingCatalog.map(p=>p.id)]:[]));result[tablename]=row;
+   }return result;
+  }
+  const before=await snapshot(false);
+  await execute('pnpm',['prisma:migrate:deploy'],{env:{...safeEnvironment(),DATABASE_URL:u.href},timeout:120000,maxBuffer:2097152});
+  assertHistoricalTables(before,await snapshot(true),false,false,false,false,false,false,false,true);
+  console.log('RECEIVING_EXACT_FM03_PREDECESSOR_ALL_HISTORICAL_TABLES_GRANTS_AND_NULL_GR_LINK_PASS');
+ }finally{await db.$disconnect();await rm(temp,{recursive:true,force:true});}
+}

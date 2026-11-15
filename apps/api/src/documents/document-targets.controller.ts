@@ -54,6 +54,7 @@ function targetType(value: string): DocumentTargetType {
     'SUPPLIER_QUOTATION',
     'PURCHASE_ORDER',
     'GOODS_RECEIPT',
+    'RECEIVING_DELIVERY',
     'MATERIAL_RESERVATION',
     'MATERIAL_ISSUE',
     'MATERIAL_REQUEST',

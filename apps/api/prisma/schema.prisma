@@ -116,6 +116,7 @@ model Customer {
 }
 
 model Supplier {
+  receivingDeliveries ReceivingDelivery[]
   id                 String   @id @default(uuid()) @db.Uuid
   companyId          String   @map("company_id") @db.Uuid
   supplierCode       String   @map("supplier_code") @db.VarChar(50)
@@ -146,6 +147,7 @@ model Supplier {
 }
 
 model UnitOfMeasure {
+  receivingDeliveryLines ReceivingDeliveryLine[]
   materialUsagePlanLines MaterialUsagePlanLine[]
   materialRequestLines MaterialRequestLine[]
   customerBoqLines CustomerBoqLine[]
@@ -181,6 +183,7 @@ model UnitOfMeasure {
 }
 
 model Material {
+  receivingDeliveryLines ReceivingDeliveryLine[]
   materialUsagePlanLines MaterialUsagePlanLine[]
   materialRequestLines MaterialRequestLine[]
   id               String   @id @default(uuid()) @db.Uuid
@@ -245,6 +248,12 @@ model Employee {
 }
 
 model User {
+  receivingPolicies ReceivingProjectPolicy[] @relation("ReceivingPolicyActor")
+  capturedDeliveries ReceivingDelivery[] @relation("ReceivingDeliveryCreator")
+  checkedDeliveries ReceivingDelivery[] @relation("ReceivingDeliveryChecker")
+  receivingEvents ReceivingDeliveryEvent[]
+  receivingOperations ReceivingOperation[]
+  receivingEvidence ReceivingDeliveryEvidence[]
   siteIssueRoutingOwner SiteIssueRouting[] @relation("SiteIssueRoutingOwner")
   siteIssueRoutingEscalation SiteIssueRouting[] @relation("SiteIssueRoutingEscalation")
   siteIssueRoutingChanges SiteIssueRouting[] @relation("SiteIssueRoutingActor")
@@ -661,6 +670,9 @@ model SystemSetting {
 
 
 model Project {
+  receivingPolicy ReceivingProjectPolicy?
+  receivingDeliveries ReceivingDelivery[]
+  receivingOperations ReceivingOperation[]
   siteIssueRouting SiteIssueRouting?
   siteIssues SiteIssue[]
   materialPlanPolicy MaterialPlanProjectPolicy?
@@ -1085,6 +1097,7 @@ model DocumentType {
 }
 
 model Document {
+  receivingEvidence ReceivingDeliveryEvidence[]
   materialRequestReceipts MaterialRequestReceipt[]
   id               String   @id @default(uuid()) @db.Uuid
   companyId        String   @map("company_id") @db.Uuid
@@ -1646,6 +1659,7 @@ model SubcontractVariation {
 }
 
 model Warehouse {
+  receivingDeliveries ReceivingDelivery[]
   materialUsagePlans MaterialUsagePlan[]
   materialRequests MaterialRequest[]
   id              String   @id @default(uuid()) @db.Uuid
@@ -1677,6 +1691,8 @@ model Warehouse {
 }
 
 model GoodsReceipt {
+  deliveryId String? @unique @map("delivery_id") @db.Uuid
+  delivery ReceivingDelivery? @relation(fields: [deliveryId], references: [id], onDelete: Restrict, onUpdate: Restrict)
   id                 String    @id @default(uuid()) @db.Uuid
   companyId          String    @map("company_id") @db.Uuid
   projectId          String    @map("project_id") @db.Uuid
@@ -2571,6 +2587,7 @@ model QuotationAward {
 }
 
 model PurchaseOrder {
+  receivingDeliveries ReceivingDelivery[]
   id                 String    @id @default(uuid()) @db.Uuid
   companyId          String    @map("company_id") @db.Uuid
   projectId          String    @map("project_id") @db.Uuid
@@ -2613,6 +2630,7 @@ model PurchaseOrder {
 }
 
 model PurchaseOrderLine {
+  receivingDeliveryLines ReceivingDeliveryLine[]
   id                      String   @id @default(uuid()) @db.Uuid
   purchaseOrderId         String   @map("purchase_order_id") @db.Uuid
   lineNo                  Int      @map("line_no")
@@ -3755,4 +3773,134 @@ model SiteIssueEvent {
   @@unique([companyId, actorUserId, requestKey])
   @@unique([issueId, version])
   @@map("site_issue_events")
+}
+
+
+model ReceivingProjectPolicy {
+  projectId String @id @map("project_id") @db.Uuid
+  companyId String @map("company_id") @db.Uuid
+  enabledByUserId String @map("enabled_by_user_id") @db.Uuid
+  reason String @db.Text
+  syntheticOnly Boolean @default(true) @map("synthetic_only")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  project Project @relation(fields: [companyId, projectId], references: [companyId, id], onDelete: Restrict, onUpdate: Restrict)
+  enabledBy User @relation("ReceivingPolicyActor", fields: [companyId, enabledByUserId], references: [companyId, id], onDelete: Restrict, onUpdate: Restrict)
+  @@unique([companyId, projectId])
+  @@map("receiving_project_policies")
+}
+
+model ReceivingDelivery {
+  id String @id @default(uuid()) @db.Uuid
+  companyId String @map("company_id") @db.Uuid
+  projectId String @map("project_id") @db.Uuid
+  warehouseId String @map("warehouse_id") @db.Uuid
+  supplierId String @map("supplier_id") @db.Uuid
+  createdByUserId String @map("created_by_user_id") @db.Uuid
+  receivedAt DateTime @map("received_at") @db.Timestamptz(6)
+  poLinkDueAt DateTime @map("po_link_due_at") @db.Timestamptz(6)
+  receiverName String @map("receiver_name") @db.VarChar(200)
+  reason String @db.Text
+  qualityRequired Boolean @map("quality_required")
+  purchaseOrderId String? @map("purchase_order_id") @db.Uuid
+  linkedAt DateTime? @map("linked_at") @db.Timestamptz(6)
+  checkedByUserId String? @map("checked_by_user_id") @db.Uuid
+  checkedAt DateTime? @map("checked_at") @db.Timestamptz(6)
+  checkNote String? @map("check_note") @db.Text
+  status String @default("HELD") @db.VarChar(20)
+  version Int @default(1)
+  supersedesId String? @unique @map("supersedes_id") @db.Uuid
+  voidReason String? @map("void_reason") @db.Text
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  project Project @relation(fields: [companyId, projectId], references: [companyId, id], onDelete: Restrict, onUpdate: Restrict)
+  warehouse Warehouse @relation(fields: [warehouseId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  supplier Supplier @relation(fields: [supplierId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  creator User @relation("ReceivingDeliveryCreator", fields: [companyId, createdByUserId], references: [companyId, id], onDelete: Restrict, onUpdate: Restrict)
+  checker User? @relation("ReceivingDeliveryChecker", fields: [companyId, checkedByUserId], references: [companyId, id], onDelete: Restrict, onUpdate: Restrict)
+  purchaseOrder PurchaseOrder? @relation(fields: [purchaseOrderId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  supersedes ReceivingDelivery? @relation("ReceivingReplacement", fields: [supersedesId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  replacement ReceivingDelivery? @relation("ReceivingReplacement")
+  goodsReceipt GoodsReceipt?
+  lines ReceivingDeliveryLine[]
+  evidence ReceivingDeliveryEvidence[]
+  events ReceivingDeliveryEvent[]
+  operations ReceivingOperation[]
+  @@unique([companyId, id])
+  @@index([companyId, projectId, receivedAt, id])
+  @@index([companyId, projectId, poLinkDueAt])
+  @@map("receiving_deliveries")
+}
+
+model ReceivingDeliveryLine {
+  id String @id @default(uuid()) @db.Uuid
+  deliveryId String @map("delivery_id") @db.Uuid
+  lineNo Int @map("line_no")
+  materialId String @map("material_id") @db.Uuid
+  uomId String @map("uom_id") @db.Uuid
+  observedQuantity Decimal @map("observed_quantity") @db.Decimal(18,4)
+  goodQuantity Decimal @map("good_quantity") @db.Decimal(18,4)
+  condition String @db.VarChar(20)
+  note String @db.Text
+  purchaseOrderLineId String? @map("purchase_order_line_id") @db.Uuid
+  delivery ReceivingDelivery @relation(fields: [deliveryId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  material Material @relation(fields: [materialId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  uom UnitOfMeasure @relation(fields: [uomId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  purchaseOrderLine PurchaseOrderLine? @relation(fields: [purchaseOrderLineId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  @@unique([deliveryId, lineNo])
+  @@unique([deliveryId, purchaseOrderLineId])
+  @@map("receiving_delivery_lines")
+}
+
+model ReceivingDeliveryEvidence {
+  id String @id @default(uuid()) @db.Uuid
+  companyId String @map("company_id") @db.Uuid
+  deliveryId String @map("delivery_id") @db.Uuid
+  documentId String @map("document_id") @db.Uuid
+  purpose String @db.VarChar(30)
+  checksum String @db.VarChar(64)
+  signatureConfirmed Boolean @default(false) @map("signature_confirmed")
+  recordedByUserId String @map("recorded_by_user_id") @db.Uuid
+  supersedesId String? @unique @map("supersedes_id") @db.Uuid
+  supersedes ReceivingDeliveryEvidence? @relation("ReceivingEvidenceReplacement", fields: [supersedesId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  replacement ReceivingDeliveryEvidence? @relation("ReceivingEvidenceReplacement")
+  recordedAt DateTime @default(now()) @map("recorded_at") @db.Timestamptz(6)
+  delivery ReceivingDelivery @relation(fields: [companyId, deliveryId], references: [companyId, id], onDelete: Restrict, onUpdate: Restrict)
+  document Document @relation(fields: [companyId, documentId], references: [companyId, id], onDelete: Restrict, onUpdate: Restrict)
+  actor User @relation(fields: [companyId, recordedByUserId], references: [companyId, id], onDelete: Restrict, onUpdate: Restrict)
+  @@unique([deliveryId, documentId, purpose])
+  @@map("receiving_delivery_evidence")
+}
+
+model ReceivingDeliveryEvent {
+  id String @id @default(uuid()) @db.Uuid
+  companyId String @map("company_id") @db.Uuid
+  deliveryId String @map("delivery_id") @db.Uuid
+  actorUserId String @map("actor_user_id") @db.Uuid
+  version Int
+  action String @db.VarChar(30)
+  note String @db.Text
+  facts Json
+  recordedAt DateTime @default(now()) @map("recorded_at") @db.Timestamptz(6)
+  delivery ReceivingDelivery @relation(fields: [companyId, deliveryId], references: [companyId, id], onDelete: Restrict, onUpdate: Restrict)
+  actor User @relation(fields: [companyId, actorUserId], references: [companyId, id], onDelete: Restrict, onUpdate: Restrict)
+  @@unique([deliveryId, version])
+  @@map("receiving_delivery_events")
+}
+
+model ReceivingOperation {
+  id String @id @default(uuid()) @db.Uuid
+  companyId String @map("company_id") @db.Uuid
+  projectId String @map("project_id") @db.Uuid
+  actorUserId String @map("actor_user_id") @db.Uuid
+  requestKey String @map("request_key") @db.Uuid
+  action String @db.VarChar(30)
+  bodyDigest String @map("body_digest") @db.VarChar(64)
+  deliveryId String? @map("delivery_id") @db.Uuid
+  outcome Json
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  project Project @relation(fields: [companyId, projectId], references: [companyId, id], onDelete: Restrict, onUpdate: Restrict)
+  actor User @relation(fields: [companyId, actorUserId], references: [companyId, id], onDelete: Restrict, onUpdate: Restrict)
+  delivery ReceivingDelivery? @relation(fields: [deliveryId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  @@unique([companyId, actorUserId, requestKey])
+  @@map("receiving_operations")
 }

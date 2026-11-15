@@ -13,6 +13,7 @@ import {
   requiredInventoryString,
 } from './inventory-validation';
 import { GoodsReceiptService } from './goods-receipt.service';
+import { receivingVersion } from './receiving-contract';
 
 function authOf(request: AuthenticatedRequest): AuthenticatedUserContext {
   if (!request.auth) throw new Error('Authentication context is missing.');
@@ -112,6 +113,7 @@ export class GoodsReceiptController {
       purchaseOrderId: inventoryUuid(input.purchaseOrderId, 'purchaseOrderId'),
       warehouseId: inventoryUuid(input.warehouseId, 'warehouseId'),
       remarks: nullableInventoryString(input, 'remarks', 10000) ?? null,
+      ...(input.deliveryId==null?{}:{deliveryId:inventoryUuid(input.deliveryId,'deliveryId'),requestKey:inventoryUuid(input.requestKey,'requestKey'),expectedDeliveryVersion:receivingVersion(input.expectedDeliveryVersion)}),
       lines,
     }) };
   }

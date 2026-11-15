@@ -1,5 +1,7 @@
 # Construction ERP — Master Requirements Register
 
+**Approved receiving successor — 15 November2026:** [#347](https://github.com/threeswordz/cinder-grind/issues/347), DEC-045 and [RC-AC01–12](OP-RECEIVING-CUSTODY-01.md) implement SS04–06/PM06/PUR09. Pre-PO goods stay unavailable until approved PO + Khaimook-approved GR; approved-PO linkage is due48hours from original receipt. No early-use/expiry bypass or retained/Production activation.
+
 **Active bounded FM03 implementation — 14 November 2026:** [#344](https://github.com/threeswordz/cinder-grind/issues/344) implements the existing confirmed [Foreman FM03](ROLE-REQUIREMENTS-2026-10-30/06-foreman.md) lifecycle and severity rules under the Owner continuation directive. [FM3-AC01–12](OP-SITE-ISSUE-01-IMPLEMENTATION.md) define implementation, authorization/history, upgrade/recovery and deployed proof. This does not complete all112 requirements or authorize retained grants, new Accounting/payroll, human UAT or Production.
 
 **Bounded material-plan prototype successor:** [OP-MATERIAL-PLAN-01-ENTRY.md](OP-MATERIAL-PLAN-01-ENTRY.md), DEC-044 / #318, maps PM01/PM07/SS-PLAN-01 to MP-AC-01–16 without rewriting the original112-ID assessment. Owner continuation adopts the published D1–D5 recommended synthetic prototype contract; technical entry/implementation gates remain in force. Canonical stock/return/approval sources, BOQ disclosure and existing request/receipt ownership are preserved. No real retained activation or Production authority. See Current State for actual integration status.

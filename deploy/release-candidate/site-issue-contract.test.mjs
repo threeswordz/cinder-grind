@@ -1,3 +1,4 @@
+import {stripReceivingSchema} from './receiving-schema-contract.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
@@ -7,7 +8,7 @@ import {classifySchema} from './schema-contract.mjs';
 import {stripSiteIssueSchema,siteIssueMode,siteIssueTables} from './site-issue-schema-contract.mjs';
 import {siteIssueCatalog,verifySiteIssueCatalog} from './site-issue-catalog-contract.mjs';
 import {assertHistoricalTables} from './historical-snapshot.mjs';
-const current=readFileSync(new URL('../../apps/api/prisma/schema.prisma',import.meta.url),'utf8');
+const current=stripReceivingSchema(readFileSync(new URL('../../apps/api/prisma/schema.prisma',import.meta.url),'utf8')).text;
 const previous=execFileSync('git',['show','480fd4c7ee5e1aeab3fecf9670607a32a8f23d8b:apps/api/prisma/schema.prisma'],{encoding:'utf8'});
 test('FM03 exact three-model increment preserves predecessor fields and denies partial, altered or unrelated schema',()=>{
  assert.equal(classifySchema(previous,current),'migration-aware-site-issue-schema');assert.equal(stripSiteIssueSchema(current).present,true);

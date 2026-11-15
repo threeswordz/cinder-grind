@@ -24,6 +24,7 @@ export type DocumentTargetType =
   | 'SUPPLIER_QUOTATION'
   | 'PURCHASE_ORDER'
   | 'GOODS_RECEIPT'
+  | 'RECEIVING_DELIVERY'
   | 'MATERIAL_RESERVATION'
   | 'MATERIAL_ISSUE'
   | 'MATERIAL_REQUEST'
@@ -486,6 +487,12 @@ export class DocumentTargetsService {
         select: { id: true },
       });
       if (!row) throw this.targetNotFound();
+      return;
+    }
+
+    if (entityType === 'RECEIVING_DELIVERY') {
+      const row=await this.prisma.receivingDelivery.findFirst({where:{id:entityId,projectId,companyId:auth.companyId},select:{id:true}});
+      if(!row)throw this.targetNotFound();
       return;
     }
 
