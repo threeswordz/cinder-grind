@@ -94,7 +94,21 @@ test('P0 integrated material journey: request -> approved plan issue -> signed r
       // The approved Cost BOQ-backed plan exists in the shared fixture; enabling
       // its policy is synthetic-only and needs a separate explicitly granted actor.
       await call(f.ben, planIssues + '/projects/' + f.project.id + '/enable', 201, f.enableInput());
-      const issue = await f.issue('3', false);
+      // Exercise the deployed Material Issue entrypoint instead of creating the
+      // new issue directly through the fixture service. This tests a missing
+      // authentication/CSRF boundary without duplicating posting business logic.
+      const issueInput = {
+        projectId: f.project.id, warehouseId: f.warehouse.id,
+        issueDate: '2026-11-02', issuedToEmployeeId: f.foreman.employee.id,
+        remarks: 'Synthetic approved-plan material issue',
+        lines: [{ materialId: f.material.id, uomId: f.uom.id, quantity: '3.0000' }],
+      };
+      await call(f.foreman, '/inventory/material-issues', 403, issueInput);
+      await call(f.store, '/inventory/material-issues', 403, issueInput, false);
+      const createdIssue = (await call(f.store, '/inventory/material-issues', 201, issueInput)).data;
+      const issue = (await call(f.store, '/inventory/material-issues/' + createdIssue.id)).data;
+      assert.equal(issue.id, createdIssue.id);
+      assert.equal(issue.items.length, 1);
       assert.ok(await db.materialPlanIssueBinding.findUnique({ where: { issueId: issue.id } }));
       const draftLink = {
         requestKey: randomUUID(), expectedVersion: original.version,
@@ -124,7 +138,37 @@ test('P0 integrated material journey: request -> approved plan issue -> signed r
       assert.equal((await balance()).toFixed(4), '17.0000');
 
       // Evidence upload alone is not recipient acknowledgment or stock effect.
-      const signedDocument = await f.upload(requestId);
+      // Exercise the canonical multipart Documents route rather than the
+      // fixture's direct service upload. The receipt must refer to these real
+      // protected bytes; upload alone never acknowledges or changes stock.
+      const signedType = await db.documentType.findFirstOrThrow({
+        where: { companyId: f.company.id, documentTypeCode: 'SIGNED' },
+      });
+      const uploadPath = '/documents/projects/' + f.project.id + '/targets/MATERIAL_REQUEST/' + requestId;
+      const multipart = new FormData();
+      multipart.set('documentTypeId', signedType.id);
+      multipart.set('file', new Blob([f.bytes.toString('utf8')], { type: 'application/pdf' }), 'signed-receipt.pdf');
+      const uploaded = await fetch(base + uploadPath, {
+        method: 'POST',
+        headers: {
+          Cookie: 'erp_session=' + f.store.session.sessionToken,
+          'x-csrf-token': f.store.session.csrfToken,
+        },
+        body: multipart,
+      });
+      assert.equal(uploaded.status, 201, await uploaded.clone().text());
+      const signedDocument = ((await uploaded.json()) as { data: { id: string } }).data;
+      assert.match(signedDocument.id, /^[a-f0-9-]{36}$/);
+      const downloadPath = uploadPath + '/' + signedDocument.id + '/download';
+      const downloaded = await fetch(base + downloadPath, {
+        headers: { Cookie: 'erp_session=' + f.store.session.sessionToken },
+      });
+      assert.equal(downloaded.status, 200);
+      assert.deepEqual(Buffer.from(await downloaded.arrayBuffer()), f.bytes);
+      const deniedDownload = await fetch(base + downloadPath, {
+        headers: { Cookie: 'erp_session=' + f.foreman.session.sessionToken },
+      });
+      assert.equal(deniedDownload.status, 403);
       const afterUpload = (await call(f.store, requests + '/' + requestId)).data;
       assert.equal(afterUpload.lines[0].acknowledgedQuantity, '0.0000');
       const receipt = {
@@ -147,7 +191,11 @@ test('P0 integrated material journey: request -> approved plan issue -> signed r
 
       // A canonical reversal is reflected across the request projection,
       // stock ledger and source-derived report. Signed evidence remains a record.
-      await f.issues.reverse({ auth: f.store.auth }, issue.id, randomUUID(), 'Synthetic physical issue reversal');
+      // Verify the actual guarded HTTP reversal boundary and its stock/readback effects.
+      await call(f.foreman, '/inventory/material-issues/' + issue.id + '/reverse', 403,
+        { reversalKey: randomUUID(), reason: 'Foreman cannot reverse a material issue' });
+      await call(f.store, '/inventory/material-issues/' + issue.id + '/reverse', 201,
+        { reversalKey: randomUUID(), reason: 'Synthetic physical issue reversal' });
       const reversed = (await call(f.store, requests + '/' + requestId)).data;
       assert.equal(reversed.lines[0].issuedQuantity, '0.0000');
       assert.equal(reversed.lines[0].acknowledgedQuantity, '0.0000');
