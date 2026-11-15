@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {siteIssueCatalog,verifySiteIssueCatalog} from '../release-candidate/site-issue-catalog-contract.mjs';
 import {siteIssueTables} from '../release-candidate/site-issue-schema-contract.mjs';
-import {SOURCE} from './prototype-actors.mjs';
+import {SOURCE,ROLES} from './prototype-actors.mjs';
 const demand=(ok,code)=>{if(!ok)throw Object.assign(new Error(code),{safeCode:code});};
 const canonical=v=>JSON.stringify(v,(_k,x)=>x&&typeof x==='object'&&!Array.isArray(x)?
   Object.fromEntries(Object.keys(x).sort().map(k=>[k,x[k]])):x);
@@ -55,14 +55,24 @@ export async function configureFm03(db,binding,expected){
     const project=await tx.project.findUnique({where:{id:f.projectId}});
     demand(project?.companyId===f.companyId&&project.projectCode==='SITE_A'&&project.isActive,'FM03_PROJECT_BINDING_DRIFT');
     demand(await tx.siteIssue.count()===0&&await tx.siteIssueRouting.count()===0,'FM03_CONFIGURATION_OR_JOURNEY_ALREADY_EXISTS');
+    // Roles are shared authority. Repeat exclusive assignment and the exact
+    // pre-existing grant matrix in this write transaction, even if a grant or
+    // membership changed after the coordinator's earlier read-only inspection.
+    const keys=Object.keys(FM03_GRANTS),members=await tx.userRole.findMany({where:{roleId:{in:keys.map(k=>b.actors[k].roleId)}}});
+    demand(members.length===keys.length&&members.every(m=>m.companyId===f.companyId&&keys.some(k=>
+      m.roleId===b.actors[k].roleId&&m.userId===b.actors[k].userId)),'FM03_ROLE_MEMBERSHIP_MUST_BE_EXCLUSIVE');
     const added=[];
     for(const [key,codes] of Object.entries(FM03_GRANTS)){
-      const a=b.actors[key],user=await tx.user.findUnique({where:{id:a.userId},include:{userRoles:{include:{role:true}}}});
+      const a=b.actors[key],user=await tx.user.findUnique({where:{id:a.userId},include:{userRoles:{include:{role:{include:{rolePermissions:{include:{permission:true}}}}}}}});
       demand(user?.isActive&&user.companyId===f.companyId&&user.employeeId===a.employeeId&&user.email==='proto-'+key.toLowerCase()+'@example.invalid'&&
         user.userRoles.length===1&&user.userRoles[0].roleId===a.roleId&&user.userRoles[0].role.companyId===f.companyId&&
         user.userRoles[0].role.roleCode==='PROTO_'+key&&user.userRoles[0].role.isActive&&
         await tx.employee.count({where:{id:a.employeeId,companyId:f.companyId,isActive:true}})===1&&
         await tx.projectMember.count({where:{employeeId:a.employeeId,projectId:f.projectId,isActive:true}})===1,'FM03_ACTOR_SCOPE_DRIFT');
+      const delta=b.configuration?.changes?.find(c=>c.roleCode==='PROTO_'+key)?.addedCapabilities??[];
+      const expected=[...ROLES[key].permissions,...delta].sort();
+      demand(new Set(expected).size===expected.length&&canonical(user.userRoles[0].role.rolePermissions.map(p=>p.permission.permissionCode).sort())===canonical(expected),
+        'FM03_EXISTING_ROLE_GRANT_MATRIX_CHANGED');
       const catalog=await tx.permission.findMany({where:{permissionCode:{in:codes}}});
       demand(catalog.length===codes.length&&await tx.rolePermission.count({where:{roleId:a.roleId,permissionId:{in:catalog.map(p=>p.id)}}})===0,
         'FM03_GRANT_CATALOG_OR_PRIOR_DELTA_INVALID');

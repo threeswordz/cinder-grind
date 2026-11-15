@@ -138,15 +138,26 @@ async function native(){
     // Reuse this now-populated signed material fixture for the new FM03
     // deployment engine. No second material cycle, actor setup or database.
     phase='FM03_POPULATED_DELTA';
-    const fmBefore=await fm03Snapshot(db);
-    await assert.rejects(configureFm03(db,binding,'0'.repeat(64)),e=>e.safeCode==='FM03_CONFIGURATION_STATE_DRIFT');
-    const fmConfig=await configureFm03(db,binding,digest(fmBefore));
-    await assert.rejects(configureFm03(db,binding,digest(await fm03Snapshot(db))),e=>e.safeCode==='FM03_CONFIGURATION_OR_JOURNEY_ALREADY_EXISTS'||e.safeCode==='FM03_GRANT_CATALOG_OR_PRIOR_DELTA_INVALID');
+    const fmBinding={...binding,configuration},fmBefore=await fm03Snapshot(db);
+    // Reproduce a membership change after the earlier snapshot. A fresh state
+    // digest must not authorize another user to inherit the capability delta.
+    const extraMember=await db.userRole.create({data:{companyId:fixture.companyId,userId:prepared.actors.NANCY.userId,
+      roleId:prepared.actors.KHAIMOOK.roleId}});
+    try{await assert.rejects(configureFm03(db,fmBinding,digest(await fm03Snapshot(db))),e=>e.safeCode==='FM03_ROLE_MEMBERSHIP_MUST_BE_EXCLUSIVE');}
+    finally{await db.userRole.delete({where:{id:extraMember.id}});}
+    const hrManage=await db.permission.findUniqueOrThrow({where:{permissionCode:'hr.identity.manage'}});
+    const extraRight=await db.rolePermission.create({data:{roleId:prepared.actors.KHAIMOOK.roleId,permissionId:hrManage.id}});
+    try{await assert.rejects(configureFm03(db,fmBinding,digest(await fm03Snapshot(db))),e=>e.safeCode==='FM03_EXISTING_ROLE_GRANT_MATRIX_CHANGED');}
+    finally{await db.rolePermission.delete({where:{id:extraRight.id}});}
+    assert.equal(digest(await fm03Snapshot(db)),digest(fmBefore));
+    await assert.rejects(configureFm03(db,fmBinding,'0'.repeat(64)),e=>e.safeCode==='FM03_CONFIGURATION_STATE_DRIFT');
+    const fmConfig=await configureFm03(db,fmBinding,digest(fmBefore));
+    await assert.rejects(configureFm03(db,fmBinding,digest(await fm03Snapshot(db))),e=>e.safeCode==='FM03_CONFIGURATION_OR_JOURNEY_ALREADY_EXISTS'||e.safeCode==='FM03_GRANT_CATALOG_OR_PRIOR_DELTA_INVALID'||e.safeCode==='FM03_EXISTING_ROLE_GRANT_MATRIX_CHANGED');
     browser=await startBrowser(chrome,temporary);
-    const fmResult=await executeFm03Browser(browser.protocol,fm03BrowserBinding(binding,
+    const fmResult=await executeFm03Browser(browser.protocol,fm03BrowserBinding(fmBinding,
       {api:'http://127.0.0.1:31319/api/v1',web:env.WEB_ORIGIN}),db);
     await browser.stop();browser=undefined;
-    verifyFm03JourneyPreservation(fmBefore,await fm03Snapshot(db),fmConfig,binding,fmResult);
+    verifyFm03JourneyPreservation(fmBefore,await fm03Snapshot(db),fmConfig,fmBinding,fmResult);
     console.log('FM03_POPULATED_ENGINE_NATIVE_PASS: existing synthetic actors, minimal exact grants, real lifecycle/unresolved/refollowup/closure/severe alert, Company/Project/actor denial, EN/TH/zh-TW and retained material/signed/private/history/session preservation. Not Mac upgrade/recovery/freeze proof.');
   }catch(e){
     console.error('MATERIAL_RUN_NATIVE_FAILED: '+phase+' '+(/^[A-Z0-9_]+$/.test(e.safeCode??'')?e.safeCode:'NATIVE_ASSERTION_OR_SETUP_FAILED')+
