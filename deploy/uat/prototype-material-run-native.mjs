@@ -7,7 +7,7 @@ import {fm03Snapshot,configureFm03,digest,fm03BrowserBinding,verifyFm03JourneyPr
 import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
 import {randomBytes,randomUUID} from 'node:crypto';
-import {mkdtemp,rm,readFile} from 'node:fs/promises';
+import {mkdtemp,mkdir,rm,readFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join,resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -38,6 +38,8 @@ async function native(){
   const env={...safeEnvironment(),CI:'true',NODE_ENV:'uat',DATABASE_URL:own.href,API_HOST:'127.0.0.1',API_PORT:'31319',
     WEB_ORIGIN:'http://127.0.0.1:44319',STORAGE_ROOT:join(temporary,'documents'),DOCUMENT_UPLOAD_TEMP_ROOT:join(temporary,'uploads'),
     HR_PRIVATE_KEYS:JSON.stringify({native:randomBytes(32).toString('base64')}),HR_PRIVATE_ACTIVE_KEY_ID:'native'};
+  // Match the populated Mac's private storage root before the app creates files.
+  await mkdir(env.STORAGE_ROOT,{mode:0o700});
   async function run(exe,args,childEnv){await execute(exe,args,{cwd:root,env:childEnv,timeout:120000,maxBuffer:2097152});}
   let created=false,db,app,webServer,browser,phase='UNIQUE_DATABASE';
   try{
