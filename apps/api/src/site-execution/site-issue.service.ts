@@ -155,9 +155,17 @@ export class SiteIssueService {
       if (after && !await tx.siteIssue.findFirst({ where: { ...addressed, id: after }, select: { id: true } })) {
         throw new NotFoundException();
       }
-      const rows = await tx.siteIssue.findMany({ where, select: { id: true, description: true, status: true,
+      // Keep the timestamp comparison in PostgreSQL at its full microsecond
+      // precision. Prisma's cursor+skip can lose the boundary once it closes;
+      // converting its timestamp to a JS Date would also truncate precision.
+      const projectIds = (await tx.project.findMany({ where: await this.access.scopeWhere(a, tx), select: { id: true } })).map(p => p.id);
+      const page = await tx.$queryRawUnsafe<Array<{ id: string }>>(`SELECT id FROM site_issues
+        WHERE company_id=$1::uuid AND escalation_user_id=$2::uuid AND project_id=ANY($3::uuid[])
+          AND escalated_at IS NOT NULL AND status <> 'CLOSED'
+          AND ($4::uuid IS NULL OR (escalated_at,id) > (SELECT escalated_at,id FROM site_issues WHERE id=$4::uuid))
+        ORDER BY escalated_at,id LIMIT 6`, a.companyId, a.userId, projectIds, after ?? null);
+      const rows = await tx.siteIssue.findMany({ where: { ...where, id: { in: page.map(p => p.id) } }, select: { id: true, description: true, status: true,
         escalatedAt: true, project: { select: { id: true, projectCode: true, projectName: true } } },
-        ...(after ? { cursor: { id: after }, skip: 1 } : {}),
         orderBy: [{ escalatedAt: 'asc' }, { id: 'asc' }], take: 6 });
       return { total, items: rows.slice(0, 5).map(r => ({ ...r, description: r.description.slice(0, 200) })),
         nextCursor: rows.length > 5 ? rows[4]!.id : null };
