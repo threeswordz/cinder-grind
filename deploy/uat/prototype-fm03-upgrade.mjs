@@ -29,6 +29,16 @@ const environment=()=>Object.fromEntries(['PATH','HOME','USER','LOGNAME','TMPDIR
   .filter(k=>typeof process.env[k]==='string').map(k=>[k,process.env[k]]));
 export function validUpgradeDelta(c){return c?.status==='ahead'&&Array.isArray(c.files)&&c.files.length>0&&
   c.files.length<=PACKAGE.size&&c.files.every(f=>PACKAGE.has(f.filename)&&['added','modified'].includes(f.status)&&!f.previous_filename);}
+// lsof versions differ in whether -Fp also emits descriptor fields. Request
+// both fields explicitly and accept one exact PID followed only by descriptors.
+// Never accept a second process, unknown fields or raw output in an error.
+export function hasSoleListenerPid(output,pid){
+  if(typeof output!=='string'||!Number.isSafeInteger(pid)||pid<=1)return false;
+  const fields=output.split('\n');if(fields.at(-1)==='')fields.pop();
+  const descriptors=fields.slice(1);
+  return fields[0]==='p'+pid&&descriptors.length>0&&
+    descriptors.every(f=>/^f[0-9]+$/.test(f))&&new Set(descriptors).size===descriptors.length;
+}
 async function command(exe,args,cwd,env=environment(),timeout=30000){
   try{return (await run(exe,args,{cwd,env,timeout,maxBuffer:2097152})).stdout.trim();}
   catch{demand(false,'FM03_COMMAND_FAILED');}
@@ -110,9 +120,9 @@ async function processIdentity(root,checkout,kind,port){
   const args=await command('/bin/ps',['-ww','-p',String(p.pid),'-o','command='],checkout);
   const uid=await command('/bin/ps',['-p',String(p.pid),'-o','uid='],checkout);
   const born=await command('/bin/ps',['-p',String(p.pid),'-o','lstart='],checkout);
-  const listeners=await command('lsof',['-nP','-iTCP:'+port,'-sTCP:LISTEN','-Fp'],checkout);
+  const listeners=await command('lsof',['-nP','-iTCP:'+port,'-sTCP:LISTEN','-Fpf'],checkout);
   const own=await command('lsof',['-nP','-a','-p',String(p.pid),'-iTCP:'+port,'-sTCP:LISTEN'],checkout);
-  demand(args===process.execPath+' '+entry&&uid===String(process.getuid())&&born&&listeners==='p'+p.pid&&
+  demand(args===process.execPath+' '+entry&&uid===String(process.getuid())&&born&&hasSoleListenerPid(listeners,p.pid)&&
     own.includes('127.0.0.1:'+port)&&!own.includes('*:'+port),'FM03_PROCESS_OR_PORT_OWNERSHIP_DRIFT');
   return {...p,born,kind,port};
 }

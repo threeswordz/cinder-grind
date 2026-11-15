@@ -3,10 +3,35 @@ import assert from 'node:assert/strict';
 import {mkdtemp,mkdir,writeFile,cp,symlink,link,rm} from 'node:fs/promises';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
-import {privateInventory,verifyDocumentInventory,validUpgradeDelta,upgrade} from '../uat/prototype-fm03-upgrade.mjs';
+import {createServer} from 'node:net';
+import {execFile} from 'node:child_process';
+import {promisify} from 'node:util';
+import {privateInventory,verifyDocumentInventory,validUpgradeDelta,upgrade,hasSoleListenerPid} from '../uat/prototype-fm03-upgrade.mjs';
 import {verifyFm03Migration,fm03Snapshot,digest} from '../uat/prototype-fm03-state.mjs';
 import {siteIssueCatalog} from './site-issue-catalog-contract.mjs';
 import {siteIssueTables} from './site-issue-schema-contract.mjs';
+test('explicit lsof PID/descriptor records accept exactly the recorded process',()=>{
+  assert.equal(hasSoleListenerPid('p72\nf19',72),true);
+  assert.equal(hasSoleListenerPid('p72\nf19\nf24\n',72),true);
+  for(const output of ['', 'p72', 'p73\nf19', 'p72\nf19\np73\nf20',
+    'p72\nf19\np72\nf20', 'f19\np72', 'p72\nf19\ncnode', 'p72\nf19\nn*:33071',
+    'p72\nf19\n\nf20', 'p72\nf-1', 'p72\nf19\nf19', 'p72\nf19\nPRIVATE_UNEXPECTED_FIELD'])
+    assert.equal(hasSoleListenerPid(output,72),false);
+  for(const pid of [0,-1,72.5,'72',NaN,Infinity])assert.equal(hasSoleListenerPid('p72\nf19',pid),false);
+  for(const output of [null,undefined,{},72])assert.equal(hasSoleListenerPid(output,72),false);
+});
+test('actual lsof explicit PID/descriptor selection rejects the old exact-text assumption',async()=>{
+  const server=createServer();
+  try{
+    await new Promise((ok,no)=>{server.once('error',no);server.listen(0,'127.0.0.1',ok);});
+    const port=server.address().port;
+    const {stdout}=await promisify(execFile)('lsof',['-nP','-iTCP:'+port,'-sTCP:LISTEN','-Fpf'],
+      {encoding:'utf8',timeout:5000,maxBuffer:65536});
+    assert.notEqual(stdout.trim(),'p'+process.pid);
+    assert.equal(hasSoleListenerPid(stdout,process.pid),true);
+    assert.equal(hasSoleListenerPid(stdout,process.pid+1),false);
+  }finally{await new Promise(ok=>server.close(ok));}
+});
 test('the Mac package refuses application/schema drift, renamed files and arbitrary later operator code',()=>{
   const c={status:'ahead',files:[{filename:'deploy/uat/prototype-fm03-upgrade.mjs',status:'added'}]};
   assert.equal(validUpgradeDelta(c),true);
