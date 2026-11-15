@@ -24,7 +24,7 @@ export async function receivingFixture(db:PrismaService){
  const sessions=new SessionService(db);
  const actor=async(label:string,codes:string[],member=true)=>{
   const employee=await db.employee.create({data:{companyId:company.id,employeeCode:label,employeeName:'Synthetic '+label}});
-  const user=await db.user.create({data:{companyId:company.id,employeeId:employee.id,email:label+'-'+suffix+'@example.invalid',displayName:label,passwordHash}});
+  const user=await db.user.create({data:{companyId:company.id,employeeId:employee.id,email:label.toLowerCase()+'-'+suffix+'@example.invalid',displayName:label,passwordHash}});
   const role=await db.role.create({data:{companyId:company.id,roleCode:label,roleName:label}});
   const permissions=await db.permission.findMany({where:{permissionCode:{in:codes}}});
   if(permissions.length!==new Set(codes).size)throw Error('Receiving fixture permission unavailable: '+codes.filter(c=>!permissions.some(p=>p.permissionCode===c)).join(','));

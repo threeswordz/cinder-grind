@@ -33,6 +33,16 @@ test('receiving actual HTTP holds physical goods until independent evidence chec
   const beforeFinance=await financial();let id='';
   const detail=()=>call(f.store,root+'/deliveries/'+id);
   const cmd=(version:number,extra={})=>({requestKey:randomUUID(),expectedVersion:version,reason:'Synthetic actual custody action',...extra});
+  await t.test('browser actors authenticate through real login and revoke the resulting cookie session',async()=>{
+   for(const actor of [f.store,f.jai,f.pm]){
+    const response=await fetch(base+'/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:actor.user.email,password:actor.password})});
+    assert.equal(response.status,201,'Receiving browser actor must authenticate through the canonical login');
+    const login:any=await response.json(),cookie=response.headers.get('set-cookie')?.split(';')[0];assert.ok(cookie);
+    const me=await fetch(base+'/auth/me',{headers:{Cookie:cookie}});assert.equal(me.status,200);assert.equal(((await me.json()) as any).data.id,actor.user.id);
+    const logout=await fetch(base+'/auth/logout',{method:'POST',headers:{Cookie:cookie,'x-csrf-token':login.data.csrfToken}});assert.equal(logout.status,204);
+    assert.equal((await fetch(base+'/auth/me',{headers:{Cookie:cookie}})).status,401);
+   }
+  });
   await t.test('live session, assignment, CSRF and explicit Project policy gate capture',async()=>{
    await call(null,root+'/projects',401);await call(f.store,root+'/deliveries',403,f.input(),false);
    await call(f.outsider,root+'/projects/'+f.project.id+'/deliveries',403);
