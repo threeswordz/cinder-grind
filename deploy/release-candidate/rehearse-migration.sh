@@ -52,6 +52,7 @@ if ! git diff --quiet "$RC_PREVIOUS_RELEASE_COMMIT" "$RELEASE_COMMIT" -- apps/ap
   rm -f "$previous_schema_check"
 fi
 
+site_issue_schema=false
 plan_issue_schema=false
 material_plan_schema=false
 material_request_schema=false
@@ -61,12 +62,21 @@ hr_document_schema=false
 hr_proof=false
 customer_schema=false
 successor_mode="$schema_mode"
+export SITE_ISSUE_SCHEMA_UPGRADE=NO
 export MATERIAL_PLAN_ISSUE_SCHEMA_UPGRADE=NO
 export MATERIAL_PLAN_SCHEMA_UPGRADE=NO
 export MATERIAL_REQUEST_SCHEMA_UPGRADE=NO
 export STOCK_COUNT_SCHEMA_UPGRADE=NO
 export HR_SCHEMA_UPGRADE=NO
 export HR_DOCUMENT_SCHEMA_UPGRADE=NO
+if [[ "$successor_mode" == "migration-aware-site-issue-schema" ]]; then
+  site_issue_schema=true
+  successor_mode="migration-aware-sql-only"
+elif [[ "$successor_mode" == migration-aware-site-issue-* ]]; then
+  site_issue_schema=true
+  successor_mode="migration-aware-${successor_mode#migration-aware-site-issue-}"
+fi
+if [[ "$site_issue_schema" == true ]]; then export SITE_ISSUE_SCHEMA_UPGRADE=YES; fi
 if [[ "$successor_mode" == "migration-aware-plan-issue-schema" ]]; then
   plan_issue_schema=true
   successor_mode="migration-aware-sql-only"
@@ -113,7 +123,7 @@ if [[ "$historical_mode" == "migration-aware-hr-schema" || "$historical_mode" ==
   export HR_SCHEMA_UPGRADE=YES
 fi
 if [[ "$historical_mode" == "migration-aware-customer-boq-schema" || "$historical_mode" == "migration-aware-hr-customer-boq-schema" ]]; then customer_schema=true; fi
-if [[ "$hr_schema" == true || "$hr_document_schema" == true || "$material_request_schema" == true || "$material_plan_schema" == true || "$plan_issue_schema" == true ]]; then hr_proof=true; fi
+if [[ "$hr_schema" == true || "$hr_document_schema" == true || "$material_request_schema" == true || "$material_plan_schema" == true || "$plan_issue_schema" == true || "$site_issue_schema" == true ]]; then hr_proof=true; fi
 
 legacy_upgrade=false
 if ! git cat-file -e "$RC_PREVIOUS_RELEASE_COMMIT:apps/api/prisma/migrations/20261025120000_v1_2_thb_monetary_policy/migration.sql" 2>/dev/null; then
@@ -301,7 +311,7 @@ trap on_exit EXIT
 create_database "$fresh_database"
 create_database "$upgrade_database"
 create_database "$rollback_database"
-if [[ "$hr_proof" == true || "$material_request_schema" == true || "$material_plan_schema" == true || "$plan_issue_schema" == true ]]; then create_database "$hr_database"; fi
+if [[ "$hr_proof" == true || "$material_request_schema" == true || "$material_plan_schema" == true || "$plan_issue_schema" == true || "$site_issue_schema" == true ]]; then create_database "$hr_database"; fi
 
 echo "[V1.0-E migration-aware] Fresh candidate migration-from-zero"
 DATABASE_URL="$fresh_url" DEPLOYMENT_MODE=fresh node apps/api/scripts/verify-production-target.mjs
@@ -472,6 +482,9 @@ fi
 if [[ "$hr_proof" == true ]]; then
   DATABASE_URL="$upgrade_url" node --test apps/api/dist/hr/hr.integration.spec.js
 fi
+if [[ "$site_issue_schema" == true ]]; then
+  DATABASE_URL="$upgrade_url" node --test apps/api/dist/site-execution/site-issue.integration.spec.js
+fi
 if [[ "$plan_issue_schema" == true ]]; then
   DATABASE_URL="$upgrade_url" node --test apps/api/dist/inventory/material-plan-issue.integration.spec.js
 fi
@@ -498,7 +511,7 @@ fi
 upgrade_pgpass="$(mktemp)"
 chmod 600 "$upgrade_pgpass"
 native_upgrade_url="$(POSTGRES_RAW_URL="$upgrade_url" PGPASSFILE="$upgrade_pgpass" node deploy/recovery/postgres-url.mjs)"
-if [[ "$hr_proof" == true || "$material_request_schema" == true || "$material_plan_schema" == true || "$plan_issue_schema" == true ]]; then
+if [[ "$hr_proof" == true || "$material_request_schema" == true || "$material_plan_schema" == true || "$plan_issue_schema" == true || "$site_issue_schema" == true ]]; then
   if [[ "$hr_proof" == true ]]; then
   if [[ "$hr_document_schema" == true ]]; then
     mkdir -p "$tmp_root/hr-attachment-source" "$tmp_root/hr-attachment-restored"
@@ -530,12 +543,18 @@ if [[ "$hr_proof" == true || "$material_request_schema" == true || "$material_pl
     tar -czf "$tmp_root/mr-documents.tar.gz" -C "$tmp_root/mr-receipt-source" .
     chmod 600 "$tmp_root/mr-documents.tar.gz"
   fi
+  if [[ "$site_issue_schema" == true ]]; then
+    DATABASE_URL="$upgrade_url" node "$RC_DIR/site-issue-upgrade.mjs" protect "$tmp_root/site-issue-protected.json"
+  fi
   PGPASSFILE="$upgrade_pgpass" pg_dump --format=custom --no-owner --no-privileges --dbname="$native_upgrade_url" > "$tmp_root/hr-protected.dump"
   chmod 600 "$tmp_root/hr-protected.dump"
   hr_pgpass="$(mktemp)"
   chmod 600 "$hr_pgpass"
   native_hr_url="$(POSTGRES_RAW_URL="$hr_url" PGPASSFILE="$hr_pgpass" node deploy/recovery/postgres-url.mjs)"
   PGPASSFILE="$hr_pgpass" pg_restore --exit-on-error --no-owner --no-privileges --dbname="$native_hr_url" < "$tmp_root/hr-protected.dump"
+  if [[ "$site_issue_schema" == true ]]; then
+    DATABASE_URL="$hr_url" node "$RC_DIR/site-issue-upgrade.mjs" restored "$tmp_root/site-issue-protected.json"
+  fi
   if [[ "$hr_proof" == true ]]; then
   if [[ "$hr_document_schema" == true ]]; then
     HR_ATTACHMENT_RECOVERY_STORAGE_ROOT="$tmp_root/hr-attachment-restored" DATABASE_URL="$hr_url" \
@@ -667,10 +686,10 @@ set -e
 
 if [[ "$schema_mode" != "migration-aware-sql-only" ]]; then
   if [[ "$legacy_upgrade" == true ]]; then
-    MATERIAL_PLAN_ISSUE_SCHEMA_UPGRADE=NO MATERIAL_PLAN_SCHEMA_UPGRADE=NO MATERIAL_REQUEST_SCHEMA_UPGRADE=NO HR_SCHEMA_UPGRADE=NO HR_DOCUMENT_SCHEMA_UPGRADE=NO STOCK_COUNT_SCHEMA_UPGRADE=NO DATABASE_URL="$rollback_url" node "$RC_DIR/legacy-fixture.mjs" verify "$previous_root" "$tmp_root/legacy.json" "$tmp_root/legacy-snapshot.json"
+    SITE_ISSUE_SCHEMA_UPGRADE=NO MATERIAL_PLAN_ISSUE_SCHEMA_UPGRADE=NO MATERIAL_PLAN_SCHEMA_UPGRADE=NO MATERIAL_REQUEST_SCHEMA_UPGRADE=NO HR_SCHEMA_UPGRADE=NO HR_DOCUMENT_SCHEMA_UPGRADE=NO STOCK_COUNT_SCHEMA_UPGRADE=NO DATABASE_URL="$rollback_url" node "$RC_DIR/legacy-fixture.mjs" verify "$previous_root" "$tmp_root/legacy.json" "$tmp_root/legacy-snapshot.json"
   fi
   if [[ "$hr_proof" == true ]]; then
-    MATERIAL_PLAN_ISSUE_SCHEMA_UPGRADE=NO MATERIAL_PLAN_SCHEMA_UPGRADE=NO MATERIAL_REQUEST_SCHEMA_UPGRADE=NO HR_DOCUMENT_SCHEMA_UPGRADE=NO DATABASE_URL="$rollback_url" node "$RC_DIR/hr-upgrade.mjs" rollback "$previous_root" "$tmp_root/hr-predecessor.json"
+    SITE_ISSUE_SCHEMA_UPGRADE=NO MATERIAL_PLAN_ISSUE_SCHEMA_UPGRADE=NO MATERIAL_PLAN_SCHEMA_UPGRADE=NO MATERIAL_REQUEST_SCHEMA_UPGRADE=NO HR_DOCUMENT_SCHEMA_UPGRADE=NO DATABASE_URL="$rollback_url" node "$RC_DIR/hr-upgrade.mjs" rollback "$previous_root" "$tmp_root/hr-predecessor.json"
   fi
   start_previous_runtime "$rollback_url" "$rollback_storage"
   RESTORED_API_BASE_URL="http://127.0.0.1:$api_port/api/v1" DATABASE_URL="$rollback_url" \
@@ -717,8 +736,10 @@ const [
   ciJob, ciRepository, migrationList, schemaMode, legacyUpgrade,
 ] = process.argv.slice(2);
 const nullable = (value) => value === '' ? null : value;
-const planIssueSchema=schemaMode.startsWith('migration-aware-plan-issue-');
-const beforePlan=!planIssueSchema?schemaMode:schemaMode==='migration-aware-plan-issue-schema'?'migration-aware-sql-only':'migration-aware-'+schemaMode.slice('migration-aware-plan-issue-'.length);
+const siteIssueSchema=schemaMode.startsWith('migration-aware-site-issue-');
+const beforeSite=!siteIssueSchema?schemaMode:schemaMode==='migration-aware-site-issue-schema'?'migration-aware-sql-only':'migration-aware-'+schemaMode.slice('migration-aware-site-issue-'.length);
+const planIssueSchema=beforeSite.startsWith('migration-aware-plan-issue-');
+const beforePlan=!planIssueSchema?beforeSite:beforeSite==='migration-aware-plan-issue-schema'?'migration-aware-sql-only':'migration-aware-'+beforeSite.slice('migration-aware-plan-issue-'.length);
 const materialPlanSchema=beforePlan.startsWith('migration-aware-material-plan-');
 const beforeRequest=!materialPlanSchema?beforePlan:beforePlan==='migration-aware-material-plan-schema'?'migration-aware-sql-only':'migration-aware-'+beforePlan.slice('migration-aware-material-plan-'.length);
 const materialRequestSchema = beforeRequest.startsWith('migration-aware-material-request-');
@@ -733,7 +754,7 @@ const priorMode = !hrDocumentSchema ? afterStock : afterStock === 'migration-awa
 const hrSchema = ['migration-aware-hr-schema','migration-aware-hr-customer-boq-schema'].includes(priorMode);
 const customerSchema = ['migration-aware-customer-boq-schema','migration-aware-hr-customer-boq-schema'].includes(priorMode);
 writeFileSync(path, JSON.stringify({
-  version: planIssueSchema ? 12 : materialPlanSchema ? 11 : materialRequestSchema ? 10 : stockCountSchema ? 9 : hrDocumentSchema ? 8 : hrSchema ? (customerSchema ? 7 : 6) : customerSchema ? 5 : schemaMode === 'migration-aware-thb-schema' ? 4 : 3,
+  version: siteIssueSchema ? 13 : planIssueSchema ? 12 : materialPlanSchema ? 11 : materialRequestSchema ? 10 : stockCountSchema ? 9 : hrDocumentSchema ? 8 : hrSchema ? (customerSchema ? 7 : 6) : customerSchema ? 5 : schemaMode === 'migration-aware-thb-schema' ? 4 : 3,
   releaseMode: schemaMode,
   releaseCommit,
   previousReleaseCommit,
@@ -769,6 +790,7 @@ writeFileSync(path, JSON.stringify({
   ...(hrSchema || hrDocumentSchema ? { hrPredecessorPreservation: 'PASS', hrPredecessorRollback: 'PASS', hrEmployeeUpgradeTests: 'PASS', hrEncryptedRecordRecovery: 'PASS', hrPrivateAttachmentRecovery: hrDocumentSchema ? 'PASS' : 'NOT_IMPLEMENTED_THIS_INCREMENT' } : {}),
   ...(hrDocumentSchema ? { hrDocumentCustodyUpgrade: 'PASS', hrDocumentSchemaOnly: 'PASS' } : {}),
   ...(stockCountSchema ? { stockCountSchemaUpgrade: 'PASS', stockCountHistoricalPreservation: 'PASS' } : {}),
+  ...(siteIssueSchema ? {siteIssueSchemaUpgrade:'PASS',siteIssueHistoricalPreservation:'PASS',siteIssueHttpUpgrade:'PASS',siteIssuePopulatedRecovery:'PASS'} : {}),
   ...(planIssueSchema ? {materialPlanIssueSchemaUpgrade:'PASS',materialPlanIssueHistoricalPreservation:'PASS',materialPlanIssueHttpUpgrade:'PASS',materialPlanIssuePopulatedRecovery:'PASS',materialPlanIssueSignedReceiptRecovery:'PASS'} : {}),
   ...(materialPlanSchema ? { materialPlanSchemaUpgrade:'PASS',materialPlanHistoricalPreservation:'PASS',materialPlanHttpUpgrade:'PASS',materialPlanPopulatedRecovery:'PASS' } : {}),
   ...(materialRequestSchema ? { materialRequestSchemaUpgrade:'PASS', materialRequestHistoricalPreservation:'PASS', materialRequestHttpUpgrade:'PASS', materialRequestSignedReceiptRecovery:'PASS' } : {}),

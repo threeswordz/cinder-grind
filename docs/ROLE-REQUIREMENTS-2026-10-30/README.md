@@ -1,5 +1,7 @@
 # Construction ERP — 112 role requirements, corrected execution baseline
 
+**Current source disposition:** [14-preproduction-reconciliation.md](14-preproduction-reconciliation.md) maps every original ID against main `76295ef9`, integrated successors, residual gaps and existing approval boundaries. It preserves this frozen baseline and is not a completion score, accepted launch exclusion or human UAT.
+
 **Owner directive:** [#288](https://github.com/threeswordz/cinder-grind/issues/288) overrides the earlier accounting- and budget/expense-first recommendation. **Verified source commit:** `4fd3635ed06510dc4759e00061cfc92d6cbad2bc`, [exact-main CI 40892651348](https://github.com/threeswordz/cinder-grind/actions/runs/40892651348) SUCCESS. This is a requirements/evidence publication, not code, configuration, human UAT or Production readiness.
 
 **Start with [13-execution-disposition.md](13-execution-disposition.md)** for the 112 stable IDs and corrected active/deferred lanes; use [11-launch-scope-and-next-package.md](11-launch-scope-and-next-package.md) for real next steps, [00-shared-workflows.md](00-shared-workflows.md) for handoffs, [10-traceability-gap-register.md](10-traceability-gap-register.md) for original code/evidence gaps and [12-decisions-and-sources.md](12-decisions-and-sources.md) for supersessions. Old L0/L1/L2 flags describe original audit risk **not current priority**.

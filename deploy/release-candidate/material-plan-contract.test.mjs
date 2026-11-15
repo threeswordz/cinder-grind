@@ -1,3 +1,4 @@
+import {stripSiteIssueSchema} from './site-issue-schema-contract.mjs';
 import {stripPlanIssueSchema} from './material-plan-issue-schema-contract.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
@@ -8,7 +9,7 @@ import {classifySchema} from './schema-contract.mjs';
 import {stripMaterialPlanSchema,materialPlanTables,materialPlanMode} from './material-plan-schema-contract.mjs';
 import {materialPlanCatalog,verifyMaterialPlanCatalog} from './material-plan-catalog-contract.mjs';
 import {assertHistoricalTables} from './historical-snapshot.mjs';
-const current=stripPlanIssueSchema(readFileSync(new URL('../../apps/api/prisma/schema.prisma',import.meta.url),'utf8')).text;
+const current=stripPlanIssueSchema(stripSiteIssueSchema(readFileSync(new URL('../../apps/api/prisma/schema.prisma',import.meta.url),'utf8')).text).text;
 const previous=execFileSync('git',['show','34e022d5807d3e16458437a02ebba669ba838c6a:apps/api/prisma/schema.prisma'],{encoding:'utf8'});
 test('DEC-044 foundation admits exact four models and parent relations, without an issue source or enablement flag',()=>{
  assert.equal(classifySchema(previous,current),'migration-aware-material-plan-schema');assert.equal(stripMaterialPlanSchema(current).present,true);

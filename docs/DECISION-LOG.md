@@ -626,6 +626,14 @@ At the owner's explicit request to fix unnecessary process overhead:
 No new release or UAT gate, runtime scope, architecture, business behavior or authorization change is approved. DEC-008, DEC-016, DEC-022, DEC-028 and DEC-029 remain in force; V1.1-E2 remains open.
 
 
+### DEC-030 Owner enforcement — 14 November 2026 SGT
+
+**OWNER DIRECTED.** After asking the Builder to take responsibility for building and rolling out the ERP, the Owner instructed: "record this into github so u don't make the same mistake again". The preceding correction concerned repeated preparation/test/CI-wait turns without completion of another prototype milestone.
+
+Record the operative instruction in [Development Operating Model, Section 3](DEVELOPMENT-OPERATING-MODEL.md#owner-enforcement--outcome-and-usage-discipline-14-november-2026), referenced by AGENTS.md and immediately visible in [#305](https://github.com/threeswordz/cinder-grind/issues/305) / [#338](https://github.com/threeswordz/cinder-grind/issues/338): Builder accountability for coherent executable outcomes and rollout preparation; reuse completed proof; focused validation while changing code and batched stable-candidate CI/review; avoid redundant broad reruns, repeated unchanged-CI polling and requests to continue; report observed milestone exits and concrete blockers.
+
+This enforces existing DEC-016/022/030/042. It neither removes required technical/security/independent-review/merge gates nor approves human UAT, scope exclusions, retained activation or Production. Preserve the existing eight-milestone board IDs and authority boundaries.
+
 ## DEC-031 — Owner-directed THB operating currency and local J2 fixture authorization
 **Status:** APPROVED REQUIREMENT — Product / Business Owner, 2026-10-23 (Singapore time); implementation and release gates remain open.
 

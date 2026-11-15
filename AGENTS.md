@@ -69,6 +69,7 @@ If the desired outcome requires changing an approved rule, stop and obtain expli
 ## 5. Chat / Work operating discipline
 
 - Chat is the default day-to-day Builder / Release Coordinator.
+- **Owner delivery/accountability correction (14 November 2026):** The Builder owns the path to completed prototype milestones and rollout preparation. Read and follow `docs/DEVELOPMENT-OPERATING-MODEL.md` Section 3's outcome/usage discipline and the live #305/#338 Owner directive before choosing work. Reuse completed proof, finish coherent executable outcomes, avoid redundant broad reruns/CI polling and repeated requests to continue, and report actual delivered outcomes/blockers. Required CI/review, security, human acceptance and separate Production gates remain unchanged.
 - GitHub is the source of truth for implementation status and durable project state.
 - CI/tests are technical evidence; they do not self-approve human business/UAT gates.
 - The Product / Business Owner remains the authority for explicit approval-gated decisions and human UAT/business acceptance.

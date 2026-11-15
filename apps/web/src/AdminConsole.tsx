@@ -23,6 +23,7 @@ import { ProjectEngineerDashboard } from './reporting/ProjectEngineerDashboard';
 import { ProcurementReport } from './reporting/ProcurementReport';
 import { SchedulingPanel } from './scheduling/SchedulingPanel';
 import { SiteExecutionPanel } from './site-execution/SiteExecutionPanel';
+import { SiteIssueAlerts, SiteIssuesPanel, type SiteIssueLink } from './site-execution/SiteIssuesPanel';
 import { DocumentsPanel } from './documents/DocumentsPanel';
 import { EquipmentPanel } from './equipment/EquipmentPanel';
 import { ClientFinanceWorkspace } from './finance/ClientFinanceWorkspace';
@@ -46,6 +47,7 @@ export function AdminConsole({ user, onLogoutSuccess }: { user: CurrentUser; onL
   const queryClient = useQueryClient();
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [linkedSource, setLinkedSource] = useState<SourceLinkTarget | null>(null);
+  const [siteIssueLink, setSiteIssueLink] = useState<SiteIssueLink | null>(null);
   const openSource = (target: SourceLinkTarget) => {
     setLinkedSource(target);
     setSelectedKey(target.sectionKey);
@@ -227,7 +229,8 @@ export function AdminConsole({ user, onLogoutSuccess }: { user: CurrentUser; onL
           key: 'site-execution',
           label: 'Site Execution',
           permission: '__site_execution__',
-          content: <SiteExecutionPanel
+          content: <><SiteIssuesPanel user={user} initialLink={siteIssueLink}/>
+          {user.permissions.includes('site.daily_report.view') ? <SiteExecutionPanel
             permissions={user.permissions}
             initialProjectId={linkedSource?.sectionKey === 'site-execution' ? linkedSource.projectId : undefined}
             initialReportId={
@@ -237,7 +240,7 @@ export function AdminConsole({ user, onLogoutSuccess }: { user: CurrentUser; onL
                 : undefined
             }
             onOpenSource={openSource}
-          />,
+          /> : null}</>,
         },
         {
           key: 'scheduling',
@@ -432,7 +435,7 @@ export function AdminConsole({ user, onLogoutSuccess }: { user: CurrentUser; onL
               ? user.permissions.some((permission) => permission.startsWith('documents.'))
               : user.permissions.includes(section.permission),
       ),
-    [user.permissions, linkedSource],
+    [user, linkedSource, siteIssueLink],
   );
 
   const activeKey =
@@ -452,10 +455,14 @@ export function AdminConsole({ user, onLogoutSuccess }: { user: CurrentUser; onL
   return (
     <RoleWorkspaceShell
       user={user}
+      alerts={openModule => <SiteIssueAlerts user={user} onOpen={link => {
+        openModule('site-execution'); setSiteIssueLink(link);
+      }}/>}
       sections={sections}
       activeKey={activeKey}
       onSelect={(key) => {
         setLinkedSource(null);
+        setSiteIssueLink(null);
         setSelectedKey(key);
       }}
       onOpenPr={(projectId, requestId) =>
