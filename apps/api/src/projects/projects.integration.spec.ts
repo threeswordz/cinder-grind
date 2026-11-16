@@ -109,6 +109,7 @@ test('Project scope and Team/Contact boundaries are enforced in PostgreSQL', asy
     const allUser = await prisma.user.create({
       data: {
         companyId: company.id,
+        employeeId: (await prisma.employee.create({ data: { companyId: company.id, employeeCode: 'SCOPE-allUser-' + suffix, employeeName: 'Synthetic allUser identity' } })).id,
         email: 'all-' + suffix + '@example.com',
         displayName: 'All Projects User',
         passwordHash: 'not-used-in-this-test',

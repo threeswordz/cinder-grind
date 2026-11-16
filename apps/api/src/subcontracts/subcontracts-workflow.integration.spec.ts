@@ -123,6 +123,7 @@ test('V0.5-B retains agreement decisions and enforces Work Order allocation ceil
     const maker = await prisma.user.create({
       data: {
         companyId: company.id,
+        employeeId: (await prisma.employee.create({ data: { companyId: company.id, employeeCode: 'SCOPE-maker-' + suffix, employeeName: 'Synthetic maker identity' } })).id,
         email: 'scb-maker-' + suffix + '@example.com',
         displayName: 'Stage B Maker',
         passwordHash: 'x',
@@ -131,6 +132,7 @@ test('V0.5-B retains agreement decisions and enforces Work Order allocation ceil
     const checker = await prisma.user.create({
       data: {
         companyId: company.id,
+        employeeId: (await prisma.employee.create({ data: { companyId: company.id, employeeCode: 'SCOPE-checker-' + suffix, employeeName: 'Synthetic checker identity' } })).id,
         email: 'scb-checker-' + suffix + '@example.com',
         displayName: 'Stage B Checker',
         passwordHash: 'x',
@@ -139,6 +141,7 @@ test('V0.5-B retains agreement decisions and enforces Work Order allocation ceil
     const outsider = await prisma.user.create({
       data: {
         companyId: company.id,
+        employeeId: (await prisma.employee.create({ data: { companyId: company.id, employeeCode: 'SCOPE-outsider-' + suffix, employeeName: 'Synthetic outsider identity' } })).id,
         email: 'scb-outsider-' + suffix + '@example.com',
         displayName: 'Stage B Outsider',
         passwordHash: 'x',

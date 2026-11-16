@@ -294,6 +294,7 @@ const permissionCodes = [
   'projects.project.create',
   'projects.project.edit',
   'projects.team.view',
+  'projects.team.manage',
   'wbs.wbs.view',
   'wbs.wbs.create',
   'wbs.cost_code.view',
@@ -1006,7 +1007,9 @@ const projectId = project.data.data.id;
 const projectRead = await request(pm, '/projects/' + projectId);
 check(projectRead.data.data.id === projectId, 'Project Manager could not read created Project.');
 
-const members = await request(admin, `/projects/${projectId}/members`);
+// Technical bootstrap identity has no Employee and cannot bypass Project scope.
+await request(admin, `/projects/${projectId}/members`, { expected: 403 });
+const members = await request(pm, `/projects/${projectId}/members`);
 check(
   members.data.data.some((item) =>
     item.employeeId === pmEmployee.data.data.id &&
@@ -1017,7 +1020,7 @@ check(
 );
 record('scoped Project creation and automatic Project Creator membership');
 
-await request(admin, `/projects/${projectId}/members`, {
+await request(pm, `/projects/${projectId}/members`, {
   method: 'POST',
   json: {
     employeeId: checkerEmployee.data.data.id,
@@ -6393,12 +6396,18 @@ await request(admin, '/admin/roles/' + sourceDocumentReaderRole.data.data.id + '
   json: { permissionCodes: ['projects.access_all', 'documents.document.view', 'documents.document.archive'] },
 });
 const sourceDocumentReaderPassword = 'Uat-Doc-' + suffix + '-Strong-2026!';
+const sourceDocumentReaderEmployee = await request(admin, '/master-data/employees', {
+  method: 'POST',
+  json: { employeeCode: 'DOC-READER-' + suffix, employeeName: 'Synthetic document source reader' },
+  expected: 201,
+});
 const sourceDocumentReaderUser = await request(admin, '/admin/users', {
   method: 'POST',
   json: {
     email: 'uat-doc-source-' + suffix.toLowerCase() + '@example.com',
     displayName: 'Document source reader ' + suffix,
     password: sourceDocumentReaderPassword,
+    employeeId: sourceDocumentReaderEmployee.data.data.id,
     roleIds: [sourceDocumentReaderRole.data.data.id],
   },
   expected: 201,

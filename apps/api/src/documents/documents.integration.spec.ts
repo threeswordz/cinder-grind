@@ -132,6 +132,7 @@ test('Project Documents enforce scope, safe storage and metadata boundaries', as
     const allUser = await prisma.user.create({
       data: {
         companyId: company.id,
+        employeeId: (await prisma.employee.create({ data: { companyId: company.id, employeeCode: 'SCOPE-allUser-' + suffix, employeeName: 'Synthetic allUser identity' } })).id,
         email: 'doc-all-' + suffix + '@example.com',
         displayName: 'All Documents User',
         passwordHash: 'unused',

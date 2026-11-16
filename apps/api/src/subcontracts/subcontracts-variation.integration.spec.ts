@@ -106,6 +106,7 @@ test('V0.5-E applies approved Variations to the ceiling and derives authorized r
     const maker = await prisma.user.create({
       data: {
         companyId: company.id,
+        employeeId: (await prisma.employee.create({ data: { companyId: company.id, employeeCode: 'SCOPE-maker-' + suffix, employeeName: 'Synthetic maker identity' } })).id,
         email: 'sce-maker-' + suffix + '@example.com',
         displayName: 'Stage E Maker',
         passwordHash: 'x',
@@ -114,6 +115,7 @@ test('V0.5-E applies approved Variations to the ceiling and derives authorized r
     const checker = await prisma.user.create({
       data: {
         companyId: company.id,
+        employeeId: (await prisma.employee.create({ data: { companyId: company.id, employeeCode: 'SCOPE-checker-' + suffix, employeeName: 'Synthetic checker identity' } })).id,
         email: 'sce-checker-' + suffix + '@example.com',
         displayName: 'Stage E Checker',
         passwordHash: 'x',
@@ -122,6 +124,7 @@ test('V0.5-E applies approved Variations to the ceiling and derives authorized r
     const noRole = await prisma.user.create({
       data: {
         companyId: company.id,
+        employeeId: (await prisma.employee.create({ data: { companyId: company.id, employeeCode: 'SCOPE-noRole-' + suffix, employeeName: 'Synthetic noRole identity' } })).id,
         email: 'sce-no-role-' + suffix + '@example.com',
         displayName: 'Stage E No Role',
         passwordHash: 'x',
@@ -130,6 +133,7 @@ test('V0.5-E applies approved Variations to the ceiling and derives authorized r
     const outsider = await prisma.user.create({
       data: {
         companyId: company.id,
+        employeeId: (await prisma.employee.create({ data: { companyId: company.id, employeeCode: 'SCOPE-outsider-' + suffix, employeeName: 'Synthetic outsider identity' } })).id,
         email: 'sce-outsider-' + suffix + '@example.com',
         displayName: 'Stage E Outsider',
         passwordHash: 'x',
