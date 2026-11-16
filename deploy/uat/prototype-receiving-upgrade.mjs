@@ -14,17 +14,39 @@ import {pipeline} from 'node:stream/promises';
 export const ORIGINAL='6fe8c4c22b002f66f00593975d381a284581f058';
 export const PREVIOUS_OPERATOR='d2b790801119fb1b5b4176ad416086ee7363d091';
 export const PREVIOUS_APP='c48447566f56302e561b86a07380fdab6f68f97c';
-// #349/#351 are independently reviewed, integrated and exact-main green.
-export const REVIEWED_APP='1dc8faa33a04834f9b8a3d471c0d7e9e7e170213';
+// PR #356 was independently reviewed, merged with exact-tree equality, and is the
+// only receiving application baseline accepted before Owner documentation updates.
+export const REVIEWED_APP='211df5425c182cf8c79bfbd1e69556371b6b1fce';
 export const RESTORE_DB='proto_a_01_receiving_preupgrade';
 const ORIGIN='https://github.com/threeswordz/cinder-grind.git';
 const API='http://127.0.0.1:33071/api/v1',WEB='http://127.0.0.1:44171';
 const SELF='deploy/uat/prototype-receiving-upgrade.mjs';
-const PACKAGE=new Set([SELF,'deploy/uat/prototype-receiving-browser.mjs','deploy/uat/prototype-receiving-state.mjs',
-  'deploy/uat/receiving-browser-native.mjs','deploy/uat/prototype-material-run-native.mjs','deploy/uat/prototype-material-artifacts.mjs',
-  'deploy/release-candidate/prototype-receiving-upgrade.test.mjs','docs/PROTOTYPE-RECEIVING-UPGRADE.md','docs/CURRENT-STATE.md',
-  'docs/DECISION-LOG.md','docs/DEVELOPMENT-ROADMAP.md','docs/REQUIREMENTS.md','docs/OP-TRANSFER-RECEIPT-01-ENTRY.md',
-  'docs/ROLE-REQUIREMENTS-2026-10-30/14-preproduction-reconciliation.md']);
+const PACKAGE=new Set([SELF,'deploy/release-candidate/prototype-receiving-upgrade.test.mjs',
+  // Only PR #357 approved Owner documentation paths. Never expand this to
+  // application code, schema, executable tests or arbitrary documents.
+  'docs/BOQ-COMMERCIAL-SCOPE.md',
+  'docs/CURRENT-STATE.md',
+  'docs/DECISION-LOG.md',
+  'docs/DEVELOPMENT-ROADMAP.md',
+  'docs/HR-PAYROLL-REQUIREMENTS-TH-2026-10-27.md',
+  'docs/REQUIREMENTS.md',
+  'docs/ROLE-REQUIREMENTS-2026-10-30/00-shared-workflows.md',
+  'docs/ROLE-REQUIREMENTS-2026-10-30/01-ben.md',
+  'docs/ROLE-REQUIREMENTS-2026-10-30/02-nancy.md',
+  'docs/ROLE-REQUIREMENTS-2026-10-30/03-khaimook.md',
+  'docs/ROLE-REQUIREMENTS-2026-10-30/04-jai.md',
+  'docs/ROLE-REQUIREMENTS-2026-10-30/05-store-site.md',
+  'docs/ROLE-REQUIREMENTS-2026-10-30/06-foreman.md',
+  'docs/ROLE-REQUIREMENTS-2026-10-30/07-porn.md',
+  'docs/ROLE-REQUIREMENTS-2026-10-30/08-koh.md',
+  'docs/ROLE-REQUIREMENTS-2026-10-30/11-launch-scope-and-next-package.md',
+  'docs/ROLE-REQUIREMENTS-2026-10-30/12-decisions-and-sources.md',
+  'docs/ROLE-REQUIREMENTS-2026-10-30/13-execution-disposition.md',
+  'docs/ROLE-REQUIREMENTS-2026-10-30/14-preproduction-reconciliation.md',
+  'docs/ROLE-REQUIREMENTS-2026-10-30/15-owner-decisions-2026-11-16.md',
+  'docs/ROLE-REQUIREMENTS-2026-10-30/README.md',
+  'docs/ROLES-PERMISSIONS.md'
+]);
 const demand=(ok,code)=>{if(!ok)throw Object.assign(new Error(code),{safeCode:code});};
 const hash=b=>createHash('sha256').update(b).digest('hex');
 const blob=b=>createHash('sha1').update('blob '+b.length+'\0').update(b).digest('hex');
