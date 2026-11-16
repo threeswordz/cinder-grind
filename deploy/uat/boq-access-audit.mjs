@@ -41,7 +41,7 @@ export function projectFacts({companyId,projectId,emails,observations,generatedA
     const permissions=complete?sorted(active.flatMap(r=>r.rolePermissions.map(p=>p.permission.permissionCode))):null;
     const activeEmployee=typeof user.employeeId==='string'?(employees?employees.some(e=>e.id===user.employeeId):null):user.employeeId===null?false:null;
     const membership=typeof user.employeeId==='string'?(members?members.some(m=>m.employeeId===user.employeeId&&m.isActive===true):null):user.employeeId===null?false:null;
-    const scope=!projectVerified?'UNVERIFIED':activeUser===false?'DENIED':activeUser===null?'UNVERIFIED':permissions?.includes('projects.access_all')?'ACCESS_ALL':activeEmployee===true&&membership===true?'ASSIGNED':activeEmployee===null||membership===null||permissions===null?'UNVERIFIED':'DENIED';
+    const scope=!projectVerified?'UNVERIFIED':activeUser===false||activeEmployee===false?'DENIED':activeUser===null||activeEmployee===null?'UNVERIFIED':permissions?.includes('projects.access_all')?'ACCESS_ALL':membership===true?'ASSIGNED':membership===null||permissions===null?'UNVERIFIED':'DENIED';
     return {function:key,status:complete?'FACTS_CAPTURED':'ROLE_DEFINITIONS_UNVERIFIED',userId:user.id,activeUser,
       activeEmployee,activeProjectMember:membership,projectScope:scope,activeRoleIds:active.map(r=>r.id),roleCodes:active.map(r=>r.roleCode).sort(),permissions};
   });

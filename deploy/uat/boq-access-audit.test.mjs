@@ -88,6 +88,18 @@ test('Project membership unknown differs from explicit access_all and never impl
   report=projectFacts({companyId,projectId,emails,observations:source,generatedAt:'test'});assert.equal(report.actors[0].projectScope,'ACCESS_ALL');assert.deepEqual(report.workflows[1].steps[0].mappedCandidates,[]);
 });
 
+test('all-Project metadata never certifies a missing or unverified active Employee',()=>{
+  for(const mode of ['detached','missing','unverified']){
+    const source=observations();
+    source.roles.data[0].rolePermissions.push({permission:{permissionCode:'projects.access_all'}});
+    if(mode==='detached')source.users.data[0].employeeId=null;
+    if(mode==='missing')source.employees.data=[];
+    if(mode==='unverified')source.employees={status:403,data:null};
+    const report=projectFacts({companyId,projectId,emails,observations:source,generatedAt:'test'});
+    assert.equal(report.actors[0].projectScope,mode==='unverified'?'UNVERIFIED':'DENIED');
+  }
+});
+
 test('private report output is exclusive mode0600 and rejects loose/symlink/repository destinations',async()=>{
   const temp=await mkdtemp(join(os.tmpdir(),'boq-config-audit-'));
   try{

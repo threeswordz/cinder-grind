@@ -205,6 +205,21 @@ This permission broadens the user's project visibility.
 
 It does **not** by itself grant create, edit, approve or financial permissions.
 
+Existing Project scope always requires the persisted active User to link to an
+active Employee in the same Company, including when `projects.access_all` is
+present. All-Project authority bypasses assignment filtering only. A denied
+database scope must not be re-admitted by a later capability check. Unfiltered
+calendar, stock-balance and stock-movement reads must apply the same prerequisite;
+an optional Project or Warehouse filter is not an authorization boundary.
+
+The [#350 correction](https://github.com/threeswordz/cinder-grind/issues/350)
+preserves existing Company-level configuration, master data, explicit HR-only
+Company/category entitlements and pre-Project creation/creator rules. Company
+calendars and central Warehouse configuration retain their existing own-module
+gates; none of these provides access to existing Project records. No Employee
+link or permission is assigned automatically. Disposable positive business
+fixtures must explicitly supply their own active Employee identities.
+
 Examples of roles that may require all-project visibility:
 
 - Management / Director
@@ -848,6 +863,7 @@ authorize(user, permission, project?)
 3. load permissions from all assigned roles
 4. reject if required permission is absent
 5. if project is supplied:
+     require persisted active User and active same-Company Employee
      allow scope if user has projects.access_all
      otherwise require user's employee to be an active project member
 6. apply business-state rules

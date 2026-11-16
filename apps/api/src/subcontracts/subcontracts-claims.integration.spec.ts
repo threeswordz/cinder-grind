@@ -113,6 +113,7 @@ test('V0.5-C retains Claim history, separates assessment and enforces commercial
     const maker = await prisma.user.create({
       data: {
         companyId: company.id,
+        employeeId: (await prisma.employee.create({ data: { companyId: company.id, employeeCode: 'SCOPE-maker-' + suffix, employeeName: 'Synthetic maker identity' } })).id,
         email: 'scc-maker-' + suffix + '@example.com',
         displayName: 'Stage C Maker',
         passwordHash: 'x',
@@ -121,6 +122,7 @@ test('V0.5-C retains Claim history, separates assessment and enforces commercial
     const assessor = await prisma.user.create({
       data: {
         companyId: company.id,
+        employeeId: (await prisma.employee.create({ data: { companyId: company.id, employeeCode: 'SCOPE-assessor-' + suffix, employeeName: 'Synthetic assessor identity' } })).id,
         email: 'scc-assessor-' + suffix + '@example.com',
         displayName: 'Stage C Assessor',
         passwordHash: 'x',
@@ -129,6 +131,7 @@ test('V0.5-C retains Claim history, separates assessment and enforces commercial
     const outsider = await prisma.user.create({
       data: {
         companyId: company.id,
+        employeeId: (await prisma.employee.create({ data: { companyId: company.id, employeeCode: 'SCOPE-outsider-' + suffix, employeeName: 'Synthetic outsider identity' } })).id,
         email: 'scc-outsider-' + suffix + '@example.com',
         displayName: 'Stage C Outsider',
         passwordHash: 'x',

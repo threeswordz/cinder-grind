@@ -78,6 +78,7 @@ test('V0.5-C serializes Claim commercial races on the Agreement boundary', async
     const maker = await prisma.user.create({
       data: {
         companyId: company.id,
+        employeeId: (await prisma.employee.create({ data: { companyId: company.id, employeeCode: 'SCOPE-maker-' + suffix, employeeName: 'Synthetic maker identity' } })).id,
         email: 'scc-r-maker-' + suffix + '@example.com',
         displayName: 'Stage C Concurrency Maker',
         passwordHash: 'x',
@@ -86,6 +87,7 @@ test('V0.5-C serializes Claim commercial races on the Agreement boundary', async
     const assessor = await prisma.user.create({
       data: {
         companyId: company.id,
+        employeeId: (await prisma.employee.create({ data: { companyId: company.id, employeeCode: 'SCOPE-assessor-' + suffix, employeeName: 'Synthetic assessor identity' } })).id,
         email: 'scc-r-assessor-' + suffix + '@example.com',
         displayName: 'Stage C Concurrency Assessor',
         passwordHash: 'x',

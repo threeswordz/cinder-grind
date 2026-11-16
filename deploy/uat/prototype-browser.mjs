@@ -157,8 +157,11 @@ export async function browserReadback({protocol:p,api,web,actors,fixture,initial
         },{api,userId:actor.userId,companyId:fixture.companyId,roles:actor.expectedRoleCodes,permissions:actor.permissions});
         demand(identity,'BROWSER_EFFECTIVE_IDENTITY_MISMATCH');record(key,'UI_LOGIN_EFFECTIVE_IDENTITY');
         const permissions=actor.permissions;
-        const tests=[['ASSIGNED_PROJECT','/projects/'+fixture.projectId,permissions.includes('projects.project.view')?200:403],
-          ['SECOND_PROJECT','/projects/'+fixture.unassignedProjectId,permissions.includes('projects.project.view')?
+        // This fixture's technical administrator deliberately has no Employee.
+        // Project view/access_all capabilities cannot supply that prerequisite.
+        const projectIdentity=key!=='SYS_ADMIN';
+        const tests=[['ASSIGNED_PROJECT','/projects/'+fixture.projectId,projectIdentity&&permissions.includes('projects.project.view')?200:403],
+          ['SECOND_PROJECT','/projects/'+fixture.unassignedProjectId,projectIdentity&&permissions.includes('projects.project.view')?
             (permissions.includes('projects.access_all')?200:403):403],
           ['FOREIGN_PROJECT','/projects/'+fixture.foreignProjectId,permissions.includes('projects.project.view')?404:403],
           ['COUNT_ACCESS','/inventory/stock-count-projects',permissions.includes('inventory.stock_count.view')?200:403],
@@ -174,7 +177,7 @@ export async function browserReadback({protocol:p,api,web,actors,fixture,initial
             const r=await fetch(api+path,{credentials:'include',redirect:'error'}),body=await r.text();
             return {status:r.status,leak:body.includes('SYNTHETIC_PRIVATE_ID')||body.includes('SYNTHETIC_ACCOUNT')};
           },{api,path});
-          demand(result?.status===status&&!result.leak,'BROWSER_AUTHORIZATION_OR_MASKING_MISMATCH');record(key,check);
+          demand(result?.status===status&&!result.leak,'BROWSER_'+check+'_AUTHORIZATION_OR_MASKING_MISMATCH');record(key,check);
         }
         // Verify actual populated count/request records through browser cookies.
         if(permissions.includes('inventory.material_request.view')){

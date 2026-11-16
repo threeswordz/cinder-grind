@@ -148,6 +148,7 @@ test('V0.5-A enforces Subcontractor Company scope and agreement Project scope', 
     const allUser = await prisma.user.create({
       data: {
         companyId: company.id,
+        employeeId: (await prisma.employee.create({ data: { companyId: company.id, employeeCode: 'SCOPE-allUser-' + suffix, employeeName: 'Synthetic allUser identity' } })).id,
         email: 'sub-all-' + suffix + '@example.com',
         displayName: 'Subcontracts Administrator',
         passwordHash: 'x',
@@ -156,6 +157,7 @@ test('V0.5-A enforces Subcontractor Company scope and agreement Project scope', 
     const otherCompanyUser = await prisma.user.create({
       data: {
         companyId: otherCompany.id,
+        employeeId: (await prisma.employee.create({ data: { companyId: otherCompany.id, employeeCode: 'SCOPE-otherCompanyUser-' + suffix, employeeName: 'Synthetic otherCompanyUser identity' } })).id,
         email: 'sub-other-' + suffix + '@example.com',
         displayName: 'Other Company User',
         passwordHash: 'x',

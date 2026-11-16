@@ -15,6 +15,7 @@ export class ProjectAccessService {
   ) {}
 
   canAccessAll(auth: AuthenticatedUserContext): boolean {
+    // Capability only: this does not establish the live Employee prerequisite.
     return this.projectScope.canAccessProject(auth, false);
   }
 
@@ -22,13 +23,13 @@ export class ProjectAccessService {
     auth: AuthenticatedUserContext,
     db: ProjectScopeDb = this.prisma,
   ): Promise<Prisma.ProjectWhereInput> {
-    if (this.canAccessAll(auth)) {
-      return { companyId: auth.companyId };
-    }
-
     const employeeId = await this.activeEmployeeId(auth, db);
     if (!employeeId) {
       return { companyId: auth.companyId, id: { in: [] } };
+    }
+
+    if (this.canAccessAll(auth)) {
+      return { companyId: auth.companyId };
     }
 
     return {
@@ -68,7 +69,12 @@ export class ProjectAccessService {
         });
       }
 
-      this.projectScope.assertProjectAccess(auth, false);
+      // The database-derived scope already denied access. An assignment-only
+      // capability must never re-admit an inactive or detached Employee here.
+      throw new ForbiddenException({
+        code: 'PROJECT_ACCESS_DENIED',
+        detail: 'You do not have access to this project.',
+      });
     }
   }
 
@@ -86,13 +92,16 @@ export class ProjectAccessService {
         employee: {
           select: {
             id: true,
+            companyId: true,
             isActive: true,
           },
         },
       },
     });
 
-    if (!user?.employee?.isActive) return null;
+    if (!user?.employee?.isActive || user.employee.companyId !== auth.companyId) {
+      return null;
+    }
     return user.employee.id;
   }
 }

@@ -73,7 +73,10 @@ export class StockBalanceService {
       Prisma.sql`st.company_id = ${auth.companyId}::uuid`,
     ];
 
-    if (!this.access.canAccessAll(auth)) {
+    if (
+      !this.access.canAccessAll(auth) ||
+      !(await this.access.activeEmployeeId(auth))
+    ) {
       const scope = await this.access.scopeWhere(auth);
       const projects = await this.prisma.project.findMany({
         where: scope,

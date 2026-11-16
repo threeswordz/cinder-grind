@@ -110,6 +110,7 @@ test('Scheduling data model enforces Project scope and hierarchy integrity in Po
     const allUser = await prisma.user.create({
       data: {
         companyId: company.id,
+        employeeId: (await prisma.employee.create({ data: { companyId: company.id, employeeCode: 'SCOPE-allUser-' + suffix, employeeName: 'Synthetic allUser identity' } })).id,
         email: 'all-' + suffix + '@example.com',
         displayName: 'All Scheduler',
         passwordHash: 'x',

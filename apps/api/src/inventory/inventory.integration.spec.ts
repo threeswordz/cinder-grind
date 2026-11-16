@@ -90,6 +90,7 @@ test('V0.4-A Warehouse enforces Company, Project scope, lifecycle and audit', as
     const allUser = await prisma.user.create({
       data: {
         companyId: company.id,
+        employeeId: (await prisma.employee.create({ data: { companyId: company.id, employeeCode: 'SCOPE-allUser-' + suffix, employeeName: 'Synthetic allUser identity' } })).id,
         email: 'store-all-' + suffix + '@example.com',
         displayName: 'Inventory Administrator',
         passwordHash: 'x',

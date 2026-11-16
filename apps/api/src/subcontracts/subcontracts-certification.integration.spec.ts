@@ -110,6 +110,7 @@ test('V0.5-D certifies assessed Claims with retained withholding, history and co
     const maker = await prisma.user.create({
       data: {
         companyId: company.id,
+        employeeId: (await prisma.employee.create({ data: { companyId: company.id, employeeCode: 'SCOPE-maker-' + suffix, employeeName: 'Synthetic maker identity' } })).id,
         email: 'scd-maker-' + suffix + '@example.com',
         displayName: 'Stage D Maker',
         passwordHash: 'x',
@@ -118,6 +119,7 @@ test('V0.5-D certifies assessed Claims with retained withholding, history and co
     const checker = await prisma.user.create({
       data: {
         companyId: company.id,
+        employeeId: (await prisma.employee.create({ data: { companyId: company.id, employeeCode: 'SCOPE-checker-' + suffix, employeeName: 'Synthetic checker identity' } })).id,
         email: 'scd-checker-' + suffix + '@example.com',
         displayName: 'Stage D Checker',
         passwordHash: 'x',
@@ -126,6 +128,7 @@ test('V0.5-D certifies assessed Claims with retained withholding, history and co
     const noRole = await prisma.user.create({
       data: {
         companyId: company.id,
+        employeeId: (await prisma.employee.create({ data: { companyId: company.id, employeeCode: 'SCOPE-noRole-' + suffix, employeeName: 'Synthetic noRole identity' } })).id,
         email: 'scd-norole-' + suffix + '@example.com',
         displayName: 'Stage D No Role',
         passwordHash: 'x',
@@ -134,6 +137,7 @@ test('V0.5-D certifies assessed Claims with retained withholding, history and co
     const outsider = await prisma.user.create({
       data: {
         companyId: company.id,
+        employeeId: (await prisma.employee.create({ data: { companyId: company.id, employeeCode: 'SCOPE-outsider-' + suffix, employeeName: 'Synthetic outsider identity' } })).id,
         email: 'scd-outsider-' + suffix + '@example.com',
         displayName: 'Stage D Outsider',
         passwordHash: 'x',

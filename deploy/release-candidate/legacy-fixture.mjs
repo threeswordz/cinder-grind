@@ -75,7 +75,9 @@ try {
     const company = await prisma.company.create({ data: { companyCode: 'V12-' + suffix, companyName: 'Disposable legacy currency fixture', baseCurrencyCode: 'SGD' } });
     const customer = await prisma.customer.create({ data: { companyId: company.id, customerCode: 'C-' + suffix, customerName: 'Legacy customer' } });
     const supplier = await prisma.supplier.create({ data: { companyId: company.id, supplierCode: 'S-' + suffix, supplierName: 'Legacy supplier' } });
-    const user = await prisma.user.create({ data: { companyId: company.id, email: suffix + '@example.invalid', displayName: 'Legacy fixture creator', passwordHash: 'x' } });
+    // Explicit disposable identity is part of the genuine pre-upgrade fixture.
+    const employee = await prisma.employee.create({ data: { companyId: company.id, employeeCode: 'LEGACY-MAKER', employeeName: 'Legacy fixture creator' } });
+    const user = await prisma.user.create({ data: { companyId: company.id, employeeId: employee.id, email: suffix + '@example.invalid', displayName: 'Legacy fixture creator', passwordHash: 'x' } });
     const project = await prisma.project.create({ data: { companyId: company.id, customerId: customer.id, projectCode: 'P-' + suffix, projectName: 'Legacy unknown source', contractValue: '123456.78', plannedStartDate: new Date('2026-01-01'), plannedCompletionDate: new Date('2026-12-31') } });
     const boq = await prisma.boq.create({ data: { companyId: company.id, projectId: project.id } });
     // Explicit select avoids referencing columns that do not exist yet.

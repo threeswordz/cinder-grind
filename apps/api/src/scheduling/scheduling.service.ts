@@ -100,7 +100,7 @@ export class SchedulingService {
     if (projectId) {
       await this.access.assertAccess(auth, projectId);
       projectIds = [projectId];
-    } else if (!this.access.canAccessAll(auth)) {
+    } else {
       const scope = await this.access.scopeWhere(auth);
       const projects = await this.prisma.project.findMany({
         where: scope,

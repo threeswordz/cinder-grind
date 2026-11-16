@@ -294,6 +294,7 @@ const permissionCodes = [
   'projects.project.create',
   'projects.project.edit',
   'projects.team.view',
+  'projects.team.manage',
   'wbs.wbs.view',
   'wbs.wbs.create',
   'wbs.cost_code.view',
@@ -937,13 +938,15 @@ await request(admin, '/admin/approval-workflows', {
 
 record('V0.3-A Budget, V0.3-B Purchase Request, V0.3-C RFQ, V0.3-D PO, V0.5-D/E Subcontracts and V0.6-A/B/C Finance approval configuration');
 
-const pmPassword = 'Uat-PM-' + suffix + '-Strong-2026!';
+// CI may reuse this explicit Employee-linked fixture for its later benchmark
+// and restored-document smoke. Never attach the technical admin to an Employee.
+const pmPassword = process.env.UAT_PROJECT_MAKER_PASSWORD ?? 'Uat-PM-' + suffix + '-Strong-2026!';
 const unassignedPassword = 'Uat-PE-' + suffix + '-Strong-2026!';
 const checkerPassword = 'Uat-BA-' + suffix + '-Strong-2026!';
 const pmUser = await request(admin, '/admin/users', {
   method: 'POST',
   json: {
-    email: `uat-pm-${suffix.toLowerCase()}@example.com`,
+    email: process.env.UAT_PROJECT_MAKER_EMAIL ?? `uat-pm-${suffix.toLowerCase()}@example.com`,
     displayName: 'Project Manager ' + suffix,
     password: pmPassword,
     employeeId: pmEmployee.data.data.id,
@@ -1006,7 +1009,9 @@ const projectId = project.data.data.id;
 const projectRead = await request(pm, '/projects/' + projectId);
 check(projectRead.data.data.id === projectId, 'Project Manager could not read created Project.');
 
-const members = await request(admin, `/projects/${projectId}/members`);
+// Technical bootstrap identity has no Employee and cannot bypass Project scope.
+await request(admin, `/projects/${projectId}/members`, { expected: 403 });
+const members = await request(pm, `/projects/${projectId}/members`);
 check(
   members.data.data.some((item) =>
     item.employeeId === pmEmployee.data.data.id &&
@@ -1017,7 +1022,7 @@ check(
 );
 record('scoped Project creation and automatic Project Creator membership');
 
-await request(admin, `/projects/${projectId}/members`, {
+await request(pm, `/projects/${projectId}/members`, {
   method: 'POST',
   json: {
     employeeId: checkerEmployee.data.data.id,
@@ -4119,7 +4124,7 @@ const referenceProject = await request(pm, '/projects', {
   expected: 201,
 });
 const referenceProjectId = referenceProject.data.data.id;
-await request(admin, `/projects/${referenceProjectId}/members`, {
+await request(pm, `/projects/${referenceProjectId}/members`, {
   method: 'POST',
   json: {
     employeeId: checkerEmployee.data.data.id,
@@ -6393,12 +6398,18 @@ await request(admin, '/admin/roles/' + sourceDocumentReaderRole.data.data.id + '
   json: { permissionCodes: ['projects.access_all', 'documents.document.view', 'documents.document.archive'] },
 });
 const sourceDocumentReaderPassword = 'Uat-Doc-' + suffix + '-Strong-2026!';
+const sourceDocumentReaderEmployee = await request(admin, '/master-data/employees', {
+  method: 'POST',
+  json: { employeeCode: 'DOC-READER-' + suffix, employeeName: 'Synthetic document source reader' },
+  expected: 201,
+});
 const sourceDocumentReaderUser = await request(admin, '/admin/users', {
   method: 'POST',
   json: {
     email: 'uat-doc-source-' + suffix.toLowerCase() + '@example.com',
     displayName: 'Document source reader ' + suffix,
     password: sourceDocumentReaderPassword,
+    employeeId: sourceDocumentReaderEmployee.data.data.id,
     roleIds: [sourceDocumentReaderRole.data.data.id],
   },
   expected: 201,
@@ -7346,7 +7357,7 @@ const v07RestrictedUser = await request(admin, '/admin/users', {
   },
   expected: 201,
 });
-await request(admin, '/projects/' + projectId + '/members', {
+await request(pm, '/projects/' + projectId + '/members', {
   method: 'POST',
   json: {
     employeeId: v07RestrictedEmployee.data.data.id,
