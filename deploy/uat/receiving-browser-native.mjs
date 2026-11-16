@@ -40,10 +40,11 @@ export async function runReceivingBrowser(databaseUrl){
     proof=await require('./dist/inventory/receiving-proof-fixture.js').receivingProofFixture(db,app,false);f=proof.f;
     f.actors=Object.fromEntries(['store','jai','pm','viewer','outsider'].map(k=>[k,{userId:f[k].user.id,email:f[k].user.email,password:f[k].password}]));
     await db.userSession.updateMany({where:{userId:{in:[f.store,f.jai,f.pm,f.config,f.outsider,f.viewer,f.buyer,f.buyerChecker].map(a=>a.user.id)},revokedAt:null},data:{revokedAt:new Date()}});
-    phase='BUILT_WEB';
+    phase='WEB_BUILD';
     const out=join(temporary,'web');
     await execute('pnpm',['--filter','@construction-erp/web','exec','vite','build','--outDir',out],
       {cwd:root,env:{...safeEnvironment(),VITE_API_BASE_URL:API},timeout:120000,maxBuffer:2097152});
+    phase='WEB_HTTP_SERVER';
     server=createServer(async(req,res)=>{
       try{
         const path=new URL(req.url,WEB).pathname,file=resolve(out,'.'+decodeURIComponent(path));
@@ -54,14 +55,17 @@ export async function runReceivingBrowser(databaseUrl){
       }catch{res.writeHead(404);res.end();}
     });
     await new Promise((ok,no)=>{server.once('error',no);server.listen(44329,'127.0.0.1',ok);});
+    phase='CHROMIUM_DISCOVERY';
     const chrome=['google-chrome','chromium','chromium-browser'].find(bin=>spawnSync(bin,['--version'],{stdio:'ignore'}).status===0);
     assert.ok(chrome,'Real disposable Chromium is required');
+    phase='CHROMIUM_LAUNCH';
     child=spawn(chrome,['--headless=new','--remote-debugging-pipe','--no-sandbox','--disable-dev-shm-usage','--disable-gpu',
       '--no-first-run','--no-default-browser-check','--disable-background-networking','--disable-component-update','--disable-sync',
       '--disable-extensions','--no-proxy-server','--password-store=basic','--user-data-dir='+join(temporary,'chrome')],
       {env:safeEnvironment(),stdio:['ignore','ignore','ignore','pipe','pipe']});
     exited=new Promise(ok=>child.once('close',ok));protocol=new PipeProtocol(child.stdio[4],child.stdio[3]);
     child.on('error',()=>protocol.close());child.on('exit',()=>protocol.close());await protocol.send('Browser.getVersion');
+    phase='RECEIVING_ACTUAL_BROWSER_JOURNEY';
     await executeReceivingBrowser(protocol,{api:API,web:WEB,fixture:f},db);
     console.log('RECEIVING_BROWSER_NATIVE_PASS: real built React, cookie/CSRF login, same-delivery physical capture, actual UI upload/binding of three evidence files, EN/TH/zh-TW, PO matching, independent Jai check, canonical GR navigation/submission/PM approval and one good-quantity stock effect. Disposable proof; human UAT deferred.');
   }catch(e){throw Object.assign(new Error(),{safeCode:'RECEIVING_NATIVE_'+phase+'_'+(/^[A-Z0-9_]+$/.test(e.safeCode??'')?e.safeCode:'ASSERTION_OR_SETUP_FAILED')});}
