@@ -1,4 +1,8 @@
-# Nancy — Accounting Manager
+# Nancy — Accounting Manager (คุณแนนซี่)
+
+**Owner-confirmed business-answer overlay — 16 November 2026:** [16 November Owner decisions](15-owner-decisions-2026-11-16.md) / DEC-047 is the current answer source where it supersedes the dated assessment below. Original observations/112-ID census remain historical; publication activates no permissions, runtime or retained data. Accounting stays deferred under #288 and later HR remains separately scoped.
+
+Nancy also performs system-administration duties, without implicit business authority from technical privileges. NANCY-07 count schedules are per site/Project; Khaimook checks disposal/write-off then Nancy approves. Main fund limits are MKE45,000/TCJ55,000 THB; Nancy approves fund-limit changes and the narrowly confirmed own-claim exception. Nancy checks/approves Koh's offboarding summary and closes access at the end of the final working day after Koh's confirmation. New Accounting remains deferred.
 
 > **Current execution precedence — Owner #288, 30 October 2026:** Accounting development is deferred; HR1-A #283 keeps its existing designated writer. The original L0/L1/L2 values below are **historical workflow risk flags**, not a current coding order. Read [13-execution-disposition.md](13-execution-disposition.md) and [11-launch-scope-and-next-package.md](11-launch-scope-and-next-package.md) before selecting new work. Existing BOQ/operational/Finance controls and the approved scoped HR privacy matrix remain intact; this document is not new implementation or Production authority.
 

@@ -1,5 +1,9 @@
 # Execution disposition — 112 stable role requirements
 
+**Owner-confirmed business-answer overlay — 16 November 2026:** [16 November Owner decisions](15-owner-decisions-2026-11-16.md) / DEC-047 is the current answer source where it supersedes the dated assessment below. Original observations/112-ID census remain historical; publication activates no permissions, runtime or retained data. Accounting stays deferred under #288 and later HR remains separately scoped.
+
+The business-answer overlay does not recalculate the frozen execution lanes or authorize a new implementation stage. Use it to avoid repeating answered questions and to prepare the correct bounded successor contract.
+
 **Controlling authority:** [#288](https://github.com/threeswordz/cinder-grind/issues/288), accounting deferred and existing HR1-A sole writer. Historical risk L0/L1/L2 is **not an authorized coding sequence**. Full original business sources, open questions, supersessions and pinned implementation links are preserved in linked role files and [10-traceability-gap-register.md](10-traceability-gap-register.md); audited observations are not tests rerun by this docs publication.
 
 ## Lane definitions
@@ -136,3 +140,4 @@
 Store Site performs physical count/evidence; Khaimook approves physical quantity adjustment; Foreman has no count variance/proposal/approval authority (FM05/PM08/SS12). Foreman requests materials verbally/chat; Store enters ERP, not Foreman PR (FM04/SS07). Foreman DPR before the next workday, include planned stoppages but not ordinary site holidays (FM01). Project weighting from Ben-confirmed work plan (FM02). Site issue: Foreman reports → Khaimook follows up → Foreman verifies → Khaimook closes; each stoppage or delivery-delay risk reaches Ben immediately via phone/message **and** ERP alert, Khaimook first screens asset loss/damage severity (FM03). Store physically inspects delivery, Jai reviews photos/documents/quantity and Khaimook approves (SS04/PUR09/PM06). BEN02 emergency spending limit unresolved. Accounting functionality deferred, but Nancy existing BOQ/operational approvals and narrow approved Porn HR bank-read **not revoked**; Koh retains complete authoritative Thai HR package.
 
 **No new-stage approval or Production authority:** [#289 scope/acceptance](https://github.com/threeswordz/cinder-grind/issues/289) explicitly requires owner decision. [12-decisions-and-sources.md](12-decisions-and-sources.md) retains all source conflicts and unchanged original quotations/refs; original financial write-off and BEN02.2 are not guessed.
+

@@ -1,5 +1,9 @@
 # Shared workflows and cross-role rules
 
+**Owner-confirmed business-answer overlay — 16 November 2026:** [16 November Owner decisions](15-owner-decisions-2026-11-16.md) / DEC-047 is the current answer source where it supersedes the dated assessment below. Original observations/112-ID census remain historical; publication activates no permissions, runtime or retained data. Accounting stays deferred under #288 and later HR remains separately scoped.
+
+The business-answer overlay does not recalculate the frozen execution lanes or authorize a new implementation stage. Use it to avoid repeating answered questions and to prepare the correct bounded successor contract.
+
 > **Current execution precedence — Owner #288, 30 October 2026:** Accounting development is deferred; HR1-A #283 keeps its existing designated writer. The original L0/L1/L2 values below are **historical workflow risk flags**, not a current coding order. Read [13-execution-disposition.md](13-execution-disposition.md) and [11-launch-scope-and-next-package.md](11-launch-scope-and-next-package.md) before selecting new work. Existing BOQ/operational/Finance controls and the approved scoped HR privacy matrix remain intact; this document is not new implementation or Production authority.
 
 

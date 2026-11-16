@@ -1,5 +1,9 @@
 # Reconciliation decisions, contradictions and sources
 
+**Owner-confirmed business-answer overlay — 16 November 2026:** [16 November Owner decisions](15-owner-decisions-2026-11-16.md) / DEC-047 is the current answer source where it supersedes the dated assessment below. Original observations/112-ID census remain historical; publication activates no permissions, runtime or retained data. Accounting stays deferred under #288 and later HR remains separately scoped.
+
+C01 disclosure, C03 disposal authority, BEN02.2, urgent-issue documents, Store cover and selected Accounting/HR questions now have the specific answers below. C02 and C05 have confirmed successor directions but still need bounded financial lifecycle/allocation design. Never interpret a resolved answer as activated permission or completed code.
+
 > **Current execution precedence — Owner #288 (30 October 2026):** new Accounting work is deferred, approved HR1-A #283 continues under its designated writer; original audit L0/L1/L2 are historical risk flags, not implementation order. See [13-execution-disposition.md](13-execution-disposition.md). No new code scope, Finance/grants change or Production authority.
 
 
@@ -8,6 +12,8 @@
 Repository governance/hard constraints and approved Decision Log govern implementation. Latest owner answers settle the specific recorded business questions; where a supplied summary conflicts with an approved scope/security policy, retain both and require explicit change control. This assessment does not change either source.
 
 Original source files remain untouched. Supplied PDF extracts are included as extracted text, **not original PDF bytes**; the original PDF links below remain the sources. The complete published HR Markdown is preserved byte-for-byte, SHA-256 102d8023e8e8cbe65fd3ee6cb0e99cfd314f2307ba19ff1ed386b1a0786da0cf. Current conversation sources S6/S9 are transparent compilations, not an invented full transcript.
+
+**Historical-source hash note:** the HR hash above identifies the frozen original Thai source. The current HR file now carries a dated English answer overlay; that original-body hash is not a checksum claim for the amended full file.
 
 ## Resolved changes applied consistently
 
@@ -28,21 +34,21 @@ Original source files remain untouched. Supplied PDF extracts are included as ex
 
 | ID | Requirement/source | Disposition | Decision before affected implementation |
 | --- | --- | --- | --- |
-| C01 | S3 PM05 full cost for Jai/Porn vs approved V1.3 matrix S7 | Preserve approved matrix; no widened grants | Whether broader full-cost access is actually intended; explicit change control, not repeated BOQ UAT |
-| C02 | S1 no-extra progress-billing approval vs FIN-013 financial invoice approval; ACC13–17 unanswered | Keep commercial and financial purposes distinct | Controlled billing handoff versus explicitly changed Client Invoice lifecycle |
-| C03 | S2/S3 physical count/write-off route vs FM05 | Physical count route settled; disposal separate | Disposal/financial write-off actor; do not repeat Foreman authority question |
+| C01 | PM05 / BOQ disclosure | Owner-confirmed successor amendment, DEC-047 | Jai and Porn Full Cost in authorized scope; customer-price/margin restrictions remain. No live grant or replay of accepted UAT. |
+| C02 | ACC13.1 / FIN-013 | Immediate AR on Porn issuance selected, DEC-047 | Ben confirmation→Porn issuance, no extra billing approval; reconcile recorded authorization/issuance/recognition in a bounded Accounting successor before changing runtime. |
+| C03 | PM08 / SS13 financial disposal | Authority confirmed, DEC-047 | Khaimook checks→Nancy approves disposal/financial consequence; physical count adjustment remains separate and posting design is not invented. |
 | C04 | S5 Nancy payroll self-approval vs maker-checker / HR1-A exclusion | Preserve request; no activated exception | Later narrowly scoped policy/entry change, interval/reason/audit |
-| C05 | PUR06 multi-Project PO vs #245/DEC-018/019/020 | Desired outcome captured, implementation deferred | Invoice/payment/cash-flow allocation and scope, or accepted single-Project boundary |
-| D01 | BEN02.2 | Unanswered | Emergency cap/category and approved-budget boundary; no zero/unlimited guess |
+| C05 | PUR06 / #245 / DEC-018/019/020 | Multi-Project invoice/payment direction confirmed, implementation gated | Combined or separate invoices/payments; Porn verifies allocation before Nancy financial approval. Line settlement, cash flow, tax/freight/rounding and visibility require entry design. |
+| D01 | BEN02.2 | Owner answer confirmed, DEC-047 | Ben fixes each incident limit before spending; over-budget within that cap with evidence and retrospective Ben→Nancy review. No auto budget change; no emergency runtime bypass. |
 | D02 | BEN03 technical design | Stages and dual levels confirmed | Budget basis, commitment/actual deduplication, category mapping, VAT/freight, reservation/release and concurrency |
-| D03 | SS-PLAN-01 / PM07 / PM09 | Normal plan rule confirmed | Beyond-plan criteria/limits, urgent completion/reviewer and plan versions |
-| D04 | PM05 / SS18 | Extra read scope / temporary cover confirmed | Exact warehouse scopes, delegating authority, permitted actions/revocation |
-| D05 | ACC09 / ACC11 / ACC12 | Partial answers preserved | AP dates/cutoff/urgent approver, partial-pay approval terms, reconciliation frequency |
-| D06 | ACC13–17 | Follow-ups unanswered | Billing actors/support/types, receipt verification and debt follow-up |
+| D03 | SS-PLAN-01 / PM07 / PM09 | DEC-044 synthetic plan rules preserved; urgent document answer confirmed | Khaimook checks/closes urgent ISSUE documents within48 elapsed hours including holidays. No new plan/budget/custody bypass. |
+| D04 | PM05 / SS18 | Cover authority/actions confirmed; actual scope data still needed | Khaimook assigns cover; all six selected Store functions within assigned site, existing approvals and revocation. Additional warehouse lists remain configuration inputs. |
+| D05 | ACC09 / ACC11 / ACC12 | Selected schedules/routes confirmed in S11; other detail retained | Pay15/month-end, documents7 working days ahead; agreed instalments Porn→Ben→Porn→Nancy; reconciliation Porn on1st→Nancy. Out-of-cycle and extra partial-pay details are not guessed. |
+| D06 | ACC13–17 | Selected follow-ups resolved in S11; incomplete older source detail separate | AR issuance, retention, other income/borrowing and receipt evidence confirmed. Recover complete ACC14/16 actors and ACC17 follow-up source before configuring missing detail. |
 | D07 | PM16/BEN04 | Both approvals and four pending-item fields confirmed | Approval order, operational close vs archive, settlement after close |
-| D08 | Existing HR source section22 / entry | Settled answers retained | Later-stage formats/settings/formula evidence only; no repeated interview |
+| D08 | HR source Section22 / KOH-04/08 | Queues11/14 resolved in S11; five questions remain | Self-service and offboarding/cutoff confirmed. Queues8/9/10/12/13 stay unanswered; later-HR formats/formulas/settings remain scoped inputs. |
 
-The Ben/Foreman follow-up questionnaire has **one unselected business answer, BEN02.2**. Design/configuration/other-role inputs above are separate, not reopened answered questions.
+The former sole unselected Ben/Foreman answer **BEN02.2 is now confirmed by S11 / DEC-047**. Remaining design/configuration/other-role inputs are separate, not reopened answered questions.
 
 ## Sources
 
@@ -56,6 +62,8 @@ The Ben/Foreman follow-up questionnaire has **one unselected business answer, BE
 - **S8** — S8: Pinned HR1-A entry contract / DEC-039 / issue 283. HR-001–008, HRA-AC-001–014; later attendance/payroll and policy exceptions excluded.
 - **S9** — S9: Owner accounting answers reproduced in this conversation. ACC01–12 plus residual decisions; ACC13–17 unanswered, not revocations of earlier confirmed routes.
 - **S10** — S10: Owner assessment handoff and Koh inclusion, 30 October 2026. Assessment/documentation authority only; eight roles plus shared workflows.
+
+- **S11** — [16 November Owner decisions](15-owner-decisions-2026-11-16.md): Owner selections/corrections compiled in English and explicitly authorized for requirements-only repository publication after the side-by-side policy comparison. No fabricated GitHub approval permalink or implementation acceptance.
 
 ## Stable-ID rules
 
