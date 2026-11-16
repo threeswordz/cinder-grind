@@ -9,6 +9,29 @@ import {receivingCatalog,verifyReceivingCatalog} from '../release-candidate/rece
 export {fm03Snapshot as receivingSnapshot,digest};
 const demand=(ok,code)=>{if(!ok)throw Object.assign(new Error(code),{safeCode:code});};
 const canonical=v=>JSON.stringify(v,(_k,x)=>x&&typeof x==='object'&&!Array.isArray(x)?Object.fromEntries(Object.keys(x).sort().map(k=>[k,x[k]])):x);
+// Not every preserved PostgreSQL table uses an `id` primary key. Keep the
+// exact known non-id keys explicit; missing identities fail closed rather than
+// collapsing distinct historical rows into a first undefined-id match.
+const RECEIVING_HISTORY_KEYS=Object.freeze({
+ login_rate_limit_buckets:'client_key',material_plan_issue_bindings:'issue_id',
+ site_issue_routings:'project_id',receiving_project_policies:'project_id',
+});
+function receivingRowKey(table,row){
+ const field=RECEIVING_HISTORY_KEYS[table]??'id',value=row?.[field];
+ demand(typeof value==='string'&&value.length>0,'RC_HISTORY_ROW_KEY_MISSING_'+table.toUpperCase());
+ return value;
+}
+export function verifyReceivingHistoricalRows(before,after){
+ for(const [table,rows]of Object.entries(before)){
+  const current=after[table];demand(Array.isArray(current),'RC_HISTORY_TABLE_MISSING');
+  for(const row of rows)assert.deepEqual(current.find(r=>receivingRowKey(table,r)===receivingRowKey(table,row)),row,
+   'Receiving changed historical '+table);
+ }
+}
+export function receivingNewRows(table,before,after){
+ const prior=new Set(before.map(row=>receivingRowKey(table,row)));
+ return after.filter(row=>!prior.has(receivingRowKey(table,row)));
+}
 export const RECEIVING_GRANTS=Object.freeze({
  STORE_SITE:['inventory.receiving.view','inventory.receiving.capture','inventory.receiving.edit','inventory.receiving.link_po',
   'inventory.receipt.view','inventory.receipt.create','inventory.receipt.edit','inventory.receipt.submit'],
@@ -148,11 +171,8 @@ export function verifyReceivingJourneyPreservation(before,after,c,b,source,resul
  // All old rows stay exact, including the completed FM03 events, signed receipt,
  // grants, encrypted HR records and old sessions. Only User login timestamps vary.
  for(const data of [baseline,normalized])data.users=data.users.map(row=>{if(!loginIds.includes(row.id))return row;const {last_login_at,updated_at,__fm03_exact_row_json,...r}=row;return r;});
- for(const [table,rows]of Object.entries(baseline)){
-  const current=normalized[table];demand(Array.isArray(current),'RC_HISTORY_TABLE_MISSING');
-  for(const row of rows)assert.deepEqual(current.find(r=>r.id===row.id),row,'Receiving changed historical '+table);
- }
- const added=t=>normalized[t].filter(r=>!baseline[t].some(p=>p.id===r.id));
+ verifyReceivingHistoricalRows(baseline,normalized);
+ const added=t=>receivingNewRows(t,baseline[t],normalized[t]);
  const counts={role_permissions:c.addedRolePermissionIds.length,suppliers:1,cost_codes:1,wbs_elements:1,
   approval_workflows:3,approval_steps:3,approval_step_roles:3,number_sequences:4,purchase_requests:1,purchase_request_lines:1,
   rfqs:1,rfq_lines:1,rfq_suppliers:1,supplier_quotations:1,supplier_quotation_lines:1,quotation_awards:1,purchase_orders:1,purchase_order_lines:1,

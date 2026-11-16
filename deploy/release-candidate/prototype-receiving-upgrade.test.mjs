@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {upgrade,validUpgradeDelta,verifyDocumentInventory} from '../uat/prototype-receiving-upgrade.mjs';
-import {verifyReceivingMigration,verifyReceivingDocumentFiles} from '../uat/prototype-receiving-state.mjs';
+import {verifyReceivingMigration,verifyReceivingDocumentFiles,verifyReceivingHistoricalRows,receivingNewRows} from '../uat/prototype-receiving-state.mjs';
 import {receivingCatalog} from './receiving-catalog-contract.mjs';
 import {receivingTables} from './receiving-schema-contract.mjs';
 test('receiving coordinator refuses non-Mac execution and application/schema/renamed delta',async()=>{
@@ -39,4 +39,23 @@ test('new receiving files cannot change signed/encrypted history or introduce un
   a=>a[a.length-1][1]=7,a=>a[a.length-1][2]='f'.repeat(64)]){
   const bad=structuredClone(after);change(bad);assert.throws(()=>verifyReceivingDocumentFiles(old,bad,[doc]));
  }
+});
+
+test('receiving preservation uses exact historical primary keys instead of undefined id matches',()=>{
+ const before={material_plan_issue_bindings:[
+  {issue_id:'one',policy_id:'policy-1',authorization_id:'auth-1'},
+  {issue_id:'two',policy_id:'policy-2',authorization_id:'auth-2'}],
+  login_rate_limit_buckets:[{client_key:'client-a',attempt_count:1},{client_key:'client-b',attempt_count:2}],
+  site_issue_routings:[{project_id:'project-a',owner_user_id:'owner-a'}],
+  users:[{id:'user-a',company_id:'company-a'}]};
+ const after=structuredClone(before);
+ after.material_plan_issue_bindings.reverse();after.login_rate_limit_buckets.reverse();
+ verifyReceivingHistoricalRows(before,after);
+ assert.deepEqual(receivingNewRows('material_plan_issue_bindings',before.material_plan_issue_bindings,after.material_plan_issue_bindings),[]);
+ after.material_plan_issue_bindings.push({issue_id:'three',policy_id:'policy-3',authorization_id:'auth-3'});
+ assert.equal(receivingNewRows('material_plan_issue_bindings',before.material_plan_issue_bindings,after.material_plan_issue_bindings).length,1);
+ const tampered=structuredClone(after);tampered.material_plan_issue_bindings[0].authorization_id='tampered';
+ assert.throws(()=>verifyReceivingHistoricalRows(before,tampered),/Receiving changed historical material_plan_issue_bindings/);
+ const removed=structuredClone(after);removed.material_plan_issue_bindings=removed.material_plan_issue_bindings.filter(row=>row.issue_id!=='one');
+ assert.throws(()=>verifyReceivingHistoricalRows(before,removed),/Receiving changed historical material_plan_issue_bindings/);
 });
