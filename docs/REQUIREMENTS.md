@@ -1,5 +1,7 @@
 # Construction ERP — Master Requirements Register
 
+**Approved transfer successor — 16 November2026:** [#352](https://github.com/threeswordz/cinder-grind/issues/352), DEC-046 and [TR-AC01–10](OP-TRANSFER-RECEIPT-01-ENTRY.md) cover same-Company dispatch/actual destination receipt and Khaimook-assigned eligible destination receiver. Historical paired transfers remain unchanged; #351 predecessor and normal entry gates precede runtime work. This is entry preparation, not implemented behavior.
+
 **Approved receiving successor — 15 November2026:** [#347](https://github.com/threeswordz/cinder-grind/issues/347), DEC-045 and [RC-AC01–12](OP-RECEIVING-CUSTODY-01.md) implement SS04–06/PM06/PUR09. Pre-PO goods stay unavailable until approved PO + Khaimook-approved GR; approved-PO linkage is due48hours from original receipt. No early-use/expiry bypass or retained/Production activation.
 
 **Active bounded FM03 implementation — 14 November 2026:** [#344](https://github.com/threeswordz/cinder-grind/issues/344) implements the existing confirmed [Foreman FM03](ROLE-REQUIREMENTS-2026-10-30/06-foreman.md) lifecycle and severity rules under the Owner continuation directive. [FM3-AC01–12](OP-SITE-ISSUE-01-IMPLEMENTATION.md) define implementation, authorization/history, upgrade/recovery and deployed proof. This does not complete all112 requirements or authorize retained grants, new Accounting/payroll, human UAT or Production.

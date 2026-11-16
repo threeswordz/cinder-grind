@@ -854,3 +854,14 @@ This supersedes DEC-043's exclusion of plan implementation only for this separat
 Implement the already confirmed Store physical/evidence capture → Jai document/quantity check → Khaimook canonical GR approval under [OP-RECEIVING-CUSTODY-01](OP-RECEIVING-CUSTODY-01.md), SS04–06/PM06/PUR09 and existing source/quantity/approval controls. Preserve Company/Project authorization, immutable history, financial/stock sources and retained data. The bounded non-Production synthetic execution has explicit capability/project configuration and normal additive schema, exact-head CI, independent DEC-022 review, guarded integration and exact-main gates. No retained activation or Production authority.
 
 Human UAT remains deferred under DEC-042 until the integrated prototype is frozen. New Accounting, supplier-credit/write-off accounting, cross-Company ownership, payroll/#245 and unspecified emergency limits remain separately gated.
+
+
+## DEC-046 — Same-Company transfer dispatch, actual destination receipt and assigned receiver
+
+**OWNER APPROVED — 16 November2026 SGT.** [Direct Owner choices recorded in #352](https://github.com/threeswordz/cinder-grind/issues/352#issuecomment-6909284115): “Recommended: deduct origin on dispatch; credit destination only on actual receipt” and “Recommended: Khaimook explicitly assigns an active destination-project Employee”. These resolve the published stock-timing and absent-Store receiver choices; do not ask again.
+
+Adopt [OP-TRANSFER-RECEIPT-01-ENTRY.md](OP-TRANSFER-RECEIPT-01-ENTRY.md), SS10 / transfer part of PM07 and TR-AC01–10. For explicitly enabled new synthetic transfers, approval alone creates no stock effect; dispatch deducts origin; accepted actual receipt credits destination; unreceived quantities stay unavailable. Khaimook explicitly designates an eligible active same-Company destination-Project Employee when destination Store is absent, retaining reason/history and narrow action-time rights. No automatic role grant, source-Project disclosure or technical-admin receiving authority.
+
+Preserve canonical StockTransfer, ApprovalService, StockTransaction, quantity locks and Documents; no second ledger. Historical paired transfers remain unchanged. #351 exact-head CI, independent review, guarded integration and exact-main precede successor runtime. This approved entry publication retains normal applicable gates before implementation; independent stable DEC-022 review and registered disposable browser/HTTP/upgrade/recovery proof remain mandatory. The current sole Builder owns execution; human UAT is deferred under DEC-042 to the frozen integrated prototype.
+
+No retained MKE/TCJ activation, cross-Company ownership/Finance #245, new Accounting #288, write-off/valuation, payroll, unspecified emergency bypass or Production authority.
