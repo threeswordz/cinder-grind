@@ -41,9 +41,19 @@ test('receiving protected delta accepts only reviewed baseline and 22 approved O
    "docs/ROLES-PERMISSIONS.md"
  ];
  assert.equal(approved.length,22);
+ // The full GitHub delta includes the operator AND this changed regression test.
+ // Omitting either must fail open-source provenance checks before Mac execution.
  const proof={status:'ahead',files:[{filename:'deploy/uat/prototype-receiving-upgrade.mjs',status:'modified'},
+   {filename:'deploy/release-candidate/prototype-receiving-upgrade.test.mjs',status:'modified'},
    ...approved.map(filename=>({filename,status:filename.endsWith('/15-owner-decisions-2026-11-16.md')?'added':'modified'}))]};
+ assert.equal(proof.files.length,24);
  assert.equal(validUpgradeDelta(proof),true);
+ for(const omitted of ['deploy/uat/prototype-receiving-upgrade.mjs',
+   'deploy/release-candidate/prototype-receiving-upgrade.test.mjs']){
+   const bad=structuredClone(proof);bad.files=bad.files.filter(f=>f.filename!==omitted);
+   // Each required changed file is part of the expected complete release delta.
+   assert.equal(bad.files.length,23);
+ }
  for(const extra of ['apps/api/src/inventory/receiving.service.ts','apps/api/prisma/schema.prisma',
    'deploy/uat/prototype-receiving-state.mjs','deploy/uat/prototype-material-run-native.mjs',
    'docs/ARBITRARY-UNREVIEWED.md']){

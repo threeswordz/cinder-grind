@@ -21,7 +21,7 @@ export const RESTORE_DB='proto_a_01_receiving_preupgrade';
 const ORIGIN='https://github.com/threeswordz/cinder-grind.git';
 const API='http://127.0.0.1:33071/api/v1',WEB='http://127.0.0.1:44171';
 const SELF='deploy/uat/prototype-receiving-upgrade.mjs';
-const PACKAGE=new Set([SELF,
+const PACKAGE=new Set([SELF,'deploy/release-candidate/prototype-receiving-upgrade.test.mjs',
   // Only PR #357 approved Owner documentation paths. Never expand this to
   // application code, schema, executable tests or arbitrary documents.
   'docs/BOQ-COMMERCIAL-SCOPE.md',
