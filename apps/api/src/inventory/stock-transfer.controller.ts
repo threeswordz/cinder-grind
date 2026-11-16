@@ -132,6 +132,20 @@ export class StockTransferController {
     };
   }
 
+  @Get('projects/:projectId/transfer-destination-projects')
+  @UseGuards(AuthGuard, PermissionGuard)
+  @RequirePermissions('inventory.transfer.view', 'inventory.transfer.create')
+  async destinationProjects(@Req() request: AuthenticatedRequest, @Param('projectId', new ParseUUIDPipe({ version: '4' })) sourceProjectId: string) {
+    return { data: await this.transfers.destinationProjects(authOf(request), sourceProjectId) };
+  }
+
+  @Get('projects/:projectId/transfer-destination-warehouses')
+  @UseGuards(AuthGuard, PermissionGuard)
+  @RequirePermissions('inventory.transfer.view', 'inventory.transfer.create')
+  async destinationWarehouses(@Req() request: AuthenticatedRequest, @Param('projectId', new ParseUUIDPipe({ version: '4' })) sourceProjectId: string, @Query('destinationProjectId') destinationProjectId: unknown) {
+    return { data: await this.transfers.destinationWarehouses(authOf(request), sourceProjectId, inventoryUuid(destinationProjectId, 'destinationProjectId')) };
+  }
+
   @Get('transfer-workflows')
   @UseGuards(AuthGuard, PermissionGuard)
   @RequirePermissions('inventory.transfer.submit')

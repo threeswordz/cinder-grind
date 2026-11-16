@@ -60,10 +60,11 @@ export function StockTransfersPanel({ permissions }: { permissions: string[] }) 
     queryFn: () => inventoryApi.transferWarehouses(sourceProjectId),
     enabled: Boolean(sourceProjectId),
   });
+  const destinations = useQuery({queryKey:['transfer-destinations',sourceProjectId],queryFn:()=>inventoryApi.transferDestinationProjects(sourceProjectId),enabled:Boolean(sourceProjectId&&canCreate),retry:false,gcTime:0});
   const destinationWarehouses = useQuery({
-    queryKey: ['transfer-warehouses', destinationProjectId],
-    queryFn: () => inventoryApi.transferWarehouses(destinationProjectId),
-    enabled: Boolean(destinationProjectId),
+    queryKey: ['transfer-destination-warehouses', sourceProjectId, destinationProjectId],
+    queryFn: () => inventoryApi.transferDestinationWarehouses(sourceProjectId, destinationProjectId),
+    enabled: Boolean(sourceProjectId && destinationProjectId && canCreate),
   });
   const stock = useQuery({
     queryKey: ['transfer-stock', sourceProjectId, sourceWarehouseId],
@@ -229,7 +230,7 @@ export function StockTransfersPanel({ permissions }: { permissions: string[] }) 
                 }}
               >
                 <MenuItem value="">Select destination Project</MenuItem>
-                {(projects.data?.data ?? []).map((project) => (
+                {(destinations.data?.data ?? []).map((project) => (
                   <MenuItem key={project.id} value={project.id}>
                     {project.projectCode} — {project.projectName}
                   </MenuItem>

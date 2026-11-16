@@ -84,6 +84,20 @@ export class StockTransferService {
     });
   }
 
+  async destinationProjects(supplied: AuthenticatedUserContext, sourceProjectId: string) {
+    const auth = await transferActor(supplied, this.prisma, ['inventory.transfer.view', 'inventory.transfer.create']);
+    await this.access.assertAccess(auth, sourceProjectId);
+    const policy = await this.prisma.transferProjectPolicy.findFirst({ where: { companyId: auth.companyId, projectId: sourceProjectId } });
+    if (!policy) return this.projects(auth);
+    return this.prisma.project.findMany({ where: { companyId: auth.companyId, isActive: true }, select: { id: true, projectCode: true, projectName: true }, orderBy: { projectCode: 'asc' } });
+  }
+
+  async destinationWarehouses(supplied: AuthenticatedUserContext, sourceProjectId: string, destinationProjectId: string) {
+    const choices = await this.destinationProjects(supplied, sourceProjectId);
+    if (!choices.some(project => project.id === destinationProjectId)) throw new NotFoundException({ code: 'STOCK_TRANSFER_DESTINATION_NOT_FOUND' });
+    return this.prisma.warehouse.findMany({ where: { companyId: supplied.companyId, isActive: true, OR: [{ projectId: null }, { projectId: destinationProjectId }] }, select: { id: true, warehouseCode: true, warehouseName: true, projectId: true, isSiteWarehouse: true }, orderBy: { warehouseCode: 'asc' } });
+  }
+
   async stockChoices(
     auth: AuthenticatedUserContext,
     projectId: string,
@@ -161,6 +175,7 @@ export class StockTransferService {
     });
     const projectIds = projects.map((row) => row.id);
     if (!projectIds.length) return [];
+    const controlledIds = (await this.prisma.transferCustody.findMany({ where: { companyId: auth.companyId }, select: { transferId: true } })).map(row => row.transferId);
     const rows = await this.prisma.stockTransfer.findMany({
       where: {
         companyId: auth.companyId,
@@ -168,7 +183,7 @@ export class StockTransferService {
           every: {
             AND: [
               { sourceProjectId: { in: projectIds } },
-              { destinationProjectId: { in: projectIds } },
+              { OR: [{ destinationProjectId: { in: projectIds } }, { stockTransferId: { in: controlledIds } }] },
             ],
           },
           ...(projectId
@@ -227,17 +242,15 @@ export class StockTransferService {
       },
     });
     if (!row) throw new NotFoundException({ code: 'STOCK_TRANSFER_NOT_FOUND' });
+    const custody = await db.transferCustody.findUnique({ where: { transferId: id }, include: { dispatch: true } });
+    if (custody) await transferActor(auth, db, ['inventory.transfer.view']);
     for (const projectId of [
       ...new Set(
-        row.items.flatMap((item) => [
-          item.sourceProjectId,
-          item.destinationProjectId,
-        ]),
+        row.items.flatMap((item) => custody ? [item.sourceProjectId] : [item.sourceProjectId, item.destinationProjectId]),
       ),
     ]) {
       await this.access.assertAccess(auth, projectId, db);
     }
-    const custody = await db.transferCustody.findUnique({ where: { transferId: id }, include: { dispatch: true } });
     return { ...row, custody: custody ? { ...custody, receiptComplete: Boolean(custody.dispatch) && row.items.every(item => row.stockTransactions.filter(m => m.stockTransferItemId === item.id && m.movementType === 'STOCK_TRANSFER_IN').reduce((sum,m) => sum.plus(m.quantity), new Prisma.Decimal(0)).equals(item.quantity)) } : null };
   }
 
@@ -276,6 +289,7 @@ export class StockTransferService {
       'STOCK_TRANSFER',
     );
     return this.prisma.$transaction(async (tx) => {
+      const controlled = Boolean(await tx.transferProjectPolicy.count({ where: { companyId: context.auth.companyId, projectId: { in: input.lines.map(line => line.sourceProjectId) } } }));
       const warehouses = await this.validateWarehouses(
         context.auth,
         input.sourceWarehouseId,
@@ -294,7 +308,7 @@ export class StockTransferService {
         },
       });
       for (const [index, line] of input.lines.entries()) {
-        await this.validateLine(context.auth, warehouses, line, tx);
+        await this.validateLine(context.auth, warehouses, line, tx, controlled);
         await tx.stockTransferItem.create({
           data: {
             stockTransferId: transfer.id,
@@ -354,7 +368,7 @@ export class StockTransferService {
         tx,
       );
       for (const item of transfer.items) {
-        await this.validateLine(context.auth, warehouses, item, tx);
+        await this.validateLine(context.auth, warehouses, item, tx, Boolean(transfer.custody));
       }
       const row = await tx.stockTransfer.update({
         where: { id },
@@ -407,7 +421,7 @@ export class StockTransferService {
         transfer.destinationWarehouseId,
         tx,
       );
-      await this.validateLine(context.auth, warehouses, input, tx);
+      await this.validateLine(context.auth, warehouses, input, tx, Boolean(transfer.custody));
       const row = await tx.stockTransferItem.update({
         where: { id: itemId },
         data: {
@@ -453,7 +467,7 @@ export class StockTransferService {
           tx,
         );
         for (const item of transfer.items) {
-          await this.validateLine(context.auth, warehouses, item, tx);
+          await this.validateLine(context.auth, warehouses, item, tx, Boolean(transfer.custody));
         }
         const approval = await this.approvals.start(
           {
@@ -708,6 +722,7 @@ export class StockTransferService {
         await tx.$queryRaw`SELECT transfer_id FROM transfer_custodies WHERE transfer_id=${id}::uuid AND company_id=${context.auth.companyId}::uuid FOR UPDATE`;
         const transfer = await this.get(context.auth, id, tx);
         if (transfer.custody) context = { ...context, auth: await transferActor(context.auth, tx, ['inventory.transfer.view', 'inventory.transfer.reverse']) };
+        if (transfer.custody) for (const projectId of new Set(transfer.items.map(item => item.destinationProjectId))) await this.access.assertAccess(context.auth, projectId, tx);
         if (transfer.reversedAt && transfer.reversalKey === reversalKey) {
           return transfer;
         }
@@ -921,10 +936,11 @@ export class StockTransferService {
       destinationProjectId: string;
     },
     db: Db,
+    controlled = false,
   ) {
     this.assertQuantity(line.quantity);
     await this.access.assertAccess(auth, line.sourceProjectId, db);
-    if (line.destinationProjectId !== line.sourceProjectId) {
+    if (!controlled && line.destinationProjectId !== line.sourceProjectId) {
       await this.access.assertAccess(auth, line.destinationProjectId, db);
     }
     const [material, uom, projects] = await Promise.all([
