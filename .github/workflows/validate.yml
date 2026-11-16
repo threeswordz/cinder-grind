@@ -529,6 +529,14 @@ jobs:
           grep -q '"reason":"web_origin_requires_https"' /tmp/construction-erp-unsafe-production.log
       - name: Smoke API startup and run live acceptance
         run: |
+          # Reuse the explicitly scoped business fixture, never the unlinked
+          # technical administrator, for Project benchmark and restored files.
+          export UAT_PROJECT_MAKER_EMAIL="uat-ci-project-maker@example.invalid"
+          export UAT_PROJECT_MAKER_PASSWORD="$(node -e 'process.stdout.write(require("node:crypto").randomBytes(32).toString("hex"))')"
+          echo "::add-mask::$UAT_PROJECT_MAKER_PASSWORD"
+          printf 'UAT_PROJECT_MAKER_EMAIL=%s\nUAT_PROJECT_MAKER_PASSWORD=%s\n' \
+            "$UAT_PROJECT_MAKER_EMAIL" "$UAT_PROJECT_MAKER_PASSWORD" >> "$GITHUB_ENV"
+
           pnpm start:api > /tmp/construction-erp-api.log 2>&1 &
           api_pid=$!
           cleanup() {
@@ -577,8 +585,8 @@ jobs:
           BENCHMARK_NON_PRODUCTION_CONFIRMED=YES \
           BENCHMARK_ENVIRONMENT=ci \
           BENCHMARK_BASE_URL=http://127.0.0.1:3000/api/v1 \
-          BENCHMARK_EMAIL="$BOOTSTRAP_ADMIN_EMAIL" \
-          BENCHMARK_PASSWORD="$BOOTSTRAP_ADMIN_PASSWORD" \
+          BENCHMARK_EMAIL="$UAT_PROJECT_MAKER_EMAIL" \
+          BENCHMARK_PASSWORD="$UAT_PROJECT_MAKER_PASSWORD" \
           BENCHMARK_ITERATIONS=12 \
           BENCHMARK_CONCURRENCY=2 \
           node apps/api/scripts/v1-0-d-benchmark.mjs | tee /tmp/v1-0-d-benchmark.json
@@ -714,6 +722,8 @@ jobs:
           RESTORED_API_BASE_URL=http://127.0.0.1:3002/api/v1 \
           API_PORT=3002 \
           DATABASE_URL="$restore_url" \
+          RESTORED_READER_EMAIL="$UAT_PROJECT_MAKER_EMAIL" \
+          RESTORED_READER_PASSWORD="$UAT_PROJECT_MAKER_PASSWORD" \
           node apps/api/scripts/verify-restored-runtime.mjs
 
           echo "V1.0-B isolated recovery drill and restored-runtime authentication smoke passed."

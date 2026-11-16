@@ -938,13 +938,15 @@ await request(admin, '/admin/approval-workflows', {
 
 record('V0.3-A Budget, V0.3-B Purchase Request, V0.3-C RFQ, V0.3-D PO, V0.5-D/E Subcontracts and V0.6-A/B/C Finance approval configuration');
 
-const pmPassword = 'Uat-PM-' + suffix + '-Strong-2026!';
+// CI may reuse this explicit Employee-linked fixture for its later benchmark
+// and restored-document smoke. Never attach the technical admin to an Employee.
+const pmPassword = process.env.UAT_PROJECT_MAKER_PASSWORD ?? 'Uat-PM-' + suffix + '-Strong-2026!';
 const unassignedPassword = 'Uat-PE-' + suffix + '-Strong-2026!';
 const checkerPassword = 'Uat-BA-' + suffix + '-Strong-2026!';
 const pmUser = await request(admin, '/admin/users', {
   method: 'POST',
   json: {
-    email: `uat-pm-${suffix.toLowerCase()}@example.com`,
+    email: process.env.UAT_PROJECT_MAKER_EMAIL ?? `uat-pm-${suffix.toLowerCase()}@example.com`,
     displayName: 'Project Manager ' + suffix,
     password: pmPassword,
     employeeId: pmEmployee.data.data.id,
