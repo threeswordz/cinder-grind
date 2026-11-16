@@ -194,7 +194,7 @@ test('receiving evidence requires exact migration, version14 and every executed 
 
 test('DEC-046 transfer evidence requires exact migrations, version15 and executed history, HTTP and paired recovery proof',()=>{
  const keys=['transferSchemaUpgrade','transferHistoricalPreservation','transferHttpUpgrade','transferPopulatedRecovery','transferEvidenceRecovery'];
- const data={...evidence('migration-aware-transfer-schema'),version:15,migrationNames:['20261117001000_transfer_dispatch_receipt','20261117002000_transfer_custody_guards','20261117003000_transfer_receipt_commit_binding'],...Object.fromEntries(keys.map(k=>[k,'PASS']))};
+ const data={...evidence('migration-aware-transfer-schema'),version:15,migrationNames:['20261117001000_transfer_dispatch_receipt','20261117002000_transfer_custody_guards','20261117003000_transfer_receipt_commit_binding','20261117004000_transfer_live_warehouse_scope'],...Object.fromEntries(keys.map(k=>[k,'PASS']))};
  const result=verify(data);assert.equal(result.status,0,result.stderr);assert.equal(JSON.parse(result.stdout).version,15);
  for(const key of keys){const bad={...data};delete bad[key];assert.notEqual(verify(bad).status,0,key);}
  assert.notEqual(verify({...data,version:14}).status,0);assert.notEqual(verify({...data,migrationNames:[]}).status,0);
