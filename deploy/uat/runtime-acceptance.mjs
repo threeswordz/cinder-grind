@@ -4122,7 +4122,7 @@ const referenceProject = await request(pm, '/projects', {
   expected: 201,
 });
 const referenceProjectId = referenceProject.data.data.id;
-await request(admin, `/projects/${referenceProjectId}/members`, {
+await request(pm, `/projects/${referenceProjectId}/members`, {
   method: 'POST',
   json: {
     employeeId: checkerEmployee.data.data.id,
@@ -7355,7 +7355,7 @@ const v07RestrictedUser = await request(admin, '/admin/users', {
   },
   expected: 201,
 });
-await request(admin, '/projects/' + projectId + '/members', {
+await request(pm, '/projects/' + projectId + '/members', {
   method: 'POST',
   json: {
     employeeId: v07RestrictedEmployee.data.data.id,
