@@ -1,4 +1,6 @@
 import {MaterialPlanController} from './material-plan.controller';
+import {ReceivingController} from './receiving.controller';
+import {ReceivingService} from './receiving.service';
 import {MaterialPlanService} from './material-plan.service';
 import {MaterialPlanIssueController} from './material-plan-issue.controller';
 import {MaterialPlanIssueService} from './material-plan-issue.service';
@@ -44,6 +46,7 @@ import { StockCountService } from './stock-count.service';
     AdministrationModule,
   ],
   controllers: [
+    ReceivingController,
     MaterialPlanIssueController,
     MaterialPlanController,
     MaterialRequestController,
@@ -56,6 +59,7 @@ import { StockCountService } from './stock-count.service';
     StockCountController,
   ],
   providers: [
+    ReceivingService,
     MaterialPlanIssueService,
     MaterialPlanService,
     MaterialRequestService,
@@ -71,6 +75,7 @@ import { StockCountService } from './stock-count.service';
     StockCountService,
   ],
   exports: [
+    ReceivingService,
     MaterialPlanIssueService,
     MaterialPlanService,
     MaterialRequestService,

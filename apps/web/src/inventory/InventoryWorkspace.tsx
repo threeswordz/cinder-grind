@@ -1,3 +1,5 @@
+import { ReceivingPanel } from './ReceivingPanel';
+import { receivingLabels } from './receiving-labels';
 import { MaterialRequestsPanel } from './MaterialRequestsPanel';
 import { MaterialPlansPanel } from './MaterialPlansPanel';
 import { materialPlanLabels } from './material-plan-labels';
@@ -19,6 +21,7 @@ import { WarehousesPanel } from './WarehousesPanel';
 import type { SourceLinkTarget } from '../role-ui/source-link-policy';
 
 type InventoryTab =
+  | 'receiving'
   | 'requests'
   | 'plans'
   | 'warehouses'
@@ -33,11 +36,15 @@ type InventoryTab =
 
 export function InventoryWorkspace({
   permissions,
+  userId = '',
+  companyId = '',
   initialProjectId,
   initialReceiptId,
   onOpenSource,
 }: {
   permissions: string[];
+  userId?: string;
+  companyId?: string;
   initialProjectId?: string | undefined;
   initialReceiptId?: string | undefined;
   onOpenSource?: ((target: SourceLinkTarget) => void) | undefined;
@@ -45,6 +52,7 @@ export function InventoryWorkspace({
   const locale = useContext(MonetaryLocaleContext);
   const requestText = materialRequestLabels[locale];
   const planText = materialPlanLabels[locale];
+  const canSeeReceiving = permissions.includes('inventory.receiving.view');
   const canSeeRequests = permissions.includes('inventory.material_request.view');
   const canSeePlans = permissions.includes('inventory.material_plan.view');
   const canSeeWarehouses = permissions.includes('inventory.warehouse.view');
@@ -56,7 +64,7 @@ export function InventoryWorkspace({
   const canSeeReturns = permissions.includes('inventory.return.view');
   const canSeeTransfers = permissions.includes('inventory.transfer.view');
   const canSeeReports = permissions.includes('inventory.report.view');
-  const first: InventoryTab = canSeeRequests ? 'requests' : canSeePlans ? 'plans' : canSeeWarehouses
+  const first: InventoryTab = canSeeReceiving ? 'receiving' : canSeeRequests ? 'requests' : canSeePlans ? 'plans' : canSeeWarehouses
     ? 'warehouses'
     : canSeeReceipts
       ? 'receipts'
@@ -76,10 +84,12 @@ export function InventoryWorkspace({
   const [selected, setSelected] = useState<InventoryTab>(first);
   const appliedReceiptProjectSourceLink = useRef('');
   const appliedReceiptSourceLink = useRef('');
+  const [receivingGr, setReceivingGr] = useState<{projectId:string;id:string}|null>(null);
   useEffect(() => {
     if (initialReceiptId && canSeeReceipts) setSelected('receipts');
   }, [initialReceiptId, canSeeReceipts]);
   if (
+    !canSeeReceiving &&
     !canSeeRequests &&
     !canSeePlans &&
     !canSeeWarehouses &&
@@ -95,7 +105,7 @@ export function InventoryWorkspace({
     return <Alert severity="info">Inventory view permission is required.</Alert>;
   }
   const active: InventoryTab =
-    selected === 'requests' && canSeeRequests ? 'requests' : selected === 'plans' && canSeePlans ? 'plans' : selected === 'warehouses' && canSeeWarehouses
+    selected === 'receiving' && canSeeReceiving ? 'receiving' : selected === 'requests' && canSeeRequests ? 'requests' : selected === 'plans' && canSeePlans ? 'plans' : selected === 'warehouses' && canSeeWarehouses
       ? 'warehouses'
       : selected === 'receipts' && canSeeReceipts
         ? 'receipts'
@@ -117,6 +127,7 @@ export function InventoryWorkspace({
   return (
     <Stack spacing={2}>
       <Tabs value={active} onChange={(_event, value: InventoryTab) => setSelected(value)}>
+        {canSeeReceiving ? <Tab value="receiving" label={receivingLabels[locale].title} /> : null}
         {canSeeRequests ? <Tab value="requests" label={requestText.title} /> : null}
         {canSeePlans ? <Tab value="plans" label={planText.title} /> : null}
         {canSeeWarehouses ? <Tab value="warehouses" label="Warehouses" /> : null}
@@ -129,7 +140,9 @@ export function InventoryWorkspace({
         {canSeeTransfers ? <Tab value="transfers" label="Stock Transfers" /> : null}
         {canSeeReports ? <Tab value="reports" label="Reports" /> : null}
       </Tabs>
-      {active === 'requests' ? (
+      {active === 'receiving' ? (
+        <ReceivingPanel permissions={permissions} userId={userId} companyId={companyId} onOpenGr={(projectId,id)=>{appliedReceiptProjectSourceLink.current='';appliedReceiptSourceLink.current='';setReceivingGr({projectId,id});setSelected('receipts');}}/>
+      ) : active === 'requests' ? (
         <MaterialRequestsPanel permissions={permissions}/>
       ) : active === 'plans' ? (
         <MaterialPlansPanel permissions={permissions} />
@@ -138,8 +151,8 @@ export function InventoryWorkspace({
       ) : active === 'receipts' ? (
         <GoodsReceiptsPanel
           permissions={permissions}
-          initialProjectId={initialProjectId}
-          initialReceiptId={initialReceiptId}
+          initialProjectId={receivingGr?.projectId ?? initialProjectId}
+          initialReceiptId={receivingGr?.id ?? initialReceiptId}
           appliedProjectSourceLink={appliedReceiptProjectSourceLink}
           appliedReceiptSourceLink={appliedReceiptSourceLink}
           onOpenSource={onOpenSource}

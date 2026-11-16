@@ -161,7 +161,7 @@ test('FM03 wrapper before historical predecessor checks remains mandatory in con
   const workflow = readFileSync(new URL('../../.github/workflows/validate.yml', import.meta.url), 'utf8');
   const evidenceStep = workflow.split('- name: Verify V1.0-E consolidated technical evidence')[1];
   assert.ok(evidenceStep, 'Consolidated evidence step must exist');
-  assert.equal((evidenceStep.match(/siteIssueMode\(data\.releaseMode\)\.prior/g) ?? []).length, 5,
+  assert.equal((evidenceStep.match(/siteIssueMode\(\(await import\([^\n]+?receivingMode\(data\.releaseMode\)\.prior\)\.prior/g) ?? []).length, 5,
     'Five exact historical predecessor assertions must peel the FM03 schema wrapper');
   const { siteIssueMode } = await import('./site-issue-schema-contract.mjs');
   const { materialPlanMode } = await import('./material-plan-schema-contract.mjs');
@@ -179,4 +179,12 @@ test('FM03 wrapper before historical predecessor checks remains mandatory in con
   assert.equal(planIssueMode(siteIssueMode(prefixed(
     'plan-issue-material-plan-schema')).prior).prior, 'migration-aware-material-plan-schema');
   assert.equal(siteIssueMode(prefixed('plan-issue-schema')).prior, 'migration-aware-plan-issue-schema');
+});
+
+test('receiving evidence requires exact migration, version14 and every executed preservation/recovery gate',()=>{
+ const keys=['receivingSchemaUpgrade','receivingHistoricalPreservation','receivingHttpUpgrade','receivingPopulatedRecovery','receivingEvidenceRecovery'];
+ const data={...evidence('migration-aware-receiving-schema'),version:14,migrationNames:['20261115130000_receiving_custody'],...Object.fromEntries(keys.map(k=>[k,'PASS']))};
+ const result=verify(data);assert.equal(result.status,0,result.stderr);assert.equal(JSON.parse(result.stdout).version,14);
+ for(const key of keys){const bad={...data};delete bad[key];assert.notEqual(verify(bad).status,0,key);}
+ assert.notEqual(verify({...data,version:13}).status,0);assert.notEqual(verify({...data,migrationNames:['20261115130000_other']}).status,0);
 });

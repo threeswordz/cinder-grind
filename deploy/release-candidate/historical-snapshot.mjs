@@ -1,3 +1,4 @@
+import {receivingTables} from './receiving-schema-contract.mjs';
 import {siteIssueTables} from './site-issue-schema-contract.mjs';
 import {planIssueTables} from './material-plan-issue-schema-contract.mjs';
 import {materialPlanTables} from './material-plan-schema-contract.mjs';
@@ -13,7 +14,7 @@ const emptyDigest = createHash('sha256').update('').digest('hex');
 
 // The source snapshot was taken by the actual old runtime. Only the exact new
 // empty tables may be absent there; every pre-existing table/hash stays strict.
-export function assertHistoricalTables(before, after, hrApproved = false, hrDocumentApproved = false, stockCountApproved = false, materialRequestApproved = false, materialPlanApproved = false, planIssueApproved = false, siteIssueApproved = false) {
+export function assertHistoricalTables(before, after, hrApproved = false, hrDocumentApproved = false, stockCountApproved = false, materialRequestApproved = false, materialPlanApproved = false, planIssueApproved = false, siteIssueApproved = false, receivingApproved = false) {
   const extra = Object.keys(after).filter((name) => !Object.hasOwn(before, name));
   if (hrApproved) assert.ok(hrTables.every(name => !Object.hasOwn(before,name) && extra.includes(name)), 'Complete new HR table group required');
   if (hrDocumentApproved) assert.ok(hrDocumentTables.every(name => !Object.hasOwn(before,name) && extra.includes(name)), 'Complete new HR attachment table group required');
@@ -22,9 +23,10 @@ export function assertHistoricalTables(before, after, hrApproved = false, hrDocu
   if(materialPlanApproved)assert.ok(materialPlanTables.every(name=>!Object.hasOwn(before,name)&&extra.includes(name)),'Complete new material-plan group required');
   if(planIssueApproved)assert.ok(planIssueTables.every(name=>!Object.hasOwn(before,name)&&extra.includes(name)),'Complete exact material plan issue group required');
   if(siteIssueApproved)assert.ok(siteIssueTables.every(name=>!Object.hasOwn(before,name)&&extra.includes(name)),'Complete exact site issue group required');
+  if(receivingApproved)assert.ok(receivingTables.every(name=>!Object.hasOwn(before,name)&&extra.includes(name)),'Complete exact receiving group required');
   if (extra.length) {
     const expected = [...(hrApproved ? hrTables : []), ...(hrDocumentApproved ? hrDocumentTables : []),
-      ...(stockCountApproved ? stockCountTables : []), ...(materialRequestApproved ? materialRequestTables : []), ...(materialPlanApproved ? materialPlanTables : []), ...(planIssueApproved ? planIssueTables : []), ...(siteIssueApproved ? siteIssueTables : []),
+      ...(stockCountApproved ? stockCountTables : []), ...(materialRequestApproved ? materialRequestTables : []), ...(materialPlanApproved ? materialPlanTables : []), ...(planIssueApproved ? planIssueTables : []), ...(siteIssueApproved ? siteIssueTables : []), ...(receivingApproved ? receivingTables : []),
       ...(!Object.hasOwn(before,'customer_boq_versions') ? addedTables : [])];
     assert.deepEqual([...extra].sort(), [...expected].sort(), 'Unexpected/partial schema addition in historical snapshot');
     for (const name of extra) assert.deepEqual(after[name], { count: '0', digest: emptyDigest }, 'New table must be empty before integrity verification');

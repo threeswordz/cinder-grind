@@ -12,6 +12,7 @@ import { AuditService } from '../audit/audit.service';
 import { AuthenticatedUserContext } from '../auth/auth.types';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProjectAccessService } from '../projects/project-access.service';
+import { ReceivingService } from './receiving.service';
 import {
   InventoryQuantityService,
   StockDimension,
@@ -30,6 +31,7 @@ export class GoodsReceiptService {
     private readonly approvals: ApprovalService,
     private readonly numbers: NumberSequenceService,
     private readonly quantities: InventoryQuantityService,
+    private readonly receiving?: ReceivingService,
   ) {}
 
   async projects(auth: AuthenticatedUserContext) {
@@ -121,6 +123,9 @@ export class GoodsReceiptService {
       warehouseId: string;
       remarks?: string | null;
       lines: ReceiptLineInput[];
+      deliveryId?: string | null;
+      requestKey?: string;
+      expectedDeliveryVersion?: number;
     },
   ) {
     await this.access.assertAccess(context.auth, input.projectId);
@@ -133,8 +138,10 @@ export class GoodsReceiptService {
     if (!sequence || sequence.formatTemplate !== 'GRNYYMM-###' || sequence.resetRule !== 'MONTHLY') {
       throw new ConflictException({ code: 'RECEIPT_NUMBERING_REQUIRED', detail: 'Configure GRNYYMM-### with a monthly reset.' });
     }
-    const receiptNumber = await this.numbers.next(context.auth.companyId, 'GOODS_RECEIPT');
-    return this.prisma.$transaction(async (tx) => {
+    const legacyNumber = input.deliveryId ? null : await this.numbers.next(context.auth.companyId, 'GOODS_RECEIPT');
+    const create = async (tx: Prisma.TransactionClient) => {
+      const delivery = await this.receiving?.beforeReceiptCreate(context,input,tx);
+      if (delivery?.replayId) return this.get(context.auth,delivery.replayId,tx);
       const order = await this.currentOrder(context.auth, input.projectId, input.purchaseOrderId, tx);
       const warehouse = await tx.warehouse.findFirst({
         where: { id: input.warehouseId, companyId: context.auth.companyId, isActive: true },
@@ -148,6 +155,7 @@ export class GoodsReceiptService {
       if (lines.length !== input.lines.length || lines.some((line) => line.lineType !== 'MATERIAL' || !line.materialId || !line.materialCodeSnapshot)) {
         throw new UnprocessableEntityException({ code: 'RECEIPT_SOURCE_INVALID', detail: 'Only approved PO material lines are receivable.' });
       }
+      const receiptNumber = legacyNumber ?? await this.numbers.next(context.auth.companyId, 'GOODS_RECEIPT', new Date(), tx);
       const receipt = await tx.goodsReceipt.create({
         data: {
           companyId: context.auth.companyId,
@@ -158,6 +166,7 @@ export class GoodsReceiptService {
           receiptNumber,
           createdByUserId: context.auth.userId,
           remarks: input.remarks ?? null,
+          deliveryId: delivery?.deliveryId ?? null,
         },
       });
       for (const [index, selected] of input.lines.entries()) {
@@ -184,8 +193,10 @@ export class GoodsReceiptService {
         ...context, entityType: 'GOODS_RECEIPT', entityId: receipt.id,
         action: 'CREATE', newValues: { receiptNumber, purchaseOrderId: order.id, lineCount: input.lines.length },
       }, tx);
-      return receipt;
-    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+      if (delivery) await this.receiving!.receiptCreated(context,delivery,receipt.id,tx);
+      return delivery ? this.get(context.auth,receipt.id,tx) : receipt;
+    };
+    return input.deliveryId && this.receiving ? this.receiving.receiptTransaction(create) : this.prisma.$transaction(create, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
   }
 
   async updateDraft(
@@ -226,6 +237,7 @@ export class GoodsReceiptService {
       });
       if (!item) throw new NotFoundException({ code: 'RECEIPT_ITEM_NOT_FOUND' });
       const receipt = await this.get(context.auth, item.goodsReceiptId, tx);
+      if(receipt.deliveryId)throw new ConflictException({code:'RECEIVING_SOURCE_FROZEN'});
       if (receipt.submittedAt || receipt.postedAt || receipt.reversedAt) {
         throw new ConflictException({ code: 'RECEIPT_NOT_DRAFT' });
       }
@@ -248,6 +260,7 @@ export class GoodsReceiptService {
         throw new ConflictException({ code: 'RECEIPT_NOT_DRAFT' });
       }
       await this.currentOrder(context.auth, receipt.projectId, receipt.purchaseOrderId, tx);
+      await this.receiving?.receiptReady(context.auth,receipt,tx);
       const approval = await this.approvals.start({
         companyId: context.auth.companyId, workflowCode,
         entityType: 'GOODS_RECEIPT', entityId: id,
@@ -274,6 +287,7 @@ export class GoodsReceiptService {
       comment,
       async (tx) => {
         const current = await this.get(context.auth, id, tx);
+        await this.receiving?.receiptReady(context.auth,current,tx);
         if (current.postedAt || current.reversedAt) throw new ConflictException({ code: 'RECEIPT_ALREADY_POSTED' });
         const sourceOrder = await tx.purchaseOrder.findFirst({
           where: { id: current.purchaseOrderId, companyId: current.companyId },

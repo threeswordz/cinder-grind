@@ -1,3 +1,4 @@
+import {receivingActor} from '../inventory/receiving-actor';
 import {createHash} from 'node:crypto';
 import {
   ConflictException,
@@ -257,12 +258,18 @@ export class DocumentsService {
     }) : [];
     const accessibleRequests = new Set(requests.map(row => row.id));
 
+    const deliveryIds=[...new Set(protectedRows.flatMap(row=>row.links.filter(link=>link.entityType==='RECEIVING_DELIVERY').map(link=>link.entityId)))];
+    if(deliveryIds.length)await receivingActor(auth,db);
+    const deliveries=deliveryIds.length?await db.receivingDelivery.findMany({where:{id:{in:deliveryIds},companyId:auth.companyId,projectId},select:{id:true}}):[];
+    const accessibleDeliveries=new Set(deliveries.map(row=>row.id));
+
     return permitted.filter((row) => {
       const protectedSource = row.links.some((link) => Boolean(DOCUMENT_SOURCE_VIEW_PERMISSIONS[link.entityType]));
       return row.links.every((link) => {
         if (protectedSource && link.entityType === 'PROJECT') return projectIds.has(link.entityId);
         if (link.entityType === 'STOCK_TRANSFER') return accessibleTransfers.has(link.entityId);
         if (link.entityType === 'MATERIAL_REQUEST') return accessibleRequests.has(link.entityId);
+        if (link.entityType === 'RECEIVING_DELIVERY') return accessibleDeliveries.has(link.entityId);
         return true;
       });
     });
@@ -425,9 +432,9 @@ export class DocumentsService {
     }
 
     const bytes = await this.storage.read(row.storageKey);
-    if (row.links.some(link => link.entityType === 'MATERIAL_REQUEST') &&
+    if (row.links.some(link => ['MATERIAL_REQUEST','RECEIVING_DELIVERY'].includes(link.entityType)) &&
         (!row.checksum || bytes.length !== row.fileSizeBytes || createHash('sha256').update(bytes).digest('hex') !== row.checksum)) {
-      throw new UnprocessableEntityException({code: 'MATERIAL_REQUEST_EVIDENCE_INTEGRITY_FAILED'});
+      throw new UnprocessableEntityException({code: row.links.some(link=>link.entityType==='RECEIVING_DELIVERY')?'RECEIVING_EVIDENCE_INTEGRITY_FAILED':'MATERIAL_REQUEST_EVIDENCE_INTEGRITY_FAILED'});
     }
 
     return {
