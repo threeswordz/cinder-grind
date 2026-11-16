@@ -2068,6 +2068,8 @@ model StockTransaction {
   materialReturnItemId String?   @map("material_return_item_id") @db.Uuid
   stockTransferId       String?   @map("stock_transfer_id") @db.Uuid
   stockTransferItemId   String?   @map("stock_transfer_item_id") @db.Uuid
+  transferReceiptLineId String? @map("transfer_receipt_line_id") @db.Uuid
+  transferReceiptLine TransferReceiptLine? @relation(fields: [transferReceiptLineId], references: [id], onDelete: Restrict, onUpdate: Restrict)
   stockCountId          String?   @unique @map("stock_count_id") @db.Uuid
   wbsId                String?   @map("wbs_id") @db.Uuid
   costCodeId           String?   @map("cost_code_id") @db.Uuid
@@ -2103,7 +2105,8 @@ model StockTransaction {
   @@unique([goodsReceiptItemId, movementType])
   @@unique([materialIssueItemId, movementType])
   @@unique([materialReturnItemId, movementType])
-  @@unique([stockTransferItemId, movementType])
+  // Transfer movement uniqueness is enforced by partial SQL indexes.
+  @@index([stockTransferItemId, movementType])
   @@index([companyId, warehouseId, materialId, projectId])
   @@index([goodsReceiptId])
   @@index([materialIssueId])
@@ -3903,4 +3906,109 @@ model ReceivingOperation {
   delivery ReceivingDelivery? @relation(fields: [deliveryId], references: [id], onDelete: Restrict, onUpdate: Restrict)
   @@unique([companyId, actorUserId, requestKey])
   @@map("receiving_operations")
+}
+
+
+// DEC-046: additive custody facts; historical StockTransfer rows are not backfilled.
+model TransferProjectPolicy {
+  projectId String @id @map("project_id") @db.Uuid
+  companyId String @map("company_id") @db.Uuid
+  enabledByUserId String @map("enabled_by_user_id") @db.Uuid
+  reason String @db.Text
+  syntheticOnly Boolean @default(true) @map("synthetic_only")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  @@map("transfer_project_policies")
+}
+
+model TransferCustody {
+  transferId String @id @map("transfer_id") @db.Uuid
+  companyId String @map("company_id") @db.Uuid
+  version Int @default(1)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  dispatch TransferDispatch?
+  receipts TransferReceipt[]
+  assignments TransferReceiverAssignment[]
+  events TransferCustodyEvent[]
+  @@map("transfer_custodies")
+}
+
+model TransferDispatch {
+  id String @id @default(uuid()) @db.Uuid
+  transferId String @unique @map("transfer_id") @db.Uuid
+  actorUserId String @map("actor_user_id") @db.Uuid
+  reason String @db.Text
+  recordedAt DateTime @default(now()) @map("recorded_at") @db.Timestamptz(6)
+  custody TransferCustody @relation(fields: [transferId], references: [transferId], onDelete: Restrict, onUpdate: Restrict)
+  @@map("transfer_dispatches")
+}
+
+model TransferReceiverAssignment {
+  id String @id @default(uuid()) @db.Uuid
+  transferId String @map("transfer_id") @db.Uuid
+  projectId String @map("project_id") @db.Uuid
+  employeeId String @map("employee_id") @db.Uuid
+  actorUserId String @map("actor_user_id") @db.Uuid
+  version Int
+  reason String @db.Text
+  recordedAt DateTime @default(now()) @map("recorded_at") @db.Timestamptz(6)
+  custody TransferCustody @relation(fields: [transferId], references: [transferId], onDelete: Restrict, onUpdate: Restrict)
+  @@unique([transferId, version])
+  @@index([transferId, projectId, version])
+  @@map("transfer_receiver_assignments")
+}
+
+model TransferReceipt {
+  id String @id @default(uuid()) @db.Uuid
+  transferId String @map("transfer_id") @db.Uuid
+  projectId String @map("project_id") @db.Uuid
+  createdByUserId String @map("created_by_user_id") @db.Uuid
+  reason String @db.Text
+  documentId String? @map("document_id") @db.Uuid
+  checksum String? @db.VarChar(64)
+  postedAt DateTime? @map("posted_at") @db.Timestamptz(6)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  custody TransferCustody @relation(fields: [transferId], references: [transferId], onDelete: Restrict, onUpdate: Restrict)
+  lines TransferReceiptLine[]
+  @@index([transferId, projectId, createdAt])
+  @@map("transfer_receipts")
+}
+
+model TransferReceiptLine {
+  id String @id @default(uuid()) @db.Uuid
+  receiptId String @map("receipt_id") @db.Uuid
+  transferItemId String @map("transfer_item_id") @db.Uuid
+  quantity Decimal @db.Decimal(18,4)
+  note String @db.Text
+  receipt TransferReceipt @relation(fields: [receiptId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  movements StockTransaction[]
+  @@unique([receiptId, transferItemId])
+  @@map("transfer_receipt_lines")
+}
+
+model TransferCustodyEvent {
+  id String @id @default(uuid()) @db.Uuid
+  transferId String @map("transfer_id") @db.Uuid
+  actorUserId String @map("actor_user_id") @db.Uuid
+  version Int
+  action String @db.VarChar(40)
+  reason String @db.Text
+  recordedAt DateTime @default(now()) @map("recorded_at") @db.Timestamptz(6)
+  custody TransferCustody @relation(fields: [transferId], references: [transferId], onDelete: Restrict, onUpdate: Restrict)
+  @@unique([transferId, version])
+  @@map("transfer_custody_events")
+}
+
+model TransferOperation {
+  id String @id @default(uuid()) @db.Uuid
+  companyId String @map("company_id") @db.Uuid
+  actorUserId String @map("actor_user_id") @db.Uuid
+  requestKey String @map("request_key") @db.Uuid
+  transferId String? @map("transfer_id") @db.Uuid
+  projectId String? @map("project_id") @db.Uuid
+  action String @db.VarChar(40)
+  bodyDigest String @map("body_digest") @db.VarChar(64)
+  outcome Json
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  @@unique([companyId, actorUserId, requestKey])
+  @@map("transfer_operations")
 }

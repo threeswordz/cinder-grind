@@ -1,3 +1,5 @@
+import { TransferCustodyService } from './transfer-custody.service';
+import { TransferCustodyController } from './transfer-custody.controller';
 import {MaterialPlanController} from './material-plan.controller';
 import {ReceivingController} from './receiving.controller';
 import {ReceivingService} from './receiving.service';
@@ -46,6 +48,7 @@ import { StockCountService } from './stock-count.service';
     AdministrationModule,
   ],
   controllers: [
+    TransferCustodyController,
     ReceivingController,
     MaterialPlanIssueController,
     MaterialPlanController,
@@ -59,6 +62,7 @@ import { StockCountService } from './stock-count.service';
     StockCountController,
   ],
   providers: [
+    TransferCustodyService,
     ReceivingService,
     MaterialPlanIssueService,
     MaterialPlanService,
@@ -75,6 +79,7 @@ import { StockCountService } from './stock-count.service';
     StockCountService,
   ],
   exports: [
+    TransferCustodyService,
     ReceivingService,
     MaterialPlanIssueService,
     MaterialPlanService,

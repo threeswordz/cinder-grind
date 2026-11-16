@@ -1,3 +1,4 @@
+import {transferActor} from '../inventory/transfer-custody-actor';
 import {receivingActor} from '../inventory/receiving-actor';
 import {
   ForbiddenException,
@@ -31,6 +32,7 @@ export type DocumentTargetType =
   | 'MATERIAL_REQUEST'
   | 'MATERIAL_RETURN'
   | 'STOCK_TRANSFER'
+  | 'TRANSFER_RECEIPT'
   | 'SUPPLIER_INVOICE'
   | 'CLIENT_INVOICE'
   | 'PAYMENT'
@@ -487,6 +489,13 @@ export class DocumentTargetsService {
         where: { id: entityId, projectId, companyId: auth.companyId },
         select: { id: true },
       });
+      if (!row) throw this.targetNotFound();
+      return;
+    }
+
+    if (entityType === 'TRANSFER_RECEIPT') {
+      await transferActor(auth, this.prisma, ['inventory.transfer.receipt_view']);
+      const row = await this.prisma.transferReceipt.findFirst({ where: { id: entityId, projectId, custody: { companyId: auth.companyId } }, select: { id: true } });
       if (!row) throw this.targetNotFound();
       return;
     }

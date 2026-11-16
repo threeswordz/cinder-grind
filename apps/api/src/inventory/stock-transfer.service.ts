@@ -1,3 +1,5 @@
+import {createHash} from 'node:crypto';
+import {inventoryUuid} from './inventory-validation';
 import {
   ConflictException,
   Injectable,
@@ -6,6 +8,8 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 
+import { bindTransferCustody, recordTransferCustodyEvent } from './transfer-custody.service';
+import { transferActor } from './transfer-custody-actor';
 import { NumberSequenceService } from '../administration/number-sequence.service';
 import { ApprovalService } from '../approval/approval.service';
 import { AuditService } from '../audit/audit.service';
@@ -157,7 +161,7 @@ export class StockTransferService {
     });
     const projectIds = projects.map((row) => row.id);
     if (!projectIds.length) return [];
-    return this.prisma.stockTransfer.findMany({
+    const rows = await this.prisma.stockTransfer.findMany({
       where: {
         companyId: auth.companyId,
         items: {
@@ -191,6 +195,8 @@ export class StockTransferService {
       },
       orderBy: { createdAt: 'desc' },
     });
+    const custodies = await this.prisma.transferCustody.findMany({ where: { companyId: auth.companyId, transferId: { in: rows.map(row => row.id) } }, include: { dispatch: true } });
+    return rows.map(row => ({ ...row, custody: custodies.find(c => c.transferId === row.id) ?? null }));
   }
 
   async get(auth: AuthenticatedUserContext, id: string, db: Db = this.prisma) {
@@ -231,7 +237,8 @@ export class StockTransferService {
     ]) {
       await this.access.assertAccess(auth, projectId, db);
     }
-    return row;
+    const custody = await db.transferCustody.findUnique({ where: { transferId: id }, include: { dispatch: true } });
+    return { ...row, custody: custody ? { ...custody, receiptComplete: Boolean(custody.dispatch) && row.items.every(item => row.stockTransactions.filter(m => m.stockTransferItemId === item.id && m.movementType === 'STOCK_TRANSFER_IN').reduce((sum,m) => sum.plus(m.quantity), new Prisma.Decimal(0)).equals(item.quantity)) } : null };
   }
 
   async create(
@@ -316,8 +323,9 @@ export class StockTransferService {
         },
         tx,
       );
+      await bindTransferCustody(context, tx, this.audit, transfer.id, input.lines.map((line) => line.sourceProjectId));
       return this.get(context.auth, transfer.id, tx);
-    });
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
   }
 
   async updateDraft(
@@ -486,6 +494,9 @@ export class StockTransferService {
     postKey: string,
     comment?: string,
   ) {
+    if (await this.prisma.transferCustody.findUnique({ where: { transferId: id } })) {
+      return this.approveCustody(context, id, postKey, comment);
+    }
     const transfer = await this.get(context.auth, id);
     if (transfer.postedAt && transfer.postKey === postKey) return transfer;
     if (
@@ -625,6 +636,29 @@ export class StockTransferService {
     return this.get(context.auth, id);
   }
 
+  private async approveCustody(context: AuditContext, id: string, postKey: string, comment?: string) {
+    const requestKey = inventoryUuid(postKey, 'postKey');
+    const bodyDigest = createHash('sha256').update(JSON.stringify([id, comment ?? null])).digest('hex');
+    await this.prisma.$transaction(async tx => {
+      const auth = await transferActor(context.auth, tx, ['inventory.transfer.view', 'inventory.transfer.approve']);
+      context = { ...context, auth };
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${['transfer-key', auth.companyId, auth.userId, requestKey].join(':')},0))`;
+      await tx.$queryRaw`SELECT transfer_id FROM transfer_custodies WHERE transfer_id=${id}::uuid AND company_id=${auth.companyId}::uuid FOR UPDATE`;
+      const current = await this.get(auth, id, tx);
+      const prior = await tx.transferOperation.findUnique({ where: { companyId_actorUserId_requestKey: { companyId: auth.companyId, actorUserId: auth.userId, requestKey } } });
+      if (prior) {
+        if (prior.action !== 'APPROVE' || prior.transferId !== id || prior.bodyDigest !== bodyDigest) throw new ConflictException({ code: 'TRANSFER_REPLAY_CONFLICT' });
+        return;
+      }
+      if (!current.custody || !current.approvalInstanceId || current.postedAt || current.reversedAt) throw new ConflictException({ code: 'STOCK_TRANSFER_NOT_SUBMITTED' });
+      await this.approvals.approve(current.approvalInstanceId, auth, current.createdByUserId, comment, async inner => {
+        await recordTransferCustodyEvent(context, inner, this.audit, id, 'APPROVE', comment?.trim() || 'Independent configured approval; stock remains at origin until dispatch');
+      }, tx);
+      await tx.transferOperation.create({ data: { companyId: auth.companyId, actorUserId: auth.userId, requestKey, transferId: id, action: 'APPROVE', bodyDigest, outcome: { id } } });
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, timeout: 30000 });
+    return this.get(context.auth, id);
+  }
+
   async reject(context: AuditContext, id: string, comment?: string) {
     return this.prisma.$transaction(
       async (tx) => {
@@ -671,7 +705,9 @@ export class StockTransferService {
           'SELECT pg_advisory_xact_lock(hashtext($1))',
           'stock-transfer-reverse:' + id,
         );
+        await tx.$queryRaw`SELECT transfer_id FROM transfer_custodies WHERE transfer_id=${id}::uuid AND company_id=${context.auth.companyId}::uuid FOR UPDATE`;
         const transfer = await this.get(context.auth, id, tx);
+        if (transfer.custody) context = { ...context, auth: await transferActor(context.auth, tx, ['inventory.transfer.view', 'inventory.transfer.reverse']) };
         if (transfer.reversedAt && transfer.reversalKey === reversalKey) {
           return transfer;
         }
@@ -695,7 +731,15 @@ export class StockTransferService {
             movement.movementType === 'STOCK_TRANSFER_OUT' ||
             movement.movementType === 'STOCK_TRANSFER_IN',
         );
-        if (originals.length !== transfer.items.length * 2) {
+        const custody = await tx.transferCustody.findUnique({ where: { transferId: id } });
+        if (custody) {
+          await transferActor(context.auth, tx, ['inventory.transfer.view', 'inventory.transfer.reverse']);
+          for (const item of transfer.items) {
+            const out = originals.filter((m) => m.stockTransferItemId === item.id && m.movementType === 'STOCK_TRANSFER_OUT');
+            const received = originals.filter((m) => m.stockTransferItemId === item.id && m.movementType === 'STOCK_TRANSFER_IN').reduce((sum, m) => sum.plus(m.quantity), new Prisma.Decimal(0));
+            if (out.length !== 1 || !received.equals(item.quantity)) throw new ConflictException({ code: 'TRANSFER_OUTSTANDING_CUSTODY_NOT_REVERSIBLE' });
+          }
+        } else if (originals.length !== transfer.items.length * 2) {
           throw new ConflictException({ code: 'STOCK_TRANSFER_LEDGER_INCOMPLETE' });
         }
 
@@ -763,6 +807,7 @@ export class StockTransferService {
               uomId: movement.uomId,
               stockTransferId: movement.stockTransferId,
               stockTransferItemId: movement.stockTransferItemId,
+              transferReceiptLineId: movement.transferReceiptLineId,
               movementType:
                 movement.movementType === 'STOCK_TRANSFER_OUT'
                   ? 'STOCK_TRANSFER_OUT_REVERSAL'
@@ -774,6 +819,7 @@ export class StockTransferService {
             },
           });
         }
+        if (custody) await recordTransferCustodyEvent(context, tx, this.audit, id, 'REVERSE', reason);
         await this.audit.record(
           {
             ...context,

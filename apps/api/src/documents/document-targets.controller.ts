@@ -60,6 +60,7 @@ function targetType(value: string): DocumentTargetType {
     'MATERIAL_REQUEST',
     'MATERIAL_RETURN',
     'STOCK_TRANSFER',
+    'TRANSFER_RECEIPT',
     'SUPPLIER_INVOICE',
     'CLIENT_INVOICE',
     'PAYMENT',
