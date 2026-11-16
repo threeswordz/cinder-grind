@@ -40,6 +40,10 @@ test('DEC-046 transfer actual HTTP: dispatch, partial destination receipt, assig
       assert.equal(await quantity(f.warehouse.id), '10.0000'); assert.equal(await quantity(f.destinationWarehouse.id), '0.0000');
     });
     const originalLegacy = await db.stockTransfer.findUniqueOrThrow({ where: { id: legacy.id }, include: { stockTransactions: { orderBy: { id: 'asc' } } } });
+    // Use a genuinely empty new destination for pre-first-receipt scope drift.
+    // The legacy destination retains immutable movement history, even after reversal.
+    f.destinationWarehouse = await db.warehouse.create({ data: { companyId: f.company.id, projectId: f.unassigned.id, warehouseCode: 'CONTROLLED-DEST', warehouseName: 'Controlled destination', isSiteWarehouse: true } });
+    f.transferInput.destinationWarehouseId = f.destinationWarehouse.id;
     await call(f.pm, root + '/projects/' + f.project.id + '/enable', 201, { requestKey: randomUUID(), reason: 'Explicit isolated synthetic transfer policy' });
     await db.projectMember.deleteMany({ where: { employeeId: f.store.employee.id, projectId: f.unassigned.id } });
     const destinationChoices = await call(f.store, '/inventory/projects/' + f.project.id + '/transfer-destination-projects');
@@ -54,12 +58,16 @@ test('DEC-046 transfer actual HTTP: dispatch, partial destination receipt, assig
       await call(f.store, ordinary + '/' + id + '/submit', 201, { workflowCode: f.workflow.workflowCode });
       await call(f.pm, ordinary + '/' + id + '/approve', 201, { postKey: randomUUID() });
       assert.equal(await quantity(f.warehouse.id), '10.0000'); assert.equal(await quantity(f.destinationWarehouse.id), '0.0000');
-      const projection = await detail(); assert.equal(projection.dispatchedAt, null);
+      const projection = await detail(); assert.equal(projection.dispatchedAt, null); assert.equal(projection.destinationWarehouse.projectId, undefined);
       assert.ok(!JSON.stringify(projection).includes(f.project.id)); assert.ok(!JSON.stringify(projection).includes('commercial'));
       await call(f.jai, ordinary + '/' + id, 403);
     });
     const dispatch = { requestKey: randomUUID(), expectedVersion: (await detail()).version, reason: 'Actual origin dispatch of five units' };
     await t.test('dispatch consumes only origin, same-key retry is stable and changed replay is denied', async () => {
+      await db.warehouse.update({ where: { id: f.destinationWarehouse.id }, data: { projectId: f.project.id } });
+      await call(f.store, root + '/transfers/' + id + '/dispatch', 409, dispatch);
+      assert.equal(await db.transferDispatch.count({where:{transferId:id}}),0);
+      await db.warehouse.update({ where: { id: f.destinationWarehouse.id }, data: { projectId: f.unassigned.id } });
       const first = await call(f.store, root + '/transfers/' + id + '/dispatch', 201, dispatch);
       assert.deepEqual(await call(f.store, root + '/transfers/' + id + '/dispatch', 201, dispatch), first);
       await call(f.store, root + '/transfers/' + id + '/dispatch', 409, { ...dispatch, reason: 'Changed request body' });
@@ -68,6 +76,9 @@ test('DEC-046 transfer actual HTTP: dispatch, partial destination receipt, assig
     let receiptId = '', evidenceId = '';
     await t.test('receiver evidence uses canonical upload and both aliases respect destination scope', async () => {
       await call(f.viewer, destination + '/receipts', 403, { requestKey: randomUUID(), expectedVersion: (await detail()).version, reason: 'Not explicitly assigned' });
+      await db.warehouse.update({ where: { id: f.destinationWarehouse.id }, data: { projectId: f.project.id } });
+      await call(f.jai, destination + '/receipts', 409, {requestKey:randomUUID(),expectedVersion:(await detail()).version,reason:'Warehouse reassignment must not reroute physical stock'});
+      await db.warehouse.update({ where: { id: f.destinationWarehouse.id }, data: { projectId: f.unassigned.id } });
       const prepared = await call(f.jai, destination + '/receipts', 201, { requestKey: randomUUID(), expectedVersion: (await detail()).version, reason: 'Actual delivery received' });
       receiptId = prepared.receiptId;
       const data = new FormData(); data.set('documentTypeId', f.documentType.id); data.set('file', new Blob([Buffer.from('%PDF-1.4 Synthetic signed transfer receipt')], { type: 'application/pdf' }), 'receipt.pdf');

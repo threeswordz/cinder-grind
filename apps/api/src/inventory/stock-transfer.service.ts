@@ -87,6 +87,7 @@ export class StockTransferService {
   async destinationProjects(supplied: AuthenticatedUserContext, sourceProjectId: string) {
     const auth = await transferActor(supplied, this.prisma, ['inventory.transfer.view', 'inventory.transfer.create']);
     await this.access.assertAccess(auth, sourceProjectId);
+    if (!await this.prisma.project.count({where:{id:sourceProjectId,companyId:auth.companyId,isActive:true}})) throw new NotFoundException({code:'STOCK_TRANSFER_SOURCE_NOT_ACTIVE'});
     const policy = await this.prisma.transferProjectPolicy.findFirst({ where: { companyId: auth.companyId, projectId: sourceProjectId } });
     if (!policy) return this.projects(auth);
     return this.prisma.project.findMany({ where: { companyId: auth.companyId, isActive: true }, select: { id: true, projectCode: true, projectName: true }, orderBy: { projectCode: 'asc' } });

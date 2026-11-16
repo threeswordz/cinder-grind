@@ -123,8 +123,10 @@ export class TransferCustodyService {
       if (custody.dispatch || row.postedAt || row.reversedAt || row.approvalInstance?.approvalState !== 'APPROVED') conflict('TRANSFER_DISPATCH_NOT_READY');
       for (const warehouseId of [row.sourceWarehouseId, row.destinationWarehouseId].sort()) {
         await tx.$executeRawUnsafe('SELECT pg_advisory_xact_lock(hashtext($1))', 'inventory-warehouse:' + warehouseId);
-        if (!await tx.warehouse.findFirst({ where: { id: warehouseId, companyId: auth.companyId, isActive: true }, select: { id: true } })) conflict('TRANSFER_DIMENSIONS_CHANGED');
+        const warehouse = await tx.warehouse.findFirst({ where: { id: warehouseId, companyId: auth.companyId, isActive: true }, select: { id: true, projectId: true } });
+        if (!warehouse || row.items.some(item => warehouse.projectId && warehouse.projectId !== (warehouseId === row.sourceWarehouseId ? item.sourceProjectId : item.destinationProjectId))) conflict('TRANSFER_WAREHOUSE_SCOPE_CHANGED');
       }
+      for (const projectId of new Set(row.items.map(item => item.destinationProjectId))) if (!await tx.project.count({ where: { id: projectId, companyId: auth.companyId, isActive: true } })) conflict('TRANSFER_DIMENSIONS_CHANGED');
       const dimensions = new Map<string, { dimension: StockDimension; quantity: Prisma.Decimal }>();
       for (const item of row.items) {
         if (!await tx.material.count({ where: { id: item.materialId, companyId: auth.companyId, isActive: true } }) || !await tx.unitOfMeasure.count({ where: { id: item.uomId, companyId: auth.companyId, isActive: true } })) conflict('TRANSFER_DIMENSIONS_CHANGED');
@@ -150,7 +152,7 @@ export class TransferCustodyService {
     await this.project(auth, projectId, db);
     const row = await db.stockTransfer.findFirst({ where: { id, companyId: auth.companyId }, select: {
       id: true, transferNumber: true, reversedAt: true,
-      destinationWarehouse: { select: { id: true, warehouseCode: true, warehouseName: true, isActive: true } },
+      destinationWarehouse: { select: { id: true, warehouseCode: true, warehouseName: true, isActive: true, projectId: true } },
       items: { where: { destinationProjectId: projectId }, orderBy: { lineNo: 'asc' }, select: { id: true, quantity: true, materialId: true, uomId: true, material: { select: { materialCode: true, materialName: true, isActive: true } }, uom: { select: { uomCode: true, isActive: true } } } },
     } });
     if (!row || !row.items.length) throw new NotFoundException({ code: 'TRANSFER_DESTINATION_NOT_FOUND' });
@@ -186,7 +188,7 @@ export class TransferCustodyService {
     try { await this.receiver(auth, id, projectId, this.prisma); canReceive = true; } catch (error) { if (!(error instanceof ForbiddenException)) throw error; }
     return {
       id, projectId, transferNumber: row.transferNumber, version: custody.version, reversedAt: row.reversedAt,
-      destinationWarehouse: row.destinationWarehouse, dispatchedAt: dispatch?.recordedAt ?? null, assignedEmployeeId: assignment?.employeeId ?? null,
+      destinationWarehouse: { id: row.destinationWarehouse.id, warehouseCode: row.destinationWarehouse.warehouseCode, warehouseName: row.destinationWarehouse.warehouseName, isActive: row.destinationWarehouse.isActive }, dispatchedAt: dispatch?.recordedAt ?? null, assignedEmployeeId: assignment?.employeeId ?? null,
       canReceive: canReceive && Boolean(dispatch) && !row.reversedAt,
       lines: row.items.map((i) => ({ id: i.id, material: i.material, uom: i.uom, quantity: i.quantity.toFixed(4), accepted: (totals.get(i.id) ?? new Prisma.Decimal(0)).toFixed(4), outstanding: dispatch ? i.quantity.minus(totals.get(i.id) ?? 0).toFixed(4) : '0.0000' })),
       receipts: receipts.map((r) => ({ id: r.id, createdByUserId: r.createdByUserId, reason: r.reason, createdAt: r.createdAt, postedAt: r.postedAt, documentId: auth.permissions.includes('documents.document.view') ? r.documentId : null, lines: r.lines.map((l) => ({ transferItemId: l.transferItemId, quantity: l.quantity.toFixed(4), note: l.note })) })),
@@ -249,6 +251,7 @@ export class TransferCustodyService {
       if (prior) return prior.outcome;
       if (custody.version !== input.expectedVersion) conflict('TRANSFER_VERSION_CONFLICT');
       if (!custody.dispatch || row.reversedAt) conflict('TRANSFER_NOT_DISPATCHED');
+      if (!row.destinationWarehouse.isActive || row.destinationWarehouse.projectId && row.destinationWarehouse.projectId !== projectId) conflict('TRANSFER_WAREHOUSE_SCOPE_CHANGED');
       const receipt = await tx.transferReceipt.create({ data: { transferId: id, projectId, createdByUserId: auth.userId, reason: input.reason } });
       const version = await this.event(context, tx, id, 'PREPARE_RECEIPT', input.reason);
       return this.operation(context, tx, input.requestKey, 'PREPARE_RECEIPT', hash, id, projectId, { id, receiptId: receipt.id, version });
@@ -267,6 +270,7 @@ export class TransferCustodyService {
       if (prior) return prior.outcome;
       if (custody.version !== input.expectedVersion) conflict('TRANSFER_VERSION_CONFLICT');
       if (!custody.dispatch || row.reversedAt || !row.destinationWarehouse.isActive) conflict('TRANSFER_NOT_RECEIVABLE');
+      if (row.destinationWarehouse.projectId && row.destinationWarehouse.projectId !== projectId) conflict('TRANSFER_WAREHOUSE_SCOPE_CHANGED');
       const receipt = await tx.transferReceipt.findFirst({ where: { id: receiptId, transferId: id, projectId, createdByUserId: auth.userId, postedAt: null } });
       if (!receipt) conflict('TRANSFER_RECEIPT_NOT_EDITABLE');
       const document = await tx.document.findFirst({ where: { id: input.documentId, companyId: auth.companyId, isActive: true, links: { some: { entityType: 'TRANSFER_RECEIPT', entityId: receiptId } } }, select: { id: true, checksum: true } });

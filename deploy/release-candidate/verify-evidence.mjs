@@ -78,7 +78,7 @@ if (['migration-aware-sql-only', 'migration-aware-thb-schema', 'migration-aware-
       for (const key of ['hrDocumentCustodyUpgrade','hrDocumentSchemaOnly']) if (rehearsal[key] !== 'PASS') fail('HR attachment custody upgrade ' + key + ' did not PASS');
     }
     if(transferSchema){
-      for(const name of ['20261117001000_transfer_dispatch_receipt','20261117002000_transfer_custody_guards','20261117003000_transfer_receipt_commit_binding'])if(!rehearsal.migrationNames?.includes(name))fail('Exact transfer migration missing');
+      for(const name of ['20261117001000_transfer_dispatch_receipt','20261117002000_transfer_custody_guards','20261117003000_transfer_receipt_commit_binding','20261117004000_transfer_live_warehouse_scope'])if(!rehearsal.migrationNames?.includes(name))fail('Exact transfer migration missing');
       for(const key of ['transferSchemaUpgrade','transferHistoricalPreservation','transferHttpUpgrade','transferPopulatedRecovery','transferEvidenceRecovery'])if(rehearsal[key]!=='PASS')fail('Transfer proof missing: '+key);
     }
     if(receivingSchema){
