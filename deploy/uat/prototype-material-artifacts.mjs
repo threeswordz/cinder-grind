@@ -48,10 +48,11 @@ export function compareArtifactInventories(actual,expected){
   return {files:actual.length,sha256:digest(actual)};
 }
 
-export async function verifyMaterialArtifacts(checkout){
+export async function verifyMaterialArtifacts(checkout,expectedSource=SOURCE){
+  demand(/^[a-f0-9]{40}$/.test(expectedSource),'MATERIAL_ARTIFACT_SOURCE_INVALID');
   demand(resolve(checkout)===checkout&&await realpath(checkout)===checkout,'MATERIAL_ARTIFACT_PATH_INVALID');
   demand(process.versions.node==='24.21.0','NODE_24_21_0_REQUIRED');
-  demand(await command('git',['rev-parse','HEAD'],checkout)===SOURCE&&
+  demand(await command('git',['rev-parse','HEAD'],checkout)===expectedSource&&
     await command('git',['status','--porcelain'],checkout)==='','SOURCE_CHANGED_STOP');
   for(const dir of ['', 'apps/api','apps/web']){
     const names=await readdir(join(checkout,dir));
@@ -76,7 +77,7 @@ export async function verifyMaterialArtifacts(checkout){
     // No inherited VITE_/NODE_OPTIONS/DB/HR credentials enter either compiler.
     await command(process.execPath,[vite,'build','--configLoader','native','--outDir',expectedWeb],webRoot,
       {...safeEnvironment(),NODE_ENV:'production',VITE_API_BASE_URL:API});
-    demand(await command('git',['rev-parse','HEAD'],checkout)===SOURCE&&
+    demand(await command('git',['rev-parse','HEAD'],checkout)===expectedSource&&
       await command('git',['status','--porcelain'],checkout)==='','SOURCE_CHANGED_STOP');
     const apiAfter=await artifactInventory(join(apiRoot,'dist')),
       webAfter=await artifactInventory(join(webRoot,'dist'));
@@ -84,7 +85,7 @@ export async function verifyMaterialArtifacts(checkout){
       'MATERIAL_RUNTIME_ARTIFACT_CHANGED_DURING_BUILD');
     const api=compareArtifactInventories(apiAfter,await artifactInventory(expectedApi)),
       web=compareArtifactInventories(webAfter,await artifactInventory(expectedWeb));
-    return {status:'MATERIAL_API_WEB_ARTIFACT_BYTES_VERIFIED',sourceSha:SOURCE,
+    return {status:'MATERIAL_API_WEB_ARTIFACT_BYTES_VERIFIED',sourceSha:expectedSource,
       api,web,comparison:'ALL_FILE_NAMES_AND_BYTES_AGAINST_FRESH_PINNED_SOURCE_OUTPUT',
       existingBuildsModified:false,runtimeRestarted:false,databaseAccessed:false,
       loadedProcessMemoryAttested:false,dependencyInstallationReattested:false,

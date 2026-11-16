@@ -1,3 +1,5 @@
+import {configureReceiving,prepareReceivingSource,receivingBrowserBinding,verifyReceivingJourneyPreservation} from './prototype-receiving-state.mjs';
+import {executeReceivingBrowser} from './prototype-receiving-browser.mjs';
 import {executeFm03Browser} from './prototype-fm03-browser.mjs';
 import {privateInventory,verifyDocumentInventory} from './prototype-fm03-upgrade.mjs';
 import {fm03Snapshot,configureFm03,digest,fm03BrowserBinding,verifyFm03JourneyPreservation} from './prototype-fm03-state.mjs';
@@ -163,6 +165,23 @@ async function native(){
     await browser.stop();browser=undefined;
     verifyFm03JourneyPreservation(fmBefore,await fm03Snapshot(db),fmConfig,fmBinding,fmResult);
     console.log('FM03_POPULATED_ENGINE_NATIVE_PASS: existing synthetic actors, minimal exact grants, real lifecycle/unresolved/refollowup/closure/severe alert, Company/Project/actor denial, EN/TH/zh-TW and retained material/signed/private/history/session preservation. Not Mac upgrade/recovery/freeze proof.');
+    // Next missing deployed slice reuses the populated material/FM03 fixture.
+    // No additional actor bootstrap, material cycle or issue lifecycle replay.
+    phase='RECEIVING_POPULATED_DELTA';
+    const receivingBefore=await fm03Snapshot(db);
+    await assert.rejects(configureReceiving(db,fmBinding,'0'.repeat(64)),e=>e.safeCode==='RC_CONFIGURATION_STATE_DRIFT');
+    const sharedRole=await db.userRole.create({data:{companyId:fixture.companyId,userId:prepared.actors.NANCY.userId,roleId:prepared.actors.JAI.roleId}});
+    try{await assert.rejects(configureReceiving(db,fmBinding,digest(await fm03Snapshot(db))),e=>e.safeCode==='RC_ROLE_MEMBERSHIP_MUST_BE_EXCLUSIVE');}
+    finally{await db.userRole.delete({where:{id:sharedRole.id}});}
+    assert.equal(digest(await fm03Snapshot(db)),digest(receivingBefore));
+    const receivingConfig=await configureReceiving(db,fmBinding,digest(receivingBefore));
+    const origins={api:'http://127.0.0.1:31319/api/v1',web:env.WEB_ORIGIN};
+    const receivingSource=await prepareReceivingSource(db,fmBinding,receivingConfig,origins);
+    browser=await startBrowser(chrome,temporary);
+    const receivingResult=await executeReceivingBrowser(browser.protocol,await receivingBrowserBinding(db,fmBinding,receivingConfig,receivingSource,origins),db);
+    await browser.stop();browser=undefined;
+    verifyReceivingJourneyPreservation(receivingBefore,await fm03Snapshot(db),receivingConfig,fmBinding,receivingSource,receivingResult);
+    console.log('RECEIVING_POPULATED_ENGINE_NATIVE_PASS: prior material/signed/FM03 preserved; minimal explicit configuration, actual PR/PO approval chain, same shared real-browser receiving/evidence/Jai-check/canonical-GR journey and revoked API/UI sessions. Not Mac execution, whole recovery or freeze proof.');
   }catch(e){
     console.error('MATERIAL_RUN_NATIVE_FAILED: '+phase+' '+(/^[A-Z0-9_]+$/.test(e.safeCode??'')?e.safeCode:'NATIVE_ASSERTION_OR_SETUP_FAILED')+
       (e.cleanupFailed===true?' CLEANUP_ALSO_FAILED':''));
