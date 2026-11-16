@@ -15,7 +15,7 @@ import { transferCustodyFixture } from './transfer-custody-test-fixture';
 test('DEC-046 transfer actual HTTP: dispatch, partial destination receipt, assignment, evidence and unchanged legacy path', async t => {
   const target = new URL(process.env.DATABASE_URL ?? '');
   assert.ok(['localhost','127.0.0.1'].includes(target.hostname));
-  assert.match(target.pathname, /^\/(?:construction_erp|construction_erp_v10e_(?:upgrade|hrrestore)_[a-f0-9]{12})$/);
+  assert.ok(target.pathname === '/erp_validation' && target.username === 'erp_validation' || /^\/(?:construction_erp|construction_erp_v10e_(?:upgrade|hrrestore)_[a-f0-9]{12})$/.test(target.pathname));
   const oldStorage = process.env.STORAGE_ROOT, storage = await mkdtemp(join(tmpdir(), 'transfer-http-'));
   process.env.STORAGE_ROOT = storage;
   const db = new PrismaService(); await db.$connect();
@@ -41,6 +41,11 @@ test('DEC-046 transfer actual HTTP: dispatch, partial destination receipt, assig
     });
     const originalLegacy = await db.stockTransfer.findUniqueOrThrow({ where: { id: legacy.id }, include: { stockTransactions: { orderBy: { id: 'asc' } } } });
     await call(f.pm, root + '/projects/' + f.project.id + '/enable', 201, { requestKey: randomUUID(), reason: 'Explicit isolated synthetic transfer policy' });
+    await db.projectMember.deleteMany({ where: { employeeId: f.store.employee.id, projectId: f.unassigned.id } });
+    const destinationChoices = await call(f.store, '/inventory/projects/' + f.project.id + '/transfer-destination-projects');
+    assert.ok(destinationChoices.some((p: any) => p.id === f.unassigned.id));
+    assert.ok(destinationChoices.every((p: any) => Object.keys(p).sort().join(',') === 'id,projectCode,projectName'));
+    await call(f.store, '/inventory/projects/' + f.unassigned.id + '/transfer-stock', 403);
     const transfer = await call(f.store, ordinary, 201, f.transferInput), id = transfer.id;
     assert.ok(transfer.custody); assert.equal(transfer.custody.version, 1);
     const destination = root + '/projects/' + f.unassigned.id + '/transfers/' + id;
@@ -78,7 +83,8 @@ test('DEC-046 transfer actual HTTP: dispatch, partial destination receipt, assig
       assert.deepEqual(await call(f.jai, destination + '/receipts/' + receiptId + '/receive', 201, receivedBody), first);
       await call(f.jai, destination + '/receipts/' + receiptId + '/receive', 409, { ...receivedBody, lines: [{ ...receivedBody.lines[0], quantity: '5.0000' }] });
       assert.equal(await quantity(f.destinationWarehouse.id), '4.0000'); assert.equal((await detail()).lines[0].outstanding, '1.0000');
-      await call(f.store, ordinary + '/' + id + '/reverse', 409, { reversalKey: randomUUID(), reason: 'Must not return unreceived stock' });
+      await f.grant(f.pm, ['inventory.transfer.reverse']);
+      await call(f.pm, ordinary + '/' + id + '/reverse', 409, { reversalKey: randomUUID(), reason: 'Must not return unreceived stock' });
       await assert.rejects(db.transferReceiptLine.updateMany({ where: { receiptId }, data: { quantity: '5' } }), /TRANSFER_HISTORY_IMMUTABLE/);
       await assert.rejects(db.transferReceiptLine.create({ data: { receiptId, transferItemId: transfer.items[0].id, quantity: '0.5', note: 'Must not extend a committed physical acknowledgment' } }), /TRANSFER_OVERRECEIPT_OR_DIMENSION_INVALID/);
     });
@@ -97,6 +103,7 @@ test('DEC-046 transfer actual HTTP: dispatch, partial destination receipt, assig
       await call(f.viewer, destination + '/receipts/' + prepared.receiptId + '/receive', 409, { ...remainder, requestKey: randomUUID(), lines: [{ ...remainder.lines[0], quantity: '2.0000' }] });
       const results = await Promise.all([call(f.viewer, destination + '/receipts/' + prepared.receiptId + '/receive', 201, remainder), call(f.viewer, destination + '/receipts/' + prepared.receiptId + '/receive', 201, remainder)]);
       assert.deepEqual(results[0], results[1]); assert.equal((await detail()).lines[0].outstanding, '0.0000'); assert.equal(await quantity(f.destinationWarehouse.id), '5.0000');
+      await db.projectMember.create({ data: { projectId: f.unassigned.id, employeeId: f.store.employee.id, projectRole: 'Explicit synthetic reversal scope' } });
       await call(f.store, ordinary + '/' + id + '/reverse', 201, { reversalKey: randomUUID(), reason: 'Complete physical transfer correction with exact canonical reversal' });
       assert.equal(await quantity(f.warehouse.id), '10.0000'); assert.equal(await quantity(f.destinationWarehouse.id), '0.0000');
       await f.sessions.revoke(f.viewer.auth.sessionId);

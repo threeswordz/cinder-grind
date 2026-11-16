@@ -711,6 +711,9 @@ export const inventoryApi = {
   transferProjects: () =>
     apiRequest<Data<InventoryProject[]>>('/inventory/transfer-projects'),
 
+  transferDestinationProjects: (sourceProjectId: string) => apiRequest<Data<InventoryProject[]>>('/inventory/projects/' + sourceProjectId + '/transfer-destination-projects'),
+  transferDestinationWarehouses: (sourceProjectId: string, destinationProjectId: string) => apiRequest<Data<Array<{id:string;warehouseCode:string;warehouseName:string;projectId:string|null;isSiteWarehouse:boolean}>>>('/inventory/projects/' + sourceProjectId + '/transfer-destination-warehouses?destinationProjectId=' + destinationProjectId),
+
   transferWarehouses: (projectId: string) =>
     apiRequest<Data<Array<{ id: string; warehouseCode: string; warehouseName: string; projectId: string | null; isSiteWarehouse: boolean }>>>(
       '/inventory/projects/' + projectId + '/transfer-warehouses',

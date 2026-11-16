@@ -15,6 +15,7 @@ export async function transferProofFixture(db: PrismaService, app: INestApplicat
   const transfer = await transfers.create({ auth: f.store.auth }, { ...f.transferInput, transferDate: new Date(f.transferInput.transferDate), lines: f.transferInput.lines.map(i => ({ ...i, quantity: new Prisma.Decimal(i.quantity) })) });
   await transfers.submit({ auth: f.store.auth }, transfer.id, f.workflow.workflowCode);
   await transfers.approve({ auth: f.pm.auth }, transfer.id, randomUUID(), 'Independent Khaimook approval');
+  await db.projectMember.deleteMany({ where: { projectId: f.unassigned.id, employeeId: f.store.employee.id } });
   if (!populate) return { f, id: transfer.id, document: null };
   let current = await custody.get(f.jai.auth, transfer.id, f.unassigned.id);
   await custody.dispatch({ auth: f.store.auth }, transfer.id, { requestKey: randomUUID(), expectedVersion: current.version, reason: 'Actual synthetic dispatch' });
