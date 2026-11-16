@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {upgrade,validUpgradeDelta,verifyDocumentInventory} from '../uat/prototype-receiving-upgrade.mjs';
 import {verifyReceivingMigration,verifyReceivingDocumentFiles,verifyReceivingHistoricalRows,receivingNewRows} from '../uat/prototype-receiving-state.mjs';
 import {receivingCatalog} from './receiving-catalog-contract.mjs';
+import {standaloneReceivingBrowserFixture} from '../uat/receiving-browser-native.mjs';
 import {receivingTables} from './receiving-schema-contract.mjs';
 test('receiving coordinator refuses non-Mac execution and application/schema/renamed delta',async()=>{
  if(process.platform!=='darwin')await assert.rejects(upgrade(),e=>e.safeCode==='RC_UPGRADE_NONROOT_MAC_REQUIRED');
@@ -58,4 +59,23 @@ test('receiving preservation uses exact historical primary keys instead of undef
  assert.throws(()=>verifyReceivingHistoricalRows(before,tampered),/Receiving changed historical material_plan_issue_bindings/);
  const removed=structuredClone(after);removed.material_plan_issue_bindings=removed.material_plan_issue_bindings.filter(row=>row.issue_id!=='one');
  assert.throws(()=>verifyReceivingHistoricalRows(before,removed),/Receiving changed historical material_plan_issue_bindings/);
+});
+
+test('standalone receiving browser projection excludes live services and uncloneable functions',()=>{
+ const person=key=>({user:{id:key+'-user',email:key+'@example.invalid'},password:key+'-synthetic-secret',auth:{callbacks:()=>{}}});
+ const f={company:{id:'company'},project:{id:'project'},warehouse:{id:'warehouse'},
+  material:{id:'material',materialName:'Synthetic steel'},uom:{id:'uom'},supplier:{id:'supplier'},
+  documentType:{id:'document-type'},receiptWorkflow:{workflowCode:'GR-APPROVE'},
+  po:{id:'approved-po',lines:[{id:'line-1',other:()=>{}}]},
+  store:person('store'),jai:person('jai'),pm:person('pm'),outsider:person('outsider'),
+  input:()=>{},access:{serviceMethod:()=>{}},orders:{serviceMethod:()=>{}},sessions:{serviceMethod:()=>{}}};
+ assert.throws(()=>structuredClone(f),e=>e.name==='DataCloneError');
+ const projected=standaloneReceivingBrowserFixture(f);
+ assert.doesNotThrow(()=>structuredClone(projected));
+ assert.deepEqual(Object.keys(projected).sort(),['actors','company','documentType','material','po','project','receiptWorkflow','supplier','uom','warehouse']);
+ assert.deepEqual(Object.keys(projected.actors).sort(),['jai','outsider','pm','store']);
+ assert.deepEqual(projected.po,{id:'approved-po',lines:[{id:'line-1'}]});
+ assert.equal(projected.actors.store.auth,undefined);
+ assert.equal(projected.material.materialName,'Synthetic steel');
+ assert.equal(projected.input,undefined);
 });

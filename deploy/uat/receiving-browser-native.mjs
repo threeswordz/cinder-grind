@@ -17,6 +17,20 @@ import {safeEnvironment} from './prototype-actors.mjs';
 const execute=promisify(execFile),root=fileURLToPath(new URL('../../',import.meta.url));
 const apiRoot=join(root,'apps/api'),require=createRequire(join(apiRoot,'package.json'));
 const API='http://127.0.0.1:31329/api/v1',WEB='http://127.0.0.1:44329';
+// The service fixture contains live Nest/Prisma instances and an input()
+// callback. Passing it to executeReceivingBrowser would fail structuredClone
+// before the browser journey begins. Transfer only the values the browser needs.
+export function standaloneReceivingBrowserFixture(f){
+  const actors=Object.fromEntries(['store','jai','pm','outsider'].map(key=>[
+    key,{userId:f[key].user.id,email:f[key].user.email,password:f[key].password}]));
+  return {
+    company:{id:f.company.id},project:{id:f.project.id},warehouse:{id:f.warehouse.id},
+    material:{id:f.material.id,materialName:f.material.materialName},uom:{id:f.uom.id},
+    supplier:{id:f.supplier.id},documentType:{id:f.documentType.id},
+    receiptWorkflow:{workflowCode:f.receiptWorkflow.workflowCode},
+    po:{id:f.po.id,lines:f.po.lines.map(line=>({id:line.id}))},actors,
+  };
+}
 export async function runReceivingBrowser(databaseUrl){
   const own=new URL(databaseUrl);
   assert.equal(process.platform,'linux');assert.equal(process.versions.node,'24.21.0');
@@ -38,7 +52,7 @@ export async function runReceivingBrowser(databaseUrl){
     app.enableCors({origin:corsOriginPolicy(WEB),credentials:true,methods:['GET','POST','PATCH','PUT','DELETE','OPTIONS']});
     app.use(securityHeadersMiddleware(false));app.useGlobalFilters(new ProblemDetailsFilter());await app.listen(31329,'127.0.0.1');
     proof=await require('./dist/inventory/receiving-proof-fixture.js').receivingProofFixture(db,app,false);f=proof.f;
-    f.actors=Object.fromEntries(['store','jai','pm','viewer','outsider'].map(k=>[k,{userId:f[k].user.id,email:f[k].user.email,password:f[k].password}]));
+    const browserFixture=standaloneReceivingBrowserFixture(f);
     await db.userSession.updateMany({where:{userId:{in:[f.store,f.jai,f.pm,f.config,f.outsider,f.viewer,f.buyer,f.buyerChecker].map(a=>a.user.id)},revokedAt:null},data:{revokedAt:new Date()}});
     phase='WEB_BUILD';
     const out=join(temporary,'web');
@@ -66,7 +80,7 @@ export async function runReceivingBrowser(databaseUrl){
     exited=new Promise(ok=>child.once('close',ok));protocol=new PipeProtocol(child.stdio[4],child.stdio[3]);
     child.on('error',()=>protocol.close());child.on('exit',()=>protocol.close());await protocol.send('Browser.getVersion');
     phase='RECEIVING_ACTUAL_BROWSER_JOURNEY';
-    await executeReceivingBrowser(protocol,{api:API,web:WEB,fixture:f},db);
+    await executeReceivingBrowser(protocol,{api:API,web:WEB,fixture:browserFixture},db);
     console.log('RECEIVING_BROWSER_NATIVE_PASS: real built React, cookie/CSRF login, same-delivery physical capture, actual UI upload/binding of three evidence files, EN/TH/zh-TW, PO matching, independent Jai check, canonical GR navigation/submission/PM approval and one good-quantity stock effect. Disposable proof; human UAT deferred.');
   }catch(e){throw Object.assign(new Error(),{safeCode:'RECEIVING_NATIVE_'+phase+'_'+(/^[A-Z0-9_]+$/.test(e.safeCode??'')?e.safeCode:'ASSERTION_OR_SETUP_FAILED')});}
   finally{
