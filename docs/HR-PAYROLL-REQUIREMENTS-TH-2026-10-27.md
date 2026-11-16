@@ -3,6 +3,8 @@
 ปรับปรุงล่าสุด: แก้หน้าที่สโตร์ตามข้อ 64 และยืนยันหลักแบ่งต้นทุนตามข้อ 66 พร้อมคงคำตอบข้อ 77–87 และรูปแบบชื่อไฟล์สลิป
 ขอบเขต: ข้อมูลที่ยืนยันก่อนเริ่มคำถาม ข้อ 1–100 และคำตอบเพิ่มเติมจนถึงปัจจุบัน
 
+**English current-answer amendment — 16 November2026 / DEC-047:** [16 November Owner decisions](ROLE-REQUIREMENTS-2026-10-30/15-owner-decisions-2026-11-16.md) Section6 supersedes only the self-service/offboarding ambiguities in the retained Thai source below. Office staff, Foremen and Storekeepers may perform the five selected own-record request/view functions; no site-worker personal access or payslip self-service was selected. Supervisors/asset custodians confirm returns→Koh; Koh consolidates clearance→Nancy checks/approves; Koh confirms departure/final day→Nancy as administrator closes ERP access at the end of working hours on that final day. Queues8/9/10/12/13 remain pending. Existing HR1-A scope/privacy, other confirmed HR rules and implementation sequencing remain. Canonical current names/titles are in Section1 of the amendment; the dated Thai body retains source history.
+
 เอกสารนี้เรียบเรียงจากคำตอบในบทสนทนา ใช้คำตอบล่าสุดแทนส่วนที่แก้ไข และเก็บประเด็นที่ยังไม่สรุปไว้แยกต่างหาก เป็นข้อกำหนดทางธุรกิจที่รวบรวมไว้ ไม่ใช่หลักฐานว่าพัฒนา ทดสอบ หรือเริ่มใช้ระบบแล้ว
 
 ## 1. ขอบเขตระบบและบริษัท

@@ -1,5 +1,7 @@
 # BOQ Disclosure and Linked Customer BOQ Versions
 
+**Owner-selected disclosure amendment — 16 November2026 / DEC-047:** [16 November Owner decisions](ROLE-REQUIREMENTS-2026-10-30/15-owner-decisions-2026-11-16.md) Section2 changes the successor business matrix to **Full Cost for Jai and Porn** in explicitly authorized Company/Project scope. This supersedes the prior Quantity Only/safe-total-only role direction as a requirement, not as an activated grant. Client prices/margins remain restricted to Ben/Nancy; create/edit/approve permissions remain separate. Accepted V1.3 evidence and historical disclosures below are retained; scope-safe API/UI/document/export/cache/grant reconciliation and applicable review must precede activation.
+
 **2026-10-29 integrated BOQ checkpoint:** Runtime increments #276/#277/#280/#281 are technically COMPLETE on main `826edaadb7efdea0ed85720cf006c244a9402dd2`, [CI40811812549](https://github.com/threeswordz/cinder-grind/actions/runs/40811812549) SUCCESS31/31,255 API/44 web and three fresh browser profiles; final independent Codex clean. [Consolidated evidence/decision preparation](V1.3-BOQ-CLOSURE-PACKET.md) maps every criterion. [Read-only access reconciliation](V1.3-B-ACCESS-RECONCILIATION.md) is prepared; fresh retained configuration and runtime identity remain UNVERIFIED because this workspace has no retained-runtime connection. #275/#266 remain OPEN; no configuration activation, human acceptance, next-stage start or Production authority is inferred.
 
 **Status:** V1.3-A COMPLETE; B runtime implementation technically COMPLETE; integrated closure ACTIVE under #275. Retained activation and human/business acceptance are not attested. Approved rules/examples/acceptance criteria remain unchanged.
@@ -44,10 +46,10 @@ The owner's approval and [recorded selections](https://github.com/threeswordz/ci
 | Ben | Full Cost in authorized Projects | Full commercial detail | Prepares/submits; another authorized person approves. |
 | Nancy | Full working and approved Internal Cost BOQs in authorized Projects | Full commercial detail | Approves Customer BOQ; no inferred cross-Company, Internal edit/approval or self-approval right. |
 | Khaimook | Full Cost in assigned approval scope | No customer price detail | Approves Internal Cost BOQ; additional warehouse read remains separate. |
-| Jai / Purchasing | Quantity Only in explicitly authorized purchasing Projects | No customer price detail | Procurement prices remain governed by Procurement permissions; no new Company membership. |
+| Jai / Purchasing | Full Cost successor requirement in explicitly authorized Companies/Projects, DEC-047 | No customer price detail | Replaces the former Quantity Only direction; no live grant, new Company membership or action authority by publication. |
 | Store Site | Quantity Only in assigned/relevant Projects | No customer price detail | No rates, cost totals or rate-bearing documents through quantity views. |
 | Foreman | Quantity Only in assigned/relevant Projects | No customer price detail | Project membership alone adds no commercial authority. |
-| Porn | No blanket internal BOQ line-cost grant; separately authorized Finance documents/totals | No customer line quantities/prices, source-cost breakdown or margins | New BOQ-related summary: authorized Project-level contract/billed/paid totals only; no BOQ WBS/line filters. Existing Finance authority remains separately reconciled. |
+| Porn / Head of Accounting | Full Cost successor requirement in explicitly authorized Companies/Projects, DEC-047 | No Client BOQ/customer line prices or margins | Replaces former no-blanket-cost/safe-total-only direction; existing Finance authority remains separate. No live grant or action authority by publication. |
 
 Quantity Only must not carry hidden monetary fields in payloads or expose them through history, direct IDs, alternative reports, attachments, exports or cached data. A rate-bearing document is not made safe merely by hiding a UI link.
 
@@ -57,7 +59,7 @@ Authorized totals and known quantities may reconstruct a price, particularly on 
 
 | Input | Current disposition | Concrete preparation |
 |---|---|---|
-| D1 — Disclosure/actions | Nancy full working/approved cost reads in authorized Projects and Porn Project-only totals are owner selected. Effective combined permissions and existing-grant reconciliation remain technical work. | Use the [entry surface map](BOQ-ENTRY-PREPARATION.md). Do not mutate current roles to make the future matrix appear implemented. |
+| D1 — Disclosure/actions | Historical V1.3 selected Nancy full cost and Porn Project-only totals; DEC-047 now selects Jai/Porn Full Cost as successor requirements. Effective permissions and existing-grant reconciliation remain governed implementation work. | Use the [entry surface map](BOQ-ENTRY-PREPARATION.md). Do not mutate current roles to make the future matrix appear implemented. |
 | D2 — Source mappings | C1/C2 and E1–E3 in [entry baseline](BOQ-ENTRY-PREPARATION.md) are OWNER APPROVED under DEC-037; synthetic values are adopted business examples, not actual owner prices. | Explicit source IDs, independent quantity/UOM and split/roll-up shares; no inferred conversions. Keep synthetic values distinct from actual owner prices and runtime PASS evidence; the owner has adopted the examples as expected business outcomes. |
 | D3 — Pricing/precision/revisions | Manual rates and percentage markup, up-to-four-place quantities/rates, half-up two-place lines, summed rounded lines and newly approved revisions are owner selected. C3–C5/E4–E8 resolve source basis, derived-rate rounding, discount/zero/fractional edges under DEC-037. | Implement the exact adopted examples in [entry baseline](BOQ-ENTRY-PREPARATION.md). Target gross margin remains deferred; no actual rate/percentage is assumed. |
 | D4 — First slice | **APPROVED:** disclosure and linked Customer BOQ versions together; broader costing and lifecycle work remain separate. | No repeat approval of this package or the THB scope is needed. Resolve only genuinely open inputs. |
@@ -104,3 +106,4 @@ Use disposable isolated PostgreSQL/Documents for full suites. Do not replay unch
 5. Targeted successor human UAT and separate release exit remain required.
 
 DEC-008/016/022/029/030/033 and [Project Governance](PROJECT-GOVERNANCE.md) remain mandatory. DEC-034 records this new bounded scope; it does not amend predecessor or human gates. See [Current State](CURRENT-STATE.md) and #266 for actual publication/entry status.
+

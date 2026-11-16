@@ -1,5 +1,9 @@
 # Pre-production requirement reconciliation — all 112 stable IDs
 
+**Owner-confirmed business-answer overlay — 16 November 2026:** [16 November Owner decisions](15-owner-decisions-2026-11-16.md) / DEC-047 is the current answer source where it supersedes the dated assessment below. Original observations/112-ID census remain historical; publication activates no permissions, runtime or retained data. Accounting stays deferred under #288 and later HR remains separately scoped.
+
+**Interpretation correction:** the rows below retain their pinned source/implementation evidence. Their earlier “unresolved” business-answer wording is superseded only by the exact decisions in Section8 of the overlay (BEN02.2, cadence/disposal, PM09, SS18, Cost BOQ, selected Accounting, KOH self-service/offboarding and future multi-Project/intercompany Finance). They do not establish current unanswered status. No whole-ID technical closure, accepted scope exclusion or milestone/GL count increase is claimed.
+
 **Source checkpoint:** `76295ef9ecc3ada2dca2549cf514f3fbdc6a634b`. **Trackers:** [#304](https://github.com/threeswordz/cinder-grind/issues/304), [#338](https://github.com/threeswordz/cinder-grind/issues/338).
 
 ## Evidence and interpretation
