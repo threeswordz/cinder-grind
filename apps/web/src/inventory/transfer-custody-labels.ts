@@ -1,0 +1,32 @@
+export const transferCustodyLabels = {
+  en: {
+    title: 'Destination transfer receipts', project: 'Destination Project', select: 'Select', reason: 'Receipt note / reason',
+    scope: 'Approval keeps stock at origin. Dispatch deducts origin stock; only actual accepted quantities enter destination stock. Outstanding quantities remain unavailable.',
+    dispatch: 'Dispatch actual stock', approved: 'Approve without stock movement', legacy: 'Historical transfer: paired stock posting on approval',
+    awaiting: 'Awaiting dispatch', dispatched: 'Dispatched', accepted: 'Accepted', outstanding: 'Outstanding', quantity: 'Actual accepted quantity',
+    prepare: 'Record destination delivery', receive: 'Confirm accepted quantities', documentType: 'Evidence type', upload: 'Upload receipt evidence',
+    evidence: 'Receipt evidence', download: 'Download evidence', error: 'Request failed. Refresh the record before continuing.',
+    uncertain: 'The result is uncertain. Retry sends the same request and quantities.', retry: 'Retry same request', clear: 'Discard request and refresh',
+    assign: 'Assign destination receiver', employee: 'Destination Employee', assignmentReason: 'Assignment reason', receivedAt: 'Receipt time',
+  },
+  th: {
+    title: 'รับสินค้าที่โอนเข้าปลายทาง', project: 'โครงการปลายทาง', select: 'เลือก', reason: 'หมายเหตุ / เหตุผลการรับ',
+    scope: 'การอนุมัติยังไม่ย้ายสต็อก ตัดต้นทางเมื่อส่งออก เพิ่มปลายทางเฉพาะจำนวนที่รับจริง จำนวนค้างรับยังไม่พร้อมใช้งาน',
+    dispatch: 'ยืนยันส่งออกจริง', approved: 'อนุมัติโดยยังไม่ย้ายสต็อก', legacy: 'รายการเดิม: ย้ายสต็อกสองฝั่งเมื่ออนุมัติ',
+    awaiting: 'รอส่งออก', dispatched: 'ส่งออกแล้ว', accepted: 'รับแล้ว', outstanding: 'ค้างรับ', quantity: 'จำนวนที่รับจริง',
+    prepare: 'บันทึกสินค้าที่มาถึง', receive: 'ยืนยันจำนวนที่รับ', documentType: 'ประเภทหลักฐาน', upload: 'อัปโหลดหลักฐานการรับ',
+    evidence: 'หลักฐานการรับ', download: 'ดาวน์โหลดหลักฐาน', error: 'ดำเนินการไม่สำเร็จ โปรดโหลดรายการใหม่ก่อนดำเนินการต่อ',
+    uncertain: 'ยังไม่ทราบผลแน่ชัด การลองซ้ำจะส่งคำขอและจำนวนเดิม', retry: 'ลองคำขอเดิมอีกครั้ง', clear: 'ยกเลิกคำขอและโหลดใหม่',
+    assign: 'มอบหมายผู้รับปลายทาง', employee: 'พนักงานปลายทาง', assignmentReason: 'เหตุผลที่มอบหมาย', receivedAt: 'เวลารับ',
+  },
+  'zh-TW': {
+    title: '目的地調撥收貨', project: '目的地專案', select: '選擇', reason: '收貨備註／原因',
+    scope: '核准時庫存仍留在來源。出貨扣除來源庫存，目的地僅增加實際驗收數量。未收數量維持不可用。',
+    dispatch: '確認實際出貨', approved: '核准但不移動庫存', legacy: '歷史調撥：核准時同步過帳兩邊庫存',
+    awaiting: '等待出貨', dispatched: '已出貨', accepted: '已收', outstanding: '未收', quantity: '實際驗收數量',
+    prepare: '記錄到貨', receive: '確認驗收數量', documentType: '證明類型', upload: '上傳收貨證明',
+    evidence: '收貨證明', download: '下載證明', error: '操作失敗，請重新整理記錄後繼續。',
+    uncertain: '結果尚未確定；重試會傳送相同請求與數量。', retry: '重試相同請求', clear: '放棄請求並重新整理',
+    assign: '指定目的地收貨人', employee: '目的地員工', assignmentReason: '指定原因', receivedAt: '收貨時間',
+  },
+};

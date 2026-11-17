@@ -1,3 +1,5 @@
+import {stripTransferSchema} from './transfer-schema-contract.mjs';
+import {transferCatalog,verifyTransferCatalog} from './transfer-catalog-contract.mjs';
 // Exact post-FM03 populated d2b79080 predecessor → receiving. No historical acceptance/backfill.
 import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
@@ -22,7 +24,7 @@ export async function prepareReceivingUpgrade(databaseUrl){
   const git=async args=>(await execute('git',args,{maxBuffer:16777216})).stdout;
   const schema=await git(['show',previous+':apps/api/prisma/schema.prisma']);
   const {readFile}=await import('node:fs/promises');
-  assert.equal(stripReceivingSchema(await readFile('apps/api/prisma/schema.prisma','utf8')).text.replace(/\s+/g,' ').trim(),schema.replace(/\s+/g,' ').trim());
+  assert.equal(stripReceivingSchema(stripTransferSchema(await readFile('apps/api/prisma/schema.prisma','utf8')).text).text.replace(/\s+/g,' ').trim(),schema.replace(/\s+/g,' ').trim());
   await writeFile(join(temp,'schema.prisma'),schema,{mode:0o600});
   const names=(await git(['ls-tree','-r','--name-only',previous,'apps/api/prisma/migrations'])).trim().split('\n');
   for(const name of names){const rel=name.slice('apps/api/prisma/'.length),path=join(temp,rel);await mkdir(resolve(path,'..'),{recursive:true});await writeFile(path,await git(['show',previous+':'+name]),{mode:0o600});}
@@ -42,14 +44,15 @@ export async function prepareReceivingUpgrade(databaseUrl){
    for(const {tablename}of tables){
     assert.match(tablename,/^[a-z_]+$/);
     if(candidate&&tablename==='permissions')verifyReceivingCatalog(await db.$queryRawUnsafe('SELECT * FROM permissions WHERE id=ANY($1::uuid[])',receivingCatalog.map(p=>p.id)),true);
-    const filter=candidate&&tablename==='permissions',columns=candidate&&tablename==='goods_receipts'?['delivery_id']:[];
-    if(columns.length)assert.equal((await db.$queryRawUnsafe('SELECT count(*)::text AS n FROM goods_receipts WHERE delivery_id IS NOT NULL'))[0].n,'0','Historical GR receiving provenance must stay null');
-    const [row]=await db.$queryRawUnsafe(`SELECT count(*)::text AS count,encode(sha256(convert_to(coalesce(string_agg((to_jsonb(t)-$1::text[])::text,E'\\n' ORDER BY (to_jsonb(t)-$1::text[])::text),''),'UTF8')),'hex') AS digest FROM "${tablename}" t ${filter?'WHERE id <> ALL($2::uuid[])':''}`,columns,...(filter?[receivingCatalog.map(p=>p.id)]:[]));result[tablename]=row;
+    if(candidate&&tablename==='permissions')verifyTransferCatalog(await db.$queryRawUnsafe('SELECT * FROM permissions WHERE id=ANY($1::uuid[])',transferCatalog.map(p=>p.id)),true);
+    const filter=candidate&&tablename==='permissions',columns=candidate&&tablename==='goods_receipts'?['delivery_id']:candidate&&tablename==='stock_transactions'?['transfer_receipt_line_id']:[];
+    if(columns.includes('delivery_id'))assert.equal((await db.$queryRawUnsafe('SELECT count(*)::text AS n FROM goods_receipts WHERE delivery_id IS NOT NULL'))[0].n,'0','Historical GR receiving provenance must stay null');
+    const [row]=await db.$queryRawUnsafe(`SELECT count(*)::text AS count,encode(sha256(convert_to(coalesce(string_agg((to_jsonb(t)-$1::text[])::text,E'\\n' ORDER BY (to_jsonb(t)-$1::text[])::text),''),'UTF8')),'hex') AS digest FROM "${tablename}" t ${filter?'WHERE id <> ALL($2::uuid[])':''}`,columns,...(filter?[[...receivingCatalog,...transferCatalog].map(p=>p.id)]:[]));result[tablename]=row;
    }return result;
   }
   const before=await snapshot(false);
   await execute('pnpm',['prisma:migrate:deploy'],{env:{...safeEnvironment(),DATABASE_URL:u.href},timeout:120000,maxBuffer:2097152});
-  assertHistoricalTables(before,await snapshot(true),false,false,false,false,false,false,false,true);
+  assertHistoricalTables(before,await snapshot(true),false,false,false,false,false,false,false,true,true);
   console.log('RECEIVING_EXACT_FM03_PREDECESSOR_ALL_HISTORICAL_TABLES_GRANTS_AND_NULL_GR_LINK_PASS');
  }finally{await db.$disconnect();await rm(temp,{recursive:true,force:true});}
 }

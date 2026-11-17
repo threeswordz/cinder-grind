@@ -1,4 +1,6 @@
-import {stripReceivingSchema} from './receiving-schema-contract.mjs';
+import {stripTransferSchema} from './transfer-schema-contract.mjs';
+const stripReceivingSchema=schema=>receivingBase(stripTransferSchema(schema).text);
+import {stripReceivingSchema as receivingBase} from './receiving-schema-contract.mjs';
 import {stripSiteIssueSchema} from './site-issue-schema-contract.mjs';
 import {stripPlanIssueSchema} from './material-plan-issue-schema-contract.mjs';
 import {stripMaterialPlanSchema} from './material-plan-schema-contract.mjs';

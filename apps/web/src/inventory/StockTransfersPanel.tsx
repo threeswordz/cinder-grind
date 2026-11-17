@@ -1,3 +1,7 @@
+import { useContext } from 'react';
+import { MonetaryLocaleContext } from '../role-ui/monetary-presentation';
+import { transferCustodyLabels } from './transfer-custody-labels';
+import { transferCustodyApi, transferRoot, transferDestinationPath } from '../api/transfer-custody';
 import {
   Alert,
   Button,
@@ -16,6 +20,12 @@ import { inventoryApi } from '../api/inventory';
 
 export function StockTransfersPanel({ permissions }: { permissions: string[] }) {
   const queryClient = useQueryClient();
+  const t = transferCustodyLabels[useContext(MonetaryLocaleContext)];
+  const [employeeId, setEmployeeId] = useState('');
+  const [assignmentProject, setAssignmentProject] = useState('');
+  const [custodyIntent, setCustodyIntent] = useState<{ path: string; body: unknown } | null>(null);
+  const custodyCommand = useMutation({mutationFn:(intent:{path:string;body:unknown})=>transferCustodyApi.command(intent.path,intent.body),retry:false,onSuccess:async()=>{setCustodyIntent(null);await queryClient.invalidateQueries({queryKey:['stock-transfer']});await queryClient.invalidateQueries({queryKey:['stock-balances']});await queryClient.invalidateQueries({queryKey:['transfer-custody']});}});
+  const sendCustody=(path:string,body:unknown)=>{if(custodyIntent)return;const intent={path,body};setCustodyIntent(intent);custodyCommand.mutate(intent);};
   const canCreate = permissions.includes('inventory.transfer.create');
   const canEdit = permissions.includes('inventory.transfer.edit');
   const canSubmit = permissions.includes('inventory.transfer.submit');
@@ -50,10 +60,11 @@ export function StockTransfersPanel({ permissions }: { permissions: string[] }) 
     queryFn: () => inventoryApi.transferWarehouses(sourceProjectId),
     enabled: Boolean(sourceProjectId),
   });
+  const destinations = useQuery({queryKey:['transfer-destinations',sourceProjectId],queryFn:()=>inventoryApi.transferDestinationProjects(sourceProjectId),enabled:Boolean(sourceProjectId&&canCreate),retry:false,gcTime:0});
   const destinationWarehouses = useQuery({
-    queryKey: ['transfer-warehouses', destinationProjectId],
-    queryFn: () => inventoryApi.transferWarehouses(destinationProjectId),
-    enabled: Boolean(destinationProjectId),
+    queryKey: ['transfer-destination-warehouses', sourceProjectId, destinationProjectId],
+    queryFn: () => inventoryApi.transferDestinationWarehouses(sourceProjectId, destinationProjectId),
+    enabled: Boolean(sourceProjectId && destinationProjectId && canCreate),
   });
   const stock = useQuery({
     queryKey: ['transfer-stock', sourceProjectId, sourceWarehouseId],
@@ -85,6 +96,8 @@ export function StockTransfersPanel({ permissions }: { permissions: string[] }) 
     Number(quantity) > 0 &&
     (!selectedStock || Number(quantity) <= Number(selectedStock.available));
   const current = detail.data?.data;
+  const assignmentProjectId = (current?.items ?? []).some(i => i.destinationProjectId === assignmentProject) ? assignmentProject : current?.items?.[0]?.destinationProjectId ?? '';
+  const receivers = useQuery({ queryKey: ['transfer-custody', 'receivers', current?.id, assignmentProjectId], queryFn: () => transferCustodyApi.receivers(assignmentProjectId, current!.id), enabled: Boolean(current?.custody && assignmentProjectId && permissions.includes('inventory.transfer.assign_receiver')), retry: false, gcTime: 0 });
 
   useEffect(() => {
     if (!current) return;
@@ -119,8 +132,7 @@ export function StockTransfersPanel({ permissions }: { permissions: string[] }) 
     <Stack spacing={2}>
       <Typography variant="h6">Stock Transfers</Typography>
       <Alert severity="info">
-        Transfers post matched source-negative and destination-positive ledger effects
-        atomically. Available stock excludes Active Reservations.
+        {t.scope}
       </Alert>
       {mutationError ? (
         <Alert severity="error">
@@ -218,7 +230,7 @@ export function StockTransfersPanel({ permissions }: { permissions: string[] }) 
                 }}
               >
                 <MenuItem value="">Select destination Project</MenuItem>
-                {(projects.data?.data ?? []).map((project) => (
+                {(destinations.data?.data ?? []).map((project) => (
                   <MenuItem key={project.id} value={project.id}>
                     {project.projectCode} — {project.projectName}
                   </MenuItem>
@@ -323,7 +335,7 @@ export function StockTransfersPanel({ permissions }: { permissions: string[] }) 
                   row.reversedAt
                     ? 'REVERSED'
                     : row.postedAt
-                      ? 'POSTED'
+                      ? row.custody ? t.dispatched : 'POSTED'
                       : row.approvalInstance?.approvalState ??
                         (row.submittedAt ? 'SUBMITTED' : 'DRAFT')
                 }
@@ -445,7 +457,11 @@ export function StockTransfersPanel({ permissions }: { permissions: string[] }) 
                 </Stack>
               ) : null}
 
-              {current.submittedAt && !current.postedAt && canApprove ? (
+              {current.custody ? <Alert severity="info">{t.scope}</Alert> : <Alert severity="info">{t.legacy}</Alert>}
+              {custodyCommand.isError ? <Alert severity="error">{t.uncertain}<Button disabled={custodyCommand.isPending} onClick={()=>custodyIntent&&custodyCommand.mutate(custodyIntent)}>{t.retry}</Button><Button disabled={custodyCommand.isPending} onClick={()=>{setCustodyIntent(null);custodyCommand.reset();void refresh();}}>{t.clear}</Button></Alert>:null}
+              {current.custody && current.approvalInstance?.approvalState==='APPROVED' && !current.postedAt && permissions.includes('inventory.transfer.dispatch') ? <Stack spacing={1}><TextField label={t.assignmentReason} value={reason} onChange={e=>setReason(e.target.value)} disabled={Boolean(custodyIntent)}/><Button disabled={Boolean(custodyIntent)||!reason.trim()} onClick={()=>sendCustody(transferRoot+'/transfers/'+current.id+'/dispatch',{requestKey:crypto.randomUUID(),expectedVersion:current.custody!.version,reason})}>{t.dispatch}</Button></Stack>:null}
+              {current.custody && !current.reversedAt && permissions.includes('inventory.transfer.assign_receiver') ? <Stack spacing={1}><TextField select label="Destination Project" value={assignmentProjectId} onChange={e=>{setAssignmentProject(e.target.value);setEmployeeId('');}} disabled={Boolean(custodyIntent)}>{[...new Set((current.items??[]).map(i=>i.destinationProjectId))].map(projectId=><MenuItem key={projectId} value={projectId}>{current.items?.find(i=>i.destinationProjectId===projectId)?.destinationProject?.projectName??projectId}</MenuItem>)}</TextField><TextField select label={t.employee} value={!receivers.isError&&receivers.data?.data.some(e=>e.id===employeeId)?employeeId:''} onChange={e=>setEmployeeId(e.target.value)} disabled={Boolean(custodyIntent)||receivers.isError}><MenuItem value="">{t.select}</MenuItem>{!receivers.isError?receivers.data?.data.map(e=><MenuItem key={e.id} value={e.id}>{e.employeeCode} · {e.employeeName}</MenuItem>):null}</TextField><TextField label={t.assignmentReason} value={reason} onChange={e=>setReason(e.target.value)} disabled={Boolean(custodyIntent)}/>{[assignmentProjectId].map(projectId=><Button key={projectId} disabled={Boolean(custodyIntent)||!reason.trim()||!receivers.data?.data.some(e=>e.id===employeeId)||receivers.isError} onClick={()=>sendCustody(transferDestinationPath(projectId,current.id)+'/assign',{requestKey:crypto.randomUUID(),expectedVersion:current.custody!.version,reason,employeeId})}>{t.assign} · {current.items?.find(i=>i.destinationProjectId===projectId)?.destinationProject?.projectCode}</Button>)}</Stack>:null}
+              {current.submittedAt && !current.postedAt && current.approvalInstance?.approvalState==='SUBMITTED' && canApprove ? (
                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
                   <Button
                     variant="contained"
@@ -461,7 +477,7 @@ export function StockTransfersPanel({ permissions }: { permissions: string[] }) 
                       );
                     }}
                   >
-                    Approve and post
+                    {current.custody ? t.approved : 'Approve and post'}
                   </Button>
                   <Button
                     disabled={mutation.isPending}
@@ -479,7 +495,7 @@ export function StockTransfersPanel({ permissions }: { permissions: string[] }) 
                 </Stack>
               ) : null}
 
-              {current.postedAt && !current.reversedAt && canReverse ? (
+              {current.postedAt && !current.reversedAt && (!current.custody || current.custody.receiptComplete) && canReverse ? (
                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
                   <TextField
                     label="Reversal reason"

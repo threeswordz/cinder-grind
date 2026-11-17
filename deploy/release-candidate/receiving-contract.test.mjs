@@ -1,13 +1,15 @@
+import {stripTransferSchema} from './transfer-schema-contract.mjs';
+const stripReceivingSchema=schema=>receivingBase(stripTransferSchema(schema).text);
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
 import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {classifySchema} from './schema-contract.mjs';
-import {stripReceivingSchema,receivingMode,receivingTables} from './receiving-schema-contract.mjs';
+import {stripReceivingSchema as receivingBase,receivingMode,receivingTables} from './receiving-schema-contract.mjs';
 import {receivingCatalog,verifyReceivingCatalog} from './receiving-catalog-contract.mjs';
 import {assertHistoricalTables} from './historical-snapshot.mjs';
-const current=readFileSync(new URL('../../apps/api/prisma/schema.prisma',import.meta.url),'utf8');
+const current=stripTransferSchema(readFileSync(new URL('../../apps/api/prisma/schema.prisma',import.meta.url),'utf8')).text;
 const previous=execFileSync('git',['show','d2b790801119fb1b5b4176ad416086ee7363d091:apps/api/prisma/schema.prisma'],{encoding:'utf8'});
 test('receiving exact six-model contract preserves the post-FM03 schema and nullable GR provenance',()=>{
  assert.equal(classifySchema(previous,current),'migration-aware-receiving-schema');assert.equal(stripReceivingSchema(current).present,true);

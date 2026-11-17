@@ -1,3 +1,4 @@
+import {transferActor} from '../inventory/transfer-custody-actor';
 import {receivingActor} from '../inventory/receiving-actor';
 import {createHash} from 'node:crypto';
 import {
@@ -263,12 +264,18 @@ export class DocumentsService {
     const deliveries=deliveryIds.length?await db.receivingDelivery.findMany({where:{id:{in:deliveryIds},companyId:auth.companyId,projectId},select:{id:true}}):[];
     const accessibleDeliveries=new Set(deliveries.map(row=>row.id));
 
+    const receiptIds = [...new Set(protectedRows.flatMap(row => row.links.filter(link => link.entityType === 'TRANSFER_RECEIPT').map(link => link.entityId)))];
+    if (receiptIds.length) await transferActor(auth, db, ['inventory.transfer.receipt_view']);
+    const receipts = receiptIds.length ? await db.transferReceipt.findMany({ where: { id: { in: receiptIds }, projectId, custody: { companyId: auth.companyId } }, select: { id: true } }) : [];
+    const accessibleReceipts = new Set(receipts.map(row => row.id));
+
     return permitted.filter((row) => {
       const protectedSource = row.links.some((link) => Boolean(DOCUMENT_SOURCE_VIEW_PERMISSIONS[link.entityType]));
       return row.links.every((link) => {
         if (protectedSource && link.entityType === 'PROJECT') return projectIds.has(link.entityId);
         if (link.entityType === 'STOCK_TRANSFER') return accessibleTransfers.has(link.entityId);
         if (link.entityType === 'MATERIAL_REQUEST') return accessibleRequests.has(link.entityId);
+        if (link.entityType === 'TRANSFER_RECEIPT') return accessibleReceipts.has(link.entityId);
         if (link.entityType === 'RECEIVING_DELIVERY') return accessibleDeliveries.has(link.entityId);
         return true;
       });
@@ -432,9 +439,9 @@ export class DocumentsService {
     }
 
     const bytes = await this.storage.read(row.storageKey);
-    if (row.links.some(link => ['MATERIAL_REQUEST','RECEIVING_DELIVERY'].includes(link.entityType)) &&
+    if (row.links.some(link => ['MATERIAL_REQUEST','RECEIVING_DELIVERY','TRANSFER_RECEIPT'].includes(link.entityType)) &&
         (!row.checksum || bytes.length !== row.fileSizeBytes || createHash('sha256').update(bytes).digest('hex') !== row.checksum)) {
-      throw new UnprocessableEntityException({code: row.links.some(link=>link.entityType==='RECEIVING_DELIVERY')?'RECEIVING_EVIDENCE_INTEGRITY_FAILED':'MATERIAL_REQUEST_EVIDENCE_INTEGRITY_FAILED'});
+      throw new UnprocessableEntityException({code: row.links.some(link=>link.entityType==='TRANSFER_RECEIPT')?'TRANSFER_EVIDENCE_INTEGRITY_FAILED':row.links.some(link=>link.entityType==='RECEIVING_DELIVERY')?'RECEIVING_EVIDENCE_INTEGRITY_FAILED':'MATERIAL_REQUEST_EVIDENCE_INTEGRITY_FAILED'});
     }
 
     return {

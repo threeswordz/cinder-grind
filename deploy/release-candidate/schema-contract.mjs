@@ -1,3 +1,4 @@
+import {stripTransferSchema} from './transfer-schema-contract.mjs';
 import {stripReceivingSchema} from './receiving-schema-contract.mjs';
 import {stripSiteIssueSchema} from './site-issue-schema-contract.mjs';
 import {stripPlanIssueSchema} from './material-plan-issue-schema-contract.mjs';
@@ -177,12 +178,20 @@ function classifyBeforeReceiving(previous,candidate){
  return !before.present&&after.present?(base==='migration-aware-sql-only'?'migration-aware-site-issue-schema':'migration-aware-site-issue-'+base.slice('migration-aware-'.length)):base;
 }
 
-export function classifySchema(previous,candidate){
+function classifyBeforeTransfer(previous,candidate){
  if(previous===candidate)return 'migration-aware-sql-only';
  const before=stripReceivingSchema(previous),after=stripReceivingSchema(candidate);
  if(before.present&&!after.present)throw Error('Receiving schema removal prohibited');
  const base=before.text.replace(/\s+/g,' ').trim()===after.text.replace(/\s+/g,' ').trim()?'migration-aware-sql-only':classifyBeforeReceiving(before.text,after.text);
  return !before.present&&after.present?(base==='migration-aware-sql-only'?'migration-aware-receiving-schema':'migration-aware-receiving-'+base.slice('migration-aware-'.length)):base;
+}
+
+export function classifySchema(previous,candidate){
+ if(previous===candidate)return 'migration-aware-sql-only';
+ const before=stripTransferSchema(previous),after=stripTransferSchema(candidate);
+ if(before.present&&!after.present)throw Error('Transfer schema removal prohibited');
+ const base=before.text.replace(/\s+/g,' ').trim()===after.text.replace(/\s+/g,' ').trim()?'migration-aware-sql-only':classifyBeforeTransfer(before.text,after.text);
+ return !before.present&&after.present?(base==='migration-aware-sql-only'?'migration-aware-transfer-schema':'migration-aware-transfer-'+base.slice('migration-aware-'.length)):base;
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

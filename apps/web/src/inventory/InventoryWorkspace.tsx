@@ -1,3 +1,5 @@
+import { TransferReceiptsPanel } from './TransferReceiptsPanel';
+import { transferCustodyLabels } from './transfer-custody-labels';
 import { ReceivingPanel } from './ReceivingPanel';
 import { receivingLabels } from './receiving-labels';
 import { MaterialRequestsPanel } from './MaterialRequestsPanel';
@@ -21,6 +23,7 @@ import { WarehousesPanel } from './WarehousesPanel';
 import type { SourceLinkTarget } from '../role-ui/source-link-policy';
 
 type InventoryTab =
+  | 'transfer-receipts'
   | 'receiving'
   | 'requests'
   | 'plans'
@@ -52,6 +55,7 @@ export function InventoryWorkspace({
   const locale = useContext(MonetaryLocaleContext);
   const requestText = materialRequestLabels[locale];
   const planText = materialPlanLabels[locale];
+  const canSeeTransferReceipts = permissions.includes('inventory.transfer.receipt_view');
   const canSeeReceiving = permissions.includes('inventory.receiving.view');
   const canSeeRequests = permissions.includes('inventory.material_request.view');
   const canSeePlans = permissions.includes('inventory.material_plan.view');
@@ -64,7 +68,7 @@ export function InventoryWorkspace({
   const canSeeReturns = permissions.includes('inventory.return.view');
   const canSeeTransfers = permissions.includes('inventory.transfer.view');
   const canSeeReports = permissions.includes('inventory.report.view');
-  const first: InventoryTab = canSeeReceiving ? 'receiving' : canSeeRequests ? 'requests' : canSeePlans ? 'plans' : canSeeWarehouses
+  const first: InventoryTab = canSeeTransferReceipts ? 'transfer-receipts' : canSeeReceiving ? 'receiving' : canSeeRequests ? 'requests' : canSeePlans ? 'plans' : canSeeWarehouses
     ? 'warehouses'
     : canSeeReceipts
       ? 'receipts'
@@ -89,6 +93,7 @@ export function InventoryWorkspace({
     if (initialReceiptId && canSeeReceipts) setSelected('receipts');
   }, [initialReceiptId, canSeeReceipts]);
   if (
+    !canSeeTransferReceipts &&
     !canSeeReceiving &&
     !canSeeRequests &&
     !canSeePlans &&
@@ -105,7 +110,7 @@ export function InventoryWorkspace({
     return <Alert severity="info">Inventory view permission is required.</Alert>;
   }
   const active: InventoryTab =
-    selected === 'receiving' && canSeeReceiving ? 'receiving' : selected === 'requests' && canSeeRequests ? 'requests' : selected === 'plans' && canSeePlans ? 'plans' : selected === 'warehouses' && canSeeWarehouses
+    selected === 'transfer-receipts' && canSeeTransferReceipts ? 'transfer-receipts' : selected === 'receiving' && canSeeReceiving ? 'receiving' : selected === 'requests' && canSeeRequests ? 'requests' : selected === 'plans' && canSeePlans ? 'plans' : selected === 'warehouses' && canSeeWarehouses
       ? 'warehouses'
       : selected === 'receipts' && canSeeReceipts
         ? 'receipts'
@@ -127,6 +132,7 @@ export function InventoryWorkspace({
   return (
     <Stack spacing={2}>
       <Tabs value={active} onChange={(_event, value: InventoryTab) => setSelected(value)}>
+        {canSeeTransferReceipts ? <Tab value="transfer-receipts" label={transferCustodyLabels[locale].title} /> : null}
         {canSeeReceiving ? <Tab value="receiving" label={receivingLabels[locale].title} /> : null}
         {canSeeRequests ? <Tab value="requests" label={requestText.title} /> : null}
         {canSeePlans ? <Tab value="plans" label={planText.title} /> : null}
@@ -140,7 +146,9 @@ export function InventoryWorkspace({
         {canSeeTransfers ? <Tab value="transfers" label="Stock Transfers" /> : null}
         {canSeeReports ? <Tab value="reports" label="Reports" /> : null}
       </Tabs>
-      {active === 'receiving' ? (
+      {active === 'transfer-receipts' ? (
+        <TransferReceiptsPanel permissions={permissions} userId={userId} companyId={companyId}/>
+      ) : active === 'receiving' ? (
         <ReceivingPanel permissions={permissions} userId={userId} companyId={companyId} onOpenGr={(projectId,id)=>{appliedReceiptProjectSourceLink.current='';appliedReceiptSourceLink.current='';setReceivingGr({projectId,id});setSelected('receipts');}}/>
       ) : active === 'requests' ? (
         <MaterialRequestsPanel permissions={permissions}/>

@@ -1,3 +1,5 @@
+import {transferCatalog,verifyTransferCatalog} from './transfer-catalog-contract.mjs';
+const transferApproved=process.env.TRANSFER_SCHEMA_UPGRADE==='YES';
 import {receivingCatalog,verifyReceivingCatalog} from './receiving-catalog-contract.mjs';
 const receivingApproved=process.env.RECEIVING_SCHEMA_UPGRADE==='YES';
 import {siteIssueCatalog,verifySiteIssueCatalog} from './site-issue-catalog-contract.mjs';
@@ -45,14 +47,14 @@ const load = path => {try{return JSON.parse(readFileSync(path,'utf8'));}catch{th
 const digest = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
 const stockCountApproved = process.env.STOCK_COUNT_SCHEMA_UPGRADE === 'YES';
 const materialRequestApproved=process.env.MATERIAL_REQUEST_SCHEMA_UPGRADE==='YES';
-const knownCatalog = [...boqCatalog,...hrCatalog,...(stockCountApproved ? stockCountCatalog : []),...(materialRequestApproved ? materialRequestCatalog : []),...(materialPlanApproved ? materialPlanCatalog : []),...(planIssueApproved ? planIssueCatalog : []),...(siteIssueApproved ? siteIssueCatalog : []),...(receivingApproved ? receivingCatalog : [])];
+const knownCatalog = [...boqCatalog,...hrCatalog,...(stockCountApproved ? stockCountCatalog : []),...(materialRequestApproved ? materialRequestCatalog : []),...(materialPlanApproved ? materialPlanCatalog : []),...(planIssueApproved ? planIssueCatalog : []),...(siteIssueApproved ? siteIssueCatalog : []),...(receivingApproved ? receivingCatalog : []),...(transferApproved ? transferCatalog : [])];
 const provenanceColumns = {
   projects:['contract_currency_code'],
   boqs:['currency_code'],
   supplier_quotations:['currency_code'],
   quotation_awards:['currency_code'],
   ...(receivingApproved ? {goods_receipts:['delivery_id']} : {}),
-  ...(stockCountApproved ? { stock_transactions:['stock_count_id'] } : {}),
+  ...((stockCountApproved||transferApproved) ? { stock_transactions:[...(stockCountApproved?['stock_count_id']:[]),...(transferApproved?['transfer_receipt_line_id']:[])] } : {}),
 };
 
 async function snapshot(before) {
@@ -75,6 +77,7 @@ async function snapshot(before) {
   if(planIssueApproved)verifyPlanIssueCatalog(rawCatalog.filter(p=>planIssueCatalog.some(x=>x.id===p.id)),!['snapshot','rollback'].includes(mode));
   if(receivingApproved)verifyReceivingCatalog(rawCatalog.filter(p=>receivingCatalog.some(x=>x.id===p.id)),!['snapshot','rollback'].includes(mode));
   if(siteIssueApproved)verifySiteIssueCatalog(rawCatalog.filter(p=>siteIssueCatalog.some(x=>x.id===p.id)),!['snapshot','rollback'].includes(mode));
+  if(transferApproved)verifyTransferCatalog(rawCatalog.filter(p=>transferCatalog.some(x=>x.id===p.id)),!['snapshot','rollback'].includes(mode));
   const excluded = knownCatalog.filter(p=>!(before?.catalogPresent??present).includes(p.id)).map(p=>p.id);
   const hashes={}, columns={};
   for(const {tablename:name} of tables){
@@ -113,7 +116,7 @@ try {
       after.tables,
       process.env.HR_SCHEMA_UPGRADE === 'YES',
       process.env.HR_DOCUMENT_SCHEMA_UPGRADE === 'YES',
-      stockCountApproved, materialRequestApproved,materialPlanApproved,planIssueApproved,siteIssueApproved,receivingApproved,
+      stockCountApproved, materialRequestApproved,materialPlanApproved,planIssueApproved,siteIssueApproved,receivingApproved,transferApproved,
     );
     for(const migration of before.migrations)assert.deepEqual(after.migrations.find(m=>m.migration_name===migration.migration_name),migration);
     console.log(mode==='rollback'?'HR_EXACT_PREDECESSOR_ROLLBACK_ROWS_PRESERVED':'HR_PREDECESSOR_ROWS_AND_MIGRATIONS_PRESERVED');

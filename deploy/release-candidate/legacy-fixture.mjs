@@ -1,3 +1,5 @@
+import {transferCatalog,verifyTransferCatalog} from './transfer-catalog-contract.mjs';
+const transferApproved=process.env.TRANSFER_SCHEMA_UPGRADE==='YES';
 import {receivingCatalog,verifyReceivingCatalog} from './receiving-catalog-contract.mjs';
 const receivingApproved=process.env.RECEIVING_SCHEMA_UPGRADE==='YES';
 import {siteIssueCatalog,verifySiteIssueCatalog} from './site-issue-catalog-contract.mjs';
@@ -41,8 +43,9 @@ async function snapshot() {
     const stockCountApproved = process.env.STOCK_COUNT_SCHEMA_UPGRADE === 'YES';
 const materialRequestApproved=process.env.MATERIAL_REQUEST_SCHEMA_UPGRADE==='YES';
     const catalogIds = [...boqCatalog,...(hrApproved ? hrCatalog : []),
-      ...(stockCountApproved ? stockCountCatalog : []),...(materialRequestApproved ? materialRequestCatalog : []),...(materialPlanApproved ? materialPlanCatalog : []),...(planIssueApproved ? planIssueCatalog : []),...(siteIssueApproved ? siteIssueCatalog : []),...(receivingApproved ? receivingCatalog : [])].map(row => row.id);
+      ...(stockCountApproved ? stockCountCatalog : []),...(materialRequestApproved ? materialRequestCatalog : []),...(materialPlanApproved ? materialPlanCatalog : []),...(planIssueApproved ? planIssueCatalog : []),...(siteIssueApproved ? siteIssueCatalog : []),...(receivingApproved ? receivingCatalog : []),...(transferApproved ? transferCatalog : [])].map(row => row.id);
     if (tablename === 'permissions') {
+      if(transferApproved)verifyTransferCatalog(await prisma.$queryRawUnsafe('SELECT * FROM permissions WHERE id = ANY($1::uuid[])',transferCatalog.map(p=>p.id)));
       const additions = await prisma.$queryRawUnsafe('SELECT * FROM permissions WHERE id = ANY($1::uuid[])', catalogIds);
       verifyBoqCatalog(additions.filter(row => boqCatalog.some(x=>x.id===row.id)));
       if(hrApproved) verifyHrCatalog(additions.filter(row=>hrCatalog.some(x=>x.id===row.id)));
@@ -54,9 +57,10 @@ const materialRequestApproved=process.env.MATERIAL_REQUEST_SCHEMA_UPGRADE==='YES
       if(siteIssueApproved)verifySiteIssueCatalog(additions.filter(row=>siteIssueCatalog.some(x=>x.id===row.id)));
     }
     if(receivingApproved&&tablename==='goods_receipts'){const cols=await prisma.$queryRawUnsafe("SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='goods_receipts' AND column_name='delivery_id'");if(cols.length)assert.equal((await prisma.$queryRawUnsafe('SELECT count(*)::text AS n FROM goods_receipts WHERE delivery_id IS NOT NULL'))[0].n,'0','Historical GR must not acquire fabricated custody');}
-    const excludedColumns = tablename === 'goods_receipts' && receivingApproved ? ['delivery_id'] : tablename === 'projects' ? ['contract_currency_code'] :
+    let excludedColumns = tablename === 'goods_receipts' && receivingApproved ? ['delivery_id'] : tablename === 'projects' ? ['contract_currency_code'] :
       ['boqs','supplier_quotations','quotation_awards'].includes(tablename) ? ['currency_code'] :
       (tablename === 'stock_transactions' && stockCountApproved ? ['stock_count_id'] : []);
+    if(transferApproved && tablename==='stock_transactions')excludedColumns=[...excludedColumns,'transfer_receipt_line_id'];
     const [row] = await prisma.$queryRawUnsafe(`SELECT count(*)::text AS count,
       encode(sha256(convert_to(coalesce(string_agg((to_jsonb(t) - $1::text[])::text, E'\n' ORDER BY (to_jsonb(t) - $1::text[])::text), ''), 'UTF8')), 'hex') AS digest
       FROM "${tablename}" t ${tablename === 'permissions' ? 'WHERE id <> ALL($2::uuid[])' : ''}`,
@@ -104,7 +108,7 @@ try {
     const after = await snapshot();
     assertHistoricalTables(before.tables, after.tables,
       process.env.HR_SCHEMA_UPGRADE === 'YES', process.env.HR_DOCUMENT_SCHEMA_UPGRADE === 'YES',
-      process.env.STOCK_COUNT_SCHEMA_UPGRADE === 'YES', process.env.MATERIAL_REQUEST_SCHEMA_UPGRADE === 'YES',materialPlanApproved,planIssueApproved,siteIssueApproved,receivingApproved);
+      process.env.STOCK_COUNT_SCHEMA_UPGRADE === 'YES', process.env.MATERIAL_REQUEST_SCHEMA_UPGRADE === 'YES',materialPlanApproved,planIssueApproved,siteIssueApproved,receivingApproved,transferApproved);
     for (const migration of before.migrations) assert.deepEqual(after.migrations.find((row) => row.migration_name === migration.migration_name), migration, 'Historical migration checksum changed');
     const fixture = load(manifestPath);
     assert.equal((await prisma.purchaseOrder.findUniqueOrThrow({ where: { id: fixture.unknownPoId } })).currencyCode, null);

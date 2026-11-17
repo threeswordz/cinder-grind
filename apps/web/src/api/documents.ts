@@ -32,6 +32,7 @@ export type DocumentTargetType =
   | 'RECEIVING_DELIVERY'
   | 'MATERIAL_RETURN'
   | 'STOCK_TRANSFER'
+  | 'TRANSFER_RECEIPT'
   | 'SUPPLIER_INVOICE'
   | 'CLIENT_INVOICE'
   | 'PAYMENT'
