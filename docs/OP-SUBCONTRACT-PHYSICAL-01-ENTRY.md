@@ -65,3 +65,7 @@ Milestone4 still requires all112 dispositions and required gap delivery; milesto
 ## Verified source
 
 The [historical proposal](OP-SUBCONTRACT-PHYSICAL-01-ENTRY-PROPOSAL.md) retains the concrete code comparison at a8dad66f / transfer d32b97f6. Canonical owners remain `subcontracts-claims.service.ts`, `subcontracts-certification.service.ts`, existing claim/agreement workflow services and protected Document services. [#353](https://github.com/threeswordz/cinder-grind/issues/353) owns the approval, delivery and evidence; dated preparation does not override this approved option-A contract.
+
+## Predecessor readback — 17 November 2026 SGT
+
+The Owner's actual populated Mac receiving success is recorded in [#347 receipt6943389339](https://github.com/threeswordz/cinder-grind/issues/347#issuecomment-6943389339). Transfer #359 integrated as1addb385 with exact candidate-tree equality; exact-main44051022363 remains pending. This entry is forward-reconciled with that integrated predecessor, retaining the same six-document scope and PA-D01 option A. No runtime/schema/permission change or repeated Owner decision is introduced. Predecessor main-green and this entry's exact-head push/PR, guarded integration/tree equality and exact-main remain required before subcontract runtime.
