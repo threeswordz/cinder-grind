@@ -1,12 +1,12 @@
 # 17 November 2026 — original source templates and provisional model mapping
 
-Companion to [Owner decisions](16-owner-decisions-2026-11-17.md). **Binary publication pending until the exact three original files are present and verified on this PR branch.** The originals were recovered from the Owner's Library and their file bytes checked locally; both XLSX archives passed integrity testing. PDFs/Excel files are not silently regenerated. Expected repository directory: `docs/requirements-templates/2026-11-17/`. Use the exact filenames and SHA-256 hashes below. Do not merge this publication until all three paths exist with matching hashes and have undergone template/privacy review. Public repository: only unfilled/synthetic examples; real employee IDs, bank details, salaries, customer/vendor data, tax IDs, opening balances or private attachments must remain outside Git.
+Companion to [Owner decisions](16-owner-decisions-2026-11-17.md). **Exact original binaries attached; SHA-256 verified locally before commit. Remote-byte confirmation and governed review/CI remain required before merge.** The originals were recovered from the Owner's Library and their file bytes checked locally; both XLSX archives passed integrity testing. PDFs/Excel files are not silently regenerated. Expected repository directory: `docs/requirements-templates/2026-11-17/`. Use the exact filenames and SHA-256 hashes below. Do not merge this publication until all three paths exist with matching hashes and have undergone template/privacy review. Public repository: only unfilled/synthetic examples; real employee IDs, bank details, salaries, customer/vendor data, tax IDs, opening balances or private attachments must remain outside Git.
 
 | Original filename | Bytes | SHA-256 |
 | --- | ---: | --- |
-| Requirements-HR-Payroll-TH-2026-11-17.pdf | 365611 | `8fb8f2d277f478a7fb516dcccf6c1f4b1bc176a23a5d9f4664069d0f45fa14a6` |
-| employee-data-template-th.xlsx | 67211 | `86531093134befefb4a0add3185ec685558435537b113fd51678ad9ea82e142a` |
-| Master-Data-Template-TH-2026-11-17.xlsx | 297119 | `7a5094d193fb6861fd6f9fe23a2a5f9a9e95ef21a1abc3ed0c5de659540a5428` |
+| [Requirements-HR-Payroll-TH-2026-11-17.pdf](../requirements-templates/2026-11-17/Requirements-HR-Payroll-TH-2026-11-17.pdf) | 365611 | `8fb8f2d277f478a7fb516dcccf6c1f4b1bc176a23a5d9f4664069d0f45fa14a6` |
+| [employee-data-template-th.xlsx](../requirements-templates/2026-11-17/employee-data-template-th.xlsx) | 67211 | `86531093134befefb4a0add3185ec685558435537b113fd51678ad9ea82e142a` |
+| [Master-Data-Template-TH-2026-11-17.xlsx](../requirements-templates/2026-11-17/Master-Data-Template-TH-2026-11-17.xlsx) | 297119 | `7a5094d193fb6861fd6f9fe23a2a5f9a9e95ef21a1abc3ed0c5de659540a5428` |
 
 ## Master-data workbook (20 worksheets)
 
