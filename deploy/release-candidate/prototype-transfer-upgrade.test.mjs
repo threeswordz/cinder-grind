@@ -40,15 +40,24 @@ test('transfer CLI dispatches through canonical and Mac-style alias paths withou
 });
 test('transfer additive upgrade admits exactly five migrations and NULL historical stock provenance',()=>{
  const before={permissions:[],_prisma_migrations:[{id:'old-migration',migration_name:'receiving',checksum:'retained'}],
-  stock_transactions:[{id:'old-stock',quantity:3,__fm03_exact_row_json:'old exact stock'}],
+  stock_transactions:[{id:'old-stock',quantity:3,__fm03_exact_row_json:'{"id":"old-stock","quantity":3}'}],
   receiving_deliveries:[{id:'delivery',checked_by_user_id:'jai'}],goods_receipts:[{id:'gr',delivery_id:'delivery'}],
   role_permissions:[{id:'retained-grant'}]};
  const after={...structuredClone(before),permissions:transferCatalog.map(p=>({...p,created_at:'2026-11-17T00:00:00Z'})),
-  stock_transactions:[{...before.stock_transactions[0],transfer_receipt_line_id:null,__fm03_exact_row_json:'new exact stock shape'}],
+  stock_transactions:[{...before.stock_transactions[0],transfer_receipt_line_id:null,__fm03_exact_row_json:'{"id":"old-stock","quantity":3,"transfer_receipt_line_id":null}'}],
   _prisma_migrations:[...before._prisma_migrations,...TRANSFER_MIGRATIONS.map((name,i)=>({id:'new-'+i,migration_name:name,finished_at:'2026-11-17T00:00:00Z',rolled_back_at:null}))],
   ...Object.fromEntries(transferTables.map(t=>[t,[]]))};
  verifyTransferMigration(before,after);
+ const exactBefore=structuredClone(before),exactAfter=structuredClone(after);
+ exactBefore.stock_transactions[0].quantity=99999999999999.9998;
+ exactAfter.stock_transactions[0].quantity=99999999999999.9999;
+ assert.equal(exactBefore.stock_transactions[0].quantity,exactAfter.stock_transactions[0].quantity,'JS rounds these distinct PostgreSQL Decimals equally');
+ exactBefore.stock_transactions[0].__fm03_exact_row_json='{"id":"old-stock","quantity":99999999999999.9998}';
+ exactAfter.stock_transactions[0].__fm03_exact_row_json='{"id":"old-stock","quantity":99999999999999.9999,"transfer_receipt_line_id":null}';
+ assert.throws(()=>verifyTransferMigration(exactBefore,exactAfter),'Exact PostgreSQL bytes must expose the otherwise rounded change');
+
  for(const change of [a=>a.stock_transactions[0].quantity=30,a=>a.stock_transactions[0].transfer_receipt_line_id='invented',
+  a=>a.stock_transactions[0].__fm03_exact_row_json='{"id":"old-stock","quantity":3.0001,"transfer_receipt_line_id":null}',
   a=>a.receiving_deliveries[0].checked_by_user_id='other',a=>a.role_permissions=[],a=>a.permissions.pop(),
   a=>a._prisma_migrations.pop(),a=>a._prisma_migrations[0].checksum='rewritten',
   a=>a.transfer_custodies.push({transfer_id:'backfilled'}),a=>delete a.transfer_operations]){

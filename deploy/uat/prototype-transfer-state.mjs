@@ -41,8 +41,15 @@ export function verifyTransferMigration(before,after){
  demand(after._prisma_migrations.length===old.length+5&&old.every(m=>after._prisma_migrations.some(n=>canonical(n)===canonical(m)))&&
   canonical(added.map(m=>m.migration_name).sort())===canonical([...TRANSFER_MIGRATIONS].sort())&&added.every(m=>m.finished_at&&!m.rolled_back_at),'TR_UPGRADE_WRONG_ADDITIVE_MIGRATIONS');
  normalized._prisma_migrations=old;
- normalized.stock_transactions=normalized.stock_transactions.map(row=>{demand(row.transfer_receipt_line_id===null,'TR_UPGRADE_HISTORICAL_STOCK_BACKFILLED');const {transfer_receipt_line_id,__fm03_exact_row_json,...r}=row;return r;});
- baseline.stock_transactions=baseline.stock_transactions.map(({__fm03_exact_row_json,...r})=>r);
+ normalized.stock_transactions=normalized.stock_transactions.map(row=>{
+  demand(row.transfer_receipt_line_id===null,'TR_UPGRADE_HISTORICAL_STOCK_BACKFILLED');
+  // Keep PostgreSQL's exact Decimal/timestamp bytes. Parsing JSON into JS may
+  // otherwise hide a precision change in a large historical quantity.
+  const {transfer_receipt_line_id,__fm03_exact_row_json:raw,...r}=row;
+  const field=/,\s*"transfer_receipt_line_id"\s*:\s*null(?=\s*[,}])/g;
+  demand(typeof raw==='string'&&[...raw.matchAll(field)].length===1,'TR_UPGRADE_EXACT_STOCK_BYTES_REQUIRED');
+  return {...r,__fm03_exact_row_json:raw.replace(field,'')};
+ });
  assert.deepEqual(normalized,baseline,'Transfer migration changed populated history, grants or receiving state');
 }
 export async function configureTransfer(db,binding,expected){
@@ -156,6 +163,12 @@ export function verifyTransferJourneyPreservation(before,after,c,b,source,result
   for(const row of fresh)if(Object.hasOwn(row,'company_id'))demand(row.company_id===f.companyId,'TR_NEW_ROW_WRONG_COMPANY');
  }
  demand(canonical(added('role_permissions').map(r=>r.id).sort())===canonical([...c.addedRolePermissionIds].sort()),'TR_GRANT_DELTA_CHANGED');
+ const oldGrants=new Set(baseline.role_permissions.map(r=>r.role_id+':'+r.permission_id));
+ const expectedGrants=Object.entries(TRANSFER_GRANTS).flatMap(([key,codes])=>codes.map(code=>{
+  const permission=after.permissions.find(p=>p.permission_code===code);demand(permission,'TR_FINAL_CAPABILITY_MISSING');
+  return b.actors[key].roleId+':'+permission.id;
+ })).filter(key=>!oldGrants.has(key)).sort();
+ demand(canonical(added('role_permissions').map(r=>r.role_id+':'+r.permission_id).sort())===canonical(expectedGrants),'TR_FINAL_EXACT_GRANT_MATRIX_CHANGED');
  demand(added('warehouses')[0].id===c.warehouse.id&&added('project_members')[0].id===c.member.id&&added('stock_transfers')[0].id===source.id,'TR_CONFIGURATION_SOURCE_IDS_CHANGED');
  demand(canonical(added('transfer_operations').map(r=>r.action).sort())===canonical(['ENABLE','APPROVE','ASSIGN','DISPATCH','PREPARE_RECEIPT','RECEIVE'].sort()),'TR_OPERATION_HISTORY_INVALID');
  const stock=added('stock_transactions'),out=stock.find(r=>r.movement_type==='STOCK_TRANSFER_OUT'),incoming=stock.find(r=>r.movement_type==='STOCK_TRANSFER_IN');
@@ -163,6 +176,8 @@ export function verifyTransferJourneyPreservation(before,after,c,b,source,result
   incoming?.stock_transfer_id===source.id&&incoming.quantity===4&&incoming.warehouse_id===c.warehouse.id&&incoming.posted_by_user_id===b.actors.PORN.userId,'TR_FINAL_STOCK_ACTORS_OR_SOURCE_INVALID');
  const receipt=added('transfer_receipts')[0],line=added('transfer_receipt_lines')[0],assignment=added('transfer_receiver_assignments')[0];
  demand(receipt.id===result.receiptId&&receipt.transfer_id===source.id&&receipt.project_id===f.unassignedProjectId&&receipt.posted_at&&receipt.created_by_user_id===b.actors.PORN.userId&&
-  line.receipt_id===receipt.id&&line.quantity===4&&assignment.employee_id===b.actors.PORN.employeeId&&assignment.actor_user_id===b.actors.KHAIMOOK.userId,'TR_FINAL_RECEIPT_ASSIGNMENT_INVALID');
- demand(added('documents').every(d=>result.documentIds.includes(d.id)&&d.uploaded_by_user_id===b.actors.PORN.userId&&d.document_type_id===c.documentTypeId),'TR_FINAL_DOCUMENT_SCOPE_INVALID');
+  line.receipt_id===receipt.id&&line.quantity===4&&incoming.transfer_receipt_line_id===line.id&&
+  assignment.employee_id===b.actors.PORN.employeeId&&assignment.actor_user_id===b.actors.KHAIMOOK.userId,'TR_FINAL_RECEIPT_ASSIGNMENT_INVALID');
+ demand(added('documents').every(d=>result.documentIds.includes(d.id)&&receipt.document_id===d.id&&receipt.checksum===d.checksum&&
+  d.uploaded_by_user_id===b.actors.PORN.userId&&d.document_type_id===c.documentTypeId),'TR_FINAL_DOCUMENT_SCOPE_INVALID');
 }
