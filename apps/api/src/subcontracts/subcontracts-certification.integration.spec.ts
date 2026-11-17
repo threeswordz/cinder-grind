@@ -1,3 +1,5 @@
+import { DocumentPolicyService } from '../documents/document-policy.service';
+import { DocumentsService } from '../documents/documents.service';
 import { SubcontractsPhysicalService } from './subcontracts-physical.service';
 import { LocalDocumentStorage } from '../documents/local-document-storage.service';
 import assert from 'node:assert/strict';
@@ -188,7 +190,8 @@ test('V0.5-D certifies assessed Claims with retained withholding, history and co
       access,
       audit,
       numbers,
-      new SubcontractsPhysicalService(prisma, access, audit, new LocalDocumentStorage()),
+      new SubcontractsPhysicalService(prisma, access, audit, new LocalDocumentStorage(),
+        new DocumentsService(prisma, access, audit, new LocalDocumentStorage(), new DocumentPolicyService())),
     );
     const certifications = new SubcontractsCertificationService(
       prisma,
@@ -196,7 +199,8 @@ test('V0.5-D certifies assessed Claims with retained withholding, history and co
       new ApprovalService(prisma),
       audit,
       numbers,
-      new SubcontractsPhysicalService(prisma, access, audit, new LocalDocumentStorage()),
+      new SubcontractsPhysicalService(prisma, access, audit, new LocalDocumentStorage(),
+        new DocumentsService(prisma, access, audit, new LocalDocumentStorage(), new DocumentPolicyService())),
     );
     const retention = new RetentionService(prisma, access);
 

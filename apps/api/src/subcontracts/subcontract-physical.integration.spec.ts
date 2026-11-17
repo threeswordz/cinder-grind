@@ -355,6 +355,27 @@ test('DEC-048 actual HTTP binds partial physical acceptance to canonical assessm
         CROSS JOIN LATERAL jsonb_array_elements(r.observations) AS o(value) WHERE o.value->>'id'=${id}`;
       assert.equal(rows[0]!.count, '1');
     });
+    await t.test('submission respects every protected source association on its supporting Document', async () => {
+      const candidate = await prepare('05', { year: '2027', submit: false });
+      const certification = await call(porn!, root + '/claims/' + legacy.claim.id + '/certifications', 201, { certifiedGross: '100' });
+      await db.documentLink.create({ data: { documentId: candidate.documentId, entityType: 'SUBCONTRACT_CERTIFICATION', entityId: certification.id, linkedByUserId: f.porn.user.id } });
+      const response = await fetch(base + '/documents/projects/' + f.project.id + '/targets/SUBCONTRACT_CLAIM/' + candidate.claim.id + '/' + candidate.documentId + '/download', { headers: { Cookie: maker!.cookie } });
+      assert.equal(response.status, 404, 'The ordinary owning alias already denies the additional protected source'); await response.body?.cancel();
+      const masked = await call(maker!, physical + '/claims/' + candidate.claim.id);
+      assert.deepEqual(masked.revisions[0].observations[0].documentIds, []);
+      await call(maker!, root + '/claims/' + candidate.claim.id + '/submit', 409, { actionKey: randomUUID(), expectedPhysicalVersion: 2 });
+      assert.equal(await db.subcontractPhysicalSubmission.count({ where: { claimId: candidate.claim.id } }), 0);
+      await f.grant(f.maker.role.id, ['subcontracts.certification.view']);
+      try {
+        await call(maker!, root + '/claims/' + candidate.claim.id + '/submit', 201, { actionKey: randomUUID(), expectedPhysicalVersion: 2 });
+        const independent = await call(ben!, physical + '/claims/' + candidate.claim.id);
+        assert.equal(independent.canDecide, false); assert.deepEqual(independent.submission.evidence, []);
+        await call(ben!, physical + '/claims/' + candidate.claim.id + '/decide', 409, { requestKey: randomUUID(), expectedVersion: 2,
+          sourceDigest: independent.submission.sourceDigest, reason: 'Reviewer must own all evidence source rights independently',
+          decisions: [{ observationId: candidate.observationId, acceptedQuantity: '8', acceptedAmount: '731.25', heldDisposition: 'REWORK', reason: 'Maker rights are never inherited' }] });
+        assert.equal(await db.subcontractClaimAssessment.count({ where: { claimId: candidate.claim.id } }), 0);
+      } finally { await db.rolePermission.deleteMany({ where: { roleId: f.maker.role.id, permission: { permissionCode: 'subcontracts.certification.view' } } }); }
+    });
     assert.deepEqual(await db.subcontractClaim.findUniqueOrThrow({ where: { id: legacy.claim.id }, include: { lines: true, assessment: true } }), old);
     assert.deepEqual(await noSideEffects(), before);
   } catch (error) { failure = error; }

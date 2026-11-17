@@ -40,6 +40,7 @@ export function PhysicalAcceptancePanel({ claim, source, permissions, onDirty, r
     <Divider /><Typography variant="h6">{t.title}</Typography><Alert severity="info">{t.policy}</Alert>
     <RequestError error={reloadError} />
     {!source.unitSourceCurrent ? <Alert severity="warning">{t.unitChanged}</Alert> : null}
+    {!source.evidenceSourceVisible ? <Alert severity="info">{t.evidenceAccess}</Alert> : null}
     {!source.canCapture && !source.canDecide ? <Button onClick={() => void reload()} disabled={reloading} sx={{ alignSelf: 'flex-start' }}>{t.reload}</Button> : null}
     {source.canCapture ? <CaptureEditor key={'capture-' + epoch} {...{ claim, source, permissions, onDirty }} reload={reload} reloading={reloading} /> : null}
     {source.canDecide ? <DecisionEditor key={'decision-' + epoch} {...{ claim, source, onDirty }} reload={reload} reloading={reloading} /> : null}

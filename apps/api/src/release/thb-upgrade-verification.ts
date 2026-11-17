@@ -1,3 +1,5 @@
+import { DocumentPolicyService } from '../documents/document-policy.service';
+import { DocumentsService } from '../documents/documents.service';
 import { SubcontractsPhysicalService } from '../subcontracts/subcontracts-physical.service';
 import { LocalDocumentStorage } from '../documents/local-document-storage.service';
 import assert from 'node:assert/strict';
@@ -191,7 +193,8 @@ export async function verifyThbUpgrade(prisma: PrismaService, requireRetention: 
     const approver = await actualAuth(certification.approvedByUserId);
     assert.ok(approver.permissions.includes('subcontracts.certification.reverse'));
     const service = new SubcontractsCertificationService(prisma, access, approvals, audit, numbers,
-      new SubcontractsPhysicalService(prisma, access, audit, new LocalDocumentStorage()),
+      new SubcontractsPhysicalService(prisma, access, audit, new LocalDocumentStorage(),
+        new DocumentsService(prisma, access, audit, new LocalDocumentStorage(), new DocumentPolicyService())),
     );
     const key = randomUUID();
     await service.reverseCertification({ auth: approver }, certification.id, 'Exact historical retention correction', key);

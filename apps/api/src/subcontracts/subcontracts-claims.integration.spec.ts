@@ -1,3 +1,5 @@
+import { DocumentPolicyService } from '../documents/document-policy.service';
+import { DocumentsService } from '../documents/documents.service';
 import { SubcontractsPhysicalService } from './subcontracts-physical.service';
 import { LocalDocumentStorage } from '../documents/local-document-storage.service';
 import assert from 'node:assert/strict';
@@ -187,7 +189,8 @@ test('V0.5-C retains Claim history, separates assessment and enforces commercial
       access,
       audit,
       new NumberSequenceService(prisma),
-      new SubcontractsPhysicalService(prisma, access, audit, new LocalDocumentStorage()),
+      new SubcontractsPhysicalService(prisma, access, audit, new LocalDocumentStorage(),
+        new DocumentsService(prisma, access, audit, new LocalDocumentStorage(), new DocumentPolicyService())),
     );
     const workflow = new SubcontractsWorkflowService(
       prisma,

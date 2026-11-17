@@ -4,6 +4,7 @@ import { Prisma } from '@prisma/client';
 import { AuditService } from '../audit/audit.service';
 import { AuthenticatedUserContext } from '../auth/auth.types';
 import { DocumentStorage } from '../documents/document-storage';
+import { DocumentsService } from '../documents/documents.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProjectAccessService } from '../projects/project-access.service';
 import { PhysicalDb, physicalActor } from './subcontract-physical-actor';
@@ -20,7 +21,7 @@ function conflict(code: string): never { throw new ConflictException({ code }); 
 @Injectable()
 export class SubcontractsPhysicalService {
   constructor(private readonly prisma: PrismaService, private readonly access: ProjectAccessService,
-    private readonly audit: AuditService, private readonly storage: DocumentStorage) {}
+    private readonly audit: AuditService, private readonly storage: DocumentStorage, private readonly documents: DocumentsService) {}
 
   private async transaction<T>(work: (tx: Tx) => Promise<T>) {
     for (let attempt = 0; attempt < 3; attempt++) {
@@ -115,20 +116,23 @@ export class SubcontractsPhysicalService {
     });
   }
 
-  private async evidence(tx: PhysicalDb, claimId: string, revisionId: string) {
+  private async evidence(tx: PhysicalDb, auth: AuthenticatedUserContext, claimId: string, revisionId: string) {
     const rows = await tx.$queryRaw<Array<{ evidence: Evidence[] }>>`SELECT erp_physical_evidence(${claimId}::uuid,${revisionId}::uuid) AS evidence`;
     const evidence = rows[0]?.evidence;
     if (!evidence?.length) conflict('PHYSICAL_EVIDENCE_REQUIRED');
+    const claim = await tx.subcontractClaim.findUniqueOrThrow({ where: { id: claimId }, select: { projectId: true } });
     for (const item of evidence) {
-      const document = await tx.document.findUnique({ where: { id: item.id }, select: { storageKey: true } });
+      const document = await tx.document.findUnique({ where: { id: item.id }, select: { storageKey: true,
+        links: { select: { entityType: true, entityId: true } } } });
       if (!document) conflict('PHYSICAL_EVIDENCE_REQUIRED');
+      if (!(await this.documents.filterSourceDocuments(auth, claim.projectId, [document], tx)).length) conflict('PHYSICAL_EVIDENCE_REQUIRED');
       const bytes = await this.storage.read(document.storageKey);
       if (bytes.length !== item.size || createHash('sha256').update(bytes).digest('hex') !== item.checksum) conflict('PHYSICAL_EVIDENCE_BYTES_CHANGED');
     }
     return evidence;
   }
 
-  private async heldEvidence(tx: PhysicalDb, claimId: string, observations: PhysicalObservation[]) {
+  private async heldEvidence(tx: PhysicalDb, auth: AuthenticatedUserContext, claimId: string, observations: PhysicalObservation[]) {
     if (!observations.some(o => o.heldSourceId)) return;
     const root = await tx.subcontractClaim.findUniqueOrThrow({ where: { id: claimId },
       select: { companyId: true, projectId: true, agreementId: true } });
@@ -147,7 +151,7 @@ export class SubcontractsPhysicalService {
         if (seen.has(parent.claimId)) continue;
         seen.add(parent.claimId);
         await tx.$executeRaw`SELECT erp_physical_assert_source(${parent.claimId}::uuid)`;
-        await this.evidence(tx, parent.claimId, parent.revisionId);
+        await this.evidence(tx, auth, parent.claimId, parent.revisionId);
         pending.push(parent.observations);
       }
     }
@@ -160,21 +164,22 @@ export class SubcontractsPhysicalService {
     if (source.version !== expectedVersion) conflict('PHYSICAL_DRAFT_VERSION_CONFLICT');
     const revision = await tx.subcontractPhysicalRevision.findUnique({ where: { claimId_version: { claimId, version: source.version } } });
     if (!revision) conflict('PHYSICAL_OBSERVATIONS_REQUIRED');
-    const evidence = await this.evidence(tx, claimId, revision.id);
-    await this.heldEvidence(tx, claimId, revision.observations as unknown as PhysicalObservation[]);
+    const evidence = await this.evidence(tx, auth, claimId, revision.id);
+    await this.heldEvidence(tx, auth, claimId, revision.observations as unknown as PhysicalObservation[]);
     const row = await tx.subcontractPhysicalSubmission.create({ data: { claimId, revisionId: revision.id, actorUserId: auth.userId,
       sourceDigest: '0'.repeat(64), commercialSource: {}, evidence: [] } });
     if (JSON.stringify(row.evidence) !== JSON.stringify(evidence)) conflict('PHYSICAL_EVIDENCE_CHANGED_DURING_SUBMIT');
   }
 
   async assertSource(auth: AuthenticatedUserContext, claimId: string, tx: PhysicalDb) {
-    if (!await this.authorize(auth, claimId, tx, ['documents.document.view'])) return;
+    const current = await this.authorize(auth, claimId, tx, ['documents.document.view']);
+    if (!current) return;
     await tx.$executeRaw`SELECT erp_physical_assert_source(${claimId}::uuid)`;
     const submission = await tx.subcontractPhysicalSubmission.findUnique({ where: { claimId } });
     if (!submission) conflict('PHYSICAL_SUBMISSION_REQUIRED');
-    await this.evidence(tx, claimId, submission.revisionId);
+    await this.evidence(tx, current, claimId, submission.revisionId);
     const revision = await tx.subcontractPhysicalRevision.findUniqueOrThrow({ where: { id: submission.revisionId } });
-    await this.heldEvidence(tx, claimId, revision.observations as unknown as PhysicalObservation[]);
+    await this.heldEvidence(tx, current, claimId, revision.observations as unknown as PhysicalObservation[]);
   }
 
   async prepareDecision(context: Context, tx: Tx, claimId: string, value: unknown): Promise<PreparedDecision | null> {
@@ -228,6 +233,15 @@ export class SubcontractsPhysicalService {
     const decision = await this.prisma.subcontractPhysicalDecision.findUnique({ where: { claimId } });
     const monetary = actor!.permissions.includes('subcontracts.assessment.view');
     const documents = actor!.permissions.includes('documents.document.view');
+    const allDocumentIds = [...new Set(revisions.flatMap(row => (row.observations as unknown as PhysicalObservation[]).flatMap(o => o.documentIds)))];
+    const documentRows = documents && allDocumentIds.length ? await this.prisma.document.findMany({
+      where: { companyId: auth.companyId, isActive: true, id: { in: allDocumentIds }, links: { some: { entityType: 'PROJECT', entityId: claim.projectId } } },
+      select: { id: true, links: { select: { entityType: true, entityId: true } } },
+    }) : [];
+    const visibleDocuments = new Set((await this.documents.filterSourceDocuments(actor!, claim.projectId, documentRows)).map(row => row.id));
+    const currentRevision = revisions.find(row => row.id === submission?.revisionId) ?? revisions[0];
+    const sourceDocumentIds = currentRevision ? (currentRevision.observations as unknown as PhysicalObservation[]).flatMap(o => o.documentIds) : [];
+    const evidenceSourceVisible = sourceDocumentIds.every(id => visibleDocuments.has(id));
     const has = (...codes: string[]) => codes.every(code => actor!.permissions.includes(code));
     const usedUoms = revisions.flatMap(row => (row.observations as unknown as PhysicalObservation[]).flatMap(o => o.uomId ? [o.uomId] : []));
     const uoms = await this.prisma.unitOfMeasure.findMany({ where: { companyId: auth.companyId,
@@ -284,18 +298,18 @@ export class SubcontractsPhysicalService {
     const actorIds = [...new Set([...revisions.map(row => row.actorUserId), submission?.actorUserId, decision?.actorUserId].filter((id): id is string => Boolean(id)))];
     const names = new Map((await this.prisma.user.findMany({ where: { companyId: auth.companyId, id: { in: actorIds } },
       select: { id: true, displayName: true } })).map(row => [row.id, row.displayName]));
-    return { controlled: true as const, claimId, version: source.version, uoms: [...historicalUoms.values()], unitSourceCurrent, heldOrigins,
+    return { controlled: true as const, claimId, version: source.version, uoms: [...historicalUoms.values()], unitSourceCurrent, evidenceSourceVisible, heldOrigins,
       canCapture: claim.state === 'DRAFT' && has(PHYSICAL + 'edit', 'subcontracts.claim.edit', 'documents.document.view'),
-      canSubmit: claim.state === 'DRAFT' && has(PHYSICAL + 'edit', 'subcontracts.claim.submit', 'documents.document.view'),
-      canDecide: unitSourceCurrent && claim.state === 'SUBMITTED' && has(PHYSICAL + 'decide', 'subcontracts.assessment.assess', 'documents.document.view') &&
+      canSubmit: evidenceSourceVisible && claim.state === 'DRAFT' && has(PHYSICAL + 'edit', 'subcontracts.claim.submit', 'documents.document.view'),
+      canDecide: evidenceSourceVisible && unitSourceCurrent && claim.state === 'SUBMITTED' && has(PHYSICAL + 'decide', 'subcontracts.assessment.assess', 'documents.document.view') &&
         ![claim.createdByUserId, claim.submittedByUserId, submission?.actorUserId, revisions[0]?.actorUserId].includes(auth.userId),
       heldSources: held.map(({ claimNumber, observation: o, remaining }) => ({ id: o.id, claimNumber, item: o.item,
         location: o.location, basis: o.basis, basisDescription: o.basisDescription, uomId: o.uomId,
         remainingQuantity: o.basis === 'MEASURED' ? new Prisma.Decimal(remaining).toFixed(4) : null })),
       revisions: revisions.map(row => ({ ...row, actorName: names.get(row.actorUserId),
-        observations: (row.observations as unknown as PhysicalObservation[]).map(o => ({ ...o, documentIds: documents ? o.documentIds : [] })) })),
+        observations: (row.observations as unknown as PhysicalObservation[]).map(o => ({ ...o, documentIds: o.documentIds.filter(id => visibleDocuments.has(id)) })) })),
       submission: submission && { revisionId: submission.revisionId, sourceDigest: submission.sourceDigest, actorUserId: submission.actorUserId,
-        actorName: names.get(submission.actorUserId), evidence: documents ? submission.evidence : [], createdAt: submission.createdAt },
+        actorName: names.get(submission.actorUserId), evidence: (submission.evidence as unknown as Evidence[]).filter(row => visibleDocuments.has(row.id)), createdAt: submission.createdAt },
       decision: decision && { actorUserId: decision.actorUserId, actorName: names.get(decision.actorUserId), reason: decision.reason, createdAt: decision.createdAt,
         ...(monetary ? { assessedAmount: decision.assessedAmount } : {}),
         decisions: (decision.decisions as unknown as Array<Record<string, unknown>>).map(row => {
