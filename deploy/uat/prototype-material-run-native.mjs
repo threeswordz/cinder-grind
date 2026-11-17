@@ -1,3 +1,5 @@
+import {configureTransfer,prepareTransferSource,transferBrowserBinding,verifyTransferJourneyPreservation} from './prototype-transfer-state.mjs';
+import {executeTransferBrowser} from './transfer-browser.mjs';
 import {configureReceiving,prepareReceivingSource,receivingBrowserBinding,verifyReceivingJourneyPreservation} from './prototype-receiving-state.mjs';
 import {executeReceivingBrowser} from './prototype-receiving-browser.mjs';
 import {executeFm03Browser} from './prototype-fm03-browser.mjs';
@@ -190,6 +192,21 @@ async function native(){
     phase='RECEIVING_PRESERVATION';
     verifyReceivingJourneyPreservation(receivingBefore,await fm03Snapshot(db),receivingConfig,fmBinding,receivingSource,receivingResult);
     console.log('RECEIVING_POPULATED_ENGINE_NATIVE_PASS: prior material/signed/FM03 preserved; minimal explicit configuration, actual PR/PO approval chain, same shared real-browser receiving/evidence/Jai-check/canonical-GR journey and revoked API/UI sessions. Not Mac execution, whole recovery or freeze proof.');
+    // Extend this same populated target once. Keep completed source history and
+    // exercise the actual configuration/API/browser code used by the Mac package.
+    phase='TRANSFER_BASELINE';const transferBefore=await fm03Snapshot(db);
+    await assert.rejects(configureTransfer(db,fmBinding,'0'.repeat(64)),e=>e.safeCode==='TR_CONFIGURATION_STATE_DRIFT');
+    const sharedTransferRole=await db.userRole.create({data:{companyId:fixture.companyId,userId:prepared.actors.NANCY.userId,roleId:prepared.actors.PORN.roleId}});
+    try{await assert.rejects(configureTransfer(db,fmBinding,digest(await fm03Snapshot(db))),e=>e.safeCode==='TR_ROLE_MEMBERSHIP_MUST_BE_EXCLUSIVE');}
+    finally{await db.userRole.delete({where:{id:sharedTransferRole.id}});}
+    assert.equal(digest(await fm03Snapshot(db)),digest(transferBefore));
+    phase='TRANSFER_CONFIGURATION';const transferConfig=await configureTransfer(db,fmBinding,digest(transferBefore));
+    phase='TRANSFER_CANONICAL_SOURCE';const transferSource=await prepareTransferSource(db,fmBinding,transferConfig,origins);
+    phase='TRANSFER_ACTUAL_BROWSER';browser=await startBrowser(chrome,temporary);
+    const transferResult=await executeTransferBrowser(browser.protocol,await transferBrowserBinding(db,fmBinding,transferConfig,transferSource,origins),db);
+    await browser.stop();browser=undefined;
+    phase='TRANSFER_PRESERVATION';verifyTransferJourneyPreservation(transferBefore,await fm03Snapshot(db),transferConfig,fmBinding,transferSource,transferResult);
+    console.log('TRANSFER_POPULATED_ENGINE_NATIVE_PASS: completed material/FM03/receiving rows and grants preserved; exact new synthetic rights, canonical approval with zero stock, explicit Khaimook receiver assignment, real React dispatch5/receive4/outstanding1, protected evidence/locales/denials and revoked sessions. Not Mac execution or final recovery/freeze.');
   }catch(e){
     console.error('MATERIAL_RUN_NATIVE_FAILED: '+phase+' '+(/^[A-Z0-9_]+$/.test(e.safeCode??'')?e.safeCode:'NATIVE_ASSERTION_OR_SETUP_FAILED')+
       (e.cleanupFailed===true?' CLEANUP_ALSO_FAILED':''));

@@ -1,4 +1,4 @@
-// Real React transfer journey on a uniquely owned Linux disposable target only.
+// Shared real React journey: guarded populated Mac operator or unique Linux CI target.
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 const demand=(ok,code)=>{if(!ok)throw Object.assign(new Error(code),{safeCode:code});};
@@ -41,7 +41,10 @@ function syntheticPdf(label){
 }
 export async function executeTransferBrowser(protocol,binding,db){
  const {api:API,web:WEB,fixture:f}=structuredClone(binding);
- demand(process.platform==='linux'&&process.env.GITHUB_ACTIONS==='true'&&API==='http://127.0.0.1:31339/api/v1'&&WEB==='http://127.0.0.1:44339','TRANSFER_BROWSER_ORIGINS_REFUSED');
+ demand(process.platform==='darwin'&&API==='http://127.0.0.1:33071/api/v1'&&WEB==='http://127.0.0.1:44171'||
+  process.platform==='linux'&&process.env.GITHUB_ACTIONS==='true'&&[
+   ['http://127.0.0.1:31339/api/v1','http://127.0.0.1:44339'],
+   ['http://127.0.0.1:31319/api/v1','http://127.0.0.1:44319']].some(([a,w])=>a===API&&w===WEB),'TRANSFER_BROWSER_ORIGINS_REFUSED');
  const before=await db.stockTransaction.findMany({where:{companyId:f.company.id}});
  demand(await db.transferDispatch.count({where:{transferId:f.id}})===0,'TRANSFER_BROWSER_NO_REPLAY');
  let context,session,phase='START',receiptId,documentId;const closing=new Set(),violations=[];
@@ -153,7 +156,7 @@ export async function executeTransferBrowser(protocol,binding,db){
  const added=rows.filter(r=>!before.some(old=>old.id===r.id));assert.equal(added.length,2);
  assert.equal(added.find(r=>r.movementType==='STOCK_TRANSFER_OUT').quantity.toFixed(4),'-5.0000');assert.equal(added.find(r=>r.movementType==='STOCK_TRANSFER_IN').quantity.toFixed(4),'4.0000');
  assert.deepEqual(violations,[]);
- return {status:'TRANSFER_BROWSER_NATIVE_PASS',outstanding:'1.0000',sessionsRevoked:true};
+ return {status:'TRANSFER_BROWSER_NATIVE_PASS',transferId:f.id,receiptId,documentIds:[documentId],outstanding:'1.0000',sessionsRevoked:true};
  }catch(e){throw Object.assign(new Error(),{safeCode:'TRANSFER_BROWSER_'+phase+'_'+(/^[A-Z0-9_]+$/.test(e.safeCode??'')?e.safeCode:'ASSERTION_FAILED')});}
  finally{protocol.listeners.delete(intercept);if(context)try{await protocol.send('Target.disposeBrowserContext',{browserContextId:context});}catch{}}
 }
