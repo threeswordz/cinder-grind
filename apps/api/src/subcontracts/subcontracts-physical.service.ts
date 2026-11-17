@@ -128,6 +128,31 @@ export class SubcontractsPhysicalService {
     return evidence;
   }
 
+  private async heldEvidence(tx: PhysicalDb, claimId: string, observations: PhysicalObservation[]) {
+    if (!observations.some(o => o.heldSourceId)) return;
+    const root = await tx.subcontractClaim.findUniqueOrThrow({ where: { id: claimId },
+      select: { companyId: true, projectId: true, agreementId: true } });
+    const pending = [observations], seen = new Set([claimId]);
+    while (pending.length) {
+      const ids = [...new Set(pending.pop()!.flatMap(o => o.heldSourceId ? [o.heldSourceId] : []))];
+      if (!ids.length) continue;
+      const parents = await tx.$queryRaw<Array<{ claimId: string; revisionId: string; observations: PhysicalObservation[]; sourceIds: string[] }>>`
+        SELECT s.claim_id AS "claimId", s.revision_id AS "revisionId", r.observations, array_agg(DISTINCT x.value->>'id') AS "sourceIds"
+        FROM subcontract_physical_submissions s JOIN subcontract_physical_revisions r ON r.id=s.revision_id
+        JOIN subcontract_claims c ON c.id=s.claim_id CROSS JOIN LATERAL jsonb_array_elements(r.observations) AS x(value)
+        WHERE c.company_id=${root.companyId}::uuid AND c.project_id=${root.projectId}::uuid AND c.agreement_id=${root.agreementId}::uuid
+          AND x.value->>'id'=ANY(${ids}::text[]) GROUP BY s.claim_id,s.revision_id,r.observations`;
+      if (new Set(parents.flatMap(row => row.sourceIds)).size !== ids.length) conflict('PHYSICAL_HELD_SOURCE_INVALID');
+      for (const parent of parents) {
+        if (seen.has(parent.claimId)) continue;
+        seen.add(parent.claimId);
+        await tx.$executeRaw`SELECT erp_physical_assert_source(${parent.claimId}::uuid)`;
+        await this.evidence(tx, parent.claimId, parent.revisionId);
+        pending.push(parent.observations);
+      }
+    }
+  }
+
   async freeze(context: Context, tx: Tx, claimId: string, expectedVersion?: number) {
     const auth = await this.authorize(context.auth, claimId, tx, [PHYSICAL + 'edit', 'subcontracts.claim.submit', 'documents.document.view']);
     if (!auth) return;
@@ -136,6 +161,7 @@ export class SubcontractsPhysicalService {
     const revision = await tx.subcontractPhysicalRevision.findUnique({ where: { claimId_version: { claimId, version: source.version } } });
     if (!revision) conflict('PHYSICAL_OBSERVATIONS_REQUIRED');
     const evidence = await this.evidence(tx, claimId, revision.id);
+    await this.heldEvidence(tx, claimId, revision.observations as unknown as PhysicalObservation[]);
     const row = await tx.subcontractPhysicalSubmission.create({ data: { claimId, revisionId: revision.id, actorUserId: auth.userId,
       sourceDigest: '0'.repeat(64), commercialSource: {}, evidence: [] } });
     if (JSON.stringify(row.evidence) !== JSON.stringify(evidence)) conflict('PHYSICAL_EVIDENCE_CHANGED_DURING_SUBMIT');
@@ -147,6 +173,8 @@ export class SubcontractsPhysicalService {
     const submission = await tx.subcontractPhysicalSubmission.findUnique({ where: { claimId } });
     if (!submission) conflict('PHYSICAL_SUBMISSION_REQUIRED');
     await this.evidence(tx, claimId, submission.revisionId);
+    const revision = await tx.subcontractPhysicalRevision.findUniqueOrThrow({ where: { id: submission.revisionId } });
+    await this.heldEvidence(tx, claimId, revision.observations as unknown as PhysicalObservation[]);
   }
 
   async prepareDecision(context: Context, tx: Tx, claimId: string, value: unknown): Promise<PreparedDecision | null> {
@@ -239,6 +267,11 @@ export class SubcontractsPhysicalService {
         WHERE sc.company_id=${auth.companyId}::uuid AND sc.project_id=${claim.projectId}::uuid
           AND sc.agreement_id=${claim.agreementId}::uuid AND sc.id<>${claimId}::uuid
           AND (sc.state='ASSESSED' OR sc.id IN (SELECT id FROM ancestors)) AND d->>'observationId'=x->>'id'
+          AND s.commercial_source ? 'uoms' AND NOT EXISTS (
+            SELECT 1 FROM jsonb_array_elements(s.commercial_source->'uoms') AS frozen(value)
+            LEFT JOIN units_of_measure u ON u.id=(frozen.value->>'id')::uuid AND u.company_id=sc.company_id
+            WHERE frozen.value IS DISTINCT FROM jsonb_build_object('id',u.id,'uomCode',u.uom_code,'uomName',u.uom_name,
+              'decimalPlaces',u.decimal_places,'isActive',u.is_active))
       ) SELECT "claimNumber", observation, remaining::text FROM choices WHERE remaining>0 ORDER BY "claimNumber", observation->>'item'`;
     const heldIds = [...new Set(revisions.flatMap(row => (row.observations as unknown as PhysicalObservation[])
       .flatMap(o => o.heldSourceId ? [o.heldSourceId] : [])))];

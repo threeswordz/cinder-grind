@@ -51,8 +51,8 @@ test('DEC-048 actual HTTP binds partial physical acceptance to canonical assessm
     const noSideEffects = async () => ({ stock: await db.stockTransaction.findMany({ where: { companyId: f.company.id } }),
       payments: await db.payment.findMany({ where: { companyId: f.company.id } }), invoices: await db.supplierInvoice.findMany({ where: { companyId: f.company.id } }) });
     const before = await noSideEffects();
-    const makeClaim = async (month: string) => {
-      const claim = await call(maker!, root + '/agreements/' + f.agreement.id + '/claims', 201, { periodStart: '2026-' + month + '-01', periodEnd: '2026-' + month + '-20' });
+    const makeClaim = async (month: string, year = '2026') => {
+      const claim = await call(maker!, root + '/agreements/' + f.agreement.id + '/claims', 201, { periodStart: year + '-' + month + '-01', periodEnd: year + '-' + month + '-20' });
       const line = await call(maker!, root + '/claims/' + claim.id + '/lines', 201, { amount: '1000.00' });
       return { claim, line };
     };
@@ -63,8 +63,8 @@ test('DEC-048 actual HTTP binds partial physical acceptance to canonical assessm
     await call(ben!, physical + '/projects/' + f.project.id + '/enable', 201, { requestKey: randomUUID(), reason: 'Explicit disposable physical source opt-in' });
     assert.equal(await db.subcontractPhysicalClaim.count({ where: { claimId: legacy.claim.id } }), 0);
 
-    const prepare = async (month: string, options: { quantity?: string; heldSourceId?: string; submit?: boolean } = {}) => {
-      const { claim, line } = await makeClaim(month);
+    const prepare = async (month: string, options: { quantity?: string; heldSourceId?: string; submit?: boolean; year?: string } = {}) => {
+      const { claim, line } = await makeClaim(month, options.year);
       const data = new FormData(); data.set('documentTypeId', f.documentType.id);
       const bytes = Buffer.from('%PDF-1.4 Explicit synthetic physical work evidence');
       data.set('file', new Blob([bytes], { type: 'application/pdf' }), 'work.pdf');
@@ -255,6 +255,105 @@ test('DEC-048 actual HTTP binds partial physical acceptance to canonical assessm
         } finally { await db.unitOfMeasure.update({ where: { id: f.uom.id }, data: { uomName: f.uom.uomName } }); }
         await call(ben!, physical + '/claims/' + candidate.claim.id + '/decide', 201, { ...body, requestKey: randomUUID(), decisions: [{ ...body.decisions[0], acceptedQuantity: '8' }] });
       } finally { await db.unitOfMeasure.update({ where: { id: f.uom.id }, data: { decimalPlaces: 4 } }); }
+    });
+    await t.test('direct source correction and later rework submission share the same Agreement boundary', async () => {
+      const parent = await prepare('11');
+      await call(ben!, physical + '/claims/' + parent.claim.id + '/decide', 201, { requestKey: randomUUID(), expectedVersion: 2,
+        sourceDigest: parent.source.submission.sourceDigest, reason: 'Retain held source for a correction race',
+        decisions: [{ observationId: parent.observationId, acceptedQuantity: '0', acceptedAmount: '0', heldDisposition: 'REWORK', reason: 'Held before later work' }] });
+      const child = await prepare('12', { quantity: '1', heldSourceId: parent.observationId, submit: false });
+      const parentAssessment = await db.subcontractClaimAssessment.findFirstOrThrow({ where: { claimId: parent.claim.id } });
+      let ready!: () => void, release!: () => void, parentError: unknown;
+      const started = new Promise<void>(resolve => { ready = resolve; }), finish = new Promise<void>(resolve => { release = resolve; });
+      const correcting = db.$transaction(async tx => {
+        await tx.subcontractClaimAssessment.update({ where: { id: parentAssessment.id }, data: { state: 'REJECTED',
+          rejectedAt: new Date(), rejectedByUserId: f.ben.user.id, rejectionReason: 'Retained canonical source correction' } });
+        await tx.subcontractClaim.update({ where: { id: parent.claim.id }, data: { state: 'REJECTED' } });
+        ready(); await finish;
+      }, { timeout: 15000 }).catch(error => { parentError = error; ready(); });
+      await started;
+      let completed = false, blocked = false;
+      const submitting = fetch(base + root + '/claims/' + child.claim.id + '/submit', {
+        method: 'POST', headers: { Cookie: maker!.cookie, 'x-csrf-token': maker!.csrf, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ actionKey: randomUUID(), expectedPhysicalVersion: 2 }),
+      }).then(response => { completed = true; return response; });
+      try {
+        const deadline = Date.now() + 3000;
+        while (!completed && !blocked && Date.now() < deadline) {
+          const rows = await db.$queryRaw<Array<{ blocked: boolean }>>`SELECT EXISTS(SELECT 1 FROM pg_stat_activity WHERE datname=current_database()
+            AND wait_event_type='Lock' AND query LIKE '%subcontract_agreements%') AS blocked`;
+          blocked = rows[0]!.blocked;
+          if (!blocked && !completed) await new Promise(resolve => setTimeout(resolve, 20));
+        }
+      } finally { release(); await correcting; }
+      assert.equal(parentError, undefined, 'The valid original correction must commit');
+      const response = await submitting, body: any = await response.json();
+      assert.equal(response.status, 409, JSON.stringify(body)); assert.equal(blocked, true);
+      assert.equal(await db.subcontractPhysicalSubmission.count({ where: { claimId: child.claim.id } }), 0);
+      assert.equal((await db.subcontractClaim.findUniqueOrThrow({ where: { id: parent.claim.id } })).state, 'REJECTED');
+    });
+    await t.test('later rework cannot inherit a changed original unit or tampered ancestor evidence', async () => {
+      const parent = await prepare('01', { year: '2027' });
+      await call(ben!, physical + '/claims/' + parent.claim.id + '/decide', 201, { requestKey: randomUUID(), expectedVersion: 2,
+        sourceDigest: parent.source.submission.sourceDigest, reason: 'New held source for ancestry integrity',
+        decisions: [{ observationId: parent.observationId, acceptedQuantity: '8', acceptedAmount: '100', heldDisposition: 'REWORK', reason: 'Two explicitly held units' }] });
+      const child = await prepare('02', { year: '2027', quantity: '2', heldSourceId: parent.observationId, submit: false });
+      await db.unitOfMeasure.update({ where: { id: f.uom.id }, data: { uomName: 'Changed original held-work unit' } });
+      try { await call(maker!, root + '/claims/' + child.claim.id + '/submit', 409, { actionKey: randomUUID(), expectedPhysicalVersion: 2 }); }
+      finally { await db.unitOfMeasure.update({ where: { id: f.uom.id }, data: { uomName: f.uom.uomName } }); }
+      const originalDocument = await db.document.findUniqueOrThrow({ where: { id: parent.documentId } }), path = join(storage, originalDocument.storageKey);
+      const bytes = await readFile(path); await writeFile(path, Buffer.from('tampered original held-work proof'));
+      try { await call(maker!, root + '/claims/' + child.claim.id + '/submit', 409, { actionKey: randomUUID(), expectedPhysicalVersion: 2 }); }
+      finally { await writeFile(path, bytes); }
+      await call(maker!, root + '/claims/' + child.claim.id + '/submit', 201, { actionKey: randomUUID(), expectedPhysicalVersion: 2 });
+      const current = await call(ben!, physical + '/claims/' + child.claim.id);
+      await call(ben!, physical + '/claims/' + child.claim.id + '/decide', 201, { requestKey: randomUUID(), expectedVersion: 2,
+        sourceDigest: current.submission.sourceDigest, reason: 'One accepted and one still held',
+        decisions: [{ observationId: child.observationId, acceptedQuantity: '1', acceptedAmount: '25', heldDisposition: 'REWORK', reason: 'Keep ancestry exact' }] });
+      const grandchild = await prepare('03', { year: '2027', quantity: '1', heldSourceId: child.observationId, submit: false });
+      await writeFile(path, Buffer.from('tampered grandparent proof'));
+      try { await call(maker!, root + '/claims/' + grandchild.claim.id + '/submit', 409, { actionKey: randomUUID(), expectedPhysicalVersion: 2 }); }
+      finally { await writeFile(path, bytes); }
+      assert.equal(await db.subcontractPhysicalSubmission.count({ where: { claimId: grandchild.claim.id } }), 0);
+    });
+    await t.test('observation identity is unique even across concurrent distinct Agreements', async () => {
+      const first = await makeClaim('04', '2027'), id = randomUUID();
+      const agreement = await db.subcontractAgreement.create({ data: { companyId: f.company.id, projectId: f.project.id,
+        subcontractorId: f.agreement.subcontractorId, agreementNumber: 'IDENTITY-' + randomUUID(), originalValue: '1000',
+        currencyCode: 'THB', scopeOfWork: 'Independent synthetic identity boundary', approvalState: 'APPROVED', firstApprovedAt: new Date(), createdByUserId: f.maker.user.id } });
+      const second = await call(maker!, root + '/agreements/' + agreement.id + '/claims', 201, { periodStart: '2027-04-01', periodEnd: '2027-04-20' });
+      const secondLine = await call(maker!, root + '/claims/' + second.id + '/lines', 201, { amount: '100' });
+      const observation = { id, claimLineId: first.line.id, basis: 'MEASURED', item: 'Unique physical observation', location: 'Area A',
+        quantity: '1.0000', uomId: f.uom.id, progressPercent: '0.0000', reason: 'Identity race', documentIds: [], heldSourceId: null, basisDescription: '' };
+      let ready!: () => void, release!: () => void, firstError: unknown;
+      const started = new Promise<void>(resolve => { ready = resolve; }), finish = new Promise<void>(resolve => { release = resolve; });
+      const capturing = db.$transaction(async tx => {
+        await tx.subcontractPhysicalClaim.update({ where: { claimId: first.claim.id }, data: { version: 2 } });
+        await tx.subcontractPhysicalRevision.create({ data: { claimId: first.claim.id, version: 2, actorUserId: f.maker.user.id,
+          reason: 'Direct capture with held transaction custody', observations: [observation] } });
+        ready(); await finish;
+      }, { timeout: 15000 }).catch(error => { firstError = error; ready(); });
+      await started;
+      let completed = false, blocked = false;
+      const competing = fetch(base + physical + '/claims/' + second.id + '/capture', { method: 'POST',
+        headers: { Cookie: maker!.cookie, 'x-csrf-token': maker!.csrf, 'Content-Type': 'application/json' }, body: JSON.stringify({
+          requestKey: randomUUID(), expectedVersion: 1, reason: 'Concurrent reuse must not establish a second owner', observations: [{ ...observation, claimLineId: secondLine.id }],
+        }) }).then(response => { completed = true; return response; });
+      try {
+        const deadline = Date.now() + 3000;
+        while (!completed && !blocked && Date.now() < deadline) {
+          const rows = await db.$queryRaw<Array<{ blocked: boolean }>>`SELECT EXISTS(SELECT 1 FROM pg_stat_activity WHERE datname=current_database()
+            AND wait_event_type='Lock' AND query LIKE '%subcontract_physical_revisions%') AS blocked`;
+          blocked = rows[0]!.blocked;
+          if (!blocked && !completed) await new Promise(resolve => setTimeout(resolve, 20));
+        }
+      } finally { release(); await capturing; }
+      assert.equal(firstError, undefined);
+      const response = await competing, body: any = await response.json(); assert.equal(response.status, 409, JSON.stringify(body)); assert.equal(blocked, true);
+      assert.equal(body.code, 'PHYSICAL_OBSERVATION_ID_REUSED');
+      const rows = await db.$queryRaw<Array<{ count: string }>>`SELECT count(*)::text AS count FROM subcontract_physical_revisions r
+        CROSS JOIN LATERAL jsonb_array_elements(r.observations) AS o(value) WHERE o.value->>'id'=${id}`;
+      assert.equal(rows[0]!.count, '1');
     });
     assert.deepEqual(await db.subcontractClaim.findUniqueOrThrow({ where: { id: legacy.claim.id }, include: { lines: true, assessment: true } }), old);
     assert.deepEqual(await noSideEffects(), before);
