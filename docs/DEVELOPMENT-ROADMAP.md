@@ -1,5 +1,7 @@
 # Construction ERP — Development Roadmap
 
+**17 November 2026 Owner-approved next entry — subcontract physical acceptance:** PA-D01 option A / DEC-048 authorizes accepted work to proceed at an explicitly confirmed monetary amount while rework stays held. Publish [the bounded entry](OP-SUBCONTRACT-PHYSICAL-01-ENTRY.md) under #353; normal transfer #359 predecessor and entry gates precede runtime/schema work. Do not ask option A or the principal actors again. New Accounting/payroll/#245 and retained/Production activation remain separate; Current State owns live technical evidence.
+
 **17 November transfer review correction:** #359 stable candidate passed both full CI runs; independent review identified the first-posting Warehouse-lock boundary. The sole Builder has a reproduced archival-race regression and forward-only row-lock correction, with local HTTP10/10. Complete changed-head CI and final independent rereview before guarded integration/main; preserve the receiving Mac predecessor and completed journeys. [Current State](CURRENT-STATE.md) and [bounded correction](OP-TRANSFER-RECEIPT-01-IMPLEMENTATION.md#independent-review-correction--17-november-2026-sgt) own exact evidence.
 
 
