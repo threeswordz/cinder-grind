@@ -5,6 +5,38 @@ import {verifyReceivingMigration,verifyReceivingDocumentFiles,verifyReceivingHis
 import {receivingCatalog} from './receiving-catalog-contract.mjs';
 import {standaloneReceivingBrowserFixture} from '../uat/receiving-browser-native.mjs';
 import {receivingTables} from './receiving-schema-contract.mjs';
+import {spawnSync} from 'node:child_process';
+import {mkdtemp,symlink,rm,realpath} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join,dirname} from 'node:path';
+import {fileURLToPath} from 'node:url';
+
+test('receiving CLI cannot silently exit through a temporary-directory alias',async t=>{
+ const operator=await realpath(fileURLToPath(new URL('../uat/prototype-receiving-upgrade.mjs',import.meta.url)));
+ const temporary=await mkdtemp(join(tmpdir(),'receiving-entrypoint-'));
+ t.after(()=>rm(temporary,{recursive:true,force:true}));
+ const alias=join(temporary,'operator-alias');await symlink(dirname(operator),alias,'dir');
+ for(const [name,flags,path]of [
+  ['canonical',[],operator],
+  ['directory alias',[],join(alias,'prototype-receiving-upgrade.mjs')],
+  ['preserved main alias',['--preserve-symlinks-main'],join(alias,'prototype-receiving-upgrade.mjs')],
+ ]){
+  // Invalid CLI arguments must report a sanitized error BEFORE upgrade(),
+  // on every OS. Never invoke an actual Mac operator from this regression.
+  const result=spawnSync(process.execPath,[...flags,path,'--entrypoint-probe','a'.repeat(40)],
+   {encoding:'utf8',timeout:10000,env:{PATH:process.env.PATH,HOME:process.env.HOME}});
+  assert.equal(result.error,undefined,name);assert.equal(result.signal,null,name);
+  assert.equal(result.status,1,name+' must dispatch CLI and report invalid arguments');
+  assert.equal(result.stderr,'',name);
+  const receipt=JSON.parse(result.stdout);
+  assert.equal(receipt.status,'RECEIVING_UPGRADE_BLOCKED',name);
+  assert.equal(receipt.code,'RC_UPGRADE_EXECUTE_AND_PINNED_OPERATOR_SHA_REQUIRED',name);
+  assert.equal(receipt.productionAuthorized,false,name);assert.equal(receipt.secretsPrinted,false,name);
+ }
+ const imported=spawnSync(process.execPath,['--input-type=module','-e','await import('+JSON.stringify(new URL('../uat/prototype-receiving-upgrade.mjs',import.meta.url).href)+')'],
+  {encoding:'utf8',timeout:10000,env:{PATH:process.env.PATH,HOME:process.env.HOME}});
+ assert.equal(imported.status,0);assert.equal(imported.stdout,'');assert.equal(imported.stderr,'');
+});
 test('receiving coordinator refuses non-Mac execution and application/schema/renamed delta',async()=>{
  if(process.platform!=='darwin')await assert.rejects(upgrade(),e=>e.safeCode==='RC_UPGRADE_NONROOT_MAC_REQUIRED');
  const delta={status:'ahead',files:[{filename:'deploy/uat/prototype-receiving-upgrade.mjs',status:'added'}]};
