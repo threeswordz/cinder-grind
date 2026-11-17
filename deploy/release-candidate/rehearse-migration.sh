@@ -52,6 +52,7 @@ if ! git diff --quiet "$RC_PREVIOUS_RELEASE_COMMIT" "$RELEASE_COMMIT" -- apps/ap
   rm -f "$previous_schema_check"
 fi
 
+physical_schema=false
 transfer_schema=false
 receiving_schema=false
 site_issue_schema=false
@@ -64,6 +65,7 @@ hr_document_schema=false
 hr_proof=false
 customer_schema=false
 successor_mode="$schema_mode"
+export SUBCONTRACT_PHYSICAL_SCHEMA_UPGRADE=NO
 export TRANSFER_SCHEMA_UPGRADE=NO
 export RECEIVING_SCHEMA_UPGRADE=NO
 export SITE_ISSUE_SCHEMA_UPGRADE=NO
@@ -73,6 +75,14 @@ export MATERIAL_REQUEST_SCHEMA_UPGRADE=NO
 export STOCK_COUNT_SCHEMA_UPGRADE=NO
 export HR_SCHEMA_UPGRADE=NO
 export HR_DOCUMENT_SCHEMA_UPGRADE=NO
+if [[ "$successor_mode" == "migration-aware-subcontract-physical-schema" ]]; then
+  physical_schema=true
+  successor_mode="migration-aware-sql-only"
+elif [[ "$successor_mode" == migration-aware-subcontract-physical-* ]]; then
+  physical_schema=true
+  successor_mode="migration-aware-${successor_mode#migration-aware-subcontract-physical-}"
+fi
+if [[ "$physical_schema" == true ]]; then export SUBCONTRACT_PHYSICAL_SCHEMA_UPGRADE=YES; fi
 if [[ "$successor_mode" == "migration-aware-transfer-schema" ]]; then
   transfer_schema=true
   successor_mode="migration-aware-sql-only"
@@ -143,7 +153,7 @@ if [[ "$historical_mode" == "migration-aware-hr-schema" || "$historical_mode" ==
   export HR_SCHEMA_UPGRADE=YES
 fi
 if [[ "$historical_mode" == "migration-aware-customer-boq-schema" || "$historical_mode" == "migration-aware-hr-customer-boq-schema" ]]; then customer_schema=true; fi
-if [[ "$transfer_schema" == true || "$hr_schema" == true || "$hr_document_schema" == true || "$material_request_schema" == true || "$material_plan_schema" == true || "$plan_issue_schema" == true || "$site_issue_schema" == true || "$receiving_schema" == true ]]; then hr_proof=true; fi
+if [[ "$physical_schema" == true || "$transfer_schema" == true || "$hr_schema" == true || "$hr_document_schema" == true || "$material_request_schema" == true || "$material_plan_schema" == true || "$plan_issue_schema" == true || "$site_issue_schema" == true || "$receiving_schema" == true ]]; then hr_proof=true; fi
 
 legacy_upgrade=false
 if ! git cat-file -e "$RC_PREVIOUS_RELEASE_COMMIT:apps/api/prisma/migrations/20261025120000_v1_2_thb_monetary_policy/migration.sql" 2>/dev/null; then
@@ -331,7 +341,7 @@ trap on_exit EXIT
 create_database "$fresh_database"
 create_database "$upgrade_database"
 create_database "$rollback_database"
-if [[ "$transfer_schema" == true || "$hr_proof" == true || "$material_request_schema" == true || "$material_plan_schema" == true || "$plan_issue_schema" == true || "$site_issue_schema" == true || "$receiving_schema" == true ]]; then create_database "$hr_database"; fi
+if [[ "$physical_schema" == true || "$transfer_schema" == true || "$hr_proof" == true || "$material_request_schema" == true || "$material_plan_schema" == true || "$plan_issue_schema" == true || "$site_issue_schema" == true || "$receiving_schema" == true ]]; then create_database "$hr_database"; fi
 
 echo "[V1.0-E migration-aware] Fresh candidate migration-from-zero"
 DATABASE_URL="$fresh_url" DEPLOYMENT_MODE=fresh node apps/api/scripts/verify-production-target.mjs
@@ -502,6 +512,9 @@ fi
 if [[ "$hr_proof" == true ]]; then
   DATABASE_URL="$upgrade_url" node --test apps/api/dist/hr/hr.integration.spec.js
 fi
+if [[ "$physical_schema" == true ]]; then
+  DATABASE_URL="$upgrade_url" node --test apps/api/dist/subcontracts/subcontract-physical.integration.spec.js
+fi
 if [[ "$transfer_schema" == true ]]; then
   DATABASE_URL="$upgrade_url" node --test apps/api/dist/inventory/transfer-custody.integration.spec.js
 fi
@@ -537,7 +550,7 @@ fi
 upgrade_pgpass="$(mktemp)"
 chmod 600 "$upgrade_pgpass"
 native_upgrade_url="$(POSTGRES_RAW_URL="$upgrade_url" PGPASSFILE="$upgrade_pgpass" node deploy/recovery/postgres-url.mjs)"
-if [[ "$transfer_schema" == true || "$hr_proof" == true || "$material_request_schema" == true || "$material_plan_schema" == true || "$plan_issue_schema" == true || "$site_issue_schema" == true || "$receiving_schema" == true ]]; then
+if [[ "$physical_schema" == true || "$transfer_schema" == true || "$hr_proof" == true || "$material_request_schema" == true || "$material_plan_schema" == true || "$plan_issue_schema" == true || "$site_issue_schema" == true || "$receiving_schema" == true ]]; then
   if [[ "$hr_proof" == true ]]; then
   if [[ "$hr_document_schema" == true ]]; then
     mkdir -p "$tmp_root/hr-attachment-source" "$tmp_root/hr-attachment-restored"
@@ -586,12 +599,23 @@ if [[ "$transfer_schema" == true || "$hr_proof" == true || "$material_request_sc
     tar -czf "$tmp_root/receiving-documents.tar.gz" -C "$tmp_root/receiving-source" .
     chmod 600 "$tmp_root/receiving-documents.tar.gz"
   fi
+  if [[ "$physical_schema" == true ]]; then
+    mkdir -p "$tmp_root/physical-source" "$tmp_root/physical-restored"
+    chmod 700 "$tmp_root/physical-source" "$tmp_root/physical-restored"
+    SUBCONTRACT_PHYSICAL_RECOVERY_STORAGE_ROOT="$tmp_root/physical-source" DATABASE_URL="$upgrade_url" node "$RC_DIR/subcontract-physical-upgrade.mjs" protect "$tmp_root/physical-protected.json"
+    tar -czf "$tmp_root/physical-documents.tar.gz" -C "$tmp_root/physical-source" .
+    chmod 600 "$tmp_root/physical-documents.tar.gz"
+  fi
   PGPASSFILE="$upgrade_pgpass" pg_dump --format=custom --no-owner --no-privileges --dbname="$native_upgrade_url" > "$tmp_root/hr-protected.dump"
   chmod 600 "$tmp_root/hr-protected.dump"
   hr_pgpass="$(mktemp)"
   chmod 600 "$hr_pgpass"
   native_hr_url="$(POSTGRES_RAW_URL="$hr_url" PGPASSFILE="$hr_pgpass" node deploy/recovery/postgres-url.mjs)"
   PGPASSFILE="$hr_pgpass" pg_restore --exit-on-error --no-owner --no-privileges --dbname="$native_hr_url" < "$tmp_root/hr-protected.dump"
+  if [[ "$physical_schema" == true ]]; then
+    tar -xzf "$tmp_root/physical-documents.tar.gz" -C "$tmp_root/physical-restored" --no-same-owner
+    SUBCONTRACT_PHYSICAL_RECOVERY_STORAGE_ROOT="$tmp_root/physical-restored" DATABASE_URL="$hr_url" node "$RC_DIR/subcontract-physical-upgrade.mjs" restored "$tmp_root/physical-protected.json"
+  fi
   if [[ "$transfer_schema" == true ]]; then
     tar -xzf "$tmp_root/transfer-documents.tar.gz" -C "$tmp_root/transfer-restored" --no-same-owner
     TRANSFER_RECOVERY_STORAGE_ROOT="$tmp_root/transfer-restored" DATABASE_URL="$hr_url" node "$RC_DIR/transfer-upgrade.mjs" restored "$tmp_root/transfer-protected.json"
@@ -734,10 +758,10 @@ set -e
 
 if [[ "$schema_mode" != "migration-aware-sql-only" ]]; then
   if [[ "$legacy_upgrade" == true ]]; then
-    TRANSFER_SCHEMA_UPGRADE=NO RECEIVING_SCHEMA_UPGRADE=NO SITE_ISSUE_SCHEMA_UPGRADE=NO MATERIAL_PLAN_ISSUE_SCHEMA_UPGRADE=NO MATERIAL_PLAN_SCHEMA_UPGRADE=NO MATERIAL_REQUEST_SCHEMA_UPGRADE=NO HR_SCHEMA_UPGRADE=NO HR_DOCUMENT_SCHEMA_UPGRADE=NO STOCK_COUNT_SCHEMA_UPGRADE=NO DATABASE_URL="$rollback_url" node "$RC_DIR/legacy-fixture.mjs" verify "$previous_root" "$tmp_root/legacy.json" "$tmp_root/legacy-snapshot.json"
+    SUBCONTRACT_PHYSICAL_SCHEMA_UPGRADE=NO TRANSFER_SCHEMA_UPGRADE=NO RECEIVING_SCHEMA_UPGRADE=NO SITE_ISSUE_SCHEMA_UPGRADE=NO MATERIAL_PLAN_ISSUE_SCHEMA_UPGRADE=NO MATERIAL_PLAN_SCHEMA_UPGRADE=NO MATERIAL_REQUEST_SCHEMA_UPGRADE=NO HR_SCHEMA_UPGRADE=NO HR_DOCUMENT_SCHEMA_UPGRADE=NO STOCK_COUNT_SCHEMA_UPGRADE=NO DATABASE_URL="$rollback_url" node "$RC_DIR/legacy-fixture.mjs" verify "$previous_root" "$tmp_root/legacy.json" "$tmp_root/legacy-snapshot.json"
   fi
   if [[ "$hr_proof" == true ]]; then
-    TRANSFER_SCHEMA_UPGRADE=NO RECEIVING_SCHEMA_UPGRADE=NO SITE_ISSUE_SCHEMA_UPGRADE=NO MATERIAL_PLAN_ISSUE_SCHEMA_UPGRADE=NO MATERIAL_PLAN_SCHEMA_UPGRADE=NO MATERIAL_REQUEST_SCHEMA_UPGRADE=NO HR_DOCUMENT_SCHEMA_UPGRADE=NO DATABASE_URL="$rollback_url" node "$RC_DIR/hr-upgrade.mjs" rollback "$previous_root" "$tmp_root/hr-predecessor.json"
+    SUBCONTRACT_PHYSICAL_SCHEMA_UPGRADE=NO TRANSFER_SCHEMA_UPGRADE=NO RECEIVING_SCHEMA_UPGRADE=NO SITE_ISSUE_SCHEMA_UPGRADE=NO MATERIAL_PLAN_ISSUE_SCHEMA_UPGRADE=NO MATERIAL_PLAN_SCHEMA_UPGRADE=NO MATERIAL_REQUEST_SCHEMA_UPGRADE=NO HR_DOCUMENT_SCHEMA_UPGRADE=NO DATABASE_URL="$rollback_url" node "$RC_DIR/hr-upgrade.mjs" rollback "$previous_root" "$tmp_root/hr-predecessor.json"
   fi
   start_previous_runtime "$rollback_url" "$rollback_storage"
   RESTORED_API_BASE_URL="http://127.0.0.1:$api_port/api/v1" DATABASE_URL="$rollback_url" \
@@ -784,8 +808,10 @@ const [
   ciJob, ciRepository, migrationList, schemaMode, legacyUpgrade,
 ] = process.argv.slice(2);
 const nullable = (value) => value === '' ? null : value;
-const transferSchema=schemaMode.startsWith('migration-aware-transfer-');
-const beforeTransfer=!transferSchema?schemaMode:schemaMode==='migration-aware-transfer-schema'?'migration-aware-sql-only':'migration-aware-'+schemaMode.slice('migration-aware-transfer-'.length);
+const physicalSchema=schemaMode.startsWith('migration-aware-subcontract-physical-');
+const beforePhysical=!physicalSchema?schemaMode:schemaMode==='migration-aware-subcontract-physical-schema'?'migration-aware-sql-only':'migration-aware-'+schemaMode.slice('migration-aware-subcontract-physical-'.length);
+const transferSchema=beforePhysical.startsWith('migration-aware-transfer-');
+const beforeTransfer=!transferSchema?beforePhysical:beforePhysical==='migration-aware-transfer-schema'?'migration-aware-sql-only':'migration-aware-'+beforePhysical.slice('migration-aware-transfer-'.length);
 const receivingSchema=beforeTransfer.startsWith('migration-aware-receiving-');
 const beforeReceiving=!receivingSchema?beforeTransfer:beforeTransfer==='migration-aware-receiving-schema'?'migration-aware-sql-only':'migration-aware-'+beforeTransfer.slice('migration-aware-receiving-'.length);
 const siteIssueSchema=beforeReceiving.startsWith('migration-aware-site-issue-');
@@ -806,7 +832,7 @@ const priorMode = !hrDocumentSchema ? afterStock : afterStock === 'migration-awa
 const hrSchema = ['migration-aware-hr-schema','migration-aware-hr-customer-boq-schema'].includes(priorMode);
 const customerSchema = ['migration-aware-customer-boq-schema','migration-aware-hr-customer-boq-schema'].includes(priorMode);
 writeFileSync(path, JSON.stringify({
-  version: transferSchema ? 15 : receivingSchema ? 14 : siteIssueSchema ? 13 : planIssueSchema ? 12 : materialPlanSchema ? 11 : materialRequestSchema ? 10 : stockCountSchema ? 9 : hrDocumentSchema ? 8 : hrSchema ? (customerSchema ? 7 : 6) : customerSchema ? 5 : schemaMode === 'migration-aware-thb-schema' ? 4 : 3,
+  version: physicalSchema ? 16 : transferSchema ? 15 : receivingSchema ? 14 : siteIssueSchema ? 13 : planIssueSchema ? 12 : materialPlanSchema ? 11 : materialRequestSchema ? 10 : stockCountSchema ? 9 : hrDocumentSchema ? 8 : hrSchema ? (customerSchema ? 7 : 6) : customerSchema ? 5 : schemaMode === 'migration-aware-thb-schema' ? 4 : 3,
   releaseMode: schemaMode,
   releaseCommit,
   previousReleaseCommit,
@@ -842,6 +868,7 @@ writeFileSync(path, JSON.stringify({
   ...(hrSchema || hrDocumentSchema ? { hrPredecessorPreservation: 'PASS', hrPredecessorRollback: 'PASS', hrEmployeeUpgradeTests: 'PASS', hrEncryptedRecordRecovery: 'PASS', hrPrivateAttachmentRecovery: hrDocumentSchema ? 'PASS' : 'NOT_IMPLEMENTED_THIS_INCREMENT' } : {}),
   ...(hrDocumentSchema ? { hrDocumentCustodyUpgrade: 'PASS', hrDocumentSchemaOnly: 'PASS' } : {}),
   ...(stockCountSchema ? { stockCountSchemaUpgrade: 'PASS', stockCountHistoricalPreservation: 'PASS' } : {}),
+  ...(physicalSchema ? {physicalSchemaUpgrade:'PASS',physicalHistoricalPreservation:'PASS',physicalHttpUpgrade:'PASS',physicalPopulatedRecovery:'PASS',physicalEvidenceRecovery:'PASS'} : {}),
   ...(transferSchema ? {transferSchemaUpgrade:'PASS',transferHistoricalPreservation:'PASS',transferHttpUpgrade:'PASS',transferPopulatedRecovery:'PASS',transferEvidenceRecovery:'PASS'} : {}),
   ...(receivingSchema ? {receivingSchemaUpgrade:'PASS',receivingHistoricalPreservation:'PASS',receivingHttpUpgrade:'PASS',receivingPopulatedRecovery:'PASS',receivingEvidenceRecovery:'PASS'} : {}),
   ...(siteIssueSchema ? {siteIssueSchemaUpgrade:'PASS',siteIssueHistoricalPreservation:'PASS',siteIssueHttpUpgrade:'PASS',siteIssuePopulatedRecovery:'PASS'} : {}),

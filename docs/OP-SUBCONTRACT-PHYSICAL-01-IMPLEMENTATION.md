@@ -1,0 +1,30 @@
+# OP-SUBCONTRACT-PHYSICAL-01 implementation and evidence
+
+Approved [entry](OP-SUBCONTRACT-PHYSICAL-01-ENTRY.md), DEC-048, [#353](https://github.com/threeswordz/cinder-grind/issues/353). Owner option A is settled. This is one bounded implementation candidate following reviewed/main-green entry #362 and transfer package #364. [Current State](CURRENT-STATE.md) owns live integration/deployment receipts.
+
+## Delivered candidate behavior
+
+New synthetic Project opt-in adds provenance only to subsequently created canonical Claims. No historical physical backfill or retained/default role grants. Six additive tables retain policy, current version, immutable captures, exact submitted commercial/evidence source, independent physical decisions and request outcomes. Four explicit capabilities cover view, capture, independent decision and configuration. Existing agreement/WO/period/claim/assessment/certification/retention and correction boundaries remain canonical.
+
+Khaimook captures multiple work observations against canonical Claim lines, with item/location, measured quantity/UOM or explicit milestone/lump-sum basis, progress, reasons and protected canonical Documents. Submission binds the exact physical version and freezes source/evidence. Ben independently records accepted/held quantities or basis, rework/rejection reasons, and an explicit monetary allocation to accepted work only. The allocation becomes the existing canonical Assessment atomically. No rate, proportional amount or progress price is inferred. Porn's existing Certification requires eligible accepted work and the exact source; Nancy's configured independent approval retains canonical ceilings and retention. Wholly held work cannot certify; accepted zero value stays zero.
+
+Later otherwise eligible canonical Claims reference the originating held observation. Agreement serialization reserves submitted physical quantity/basis, prevents competing reuse, preserves nested rework, and blocks source correction while active descendants depend on it. Existing linked replacement/reversal paths remain required.
+
+English, Thai and Traditional Chinese screens present physical and monetary facts separately, show immutable history and protected uploads/downloads, preserve the same request on an uncertain response, disable stale source writes and bind submission to the captured version. Scoped UOM and held-source choices avoid user-entered database identifiers. Accepted amounts require Assessment view; evidence identifiers/metadata require Document view. Current session, Employee, rights, Company and Project checks remain authoritative on reads, actions, replays, certification and both Document aliases.
+
+## Technical evidence and remaining gates
+
+| Criterion | Executable proof | Current result |
+|---|---|---|
+| PA-AC01–03 | `subcontract-physical.integration.spec.ts`, pure contract tests; 10 submitted / 8 accepted / 2 held / explicit 731.25 / canonical approval and 36.56 retention; no accepted work cannot certify | Local actual PostgreSQL/HTTP and parser PASS |
+| PA-AC04–05 | Actual logins/CSRF/multipart; maker self-decision, inactive Employee, technical admin, wrong Project/Company, revoked grant/replay, protected owning/generic Document aliases, source-byte tampering and masked reads | Local actual PostgreSQL/HTTP PASS |
+| PA-AC06 | Same/changed-key and stale version; competing later submissions consume one reservation; nested rework; active-source correction denial until child withdrawal; in-flight evidence archive serialization; direct canonical Assessment bypass | Local actual PostgreSQL/HTTP PASS, including the observed archive/submission race |
+| PA-AC07 | Existing claim/concurrency/certification/variation checks; exact explicit allocation and retained legacy rows; no stock/payment/invoice side effects | Relevant local checks PASS |
+| PA-AC08 schema/history | Exact six-model/four-capability/seven-forward-migration contract; strict old-row fingerprints, no grants/backfill; registered historical rehearsals and version16 evidence | 234 local release-contract tests PASS with final exact-identity checks; full native historical CI pending |
+| PA-AC08 restore | `subcontract-physical-upgrade.mjs`: actual populated DB dump → separate DB, paired Documents archive → separate store, restored App HTTP facts/bytes/denials/revocation | Local separate DB/store PASS; registered native rehearsal pending |
+| PA-AC08 browser | `subcontract-physical-browser-native.mjs`: real built React and actual login; capture/upload, independent partial decision, explicit canonical certification/approval, three locales, 390px, UI download bytes, dropped committed responses and stable retry, wrong-actor denial/logout | Registered mandatory Chromium gate; PASS not yet claimed |
+| Release closure | Exact-head push/PR CI, one stable independent DEC-022 review, guarded integration and exact-main CI | Pending; no review/merge/deployment claimed |
+
+The seven migrations include forward corrections discovered against a disposable database; none rewrites an exercised migration or predecessor checksum. One early defect added a Project lock to every legacy Claim insert; the forward lock-scope correction restricts the policy-enable serialization and the original commercial concurrency test passes again. Evidence serialization locks source Documents and their links and reads current metadata after lock waits. Prisma error mapping extracts the actual PostgreSQL physical message rather than a different literal in its source excerpt.
+
+No new dependency, mandatory service, recurring cost, Accounting/payment ledger, payroll, #245 financial scope, retained MKE/TCJ activation or Production deployment. Human UAT is **DEFERRED TO PRE-PRODUCTION PROTOTYPE** under DEC-042. Full112 disposition/delivery, all deployed journeys, final populated DB/Documents/external-HR-key recovery and audit/freeze remain separate overall milestones.

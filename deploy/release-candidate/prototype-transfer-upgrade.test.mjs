@@ -79,6 +79,6 @@ test('populated transfer preservation uses real non-id history keys and catches 
 });
 
 test('populated operator migration identity matches all actual reviewed additive SQL directories',async()=>{
- const names=(await readdir(new URL('../../apps/api/prisma/migrations/',import.meta.url))).filter(n=>n.startsWith('20261117'));
+ const names=(await readdir(new URL('../../apps/api/prisma/migrations/',import.meta.url))).filter(n=>/^20261117\d{6}_transfer_/.test(n));
  assert.deepEqual(names.sort(),[...TRANSFER_MIGRATIONS].sort());
 });

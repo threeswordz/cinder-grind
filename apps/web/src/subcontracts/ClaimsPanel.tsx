@@ -11,7 +11,7 @@ import {
   Typography,
 } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useContext, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
   ClaimLineRecord,
@@ -19,6 +19,10 @@ import {
   subcontractsApi,
 } from '../api/subcontracts';
 import { CertificationSection } from './CertificationSection';
+import { physicalSubcontractsApi } from '../api/subcontract-physical';
+import { MonetaryLocaleContext } from '../role-ui/monetary-presentation';
+import { PhysicalAcceptancePanel } from './PhysicalAcceptancePanel';
+import { physicalLabels } from './physical-labels';
 import {
   canOpenSourceLink,
   consumeSourceLinkKey,
@@ -71,6 +75,7 @@ export function ClaimsPanel({
   onOpenSource?: ((target: SourceLinkTarget) => void) | undefined;
 }) {
   const client = useQueryClient();
+  const physicalText = physicalLabels[useContext(MonetaryLocaleContext)];
   const canView = permissions.includes('subcontracts.claim.view');
   const canCreate = permissions.includes('subcontracts.claim.create');
   const canEdit = permissions.includes('subcontracts.claim.edit');
@@ -86,6 +91,7 @@ export function ClaimsPanel({
 
   const [agreementId, setAgreementId] = useState('');
   const [selectedClaimId, setSelectedClaimId] = useState('');
+  const [physicalDirty, setPhysicalDirty] = useState(false);
   const [newPeriodStart, setNewPeriodStart] = useState('');
   const [newPeriodEnd, setNewPeriodEnd] = useState('');
   const [periodStart, setPeriodStart] = useState('');
@@ -180,6 +186,20 @@ export function ClaimsPanel({
       null,
     [claims.data?.data, selectedClaimId],
   );
+  const physical = useQuery({
+    queryKey: ['subcontracts', 'physical', selectedClaimId],
+    queryFn: () => physicalSubcontractsApi.source(selectedClaimId),
+    enabled: Boolean(selectedClaim?.physicalControlled) && permissions.includes('subcontracts.physical.view'),
+    retry: false, gcTime: 0, refetchOnWindowFocus: false,
+  });
+  const physicalSource = !physical.isError && physical.data?.data.controlled ? physical.data.data : null;
+  const physicalReady = !selectedClaim?.physicalControlled || Boolean(physicalSource?.canCapture &&
+    physicalSource.revisions.some(revision => revision.version === physicalSource.version) && !physical.isFetching && !physicalDirty);
+  const refreshPhysical = async () => {
+    await physical.refetch({ throwOnError: true });
+    await client.invalidateQueries({ queryKey: ['subcontracts'], predicate: query => query.queryKey[1] !== 'physical' });
+  };
+  useEffect(() => { setPhysicalDirty(false); }, [selectedClaimId]);
 
   useEffect(() => {
     if (
@@ -324,7 +344,7 @@ export function ClaimsPanel({
             ? JSON.stringify([assessedAmount, assessmentReason])
             : action === 'reject'
               ? assessmentRejectReason
-              : null;
+              : selectedClaim.physicalControlled ? physicalSource?.version : null;
       const signature = JSON.stringify([
         'claim',
         action,
@@ -334,7 +354,9 @@ export function ClaimsPanel({
       activeActionSignature.current = signature;
       const actionKey = retryActionKey(signature);
       if (action === 'submit') {
-        return subcontractsApi.submitClaim(selectedClaim.id, actionKey);
+        if (!physicalReady) throw new Error(physicalText.denied);
+        return subcontractsApi.submitClaim(selectedClaim.id, actionKey,
+          selectedClaim.physicalControlled ? physicalSource?.version : undefined);
       }
       if (action === 'withdraw') {
         return subcontractsApi.withdrawClaim(
@@ -712,6 +734,14 @@ export function ClaimsPanel({
               )}
 
               <Divider />
+              {selectedClaim.physicalControlled ? (
+                physicalSource ? <PhysicalAcceptancePanel key={selectedClaim.id} claim={selectedClaim} source={physicalSource}
+                  permissions={permissions} onDirty={setPhysicalDirty} refresh={refreshPhysical} /> :
+                  <Alert severity={physical.isError || !permissions.includes('subcontracts.physical.view') ? 'warning' : 'info'}>
+                    {!permissions.includes('subcontracts.physical.view') ? physicalText.noPermission : physical.isError ? physicalText.denied : physicalText.loading}
+                    {permissions.includes('subcontracts.physical.view') ? <Button onClick={() => void physical.refetch()} disabled={physical.isFetching}>{physicalText.reload}</Button> : null}
+                  </Alert>
+              ) : null}
               <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
                 {selectedClaim.state === 'DRAFT' &&
                 canSubmit &&
@@ -720,7 +750,7 @@ export function ClaimsPanel({
                     variant="contained"
                     onClick={() => claimAction.mutate('submit')}
                     disabled={
-                      claimAction.isPending || selectedClaim.lines.length === 0
+                      claimAction.isPending || selectedClaim.lines.length === 0 || !physicalReady
                     }
                   >
                     Submit Claim
@@ -751,6 +781,7 @@ export function ClaimsPanel({
 
               {selectedClaim.state === 'SUBMITTED' &&
               canAssess &&
+              !selectedClaim.physicalControlled &&
               agreementActive ? (
                 <>
                   <Divider />

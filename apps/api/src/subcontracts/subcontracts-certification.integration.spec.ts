@@ -1,3 +1,5 @@
+import { SubcontractsPhysicalService } from './subcontracts-physical.service';
+import { LocalDocumentStorage } from '../documents/local-document-storage.service';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import test from 'node:test';
@@ -186,6 +188,7 @@ test('V0.5-D certifies assessed Claims with retained withholding, history and co
       access,
       audit,
       numbers,
+      new SubcontractsPhysicalService(prisma, access, audit, new LocalDocumentStorage()),
     );
     const certifications = new SubcontractsCertificationService(
       prisma,
@@ -193,6 +196,7 @@ test('V0.5-D certifies assessed Claims with retained withholding, history and co
       new ApprovalService(prisma),
       audit,
       numbers,
+      new SubcontractsPhysicalService(prisma, access, audit, new LocalDocumentStorage()),
     );
     const retention = new RetentionService(prisma, access);
 

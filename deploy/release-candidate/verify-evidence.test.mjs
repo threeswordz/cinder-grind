@@ -161,8 +161,10 @@ test('FM03 wrapper before historical predecessor checks remains mandatory in con
   const workflow = readFileSync(new URL('../../.github/workflows/validate.yml', import.meta.url), 'utf8');
   const evidenceStep = workflow.split('- name: Verify V1.0-E consolidated technical evidence')[1];
   assert.ok(evidenceStep, 'Consolidated evidence step must exist');
-  const priorEvidenceStep = evidenceStep.replace(/\(await import\('\.\/deploy\/release-candidate\/transfer-schema-contract\.mjs'\)\)\.transferMode\(data\.releaseMode\)\.prior/g, 'data.releaseMode');
-  assert.equal((evidenceStep.match(/transferMode\(data\.releaseMode\)\.prior/g)??[]).length,6);
+  const physicalPeeled = evidenceStep.replace(/\(await import\('\.\/deploy\/release-candidate\/subcontract-physical-schema-contract\.mjs'\)\)\.physicalMode\(data\.releaseMode\)\.prior/g, 'data.releaseMode');
+  assert.equal((evidenceStep.match(/physicalMode\(data\.releaseMode\)\.prior/g)??[]).length,6);
+  const priorEvidenceStep = physicalPeeled.replace(/\(await import\('\.\/deploy\/release-candidate\/transfer-schema-contract\.mjs'\)\)\.transferMode\(data\.releaseMode\)\.prior/g, 'data.releaseMode');
+  assert.equal((physicalPeeled.match(/transferMode\(data\.releaseMode\)\.prior/g)??[]).length,6);
   assert.equal((priorEvidenceStep.match(/siteIssueMode\(\(await import\([^\n]+?receivingMode\(data\.releaseMode\)\.prior\)\.prior/g) ?? []).length, 5,
     'Five exact historical predecessor assertions must peel the FM03 schema wrapper');
   const { siteIssueMode } = await import('./site-issue-schema-contract.mjs');
@@ -199,4 +201,14 @@ test('DEC-046 transfer evidence requires exact migrations, version15 and execute
  for(const key of keys){const bad={...data};delete bad[key];assert.notEqual(verify(bad).status,0,key);}
  assert.notEqual(verify({...data,version:14}).status,0);assert.notEqual(verify({...data,migrationNames:[]}).status,0);
  for(const name of data.migrationNames)assert.notEqual(verify({...data,migrationNames:data.migrationNames.filter(n=>n!==name)}).status,0,name);
+});
+
+test('DEC-048 physical evidence requires exact migrations, version16 and executed populated acceptance recovery', async () => {
+ const {physicalMigrations}=await import('./subcontract-physical-schema-contract.mjs');
+ const keys=['physicalSchemaUpgrade','physicalHistoricalPreservation','physicalHttpUpgrade','physicalPopulatedRecovery','physicalEvidenceRecovery'];
+ const data={...evidence('migration-aware-subcontract-physical-schema'),version:16,migrationNames:physicalMigrations,...Object.fromEntries(keys.map(k=>[k,'PASS']))};
+ const result=verify(data);assert.equal(result.status,0,result.stderr);assert.equal(JSON.parse(result.stdout).version,16);
+ for(const key of keys){const bad={...data};delete bad[key];assert.notEqual(verify(bad).status,0,key);}
+ assert.notEqual(verify({...data,version:15}).status,0);
+ for(const name of physicalMigrations)assert.notEqual(verify({...data,migrationNames:physicalMigrations.filter(n=>n!==name)}).status,0,name);
 });
