@@ -14,6 +14,7 @@ export const physicalLabels = {
     reload: 'Discard local changes and reload', error: 'The request failed. Review the source before continuing.',
     uncertain: 'The result is uncertain. Retry sends the same observations and amount.', retry: 'Retry same request',
     noEvidence: 'Link at least one supporting file before submitting.', noPermission: 'Physical acceptance access is required for this Claim.',
+    unitChanged: 'The submitted unit has changed. Use the existing correction / replacement route before acceptance or certification.',
   },
   th: {
     title: 'ผลงานจริงและการตรวจรับ', policy: 'ผลงานที่รับมีมูลค่าที่ยืนยันอย่างชัดเจน งานที่พักไว้ไม่ก่อให้เกิดยอดจ่ายอัตโนมัติ จำนวนและความก้าวหน้าไม่ใช้คำนวณราคา',
@@ -30,6 +31,7 @@ export const physicalLabels = {
     reload: 'ยกเลิกการแก้ไขและโหลดใหม่', error: 'ดำเนินการไม่สำเร็จ โปรดตรวจสอบข้อมูลก่อนดำเนินการต่อ',
     uncertain: 'ยังไม่ทราบผลแน่ชัด การลองซ้ำจะส่งข้อสังเกตและมูลค่าเดิม', retry: 'ลองคำขอเดิมอีกครั้ง',
     noEvidence: 'แนบหลักฐานอย่างน้อยหนึ่งไฟล์ก่อนส่ง', noPermission: 'ใบเบิกผลงานนี้ต้องมีสิทธิ์ตรวจรับผลงาน',
+    unitChanged: 'หน่วยนับที่ส่งไว้เปลี่ยนแล้ว โปรดใช้ขั้นตอนแก้ไข / ใบแทนที่มีอยู่ก่อนตรวจรับหรือรับรองมูลค่า',
   },
   'zh-TW': {
     title: '實際工程與驗收', policy: '驗收工程須明確確認金額。保留工程不會自動產生應付款；數量與進度不會用來計算價格。',
@@ -46,5 +48,6 @@ export const physicalLabels = {
     reload: '放棄本機變更並重新載入', error: '操作失敗。請先檢視來源再繼續。',
     uncertain: '結果尚未確定；重試會傳送相同觀察與金額。', retry: '重試相同請求',
     noEvidence: '提交前至少連結一份佐證文件。', noPermission: '此請款需要工程驗收存取權限。',
+    unitChanged: '已提交的計量單位已變更。驗收或核發證明前，請使用既有更正／替代流程。',
   },
 };

@@ -205,6 +205,11 @@ export class SubcontractsPhysicalService {
     const uoms = await this.prisma.unitOfMeasure.findMany({ where: { companyId: auth.companyId,
       OR: [{ isActive: true }, { id: { in: usedUoms } }] },
       select: { id: true, uomCode: true, uomName: true, decimalPlaces: true, isActive: true }, orderBy: { uomCode: 'asc' } });
+    const frozenUoms = submission ? (submission.commercialSource as unknown as { uoms: typeof uoms }).uoms : [];
+    const sameUnit = (a: typeof uoms[number], b: typeof uoms[number]) => a.id === b.id && a.uomCode === b.uomCode &&
+      a.uomName === b.uomName && a.decimalPlaces === b.decimalPlaces && a.isActive === b.isActive;
+    const unitSourceCurrent = !submission || Boolean(frozenUoms && frozenUoms.every(unit => uoms.some(current => sameUnit(unit, current))));
+    const historicalUoms = new Map([...uoms, ...(frozenUoms ?? [])].map(unit => [unit.id, unit]));
     // Choices are scoped physical facts only. SQL rechecks the reservation under
     // the canonical Agreement lock at submission and decision time.
     const held = await this.prisma.$queryRaw<Array<{ claimNumber: string; observation: PhysicalObservation; remaining: string }>>`
@@ -246,10 +251,10 @@ export class SubcontractsPhysicalService {
     const actorIds = [...new Set([...revisions.map(row => row.actorUserId), submission?.actorUserId, decision?.actorUserId].filter((id): id is string => Boolean(id)))];
     const names = new Map((await this.prisma.user.findMany({ where: { companyId: auth.companyId, id: { in: actorIds } },
       select: { id: true, displayName: true } })).map(row => [row.id, row.displayName]));
-    return { controlled: true as const, claimId, version: source.version, uoms, heldOrigins,
+    return { controlled: true as const, claimId, version: source.version, uoms: [...historicalUoms.values()], unitSourceCurrent, heldOrigins,
       canCapture: claim.state === 'DRAFT' && has(PHYSICAL + 'edit', 'subcontracts.claim.edit', 'documents.document.view'),
       canSubmit: claim.state === 'DRAFT' && has(PHYSICAL + 'edit', 'subcontracts.claim.submit', 'documents.document.view'),
-      canDecide: claim.state === 'SUBMITTED' && has(PHYSICAL + 'decide', 'subcontracts.assessment.assess', 'documents.document.view') &&
+      canDecide: unitSourceCurrent && claim.state === 'SUBMITTED' && has(PHYSICAL + 'decide', 'subcontracts.assessment.assess', 'documents.document.view') &&
         ![claim.createdByUserId, claim.submittedByUserId, submission?.actorUserId, revisions[0]?.actorUserId].includes(auth.userId),
       heldSources: held.map(({ claimNumber, observation: o, remaining }) => ({ id: o.id, claimNumber, item: o.item,
         location: o.location, basis: o.basis, basisDescription: o.basisDescription, uomId: o.uomId,

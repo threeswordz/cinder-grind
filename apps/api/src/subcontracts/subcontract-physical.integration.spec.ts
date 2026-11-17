@@ -234,6 +234,28 @@ test('DEC-048 actual HTTP binds partial physical acceptance to canonical assessm
       await call(maker!, root + '/claims/' + candidate.claim.id + '/submit', 409, { actionKey: randomUUID(), expectedPhysicalVersion: 3 });
       assert.equal(await db.subcontractPhysicalSubmission.count({ where: { claimId: candidate.claim.id } }), 0);
     });
+    await t.test('existing UOM precision is exact and submitted unit metadata cannot drift into acceptance', async () => {
+      await db.unitOfMeasure.update({ where: { id: f.uom.id }, data: { decimalPlaces: 0 } });
+      try {
+        const candidate = await prepare('10', { submit: false });
+        await call(maker!, physical + '/claims/' + candidate.claim.id + '/capture', 409, {
+          ...candidate.input, requestKey: randomUUID(), expectedVersion: 2, reason: 'Fractional count must not round into a whole-unit UOM',
+          observations: [{ ...candidate.input.observations[0], quantity: '10.5' }],
+        });
+        await call(maker!, root + '/claims/' + candidate.claim.id + '/submit', 201, { actionKey: randomUUID(), expectedPhysicalVersion: 2 });
+        const frozen = await call(ben!, physical + '/claims/' + candidate.claim.id);
+        const body = { requestKey: randomUUID(), expectedVersion: 2, sourceDigest: frozen.submission.sourceDigest, reason: 'Whole units only',
+          decisions: [{ observationId: candidate.observationId, acceptedQuantity: '8.5', acceptedAmount: '731.25', heldDisposition: 'REWORK', reason: 'Overprecision is refused' }] };
+        await call(ben!, physical + '/claims/' + candidate.claim.id + '/decide', 409, body);
+        await db.unitOfMeasure.update({ where: { id: f.uom.id }, data: { uomName: 'Changed unit label after submission' } });
+        try {
+          const retained = await call(ben!, physical + '/claims/' + candidate.claim.id);
+          assert.equal(retained.uoms.find((u: any) => u.id === f.uom.id).uomName, f.uom.uomName);
+          await call(ben!, physical + '/claims/' + candidate.claim.id + '/decide', 409, { ...body, requestKey: randomUUID(), decisions: [{ ...body.decisions[0], acceptedQuantity: '8' }] });
+        } finally { await db.unitOfMeasure.update({ where: { id: f.uom.id }, data: { uomName: f.uom.uomName } }); }
+        await call(ben!, physical + '/claims/' + candidate.claim.id + '/decide', 201, { ...body, requestKey: randomUUID(), decisions: [{ ...body.decisions[0], acceptedQuantity: '8' }] });
+      } finally { await db.unitOfMeasure.update({ where: { id: f.uom.id }, data: { decimalPlaces: 4 } }); }
+    });
     assert.deepEqual(await db.subcontractClaim.findUniqueOrThrow({ where: { id: legacy.claim.id }, include: { lines: true, assessment: true } }), old);
     assert.deepEqual(await noSideEffects(), before);
   } catch (error) { failure = error; }
