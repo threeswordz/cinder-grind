@@ -10,7 +10,7 @@ export type PhysicalDecisionInput = {
   heldDisposition: 'REWORK' | 'REJECTED' | null; reason: string;
 };
 export type PhysicalSource = {
-  controlled: true; claimId: string; version: number; canCapture: boolean; canDecide: boolean;
+  controlled: true; claimId: string; version: number; canCapture: boolean; canSubmit: boolean; canDecide: boolean;
   uoms: Array<{ id: string; uomCode: string; uomName: string; decimalPlaces: number; isActive: boolean }>;
   heldSources: Array<Pick<PhysicalObservation, 'id' | 'item' | 'location' | 'basis' | 'basisDescription' | 'uomId'> & { claimNumber: string; remainingQuantity: string | null }>;
   heldOrigins: Array<{ id: string; claimNumber: string; item: string; location: string }>;

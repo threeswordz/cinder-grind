@@ -248,6 +248,7 @@ export class SubcontractsPhysicalService {
       select: { id: true, displayName: true } })).map(row => [row.id, row.displayName]));
     return { controlled: true as const, claimId, version: source.version, uoms, heldOrigins,
       canCapture: claim.state === 'DRAFT' && has(PHYSICAL + 'edit', 'subcontracts.claim.edit', 'documents.document.view'),
+      canSubmit: claim.state === 'DRAFT' && has(PHYSICAL + 'edit', 'subcontracts.claim.submit', 'documents.document.view'),
       canDecide: claim.state === 'SUBMITTED' && has(PHYSICAL + 'decide', 'subcontracts.assessment.assess', 'documents.document.view') &&
         ![claim.createdByUserId, claim.submittedByUserId, submission?.actorUserId, revisions[0]?.actorUserId].includes(auth.userId),
       heldSources: held.map(({ claimNumber, observation: o, remaining }) => ({ id: o.id, claimNumber, item: o.item,

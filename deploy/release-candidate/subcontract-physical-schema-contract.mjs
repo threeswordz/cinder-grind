@@ -13,7 +13,7 @@ export const physicalTables = ['subcontract_physical_policies', 'subcontract_phy
 export const physicalMigrations = ['20261117101500_subcontract_physical_acceptance', '20261117102500_subcontract_physical_evidence_guards',
   '20261117103500_subcontract_physical_source_qualification', '20261117104500_subcontract_physical_allocation_binding',
   '20261117105500_subcontract_physical_policy_lock_scope', '20261117110500_subcontract_physical_evidence_serialization',
-  '20261117111500_subcontract_physical_evidence_lock_qualification'];
+  '20261117111500_subcontract_physical_evidence_lock_qualification', '20261117112500_subcontract_physical_current_line_binding'];
 export function stripPhysicalSchema(schema) {
   const found = new Set();
   const text = schema.replace(/^model (\w+) \{[\s\S]*?^\}/gm, (block, name) => {

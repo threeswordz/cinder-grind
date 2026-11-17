@@ -223,6 +223,17 @@ test('DEC-048 actual HTTP binds partial physical acceptance to canonical assessm
       assert.equal(await db.subcontractPhysicalSubmission.count({ where: { claimId: candidate.claim.id } }), 0);
       assert.equal((await db.document.findUniqueOrThrow({ where: { id: candidate.documentId } })).isActive, false);
     });
+    await t.test('draft commercial line deletion cannot submit observations that have lost their canonical line', async () => {
+      const candidate = await prepare('09', { submit: false });
+      const second = await call(maker!, root + '/claims/' + candidate.claim.id + '/lines', 201, { amount: '200' });
+      await call(maker!, physical + '/claims/' + candidate.claim.id + '/capture', 201, {
+        ...candidate.input, requestKey: randomUUID(), expectedVersion: 2, reason: 'Two distinct canonical line observations',
+        observations: [...candidate.input.observations, { ...candidate.input.observations[0], id: randomUUID(), claimLineId: second.id, location: 'Area B' }],
+      });
+      await call(maker!, root + '/claim-lines/' + candidate.line.id, 200, undefined, 'DELETE');
+      await call(maker!, root + '/claims/' + candidate.claim.id + '/submit', 409, { actionKey: randomUUID(), expectedPhysicalVersion: 3 });
+      assert.equal(await db.subcontractPhysicalSubmission.count({ where: { claimId: candidate.claim.id } }), 0);
+    });
     assert.deepEqual(await db.subcontractClaim.findUniqueOrThrow({ where: { id: legacy.claim.id }, include: { lines: true, assessment: true } }), old);
     assert.deepEqual(await noSideEffects(), before);
   } catch (error) { failure = error; }

@@ -193,8 +193,11 @@ export function ClaimsPanel({
     retry: false, gcTime: 0, refetchOnWindowFocus: false,
   });
   const physicalSource = !physical.isError && physical.data?.data.controlled ? physical.data.data : null;
-  const physicalReady = !selectedClaim?.physicalControlled || Boolean(physicalSource?.canCapture &&
-    physicalSource.revisions.some(revision => revision.version === physicalSource.version) && !physical.isFetching && !physicalDirty);
+  const captured = physicalSource?.revisions.find(revision => revision.version === physicalSource.version);
+  const physicalReady = !selectedClaim?.physicalControlled || Boolean(physicalSource?.canSubmit && captured &&
+    captured.observations.every(o => selectedClaim.lines.some(line => line.id === o.claimLineId)) &&
+    selectedClaim.lines.every(line => captured.observations.some(o => o.claimLineId === line.id)) &&
+    captured.observations.some(o => o.documentIds.length > 0) && !physical.isFetching && !physicalDirty);
   const refreshPhysical = async () => {
     await physical.refetch({ throwOnError: true });
     await client.invalidateQueries({ queryKey: ['subcontracts'], predicate: query => query.queryKey[1] !== 'physical' });

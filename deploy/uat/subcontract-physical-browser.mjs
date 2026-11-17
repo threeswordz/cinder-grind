@@ -4,6 +4,7 @@ import {createHash} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import {join} from 'node:path';
 const demand=(ok,code)=>{if(!ok)throw Object.assign(new Error(code),{safeCode:code});};
+const controlCode=(kind,label)=>'PHYSICAL_BROWSER_'+kind+'_'+label.toUpperCase().replace(/[^A-Z0-9]+/g,'_').slice(0,70);
 async function evaluate(p,s,fn,arg){
   const r=await p.send('Runtime.evaluate',{expression:'('+fn.toString()+')('+JSON.stringify(arg)+')',awaitPromise:true,returnByValue:true},s);
   demand(!r.exceptionDetails&&r.result?.type!=='error','PHYSICAL_BROWSER_EVALUATION_FAILED');return r.result?.value;
@@ -14,11 +15,11 @@ async function until(p,s,fn,arg,code){
   demand(false,code);
 }
 async function click(p,s,label,selector='main button'){
-  await until(p,s,({label,selector})=>[...document.querySelectorAll(selector)].some(e=>e.textContent===label&&!e.disabled),{label,selector},'PHYSICAL_BROWSER_ACTION_UNAVAILABLE');
-  demand(await evaluate(p,s,({label,selector})=>{const e=[...document.querySelectorAll(selector)].find(e=>e.textContent===label&&!e.disabled);if(!e)return false;e.click();return true;},{label,selector}),'PHYSICAL_BROWSER_ACTION_UNAVAILABLE');
+  await until(p,s,({label,selector})=>[...document.querySelectorAll(selector)].some(e=>e.textContent===label&&!e.disabled),{label,selector},controlCode('ACTION',label));
+  demand(await evaluate(p,s,({label,selector})=>{const e=[...document.querySelectorAll(selector)].find(e=>e.textContent===label&&!e.disabled);if(!e)return false;e.click();return true;},{label,selector}),controlCode('ACTION',label));
 }
 async function field(p,s,label,value,scope='main'){
-  await until(p,s,({label,scope})=>[...document.querySelectorAll(scope+' label')].some(e=>e.textContent===label),{label,scope},'PHYSICAL_BROWSER_FIELD_UNAVAILABLE');
+  await until(p,s,({label,scope})=>[...document.querySelectorAll(scope+' label')].some(e=>e.textContent===label),{label,scope},controlCode('FIELD',label));
   await evaluate(p,s,({label,value,scope})=>{
     const l=[...document.querySelectorAll(scope+' label')].find(e=>e.textContent===label),e=document.getElementById(l.htmlFor);
     const proto=e instanceof HTMLTextAreaElement?HTMLTextAreaElement.prototype:HTMLInputElement.prototype;
@@ -27,7 +28,7 @@ async function field(p,s,label,value,scope='main'){
   },{label,value,scope});
 }
 async function select(p,s,label,value,scope='main'){
-  await until(p,s,({label,scope})=>[...document.querySelectorAll(scope+' label')].some(e=>{const input=document.getElementById(e.htmlFor);return e.textContent===label&&input&&!input.disabled&&input.getAttribute('aria-disabled')!=='true';}),{label,scope},'PHYSICAL_BROWSER_SELECT_UNAVAILABLE');
+  await until(p,s,({label,scope})=>[...document.querySelectorAll(scope+' label')].some(e=>{const input=document.getElementById(e.htmlFor);return e.textContent===label&&input&&!input.disabled&&input.getAttribute('aria-disabled')!=='true';}),{label,scope},controlCode('SELECT',label));
   await evaluate(p,s,({label,scope})=>{const l=[...document.querySelectorAll(scope+' label')].find(e=>e.textContent===label);document.getElementById(l.htmlFor).dispatchEvent(new MouseEvent('mousedown',{bubbles:true,button:0}));return true;},{label,scope});
   await until(p,s,value=>[...document.querySelectorAll('[role="option"]')].some(e=>e.getAttribute('data-value')===value),value,'PHYSICAL_BROWSER_OPTION_UNAVAILABLE');
   await evaluate(p,s,value=>{[...document.querySelectorAll('[role="option"]')].find(e=>e.getAttribute('data-value')===value).click();return true;},value);
@@ -128,18 +129,24 @@ export async function executePhysicalBrowser(protocol,binding,db){
  }
  await actor('maker',async(p,s)=>{
   await workspace(p,s);
+  phase='MAKER_LOCALES';
   for(const [label,title]of [['ไทย','ผลงานจริงและการตรวจรับ'],['繁中','實際工程與驗收'],['EN','Physical work and acceptance']]){
-   await click(p,s,label,'header button');
+   await evaluate(p,s,()=>{document.querySelector('header [role="combobox"]').dispatchEvent(new MouseEvent('mousedown',{bubbles:true,button:0}));return true;});
+   await until(p,s,label=>[...document.querySelectorAll('[role="option"]')].some(e=>e.textContent===label),label,'PHYSICAL_LOCALE_MENU');
+   await evaluate(p,s,label=>{[...document.querySelectorAll('[role="option"]')].find(e=>e.textContent===label).click();return true;},label);
    await until(p,s,title=>document.querySelector('[data-testid="physical-acceptance"]')?.textContent.includes(title),title,'PHYSICAL_LOCALE_MISSING');
   }
+  phase='MAKER_MOBILE';
   await protocol.send('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true},s);
-  demand(await evaluate(p,s,()=>{const el=document.querySelector('[data-testid="physical-acceptance"]');return el.getBoundingClientRect().right<=innerWidth+2&&el.scrollWidth<=el.clientWidth+2;}),'PHYSICAL_MOBILE_OVERFLOW');
+  await until(p,s,()=>{const el=document.querySelector('[data-testid="physical-acceptance"]');return innerWidth===390&&el.getBoundingClientRect().right<=innerWidth+2&&el.scrollWidth<=el.clientWidth+2;},null,'PHYSICAL_MOBILE_OVERFLOW');
+  phase='MAKER_UPLOAD';
   await select(p,s,'Evidence type',f.documentType.id,'[data-testid="physical-evidence"]');
   const bytes=syntheticPdf('work-evidence');
   await evaluate(p,s,base64=>{const data=new DataTransfer();data.items.add(new File([Uint8Array.from(atob(base64),c=>c.charCodeAt(0))],'physical-ui.pdf',{type:'application/pdf'}));const input=document.querySelector('[data-testid="physical-evidence"] input[type="file"]');input.files=data.files;input.dispatchEvent(new Event('change',{bubbles:true}));return true;},bytes.toString('base64'));
   await click(p,s,'Upload work evidence','[data-testid="physical-evidence"] button');
   await until(p,s,()=>[...document.querySelectorAll('[data-testid="physical-evidence"] button')].some(e=>e.textContent.includes('physical-ui.pdf')),null,'PHYSICAL_UPLOAD_NOT_LINKED');
   documentId=(await db.document.findFirstOrThrow({where:{companyId:f.company.id,fileName:'physical-ui.pdf'}})).id;
+  phase='MAKER_CAPTURE';
   const scope='[data-testid="physical-observation"]';
   await field(p,s,'Work item','Installed work',scope);await field(p,s,'Area / location','Area A',scope);
   await field(p,s,'Submitted quantity','10',scope);await select(p,s,'Unit of measure',f.uom.id,scope);
@@ -153,8 +160,9 @@ export async function executePhysicalBrowser(protocol,binding,db){
   await click(p,s,'Retry same request','[data-testid="physical-capture"] button');
   await until(p,s,()=>[...document.querySelectorAll('main button')].some(e=>e.textContent==='Submit Claim'&&!e.disabled),null,'PHYSICAL_CAPTURE_REPLAY_NOT_RECOVERED');
   assert.equal(await db.subcontractPhysicalRevision.count({where:{claimId:f.claim.id}}),1);
+  phase='MAKER_SUBMIT';
   await click(p,s,'Submit Claim');
-  await until(p,s,()=>document.querySelector('[data-testid="physical-acceptance"]')?.textContent.includes('Submitted'),null,'PHYSICAL_NOT_SUBMITTED');
+  await until(p,s,()=>!document.querySelector('[data-testid="physical-capture"]')&&document.querySelector('[data-testid="physical-acceptance"]')?.textContent.includes('Submitted'),null,'PHYSICAL_NOT_SUBMITTED');
   demand(!await evaluate(p,s,()=>Boolean(document.querySelector('[data-testid="physical-decision"]'))),'PHYSICAL_MAKER_CAN_DECIDE');
  });
  await actor('ben',async(p,s)=>{
