@@ -11,6 +11,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { ProblemDetailsFilter } from '../common/problem-details.filter';
 import { securityHeadersMiddleware } from '../common/security-headers';
 import { transferCustodyFixture } from './transfer-custody-test-fixture';
+import { insertControlledTransferHeader } from './stock-transfer.service';
 
 test('DEC-046 transfer actual HTTP: dispatch, partial destination receipt, assignment, evidence and unchanged legacy path', async t => {
   const target = new URL(process.env.DATABASE_URL ?? '');
@@ -50,6 +51,44 @@ test('DEC-046 transfer actual HTTP: dispatch, partial destination receipt, assig
     assert.ok(destinationChoices.some((p: any) => p.id === f.unassigned.id));
     assert.ok(destinationChoices.every((p: any) => Object.keys(p).sort().join(',') === 'id,projectCode,projectName'));
     await call(f.store, '/inventory/projects/' + f.unassigned.id + '/transfer-stock', 403);
+    await t.test('controlled creation uses the exact PostgreSQL transaction clock; backdated headers still fail closed', async () => {
+      const header = {
+        companyId: f.company.id, sourceWarehouseId: f.warehouse.id,
+        destinationWarehouseId: f.destinationWarehouse.id,
+        transferNumber: 'CLOCK-PROBE-' + randomUUID(),
+        transferDate: new Date(f.transferInput.transferDate),
+        remarks: 'Disposable clock regression', createdByUserId: f.store.auth.userId,
+      };
+      const counts = async () => ({
+        headers: await db.stockTransfer.count({ where: { companyId: f.company.id } }),
+        custody: await db.transferCustody.count({ where: { companyId: f.company.id } }),
+        stock: await db.stockTransaction.count({ where: { companyId: f.company.id } }),
+      });
+      const before = await counts();
+      await assert.rejects(db.$transaction(async tx => {
+        const row = await tx.stockTransfer.create({ data: { ...header, createdAt: new Date(0) } });
+        await tx.stockTransferItem.create({ data: {
+          stockTransferId: row.id, lineNo: 1, materialId: f.material.id,
+          quantity: '5.0000', uomId: f.uom.id,
+          sourceProjectId: f.project.id, destinationProjectId: f.unassigned.id,
+        } });
+        // Reproduce the exact Mac guard with all other creation conditions met.
+        await tx.transferCustody.create({ data: { transferId: row.id, companyId: f.company.id } });
+      }), /TRANSFER_NEW_PROVENANCE_REQUIRED/);
+      assert.deepEqual(await counts(), before);
+      const rollback = new Error('Dispose only the clock regression transaction');
+      await assert.rejects(db.$transaction(async tx => {
+        const row = await insertControlledTransferHeader(tx, header);
+        const [clock] = await tx.$queryRaw<Array<{ exact: boolean }>>`
+          SELECT created_at = transaction_timestamp()
+            AND updated_at = transaction_timestamp() AS exact
+          FROM stock_transfers WHERE id = ${row.id}::uuid
+        `;
+        assert.equal(clock?.exact, true, 'Compare full PostgreSQL precision, not JS Date');
+        throw rollback;
+      }), error => error === rollback);
+      assert.deepEqual(await counts(), before);
+    });
     const transfer = await call(f.store, ordinary, 201, f.transferInput), id = transfer.id;
     assert.ok(transfer.custody); assert.equal(transfer.custody.version, 1);
     const destination = root + '/projects/' + f.unassigned.id + '/transfers/' + id;
