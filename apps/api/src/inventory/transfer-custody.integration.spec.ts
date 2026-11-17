@@ -89,6 +89,53 @@ test('DEC-046 transfer actual HTTP: dispatch, partial destination receipt, assig
       assert.equal(download.status, 200); assert.equal(await download.text(), '%PDF-1.4 Synthetic signed transfer receipt');
     });
     const receivedBody = { requestKey: randomUUID(), expectedVersion: (await detail()).version, reason: 'Four accepted; one remains in transit', documentId: evidenceId, lines: [{ transferItemId: transfer.items[0].id, quantity: '4.0000', note: 'Actual accepted quantity' }] };
+    async function assertReceiptWaitsForWarehouseWriter(data: { projectId?: string; isActive?: boolean }) {
+      let release!: () => void, updated!: (pid: number) => void;
+      const hold = new Promise<void>(resolve => { release = resolve; });
+      const changed = new Promise<number>(resolve => { updated = resolve; });
+      const reassignment = db.$transaction(async tx => {
+        const rows = await tx.$queryRawUnsafe<Array<{ pid: number }>>('SELECT pg_backend_pid() AS pid');
+        await tx.warehouse.update({ where: { id: f.destinationWarehouse.id }, data });
+        updated(rows[0]!.pid);
+        await hold;
+      }, { timeout: 15000 });
+      let receipt: Promise<any> | undefined;
+      try {
+        const ownerPid = await changed;
+        // Start the real HTTP receive while the default-isolation writer owns
+        // the Warehouse row but has not committed its new scope/activity.
+        let settled = false;
+        receipt = fetch(base + destination + '/receipts/' + receiptId + '/receive', {
+          method: 'POST', headers: { Cookie: 'erp_session=' + f.jai.session.sessionToken,
+            'x-csrf-token': f.jai.session.csrfToken, 'Content-Type': 'application/json' }, body: JSON.stringify(receivedBody),
+        }).then(async response => ({ status: response.status, body: await response.json() }))
+          .finally(() => { settled = true; });
+        let blocked = false;
+        const deadline = Date.now() + 5000;
+        while (Date.now() < deadline && !settled) {
+          const rows = await db.$queryRawUnsafe<Array<{ waiting: boolean }>>(
+            'SELECT EXISTS(SELECT 1 FROM pg_stat_activity WHERE datname=current_database() AND $1::int=ANY(pg_blocking_pids(pid))) AS waiting', ownerPid);
+          if (rows[0]!.waiting) { blocked = true; break; }
+          await new Promise(resolve => setTimeout(resolve, 10));
+        }
+        assert.equal(blocked, true, 'First receipt must wait for the Warehouse row writer before posting stock');
+        release(); await reassignment;
+        assert.equal((await receipt).status, 409, 'Changed Warehouse scope/activity must reject the receipt after the writer commits');
+        assert.equal(await db.transferReceiptLine.count({ where: { receiptId } }), 0);
+        assert.equal(await quantity(f.destinationWarehouse.id), '0.0000');
+      } finally {
+        release(); await reassignment;
+        if (receipt) await receipt;
+      }
+    }
+    await t.test('first receipt serializes against an uncommitted warehouse Project reassignment', async () => {
+      await assertReceiptWaitsForWarehouseWriter({ projectId: f.project.id });
+      await db.warehouse.update({ where: { id: f.destinationWarehouse.id }, data: { projectId: f.unassigned.id } });
+    });
+    await t.test('first receipt serializes against an uncommitted warehouse archival', async () => {
+      await assertReceiptWaitsForWarehouseWriter({ isActive: false });
+      await db.warehouse.update({ where: { id: f.destinationWarehouse.id }, data: { isActive: true } });
+    });
     await t.test('partial receipt credits actual quantity only, overreceipt and partial reversal fail closed', async () => {
       const first = await call(f.jai, destination + '/receipts/' + receiptId + '/receive', 201, receivedBody);
       assert.deepEqual(await call(f.jai, destination + '/receipts/' + receiptId + '/receive', 201, receivedBody), first);

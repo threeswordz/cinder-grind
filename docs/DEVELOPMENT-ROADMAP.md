@@ -1,5 +1,7 @@
 # Construction ERP — Development Roadmap
 
+**17 November transfer review correction:** #359 stable candidate passed both full CI runs; independent review identified the first-posting Warehouse-lock boundary. The sole Builder has a reproduced archival-race regression and forward-only row-lock correction, with local HTTP10/10. Complete changed-head CI and final independent rereview before guarded integration/main; preserve the receiving Mac predecessor and completed journeys. [Current State](CURRENT-STATE.md) and [bounded correction](OP-TRANSFER-RECEIPT-01-IMPLEMENTATION.md#independent-review-correction--17-november-2026-sgt) own exact evidence.
+
 
 **17 November 2026 SGT successor execution:** Transfer entry #355 and receiving/security package #356 are integrated; final requirements main a8dad66f exact-main43899632473 is green. Continue the approved [#352 same-Company dispatch/receipt implementation](OP-TRANSFER-RECEIPT-01-IMPLEMENTATION.md) through full CI, stable independent review, guarded integration and exact-main. One actual populated receiving Mac execution is still outstanding before its separate transfer deployment successor. Then complete remaining mapped operational gaps/journeys, final populated recovery and audit/freeze. [Current State](CURRENT-STATE.md) owns exact current evidence; the older dated plans below are historical where superseded.
 
