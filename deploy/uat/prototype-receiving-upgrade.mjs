@@ -395,7 +395,11 @@ export async function upgrade(operatorMainSha){
     try{if(browser){await browser.stop();browser=undefined;copyMayBeRemoved=true;}}finally{try{if(executable&&copyMayBeRemoved)await executable.cleanup();}finally{if(db)await db.$disconnect();}}
   }
 }
-if(process.argv[1]&&pathToFileURL(resolve(process.argv[1])).href===import.meta.url){
+// macOS temporary paths may use /var while Node resolves the entry module
+// through /private/var. Compare both real paths so the CLI cannot silently
+// skip execution; importing this module must still remain side-effect free.
+const receivingCliEntry=process.argv[1]&&await realpath(resolve(process.argv[1])).catch(()=>null);
+if(receivingCliEntry&&receivingCliEntry===await realpath(new URL(import.meta.url))){
   try{demand(process.argv.length===4&&process.argv[2]==='--execute','RC_UPGRADE_EXECUTE_AND_PINNED_OPERATOR_SHA_REQUIRED');console.log(JSON.stringify(await upgrade(process.argv[3])));}
   catch(e){console.log(JSON.stringify({status:'RECEIVING_UPGRADE_BLOCKED',code:/^[A-Z0-9_]+$/.test(e.safeCode??'')?e.safeCode:'RC_UPGRADE_PRIVATE_FAILURE',
     doNotRetryOrReplayCompletedOperators:true,productionAuthorized:false,secretsPrinted:false}));process.exitCode=1;}

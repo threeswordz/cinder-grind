@@ -1,5 +1,9 @@
 # Construction ERP — Development Roadmap
 
+**Forward reconciliation after #363:** Integrate the independently reviewed receiving CLI correction into the unchanged transfer candidate and approved subcontract entry using normal guarded two-parent commits. Run required combined-head CI; preserve source-specific reviews and keep main at the corrected receiving release until its actual Mac receipt. Main6589d5bc exact-main44028873341 is pending; no receiving execution or milestone closure is claimed. [Current State](CURRENT-STATE.md) owns exact evidence.
+
+**17 November receiving entrypoint defect:** Actual terminal returned silently after confirmation. Correct the reproduced directory-alias CLI guard through affected regression, full CI and stable independent review/integration/main gates, then provide a newly pinned receiving launcher after read-only Mac stage-state diagnosis. No old operator retry or inference of successful deployment. Resume transfer #359 and approved subcontract entry #362 only after this receiving prerequisite is resolved. [Current State](CURRENT-STATE.md) owns exact evidence.
+
 **17 November transfer review correction:** #359 stable candidate passed both full CI runs; independent review identified the first-posting Warehouse-lock boundary. The sole Builder has a reproduced archival-race regression and forward-only row-lock correction, with local HTTP10/10. Complete changed-head CI and final independent rereview before guarded integration/main; preserve the receiving Mac predecessor and completed journeys. [Current State](CURRENT-STATE.md) and [bounded correction](OP-TRANSFER-RECEIPT-01-IMPLEMENTATION.md#independent-review-correction--17-november-2026-sgt) own exact evidence.
 
 
