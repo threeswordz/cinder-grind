@@ -1,8 +1,9 @@
-// Disposable actual React physical source journey; never a retained/Mac operator.
+// Shared actual React journey; the Mac coordinator supplies only a guarded synthetic binding.
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import {join} from 'node:path';
+import {homedir} from 'node:os';
 const demand=(ok,code)=>{if(!ok)throw Object.assign(new Error(code),{safeCode:code});};
 const controlCode=(kind,label)=>'PHYSICAL_BROWSER_'+kind+'_'+label.toUpperCase().replace(/[^A-Z0-9]+/g,'_').slice(0,70);
 async function evaluate(p,s,fn,arg){
@@ -44,8 +45,13 @@ function syntheticPdf(label){
 }
 export async function executePhysicalBrowser(protocol,binding,db){
  const {api:API,web:WEB,fixture:f,downloadRoot}=structuredClone(binding);
- demand(process.platform==='linux'&&process.env.GITHUB_ACTIONS==='true'&&API==='http://127.0.0.1:31349/api/v1'&&WEB==='http://127.0.0.1:44349','PHYSICAL_BROWSER_ORIGINS_REFUSED');
- demand(/^\/tmp\/erp-physical-browser-[^/]+\/downloads$/.test(downloadRoot??''),'PHYSICAL_DOWNLOAD_ROOT_REFUSED');
+ const standalone=process.platform==='linux'&&process.env.GITHUB_ACTIONS==='true'&&API==='http://127.0.0.1:31349/api/v1'&&WEB==='http://127.0.0.1:44349';
+ const populated=process.platform==='linux'&&process.env.GITHUB_ACTIONS==='true'&&API==='http://127.0.0.1:31319/api/v1'&&WEB==='http://127.0.0.1:44319';
+ const mac=process.platform==='darwin'&&API==='http://127.0.0.1:33071/api/v1'&&WEB==='http://127.0.0.1:44171';
+ demand(standalone||populated||mac,'PHYSICAL_BROWSER_ORIGINS_REFUSED');
+ demand(standalone&&/^\/tmp\/erp-physical-browser-[^/]+\/downloads$/.test(downloadRoot??'')||
+  populated&&/^\/tmp\/erp-material-run-[^/]+\/physical-downloads$/.test(downloadRoot??'')||
+  mac&&['source-downloads','rehearsal/downloads'].some(p=>downloadRoot===join(homedir(),'Construction-ERP-Prototype-Runtime/subcontract-upgrade',p)),'PHYSICAL_DOWNLOAD_ROOT_REFUSED');
  demand(await db.subcontractPhysicalRevision.count({where:{claimId:f.claim.id}})===0,'PHYSICAL_BROWSER_NO_REPLAY');
  const financialBefore={stock:await db.stockTransaction.findMany({where:{companyId:f.company.id}}),payments:await db.payment.findMany({where:{companyId:f.company.id}})};
  let context,session,phase='START',documentId,certificationId,downloadGuid,downloadComplete=false;let droppedCapture=false,droppedDecision=false;const closing=new Set(),violations=[];
@@ -219,7 +225,9 @@ export async function executePhysicalBrowser(protocol,binding,db){
  assert.equal(await db.subcontractClaimAssessment.count({where:{claimId:f.claim.id}}),1);
  assert.equal(await db.userSession.count({where:{userId:{in:Object.values(f.actors).map(a=>a.userId)},revokedAt:null}}),0);
  demand(droppedCapture&&droppedDecision,'PHYSICAL_UNCERTAIN_RESPONSE_NOT_EXERCISED');demand(violations.length===0,'PHYSICAL_UNDECLARED_BROWSER_WRITE');
- return {status:'PHYSICAL_BROWSER_NATIVE_PASS',sessionsRevoked:true};
+ return {status:'PHYSICAL_BROWSER_WORKFLOW_VERIFIED',documentIds:[documentId],certificationId,sessionsRevoked:true,
+  physicalCaptureAndIndependentPartialAcceptanceVerified:true,explicitAcceptedAmountVerified:true,canonicalCertificationApprovalVerified:true,
+  threeLocalesVerified:true,mobileVerified:true,protectedDownloadBytesVerified:true,wrongActorDenialVerified:true,uncertainResponseReplayVerified:true};
  }catch(e){throw Object.assign(new Error(),{safeCode:'PHYSICAL_'+phase+'_'+(/^[A-Z0-9_]+$/.test(e.safeCode??'')?e.safeCode:'ASSERTION_FAILED')});}
  finally{protocol.listeners.delete(intercept);if(context)await protocol.send('Target.disposeBrowserContext',{browserContextId:context}).catch(()=>{});}
 }
