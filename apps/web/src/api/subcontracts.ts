@@ -218,6 +218,7 @@ export type ClaimAssessmentRecord = {
 
 export type ClaimRecord = {
   id: string;
+  physicalControlled?: boolean;
   projectId: string;
   agreementId: string;
   claimNumber: string;
@@ -719,9 +720,10 @@ export const subcontractsApi = {
     apiRequest<Data<{ id: string }>>('/subcontracts/claim-lines/' + lineId, {
       method: 'DELETE',
     }),
-  submitClaim: (claimId: string, actionKey: string) =>
+  submitClaim: (claimId: string, actionKey: string, expectedPhysicalVersion?: number) =>
     postAction<ClaimRecord>('/subcontracts/claims/' + claimId + '/submit', {
       actionKey,
+      ...(expectedPhysicalVersion === undefined ? {} : { expectedPhysicalVersion }),
     }),
   withdrawClaim: (
     claimId: string,

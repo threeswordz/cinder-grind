@@ -1,3 +1,5 @@
+import {physicalCatalog,verifyPhysicalCatalog} from './subcontract-physical-catalog-contract.mjs';
+const physicalApproved=process.env.SUBCONTRACT_PHYSICAL_SCHEMA_UPGRADE==='YES';
 import {transferCatalog,verifyTransferCatalog} from './transfer-catalog-contract.mjs';
 const transferApproved=process.env.TRANSFER_SCHEMA_UPGRADE==='YES';
 import {receivingCatalog,verifyReceivingCatalog} from './receiving-catalog-contract.mjs';
@@ -43,8 +45,9 @@ async function snapshot() {
     const stockCountApproved = process.env.STOCK_COUNT_SCHEMA_UPGRADE === 'YES';
 const materialRequestApproved=process.env.MATERIAL_REQUEST_SCHEMA_UPGRADE==='YES';
     const catalogIds = [...boqCatalog,...(hrApproved ? hrCatalog : []),
-      ...(stockCountApproved ? stockCountCatalog : []),...(materialRequestApproved ? materialRequestCatalog : []),...(materialPlanApproved ? materialPlanCatalog : []),...(planIssueApproved ? planIssueCatalog : []),...(siteIssueApproved ? siteIssueCatalog : []),...(receivingApproved ? receivingCatalog : []),...(transferApproved ? transferCatalog : [])].map(row => row.id);
+      ...(stockCountApproved ? stockCountCatalog : []),...(materialRequestApproved ? materialRequestCatalog : []),...(materialPlanApproved ? materialPlanCatalog : []),...(planIssueApproved ? planIssueCatalog : []),...(siteIssueApproved ? siteIssueCatalog : []),...(receivingApproved ? receivingCatalog : []),...(transferApproved ? transferCatalog : []),...(physicalApproved ? physicalCatalog : [])].map(row => row.id);
     if (tablename === 'permissions') {
+      if(physicalApproved)verifyPhysicalCatalog(await prisma.$queryRawUnsafe('SELECT * FROM permissions WHERE id = ANY($1::uuid[])',physicalCatalog.map(p=>p.id)));
       if(transferApproved)verifyTransferCatalog(await prisma.$queryRawUnsafe('SELECT * FROM permissions WHERE id = ANY($1::uuid[])',transferCatalog.map(p=>p.id)));
       const additions = await prisma.$queryRawUnsafe('SELECT * FROM permissions WHERE id = ANY($1::uuid[])', catalogIds);
       verifyBoqCatalog(additions.filter(row => boqCatalog.some(x=>x.id===row.id)));
@@ -108,7 +111,7 @@ try {
     const after = await snapshot();
     assertHistoricalTables(before.tables, after.tables,
       process.env.HR_SCHEMA_UPGRADE === 'YES', process.env.HR_DOCUMENT_SCHEMA_UPGRADE === 'YES',
-      process.env.STOCK_COUNT_SCHEMA_UPGRADE === 'YES', process.env.MATERIAL_REQUEST_SCHEMA_UPGRADE === 'YES',materialPlanApproved,planIssueApproved,siteIssueApproved,receivingApproved,transferApproved);
+      process.env.STOCK_COUNT_SCHEMA_UPGRADE === 'YES', process.env.MATERIAL_REQUEST_SCHEMA_UPGRADE === 'YES',materialPlanApproved,planIssueApproved,siteIssueApproved,receivingApproved,transferApproved,physicalApproved);
     for (const migration of before.migrations) assert.deepEqual(after.migrations.find((row) => row.migration_name === migration.migration_name), migration, 'Historical migration checksum changed');
     const fixture = load(manifestPath);
     assert.equal((await prisma.purchaseOrder.findUniqueOrThrow({ where: { id: fixture.unknownPoId } })).currencyCode, null);

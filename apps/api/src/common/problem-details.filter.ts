@@ -1,3 +1,4 @@
+import { physicalSourceException } from './physical-source-error';
 import {
   ArgumentsHost,
   Catch,
@@ -48,7 +49,7 @@ export class ProblemDetailsFilter implements ExceptionFilter {
   private readonly logger = new Logger(ProblemDetailsFilter.name);
 
   catch(exception: unknown, host: ArgumentsHost): void {
-    exception = monetaryPolicyException(exception) ?? exception;
+    exception = physicalSourceException(exception) ?? monetaryPolicyException(exception) ?? exception;
     const http = host.switchToHttp();
     const request = http.getRequest<CorrelatedRequest>();
     const response = http.getResponse<HttpResponse>();

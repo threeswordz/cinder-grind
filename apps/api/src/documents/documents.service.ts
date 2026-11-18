@@ -1,4 +1,5 @@
 import {transferActor} from '../inventory/transfer-custody-actor';
+import { physicalActor } from '../subcontracts/subcontract-physical-actor';
 import {receivingActor} from '../inventory/receiving-actor';
 import {createHash} from 'node:crypto';
 import {
@@ -269,6 +270,12 @@ export class DocumentsService {
     const receipts = receiptIds.length ? await db.transferReceipt.findMany({ where: { id: { in: receiptIds }, projectId, custody: { companyId: auth.companyId } }, select: { id: true } }) : [];
     const accessibleReceipts = new Set(receipts.map(row => row.id));
 
+    const claimIds = [...new Set(protectedRows.flatMap(row => row.links.filter(link => link.entityType === 'SUBCONTRACT_CLAIM').map(link => link.entityId)))];
+    const claims = claimIds.length ? await db.subcontractClaim.findMany({ where: { id: { in: claimIds }, companyId: auth.companyId, projectId }, select: { id: true } }) : [];
+    const accessibleClaims = new Set(claims.map(row => row.id));
+    const physicalClaims = claimIds.length ? await db.subcontractPhysicalClaim.findMany({ where: { claimId: { in: claimIds }, companyId: auth.companyId, projectId }, select: { claimId: true } }) : [];
+    if (physicalClaims.length) await physicalActor(auth, db, ['subcontracts.claim.view', 'documents.document.view']);
+
     return permitted.filter((row) => {
       const protectedSource = row.links.some((link) => Boolean(DOCUMENT_SOURCE_VIEW_PERMISSIONS[link.entityType]));
       return row.links.every((link) => {
@@ -277,6 +284,7 @@ export class DocumentsService {
         if (link.entityType === 'MATERIAL_REQUEST') return accessibleRequests.has(link.entityId);
         if (link.entityType === 'TRANSFER_RECEIPT') return accessibleReceipts.has(link.entityId);
         if (link.entityType === 'RECEIVING_DELIVERY') return accessibleDeliveries.has(link.entityId);
+        if (link.entityType === 'SUBCONTRACT_CLAIM') return accessibleClaims.has(link.entityId);
         return true;
       });
     });
@@ -439,9 +447,12 @@ export class DocumentsService {
     }
 
     const bytes = await this.storage.read(row.storageKey);
-    if (row.links.some(link => ['MATERIAL_REQUEST','RECEIVING_DELIVERY','TRANSFER_RECEIPT'].includes(link.entityType)) &&
+    const physicalEvidence = row.links.some(link => link.entityType === 'SUBCONTRACT_CLAIM') && Boolean(await db.subcontractPhysicalClaim.findFirst({
+      where: { claimId: { in: row.links.filter(link => link.entityType === 'SUBCONTRACT_CLAIM').map(link => link.entityId) }, companyId: auth.companyId, projectId }, select: { claimId: true },
+    }));
+    if ((physicalEvidence || row.links.some(link => ['MATERIAL_REQUEST','RECEIVING_DELIVERY','TRANSFER_RECEIPT'].includes(link.entityType))) &&
         (!row.checksum || bytes.length !== row.fileSizeBytes || createHash('sha256').update(bytes).digest('hex') !== row.checksum)) {
-      throw new UnprocessableEntityException({code: row.links.some(link=>link.entityType==='TRANSFER_RECEIPT')?'TRANSFER_EVIDENCE_INTEGRITY_FAILED':row.links.some(link=>link.entityType==='RECEIVING_DELIVERY')?'RECEIVING_EVIDENCE_INTEGRITY_FAILED':'MATERIAL_REQUEST_EVIDENCE_INTEGRITY_FAILED'});
+      throw new UnprocessableEntityException({code: physicalEvidence ? 'PHYSICAL_EVIDENCE_INTEGRITY_FAILED' : row.links.some(link=>link.entityType==='TRANSFER_RECEIPT')?'TRANSFER_EVIDENCE_INTEGRITY_FAILED':row.links.some(link=>link.entityType==='RECEIVING_DELIVERY')?'RECEIVING_EVIDENCE_INTEGRITY_FAILED':'MATERIAL_REQUEST_EVIDENCE_INTEGRITY_FAILED'});
     }
 
     return {

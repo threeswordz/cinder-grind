@@ -4012,3 +4012,74 @@ model TransferOperation {
   @@unique([companyId, actorUserId, requestKey])
   @@map("transfer_operations")
 }
+
+// DEC-048: physical source facts attach to the existing canonical Claim.
+// SQL adds scoped foreign keys and deferred source/assessment integrity guards.
+model SubcontractPhysicalPolicy {
+  projectId String @id @map("project_id") @db.Uuid
+  companyId String @map("company_id") @db.Uuid
+  enabledByUserId String @map("enabled_by_user_id") @db.Uuid
+  reason String @db.Text
+  syntheticOnly Boolean @default(true) @map("synthetic_only")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  @@map("subcontract_physical_policies")
+}
+
+model SubcontractPhysicalClaim {
+  claimId String @id @map("claim_id") @db.Uuid
+  companyId String @map("company_id") @db.Uuid
+  projectId String @map("project_id") @db.Uuid
+  agreementId String @map("agreement_id") @db.Uuid
+  version Int @default(1)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  @@map("subcontract_physical_claims")
+}
+
+model SubcontractPhysicalRevision {
+  id String @id @default(uuid()) @db.Uuid
+  claimId String @map("claim_id") @db.Uuid
+  version Int
+  actorUserId String @map("actor_user_id") @db.Uuid
+  reason String @db.Text
+  observations Json
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  @@unique([claimId, version])
+  @@map("subcontract_physical_revisions")
+}
+
+model SubcontractPhysicalSubmission {
+  claimId String @id @map("claim_id") @db.Uuid
+  revisionId String @unique @map("revision_id") @db.Uuid
+  actorUserId String @map("actor_user_id") @db.Uuid
+  sourceDigest String @map("source_digest") @db.VarChar(64)
+  commercialSource Json @map("commercial_source")
+  evidence Json
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  @@map("subcontract_physical_submissions")
+}
+
+model SubcontractPhysicalDecision {
+  claimId String @id @map("claim_id") @db.Uuid
+  assessmentId String @unique @map("assessment_id") @db.Uuid
+  actorUserId String @map("actor_user_id") @db.Uuid
+  reason String @db.Text
+  decisions Json
+  assessedAmount Decimal @map("assessed_amount") @db.Decimal(18,2)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  @@map("subcontract_physical_decisions")
+}
+
+model SubcontractPhysicalOperation {
+  id String @id @default(uuid()) @db.Uuid
+  companyId String @map("company_id") @db.Uuid
+  actorUserId String @map("actor_user_id") @db.Uuid
+  requestKey String @map("request_key") @db.Uuid
+  claimId String? @map("claim_id") @db.Uuid
+  projectId String @map("project_id") @db.Uuid
+  action String @db.VarChar(30)
+  bodyDigest String @map("body_digest") @db.VarChar(64)
+  outcome Json
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  @@unique([companyId, actorUserId, requestKey])
+  @@map("subcontract_physical_operations")
+}

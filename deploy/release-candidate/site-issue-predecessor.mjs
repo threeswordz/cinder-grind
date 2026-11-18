@@ -1,4 +1,7 @@
-import {stripTransferSchema} from './transfer-schema-contract.mjs';
+import {stripPhysicalSchema} from './subcontract-physical-schema-contract.mjs';
+import {physicalCatalog,verifyPhysicalCatalog} from './subcontract-physical-catalog-contract.mjs';
+import {stripTransferSchema as transferBase} from './transfer-schema-contract.mjs';
+const stripTransferSchema=schema=>transferBase(stripPhysicalSchema(schema).text);
 import {transferCatalog,verifyTransferCatalog} from './transfer-catalog-contract.mjs';
 import {stripReceivingSchema} from './receiving-schema-contract.mjs';
 import {receivingCatalog,verifyReceivingCatalog} from './receiving-catalog-contract.mjs';
@@ -42,14 +45,15 @@ export async function prepareFm03Upgrade(databaseUrl){
     assert.match(tablename,/^[a-z_]+$/);
     if(candidate&&tablename==='permissions')verifyReceivingCatalog(await db.$queryRawUnsafe('SELECT * FROM permissions WHERE id=ANY($1::uuid[])',receivingCatalog.map(p=>p.id)),true);
     if(candidate&&tablename==='permissions')verifySiteIssueCatalog(await db.$queryRawUnsafe('SELECT * FROM permissions WHERE id=ANY($1::uuid[])',siteIssueCatalog.map(p=>p.id)),true);
+    if(candidate&&tablename==='permissions')verifyPhysicalCatalog(await db.$queryRawUnsafe('SELECT * FROM permissions WHERE id=ANY($1::uuid[])',physicalCatalog.map(p=>p.id)),true);
     if(candidate&&tablename==='permissions')verifyTransferCatalog(await db.$queryRawUnsafe('SELECT * FROM permissions WHERE id=ANY($1::uuid[])',transferCatalog.map(p=>p.id)),true);
     const filter=candidate&&tablename==='permissions';
-    const [row]=await db.$queryRawUnsafe(`SELECT count(*)::text AS count,encode(sha256(convert_to(coalesce(string_agg(to_jsonb(t)::text,E'\n' ORDER BY to_jsonb(t)::text),''),'UTF8')),'hex') AS digest FROM "${tablename}" t ${filter?'WHERE id <> ALL($1::uuid[])':''}`,...(filter?[[...siteIssueCatalog,...receivingCatalog,...transferCatalog].map(p=>p.id)]:[]));result[tablename]=row;
+    const [row]=await db.$queryRawUnsafe(`SELECT count(*)::text AS count,encode(sha256(convert_to(coalesce(string_agg(to_jsonb(t)::text,E'\n' ORDER BY to_jsonb(t)::text),''),'UTF8')),'hex') AS digest FROM "${tablename}" t ${filter?'WHERE id <> ALL($1::uuid[])':''}`,...(filter?[[...siteIssueCatalog,...receivingCatalog,...transferCatalog,...physicalCatalog].map(p=>p.id)]:[]));result[tablename]=row;
    }return result;
   }
   const before=await snapshot(false);
   await execute('pnpm',['prisma:migrate:deploy'],{env:{...safeEnvironment(),DATABASE_URL:u.href},timeout:120000,maxBuffer:2097152});
-  assertHistoricalTables(before,await snapshot(true),false,false,false,false,false,false,true,true,true);
+  assertHistoricalTables(before,await snapshot(true),false,false,false,false,false,false,true,true,true,true);
   console.log('FM03_EXACT_POPULATED_PREDECESSOR_ALL_HISTORICAL_TABLES_AND_GRANTS_PASS');
  }finally{await db.$disconnect();await rm(temp,{recursive:true,force:true});}
 }

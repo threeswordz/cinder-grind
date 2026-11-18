@@ -137,7 +137,12 @@ function lineUpdate(body: unknown): ClaimLineUpdate {
 
 function actionKey(body: unknown) {
   const input = subcontractObject(body);
+  if (input.expectedPhysicalVersion !== undefined &&
+      (!Number.isSafeInteger(input.expectedPhysicalVersion) || Number(input.expectedPhysicalVersion) < 1)) {
+    return subcontractInvalid('expectedPhysicalVersion', 'Use the exact current physical source version.');
+  }
   return {
+    expectedPhysicalVersion: input.expectedPhysicalVersion === undefined ? undefined : Number(input.expectedPhysicalVersion),
     actionKey: requiredSubcontractString(input, 'actionKey', 120),
   };
 }
@@ -306,6 +311,7 @@ export class SubcontractsClaimsController {
         contextOf(request),
         claimId,
         input.actionKey,
+        input.expectedPhysicalVersion,
       ),
     };
   }

@@ -1,4 +1,6 @@
-import {stripTransferSchema} from './transfer-schema-contract.mjs';
+import {stripPhysicalSchema} from './subcontract-physical-schema-contract.mjs';
+import {stripTransferSchema as transferBase} from './transfer-schema-contract.mjs';
+const stripTransferSchema=schema=>transferBase(stripPhysicalSchema(schema).text);
 const stripReceivingSchema=schema=>receivingBase(stripTransferSchema(schema).text);
 import {stripReceivingSchema as receivingBase} from './receiving-schema-contract.mjs';
 import assert from 'node:assert/strict';

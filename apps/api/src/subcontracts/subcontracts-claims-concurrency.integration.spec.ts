@@ -1,3 +1,7 @@
+import { DocumentPolicyService } from '../documents/document-policy.service';
+import { DocumentsService } from '../documents/documents.service';
+import { SubcontractsPhysicalService } from './subcontracts-physical.service';
+import { LocalDocumentStorage } from '../documents/local-document-storage.service';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import test from 'node:test';
@@ -112,6 +116,8 @@ test('V0.5-C serializes Claim commercial races on the Agreement boundary', async
       access,
       audit,
       new NumberSequenceService(prisma),
+      new SubcontractsPhysicalService(prisma, access, audit, new LocalDocumentStorage(),
+        new DocumentsService(prisma, access, audit, new LocalDocumentStorage(), new DocumentPolicyService())),
     );
     const workflow = new SubcontractsWorkflowService(
       prisma,
