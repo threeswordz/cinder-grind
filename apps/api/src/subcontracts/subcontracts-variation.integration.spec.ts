@@ -1,3 +1,7 @@
+import { DocumentPolicyService } from '../documents/document-policy.service';
+import { DocumentsService } from '../documents/documents.service';
+import { SubcontractsPhysicalService } from './subcontracts-physical.service';
+import { LocalDocumentStorage } from '../documents/local-document-storage.service';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import test from 'node:test';
@@ -245,13 +249,18 @@ test('V0.5-E applies approved Variations to the ceiling and derives authorized r
       approvals,
       audit,
     );
-    const claims = new SubcontractsClaimsService(prisma, access, audit, numbers);
+    const claims = new SubcontractsClaimsService(prisma, access, audit, numbers,
+      new SubcontractsPhysicalService(prisma, access, audit, new LocalDocumentStorage(),
+        new DocumentsService(prisma, access, audit, new LocalDocumentStorage(), new DocumentPolicyService())),
+    );
     const certifications = new SubcontractsCertificationService(
       prisma,
       access,
       approvals,
       audit,
       numbers,
+      new SubcontractsPhysicalService(prisma, access, audit, new LocalDocumentStorage(),
+        new DocumentsService(prisma, access, audit, new LocalDocumentStorage(), new DocumentPolicyService())),
     );
     const makerAuth = auth(company.id, maker.id);
     const makerApproverAuth = auth(company.id, maker.id, [role.roleCode]);

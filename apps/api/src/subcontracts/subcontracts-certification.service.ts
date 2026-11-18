@@ -15,6 +15,7 @@ import { AuditService } from '../audit/audit.service';
 import { AuthenticatedUserContext } from '../auth/auth.types';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProjectAccessService } from '../projects/project-access.service';
+import { SubcontractsPhysicalService } from './subcontracts-physical.service';
 
 type AuditContext = {
   auth: AuthenticatedUserContext;
@@ -37,6 +38,7 @@ export class SubcontractsCertificationService {
     private readonly approvals: ApprovalService,
     private readonly audit: AuditService,
     private readonly numbers: NumberSequenceService,
+    private readonly physical: SubcontractsPhysicalService,
   ) {}
 
   workflowOptions(auth: AuthenticatedUserContext) {
@@ -125,7 +127,7 @@ export class SubcontractsCertificationService {
     input: CertificationDraftInput,
   ) {
     const visible = await this.visibleClaim(context.auth, claimId, this.prisma);
-    this.assertSourceEligible(visible, new Prisma.Decimal(input.certifiedGross));
+    await this.assertSourceEligible(visible, new Prisma.Decimal(input.certifiedGross), context.auth, this.prisma);
     await this.assertNoPriorApprovedCorrection(
       context.auth.companyId,
       claimId,
@@ -151,10 +153,9 @@ export class SubcontractsCertificationService {
             claimId,
             tx,
           );
-          this.assertSourceEligible(
+          await this.assertSourceEligible(
             claim,
-            new Prisma.Decimal(input.certifiedGross),
-          );
+            new Prisma.Decimal(input.certifiedGross), context.auth, tx);
           await this.assertNoPriorApprovedCorrection(
             context.auth.companyId,
             claimId,
@@ -244,7 +245,7 @@ export class SubcontractsCertificationService {
       const nextGross = new Prisma.Decimal(
         input.certifiedGross ?? current.certifiedGross,
       );
-      this.assertSourceEligible(claim, nextGross);
+      await this.assertSourceEligible(claim, nextGross, context.auth, tx);
 
       const updated = await tx.subcontractCertification.update({
         where: { id: current.id },
@@ -305,6 +306,9 @@ export class SubcontractsCertificationService {
           [workflowCode],
         );
         if (replay) {
+          // An action key proves a prior commit, not current authority or
+          // unchanged physical evidence. Do not reapply the DRAFT state gate.
+          await this.physical.eligible(context.auth, visible.claimId, tx);
           return this.visibleCertification(
             context.auth,
             certificationId,
@@ -328,7 +332,7 @@ export class SubcontractsCertificationService {
           certification.claimId,
           tx,
         );
-        this.assertSourceEligible(claim, certification.certifiedGross);
+        await this.assertSourceEligible(claim, certification.certifiedGross, context.auth, tx);
         await this.assertAgreementActive(
           context.auth.companyId,
           certification.agreementId,
@@ -553,6 +557,9 @@ export class SubcontractsCertificationService {
           [comment ?? null],
         );
         if (replay) {
+          // Approval/rejection retries must retain the same physical source
+          // and live rights checks after the certification has changed state.
+          await this.physical.eligible(context.auth, visible.claimId, tx);
           return this.visibleCertification(
             context.auth,
             certificationId,
@@ -571,7 +578,7 @@ export class SubcontractsCertificationService {
           certification.claimId,
           tx,
         );
-        this.assertSourceEligible(claim, certification.certifiedGross);
+        await this.assertSourceEligible(claim, certification.certifiedGross, context.auth, tx);
         await this.assertAgreementActive(
           context.auth.companyId,
           certification.agreementId,
@@ -597,10 +604,9 @@ export class SubcontractsCertificationService {
                     current.claimId,
                     approvalTx,
                   );
-                  this.assertSourceEligible(
+                  await this.assertSourceEligible(
                     currentClaim,
-                    current.certifiedGross,
-                  );
+                    current.certifiedGross, context.auth, approvalTx);
                   const agreement = await this.assertAgreementActive(
                     context.auth.companyId,
                     current.agreementId,
@@ -729,8 +735,9 @@ export class SubcontractsCertificationService {
     );
   }
 
-  private assertSourceEligible(
+  private async assertSourceEligible(
     claim: {
+      id: string;
       state: string;
       assessment: {
         id: string;
@@ -739,6 +746,8 @@ export class SubcontractsCertificationService {
       } | null;
     },
     certifiedGross: Prisma.Decimal,
+    auth: AuthenticatedUserContext,
+    db: SubcontractDb = this.prisma,
   ) {
     if (
       claim.state !== 'ASSESSED' ||
@@ -751,6 +760,7 @@ export class SubcontractsCertificationService {
           'Certification requires a currently assessed Claim with an active retained Assessment.',
       });
     }
+    await this.physical.eligible(auth, claim.id, db);
     if (certifiedGross.lt(0) || certifiedGross.gt(claim.assessment.assessedAmount)) {
       throw new UnprocessableEntityException({
         code: 'CERTIFICATION_GROSS_OUT_OF_RANGE',

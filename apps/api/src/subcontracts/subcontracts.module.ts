@@ -7,6 +7,9 @@ import { AuthModule } from '../auth/auth.module';
 import { AuthorizationModule } from '../authorization/authorization.module';
 import { PrismaModule } from '../prisma/prisma.module';
 import { ProjectsModule } from '../projects/projects.module';
+import { DocumentsModule } from '../documents/documents.module';
+import { SubcontractsPhysicalController } from './subcontracts-physical.controller';
+import { SubcontractsPhysicalService } from './subcontracts-physical.service';
 import { SubcontractsCertificationController } from './subcontracts-certification.controller';
 import { SubcontractsCertificationService } from './subcontracts-certification.service';
 import { SubcontractsVariationController } from './subcontracts-variation.controller';
@@ -27,8 +30,10 @@ import { SubcontractsService } from './subcontracts.service';
     AdministrationModule,
     ApprovalModule,
     ProjectsModule,
+    DocumentsModule,
   ],
   controllers: [
+    SubcontractsPhysicalController,
     SubcontractsController,
     SubcontractsWorkflowController,
     SubcontractsClaimsController,
@@ -36,6 +41,7 @@ import { SubcontractsService } from './subcontracts.service';
     SubcontractsVariationController,
   ],
   providers: [
+    SubcontractsPhysicalService,
     SubcontractsService,
     SubcontractsWorkflowService,
     SubcontractsClaimsService,
@@ -43,6 +49,7 @@ import { SubcontractsService } from './subcontracts.service';
     SubcontractsVariationService,
   ],
   exports: [
+    SubcontractsPhysicalService,
     SubcontractsService,
     SubcontractsWorkflowService,
     SubcontractsClaimsService,

@@ -14,6 +14,7 @@ import { AuditService } from '../audit/audit.service';
 import { AuthenticatedUserContext } from '../auth/auth.types';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProjectAccessService } from '../projects/project-access.service';
+import { SubcontractsPhysicalService } from './subcontracts-physical.service';
 
 type AuditContext = {
   auth: AuthenticatedUserContext;
@@ -40,6 +41,7 @@ export type ClaimAssessmentInput = {
   assessedAmount: string;
   reason: string;
   actionKey: string;
+  physicalDecision?: unknown;
 };
 
 @Injectable()
@@ -49,6 +51,7 @@ export class SubcontractsClaimsService {
     private readonly access: ProjectAccessService,
     private readonly audit: AuditService,
     private readonly numbers: NumberSequenceService,
+    private readonly physical: SubcontractsPhysicalService,
   ) {}
 
   async claimAgreementOptions(auth: AuthenticatedUserContext) {
@@ -126,12 +129,15 @@ export class SubcontractsClaimsService {
       include: this.claimInclude(),
       orderBy: [{ periodStart: 'desc' }, { claimNumber: 'desc' }],
     });
-    return claims.map((claim) => this.claimForRead(auth, claim));
+    const controlled = new Set((await this.prisma.subcontractPhysicalClaim.findMany({
+      where: { companyId: auth.companyId, claimId: { in: claims.map(claim => claim.id) } }, select: { claimId: true },
+    })).map(row => row.claimId));
+    return claims.map((claim) => ({ ...this.claimForRead(auth, claim), physicalControlled: controlled.has(claim.id) }));
   }
 
   async getClaim(auth: AuthenticatedUserContext, claimId: string) {
     const claim = await this.visibleClaim(auth, claimId, this.prisma);
-    return this.claimForRead(auth, claim);
+    return { ...this.claimForRead(auth, claim), physicalControlled: Boolean(await this.physical.controlled(claimId, this.prisma)) };
   }
 
   async createClaim(
@@ -620,6 +626,7 @@ export class SubcontractsClaimsService {
     context: AuditContext,
     claimId: string,
     actionKey: string,
+    expectedPhysicalVersion?: number,
   ) {
     return this.prisma.$transaction(
       async (tx) => {
@@ -642,6 +649,7 @@ export class SubcontractsClaimsService {
         ];
         await this.lockClaims(context.auth.companyId, claimIds, tx);
 
+        const physicalActor = await this.physical.authorize(context.auth, claimId, tx, ['subcontracts.physical.edit', 'subcontracts.claim.submit', 'documents.document.view']);
         const replay = await this.claimReplay(
           tx,
           context.auth,
@@ -649,9 +657,10 @@ export class SubcontractsClaimsService {
           'CLAIM_SUBMIT',
           'SUBCONTRACT_CLAIM',
           claimId,
-          [],
+          physicalActor ? [String(expectedPhysicalVersion)] : [],
         );
         if (replay) {
+          if (physicalActor) await this.physical.assertSource(context.auth, claimId, tx);
           const current = await this.visibleClaim(context.auth, claimId, tx);
           return this.claimForRead(context.auth, current);
         }
@@ -795,6 +804,7 @@ export class SubcontractsClaimsService {
           }
         }
 
+        await this.physical.freeze(context, tx, claim.id, expectedPhysicalVersion);
         if (replacementSource) {
           await tx.subcontractClaim.update({
             where: { id: replacementSource.id },
@@ -924,6 +934,11 @@ export class SubcontractsClaimsService {
         );
         await this.lockClaims(context.auth.companyId, [claimId], tx);
 
+        const physical = await this.physical.prepareDecision(context, tx, claimId, input.physicalDecision);
+        if (physical && (physical.requestKey !== input.actionKey || physical.reason !== input.reason)) {
+          throw new ConflictException({ code: 'PHYSICAL_COMMAND_BINDING_INVALID' });
+        }
+        const eligibleAmount = physical?.assessedAmount ?? input.assessedAmount;
         const replay = await this.claimReplay(
           tx,
           context.auth,
@@ -931,7 +946,7 @@ export class SubcontractsClaimsService {
           'CLAIM_ASSESS',
           'SUBCONTRACT_CLAIM',
           claimId,
-          [new Prisma.Decimal(input.assessedAmount).toFixed(2), input.reason],
+          [new Prisma.Decimal(eligibleAmount).toFixed(2), input.reason, ...(physical ? [JSON.stringify(physical)] : [])],
         );
         if (replay) return this.visibleClaim(context.auth, claimId, tx);
 
@@ -958,7 +973,7 @@ export class SubcontractsClaimsService {
           _sum: { amount: true },
         });
         const claimTotal = total._sum.amount ?? new Prisma.Decimal(0);
-        const assessedAmount = new Prisma.Decimal(input.assessedAmount);
+        const assessedAmount = new Prisma.Decimal(eligibleAmount);
         if (assessedAmount.gt(claimTotal)) {
           throw new UnprocessableEntityException({
             code: 'ASSESSMENT_EXCEEDS_CLAIM',
@@ -979,6 +994,7 @@ export class SubcontractsClaimsService {
             assessedAt,
           },
         });
+        if (physical) await this.physical.recordDecision(context, tx, claim.id, assessment.id, physical);
         await tx.subcontractClaim.update({
           where: { id: claim.id },
           data: { state: 'ASSESSED' },
