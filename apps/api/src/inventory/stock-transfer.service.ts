@@ -33,6 +33,40 @@ export type TransferLineInput = {
   remarks?: string | null;
 };
 
+// Controlled custody creation is bound to the database transaction clock by
+// erp_transfer_custody_guard and erp_transfer_new_source_proof. A client-side
+// Date/ORM default can precede PostgreSQL's microsecond transaction timestamp.
+// Use the original table defaults in this transaction, not a clock tolerance,
+// caller-supplied provenance, UPDATE of old rows, or relaxed database guard.
+export async function insertControlledTransferHeader(
+  tx: Prisma.TransactionClient,
+  data: {
+    companyId: string;
+    sourceWarehouseId: string;
+    destinationWarehouseId: string;
+    transferNumber: string;
+    transferDate: Date;
+    remarks: string | null;
+    createdByUserId: string;
+  },
+): Promise<{ id: string }> {
+  const [row] = await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+    INSERT INTO stock_transfers
+      (company_id, source_warehouse_id, destination_warehouse_id,
+       transfer_number, transfer_date, remarks, created_by_user_id,
+       created_at, updated_at)
+    VALUES
+      (${data.companyId}::uuid, ${data.sourceWarehouseId}::uuid,
+       ${data.destinationWarehouseId}::uuid, ${data.transferNumber},
+       ${data.transferDate.toISOString().slice(0, 10)}::date,
+       ${data.remarks}::text, ${data.createdByUserId}::uuid,
+       transaction_timestamp(), transaction_timestamp())
+    RETURNING id
+  `);
+  if (!row) throw new Error('Controlled transfer insert returned no identifier');
+  return row;
+}
+
 @Injectable()
 export class StockTransferService {
   constructor(
@@ -297,17 +331,18 @@ export class StockTransferService {
         input.destinationWarehouseId,
         tx,
       );
-      const transfer = await tx.stockTransfer.create({
-        data: {
-          companyId: context.auth.companyId,
-          sourceWarehouseId: warehouses.source.id,
-          destinationWarehouseId: warehouses.destination.id,
-          transferNumber,
-          transferDate: input.transferDate,
-          remarks: input.remarks ?? null,
-          createdByUserId: context.auth.userId,
-        },
-      });
+      const header = {
+        companyId: context.auth.companyId,
+        sourceWarehouseId: warehouses.source.id,
+        destinationWarehouseId: warehouses.destination.id,
+        transferNumber,
+        transferDate: input.transferDate,
+        remarks: input.remarks ?? null,
+        createdByUserId: context.auth.userId,
+      };
+      const transfer = controlled
+        ? await insertControlledTransferHeader(tx, header)
+        : await tx.stockTransfer.create({ data: header });
       for (const [index, line] of input.lines.entries()) {
         await this.validateLine(context.auth, warehouses, line, tx, controlled);
         await tx.stockTransferItem.create({
