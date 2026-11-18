@@ -1,3 +1,4 @@
+import {stripMaterialUomSchema} from './material-uom-schema-contract.mjs';
 import {stripPhysicalSchema} from './subcontract-physical-schema-contract.mjs';
 import {stripTransferSchema} from './transfer-schema-contract.mjs';
 import {stripReceivingSchema} from './receiving-schema-contract.mjs';
@@ -195,12 +196,20 @@ function classifyBeforePhysical(previous,candidate){
  return !before.present&&after.present?(base==='migration-aware-sql-only'?'migration-aware-transfer-schema':'migration-aware-transfer-'+base.slice('migration-aware-'.length)):base;
 }
 
-export function classifySchema(previous,candidate){
+function classifyBeforeMaterialUom(previous,candidate){
  if(previous===candidate)return 'migration-aware-sql-only';
  const before=stripPhysicalSchema(previous),after=stripPhysicalSchema(candidate);
  if(before.present&&!after.present)throw Error('Physical source schema removal prohibited');
  const base=before.text.replace(/\s+/g,' ').trim()===after.text.replace(/\s+/g,' ').trim()?'migration-aware-sql-only':classifyBeforePhysical(before.text,after.text);
  return !before.present&&after.present?(base==='migration-aware-sql-only'?'migration-aware-subcontract-physical-schema':'migration-aware-subcontract-physical-'+base.slice('migration-aware-'.length)):base;
+}
+
+export function classifySchema(previous,candidate){
+ if(previous===candidate)return 'migration-aware-sql-only';
+ const before=stripMaterialUomSchema(previous),after=stripMaterialUomSchema(candidate);
+ if(before.present&&!after.present)throw Error('Material UOM definition schema removal prohibited');
+ const base=before.text.replace(/\s+/g,' ').trim()===after.text.replace(/\s+/g,' ').trim()?'migration-aware-sql-only':classifyBeforeMaterialUom(before.text,after.text);
+ return !before.present&&after.present?(base==='migration-aware-sql-only'?'migration-aware-material-uom-schema':'migration-aware-material-uom-'+base.slice('migration-aware-'.length)):base;
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
