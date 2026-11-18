@@ -20,6 +20,8 @@ test('focused branch excludes explicit full lane; no PR/main event or full check
   assert.match(focused, /^name: Focused Construction ERP Branch$/m);
   assert.match(focused, /^jobs:\n  validate-branch:\n    name: focused-branch$/m);
   assert.match(focused, /test "\$\(git rev-parse HEAD\)" = "\$EXACT_BRANCH_COMMIT"/);
+  // Vite SSR fixtures resolve /src relative to the web package cwd.
+  assert.match(focused, /name: Run role UI focused tests\n        working-directory: apps\/web\n        run: node --test src\/role-ui\/\*\.test\.mjs/);
   assert.match(focused, /FOCUSED_BRANCH_ONLY/);
   // A colon-space in a plain YAML scalar is invalid even inside shell quotes.
   assert.match(focused, /name: Record focused-only boundary\n        run: \|\n          printf/);
@@ -27,5 +29,5 @@ test('focused branch excludes explicit full lane; no PR/main event or full check
 });
 
 test('focused workflow keeps frozen dependencies and meaningful compile/schema checks', () => {
-  for (const command of ['pnpm install --frozen-lockfile','pnpm prisma:generate','pnpm prisma:validate','pnpm typecheck','node --test apps/web/src/role-ui/*.test.mjs']) assert.ok(focused.includes(command), command);
+  for (const command of ['pnpm install --frozen-lockfile','pnpm prisma:generate','pnpm prisma:validate','pnpm typecheck','node --test src/role-ui/*.test.mjs']) assert.ok(focused.includes(command), command);
 });
