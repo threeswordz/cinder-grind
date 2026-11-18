@@ -31,6 +31,8 @@ English, Thai and Traditional Chinese UI must show entered and stock quantities/
 
 ## Dependency-ordered delivery and technical gates
 
+**Prospective DEC-051:** Once [CI validation policy](CI-VALIDATION-POLICY.md) is activated under #373, focused ordinary branch feedback replaces only duplicated full branch-push evidence for B/C; full exact-head PR, independent review, guarded integration/tree equality and full exact-main remain mandatory. Stage A's original full runs remain intact. No change to B/C scope, assertions or stage dependencies.
+
 | Stage | Bounded delivery | Exit before dependent work |
 |---|---|---|
 | A — Definitions/validation foundation | Material stock-basis and exact immutable definition revisions, scoped master APIs/editor and exact preview/validation; additive schema/catalog without historical normalization or automatic grants | Current Employee/Company/action checks, active references, dates/ambiguity, exact ratios, precision/overflow, immutable used identity, concurrency/replay and historical migration proof; full applicable CI, independent stable DEC-022, guarded integration and exact-main. A alone does not deliver mixed-UOM stock. |

@@ -102,6 +102,8 @@ To change one, the Product / Business Owner must clearly state the intended poli
 
 ## 6. Stage and release gates
 
+**DEC-051:** [CI validation policy](CI-VALIDATION-POLICY.md) supersedes only redundant ordinary branch-push full evidence after its gated activation. Full exact-head PR, full exact-main, guarded merge/tree equality, full assertions and independent review remain mandatory in the first increment. No conditional main shortcut, security, retained-data, human or Production gate relaxation.
+
 A stage may merge only when its applicable completion gates pass.
 
 The next stage must not begin until required predecessor gates are complete unless the approved roadmap explicitly permits parallel work.

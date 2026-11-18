@@ -59,6 +59,8 @@ If the desired outcome requires changing an approved rule, stop and obtain expli
 
 ## 4. Release discipline
 
+- **DEC-051:** After governed activation, follow [CI validation policy](docs/CI-VALIDATION-POLICY.md): focused ordinary branch feedback, full exact-head PR, guarded merge/tree equality and full exact-main in the first increment; explicit full-push lane where needed. Only duplicate prospective ordinary full branch pushes are superseded, not tests, review, human UAT or release/security gates.
+
 - Do not begin the next stage before the current stage's completion gates are satisfied.
 - **DEC-042:** No human/manual/Owner/milestone UAT during approved development PRs or interim technical stages. After all other required technical, CI/review and non-UAT gates pass, mark pending UAT **DEFERRED TO PRE-PRODUCTION PROTOTYPE** and proceed to the next approved technical development stage. Run one full multi-role business UAT only after the integrated, technically ready non-Production prototype is frozen. Preserve existing automated test and independent review gates, non-UAT Owner approvals, GL gates and separate Production authorization. DEC-042 supersedes DEC-041 interim UAT timing.
 - Human UAT/business acceptance must not be self-approved by development or automation.
@@ -84,7 +86,7 @@ If the desired outcome requires changing an approved rule, stop and obtain expli
 
 - Chat + CI are the continuous development/review loop while a branch is changing.
 - Do not request Codex after every commit or every individual fix.
-- Request Codex when a PR/stage reaches a stable merge candidate with applicable CI green and known Chat findings resolved.
+- Request Codex when a PR/stage reaches a stable merge candidate with applicable CI green and known Chat findings resolved. Use an observed automatic ready-for-review trigger rather than also requesting manually by default (DEC-051).
 - Batch genuine Codex findings, fix them together where practical, rerun CI, then use a single batched final re-review when the fixes materially affect reviewed behavior or a high-risk surface.
 - A clean Codex review is not invalidated by later documentation/evidence-only edits that do not change runtime behavior, schema, security boundaries or business rules.
 - Authorization, permissions, Finance/payment/accounting, migrations, audit/history immutability, concurrency and data-integrity changes still require Codex at the stable merge candidate unless an explicit PR-specific Product / Business Owner waiver is recorded.
