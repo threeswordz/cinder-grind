@@ -1,5 +1,7 @@
 import {configureTransfer,prepareTransferSource,transferBrowserBinding,verifyTransferJourneyPreservation} from './prototype-transfer-state.mjs';
 import {executeTransferBrowser} from './transfer-browser.mjs';
+import {configureSubcontract,prepareSubcontractSource,subcontractBrowserBinding,verifySubcontractPreservation} from './prototype-subcontract-state.mjs';
+import {executePhysicalBrowser} from './subcontract-physical-browser.mjs';
 import {prepareTransferContinuationSource} from './prototype-transfer-continuation-core.mjs';
 import {beforeTransferSchema,createFailedTransferCheckpoint} from './prototype-transfer-continuation-native-fixture.mjs';
 import {verifyFailedTransferState} from './prototype-transfer-failure-state.mjs';
@@ -52,9 +54,10 @@ async function native(){
   try{
     await base.$executeRawUnsafe('CREATE DATABASE "'+name+'"');created=true;
     phase='MIGRATE';await run('pnpm',['prisma:migrate:deploy'],env);
+    const adminPassword=randomBytes(32).toString('hex');
     await run(process.execPath,[join(apiRoot,'dist/scripts/bootstrap-admin.js')],{...env,BOOTSTRAP_COMPANY_CODE:'PROTO_A',
       BOOTSTRAP_COMPANY_NAME:'Synthetic follow-up fixture',BOOTSTRAP_ADMIN_EMAIL:'proto-admin@example.invalid',
-      BOOTSTRAP_ADMIN_DISPLAY_NAME:'Synthetic technical admin',BOOTSTRAP_ADMIN_PASSWORD:randomBytes(32).toString('hex')});
+      BOOTSTRAP_ADMIN_DISPLAY_NAME:'Synthetic technical admin',BOOTSTRAP_ADMIN_PASSWORD:adminPassword});
     Object.assign(process.env,env);
     const {PrismaService}=require('./dist/prisma/prisma.service.js'),{PasswordService}=require('./dist/auth/password.service.js');
     db=new PrismaService();await db.$connect();
@@ -217,6 +220,21 @@ async function native(){
     phase='TRANSFER_PRESERVATION';verifyTransferJourneyPreservation(transferBefore,await fm03Snapshot(db),transferConfig,fmBinding,transferSource,transferResult);
     console.log('TRANSFER_CONTINUATION_NATIVE_PASS: actual failed-create number allocation and committed policy/revoked sessions; strict old-state proof; canonical continuation uses002 without reset or policy replay, then the same real dispatch/receipt browser and full preserved history. Disposable CI only, not actual Mac continuation.');
     console.log('TRANSFER_POPULATED_ENGINE_NATIVE_PASS: completed material/FM03/receiving rows and grants preserved; exact new synthetic rights, canonical approval with zero stock, explicit Khaimook receiver assignment, real React dispatch5/receive4/outstanding1, protected evidence/locales/denials and revoked sessions. Not Mac execution or final recovery/freeze.');
+    phase='SUBCONTRACT_BASELINE';const physicalBefore=await fm03Snapshot(db);
+    await assert.rejects(configureSubcontract(db,fmBinding,'0'.repeat(64)),e=>e.safeCode==='PA_CONFIGURATION_STATE_DRIFT');
+    const sharedPhysicalRole=await db.userRole.create({data:{companyId:fixture.companyId,userId:prepared.actors.NANCY.userId,roleId:prepared.actors.BEN.roleId}});
+    try{await assert.rejects(configureSubcontract(db,fmBinding,digest(await fm03Snapshot(db))),e=>e.safeCode==='PA_ROLE_MEMBERSHIP_MUST_BE_EXCLUSIVE');}
+    finally{await db.userRole.delete({where:{id:sharedPhysicalRole.id}});}
+    assert.equal(digest(await fm03Snapshot(db)),digest(physicalBefore));
+    phase='SUBCONTRACT_CONFIGURATION';const physicalConfig=await configureSubcontract(db,fmBinding,digest(physicalBefore));
+    phase='SUBCONTRACT_CANONICAL_SOURCE';const physicalSource=await prepareSubcontractSource(db,fmBinding,physicalConfig,origins);
+    phase='SUBCONTRACT_ACTUAL_BROWSER';const downloadRoot=join(temporary,'physical-downloads');await mkdir(downloadRoot,{mode:0o700});
+    browser=await startBrowser(chrome,temporary);
+    const physicalResult=await executePhysicalBrowser(browser.protocol,subcontractBrowserBinding(fmBinding,physicalConfig,physicalSource,origins,downloadRoot,
+      {userId:fixture.adminUserId,email:'proto-admin@example.invalid',password:adminPassword}),db);
+    await browser.stop();browser=undefined;
+    phase='SUBCONTRACT_PRESERVATION';verifySubcontractPreservation(physicalBefore,await fm03Snapshot(db),physicalConfig,fmBinding,physicalSource,physicalResult);
+    console.log('SUBCONTRACT_POPULATED_ENGINE_NATIVE_PASS: prior material/FM03/receiving/partial-transfer preserved; exact synthetic grants; canonical Khaimook agreement/WO and independent Ben approvals; shared real browser capture/evidence/8 accepted/2 held/explicit731.25/certification/Nancy approval/retention36.56, locales/denials/download/retries/revocation. Disposable CI only, not Mac execution or final recovery/freeze.');
   }catch(e){
     console.error('MATERIAL_RUN_NATIVE_FAILED: '+phase+' '+(/^[A-Z0-9_]+$/.test(e.safeCode??'')?e.safeCode:'NATIVE_ASSERTION_OR_SETUP_FAILED')+
       (e.cleanupFailed===true?' CLEANUP_ALSO_FAILED':''));
