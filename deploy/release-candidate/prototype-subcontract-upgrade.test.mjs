@@ -67,9 +67,11 @@ test('canonical and Mac-alias CLI fail closed and imports are inert',async t=>{
  const r=spawnSync(process.execPath,['--input-type=module','-e','await import('+JSON.stringify(new URL('../uat/prototype-subcontract-upgrade.mjs',import.meta.url).href)+')'],{encoding:'utf8',timeout:10000});
  assert.equal(r.status,0);assert.equal(r.stdout,'');assert.equal(r.stderr,'');
 });
-test('deployed application uses exact independently reviewed source and exact additive migration identities',async()=>{
+test('deployed application uses the durable reviewed integration tree and exact additive migration identities',async()=>{
  const git=(...args)=>execFileSync('git',args,{encoding:'utf8'}).trim();
- for(const path of ['apps','package.json','pnpm-lock.yaml'])assert.equal(git('rev-parse',REVIEWED_APP+':'+path),git('rev-parse','98ee07a3f0a763ae953655aa22c8aae0edadb785:'+path));
+ // #365's recorded reviewed tree is preserved by its retained main commit.
+ // Do not require a squash-merged review branch object to remain fetched.
+ assert.equal(git('rev-parse',REVIEWED_APP+'^{tree}'),'19a2f275a75dc5c0d0ed18820a906889db789251');
  const names=(await readdir(new URL('../../apps/api/prisma/migrations/',import.meta.url))).filter(n=>/^20261117\d{6}_subcontract_physical_/.test(n));
  assert.deepEqual(names.sort(),[...physicalMigrations].sort());
 });

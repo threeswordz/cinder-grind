@@ -26,5 +26,5 @@ test('the fixed application pin retains the failed schema, migrations, dependenc
  for(const path of ['apps/api/prisma/schema.prisma','apps/api/prisma/migrations','package.json','pnpm-lock.yaml','apps/api/package.json'])
   assert.equal(git('rev-parse',FAILED_SOURCE+':'+path),git('rev-parse',CORRECTED_APP+':'+path));
  assert.equal(git('rev-parse',CORRECTED_APP+':apps/api/src/inventory/stock-transfer.service.ts'),
-  git('rev-parse','7dc6270574c5a7cad05142f32a3ad4e1fc31aa60:apps/api/src/inventory/stock-transfer.service.ts'));
+  'd6b5ffe6e005b1b8f25e3a8bd1d3d39779192d53'); // Reviewed #367 blob, retained by integrated App.
 });
