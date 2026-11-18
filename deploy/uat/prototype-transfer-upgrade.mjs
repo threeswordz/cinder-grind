@@ -380,6 +380,9 @@ export async function upgrade(operatorMainSha){
 // through /private/var. Compare both real paths so the CLI cannot silently
 // skip execution; importing this module must still remain side-effect free.
 const transferCliEntry=process.argv[1]&&await realpath(resolve(process.argv[1])).catch(()=>null);
+// Reuse the same bounded filesystem/process primitives in the separately
+// reviewed failed-state continuation. Importing still performs no upgrade.
+export {command,directory,privateJson,absent,seal,fileHash,stage,databaseStream,priorInventory,freePort,environment,green,json};
 if(transferCliEntry&&transferCliEntry===await realpath(new URL(import.meta.url))){
   try{demand(process.argv.length===4&&process.argv[2]==='--execute','TR_UPGRADE_EXECUTE_AND_PINNED_OPERATOR_SHA_REQUIRED');console.log(JSON.stringify(await upgrade(process.argv[3])));}
   catch(e){console.log(JSON.stringify({status:'TRANSFER_UPGRADE_BLOCKED',code:/^[A-Z0-9_]+$/.test(e.safeCode??'')?e.safeCode:'TR_UPGRADE_PRIVATE_FAILURE',

@@ -1,5 +1,8 @@
 import {configureTransfer,prepareTransferSource,transferBrowserBinding,verifyTransferJourneyPreservation} from './prototype-transfer-state.mjs';
 import {executeTransferBrowser} from './transfer-browser.mjs';
+import {prepareTransferContinuationSource} from './prototype-transfer-continuation-core.mjs';
+import {beforeTransferSchema,createFailedTransferCheckpoint} from './prototype-transfer-continuation-native-fixture.mjs';
+import {verifyFailedTransferState} from './prototype-transfer-failure-state.mjs';
 import {configureReceiving,prepareReceivingSource,receivingBrowserBinding,verifyReceivingJourneyPreservation} from './prototype-receiving-state.mjs';
 import {executeReceivingBrowser} from './prototype-receiving-browser.mjs';
 import {executeFm03Browser} from './prototype-fm03-browser.mjs';
@@ -201,11 +204,18 @@ async function native(){
     finally{await db.userRole.delete({where:{id:sharedTransferRole.id}});}
     assert.equal(digest(await fm03Snapshot(db)),digest(transferBefore));
     phase='TRANSFER_CONFIGURATION';const transferConfig=await configureTransfer(db,fmBinding,digest(transferBefore));
-    phase='TRANSFER_CANONICAL_SOURCE';const transferSource=await prepareTransferSource(db,fmBinding,transferConfig,origins);
+    phase='TRANSFER_FAILED_SOURCE_CHECKPOINT';const transferOld=beforeTransferSchema(transferBefore);
+    await createFailedTransferCheckpoint(fmBinding,transferConfig,origins);
+    const failedTransfer=await fm03Snapshot(db);
+    assert.equal(verifyFailedTransferState(transferOld,failedTransfer,transferConfig,fmBinding).failedNumberConsumed,true);
+    phase='TRANSFER_CANONICAL_CONTINUATION';const transferSource=await prepareTransferContinuationSource(db,fmBinding,transferConfig,
+      {before:transferOld,stateSha256:digest(failedTransfer)},origins);
+    assert.equal(transferSource.spentNumberPreserved,true);assert.equal(transferSource.policyReplayed,false);
     phase='TRANSFER_ACTUAL_BROWSER';browser=await startBrowser(chrome,temporary);
     const transferResult=await executeTransferBrowser(browser.protocol,await transferBrowserBinding(db,fmBinding,transferConfig,transferSource,origins),db);
     await browser.stop();browser=undefined;
     phase='TRANSFER_PRESERVATION';verifyTransferJourneyPreservation(transferBefore,await fm03Snapshot(db),transferConfig,fmBinding,transferSource,transferResult);
+    console.log('TRANSFER_CONTINUATION_NATIVE_PASS: actual failed-create number allocation and committed policy/revoked sessions; strict old-state proof; canonical continuation uses002 without reset or policy replay, then the same real dispatch/receipt browser and full preserved history. Disposable CI only, not actual Mac continuation.');
     console.log('TRANSFER_POPULATED_ENGINE_NATIVE_PASS: completed material/FM03/receiving rows and grants preserved; exact new synthetic rights, canonical approval with zero stock, explicit Khaimook receiver assignment, real React dispatch5/receive4/outstanding1, protected evidence/locales/denials and revoked sessions. Not Mac execution or final recovery/freeze.');
   }catch(e){
     console.error('MATERIAL_RUN_NATIVE_FAILED: '+phase+' '+(/^[A-Z0-9_]+$/.test(e.safeCode??'')?e.safeCode:'NATIVE_ASSERTION_OR_SETUP_FAILED')+
