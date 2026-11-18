@@ -123,6 +123,12 @@ export function subcontractBrowserBinding(b,c,source,origins,downloadRoot,techni
   line:{id:source.lineId},uom:{id:f.uomId},documentType:{id:c.documentTypeId},workflowCode:c.workflows.SUBCONTRACT_CERTIFICATION.workflowCode,
   actors:{maker:b.actors.KHAIMOOK,ben:b.actors.BEN,porn:b.actors.PORN,nancy:b.actors.NANCY,outsider:b.actors.FOREMAN,technical}}};
 }
+export function verifySubcontractRetention(entry,b,source,cert){
+ demand(entry?.company_id===b.fixture.companyId&&entry.project_id===b.fixture.projectId&&entry.agreement_id===source.agreementId&&
+  entry.certification_id===cert.id&&entry.entry_type==='WITHHOLDING'&&entry.currency_code==='THB'&&Number(entry.amount)===36.56&&
+  Number(cert.retained_amount)===36.56&&entry.reverses_entry_id===null&&entry.recorded_by_user_id===b.actors.NANCY.userId&&
+  cert.approved_by_user_id===b.actors.NANCY.userId&&entry.recorded_at===cert.approved_at&&Boolean(cert.approved_at),'PA_CANONICAL_RETENTION_BINDING_INVALID');
+}
 export function verifySubcontractPreservation(before,after,c,b,source,result){
  const f=b.fixture,logins=['KHAIMOOK','BEN','PORN','NANCY','FOREMAN'].map(k=>b.actors[k].userId).concat(f.adminUserId),baseline=structuredClone(before),normalized=structuredClone(after);
  for(const data of [baseline,normalized])data.users=data.users.map(row=>{if(!logins.includes(row.id))return row;const {last_login_at,updated_at,__fm03_exact_row_json,...r}=row;return r;});
@@ -133,7 +139,7 @@ export function verifySubcontractPreservation(before,after,c,b,source,result){
   subcontractors:1,subcontract_agreements:1,subcontract_agreement_versions:1,subcontract_work_orders:1,subcontract_claims:1,subcontract_claim_lines:1,
   subcontract_claim_assessments:1,subcontract_certifications:1,subcontract_action_replays:8,
   subcontract_physical_policies:1,subcontract_physical_claims:1,subcontract_physical_revisions:1,subcontract_physical_submissions:1,subcontract_physical_decisions:1,subcontract_physical_operations:2,
-  documents:1,document_links:2,approval_instances:3,approval_actions:3};
+  documents:1,document_links:2,approval_instances:3,approval_actions:3,retention_ledger_entries:1};
  for(const table of Object.keys(baseline)){
   const fresh=added(table);
   if(table==='user_sessions'){demand(fresh.length>0&&fresh.every(r=>r.revoked_at&&logins.includes(r.user_id)),'PA_SESSION_NOT_REVOKED');continue;}
@@ -154,5 +160,6 @@ export function verifySubcontractPreservation(before,after,c,b,source,result){
   Number(decision.decisions[0].acceptedQuantity)===8&&Number(decision.decisions[0].heldQuantity)===2&&decision.decisions[0].heldDisposition==='REWORK'&&
   cert.id===result.certificationId&&cert.claim_id===source.claimId&&cert.state==='APPROVED'&&Number(cert.certified_gross)===731.25&&Number(cert.retained_amount)===36.56&&
   assessment.id===decision.assessment_id&&Number(assessment.assessed_amount)===731.25,'PA_FINAL_CANONICAL_PHYSICAL_MONEY_BINDING_INVALID');
+ verifySubcontractRetention(added('retention_ledger_entries')[0],b,source,cert);
  demand(added('documents').every(d=>result.documentIds.includes(d.id)&&d.uploaded_by_user_id===b.actors.KHAIMOOK.userId&&d.document_type_id===c.documentTypeId),'PA_FINAL_DOCUMENT_SCOPE_INVALID');
 }

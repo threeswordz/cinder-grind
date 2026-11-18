@@ -6,7 +6,7 @@ import {tmpdir} from 'node:os';
 import {join,dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {upgradeSubcontract,validTransferContinuationReceipt,subcontractStageInventory,PREVIOUS_APP,PREVIOUS_OPERATOR,REVIEWED_APP,REHEARSAL_DB} from '../uat/prototype-subcontract-upgrade.mjs';
-import {verifySubcontractMigration,configureSubcontract,prepareSubcontractSource} from '../uat/prototype-subcontract-state.mjs';
+import {verifySubcontractMigration,verifySubcontractRetention,configureSubcontract,prepareSubcontractSource} from '../uat/prototype-subcontract-state.mjs';
 import {physicalTables,physicalMigrations} from './subcontract-physical-schema-contract.mjs';
 import {physicalCatalog} from './subcontract-physical-catalog-contract.mjs';
 const receipt=()=>({status:'TRANSFER_PRESERVED_STATE_CONTINUATION_AND_BROWSER_VERIFIED',failedSource:'97db9151b1059e5f134529deb25b78fc714fa683',applicationSha:PREVIOUS_APP,operatorMainSha:PREVIOUS_OPERATOR,populatedFailureDumpSha256:'a'.repeat(64),
@@ -18,6 +18,18 @@ test('only the exact successful continuation receipt admits the next upgrade',()
  for(const [key,value]of [['status','TRANSFER_UPGRADE_BLOCKED'],['applicationSha',REVIEWED_APP],['operatorMainSha','a'.repeat(40)],['policyNotReplayed',false],['productionAuthorized',true],['humanUatCompleted',true]]){
   const r=receipt();r[key]=value;assert.equal(validTransferContinuationReceipt(r),false,key);
  }
+});
+test('canonical Nancy-approved withholding is admitted only for this exact certification, amount and approval',()=>{
+ const b={fixture:{companyId:'company',projectId:'site'},actors:{NANCY:{userId:'nancy'}}},source={agreementId:'agreement'},
+  cert={id:'certification',retained_amount:36.56,approved_by_user_id:'nancy',approved_at:'2026-11-18T06:00:00.123456+00:00'},
+  entry={company_id:'company',project_id:'site',agreement_id:'agreement',certification_id:'certification',entry_type:'WITHHOLDING',currency_code:'THB',amount:36.56,
+   reverses_entry_id:null,recorded_by_user_id:'nancy',recorded_at:cert.approved_at};
+ verifySubcontractRetention(entry,b,source,cert);
+ for(const [field,value]of [['company_id','other'],['project_id','other'],['agreement_id','other'],['certification_id','other'],['entry_type','REVERSAL'],['amount',36.57],
+  ['currency_code','SGD'],['reverses_entry_id','prior'],['recorded_by_user_id','porn'],['recorded_at','later']]){
+  const altered={...entry,[field]:value};assert.throws(()=>verifySubcontractRetention(altered,b,source,cert));
+ }
+ assert.throws(()=>verifySubcontractRetention(entry,b,source,{...cert,approved_by_user_id:'porn'}));
 });
 test('non-Mac execution and foreign origins fail before private reads or mutations',async()=>{
  if(process.platform!=='darwin')await assert.rejects(upgradeSubcontract('a'.repeat(40)),e=>e.safeCode==='PA_UPGRADE_NONROOT_MAC_REQUIRED');
