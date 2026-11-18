@@ -1,4 +1,5 @@
 import { physicalSourceException } from './physical-source-error';
+import { materialUomException } from '../master-data/material-uom-errors';
 import {
   ArgumentsHost,
   Catch,
@@ -49,7 +50,7 @@ export class ProblemDetailsFilter implements ExceptionFilter {
   private readonly logger = new Logger(ProblemDetailsFilter.name);
 
   catch(exception: unknown, host: ArgumentsHost): void {
-    exception = physicalSourceException(exception) ?? monetaryPolicyException(exception) ?? exception;
+    exception = materialUomException(exception) ?? physicalSourceException(exception) ?? monetaryPolicyException(exception) ?? exception;
     const http = host.switchToHttp();
     const request = http.getRequest<CorrelatedRequest>();
     const response = http.getResponse<HttpResponse>();

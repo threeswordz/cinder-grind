@@ -392,6 +392,8 @@ jobs:
         run: node deploy/uat/transfer-browser-native.mjs
       - name: Verify subcontract physical acceptance and certification in actual disposable Chromium
         run: node deploy/uat/subcontract-physical-browser-native.mjs
+      - name: Verify material UOM definitions and exact preview in actual disposable Chromium
+        run: node deploy/uat/material-uom-browser-native.mjs
       - name: Verify FM03 issue lifecycle in actual disposable Chromium
         run: node deploy/uat/fm03-browser-native.mjs
       - name: Verify FM01-A weekly site report in actual disposable Chromium
@@ -449,6 +451,15 @@ jobs:
           RC_BASE_DATABASE_URL: ${{ env.DATABASE_URL }}
           RC_EVIDENCE_FILE: /tmp/receiving-rehearsal.json
         run: bash deploy/release-candidate/rehearse.sh
+      - name: Rehearse exact material UOM approved-entry predecessor
+        env:
+          RC_PREVIOUS_RELEASE_COMMIT: 59d67d1f2e54e6bfde51e4c5be336ea97906bf52
+          RC_NON_PRODUCTION_CONFIRMED: 'YES'
+          RC_POSTGRES_TOOL_MODE: docker
+          RC_BASE_DATABASE_URL: ${{ env.DATABASE_URL }}
+          RC_EVIDENCE_FILE: /tmp/material-uom-rehearsal.json
+        run: |
+          bash deploy/release-candidate/rehearse.sh
       - name: Reset CI state before authenticated recovery fixture
         run: |
           set -euo pipefail
@@ -745,6 +756,7 @@ jobs:
           NODE
       - name: Verify V1.0-E consolidated technical evidence
         run: |
+          node deploy/release-candidate/verify-evidence.mjs /tmp/material-uom-rehearsal.json /tmp/v1-0-e-recovery.json > /tmp/material-uom-consolidated-evidence.json
           node deploy/release-candidate/verify-evidence.mjs \
             /tmp/v1-0-e-rehearsal.json \
             /tmp/v1-0-e-recovery.json \
@@ -759,7 +771,7 @@ jobs:
           node --input-type=module - <<'NODE'
           import { readFileSync } from 'node:fs';
           const data = JSON.parse(readFileSync('/tmp/v1-3-customer-boq-consolidated-evidence.json', 'utf8'));
-          const beforeCustomer = (await import('./deploy/release-candidate/material-request-schema-contract.mjs')).materialRequestMode((await import('./deploy/release-candidate/material-plan-schema-contract.mjs')).materialPlanMode((await import('./deploy/release-candidate/site-issue-schema-contract.mjs')).siteIssueMode((await import('./deploy/release-candidate/receiving-schema-contract.mjs')).receivingMode((await import('./deploy/release-candidate/transfer-schema-contract.mjs')).transferMode((await import('./deploy/release-candidate/subcontract-physical-schema-contract.mjs')).physicalMode(data.releaseMode).prior).prior).prior).prior).prior).prior;
+          const beforeCustomer = (await import('./deploy/release-candidate/material-request-schema-contract.mjs')).materialRequestMode((await import('./deploy/release-candidate/material-plan-schema-contract.mjs')).materialPlanMode((await import('./deploy/release-candidate/site-issue-schema-contract.mjs')).siteIssueMode((await import('./deploy/release-candidate/receiving-schema-contract.mjs')).receivingMode((await import('./deploy/release-candidate/transfer-schema-contract.mjs')).transferMode((await import('./deploy/release-candidate/subcontract-physical-schema-contract.mjs')).physicalMode((await import('./deploy/release-candidate/material-uom-schema-contract.mjs')).materialUomMode(data.releaseMode).prior).prior).prior).prior).prior).prior).prior;
           const customerMode = beforeCustomer.startsWith('migration-aware-stock-count-')
             ? 'migration-aware-' + beforeCustomer.slice('migration-aware-stock-count-'.length)
             : beforeCustomer;
@@ -773,7 +785,7 @@ jobs:
           node --input-type=module - <<'NODE'
           import { readFileSync } from 'node:fs';
           const data = JSON.parse(readFileSync('/tmp/hr1-a-employee-consolidated-evidence.json','utf8'));
-          const beforeHr = (await import('./deploy/release-candidate/material-request-schema-contract.mjs')).materialRequestMode((await import('./deploy/release-candidate/material-plan-schema-contract.mjs')).materialPlanMode((await import('./deploy/release-candidate/site-issue-schema-contract.mjs')).siteIssueMode((await import('./deploy/release-candidate/receiving-schema-contract.mjs')).receivingMode((await import('./deploy/release-candidate/transfer-schema-contract.mjs')).transferMode((await import('./deploy/release-candidate/subcontract-physical-schema-contract.mjs')).physicalMode(data.releaseMode).prior).prior).prior).prior).prior).prior;
+          const beforeHr = (await import('./deploy/release-candidate/material-request-schema-contract.mjs')).materialRequestMode((await import('./deploy/release-candidate/material-plan-schema-contract.mjs')).materialPlanMode((await import('./deploy/release-candidate/site-issue-schema-contract.mjs')).siteIssueMode((await import('./deploy/release-candidate/receiving-schema-contract.mjs')).receivingMode((await import('./deploy/release-candidate/transfer-schema-contract.mjs')).transferMode((await import('./deploy/release-candidate/subcontract-physical-schema-contract.mjs')).physicalMode((await import('./deploy/release-candidate/material-uom-schema-contract.mjs')).materialUomMode(data.releaseMode).prior).prior).prior).prior).prior).prior).prior;
           const hrMode = beforeHr.startsWith('migration-aware-stock-count-')
             ? 'migration-aware-' + beforeHr.slice('migration-aware-stock-count-'.length)
             : beforeHr;
@@ -786,7 +798,7 @@ jobs:
           node --input-type=module - <<'NODE'
           import {readFileSync} from 'node:fs';
           const data=JSON.parse(readFileSync('/tmp/material-request-consolidated-evidence.json','utf8'));
-          if((await import('./deploy/release-candidate/material-plan-schema-contract.mjs')).materialPlanMode((await import('./deploy/release-candidate/site-issue-schema-contract.mjs')).siteIssueMode((await import('./deploy/release-candidate/receiving-schema-contract.mjs')).receivingMode((await import('./deploy/release-candidate/transfer-schema-contract.mjs')).transferMode((await import('./deploy/release-candidate/subcontract-physical-schema-contract.mjs')).physicalMode(data.releaseMode).prior).prior).prior).prior).prior!=='migration-aware-material-request-schema'||data.rehearsal.previousReleaseCommit!=='3a5ae8a92083a2bd03f4159b1e84d0565e7e78ec')throw Error('Exact material request predecessor proof missing');
+          if((await import('./deploy/release-candidate/material-plan-schema-contract.mjs')).materialPlanMode((await import('./deploy/release-candidate/site-issue-schema-contract.mjs')).siteIssueMode((await import('./deploy/release-candidate/receiving-schema-contract.mjs')).receivingMode((await import('./deploy/release-candidate/transfer-schema-contract.mjs')).transferMode((await import('./deploy/release-candidate/subcontract-physical-schema-contract.mjs')).physicalMode((await import('./deploy/release-candidate/material-uom-schema-contract.mjs')).materialUomMode(data.releaseMode).prior).prior).prior).prior).prior).prior!=='migration-aware-material-request-schema'||data.rehearsal.previousReleaseCommit!=='3a5ae8a92083a2bd03f4159b1e84d0565e7e78ec')throw Error('Exact material request predecessor proof missing');
           for(const key of ['materialRequestSchemaUpgrade','materialRequestHistoricalPreservation','materialRequestHttpUpgrade','materialRequestSignedReceiptRecovery'])if(data.rehearsal[key]!=='PASS')throw Error('Material request proof missing: '+key);
           NODE
           node deploy/release-candidate/verify-evidence.mjs \
@@ -795,7 +807,7 @@ jobs:
           node --input-type=module - <<'NODE'
           import {readFileSync} from 'node:fs';
           const data=JSON.parse(readFileSync('/tmp/material-plan-consolidated-evidence.json','utf8'));
-          if((await import('./deploy/release-candidate/material-plan-issue-schema-contract.mjs')).planIssueMode((await import('./deploy/release-candidate/site-issue-schema-contract.mjs')).siteIssueMode((await import('./deploy/release-candidate/receiving-schema-contract.mjs')).receivingMode((await import('./deploy/release-candidate/transfer-schema-contract.mjs')).transferMode((await import('./deploy/release-candidate/subcontract-physical-schema-contract.mjs')).physicalMode(data.releaseMode).prior).prior).prior).prior).prior!=='migration-aware-material-plan-schema'||data.rehearsal.previousReleaseCommit!=='34e022d5807d3e16458437a02ebba669ba838c6a')throw Error('Exact material plan predecessor proof missing');
+          if((await import('./deploy/release-candidate/material-plan-issue-schema-contract.mjs')).planIssueMode((await import('./deploy/release-candidate/site-issue-schema-contract.mjs')).siteIssueMode((await import('./deploy/release-candidate/receiving-schema-contract.mjs')).receivingMode((await import('./deploy/release-candidate/transfer-schema-contract.mjs')).transferMode((await import('./deploy/release-candidate/subcontract-physical-schema-contract.mjs')).physicalMode((await import('./deploy/release-candidate/material-uom-schema-contract.mjs')).materialUomMode(data.releaseMode).prior).prior).prior).prior).prior).prior!=='migration-aware-material-plan-schema'||data.rehearsal.previousReleaseCommit!=='34e022d5807d3e16458437a02ebba669ba838c6a')throw Error('Exact material plan predecessor proof missing');
           for(const key of ['materialPlanSchemaUpgrade','materialPlanHistoricalPreservation','materialPlanHttpUpgrade','materialPlanPopulatedRecovery'])if(data.rehearsal[key]!=='PASS')throw Error('Material plan proof missing: '+key);
           NODE
           node deploy/release-candidate/verify-evidence.mjs \
@@ -804,7 +816,7 @@ jobs:
           node --input-type=module <<'NODE'
           import {readFileSync} from 'node:fs';
           const data=JSON.parse(readFileSync('/tmp/material-plan-issue-consolidated-evidence.json','utf8'));
-          if((await import('./deploy/release-candidate/site-issue-schema-contract.mjs')).siteIssueMode((await import('./deploy/release-candidate/receiving-schema-contract.mjs')).receivingMode((await import('./deploy/release-candidate/transfer-schema-contract.mjs')).transferMode((await import('./deploy/release-candidate/subcontract-physical-schema-contract.mjs')).physicalMode(data.releaseMode).prior).prior).prior).prior!=='migration-aware-plan-issue-schema'||data.rehearsal.previousReleaseCommit!=='5209c30a1b7b282a603ba09d4a5bd82a700a183f')throw Error('Exact material plan issue predecessor proof missing');
+          if((await import('./deploy/release-candidate/site-issue-schema-contract.mjs')).siteIssueMode((await import('./deploy/release-candidate/receiving-schema-contract.mjs')).receivingMode((await import('./deploy/release-candidate/transfer-schema-contract.mjs')).transferMode((await import('./deploy/release-candidate/subcontract-physical-schema-contract.mjs')).physicalMode((await import('./deploy/release-candidate/material-uom-schema-contract.mjs')).materialUomMode(data.releaseMode).prior).prior).prior).prior).prior!=='migration-aware-plan-issue-schema'||data.rehearsal.previousReleaseCommit!=='5209c30a1b7b282a603ba09d4a5bd82a700a183f')throw Error('Exact material plan issue predecessor proof missing');
           for(const key of ['materialPlanIssueSchemaUpgrade','materialPlanIssueHistoricalPreservation','materialPlanIssueHttpUpgrade','materialPlanIssuePopulatedRecovery','materialPlanIssueSignedReceiptRecovery'])if(data.rehearsal[key]!=='PASS')throw Error('Material plan issue proof missing: '+key);
           NODE
           node deploy/release-candidate/verify-evidence.mjs \
@@ -813,6 +825,6 @@ jobs:
           node --input-type=module <<'NODE'
           import {readFileSync} from 'node:fs';
           const data=JSON.parse(readFileSync('/tmp/receiving-consolidated-evidence.json','utf8'));
-          if((await import('./deploy/release-candidate/transfer-schema-contract.mjs')).transferMode((await import('./deploy/release-candidate/subcontract-physical-schema-contract.mjs')).physicalMode(data.releaseMode).prior).prior!=='migration-aware-receiving-schema'||data.rehearsal.previousReleaseCommit!=='d2b790801119fb1b5b4176ad416086ee7363d091')throw Error('Exact receiving predecessor missing');
+          if((await import('./deploy/release-candidate/transfer-schema-contract.mjs')).transferMode((await import('./deploy/release-candidate/subcontract-physical-schema-contract.mjs')).physicalMode((await import('./deploy/release-candidate/material-uom-schema-contract.mjs')).materialUomMode(data.releaseMode).prior).prior).prior!=='migration-aware-receiving-schema'||data.rehearsal.previousReleaseCommit!=='d2b790801119fb1b5b4176ad416086ee7363d091')throw Error('Exact receiving predecessor missing');
           for(const key of ['receivingSchemaUpgrade','receivingHistoricalPreservation','receivingHttpUpgrade','receivingPopulatedRecovery','receivingEvidenceRecovery'])if(data.rehearsal[key]!=='PASS')throw Error('Receiving proof missing: '+key);
           NODE

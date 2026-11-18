@@ -15,12 +15,13 @@ import {
   MaterialRecord,
   masterDataApi,
 } from '../api/master-data';
+import { MaterialUomPanel } from './MaterialUomPanel';
 
 function message(error: unknown): string {
   return error instanceof Error ? error.message : 'The request failed.';
 }
 
-export function MaterialsPanel({ canManage }: { canManage: boolean }) {
+export function MaterialsPanel({ canManage, canConfigureConversions = false }: { canManage: boolean; canConfigureConversions?: boolean }) {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [active, setActive] = useState('all');
@@ -30,6 +31,7 @@ export function MaterialsPanel({ canManage }: { canManage: boolean }) {
   const [description, setDescription] = useState('');
   const [materialCategory, setMaterialCategory] = useState('');
   const [defaultUomId, setDefaultUomId] = useState('');
+  const [conversionMaterialId, setConversionMaterialId] = useState<string | null>(null);
 
   const materialsQuery = useQuery({
     queryKey: ['master-data', 'materials', search, active],
@@ -118,6 +120,7 @@ export function MaterialsPanel({ canManage }: { canManage: boolean }) {
 
   return (
     <Stack spacing={3}>
+      {conversionMaterialId && <MaterialUomPanel key={conversionMaterialId + ':' + canConfigureConversions} materialId={conversionMaterialId} canManage={canConfigureConversions} onClose={() => setConversionMaterialId(null)} />}
       <Card variant="outlined">
         <CardContent>
           <Stack spacing={2}>
@@ -257,6 +260,7 @@ export function MaterialsPanel({ canManage }: { canManage: boolean }) {
                       {record.description}
                     </Typography>
                   ) : null}
+                  <Button size="small" onClick={() => setConversionMaterialId(record.id)}>UOM · หน่วย · 單位</Button>
                 </Stack>
 
                 {canManage ? (

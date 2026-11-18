@@ -1,7 +1,9 @@
+import {stripMaterialUomSchema} from './material-uom-schema-contract.mjs';
+import {materialUomCatalog,verifyMaterialUomCatalog} from './material-uom-catalog-contract.mjs';
 import {stripPhysicalSchema} from './subcontract-physical-schema-contract.mjs';
 import {physicalCatalog,verifyPhysicalCatalog} from './subcontract-physical-catalog-contract.mjs';
 import {stripTransferSchema as transferBase} from './transfer-schema-contract.mjs';
-const stripTransferSchema=schema=>transferBase(stripPhysicalSchema(schema).text);
+const stripTransferSchema=schema=>transferBase(stripPhysicalSchema(stripMaterialUomSchema(schema).text).text);
 import {transferCatalog,verifyTransferCatalog} from './transfer-catalog-contract.mjs';
 // Exact post-FM03 populated d2b79080 predecessor → receiving. No historical acceptance/backfill.
 import assert from 'node:assert/strict';
@@ -46,17 +48,18 @@ export async function prepareReceivingUpgrade(databaseUrl){
    const result={},tables=await db.$queryRawUnsafe("SELECT tablename FROM pg_tables WHERE schemaname='public' AND tablename <> '_prisma_migrations' ORDER BY tablename");
    for(const {tablename}of tables){
     assert.match(tablename,/^[a-z_]+$/);
+    if(candidate&&tablename==='permissions')verifyMaterialUomCatalog(await db.$queryRawUnsafe('SELECT * FROM permissions WHERE id=ANY($1::uuid[])',materialUomCatalog.map(p=>p.id)),true);
     if(candidate&&tablename==='permissions')verifyReceivingCatalog(await db.$queryRawUnsafe('SELECT * FROM permissions WHERE id=ANY($1::uuid[])',receivingCatalog.map(p=>p.id)),true);
     if(candidate&&tablename==='permissions')verifyPhysicalCatalog(await db.$queryRawUnsafe('SELECT * FROM permissions WHERE id=ANY($1::uuid[])',physicalCatalog.map(p=>p.id)),true);
     if(candidate&&tablename==='permissions')verifyTransferCatalog(await db.$queryRawUnsafe('SELECT * FROM permissions WHERE id=ANY($1::uuid[])',transferCatalog.map(p=>p.id)),true);
     const filter=candidate&&tablename==='permissions',columns=candidate&&tablename==='goods_receipts'?['delivery_id']:candidate&&tablename==='stock_transactions'?['transfer_receipt_line_id']:[];
     if(columns.includes('delivery_id'))assert.equal((await db.$queryRawUnsafe('SELECT count(*)::text AS n FROM goods_receipts WHERE delivery_id IS NOT NULL'))[0].n,'0','Historical GR receiving provenance must stay null');
-    const [row]=await db.$queryRawUnsafe(`SELECT count(*)::text AS count,encode(sha256(convert_to(coalesce(string_agg((to_jsonb(t)-$1::text[])::text,E'\\n' ORDER BY (to_jsonb(t)-$1::text[])::text),''),'UTF8')),'hex') AS digest FROM "${tablename}" t ${filter?'WHERE id <> ALL($2::uuid[])':''}`,columns,...(filter?[[...receivingCatalog,...transferCatalog,...physicalCatalog].map(p=>p.id)]:[]));result[tablename]=row;
+    const [row]=await db.$queryRawUnsafe(`SELECT count(*)::text AS count,encode(sha256(convert_to(coalesce(string_agg((to_jsonb(t)-$1::text[])::text,E'\\n' ORDER BY (to_jsonb(t)-$1::text[])::text),''),'UTF8')),'hex') AS digest FROM "${tablename}" t ${filter?'WHERE id <> ALL($2::uuid[])':''}`,columns,...(filter?[[...receivingCatalog,...transferCatalog,...physicalCatalog,...materialUomCatalog].map(p=>p.id)]:[]));result[tablename]=row;
    }return result;
   }
   const before=await snapshot(false);
   await execute('pnpm',['prisma:migrate:deploy'],{env:{...safeEnvironment(),DATABASE_URL:u.href},timeout:120000,maxBuffer:2097152});
-  assertHistoricalTables(before,await snapshot(true),false,false,false,false,false,false,false,true,true,true);
+  assertHistoricalTables(before,await snapshot(true),false,false,false,false,false,false,false,true,true,true,true);
   console.log('RECEIVING_EXACT_FM03_PREDECESSOR_ALL_HISTORICAL_TABLES_GRANTS_AND_NULL_GR_LINK_PASS');
  }finally{await db.$disconnect();await rm(temp,{recursive:true,force:true});}
 }

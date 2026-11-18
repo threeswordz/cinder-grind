@@ -4083,3 +4083,59 @@ model SubcontractPhysicalOperation {
   @@unique([companyId, actorUserId, requestKey])
   @@map("subcontract_physical_operations")
 }
+
+// DEC-050 Stage A: prepared immutable definitions, not inventory activation.
+model MaterialUomBasis {
+  materialId String @id @map("material_id") @db.Uuid
+  companyId String @map("company_id") @db.Uuid
+  stockUomId String @map("stock_uom_id") @db.Uuid
+  stockPrecision Int @map("stock_precision")
+  stockUomCode String @map("stock_uom_code") @db.VarChar(30)
+  stockUomName String @map("stock_uom_name") @db.VarChar(100)
+  version Int @default(1)
+  createdByUserId String @map("created_by_user_id") @db.Uuid
+  sessionId String @map("session_id") @db.Uuid
+  operationId String @unique @map("operation_id") @db.Uuid
+  reason String @db.Text
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  @@unique([companyId, materialId])
+  @@map("material_uom_bases")
+}
+
+model MaterialUomRevision {
+  id String @id @default(uuid()) @db.Uuid
+  companyId String @map("company_id") @db.Uuid
+  materialId String @map("material_id") @db.Uuid
+  sourceUomId String @map("source_uom_id") @db.Uuid
+  sourcePrecision Int @map("source_precision")
+  sourceUomCode String @map("source_uom_code") @db.VarChar(30)
+  sourceUomName String @map("source_uom_name") @db.VarChar(100)
+  effectiveFrom DateTime @map("effective_from") @db.Date
+  numerator String @db.VarChar(38)
+  denominator String @db.VarChar(38)
+  revisionNo Int @map("revision_no")
+  createdByUserId String @map("created_by_user_id") @db.Uuid
+  sessionId String @map("session_id") @db.Uuid
+  operationId String @unique @map("operation_id") @db.Uuid
+  reason String @db.Text
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  @@unique([materialId, revisionNo])
+  @@index([companyId, materialId, sourceUomId, effectiveFrom, revisionNo])
+  @@map("material_uom_revisions")
+}
+
+model MaterialUomOperation {
+  id String @id @default(uuid()) @db.Uuid
+  companyId String @map("company_id") @db.Uuid
+  actorUserId String @map("actor_user_id") @db.Uuid
+  sessionId String @map("session_id") @db.Uuid
+  requestKey String @map("request_key") @db.Uuid
+  action String @db.VarChar(20)
+  materialId String @map("material_id") @db.Uuid
+  input Json @db.JsonB
+  outcome Json @db.JsonB
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  @@unique([companyId, actorUserId, requestKey])
+  @@index([companyId, materialId, createdAt])
+  @@map("material_uom_operations")
+}

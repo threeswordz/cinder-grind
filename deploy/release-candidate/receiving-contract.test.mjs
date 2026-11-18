@@ -1,3 +1,4 @@
+import {stripMaterialUomSchema} from './material-uom-schema-contract.mjs';
 import {stripPhysicalSchema} from './subcontract-physical-schema-contract.mjs';
 import {stripTransferSchema as transferBase} from './transfer-schema-contract.mjs';
 const stripTransferSchema=schema=>transferBase(stripPhysicalSchema(schema).text);
@@ -11,7 +12,7 @@ import {classifySchema} from './schema-contract.mjs';
 import {stripReceivingSchema as receivingBase,receivingMode,receivingTables} from './receiving-schema-contract.mjs';
 import {receivingCatalog,verifyReceivingCatalog} from './receiving-catalog-contract.mjs';
 import {assertHistoricalTables} from './historical-snapshot.mjs';
-const current=stripTransferSchema(readFileSync(new URL('../../apps/api/prisma/schema.prisma',import.meta.url),'utf8')).text;
+const current=stripTransferSchema(stripMaterialUomSchema(readFileSync(new URL('../../apps/api/prisma/schema.prisma',import.meta.url),'utf8')).text).text;
 const previous=execFileSync('git',['show','d2b790801119fb1b5b4176ad416086ee7363d091:apps/api/prisma/schema.prisma'],{encoding:'utf8'});
 test('receiving exact six-model contract preserves the post-FM03 schema and nullable GR provenance',()=>{
  assert.equal(classifySchema(previous,current),'migration-aware-receiving-schema');assert.equal(stripReceivingSchema(current).present,true);

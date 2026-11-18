@@ -4,6 +4,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
+import {materialUomMigrations} from './material-uom-schema-contract.mjs';
 
 // Synthetic validator inputs only; these do not represent executed rehearsals.
 const commit = '1'.repeat(40);
@@ -37,6 +38,15 @@ function verify(data, overrides = {}) {
       join(root, 'rehearsal.json'), join(root, 'recovery.json')], { env: { ...env, ...overrides }, encoding: 'utf8' });
   } finally { rmSync(root, { recursive: true, force: true }); }
 }
+
+test('DEC-050 A evidence requires version17, exact definition migrations and executed restored-application proof', () => {
+  const data={...evidence('migration-aware-material-uom-schema'),version:17,migrationNames:materialUomMigrations,
+    materialUomSchemaUpgrade:'PASS',materialUomHistoricalPreservation:'PASS',materialUomHttpUpgrade:'PASS',materialUomPopulatedRecovery:'PASS'};
+  assert.equal(verify(data).status,0);
+  for(const key of ['materialUomSchemaUpgrade','materialUomHistoricalPreservation','materialUomHttpUpgrade','materialUomPopulatedRecovery','boundedSchemaContract','rollbackDocuments']){const bad={...data};delete bad[key];assert.notEqual(verify(bad).status,0,key);}
+  assert.notEqual(verify({...data,version:16}).status,0);
+  for(const name of materialUomMigrations)assert.notEqual(verify({...data,migrationNames:materialUomMigrations.filter(n=>n!==name)}).status,0,name);
+});
 
 test('SQL-only and schema-aware evidence preserve separate required contracts and human gates', () => {
   for (const mode of ['migration-aware-sql-only','migration-aware-thb-schema']) {
@@ -161,8 +171,10 @@ test('FM03 wrapper before historical predecessor checks remains mandatory in con
   const workflow = readFileSync(new URL('../../.github/workflows/validate.yml', import.meta.url), 'utf8');
   const evidenceStep = workflow.split('- name: Verify V1.0-E consolidated technical evidence')[1];
   assert.ok(evidenceStep, 'Consolidated evidence step must exist');
-  const physicalPeeled = evidenceStep.replace(/\(await import\('\.\/deploy\/release-candidate\/subcontract-physical-schema-contract\.mjs'\)\)\.physicalMode\(data\.releaseMode\)\.prior/g, 'data.releaseMode');
-  assert.equal((evidenceStep.match(/physicalMode\(data\.releaseMode\)\.prior/g)??[]).length,6);
+  const uomPeeled = evidenceStep.replace(/\(await import\('\.\/deploy\/release-candidate\/material-uom-schema-contract\.mjs'\)\)\.materialUomMode\(data\.releaseMode\)\.prior/g, 'data.releaseMode');
+  assert.equal((evidenceStep.match(/materialUomMode\(data\.releaseMode\)\.prior/g)??[]).length,6);
+  const physicalPeeled = uomPeeled.replace(/\(await import\('\.\/deploy\/release-candidate\/subcontract-physical-schema-contract\.mjs'\)\)\.physicalMode\(data\.releaseMode\)\.prior/g, 'data.releaseMode');
+  assert.equal((uomPeeled.match(/physicalMode\(data\.releaseMode\)\.prior/g)??[]).length,6);
   const priorEvidenceStep = physicalPeeled.replace(/\(await import\('\.\/deploy\/release-candidate\/transfer-schema-contract\.mjs'\)\)\.transferMode\(data\.releaseMode\)\.prior/g, 'data.releaseMode');
   assert.equal((physicalPeeled.match(/transferMode\(data\.releaseMode\)\.prior/g)??[]).length,6);
   assert.equal((priorEvidenceStep.match(/siteIssueMode\(\(await import\([^\n]+?receivingMode\(data\.releaseMode\)\.prior\)\.prior/g) ?? []).length, 5,

@@ -89,7 +89,7 @@ export function MasterDataPanel({ permissions }: { permissions: string[] }) {
       ) : null}
       {activeKey === 'uoms' ? <UomsPanel canManage={canManage} /> : null}
       {activeKey === 'materials' ? (
-        <MaterialsPanel canManage={canManage} />
+        <MaterialsPanel canManage={canManage} canConfigureConversions={canManage && permissions.includes('master.material.conversion.manage')} />
       ) : null}
     </Stack>
   );

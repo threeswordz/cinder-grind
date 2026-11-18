@@ -1,3 +1,4 @@
+import {stripMaterialUomSchema} from './material-uom-schema-contract.mjs';
 import {stripPhysicalSchema} from './subcontract-physical-schema-contract.mjs';
 import {stripTransferSchema as transferBase} from './transfer-schema-contract.mjs';
 const stripTransferSchema=schema=>transferBase(stripPhysicalSchema(schema).text);
@@ -13,7 +14,7 @@ import {classifySchema} from './schema-contract.mjs';
 import {stripPlanIssueSchema,planIssueTables,planIssueMode} from './material-plan-issue-schema-contract.mjs';
 import {planIssueCatalog,verifyPlanIssueCatalog} from './material-plan-issue-catalog-contract.mjs';
 import {assertHistoricalTables} from './historical-snapshot.mjs';
-const current=stripSiteIssueSchema(stripReceivingSchema(readFileSync(new URL('../../apps/api/prisma/schema.prisma',import.meta.url),'utf8')).text).text;
+const current=stripSiteIssueSchema(stripReceivingSchema(stripMaterialUomSchema(readFileSync(new URL('../../apps/api/prisma/schema.prisma',import.meta.url),'utf8')).text).text).text;
 const previous=execFileSync('git',['show','5209c30a1b7b282a603ba09d4a5bd82a700a183f:apps/api/prisma/schema.prisma'],{encoding:'utf8'});
 test('B schema admits exactly five additive models and parent relations; previous business fields remain strict',()=>{
  assert.equal(classifySchema(previous,current),'migration-aware-plan-issue-schema');assert.equal(stripPlanIssueSchema(current).present,true);
