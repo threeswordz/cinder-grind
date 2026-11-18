@@ -428,11 +428,17 @@ start_previous_runtime() {
 }
 
 if [[ "$schema_mode" != "migration-aware-sql-only" ]]; then
+  # Reuse the predecessor's API-created Employee-linked project maker after
+  # restore. The technical administrator must remain unlinked and denied scope.
+  recovery_reader_email="rc-project-maker@example.invalid"
+  recovery_reader_password="$(node -e 'process.stdout.write(require("node:crypto").randomBytes(32).toString("hex"))')"
+  if [[ "${GITHUB_ACTIONS:-}" == "true" ]]; then echo "::add-mask::$recovery_reader_password"; fi
   if [[ "$legacy_upgrade" == true ]]; then
     DATABASE_URL="$upgrade_url" node "$RC_DIR/legacy-fixture.mjs" late "$previous_root" "$tmp_root/legacy.json"
   fi
   start_previous_runtime "$upgrade_url" "$storage_root"
   UAT_API_BASE_URL="http://127.0.0.1:$api_port/api/v1" \
+    UAT_PROJECT_MAKER_EMAIL="$recovery_reader_email" UAT_PROJECT_MAKER_PASSWORD="$recovery_reader_password" \
     BOOTSTRAP_ADMIN_EMAIL=rc-admin@example.invalid BOOTSTRAP_ADMIN_PASSWORD='Rc-Admin-Password-2026!' \
     node "$previous_root/deploy/uat/runtime-acceptance.mjs"
   kill "$api_pid"
@@ -784,6 +790,7 @@ if [[ "$schema_mode" != "migration-aware-sql-only" ]]; then
   fi
   start_previous_runtime "$rollback_url" "$rollback_storage"
   RESTORED_API_BASE_URL="http://127.0.0.1:$api_port/api/v1" DATABASE_URL="$rollback_url" \
+    RESTORED_READER_EMAIL="$recovery_reader_email" RESTORED_READER_PASSWORD="$recovery_reader_password" \
     BOOTSTRAP_ADMIN_EMAIL=rc-admin@example.invalid BOOTSTRAP_ADMIN_PASSWORD='Rc-Admin-Password-2026!' \
     node "$previous_root/apps/api/scripts/verify-restored-runtime.mjs"
   kill "$api_pid"
