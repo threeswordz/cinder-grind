@@ -6,6 +6,8 @@ import {TRANSFER_GRANTS,TRANSFER_MIGRATIONS} from '../uat/prototype-transfer-sta
 import {transferTables} from './transfer-schema-contract.mjs';
 import {transferCatalog} from './transfer-catalog-contract.mjs';
 import {inspectFailedTransfer,readbackSql} from '../uat/prototype-transfer-failure-readback.mjs';
+import {continuationBaseline,prepareTransferContinuationSource} from '../uat/prototype-transfer-continuation-core.mjs';
+import {verifyTransferMigration,digest} from '../uat/prototype-transfer-state.mjs';
 function fixture(){
  const b={fixture:{companyId:'company',projectId:'origin',unassignedProjectId:'destination',adminUserId:'admin'},
   actors:Object.fromEntries(['STORE_SITE','KHAIMOOK','PORN'].map(k=>[k,{userId:k,roleId:k+'-role',employeeId:k+'-employee'}]))};
@@ -69,4 +71,28 @@ test('readback uses an explicit read-only transaction and rejects injected, dupl
  assert.doesNotMatch(sql,/\b(?:INSERT|UPDATE|DELETE|CREATE|ALTER|DROP|TRUNCATE|CALL|DO)\b/);
  for(const tables of [[],['users','users'],['users; DROP TABLE users'],['"users"'],['public.users'],['users--'],Array.from({length:201},(_,i)=>'a'.repeat(i+1))])assert.throws(()=>readbackSql(tables));
  if(process.platform!=='darwin')await assert.rejects(inspectFailedTransfer('a'.repeat(40)),e=>e.safeCode==='TR_READBACK_NONROOT_MAC_REQUIRED');
+});
+test('continuation reconstructs the proven pre-configuration baseline without rewriting a consumed number or prior rows',()=>{
+ const f=fixture(),original=structuredClone(f),baseline=continuationBaseline(f.before,f.current,f.c,f.b);
+ verifyTransferMigration(f.before,baseline);
+ assert.deepEqual(baseline.users,f.before.users);assert.deepEqual(baseline.role_permissions,f.before.role_permissions);
+ assert.deepEqual(baseline.transfer_project_policies,[]);assert.deepEqual(baseline.transfer_operations,[]);
+ assert.equal(f.current.number_sequences[0].next_value,2);assert.deepEqual(f,original);
+ const changed=structuredClone(f);changed.current.payments.push({id:'unrelated'});
+ assert.throws(()=>continuationBaseline(changed.before,changed.current,changed.c,changed.b));
+});
+test('continuation refuses stale snapshots and arbitrary origins before any authentication or write',async()=>{
+ const f=fixture();let writes=0;
+ const db={$transaction:async work=>work({$queryRawUnsafe:async sql=>{
+  if(sql.startsWith('SELECT tablename'))return Object.keys(f.current).sort().map(tablename=>({tablename}));
+  const table=sql.match(/FROM "([a-z_]+)"/)?.[1];return f.current[table].map(({__fm03_exact_row_json,...row})=>({bytes:JSON.stringify(row)}));
+ }}),stockTransaction:{findMany:()=>{writes++;throw Error('Must not reach source actions');}}};
+ const old=process.env.GITHUB_ACTIONS;process.env.GITHUB_ACTIONS='true';
+ try{
+  await assert.rejects(prepareTransferContinuationSource(db,f.b,f.c,{before:f.before,stateSha256:'0'.repeat(64)},
+   {api:'http://127.0.0.1:31319/api/v1',web:'http://127.0.0.1:44319'}),e=>e.safeCode==='TR_CONTINUATION_FAILED_STATE_DRIFT');
+  await assert.rejects(prepareTransferContinuationSource(db,f.b,f.c,{before:f.before,stateSha256:digest(f.current)},
+   {api:'https://example.invalid/api/v1',web:'https://example.invalid'}),e=>e.safeCode==='TR_CONTINUATION_ORIGINS_REFUSED');
+  assert.equal(writes,0);
+ }finally{if(old===undefined)delete process.env.GITHUB_ACTIONS;else process.env.GITHUB_ACTIONS=old;}
 });
