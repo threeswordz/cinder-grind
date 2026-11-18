@@ -52,4 +52,5 @@ jobs:
       - name: Run role UI focused tests
         run: node --test apps/web/src/role-ui/*.test.mjs
       - name: Record focused-only boundary
-        run: printf '%s\n' 'FOCUSED_BRANCH_ONLY: not full PR or main CI; native browser, migration, integration and recovery gates remain required.'
+        run: |
+          printf '%s\n' 'FOCUSED_BRANCH_ONLY: not full PR or main CI; native browser, migration, integration and recovery gates remain required.'

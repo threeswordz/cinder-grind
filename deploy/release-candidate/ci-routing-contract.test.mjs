@@ -21,6 +21,8 @@ test('focused branch excludes explicit full lane; no PR/main event or full check
   assert.match(focused, /^jobs:\n  validate-branch:\n    name: focused-branch$/m);
   assert.match(focused, /test "\$\(git rev-parse HEAD\)" = "\$EXACT_BRANCH_COMMIT"/);
   assert.match(focused, /FOCUSED_BRANCH_ONLY/);
+  // A colon-space in a plain YAML scalar is invalid even inside shell quotes.
+  assert.match(focused, /name: Record focused-only boundary\n        run: \|\n          printf/);
   assert.doesNotMatch(focused, /^\s+name: validate$/m);
 });
 
