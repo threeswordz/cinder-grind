@@ -95,19 +95,26 @@ export async function continueTransfer(operatorMain){
   const dump=join(preserved,'failed-source-postgresql.custom');
   await databaseStream(container.id,['pg_dump','-U','proto_runtime','-d','proto_a_01','--format=custom','--no-owner','--no-acl'],own,dump);
   demand((await lstat(dump)).size>1024,'TR_CONTINUATION_POPULATED_DUMP_REQUIRED');
+  const dumpSha256=await fileHash(dump);
+  await seal(join(target,'preservation-private.json'),{dumpSha256,dataInventories});
+  async function verifyPreservedBackup(){
+   demand(await fileHash(dump)===dumpSha256,'TR_CONTINUATION_PRESERVED_DUMP_CHANGED');
+   for(const name of ['documents','uploads','hrkeys'])demand(digest(await privateInventory(join(preserved,name)))===digest(dataInventories[name]),'TR_CONTINUATION_PRESERVED_COPY_CHANGED');
+  }
   phase='SEPARATE_REHEARSAL_RESTORE';
   demand(await sql('proto_a_01',"SELECT count(*) FROM pg_database WHERE datname='"+REHEARSAL_DB+"'")==='0','TR_CONTINUATION_REHEARSAL_TARGET_EXISTS_NO_OVERWRITE');
   await command('podman',['exec',container.id,'createdb','-U','proto_runtime','--owner=proto_runtime','--template=template0',REHEARSAL_DB],own);
   await databaseStream(container.id,['pg_restore','--exit-on-error','--no-owner','--no-privileges','-U','proto_runtime','-d',REHEARSAL_DB],own,dump,true);
-  const keys=await privateJson(join(root,'hrkeys/keyring.json'));
-  const runtime=(name,store)=>({...environment(),NODE_ENV:'uat',API_HOST:'127.0.0.1',API_PORT:'33071',WEB_ORIGIN:WEB,DATABASE_URL:url(name),
-   STORAGE_ROOT:join(store,'documents'),DOCUMENT_UPLOAD_TEMP_ROOT:join(store,'uploads'),HR_PRIVATE_KEYS:JSON.stringify(keys),HR_PRIVATE_ACTIVE_KEY_ID:'proto1'});
+  const runtime=async(name,store)=>({...environment(),NODE_ENV:'uat',API_HOST:'127.0.0.1',API_PORT:'33071',WEB_ORIGIN:WEB,DATABASE_URL:url(name),
+   STORAGE_ROOT:join(store,'documents'),DOCUMENT_UPLOAD_TEMP_ROOT:join(store,'uploads'),
+   HR_PRIVATE_KEYS:JSON.stringify(await privateJson(join(store,'hrkeys/keyring.json'))),HR_PRIVATE_ACTIVE_KEY_ID:'proto1'});
   async function startProcesses(name,store,label){
    compareArtifactInventories(await artifactInventory(join(repo,'apps/api/dist')),built.api);
    compareArtifactInventories(await artifactInventory(join(repo,'apps/web/dist')),built.web);
    demand(await command('git',['rev-parse','HEAD'],repo)===CORRECTED_APP&&await command('git',['status','--porcelain'],repo)==='','TR_CONTINUATION_SOURCE_CHANGED_BEFORE_START');
+   const apiEnvironment=await runtime(name,store);
    for(const [kind,port,entry,cwd,env]of [
-    ['api',33071,join(repo,'apps/api/dist/main.js'),join(repo,'apps/api'),runtime(name,store)],
+    ['api',33071,join(repo,'apps/api/dist/main.js'),join(repo,'apps/api'),apiEnvironment],
     ['web',44171,join(repo,'deploy/uat/serve-web.mjs'),repo,{...environment(),WEB_HOST:'127.0.0.1',WEB_PORT:'44171'}]]){
     await freePort(port,own);const log=await open(join(target,'logs',label+'-'+kind+'-runtime.log'),'wx',0o600);
     const child=spawn(process.execPath,[entry],{cwd,env,detached:true,stdio:['ignore',log.fd,log.fd]});
@@ -150,11 +157,13 @@ export async function continueTransfer(operatorMain){
   // The populated source must still be the exact observed failure, including
   // its original dump/files/keys/receipts and consumed number. No migration runs.
   phase='SOURCE_RECHECK';await inspectFailedTransfer(operatorMain);
+  await verifyPreservedBackup();
   demand(await quiet()==='0'&&digest(await priorInventory(failed))===digest(failedInventory),'TR_CONTINUATION_SOURCE_CHANGED_AFTER_REHEARSAL');
   db=database('proto_a_01');demand(digest(await snapshot(db))===digest(failedState),'TR_CONTINUATION_SOURCE_CHANGED_AFTER_REHEARSAL');
   phase='SOURCE_RUNTIME';sourceStarted=true;await startProcesses('proto_a_01',root,'source');
   phase='SOURCE_JOURNEY';const completed=await runJourney(db,'source');
   phase='FINAL_PRESERVATION';
+  await verifyPreservedBackup();
   for(const [name,saved]of Object.entries(inventories)){
    const value=Array.isArray(saved)?(['fm03-upgrade','receiving-upgrade'].includes(name)?await priorInventory(join(root,name)):await privateInventory(join(root,name))):await fileHash(join(root,name));
    if(name==='documents')verifyTransferDocumentFiles(saved,value,completed.after.documents.filter(d=>completed.result.documentIds.includes(d.id)));
@@ -164,7 +173,7 @@ export async function continueTransfer(operatorMain){
   for(const name of ['uploads','hrkeys'])demand(digest(await privateInventory(join(root,name)))===digest(dataInventories[name]),'TR_CONTINUATION_KEYS_OR_UPLOADS_CHANGED');
   const receipt={status:'TRANSFER_PRESERVED_STATE_CONTINUATION_AND_BROWSER_VERIFIED',failedSource:FAILED_SOURCE,applicationSha:CORRECTED_APP,operatorMainSha:operatorMain,
    sourceHistoryPreserved:true,originalFailedStagePreserved:true,spentNumberPreserved:true,policyNotReplayed:true,schemaAndConfigurationUnchanged:true,
-   populatedFailureDumpSha256:await fileHash(dump),separatePopulatedContinuationRehearsalVerified:true,
+   populatedFailureDumpSha256:dumpSha256,separatePopulatedContinuationRehearsalVerified:true,
    documentsUploadsKeysAndPriorReceiptsPreserved:true,approvalHasNoStockEffect:true,originDispatchDeductedOnce:true,actualDestinationReceiptCredited:true,
    explicitReceiverAssignmentVerified:true,partialOutstandingPreserved:true,sameReceiptEvidenceUploaded:true,threeLocalesVerified:true,
    wrongActorDenialVerified:true,sessionsRevoked:true,fullBusinessJourneysVerified:false,milestone7Complete:false,prototypeFrozen:false,
