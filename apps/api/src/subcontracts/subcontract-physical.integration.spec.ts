@@ -127,10 +127,42 @@ test('DEC-048 actual HTTP binds partial physical acceptance to canonical assessm
         const response = await fetch(base + '/documents/projects/' + f.project.id + '/' + source.documentId + '/download', { headers: { Cookie: ben!.cookie } });
         assert.equal(response.status, 422);
       } finally { await writeFile(path, bytes); }
-      await call(porn!, root + '/certifications/' + certification.id + '/submit', 201, { workflowCode: f.workflow.workflowCode, actionKey: randomUUID() });
-      await call(nancy!, root + '/certifications/' + certification.id + '/approve', 201, { actionKey: randomUUID(), comment: 'Independent accepted-value certification approval' });
+      const submitBody = { workflowCode: f.workflow.workflowCode, actionKey: randomUUID() };
+      const approveBody = { actionKey: randomUUID(), comment: 'Independent accepted-value certification approval' };
+      await call(porn!, root + '/certifications/' + certification.id + '/submit', 201, submitBody);
+      await call(nancy!, root + '/certifications/' + certification.id + '/approve', 201, approveBody);
       const approved = await db.subcontractCertification.findUniqueOrThrow({ where: { id: certification.id } });
       assert.equal(approved.certifiedGross.toFixed(2), '731.25'); assert.equal(approved.retainedAmount?.toFixed(2), '36.56');
+      const retained = async () => ({
+        certification: await db.subcontractCertification.findUniqueOrThrow({ where: { id: certification.id } }),
+        approval: await db.approvalInstance.findUniqueOrThrow({ where: { id: approved.approvalInstanceId! }, include: { actions: true } }),
+        replays: await db.subcontractActionReplay.findMany({ where: { companyId: f.company.id } }),
+        audits: await db.auditLog.findMany({ where: { entityId: certification.id } }),
+      });
+      const stable = await retained();
+      const retry = async (expected: number) => {
+        await call(porn!, root + '/certifications/' + certification.id + '/submit', expected, submitBody);
+        await call(nancy!, root + '/certifications/' + certification.id + '/approve', expected, approveBody);
+        assert.deepEqual(await retained(), stable, 'Retry must not duplicate or rewrite committed certification effects');
+      };
+      // Both actions have already committed and the current state is APPROVED.
+      // Legitimate response-loss retries still work; stale evidence and rights
+      // must fail even though the caller retains certification permissions.
+      await retry(201);
+      await writeFile(path, Buffer.from('tampered after certification commit'));
+      try { await retry(409); } finally { await writeFile(path, bytes); }
+      for (const capability of ['subcontracts.physical.view', 'documents.document.view']) {
+        for (const [actor, role, suffix, body] of [
+          [porn!, f.porn.role, '/submit', submitBody], [nancy!, f.nancy.role, '/approve', approveBody],
+        ] as const) {
+          await db.rolePermission.deleteMany({ where: { roleId: role.id, permission: { permissionCode: capability } } });
+          try {
+            await call(actor, root + '/certifications/' + certification.id + suffix, 403, body);
+            assert.deepEqual(await retained(), stable);
+          } finally { await f.grant(role.id, [capability]); }
+        }
+      }
+      await retry(201);
     });
     const held = await prepare('03');
     await call(ben!, physical + '/claims/' + held.claim.id + '/decide', 201, { requestKey: randomUUID(), expectedVersion: 2,

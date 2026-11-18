@@ -14,6 +14,8 @@ English, Thai and Traditional Chinese screens present physical and monetary fact
 
 ## Technical evidence and remaining gates
 
+**18 November independent-review correction:** [Codex finding](https://github.com/threeswordz/cinder-grind/pull/365#discussion_r4607841149) identified that committed Certification submit/approve/reject replays returned before physical eligibility checks. The correction rechecks current physical/Document rights, exact submitted source and actual evidence bytes under the existing locks before returning a saved success; it does not reapply the already-completed Draft/Submitted state prerequisite or duplicate effects. Pinned Node24.21.0/pnpm12.6.0 and a disposable PostgreSQL17.11 reproduced the old HTTP201 on tampered-evidence replay where409 was required. The corrected full physical HTTP suite passes14/14, including successful response-loss retries after APPROVED, tampered-byte denial, revoked physical-view/Document-view denial for Porn and Nancy, and unchanged Certification/Approval/actions/replay/audit records. Final changed-head native CI and material-risk independent re-review remain required; no merge or Mac deployment is claimed.
+
 | Criterion | Executable proof | Current result |
 |---|---|---|
 | PA-AC01–03 | `subcontract-physical.integration.spec.ts`, pure contract tests; 10 submitted / 8 accepted / 2 held / explicit 731.25 / canonical approval and 36.56 retention; no accepted work cannot certify | Local actual PostgreSQL/HTTP and parser PASS |

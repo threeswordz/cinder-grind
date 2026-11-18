@@ -306,6 +306,9 @@ export class SubcontractsCertificationService {
           [workflowCode],
         );
         if (replay) {
+          // An action key proves a prior commit, not current authority or
+          // unchanged physical evidence. Do not reapply the DRAFT state gate.
+          await this.physical.eligible(context.auth, visible.claimId, tx);
           return this.visibleCertification(
             context.auth,
             certificationId,
@@ -554,6 +557,9 @@ export class SubcontractsCertificationService {
           [comment ?? null],
         );
         if (replay) {
+          // Approval/rejection retries must retain the same physical source
+          // and live rights checks after the certification has changed state.
+          await this.physical.eligible(context.auth, visible.claimId, tx);
           return this.visibleCertification(
             context.auth,
             certificationId,

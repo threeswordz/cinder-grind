@@ -1,6 +1,6 @@
 # Construction ERP — 112 role requirements, corrected execution baseline
 
-**Latest business answers:** [16 November Owner decisions](15-owner-decisions-2026-11-16.md) / DEC-047 records the Owner-confirmed requirements and personnel corrections, including completed self-service/offboarding queues11/14. Only queues8/9/10/12/13 remain deferred in that conversation. Original 112-ID evidence and execution-lane JSON remain a frozen snapshot, not current answer state. Accounting/later HR/#245 implementation sequencing and actual activation are unchanged.
+**Latest business answers:** [17 November Owner decisions](16-owner-decisions-2026-11-17.md) / DEC-049 resolves the remaining HR answers except paused subsistence/attendance and records purchasing and master-data successors; [artifact manifest/mapping](17-template-manifest-2026-11-17.md). [16 November decisions](15-owner-decisions-2026-11-16.md) / DEC-047 remains authoritative for the unaffected answers including self-service/offboarding. Original 112-ID evidence and execution-lane JSON are frozen historical evidence. Accounting/later HR/#245 implementation sequencing and actual activation are unchanged.
 
 **Current source disposition:** [14-preproduction-reconciliation.md](14-preproduction-reconciliation.md) maps every original ID against main `76295ef9`, integrated successors, residual gaps and existing approval boundaries. It preserves this frozen baseline and is not a completion score, accepted launch exclusion or human UAT.
 
