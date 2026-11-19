@@ -4259,3 +4259,18 @@ model MaterialUomTransferSourcePin {
   @@index([transferId])
   @@map("material_uom_transfer_source_pins")
 }
+
+
+model MaterialUomActivation {
+  materialId String @id @map("material_id") @db.Uuid
+  companyId String @map("company_id") @db.Uuid
+  stockUomId String @map("stock_uom_id") @db.Uuid
+  basisVersion Int @map("basis_version")
+  actorUserId String @map("actor_user_id") @db.Uuid
+  sessionId String @map("session_id") @db.Uuid
+  requestKey String @map("request_key") @db.Uuid
+  reason String @db.VarChar(2000)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  @@unique([companyId, actorUserId, requestKey])
+  @@map("material_uom_activations")
+}

@@ -5,7 +5,7 @@ import { isDeepStrictEqual } from 'node:util';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { AuthenticatedUserContext } from '../auth/auth.types';
-import { exactUomQuantity, MATERIAL_UOM_MANAGE, MATERIAL_UOM_VIEW, uomId, uomInvalid, uomPrepare, uomPreview, uomRevise, uomVersion } from './material-uom-contract';
+import { exactUomQuantity, MATERIAL_UOM_MANAGE, MATERIAL_UOM_VIEW, uomActivate, uomId, uomInvalid, uomPrepare, uomPreview, uomRevise, uomVersion } from './material-uom-contract';
 import { materialUomException } from './material-uom-errors';
 
 type Tx = Prisma.TransactionClient;
@@ -60,7 +60,8 @@ export class MaterialUomService {
       const basis = await tx.materialUomBasis.findUnique({ where: { materialId }, select: { materialId: true, stockUomId: true, stockPrecision: true, stockUomCode: true, stockUomName: true, version: true, reason: true, createdAt: true, createdByUserId: true } });
       const revisions = basis ? await tx.materialUomRevision.findMany({ where: { companyId: auth.companyId, materialId, ...(cursor ? { revisionNo: { lt: cursor } } : {}) }, orderBy: { revisionNo: 'desc' }, take: 26,
         select: { id: true, revisionNo: true, sourceUomId: true, sourcePrecision: true, sourceUomCode: true, sourceUomName: true, numerator: true, denominator: true, effectiveFrom: true, reason: true, createdAt: true, createdByUserId: true } }) : [];
-      return { material, state: basis ? 'PREPARED' : 'NOT_PREPARED', inventoryConversionEnabled: false, basis, revisions: revisions.slice(0, 25).map(r => ({ ...r, effectiveFrom: r.effectiveFrom.toISOString().slice(0, 10) })), nextBefore: revisions.length > 25 ? revisions[24]!.revisionNo : null };
+      const activation = basis ? await tx.materialUomActivation.findUnique({where:{materialId},select:{createdAt:true,basisVersion:true}}) : null;
+      return { material, state: activation ? 'ACTIVE' : basis ? 'PREPARED' : 'NOT_PREPARED', inventoryConversionEnabled: Boolean(activation), activation, basis, revisions: revisions.slice(0, 25).map(r => ({ ...r, effectiveFrom: r.effectiveFrom.toISOString().slice(0, 10) })), nextBefore: revisions.length > 25 ? revisions[24]!.revisionNo : null };
     });
   }
 
@@ -116,6 +117,37 @@ export class MaterialUomService {
     });
   }
 
+  // Explicit internal Stage B boundary. No public activation route exists until all
+  // dated operational interfaces and end-to-end B assurance are complete.
+  async activateStock(context: Context, materialId: string, value: unknown) {
+    materialId = uomId(materialId, 'materialId'); const input = uomActivate(value);
+    return this.transaction(async tx => {
+      const auth = context.auth;
+      await this.actor(auth, tx, true);
+      await this.material(auth, materialId, tx, true);
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${['material-uom-key',auth.companyId,auth.userId,input.requestKey].join(':')},0))`;
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${['material-uom',auth.companyId,materialId].join(':')},0))`;
+      const basis = await tx.materialUomBasis.findUnique({where:{materialId}});
+      if (!basis || basis.companyId !== auth.companyId) return conflict('MATERIAL_UOM_BASIS_REQUIRED');
+      await this.unit(auth,basis.stockUomId,tx);
+      const prior = await tx.materialUomActivation.findUnique({where:{companyId_actorUserId_requestKey:{companyId:auth.companyId,actorUserId:auth.userId,requestKey:input.requestKey}}});
+      const outcome = (row: { materialId: string; stockUomId: string; basisVersion: number }) => ({materialId:row.materialId,stockUomId:row.stockUomId,basisVersion:row.basisVersion,inventoryConversionEnabled:true});
+      if (prior) {
+        if (prior.materialId !== materialId || prior.basisVersion !== input.expectedVersion || prior.reason !== input.reason) return conflict('MATERIAL_UOM_REPLAY_CONFLICT');
+        return outcome(prior);
+      }
+      if (basis.version !== input.expectedVersion) return conflict('MATERIAL_UOM_ACTIVATION_VERSION_CONFLICT');
+      if (await tx.materialUomActivation.findUnique({where:{materialId}})) return conflict('MATERIAL_UOM_ALREADY_ACTIVATED');
+      // The SQL guard independently checks all historical and open sources,
+      // current authority, exact basis version and the transaction clock.
+      await tx.$executeRaw`INSERT INTO material_uom_activations(material_id,company_id,stock_uom_id,basis_version,actor_user_id,session_id,request_key,reason)
+        VALUES(${materialId}::uuid,${auth.companyId}::uuid,${basis.stockUomId}::uuid,${basis.version},${auth.userId}::uuid,${auth.sessionId}::uuid,${input.requestKey}::uuid,${input.reason})`;
+      const result = outcome({materialId,stockUomId:basis.stockUomId,basisVersion:basis.version});
+      await this.audit.record({...context,entityType:'MATERIAL_UOM',entityId:materialId,action:'ACTIVATE_STOCK',newValues:result},tx);
+      return result;
+    });
+  }
+
   async preview(auth: AuthenticatedUserContext, materialId: string, value: unknown) {
     materialId = uomId(materialId, 'materialId'); const input = uomPreview(value);
     return this.transaction(async tx => {
@@ -126,7 +158,8 @@ export class MaterialUomService {
       const revision = input.sourceUomId === basis.stockUomId ? null : await tx.materialUomRevision.findFirst({ where: { companyId: auth.companyId, materialId, sourceUomId: input.sourceUomId, effectiveFrom: { lte: new Date(input.businessDate + 'T00:00:00.000Z') } }, orderBy: [{ effectiveFrom: 'desc' }, { revisionNo: 'desc' }] });
       if (!revision && input.sourceUomId !== basis.stockUomId) return uomInvalid('businessDate', 'MATERIAL_UOM_DEFINITION_REQUIRED');
       const numerator = revision?.numerator ?? '1', denominator = revision?.denominator ?? '1';
-      return { materialId, basisVersion: basis.version, state: 'PREVIEW_ONLY', inventoryConversionEnabled: false, businessDate: input.businessDate, revisionId: revision?.id ?? null, effectiveFrom: revision?.effectiveFrom.toISOString().slice(0, 10) ?? null, numerator, denominator,
+      const activation = await tx.materialUomActivation.findUnique({where:{materialId},select:{materialId:true}});
+      return { materialId, basisVersion: basis.version, state: 'PREVIEW_ONLY', inventoryConversionEnabled: Boolean(activation), businessDate: input.businessDate, revisionId: revision?.id ?? null, effectiveFrom: revision?.effectiveFrom.toISOString().slice(0, 10) ?? null, numerator, denominator,
         sourceUomId: input.sourceUomId, sourceUomCode: revision?.sourceUomCode ?? basis.stockUomCode, stockUomId: basis.stockUomId, stockUomCode: basis.stockUomCode,
         ...exactUomQuantity(input.quantity, revision?.sourcePrecision ?? basis.stockPrecision, basis.stockPrecision, numerator, denominator) };
     });

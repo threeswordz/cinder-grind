@@ -1,4 +1,4 @@
--- DEC-050 B: additive stock-effect provenance. No stock rewrite, no activation.
+-- DEC-050 B: additive stock-effect provenance. No stock rewrite or automatic activation.
 -- Each material UOM effect pin belongs to exactly one canonical StockTransaction.
 CREATE TABLE material_uom_effect_pins (
   stock_transaction_id uuid PRIMARY KEY REFERENCES stock_transactions(id) ON DELETE RESTRICT,
@@ -1091,3 +1091,121 @@ BEGIN
  END IF;
  RETURN NEW;
 END $$;
+
+-- DEC-050 B explicit opt-in: no rows are inserted by this migration.
+CREATE TABLE material_uom_activations (
+ material_id uuid PRIMARY KEY,
+ company_id uuid NOT NULL,
+ stock_uom_id uuid NOT NULL REFERENCES units_of_measure(id) ON DELETE RESTRICT,
+ basis_version integer NOT NULL CHECK(basis_version>=1),
+ actor_user_id uuid NOT NULL,
+ session_id uuid NOT NULL REFERENCES user_sessions(id) ON DELETE RESTRICT,
+ request_key uuid NOT NULL,
+ reason varchar(2000) NOT NULL CHECK(length(btrim(reason)) BETWEEN 1 AND 2000 AND reason !~ '[[:cntrl:]]'),
+ created_at timestamptz(6) NOT NULL DEFAULT transaction_timestamp(),
+ FOREIGN KEY(company_id,material_id) REFERENCES material_uom_bases(company_id,material_id) ON DELETE RESTRICT,
+ FOREIGN KEY(company_id,actor_user_id) REFERENCES users(company_id,id) ON DELETE RESTRICT,
+ UNIQUE(company_id,actor_user_id,request_key)
+);
+
+-- Reject the history itself, including offsetting foreign-unit effects; never
+-- use a zero net balance to infer an old conversion. Open sources cannot be
+-- retroactively assigned a rate or a date by activation.
+CREATE FUNCTION erp_material_uom_assert_activation_compatible(cid uuid,mid uuid) RETURNS void LANGUAGE plpgsql AS $$
+DECLARE basis material_uom_bases%ROWTYPE;
+BEGIN
+ PERFORM pg_advisory_xact_lock(hashtextextended('material-uom:'||cid::text||':'||mid::text,0));
+ SELECT * INTO basis FROM material_uom_bases WHERE company_id=cid AND material_id=mid FOR UPDATE;
+ IF NOT FOUND OR NOT EXISTS(SELECT 1 FROM materials WHERE id=mid AND company_id=cid AND is_active)
+  OR NOT EXISTS(SELECT 1 FROM units_of_measure WHERE id=basis.stock_uom_id AND company_id=cid AND is_active AND decimal_places=basis.stock_precision)
+ THEN RAISE EXCEPTION 'MATERIAL_UOM_STOCK_BASIS_INVALID'; END IF;
+ IF EXISTS(SELECT 1 FROM stock_transactions WHERE company_id=cid AND material_id=mid AND uom_id<>basis.stock_uom_id)
+ THEN RAISE EXCEPTION 'MATERIAL_UOM_HISTORICAL_UNIT_CONFLICT'; END IF;
+ IF EXISTS(SELECT 1 FROM material_reservations WHERE company_id=cid AND material_id=mid AND status IN ('DRAFT','ACTIVE'))
+ THEN RAISE EXCEPTION 'MATERIAL_UOM_OPEN_RESERVATION_CONFLICT'; END IF;
+ IF EXISTS(SELECT 1 FROM goods_receipt_items gi JOIN goods_receipts gr ON gr.id=gi.goods_receipt_id WHERE gr.company_id=cid AND gi.material_id=mid AND gr.posted_at IS NULL)
+ OR EXISTS(SELECT 1 FROM material_issue_items ii JOIN material_issues mi ON mi.id=ii.material_issue_id WHERE mi.company_id=cid AND ii.material_id=mid AND mi.posted_at IS NULL)
+ OR EXISTS(SELECT 1 FROM material_return_items ri JOIN material_returns mr ON mr.id=ri.material_return_id WHERE mr.company_id=cid AND ri.material_id=mid AND mr.posted_at IS NULL)
+ OR EXISTS(SELECT 1 FROM stock_transfer_items ti JOIN stock_transfers st ON st.id=ti.stock_transfer_id WHERE st.company_id=cid AND ti.material_id=mid AND (st.posted_at IS NULL OR (st.reversed_at IS NULL AND EXISTS(SELECT 1 FROM transfer_custodies WHERE transfer_id=st.id) AND ti.quantity>(SELECT COALESCE(SUM(rl.quantity),0) FROM transfer_receipt_lines rl JOIN transfer_receipts tr ON tr.id=rl.receipt_id WHERE rl.transfer_item_id=ti.id AND tr.posted_at IS NOT NULL))))
+ OR EXISTS(SELECT 1 FROM stock_counts WHERE company_id=cid AND material_id=mid AND status IN ('DRAFT','SUBMITTED'))
+ OR EXISTS(SELECT 1 FROM receiving_delivery_lines dl JOIN receiving_deliveries d ON d.id=dl.delivery_id WHERE d.company_id=cid AND dl.material_id=mid AND d.status<>'VOID' AND NOT EXISTS(SELECT 1 FROM goods_receipts gr WHERE gr.delivery_id=d.id AND gr.posted_at IS NOT NULL))
+ THEN RAISE EXCEPTION 'MATERIAL_UOM_OPEN_SOURCE_CONFLICT'; END IF;
+ -- Stage C must reconcile these demand/limit sources explicitly; no old plan
+ -- or signed request is reinterpreted by this B activation boundary.
+ IF EXISTS(SELECT 1 FROM material_usage_plan_lines pl JOIN material_usage_plan_revisions pr ON pr.id=pl.revision_id JOIN material_usage_plans p ON p.id=pr.plan_id WHERE p.company_id=cid AND pl.material_id=mid)
+ OR EXISTS(SELECT 1 FROM material_request_lines rl JOIN material_requests r ON r.id=rl.request_id WHERE r.company_id=cid AND rl.material_id=mid)
+ THEN RAISE EXCEPTION 'MATERIAL_UOM_DEMAND_RECONCILIATION_REQUIRED'; END IF;
+END $$;
+
+CREATE FUNCTION erp_material_uom_activation_guard() RETURNS trigger LANGUAGE plpgsql AS $$
+DECLARE basis material_uom_bases%ROWTYPE;
+BEGIN
+ IF TG_OP<>'INSERT' THEN RAISE EXCEPTION 'MATERIAL_UOM_ACTIVATION_IMMUTABLE'; END IF;
+ IF current_setting('transaction_isolation')<>'serializable' THEN RAISE EXCEPTION 'MATERIAL_UOM_SERIALIZABLE_REQUIRED'; END IF;
+ PERFORM erp_material_uom_assert_actor(NEW.company_id,NEW.actor_user_id,NEW.session_id);
+ PERFORM erp_material_uom_assert_activation_compatible(NEW.company_id,NEW.material_id);
+ SELECT * INTO basis FROM material_uom_bases WHERE company_id=NEW.company_id AND material_id=NEW.material_id;
+ IF NEW.stock_uom_id IS DISTINCT FROM basis.stock_uom_id OR NEW.basis_version IS DISTINCT FROM basis.version
+  OR NEW.created_at<>transaction_timestamp() THEN RAISE EXCEPTION 'MATERIAL_UOM_ACTIVATION_VERSION_CONFLICT'; END IF;
+ RETURN NEW;
+END $$;
+CREATE TRIGGER material_uom_activation_guard BEFORE INSERT OR UPDATE OR DELETE ON material_uom_activations FOR EACH ROW EXECUTE FUNCTION erp_material_uom_activation_guard();
+
+-- Source writers and activation share a material lock and a serializable read
+-- dependency. New rows racing an activation cannot escape the open-source
+-- census. Existing immutable/source-specific guards remain in force.
+CREATE FUNCTION erp_material_uom_source_activation_lock() RETURNS trigger LANGUAGE plpgsql AS $$
+DECLARE cid uuid;
+BEGIN
+ SELECT company_id INTO cid FROM materials WHERE id=NEW.material_id;
+ PERFORM pg_advisory_xact_lock(hashtextextended('material-uom:'||cid::text||':'||NEW.material_id::text,0));
+ PERFORM 1 FROM material_uom_activations WHERE company_id=cid AND material_id=NEW.material_id;
+ IF FOUND AND TG_TABLE_NAME IN ('material_usage_plan_lines','material_request_lines')
+ THEN RAISE EXCEPTION 'MATERIAL_UOM_DEMAND_RECONCILIATION_REQUIRED'; END IF;
+ RETURN NEW;
+END $$;
+DO $$ DECLARE name text; BEGIN
+ FOREACH name IN ARRAY ARRAY['goods_receipt_items','material_issue_items','material_return_items','stock_transfer_items','material_reservations','stock_counts','receiving_delivery_lines','material_usage_plan_lines','material_request_lines'] LOOP
+  EXECUTE format('CREATE TRIGGER material_uom_source_activation_lock BEFORE INSERT OR UPDATE ON %I FOR EACH ROW EXECUTE FUNCTION erp_material_uom_source_activation_lock()',name);
+ END LOOP;
+END $$;
+
+CREATE FUNCTION erp_material_uom_active_movement_guard() RETURNS trigger LANGUAGE plpgsql AS $$
+DECLARE active material_uom_activations%ROWTYPE;
+BEGIN
+ -- Source insertion/freeze owns the material lock; posting already owns its
+ -- canonical inventory lock. Do not invert that order for original reversals.
+ SELECT * INTO active FROM material_uom_activations WHERE company_id=NEW.company_id AND material_id=NEW.material_id;
+ IF NOT FOUND THEN RETURN NEW; END IF;
+ IF NEW.uom_id IS DISTINCT FROM active.stock_uom_id THEN RAISE EXCEPTION 'MATERIAL_UOM_CANONICAL_STOCK_UNIT_REQUIRED'; END IF;
+ -- Original legacy same-basis corrections stay source exact. Never freeze a
+ -- new source or invent a factor for an old unpinned reversal/return.
+ IF NEW.reversal_of_id IS NOT NULL OR NEW.movement_type='MATERIAL_RETURN' OR NEW.stock_count_id IS NOT NULL THEN RETURN NEW; END IF;
+ IF NEW.movement_type='GOODS_RECEIPT' AND EXISTS(SELECT 1 FROM material_uom_receipt_source_pins WHERE receipt_item_id=NEW.goods_receipt_item_id)
+ OR NEW.movement_type='MATERIAL_ISSUE' AND (EXISTS(SELECT 1 FROM material_uom_issue_source_pins WHERE issue_item_id=NEW.material_issue_item_id) OR EXISTS(SELECT 1 FROM material_issue_items i JOIN material_uom_reservation_pins rp ON rp.reservation_id=i.reservation_id WHERE i.id=NEW.material_issue_item_id))
+ OR NEW.movement_type IN ('STOCK_TRANSFER_IN','STOCK_TRANSFER_OUT') AND EXISTS(SELECT 1 FROM material_uom_transfer_source_pins WHERE transfer_item_id=NEW.stock_transfer_item_id)
+ THEN RETURN NEW; END IF;
+ RAISE EXCEPTION 'MATERIAL_UOM_ACTIVATED_SOURCE_PIN_REQUIRED';
+END $$;
+CREATE TRIGGER material_uom_active_movement_guard BEFORE INSERT ON stock_transactions FOR EACH ROW EXECUTE FUNCTION erp_material_uom_active_movement_guard();
+
+CREATE FUNCTION erp_material_uom_active_reservation_proof() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+ IF EXISTS(SELECT 1 FROM material_reservations r JOIN material_uom_activations a ON a.company_id=r.company_id AND a.material_id=r.material_id
+  WHERE r.id=NEW.id AND r.status='ACTIVE' AND NOT EXISTS(SELECT 1 FROM material_uom_reservation_pins WHERE reservation_id=r.id))
+ THEN RAISE EXCEPTION 'MATERIAL_UOM_ACTIVATED_SOURCE_PIN_REQUIRED'; END IF;
+ RETURN NEW;
+END $$;
+CREATE CONSTRAINT TRIGGER material_uom_active_reservation_proof AFTER INSERT OR UPDATE ON material_reservations DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION erp_material_uom_active_reservation_proof();
+
+CREATE OR REPLACE FUNCTION erp_material_uom_tracked_stock_basis(cid uuid,mid uuid)
+RETURNS TABLE(stock_uom_id uuid,stock_precision integer) LANGUAGE sql STABLE AS $$
+ SELECT b.stock_uom_id,b.stock_precision FROM material_uom_bases b
+ WHERE b.company_id=cid AND b.material_id=mid AND (
+  EXISTS(SELECT 1 FROM material_uom_activations a WHERE a.company_id=cid AND a.material_id=mid)
+  OR EXISTS(SELECT 1 FROM material_uom_effect_pins e WHERE e.company_id=cid AND e.material_id=mid)
+  OR EXISTS(SELECT 1 FROM material_uom_receipt_source_pins p WHERE p.company_id=cid AND p.material_id=mid)
+  OR EXISTS(SELECT 1 FROM material_uom_reservation_pins p WHERE p.company_id=cid AND p.material_id=mid)
+  OR EXISTS(SELECT 1 FROM material_uom_issue_source_pins p WHERE p.company_id=cid AND p.material_id=mid)
+  OR EXISTS(SELECT 1 FROM material_uom_transfer_source_pins p WHERE p.company_id=cid AND p.material_id=mid))
+$$;

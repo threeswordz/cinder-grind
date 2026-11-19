@@ -36,7 +36,7 @@ test('B history extension requires only the exact empty effect-pin table; no leg
  const empty={count:'0',digest:createHash('sha256').update('').digest('hex')};
  const before={customer_boq_versions:empty,stock_transactions:{count:'2',digest:'old'},role_permissions:{count:'1',digest:'grants'}};
  const verify=after=>assertHistoricalTables(before,after,false,false,false,false,false,false,false,false,false,false,false,true);
- const candidate={...before,material_uom_effect_pins:empty,material_uom_receipt_source_pins:empty,material_uom_reservation_pins:empty,material_uom_issue_source_pins:empty,material_uom_transfer_source_pins:empty};
+ const candidate={...before,material_uom_effect_pins:empty,material_uom_receipt_source_pins:empty,material_uom_reservation_pins:empty,material_uom_issue_source_pins:empty,material_uom_transfer_source_pins:empty,material_uom_activations:empty};
  verify(candidate);
  assert.throws(()=>verify(before));
  assert.throws(()=>verify({...candidate,stock_transactions:{count:'2',digest:'changed'}}));
@@ -112,4 +112,21 @@ test('controlled transfer conversion preserves approval, actual receipt and reve
  assert.match(sql,/MATERIAL_UOM_TRANSFER_APPROVED_EFFECT_REQUIRED/);
  assert.match(sql,/CREATE OR REPLACE FUNCTION erp_transfer_proof/);
  assert.throws(()=>classifySchema(previous,candidate.replace('materialUomTransferSourcePin MaterialUomTransferSourcePin?','')));
+});
+
+
+test('activation is exact and pristine no-backfill proof precedes deliberate populated test writes',()=>{
+ assert.throws(()=>classifySchema(previous,candidate.replace('model MaterialUomActivation {','model UnreviewedActivation {')));
+ assert.throws(()=>classifySchema(previous,candidate.replace('basisVersion Int @map("basis_version")','basisVersion Float @map("basis_version")')));
+ const script=readFileSync(new URL('./rehearse-migration.sh',import.meta.url),'utf8');
+ const pristine=script.indexOf('material-uom-effect-upgrade.mjs" pristine');
+ const fixture=script.indexOf('node --test apps/api/dist/budget/customer-boq.integration.spec.js');
+ const protect=script.indexOf('material-uom-effect-upgrade.mjs" protect');
+ assert.ok(pristine>0&&pristine<fixture&&fixture<protect);
+ const witness=readFileSync(new URL('./material-uom-effect-upgrade.mjs',import.meta.url),'utf8');
+ const emptyProof=witness.slice(witness.indexOf("if(mode==='pristine'){"),witness.indexOf('assert.deepEqual(await guards()'));
+ assert.match(emptyProof,/material_uom_effect_pins.count,'0'/);
+ assert.match(emptyProof,/material_uom_activations.count,'0'/);
+ assert.match(witness,/pristine.guard,await guards\(\)/);
+ assert.match(witness,/before,receipt.tables/);
 });

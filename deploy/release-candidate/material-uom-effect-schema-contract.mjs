@@ -1,3 +1,4 @@
+const expectedActivationModel = "model MaterialUomActivation {\n  materialId String @id @map(\"material_id\") @db.Uuid\n  companyId String @map(\"company_id\") @db.Uuid\n  stockUomId String @map(\"stock_uom_id\") @db.Uuid\n  basisVersion Int @map(\"basis_version\")\n  actorUserId String @map(\"actor_user_id\") @db.Uuid\n  sessionId String @map(\"session_id\") @db.Uuid\n  requestKey String @map(\"request_key\") @db.Uuid\n  reason String @db.VarChar(2000)\n  createdAt DateTime @default(now()) @map(\"created_at\") @db.Timestamptz(6)\n  @@unique([companyId, actorUserId, requestKey])\n  @@map(\"material_uom_activations\")\n}";
 // DEC-050 B: exact additive UOM effect-pin model and one canonical ledger relation.
 // This classifier is not an open schema waiver. Each future Stage B schema delta
 // must be added to its own bounded, independently reviewed contract.
@@ -12,9 +13,9 @@ const expectedReservationRelation = 'materialUomReservationPin MaterialUomReserv
 const expectedRelation = 'materialUomEffectPin MaterialUomEffectPin?';
 const expectedReceiptRelation = 'materialUomReceiptSourcePin MaterialUomReceiptSourcePin?';
 export const materialUomEffectMigration = '20261119140600_material_uom_effect_pins';
-export const materialUomEffectTables = ['material_uom_effect_pins','material_uom_receipt_source_pins','material_uom_reservation_pins','material_uom_issue_source_pins','material_uom_transfer_source_pins'];
+export const materialUomEffectTables = ['material_uom_effect_pins','material_uom_receipt_source_pins','material_uom_reservation_pins','material_uom_issue_source_pins','material_uom_transfer_source_pins','material_uom_activations'];
 export function stripMaterialUomEffectSchema(schema) {
-  let found = 0, relationCount = 0, receiptFound = 0, receiptRelationCount = 0, reservationFound = 0, reservationRelationCount = 0, issueFound = 0, issueRelationCount = 0, transferFound = 0, transferRelationCount = 0;
+  let activationFound = 0, found = 0, relationCount = 0, receiptFound = 0, receiptRelationCount = 0, reservationFound = 0, reservationRelationCount = 0, issueFound = 0, issueRelationCount = 0, transferFound = 0, transferRelationCount = 0;
   const text = schema.replace(/^model (\w+) \{[\s\S]*?^\}/gm, (block, name) => {
     if (name === 'MaterialUomEffectPin') {
       if (++found !== 1 || block.replace(/\s+/g, ' ') !== expectedModel.replace(/\s+/g, ' '))
@@ -39,6 +40,10 @@ export function stripMaterialUomEffectSchema(schema) {
       if(++transferFound!==1||block.replace(/\s+/g,' ')!==expectedTransferModel.replace(/\s+/g,' ')) throw Error('Material UOM B transfer source schema outside exact contract');
       return '';
     }
+    if (name === 'MaterialUomActivation') {
+      if (++activationFound !== 1 || block.replace(/\s+/g,' ') !== expectedActivationModel.replace(/\s+/g,' ')) throw Error('Material UOM B activation outside exact contract');
+      return '';
+    }
     if (name !== 'StockTransaction' && name !== 'GoodsReceiptItem' && name !== 'MaterialReservation' && name!=='MaterialIssueItem' && name!=='StockTransferItem') return block;
     return block.split('\n').filter(line => {
       const normalized=line.trim().replace(/\s+/g,' ');
@@ -50,7 +55,7 @@ export function stripMaterialUomEffectSchema(schema) {
       return true;
     }).join('\n');
   });
-  if (found !== relationCount || found > 1 || receiptFound !== receiptRelationCount || receiptFound !== found || reservationFound !== reservationRelationCount || reservationFound !== found || issueFound!==issueRelationCount || issueFound!==found || transferFound!==transferRelationCount || transferFound!==found) throw Error('Partial or duplicated material UOM B source/effect provenance');
+  if (activationFound !== found || found !== relationCount || found > 1 || receiptFound !== receiptRelationCount || receiptFound !== found || reservationFound !== reservationRelationCount || reservationFound !== found || issueFound!==issueRelationCount || issueFound!==found || transferFound!==transferRelationCount || transferFound!==found) throw Error('Partial or duplicated material UOM B source/effect provenance');
   if (!found) return {text: schema, present: false};
   const comment = '// DEC-050 B: immutable entered-versus-stock effect provenance. This does not\n// activate mixed-UOM inventory until all canonical source owners are ready.';
   if (!text.includes(comment)) throw Error('Stage B provenance comment missing');
