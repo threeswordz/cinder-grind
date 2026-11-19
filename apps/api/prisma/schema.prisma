@@ -1769,6 +1769,14 @@ model MaterialReservation {
   warehouseId        String    @map("warehouse_id") @db.Uuid
   materialId         String    @map("material_id") @db.Uuid
   uomId              String    @map("uom_id") @db.Uuid
+  // DEC-050 B: optional pinned canonical reservation dimension; legacy rows stay untouched.
+  stockUomId         String?   @map("stock_uom_id") @db.Uuid
+  stockQuantity      Decimal?  @map("stock_quantity") @db.Decimal(18, 4)
+  conversionBusinessDate DateTime? @map("conversion_business_date") @db.Date
+  conversionRevisionId String? @map("conversion_revision_id") @db.Uuid
+  conversionBasisVersion Int?  @map("conversion_basis_version")
+  conversionNumerator String?  @map("conversion_numerator") @db.VarChar(38)
+  conversionDenominator String? @map("conversion_denominator") @db.VarChar(38)
   wbsId              String?   @map("wbs_id") @db.Uuid
   activityId         String?   @map("activity_id") @db.Uuid
   reservationNumber  String    @map("reservation_number") @db.VarChar(120)

@@ -112,6 +112,9 @@ test('DEC-050 A actual PostgreSQL/HTTP: exact definitions, current authority, im
       assert.equal(await exact('1','1','1','0'), false, 'No zero denominator');
       const columns = await db.$queryRaw<Array<{column_name: string}>>`SELECT column_name FROM information_schema.columns WHERE table_schema=current_schema() AND table_name='stock_transactions' AND column_name IN ('stock_uom_id','stock_quantity','conversion_business_date','conversion_revision_id','conversion_basis_version','conversion_numerator','conversion_denominator')`;
       assert.equal(columns.length, 7, 'Forward-only optional provenance columns exist');
+      const reservationColumns = await db.$queryRaw<Array<{column_name: string}>>`SELECT column_name FROM information_schema.columns WHERE table_schema=current_schema() AND table_name='material_reservations' AND column_name IN ('stock_uom_id','stock_quantity','conversion_business_date','conversion_revision_id','conversion_basis_version','conversion_numerator','conversion_denominator')`;
+      assert.equal(reservationColumns.length, 7, 'Existing reservations gain optional pinned stock dimensions');
+
     });
     await t.test('SQL rejects missing/mismatched receipts, direct version changes and unit/Company repointing', async () => {
       await assert.rejects(db.materialUomBasis.update({ where: { materialId: f.material.id }, data: { version: { increment: 1 } } }), /MATERIAL_UOM_HISTORY_IMMUTABLE/);
