@@ -38,7 +38,7 @@ export async function resolveMaterialUomStock(
 ): Promise<MaterialUomStockFact | null> {
   // Revision maintenance uses this same lock, so source selection cannot
   // race a newly effective factor or another same-day correction.
-  await tx.$executeRaw\`SELECT pg_advisory_xact_lock(hashtextextended(\${'material-uom:' + input.companyId + ':' + input.materialId},0))\`;
+  await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${'material-uom:' + input.companyId + ':' + input.materialId},0))`;
   const basis = await tx.materialUomBasis.findFirst({
     where: { materialId: input.materialId, companyId: input.companyId },
   });
