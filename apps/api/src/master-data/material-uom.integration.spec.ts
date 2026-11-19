@@ -75,6 +75,24 @@ test('DEC-050 A actual PostgreSQL/HTTP: exact definitions, current authority, im
       assert.equal((await preview('2026-11-18', '3', f.third.id)).stockQuantity, '1.0000');
       for (const [quantity, sourceUomId] of [['1', f.third.id], ['0.5', f.carton.id], ['99999999999999', f.carton.id]]) await call(f.viewer, path + '/preview', 422, { sourceUomId, quantity, businessDate: '2026-11-18' });
     });
+    await t.test('Stage B immutable stock-fact math rejects every residual and preserves signed reversal precision', async () => {
+      const exact = async (entered: string, stock: string, numerator: string, denominator: string, sourcePrecision = 0, stockPrecision = 0) => {
+        const rows = await db.$queryRaw<Array<{ exact: boolean }>>`SELECT erp_material_uom_exact_stock_fact(${entered}::numeric,${stock}::numeric,${numerator}::numeric,${denominator}::numeric,${sourcePrecision},${stockPrecision}) AS exact`;
+        return rows[0]?.exact;
+      };
+      assert.equal(await exact('2','40','20','1'), true);
+      assert.equal(await exact('3','1','1','3'), true);
+      assert.equal(await exact('1','0.3333','1','3',0,4), false, 'No rounded thirds');
+      assert.equal(await exact('2','39.9999','20','1',0,4), false, 'No truncated canonical stock');
+      assert.equal(await exact('-2','-40','20','1'), true, 'Reversal uses the same signed basis');
+      assert.equal(await exact('0.5','10','20','1'), false, 'Entered source precision enforced');
+      assert.equal(await exact('2','40.1','20','1'), false, 'Stock precision enforced');
+      assert.equal(await exact('99999999999999.9999','199999999999999.9998','2','1',4,4), false, 'No numeric overflow');
+      assert.equal(await exact('1','1','0','1'), false, 'No zero numerator');
+      assert.equal(await exact('1','1','1','0'), false, 'No zero denominator');
+      const columns = await db.$queryRaw<Array<{column_name: string}>>`SELECT column_name FROM information_schema.columns WHERE table_schema=current_schema() AND table_name='stock_transactions' AND column_name IN ('stock_uom_id','stock_quantity','conversion_business_date','conversion_revision_id','conversion_basis_version','conversion_numerator','conversion_denominator')`;
+      assert.equal(columns.length, 7, 'Forward-only optional provenance columns exist');
+    });
     await t.test('SQL rejects missing/mismatched receipts, direct version changes and unit/Company repointing', async () => {
       await assert.rejects(db.materialUomBasis.update({ where: { materialId: f.material.id }, data: { version: { increment: 1 } } }), /MATERIAL_UOM_HISTORY_IMMUTABLE/);
       await assert.rejects(db.materialUomBasis.delete({ where: { materialId: f.material.id } }), /MATERIAL_UOM_HISTORY_IMMUTABLE/);

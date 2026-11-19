@@ -2060,6 +2060,16 @@ model StockTransaction {
   materialId           String    @map("material_id") @db.Uuid
   projectId            String?   @map("project_id") @db.Uuid
   uomId                String    @map("uom_id") @db.Uuid
+  // DEC-050 B: optional, immutable canonical stock projection for new controlled effects.
+  // Existing source quantity/uomId remain unchanged and retain their source SQL guards.
+  // NULL is the explicit historical/legacy mode, never a reinterpretation.
+  stockUomId           String?   @map("stock_uom_id") @db.Uuid
+  stockQuantity        Decimal?  @map("stock_quantity") @db.Decimal(18, 4)
+  conversionBusinessDate DateTime? @map("conversion_business_date") @db.Date
+  conversionRevisionId String?   @map("conversion_revision_id") @db.Uuid
+  conversionBasisVersion Int?    @map("conversion_basis_version")
+  conversionNumerator String?    @map("conversion_numerator") @db.VarChar(38)
+  conversionDenominator String?  @map("conversion_denominator") @db.VarChar(38)
   goodsReceiptId       String?   @map("goods_receipt_id") @db.Uuid
   goodsReceiptItemId   String?   @map("goods_receipt_item_id") @db.Uuid
   materialIssueId      String?   @map("material_issue_id") @db.Uuid
