@@ -1,5 +1,6 @@
 import {materialUomCatalog,verifyMaterialUomCatalog} from './material-uom-catalog-contract.mjs';
 const materialUomApproved=process.env.MATERIAL_UOM_SCHEMA_UPGRADE==='YES';
+const materialUomEffectApproved=process.env.MATERIAL_UOM_EFFECT_SCHEMA_UPGRADE==='YES';
 import {physicalCatalog,verifyPhysicalCatalog} from './subcontract-physical-catalog-contract.mjs';
 const physicalApproved=process.env.SUBCONTRACT_PHYSICAL_SCHEMA_UPGRADE==='YES';
 import {transferCatalog,verifyTransferCatalog} from './transfer-catalog-contract.mjs';
@@ -114,7 +115,7 @@ try {
     const after = await snapshot();
     assertHistoricalTables(before.tables, after.tables,
       process.env.HR_SCHEMA_UPGRADE === 'YES', process.env.HR_DOCUMENT_SCHEMA_UPGRADE === 'YES',
-      process.env.STOCK_COUNT_SCHEMA_UPGRADE === 'YES', process.env.MATERIAL_REQUEST_SCHEMA_UPGRADE === 'YES',materialPlanApproved,planIssueApproved,siteIssueApproved,receivingApproved,transferApproved,physicalApproved,materialUomApproved);
+      process.env.STOCK_COUNT_SCHEMA_UPGRADE === 'YES', process.env.MATERIAL_REQUEST_SCHEMA_UPGRADE === 'YES',materialPlanApproved,planIssueApproved,siteIssueApproved,receivingApproved,transferApproved,physicalApproved,materialUomApproved,materialUomEffectApproved);
     for (const migration of before.migrations) assert.deepEqual(after.migrations.find((row) => row.migration_name === migration.migration_name), migration, 'Historical migration checksum changed');
     const fixture = load(manifestPath);
     assert.equal((await prisma.purchaseOrder.findUniqueOrThrow({ where: { id: fixture.unknownPoId } })).currencyCode, null);

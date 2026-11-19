@@ -1,0 +1,31 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {readFileSync,readdirSync} from 'node:fs';
+import {execFileSync} from 'node:child_process';
+import {classifySchema} from './schema-contract.mjs';
+import {stripMaterialUomEffectSchema,materialUomEffectMode,materialUomEffectMigration} from './material-uom-effect-schema-contract.mjs';
+const candidate=readFileSync(new URL('../../apps/api/prisma/schema.prisma',import.meta.url),'utf8');
+const previous=execFileSync('git',['show','72ec4127a6a04a92419fedf5db7ccb338ef8e444:apps/api/prisma/schema.prisma'],{encoding:'utf8'});
+test('DEC-050 B accepts exactly one isolated stock effect pin model/relation',()=>{
+ assert.equal(classifySchema(previous,candidate),'migration-aware-material-uom-effect-schema');
+ assert.equal(stripMaterialUomEffectSchema(candidate).text.replace(/\s+/g,' ').trim(),previous.replace(/\s+/g,' ').trim());
+ assert.deepEqual(materialUomEffectMode('migration-aware-material-uom-effect-schema'),{present:true,prior:'migration-aware-sql-only'});
+ assert.throws(()=>classifySchema(candidate,previous));
+ for(const bad of [
+  candidate.replace('sourceQuantity Decimal','sourceQuantity Float'),
+  candidate.replace('effectSign Int','effectSign Float'),
+  candidate.replace('model MaterialUomEffectPin {','model UnapprovedEffect {'),
+  candidate.replace('materialUomEffectPin MaterialUomEffectPin?', 'materialUomEffectPin MaterialUomEffectPin[]'),
+  candidate.replace('stockTransaction StockTransaction','stockTransaction String'),
+  candidate+'model UnknownLedger {\n id String @id\n}',
+ ])assert.throws(()=>classifySchema(previous,bad));
+});
+test('DEC-050 B records one exact forward-only migration and does not mutate historical balances or grants',()=>{
+ const all=readdirSync(new URL('../../apps/api/prisma/migrations/',import.meta.url));
+ assert.deepEqual(all.filter(n=>n==='20261119140600_material_uom_effect_pins'),[materialUomEffectMigration]);
+ const sql=readFileSync(new URL('../../apps/api/prisma/migrations/'+materialUomEffectMigration+'/migration.sql',import.meta.url),'utf8');
+ assert.match(sql,/CREATE TABLE material_uom_effect_pins/);
+ assert.match(sql,/BEFORE INSERT OR UPDATE OR DELETE ON material_uom_effect_pins/);
+ assert.match(sql,/MATERIAL_UOM_EFFECT_PIN_IMMUTABLE/);
+ assert.doesNotMatch(sql,/(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM)\s+"?(?:stock_transactions|material_reservations|role_permissions|user_roles|payments)"?\b/i);
+});

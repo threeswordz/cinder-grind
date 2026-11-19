@@ -8,7 +8,7 @@ CREATE TABLE material_uom_effect_pins (
   source_quantity numeric(18,4) NOT NULL,
   stock_uom_id uuid NOT NULL REFERENCES units_of_measure(id) ON DELETE RESTRICT,
   stock_quantity numeric(18,4) NOT NULL,
-  effect_sign smallint NOT NULL,
+  effect_sign integer NOT NULL,
   business_date date NOT NULL,
   basis_version integer NOT NULL,
   revision_id uuid REFERENCES material_uom_revisions(id) ON DELETE RESTRICT,

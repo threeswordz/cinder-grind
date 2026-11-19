@@ -1,3 +1,4 @@
+import {materialUomEffectMigration} from './material-uom-effect-schema-contract.mjs';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -46,6 +47,21 @@ test('DEC-050 A evidence requires version17, exact definition migrations and exe
   for(const key of ['materialUomSchemaUpgrade','materialUomHistoricalPreservation','materialUomHttpUpgrade','materialUomPopulatedRecovery','boundedSchemaContract','rollbackDocuments']){const bad={...data};delete bad[key];assert.notEqual(verify(bad).status,0,key);}
   assert.notEqual(verify({...data,version:16}).status,0);
   for(const name of materialUomMigrations)assert.notEqual(verify({...data,migrationNames:materialUomMigrations.filter(n=>n!==name)}).status,0,name);
+});
+
+test('DEC-050 B evidence requires version18, exact new effect migration and copied-DB bypass/history proof', () => {
+  const keys=['materialUomEffectSchemaUpgrade','materialUomEffectHistoricalPreservation','materialUomEffectPopulatedRecovery'];
+  const data={...evidence('migration-aware-material-uom-effect-schema'),version:18,
+    migrationNames:[materialUomEffectMigration],...Object.fromEntries(keys.map(k=>[k,'PASS']))};
+  const result=verify(data);
+  assert.equal(result.status,0,result.stderr);
+  assert.equal(JSON.parse(result.stdout).version,18);
+  for(const key of [...keys,'boundedSchemaContract','previousRuntimeClientBuild','rollbackDocuments']) {
+    const bad={...data};delete bad[key];assert.notEqual(verify(bad).status,0,key);
+  }
+  assert.notEqual(verify({...data,version:17}).status,0);
+  assert.notEqual(verify({...data,migrationNames:[]}).status,0);
+  assert.notEqual(verify({...data,migrationNames:['20261119140600_another']}).status,0);
 });
 
 test('SQL-only and schema-aware evidence preserve separate required contracts and human gates', () => {

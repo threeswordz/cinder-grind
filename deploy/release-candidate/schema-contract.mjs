@@ -1,3 +1,4 @@
+import {stripMaterialUomEffectSchema} from './material-uom-effect-schema-contract.mjs';
 import {stripMaterialUomSchema} from './material-uom-schema-contract.mjs';
 import {stripPhysicalSchema} from './subcontract-physical-schema-contract.mjs';
 import {stripTransferSchema} from './transfer-schema-contract.mjs';
@@ -204,12 +205,23 @@ function classifyBeforeMaterialUom(previous,candidate){
  return !before.present&&after.present?(base==='migration-aware-sql-only'?'migration-aware-subcontract-physical-schema':'migration-aware-subcontract-physical-'+base.slice('migration-aware-'.length)):base;
 }
 
-export function classifySchema(previous,candidate){
+function classifyLegacySchema(previous,candidate){
  if(previous===candidate)return 'migration-aware-sql-only';
  const before=stripMaterialUomSchema(previous),after=stripMaterialUomSchema(candidate);
  if(before.present&&!after.present)throw Error('Material UOM definition schema removal prohibited');
  const base=before.text.replace(/\s+/g,' ').trim()===after.text.replace(/\s+/g,' ').trim()?'migration-aware-sql-only':classifyBeforeMaterialUom(before.text,after.text);
  return !before.present&&after.present?(base==='migration-aware-sql-only'?'migration-aware-material-uom-schema':'migration-aware-material-uom-'+base.slice('migration-aware-'.length)):base;
+}
+export function classifySchema(previous,candidate){
+ if(previous===candidate)return 'migration-aware-sql-only';
+ const before=stripMaterialUomEffectSchema(previous),after=stripMaterialUomEffectSchema(candidate);
+ if(before.present&&!after.present)throw Error('Material UOM B provenance schema removal prohibited');
+ const base=before.text.replace(/\s+/g,' ').trim()===after.text.replace(/\s+/g,' ').trim()
+  ?'migration-aware-sql-only':classifyLegacySchema(before.text,after.text);
+ return !before.present&&after.present
+  ?(base==='migration-aware-sql-only'?'migration-aware-material-uom-effect-schema'
+    :'migration-aware-material-uom-effect-'+base.slice('migration-aware-'.length))
+  :base;
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
