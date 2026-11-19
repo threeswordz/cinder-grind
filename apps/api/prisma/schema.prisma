@@ -2080,6 +2080,7 @@ model StockTransaction {
   reversalOfId         String?   @unique @map("reversal_of_id") @db.Uuid
   postedByUserId       String    @map("posted_by_user_id") @db.Uuid
   postedAt             DateTime  @default(now()) @map("posted_at") @db.Timestamptz(6)
+  materialUomEffectPin MaterialUomEffectPin?
 
   company             Company             @relation(fields: [companyId], references: [id], onDelete: Restrict)
   warehouse           Warehouse           @relation(fields: [warehouseId], references: [id], onDelete: Restrict)
@@ -4138,4 +4139,26 @@ model MaterialUomOperation {
   @@unique([companyId, actorUserId, requestKey])
   @@index([companyId, materialId, createdAt])
   @@map("material_uom_operations")
+}
+
+// DEC-050 B: immutable entered-versus-stock effect provenance. This does not
+// activate mixed-UOM inventory until all canonical source owners are ready.
+model MaterialUomEffectPin {
+  stockTransactionId String @id @map("stock_transaction_id") @db.Uuid
+  companyId String @map("company_id") @db.Uuid
+  materialId String @map("material_id") @db.Uuid
+  sourceUomId String @map("source_uom_id") @db.Uuid
+  sourceQuantity Decimal @map("source_quantity") @db.Decimal(18, 4)
+  stockUomId String @map("stock_uom_id") @db.Uuid
+  stockQuantity Decimal @map("stock_quantity") @db.Decimal(18, 4)
+  businessDate DateTime @map("business_date") @db.Date
+  basisVersion Int @map("basis_version")
+  revisionId String? @map("revision_id") @db.Uuid
+  numerator String @db.VarChar(38)
+  denominator String @db.VarChar(38)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  stockTransaction StockTransaction @relation(fields: [stockTransactionId], references: [id], onDelete: Restrict)
+  @@index([companyId, materialId, businessDate])
+  @@map("material_uom_effect_pins")
 }
