@@ -13,6 +13,7 @@ import { AuthenticatedUserContext } from '../auth/auth.types';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProjectAccessService } from '../projects/project-access.service';
 import { ReceivingService } from './receiving.service';
+import { freezeSubmittedReceiptSources, assertReceiptSourcePostingReady } from './material-uom-receipt-source';
 import {
   InventoryQuantityService,
   StockDimension,
@@ -253,7 +254,7 @@ export class GoodsReceiptService {
     });
   }
 
-  async submit(context: AuditContext, id: string, workflowCode: string) {
+  async submit(context: AuditContext, id: string, workflowCode: string, conversionBusinessDate?: string) {
     return this.prisma.$transaction(async (tx) => {
       const receipt = await this.get(context.auth, id, tx);
       if (receipt.submittedAt || receipt.postedAt || receipt.reversedAt || !receipt.items.length) {
@@ -269,6 +270,8 @@ export class GoodsReceiptService {
         where: { id },
         data: { approvalInstanceId: approval.id, submittedByUserId: context.auth.userId, submittedAt: new Date() },
       });
+      // Internal draft integration only; no HTTP caller enables this path until all owners are ready.
+      if (conversionBusinessDate !== undefined) await freezeSubmittedReceiptSources(tx, context.auth, receipt, conversionBusinessDate);
       await this.audit.record({ ...context, entityType: 'GOODS_RECEIPT', entityId: id, action: 'SUBMIT', newValues: { approvalInstanceId: approval.id } }, tx);
       return updated;
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
@@ -289,6 +292,7 @@ export class GoodsReceiptService {
         const current = await this.get(context.auth, id, tx);
         await this.receiving?.receiptReady(context.auth,current,tx);
         if (current.postedAt || current.reversedAt) throw new ConflictException({ code: 'RECEIPT_ALREADY_POSTED' });
+        await assertReceiptSourcePostingReady(tx, current.companyId, current.id);
         const sourceOrder = await tx.purchaseOrder.findFirst({
           where: { id: current.purchaseOrderId, companyId: current.companyId },
           select: { poNumber: true },

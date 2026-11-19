@@ -36,7 +36,7 @@ test('B history extension requires only the exact empty effect-pin table; no leg
  const empty={count:'0',digest:createHash('sha256').update('').digest('hex')};
  const before={customer_boq_versions:empty,stock_transactions:{count:'2',digest:'old'},role_permissions:{count:'1',digest:'grants'}};
  const verify=after=>assertHistoricalTables(before,after,false,false,false,false,false,false,false,false,false,false,false,true);
- const candidate={...before,material_uom_effect_pins:empty};
+ const candidate={...before,material_uom_effect_pins:empty,material_uom_receipt_source_pins:empty};
  verify(candidate);
  assert.throws(()=>verify(before));
  assert.throws(()=>verify({...candidate,stock_transactions:{count:'2',digest:'changed'}}));
@@ -57,4 +57,15 @@ test('B reversal inherits the original immutable pin; fresh pins cannot annotate
  assert.match(sql,/basis\.version<>NEW\.basis_version/);
  assert.match(sql,/AFTER INSERT ON stock_transactions\s+FOR EACH ROW WHEN \(NEW\.reversal_of_id IS NOT NULL\)/);
  assert.match(sql,/p\.stock_quantity,-p\.effect_sign,p\.business_date,p\.basis_version/);
+});
+
+test('receipt source freeze is immutable and cannot activate stock posting',()=>{
+ const sql=readFileSync(new URL('../../apps/api/prisma/migrations/'+materialUomEffectMigration+'/migration.sql',import.meta.url),'utf8');
+ assert.match(sql,/CREATE TABLE material_uom_receipt_source_pins/);
+ assert.match(sql,/MATERIAL_UOM_RECEIPT_SUBMISSION_REQUIRED/);
+ assert.match(sql,/item\.quantity IS DISTINCT FROM NEW\.source_quantity/);
+ assert.match(sql,/MATERIAL_UOM_RECEIPT_SOURCE_IMMUTABLE/);
+ assert.match(sql,/MATERIAL_UOM_CANONICAL_POSTING_NOT_READY/);
+ assert.throws(()=>classifySchema(previous,candidate.replace('materialUomReceiptSourcePin MaterialUomReceiptSourcePin?','')));
+ assert.throws(()=>classifySchema(previous,candidate.replace('model MaterialUomReceiptSourcePin {','model UnreviewedReceiptPin {')));
 });

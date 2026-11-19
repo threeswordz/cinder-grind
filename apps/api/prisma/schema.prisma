@@ -1755,6 +1755,7 @@ model GoodsReceiptItem {
   uom                UnitOfMeasure      @relation(fields: [uomId], references: [id], onDelete: Restrict)
   stockTransactions  StockTransaction[]
   supplierInvoiceItems SupplierInvoiceItem[]
+  materialUomReceiptSourcePin MaterialUomReceiptSourcePin?
 
   @@unique([goodsReceiptId, lineNo])
   @@unique([goodsReceiptId, purchaseOrderLineId])
@@ -4162,4 +4163,26 @@ model MaterialUomEffectPin {
   stockTransaction StockTransaction @relation(fields: [stockTransactionId], references: [id], onDelete: Restrict)
   @@index([companyId, materialId, businessDate])
   @@map("material_uom_effect_pins")
+}
+
+model MaterialUomReceiptSourcePin {
+  receiptItemId String @id @map("receipt_item_id") @db.Uuid
+  companyId String @map("company_id") @db.Uuid
+  projectId String @map("project_id") @db.Uuid
+  receiptId String @map("receipt_id") @db.Uuid
+  materialId String @map("material_id") @db.Uuid
+  sourceUomId String @map("source_uom_id") @db.Uuid
+  sourceQuantity Decimal @map("source_quantity") @db.Decimal(18, 4)
+  stockUomId String @map("stock_uom_id") @db.Uuid
+  stockQuantity Decimal @map("stock_quantity") @db.Decimal(18, 4)
+  businessDate DateTime @map("business_date") @db.Date
+  basisVersion Int @map("basis_version")
+  revisionId String? @map("revision_id") @db.Uuid
+  numerator String @db.VarChar(38)
+  denominator String @db.VarChar(38)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  receiptItem GoodsReceiptItem @relation(fields: [receiptItemId], references: [id], onDelete: Restrict)
+  @@index([receiptId])
+  @@map("material_uom_receipt_source_pins")
 }

@@ -1,0 +1,51 @@
+import 'reflect-metadata';
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import { randomUUID } from 'node:crypto';
+import { Prisma } from '@prisma/client';
+import { NestFactory } from '@nestjs/core';
+import { AppModule } from '../app.module';
+import { PrismaService } from '../prisma/prisma.service';
+import { MaterialUomService } from '../master-data/material-uom.service';
+import { GoodsReceiptService } from './goods-receipt.service';
+import { receivingFixture } from './receiving-test-fixture';
+
+test('DEC-050 B actual PostgreSQL receipt freeze: approved commercial source, exact dated conversion, no partial activation', async () => {
+  const url = new URL(process.env.DATABASE_URL ?? '');
+  assert.ok(['localhost','127.0.0.1'].includes(url.hostname));
+  assert.ok(/^\/(?:erp_validation|construction_erp|construction_erp_v10e_(?:upgrade|hrrestore)_[a-f0-9]{12})$/.test(url.pathname));
+  const db=new PrismaService();await db.$connect();
+  const app=await NestFactory.create(AppModule,{logger:false});await app.init();
+  try{
+    const f=await receivingFixture(db), receipts=app.get(GoodsReceiptService);
+    const definitions=app.get(MaterialUomService);
+    const permissions=await db.permission.findMany({where:{permissionCode:{in:['master.material.view','master.material.manage','master.material.conversion.manage']}}});
+    assert.equal(permissions.length,3);
+    await db.rolePermission.createMany({data:permissions.map(p=>({roleId:f.config.role.id,permissionId:p.id}))});
+    const auth=await f.sessions.resolve(f.config.session.sessionToken);
+    assert.ok(auth);
+    const each=await db.unitOfMeasure.create({data:{companyId:f.company.id,uomCode:'STOCK-EA',uomName:'Synthetic stock piece',decimalPlaces:0}});
+    await definitions.prepare({auth},f.material.id,{requestKey:randomUUID(),stockUomId:each.id,reason:'Synthetic receipt pin proof'});
+    await definitions.revise({auth},f.material.id,{requestKey:randomUUID(),expectedVersion:1,sourceUomId:f.uom.id,effectiveFrom:'2026-01-01',numerator:'20',denominator:'1',reason:'Synthetic original pack'});
+    const receipt=await receipts.create({auth:f.store.auth},{projectId:f.project.id,purchaseOrderId:f.po.id,warehouseId:f.warehouse.id,lines:[{purchaseOrderLineId:f.po.lines[0]!.id,quantity:new Prisma.Decimal(2)}]});
+    await receipts.submit({auth:f.store.auth},receipt.id,f.receiptWorkflow.workflowCode,'2026-11-19');
+    const pin=await db.materialUomReceiptSourcePin.findFirstOrThrow({where:{receiptId:receipt.id}});
+    const item=await db.goodsReceiptItem.findUniqueOrThrow({where:{id:pin.receiptItemId}});
+    assert.equal(item.quantity.toString(),'2');
+    assert.equal(item.uomId,f.uom.id);
+    assert.equal(pin.sourceQuantity.toString(),'2');
+    assert.equal(pin.stockQuantity.toString(),'40');
+    assert.equal(pin.stockUomId,each.id);
+    assert.equal(pin.businessDate.toISOString(),'2026-11-19T00:00:00.000Z');
+    await definitions.revise({auth},f.material.id,{requestKey:randomUUID(),expectedVersion:2,sourceUomId:f.uom.id,effectiveFrom:'2026-01-01',numerator:'24',denominator:'1',reason:'Synthetic later correction'});
+    const unchanged=await db.materialUomReceiptSourcePin.findUniqueOrThrow({where:{receiptItemId:pin.receiptItemId}});
+    assert.equal(unchanged.revisionId,pin.revisionId);assert.equal(unchanged.stockQuantity.toString(),'40');
+    await assert.rejects(db.materialUomReceiptSourcePin.update({where:{receiptItemId:pin.receiptItemId},data:{numerator:'999'}}),/MATERIAL_UOM_RECEIPT_SOURCE_IMMUTABLE/);
+    await assert.rejects(db.materialUomReceiptSourcePin.delete({where:{receiptItemId:pin.receiptItemId}}),/MATERIAL_UOM_RECEIPT_SOURCE_IMMUTABLE/);
+    await assert.rejects(receipts.approve({auth:f.pm.auth},receipt.id,randomUUID()),error=>(error as {getResponse:()=>{code:string}}).getResponse().code==='MATERIAL_UOM_CANONICAL_POSTING_NOT_READY');
+    const after=await db.goodsReceipt.findUniqueOrThrow({where:{id:receipt.id}});
+    assert.equal(after.postedAt,null);assert.equal(await db.stockTransaction.count({where:{goodsReceiptId:receipt.id}}),0);
+    const approval=await db.approvalInstance.findUniqueOrThrow({where:{id:after.approvalInstanceId!}});
+    assert.notEqual(approval.approvalState,'APPROVED');
+  }finally{await app.close();await db.$disconnect();}
+});
