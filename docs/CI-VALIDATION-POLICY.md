@@ -1,4 +1,4 @@
-# CI validation policy — DEC-051
+# CI validation policy — DEC-051 / DEC-052
 
 **Owner-approved direction, 19 November 2026 SGT; prospective activation only after #373's full transition gates.** [Change Control #373](https://github.com/threeswordz/cinder-grind/issues/373) records conversation approval. Stage A #372 has completed the previous gates: main `e71a350e134d98b7a0ef8abe57bdce4ab986b820`, reviewed tree `eb4097b5a276d5b5936487b0da25a8a5e5c57452`, [exact-main44336708390](https://github.com/threeswordz/cinder-grind/actions/runs/44336708390) SUCCESS48/48. No retrospective reclassification.
 
@@ -14,6 +14,26 @@
 Full job name and workflow filename remain stable; no path ignores, risk labels or job-level skips on full PR/main. Focused has a distinct check identity and does not substitute for a full gate. Missing, cancelled, skipped, partial or stale runs are not passes. Branches outside registered push patterns supply no implied evidence. Check current base ancestry, guarded expected-head merge and exact integrated Git tree equality with the tested/reviewed candidate. Require full exact-main before any dependent stage/handoff. On changes, repeat applicable checks. Existing launch/release/freeze evidence consumers remain intact.
 
 Prospectively including DEC-050 B/C, after activation ordinary separate full push is no longer mandatory if focused branch evidence and full exact-head PR SUCCESS exist. Any distinct required full-push proof uses the explicit full lane. Preserve older evidence, and on uncertain or unavailable focused evidence fall back to the previous full pattern or explicit full lane. No change to protection/rulesets or removal/replacement of a required check.
+
+## Second increment: explicit stable draft candidate — DEC-052
+
+**Owner approved under [#378](https://github.com/threeswordz/cinder-grind/issues/378); activation pending its own complete rollout gates.** This section supersedes the first increment's automatic full execution on every ordinary draft update, prospectively after activation. It does not replace the full PR merge gate or any full main validation.
+
+| Event / action | Result |
+|---|---|
+| Same-repository ordinary `v*` draft PR opened/updated/reopened, attempt 1 | `validate` deliberately fails admission with `DRAFT_FOCUSED_ONLY`. No install/browser/upgrade/recovery execution. Separate focused branch feedback remains required. A red full check while developing is expected; it blocks merge. |
+| Builder freezes the draft head and selects **Re-run failed jobs** on its PR run | Attempt 2+ executes the entire existing full job at the original exact head. Live open PR head/base and current base ancestry must match before and after execution. Stale reruns fail. |
+| Fully validated unchanged draft is marked ready | No new validation event; the actual full PR SUCCESS is retained. Observe the single automatic independent Codex review. Ready status is not a substitute for that full pass. |
+| Ready PR opened/updated/reopened | Full job automatically, including a changed head; old-head proof cannot certify it. Return to draft for another development cycle if needed. |
+| Main or `vfull-*` push; `vfull-*` draft PR; fork/unregistered branch PR | Full job. Missing/malformed/ambiguous identity blocks; it never becomes focused success. |
+
+The Builder owns the full-run request; no Mac command or Owner click is required. Request it only when the candidate is coherent and affected local checks pass. Check the run's event, exact source SHA, base SHA, attempt, complete steps and full-success summary before ready/merge. An intentional attempt-1 failure, focused success, cancelled run or missing final identity check is not a pass. A rerun is PR-bound and keeps GitHub's original event SHA/ref; no dispatch-only check or copied artifact substitutes for execution.
+
+The required `Validate Construction ERP / validate` identity, default PR opened/synchronize/reopened events and all existing full test commands remain. Do not add `ready_for_review` (duplicate suite/early review), job-level skip-success, path ignores, labels, write-token status synthesis or protection changes. Admission uses read-only GitHub API identity checks and fixed, validated identifiers. Final admission is the last step after consolidated evidence. Current base must remain an ancestor of the tested source; if it moves, reconcile the candidate and validate it again.
+
+**Rollout acceptance:** full exact-head vfull push plus full PR rerun; focused ordinary push; observed attempt-1 draft block before install; unchanged ready causes no extra validate run; negative tests for changed head/base, closed PR, absent identity/API errors and unknown lane fallback; independent DEC-022; guarded merge and tested/reviewed tree equality; full exact-main. Record live receipts in #378 before claiming activation. The rollout uses an ordinary source branch plus a vfull alias at the same SHA, preserving its own full-push obligation. Existing branches must forward-reconcile the new workflow before relying on it; changing main alone does not rewrite their workflow source. Roll back by restoring the prior full route through normal forward commits if routing proof is uncertain.
+
+Ten draft updates plus one merge previously start eleven full suites; one stable candidate plus main would start two if both pass first time (82% fewer full starts in that example). This is not an elapsed-time or billing guarantee. The measured reference main run was 25m08s, including 17m58s of eight historical upgrade rehearsals. All eight remain. Caching, parallel rehearsal isolation and strict editorial-main reuse remain unimplemented follow-ups.
 
 ## Activation, risk and review
 
