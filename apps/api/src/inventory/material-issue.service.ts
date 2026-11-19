@@ -7,6 +7,7 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import {resolveStockEffectPin} from '../master-data/material-uom-effect-pin';
 
 import { NumberSequenceService } from '../administration/number-sequence.service';
 import { APPROVAL_STATE, ApprovalService } from '../approval/approval.service';
@@ -294,7 +295,7 @@ export class MaterialIssueService {
     });
   }
 
-  async submit(context: AuditContext, id: string, workflowCode: string) {
+  async submit(context: AuditContext, id: string, workflowCode: string, freezeUnreserved=false) {
     return this.prisma.$transaction(async (tx) => {
       const issue = await this.get(context.auth, id, tx);
       await this.requireLegacyPath(id,tx);
@@ -310,7 +311,7 @@ export class MaterialIssueService {
         await this.validateLine(context.auth, issue, line, tx);
       }
       const reservedPins=await this.reservationPostingPins(tx,issue);
-      if(reservedPins.size)await this.assertCurrentIssueAuthority(context.auth,tx,'inventory.issue.submit');
+      if(reservedPins.size||freezeUnreserved)await this.assertCurrentIssueAuthority(context.auth,tx,'inventory.issue.submit');
       const approval = await this.approvals.start({
         companyId: context.auth.companyId,
         workflowCode,
@@ -325,6 +326,17 @@ export class MaterialIssueService {
           submittedAt: new Date(),
         },
       });
+      if(freezeUnreserved){
+        for(const item of [...issue.items].sort((a,b)=>a.materialId.localeCompare(b.materialId)||a.id.localeCompare(b.id))){
+          if(item.reservationId){
+            if(!reservedPins.has(item.id))throw new ConflictException({code:'MATERIAL_UOM_ISSUE_RESERVATION_SOURCE_MISMATCH'});
+            continue;
+          }
+          const {effectSign:_sign,...pin}=await resolveStockEffectPin(tx,{companyId:issue.companyId,materialId:item.materialId,
+            sourceUomId:item.uomId,quantity:item.quantity,businessDate:issue.issueDate.toISOString().slice(0,10),effectSign:-1});
+          await tx.materialUomIssueSourcePin.create({data:{...pin,issueId:id,issueItemId:item.id,projectId:issue.projectId,warehouseId:issue.warehouseId}});
+        }
+      }
       await this.audit.record({
         ...context,
         entityType: 'MATERIAL_ISSUE',
@@ -346,7 +358,7 @@ export class MaterialIssueService {
     await this.requireLegacyPath(id,this.prisma);
     if (issue.postedAt && issue.postKey === postKey) {
       await this.prisma.$transaction(async tx=>{
-        if((await this.reservationPostingPins(tx,issue)).size)await this.assertCurrentIssueAuthority(context.auth,tx,'inventory.issue.approve');
+        if((await this.reservationPostingPins(tx,issue)).size || await tx.materialUomIssueSourcePin.count({where:{issueId:id}}))await this.assertCurrentIssueAuthority(context.auth,tx,'inventory.issue.approve');
       });
       return issue;
     }
@@ -410,14 +422,31 @@ export class MaterialIssueService {
     }
 
     const reservationPins=await this.reservationPostingPins(tx,current);
-    if(reservationPins.size){
+    const postingPins=new Map<string,{stockUomId:string;stockQuantity:Prisma.Decimal}>(reservationPins);
+    const sourcePins=await tx.materialUomIssueSourcePin.findMany({where:{companyId:current.companyId,issueId:id}});
+    if(sourcePins.length){
+      const byItem=new Map(sourcePins.map(p=>[p.issueItemId,p]));
+      for(const item of [...current.items].sort((a,b)=>a.materialId.localeCompare(b.materialId)||a.id.localeCompare(b.id))){
+        if(item.reservationId){if(!reservationPins.has(item.id))throw new ConflictException({code:'MATERIAL_UOM_ISSUE_SOURCE_INCOMPLETE'});continue;}
+        const p=byItem.get(item.id);
+        if(!p||p.projectId!==current.projectId||p.warehouseId!==current.warehouseId||p.materialId!==item.materialId||
+          p.sourceUomId!==item.uomId||!p.sourceQuantity.eq(item.quantity)||p.businessDate.toISOString()!==current.issueDate.toISOString())
+          throw new ConflictException({code:'MATERIAL_UOM_ISSUE_SOURCE_MISMATCH'});
+        const def=await resolveStockEffectPin(tx,{companyId:current.companyId,materialId:item.materialId,sourceUomId:item.uomId,
+         quantity:item.quantity,businessDate:p.businessDate.toISOString().slice(0,10),effectSign:-1});
+        if(def.revisionId!==p.revisionId||def.stockUomId!==p.stockUomId||!def.stockQuantity.eq(p.stockQuantity)||def.numerator!==p.numerator||def.denominator!==p.denominator)
+          throw new ConflictException({code:'MATERIAL_UOM_ISSUE_DEFINITION_CHANGED'});
+        postingPins.set(item.id,p);
+      }
+    }
+    if(postingPins.size){
       // Plan-bound quantities remain unavailable for converted issue posting until Stage C.
       await this.requireLegacyPath(id,tx);
       await this.assertCurrentIssueAuthority(context.auth,tx,'inventory.issue.approve');
     }
     const dimensions = new Map<string, StockDimension>();
     for (const item of current.items) {
-      const pin=reservationPins.get(item.id);
+      const pin=postingPins.get(item.id);
       const dimension = this.dimension(current, {...item,uomId:pin?.stockUomId??item.uomId});
       dimensions.set(this.quantities.key(dimension), dimension);
     }
@@ -467,7 +496,7 @@ export class MaterialIssueService {
         }
       }
 
-      const pin=reservationPins.get(item.id);
+      const pin=postingPins.get(item.id);
       const dimension = this.dimension(current, {...item,uomId:pin?.stockUomId??item.uomId});
       const stockQuantity=pin?.stockQuantity??item.quantity;
       const available = await this.quantities.available(

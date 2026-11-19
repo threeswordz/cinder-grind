@@ -36,7 +36,7 @@ test('B history extension requires only the exact empty effect-pin table; no leg
  const empty={count:'0',digest:createHash('sha256').update('').digest('hex')};
  const before={customer_boq_versions:empty,stock_transactions:{count:'2',digest:'old'},role_permissions:{count:'1',digest:'grants'}};
  const verify=after=>assertHistoricalTables(before,after,false,false,false,false,false,false,false,false,false,false,false,true);
- const candidate={...before,material_uom_effect_pins:empty,material_uom_receipt_source_pins:empty,material_uom_reservation_pins:empty};
+ const candidate={...before,material_uom_effect_pins:empty,material_uom_receipt_source_pins:empty,material_uom_reservation_pins:empty,material_uom_issue_source_pins:empty};
  verify(candidate);
  assert.throws(()=>verify(before));
  assert.throws(()=>verify({...candidate,stock_transactions:{count:'2',digest:'changed'}}));
@@ -87,4 +87,13 @@ test('reservation provenance is exact, immutable, canonical and legacy fulfillme
  assert.match(sql,/MATERIAL_UOM_RETURN_ORIGINAL_PRECISION_OR_QUANTITY/);
  assert.match(sql,/material_uom_copy_return_pin AFTER INSERT ON stock_transactions/);
  assert.throws(()=>classifySchema(previous,candidate.replace('materialUomReservationPin MaterialUomReservationPin?','')));
+});
+
+test('unreserved issue source uses exact explicit date, immutable source and approval proof',()=>{
+ const sql=readFileSync(new URL('../../apps/api/prisma/migrations/'+materialUomEffectMigration+'/migration.sql',import.meta.url),'utf8');
+ assert.match(sql,/CREATE TABLE material_uom_issue_source_pins/);
+ assert.match(sql,/header\.issue_date IS DISTINCT FROM NEW\.business_date/);
+ assert.match(sql,/MATERIAL_UOM_ISSUE_SOURCE_IMMUTABLE/);
+ assert.match(sql,/MATERIAL_UOM_ISSUE_DEFINITION_CHANGED/);
+ assert.throws(()=>classifySchema(previous,candidate.replace('materialUomIssueSourcePin MaterialUomIssueSourcePin?','')));
 });

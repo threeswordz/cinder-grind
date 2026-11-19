@@ -1855,6 +1855,7 @@ model MaterialIssue {
 }
 
 model MaterialIssueItem {
+  materialUomIssueSourcePin MaterialUomIssueSourcePin?
   materialPlanAllocations MaterialPlanIssueAllocation[]
   materialRequestLink MaterialRequestIssueLink?
   id              String   @id @default(uuid()) @db.Uuid
@@ -4208,4 +4209,27 @@ model MaterialUomReservationPin {
   reservation MaterialReservation @relation(fields: [reservationId], references: [id], onDelete: Restrict)
   @@index([companyId, projectId, warehouseId, materialId, stockUomId])
   @@map("material_uom_reservation_pins")
+}
+
+model MaterialUomIssueSourcePin {
+  issueItemId String @id @map("issue_item_id") @db.Uuid
+  companyId String @map("company_id") @db.Uuid
+  projectId String @map("project_id") @db.Uuid
+  warehouseId String @map("warehouse_id") @db.Uuid
+  issueId String @map("issue_id") @db.Uuid
+  materialId String @map("material_id") @db.Uuid
+  sourceUomId String @map("source_uom_id") @db.Uuid
+  sourceQuantity Decimal @map("source_quantity") @db.Decimal(18, 4)
+  stockUomId String @map("stock_uom_id") @db.Uuid
+  stockQuantity Decimal @map("stock_quantity") @db.Decimal(18, 4)
+  businessDate DateTime @map("business_date") @db.Date
+  basisVersion Int @map("basis_version")
+  revisionId String? @map("revision_id") @db.Uuid
+  numerator String @db.VarChar(38)
+  denominator String @db.VarChar(38)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  issueItem MaterialIssueItem @relation(fields: [issueItemId], references: [id], onDelete: Restrict)
+  @@index([issueId])
+  @@map("material_uom_issue_source_pins")
 }

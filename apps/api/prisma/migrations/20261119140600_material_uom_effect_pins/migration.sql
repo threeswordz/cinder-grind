@@ -69,8 +69,7 @@ BEGIN
    SELECT * INTO frozen FROM material_uom_receipt_source_pins WHERE receipt_item_id=ledger.goods_receipt_item_id;
    frozen_sign:=1;
  ELSIF ledger.movement_type='MATERIAL_ISSUE' THEN
-   SELECT p.* INTO frozen FROM material_uom_reservation_pins p
-   JOIN material_issue_items i ON i.reservation_id=p.reservation_id WHERE i.id=ledger.material_issue_item_id;
+   SELECT * INTO frozen FROM erp_material_uom_issue_effect(ledger.material_issue_item_id);
    frozen_sign:=-1;
  ELSIF ledger.movement_type='MATERIAL_RETURN' THEN
    SELECT * INTO frozen FROM erp_material_uom_return_effect(ledger.material_return_item_id);
@@ -276,8 +275,8 @@ BEGIN
       OR NEW.wbs_id IS DISTINCT FROM source.wbs_id OR NEW.cost_code_id IS DISTINCT FROM source.cost_code_id
       OR NEW.activity_id IS DISTINCT FROM source.activity_id
     THEN RAISE EXCEPTION 'Issue Stock movement source dimensions mismatch'; END IF;
-    SELECT p.* INTO reserved FROM material_uom_reservation_pins p WHERE p.reservation_id=source.reservation_id;
-    IF reserved.reservation_id IS NOT NULL THEN
+    SELECT * INTO reserved FROM erp_material_uom_issue_effect(NEW.material_issue_item_id);
+    IF reserved.issue_item_id IS NOT NULL THEN
       IF (reserved.company_id,reserved.project_id,reserved.warehouse_id,reserved.material_id,
           reserved.source_uom_id,reserved.source_quantity,reserved.stock_uom_id)
         IS DISTINCT FROM (NEW.company_id,NEW.project_id,NEW.warehouse_id,NEW.material_id,
@@ -289,12 +288,13 @@ BEGIN
     IF NEW.movement_type='MATERIAL_ISSUE' THEN
       IF source.reversed_at IS NOT NULL OR NEW.quantity<>-COALESCE(reserved.stock_quantity,source.item_quantity)
       THEN RAISE EXCEPTION 'Issue movement quantity/state mismatch'; END IF;
-      IF reserved.reservation_id IS NOT NULL THEN
+      IF reserved.issue_item_id IS NOT NULL THEN
+        IF reserved.reservation_id IS NULL THEN PERFORM erp_material_uom_assert_issue_pin_current(NEW.material_issue_item_id); END IF;
         IF EXISTS(SELECT 1 FROM material_plan_issue_bindings WHERE issue_id=NEW.material_issue_id)
         THEN RAISE EXCEPTION 'MATERIAL_UOM_PLAN_ISSUE_NOT_READY'; END IF;
         PERFORM pg_advisory_xact_lock(hashtext('inventory-stock:'||NEW.company_id::text||':'||NEW.warehouse_id::text||':'||NEW.material_id::text||':'||NEW.project_id::text||':'||NEW.uom_id::text));
-        PERFORM pg_advisory_xact_lock(hashtext('inventory-reservation:'||reserved.reservation_id::text));
-        IF NOT EXISTS(SELECT 1 FROM material_reservations WHERE id=reserved.reservation_id AND status='ACTIVE')
+        IF reserved.reservation_id IS NOT NULL THEN PERFORM pg_advisory_xact_lock(hashtext('inventory-reservation:'||reserved.reservation_id::text)); END IF;
+        IF (reserved.reservation_id IS NOT NULL AND NOT EXISTS(SELECT 1 FROM material_reservations WHERE id=reserved.reservation_id AND status='ACTIVE'))
         OR NOT EXISTS(SELECT 1 FROM material_issues h JOIN approval_instances a ON a.id=h.approval_instance_id
           WHERE h.id=NEW.material_issue_id AND a.approval_state='APPROVED' AND h.posted_by_user_id=NEW.posted_by_user_id
             AND NEW.effect_key='material-issue:'||NEW.material_issue_item_id::text AND h.xmin=pg_current_xact_id()::xid)
@@ -304,7 +304,7 @@ BEGIN
           -COALESCE((SELECT SUM(COALESCE(p.stock_quantity,a.quantity)) FROM material_reservations a
            LEFT JOIN material_uom_reservation_pins p ON p.reservation_id=a.id WHERE a.company_id=NEW.company_id
            AND a.project_id=NEW.project_id AND a.warehouse_id=NEW.warehouse_id AND a.material_id=NEW.material_id
-           AND COALESCE(p.stock_uom_id,a.uom_id)=NEW.uom_id AND a.status='ACTIVE' AND a.id<>reserved.reservation_id),0)
+           AND COALESCE(p.stock_uom_id,a.uom_id)=NEW.uom_id AND a.status='ACTIVE' AND (reserved.reservation_id IS NULL OR a.id<>reserved.reservation_id)),0)
           INTO free_quantity;
         IF reserved.stock_quantity>free_quantity THEN RAISE EXCEPTION 'MATERIAL_ISSUE_INSUFFICIENT_AVAILABLE'; END IF;
       END IF;
@@ -314,7 +314,7 @@ BEGIN
         OR original.material_issue_item_id<>NEW.material_issue_item_id OR original.quantity<>-NEW.quantity
         OR original.uom_id IS DISTINCT FROM NEW.uom_id
       THEN RAISE EXCEPTION 'Issue reversal must exactly negate source'; END IF;
-      IF reserved.reservation_id IS NOT NULL AND NOT EXISTS(SELECT 1 FROM material_uom_effect_pins WHERE stock_transaction_id=original.id)
+      IF reserved.issue_item_id IS NOT NULL AND NOT EXISTS(SELECT 1 FROM material_uom_effect_pins WHERE stock_transaction_id=original.id)
       THEN RAISE EXCEPTION 'MATERIAL_UOM_ORIGINAL_REVERSAL_PIN_REQUIRED'; END IF;
     ELSE RAISE EXCEPTION 'Issue source cannot use this movement type'; END IF;
   ELSIF NEW.material_return_item_id IS NOT NULL THEN
@@ -577,8 +577,7 @@ BEGIN
  revision_id,numerator,denominator)
  SELECT NEW.id,p.company_id,p.material_id,p.source_uom_id,p.source_quantity,p.stock_uom_id,
  p.stock_quantity,-1,p.business_date,p.basis_version,p.revision_id,p.numerator,p.denominator
- FROM material_issue_items i JOIN material_uom_reservation_pins p ON p.reservation_id=i.reservation_id
- WHERE i.id=NEW.material_issue_item_id;
+ FROM erp_material_uom_issue_effect(NEW.material_issue_item_id) p;
  RETURN NEW;
 END $$;
 CREATE TRIGGER material_uom_copy_issue_pin AFTER INSERT ON stock_transactions
@@ -588,12 +587,12 @@ CREATE TRIGGER material_uom_copy_issue_pin AFTER INSERT ON stock_transactions
 CREATE FUNCTION erp_material_uom_issue_post_proof() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
  IF EXISTS(SELECT 1 FROM material_issues h WHERE h.id=NEW.id AND h.posted_at IS NOT NULL)
- AND EXISTS(SELECT 1 FROM material_issue_items i JOIN material_uom_reservation_pins p ON p.reservation_id=i.reservation_id
+ AND EXISTS(SELECT 1 FROM material_issue_items i CROSS JOIN LATERAL erp_material_uom_issue_effect(i.id) p
    WHERE i.material_issue_id=NEW.id AND NOT EXISTS(
      SELECT 1 FROM stock_transactions st JOIN material_uom_effect_pins e ON e.stock_transaction_id=st.id
-       JOIN material_reservations r ON r.id=p.reservation_id
+       LEFT JOIN material_reservations r ON r.id=p.reservation_id
      WHERE st.material_issue_item_id=i.id AND st.movement_type='MATERIAL_ISSUE'
-       AND r.status='FULFILLED' AND st.quantity=-p.stock_quantity AND e.effect_sign=-1 AND e.revision_id IS NOT DISTINCT FROM p.revision_id))
+       AND (p.reservation_id IS NULL OR r.status='FULFILLED') AND st.quantity=-p.stock_quantity AND e.effect_sign=-1 AND e.revision_id IS NOT DISTINCT FROM p.revision_id))
  THEN RAISE EXCEPTION 'MATERIAL_UOM_ISSUE_POST_PROOF_REQUIRED'; END IF;
  RETURN NEW;
 END $$;
@@ -659,3 +658,130 @@ BEGIN
 END $$;
 CREATE CONSTRAINT TRIGGER material_uom_return_post_proof AFTER UPDATE ON material_returns
  DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION erp_material_uom_return_post_proof();
+
+-- Unreserved issue freezes use the explicitly submitted issue date.
+CREATE TABLE material_uom_issue_source_pins (
+  issue_item_id uuid PRIMARY KEY REFERENCES material_issue_items(id) ON DELETE RESTRICT,
+  company_id uuid NOT NULL,
+  project_id uuid NOT NULL,
+  warehouse_id uuid NOT NULL,
+  issue_id uuid NOT NULL REFERENCES material_issues(id) ON DELETE RESTRICT,
+  material_id uuid NOT NULL,
+  source_uom_id uuid NOT NULL REFERENCES units_of_measure(id) ON DELETE RESTRICT,
+  source_quantity numeric(18,4) NOT NULL,
+  stock_uom_id uuid NOT NULL REFERENCES units_of_measure(id) ON DELETE RESTRICT,
+  stock_quantity numeric(18,4) NOT NULL,
+  business_date date NOT NULL,
+  basis_version integer NOT NULL,
+  revision_id uuid REFERENCES material_uom_revisions(id) ON DELETE RESTRICT,
+  numerator varchar(38) NOT NULL,
+  denominator varchar(38) NOT NULL,
+  created_at timestamptz(6) NOT NULL DEFAULT transaction_timestamp(),
+  CONSTRAINT material_uom_issue_source_basis_fk FOREIGN KEY(company_id,material_id)
+    REFERENCES material_uom_bases(company_id,material_id) ON DELETE RESTRICT,
+  CONSTRAINT material_uom_issue_source_shape CHECK (
+    source_quantity>0 AND stock_quantity>0 AND basis_version>=1
+    AND business_date BETWEEN DATE '0001-01-01' AND DATE '9999-12-31'
+    AND numerator ~ '^[1-9][0-9]{0,37}$' AND denominator ~ '^[1-9][0-9]{0,37}$'
+  )
+);
+CREATE INDEX material_uom_issue_source_pins_issue_id_idx ON material_uom_issue_source_pins(issue_id);
+
+CREATE FUNCTION erp_material_uom_issue_source_guard() RETURNS trigger LANGUAGE plpgsql AS $$
+DECLARE header material_issues%ROWTYPE;
+        item material_issue_items%ROWTYPE;
+        basis material_uom_bases%ROWTYPE;
+        source_unit units_of_measure%ROWTYPE;
+        stock_unit units_of_measure%ROWTYPE;
+        selected_revision material_uom_revisions%ROWTYPE;
+BEGIN
+ IF TG_OP<>'INSERT' THEN RAISE EXCEPTION 'MATERIAL_UOM_ISSUE_SOURCE_IMMUTABLE'; END IF;
+ SELECT * INTO header FROM material_issues WHERE id=NEW.issue_id FOR UPDATE;
+ IF NOT FOUND OR header.company_id IS DISTINCT FROM NEW.company_id
+   OR header.project_id IS DISTINCT FROM NEW.project_id
+   OR header.warehouse_id IS DISTINCT FROM NEW.warehouse_id OR header.issue_date IS DISTINCT FROM NEW.business_date
+   OR EXISTS(SELECT 1 FROM material_plan_issue_bindings WHERE issue_id=NEW.issue_id)
+   OR header.submitted_at IS NULL OR header.approval_instance_id IS NULL
+   OR header.posted_at IS NOT NULL OR header.reversed_at IS NOT NULL
+   OR NOT EXISTS(SELECT 1 FROM material_issues WHERE id=NEW.issue_id AND xmin=pg_current_xact_id()::xid)
+ THEN RAISE EXCEPTION 'MATERIAL_UOM_ISSUE_SUBMISSION_REQUIRED'; END IF;
+ SELECT * INTO item FROM material_issue_items WHERE id=NEW.issue_item_id AND material_issue_id=NEW.issue_id FOR UPDATE;
+ IF NOT FOUND OR item.reservation_id IS NOT NULL OR item.material_id IS DISTINCT FROM NEW.material_id OR item.uom_id IS DISTINCT FROM NEW.source_uom_id
+   OR item.quantity IS DISTINCT FROM NEW.source_quantity
+ THEN RAISE EXCEPTION 'MATERIAL_UOM_ISSUE_SOURCE_MISMATCH'; END IF;
+ PERFORM pg_advisory_xact_lock(hashtextextended('material-uom:'||NEW.company_id::text||':'||NEW.material_id::text,0));
+ SELECT * INTO basis FROM material_uom_bases WHERE company_id=NEW.company_id AND material_id=NEW.material_id;
+ IF NOT FOUND OR basis.stock_uom_id<>NEW.stock_uom_id OR basis.version<>NEW.basis_version
+ THEN RAISE EXCEPTION 'MATERIAL_UOM_BASIS_MISMATCH'; END IF;
+ SELECT * INTO source_unit FROM units_of_measure WHERE id=NEW.source_uom_id AND company_id=NEW.company_id AND is_active;
+ SELECT * INTO stock_unit FROM units_of_measure WHERE id=NEW.stock_uom_id AND company_id=NEW.company_id AND is_active;
+ IF source_unit.id IS NULL OR stock_unit.id IS NULL OR stock_unit.decimal_places<>basis.stock_precision
+   OR NEW.source_quantity*NEW.numerator::numeric<>NEW.stock_quantity*NEW.denominator::numeric
+   OR mod(NEW.source_quantity*power(10::numeric,source_unit.decimal_places),1)<>0
+   OR mod(NEW.stock_quantity*power(10::numeric,basis.stock_precision),1)<>0
+ THEN RAISE EXCEPTION 'MATERIAL_UOM_ISSUE_SOURCE_INVALID'; END IF;
+ IF NEW.source_uom_id=NEW.stock_uom_id THEN
+   IF NEW.revision_id IS NOT NULL OR NEW.numerator<>'1' OR NEW.denominator<>'1'
+   THEN RAISE EXCEPTION 'MATERIAL_UOM_EFFECT_PIN_IDENTITY_REQUIRED'; END IF;
+ ELSE
+   SELECT * INTO selected_revision FROM material_uom_revisions WHERE company_id=NEW.company_id
+     AND material_id=NEW.material_id AND source_uom_id=NEW.source_uom_id AND effective_from<=NEW.business_date
+     ORDER BY effective_from DESC,revision_no DESC LIMIT 1;
+   IF selected_revision.id IS NULL OR selected_revision.id IS DISTINCT FROM NEW.revision_id
+     OR selected_revision.numerator<>NEW.numerator OR selected_revision.denominator<>NEW.denominator
+     OR selected_revision.revision_no>NEW.basis_version OR selected_revision.source_precision<>source_unit.decimal_places
+   THEN RAISE EXCEPTION 'MATERIAL_UOM_EFFECT_PIN_REVISION_MISMATCH'; END IF;
+ END IF;
+ RETURN NEW;
+END $$;
+CREATE TRIGGER material_uom_issue_source_guard
+ BEFORE INSERT OR UPDATE OR DELETE ON material_uom_issue_source_pins
+ FOR EACH ROW EXECUTE FUNCTION erp_material_uom_issue_source_guard();
+
+CREATE FUNCTION erp_material_uom_issue_source_drift_guard() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+ IF EXISTS(SELECT 1 FROM material_uom_issue_source_pins WHERE issue_item_id=OLD.id)
+ THEN RAISE EXCEPTION 'MATERIAL_UOM_ISSUE_SOURCE_IMMUTABLE'; END IF;
+ IF TG_OP='DELETE' THEN RETURN OLD; END IF;
+ RETURN NEW;
+END $$;
+CREATE TRIGGER material_uom_issue_source_drift_guard BEFORE UPDATE OR DELETE ON material_issue_items
+ FOR EACH ROW EXECUTE FUNCTION erp_material_uom_issue_source_drift_guard();
+
+-- Frozen issue source is authoritative; a superseded effective revision invalidates
+-- an unposted approval instead of changing its quantity. Future-only revisions
+-- cannot alter the selected effective revision.
+CREATE FUNCTION erp_material_uom_assert_issue_pin_current(item_id uuid) RETURNS void LANGUAGE plpgsql AS $$
+DECLARE p material_uom_issue_source_pins%ROWTYPE; current_revision uuid;
+BEGIN
+ SELECT * INTO STRICT p FROM material_uom_issue_source_pins WHERE issue_item_id=item_id;
+ PERFORM pg_advisory_xact_lock(hashtextextended('material-uom:'||p.company_id::text||':'||p.material_id::text,0));
+ IF NOT EXISTS(SELECT 1 FROM material_uom_bases b JOIN materials m ON m.id=b.material_id
+    JOIN units_of_measure su ON su.id=p.source_uom_id JOIN units_of_measure cu ON cu.id=p.stock_uom_id
+    WHERE b.company_id=p.company_id AND b.material_id=p.material_id AND b.stock_uom_id=p.stock_uom_id
+      AND m.company_id=p.company_id AND m.is_active AND su.company_id=p.company_id AND su.is_active
+      AND cu.company_id=p.company_id AND cu.is_active AND cu.decimal_places=b.stock_precision)
+ THEN RAISE EXCEPTION 'MATERIAL_UOM_ISSUE_DEFINITION_CHANGED'; END IF;
+ IF p.source_uom_id<>p.stock_uom_id THEN
+   SELECT id INTO current_revision FROM material_uom_revisions
+     WHERE company_id=p.company_id AND material_id=p.material_id AND source_uom_id=p.source_uom_id
+       AND effective_from<=p.business_date ORDER BY effective_from DESC,revision_no DESC LIMIT 1;
+   IF current_revision IS DISTINCT FROM p.revision_id
+   THEN RAISE EXCEPTION 'MATERIAL_UOM_ISSUE_DEFINITION_CHANGED'; END IF;
+ END IF;
+END $$;
+
+
+CREATE FUNCTION erp_material_uom_issue_effect(item_uuid uuid) RETURNS TABLE (
+ reservation_id uuid, issue_item_id uuid, company_id uuid, project_id uuid, warehouse_id uuid,
+ material_id uuid, source_uom_id uuid, source_quantity numeric, stock_uom_id uuid, stock_quantity numeric,
+ business_date date, basis_version integer, revision_id uuid, numerator varchar, denominator varchar
+) LANGUAGE sql STABLE AS $$
+ SELECT p.reservation_id,i.id,p.company_id,p.project_id,p.warehouse_id,p.material_id,p.source_uom_id,
+ p.source_quantity,p.stock_uom_id,p.stock_quantity,p.business_date,p.basis_version,p.revision_id,p.numerator,p.denominator
+ FROM material_issue_items i JOIN material_uom_reservation_pins p ON p.reservation_id=i.reservation_id WHERE i.id=item_uuid
+ UNION ALL
+ SELECT NULL::uuid,p.issue_item_id,p.company_id,p.project_id,p.warehouse_id,p.material_id,p.source_uom_id,
+ p.source_quantity,p.stock_uom_id,p.stock_quantity,p.business_date,p.basis_version,p.revision_id,p.numerator,p.denominator
+ FROM material_uom_issue_source_pins p WHERE p.issue_item_id=item_uuid
+$$;
