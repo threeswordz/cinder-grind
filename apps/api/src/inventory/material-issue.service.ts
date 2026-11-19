@@ -418,6 +418,10 @@ export class MaterialIssueService {
         'SELECT pg_advisory_xact_lock(hashtext($1))',
         'inventory-reservation:' + reservationId,
       );
+      // Both approval and scoped plan-policy posting use this shared owner.
+      // Do not let legacy posting consume a reservation frozen in stock units.
+      if(await tx.materialUomReservationPin.findUnique({where:{reservationId},select:{reservationId:true}}))
+        throw new ConflictException({code:'MATERIAL_UOM_ISSUE_POSTING_NOT_READY'});
     }
 
     const now = new Date();

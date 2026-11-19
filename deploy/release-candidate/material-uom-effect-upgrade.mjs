@@ -23,7 +23,7 @@ require('reflect-metadata');
 const {PrismaService}=require('./dist/prisma/prisma.service.js');
 const db=new PrismaService();
 const tables=['stock_transactions','material_reservations','goods_receipt_items','material_issue_items',
-  'material_uom_bases','material_uom_revisions','material_uom_effect_pins','material_uom_receipt_source_pins','role_permissions','user_roles'];
+  'material_uom_bases','material_uom_revisions','material_uom_effect_pins','material_uom_receipt_source_pins','material_uom_reservation_pins','role_permissions','user_roles'];
 async function rows() {
  const out={};
  for(const name of tables){
@@ -39,6 +39,8 @@ async function guards(){
  return db.$queryRawUnsafe(`SELECT tgname AS name FROM pg_trigger
    WHERE ((tgrelid='public.material_uom_effect_pins'::regclass)
     OR tgrelid='public.material_uom_receipt_source_pins'::regclass
+    OR tgrelid='public.material_uom_reservation_pins'::regclass
+    OR (tgrelid='public.material_reservations'::regclass AND tgname='material_uom_reservation_fulfillment_guard')
     OR (tgrelid='public.goods_receipt_items'::regclass AND tgname='material_uom_receipt_source_drift_guard')
     OR (tgrelid='public.goods_receipts'::regclass AND tgname='material_uom_receipt_post_proof')
     OR (tgrelid='public.stock_transactions'::regclass AND tgname IN ('material_uom_copy_reversal_pin','material_uom_copy_receipt_pin')))
@@ -49,7 +51,8 @@ try{
  const before=await rows();
  assert.equal(before.material_uom_effect_pins.count,'0','B migration must not normalize or backfill historical stock');
  assert.equal(before.material_uom_receipt_source_pins.count,'0','No retrospective source freezes');
- assert.deepEqual(await guards(),[{name:'material_uom_copy_receipt_pin'},{name:'material_uom_copy_reversal_pin'},{name:'material_uom_effect_pin_guard'},{name:'material_uom_receipt_post_proof'},{name:'material_uom_receipt_source_drift_guard'},{name:'material_uom_receipt_source_guard'}]);
+ assert.equal(before.material_uom_reservation_pins.count,'0','No retrospective reservations');
+ assert.deepEqual(await guards(),[{name:'material_uom_copy_receipt_pin'},{name:'material_uom_copy_reversal_pin'},{name:'material_uom_effect_pin_guard'},{name:'material_uom_receipt_post_proof'},{name:'material_uom_receipt_source_drift_guard'},{name:'material_uom_receipt_source_guard'},{name:'material_uom_reservation_fulfillment_guard'},{name:'material_uom_reservation_pin_guard'}]);
  if(mode==='protect'){
   const bogus=randomUUID();
   await assert.rejects(

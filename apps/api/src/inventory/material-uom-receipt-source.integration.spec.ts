@@ -8,6 +8,8 @@ import { AppModule } from '../app.module';
 import { PrismaService } from '../prisma/prisma.service';
 import { MaterialUomService } from '../master-data/material-uom.service';
 import { GoodsReceiptService } from './goods-receipt.service';
+import { MaterialReservationService } from './material-reservation.service';
+import { InventoryQuantityService } from './inventory-quantity.service';
 import { receivingFixture } from './receiving-test-fixture';
 
 test('DEC-050 B actual PostgreSQL receipt freeze: approved commercial source, exact dated stock posting and original reversal', async () => {
@@ -61,6 +63,29 @@ test('DEC-050 B actual PostgreSQL receipt freeze: approved commercial source, ex
     const pendingHeader=await db.goodsReceipt.findUniqueOrThrow({where:{id:pending.id}});
     assert.equal(pendingHeader.postedAt,null);
     assert.notEqual((await db.approvalInstance.findUniqueOrThrow({where:{id:pendingHeader.approvalInstanceId!}})).approvalState,'APPROVED');
+    // Synthetic capability grants are confined to this disposable fixture.
+    const rsPermissions=await db.permission.findMany({where:{permissionCode:{in:['inventory.reservation.create','inventory.reservation.activate','inventory.reservation.release','inventory.reservation.view']}}});
+    assert.equal(rsPermissions.length,4);
+    await db.rolePermission.createMany({data:rsPermissions.map(p=>({roleId:f.store.role.id,permissionId:p.id})),skipDuplicates:true});
+    await db.numberSequence.create({data:{companyId:f.company.id,entityType:'MATERIAL_RESERVATION',sequenceCode:'MATERIAL_RESERVATION',formatTemplate:'RSVYYMM-###',resetRule:'MONTHLY'}});
+    const store=await f.sessions.resolve(f.store.session.sessionToken);assert.ok(store);
+    const reservations=app.get(MaterialReservationService), quantities=app.get(InventoryQuantityService);
+    const rs=await reservations.create({auth:store},{projectId:f.project.id,warehouseId:f.warehouse.id,materialId:f.material.id,uomId:f.uom.id,quantity:new Prisma.Decimal(1)});
+    await reservations.activate({auth:store},rs.id,'2026-11-19');
+    const rsPin=await db.materialUomReservationPin.findUniqueOrThrow({where:{reservationId:rs.id}});
+    assert.equal(rsPin.sourceQuantity.toString(),'1');assert.equal(rsPin.stockQuantity.toString(),'22');
+    const dim={companyId:f.company.id,projectId:f.project.id,warehouseId:f.warehouse.id,materialId:f.material.id,uomId:each.id};
+    const available=await quantities.available(db,dim);
+    assert.equal(available.reserved.toString(),'22');assert.equal(available.available.toString(),'18');
+    assert.equal((await quantities.activeReserved(db,{...dim,uomId:f.uom.id})).toString(),'0');
+    await assert.rejects(db.materialUomReservationPin.update({where:{reservationId:rs.id},data:{stockQuantity:new Prisma.Decimal(1)}}),/MATERIAL_UOM_RESERVATION_PIN_IMMUTABLE/);
+    await assert.rejects(receipts.reverse({auth:f.store.auth},receipt.id,randomUUID(),'Protected stock reversal'),error=>(error as {getResponse:()=>{code:string}}).getResponse().code==='RECEIPT_REVERSAL_INSUFFICIENT_AVAILABLE');
+    const another=await reservations.create({auth:store},{projectId:f.project.id,warehouseId:f.warehouse.id,materialId:f.material.id,uomId:f.uom.id,quantity:new Prisma.Decimal(1)});
+    await assert.rejects(reservations.activate({auth:store},another.id,'2026-11-19'),error=>(error as {getResponse:()=>{code:string}}).getResponse().code==='RESERVATION_INSUFFICIENT_AVAILABLE');
+    assert.equal(await db.materialUomReservationPin.count({where:{reservationId:another.id}}),0);
+    await assert.rejects(db.materialReservation.update({where:{id:rs.id},data:{status:'FULFILLED',fulfilledAt:new Date(),fulfilledByUserId:store.userId}}),/MATERIAL_UOM_ISSUE_POSTING_NOT_READY/);
+    await reservations.release({auth:store},rs.id,'Synthetic release');
+    assert.equal((await quantities.available(db,dim)).available.toString(),'40');
     const reversalKey=randomUUID();
     await receipts.reverse({auth:f.store.auth},receipt.id,reversalKey,'Reverse synthetic pinned receipt');
     await receipts.reverse({auth:f.store.auth},receipt.id,reversalKey,'Reverse synthetic pinned receipt');

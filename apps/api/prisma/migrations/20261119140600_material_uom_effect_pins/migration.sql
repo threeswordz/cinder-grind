@@ -255,6 +255,10 @@ BEGIN
         THEN RAISE EXCEPTION 'MATERIAL_UOM_ORIGINAL_REVERSAL_PIN_REQUIRED'; END IF;
     ELSE RAISE EXCEPTION 'Receipt source cannot use this movement type'; END IF;
   ELSIF NEW.material_issue_item_id IS NOT NULL THEN
+    IF NEW.movement_type='MATERIAL_ISSUE' AND EXISTS (
+      SELECT 1 FROM material_issue_items i JOIN material_uom_reservation_pins p ON p.reservation_id=i.reservation_id
+      WHERE i.id=NEW.material_issue_item_id
+    ) THEN RAISE EXCEPTION 'MATERIAL_UOM_ISSUE_POSTING_NOT_READY'; END IF;
     SELECT h.company_id,h.warehouse_id,h.project_id,h.posted_at,h.reversed_at,
       i.material_id,i.uom_id,i.quantity AS item_quantity,i.wbs_id,i.cost_code_id,i.activity_id
     INTO source FROM material_issues h JOIN material_issue_items i ON i.material_issue_id=h.id
@@ -388,3 +392,85 @@ BEGIN
 END $$;
 CREATE CONSTRAINT TRIGGER material_uom_receipt_post_proof AFTER UPDATE ON goods_receipts
  DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION erp_material_uom_receipt_post_proof();
+
+-- Explicit dated reservation activation records the original demand and the
+-- locked quantity in the single stock basis, without changing legacy rows.
+CREATE TABLE material_uom_reservation_pins (
+ reservation_id uuid PRIMARY KEY REFERENCES material_reservations(id) ON DELETE RESTRICT,
+ company_id uuid NOT NULL, project_id uuid NOT NULL, warehouse_id uuid NOT NULL,
+ material_id uuid NOT NULL,
+ source_uom_id uuid NOT NULL REFERENCES units_of_measure(id) ON DELETE RESTRICT,
+ source_quantity numeric(18,4) NOT NULL,
+ stock_uom_id uuid NOT NULL REFERENCES units_of_measure(id) ON DELETE RESTRICT,
+ stock_quantity numeric(18,4) NOT NULL,
+ business_date date NOT NULL,
+ basis_version integer NOT NULL,
+ revision_id uuid REFERENCES material_uom_revisions(id) ON DELETE RESTRICT,
+ numerator varchar(38) NOT NULL, denominator varchar(38) NOT NULL,
+ created_at timestamptz(6) NOT NULL DEFAULT transaction_timestamp(),
+ FOREIGN KEY(company_id,material_id) REFERENCES material_uom_bases(company_id,material_id) ON DELETE RESTRICT,
+ CHECK(source_quantity>0 AND stock_quantity>0 AND basis_version>=1
+ AND business_date BETWEEN DATE '0001-01-01' AND DATE '9999-12-31'
+ AND numerator ~ '^[1-9][0-9]{0,37}$' AND denominator ~ '^[1-9][0-9]{0,37}$')
+);
+CREATE INDEX material_uom_reservation_pins_dimension_idx ON material_uom_reservation_pins(company_id,project_id,warehouse_id,material_id,stock_uom_id);
+
+CREATE FUNCTION erp_material_uom_reservation_pin_guard() RETURNS trigger LANGUAGE plpgsql AS $$
+DECLARE r material_reservations%ROWTYPE;
+ b material_uom_bases%ROWTYPE; su units_of_measure%ROWTYPE; cu units_of_measure%ROWTYPE;
+ rev material_uom_revisions%ROWTYPE; free_quantity numeric;
+BEGIN
+ IF TG_OP<>'INSERT' THEN RAISE EXCEPTION 'MATERIAL_UOM_RESERVATION_PIN_IMMUTABLE'; END IF;
+ SELECT * INTO r FROM material_reservations WHERE id=NEW.reservation_id FOR UPDATE;
+ IF NOT FOUND OR r.status<>'ACTIVE' OR r.activated_by_user_id IS NULL
+ OR (r.company_id,r.project_id,r.warehouse_id,r.material_id,r.uom_id,r.quantity)
+ IS DISTINCT FROM (NEW.company_id,NEW.project_id,NEW.warehouse_id,NEW.material_id,NEW.source_uom_id,NEW.source_quantity)
+ OR NOT EXISTS(SELECT 1 FROM material_reservations WHERE id=r.id AND xmin=pg_current_xact_id()::xid)
+ THEN RAISE EXCEPTION 'MATERIAL_UOM_RESERVATION_SOURCE_MISMATCH'; END IF;
+ PERFORM pg_advisory_xact_lock(hashtextextended('material-uom:'||NEW.company_id::text||':'||NEW.material_id::text,0));
+ SELECT * INTO b FROM material_uom_bases WHERE company_id=NEW.company_id AND material_id=NEW.material_id;
+ IF NOT FOUND OR b.stock_uom_id<>NEW.stock_uom_id OR b.version<>NEW.basis_version
+ THEN RAISE EXCEPTION 'MATERIAL_UOM_BASIS_MISMATCH'; END IF;
+ SELECT * INTO su FROM units_of_measure WHERE id=NEW.source_uom_id AND company_id=NEW.company_id AND is_active;
+ SELECT * INTO cu FROM units_of_measure WHERE id=NEW.stock_uom_id AND company_id=NEW.company_id AND is_active;
+ IF su.id IS NULL OR cu.id IS NULL OR cu.decimal_places<>b.stock_precision
+ OR NOT EXISTS(SELECT 1 FROM materials WHERE id=NEW.material_id AND company_id=NEW.company_id AND is_active)
+ OR NEW.source_quantity*NEW.numerator::numeric<>NEW.stock_quantity*NEW.denominator::numeric
+ OR mod(NEW.source_quantity*power(10::numeric,su.decimal_places),1)<>0
+ OR mod(NEW.stock_quantity*power(10::numeric,b.stock_precision),1)<>0
+ THEN RAISE EXCEPTION 'MATERIAL_UOM_RESERVATION_PIN_INVALID'; END IF;
+ IF NEW.source_uom_id=NEW.stock_uom_id THEN
+   IF NEW.revision_id IS NOT NULL OR NEW.numerator<>'1' OR NEW.denominator<>'1'
+   THEN RAISE EXCEPTION 'MATERIAL_UOM_EFFECT_PIN_IDENTITY_REQUIRED'; END IF;
+ ELSE
+   SELECT * INTO rev FROM material_uom_revisions WHERE company_id=NEW.company_id
+    AND material_id=NEW.material_id AND source_uom_id=NEW.source_uom_id AND effective_from<=NEW.business_date
+    ORDER BY effective_from DESC,revision_no DESC LIMIT 1;
+   IF rev.id IS NULL OR rev.id IS DISTINCT FROM NEW.revision_id OR rev.numerator<>NEW.numerator
+    OR rev.denominator<>NEW.denominator OR rev.source_precision<>su.decimal_places OR rev.revision_no>NEW.basis_version
+   THEN RAISE EXCEPTION 'MATERIAL_UOM_EFFECT_PIN_REVISION_MISMATCH'; END IF;
+ END IF;
+ PERFORM pg_advisory_xact_lock(hashtext('inventory-stock:'||NEW.company_id::text||':'||NEW.warehouse_id::text||':'||NEW.material_id::text||':'||NEW.project_id::text||':'||NEW.stock_uom_id::text));
+ SELECT COALESCE((SELECT SUM(t.quantity) FROM stock_transactions t WHERE t.company_id=NEW.company_id
+ AND t.project_id=NEW.project_id AND t.warehouse_id=NEW.warehouse_id AND t.material_id=NEW.material_id AND t.uom_id=NEW.stock_uom_id),0)
+ - COALESCE((SELECT SUM(COALESCE(p.stock_quantity,a.quantity)) FROM material_reservations a LEFT JOIN material_uom_reservation_pins p ON p.reservation_id=a.id
+ WHERE a.company_id=NEW.company_id AND a.project_id=NEW.project_id AND a.warehouse_id=NEW.warehouse_id
+ AND a.material_id=NEW.material_id AND COALESCE(p.stock_uom_id,a.uom_id)=NEW.stock_uom_id AND a.status='ACTIVE' AND a.id<>NEW.reservation_id),0)
+ INTO free_quantity;
+ IF NEW.stock_quantity>free_quantity THEN RAISE EXCEPTION 'RESERVATION_INSUFFICIENT_AVAILABLE'; END IF;
+ RETURN NEW;
+END $$;
+CREATE TRIGGER material_uom_reservation_pin_guard BEFORE INSERT OR UPDATE OR DELETE ON material_uom_reservation_pins
+ FOR EACH ROW EXECUTE FUNCTION erp_material_uom_reservation_pin_guard();
+
+-- Until issue integration is complete, no legacy issue may consume a pinned
+-- reservation, including a direct status write. Release/cancel are supported.
+CREATE FUNCTION erp_material_uom_reservation_fulfillment_guard() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+ IF NEW.status='FULFILLED' AND OLD.status IS DISTINCT FROM NEW.status
+ AND EXISTS(SELECT 1 FROM material_uom_reservation_pins WHERE reservation_id=OLD.id)
+ THEN RAISE EXCEPTION 'MATERIAL_UOM_ISSUE_POSTING_NOT_READY'; END IF;
+ RETURN NEW;
+END $$;
+CREATE TRIGGER material_uom_reservation_fulfillment_guard BEFORE UPDATE ON material_reservations
+ FOR EACH ROW EXECUTE FUNCTION erp_material_uom_reservation_fulfillment_guard();
