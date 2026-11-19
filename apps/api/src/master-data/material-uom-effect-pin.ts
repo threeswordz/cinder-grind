@@ -19,6 +19,51 @@ const conflict = (code: string): never => {
   throw new ConflictException({ code });
 };
 
+// Mandatory first half of a future explicit activation transaction. This
+// read-only check does NOT activate a material, grant rights, or authorize
+// operational posting. Source owners must also lock and reconcile outstanding
+// GR/issue/return/count/transfer documents before activation. No historical
+// ledger effect is rewritten or treated as a convertible balance.
+export async function assertCanonicalStockHistoryCompatible(
+  tx: Prisma.TransactionClient,
+  companyId: string,
+  materialId: string,
+) {
+  await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${[
+    'material-uom', companyId, materialId,
+  ].join(':')},0))`;
+  const [material, basis] = await Promise.all([
+    tx.material.findFirst({ where: { id: materialId, companyId, isActive: true }, select: { id: true } }),
+    tx.materialUomBasis.findUnique({ where: { materialId } }),
+  ]);
+  if (!material || !basis || basis.companyId !== companyId) {
+    return conflict('MATERIAL_UOM_SOURCE_INVALID');
+  }
+  const stockUnit = await tx.unitOfMeasure.findFirst({
+    where: { id: basis.stockUomId, companyId, isActive: true },
+    select: { decimalPlaces: true },
+  });
+  if (!stockUnit || stockUnit.decimalPlaces !== basis.stockPrecision) {
+    return conflict('MATERIAL_UOM_STOCK_BASIS_INVALID');
+  }
+  // Deliberately check historical EFFECTS, not net stock. A +N/-N pair in a
+  // different unit is still incompatible historical provenance. Never let a
+  // zero balance hide that history or silently convert it.
+  const [historicalForeignUnit, openReservation] = await Promise.all([
+    tx.stockTransaction.findFirst({
+      where: { companyId, materialId, uomId: { not: basis.stockUomId } },
+      select: { id: true },
+    }),
+    tx.materialReservation.findFirst({
+      where: { companyId, materialId, status: { in: ['DRAFT', 'ACTIVE'] } },
+      select: { id: true },
+    }),
+  ]);
+  if (historicalForeignUnit) return conflict('MATERIAL_UOM_HISTORICAL_UNIT_CONFLICT');
+  if (openReservation) return conflict('MATERIAL_UOM_OPEN_RESERVATION_CONFLICT');
+  return { companyId, materialId, stockUomId: basis.stockUomId, basisVersion: basis.version };
+}
+
 export async function resolveStockEffectPin(
   tx: Prisma.TransactionClient,
   input: StockEffectSource,

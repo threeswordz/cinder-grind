@@ -1,5 +1,6 @@
 import {materialUomCatalog,verifyMaterialUomCatalog} from './material-uom-catalog-contract.mjs';
 const materialUomApproved=process.env.MATERIAL_UOM_SCHEMA_UPGRADE==='YES';
+const materialUomEffectApproved=process.env.MATERIAL_UOM_EFFECT_SCHEMA_UPGRADE==='YES';
 import {physicalCatalog,verifyPhysicalCatalog} from './subcontract-physical-catalog-contract.mjs';
 const physicalApproved=process.env.SUBCONTRACT_PHYSICAL_SCHEMA_UPGRADE==='YES';
 import {transferCatalog,verifyTransferCatalog} from './transfer-catalog-contract.mjs';
@@ -122,7 +123,7 @@ try {
       after.tables,
       process.env.HR_SCHEMA_UPGRADE === 'YES',
       process.env.HR_DOCUMENT_SCHEMA_UPGRADE === 'YES',
-      stockCountApproved, materialRequestApproved,materialPlanApproved,planIssueApproved,siteIssueApproved,receivingApproved,transferApproved,physicalApproved,materialUomApproved,
+      stockCountApproved, materialRequestApproved,materialPlanApproved,planIssueApproved,siteIssueApproved,receivingApproved,transferApproved,physicalApproved,materialUomApproved,materialUomEffectApproved,
     );
     for(const migration of before.migrations)assert.deepEqual(after.migrations.find(m=>m.migration_name===migration.migration_name),migration);
     console.log(mode==='rollback'?'HR_EXACT_PREDECESSOR_ROLLBACK_ROWS_PRESERVED':'HR_PREDECESSOR_ROWS_AND_MIGRATIONS_PRESERVED');

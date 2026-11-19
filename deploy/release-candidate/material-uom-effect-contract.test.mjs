@@ -1,3 +1,5 @@
+import {assertHistoricalTables} from './historical-snapshot.mjs';
+import {createHash} from 'node:crypto';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync,readdirSync} from 'node:fs';
@@ -28,4 +30,17 @@ test('DEC-050 B records one exact forward-only migration and does not mutate his
  assert.match(sql,/BEFORE INSERT OR UPDATE OR DELETE ON material_uom_effect_pins/);
  assert.match(sql,/MATERIAL_UOM_EFFECT_PIN_IMMUTABLE/);
  assert.doesNotMatch(sql,/(?:INSERT\s+INTO|UPDATE|DELETE\s+FROM)\s+"?(?:stock_transactions|material_reservations|role_permissions|user_roles|payments)"?\b/i);
+});
+
+test('B history extension requires only the exact empty effect-pin table; no legacy-row or grant drift',()=>{
+ const empty={count:'0',digest:createHash('sha256').update('').digest('hex')};
+ const before={customer_boq_versions:empty,stock_transactions:{count:'2',digest:'old'},role_permissions:{count:'1',digest:'grants'}};
+ const verify=after=>assertHistoricalTables(before,after,false,false,false,false,false,false,false,false,false,false,false,true);
+ const candidate={...before,material_uom_effect_pins:empty};
+ verify(candidate);
+ assert.throws(()=>verify(before));
+ assert.throws(()=>verify({...candidate,stock_transactions:{count:'2',digest:'changed'}}));
+ assert.throws(()=>verify({...candidate,role_permissions:empty}));
+ assert.throws(()=>verify({...candidate,material_uom_effect_pins:{count:'1',digest:'fabricated'}}));
+ assert.throws(()=>verify({...candidate,unknown_table:empty}));
 });

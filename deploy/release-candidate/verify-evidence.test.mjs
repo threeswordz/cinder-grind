@@ -187,8 +187,10 @@ test('FM03 wrapper before historical predecessor checks remains mandatory in con
   const workflow = readFileSync(new URL('../../.github/workflows/validate.yml', import.meta.url), 'utf8');
   const evidenceStep = workflow.split('- name: Verify V1.0-E consolidated technical evidence')[1];
   assert.ok(evidenceStep, 'Consolidated evidence step must exist');
-  const uomPeeled = evidenceStep.replace(/\(await import\('\.\/deploy\/release-candidate\/material-uom-schema-contract\.mjs'\)\)\.materialUomMode\(data\.releaseMode\)\.prior/g, 'data.releaseMode');
-  assert.equal((evidenceStep.match(/materialUomMode\(data\.releaseMode\)\.prior/g)??[]).length,6);
+  const effectPeeled=evidenceStep.replace(/\(await import\('\.\/deploy\/release-candidate\/material-uom-effect-schema-contract\.mjs'\)\)\.materialUomEffectMode\(data\.releaseMode\)\.prior/g,'data.releaseMode');
+  assert.equal((evidenceStep.match(/materialUomEffectMode\(data\.releaseMode\)\.prior/g)??[]).length,6);
+  const uomPeeled = effectPeeled.replace(/\(await import\('\.\/deploy\/release-candidate\/material-uom-schema-contract\.mjs'\)\)\.materialUomMode\(data\.releaseMode\)\.prior/g, 'data.releaseMode');
+  assert.equal((effectPeeled.match(/materialUomMode\(data\.releaseMode\)\.prior/g)??[]).length,6);
   const physicalPeeled = uomPeeled.replace(/\(await import\('\.\/deploy\/release-candidate\/subcontract-physical-schema-contract\.mjs'\)\)\.physicalMode\(data\.releaseMode\)\.prior/g, 'data.releaseMode');
   assert.equal((uomPeeled.match(/physicalMode\(data\.releaseMode\)\.prior/g)??[]).length,6);
   const priorEvidenceStep = physicalPeeled.replace(/\(await import\('\.\/deploy\/release-candidate\/transfer-schema-contract\.mjs'\)\)\.transferMode\(data\.releaseMode\)\.prior/g, 'data.releaseMode');

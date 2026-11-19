@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { randomUUID } from 'node:crypto';
 import { Prisma } from '@prisma/client';
-import { resolveStockEffectPin, recordStockEffectPin } from './material-uom-effect-pin';
+import { assertCanonicalStockHistoryCompatible, resolveStockEffectPin, recordStockEffectPin } from './material-uom-effect-pin';
 
 const companyId = randomUUID();
 const materialId = randomUUID();
@@ -26,6 +26,20 @@ function context(overrides: Record<string, unknown> = {}) {
     unitOfMeasure: { findFirst: async ({ where }: { where: { id: string } }) =>
       overrides.inactiveUom === where.id ? null : units.find(u => u.id === where.id) ?? null },
     materialUomRevision: { findFirst: async () => overrides.revision === false ? null : { ...revision, ...(overrides.revision ?? {}) } },
+    stockTransaction: { findFirst: async ({ where }: { where: { companyId: string; materialId: string; uomId: { not: string } } }) => {
+      assert.equal(where.companyId, companyId);
+      assert.equal(where.materialId, materialId);
+      assert.equal(where.uomId.not, stockUomId);
+      calls.push('historical-effects');
+      return overrides.historicalForeignUnit ? { id: randomUUID() } : null;
+    } },
+    materialReservation: { findFirst: async ({ where }: { where: { companyId: string; materialId: string; status: { in: string[] } } }) => {
+      assert.equal(where.companyId, companyId);
+      assert.equal(where.materialId, materialId);
+      assert.deepEqual(where.status.in, ['DRAFT', 'ACTIVE']);
+      calls.push('open-reservations');
+      return overrides.openReservation ? { id: randomUUID() } : null;
+    } },
     materialUomEffectPin: { create: async ({ data }: { data: unknown }) => { calls.push('pin'); return data; } },
   };
   return { tx: tx as unknown as Prisma.TransactionClient, calls };
@@ -84,4 +98,25 @@ test('negative stock effects preserve positive entered magnitude and an explicit
   assert.equal(pin.stockQuantity.toString(), '40');
   await assert.rejects(() => resolveStockEffectPin(tx, { ...input(), effectSign: 0 as 1 }), error =>
     (error as {getResponse:()=>{code:string}}).getResponse().code === 'MATERIAL_UOM_EFFECT_SIGN_INVALID');
+});
+
+test('canonical stock history preflight is locked, company-scoped and read-only', async () => {
+  const { tx, calls } = context();
+  const result = await assertCanonicalStockHistoryCompatible(tx, companyId, materialId);
+  assert.deepEqual(result, { companyId, materialId, stockUomId, basisVersion: 3 });
+  assert.deepEqual(calls, ['lock', 'historical-effects', 'open-reservations']);
+});
+test('canonical stock history preflight denies legacy unit effects and unsettled reservations', async () => {
+  for (const [overrides, code] of [
+    [{ historicalForeignUnit: true }, 'MATERIAL_UOM_HISTORICAL_UNIT_CONFLICT'],
+    [{ openReservation: true }, 'MATERIAL_UOM_OPEN_RESERVATION_CONFLICT'],
+    [{ material: false }, 'MATERIAL_UOM_SOURCE_INVALID'],
+    [{ basis: { companyId: randomUUID() } }, 'MATERIAL_UOM_SOURCE_INVALID'],
+    [{ inactiveUom: stockUomId }, 'MATERIAL_UOM_STOCK_BASIS_INVALID'],
+  ] as const) {
+    const { tx, calls } = context(overrides);
+    await assert.rejects(() => assertCanonicalStockHistoryCompatible(tx, companyId, materialId),
+      error => (error as {getResponse:()=>{code:string}}).getResponse().code === code);
+    assert.ok(!calls.includes('pin'));
+  }
 });
