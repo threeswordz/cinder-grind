@@ -367,6 +367,10 @@ export class MaterialReturnService {
         }
         const linked=await tx.materialIssueItem.findMany({where:{id:{in:current.items.map(i=>i.materialIssueItemId)}},select:{materialIssueId:true}});
         await lockMaterialPlanLineages(tx,linked.map(i=>i.materialIssueId));
+        // Converted partial returns must use the source issue's immutable
+        // provenance, not the legacy entered-unit stock path.
+        if(await tx.stockTransaction.findFirst({where:{materialIssueItemId:{in:current.items.map(i=>i.materialIssueItemId)},movementType:'MATERIAL_ISSUE',materialUomEffectPin:{isNot:null}},select:{id:true}}))
+          throw new ConflictException({code:'MATERIAL_UOM_RETURN_POSTING_NOT_READY'});
         for (const sourceId of current.items
           .map((item) => item.materialIssueItemId)
           .sort()) {

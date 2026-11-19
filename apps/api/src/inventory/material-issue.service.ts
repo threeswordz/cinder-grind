@@ -1,6 +1,7 @@
 import {lockMaterialPlanLineages} from './material-plan-issue-locks';
 import {
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
   UnprocessableEntityException,
@@ -308,6 +309,8 @@ export class MaterialIssueService {
       for (const line of issue.items) {
         await this.validateLine(context.auth, issue, line, tx);
       }
+      const reservedPins=await this.reservationPostingPins(tx,issue);
+      if(reservedPins.size)await this.assertCurrentIssueAuthority(context.auth,tx,'inventory.issue.submit');
       const approval = await this.approvals.start({
         companyId: context.auth.companyId,
         workflowCode,
@@ -341,7 +344,12 @@ export class MaterialIssueService {
   ) {
     const issue = await this.get(context.auth, id);
     await this.requireLegacyPath(id,this.prisma);
-    if (issue.postedAt && issue.postKey === postKey) return issue;
+    if (issue.postedAt && issue.postKey === postKey) {
+      await this.prisma.$transaction(async tx=>{
+        if((await this.reservationPostingPins(tx,issue)).size)await this.assertCurrentIssueAuthority(context.auth,tx,'inventory.issue.approve');
+      });
+      return issue;
+    }
     if (
       !issue.approvalInstanceId ||
       !issue.submittedByUserId ||
@@ -401,9 +409,16 @@ export class MaterialIssueService {
       );
     }
 
+    const reservationPins=await this.reservationPostingPins(tx,current);
+    if(reservationPins.size){
+      // Plan-bound quantities remain unavailable for converted issue posting until Stage C.
+      await this.requireLegacyPath(id,tx);
+      await this.assertCurrentIssueAuthority(context.auth,tx,'inventory.issue.approve');
+    }
     const dimensions = new Map<string, StockDimension>();
     for (const item of current.items) {
-      const dimension = this.dimension(current, item);
+      const pin=reservationPins.get(item.id);
+      const dimension = this.dimension(current, {...item,uomId:pin?.stockUomId??item.uomId});
       dimensions.set(this.quantities.key(dimension), dimension);
     }
     for (const key of [...dimensions.keys()].sort()) {
@@ -418,10 +433,7 @@ export class MaterialIssueService {
         'SELECT pg_advisory_xact_lock(hashtext($1))',
         'inventory-reservation:' + reservationId,
       );
-      // Both approval and scoped plan-policy posting use this shared owner.
-      // Do not let legacy posting consume a reservation frozen in stock units.
-      if(await tx.materialUomReservationPin.findUnique({where:{reservationId},select:{reservationId:true}}))
-        throw new ConflictException({code:'MATERIAL_UOM_ISSUE_POSTING_NOT_READY'});
+      // A competing release or issue must serialize against this stock dimension and reservation.
     }
 
     const now = new Date();
@@ -455,13 +467,15 @@ export class MaterialIssueService {
         }
       }
 
-      const dimension = this.dimension(current, item);
+      const pin=reservationPins.get(item.id);
+      const dimension = this.dimension(current, {...item,uomId:pin?.stockUomId??item.uomId});
+      const stockQuantity=pin?.stockQuantity??item.quantity;
       const available = await this.quantities.available(
         tx,
         dimension,
         item.reservationId ?? undefined,
       );
-      if (item.quantity.greaterThan(available.available)) {
+      if (stockQuantity.greaterThan(available.available)) {
         throw new ConflictException({
           code: 'MATERIAL_ISSUE_INSUFFICIENT_AVAILABLE',
           detail: 'Issue would consume negative or stock reserved for another active Reservation.',
@@ -474,14 +488,14 @@ export class MaterialIssueService {
           warehouseId: current.warehouseId,
           materialId: item.materialId,
           projectId: current.projectId,
-          uomId: item.uomId,
+          uomId: pin?.stockUomId??item.uomId,
           materialIssueId: current.id,
           materialIssueItemId: item.id,
           wbsId: item.wbsId,
           costCodeId: item.costCodeId,
           activityId: item.activityId,
           movementType: 'MATERIAL_ISSUE',
-          quantity: item.quantity.negated(),
+          quantity: stockQuantity.negated(),
           effectKey: 'material-issue:' + item.id,
           postedByUserId: context.auth.userId,
         },
@@ -655,6 +669,37 @@ export class MaterialIssueService {
       }, tx);
       return this.get(context.auth, id, tx);
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+  }
+
+  private async reservationPostingPins(tx:Prisma.TransactionClient,issue:{companyId:string;projectId:string;warehouseId:string;items:{id:string;reservationId:string|null;materialId:string;uomId:string;quantity:Prisma.Decimal}[]}) {
+    const linked=issue.items.filter(i=>i.reservationId!==null);
+    const ids=linked.map(i=>i.reservationId!);
+    const pins=ids.length?await tx.materialUomReservationPin.findMany({where:{reservationId:{in:ids}}}):[];
+    const byReservation=new Map(pins.map(p=>[p.reservationId,p]));
+    const result=new Map<string,(typeof pins)[number]>();
+    for(const item of linked){
+      const pin=byReservation.get(item.reservationId!);
+      if(!pin)continue;
+      if(ids.filter(id=>id===pin.reservationId).length!==1||pin.companyId!==issue.companyId||pin.projectId!==issue.projectId||
+         pin.warehouseId!==issue.warehouseId||pin.materialId!==item.materialId||pin.sourceUomId!==item.uomId||!pin.sourceQuantity.eq(item.quantity))
+        throw new ConflictException({code:'MATERIAL_UOM_ISSUE_RESERVATION_SOURCE_MISMATCH'});
+      result.set(item.id,pin);
+    }
+    // The linked reservation already freezes the exact rate. Never resolve a
+    // newer effective factor to consume this original authorized demand.
+    return result;
+  }
+
+  private async assertCurrentIssueAuthority(auth:AuthenticatedUserContext,tx:Prisma.TransactionClient,permission:string){
+    const session=await tx.userSession.findFirst({
+      where:{id:auth.sessionId,userId:auth.userId,revokedAt:null,expiresAt:{gt:new Date()},user:{companyId:auth.companyId,isActive:true,company:{isActive:true}}},
+    select: { user: { select: { employee: { select: { companyId: true, isActive: true } },
+      userRoles: { select: { companyId: true, role: { select: { companyId: true, roleCode: true, isActive: true,
+        rolePermissions: { select: { permission: { select: { permissionCode: true } } } } } } } } } } },
+    });
+    const permissions=session?.user.userRoles.filter(r=>r.companyId===auth.companyId&&r.role.companyId===auth.companyId&&r.role.isActive&&r.role.roleCode!=='SYS_ADMIN').flatMap(r=>r.role.rolePermissions.map(p=>p.permission.permissionCode))??[];
+    if(!session?.user.employee?.isActive||session.user.employee.companyId!==auth.companyId||!permissions.includes(permission)||!auth.permissions.includes(permission))
+      throw new ForbiddenException({code:'MATERIAL_UOM_ISSUE_AUTHORITY_DENIED'});
   }
 
   private async requireLegacyPath(id:string,db:Db){
