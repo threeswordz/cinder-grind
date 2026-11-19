@@ -33,6 +33,7 @@ test('DEC-050 B actual PostgreSQL receipt freeze: approved commercial source, ex
     const each=await db.unitOfMeasure.create({data:{companyId:f.company.id,uomCode:'STOCK-EA',uomName:'Synthetic stock piece',decimalPlaces:0}});
     await definitions.prepare({auth},f.material.id,{requestKey:randomUUID(),stockUomId:each.id,reason:'Synthetic receipt pin proof'});
     await definitions.revise({auth},f.material.id,{requestKey:randomUUID(),expectedVersion:1,sourceUomId:f.uom.id,effectiveFrom:'2026-01-01',numerator:'20',denominator:'1',reason:'Synthetic original pack'});
+    await definitions.activateStock({auth},f.material.id,{requestKey:randomUUID(),expectedVersion:2,reason:'Explicit disposable source activation'});
     const receipt=await receipts.create({auth:f.store.auth},{projectId:f.project.id,purchaseOrderId:f.po.id,warehouseId:f.warehouse.id,lines:[{purchaseOrderLineId:f.po.lines[0]!.id,quantity:new Prisma.Decimal(2)}]});
     await receipts.submit({auth:f.store.auth},receipt.id,f.receiptWorkflow.workflowCode,'2026-11-19');
     const pin=await db.materialUomReceiptSourcePin.findFirstOrThrow({where:{receiptId:receipt.id}});
@@ -156,7 +157,7 @@ test('DEC-050 B actual PostgreSQL receipt freeze: approved commercial source, ex
     await reservations.release({auth:store},another.id,'Synthetic release');
     assert.equal((await quantities.available(db,dim)).available.toString(),'40');
     const unreserved=await issues.create({auth:issuer},{projectId:f.project.id,warehouseId:f.warehouse.id,issueDate:new Date('2026-11-19T00:00:00Z'),lines:[{materialId:f.material.id,uomId:f.uom.id,quantity:new Prisma.Decimal(1)}]});
-    await issues.submit({auth:issuer},unreserved.id,issueWorkflow.workflowCode,true);
+    await issues.submit({auth:issuer},unreserved.id,issueWorkflow.workflowCode);
     const unreservedPin=await db.materialUomIssueSourcePin.findFirstOrThrow({where:{issueId:unreserved.id}});
     assert.equal(unreservedPin.stockQuantity.toString(),'25');
     await assert.rejects(db.materialUomIssueSourcePin.update({where:{issueItemId:unreservedPin.issueItemId},data:{numerator:'999'}}),/MATERIAL_UOM_ISSUE_SOURCE_IMMUTABLE/);
@@ -172,7 +173,7 @@ test('DEC-050 B actual PostgreSQL receipt freeze: approved commercial source, ex
     await issues.reverse({auth:issuer},unreserved.id,randomUUID(),'Synthetic unreserved reversal');
     assert.equal((await quantities.available(db,dim)).onHand.toString(),'40');
     const staleIssue=await issues.create({auth:issuer},{projectId:f.project.id,warehouseId:f.warehouse.id,issueDate:new Date('2026-11-19T00:00:00Z'),lines:[{materialId:f.material.id,uomId:f.uom.id,quantity:new Prisma.Decimal(1)}]});
-    await issues.submit({auth:issuer},staleIssue.id,issueWorkflow.workflowCode,true);
+    await issues.submit({auth:issuer},staleIssue.id,issueWorkflow.workflowCode);
     await definitions.revise({auth},f.material.id,{requestKey:randomUUID(),expectedVersion:5,sourceUomId:f.uom.id,effectiveFrom:'2026-01-01',numerator:'26',denominator:'1',reason:'Synthetic unreserved stale pin'});
     await assert.rejects(issues.approve({auth:checker},staleIssue.id,randomUUID()),error=>(error as {getResponse:()=>{code:string}}).getResponse().code==='MATERIAL_UOM_ISSUE_DEFINITION_CHANGED');
     assert.equal(await db.stockTransaction.count({where:{materialIssueId:staleIssue.id}}),0);

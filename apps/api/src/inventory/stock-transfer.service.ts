@@ -1,3 +1,4 @@
+import {activatedStockMaterials} from './material-uom-active-source';
 import {createHash} from 'node:crypto';
 import {inventoryUuid} from './inventory-validation';
 import {
@@ -486,7 +487,7 @@ export class StockTransferService {
     });
   }
 
-  async submit(context: AuditContext, id: string, workflowCode: string, freezeConversion=false) {
+  async submit(context: AuditContext, id: string, workflowCode: string) {
     return this.prisma.$transaction(
       async (tx) => {
         const transfer = await this.get(context.auth, id, tx);
@@ -507,6 +508,7 @@ export class StockTransferService {
         for (const item of transfer.items) {
           await this.validateLine(context.auth, warehouses, item, tx, Boolean(transfer.custody));
         }
+        const activated=await activatedStockMaterials(tx,transfer.companyId,transfer.items.map(i=>i.materialId));
         const approval = await this.approvals.start(
           {
             companyId: context.auth.companyId,
@@ -524,10 +526,10 @@ export class StockTransferService {
             submittedAt: new Date(),
           },
         });
-        if(freezeConversion){
+        if(activated.size){
           if(!transfer.custody)throw new ConflictException({code:'MATERIAL_UOM_TRANSFER_CUSTODY_REQUIRED'});
           await transferActor(context.auth,tx,['inventory.transfer.view','inventory.transfer.submit']);
-          for(const item of [...transfer.items].sort((a,b)=>a.materialId.localeCompare(b.materialId)||a.id.localeCompare(b.id))){
+          for(const item of transfer.items.filter(i=>activated.has(i.materialId)).sort((a,b)=>a.materialId.localeCompare(b.materialId)||a.id.localeCompare(b.id))){
             const {effectSign:_sign,...pin}=await resolveStockEffectPin(tx,{companyId:transfer.companyId,materialId:item.materialId,sourceUomId:item.uomId,
               quantity:item.quantity,businessDate:transfer.transferDate.toISOString().slice(0,10),effectSign:-1});
             await tx.materialUomTransferSourcePin.create({data:{...pin,transferId:id,transferItemId:item.id,sourceWarehouseId:transfer.sourceWarehouseId,

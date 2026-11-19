@@ -15,7 +15,7 @@ import {PurchaseOrderService} from '../procurement/purchase-order.service';
 
 // Synthetic source setup uses the existing PR → RFQ → quotation/award → approved PO services.
 // No acceptance, receiving policy, grants in retained Companies or stock is backfilled.
-export async function receivingFixture(db:PrismaService){
+export async function receivingFixture(db:PrismaService,mixed=false){
  const password=randomBytes(32).toString('hex'),passwordHash=await new PasswordService().hash(password);
  const suffix=randomUUID().slice(0,8), company=await db.company.create({data:{companyCode:'RC-'+suffix,companyName:'Synthetic receiving'}});
  const customer=await db.customer.create({data:{companyId:company.id,customerCode:'RC-C',customerName:'Synthetic customer'}});
@@ -45,6 +45,7 @@ export async function receivingFixture(db:PrismaService){
  const wbs=await db.wbsElement.create({data:{projectId:project.id,wbsCode:'01',wbsName:'Structure'}}),costCode=await db.costCode.create({data:{companyId:company.id,costCode:'MAT',costName:'Materials'}});
  const uom=await db.unitOfMeasure.create({data:{companyId:company.id,uomCode:'EA',uomName:'Each',decimalPlaces:4}});
  const material=await db.material.create({data:{companyId:company.id,materialCode:'STEEL',materialName:'Synthetic steel',defaultUomId:uom.id}});
+ const secondaryMaterial=mixed?await db.material.create({data:{companyId:company.id,materialCode:'LEGACY',materialName:'Synthetic unchanged legacy material',defaultUomId:uom.id}}):null;
  const supplier=await db.supplier.create({data:{companyId:company.id,supplierCode:'RC-S',supplierName:'Synthetic supplier'}});
  const warehouse=await db.warehouse.create({data:{companyId:company.id,projectId:project.id,warehouseCode:'RC-W',warehouseName:'Site store',isSiteWarehouse:true}});
  const documentType=await db.documentType.create({data:{companyId:company.id,documentTypeCode:'DELIVERY',documentTypeName:'Delivery evidence'}});
@@ -56,15 +57,18 @@ export async function receivingFixture(db:PrismaService){
  const today=new Date(new Date().toISOString().slice(0,10)+'T00:00:00.000Z'),later=new Date(today.getTime()+14*86400000);
  const pr=await procurement.createRequest({auth:buyer.auth},project.id,'Synthetic receiving source');
  const prLine=await procurement.createLine({auth:buyer.auth},pr.id,{lineType:'MATERIAL',materialId:material.id,quantity:new Prisma.Decimal(10),uomId:uom.id,wbsId:wbs.id,costCodeId:costCode.id,requiredOnSite:later});
+ const extraPrLine=secondaryMaterial?await procurement.createLine({auth:buyer.auth},pr.id,{lineType:'MATERIAL',materialId:secondaryMaterial.id,quantity:new Prisma.Decimal(10),uomId:uom.id,wbsId:wbs.id,costCodeId:costCode.id,requiredOnSite:later}):null;
  await procurement.submitRequest({auth:buyer.auth},pr.id,prWorkflow.workflowCode);await procurement.approveRequest({auth:buyerChecker.auth},pr.id,'Synthetic demand checked');
- const rfq=await sourcing.createRfq({auth:buyer.auth},project.id,{closingDate:later,lines:[{purchaseRequestLineId:prLine.id,quantity:new Prisma.Decimal(10)}]});
+ const rfq=await sourcing.createRfq({auth:buyer.auth},project.id,{closingDate:later,lines:[{purchaseRequestLineId:prLine.id,quantity:new Prisma.Decimal(10)},...(extraPrLine?[{purchaseRequestLineId:extraPrLine.id,quantity:new Prisma.Decimal(10)}]:[])]});
  await sourcing.inviteSupplier({auth:buyer.auth},rfq.id,supplier.id);
  const quote=await sourcing.createQuotation({auth:buyer.auth},rfq.id,supplier.id,{quotationDate:today,supplierReference:'RC-Q'});
- const rfqLine=(await sourcing.getRfq(buyer.auth,rfq.id)).lines[0]!;
- const quoted=await sourcing.upsertQuotationLine({auth:buyer.auth},quote.id,rfqLine.id,{quantity:new Prisma.Decimal(10),unitPrice:new Prisma.Decimal(12)});
- const award=await sourcing.selectAward({auth:buyer.auth},rfqLine.id,quoted.id,'Synthetic source selection');
- const po=await orders.createOrder({auth:buyer.auth},project.id,[award.id],'Synthetic receiving PO');
+ const awards:string[]=[];
+ for(const rfqLine of (await sourcing.getRfq(buyer.auth,rfq.id)).lines){
+  const quoted=await sourcing.upsertQuotationLine({auth:buyer.auth},quote.id,rfqLine.id,{quantity:new Prisma.Decimal(10),unitPrice:new Prisma.Decimal(12)});
+  const award=await sourcing.selectAward({auth:buyer.auth},rfqLine.id,quoted.id,'Synthetic source selection');awards.push(award.id);
+ }
+ const po=await orders.createOrder({auth:buyer.auth},project.id,awards,'Synthetic receiving PO');
  await orders.submit({auth:buyer.auth},po.id,poWorkflow.workflowCode);await orders.approve({auth:buyerChecker.auth},po.id,'Synthetic PO checked');
  const input=(extra={})=>({requestKey:randomUUID(),projectId:project.id,warehouseId:warehouse.id,supplierId:supplier.id,receivedAt:new Date(Date.now()-60000).toISOString(),receiverName:'Store receiver',reason:'Actual physical delivery captured',qualityRequired:false,lines:[{materialId:material.id,uomId:uom.id,observedQuantity:'4.0000',goodQuantity:'3.0000',condition:'DAMAGED',note:'One damaged item remains held'}],...extra});
- return {company,project,unassigned,store,jai,pm,config,outsider,viewer,buyer,buyerChecker,uom,material,supplier,warehouse,documentType,receiptWorkflow,po,sessions,input,access,audit,orders};
+ return {secondaryMaterial,company,project,unassigned,store,jai,pm,config,outsider,viewer,buyer,buyerChecker,uom,material,supplier,warehouse,documentType,receiptWorkflow,po,sessions,input,access,audit,orders};
 }

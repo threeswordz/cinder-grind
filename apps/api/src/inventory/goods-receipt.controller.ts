@@ -1,3 +1,4 @@
+import {uomDate} from '../master-data/material-uom-contract';
 import {
   Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, Req, UseGuards,
 } from '@nestjs/common';
@@ -155,9 +156,11 @@ export class GoodsReceiptController {
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @Body() body: unknown,
   ) {
+    const input=inventoryObject(body);
     return { data: await this.receipts.submit(
       auditContext(request), id,
-      requiredInventoryString(inventoryObject(body), 'workflowCode', 80),
+      requiredInventoryString(input, 'workflowCode', 80),
+      input.conversionBusinessDate===undefined?undefined:uomDate(input.conversionBusinessDate,'conversionBusinessDate'),
     ) };
   }
 

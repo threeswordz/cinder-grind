@@ -147,6 +147,7 @@ DECLARE header goods_receipts%ROWTYPE;
         stock_unit units_of_measure%ROWTYPE;
         selected_revision material_uom_revisions%ROWTYPE;
 BEGIN
+ IF TG_OP='INSERT' THEN PERFORM erp_material_uom_require_activation(NEW.company_id,NEW.material_id); END IF;
  IF TG_OP<>'INSERT' THEN RAISE EXCEPTION 'MATERIAL_UOM_RECEIPT_SOURCE_IMMUTABLE'; END IF;
  SELECT * INTO header FROM goods_receipts WHERE id=NEW.receipt_id FOR UPDATE;
  IF NOT FOUND OR header.company_id IS DISTINCT FROM NEW.company_id
@@ -467,8 +468,8 @@ DECLARE rid uuid;
 BEGIN
  rid:=NEW.id;
  IF EXISTS(SELECT 1 FROM goods_receipts WHERE id=rid AND posted_at IS NOT NULL)
- AND EXISTS(SELECT 1 FROM material_uom_receipt_source_pins WHERE receipt_id=rid)
- AND EXISTS(SELECT 1 FROM goods_receipt_items i WHERE i.goods_receipt_id=rid AND NOT EXISTS(
+ AND EXISTS(SELECT 1 FROM goods_receipt_items i JOIN material_uom_activations a ON a.material_id=i.material_id WHERE i.goods_receipt_id=rid)
+ AND EXISTS(SELECT 1 FROM goods_receipt_items i WHERE i.goods_receipt_id=rid AND EXISTS(SELECT 1 FROM material_uom_activations a WHERE a.material_id=i.material_id) AND NOT EXISTS(
    SELECT 1 FROM material_uom_receipt_source_pins p
    JOIN stock_transactions t ON t.goods_receipt_item_id=p.receipt_item_id AND t.movement_type='GOODS_RECEIPT'
    JOIN material_uom_effect_pins e ON e.stock_transaction_id=t.id
@@ -507,6 +508,7 @@ DECLARE r material_reservations%ROWTYPE;
  b material_uom_bases%ROWTYPE; su units_of_measure%ROWTYPE; cu units_of_measure%ROWTYPE;
  rev material_uom_revisions%ROWTYPE; free_quantity numeric;
 BEGIN
+ IF TG_OP='INSERT' THEN PERFORM erp_material_uom_require_activation(NEW.company_id,NEW.material_id); END IF;
  IF TG_OP<>'INSERT' THEN RAISE EXCEPTION 'MATERIAL_UOM_RESERVATION_PIN_IMMUTABLE'; END IF;
  SELECT * INTO r FROM material_reservations WHERE id=NEW.reservation_id FOR UPDATE;
  IF NOT FOUND OR r.status<>'ACTIVE' OR r.activated_by_user_id IS NULL
@@ -596,12 +598,13 @@ CREATE TRIGGER material_uom_copy_issue_pin AFTER INSERT ON stock_transactions
 CREATE FUNCTION erp_material_uom_issue_post_proof() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
  IF EXISTS(SELECT 1 FROM material_issues h WHERE h.id=NEW.id AND h.posted_at IS NOT NULL)
- AND EXISTS(SELECT 1 FROM material_issue_items i CROSS JOIN LATERAL erp_material_uom_issue_effect(i.id) p
+ AND (EXISTS(SELECT 1 FROM material_issue_items i JOIN material_uom_activations a ON a.material_id=i.material_id WHERE i.material_issue_id=NEW.id AND NOT EXISTS(SELECT 1 FROM erp_material_uom_issue_effect(i.id)))
+ OR EXISTS(SELECT 1 FROM material_issue_items i CROSS JOIN LATERAL erp_material_uom_issue_effect(i.id) p
    WHERE i.material_issue_id=NEW.id AND NOT EXISTS(
      SELECT 1 FROM stock_transactions st JOIN material_uom_effect_pins e ON e.stock_transaction_id=st.id
        LEFT JOIN material_reservations r ON r.id=p.reservation_id
      WHERE st.material_issue_item_id=i.id AND st.movement_type='MATERIAL_ISSUE'
-       AND (p.reservation_id IS NULL OR r.status='FULFILLED') AND st.quantity=-p.stock_quantity AND e.effect_sign=-1 AND e.revision_id IS NOT DISTINCT FROM p.revision_id))
+       AND (p.reservation_id IS NULL OR r.status='FULFILLED') AND st.quantity=-p.stock_quantity AND e.effect_sign=-1 AND e.revision_id IS NOT DISTINCT FROM p.revision_id)))
  THEN RAISE EXCEPTION 'MATERIAL_UOM_ISSUE_POST_PROOF_REQUIRED'; END IF;
  RETURN NEW;
 END $$;
@@ -704,6 +707,7 @@ DECLARE header material_issues%ROWTYPE;
         stock_unit units_of_measure%ROWTYPE;
         selected_revision material_uom_revisions%ROWTYPE;
 BEGIN
+ IF TG_OP='INSERT' THEN PERFORM erp_material_uom_require_activation(NEW.company_id,NEW.material_id); END IF;
  IF TG_OP<>'INSERT' THEN RAISE EXCEPTION 'MATERIAL_UOM_ISSUE_SOURCE_IMMUTABLE'; END IF;
  SELECT * INTO header FROM material_issues WHERE id=NEW.issue_id FOR UPDATE;
  IF NOT FOUND OR header.company_id IS DISTINCT FROM NEW.company_id
@@ -859,6 +863,7 @@ DECLARE header stock_transfers%ROWTYPE;
         stock_unit units_of_measure%ROWTYPE;
         selected_revision material_uom_revisions%ROWTYPE;
 BEGIN
+ IF TG_OP='INSERT' THEN PERFORM erp_material_uom_require_activation(NEW.company_id,NEW.material_id); END IF;
  IF TG_OP<>'INSERT' THEN RAISE EXCEPTION 'MATERIAL_UOM_TRANSFER_SOURCE_IMMUTABLE'; END IF;
  SELECT * INTO header FROM stock_transfers WHERE id=NEW.transfer_id FOR UPDATE;
  IF NOT FOUND OR header.company_id IS DISTINCT FROM NEW.company_id
@@ -972,8 +977,9 @@ CREATE FUNCTION erp_material_uom_transfer_approval_guard() RETURNS trigger LANGU
 DECLARE p record;
 BEGIN
  IF NEW.entity_type='STOCK_TRANSFER' AND NEW.approval_state='APPROVED' AND OLD.approval_state IS DISTINCT FROM NEW.approval_state
- AND EXISTS(SELECT 1 FROM material_uom_transfer_source_pins WHERE transfer_id=NEW.entity_id) THEN
+ AND EXISTS(SELECT 1 FROM stock_transfer_items i JOIN material_uom_activations a ON a.material_id=i.material_id WHERE i.stock_transfer_id=NEW.entity_id) THEN
   IF EXISTS(SELECT 1 FROM stock_transfer_items i WHERE i.stock_transfer_id=NEW.entity_id
+    AND EXISTS(SELECT 1 FROM material_uom_activations a WHERE a.material_id=i.material_id)
     AND NOT EXISTS(SELECT 1 FROM material_uom_transfer_source_pins WHERE transfer_item_id=i.id))
   THEN RAISE EXCEPTION 'MATERIAL_UOM_TRANSFER_SOURCE_INCOMPLETE'; END IF;
   FOR p IN SELECT transfer_item_id FROM material_uom_transfer_source_pins WHERE transfer_id=NEW.entity_id ORDER BY material_id,transfer_item_id LOOP
@@ -1135,6 +1141,13 @@ BEGIN
  IF EXISTS(SELECT 1 FROM material_usage_plan_lines pl JOIN material_usage_plan_revisions pr ON pr.id=pl.revision_id JOIN material_usage_plans p ON p.id=pr.plan_id WHERE p.company_id=cid AND pl.material_id=mid)
  OR EXISTS(SELECT 1 FROM material_request_lines rl JOIN material_requests r ON r.id=rl.request_id WHERE r.company_id=cid AND rl.material_id=mid)
  THEN RAISE EXCEPTION 'MATERIAL_UOM_DEMAND_RECONCILIATION_REQUIRED'; END IF;
+END $$;
+
+CREATE FUNCTION erp_material_uom_require_activation(cid uuid,mid uuid) RETURNS void LANGUAGE plpgsql AS $$
+BEGIN
+ PERFORM pg_advisory_xact_lock(hashtextextended('material-uom:'||cid::text||':'||mid::text,0));
+ IF NOT EXISTS(SELECT 1 FROM material_uom_activations WHERE company_id=cid AND material_id=mid)
+ THEN RAISE EXCEPTION 'MATERIAL_UOM_NOT_ACTIVATED'; END IF;
 END $$;
 
 CREATE FUNCTION erp_material_uom_activation_guard() RETURNS trigger LANGUAGE plpgsql AS $$

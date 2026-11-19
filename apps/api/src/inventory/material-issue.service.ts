@@ -1,3 +1,4 @@
+import {activatedStockMaterials,lockStockWarehouses} from './material-uom-active-source';
 import {lockMaterialPlanLineages} from './material-plan-issue-locks';
 import {
   ConflictException,
@@ -295,7 +296,7 @@ export class MaterialIssueService {
     });
   }
 
-  async submit(context: AuditContext, id: string, workflowCode: string, freezeUnreserved=false) {
+  async submit(context: AuditContext, id: string, workflowCode: string) {
     return this.prisma.$transaction(async (tx) => {
       const issue = await this.get(context.auth, id, tx);
       await this.requireLegacyPath(id,tx);
@@ -310,8 +311,9 @@ export class MaterialIssueService {
       for (const line of issue.items) {
         await this.validateLine(context.auth, issue, line, tx);
       }
+      const activated=await activatedStockMaterials(tx,issue.companyId,issue.items.map(i=>i.materialId));
       const reservedPins=await this.reservationPostingPins(tx,issue);
-      if(reservedPins.size||freezeUnreserved)await this.assertCurrentIssueAuthority(context.auth,tx,'inventory.issue.submit');
+      if(reservedPins.size||activated.size)await this.assertCurrentIssueAuthority(context.auth,tx,'inventory.issue.submit');
       const approval = await this.approvals.start({
         companyId: context.auth.companyId,
         workflowCode,
@@ -326,8 +328,8 @@ export class MaterialIssueService {
           submittedAt: new Date(),
         },
       });
-      if(freezeUnreserved){
-        for(const item of [...issue.items].sort((a,b)=>a.materialId.localeCompare(b.materialId)||a.id.localeCompare(b.id))){
+      if(activated.size){
+        for(const item of issue.items.filter(i=>activated.has(i.materialId)).sort((a,b)=>a.materialId.localeCompare(b.materialId)||a.id.localeCompare(b.id))){
           if(item.reservationId){
             if(!reservedPins.has(item.id))throw new ConflictException({code:'MATERIAL_UOM_ISSUE_RESERVATION_SOURCE_MISMATCH'});
             continue;
@@ -421,12 +423,14 @@ export class MaterialIssueService {
       );
     }
 
+    await lockStockWarehouses(tx,[current.warehouseId]);
+    const activated=await activatedStockMaterials(tx,current.companyId,current.items.map(i=>i.materialId));
     const reservationPins=await this.reservationPostingPins(tx,current);
     const postingPins=new Map<string,{stockUomId:string;stockQuantity:Prisma.Decimal}>(reservationPins);
     const sourcePins=await tx.materialUomIssueSourcePin.findMany({where:{companyId:current.companyId,issueId:id}});
-    if(sourcePins.length){
+    if(sourcePins.length||activated.size){
       const byItem=new Map(sourcePins.map(p=>[p.issueItemId,p]));
-      for(const item of [...current.items].sort((a,b)=>a.materialId.localeCompare(b.materialId)||a.id.localeCompare(b.id))){
+      for(const item of current.items.filter(i=>activated.has(i.materialId)).sort((a,b)=>a.materialId.localeCompare(b.materialId)||a.id.localeCompare(b.id))){
         if(item.reservationId){if(!reservationPins.has(item.id))throw new ConflictException({code:'MATERIAL_UOM_ISSUE_SOURCE_INCOMPLETE'});continue;}
         const p=byItem.get(item.id);
         if(!p||p.projectId!==current.projectId||p.warehouseId!==current.warehouseId||p.materialId!==item.materialId||

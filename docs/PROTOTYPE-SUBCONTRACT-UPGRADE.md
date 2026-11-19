@@ -1,5 +1,9 @@
 # Populated subcontract physical-acceptance deployment
 
+**19 November 2026 SGT — actual Mac deployment VERIFIED.** [Owner-returned execution receipt](https://github.com/threeswordz/cinder-grind/issues/353#issuecomment-7012824496) reports `SUBCONTRACT_POPULATED_MAC_UPGRADE_AND_BROWSER_VERIFIED`, actual applicationf37867c9/operatorbf3413ca, forward-only source upgrade, separate populated pre-upgrade restore/journey, preserved old rows/partial transfer/Documents/uploads/keys/receipts, partial physical acceptance and explicit amount → canonical certification, protected bytes/locales/mobile/denials/replay and revoked sessions. Dump SHA25604cda6a75525af08570391996e3830b0a5057b6afcf2b0478bb61bd4af2bf5ea. #353 is closed TECHNICAL COMPLETE / UAT DEFERRED.
+
+The completed launcher must not be rerun. Future operators must validate current `subcontract-upgrade` ready/process/artifact/after-state custody; the previous transfer runtime is now historical. This is Owner-supplied workstation evidence, not direct cloud access or human business acceptance. Full journeys/final recovery7/freeze8/UAT/Production remain false; prototype4/8 and GL3/10. The package description below is preserved as historical implementation/release provenance where superseded by this receipt.
+
 **18 November 2026 SGT — implementation candidate; no released Mac command yet.** Existing #353 / DEC-048 option A and #305 bounded synthetic execution authority apply. Khaimook → Ben → Porn → Nancy, explicit accepted monetary amount and held/rework treatment are settled. This package introduces no business rule, application code, schema/migration, dependency, retained activation, Accounting/payment execution or Production authority.
 
 ## Verified predecessor and immutable application

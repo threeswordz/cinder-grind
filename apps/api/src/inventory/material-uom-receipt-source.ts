@@ -1,3 +1,4 @@
+import {activatedStockMaterials,lockStockWarehouses} from './material-uom-active-source';
 import { ConflictException, ForbiddenException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { AuthenticatedUserContext } from '../auth/auth.types';
@@ -5,12 +6,12 @@ import { uomDate } from '../master-data/material-uom-contract';
 import { resolveStockEffectPin } from '../master-data/material-uom-effect-pin';
 
 type ReceiptSource = {
-  id: string; companyId: string; projectId: string;
+  id: string; companyId: string; projectId: string; warehouseId: string;
   items: { id: string; materialId: string; uomId: string; quantity: Prisma.Decimal }[];
 };
 
-// Internal builder boundary; no public activation/HTTP route yet. Called only
-// from the canonical submission transaction, after its approval instance exists.
+// Called only for explicitly activated items in the canonical submission
+// transaction, after its approval instance exists. Commercial fields stay unchanged.
 export async function freezeSubmittedReceiptSources(
   tx: Prisma.TransactionClient, auth: AuthenticatedUserContext, receipt: ReceiptSource, businessDate: string,
 ) {
@@ -38,14 +39,16 @@ export async function freezeSubmittedReceiptSources(
   }
 }
 
-// Only explicit internal frozen submissions may enter this path. No public
-// activation is exposed until the rest of the canonical stock owners are ready.
+// Reconcile the activated subset; legacy items in a mixed receipt retain
+// their own commercial stock source and must not acquire invented pins.
 export async function loadReceiptPostingPins(tx: Prisma.TransactionClient, receipt: ReceiptSource) {
+  await lockStockWarehouses(tx,[receipt.warehouseId]);
   const pins=await tx.materialUomReceiptSourcePin.findMany({where:{companyId:receipt.companyId,receiptId:receipt.id}});
   const result=new Map(pins.map(pin=>[pin.receiptItemId,pin]));
-  if (!pins.length) return result;
-  if (pins.length!==receipt.items.length) throw new ConflictException({code:'MATERIAL_UOM_RECEIPT_SOURCE_INCOMPLETE'});
-  for (const item of [...receipt.items].sort((a,b)=>a.materialId.localeCompare(b.materialId)||a.id.localeCompare(b.id))) {
+  const activated=await activatedStockMaterials(tx,receipt.companyId,receipt.items.map(i=>i.materialId));
+  const controlled=receipt.items.filter(i=>activated.has(i.materialId));
+  if (pins.length!==controlled.length||pins.some(p=>!activated.has(p.materialId))) throw new ConflictException({code:'MATERIAL_UOM_RECEIPT_SOURCE_INCOMPLETE'});
+  for (const item of [...controlled].sort((a,b)=>a.materialId.localeCompare(b.materialId)||a.id.localeCompare(b.id))) {
     const pin=result.get(item.id);
     if (!pin || pin.projectId!==receipt.projectId || pin.materialId!==item.materialId ||
         pin.sourceUomId!==item.uomId || !pin.sourceQuantity.eq(item.quantity))

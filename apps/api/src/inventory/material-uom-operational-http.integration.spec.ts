@@ -1,0 +1,96 @@
+import 'reflect-metadata';
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import {randomUUID} from 'node:crypto';
+import {mkdtemp,rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {NestFactory} from '@nestjs/core';
+import {AppModule} from '../app.module';
+import {PrismaService} from '../prisma/prisma.service';
+import {ProblemDetailsFilter} from '../common/problem-details.filter';
+import {securityHeadersMiddleware} from '../common/security-headers';
+import {MaterialUomService} from '../master-data/material-uom.service';
+import {receivingFixture} from './receiving-test-fixture';
+
+test('DEC-050 B authenticated HTTP: converted physical receiving, explicit dates, reservation and automatic issue freeze',async()=>{
+ const target=new URL(process.env.DATABASE_URL??'');assert.ok(['localhost','127.0.0.1'].includes(target.hostname));
+ assert.ok(/^\/(?:erp_validation|construction_erp|construction_erp_v10e_(?:upgrade|hrrestore)_[a-f0-9]{12})$/.test(target.pathname));
+ const storage=await mkdtemp(join(tmpdir(),'uom-receiving-')),previousStorage=process.env.STORAGE_ROOT;process.env.STORAGE_ROOT=storage;
+ const db=new PrismaService();await db.$connect();
+ const app=await NestFactory.create(AppModule,{logger:false});app.setGlobalPrefix('api/v1');app.use(securityHeadersMiddleware(false));app.useGlobalFilters(new ProblemDetailsFilter());await app.listen(0,'127.0.0.1');
+ try{
+  const f=await receivingFixture(db,true),base=await app.getUrl()+'/api/v1',root='/inventory/receiving',defs=app.get(MaterialUomService);
+  const grant=async(roleId:string,codes:string[])=>{
+   const rights=await db.permission.findMany({where:{permissionCode:{in:codes}}});assert.equal(rights.length,codes.length);
+   await db.rolePermission.createMany({data:rights.map(p=>({roleId,permissionId:p.id})),skipDuplicates:true});
+  };
+  await grant(f.config.role.id,['master.material.view','master.material.manage','master.material.conversion.manage']);
+  await grant(f.store.role.id,['inventory.reservation.create','inventory.reservation.view','inventory.reservation.activate','inventory.reservation.release','inventory.issue.create','inventory.issue.view','inventory.issue.submit','inventory.issue.reverse']);
+  await grant(f.pm.role.id,['inventory.issue.view','inventory.issue.approve']);
+  const maintainer=await f.sessions.resolve(f.config.session.sessionToken);assert.ok(maintainer);
+  const stockUnit=await db.unitOfMeasure.create({data:{companyId:f.company.id,uomCode:'STOCK-PIECE',uomName:'Synthetic canonical piece',decimalPlaces:0}});
+  await defs.prepare({auth:maintainer},f.material.id,{requestKey:randomUUID(),stockUomId:stockUnit.id,reason:'Explicit disposable stock basis'});
+  await defs.revise({auth:maintainer},f.material.id,{requestKey:randomUUID(),expectedVersion:1,sourceUomId:f.uom.id,effectiveFrom:'2026-01-01',numerator:'20',denominator:'1',reason:'Synthetic material-specific carton'});
+  async function call(actor:typeof f.store,path:string,status=201,body?:unknown):Promise<any>{
+   const response=await fetch(base+path,{method:body===undefined?'GET':'POST',headers:{Cookie:'erp_session='+actor.session.sessionToken,'x-csrf-token':actor.session.csrfToken,...(body===undefined?{}:{'Content-Type':'application/json'})},...(body===undefined?{}:{body:JSON.stringify(body)})});
+   const result:any=await response.json();assert.equal(response.status,status,path+' '+JSON.stringify(result));return result.data;
+  }
+  const activation={requestKey:randomUUID(),expectedVersion:2,reason:'Explicit disposable-only operation activation'};
+  await call(f.store,'/master-data/material-conversions/'+f.material.id+'/activation',403,activation);
+  const enabled=await call(f.config,'/master-data/material-conversions/'+f.material.id+'/activation',201,activation);
+  assert.deepEqual(await call(f.config,'/master-data/material-conversions/'+f.material.id+'/activation',201,activation),enabled);
+  assert.equal(enabled.inventoryConversionEnabled,true);
+  const balance=async()=>(await db.stockTransaction.aggregate({where:{companyId:f.company.id,materialId:f.material.id,uomId:stockUnit.id},_sum:{quantity:true}}))._sum.quantity?.toString()??'0';
+  const financialBefore=[await db.payment.count({where:{companyId:f.company.id}}),await db.directCostPosting.count({where:{companyId:f.company.id}})];
+  await call(f.config,root+'/projects/'+f.project.id+'/enable',201,{requestKey:randomUUID(),reason:'Disposable physical receiving site'});
+  assert.ok(f.secondaryMaterial);
+  const delivery=await call(f.store,root+'/deliveries',201,f.input({lines:[...f.input().lines,{materialId:f.secondaryMaterial.id,uomId:f.uom.id,observedQuantity:'2',goodQuantity:'2',condition:'NORMAL',note:'Legacy quantity remains unchanged'}],receivedAt:new Date(Date.now()-49*3600000).toISOString()}));
+  const detail=()=>call(f.store,root+'/deliveries/'+delivery.id,200);
+  const command=async(extra={})=>({requestKey:randomUUID(),expectedVersion:(await detail()).version,reason:'Actual synthetic custody action',...extra});
+  const held=await detail();assert.equal(held.purchaseOrderId,null);assert.equal(held.usable,false);assert.equal(await balance(),'0');
+  await call(f.store,root+'/deliveries/'+delivery.id+'/link-po',201,await command({purchaseOrderId:f.po.id,lines:held.lines.map((line:any)=>({id:line.id,purchaseOrderLineId:f.po.lines.find(po=>po.materialId===line.materialId)!.id}))}));
+  for(const purpose of ['DELIVERY_NOTE','RECEIVER_SIGNATURE','CONDITION_PHOTO']){
+   const data=new FormData();data.set('documentTypeId',f.documentType.id);data.set('file',new Blob([Buffer.from('%PDF-1.4\nSynthetic converted '+purpose)],{type:'application/pdf'}),purpose+'.pdf');
+   const response=await fetch(base+'/documents/projects/'+f.project.id+'/targets/RECEIVING_DELIVERY/'+delivery.id,{method:'POST',headers:{Cookie:'erp_session='+f.store.session.sessionToken,'x-csrf-token':f.store.session.csrfToken},body:data});
+   const document:any=await response.json();assert.equal(response.status,201,JSON.stringify(document));
+   await call(f.store,root+'/deliveries/'+delivery.id+'/evidence',201,await command({documentId:document.data.id,purpose,signedEvidenceConfirmed:purpose==='RECEIVER_SIGNATURE'}));
+  }
+  await call(f.store,root+'/deliveries/'+delivery.id+'/check',403,await command({decision:'ACCEPT'}));
+  await call(f.jai,root+'/deliveries/'+delivery.id+'/check',201,await command({decision:'ACCEPT'}));
+  assert.equal(await balance(),'0');
+  const checked=await detail();assert.equal(checked.deadline,'LINKED_LATE');
+  const receipt=await call(f.store,'/inventory/goods-receipts',201,{projectId:f.project.id,purchaseOrderId:f.po.id,warehouseId:f.warehouse.id,deliveryId:delivery.id,requestKey:randomUUID(),expectedDeliveryVersion:checked.version,lines:f.po.lines.map(line=>({purchaseOrderLineId:line.id,quantity:line.materialId===f.material.id?'3':'2'}))});
+  await call(f.store,'/inventory/goods-receipts/'+receipt.id+'/submit',422,{workflowCode:f.receiptWorkflow.workflowCode});
+  await call(f.store,'/inventory/goods-receipts/'+receipt.id+'/submit',422,{workflowCode:f.receiptWorkflow.workflowCode,conversionBusinessDate:'2026-11-19T00:00:00Z'});
+  await call(f.store,'/inventory/goods-receipts/'+receipt.id+'/submit',201,{workflowCode:f.receiptWorkflow.workflowCode,conversionBusinessDate:'2026-11-19'});
+  assert.equal(await balance(),'0');
+  await call(f.store,'/inventory/goods-receipts/'+receipt.id+'/approve',403,{postKey:randomUUID()});
+  const post={postKey:randomUUID()};await call(f.pm,'/inventory/goods-receipts/'+receipt.id+'/approve',201,post);await call(f.pm,'/inventory/goods-receipts/'+receipt.id+'/approve',201,post);
+  assert.equal(await balance(),'60');assert.equal((await detail()).lines.find((l:any)=>l.materialId===f.material.id).heldQuantity,'1.0000');
+  assert.equal((await db.goodsReceiptItem.findFirstOrThrow({where:{goodsReceiptId:receipt.id,materialId:f.material.id}})).quantity.toString(),'3');
+  const legacy=await db.stockTransaction.findFirstOrThrow({where:{goodsReceiptId:receipt.id,materialId:f.secondaryMaterial.id},include:{materialUomEffectPin:true}});
+  assert.equal(legacy.uomId,f.uom.id);assert.equal(legacy.quantity.toString(),'2');assert.equal(legacy.materialUomEffectPin,null);
+  assert.equal(await db.materialUomReceiptSourcePin.count({where:{receiptId:receipt.id}}),1);
+  const original=await db.materialUomReceiptSourcePin.findFirstOrThrow({where:{receiptId:receipt.id}});
+  assert.equal(original.stockQuantity.toString(),'60');assert.equal(original.sourceUomId,f.uom.id);
+  await defs.revise({auth:maintainer},f.material.id,{requestKey:randomUUID(),expectedVersion:2,sourceUomId:f.uom.id,effectiveFrom:'2026-01-01',numerator:'24',denominator:'1',reason:'Later explicit carton revision'});
+  assert.equal(await balance(),'60');
+  for(const [code,prefix] of [['MATERIAL_RESERVATION','RSV'],['MATERIAL_ISSUE','MI']])await db.numberSequence.create({data:{companyId:f.company.id,entityType:code!,sequenceCode:code!,formatTemplate:prefix+'YYMM-###',resetRule:'MONTHLY'}});
+  const reservation=await call(f.store,'/inventory/material-reservations',201,{projectId:f.project.id,warehouseId:f.warehouse.id,materialId:f.material.id,uomId:f.uom.id,quantity:'1'});
+  await call(f.store,'/inventory/material-reservations/'+reservation.id+'/activate',422,{});
+  await call(f.store,'/inventory/material-reservations/'+reservation.id+'/activate',201,{conversionBusinessDate:'2026-11-19'});
+  assert.equal((await db.materialUomReservationPin.findUniqueOrThrow({where:{reservationId:reservation.id}})).stockQuantity.toString(),'24');
+  await call(f.store,'/inventory/material-reservations/'+reservation.id+'/release',201,{reason:'Release synthetic demand'});
+  const workflow=await db.approvalWorkflow.create({data:{companyId:f.company.id,workflowCode:'HTTP-UOM-ISSUE',workflowName:'Independent converted issue',entityType:'MATERIAL_ISSUE',steps:{create:[{stepNo:1,stepName:'Check',requiredApprovals:1,stepRoles:{create:[{roleId:f.pm.role.id}]}}]}}});
+  const issue=await call(f.store,'/inventory/material-issues',201,{projectId:f.project.id,warehouseId:f.warehouse.id,issueDate:'2026-11-19',lines:[{materialId:f.material.id,uomId:f.uom.id,quantity:'1'},{materialId:f.secondaryMaterial.id,uomId:f.uom.id,quantity:'1'}]});
+  await call(f.store,'/inventory/material-issues/'+issue.id+'/submit',201,{workflowCode:workflow.workflowCode});
+  assert.equal((await db.materialUomIssueSourcePin.findFirstOrThrow({where:{issueId:issue.id}})).stockQuantity.toString(),'24');
+  await call(f.pm,'/inventory/material-issues/'+issue.id+'/approve',201,{postKey:randomUUID()});assert.equal(await balance(),'36');assert.equal((await db.stockTransaction.aggregate({where:{companyId:f.company.id,materialId:f.secondaryMaterial.id},_sum:{quantity:true}}))._sum.quantity?.toString(),'1');
+  await call(f.store,'/inventory/material-issues/'+issue.id+'/reverse',201,{reversalKey:randomUUID(),reason:'Original HTTP issue reversal'});assert.equal(await balance(),'60');
+  const reverse={reversalKey:randomUUID(),reason:'Original physical delivery reversal'};
+  await call(f.store,'/inventory/goods-receipts/'+receipt.id+'/reverse',201,reverse);await call(f.store,'/inventory/goods-receipts/'+receipt.id+'/reverse',201,reverse);
+  assert.equal(await balance(),'0');assert.equal((await detail()).usable,false);
+  assert.deepEqual([await db.payment.count({where:{companyId:f.company.id}}),await db.directCostPosting.count({where:{companyId:f.company.id}})],financialBefore);
+ }finally{await app.close();await db.$disconnect();if(previousStorage===undefined)delete process.env.STORAGE_ROOT;else process.env.STORAGE_ROOT=previousStorage;await rm(storage,{recursive:true,force:true});}
+});

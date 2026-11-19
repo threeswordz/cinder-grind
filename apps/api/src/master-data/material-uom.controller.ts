@@ -16,6 +16,8 @@ export class MaterialUomController {
   prepare(@Req() r: AuthenticatedRequest, @Param('materialId') id: string, @Body() body: unknown) { return this.service.prepare(context(r), id, body).then(data => ({ data })); }
   @Post(':materialId/revisions') @UseGuards(AuthGuard, CsrfGuard, PermissionGuard) @RequirePermissions('master.material.view', 'master.material.manage', 'master.material.conversion.manage')
   revise(@Req() r: AuthenticatedRequest, @Param('materialId') id: string, @Body() body: unknown) { return this.service.revise(context(r), id, body).then(data => ({ data })); }
+  @Post(':materialId/activation') @UseGuards(AuthGuard, CsrfGuard, PermissionGuard) @RequirePermissions('master.material.view', 'master.material.manage', 'master.material.conversion.manage')
+  activate(@Req() r: AuthenticatedRequest, @Param('materialId') id: string, @Body() body: unknown) { return this.service.activateStock(context(r), id, body).then(data => ({ data })); }
   @Post(':materialId/preview') @UseGuards(AuthGuard, CsrfGuard, PermissionGuard) @RequirePermissions('master.material.view')
   preview(@Req() r: AuthenticatedRequest, @Param('materialId') id: string, @Body() body: unknown) { return this.service.preview(r.auth!, id, body).then(data => ({ data })); }
 }

@@ -7,9 +7,11 @@ import {NestFactory} from '@nestjs/core';
 import {AppModule} from '../app.module';
 import {PrismaService} from '../prisma/prisma.service';
 import {MaterialReservationService} from '../inventory/material-reservation.service';
+import {ApprovalService} from '../approval/approval.service';
 import {GoodsReceiptService} from '../inventory/goods-receipt.service';
 import {receivingFixture} from '../inventory/receiving-test-fixture';
 import {materialUomFixture} from './material-uom-test-fixture';
+import {resolveStockEffectPin} from './material-uom-effect-pin';
 import {MaterialUomService} from './material-uom.service';
 
 const code = (expected:string) => (error:unknown) => (error as {getResponse?:()=>{code?:string}}).getResponse?.().code === expected;
@@ -61,6 +63,13 @@ test('DEC-050 B explicit activation: current authority, immutable opt-in and den
    const {f,definitions,auth,create,receipts}=await receivingBasis();
    const receipt=await create(),input={requestKey:randomUUID(),expectedVersion:2,reason:'Must reject unfrozen sources'};
    await assert.rejects(definitions.activateStock({auth},f.material.id,input),code('MATERIAL_UOM_OPEN_SOURCE_CONFLICT'));
+   await assert.rejects(receipts.submit({auth:f.store.auth},receipt.id,f.receiptWorkflow.workflowCode,'2026-11-19'),code('MATERIAL_UOM_NOT_ACTIVATED'));
+   await assert.rejects(db.$transaction(async tx=>{
+    const {effectSign:_sign,...pin}=await resolveStockEffectPin(tx,{companyId:f.company.id,materialId:f.material.id,sourceUomId:f.uom.id,quantity:new Prisma.Decimal(1),businessDate:'2026-11-19',effectSign:1});
+    const item=await tx.goodsReceiptItem.findFirstOrThrow({where:{goodsReceiptId:receipt.id}});
+    await tx.materialUomReceiptSourcePin.create({data:{...pin,projectId:f.project.id,receiptId:receipt.id,receiptItemId:item.id}});
+   },{isolationLevel:Prisma.TransactionIsolationLevel.Serializable}),/MATERIAL_UOM_NOT_ACTIVATED/);
+
    assert.equal(await db.materialUomActivation.count({where:{materialId:f.material.id}}),0);
    await receipts.submit({auth:f.store.auth},receipt.id,f.receiptWorkflow.workflowCode);
    await receipts.approve({auth:f.pm.auth},receipt.id,randomUUID());
@@ -100,12 +109,52 @@ test('DEC-050 B explicit activation: current authority, immutable opt-in and den
     assert.equal(await db.materialUomActivation.count({where:{materialId:f.material.id}}),0);
    }finally{release();await written;}
   });
+  await t.test('receipt waiting on the warehouse mutex does not hold a material lock in the opposite order',async()=>{
+   const {f,definitions,auth,create,receipts}=await receivingBasis();
+   await definitions.activateStock({auth},f.material.id,{requestKey:randomUUID(),expectedVersion:2,reason:'Disposable posting lock order'});
+   const receipt=await create();await receipts.submit({auth:f.store.auth},receipt.id,f.receiptWorkflow.workflowCode,'2026-11-19');
+   let signal!:()=>void,release!:()=>void;
+   const ready=new Promise<void>(resolve=>{signal=resolve;}),gate=new Promise<void>(resolve=>{release=resolve;});
+   const locker=db.$transaction(async tx=>{
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${'inventory-warehouse:'+f.warehouse.id}))`;
+    signal();await gate;
+   },{isolationLevel:Prisma.TransactionIsolationLevel.Serializable,timeout:15000});
+   const held=locker.then(()=>({error:undefined}),error=>({error}));
+   let posting:Promise<{error:unknown}>|undefined;
+   try{
+    await Promise.race([ready,held.then(r=>{if(r.error)throw r.error;})]);
+    posting=receipts.approve({auth:f.pm.auth},receipt.id,randomUUID()).then(()=>({error:undefined}),error=>({error}));
+    let waiting=false;
+    for(let i=0;i<250;i++){
+     const [row]=await db.$queryRaw<{waiting:boolean}[]>`SELECT EXISTS(SELECT 1 FROM pg_locks l JOIN pg_stat_activity a ON a.pid=l.pid WHERE l.locktype='advisory' AND NOT l.granted AND a.datname=current_database()) AS waiting`;
+     if(row?.waiting){waiting=true;break;}await new Promise(resolve=>setTimeout(resolve,10));
+    }
+    assert.equal(waiting,true,'Exercise actual blocked receipt approval');
+    await db.$transaction(async tx=>{
+     await tx.$executeRawUnsafe("SET LOCAL lock_timeout='500ms'");
+     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${['material-uom',f.company.id,f.material.id].join(':')},0))`;
+    });
+    release();assert.equal((await held).error,undefined);assert.equal((await posting).error,undefined);
+    assert.equal((await db.stockTransaction.findFirstOrThrow({where:{goodsReceiptId:receipt.id}})).quantity.toString(),'20');
+   }finally{release();await held;if(posting)await posting;}
+  });
   await t.test('activated material refuses unpinned GR stock; dated original source posts once in canonical units',async()=>{
    const {f,definitions,auth,each,create,receipts}=await receivingBasis();
    await definitions.activateStock({auth},f.material.id,{requestKey:randomUUID(),expectedVersion:2,reason:'Explicit disposable conversion'});
    const unpinned=await create();
-   await receipts.submit({auth:f.store.auth},unpinned.id,f.receiptWorkflow.workflowCode);
-   await assert.rejects(receipts.approve({auth:f.pm.auth},unpinned.id,randomUUID()),/MATERIAL_UOM_CANONICAL_STOCK_UNIT_REQUIRED|MATERIAL_UOM_ACTIVATED_SOURCE_PIN_REQUIRED/);
+   await assert.rejects(receipts.submit({auth:f.store.auth},unpinned.id,f.receiptWorkflow.workflowCode),code('MATERIAL_UOM_BUSINESS_DATE_REQUIRED'));
+   assert.equal((await db.goodsReceipt.findUniqueOrThrow({where:{id:unpinned.id}})).submittedAt,null);
+   // Deliberately bypass source submission at the DB boundary to prove that
+   // current SQL guards still reject a subsequently attempted unpinned post.
+   await db.$transaction(async tx=>{
+    const approval=await app.get(ApprovalService).start({companyId:f.company.id,workflowCode:f.receiptWorkflow.workflowCode,entityType:'GOODS_RECEIPT',entityId:unpinned.id},tx);
+    await tx.goodsReceipt.update({where:{id:unpinned.id},data:{approvalInstanceId:approval.id,submittedAt:new Date(),submittedByUserId:f.store.auth.userId}});
+   },{isolationLevel:Prisma.TransactionIsolationLevel.Serializable});
+   await assert.rejects(receipts.approve({auth:f.pm.auth},unpinned.id,randomUUID()),code('MATERIAL_UOM_RECEIPT_SOURCE_INCOMPLETE'));
+   const unpinnedHeader=await db.goodsReceipt.findUniqueOrThrow({where:{id:unpinned.id}});
+   await assert.rejects(app.get(ApprovalService).approve(unpinnedHeader.approvalInstanceId!,f.pm.auth,f.store.user.id,'Negative missing-post proof',async tx=>{
+    await tx.goodsReceipt.update({where:{id:unpinned.id},data:{postedAt:new Date(),postedByUserId:f.pm.user.id,postKey:randomUUID()}});
+   }),/MATERIAL_UOM_RECEIPT_POST_PROOF_REQUIRED/);
    assert.equal(await db.stockTransaction.count({where:{goodsReceiptId:unpinned.id}}),0);
    assert.equal((await db.goodsReceipt.findUniqueOrThrow({where:{id:unpinned.id}})).postedAt,null);
    const receipt=await create();
@@ -122,7 +171,8 @@ test('DEC-050 B explicit activation: current authority, immutable opt-in and den
    const store=await f.sessions.resolve(f.store.session.sessionToken);assert.ok(store);
    const reservations=app.get(MaterialReservationService);
    const reservation=await reservations.create({auth:store},{projectId:f.project.id,warehouseId:f.warehouse.id,materialId:f.material.id,uomId:each.id,quantity:new Prisma.Decimal('10')});
-   await assert.rejects(reservations.activate({auth:store},reservation.id),/MATERIAL_UOM_ACTIVATED_SOURCE_PIN_REQUIRED/);
+   await assert.rejects(reservations.activate({auth:store},reservation.id),code('MATERIAL_UOM_BUSINESS_DATE_REQUIRED'));
+   await assert.rejects(db.materialReservation.update({where:{id:reservation.id},data:{status:'ACTIVE',activatedAt:new Date(),activatedByUserId:store.userId}}),/MATERIAL_UOM_ACTIVATED_SOURCE_PIN_REQUIRED/);
    assert.equal((await db.materialReservation.findUniqueOrThrow({where:{id:reservation.id}})).status,'DRAFT');
    await reservations.activate({auth:store},reservation.id,'2026-11-19');
    assert.equal((await db.materialUomReservationPin.findUniqueOrThrow({where:{reservationId:reservation.id}})).stockQuantity.toString(),'10');

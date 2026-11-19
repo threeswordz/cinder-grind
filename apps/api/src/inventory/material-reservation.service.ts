@@ -1,3 +1,4 @@
+import {activatedStockMaterials,explicitStockBusinessDate,lockStockWarehouses} from './material-uom-active-source';
 import {
   ConflictException,
   ForbiddenException,
@@ -287,9 +288,9 @@ export class MaterialReservationService {
         'inventory-warehouse:' + row.warehouseId,
       );
       await this.validateDimensions(context.auth, row, tx);
-      // Internal Stage B path only: a public activation parameter is not exposed.
-      // Existing project/warehouse checks precede dated conversion selection.
-      const pin = conversionBusinessDate === undefined ? null : await this.resolveReservationPin(context, row, conversionBusinessDate, tx);
+      const activated=await activatedStockMaterials(tx,row.companyId,[row.materialId]);
+      const businessDate=explicitStockBusinessDate(conversionBusinessDate,activated.has(row.materialId));
+      const pin = businessDate === undefined ? null : await this.resolveReservationPin(context, row, businessDate, tx);
       const dimension = this.dimension(context.auth.companyId, {...row,uomId:pin?.stockUomId ?? row.uomId});
       await this.quantities.lock(tx, dimension);
       const availability = await this.quantities.available(tx, dimension);
@@ -352,6 +353,8 @@ export class MaterialReservationService {
       // on the same Company/Project/site-Warehouse/Material/UOM dimension.
       // Activation and inventory posting already use this canonical lock.
       // Serializable isolation fails closed if the row changes while waiting.
+      await lockStockWarehouses(tx,[row.warehouseId]);
+      await activatedStockMaterials(tx,row.companyId,[row.materialId]);
       const pin=await tx.materialUomReservationPin.findUnique({where:{reservationId:id}});
       await this.quantities.lock(tx, this.dimension(context.auth.companyId, {...row,uomId:pin?.stockUomId ?? row.uomId}));
       const at = new Date();

@@ -1,3 +1,4 @@
+import {activatedStockMaterials,lockStockWarehouses} from './material-uom-active-source';
 import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import {deriveStockEffectFromOriginal} from '../master-data/material-uom-effect-pin';
@@ -131,7 +132,9 @@ export class TransferCustodyService {
       for (const projectId of new Set(row.items.map(item => item.destinationProjectId))) if (!await tx.project.count({ where: { id: projectId, companyId: auth.companyId, isActive: true } })) conflict('TRANSFER_DIMENSIONS_CHANGED');
       const pinRows=await tx.materialUomTransferSourcePin.findMany({where:{transferId:id,companyId:auth.companyId}});
       const pins=new Map(pinRows.map(p=>[p.transferItemId,p]));
-      if(pins.size&&pins.size!==row.items.length)conflict('MATERIAL_UOM_TRANSFER_SOURCE_INCOMPLETE');
+      await lockStockWarehouses(tx,[row.sourceWarehouseId]);
+      const activated=await activatedStockMaterials(tx,auth.companyId,row.items.map(i=>i.materialId));
+      if(row.items.some(i=>activated.has(i.materialId)!==pins.has(i.id)))conflict('MATERIAL_UOM_TRANSFER_SOURCE_INCOMPLETE');
       const dimensions = new Map<string, { dimension: StockDimension; quantity: Prisma.Decimal }>();
       for (const item of [...row.items].sort((a,b)=>a.materialId.localeCompare(b.materialId)||a.id.localeCompare(b.id))) {
         const p=pins.get(item.id);

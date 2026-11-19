@@ -61,7 +61,7 @@ export class MaterialUomService {
       const revisions = basis ? await tx.materialUomRevision.findMany({ where: { companyId: auth.companyId, materialId, ...(cursor ? { revisionNo: { lt: cursor } } : {}) }, orderBy: { revisionNo: 'desc' }, take: 26,
         select: { id: true, revisionNo: true, sourceUomId: true, sourcePrecision: true, sourceUomCode: true, sourceUomName: true, numerator: true, denominator: true, effectiveFrom: true, reason: true, createdAt: true, createdByUserId: true } }) : [];
       const activation = basis ? await tx.materialUomActivation.findUnique({where:{materialId},select:{createdAt:true,basisVersion:true}}) : null;
-      return { material, state: activation ? 'ACTIVE' : basis ? 'PREPARED' : 'NOT_PREPARED', inventoryConversionEnabled: Boolean(activation), activation, basis, revisions: revisions.slice(0, 25).map(r => ({ ...r, effectiveFrom: r.effectiveFrom.toISOString().slice(0, 10) })), nextBefore: revisions.length > 25 ? revisions[24]!.revisionNo : null };
+      return { material, state: basis ? 'PREPARED' : 'NOT_PREPARED', inventoryConversionEnabled: Boolean(activation), activation, basis, revisions: revisions.slice(0, 25).map(r => ({ ...r, effectiveFrom: r.effectiveFrom.toISOString().slice(0, 10) })), nextBefore: revisions.length > 25 ? revisions[24]!.revisionNo : null };
     });
   }
 
@@ -117,8 +117,8 @@ export class MaterialUomService {
     });
   }
 
-  // Explicit internal Stage B boundary. No public activation route exists until all
-  // dated operational interfaces and end-to-end B assurance are complete.
+  // Explicit Stage B activation. Existing material and conversion maintenance
+  // rights are revalidated; a prepared definition never activates by itself.
   async activateStock(context: Context, materialId: string, value: unknown) {
     materialId = uomId(materialId, 'materialId'); const input = uomActivate(value);
     return this.transaction(async tx => {

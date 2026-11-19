@@ -544,7 +544,7 @@ if [[ "$hr_proof" == true ]]; then
   DATABASE_URL="$upgrade_url" node --test apps/api/dist/hr/hr.integration.spec.js
 fi
 if [[ "$material_uom_effect_schema" == true ]]; then
-  DATABASE_URL="$upgrade_url" node --test --test-concurrency=1 apps/api/dist/master-data/material-uom-effect-pin.spec.js apps/api/dist/master-data/material-uom-activation.integration.spec.js apps/api/dist/inventory/material-uom-receipt-source.integration.spec.js
+  DATABASE_URL="$upgrade_url" node --test --test-concurrency=1 apps/api/dist/master-data/material-uom-effect-pin.spec.js apps/api/dist/master-data/material-uom-activation.integration.spec.js apps/api/dist/inventory/material-uom-receipt-source.integration.spec.js apps/api/dist/inventory/material-uom-operational-http.integration.spec.js
 fi
 if [[ "$material_uom_schema" == true ]]; then
   DATABASE_URL="$upgrade_url" node --test apps/api/dist/master-data/material-uom-contract.spec.js apps/api/dist/master-data/material-uom.integration.spec.js

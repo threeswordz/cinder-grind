@@ -1,3 +1,4 @@
+import {activatedStockMaterials,explicitStockBusinessDate} from './material-uom-active-source';
 import {
   ConflictException,
   Injectable,
@@ -262,6 +263,8 @@ export class GoodsReceiptService {
       }
       await this.currentOrder(context.auth, receipt.projectId, receipt.purchaseOrderId, tx);
       await this.receiving?.receiptReady(context.auth,receipt,tx);
+      const activated=await activatedStockMaterials(tx,receipt.companyId,receipt.items.map(i=>i.materialId));
+      const businessDate=explicitStockBusinessDate(conversionBusinessDate,activated.size>0);
       const approval = await this.approvals.start({
         companyId: context.auth.companyId, workflowCode,
         entityType: 'GOODS_RECEIPT', entityId: id,
@@ -270,8 +273,7 @@ export class GoodsReceiptService {
         where: { id },
         data: { approvalInstanceId: approval.id, submittedByUserId: context.auth.userId, submittedAt: new Date() },
       });
-      // Internal draft integration only; no HTTP caller enables this path until all owners are ready.
-      if (conversionBusinessDate !== undefined) await freezeSubmittedReceiptSources(tx, context.auth, receipt, conversionBusinessDate);
+      if (businessDate !== undefined) await freezeSubmittedReceiptSources(tx, context.auth, {...receipt,items:receipt.items.filter(i=>activated.has(i.materialId))}, businessDate);
       await this.audit.record({ ...context, entityType: 'GOODS_RECEIPT', entityId: id, action: 'SUBMIT', newValues: { approvalInstanceId: approval.id } }, tx);
       return updated;
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });

@@ -7,12 +7,13 @@ import { AuthenticatedUserContext } from '../auth/auth.types';
 const companyId='company', materialId='material', stockUomId='each', sourceUomId='carton';
 const permission='inventory.receipt.submit';
 const auth={companyId,userId:'store',sessionId:'session',permissions:[permission]} as unknown as AuthenticatedUserContext;
-const receipt={id:'gr',companyId,projectId:'project',items:[{id:'item',materialId,uomId:sourceUomId,quantity:new Prisma.Decimal(2)}]};
+const receipt={id:'gr',companyId,projectId:'project',warehouseId:'warehouse',items:[{id:'item',materialId,uomId:sourceUomId,quantity:new Prisma.Decimal(2)}]};
 function context(allowed=true,existing=false){
   const saved: any[]=[];
   const tx={
     userSession:{findFirst:async()=>allowed?{user:{employee:{companyId,isActive:true},userRoles:[{companyId,role:{companyId,isActive:true,roleCode:'STORE',rolePermissions:[{permission:{permissionCode:permission}}]}}]}}:null},
     $executeRaw:async()=>0,
+    materialUomActivation:{findMany:async()=>existing?[{materialId}]:[]},
     material:{findFirst:async()=>({id:materialId})},
     materialUomBasis:{findUnique:async()=>({companyId,stockUomId,stockPrecision:0,version:2})},
     unitOfMeasure:{findFirst:async()=>({decimalPlaces:0})},
