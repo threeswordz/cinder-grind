@@ -40,7 +40,8 @@ async function guards(){
    WHERE ((tgrelid='public.material_uom_effect_pins'::regclass)
     OR tgrelid='public.material_uom_receipt_source_pins'::regclass
     OR (tgrelid='public.goods_receipt_items'::regclass AND tgname='material_uom_receipt_source_drift_guard')
-    OR (tgrelid='public.stock_transactions'::regclass AND tgname IN ('material_uom_copy_reversal_pin','material_uom_receipt_post_pending_guard')))
+    OR (tgrelid='public.goods_receipts'::regclass AND tgname='material_uom_receipt_post_proof')
+    OR (tgrelid='public.stock_transactions'::regclass AND tgname IN ('material_uom_copy_reversal_pin','material_uom_copy_receipt_pin')))
    AND NOT tgisinternal ORDER BY tgname`);
 }
 try{
@@ -48,7 +49,7 @@ try{
  const before=await rows();
  assert.equal(before.material_uom_effect_pins.count,'0','B migration must not normalize or backfill historical stock');
  assert.equal(before.material_uom_receipt_source_pins.count,'0','No retrospective source freezes');
- assert.deepEqual(await guards(),[{name:'material_uom_copy_reversal_pin'},{name:'material_uom_effect_pin_guard'},{name:'material_uom_receipt_post_pending_guard'},{name:'material_uom_receipt_source_drift_guard'},{name:'material_uom_receipt_source_guard'}]);
+ assert.deepEqual(await guards(),[{name:'material_uom_copy_receipt_pin'},{name:'material_uom_copy_reversal_pin'},{name:'material_uom_effect_pin_guard'},{name:'material_uom_receipt_post_proof'},{name:'material_uom_receipt_source_drift_guard'},{name:'material_uom_receipt_source_guard'}]);
  if(mode==='protect'){
   const bogus=randomUUID();
   await assert.rejects(

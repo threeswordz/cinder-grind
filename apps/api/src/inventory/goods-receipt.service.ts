@@ -13,7 +13,7 @@ import { AuthenticatedUserContext } from '../auth/auth.types';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProjectAccessService } from '../projects/project-access.service';
 import { ReceivingService } from './receiving.service';
-import { freezeSubmittedReceiptSources, assertReceiptSourcePostingReady } from './material-uom-receipt-source';
+import { freezeSubmittedReceiptSources, loadReceiptPostingPins } from './material-uom-receipt-source';
 import {
   InventoryQuantityService,
   StockDimension,
@@ -292,7 +292,7 @@ export class GoodsReceiptService {
         const current = await this.get(context.auth, id, tx);
         await this.receiving?.receiptReady(context.auth,current,tx);
         if (current.postedAt || current.reversedAt) throw new ConflictException({ code: 'RECEIPT_ALREADY_POSTED' });
-        await assertReceiptSourcePostingReady(tx, current.companyId, current.id);
+        const postingPins = await loadReceiptPostingPins(tx, current);
         const sourceOrder = await tx.purchaseOrder.findFirst({
           where: { id: current.purchaseOrderId, companyId: current.companyId },
           select: { poNumber: true },
@@ -343,13 +343,22 @@ export class GoodsReceiptService {
           where: { id },
           data: { postedAt: now, postedByUserId: context.auth.userId, postKey },
         });
+        const postingDimensions = new Map<string, StockDimension>();
         for (const item of current.items) {
+          const pin=postingPins.get(item.id);
+          if (!pin) continue;
+          const dimension={companyId:current.companyId,warehouseId:current.warehouseId,projectId:current.projectId,materialId:item.materialId,uomId:pin.stockUomId};
+          postingDimensions.set(this.quantities.key(dimension),dimension);
+        }
+        for (const key of [...postingDimensions.keys()].sort()) await this.quantities.lock(tx,postingDimensions.get(key)!);
+        for (const item of current.items) {
+          const pin=postingPins.get(item.id);
           await tx.stockTransaction.create({
             data: {
               companyId: current.companyId, warehouseId: current.warehouseId,
-              materialId: item.materialId, projectId: current.projectId, uomId: item.uomId,
+              materialId: item.materialId, projectId: current.projectId, uomId: pin?.stockUomId ?? item.uomId,
               goodsReceiptId: id, goodsReceiptItemId: item.id,
-              movementType: 'GOODS_RECEIPT', quantity: item.quantity,
+              movementType: 'GOODS_RECEIPT', quantity: pin?.stockQuantity ?? item.quantity,
               effectKey: 'receipt:' + item.id,
               postedByUserId: context.auth.userId,
             },

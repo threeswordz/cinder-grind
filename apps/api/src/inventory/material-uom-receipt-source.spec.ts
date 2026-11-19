@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { Prisma } from '@prisma/client';
-import { freezeSubmittedReceiptSources, assertReceiptSourcePostingReady } from './material-uom-receipt-source';
+import { freezeSubmittedReceiptSources, loadReceiptPostingPins } from './material-uom-receipt-source';
 import { AuthenticatedUserContext } from '../auth/auth.types';
 
 const companyId='company', materialId='material', stockUomId='each', sourceUomId='carton';
@@ -17,7 +17,7 @@ function context(allowed=true,existing=false){
     materialUomBasis:{findUnique:async()=>({companyId,stockUomId,stockPrecision:0,version:2})},
     unitOfMeasure:{findFirst:async()=>({decimalPlaces:0})},
     materialUomRevision:{findFirst:async()=>({id:'revision',sourcePrecision:0,numerator:'20',denominator:'1'})},
-    materialUomReceiptSourcePin:{create:async({data}:any)=>{saved.push(data);return data;},findFirst:async()=>existing?{receiptItemId:'item'}:null},
+    materialUomReceiptSourcePin:{create:async({data}:any)=>{saved.push(data);return data;},findMany:async()=>existing?saved:[]},
   };
   return {tx:tx as unknown as Prisma.TransactionClient,saved};
 }
@@ -39,7 +39,12 @@ test('receipt source freeze rejects inactive authority, foreign company and infe
   assert.deepEqual(ctx.saved,[]);
  }
 });
-test('posting remains denied for a frozen source, while an unpinned receipt follows the old path',async()=>{
- await assertReceiptSourcePostingReady(context().tx,companyId,receipt.id);
- await assert.rejects(()=>assertReceiptSourcePostingReady(context(true,true).tx,companyId,receipt.id));
+test('posting uses exact frozen receipt source or the legacy path, rejecting source drift',async()=>{
+ assert.equal((await loadReceiptPostingPins(context().tx,receipt)).size,0);
+ const {tx,saved}=context(true,true);
+ await freezeSubmittedReceiptSources(tx,auth,receipt,'2026-11-19');
+ const pins=await loadReceiptPostingPins(tx,receipt);
+ assert.equal(pins.get('item')?.stockQuantity.toString(),'40');
+ saved[0].sourceQuantity=new Prisma.Decimal(3);
+ await assert.rejects(()=>loadReceiptPostingPins(tx,receipt));
 });

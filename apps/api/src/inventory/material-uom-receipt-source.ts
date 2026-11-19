@@ -38,9 +38,23 @@ export async function freezeSubmittedReceiptSources(
   }
 }
 
-// Intentionally fail closed until actual canonical stock posting replaces
-// this draft gate. Existing unpinned commercial receipts remain unchanged.
-export async function assertReceiptSourcePostingReady(tx: Prisma.TransactionClient, companyId: string, receiptId: string) {
-  if (await tx.materialUomReceiptSourcePin.findFirst({where:{companyId,receiptId},select:{receiptItemId:true}}))
-    throw new ConflictException({code:'MATERIAL_UOM_CANONICAL_POSTING_NOT_READY'});
+// Only explicit internal frozen submissions may enter this path. No public
+// activation is exposed until the rest of the canonical stock owners are ready.
+export async function loadReceiptPostingPins(tx: Prisma.TransactionClient, receipt: ReceiptSource) {
+  const pins=await tx.materialUomReceiptSourcePin.findMany({where:{companyId:receipt.companyId,receiptId:receipt.id}});
+  const result=new Map(pins.map(pin=>[pin.receiptItemId,pin]));
+  if (!pins.length) return result;
+  if (pins.length!==receipt.items.length) throw new ConflictException({code:'MATERIAL_UOM_RECEIPT_SOURCE_INCOMPLETE'});
+  for (const item of [...receipt.items].sort((a,b)=>a.materialId.localeCompare(b.materialId)||a.id.localeCompare(b.id))) {
+    const pin=result.get(item.id);
+    if (!pin || pin.projectId!==receipt.projectId || pin.materialId!==item.materialId ||
+        pin.sourceUomId!==item.uomId || !pin.sourceQuantity.eq(item.quantity))
+      throw new ConflictException({code:'MATERIAL_UOM_RECEIPT_SOURCE_MISMATCH'});
+    const current=await resolveStockEffectPin(tx,{companyId:receipt.companyId,materialId:item.materialId,
+      sourceUomId:item.uomId,quantity:item.quantity,businessDate:pin.businessDate.toISOString().slice(0,10),effectSign:1});
+    if (current.revisionId!==pin.revisionId || current.stockUomId!==pin.stockUomId ||
+        !current.stockQuantity.eq(pin.stockQuantity) || current.numerator!==pin.numerator || current.denominator!==pin.denominator)
+      throw new ConflictException({code:'MATERIAL_UOM_RECEIPT_DEFINITION_CHANGED'});
+  }
+  return result;
 }

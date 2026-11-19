@@ -59,13 +59,16 @@ test('B reversal inherits the original immutable pin; fresh pins cannot annotate
  assert.match(sql,/p\.stock_quantity,-p\.effect_sign,p\.business_date,p\.basis_version/);
 });
 
-test('receipt source freeze is immutable and cannot activate stock posting',()=>{
+test('receipt source freeze is immutable and canonical posting requires its exact source',()=>{
  const sql=readFileSync(new URL('../../apps/api/prisma/migrations/'+materialUomEffectMigration+'/migration.sql',import.meta.url),'utf8');
  assert.match(sql,/CREATE TABLE material_uom_receipt_source_pins/);
  assert.match(sql,/MATERIAL_UOM_RECEIPT_SUBMISSION_REQUIRED/);
  assert.match(sql,/item\.quantity IS DISTINCT FROM NEW\.source_quantity/);
  assert.match(sql,/MATERIAL_UOM_RECEIPT_SOURCE_IMMUTABLE/);
- assert.match(sql,/MATERIAL_UOM_CANONICAL_POSTING_NOT_READY/);
+ assert.match(sql,/MATERIAL_UOM_RECEIPT_LEDGER_SOURCE_MISMATCH/);
+ assert.match(sql,/MATERIAL_UOM_RECEIPT_APPROVED_POST_REQUIRED/);
+ assert.match(sql,/MATERIAL_UOM_RECEIPT_POST_PROOF_REQUIRED/);
+ assert.match(sql,/material_uom_copy_receipt_pin AFTER INSERT ON stock_transactions/);
  assert.throws(()=>classifySchema(previous,candidate.replace('materialUomReceiptSourcePin MaterialUomReceiptSourcePin?','')));
  assert.throws(()=>classifySchema(previous,candidate.replace('model MaterialUomReceiptSourcePin {','model UnreviewedReceiptPin {')));
 });
