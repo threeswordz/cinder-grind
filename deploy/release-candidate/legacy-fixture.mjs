@@ -67,6 +67,29 @@ const materialRequestApproved=process.env.MATERIAL_REQUEST_SCHEMA_UPGRADE==='YES
       ['boqs','supplier_quotations','quotation_awards'].includes(tablename) ? ['currency_code'] :
       (tablename === 'stock_transactions' && stockCountApproved ? ['stock_count_id'] : []);
     if(transferApproved && tablename==='stock_transactions')excludedColumns=[...excludedColumns,'transfer_receipt_line_id'];
+    // DEC-050 B: restore comparisons ignore ONLY the approved new nullable
+    // stock projection columns; require all of them and prove no old row was
+    // assigned a fabricated normalized quantity/date/factor.
+    if(materialUomApproved && ['stock_transactions','material_reservations'].includes(tablename)){
+      const expected=['stock_uom_id','stock_quantity','conversion_business_date','conversion_revision_id',
+        'conversion_basis_version','conversion_numerator','conversion_denominator'];
+      const existing=await prisma.$queryRawUnsafe(
+        "SELECT column_name,is_nullable,column_default FROM information_schema.columns WHERE table_schema='public' AND table_name=$1 AND column_name = ANY($2::text[])",
+        tablename,expected);
+      if(existing.length){
+        assert.equal(existing.length,expected.length,'Partial UOM stock provenance is prohibited');
+        for(const col of existing){
+          assert.ok(expected.includes(col.column_name));
+          assert.equal(col.is_nullable,'YES');
+          assert.equal(col.column_default,null,'Never infer stock unit/ratio for an old row');
+        }
+        const predicates=expected.map(col=>'"'+col+'" IS NOT NULL').join(' OR ');
+        const [unconverted]=await prisma.$queryRawUnsafe(
+          'SELECT count(*)::text AS count FROM "'+tablename+'" WHERE '+predicates);
+        assert.equal(unconverted.count,'0','Historical stock and reservations must not be backfilled/reinterpreted');
+        excludedColumns=[...excludedColumns,...expected];
+      }
+    }
     const [row] = await prisma.$queryRawUnsafe(`SELECT count(*)::text AS count,
       encode(sha256(convert_to(coalesce(string_agg((to_jsonb(t) - $1::text[])::text, E'\n' ORDER BY (to_jsonb(t) - $1::text[])::text), ''), 'UTF8')), 'hex') AS digest
       FROM "${tablename}" t ${tablename === 'permissions' ? 'WHERE id <> ALL($2::uuid[])' : ''}`,

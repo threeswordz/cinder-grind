@@ -1,4 +1,4 @@
-import {materialUomMode,materialUomMigrations} from './material-uom-schema-contract.mjs';
+import {materialUomMode,materialUomMigrations,materialUomStockMigrations} from './material-uom-schema-contract.mjs';
 import {physicalMode,physicalMigrations} from './subcontract-physical-schema-contract.mjs';
 import {transferMode} from './transfer-schema-contract.mjs';
 import {receivingMode} from './receiving-schema-contract.mjs';
@@ -83,6 +83,12 @@ if (['migration-aware-sql-only', 'migration-aware-thb-schema', 'migration-aware-
     }
     if(materialUomSchema){
       for(const name of materialUomMigrations)if(!rehearsal.migrationNames?.includes(name))fail('Exact material UOM migration missing');
+      // Stage B additive columns cannot be partially applied or smuggled into
+      // an old Stage A proof. The earlier A upgrade receipt remains intact.
+      const bObserved=materialUomStockMigrations.some(name=>rehearsal.migrationNames?.includes(name));
+      if(bObserved)for(const name of materialUomStockMigrations)
+        if(!rehearsal.migrationNames?.includes(name))fail('Partial material UOM stock projection migrations');
+
       for(const key of ['materialUomSchemaUpgrade','materialUomHistoricalPreservation','materialUomHttpUpgrade','materialUomPopulatedRecovery'])if(rehearsal[key]!=='PASS')fail('Material UOM definition proof missing: '+key);
     }
     if(physicalSchema){

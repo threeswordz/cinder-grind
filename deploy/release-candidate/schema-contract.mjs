@@ -1,4 +1,4 @@
-import {stripMaterialUomSchema} from './material-uom-schema-contract.mjs';
+import {stripMaterialUomSchema,stripMaterialUomStockSchema} from './material-uom-schema-contract.mjs';
 import {stripPhysicalSchema} from './subcontract-physical-schema-contract.mjs';
 import {stripTransferSchema} from './transfer-schema-contract.mjs';
 import {stripReceivingSchema} from './receiving-schema-contract.mjs';
@@ -206,6 +206,8 @@ function classifyBeforeMaterialUom(previous,candidate){
 
 export function classifySchema(previous,candidate){
  if(previous===candidate)return 'migration-aware-sql-only';
+ const oldStock=stripMaterialUomStockSchema(previous),newStock=stripMaterialUomStockSchema(candidate);
+ if(oldStock.present&&!newStock.present)throw Error('Material UOM stock provenance schema removal prohibited');
  const before=stripMaterialUomSchema(previous),after=stripMaterialUomSchema(candidate);
  if(before.present&&!after.present)throw Error('Material UOM definition schema removal prohibited');
  const base=before.text.replace(/\s+/g,' ').trim()===after.text.replace(/\s+/g,' ').trim()?'migration-aware-sql-only':classifyBeforeMaterialUom(before.text,after.text);

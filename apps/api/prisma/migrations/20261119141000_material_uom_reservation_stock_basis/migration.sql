@@ -45,6 +45,17 @@ DECLARE basis material_uom_bases%ROWTYPE;
  selected uuid;
  source_precision integer;
 BEGIN
+ -- Once the source is no longer DRAFT, its exact pinned conversion provenance
+ -- cannot be changed, cleared, repointed or recomputed at a later factor.
+ IF TG_OP='UPDATE' AND OLD.status <> 'DRAFT' AND
+    ROW(NEW.stock_uom_id,NEW.stock_quantity,NEW.conversion_business_date,
+        NEW.conversion_revision_id,NEW.conversion_basis_version,
+        NEW.conversion_numerator,NEW.conversion_denominator)
+    IS DISTINCT FROM
+    ROW(OLD.stock_uom_id,OLD.stock_quantity,OLD.conversion_business_date,
+        OLD.conversion_revision_id,OLD.conversion_basis_version,
+        OLD.conversion_numerator,OLD.conversion_denominator)
+ THEN RAISE EXCEPTION 'MATERIAL_UOM_RESERVATION_PROVENANCE_IMMUTABLE'; END IF;
  IF NEW.stock_quantity IS NULL THEN RETURN NEW; END IF;
  SELECT * INTO basis FROM material_uom_bases
    WHERE material_id=NEW.material_id AND company_id=NEW.company_id;
