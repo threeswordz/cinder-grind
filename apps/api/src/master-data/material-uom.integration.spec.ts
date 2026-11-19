@@ -8,7 +8,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { ProblemDetailsFilter } from '../common/problem-details.filter';
 import { securityHeadersMiddleware } from '../common/security-headers';
 import { materialUomFixture } from './material-uom-test-fixture';
-import { resolveMaterialUomStock } from './material-uom-stock';
+import { resolveMaterialUomStock, stockUomMovementFields } from './material-uom-stock';
 
 test('DEC-050 A actual PostgreSQL/HTTP: exact definitions, current authority, immutable provenance and no stock activation', async t => {
   const url = new URL(process.env.DATABASE_URL ?? '');
@@ -69,6 +69,13 @@ test('DEC-050 A actual PostgreSQL/HTTP: exact definitions, current authority, im
       assert.equal(selected?.enteredQuantity, '2.0000');
       assert.equal(selected?.revisionId, firstRevision.revisionId);
       assert.equal(selected?.basisVersion, 2);
+      assert.ok(selected);
+      const fields = stockUomMovementFields(selected);
+      assert.equal(fields.stockUomId, f.each.id);
+      assert.equal(fields.stockQuantity.toFixed(4), '40.0000');
+      assert.equal(fields.conversionRevisionId, firstRevision.revisionId);
+      assert.equal(fields.conversionBusinessDate.toISOString(), '2026-11-18T00:00:00.000Z');
+
       assert.equal(selected?.businessDate, '2026-11-18');
       assert.equal((await db.$transaction(tx => resolveMaterialUomStock(tx, { ...input, sourceUomId: f.each.id })))?.stockQuantity, '2.0000');
       assert.equal(await db.$transaction(tx => resolveMaterialUomStock(tx, { ...input, materialId: f.second.id })), null, 'No unapproved basis is inferred');

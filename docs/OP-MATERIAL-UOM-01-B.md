@@ -1,0 +1,22 @@
+# Material UOM Stage B — canonical stock fact integration
+
+**19 November 2026 SGT — B implementation IN PROGRESS.** Approved [DEC-050](DECISION-LOG.md#dec-050--material-specific-uom-and-cloud-abc-implementation) / [#354](https://github.com/threeswordz/cinder-grind/issues/354). Predecessor A #372 exact-main44336708390 SUCCESS48/48. DEC-051 routing #374 merged at main `72ec4127a6a04a92419fedf5db7ccb338ef8e444`, full exact-main44455291178 SUCCESS48/48. No new Owner scope approval needed.
+
+## Forward-only ledger provenance (B first executable increment)
+
+- Add optional immutable `stock_transactions.stock_uom_id`, `stock_quantity`, `conversion_business_date`, `conversion_revision_id`, `conversion_basis_version`, `conversion_numerator`, `conversion_denominator`. Existing source `quantity`/`uom_id`, source effect keys, grants, invoices, PO ceilings, movements and source guards are unchanged. No backfill, no second stock ledger or activation. NULL projection is historical/legacy, not permission to reinterpret an old quantity.
+- Add native PostgreSQL exact signed-rational validator. It requires cross-multiplication equality (no rounded division), source and stock precisions, bound-preserving quantities, a material/Company-scoped stock basis, revision identity/date and a deterministically effective revision at the pinned basis version. A new fact on a reversal must carry the original conversion revision/date/factor and exact opposite stock quantity. SQL rejects partial fields, synthetic later revision substitution and mismatched stock basis. Existing `stock_transactions` source immutability, approval and per-family source validators remain in force.
+- Introduce shared serializable-transaction `resolveMaterialUomStock` and `stockUomMovementFields` for future authorized posting owners. Use the same material revision advisory lock as definition maintenance; exact integer-rational conversion from Stage A; explicit source business date; active same-Company material and units; pinned snapshot. The existing authorized read-only preview now uses the same deterministic selector, with `inventoryConversionEnabled:false`. It does not call stock posting or assign capability.
+- Register actual disposable PostgreSQL UOM integration assertions for SQL exactness, schema provenance columns and source selection while preserving the pre/post stock/Finance row counts.
+
+**Boundary:** This increment supplies working, tested additive ledger provenance and a shared conversion resolver, **not** end-to-end enabled mixed-UOM operations. No production/prototype target mutation. It must not be called a completed Stage B or SS03. No unconditional conversion activation. Until B's existing owners are integrated, stock balance and reservation source calculations remain legacy.
+
+## Remaining Stage B technical work (same approved scope)
+
+1. Introduce explicit guarded material activation after proving historical same-basis compatibility and current source freeze/permission boundaries; reject unsupported historical multi-UOM material activation. No retained MKE/TCJ activation or assumed conversion rates.
+2. Integrate source pin and canonical onHand/reservation locks, frozen exact entered and stock dimensions into GR/receiving, issues/reservations, source-provenance returns/reversals, stock counts and same-Company dispatch/actual destination receipt. For GR without an existing explicit business date, obtain it from the authorized source input, not server-today.
+3. Preserve approved commercial PO/GR quantities, cumulative ceilings, price/currency and Supplier Invoice linkage; no amount/valuation conversion. Keep existing stock movement source/SQL guards while adding provenance source qualification and idempotency.
+4. Registered real PostgreSQL/authenticated HTTP and native browser tests for mixed units, partial quantities, overreceipt, source drift, direct SQL bypass, stale version/date, role/Company/Project denial, retry/concurrency, reverse/return, transfer in-transit and historical pre-activation. Copy-only separate populated restore/protected bytes evidence remains a later integrated prototype gate.
+5. Full exact-head PR CI, independent stable DEC-022 Codex review, guarded merge/tree equality and mandatory full exact-main under DEC-051. Stage C plan/request/BOQ/report/UI and consolidated assurance follows only completed B technical exit.
+
+Actual Mac subcontract launcher receipt remains separate and outstanding. Prototype4/8, GL3/10, human UAT deferred DEC-042; Production unauthorized.

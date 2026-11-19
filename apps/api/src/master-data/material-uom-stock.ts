@@ -98,3 +98,21 @@ export async function resolveMaterialUomStock(
     numerator, denominator, ...quantities,
   };
 }
+
+/**
+ * Store the exact source-selected snapshot on the existing canonical ledger.
+ * The original StockTransaction.quantity/uomId remain the immutable entered
+ * source facts; these additive fields express the normalized stock dimension.
+ * Do not use until *all* operational stock owners and locks consume it.
+ */
+export function stockUomMovementFields(pin: MaterialUomStockFact) {
+  return {
+    stockUomId: pin.stockUomId,
+    stockQuantity: new Prisma.Decimal(pin.stockQuantity),
+    conversionBusinessDate: new Date(pin.businessDate + 'T00:00:00.000Z'),
+    conversionRevisionId: pin.revisionId,
+    conversionBasisVersion: pin.basisVersion,
+    conversionNumerator: pin.numerator,
+    conversionDenominator: pin.denominator,
+  };
+}
