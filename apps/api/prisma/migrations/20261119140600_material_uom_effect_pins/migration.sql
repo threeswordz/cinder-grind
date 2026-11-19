@@ -1027,8 +1027,8 @@ BEGIN
   PERFORM pg_advisory_xact_lock(hashtext('inventory-stock:'||m.company_id::text||':'||m.warehouse_id::text||':'||m.material_id::text||':'||m.project_id::text||':'||m.uom_id::text));
   IF m.movement_type='STOCK_TRANSFER_OUT' THEN
    SELECT COALESCE((SELECT SUM(st.quantity) FROM stock_transactions st WHERE st.company_id=m.company_id AND st.warehouse_id=m.warehouse_id AND st.project_id=m.project_id AND st.material_id=m.material_id AND st.uom_id=m.uom_id),0)
-     - COALESCE((SELECT SUM(COALESCE(rp.stock_quantity,r.quantity)) FROM material_reservations r LEFT JOIN material_uom_reservation_pins rp ON rp.reservation_id=r.id
-       WHERE r.company_id=m.company_id AND r.warehouse_id=m.warehouse_id AND r.material_id=m.material_id AND r.project_id=m.project_id AND COALESCE(rp.stock_uom_id,r.uom_id)=m.uom_id AND r.status='ACTIVE'),0) INTO free_quantity;
+     - COALESCE((SELECT SUM(COALESCE(rp.stock_quantity,reserved_row.quantity)) FROM material_reservations reserved_row LEFT JOIN material_uom_reservation_pins rp ON rp.reservation_id=reserved_row.id
+       WHERE reserved_row.company_id=m.company_id AND reserved_row.warehouse_id=m.warehouse_id AND reserved_row.material_id=m.material_id AND reserved_row.project_id=m.project_id AND COALESCE(rp.stock_uom_id,reserved_row.uom_id)=m.uom_id AND reserved_row.status='ACTIVE'),0) INTO free_quantity;
    IF -m.quantity>free_quantity THEN RAISE EXCEPTION 'STOCK_TRANSFER_INSUFFICIENT_AVAILABLE'; END IF;
   END IF;
  END IF;
@@ -1051,7 +1051,7 @@ BEGIN
    IF m.movement_type='STOCK_TRANSFER_IN_REVERSAL' THEN
     PERFORM pg_advisory_xact_lock(hashtext('inventory-stock:'||m.company_id::text||':'||m.warehouse_id::text||':'||m.material_id::text||':'||m.project_id::text||':'||m.uom_id::text));
     SELECT COALESCE((SELECT SUM(st.quantity) FROM stock_transactions st WHERE st.company_id=m.company_id AND st.warehouse_id=m.warehouse_id AND st.project_id=m.project_id AND st.material_id=m.material_id AND st.uom_id=m.uom_id),0)
-     - COALESCE((SELECT SUM(COALESCE(rp.stock_quantity,r.quantity)) FROM material_reservations r LEFT JOIN material_uom_reservation_pins rp ON rp.reservation_id=r.id WHERE r.company_id=m.company_id AND r.warehouse_id=m.warehouse_id AND r.project_id=m.project_id AND r.material_id=m.material_id AND COALESCE(rp.stock_uom_id,r.uom_id)=m.uom_id AND r.status='ACTIVE'),0) INTO free_quantity;
+     - COALESCE((SELECT SUM(COALESCE(rp.stock_quantity,reserved_row.quantity)) FROM material_reservations reserved_row LEFT JOIN material_uom_reservation_pins rp ON rp.reservation_id=reserved_row.id WHERE reserved_row.company_id=m.company_id AND reserved_row.warehouse_id=m.warehouse_id AND reserved_row.project_id=m.project_id AND reserved_row.material_id=m.material_id AND COALESCE(rp.stock_uom_id,reserved_row.uom_id)=m.uom_id AND reserved_row.status='ACTIVE'),0) INTO free_quantity;
     IF -m.quantity>free_quantity THEN RAISE EXCEPTION 'STOCK_TRANSFER_REVERSAL_INSUFFICIENT_AVAILABLE'; END IF;
    END IF;
   END IF;
