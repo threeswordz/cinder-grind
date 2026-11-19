@@ -31,7 +31,7 @@ function context(overrides: Record<string, unknown> = {}) {
   return { tx: tx as unknown as Prisma.TransactionClient, calls };
 }
 const input = (sourceUomId = boxUomId, quantity = '2', businessDate = '2026-10-20') =>
-  ({ companyId, materialId, sourceUomId, quantity: new Prisma.Decimal(quantity), businessDate });
+  ({ companyId, materialId, sourceUomId, quantity: new Prisma.Decimal(quantity), businessDate, effectSign: 1 as const });
 
 test('stock effect pin freezes exact entered/commercial and canonical stock quantities', async () => {
   const { tx, calls } = context();
@@ -40,6 +40,7 @@ test('stock effect pin freezes exact entered/commercial and canonical stock quan
   assert.equal(result.sourceQuantity.toString(), '2');
   assert.equal(result.stockQuantity.toString(), '40');
   assert.equal(result.stockUomId, stockUomId);
+  assert.equal(result.effectSign, 1);
   assert.equal(result.revisionId, revisionId);
   assert.equal(result.basisVersion, 3);
   assert.equal(result.businessDate.toISOString(), '2026-10-20T00:00:00.000Z');
@@ -62,15 +63,25 @@ test('missing, cross-Company, inactive and stale definitions fail closed', async
     { revision: { sourcePrecision: 2 } },
   ]) {
     const { tx } = context(overrides);
-    await assert.rejects(() => resolveStockEffectPin(tx, input()), /MATERIAL_UOM_/);
+    await assert.rejects(() => resolveStockEffectPin(tx, input()), error => String((error as {getResponse:()=>{code:string}}).getResponse().code).startsWith('MATERIAL_UOM_'));
   }
 });
 test('explicit business date and exact stock precision deny residuals, overprecision and overflow', async () => {
   const { tx } = context({ revision: { numerator: '1', denominator: '3' } });
-  await assert.rejects(() => resolveStockEffectPin(tx, input()), /MATERIAL_UOM_NOT_REPRESENTABLE/);
+  await assert.rejects(() => resolveStockEffectPin(tx, input()), error => (error as {getResponse:()=>{code:string}}).getResponse().code === 'MATERIAL_UOM_NOT_REPRESENTABLE');
   const second = context();
   for (const bad of ['2026-02-29', '2026-10-20T01:00:00Z', '']) {
-    await assert.rejects(() => resolveStockEffectPin(second.tx, input(boxUomId, '2', bad)), /MATERIAL_UOM_INPUT_INVALID/);
+    await assert.rejects(() => resolveStockEffectPin(second.tx, input(boxUomId, '2', bad)), error => (error as {getResponse:()=>{code:string}}).getResponse().code === 'MATERIAL_UOM_INPUT_INVALID');
   }
-  await assert.rejects(() => resolveStockEffectPin(second.tx, input(boxUomId, '0.0001')), /MATERIAL_UOM_SOURCE_PRECISION/);
+  await assert.rejects(() => resolveStockEffectPin(second.tx, input(boxUomId, '0.0001')), error => (error as {getResponse:()=>{code:string}}).getResponse().code === 'MATERIAL_UOM_SOURCE_PRECISION');
+});
+
+test('negative stock effects preserve positive entered magnitude and an explicit signed ledger effect', async () => {
+  const { tx } = context();
+  const pin = await resolveStockEffectPin(tx, { ...input(), effectSign: -1 });
+  assert.equal(pin.effectSign, -1);
+  assert.equal(pin.sourceQuantity.toString(), '2');
+  assert.equal(pin.stockQuantity.toString(), '40');
+  await assert.rejects(() => resolveStockEffectPin(tx, { ...input(), effectSign: 0 as 1 }), error =>
+    (error as {getResponse:()=>{code:string}}).getResponse().code === 'MATERIAL_UOM_EFFECT_SIGN_INVALID');
 });

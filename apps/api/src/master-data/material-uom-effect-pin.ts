@@ -12,6 +12,7 @@ export type StockEffectSource = {
   sourceUomId: string;
   quantity: Prisma.Decimal;
   businessDate: string;
+  effectSign: 1 | -1;
 };
 
 const conflict = (code: string): never => {
@@ -23,6 +24,7 @@ export async function resolveStockEffectPin(
   input: StockEffectSource,
 ) {
   const businessDate = uomDate(input.businessDate);
+  if (input.effectSign !== 1 && input.effectSign !== -1) return conflict('MATERIAL_UOM_EFFECT_SIGN_INVALID');
   // Identical lock order to the authoritative material UOM definition writer.
   await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${[
     'material-uom', input.companyId, input.materialId,
@@ -80,6 +82,7 @@ export async function resolveStockEffectPin(
     stockQuantity: new Prisma.Decimal(normalized.stockQuantity),
     businessDate: new Date(businessDate + 'T00:00:00.000Z'),
     basisVersion: basis.version,
+    effectSign: input.effectSign,
     revisionId: revision?.id ?? null,
     numerator,
     denominator,

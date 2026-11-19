@@ -8,6 +8,7 @@ CREATE TABLE material_uom_effect_pins (
   source_quantity numeric(18,4) NOT NULL,
   stock_uom_id uuid NOT NULL REFERENCES units_of_measure(id) ON DELETE RESTRICT,
   stock_quantity numeric(18,4) NOT NULL,
+  effect_sign smallint NOT NULL,
   business_date date NOT NULL,
   basis_version integer NOT NULL,
   revision_id uuid REFERENCES material_uom_revisions(id) ON DELETE RESTRICT,
@@ -17,7 +18,7 @@ CREATE TABLE material_uom_effect_pins (
   CONSTRAINT material_uom_effect_pin_basis_fk FOREIGN KEY (company_id,material_id)
     REFERENCES material_uom_bases(company_id,material_id) ON DELETE RESTRICT,
   CONSTRAINT material_uom_effect_pin_quantity_shape CHECK
-    (source_quantity>0 AND stock_quantity>0 AND basis_version>=1 AND business_date BETWEEN DATE '0001-01-01' AND DATE '9999-12-31'
+    (source_quantity>0 AND stock_quantity>0 AND effect_sign IN (-1,1) AND basis_version>=1 AND business_date BETWEEN DATE '0001-01-01' AND DATE '9999-12-31'
      AND numerator ~ '^[1-9][0-9]{0,37}$' AND denominator ~ '^[1-9][0-9]{0,37}$')
 );
 CREATE INDEX material_uom_effect_pins_company_material_date_idx
@@ -35,7 +36,7 @@ BEGIN
  IF TG_OP<>'INSERT' THEN RAISE EXCEPTION 'MATERIAL_UOM_EFFECT_PIN_IMMUTABLE'; END IF;
  SELECT * INTO ledger FROM stock_transactions WHERE id=NEW.stock_transaction_id;
  IF NOT FOUND OR ledger.company_id<>NEW.company_id OR ledger.material_id<>NEW.material_id
-    OR ledger.uom_id<>NEW.stock_uom_id OR ledger.quantity<>NEW.stock_quantity
+    OR ledger.uom_id<>NEW.stock_uom_id OR ledger.quantity<>NEW.stock_quantity*NEW.effect_sign
  THEN RAISE EXCEPTION 'MATERIAL_UOM_LEDGER_PIN_MISMATCH'; END IF;
  SELECT * INTO basis FROM material_uom_bases WHERE company_id=NEW.company_id AND material_id=NEW.material_id;
  IF NOT FOUND OR basis.stock_uom_id<>NEW.stock_uom_id OR basis.version<NEW.basis_version

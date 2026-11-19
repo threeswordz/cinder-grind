@@ -4151,6 +4151,7 @@ model MaterialUomEffectPin {
   sourceQuantity Decimal @map("source_quantity") @db.Decimal(18, 4)
   stockUomId String @map("stock_uom_id") @db.Uuid
   stockQuantity Decimal @map("stock_quantity") @db.Decimal(18, 4)
+  effectSign Int @map("effect_sign")
   businessDate DateTime @map("business_date") @db.Date
   basisVersion Int @map("basis_version")
   revisionId String? @map("revision_id") @db.Uuid
