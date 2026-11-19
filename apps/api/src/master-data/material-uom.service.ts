@@ -5,8 +5,9 @@ import { isDeepStrictEqual } from 'node:util';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { AuthenticatedUserContext } from '../auth/auth.types';
-import { exactUomQuantity, MATERIAL_UOM_MANAGE, MATERIAL_UOM_VIEW, uomId, uomInvalid, uomPrepare, uomPreview, uomRevise, uomVersion } from './material-uom-contract';
+import { MATERIAL_UOM_MANAGE, MATERIAL_UOM_VIEW, uomId, uomInvalid, uomPrepare, uomPreview, uomRevise, uomVersion } from './material-uom-contract';
 import { materialUomException } from './material-uom-errors';
+import { resolveMaterialUomStock } from './material-uom-stock';
 
 type Tx = Prisma.TransactionClient;
 type Context = { auth: AuthenticatedUserContext; correlationId?: string };
@@ -119,16 +120,24 @@ export class MaterialUomService {
   async preview(auth: AuthenticatedUserContext, materialId: string, value: unknown) {
     materialId = uomId(materialId, 'materialId'); const input = uomPreview(value);
     return this.transaction(async tx => {
-      await this.actor(auth, tx); await this.material(auth, materialId, tx, true);
-      const basis = await tx.materialUomBasis.findUnique({ where: { materialId } });
-      if (!basis) return uomInvalid('materialId', 'MATERIAL_UOM_BASIS_REQUIRED');
-      await this.unit(auth, basis.stockUomId, tx); await this.unit(auth, input.sourceUomId, tx);
-      const revision = input.sourceUomId === basis.stockUomId ? null : await tx.materialUomRevision.findFirst({ where: { companyId: auth.companyId, materialId, sourceUomId: input.sourceUomId, effectiveFrom: { lte: new Date(input.businessDate + 'T00:00:00.000Z') } }, orderBy: [{ effectiveFrom: 'desc' }, { revisionNo: 'desc' }] });
-      if (!revision && input.sourceUomId !== basis.stockUomId) return uomInvalid('businessDate', 'MATERIAL_UOM_DEFINITION_REQUIRED');
-      const numerator = revision?.numerator ?? '1', denominator = revision?.denominator ?? '1';
-      return { materialId, basisVersion: basis.version, state: 'PREVIEW_ONLY', inventoryConversionEnabled: false, businessDate: input.businessDate, revisionId: revision?.id ?? null, effectiveFrom: revision?.effectiveFrom.toISOString().slice(0, 10) ?? null, numerator, denominator,
-        sourceUomId: input.sourceUomId, sourceUomCode: revision?.sourceUomCode ?? basis.stockUomCode, stockUomId: basis.stockUomId, stockUomCode: basis.stockUomCode,
-        ...exactUomQuantity(input.quantity, revision?.sourcePrecision ?? basis.stockPrecision, basis.stockPrecision, numerator, denominator) };
+      await this.actor(auth, tx);
+      await this.material(auth, materialId, tx, true);
+      // Stage B's shared DB-backed selector is also used by operational source
+      // freezing. A preview remains read-only, with no stock activation.
+      const pin = await resolveMaterialUomStock(tx, {
+        companyId: auth.companyId, materialId, sourceUomId: input.sourceUomId,
+        businessDate: input.businessDate, quantity: input.quantity,
+      });
+      if (!pin) return uomInvalid('materialId', 'MATERIAL_UOM_BASIS_REQUIRED');
+      return {
+        materialId, basisVersion: pin.basisVersion, state: 'PREVIEW_ONLY',
+        inventoryConversionEnabled: false, businessDate: pin.businessDate,
+        revisionId: pin.revisionId, effectiveFrom: pin.effectiveFrom,
+        numerator: pin.numerator, denominator: pin.denominator,
+        sourceUomId: pin.sourceUomId, sourceUomCode: pin.sourceUomCode,
+        stockUomId: pin.stockUomId, stockUomCode: pin.stockUomCode,
+        enteredQuantity: pin.enteredQuantity, stockQuantity: pin.stockQuantity,
+      };
     });
   }
 }

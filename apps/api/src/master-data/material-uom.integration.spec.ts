@@ -8,6 +8,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { ProblemDetailsFilter } from '../common/problem-details.filter';
 import { securityHeadersMiddleware } from '../common/security-headers';
 import { materialUomFixture } from './material-uom-test-fixture';
+import { resolveMaterialUomStock } from './material-uom-stock';
 
 test('DEC-050 A actual PostgreSQL/HTTP: exact definitions, current authority, immutable provenance and no stock activation', async t => {
   const url = new URL(process.env.DATABASE_URL ?? '');
@@ -60,6 +61,18 @@ test('DEC-050 A actual PostgreSQL/HTTP: exact definitions, current authority, im
       await call(f.viewer, path + '/preview', 422, { sourceUomId: f.carton.id, quantity: '2' });
       await call(f.viewer, path + '/preview', 422, { sourceUomId: f.carton.id, quantity: '2', businessDate: '2026-11-18', numerator: '999' });
       await call(f.viewer, '/master-data/material-conversions/' + f.second.id + '/preview', 422, { sourceUomId: f.carton.id, quantity: '2', businessDate: '2026-11-18' });
+    });
+    await t.test('Stage B shared source selector pins exact business date, basis version and immutable revision', async () => {
+      const input = { companyId: f.company.id, materialId: f.material.id, sourceUomId: f.carton.id, businessDate: '2026-11-18', quantity: '2' };
+      const selected = await db.$transaction(tx => resolveMaterialUomStock(tx, input));
+      assert.equal(selected?.stockQuantity, '40.0000');
+      assert.equal(selected?.enteredQuantity, '2.0000');
+      assert.equal(selected?.revisionId, firstRevision.revisionId);
+      assert.equal(selected?.basisVersion, 2);
+      assert.equal(selected?.businessDate, '2026-11-18');
+      assert.equal((await db.$transaction(tx => resolveMaterialUomStock(tx, { ...input, sourceUomId: f.each.id })))?.stockQuantity, '2.0000');
+      assert.equal(await db.$transaction(tx => resolveMaterialUomStock(tx, { ...input, materialId: f.second.id })), null, 'No unapproved basis is inferred');
+      await assert.rejects(db.$transaction(tx => resolveMaterialUomStock(tx, { ...input, businessDate: '2025-01-01' })), /MATERIAL_UOM_DEFINITION_REQUIRED/);
     });
     await t.test('future and same-date corrective revisions preserve old facts and select unambiguously', async () => {
       await call(f.maker, path + '/revisions', 201, revision(2, '24', '2027-01-01'));
