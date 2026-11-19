@@ -12,6 +12,7 @@ import { AuthenticatedUserContext } from '../auth/auth.types';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProjectAccessService } from '../projects/project-access.service';
 import { InventoryQuantityService, StockDimension } from './inventory-quantity.service';
+import { requireTrackedStockUnit, trackedCanonicalBasis } from './material-uom-stock-dimension';
 
 type AuditContext = { auth: AuthenticatedUserContext; correlationId?: string };
 type Db = Prisma.TransactionClient | PrismaService;
@@ -136,7 +137,19 @@ export class StockCountService {
       uomCode: string;
       uomName: string;
     }> = [];
+    const tracked=materialIds.length?await this.prisma.$queryRaw<{materialId:string;uomId:string;uomCode:string;uomName:string;isActive:boolean}[]>`
+      SELECT b.material_id AS "materialId", u.id AS "uomId",u.uom_code AS "uomCode",u.uom_name AS "uomName",u.is_active AS "isActive"
+      FROM material_uom_bases b CROSS JOIN LATERAL erp_material_uom_tracked_stock_basis(b.company_id,b.material_id) t
+      JOIN units_of_measure u ON u.id=t.stock_uom_id AND u.company_id=b.company_id
+      WHERE b.company_id=${auth.companyId}::uuid AND b.material_id IN (${Prisma.join(materialIds.map(id=>Prisma.sql`${id}::uuid`))})`: [];
+    const byTracked=new Map(tracked.map(b=>[b.materialId,b]));
     for (const material of page) {
+      const canonical=byTracked.get(material.id);
+      if(canonical){
+        if(canonical.isActive)items.push({materialId:material.id,materialCode:material.materialCode,materialName:material.materialName,
+          uomId:canonical.uomId,uomCode:canonical.uomCode,uomName:canonical.uomName});
+        continue;
+      }
       const seen = new Set<string>();
       if (material.defaultUom.isActive) {
         items.push({
@@ -197,6 +210,7 @@ export class StockCountService {
     this.assertQuantity(input.actualQuantity);
     return this.prisma.$transaction(async (tx) => {
       await this.validateDimensions(context.auth, input, tx);
+      await requireTrackedStockUnit(tx,{...input,companyId:context.auth.companyId},input.actualQuantity);
       const dimension = this.dimension(context.auth.companyId, input);
       await this.quantities.lock(tx, dimension);
       const [snapshot, snapshotVersion] = await Promise.all([
@@ -236,6 +250,7 @@ export class StockCountService {
       const before = await this.get(context.auth, id, tx);
       this.assertDraftVersion(before.status, before.version, input.expectedVersion);
       const actual = input.actualQuantity ?? before.actualQuantity;
+      await requireTrackedStockUnit(tx,before,actual);
       const row = await tx.stockCount.update({
         where: { id },
         data: {
@@ -260,6 +275,7 @@ export class StockCountService {
       const before = await this.get(context.auth, id, tx);
       this.assertDraftVersion(before.status, before.version, expectedVersion);
       await this.validateDimensions(context.auth, before, tx);
+      await requireTrackedStockUnit(tx,before,before.actualQuantity);
       const dimension = this.dimension(context.auth.companyId, before);
       await this.quantities.lock(tx, dimension);
       const [current, snapshotVersion] = await Promise.all([
@@ -336,6 +352,7 @@ export class StockCountService {
         before.warehouseId,
       );
       await this.validateDimensions(context.auth, before, tx);
+      await requireTrackedStockUnit(tx,before,before.actualQuantity);
       const dimension = this.dimension(context.auth.companyId, before);
       await this.quantities.lock(tx, dimension);
       const [current, snapshotVersion] = await Promise.all([
@@ -398,7 +415,7 @@ export class StockCountService {
           detail: 'The stock count maker or submitter cannot decide the same count.',
         });
       }
-      await this.validateDimensions(context.auth, before, tx);
+      await this.validateDimensions(context.auth, before, tx, true);
       const row = await tx.stockCount.update({
         where: { id },
         data: {
@@ -430,6 +447,7 @@ export class StockCountService {
     auth: AuthenticatedUserContext,
     input: { projectId: string; warehouseId: string; materialId: string; uomId: string },
     db: Db,
+    rejecting=false,
   ) {
     await this.access.assertAccess(auth, input.projectId, db);
     const [project, warehouse, material, uom] = await Promise.all([
@@ -455,6 +473,8 @@ export class StockCountService {
     // Match the canonical options endpoint: default UOM or an existing stock-ledger
     // Material/UOM dimension in this exact Company, Project and site Warehouse.
     // Otherwise an API caller could post a physical adjustment against an invented UOM.
+    const basis=rejecting?await trackedCanonicalBasis(db,auth.companyId,input.materialId):await requireTrackedStockUnit(db,{...input,companyId:auth.companyId});
+    if (basis && (rejecting || basis.stockUomId===input.uomId)) return;
     if (material.defaultUomId !== input.uomId) {
       const existingDimension = await db.stockTransaction.findFirst({
         where: {

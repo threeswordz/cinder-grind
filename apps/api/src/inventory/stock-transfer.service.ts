@@ -7,6 +7,7 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import { resolveStockEffectPin } from '../master-data/material-uom-effect-pin';
 
 import { bindTransferCustody, recordTransferCustodyEvent } from './transfer-custody.service';
 import { transferActor } from './transfer-custody-actor';
@@ -164,24 +165,24 @@ export class StockTransferService {
         u.uom_code AS "uomCode",
         SUM(st.quantity)::DECIMAL(38,4) AS "onHand",
         COALESCE((
-          SELECT SUM(r.quantity)
-          FROM material_reservations r
+          SELECT SUM(COALESCE(p.stock_quantity,r.quantity))
+          FROM material_reservations r LEFT JOIN material_uom_reservation_pins p ON p.reservation_id=r.id
           WHERE r.company_id=st.company_id
             AND r.warehouse_id=st.warehouse_id
             AND r.material_id=st.material_id
             AND r.project_id=st.project_id
-            AND r.uom_id=st.uom_id
+            AND COALESCE(p.stock_uom_id,r.uom_id)=st.uom_id
             AND r.status='ACTIVE'
         ),0)::DECIMAL(38,4) AS "reserved",
         (
           SUM(st.quantity) - COALESCE((
-            SELECT SUM(r.quantity)
-            FROM material_reservations r
+            SELECT SUM(COALESCE(p.stock_quantity,r.quantity))
+            FROM material_reservations r LEFT JOIN material_uom_reservation_pins p ON p.reservation_id=r.id
             WHERE r.company_id=st.company_id
               AND r.warehouse_id=st.warehouse_id
               AND r.material_id=st.material_id
               AND r.project_id=st.project_id
-              AND r.uom_id=st.uom_id
+              AND COALESCE(p.stock_uom_id,r.uom_id)=st.uom_id
               AND r.status='ACTIVE'
           ),0)
         )::DECIMAL(38,4) AS "available"
@@ -268,6 +269,7 @@ export class StockTransferService {
             destinationProject: {
               select: { projectCode: true, projectName: true },
             },
+            materialUomTransferSourcePin: {select:{stockQuantity:true,stockUomId:true}},
           },
         },
         approvalInstance: {
@@ -286,7 +288,7 @@ export class StockTransferService {
     ]) {
       await this.access.assertAccess(auth, projectId, db);
     }
-    return { ...row, custody: custody ? { ...custody, receiptComplete: Boolean(custody.dispatch) && row.items.every(item => row.stockTransactions.filter(m => m.stockTransferItemId === item.id && m.movementType === 'STOCK_TRANSFER_IN').reduce((sum,m) => sum.plus(m.quantity), new Prisma.Decimal(0)).equals(item.quantity)) } : null };
+    return { ...row, custody: custody ? { ...custody, receiptComplete: Boolean(custody.dispatch) && row.items.every(item => row.stockTransactions.filter(m => m.stockTransferItemId === item.id && m.movementType === 'STOCK_TRANSFER_IN').reduce((sum,m) => sum.plus(m.quantity), new Prisma.Decimal(0)).equals(item.materialUomTransferSourcePin?.stockQuantity??item.quantity)) } : null };
   }
 
   async create(
@@ -484,7 +486,7 @@ export class StockTransferService {
     });
   }
 
-  async submit(context: AuditContext, id: string, workflowCode: string) {
+  async submit(context: AuditContext, id: string, workflowCode: string, freezeConversion=false) {
     return this.prisma.$transaction(
       async (tx) => {
         const transfer = await this.get(context.auth, id, tx);
@@ -522,6 +524,16 @@ export class StockTransferService {
             submittedAt: new Date(),
           },
         });
+        if(freezeConversion){
+          if(!transfer.custody)throw new ConflictException({code:'MATERIAL_UOM_TRANSFER_CUSTODY_REQUIRED'});
+          await transferActor(context.auth,tx,['inventory.transfer.view','inventory.transfer.submit']);
+          for(const item of [...transfer.items].sort((a,b)=>a.materialId.localeCompare(b.materialId)||a.id.localeCompare(b.id))){
+            const {effectSign:_sign,...pin}=await resolveStockEffectPin(tx,{companyId:transfer.companyId,materialId:item.materialId,sourceUomId:item.uomId,
+              quantity:item.quantity,businessDate:transfer.transferDate.toISOString().slice(0,10),effectSign:-1});
+            await tx.materialUomTransferSourcePin.create({data:{...pin,transferId:id,transferItemId:item.id,sourceWarehouseId:transfer.sourceWarehouseId,
+             destinationWarehouseId:transfer.destinationWarehouseId,sourceProjectId:item.sourceProjectId,destinationProjectId:item.destinationProjectId}});
+          }
+        }
         await this.audit.record(
           {
             ...context,
@@ -788,7 +800,7 @@ export class StockTransferService {
           for (const item of transfer.items) {
             const out = originals.filter((m) => m.stockTransferItemId === item.id && m.movementType === 'STOCK_TRANSFER_OUT');
             const received = originals.filter((m) => m.stockTransferItemId === item.id && m.movementType === 'STOCK_TRANSFER_IN').reduce((sum, m) => sum.plus(m.quantity), new Prisma.Decimal(0));
-            if (out.length !== 1 || !received.equals(item.quantity)) throw new ConflictException({ code: 'TRANSFER_OUTSTANDING_CUSTODY_NOT_REVERSIBLE' });
+            if (out.length !== 1 || !received.equals(item.materialUomTransferSourcePin?.stockQuantity??item.quantity)) throw new ConflictException({ code: 'TRANSFER_OUTSTANDING_CUSTODY_NOT_REVERSIBLE' });
           }
         } else if (originals.length !== transfer.items.length * 2) {
           throw new ConflictException({ code: 'STOCK_TRANSFER_LEDGER_INCOMPLETE' });

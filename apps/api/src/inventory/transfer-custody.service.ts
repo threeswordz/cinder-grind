@@ -1,5 +1,7 @@
 import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import {deriveStockEffectFromOriginal} from '../master-data/material-uom-effect-pin';
+import {requireTrackedStockUnit} from './material-uom-stock-dimension';
 import { createHash } from 'node:crypto';
 import { AuthenticatedUserContext } from '../auth/auth.types';
 import { AuditService } from '../audit/audit.service';
@@ -127,12 +129,20 @@ export class TransferCustodyService {
         if (!warehouse || row.items.some(item => warehouse.projectId && warehouse.projectId !== (warehouseId === row.sourceWarehouseId ? item.sourceProjectId : item.destinationProjectId))) conflict('TRANSFER_WAREHOUSE_SCOPE_CHANGED');
       }
       for (const projectId of new Set(row.items.map(item => item.destinationProjectId))) if (!await tx.project.count({ where: { id: projectId, companyId: auth.companyId, isActive: true } })) conflict('TRANSFER_DIMENSIONS_CHANGED');
+      const pinRows=await tx.materialUomTransferSourcePin.findMany({where:{transferId:id,companyId:auth.companyId}});
+      const pins=new Map(pinRows.map(p=>[p.transferItemId,p]));
+      if(pins.size&&pins.size!==row.items.length)conflict('MATERIAL_UOM_TRANSFER_SOURCE_INCOMPLETE');
       const dimensions = new Map<string, { dimension: StockDimension; quantity: Prisma.Decimal }>();
-      for (const item of row.items) {
+      for (const item of [...row.items].sort((a,b)=>a.materialId.localeCompare(b.materialId)||a.id.localeCompare(b.id))) {
+        const p=pins.get(item.id);
+        if(p&&(p.sourceUomId!==item.uomId||!p.sourceQuantity.eq(item.quantity)||p.materialId!==item.materialId||
+          p.sourceProjectId!==item.sourceProjectId||p.destinationProjectId!==item.destinationProjectId||
+          p.sourceWarehouseId!==row.sourceWarehouseId||p.destinationWarehouseId!==row.destinationWarehouseId))conflict('MATERIAL_UOM_TRANSFER_SOURCE_MISMATCH');
+        await requireTrackedStockUnit(tx,{companyId:row.companyId,materialId:item.materialId,uomId:p?.stockUomId??item.uomId},p?.stockQuantity??item.quantity);
         if (!await tx.material.count({ where: { id: item.materialId, companyId: auth.companyId, isActive: true } }) || !await tx.unitOfMeasure.count({ where: { id: item.uomId, companyId: auth.companyId, isActive: true } })) conflict('TRANSFER_DIMENSIONS_CHANGED');
-        const dimension = { companyId: row.companyId, warehouseId: row.sourceWarehouseId, materialId: item.materialId, projectId: item.sourceProjectId, uomId: item.uomId };
+        const dimension = { companyId: row.companyId, warehouseId: row.sourceWarehouseId, materialId: item.materialId, projectId: item.sourceProjectId, uomId: pins.get(item.id)?.stockUomId??item.uomId };
         const key = this.quantities.key(dimension), prior = dimensions.get(key);
-        dimensions.set(key, { dimension, quantity: (prior?.quantity ?? new Prisma.Decimal(0)).plus(item.quantity) });
+        dimensions.set(key, { dimension, quantity: (prior?.quantity ?? new Prisma.Decimal(0)).plus(pins.get(item.id)?.stockQuantity??item.quantity) });
       }
       for (const key of [...dimensions.keys()].sort()) await this.quantities.lock(tx, dimensions.get(key)!.dimension);
       for (const { dimension, quantity } of dimensions.values()) if (quantity.gt((await this.quantities.available(tx, dimension)).available)) conflict('STOCK_TRANSFER_INSUFFICIENT_AVAILABLE');
@@ -140,8 +150,8 @@ export class TransferCustodyService {
       await tx.transferDispatch.create({ data: { transferId: id, actorUserId: auth.userId, reason: input.reason, recordedAt: now } });
       await tx.stockTransfer.update({ where: { id }, data: { postedAt: now, postedByUserId: auth.userId, postKey: 'dispatch:' + input.requestKey } });
       for (const item of row.items) await tx.stockTransaction.create({ data: {
-        companyId: row.companyId, warehouseId: row.sourceWarehouseId, materialId: item.materialId, projectId: item.sourceProjectId, uomId: item.uomId,
-        stockTransferId: id, stockTransferItemId: item.id, movementType: 'STOCK_TRANSFER_OUT', quantity: item.quantity.negated(), effectKey: 'stock-transfer-out:' + item.id, postedByUserId: auth.userId,
+        companyId: row.companyId, warehouseId: row.sourceWarehouseId, materialId: item.materialId, projectId: item.sourceProjectId, uomId: pins.get(item.id)?.stockUomId??item.uomId,
+        stockTransferId: id, stockTransferItemId: item.id, movementType: 'STOCK_TRANSFER_OUT', quantity: (pins.get(item.id)?.stockQuantity??item.quantity).negated(), effectKey: 'stock-transfer-out:' + item.id, postedByUserId: auth.userId,
       } });
       const version = await this.event(context, tx, id, 'DISPATCH', input.reason);
       return this.operation(context, tx, input.requestKey, 'DISPATCH', hash, id, null, { id, version });
@@ -281,11 +291,22 @@ export class TransferCustodyService {
       const previous = await tx.transferReceiptLine.findMany({ where: { receipt: { transferId: id, postedAt: { not: null } } }, select: { transferItemId: true, quantity: true } });
       const totals = new Map<string, Prisma.Decimal>();
       for (const line of previous) totals.set(line.transferItemId, (totals.get(line.transferItemId) ?? new Prisma.Decimal(0)).plus(line.quantity));
+      const effects=new Map<string,{stockUomId:string;stockQuantity:Prisma.Decimal}>();
       const dimensions: StockDimension[] = [];
       for (const line of input.lines) {
         const item = row.items.find((i) => i.id === line.transferItemId);
         if (!item || !item.material.isActive || !item.uom.isActive || line.quantity.plus(totals.get(item.id) ?? 0).gt(item.quantity)) conflict('TRANSFER_OVERRECEIPT_OR_DIMENSION_INVALID');
-        dimensions.push({ companyId: auth.companyId, warehouseId: row.destinationWarehouse.id, materialId: item.materialId, projectId, uomId: item.uomId });
+        const movement=await tx.stockTransaction.findFirst({where:{stockTransferItemId:item.id,movementType:'STOCK_TRANSFER_OUT'},include:{materialUomEffectPin:true}});
+        const pin=movement?.materialUomEffectPin;
+        if(pin){
+          if(pin.effectSign!==-1||pin.companyId!==auth.companyId||pin.materialId!==item.materialId||pin.sourceUomId!==item.uomId||!pin.sourceQuantity.eq(item.quantity))
+            conflict('MATERIAL_UOM_TRANSFER_SOURCE_MISMATCH');
+          const basis=await tx.materialUomBasis.findUniqueOrThrow({where:{materialId:pin.materialId}});
+          const revision=pin.revisionId?await tx.materialUomRevision.findUniqueOrThrow({where:{id:pin.revisionId}}):null;
+          effects.set(item.id,deriveStockEffectFromOriginal({...pin,effectSign:-1},line.quantity,item.quantity.minus(totals.get(item.id)??0),1,
+            {source:revision?.sourcePrecision??basis.stockPrecision,stock:basis.stockPrecision}));
+        }
+        dimensions.push({ companyId: auth.companyId, warehouseId: row.destinationWarehouse.id, materialId: item.materialId, projectId, uomId: effects.get(item.id)?.stockUomId??item.uomId });
       }
       for (const dimension of dimensions.sort((a, b) => this.quantities.key(a).localeCompare(this.quantities.key(b)))) await this.quantities.lock(tx, dimension);
       await tx.transferReceipt.update({ where: { id: receiptId }, data: { documentId: document.id, checksum: document.checksum, postedAt: new Date(), reason: input.reason } });
@@ -293,8 +314,8 @@ export class TransferCustodyService {
         const item = row.items.find((i) => i.id === line.transferItemId)!;
         const recorded = await tx.transferReceiptLine.create({ data: { receiptId, transferItemId: item.id, quantity: line.quantity, note: line.note } });
         await tx.stockTransaction.create({ data: {
-          companyId: auth.companyId, warehouseId: row.destinationWarehouse.id, projectId, materialId: item.materialId, uomId: item.uomId,
-          stockTransferId: id, stockTransferItemId: item.id, transferReceiptLineId: recorded.id, movementType: 'STOCK_TRANSFER_IN', quantity: line.quantity, effectKey: 'transfer-receipt:' + recorded.id, postedByUserId: auth.userId,
+          companyId: auth.companyId, warehouseId: row.destinationWarehouse.id, projectId, materialId: item.materialId, uomId: effects.get(item.id)?.stockUomId??item.uomId,
+          stockTransferId: id, stockTransferItemId: item.id, transferReceiptLineId: recorded.id, movementType: 'STOCK_TRANSFER_IN', quantity: effects.get(item.id)?.stockQuantity??line.quantity, effectKey: 'transfer-receipt:' + recorded.id, postedByUserId: auth.userId,
         } });
       }
       const version = await this.event(context, tx, id, 'RECEIVE', input.reason);

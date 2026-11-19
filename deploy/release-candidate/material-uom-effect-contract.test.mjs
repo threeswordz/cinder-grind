@@ -36,7 +36,7 @@ test('B history extension requires only the exact empty effect-pin table; no leg
  const empty={count:'0',digest:createHash('sha256').update('').digest('hex')};
  const before={customer_boq_versions:empty,stock_transactions:{count:'2',digest:'old'},role_permissions:{count:'1',digest:'grants'}};
  const verify=after=>assertHistoricalTables(before,after,false,false,false,false,false,false,false,false,false,false,false,true);
- const candidate={...before,material_uom_effect_pins:empty,material_uom_receipt_source_pins:empty,material_uom_reservation_pins:empty,material_uom_issue_source_pins:empty};
+ const candidate={...before,material_uom_effect_pins:empty,material_uom_receipt_source_pins:empty,material_uom_reservation_pins:empty,material_uom_issue_source_pins:empty,material_uom_transfer_source_pins:empty};
  verify(candidate);
  assert.throws(()=>verify(before));
  assert.throws(()=>verify({...candidate,stock_transactions:{count:'2',digest:'changed'}}));
@@ -96,4 +96,20 @@ test('unreserved issue source uses exact explicit date, immutable source and app
  assert.match(sql,/MATERIAL_UOM_ISSUE_SOURCE_IMMUTABLE/);
  assert.match(sql,/MATERIAL_UOM_ISSUE_DEFINITION_CHANGED/);
  assert.throws(()=>classifySchema(previous,candidate.replace('materialUomIssueSourcePin MaterialUomIssueSourcePin?','')));
+});
+
+test('physical counts keep canonical stock precision and prepared definitions alone do not change legacy dimensions',()=>{
+ const sql=readFileSync(new URL('../../apps/api/prisma/migrations/'+materialUomEffectMigration+'/migration.sql',import.meta.url),'utf8');
+ assert.match(sql,/CREATE FUNCTION erp_material_uom_tracked_stock_basis/);
+ assert.match(sql,/CREATE TRIGGER material_uom_stock_count_guard BEFORE INSERT OR UPDATE ON stock_counts/);
+ assert.match(sql,/MATERIAL_UOM_CANONICAL_STOCK_UNIT_REQUIRED/);
+});
+
+test('controlled transfer conversion preserves approval, actual receipt and reversal proofs',()=>{
+ const sql=readFileSync(new URL('../../apps/api/prisma/migrations/'+materialUomEffectMigration+'/migration.sql',import.meta.url),'utf8');
+ assert.match(sql,/CREATE TABLE material_uom_transfer_source_pins/);
+ assert.match(sql,/MATERIAL_UOM_TRANSFER_DISPATCH_PIN_REQUIRED/);
+ assert.match(sql,/MATERIAL_UOM_TRANSFER_APPROVED_EFFECT_REQUIRED/);
+ assert.match(sql,/CREATE OR REPLACE FUNCTION erp_transfer_proof/);
+ assert.throws(()=>classifySchema(previous,candidate.replace('materialUomTransferSourcePin MaterialUomTransferSourcePin?','')));
 });

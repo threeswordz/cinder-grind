@@ -23,7 +23,7 @@ require('reflect-metadata');
 const {PrismaService}=require('./dist/prisma/prisma.service.js');
 const db=new PrismaService();
 const tables=['stock_transactions','material_reservations','goods_receipt_items','material_issue_items',
-  'material_uom_bases','material_uom_revisions','material_uom_effect_pins','material_uom_receipt_source_pins','material_uom_reservation_pins','material_uom_issue_source_pins','role_permissions','user_roles'];
+  'material_uom_bases','material_uom_revisions','material_uom_effect_pins','material_uom_receipt_source_pins','material_uom_reservation_pins','material_uom_issue_source_pins','material_uom_transfer_source_pins','role_permissions','user_roles'];
 async function rows() {
  const out={};
  for(const name of tables){
@@ -41,13 +41,17 @@ async function guards(){
     OR tgrelid='public.material_uom_receipt_source_pins'::regclass
     OR tgrelid='public.material_uom_reservation_pins'::regclass
     OR tgrelid='public.material_uom_issue_source_pins'::regclass
+    OR tgrelid='public.material_uom_transfer_source_pins'::regclass
+    OR (tgrelid='public.stock_transfer_items'::regclass AND tgname='material_uom_transfer_source_drift_guard')
+    OR (tgrelid='public.approval_instances'::regclass AND tgname='material_uom_transfer_approval_guard')
     OR (tgrelid='public.material_issue_items'::regclass AND tgname='material_uom_issue_source_drift_guard')
     OR (tgrelid='public.material_reservations'::regclass AND tgname='material_uom_reservation_fulfillment_guard')
     OR (tgrelid='public.goods_receipt_items'::regclass AND tgname='material_uom_receipt_source_drift_guard')
     OR (tgrelid='public.goods_receipts'::regclass AND tgname='material_uom_receipt_post_proof')
     OR (tgrelid='public.material_issues'::regclass AND tgname='material_uom_issue_post_proof')
     OR (tgrelid='public.material_returns'::regclass AND tgname='material_uom_return_post_proof')
-    OR (tgrelid='public.stock_transactions'::regclass AND tgname IN ('material_uom_copy_reversal_pin','material_uom_copy_receipt_pin','material_uom_copy_issue_pin','material_uom_copy_return_pin')))
+    OR (tgrelid='public.stock_counts'::regclass AND tgname='material_uom_stock_count_guard')
+    OR (tgrelid='public.stock_transactions'::regclass AND tgname IN ('material_uom_copy_reversal_pin','material_uom_copy_receipt_pin','material_uom_copy_issue_pin','material_uom_copy_return_pin','material_uom_copy_transfer_pin')))
    AND NOT tgisinternal ORDER BY tgname`);
 }
 try{
@@ -57,7 +61,8 @@ try{
  assert.equal(before.material_uom_receipt_source_pins.count,'0','No retrospective source freezes');
  assert.equal(before.material_uom_reservation_pins.count,'0','No retrospective reservations');
  assert.equal(before.material_uom_issue_source_pins.count,'0','No retrospective issue freezes');
- assert.deepEqual(await guards(),[{name:'material_uom_copy_issue_pin'},{name:'material_uom_copy_receipt_pin'},{name:'material_uom_copy_return_pin'},{name:'material_uom_copy_reversal_pin'},{name:'material_uom_effect_pin_guard'},{name:'material_uom_issue_post_proof'},{name:'material_uom_issue_source_drift_guard'},{name:'material_uom_issue_source_guard'},{name:'material_uom_receipt_post_proof'},{name:'material_uom_receipt_source_drift_guard'},{name:'material_uom_receipt_source_guard'},{name:'material_uom_reservation_fulfillment_guard'},{name:'material_uom_reservation_pin_guard'},{name:'material_uom_return_post_proof'}]);
+ assert.equal(before.material_uom_transfer_source_pins.count,'0','No retrospective transfer freezes');
+ assert.deepEqual(await guards(),[{name:'material_uom_copy_issue_pin'},{name:'material_uom_copy_receipt_pin'},{name:'material_uom_copy_return_pin'},{name:'material_uom_copy_reversal_pin'},{name:'material_uom_copy_transfer_pin'},{name:'material_uom_effect_pin_guard'},{name:'material_uom_issue_post_proof'},{name:'material_uom_issue_source_drift_guard'},{name:'material_uom_issue_source_guard'},{name:'material_uom_receipt_post_proof'},{name:'material_uom_receipt_source_drift_guard'},{name:'material_uom_receipt_source_guard'},{name:'material_uom_reservation_fulfillment_guard'},{name:'material_uom_reservation_pin_guard'},{name:'material_uom_return_post_proof'},{name:'material_uom_stock_count_guard'},{name:'material_uom_transfer_approval_guard'},{name:'material_uom_transfer_source_drift_guard'},{name:'material_uom_transfer_source_guard'}]);
  if(mode==='protect'){
   const bogus=randomUUID();
   await assert.rejects(

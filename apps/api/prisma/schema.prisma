@@ -1989,6 +1989,7 @@ model StockTransfer {
 }
 
 model StockTransferItem {
+  materialUomTransferSourcePin MaterialUomTransferSourcePin?
   id                   String   @id @default(uuid()) @db.Uuid
   stockTransferId      String   @map("stock_transfer_id") @db.Uuid
   lineNo               Int      @map("line_no")
@@ -4232,4 +4233,29 @@ model MaterialUomIssueSourcePin {
   issueItem MaterialIssueItem @relation(fields: [issueItemId], references: [id], onDelete: Restrict)
   @@index([issueId])
   @@map("material_uom_issue_source_pins")
+}
+
+model MaterialUomTransferSourcePin {
+  transferItemId String @id @map("transfer_item_id") @db.Uuid
+  transferId String @map("transfer_id") @db.Uuid
+  companyId String @map("company_id") @db.Uuid
+  sourceProjectId String @map("source_project_id") @db.Uuid
+  destinationProjectId String @map("destination_project_id") @db.Uuid
+  sourceWarehouseId String @map("source_warehouse_id") @db.Uuid
+  destinationWarehouseId String @map("destination_warehouse_id") @db.Uuid
+  materialId String @map("material_id") @db.Uuid
+  sourceUomId String @map("source_uom_id") @db.Uuid
+  sourceQuantity Decimal @map("source_quantity") @db.Decimal(18, 4)
+  stockUomId String @map("stock_uom_id") @db.Uuid
+  stockQuantity Decimal @map("stock_quantity") @db.Decimal(18, 4)
+  businessDate DateTime @map("business_date") @db.Date
+  basisVersion Int @map("basis_version")
+  revisionId String? @map("revision_id") @db.Uuid
+  numerator String @db.VarChar(38)
+  denominator String @db.VarChar(38)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  transferItem StockTransferItem @relation(fields: [transferItemId], references: [id], onDelete: Restrict)
+  @@index([transferId])
+  @@map("material_uom_transfer_source_pins")
 }
