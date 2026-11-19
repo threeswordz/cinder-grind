@@ -44,3 +44,17 @@ test('B history extension requires only the exact empty effect-pin table; no leg
  assert.throws(()=>verify({...candidate,material_uom_effect_pins:{count:'1',digest:'fabricated'}}));
  assert.throws(()=>verify({...candidate,unknown_table:empty}));
 });
+
+test('B reversal inherits the original immutable pin; fresh pins cannot annotate historical ledger effects',()=>{
+ const sql=readFileSync(new URL('../../apps/api/prisma/migrations/'+materialUomEffectMigration+'/migration.sql',import.meta.url),'utf8');
+ const reverseGuard=sql.slice(sql.indexOf('IF ledger.reversal_of_id IS NOT NULL THEN'),sql.indexOf('-- Fresh pins'));
+ assert.match(reverseGuard,/WHERE stock_transaction_id=ledger\.reversal_of_id/);
+ assert.match(reverseGuard,/-original_pin\.effect_sign/);
+ assert.match(reverseGuard,/MATERIAL_UOM_ORIGINAL_REVERSAL_PIN_REQUIRED/);
+ assert.match(reverseGuard,/RETURN NEW/);
+ assert.doesNotMatch(reverseGuard,/ORDER BY effective_from|is_active|current_date/i);
+ assert.match(sql,/t\.xmin=pg_current_xact_id\(\)::xid/);
+ assert.match(sql,/basis\.version<>NEW\.basis_version/);
+ assert.match(sql,/AFTER INSERT ON stock_transactions\s+FOR EACH ROW WHEN \(NEW\.reversal_of_id IS NOT NULL\)/);
+ assert.match(sql,/p\.stock_quantity,-p\.effect_sign,p\.business_date,p\.basis_version/);
+});

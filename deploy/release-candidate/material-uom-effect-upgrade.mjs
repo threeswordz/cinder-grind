@@ -37,13 +37,15 @@ async function rows() {
 }
 async function guards(){
  return db.$queryRawUnsafe(`SELECT tgname AS name FROM pg_trigger
-   WHERE tgrelid='public.material_uom_effect_pins'::regclass AND NOT tgisinternal ORDER BY tgname`);
+   WHERE ((tgrelid='public.material_uom_effect_pins'::regclass)
+    OR (tgrelid='public.stock_transactions'::regclass AND tgname='material_uom_copy_reversal_pin'))
+   AND NOT tgisinternal ORDER BY tgname`);
 }
 try{
  await db.$connect();
  const before=await rows();
  assert.equal(before.material_uom_effect_pins.count,'0','B migration must not normalize or backfill historical stock');
- assert.deepEqual(await guards(),[{name:'material_uom_effect_pin_guard'}]);
+ assert.deepEqual(await guards(),[{name:'material_uom_copy_reversal_pin'},{name:'material_uom_effect_pin_guard'}]);
  if(mode==='protect'){
   const bogus=randomUUID();
   await assert.rejects(

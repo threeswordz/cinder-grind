@@ -32,14 +32,40 @@ DECLARE ledger stock_transactions%ROWTYPE;
         source_unit units_of_measure%ROWTYPE;
         stock_unit units_of_measure%ROWTYPE;
         selected_revision material_uom_revisions%ROWTYPE;
+        original_pin material_uom_effect_pins%ROWTYPE;
 BEGIN
  IF TG_OP<>'INSERT' THEN RAISE EXCEPTION 'MATERIAL_UOM_EFFECT_PIN_IMMUTABLE'; END IF;
  SELECT * INTO ledger FROM stock_transactions WHERE id=NEW.stock_transaction_id;
  IF NOT FOUND OR ledger.company_id<>NEW.company_id OR ledger.material_id<>NEW.material_id
     OR ledger.uom_id<>NEW.stock_uom_id OR ledger.quantity<>NEW.stock_quantity*NEW.effect_sign
  THEN RAISE EXCEPTION 'MATERIAL_UOM_LEDGER_PIN_MISMATCH'; END IF;
+ -- A reversal compensates an already-authorized stock effect. It must not
+ -- reselect today's definition, require a currently active old unit, or
+ -- manufacture conversion provenance for a historical unpinned movement.
+ IF ledger.reversal_of_id IS NOT NULL THEN
+    SELECT * INTO original_pin FROM material_uom_effect_pins WHERE stock_transaction_id=ledger.reversal_of_id;
+    IF NOT FOUND OR (
+      NEW.company_id,NEW.material_id,NEW.source_uom_id,NEW.source_quantity,
+      NEW.stock_uom_id,NEW.stock_quantity,NEW.business_date,NEW.basis_version,
+      NEW.revision_id,NEW.numerator,NEW.denominator,NEW.effect_sign
+    ) IS DISTINCT FROM (
+      original_pin.company_id,original_pin.material_id,original_pin.source_uom_id,original_pin.source_quantity,
+      original_pin.stock_uom_id,original_pin.stock_quantity,original_pin.business_date,original_pin.basis_version,
+      original_pin.revision_id,original_pin.numerator,original_pin.denominator,-original_pin.effect_sign
+    ) THEN RAISE EXCEPTION 'MATERIAL_UOM_ORIGINAL_REVERSAL_PIN_REQUIRED'; END IF;
+    RETURN NEW;
+ END IF;
+ -- Fresh pins are coupled to a newly posted effect, not retroactive edits.
+ -- A saved source freeze will be required for mixed-unit forward posting
+ -- when its owning source guard is integrated. Until then the existing
+ -- strict source-unit/quantity guards remain authoritative.
+ IF NOT EXISTS (
+    SELECT 1 FROM stock_transactions t WHERE t.id=NEW.stock_transaction_id
+      AND t.xmin=pg_current_xact_id()::xid
+ ) THEN RAISE EXCEPTION 'MATERIAL_UOM_PIN_REQUIRES_NEW_LEDGER_EFFECT'; END IF;
+ PERFORM pg_advisory_xact_lock(hashtextextended('material-uom:'||NEW.company_id::text||':'||NEW.material_id::text,0));
  SELECT * INTO basis FROM material_uom_bases WHERE company_id=NEW.company_id AND material_id=NEW.material_id;
- IF NOT FOUND OR basis.stock_uom_id<>NEW.stock_uom_id OR basis.version<NEW.basis_version
+ IF NOT FOUND OR basis.stock_uom_id<>NEW.stock_uom_id OR basis.version<>NEW.basis_version
  THEN RAISE EXCEPTION 'MATERIAL_UOM_BASIS_MISMATCH'; END IF;
  SELECT * INTO source_unit FROM units_of_measure WHERE id=NEW.source_uom_id AND company_id=NEW.company_id AND is_active;
  SELECT * INTO stock_unit FROM units_of_measure WHERE id=NEW.stock_uom_id AND company_id=NEW.company_id AND is_active;
@@ -69,3 +95,25 @@ END $$;
 CREATE TRIGGER material_uom_effect_pin_guard
  BEFORE INSERT OR UPDATE OR DELETE ON material_uom_effect_pins
  FOR EACH ROW EXECUTE FUNCTION erp_material_uom_effect_pin_guard();
+
+-- Full reversals already run through the existing source, approval, availability,
+-- immutability and idempotency guards. Preserve the conversion as part of the
+-- same stock insert, including when called by any existing stock owner or SQL.
+-- This is NOT a partial-return/transfer-receipt algorithm or activation grant.
+CREATE FUNCTION erp_material_uom_copy_reversal_pin() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+ INSERT INTO material_uom_effect_pins (
+   stock_transaction_id,company_id,material_id,source_uom_id,source_quantity,
+   stock_uom_id,stock_quantity,effect_sign,business_date,basis_version,
+   revision_id,numerator,denominator
+ )
+ SELECT NEW.id,p.company_id,p.material_id,p.source_uom_id,p.source_quantity,
+   p.stock_uom_id,p.stock_quantity,-p.effect_sign,p.business_date,p.basis_version,
+   p.revision_id,p.numerator,p.denominator
+ FROM material_uom_effect_pins p WHERE p.stock_transaction_id=NEW.reversal_of_id;
+ RETURN NEW;
+END $$;
+CREATE TRIGGER material_uom_copy_reversal_pin
+ AFTER INSERT ON stock_transactions
+ FOR EACH ROW WHEN (NEW.reversal_of_id IS NOT NULL)
+ EXECUTE FUNCTION erp_material_uom_copy_reversal_pin();

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { randomUUID } from 'node:crypto';
 import { Prisma } from '@prisma/client';
-import { assertCanonicalStockHistoryCompatible, resolveStockEffectPin, recordStockEffectPin } from './material-uom-effect-pin';
+import { assertCanonicalStockHistoryCompatible, resolveStockEffectPin, recordStockEffectPin, deriveStockEffectFromOriginal } from './material-uom-effect-pin';
 
 const companyId = randomUUID();
 const materialId = randomUUID();
@@ -119,4 +119,23 @@ test('canonical stock history preflight denies legacy unit effects and unsettled
       error => (error as {getResponse:()=>{code:string}}).getResponse().code === code);
     assert.ok(!calls.includes('pin'));
   }
+});
+
+test('partial correction keeps the frozen historical ratio and original source limit', async () => {
+  const old = context();
+  const original = await resolveStockEffectPin(old.tx, input(boxUomId,'2'));
+  const changed = context({revision:{numerator:'24'}});
+  assert.equal((await resolveStockEffectPin(changed.tx,input(boxUomId,'1'))).stockQuantity.toString(),'24');
+  const precision = {source:0,stock:0};
+  const correction = deriveStockEffectFromOriginal(original,new Prisma.Decimal(1),new Prisma.Decimal(1),-1,precision);
+  assert.equal(correction.stockQuantity.toString(),'20');
+  assert.equal(correction.sourceQuantity.toString(),'1');
+  assert.equal(correction.revisionId,original.revisionId);
+  assert.equal(correction.businessDate.toISOString(),original.businessDate.toISOString());
+  assert.equal(correction.effectSign,-1);
+  assert.throws(()=>deriveStockEffectFromOriginal(original,new Prisma.Decimal(2),new Prisma.Decimal(1),-1,precision));
+  assert.throws(()=>deriveStockEffectFromOriginal(original,new Prisma.Decimal(1),new Prisma.Decimal(3),-1,precision));
+  assert.throws(()=>deriveStockEffectFromOriginal(original,new Prisma.Decimal(NaN),new Prisma.Decimal(1),-1,precision));
+  assert.throws(()=>deriveStockEffectFromOriginal(original,new Prisma.Decimal('0.5'),new Prisma.Decimal(1),-1,precision));
+  assert.throws(()=>deriveStockEffectFromOriginal({...original,stockQuantity:new Prisma.Decimal(41)},new Prisma.Decimal(1),new Prisma.Decimal(1),-1,precision));
 });

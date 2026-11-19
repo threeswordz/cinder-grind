@@ -146,3 +146,34 @@ export async function recordStockEffectPin(
     data: { stockTransactionId, ...pin },
   });
 }
+
+// The owner of a partial return/receipt is responsible for its cumulative
+// source-quantity ceiling, availability and authorization. This calculator
+// uses only the committed source pin and the remaining original quantity;
+// never resolve a current material definition for an already frozen source.
+export type CommittedStockEffect = Awaited<ReturnType<typeof resolveStockEffectPin>>;
+
+export function deriveStockEffectFromOriginal(
+  original: CommittedStockEffect,
+  requestedSourceQuantity: Prisma.Decimal,
+  remainingSourceQuantity: Prisma.Decimal,
+  effectSign: 1 | -1,
+  frozenPrecision: { source: number; stock: number },
+) {
+  if (effectSign !== 1 && effectSign !== -1) return conflict('MATERIAL_UOM_EFFECT_SIGN_INVALID');
+  if (!requestedSourceQuantity.isFinite() || !remainingSourceQuantity.isFinite() ||
+      requestedSourceQuantity.lte(0) || remainingSourceQuantity.lt(0) ||
+      remainingSourceQuantity.gt(original.sourceQuantity) ||
+      requestedSourceQuantity.gt(remainingSourceQuantity)) {
+    return conflict('MATERIAL_UOM_ORIGINAL_QUANTITY_EXCEEDED');
+  }
+  // The caller must supply the original frozen unit precision, never a
+  // current mutable label or inferred pack size. Validate both retained
+  // magnitudes against that exact ratio before deriving a partial effect.
+  const originalCheck = exactUomQuantity(original.sourceQuantity.toFixed(), frozenPrecision.source, frozenPrecision.stock, original.numerator, original.denominator);
+  if (!original.stockQuantity.eq(originalCheck.stockQuantity)) return conflict('MATERIAL_UOM_ORIGINAL_PIN_MISMATCH');
+  const quantity = exactUomQuantity(requestedSourceQuantity.toFixed(), frozenPrecision.source, frozenPrecision.stock, original.numerator, original.denominator);
+  const stockQuantity = new Prisma.Decimal(quantity.stockQuantity);
+  if (stockQuantity.gt(original.stockQuantity)) return conflict('MATERIAL_UOM_ORIGINAL_QUANTITY_EXCEEDED');
+  return { ...original, sourceQuantity: new Prisma.Decimal(quantity.enteredQuantity), stockQuantity, effectSign };
+}
