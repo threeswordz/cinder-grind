@@ -42,7 +42,7 @@ CREATE FUNCTION erp_material_uom_exact_stock_fact(
   source_precision integer, stock_precision integer
 ) RETURNS boolean LANGUAGE sql IMMUTABLE STRICT AS $$
  SELECT numerator > 0 AND denominator > 0
-  AND source_precision BETWEEN 0 AND 4 AND stock_precision BETWEEN 0 AND 4
+  AND source_precision BETWEEN 0 AND 6 AND stock_precision BETWEEN 0 AND 4
   AND entered <> 0 AND stock <> 0
   AND abs(entered) < 100000000000000::numeric
   AND abs(stock) < 100000000000000::numeric
@@ -77,7 +77,7 @@ BEGIN
  SELECT * INTO basis FROM material_uom_bases
   WHERE material_id=NEW.material_id AND company_id=NEW.company_id;
  IF NOT FOUND OR basis.stock_uom_id IS DISTINCT FROM NEW.stock_uom_id
-   OR NEW.conversion_basis_version < 1
+   OR NEW.conversion_basis_version NOT BETWEEN 1 AND basis.version
  THEN RAISE EXCEPTION 'MATERIAL_UOM_STOCK_BASIS_INVALID'; END IF;
 
  IF NOT EXISTS (SELECT 1 FROM units_of_measure
@@ -102,6 +102,16 @@ BEGIN
      OR NEW.conversion_denominator IS DISTINCT FROM rev.denominator
      OR NEW.conversion_basis_version < rev.revision_no
    THEN RAISE EXCEPTION 'MATERIAL_UOM_STOCK_REVISION_INVALID'; END IF;
+   -- Check the pinned version's deterministically effective revision.
+   -- Later revisions do not retroactively invalidate an earlier frozen source.
+   SELECT id INTO actual_revision FROM material_uom_revisions
+     WHERE company_id=NEW.company_id AND material_id=NEW.material_id
+       AND source_uom_id=NEW.uom_id
+       AND revision_no<=NEW.conversion_basis_version
+       AND effective_from<=NEW.conversion_business_date
+     ORDER BY effective_from DESC, revision_no DESC LIMIT 1;
+   IF actual_revision IS DISTINCT FROM NEW.conversion_revision_id
+   THEN RAISE EXCEPTION 'MATERIAL_UOM_STOCK_REVISION_DRIFT'; END IF;
    -- The authorizing source may have committed under an earlier definition
    -- version. Its frozen revision is immutable; later revisions do not
    -- re-normalize an existing StockTransaction or any reversal.
