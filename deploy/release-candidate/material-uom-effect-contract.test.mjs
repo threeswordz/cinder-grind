@@ -82,6 +82,9 @@ test('reservation provenance is exact, immutable, canonical and legacy fulfillme
  assert.match(sql,/MATERIAL_UOM_ISSUE_POST_PROOF_REQUIRED/);
  assert.match(sql,/material_uom_copy_issue_pin AFTER INSERT ON stock_transactions/);
  assert.match(sql,/MATERIAL_UOM_PLAN_ISSUE_NOT_READY/);
- assert.match(sql,/MATERIAL_UOM_RETURN_POSTING_NOT_READY/);
+ assert.match(sql,/MATERIAL_UOM_RETURN_APPROVED_POST_REQUIRED/);
+ assert.match(sql,/MATERIAL_UOM_RETURN_POST_PROOF_REQUIRED/);
+ assert.match(sql,/MATERIAL_UOM_RETURN_ORIGINAL_PRECISION_OR_QUANTITY/);
+ assert.match(sql,/material_uom_copy_return_pin AFTER INSERT ON stock_transactions/);
  assert.throws(()=>classifySchema(previous,candidate.replace('materialUomReservationPin MaterialUomReservationPin?','')));
 });

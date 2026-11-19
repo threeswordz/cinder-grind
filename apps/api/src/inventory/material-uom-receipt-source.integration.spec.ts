@@ -10,6 +10,7 @@ import { MaterialUomService } from '../master-data/material-uom.service';
 import { GoodsReceiptService } from './goods-receipt.service';
 import { MaterialReservationService } from './material-reservation.service';
 import { MaterialIssueService } from './material-issue.service';
+import { MaterialReturnService } from './material-return.service';
 import { InventoryQuantityService } from './inventory-quantity.service';
 import { receivingFixture } from './receiving-test-fixture';
 
@@ -107,6 +108,40 @@ test('DEC-050 B actual PostgreSQL receipt freeze: approved commercial source, ex
     assert.equal((await db.materialReservation.findUniqueOrThrow({where:{id:rs.id}})).status,'FULFILLED');
     assert.equal((await quantities.available(db,dim)).onHand.toString(),'18');
     assert.equal((await quantities.available(db,dim)).reserved.toString(),'0');
+    // Partial return: original factor22, not current factor25. Stock precision0
+    // permits half of the entered source =11, but rejects fractional pieces.
+    const returnPermissions=await db.permission.findMany({where:{permissionCode:{in:['inventory.return.create','inventory.return.submit','inventory.return.reverse','inventory.return.view','inventory.return.approve']}}});
+    assert.equal(returnPermissions.length,5);
+    await db.rolePermission.createMany({data:returnPermissions.map(p=>({roleId:p.permissionCode==='inventory.return.approve'?f.pm.role.id:f.store.role.id,permissionId:p.id})),skipDuplicates:true});
+    const returnMaker=await f.sessions.resolve(f.store.session.sessionToken),returnChecker=await f.sessions.resolve(f.pm.session.sessionToken);
+    assert.ok(returnMaker);assert.ok(returnChecker);
+    await db.numberSequence.create({data:{companyId:f.company.id,entityType:'MATERIAL_RETURN',sequenceCode:'MATERIAL_RETURN',formatTemplate:'MRTYYMM-###',resetRule:'MONTHLY'}});
+    const returnWorkflow=await db.approvalWorkflow.create({data:{companyId:f.company.id,workflowCode:'RC-UOM-RETURN',workflowName:'Synthetic original-rate return',entityType:'MATERIAL_RETURN',steps:{create:[{stepNo:1,stepName:'Check',requiredApprovals:1,stepRoles:{create:[{roleId:f.pm.role.id}]}}]}}});
+    const returns=app.get(MaterialReturnService);
+    const issueItem=await db.materialIssueItem.findFirstOrThrow({where:{materialIssueId:issue.id}});
+    const returned=await returns.create({auth:returnMaker},{projectId:f.project.id,warehouseId:f.warehouse.id,returnDate:new Date('2026-11-19T00:00:00Z'),lines:[{materialIssueItemId:issueItem.id,quantity:new Prisma.Decimal('0.5')}]});
+    await returns.submit({auth:returnMaker},returned.id,returnWorkflow.workflowCode);
+    const returnKey=randomUUID();
+    await returns.approve({auth:returnChecker},returned.id,returnKey);
+    await returns.approve({auth:returnChecker},returned.id,returnKey);
+    const returnedMovement=await db.stockTransaction.findFirstOrThrow({where:{materialReturnId:returned.id,movementType:'MATERIAL_RETURN'}});
+    assert.equal(returnedMovement.quantity.toString(),'11');assert.equal(returnedMovement.uomId,each.id);
+    const returnedEffect=await db.materialUomEffectPin.findUniqueOrThrow({where:{stockTransactionId:returnedMovement.id}});
+    assert.equal(returnedEffect.revisionId,rsPin.revisionId);assert.equal(returnedEffect.sourceQuantity.toString(),'0.5');
+    assert.equal((await quantities.available(db,dim)).onHand.toString(),'29');
+    await assert.rejects(returns.create({auth:returnMaker},{projectId:f.project.id,warehouseId:f.warehouse.id,returnDate:new Date('2026-11-19T00:00:00Z'),lines:[{materialIssueItemId:issueItem.id,quantity:new Prisma.Decimal('0.6')}]}));
+    await assert.rejects(issues.reverse({auth:issuer},issue.id,randomUUID(),'Outstanding return must prevent reversal'));
+    const fractional=await returns.create({auth:returnMaker},{projectId:f.project.id,warehouseId:f.warehouse.id,returnDate:new Date('2026-11-19T00:00:00Z'),lines:[{materialIssueItemId:issueItem.id,quantity:new Prisma.Decimal('0.1')}]});
+    await returns.submit({auth:returnMaker},fractional.id,returnWorkflow.workflowCode);
+    await assert.rejects(returns.approve({auth:returnChecker},fractional.id,randomUUID()));
+    assert.equal(await db.stockTransaction.count({where:{materialReturnId:fractional.id}}),0);
+    const returnReversalKey=randomUUID();
+    await returns.reverse({auth:returnMaker},returned.id,returnReversalKey,'Synthetic partial return reversal');
+    await returns.reverse({auth:returnMaker},returned.id,returnReversalKey,'Synthetic partial return reversal');
+    const removed=await db.stockTransaction.findFirstOrThrow({where:{reversalOfId:returnedMovement.id}});
+    assert.equal(removed.quantity.toString(),'-11');
+    assert.equal((await db.materialUomEffectPin.findUniqueOrThrow({where:{stockTransactionId:removed.id}})).revisionId,rsPin.revisionId);
+    assert.equal((await quantities.available(db,dim)).onHand.toString(),'18');
     const issueReversalKey=randomUUID();
     await issues.reverse({auth:issuer},issue.id,issueReversalKey,'Synthetic issue reversal');
     await issues.reverse({auth:issuer},issue.id,issueReversalKey,'Synthetic issue reversal');

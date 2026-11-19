@@ -72,6 +72,9 @@ BEGIN
    SELECT p.* INTO frozen FROM material_uom_reservation_pins p
    JOIN material_issue_items i ON i.reservation_id=p.reservation_id WHERE i.id=ledger.material_issue_item_id;
    frozen_sign:=-1;
+ ELSIF ledger.movement_type='MATERIAL_RETURN' THEN
+   SELECT * INTO frozen FROM erp_material_uom_return_effect(ledger.material_return_item_id);
+   frozen_sign:=1;
  ELSE RAISE EXCEPTION 'MATERIAL_UOM_FRESH_SOURCE_REQUIRED'; END IF;
  IF NOT FOUND OR (NEW.company_id,NEW.material_id,NEW.source_uom_id,NEW.source_quantity,
       NEW.stock_uom_id,NEW.stock_quantity,NEW.business_date,NEW.basis_version,NEW.revision_id,NEW.numerator,NEW.denominator,NEW.effect_sign)
@@ -220,6 +223,7 @@ CREATE OR REPLACE FUNCTION enforce_stock_transaction_source()
 RETURNS trigger LANGUAGE plpgsql AS $$
 DECLARE source RECORD; original RECORD; frozen material_uom_receipt_source_pins%ROWTYPE;
         reserved record; free_quantity numeric;
+        returned_pin material_uom_effect_pins%ROWTYPE; prior_returned numeric;
 BEGIN
   IF NEW.goods_receipt_item_id IS NOT NULL THEN
     SELECT r.company_id,r.warehouse_id,r.project_id,r.posted_at,r.reversed_at,
@@ -314,13 +318,9 @@ BEGIN
       THEN RAISE EXCEPTION 'MATERIAL_UOM_ORIGINAL_REVERSAL_PIN_REQUIRED'; END IF;
     ELSE RAISE EXCEPTION 'Issue source cannot use this movement type'; END IF;
   ELSIF NEW.material_return_item_id IS NOT NULL THEN
-    IF NEW.movement_type='MATERIAL_RETURN' AND EXISTS(SELECT 1 FROM material_return_items ri
-      JOIN stock_transactions st ON st.material_issue_item_id=ri.material_issue_item_id AND st.movement_type='MATERIAL_ISSUE'
-      JOIN material_uom_effect_pins p ON p.stock_transaction_id=st.id WHERE ri.id=NEW.material_return_item_id)
-    THEN RAISE EXCEPTION 'MATERIAL_UOM_RETURN_POSTING_NOT_READY'; END IF;
     SELECT h.company_id,h.warehouse_id,h.project_id,h.posted_at,h.reversed_at,
-      i.material_id,i.uom_id,i.quantity AS item_quantity,
-      src.wbs_id,src.cost_code_id,src.activity_id
+      i.material_id,i.uom_id,i.quantity AS item_quantity,i.material_issue_item_id,
+      src.wbs_id,src.cost_code_id,src.activity_id,src.quantity AS issued_quantity
     INTO source
     FROM material_returns h
     JOIN material_return_items i ON i.material_return_id=h.id
@@ -328,18 +328,57 @@ BEGIN
     WHERE h.id=NEW.material_return_id AND i.id=NEW.material_return_item_id;
     IF NOT FOUND OR source.posted_at IS NULL OR NEW.company_id IS DISTINCT FROM source.company_id
       OR NEW.warehouse_id IS DISTINCT FROM source.warehouse_id OR NEW.project_id IS DISTINCT FROM source.project_id
-      OR NEW.material_id IS DISTINCT FROM source.material_id OR NEW.uom_id IS DISTINCT FROM source.uom_id
+      OR NEW.material_id IS DISTINCT FROM source.material_id
       OR NEW.wbs_id IS DISTINCT FROM source.wbs_id OR NEW.cost_code_id IS DISTINCT FROM source.cost_code_id
       OR NEW.activity_id IS DISTINCT FROM source.activity_id
     THEN RAISE EXCEPTION 'Return Stock movement source dimensions mismatch'; END IF;
+    SELECT * INTO returned_pin FROM erp_material_uom_return_effect(NEW.material_return_item_id);
+    IF returned_pin.stock_transaction_id IS NOT NULL THEN
+      IF NEW.uom_id IS DISTINCT FROM returned_pin.stock_uom_id
+      THEN RAISE EXCEPTION 'MATERIAL_UOM_RETURN_SOURCE_MISMATCH'; END IF;
+    ELSIF NEW.uom_id IS DISTINCT FROM source.uom_id THEN
+      RAISE EXCEPTION 'Return Stock movement source dimensions mismatch';
+    END IF;
     IF NEW.movement_type='MATERIAL_RETURN' THEN
-      IF source.reversed_at IS NOT NULL OR NEW.quantity<>source.item_quantity
+      IF source.reversed_at IS NOT NULL OR NEW.quantity<>COALESCE(returned_pin.stock_quantity,source.item_quantity)
       THEN RAISE EXCEPTION 'Return movement quantity/state mismatch'; END IF;
+      IF returned_pin.stock_transaction_id IS NOT NULL THEN
+        PERFORM pg_advisory_xact_lock(hashtext('inventory-return-source:'||source.material_issue_item_id::text));
+        PERFORM pg_advisory_xact_lock(hashtext('inventory-stock:'||NEW.company_id::text||':'||NEW.warehouse_id::text||':'||NEW.material_id::text||':'||NEW.project_id::text||':'||NEW.uom_id::text));
+        IF NOT EXISTS(SELECT 1 FROM material_issue_items i JOIN material_issues h ON h.id=i.material_issue_id
+            WHERE i.id=source.material_issue_item_id AND h.posted_at IS NOT NULL AND h.reversed_at IS NULL
+             AND h.company_id=NEW.company_id AND h.project_id=NEW.project_id)
+          OR NOT EXISTS(SELECT 1 FROM material_returns h JOIN approval_instances a ON a.id=h.approval_instance_id
+            WHERE h.id=NEW.material_return_id AND a.approval_state='APPROVED'
+              AND h.posted_by_user_id=NEW.posted_by_user_id AND NEW.effect_key='material-return:'||NEW.material_return_item_id::text
+              AND h.xmin=pg_current_xact_id()::xid)
+        THEN RAISE EXCEPTION 'MATERIAL_UOM_RETURN_APPROVED_POST_REQUIRED'; END IF;
+        SELECT COALESCE(SUM(i.quantity),0) INTO prior_returned FROM material_return_items i
+          JOIN material_returns h ON h.id=i.material_return_id
+          WHERE i.material_issue_item_id=source.material_issue_item_id AND i.id<>NEW.material_return_item_id
+            AND h.posted_at IS NOT NULL AND h.reversed_at IS NULL;
+        IF prior_returned+source.item_quantity>source.issued_quantity
+        THEN RAISE EXCEPTION 'MATERIAL_RETURN_EXCEEDS_ISSUED'; END IF;
+      END IF;
     ELSIF NEW.movement_type='MATERIAL_RETURN_REVERSAL' THEN
       SELECT * INTO original FROM stock_transactions WHERE id=NEW.reversal_of_id;
       IF NOT FOUND OR source.reversed_at IS NULL OR original.movement_type<>'MATERIAL_RETURN'
         OR original.material_return_item_id<>NEW.material_return_item_id OR original.quantity<>-NEW.quantity
+        OR original.uom_id IS DISTINCT FROM NEW.uom_id
       THEN RAISE EXCEPTION 'Return reversal must exactly negate source'; END IF;
+      IF returned_pin.stock_transaction_id IS NOT NULL THEN
+        IF NOT EXISTS(SELECT 1 FROM material_uom_effect_pins WHERE stock_transaction_id=original.id)
+        THEN RAISE EXCEPTION 'MATERIAL_UOM_ORIGINAL_REVERSAL_PIN_REQUIRED'; END IF;
+        PERFORM pg_advisory_xact_lock(hashtext('inventory-return-source:'||source.material_issue_item_id::text));
+        PERFORM pg_advisory_xact_lock(hashtext('inventory-stock:'||NEW.company_id::text||':'||NEW.warehouse_id::text||':'||NEW.material_id::text||':'||NEW.project_id::text||':'||NEW.uom_id::text));
+        SELECT COALESCE((SELECT SUM(t.quantity) FROM stock_transactions t WHERE t.company_id=NEW.company_id
+          AND t.project_id=NEW.project_id AND t.warehouse_id=NEW.warehouse_id AND t.material_id=NEW.material_id AND t.uom_id=NEW.uom_id),0)
+          -COALESCE((SELECT SUM(COALESCE(p.stock_quantity,a.quantity)) FROM material_reservations a
+           LEFT JOIN material_uom_reservation_pins p ON p.reservation_id=a.id WHERE a.company_id=NEW.company_id
+           AND a.project_id=NEW.project_id AND a.warehouse_id=NEW.warehouse_id AND a.material_id=NEW.material_id
+           AND COALESCE(p.stock_uom_id,a.uom_id)=NEW.uom_id AND a.status='ACTIVE'),0) INTO free_quantity;
+        IF -NEW.quantity>free_quantity THEN RAISE EXCEPTION 'MATERIAL_RETURN_REVERSAL_INSUFFICIENT_AVAILABLE'; END IF;
+      END IF;
     ELSE RAISE EXCEPTION 'Return source cannot use this movement type'; END IF;
   ELSIF NEW.stock_transfer_item_id IS NOT NULL THEN
     IF EXISTS(SELECT 1 FROM transfer_custodies WHERE transfer_id=NEW.stock_transfer_id) THEN
@@ -560,3 +599,63 @@ BEGIN
 END $$;
 CREATE CONSTRAINT TRIGGER material_uom_issue_post_proof AFTER UPDATE ON material_issues
  DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION erp_material_uom_issue_post_proof();
+
+-- Derive partial returns from the original issue's immutable conversion,
+-- including its definition date and precision. No current-rate lookup.
+CREATE FUNCTION erp_material_uom_return_effect(return_item uuid) RETURNS material_uom_effect_pins LANGUAGE plpgsql AS $$
+DECLARE p material_uom_effect_pins%ROWTYPE; item material_return_items%ROWTYPE;
+ b material_uom_bases%ROWTYPE; rev material_uom_revisions%ROWTYPE; source_precision integer; stock numeric;
+BEGIN
+ SELECT * INTO STRICT item FROM material_return_items WHERE id=return_item;
+ SELECT e.* INTO p FROM stock_transactions t JOIN material_uom_effect_pins e ON e.stock_transaction_id=t.id
+ WHERE t.material_issue_item_id=item.material_issue_item_id AND t.movement_type='MATERIAL_ISSUE';
+ IF NOT FOUND THEN RETURN NULL; END IF;
+ SELECT * INTO STRICT b FROM material_uom_bases WHERE material_id=p.material_id AND company_id=p.company_id;
+ IF p.revision_id IS NULL THEN source_precision:=b.stock_precision;
+ ELSE
+   SELECT * INTO STRICT rev FROM material_uom_revisions WHERE id=p.revision_id;
+   source_precision:=rev.source_precision;
+ END IF;
+ stock:=item.quantity*p.numerator::numeric/p.denominator::numeric;
+ IF p.effect_sign<>-1 OR item.material_id<>p.material_id OR item.uom_id<>p.source_uom_id
+ OR item.quantity<=0 OR item.quantity>p.source_quantity OR stock<=0 OR stock>p.stock_quantity
+ OR stock*p.denominator::numeric<>item.quantity*p.numerator::numeric
+ OR mod(item.quantity*power(10::numeric,source_precision),1)<>0
+ OR mod(stock*power(10::numeric,b.stock_precision),1)<>0
+ THEN RAISE EXCEPTION 'MATERIAL_UOM_RETURN_ORIGINAL_PRECISION_OR_QUANTITY'; END IF;
+ p.source_quantity:=item.quantity; p.stock_quantity:=stock; p.effect_sign:=1;
+ RETURN p;
+END $$;
+
+CREATE FUNCTION erp_material_uom_copy_return_pin() RETURNS trigger LANGUAGE plpgsql AS $$
+DECLARE p material_uom_effect_pins%ROWTYPE;
+BEGIN
+ SELECT * INTO p FROM erp_material_uom_return_effect(NEW.material_return_item_id);
+ IF p.stock_transaction_id IS NOT NULL THEN
+  INSERT INTO material_uom_effect_pins(stock_transaction_id,company_id,material_id,
+   source_uom_id,source_quantity,stock_uom_id,stock_quantity,effect_sign,business_date,basis_version,
+   revision_id,numerator,denominator)
+  VALUES(NEW.id,p.company_id,p.material_id,p.source_uom_id,p.source_quantity,p.stock_uom_id,p.stock_quantity,1,
+    p.business_date,p.basis_version,p.revision_id,p.numerator,p.denominator);
+ END IF;
+ RETURN NEW;
+END $$;
+CREATE TRIGGER material_uom_copy_return_pin AFTER INSERT ON stock_transactions
+ FOR EACH ROW WHEN (NEW.movement_type='MATERIAL_RETURN' AND NEW.material_return_item_id IS NOT NULL)
+ EXECUTE FUNCTION erp_material_uom_copy_return_pin();
+
+CREATE FUNCTION erp_material_uom_return_post_proof() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+ IF EXISTS(SELECT 1 FROM material_returns h WHERE h.id=NEW.id AND h.posted_at IS NOT NULL)
+ AND EXISTS(SELECT 1 FROM material_return_items i
+ JOIN stock_transactions st ON st.material_issue_item_id=i.material_issue_item_id AND st.movement_type='MATERIAL_ISSUE'
+ JOIN material_uom_effect_pins p ON p.stock_transaction_id=st.id
+ WHERE i.material_return_id=NEW.id AND NOT EXISTS(
+  SELECT 1 FROM stock_transactions rt JOIN material_uom_effect_pins e ON e.stock_transaction_id=rt.id
+  WHERE rt.material_return_item_id=i.id AND rt.movement_type='MATERIAL_RETURN' AND e.effect_sign=1
+    AND e.source_quantity=i.quantity AND e.revision_id IS NOT DISTINCT FROM p.revision_id))
+ THEN RAISE EXCEPTION 'MATERIAL_UOM_RETURN_POST_PROOF_REQUIRED'; END IF;
+ RETURN NEW;
+END $$;
+CREATE CONSTRAINT TRIGGER material_uom_return_post_proof AFTER UPDATE ON material_returns
+ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION erp_material_uom_return_post_proof();

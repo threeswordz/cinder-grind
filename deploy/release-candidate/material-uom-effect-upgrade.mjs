@@ -44,7 +44,8 @@ async function guards(){
     OR (tgrelid='public.goods_receipt_items'::regclass AND tgname='material_uom_receipt_source_drift_guard')
     OR (tgrelid='public.goods_receipts'::regclass AND tgname='material_uom_receipt_post_proof')
     OR (tgrelid='public.material_issues'::regclass AND tgname='material_uom_issue_post_proof')
-    OR (tgrelid='public.stock_transactions'::regclass AND tgname IN ('material_uom_copy_reversal_pin','material_uom_copy_receipt_pin','material_uom_copy_issue_pin')))
+    OR (tgrelid='public.material_returns'::regclass AND tgname='material_uom_return_post_proof')
+    OR (tgrelid='public.stock_transactions'::regclass AND tgname IN ('material_uom_copy_reversal_pin','material_uom_copy_receipt_pin','material_uom_copy_issue_pin','material_uom_copy_return_pin')))
    AND NOT tgisinternal ORDER BY tgname`);
 }
 try{
@@ -53,7 +54,7 @@ try{
  assert.equal(before.material_uom_effect_pins.count,'0','B migration must not normalize or backfill historical stock');
  assert.equal(before.material_uom_receipt_source_pins.count,'0','No retrospective source freezes');
  assert.equal(before.material_uom_reservation_pins.count,'0','No retrospective reservations');
- assert.deepEqual(await guards(),[{name:'material_uom_copy_issue_pin'},{name:'material_uom_copy_receipt_pin'},{name:'material_uom_copy_reversal_pin'},{name:'material_uom_effect_pin_guard'},{name:'material_uom_issue_post_proof'},{name:'material_uom_receipt_post_proof'},{name:'material_uom_receipt_source_drift_guard'},{name:'material_uom_receipt_source_guard'},{name:'material_uom_reservation_fulfillment_guard'},{name:'material_uom_reservation_pin_guard'}]);
+ assert.deepEqual(await guards(),[{name:'material_uom_copy_issue_pin'},{name:'material_uom_copy_receipt_pin'},{name:'material_uom_copy_return_pin'},{name:'material_uom_copy_reversal_pin'},{name:'material_uom_effect_pin_guard'},{name:'material_uom_issue_post_proof'},{name:'material_uom_receipt_post_proof'},{name:'material_uom_receipt_source_drift_guard'},{name:'material_uom_receipt_source_guard'},{name:'material_uom_reservation_fulfillment_guard'},{name:'material_uom_reservation_pin_guard'},{name:'material_uom_return_post_proof'}]);
  if(mode==='protect'){
   const bogus=randomUUID();
   await assert.rejects(
