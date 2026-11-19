@@ -466,6 +466,10 @@ CREATE TRIGGER material_uom_copy_receipt_pin AFTER INSERT ON stock_transactions
 CREATE FUNCTION erp_material_uom_receipt_post_proof() RETURNS trigger LANGUAGE plpgsql AS $$
 DECLARE rid uuid;
 BEGIN
+ -- Completeness belongs to the first posting transition. Activation accepts
+ -- historical same-stock-unit movements; later reversal must not require
+ -- retroactive pins on those immutable original sources/effects.
+ IF OLD.posted_at IS NOT NULL THEN RETURN NEW; END IF;
  rid:=NEW.id;
  IF EXISTS(SELECT 1 FROM goods_receipts WHERE id=rid AND posted_at IS NOT NULL)
  AND EXISTS(SELECT 1 FROM goods_receipt_items i JOIN material_uom_activations a ON a.material_id=i.material_id WHERE i.goods_receipt_id=rid)
@@ -597,6 +601,9 @@ CREATE TRIGGER material_uom_copy_issue_pin AFTER INSERT ON stock_transactions
 
 CREATE FUNCTION erp_material_uom_issue_post_proof() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
+ -- Existing postings retain their original provenance across later activation.
+ -- Newly posted issues still require the complete frozen source/effect proof.
+ IF OLD.posted_at IS NOT NULL THEN RETURN NEW; END IF;
  IF EXISTS(SELECT 1 FROM material_issues h WHERE h.id=NEW.id AND h.posted_at IS NOT NULL)
  AND (EXISTS(SELECT 1 FROM material_issue_items i JOIN material_uom_activations a ON a.material_id=i.material_id WHERE i.material_issue_id=NEW.id AND NOT EXISTS(SELECT 1 FROM erp_material_uom_issue_effect(i.id)))
  OR EXISTS(SELECT 1 FROM material_issue_items i CROSS JOIN LATERAL erp_material_uom_issue_effect(i.id) p
