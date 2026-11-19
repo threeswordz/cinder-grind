@@ -4,6 +4,7 @@
 - **Requirement IDs / acceptance criteria** (or docs-only rationale):
 - **What changed and what remains deferred:**
 - **Tests / CI / review evidence:**
+- **DEC-051 routing/risk after activation:** focused ordinary branch or explicit full-push lane, mandatory full exact-head PR, applicable independent review, guarded merge/tree equality and full main; focused proof is not full CI.
 
 ## Applicable governance checks
 

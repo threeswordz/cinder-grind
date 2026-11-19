@@ -1,0 +1,57 @@
+name: Focused Construction ERP Branch
+
+on:
+  push:
+    branches: ['v*', '!vfull-*']
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  validate-branch:
+    name: focused-branch
+    runs-on: ubuntu-latest
+    env:
+      EXACT_BRANCH_COMMIT: ${{ github.sha }}
+      DATABASE_URL: postgresql://construction_erp:construction_erp_dev_only@localhost:5432/construction_erp?schema=public
+    steps:
+      - name: Checkout exact branch head
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          ref: ${{ github.sha }}
+      - name: Verify exact branch identity
+        run: test "$(git rev-parse HEAD)" = "$EXACT_BRANCH_COMMIT"
+      - name: Set up pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          version: 12.6.0
+          run_install: false
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.21.0
+      - name: Verify CI routing contract
+        run: node --test deploy/release-candidate/ci-routing-contract.test.mjs
+      - name: Inventory and audit Markdown documentation (advisory DEC-029)
+        run: |
+          node --check tools/audit-markdown.mjs
+          node tools/audit-markdown.mjs
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Generate Prisma Client
+        run: pnpm prisma:generate
+      - name: Validate Prisma schema
+        run: pnpm prisma:validate
+      - name: Typecheck workspace
+        run: pnpm typecheck
+      - name: Run role UI focused tests
+        working-directory: apps/web
+        run: node --test src/role-ui/*.test.mjs
+      - name: Record focused-only boundary
+        run: |
+          printf '%s\n' 'FOCUSED_BRANCH_ONLY: not full PR or main CI; native browser, migration, integration and recovery gates remain required.'

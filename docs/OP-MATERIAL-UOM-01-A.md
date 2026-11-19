@@ -1,6 +1,6 @@
 # Material UOM A — definition and exact-validation foundation
 
-18 November 2026 SGT. **UNMERGED IMPLEMENTATION CANDIDATE.** Approved scope: [DEC-050 / UOM-D01](OP-MATERIAL-UOM-01-ENTRY.md), #354, SS03 / PUR13. Stage A's prepared definition APIs/editor and exact validation are implemented on the sole-writer candidate; complete CI, independent review and integration remain required. No full mixed-UOM, actual deployment or acceptance is claimed.
+18 November 2026 SGT. **TECHNICALLY INTEGRATED AND VALIDATED.** #372 merged at `e71a350e134d98b7a0ef8abe57bdce4ab986b820`, independently reviewed head702bd0ff, identical treeeb4097b5, push44329441525 and PR44329453049 SUCCESS48/48, [clean review](https://github.com/threeswordz/cinder-grind/pull/372#issuecomment-6983125007) and [exact-main44336708390](https://github.com/threeswordz/cinder-grind/actions/runs/44336708390) SUCCESS48/48. Dated candidate narrative below is historical where it describes pending gates. Stage B follows the approved CI-policy transition #373. Approved scope: [DEC-050 / UOM-D01](OP-MATERIAL-UOM-01-ENTRY.md), #354, SS03 / PUR13. Stage A's prepared definition APIs/editor and exact validation are implemented on the sole-writer candidate; complete CI, independent review and integration remain required. No full mixed-UOM, actual deployment or acceptance is claimed.
 
 ## Predecessor and bounded outcome
 

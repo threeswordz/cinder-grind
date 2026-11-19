@@ -5,7 +5,9 @@ on:
     # Keep the full PR gate for the evidence-closure follow-up stacked on #268.
     branches: [main, 'v1.2-c-uat-coverage']
   push:
-    branches: [main, 'v*']
+    # DEC-051: ordinary v* branch pushes use separate focused feedback.
+    # Full PR and main validation remain unchanged; vfull-* is the explicit full push lane.
+    branches: [main, 'vfull-*']
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
