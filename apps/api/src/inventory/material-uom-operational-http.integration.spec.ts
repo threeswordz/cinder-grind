@@ -11,6 +11,7 @@ import {PrismaService} from '../prisma/prisma.service';
 import {ProblemDetailsFilter} from '../common/problem-details.filter';
 import {securityHeadersMiddleware} from '../common/security-headers';
 import {MaterialUomService} from '../master-data/material-uom.service';
+import {InventoryReportService} from './inventory-report.service';
 import {receivingFixture} from './receiving-test-fixture';
 
 test('DEC-050 B authenticated HTTP: converted physical receiving, explicit dates, reservation and automatic issue freeze',async()=>{
@@ -74,6 +75,20 @@ test('DEC-050 B authenticated HTTP: converted physical receiving, explicit dates
   assert.equal(await db.materialUomReceiptSourcePin.count({where:{receiptId:receipt.id}}),1);
   const original=await db.materialUomReceiptSourcePin.findFirstOrThrow({where:{receiptId:receipt.id}});
   assert.equal(original.stockQuantity.toString(),'60');assert.equal(original.sourceUomId,f.uom.id);
+  const movements=app.get(InventoryReportService);
+  const receiptRows=await movements.movementReport(f.store.auth,{projectId:f.project.id});
+  const convertedReceipt=receiptRows.find(row=>row.materialId===f.material.id&&row.sourceType==='GOODS_RECEIPT');
+  const legacyReceipt=receiptRows.find(row=>row.materialId===f.secondaryMaterial.id&&row.sourceType==='GOODS_RECEIPT');
+  assert.ok(convertedReceipt);assert.equal(convertedReceipt.quantity,'60.0000');
+  assert.equal(convertedReceipt.conversion?.sourceQuantity,'3.0000');
+  assert.equal(convertedReceipt.conversion?.stockQuantity,'60.0000');
+  assert.equal(convertedReceipt.conversion?.sourceUomId,f.uom.id);
+  assert.equal(convertedReceipt.conversion?.stockUomId,stockUnit.id);
+  assert.equal(convertedReceipt.conversion?.businessDate,'2026-11-19');
+  assert.equal(convertedReceipt.conversion?.numerator,'20');
+  assert.equal(convertedReceipt.conversion?.denominator,'1');
+  assert.ok(legacyReceipt);assert.equal(legacyReceipt.quantity,'2.0000');
+  assert.equal(legacyReceipt.conversion,null);
   await defs.revise({auth:maintainer},f.material.id,{requestKey:randomUUID(),expectedVersion:2,sourceUomId:f.uom.id,effectiveFrom:'2026-01-01',numerator:'24',denominator:'1',reason:'Later explicit carton revision'});
   assert.equal(await balance(),'60');
   for(const [code,prefix] of [['MATERIAL_RESERVATION','RSV'],['MATERIAL_ISSUE','MI']])await db.numberSequence.create({data:{companyId:f.company.id,entityType:code!,sequenceCode:code!,formatTemplate:prefix+'YYMM-###',resetRule:'MONTHLY'}});
@@ -87,6 +102,15 @@ test('DEC-050 B authenticated HTTP: converted physical receiving, explicit dates
   await call(f.store,'/inventory/material-issues/'+issue.id+'/submit',201,{workflowCode:workflow.workflowCode});
   assert.equal((await db.materialUomIssueSourcePin.findFirstOrThrow({where:{issueId:issue.id}})).stockQuantity.toString(),'24');
   await call(f.pm,'/inventory/material-issues/'+issue.id+'/approve',201,{postKey:randomUUID()});assert.equal(await balance(),'36');assert.equal((await db.stockTransaction.aggregate({where:{companyId:f.company.id,materialId:f.secondaryMaterial.id},_sum:{quantity:true}}))._sum.quantity?.toString(),'1');
+  const issueRows=await movements.movementReport(f.store.auth,{projectId:f.project.id});
+  const convertedIssue=issueRows.find(row=>row.materialId===f.material.id&&row.sourceType==='MATERIAL_ISSUE');
+  const originalReceipt=issueRows.find(row=>row.id===convertedReceipt.id);
+  assert.ok(convertedIssue);assert.equal(convertedIssue.quantity,'-24.0000');
+  assert.equal(convertedIssue.conversion?.sourceQuantity,'1.0000');
+  assert.equal(convertedIssue.conversion?.stockQuantity,'24.0000');
+  assert.equal(convertedIssue.conversion?.numerator,'24');
+  assert.equal(convertedIssue.conversion?.businessDate,'2026-11-19');
+  assert.equal(originalReceipt?.conversion?.numerator,'20'); // Later mapping never rewrites an earlier receipt.
   await call(f.store,'/inventory/material-issues/'+issue.id+'/reverse',201,{reversalKey:randomUUID(),reason:'Original HTTP issue reversal'});assert.equal(await balance(),'60');
   const reverse={reversalKey:randomUUID(),reason:'Original physical delivery reversal'};
   await call(f.store,'/inventory/goods-receipts/'+receipt.id+'/reverse',201,reverse);await call(f.store,'/inventory/goods-receipts/'+receipt.id+'/reverse',201,reverse);

@@ -58,6 +58,17 @@ type MovementRow = {
   sourceType: string;
   sourceId: string | null;
   sourceNumber: string | null;
+  // Immutable Stage B effect provenance. NULL for unchanged pre-activation history.
+  enteredQuantity: Prisma.Decimal | null;
+  enteredUomId: string | null;
+  enteredUomCode: string | null;
+  stockQuantity: Prisma.Decimal | null;
+  conversionBusinessDate: Date | null;
+  conversionBasisVersion: number | null;
+  conversionRevisionId: string | null;
+  conversionNumerator: string | null;
+  conversionDenominator: string | null;
+  conversionEffectSign: number | null;
 };
 
 @Injectable()
@@ -242,6 +253,16 @@ export class InventoryReportService {
         st.id,
         st.movement_type AS "movementType",
         st.quantity::DECIMAL(18,4) AS quantity,
+        pin.source_quantity::DECIMAL(18,4) AS "enteredQuantity",
+        pin.source_uom_id AS "enteredUomId",
+        entered_uom.uom_code AS "enteredUomCode",
+        pin.stock_quantity::DECIMAL(18,4) AS "stockQuantity",
+        pin.business_date AS "conversionBusinessDate",
+        pin.basis_version AS "conversionBasisVersion",
+        pin.revision_id AS "conversionRevisionId",
+        pin.numerator AS "conversionNumerator",
+        pin.denominator AS "conversionDenominator",
+        pin.effect_sign AS "conversionEffectSign",
         st.effect_key AS "effectKey",
         st.reversal_of_id AS "reversalOfId",
         st.posted_at AS "postedAt",
@@ -294,14 +315,46 @@ export class InventoryReportService {
       LEFT JOIN material_issues mi ON mi.id=st.material_issue_id
       LEFT JOIN material_returns mr ON mr.id=st.material_return_id
       LEFT JOIN stock_transfers transfer ON transfer.id=st.stock_transfer_id
+      LEFT JOIN material_uom_effect_pins pin
+        ON pin.stock_transaction_id=st.id
+        AND pin.company_id=st.company_id
+        AND pin.material_id=st.material_id
+        AND pin.stock_uom_id=st.uom_id
+      LEFT JOIN units_of_measure entered_uom
+        ON entered_uom.id=pin.source_uom_id
+        AND entered_uom.company_id=st.company_id
       WHERE ${Prisma.join(conditions, ' AND ')}
       ORDER BY st.posted_at DESC, st.id DESC
       LIMIT 2000
     `);
 
-    return rows.map((row) => ({
-      ...row,
-      quantity: new Prisma.Decimal(row.quantity).toFixed(4),
-    }));
+    return rows.map((row) => {
+      const {
+        enteredQuantity, enteredUomId, enteredUomCode, stockQuantity,
+        conversionBusinessDate, conversionBasisVersion, conversionRevisionId,
+        conversionNumerator, conversionDenominator, conversionEffectSign,
+        ...movement
+      } = row;
+      return {
+        ...movement,
+        // Existing signed stock quantity and stock UOM remain authoritative.
+        quantity: new Prisma.Decimal(movement.quantity).toFixed(4),
+        // Never invent dates, revisions or factors for pre-activation legacy rows.
+        conversion: enteredQuantity === null ? null : {
+          sourceQuantity: new Prisma.Decimal(enteredQuantity).toFixed(4),
+          sourceUomId: enteredUomId,
+          sourceUomCode: enteredUomCode,
+          stockQuantity: new Prisma.Decimal(stockQuantity!).toFixed(4),
+          stockUomId: movement.uomId,
+          stockUomCode: movement.uomCode,
+          effectSign: conversionEffectSign,
+          businessDate: conversionBusinessDate!.toISOString().slice(0, 10),
+          basisVersion: conversionBasisVersion,
+          revisionId: conversionRevisionId,
+          numerator: conversionNumerator,
+          denominator: conversionDenominator,
+        },
+      };
+    });
   }
 }
