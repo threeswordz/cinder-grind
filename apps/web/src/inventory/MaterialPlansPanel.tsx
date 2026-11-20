@@ -256,7 +256,10 @@ export function MaterialPlansPanel({ permissions }: { permissions: string[] }) {
                 && line.usedQuantity !== undefined && line.remainingQuantity !== null
                 && line.remainingQuantity !== undefined
                 ? ` · ${t.used}: ${line.usedQuantity} · ${t.remaining}: ${line.remainingQuantity} ${line.uom.uomCode}`
-                : line.usageBasis === 'FROZEN_STOCK_PIN_REQUIRED' ? ` · ${t.canonicalPending}` : ''}
+                : line.usageBasis === 'FROZEN_STOCK_PIN_REQUIRED' ? ` · ${t.canonicalPending}`
+                : line.usageBasis === 'FROZEN_STOCK_ISSUE_GATE_PENDING' && line.materialUomPlanLinePin
+                ? ` · ${t.frozenStock}: ${line.materialUomPlanLinePin.stockQuantity} ${line.materialUomPlanLinePin.stockUomCode} · ${t.frozenRate}: ${line.materialUomPlanLinePin.numerator}/${line.materialUomPlanLinePin.denominator} · ${t.frozenDate}: ${line.materialUomPlanLinePin.businessDate} · ${t.postingPending}`
+                : ''}
             </Typography>)}
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} flexWrap="wrap">
             {can('revise') && selected.status !== 'SUBMITTED' ?

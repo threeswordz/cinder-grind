@@ -1,4 +1,6 @@
 import {materialPlanActor,materialPlanSourceRight} from './material-plan-actor';
+import {activatedStockMaterials} from './material-uom-active-source';
+import {resolveStockEffectPin} from '../master-data/material-uom-effect-pin';
 import {ConflictException,ForbiddenException,Injectable,NotFoundException,UnprocessableEntityException} from '@nestjs/common';
 import {Prisma} from '@prisma/client';
 import {createHash} from 'node:crypto';
@@ -11,6 +13,7 @@ import {MP_VIEW,MPContent,mpId,mpCreate,mpRevise,mpAction,mpInvalid} from './mat
 type Db=Prisma.TransactionClient|PrismaService;
 type Context={auth:AuthenticatedUserContext;correlationId?:string};
 const lineSelect={id:true,budgetRevisionLineId:true,materialId:true,uomId:true,quantity:true,
+ materialUomPlanLinePin:{select:{sourceUomId:true,sourceQuantity:true,stockUomId:true,stockUomCode:true,stockQuantity:true,businessDate:true,basisVersion:true,revisionId:true,numerator:true,denominator:true}},
  material:{select:{materialCode:true,materialName:true}},uom:{select:{uomCode:true}}} satisfies Prisma.MaterialUsagePlanLineSelect;
 const revisionSelect={id:true,revisionNo:true,validFrom:true,validTo:true,reason:true,status:true,createdByUserId:true,createdAt:true,
  submittedByUserId:true,submittedAt:true,decidedByUserId:true,decidedAt:true,decisionComment:true,
@@ -28,7 +31,7 @@ export class MaterialPlanService{
   const p=await db.materialUsagePlan.findFirst({where:{id,companyId:auth.companyId},select:headerSelect});if(!p)throw new NotFoundException({code:'MATERIAL_PLAN_NOT_FOUND'});
   await this.access.assertAccess(auth,p.projectId,db);return p;
  }
- private presentRevision(r:Prisma.MaterialUsagePlanRevisionGetPayload<{select:typeof revisionSelect}>|null){return r?{...r,validFrom:r.validFrom.toISOString().slice(0,10),validTo:r.validTo.toISOString().slice(0,10),lines:r.lines.map(l=>({...l,quantity:l.quantity.toFixed(4),usedQuantity:null as string|null,remainingQuantity:null as string|null,usageBasis:null as string|null}))}:null;}
+ private presentRevision(r:Prisma.MaterialUsagePlanRevisionGetPayload<{select:typeof revisionSelect}>|null){return r?{...r,validFrom:r.validFrom.toISOString().slice(0,10),validTo:r.validTo.toISOString().slice(0,10),lines:r.lines.map(l=>({...l,quantity:l.quantity.toFixed(4),materialUomPlanLinePin:l.materialUomPlanLinePin?{...l.materialUomPlanLinePin,sourceQuantity:l.materialUomPlanLinePin.sourceQuantity.toFixed(4),stockQuantity:l.materialUomPlanLinePin.stockQuantity.toFixed(4),businessDate:l.materialUomPlanLinePin.businessDate.toISOString().slice(0,10)}:null,usedQuantity:null as string|null,remainingQuantity:null as string|null,usageBasis:null as string|null}))}:null;}
  private async detail(auth:AuthenticatedUserContext,id:string,db:Db){
   const p=await this.header(auth,id,db);
   const [latest,approved]=await Promise.all([db.materialUsagePlanRevision.findFirst({where:{planId:id},orderBy:{revisionNo:'desc'},select:revisionSelect}),db.materialUsagePlanRevision.findFirst({where:{planId:id,status:'APPROVED'},orderBy:{revisionNo:'desc'},select:revisionSelect})]);
@@ -56,7 +59,7 @@ export class MaterialPlanService{
    presentedApproved={...approvedRevision,lines:approvedRevision.lines.map(line=>{
     // A later activation must not make the legacy unit-based formula look
     // like an approved canonical stock allowance.
-    if(activated.has(line.materialId))return {...line,usedQuantity:null,remainingQuantity:null,usageBasis:'FROZEN_STOCK_PIN_REQUIRED'};
+    if(activated.has(line.materialId))return {...line,usedQuantity:null,remainingQuantity:null,usageBasis:line.materialUomPlanLinePin?'FROZEN_STOCK_ISSUE_GATE_PENDING':'FROZEN_STOCK_PIN_REQUIRED'};
     const used=usage.get(line.id)??new Prisma.Decimal(0);
     const allowance=new Prisma.Decimal(line.quantity);
     return {...line,usedQuantity:used.toFixed(4),remainingQuantity:Prisma.Decimal.max(0,allowance.minus(used)).toFixed(4),usageBasis:'ENTERED_UOM_LEGACY'};
@@ -107,7 +110,32 @@ export class MaterialPlanService{
    if(!await tx.material.findFirst({where:{id:l.materialId,companyId:auth.companyId,isActive:true,defaultUomId:l.uomId},select:{id:true}})||!await tx.unitOfMeasure.findFirst({where:{id:l.uomId,companyId:auth.companyId,isActive:true},select:{id:true}}))invalid('MATERIAL_PLAN_MATERIAL_UOM_INVALID');
    if(await tx.materialUsagePlanLine.findFirst({where:{budgetRevisionLineId:l.budgetRevisionLineId,revision:{planId:p.id,status:'APPROVED'},materialId:{not:l.materialId}},select:{id:true}}))invalid('MATERIAL_PLAN_MAPPING_IMMUTABLE');
   }
-  return tx.materialUsagePlanRevision.create({data:{planId:p.id,revisionNo:(latest?.revisionNo??0)+1,validFrom:new Date(input.validFrom),validTo:new Date(input.validTo),reason:input.reason,createdByUserId:auth.userId,lines:{create:input.lines.map(l=>({...l,quantity:new Prisma.Decimal(l.quantity)}))}},select:{id:true}});
+  // Freeze entered quantity and the exact dated stock basis in the same
+  // serializable transaction. Activation and plan source creation share locks.
+  const active=await activatedStockMaterials(tx,auth.companyId,input.lines.map(l=>l.materialId));
+  const created=await tx.materialUsagePlanRevision.create({
+   data:{planId:p.id,revisionNo:(latest?.revisionNo??0)+1,validFrom:new Date(input.validFrom),validTo:new Date(input.validTo),
+    reason:input.reason,createdByUserId:auth.userId,lines:{create:input.lines.map(l=>({...l,quantity:new Prisma.Decimal(l.quantity)}))}},
+   select:{id:true,lines:{select:{id:true,budgetRevisionLineId:true,materialId:true}}}
+  });
+  for(const row of created.lines){
+   if(!active.has(row.materialId))continue;
+   const l=input.lines.find(source=>source.budgetRevisionLineId===row.budgetRevisionLineId)!;
+   const frozen=await resolveStockEffectPin(tx,{
+    companyId:auth.companyId,materialId:row.materialId,sourceUomId:l.uomId,
+    quantity:new Prisma.Decimal(l.quantity),businessDate:input.validFrom,effectSign:1
+   });
+   const basis=await tx.materialUomBasis.findUniqueOrThrow({where:{materialId:row.materialId},select:{stockUomCode:true}});
+   await tx.materialUomPlanLinePin.create({data:{
+    planLineId:row.id,companyId:auth.companyId,materialId:row.materialId,
+    sourceUomId:frozen.sourceUomId,sourceQuantity:frozen.sourceQuantity,
+    stockUomId:frozen.stockUomId,stockUomCode:basis.stockUomCode,
+    stockQuantity:frozen.stockQuantity,businessDate:frozen.businessDate,
+    basisVersion:frozen.basisVersion,revisionId:frozen.revisionId,
+    numerator:frozen.numerator,denominator:frozen.denominator
+   }});
+  }
+  return {id:created.id};
  }
  private async operation(context:Context,action:string,key:string,input:unknown,planId:string|undefined,projectId:string|undefined,work:(auth:AuthenticatedUserContext,tx:Prisma.TransactionClient,p?:Header)=>Promise<{id:string;revisionId:string}>){
   const capability={CREATE:'create',REVISE:'revise',SUBMIT:'submit',APPROVE:'approve',REJECT:'approve'}[action];if(!capability)throw Error('Unknown plan operation');
