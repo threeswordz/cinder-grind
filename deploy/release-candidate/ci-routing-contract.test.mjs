@@ -8,11 +8,25 @@ const focused = readFileSync(new URL('../../.github/workflows/validate-branch.ym
 const routing = text => text.slice(text.indexOf('\non:\n'), text.indexOf('\nconcurrency:\n'));
 const effectiveRouting = text => routing(text).split('\n').filter(line => !line.trimStart().startsWith('#')).join('\n').trim();
 
-test('full validation remains mandatory on all registered PRs and main; explicit full branch lane is retained', () => {
+test('full validation identity and PR/main events remain; explicit full branch lane is retained', () => {
   assert.equal(effectiveRouting(full), "on:\n  pull_request:\n    branches: [main, 'v1.2-c-uat-coverage']\n  push:\n    branches: [main, 'vfull-*']");
   assert.match(full, /^name: Validate Construction ERP$/m);
   assert.match(full, /^jobs:\n  validate:\n    runs-on: ubuntu-latest$/m);
   assert.match(full, /ref: \$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/);
+});
+
+test('draft admission fails before install; final live identity follows all full evidence, without success skips', () => {
+  const admission = full.indexOf('run: node deploy/release-candidate/ci-candidate-gate.mjs start');
+  assert.ok(admission > full.indexOf('name: Checkout exact workflow commit'));
+  assert.ok(admission < full.indexOf('name: Set up pnpm'));
+  assert.ok(admission < full.indexOf('run: pnpm install --frozen-lockfile'));
+  assert.match(full.trimEnd(), /run: node deploy\/release-candidate\/ci-candidate-gate.mjs finish$/);
+  assert.doesNotMatch(full, /^\s+(if:|continue-on-error:)/m);
+  assert.doesNotMatch(full, /ready_for_review|workflow_dispatch|pull_request_target/);
+  assert.match(full, /permissions:\n  contents: read\n  pull-requests: read\n/);
+  assert.match(focused, /node --test deploy\/release-candidate\/ci-routing-contract.test.mjs deploy\/release-candidate\/ci-candidate-gate.test.mjs/);
+  for (const command of ['pnpm install --frozen-lockfile', 'node --test deploy/release-candidate/*.test.mjs',
+    'deploy/release-candidate/rehearse.sh', 'deploy/release-candidate/verify-evidence.mjs']) assert.ok(full.includes(command), command);
 });
 
 test('focused branch excludes explicit full lane; no PR/main event or full check identity', () => {

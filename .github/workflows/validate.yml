@@ -6,7 +6,8 @@ on:
     branches: [main, 'v1.2-c-uat-coverage']
   push:
     # DEC-051: ordinary v* branch pushes use separate focused feedback.
-    # Full PR and main validation remain unchanged; vfull-* is the explicit full push lane.
+    # DEC-052: ordinary draft attempt 1 blocks before full execution; explicit rerun runs full.
+    # Full PR merge/main gates remain; vfull-* is the explicit full push lane.
     branches: [main, 'vfull-*']
 
 concurrency:
@@ -15,6 +16,7 @@ concurrency:
 
 permissions:
   contents: read
+  pull-requests: read
 
 jobs:
   validate:
@@ -55,6 +57,10 @@ jobs:
         with:
           fetch-depth: 0
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Admit exact full candidate or block changing draft
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node deploy/release-candidate/ci-candidate-gate.mjs start
       - name: Set up pnpm
         uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
         with:
@@ -841,3 +847,7 @@ jobs:
           if((await import('./deploy/release-candidate/transfer-schema-contract.mjs')).transferMode((await import('./deploy/release-candidate/subcontract-physical-schema-contract.mjs')).physicalMode((await import('./deploy/release-candidate/material-uom-schema-contract.mjs')).materialUomMode((await import('./deploy/release-candidate/material-uom-effect-schema-contract.mjs')).materialUomEffectMode(data.releaseMode).prior).prior).prior).prior!=='migration-aware-receiving-schema'||data.rehearsal.previousReleaseCommit!=='d2b790801119fb1b5b4176ad416086ee7363d091')throw Error('Exact receiving predecessor missing');
           for(const key of ['receivingSchemaUpgrade','receivingHistoricalPreservation','receivingHttpUpgrade','receivingPopulatedRecovery','receivingEvidenceRecovery'])if(data.rehearsal[key]!=='PASS')throw Error('Receiving proof missing: '+key);
           NODE
+      - name: Confirm current candidate after all full evidence
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node deploy/release-candidate/ci-candidate-gate.mjs finish
