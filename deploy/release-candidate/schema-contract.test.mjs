@@ -1,3 +1,4 @@
+import {stripMaterialUomStageCSchema} from './material-uom-stage-c-schema-contract.mjs';
 import {stripMaterialUomSchema} from './material-uom-schema-contract.mjs';
 import {stripMaterialUomEffectSchema} from './material-uom-effect-schema-contract.mjs';
 import {stripPhysicalSchema} from './subcontract-physical-schema-contract.mjs';
@@ -46,7 +47,7 @@ test('schema classification rejects unrelated/removal/required/defaulted/partial
 test('Customer BOQ classifier admits only the exact five new models and parent relations', async () => {
   const { readFileSync } = await import('node:fs');
   const current = stripHrDocumentSchema(stripHrSchema(stripStockCountSchema(
-    stripMaterialRequestSchema(stripMaterialPlanSchema(stripPlanIssueSchema(stripSiteIssueSchema(stripReceivingSchema(stripMaterialUomSchema(stripMaterialUomEffectSchema(readFileSync(new URL('../../apps/api/prisma/schema.prisma', import.meta.url), 'utf8')).text).text).text).text).text).text).text,
+    stripMaterialRequestSchema(stripMaterialPlanSchema(stripPlanIssueSchema(stripSiteIssueSchema(stripReceivingSchema(stripMaterialUomSchema(stripMaterialUomEffectSchema(stripMaterialUomStageCSchema(readFileSync(new URL('../../apps/api/prisma/schema.prisma', import.meta.url), 'utf8')).text).text).text).text).text).text).text).text,
   ).text).text).text;
   // The real predecessor schema, independently stored by Git, is the baseline.
   const { execFileSync } = await import('node:child_process');
