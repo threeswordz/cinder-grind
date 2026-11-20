@@ -45,6 +45,12 @@ test('MP-AC-07–13 actual authenticated plan posting, overage, consumption and 
    const input=await f.pin(directId);directInput=input;const before=await db.approvalInstance.count({where:{companyId:f.company.id}});
    const preview=(await call(f.store,'/issues/'+directId+'/preview',201,input)).data;assert.equal(preview.result,'WITHIN_PLAN');assert.equal(preview.items[0].remaining,'6.0000');
    const result=await call(f.store,'/issues/'+directId+'/within-plan',201,input);assert.equal(result.data.status,'POSTED');postedAuth=result.data.authorizationId;
+   // Legacy same-unit history is NOT retroactively assigned a stock conversion.
+   // New frozen stock-limit admission must refuse this unpinned source.
+   await assert.rejects(
+    ()=>db.$queryRaw`SELECT erp_uom_plan_frozen_usage(${f.plan.id}::uuid,${f.source.id}::uuid,${f.material.id}::uuid,${f.uom.id}::uuid)`,
+    /MATERIAL_UOM_PLAN_FROZEN_ISSUE_REQUIRED/
+   );
    const sourceUsage=await f.service.get(f.store.auth,f.plan.id);
    assert.equal(sourceUsage.approvedRevision?.lines[0]?.usedQuantity,'3.0000');
    assert.equal(sourceUsage.approvedRevision?.lines[0]?.remainingQuantity,'3.0000');
