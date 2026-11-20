@@ -340,10 +340,10 @@ BEGIN
  SELECT * INTO header FROM material_issues WHERE id=NEW.issue_id FOR UPDATE;
  SELECT EXISTS(
   SELECT 1 FROM material_plan_issue_bindings binding
-  JOIN material_plan_issue_authorizations authorization
-   ON authorization.id=binding.authorization_id AND authorization.issue_id=binding.issue_id
+  JOIN material_plan_issue_authorizations authz
+   ON authz.id=binding.authorization_id AND authz.issue_id=binding.issue_id
   JOIN material_plan_issue_allocations allocation
-   ON allocation.authorization_id=authorization.id AND allocation.issue_item_id=NEW.issue_item_id
+   ON allocation.authorization_id=authz.id AND allocation.issue_item_id=NEW.issue_item_id
   JOIN material_uom_plan_allocation_pins proof ON proof.allocation_id=allocation.id
   JOIN material_uom_plan_line_pins plan_source ON plan_source.plan_line_id=allocation.plan_line_id
   WHERE binding.issue_id=NEW.issue_id
@@ -355,7 +355,7 @@ BEGIN
    AND proof.numerator=NEW.numerator AND proof.denominator=NEW.denominator
    AND plan_source.stock_uom_id=proof.stock_uom_id
    AND plan_source.stock_quantity=proof.plan_stock_quantity
-   AND authorization.mode IN ('DIRECT','OVERAGE')
+   AND authz.mode IN ('DIRECT','OVERAGE')
  ) INTO plan_authorized;
  IF NOT FOUND OR header.company_id IS DISTINCT FROM NEW.company_id
    OR header.project_id IS DISTINCT FROM NEW.project_id
