@@ -48,9 +48,10 @@ test('DEC-050 B explicit activation: current authority, immutable opt-in and den
    await assert.rejects(f.service.activateStock({auth:f.maker.auth},f.material.id,input),code('MATERIAL_UOM_AUTHORITY_DENIED'));
   });
 
-  async function legacySameBasisReceipt(){
+  async function legacySameBasisReceipt(quantity: string='6', stockPrecision?: number){
    const f=await receivingFixture(db),receipts=app.get(GoodsReceiptService),definitions=app.get(MaterialUomService);
-   const receipt=await receipts.create({auth:f.store.auth},{projectId:f.project.id,purchaseOrderId:f.po.id,warehouseId:f.warehouse.id,lines:[{purchaseOrderLineId:f.po.lines[0]!.id,quantity:new Prisma.Decimal(6)}]});
+   if(stockPrecision!==undefined)await db.unitOfMeasure.update({where:{id:f.uom.id},data:{decimalPlaces:stockPrecision}});
+   const receipt=await receipts.create({auth:f.store.auth},{projectId:f.project.id,purchaseOrderId:f.po.id,warehouseId:f.warehouse.id,lines:[{purchaseOrderLineId:f.po.lines[0]!.id,quantity:new Prisma.Decimal(quantity)}]});
    await receipts.submit({auth:f.store.auth},receipt.id,f.receiptWorkflow.workflowCode);
    await receipts.approve({auth:f.pm.auth},receipt.id,randomUUID());
    const permissions=await db.permission.findMany({where:{permissionCode:{in:['master.material.view','master.material.manage','master.material.conversion.manage']}}});
@@ -62,6 +63,26 @@ test('DEC-050 B explicit activation: current authority, immutable opt-in and den
    const balance=async()=>(await db.stockTransaction.aggregate({where:{companyId:f.company.id,materialId:f.material.id},_sum:{quantity:true}}))._sum.quantity?.toString();
    return {f,receipts,receipt,activate,balance};
   }
+  await t.test('activation rejects same-UOM fractional historical movements outside the chosen stock precision, even after offsetting reversal',async()=>{
+   // The old receipt path permits DECIMAL(18,4) independently of UnitOfMeasure.decimalPlaces.
+   // After a zero-decimal stock basis is prepared, no existing 1.5-effect may be reinterpreted.
+   const {f,receipts,receipt,activate,balance}=await legacySameBasisReceipt('1.5',0);
+   assert.equal(await balance(),'1.5');
+   await assert.rejects(activate(),code('MATERIAL_UOM_HISTORICAL_PRECISION_CONFLICT'));
+   assert.equal(await db.materialUomActivation.count({where:{materialId:f.material.id}}),0);
+   // Offsetting source reversals are still immutable historical evidence: a zero
+   // net balance is insufficient to authorize a zero-decimal activation.
+   await receipts.reverse({auth:f.store.auth},receipt.id,randomUUID(),'Reverse fractional historical basis');
+   assert.equal(await balance(),'0');
+   await assert.rejects(activate(),code('MATERIAL_UOM_HISTORICAL_PRECISION_CONFLICT'));
+   assert.equal(await db.materialUomActivation.count({where:{materialId:f.material.id}}),0);
+  });
+  await t.test('compatible whole-unit historical receipt activates at zero stock precision',async()=>{
+   const {f,activate,balance}=await legacySameBasisReceipt('2',0);
+   assert.equal(await balance(),'2');
+   const result=await activate();assert.equal(result.inventoryConversionEnabled,true);
+   assert.equal(await db.materialUomActivation.count({where:{materialId:f.material.id}}),1);
+  });
   await t.test('a receipt posted in the stock unit before activation still reverses exactly without historical pins',async()=>{
    const {f,receipts,receipt,activate,balance}=await legacySameBasisReceipt();
    const original=await db.stockTransaction.findFirstOrThrow({where:{goodsReceiptId:receipt.id,movementType:'GOODS_RECEIPT'}});

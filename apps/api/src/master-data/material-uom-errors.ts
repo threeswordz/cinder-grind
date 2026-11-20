@@ -1,7 +1,7 @@
 import { ConflictException, ForbiddenException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 
-const codes = new Set(['MATERIAL_UOM_ACTIVATION_VERSION_CONFLICT', 'MATERIAL_UOM_STOCK_BASIS_INVALID', 'MATERIAL_UOM_HISTORICAL_UNIT_CONFLICT', 'MATERIAL_UOM_OPEN_RESERVATION_CONFLICT', 'MATERIAL_UOM_OPEN_SOURCE_CONFLICT', 'MATERIAL_UOM_DEMAND_RECONCILIATION_REQUIRED', 'MATERIAL_UOM_AUTHORITY_DENIED', 'MATERIAL_UOM_REFERENCE_INVALID', 'MATERIAL_UOM_HISTORY_IMMUTABLE', 'MATERIAL_UOM_PRECISION_PINNED', 'MATERIAL_UOM_REVISION_CONFLICT', 'MATERIAL_UOM_RECEIPT_REQUIRED']);
+const codes = new Set(['MATERIAL_UOM_ACTIVATION_VERSION_CONFLICT', 'MATERIAL_UOM_STOCK_BASIS_INVALID', 'MATERIAL_UOM_HISTORICAL_UNIT_CONFLICT', 'MATERIAL_UOM_HISTORICAL_PRECISION_CONFLICT', 'MATERIAL_UOM_OPEN_RESERVATION_CONFLICT', 'MATERIAL_UOM_OPEN_SOURCE_CONFLICT', 'MATERIAL_UOM_DEMAND_RECONCILIATION_REQUIRED', 'MATERIAL_UOM_AUTHORITY_DENIED', 'MATERIAL_UOM_REFERENCE_INVALID', 'MATERIAL_UOM_HISTORY_IMMUTABLE', 'MATERIAL_UOM_PRECISION_PINNED', 'MATERIAL_UOM_REVISION_CONFLICT', 'MATERIAL_UOM_RECEIPT_REQUIRED']);
 export function materialUomException(error: unknown) {
   if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003' && ['material_uom_basis_material_scope_fk', 'material_uom_basis_precision_fk', 'material_uom_revision_precision_fk'].some(name => String(error.meta?.field_name).includes(name) || error.message.includes('`' + name + '`'))) return new ConflictException({ code: 'MATERIAL_UOM_PRECISION_PINNED', detail: 'The Company and unit precision are pinned by immutable material definitions.' });
   let message: string;

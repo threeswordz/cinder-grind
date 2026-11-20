@@ -1134,6 +1134,12 @@ BEGIN
  THEN RAISE EXCEPTION 'MATERIAL_UOM_STOCK_BASIS_INVALID'; END IF;
  IF EXISTS(SELECT 1 FROM stock_transactions WHERE company_id=cid AND material_id=mid AND uom_id<>basis.stock_uom_id)
  THEN RAISE EXCEPTION 'MATERIAL_UOM_HISTORICAL_UNIT_CONFLICT'; END IF;
+ -- No retroactive reinterpretation of legacy fractional stock at a new integer
+ -- basis: every historical effect (including offsetting reversals) must fit the
+ -- chosen stock precision, not just the net on-hand or the UOM identity.
+ IF EXISTS(SELECT 1 FROM stock_transactions t WHERE t.company_id=cid AND t.material_id=mid
+   AND mod(t.quantity*power(10::numeric,basis.stock_precision),1)<>0)
+ THEN RAISE EXCEPTION 'MATERIAL_UOM_HISTORICAL_PRECISION_CONFLICT'; END IF;
  IF EXISTS(SELECT 1 FROM material_reservations WHERE company_id=cid AND material_id=mid AND status IN ('DRAFT','ACTIVE'))
  THEN RAISE EXCEPTION 'MATERIAL_UOM_OPEN_RESERVATION_CONFLICT'; END IF;
  IF EXISTS(SELECT 1 FROM goods_receipt_items gi JOIN goods_receipts gr ON gr.id=gi.goods_receipt_id WHERE gr.company_id=cid AND gi.material_id=mid AND gr.posted_at IS NULL)
