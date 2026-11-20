@@ -52,6 +52,7 @@ if ! git diff --quiet "$RC_PREVIOUS_RELEASE_COMMIT" "$RELEASE_COMMIT" -- apps/ap
   rm -f "$previous_schema_check"
 fi
 
+material_uom_effect_schema=false
 material_uom_schema=false
 physical_schema=false
 transfer_schema=false
@@ -66,6 +67,7 @@ hr_document_schema=false
 hr_proof=false
 customer_schema=false
 successor_mode="$schema_mode"
+export MATERIAL_UOM_EFFECT_SCHEMA_UPGRADE=NO
 export MATERIAL_UOM_SCHEMA_UPGRADE=NO
 export SUBCONTRACT_PHYSICAL_SCHEMA_UPGRADE=NO
 export TRANSFER_SCHEMA_UPGRADE=NO
@@ -77,6 +79,14 @@ export MATERIAL_REQUEST_SCHEMA_UPGRADE=NO
 export STOCK_COUNT_SCHEMA_UPGRADE=NO
 export HR_SCHEMA_UPGRADE=NO
 export HR_DOCUMENT_SCHEMA_UPGRADE=NO
+if [[ "$successor_mode" == "migration-aware-material-uom-effect-schema" ]]; then
+  material_uom_effect_schema=true
+  successor_mode="migration-aware-sql-only"
+elif [[ "$successor_mode" == migration-aware-material-uom-effect-* ]]; then
+  material_uom_effect_schema=true
+  successor_mode="migration-aware-${successor_mode#migration-aware-material-uom-effect-}"
+fi
+if [[ "$material_uom_effect_schema" == true ]]; then export MATERIAL_UOM_EFFECT_SCHEMA_UPGRADE=YES; fi
 if [[ "$successor_mode" == "migration-aware-material-uom-schema" ]]; then
   material_uom_schema=true
   successor_mode="migration-aware-sql-only"
@@ -163,7 +173,7 @@ if [[ "$historical_mode" == "migration-aware-hr-schema" || "$historical_mode" ==
   export HR_SCHEMA_UPGRADE=YES
 fi
 if [[ "$historical_mode" == "migration-aware-customer-boq-schema" || "$historical_mode" == "migration-aware-hr-customer-boq-schema" ]]; then customer_schema=true; fi
-if [[ "$material_uom_schema" == true || "$physical_schema" == true || "$transfer_schema" == true || "$hr_schema" == true || "$hr_document_schema" == true || "$material_request_schema" == true || "$material_plan_schema" == true || "$plan_issue_schema" == true || "$site_issue_schema" == true || "$receiving_schema" == true ]]; then hr_proof=true; fi
+if [[ "$material_uom_effect_schema" == true || "$material_uom_schema" == true || "$physical_schema" == true || "$transfer_schema" == true || "$hr_schema" == true || "$hr_document_schema" == true || "$material_request_schema" == true || "$material_plan_schema" == true || "$plan_issue_schema" == true || "$site_issue_schema" == true || "$receiving_schema" == true ]]; then hr_proof=true; fi
 
 legacy_upgrade=false
 if ! git cat-file -e "$RC_PREVIOUS_RELEASE_COMMIT:apps/api/prisma/migrations/20261025120000_v1_2_thb_monetary_policy/migration.sql" 2>/dev/null; then
@@ -519,6 +529,11 @@ if [[ "$schema_mode" != "migration-aware-sql-only" && "$legacy_upgrade" == true 
   DATABASE_URL="$upgrade_url" node "$RC_DIR/legacy-fixture.mjs" verify "$previous_root" "$tmp_root/legacy.json" "$tmp_root/legacy-snapshot.json"
   DATABASE_URL="$upgrade_url" ERP_LEGACY_FIXTURE="$tmp_root/legacy.json" node "$RC_DIR/verify-thb-upgrade.mjs"
 fi
+if [[ "$material_uom_effect_schema" == true ]]; then
+  # Assert all new B tables are empty immediately after migration, before any
+  # intentional native fixture writes. Keep populated copied recovery distinct.
+  DATABASE_URL="$upgrade_url" node "$RC_DIR/material-uom-effect-upgrade.mjs" pristine "$tmp_root/material-uom-effect-pristine.json"
+fi
 if [[ "$customer_schema" == true ]]; then
   # Exercise persisted source mappings/replay/approvals on the upgraded database,
   # using disposable records, before claiming the successor persistence contract.
@@ -527,6 +542,9 @@ fi
 
 if [[ "$hr_proof" == true ]]; then
   DATABASE_URL="$upgrade_url" node --test apps/api/dist/hr/hr.integration.spec.js
+fi
+if [[ "$material_uom_effect_schema" == true ]]; then
+  DATABASE_URL="$upgrade_url" node --test --test-concurrency=1 apps/api/dist/master-data/material-uom-effect-pin.spec.js apps/api/dist/master-data/material-uom-activation.integration.spec.js apps/api/dist/inventory/material-uom-receipt-source.integration.spec.js apps/api/dist/inventory/material-uom-operational-http.integration.spec.js
 fi
 if [[ "$material_uom_schema" == true ]]; then
   DATABASE_URL="$upgrade_url" node --test apps/api/dist/master-data/material-uom-contract.spec.js apps/api/dist/master-data/material-uom.integration.spec.js
@@ -628,6 +646,9 @@ if [[ "$physical_schema" == true || "$transfer_schema" == true || "$hr_proof" ==
   if [[ "$material_uom_schema" == true ]]; then
     DATABASE_URL="$upgrade_url" node "$RC_DIR/material-uom-upgrade.mjs" protect "$tmp_root/material-uom-protected.json"
   fi
+   if [[ "$material_uom_effect_schema" == true ]]; then
+     DATABASE_URL="$upgrade_url" node "$RC_DIR/material-uom-effect-upgrade.mjs" protect "$tmp_root/material-uom-effect-protected.json"
+   fi
   PGPASSFILE="$upgrade_pgpass" pg_dump --format=custom --no-owner --no-privileges --dbname="$native_upgrade_url" > "$tmp_root/hr-protected.dump"
   chmod 600 "$tmp_root/hr-protected.dump"
   hr_pgpass="$(mktemp)"
@@ -637,6 +658,9 @@ if [[ "$physical_schema" == true || "$transfer_schema" == true || "$hr_proof" ==
   if [[ "$material_uom_schema" == true ]]; then
     DATABASE_URL="$hr_url" node "$RC_DIR/material-uom-upgrade.mjs" restored "$tmp_root/material-uom-protected.json"
   fi
+   if [[ "$material_uom_effect_schema" == true ]]; then
+     DATABASE_URL="$hr_url" node "$RC_DIR/material-uom-effect-upgrade.mjs" restored "$tmp_root/material-uom-effect-protected.json"
+   fi
   if [[ "$physical_schema" == true ]]; then
     tar -xzf "$tmp_root/physical-documents.tar.gz" -C "$tmp_root/physical-restored" --no-same-owner
     SUBCONTRACT_PHYSICAL_RECOVERY_STORAGE_ROOT="$tmp_root/physical-restored" DATABASE_URL="$hr_url" node "$RC_DIR/subcontract-physical-upgrade.mjs" restored "$tmp_root/physical-protected.json"
@@ -783,10 +807,10 @@ set -e
 
 if [[ "$schema_mode" != "migration-aware-sql-only" ]]; then
   if [[ "$legacy_upgrade" == true ]]; then
-    MATERIAL_UOM_SCHEMA_UPGRADE=NO SUBCONTRACT_PHYSICAL_SCHEMA_UPGRADE=NO TRANSFER_SCHEMA_UPGRADE=NO RECEIVING_SCHEMA_UPGRADE=NO SITE_ISSUE_SCHEMA_UPGRADE=NO MATERIAL_PLAN_ISSUE_SCHEMA_UPGRADE=NO MATERIAL_PLAN_SCHEMA_UPGRADE=NO MATERIAL_REQUEST_SCHEMA_UPGRADE=NO HR_SCHEMA_UPGRADE=NO HR_DOCUMENT_SCHEMA_UPGRADE=NO STOCK_COUNT_SCHEMA_UPGRADE=NO DATABASE_URL="$rollback_url" node "$RC_DIR/legacy-fixture.mjs" verify "$previous_root" "$tmp_root/legacy.json" "$tmp_root/legacy-snapshot.json"
+    MATERIAL_UOM_EFFECT_SCHEMA_UPGRADE=NO MATERIAL_UOM_SCHEMA_UPGRADE=NO SUBCONTRACT_PHYSICAL_SCHEMA_UPGRADE=NO TRANSFER_SCHEMA_UPGRADE=NO RECEIVING_SCHEMA_UPGRADE=NO SITE_ISSUE_SCHEMA_UPGRADE=NO MATERIAL_PLAN_ISSUE_SCHEMA_UPGRADE=NO MATERIAL_PLAN_SCHEMA_UPGRADE=NO MATERIAL_REQUEST_SCHEMA_UPGRADE=NO HR_SCHEMA_UPGRADE=NO HR_DOCUMENT_SCHEMA_UPGRADE=NO STOCK_COUNT_SCHEMA_UPGRADE=NO DATABASE_URL="$rollback_url" node "$RC_DIR/legacy-fixture.mjs" verify "$previous_root" "$tmp_root/legacy.json" "$tmp_root/legacy-snapshot.json"
   fi
   if [[ "$hr_proof" == true ]]; then
-    MATERIAL_UOM_SCHEMA_UPGRADE=NO SUBCONTRACT_PHYSICAL_SCHEMA_UPGRADE=NO TRANSFER_SCHEMA_UPGRADE=NO RECEIVING_SCHEMA_UPGRADE=NO SITE_ISSUE_SCHEMA_UPGRADE=NO MATERIAL_PLAN_ISSUE_SCHEMA_UPGRADE=NO MATERIAL_PLAN_SCHEMA_UPGRADE=NO MATERIAL_REQUEST_SCHEMA_UPGRADE=NO HR_DOCUMENT_SCHEMA_UPGRADE=NO DATABASE_URL="$rollback_url" node "$RC_DIR/hr-upgrade.mjs" rollback "$previous_root" "$tmp_root/hr-predecessor.json"
+    MATERIAL_UOM_EFFECT_SCHEMA_UPGRADE=NO MATERIAL_UOM_SCHEMA_UPGRADE=NO SUBCONTRACT_PHYSICAL_SCHEMA_UPGRADE=NO TRANSFER_SCHEMA_UPGRADE=NO RECEIVING_SCHEMA_UPGRADE=NO SITE_ISSUE_SCHEMA_UPGRADE=NO MATERIAL_PLAN_ISSUE_SCHEMA_UPGRADE=NO MATERIAL_PLAN_SCHEMA_UPGRADE=NO MATERIAL_REQUEST_SCHEMA_UPGRADE=NO HR_DOCUMENT_SCHEMA_UPGRADE=NO DATABASE_URL="$rollback_url" node "$RC_DIR/hr-upgrade.mjs" rollback "$previous_root" "$tmp_root/hr-predecessor.json"
   fi
   start_previous_runtime "$rollback_url" "$rollback_storage"
   RESTORED_API_BASE_URL="http://127.0.0.1:$api_port/api/v1" DATABASE_URL="$rollback_url" \
@@ -834,8 +858,10 @@ const [
   ciJob, ciRepository, migrationList, schemaMode, legacyUpgrade,
 ] = process.argv.slice(2);
 const nullable = (value) => value === '' ? null : value;
-const materialUomSchema=schemaMode.startsWith('migration-aware-material-uom-');
-const beforeUom=!materialUomSchema?schemaMode:schemaMode==='migration-aware-material-uom-schema'?'migration-aware-sql-only':'migration-aware-'+schemaMode.slice('migration-aware-material-uom-'.length);
+const materialUomEffectSchema=schemaMode.startsWith('migration-aware-material-uom-effect-');
+const beforeEffect=!materialUomEffectSchema?schemaMode:schemaMode==='migration-aware-material-uom-effect-schema'?'migration-aware-sql-only':'migration-aware-'+schemaMode.slice('migration-aware-material-uom-effect-'.length);
+const materialUomSchema=beforeEffect.startsWith('migration-aware-material-uom-');
+const beforeUom=!materialUomSchema?beforeEffect:beforeEffect==='migration-aware-material-uom-schema'?'migration-aware-sql-only':'migration-aware-'+beforeEffect.slice('migration-aware-material-uom-'.length);
 const physicalSchema=beforeUom.startsWith('migration-aware-subcontract-physical-');
 const beforePhysical=!physicalSchema?beforeUom:beforeUom==='migration-aware-subcontract-physical-schema'?'migration-aware-sql-only':'migration-aware-'+beforeUom.slice('migration-aware-subcontract-physical-'.length);
 const transferSchema=beforePhysical.startsWith('migration-aware-transfer-');
@@ -860,7 +886,7 @@ const priorMode = !hrDocumentSchema ? afterStock : afterStock === 'migration-awa
 const hrSchema = ['migration-aware-hr-schema','migration-aware-hr-customer-boq-schema'].includes(priorMode);
 const customerSchema = ['migration-aware-customer-boq-schema','migration-aware-hr-customer-boq-schema'].includes(priorMode);
 writeFileSync(path, JSON.stringify({
-  version: materialUomSchema ? 17 : physicalSchema ? 16 : transferSchema ? 15 : receivingSchema ? 14 : siteIssueSchema ? 13 : planIssueSchema ? 12 : materialPlanSchema ? 11 : materialRequestSchema ? 10 : stockCountSchema ? 9 : hrDocumentSchema ? 8 : hrSchema ? (customerSchema ? 7 : 6) : customerSchema ? 5 : schemaMode === 'migration-aware-thb-schema' ? 4 : 3,
+  version: materialUomEffectSchema ? 18 : materialUomSchema ? 17 : physicalSchema ? 16 : transferSchema ? 15 : receivingSchema ? 14 : siteIssueSchema ? 13 : planIssueSchema ? 12 : materialPlanSchema ? 11 : materialRequestSchema ? 10 : stockCountSchema ? 9 : hrDocumentSchema ? 8 : hrSchema ? (customerSchema ? 7 : 6) : customerSchema ? 5 : schemaMode === 'migration-aware-thb-schema' ? 4 : 3,
   releaseMode: schemaMode,
   releaseCommit,
   previousReleaseCommit,
@@ -897,6 +923,7 @@ writeFileSync(path, JSON.stringify({
   ...(hrDocumentSchema ? { hrDocumentCustodyUpgrade: 'PASS', hrDocumentSchemaOnly: 'PASS' } : {}),
   ...(stockCountSchema ? { stockCountSchemaUpgrade: 'PASS', stockCountHistoricalPreservation: 'PASS' } : {}),
   ...(materialUomSchema ? {materialUomSchemaUpgrade:'PASS',materialUomHistoricalPreservation:'PASS',materialUomHttpUpgrade:'PASS',materialUomPopulatedRecovery:'PASS'} : {}),
+   ...(materialUomEffectSchema ? {materialUomEffectSchemaUpgrade:'PASS',materialUomEffectHistoricalPreservation:'PASS',materialUomEffectPopulatedRecovery:'PASS'} : {}),
   ...(physicalSchema ? {physicalSchemaUpgrade:'PASS',physicalHistoricalPreservation:'PASS',physicalHttpUpgrade:'PASS',physicalPopulatedRecovery:'PASS',physicalEvidenceRecovery:'PASS'} : {}),
   ...(transferSchema ? {transferSchemaUpgrade:'PASS',transferHistoricalPreservation:'PASS',transferHttpUpgrade:'PASS',transferPopulatedRecovery:'PASS',transferEvidenceRecovery:'PASS'} : {}),
   ...(receivingSchema ? {receivingSchemaUpgrade:'PASS',receivingHistoricalPreservation:'PASS',receivingHttpUpgrade:'PASS',receivingPopulatedRecovery:'PASS',receivingEvidenceRecovery:'PASS'} : {}),

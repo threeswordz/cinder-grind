@@ -1,11 +1,14 @@
+import {activatedStockMaterials,lockStockWarehouses} from './material-uom-active-source';
 import {lockMaterialPlanLineages} from './material-plan-issue-locks';
 import {
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import {resolveStockEffectPin} from '../master-data/material-uom-effect-pin';
 
 import { NumberSequenceService } from '../administration/number-sequence.service';
 import { APPROVAL_STATE, ApprovalService } from '../approval/approval.service';
@@ -308,6 +311,9 @@ export class MaterialIssueService {
       for (const line of issue.items) {
         await this.validateLine(context.auth, issue, line, tx);
       }
+      const activated=await activatedStockMaterials(tx,issue.companyId,issue.items.map(i=>i.materialId));
+      const reservedPins=await this.reservationPostingPins(tx,issue);
+      if(reservedPins.size||activated.size)await this.assertCurrentIssueAuthority(context.auth,tx,'inventory.issue.submit');
       const approval = await this.approvals.start({
         companyId: context.auth.companyId,
         workflowCode,
@@ -322,6 +328,17 @@ export class MaterialIssueService {
           submittedAt: new Date(),
         },
       });
+      if(activated.size){
+        for(const item of issue.items.filter(i=>activated.has(i.materialId)).sort((a,b)=>a.materialId.localeCompare(b.materialId)||a.id.localeCompare(b.id))){
+          if(item.reservationId){
+            if(!reservedPins.has(item.id))throw new ConflictException({code:'MATERIAL_UOM_ISSUE_RESERVATION_SOURCE_MISMATCH'});
+            continue;
+          }
+          const {effectSign:_sign,...pin}=await resolveStockEffectPin(tx,{companyId:issue.companyId,materialId:item.materialId,
+            sourceUomId:item.uomId,quantity:item.quantity,businessDate:issue.issueDate.toISOString().slice(0,10),effectSign:-1});
+          await tx.materialUomIssueSourcePin.create({data:{...pin,issueId:id,issueItemId:item.id,projectId:issue.projectId,warehouseId:issue.warehouseId}});
+        }
+      }
       await this.audit.record({
         ...context,
         entityType: 'MATERIAL_ISSUE',
@@ -341,7 +358,12 @@ export class MaterialIssueService {
   ) {
     const issue = await this.get(context.auth, id);
     await this.requireLegacyPath(id,this.prisma);
-    if (issue.postedAt && issue.postKey === postKey) return issue;
+    if (issue.postedAt && issue.postKey === postKey) {
+      await this.prisma.$transaction(async tx=>{
+        if((await this.reservationPostingPins(tx,issue)).size || await tx.materialUomIssueSourcePin.count({where:{issueId:id}}))await this.assertCurrentIssueAuthority(context.auth,tx,'inventory.issue.approve');
+      });
+      return issue;
+    }
     if (
       !issue.approvalInstanceId ||
       !issue.submittedByUserId ||
@@ -401,9 +423,35 @@ export class MaterialIssueService {
       );
     }
 
+    await lockStockWarehouses(tx,[current.warehouseId]);
+    const activated=await activatedStockMaterials(tx,current.companyId,current.items.map(i=>i.materialId));
+    const reservationPins=await this.reservationPostingPins(tx,current);
+    const postingPins=new Map<string,{stockUomId:string;stockQuantity:Prisma.Decimal}>(reservationPins);
+    const sourcePins=await tx.materialUomIssueSourcePin.findMany({where:{companyId:current.companyId,issueId:id}});
+    if(sourcePins.length||activated.size){
+      const byItem=new Map(sourcePins.map(p=>[p.issueItemId,p]));
+      for(const item of current.items.filter(i=>activated.has(i.materialId)).sort((a,b)=>a.materialId.localeCompare(b.materialId)||a.id.localeCompare(b.id))){
+        if(item.reservationId){if(!reservationPins.has(item.id))throw new ConflictException({code:'MATERIAL_UOM_ISSUE_SOURCE_INCOMPLETE'});continue;}
+        const p=byItem.get(item.id);
+        if(!p||p.projectId!==current.projectId||p.warehouseId!==current.warehouseId||p.materialId!==item.materialId||
+          p.sourceUomId!==item.uomId||!p.sourceQuantity.eq(item.quantity)||p.businessDate.toISOString()!==current.issueDate.toISOString())
+          throw new ConflictException({code:'MATERIAL_UOM_ISSUE_SOURCE_MISMATCH'});
+        const def=await resolveStockEffectPin(tx,{companyId:current.companyId,materialId:item.materialId,sourceUomId:item.uomId,
+         quantity:item.quantity,businessDate:p.businessDate.toISOString().slice(0,10),effectSign:-1});
+        if(def.revisionId!==p.revisionId||def.stockUomId!==p.stockUomId||!def.stockQuantity.eq(p.stockQuantity)||def.numerator!==p.numerator||def.denominator!==p.denominator)
+          throw new ConflictException({code:'MATERIAL_UOM_ISSUE_DEFINITION_CHANGED'});
+        postingPins.set(item.id,p);
+      }
+    }
+    if(postingPins.size){
+      // Plan-bound quantities remain unavailable for converted issue posting until Stage C.
+      await this.requireLegacyPath(id,tx);
+      await this.assertCurrentIssueAuthority(context.auth,tx,'inventory.issue.approve');
+    }
     const dimensions = new Map<string, StockDimension>();
     for (const item of current.items) {
-      const dimension = this.dimension(current, item);
+      const pin=postingPins.get(item.id);
+      const dimension = this.dimension(current, {...item,uomId:pin?.stockUomId??item.uomId});
       dimensions.set(this.quantities.key(dimension), dimension);
     }
     for (const key of [...dimensions.keys()].sort()) {
@@ -418,6 +466,7 @@ export class MaterialIssueService {
         'SELECT pg_advisory_xact_lock(hashtext($1))',
         'inventory-reservation:' + reservationId,
       );
+      // A competing release or issue must serialize against this stock dimension and reservation.
     }
 
     const now = new Date();
@@ -451,13 +500,15 @@ export class MaterialIssueService {
         }
       }
 
-      const dimension = this.dimension(current, item);
+      const pin=postingPins.get(item.id);
+      const dimension = this.dimension(current, {...item,uomId:pin?.stockUomId??item.uomId});
+      const stockQuantity=pin?.stockQuantity??item.quantity;
       const available = await this.quantities.available(
         tx,
         dimension,
         item.reservationId ?? undefined,
       );
-      if (item.quantity.greaterThan(available.available)) {
+      if (stockQuantity.greaterThan(available.available)) {
         throw new ConflictException({
           code: 'MATERIAL_ISSUE_INSUFFICIENT_AVAILABLE',
           detail: 'Issue would consume negative or stock reserved for another active Reservation.',
@@ -470,14 +521,14 @@ export class MaterialIssueService {
           warehouseId: current.warehouseId,
           materialId: item.materialId,
           projectId: current.projectId,
-          uomId: item.uomId,
+          uomId: pin?.stockUomId??item.uomId,
           materialIssueId: current.id,
           materialIssueItemId: item.id,
           wbsId: item.wbsId,
           costCodeId: item.costCodeId,
           activityId: item.activityId,
           movementType: 'MATERIAL_ISSUE',
-          quantity: item.quantity.negated(),
+          quantity: stockQuantity.negated(),
           effectKey: 'material-issue:' + item.id,
           postedByUserId: context.auth.userId,
         },
@@ -651,6 +702,37 @@ export class MaterialIssueService {
       }, tx);
       return this.get(context.auth, id, tx);
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+  }
+
+  private async reservationPostingPins(tx:Prisma.TransactionClient,issue:{companyId:string;projectId:string;warehouseId:string;items:{id:string;reservationId:string|null;materialId:string;uomId:string;quantity:Prisma.Decimal}[]}) {
+    const linked=issue.items.filter(i=>i.reservationId!==null);
+    const ids=linked.map(i=>i.reservationId!);
+    const pins=ids.length?await tx.materialUomReservationPin.findMany({where:{reservationId:{in:ids}}}):[];
+    const byReservation=new Map(pins.map(p=>[p.reservationId,p]));
+    const result=new Map<string,(typeof pins)[number]>();
+    for(const item of linked){
+      const pin=byReservation.get(item.reservationId!);
+      if(!pin)continue;
+      if(ids.filter(id=>id===pin.reservationId).length!==1||pin.companyId!==issue.companyId||pin.projectId!==issue.projectId||
+         pin.warehouseId!==issue.warehouseId||pin.materialId!==item.materialId||pin.sourceUomId!==item.uomId||!pin.sourceQuantity.eq(item.quantity))
+        throw new ConflictException({code:'MATERIAL_UOM_ISSUE_RESERVATION_SOURCE_MISMATCH'});
+      result.set(item.id,pin);
+    }
+    // The linked reservation already freezes the exact rate. Never resolve a
+    // newer effective factor to consume this original authorized demand.
+    return result;
+  }
+
+  private async assertCurrentIssueAuthority(auth:AuthenticatedUserContext,tx:Prisma.TransactionClient,permission:string){
+    const session=await tx.userSession.findFirst({
+      where:{id:auth.sessionId,userId:auth.userId,revokedAt:null,expiresAt:{gt:new Date()},user:{companyId:auth.companyId,isActive:true,company:{isActive:true}}},
+    select: { user: { select: { employee: { select: { companyId: true, isActive: true } },
+      userRoles: { select: { companyId: true, role: { select: { companyId: true, roleCode: true, isActive: true,
+        rolePermissions: { select: { permission: { select: { permissionCode: true } } } } } } } } } } },
+    });
+    const permissions=session?.user.userRoles.filter(r=>r.companyId===auth.companyId&&r.role.companyId===auth.companyId&&r.role.isActive&&r.role.roleCode!=='SYS_ADMIN').flatMap(r=>r.role.rolePermissions.map(p=>p.permission.permissionCode))??[];
+    if(!session?.user.employee?.isActive||session.user.employee.companyId!==auth.companyId||!permissions.includes(permission)||!auth.permissions.includes(permission))
+      throw new ForbiddenException({code:'MATERIAL_UOM_ISSUE_AUTHORITY_DENIED'});
   }
 
   private async requireLegacyPath(id:string,db:Db){

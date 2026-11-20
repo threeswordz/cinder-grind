@@ -69,3 +69,8 @@ export function uomPreview(value: unknown) {
   const r = object(value, ['sourceUomId', 'businessDate', 'quantity']);
   return { sourceUomId: uomId(r.sourceUomId, 'sourceUomId'), businessDate: uomDate(r.businessDate), quantity: uomFixed(uomQuantity(r.quantity)) };
 }
+
+export function uomActivate(value: unknown) {
+  const r = object(value, ['requestKey', 'expectedVersion', 'reason']);
+  return { requestKey: uomId(r.requestKey, 'requestKey'), expectedVersion: uomVersion(r.expectedVersion), reason: reason(r.reason) };
+}

@@ -1,11 +1,14 @@
 import {lockMaterialPlanLineages} from './material-plan-issue-locks';
 import {
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import { deriveStockEffectFromOriginal } from '../master-data/material-uom-effect-pin';
+import { trackedCanonicalBasis } from './material-uom-stock-dimension';
 
 import { NumberSequenceService } from '../administration/number-sequence.service';
 import { ApprovalService } from '../approval/approval.service';
@@ -312,6 +315,8 @@ export class MaterialReturnService {
           tx,
         );
       }
+      if(await tx.stockTransaction.findFirst({where:{materialIssueItemId:{in:row.items.map(i=>i.materialIssueItemId)},movementType:'MATERIAL_ISSUE',materialUomEffectPin:{isNot:null}},select:{id:true}}))
+        await this.assertCurrentReturnAuthority(context.auth,tx,'inventory.return.submit');
       const approval = await this.approvals.start({
         companyId: context.auth.companyId,
         workflowCode,
@@ -345,6 +350,10 @@ export class MaterialReturnService {
   ) {
     const materialReturn = await this.get(context.auth, id);
     if (materialReturn.postedAt && materialReturn.postKey === postKey) {
+      await this.prisma.$transaction(async tx=>{
+        if(await tx.stockTransaction.findFirst({where:{materialReturnId:id,movementType:'MATERIAL_RETURN',materialUomEffectPin:{isNot:null}},select:{id:true}}))
+          await this.assertCurrentReturnAuthority(context.auth,tx,'inventory.return.approve');
+      });
       return materialReturn;
     }
     if (
@@ -367,6 +376,7 @@ export class MaterialReturnService {
         }
         const linked=await tx.materialIssueItem.findMany({where:{id:{in:current.items.map(i=>i.materialIssueItemId)}},select:{materialIssueId:true}});
         await lockMaterialPlanLineages(tx,linked.map(i=>i.materialIssueId));
+        // Source-line locks precede all original-quantity and canonical-stock checks.
         for (const sourceId of current.items
           .map((item) => item.materialIssueItemId)
           .sort()) {
@@ -389,48 +399,50 @@ export class MaterialReturnService {
           current.warehouseId,
           tx,
         );
+        const stockEffects = new Map<string,Awaited<ReturnType<typeof deriveStockEffectFromOriginal>>>();
         const dimensions = new Map<string, StockDimension>();
+        const sources = new Map<string, Awaited<ReturnType<MaterialReturnService['sourceForPosting']>>>();
+        for (const item of current.items) {
+          const source=await this.sourceForPosting(current.companyId,current.projectId,item.materialIssueItemId,tx);
+          const prior=await tx.materialReturnItem.findMany({where:{materialIssueItemId:item.materialIssueItemId,
+            materialReturnId:{not:id},materialReturn:{postedAt:{not:null},reversedAt:null}},select:{quantity:true}});
+          const alreadyReturned=prior.reduce((sum,row)=>sum.plus(row.quantity),new Prisma.Decimal(0));
+          if(alreadyReturned.plus(item.quantity).greaterThan(source.quantity))
+            throw new ConflictException({code:'MATERIAL_RETURN_EXCEEDS_ISSUED'});
+          sources.set(item.id,source);
+          const movement=await tx.stockTransaction.findFirst({where:{materialIssueItemId:source.id,movementType:'MATERIAL_ISSUE'},include:{materialUomEffectPin:true}});
+          const pin=movement?.materialUomEffectPin;
+          if(pin){
+            if(pin.effectSign!==-1 || pin.companyId!==current.companyId||pin.materialId!==item.materialId||
+               pin.sourceUomId!==item.uomId||!pin.sourceQuantity.eq(source.quantity)||!movement!.quantity.eq(pin.stockQuantity.negated()))
+              throw new ConflictException({code:'MATERIAL_UOM_RETURN_SOURCE_MISMATCH'});
+            const basis=await tx.materialUomBasis.findUniqueOrThrow({where:{materialId:pin.materialId}});
+            const revision=pin.revisionId?await tx.materialUomRevision.findUniqueOrThrow({where:{id:pin.revisionId}}):null;
+            const effect=deriveStockEffectFromOriginal({...pin,effectSign:-1},item.quantity,source.quantity.minus(alreadyReturned),1,
+              {source:revision?.sourcePrecision??basis.stockPrecision,stock:basis.stockPrecision});
+            stockEffects.set(item.id,effect);
+          }else{
+            // A new return is a new effect, even when the original legacy issue
+            // has no conversion pin. Keep its unit/provenance, but obey the
+            // immutable activated stock precision; never fabricate an old pin.
+            const basis=await trackedCanonicalBasis(tx,current.companyId,item.materialId);
+            if(basis&&(basis.stockUomId!==item.uomId||item.quantity.decimalPlaces()>basis.stockPrecision))
+              throw new ConflictException({code:'MATERIAL_UOM_RETURN_ORIGINAL_PRECISION_OR_QUANTITY'});
+          }
+        }
+        if(stockEffects.size)await this.assertCurrentReturnAuthority(context.auth,tx,'inventory.return.approve');
         for (const item of current.items) {
           const dimension: StockDimension = {
             companyId: current.companyId,
             warehouseId: current.warehouseId,
             materialId: item.materialId,
             projectId: current.projectId,
-            uomId: item.uomId,
+            uomId: stockEffects.get(item.id)?.stockUomId??item.uomId,
           };
           dimensions.set(this.quantities.key(dimension), dimension);
         }
         for (const key of [...dimensions.keys()].sort()) {
           await this.quantities.lock(tx, dimensions.get(key)!);
-        }
-
-        const sources = new Map<string, Awaited<ReturnType<MaterialReturnService['sourceForPosting']>>>();
-        for (const item of current.items) {
-          const source = await this.sourceForPosting(
-            current.companyId,
-            current.projectId,
-            item.materialIssueItemId,
-            tx,
-          );
-          const priorRows = await tx.materialReturnItem.findMany({
-            where: {
-              materialIssueItemId: item.materialIssueItemId,
-              materialReturnId: { not: id },
-              materialReturn: { postedAt: { not: null }, reversedAt: null },
-            },
-            select: { quantity: true },
-          });
-          const alreadyReturned = priorRows.reduce(
-            (sum, row) => sum.plus(row.quantity),
-            new Prisma.Decimal(0),
-          );
-          if (alreadyReturned.plus(item.quantity).greaterThan(source.quantity)) {
-            throw new ConflictException({
-              code: 'MATERIAL_RETURN_EXCEEDS_ISSUED',
-              detail: 'Cumulative non-reversed returns cannot exceed the posted Issue quantity.',
-            });
-          }
-          sources.set(item.id, source);
         }
 
         const now = new Date();
@@ -444,20 +456,21 @@ export class MaterialReturnService {
         });
         for (const item of current.items) {
           const source = sources.get(item.id)!;
+          const effect=stockEffects.get(item.id);
           await tx.stockTransaction.create({
             data: {
               companyId: current.companyId,
               warehouseId: current.warehouseId,
               materialId: item.materialId,
               projectId: current.projectId,
-              uomId: item.uomId,
+              uomId: effect?.stockUomId??item.uomId,
               materialReturnId: current.id,
               materialReturnItemId: item.id,
               wbsId: source.wbsId,
               costCodeId: source.costCodeId,
               activityId: source.activityId,
               movementType: 'MATERIAL_RETURN',
-              quantity: item.quantity,
+              quantity: effect?.stockQuantity??item.quantity,
               effectKey: 'material-return:' + item.id,
               postedByUserId: context.auth.userId,
             },
@@ -606,6 +619,18 @@ export class MaterialReturnService {
       }, tx);
       return this.get(context.auth, id, tx);
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+  }
+
+  private async assertCurrentReturnAuthority(auth:AuthenticatedUserContext,tx:Prisma.TransactionClient,permission:string){
+    const session=await tx.userSession.findFirst({
+      where:{id:auth.sessionId,userId:auth.userId,revokedAt:null,expiresAt:{gt:new Date()},user:{companyId:auth.companyId,isActive:true,company:{isActive:true}}},
+    select: { user: { select: { employee: { select: { companyId: true, isActive: true } },
+      userRoles: { select: { companyId: true, role: { select: { companyId: true, roleCode: true, isActive: true,
+        rolePermissions: { select: { permission: { select: { permissionCode: true } } } } } } } } } } },
+    });
+    const permissions=session?.user.userRoles.filter(r=>r.companyId===auth.companyId&&r.role.companyId===auth.companyId&&r.role.isActive&&r.role.roleCode!=='SYS_ADMIN').flatMap(r=>r.role.rolePermissions.map(p=>p.permission.permissionCode))??[];
+    if(!session?.user.employee?.isActive||session.user.employee.companyId!==auth.companyId||!permissions.includes(permission)||!auth.permissions.includes(permission))
+      throw new ForbiddenException({code:'MATERIAL_UOM_RETURN_AUTHORITY_DENIED'});
   }
 
   private async validateWarehouse(

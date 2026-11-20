@@ -1,5 +1,7 @@
+import {activatedStockMaterials,explicitStockBusinessDate,lockStockWarehouses} from './material-uom-active-source';
 import {
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
   UnprocessableEntityException,
@@ -11,6 +13,7 @@ import { AuditService } from '../audit/audit.service';
 import { AuthenticatedUserContext } from '../auth/auth.types';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProjectAccessService } from '../projects/project-access.service';
+import { resolveStockEffectPin } from '../master-data/material-uom-effect-pin';
 import {
   InventoryQuantityService,
   StockDimension,
@@ -274,7 +277,7 @@ export class MaterialReservationService {
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
   }
 
-  async activate(context: AuditContext, id: string) {
+  async activate(context: AuditContext, id: string, conversionBusinessDate?: string) {
     return this.prisma.$transaction(async (tx) => {
       const row = await this.get(context.auth, id, tx);
       if (row.status !== 'DRAFT') {
@@ -285,10 +288,13 @@ export class MaterialReservationService {
         'inventory-warehouse:' + row.warehouseId,
       );
       await this.validateDimensions(context.auth, row, tx);
-      const dimension = this.dimension(context.auth.companyId, row);
+      const activated=await activatedStockMaterials(tx,row.companyId,[row.materialId]);
+      const businessDate=explicitStockBusinessDate(conversionBusinessDate,activated.has(row.materialId));
+      const pin = businessDate === undefined ? null : await this.resolveReservationPin(context, row, businessDate, tx);
+      const dimension = this.dimension(context.auth.companyId, {...row,uomId:pin?.stockUomId ?? row.uomId});
       await this.quantities.lock(tx, dimension);
       const availability = await this.quantities.available(tx, dimension);
-      if (row.quantity.greaterThan(availability.available)) {
+      if ((pin?.stockQuantity ?? row.quantity).greaterThan(availability.available)) {
         throw new ConflictException({
           code: 'RESERVATION_INSUFFICIENT_AVAILABLE',
           detail: 'Reservation quantity exceeds currently available stock.',
@@ -303,6 +309,10 @@ export class MaterialReservationService {
           activatedByUserId: context.auth.userId,
         },
       });
+      if (pin) {
+        const {effectSign:_sign,...source}=pin;
+        await tx.materialUomReservationPin.create({data:{...source,reservationId:id,projectId:row.projectId,warehouseId:row.warehouseId}});
+      }
       await this.audit.record({
         ...context,
         entityType: 'MATERIAL_RESERVATION',
@@ -313,6 +323,7 @@ export class MaterialReservationService {
           onHand: availability.onHand.toString(),
           reservedBefore: availability.reserved.toString(),
           quantity: row.quantity.toString(),
+          ...(pin?{stockQuantity:pin.stockQuantity.toString(),stockUomId:pin.stockUomId,revisionId:pin.revisionId,businessDate:pin.businessDate.toISOString().slice(0,10)}:{}),
         },
       }, tx);
       return updated;
@@ -342,7 +353,10 @@ export class MaterialReservationService {
       // on the same Company/Project/site-Warehouse/Material/UOM dimension.
       // Activation and inventory posting already use this canonical lock.
       // Serializable isolation fails closed if the row changes while waiting.
-      await this.quantities.lock(tx, this.dimension(context.auth.companyId, row));
+      await lockStockWarehouses(tx,[row.warehouseId]);
+      await activatedStockMaterials(tx,row.companyId,[row.materialId]);
+      const pin=await tx.materialUomReservationPin.findUnique({where:{reservationId:id}});
+      await this.quantities.lock(tx, this.dimension(context.auth.companyId, {...row,uomId:pin?.stockUomId ?? row.uomId}));
       const at = new Date();
       const updated = await tx.materialReservation.update({
         where: { id },
@@ -370,6 +384,19 @@ export class MaterialReservationService {
       }, tx);
       return updated;
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+  }
+
+  private async resolveReservationPin(context:AuditContext,row:{materialId:string;uomId:string;quantity:Prisma.Decimal},businessDate:string,tx:Prisma.TransactionClient) {
+    const auth=context.auth;
+    const permission='inventory.reservation.activate';
+    const session=await tx.userSession.findFirst({
+      where:{id:auth.sessionId,userId:auth.userId,revokedAt:null,expiresAt:{gt:new Date()},user:{companyId:auth.companyId,isActive:true,company:{isActive:true}}},
+      select:{user:{select:{employee:{select:{companyId:true,isActive:true}},userRoles:{select:{companyId:true,role:{select:{companyId:true,roleCode:true,isActive:true,rolePermissions:{select:{permission:{select:{permissionCode:true}}}}}}}}}}},
+    });
+    const permissions=session?.user.userRoles.filter(r=>r.companyId===auth.companyId&&r.role.companyId===auth.companyId&&r.role.isActive&&r.role.roleCode!=='SYS_ADMIN').flatMap(r=>r.role.rolePermissions.map(p=>p.permission.permissionCode))??[];
+    if (!session?.user.employee?.isActive||session.user.employee.companyId!==auth.companyId||!permissions.includes(permission)||!auth.permissions.includes(permission))
+      throw new ForbiddenException({code:'MATERIAL_UOM_RESERVATION_AUTHORITY_DENIED'});
+    return resolveStockEffectPin(tx,{companyId:auth.companyId,materialId:row.materialId,sourceUomId:row.uomId,quantity:row.quantity,businessDate,effectSign:1});
   }
 
   private async validateDimensions(

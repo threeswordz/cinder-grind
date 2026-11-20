@@ -1,3 +1,4 @@
+import {uomDate} from '../master-data/material-uom-contract';
 import {
   Body,
   Controller,
@@ -237,8 +238,11 @@ export class MaterialMovementController {
   async activateReservation(
     @Req() request: AuthenticatedRequest,
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+    @Body() body: unknown,
   ) {
-    return { data: await this.reservations.activate(auditContext(request), id) };
+    const input=inventoryObject(body??{});
+    if(Object.keys(input).some(k=>k!=='conversionBusinessDate'))inventoryInvalid('body','Only the explicit conversion business date is accepted.');
+    return { data: await this.reservations.activate(auditContext(request), id, input.conversionBusinessDate===undefined?undefined:uomDate(input.conversionBusinessDate,'conversionBusinessDate')) };
   }
 
   @Post('material-reservations/:id/release')

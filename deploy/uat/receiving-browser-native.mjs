@@ -102,7 +102,8 @@ async function native(){
   const name='receiving_'+randomUUID().replaceAll('-',''),own=new URL(baseUrl);own.pathname='/'+name;let created=false;
   try{
     await base.$executeRawUnsafe('CREATE DATABASE "'+name+'"');created=true;
-    await prepareReceivingUpgrade(own.href);
+    try { await prepareReceivingUpgrade(own.href); }
+    catch { throw Object.assign(new Error(),{safeCode:'RECEIVING_PREDECESSOR_SETUP_FAILED'}); }
     await runReceivingBrowser(own.href);
   }finally{try{if(created)await base.$executeRawUnsafe('DROP DATABASE "'+name+'" WITH (FORCE)');}finally{await base.$disconnect();}}
 }

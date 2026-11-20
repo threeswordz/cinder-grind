@@ -1,3 +1,4 @@
+import {stripMaterialUomEffectSchema,materialUomEffectMigration} from './material-uom-effect-schema-contract.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync,readdirSync} from 'node:fs';
@@ -7,7 +8,8 @@ import {classifySchema} from './schema-contract.mjs';
 import {stripMaterialUomSchema,materialUomMode,materialUomTables,materialUomMigrations} from './material-uom-schema-contract.mjs';
 import {materialUomCatalog,verifyMaterialUomCatalog} from './material-uom-catalog-contract.mjs';
 import {assertHistoricalTables} from './historical-snapshot.mjs';
-const schema=readFileSync(new URL('../../apps/api/prisma/schema.prisma',import.meta.url),'utf8');
+const fullSchema=readFileSync(new URL('../../apps/api/prisma/schema.prisma',import.meta.url),'utf8');
+const schema=stripMaterialUomEffectSchema(fullSchema).text;
 const previous=execFileSync('git',['show','59d67d1f2e54e6bfde51e4c5be336ea97906bf52:apps/api/prisma/schema.prisma'],{encoding:'utf8'});
 test('DEC-050 A admits exactly three prepared facts without changing canonical stock/commercial models',()=>{
  assert.equal(classifySchema(previous,schema),'migration-aware-material-uom-schema');
@@ -18,7 +20,7 @@ test('DEC-050 A admits exactly three prepared facts without changing canonical s
 });
 test('conversion capability catalog is exact and migrations never grant roles or alter historical effects',()=>{
  verifyMaterialUomCatalog(materialUomCatalog,true);assert.throws(()=>verifyMaterialUomCatalog([],true));
- const names=readdirSync(new URL('../../apps/api/prisma/migrations/',import.meta.url)).filter(n=>n.includes('_material_uom_'));
+ const names=readdirSync(new URL('../../apps/api/prisma/migrations/',import.meta.url)).filter(n=>n.includes('_material_uom_') && n!==materialUomEffectMigration);
  assert.deepEqual(names.sort(),[...materialUomMigrations].sort());
  const sql=materialUomMigrations.map(n=>readFileSync(new URL('../../apps/api/prisma/migrations/'+n+'/migration.sql',import.meta.url),'utf8')).join('\n');
  for(const value of Object.values(materialUomCatalog[0]))assert.ok(sql.includes(value));

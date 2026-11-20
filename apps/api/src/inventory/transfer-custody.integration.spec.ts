@@ -2,6 +2,7 @@ import 'reflect-metadata';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { randomUUID } from 'node:crypto';
+import { Prisma } from '@prisma/client';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -11,7 +12,9 @@ import { PrismaService } from '../prisma/prisma.service';
 import { ProblemDetailsFilter } from '../common/problem-details.filter';
 import { securityHeadersMiddleware } from '../common/security-headers';
 import { transferCustodyFixture } from './transfer-custody-test-fixture';
-import { insertControlledTransferHeader } from './stock-transfer.service';
+import { insertControlledTransferHeader, StockTransferService } from './stock-transfer.service';
+import { MaterialUomService } from '../master-data/material-uom.service';
+import { TransferCustodyService } from './transfer-custody.service';
 
 test('DEC-046 transfer actual HTTP: dispatch, partial destination receipt, assignment, evidence and unchanged legacy path', async t => {
   const target = new URL(process.env.DATABASE_URL ?? '');
@@ -222,4 +225,56 @@ test('DEC-046 transfer actual HTTP: dispatch, partial destination receipt, assig
   } finally {
     await app.close(); await db.$disconnect(); process.env.STORAGE_ROOT = oldStorage; await rm(storage, { recursive: true, force: true });
   }
+});
+
+test('DEC-050 B actual controlled conversion dispatch, partial receipt and original-rate reversal',async()=>{
+ const url=new URL(process.env.DATABASE_URL??'');assert.ok(['localhost','127.0.0.1'].includes(url.hostname));
+ assert.ok(url.pathname==='/erp_validation'&&url.username==='erp_validation'||/^\/(?:construction_erp|construction_erp_v10e_(?:upgrade|hrrestore)_[a-f0-9]{12})$/.test(url.pathname));
+ const storage=await mkdtemp(join(tmpdir(),'transfer-uom-')),oldStorage=process.env.STORAGE_ROOT;process.env.STORAGE_ROOT=storage;
+ const db=new PrismaService();await db.$connect();const app=await NestFactory.create(AppModule,{logger:false});
+ app.setGlobalPrefix('api/v1');app.useGlobalFilters(new ProblemDetailsFilter());app.use(securityHeadersMiddleware(false));await app.listen(0,'127.0.0.1');
+ try{
+  const f=await transferCustodyFixture(db,app,true,true),svc=app.get(StockTransferService),custody=app.get(TransferCustodyService),defs=app.get(MaterialUomService);
+  const qty=async(warehouseId:string)=>(await db.stockTransaction.aggregate({where:{companyId:f.company.id,materialId:f.material.id,warehouseId,uomId:f.canonicalUomId},_sum:{quantity:true}}))._sum.quantity?.toString()??'0';
+  assert.ok(f.secondaryMaterial);
+  const legacyBalance=async(warehouseId:string)=>(await db.stockTransaction.aggregate({where:{companyId:f.company.id,materialId:f.secondaryMaterial!.id,warehouseId},_sum:{quantity:true}}))._sum.quantity?.toString()??'0';
+  await custody.enable({auth:f.pm.auth},f.project.id,{requestKey:randomUUID(),reason:'Synthetic converted custody'});
+  const transfer=await svc.create({auth:f.store.auth},{sourceWarehouseId:f.warehouse.id,destinationWarehouseId:f.destinationWarehouse.id,transferDate:new Date('2026-11-19T00:00:00Z'),lines:[{materialId:f.material.id,uomId:f.uom.id,quantity:new Prisma.Decimal(2),sourceProjectId:f.project.id,destinationProjectId:f.unassigned.id},{materialId:f.secondaryMaterial.id,uomId:f.uom.id,quantity:new Prisma.Decimal(3),sourceProjectId:f.project.id,destinationProjectId:f.unassigned.id}]});
+  await svc.submit({auth:f.store.auth},transfer.id,f.workflow.workflowCode);
+  const pin=await db.materialUomTransferSourcePin.findFirstOrThrow({where:{transferId:transfer.id}});
+  assert.equal(pin.stockQuantity.toString(),'40');
+  await svc.approve({auth:f.pm.auth},transfer.id,randomUUID());
+  assert.equal(await qty(f.warehouse.id),'200');assert.equal(await qty(f.destinationWarehouse.id),'0');
+  await defs.revise({auth:f.config.auth},f.material.id,{requestKey:randomUUID(),expectedVersion:2,sourceUomId:f.uom.id,effectiveFrom:'2026-01-01',numerator:'24',denominator:'1',reason:'Later definition preserves approved transfer'});
+  const version=async()=>(await db.transferCustody.findUniqueOrThrow({where:{transferId:transfer.id}})).version;
+  const dispatch={requestKey:randomUUID(),expectedVersion:await version(),reason:'Synthetic dispatch'};
+  await custody.dispatch({auth:f.store.auth},transfer.id,dispatch);await custody.dispatch({auth:f.store.auth},transfer.id,dispatch);
+  assert.equal(await qty(f.warehouse.id),'160');assert.equal(await legacyBalance(f.warehouse.id),'7');assert.equal(await qty(f.destinationWarehouse.id),'0');
+  const origin=await db.stockTransaction.findFirstOrThrow({where:{stockTransferId:transfer.id,movementType:'STOCK_TRANSFER_OUT'}});
+  assert.equal(origin.quantity.toString(),'-40');
+  const base=await app.getUrl()+'/api/v1',destination='/inventory/transfer-custody/projects/'+f.unassigned.id+'/transfers/'+transfer.id;
+  async function call(p:string,body:unknown){
+   const response=await fetch(base+p,{method:'POST',headers:{Cookie:'erp_session='+f.jai.session.sessionToken,'x-csrf-token':f.jai.session.csrfToken,'Content-Type':'application/json'},body:JSON.stringify(body)});
+   const result:any=await response.json();assert.equal(response.status,201,JSON.stringify(result));return result.data;
+  }
+  async function receive(amount:string){
+   const prepared=await call(destination+'/receipts',{requestKey:randomUUID(),expectedVersion:await version(),reason:'Actual partial delivery'});
+   const data=new FormData();data.set('documentTypeId',f.documentType.id);data.set('file',new Blob([Buffer.from('%PDF-1.4 Synthetic UOM receipt')],{type:'application/pdf'}),'receipt.pdf');
+   const upload=await fetch(base+'/documents/projects/'+f.unassigned.id+'/targets/TRANSFER_RECEIPT/'+prepared.receiptId,{method:'POST',headers:{Cookie:'erp_session='+f.jai.session.sessionToken,'x-csrf-token':f.jai.session.csrfToken},body:data});
+   const detail:any=await upload.json();assert.equal(upload.status,201,JSON.stringify(detail));
+   const body={requestKey:randomUUID(),expectedVersion:await version(),reason:'Actual acceptance',documentId:detail.data.id,lines:[{transferItemId:pin.transferItemId,quantity:amount,note:'Accepted'},...(amount==='1.5'?[{transferItemId:(await db.stockTransferItem.findFirstOrThrow({where:{stockTransferId:transfer.id,materialId:f.secondaryMaterial!.id}})).id,quantity:'3',note:'Legacy received unchanged'}]:[])]};
+   const first=await call(destination+'/receipts/'+prepared.receiptId+'/receive',body);
+   assert.deepEqual(await call(destination+'/receipts/'+prepared.receiptId+'/receive',body),first);
+  }
+  await receive('0.5');assert.equal(await qty(f.destinationWarehouse.id),'10');
+  await assert.rejects(db.materialUomTransferSourcePin.update({where:{transferItemId:pin.transferItemId},data:{numerator:'24'}}),/MATERIAL_UOM_TRANSFER_SOURCE_IMMUTABLE/);
+  assert.equal((await svc.get(f.store.auth,transfer.id)).custody?.receiptComplete,false);
+  await assert.rejects(svc.reverse({auth:f.store.auth},transfer.id,randomUUID(),'Still in transit'));
+  await receive('1.5');assert.equal(await qty(f.destinationWarehouse.id),'40');
+  assert.equal((await svc.get(f.store.auth,transfer.id)).custody?.receiptComplete,true);
+  const effects=await db.stockTransaction.findMany({where:{stockTransferId:transfer.id},include:{materialUomEffectPin:true}});
+  assert.equal(effects.length,5);assert.ok(effects.filter(e=>e.materialId===f.material.id).every(e=>e.materialUomEffectPin?.revisionId===pin.revisionId&&e.uomId===f.canonicalUomId));assert.ok(effects.filter(e=>e.materialId===f.secondaryMaterial!.id).every(e=>e.materialUomEffectPin===null&&e.uomId===f.uom.id));assert.equal(await legacyBalance(f.destinationWarehouse.id),'3');
+  await svc.reverse({auth:f.store.auth},transfer.id,randomUUID(),'Exact original custody reversal');
+  assert.equal(await qty(f.warehouse.id),'200');assert.equal(await qty(f.destinationWarehouse.id),'0');assert.equal(await legacyBalance(f.warehouse.id),'10');assert.equal(await legacyBalance(f.destinationWarehouse.id),'0');
+ }finally{await app.close();await db.$disconnect();if(oldStorage===undefined)delete process.env.STORAGE_ROOT;else process.env.STORAGE_ROOT=oldStorage;await rm(storage,{recursive:true,force:true});}
 });
