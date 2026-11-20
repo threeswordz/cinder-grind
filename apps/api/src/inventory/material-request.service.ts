@@ -167,6 +167,9 @@ export class MaterialRequestService {
                 return { id: line.id, lineNo: line.lineNo, materialId: line.materialId, material: line.material, uomId: line.uomId, uom: line.uom,
                     requestedQuantity: line.requestedQuantity.toFixed(4), wbsId: line.wbsId, costCodeId: line.costCodeId, activityId: line.activityId, remarks: line.remarks,
                     issuedQuantity: formatted(issued), acknowledgedQuantity: formatted(acknowledged),
+                    // This remains an entered-unit figure under the existing same-UOM
+                    // link guard; it is not an approved stock-basis allowance.
+                    remainingQuantity: formatted(issued<units(line.requestedQuantity) ? units(line.requestedQuantity)-issued : 0n),
                     fulfillment: issued===0n ? 'NOT_ISSUED' : issued<units(line.requestedQuantity) ? 'PARTIAL' : issued===units(line.requestedQuantity) ? 'FULFILLED' : 'OVER_FULFILLED', issueLinks: links };
             }) };
     }

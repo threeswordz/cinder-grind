@@ -82,6 +82,7 @@ export type RequestLine = {
     requestedQuantity: string;
     issuedQuantity: string;
     acknowledgedQuantity: string;
+    remainingQuantity: string;
     fulfillment: string;
     remarks: string | null;
     wbsId: string | null;

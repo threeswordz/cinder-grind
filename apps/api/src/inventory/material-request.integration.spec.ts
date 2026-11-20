@@ -56,6 +56,7 @@ test('MR-AC-01–07 scoped request/issue/explicit signed receipt HTTP and databa
             lineId = detail.lines[0].id;
             assert.equal(detail.lines[0].requestedQuantity, '10.0000');
             assert.equal(detail.lines[0].issuedQuantity, '0.0000');
+            assert.equal(detail.lines[0].remainingQuantity, '10.0000');
             assert.equal(detail.lines[0].acknowledgedQuantity, '0.0000');
             await call(f.outsider, root + '/' + requestId, 403);
             assert.equal((await call(f.foreman, root + '/' + requestId)).data.lines[0].issuedQuantity, '0.0000');
@@ -90,6 +91,7 @@ test('MR-AC-01–07 scoped request/issue/explicit signed receipt HTTP and databa
             assert.deepEqual(await effects(), before);
             const detail = (await call(f.store, root + '/' + requestId)).data;
             assert.equal(detail.lines[0].issuedQuantity, '6.0000');
+            assert.equal(detail.lines[0].remainingQuantity, '4.0000');
             assert.equal(detail.lines[0].issueLinks[0].stockEffect, null, 'unpinned historical source must not receive fabricated canonical conversion');
             assert.equal(detail.lines[0].acknowledgedQuantity, '0.0000');
             linkId = detail.lines[0].issueLinks[0].id;
@@ -143,10 +145,13 @@ test('MR-AC-01–07 scoped request/issue/explicit signed receipt HTTP and databa
         await t.test('partial 6 then 4 reconciles; canonical reversal changes totals while retaining signed evidence', async () => {
             const second = await f.issue('4'), d = (await call(f.store, root + '/' + requestId)).data;
             await call(f.store, root + '/' + requestId + '/issue-links', 201, { requestKey: randomUUID(), expectedVersion: d.version, requestLineId: lineId, materialIssueItemId: second.items[0]!.id, reason: 'Link remaining canonical issue' });
-            assert.equal((await call(f.store, root + '/' + requestId)).data.lines[0].issuedQuantity, '10.0000');
+            const fully=(await call(f.store, root + '/' + requestId)).data.lines[0];
+            assert.equal(fully.issuedQuantity, '10.0000');
+            assert.equal(fully.remainingQuantity, '0.0000');
             await f.issues.reverse({ auth: f.store.auth }, firstIssue!.id, randomUUID(), 'Reverse first actual issue');
             const after = (await call(f.store, root + '/' + requestId)).data;
             assert.equal(after.lines[0].issuedQuantity, '4.0000');
+            assert.equal(after.lines[0].remainingQuantity, '6.0000');
             assert.equal(after.lines[0].acknowledgedQuantity, '0.0000');
             assert.equal(after.lines[0].issueLinks[0].receipts.length, 2);
             assert.equal(await db.document.count({ where: { id: docId } }), 1);
