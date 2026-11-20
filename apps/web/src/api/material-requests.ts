@@ -82,7 +82,16 @@ export type RequestLine = {
     requestedQuantity: string;
     issuedQuantity: string;
     acknowledgedQuantity: string;
-    remainingQuantity: string;
+    remainingQuantity: string | null;
+    requestStockBasis: {
+      requestVersion: number; sourceQuantity: string; sourceUomId: string;
+      stockQuantity: string; stockUomId: string; stockUomCode: string;
+      businessDate: string; basisVersion: number; revisionId: string | null;
+      numerator: string; denominator: string;
+    } | null;
+    stockIssuedQuantity: string | null;
+    stockAcknowledgedQuantity: string | null;
+    stockRemainingQuantity: string | null;
     fulfillment: string;
     remarks: string | null;
     wbsId: string | null;

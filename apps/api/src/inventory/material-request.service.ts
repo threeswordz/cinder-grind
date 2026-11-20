@@ -6,6 +6,8 @@ import { AuthenticatedUserContext } from '../auth/auth.types';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProjectAccessService } from '../projects/project-access.service';
 import { DocumentsService } from '../documents/documents.service';
+import { activatedStockMaterials } from './material-uom-active-source';
+import { resolveStockEffectPin } from '../master-data/material-uom-effect-pin';
 type Db = Prisma.TransactionClient | PrismaService;
 type Context = {
     auth: AuthenticatedUserContext;
@@ -63,8 +65,18 @@ export type MaterialRequestAcknowledge = {
 export const MATERIAL_REQUEST_VIEW = 'inventory.material_request.view';
 const lineSelect = { id: true, lineNo: true, materialId: true, uomId: true, requestedQuantity: true, wbsId: true, costCodeId: true, activityId: true, remarks: true,
     material: { select: { materialCode: true, materialName: true } }, uom: { select: { uomCode: true } },
+    materialUomRequestLinePins: { orderBy: { requestVersion: 'desc' as const }, take: 1,
+      select: { requestVersion: true, companyId: true, materialId: true, sourceUomId: true,
+        sourceQuantity: true, stockUomId: true, stockUomCode: true, stockQuantity: true,
+        businessDate: true, basisVersion: true, revisionId: true, numerator: true, denominator: true } },
     issueLinks: { orderBy: [{ linkedAt: 'asc' as const }, { id: 'asc' as const }], select: { id: true, materialIssueItemId: true, linkedAt: true,
             issueItem: { select: { quantity: true,
+                stockTransactions: { where: { movementType: 'MATERIAL_ISSUE' }, select: {
+                  companyId: true, projectId: true, materialId: true, warehouseId: true, uomId: true, quantity: true,
+                  materialUomEffectPin: { select: { companyId: true, materialId: true, sourceUomId: true,
+                    sourceQuantity: true, stockUomId: true, stockQuantity: true,
+                    effectSign: true, businessDate: true, basisVersion: true,
+                    revisionId: true, numerator: true, denominator: true } } } },
                 materialUomIssueSourcePin: { select: { companyId: true, materialId: true, sourceUomId: true,
                     sourceQuantity: true, stockUomId: true, stockQuantity: true, businessDate: true,
                     basisVersion: true, revisionId: true, numerator: true, denominator: true } },
@@ -134,28 +146,48 @@ export class MaterialRequestService {
         return { ...row, revisions: row.revisions.map(v => ({ id: v.id, version: v.version, action: v.action, reason: v.reason, recordedAt: v.recordedAt, actor: v.actor,
                 // Only request facts/line quantities are exposed from historical snapshots, never raw relation/Document payloads.
                 facts: this.revisionFacts(v.snapshot) })), lines: row.lines.map(line => {
-                let issued = 0n, acknowledged = 0n;
+                let issued = 0n, acknowledged = 0n, stockIssued = 0n, stockAcknowledged = 0n;
+                const requestPin = line.materialUomRequestLinePins[0] ?? null;
+                if(requestPin && (requestPin.companyId !== auth.companyId ||
+                   requestPin.materialId !== line.materialId ||
+                   requestPin.sourceUomId !== line.uomId ||
+                   !requestPin.sourceQuantity.eq(line.requestedQuantity) ||
+                   requestPin.businessDate.toISOString().slice(0,10) !== row.requestDate.toISOString().slice(0,10)))
+                    this.conflict('MATERIAL_UOM_REQUEST_CURRENT_PIN_REQUIRED');
                 const units=(q:Prisma.Decimal)=>BigInt(q.toFixed(4).replace('.', ''));
                 const formatted=(q:bigint)=>{const digits=q.toString().padStart(5,'0');return digits.slice(0,-4)+'.'+digits.slice(-4);};
                 const links = line.issueLinks.map(link => {
                     const issue = link.issueItem.materialIssue, posted = Boolean(issue.postedAt && !issue.reversedAt);
-                    const pin = link.issueItem.materialUomIssueSourcePin;
-                    // Only disclose immutable issue-source conversions with current issue-view
-                    // permission. The request itself never grants stock-source visibility.
-                    const stockEffect = sourceVisible && pin &&
-                        pin.companyId === auth.companyId && pin.materialId === line.materialId &&
-                        pin.sourceQuantity.eq(link.issueItem.quantity)
-                        ? { sourceUomId: pin.sourceUomId, sourceQuantity: pin.sourceQuantity.toFixed(4),
-                            stockUomId: pin.stockUomId, stockQuantity: pin.stockQuantity.toFixed(4),
-                            businessDate: pin.businessDate.toISOString().slice(0, 10),
-                            basisVersion: pin.basisVersion, revisionId: pin.revisionId,
-                            numerator: pin.numerator, denominator: pin.denominator }
-                        : null;
-                    if (posted)
-                        issued += units(link.issueItem.quantity);
+                    const postedEffect = link.issueItem.stockTransactions.find(txn =>
+                      txn.companyId === auth.companyId && txn.materialId === line.materialId &&
+                      txn.projectId === row.projectId && txn.warehouseId === row.warehouseId &&
+                      txn.materialUomEffectPin?.effectSign === -1 &&
+                      txn.uomId === txn.materialUomEffectPin.stockUomId &&
+                      txn.quantity.eq(txn.materialUomEffectPin.stockQuantity.negated()));
+                    const actual = postedEffect?.materialUomEffectPin;
+                    if (posted && requestPin && (!actual ||
+                       actual.companyId !== auth.companyId || actual.materialId !== line.materialId ||
+                       actual.stockUomId !== requestPin.stockUomId))
+                       this.conflict('MATERIAL_UOM_REQUEST_LINK_STOCK_SOURCE_REQUIRED');
+                    // Source provenance belongs to the actual posted effect, including
+                    // reservation-backed issues; do not infer from today's factor.
+                    const stockEffect = sourceVisible && actual
+                       ? { sourceUomId: actual.sourceUomId,
+                           sourceQuantity: actual.sourceQuantity.toFixed(4),
+                           stockUomId: actual.stockUomId, stockQuantity: actual.stockQuantity.toFixed(4),
+                           businessDate: actual.businessDate.toISOString().slice(0,10),
+                           basisVersion: actual.basisVersion, revisionId: actual.revisionId,
+                           numerator: actual.numerator, denominator: actual.denominator }
+                       : null;
+                    if (posted) {
+                       issued += units(link.issueItem.quantity);
+                       if (requestPin) stockIssued += units(actual!.stockQuantity);
+                    }
                     const receipt = link.receipts.find(r => !r.correction);
-                    if (posted && receipt)
-                        acknowledged += units(link.issueItem.quantity);
+                    if (posted && receipt) {
+                       acknowledged += units(link.issueItem.quantity);
+                       if (requestPin) stockAcknowledged += units(actual!.stockQuantity);
+                    }
                     return { id: link.id, linkedAt: link.linkedAt, quantity: link.issueItem.quantity.toFixed(4), currentlyIssued: posted,
                         stockEffect,
                         issue: sourceVisible ? issue : null, materialIssueItemId: sourceVisible ? link.materialIssueItemId : null,
@@ -167,10 +199,25 @@ export class MaterialRequestService {
                 return { id: line.id, lineNo: line.lineNo, materialId: line.materialId, material: line.material, uomId: line.uomId, uom: line.uom,
                     requestedQuantity: line.requestedQuantity.toFixed(4), wbsId: line.wbsId, costCodeId: line.costCodeId, activityId: line.activityId, remarks: line.remarks,
                     issuedQuantity: formatted(issued), acknowledgedQuantity: formatted(acknowledged),
-                    // This remains an entered-unit figure under the existing same-UOM
-                    // link guard; it is not an approved stock-basis allowance.
-                    remainingQuantity: formatted(issued<units(line.requestedQuantity) ? units(line.requestedQuantity)-issued : 0n),
-                    fulfillment: issued===0n ? 'NOT_ISSUED' : issued<units(line.requestedQuantity) ? 'PARTIAL' : issued===units(line.requestedQuantity) ? 'FULFILLED' : 'OVER_FULFILLED', issueLinks: links };
+                    // A changing carton rate has no meaningful entered-unit
+                    // remainder. The canonical stock basis is authoritative.
+                    remainingQuantity: requestPin ? null : formatted(issued<units(line.requestedQuantity) ? units(line.requestedQuantity)-issued : 0n),
+                    requestStockBasis: requestPin ? {
+                      sourceQuantity: requestPin.sourceQuantity.toFixed(4), sourceUomId: requestPin.sourceUomId,
+                      stockQuantity: requestPin.stockQuantity.toFixed(4), stockUomId: requestPin.stockUomId,
+                      stockUomCode: requestPin.stockUomCode, businessDate: requestPin.businessDate.toISOString().slice(0,10),
+                      basisVersion: requestPin.basisVersion, revisionId: requestPin.revisionId,
+                      numerator: requestPin.numerator, denominator: requestPin.denominator,
+                      requestVersion: requestPin.requestVersion
+                    } : null,
+                    stockIssuedQuantity: requestPin ? formatted(stockIssued) : null,
+                    stockAcknowledgedQuantity: requestPin ? formatted(stockAcknowledged) : null,
+                    stockRemainingQuantity: requestPin ? formatted(stockIssued<units(requestPin.stockQuantity) ? units(requestPin.stockQuantity)-stockIssued : 0n) : null,
+                    fulfillment: requestPin
+                      ? stockIssued===0n ? 'NOT_ISSUED' : stockIssued<units(requestPin.stockQuantity) ? 'PARTIAL'
+                        : stockIssued===units(requestPin.stockQuantity) ? 'FULFILLED' : 'OVER_FULFILLED'
+                      : issued===0n ? 'NOT_ISSUED' : issued<units(line.requestedQuantity) ? 'PARTIAL'
+                        : issued===units(line.requestedQuantity) ? 'FULFILLED' : 'OVER_FULFILLED', issueLinks: links };
             }) };
     }
     private revisionFacts(snapshot: Prisma.JsonValue) {
@@ -214,6 +261,29 @@ export class MaterialRequestService {
         const e = await db.employee.findFirst({ where: { id, companyId, isActive: true, projectMembers: { some: { projectId, isActive: true } } }, select: { id: true } });
         if (!e)
             this.invalid('MATERIAL_REQUEST_EMPLOYEE_INVALID');
+    }
+    // Capture source revision and its immutable dated stock basis together.
+    // On non-source operations (LINK/ACKNOWLEDGE) reuse the previous pin.
+    private async freezeSourceRevision(tx: Prisma.TransactionClient, companyId: string,
+        requestId: string, requestVersion: number, businessDate: string) {
+        const lines=await tx.materialRequestLine.findMany({where:{requestId},
+          select:{id:true,materialId:true,uomId:true,requestedQuantity:true}});
+        const active=await activatedStockMaterials(tx,companyId,lines.map(l=>l.materialId));
+        for(const line of lines) {
+          if(!active.has(line.materialId)) continue;
+          const frozen=await resolveStockEffectPin(tx,{companyId,materialId:line.materialId,
+            sourceUomId:line.uomId,quantity:line.requestedQuantity,businessDate,effectSign:1});
+          const basis=await tx.materialUomBasis.findUniqueOrThrow({
+            where:{materialId:line.materialId},select:{stockUomCode:true}});
+          await tx.materialUomRequestLinePin.create({data:{
+            requestLineId:line.id,requestVersion,companyId,materialId:line.materialId,
+            sourceUomId:frozen.sourceUomId,sourceQuantity:frozen.sourceQuantity,
+            stockUomId:frozen.stockUomId,stockUomCode:basis.stockUomCode,
+            stockQuantity:frozen.stockQuantity,businessDate:frozen.businessDate,
+            basisVersion:frozen.basisVersion,revisionId:frozen.revisionId,
+            numerator:frozen.numerator,denominator:frozen.denominator
+          }});
+        }
     }
     private async validateLine(db: Db, companyId: string, projectId: string, warehouseId: string, l: MaterialRequestLineInput) {
         this.quantity(l.requestedQuantity);
@@ -302,6 +372,7 @@ export class MaterialRequestService {
             const row = await tx.materialRequest.create({ data: { companyId: auth.companyId, projectId: input.projectId, warehouseId: input.warehouseId,
                     requesterEmployeeId: input.requesterEmployeeId, requestDate: new Date(input.requestDate + 'T00:00:00.000Z'), remarks: input.remarks,
                     createdByUserId: auth.userId, updatedByUserId: auth.userId, lines: { create: input.lines.map((l, i) => ({ ...l, lineNo: i + 1, requestedQuantity: this.quantity(l.requestedQuantity) })) } }, select: { id: true } });
+            await this.freezeSourceRevision(tx,auth.companyId,row.id,1,input.requestDate);
             return { id: row.id, reason: 'Store-recorded oral/chat material request' };
         });
     }
@@ -313,6 +384,7 @@ export class MaterialRequestService {
             await this.bump(tx, auth, r, { requestDate: new Date(input.requestDate + 'T00:00:00.000Z'), remarks: input.remarks });
             for (const l of input.lines)
                 await tx.materialRequestLine.update({ where: { id: l.id }, data: { requestedQuantity: this.quantity(l.requestedQuantity), remarks: l.remarks } });
+            await this.freezeSourceRevision(tx,auth.companyId,id,r.version+1,input.requestDate);
             return { id, reason: input.reason };
         });
     }

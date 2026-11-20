@@ -141,7 +141,7 @@ CREATE CONSTRAINT TRIGGER material_uom_request_date_pin_required
 -- same-source-UOM link guard. It cannot weaken any of those validations.
 CREATE FUNCTION erp_uom_request_link_effect_guard() RETURNS trigger LANGUAGE plpgsql AS $$
 DECLARE req RECORD; line RECORD; frozen material_uom_request_line_pins%ROWTYPE;
- effect RECORD; cnt integer;
+ effect RECORD;
 BEGIN
  SELECT * INTO req FROM material_requests WHERE id=NEW.request_id;
  SELECT * INTO line FROM material_request_lines WHERE id=NEW.request_line_id;
@@ -157,9 +157,9 @@ BEGIN
   OR frozen.source_uom_id<>line.uom_id OR frozen.source_quantity<>line.requested_quantity
   OR frozen.business_date<>req.request_date
  THEN RAISE EXCEPTION 'MATERIAL_UOM_REQUEST_CURRENT_PIN_REQUIRED'; END IF;
- SELECT count(*),MAX(e.stock_uom_id::text) AS stock_uom_id,
+ SELECT count(*) AS total_count,MAX(e.stock_uom_id::text) AS stock_uom_id,
   SUM(e.stock_quantity) AS stock_quantity
- INTO cnt,effect
+ INTO effect
  FROM stock_transactions t
  JOIN material_uom_effect_pins e ON e.stock_transaction_id=t.id
    AND e.company_id=t.company_id AND e.material_id=t.material_id
@@ -168,7 +168,7 @@ BEGIN
   AND t.warehouse_id=req.warehouse_id AND t.material_id=line.material_id
   AND t.movement_type='MATERIAL_ISSUE' AND e.effect_sign=-1
   AND t.quantity=-e.stock_quantity;
- IF cnt<>1 OR effect.stock_uom_id IS DISTINCT FROM frozen.stock_uom_id::text
+ IF effect.total_count<>1 OR effect.stock_uom_id IS DISTINCT FROM frozen.stock_uom_id::text
   OR effect.stock_quantity IS NULL OR effect.stock_quantity<=0
  THEN RAISE EXCEPTION 'MATERIAL_UOM_REQUEST_LINK_STOCK_SOURCE_REQUIRED'; END IF;
  RETURN NEW;
