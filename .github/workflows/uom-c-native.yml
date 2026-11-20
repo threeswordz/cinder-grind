@@ -71,6 +71,8 @@ jobs:
           pnpm --filter @construction-erp/api exec prisma migrate status
       - name: Build API including actual native integration tests
         run: pnpm --filter @construction-erp/api build
+      - name: Verify release schema and migration contracts before costly full validation
+        run: node --test deploy/release-candidate/*.test.mjs
       - name: Verify only affected material plan and request native PostgreSQL/API paths
         run: |
           node --test --test-concurrency=1 \
