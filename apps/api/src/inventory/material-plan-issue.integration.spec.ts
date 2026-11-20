@@ -11,6 +11,8 @@ import {PrismaService} from '../prisma/prisma.service';
 import {securityHeadersMiddleware} from '../common/security-headers';
 import {ProblemDetailsFilter} from '../common/problem-details.filter';
 import {materialPlanIssueFixture} from './material-plan-issue-test-fixture';
+import {MaterialUomService} from '../master-data/material-uom.service';
+import {AuditService} from '../audit/audit.service';
 import {MPI} from './material-plan-issue-contract';
 
 test('MP-AC-07–13 actual authenticated plan posting, overage, consumption and immutable source history',async t=>{
@@ -163,4 +165,165 @@ test('MP-AC-09 final posting revalidates the earlier reviewer grant and preserve
   await assert.rejects(()=>db.approvalAction.update({where:{id:actions[0]!.id},data:{comment:'Forged mutable history'}}));
   await assert.rejects(()=>db.approvalAction.delete({where:{id:actions[0]!.id}}));
  }finally{await db.$disconnect();}
+});
+
+
+test('DEC-050 Stage C activated plan source: canonical direct/overage/return with independent approvals',async()=>{
+ const db=new PrismaService();await db.$connect();
+ const app=await NestFactory.create(AppModule,{logger:false});
+ app.setGlobalPrefix('api/v1');app.use(securityHeadersMiddleware(false));
+ app.useGlobalFilters(new ProblemDetailsFilter());await app.listen(0,'127.0.0.1');
+ try{
+  const f=await materialPlanIssueFixture(db);
+  await f.grant(f.store,['master.material.view','master.material.manage','master.material.conversion.manage']);
+  const defs=new MaterialUomService(db,new AuditService(db));
+  const stock=await db.unitOfMeasure.create({data:{
+   companyId:f.company.id,uomCode:'MPI-STOCK-EA',uomName:'Synthetic stock pieces',decimalPlaces:0
+  }});
+  const material=await db.material.create({data:{
+   companyId:f.company.id,materialCode:'MPI-UOM-M',
+   materialName:'Synthetic carton-stock plan material',defaultUomId:f.uom.id
+  }});
+  await defs.prepare({auth:f.store.auth},material.id,{
+   requestKey:randomUUID(),stockUomId:stock.id,reason:'Explicit synthetic plan stock basis'
+  });
+  await defs.revise({auth:f.store.auth},material.id,{
+   requestKey:randomUUID(),expectedVersion:1,sourceUomId:f.uom.id,effectiveFrom:'2026-01-01',
+   numerator:'20',denominator:'1',reason:'Original twenty stock units per carton'
+  });
+  await defs.activateStock({auth:f.store.auth},material.id,{
+   requestKey:randomUUID(),expectedVersion:2,reason:'Explicit synthetic activation only'
+  });
+
+  // Genuine disposable stock opening before issue. Do not touch real Companies,
+  // source migration/replay operators or actual retained warehouse quantities.
+  const count=await f.counts.create({auth:f.store.auth},{
+   projectId:f.project.id,warehouseId:f.warehouse.id,materialId:material.id,uomId:stock.id,
+   countedAt:new Date(),actualQuantity:new Prisma.Decimal('100'),
+   evidenceReference:'Counted synthetic canonical pieces'
+  });
+  const countReady=await f.counts.submit({auth:f.store.auth},count.id,count.version);
+  await f.counts.approve({auth:f.manager.auth},count.id,countReady.version,randomUUID());
+
+  // The BOQ second item is not used by the fixture's pre-approved first plan:
+  // retain distinct source mapping and source-item cumulative cap.
+  const planInput=f.input('3.0000','MPI-CARTON-C');
+  planInput.lines[0]!.budgetRevisionLineId=f.source2.id;
+  planInput.lines[0]!.materialId=material.id;
+  const created=await f.service.create({auth:f.store.auth},planInput) as {id:string;version:number};
+  const submitted=await f.service.submit({auth:f.store.auth},created.id,{
+   requestKey:randomUUID(),expectedVersion:created.version
+  }) as {id:string;version:number};
+  await f.service.decide({auth:f.manager.auth},created.id,{
+   requestKey:randomUUID(),expectedVersion:submitted.version,decision:'APPROVE',
+   comment:'Independent synthetic Cost BOQ quantity approval'
+  });
+  const approved=await f.service.get(f.store.auth,created.id);
+  assert.equal(approved.approvedRevision?.lines[0]?.materialUomPlanLinePin?.stockQuantity,'60.0000');
+  assert.equal(approved.approvedRevision?.lines[0]?.materialUomPlanLinePin?.numerator,'20');
+  await f.controls.enable({auth:f.ben.auth},f.project.id,f.enableInput());
+  const make=async(source:string,date:string)=>{
+   const issue=await f.issues.create({auth:f.store.auth},{
+    projectId:f.project.id,warehouseId:f.warehouse.id,issueDate:new Date(date+'T00:00:00.000Z'),
+    issuedToEmployeeId:f.foreman.employee.id,
+    lines:[{materialId:material.id,uomId:f.uom.id,quantity:new Prisma.Decimal(source)}]
+   });
+   const item=(await f.issues.get(f.store.auth,issue.id)).items[0]!;
+   const actual=await f.service.get(f.store.auth,created.id);
+   return {issueId:issue.id,itemId:item.id,
+    bindings:[{issueItemId:item.id,planLineId:actual.approvedRevision!.lines[0]!.id,
+     expectedPlanVersion:actual.version}]};
+  };
+  const first=await make('1','2026-11-03');
+  const initial=await f.controls.preview(f.store.auth,first.issueId,{
+   requestKey:randomUUID(),bindings:first.bindings
+  });
+  assert.equal(initial.result,'WITHIN_PLAN');
+  assert.equal(initial.items[0]?.stockBasis?.stockQuantity,'20.0000');
+  assert.equal(initial.items[0]?.stockBasis?.numerator,'20');
+  await f.controls.withinPlan({auth:f.store.auth},first.issueId,{
+   requestKey:randomUUID(),bindings:first.bindings
+  });
+  const firstPosted=await db.stockTransaction.findFirstOrThrow({
+   where:{materialIssueItemId:first.itemId,movementType:'MATERIAL_ISSUE'},
+   include:{materialUomEffectPin:true}
+  });
+  assert.equal(firstPosted.quantity.toString(),'-20');
+  assert.equal(firstPosted.uomId,stock.id);
+  assert.equal(firstPosted.materialUomEffectPin?.sourceQuantity.toString(),'1');
+  assert.equal(firstPosted.materialUomEffectPin?.stockQuantity.toString(),'20');
+
+  // A future-effective pack rate must never reprice the earlier20 or approved60.
+  await defs.revise({auth:f.store.auth},material.id,{
+   requestKey:randomUUID(),expectedVersion:2,sourceUomId:f.uom.id,
+   effectiveFrom:'2026-11-04',numerator:'24',denominator:'1',
+   reason:'Future newer twenty-four-piece carton'
+  });
+  const second=await make('1','2026-11-04');
+  const secondPreview=await f.controls.preview(f.store.auth,second.issueId,{
+   requestKey:randomUUID(),bindings:second.bindings
+  });
+  assert.equal(secondPreview.items[0]?.stockBasis?.stockQuantity,'24.0000');
+  assert.equal(secondPreview.items[0]?.remaining,'40.0000');
+  await f.controls.withinPlan({auth:f.store.auth},second.issueId,{
+   requestKey:randomUUID(),bindings:second.bindings
+  });
+
+  // Three entered cartons include 20+24+24=68 canonical stock pieces.
+  // True overage is8 pieces, not an approximate fraction of one carton.
+  const third=await make('1','2026-11-04');
+  const beyond=await f.controls.preview(f.store.auth,third.issueId,{
+   requestKey:randomUUID(),bindings:third.bindings
+  });
+  assert.equal(beyond.result,'OVERAGE_REQUIRED');
+  assert.equal(beyond.overageQuantity,null,'Never add different stock UOMs into aggregate');
+  assert.equal(beyond.items[0]?.overageQuantity,'8.0000');
+  await assert.rejects(()=>f.controls.withinPlan({auth:f.store.auth},third.issueId,{
+   requestKey:randomUUID(),bindings:third.bindings
+  }),conflictStatus);
+  const submittedOverage=await f.controls.submitOverage({auth:f.store.auth},third.issueId,{
+   requestKey:randomUUID(),bindings:third.bindings
+  });
+  assert.ok(submittedOverage.authorizationId);
+  const authRow=await db.materialPlanIssueAuthorization.findUniqueOrThrow({
+   where:{id:submittedOverage.authorizationId},
+   include:{lines:{include:{materialUomPlanAllocationPin:true}}}
+  });
+  assert.equal(authRow.lines[0]?.overageQuantity.toString(),'0','Legacy cartons cannot represent8 pieces');
+  assert.equal(authRow.lines[0]?.materialUomPlanAllocationPin?.stockOverageQuantity.toString(),'8');
+  assert.equal(authRow.lines[0]?.materialUomPlanAllocationPin?.stockQuantity.toString(),'24');
+  const independent=(actor:typeof f.store)=>({auth:actor.auth});
+  await f.controls.decide(independent(f.manager),submittedOverage.authorizationId,{
+   requestKey:randomUUID(),decision:'APPROVE',comment:'Independent synthetic stock overage review'
+  },'REVIEW');
+  await f.controls.decide(independent(f.ben),submittedOverage.authorizationId,{
+   requestKey:randomUUID(),decision:'APPROVE',comment:'Final separate synthetic overage authority'
+  },'DECIDE');
+  const thirdPosted=await db.stockTransaction.findFirstOrThrow({
+   where:{materialIssueItemId:third.itemId,movementType:'MATERIAL_ISSUE'}
+  });
+  assert.equal(thirdPosted.quantity.toString(),'-24');
+  const usage=async()=>{
+   const [row]=await db.$queryRaw<Array<{used:Prisma.Decimal}>>`
+    SELECT erp_uom_plan_frozen_usage(${approved.id}::uuid,${f.source2.id}::uuid,
+     ${material.id}::uuid,${f.uom.id}::uuid) AS used`;
+   return row!.used.toFixed(4);
+  };
+  assert.equal(await usage(),'68.0000');
+
+  // Posted half-carton return of the 24-pack credits12 canonical pieces,
+  // using ORIGINAL factor, never current master conversion at response time.
+  const returned=await f.returns.create({auth:f.store.auth},{
+   projectId:f.project.id,warehouseId:f.warehouse.id,
+   returnDate:new Date('2026-11-04T00:00:00.000Z'),
+   lines:[{materialIssueItemId:second.itemId,quantity:new Prisma.Decimal('0.5')}]
+  });
+  await f.returns.submit({auth:f.store.auth},returned.id,f.returnWorkflow.workflowCode);
+  await f.returns.approve({auth:f.manager.auth},returned.id,randomUUID());
+  assert.equal(await usage(),'56.0000');
+  const unchanged=await f.service.get(f.store.auth,created.id);
+  assert.equal(unchanged.approvedRevision?.lines[0]?.materialUomPlanLinePin?.stockQuantity,'60.0000');
+  assert.equal(await db.payment.count({where:{companyId:f.company.id}}),0);
+  assert.equal(await db.directCostPosting.count({where:{companyId:f.company.id}}),0);
+ }finally{await app.close();await db.$disconnect();}
 });
