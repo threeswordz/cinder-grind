@@ -229,11 +229,12 @@ export function MaterialPlanIssueControls({
       {applicablePreview ? <Stack spacing={1}>
         <Alert severity={applicablePreview.result === 'WITHIN_PLAN' ? 'success' : 'warning'}>
           {applicablePreview.result === 'WITHIN_PLAN' ? t.matched : t.overage}
-          {' · '}{t.overageQuantity}: {applicablePreview.overageQuantity}
+          {' · '}{t.overageQuantity}: {applicablePreview.overageQuantity ?? '—'}
         </Alert>
         {applicablePreview.items.map(item => <Typography variant="caption" key={item.issueItemId}>
           {item.issueItemId.slice(0, 8)}: {t.allowance} {item.allowance}, {t.used} {item.used},
           {' '}{t.remaining} {item.remaining}
+          {item.stockBasis ? ` · ${item.stockBasis.stockQuantity} ${item.stockBasis.stockUomCode} · ${item.stockBasis.numerator}/${item.stockBasis.denominator} · ${item.stockBasis.effectiveDate} · Preview only; posting still blocked` : ''}
         </Typography>)}
         {applicablePreview.result === 'WITHIN_PLAN' ?
           <Button variant="contained" disabled={Boolean(pending)}
