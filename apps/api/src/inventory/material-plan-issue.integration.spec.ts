@@ -13,6 +13,7 @@ import {ProblemDetailsFilter} from '../common/problem-details.filter';
 import {materialPlanIssueFixture} from './material-plan-issue-test-fixture';
 import {MaterialUomService} from '../master-data/material-uom.service';
 import {AuditService} from '../audit/audit.service';
+import {StockCountService} from './stock-count.service';
 import {MPI} from './material-plan-issue-contract';
 
 test('MP-AC-07–13 actual authenticated plan posting, overage, consumption and immutable source history',async t=>{
@@ -197,13 +198,14 @@ test('DEC-050 Stage C activated plan source: canonical direct/overage/return wit
 
   // Genuine disposable stock opening before issue. Do not touch real Companies,
   // source migration/replay operators or actual retained warehouse quantities.
-  const count=await f.counts.create({auth:f.store.auth},{
+  const counts=app.get(StockCountService);
+  const count=await counts.create({auth:f.store.auth},{
    projectId:f.project.id,warehouseId:f.warehouse.id,materialId:material.id,uomId:stock.id,
    countedAt:new Date(),actualQuantity:new Prisma.Decimal('100'),
    evidenceReference:'Counted synthetic canonical pieces'
   });
-  const countReady=await f.counts.submit({auth:f.store.auth},count.id,count.version);
-  await f.counts.approve({auth:f.manager.auth},count.id,countReady.version,randomUUID());
+  const countReady=await counts.submit({auth:f.store.auth},count.id,count.version);
+  await counts.approve({auth:f.manager.auth},count.id,countReady.version,randomUUID());
 
   // The BOQ second item is not used by the fixture's pre-approved first plan:
   // retain distinct source mapping and source-item cumulative cap.
