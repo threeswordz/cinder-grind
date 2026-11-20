@@ -228,21 +228,21 @@ export function MaterialPlanIssueControls({
         onClick={() => { setPreview(null); previewMutation.mutate({ bindings, fingerprint }); }}>{t.preview}</Button>
       {applicablePreview ? <Stack spacing={1}>
         {applicablePreview.items.some(item=>item.stockBasis!==null) ?
-          <Alert severity="warning">{t.canonicalPostingPending}</Alert> : null}
+          <Alert severity="info">{t.canonicalPostingPending}</Alert> : null}
         <Alert severity={applicablePreview.result === 'WITHIN_PLAN' ? 'success' : 'warning'}>
           {applicablePreview.result === 'WITHIN_PLAN' ? t.matched : t.overage}
-          {' · '}{t.overageQuantity}: {applicablePreview.overageQuantity ?? '—'}
+          {' · '}{t.overageQuantity}: {applicablePreview.overageQuantity ?? t.perLineOverage}
         </Alert>
         {applicablePreview.items.map(item => <Typography variant="caption" key={item.issueItemId}>
           {item.issueItemId.slice(0, 8)}: {t.allowance} {item.allowance}, {t.used} {item.used},
           {' '}{t.remaining} {item.remaining}
-          {item.stockBasis ? ` · ${item.stockBasis.stockQuantity} ${item.stockBasis.stockUomCode} · ${item.stockBasis.numerator}/${item.stockBasis.denominator} · ${item.stockBasis.effectiveDate} · ${t.stockPreviewOnly}` : ''}
+          {item.stockBasis ? ` · ${t.stockQuantity} ${item.stockBasis.stockQuantity} ${item.stockBasis.stockUomCode} · ${t.overageQuantity} ${item.overageQuantity} ${item.stockBasis.stockUomCode} · ${item.stockBasis.numerator}/${item.stockBasis.denominator} · ${item.stockBasis.effectiveDate} · ${t.stockPreviewOnly}` : ''}
         </Typography>)}
         {applicablePreview.result === 'WITHIN_PLAN' ?
-          <Button variant="contained" disabled={Boolean(pending) || applicablePreview.items.some(item=>item.stockBasis!==null)}
+          <Button variant="contained" disabled={Boolean(pending)}
             onClick={() => send({ kind: 'DIRECT', issueId: issue.id,
               requestKey: crypto.randomUUID(), bindings })}>{t.post}</Button> :
-          <Button variant="contained" disabled={Boolean(pending) || applicablePreview.items.some(item=>item.stockBasis!==null)}
+          <Button variant="contained" disabled={Boolean(pending)}
             onClick={() => send({ kind: 'SUBMIT', issueId: issue.id,
               requestKey: crypto.randomUUID(), bindings })}>{t.submit}</Button>}
       </Stack> : preview ? <Alert severity="warning">{t.previewStale}</Alert> : null}
