@@ -100,7 +100,7 @@ Conversation memory is supporting context only. When conversation context and re
 
 ## 7. Evidence and release flow
 
-**DEC-053 prospective integration economy:** Following its governed activation under #384, verified ordinary main integration may reuse an identical complete full-PR reviewed tree plus fresh main build/audit/migration/startup and explicit provenance. Use full fallback whenever proof is absent, changed or uncertain. Full PR/review stays mandatory; actual full main remains for final release/freeze/deployment admission via push or explicit main-only dispatch. Preserve old gates until rollout evidence, distinguish integration from full execution, and do not cancel #376's existing full main as a retrospective exemption. See [CI policy](CI-VALIDATION-POLICY.md).
+**DEC-053 prospective integration economy:** Following its governed activation under #384, verified ordinary main integration may reuse an identical complete full-PR reviewed tree plus fresh main build/audit/migration/startup and explicit provenance. Use full fallback whenever proof is absent, changed or uncertain. Full PR/review stays mandatory; actual full main remains for final release/freeze/deployment admission via push or explicit main-only dispatch. The Owner correction in #384 removes the Builder-added full-main rollout/path exception and predecessor-main rerun dependency. One stable full PR plus independent review and fresh verified main integration applies to the CI correction too; do not create another explicit full-push proof merely for this rollout. Distinguish integration from full execution; do not claim cancelled/missing work passed. Historical completed #376 evidence is unchanged. See [CI policy](CI-VALIDATION-POLICY.md).
 
 The normal delivery flow remains:
 

@@ -12,16 +12,6 @@ const API = 'https://api.github.com/repos/' + REPO + '/';
 const need = (ok, code) => { if (!ok) throw new Error(code); };
 const stamp = value => typeof value === 'string' && Number.isFinite(Date.parse(value)) ? Date.parse(value) : NaN;
 
-// The mechanism, workflow and release-admission changes must validate themselves
-// through full main. Ordinary application/schema changes can reuse reviewed proof.
-export function protectedChange(paths) {
-  return paths.some(p => p.startsWith('.github/') ||
-    /^deploy\/release-candidate\/ci-/.test(p) ||
-    /^deploy\/uat\/prototype-/.test(p) ||
-    ['AGENTS.md','docs/CI-VALIDATION-POLICY.md','docs/PROJECT-GOVERNANCE.md',
-      'docs/DECISION-LOG.md','docs/DEVELOPMENT-OPERATING-MODEL.md'].includes(p));
-}
-
 export function integrationPush(env, event, checkout) {
   return env.GITHUB_EVENT_NAME === 'push' && env.GITHUB_REF === 'refs/heads/main' &&
     env.GITHUB_RUN_ATTEMPT === '1' &&
@@ -51,29 +41,10 @@ export function fullPrIdentity(log,head,attempt,number,base) {
   return lines.length===1&&/^\d{4}-\d{2}-\d{2}T[0-9:.]+Z /.test(lines[0])&&lines[0].slice(lines[0].indexOf(' ')+1)===marker;
 }
 
-async function previousMainProof(before,get){
-  const result=await get('actions/runs?head_sha='+before+'&per_page=100');
-  need(Number.isSafeInteger(result.total_count)&&result.total_count<=100&&result.workflow_runs?.length===result.total_count,'BASE_RUN_INVENTORY');
-  for(const run of result.workflow_runs){
-    if(run.head_sha!==before||run.head_branch!=='main'||!['push','workflow_dispatch'].includes(run.event)||
-      run.repository?.full_name!==REPO||run.path!=='.github/workflows/validate.yml'||run.status!=='completed'||
-      run.conclusion!=='success'||!Number.isSafeInteger(run.id)||run.id<=0||!Number.isSafeInteger(run.run_attempt)||run.run_attempt<1)continue;
-    const jobs=await get('actions/runs/'+run.id+'/attempts/'+run.run_attempt+'/jobs?per_page=100');
-    need(Number.isSafeInteger(jobs.total_count)&&jobs.total_count<=100&&jobs.jobs?.length===jobs.total_count,'BASE_JOB_INVENTORY');
-    if(jobs.jobs.some(j=>fullJobSucceeded(j,run.id)))return {sha:before,runId:run.id,attempt:run.run_attempt,kind:'FULL_EXECUTION'};
-    const quick=jobs.jobs.find(j=>j.name==='integration-check'&&j.run_id===run.id&&j.status==='completed'&&j.conclusion==='success'&&
-      Array.isArray(j.steps)&&j.steps.every(s=>s.status==='completed'&&s.conclusion==='success')&&
-      ['Build audit migrate and smoke exact main on fresh CI resources','Verify reviewed full-PR proof and emit integration receipt',
-        'Preserve explicit integration receipt','Recheck live proof before admitting integration']
-        .every(name=>j.steps.some(s=>s.name===name&&s.conclusion==='success')));
-    if(quick)return {sha:before,runId:run.id,attempt:run.run_attempt,kind:'VERIFIED_INTEGRATION'};
-  }
-  throw Error('BASE_MAIN_GATE_UNPROVEN');
-}
-
-export async function inspectIntegration({sha, before, get, threads, ancestor, changedPaths, jobLog}) {
+// The full PR already validates this entire tree against the exact base below.
+// Do not demand another main execution for that base or a particular changed path.
+export async function inspectIntegration({sha, before, get, threads, ancestor, jobLog}) {
   need(SHA.test(sha ?? '') && SHA.test(before ?? ''), 'INVALID_SHA');
-  need(!protectedChange(await changedPaths(before, sha)), 'PROOF_MECHANISM_CHANGED');
   const live = await get('branches/main');
   need(live?.commit?.sha === sha, 'STALE_MAIN');
   const integrated = await get('git/commits/' + sha);
@@ -94,7 +65,6 @@ export async function inspectIntegration({sha, before, get, threads, ancestor, c
   need(await ancestor(before, head), 'BASE_NOT_ANCESTOR');
   const source = await get('git/commits/' + head);
   need(source.sha === head && source.tree?.sha === integrated.tree.sha, 'TREE_MISMATCH');
-  const parentMain=await previousMainProof(before,get);
   const timeline = await pages(get, 'issues/' + number + '/timeline');
   const lastCommit = timeline.findLastIndex(e => e.event === 'committed');
   const readyIndex = timeline.findLastIndex(e => e.event === 'ready_for_review');
@@ -130,7 +100,7 @@ export async function inspectIntegration({sha, before, get, threads, ancestor, c
   need(fullPrIdentity(await jobLog(fullJobs[0].id),head,run.run_attempt,number,before),'EXACT_PR_BASE_RECEIPT_MISSING');
   return {schemaVersion:1, kind:'MAIN_INTEGRATION_REUSES_FULL_PR', repository:REPO,
     integratedSha:sha, tree:integrated.tree.sha, baseSha:before, pr:number, testedSha:head,
-    fullPrRunId:run.id, fullPrAttempt:run.run_attempt, independentReviewAt:clean[0].created_at,parentMain,
+    fullPrRunId:run.id, fullPrAttempt:run.run_attempt, independentReviewAt:clean[0].created_at,
     fullSuiteExecutedOnMain:false};
 }
 
@@ -180,8 +150,7 @@ async function reviewThreads(number) {
 
 function localDependencies() {
   return {get:api,threads:reviewThreads,jobLog:readJobLog,
-    ancestor:async(base,head) => {try{execFileSync('git',['merge-base','--is-ancestor',base,head],{stdio:'ignore'});return true;}catch{return false;}},
-    changedPaths:async(base,head) => execFileSync('git',['diff','--name-only',base,head],{encoding:'utf8'}).trim().split('\n').filter(Boolean)};
+    ancestor:async(base,head) => {try{execFileSync('git',['merge-base','--is-ancestor',base,head],{stdio:'ignore'});return true;}catch{return false;}}};
 }
 
 export async function planIntegration(env,event,sha,dependencies) {
