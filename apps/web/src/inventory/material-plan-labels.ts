@@ -3,7 +3,7 @@ import type { Locale } from '../role-ui/role-workspace-i18n';
 // Presentation strings only: source status, IDs and business quantity values
 // must never be localized or reinterpreted by the frontend.
 export const materialPlanLabels: Record<Locale, Record<string, string>> = {
-  en: {
+  en: { used: 'Used (entered units)', remaining: 'Remaining (entered units)', canonicalPending: 'Canonical stock allowance requires a frozen plan source',
     title: 'Material plans', description: 'Store drafts Cost BOQ quantity allocations; an independent authorized checker approves the plan. Plan approval does not issue stock.',
     project: 'Project', plan: 'Plan', warehouse: 'Warehouse', basis: 'Approved Cost BOQ revision',
     workPackage: 'Work package', material: 'Material', source: 'Cost BOQ quantity line', quantity: 'Planned quantity', from: 'Valid from',
@@ -23,7 +23,7 @@ export const materialPlanLabels: Record<Locale, Record<string, string>> = {
     preparedBy: 'Prepared by', cannotApprove: 'Approval must be performed by a different authorized user.',
     stale: 'The plan has changed. Refresh the authorized source before another action.',
   },
-  th: {
+  th: { used: 'ใช้แล้ว (หน่วยต้นทาง)', remaining: 'คงเหลือ (หน่วยต้นทาง)', canonicalPending: 'ยังไม่มีข้อมูลยืนยันปริมาณสต็อกมาตรฐานของแผน',
     title: 'แผนการใช้วัสดุ', description: 'สโตร์จัดทำแผนจัดสรรจำนวนตาม BOQ ต้นทุน และผู้ตรวจสอบที่มีสิทธิ์อนุมัติอย่างเป็นอิสระ การอนุมัติแผนไม่ใช่การตัดสต็อก',
     project: 'โครงการ', plan: 'แผน', warehouse: 'คลังสินค้า', basis: 'รุ่น BOQ ต้นทุนที่อนุมัติแล้ว',
     workPackage: 'ชุดงาน', material: 'วัสดุ', source: 'รายการจำนวนจาก BOQ ต้นทุน', quantity: 'จำนวนตามแผน', from: 'เริ่มใช้',
@@ -43,7 +43,7 @@ export const materialPlanLabels: Record<Locale, Record<string, string>> = {
     preparedBy: 'จัดทำโดย', cannotApprove: 'ผู้อนุมัติต้องเป็นผู้มีสิทธิ์อื่นที่เป็นอิสระ',
     stale: 'แผนเปลี่ยนแปลงแล้ว กรุณารีเฟรชข้อมูลก่อนดำเนินการ',
   },
-  'zh-TW': {
+  'zh-TW': { used: '已用量（原單位）', remaining: '剩餘量（原單位）', canonicalPending: '尚未保存計畫的標準庫存數量依據',
     title: '材料使用計畫', description: '倉管依核准的成本 BOQ 數量擬定配置計畫，由獨立且具權限的人員核准。核准計畫不等於庫存出庫。',
     project: '專案', plan: '計畫', warehouse: '倉庫', basis: '已核准成本 BOQ 版本',
     workPackage: '工作包', material: '材料', source: '成本 BOQ 數量項目', quantity: '計畫數量', from: '有效起日',

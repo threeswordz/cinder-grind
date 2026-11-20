@@ -45,6 +45,10 @@ test('MP-AC-07–13 actual authenticated plan posting, overage, consumption and 
    const input=await f.pin(directId);directInput=input;const before=await db.approvalInstance.count({where:{companyId:f.company.id}});
    const preview=(await call(f.store,'/issues/'+directId+'/preview',201,input)).data;assert.equal(preview.result,'WITHIN_PLAN');assert.equal(preview.items[0].remaining,'6.0000');
    const result=await call(f.store,'/issues/'+directId+'/within-plan',201,input);assert.equal(result.data.status,'POSTED');postedAuth=result.data.authorizationId;
+   const sourceUsage=await f.service.get(f.store.auth,f.plan.id);
+   assert.equal(sourceUsage.approvedRevision?.lines[0]?.usedQuantity,'3.0000');
+   assert.equal(sourceUsage.approvedRevision?.lines[0]?.remainingQuantity,'3.0000');
+   assert.equal(sourceUsage.approvedRevision?.lines[0]?.usageBasis,'ENTERED_UOM_LEGACY');
    assert.deepEqual((await call(f.store,'/issues/'+directId+'/within-plan',201,input)).data,result.data);
    await call(f.store,'/issues/'+directId+'/within-plan',409,{...input,bindings:[{...input.bindings[0],expectedPlanVersion:214}]});
    const row=await f.issues.get(f.store.auth,directId);assert.equal(row.approvalInstanceId,null);assert.equal(row.postedByUserId,f.store.user.id);assert.equal(row.stockTransactions.length,1);assert.equal(row.stockTransactions[0]!.quantity.toFixed(4),'-3.0000');

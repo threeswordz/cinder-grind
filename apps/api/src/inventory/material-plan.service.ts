@@ -33,7 +33,36 @@ export class MaterialPlanService{
   const p=await this.header(auth,id,db);
   const [latest,approved]=await Promise.all([db.materialUsagePlanRevision.findFirst({where:{planId:id},orderBy:{revisionNo:'desc'},select:revisionSelect}),db.materialUsagePlanRevision.findFirst({where:{planId:id,status:'APPROVED'},orderBy:{revisionNo:'desc'},select:revisionSelect})]);
   const policy=await db.materialPlanProjectPolicy.findUnique({where:{projectId:p.projectId},select:{id:true}});
-  return {...p,latestRevision:this.presentRevision(latest),approvedRevision:this.presentRevision(approved),issueEnforcement:policy?'ENABLED_FOR_NEW_SYNTHETIC_ISSUES':'NOT_ENABLED_BY_FOUNDATION'};
+  const approvedRevision=this.presentRevision(approved);
+  // Stage C read-only precursor: show existing same-UOM consumption from the
+  // authoritative posted/returned SQL source, never a guessed conversion.
+  // Mixed-unit plan limits require a separately frozen stock-basis pin before
+  // being enabled for approval/posting in the remaining Stage C work.
+  const canViewUsage=auth.permissions.includes('inventory.issue.view') &&
+    ['budget.quantity.view','budget.revision.view'].some(right=>auth.permissions.includes(right));
+  let presentedApproved=approvedRevision;
+  if(approved && approvedRevision && canViewUsage){
+   const usedRows=await db.$queryRaw<Array<{lineId:string;usedQuantity:Prisma.Decimal}>>`
+    SELECT line.id::text AS "lineId",
+      erp_mpi_usage(plan.id,line.budget_revision_line_id,line.material_id,line.uom_id) AS "usedQuantity"
+    FROM material_usage_plan_lines line
+    JOIN material_usage_plan_revisions revision ON revision.id=line.revision_id
+    JOIN material_usage_plans plan ON plan.id=revision.plan_id
+    WHERE revision.id=${approved.id}::uuid AND plan.id=${p.id}::uuid
+      AND plan.company_id=${auth.companyId}::uuid`;
+   const usage=new Map(usedRows.map(row=>[row.lineId,new Prisma.Decimal(row.usedQuantity)]));
+   const active=await db.materialUomActivation.findMany({where:{companyId:auth.companyId,materialId:{in:approvedRevision.lines.map(line=>line.materialId)}},select:{materialId:true}});
+   const activated=new Set(active.map(row=>row.materialId));
+   presentedApproved={...approvedRevision,lines:approvedRevision.lines.map(line=>{
+    // A later activation must not make the legacy unit-based formula look
+    // like an approved canonical stock allowance.
+    if(activated.has(line.materialId))return {...line,usedQuantity:null,remainingQuantity:null,usageBasis:'FROZEN_STOCK_PIN_REQUIRED'};
+    const used=usage.get(line.id)??new Prisma.Decimal(0);
+    const allowance=new Prisma.Decimal(line.quantity);
+    return {...line,usedQuantity:used.toFixed(4),remainingQuantity:Prisma.Decimal.max(0,allowance.minus(used)).toFixed(4),usageBasis:'ENTERED_UOM_LEGACY'};
+   })};
+  }
+  return {...p,latestRevision:this.presentRevision(latest),approvedRevision:presentedApproved,issueEnforcement:policy?'ENABLED_FOR_NEW_SYNTHETIC_ISSUES':'NOT_ENABLED_BY_FOUNDATION'};
  }
  async projects(supplied:AuthenticatedUserContext){const auth=await this.authorize(supplied);return this.prisma.project.findMany({where:{AND:[await this.access.scopeWhere(auth),{isActive:true}]},select:{id:true,projectCode:true,projectName:true},orderBy:{id:'asc'},take:100});}
  async choices(supplied:AuthenticatedUserContext,projectId:string,kind:string,budgetRevisionId?:string,after?:string){

@@ -51,6 +51,8 @@ test('MP-AC-01–06 foundation authenticates quantity-only plans and immutable i
    const result=(await call(f.manager,'/'+id+'/decision',201,decision)).data;assert.deepEqual((await call(f.manager,'/'+id+'/decision',201,decision)).data,result);receipt=result;
    await call(f.manager,'/'+id+'/decision',409,{...decision,comment:'Changed retained decision'});
    const d=(await call(f.store,'/'+id)).data;assert.equal(d.approvedRevision.status,'APPROVED');assert.equal(d.issueEnforcement,'NOT_ENABLED_BY_FOUNDATION');
+   assert.equal(d.approvedRevision.lines[0].usedQuantity,'0.0000');assert.equal(d.approvedRevision.lines[0].remainingQuantity,'6.0000');
+   assert.equal(d.approvedRevision.lines[0].usageBasis,'ENTERED_UOM_LEGACY');
    await assert.rejects(()=>db.materialUsagePlanRevision.update({where:{id:d.approvedRevision.id},data:{decisionComment:'Rewrite approval'}}));
    await assert.rejects(()=>db.materialUsagePlanOperation.updateMany({where:{planId:id},data:{bodyDigest:'a'.repeat(64)}}));
   });
