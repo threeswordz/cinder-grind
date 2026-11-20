@@ -1,0 +1,82 @@
+# Temporary Stage C engineering lane: genuine disposable PostgreSQL only.
+# Does not replace complete stable PR validation, reviewed main integration,
+# browser, retained copied migration/recovery or real UAT.
+name: UOM Stage C Targeted PostgreSQL
+on:
+  push:
+    branches: ['vuom-stage-c-20261120']
+    paths:
+      - '.github/workflows/uom-c-native.yml'
+      - 'apps/api/prisma/**'
+      - 'apps/api/src/inventory/material-plan*'
+      - 'apps/api/src/inventory/material-request*'
+      - 'apps/api/src/inventory/material-issue.service.ts'
+      - 'apps/api/src/master-data/material-uom*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: uom-c-native-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  uom-c-postgres:
+    name: uom-c-postgres
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    services:
+      postgres:
+        image: postgres:17.11-alpine
+        env:
+          POSTGRES_DB: construction_erp
+          POSTGRES_USER: construction_erp
+          POSTGRES_PASSWORD: construction_erp_dev_only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U construction_erp -d construction_erp"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://construction_erp:construction_erp_dev_only@localhost:5432/construction_erp?schema=public
+      NODE_ENV: test
+      EXACT_STAGE_C_COMMIT: ${{ github.sha }}
+    steps:
+      - name: Checkout exact Stage C candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+      - name: Verify immutable source identity
+        run: test "$(git rev-parse HEAD)" = "$EXACT_STAGE_C_COMMIT"
+      - name: Set up pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
+        with:
+          version: 12.6.0
+          run_install: false
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.21.0
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Generate and validate forward-only schema
+        run: |
+          pnpm prisma:generate
+          pnpm prisma:validate
+      - name: Apply full ordered migration chain on fresh disposable PostgreSQL
+        run: |
+          pnpm prisma:migrate:deploy
+          pnpm --filter @construction-erp/api exec prisma migrate status
+      - name: Build API including actual native integration tests
+        run: pnpm --filter @construction-erp/api build
+      - name: Verify only affected material plan and request native PostgreSQL/API paths
+        run: |
+          node --test --test-concurrency=1 \
+            apps/api/dist/inventory/material-plan.integration.spec.js \
+            apps/api/dist/inventory/material-plan-issue.integration.spec.js \
+            apps/api/dist/inventory/material-request.integration.spec.js
+      - name: Classify result without claiming release completion
+        if: success()
+        run: echo "STAGE_C_NATIVE_PG_ONLY - no full PR, browser, restored-data, independent-review or exact-main receipt"
