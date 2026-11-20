@@ -5,6 +5,7 @@
 - **What changed and what remains deferred:**
 - **Tests / CI / review evidence:**
 - **DEC-051 routing/risk after activation:** focused ordinary branch or explicit full-push lane, mandatory full exact-head PR, applicable independent review, guarded merge/tree equality and full main; focused proof is not full CI.
+- **DEC-052 stable draft after activation:** ordinary draft attempt 1 deliberately blocks full admission; Builder reruns the exact stable PR job for actual full SUCCESS before ready/review/merge. Record source/base/attempt and final identity receipt; focused or skipped work is not a full pass.
 
 ## Applicable governance checks
 
