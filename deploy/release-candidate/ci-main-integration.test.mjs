@@ -5,7 +5,7 @@ import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
-import {REPO,inspectIntegration,planIntegration,integrationPush,protectedChange,pages,fullPrIdentity,readJobLog} from './ci-main-integration.mjs';
+import {REPO,inspectIntegration,planIntegration,integrationPush,pages,fullPrIdentity,readJobLog} from './ci-main-integration.mjs';
 import {FULL_STEPS,fullJobSucceeded} from './ci-full-run-proof.mjs';
 import {migrationInventory} from './ci-main-checks.mjs';
 
@@ -20,7 +20,6 @@ function fixture(){
  const job={id:555,name:'validate',run_id:99,status:'completed',conclusion:'success',completed_at:'2026-11-20T09:59:00Z',
    steps:FULL_STEPS.map(name=>({name,status:'completed',conclusion:'success'}))};
  const f={pr,run,job,threadState:{head,resolved:[true,true,true]},paths:['apps/api/src/inventory/material-return.service.ts'],ancestor:true,
-   parentRun:{...run,id:98,event:'push',head_sha:before,head_branch:'main'},parentJob:{...job,run_id:98},
    live:{commit:{sha}},integrated:{sha,tree:{sha:tree},parents:[{sha:before}]},source:{sha:head,tree:{sha:tree}},
    timeline:[{event:'committed',sha:head},{event:'ready_for_review',created_at:ready}],
    reactions:[{content:'+1',created_at:clean,user:{login:'chatgpt-codex-connector[bot]',type:'Bot'}}],reviews:[],
@@ -34,9 +33,8 @@ function fixture(){
    if(path.startsWith('issues/42/timeline?'))return f.timeline;
    if(path.startsWith('issues/42/reactions?'))return f.reactions;
    if(path.startsWith('pulls/42/reviews?'))return f.reviews;
-   if(path.startsWith('actions/runs?head_sha='+before))return {total_count:1,workflow_runs:[f.parentRun]};
+   if(path.startsWith('actions/runs?head_sha='+before))throw Error('REDUNDANT_PREDECESSOR_MAIN_LOOKUP');
    if(path.startsWith('actions/runs?'))return {total_count:1,workflow_runs:[f.run]};
-   if(path==='actions/runs/98/attempts/2/jobs?per_page=100')return {total_count:1,jobs:[f.parentJob]};
    if(path==='actions/runs/99/attempts/2/jobs?per_page=100')return {total_count:1,jobs:[f.job]};
    throw Error('Unexpected request '+path);
  };
@@ -53,7 +51,7 @@ test('eligible guarded tree carries real PR execution and review provenance, nev
  const f=fixture(),receipt=await inspect(f);
  assert.deepEqual(receipt,{schemaVersion:1,kind:'MAIN_INTEGRATION_REUSES_FULL_PR',repository:REPO,integratedSha:sha,
   tree,baseSha:before,pr:42,testedSha:head,fullPrRunId:99,fullPrAttempt:2,independentReviewAt:clean,
-  parentMain:{sha:before,runId:98,attempt:2,kind:'FULL_EXECUTION'},fullSuiteExecutedOnMain:false});
+  fullSuiteExecutedOnMain:false});
  assert.equal((await planIntegration(env(),event(),sha,f.dependencies)).mode,'reuse');
 });
 
@@ -63,9 +61,6 @@ for(const [name,change]of[
  ['changed source head',f=>f.pr.head.sha=before],['changed tested base',f=>f.pr.base.sha=head],
  ['foreign source repository',f=>f.pr.head={...f.pr.head,repo:{full_name:'evil/repo'}}],
  ['unmerged PR',f=>f.pr.merged=false],['unresolved finding',f=>f.threadState.resolved.push(false)],
- ['predecessor main still running',f=>f.parentRun.status='in_progress'],
- ['predecessor main failed',f=>f.parentRun.conclusion='failure'],
- ['predecessor full job skipped',f=>f.parentJob.conclusion='skipped'],
  ['review on another head',f=>f.threadState.head=before],['unavailable ancestry',f=>f.ancestor=false],
  ['source changed after ready',f=>f.timeline.push({event:'committed',sha:head})],
  ['arbitrary user thumbs up',f=>f.reactions[0].user={login:'threeswordz',type:'User'}],
@@ -83,9 +78,7 @@ for(const [name,change]of[
  ['full proof after ready',f=>f.run.updated_at=merged],['skipped full job',f=>f.job.conclusion='skipped'],
  ['failed full step',f=>f.job.steps[0].conclusion='failure'],['missing recovery',f=>f.job.steps=f.job.steps.filter(s=>!s.name.includes('recovery'))],
  ['missing final identity',f=>f.job.steps.pop()],['unknown full run id',f=>f.run.id='99'],
- ['wrong run attempt',f=>f.run.run_attempt=3],['protected workflow change',f=>f.paths=['.github/workflows/validate.yml']],
- ['protected routing change',f=>f.paths=['deploy/release-candidate/ci-main-integration.mjs']],
- ['deployment consumer change',f=>f.paths=['deploy/uat/prototype-transfer-upgrade.mjs']],
+ ['wrong run attempt',f=>f.run.run_attempt=3],
 ])test('fallback to full: '+name,async()=>{
  const f=fixture();change(f);
  assert.equal((await planIntegration(env(),event(),sha,f.dependencies)).mode,'full');
@@ -97,14 +90,24 @@ test('API failures never become reused success or forward arbitrary server/token
  assert.doesNotMatch(JSON.stringify(result),/secret-token/);
 });
 
-test('consecutive main integrations retain a verified predecessor chain without claiming full execution',async()=>{
- const f=fixture();f.parentJob={name:'integration-check',run_id:98,status:'completed',conclusion:'success',steps:[
-  'Build audit migrate and smoke exact main on fresh CI resources','Verify reviewed full-PR proof and emit integration receipt',
-  'Preserve explicit integration receipt','Recheck live proof before admitting integration'
- ].map(name=>({name,status:'completed',conclusion:'success'}))};
- assert.equal((await inspect(f)).parentMain.kind,'VERIFIED_INTEGRATION');
- f.parentJob.steps.pop();assert.equal((await planIntegration(env(),event(),sha,f.dependencies)).mode,'full');
+test('current full PR proof is sufficient without requesting another predecessor main run',async()=>{
+ const receipt=await inspect(fixture());
+ assert.equal(receipt.baseSha,before);
+ assert.equal(receipt.fullPrRunId,99);
+ assert.equal('parentMain' in receipt,false);
+ assert.equal(receipt.fullSuiteExecutedOnMain,false);
 });
+
+for(const path of ['.github/workflows/validate.yml','deploy/release-candidate/ci-main-integration.mjs',
+ 'deploy/uat/prototype-transfer-upgrade.mjs','AGENTS.md','docs/CI-VALIDATION-POLICY.md']){
+ test('reviewed exact full-PR tree reuses proof for '+path,async()=>{
+  const f=fixture();f.paths=[path];
+  f.dependencies.changedPaths=async()=>{throw Error('PATH_BASED_REPEAT_MUST_NOT_BE_REQUESTED');};
+  assert.equal((await planIntegration(env(),event(),sha,f.dependencies)).mode,'reuse');
+  f.source.tree.sha=before;
+  assert.equal((await planIntegration(env(),event(),sha,f.dependencies)).mode,'full');
+ });
+}
 
 test('only exact normal main pushes may request reuse; PR, explicit full, dispatch and malformed events use full',()=>{
  assert.equal(integrationPush(env(),event(),sha),true);
@@ -113,7 +116,6 @@ test('only exact normal main pushes may request reuse; PR, explicit full, dispat
   {GITHUB_WORKFLOW_REF:'wrong'},{GITHUB_SHA:head},{GITHUB_RUN_ATTEMPT:'2'},{GITHUB_RUN_ATTEMPT:undefined}])assert.equal(integrationPush({...env(),...changed},event(),sha),false);
  for(const changed of [{deleted:true},{forced:true},{after:head},{before:'bad'},{ref:'refs/heads/other'}])
   assert.equal(integrationPush(env(),{...event(),...changed},sha),false);
- assert.equal(protectedChange(['apps/api/prisma/migrations/new/migration.sql']),false);
 });
 
 test('all API pagination is bounded and complete; unknown truncation fails',async()=>{
