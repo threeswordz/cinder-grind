@@ -106,3 +106,214 @@ CREATE CONSTRAINT TRIGGER material_uom_plan_allocation_pin_required
  AFTER INSERT ON material_plan_issue_allocations
  DEFERRABLE INITIALLY DEFERRED FOR EACH ROW
  EXECUTE FUNCTION erp_uom_plan_allocation_pin_required();
+
+
+-- Preserve original independent maker/checker and operation receipts while
+-- replacing only the entered-unit allowance proof with activated stock truth.
+CREATE OR REPLACE FUNCTION erp_mpi_validate_auth(auth_uuid uuid,posting boolean,poster uuid DEFAULT NULL) RETURNS void LANGUAGE plpgsql AS $$
+DECLARE a RECORD; h RECORD; p RECORD; l RECORD; ai RECORD; first_step RECORD; final_step RECORD; reviewer uuid; approver uuid;
+ used numeric; spent jsonb:='{}'; k text; prior numeric; excess numeric; n integer; expected integer; qty numeric; allowance_stock numeric; active_overage boolean:=false;
+BEGIN
+ SELECT * INTO STRICT a FROM material_plan_issue_authorizations WHERE id=auth_uuid;
+ SELECT * INTO STRICT h FROM material_issues WHERE id=a.issue_id;
+ SELECT po.* INTO STRICT p FROM material_plan_issue_bindings b JOIN material_plan_project_policies po ON po.id=b.policy_id WHERE b.issue_id=h.id;
+ IF h.company_id<>p.company_id OR h.project_id<>p.project_id OR a.body_digest IS DISTINCT FROM erp_mpi_issue_digest(h.id)
+ OR (h.posted_at IS NOT NULL AND NOT EXISTS(SELECT 1 FROM material_plan_issue_bindings WHERE issue_id=h.id AND authorization_id=a.id))
+ THEN RAISE EXCEPTION 'Material plan issue scope or payload changed'; END IF;
+ IF NOT erp_mpi_scope(a.created_by_user_id,p.company_id,p.project_id,'inventory.material_plan.issue.post') THEN RAISE EXCEPTION 'Material plan issue actor authority invalid'; END IF;
+ SELECT count(*) INTO n FROM material_plan_issue_allocations WHERE authorization_id=a.id;
+ SELECT count(*) INTO expected FROM material_issue_items WHERE material_issue_id=h.id;
+ IF n<>expected OR n NOT BETWEEN 1 AND 200 THEN RAISE EXCEPTION 'Material plan issue complete batch required'; END IF;
+ FOR l IN SELECT al.*,i.line_no,i.material_id,i.uom_id,i.quantity AS actual_quantity,pl.quantity AS allowance,pl.budget_revision_line_id,
+  rev.id AS revision_id,rev.plan_id AS revision_plan,rev.status,rev.revision_no,rev.valid_from,rev.valid_to,
+  plan.company_id,plan.project_id,plan.warehouse_id,plan.budget_revision_id,
+  EXISTS(SELECT 1 FROM material_uom_activations activation
+    WHERE activation.company_id=plan.company_id AND activation.material_id=i.material_id) AS activated,
+  frozen.company_id AS frozen_company_id, frozen.material_id AS frozen_material_id,
+  frozen.source_uom_id AS frozen_source_uom_id, frozen.source_quantity AS frozen_source_quantity,
+  frozen.stock_uom_id AS frozen_stock_uom_id, frozen.stock_quantity AS frozen_stock_quantity,
+  converted.company_id AS auth_company_id, converted.material_id AS auth_material_id,
+  converted.source_uom_id AS auth_source_uom_id, converted.source_quantity AS auth_source_quantity,
+  converted.stock_uom_id AS auth_stock_uom_id, converted.stock_quantity AS auth_stock_quantity,
+  converted.plan_stock_quantity AS auth_plan_stock_quantity,
+  converted.stock_overage_quantity AS auth_stock_overage,
+  converted.business_date AS auth_business_date,converted.basis_version AS auth_basis_version,
+  converted.revision_id AS auth_revision_id,converted.numerator AS auth_numerator,
+  converted.denominator AS auth_denominator
+ FROM material_plan_issue_allocations al JOIN material_issue_items i ON i.id=al.issue_item_id AND i.material_issue_id=h.id
+ JOIN material_usage_plan_lines pl ON pl.id=al.plan_line_id AND pl.material_id=i.material_id AND pl.uom_id=i.uom_id
+ JOIN material_usage_plan_revisions rev ON rev.id=pl.revision_id JOIN material_usage_plans plan ON plan.id=rev.plan_id
+ LEFT JOIN material_uom_plan_line_pins frozen ON frozen.plan_line_id=pl.id
+ LEFT JOIN material_uom_plan_allocation_pins converted ON converted.allocation_id=al.id
+ WHERE al.authorization_id=a.id ORDER BY i.line_no,i.id LOOP
+  IF l.plan_id<>l.revision_plan OR l.quantity<>l.actual_quantity OR l.company_id<>h.company_id OR l.project_id<>h.project_id OR l.warehouse_id<>h.warehouse_id
+  OR l.status<>'APPROVED' OR l.revision_no<>(SELECT max(revision_no) FROM material_usage_plan_revisions WHERE plan_id=l.plan_id AND status='APPROVED')
+  OR h.issue_date NOT BETWEEN l.valid_from AND l.valid_to
+  OR NOT EXISTS(SELECT 1 FROM budget_revision_lines bl JOIN budget_revisions br ON br.id=bl.budget_revision_id
+   JOIN approval_instances ba ON ba.id=br.approval_instance_id AND ba.approval_state='APPROVED'
+   JOIN materials m ON m.id=l.material_id AND m.company_id=h.company_id AND m.is_active AND m.default_uom_id=l.uom_id
+   JOIN units_of_measure u ON u.id=l.uom_id AND u.company_id=h.company_id AND u.is_active
+   WHERE bl.id=l.budget_revision_line_id AND br.id=l.budget_revision_id AND br.project_id=h.project_id AND br.company_id=h.company_id AND bl.uom_id=l.uom_id AND bl.quantity>=l.allowance)
+  THEN RAISE EXCEPTION 'Material plan issue source or effective version invalid'; END IF;
+  k:=l.plan_id::text||':'||l.budget_revision_line_id::text||':'||l.material_id::text||':'||l.uom_id::text;
+  prior:=coalesce((spent->>k)::numeric,0);
+  IF l.activated THEN
+   -- Exactly one authoritative source-to-stock basis, not an assumed unit
+   -- mapping or today's factor. The original Cost BOQ cap still holds above.
+   IF l.frozen_company_id IS DISTINCT FROM h.company_id
+    OR l.frozen_material_id IS DISTINCT FROM l.material_id
+    OR l.frozen_source_uom_id IS DISTINCT FROM l.uom_id
+    OR l.frozen_source_quantity IS DISTINCT FROM l.allowance
+    OR l.auth_company_id IS DISTINCT FROM h.company_id
+    OR l.auth_material_id IS DISTINCT FROM l.material_id
+    OR l.auth_source_uom_id IS DISTINCT FROM l.uom_id
+    OR l.auth_source_quantity IS DISTINCT FROM l.quantity
+    OR l.auth_stock_uom_id IS DISTINCT FROM l.frozen_stock_uom_id
+    OR l.auth_plan_stock_quantity IS DISTINCT FROM l.frozen_stock_quantity
+    OR l.auth_business_date IS DISTINCT FROM h.issue_date
+    OR l.overage_quantity<>0
+    OR l.auth_stock_quantity IS NULL OR l.auth_stock_quantity<=0
+    OR l.auth_stock_overage IS NULL OR l.auth_stock_overage<0
+    OR l.auth_stock_overage>l.auth_stock_quantity
+    OR l.auth_source_quantity*l.auth_numerator::numeric
+       IS DISTINCT FROM l.auth_stock_quantity*l.auth_denominator::numeric
+    OR NOT EXISTS(SELECT 1 FROM material_uom_bases b
+       WHERE b.company_id=h.company_id AND b.material_id=l.material_id
+       AND b.stock_uom_id=l.auth_stock_uom_id AND b.version=l.auth_basis_version)
+   THEN RAISE EXCEPTION 'Material plan issue canonical source or conversion invalid'; END IF;
+   IF (l.auth_source_uom_id=l.auth_stock_uom_id AND
+       (l.auth_revision_id IS NOT NULL OR l.auth_numerator<>'1' OR l.auth_denominator<>'1'))
+    OR (l.auth_source_uom_id<>l.auth_stock_uom_id AND
+       l.auth_revision_id IS DISTINCT FROM (
+        SELECT revision.id FROM material_uom_revisions revision
+        WHERE revision.company_id=h.company_id AND revision.material_id=l.material_id
+          AND revision.source_uom_id=l.auth_source_uom_id AND revision.effective_from<=h.issue_date
+        ORDER BY revision.effective_from DESC,revision.revision_no DESC LIMIT 1))
+   THEN RAISE EXCEPTION 'Material plan issue canonical definition stale'; END IF;
+   -- Missing/improper historical return evidence raises, never grants credit.
+   used:=erp_uom_plan_frozen_usage(l.plan_id,l.budget_revision_line_id,l.material_id,l.uom_id,h.id);
+   qty:=l.auth_stock_quantity;
+   allowance_stock:=l.frozen_stock_quantity;
+   excess:=greatest(0,qty-greatest(0,allowance_stock-used-prior));
+   IF (a.created_at=transaction_timestamp() AND NOT posting AND h.posted_at IS NULL
+       AND excess<>l.auth_stock_overage)
+     OR excess>l.auth_stock_overage
+     OR (a.mode='DIRECT' AND (excess<>0 OR l.auth_stock_overage<>0))
+   THEN RAISE EXCEPTION 'Material plan issue canonical allowance or approval stale'; END IF;
+   IF l.auth_stock_overage>0 THEN active_overage:=true; END IF;
+  ELSE
+   -- Original same-UOM source and role policy remains byte-for-byte equivalent.
+   IF l.auth_company_id IS NOT NULL OR l.frozen_company_id IS NOT NULL
+   THEN RAISE EXCEPTION 'Material plan issue legacy source must remain unpinned'; END IF;
+   used:=erp_mpi_usage(l.plan_id,l.budget_revision_line_id,l.material_id,l.uom_id,h.id);
+   qty:=l.quantity;
+   allowance_stock:=l.allowance;
+   excess:=greatest(0,qty-greatest(0,allowance_stock-used-prior));
+   IF (a.created_at=transaction_timestamp() AND NOT posting AND h.posted_at IS NULL
+       AND excess<>l.overage_quantity) OR excess>l.overage_quantity
+     OR (a.mode='DIRECT' AND (excess<>0 OR l.overage_quantity<>0))
+   THEN RAISE EXCEPTION 'Material plan issue allowance or approval stale'; END IF;
+  END IF;
+  spent:=jsonb_set(spent,ARRAY[k],to_jsonb(prior+qty),true);
+ END LOOP;
+ -- Reject an allocation removed by any scope join above; counts alone cannot
+ -- admit a mismatched item, UOM or plan parent.
+ IF (SELECT count(*) FROM material_plan_issue_allocations al JOIN material_issue_items i ON i.id=al.issue_item_id AND i.material_issue_id=h.id
+  JOIN material_usage_plan_lines pl ON pl.id=al.plan_line_id AND pl.material_id=i.material_id AND pl.uom_id=i.uom_id
+  JOIN material_usage_plan_revisions r ON r.id=pl.revision_id AND r.plan_id=al.plan_id WHERE al.authorization_id=a.id)<>n THEN RAISE EXCEPTION 'Material plan issue complete batch required'; END IF;
+ IF a.mode='DIRECT' THEN
+  IF posting AND poster IS DISTINCT FROM a.created_by_user_id THEN RAISE EXCEPTION 'Material plan issue actor authority invalid'; END IF;
+ ELSE
+  IF NOT active_overage AND NOT EXISTS(SELECT 1 FROM material_plan_issue_allocations
+     WHERE authorization_id=a.id AND overage_quantity>0)
+ THEN RAISE EXCEPTION 'Material plan issue allowance or approval stale'; END IF;
+  SELECT * INTO STRICT ai FROM approval_instances WHERE id=a.approval_instance_id;
+  IF NOT erp_mpi_workflow_valid(p.approval_workflow_id,p.company_id) OR a.workflow_digest IS DISTINCT FROM erp_mpi_workflow_digest(p.approval_workflow_id)
+   OR ai.company_id<>p.company_id OR ai.approval_workflow_id<>p.approval_workflow_id OR ai.entity_type<>'MATERIAL_PLAN_OVERAGE' OR ai.entity_id<>a.id
+  THEN RAISE EXCEPTION 'Material plan issue approval configuration stale'; END IF;
+  IF posting THEN
+   SELECT * INTO STRICT first_step FROM approval_steps WHERE approval_workflow_id=p.approval_workflow_id ORDER BY step_no LIMIT 1;
+   SELECT * INTO STRICT final_step FROM approval_steps WHERE approval_workflow_id=p.approval_workflow_id ORDER BY step_no DESC LIMIT 1;
+   SELECT action_by_user_id INTO reviewer FROM approval_actions WHERE approval_instance_id=ai.id AND approval_step_id=first_step.id AND action='APPROVE';
+   SELECT action_by_user_id INTO approver FROM approval_actions WHERE approval_instance_id=ai.id AND approval_step_id=final_step.id AND action='APPROVE';
+   IF ai.approval_state<>'APPROVED' OR reviewer IS NULL OR approver IS NULL OR reviewer=approver OR approver IS DISTINCT FROM poster
+    OR reviewer=ANY(ARRAY[h.created_by_user_id,h.submitted_by_user_id,a.created_by_user_id]) OR approver=ANY(ARRAY[h.created_by_user_id,h.submitted_by_user_id,a.created_by_user_id])
+    OR NOT erp_mpi_scope(reviewer,p.company_id,p.project_id,'inventory.material_plan.overage.review')
+    OR NOT erp_mpi_scope(approver,p.company_id,p.project_id,'inventory.material_plan.overage.approve')
+    OR NOT erp_mpi_step_role(reviewer,first_step.id,p.company_id) OR NOT erp_mpi_step_role(approver,final_step.id,p.company_id)
+   THEN RAISE EXCEPTION 'Material plan issue independent approval required'; END IF;
+  END IF;
+ END IF;
+END $$;
+
+CREATE OR REPLACE FUNCTION erp_mpi_assert_revision(revision_uuid uuid) RETURNS void LANGUAGE plpgsql AS $$
+DECLARE r RECORD; x RECORD; used numeric; allowance numeric;
+BEGIN
+ SELECT * INTO STRICT r FROM material_usage_plan_revisions WHERE id=revision_uuid;
+ PERFORM pg_advisory_xact_lock(hashtextextended('material-plan:'||r.plan_id::text,0));
+ FOR x IN SELECT DISTINCT l.budget_revision_line_id,l.material_id,l.uom_id FROM material_plan_issue_allocations a
+ JOIN material_usage_plan_lines l ON l.id=a.plan_line_id WHERE a.plan_id=r.plan_id LOOP
+  IF EXISTS(SELECT 1 FROM material_uom_activations act
+    JOIN material_usage_plans plan ON plan.id=r.plan_id
+    WHERE act.company_id=plan.company_id AND act.material_id=x.material_id) THEN
+   used:=erp_uom_plan_frozen_usage(r.plan_id,x.budget_revision_line_id,x.material_id,x.uom_id);
+   SELECT pin.stock_quantity INTO allowance FROM material_usage_plan_lines pl
+     JOIN material_uom_plan_line_pins pin ON pin.plan_line_id=pl.id
+     WHERE pl.revision_id=r.id AND pl.budget_revision_line_id=x.budget_revision_line_id
+       AND pl.material_id=x.material_id AND pl.uom_id=x.uom_id;
+   IF allowance IS NULL THEN RAISE EXCEPTION 'Material plan issue frozen revision source required'; END IF;
+  ELSE
+   used:=erp_mpi_usage(r.plan_id,x.budget_revision_line_id,x.material_id,x.uom_id);
+   SELECT quantity INTO allowance FROM material_usage_plan_lines
+    WHERE revision_id=r.id AND budget_revision_line_id=x.budget_revision_line_id
+      AND material_id=x.material_id AND uom_id=x.uom_id;
+  END IF;
+  IF used>coalesce(allowance,0) THEN RAISE EXCEPTION 'Material plan issue revision below effective consumption'; END IF;
+ END LOOP;
+END $$;
+
+CREATE OR REPLACE FUNCTION erp_mpi_receipt_guard() RETURNS trigger LANGUAGE plpgsql AS $$
+DECLARE p uuid; issue_uuid uuid; auth_uuid uuid; actor_uuid uuid; actions text[]; a RECORD; h RECORD; b RECORD; proof RECORD;
+BEGIN
+ IF TG_TABLE_NAME='material_plan_project_policies' THEN p:=NEW.id;actor_uuid:=NEW.enabled_by_user_id;actions:=ARRAY['ENABLE'];
+ ELSIF TG_TABLE_NAME='material_plan_issue_authorizations' THEN
+  auth_uuid:=NEW.id;issue_uuid:=NEW.issue_id;actor_uuid:=NEW.created_by_user_id;actions:=ARRAY[CASE WHEN NEW.mode='DIRECT' THEN 'DIRECT' ELSE 'SUBMIT' END];
+  SELECT policy_id INTO p FROM material_plan_issue_bindings WHERE issue_id=issue_uuid;
+  SELECT * INTO h FROM material_issues WHERE id=issue_uuid;
+  PERFORM erp_mpi_validate_auth(auth_uuid,h.posted_at IS NOT NULL,h.posted_by_user_id);
+ ELSIF TG_TABLE_NAME='material_plan_issue_bindings' THEN
+  IF TG_OP='INSERT' THEN RETURN NULL; END IF;
+  p:=NEW.policy_id;issue_uuid:=NEW.issue_id;auth_uuid:=NEW.authorization_id;actions:=ARRAY['DIRECT','DECIDE'];
+  SELECT * INTO STRICT h FROM material_issues WHERE id=issue_uuid;
+  IF h.posted_at IS NULL OR (SELECT count(*) FROM stock_transactions WHERE material_issue_id=issue_uuid AND movement_type='MATERIAL_ISSUE')<>(SELECT count(*) FROM material_issue_items WHERE material_issue_id=issue_uuid)
+  THEN RAISE EXCEPTION 'Material plan issue canonical posting incomplete'; END IF;
+  IF EXISTS(SELECT 1 FROM material_issue_items i WHERE i.material_issue_id=issue_uuid AND
+   ((SELECT count(*) FROM stock_transactions st WHERE st.material_issue_item_id=i.id AND st.movement_type='MATERIAL_ISSUE')<>1 OR NOT EXISTS(SELECT 1 FROM stock_transactions st
+    LEFT JOIN material_uom_issue_source_pins sp ON sp.issue_item_id=i.id
+    LEFT JOIN material_uom_effect_pins ep ON ep.stock_transaction_id=st.id
+     AND ep.company_id=st.company_id AND ep.material_id=st.material_id
+    WHERE st.material_issue_item_id=i.id AND st.movement_type='MATERIAL_ISSUE'
+     AND st.effect_key='material-issue:'||i.id::text
+     AND st.quantity=-coalesce(sp.stock_quantity,i.quantity)
+     AND st.uom_id=coalesce(sp.stock_uom_id,i.uom_id)
+     AND (sp.issue_item_id IS NULL OR
+       (ep.stock_transaction_id=st.id AND ep.stock_uom_id=sp.stock_uom_id
+        AND ep.source_uom_id=sp.source_uom_id
+        AND ep.stock_quantity=sp.stock_quantity
+        AND ep.source_quantity=sp.source_quantity AND ep.effect_sign=-1)))))
+  THEN RAISE EXCEPTION 'Material plan issue canonical posting incomplete'; END IF;
+ ELSIF TG_TABLE_NAME='approval_actions' THEN
+  SELECT * INTO a FROM material_plan_issue_authorizations WHERE approval_instance_id=NEW.approval_instance_id;
+  IF NOT FOUND THEN RETURN NULL; END IF;
+  issue_uuid:=a.issue_id;SELECT policy_id INTO p FROM material_plan_issue_bindings WHERE issue_id=issue_uuid;actor_uuid:=NEW.action_by_user_id;
+  IF NEW.action='CANCEL' THEN actions:=ARRAY['DIRECT','SUBMIT']; ELSE auth_uuid:=a.id;actions:=ARRAY['REVIEW','DECIDE']; END IF;
+ ELSE
+  IF NEW.snapshot IS DISTINCT FROM erp_mpi_snapshot(NEW.policy_id,NEW.issue_id,NEW.authorization_id) OR NEW.outcome IS DISTINCT FROM erp_mpi_outcome(NEW.policy_id,NEW.issue_id,NEW.authorization_id)
+  THEN RAISE EXCEPTION 'Material plan issue operation proof invalid'; END IF;
+  RETURN NULL;
+ END IF;
+ IF NOT EXISTS(SELECT 1 FROM material_plan_issue_operations o WHERE o.policy_id=p AND o.created_at=transaction_timestamp() AND o.action=ANY(actions)
+  AND (issue_uuid IS NULL OR o.issue_id=issue_uuid) AND (auth_uuid IS NULL OR o.authorization_id=auth_uuid) AND (actor_uuid IS NULL OR o.actor_user_id=actor_uuid))
+ THEN RAISE EXCEPTION 'Material plan issue operation proof required'; END IF;
+ RETURN NULL;
+END $$;
