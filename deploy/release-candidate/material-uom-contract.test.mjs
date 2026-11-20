@@ -1,3 +1,4 @@
+import {stripMaterialUomStageCSchema} from './material-uom-stage-c-schema-contract.mjs';
 import {stripMaterialUomEffectSchema,materialUomEffectMigration} from './material-uom-effect-schema-contract.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
@@ -8,7 +9,7 @@ import {classifySchema} from './schema-contract.mjs';
 import {stripMaterialUomSchema,materialUomMode,materialUomTables,materialUomMigrations} from './material-uom-schema-contract.mjs';
 import {materialUomCatalog,verifyMaterialUomCatalog} from './material-uom-catalog-contract.mjs';
 import {assertHistoricalTables} from './historical-snapshot.mjs';
-const fullSchema=readFileSync(new URL('../../apps/api/prisma/schema.prisma',import.meta.url),'utf8');
+const fullSchema=stripMaterialUomStageCSchema(readFileSync(new URL('../../apps/api/prisma/schema.prisma',import.meta.url),'utf8')).text;
 const schema=stripMaterialUomEffectSchema(fullSchema).text;
 const previous=execFileSync('git',['show','59d67d1f2e54e6bfde51e4c5be336ea97906bf52:apps/api/prisma/schema.prisma'],{encoding:'utf8'});
 test('DEC-050 A admits exactly three prepared facts without changing canonical stock/commercial models',()=>{

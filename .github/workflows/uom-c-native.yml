@@ -47,6 +47,7 @@ jobs:
       - name: Checkout exact Stage C candidate
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
+          fetch-depth: 0
           ref: ${{ github.sha }}
       - name: Verify immutable source identity
         run: test "$(git rev-parse HEAD)" = "$EXACT_STAGE_C_COMMIT"
