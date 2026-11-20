@@ -97,7 +97,7 @@ export class MaterialPlanIssueService{
    // PREVIEW ONLY until allocation source/return/overage admission is shared
    // by erp_mpi_validate_auth and the stock source posting proof. Never let a
    // converted pack pass the legacy approval path by comparing entered counts.
-   if(active&&locking)conflict('MATERIAL_UOM_PLAN_CANONICAL_ISSUE_GATE_PENDING');
+   if(active&&item.reservationId)conflict('MATERIAL_UOM_PLAN_RESERVATION_RECONCILIATION_REQUIRED');
    if(active&&(!stockPin||stockPin.companyId!==auth.companyId||stockPin.materialId!==item.materialId||
     stockPin.sourceUomId!==line.uomId||!stockPin.sourceQuantity.eq(line.quantity)))
     conflict('MATERIAL_UOM_PLAN_PIN_REQUIRED');
@@ -118,7 +118,8 @@ export class MaterialPlanIssueService{
    const excess=Prisma.Decimal.max(0,basisQuantity.minus(Prisma.Decimal.max(0,remaining)));
    spent.set(k,(spent.get(k)??new Prisma.Decimal(0)).plus(basisQuantity));
    overage=overage.plus(excess);
-   allocations.push({issueItemId:item.id,planId:line.revision.planId,planLineId:line.id,
+   allocations.push({issueItemId:item.id,materialId:item.materialId,sourceUomId:item.uomId,
+    planId:line.revision.planId,planLineId:line.id,
     planVersion:line.revision.plan.version,quantity:item.quantity,overageQuantity:excess,
     allowance,used,remaining,revisionId:line.revisionId,
     stockBasis:conversion?{
@@ -152,7 +153,26 @@ export class MaterialPlanIssueService{
    const a=await this.approvals.start({companyId:auth.companyId,workflowCode:workflow.workflowCode,entityType:'MATERIAL_PLAN_OVERAGE',entityId:id},tx);approvalId=a.id;
   }
   await tx.materialPlanIssueAuthorization.create({data:{id,issueId:issue.id,sequence:(previous?.sequence??0)+1,mode,bodyDigest:r!.digest,approvalInstanceId:approvalId,workflowDigest:mode==='OVERAGE'?r!.workflow:null,createdByUserId:auth.userId,
-   lines:{create:e.allocations.map(l=>({issueItemId:l.issueItemId,planId:l.planId,planLineId:l.planLineId,planVersion:l.planVersion,quantity:l.quantity,overageQuantity:l.overageQuantity}))}}});
+   lines:{create:e.allocations.map(l=>({issueItemId:l.issueItemId,planId:l.planId,planLineId:l.planLineId,planVersion:l.planVersion,quantity:l.quantity,
+    // Source-unit legacy overage remains unchanged. An activated material's
+    // exact stock-basis overage can exceed entered cartons, so it belongs
+    // only in the immutable allocation stock pin (never rounded to cartons).
+    overageQuantity:l.stockBasis?new Prisma.Decimal(0):l.overageQuantity}))}}});
+  const persisted=await tx.materialPlanIssueAllocation.findMany({where:{authorizationId:id},select:{id:true,issueItemId:true}});
+  for(const line of e.allocations){
+   if(!line.stockBasis)continue;
+   const alloc=persisted.find(row=>row.issueItemId===line.issueItemId);
+   if(!alloc)conflict('MATERIAL_UOM_PLAN_ALLOCATION_PIN_REQUIRED');
+   await tx.materialUomPlanAllocationPin.create({data:{
+    allocationId:alloc.id,companyId:auth.companyId,materialId:line.materialId,
+    sourceUomId:line.sourceUomId,sourceQuantity:line.quantity,
+    stockUomId:line.stockBasis.stockUomId,stockQuantity:new Prisma.Decimal(line.stockBasis.stockQuantity),
+    planStockQuantity:line.allowance,stockOverageQuantity:line.overageQuantity,
+    businessDate:new Date(line.stockBasis.effectiveDate+'T00:00:00.000Z'),
+    basisVersion:line.stockBasis.basisVersion,revisionId:line.stockBasis.revisionId,
+    numerator:line.stockBasis.numerator,denominator:line.stockBasis.denominator
+   }});
+  }
   if(!issue.submittedAt)await tx.materialIssue.update({where:{id:issue.id},data:{submittedAt:new Date(),submittedByUserId:auth.userId}});
   return id;
  }
@@ -163,6 +183,20 @@ export class MaterialPlanIssueService{
   await tx.$executeRawUnsafe('SELECT pg_advisory_xact_lock(hashtext($1))','inventory-warehouse:'+issue.warehouseId);
   await tx.$queryRaw`SELECT id FROM warehouses WHERE id=${issue.warehouseId}::uuid FOR NO KEY UPDATE`;
   await tx.materialPlanIssueBinding.update({where:{issueId:id},data:{authorizationId}});
+  const frozen=await tx.materialUomPlanAllocationPin.findMany({
+   where:{allocation:{authorizationId}},include:{allocation:{select:{issueItemId:true}}},
+   orderBy:[{materialId:'asc'},{allocationId:'asc'}]
+  });
+  for(const proof of frozen){
+   await tx.materialUomIssueSourcePin.create({data:{
+    issueItemId:proof.allocation.issueItemId,issueId:id,companyId:proof.companyId,
+    projectId:issue.projectId,warehouseId:issue.warehouseId,materialId:proof.materialId,
+    sourceUomId:proof.sourceUomId,sourceQuantity:proof.sourceQuantity,
+    stockUomId:proof.stockUomId,stockQuantity:proof.stockQuantity,
+    businessDate:proof.businessDate,basisVersion:proof.basisVersion,revisionId:proof.revisionId,
+    numerator:proof.numerator,denominator:proof.denominator
+   }});
+  }
   await this.issues.postInTransaction({auth},id,key,tx);
  }
  async withinPlan(context:Context,id:string,value:unknown){

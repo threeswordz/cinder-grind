@@ -393,3 +393,10 @@ BEGIN
  END IF;
  RETURN NEW;
 END $$;
+
+
+-- Converted stock authority replaces only the earlier Stage C temporary
+-- all-converted allocation blocker. Immutable allocation pin, deferred proof,
+-- canonical revalidation, full original maker/checker and source/effect
+-- receipt guards are now active. Never change the legacy CHECK on overage.
+DROP TRIGGER material_uom_plan_block_unreconciled_issue ON material_plan_issue_allocations;
