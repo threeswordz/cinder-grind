@@ -227,6 +227,8 @@ export function MaterialPlanIssueControls({
         disabled={!complete || Boolean(pending) || previewMutation.isPending || plans.isError}
         onClick={() => { setPreview(null); previewMutation.mutate({ bindings, fingerprint }); }}>{t.preview}</Button>
       {applicablePreview ? <Stack spacing={1}>
+        {applicablePreview.items.some(item=>item.stockBasis!==null) ?
+          <Alert severity="warning">{t.canonicalPostingPending}</Alert> : null}
         <Alert severity={applicablePreview.result === 'WITHIN_PLAN' ? 'success' : 'warning'}>
           {applicablePreview.result === 'WITHIN_PLAN' ? t.matched : t.overage}
           {' · '}{t.overageQuantity}: {applicablePreview.overageQuantity ?? '—'}
@@ -234,13 +236,13 @@ export function MaterialPlanIssueControls({
         {applicablePreview.items.map(item => <Typography variant="caption" key={item.issueItemId}>
           {item.issueItemId.slice(0, 8)}: {t.allowance} {item.allowance}, {t.used} {item.used},
           {' '}{t.remaining} {item.remaining}
-          {item.stockBasis ? ` · ${item.stockBasis.stockQuantity} ${item.stockBasis.stockUomCode} · ${item.stockBasis.numerator}/${item.stockBasis.denominator} · ${item.stockBasis.effectiveDate} · Preview only; posting still blocked` : ''}
+          {item.stockBasis ? ` · ${item.stockBasis.stockQuantity} ${item.stockBasis.stockUomCode} · ${item.stockBasis.numerator}/${item.stockBasis.denominator} · ${item.stockBasis.effectiveDate} · ${t.stockPreviewOnly}` : ''}
         </Typography>)}
         {applicablePreview.result === 'WITHIN_PLAN' ?
-          <Button variant="contained" disabled={Boolean(pending)}
+          <Button variant="contained" disabled={Boolean(pending) || applicablePreview.items.some(item=>item.stockBasis!==null)}
             onClick={() => send({ kind: 'DIRECT', issueId: issue.id,
               requestKey: crypto.randomUUID(), bindings })}>{t.post}</Button> :
-          <Button variant="contained" disabled={Boolean(pending)}
+          <Button variant="contained" disabled={Boolean(pending) || applicablePreview.items.some(item=>item.stockBasis!==null)}
             onClick={() => send({ kind: 'SUBMIT', issueId: issue.id,
               requestKey: crypto.randomUUID(), bindings })}>{t.submit}</Button>}
       </Stack> : preview ? <Alert severity="warning">{t.previewStale}</Alert> : null}
