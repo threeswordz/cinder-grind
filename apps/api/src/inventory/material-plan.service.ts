@@ -28,7 +28,7 @@ export class MaterialPlanService{
   const p=await db.materialUsagePlan.findFirst({where:{id,companyId:auth.companyId},select:headerSelect});if(!p)throw new NotFoundException({code:'MATERIAL_PLAN_NOT_FOUND'});
   await this.access.assertAccess(auth,p.projectId,db);return p;
  }
- private presentRevision(r:Prisma.MaterialUsagePlanRevisionGetPayload<{select:typeof revisionSelect}>|null){return r?{...r,validFrom:r.validFrom.toISOString().slice(0,10),validTo:r.validTo.toISOString().slice(0,10),lines:r.lines.map(l=>({...l,quantity:l.quantity.toFixed(4)}))}:null;}
+ private presentRevision(r:Prisma.MaterialUsagePlanRevisionGetPayload<{select:typeof revisionSelect}>|null){return r?{...r,validFrom:r.validFrom.toISOString().slice(0,10),validTo:r.validTo.toISOString().slice(0,10),lines:r.lines.map(l=>({...l,quantity:l.quantity.toFixed(4),usedQuantity:null as string|null,remainingQuantity:null as string|null,usageBasis:null as string|null}))}:null;}
  private async detail(auth:AuthenticatedUserContext,id:string,db:Db){
   const p=await this.header(auth,id,db);
   const [latest,approved]=await Promise.all([db.materialUsagePlanRevision.findFirst({where:{planId:id},orderBy:{revisionNo:'desc'},select:revisionSelect}),db.materialUsagePlanRevision.findFirst({where:{planId:id,status:'APPROVED'},orderBy:{revisionNo:'desc'},select:revisionSelect})]);
