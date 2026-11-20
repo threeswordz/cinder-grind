@@ -80,7 +80,7 @@ export async function main() {
   for (const entry of entries) {
     writeFileSync(entry.file, '{"version":1,"rehearsalStatus":"INCOMPLETE"}\n', {mode:0o600});
   }
-  const directory = resolve(fileURLToPath(import.meta.url), '..', '..');
+  const directory = resolve(fileURLToPath(import.meta.url), '..', '..', '..');
   const runOne = entry => new Promise((accept, reject) => {
     process.stdout.write('START ' + entry.name + ' / ' + entry.previous + '\n');
     const child = spawn('bash', ['deploy/release-candidate/rehearse.sh'], {
