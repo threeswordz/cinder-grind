@@ -36,7 +36,8 @@ BEGIN
  IF TG_OP<>'INSERT' THEN RAISE EXCEPTION 'MATERIAL_UOM_PLAN_ALLOCATION_IMMUTABLE'; END IF;
  PERFORM erp_material_uom_require_activation(NEW.company_id,NEW.material_id);
  SELECT alloc.*,item.material_id,item.uom_id,item.quantity AS issue_quantity,
-  issue.id AS issue_id,issue.company_id,issue.issue_date INTO a
+  issue.id AS issue_id,issue.company_id,issue.issue_date,issue.posted_at AS issue_posted_at,
+  auth.created_at AS authorization_created_at INTO a
  FROM material_plan_issue_allocations alloc
  JOIN material_plan_issue_authorizations auth ON auth.id=alloc.authorization_id
  JOIN material_issue_items item ON item.id=alloc.issue_item_id
@@ -44,7 +45,10 @@ BEGIN
  WHERE alloc.id=NEW.allocation_id FOR SHARE OF alloc;
  SELECT plan_pin.* INTO src FROM material_uom_plan_line_pins plan_pin
  WHERE plan_pin.plan_line_id=a.plan_line_id;
- IF a.id IS NULL OR src.plan_line_id IS NULL OR a.company_id IS DISTINCT FROM NEW.company_id
+ IF a.id IS NULL OR src.plan_line_id IS NULL
+  OR a.authorization_created_at IS DISTINCT FROM transaction_timestamp()
+  OR a.issue_posted_at IS NOT NULL
+  OR a.company_id IS DISTINCT FROM NEW.company_id
   OR a.material_id IS DISTINCT FROM NEW.material_id
   OR a.uom_id IS DISTINCT FROM NEW.source_uom_id
   OR a.issue_quantity IS DISTINCT FROM NEW.source_quantity

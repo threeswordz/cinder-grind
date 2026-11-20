@@ -283,7 +283,7 @@ test('DEC-050 Stage C activated plan source: canonical direct/overage/return wit
   }),conflictStatus);
   const submittedOverage=await f.controls.submitOverage({auth:f.store.auth},third.issueId,{
    requestKey:randomUUID(),bindings:third.bindings
-  });
+  }) as {authorizationId:string};
   assert.ok(submittedOverage.authorizationId);
   const authRow=await db.materialPlanIssueAuthorization.findUniqueOrThrow({
    where:{id:submittedOverage.authorizationId},
