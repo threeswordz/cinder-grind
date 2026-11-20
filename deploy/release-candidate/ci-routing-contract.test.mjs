@@ -26,7 +26,16 @@ test('draft admission fails before install; final live identity follows all full
   assert.match(full, /permissions:\n  contents: read\n  pull-requests: read\n/);
   assert.match(focused, /node --test deploy\/release-candidate\/ci-routing-contract.test.mjs deploy\/release-candidate\/ci-candidate-gate.test.mjs/);
   for (const command of ['pnpm install --frozen-lockfile', 'node --test deploy/release-candidate/*.test.mjs',
-    'deploy/release-candidate/rehearse.sh', 'deploy/release-candidate/verify-evidence.mjs']) assert.ok(full.includes(command), command);
+    'deploy/release-candidate/verify-evidence.mjs']) assert.ok(full.includes(command), command);
+  const direct = full.includes('deploy/release-candidate/rehearse.sh');
+  const grouped = full.includes('node deploy/release-candidate/ci-parallel-rehearsals.mjs');
+  assert.ok(direct || grouped, 'must execute original release predecessor rehearsals');
+  if (grouped) {
+    const source = readFileSync(new URL('./ci-parallel-rehearsals.mjs', import.meta.url), 'utf8');
+    assert.ok(source.includes("spawn('bash', ['deploy/release-candidate/rehearse.sh']"), 'wrapper must run the original unchanged predecessor script');
+    assert.ok(source.includes('verifyEvidence(GROUPS, release'), 'wrapper must fail closed on all eight evidence receipts');
+    assert.ok(full.includes('node --test deploy/release-candidate/*.test.mjs'), 'complete source tests remain');
+  }
 });
 
 test('focused branch excludes explicit full lane; no PR/main event or full check identity', () => {

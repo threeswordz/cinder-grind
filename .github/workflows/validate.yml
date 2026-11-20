@@ -416,58 +416,15 @@ jobs:
         run: |
           node --check deploy/uat/material-plan-browser.mjs
           node deploy/uat/material-plan-browser.mjs
-      - name: Rehearse V1.0-E exact release candidate
+      - name: Rehearse eight exact historical predecessors in two isolated groups
         env:
-          RC_NON_PRODUCTION_CONFIRMED: YES
+          RC_NON_PRODUCTION_CONFIRMED: 'YES'
           RC_ENVIRONMENT: ci
-          RC_PREVIOUS_RELEASE_COMMIT: 65857a384005e1734028ffb6945b1077ed3449e5
           RC_BASE_DATABASE_URL: ${{ env.DATABASE_URL }}
           RC_POSTGRES_TOOL_MODE: docker
-          RC_EVIDENCE_FILE: /tmp/v1-0-e-rehearsal.json
         run: |
-          bash deploy/release-candidate/rehearse.sh
-          RC_PREVIOUS_RELEASE_COMMIT=fc52a867c96a8b3a369b480b9799bad1a5e9f399 \
-            RC_EVIDENCE_FILE=/tmp/v1-3-customer-boq-rehearsal.json \
-            bash deploy/release-candidate/rehearse.sh
-          RC_PREVIOUS_RELEASE_COMMIT=e86ed846f30ac3feeb09f74ba9084571b9955520 \
-            RC_EVIDENCE_FILE=/tmp/hr1-a-employee-rehearsal.json \
-            bash deploy/release-candidate/rehearse.sh
-          RC_PREVIOUS_RELEASE_COMMIT=3a5ae8a92083a2bd03f4159b1e84d0565e7e78ec \
-            RC_EVIDENCE_FILE=/tmp/material-request-rehearsal.json \
-            bash deploy/release-candidate/rehearse.sh
-      - name: Rehearse exact material-plan entry predecessor
-        env:
-          RC_PREVIOUS_RELEASE_COMMIT: 34e022d5807d3e16458437a02ebba669ba838c6a
-          RC_NON_PRODUCTION_CONFIRMED: 'YES'
-          RC_POSTGRES_TOOL_MODE: docker
-          RC_BASE_DATABASE_URL: ${{ env.DATABASE_URL }}
-          RC_EVIDENCE_FILE: /tmp/material-plan-rehearsal.json
-        run: bash deploy/release-candidate/rehearse.sh
-      - name: Rehearse exact material-plan B1 predecessor
-        env:
-          RC_PREVIOUS_RELEASE_COMMIT: 5209c30a1b7b282a603ba09d4a5bd82a700a183f
-          RC_NON_PRODUCTION_CONFIRMED: 'YES'
-          RC_POSTGRES_TOOL_MODE: docker
-          RC_BASE_DATABASE_URL: ${{ env.DATABASE_URL }}
-          RC_EVIDENCE_FILE: /tmp/material-plan-issue-rehearsal.json
-        run: bash deploy/release-candidate/rehearse.sh
-      - name: Rehearse exact post-FM03 receiving predecessor
-        env:
-          RC_PREVIOUS_RELEASE_COMMIT: d2b790801119fb1b5b4176ad416086ee7363d091
-          RC_NON_PRODUCTION_CONFIRMED: 'YES'
-          RC_POSTGRES_TOOL_MODE: docker
-          RC_BASE_DATABASE_URL: ${{ env.DATABASE_URL }}
-          RC_EVIDENCE_FILE: /tmp/receiving-rehearsal.json
-        run: bash deploy/release-candidate/rehearse.sh
-      - name: Rehearse exact material UOM approved-entry predecessor
-        env:
-          RC_PREVIOUS_RELEASE_COMMIT: 59d67d1f2e54e6bfde51e4c5be336ea97906bf52
-          RC_NON_PRODUCTION_CONFIRMED: 'YES'
-          RC_POSTGRES_TOOL_MODE: docker
-          RC_BASE_DATABASE_URL: ${{ env.DATABASE_URL }}
-          RC_EVIDENCE_FILE: /tmp/material-uom-rehearsal.json
-        run: |
-          bash deploy/release-candidate/rehearse.sh
+          node --check deploy/release-candidate/ci-parallel-rehearsals.mjs
+          node deploy/release-candidate/ci-parallel-rehearsals.mjs
       - name: Reset CI state before authenticated recovery fixture
         run: |
           set -euo pipefail
