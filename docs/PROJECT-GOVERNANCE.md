@@ -102,6 +102,8 @@ To change one, the Product / Business Owner must clearly state the intended poli
 
 ## 6. Stage and release gates
 
+**DEC-053 approved prospective exception:** After its own reviewed/observed rollout, ordinary eligible main integration may use the exact complete full-PR tested/reviewed tree plus freshly verified main build/security/migration/startup identity under [CI policy](CI-VALIDATION-POLICY.md). Every missing, changed or uncertain prerequisite falls back to full validation; the integration receipt must never claim full execution on main. Full exact-head PR, independent review, guarded merge and actual full release/freeze/deployment proofs remain. Explicit main-only dispatch supplies actual full final-candidate evidence. Until rollout, preserve existing full-main gates. This supersedes only the repeated ordinary main full-suite obligation, not human/retained/Production authority.
+
 **DEC-051:** [CI validation policy](CI-VALIDATION-POLICY.md) supersedes only redundant ordinary branch-push full evidence after its gated activation. Full exact-head PR, full exact-main, guarded merge/tree equality, full assertions and independent review remain mandatory in the first increment. DEC-052 / #378 prospectively supersedes automatic full execution on changing ordinary drafts after its own activation: focused feedback plus a blocking admission check, explicit exact-PR full rerun before ready/review/merge. No conditional main shortcut, security, retained-data, human or Production gate relaxation.
 
 A stage may merge only when its applicable completion gates pass.

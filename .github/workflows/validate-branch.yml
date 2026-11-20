@@ -36,7 +36,7 @@ jobs:
         with:
           node-version: 24.21.0
       - name: Verify CI routing contract
-        run: node --test deploy/release-candidate/ci-routing-contract.test.mjs deploy/release-candidate/ci-candidate-gate.test.mjs
+        run: node --test deploy/release-candidate/ci-routing-contract.test.mjs deploy/release-candidate/ci-candidate-gate.test.mjs deploy/release-candidate/ci-main-integration.test.mjs
       - name: Inventory and audit Markdown documentation (advisory DEC-029)
         run: |
           node --check tools/audit-markdown.mjs

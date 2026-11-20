@@ -1,6 +1,7 @@
 name: Validate Construction ERP
 
 on:
+  workflow_dispatch:
   pull_request:
     # Keep the full PR gate for the evidence-closure follow-up stacked on #268.
     branches: [main, 'v1.2-c-uat-coverage']
@@ -15,11 +16,101 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
+  actions: read
   contents: read
   pull-requests: read
 
 jobs:
+  integration-plan:
+    runs-on: ubuntu-latest
+    outputs:
+      mode: ${{ steps.plan.outputs.mode }}
+    steps:
+      - name: Checkout exact source for integration routing
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Choose full execution or reviewed-tree integration
+        id: plan
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node deploy/release-candidate/ci-main-integration.mjs plan
+
+  integration-check:
+    needs: integration-plan
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.integration-plan.outputs.mode == 'reuse'
+    # A failed check supplies no verified output: validate runs the full suite.
+    runs-on: ubuntu-latest
+    outputs:
+      verified: ${{ steps.admit.outputs.verified }}
+    services:
+      postgres:
+        image: postgres:17.11-alpine
+        env:
+          POSTGRES_DB: construction_erp
+          POSTGRES_USER: construction_erp
+          POSTGRES_PASSWORD: construction_erp_dev_only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U construction_erp -d construction_erp"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      RELEASE_COMMIT: ${{ github.sha }}
+      DATABASE_URL: postgresql://construction_erp:construction_erp_dev_only@localhost:5432/construction_erp?schema=public
+      VITE_API_BASE_URL: http://localhost:3000/api/v1
+    steps:
+      - name: Checkout exact integrated main
+        id: checkout
+        continue-on-error: true
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          ref: ${{ github.sha }}
+      - name: Set up pnpm
+        id: pnpm
+        continue-on-error: true
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
+        with:
+          version: 12.6.0
+          run_install: false
+      - name: Set up Node.js
+        id: node
+        continue-on-error: true
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.21.0
+      - name: Build audit migrate and smoke exact main on fresh CI resources
+        id: checks
+        continue-on-error: true
+        run: node deploy/release-candidate/ci-main-checks.mjs
+      - name: Verify reviewed full-PR proof and emit integration receipt
+        id: proof
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node deploy/release-candidate/ci-main-integration.mjs finish
+      - name: Preserve explicit integration receipt
+        id: artifact
+        continue-on-error: true
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: main-integration-receipt
+          path: /tmp/main-integration-receipt.json
+          if-no-files-found: error
+      - name: Recheck live proof before admitting integration
+        id: admit
+        if: steps.checkout.outcome == 'success' && steps.pnpm.outcome == 'success' && steps.node.outcome == 'success' && steps.checks.outcome == 'success' && steps.proof.outcome == 'success' && steps.artifact.outcome == 'success'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node deploy/release-candidate/ci-main-integration.mjs finish
+
   validate:
+    needs: [integration-plan, integration-check]
+    if: ${{ always() && needs.integration-plan.result == 'success' && (github.event_name != 'push' || github.ref != 'refs/heads/main' || needs.integration-plan.outputs.mode != 'reuse' || needs.integration-check.result != 'success' || needs.integration-check.outputs.verified != 'true') }}
     runs-on: ubuntu-latest
     services:
       postgres:

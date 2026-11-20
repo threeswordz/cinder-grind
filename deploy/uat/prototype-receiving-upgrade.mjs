@@ -81,9 +81,8 @@ async function absent(path){try{await lstat(path);return false;}catch(e){if(e.co
 async function seal(path,value){const f=await open(path,'wx',0o600);try{await f.writeFile(JSON.stringify(value,null,2)+'\n');}finally{await f.close();}}
 async function json(url,timeout=20000){const r=await fetch(url,{redirect:'error',signal:AbortSignal.timeout(timeout),
   headers:{'User-Agent':'Construction-ERP-RC_UPGRADE-Upgrade'}});demand(r.ok,'RC_UPGRADE_RELEASE_OR_HEALTH_FETCH_FAILED');return r.json();}
-async function green(sha){const r=await json('https://api.github.com/repos/threeswordz/cinder-grind/actions/runs?head_sha='+sha+'&event=push&per_page=20');
-  demand(r.workflow_runs?.some(w=>w.head_sha===sha&&w.head_branch==='main'&&w.event==='push'&&w.path==='.github/workflows/validate.yml'&&
-    w.status==='completed'&&w.conclusion==='success'),'RC_UPGRADE_EXACT_MAIN_CI_REQUIRED');}
+async function green(sha){const r=await json('https://api.github.com/repos/threeswordz/cinder-grind/actions/runs?head_sha='+sha+'&per_page=20');
+  demand(await someFullExecution(r,sha,json),'RC_UPGRADE_EXACT_MAIN_CI_REQUIRED');}
 // Includes directory names and every byte; rejects links, shared writable files,
 // changed-during-read files and special files. Empty directories are retained.
 export async function privateInventory(root){
@@ -403,4 +402,22 @@ if(receivingCliEntry&&receivingCliEntry===await realpath(new URL(import.meta.url
   try{demand(process.argv.length===4&&process.argv[2]==='--execute','RC_UPGRADE_EXECUTE_AND_PINNED_OPERATOR_SHA_REQUIRED');console.log(JSON.stringify(await upgrade(process.argv[3])));}
   catch(e){console.log(JSON.stringify({status:'RECEIVING_UPGRADE_BLOCKED',code:/^[A-Z0-9_]+$/.test(e.safeCode??'')?e.safeCode:'RC_UPGRADE_PRIVATE_FAILURE',
     doNotRetryOrReplayCompletedOperators:true,productionAuthorized:false,secretsPrinted:false}));process.exitCode=1;}
+}
+
+
+// DEC-053: green integration alone is never full release/deployment evidence.
+export async function fullExecutionSucceeded(run,sha,request){
+ if(run?.head_sha!==sha||run.head_branch!=='main'||run.path!=='.github/workflows/validate.yml'||
+   !['push','workflow_dispatch'].includes(run.event)||run.status!=='completed'||run.conclusion!=='success'||
+   !Number.isSafeInteger(run.id)||run.id<=0||!Number.isSafeInteger(run.run_attempt)||run.run_attempt<1)return false;
+ const result=await request('https://api.github.com/repos/threeswordz/cinder-grind/actions/runs/'+run.id+'/attempts/'+run.run_attempt+'/jobs?per_page=100');
+ return Number.isSafeInteger(result.total_count)&&result.total_count<=100&&result.jobs?.length===result.total_count&&
+   result.jobs.some(j=>j.name==='validate'&&j.run_id===run.id&&j.status==='completed'&&j.conclusion==='success'&&
+     Array.isArray(j.steps)&&j.steps.length>=30&&j.steps.every(s=>s.status==='completed'&&s.conclusion==='success')&&
+     ['Run V1.0-B paired recovery and isolated restore drill','Verify V1.0-E consolidated technical evidence']
+       .every(name=>j.steps.some(s=>s.name===name&&s.conclusion==='success')));
+}
+async function someFullExecution(runs,sha,request){
+ for(const run of runs?.workflow_runs??[])if(await fullExecutionSucceeded(run,sha,request))return true;
+ return false;
 }

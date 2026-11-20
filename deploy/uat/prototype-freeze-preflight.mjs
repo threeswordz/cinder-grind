@@ -47,7 +47,8 @@ export function analyzePrototypeFreeze(packet, expectedMainSha) {
   need(object(release) && release.mainSha === expectedMainSha &&
     release.runtimeSha === expectedMainSha, 'EXACT_RELEASE_IDENTITY_MISSING');
   need(object(release?.mainCi) && release.mainCi.sha === expectedMainSha &&
-    release.mainCi.event === 'push' && release.mainCi.conclusion === 'success' &&
+    ['push','workflow_dispatch'].includes(release.mainCi.event) && release.mainCi.conclusion === 'success' &&
+    release.mainCi.validationKind === 'FULL_EXECUTION' &&
     /^https:\/\/github\.com\/threeswordz\/cinder-grind\/actions\/runs\/[1-9]\d*$/.test(release.mainCi.runUrl ?? ''),
   'EXACT_MAIN_CI_EVIDENCE_MISSING');
   // A guarded squash merge changes the commit SHA, so review-head SHA must not

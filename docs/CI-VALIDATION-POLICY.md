@@ -1,5 +1,29 @@
 # CI validation policy — DEC-051 / DEC-052
 
+## Latest approved change — DEC-053, verified main integration
+
+**Owner approved20 November2026 SGT; implementation/activation tracked in [#384](https://github.com/threeswordz/cinder-grind/issues/384).** [Explicit conversation approval](https://github.com/threeswordz/cinder-grind/issues/382#issuecomment-7035133824) adopts [the concrete replacement](https://github.com/threeswordz/cinder-grind/issues/382#issuecomment-7035108009). This prospectively supersedes the unconditional full-main requirement below **after the governed rollout gates**, not any required full PR, review, final release or deployment proof. Until activation evidence is recorded, preserve the current full route. #383 is a separate elapsed-time experiment, not this route's activation.
+
+| Event / evidence | DEC-053 route after activation |
+|---|---|
+| Ordinary branch development / draft PR | Existing focused feedback and blocking attempt1 remain. |
+| Stable exact PR candidate | Complete full `validate` execution; final source/PR/base/attempt identity; applicable independent DEC-022 review; all genuine findings resolved before guarded merge. |
+| Eligible ordinary main squash push | Short `integration-check` only after authoritative same-repository full-PR run/job/log identity, frozen reviewed head, trusted Codex clean reaction after ready, all review threads resolved, base ancestry and entire source/integrated tree equality. Emit `MAIN_INTEGRATION_REUSES_FULL_PR`, explicitly `fullSuiteExecutedOnMain:false`. |
+| Direct/forced/non-squash/ambiguous merge, changed CI/admission/governance/deployment-consumer paths, stale/missing/failed evidence or API errors | Full validation. No guess, cached pass, user-supplied review assertion or silent success. |
+| Short-check failure | No verified output; full `validate` executes as fallback. Any remaining routing/identity failure keeps the workflow blocked. PRs and non-main events always require full execution regardless of planner output. |
+| Explicit `vfull-*` push | Complete full execution, unchanged. |
+| Final frozen candidate / release / deployment requires actual full main proof | Re-run the existing main run's `integration-plan` job and dependents: main attempt2+ always routes full. Alternatively dispatch `validate.yml` on current **main**, without inputs or arbitrary SHA. Run the entire full job; recheck live main at start/finish. Neither route substitutes for full PR admission. |
+
+The previous main must already have completed its actual full or separately verified integration gate; an unproven/in-progress rollout cannot bootstrap reuse. The short main job performs frozen install, pinned Node24.21.0/pnpm12.6.0 build, fresh production dependency audit, exact migration inventory, fresh disposable PostgreSQL migration/status and owned Production-mode API readiness/storage checks. It re-reads authoritative identity/review/full-job proof before and after artifact preservation. Failed, partial or cancelled work cannot supply verified output. The skipped `validate` job on an eligible main is **not a full pass**: the separately named integration job and its explicit receipt carry development integration evidence.
+
+Full-run verification binds the trusted workflow/run/attempt, actual unskipped `validate` steps, recovery/consolidated/final identity, and the final job log's exact tested SHA + PR + base + attempt. Read-only Actions/contents/pull-request permissions only; signed log redirects never receive the GitHub token. Closed PRs have empty run association arrays, so a head-only success is insufficient. Unknown/legacy proof without the exact PR/base binding uses full main.
+
+Every prototype launcher that formerly accepted a green workflow now additionally requires an actual complete successful full `validate` job, including recovery and consolidated evidence. It accepts explicit full-main dispatch as well as full push, never a reused integration check. Immutable old published launchers stay pinned to their historical sources; no replay is requested. The structural freeze packet requires `mainCi.validationKind=FULL_EXECUTION` and remains an evidence-structure checker, not an authenticator or human acceptance.
+
+**Rollout:** one coherent source/negative-tests/documentation PR; focused feedback, own full exact-head explicit-push and full PR proofs, independent stable DEC-022 review, guarded tested/reviewed/integrated tree equality and actual full main for this routing/admission change. Protected-path changes deliberately force full rather than exempting the mechanism from its own validation. Record observed integration/fallback receipts before claiming the faster route proven; no retrospective waiver or cancellation of #376 main44706627082. Missing rollout proof keeps the old full obligation. No change to retained grants/data, human UAT, GL/milestone closure or separate Production authority.
+
+---
+
 **Owner-approved direction, 19 November 2026 SGT; prospective activation only after #373's full transition gates.** [Change Control #373](https://github.com/threeswordz/cinder-grind/issues/373) records conversation approval. Stage A #372 has completed the previous gates: main `e71a350e134d98b7a0ef8abe57bdce4ab986b820`, reviewed tree `eb4097b5a276d5b5936487b0da25a8a5e5c57452`, [exact-main44336708390](https://github.com/threeswordz/cinder-grind/actions/runs/44336708390) SUCCESS48/48. No retrospective reclassification.
 
 ## First increment: remove duplicate ordinary branch-push full suites
