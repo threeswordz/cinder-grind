@@ -46,7 +46,6 @@ jobs:
       DATABASE_URL: postgresql://construction_erp:construction_erp_dev_only@localhost:5432/construction_erp_v10e_upgrade_0123456789ab?schema=public
       RC_NON_PRODUCTION_CONFIRMED: 'YES'
       MATERIAL_UOM_STAGE_C_SCHEMA_UPGRADE: 'YES'
-      POSTGRES_SERVICE_ID: ${{ job.services.postgres.id }}
       NODE_ENV: test
       EXACT_STAGE_C_COMMIT: ${{ github.sha }}
     steps:
@@ -73,7 +72,7 @@ jobs:
           pnpm prisma:generate
           pnpm prisma:validate
       - name: Create exclusively owned Stage C upgrade database
-        run: docker exec "$POSTGRES_SERVICE_ID" psql -U construction_erp -d postgres -v ON_ERROR_STOP=1 -c 'CREATE DATABASE construction_erp_v10e_upgrade_0123456789ab'
+        run: docker exec "${{ job.services.postgres.id }}" psql -U construction_erp -d postgres -v ON_ERROR_STOP=1 -c 'CREATE DATABASE construction_erp_v10e_upgrade_0123456789ab'
       - name: Apply full ordered migration chain on fresh disposable PostgreSQL
         run: |
           pnpm prisma:migrate:deploy
@@ -95,9 +94,9 @@ jobs:
       - name: Verify populated copy and restored authenticated Stage C application
         run: |
           node deploy/release-candidate/material-uom-stage-c-upgrade.mjs protect /tmp/construction-erp-v10e-migration.targeted/material-uom-stage-c-protected.json
-          docker exec "$POSTGRES_SERVICE_ID" pg_dump -U construction_erp --format=custom --no-owner --no-privileges construction_erp_v10e_upgrade_0123456789ab > /tmp/uom-c-populated.dump
-          docker exec "$POSTGRES_SERVICE_ID" psql -U construction_erp -d postgres -v ON_ERROR_STOP=1 -c 'CREATE DATABASE construction_erp_v10e_hrrestore_0123456789ab'
-          docker exec -i "$POSTGRES_SERVICE_ID" pg_restore -U construction_erp --exit-on-error --no-owner --no-privileges -d construction_erp_v10e_hrrestore_0123456789ab < /tmp/uom-c-populated.dump
+          docker exec "${{ job.services.postgres.id }}" pg_dump -U construction_erp --format=custom --no-owner --no-privileges construction_erp_v10e_upgrade_0123456789ab > /tmp/uom-c-populated.dump
+          docker exec "${{ job.services.postgres.id }}" psql -U construction_erp -d postgres -v ON_ERROR_STOP=1 -c 'CREATE DATABASE construction_erp_v10e_hrrestore_0123456789ab'
+          docker exec -i "${{ job.services.postgres.id }}" pg_restore -U construction_erp --exit-on-error --no-owner --no-privileges -d construction_erp_v10e_hrrestore_0123456789ab < /tmp/uom-c-populated.dump
           DATABASE_URL=postgresql://construction_erp:construction_erp_dev_only@localhost:5432/construction_erp_v10e_hrrestore_0123456789ab?schema=public node deploy/release-candidate/material-uom-stage-c-upgrade.mjs restored /tmp/construction-erp-v10e-migration.targeted/material-uom-stage-c-protected.json
       - name: Verify actual built plan and request browser readback
         env:
