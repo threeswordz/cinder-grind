@@ -13,6 +13,7 @@ import { ProblemDetailsFilter } from '../common/problem-details.filter';
 import { materialRequestFixture } from './material-request-test-fixture';
 import {MaterialUomService} from '../master-data/material-uom.service';
 import {StockCountService} from './stock-count.service';
+import {MaterialReturnService} from './material-return.service';
 import {AuditService} from '../audit/audit.service';
 import {Prisma} from '@prisma/client';
 test('MR-AC-01–07 scoped request/issue/explicit signed receipt HTTP and database contracts', async (t) => {
@@ -228,11 +229,11 @@ test('DEC-050 C request canonical quantities stay frozen across posted issue rat
         assert.equal(detail.lines[0]!.requestStockBasis?.businessDate,'2026-11-02');
         assert.equal(detail.lines[0]!.stockIssuedQuantity,'0.0000');
 
-        const postIssue=async(quantity:string)=>{
+        const postIssue=async(quantity:string,sourceUomId=f.uom.id)=>{
             const issue=await f.issues.create({auth:f.store.auth},{
                 projectId:f.project.id,warehouseId:f.warehouse.id,
                 issueDate:new Date('2026-11-02T00:00:00.000Z'),issuedToEmployeeId:f.foreman.employee.id,
-                lines:[{materialId:material.id,uomId:f.uom.id,quantity:new Prisma.Decimal(quantity)}]});
+                lines:[{materialId:material.id,uomId:sourceUomId,quantity:new Prisma.Decimal(quantity)}]});
             await f.issues.submit({auth:f.store.auth},issue.id,'MR-ISSUE');
             await f.issues.approve({auth:f.manager.auth},issue.id,randomUUID());
             return (await f.issues.get(f.store.auth,issue.id)).items[0]!.id;
@@ -282,6 +283,48 @@ test('DEC-050 C request canonical quantities stay frozen across posted issue rat
             where:{requestLineId_requestVersion:{requestLineId:lineId,requestVersion:1}},
             data:{stockQuantity:'100'}
         }));
+
+        // A loose-piece source can fulfill a carton request only when the
+        // original posted issue effect agrees with the request's stock unit.
+        const looseItem=await postIssue('8',stock.id);
+        const candidates=await f.service.issueChoices(f.store.auth,requestId,lineId);
+        assert.ok(candidates.items.some(item=>item.id===looseItem));
+        await f.service.link({auth:f.store.auth},requestId,{
+            requestKey:randomUUID(),expectedVersion:detail.version,requestLineId:lineId,
+            materialIssueItemId:looseItem,reason:'Cross-unit posted loose pieces'});
+        detail=await f.service.get(f.store.auth,requestId);
+        assert.equal(detail.lines[0]!.issuedQuantity,null,'Never sum cartons with loose pieces');
+        assert.equal(detail.lines[0]!.stockIssuedQuantity,'52.0000');
+        assert.equal(detail.lines[0]!.stockRemainingQuantity,'20.0000');
+        assert.equal(detail.lines[0]!.fulfillment,'PARTIAL');
+
+        // Posted partial returns credit the exact original issue rate (24),
+        // not a current master default. Receipt evidence remains append-only.
+        await grant(f.store,['inventory.return.view','inventory.return.create',
+            'inventory.return.edit','inventory.return.submit','inventory.return.reverse']);
+        await grant(f.manager,['inventory.return.view','inventory.return.approve']);
+        await db.numberSequence.create({data:{companyId:f.company.id,entityType:'MATERIAL_RETURN',
+            sequenceCode:'MATERIAL_RETURN',formatTemplate:'MRTYYMM-###',resetRule:'MONTHLY'}});
+        const returnWorkflow=await db.approvalWorkflow.create({data:{
+            companyId:f.company.id,workflowCode:'MR-UOM-RETURN',
+            workflowName:'Independent canonical request return',entityType:'MATERIAL_RETURN',
+            steps:{create:[{stepNo:1,stepName:'Independent return checker',
+                requiredApprovals:1,stepRoles:{create:[{roleId:f.manager.role.id}]}}]}
+        }});
+        const returns=app.get(MaterialReturnService);
+        const returned=await returns.create({auth:f.store.auth},{
+            projectId:f.project.id,warehouseId:f.warehouse.id,
+            returnDate:new Date('2026-11-02T00:00:00.000Z'),
+            lines:[{materialIssueItemId:secondItem,quantity:new Prisma.Decimal('0.5')}]});
+        await returns.submit({auth:f.store.auth},returned.id,returnWorkflow.workflowCode);
+        await returns.approve({auth:f.manager.auth},returned.id,randomUUID());
+        detail=await f.service.get(f.store.auth,requestId);
+        assert.equal(detail.lines[0]!.stockIssuedQuantity,'40.0000');
+        assert.equal(detail.lines[0]!.stockRemainingQuantity,'32.0000');
+        assert.equal(detail.lines[0]!.fulfillment,'PARTIAL');
+        const secondLink=detail.lines[0]!.issueLinks.find(link=>link.materialIssueItemId===secondItem);
+        assert.equal(secondLink?.returnedStockQuantity,'12.0000');
+
         assert.equal(await db.payment.count({where:{companyId:f.company.id}}),0);
         assert.equal(await db.directCostPosting.count({where:{companyId:f.company.id}}),0);
     }finally{await app.close();await db.$disconnect();}
