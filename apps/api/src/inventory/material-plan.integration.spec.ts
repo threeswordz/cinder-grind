@@ -10,6 +10,8 @@ import {securityHeadersMiddleware} from '../common/security-headers';
 import {ProblemDetailsFilter} from '../common/problem-details.filter';
 import {materialPlanFixture} from './material-plan-test-fixture';
 import {InventoryService} from './inventory.service';
+import {MaterialUomService} from '../master-data/material-uom.service';
+import {AuditService} from '../audit/audit.service';
 
 test('MP-AC-01–06 foundation authenticates quantity-only plans and immutable independent decisions',async t=>{
  const db=new PrismaService();await db.$connect();const app=await NestFactory.create(AppModule,{logger:false});app.setGlobalPrefix('api/v1');app.use(securityHeadersMiddleware(false));app.useGlobalFilters(new ProblemDetailsFilter());await app.listen(0,'127.0.0.1');
@@ -140,4 +142,62 @@ test('MP-AC-01–06 foundation authenticates quantity-only plans and immutable i
   });
   assert.deepEqual(await effects(),baseline,'plan foundation cannot post stock, create requests or mutate Finance');
  }finally{await app.close();await db.$disconnect();}
+});
+
+
+test('DEC-050 C activated plan records exact frozen stock quantity without granting issue authority',async()=>{
+ const db=new PrismaService();await db.$connect();
+ try{
+  const f=await materialPlanFixture(db);
+  await f.grant(f.store,['master.material.view','master.material.manage','master.material.conversion.manage']);
+  const definitions=new MaterialUomService(db,new AuditService(db));
+  const stock=await db.unitOfMeasure.create({data:{
+   companyId:f.company.id,uomCode:'MP-STOCK-EA',uomName:'Synthetic stock pieces',decimalPlaces:0
+  }});
+  // A new material has no historical stock/demand. Existing legacy material,
+  // StockTransaction, permissions and BOQ source facts remain untouched.
+  const material=await db.material.create({data:{
+   companyId:f.company.id,materialCode:'MP-CONVERTED',materialName:'Synthetic material cartons',
+   defaultUomId:f.uom.id
+  }});
+  await definitions.prepare({auth:f.store.auth},material.id,{
+   requestKey:randomUUID(),stockUomId:stock.id,reason:'Explicit synthetic plan stock basis'
+  });
+  await definitions.revise({auth:f.store.auth},material.id,{
+   requestKey:randomUUID(),expectedVersion:1,sourceUomId:f.uom.id,
+   effectiveFrom:'2026-01-01',numerator:'20',denominator:'1',
+   reason:'Immutable synthetic twenty-piece carton'
+  });
+  await definitions.activateStock({auth:f.store.auth},material.id,{
+   requestKey:randomUUID(),expectedVersion:2,reason:'Activate only new synthetic stock material'
+  });
+  const input=f.input('3.0000','FROZEN-CARTON');
+  input.lines[0]!.materialId=material.id;
+  const created=await f.service.create({auth:f.store.auth},input);
+  const draft=await f.service.get(f.store.auth,created.id);
+  const pinned=draft.latestRevision!.lines[0]!.materialUomPlanLinePin;
+  assert.ok(pinned,'new activated plan line must have a genuine immutable stock pin');
+  assert.equal(draft.latestRevision!.lines[0]!.quantity,'3.0000');
+  assert.equal(pinned.sourceQuantity,'3.0000');assert.equal(pinned.stockQuantity,'60.0000');
+  assert.equal(pinned.stockUomId,stock.id);assert.equal(pinned.sourceUomId,f.uom.id);
+  assert.equal(pinned.numerator,'20');assert.equal(pinned.denominator,'1');
+  assert.equal(pinned.businessDate,'2026-11-01');
+  await assert.rejects(()=>db.materialUomPlanLinePin.update({
+   where:{planLineId:draft.latestRevision!.lines[0]!.id},
+   data:{stockQuantity:'80'}
+  }),/MATERIAL_UOM_PLAN_PIN_IMMUTABLE/);
+  const submitted=await f.service.submit({auth:f.store.auth},created.id,{
+   requestKey:randomUUID(),expectedVersion:created.version
+  });
+  await f.service.decide({auth:f.manager.auth},created.id,{
+   requestKey:randomUUID(),expectedVersion:submitted.version,decision:'APPROVE',
+   comment:'Independent synthetic quantity approval'
+  });
+  const approved=await f.service.get(f.store.auth,created.id);
+  assert.equal(approved.approvedRevision!.lines[0]!.materialUomPlanLinePin?.stockQuantity,'60.0000');
+  assert.equal(approved.approvedRevision!.lines[0]!.usageBasis,'FROZEN_STOCK_ISSUE_GATE_PENDING');
+  assert.equal(approved.approvedRevision!.lines[0]!.usedQuantity,null);
+  assert.equal(await db.stockTransaction.count({where:{materialId:material.id}}),0);
+  assert.equal(await db.materialRequestLine.count({where:{materialId:material.id}}),0);
+ }finally{await db.$disconnect();}
 });
