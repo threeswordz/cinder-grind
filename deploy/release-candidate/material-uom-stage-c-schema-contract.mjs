@@ -21,7 +21,8 @@ const commentLines=[
 export const stageCMigrations=[
  '20261120221000_material_uom_plan_frozen_usage',
  '20261120224000_material_uom_request_source',
- '20261120230000_material_uom_plan_issue_authority'
+ '20261120230000_material_uom_plan_issue_authority',
+ '20261121013000_material_uom_reserved_plan_issue'
 ];
 export const stageCTables=[
  'material_uom_plan_line_pins','material_uom_request_line_pins',

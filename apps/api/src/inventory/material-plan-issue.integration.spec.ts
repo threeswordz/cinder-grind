@@ -14,6 +14,7 @@ import {materialPlanIssueFixture} from './material-plan-issue-test-fixture';
 import {MaterialUomService} from '../master-data/material-uom.service';
 import {AuditService} from '../audit/audit.service';
 import {StockCountService} from './stock-count.service';
+import {MaterialReservationService} from './material-reservation.service';
 import {MPI} from './material-plan-issue-contract';
 
 test('MP-AC-07–13 actual authenticated plan posting, overage, consumption and immutable source history',async t=>{
@@ -330,6 +331,56 @@ test('DEC-050 Stage C activated plan source: canonical direct/overage/return wit
   assert.equal(unchanged.approvedRevision?.lines[0]?.usedQuantity,'56.0000');
   assert.equal(unchanged.approvedRevision?.lines[0]?.remainingQuantity,'4.0000');
   assert.equal(unchanged.approvedRevision?.lines[0]?.materialUomPlanLinePin?.stockQuantity,'60.0000');
+  // A reservation freezes its own original business date and ratio. Consuming
+  // it later must use2 pieces (0.1×20), not today's0.1×24=2.4 pieces.
+  await f.grant(f.store,['inventory.reservation.view','inventory.reservation.create','inventory.reservation.activate']);
+  await db.numberSequence.create({data:{companyId:f.company.id,entityType:'MATERIAL_RESERVATION',
+   sequenceCode:'MATERIAL_RESERVATION',formatTemplate:'RSVYYMM-###',resetRule:'MONTHLY'}});
+  const reservation=await app.get(MaterialReservationService).create({auth:f.store.auth},{
+   projectId:f.project.id,warehouseId:f.warehouse.id,materialId:material.id,uomId:f.uom.id,
+   quantity:new Prisma.Decimal('0.1'),requiredDate:new Date('2026-11-03T00:00:00Z')
+  });
+  await app.get(MaterialReservationService).activate({auth:f.store.auth},reservation.id,'2026-11-03');
+  const reservedIssue=await f.issues.create({auth:f.store.auth},{
+   projectId:f.project.id,warehouseId:f.warehouse.id,issueDate:new Date('2026-11-04T00:00:00Z'),
+   lines:[{materialId:material.id,uomId:f.uom.id,quantity:new Prisma.Decimal('0.1'),reservationId:reservation.id}]
+  });
+  const reservedItem=(await f.issues.get(f.store.auth,reservedIssue.id)).items[0]!;
+  const reservedInput={requestKey:randomUUID(),bindings:[{issueItemId:reservedItem.id,
+   planLineId:unchanged.approvedRevision!.lines[0]!.id,expectedPlanVersion:unchanged.version}]};
+  const reservedPreview=await f.controls.preview(f.store.auth,reservedIssue.id,reservedInput);
+  assert.equal(reservedPreview.items[0]?.stockBasis?.stockQuantity,'2.0000');
+  assert.equal(reservedPreview.items[0]?.stockBasis?.effectiveDate,'2026-11-03');
+  const reservedPosted=await f.controls.withinPlan({auth:f.store.auth},reservedIssue.id,reservedInput);
+  assert.deepEqual(await f.controls.withinPlan({auth:f.store.auth},reservedIssue.id,reservedInput),reservedPosted);
+  assert.equal((await db.materialReservation.findUniqueOrThrow({where:{id:reservation.id}})).status,'FULFILLED');
+  assert.equal(await db.materialUomIssueSourcePin.count({where:{issueItemId:reservedItem.id}}),0,
+   'The original reservation is the sole frozen source');
+  assert.equal(await db.stockTransaction.count({where:{materialIssueItemId:reservedItem.id,movementType:'MATERIAL_ISSUE'}}),1);
+  assert.equal(await usage(),'58.0000');
+  const reservedProof=await db.materialUomPlanAllocationPin.findFirstOrThrow({
+   where:{allocation:{issueItemId:reservedItem.id}}
+  });
+  await assert.rejects(()=>db.materialUomPlanAllocationPin.update({where:{allocationId:reservedProof.allocationId},
+   data:{stockQuantity:new Prisma.Decimal('24')}}),/IMMUTABLE/);
+  // Two valid12-piece issues race for14 remaining pieces. The plan lineage
+  // lock must admit exactly one without borrowing a new allowance/revision.
+  await f.service.revise({auth:f.store.auth},created.id,{
+   requestKey:randomUUID(),expectedVersion:unchanged.version,validFrom:'2026-11-04',validTo:'2026-12-31',
+   reason:'Independent new dated plan basis, existing usage carried',
+   lines:[{budgetRevisionLineId:f.source2.id,materialId:material.id,uomId:f.uom.id,quantity:'3'}]
+  });
+  let replacement=await f.service.get(f.store.auth,created.id);
+  await f.service.submit({auth:f.store.auth},created.id,{requestKey:randomUUID(),expectedVersion:replacement.version});
+  replacement=await f.service.get(f.store.auth,created.id);
+  await f.service.decide({auth:f.manager.auth},created.id,{requestKey:randomUUID(),expectedVersion:replacement.version,
+   decision:'APPROVE',comment:'Separate approval of revised frozen72-piece allowance'});
+  const raceA=await make('0.5','2026-11-04'),raceB=await make('0.5','2026-11-04');
+  const raced=await Promise.allSettled([raceA,raceB].map(row=>f.controls.withinPlan({auth:f.store.auth},row.issueId,
+   {requestKey:randomUUID(),bindings:row.bindings})));
+  assert.equal(raced.filter(row=>row.status==='fulfilled').length,1);
+  for(const row of raced)if(row.status==='rejected')conflictStatus(row.reason);
+  assert.equal(await usage(),'70.0000');
   assert.equal(await db.payment.count({where:{companyId:f.company.id}}),0);
   assert.equal(await db.directCostPosting.count({where:{companyId:f.company.id}}),0);
  }finally{await app.close();await db.$disconnect();}

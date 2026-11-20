@@ -1,0 +1,26 @@
+# Material UOM Stage C — implementation and assurance boundary
+
+Authority: DEC-050 / [approved entry](OP-MATERIAL-UOM-01-ENTRY.md), UOM-AC01–09, [#354](https://github.com/threeswordz/cinder-grind/issues/354). Sole Builder candidate: [draft #388](https://github.com/threeswordz/cinder-grind/pull/388). This document describes unmerged development source, not technical closure, deployment or human acceptance.
+
+## Delivered candidate behavior
+
+- Plans preserve original approved BOQ quantity/UOM ownership and pin their explicitly dated entered-to-stock quantity, definition revision, exact ratio and stock basis in the same serializable source transaction. A later pack definition does not recalculate an approved plan.
+- Direct posting and independent overage approval compare canonical stock quantities against the immutable approved plan allowance and SQL-derived net usage. Stock overage is stored separately from the original entered-unit overage field; different stock UOMs are never added into a misleading aggregate. Original maker/checker, Project/Company, current grants, source version/date, replay, stock and Finance boundaries remain.
+- Reserved plan issues consume their original immutable reservation factor and business date. A0.1-carton reservation frozen at20 pieces/carton consumes2 pieces even when its later issue date selects24 for new unreserved demand. It creates no competing unreserved source pin. A forward-only fourth migration updates the shared SQL proof; the original three published C migrations remain unchanged.
+- Requests keep immutable source pins for each CAPTURE/REVISE. Fulfillment and remaining quantities derive from actually posted canonical effects and original-provenance returns. Compatible loose stock units can fulfill a converted request; unlike source units are not falsely summed. Linking, uploading and signed acknowledgment do not independently post stock. Original signed history stays append-only.
+- Inventory movement reporting joins the immutable Company/material-scoped effect pins and retains entered and stock quantities, original date and exact ratio. Historical unpinned same-UOM rows remain explicitly unpinned.
+- English, Thai and Traditional Chinese plan/request/issue/report surfaces display original and canonical facts separately. Browser permission denials mask protected source data; preview remains distinct from approval.
+
+## Focused evidence and remaining gates
+
+| Boundary | Evidence / current limitation |
+|---|---|
+| Historical schema contracts | Original HR, request, plan, issue, receiving, transfer and UOM assertions retained. C is explicitly peeled before old exact classifiers; every historical upgrade must preserve all three new C tables as empty before fixture writes. No historical/grant/Finance backfill exception. |
+| PostgreSQL and HTTP | Registered plan/request paths pass locally on PostgreSQL17.11, Node24.21.0 and pnpm12.6.0. Includes dated20→24 packs,60-piece approved allowance,8-piece overage, independent decisions, partial returns, original reserved source, exact retry, immutable-pin denial and competing canonical plan consumption. Actual exact-head CI receipts are recorded on the PR. |
+| Populated recovery | Targeted CI at198014c5 executed genuine PostgreSQL17.11 pg_dump/pg_restore to a separate database. Original and restored authenticated plan/request projections, unauthorized reads, immutable-pin denials and every business-table hash matched. The local template-copy rehearsal is supporting application proof, not a substitute for that dump/restore or final M7 recovery. |
+| Browser | New C runner uses actual built operational screens, real session/Company identity and HTTP/PostgreSQL, three locales and mobile. Its first CI execution found a test selector that omitted MUI Chip buttons; that selector is corrected in the current candidate. Success remains unverified until the new exact-head targeted result. No synthetic-transport result is labelled an authenticated browser pass. |
+| Stable full candidate | Not requested while source/assurance is changing. One applicable complete PR validation, independent DEC-022 stable-head review, resolved findings, guarded tree-equal integration and the applicable main receipt remain required. |
+| CI integration correction | #387 remains draft: its full validation job passed50/50 but the overall workflow was cancelled. GitHub identifies a cancellation request under the repository account. Current policy does not admit that run. No duplicate full run or waiver is implied. Resolve that gate before C merge. |
+| Actual populated Mac | Current custody remains the completed subcontract upgrade, Appf37867c9/operatorbf3413ca. No UOM upgrade command is released; no completed operator is replayed. A reviewed coherent preserved-data UOM deployment handoff and actual target receipt remain separate. |
+
+Stage A/B proof is reused. This candidate does not close all112 requirements, all deployed journeys, final paired DB/Documents/external-HR-key recovery or the prototype freeze. Prototype4/8 and GL3/10 remain. Consolidated human UAT follows the technically ready frozen prototype; retained activation and Production require their existing separate authority. Accounting/#288, later HR/payroll and #245 remain outside this change.

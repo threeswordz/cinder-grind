@@ -96,15 +96,17 @@ export class MaterialPlanIssueService{
    const latest=await tx.materialUsagePlanRevision.findFirst({where:{planId:line.revision.planId,status:'APPROVED'},orderBy:{revisionNo:'desc'},select:{id:true}});if(latest?.id!==line.revisionId)conflict('MATERIAL_PLAN_EFFECTIVE_VERSION_CHANGED');
    await tx.$executeRaw`SELECT erp_mp_assert_lines(${line.revisionId}::uuid,false)`;
    const active=activated.has(item.materialId),stockPin=line.materialUomPlanLinePin;
-   // PREVIEW ONLY until allocation source/return/overage admission is shared
-   // by erp_mpi_validate_auth and the stock source posting proof. Never let a
-   // converted pack pass the legacy approval path by comparing entered counts.
-   if(active&&item.reservationId)conflict('MATERIAL_UOM_PLAN_RESERVATION_RECONCILIATION_REQUIRED');
+   const reserved=active&&item.reservationId
+    ?await tx.materialUomReservationPin.findUnique({where:{reservationId:item.reservationId}}):null;
+   if(active&&item.reservationId&&(!reserved||reserved.companyId!==auth.companyId||
+    reserved.projectId!==issue.projectId||reserved.warehouseId!==issue.warehouseId||
+    reserved.materialId!==item.materialId||reserved.sourceUomId!==item.uomId||!reserved.sourceQuantity.eq(item.quantity)))
+    conflict('MATERIAL_UOM_ISSUE_RESERVATION_SOURCE_MISMATCH');
    if(active&&(!stockPin||stockPin.companyId!==auth.companyId||stockPin.materialId!==item.materialId||
     stockPin.sourceUomId!==line.uomId||!stockPin.sourceQuantity.eq(line.quantity)))
     conflict('MATERIAL_UOM_PLAN_PIN_REQUIRED');
-   const conversion=active?await resolveStockEffectPin(tx,{companyId:auth.companyId,materialId:item.materialId,
-    sourceUomId:item.uomId,quantity:item.quantity,businessDate:issue.issueDate.toISOString().slice(0,10),effectSign:-1}):null;
+   const conversion=reserved??(active?await resolveStockEffectPin(tx,{companyId:auth.companyId,materialId:item.materialId,
+    sourceUomId:item.uomId,quantity:item.quantity,businessDate:issue.issueDate.toISOString().slice(0,10),effectSign:-1}):null);
    if(active&&stockPin?.stockUomId!==conversion?.stockUomId)conflict('MATERIAL_UOM_PLAN_STOCK_BASIS_CHANGED');
    const basisQuantity=conversion?.stockQuantity??item.quantity;
    const allowance=active?stockPin!.stockQuantity:line.quantity;
@@ -190,6 +192,7 @@ export class MaterialPlanIssueService{
    orderBy:[{materialId:'asc'},{allocationId:'asc'}]
   });
   for(const proof of frozen){
+   if(issue.items.find(item=>item.id===proof.allocation.issueItemId)?.reservationId)continue;
    await tx.materialUomIssueSourcePin.create({data:{
     issueItemId:proof.allocation.issueItemId,issueId:id,companyId:proof.companyId,
     projectId:issue.projectId,warehouseId:issue.warehouseId,materialId:proof.materialId,

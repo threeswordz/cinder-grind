@@ -247,7 +247,7 @@ test('DEC-048 physical evidence requires exact migrations, version16 and execute
 });
 
 
-test('DEC-050 C evidence requires exact three migrations, version19 and executed source/HTTP/populated restore proofs',()=>{
+test('DEC-050 C evidence requires exact four migrations, version19 and executed source/HTTP/populated restore proofs',()=>{
  const keys=['materialUomStageCSchemaUpgrade','materialUomStageCHistoricalPreservation','materialUomStageCHttpUpgrade','materialUomStageCPopulatedRecovery'];
  const data={...evidence('migration-aware-material-uom-stage-c-schema'),version:19,migrationNames:stageCMigrations,
   ...Object.fromEntries(keys.map(k=>[k,'PASS']))};

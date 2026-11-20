@@ -27,12 +27,13 @@ test('DEC-050 C admits only three exact immutable models/relations and preserves
  assert.equal(classifySchema(before,schema),'migration-aware-material-uom-stage-c-schema');
 });
 
-test('DEC-050 C uses exactly three forward-only migrations with no stock/Finance/history backfill',()=>{
+test('DEC-050 C uses exactly four forward-only migrations with no stock/Finance/history backfill',()=>{
  const names=readdirSync(new URL('../../apps/api/prisma/migrations/',import.meta.url));
- assert.deepEqual(names.filter(x=>/^2026112022|^2026112023/.test(x)).sort(),stageCMigrations);
+ assert.deepEqual(names.filter(x=>/^2026112022|^2026112023|^20261121013000/.test(x)).sort(),stageCMigrations);
  for(const [index,name] of stageCMigrations.entries()){
   const sql=readFileSync(new URL('../../apps/api/prisma/migrations/'+name+'/migration.sql',import.meta.url),'utf8');
-  assert.ok(sql.includes(stageCTables[index]));
+  if(index<3)assert.ok(sql.includes(stageCTables[index]));
+  else assert.ok(sql.includes('CREATE OR REPLACE FUNCTION erp_mpi_validate_auth'));
   assert.doesNotMatch(sql,/\b(?:INSERT INTO|UPDATE|DELETE FROM)\s+(?:"?stock_transactions|"?role_permissions|"?user_roles|"?payments|"?direct_cost_postings)\b/i);
   assert.doesNotMatch(sql,/\b(?:DROP TABLE|TRUNCATE|ALTER TABLE\s+(?:stock_transactions|payments|direct_cost_postings)\b)/i);
  }
