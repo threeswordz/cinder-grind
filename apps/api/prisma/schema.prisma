@@ -3669,6 +3669,7 @@ model MaterialPlanIssueAuthorization {
 }
 
 model MaterialPlanIssueAllocation {
+  materialUomPlanAllocationPin MaterialUomPlanAllocationPin?
   id String @id @default(uuid()) @db.Uuid
   authorizationId String @map("authorization_id") @db.Uuid
   issueItemId String @map("issue_item_id") @db.Uuid
@@ -4172,6 +4173,29 @@ model MaterialUomRequestLinePin {
   @@id([requestLineId,requestVersion])
   @@index([companyId,materialId,requestLineId,requestVersion])
   @@map("material_uom_request_line_pins")
+}
+
+// Immutable stock-basis authorization proof; legacy overageQuantity field is
+// always zero on converted allocations, with exact overage here instead.
+model MaterialUomPlanAllocationPin {
+  allocationId String @id @map("allocation_id") @db.Uuid
+  companyId String @map("company_id") @db.Uuid
+  materialId String @map("material_id") @db.Uuid
+  sourceUomId String @map("source_uom_id") @db.Uuid
+  sourceQuantity Decimal @map("source_quantity") @db.Decimal(18,4)
+  stockUomId String @map("stock_uom_id") @db.Uuid
+  stockQuantity Decimal @map("stock_quantity") @db.Decimal(18,4)
+  planStockQuantity Decimal @map("plan_stock_quantity") @db.Decimal(18,4)
+  stockOverageQuantity Decimal @map("stock_overage_quantity") @db.Decimal(18,4)
+  businessDate DateTime @map("business_date") @db.Date
+  basisVersion Int @map("basis_version")
+  revisionId String? @map("revision_id") @db.Uuid
+  numerator String @db.VarChar(38)
+  denominator String @db.VarChar(38)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  allocation MaterialPlanIssueAllocation @relation(fields:[allocationId],references:[id],onDelete:Restrict)
+  @@index([companyId,materialId,businessDate])
+  @@map("material_uom_plan_allocation_pins")
 }
 
 model MaterialUomPlanLinePin {
