@@ -173,7 +173,7 @@ test('DEC-050 C activated plan records exact frozen stock quantity without grant
   });
   const input=f.input('3.0000','FROZEN-CARTON');
   input.lines[0]!.materialId=material.id;
-  const created=await f.service.create({auth:f.store.auth},input);
+  const created=await f.service.create({auth:f.store.auth},input) as {id:string;version:number};
   const draft=await f.service.get(f.store.auth,created.id);
   const pinned=draft.latestRevision!.lines[0]!.materialUomPlanLinePin;
   assert.ok(pinned,'new activated plan line must have a genuine immutable stock pin');
@@ -188,7 +188,7 @@ test('DEC-050 C activated plan records exact frozen stock quantity without grant
   }),/MATERIAL_UOM_PLAN_PIN_IMMUTABLE/);
   const submitted=await f.service.submit({auth:f.store.auth},created.id,{
    requestKey:randomUUID(),expectedVersion:created.version
-  });
+  }) as {id:string;version:number};
   await f.service.decide({auth:f.manager.auth},created.id,{
    requestKey:randomUUID(),expectedVersion:submitted.version,decision:'APPROVE',
    comment:'Independent synthetic quantity approval'
