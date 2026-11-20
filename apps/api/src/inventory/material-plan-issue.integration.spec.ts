@@ -381,6 +381,20 @@ test('DEC-050 Stage C activated plan source: canonical direct/overage/return wit
   assert.equal(raced.filter(row=>row.status==='fulfilled').length,1);
   for(const row of raced)if(row.status==='rejected')conflictStatus(row.reason);
   assert.equal(await usage(),'70.0000');
+  // The same canonical allowance also covers loose-piece issue entry. A plan
+  // in cartons must not reject a compatible stock-unit issue or count cartons
+  // and pieces as if their raw entered quantities were the same dimension.
+  const livePlan=await f.service.get(f.store.auth,created.id);
+  const loose=await f.issues.create({auth:f.store.auth},{projectId:f.project.id,
+   warehouseId:f.warehouse.id,issueDate:new Date('2026-11-04T00:00:00Z'),
+   lines:[{materialId:material.id,uomId:stock.id,quantity:new Prisma.Decimal('1')}]
+  });
+  const looseItem=(await f.issues.get(f.store.auth,loose.id)).items[0]!;
+  const looseInput={requestKey:randomUUID(),bindings:[{issueItemId:looseItem.id,
+   planLineId:livePlan.approvedRevision!.lines[0]!.id,expectedPlanVersion:livePlan.version}]};
+  assert.equal((await f.controls.preview(f.store.auth,loose.id,looseInput)).items[0]?.stockBasis?.stockQuantity,'1.0000');
+  await f.controls.withinPlan({auth:f.store.auth},loose.id,looseInput);
+  assert.equal(await usage(),'71.0000');
   assert.equal(await db.payment.count({where:{companyId:f.company.id}}),0);
   assert.equal(await db.directCostPosting.count({where:{companyId:f.company.id}}),0);
  }finally{await app.close();await db.$disconnect();}

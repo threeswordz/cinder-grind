@@ -92,7 +92,7 @@ export class MaterialPlanIssueService{
   const spent=new Map<string,Prisma.Decimal>(),usage=new Map<string,Prisma.Decimal>(),allocations=[];let overage=new Prisma.Decimal(0);
   for(const item of issue.items){
    const pin=pins.find(p=>p.issueItemId===item.id),line=lines.find(l=>l.id===pin?.planLineId);
-   if(!pin||!line||line.materialId!==item.materialId||line.uomId!==item.uomId||line.revision.status!=='APPROVED'||line.revision.plan.version!==pin.expectedPlanVersion||issue.issueDate<line.revision.validFrom||issue.issueDate>line.revision.validTo)invalid('MATERIAL_PLAN_BINDING_OR_VERSION_INVALID');
+   if(!pin||!line||line.materialId!==item.materialId||(!activated.has(item.materialId)&&line.uomId!==item.uomId)||line.revision.status!=='APPROVED'||line.revision.plan.version!==pin.expectedPlanVersion||issue.issueDate<line.revision.validFrom||issue.issueDate>line.revision.validTo)invalid('MATERIAL_PLAN_BINDING_OR_VERSION_INVALID');
    const latest=await tx.materialUsagePlanRevision.findFirst({where:{planId:line.revision.planId,status:'APPROVED'},orderBy:{revisionNo:'desc'},select:{id:true}});if(latest?.id!==line.revisionId)conflict('MATERIAL_PLAN_EFFECTIVE_VERSION_CHANGED');
    await tx.$executeRaw`SELECT erp_mp_assert_lines(${line.revisionId}::uuid,false)`;
    const active=activated.has(item.materialId),stockPin=line.materialUomPlanLinePin;
@@ -110,12 +110,12 @@ export class MaterialPlanIssueService{
    if(active&&stockPin?.stockUomId!==conversion?.stockUomId)conflict('MATERIAL_UOM_PLAN_STOCK_BASIS_CHANGED');
    const basisQuantity=conversion?.stockQuantity??item.quantity;
    const allowance=active?stockPin!.stockQuantity:line.quantity;
-   const k=[line.revision.planId,line.budgetRevisionLineId,item.materialId,item.uomId].join(':');
+   const k=[line.revision.planId,line.budgetRevisionLineId,item.materialId,line.uomId].join(':');
    let used=usage.get(k);
    if(used===undefined){
     const [r]=active
-     ? await tx.$queryRaw<Array<{quantity:Prisma.Decimal}>>`SELECT erp_uom_plan_frozen_usage(${line.revision.planId}::uuid,${line.budgetRevisionLineId}::uuid,${item.materialId}::uuid,${item.uomId}::uuid,${issue.id}::uuid) AS quantity`
-     : await tx.$queryRaw<Array<{quantity:Prisma.Decimal}>>`SELECT erp_mpi_usage(${line.revision.planId}::uuid,${line.budgetRevisionLineId}::uuid,${item.materialId}::uuid,${item.uomId}::uuid,${issue.id}::uuid) AS quantity`;
+     ? await tx.$queryRaw<Array<{quantity:Prisma.Decimal}>>`SELECT erp_uom_plan_frozen_usage(${line.revision.planId}::uuid,${line.budgetRevisionLineId}::uuid,${item.materialId}::uuid,${line.uomId}::uuid,${issue.id}::uuid) AS quantity`
+     : await tx.$queryRaw<Array<{quantity:Prisma.Decimal}>>`SELECT erp_mpi_usage(${line.revision.planId}::uuid,${line.budgetRevisionLineId}::uuid,${item.materialId}::uuid,${line.uomId}::uuid,${issue.id}::uuid) AS quantity`;
     used=new Prisma.Decimal(r!.quantity);usage.set(k,used);
    }
    const remaining=allowance.minus(used).minus(spent.get(k)??0);

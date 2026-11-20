@@ -39,7 +39,7 @@ function IssuePlanLine({
   const matching = current && current.projectId === issue.projectId &&
     current.warehouseId === issue.warehouseId &&
     approved && issue.issueDate.slice(0, 10) >= approved.validFrom && issue.issueDate.slice(0, 10) <= approved.validTo
-    ? approved.lines.filter(l => l.materialId === line.materialId && l.uomId === line.uomId)
+    ? approved.lines.filter(l => l.materialId === line.materialId && (l.uomId === line.uomId || l.materialUomPlanLinePin != null))
     : [];
   const approvedPlan = Boolean(approved && current && matching.length);
   return <Paper variant="outlined" sx={{ p: 1.5 }}>
@@ -139,7 +139,7 @@ export function MaterialPlanIssueControls({
         plan.warehouseId === issue.warehouseId && plan.version === pin.expectedPlanVersion &&
         issue.issueDate.slice(0, 10) >= effective.validFrom && issue.issueDate.slice(0, 10) <= effective.validTo &&
         effective.lines.some(line => line.id === pin.planLineId &&
-          line.materialId === item.materialId && line.uomId === item.uomId));
+          line.materialId === item.materialId && (line.uomId === item.uomId || line.materialUomPlanLinePin != null)));
     });
   const applicablePreview = complete && preview?.fingerprint === fingerprint ? preview.value : null;
   const previewMutation = useMutation({
