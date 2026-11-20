@@ -227,9 +227,11 @@ export function classifySchema(previous,candidate){
   ?(prior==='migration-aware-sql-only'?'migration-aware-material-uom-effect-schema'
     :'migration-aware-material-uom-effect-'+prior.slice('migration-aware-'.length))
   :prior;
- if(!oldC.present&&newC.present) return base==='migration-aware-sql-only'
-   ?'migration-aware-material-uom-stage-c-schema'
-   :'migration-aware-material-uom-stage-c-'+base.slice('migration-aware-'.length);
+ // Only the genuinely new B→C candidate uses the C label. Historical
+ // predecessor contracts still classify their own older release difference,
+ // with the three Stage C models independently and strictly checked above.
+ if(!oldC.present&&newC.present&&base==='migration-aware-sql-only')
+   return 'migration-aware-material-uom-stage-c-schema';
  return base;
 }
 
