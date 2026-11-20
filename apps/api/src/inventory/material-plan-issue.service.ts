@@ -24,7 +24,9 @@ function conflict(code:string):never{throw new ConflictException({code});}
 function invalid(code:string):never{throw new UnprocessableEntityException({code});}
 const authSelect={id:true,sequence:true,mode:true,bodyDigest:true,createdByUserId:true,createdAt:true,approvalInstanceId:true,
  approval:{select:{approvalState:true,currentStepNo:true,actions:{orderBy:{actionAt:'asc' as const},select:{id:true,approvalStepId:true,action:true,actionByUserId:true,actionAt:true,comment:true}}}},
- lines:{orderBy:{issueItemId:'asc' as const},select:{issueItemId:true,planId:true,planLineId:true,planVersion:true,quantity:true,overageQuantity:true,planLine:{select:{revisionId:true,budgetRevisionLineId:true}}}}} satisfies Prisma.MaterialPlanIssueAuthorizationSelect;
+ lines:{orderBy:{issueItemId:'asc' as const},select:{issueItemId:true,planId:true,planLineId:true,planVersion:true,quantity:true,overageQuantity:true,
+   materialUomPlanAllocationPin:{select:{stockQuantity:true,stockUomId:true,stockOverageQuantity:true,planStockQuantity:true}},
+   planLine:{select:{revisionId:true,budgetRevisionLineId:true}}}}} satisfies Prisma.MaterialPlanIssueAuthorizationSelect;
 @Injectable()
 export class MaterialPlanIssueService{
  constructor(private readonly prisma:PrismaService,private readonly access:ProjectAccessService,private readonly audit:AuditService,private readonly approvals:ApprovalService,private readonly issues:MaterialIssueService){}
@@ -225,6 +227,12 @@ export class MaterialPlanIssueService{
   if(!binding)return {binding:null,items:[],nextCursor:null};await this.scopedBinding(auth,id,this.prisma);
   const cursor=after?await this.prisma.materialPlanIssueAuthorization.findFirst({where:{id:after,issueId:id},select:{sequence:true}}):null;if(after&&!cursor)mpInvalid('after');
   const rows=await this.prisma.materialPlanIssueAuthorization.findMany({where:{issueId:id,...(cursor?{sequence:{lt:cursor.sequence}}:{})},select:authSelect,orderBy:{sequence:'desc'},take:26});
-  return {binding,items:rows.slice(0,25).map(a=>({...a,lines:a.lines.map(l=>({...l,quantity:l.quantity.toFixed(4),overageQuantity:l.overageQuantity.toFixed(4)}))})),nextCursor:rows.length>25?rows[24]!.id:null};
+  return {binding,items:rows.slice(0,25).map(a=>({...a,lines:a.lines.map(l=>({...l,quantity:l.quantity.toFixed(4),overageQuantity:l.overageQuantity.toFixed(4),
+   materialUomPlanAllocationPin:l.materialUomPlanAllocationPin?{
+    stockQuantity:l.materialUomPlanAllocationPin.stockQuantity.toFixed(4),
+    stockUomId:l.materialUomPlanAllocationPin.stockUomId,
+    stockOverageQuantity:l.materialUomPlanAllocationPin.stockOverageQuantity.toFixed(4),
+    planStockQuantity:l.materialUomPlanAllocationPin.planStockQuantity.toFixed(4)
+   }:null}))})),nextCursor:rows.length>25?rows[24]!.id:null};
  }
 }

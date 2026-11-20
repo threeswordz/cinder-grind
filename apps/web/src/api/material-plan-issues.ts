@@ -59,6 +59,12 @@ export type PlanIssueAuthorization = {
     planVersion: number;
     quantity: string;
     overageQuantity: string;
+    materialUomPlanAllocationPin: {
+      stockQuantity: string;
+      stockUomId: string;
+      stockOverageQuantity: string;
+      planStockQuantity: string;
+    } | null;
   }>;
 };
 export type PlanIssueHistory = {

@@ -268,7 +268,9 @@ export function MaterialPlanIssueControls({
     {(visibleHistory?.items ?? []).map(h => <Stack key={h.id} spacing={0.5}>
       <Typography variant="body2">#{h.sequence} · {t.mode}: {h.mode} · {t.stage}: {h.approval?.approvalState ?? 'DIRECT'}</Typography>
       {h.lines.map(l => <Typography key={l.issueItemId} variant="caption">
-        {l.issueItemId.slice(0, 8)} · {l.quantity} · {t.overageQuantity}: {l.overageQuantity}
+        {l.issueItemId.slice(0, 8)} · {l.quantity} · {t.overageQuantity}: {l.materialUomPlanAllocationPin
+          ? `${l.materialUomPlanAllocationPin.stockOverageQuantity} (${t.stockUnitOverage})`
+          : l.overageQuantity}
       </Typography>)}
     </Stack>)}
     <Stack direction="row" spacing={1}>
