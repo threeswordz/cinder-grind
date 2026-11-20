@@ -78,7 +78,7 @@ test('DEC-050 B authenticated HTTP: converted physical receiving, explicit dates
   const movements=app.get(InventoryReportService);
   const receiptRows=await movements.movementReport(f.store.auth,{projectId:f.project.id});
   const convertedReceipt=receiptRows.find(row=>row.materialId===f.material.id&&row.sourceType==='GOODS_RECEIPT');
-  const legacyReceipt=receiptRows.find(row=>row.materialId===f.secondaryMaterial.id&&row.sourceType==='GOODS_RECEIPT');
+  const legacyReceipt=receiptRows.find(row=>row.materialId===f.secondaryMaterial!.id&&row.sourceType==='GOODS_RECEIPT');
   assert.ok(convertedReceipt);assert.equal(convertedReceipt.quantity,'60.0000');
   assert.equal(convertedReceipt.conversion?.sourceQuantity,'3.0000');
   assert.equal(convertedReceipt.conversion?.stockQuantity,'60.0000');
