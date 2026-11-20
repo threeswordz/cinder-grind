@@ -85,3 +85,161 @@ END $$;
 
 COMMENT ON FUNCTION erp_uom_plan_frozen_usage(uuid,uuid,uuid,uuid,uuid) IS
   'Stage C fail-closed read-only canonical linked issue less immutable return provenance; not a posting/approval gate.';
+
+
+-- Stage C frozen plan source: additive/empty on upgrade; never backfill.
+CREATE TABLE material_uom_plan_line_pins (
+ plan_line_id uuid PRIMARY KEY REFERENCES material_usage_plan_lines(id) ON DELETE RESTRICT,
+ company_id uuid NOT NULL, material_id uuid NOT NULL,
+ source_uom_id uuid NOT NULL REFERENCES units_of_measure(id) ON DELETE RESTRICT,
+ source_quantity numeric(18,4) NOT NULL,
+ stock_uom_id uuid NOT NULL REFERENCES units_of_measure(id) ON DELETE RESTRICT,
+ stock_uom_code varchar(30) NOT NULL,
+ stock_quantity numeric(18,4) NOT NULL,
+ business_date date NOT NULL, basis_version integer NOT NULL,
+ revision_id uuid REFERENCES material_uom_revisions(id) ON DELETE RESTRICT,
+ numerator varchar(38) NOT NULL, denominator varchar(38) NOT NULL,
+ created_at timestamptz(6) NOT NULL DEFAULT now(),
+ CONSTRAINT uom_plan_basis_fk FOREIGN KEY (company_id,material_id)
+ REFERENCES material_uom_bases(company_id,material_id) ON DELETE RESTRICT,
+ CONSTRAINT uom_plan_exact_nonzero CHECK(
+ source_quantity>0 AND source_quantity<>'NaN'::numeric
+ AND stock_quantity>0 AND stock_quantity<>'NaN'::numeric AND basis_version>0
+ AND numerator ~ '^[1-9][0-9]{0,37}$'
+ AND denominator ~ '^[1-9][0-9]{0,37}$'
+ )
+);
+CREATE INDEX material_uom_plan_line_pins_dimension_idx
+ ON material_uom_plan_line_pins(company_id,material_id,business_date);
+
+CREATE FUNCTION erp_uom_plan_pin_guard() RETURNS trigger LANGUAGE plpgsql AS $$
+DECLARE source RECORD; basis material_uom_bases%ROWTYPE;
+  su units_of_measure%ROWTYPE; cu units_of_measure%ROWTYPE;
+  selected material_uom_revisions%ROWTYPE;
+BEGIN
+ IF TG_OP<>'INSERT' THEN RAISE EXCEPTION 'MATERIAL_UOM_PLAN_PIN_IMMUTABLE'; END IF;
+ PERFORM erp_material_uom_require_activation(NEW.company_id,NEW.material_id);
+ SELECT pl.*,pr.valid_from,p.company_id INTO source
+  FROM material_usage_plan_lines pl
+  JOIN material_usage_plan_revisions pr ON pr.id=pl.revision_id
+  JOIN material_usage_plans p ON p.id=pr.plan_id
+  WHERE pl.id=NEW.plan_line_id FOR SHARE OF pl;
+ IF NOT FOUND OR source.company_id IS DISTINCT FROM NEW.company_id
+  OR source.material_id IS DISTINCT FROM NEW.material_id
+  OR source.uom_id IS DISTINCT FROM NEW.source_uom_id
+  OR source.quantity IS DISTINCT FROM NEW.source_quantity
+  OR source.valid_from IS DISTINCT FROM NEW.business_date
+ THEN RAISE EXCEPTION 'MATERIAL_UOM_PLAN_PIN_SOURCE_MISMATCH'; END IF;
+ SELECT * INTO basis FROM material_uom_bases
+   WHERE company_id=NEW.company_id AND material_id=NEW.material_id;
+ SELECT * INTO su FROM units_of_measure
+   WHERE id=NEW.source_uom_id AND company_id=NEW.company_id AND is_active;
+ SELECT * INTO cu FROM units_of_measure
+   WHERE id=NEW.stock_uom_id AND company_id=NEW.company_id AND is_active;
+ IF basis.material_id IS NULL OR su.id IS NULL OR cu.id IS NULL
+  OR basis.stock_uom_id IS DISTINCT FROM NEW.stock_uom_id
+  OR basis.stock_uom_code IS DISTINCT FROM NEW.stock_uom_code
+  OR basis.version IS DISTINCT FROM NEW.basis_version
+  OR cu.decimal_places IS DISTINCT FROM basis.stock_precision
+  OR NEW.source_quantity*NEW.numerator::numeric IS DISTINCT FROM NEW.stock_quantity*NEW.denominator::numeric
+  OR mod(NEW.source_quantity*power(10::numeric,su.decimal_places),1)<>0
+  OR mod(NEW.stock_quantity*power(10::numeric,basis.stock_precision),1)<>0
+ THEN RAISE EXCEPTION 'MATERIAL_UOM_PLAN_PIN_INVALID'; END IF;
+ IF NEW.source_uom_id=NEW.stock_uom_id THEN
+  IF NEW.revision_id IS NOT NULL OR NEW.numerator<>'1' OR NEW.denominator<>'1'
+   THEN RAISE EXCEPTION 'MATERIAL_UOM_PLAN_IDENTITY_REQUIRED'; END IF;
+ ELSE
+  SELECT * INTO selected FROM material_uom_revisions
+   WHERE company_id=NEW.company_id AND material_id=NEW.material_id
+    AND source_uom_id=NEW.source_uom_id AND effective_from<=NEW.business_date
+   ORDER BY effective_from DESC,revision_no DESC LIMIT 1;
+  IF selected.id IS NULL OR selected.id IS DISTINCT FROM NEW.revision_id
+   OR selected.numerator IS DISTINCT FROM NEW.numerator
+   OR selected.denominator IS DISTINCT FROM NEW.denominator
+   OR selected.source_precision IS DISTINCT FROM su.decimal_places
+   OR selected.revision_no>NEW.basis_version
+   THEN RAISE EXCEPTION 'MATERIAL_UOM_PLAN_DEFINITION_CHANGED'; END IF;
+ END IF;
+ RETURN NEW;
+END $$;
+CREATE TRIGGER material_uom_plan_pin_guard
+ BEFORE INSERT OR UPDATE OR DELETE ON material_uom_plan_line_pins
+ FOR EACH ROW EXECUTE FUNCTION erp_uom_plan_pin_guard();
+
+-- Stage B activation already serializes source rows. Permit only a *new plan
+-- source* through this lock; its required immutable pin is enforced at commit.
+-- Request lines continue to fail closed until their separate Stage C guard.
+CREATE OR REPLACE FUNCTION erp_material_uom_source_activation_lock()
+RETURNS trigger LANGUAGE plpgsql AS $$
+DECLARE cid uuid;
+BEGIN
+ SELECT company_id INTO cid FROM materials WHERE id=NEW.material_id;
+ PERFORM pg_advisory_xact_lock(hashtextextended('material-uom:'||cid::text||':'||NEW.material_id::text,0));
+ PERFORM 1 FROM material_uom_activations
+ WHERE company_id=cid AND material_id=NEW.material_id;
+ IF FOUND AND TG_TABLE_NAME='material_request_lines'
+  THEN RAISE EXCEPTION 'MATERIAL_UOM_DEMAND_RECONCILIATION_REQUIRED'; END IF;
+ RETURN NEW;
+END $$;
+
+CREATE FUNCTION erp_uom_plan_pin_required() RETURNS trigger LANGUAGE plpgsql AS $$
+DECLARE cid uuid;
+BEGIN
+ SELECT p.company_id INTO cid FROM material_usage_plan_revisions r
+ JOIN material_usage_plans p ON p.id=r.plan_id WHERE r.id=NEW.revision_id;
+ IF EXISTS(SELECT 1 FROM material_uom_activations
+           WHERE company_id=cid AND material_id=NEW.material_id)
+ AND NOT EXISTS(SELECT 1 FROM material_uom_plan_line_pins
+           WHERE plan_line_id=NEW.id)
+ THEN RAISE EXCEPTION 'MATERIAL_UOM_PLAN_PIN_REQUIRED'; END IF;
+ RETURN NULL;
+END $$;
+CREATE CONSTRAINT TRIGGER material_uom_plan_pin_required
+ AFTER INSERT ON material_usage_plan_lines
+ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW
+ EXECUTE FUNCTION erp_uom_plan_pin_required();
+
+CREATE FUNCTION erp_uom_plan_pin_approval() RETURNS trigger LANGUAGE plpgsql AS $$
+DECLARE l RECORD; frozen material_uom_plan_line_pins%ROWTYPE; chosen uuid;
+BEGIN
+ IF NEW.status='APPROVED' AND OLD.status IS DISTINCT FROM 'APPROVED' THEN
+  FOR l IN SELECT ml.id,ml.material_id,p.company_id FROM material_usage_plan_lines ml
+    JOIN material_usage_plans p ON p.id=NEW.plan_id
+    WHERE ml.revision_id=NEW.id LOOP
+   IF EXISTS(SELECT 1 FROM material_uom_activations
+             WHERE company_id=l.company_id AND material_id=l.material_id) THEN
+    SELECT * INTO frozen FROM material_uom_plan_line_pins WHERE plan_line_id=l.id;
+    IF NOT FOUND THEN RAISE EXCEPTION 'MATERIAL_UOM_PLAN_PIN_REQUIRED'; END IF;
+    chosen:=NULL;
+    IF frozen.source_uom_id<>frozen.stock_uom_id THEN
+      SELECT id INTO chosen FROM material_uom_revisions
+      WHERE company_id=l.company_id AND material_id=l.material_id
+        AND source_uom_id=frozen.source_uom_id
+        AND effective_from<=frozen.business_date
+      ORDER BY effective_from DESC,revision_no DESC LIMIT 1;
+    END IF;
+    IF chosen IS DISTINCT FROM frozen.revision_id
+     THEN RAISE EXCEPTION 'MATERIAL_UOM_PLAN_DEFINITION_CHANGED'; END IF;
+   END IF;
+  END LOOP;
+ END IF;
+ RETURN NULL;
+END $$;
+CREATE CONSTRAINT TRIGGER material_uom_plan_pin_approval
+ AFTER UPDATE ON material_usage_plan_revisions
+ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW
+ EXECUTE FUNCTION erp_uom_plan_pin_approval();
+
+-- No mixed-unit plan issue is admissible until the exact frozen-stock
+-- consumption/overage calculation is enforced in BOTH API and PostgreSQL.
+CREATE FUNCTION erp_uom_plan_block_unreconciled_issue() RETURNS trigger
+LANGUAGE plpgsql AS $$
+BEGIN
+ IF EXISTS(SELECT 1 FROM material_uom_plan_line_pins
+   WHERE plan_line_id=NEW.plan_line_id)
+ THEN RAISE EXCEPTION 'MATERIAL_UOM_PLAN_CANONICAL_ISSUE_GATE_PENDING'; END IF;
+ RETURN NEW;
+END $$;
+CREATE TRIGGER material_uom_plan_block_unreconciled_issue
+ BEFORE INSERT OR UPDATE ON material_plan_issue_allocations
+ FOR EACH ROW EXECUTE FUNCTION erp_uom_plan_block_unreconciled_issue();
