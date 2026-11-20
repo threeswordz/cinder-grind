@@ -243,6 +243,21 @@ export type InventoryMovementRecord = {
   sourceType: string;
   sourceId: string | null;
   sourceNumber: string | null;
+  // Non-null only when the immutable Stage B conversion effect was recorded.
+  conversion: {
+    sourceQuantity: string;
+    sourceUomId: string | null;
+    sourceUomCode: string | null;
+    stockQuantity: string;
+    stockUomId: string;
+    stockUomCode: string;
+    effectSign: number | null;
+    businessDate: string;
+    basisVersion: number | null;
+    revisionId: string | null;
+    numerator: string | null;
+    denominator: string | null;
+  } | null;
 };
 
 export type WarehouseRecord = {
