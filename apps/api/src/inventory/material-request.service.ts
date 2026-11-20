@@ -70,7 +70,16 @@ const lineSelect = { id: true, lineNo: true, materialId: true, uomId: true, requ
         sourceQuantity: true, stockUomId: true, stockUomCode: true, stockQuantity: true,
         businessDate: true, basisVersion: true, revisionId: true, numerator: true, denominator: true } },
     issueLinks: { orderBy: [{ linkedAt: 'asc' as const }, { id: 'asc' as const }], select: { id: true, materialIssueItemId: true, linkedAt: true,
-            issueItem: { select: { quantity: true,
+            issueItem: { select: { quantity: true, uomId: true, uom: { select: { uomCode: true } },
+                returnItems: { select: { quantity: true,
+                  materialReturn: { select: { postedAt: true, reversedAt: true } },
+                  stockTransactions: { where: { movementType: 'MATERIAL_RETURN' }, select: {
+                    companyId: true, projectId: true, warehouseId: true, materialId: true,
+                    quantity: true, uomId: true,
+                    materialUomEffectPin: { select: { companyId: true, materialId: true,
+                      stockUomId: true, stockQuantity: true, effectSign: true } }
+                  } }
+                } },
                 stockTransactions: { where: { movementType: 'MATERIAL_ISSUE' }, select: {
                   companyId: true, projectId: true, materialId: true, warehouseId: true, uomId: true, quantity: true,
                   materialUomEffectPin: { select: { companyId: true, materialId: true, sourceUomId: true,
@@ -147,6 +156,7 @@ export class MaterialRequestService {
                 // Only request facts/line quantities are exposed from historical snapshots, never raw relation/Document payloads.
                 facts: this.revisionFacts(v.snapshot) })), lines: row.lines.map(line => {
                 let issued = 0n, acknowledged = 0n, stockIssued = 0n, stockAcknowledged = 0n;
+                let mixedSourceUnits=false;
                 const requestPin = line.materialUomRequestLinePins[0] ?? null;
                 if(requestPin && (requestPin.companyId !== auth.companyId ||
                    requestPin.materialId !== line.materialId ||
@@ -179,16 +189,48 @@ export class MaterialRequestService {
                            basisVersion: actual.basisVersion, revisionId: actual.revisionId,
                            numerator: actual.numerator, denominator: actual.denominator }
                        : null;
+                    // Net fulfillment is what remains after approved, posted
+                    // returns. Signed receipt history itself is never erased.
+                    let returnedEntered=0n,returnedStock=0n;
+                    if (posted) for (const item of link.issueItem.returnItems) {
+                       if(!item.materialReturn.postedAt || item.materialReturn.reversedAt)continue;
+                       returnedEntered += units(item.quantity);
+                       if(requestPin) {
+                         const effect=item.stockTransactions.find(txn =>
+                            txn.companyId===auth.companyId && txn.projectId===row.projectId &&
+                            txn.warehouseId===row.warehouseId && txn.materialId===line.materialId &&
+                            txn.materialUomEffectPin?.effectSign===1 &&
+                            txn.uomId===requestPin.stockUomId &&
+                            txn.quantity.eq(txn.materialUomEffectPin.stockQuantity));
+                         if(!effect?.materialUomEffectPin ||
+                            effect.materialUomEffectPin.companyId!==auth.companyId ||
+                            effect.materialUomEffectPin.materialId!==line.materialId ||
+                            effect.materialUomEffectPin.stockUomId!==requestPin.stockUomId)
+                           this.conflict('MATERIAL_UOM_REQUEST_RETURN_STOCK_SOURCE_REQUIRED');
+                         returnedStock += units(effect.materialUomEffectPin.stockQuantity);
+                       }
+                    }
                     if (posted) {
-                       issued += units(link.issueItem.quantity);
-                       if (requestPin) stockIssued += units(actual!.stockQuantity);
+                       if(returnedEntered>units(link.issueItem.quantity))
+                         this.conflict('MATERIAL_REQUEST_RETURN_EXCEEDS_ISSUE');
+                       issued += units(link.issueItem.quantity)-returnedEntered;
+                       if(requestPin) {
+                         const gross=units(actual!.stockQuantity);
+                         if(returnedStock>gross)this.conflict('MATERIAL_UOM_REQUEST_RETURN_EXCEEDS_ISSUE');
+                         stockIssued += gross-returnedStock;
+                         if(link.issueItem.uomId!==line.uomId)mixedSourceUnits=true;
+                       }
                     }
                     const receipt = link.receipts.find(r => !r.correction);
                     if (posted && receipt) {
                        acknowledged += units(link.issueItem.quantity);
                        if (requestPin) stockAcknowledged += units(actual!.stockQuantity);
                     }
-                    return { id: link.id, linkedAt: link.linkedAt, quantity: link.issueItem.quantity.toFixed(4), currentlyIssued: posted,
+                    return { id: link.id, linkedAt: link.linkedAt, quantity: link.issueItem.quantity.toFixed(4),
+                        sourceUomCode: link.issueItem.uom.uomCode,
+                        returnedQuantity: formatted(returnedEntered),
+                        returnedStockQuantity: requestPin ? formatted(returnedStock) : null,
+                        currentlyIssued: posted,
                         stockEffect,
                         issue: sourceVisible ? issue : null, materialIssueItemId: sourceVisible ? link.materialIssueItemId : null,
                         receipts: link.receipts.map(r => ({ id: r.id, recipientEmployeeId: r.recipientEmployeeId, issuerEmployeeId: r.issuerEmployeeId,
@@ -198,7 +240,8 @@ export class MaterialRequestService {
                 });
                 return { id: line.id, lineNo: line.lineNo, materialId: line.materialId, material: line.material, uomId: line.uomId, uom: line.uom,
                     requestedQuantity: line.requestedQuantity.toFixed(4), wbsId: line.wbsId, costCodeId: line.costCodeId, activityId: line.activityId, remarks: line.remarks,
-                    issuedQuantity: formatted(issued), acknowledgedQuantity: formatted(acknowledged),
+                    issuedQuantity: mixedSourceUnits ? null : formatted(issued),
+                    acknowledgedQuantity: mixedSourceUnits ? null : formatted(acknowledged),
                     // A changing carton rate has no meaningful entered-unit
                     // remainder. The canonical stock basis is authoritative.
                     remainingQuantity: requestPin ? null : formatted(issued<units(line.requestedQuantity) ? units(line.requestedQuantity)-issued : 0n),

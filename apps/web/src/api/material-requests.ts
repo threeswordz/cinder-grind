@@ -46,6 +46,9 @@ export type RequestLink = {
     id: string;
     linkedAt: string;
     quantity: string;
+    sourceUomCode: string;
+    returnedQuantity: string;
+    returnedStockQuantity: string | null;
     currentlyIssued: boolean;
     stockEffect: {
         sourceUomId: string;
@@ -80,8 +83,8 @@ export type RequestLine = {
         uomCode: string;
     };
     requestedQuantity: string;
-    issuedQuantity: string;
-    acknowledgedQuantity: string;
+    issuedQuantity: string | null;
+    acknowledgedQuantity: string | null;
     remainingQuantity: string | null;
     requestStockBasis: {
       requestVersion: number; sourceQuantity: string; sourceUomId: string;

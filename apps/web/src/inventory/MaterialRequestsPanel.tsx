@@ -146,13 +146,17 @@ function RequestDetail({ id, projectId, permissions }: {
  {t.stockRequested}: {l.requestStockBasis.stockQuantity} {l.requestStockBasis.stockUomCode}
  {' · '}{t.frozenRatio}: {l.requestStockBasis.numerator}/{l.requestStockBasis.denominator}
  {' · '}{t.conversionDate}: {l.requestStockBasis.businessDate}
-</Typography> : null}</TableCell><TableCell>{l.issuedQuantity}{l.requestStockBasis ? <Typography variant="caption" display="block">{t.stockIssued}: {l.stockIssuedQuantity} {l.requestStockBasis.stockUomCode}</Typography> : null}</TableCell><TableCell>{l.requestStockBasis ? `${l.stockRemainingQuantity} ${l.requestStockBasis.stockUomCode}` : l.remainingQuantity}</TableCell><TableCell>{l.acknowledgedQuantity}{l.requestStockBasis ? <Typography variant="caption" display="block">{t.stockAcknowledged}: {l.stockAcknowledgedQuantity} {l.requestStockBasis.stockUomCode}</Typography> : null}</TableCell><TableCell>{t[('status_' + l.fulfillment) as keyof typeof t] ?? l.fulfillment}</TableCell></TableRow>)}</TableBody></Table>
+</Typography> : null}</TableCell><TableCell>{l.issuedQuantity ?? '—'}{l.requestStockBasis ? <Typography variant="caption" display="block">{t.stockIssued}: {l.stockIssuedQuantity} {l.requestStockBasis.stockUomCode}</Typography> : null}</TableCell><TableCell>{l.requestStockBasis ? `${l.stockRemainingQuantity} ${l.requestStockBasis.stockUomCode}` : l.remainingQuantity}</TableCell><TableCell>{l.acknowledgedQuantity ?? '—'}{l.requestStockBasis ? <Typography variant="caption" display="block">{t.stockAcknowledged}: {l.stockAcknowledgedQuantity} {l.requestStockBasis.stockUomCode}</Typography> : null}</TableCell><TableCell>{t[('status_' + l.fulfillment) as keyof typeof t] ?? l.fulfillment}</TableCell></TableRow>)}</TableBody></Table>
   <Stack direction="row" flexWrap="wrap">{can('edit') ? <Button disabled={busy} onClick={() => setMode('edit')}>{t.edit}</Button> : null}{can('link') && permissions.includes('inventory.issue.view') ? <Button disabled={busy} onClick={() => setMode('link')}>{t.link}</Button> : null}</Stack>
   {mode === 'edit' ? <Revision key={pin ?? 0} d={d} disabled={busy} onSend={body => c.send('/' + id + '/revisions', { ...body, requestKey: crypto.randomUUID(), expectedVersion: pin })}/> : null}
   {mode === 'link' ? <LinkIssue key={pin ?? 0} d={d} disabled={busy} onSend={body => c.send('/' + id + '/issue-links', { ...body, requestKey: crypto.randomUUID(), expectedVersion: pin })}/> : null}
   {permissions.includes('documents.document.view') ? <Evidence key={id} d={d} permissions={permissions}/> : null}
   {d.lines.flatMap(l => l.issueLinks.map(link => <Paper variant="outlined" sx={{ p: 1 }} key={link.id}>
-   <Typography>{l.material.materialName} · {link.quantity} · {link.issue?.issueNumber ?? '—'}{!link.currentlyIssued ? ' · ' + t.reversed : ''}</Typography>
+   <Typography>{l.material.materialName} · {link.quantity} {link.sourceUomCode} · {link.issue?.issueNumber ?? '—'}{!link.currentlyIssued ? ' · ' + t.reversed : ''}</Typography>
+   {link.returnedStockQuantity !== null && link.returnedStockQuantity !== '0.0000' ?
+     <Typography variant="caption" color="text.secondary">
+       {t.returnedStock}: {link.returnedStockQuantity} {l.requestStockBasis?.stockUomCode}
+     </Typography> : null}
    {link.stockEffect ? <Typography variant="caption" color="text.secondary">
     {t.entered}: {link.stockEffect.sourceQuantity} · {t.canonicalStock}: {link.stockEffect.stockQuantity}
     {' · '}{t.frozenRatio}: {link.stockEffect.numerator}/{link.stockEffect.denominator}
