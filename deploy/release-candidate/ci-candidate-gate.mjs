@@ -39,6 +39,13 @@ export function candidateIdentity(env, event, checkoutSha) {
       headRepository: pr.head.repo.full_name, headRef: pr.head.ref,
       baseSha: pr.base.sha, baseRef: pr.base.ref, focusedDraft };
   }
+  // Explicit final-release full execution on current main; no caller-supplied SHA
+  // or dispatch-only replacement for a PR gate. Live main is rechecked at finish.
+  if (env.GITHUB_EVENT_NAME === 'workflow_dispatch') {
+    requireThat(env.GITHUB_REF === 'refs/heads/main' && ['main','refs/heads/main'].includes(event.ref) &&
+      env.GITHUB_SHA === checkoutSha && (!event.inputs || Object.keys(event.inputs).length === 0), 'INVALID_FULL_MAIN_DISPATCH');
+    return {kind:'push',repository,attempt,sha:checkoutSha,headRef:'main',focusedDraft:false};
+  }
   requireThat(env.GITHUB_EVENT_NAME === 'push', 'INVALID_EVENT');
   requireThat(event.deleted === false && event.ref === env.GITHUB_REF &&
     /^refs\/heads\/(main|vfull-.+)$/.test(event.ref ?? '') &&
@@ -92,7 +99,8 @@ async function getLive(identity) {
 
 function report(code, identity) {
   // Never print event payloads, network errors, headers, arbitrary server text or credentials.
-  const detail = identity ? `; source=${identity.sha}; attempt=${identity.attempt}` : '';
+  const detail = identity ? `; source=${identity.sha}; attempt=${identity.attempt}` +
+    (identity.kind === 'pull_request' ? `; pr=${identity.number}; base=${identity.baseSha}` : '') : '';
   console.log(`${code}${detail}`);
   if (process.env.GITHUB_STEP_SUMMARY) {
     const instruction = code === 'DRAFT_FOCUSED_ONLY' ?

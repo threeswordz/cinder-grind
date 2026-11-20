@@ -96,7 +96,7 @@ test('malformed event, attempt, repository, checkout and unknown action cannot a
     [f => { f.event.pull_request.base.sha = null; }, 'INVALID_BASE'],
     [f => { f.event.pull_request.head.sha = base; }, 'INVALID_HEAD'],
     [f => { f.event.action = 'ready_for_review'; }, 'INVALID_PR_ACTION'],
-    [f => { f.env.GITHUB_EVENT_NAME = 'workflow_dispatch'; }, 'INVALID_EVENT'],
+    [f => { f.env.GITHUB_EVENT_NAME = 'workflow_dispatch'; }, 'INVALID_FULL_MAIN_DISPATCH'],
   ]) {
     const f = fixture({ attempt: '2' }); mutate(f); await denied(admit(f), code);
   }
@@ -134,4 +134,13 @@ test('CLI draft route is a real exit-1 check with actionable summary and no cred
     assert.match(readFileSync(summaryPath, 'utf8'), /Re-run failed jobs/);
     assert.doesNotMatch(result.stdout + result.stderr + readFileSync(summaryPath, 'utf8'), /never-print-this-token/);
   } finally { rmSync(directory, { recursive: true, force: true }); }
+});
+
+test('explicit main dispatch executes full only and refuses arbitrary refs, inputs or stale main',async()=>{
+ const f=fixture();f.env.GITHUB_EVENT_NAME='workflow_dispatch';f.env.GITHUB_REF='refs/heads/main';f.env.GITHUB_SHA=head;
+ f.event={repository:f.event.repository,ref:'main',inputs:{}};f.live={name:'main',commit:{sha:head}};
+ for(const phase of ['start','finish'])assert.equal((await admit(f,phase)).focusedDraft,false);
+ f.event.inputs={sha:head};await denied(admit(f),'INVALID_FULL_MAIN_DISPATCH');
+ f.event.inputs={};f.event.ref='vbranch';await denied(admit(f),'INVALID_FULL_MAIN_DISPATCH');
+ f.event.ref='main';f.live.commit.sha=base;await denied(admit(f,'finish'),'STALE_PUSH');
 });

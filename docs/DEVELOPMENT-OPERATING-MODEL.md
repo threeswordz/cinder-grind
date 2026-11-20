@@ -100,6 +100,8 @@ Conversation memory is supporting context only. When conversation context and re
 
 ## 7. Evidence and release flow
 
+**DEC-053 prospective integration economy:** Following its governed activation under #384, verified ordinary main integration may reuse an identical complete full-PR reviewed tree plus fresh main build/audit/migration/startup and explicit provenance. Use full fallback whenever proof is absent, changed or uncertain. Full PR/review stays mandatory; actual full main remains for final release/freeze/deployment admission via push or explicit main-only dispatch. Preserve old gates until rollout evidence, distinguish integration from full execution, and do not cancel #376's existing full main as a retrospective exemption. See [CI policy](CI-VALIDATION-POLICY.md).
+
 The normal delivery flow remains:
 
 **Product / Business Owner approves scope → Chat builds stage → GitHub records implementation → CI/tests validate → Chat fixes defects → PR/review → merge → post-merge CI → next stage**

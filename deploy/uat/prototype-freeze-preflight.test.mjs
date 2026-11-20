@@ -21,7 +21,7 @@ function syntheticComplete() {
     schemaVersion:1, repository:'threeswordz/cinder-grind',
     release: {
       mainSha:SHA, runtimeSha:SHA,
-      mainCi:{sha:SHA,event:'push',conclusion:'success',runUrl:'https://github.com/threeswordz/cinder-grind/actions/runs/123456'},
+      mainCi:{sha:SHA,event:'push',validationKind:'FULL_EXECUTION',conclusion:'success',runUrl:'https://github.com/threeswordz/cinder-grind/actions/runs/123456'},
       independentReviews:Object.fromEntries(['A','B','C'].map(k=>[k,{headSha:SHA,disposition:'CLEAN',
         blockingFindings:0,unresolvedThreads:0,integratedTreeEquivalent:true,
         evidenceId:'SYNTHETIC-ONLY-review-'+k,treeProofId:'SYNTHETIC-ONLY-tree-'+k}])),

@@ -181,10 +181,9 @@ export async function operator(mode){
   const compare=await jsonFetch('https://api.github.com/repos/threeswordz/cinder-grind/compare/'+SHA+'...'+operatorMainSha,{headers:githubHeaders});
   demand(toolingOnly(compare),'APPLICATION_SOURCE_CHANGED_RECHECK_REQUIRED');
   const ci=await jsonFetch('https://api.github.com/repos/threeswordz/cinder-grind/actions/runs/'+CI,{headers:githubHeaders});
-  demand(ci.head_sha===SHA&&ci.status==='completed'&&ci.conclusion==='success'&&ci.event==='push','EXACT_MAIN_CI_REQUIRED');
-  const operatorRuns=await jsonFetch('https://api.github.com/repos/threeswordz/cinder-grind/actions/runs?head_sha='+operatorMainSha+'&event=push&per_page=20',{headers:githubHeaders});
-  demand(operatorRuns.workflow_runs?.some(r=>r.head_sha===operatorMainSha&&r.path==='.github/workflows/validate.yml'&&
-    r.event==='push'&&r.status==='completed'&&r.conclusion==='success'),'OPERATOR_MAIN_CI_REQUIRED');
+  demand(await fullExecutionSucceeded(ci,SHA,url=>jsonFetch(url,{headers:githubHeaders})),'EXACT_MAIN_CI_REQUIRED');
+  const operatorRuns=await jsonFetch('https://api.github.com/repos/threeswordz/cinder-grind/actions/runs?head_sha='+operatorMainSha+'&per_page=20',{headers:githubHeaders});
+  demand(await someFullExecution(operatorRuns,operatorMainSha,url=>jsonFetch(url,{headers:githubHeaders})),'OPERATOR_MAIN_CI_REQUIRED');
   const published=await jsonFetch('https://api.github.com/repos/threeswordz/cinder-grind/contents/'+OPERATOR_PATH+'?ref='+operatorMainSha,{headers:githubHeaders});
   demand(published.sha===gitBlobSha(await readFile(new URL(import.meta.url))),'OPERATOR_BYTES_DO_NOT_MATCH_GREEN_MAIN');
   const connections=JSON.parse(await requireRun(tools.podman,['system','connection','list','--format','json'],options,'PODMAN_CONNECTION_UNAVAILABLE'));
@@ -343,4 +342,22 @@ if(process.argv[1]&&pathToFileURL(resolve(process.argv[1])).href===import.meta.u
       next:'RETURN_THIS_STATUS_ONLY_NO_RESET_NO_RETRY_AFTER_PARTIAL_START'},null,2));
     process.exitCode=1;
   }
+}
+
+
+// DEC-053: green integration alone is never full release/deployment evidence.
+export async function fullExecutionSucceeded(run,sha,request){
+ if(run?.head_sha!==sha||run.head_branch!=='main'||run.path!=='.github/workflows/validate.yml'||
+   !['push','workflow_dispatch'].includes(run.event)||run.status!=='completed'||run.conclusion!=='success'||
+   !Number.isSafeInteger(run.id)||run.id<=0||!Number.isSafeInteger(run.run_attempt)||run.run_attempt<1)return false;
+ const result=await request('https://api.github.com/repos/threeswordz/cinder-grind/actions/runs/'+run.id+'/attempts/'+run.run_attempt+'/jobs?per_page=100');
+ return Number.isSafeInteger(result.total_count)&&result.total_count<=100&&result.jobs?.length===result.total_count&&
+   result.jobs.some(j=>j.name==='validate'&&j.run_id===run.id&&j.status==='completed'&&j.conclusion==='success'&&
+     Array.isArray(j.steps)&&j.steps.length>=30&&j.steps.every(s=>s.status==='completed'&&s.conclusion==='success')&&
+     ['Run V1.0-B paired recovery and isolated restore drill','Verify V1.0-E consolidated technical evidence']
+       .every(name=>j.steps.some(s=>s.name===name&&s.conclusion==='success')));
+}
+async function someFullExecution(runs,sha,request){
+ for(const run of runs?.workflow_runs??[])if(await fullExecutionSucceeded(run,sha,request))return true;
+ return false;
 }

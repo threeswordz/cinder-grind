@@ -59,6 +59,8 @@ If the desired outcome requires changing an approved rule, stop and obtain expli
 
 ## 4. Release discipline
 
+- **DEC-053:** After its independently reviewed/observed rollout, [CI validation policy](docs/CI-VALIDATION-POLICY.md) permits verified main integration to reuse the complete full PR's identical reviewed tree. Strict source/base/PR/run/attempt/review/job-log proof, fresh main build/audit/migrations/startup and an explicit integration receipt are mandatory; missing/changed/uncertain evidence or failed short checks requires full validation. Full PR/review remains, and final release/freeze/deployment consumers still require actual full main execution (push or explicit main-only full dispatch). An integration success is not a full-main test receipt. Until rollout proof, retain existing full obligations; no repeated scope approval is needed under #384.
+
 - **DEC-051:** After governed activation, follow [CI validation policy](docs/CI-VALIDATION-POLICY.md): focused ordinary branch feedback, full exact-head PR, guarded merge/tree equality and full exact-main in the first increment; explicit full-push lane where needed. DEC-052 / #378 additionally permits explicit stable-draft full validation after its own governed activation: changing ordinary drafts get focused feedback and a blocking full check; rerun the exact PR job for full validation before ready/review/merge. No tests, review, full main, human UAT or release/security gates are waived.
 
 - Do not begin the next stage before the current stage's completion gates are satisfied.
