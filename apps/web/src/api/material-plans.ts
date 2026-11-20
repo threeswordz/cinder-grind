@@ -33,7 +33,7 @@ export type PlanLine = {
   // Source-unit usage only; null means private or not yet stock-pinned.
   usedQuantity?: string | null;
   remainingQuantity?: string | null;
-  usageBasis?: 'ENTERED_UOM_LEGACY' | 'FROZEN_STOCK_PIN_REQUIRED' | 'FROZEN_STOCK_ISSUE_GATE_PENDING';
+  usageBasis?: 'ENTERED_UOM_LEGACY' | 'FROZEN_STOCK_PIN_REQUIRED' | 'FROZEN_STOCK_CANONICAL';
   material: { materialCode: string; materialName: string };
   uom: { uomCode: string };
 };

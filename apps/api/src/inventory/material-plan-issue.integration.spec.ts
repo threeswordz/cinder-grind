@@ -254,6 +254,9 @@ test('DEC-050 Stage C activated plan source: canonical direct/overage/return wit
   assert.equal(firstPosted.uomId,stock.id);
   assert.equal(firstPosted.materialUomEffectPin?.sourceQuantity.toString(),'1');
   assert.equal(firstPosted.materialUomEffectPin?.stockQuantity.toString(),'20');
+  const planAfterFirst=await f.service.get(f.store.auth,created.id);
+  assert.equal(planAfterFirst.approvedRevision?.lines[0]?.usedQuantity,'20.0000');
+  assert.equal(planAfterFirst.approvedRevision?.lines[0]?.remainingQuantity,'40.0000');
 
   // A future-effective pack rate must never reprice the earlier20 or approved60.
   await defs.revise({auth:f.store.auth},material.id,{
@@ -324,6 +327,8 @@ test('DEC-050 Stage C activated plan source: canonical direct/overage/return wit
   await f.returns.approve({auth:f.manager.auth},returned.id,randomUUID());
   assert.equal(await usage(),'56.0000');
   const unchanged=await f.service.get(f.store.auth,created.id);
+  assert.equal(unchanged.approvedRevision?.lines[0]?.usedQuantity,'56.0000');
+  assert.equal(unchanged.approvedRevision?.lines[0]?.remainingQuantity,'4.0000');
   assert.equal(unchanged.approvedRevision?.lines[0]?.materialUomPlanLinePin?.stockQuantity,'60.0000');
   assert.equal(await db.payment.count({where:{companyId:f.company.id}}),0);
   assert.equal(await db.directCostPosting.count({where:{companyId:f.company.id}}),0);

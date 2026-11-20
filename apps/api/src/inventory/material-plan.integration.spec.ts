@@ -195,8 +195,9 @@ test('DEC-050 C activated plan records exact frozen stock quantity without grant
   });
   const approved=await f.service.get(f.store.auth,created.id);
   assert.equal(approved.approvedRevision!.lines[0]!.materialUomPlanLinePin?.stockQuantity,'60.0000');
-  assert.equal(approved.approvedRevision!.lines[0]!.usageBasis,'FROZEN_STOCK_ISSUE_GATE_PENDING');
-  assert.equal(approved.approvedRevision!.lines[0]!.usedQuantity,null);
+  assert.equal(approved.approvedRevision!.lines[0]!.usageBasis,'FROZEN_STOCK_CANONICAL');
+  assert.equal(approved.approvedRevision!.lines[0]!.usedQuantity,'0.0000');
+  assert.equal(approved.approvedRevision!.lines[0]!.remainingQuantity,'60.0000');
   assert.equal(await db.stockTransaction.count({where:{materialId:material.id}}),0);
   assert.equal(await db.materialRequestLine.count({where:{materialId:material.id}}),0);
  }finally{await db.$disconnect();}

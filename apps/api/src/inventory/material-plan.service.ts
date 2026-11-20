@@ -54,12 +54,34 @@ export class MaterialPlanService{
     WHERE revision.id=${approved.id}::uuid AND plan.id=${p.id}::uuid
       AND plan.company_id=${auth.companyId}::uuid`;
    const usage=new Map(usedRows.map(row=>[row.lineId,new Prisma.Decimal(row.usedQuantity)]));
+   // Activated plans read ONLY immutable source pins plus posted, returned
+   // canonical ledger truth. Entered-unit legacy consumption is not reused.
+   const frozenRows=await db.$queryRaw<Array<{lineId:string;usedStock:Prisma.Decimal}>>`
+    SELECT line.id::text AS "lineId",
+      erp_uom_plan_frozen_usage(plan.id,line.budget_revision_line_id,line.material_id,line.uom_id) AS "usedStock"
+    FROM material_usage_plan_lines line
+    JOIN material_usage_plan_revisions revision ON revision.id=line.revision_id
+    JOIN material_usage_plans plan ON plan.id=revision.plan_id
+    JOIN material_uom_plan_line_pins pin ON pin.plan_line_id=line.id
+      AND pin.company_id=plan.company_id AND pin.material_id=line.material_id
+    JOIN material_uom_activations activation ON activation.company_id=plan.company_id
+      AND activation.material_id=line.material_id
+    WHERE revision.id=${approved.id}::uuid AND plan.id=${p.id}::uuid
+      AND plan.company_id=${auth.companyId}::uuid`;
+   const stockUsage=new Map(frozenRows.map(row=>[row.lineId,new Prisma.Decimal(row.usedStock)]));
    const active=await db.materialUomActivation.findMany({where:{companyId:auth.companyId,materialId:{in:approvedRevision.lines.map(line=>line.materialId)}},select:{materialId:true}});
    const activated=new Set(active.map(row=>row.materialId));
    presentedApproved={...approvedRevision,lines:approvedRevision.lines.map(line=>{
-    // A later activation must not make the legacy unit-based formula look
-    // like an approved canonical stock allowance.
-    if(activated.has(line.materialId))return {...line,usedQuantity:null,remainingQuantity:null,usageBasis:line.materialUomPlanLinePin?'FROZEN_STOCK_ISSUE_GATE_PENDING':'FROZEN_STOCK_PIN_REQUIRED'};
+    if(activated.has(line.materialId)){
+     const frozen=line.materialUomPlanLinePin;
+     if(!frozen)return {...line,usedQuantity:null,remainingQuantity:null,usageBasis:'FROZEN_STOCK_PIN_REQUIRED'};
+     const used=stockUsage.get(line.id);
+     if(used===undefined)conflict('MATERIAL_UOM_PLAN_FROZEN_USAGE_REQUIRED');
+     const cap=new Prisma.Decimal(frozen.stockQuantity);
+     return {...line,usedQuantity:used.toFixed(4),
+      remainingQuantity:Prisma.Decimal.max(0,cap.minus(used)).toFixed(4),
+      usageBasis:'FROZEN_STOCK_CANONICAL'};
+    }
     const used=usage.get(line.id)??new Prisma.Decimal(0);
     const allowance=new Prisma.Decimal(line.quantity);
     return {...line,usedQuantity:used.toFixed(4),remainingQuantity:Prisma.Decimal.max(0,allowance.minus(used)).toFixed(4),usageBasis:'ENTERED_UOM_LEGACY'};
