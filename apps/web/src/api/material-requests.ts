@@ -47,6 +47,17 @@ export type RequestLink = {
     linkedAt: string;
     quantity: string;
     currentlyIssued: boolean;
+    stockEffect: {
+        sourceUomId: string;
+        sourceQuantity: string;
+        stockUomId: string;
+        stockQuantity: string;
+        businessDate: string;
+        basisVersion: number;
+        revisionId: string | null;
+        numerator: string;
+        denominator: string;
+    } | null;
     issue: {
         id: string;
         issueNumber: string;

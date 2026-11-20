@@ -90,9 +90,12 @@ test('MR-AC-01–07 scoped request/issue/explicit signed receipt HTTP and databa
             assert.deepEqual(await effects(), before);
             const detail = (await call(f.store, root + '/' + requestId)).data;
             assert.equal(detail.lines[0].issuedQuantity, '6.0000');
+            assert.equal(detail.lines[0].issueLinks[0].stockEffect, null, 'unpinned historical source must not receive fabricated canonical conversion');
             assert.equal(detail.lines[0].acknowledgedQuantity, '0.0000');
             linkId = detail.lines[0].issueLinks[0].id;
-            assert.equal((await call(f.foreman, root + '/' + requestId)).data.lines[0].issueLinks[0].issue, null, 'view of request does not grant issue-source details');
+            const restricted = (await call(f.foreman, root + '/' + requestId)).data.lines[0].issueLinks[0];
+            assert.equal(restricted.issue, null, 'view of request does not grant issue-source details');
+            assert.equal(restricted.stockEffect, null, 'view of request does not grant issue conversion provenance');
             await call(f.store, root + '/' + requestId + '/issue-links', 409, { ...link, requestKey: randomUUID(), expectedVersion: detail.version });
             assert.equal((await call(f.store, root + '/' + requestId)).data.version, detail.version);
         });

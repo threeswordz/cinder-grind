@@ -149,6 +149,12 @@ function RequestDetail({ id, projectId, permissions }: {
   {permissions.includes('documents.document.view') ? <Evidence key={id} d={d} permissions={permissions}/> : null}
   {d.lines.flatMap(l => l.issueLinks.map(link => <Paper variant="outlined" sx={{ p: 1 }} key={link.id}>
    <Typography>{l.material.materialName} · {link.quantity} · {link.issue?.issueNumber ?? '—'}{!link.currentlyIssued ? ' · ' + t.reversed : ''}</Typography>
+   {link.stockEffect ? <Typography variant="caption" color="text.secondary">
+    {t.entered}: {link.stockEffect.sourceQuantity} · {t.canonicalStock}: {link.stockEffect.stockQuantity}
+    {' · '}{t.frozenRatio}: {link.stockEffect.numerator}/{link.stockEffect.denominator}
+    {' · '}{t.conversionDate}: {link.stockEffect.businessDate}
+    {' · '}{t.basisVersion}: {link.stockEffect.basisVersion}
+   </Typography> : null}
    {link.issue ? <Button onClick={() => setSourceIssue(link.issue!.id)}>{t.openSource}</Button> : null}
    {link.receipts.map(r => <Stack key={r.id} direction={{ xs: 'column', md: 'row' }} spacing={1}><Typography>{t.recipient}: {r.recipient.employeeName} · {t.issuer}: {r.issuer.employeeName} · {new Date(r.receivedAt).toLocaleString()} · {r.reason}{r.superseded ? ' · ' + t.superseded : ''}</Typography>{r.documentId && permissions.includes('documents.document.view') ? <Button onClick={() => void documentsApi.downloadTargetDocument(projectId, 'MATERIAL_REQUEST', id, r.documentId!)}>{t.download}</Button> : null}</Stack>)}
    {can('acknowledge') && permissions.includes('inventory.issue.view') && permissions.includes('documents.document.view') && link.currentlyIssued ? <Receipt key={link.id + ':' + pin} d={d} link={link} disabled={busy} onSend={body => c.send('/' + id + '/receipts', { ...body, requestKey: crypto.randomUUID(), expectedVersion: pin })}/> : null}

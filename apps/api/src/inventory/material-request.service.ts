@@ -64,7 +64,11 @@ export const MATERIAL_REQUEST_VIEW = 'inventory.material_request.view';
 const lineSelect = { id: true, lineNo: true, materialId: true, uomId: true, requestedQuantity: true, wbsId: true, costCodeId: true, activityId: true, remarks: true,
     material: { select: { materialCode: true, materialName: true } }, uom: { select: { uomCode: true } },
     issueLinks: { orderBy: [{ linkedAt: 'asc' as const }, { id: 'asc' as const }], select: { id: true, materialIssueItemId: true, linkedAt: true,
-            issueItem: { select: { quantity: true, materialIssue: { select: { id: true, issueNumber: true, postedAt: true, reversedAt: true } } } },
+            issueItem: { select: { quantity: true,
+                materialUomIssueSourcePin: { select: { companyId: true, materialId: true, sourceUomId: true,
+                    sourceQuantity: true, stockUomId: true, stockQuantity: true, businessDate: true,
+                    basisVersion: true, revisionId: true, numerator: true, denominator: true } },
+                materialIssue: { select: { id: true, issueNumber: true, postedAt: true, reversedAt: true } } } },
             receipts: { select: { id: true, recipientEmployeeId: true, issuerEmployeeId: true, receivedAt: true, documentId: true, evidenceChecksum: true,
                     reason: true, supersedesReceiptId: true, recordedAt: true, recipient: { select: { employeeName: true } }, issuer: { select: { employeeName: true } },
                     recordedBy: { select: { displayName: true } }, correction: { select: { id: true } } }, orderBy: { recordedAt: 'asc' as const } } } } } satisfies Prisma.MaterialRequestLineSelect;
@@ -135,12 +139,25 @@ export class MaterialRequestService {
                 const formatted=(q:bigint)=>{const digits=q.toString().padStart(5,'0');return digits.slice(0,-4)+'.'+digits.slice(-4);};
                 const links = line.issueLinks.map(link => {
                     const issue = link.issueItem.materialIssue, posted = Boolean(issue.postedAt && !issue.reversedAt);
+                    const pin = link.issueItem.materialUomIssueSourcePin;
+                    // Only disclose immutable issue-source conversions with current issue-view
+                    // permission. The request itself never grants stock-source visibility.
+                    const stockEffect = sourceVisible && pin &&
+                        pin.companyId === auth.companyId && pin.materialId === line.materialId &&
+                        pin.sourceQuantity.eq(link.issueItem.quantity)
+                        ? { sourceUomId: pin.sourceUomId, sourceQuantity: pin.sourceQuantity.toFixed(4),
+                            stockUomId: pin.stockUomId, stockQuantity: pin.stockQuantity.toFixed(4),
+                            businessDate: pin.businessDate.toISOString().slice(0, 10),
+                            basisVersion: pin.basisVersion, revisionId: pin.revisionId,
+                            numerator: pin.numerator, denominator: pin.denominator }
+                        : null;
                     if (posted)
                         issued += units(link.issueItem.quantity);
                     const receipt = link.receipts.find(r => !r.correction);
                     if (posted && receipt)
                         acknowledged += units(link.issueItem.quantity);
                     return { id: link.id, linkedAt: link.linkedAt, quantity: link.issueItem.quantity.toFixed(4), currentlyIssued: posted,
+                        stockEffect,
                         issue: sourceVisible ? issue : null, materialIssueItemId: sourceVisible ? link.materialIssueItemId : null,
                         receipts: link.receipts.map(r => ({ id: r.id, recipientEmployeeId: r.recipientEmployeeId, issuerEmployeeId: r.issuerEmployeeId,
                             recipient: r.recipient, issuer: r.issuer, receivedAt: r.receivedAt, recordedAt: r.recordedAt, recordedBy: r.recordedBy,
