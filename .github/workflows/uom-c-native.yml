@@ -12,6 +12,7 @@ on:
       - 'apps/api/src/inventory/material-request*'
       - 'apps/api/src/inventory/material-issue.service.ts'
       - 'apps/api/src/master-data/material-uom*'
+      - 'deploy/release-candidate/**'
 
 permissions:
   contents: read
