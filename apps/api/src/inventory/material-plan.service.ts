@@ -76,7 +76,7 @@ export class MaterialPlanService{
      const frozen=line.materialUomPlanLinePin;
      if(!frozen)return {...line,usedQuantity:null,remainingQuantity:null,usageBasis:'FROZEN_STOCK_PIN_REQUIRED'};
      const used=stockUsage.get(line.id);
-     if(used===undefined)conflict('MATERIAL_UOM_PLAN_FROZEN_USAGE_REQUIRED');
+     if(used===undefined)throw new ConflictException({code:'MATERIAL_UOM_PLAN_FROZEN_USAGE_REQUIRED'});
      const cap=new Prisma.Decimal(frozen.stockQuantity);
      return {...line,usedQuantity:used.toFixed(4),
       remainingQuantity:Prisma.Decimal.max(0,cap.minus(used)).toFixed(4),
