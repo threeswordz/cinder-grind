@@ -1,3 +1,4 @@
+import {executeMaterialUomStageCBrowser,stageCBrowserFixture} from './material-uom-stage-c-browser.mjs';
 import {executeMaterialUomBrowser} from './material-uom-browser.mjs';
 // Linux-only disposable material-UOM foundation: real built React, real login/CSRF API and PostgreSQL.
 // Never targets the populated Mac prototype; no transport mocks or human UAT.
@@ -21,7 +22,7 @@ export function standaloneMaterialUomBrowserFixture(f){
  return {company:{id:f.company.id},material:{id:f.material.id,code:f.material.materialCode,name:f.material.materialName},each:{id:f.each.id},carton:{id:f.carton.id},
  actors:Object.fromEntries([['maker',f.maker],['viewer',f.viewer],['technical',f.technical],['noConversion',f.noConversion]].map(([key,a])=>[key,{userId:a.user.id,email:a.user.email,password:a.password}]))};
 }
-export async function runMaterialUomBrowser(databaseUrl){
+export async function runMaterialUomBrowser(databaseUrl,{stageC=false}={}){
   const own=new URL(databaseUrl);
   assert.equal(process.platform,'linux');assert.equal(process.versions.node,'24.21.0');
   assert.ok(['localhost','127.0.0.1'].includes(own.hostname)&&Number(own.port)>0&&/^\/uom_[a-f0-9]{32}$/.test(own.pathname));
@@ -42,7 +43,11 @@ export async function runMaterialUomBrowser(databaseUrl){
     app.enableCors({origin:corsOriginPolicy(WEB),credentials:true,methods:['GET','POST','PATCH','PUT','DELETE','OPTIONS']});
     app.use(securityHeadersMiddleware(false));app.useGlobalFilters(new ProblemDetailsFilter());await app.listen(31359,'127.0.0.1');
     f=await require('./dist/master-data/material-uom-test-fixture.js').materialUomFixture(db);
-    const browserFixture=standaloneMaterialUomBrowserFixture(f);fixtureUsers=Object.values(browserFixture.actors).map(a=>a.userId);
+    if(stageC)await execute(process.execPath,['--test','--test-concurrency=1','--test-name-pattern=DEC-050',
+      'apps/api/dist/inventory/material-plan.integration.spec.js',
+      'apps/api/dist/inventory/material-plan-issue.integration.spec.js',
+      'apps/api/dist/inventory/material-request.integration.spec.js'],{cwd:root,env,timeout:120000,maxBuffer:2097152});
+    const browserFixture=stageC?await stageCBrowserFixture(db):standaloneMaterialUomBrowserFixture(f);fixtureUsers=Object.values(browserFixture.actors).map(a=>a.userId);
     await db.userSession.updateMany({where:{userId:{in:Object.values(browserFixture.actors).map(a=>a.userId)},revokedAt:null},data:{revokedAt:new Date()}});
     phase='WEB_BUILD';
     const out=join(temporary,'web');
@@ -70,8 +75,8 @@ export async function runMaterialUomBrowser(databaseUrl){
     exited=new Promise(ok=>child.once('close',ok));protocol=new PipeProtocol(child.stdio[4],child.stdio[3]);
     child.on('error',()=>protocol.close());child.on('exit',()=>protocol.close());await protocol.send('Browser.getVersion');
     phase='MATERIAL_UOM_ACTUAL_BROWSER_JOURNEY';
-    await executeMaterialUomBrowser(protocol,{api:API,web:WEB,fixture:browserFixture},db);
-    console.log('MATERIAL_UOM_BROWSER_NATIVE_PASS: real React explicit basis, immutable dated revisions, exact previews, dropped-response retry, EN/TH/zh-TW, mobile, read-only and technical-admin denials.');
+    await (stageC?executeMaterialUomStageCBrowser:executeMaterialUomBrowser)(protocol,{api:API,web:WEB,fixture:browserFixture},db);
+    console.log(stageC?'MATERIAL_UOM_STAGE_C_BROWSER_NATIVE_PASS: actual built plan/request screens, authenticated API, frozen canonical quantities, three locales, mobile, foreign-source denial, sessions revoked.':'MATERIAL_UOM_BROWSER_NATIVE_PASS: real React explicit basis, immutable dated revisions, exact previews, dropped-response retry, EN/TH/zh-TW, mobile, read-only and technical-admin denials.');
   }catch(e){throw Object.assign(new Error(),{safeCode:'MATERIAL_UOM_NATIVE_'+phase+'_'+(/^[A-Z0-9_]+$/.test(e.safeCode??'')?e.safeCode:'ASSERTION_OR_SETUP_FAILED')});}
   finally{
     if(child){
@@ -93,7 +98,8 @@ async function native(){
   try{
     await base.$executeRawUnsafe('CREATE DATABASE "'+name+'"');created=true;
     await execute('pnpm',['prisma:migrate:deploy'],{cwd:root,env:{...safeEnvironment(),DATABASE_URL:own.href},timeout:120000,maxBuffer:2097152});
-    await runMaterialUomBrowser(own.href);
+    assert.ok(process.argv[2]===undefined||process.argv[2]==='--stage-c');
+    await runMaterialUomBrowser(own.href,{stageC:process.argv[2]==='--stage-c'});
   }finally{try{if(created)await base.$executeRawUnsafe('DROP DATABASE "'+name+'" WITH (FORCE)');}finally{await base.$disconnect();}}
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(resolve(process.argv[1])).href){

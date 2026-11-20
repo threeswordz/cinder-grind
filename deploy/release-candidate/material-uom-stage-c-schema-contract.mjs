@@ -27,6 +27,12 @@ export const stageCTables=[
  'material_uom_plan_line_pins','material_uom_request_line_pins',
  'material_uom_plan_allocation_pins'
 ];
+export function materialUomStageCMode(mode){
+ const prefix='migration-aware-material-uom-stage-c-';
+ const present=typeof mode==='string'&&mode.startsWith(prefix);
+ return {present,prior:!present?mode:mode===prefix+'schema'
+  ?'migration-aware-sql-only':'migration-aware-'+mode.slice(prefix.length)};
+}
 export function stripMaterialUomStageCSchema(schema){
  const seen=new Set(),relationsSeen=new Set();
  let text=schema.replace(/^model (\w+) \{[\s\S]*?^\}/gm,(block,name)=>{

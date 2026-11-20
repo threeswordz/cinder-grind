@@ -1,3 +1,4 @@
+import {materialUomStageCMode,stageCMigrations} from './material-uom-stage-c-schema-contract.mjs';
 import {materialUomEffectMode,materialUomEffectMigration} from './material-uom-effect-schema-contract.mjs';
 import {materialUomMode,materialUomMigrations} from './material-uom-schema-contract.mjs';
 import {physicalMode,physicalMigrations} from './subcontract-physical-schema-contract.mjs';
@@ -37,7 +38,8 @@ if (rehearsal.releaseCommit !== expected || recovery.releaseCommit !== expected)
   fail('evidence release SHA does not match the exact workflow commit');
 }
 
-const {present:materialUomEffectSchema,prior:beforeEffect}=materialUomEffectMode(rehearsal.releaseMode);
+const {present:materialUomStageCSchema,prior:beforeStageC}=materialUomStageCMode(rehearsal.releaseMode);
+const {present:materialUomEffectSchema,prior:beforeEffect}=materialUomEffectMode(beforeStageC);
 const {present:materialUomSchema,prior:beforeUom}=materialUomMode(beforeEffect);
 const {present:physicalSchema,prior:beforePhysical}=physicalMode(beforeUom);
 const {present:transferSchema,prior:beforeTransfer}=transferMode(beforePhysical);
@@ -63,7 +65,7 @@ if (['migration-aware-sql-only', 'migration-aware-thb-schema', 'migration-aware-
   const customerSchema = ['migration-aware-customer-boq-schema','migration-aware-hr-customer-boq-schema'].includes(historicalMode);
   const hrSchema = ['migration-aware-hr-schema','migration-aware-hr-customer-boq-schema'].includes(historicalMode);
   const schemaAware = rehearsal.releaseMode !== 'migration-aware-sql-only';
-  if (rehearsal.version !== (materialUomEffectSchema ? 18 : materialUomSchema ? 17 : physicalSchema ? 16 : transferSchema ? 15 : receivingSchema ? 14 : siteIssueSchema ? 13 : planIssueSchema ? 12 : materialPlanSchema ? 11 : materialRequestSchema ? 10 : stockCountSchema ? 9 : hrDocumentSchema ? 8 : hrSchema ? (customerSchema ? 7 : 6) : customerSchema ? 5 : schemaAware ? 4 : 3)) fail('migration-aware rehearsal evidence schema version does not match its mode');
+  if (rehearsal.version !== (materialUomStageCSchema ? 19 : materialUomEffectSchema ? 18 : materialUomSchema ? 17 : physicalSchema ? 16 : transferSchema ? 15 : receivingSchema ? 14 : siteIssueSchema ? 13 : planIssueSchema ? 12 : materialPlanSchema ? 11 : materialRequestSchema ? 10 : stockCountSchema ? 9 : hrDocumentSchema ? 8 : hrSchema ? (customerSchema ? 7 : 6) : customerSchema ? 5 : schemaAware ? 4 : 3)) fail('migration-aware rehearsal evidence schema version does not match its mode');
   if (schemaAware) {
     if (!/^[0-9a-f]{40}$/.test(rehearsal.previousReleaseCommit ?? '') ||
         rehearsal.previousRuntimeCommit !== rehearsal.previousReleaseCommit) {
@@ -82,6 +84,10 @@ if (['migration-aware-sql-only', 'migration-aware-thb-schema', 'migration-aware-
     if (hrDocumentSchema) {
       if (!rehearsal.migrationNames?.includes('20261030160000_hr1_a_document_custody')) fail('Exact bounded HR attachment migration missing');
       for (const key of ['hrDocumentCustodyUpgrade','hrDocumentSchemaOnly']) if (rehearsal[key] !== 'PASS') fail('HR attachment custody upgrade ' + key + ' did not PASS');
+    }
+    if(materialUomStageCSchema){
+      for(const name of stageCMigrations)if(!rehearsal.migrationNames?.includes(name))fail('Exact material UOM C migration missing');
+      for(const key of ['materialUomStageCSchemaUpgrade','materialUomStageCHistoricalPreservation','materialUomStageCHttpUpgrade','materialUomStageCPopulatedRecovery'])if(rehearsal[key]!=='PASS')fail('Material UOM C proof missing: '+key);
     }
     if(materialUomEffectSchema){
       if(!rehearsal.migrationNames?.includes(materialUomEffectMigration))fail('Exact material UOM B migration missing');
@@ -126,7 +132,7 @@ if (['migration-aware-sql-only', 'migration-aware-thb-schema', 'migration-aware-
         if (rehearsal[key] !== 'PASS') fail('Stock-count upgrade proof ' + key + ' did not PASS');
       }
     }
-    if ((!customerSchema && !hrSchema && !stockCountSchema && !materialRequestSchema && !materialPlanSchema && !planIssueSchema && !siteIssueSchema && !receivingSchema && !transferSchema && !physicalSchema && !materialUomSchema && !materialUomEffectSchema) ||
+    if ((!customerSchema && !hrSchema && !stockCountSchema && !materialRequestSchema && !materialPlanSchema && !planIssueSchema && !siteIssueSchema && !receivingSchema && !transferSchema && !physicalSchema && !materialUomSchema && !materialUomEffectSchema && !materialUomStageCSchema) ||
         rehearsal.migrationNames?.some((name) => name.endsWith('_v1_2_thb_monetary_policy'))) {
       for (const key of ['genuineLegacySgdNullFixture', 'historicalRowsUnchanged']) {
         if (rehearsal[key] !== 'PASS') fail('historical migration proof ' + key + ' did not PASS');
@@ -202,7 +208,7 @@ if (['migration-aware-sql-only', 'migration-aware-thb-schema', 'migration-aware-
   }
 
   const migrationConsolidated = {
-    version: materialUomEffectSchema ? 18 : materialUomSchema ? 17 : physicalSchema ? 16 : transferSchema ? 15 : receivingSchema ? 14 : siteIssueSchema ? 13 : planIssueSchema ? 12 : materialPlanSchema ? 11 : materialRequestSchema ? 10 : stockCountSchema ? 9 : hrDocumentSchema ? 8 : customerSchema ? 5 : schemaAware ? 4 : 3,
+    version: materialUomStageCSchema ? 19 : materialUomEffectSchema ? 18 : materialUomSchema ? 17 : physicalSchema ? 16 : transferSchema ? 15 : receivingSchema ? 14 : siteIssueSchema ? 13 : planIssueSchema ? 12 : materialPlanSchema ? 11 : materialRequestSchema ? 10 : stockCountSchema ? 9 : hrDocumentSchema ? 8 : customerSchema ? 5 : schemaAware ? 4 : 3,
     releaseMode: rehearsal.releaseMode,
     releaseCommit: expected,
     provenance: {
