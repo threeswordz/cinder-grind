@@ -400,7 +400,7 @@ END $$;
 
 
 CREATE OR REPLACE FUNCTION enforce_stock_transaction_source()
-RETURNS trigger LANGUAGE plpgsql AS $
+RETURNS trigger LANGUAGE plpgsql AS $$
 DECLARE source RECORD; original RECORD; frozen material_uom_receipt_source_pins%ROWTYPE;
         reserved record; free_quantity numeric;
         returned_pin material_uom_effect_pins%ROWTYPE; prior_returned numeric;
@@ -472,18 +472,14 @@ BEGIN
       THEN RAISE EXCEPTION 'Issue movement quantity/state mismatch'; END IF;
       IF reserved.issue_item_id IS NOT NULL THEN
         IF reserved.reservation_id IS NULL THEN PERFORM erp_material_uom_assert_issue_pin_current(NEW.material_issue_item_id); END IF;
-        SELECT EXISTS(SELECT 1 FROM material_plan_issue_bindings
-          WHERE issue_id=NEW.material_issue_id) INTO plan_bound;
+        SELECT EXISTS(SELECT 1 FROM material_plan_issue_bindings WHERE issue_id=NEW.material_issue_id)
+           INTO plan_bound;
         IF plan_bound THEN
           IF reserved.reservation_id IS NOT NULL
-          THEN RAISE EXCEPTION 'MATERIAL_UOM_PLAN_RESERVATION_RECONCILIATION_REQUIRED'; END IF;
-          SELECT authorization_id INTO plan_auth
-            FROM material_plan_issue_bindings WHERE issue_id=NEW.material_issue_id;
+           THEN RAISE EXCEPTION 'MATERIAL_UOM_PLAN_RESERVATION_RECONCILIATION_REQUIRED'; END IF;
+          SELECT authorization_id INTO plan_auth FROM material_plan_issue_bindings
+           WHERE issue_id=NEW.material_issue_id;
           IF plan_auth IS NULL THEN RAISE EXCEPTION 'MATERIAL_UOM_PLAN_AUTHORIZATION_REQUIRED'; END IF;
-          -- The canonical posting owner and SQL share the same exact
-          -- current actor, immutable scope, stock allowance and two-person
-          -- overage approval proof. This branch cannot accept legacy approval
-          -- evidence as a substitute for plan admission.
           PERFORM erp_mpi_validate_auth(plan_auth,true,NEW.posted_by_user_id);
           IF NOT EXISTS(
             SELECT 1 FROM material_plan_issue_allocations allocation
@@ -491,11 +487,10 @@ BEGIN
             WHERE allocation.authorization_id=plan_auth
               AND allocation.issue_item_id=NEW.material_issue_item_id
               AND proof.company_id=NEW.company_id AND proof.material_id=NEW.material_id
-              AND proof.source_uom_id=source.uom_id
-              AND proof.source_quantity=source.item_quantity
+              AND proof.source_uom_id=source.uom_id AND proof.source_quantity=source.item_quantity
               AND proof.stock_uom_id=NEW.uom_id AND proof.stock_quantity=-NEW.quantity
-              AND proof.business_date=(
-                SELECT issue_date FROM material_issues WHERE id=NEW.material_issue_id)
+              AND proof.business_date=(SELECT issue_date FROM material_issues
+                WHERE id=NEW.material_issue_id)
           ) THEN RAISE EXCEPTION 'MATERIAL_UOM_PLAN_STOCK_EFFECT_UNAUTHORIZED'; END IF;
         END IF;
         PERFORM pg_advisory_xact_lock(hashtext('inventory-stock:'||NEW.company_id::text||':'||NEW.warehouse_id::text||':'||NEW.material_id::text||':'||NEW.project_id::text||':'||NEW.uom_id::text));
@@ -649,20 +644,7 @@ BEGIN
     RAISE EXCEPTION 'Stock Transaction requires a supported source family';
   END IF;
   RETURN NEW;
-END; $;
-
--- One pin per canonical forward goods receipt movement, generated from the frozen
--- source, never from caller-supplied conversion data.
-CREATE FUNCTION erp_material_uom_copy_receipt_pin() RETURNS trigger LANGUAGE plpgsql AS $
-BEGIN
- INSERT INTO material_uom_effect_pins(stock_transaction_id,company_id,material_id,
-    source_uom_id,source_quantity,stock_uom_id,stock_quantity,effect_sign,business_date,
-    basis_version,revision_id,numerator,denominator)
- SELECT NEW.id,p.company_id,p.material_id,p.source_uom_id,p.source_quantity,p.stock_uom_id,
-    p.stock_quantity,1,p.business_date,p.basis_version,p.revision_id,p.numerator,p.denominator
- FROM material_uom_receipt_source_pins p WHERE p.receipt_item_id=NEW.goods_receipt_item_id;
- RETURN NEW;
-END $;
+END; $$;
 
 -- Converted stock authority replaces only the earlier Stage C temporary
 -- all-converted allocation blocker. Immutable allocation pin, deferred proof,
