@@ -317,3 +317,79 @@ BEGIN
  THEN RAISE EXCEPTION 'Material plan issue operation proof required'; END IF;
  RETURN NULL;
 END $$;
+
+
+-- Plan-specific frozen converted sources are permitted only once the SQL
+-- authority and exact immutable stock-overage/allocation proof are attached.
+-- The legacy independent approval+same-transaction source guard remains.
+CREATE OR REPLACE FUNCTION erp_material_uom_issue_source_guard() RETURNS trigger LANGUAGE plpgsql AS $$
+DECLARE header material_issues%ROWTYPE;
+        item material_issue_items%ROWTYPE;
+        basis material_uom_bases%ROWTYPE;
+        source_unit units_of_measure%ROWTYPE;
+        stock_unit units_of_measure%ROWTYPE;
+        selected_revision material_uom_revisions%ROWTYPE;
+        plan_authorized boolean:=false;
+BEGIN
+ IF TG_OP='INSERT' THEN PERFORM erp_material_uom_require_activation(NEW.company_id,NEW.material_id); END IF;
+ IF TG_OP<>'INSERT' THEN RAISE EXCEPTION 'MATERIAL_UOM_ISSUE_SOURCE_IMMUTABLE'; END IF;
+ SELECT * INTO header FROM material_issues WHERE id=NEW.issue_id FOR UPDATE;
+ SELECT EXISTS(
+  SELECT 1 FROM material_plan_issue_bindings binding
+  JOIN material_plan_issue_authorizations authorization
+   ON authorization.id=binding.authorization_id AND authorization.issue_id=binding.issue_id
+  JOIN material_plan_issue_allocations allocation
+   ON allocation.authorization_id=authorization.id AND allocation.issue_item_id=NEW.issue_item_id
+  JOIN material_uom_plan_allocation_pins proof ON proof.allocation_id=allocation.id
+  JOIN material_uom_plan_line_pins plan_source ON plan_source.plan_line_id=allocation.plan_line_id
+  WHERE binding.issue_id=NEW.issue_id
+   AND proof.company_id=NEW.company_id AND proof.material_id=NEW.material_id
+   AND proof.source_uom_id=NEW.source_uom_id AND proof.source_quantity=NEW.source_quantity
+   AND proof.stock_uom_id=NEW.stock_uom_id AND proof.stock_quantity=NEW.stock_quantity
+   AND proof.business_date=NEW.business_date AND proof.basis_version=NEW.basis_version
+   AND proof.revision_id IS NOT DISTINCT FROM NEW.revision_id
+   AND proof.numerator=NEW.numerator AND proof.denominator=NEW.denominator
+   AND plan_source.stock_uom_id=proof.stock_uom_id
+   AND plan_source.stock_quantity=proof.plan_stock_quantity
+   AND authorization.mode IN ('DIRECT','OVERAGE')
+ ) INTO plan_authorized;
+ IF NOT FOUND OR header.company_id IS DISTINCT FROM NEW.company_id
+   OR header.project_id IS DISTINCT FROM NEW.project_id
+   OR header.warehouse_id IS DISTINCT FROM NEW.warehouse_id OR header.issue_date IS DISTINCT FROM NEW.business_date
+   OR header.submitted_at IS NULL
+   OR header.posted_at IS NOT NULL OR header.reversed_at IS NOT NULL
+   OR (NOT plan_authorized AND (
+       EXISTS(SELECT 1 FROM material_plan_issue_bindings WHERE issue_id=NEW.issue_id)
+       OR header.approval_instance_id IS NULL
+       OR NOT EXISTS(SELECT 1 FROM material_issues WHERE id=NEW.issue_id AND xmin=pg_current_xact_id()::xid)))
+   OR (plan_authorized AND header.approval_instance_id IS NOT NULL)
+ THEN RAISE EXCEPTION 'MATERIAL_UOM_ISSUE_SUBMISSION_REQUIRED'; END IF;
+ SELECT * INTO item FROM material_issue_items WHERE id=NEW.issue_item_id AND material_issue_id=NEW.issue_id FOR UPDATE;
+ IF NOT FOUND OR item.reservation_id IS NOT NULL OR item.material_id IS DISTINCT FROM NEW.material_id OR item.uom_id IS DISTINCT FROM NEW.source_uom_id
+   OR item.quantity IS DISTINCT FROM NEW.source_quantity
+ THEN RAISE EXCEPTION 'MATERIAL_UOM_ISSUE_SOURCE_MISMATCH'; END IF;
+ PERFORM pg_advisory_xact_lock(hashtextextended('material-uom:'||NEW.company_id::text||':'||NEW.material_id::text,0));
+ SELECT * INTO basis FROM material_uom_bases WHERE company_id=NEW.company_id AND material_id=NEW.material_id;
+ IF NOT FOUND OR basis.stock_uom_id<>NEW.stock_uom_id OR basis.version<>NEW.basis_version
+ THEN RAISE EXCEPTION 'MATERIAL_UOM_BASIS_MISMATCH'; END IF;
+ SELECT * INTO source_unit FROM units_of_measure WHERE id=NEW.source_uom_id AND company_id=NEW.company_id AND is_active;
+ SELECT * INTO stock_unit FROM units_of_measure WHERE id=NEW.stock_uom_id AND company_id=NEW.company_id AND is_active;
+ IF source_unit.id IS NULL OR stock_unit.id IS NULL OR stock_unit.decimal_places<>basis.stock_precision
+   OR NEW.source_quantity*NEW.numerator::numeric<>NEW.stock_quantity*NEW.denominator::numeric
+   OR mod(NEW.source_quantity*power(10::numeric,source_unit.decimal_places),1)<>0
+   OR mod(NEW.stock_quantity*power(10::numeric,basis.stock_precision),1)<>0
+ THEN RAISE EXCEPTION 'MATERIAL_UOM_ISSUE_SOURCE_INVALID'; END IF;
+ IF NEW.source_uom_id=NEW.stock_uom_id THEN
+   IF NEW.revision_id IS NOT NULL OR NEW.numerator<>'1' OR NEW.denominator<>'1'
+   THEN RAISE EXCEPTION 'MATERIAL_UOM_EFFECT_PIN_IDENTITY_REQUIRED'; END IF;
+ ELSE
+   SELECT * INTO selected_revision FROM material_uom_revisions WHERE company_id=NEW.company_id
+     AND material_id=NEW.material_id AND source_uom_id=NEW.source_uom_id AND effective_from<=NEW.business_date
+     ORDER BY effective_from DESC,revision_no DESC LIMIT 1;
+   IF selected_revision.id IS NULL OR selected_revision.id IS DISTINCT FROM NEW.revision_id
+     OR selected_revision.numerator<>NEW.numerator OR selected_revision.denominator<>NEW.denominator
+     OR selected_revision.revision_no>NEW.basis_version OR selected_revision.source_precision<>source_unit.decimal_places
+   THEN RAISE EXCEPTION 'MATERIAL_UOM_EFFECT_PIN_REVISION_MISMATCH'; END IF;
+ END IF;
+ RETURN NEW;
+END $$;
