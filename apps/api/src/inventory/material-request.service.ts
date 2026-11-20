@@ -249,7 +249,13 @@ export class MaterialRequestService {
         const line = r.lines.find(l => l.id === lineId);
         if (!line)
             this.invalid('MATERIAL_REQUEST_LINE_INVALID');
-        const rows = await this.prisma.materialIssueItem.findMany({ where: { ...(after ? { id: { gt: after } } : {}), materialId: line.materialId, uomId: line.uomId,
+        const currentPin=line.materialUomRequestLinePins[0] ?? null;
+        const rows = await this.prisma.materialIssueItem.findMany({ where: { ...(after ? { id: { gt: after } } : {}), materialId: line.materialId, ...(currentPin
+                ? { stockTransactions: { some: { movementType: 'MATERIAL_ISSUE', companyId: r.companyId,
+                    projectId: r.projectId, warehouseId: r.warehouseId,
+                    materialUomEffectPin: { is: { stockUomId: currentPin.stockUomId,
+                        companyId: r.companyId, materialId: line.materialId, effectSign: -1 } } } } }
+                : { uomId: line.uomId }),
                 wbsId: line.wbsId, costCodeId: line.costCodeId, activityId: line.activityId, materialRequestLink: null,
                 materialIssue: { companyId: r.companyId, projectId: r.projectId, warehouseId: r.warehouseId, postedAt: { not: null }, reversedAt: null } },
             select: { id: true, lineNo: true, quantity: true, materialIssue: { select: { id: true, issueNumber: true, issuedToEmployeeId: true } } }, orderBy: { id: 'asc' }, take: 101 });
@@ -288,9 +294,10 @@ export class MaterialRequestService {
     private async validateLine(db: Db, companyId: string, projectId: string, warehouseId: string, l: MaterialRequestLineInput) {
         this.quantity(l.requestedQuantity);
         const material = await db.material.findFirst({ where: { id: l.materialId, companyId, isActive: true }, select: { defaultUomId: true } });
+        const activated = await db.materialUomActivation.findFirst({ where: {companyId,materialId:l.materialId},select:{materialId:true} });
         if (!material || !await db.unitOfMeasure.findFirst({ where: { id: l.uomId, companyId, isActive: true }, select: { id: true } }))
             this.invalid('MATERIAL_REQUEST_MATERIAL_UOM_INVALID');
-        if (material.defaultUomId !== l.uomId && !await db.stockTransaction.findFirst({ where: { companyId, projectId, warehouseId, materialId: l.materialId, uomId: l.uomId }, select: { id: true } }))
+        if (material.defaultUomId !== l.uomId && !activated && !await db.stockTransaction.findFirst({ where: { companyId, projectId, warehouseId, materialId: l.materialId, uomId: l.uomId }, select: { id: true } }))
             this.invalid('MATERIAL_REQUEST_MATERIAL_UOM_INVALID');
         if (l.wbsId && !await db.wbsElement.findFirst({ where: { id: l.wbsId, projectId, isActive: true }, select: { id: true } }))
             this.invalid('MATERIAL_REQUEST_WBS_INVALID');
@@ -393,7 +400,15 @@ export class MaterialRequestService {
             const r = row!, line = r.lines.find(l => l.id === input.requestLineId);
             if (!line)
                 this.invalid('MATERIAL_REQUEST_LINE_INVALID');
-            const item = await tx.materialIssueItem.findFirst({ where: { id: input.materialIssueItemId, materialId: line.materialId, uomId: line.uomId, wbsId: line.wbsId, costCodeId: line.costCodeId, activityId: line.activityId,
+            const currentPin=line.materialUomRequestLinePins[0] ?? null;
+            const item = await tx.materialIssueItem.findFirst({ where: { id: input.materialIssueItemId,
+                    materialId: line.materialId, ...(currentPin
+                        ? { stockTransactions: { some: { movementType: 'MATERIAL_ISSUE', companyId: auth.companyId,
+                            projectId:r.projectId,warehouseId:r.warehouseId,
+                            materialUomEffectPin:{is:{stockUomId:currentPin.stockUomId,
+                                companyId:auth.companyId,materialId:line.materialId,effectSign:-1}}} } }
+                        : {uomId:line.uomId}),
+                    wbsId: line.wbsId, costCodeId: line.costCodeId, activityId: line.activityId,
                     materialIssue: { companyId: auth.companyId, projectId: r.projectId, warehouseId: r.warehouseId, postedAt: { not: null }, reversedAt: null } }, select: { id: true } });
             if (!item)
                 this.invalid('MATERIAL_REQUEST_ISSUE_INVALID');

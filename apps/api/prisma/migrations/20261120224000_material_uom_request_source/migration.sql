@@ -176,3 +176,102 @@ END $$;
 CREATE TRIGGER material_uom_request_link_effect_guard
  BEFORE INSERT ON material_request_issue_links
  FOR EACH ROW EXECUTE FUNCTION erp_uom_request_link_effect_guard();
+
+
+-- Preserve all original DEC-043 scope/actor/evidence checks. Extend only
+-- source-UOM eligibility for proven activated stock-converted request links.
+CREATE OR REPLACE FUNCTION erp_material_request_scope() RETURNS trigger LANGUAGE plpgsql AS $$
+DECLARE r RECORD; l RECORD; src RECORD; d RECORD;
+BEGIN
+ IF TG_TABLE_NAME='material_requests' THEN
+  IF NOT EXISTS (SELECT 1 FROM projects WHERE id=NEW.project_id AND company_id=NEW.company_id AND is_active)
+   OR NOT EXISTS (SELECT 1 FROM warehouses WHERE id=NEW.warehouse_id AND company_id=NEW.company_id
+    AND is_active AND (project_id IS NULL OR project_id=NEW.project_id))
+   OR (TG_OP='INSERT' AND NOT EXISTS (SELECT 1 FROM employees e JOIN project_members m ON m.employee_id=e.id
+    WHERE e.id=NEW.requester_employee_id AND e.company_id=NEW.company_id AND e.is_active
+     AND m.project_id=NEW.project_id AND m.is_active))
+   OR NOT EXISTS (SELECT 1 FROM users WHERE id=NEW.created_by_user_id AND company_id=NEW.company_id)
+   OR NOT EXISTS (SELECT 1 FROM users WHERE id=NEW.updated_by_user_id AND company_id=NEW.company_id AND is_active)
+  THEN RAISE EXCEPTION 'Material request ownership invalid'; END IF;
+  RETURN NEW;
+ END IF;
+ SELECT * INTO STRICT r FROM material_requests WHERE id=NEW.request_id;
+ IF TG_TABLE_NAME='material_request_lines' THEN
+  IF NOT EXISTS (SELECT 1 FROM materials WHERE id=NEW.material_id AND company_id=r.company_id AND is_active)
+   OR NOT EXISTS (SELECT 1 FROM units_of_measure WHERE id=NEW.uom_id AND company_id=r.company_id AND is_active)
+   OR NOT EXISTS (SELECT 1 FROM materials WHERE id=NEW.material_id AND default_uom_id=NEW.uom_id
+    UNION ALL SELECT 1 FROM stock_transactions WHERE company_id=r.company_id AND project_id=r.project_id
+     AND warehouse_id=r.warehouse_id AND material_id=NEW.material_id AND uom_id=NEW.uom_id
+    UNION ALL SELECT 1 FROM material_uom_activations a
+      JOIN material_uom_bases basis ON basis.company_id=a.company_id AND basis.material_id=a.material_id
+    WHERE a.company_id=r.company_id AND a.material_id=NEW.material_id
+      AND (NEW.uom_id=basis.stock_uom_id OR EXISTS(
+        SELECT 1 FROM material_uom_revisions rev
+        WHERE rev.company_id=r.company_id AND rev.material_id=NEW.material_id
+         AND rev.source_uom_id=NEW.uom_id AND rev.effective_from<=r.request_date)))
+   OR (NEW.wbs_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM wbs_elements WHERE id=NEW.wbs_id AND project_id=r.project_id AND is_active))
+   OR (NEW.cost_code_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM cost_codes WHERE id=NEW.cost_code_id AND company_id=r.company_id AND is_active))
+   OR (NEW.activity_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM activities WHERE id=NEW.activity_id AND company_id=r.company_id
+     AND project_id=r.project_id AND is_active AND (NEW.wbs_id IS NULL OR wbs_id=NEW.wbs_id)))
+  THEN RAISE EXCEPTION 'Material request line scope invalid'; END IF;
+ ELSIF TG_TABLE_NAME='material_request_issue_links' THEN
+  SELECT * INTO STRICT l FROM material_request_lines WHERE id=NEW.request_line_id;
+  SELECT i.*, x.company_id,x.project_id,x.warehouse_id,x.posted_at,x.reversed_at INTO src
+    FROM material_issue_items i JOIN material_issues x ON x.id=i.material_issue_id WHERE i.id=NEW.material_issue_item_id FOR SHARE OF i,x;
+  IF NOT FOUND OR l.request_id<>r.id OR src.company_id<>r.company_id OR src.project_id<>r.project_id
+   OR src.warehouse_id<>r.warehouse_id OR src.material_id<>l.material_id
+   OR (src.uom_id<>l.uom_id AND NOT EXISTS(
+      SELECT 1 FROM material_uom_activations a
+      JOIN material_uom_request_line_pins pin ON pin.company_id=a.company_id AND pin.material_id=a.material_id
+      WHERE a.company_id=r.company_id AND a.material_id=l.material_id
+       AND pin.request_line_id=l.id AND pin.request_version=(
+         SELECT MAX(p2.request_version) FROM material_uom_request_line_pins p2
+         WHERE p2.request_line_id=l.id AND p2.request_version<=r.version)
+       AND pin.source_quantity=l.requested_quantity AND pin.source_uom_id=l.uom_id
+       AND pin.stock_uom_id IN (
+         SELECT effect.stock_uom_id FROM stock_transactions txn
+         JOIN material_uom_effect_pins effect ON effect.stock_transaction_id=txn.id
+          AND effect.company_id=txn.company_id AND effect.material_id=txn.material_id
+         WHERE txn.material_issue_item_id=NEW.material_issue_item_id
+          AND txn.company_id=r.company_id AND txn.project_id=r.project_id
+          AND txn.warehouse_id=r.warehouse_id AND txn.material_id=l.material_id
+          AND txn.movement_type='MATERIAL_ISSUE' AND txn.quantity=-effect.stock_quantity
+          AND effect.effect_sign=-1)))
+   OR src.wbs_id IS DISTINCT FROM l.wbs_id OR src.cost_code_id IS DISTINCT FROM l.cost_code_id
+   OR src.activity_id IS DISTINCT FROM l.activity_id OR src.posted_at IS NULL OR src.reversed_at IS NOT NULL
+   OR NOT EXISTS (SELECT 1 FROM users WHERE id=NEW.linked_by_user_id AND company_id=r.company_id AND is_active)
+  THEN RAISE EXCEPTION 'Material request issue link invalid'; END IF;
+ ELSIF TG_TABLE_NAME='material_request_receipts' THEN
+  SELECT k.*,x.issued_to_employee_id,x.posted_at,x.reversed_at INTO l FROM material_request_issue_links k
+   JOIN material_issue_items i ON i.id=k.material_issue_item_id JOIN material_issues x ON x.id=i.material_issue_id
+   WHERE k.id=NEW.issue_link_id FOR SHARE OF x;
+  IF NOT FOUND OR l.request_id<>r.id OR l.posted_at IS NULL OR l.reversed_at IS NOT NULL
+   OR (l.issued_to_employee_id IS NOT NULL AND l.issued_to_employee_id<>NEW.recipient_employee_id)
+   OR NOT EXISTS (SELECT 1 FROM users WHERE id=NEW.recorded_by_user_id AND company_id=r.company_id AND is_active)
+   OR EXISTS (SELECT e.id FROM (VALUES (NEW.recipient_employee_id),(NEW.issuer_employee_id)) v(id)
+    LEFT JOIN employees e ON e.id=v.id AND e.company_id=r.company_id AND e.is_active
+    WHERE e.id IS NULL OR NOT EXISTS (SELECT 1 FROM project_members m WHERE m.employee_id=e.id AND m.project_id=r.project_id AND m.is_active))
+  THEN RAISE EXCEPTION 'Material request receipt actor/source invalid'; END IF;
+  SELECT * INTO d FROM documents WHERE id=NEW.document_id FOR SHARE;
+  IF NOT FOUND OR d.company_id<>r.company_id OR NOT d.is_active OR d.checksum IS DISTINCT FROM NEW.evidence_checksum
+   OR d.mime_type NOT IN ('application/pdf','image/jpeg','image/png')
+   OR NOT EXISTS (SELECT 1 FROM document_links WHERE document_id=d.id AND entity_type='MATERIAL_REQUEST' AND entity_id=r.id)
+   OR NOT EXISTS (SELECT 1 FROM document_links WHERE document_id=d.id AND entity_type='PROJECT' AND entity_id=r.project_id)
+   OR EXISTS (SELECT 1 FROM document_links WHERE document_id=d.id AND upper(entity_type) LIKE 'HR\_%' ESCAPE '\')
+  THEN RAISE EXCEPTION 'Material request signed evidence invalid'; END IF;
+  IF NEW.supersedes_receipt_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM material_request_receipts prior_receipt
+    WHERE prior_receipt.id=NEW.supersedes_receipt_id AND prior_receipt.request_id=r.id AND prior_receipt.issue_link_id=NEW.issue_link_id
+     AND NOT EXISTS (SELECT 1 FROM material_request_receipts later WHERE later.supersedes_receipt_id=prior_receipt.id))
+  THEN RAISE EXCEPTION 'Material request receipt correction is stale'; END IF;
+ ELSIF TG_TABLE_NAME='material_request_revisions' THEN
+  IF NEW.version<>r.version OR NEW.actor_user_id<>r.updated_by_user_id
+   OR (NEW.version=1) IS DISTINCT FROM (NEW.action='CAPTURE')
+   OR NOT EXISTS (SELECT 1 FROM users WHERE id=NEW.actor_user_id AND company_id=r.company_id AND is_active)
+  THEN RAISE EXCEPTION 'Material request revision scope invalid'; END IF;
+ ELSIF TG_TABLE_NAME='material_request_operations' THEN
+  IF NEW.company_id<>r.company_id OR NOT EXISTS (SELECT 1 FROM material_request_revisions v
+   WHERE v.id=NEW.revision_id AND v.request_id=r.id AND v.actor_user_id=NEW.actor_user_id AND v.action=NEW.action)
+  THEN RAISE EXCEPTION 'Material request replay ownership invalid'; END IF;
+ END IF;
+ RETURN NEW;
+END $$;;
