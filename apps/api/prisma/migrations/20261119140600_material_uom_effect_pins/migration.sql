@@ -1198,15 +1198,24 @@ END $$;
 
 CREATE FUNCTION erp_material_uom_active_movement_guard() RETURNS trigger LANGUAGE plpgsql AS $$
 DECLARE active material_uom_activations%ROWTYPE;
+        canonical_precision integer;
 BEGIN
  -- Source insertion/freeze owns the material lock; posting already owns its
  -- canonical inventory lock. Do not invert that order for original reversals.
  SELECT * INTO active FROM material_uom_activations WHERE company_id=NEW.company_id AND material_id=NEW.material_id;
  IF NOT FOUND THEN RETURN NEW; END IF;
  IF NEW.uom_id IS DISTINCT FROM active.stock_uom_id THEN RAISE EXCEPTION 'MATERIAL_UOM_CANONICAL_STOCK_UNIT_REQUIRED'; END IF;
- -- Original legacy same-basis corrections stay source exact. Never freeze a
- -- new source or invent a factor for an old unpinned reversal/return.
- IF NEW.reversal_of_id IS NOT NULL OR NEW.movement_type='MATERIAL_RETURN' OR NEW.stock_count_id IS NOT NULL THEN RETURN NEW; END IF;
+ -- Exact reversals retain original history. A new partial return is not a
+ -- reversal: unpinned legacy issues still require canonical stock precision.
+ IF NEW.reversal_of_id IS NOT NULL THEN RETURN NEW; END IF;
+ IF NEW.movement_type='MATERIAL_RETURN' THEN
+  SELECT b.stock_precision INTO STRICT canonical_precision FROM material_uom_bases b
+    WHERE b.company_id=NEW.company_id AND b.material_id=NEW.material_id;
+  IF mod(NEW.quantity*power(10::numeric,canonical_precision),1)<>0
+  THEN RAISE EXCEPTION 'MATERIAL_UOM_RETURN_ORIGINAL_PRECISION_OR_QUANTITY'; END IF;
+  RETURN NEW;
+ END IF;
+ IF NEW.stock_count_id IS NOT NULL THEN RETURN NEW; END IF;
  IF NEW.movement_type='GOODS_RECEIPT' AND EXISTS(SELECT 1 FROM material_uom_receipt_source_pins WHERE receipt_item_id=NEW.goods_receipt_item_id)
  OR NEW.movement_type='MATERIAL_ISSUE' AND (EXISTS(SELECT 1 FROM material_uom_issue_source_pins WHERE issue_item_id=NEW.material_issue_item_id) OR EXISTS(SELECT 1 FROM material_issue_items i JOIN material_uom_reservation_pins rp ON rp.reservation_id=i.reservation_id WHERE i.id=NEW.material_issue_item_id))
  OR NEW.movement_type IN ('STOCK_TRANSFER_IN','STOCK_TRANSFER_OUT') AND EXISTS(SELECT 1 FROM material_uom_transfer_source_pins WHERE transfer_item_id=NEW.stock_transfer_item_id)

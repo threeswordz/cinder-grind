@@ -10,6 +10,8 @@ import {MaterialReservationService} from '../inventory/material-reservation.serv
 import {ApprovalService} from '../approval/approval.service';
 import {GoodsReceiptService} from '../inventory/goods-receipt.service';
 import {MaterialIssueService} from '../inventory/material-issue.service';
+import {MaterialReturnService} from '../inventory/material-return.service';
+import {StockCountService} from '../inventory/stock-count.service';
 import {receivingFixture} from '../inventory/receiving-test-fixture';
 import {materialUomFixture} from './material-uom-test-fixture';
 import {resolveStockEffectPin} from './material-uom-effect-pin';
@@ -97,8 +99,8 @@ test('DEC-050 B explicit activation: current authority, immutable opt-in and den
    assert.equal(await db.materialUomEffectPin.count({where:{stockTransactionId:{in:[original.id,reversal.id]}}}),0);
    assert.equal(await db.materialUomReceiptSourcePin.count({where:{receiptId:receipt.id}}),0);
   });
-  await t.test('an issue posted before activation reverses its original unit and quantity with no pin backfill',async()=>{
-   const {f,receipts,receipt,activate,balance}=await legacySameBasisReceipt();
+  async function legacySameBasisIssue(stockPrecision?:number){
+   const fixture=await legacySameBasisReceipt('6',stockPrecision),{f}=fixture;
    const permissions=await db.permission.findMany({where:{permissionCode:{in:['inventory.issue.create','inventory.issue.submit','inventory.issue.reverse','inventory.issue.view','inventory.issue.approve']}}});
    assert.equal(permissions.length,5);
    await db.rolePermission.createMany({data:permissions.map(p=>({roleId:p.permissionCode==='inventory.issue.approve'?f.pm.role.id:f.store.role.id,permissionId:p.id})),skipDuplicates:true});
@@ -109,6 +111,10 @@ test('DEC-050 B explicit activation: current authority, immutable opt-in and den
    const issue=await issues.create({auth:maker},{projectId:f.project.id,warehouseId:f.warehouse.id,issueDate:new Date('2026-11-19T00:00:00Z'),lines:[{materialId:f.material.id,uomId:f.uom.id,quantity:new Prisma.Decimal(2)}]});
    await issues.submit({auth:maker},issue.id,workflow.workflowCode);await issues.approve({auth:checker},issue.id,randomUUID());
    const original=await db.stockTransaction.findFirstOrThrow({where:{materialIssueId:issue.id,movementType:'MATERIAL_ISSUE'}});
+   return {...fixture,maker,checker,issues,issue,original};
+  }
+  await t.test('an issue posted before activation reverses its original unit and quantity with no pin backfill',async()=>{
+   const {f,receipts,receipt,activate,balance,maker,issues,issue,original}=await legacySameBasisIssue();
    assert.equal(await balance(),'4');await activate();
    const key=randomUUID();await issues.reverse({auth:maker},issue.id,key,'Reverse pre-activation same-unit issue');
    await issues.reverse({auth:maker},issue.id,key,'Reverse pre-activation same-unit issue');
@@ -118,6 +124,42 @@ test('DEC-050 B explicit activation: current authority, immutable opt-in and den
    assert.equal(await db.materialUomEffectPin.count({where:{stockTransactionId:{in:[original.id,reversal.id]}}}),0);
    assert.equal(await db.materialUomIssueSourcePin.count({where:{issueId:issue.id}}),0);
    await receipts.reverse({auth:f.store.auth},receipt.id,randomUUID(),'Reverse original receipt after issue restoration');assert.equal(await balance(),'0');
+  });
+  await t.test('new returns of pre-activation issues obey canonical precision without inventing historical pins',async()=>{
+   const {f,activate,balance,issue,original}=await legacySameBasisIssue(0);
+   await activate();assert.equal(await balance(),'4');
+   const permissions=await db.permission.findMany({where:{permissionCode:{in:['inventory.return.create','inventory.return.submit','inventory.return.reverse','inventory.return.view','inventory.return.approve']}}});
+   assert.equal(permissions.length,5);
+   await db.rolePermission.createMany({data:permissions.map(p=>({roleId:p.permissionCode==='inventory.return.approve'?f.pm.role.id:f.store.role.id,permissionId:p.id})),skipDuplicates:true});
+   const maker=await f.sessions.resolve(f.store.session.sessionToken),checker=await f.sessions.resolve(f.pm.session.sessionToken);assert.ok(maker);assert.ok(checker);
+   await db.numberSequence.create({data:{companyId:f.company.id,entityType:'MATERIAL_RETURN',sequenceCode:'MATERIAL_RETURN',formatTemplate:'MRTYYMM-###',resetRule:'MONTHLY'}});
+   const workflow=await db.approvalWorkflow.create({data:{companyId:f.company.id,workflowCode:'LEGACY-RETURN',workflowName:'Synthetic legacy-source return',entityType:'MATERIAL_RETURN',steps:{create:[{stepNo:1,stepName:'Independent approval',requiredApprovals:1,stepRoles:{create:[{roleId:f.pm.role.id}]}}]}}});
+   const returns=app.get(MaterialReturnService),item=await db.materialIssueItem.findFirstOrThrow({where:{materialIssueId:issue.id}});
+   const pending=async(quantity:string)=>{
+    const row=await returns.create({auth:maker},{projectId:f.project.id,warehouseId:f.warehouse.id,returnDate:new Date('2026-11-19T00:00:00Z'),lines:[{materialIssueItemId:item.id,quantity:new Prisma.Decimal(quantity)}]});
+    await returns.submit({auth:maker},row.id,workflow.workflowCode);return row;
+   };
+   const fractional=await pending('0.5');
+   await assert.rejects(returns.approve({auth:checker},fractional.id,randomUUID()),code('MATERIAL_UOM_RETURN_ORIGINAL_PRECISION_OR_QUANTITY'));
+   assert.equal((await db.materialReturn.findUniqueOrThrow({where:{id:fractional.id}})).postedAt,null);
+   assert.equal(await db.stockTransaction.count({where:{materialReturnId:fractional.id}}),0);
+   assert.equal(await balance(),'4');
+   const whole=await pending('1'),key=randomUUID();
+   await returns.approve({auth:checker},whole.id,key);await returns.approve({auth:checker},whole.id,key);
+   const movement=await db.stockTransaction.findFirstOrThrow({where:{materialReturnId:whole.id,movementType:'MATERIAL_RETURN'}});
+   assert.equal(movement.quantity.toString(),'1');assert.equal(await balance(),'5');
+   assert.equal(await db.stockTransaction.count({where:{materialReturnId:whole.id}}),1);
+   // Direct SQL cannot introduce a fractional canonical effect either.
+   const {id:_id,postedAt:_at,...data}=movement;
+   await assert.rejects(db.stockTransaction.create({data:{...data,id:randomUUID(),quantity:new Prisma.Decimal('0.5'),effectKey:'fractional-probe:'+randomUUID()}}),/MATERIAL_UOM_RETURN_ORIGINAL_PRECISION_OR_QUANTITY/);
+   const count=await app.get(StockCountService).create({auth:maker},{projectId:f.project.id,warehouseId:f.warehouse.id,materialId:f.material.id,uomId:f.uom.id,countedAt:new Date(),actualQuantity:new Prisma.Decimal(5)});
+   assert.equal(count.expectedOnHand.toString(),'5');
+   const reversalKey=randomUUID();await returns.reverse({auth:maker},whole.id,reversalKey,'Exact legacy-source return reversal');
+   await returns.reverse({auth:maker},whole.id,reversalKey,'Exact legacy-source return reversal');
+   assert.equal(await balance(),'4');
+   assert.equal(await db.stockTransaction.count({where:{reversalOfId:movement.id}}),1);
+   assert.equal(await db.materialUomEffectPin.count({where:{stockTransactionId:{in:[original.id,movement.id]}}}),0);
+   assert.equal(await db.materialUomIssueSourcePin.count({where:{issueId:issue.id}}),0);
   });
 
   async function receivingBasis(){

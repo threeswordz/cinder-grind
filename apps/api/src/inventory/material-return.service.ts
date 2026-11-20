@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { deriveStockEffectFromOriginal } from '../master-data/material-uom-effect-pin';
+import { trackedCanonicalBasis } from './material-uom-stock-dimension';
 
 import { NumberSequenceService } from '../administration/number-sequence.service';
 import { ApprovalService } from '../approval/approval.service';
@@ -420,6 +421,13 @@ export class MaterialReturnService {
             const effect=deriveStockEffectFromOriginal({...pin,effectSign:-1},item.quantity,source.quantity.minus(alreadyReturned),1,
               {source:revision?.sourcePrecision??basis.stockPrecision,stock:basis.stockPrecision});
             stockEffects.set(item.id,effect);
+          }else{
+            // A new return is a new effect, even when the original legacy issue
+            // has no conversion pin. Keep its unit/provenance, but obey the
+            // immutable activated stock precision; never fabricate an old pin.
+            const basis=await trackedCanonicalBasis(tx,current.companyId,item.materialId);
+            if(basis&&(basis.stockUomId!==item.uomId||item.quantity.decimalPlaces()>basis.stockPrecision))
+              throw new ConflictException({code:'MATERIAL_UOM_RETURN_ORIGINAL_PRECISION_OR_QUANTITY'});
           }
         }
         if(stockEffects.size)await this.assertCurrentReturnAuthority(context.auth,tx,'inventory.return.approve');
