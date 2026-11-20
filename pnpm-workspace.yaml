@@ -16,3 +16,6 @@ overrides:
   # Security advisories GHSA-27r3-jxmh-p828 and GHSA-q7qp-rjg7-q26m.
   body-parser: 2.4.0
   multer: 2.5.0
+  # GHSA-7589-6fvf-x4pw / CVE-2026-121707: Prisma 6.19.3 pins vulnerable effect 3.21.0.
+  # Maintain the patched same-major override until Prisma's selected line adopts a fixed release.
+  effect: 3.22.1
