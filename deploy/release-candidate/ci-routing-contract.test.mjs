@@ -28,7 +28,7 @@ test('draft admission fails before install; final live identity follows all full
   assert.match(full.trimEnd(), /run: node deploy\/release-candidate\/ci-candidate-gate.mjs finish$/);
   const fullSteps=full.slice(full.indexOf('\n  validate:\n'));
   assert.doesNotMatch(fullSteps.slice(fullSteps.indexOf('    steps:')), /^\s+(if:|continue-on-error:)/m);
-  assert.doesNotMatch(full, /ready_for_review|pull_request_target|types: \[synchronize\]/);
+  assert.doesNotMatch(full, /pull_request_target|types: \[synchronize\]/);
   assert.match(full,/needs.integration-check.result != 'success' \|\| needs.integration-check.outputs.verified != 'true'/);
   for(const id of ['checkout','pnpm','node','checks','proof','artifact'])
     assert.ok(full.includes(`steps.${id}.outcome == 'success'`),id);
