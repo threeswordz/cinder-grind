@@ -39,7 +39,7 @@ function IssuePlanLine({
   const matching = current && current.projectId === issue.projectId &&
     current.warehouseId === issue.warehouseId &&
     approved && issue.issueDate.slice(0, 10) >= approved.validFrom && issue.issueDate.slice(0, 10) <= approved.validTo
-    ? approved.lines.filter(l => l.materialId === line.materialId && l.uomId === line.uomId)
+    ? approved.lines.filter(l => l.materialId === line.materialId && (l.uomId === line.uomId || l.materialUomPlanLinePin != null))
     : [];
   const approvedPlan = Boolean(approved && current && matching.length);
   return <Paper variant="outlined" sx={{ p: 1.5 }}>
@@ -139,7 +139,7 @@ export function MaterialPlanIssueControls({
         plan.warehouseId === issue.warehouseId && plan.version === pin.expectedPlanVersion &&
         issue.issueDate.slice(0, 10) >= effective.validFrom && issue.issueDate.slice(0, 10) <= effective.validTo &&
         effective.lines.some(line => line.id === pin.planLineId &&
-          line.materialId === item.materialId && line.uomId === item.uomId));
+          line.materialId === item.materialId && (line.uomId === item.uomId || line.materialUomPlanLinePin != null)));
     });
   const applicablePreview = complete && preview?.fingerprint === fingerprint ? preview.value : null;
   const previewMutation = useMutation({
@@ -227,13 +227,16 @@ export function MaterialPlanIssueControls({
         disabled={!complete || Boolean(pending) || previewMutation.isPending || plans.isError}
         onClick={() => { setPreview(null); previewMutation.mutate({ bindings, fingerprint }); }}>{t.preview}</Button>
       {applicablePreview ? <Stack spacing={1}>
+        {applicablePreview.items.some(item=>item.stockBasis!==null) ?
+          <Alert severity="info">{t.canonicalPostingPending}</Alert> : null}
         <Alert severity={applicablePreview.result === 'WITHIN_PLAN' ? 'success' : 'warning'}>
           {applicablePreview.result === 'WITHIN_PLAN' ? t.matched : t.overage}
-          {' · '}{t.overageQuantity}: {applicablePreview.overageQuantity}
+          {' · '}{t.overageQuantity}: {applicablePreview.overageQuantity ?? t.perLineOverage}
         </Alert>
         {applicablePreview.items.map(item => <Typography variant="caption" key={item.issueItemId}>
           {item.issueItemId.slice(0, 8)}: {t.allowance} {item.allowance}, {t.used} {item.used},
           {' '}{t.remaining} {item.remaining}
+          {item.stockBasis ? ` · ${t.stockQuantity} ${item.stockBasis.stockQuantity} ${item.stockBasis.stockUomCode} · ${t.overageQuantity} ${item.overageQuantity} ${item.stockBasis.stockUomCode} · ${item.stockBasis.numerator}/${item.stockBasis.denominator} · ${item.stockBasis.effectiveDate} · ${t.stockPreviewOnly}` : ''}
         </Typography>)}
         {applicablePreview.result === 'WITHIN_PLAN' ?
           <Button variant="contained" disabled={Boolean(pending)}
@@ -265,7 +268,9 @@ export function MaterialPlanIssueControls({
     {(visibleHistory?.items ?? []).map(h => <Stack key={h.id} spacing={0.5}>
       <Typography variant="body2">#{h.sequence} · {t.mode}: {h.mode} · {t.stage}: {h.approval?.approvalState ?? 'DIRECT'}</Typography>
       {h.lines.map(l => <Typography key={l.issueItemId} variant="caption">
-        {l.issueItemId.slice(0, 8)} · {l.quantity} · {t.overageQuantity}: {l.overageQuantity}
+        {l.issueItemId.slice(0, 8)} · {l.quantity} · {t.overageQuantity}: {l.materialUomPlanAllocationPin
+          ? `${l.materialUomPlanAllocationPin.stockOverageQuantity} (${t.stockUnitOverage})`
+          : l.overageQuantity}
       </Typography>)}
     </Stack>)}
     <Stack direction="row" spacing={1}>

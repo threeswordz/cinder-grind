@@ -12,6 +12,7 @@ import {materialPlanIntegrityException} from './material-plan-errors';
 import {MPI,mpiEnable,mpiPost,mpiDecision,mpiIntegrity} from './material-plan-issue-contract';
 import {lockMaterialPlanIds,lockMaterialPlanIssues} from './material-plan-issue-locks';
 import {mpId,mpInvalid} from './material-plan-contract';
+import {resolveStockEffectPin} from '../master-data/material-uom-effect-pin';
 type Context={auth:AuthenticatedUserContext;correlationId?:string};
 type Tx=Prisma.TransactionClient;
 type Policy=Prisma.MaterialPlanProjectPolicyGetPayload<{}>;
@@ -23,7 +24,9 @@ function conflict(code:string):never{throw new ConflictException({code});}
 function invalid(code:string):never{throw new UnprocessableEntityException({code});}
 const authSelect={id:true,sequence:true,mode:true,bodyDigest:true,createdByUserId:true,createdAt:true,approvalInstanceId:true,
  approval:{select:{approvalState:true,currentStepNo:true,actions:{orderBy:{actionAt:'asc' as const},select:{id:true,approvalStepId:true,action:true,actionByUserId:true,actionAt:true,comment:true}}}},
- lines:{orderBy:{issueItemId:'asc' as const},select:{issueItemId:true,planId:true,planLineId:true,planVersion:true,quantity:true,overageQuantity:true,planLine:{select:{revisionId:true,budgetRevisionLineId:true}}}}} satisfies Prisma.MaterialPlanIssueAuthorizationSelect;
+ lines:{orderBy:{issueItemId:'asc' as const},select:{issueItemId:true,planId:true,planLineId:true,planVersion:true,quantity:true,overageQuantity:true,
+   materialUomPlanAllocationPin:{select:{stockQuantity:true,stockUomId:true,stockOverageQuantity:true,planStockQuantity:true}},
+   planLine:{select:{revisionId:true,budgetRevisionLineId:true}}}}} satisfies Prisma.MaterialPlanIssueAuthorizationSelect;
 @Injectable()
 export class MaterialPlanIssueService{
  constructor(private readonly prisma:PrismaService,private readonly access:ProjectAccessService,private readonly audit:AuditService,private readonly approvals:ApprovalService,private readonly issues:MaterialIssueService){}
@@ -83,25 +86,64 @@ export class MaterialPlanIssueService{
  }
  private async evaluate(auth:AuthenticatedUserContext,issue:Issue,pins:Pins,tx:Tx,locking:boolean){
   if(pins.length!==issue.items.length)invalid('MATERIAL_PLAN_COMPLETE_BINDINGS_REQUIRED');
-  let lines=await tx.materialUsagePlanLine.findMany({where:{id:{in:pins.map(p=>p.planLineId)},revision:{plan:{companyId:auth.companyId,projectId:issue.projectId,warehouseId:issue.warehouseId}}},include:{revision:{include:{plan:true}}}});
-  if(locking){await lockMaterialPlanIds(tx,lines.map(l=>l.revision.planId));lines=await tx.materialUsagePlanLine.findMany({where:{id:{in:pins.map(p=>p.planLineId)},revision:{plan:{companyId:auth.companyId,projectId:issue.projectId,warehouseId:issue.warehouseId}}},include:{revision:{include:{plan:true}}}});}
+  let lines=await tx.materialUsagePlanLine.findMany({where:{id:{in:pins.map(p=>p.planLineId)},revision:{plan:{companyId:auth.companyId,projectId:issue.projectId,warehouseId:issue.warehouseId}}},include:{revision:{include:{plan:true}},materialUomPlanLinePin:true}});
+  if(locking){await lockMaterialPlanIds(tx,lines.map(l=>l.revision.planId));lines=await tx.materialUsagePlanLine.findMany({where:{id:{in:pins.map(p=>p.planLineId)},revision:{plan:{companyId:auth.companyId,projectId:issue.projectId,warehouseId:issue.warehouseId}}},include:{revision:{include:{plan:true}},materialUomPlanLinePin:true}});}
+  const activated=new Set((await tx.materialUomActivation.findMany({where:{companyId:auth.companyId,materialId:{in:issue.items.map(i=>i.materialId)}},select:{materialId:true}})).map(row=>row.materialId));
   const spent=new Map<string,Prisma.Decimal>(),usage=new Map<string,Prisma.Decimal>(),allocations=[];let overage=new Prisma.Decimal(0);
   for(const item of issue.items){
    const pin=pins.find(p=>p.issueItemId===item.id),line=lines.find(l=>l.id===pin?.planLineId);
-   if(!pin||!line||line.materialId!==item.materialId||line.uomId!==item.uomId||line.revision.status!=='APPROVED'||line.revision.plan.version!==pin.expectedPlanVersion||issue.issueDate<line.revision.validFrom||issue.issueDate>line.revision.validTo)invalid('MATERIAL_PLAN_BINDING_OR_VERSION_INVALID');
+   if(!pin||!line||line.materialId!==item.materialId||(!activated.has(item.materialId)&&line.uomId!==item.uomId)||line.revision.status!=='APPROVED'||line.revision.plan.version!==pin.expectedPlanVersion||issue.issueDate<line.revision.validFrom||issue.issueDate>line.revision.validTo)invalid('MATERIAL_PLAN_BINDING_OR_VERSION_INVALID');
    const latest=await tx.materialUsagePlanRevision.findFirst({where:{planId:line.revision.planId,status:'APPROVED'},orderBy:{revisionNo:'desc'},select:{id:true}});if(latest?.id!==line.revisionId)conflict('MATERIAL_PLAN_EFFECTIVE_VERSION_CHANGED');
    await tx.$executeRaw`SELECT erp_mp_assert_lines(${line.revisionId}::uuid,false)`;
-   const k=[line.revision.planId,line.budgetRevisionLineId,item.materialId,item.uomId].join(':');
-   let used=usage.get(k);if(!used){const [r]=await tx.$queryRaw<Array<{quantity:Prisma.Decimal}>>`SELECT erp_mpi_usage(${line.revision.planId}::uuid,${line.budgetRevisionLineId}::uuid,${item.materialId}::uuid,${item.uomId}::uuid,${issue.id}::uuid) AS quantity`;used=new Prisma.Decimal(r!.quantity);usage.set(k,used);}
-   const remaining=line.quantity.minus(used).minus(spent.get(k)??0),excess=Prisma.Decimal.max(0,item.quantity.minus(Prisma.Decimal.max(0,remaining)));
-   spent.set(k,(spent.get(k)??new Prisma.Decimal(0)).plus(item.quantity));overage=overage.plus(excess);
-   allocations.push({issueItemId:item.id,planId:line.revision.planId,planLineId:line.id,planVersion:line.revision.plan.version,quantity:item.quantity,overageQuantity:excess,allowance:line.quantity,used,remaining,revisionId:line.revisionId});
+   const active=activated.has(item.materialId),stockPin=line.materialUomPlanLinePin;
+   const reserved=active&&item.reservationId
+    ?await tx.materialUomReservationPin.findUnique({where:{reservationId:item.reservationId}}):null;
+   if(active&&item.reservationId&&(!reserved||reserved.companyId!==auth.companyId||
+    reserved.projectId!==issue.projectId||reserved.warehouseId!==issue.warehouseId||
+    reserved.materialId!==item.materialId||reserved.sourceUomId!==item.uomId||!reserved.sourceQuantity.eq(item.quantity)))
+    conflict('MATERIAL_UOM_ISSUE_RESERVATION_SOURCE_MISMATCH');
+   if(active&&(!stockPin||stockPin.companyId!==auth.companyId||stockPin.materialId!==item.materialId||
+    stockPin.sourceUomId!==line.uomId||!stockPin.sourceQuantity.eq(line.quantity)))
+    conflict('MATERIAL_UOM_PLAN_PIN_REQUIRED');
+   const conversion=reserved??(active?await resolveStockEffectPin(tx,{companyId:auth.companyId,materialId:item.materialId,
+    sourceUomId:item.uomId,quantity:item.quantity,businessDate:issue.issueDate.toISOString().slice(0,10),effectSign:-1}):null);
+   if(active&&stockPin?.stockUomId!==conversion?.stockUomId)conflict('MATERIAL_UOM_PLAN_STOCK_BASIS_CHANGED');
+   const basisQuantity=conversion?.stockQuantity??item.quantity;
+   const allowance=active?stockPin!.stockQuantity:line.quantity;
+   const k=[line.revision.planId,line.budgetRevisionLineId,item.materialId,line.uomId].join(':');
+   let used=usage.get(k);
+   if(used===undefined){
+    const [r]=active
+     ? await tx.$queryRaw<Array<{quantity:Prisma.Decimal}>>`SELECT erp_uom_plan_frozen_usage(${line.revision.planId}::uuid,${line.budgetRevisionLineId}::uuid,${item.materialId}::uuid,${line.uomId}::uuid,${issue.id}::uuid) AS quantity`
+     : await tx.$queryRaw<Array<{quantity:Prisma.Decimal}>>`SELECT erp_mpi_usage(${line.revision.planId}::uuid,${line.budgetRevisionLineId}::uuid,${item.materialId}::uuid,${line.uomId}::uuid,${issue.id}::uuid) AS quantity`;
+    used=new Prisma.Decimal(r!.quantity);usage.set(k,used);
+   }
+   const remaining=allowance.minus(used).minus(spent.get(k)??0);
+   const excess=Prisma.Decimal.max(0,basisQuantity.minus(Prisma.Decimal.max(0,remaining)));
+   spent.set(k,(spent.get(k)??new Prisma.Decimal(0)).plus(basisQuantity));
+   overage=overage.plus(excess);
+   allocations.push({issueItemId:item.id,materialId:item.materialId,sourceUomId:item.uomId,
+    planId:line.revision.planId,planLineId:line.id,
+    planVersion:line.revision.plan.version,quantity:item.quantity,overageQuantity:excess,
+    allowance,used,remaining,revisionId:line.revisionId,
+    stockBasis:conversion?{
+     stockQuantity:conversion.stockQuantity.toFixed(4),stockUomId:conversion.stockUomId,
+     stockUomCode:stockPin!.stockUomCode,sourceUomId:conversion.sourceUomId,
+     sourceQuantity:conversion.sourceQuantity.toFixed(4),effectiveDate:conversion.businessDate.toISOString().slice(0,10),
+     numerator:conversion.numerator,denominator:conversion.denominator,
+     basisVersion:conversion.basisVersion,revisionId:conversion.revisionId
+    }:null});
   }
   return {allocations,overage};
  }
  async preview(supplied:AuthenticatedUserContext,id:string,value:unknown){
   id=mpId(id);const input=mpiPost(value);return this.retry(async tx=>{const auth=await this.authorize(supplied,tx);await this.scopedBinding(auth,id,tx);const issue=await this.currentIssue(auth,id,tx);const e=await this.evaluate(auth,issue,input.bindings,tx,false);
-   return {issueId:id,result:e.overage.gt(0)?'OVERAGE_REQUIRED':'WITHIN_PLAN',overageQuantity:e.overage.toFixed(4),items:e.allocations.map(l=>({...l,quantity:l.quantity.toFixed(4),overageQuantity:l.overageQuantity.toFixed(4),allowance:l.allowance.toFixed(4),used:l.used.toFixed(4),remaining:l.remaining.toFixed(4)}))};});
+   return {issueId:id,result:e.overage.gt(0)?'OVERAGE_REQUIRED':'WITHIN_PLAN',
+    // Never sum overage across distinct canonical stock units into a fake total.
+    overageQuantity:e.allocations.some(l=>l.stockBasis)?null:e.overage.toFixed(4),
+    items:e.allocations.map(l=>({...l,quantity:l.quantity.toFixed(4),
+     overageQuantity:l.overageQuantity.toFixed(4),allowance:l.allowance.toFixed(4),
+     used:l.used.toFixed(4),remaining:l.remaining.toFixed(4)}))};});
  }
  private async authorization(auth:AuthenticatedUserContext,issue:Issue,policy:Policy,input:ReturnType<typeof mpiPost>,mode:'DIRECT'|'OVERAGE',tx:Tx){
   const e=await this.evaluate(auth,issue,input.bindings,tx,true);
@@ -115,7 +157,26 @@ export class MaterialPlanIssueService{
    const a=await this.approvals.start({companyId:auth.companyId,workflowCode:workflow.workflowCode,entityType:'MATERIAL_PLAN_OVERAGE',entityId:id},tx);approvalId=a.id;
   }
   await tx.materialPlanIssueAuthorization.create({data:{id,issueId:issue.id,sequence:(previous?.sequence??0)+1,mode,bodyDigest:r!.digest,approvalInstanceId:approvalId,workflowDigest:mode==='OVERAGE'?r!.workflow:null,createdByUserId:auth.userId,
-   lines:{create:e.allocations.map(l=>({issueItemId:l.issueItemId,planId:l.planId,planLineId:l.planLineId,planVersion:l.planVersion,quantity:l.quantity,overageQuantity:l.overageQuantity}))}}});
+   lines:{create:e.allocations.map(l=>({issueItemId:l.issueItemId,planId:l.planId,planLineId:l.planLineId,planVersion:l.planVersion,quantity:l.quantity,
+    // Source-unit legacy overage remains unchanged. An activated material's
+    // exact stock-basis overage can exceed entered cartons, so it belongs
+    // only in the immutable allocation stock pin (never rounded to cartons).
+    overageQuantity:l.stockBasis?new Prisma.Decimal(0):l.overageQuantity}))}}});
+  const persisted=await tx.materialPlanIssueAllocation.findMany({where:{authorizationId:id},select:{id:true,issueItemId:true}});
+  for(const line of e.allocations){
+   if(!line.stockBasis)continue;
+   const alloc=persisted.find(row=>row.issueItemId===line.issueItemId);
+   if(!alloc)conflict('MATERIAL_UOM_PLAN_ALLOCATION_PIN_REQUIRED');
+   await tx.materialUomPlanAllocationPin.create({data:{
+    allocationId:alloc.id,companyId:auth.companyId,materialId:line.materialId,
+    sourceUomId:line.sourceUomId,sourceQuantity:line.quantity,
+    stockUomId:line.stockBasis.stockUomId,stockQuantity:new Prisma.Decimal(line.stockBasis.stockQuantity),
+    planStockQuantity:line.allowance,stockOverageQuantity:line.overageQuantity,
+    businessDate:new Date(line.stockBasis.effectiveDate+'T00:00:00.000Z'),
+    basisVersion:line.stockBasis.basisVersion,revisionId:line.stockBasis.revisionId,
+    numerator:line.stockBasis.numerator,denominator:line.stockBasis.denominator
+   }});
+  }
   if(!issue.submittedAt)await tx.materialIssue.update({where:{id:issue.id},data:{submittedAt:new Date(),submittedByUserId:auth.userId}});
   return id;
  }
@@ -126,6 +187,21 @@ export class MaterialPlanIssueService{
   await tx.$executeRawUnsafe('SELECT pg_advisory_xact_lock(hashtext($1))','inventory-warehouse:'+issue.warehouseId);
   await tx.$queryRaw`SELECT id FROM warehouses WHERE id=${issue.warehouseId}::uuid FOR NO KEY UPDATE`;
   await tx.materialPlanIssueBinding.update({where:{issueId:id},data:{authorizationId}});
+  const frozen=await tx.materialUomPlanAllocationPin.findMany({
+   where:{allocation:{authorizationId}},include:{allocation:{select:{issueItemId:true}}},
+   orderBy:[{materialId:'asc'},{allocationId:'asc'}]
+  });
+  for(const proof of frozen){
+   if(issue.items.find(item=>item.id===proof.allocation.issueItemId)?.reservationId)continue;
+   await tx.materialUomIssueSourcePin.create({data:{
+    issueItemId:proof.allocation.issueItemId,issueId:id,companyId:proof.companyId,
+    projectId:issue.projectId,warehouseId:issue.warehouseId,materialId:proof.materialId,
+    sourceUomId:proof.sourceUomId,sourceQuantity:proof.sourceQuantity,
+    stockUomId:proof.stockUomId,stockQuantity:proof.stockQuantity,
+    businessDate:proof.businessDate,basisVersion:proof.basisVersion,revisionId:proof.revisionId,
+    numerator:proof.numerator,denominator:proof.denominator
+   }});
+  }
   await this.issues.postInTransaction({auth},id,key,tx);
  }
  async withinPlan(context:Context,id:string,value:unknown){
@@ -154,6 +230,12 @@ export class MaterialPlanIssueService{
   if(!binding)return {binding:null,items:[],nextCursor:null};await this.scopedBinding(auth,id,this.prisma);
   const cursor=after?await this.prisma.materialPlanIssueAuthorization.findFirst({where:{id:after,issueId:id},select:{sequence:true}}):null;if(after&&!cursor)mpInvalid('after');
   const rows=await this.prisma.materialPlanIssueAuthorization.findMany({where:{issueId:id,...(cursor?{sequence:{lt:cursor.sequence}}:{})},select:authSelect,orderBy:{sequence:'desc'},take:26});
-  return {binding,items:rows.slice(0,25).map(a=>({...a,lines:a.lines.map(l=>({...l,quantity:l.quantity.toFixed(4),overageQuantity:l.overageQuantity.toFixed(4)}))})),nextCursor:rows.length>25?rows[24]!.id:null};
+  return {binding,items:rows.slice(0,25).map(a=>({...a,lines:a.lines.map(l=>({...l,quantity:l.quantity.toFixed(4),overageQuantity:l.overageQuantity.toFixed(4),
+   materialUomPlanAllocationPin:l.materialUomPlanAllocationPin?{
+    stockQuantity:l.materialUomPlanAllocationPin.stockQuantity.toFixed(4),
+    stockUomId:l.materialUomPlanAllocationPin.stockUomId,
+    stockOverageQuantity:l.materialUomPlanAllocationPin.stockOverageQuantity.toFixed(4),
+    planStockQuantity:l.materialUomPlanAllocationPin.planStockQuantity.toFixed(4)
+   }:null}))})),nextCursor:rows.length>25?rows[24]!.id:null};
  }
 }

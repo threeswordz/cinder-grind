@@ -1,0 +1,107 @@
+# Temporary Stage C engineering lane: genuine disposable PostgreSQL only.
+# Does not replace complete stable PR validation, reviewed main integration,
+# browser, retained copied migration/recovery or real UAT.
+name: UOM Stage C Targeted PostgreSQL
+on:
+  push:
+    branches: ['vuom-stage-c-20261120']
+    paths:
+      - '.github/workflows/uom-c-native.yml'
+      - 'apps/api/prisma/**'
+      - 'apps/api/src/inventory/material-plan*'
+      - 'apps/api/src/inventory/material-request*'
+      - 'apps/api/src/inventory/material-issue.service.ts'
+      - 'apps/api/src/master-data/material-uom*'
+      - 'deploy/release-candidate/**'
+      - 'deploy/uat/material-uom*'
+      - 'apps/web/src/inventory/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: uom-c-native-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  uom-c-postgres:
+    name: uom-c-postgres
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    services:
+      postgres:
+        image: postgres:17.11-alpine
+        env:
+          POSTGRES_DB: construction_erp
+          POSTGRES_USER: construction_erp
+          POSTGRES_PASSWORD: construction_erp_dev_only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U construction_erp -d construction_erp"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://construction_erp:construction_erp_dev_only@localhost:5432/construction_erp_v10e_upgrade_0123456789ab?schema=public
+      RC_NON_PRODUCTION_CONFIRMED: 'YES'
+      MATERIAL_UOM_STAGE_C_SCHEMA_UPGRADE: 'YES'
+      NODE_ENV: test
+      EXACT_STAGE_C_COMMIT: ${{ github.sha }}
+    steps:
+      - name: Checkout exact Stage C candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          ref: ${{ github.sha }}
+      - name: Verify immutable source identity
+        run: test "$(git rev-parse HEAD)" = "$EXACT_STAGE_C_COMMIT"
+      - name: Set up pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
+        with:
+          version: 12.6.0
+          run_install: false
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.21.0
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Generate and validate forward-only schema
+        run: |
+          pnpm prisma:generate
+          pnpm prisma:validate
+      - name: Create exclusively owned Stage C upgrade database
+        run: docker exec "${{ job.services.postgres.id }}" psql -U construction_erp -d postgres -v ON_ERROR_STOP=1 -c 'CREATE DATABASE construction_erp_v10e_upgrade_0123456789ab'
+      - name: Apply full ordered migration chain on fresh disposable PostgreSQL
+        run: |
+          pnpm prisma:migrate:deploy
+          pnpm --filter @construction-erp/api exec prisma migrate status
+      - name: Build API including actual native integration tests
+        run: pnpm --filter @construction-erp/api build
+      - name: Verify release schema and migration contracts before costly full validation
+        run: node --test deploy/release-candidate/*.test.mjs
+      - name: Prove empty Stage C additions before fixture writes
+        run: |
+          mkdir -m 700 /tmp/construction-erp-v10e-migration.targeted
+          node deploy/release-candidate/material-uom-stage-c-upgrade.mjs pristine /tmp/construction-erp-v10e-migration.targeted/material-uom-stage-c-pristine.json
+      - name: Verify only affected material plan and request native PostgreSQL/API paths
+        run: |
+          node --test --test-concurrency=1 \
+            apps/api/dist/inventory/material-plan.integration.spec.js \
+            apps/api/dist/inventory/material-plan-issue.integration.spec.js \
+            apps/api/dist/inventory/material-request.integration.spec.js
+      - name: Verify populated copy and restored authenticated Stage C application
+        run: |
+          node deploy/release-candidate/material-uom-stage-c-upgrade.mjs protect /tmp/construction-erp-v10e-migration.targeted/material-uom-stage-c-protected.json
+          docker exec "${{ job.services.postgres.id }}" pg_dump -U construction_erp --format=custom --no-owner --no-privileges construction_erp_v10e_upgrade_0123456789ab > /tmp/uom-c-populated.dump
+          docker exec "${{ job.services.postgres.id }}" psql -U construction_erp -d postgres -v ON_ERROR_STOP=1 -c 'CREATE DATABASE construction_erp_v10e_hrrestore_0123456789ab'
+          docker exec -i "${{ job.services.postgres.id }}" pg_restore -U construction_erp --exit-on-error --no-owner --no-privileges -d construction_erp_v10e_hrrestore_0123456789ab < /tmp/uom-c-populated.dump
+          DATABASE_URL=postgresql://construction_erp:construction_erp_dev_only@localhost:5432/construction_erp_v10e_hrrestore_0123456789ab?schema=public node deploy/release-candidate/material-uom-stage-c-upgrade.mjs restored /tmp/construction-erp-v10e-migration.targeted/material-uom-stage-c-protected.json
+      - name: Verify actual built plan and request browser readback
+        env:
+          DATABASE_URL: postgresql://construction_erp:construction_erp_dev_only@localhost:5432/construction_erp?schema=public
+        run: node deploy/uat/material-uom-browser-native.mjs --stage-c
+      - name: Classify result without claiming release completion
+        if: success()
+        run: echo "STAGE_C_TARGETED_PG_BROWSER_COPY_ONLY - no full PR, independent-review, exact-main, retained deployment or human UAT receipt"

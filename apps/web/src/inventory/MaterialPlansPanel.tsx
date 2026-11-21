@@ -248,6 +248,19 @@ export function MaterialPlansPanel({ permissions }: { permissions: string[] }) {
           <Typography variant="subtitle2">{t.approved}</Typography>
           <Typography variant="body2">{current.approvedRevision ?
             '#' + current.approvedRevision.revisionNo : t.unapproved}</Typography>
+          {current.approvedRevision?.lines.map(line =>
+            <Typography key={line.id} variant="body2">
+              {line.material.materialCode} · {line.material.materialName} ·
+              {' '}{t.quantity}: {line.quantity} {line.uom.uomCode}
+              {line.usageBasis === 'ENTERED_UOM_LEGACY' && line.usedQuantity !== null
+                && line.usedQuantity !== undefined && line.remainingQuantity !== null
+                && line.remainingQuantity !== undefined
+                ? ` · ${t.used}: ${line.usedQuantity} · ${t.remaining}: ${line.remainingQuantity} ${line.uom.uomCode}`
+                : line.usageBasis === 'FROZEN_STOCK_PIN_REQUIRED' ? ` · ${t.canonicalPending}`
+                : line.usageBasis === 'FROZEN_STOCK_CANONICAL' && line.materialUomPlanLinePin
+                ? ` · ${t.frozenStock}: ${line.materialUomPlanLinePin.stockQuantity} ${line.materialUomPlanLinePin.stockUomCode} · ${t.frozenRate}: ${line.materialUomPlanLinePin.numerator}/${line.materialUomPlanLinePin.denominator} · ${t.frozenDate}: ${line.materialUomPlanLinePin.businessDate} · ${t.usedStock}: ${line.usedQuantity} · ${t.remainingStock}: ${line.remainingQuantity} ${line.materialUomPlanLinePin.stockUomCode}`
+                : ''}
+            </Typography>)}
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} flexWrap="wrap">
             {can('revise') && selected.status !== 'SUBMITTED' ?
               <Button disabled={Boolean(pending)} onClick={() => fillRevision(current)}>{t.load}</Button> : null}

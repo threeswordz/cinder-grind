@@ -142,13 +142,27 @@ function RequestDetail({ id, projectId, permissions }: {
     return <Paper variant="outlined" sx={{ p: 2, overflowX: 'auto' }}><Stack spacing={2}>
   <Typography variant="h6">{t.requester}: {d.requester.employeeName} · {d.requestDate.slice(0, 10)} · {t.version} {d.version}</Typography>
   <Button disabled={c.busy} onClick={() => { c.clear(); setMode(''); void q.refetch().then(result => setPin(result.isError ? null : result.data?.data.version ?? null)); }}>{t.reload}</Button><CommandNotice c={c}/>{stale ? <Alert severity="warning">{t.stale}</Alert> : null}
-  <Table size="small"><TableHead><TableRow>{[t.material, t.requested, t.issued, t.acknowledged, t.state].map(x => <TableCell key={x}>{x}</TableCell>)}</TableRow></TableHead><TableBody>{d.lines.map(l => <TableRow key={l.id}><TableCell>{l.material.materialCode} · {l.material.materialName} ({l.uom.uomCode})</TableCell><TableCell>{l.requestedQuantity}</TableCell><TableCell>{l.issuedQuantity}</TableCell><TableCell>{l.acknowledgedQuantity}</TableCell><TableCell>{t[('status_' + l.fulfillment) as keyof typeof t] ?? l.fulfillment}</TableCell></TableRow>)}</TableBody></Table>
+  <Table size="small"><TableHead><TableRow>{[t.material, t.requested, t.issued, t.remaining, t.acknowledged, t.state].map(x => <TableCell key={x}>{x}</TableCell>)}</TableRow></TableHead><TableBody>{d.lines.map(l => <TableRow key={l.id}><TableCell>{l.material.materialCode} · {l.material.materialName} ({l.uom.uomCode})</TableCell><TableCell>{l.requestedQuantity}{l.requestStockBasis ? <Typography variant="caption" display="block">
+ {t.stockRequested}: {l.requestStockBasis.stockQuantity} {l.requestStockBasis.stockUomCode}
+ {' · '}{t.frozenRatio}: {l.requestStockBasis.numerator}/{l.requestStockBasis.denominator}
+ {' · '}{t.conversionDate}: {l.requestStockBasis.businessDate}
+</Typography> : null}</TableCell><TableCell>{l.issuedQuantity ?? '—'}{l.requestStockBasis ? <Typography variant="caption" display="block">{t.stockIssued}: {l.stockIssuedQuantity} {l.requestStockBasis.stockUomCode}</Typography> : null}</TableCell><TableCell>{l.requestStockBasis ? `${l.stockRemainingQuantity} ${l.requestStockBasis.stockUomCode}` : l.remainingQuantity}</TableCell><TableCell>{l.acknowledgedQuantity ?? '—'}{l.requestStockBasis ? <Typography variant="caption" display="block">{t.stockAcknowledged}: {l.stockAcknowledgedQuantity} {l.requestStockBasis.stockUomCode}</Typography> : null}</TableCell><TableCell>{t[('status_' + l.fulfillment) as keyof typeof t] ?? l.fulfillment}</TableCell></TableRow>)}</TableBody></Table>
   <Stack direction="row" flexWrap="wrap">{can('edit') ? <Button disabled={busy} onClick={() => setMode('edit')}>{t.edit}</Button> : null}{can('link') && permissions.includes('inventory.issue.view') ? <Button disabled={busy} onClick={() => setMode('link')}>{t.link}</Button> : null}</Stack>
   {mode === 'edit' ? <Revision key={pin ?? 0} d={d} disabled={busy} onSend={body => c.send('/' + id + '/revisions', { ...body, requestKey: crypto.randomUUID(), expectedVersion: pin })}/> : null}
   {mode === 'link' ? <LinkIssue key={pin ?? 0} d={d} disabled={busy} onSend={body => c.send('/' + id + '/issue-links', { ...body, requestKey: crypto.randomUUID(), expectedVersion: pin })}/> : null}
   {permissions.includes('documents.document.view') ? <Evidence key={id} d={d} permissions={permissions}/> : null}
   {d.lines.flatMap(l => l.issueLinks.map(link => <Paper variant="outlined" sx={{ p: 1 }} key={link.id}>
-   <Typography>{l.material.materialName} · {link.quantity} · {link.issue?.issueNumber ?? '—'}{!link.currentlyIssued ? ' · ' + t.reversed : ''}</Typography>
+   <Typography>{l.material.materialName} · {link.quantity} {link.sourceUomCode} · {link.issue?.issueNumber ?? '—'}{!link.currentlyIssued ? ' · ' + t.reversed : ''}</Typography>
+   {link.returnedStockQuantity !== null && link.returnedStockQuantity !== '0.0000' ?
+     <Typography variant="caption" color="text.secondary">
+       {t.returnedStock}: {link.returnedStockQuantity} {l.requestStockBasis?.stockUomCode}
+     </Typography> : null}
+   {link.stockEffect ? <Typography variant="caption" color="text.secondary">
+    {t.entered}: {link.stockEffect.sourceQuantity} · {t.canonicalStock}: {link.stockEffect.stockQuantity}
+    {' · '}{t.frozenRatio}: {link.stockEffect.numerator}/{link.stockEffect.denominator}
+    {' · '}{t.conversionDate}: {link.stockEffect.businessDate}
+    {' · '}{t.basisVersion}: {link.stockEffect.basisVersion}
+   </Typography> : null}
    {link.issue ? <Button onClick={() => setSourceIssue(link.issue!.id)}>{t.openSource}</Button> : null}
    {link.receipts.map(r => <Stack key={r.id} direction={{ xs: 'column', md: 'row' }} spacing={1}><Typography>{t.recipient}: {r.recipient.employeeName} · {t.issuer}: {r.issuer.employeeName} · {new Date(r.receivedAt).toLocaleString()} · {r.reason}{r.superseded ? ' · ' + t.superseded : ''}</Typography>{r.documentId && permissions.includes('documents.document.view') ? <Button onClick={() => void documentsApi.downloadTargetDocument(projectId, 'MATERIAL_REQUEST', id, r.documentId!)}>{t.download}</Button> : null}</Stack>)}
    {can('acknowledge') && permissions.includes('inventory.issue.view') && permissions.includes('documents.document.view') && link.currentlyIssued ? <Receipt key={link.id + ':' + pin} d={d} link={link} disabled={busy} onSend={body => c.send('/' + id + '/receipts', { ...body, requestKey: crypto.randomUUID(), expectedVersion: pin })}/> : null}

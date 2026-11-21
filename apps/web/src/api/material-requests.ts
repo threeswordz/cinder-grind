@@ -46,7 +46,21 @@ export type RequestLink = {
     id: string;
     linkedAt: string;
     quantity: string;
+    sourceUomCode: string;
+    returnedQuantity: string;
+    returnedStockQuantity: string | null;
     currentlyIssued: boolean;
+    stockEffect: {
+        sourceUomId: string;
+        sourceQuantity: string;
+        stockUomId: string;
+        stockQuantity: string;
+        businessDate: string;
+        basisVersion: number;
+        revisionId: string | null;
+        numerator: string;
+        denominator: string;
+    } | null;
     issue: {
         id: string;
         issueNumber: string;
@@ -69,8 +83,18 @@ export type RequestLine = {
         uomCode: string;
     };
     requestedQuantity: string;
-    issuedQuantity: string;
-    acknowledgedQuantity: string;
+    issuedQuantity: string | null;
+    acknowledgedQuantity: string | null;
+    remainingQuantity: string | null;
+    requestStockBasis: {
+      requestVersion: number; sourceQuantity: string; sourceUomId: string;
+      stockQuantity: string; stockUomId: string; stockUomCode: string;
+      businessDate: string; basisVersion: number; revisionId: string | null;
+      numerator: string; denominator: string;
+    } | null;
+    stockIssuedQuantity: string | null;
+    stockAcknowledgedQuantity: string | null;
+    stockRemainingQuantity: string | null;
     fulfillment: string;
     remarks: string | null;
     wbsId: string | null;

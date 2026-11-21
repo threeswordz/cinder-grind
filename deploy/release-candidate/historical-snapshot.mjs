@@ -1,3 +1,4 @@
+import {stageCTables} from './material-uom-stage-c-schema-contract.mjs';
 import {materialUomEffectTables} from './material-uom-effect-schema-contract.mjs';
 import {materialUomTables} from './material-uom-schema-contract.mjs';
 import {physicalTables} from './subcontract-physical-schema-contract.mjs';
@@ -18,8 +19,9 @@ const emptyDigest = createHash('sha256').update('').digest('hex');
 
 // The source snapshot was taken by the actual old runtime. Only the exact new
 // empty tables may be absent there; every pre-existing table/hash stays strict.
-export function assertHistoricalTables(before, after, hrApproved = false, hrDocumentApproved = false, stockCountApproved = false, materialRequestApproved = false, materialPlanApproved = false, planIssueApproved = false, siteIssueApproved = false, receivingApproved = false, transferApproved = false, physicalApproved = false, materialUomApproved = false, materialUomEffectApproved = false) {
+export function assertHistoricalTables(before, after, hrApproved = false, hrDocumentApproved = false, stockCountApproved = false, materialRequestApproved = false, materialPlanApproved = false, planIssueApproved = false, siteIssueApproved = false, receivingApproved = false, transferApproved = false, physicalApproved = false, materialUomApproved = false, materialUomEffectApproved = false, materialUomStageCApproved = false) {
   const extra = Object.keys(after).filter((name) => !Object.hasOwn(before, name));
+  if(materialUomStageCApproved)assert.ok(stageCTables.every(name=>!Object.hasOwn(before,name)&&extra.includes(name)),'Complete exact material UOM C source group required');
   if (hrApproved) assert.ok(hrTables.every(name => !Object.hasOwn(before,name) && extra.includes(name)), 'Complete new HR table group required');
   if (hrDocumentApproved) assert.ok(hrDocumentTables.every(name => !Object.hasOwn(before,name) && extra.includes(name)), 'Complete new HR attachment table group required');
   if (stockCountApproved) assert.ok(stockCountTables.every(name => !Object.hasOwn(before,name) && extra.includes(name)), 'Complete new stock-count table group required');
@@ -33,7 +35,7 @@ export function assertHistoricalTables(before, after, hrApproved = false, hrDocu
   if(materialUomEffectApproved)assert.ok(materialUomEffectTables.every(name=>!Object.hasOwn(before,name)&&extra.includes(name)),'Complete exact material UOM B effect group required');
   if(physicalApproved)assert.ok(physicalTables.every(name=>!Object.hasOwn(before,name)&&extra.includes(name)),'Complete exact physical source group required');
   if (extra.length) {
-    const expected = [...(hrApproved ? hrTables : []), ...(hrDocumentApproved ? hrDocumentTables : []),
+    const expected = [...(materialUomStageCApproved ? stageCTables : []), ...(hrApproved ? hrTables : []), ...(hrDocumentApproved ? hrDocumentTables : []),
       ...(stockCountApproved ? stockCountTables : []), ...(materialRequestApproved ? materialRequestTables : []), ...(materialPlanApproved ? materialPlanTables : []), ...(planIssueApproved ? planIssueTables : []), ...(siteIssueApproved ? siteIssueTables : []), ...(receivingApproved ? receivingTables : []), ...(transferApproved ? transferTables : []), ...(physicalApproved ? physicalTables : []), ...(materialUomApproved ? materialUomTables : []), ...(materialUomEffectApproved ? materialUomEffectTables : []),
       ...(!Object.hasOwn(before,'customer_boq_versions') ? addedTables : [])];
     assert.deepEqual([...extra].sort(), [...expected].sort(), 'Unexpected/partial schema addition in historical snapshot');

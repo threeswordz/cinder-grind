@@ -11,6 +11,11 @@ import { PrismaService } from '../prisma/prisma.service';
 import { securityHeadersMiddleware } from '../common/security-headers';
 import { ProblemDetailsFilter } from '../common/problem-details.filter';
 import { materialRequestFixture } from './material-request-test-fixture';
+import {MaterialUomService} from '../master-data/material-uom.service';
+import {StockCountService} from './stock-count.service';
+import {MaterialReturnService} from './material-return.service';
+import {AuditService} from '../audit/audit.service';
+import {Prisma} from '@prisma/client';
 test('MR-AC-01–07 scoped request/issue/explicit signed receipt HTTP and database contracts', async (t) => {
     const oldStorage = process.env.STORAGE_ROOT, storage = await mkdtemp(path.join(tmpdir(), 'erp-material-request-'));
     process.env.STORAGE_ROOT = storage;
@@ -56,6 +61,7 @@ test('MR-AC-01–07 scoped request/issue/explicit signed receipt HTTP and databa
             lineId = detail.lines[0].id;
             assert.equal(detail.lines[0].requestedQuantity, '10.0000');
             assert.equal(detail.lines[0].issuedQuantity, '0.0000');
+            assert.equal(detail.lines[0].remainingQuantity, '10.0000');
             assert.equal(detail.lines[0].acknowledgedQuantity, '0.0000');
             await call(f.outsider, root + '/' + requestId, 403);
             assert.equal((await call(f.foreman, root + '/' + requestId)).data.lines[0].issuedQuantity, '0.0000');
@@ -90,9 +96,13 @@ test('MR-AC-01–07 scoped request/issue/explicit signed receipt HTTP and databa
             assert.deepEqual(await effects(), before);
             const detail = (await call(f.store, root + '/' + requestId)).data;
             assert.equal(detail.lines[0].issuedQuantity, '6.0000');
+            assert.equal(detail.lines[0].remainingQuantity, '4.0000');
+            assert.equal(detail.lines[0].issueLinks[0].stockEffect, null, 'unpinned historical source must not receive fabricated canonical conversion');
             assert.equal(detail.lines[0].acknowledgedQuantity, '0.0000');
             linkId = detail.lines[0].issueLinks[0].id;
-            assert.equal((await call(f.foreman, root + '/' + requestId)).data.lines[0].issueLinks[0].issue, null, 'view of request does not grant issue-source details');
+            const restricted = (await call(f.foreman, root + '/' + requestId)).data.lines[0].issueLinks[0];
+            assert.equal(restricted.issue, null, 'view of request does not grant issue-source details');
+            assert.equal(restricted.stockEffect, null, 'view of request does not grant issue conversion provenance');
             await call(f.store, root + '/' + requestId + '/issue-links', 409, { ...link, requestKey: randomUUID(), expectedVersion: detail.version });
             assert.equal((await call(f.store, root + '/' + requestId)).data.version, detail.version);
         });
@@ -140,10 +150,13 @@ test('MR-AC-01–07 scoped request/issue/explicit signed receipt HTTP and databa
         await t.test('partial 6 then 4 reconciles; canonical reversal changes totals while retaining signed evidence', async () => {
             const second = await f.issue('4'), d = (await call(f.store, root + '/' + requestId)).data;
             await call(f.store, root + '/' + requestId + '/issue-links', 201, { requestKey: randomUUID(), expectedVersion: d.version, requestLineId: lineId, materialIssueItemId: second.items[0]!.id, reason: 'Link remaining canonical issue' });
-            assert.equal((await call(f.store, root + '/' + requestId)).data.lines[0].issuedQuantity, '10.0000');
+            const fully=(await call(f.store, root + '/' + requestId)).data.lines[0];
+            assert.equal(fully.issuedQuantity, '10.0000');
+            assert.equal(fully.remainingQuantity, '0.0000');
             await f.issues.reverse({ auth: f.store.auth }, firstIssue!.id, randomUUID(), 'Reverse first actual issue');
             const after = (await call(f.store, root + '/' + requestId)).data;
             assert.equal(after.lines[0].issuedQuantity, '4.0000');
+            assert.equal(after.lines[0].remainingQuantity, '6.0000');
             assert.equal(after.lines[0].acknowledgedQuantity, '0.0000');
             assert.equal(after.lines[0].issueLinks[0].receipts.length, 2);
             assert.equal(await db.document.count({ where: { id: docId } }), 1);
@@ -166,4 +179,153 @@ test('MR-AC-01–07 scoped request/issue/explicit signed receipt HTTP and databa
             process.env.STORAGE_ROOT = oldStorage;
         await rm(storage, { recursive: true, force: true });
     }
+});
+
+
+test('DEC-050 C request canonical quantities stay frozen across posted issue rate changes and source revisions',async()=>{
+    const db=new PrismaService();await db.$connect();
+    const app=await NestFactory.create(AppModule,{logger:false});app.setGlobalPrefix('api/v1');
+    app.use(securityHeadersMiddleware(false));app.useGlobalFilters(new ProblemDetailsFilter());await app.listen(0,'127.0.0.1');
+    try {
+        const f=await materialRequestFixture(db);
+        const grant=async(actor:typeof f.store,codes:string[])=>{
+            const perms=await db.permission.findMany({where:{permissionCode:{in:codes}}});
+            assert.equal(perms.length,codes.length);
+            await db.rolePermission.createMany({data:perms.map(p=>({roleId:actor.role.id,permissionId:p.id})),skipDuplicates:true});
+            const refreshed=await f.sessions.resolve(actor.session.sessionToken);
+            assert.ok(refreshed);actor.auth=refreshed;
+        };
+        await grant(f.store,['master.material.view','master.material.manage','master.material.conversion.manage']);
+        const defs=new MaterialUomService(db,new AuditService(db));
+        const stock=await db.unitOfMeasure.create({data:{companyId:f.company.id,uomCode:'MR-STOCK-EA',
+            uomName:'Synthetic request stock pieces',decimalPlaces:0}});
+        const material=await db.material.create({data:{companyId:f.company.id,materialCode:'MR-UOM-M',
+            materialName:'Synthetic request cartons',defaultUomId:f.uom.id}});
+        await defs.prepare({auth:f.store.auth},material.id,{
+            requestKey:randomUUID(),stockUomId:stock.id,reason:'Synthetic request stock unit'});
+        await defs.revise({auth:f.store.auth},material.id,{
+            requestKey:randomUUID(),expectedVersion:1,sourceUomId:f.uom.id,
+            effectiveFrom:'2026-01-01',numerator:'20',denominator:'1',
+            reason:'Initial request carton contains twenty stock pieces'});
+        await defs.activateStock({auth:f.store.auth},material.id,{
+            requestKey:randomUUID(),expectedVersion:2,reason:'Isolated activated request fixture'});
+        const counts=app.get(StockCountService);
+        const count=await counts.create({auth:f.store.auth},{
+            projectId:f.project.id,warehouseId:f.warehouse.id,materialId:material.id,
+            uomId:stock.id,countedAt:new Date(),actualQuantity:new Prisma.Decimal(100),
+            evidenceReference:'Synthetic physical opening inventory'});
+        const submittedCount=await counts.submit({auth:f.store.auth},count.id,count.version);
+        await counts.approve({auth:f.manager.auth},count.id,submittedCount.version,randomUUID());
+
+        const initial=f.input('2.0000');
+        initial.lines[0]!.materialId=material.id;
+        const created=await f.service.create({auth:f.store.auth},initial);
+        const requestId=created.id;
+        let detail=await f.service.get(f.store.auth,requestId);
+        const lineId=detail.lines[0]!.id;
+        assert.equal(detail.lines[0]!.requestedQuantity,'2.0000');
+        assert.equal(detail.lines[0]!.requestStockBasis?.stockQuantity,'40.0000');
+        assert.equal(detail.lines[0]!.requestStockBasis?.numerator,'20');
+        assert.equal(detail.lines[0]!.requestStockBasis?.businessDate,'2026-11-02');
+        assert.equal(detail.lines[0]!.stockIssuedQuantity,'0.0000');
+
+        const postIssue=async(quantity:string,sourceUomId=f.uom.id)=>{
+            const issue=await f.issues.create({auth:f.store.auth},{
+                projectId:f.project.id,warehouseId:f.warehouse.id,
+                issueDate:new Date('2026-11-02T00:00:00.000Z'),issuedToEmployeeId:f.foreman.employee.id,
+                lines:[{materialId:material.id,uomId:sourceUomId,quantity:new Prisma.Decimal(quantity)}]});
+            await f.issues.submit({auth:f.store.auth},issue.id,'MR-ISSUE');
+            await f.issues.approve({auth:f.manager.auth},issue.id,randomUUID());
+            return (await f.issues.get(f.store.auth,issue.id)).items[0]!.id;
+        };
+        const firstItem=await postIssue('1');
+        await f.service.link({auth:f.store.auth},requestId,{
+            requestKey:randomUUID(),expectedVersion:detail.version,requestLineId:lineId,
+            materialIssueItemId:firstItem,reason:'Link original twenty-piece carton'});
+        detail=await f.service.get(f.store.auth,requestId);
+        assert.equal(detail.lines[0]!.issuedQuantity,'1.0000');
+        assert.equal(detail.lines[0]!.stockIssuedQuantity,'20.0000');
+        assert.equal(detail.lines[0]!.stockRemainingQuantity,'20.0000');
+        assert.equal(detail.lines[0]!.fulfillment,'PARTIAL');
+
+        await defs.revise({auth:f.store.auth},material.id,{
+            requestKey:randomUUID(),expectedVersion:2,sourceUomId:f.uom.id,
+            effectiveFrom:'2026-11-02',numerator:'24',denominator:'1',
+            reason:'Later twenty-four-piece carton, no retroactive rewrite'});
+        const secondItem=await postIssue('1');
+        await f.service.link({auth:f.store.auth},requestId,{
+            requestKey:randomUUID(),expectedVersion:detail.version,requestLineId:lineId,
+            materialIssueItemId:secondItem,reason:'Link new twenty-four-piece carton'});
+        detail=await f.service.get(f.store.auth,requestId);
+        assert.equal(detail.lines[0]!.issuedQuantity,'2.0000');
+        assert.equal(detail.lines[0]!.stockIssuedQuantity,'44.0000');
+        assert.equal(detail.lines[0]!.stockRemainingQuantity,'0.0000');
+        assert.equal(detail.lines[0]!.fulfillment,'OVER_FULFILLED',
+            'Two cartons are not equivalent when one is twenty and the next is twenty-four pieces');
+        assert.equal(detail.lines[0]!.requestStockBasis?.stockQuantity,'40.0000');
+
+        await f.service.edit({auth:f.store.auth},requestId,{
+            requestKey:randomUUID(),expectedVersion:detail.version,
+            requestDate:'2026-11-02',remarks:'Revised signed request requirement',
+            reason:'Explicitly revise requested quantity with the now-current dated rate',
+            lines:[{id:lineId,requestedQuantity:'3.0000',remarks:null}]});
+        detail=await f.service.get(f.store.auth,requestId);
+        assert.equal(detail.lines[0]!.requestStockBasis?.stockQuantity,'72.0000');
+        assert.equal(detail.lines[0]!.requestStockBasis?.numerator,'24');
+        assert.equal(detail.lines[0]!.stockIssuedQuantity,'44.0000');
+        assert.equal(detail.lines[0]!.stockRemainingQuantity,'28.0000');
+        assert.equal(detail.lines[0]!.fulfillment,'PARTIAL');
+        const original=await db.materialUomRequestLinePin.findUniqueOrThrow({
+            where:{requestLineId_requestVersion:{requestLineId:lineId,requestVersion:1}}});
+        assert.equal(original.stockQuantity.toString(),'40');
+        assert.equal(original.numerator,'20');
+        await assert.rejects(()=>db.materialUomRequestLinePin.update({
+            where:{requestLineId_requestVersion:{requestLineId:lineId,requestVersion:1}},
+            data:{stockQuantity:'100'}
+        }));
+
+        // A loose-piece source can fulfill a carton request only when the
+        // original posted issue effect agrees with the request's stock unit.
+        const looseItem=await postIssue('8',stock.id);
+        const candidates=await f.service.issueChoices(f.store.auth,requestId,lineId);
+        assert.ok(candidates.items.some(item=>item.id===looseItem));
+        await f.service.link({auth:f.store.auth},requestId,{
+            requestKey:randomUUID(),expectedVersion:detail.version,requestLineId:lineId,
+            materialIssueItemId:looseItem,reason:'Cross-unit posted loose pieces'});
+        detail=await f.service.get(f.store.auth,requestId);
+        assert.equal(detail.lines[0]!.issuedQuantity,null,'Never sum cartons with loose pieces');
+        assert.equal(detail.lines[0]!.stockIssuedQuantity,'52.0000');
+        assert.equal(detail.lines[0]!.stockRemainingQuantity,'20.0000');
+        assert.equal(detail.lines[0]!.fulfillment,'PARTIAL');
+
+        // Posted partial returns credit the exact original issue rate (24),
+        // not a current master default. Receipt evidence remains append-only.
+        await grant(f.store,['inventory.return.view','inventory.return.create',
+            'inventory.return.edit','inventory.return.submit','inventory.return.reverse']);
+        await grant(f.manager,['inventory.return.view','inventory.return.approve']);
+        await db.numberSequence.create({data:{companyId:f.company.id,entityType:'MATERIAL_RETURN',
+            sequenceCode:'MATERIAL_RETURN',formatTemplate:'MRTYYMM-###',resetRule:'MONTHLY'}});
+        const returnWorkflow=await db.approvalWorkflow.create({data:{
+            companyId:f.company.id,workflowCode:'MR-UOM-RETURN',
+            workflowName:'Independent canonical request return',entityType:'MATERIAL_RETURN',
+            steps:{create:[{stepNo:1,stepName:'Independent return checker',
+                requiredApprovals:1,stepRoles:{create:[{roleId:f.manager.role.id}]}}]}
+        }});
+        const returns=app.get(MaterialReturnService);
+        const returned=await returns.create({auth:f.store.auth},{
+            projectId:f.project.id,warehouseId:f.warehouse.id,
+            returnDate:new Date('2026-11-02T00:00:00.000Z'),
+            lines:[{materialIssueItemId:secondItem,quantity:new Prisma.Decimal('0.5')}]});
+        await returns.submit({auth:f.store.auth},returned.id,returnWorkflow.workflowCode);
+        await returns.approve({auth:f.manager.auth},returned.id,randomUUID());
+        detail=await f.service.get(f.store.auth,requestId);
+        assert.equal(detail.lines[0]!.stockIssuedQuantity,'40.0000');
+        assert.equal(detail.lines[0]!.stockRemainingQuantity,'32.0000');
+        assert.equal(detail.lines[0]!.fulfillment,'PARTIAL');
+        const secondLink=detail.lines[0]!.issueLinks.find(link=>link.materialIssueItemId===secondItem);
+        assert.equal(secondLink?.returnedStockQuantity,'12.0000');
+
+        assert.equal(await db.payment.count({where:{companyId:f.company.id}}),0);
+        assert.equal(await db.directCostPosting.count({where:{companyId:f.company.id}}),0);
+    }finally{await app.close();await db.$disconnect();}
 });

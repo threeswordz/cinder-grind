@@ -9,7 +9,7 @@ export type PlanIssueBinding = {
 export type PlanIssuePreview = {
   issueId: string;
   result: 'WITHIN_PLAN' | 'OVERAGE_REQUIRED';
-  overageQuantity: string;
+  overageQuantity: string | null;
   items: Array<{
     issueItemId: string;
     planId: string;
@@ -20,6 +20,12 @@ export type PlanIssuePreview = {
     allowance: string;
     used: string;
     remaining: string;
+    stockBasis: {
+      stockQuantity: string; stockUomId: string; stockUomCode: string;
+      sourceUomId: string; sourceQuantity: string; effectiveDate: string;
+      numerator: string; denominator: string; basisVersion: number;
+      revisionId: string | null;
+    } | null;
   }>;
 };
 export type PlanIssuePolicy = {
@@ -53,6 +59,12 @@ export type PlanIssueAuthorization = {
     planVersion: number;
     quantity: string;
     overageQuantity: string;
+    materialUomPlanAllocationPin: {
+      stockQuantity: string;
+      stockUomId: string;
+      stockOverageQuantity: string;
+      planStockQuantity: string;
+    } | null;
   }>;
 };
 export type PlanIssueHistory = {

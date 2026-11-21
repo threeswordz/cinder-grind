@@ -1,3 +1,4 @@
+import {stageCMigrations} from './material-uom-stage-c-schema-contract.mjs';
 import {materialUomEffectMigration} from './material-uom-effect-schema-contract.mjs';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
@@ -187,8 +188,10 @@ test('FM03 wrapper before historical predecessor checks remains mandatory in con
   const workflow = readFileSync(new URL('../../.github/workflows/validate.yml', import.meta.url), 'utf8');
   const evidenceStep = workflow.split('- name: Verify V1.0-E consolidated technical evidence')[1];
   assert.ok(evidenceStep, 'Consolidated evidence step must exist');
-  const effectPeeled=evidenceStep.replace(/\(await import\('\.\/deploy\/release-candidate\/material-uom-effect-schema-contract\.mjs'\)\)\.materialUomEffectMode\(data\.releaseMode\)\.prior/g,'data.releaseMode');
-  assert.equal((evidenceStep.match(/materialUomEffectMode\(data\.releaseMode\)\.prior/g)??[]).length,6);
+  const stageCPeeled=evidenceStep.replace(/\(await import\('\.\/deploy\/release-candidate\/material-uom-stage-c-schema-contract\.mjs'\)\)\.materialUomStageCMode\(data\.releaseMode\)\.prior/g,'data.releaseMode');
+  assert.equal((evidenceStep.match(/materialUomStageCMode\(data\.releaseMode\)\.prior/g)??[]).length,6);
+  const effectPeeled=stageCPeeled.replace(/\(await import\('\.\/deploy\/release-candidate\/material-uom-effect-schema-contract\.mjs'\)\)\.materialUomEffectMode\(data\.releaseMode\)\.prior/g,'data.releaseMode');
+  assert.equal((stageCPeeled.match(/materialUomEffectMode\(data\.releaseMode\)\.prior/g)??[]).length,6);
   const uomPeeled = effectPeeled.replace(/\(await import\('\.\/deploy\/release-candidate\/material-uom-schema-contract\.mjs'\)\)\.materialUomMode\(data\.releaseMode\)\.prior/g, 'data.releaseMode');
   assert.equal((effectPeeled.match(/materialUomMode\(data\.releaseMode\)\.prior/g)??[]).length,6);
   const physicalPeeled = uomPeeled.replace(/\(await import\('\.\/deploy\/release-candidate\/subcontract-physical-schema-contract\.mjs'\)\)\.physicalMode\(data\.releaseMode\)\.prior/g, 'data.releaseMode');
@@ -241,4 +244,18 @@ test('DEC-048 physical evidence requires exact migrations, version16 and execute
  for(const key of keys){const bad={...data};delete bad[key];assert.notEqual(verify(bad).status,0,key);}
  assert.notEqual(verify({...data,version:15}).status,0);
  for(const name of physicalMigrations)assert.notEqual(verify({...data,migrationNames:physicalMigrations.filter(n=>n!==name)}).status,0,name);
+});
+
+
+test('DEC-050 C evidence requires exact five migrations, version19 and executed source/HTTP/populated restore proofs',()=>{
+ const keys=['materialUomStageCSchemaUpgrade','materialUomStageCHistoricalPreservation','materialUomStageCHttpUpgrade','materialUomStageCPopulatedRecovery'];
+ const data={...evidence('migration-aware-material-uom-stage-c-schema'),version:19,migrationNames:stageCMigrations,
+  ...Object.fromEntries(keys.map(k=>[k,'PASS']))};
+ const result=verify(data);assert.equal(result.status,0,result.stderr);
+ assert.equal(JSON.parse(result.stdout).version,19);
+ for(const key of [...keys,'boundedSchemaContract','rollbackDocuments']){
+  const bad={...data};delete bad[key];assert.notEqual(verify(bad).status,0,key);
+ }
+ for(const name of stageCMigrations)assert.notEqual(verify({...data,migrationNames:stageCMigrations.filter(n=>n!==name)}).status,0,name);
+ assert.notEqual(verify({...data,version:18}).status,0);
 });

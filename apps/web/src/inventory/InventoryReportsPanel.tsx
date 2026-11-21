@@ -16,15 +16,19 @@ import {
   Typography,
 } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useContext, useState } from 'react';
 
 import { inventoryApi } from '../api/inventory';
+import { MonetaryLocaleContext } from '../role-ui/monetary-presentation';
+import { inventoryReportLabels } from './inventory-report-labels';
 
 function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : 'Unable to load Inventory report.';
 }
 
 export function InventoryReportsPanel() {
+  const locale = useContext(MonetaryLocaleContext);
+  const labels = inventoryReportLabels[locale];
   const [projectId, setProjectId] = useState('');
   const [search, setSearch] = useState('');
   const [includeInactiveWarehouses, setIncludeInactiveWarehouses] = useState(false);
@@ -67,7 +71,7 @@ export function InventoryReportsPanel() {
       <Typography variant="h6">Inventory Reports</Typography>
       <Typography variant="body2" color="text.secondary">
         Balances and movement history are derived from the immutable Stock Transaction Ledger.
-        Quantities are shown in each Material's recorded UOM.
+        {labels.ledgerNote}
       </Typography>
       <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
         <TextField select label="Project" value={projectId}
@@ -155,7 +159,8 @@ export function InventoryReportsPanel() {
               <TableCell>Posted (UTC)</TableCell><TableCell>Type</TableCell>
               <TableCell>Source</TableCell><TableCell>Warehouse</TableCell>
               <TableCell>Project</TableCell><TableCell>Material</TableCell>
-              <TableCell align="right">Quantity</TableCell><TableCell>UOM</TableCell>
+              <TableCell align="right">{labels.stockQuantity}</TableCell><TableCell>{labels.stockUom}</TableCell>
+              <TableCell align="right">{labels.enteredQuantity}</TableCell><TableCell>{labels.frozenRate}</TableCell>
             </TableRow></TableHead>
             <TableBody>{(movements.data?.data ?? []).map((row) => (
               <TableRow key={row.id}>
@@ -167,6 +172,14 @@ export function InventoryReportsPanel() {
                 <TableCell>{row.materialCode} — {row.materialName}</TableCell>
                 <TableCell align="right">{row.quantity}</TableCell>
                 <TableCell>{row.uomCode}</TableCell>
+                <TableCell align="right">{row.conversion
+                  ? `${row.conversion.sourceQuantity} ${row.conversion.sourceUomCode ?? row.conversion.sourceUomId}`
+                  : '—'}</TableCell>
+                <TableCell title={row.conversion ? `${labels.revision}: ${row.conversion.revisionId ?? '—'}` : labels.noLegacyFactor}>
+                  {row.conversion
+                    ? `${row.conversion.numerator}/${row.conversion.denominator} · ${row.conversion.businessDate} · ${labels.basisVersion} ${row.conversion.basisVersion}`
+                    : '—'}
+                </TableCell>
               </TableRow>))}</TableBody>
           </Table>
         </TableContainer>

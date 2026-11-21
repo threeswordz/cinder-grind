@@ -24,6 +24,16 @@ export type PlanLine = {
   materialId: string;
   uomId: string;
   quantity: string;
+  materialUomPlanLinePin?: {
+    sourceUomId: string; sourceQuantity: string;
+    stockUomId: string; stockUomCode: string; stockQuantity: string;
+    businessDate: string; basisVersion: number; revisionId: string | null;
+    numerator: string; denominator: string;
+  } | null;
+  // Source-unit usage only; null means private or not yet stock-pinned.
+  usedQuantity?: string | null;
+  remainingQuantity?: string | null;
+  usageBasis?: 'ENTERED_UOM_LEGACY' | 'FROZEN_STOCK_PIN_REQUIRED' | 'FROZEN_STOCK_CANONICAL';
   material: { materialCode: string; materialName: string };
   uom: { uomCode: string };
 };

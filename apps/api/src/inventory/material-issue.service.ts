@@ -444,9 +444,18 @@ export class MaterialIssueService {
       }
     }
     if(postingPins.size){
-      // Plan-bound quantities remain unavailable for converted issue posting until Stage C.
-      await this.requireLegacyPath(id,tx);
-      await this.assertCurrentIssueAuthority(context.auth,tx,'inventory.issue.approve');
+      const plan=await tx.materialPlanIssueBinding.findUnique({where:{issueId:id},select:{authorizationId:true}});
+      if(plan){
+        // The synthetic plan route is not a general issue-approval grant.
+        // PostgreSQL independently proves current creator/overage roles,
+        // immutable converted source, allocations and two-person approvals.
+        if(!plan.authorizationId)throw new ConflictException({code:'MATERIAL_PLAN_ISSUE_AUTHORIZATION_REQUIRED'});
+        await this.assertCurrentIssueAuthority(context.auth,tx,'inventory.issue.view');
+        await tx.$executeRaw`SELECT erp_mpi_validate_auth(${plan.authorizationId}::uuid,true,${context.auth.userId}::uuid)`;
+      }else{
+        await this.requireLegacyPath(id,tx);
+        await this.assertCurrentIssueAuthority(context.auth,tx,'inventory.issue.approve');
+      }
     }
     const dimensions = new Map<string, StockDimension>();
     for (const item of current.items) {

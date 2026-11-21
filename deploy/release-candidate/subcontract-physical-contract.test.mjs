@@ -1,3 +1,4 @@
+import {stripMaterialUomStageCSchema} from './material-uom-stage-c-schema-contract.mjs';
 import {stripMaterialUomEffectSchema} from './material-uom-effect-schema-contract.mjs';
 import {stripMaterialUomSchema} from './material-uom-schema-contract.mjs';
 import assert from 'node:assert/strict';
@@ -9,7 +10,7 @@ import { classifySchema } from './schema-contract.mjs';
 import { physicalMigrations, physicalMode, physicalTables, stripPhysicalSchema } from './subcontract-physical-schema-contract.mjs';
 import { physicalCatalog, verifyPhysicalCatalog } from './subcontract-physical-catalog-contract.mjs';
 import { assertHistoricalTables } from './historical-snapshot.mjs';
-const current = stripMaterialUomSchema(stripMaterialUomEffectSchema(readFileSync(new URL('../../apps/api/prisma/schema.prisma',import.meta.url),'utf8')).text).text;
+const current = stripMaterialUomSchema(stripMaterialUomEffectSchema(stripMaterialUomStageCSchema(readFileSync(new URL('../../apps/api/prisma/schema.prisma',import.meta.url),'utf8')).text).text).text;
 const previous = execFileSync('git', ['show', '97db9151b1059e5f134529deb25b78fc714fa683:apps/api/prisma/schema.prisma'], { encoding: 'utf8' });
 
 test('DEC-048 admits exactly six additive facts and preserves all prior canonical models', () => {
