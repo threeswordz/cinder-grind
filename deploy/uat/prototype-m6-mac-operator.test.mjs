@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {exactRowsPreserved,originalInventoryPreserved} from './prototype-m6-mac-runtime.mjs';
+import {exactRowsPreserved,originalInventoryPreserved,verifyM6MigrationLedger} from './prototype-m6-mac-runtime.mjs';
 import {resolveM6FinanceSource,resolveM6HrSource} from './prototype-m6-mac-operator.mjs';
 const uuid=n=>'00000000-0000-4000-8000-'+String(n).padStart(12,'0');
 test('forward-only preserved historical rows accept new tables and append-only entries',()=>{
@@ -47,4 +47,18 @@ test('HR derives existing synthetic Koh employee and canonical document version'
   hrDocumentAttachment:{findFirst:async()=>({version:4})}};
  const r=await resolveM6HrSource({binding,db});
  assert.deepEqual(r,{employeeId:uuid(5),documentTypeId:uuid(10),expectedVersion:4,syntheticOnly:true});
+});
+
+test('migration ledger appends only declared completed forward migrations',()=>{
+ const previousSources=[{name:'old',checksum:'aaa'}],releaseSources=[...previousSources,{name:'new',checksum:'bbb'}];
+ const old={migration_name:'old',checksum:'aaa',finished_at:'2026-11-20T00:00:00.000Z',rolled_back_at:null};
+ const added={migration_name:'new',checksum:'bbb',finished_at:'2026-11-22T00:00:00.000Z',rolled_back_at:null};
+ assert.deepEqual(verifyM6MigrationLedger([old],[old,added],previousSources,releaseSources),
+  {newMigrationCount:1,forwardOnly:true});
+ assert.throws(()=>verifyM6MigrationLedger([old],[old,added],previousSources,
+  [{name:'old',checksum:'altered'},{name:'new',checksum:'bbb'}]),/M6_PREDECESSOR_MIGRATION_FILE_DRIFT/);
+ assert.throws(()=>verifyM6MigrationLedger([old],[old,{...added,rolled_back_at:'some date'}],
+  previousSources,releaseSources),/M6_MIGRATION_LEDGER_NOT_EXACT/);
+ assert.throws(()=>verifyM6MigrationLedger([old],[{...old,finished_at:'altered'},added],
+  previousSources,releaseSources),/M6_HISTORIC_MIGRATION_CHANGED/);
 });
