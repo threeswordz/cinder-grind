@@ -223,6 +223,36 @@ test('summary authority never opens unclassified Project bytes while separately 
   assert.equal((await service.downloadProjectDocument(finance,projectId,'invoice')).bytes.toString(),'safe');
 });
 
+test('DEC-054 legacy BOQ grants cannot expose unclassified Project or WBS bytes to quantity/summary readers',async()=>{
+  const {service,targets,effects,rows}=fixture();
+  rows.push(row('unclassified-wbs',[projectLink,{entityType:'WBS',entityId:'wbs'}]));
+  const legacy=['budget.boq.view','budget.revision.view'];
+  for(const restricted of [
+    actor(['budget.quantity.view',...legacy]),
+    actor(['budget.project_summary.view',...legacy]),
+    actor(['budget.quantity.view','budget.project_summary.view',...legacy]),
+  ]){
+    assert.deepEqual((await service.listProjectDocuments(restricted,projectId)).map(x=>x.id),[],
+      'old full BOQ grants cannot reopen unclassified metadata');
+    assert.deepEqual(await targets.list(restricted,projectId,'WBS','wbs'),[],
+      'WBS alias cannot reopen unclassified metadata');
+    for(const id of ['ordinary','unclassified-wbs']){
+      await assert.rejects(()=>service.downloadProjectDocument(restricted,projectId,id),notFound);
+      await assert.rejects(()=>service.setProjectDocumentActive({auth:restricted},projectId,id,false),notFound);
+    }
+  }
+  assert.deepEqual(effects.reads,[]);
+  assert.equal(effects.writes,0);
+  assert.equal(effects.audits,0);
+  const finance=actor(['budget.quantity.view',...legacy,'finance.supplier_invoice.view']);
+  assert.deepEqual((await service.listProjectDocuments(finance,projectId)).map(x=>x.id),['invoice']);
+  assert.equal((await service.downloadProjectDocument(finance,projectId,'invoice')).bytes.toString(),'safe',
+    'owning Finance authority remains separately valid');
+  const approved=actor(['budget.quantity.view','budget.cost.full_view',...legacy]);
+  assert.deepEqual((await targets.list(approved,projectId,'WBS','wbs')).map(x=>x.id),['unclassified-wbs']);
+  assert.equal((await service.downloadProjectDocument(approved,projectId,'unclassified-wbs')).bytes.toString(),'safe');
+});
+
 test('HR-private mixed aliases deny generic document list, direct download, metadata and archive for all Project roles',async()=>{
   const {service,targets,effects,rows}=fixture();
   const full=actor(['projects.access_all','budget.boq.view','budget.revision.view',
