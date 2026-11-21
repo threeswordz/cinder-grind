@@ -1,4 +1,4 @@
-// Actual built React and authenticated API journey on an exclusively owned disposable database.
+// Actual built React and authenticated API. Native disposable or guarded synthetic Mac coordinator only.
 import assert from 'node:assert/strict';
 const demand=(ok,code)=>{if(!ok)throw Object.assign(new Error(),{safeCode:code});};
 const panel='[data-testid="material-uom-panel"]',definition='[data-testid="material-uom-definition"]',previewForm='[data-testid="material-uom-preview-form"]';
@@ -10,7 +10,7 @@ async function select(p,s,label,value,scope=panel){await until(p,s,({label,scope
 
 export async function executeMaterialUomBrowser(p,binding,db){
  const {api:API,web:WEB,fixture:f}=structuredClone(binding);
- demand(process.platform==='linux'&&process.env.GITHUB_ACTIONS==='true'&&API==='http://127.0.0.1:31359/api/v1'&&WEB==='http://127.0.0.1:44359','UOM_BROWSER_ORIGINS_REFUSED');
+ demand(process.platform==='linux'&&process.env.GITHUB_ACTIONS==='true'&&((API==='http://127.0.0.1:31359/api/v1'&&WEB==='http://127.0.0.1:44359')||(API==='http://127.0.0.1:31319/api/v1'&&WEB==='http://127.0.0.1:44319'))||process.platform==='darwin'&&API==='http://127.0.0.1:33071/api/v1'&&WEB==='http://127.0.0.1:44171','UOM_BROWSER_ORIGINS_REFUSED');
  assert.equal(await db.materialUomBasis.count({where:{materialId:f.material.id}}),0);
  const original=await db.material.findUniqueOrThrow({where:{id:f.material.id}}),stock=await db.stockTransaction.count({where:{companyId:f.company.id}});
  let dropped=false,phase='START';const violations=[],closing=new Set(),route='/api/v1/master-data/material-conversions/'+f.material.id;

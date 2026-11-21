@@ -2,6 +2,8 @@ import {configureTransfer,prepareTransferSource,transferBrowserBinding,verifyTra
 import {executeTransferBrowser} from './transfer-browser.mjs';
 import {configureSubcontract,prepareSubcontractSource,subcontractBrowserBinding,verifySubcontractPreservation} from './prototype-subcontract-state.mjs';
 import {executePhysicalBrowser} from './subcontract-physical-browser.mjs';
+import {configureUom,prepareUomSource,uomBrowserBinding,verifyUomPreservation} from './prototype-uom-state.mjs';
+import {executeMaterialUomBrowser} from './material-uom-browser.mjs';
 import {prepareTransferContinuationSource} from './prototype-transfer-continuation-core.mjs';
 import {beforeTransferSchema,createFailedTransferCheckpoint} from './prototype-transfer-continuation-native-fixture.mjs';
 import {verifyFailedTransferState} from './prototype-transfer-failure-state.mjs';
@@ -235,6 +237,17 @@ async function native(){
     await browser.stop();browser=undefined;
     phase='SUBCONTRACT_PRESERVATION';verifySubcontractPreservation(physicalBefore,await fm03Snapshot(db),physicalConfig,fmBinding,physicalSource,physicalResult);
     console.log('SUBCONTRACT_POPULATED_ENGINE_NATIVE_PASS: prior material/FM03/receiving/partial-transfer preserved; exact synthetic grants; canonical Khaimook agreement/WO and independent Ben approvals; shared real browser capture/evidence/8 accepted/2 held/explicit731.25/certification/Nancy approval/retention36.56, locales/denials/download/retries/revocation. Disposable CI only, not Mac execution or final recovery/freeze.');
+    phase='UOM_BASELINE';const uomBefore=await fm03Snapshot(db);
+    await assert.rejects(configureUom(db,fmBinding,'0'.repeat(64)),e=>e.safeCode==='UOM_CONFIGURATION_STATE_DRIFT');
+    phase='UOM_CONFIGURATION';const uomConfiguration=await configureUom(db,fmBinding,digest(uomBefore));
+    await assert.rejects(configureUom(db,fmBinding,digest(await fm03Snapshot(db))),e=>e.safeCode==='UOM_CONFIGURATION_ALREADY_STARTED');
+    phase='UOM_NEW_MASTER';const uomSource=await prepareUomSource(db,fmBinding,origins);
+    phase='UOM_ACTUAL_BROWSER';browser=await startBrowser(chrome,temporary);
+    await executeMaterialUomBrowser(browser.protocol,uomBrowserBinding(fmBinding,uomSource,origins,
+      {userId:fixture.adminUserId,email:'proto-admin@example.invalid',password:adminPassword}),db);
+    await browser.stop();browser=undefined;
+    phase='UOM_PRESERVATION';verifyUomPreservation(uomBefore,await fm03Snapshot(db),uomConfiguration,fmBinding,uomSource);
+    console.log('UOM_POPULATED_ENGINE_NATIVE_PASS: same guarded definition browser kernel; prior stock/Finance/subcontract/partial-transfer/signed-file history and grants preserved; explicit new synthetic master/definition capability, dated20-to24 revisions, dropped-response retry, three locales/mobile/read-only/technical denials and sessions revoked. Not actual Mac execution, converted stock journey or final M7 recovery/freeze.');
   }catch(e){
     console.error('MATERIAL_RUN_NATIVE_FAILED: '+phase+' '+(/^[A-Z0-9_]+$/.test(e.safeCode??'')?e.safeCode:'NATIVE_ASSERTION_OR_SETUP_FAILED')+
       (e.cleanupFailed===true?' CLEANUP_ALSO_FAILED':''));
