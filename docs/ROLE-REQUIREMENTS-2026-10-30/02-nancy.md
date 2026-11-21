@@ -1,5 +1,7 @@
 # Nancy — Accounting Manager (คุณแนนซี่)
 
+**Current BOQ successor — 21 November 2026 / DEC-054:** Nancy retains full authorized Cost/Client BOQ reads and approval of Ben's Client BOQ; the canonical policy does not add a Nancy Cost-approval or self-approval function. [Canonical BOQ rules](../BOQ-COMMERCIAL-SCOPE.md#3-current-owner-confirmed-boq-policy--dec-054). This is a requirements update; dated observations below and the frozen 112-row inventory remain historical, and no live rights are changed.
+
 **Owner-confirmed business-answer overlay — 16 November 2026:** [16 November Owner decisions](15-owner-decisions-2026-11-16.md) / DEC-047 is the current answer source where it supersedes the dated assessment below. Original observations/112-ID census remain historical; publication activates no permissions, runtime or retained data. Accounting stays deferred under #288 and later HR remains separately scoped.
 
 Nancy also performs system-administration duties, without implicit business authority from technical privileges. NANCY-07 count schedules are per site/Project; Khaimook checks disposal/write-off then Nancy approves. Main fund limits are MKE45,000/TCJ55,000 THB; Nancy approves fund-limit changes and the narrowly confirmed own-claim exception. Nancy checks/approves Koh's offboarding summary and closes access at the end of the final working day after Koh's confirmation. New Accounting remains deferred.

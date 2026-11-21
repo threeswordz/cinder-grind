@@ -1,5 +1,7 @@
 # Construction ERP — 112 role requirements, corrected execution baseline
 
+**Latest BOQ decisions — 21 November 2026 / DEC-054:** [BOQ scope Section 3](../BOQ-COMMERCIAL-SCOPE.md#3-current-owner-confirmed-boq-policy--dec-054) is the single current visibility, quantity-buffer and approval policy. It supersedes only the affected earlier BOQ directions. Role notes point there; the original assessment/inventory, HR/purchasing answers and accepted history remain intact. Runtime/grants/workflow activation is not included.
+
 **Latest business answers:** [17 November Owner decisions](16-owner-decisions-2026-11-17.md) / DEC-049 resolves the remaining HR answers except paused subsistence/attendance and records purchasing and master-data successors; [artifact manifest/mapping](17-template-manifest-2026-11-17.md). [16 November decisions](15-owner-decisions-2026-11-16.md) / DEC-047 remains authoritative for the unaffected answers including self-service/offboarding. Original 112-ID evidence and execution-lane JSON are frozen historical evidence. Accounting/later HR/#245 implementation sequencing and actual activation are unchanged.
 
 **Current source disposition:** [14-preproduction-reconciliation.md](14-preproduction-reconciliation.md) maps every original ID against main `76295ef9`, integrated successors, residual gaps and existing approval boundaries. It preserves this frozen baseline and is not a completion score, accepted launch exclusion or human UAT.

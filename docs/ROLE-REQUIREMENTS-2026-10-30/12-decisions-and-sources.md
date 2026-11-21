@@ -1,5 +1,7 @@
 # Reconciliation decisions, contradictions and sources
 
+**Latest BOQ source — 21 November 2026 / DEC-054:** Use [BOQ scope Section 3](../BOQ-COMMERCIAL-SCOPE.md#3-current-owner-confirmed-boq-policy--dec-054) for current BOQ visibility, quantities and approval. C01 below references that single policy; older full-cost and approver observations remain historical.
+
 **Owner-confirmed business-answer overlay — 16 November 2026:** [16 November Owner decisions](15-owner-decisions-2026-11-16.md) / DEC-047 is the current answer source where it supersedes the dated assessment below. Original observations/112-ID census remain historical; publication activates no permissions, runtime or retained data. Accounting stays deferred under #288 and later HR remains separately scoped.
 
 C01 disclosure, C03 disposal authority, BEN02.2, urgent-issue documents, Store cover and selected Accounting/HR questions now have the specific answers below. C02 and C05 have confirmed successor directions but still need bounded financial lifecycle/allocation design. Never interpret a resolved answer as activated permission or completed code.
@@ -34,7 +36,7 @@ Original source files remain untouched. Supplied PDF extracts are included as ex
 
 | ID | Requirement/source | Disposition | Decision before affected implementation |
 | --- | --- | --- | --- |
-| C01 | PM05 / BOQ disclosure | Owner-confirmed successor amendment, DEC-047 | Jai and Porn Full Cost in authorized scope; customer-price/margin restrictions remain. No live grant or replay of accepted UAT. |
+| C01 | PM04/PM05 / BOQ disclosure and approvals | Latest Owner successor, DEC-054 | [Canonical BOQ scope Section 3](../BOQ-COMMERCIAL-SCOPE.md#3-current-owner-confirmed-boq-policy--dec-054) replaces conflicting DEC-047 visibility and former Cost approval; original source/history retained, no live activation. |
 | C02 | ACC13.1 / FIN-013 | Immediate AR on Porn issuance selected, DEC-047 | Ben confirmation→Porn issuance, no extra billing approval; reconcile recorded authorization/issuance/recognition in a bounded Accounting successor before changing runtime. |
 | C03 | PM08 / SS13 financial disposal | Authority confirmed, DEC-047 | Khaimook checks→Nancy approves disposal/financial consequence; physical count adjustment remains separate and posting design is not invented. |
 | C04 | S5 Nancy payroll self-approval vs maker-checker / HR1-A exclusion | Preserve request; no activated exception | Later narrowly scoped policy/entry change, interval/reason/audit |
