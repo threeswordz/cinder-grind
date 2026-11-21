@@ -22,9 +22,9 @@ test('finance selects canonical approved and uninvoiced posted GR, never creates
  const binding={fixture:{companyId:uuid(1),projectId:uuid(2)}};
  const row={id:uuid(3),purchaseOrderLineId:uuid(4),quantity:'3',
   purchaseOrderLine:{purchaseOrderId:uuid(5),amount:'100'},
-  goodsReceipt:{supplierId:uuid(6),purchaseOrderId:uuid(5),
+  goodsReceipt:{supplierId:uuid(6),purchaseOrderId:uuid(5),supplier:{isActive:true},
    approvalInstance:{approvalState:'APPROVED'},
-   purchaseOrder:{supplierId:uuid(6),currencyCode:'THB',cancelledAt:null,
+   purchaseOrder:{supplierId:uuid(6),currencyCode:'THB',cancelledAt:null,nextRevision:null,
     approvalInstance:{approvalState:'APPROVED'}}}};
  let calls=0;
  const db={goodsReceiptItem:{findMany:async query=>{calls++;assert.equal(query.take,200);
@@ -33,6 +33,15 @@ test('finance selects canonical approved and uninvoiced posted GR, never creates
  assert.equal(out.approvedPoAndGoodGrVerified,true);assert.equal(out.noProcurementReplay,true);
  assert.equal(out.source.goodsReceiptItemId,uuid(3));assert.equal(out.source.amount,'1.00');
  assert.equal(calls,1);
+ // An inactive supplier or a superseded PO must fail before any invoice write.
+ for(const changes of [
+   {goodsReceipt:{...row.goodsReceipt,supplier:{isActive:false}}},
+   {goodsReceipt:{...row.goodsReceipt,purchaseOrder:{...row.goodsReceipt.purchaseOrder,nextRevision:{id:uuid(9)}}}}
+ ]){
+   await assert.rejects(resolveM6FinanceSource({binding,db:{
+     goodsReceiptItem:{findMany:async()=>[{...row,...changes}]}
+   }}),/M6_APPROVED_UNINVOICED_PO_GR_SOURCE_NOT_FOUND/);
+ }
  await assert.rejects(resolveM6FinanceSource({binding,db:{
   goodsReceiptItem:{findMany:async()=>[{...row,goodsReceipt:{...row.goodsReceipt,approvalInstance:{approvalState:'SUBMITTED'}}}]}
  }}),/M6_APPROVED_UNINVOICED_PO_GR_SOURCE_NOT_FOUND/);
