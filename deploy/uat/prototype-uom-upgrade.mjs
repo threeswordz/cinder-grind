@@ -17,6 +17,7 @@ import {uomSnapshot,digest,verifyUomMigration,configureUom,prepareUomSource,uomB
 import {executeMaterialUomBrowser} from './material-uom-browser.mjs';
 import {verifyUomPriorProtectedReadback} from './prototype-uom-protected-readback.mjs';
 import {convertedReceiving} from './prototype-uom-converted-receiving.mjs';
+import {convertedRequestReport} from './prototype-uom-request-report.mjs';
 import {prepareBrowser,discoverBrowser} from './prototype-browser-executable.mjs';
 import {startBrowser} from './prototype-browser.mjs';
 export const PREVIOUS_APP='f37867c9dd34d535e5d62bfdd01934773c6f5e8a';
@@ -223,10 +224,14 @@ export async function upgradeUom(operatorMain){
    const after=await snapshot(client);verifyUomPreservation(migrated,after,configuration,binding,source);
    verifyDocumentInventory(after.documents,await privateInventory(join(store,'documents')));
    const converted=await convertedReceiving(client,binding,source,{api:API,web:WEB});
+   const requestReport=await convertedRequestReport(client,binding,source,{api:API,web:WEB});
    const final=await snapshot(client);verifyDocumentInventory(final.documents,await privateInventory(join(store,'documents')));
    const result={definitionBrowserVerified:true,threeLocalesVerified:true,mobileVerified:true,wrongActorDenialVerified:true,
     uncertainResponseReplayVerified:true,sessionsRevoked:true,...protectedReadback,historicalStockAndFinancialRowsPreserved:true,
     legacyMaterialsNotActivated:true,convertedReceivingVerified:converted.convertedReceivingVerified,
+    convertedRequestSourceVerified:requestReport.convertedRequestSourceVerified,
+    convertedMovementReportVerified:requestReport.convertedMovementReportVerified,
+    requestAndReportSessionsRevoked:requestReport.requestAndReportSessionsRevoked,
     newConvertedStockJourneyVerified:false,documentIds:converted.documentIds};
    await seal(join(target,label+'-database-after-private.json'),final);await seal(join(target,label+'-journey-private.json'),result);return {after,result};
   }
