@@ -31,7 +31,7 @@ export async function convertedReceiving(db,binding,source,{api,web}){
   stock:await db.stockTransaction.findMany({where:{companyId:f.companyId}}),
   docs:await db.document.findMany({where:{companyId:f.companyId}}),
   certification:await db.subcontractCertification.findMany({where:{companyId:f.companyId}}),
-  transfer:await db.transferReceipt.findMany({where:{companyId:f.companyId}}),
+  transfer:await db.transferReceipt.findMany(),
   payments:await db.payment.findMany({where:{companyId:f.companyId}}),
   costs:await db.directCostPosting.findMany({where:{companyId:f.companyId}}),
   grants:await db.rolePermission.findMany({where:{roleId:{in:Object.values(b.actors).map(a=>a.roleId)}}})
@@ -51,21 +51,21 @@ export async function convertedReceiving(db,binding,source,{api,web}){
  const call=async(k,label,path,body,method)=>(await client.call(sessions[k],label,path,
   body===undefined?200:method==='PUT'?200:201,body,method)).value?.data;
  const action=more=>({requestKey:randomUUID(),reason:'Isolated converted UOM proof',...more});
- let primary,result;
+ let primary,result,phase='SOURCE_AUTH';
  try{
   for(const k of ['KHAIMOOK','STORE_SITE','JAI','BEN'])sessions[k]=await client.login('UOM_RC_'+k,b.actors[k],f.companyId);
   const command=action({expectedVersion:3});
-  const activated=await call('KHAIMOOK','RC_ACTIVATE','/master-data/material-conversions/'+material.id+'/activation',command);
+  phase='ACTIVATION';const activated=await call('KHAIMOOK','RC_ACTIVATE','/master-data/material-conversions/'+material.id+'/activation',command);
   check(activated?.inventoryConversionEnabled&&activated.stockUomId===source.each.id,'UOM_RC_ACTIVATION_FAILED');
   assert.deepEqual(await call('KHAIMOOK','RC_ACTIVATION_REPLAY','/master-data/material-conversions/'+material.id+'/activation',command),activated);
   const later=new Date(Date.now()+14*86400000).toISOString().slice(0,10),today=new Date().toISOString().slice(0,10);
-  const pr=await call('STORE_SITE','RC_PR','/procurement/projects/'+f.projectId+'/purchase-requests',{remarks:'New synthetic converted carton demand'});
+  phase='PURCHASE_REQUEST';const pr=await call('STORE_SITE','RC_PR','/procurement/projects/'+f.projectId+'/purchase-requests',{remarks:'New synthetic converted carton demand'});
   const line=await call('STORE_SITE','RC_PR_LINE','/procurement/purchase-requests/'+pr.id+'/lines',{
    lineType:'MATERIAL',materialId:material.id,quantity:'4.0000',uomId:source.carton.id,
    wbsId:wbs[0].id,costCodeId:cost[0].id,requiredOnSite:later});
   await call('STORE_SITE','RC_PR_SUBMIT','/procurement/purchase-requests/'+pr.id+'/submit',{workflowCode:flow.PURCHASE_REQUEST});
   await call('KHAIMOOK','RC_PR_APPROVE','/procurement/purchase-requests/'+pr.id+'/approve',{comment:'Independent new material PR'});
-  const rfq=await call('JAI','RC_RFQ','/procurement/projects/'+f.projectId+'/rfqs',{
+  phase='RFQ';const rfq=await call('JAI','RC_RFQ','/procurement/projects/'+f.projectId+'/rfqs',{
    closingDate:later,remarks:'New material sourcing',lines:[{purchaseRequestLineId:line.id,quantity:'4.0000'}]});
   await call('JAI','RC_RFQ_SUPPLIER','/procurement/rfqs/'+rfq.id+'/suppliers',{supplierId:suppliers[0].id});
   const quote=await call('JAI','RC_QUOTE','/procurement/rfqs/'+rfq.id+'/quotations',{
@@ -74,7 +74,7 @@ export async function convertedReceiving(db,binding,source,{api,web}){
    {quantity:'4.0000',unitPrice:'12.0000'},'PUT');
   const award=await call('JAI','RC_AWARD','/procurement/rfq-lines/'+rfq.lines[0].id+'/award',{
    supplierQuotationLineId:qline.id,decisionReason:'New synthetic source'});
-  const po=await call('JAI','RC_PO','/procurement/projects/'+f.projectId+'/purchase-orders',{
+  phase='PURCHASE_ORDER';const po=await call('JAI','RC_PO','/procurement/projects/'+f.projectId+'/purchase-orders',{
    awardIds:[award.id],remarks:'Converted carton PO'});
   await call('JAI','RC_PO_SUBMIT','/procurement/purchase-orders/'+po.id+'/submit',{workflowCode:flow.PURCHASE_ORDER});
   await call('BEN','RC_PO_APPROVE','/procurement/purchase-orders/'+po.id+'/approve',{comment:'Independent PO authorization'});
@@ -82,7 +82,7 @@ export async function convertedReceiving(db,binding,source,{api,web}){
   check(approved?.lifecycleState==='APPROVED'&&approved.lines.length===1&&
    approved.lines[0].materialId===material.id&&four(approved.lines[0].quantity)==='4.0000',
    'UOM_RC_APPROVED_PO_WRONG');
-  const delivery=await call('STORE_SITE','RC_DELIVERY','/inventory/receiving/deliveries',{
+  phase='DELIVERY_CAPTURE';const delivery=await call('STORE_SITE','RC_DELIVERY','/inventory/receiving/deliveries',{
    requestKey:randomUUID(),projectId:f.projectId,warehouseId:f.warehouseId,supplierId:suppliers[0].id,
    receivedAt:new Date(Date.now()-49*3600000).toISOString(),receiverName:'Synthetic converted receiver',
    reason:'New carton physical custody',qualityRequired:false,
@@ -90,7 +90,7 @@ export async function convertedReceiving(db,binding,source,{api,web}){
     goodQuantity:'3',condition:'DAMAGED',note:'One carton held for damage'}]});
   const get=()=>call('STORE_SITE','RC_READ_DELIVERY','/inventory/receiving/deliveries/'+delivery.id);
   check((await get()).usable===false,'UOM_RC_EARLY_USE');
-  const documents=[];
+  phase='DOCUMENT_EVIDENCE';const documents=[];
   for(const purpose of ['DELIVERY_NOTE','RECEIVER_SIGNATURE','CONDITION_PHOTO']){
    const bytes=Buffer.from('%PDF-1.4\nSynthetic converted '+purpose);
    const form=new FormData();form.set('documentTypeId',doc.id);
@@ -108,15 +108,15 @@ export async function convertedReceiving(db,binding,source,{api,web}){
     action({expectedVersion:(await get()).version,documentId:saved.id,purpose,
      signedEvidenceConfirmed:purpose==='RECEIVER_SIGNATURE'}));
   }
-  const held=await get();
+  phase='PO_LINK';const held=await get();
   await call('STORE_SITE','RC_LINK','/inventory/receiving/deliveries/'+delivery.id+'/link-po',
    action({expectedVersion:held.version,purchaseOrderId:approved.id,
     lines:held.lines.map(l=>({id:l.id,purchaseOrderLineId:approved.lines[0].id}))}));
-  await call('JAI','RC_CHECK','/inventory/receiving/deliveries/'+delivery.id+'/check',
+  phase='INDEPENDENT_CHECK';await call('JAI','RC_CHECK','/inventory/receiving/deliveries/'+delivery.id+'/check',
    action({expectedVersion:(await get()).version,decision:'ACCEPT'}));
   const checked=await get();
   check(checked.deadline==='LINKED_LATE'&&!checked.usable,'UOM_RC_LATE_LINK_OR_EARLY_USE');
-  const gr=await call('STORE_SITE','RC_GR','/inventory/goods-receipts',{
+  phase='GOODS_RECEIPT';const gr=await call('STORE_SITE','RC_GR','/inventory/goods-receipts',{
    projectId:f.projectId,purchaseOrderId:approved.id,warehouseId:f.warehouseId,deliveryId:delivery.id,
    requestKey:randomUUID(),expectedDeliveryVersion:checked.version,
    lines:[{purchaseOrderLineId:approved.lines[0].id,quantity:'3'}]});
@@ -125,24 +125,24 @@ export async function convertedReceiving(db,binding,source,{api,web}){
   const post={postKey:randomUUID()};
   await call('KHAIMOOK','RC_GR_APPROVE','/inventory/goods-receipts/'+gr.id+'/approve',post);
   await call('KHAIMOOK','RC_GR_IDEMPOTENT','/inventory/goods-receipts/'+gr.id+'/approve',post);
-  const receipt=await db.goodsReceipt.findUniqueOrThrow({where:{id:gr.id},include:{items:true}});
+  phase='POSTING_READBACK';const receipt=await db.goodsReceipt.findUniqueOrThrow({where:{id:gr.id},include:{items:true}});
   const effect=await db.stockTransaction.findFirstOrThrow({where:{goodsReceiptId:gr.id,materialId:material.id},
    include:{materialUomEffectPin:true}});
   check(receipt.postedAt&&receipt.items.length===1&&four(receipt.items[0].quantity)==='3.0000'&&
    effect.uomId===source.each.id&&four(effect.quantity)==='60.0000'&&
    effect.materialUomEffectPin?.businessDate.toISOString().slice(0,10)==='2026-11-19',
    'UOM_RC_CONVERSION_PROVENANCE_INVALID');
-  for(const [model,old] of [['stockTransaction',before.stock],['document',before.docs],
+  phase='HISTORICAL_READBACK';for(const [model,old] of [['stockTransaction',before.stock],['document',before.docs],
    ['subcontractCertification',before.certification],['transferReceipt',before.transfer],
    ['payment',before.payments],['directCostPosting',before.costs]]){
-   const after=await db[model].findMany({where:{companyId:f.companyId}});
+   const after=await db[model].findMany({where:model==='transferReceipt'?{}:{companyId:f.companyId}});
    for(const row of old)assert.deepEqual(after.find(x=>x.id===row.id),row,'Old '+model+' row changed');
   }
   assert.deepEqual(await db.rolePermission.findMany({where:{roleId:{in:Object.values(b.actors).map(a=>a.roleId)}}}),
    before.grants,'Unexpected role grants');
   result={convertedReceivingVerified:true,sourceQuantity:'3.0000',stockQuantity:'60.0000',
    convertedGoodOnly:true,documentIds:documents};
- }catch(e){primary=e;}
+ }catch(e){primary=e; if(!e.safeCode)e.safeCode='UOM_RC_'+phase+'_FAILED';}
  finally{for(const [k,session]of Object.entries(sessions))try{
   await client.logout('UOM_RC_'+k,session);
   await client.call(session,'UOM_RC_'+k+'_REVOKED','/auth/me',401);
