@@ -96,6 +96,10 @@ export function createM6MacRuntime({releaseSha,sourceRoot,root=join(homedir(),'C
  async function inspected(){
   need(process.platform==='darwin'&&process.getuid()>0&&process.versions.node==='24.21.0','M6_EXACT_NONROOT_MAC_NODE_REQUIRED');
   need(await absent(newStage),'M6_ALREADY_STARTED_NO_REPLAY');
+  // Inspection cannot silently attest a different local source checkout.
+  need(await command('git',['rev-parse','HEAD'],sourceRoot)===releaseSha&&
+    await command('git',['status','--porcelain'],sourceRoot)==='',
+    'M6_READ_ONLY_INSPECTION_SOURCE_NOT_PINNED');
   await load();await identity();snapshots.before=await verifySnapshot();
   snapshots.files={};for(const kind of ['documents','uploads','hrkeys'])snapshots.files[kind]=await privateInventory(join(root,kind));
   return {sourceSha:PREVIOUS_APP,releaseSha,snapshotDigestMatched:true,historicalReceiptsPreserved:true,runtimeOwned:true};
