@@ -23,7 +23,11 @@ export const DOCUMENT_SOURCE_VIEW_PERMISSIONS: Readonly<Record<string, string>> 
 };
 
 export function documentSourcePermissions(entityType: string): readonly string[] {
-  if (entityType === 'CUSTOMER_BOQ') return ['budget.customer.view','budget.boq.view','budget.revision.view'];
+  // DEC-054: BOQ-linked files may contain monetary or buffered quantities.
+  // Never treat unclassified old PDFs as safe quantity-only documents.
+  if (entityType === 'CUSTOMER_BOQ') return ['budget.customer.view','budget.boq.view','budget.revision.view','budget.cost.full_view'];
+  if (entityType === 'BOQ' || entityType === 'BUDGET_REVISION')
+    return [DOCUMENT_SOURCE_VIEW_PERMISSIONS[entityType]!, 'budget.cost.full_view'];
   const required = DOCUMENT_SOURCE_VIEW_PERMISSIONS[entityType];
   return required ? [required] : [];
 }

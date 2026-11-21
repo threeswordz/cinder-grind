@@ -31,6 +31,9 @@ export type CustomerBoqPricingLine = {
   manualRate?: string;
   markupPercent?: string;
   mappingReason?: string;
+  // DEC-054 selected-line, absolute quantity buffer; never inferred from a
+  // historical Customer-vs-Cost quantity difference.
+  bufferQuantity?: string;
   zeroPriceReason?: string;
   pricingReason?: string;
   // For repricing, the caller must load this from the retained Draft, not HTTP.
@@ -171,7 +174,29 @@ export function priceCustomerBoq(
         sourceSnapshot: { ...snapshot },
       };
     });
-    if (needsMappingReason && !mappingReason) {
+    // A buffer can only be certified against one approved raw source line at
+    // 100% coverage and matching UOM. Mixed/split mappings remain supported
+    // without a buffer, but are never assigned a fabricated raw quantity.
+    let rawQuantity: string | null = null;
+    let bufferQuantity: string | null = null;
+    if (input.bufferQuantity !== undefined) {
+      const mappedSource = mappings.length === 1 ? sources.get(mappings[0]!.sourceLineId) : undefined;
+      if (!mappedSource || mappedSource.uomId !== uomId ||
+          mappings[0]!.sharePercent !== '100.0000') {
+        throw budgetInvalid(`${field}.bufferQuantity`,
+          'A buffered line requires one approved raw source at 100% in the same UOM.');
+      }
+      const buffer = decimal(input.bufferQuantity, `${field}.bufferQuantity`,
+        Math.min(4, input.uomDecimalPlaces), 14, true);
+      const raw = new Decimal(mappedSource.quantity);
+      if (!raw.plus(buffer).eq(quantity)) {
+        throw budgetInvalid(`${field}.bufferQuantity`,
+          'Customer quantity must equal approved raw quantity plus buffer.');
+      }
+      rawQuantity = raw.toFixed(4);
+      bufferQuantity = buffer.toFixed(4);
+    }
+    if (needsMappingReason && !mappingReason && bufferQuantity === null) {
       throw budgetInvalid(`${field}.mappingReason`, 'Explain independent quantities/UOM, split or roll-up source mapping.');
     }
 
@@ -209,6 +234,8 @@ export function priceCustomerBoq(
     return {
       lineId,
       quantity: quantity.toFixed(4),
+      rawQuantity,
+      bufferQuantity,
       uomId,
       method: input.method,
       mappingReason,
