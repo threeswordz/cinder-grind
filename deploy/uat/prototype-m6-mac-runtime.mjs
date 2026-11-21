@@ -2,7 +2,7 @@
 // No import side effects, CI triggers, or production/system wide operations.
 import {homedir} from 'node:os';
 import {join,resolve} from 'node:path';
-import {readFile,lstat,realpath,mkdir,cp,open} from 'node:fs/promises';
+import {readFile,readdir,lstat,realpath,mkdir,cp,open} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import {createRequire} from 'node:module';
 import {spawn} from 'node:child_process';
@@ -41,6 +41,32 @@ export function originalInventoryPreserved(before,after,allowedNew=[]){
  for(const row of after.filter(x=>!prior.has(x[0])))need(allowedNew.includes(row[0])||
    row[1]==='directory'&&allowedNew.some(x=>x.startsWith(row[0]+'/')),'M6_UNEXPLAINED_PROTECTED_FILE');
  return true;
+}
+// Exact forward-only migrations: historical SQL and ledger rows stay intact.
+export function verifyM6MigrationLedger(previous,current,previousSources,releaseSources){
+ need(Array.isArray(previous)&&Array.isArray(current)&&Array.isArray(previousSources)&&Array.isArray(releaseSources),
+   'M6_MIGRATION_LEDGER_INPUT_INVALID');
+ const unique=rows=>new Set(rows.map(x=>x.name)).size===rows.length;
+ need(unique(previousSources)&&unique(releaseSources)&&
+   previousSources.every(x=>releaseSources.some(y=>x.name===y.name&&x.checksum===y.checksum)),
+   'M6_PREDECESSOR_MIGRATION_FILE_DRIFT');
+ const matched=(rows,sources)=>rows.length===sources.length&&rows.every((x,i)=>
+   x.migration_name===sources[i].name&&x.checksum===sources[i].checksum&&
+   x.finished_at&&!x.rolled_back_at);
+ need(matched(previous,previousSources)&&matched(current,releaseSources),
+   'M6_MIGRATION_LEDGER_NOT_EXACT');
+ for(const old of previous)need(current.some(x=>x.migration_name===old.migration_name&&
+   x.checksum===old.checksum&&String(x.finished_at)===String(old.finished_at)&&
+   !x.rolled_back_at),'M6_HISTORIC_MIGRATION_CHANGED');
+ return {newMigrationCount:current.length-previous.length,forwardOnly:true};
+}
+async function migrationFiles(repo){
+ const dir=join(repo,'apps/api/prisma/migrations');
+ const folders=(await readdir(dir,{withFileTypes:true})).filter(e=>e.isDirectory()).map(e=>e.name).sort();
+ return Promise.all(folders.map(async name=>({name,checksum:hash(await readFile(join(dir,name,'migration.sql')))})));
+}
+async function migrationLedger(db){
+ return db.$queryRawUnsafe('SELECT migration_name,checksum,finished_at,rolled_back_at FROM _prisma_migrations ORDER BY migration_name');
 }
 const env=()=>environment();
 async function health(){const r=await fetch(API+'/health/ready',{redirect:'error',signal:AbortSignal.timeout(4000)});need(r.ok,'M6_HEALTH_HTTP_ERROR');return r.json();}
@@ -135,10 +161,16 @@ export function createM6MacRuntime({releaseSha,sourceRoot,root=join(homedir(),'C
   try{const before=await rehearsal.$transaction(tx=>uomSnapshot(tx),{isolationLevel:'RepeatableRead',timeout:30000});
    need(digest(before)===digest(snapshots.before),'M6_REHEARSAL_RESTORE_NOT_IDENTICAL');
   }finally{await rehearsal.$disconnect();}
+  const previousSources=await migrationFiles(old),releaseSources=await migrationFiles(app);
+  let oldDb=await connected();
+  try{snapshots.priorLedger=await migrationLedger(oldDb);
+   verifyM6MigrationLedger(snapshots.priorLedger,snapshots.priorLedger,previousSources,previousSources);
+  }finally{await oldDb.$disconnect();}
   await stage(newStage,'REHEARSAL_MIGRATION','pnpm',['prisma:migrate:deploy'],app,await runtimeEnv(REHEARSAL,join(newStage,'preserved')));
   rehearsal=database(REHEARSAL);
   try{const after=await rehearsal.$transaction(tx=>uomSnapshot(tx),{isolationLevel:'RepeatableRead',timeout:30000});
    exactRowsPreserved(snapshots.before,after);
+   verifyM6MigrationLedger(snapshots.priorLedger,await migrationLedger(rehearsal),previousSources,releaseSources);
   }finally{await rehearsal.$disconnect();}
   // Never replay the already completed UOM/receiving/subcontract business operators.
   await identity();const beforeDrain=await verifySnapshot();
@@ -160,6 +192,7 @@ export function createM6MacRuntime({releaseSha,sourceRoot,root=join(homedir(),'C
   db=database('proto_a_01');
   const migrated=await db.$transaction(tx=>uomSnapshot(tx),{isolationLevel:'RepeatableRead',timeout:30000});
   exactRowsPreserved(snapshots.before,migrated);
+  verifyM6MigrationLedger(snapshots.priorLedger,await migrationLedger(db),previousSources,releaseSources);
   for(const [kind,port,entry,cwd,vars] of [
     ['api',33071,join(app,'apps/api/dist/main.js'),join(app,'apps/api'),await runtimeEnv()],
     ['web',44171,join(app,'deploy/uat/serve-web.mjs'),app,{...env(),WEB_HOST:'127.0.0.1',WEB_PORT:'44171'}]]){
