@@ -22,7 +22,7 @@ function fixture(){
  const f={pr,run,job,threadState:{head,resolved:[true,true,true]},paths:['apps/api/src/inventory/material-return.service.ts'],ancestor:true,
    live:{commit:{sha}},integrated:{sha,tree:{sha:tree},parents:[{sha:before}]},source:{sha:head,tree:{sha:tree}},
    timeline:[{event:'committed',sha:head},{event:'ready_for_review',created_at:ready}],
-   reactions:[{content:'+1',created_at:clean,user:{login:'chatgpt-codex-connector[bot]',type:'Bot'}}],reviews:[],
+   reactions:[{content:'+1',created_at:clean,user:{login:'chatgpt-codex-connector[bot]',id:199175422,node_id:'BOT_kgDOC98s_g',type:'Bot'}}],reviews:[],
    log:'2026-11-20T09:59:00.000Z FULL_VALIDATION_IDENTITY_CONFIRMED; source='+head+'; attempt=2; pr=42; base='+before};
  const get=async path=>{
    if(path==='branches/main')return f.live;
@@ -55,6 +55,11 @@ test('eligible guarded tree carries real PR execution and review provenance, nev
  assert.equal((await planIntegration(env(),event(),sha,f.dependencies)).mode,'reuse');
 });
 
+test('trusted Codex reaction returned as User still binds its immutable bot account identity',async()=>{
+ const f=fixture();f.reactions[0].user.type='User';
+ assert.equal((await planIntegration(env(),event(),sha,f.dependencies)).mode,'reuse');
+});
+
 for(const [name,change]of[
  ['stale main',f=>f.live.commit.sha=before],['wrong parent',f=>f.integrated.parents[0].sha=head],
  ['non-squash merge',f=>f.integrated.parents.push({sha:head})],['different entire tree',f=>f.source.tree.sha=before],
@@ -65,6 +70,11 @@ for(const [name,change]of[
  ['source changed after ready',f=>f.timeline.push({event:'committed',sha:head})],
  ['arbitrary user thumbs up',f=>f.reactions[0].user={login:'threeswordz',type:'User'}],
  ['arbitrary bot thumbs up',f=>f.reactions[0].user.login='other-bot[bot]'],
+ ['wrong immutable reviewer account id',f=>f.reactions[0].user.id=1],
+ ['wrong immutable reviewer node id',f=>f.reactions[0].user.node_id='MDQ6VXNlcjE='],
+ ['missing immutable reviewer account id',f=>delete f.reactions[0].user.id],
+ ['missing immutable reviewer node id',f=>delete f.reactions[0].user.node_id],
+ ['unknown reviewer account type',f=>f.reactions[0].user.type='Organization'],
  ['stale review reaction',f=>f.reactions[0].created_at='2026-11-20T09:00:00Z'],
  ['reaction after merge',f=>f.reactions[0].created_at='2026-11-20T11:00:00Z'],
  ['later independent finding',f=>f.reviews.push({user:{login:'chatgpt-codex-connector[bot]'},submitted_at:merged,state:'COMMENTED'})],
