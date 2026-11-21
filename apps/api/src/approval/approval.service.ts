@@ -90,14 +90,73 @@ export class ApprovalService {
     onFinalApproval?: (tx: Prisma.TransactionClient) => Promise<void>,
     existingTx?: Prisma.TransactionClient,
   ) {
-    this.assertMakerChecker(makerUserId, auth.userId);
-
     const approveIn = async (tx: Prisma.TransactionClient) => {
       const context = await this.loadActionContext(
         tx,
         instanceId,
         auth.companyId,
       );
+
+      // DEC-054: a submitted Cost BOQ Budget Revision is the *only* exception
+      // to maker/checker. No caller-supplied override, implicit SYS_ADMIN right,
+      // or relaxation for Client BOQ, Procurement, Finance or rejection.
+      const revision = context.instance.entityType === 'BUDGET_REVISION' &&
+          context.instance.workflow.entityType === 'BUDGET_REVISION' &&
+          context.instance.workflow.companyId === auth.companyId
+        ? await tx.budgetRevision.findFirst({
+            where: { id: context.instance.entityId,
+              companyId: auth.companyId, approvalInstanceId: instanceId },
+            select: { id: true, createdByUserId: true, submittedByUserId: true },
+          })
+        : null;
+      const isRevisionMaker = Boolean(revision &&
+        (revision.createdByUserId === auth.userId || revision.submittedByUserId === auth.userId));
+      if (makerUserId === auth.userId || isRevisionMaker) {
+        // Only a single same-user created AND submitted Cost revision may use
+        // the explicitly configured role exception. A different submitter
+        // cannot disguise the original maker of a Cost revision.
+        const qualifyingRevision = revision?.createdByUserId === auth.userId &&
+          revision.submittedByUserId === auth.userId;
+        const actor = qualifyingRevision ? await tx.user.findFirst({
+          where: {
+            id: auth.userId,
+            companyId: auth.companyId,
+            isActive: true,
+            company: { isActive: true },
+          },
+          include: {
+            userRoles: {
+              include: {
+                role: {
+                  include: {
+                    rolePermissions: { include: { permission: true } },
+                  },
+                },
+              },
+            },
+          },
+        }) : null;
+        const configuredRole = actor?.userRoles.some(({ role }) => {
+          const codes = new Set(role.rolePermissions.map((grant) =>
+            grant.permission.permissionCode));
+          return role.isActive && role.companyId === auth.companyId &&
+            auth.roleCodes.includes(role.roleCode) &&
+            context.currentStep.stepRoles.some((stepRole) =>
+              stepRole.role.id === role.id && stepRole.role.isActive) &&
+            codes.has('budget.revision.approve') &&
+            codes.has('budget.cost.self_approve');
+        });
+        if (!qualifyingRevision || !configuredRole ||
+            !auth.permissions.includes('budget.revision.approve') ||
+            !auth.permissions.includes('budget.cost.self_approve')) {
+          throw new ForbiddenException({
+            code: 'MAKER_CHECKER_VIOLATION',
+            detail: 'Self approval is limited to an explicitly configured Cost BOQ approver and the same submitted Cost revision.',
+          });
+        }
+      } else {
+        this.assertMakerChecker(makerUserId, auth.userId);
+      }
       this.assertSubmitted(context.instance.approvalState);
       this.assertStepRole(context.currentStep, auth);
       await this.assertNoPriorAction(

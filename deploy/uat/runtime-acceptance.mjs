@@ -360,6 +360,9 @@ const permissionCodes = [
   'reporting.operational.view',
   'budget.boq.view',
   'budget.boq.manage',
+  // Explicit full Cost BOQ authority for this disposable historical acceptance PM.
+  // Production business roles and DEC-054 disclosure guards are unchanged.
+  'budget.cost.full_view',
   'budget.revision.view',
   'budget.revision.submit',
   'procurement.pr.view',
@@ -464,6 +467,9 @@ await request(admin, `/admin/roles/${checkerRoleId}/permissions`, {
       'schedule.baseline.approve',
       'schedule.programme.view',
       'budget.revision.view',
+      // This synthetic historical revision approver must retain the original
+      // acceptance contract for monetary revisions. No implicit grant.
+      'budget.cost.full_view',
       'budget.revision.approve',
       'procurement.pr.view',
       'procurement.pr.approve',

@@ -21,7 +21,7 @@ import {
 } from './document-upload-storage';
 import { DocumentStorage } from './document-storage';
 import { DOCUMENT_SOURCE_VIEW_PERMISSIONS, documentSourcePermissions, isHrPrivateDocumentSource } from './document-source-permissions';
-import { PROJECT_SUMMARY_VIEW, QUANTITY_VIEW } from '../budget/budget-disclosure';
+import { COST_FULL_VIEW, PROJECT_SUMMARY_VIEW, QUANTITY_VIEW } from '../budget/budget-disclosure';
 
 type DocumentSourceLink = { entityType: string; entityId: string };
 
@@ -212,8 +212,13 @@ export class DocumentsService {
     // An unclassified old Project/WBS upload is never assumed price-free.
     // Quantity or aggregate-summary grants add no access to it. Owning-record
     // authority remains independently required for classified business sources.
+    // DEC-054: legacy BOQ/revision grants never authorize unclassified
+    // Project/WBS bytes for quantity-only or aggregate-summary readers.
+    // The explicit full Cost capability (not old mixed grants) is the only
+    // applicable exception. Classified Finance documents retain their
+    // separate owning-source authorization below.
     const restrictUnclassified = [QUANTITY_VIEW,PROJECT_SUMMARY_VIEW].some(p=>auth.permissions.includes(p)) &&
-      !['budget.boq.view','budget.revision.view'].every((p) => auth.permissions.includes(p));
+      !auth.permissions.includes(COST_FULL_VIEW);
     const permitted = rows.filter((row) =>
       // An HR-private association always defeats every generic alias,
       // including a separately forged PROJECT, WBS or transaction link.
