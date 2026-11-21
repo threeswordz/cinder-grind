@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {dec054Catalog,verifyDec054Catalog} from './dec054-permission-catalog.mjs';
+import {dec054Catalog,verifyDec054Catalog,verifyDec054MigrationState} from './dec054-permission-catalog.mjs';
 
 test('DEC-054 two additive permission definitions are accepted, unordered, without grants',()=>{
   assert.doesNotThrow(()=>verifyDec054Catalog([...dec054Catalog].reverse()));
@@ -16,4 +16,12 @@ test('DEC-054 permission snapshot refuses missing, forged, changed-module and ad
     [...dec054Catalog,{...dec054Catalog[0],id:'b0540000-0000-4000-8000-000000000003'}],
     [{id:dec054Catalog[0].id,permission_code:dec054Catalog[0].permission_code,module_code:'BUDGET'},dec054Catalog[0]],
   ])assert.throws(()=>verifyDec054Catalog(rows));
+});
+
+test('DEC-054 upgraded vs restored predecessor are distinguished by migration provenance',()=>{
+  assert.doesNotThrow(()=>verifyDec054MigrationState(dec054Catalog,true));
+  assert.doesNotThrow(()=>verifyDec054MigrationState([],false));
+  assert.throws(()=>verifyDec054MigrationState([],true),'upgrade missing catalog must fail');
+  assert.throws(()=>verifyDec054MigrationState(dec054Catalog,false),'rollback containing new permissions must fail');
+  assert.throws(()=>verifyDec054MigrationState(dec054Catalog,'yes'),'untrusted migration state must fail');
 });

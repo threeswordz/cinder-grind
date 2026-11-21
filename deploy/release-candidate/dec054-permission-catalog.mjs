@@ -16,3 +16,13 @@ export function verifyDec054Catalog(rows){
   assert.deepEqual(normalized,dec054Catalog.map(row=>({...row})).sort((a,b)=>a.id.localeCompare(b.id)),
     'DEC-054 permission definitions must be exactly the two reviewed catalog entries');
 }
+
+/** Exact restored/pre-upgrade vs migrated/upgraded permission boundary.
+ * The authoritative migration ledger decides which catalog must be present.
+ * No old permission or role-grant digest is excluded by this helper.
+ */
+export function verifyDec054MigrationState(rows,migrated){
+  assert.equal(typeof migrated,'boolean','DEC-054 migration presence must be known');
+  if(migrated)verifyDec054Catalog(rows);
+  else assert.deepEqual(rows,[],'Restored predecessor must not acquire DEC-054 permissions');
+}

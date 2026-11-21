@@ -1,6 +1,6 @@
 const materialUomStageCApproved=process.env.MATERIAL_UOM_STAGE_C_SCHEMA_UPGRADE==='YES';
 import {materialUomCatalog,verifyMaterialUomCatalog} from './material-uom-catalog-contract.mjs';
-import {dec054Catalog,verifyDec054Catalog} from './dec054-permission-catalog.mjs';
+import {dec054Catalog,verifyDec054MigrationState} from './dec054-permission-catalog.mjs';
 const materialUomApproved=process.env.MATERIAL_UOM_SCHEMA_UPGRADE==='YES';
 const materialUomEffectApproved=process.env.MATERIAL_UOM_EFFECT_SCHEMA_UPGRADE==='YES';
 import {physicalCatalog,verifyPhysicalCatalog} from './subcontract-physical-catalog-contract.mjs';
@@ -67,7 +67,19 @@ const materialRequestApproved=process.env.MATERIAL_REQUEST_SCHEMA_UPGRADE==='YES
       // DEC-054: the upgraded target alone may add these TWO exact definitions.
       // The pre-upgrade baseline/rollback still hashes every original permission
       // and all historical role_permissions without modification.
-      if(mode==='verify')verifyDec054Catalog(additions.filter(row=>dec054Catalog.some(x=>x.id===row.id)));
+      if(mode==='verify'){
+        // The same "verify" command also inspects the restored PRE-upgrade
+        // rollback database. Bind the rule to authoritative schema migration
+        // provenance, not to a user flag or an assumed stage name.
+        const migration = await prisma.$queryRawUnsafe(
+          "SELECT migration_name FROM \"_prisma_migrations\" WHERE migration_name='20261121170000_dec054_cost_boq_self_approval_permission' AND finished_at IS NOT NULL AND rolled_back_at IS NULL"
+        );
+        assert.ok(migration.length<=1,'DEC-054 migration history is ambiguous');
+        verifyDec054MigrationState(
+          additions.filter(row=>dec054Catalog.some(x=>x.id===row.id)),
+          migration.length===1,
+        );
+      }
     }
     if(receivingApproved&&tablename==='goods_receipts'){const cols=await prisma.$queryRawUnsafe("SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='goods_receipts' AND column_name='delivery_id'");if(cols.length)assert.equal((await prisma.$queryRawUnsafe('SELECT count(*)::text AS n FROM goods_receipts WHERE delivery_id IS NOT NULL'))[0].n,'0','Historical GR must not acquire fabricated custody');}
     let excludedColumns = tablename === 'goods_receipts' && receivingApproved ? ['delivery_id'] : tablename === 'projects' ? ['contract_currency_code'] :
