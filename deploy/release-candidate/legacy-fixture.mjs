@@ -1,5 +1,6 @@
 const materialUomStageCApproved=process.env.MATERIAL_UOM_STAGE_C_SCHEMA_UPGRADE==='YES';
 import {materialUomCatalog,verifyMaterialUomCatalog} from './material-uom-catalog-contract.mjs';
+import {dec054Catalog,verifyDec054Catalog} from './dec054-permission-catalog.mjs';
 const materialUomApproved=process.env.MATERIAL_UOM_SCHEMA_UPGRADE==='YES';
 const materialUomEffectApproved=process.env.MATERIAL_UOM_EFFECT_SCHEMA_UPGRADE==='YES';
 import {physicalCatalog,verifyPhysicalCatalog} from './subcontract-physical-catalog-contract.mjs';
@@ -49,7 +50,7 @@ async function snapshot() {
     const stockCountApproved = process.env.STOCK_COUNT_SCHEMA_UPGRADE === 'YES';
 const materialRequestApproved=process.env.MATERIAL_REQUEST_SCHEMA_UPGRADE==='YES';
     const catalogIds = [...boqCatalog,...(hrApproved ? hrCatalog : []),
-      ...(stockCountApproved ? stockCountCatalog : []),...(materialRequestApproved ? materialRequestCatalog : []),...(materialPlanApproved ? materialPlanCatalog : []),...(planIssueApproved ? planIssueCatalog : []),...(siteIssueApproved ? siteIssueCatalog : []),...(receivingApproved ? receivingCatalog : []),...(transferApproved ? transferCatalog : []),...(physicalApproved ? physicalCatalog : []),...(materialUomApproved ? materialUomCatalog : [])].map(row => row.id);
+      ...(stockCountApproved ? stockCountCatalog : []),...(materialRequestApproved ? materialRequestCatalog : []),...(materialPlanApproved ? materialPlanCatalog : []),...(planIssueApproved ? planIssueCatalog : []),...(siteIssueApproved ? siteIssueCatalog : []),...(receivingApproved ? receivingCatalog : []),...(transferApproved ? transferCatalog : []),...(physicalApproved ? physicalCatalog : []),...(materialUomApproved ? materialUomCatalog : []),...dec054Catalog].map(row => row.id);
     if (tablename === 'permissions') {
       if(materialUomApproved)verifyMaterialUomCatalog(await prisma.$queryRawUnsafe('SELECT * FROM permissions WHERE id = ANY($1::uuid[])',materialUomCatalog.map(p=>p.id)));
       if(physicalApproved)verifyPhysicalCatalog(await prisma.$queryRawUnsafe('SELECT * FROM permissions WHERE id = ANY($1::uuid[])',physicalCatalog.map(p=>p.id)));
@@ -63,6 +64,10 @@ const materialRequestApproved=process.env.MATERIAL_REQUEST_SCHEMA_UPGRADE==='YES
       if(planIssueApproved)verifyPlanIssueCatalog(additions.filter(row=>planIssueCatalog.some(x=>x.id===row.id)));
       if(receivingApproved)verifyReceivingCatalog(additions.filter(row=>receivingCatalog.some(x=>x.id===row.id)));
       if(siteIssueApproved)verifySiteIssueCatalog(additions.filter(row=>siteIssueCatalog.some(x=>x.id===row.id)));
+      // DEC-054: the upgraded target alone may add these TWO exact definitions.
+      // The pre-upgrade baseline/rollback still hashes every original permission
+      // and all historical role_permissions without modification.
+      if(mode==='verify')verifyDec054Catalog(additions.filter(row=>dec054Catalog.some(x=>x.id===row.id)));
     }
     if(receivingApproved&&tablename==='goods_receipts'){const cols=await prisma.$queryRawUnsafe("SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='goods_receipts' AND column_name='delivery_id'");if(cols.length)assert.equal((await prisma.$queryRawUnsafe('SELECT count(*)::text AS n FROM goods_receipts WHERE delivery_id IS NOT NULL'))[0].n,'0','Historical GR must not acquire fabricated custody');}
     let excludedColumns = tablename === 'goods_receipts' && receivingApproved ? ['delivery_id'] : tablename === 'projects' ? ['contract_currency_code'] :
