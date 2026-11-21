@@ -1,4 +1,4 @@
-// Bound the Finance configuration core to the existing preserved prototype;
+// Bind the combined Finance + DEC-054 BOQ configuration to the preserved prototype;
 // no CLI side effects, no new grants until a separately attested Mac operator
 // supplies the *current* private snapshot and completion receipt.
 import {SOURCE,ROLES} from './prototype-actors.mjs';
@@ -28,7 +28,7 @@ export function validCompletedUomReceipt(receipt){
 // material, FM03, receiving, transfer, subcontract and UOM progression.
 // Never derive an allowlist from live current grants: those are checked *against*
 // this source baseline inside the locked snapshot transaction.
-export function sourceM6PreFinanceGrants(binding){
+export function sourceM6PreBusinessGrants(binding){
   need(binding?.sourceSha===SOURCE,'M6_SOURCE_IDENTITY_INVALID');
   const extra=binding.configuration?.changes;
   need(Array.isArray(extra)&&extra.every(row=>typeof row.roleCode==='string'&&
@@ -49,8 +49,8 @@ export function sourceM6PreFinanceGrants(binding){
 // Only the preservation-aware Mac operator may call this after it has read
 // the private ready.json with ownership/mode checks and measured the *same*
 // full prewrite DB snapshot that produced expectedSnapshotDigest.
-export async function configureVerifiedM6Finance(db,binding,expectedSnapshotDigest,verifiedPrivateUomReceipt){
+export async function configureVerifiedM6Business(db,binding,expectedSnapshotDigest,verifiedPrivateUomReceipt){
   need(validCompletedUomReceipt(verifiedPrivateUomReceipt),'M6_UOM_COMPLETION_RECEIPT_REQUIRED');
-  return configureM6FinanceCore(db,{binding,baselineGrants:sourceM6PreFinanceGrants(binding),
+  return configureM6FinanceCore(db,{binding,baselineGrants:sourceM6PreBusinessGrants(binding),
     expectedSnapshotDigest,snapshot:uomSnapshot,digest,verifiedUomReceipt:true});
 }
