@@ -1,5 +1,7 @@
 # Owner decisions — 16 November 2026
 
+**BOQ supersession — 21 November 2026 / DEC-054:** Queue 5's Jai/Porn Full Cost answer is retained below as the 16 November source record and is no longer the current BOQ direction. Use [BOQ scope Section 3](../BOQ-COMMERCIAL-SCOPE.md#3-current-owner-confirmed-boq-policy--dec-054). Unaffected decisions in this file remain; no duplicate current matrix is maintained here.
+
 **Status: OWNER-CONFIRMED REQUIREMENTS; ENGLISH PUBLICATION AUTHORIZED.** This is the current business-answer overlay for the original 112-ID role assessment. [DEC-047](../DECISION-LOG.md#dec-047--16-november-owner-requirement-amendments-publication-only) records the publication and the explicit successor-policy differences.
 
 ## Authority, evidence and implementation boundary
