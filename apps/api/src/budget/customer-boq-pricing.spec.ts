@@ -251,7 +251,8 @@ test('calculation and result mutation cannot alter caller-owned approved snapsho
 
 test('DEC-054 explicit selected-line Client buffer retains raw source, previews the differential and does not rewrite it',()=>{
   const cost=source(), prior=JSON.stringify(cost);
-  const value=priceCustomerBoq(scope,cost,[line({quantity:'12',bufferQuantity:'2',mappingReason:undefined})]);
+  const buffered=line({quantity:'12',bufferQuantity:'2'});delete buffered.mappingReason;
+  const value=priceCustomerBoq(scope,cost,[buffered]);
   assert.equal(value.lines[0]!.rawQuantity,'10.0000');
   assert.equal(value.lines[0]!.bufferQuantity,'2.0000');
   assert.equal(value.lines[0]!.quantity,'12.0000');
@@ -260,7 +261,8 @@ test('DEC-054 explicit selected-line Client buffer retains raw source, previews 
   assert.equal(priceCustomerBoq(scope,cost,[line()]).lines[0]!.bufferQuantity,null);
   // Independent Customer quantity without an explicit buffer is never reclassified.
   assert.equal(priceCustomerBoq(scope,cost,[line({quantity:'12'})]).lines[0]!.bufferQuantity,null);
-  const manual=priceCustomerBoq(scope,cost,[line({method:'MANUAL',quantity:'12',bufferQuantity:'2',mappingReason:undefined})]);
+  const inputManual=line({method:'MANUAL',quantity:'12',bufferQuantity:'2'});delete inputManual.mappingReason;
+  const manual=priceCustomerBoq(scope,cost,[inputManual]);
   assert.equal(manual.lines[0]!.rate,'120.0000');
   assert.equal(manual.lines[0]!.amount,'1440.00');
 });

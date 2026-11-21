@@ -198,10 +198,14 @@ test('BOQ source documents require every cost/commercial read capability across 
     assert.deepEqual(await targets.list(reader,projectId,'WBS','wbs'),[]);
   }
   assert.deepEqual(effects.reads,[]);assert.equal(effects.writes,0);
-  const cost=actor(['budget.boq.view']);
+  const oldCost=actor(['budget.boq.view','budget.quantity.view']);
+  await assert.rejects(()=>service.downloadProjectDocument(oldCost,projectId,'cost-boq'),notFound);
+  await assert.rejects(()=>service.downloadProjectDocument(oldCost,projectId,'cost-revision'),notFound);
+  await assert.rejects(()=>service.setProjectDocumentActive({auth:oldCost},projectId,'cost-boq',false),notFound);
+  const cost=actor(['budget.boq.view','budget.cost.full_view']);
   assert.equal((await service.downloadProjectDocument(cost,projectId,'cost-boq')).bytes.toString(),'safe');
   await assert.rejects(()=>service.downloadProjectDocument(cost,projectId,'cost-revision'),notFound);
-  const commercial=actor(['budget.boq.view','budget.revision.view','budget.customer.view']);
+  const commercial=actor(['budget.cost.full_view','budget.boq.view','budget.revision.view','budget.customer.view']);
   assert.equal((await service.downloadProjectDocument(commercial,projectId,'customer-boq')).bytes.toString(),'safe');
   assert.deepEqual((await targets.list(commercial,projectId,'WBS','wbs')).map(r=>r.id),['customer-boq']);
   const finance=actor(['budget.quantity.view','finance.supplier_invoice.view']);

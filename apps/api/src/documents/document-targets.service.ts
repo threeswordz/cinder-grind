@@ -89,9 +89,9 @@ export class DocumentTargetsService {
       subcontractVariations,
     ] = await Promise.all([
       can('inventory.material_request.view') ? this.prisma.materialRequest.findMany({where:{companyId:auth.companyId,projectId},select:{id:true,requestDate:true},orderBy:{id:'asc'}}) : Promise.resolve([]),
-      can('budget.boq.view') ? this.prisma.boq.findMany({where:{companyId:auth.companyId,projectId},select:{id:true,boqName:true}}) : Promise.resolve([]),
-      can('budget.revision.view') ? this.prisma.budgetRevision.findMany({where:{companyId:auth.companyId,projectId},select:{id:true,revisionNumber:true},orderBy:{revisionNo:'desc'}}) : Promise.resolve([]),
-      ['budget.boq.view','budget.revision.view','budget.customer.view'].every(can) ? this.prisma.customerBoqVersion.findMany({where:{companyId:auth.companyId,projectId},select:{id:true,versionNo:true},orderBy:{versionNo:'desc'}}) : Promise.resolve([]),
+      (can('budget.cost.full_view')&&can('budget.boq.view')) ? this.prisma.boq.findMany({where:{companyId:auth.companyId,projectId},select:{id:true,boqName:true}}) : Promise.resolve([]),
+      (can('budget.cost.full_view')&&can('budget.revision.view')) ? this.prisma.budgetRevision.findMany({where:{companyId:auth.companyId,projectId},select:{id:true,revisionNumber:true},orderBy:{revisionNo:'desc'}}) : Promise.resolve([]),
+      ['budget.cost.full_view','budget.boq.view','budget.revision.view','budget.customer.view'].every(can) ? this.prisma.customerBoqVersion.findMany({where:{companyId:auth.companyId,projectId},select:{id:true,versionNo:true},orderBy:{versionNo:'desc'}}) : Promise.resolve([]),
       this.prisma.wbsElement.findMany({
         where: { projectId, isActive: true },
         select: { id: true, wbsCode: true, wbsName: true, parentId: true },
