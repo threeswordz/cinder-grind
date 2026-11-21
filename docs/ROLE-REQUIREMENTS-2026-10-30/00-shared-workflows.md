@@ -1,5 +1,7 @@
 # Shared workflows and cross-role rules
 
+**Current BOQ successor — 21 November 2026 / DEC-054:** DEC-054 supersedes the historical WF-01 Cost approval and BOQ disclosure below; use the canonical policy, not the older matrix, for successor preparation. [Canonical BOQ rules](../BOQ-COMMERCIAL-SCOPE.md#3-current-owner-confirmed-boq-policy--dec-054). This is a requirements update; dated observations below and the frozen 112-row inventory remain historical, and no live rights are changed.
+
 **Owner-confirmed business-answer overlay — 16 November 2026:** [16 November Owner decisions](15-owner-decisions-2026-11-16.md) / DEC-047 is the current answer source where it supersedes the dated assessment below. Original observations/112-ID census remain historical; publication activates no permissions, runtime or retained data. Accounting stays deferred under #288 and later HR remains separately scoped.
 
 The business-answer overlay does not recalculate the frozen execution lanes or authorize a new implementation stage. Use it to avoid repeating answered questions and to prepare the correct bounded successor contract.

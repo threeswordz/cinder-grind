@@ -1,5 +1,7 @@
 # BOQ successor — implementation entry preparation
 
+**Current BOQ successor — 21 November 2026 / DEC-054:** [BOQ scope Section 3](BOQ-COMMERCIAL-SCOPE.md#3-current-owner-confirmed-boq-policy--dec-054) supersedes the affected visibility and approval choices in the dated entry baseline below and records the explicit customer-quantity buffer requirement. Accepted V1.3 examples/receipts stay historical; use the current section for bounded successor reconciliation, not as proof of activation.
+
 **Date:** 2026-10-28 SGT · **Tracker:** [#266](https://github.com/threeswordz/cinder-grind/issues/266) · **Scope:** [BOQ Disclosure and Linked Customer BOQ Versions](BOQ-COMMERCIAL-SCOPE.md), BUD-011–016 / BQC-AC-001–014.
 
 **Position: V1.3-A entry COMPLETE.** PR #274 merged as `f5d70871593bb89539c574381a687f3d67884c04`; exact-main CI40680993646 SUCCESS,31/31. The owner-approved C1–C5/E1–E8 and complete HR source are published under DEC-037. V1.3-B is now in progress under #275; [implementation evidence](V1.3-B-IMPLEMENTATION.md) distinguishes the first pricing core from remaining workflows/disclosure/persistence/UI. Older preparation/publication wording below records the entry checkpoint; #266/#275 carry actual live gates. No repeat input approval or V1.2 UAT is needed.
