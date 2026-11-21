@@ -52,6 +52,8 @@ jobs:
       - name: Run role UI focused tests
         working-directory: apps/web
         run: node --test src/role-ui/*.test.mjs
+      - name: Verify guarded UOM final-preservation read-only continuation
+        run: node --test deploy/release-candidate/prototype-uom-finalize.test.mjs
       - name: Record focused-only boundary
         run: |
           printf '%s\n' 'FOCUSED_BRANCH_ONLY: not full PR or main CI; native browser, migration, integration and recovery gates remain required.'
