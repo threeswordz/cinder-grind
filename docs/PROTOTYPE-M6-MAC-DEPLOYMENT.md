@@ -52,6 +52,12 @@ node deploy/uat/prototype-m6-mac-operator.mjs --execute <actual-release-sha>
 
 The operator does not run any GitHub Actions CI and does not accept a development-branch SHA, a dirty working tree, a different actual `main`, a prior M6 claim, active sessions, foreign/production data, changed predecessor source, or unverified process listener.
 
+## Completed UOM predecessor custody (independent review P1/P2)
+
+The valid finalized UOM predecessor may be **intentionally stopped**: the continuation finalization creates `uom-upgrade/ready.json` after a specific `FINAL_PRESERVATION / RC_UNEXPECTED_DOCUMENT_FILES` failure, without restarting API/Web. M6 inspection must allow this state **only** when the exact original source-owned PID/birth receipts remain privately sealed, **both** recorded PIDs are absent, **both** ports are free, the completed UOM receipt is verified and its exact finalization failure flags match the known path. A partially running/missing/mismatched pair is rejected. M6 must **not** restart predecessor processes or re-run UOM; stopped cutover skips old-process termination and proceeds only after separate populated restore rehearsal and pre-cutover database preservation check.
+
+M6 must compare the **current** HR-key inventory against both `uom-upgrade/file-inventories-private.json` and the matching `uom-upgrade/preservation-private.json` custody, plus the *original preserved* `uom-upgrade/preserved/hrkeys`. Merely hashing whatever HR keys exist at M6 start is insufficient. Any changed keyring, preserved key copy or receipt fails read-only inspection before the create-once claim.
+
 ## After execution / failure
 
 - On success, review `m6-upgrade/ready.json`, all six ordered stage receipts and the actual protected Finance/HR/BOQ evidence. Reconcile against M6's exit checklist; close milestone **only after** acceptance.
