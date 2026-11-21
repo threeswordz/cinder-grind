@@ -20,6 +20,7 @@ import {convertedReceiving} from './prototype-uom-converted-receiving.mjs';
 import {convertedRequestReport} from './prototype-uom-request-report.mjs';
 import {convertedReservation} from './prototype-uom-converted-reservation.mjs';
 import {convertedPlanIssue} from './prototype-uom-plan-source.mjs';
+import {convertedOperationalBrowser} from './prototype-uom-operational-browser.mjs';
 import {prepareBrowser,discoverBrowser} from './prototype-browser-executable.mjs';
 import {startBrowser} from './prototype-browser.mjs';
 export const PREVIOUS_APP='f37867c9dd34d535e5d62bfdd01934773c6f5e8a';
@@ -229,6 +230,10 @@ export async function upgradeUom(operatorMain){
    const reservation=await convertedReservation(client,binding,source,{api:API,web:WEB});
    const requestReport=await convertedRequestReport(client,binding,source,{api:API,web:WEB});
    const planned=await convertedPlanIssue(client,binding,source,{api:API,web:WEB});
+   copyMayBeRemoved=false;
+   browser=await startBrowser(executable.executable,label==='rehearsal'?rehearsal:target);
+   const readback=await convertedOperationalBrowser(browser.protocol,{...binding,api:API,web:WEB},source,client);
+   await browser.stop();browser=undefined;copyMayBeRemoved=true;
    const final=await snapshot(client);verifyDocumentInventory(final.documents,await privateInventory(join(store,'documents')));
    const result={definitionBrowserVerified:true,threeLocalesVerified:true,mobileVerified:true,wrongActorDenialVerified:true,
     uncertainResponseReplayVerified:true,sessionsRevoked:true,...protectedReadback,historicalStockAndFinancialRowsPreserved:true,
@@ -240,9 +245,10 @@ export async function upgradeUom(operatorMain){
     convertedApprovedSourcePlanAndIssueVerified:planned.convertedApprovedSourcePlanAndIssueVerified,
     convertedPlannedReturnVerified:planned.convertedPlannedReturnVerified,
     convertedOverageVerified:planned.convertedOverageVerified,
+    actualIntegratedOperationalBrowserReadbackVerified:readback.actualIntegratedOperationalBrowserReadbackVerified,
     ownerCostSelfApprovalUnverified:true,
     requestAndReportSessionsRevoked:requestReport.requestAndReportSessionsRevoked,
-    newConvertedStockJourneyVerified:false,documentIds:converted.documentIds};
+    newConvertedStockJourneyVerified:readback.actualIntegratedOperationalBrowserReadbackVerified&&planned.convertedOverageVerified&&planned.convertedPlannedReturnVerified&&planned.convertedApprovedSourcePlanAndIssueVerified&&requestReport.convertedRequestSourceVerified&&converted.convertedReceivingVerified&&reservation.convertedReservationVerified,documentIds:converted.documentIds};
    await seal(join(target,label+'-database-after-private.json'),final);await seal(join(target,label+'-journey-private.json'),result);return {after,result};
   }
   db=database(REHEARSAL_DB);demand(digest(await snapshot(db))===digest(before),'UOM_UPGRADE_RESTORED_ROWS_DIFFER');await db.$disconnect();db=undefined;
