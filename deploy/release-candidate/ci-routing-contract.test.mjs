@@ -9,7 +9,7 @@ const routing = text => text.slice(text.indexOf('\non:\n'), text.indexOf('\nconc
 const effectiveRouting = text => routing(text).split('\n').filter(line => !line.trimStart().startsWith('#')).join('\n').trim();
 
 test('full validation identity and PR/main events remain; explicit full branch lane is retained', () => {
-  assert.equal(effectiveRouting(full), "on:\n  workflow_dispatch:\n  pull_request:\n    types: [labeled]\n    branches: [main, 'v1.2-c-uat-coverage']\n  push:\n    branches: [main, 'vfull-*']");
+  assert.equal(effectiveRouting(full), "on:\n  workflow_dispatch:\n  pull_request:\n    types: [ready_for_review]\n    branches: [main, 'v1.2-c-uat-coverage']\n  push:\n    branches: [main, 'vfull-*']");
   assert.match(full, /^name: Validate Construction ERP$/m);
   assert.match(full,/types: \[labeled\]/);
   assert.match(full,/github\.event\.label\.name == 'full-ci-approved'/);
