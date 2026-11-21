@@ -76,6 +76,9 @@ export async function executeM6HrDocumentJourney({client,actors,fixture,source,
       'M6_HR_AUTHORIZED_BYTES_MISMATCH');
     raw.fill(0);
     completion={status:'M6_ENCRYPTED_HR_ATTACHMENT_HTTP_VERIFIED',
+      // Private Mac adapter must use this exact newly stored synthetic attachment
+      // to prove encrypted-at-rest custody without exposing its bytes or key.
+      syntheticAttachmentId:receipt.id,syntheticEmployeeId:source.employeeId,
       encryptedStorageProofRequiresPrivateInspection:true,
       uploadAndAuthorizedPlaintextReadbackVerified:true,maskedHistoryVerified:true,
       unauthorizedStoreListAndDownloadDenied:true,crossCompanyStoreDenied:true,
