@@ -248,3 +248,31 @@ test('calculation and result mutation cannot alter caller-owned approved snapsho
   result.lines[0]!.mappings[0]!.sourceSnapshot.amount = '999';
   assert.equal(JSON.stringify({ cost, input }), before);
 });
+
+test('DEC-054 explicit selected-line Client buffer retains raw source, previews the differential and does not rewrite it',()=>{
+  const cost=source(), prior=JSON.stringify(cost);
+  const value=priceCustomerBoq(scope,cost,[line({quantity:'12',bufferQuantity:'2',mappingReason:undefined})]);
+  assert.equal(value.lines[0]!.rawQuantity,'10.0000');
+  assert.equal(value.lines[0]!.bufferQuantity,'2.0000');
+  assert.equal(value.lines[0]!.quantity,'12.0000');
+  assert.equal(value.lines[0]!.mappings[0]!.sourceSnapshot.quantity,'10.0000');
+  assert.equal(JSON.stringify(cost),prior);
+  assert.equal(priceCustomerBoq(scope,cost,[line()]).lines[0]!.bufferQuantity,null);
+  // Independent Customer quantity without an explicit buffer is never reclassified.
+  assert.equal(priceCustomerBoq(scope,cost,[line({quantity:'12'})]).lines[0]!.bufferQuantity,null);
+  const manual=priceCustomerBoq(scope,cost,[line({method:'MANUAL',quantity:'12',bufferQuantity:'2',mappingReason:undefined})]);
+  assert.equal(manual.lines[0]!.rate,'120.0000');
+  assert.equal(manual.lines[0]!.amount,'1440.00');
+});
+test('DEC-054 buffer denies overprecision, mismatches, split mappings and other UOMs',()=>{
+  const cost=source();
+  for(const bufferQuantity of ['0','-1','NaN','1e2','0.00001','2.00001','999999999999999'])
+    invalid(()=>priceCustomerBoq(scope,cost,[line({quantity:'12',bufferQuantity})]));
+  for(const changed of [
+    {quantity:'11',bufferQuantity:'2'},
+    {quantity:'12',bufferQuantity:'2',uomId:'LS'},
+    {quantity:'12',bufferQuantity:'2',mappings:[{sourceLineId:'source-a',sharePercent:'50'}]},
+    {quantity:'12',bufferQuantity:'2',uomDecimalPlaces:0.5},
+  ]) invalid(()=>priceCustomerBoq(scope,cost,[line(changed)]));
+  invalid(()=>priceCustomerBoq(scope,cost,[line({quantity:'10.5',bufferQuantity:'0.5',uomDecimalPlaces:0})]));
+});

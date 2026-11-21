@@ -30,9 +30,11 @@ export class CustomerBoqController {
   async export(@Req() r:AuthenticatedRequest,@Param('projectId',uuid()) p:string,@Param('id',uuid()) id:string){
     const {version:v}=await this.service.history(r.auth!,scope(p),scope(id));
     const e=v.edits.find((e)=>e.editNo===v.currentEditNo)!;
-    const lines=[['Version','State','Edit','Source revision','Description','Quantity','UOM','Rate','Amount','Currency'],
+    const lines=[['Version','State','Edit','Source revision','Description','Quantity','UOM','Rate','Amount','Currency','Raw quantity','Buffer quantity'],
       ...e.lines.map(l=>[v.versionNo,v.approvalInstance?.approvalState??'DRAFT',e.editNo,v.sourceRevisionId,l.description,l.quantity.toFixed(4),
-        (l.uomSnapshot as {code:string}).code,l.rate.toFixed(4),l.amount.toFixed(2),v.currencyCode])];
+        (l.uomSnapshot as {code:string}).code,l.rate.toFixed(4),l.amount.toFixed(2),v.currencyCode,
+        (l.pricingSnapshot as {rawQuantity?:string|null}).rawQuantity??'',
+        (l.pricingSnapshot as {bufferQuantity?:string|null}).bufferQuantity??''])];
     return new StreamableFile(Buffer.from('\uFEFF'+lines.map(row=>row.map(csv).join(',')).join('\r\n')+'\r\n','utf8'));
   }
   @Post('projects/:projectId/preview') @UseGuards(CsrfGuard) @RequirePermissions('budget.boq.view','budget.revision.view','budget.customer.view','budget.customer.manage')

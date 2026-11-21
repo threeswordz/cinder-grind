@@ -232,6 +232,7 @@ export class CustomerBoqService {
         ...(line.manualRate !== undefined ? { manualRate: line.manualRate } : {}),
         ...(line.markupPercent !== undefined ? { markupPercent: line.markupPercent } : {}),
         ...(line.mappingReason !== undefined ? { mappingReason: line.mappingReason } : {}),
+        ...(line.bufferQuantity !== undefined ? { bufferQuantity: line.bufferQuantity } : {}),
         ...(line.zeroPriceReason !== undefined ? { zeroPriceReason: line.zeroPriceReason } : {}),
         uomDecimalPlaces: uom.decimalPlaces, ...(old ? { previousRate: old.rate.toFixed(4) } : {}),
         ...((line.pricingReason ?? (before ? draft.reason : undefined)) ? { pricingReason: line.pricingReason ?? draft.reason } : {}) };

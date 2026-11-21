@@ -54,8 +54,10 @@ test('action-only Budget mutation responses are minimal while explicit full read
 test('Customer BOQ transport accepts exact decimal strings and rejects caller-owned precision, prior rate, numeric money and unknown mapping fields',()=>{
   const draft=()=>({sourceRevisionId:id,reason:'Offer',lines:[{lineId:id,description:'Work',quantity:'1',uomId:id,method:'MANUAL',manualRate:'0',zeroPriceReason:'Included',mappings:[{sourceLineId:id,sharePercent:'100'}]}]});
   assert.equal(customerDraft(draft()).lines[0]!.manualRate,'0');
+  const selected=draft();Object.assign(selected.lines[0]!,{bufferQuantity:'2'});
+  assert.equal(customerDraft(selected).lines[0]!.bufferQuantity,'2');
   assert.equal(canonicalUuid(id.toUpperCase(),'id'),id);
-  for(const [field,value] of [['previousRate','1'],['uomDecimalPlaces',4],['quantity',1],['manualRate',1],['method','GROSS_MARGIN']] as const){
+  for(const [field,value] of [['previousRate','1'],['uomDecimalPlaces',4],['quantity',1],['bufferQuantity',1],['manualRate',1],['method','GROSS_MARGIN']] as const){
     const bad=draft();Object.assign(bad.lines[0]!,{[field]:value});assert.throws(()=>customerDraft(bad),UnprocessableEntityException);
   }
   const bad=draft();Object.assign(bad.lines[0]!.mappings[0]!,{allocatedCost:'1'});assert.throws(()=>customerDraft(bad),UnprocessableEntityException);
