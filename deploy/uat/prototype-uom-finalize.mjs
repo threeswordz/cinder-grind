@@ -4,7 +4,7 @@
 import assert from 'node:assert/strict';
 import {homedir} from 'node:os';
 import {join,resolve} from 'node:path';
-import {realpath,lstat,readdir} from 'node:fs/promises';
+import {realpath,lstat,readFile} from 'node:fs/promises';
 import {createRequire} from 'node:module';
 import {fileURLToPath} from 'node:url';
 import {uomSnapshot,digest} from './prototype-uom-state.mjs';
@@ -18,6 +18,14 @@ const fail=code=>{throw Object.assign(new Error(code),{safeCode:code});};
 const requireCheck=(condition,code)=>{if(!condition)fail(code);};
 const identical=(a,b)=>digest(a)===digest(b);
 const exists=async path=>{try{await lstat(path);return true;}catch(e){if(e.code==='ENOENT')return false;throw e;}};
+// Full populated PostgreSQL snapshots and file inventories legitimately exceed the
+// generic 1MiB private receipt cap; use the operator's original strict 32MiB bound.
+async function privateState(path){
+ const st=await lstat(path);
+ requireCheck(st.isFile()&&!st.isSymbolicLink()&&st.nlink===1&&st.uid===process.getuid()&&
+  !(st.mode&0o077)&&st.size<=33554432,'UOM_CONTINUATION_UNSAFE_PRIVATE_STATE');
+ return JSON.parse(await readFile(path,'utf8'));
+}
 
 // Separating entries by storage type prevents a new directory being counted as a new Document.
 // Every original byte/directory remains exact, every added file is a documented known file.
@@ -66,13 +74,13 @@ export async function verifyFailedStage(root,stage){
   failure.automaticRetryAllowed===false,'UOM_CONTINUATION_WRONG_FAILURE_PHASE');
  requireCheck(!(await exists(join(stage,'ready.json'))),'UOM_CONTINUATION_ALREADY_COMPLETED');
  requireCheck(!(await exists(join(stage,'continuation-ready.json'))),'UOM_CONTINUATION_ALREADY_FINALIZED');
- const before=await privateJson(join(stage,'database-before-private.json'));
- const after=await privateJson(join(stage,'source-database-after-private.json'));
- const rehearsalAfter=await privateJson(join(stage,'rehearsal-database-after-private.json'));
+ const before=await privateState(join(stage,'database-before-private.json'));
+ const after=await privateState(join(stage,'source-database-after-private.json'));
+ const rehearsalAfter=await privateState(join(stage,'rehearsal-database-after-private.json'));
  const source=await privateJson(join(stage,'source-journey-private.json'));
  const rehearsal=await privateJson(join(stage,'rehearsal-journey-private.json'));
- const baseline=await privateJson(join(stage,'file-inventories-private.json'));
- const preservation=await privateJson(join(stage,'preservation-private.json'));
+ const baseline=await privateState(join(stage,'file-inventories-private.json'));
+ const preservation=await privateState(join(stage,'preservation-private.json'));
  const started=await privateJson(join(stage,'started.json'));
  requireCheck(started.operatorMain===OPERATOR&&started.reviewedApp===OPERATOR&&
   started.previousApplication===PREVIOUS_APP&&started.previousOperator===PREVIOUS_OPERATOR,'UOM_CONTINUATION_OPERATOR_PIN_MISMATCH');
@@ -81,7 +89,7 @@ export async function verifyFailedStage(root,stage){
   identical(baseline,preservation.inventories),'UOM_CONTINUATION_INVENTORY_CUSTODY_INVALID');
  requireCheck(await fileHash(join(stage,'preserved/postgresql.custom'))===preservation.dumpSha256,
   'UOM_CONTINUATION_PRESERVED_DUMP_CHANGED');
- const previous=await privateJson(join(root,'subcontract-upgrade/source-database-after-private.json'));
+ const previous=await privateState(join(root,'subcontract-upgrade/source-database-after-private.json'));
  requireCheck(identical(before,previous),'UOM_CONTINUATION_PREVIOUS_SOURCE_MISMATCH');
  requireCheck(Array.isArray(after.documents)&&Array.isArray(rehearsalAfter.documents)&&
   Array.isArray(before.documents),'UOM_CONTINUATION_DATABASE_SNAPSHOT_MISSING');
