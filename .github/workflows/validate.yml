@@ -3,7 +3,9 @@ name: Validate Construction ERP
 on:
   workflow_dispatch:
   pull_request:
-    # Keep the full PR gate for the evidence-closure follow-up stacked on #268.
+    # Full PR execution is opt-in ONLY: the Builder intentionally marks a
+    # stable draft Ready for review. Push/synchronize/open never run full CI.
+    types: [ready_for_review]
     branches: [main, 'v1.2-c-uat-coverage']
   push:
     # DEC-051: ordinary v* branch pushes use separate focused feedback.
@@ -22,6 +24,7 @@ permissions:
 
 jobs:
   integration-plan:
+    # No automatic full suite on ordinary PR commits; readiness is deliberate.
     runs-on: ubuntu-latest
     outputs:
       mode: ${{ steps.plan.outputs.mode }}

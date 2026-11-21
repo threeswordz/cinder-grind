@@ -16,14 +16,14 @@ function fixture(){
  const pr={number:42,state:'closed',draft:false,merged:true,merged_at:merged,merge_commit_sha:sha,
    base:{sha:before,ref:'main',repo:repository},head:{sha:head,ref:'vfeature',repo:repository}};
  const run={id:99,run_attempt:2,event:'pull_request',head_sha:head,head_branch:'vfeature',repository,head_repository:repository,
-   path:'.github/workflows/validate.yml',name:'Validate Construction ERP',status:'completed',conclusion:'success',updated_at:'2026-11-20T09:59:00Z'};
- const job={id:555,name:'validate',run_id:99,status:'completed',conclusion:'success',completed_at:'2026-11-20T09:59:00Z',
+   path:'.github/workflows/validate.yml',name:'Validate Construction ERP',status:'completed',conclusion:'success',updated_at:'2026-11-20T10:00:30Z'};
+ const job={id:555,name:'validate',run_id:99,status:'completed',conclusion:'success',completed_at:'2026-11-20T10:00:30Z',
    steps:FULL_STEPS.map(name=>({name,status:'completed',conclusion:'success'}))};
  const f={pr,run,job,threadState:{head,resolved:[true,true,true]},paths:['apps/api/src/inventory/material-return.service.ts'],ancestor:true,
    live:{commit:{sha}},integrated:{sha,tree:{sha:tree},parents:[{sha:before}]},source:{sha:head,tree:{sha:tree}},
    timeline:[{event:'committed',sha:head},{event:'ready_for_review',created_at:ready}],
    reactions:[{content:'+1',created_at:clean,user:{login:'chatgpt-codex-connector[bot]',id:199175422,node_id:'BOT_kgDOC98s_g',type:'Bot'}}],reviews:[],
-   log:'2026-11-20T09:59:00.000Z FULL_VALIDATION_IDENTITY_CONFIRMED; source='+head+'; attempt=2; pr=42; base='+before};
+   log:'2026-11-20T10:00:30.000Z FULL_VALIDATION_IDENTITY_CONFIRMED; source='+head+'; attempt=2; pr=42; base='+before};
  const get=async path=>{
    if(path==='branches/main')return f.live;
    if(path==='git/commits/'+sha)return f.integrated;
@@ -85,7 +85,10 @@ for(const [name,change]of[
  ['full PR log from another base',f=>f.log=f.log.replace(before,head)],
  ['full PR log from another PR',f=>f.log=f.log.replace('pr=42','pr=43')],
  ['legacy full proof without PR binding',f=>f.log=f.log.split('; pr=')[0]],
- ['full proof after ready',f=>f.run.updated_at=merged],['skipped full job',f=>f.job.conclusion='skipped'],
+ ['full proof before ready',f=>f.run.updated_at='2026-11-20T09:59:00Z'],
+ ['full proof after merge',f=>f.run.updated_at='2026-11-20T11:00:00Z'],
+ ['full job before ready',f=>f.job.completed_at='2026-11-20T09:59:00Z'],
+ ['full job after merge',f=>f.job.completed_at='2026-11-20T11:00:00Z'],['skipped full job',f=>f.job.conclusion='skipped'],
  ['failed full step',f=>f.job.steps[0].conclusion='failure'],['missing recovery',f=>f.job.steps=f.job.steps.filter(s=>!s.name.includes('recovery'))],
  ['missing final identity',f=>f.job.steps.pop()],['unknown full run id',f=>f.run.id='99'],
  ['wrong run attempt',f=>f.run.run_attempt=3],

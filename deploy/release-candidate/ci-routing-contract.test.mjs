@@ -9,8 +9,11 @@ const routing = text => text.slice(text.indexOf('\non:\n'), text.indexOf('\nconc
 const effectiveRouting = text => routing(text).split('\n').filter(line => !line.trimStart().startsWith('#')).join('\n').trim();
 
 test('full validation identity and PR/main events remain; explicit full branch lane is retained', () => {
-  assert.equal(effectiveRouting(full), "on:\n  workflow_dispatch:\n  pull_request:\n    branches: [main, 'v1.2-c-uat-coverage']\n  push:\n    branches: [main, 'vfull-*']");
+  assert.equal(effectiveRouting(full), "on:\n  workflow_dispatch:\n  pull_request:\n    types: [ready_for_review]\n    branches: [main, 'v1.2-c-uat-coverage']\n  push:\n    branches: [main, 'vfull-*']");
   assert.match(full, /^name: Validate Construction ERP$/m);
+  assert.match(full,/types: \[ready_for_review\]/);
+  assert.doesNotMatch(full,/github\.event\.label\.name/);
+  assert.doesNotMatch(full,/types: \[(?:opened|synchronize|reopened|labeled)/);
   assert.match(full, /^  validate:\n    needs: \[integration-plan, integration-check\]/m);
   assert.match(full,/github.event_name != 'push' \|\| github.ref != 'refs\/heads\/main'/);
   assert.match(full, /ref: \$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/);
@@ -25,7 +28,7 @@ test('draft admission fails before install; final live identity follows all full
   assert.match(full.trimEnd(), /run: node deploy\/release-candidate\/ci-candidate-gate.mjs finish$/);
   const fullSteps=full.slice(full.indexOf('\n  validate:\n'));
   assert.doesNotMatch(fullSteps.slice(fullSteps.indexOf('    steps:')), /^\s+(if:|continue-on-error:)/m);
-  assert.doesNotMatch(full, /ready_for_review|pull_request_target/);
+  assert.doesNotMatch(full, /pull_request_target|types: \[synchronize\]/);
   assert.match(full,/needs.integration-check.result != 'success' \|\| needs.integration-check.outputs.verified != 'true'/);
   for(const id of ['checkout','pnpm','node','checks','proof','artifact'])
     assert.ok(full.includes(`steps.${id}.outcome == 'success'`),id);

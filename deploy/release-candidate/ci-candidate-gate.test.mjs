@@ -8,12 +8,12 @@ import { test } from 'node:test';
 import { candidateIdentity, runAdmission } from './ci-candidate-gate.mjs';
 
 const head = 'a'.repeat(40), base = 'b'.repeat(40), merge = 'c'.repeat(40);
-function fixture({ attempt = '1', draft = true, branch = 'vwork', fork = false } = {}) {
+function fixture({ attempt = '1', draft = false, branch = 'vwork', fork = false } = {}) {
   const repository = 'owner/erp';
   const env = { GITHUB_REPOSITORY: repository, GITHUB_RUN_ATTEMPT: attempt,
     GITHUB_EVENT_NAME: 'pull_request', GITHUB_SHA: merge, GITHUB_REF: 'refs/pull/12/merge',
     EXACT_RELEASE_COMMIT: head, RELEASE_COMMIT: head };
-  const event = { repository: { full_name: repository }, action: 'synchronize', number: 12,
+  const event = { repository: { full_name: repository }, action: 'ready_for_review', number: 12,
     pull_request: { number: 12, state: 'open', merged: false, draft,
       head: { sha: head, ref: branch, repo: { full_name: fork ? 'fork/erp' : repository } },
       base: { sha: base, ref: 'main', repo: { full_name: repository } } } };
@@ -24,41 +24,25 @@ const admit = (f, phase = 'start', extra = {}) => runAdmission({ phase, env: f.e
   checkoutSha: head, getLive: async () => f.live, assertAncestor: async () => true, ...extra });
 const denied = (promise, code) => assert.rejects(promise, error => error.code === code);
 
-test('ordinary draft first attempt blocks before any live fetch or expensive work, never success', async () => {
-  const f = fixture();
-  assert.equal(candidateIdentity(f.env, f.event, head).focusedDraft, true);
-  await denied(admit(f, 'start', { getLive: () => assert.fail('must block before fetch') }), 'DRAFT_FOCUSED_ONLY');
-  await denied(admit(f, 'finish'), 'DRAFT_FOCUSED_ONLY');
-});
 
-test('explicit rerun admits full PR execution while still draft and confirms it only at the end', async () => {
-  const f = fixture({ attempt: '2' });
-  const start = await admit(f), finish = await admit(f, 'finish');
-  assert.equal(start.status, 'FULL_VALIDATION_ADMITTED');
-  assert.equal(finish.status, 'FULL_VALIDATION_IDENTITY_CONFIRMED');
-  assert.equal(finish.sha, head);
-  assert.equal(finish.baseSha, base);
-  assert.equal(finish.number, 12);
-  assert.equal(finish.attempt, 2);
-});
-
-test('unchanged ready transition keeps identity; ready updates and full/fork/unknown lanes run full', async () => {
-  for (const options of [{ draft: false }, { branch: 'vfull-ci' }, { fork: true }, { branch: 'feature/x' }]) {
-    const f = fixture(options);
-    assert.equal((await admit(f)).focusedDraft, false, JSON.stringify(options));
+test('full PR work is admitted only by explicit ready transition and stable head', async () => {
+  for(const action of ['opened','synchronize','reopened','labeled','unlabeled']){
+    const f=fixture();f.event.action=action;
+    await denied(admit(f),'FULL_PR_EXPLICIT_READY_REQUIRED');
   }
-  const f = fixture({ attempt: '2' });
-  await admit(f);
-  f.live.draft = false; // ready transition changes neither tested source nor base
-  assert.equal((await admit(f, 'finish')).sha, head);
+  const draft=fixture({draft:true});
+  await denied(admit(draft),'FULL_PR_STABLE_CANDIDATE_REQUIRED');
+  for(const attempt of ['1','2']){
+    const f=fixture({attempt});
+    for(const phase of ['start','finish'])assert.equal((await admit(f,phase)).sha,head);
+  }
 });
 
-test('a new draft head starts a new blocked run, not a reusable prior full pass', async () => {
-  await admit(fixture({ attempt: '2' }));
-  const next = fixture();
-  const changed = 'd'.repeat(40);
-  next.env.EXACT_RELEASE_COMMIT = next.env.RELEASE_COMMIT = next.event.pull_request.head.sha = changed;
-  await denied(admit(next, 'start', { checkoutSha: changed }), 'DRAFT_FOCUSED_ONLY');
+test('exact ready head is checked again at finish',async()=>{
+  const f=fixture();
+  assert.equal((await admit(f)).status,'FULL_VALIDATION_ADMITTED');
+  f.live.head.sha='d'.repeat(40);
+  await denied(admit(f,'finish'),'STALE_PR_HEAD');
 });
 
 for (const phase of ['start', 'finish']) {
@@ -95,7 +79,7 @@ test('malformed event, attempt, repository, checkout and unknown action cannot a
     [f => { f.event.pull_request.draft = undefined; }, 'INVALID_PR_STATE'],
     [f => { f.event.pull_request.base.sha = null; }, 'INVALID_BASE'],
     [f => { f.event.pull_request.head.sha = base; }, 'INVALID_HEAD'],
-    [f => { f.event.action = 'ready_for_review'; }, 'INVALID_PR_ACTION'],
+    [f => { f.event.action = 'synchronize'; }, 'FULL_PR_EXPLICIT_READY_REQUIRED'],
     [f => { f.env.GITHUB_EVENT_NAME = 'workflow_dispatch'; }, 'INVALID_FULL_MAIN_DISPATCH'],
   ]) {
     const f = fixture({ attempt: '2' }); mutate(f); await denied(admit(f), code);
@@ -117,10 +101,11 @@ test('main/full push always executes full and rejects a stale ref at both bounda
   }
 });
 
-test('CLI draft route is a real exit-1 check with actionable summary and no credential output', () => {
+
+test('CLI refuses ordinary PR push before any expensive work, hides credentials', () => {
   const directory = mkdtempSync(join(tmpdir(), 'ci-candidate-gate-'));
   try {
-    const f = fixture();
+    const f = fixture();f.event.action='synchronize';
     const realHead = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
     f.env.EXACT_RELEASE_COMMIT = f.env.RELEASE_COMMIT = f.event.pull_request.head.sha = realHead;
     const eventPath = join(directory, 'event.json'), summaryPath = join(directory, 'summary.md');
@@ -130,8 +115,7 @@ test('CLI draft route is a real exit-1 check with actionable summary and no cred
         GITHUB_STEP_SUMMARY: summaryPath, GITHUB_TOKEN: 'never-print-this-token' },
     });
     assert.equal(result.status, 1);
-    assert.match(result.stdout, /^DRAFT_FOCUSED_ONLY\n$/);
-    assert.match(readFileSync(summaryPath, 'utf8'), /Re-run failed jobs/);
+    assert.match(result.stdout, /^FULL_PR_EXPLICIT_READY_REQUIRED\n$/);
     assert.doesNotMatch(result.stdout + result.stderr + readFileSync(summaryPath, 'utf8'), /never-print-this-token/);
   } finally { rmSync(directory, { recursive: true, force: true }); }
 });
