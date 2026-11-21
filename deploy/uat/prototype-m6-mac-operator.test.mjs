@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {exactRowsPreserved,originalInventoryPreserved,verifyM6MigrationLedger} from './prototype-m6-mac-runtime.mjs';
+import {exactRowsPreserved,originalInventoryPreserved,verifyM6MigrationLedger,classifyUomPredecessor,verifyUomHrKeyBaseline} from './prototype-m6-mac-runtime.mjs';
 import {resolveM6FinanceSource,resolveM6HrSource} from './prototype-m6-mac-operator.mjs';
 const uuid=n=>'00000000-0000-4000-8000-'+String(n).padStart(12,'0');
 test('forward-only preserved historical rows accept new tables and append-only entries',()=>{
@@ -70,4 +70,38 @@ test('migration ledger appends only declared completed forward migrations',()=>{
   previousSources,releaseSources),/M6_MIGRATION_LEDGER_NOT_EXACT/);
  assert.throws(()=>verifyM6MigrationLedger([old],[{...old,finished_at:'altered'},added],
   previousSources,releaseSources),/M6_HISTORIC_MIGRATION_CHANGED/);
+});
+
+test('finalized UOM may have both owned processes stopped, but not a partial or unknown stop',()=>{
+ const receipt={status:'UOM_POPULATED_MAC_UPGRADE_AND_CONVERTED_RECEIVING_VERIFIED',
+  applicationSha:'9fa0506e9a50fd556f1c4404e4db2e3d88093b85',
+  operatorMainSha:'9fa0506e9a50fd556f1c4404e4db2e3d88093b85',
+  forwardOnlyMigration:true,sourceHistoryPreserved:true,
+  documentsUploadsKeysAndPriorReceiptsPreserved:true,
+  preUpgradeSeparatePopulatedRestoreAndJourneyVerified:true,
+  newConvertedStockJourneyVerified:true,humanUatCompleted:false,productionAuthorized:false};
+ const api={port:33071,pid:101},web={port:44171,pid:202};
+ const failure={phase:'FINAL_PRESERVATION',code:'RC_UNEXPECTED_DOCUMENT_FILES',
+  sourceMayBeStopped:true,sourceMayBeMigrated:true,automaticRetryAllowed:false};
+ const base={receipt,api,web,failure,portsFree:true};
+ assert.equal(classifyUomPredecessor({...base,apiAbsent:true,webAbsent:true}),'finalized-stopped');
+ assert.equal(classifyUomPredecessor({...base,apiAbsent:false,webAbsent:false}),'running');
+ assert.throws(()=>classifyUomPredecessor({...base,apiAbsent:true,webAbsent:false}),/M6_PREDECESSOR_PARTIAL_PROCESS_STATE/);
+ assert.throws(()=>classifyUomPredecessor({...base,apiAbsent:true,webAbsent:true,portsFree:false}),
+  /M6_STOPPED_PREDECESSOR_CUSTODY_INVALID/);
+ assert.throws(()=>classifyUomPredecessor({...base,apiAbsent:true,webAbsent:true,
+  failure:{...failure,automaticRetryAllowed:true}}),/M6_STOPPED_PREDECESSOR_CUSTODY_INVALID/);
+});
+test('historical HR keyring must match both the sealed UOM inventory and preserved original',()=>{
+ const snapshot=[['','directory'],['keyring.json',55,'original-key-sha256']];
+ const baseline={hrkeys:snapshot,documents:[]},recorded={inventories:structuredClone(baseline)};
+ assert.equal(verifyUomHrKeyBaseline(baseline,recorded,snapshot,structuredClone(snapshot)),true);
+ assert.throws(()=>verifyUomHrKeyBaseline(baseline,recorded,snapshot,
+  [['','directory'],['keyring.json',55,'substituted-key-sha256']]),
+  /M6_HR_KEYS_DRIFTED_FROM_UOM_CUSTODY/);
+ assert.throws(()=>verifyUomHrKeyBaseline(baseline,{inventories:{...baseline,hrkeys:[]}},snapshot,snapshot),
+  /M6_HR_KEYS_DRIFTED_FROM_UOM_CUSTODY/);
+ assert.throws(()=>verifyUomHrKeyBaseline(baseline,recorded,
+  [['','directory'],['keyring.json',55,'bad-preserved-key']],snapshot),
+  /M6_HR_KEYS_DRIFTED_FROM_UOM_CUSTODY/);
 });
