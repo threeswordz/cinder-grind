@@ -16,6 +16,7 @@ import {verifyTransferDocumentFiles} from './prototype-transfer-state.mjs';
 import {uomSnapshot,digest,verifyUomMigration,configureUom,prepareUomSource,uomBrowserBinding,verifyUomActivationDenial,verifyUomPreservation} from './prototype-uom-state.mjs';
 import {executeMaterialUomBrowser} from './material-uom-browser.mjs';
 import {verifyUomPriorProtectedReadback} from './prototype-uom-protected-readback.mjs';
+import {convertedReceiving} from './prototype-uom-converted-receiving.mjs';
 import {prepareBrowser,discoverBrowser} from './prototype-browser-executable.mjs';
 import {startBrowser} from './prototype-browser.mjs';
 export const PREVIOUS_APP='f37867c9dd34d535e5d62bfdd01934773c6f5e8a';
@@ -221,10 +222,13 @@ export async function upgradeUom(operatorMain){
     const protectedReadback=await verifyUomPriorProtectedReadback(client,binding,{api:API,web:WEB},technical);
    const after=await snapshot(client);verifyUomPreservation(migrated,after,configuration,binding,source);
    verifyDocumentInventory(after.documents,await privateInventory(join(store,'documents')));
+   const converted=await convertedReceiving(client,binding,source,{api:API,web:WEB});
+   const final=await snapshot(client);verifyDocumentInventory(final.documents,await privateInventory(join(store,'documents')));
    const result={definitionBrowserVerified:true,threeLocalesVerified:true,mobileVerified:true,wrongActorDenialVerified:true,
     uncertainResponseReplayVerified:true,sessionsRevoked:true,...protectedReadback,historicalStockAndFinancialRowsPreserved:true,
-    legacyMaterialsNotActivated:true,newConvertedStockJourneyVerified:false,documentIds:[]};
-   await seal(join(target,label+'-database-after-private.json'),after);await seal(join(target,label+'-journey-private.json'),result);return {after,result};
+    legacyMaterialsNotActivated:true,convertedReceivingVerified:converted.convertedReceivingVerified,
+    newConvertedStockJourneyVerified:false,documentIds:converted.documentIds};
+   await seal(join(target,label+'-database-after-private.json'),final);await seal(join(target,label+'-journey-private.json'),result);return {after,result};
   }
   db=database(REHEARSAL_DB);demand(digest(await snapshot(db))===digest(before),'UOM_UPGRADE_RESTORED_ROWS_DIFFER');await db.$disconnect();db=undefined;
   phase='REHEARSAL_MIGRATION';await stage(target,'MIGRATE_REHEARSAL','pnpm',['prisma:migrate:deploy'],repo,await runtime(REHEARSAL_DB,rehearsal));
@@ -245,7 +249,7 @@ export async function upgradeUom(operatorMain){
   const receipt={previousApplication:PREVIOUS_APP,previousOperator:PREVIOUS_OPERATOR,
    applicationSha:applicationSha,operatorMainSha:operatorMain,forwardOnlyMigration:true,sourceHistoryPreserved:true,completedPartialTransferPreserved:true,
    documentsUploadsKeysAndPriorReceiptsPreserved:true,preUpgradeSeparatePopulatedRestoreAndJourneyVerified:true,populatedDumpSha256:dumpSha256,
-   ...completed.result,status:'UOM_POPULATED_MAC_UPGRADE_AND_DEFINITION_BROWSER_VERIFIED',stockAndPaymentRowsUnchanged:true,
+   ...completed.result,status:'UOM_POPULATED_MAC_UPGRADE_AND_CONVERTED_RECEIVING_VERIFIED',stockAndPaymentRowsUnchanged:false,
    fullBusinessJourneysVerified:false,milestone7Complete:false,prototypeFrozen:false,humanUatCompleted:false,productionAuthorized:false,secretsPrinted:false};
   // Do not expose private Document/Certification identities in public output.
   delete receipt.documentIds;delete receipt.certificationId;await seal(join(target,'ready.json'),receipt);return receipt;

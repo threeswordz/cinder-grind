@@ -5,6 +5,7 @@ import {executePhysicalBrowser} from './subcontract-physical-browser.mjs';
 import {configureUom,prepareUomSource,uomBrowserBinding,verifyUomActivationDenial,verifyUomPreservation} from './prototype-uom-state.mjs';
 import {executeMaterialUomBrowser} from './material-uom-browser.mjs';
 import {verifyUomPriorProtectedReadback} from './prototype-uom-protected-readback.mjs';
+import {convertedReceiving} from './prototype-uom-converted-receiving.mjs';
 import {prepareTransferContinuationSource} from './prototype-transfer-continuation-core.mjs';
 import {beforeTransferSchema,createFailedTransferCheckpoint} from './prototype-transfer-continuation-native-fixture.mjs';
 import {verifyFailedTransferState} from './prototype-transfer-failure-state.mjs';
@@ -253,6 +254,9 @@ async function native(){
        {userId:fixture.adminUserId,email:'proto-admin@example.invalid',password:adminPassword});
      assert.equal(priorReadback.priorProtectedDocumentReadbackVerified,true);
      phase='UOM_PRESERVATION';verifyUomPreservation(uomBefore,await fm03Snapshot(db),uomConfiguration,fmBinding,uomSource);
+     phase='UOM_CONVERTED_RECEIVING';const receipt=await convertedReceiving(db,fmBinding,uomSource,origins);
+     assert.equal(receipt.convertedReceivingVerified,true);
+     console.log('UOM_CONVERTED_RECEIVING_NATIVE_PASS: synthetic new material only, approved PR/PO, Jai evidence check and Khaimook GR, three good cartons posted as 60 stock pieces, prior documents/Finance/stock preserved. Not full plan/request/issue/Mac/M7 proof.');
     console.log('UOM_POPULATED_ENGINE_NATIVE_PASS: same guarded definition browser kernel; prior stock/Finance/subcontract/partial-transfer/signed-file history and grants preserved; explicit new synthetic master/definition capability, dated20-to24 revisions, dropped-response retry, three locales/mobile/read-only/technical denials and sessions revoked. Not actual Mac execution, converted stock journey or final M7 recovery/freeze.');
   }catch(e){
     console.error('MATERIAL_RUN_NATIVE_FAILED: '+phase+' '+(/^[A-Z0-9_]+$/.test(e.safeCode??'')?e.safeCode:'NATIVE_ASSERTION_OR_SETUP_FAILED')+
