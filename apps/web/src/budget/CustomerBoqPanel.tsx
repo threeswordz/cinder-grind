@@ -6,6 +6,7 @@ import {documentsApi} from '../api/documents';
 import {ApiError} from '../api/client';
 import {useBoqText,BoqTextKey} from './boq-i18n';
 import {useBudgetPrintSnapshot} from './budget-print';
+import {normalizeRetainedQuantity} from './customer-boq-buffer';
 
 const newLine=():CustomerLineInput=>({lineId:crypto.randomUUID(),description:'',quantity:'1',uomId:'',method:'MANUAL',manualRate:'',mappings:[{sourceLineId:'',sharePercent:'100'}]});
 export function saveBlob(blob:Blob,name:string){const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;a.click();URL.revokeObjectURL(url);}
@@ -37,10 +38,13 @@ function CustomerProject({projectId,permissions}:{projectId:string;permissions:s
   const editable=canManage&&loaded&&(!id||history.data?.data.allowedActions.edit===true);
   const edit=v?.edits.find(e=>e.editNo===v.currentEditNo);
   useEffect(()=>{if(!v||!edit)return;setSourceId(v.sourceRevisionId);setPrevious(v.previousVersionId??undefined);setEditNo(v.currentEditNo);setReason(edit.reason);
-    const loadedLines:CustomerLineInput[]=edit.lines.map(l=>({lineId:l.lineKey,description:l.description,quantity:l.quantity,uomId:l.uomId,method:l.pricingSnapshot.method,
+    const loadedLines:CustomerLineInput[]=edit.lines.map(l=>({lineId:l.lineKey,description:l.description,
+      // Canonical history persists 4dp; the editor must use the actual UOM scale.
+      quantity:normalizeRetainedQuantity(l.quantity,l.uomSnapshot.decimalPlaces),
+      uomId:l.uomId,method:l.pricingSnapshot.method,
       ...(l.pricingSnapshot.method==='MANUAL'?{manualRate:l.rate}:{markupPercent:l.pricingSnapshot.markupPercent??'0'}),
       ...(l.pricingSnapshot.mappingReason?{mappingReason:l.pricingSnapshot.mappingReason}:{}),
-      ...(l.pricingSnapshot.bufferQuantity?{bufferQuantity:l.pricingSnapshot.bufferQuantity}:{}),
+      ...(l.pricingSnapshot.bufferQuantity?{bufferQuantity:normalizeRetainedQuantity(l.pricingSnapshot.bufferQuantity,l.uomSnapshot.decimalPlaces)}:{}),
       ...(l.pricingSnapshot.pricingReason?{pricingReason:l.pricingSnapshot.pricingReason}:{}),
       ...(l.pricingSnapshot.zeroPriceReason?{zeroPriceReason:l.pricingSnapshot.zeroPriceReason}:{}),
       mappings:l.mappings.map(m=>({sourceLineId:m.sourceLineId,sharePercent:m.sharePercent}))}));
