@@ -1,0 +1,69 @@
+# Temporary isolated DEC-054 material-source compatibility verification.
+# Never a release gate, full PR suite, actual Mac operator or production action.
+name: DEC-054 Material Native Targeted
+on:
+  push:
+    branches: ['boq-native-dec054-20261121']
+    paths:
+      - '.github/workflows/boq-dec054-material-native.yml'
+permissions:
+  contents: read
+concurrency:
+  group: dec054-material-native-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  material-source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    services:
+      postgres:
+        image: postgres:17.11-alpine
+        env:
+          POSTGRES_DB: construction_erp
+          POSTGRES_USER: construction_erp
+          POSTGRES_PASSWORD: construction_erp_dev_only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U construction_erp -d construction_erp"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://construction_erp:construction_erp_dev_only@localhost:5432/construction_erp?schema=public
+      CANDIDATE_SHA: fbfce9ba81d0b3c4427a0905ae99edb221432158
+      RC_NON_PRODUCTION_CONFIRMED: 'YES'
+    steps:
+      - name: Checkout exact targeted commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 2
+          ref: ${{ github.sha }}
+      - name: Prove candidate app/source tree is exactly unchanged
+        run: |
+          test "$(git rev-parse HEAD^)" = "$CANDIDATE_SHA"
+          test "$(git diff-tree --no-commit-id --name-only -r HEAD)" = '.github/workflows/boq-dec054-material-native.yml'
+          test "$(git rev-parse HEAD)" = "${{ github.sha }}"
+      - name: Set up pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
+        with:
+          version: 12.6.0
+          run_install: false
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.21.0
+      - name: Install frozen dependencies and generate schema
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm prisma:generate
+          pnpm prisma:validate
+      - name: Verify synthetic role delta only
+        run: node --test deploy/uat/prototype-material-configuration-policy.test.mjs
+      - name: Build actual API for authenticated material journey
+        run: pnpm --filter @construction-erp/api build
+      - name: Run actual material HTTP journey in own disposable PostgreSQL
+        run: node deploy/uat/prototype-material-run-native.mjs
+      - name: Classify bounded evidence
+        if: success()
+        run: echo 'DEC054_MATERIAL_TARGETED_ONLY: not a full PR/main validation, Mac receipt, human UAT or go-live proof.'
