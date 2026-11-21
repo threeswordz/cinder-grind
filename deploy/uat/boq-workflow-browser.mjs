@@ -25,7 +25,7 @@ import App from '/src/App.tsx';
 import {fetchCurrentUser} from '/src/api/auth.ts';
 import {effectiveUiQueryScope} from '/src/role-ui/role-workspace-policy.ts';
 const pid='11111111-1111-4111-8111-111111111111',sid='22222222-2222-4222-8222-222222222222',uid='33333333-3333-4333-8333-333333333333',sourceLine='44444444-4444-4444-8444-444444444444',vid='55555555-5555-4555-8555-555555555555';
-const all=['budget.boq.view','budget.revision.view','budget.customer.view','budget.customer.manage','budget.customer.submit','budget.customer.approve'];
+const all=['budget.cost.full_view','budget.boq.view','budget.revision.view','budget.customer.view','budget.customer.manage','budget.customer.submit','budget.customer.approve'];
 let stage='initial',projectChoices=0,appMode=false,linkMode=false,summaryReads=0,summaryForbidden=false,combinedPrint=false,activeScope='';
 let signedIn=true,deferHistory=false,delayedHistory=[];
 let instanceId=null,currentStepNo=1,approvalRound=0,submitRequests=[],decisionRequests=[];const actionReplays=new Map();
