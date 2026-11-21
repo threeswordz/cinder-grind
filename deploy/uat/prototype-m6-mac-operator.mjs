@@ -54,10 +54,11 @@ export async function resolveM6FinanceSource({binding,db}){
  const rows=await db.goodsReceiptItem.findMany({where:{
   goodsReceipt:{companyId:f.companyId,projectId:f.projectId,postedAt:{not:null},reversedAt:null},
   supplierInvoiceItems:{none:{}}
- },include:{goodsReceipt:{include:{approvalInstance:true,purchaseOrder:{include:{approvalInstance:true}}}},purchaseOrderLine:true},take:200});
+ },include:{goodsReceipt:{include:{approvalInstance:true,supplier:{select:{isActive:true}},purchaseOrder:{include:{approvalInstance:true,nextRevision:{select:{id:true}}}}}},purchaseOrderLine:true},take:200});
  const viable=rows.filter(x=>x.goodsReceipt.approvalInstance?.approvalState==='APPROVED'&&
   x.goodsReceipt.purchaseOrder.approvalInstance?.approvalState==='APPROVED'&&
   x.goodsReceipt.purchaseOrder.cancelledAt===null&&
+  x.goodsReceipt.purchaseOrder.nextRevision===null&&x.goodsReceipt.supplier?.isActive===true&&
   x.goodsReceipt.purchaseOrder.supplierId===x.goodsReceipt.supplierId&&
   x.goodsReceipt.purchaseOrder.currencyCode==='THB'&&
   x.purchaseOrderLine.purchaseOrderId===x.goodsReceipt.purchaseOrderId&&
