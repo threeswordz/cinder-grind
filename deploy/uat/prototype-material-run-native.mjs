@@ -7,6 +7,7 @@ import {executeMaterialUomBrowser} from './material-uom-browser.mjs';
 import {verifyUomPriorProtectedReadback} from './prototype-uom-protected-readback.mjs';
 import {convertedReceiving} from './prototype-uom-converted-receiving.mjs';
 import {convertedRequestReport} from './prototype-uom-request-report.mjs';
+import {convertedReservation} from './prototype-uom-converted-reservation.mjs';
 import {prepareTransferContinuationSource} from './prototype-transfer-continuation-core.mjs';
 import {beforeTransferSchema,createFailedTransferCheckpoint} from './prototype-transfer-continuation-native-fixture.mjs';
 import {verifyFailedTransferState} from './prototype-transfer-failure-state.mjs';
@@ -258,6 +259,9 @@ async function native(){
      phase='UOM_CONVERTED_RECEIVING';const receipt=await convertedReceiving(db,fmBinding,uomSource,origins);
      assert.equal(receipt.convertedReceivingVerified,true);
      console.log('UOM_CONVERTED_RECEIVING_NATIVE_PASS: synthetic new material only, approved PR/PO, Jai evidence check and Khaimook GR, three good cartons posted as 60 stock pieces, prior documents/Finance/stock preserved. Not full plan/request/issue/Mac/M7 proof.');
+     phase='UOM_CONVERTED_RESERVATION';const reserved=await convertedReservation(db,fmBinding,uomSource,origins);
+     assert.equal(reserved.convertedReservationVerified,true);
+     console.log('UOM_CONVERTED_RESERVATION_NATIVE_PASS: new synthetic material 1 CTN frozen to20 EA, released without posting; Store Site scoped rights, Foreman denied, sessions revoked.');
      phase='UOM_CONVERTED_REQUEST_REPORT';const report=await convertedRequestReport(db,fmBinding,uomSource,origins);
      assert.equal(report.convertedRequestSourceVerified,true);assert.equal(report.convertedMovementReportVerified,true);
      console.log('UOM_CONVERTED_REQUEST_REPORT_NATIVE_PASS: original2 cartons frozen at40 stock pieces; future1 carton frozen at24; canonical receiving movement still3 cartons to60 pieces; no new stock/Finance posting. Not plan/issue/Mac/M7 proof.');
