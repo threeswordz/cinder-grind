@@ -52,6 +52,9 @@ jobs:
       - name: Run role UI focused tests
         working-directory: apps/web
         run: node --test src/role-ui/*.test.mjs
+      - name: Verify DEC-054 BOQ root-App browser on disposable Chromium
+        if: github.ref == 'refs/heads/vboq-dec054-implementation-20261121'
+        run: node deploy/uat/boq-workflow-browser.mjs
       - name: Record focused-only boundary
         run: |
           printf '%s\n' 'FOCUSED_BRANCH_ONLY: not full PR or main CI; native browser, migration, integration and recovery gates remain required.'
