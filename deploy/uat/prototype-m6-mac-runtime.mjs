@@ -206,7 +206,8 @@ export function createM6MacRuntime({releaseSha,sourceRoot,root=join(homedir(),'C
   }
   let ready=false;
   for(let i=0;i<90;i++){try{const h=await health(),web=await fetch(WEB,{redirect:'error',signal:AbortSignal.timeout(3000)});
-   if(h.status==='ok'&&h.database==='ok'&&h.documentStorage==='ok'&&web.ok){ready=true;break;}
+   if(h.status==='ok'&&h.database==='ok'&&h.documentStorage==='ok'&&web.ok&&
+     hash(await web.text())===hash(await readFile(join(app,'apps/web/dist/index.html')))){ready=true;break;}
   }catch{}await sleep(500);}
   need(ready,'M6_NEW_APPLICATION_NOT_READY');
   for(const p of processes){
