@@ -133,17 +133,41 @@ export async function verifyFailedStage(root,stage){
 
 async function main(){
  requireCheck(process.platform==='darwin'&&process.getuid()>0,'UOM_CONTINUATION_NONROOT_MAC_REQUIRED');
- requireCheck(process.argv.length===4&&process.argv[2]==='--verify'&&process.argv[3]===OPERATOR,
-  'UOM_CONTINUATION_PINNED_READ_ONLY_MODE_REQUIRED');
+ const mode=process.argv[2];
+ requireCheck(process.argv.length===4&&['--verify','--finalize'].includes(mode)&&process.argv[3]===OPERATOR,
+  'UOM_CONTINUATION_PINNED_MODE_REQUIRED');
  const home=homedir(),root=join(home,'Construction-ERP-Prototype-Runtime'),stage=join(root,'uom-upgrade');
  requireCheck(resolve(home)===home,'UOM_CONTINUATION_HOME_INVALID');
  const directory=await realpath(stage);requireCheck(directory===stage,'UOM_CONTINUATION_STAGE_SYMLINK');
  const result=await verifyFailedStage(root,stage);
- console.log(JSON.stringify({status:'UOM_FINAL_PRESERVATION_READ_ONLY_PASS',operatorMain:OPERATOR,
-  oldEntriesUnchanged:true,newDocumentCount:result.proof.newDocumentCount,
-  restoredJourneyVerified:true,sourceJourneyVerified:true,
-  sourceAndProtectedDocumentBytesPreserved:true,sourceDbSnapshotUnchanged:true,
-  completionReceiptWritten:false,automaticRetryAllowed:false,productionAuthorized:false}));
+ if(mode==='--finalize'){
+  // The only permitted write is a create-once completion receipt. Preserve original
+  // failure, dump, application, files, grants, migrated source and all journey receipts.
+  const receipt={
+   previousApplication:PREVIOUS_APP,previousOperator:PREVIOUS_OPERATOR,
+   applicationSha:OPERATOR,operatorMainSha:OPERATOR,forwardOnlyMigration:true,
+   sourceHistoryPreserved:true,completedPartialTransferPreserved:true,
+   documentsUploadsKeysAndPriorReceiptsPreserved:true,
+   preUpgradeSeparatePopulatedRestoreAndJourneyVerified:true,
+   populatedDumpSha256:result.preservation.dumpSha256,
+   ...result.source,status:UOM_STATUS,stockAndPaymentRowsUnchanged:false,
+   fullBusinessJourneysVerified:false,milestone7Complete:false,prototypeFrozen:false,
+   humanUatCompleted:false,productionAuthorized:false,secretsPrinted:false
+  };
+  delete receipt.documentIds;delete receipt.certificationId;
+  await seal(join(stage,'ready.json'),receipt);
+  console.log(JSON.stringify({status:'UOM_FINAL_PRESERVATION_CONTINUATION_VERIFIED',
+   originalOperatorMain:OPERATOR,completionReceiptWritten:true,
+   convertedStockJourneyVerified:receipt.newConvertedStockJourneyVerified,
+   preservedSourceAndFilesVerified:true,automaticRetryAllowed:false,
+   humanUatCompleted:false,productionAuthorized:false}));
+ }else{
+  console.log(JSON.stringify({status:'UOM_FINAL_PRESERVATION_READ_ONLY_PASS',operatorMain:OPERATOR,
+   oldEntriesUnchanged:true,newDocumentCount:result.proof.newDocumentCount,
+   restoredJourneyVerified:true,sourceJourneyVerified:true,
+   sourceAndProtectedDocumentBytesPreserved:true,sourceDbSnapshotUnchanged:true,
+   completionReceiptWritten:false,automaticRetryAllowed:false,productionAuthorized:false}));
+ }
 }
 const entry=process.argv[1]&&await realpath(resolve(process.argv[1])).catch(()=>null);
 if(entry&&entry===await realpath(new URL(import.meta.url))){
