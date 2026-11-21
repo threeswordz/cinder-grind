@@ -13,7 +13,7 @@ function fixture({ attempt = '1', draft = false, branch = 'vwork', fork = false 
   const env = { GITHUB_REPOSITORY: repository, GITHUB_RUN_ATTEMPT: attempt,
     GITHUB_EVENT_NAME: 'pull_request', GITHUB_SHA: merge, GITHUB_REF: 'refs/pull/12/merge',
     EXACT_RELEASE_COMMIT: head, RELEASE_COMMIT: head };
-  const event = { repository: { full_name: repository }, action: 'labeled', label: {name:'full-ci-approved'}, number: 12,
+  const event = { repository: { full_name: repository }, action: 'ready_for_review', number: 12,
     pull_request: { number: 12, state: 'open', merged: false, draft,
       head: { sha: head, ref: branch, repo: { full_name: fork ? 'fork/erp' : repository } },
       base: { sha: base, ref: 'main', repo: { full_name: repository } } } };
@@ -25,13 +25,11 @@ const admit = (f, phase = 'start', extra = {}) => runAdmission({ phase, env: f.e
 const denied = (promise, code) => assert.rejects(promise, error => error.code === code);
 
 
-test('full PR work is explicitly admitted only by labeled, stable candidates', async () => {
-  for(const action of ['opened','synchronize','reopened','ready_for_review','unlabeled']){
+test('full PR work is admitted only by explicit ready transition and stable head', async () => {
+  for(const action of ['opened','synchronize','reopened','labeled','unlabeled']){
     const f=fixture();f.event.action=action;
-    await denied(admit(f),'FULL_PR_EXPLICIT_LABEL_REQUIRED');
+    await denied(admit(f),'FULL_PR_EXPLICIT_READY_REQUIRED');
   }
-  const wrong=fixture();wrong.event.label.name='bug';
-  await denied(admit(wrong),'FULL_PR_EXPLICIT_LABEL_REQUIRED');
   const draft=fixture({draft:true});
   await denied(admit(draft),'FULL_PR_STABLE_CANDIDATE_REQUIRED');
   for(const attempt of ['1','2']){
@@ -40,7 +38,7 @@ test('full PR work is explicitly admitted only by labeled, stable candidates', a
   }
 });
 
-test('exact labeled head is checked again at finish, even after a ready transition',async()=>{
+test('exact ready head is checked again at finish',async()=>{
   const f=fixture();
   assert.equal((await admit(f)).status,'FULL_VALIDATION_ADMITTED');
   f.live.head.sha='d'.repeat(40);
@@ -81,7 +79,7 @@ test('malformed event, attempt, repository, checkout and unknown action cannot a
     [f => { f.event.pull_request.draft = undefined; }, 'INVALID_PR_STATE'],
     [f => { f.event.pull_request.base.sha = null; }, 'INVALID_BASE'],
     [f => { f.event.pull_request.head.sha = base; }, 'INVALID_HEAD'],
-    [f => { f.event.action = 'ready_for_review'; }, 'FULL_PR_EXPLICIT_LABEL_REQUIRED'],
+    [f => { f.event.action = 'synchronize'; }, 'FULL_PR_EXPLICIT_READY_REQUIRED'],
     [f => { f.env.GITHUB_EVENT_NAME = 'workflow_dispatch'; }, 'INVALID_FULL_MAIN_DISPATCH'],
   ]) {
     const f = fixture({ attempt: '2' }); mutate(f); await denied(admit(f), code);
@@ -104,10 +102,10 @@ test('main/full push always executes full and rejects a stale ref at both bounda
 });
 
 
-test('CLI refuses unauthorized PR label before any expensive work, hides credentials', () => {
+test('CLI refuses ordinary PR push before any expensive work, hides credentials', () => {
   const directory = mkdtempSync(join(tmpdir(), 'ci-candidate-gate-'));
   try {
-    const f = fixture();f.event.label.name='unrelated';
+    const f = fixture();f.event.action='synchronize';
     const realHead = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
     f.env.EXACT_RELEASE_COMMIT = f.env.RELEASE_COMMIT = f.event.pull_request.head.sha = realHead;
     const eventPath = join(directory, 'event.json'), summaryPath = join(directory, 'summary.md');
@@ -117,7 +115,7 @@ test('CLI refuses unauthorized PR label before any expensive work, hides credent
         GITHUB_STEP_SUMMARY: summaryPath, GITHUB_TOKEN: 'never-print-this-token' },
     });
     assert.equal(result.status, 1);
-    assert.match(result.stdout, /^FULL_PR_EXPLICIT_LABEL_REQUIRED\n$/);
+    assert.match(result.stdout, /^FULL_PR_EXPLICIT_READY_REQUIRED\n$/);
     assert.doesNotMatch(result.stdout + result.stderr + readFileSync(summaryPath, 'utf8'), /never-print-this-token/);
   } finally { rmSync(directory, { recursive: true, force: true }); }
 });
