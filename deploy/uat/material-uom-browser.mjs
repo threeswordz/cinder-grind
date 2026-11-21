@@ -1,4 +1,4 @@
-// Actual built React and authenticated API journey on an exclusively owned disposable database.
+// Actual built React and authenticated API. Native disposable or guarded synthetic Mac coordinator only.
 import assert from 'node:assert/strict';
 const demand=(ok,code)=>{if(!ok)throw Object.assign(new Error(),{safeCode:code});};
 const panel='[data-testid="material-uom-panel"]',definition='[data-testid="material-uom-definition"]',previewForm='[data-testid="material-uom-preview-form"]';
@@ -10,7 +10,7 @@ async function select(p,s,label,value,scope=panel){await until(p,s,({label,scope
 
 export async function executeMaterialUomBrowser(p,binding,db){
  const {api:API,web:WEB,fixture:f}=structuredClone(binding);
- demand(process.platform==='linux'&&process.env.GITHUB_ACTIONS==='true'&&API==='http://127.0.0.1:31359/api/v1'&&WEB==='http://127.0.0.1:44359','UOM_BROWSER_ORIGINS_REFUSED');
+ demand(process.platform==='linux'&&process.env.GITHUB_ACTIONS==='true'&&((API==='http://127.0.0.1:31359/api/v1'&&WEB==='http://127.0.0.1:44359')||(API==='http://127.0.0.1:31319/api/v1'&&WEB==='http://127.0.0.1:44319'))||process.platform==='darwin'&&API==='http://127.0.0.1:33071/api/v1'&&WEB==='http://127.0.0.1:44171','UOM_BROWSER_ORIGINS_REFUSED');
  assert.equal(await db.materialUomBasis.count({where:{materialId:f.material.id}}),0);
  const original=await db.material.findUniqueOrThrow({where:{id:f.material.id}}),stock=await db.stockTransaction.count({where:{companyId:f.company.id}});
  let dropped=false,phase='START';const violations=[],closing=new Set(),route='/api/v1/master-data/material-conversions/'+f.material.id;
@@ -39,6 +39,10 @@ export async function executeMaterialUomBrowser(p,binding,db){
     phase=key.toUpperCase()+'_WORKSPACE';
     await until(p,s,()=>[...document.querySelectorAll('nav [role="button"]')].some(e=>e.textContent==='Master Data'),null,'UOM_BROWSER_NAV_MISSING');
     await evaluate(p,s,()=>{[...document.querySelectorAll('nav [role="button"]')].find(e=>e.textContent==='Master Data').click();return true;});
+    // Real prototype actors also view other masters; their first available tab
+    // is not necessarily Materials, unlike the isolated foundation fixture.
+    await until(p,s,()=>[...document.querySelectorAll('[role="tab"]')].some(e=>e.textContent==='Materials'),null,'UOM_BROWSER_MATERIAL_TAB_MISSING');
+    await evaluate(p,s,()=>{[...document.querySelectorAll('[role="tab"]')].find(e=>e.textContent==='Materials').click();return true;});
     await until(p,s,({code,name})=>[...document.querySelectorAll('main .MuiCard-root')].some(c=>[...c.querySelectorAll('p')].some(e=>e.textContent===code+' — '+name)),f.material,'UOM_BROWSER_MATERIAL_MISSING');
     await evaluate(p,s,({code,name})=>{const card=[...document.querySelectorAll('main .MuiCard-root')].find(c=>[...c.querySelectorAll('p')].some(e=>e.textContent===code+' — '+name));[...card.querySelectorAll('button')].find(e=>e.textContent==='UOM · หน่วย · 單位').click();return true;},f.material);
     await until(p,s,()=>Boolean(document.querySelector('[data-testid="material-uom-panel"]'))||[...document.querySelectorAll('main [role="alert"]')].some(e=>e.textContent.includes('Unable to complete this action')),null,'UOM_BROWSER_PANEL_MISSING');

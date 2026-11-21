@@ -2,6 +2,14 @@ import {configureTransfer,prepareTransferSource,transferBrowserBinding,verifyTra
 import {executeTransferBrowser} from './transfer-browser.mjs';
 import {configureSubcontract,prepareSubcontractSource,subcontractBrowserBinding,verifySubcontractPreservation} from './prototype-subcontract-state.mjs';
 import {executePhysicalBrowser} from './subcontract-physical-browser.mjs';
+import {configureUom,prepareUomSource,uomBrowserBinding,verifyUomActivationDenial,verifyUomPreservation} from './prototype-uom-state.mjs';
+import {executeMaterialUomBrowser} from './material-uom-browser.mjs';
+import {verifyUomPriorProtectedReadback} from './prototype-uom-protected-readback.mjs';
+import {convertedReceiving} from './prototype-uom-converted-receiving.mjs';
+import {convertedRequestReport} from './prototype-uom-request-report.mjs';
+import {convertedReservation} from './prototype-uom-converted-reservation.mjs';
+import {convertedPlanIssue} from './prototype-uom-plan-source.mjs';
+import {convertedOperationalBrowser} from './prototype-uom-operational-browser.mjs';
 import {prepareTransferContinuationSource} from './prototype-transfer-continuation-core.mjs';
 import {beforeTransferSchema,createFailedTransferCheckpoint} from './prototype-transfer-continuation-native-fixture.mjs';
 import {verifyFailedTransferState} from './prototype-transfer-failure-state.mjs';
@@ -235,6 +243,41 @@ async function native(){
     await browser.stop();browser=undefined;
     phase='SUBCONTRACT_PRESERVATION';verifySubcontractPreservation(physicalBefore,await fm03Snapshot(db),physicalConfig,fmBinding,physicalSource,physicalResult);
     console.log('SUBCONTRACT_POPULATED_ENGINE_NATIVE_PASS: prior material/FM03/receiving/partial-transfer preserved; exact synthetic grants; canonical Khaimook agreement/WO and independent Ben approvals; shared real browser capture/evidence/8 accepted/2 held/explicit731.25/certification/Nancy approval/retention36.56, locales/denials/download/retries/revocation. Disposable CI only, not Mac execution or final recovery/freeze.');
+    phase='UOM_BASELINE';const uomBefore=await fm03Snapshot(db);
+    await assert.rejects(configureUom(db,fmBinding,'0'.repeat(64)),e=>e.safeCode==='UOM_CONFIGURATION_STATE_DRIFT');
+    phase='UOM_CONFIGURATION';const uomConfiguration=await configureUom(db,fmBinding,digest(uomBefore));
+    await assert.rejects(configureUom(db,fmBinding,digest(await fm03Snapshot(db))),e=>e.safeCode==='UOM_CONFIGURATION_ALREADY_STARTED');
+    phase='UOM_NEW_MASTER';const uomSource=await prepareUomSource(db,fmBinding,origins);
+    phase='UOM_ACTUAL_BROWSER';browser=await startBrowser(chrome,temporary);
+    await executeMaterialUomBrowser(browser.protocol,uomBrowserBinding(fmBinding,uomSource,origins,
+      {userId:fixture.adminUserId,email:'proto-admin@example.invalid',password:adminPassword}),db);
+    await browser.stop();browser=undefined;
+    phase='UOM_ACTIVATION_DENIAL';assert.equal((await verifyUomActivationDenial(db,fmBinding,uomSource,origins)).activationDenied,true);
+    phase='UOM_PRIOR_PROTECTED_READBACK';
+     const priorReadback=await verifyUomPriorProtectedReadback(db,fmBinding,origins,
+       {userId:fixture.adminUserId,email:'proto-admin@example.invalid',password:adminPassword});
+     assert.equal(priorReadback.priorProtectedDocumentReadbackVerified,true);
+     phase='UOM_PRESERVATION';verifyUomPreservation(uomBefore,await fm03Snapshot(db),uomConfiguration,fmBinding,uomSource);
+     phase='UOM_CONVERTED_RECEIVING';const receipt=await convertedReceiving(db,fmBinding,uomSource,origins);
+     assert.equal(receipt.convertedReceivingVerified,true);
+     console.log('UOM_CONVERTED_RECEIVING_NATIVE_PASS: synthetic new material only, approved PR/PO, Jai evidence check and Khaimook GR, three good cartons posted as 60 stock pieces, prior documents/Finance/stock preserved. Not full plan/request/issue/Mac/M7 proof.');
+     phase='UOM_CONVERTED_RESERVATION';const reserved=await convertedReservation(db,fmBinding,uomSource,origins);
+     assert.equal(reserved.convertedReservationVerified,true);
+     console.log('UOM_CONVERTED_RESERVATION_NATIVE_PASS: new synthetic material 1 CTN frozen to20 EA, released without posting; Store Site scoped rights, Foreman denied, sessions revoked.');
+     phase='UOM_CONVERTED_REQUEST_REPORT';const report=await convertedRequestReport(db,fmBinding,uomSource,origins);
+     phase='UOM_CONVERTED_PLAN_ISSUE';const planned=await convertedPlanIssue(db,fmBinding,uomSource,origins);
+     assert.equal(planned.convertedApprovedSourcePlanAndIssueVerified,true);
+     assert.equal(planned.convertedPlannedReturnVerified,true);
+     assert.equal(planned.convertedOverageVerified,true);
+     phase='UOM_CONVERTED_OPERATIONAL_BROWSER';browser=await startBrowser(chrome,temporary);
+     const readback=await convertedOperationalBrowser(browser.protocol,{...fmBinding,...origins},uomSource,db);
+     assert.equal(readback.actualIntegratedOperationalBrowserReadbackVerified,true);
+     await browser.stop();browser=undefined;
+     console.log('UOM_CONVERTED_OPERATIONAL_BROWSER_NATIVE_PASS: same built React and populated API; Store Site project-scoped plan/request/issue/return registers,60 EA balance, original20:1 movement readback, explicit read-only transport and revoked session. Not Mac, DEC-054 Cost runtime, human UAT or M7.');
+     console.log('UOM_CONVERTED_PLAN_ISSUE_NATIVE_PASS: new approved synthetic Cost snapshot, independent plan, within-plan1CTN/20EA, original-rate0.5CTN/10EA partial return, ordered idempotent return/issue reversals, overage3CTN/60EA requires Khaimook review and Ben final approval, no synthetic stock remains overdrawn, original stock and budget revision immutable. This is technical use of legacy configured Cost approval, NOT owner DEC-054 runtime or human business acceptance.');
+     assert.equal(report.convertedRequestSourceVerified,true);assert.equal(report.convertedMovementReportVerified,true);
+     console.log('UOM_CONVERTED_REQUEST_REPORT_NATIVE_PASS: original2 cartons frozen at40 stock pieces; future1 carton frozen at24; canonical receiving movement still3 cartons to60 pieces; no new stock/Finance posting. Not plan/issue/Mac/M7 proof.');
+    console.log('UOM_POPULATED_ENGINE_NATIVE_PASS: same guarded definition browser kernel; prior stock/Finance/subcontract/partial-transfer/signed-file history and grants preserved; explicit new synthetic master/definition capability, dated20-to24 revisions, dropped-response retry, three locales/mobile/read-only/technical denials and sessions revoked. Not actual Mac execution, converted stock journey or final M7 recovery/freeze.');
   }catch(e){
     console.error('MATERIAL_RUN_NATIVE_FAILED: '+phase+' '+(/^[A-Z0-9_]+$/.test(e.safeCode??'')?e.safeCode:'NATIVE_ASSERTION_OR_SETUP_FAILED')+
       (e.cleanupFailed===true?' CLEANUP_ALSO_FAILED':''));
