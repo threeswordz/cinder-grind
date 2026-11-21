@@ -19,6 +19,7 @@ import {verifyUomPriorProtectedReadback} from './prototype-uom-protected-readbac
 import {convertedReceiving} from './prototype-uom-converted-receiving.mjs';
 import {convertedRequestReport} from './prototype-uom-request-report.mjs';
 import {convertedReservation} from './prototype-uom-converted-reservation.mjs';
+import {convertedPlanIssue} from './prototype-uom-plan-source.mjs';
 import {prepareBrowser,discoverBrowser} from './prototype-browser-executable.mjs';
 import {startBrowser} from './prototype-browser.mjs';
 export const PREVIOUS_APP='f37867c9dd34d535e5d62bfdd01934773c6f5e8a';
@@ -227,6 +228,7 @@ export async function upgradeUom(operatorMain){
    const converted=await convertedReceiving(client,binding,source,{api:API,web:WEB});
    const reservation=await convertedReservation(client,binding,source,{api:API,web:WEB});
    const requestReport=await convertedRequestReport(client,binding,source,{api:API,web:WEB});
+   const planned=await convertedPlanIssue(client,binding,source,{api:API,web:WEB});
    const final=await snapshot(client);verifyDocumentInventory(final.documents,await privateInventory(join(store,'documents')));
    const result={definitionBrowserVerified:true,threeLocalesVerified:true,mobileVerified:true,wrongActorDenialVerified:true,
     uncertainResponseReplayVerified:true,sessionsRevoked:true,...protectedReadback,historicalStockAndFinancialRowsPreserved:true,
@@ -235,6 +237,8 @@ export async function upgradeUom(operatorMain){
     reservationReleasedWithoutStockEffect:reservation.reservationReleasedWithoutStockEffect,
     convertedRequestSourceVerified:requestReport.convertedRequestSourceVerified,
     convertedMovementReportVerified:requestReport.convertedMovementReportVerified,
+    convertedApprovedSourcePlanAndIssueVerified:planned.convertedApprovedSourcePlanAndIssueVerified,
+    ownerCostSelfApprovalUnverified:true,
     requestAndReportSessionsRevoked:requestReport.requestAndReportSessionsRevoked,
     newConvertedStockJourneyVerified:false,documentIds:converted.documentIds};
    await seal(join(target,label+'-database-after-private.json'),final);await seal(join(target,label+'-journey-private.json'),result);return {after,result};

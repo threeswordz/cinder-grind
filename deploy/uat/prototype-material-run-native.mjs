@@ -8,6 +8,7 @@ import {verifyUomPriorProtectedReadback} from './prototype-uom-protected-readbac
 import {convertedReceiving} from './prototype-uom-converted-receiving.mjs';
 import {convertedRequestReport} from './prototype-uom-request-report.mjs';
 import {convertedReservation} from './prototype-uom-converted-reservation.mjs';
+import {convertedPlanIssue} from './prototype-uom-plan-source.mjs';
 import {prepareTransferContinuationSource} from './prototype-transfer-continuation-core.mjs';
 import {beforeTransferSchema,createFailedTransferCheckpoint} from './prototype-transfer-continuation-native-fixture.mjs';
 import {verifyFailedTransferState} from './prototype-transfer-failure-state.mjs';
@@ -263,6 +264,9 @@ async function native(){
      assert.equal(reserved.convertedReservationVerified,true);
      console.log('UOM_CONVERTED_RESERVATION_NATIVE_PASS: new synthetic material 1 CTN frozen to20 EA, released without posting; Store Site scoped rights, Foreman denied, sessions revoked.');
      phase='UOM_CONVERTED_REQUEST_REPORT';const report=await convertedRequestReport(db,fmBinding,uomSource,origins);
+     phase='UOM_CONVERTED_PLAN_ISSUE';const planned=await convertedPlanIssue(db,fmBinding,uomSource,origins);
+     assert.equal(planned.convertedApprovedSourcePlanAndIssueVerified,true);
+     console.log('UOM_CONVERTED_PLAN_ISSUE_NATIVE_PASS: new approved synthetic Cost snapshot, independent plan, within-plan1CTN/20EA, idempotent canonical reversal, original stock and budget revision immutable. This is technical use of legacy configured Cost approval, NOT owner DEC-054 runtime or human business acceptance.');
      assert.equal(report.convertedRequestSourceVerified,true);assert.equal(report.convertedMovementReportVerified,true);
      console.log('UOM_CONVERTED_REQUEST_REPORT_NATIVE_PASS: original2 cartons frozen at40 stock pieces; future1 carton frozen at24; canonical receiving movement still3 cartons to60 pieces; no new stock/Finance posting. Not plan/issue/Mac/M7 proof.');
     console.log('UOM_POPULATED_ENGINE_NATIVE_PASS: same guarded definition browser kernel; prior stock/Finance/subcontract/partial-transfer/signed-file history and grants preserved; explicit new synthetic master/definition capability, dated20-to24 revisions, dropped-response retry, three locales/mobile/read-only/technical denials and sessions revoked. Not actual Mac execution, converted stock journey or final M7 recovery/freeze.');
