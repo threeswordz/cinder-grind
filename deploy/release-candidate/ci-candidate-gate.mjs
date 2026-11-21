@@ -24,7 +24,8 @@ export function candidateIdentity(env, event, checkoutSha) {
   const attempt = Number(env.GITHUB_RUN_ATTEMPT);
   if (env.GITHUB_EVENT_NAME === 'pull_request') {
     const pr = event.pull_request;
-    requireThat(['opened', 'synchronize', 'reopened'].includes(event.action), 'INVALID_PR_ACTION');
+    requireThat(event.action === 'labeled' && event.label?.name === 'full-ci-approved',
+      'FULL_PR_EXPLICIT_LABEL_REQUIRED');
     requireThat(Number.isSafeInteger(event.number) && event.number > 0 && pr?.number === event.number &&
       env.GITHUB_REF === `refs/pull/${event.number}/merge`, 'INVALID_PR_IDENTITY');
     requireThat(pr.state === 'open' && typeof pr.draft === 'boolean' && pr.merged !== true, 'INVALID_PR_STATE');
@@ -33,8 +34,10 @@ export function candidateIdentity(env, event, checkoutSha) {
     requireThat(shaPattern.test(pr.head?.sha ?? '') && pr.head.sha === checkoutSha &&
       repositoryPattern.test(pr.head?.repo?.full_name ?? '') &&
       typeof pr.head.ref === 'string' && pr.head.ref.length > 0, 'INVALID_HEAD');
-    const focusedDraft = attempt === 1 && pr.draft && pr.head.repo.full_name === repository &&
-      pr.head.ref.startsWith('v') && !pr.head.ref.startsWith('vfull-');
+    requireThat(pr.draft === false,'FULL_PR_STABLE_CANDIDATE_REQUIRED');
+    // Label events are immutable intentional release actions, not accidental edits.
+    // Live head/base and ancestry must still match both at start and finish.
+    const focusedDraft = false;
     return { kind: 'pull_request', repository, attempt, sha: checkoutSha, number: event.number,
       headRepository: pr.head.repo.full_name, headRef: pr.head.ref,
       baseSha: pr.base.sha, baseRef: pr.base.ref, focusedDraft };
