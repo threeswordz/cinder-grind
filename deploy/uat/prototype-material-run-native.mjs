@@ -4,6 +4,7 @@ import {configureSubcontract,prepareSubcontractSource,subcontractBrowserBinding,
 import {executePhysicalBrowser} from './subcontract-physical-browser.mjs';
 import {configureUom,prepareUomSource,uomBrowserBinding,verifyUomActivationDenial,verifyUomPreservation} from './prototype-uom-state.mjs';
 import {executeMaterialUomBrowser} from './material-uom-browser.mjs';
+import {verifyUomPriorProtectedReadback} from './prototype-uom-protected-readback.mjs';
 import {prepareTransferContinuationSource} from './prototype-transfer-continuation-core.mjs';
 import {beforeTransferSchema,createFailedTransferCheckpoint} from './prototype-transfer-continuation-native-fixture.mjs';
 import {verifyFailedTransferState} from './prototype-transfer-failure-state.mjs';
@@ -247,7 +248,11 @@ async function native(){
       {userId:fixture.adminUserId,email:'proto-admin@example.invalid',password:adminPassword}),db);
     await browser.stop();browser=undefined;
     phase='UOM_ACTIVATION_DENIAL';assert.equal((await verifyUomActivationDenial(db,fmBinding,uomSource,origins)).activationDenied,true);
-    phase='UOM_PRESERVATION';verifyUomPreservation(uomBefore,await fm03Snapshot(db),uomConfiguration,fmBinding,uomSource);
+    phase='UOM_PRIOR_PROTECTED_READBACK';
+     const priorReadback=await verifyUomPriorProtectedReadback(db,fmBinding,origins,
+       {userId:fixture.adminUserId,email:'proto-admin@example.invalid',password:adminPassword});
+     assert.equal(priorReadback.priorProtectedDocumentReadbackVerified,true);
+     phase='UOM_PRESERVATION';verifyUomPreservation(uomBefore,await fm03Snapshot(db),uomConfiguration,fmBinding,uomSource);
     console.log('UOM_POPULATED_ENGINE_NATIVE_PASS: same guarded definition browser kernel; prior stock/Finance/subcontract/partial-transfer/signed-file history and grants preserved; explicit new synthetic master/definition capability, dated20-to24 revisions, dropped-response retry, three locales/mobile/read-only/technical denials and sessions revoked. Not actual Mac execution, converted stock journey or final M7 recovery/freeze.');
   }catch(e){
     console.error('MATERIAL_RUN_NATIVE_FAILED: '+phase+' '+(/^[A-Z0-9_]+$/.test(e.safeCode??'')?e.safeCode:'NATIVE_ASSERTION_OR_SETUP_FAILED')+

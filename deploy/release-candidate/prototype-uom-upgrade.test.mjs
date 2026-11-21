@@ -8,6 +8,8 @@ import {fileURLToPath} from 'node:url';
 import {upgradeUom,validSubcontractReceipt,PREVIOUS_APP,PREVIOUS_OPERATOR,APPLICATION_BASE,REHEARSAL_DB} from '../uat/prototype-uom-upgrade.mjs';
 import {verifyUomMigration,verifyUomPreservation,configureUom,prepareUomSource,UOM_TABLES,UOM_MIGRATIONS,UOM_GRANTS} from '../uat/prototype-uom-state.mjs';
 import {materialUomCatalog} from './material-uom-catalog-contract.mjs';
+import {createHash} from 'node:crypto';
+import {verifyOriginalProtectedBytes,verifyUomPriorProtectedReadback} from '../uat/prototype-uom-protected-readback.mjs';
 const receipt=()=>({status:'SUBCONTRACT_POPULATED_MAC_UPGRADE_AND_BROWSER_VERIFIED',applicationSha:PREVIOUS_APP,operatorMainSha:PREVIOUS_OPERATOR,populatedDumpSha256:'a'.repeat(64),
  ...Object.fromEntries(['forwardOnlyMigration','sourceHistoryPreserved','completedPartialTransferPreserved','documentsUploadsKeysAndPriorReceiptsPreserved','preUpgradeSeparatePopulatedRestoreAndJourneyVerified','stockAndPaymentRowsUnchanged','physicalCaptureAndIndependentPartialAcceptanceVerified','explicitAcceptedAmountVerified','canonicalCertificationApprovalVerified','threeLocalesVerified','mobileVerified','protectedDownloadBytesVerified','wrongActorDenialVerified','uncertainResponseReplayVerified','sessionsRevoked'].map(k=>[k,true])),
  ...Object.fromEntries(['fullBusinessJourneysVerified','milestone7Complete','prototypeFrozen','humanUatCompleted','productionAuthorized','secretsPrinted'].map(k=>[k,false]))});
@@ -82,4 +84,20 @@ test('preserved application base is the reviewed Stage C tree and nine exact mig
  assert.equal(git('rev-parse',APPLICATION_BASE+'^{tree}'),'71415b92ec46c4fb637f3da9977a39a575522a89');
  const names=(await readdir(new URL('../../apps/api/prisma/migrations/',import.meta.url))).filter(n=>n.includes('material_uom'));
  assert.deepEqual(names.sort(),[...UOM_MIGRATIONS].sort());
+});
+
+test('original signed-work Document is exact-byte bound; changed and oversized downloads fail closed',()=>{
+ const original=Buffer.from('%PDF-1.4\\nOriginal synthetic signed work evidence');
+ const document={fileSizeBytes:original.length,checksum:createHash('sha256').update(original).digest('hex')};
+ assert.equal(verifyOriginalProtectedBytes(document,original),true);
+ for(const [meta,bytes] of [[document,Buffer.concat([original,Buffer.from('tampered')])],
+  [document,Buffer.from('%PDF-1.4\\nDifferent proof')],
+  [{...document,fileSizeBytes:8388609},original],[{...document,checksum:'nope'},original]]){
+  assert.throws(()=>verifyOriginalProtectedBytes(meta,bytes));
+ }
+});
+test('readback rejects non-owned origins before accessing sensitive prototype DB',async()=>{
+ const forbidden=new Proxy({}, {get(){throw Error('database must not be touched');}});
+ await assert.rejects(verifyUomPriorProtectedReadback(forbidden,{},{api:'https://foreign.invalid/api/v1',web:'https://foreign.invalid'},{}),
+  e=>e.safeCode==='UOM_PROTECTED_READBACK_BINDING_REFUSED');
 });

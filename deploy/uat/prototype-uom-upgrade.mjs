@@ -15,6 +15,7 @@ import {privateInventory,verifyDocumentInventory,hasSoleListenerPid,command,dire
 import {verifyTransferDocumentFiles} from './prototype-transfer-state.mjs';
 import {uomSnapshot,digest,verifyUomMigration,configureUom,prepareUomSource,uomBrowserBinding,verifyUomActivationDenial,verifyUomPreservation} from './prototype-uom-state.mjs';
 import {executeMaterialUomBrowser} from './material-uom-browser.mjs';
+import {verifyUomPriorProtectedReadback} from './prototype-uom-protected-readback.mjs';
 import {prepareBrowser,discoverBrowser} from './prototype-browser-executable.mjs';
 import {startBrowser} from './prototype-browser.mjs';
 export const PREVIOUS_APP='f37867c9dd34d535e5d62bfdd01934773c6f5e8a';
@@ -217,10 +218,11 @@ export async function upgradeUom(operatorMain){
    await executeMaterialUomBrowser(browser.protocol,uomBrowserBinding(binding,source,{api:API,web:WEB},technical),client);
    await browser.stop();browser=undefined;copyMayBeRemoved=true;
    demand((await verifyUomActivationDenial(client,binding,source,{api:API,web:WEB})).activationDenied,'UOM_ACTIVATION_DENIAL_NOT_VERIFIED');
+    const protectedReadback=await verifyUomPriorProtectedReadback(client,binding,{api:API,web:WEB},technical);
    const after=await snapshot(client);verifyUomPreservation(migrated,after,configuration,binding,source);
    verifyDocumentInventory(after.documents,await privateInventory(join(store,'documents')));
    const result={definitionBrowserVerified:true,threeLocalesVerified:true,mobileVerified:true,wrongActorDenialVerified:true,
-    uncertainResponseReplayVerified:true,sessionsRevoked:true,historicalStockAndFinancialRowsPreserved:true,
+    uncertainResponseReplayVerified:true,sessionsRevoked:true,...protectedReadback,historicalStockAndFinancialRowsPreserved:true,
     legacyMaterialsNotActivated:true,newConvertedStockJourneyVerified:false,documentIds:[]};
    await seal(join(target,label+'-database-after-private.json'),after);await seal(join(target,label+'-journey-private.json'),result);return {after,result};
   }
