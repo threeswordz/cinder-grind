@@ -22,7 +22,7 @@ export async function convertedOperationalBrowser(protocol,binding,source,db){
   'UOM_OPERATIONAL_BROWSER_SYNTHETIC_BINDING_REFUSED');
  const [plans,issues,returns,requests,stockBefore,docsBefore,financeBefore]=await Promise.all([
   db.materialUsagePlan.findMany({where:{companyId:f.companyId,projectId:f.projectId,
-   lines:{some:{materialId}}}}),
+   revisions:{some:{lines:{some:{materialId}}}}}}),
   db.materialIssue.findMany({where:{companyId:f.companyId,projectId:f.projectId,
    items:{some:{materialId}}}}),
   db.materialReturn.findMany({where:{companyId:f.companyId,projectId:f.projectId,
@@ -90,14 +90,14 @@ export async function convertedOperationalBrowser(protocol,binding,source,db){
   });
   async function tab(kind){
    await until(protocol,session,k=>[...document.querySelectorAll('[role="tab"]')]
-    .some(e=>e.getAttribute('value')===k),kind,'UOM_OPERATIONAL_BROWSER_TAB_UNAVAILABLE_'+kind.toUpperCase());
+    .some(e=>e.getAttribute('value')===k||e.textContent.trim().toLowerCase()===({requests:'material requests',plans:'material plans',issues:'material issues',returns:'material returns',reports:'reports'})[k]),kind,'UOM_OPERATIONAL_BROWSER_TAB_UNAVAILABLE_'+kind.toUpperCase());
    await evaluate(protocol,session,k=>{
-    [...document.querySelectorAll('[role="tab"]')].find(e=>e.getAttribute('value')===k).click();return true;
+    [...document.querySelectorAll('[role="tab"]')].find(e=>e.getAttribute('value')===k||e.textContent.trim().toLowerCase()===({requests:'material requests',plans:'material plans',issues:'material issues',returns:'material returns',reports:'reports'})[k]).click();return true;
    },kind);
    await until(protocol,session,()=>[...document.querySelectorAll('main label')]
-    .some(e=>e.textContent.trim()==='Project'),null,'UOM_OPERATIONAL_BROWSER_PROJECT_FIELD_MISSING');
+    .some(e=>e.textContent.trim().replace(/\\s*\\*$/,'').toLowerCase()==='project'),null,'UOM_OPERATIONAL_BROWSER_PROJECT_FIELD_MISSING');
    await evaluate(protocol,session,()=>{
-    const label=[...document.querySelectorAll('main label')].find(e=>e.textContent.trim()==='Project');
+    const label=[...document.querySelectorAll('main label')].find(e=>e.textContent.trim().replace(/\\s*\\*$/,'').toLowerCase()==='project');
     document.getElementById(label.htmlFor).dispatchEvent(new MouseEvent('mousedown',{bubbles:true,button:0}));return true;
    });
    await until(protocol,session,id=>[...document.querySelectorAll('[role="option"]')]
