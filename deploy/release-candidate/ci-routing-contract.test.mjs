@@ -11,9 +11,9 @@ const effectiveRouting = text => routing(text).split('\n').filter(line => !line.
 test('full validation identity and PR/main events remain; explicit full branch lane is retained', () => {
   assert.equal(effectiveRouting(full), "on:\n  workflow_dispatch:\n  pull_request:\n    types: [ready_for_review]\n    branches: [main, 'v1.2-c-uat-coverage']\n  push:\n    branches: [main, 'vfull-*']");
   assert.match(full, /^name: Validate Construction ERP$/m);
-  assert.match(full,/types: \[labeled\]/);
+  assert.match(full,/types: \\[ready_for_review\\]/);
   assert.match(full,/github\.event\.label\.name == 'full-ci-approved'/);
-  assert.doesNotMatch(full,/types: \[(?:opened|synchronize|reopened|ready_for_review)/);
+  assert.doesNotMatch(full,/types: \\[(?:opened|synchronize|reopened|labeled)/);
   assert.match(full, /^  validate:\n    needs: \[integration-plan, integration-check\]/m);
   assert.match(full,/github.event_name != 'push' \|\| github.ref != 'refs\/heads\/main'/);
   assert.match(full, /ref: \$\{\{ github\.event\.pull_request\.head\.sha \|\| github\.sha \}\}/);
