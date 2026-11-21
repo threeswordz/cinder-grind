@@ -1,5 +1,6 @@
 // Bounded extension of the completed subcontract prototype. No bootstrap/reset.
 import assert from 'node:assert/strict';
+import {randomUUID} from 'node:crypto';
 import {SOURCE,ROLES,httpClient} from './prototype-actors.mjs';
 import {fm03Snapshot,digest,FM03_GRANTS} from './prototype-fm03-state.mjs';
 import {RECEIVING_GRANTS} from './prototype-receiving-state.mjs';
@@ -87,6 +88,37 @@ export async function prepareUomSource(db,binding,origins){
   result={company:{id:f.companyId},each:{id:each.id},carton:{id:carton.id},material:{id:material.id,code:material.materialCode,name:material.materialName}};
  }catch(e){primary=e;}finally{if(session)try{await client.logout('UOM_MASTER',session);await client.call(session,'UOM_MASTER_REVOKED','/auth/me',401);}catch(e){primary??=e;}}
  if(primary)throw primary;return result;
+}
+// No activation may slip through an incidental definition-only prototype upgrade.
+// Exercise actual authorization with fresh, strictly revoked sessions in both
+// the isolated rehearsal and source runtime; never activate new or old stock.
+export async function verifyUomActivationDenial(db,binding,source,origins){
+ const b=structuredClone(binding),{api,web}=structuredClone(origins),path='/master-data/material-conversions/'+source.material.id+'/activation';
+ demand(validUomOrigins(api,web)&&/^[a-f0-9-]{36}$/.test(source.material.id),'UOM_ACTIVATION_DENIAL_BINDING_REFUSED');
+ demand(await db.materialUomActivation.count({where:{materialId:source.material.id}})===0,'UOM_DEFINITION_ALREADY_ACTIVATED');
+ const client=httpClient(api,web,async(url,options)=>{
+  const suffix=url.slice(api.length);
+  demand(url.startsWith(api+'/')&&options.redirect==='error'&&options.headers.Origin===web&&
+   (['/auth/login','/auth/logout','/auth/me'].includes(suffix)||suffix===path&&options.method==='POST'),
+   'UOM_ACTIVATION_DENIAL_UNDECLARED_REQUEST');
+  return fetch(url,options);
+ });
+ for(const key of ['STORE_SITE','JAI']){
+  let session,primary;
+  try{
+   session=await client.login('UOM_'+key+'_DENIAL',b.actors[key],b.fixture.companyId);
+   await client.call(session,'UOM_'+key+'_ACTIVATION_DENIED',path,403,{
+    requestKey:randomUUID(),expectedVersion:3,reason:'Synthetic stock activation must be denied'});
+   demand(await db.materialUomActivation.count({where:{materialId:source.material.id}})===0,
+    'UOM_UNAUTHORIZED_ACTIVATION_POSTED');
+  }catch(e){primary=e;}
+  finally{if(session)try{
+   await client.logout('UOM_'+key+'_DENIAL',session);
+   await client.call(session,'UOM_'+key+'_REVOKED','/auth/me',401);
+  }catch(e){primary??=e;}}
+  if(primary)throw primary;
+ }
+ return {activationDenied:true,definitionOnly:true};
 }
 export function uomBrowserBinding(binding,source,origins,technical){
  const b=structuredClone(binding),f=b.fixture;

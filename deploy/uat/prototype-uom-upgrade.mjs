@@ -13,7 +13,7 @@ import {artifactInventory,compareArtifactInventories} from './prototype-material
 import {privateInventory,verifyDocumentInventory,hasSoleListenerPid,command,directory,privateJson,absent,seal,fileHash,stage,databaseStream,
  freePort,environment,green,json} from './prototype-transfer-upgrade.mjs';
 import {verifyTransferDocumentFiles} from './prototype-transfer-state.mjs';
-import {uomSnapshot,digest,verifyUomMigration,configureUom,prepareUomSource,uomBrowserBinding,verifyUomPreservation} from './prototype-uom-state.mjs';
+import {uomSnapshot,digest,verifyUomMigration,configureUom,prepareUomSource,uomBrowserBinding,verifyUomActivationDenial,verifyUomPreservation} from './prototype-uom-state.mjs';
 import {executeMaterialUomBrowser} from './material-uom-browser.mjs';
 import {prepareBrowser,discoverBrowser} from './prototype-browser-executable.mjs';
 import {startBrowser} from './prototype-browser.mjs';
@@ -216,6 +216,7 @@ export async function upgradeUom(operatorMain){
    copyMayBeRemoved=false;try{browser=await startBrowser(executable.executable,label==='rehearsal'?rehearsal:target);}catch(e){copyMayBeRemoved=e.browserProcessExited===true;throw e;}
    await executeMaterialUomBrowser(browser.protocol,uomBrowserBinding(binding,source,{api:API,web:WEB},technical),client);
    await browser.stop();browser=undefined;copyMayBeRemoved=true;
+   demand((await verifyUomActivationDenial(client,binding,source,{api:API,web:WEB})).activationDenied,'UOM_ACTIVATION_DENIAL_NOT_VERIFIED');
    const after=await snapshot(client);verifyUomPreservation(migrated,after,configuration,binding,source);
    verifyDocumentInventory(after.documents,await privateInventory(join(store,'documents')));
    const result={definitionBrowserVerified:true,threeLocalesVerified:true,mobileVerified:true,wrongActorDenialVerified:true,
