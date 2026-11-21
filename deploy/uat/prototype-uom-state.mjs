@@ -14,9 +14,11 @@ export {fm03Snapshot as uomSnapshot,digest};
 export const UOM_TABLES=Object.freeze([...materialUomTables,...materialUomEffectTables,...stageCTables]);
 export const UOM_MIGRATIONS=Object.freeze([...materialUomMigrations,materialUomEffectMigration,...stageCMigrations]);
 export const UOM_GRANTS=Object.freeze({
- KHAIMOOK:['master.material.view','master.material.manage','master.material.conversion.manage','master.uom.view','master.uom.manage'],
+ KHAIMOOK:['master.material.view','master.material.manage','master.material.conversion.manage','master.uom.view','master.uom.manage',
+  'inventory.return.view','inventory.return.approve'],
  STORE_SITE:['master.material.view','master.uom.view','inventory.reservation.view','inventory.reservation.create',
-  'inventory.reservation.activate','inventory.reservation.release'],
+  'inventory.reservation.activate','inventory.reservation.release','inventory.return.view','inventory.return.create',
+  'inventory.return.submit','inventory.return.reverse'],
  JAI:['master.material.view','master.material.manage','master.uom.view'],
 });
 const demand=(ok,code)=>{if(!ok)throw Object.assign(new Error(code),{safeCode:code});};

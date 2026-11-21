@@ -41,6 +41,7 @@ export async function convertedPlanIssue(db,binding,source,{api,web}){
     path.startsWith('/budget/revisions/')||path==='/inventory/material-plans'||
     path.startsWith('/inventory/material-plans/')||
     path==='/inventory/material-issues'||path.startsWith('/inventory/material-issues/')||
+    path==='/inventory/material-returns'||path.startsWith('/inventory/material-returns/')||
     path.startsWith('/inventory/material-plan-issues/')||
     path.startsWith('/inventory/reports/movements?')),
    'UOM_PLAN_UNDECLARED_HTTP_REQUEST');
@@ -149,6 +150,88 @@ export async function convertedPlanIssue(db,binding,source,{api,web}){
    '/inventory/reports/movements?projectId='+f.projectId+'&materialId='+materialId,undefined,200);
   demand(report.some(row=>row.sourceType==='MATERIAL_ISSUE'&&row.quantity==='-20.0000'&&
    row.conversion?.numerator==='20'),'UOM_PLAN_ISSUE_NOT_REPORTED');
+  // Return is a separate independent Khaimook-approved canonical movement.
+  // Its exact original source pin, not a future definition, credits half the
+  // originally issued carton. Existing project plan bindings remain in force.
+  phase='RETURN_CONFIGURATION';
+  const returnWorkflow=await db.$transaction(async tx=>{
+   await tx.$executeRawUnsafe("SELECT pg_advisory_xact_lock(hashtext('prototype-uom-planned-return-v1'))");
+   demand(await tx.materialReturnItem.count({where:{materialId}})===0,
+    'UOM_PLAN_RETURN_PREVIOUS_SOURCE_EXISTS');
+   const expected={
+    STORE_SITE:['inventory.return.view','inventory.return.create','inventory.return.submit','inventory.return.reverse'],
+    KHAIMOOK:['inventory.return.view','inventory.return.approve']
+   };
+   const list=[...new Set(Object.values(expected).flat())],
+    catalog=await tx.permission.findMany({where:{permissionCode:{in:list}}});
+   demand(catalog.length===list.length,'UOM_PLAN_RETURN_PERMISSION_CATALOG');
+   for(const [key,codes]of Object.entries(expected)){
+    const role=await tx.role.findUnique({where:{id:b.actors[key].roleId},
+     include:{rolePermissions:{select:{permissionId:true}}}});
+    demand(role?.companyId===f.companyId&&role.roleCode==='PROTO_'+key&&
+     codes.every(c=>role.rolePermissions.some(p=>p.permissionId===catalog.find(q=>q.permissionCode===c)?.id)),
+     'UOM_PLAN_RETURN_ROLE_NOT_EXPLICITLY_GRANTED');
+   }
+   const sequence=await tx.numberSequence.findUnique({
+    where:{companyId_sequenceCode:{companyId:f.companyId,sequenceCode:'MATERIAL_RETURN'}}});
+   if(sequence){
+    demand(sequence.entityType==='MATERIAL_RETURN'&&sequence.formatTemplate==='MRTYYMM-###'&&
+     sequence.resetRule==='MONTHLY','UOM_PLAN_RETURN_OLD_SEQUENCE_CONFLICT');
+   }else await tx.numberSequence.create({data:{companyId:f.companyId,entityType:'MATERIAL_RETURN',
+    sequenceCode:'MATERIAL_RETURN',formatTemplate:'MRTYYMM-###',resetRule:'MONTHLY'}});
+   const candidates=await tx.approvalWorkflow.findMany({where:{companyId:f.companyId,entityType:'MATERIAL_RETURN'},
+    include:{steps:{orderBy:{stepNo:'asc'},include:{stepRoles:true}}}});
+   demand(candidates.length<=1,'UOM_PLAN_RETURN_WORKFLOW_AMBIGUOUS');
+   const prior=candidates[0];
+   if(prior){
+    demand(prior.isActive&&prior.steps.length===1&&prior.steps[0].stepNo===1&&
+     prior.steps[0].requiredApprovals===1&&prior.steps[0].stepRoles.length===1&&
+     prior.steps[0].stepRoles[0].roleId===b.actors.KHAIMOOK.roleId,
+     'UOM_PLAN_RETURN_PREEXISTING_WORKFLOW_WRONG');
+    return prior.workflowCode;
+   }
+   const created=await tx.approvalWorkflow.create({data:{companyId:f.companyId,
+    entityType:'MATERIAL_RETURN',workflowCode:'PROTO_UOM_PLANNED_RETURN',
+    workflowName:'Technical converted synthetic return approval',
+    steps:{create:[{stepNo:1,stepName:'Khaimook independent physical return',
+     requiredApprovals:1,stepRoles:{create:[{roleId:b.actors.KHAIMOOK.roleId}]}}]}}});
+   return created.workflowCode;
+  },{isolationLevel:'Serializable',timeout:30000});
+  phase='RETURN_SOURCE';
+  const returned=await call('STORE_SITE','UOM_PLAN_RETURN_CREATE','/inventory/material-returns',{
+   projectId:f.projectId,warehouseId:f.warehouseId,returnDate:'2026-11-20',
+   remarks:'Isolated synthetic half carton; original20-to-1 issue factor retained',
+   lines:[{materialIssueItemId:itemId,quantity:'0.5000',remarks:'Original issued carton half returned'}]});
+  const returnPath='/inventory/material-returns/'+returned.id;
+  await call('STORE_SITE','UOM_PLAN_RETURN_SUBMIT',returnPath+'/submit',{workflowCode:returnWorkflow});
+  await call('STORE_SITE','UOM_PLAN_MAKER_RETURN_APPROVE_DENIED',returnPath+'/approve',
+   {postKey:requestKey()},403);
+  phase='RETURN_APPROVE';
+  const returnPost={postKey:requestKey(),comment:'Independent synthetic return against original posted issue'};
+  await call('KHAIMOOK','UOM_PLAN_RETURN_APPROVE',returnPath+'/approve',returnPost);
+  await call('KHAIMOOK','UOM_PLAN_RETURN_REPLAY',returnPath+'/approve',returnPost);
+  assert.equal(await balance(),'50.0000','Half returned carton must credit10 stock pieces');
+  const postedReturn=await db.stockTransaction.findFirstOrThrow({
+   where:{materialReturnId:returned.id,movementType:'MATERIAL_RETURN'},
+   include:{materialUomEffectPin:true}});
+  demand(n4(postedReturn.quantity)==='10.0000'&&postedReturn.uomId===source.each.id&&
+   postedReturn.materialUomEffectPin?.numerator==='20'&&
+   postedReturn.materialUomEffectPin?.businessDate.toISOString().slice(0,10)==='2026-11-19'&&
+   n4(postedReturn.materialUomEffectPin?.sourceQuantity)==='0.5000',
+   'UOM_PLAN_RETURN_ORIGINAL_RATE_NOT_PRESERVED');
+  const afterReturn=await call('STORE_SITE','UOM_PLAN_USAGE_AFTER_RETURN',
+   '/inventory/material-plans/'+plan.id,undefined,200);
+  demand(afterReturn.approvedRevision.lines[0].usedQuantity==='10.0000'&&
+   afterReturn.approvedRevision.lines[0].remainingQuantity==='30.0000',
+   'UOM_PLAN_RETURN_USAGE_CREDIT_INCORRECT');
+  // Reversing a posted Issue with a live posted Return is prohibited. Reverse
+  // the Return first, then the Issue, preserving all four immutable movements.
+  phase='RETURN_REVERSE';
+  const returnReverse={reversalKey:requestKey(),
+   reason:'Synthetic credited return reversed before original plan issue'};
+  await call('STORE_SITE','UOM_PLAN_RETURN_REVERSE',returnPath+'/reverse',returnReverse);
+  await call('STORE_SITE','UOM_PLAN_RETURN_REVERSE_REPLAY',returnPath+'/reverse',returnReverse);
+  assert.equal(await balance(),'40.0000','Return reversal must remove10 credited stock pieces');
   phase='ISSUE_REVERSE';
   const reverse={reversalKey:requestKey(),reason:'Synthetic within-plan reversal with immutable history'};
   await call('STORE_SITE','UOM_PLAN_ISSUE_REVERSE','/inventory/material-issues/'+issue.id+'/reverse',reverse);
@@ -156,12 +239,13 @@ export async function convertedPlanIssue(db,binding,source,{api,web}){
   assert.equal(await balance(),'60.0000','Canonical issue reversal must restore60 pieces');
   const original=await db.stockTransaction.findMany({where:{companyId:f.companyId}});
   for(const old of oldStock)assert.deepEqual(original.find(row=>row.id===old.id),old,'Pre-UOM stock mutated');
-  demand(original.length===oldStock.length+2,'UOM_PLAN_UNEXPECTED_STOCK_WRITES');
+  demand(original.length===oldStock.length+4,'UOM_PLAN_UNEXPECTED_STOCK_WRITES');
   const finalPlan=await call('STORE_SITE','UOM_PLAN_FINAL_USAGE','/inventory/material-plans/'+plan.id,undefined,200);
   demand(finalPlan.approvedRevision.lines[0].usedQuantity==='0.0000'&&
    finalPlan.approvedRevision.lines[0].remainingQuantity==='40.0000',
    'UOM_PLAN_RETURNED_STOCK_ALLOWANCE_NOT_RESTORED');
   result={convertedApprovedSourcePlanAndIssueVerified:true,
+   convertedPlannedReturnVerified:true,originalIssuedConversionPreservedOnReturn:true,
    syntheticLegacyCostWorkflowOnly:true,currentOwnerCostSelfApprovalNotVerified:true,
    costSourceRevisionId:revision.id,planId:plan.id,issueId:issue.id,
    frozenPlanStockQuantity:'40.0000',convertedIssueQuantity:'20.0000',
