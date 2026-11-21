@@ -8,6 +8,8 @@ import {migrationInventory} from './ci-main-checks.mjs';
 export const REPO = 'threeswordz/cinder-grind';
 const SHA = /^[a-f0-9]{40}$/;
 const BOT = 'chatgpt-codex-connector[bot]';
+const BOT_ID = 199175422;
+const BOT_NODE_ID = 'BOT_kgDOC98s_g';
 const API = 'https://api.github.com/repos/' + REPO + '/';
 const need = (ok, code) => { if (!ok) throw new Error(code); };
 const stamp = value => typeof value === 'string' && Number.isFinite(Date.parse(value)) ? Date.parse(value) : NaN;
@@ -72,7 +74,10 @@ export async function inspectIntegration({sha, before, get, threads, ancestor, j
   const ready = stamp(timeline[readyIndex].created_at), merged = stamp(pr.merged_at);
   need(Number.isFinite(ready) && merged > ready, 'REVIEW_TIME_INVALID');
   const reactions = await pages(get, 'issues/' + number + '/reactions');
-  const clean = reactions.filter(r => r.content === '+1' && r.user?.login === BOT && r.user.type === 'Bot' &&
+  // GitHub can return this bot with type User. Pin the immutable account IDs;
+  // a type label or matching display login alone cannot supply review authority.
+  const clean = reactions.filter(r => r.content === '+1' && r.user?.login === BOT &&
+    r.user.id === BOT_ID && r.user.node_id === BOT_NODE_ID && ['Bot','User'].includes(r.user.type) &&
     stamp(r.created_at) >= ready && stamp(r.created_at) <= merged);
   need(clean.length === 1, 'INDEPENDENT_CLEAN_REVIEW_MISSING');
   const reviewedAt = stamp(clean[0].created_at);
