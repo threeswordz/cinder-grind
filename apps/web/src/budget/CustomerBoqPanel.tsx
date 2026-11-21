@@ -6,6 +6,7 @@ import {documentsApi} from '../api/documents';
 import {ApiError} from '../api/client';
 import {useBoqText,BoqTextKey} from './boq-i18n';
 import {useBudgetPrintSnapshot} from './budget-print';
+import {normalizeRetainedQuantity} from './customer-boq-buffer';
 
 const newLine=():CustomerLineInput=>({lineId:crypto.randomUUID(),description:'',quantity:'1',uomId:'',method:'MANUAL',manualRate:'',mappings:[{sourceLineId:'',sharePercent:'100'}]});
 export function saveBlob(blob:Blob,name:string){const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;a.click();URL.revokeObjectURL(url);}
@@ -37,9 +38,13 @@ function CustomerProject({projectId,permissions}:{projectId:string;permissions:s
   const editable=canManage&&loaded&&(!id||history.data?.data.allowedActions.edit===true);
   const edit=v?.edits.find(e=>e.editNo===v.currentEditNo);
   useEffect(()=>{if(!v||!edit)return;setSourceId(v.sourceRevisionId);setPrevious(v.previousVersionId??undefined);setEditNo(v.currentEditNo);setReason(edit.reason);
-    const loadedLines:CustomerLineInput[]=edit.lines.map(l=>({lineId:l.lineKey,description:l.description,quantity:l.quantity,uomId:l.uomId,method:l.pricingSnapshot.method,
+    const loadedLines:CustomerLineInput[]=edit.lines.map(l=>({lineId:l.lineKey,description:l.description,
+      // Canonical history persists 4dp; the editor must use the actual UOM scale.
+      quantity:normalizeRetainedQuantity(l.quantity,l.uomSnapshot.decimalPlaces),
+      uomId:l.uomId,method:l.pricingSnapshot.method,
       ...(l.pricingSnapshot.method==='MANUAL'?{manualRate:l.rate}:{markupPercent:l.pricingSnapshot.markupPercent??'0'}),
       ...(l.pricingSnapshot.mappingReason?{mappingReason:l.pricingSnapshot.mappingReason}:{}),
+      ...(l.pricingSnapshot.bufferQuantity?{bufferQuantity:normalizeRetainedQuantity(l.pricingSnapshot.bufferQuantity,l.uomSnapshot.decimalPlaces)}:{}),
       ...(l.pricingSnapshot.pricingReason?{pricingReason:l.pricingSnapshot.pricingReason}:{}),
       ...(l.pricingSnapshot.zeroPriceReason?{zeroPriceReason:l.pricingSnapshot.zeroPriceReason}:{}),
       mappings:l.mappings.map(m=>({sourceLineId:m.sourceLineId,sharePercent:m.sharePercent}))}));
@@ -86,6 +91,9 @@ function CustomerProject({projectId,permissions}:{projectId:string;permissions:s
         <TextField label={t('description')} value={line.description} onChange={e=>patch(index,{description:e.target.value})}/>
         <Stack direction={{xs:'column',md:'row'}} spacing={1}>
           <TextField label={t('quantity')} value={line.quantity} onChange={e=>patch(index,{quantity:e.target.value})} inputProps={{inputMode:'decimal'}}/>
+          <TextField label={t('bufferQuantity')} helperText={t('bufferHint')}
+            value={line.bufferQuantity??''} onChange={e=>{const next={...line};if(e.target.value)next.bufferQuantity=e.target.value;else delete next.bufferQuantity;setLines(old=>old.map((l,i)=>i===index?next:l));preview.reset();}}
+            inputProps={{inputMode:'decimal'}}/>
           <TextField select label={t('uom')} value={line.uomId} onChange={e=>patch(index,{uomId:e.target.value})} sx={{minWidth:130}}><MenuItem value="">—</MenuItem>{options.data?.data.uoms.map(u=><MenuItem key={u.id} value={u.id}>{u.uomCode} · {u.decimalPlaces}</MenuItem>)}</TextField>
           <TextField select label={t('method')} value={line.method} onChange={e=>{const method=e.target.value as 'MANUAL'|'MARKUP';const next={...line,method};delete next.manualRate;delete next.markupPercent;if(method==='MANUAL')next.manualRate='';else next.markupPercent='0';setLines(old=>old.map((l,i)=>i===index?next:l));preview.reset();}} sx={{minWidth:160}}><MenuItem value="MANUAL">{t('manual')}</MenuItem><MenuItem value="MARKUP">{t('markup')}</MenuItem></TextField>
           {line.method==='MANUAL'?<TextField label={t('manual')} value={line.manualRate??''} onChange={e=>patch(index,{manualRate:e.target.value})}/>:<TextField label={t('markup')} value={line.markupPercent??''} onChange={e=>patch(index,{markupPercent:e.target.value})}/>}
@@ -105,7 +113,7 @@ function CustomerProject({projectId,permissions}:{projectId:string;permissions:s
         <Button disabled={!sourceId||!reason.trim()||preview.isPending} onClick={()=>preview.mutate()}>{t('preview')}</Button>
         <Button variant="contained" disabled={!sourceId||!reason.trim()||save.isPending} onClick={()=>save.mutate()}>{t('save')}</Button></Stack>
       {validPreview?<Stack spacing={1}><Alert severity="info">{t('rounding')}</Alert>
-        {validPreview.lines.map((l,i)=><Typography key={l.lineId}>{lines[i]?.description} · {t('basis')}: {l.costBasis} · {t('rate')}: THB {l.rate} · {t('amount')}: THB {l.amount} {l.targetAmount!==null?<> · {t('target')}: THB {l.targetAmount} · {t('difference')}: THB {l.rateRoundingDifference}</>:null}</Typography>)}
+        {validPreview.lines.map((l,i)=><Typography key={l.lineId}>{lines[i]?.description}{l.bufferQuantity!==null? ` · ${t('rawQuantity')} ${l.rawQuantity} + ${t('bufferQuantity')} ${l.bufferQuantity} = ${t('quantity')} ${l.quantity}`:''} · {t('basis')}: {l.costBasis} · {t('rate')}: THB {l.rate} · {t('amount')}: THB {l.amount} {l.targetAmount!==null?<> · {t('target')}: THB {l.targetAmount} · {t('difference')}: THB {l.rateRoundingDifference}</>:null}</Typography>)}
         <Typography>{t('total')}: THB {validPreview.totalAmount}</Typography>{validPreview.sourceCoverage.map(c=><Typography key={c.sourceLineId}>{c.sourceLineId} · {t('unused')}: {c.unallocatedPercent}</Typography>)}
       </Stack>:null}
     </>:null}
@@ -118,7 +126,7 @@ function CustomerProject({projectId,permissions}:{projectId:string;permissions:s
       <Button disabled={approve.isPending||reject.isPending} onClick={()=>approve.mutate()}>{t('approve')}</Button><Button disabled={approve.isPending||reject.isPending} onClick={()=>reject.mutate()}>{t('reject')}</Button></Stack></Stack>:null}
     {id&&v?<><Divider/><Typography variant="h6">{t('history')}</Typography><TextField select label={t('edit')} value={historyEdit} onChange={e=>setHistoryEdit(Number(e.target.value))}>{v.edits.map(e=><MenuItem key={e.id} value={e.editNo}>#{e.editNo} · {e.createdAt} · {e.reason}</MenuItem>)}</TextField>
       {selectedHistorical?.lines.some(l=>l.pricingSnapshot.targetAmount!==null)?<Alert severity="info">{t('rounding')}</Alert>:null}
-      {selectedHistorical?.lines.map(l=><Typography key={l.id}>{l.description} · {l.quantity} {l.uomSnapshot.code} · THB {l.rate} · THB {l.amount}{l.pricingSnapshot.targetAmount!==null?<> · {t('target')}: THB {l.pricingSnapshot.targetAmount} · {t('difference')}: THB {l.pricingSnapshot.rateRoundingDifference}</>:null}</Typography>)}<Typography>{t('total')}: {v.currencyCode} {selectedHistorical?.totalAmount}</Typography>
+      {selectedHistorical?.lines.map(l=><Typography key={l.id}>{l.description} · {l.quantity} {l.uomSnapshot.code}{l.pricingSnapshot.bufferQuantity?` · ${t('rawQuantity')} ${l.pricingSnapshot.rawQuantity} + ${t('bufferQuantity')} ${l.pricingSnapshot.bufferQuantity}`:''} · THB {l.rate} · THB {l.amount}{l.pricingSnapshot.targetAmount!==null?<> · {t('target')}: THB {l.pricingSnapshot.targetAmount} · {t('difference')}: THB {l.pricingSnapshot.rateRoundingDifference}</>:null}</Typography>)}<Typography>{t('total')}: {v.currencyCode} {selectedHistorical?.totalAmount}</Typography>
       {history.data?.data.approvals.map(a=><Stack key={a.id}><Typography>{a.approvalState} · {a.startedAt}</Typography>{a.actions.map(x=><Typography key={x.id}>{x.action} · {x.actionAt} · {x.actionByUserId} · {x.comment}</Typography>)}</Stack>)}
       <CustomerAttachments key={id} projectId={projectId} versionId={id} permissions={permissions}/>
     </>:null}
@@ -130,7 +138,7 @@ export function CustomerPrint({data}:{data:CustomerHistory}){
   return <section id="customer-boq-print" aria-label={t('customer')} style={{display:'none'}}>
     <style>{'@media print {body *{visibility:hidden!important} #customer-boq-print,#customer-boq-print *{visibility:visible!important} #customer-boq-print{display:block!important;position:absolute;inset:0;background:white;color:black} #customer-boq-print table{width:100%;border-collapse:collapse} #customer-boq-print td,#customer-boq-print th{border:1px solid black;padding:6px}}'}</style>
     <h1>{t('customer')} #{v.versionNo}</h1><p>{t('state')}: {v.approvalInstance?.approvalState??'DRAFT'} · {t('edit')} {e.editNo} · {t('source')}: {v.sourceRevisionId}</p>
-    <table><thead><tr>{['description','quantity','uom','rate','amount'].map(k=><th key={k}>{t(k as BoqTextKey)}</th>)}</tr></thead><tbody>{e.lines.map(l=><tr key={l.id}><td>{l.description}</td><td>{l.quantity}</td><td>{l.uomSnapshot.code}</td><td>{v.currencyCode} {l.rate}</td><td>{v.currencyCode} {l.amount}</td></tr>)}</tbody></table><p>{t('total')}: {v.currencyCode} {e.totalAmount}</p>
+    <table><thead><tr>{['description','quantity','uom','rate','amount'].map(k=><th key={k}>{t(k as BoqTextKey)}</th>)}</tr></thead><tbody>{e.lines.map(l=><tr key={l.id}><td>{l.description}</td><td>{l.quantity}{l.pricingSnapshot.bufferQuantity?` (${t('rawQuantity')} ${l.pricingSnapshot.rawQuantity}, ${t('bufferQuantity')} ${l.pricingSnapshot.bufferQuantity})`:''}</td><td>{l.uomSnapshot.code}</td><td>{v.currencyCode} {l.rate}</td><td>{v.currencyCode} {l.amount}</td></tr>)}</tbody></table><p>{t('total')}: {v.currencyCode} {e.totalAmount}</p>
   </section>;
 }
 function CustomerAttachments({projectId,versionId,permissions}:{projectId:string;versionId:string;permissions:string[]}){

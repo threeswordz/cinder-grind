@@ -7,6 +7,7 @@ import {physicalCatalog,verifyPhysicalCatalog} from './subcontract-physical-cata
 import {stripTransferSchema as transferBase} from './transfer-schema-contract.mjs';
 const stripTransferSchema=schema=>transferBase(stripPhysicalSchema(stripMaterialUomSchema(stripMaterialUomEffectSchema(stripMaterialUomStageCSchema(schema).text).text).text).text);
 import {transferCatalog,verifyTransferCatalog} from './transfer-catalog-contract.mjs';
+import {dec054Catalog,verifyDec054Catalog} from './dec054-permission-catalog.mjs';
 import {stripReceivingSchema} from './receiving-schema-contract.mjs';
 import {receivingCatalog,verifyReceivingCatalog} from './receiving-catalog-contract.mjs';
 // Exact populated 480fd4c7 predecessor -> FM03; no legacy-row exclusions.
@@ -52,8 +53,11 @@ export async function prepareFm03Upgrade(databaseUrl){
     if(candidate&&tablename==='permissions')verifySiteIssueCatalog(await db.$queryRawUnsafe('SELECT * FROM permissions WHERE id=ANY($1::uuid[])',siteIssueCatalog.map(p=>p.id)),true);
     if(candidate&&tablename==='permissions')verifyPhysicalCatalog(await db.$queryRawUnsafe('SELECT * FROM permissions WHERE id=ANY($1::uuid[])',physicalCatalog.map(p=>p.id)),true);
     if(candidate&&tablename==='permissions')verifyTransferCatalog(await db.$queryRawUnsafe('SELECT * FROM permissions WHERE id=ANY($1::uuid[])',transferCatalog.map(p=>p.id)),true);
+    // Verify the two exact additive DEC-054 rows before excluding their IDs
+    // from the historical permission digest; no user/role grants are ignored.
+    if(candidate&&tablename==='permissions')verifyDec054Catalog(await db.$queryRawUnsafe('SELECT id::text AS id,permission_code,module_code FROM permissions WHERE id=ANY($1::uuid[])',dec054Catalog.map(p=>p.id)));
     const filter=candidate&&tablename==='permissions';
-    const [row]=await db.$queryRawUnsafe(`SELECT count(*)::text AS count,encode(sha256(convert_to(coalesce(string_agg(to_jsonb(t)::text,E'\n' ORDER BY to_jsonb(t)::text),''),'UTF8')),'hex') AS digest FROM "${tablename}" t ${filter?'WHERE id <> ALL($1::uuid[])':''}`,...(filter?[[...siteIssueCatalog,...receivingCatalog,...transferCatalog,...physicalCatalog,...materialUomCatalog].map(p=>p.id)]:[]));result[tablename]=row;
+    const [row]=await db.$queryRawUnsafe(`SELECT count(*)::text AS count,encode(sha256(convert_to(coalesce(string_agg(to_jsonb(t)::text,E'\n' ORDER BY to_jsonb(t)::text),''),'UTF8')),'hex') AS digest FROM "${tablename}" t ${filter?'WHERE id <> ALL($1::uuid[])':''}`,...(filter?[[...siteIssueCatalog,...receivingCatalog,...transferCatalog,...physicalCatalog,...materialUomCatalog,...dec054Catalog].map(p=>p.id)]:[]));result[tablename]=row;
    }return result;
   }
   const before=await snapshot(false);

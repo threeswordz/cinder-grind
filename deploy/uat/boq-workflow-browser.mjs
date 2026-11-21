@@ -25,7 +25,7 @@ import App from '/src/App.tsx';
 import {fetchCurrentUser} from '/src/api/auth.ts';
 import {effectiveUiQueryScope} from '/src/role-ui/role-workspace-policy.ts';
 const pid='11111111-1111-4111-8111-111111111111',sid='22222222-2222-4222-8222-222222222222',uid='33333333-3333-4333-8333-333333333333',sourceLine='44444444-4444-4444-8444-444444444444',vid='55555555-5555-4555-8555-555555555555';
-const all=['budget.boq.view','budget.revision.view','budget.customer.view','budget.customer.manage','budget.customer.submit','budget.customer.approve'];
+const all=['budget.cost.full_view','budget.boq.view','budget.revision.view','budget.customer.view','budget.customer.manage','budget.customer.submit','budget.customer.approve'];
 let stage='initial',projectChoices=0,appMode=false,linkMode=false,summaryReads=0,summaryForbidden=false,combinedPrint=false,activeScope='';
 let signedIn=true,deferHistory=false,delayedHistory=[];
 let instanceId=null,currentStepNo=1,approvalRound=0,submitRequests=[],decisionRequests=[];const actionReplays=new Map();
@@ -113,7 +113,10 @@ async function run(){
   function appRender(){appMode=true;root.render(<React.StrictMode><QueryClientProvider client={outer}><App/><AuthProbe/></QueryClientProvider></React.StrictMode>);}
   appRender();await until(()=>text().includes('Browser actor'),'Real App did not authenticate');
   async function nav(){const node=[...document.querySelectorAll('button,a,[role=button]')].find(n=>n.textContent==='BOQ & Budget');check(node,'Real Budget navigation missing');node.click();await wait(100);}
-  await nav();await chooseProject();await chooseVersion();check(text().includes('0.99'),'Full-cost root did not load commercial data');
+  await nav();await authRendered();
+  await until(()=>document.querySelector('[data-testid="customer-boq-workspace"]'),
+    'Root App did not mount the authorized Customer BOQ workspace; inspect scoped auth and BudgetWorkspace gates');
+  await chooseProject();await chooseVersion();check(text().includes('0.99'),'Full-cost root did not load commercial data');
   const firstProjects=projectReads;deferHistory=true;await button('Refresh');await until(()=>delayedHistory.length,'Old-scope request was not captured');
   user={...user,permissions:['budget.quantity.view'],roleCodes:['QUANTITY']};await outer.invalidateQueries({queryKey:['current-user']});await authRendered();await until(()=>!text().includes('0.0033'),'Old commercial DOM survived permission downgrade');await nav();await select('Project','Quantity project');await until(()=>text().includes('Visible quantity work'),'Quantity DOM missing');deferHistory=false;delayedHistory.forEach(resolve=>resolve());await wait(100);check(!text().includes('0.99')&&!text().includes('1000'),'Quantity workspace reused money from old cache or late old response');
   user={...user,permissions:all,roleCodes:['CHECKER']};await outer.invalidateQueries({queryKey:['current-user']});await authRendered();await nav();await chooseProject();await chooseVersion();check(projectReads>firstProjects,'A-B-A reused the old business cache');
@@ -152,7 +155,7 @@ async function run(){
   window.dispatchEvent(new Event('afterprint'));await until(()=>printNodes().length===0,'Commercial afterprint cleanup failed');activeScope='';autoAfterPrint=true;
   document.body.dataset.result='PASS';outer.clear();cache.clear();root.unmount();
 }
-run().catch(error=>{document.body.dataset.result='FAIL';document.body.dataset.error=error.message+'; stage='+stage+'; projectReads='+projectReads+'; choices='+JSON.stringify([...document.querySelectorAll('[role=option]')].map(n=>n.textContent))+'; ui='+text().slice(-1800);});
+run().catch(error=>{document.body.dataset.result='FAIL';const actualScope=document.getElementById('auth-probe')?.getAttribute('data-scope')??'absent';const required=['budget.cost.full_view','budget.boq.view','budget.revision.view','budget.customer.view'];document.body.dataset.error=error.message+'; stage='+stage+'; projectReads='+projectReads+'; expectedCustomerGrants='+required.map(p=>p+':'+all.includes(p)).join(',')+'; fixtureUserGrants='+required.map(p=>p+':'+user.permissions.includes(p)).join(',')+'; authScopeMatchesUser='+String(actualScope===effectiveUiQueryScope(user.id,user.companyId,user.permissions,user.roleCodes))+'; customerMounted='+Boolean(document.querySelector('[data-testid="customer-boq-workspace"]'))+'; choices='+JSON.stringify([...document.querySelectorAll('[role=option]')].map(n=>n.textContent))+'; ui='+text().slice(-1000);});
 `;
 let server;
 try {

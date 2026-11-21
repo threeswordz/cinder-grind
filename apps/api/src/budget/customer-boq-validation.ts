@@ -13,11 +13,11 @@ export function customerDraft(value: unknown): CustomerBoqDraft {
     ...(row.previousVersionId !== undefined ? {previousVersionId:canonicalUuid(row.previousVersionId,'previousVersionId')} : {}),
     lines: row.lines.map((value) => {
       const line = budgetObject(value);
-      exactKeys(line,['lineId','description','quantity','uomId','method','manualRate','markupPercent','mappingReason','pricingReason','zeroPriceReason','mappings']);
+      exactKeys(line,['lineId','description','quantity','uomId','method','manualRate','markupPercent','mappingReason','bufferQuantity','pricingReason','zeroPriceReason','mappings']);
       if (line.method !== 'MANUAL' && line.method !== 'MARKUP') throw budgetInvalid('method','Choose MANUAL or MARKUP.');
       if (!Array.isArray(line.mappings) || line.mappings.length < 1 || line.mappings.length > 500) throw budgetInvalid('mappings','Use 1 to 500 approved source mappings.');
       const optional: Record<string,string> = {};
-      for (const key of ['manualRate','markupPercent','mappingReason','pricingReason','zeroPriceReason']) if (line[key] !== undefined) optional[key] = budgetString(line,key,4000);
+      for (const key of ['manualRate','markupPercent','mappingReason','bufferQuantity','pricingReason','zeroPriceReason']) if (line[key] !== undefined) optional[key] = budgetString(line,key,4000);
       return {lineId:canonicalUuid(line.lineId,'lineId'), description:budgetString(line,'description',500),
         quantity:budgetString(line,'quantity',40), uomId:canonicalUuid(line.uomId,'uomId'),method:line.method,...optional,
         mappings:line.mappings.map((value) => { const m = budgetObject(value);exactKeys(m,['sourceLineId','sharePercent']);

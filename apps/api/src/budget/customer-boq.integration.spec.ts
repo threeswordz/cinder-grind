@@ -37,6 +37,25 @@ test('Customer BOQ persistence uses real scoped grants, immutable history, confi
       assert.equal(line.mappings[0]!.allocatedCost.toFixed(10), '1000.0000000000');
       assert.equal((line.mappings[0]!.sourceSnapshot as { amount: string }).amount, '1000.0000');
     });
+    await t.test('DEC-054 selected buffer persists through immutable pricing snapshot without editing raw Cost',async()=>{
+      const draft=input();draft.lines[0]!.quantity='12';draft.lines[0]!.bufferQuantity='2';
+      const preview=await service.preview(ctx,pid,draft);
+      assert.equal(preview.lines[0]!.rawQuantity,'10.0000');
+      assert.equal(preview.lines[0]!.bufferQuantity,'2.0000');
+      const receipt=await service.create(ctx,pid,randomUUID(),draft);
+      const stored=(await service.history(maker,pid,receipt.id)).version.edits[0]!.lines[0]!;
+      const pinned=stored.pricingSnapshot as {rawQuantity:string;bufferQuantity:string;quantity:string};
+      assert.equal(pinned.rawQuantity,'10.0000');
+      assert.equal(pinned.bufferQuantity,'2.0000');
+      assert.equal(pinned.quantity,'12.0000');
+      assert.equal(stored.quantity.toFixed(4),'12.0000');
+      assert.equal((stored.mappings[0]!.sourceSnapshot as {quantity:string}).quantity,'10.0000');
+      const original=await db.budgetRevision.findUniqueOrThrow({where:{id:f.source.id},include:{lines:true}});
+      assert.deepEqual(original.lines.map(l=>l.quantity.toFixed(4)),originalSource.lines.map(l=>l.quantity.toFixed(4)));
+      assert.deepEqual(await Promise.all([db.stockTransaction.count(),db.payment.count(),db.directCostPosting.count()]),beforeFinancial);
+      const bad=input();bad.lines[0]!.quantity='11';bad.lines[0]!.bufferQuantity='2';
+      await assert.rejects(service.create(ctx,pid,randomUUID(),bad),UnprocessableEntityException);
+    });
     await t.test('persisted markup keeps the adopted rate-first discrepancy and ten-place allocated cost', async () => {
       const draft = input();
       draft.lines = [{ lineId: randomUUID(), description: 'Allocated customer work', quantity: '300', uomId: f.uom.id,
