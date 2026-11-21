@@ -70,11 +70,38 @@ async function migrationLedger(db){
 }
 const env=()=>environment();
 async function health(){const r=await fetch(API+'/health/ready',{redirect:'error',signal:AbortSignal.timeout(4000)});need(r.ok,'M6_HEALTH_HTTP_ERROR');return r.json();}
-async function procIdentity(entry,old,repo){
- const p=await privateJson(entry),expected=join(old,p.port===33071?'apps/api/dist/main.js':'deploy/uat/serve-web.mjs');
- need(p.applicationSha===PREVIOUS_APP&&p.entry===expected&&p.databaseName==='proto_a_01'&&
-  Number.isSafeInteger(p.pid)&&p.pid>1&&[33071,44171].includes(p.port),'M6_PREVIOUS_PROCESS_RECEIPT_INVALID');
- need(await command('/bin/ps',['-ww','-p',String(p.pid),'-o','command='],repo)===process.execPath+' '+expected&&
+export function classifyUomPredecessor({receipt,api,web,failure,apiAbsent,webAbsent,portsFree}){
+ need(validCompletedUomReceipt(receipt),'M6_PREDECESSOR_COMPLETION_REQUIRED');
+ need(api?.port===33071&&web?.port===44171&&api.pid!==web.pid,'M6_PREDECESSOR_PROCESS_RECEIPTS_INVALID');
+ if(!apiAbsent&&!webAbsent)return 'running';
+ need(apiAbsent&&webAbsent,'M6_PREDECESSOR_PARTIAL_PROCESS_STATE');
+ need(failure?.phase==='FINAL_PRESERVATION'&&failure.code==='RC_UNEXPECTED_DOCUMENT_FILES'&&
+  failure.sourceMayBeStopped===true&&failure.sourceMayBeMigrated===true&&
+  failure.automaticRetryAllowed===false&&portsFree===true,'M6_STOPPED_PREDECESSOR_CUSTODY_INVALID');
+ return 'finalized-stopped';
+}
+export function verifyUomHrKeyBaseline(baseline,recorded,original,now){
+ need(Array.isArray(baseline?.hrkeys)&&Array.isArray(recorded?.inventories?.hrkeys)&&
+  digest(baseline)===digest(recorded.inventories)&&
+  digest(baseline.hrkeys)===digest(original)&&digest(original)===digest(now),
+  'M6_HR_KEYS_DRIFTED_FROM_UOM_CUSTODY');
+ return true;
+}
+async function previouslyOwnedReceipt(entry,old,port,operatorSha){
+ const p=await privateJson(entry);
+ const expected=join(old,port===33071?'apps/api/dist/main.js':'deploy/uat/serve-web.mjs');
+ need(p.applicationSha===PREVIOUS_APP&&p.operatorMain===operatorSha&&
+  p.entry===expected&&p.port===port&&p.databaseName==='proto_a_01'&&
+  Number.isSafeInteger(p.pid)&&p.pid>1&&typeof p.born==='string'&&p.born.length>0,
+  'M6_PREVIOUS_PROCESS_RECEIPT_INVALID');
+ return p;
+}
+async function pidAbsent(pid){
+ try{process.kill(pid,0);return false;}
+ catch(e){if(e.code==='ESRCH')return true;throw e;}
+}
+async function procIdentity(p,repo){
+ need(await command('/bin/ps',['-ww','-p',String(p.pid),'-o','command='],repo)===process.execPath+' '+p.entry&&
   await command('/bin/ps',['-p',String(p.pid),'-o','uid='],repo)===String(process.getuid())&&
   await command('/bin/ps',['-p',String(p.pid),'-o','lstart='],repo)===p.born,'M6_PREVIOUS_PROCESS_DRIFT');
  need(hasSoleListenerPid(await command('lsof',['-nP','-iTCP:'+p.port,'-sTCP:LISTEN','-Fpf'],repo),p.pid),
@@ -106,10 +133,19 @@ export function createM6MacRuntime({releaseSha,sourceRoot,root=join(homedir(),'C
    'M6_COMPLETED_UOM_APP_CHANGED');
   const pod=JSON.parse(await command('podman',['inspect',container.id],sourceRoot));
   need(pod.length===1&&validContainer(pod[0],container,join(root,'db')),'M6_POSTGRES_OWNERSHIP_UNVERIFIED');
-  const api=await procIdentity(join(prior,'source-api-owned.json'),old,sourceRoot);
-  const web=await procIdentity(join(prior,'source-web-owned.json'),old,sourceRoot);
-  need(api.port===33071&&web.port===44171,'M6_PREVIOUS_PORTS_INVALID');
-  const h=await health();need(h.status==='ok'&&h.database==='ok'&&h.documentStorage==='ok','M6_OLD_RUNTIME_NOT_HEALTHY');return {api,web};
+  const api=await previouslyOwnedReceipt(join(prior,'source-api-owned.json'),old,33071,receipt.operatorMainSha);
+  const web=await previouslyOwnedReceipt(join(prior,'source-web-owned.json'),old,44171,receipt.operatorMainSha);
+  const apiIsAbsent=await pidAbsent(api.pid),webIsAbsent=await pidAbsent(web.pid);
+  const failure=apiIsAbsent&&webIsAbsent?await privateJson(join(prior,'failure-private.json')):null;
+  if(apiIsAbsent&&webIsAbsent){await freePort(33071,sourceRoot);await freePort(44171,sourceRoot);}
+  const mode=classifyUomPredecessor({receipt,api,web,failure,
+    apiAbsent:apiIsAbsent,webAbsent:webIsAbsent,portsFree:apiIsAbsent&&webIsAbsent});
+  if(mode==='running'){
+    await procIdentity(api,sourceRoot);await procIdentity(web,sourceRoot);
+    const h=await health();need(h.status==='ok'&&h.database==='ok'&&h.documentStorage==='ok',
+      'M6_OLD_RUNTIME_NOT_HEALTHY');
+  }
+  return {api,web,mode};
  }
  async function connected(){if(!client){const require=createRequire(join(old,'apps/api/package.json'));client=require('@prisma/client').PrismaClient;}return database('proto_a_01');}
  async function verifySnapshot(){const live=await connected();try{
@@ -126,8 +162,12 @@ export function createM6MacRuntime({releaseSha,sourceRoot,root=join(homedir(),'C
   need(await command('git',['rev-parse','HEAD'],sourceRoot)===releaseSha&&
     await command('git',['status','--porcelain'],sourceRoot)==='',
     'M6_READ_ONLY_INSPECTION_SOURCE_NOT_PINNED');
-  await load();await identity();snapshots.before=await verifySnapshot();
+  await load();snapshots.predecessor=await identity();snapshots.before=await verifySnapshot();
+  const baseline=await boundedJSON(join(prior,'file-inventories-private.json'));
+  const preservation=await boundedJSON(join(prior,'preservation-private.json'));
   snapshots.files={};for(const kind of ['documents','uploads','hrkeys'])snapshots.files[kind]=await privateInventory(join(root,kind));
+  verifyUomHrKeyBaseline(baseline,preservation,
+    await privateInventory(join(prior,'preserved','hrkeys')),snapshots.files.hrkeys);
   return {sourceSha:PREVIOUS_APP,releaseSha,snapshotDigestMatched:true,historicalReceiptsPreserved:true,runtimeOwned:true};
  }
  async function upgrade({authority}){
@@ -173,14 +213,21 @@ export function createM6MacRuntime({releaseSha,sourceRoot,root=join(homedir(),'C
    verifyM6MigrationLedger(snapshots.priorLedger,await migrationLedger(rehearsal),previousSources,releaseSources);
   }finally{await rehearsal.$disconnect();}
   // Never replay the already completed UOM/receiving/subcontract business operators.
-  await identity();const beforeDrain=await verifySnapshot();
+  const cutover=await identity();
+  need(cutover.mode===snapshots.predecessor.mode,'M6_PREDECESSOR_CHANGED_DURING_REHEARSAL');
+  const beforeDrain=await verifySnapshot();
   need(digest(beforeDrain)===digest(snapshots.before),'M6_DRIFT_BEFORE_CUTOVER');
-  const oldApi=await procIdentity(join(prior,'source-api-owned.json'),old,sourceRoot),
-   oldWeb=await procIdentity(join(prior,'source-web-owned.json'),old,sourceRoot);
-  for(const p of [oldWeb,oldApi]){
-    process.kill(p.pid,'SIGTERM');let exited=false;
-    for(let i=0;i<60;i++){try{process.kill(p.pid,0);}catch(e){if(e.code==='ESRCH'){exited=true;break;}throw e;}await sleep(500);}
-    need(exited,'M6_OLD_PROCESS_NOT_STOPPED');
+  if(cutover.mode==='running'){
+    for(const p of [cutover.web,cutover.api]){
+      await procIdentity(p,sourceRoot);process.kill(p.pid,'SIGTERM');let exited=false;
+      for(let i=0;i<60;i++){
+        if(await pidAbsent(p.pid)){exited=true;break;}await sleep(500);
+      }
+      need(exited,'M6_OLD_PROCESS_NOT_STOPPED');
+    }
+  }else{
+    // Already stopped by the audited UOM finalization; do not revive, kill or replay it.
+    need(cutover.mode==='finalized-stopped','M6_PREDECESSOR_NOT_SAFE_TO_CUTOVER');
   }
   await freePort(33071,sourceRoot);await freePort(44171,sourceRoot);
   db=database('proto_a_01');
