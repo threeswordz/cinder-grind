@@ -49,13 +49,13 @@ test('Project summary and seven-function disclosure use actual persisted HTTP au
     await variation('125.50');const reversed=await variation('40');const reversal=await variations.createReversal({auth:maker},reversed.id,{variationNumber:randomUUID(),reason:'Reverse source',createKey:randomUUID()});await variations.submit({auth:maker},reversal.id,'PROJECT_VARIATION',randomUUID());await variations.approve({auth:checker},reversal.id,randomUUID());
     const sourceBefore=JSON.stringify(await db.budgetRevision.findUniqueOrThrow({where:{id:f.source.id},include:{lines:true}}));
     const before=await Promise.all([db.payment.count(),db.stockTransaction.count(),db.directCostPosting.count(),db.auditLog.count()]);
-    const commercial=['budget.boq.view','budget.revision.view','budget.customer.view'];
+    const commercial=['budget.cost.full_view','budget.boq.view','budget.revision.view','budget.customer.view'];
     const functionRoles=new Map<string,string>();
     await t.test('all seven approved functions have distinct source and aggregate disclosure',async()=>{
       const cases=[
-        {name:'BEN',codes:[...commercial,'budget.boq.manage','budget.revision.submit','budget.customer.manage','budget.customer.submit'],full:true,customer:true,quantity:false,summary:false},
+        {name:'BEN',codes:[...commercial,'budget.boq.manage','budget.revision.submit','budget.revision.approve','budget.cost.self_approve','budget.customer.manage','budget.customer.submit'],full:true,customer:true,quantity:false,summary:false},
         {name:'NANCY',codes:[...commercial,'budget.customer.approve'],full:true,customer:true,quantity:false,summary:false},
-        {name:'KHAIMOOK',codes:['budget.boq.view','budget.revision.view','budget.revision.approve'],full:true,customer:false,quantity:false,summary:false},
+        {name:'KHAIMOOK',codes:['budget.quantity.view'],full:false,customer:false,quantity:true,summary:false},
         ...['JAI','STORE_SITE','FOREMAN'].map(name=>({name,codes:['budget.quantity.view'],full:false,customer:false,quantity:true,summary:false})),
         {name:'PORN',codes:[PROJECT_SUMMARY_VIEW],full:false,customer:false,quantity:false,summary:true},
       ];
@@ -81,16 +81,17 @@ test('Project summary and seven-function disclosure use actual persisted HTTP au
       await db.userRole.deleteMany({where:{userId:f.editor.userId}});await read('/budget/summary/projects/'+pid,403);await read('/budget/summary/projects/'+pid+'/export',403);
       assert.deepEqual(await Promise.all([db.payment.count(),db.stockTransaction.count(),db.directCostPosting.count(),db.auditLog.count()]),before,'Summary reads cannot create a ledger or audit write');
     });
-    await t.test('persisted Ben prepares both, Khaimook approves Internal and Nancy independently approves Customer',async()=>{
+    await t.test('DEC-054 persisted Ben prepares and approves Cost while Nancy independently approves Customer',async()=>{
       for(const [userId,name] of [[f.maker.userId,'BEN'],[f.editor.userId,'KHAIMOOK'],[f.checker.userId,'NANCY']] as const){
         await db.userRole.deleteMany({where:{userId}});await db.userRole.create({data:{companyId:f.company.id,userId:userId!,roleId:functionRoles.get(name!)!}});
       }
-      for(const [entityType,workflowCode,actor] of [['BUDGET_REVISION','MATRIX_INTERNAL','KHAIMOOK'],['CUSTOMER_BOQ','MATRIX_CUSTOMER','NANCY']])await db.approvalWorkflow.create({data:{companyId:f.company.id,entityType:entityType!,workflowCode:workflowCode!,workflowName:workflowCode!,steps:{create:{stepNo:1,stepName:'Independent checker',requiredApprovals:1,stepRoles:{create:{roleId:functionRoles.get(actor!)!}}}}}});
+      for(const [entityType,workflowCode,actor] of [['BUDGET_REVISION','MATRIX_INTERNAL','BEN'],['CUSTOMER_BOQ','MATRIX_CUSTOMER','NANCY']])await db.approvalWorkflow.create({data:{companyId:f.company.id,entityType:entityType!,workflowCode:workflowCode!,workflowName:workflowCode!,steps:{create:{stepNo:1,stepName:'Independent checker',requiredApprovals:1,stepRoles:{create:{roleId:functionRoles.get(actor!)!}}}}}});
       const makerSession=await sessions.create(f.maker.userId),nancy=await sessions.create(f.checker.userId);
       const post=async(session:typeof token,path:string,body:unknown,status=201)=>{const r=await fetch(base+path,{method:'POST',headers:{Cookie:'erp_session='+session.sessionToken,'x-csrf-token':session.csrfToken,'Content-Type':'application/json'},body:JSON.stringify(body)});assert.equal(r.status,status,await r.clone().text());return r.json() as Promise<any>;};
       await post(makerSession,'/budget/revisions/'+f.pending.id+'/submit',{workflowCode:'MATRIX_INTERNAL'});
       await post(nancy,'/budget/revisions/'+f.pending.id+'/approve',{},403);
-      await post(token,'/budget/revisions/'+f.pending.id+'/approve',{});
+      await post(token,'/budget/revisions/'+f.pending.id+'/approve',{},403);
+      await post(makerSession,'/budget/revisions/'+f.pending.id+'/approve',{});
       const root='/budget/customer/projects/'+pid;
       const created=await post(makerSession,root+'/versions',{requestId:randomUUID(),draft:f.input()});
       await post(makerSession,root+'/versions/'+created.data.id+'/submit',{requestId:randomUUID(),expectedEditNo:1,workflowCode:'MATRIX_CUSTOMER'});

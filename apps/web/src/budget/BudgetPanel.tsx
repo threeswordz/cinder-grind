@@ -53,13 +53,14 @@ export function BudgetPanel({
   onOpenSource?: ((target: SourceLinkTarget) => void) | undefined;
 }) {
   const queryClient = useQueryClient();
-  const canManage = permissions.includes('budget.boq.manage');
-  const canSubmit = permissions.includes('budget.revision.submit');
-  const canApprove = permissions.includes('budget.revision.approve');
+  const fullCost = permissions.includes('budget.cost.full_view');
+  const canManage = fullCost && permissions.includes('budget.boq.manage');
+  const canSubmit = fullCost && permissions.includes('budget.revision.submit');
+  const canApprove = fullCost && permissions.includes('budget.revision.approve');
   const canViewBoq =
-    permissions.includes('budget.boq.view');
+    fullCost && permissions.includes('budget.boq.view');
   const canViewRevision =
-    permissions.includes('budget.revision.view');
+    fullCost && permissions.includes('budget.revision.view');
 
   const [projectId, setProjectId] = useState('');
   const [boqName, setBoqName] = useState('Project BOQ');

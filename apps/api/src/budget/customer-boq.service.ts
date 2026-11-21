@@ -182,7 +182,7 @@ export class CustomerBoqService {
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
   }
   private assertRead(auth: AuthenticatedUserContext, action?: string) {
-    const needs = ['budget.boq.view', 'budget.revision.view', 'budget.customer.view', ...(action ? ['budget.customer.' + action] : [])];
+    const needs = ['budget.cost.full_view', 'budget.boq.view', 'budget.revision.view', 'budget.customer.view', ...(action ? ['budget.customer.' + action] : [])];
     if (!needs.every((p) => auth.permissions.includes(p))) throw new ForbiddenException({ code: 'CUSTOMER_BOQ_PERMISSION_DENIED', detail: 'Explicit source-cost, customer-price and applicable action authority are required.' });
   }
 
@@ -232,6 +232,7 @@ export class CustomerBoqService {
         ...(line.manualRate !== undefined ? { manualRate: line.manualRate } : {}),
         ...(line.markupPercent !== undefined ? { markupPercent: line.markupPercent } : {}),
         ...(line.mappingReason !== undefined ? { mappingReason: line.mappingReason } : {}),
+        ...(line.bufferQuantity !== undefined ? { bufferQuantity: line.bufferQuantity } : {}),
         ...(line.zeroPriceReason !== undefined ? { zeroPriceReason: line.zeroPriceReason } : {}),
         uomDecimalPlaces: uom.decimalPlaces, ...(old ? { previousRate: old.rate.toFixed(4) } : {}),
         ...((line.pricingReason ?? (before ? draft.reason : undefined)) ? { pricingReason: line.pricingReason ?? draft.reason } : {}) };

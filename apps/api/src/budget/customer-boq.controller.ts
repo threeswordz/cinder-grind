@@ -14,7 +14,7 @@ const csv = (v: unknown) => {let text = String(v ?? ''); if (/^(?:[\t\r\n]|\s*[=
 
 @Controller('budget/customer')
 @UseGuards(AuthGuard, PermissionGuard)
-@RequirePermissions('budget.boq.view','budget.revision.view','budget.customer.view')
+@RequirePermissions('budget.cost.full_view','budget.boq.view','budget.revision.view','budget.customer.view')
 export class CustomerBoqController {
   constructor(private readonly service: CustomerBoqService) {}
   @Get('projects') @Header('Cache-Control','private, no-store')
@@ -30,20 +30,22 @@ export class CustomerBoqController {
   async export(@Req() r:AuthenticatedRequest,@Param('projectId',uuid()) p:string,@Param('id',uuid()) id:string){
     const {version:v}=await this.service.history(r.auth!,scope(p),scope(id));
     const e=v.edits.find((e)=>e.editNo===v.currentEditNo)!;
-    const lines=[['Version','State','Edit','Source revision','Description','Quantity','UOM','Rate','Amount','Currency'],
+    const lines=[['Version','State','Edit','Source revision','Description','Quantity','UOM','Rate','Amount','Currency','Raw quantity','Buffer quantity'],
       ...e.lines.map(l=>[v.versionNo,v.approvalInstance?.approvalState??'DRAFT',e.editNo,v.sourceRevisionId,l.description,l.quantity.toFixed(4),
-        (l.uomSnapshot as {code:string}).code,l.rate.toFixed(4),l.amount.toFixed(2),v.currencyCode])];
+        (l.uomSnapshot as {code:string}).code,l.rate.toFixed(4),l.amount.toFixed(2),v.currencyCode,
+        (l.pricingSnapshot as {rawQuantity?:string|null}).rawQuantity??'',
+        (l.pricingSnapshot as {bufferQuantity?:string|null}).bufferQuantity??''])];
     return new StreamableFile(Buffer.from('\uFEFF'+lines.map(row=>row.map(csv).join(',')).join('\r\n')+'\r\n','utf8'));
   }
-  @Post('projects/:projectId/preview') @UseGuards(CsrfGuard) @RequirePermissions('budget.boq.view','budget.revision.view','budget.customer.view','budget.customer.manage')
+  @Post('projects/:projectId/preview') @UseGuards(CsrfGuard) @RequirePermissions('budget.cost.full_view','budget.boq.view','budget.revision.view','budget.customer.view','budget.customer.manage')
   async preview(@Req() r:AuthenticatedRequest,@Param('projectId',uuid()) p:string,@Body() value:unknown){const b=budgetObject(value);exactKeys(b,['draft','versionId']);return{data:await this.service.preview(context(r),scope(p),customerDraft(b.draft),b.versionId!==undefined?canonicalUuid(b.versionId,'versionId'):undefined)};}
-  @Post('projects/:projectId/versions') @UseGuards(CsrfGuard) @RequirePermissions('budget.boq.view','budget.revision.view','budget.customer.view','budget.customer.manage')
+  @Post('projects/:projectId/versions') @UseGuards(CsrfGuard) @RequirePermissions('budget.cost.full_view','budget.boq.view','budget.revision.view','budget.customer.view','budget.customer.manage')
   async create(@Req() r:AuthenticatedRequest,@Param('projectId',uuid()) p:string,@Body() value:unknown){const b=budgetObject(value);exactKeys(b,['requestId','draft']);return{data:await this.service.create(context(r),scope(p),canonicalUuid(b.requestId,'requestId'),customerDraft(b.draft))};}
-  @Post('projects/:projectId/versions/:id/edit') @UseGuards(CsrfGuard) @RequirePermissions('budget.boq.view','budget.revision.view','budget.customer.view','budget.customer.manage')
+  @Post('projects/:projectId/versions/:id/edit') @UseGuards(CsrfGuard) @RequirePermissions('budget.cost.full_view','budget.boq.view','budget.revision.view','budget.customer.view','budget.customer.manage')
   async edit(@Req() r:AuthenticatedRequest,@Param('projectId',uuid()) p:string,@Param('id',uuid()) id:string,@Body() value:unknown){const b=budgetObject(value);exactKeys(b,['requestId','expectedEditNo','draft']);return{data:await this.service.edit(context(r),scope(p),canonicalUuid(b.requestId,'requestId'),scope(id),budgetInteger(b.expectedEditNo,'expectedEditNo'),customerDraft(b.draft))};}
-  @Post('projects/:projectId/versions/:id/submit') @UseGuards(CsrfGuard) @RequirePermissions('budget.boq.view','budget.revision.view','budget.customer.view','budget.customer.submit')
+  @Post('projects/:projectId/versions/:id/submit') @UseGuards(CsrfGuard) @RequirePermissions('budget.cost.full_view','budget.boq.view','budget.revision.view','budget.customer.view','budget.customer.submit')
   async submit(@Req() r:AuthenticatedRequest,@Param('projectId',uuid()) p:string,@Param('id',uuid()) id:string,@Body() value:unknown){const b=budgetObject(value);exactKeys(b,['requestId','expectedEditNo','workflowCode']);return{data:await this.service.submit(context(r),scope(p),canonicalUuid(b.requestId,'requestId'),scope(id),budgetInteger(b.expectedEditNo,'expectedEditNo'),budgetString(b,'workflowCode',100))};}
-  @Post('projects/:projectId/versions/:id/decision') @UseGuards(CsrfGuard) @RequirePermissions('budget.boq.view','budget.revision.view','budget.customer.view','budget.customer.approve')
+  @Post('projects/:projectId/versions/:id/decision') @UseGuards(CsrfGuard) @RequirePermissions('budget.cost.full_view','budget.boq.view','budget.revision.view','budget.customer.view','budget.customer.approve')
   async decide(@Req() r:AuthenticatedRequest,@Param('projectId',uuid()) p:string,@Param('id',uuid()) id:string,@Body() value:unknown){const b=budgetObject(value);exactKeys(b,['requestId','expectedInstanceId','decision','comment']);const d=budgetString(b,'decision',10);
     return{data:await this.service.decide(context(r),scope(p),canonicalUuid(b.requestId,'requestId'),scope(id),canonicalUuid(b.expectedInstanceId,'expectedInstanceId'),d as 'APPROVE'|'REJECT',b.comment===undefined?undefined:budgetString(b,'comment',4000))};}
 }

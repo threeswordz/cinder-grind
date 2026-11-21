@@ -14,7 +14,7 @@ test('journey deltas skip existing capabilities; Cost BOQ preparation rights rem
   assert.equal(base.STORE_SITE.journeyMissing.includes('inventory.issue.view'),false);
   assert.ok(Object.values(base).every(x=>x.conditionalSourceMissing.length===0));
   assert.deepEqual(withSource.KHAIMOOK.conditionalSourceMissing,['budget.revision.approve','budget.revision.view']);
-  assert.deepEqual(withSource.BEN.conditionalSourceMissing,['budget.boq.manage','budget.boq.view','budget.revision.submit','budget.revision.view']);
+  assert.deepEqual(withSource.BEN.conditionalSourceMissing,['budget.boq.manage','budget.boq.view','budget.cost.full_view','budget.revision.submit','budget.revision.view']);
   const already=observed();already.STORE_SITE.push('inventory.issue.create');
   assert.equal(materialCapabilityDelta(already,false).STORE_SITE.journeyMissing.includes('inventory.issue.create'),false);
   const all=Object.values(withSource).flatMap(x=>[...x.journeyMissing,...x.conditionalSourceMissing]);

@@ -22,7 +22,7 @@ export async function customerBoqFixture(db: PrismaService) {
   const project = await db.project.create({ data: { companyId: company.id, customerId: customer.id, projectCode: 'P', projectName: 'Project', contractValue: '1000', plannedStartDate: new Date('2026-01-01'), plannedCompletionDate: new Date('2026-12-31') } });
   const uom = await db.unitOfMeasure.create({ data: { companyId: company.id, uomCode: 'EA', uomName: 'Each', decimalPlaces: 0 } });
   const costCode=await db.costCode.create({data:{companyId:company.id,costCode:'CONCRETE',costName:'Concrete'}});
-  const codes = ['budget.boq.view', 'budget.revision.view', 'budget.customer.view', 'budget.customer.manage', 'budget.customer.submit', 'budget.customer.approve'];
+  const codes = ['budget.cost.full_view','budget.boq.view', 'budget.revision.view', 'budget.customer.view', 'budget.customer.manage', 'budget.customer.submit', 'budget.customer.approve'];
   for (const permissionCode of codes) await db.permission.upsert({ where: { permissionCode }, update: {}, create: { permissionCode, moduleCode: 'BUDGET' } });
   const role = await db.role.create({ data: { companyId: company.id, roleCode: 'COMMERCIAL', roleName: 'Commercial', rolePermissions: { create: codes.map((permissionCode) => ({ permission: { connect: { permissionCode } } })) } } });
   const actors: AuthenticatedUserContext[] = [];
