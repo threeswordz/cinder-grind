@@ -182,7 +182,7 @@ export class CustomerBoqService {
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
   }
   private assertRead(auth: AuthenticatedUserContext, action?: string) {
-    const needs = ['budget.boq.view', 'budget.revision.view', 'budget.customer.view', ...(action ? ['budget.customer.' + action] : [])];
+    const needs = ['budget.cost.full_view', 'budget.boq.view', 'budget.revision.view', 'budget.customer.view', ...(action ? ['budget.customer.' + action] : [])];
     if (!needs.every((p) => auth.permissions.includes(p))) throw new ForbiddenException({ code: 'CUSTOMER_BOQ_PERMISSION_DENIED', detail: 'Explicit source-cost, customer-price and applicable action authority are required.' });
   }
 

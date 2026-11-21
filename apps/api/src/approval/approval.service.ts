@@ -100,22 +100,24 @@ export class ApprovalService {
       // DEC-054: a submitted Cost BOQ Budget Revision is the *only* exception
       // to maker/checker. No caller-supplied override, implicit SYS_ADMIN right,
       // or relaxation for Client BOQ, Procurement, Finance or rejection.
-      if (makerUserId === auth.userId) {
-        const revision = context.instance.entityType === 'BUDGET_REVISION' &&
-            context.instance.workflow.entityType === 'BUDGET_REVISION' &&
-            context.instance.workflow.companyId === auth.companyId
-          ? await tx.budgetRevision.findFirst({
-              where: {
-                id: context.instance.entityId,
-                companyId: auth.companyId,
-                approvalInstanceId: instanceId,
-                createdByUserId: auth.userId,
-                submittedByUserId: auth.userId,
-              },
-              select: { id: true },
-            })
-          : null;
-        const actor = revision ? await tx.user.findFirst({
+      const revision = context.instance.entityType === 'BUDGET_REVISION' &&
+          context.instance.workflow.entityType === 'BUDGET_REVISION' &&
+          context.instance.workflow.companyId === auth.companyId
+        ? await tx.budgetRevision.findFirst({
+            where: { id: context.instance.entityId,
+              companyId: auth.companyId, approvalInstanceId: instanceId },
+            select: { id: true, createdByUserId: true, submittedByUserId: true },
+          })
+        : null;
+      const isRevisionMaker = Boolean(revision &&
+        (revision.createdByUserId === auth.userId || revision.submittedByUserId === auth.userId));
+      if (makerUserId === auth.userId || isRevisionMaker) {
+        // Only a single same-user created AND submitted Cost revision may use
+        // the explicitly configured role exception. A different submitter
+        // cannot disguise the original maker of a Cost revision.
+        const qualifyingRevision = revision?.createdByUserId === auth.userId &&
+          revision.submittedByUserId === auth.userId;
+        const actor = qualifyingRevision ? await tx.user.findFirst({
           where: {
             id: auth.userId,
             companyId: auth.companyId,
@@ -144,7 +146,7 @@ export class ApprovalService {
             codes.has('budget.revision.approve') &&
             codes.has('budget.cost.self_approve');
         });
-        if (!revision || !configuredRole ||
+        if (!qualifyingRevision || !configuredRole ||
             !auth.permissions.includes('budget.revision.approve') ||
             !auth.permissions.includes('budget.cost.self_approve')) {
           throw new ForbiddenException({

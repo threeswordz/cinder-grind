@@ -29,7 +29,8 @@ test('quantity plus report authority cannot reveal protected Budget costs; expli
   for(const extra of [[],['cost.control.view'],['management.dashboard.view'],['budget.customer.view'],['budget.boq.manage'],['budget.boq.view']])
     assert.throws(()=>assertCostReportDisclosure(actor(['budget.quantity.view',...extra])),ForbiddenException);
   assert.doesNotThrow(()=>assertCostReportDisclosure(actor(['cost.control.view'])));
-  assert.doesNotThrow(()=>assertCostReportDisclosure(actor(['budget.quantity.view','budget.revision.view'])));
+  assert.doesNotThrow(()=>assertCostReportDisclosure(actor(['budget.quantity.view','budget.cost.full_view'])));
+  assert.throws(()=>assertCostReportDisclosure(actor(['budget.quantity.view','budget.revision.view'])),ForbiddenException);
 });
 
 test('action-only Budget mutation responses are minimal while explicit full reads retain their existing contract',async()=>{
@@ -39,16 +40,19 @@ test('action-only Budget mutation responses are minimal while explicit full read
     const result=await run(url,'POST',['budget.quantity.view','budget.revision.approve','budget.boq.view']);
     assert.doesNotMatch(JSON.stringify(result),/123|456|789|SECRET|totalAmount|lines/);
     assert.equal((result.data as {id:string}).id,id);
-    assert.deepEqual(await run(url,'POST',['budget.revision.view']),value);
+    assert.deepEqual(await run(url,'POST',['budget.revision.view','budget.cost.full_view']),value);
   }
   assert.doesNotMatch(JSON.stringify(await run('/budget/items/'+id,'PATCH',['budget.boq.manage','budget.revision.view'])),/123|456|789|SECRET/);
   const crafted=await run('/budget/items/'+id+'?x=/revisions/','PATCH',['budget.boq.manage','budget.revision.view']);
   assert.doesNotMatch(JSON.stringify(crafted),/123|456|789|SECRET|totalAmount|lines/,'query text cannot grant working-cost disclosure');
-  assert.deepEqual(await run('/budget/items/'+id+'?x=/revisions/','PATCH',['budget.boq.view']),value,'query text cannot remove a legitimate working-cost read either');
+  assert.deepEqual(await run('/budget/items/'+id+'?x=/revisions/','PATCH',['budget.boq.view','budget.cost.full_view']),value,'query text cannot remove a legitimate working-cost read either');
   assert.doesNotMatch(JSON.stringify(await run('/BUDGET/REVISIONS/'+id+'/SUBMIT','POST',['budget.boq.view','budget.revision.submit'])),/123|456|789|SECRET/,'case-insensitive routing cannot select the wrong owning read');
-  assert.deepEqual(await run('/BUDGET/REVISIONS/'+id+'/SUBMIT','POST',['budget.revision.view']),value);
-  assert.deepEqual(await run('/budget/items/'+id,'PATCH',['budget.boq.view']),value);
-  assert.deepEqual(await run('/budget/projects','GET',[]),value,'read guard remains responsible for GET authorization');
+  assert.deepEqual(await run('/BUDGET/REVISIONS/'+id+'/SUBMIT','POST',['budget.revision.view','budget.cost.full_view']),value);
+  assert.deepEqual(await run('/budget/items/'+id,'PATCH',['budget.boq.view','budget.cost.full_view']),value);
+  await assert.rejects(()=>run('/budget/projects','GET',[]),ForbiddenException);
+  const protectedRead=await run('/budget/projects/'+id+'/revisions','GET',['budget.quantity.view','budget.revision.view']);
+  assert.doesNotMatch(JSON.stringify(protectedRead),/123|456|789|SECRET|totalAmount/);
+  assert.deepEqual(await run('/budget/projects/'+id+'/revisions','GET',['budget.revision.view','budget.cost.full_view']),value);
 });
 
 test('Customer BOQ transport accepts exact decimal strings and rejects caller-owned precision, prior rate, numeric money and unknown mapping fields',()=>{
@@ -75,5 +79,5 @@ test('quantity projection preserves scalar revision Cost Codes and safely projec
 
 test('summary plus alternate report roles cannot infer full Budget costs without explicit revision read',()=>{
   for(const extra of [[],['cost.control.view'],['management.dashboard.view'],['budget.boq.view']])assert.throws(()=>assertCostReportDisclosure(actor(['budget.project_summary.view',...extra])),ForbiddenException);
-  assert.doesNotThrow(()=>assertCostReportDisclosure(actor(['budget.project_summary.view','budget.revision.view'])));
+  assert.doesNotThrow(()=>assertCostReportDisclosure(actor(['budget.project_summary.view','budget.cost.full_view'])));
 });
