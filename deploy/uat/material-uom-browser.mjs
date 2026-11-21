@@ -39,6 +39,10 @@ export async function executeMaterialUomBrowser(p,binding,db){
     phase=key.toUpperCase()+'_WORKSPACE';
     await until(p,s,()=>[...document.querySelectorAll('nav [role="button"]')].some(e=>e.textContent==='Master Data'),null,'UOM_BROWSER_NAV_MISSING');
     await evaluate(p,s,()=>{[...document.querySelectorAll('nav [role="button"]')].find(e=>e.textContent==='Master Data').click();return true;});
+    // Real prototype actors also view other masters; their first available tab
+    // is not necessarily Materials, unlike the isolated foundation fixture.
+    await until(p,s,()=>[...document.querySelectorAll('[role="tab"]')].some(e=>e.textContent==='Materials'),null,'UOM_BROWSER_MATERIAL_TAB_MISSING');
+    await evaluate(p,s,()=>{[...document.querySelectorAll('[role="tab"]')].find(e=>e.textContent==='Materials').click();return true;});
     await until(p,s,({code,name})=>[...document.querySelectorAll('main .MuiCard-root')].some(c=>[...c.querySelectorAll('p')].some(e=>e.textContent===code+' — '+name)),f.material,'UOM_BROWSER_MATERIAL_MISSING');
     await evaluate(p,s,({code,name})=>{const card=[...document.querySelectorAll('main .MuiCard-root')].find(c=>[...c.querySelectorAll('p')].some(e=>e.textContent===code+' — '+name));[...card.querySelectorAll('button')].find(e=>e.textContent==='UOM · หน่วย · 單位').click();return true;},f.material);
     await until(p,s,()=>Boolean(document.querySelector('[data-testid="material-uom-panel"]'))||[...document.querySelectorAll('main [role="alert"]')].some(e=>e.textContent.includes('Unable to complete this action')),null,'UOM_BROWSER_PANEL_MISSING');
