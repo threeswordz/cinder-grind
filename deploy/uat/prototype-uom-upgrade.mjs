@@ -239,6 +239,7 @@ export async function upgradeUom(operatorMain){
     convertedMovementReportVerified:requestReport.convertedMovementReportVerified,
     convertedApprovedSourcePlanAndIssueVerified:planned.convertedApprovedSourcePlanAndIssueVerified,
     convertedPlannedReturnVerified:planned.convertedPlannedReturnVerified,
+    convertedOverageVerified:planned.convertedOverageVerified,
     ownerCostSelfApprovalUnverified:true,
     requestAndReportSessionsRevoked:requestReport.requestAndReportSessionsRevoked,
     newConvertedStockJourneyVerified:false,documentIds:converted.documentIds};

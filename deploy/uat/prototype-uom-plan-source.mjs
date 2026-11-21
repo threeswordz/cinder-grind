@@ -244,8 +244,79 @@ export async function convertedPlanIssue(db,binding,source,{api,web}){
   demand(finalPlan.approvedRevision.lines[0].usedQuantity==='0.0000'&&
    finalPlan.approvedRevision.lines[0].remainingQuantity==='40.0000',
    'UOM_PLAN_RETURNED_STOCK_ALLOWANCE_NOT_RESTORED');
+  // Original 2 CTN/40 EA plan limit remains frozen. A new 3 CTN/60 EA
+  // request is a20 EA overage, never a guessed third carton allowance.
+  // Khaimook reviews; Ben independently grants the final overage decision.
+  phase='OVERAGE_SOURCE';
+  const excessIssue=await call('STORE_SITE','UOM_PLAN_OVERAGE_CREATE',
+   '/inventory/material-issues',{
+    projectId:f.projectId,warehouseId:f.warehouseId,issueDate:'2026-11-19',
+    issuedToEmployeeId:b.actors.FOREMAN.employeeId,
+    remarks:'Explicit 3CTN/60EA demand against frozen 2CTN/40EA allowance',
+    lines:[{materialId,uomId:source.carton.id,quantity:'3.0000'}]});
+  const excessData=await call('STORE_SITE','UOM_PLAN_OVERAGE_ISSUE_READ',
+   '/inventory/material-issues/'+excessIssue.id,undefined,200);
+  const excessLine=excessData?.items?.[0];
+  demand(excessLine?.materialId===materialId&&
+   await db.materialPlanIssueBinding.count({where:{issueId:excessIssue.id,policyId:policy.id}})===1,
+   'UOM_PLAN_OVERAGE_POLICY_NOT_BOUND');
+  const excessBody={requestKey:requestKey(),bindings:[{
+   issueItemId:excessLine.id,planLineId:planLine.id,expectedPlanVersion:detail.version}]};
+  const excessPreview=await call('STORE_SITE','UOM_PLAN_OVERAGE_PREVIEW',
+   '/inventory/material-plan-issues/issues/'+excessIssue.id+'/preview',excessBody);
+  demand(excessPreview?.result==='OVERAGE_REQUIRED'&&excessPreview.overageQuantity===null&&
+   excessPreview.items?.length===1&&excessPreview.items[0].stockBasis?.stockQuantity==='60.0000'&&
+   excessPreview.items[0].stockBasis?.numerator==='20'&&
+   excessPreview.items[0].overageQuantity==='20.0000',
+   'UOM_PLAN_OVERAGE_NOT_20_STOCK_PIECES');
+  await call('STORE_SITE','UOM_PLAN_OVERAGE_DIRECT_DENIED',
+   '/inventory/material-plan-issues/issues/'+excessIssue.id+'/within-plan',excessBody,409);
+  phase='OVERAGE_APPROVAL';
+  const submittedOverage=await call('STORE_SITE','UOM_PLAN_OVERAGE_SUBMIT',
+   '/inventory/material-plan-issues/issues/'+excessIssue.id+'/overage',excessBody);
+  demand(submittedOverage?.authorizationId,'UOM_PLAN_OVERAGE_AUTHORIZATION_REQUIRED');
+  const decision=()=>({requestKey:requestKey(),decision:'APPROVE',
+   comment:'Bounded synthetic independent20-piece overage'});
+  await call('BEN','UOM_PLAN_OVERAGE_PREMATURE_FINAL_BLOCKED',
+   '/inventory/material-plan-issues/authorizations/'+submittedOverage.authorizationId+'/decision',
+   decision(),409);
+  await call('KHAIMOOK','UOM_PLAN_OVERAGE_REVIEW',
+   '/inventory/material-plan-issues/authorizations/'+submittedOverage.authorizationId+'/review',decision());
+  const overagePosted=await call('BEN','UOM_PLAN_OVERAGE_FINAL_APPROVE',
+   '/inventory/material-plan-issues/authorizations/'+submittedOverage.authorizationId+'/decision',decision());
+  demand(overagePosted?.status==='POSTED','UOM_PLAN_OVERAGE_NOT_POSTED');
+  assert.equal(await balance(),'0.0000','Canonical approved overage must debit60 pieces');
+  const approvedOverage=await db.stockTransaction.findFirstOrThrow({where:{
+   materialIssueId:excessIssue.id,movementType:'MATERIAL_ISSUE'},include:{materialUomEffectPin:true}});
+  demand(approvedOverage.uomId===source.each.id&&n4(approvedOverage.quantity)==='-60.0000'&&
+   approvedOverage.materialUomEffectPin?.numerator==='20'&&
+   n4(approvedOverage.materialUomEffectPin?.sourceQuantity)==='3.0000',
+   'UOM_PLAN_OVERAGE_WRONG_CONVERSION');
+  const usedOverage=await call('STORE_SITE','UOM_PLAN_OVERAGE_USAGE_READ',
+   '/inventory/material-plans/'+plan.id,undefined,200);
+  demand(usedOverage.approvedRevision.lines[0].usedQuantity==='60.0000'&&
+   usedOverage.approvedRevision.lines[0].remainingQuantity==='0.0000',
+   'UOM_PLAN_OVERAGE_EXACT_STOCK_USAGE_MISSING');
+  phase='OVERAGE_REVERSAL';
+  const revertExcess={reversalKey:requestKey(),
+   reason:'Synthetic independently approved plan overage restored with original pin'};
+  await call('STORE_SITE','UOM_PLAN_OVERAGE_REVERSE',
+   '/inventory/material-issues/'+excessIssue.id+'/reverse',revertExcess);
+  await call('STORE_SITE','UOM_PLAN_OVERAGE_REVERSE_REPLAY',
+   '/inventory/material-issues/'+excessIssue.id+'/reverse',revertExcess);
+  assert.equal(await balance(),'60.0000','Overage issue reversal must restore stock60');
+  const restoredUsage=await call('STORE_SITE','UOM_PLAN_OVERAGE_RESTORED_USAGE',
+   '/inventory/material-plans/'+plan.id,undefined,200);
+  demand(restoredUsage.approvedRevision.lines[0].usedQuantity==='0.0000'&&
+   restoredUsage.approvedRevision.lines[0].remainingQuantity==='40.0000',
+   'UOM_PLAN_OVERAGE_REVERSAL_DID_NOT_RESTORE_FROZEN_CAP');
+  const complete=await db.stockTransaction.findMany({where:{companyId:f.companyId}});
+  demand(complete.length===oldStock.length+6,'UOM_PLAN_OVERAGE_UNEXPECTED_STOCK_EFFECTS');
+  for(const prior of oldStock)assert.deepEqual(complete.find(row=>row.id===prior.id),prior,
+   'Earlier posted stock changed by synthetic overage');
   result={convertedApprovedSourcePlanAndIssueVerified:true,
    convertedPlannedReturnVerified:true,originalIssuedConversionPreservedOnReturn:true,
+   convertedOverageVerified:true,independentKhaimookReviewAndBenApprovalVerified:true,
    syntheticLegacyCostWorkflowOnly:true,currentOwnerCostSelfApprovalNotVerified:true,
    costSourceRevisionId:revision.id,planId:plan.id,issueId:issue.id,
    frozenPlanStockQuantity:'40.0000',convertedIssueQuantity:'20.0000',
