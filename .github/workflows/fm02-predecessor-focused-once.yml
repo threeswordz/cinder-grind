@@ -50,12 +50,15 @@ jobs:
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version: 24.21.0
+      - name: Strict historical schema and FM02 predecessor preservation regressions (no install)
+        run: |
+          node --check deploy/release-candidate/receiving-predecessor.mjs
+          node --check deploy/release-candidate/site-issue-predecessor.mjs
+          node --test --test-concurrency=1 deploy/release-candidate/schema-contract.test.mjs
       - name: Locked install and Prisma client generation
         run: |
           pnpm install --frozen-lockfile
           pnpm prisma:generate
-      - name: Strict historical schema and FM02 predecessor preservation regressions
-        run: node --test --test-concurrency=1 deploy/release-candidate/schema-contract.test.mjs
       - name: Build native API once for both browser predecessors
         run: pnpm --filter @construction-erp/api build
       - name: Verify receiving predecessor and real disposable Chromium
