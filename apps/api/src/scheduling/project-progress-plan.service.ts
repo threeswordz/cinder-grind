@@ -9,6 +9,7 @@ import { calculateConfirmedProjectProgress, WeightedProgressContractError } from
 
 type Tx = Prisma.TransactionClient;
 type Context = { auth: AuthenticatedUserContext; correlationId?: string };
+const userInclude = {userRoles:{include:{role:{include:{rolePermissions:{include:{permission:true}}}}}}} as const;
 export type WorkPlanLineInput = {activityId: string; weightPercent: string; sourceKind: 'QUANTITY' | 'MILESTONE'; approvedBudgetRevisionLineId?: string};
 const denied = (code: string): never => { throw new ForbiddenException({code}); };
 const fail = (code: string): never => { throw new UnprocessableEntityException({code}); };
@@ -19,6 +20,19 @@ const decimal = (s: string, scale: number) => new RegExp('^(?:0|[1-9][0-9]{0,13}
 export class ProjectProgressPlanService {
   constructor(private readonly prisma: PrismaService, private readonly access: ProjectAccessService,
     private readonly audit: AuditService) {}
+
+
+  // Confirm the live session and current role permissions in the same
+  // serializable transaction; stale login claims cannot confirm work weights.
+  private async live(tx:Tx,auth:AuthenticatedUserContext,code:string){
+    const session=await tx.userSession.findFirst({where:{id:auth.sessionId,userId:auth.userId,
+      revokedAt:null,expiresAt:{gt:new Date()},user:{companyId:auth.companyId,isActive:true,
+        company:{isActive:true}}},include:{user:{include:userInclude}}});
+    if(!session)denied('FM02_SESSION_REVOKED');
+    const permissions=new Set(session.user.userRoles.filter(x=>x.role.isActive).flatMap(x=>
+      x.role.rolePermissions.map(r=>r.permission.permissionCode)));
+    if(!auth.permissions.includes(code)||!permissions.has(code))denied('FM02_PERMISSION_REVOKED');
+  }
 
   private async project(tx: Tx, auth: AuthenticatedUserContext, projectId: string) {
     const project = await tx.project.findFirst({where:{id:projectId,companyId:auth.companyId,isActive:true},
@@ -41,6 +55,7 @@ export class ProjectProgressPlanService {
   }
   async options(auth: AuthenticatedUserContext, projectId: string) {
     return this.serial(async tx=>{
+      await this.live(tx,auth,'schedule.work_plan.prepare');
       await this.project(tx,auth,projectId);
       const activities=await tx.activity.findMany({where:{companyId:auth.companyId,projectId,isActive:true,isSummary:false},
         select:{id:true,activityCode:true,activityName:true,wbsId:true,isMilestone:true,parentActivityId:true},
@@ -57,6 +72,7 @@ export class ProjectProgressPlanService {
   }
   async list(auth: AuthenticatedUserContext, projectId: string) {
     return this.serial(async tx=>{
+      await this.live(tx,auth,'schedule.programme.view');
       await this.project(tx,auth,projectId);
       return tx.projectProgressPlan.findMany({where:{companyId:auth.companyId,projectId},
         include:{_count:{select:{lines:true}},preparedBy:{select:{id:true,displayName:true}},
@@ -66,6 +82,7 @@ export class ProjectProgressPlanService {
   async prepare(context: Context, input: {projectId:string;reason:string;lines:WorkPlanLineInput[]}) {
     const a=context.auth;
     return this.serial(async tx=>{
+      await this.live(tx,a,'schedule.work_plan.prepare');
       await this.project(tx,a,input.projectId);
       if(!Array.isArray(input.lines)||input.lines.length<1||input.lines.length>100)fail('FM02_PLAN_LINE_COUNT_INVALID');
       if(typeof input.reason!=='string'||input.reason.trim().length<1||input.reason.length>2000)fail('FM02_PLAN_REASON_REQUIRED');
@@ -131,6 +148,7 @@ export class ProjectProgressPlanService {
   async confirm(context: Context,id: string,expectedVersion: number) {
     const a=context.auth;
     return this.serial(async tx=>{
+      await this.live(tx,a,'schedule.work_plan.confirm');
       const plan=await tx.projectProgressPlan.findFirst({where:{id,companyId:a.companyId},
         include:{lines:true}});
       if(!plan)throw new NotFoundException({code:'FM02_PLAN_NOT_FOUND'});
@@ -148,6 +166,7 @@ export class ProjectProgressPlanService {
   }
   async current(auth: AuthenticatedUserContext,projectId: string) {
     return this.serial(async tx=>{
+      await this.live(tx,auth,'schedule.programme.view');
       await this.project(tx,auth,projectId);
       const plan=await tx.projectProgressPlan.findFirst({where:{companyId:auth.companyId,projectId,
         confirmedAt:{not:null}},include:{lines:true,confirmedBy:{select:{id:true,displayName:true}}},
@@ -185,6 +204,7 @@ export class ProjectProgressPlanService {
   }) {
     const a=context.auth;
     return this.serial(async tx=>{
+      await this.live(tx,a,'schedule.progress.record');
       const activity=await tx.activity.findFirst({where:{id:activityId,companyId:a.companyId,isActive:true},
         select:{id:true,projectId:true}});
       if(!activity)throw new NotFoundException({code:'FM02_ACTIVITY_NOT_FOUND'});

@@ -64,7 +64,7 @@ export function ProjectProgressPlansPanel({projectId,permissions,activities}:Pro
          No zero or completion is assumed.</Alert>:null}
      {(current.data.data.lines??[]).map(line=><Typography variant="body2" key={line.activityId}>
        {activities.find(a=>a.activityId===line.activityId)?.activityName??line.activityId}:
-       {' '}{line.weightPercent}% weight · {line.percentComplete??'Missing evidence'}%
+       {' '}{line.weightPercent}% weight · {line.percentComplete===null?'Missing evidence':line.percentComplete+'%'}
      </Typography>)}
    </Stack>:null}
    {(list.data?.data??[]).map(plan=><Card key={plan.id} variant="outlined"><CardContent>

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Query, Req, UseGuards, UnprocessableEntityException } from '@nestjs/common';
 import { AuthGuard } from '../auth/auth.guard';
 import { AuthenticatedRequest } from '../auth/auth.types';
 import { CsrfGuard } from '../auth/csrf.guard';
@@ -15,7 +15,7 @@ const context=(r:AuthenticatedRequest)=>({auth:auth(r),...(r.correlationId?{corr
 const uid=(input:Record<string,unknown>,field:string)=>validateSchedulingUuid(input[field] as string,field);
 function projectId(input:unknown) {const x=requireSchedulingObject(input);return uid(x,'projectId');}
 const version=(raw:unknown)=>{
- if(typeof raw!=='number'||!Number.isSafeInteger(raw)||raw<1)throw Error('FM02_PLAN_VERSION_INVALID');
+ if(typeof raw!=='number'||!Number.isSafeInteger(raw)||raw<1)throw new UnprocessableEntityException({code:'FM02_PLAN_VERSION_INVALID'});
  return raw;
 };
 @Controller('project-progress-plans')
@@ -49,11 +49,11 @@ export class ProjectProgressPlanController {
  async prepare(@Req() req:AuthenticatedRequest,@Body() raw:unknown) {
   const body=requireSchedulingObject(raw),id=projectId(body);
   const reason=requiredSchedulingString(body,'reason',2000);
-  if(!Array.isArray(body.lines)||body.lines.length<1||body.lines.length>100)throw Error('FM02_PLAN_LINE_COUNT_INVALID');
+  if(!Array.isArray(body.lines)||body.lines.length<1||body.lines.length>100)throw new UnprocessableEntityException({code:'FM02_PLAN_LINE_COUNT_INVALID'});
   const lines:WorkPlanLineInput[]=body.lines.map((raw:unknown)=>{
    const x=requireSchedulingObject(raw),activityId=uid(x,'activityId');
    const weightPercent=requiredSchedulingString(x,'weightPercent',16);
-   if(x.sourceKind!=='QUANTITY'&&x.sourceKind!=='MILESTONE')throw Error('FM02_SOURCE_KIND_INVALID');
+   if(x.sourceKind!=='QUANTITY'&&x.sourceKind!=='MILESTONE')throw new UnprocessableEntityException({code:'FM02_SOURCE_KIND_INVALID'});
    const sourceKind=x.sourceKind as WorkPlanLineInput['sourceKind'];
    const approvedBudgetRevisionLineId=sourceKind==='QUANTITY'?uid(x,'approvedBudgetRevisionLineId'):undefined;
    return {activityId,weightPercent,sourceKind,...(approvedBudgetRevisionLineId?{approvedBudgetRevisionLineId}:{})};
