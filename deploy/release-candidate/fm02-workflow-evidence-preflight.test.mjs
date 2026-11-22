@@ -12,6 +12,8 @@ import {materialUomMigrations} from './material-uom-schema-contract.mjs';
 import {materialUomEffectMigration} from './material-uom-effect-schema-contract.mjs';
 import {stageCMigrations} from './material-uom-stage-c-schema-contract.mjs';
 import {fm02Mode} from './fm02-schema-contract.mjs';
+import {classifySchema} from './schema-contract.mjs';
+import {execFileSync} from 'node:child_process';
 
 const root=fileURLToPath(new URL('../../',import.meta.url));
 const yaml=readFileSync(new URL('../../.github/workflows/validate.yml',import.meta.url),'utf8');
@@ -93,3 +95,21 @@ for(const [name,tail,predecessor] of entries){
     }
   });
 }
+
+test('real Git predecessor schemas retain their exact FM02 version-20 inline acceptance paths',()=>{
+  const candidateSchema=readFileSync(new URL('../../apps/api/prisma/schema.prisma',import.meta.url),'utf8');
+  for(const [name,tail,predecessor] of entries){
+    const source=execFileSync('git',['show',predecessor+':apps/api/prisma/schema.prisma'],
+      {cwd:root,encoding:'utf8'});
+    const actualMode=classifySchema(source,candidateSchema);
+    assert.equal(fm02Mode(actualMode).present,true,
+      'FM02 outer mode absent in actual source delta: '+name);
+    const data=fixture(name,tail,predecessor);
+    data.releaseMode=actualMode;
+    const block=blocks.find(text=>text.includes('/tmp/'+name+'-consolidated-evidence.json'));
+    assert.ok(block,'Missing inline block '+name);
+    const outcome=runInline(block,data);
+    assert.equal(outcome.status,0,
+      'ACTUAL predecessor '+name+' mode '+actualMode+' rejected: '+String(outcome.stderr||outcome.error));
+  }
+});
