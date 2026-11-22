@@ -104,6 +104,30 @@ export type DailySiteReportPayload = {
 };
 
 export type WeeklySiteSummary = {
+  // FM01-B uses the CURRENT explicitly configured work calendar for read-only
+  // report expectations; it does not assert historical deadline compliance.
+  workCalendarPreview: {
+    status: 'CONFIGURED' | 'NOT_CONFIGURED' | 'AMBIGUOUS' | 'INVALID_CONFIGURATION';
+    calendarId: string | null;
+    calendarName: string | null;
+    timezoneName: string | null;
+    basis: 'CURRENT_CONFIGURATION_PREVIEW_NOT_HISTORICAL_COMPLIANCE';
+    days: Array<{
+      date: string;
+      plannedDayKind: 'PLANNED_WORKDAY' | 'PLANNED_OFF_DAY' | 'UNKNOWN';
+      reportingExpectation: 'UNDETERMINED' | 'NO_REPORT_REQUIRED' |
+        'PLANNED_DAY_REPORT_MISSING' | 'PLANNED_DAY_DRAFT' | 'PLANNED_DAY_SUBMITTED';
+      dueLocalDate: string | null;
+      dueLocalStartTime: string | null;
+      timeliness: 'NOT_ASSESSED';
+      exceptionReason: string | null;
+    }>;
+    totals: {
+      plannedWorkdays: number;
+      plannedOffDays: number;
+      missingPlannedWorkdayReports: number;
+    } | null;
+  };
   projectId: string;
   from: string;
   to: string;
