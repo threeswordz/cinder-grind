@@ -1,4 +1,6 @@
 import { TransferCustodyService } from './transfer-custody.service';
+import { UrgentMaterialIssueDocumentsService } from './urgent-material-issue-documents.service';
+import { UrgentMaterialIssueDocumentsController } from './urgent-material-issue-documents.controller';
 import { TransferCustodyController } from './transfer-custody.controller';
 import {MaterialPlanController} from './material-plan.controller';
 import {ReceivingController} from './receiving.controller';
@@ -49,6 +51,7 @@ import { StockCountService } from './stock-count.service';
   ],
   controllers: [
     TransferCustodyController,
+    UrgentMaterialIssueDocumentsController,
     ReceivingController,
     MaterialPlanIssueController,
     MaterialPlanController,
@@ -63,6 +66,7 @@ import { StockCountService } from './stock-count.service';
   ],
   providers: [
     TransferCustodyService,
+    UrgentMaterialIssueDocumentsService,
     ReceivingService,
     MaterialPlanIssueService,
     MaterialPlanService,
