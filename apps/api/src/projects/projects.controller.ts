@@ -170,6 +170,16 @@ export class ProjectsController {
     return {data: await this.closeout.get(authOf(request),id)};
   }
 
+  @Get(':id/closeout/owners')
+  @UseGuards(AuthGuard, PermissionGuard)
+  @RequirePermissions('projects.project.view')
+  async closeoutOwners(
+    @Req() request: AuthenticatedRequest,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+  ) {
+    return {data: await this.closeout.ownerOptions(authOf(request),id)};
+  }
+
   @Post(':id/closeout/prepare')
   @UseGuards(AuthGuard, CsrfGuard, PermissionGuard)
   @RequirePermissions('projects.project.edit')
