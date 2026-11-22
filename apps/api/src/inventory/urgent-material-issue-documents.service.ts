@@ -81,7 +81,7 @@ export class UrgentMaterialIssueDocumentsService {
   }
 
   private async snapshot(auth:AuthenticatedUserContext,projectId:string,id:string,
-    documentIds:string[],db:Tx|PrismaService){
+    documentIds:string[],postedAt:Date,db:Tx|PrismaService){
     if(!documentIds.length || documentIds.length>100 || new Set(documentIds).size!==documentIds.length)
       return conflict('PM09_DOCUMENT_SELECTION_INVALID');
     const rows=await db.document.findMany({
@@ -113,14 +113,11 @@ export class UrgentMaterialIssueDocumentsService {
       onTimeUploaded:documents.every(doc=>Date.parse(doc.uploadedAt)<=Date.parse(urgentDueAt(
         // The caller checks against the canonical posted-at instant.
         // Do not derive a deadline from document or form timestamps.
-        this.currentPostedAt!,
+        postedAt,
       ))),
       uploaderIds:authorized.map(row=>row.uploadedByUserId),
     };
   }
-
-  // Scoped to an individual transaction invocation; never use a mutable global clock.
-  private currentPostedAt:Date|null=null;
 
   async read(auth:AuthenticatedUserContext,id:string){
     await this.liveActor(auth,this.prisma,'VIEW');
@@ -130,12 +127,11 @@ export class UrgentMaterialIssueDocumentsService {
     let sourceCurrent=false;
     if(state.evidenceFingerprint&&state.documentIds.length){
       try{
-        this.currentPostedAt=issue.postedAt!;
-        const snapshot=await this.snapshot(auth,issue.projectId,id,state.documentIds,this.prisma);
+        const snapshot=await this.snapshot(auth,issue.projectId,id,state.documentIds,issue.postedAt!,this.prisma);
         sourceCurrent=snapshot.digest===state.evidenceFingerprint;
       }catch{
         sourceCurrent=false;
-      }finally{this.currentPostedAt=null;}
+      }
     }
     return {
       issueId:id,projectId:issue.projectId,
@@ -177,10 +173,7 @@ export class UrgentMaterialIssueDocumentsService {
       const current=urgentIssueEvidence(issue.postedAt!,await this.history(context.auth,id,tx));
       if(!current || !['OPEN','RETURNED'].includes(current.status))
         return conflict('PM09_NOT_OPEN_FOR_EVIDENCE');
-      this.currentPostedAt=issue.postedAt!;
-      let evidence:Awaited<ReturnType<typeof this.snapshot>>;
-      try { evidence=await this.snapshot(context.auth,issue.projectId,id,documentIds,tx); }
-      finally { this.currentPostedAt=null; }
+      const evidence=await this.snapshot(context.auth,issue.projectId,id,documentIds,issue.postedAt!,tx);
       await this.audit.record({
         ...context,entityType:URGENT_DOC_ENTITY,entityId:id,action:URGENT_DOC_SUBMIT,
         newValues:{
@@ -204,10 +197,7 @@ export class UrgentMaterialIssueDocumentsService {
       const current=urgentIssueEvidence(issue.postedAt!,await this.history(context.auth,id,tx));
       if(!current||current.status!=='SUBMITTED'||current.evidenceFingerprint!==expectedFingerprint)
         return conflict('PM09_STALE_OR_UNSUBMITTED_EVIDENCE');
-      this.currentPostedAt=issue.postedAt!;
-      let evidence:Awaited<ReturnType<typeof this.snapshot>>;
-      try {evidence=await this.snapshot(context.auth,issue.projectId,id,current.documentIds,tx);}
-      finally {this.currentPostedAt=null;}
+      const evidence=await this.snapshot(context.auth,issue.projectId,id,current.documentIds,issue.postedAt!,tx);
       if(evidence.digest!==current.evidenceFingerprint)
         return conflict('PM09_DOCUMENT_EVIDENCE_CHANGED');
       if(evidence.uploaderIds.includes(context.auth.userId))
