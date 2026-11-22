@@ -147,7 +147,9 @@ test('FM02 preserved predecessor allows exactly two empty new tables without wea
   const {fm02Tables}=await import('./fm02-schema-contract.mjs');
   const {createHash}=await import('node:crypto');
   const empty={count:'0',digest:createHash('sha256').update('').digest('hex')};
-  const prior={companies:{count:'1',digest:'preserved-company'},activity_progress:{count:'1',digest:'preserved-progress'}};
+  // These five Customer BOQ tables already exist on the actual predecessor; do not model them as new.
+  const customerBoq=['customer_boq_versions','customer_boq_edits','customer_boq_lines','customer_boq_mappings','customer_boq_replays'];
+  const prior={companies:{count:'1',digest:'preserved-company'},activity_progress:{count:'1',digest:'preserved-progress'},...Object.fromEntries(customerBoq.map(name=>[name,{...empty}]))};
   const upgraded={...prior,...Object.fromEntries(fm02Tables.map(name=>[name,{...empty}]))};
   const verify=(before,after)=>assertHistoricalTables(before,after,...Array(13).fill(false),true);
   assert.doesNotThrow(()=>verify(prior,upgraded));
