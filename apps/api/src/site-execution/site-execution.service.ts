@@ -504,7 +504,11 @@ export class SiteExecutionService {
         ...context, entityType: NO_WORK_ENTITY, entityId: id,
         action: NO_WORK_CORRECTION_ACTION,
         oldValues: {reason: prior.reason},
-        newValues: {reason, oldReason: prior.reason, reportDate: report.reportDate},
+        newValues: {
+          reason, oldReason: prior.reason,
+          previousEventId: prior.latestEventId,
+          reportDate: report.reportDate,
+        },
       }, tx);
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
     return this.get(context.auth, id);
@@ -793,7 +797,8 @@ export class SiteExecutionService {
         this.assertDraft(before.status);
         const noWork = noWorkEvidence(await this.noWorkEvents(tx, context.auth, id));
         if (noWork && (
-          input.reportDate !== undefined ||
+          (input.reportDate !== undefined &&
+            input.reportDate.getTime() !== before.reportDate.getTime()) ||
           (input.manpower?.length ?? 0) > 0 ||
           (input.materialUsage?.length ?? 0) > 0 ||
           (input.equipmentUsage?.length ?? 0) > 0 ||
@@ -995,7 +1000,7 @@ export class SiteExecutionService {
           },
           tx,
         );
-      });
+      }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
 
       return this.get(context.auth, id);
     } catch (error) {
@@ -1130,7 +1135,7 @@ export class SiteExecutionService {
         },
         tx,
       );
-    });
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
 
     return this.get(context.auth, id);
   }
