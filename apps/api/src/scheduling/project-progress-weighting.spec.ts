@@ -91,10 +91,10 @@ test('one confirmed 100% plan yields 100%, zero milestone progress yields 0%', (
 test('FM02 migration PL/pgSQL dollar quotes are balanced and security triggers exist', () => {
   const migration = readFileSync(resolve(__dirname,
     '../../prisma/migrations/20261122140000_fm02_weighted_project_progress/migration.sql'), 'utf8');
-  assert.equal((migration.match(/LANGUAGE plpgsql AS \\$\\$/g) ?? []).length, 4);
-  assert.equal((migration.match(/END \\$\\$;/g) ?? []).length, 4);
-  assert.doesNotMatch(migration, /LANGUAGE plpgsql AS \\$(?:\\r?\\n)/);
-  assert.doesNotMatch(migration, /END \\$;/);
+  assert.equal((migration.match(/LANGUAGE plpgsql AS \$\$/g) ?? []).length, 4);
+  assert.equal((migration.match(/END \$\$;/g) ?? []).length, 4);
+  assert.doesNotMatch(migration, /LANGUAGE plpgsql AS \$(?:\r?\n)/);
+  assert.doesNotMatch(migration, /END \$;/);
   assert.match(migration, /CREATE TRIGGER fm02_plan_confirm_only/);
   assert.match(migration, /CREATE TRIGGER fm02_plan_create_guard/);
   assert.match(migration, /CREATE TRIGGER fm02_line_create_guard/);
