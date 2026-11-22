@@ -135,6 +135,58 @@ export function closeoutFingerprint(input:{
     preparedBy:input.preparedBy,preparation:input.preparation,
   })).digest('hex');
 }
+// UUIDs are random IDs, not causal sequence numbers. Even committed events
+// can share the same DB occurred_at timestamp. Reconstruct the trusted audit
+// stream from explicit preparation version and signature's preparationEventId,
+// then validate the existing event hash/version/actor chain. This keeps
+// prior-version signatures as history while returning only latest-version signs.
+export function orderCloseoutEvents(events:readonly CloseoutAuditRow[]):CloseoutAuditRow[] {
+  const ids=new Set<string>();
+  for(const e of events) {
+    if(!uuid.test(e.id)||ids.has(e.id)||!(e.occurredAt instanceof Date)||
+      !Number.isFinite(e.occurredAt.getTime()))
+      throw new RangeError('BEN04_INVALID_OR_DUPLICATE_EVENT');
+    ids.add(e.id);
+  }
+  const preparations=events.filter(e=>e.action===PREPARE_CLOSEOUT);
+  const versions=new Map<number,CloseoutAuditRow>();
+  for(const e of preparations) {
+    const v=object(e.newValues);
+    if(!Number.isSafeInteger(v.version)||Number(v.version)<1||
+      versions.has(Number(v.version)))
+      throw new RangeError('BEN04_DUPLICATE_OR_INVALID_VERSION');
+    versions.set(v.version as number,e);
+  }
+  const sorted=[...versions.entries()].sort((a,b)=>a[0]-b[0]).map(pair=>pair[1]);
+  const ordered:CloseoutAuditRow[]=[];
+  const signedIds=new Set<string>();
+  for(const [i,p] of sorted.entries()) {
+    if(i>0&&p.occurredAt<sorted[i-1]!.occurredAt)
+      throw new RangeError('BEN04_REVERSED_PREPARATION_TIME');
+    ordered.push(p);
+    const successor=sorted[i+1];
+    const signatures=events.filter(e=>
+      (e.action===BEN_CLOSEOUT_SIGN||e.action===NANCY_CLOSEOUT_SIGN) &&
+      object(e.newValues).preparationEventId===p.id);
+    for(const e of signatures) {
+      if(e.occurredAt<p.occurredAt||
+        (successor&&e.occurredAt>successor.occurredAt))
+        throw new RangeError('BEN04_INVALID_SIGNATURE_TIME');
+    }
+    // Independent role signatures can share a timestamp. Their relative
+    // order cannot determine validity; the reducer checks dual separation.
+    signatures.sort((a,b)=>a.action.localeCompare(b.action));
+    ordered.push(...signatures);
+    for(const e of signatures)signedIds.add(e.id);
+  }
+  // Orphans and unexpected source actions must still reach the strict parser,
+  // not disappear during reconstruction.
+  ordered.push(...events.filter(e=>e.action!==PREPARE_CLOSEOUT&&!signedIds.has(e.id)));
+  if(ordered.length!==events.length)
+    throw new RangeError('BEN04_UNRECONCILED_EVENT_COUNT');
+  return ordered;
+}
+
 export function parseCloseoutEvents(
   events:readonly CloseoutAuditRow[],projectId:string
 ) {
@@ -143,7 +195,7 @@ export function parseCloseoutEvents(
     preparedAt:string;preparation:CloseoutPreparation;
     signatures:Partial<Record<'BEN'|'NANCY',{userId:string;at:string;note:string;eventId:string}>>;
   }=null;
-  for(const e of events){
+  for(const e of orderCloseoutEvents(events)){
     const v=object(e.newValues);
     if(!uuid.test(e.id)||!uuid.test(e.actorUserId)||!Number.isFinite(e.occurredAt.getTime()))
       throw new RangeError('BEN04_INVALID_AUDIT_IDENTITY');
