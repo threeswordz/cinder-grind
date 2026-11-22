@@ -1,0 +1,72 @@
+name: FM02 Review Repair Focused (single branch check)
+# Target only exact schema predecessor classifiers and FM02 P1/P2 repairs.
+# The earlier native PostgreSQL 17.11 migration and 4-trigger catalog PASS
+# is preserved in run 45010801944; never replay the Mac or full suite here.
+on:
+  push:
+    branches: ['work-fm02-weighted-progress-no-ci-20261122']
+    paths: ['.github/workflows/fm02-review-repair-once.yml']
+permissions:
+  contents: read
+concurrency:
+  group: fm02-review-repair-once
+  cancel-in-progress: false
+jobs:
+  fm02-review-repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      DATABASE_URL: postgresql://construction_erp:construction_erp_dev_only@localhost:5432/construction_erp?schema=public
+      VITE_API_BASE_URL: http://localhost:3000/api/v1
+    steps:
+      - name: Checkout exact reviewed repair candidate and predecessor history
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          ref: ${{ github.sha }}
+      - name: Assert exact isolated branch
+        run: |
+          test "$GITHUB_REF" = 'refs/heads/work-fm02-weighted-progress-no-ci-20261122'
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - name: Set up pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
+        with:
+          version: 12.6.0
+          run_install: false
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.21.0
+      - name: Test historical schema classifiers plus strict FM02 additive contract
+        run: |
+          node --test --test-concurrency=1 \
+            deploy/release-candidate/hr-contract.test.mjs \
+            deploy/release-candidate/material-plan-contract.test.mjs \
+            deploy/release-candidate/material-plan-issue-contract.test.mjs \
+            deploy/release-candidate/material-request-contract.test.mjs \
+            deploy/release-candidate/material-uom-contract.test.mjs \
+            deploy/release-candidate/material-uom-effect-contract.test.mjs \
+            deploy/release-candidate/material-uom-stage-c-contract.test.mjs \
+            deploy/release-candidate/receiving-contract.test.mjs \
+            deploy/release-candidate/schema-contract.test.mjs \
+            deploy/release-candidate/site-issue-contract.test.mjs \
+            deploy/release-candidate/stock-count-contract.test.mjs \
+            deploy/release-candidate/subcontract-physical-contract.test.mjs \
+            deploy/release-candidate/transfer-contract.test.mjs
+      - name: Install locked dependencies and generate Prisma client
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm prisma:generate
+          pnpm prisma:validate
+      - name: Compile FM02 API and its strict tests
+        run: pnpm --filter @construction-erp/api build
+      - name: Test FM02 weighting, Ben authorization, plan pin and stale measurement
+        run: |
+          node --test --test-concurrency=1 \
+            apps/api/dist/scheduling/project-progress-weighting.spec.js \
+            apps/api/dist/scheduling/project-progress-plan-auth.spec.js \
+            apps/api/dist/scheduling/project-progress-plan-readback.spec.js
+      - name: Build FM02 React UI
+        run: pnpm --filter @construction-erp/web build
+      - name: Evidence boundary
+        run: echo 'FM02_REVIEW_REPAIR_FOCUSED_ONLY; historical and FM02 tests; no full PR/main suite, no PostgreSQL migration rerun, no Mac deployment'
