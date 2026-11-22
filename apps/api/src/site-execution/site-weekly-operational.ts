@@ -147,9 +147,13 @@ export function noWorkEvidence(rows: readonly EvidenceRow[]): NoWorkEvidence | n
 export function weeklyReviewFingerprint(
   week: WeekSource,
   noWorkByReport: ReadonlyMap<string, NoWorkEvidence | null>,
+  currentCalendarPreview: unknown = null,
+  documentLinkIds: readonly string[] = [],
 ): string {
   return sha256({
     projectId: week.projectId, from: week.from, to: week.to,
+    calendarPreview: currentCalendarPreview,
+    documentLinkIds: [...documentLinkIds].sort(),
     days: week.days.map(day => ({
       date: day.date, status: day.status,
       source: day.report === null ? null : {
@@ -166,6 +170,14 @@ export function weeklyReviewFingerprint(
       },
     })),
   });
+}
+
+export function mayDeclareNoWork(
+  auth: Pick<AuthenticatedUserContext, 'roleCodes' | 'permissions'>,
+): boolean {
+  return auth.roleCodes.includes('PROJECT_ENGINEER') &&
+    auth.permissions.includes('site.daily_report.edit') &&
+    auth.permissions.includes('site.daily_report.submit');
 }
 
 export function mayAcknowledgeWeekly(
