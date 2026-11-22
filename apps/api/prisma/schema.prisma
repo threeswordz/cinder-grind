@@ -55,6 +55,7 @@ model Company {
   documents         Document[]
   scheduleBaselines ScheduleBaseline[]
   activityProgress  ActivityProgress[]
+  projectProgressPlans ProjectProgressPlan[]
   dailySiteReports   DailySiteReport[]
   equipmentTypes     EquipmentType[]
   equipment           Equipment[]
@@ -310,6 +311,8 @@ model User {
   ownedActivities    Activity[]     @relation("ActivityOwner")
   submittedScheduleBaselines ScheduleBaseline[] @relation("ScheduleBaselineSubmitter")
   recordedActivityProgress   ActivityProgress[] @relation("ActivityProgressRecorder")
+  preparedProgressPlans ProjectProgressPlan[] @relation("ProjectProgressPlanPreparer")
+  confirmedProgressPlans ProjectProgressPlan[] @relation("ProjectProgressPlanConfirmer")
   createdDailySiteReports     DailySiteReport[] @relation("DailySiteReportCreator")
   submittedDailySiteReports   DailySiteReport[] @relation("DailySiteReportSubmitter")
   dailySiteReportCorrections  DailySiteReportCorrection[] @relation("DailySiteReportCorrectionCreator")
@@ -710,6 +713,7 @@ model Project {
   activityDependencies ActivityDependency[]
   scheduleBaselines     ScheduleBaseline[]
   activityProgress      ActivityProgress[]
+  projectProgressPlans  ProjectProgressPlan[]
   dailySiteReports       DailySiteReport[]
   equipmentAssignments   EquipmentAssignment[]
   equipmentUsage         EquipmentUsage[]
@@ -962,6 +966,7 @@ model Activity {
   successorLinks      ActivityDependency[] @relation("ActivitySuccessor")
   baselineSnapshots   ScheduleBaselineActivity[]
   progressHistory     ActivityProgress[]
+  projectProgressPlanLines ProjectProgressPlanLine[]
   dailySiteReportMaterialUsage DailySiteReportMaterialUsage[]
   dailySiteReportProgressLines DailySiteReportProgressLine[]
   dailySiteReportIssues        DailySiteReportIssue[]
@@ -1061,6 +1066,9 @@ model ActivityProgress {
   activityId       String   @map("activity_id") @db.Uuid
   progressDate     DateTime @map("progress_date") @db.Date
   percentComplete  Decimal  @map("percent_complete") @db.Decimal(5, 2)
+  completedQuantity Decimal? @map("completed_quantity") @db.Decimal(18, 4)
+  sourceBudgetRevisionLineId String? @map("source_budget_revision_line_id") @db.Uuid
+  sourceUomId String? @map("source_uom_id") @db.Uuid
   note             String?  @db.Text
   sourceType       String   @default("MANUAL") @map("source_type") @db.VarChar(30)
   sourceEntityId   String?  @map("source_entity_id") @db.Uuid
@@ -1077,6 +1085,54 @@ model ActivityProgress {
   @@index([activityId, progressDate, createdAt])
   @@index([recordedByUserId, createdAt])
   @@map("activity_progress")
+}
+
+
+/**
+ * FM02: immutable, versioned work-plan weighting. Every version is create-only;
+ * confirm is a separate authorized Ben role capability. The latest confirmed
+ * version is current. No Cost/Client BOQ or schedule baseline is overwritten.
+ */
+model ProjectProgressPlan {
+  id String @id @default(uuid()) @db.Uuid
+  companyId String @map("company_id") @db.Uuid
+  projectId String @map("project_id") @db.Uuid
+  versionNo Int @map("version_no")
+  reason String @db.Text
+  preparedByUserId String @map("prepared_by_user_id") @db.Uuid
+  preparedAt DateTime @default(now()) @map("prepared_at") @db.Timestamptz(6)
+  confirmedByUserId String? @map("confirmed_by_user_id") @db.Uuid
+  confirmedAt DateTime? @map("confirmed_at") @db.Timestamptz(6)
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  preparedBy User @relation("ProjectProgressPlanPreparer", fields: [preparedByUserId], references: [id], onDelete: Restrict)
+  confirmedBy User? @relation("ProjectProgressPlanConfirmer", fields: [confirmedByUserId], references: [id], onDelete: Restrict)
+  lines ProjectProgressPlanLine[]
+
+  @@unique([projectId, versionNo])
+  @@index([companyId, projectId, versionNo])
+  @@map("project_progress_plans")
+}
+
+model ProjectProgressPlanLine {
+  id String @id @default(uuid()) @db.Uuid
+  planId String @map("plan_id") @db.Uuid
+  activityId String @map("activity_id") @db.Uuid
+  weightPercent Decimal @map("weight_percent") @db.Decimal(5, 2)
+  sourceKind String @map("source_kind") @db.VarChar(12)
+  approvedBudgetRevisionLineId String? @map("approved_budget_revision_line_id") @db.Uuid
+  plannedQuantity Decimal? @map("planned_quantity") @db.Decimal(18, 4)
+  uomId String? @map("uom_id") @db.Uuid
+
+  plan ProjectProgressPlan @relation(fields: [planId], references: [id], onDelete: Restrict)
+  activity Activity @relation(fields: [activityId], references: [id], onDelete: Restrict)
+  approvedBudgetRevisionLine BudgetRevisionLine? @relation(fields: [approvedBudgetRevisionLineId], references: [id], onDelete: Restrict)
+
+  @@unique([planId, activityId])
+  @@unique([planId, approvedBudgetRevisionLineId])
+  @@index([activityId])
+  @@map("project_progress_plan_lines")
 }
 
 model DocumentType {
@@ -2323,6 +2379,7 @@ model BudgetRevision {
 model BudgetRevisionLine {
   materialUsagePlanLines MaterialUsagePlanLine[]
   customerBoqMappings CustomerBoqMapping[]
+  projectProgressPlanLines ProjectProgressPlanLine[]
 
   id               String   @id @default(uuid()) @db.Uuid
   budgetRevisionId String   @map("budget_revision_id") @db.Uuid
