@@ -72,6 +72,7 @@ test('FM02 readback pins quantities to exact confirmed plan, BOQ line and UOM', 
   const f = fixture();
   const result = await f.service.current(f.auth, f.projectId);
   assert.equal(result.percentComplete, '40.00');
+  assert.ok('lines' in result);
   assert.equal(result.status, 'CALCULATED_TECHNICAL_ONLY');
   assert.deepEqual(result.lines.map(x => x.planSourceKind), ['QUANTITY', 'MILESTONE']);
   assert.deepEqual(result.lines.map(x => x.percentComplete), ['50.00', '25.00']);
@@ -87,6 +88,7 @@ test('FM02 missing quantity evidence stays missing, but intended QUANTITY basis 
   const f = fixture(true);
   const result = await f.service.current(f.auth, f.projectId);
   assert.equal(result.status, 'BLOCKED_MISSING_SOURCE');
+  assert.ok('lines' in result);
   assert.equal(result.percentComplete, null);
   assert.deepEqual(result.missingActivityIds, [f.quantityActivityId]);
   assert.equal(result.lines[0]!.planSourceKind, 'QUANTITY');
