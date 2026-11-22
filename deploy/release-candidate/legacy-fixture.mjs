@@ -88,12 +88,15 @@ const materialRequestApproved=process.env.MATERIAL_REQUEST_SCHEMA_UPGRADE==='YES
           "SELECT migration_name FROM \"_prisma_migrations\" WHERE migration_name='20261122140000_fm02_weighted_project_progress' AND finished_at IS NOT NULL AND rolled_back_at IS NULL"
         );
         assert.ok(fm02Migration.length<=1,'FM02 migration history is ambiguous');
-        assert.equal(fm02Migration.length===1,fm02Approved,
-          'FM02 migration and approved rehearsal scope must agree');
+        // FM02 can already be a legitimate part of a LATER predecessor.
+        // In that case FM02_SCHEMA_UPGRADE is NO and its existing permission
+        // rows must remain INSIDE the historical digest, not be excluded.
+        if(fm02Approved)assert.equal(fm02Migration.length,1,
+          'New FM02 upgrade requires its exact finished forward migration');
         const fm02Rows=await prisma.$queryRawUnsafe(
           'SELECT * FROM permissions WHERE id = ANY($1::uuid[])',fm02Catalog.map(p=>p.id)
         );
-        if(fm02Approved)verifyFm02Catalog(fm02Rows);
+        if(fm02Migration.length===1)verifyFm02Catalog(fm02Rows);
         else assert.equal(fm02Rows.length,0,'Restored predecessor retains FM02 permissions');
       }
     }
