@@ -1,3 +1,4 @@
+import {stripFm02Schema} from './fm02-schema-contract.mjs';
 import {stripMaterialUomStageCSchema} from './material-uom-stage-c-schema-contract.mjs';
 import {stripMaterialUomEffectSchema} from './material-uom-effect-schema-contract.mjs';
 import {stripMaterialUomSchema} from './material-uom-schema-contract.mjs';
@@ -5,8 +6,10 @@ import {materialUomCatalog,verifyMaterialUomCatalog} from './material-uom-catalo
 import {stripPhysicalSchema} from './subcontract-physical-schema-contract.mjs';
 import {physicalCatalog,verifyPhysicalCatalog} from './subcontract-physical-catalog-contract.mjs';
 import {stripTransferSchema as transferBase} from './transfer-schema-contract.mjs';
-const stripTransferSchema=schema=>transferBase(stripPhysicalSchema(stripMaterialUomSchema(stripMaterialUomEffectSchema(stripMaterialUomStageCSchema(schema).text).text).text).text);
+const stripTransferSchema=schema=>transferBase(stripPhysicalSchema(stripMaterialUomSchema(stripMaterialUomEffectSchema(stripMaterialUomStageCSchema(stripFm02Schema(schema).text).text).text).text).text);
 import {transferCatalog,verifyTransferCatalog} from './transfer-catalog-contract.mjs';
+import {dec054Catalog,verifyDec054Catalog} from './dec054-permission-catalog.mjs';
+import {fm02Catalog,verifyFm02Catalog} from './fm02-permission-catalog.mjs';
 // Exact post-FM03 populated d2b79080 predecessor → receiving. No historical acceptance/backfill.
 import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
@@ -32,6 +35,7 @@ export async function prepareReceivingUpgrade(databaseUrl){
   const schema=await git(['show',previous+':apps/api/prisma/schema.prisma']);
   const {readFile}=await import('node:fs/promises');
   assert.equal(stripReceivingSchema(stripTransferSchema(await readFile('apps/api/prisma/schema.prisma','utf8')).text).text.replace(/\s+/g,' ').trim(),schema.replace(/\s+/g,' ').trim());
+  console.log('RECEIVING_PREDECESSOR_SCHEMA_EXACT_MATCH_PASS');
   await writeFile(join(temp,'schema.prisma'),schema,{mode:0o600});
   const names=(await git(['ls-tree','-r','--name-only',previous,'apps/api/prisma/migrations'])).trim().split('\n');
   for(const name of names){const rel=name.slice('apps/api/prisma/'.length),path=join(temp,rel);await mkdir(resolve(path,'..'),{recursive:true});await writeFile(path,await git(['show',previous+':'+name]),{mode:0o600});}
@@ -54,14 +58,40 @@ export async function prepareReceivingUpgrade(databaseUrl){
     if(candidate&&tablename==='permissions')verifyReceivingCatalog(await db.$queryRawUnsafe('SELECT * FROM permissions WHERE id=ANY($1::uuid[])',receivingCatalog.map(p=>p.id)),true);
     if(candidate&&tablename==='permissions')verifyPhysicalCatalog(await db.$queryRawUnsafe('SELECT * FROM permissions WHERE id=ANY($1::uuid[])',physicalCatalog.map(p=>p.id)),true);
     if(candidate&&tablename==='permissions')verifyTransferCatalog(await db.$queryRawUnsafe('SELECT * FROM permissions WHERE id=ANY($1::uuid[])',transferCatalog.map(p=>p.id)),true);
-    const filter=candidate&&tablename==='permissions',columns=candidate&&tablename==='goods_receipts'?['delivery_id']:candidate&&tablename==='stock_transactions'?['transfer_receipt_line_id']:[];
+    // Verify the two exact additive DEC-054 rows before excluding their IDs
+    // from the historical permission digest; no user/role grants are ignored.
+    if(candidate&&tablename==='permissions')verifyDec054Catalog(await db.$queryRawUnsafe('SELECT id::text AS id,permission_code,module_code FROM permissions WHERE id=ANY($1::uuid[])',dec054Catalog.map(p=>p.id)));
+    // FM02 adds exactly two permission definitions, never historical user/role grants.
+    // Verify both full definitions before excluding only their IDs from the old-row hash.
+    if(candidate&&tablename==='permissions')verifyFm02Catalog(await db.$queryRawUnsafe('SELECT id::text AS id,permission_code,module_code,description FROM permissions WHERE id=ANY($1::uuid[])',fm02Catalog.map(p=>p.id)));
+    const filter=candidate&&tablename==='permissions',columns=candidate&&tablename==='goods_receipts'?['delivery_id']:candidate&&tablename==='stock_transactions'?['transfer_receipt_line_id']:candidate&&tablename==='activity_progress'?['completed_quantity','source_budget_revision_line_id','source_uom_id']:[];
     if(columns.includes('delivery_id'))assert.equal((await db.$queryRawUnsafe('SELECT count(*)::text AS n FROM goods_receipts WHERE delivery_id IS NOT NULL'))[0].n,'0','Historical GR receiving provenance must stay null');
-    const [row]=await db.$queryRawUnsafe(`SELECT count(*)::text AS count,encode(sha256(convert_to(coalesce(string_agg((to_jsonb(t)-$1::text[])::text,E'\\n' ORDER BY (to_jsonb(t)-$1::text[])::text),''),'UTF8')),'hex') AS digest FROM "${tablename}" t ${filter?'WHERE id <> ALL($2::uuid[])':''}`,columns,...(filter?[[...receivingCatalog,...transferCatalog,...physicalCatalog,...materialUomCatalog].map(p=>p.id)]:[]));result[tablename]=row;
+    const [row]=await db.$queryRawUnsafe(`SELECT count(*)::text AS count,encode(sha256(convert_to(coalesce(string_agg((to_jsonb(t)-$1::text[])::text,E'\\n' ORDER BY (to_jsonb(t)-$1::text[])::text),''),'UTF8')),'hex') AS digest FROM "${tablename}" t ${filter?'WHERE id <> ALL($2::uuid[])':''}`,columns,...(filter?[[...receivingCatalog,...transferCatalog,...physicalCatalog,...materialUomCatalog,...dec054Catalog,...fm02Catalog].map(p=>p.id)]:[]));result[tablename]=row;
    }return result;
   }
+  console.log('RECEIVING_PREDECESSOR_POPULATED_PASS');
   const before=await snapshot(false);
   await execute('pnpm',['prisma:migrate:deploy'],{env:{...safeEnvironment(),DATABASE_URL:u.href},timeout:120000,maxBuffer:2097152});
-  assertHistoricalTables(before,await snapshot(true),false,false,false,false,false,false,false,true,true,true,true,true,true);
+  console.log('RECEIVING_PREDECESSOR_FORWARD_MIGRATIONS_PASS');
+  let after;
+  try { after=await snapshot(true); }
+  catch { console.log('RECEIVING_PREDECESSOR_CANDIDATE_SNAPSHOT_FAILED'); throw new Error('RECEIVING_PREDECESSOR_CANDIDATE_SNAPSHOT_FAILED'); }
+  const extra=Object.keys(after).filter(name=>!Object.hasOwn(before,name));
+  console.log('RECEIVING_PREDECESSOR_ADDED_TABLES_'+extra.sort().join(','));
+  const changed=Object.keys(before).filter(name=>JSON.stringify(before[name])!==JSON.stringify(after[name]));
+  if(changed.length)console.log('RECEIVING_PREDECESSOR_CHANGED_TABLES_'+changed.sort().join(','));
+  try {
+    assertHistoricalTables(before,after,false,false,false,false,false,false,false,true,true,true,true,true,true,true);
+  } catch(e) {
+    const reason=String(e?.message??'');
+    const code=reason.includes('Unexpected/partial schema addition')?'TABLE_ALLOWLIST'
+      :reason.includes('Complete exact')?'MISSING_REQUIRED_TABLES'
+      :reason.includes('New table must be empty')?'NONEMPTY_NEW_TABLE'
+      :reason.includes('Historical business/approval/stock/Finance/audit rows changed')?'HISTORICAL_ROW_MISMATCH'
+      :'UNKNOWN';
+    console.log('RECEIVING_PREDECESSOR_HISTORY_'+code+'_FAILED');
+    throw e;
+  }
   console.log('RECEIVING_EXACT_FM03_PREDECESSOR_ALL_HISTORICAL_TABLES_GRANTS_AND_NULL_GR_LINK_PASS');
  }finally{await db.$disconnect();await rm(temp,{recursive:true,force:true});}
 }

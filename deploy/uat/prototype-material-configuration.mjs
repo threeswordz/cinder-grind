@@ -18,7 +18,11 @@ const journey={
     'inventory.material_plan.overage.approve','inventory.material_plan.prototype.enable'],
 };
 const sourcePreparation={
-  BEN:['budget.boq.view','budget.boq.manage','budget.revision.view','budget.revision.submit'],
+  // DEC-054: legacy material-source replay still exercises its preserved
+  // independent Khaimook approval, but Ben's synthetic Cost source read now
+  // requires the explicit full-cost capability. Never grant this to Store/
+  // Foreman/Khaimook or any retained real Company role implicitly.
+  BEN:['budget.cost.full_view','budget.boq.view','budget.boq.manage','budget.revision.view','budget.revision.submit'],
   KHAIMOOK:['budget.revision.view','budget.revision.approve'],
 };
 // Candidate deltas only. The guarded follow-up must re-read exact before-state

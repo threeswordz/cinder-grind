@@ -191,6 +191,37 @@ export type ScheduleBaselineRecord = {
   _count?: { activities: number };
 };
 
+export type WorkPlanLineInput = {
+  activityId: string;
+  weightPercent: string;
+  sourceKind: 'QUANTITY' | 'MILESTONE';
+  approvedBudgetRevisionLineId?: string;
+};
+export type WorkPlanOption = {
+  activities: {id:string;activityCode:string;activityName:string;wbsId:string;isMilestone:boolean;parentActivityId:string|null}[];
+  approvedBudgetRevision: {id:string;revisionNo:number}|null;
+  quantityLines: {id:string;description:string;quantity:string;uomId:string;uomCode:string;wbsId:string|null}[];
+};
+export type WorkPlanVersion = {
+  id:string;versionNo:number;reason:string;confirmedAt:string|null;
+  preparedByUserId:string;confirmedByUserId:string|null;
+  _count?:{lines:number};
+  lines?:{id:string;activityId:string;weightPercent:string;sourceKind:'QUANTITY'|'MILESTONE';
+    approvedBudgetRevisionLineId:string|null;plannedQuantity:string|null;uomId:string|null;
+    activity:{activityCode:string;activityName:string};
+    approvedBudgetRevisionLine:{description:string;uomCode:string}|null}[];
+  preparedBy?:{id:string;displayName:string};
+  confirmedBy?:{id:string;displayName:string}|null;
+};
+export type CurrentWorkPlan = {
+  projectId:string;status:string;percentComplete:string|null;
+  planId?:string;
+  missingActivityIds?:string[];
+  lines?:{activityId:string;weightPercent:string;sourceKind:'QUANTITY'|'MILESTONE'|null;
+    planSourceKind:'QUANTITY'|'MILESTONE';percentComplete:string|null}[];
+  versionNo?:number;
+};
+
 export type ActivityProgressRecord = {
   id: string;
   companyId: string;
@@ -432,6 +463,26 @@ export const schedulingApi = {
     apiRequest<Data<ActivityProgressRecord>>('/activity-progress/' + activityId, {
       method: 'POST',
       body: JSON.stringify(body),
+    }),
+
+  workPlanOptions: (projectId: string) =>
+    apiRequest<Data<WorkPlanOption>>(query('/project-progress-plans/options', {projectId})),
+  workPlans: (projectId: string) =>
+    apiRequest<Data<WorkPlanVersion[]>>(query('/project-progress-plans', {projectId})),
+  currentWorkPlan: (projectId: string) =>
+    apiRequest<Data<CurrentWorkPlan>>(query('/project-progress-plans/current', {projectId})),
+  prepareWorkPlan: (body: {projectId:string;reason:string;lines:WorkPlanLineInput[]}) =>
+    apiRequest<Data<WorkPlanVersion>>('/project-progress-plans/prepare', {
+      method:'POST',body:JSON.stringify(body),
+    }),
+  confirmWorkPlan: (id:string,expectedVersion:number) =>
+    apiRequest<Data<WorkPlanVersion>>('/project-progress-plans/'+id+'/confirm', {
+      method:'POST',body:JSON.stringify({expectedVersion}),
+    }),
+  recordQuantityProgress: (activityId:string,body:{progressDate:string;completedQuantity:string;note:string;
+    expectedPlanId:string;expectedPlanVersion:number}) =>
+    apiRequest<Data<ActivityProgressRecord>>('/project-progress-plans/activity/'+activityId+'/quantity', {
+      method:'POST',body:JSON.stringify(body),
     }),
 
   dependencies: (projectId: string, active = 'all') =>

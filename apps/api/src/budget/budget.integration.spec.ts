@@ -572,6 +572,118 @@ test('V0.3-A BOQ/Budget preserves draft snapshots, approval history and reportin
       firstApprovedRevision.id,
     );
 
+
+    // DEC-054: the Company configures its Cost BOQ self-approval capability
+    // explicitly on an active approver-step role; no SYS_ADMIN/default grant.
+    const costSelfPermission = await prisma.permission.findUniqueOrThrow({
+      where: { permissionCode: 'budget.cost.self_approve' },
+    });
+    const budgetApprovePermission = await prisma.permission.findUniqueOrThrow({
+      where: { permissionCode: 'budget.revision.approve' },
+    });
+    const selfRole = await prisma.role.create({
+      data: {
+        companyId: company.id,
+        roleCode: 'BUDGET_COST_SELF_' + suffix,
+        roleName: 'Configured Cost BOQ preparer/approver',
+      },
+    });
+    await prisma.userRole.create({
+      data: { companyId: company.id, userId: maker.id, roleId: selfRole.id },
+    });
+    const selfWorkflow = await prisma.approvalWorkflow.create({
+      data: {
+        companyId: company.id,
+        workflowCode: 'BUDGET_COST_SELF_' + suffix,
+        entityType: 'BUDGET_REVISION',
+        workflowName: 'Configured Cost BOQ approval',
+        steps: { create: [{
+          stepNo: 1,
+          stepName: 'Cost BOQ approval',
+          requiredApprovals: 1,
+          stepRoles: { create: [{ roleId: selfRole.id }] },
+        }] },
+      },
+    });
+    const selfAuth = auth(company.id, maker.id, [selfRole.roleCode]);
+    selfAuth.permissions.push('budget.cost.self_approve');
+    const selfDraft = await service.createRevisionDraft(
+      { auth: selfAuth }, project.id, 'DEC-054 self-approval snapshot',
+    );
+    await service.submitRevision(
+      { auth: selfAuth }, selfDraft.id, selfWorkflow.workflowCode,
+    );
+    // Caller claims are never sufficient without a persisted grant.
+    await assert.rejects(
+      () => service.approveRevision({ auth: selfAuth }, selfDraft.id),
+      (error: unknown) => error instanceof ForbiddenException,
+    );
+    await prisma.rolePermission.createMany({ data: [
+      { roleId: selfRole.id, permissionId: costSelfPermission.id },
+      { roleId: selfRole.id, permissionId: budgetApprovePermission.id },
+    ] });
+    await prisma.role.update({
+      where: { id: selfRole.id }, data: { isActive: false },
+    });
+    await assert.rejects(
+      () => service.approveRevision({ auth: selfAuth }, selfDraft.id),
+      (error: unknown) => error instanceof ForbiddenException,
+    );
+    await prisma.role.update({
+      where: { id: selfRole.id }, data: { isActive: true },
+    });
+    const selfApproved = await service.approveRevision(
+      { auth: selfAuth }, selfDraft.id, 'Separate, audited Cost approval.',
+    );
+    assert.equal(selfApproved.approvalInstance?.approvalState, 'APPROVED');
+    assert.equal(selfApproved.isOriginal, false);
+    assert.equal(selfApproved.isCurrent, true);
+    assert.equal(selfApproved.createdByUserId, maker.id);
+    assert.equal(selfApproved.submittedByUserId, maker.id);
+    const selfActions = await prisma.approvalAction.findMany({
+      where: { approvalInstanceId: selfApproved.approvalInstanceId! },
+    });
+    assert.equal(selfActions.length, 1);
+    assert.equal(selfActions[0]!.actionByUserId, maker.id);
+    await assert.rejects(
+      () => service.approveRevision({ auth: selfAuth }, selfDraft.id),
+      (error: unknown) => error instanceof ConflictException,
+    );
+    assert.equal((await prisma.approvalAction.count({
+      where: { approvalInstanceId: selfApproved.approvalInstanceId! },
+    })), 1, 'replayed approval cannot record a second action');
+
+    // The dedicated capability never permits self-approval of another entity.
+    const unrelatedWorkflow = await prisma.approvalWorkflow.create({
+      data: {
+        companyId: company.id,
+        workflowCode: 'BOQ_NEGATIVE_' + suffix,
+        entityType: 'SUPPLIER_PAYMENT',
+        workflowName: 'Unrelated maker/checker regression',
+        steps: { create: [{
+          stepNo: 1,
+          stepName: 'Independent payment check',
+          requiredApprovals: 1,
+          stepRoles: { create: [{ roleId: selfRole.id }] },
+        }] },
+      },
+    });
+    const unrelated = await new ApprovalService(prisma).start({
+      companyId: company.id,
+      workflowCode: unrelatedWorkflow.workflowCode,
+      entityType: 'SUPPLIER_PAYMENT',
+      entityId: randomUUID(),
+    });
+    await assert.rejects(
+      () => new ApprovalService(prisma).approve(
+        unrelated.id, selfAuth, maker.id,
+      ),
+      (error: unknown) => error instanceof ForbiddenException,
+    );
+    assert.equal((await prisma.approvalAction.count({
+      where: { approvalInstanceId: unrelated.id },
+    })), 0);
+
     const auditCount = await prisma.auditLog.count({
       where: {
         companyId: company.id,

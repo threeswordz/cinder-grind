@@ -18,6 +18,8 @@ import {
   ScheduleBaselinesController,
   ScheduleComparisonController,
 } from './scheduling-progress.controller';
+import { ProjectProgressPlanService } from './project-progress-plan.service';
+import { ProjectProgressPlanController } from './project-progress-plan.controller';
 import { SchedulingProgressService } from './scheduling-progress.service';
 import { SchedulingService } from './scheduling.service';
 
@@ -39,8 +41,9 @@ import { SchedulingService } from './scheduling.service';
     ScheduleBaselinesController,
     ActivityProgressController,
     ScheduleComparisonController,
+    ProjectProgressPlanController,
   ],
-  providers: [SchedulingService, SchedulingProgressService],
+  providers: [SchedulingService, SchedulingProgressService, ProjectProgressPlanService],
   exports: [SchedulingService, SchedulingProgressService],
 })
 export class SchedulingModule {}
