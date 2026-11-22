@@ -71,3 +71,6 @@ export function fm02Mode(mode){
   return {present,prior:!present?mode:mode===prefix+'schema'
     ?'migration-aware-sql-only':'migration-aware-'+mode.slice(prefix.length)};
 }
+
+// Exactly the two new empty tables admitted by FM02 preserved-history upgrades.
+export const fm02Tables=Object.freeze(['project_progress_plans','project_progress_plan_lines']);

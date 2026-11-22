@@ -1,3 +1,4 @@
+import {stripFm02Schema} from './fm02-schema-contract.mjs';
 import {stripMaterialUomStageCSchema} from './material-uom-stage-c-schema-contract.mjs';
 import {stripMaterialUomEffectSchema} from './material-uom-effect-schema-contract.mjs';
 import {stripMaterialUomSchema} from './material-uom-schema-contract.mjs';
@@ -5,7 +6,7 @@ import {materialUomCatalog,verifyMaterialUomCatalog} from './material-uom-catalo
 import {stripPhysicalSchema} from './subcontract-physical-schema-contract.mjs';
 import {physicalCatalog,verifyPhysicalCatalog} from './subcontract-physical-catalog-contract.mjs';
 import {stripTransferSchema as transferBase} from './transfer-schema-contract.mjs';
-const stripTransferSchema=schema=>transferBase(stripPhysicalSchema(stripMaterialUomSchema(stripMaterialUomEffectSchema(stripMaterialUomStageCSchema(schema).text).text).text).text);
+const stripTransferSchema=schema=>transferBase(stripPhysicalSchema(stripMaterialUomSchema(stripMaterialUomEffectSchema(stripMaterialUomStageCSchema(stripFm02Schema(schema).text).text).text).text).text);
 import {transferCatalog,verifyTransferCatalog} from './transfer-catalog-contract.mjs';
 import {dec054Catalog,verifyDec054Catalog} from './dec054-permission-catalog.mjs';
 // Exact post-FM03 populated d2b79080 predecessor → receiving. No historical acceptance/backfill.
@@ -58,14 +59,14 @@ export async function prepareReceivingUpgrade(databaseUrl){
     // Verify the two exact additive DEC-054 rows before excluding their IDs
     // from the historical permission digest; no user/role grants are ignored.
     if(candidate&&tablename==='permissions')verifyDec054Catalog(await db.$queryRawUnsafe('SELECT id::text AS id,permission_code,module_code FROM permissions WHERE id=ANY($1::uuid[])',dec054Catalog.map(p=>p.id)));
-    const filter=candidate&&tablename==='permissions',columns=candidate&&tablename==='goods_receipts'?['delivery_id']:candidate&&tablename==='stock_transactions'?['transfer_receipt_line_id']:[];
+    const filter=candidate&&tablename==='permissions',columns=candidate&&tablename==='goods_receipts'?['delivery_id']:candidate&&tablename==='stock_transactions'?['transfer_receipt_line_id']:candidate&&tablename==='activity_progress'?['completed_quantity','source_budget_revision_line_id','source_uom_id']:[];
     if(columns.includes('delivery_id'))assert.equal((await db.$queryRawUnsafe('SELECT count(*)::text AS n FROM goods_receipts WHERE delivery_id IS NOT NULL'))[0].n,'0','Historical GR receiving provenance must stay null');
     const [row]=await db.$queryRawUnsafe(`SELECT count(*)::text AS count,encode(sha256(convert_to(coalesce(string_agg((to_jsonb(t)-$1::text[])::text,E'\\n' ORDER BY (to_jsonb(t)-$1::text[])::text),''),'UTF8')),'hex') AS digest FROM "${tablename}" t ${filter?'WHERE id <> ALL($2::uuid[])':''}`,columns,...(filter?[[...receivingCatalog,...transferCatalog,...physicalCatalog,...materialUomCatalog,...dec054Catalog].map(p=>p.id)]:[]));result[tablename]=row;
    }return result;
   }
   const before=await snapshot(false);
   await execute('pnpm',['prisma:migrate:deploy'],{env:{...safeEnvironment(),DATABASE_URL:u.href},timeout:120000,maxBuffer:2097152});
-  assertHistoricalTables(before,await snapshot(true),false,false,false,false,false,false,false,true,true,true,true,true,true);
+  assertHistoricalTables(before,await snapshot(true),false,false,false,false,false,false,false,true,true,true,true,true,true,true);
   console.log('RECEIVING_EXACT_FM03_PREDECESSOR_ALL_HISTORICAL_TABLES_GRANTS_AND_NULL_GR_LINK_PASS');
  }finally{await db.$disconnect();await rm(temp,{recursive:true,force:true});}
 }
