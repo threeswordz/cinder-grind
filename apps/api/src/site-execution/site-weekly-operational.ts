@@ -20,6 +20,7 @@ export type EvidenceRow = {
 export type NoWorkEvidence = {
   reason: string;
   declarationId: string;
+  latestEventId: string;
   declaredByUserId: string;
   declaredAt: string;
   correctedByUserId: string | null;
@@ -91,13 +92,13 @@ function object(value: unknown): Record<string, unknown> | null {
 }
 
 export function noWorkEvidence(rows: readonly EvidenceRow[]): NoWorkEvidence | null {
-  // An append-only event stream; invalid or ambiguous events never become
-  // operational authorization. Caller must have scoped the rows by Company,
-  // entity type and the exact report UUID.
-  const events = [...rows].sort((a,b) =>
-    a.occurredAt.getTime() - b.occurredAt.getTime() || a.id.localeCompare(b.id));
-  const declarations = events.filter(r => r.action === NO_WORK_ACTION);
-  if (!declarations.length) return null;
+  // Scoped append-only history. Explicit links, not UUID order or truncated
+  // timestamps, determine the causal order of corrections.
+  const declarations = rows.filter(row => row.action === NO_WORK_ACTION);
+  if (!declarations.length) {
+    if (rows.length) throw new RangeError('Correction without no-work declaration');
+    return null;
+  }
   if (declarations.length !== 1) throw new RangeError('Duplicate no-work declaration');
   const declared = declarations[0]!;
   const values = object(declared.newValues);
@@ -109,24 +110,46 @@ export function noWorkEvidence(rows: readonly EvidenceRow[]): NoWorkEvidence | n
     typeof plan?.calendarFingerprint !== 'string' ||
     !/^[a-f0-9]{64}$/.test(plan.calendarFingerprint))
     throw new RangeError('Malformed no-work declaration');
+  const seenIds = new Set<string>();
+  const children = new Map<string, EvidenceRow>();
+  for (const row of rows) {
+    if (!row.id || seenIds.has(row.id)) throw new RangeError('Duplicate no-work event id');
+    seenIds.add(row.id);
+    if (row.action === NO_WORK_ACTION) continue;
+    if (row.action !== NO_WORK_CORRECTION_ACTION)
+      throw new RangeError('Unexpected no-work audit action');
+    const next = object(row.newValues);
+    if (typeof next?.previousEventId !== 'string' || !next.previousEventId.trim())
+      throw new RangeError('Missing no-work correction predecessor');
+    if (children.has(next.previousEventId))
+      throw new RangeError('Forked no-work correction history');
+    children.set(next.previousEventId, row);
+  }
   let reason = values.reason;
   let correctedByUserId: string | null = null;
   let correctedAt: string | null = null;
   let count = 0;
-  for (const event of events) {
-    if (event.action !== NO_WORK_CORRECTION_ACTION) continue;
-    if (event.occurredAt < declared.occurredAt) throw new RangeError('Invalid no-work correction order');
-    const next = object(event.newValues);
-    if (typeof next?.reason !== 'string' || !next.reason.trim() || next?.oldReason !== reason)
+  let previous = declared;
+  while (children.size) {
+    const row = children.get(previous.id);
+    if (!row) throw new RangeError('Orphaned or cyclic no-work correction');
+    if (row.occurredAt.getTime() < previous.occurredAt.getTime())
+      throw new RangeError('Invalid no-work correction order');
+    const next = object(row.newValues);
+    if (typeof next?.reason !== 'string' || !next.reason.trim() ||
+      next.oldReason !== reason)
       throw new RangeError('Malformed no-work correction');
+    children.delete(previous.id);
+    previous = row;
     reason = next.reason;
-    correctedByUserId = event.actorUserId;
-    correctedAt = event.occurredAt.toISOString();
+    correctedByUserId = row.actorUserId;
+    correctedAt = row.occurredAt.toISOString();
     count++;
   }
   return {
     reason,
     declarationId: declared.id,
+    latestEventId: previous.id,
     declaredByUserId: declared.actorUserId,
     declaredAt: declared.occurredAt.toISOString(),
     correctedByUserId, correctedAt, correctionCount: count,
