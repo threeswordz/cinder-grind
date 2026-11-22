@@ -49,6 +49,8 @@ export function ProjectProgressPlansPanel({projectId,permissions,activities}:Pro
  const candidateLines=(opts.data?.data.quantityLines??[]).filter(q=>q.wbsId===selected?.wbsId);
  const pending=(list.data?.data??[]).find(x=>!x.confirmedAt);
  const confirmed=(list.data?.data??[]).find(x=>Boolean(x.confirmedAt));
+ const quantityActivities=activities.filter(a=>(current.data?.data.lines??[]).some(
+   line=>line.activityId===a.activityId&&line.planSourceKind==='QUANTITY'));
  if(!canView||!projectId)return null;
  return <Card variant="outlined"><CardContent><Stack spacing={2} data-testid="fm02-project-weighted-progress">
    <Typography variant="h6">FM02 — Project weighted progress</Typography>
@@ -113,20 +115,20 @@ export function ProjectProgressPlansPanel({projectId,permissions,activities}:Pro
      {prepare.isError?<Alert severity="error">Preparation rejected. Review permissions, version, Project/BOQ
        scope, Activity ancestry and exact weights.</Alert>:null}
    </Stack></CardContent></Card>:null}
-   {canRecord&&confirmed?<Card variant="outlined"><CardContent><Stack spacing={1}>
+   {canRecord&&confirmed&&quantityActivities.length>0?<Card variant="outlined"><CardContent><Stack spacing={1}>
      <Typography variant="subtitle1">Record cumulative approved-BOQ quantity</Typography>
      <Typography variant="body2">Use only an Activity pinned to a QUANTITY line in the confirmed version;
        this appends a canonical ActivityProgress record, never edits an earlier record.</Typography>
      <TextField select label="Activity" value={quantityActivity} onChange={e=>setQuantityActivity(e.target.value)}>
        <MenuItem value="">Select Activity</MenuItem>
-       {activities.map(a=><MenuItem key={a.activityId} value={a.activityId}>{a.activityName}</MenuItem>)}
+       {quantityActivities.map(a=><MenuItem key={a.activityId} value={a.activityId}>{a.activityName}</MenuItem>)}
      </TextField>
      <TextField label="Completed quantity (in pinned BOQ UOM)" value={completedQuantity}
        onChange={e=>setQuantity(e.target.value)} />
      <TextField type="date" label="Progress date" value={quantityDate}
        InputLabelProps={{shrink:true}} onChange={e=>setQuantityDate(e.target.value)}/>
      <TextField label="Evidence/reason" value={quantityReason} onChange={e=>setQuantityReason(e.target.value)}/>
-     <Button disabled={quantity.isPending||!quantityActivity||!completedQuantity||!quantityReason.trim()}
+     <Button disabled={quantity.isPending||!quantityActivities.some(a=>a.activityId===quantityActivity)||!completedQuantity||!quantityReason.trim()}
        onClick={()=>quantity.mutate()}>Append measured progress</Button>
      {quantity.isError?<Alert severity="error">Quantity evidence rejected: use a current approved
        Project source and a scoped canonical Activity.</Alert>:null}
