@@ -378,6 +378,30 @@ export class SiteExecutionController {
     };
   }
 
+  // FM01: Ben's review is a source-snapshot acknowledgment, never approval.
+  @Post('reports/weekly/acknowledge')
+  @UseGuards(AuthGuard, CsrfGuard, PermissionGuard)
+  @RequirePermissions('site.daily_report.view')
+  async acknowledgeWeekly(
+    @Req() request: AuthenticatedRequest,
+    @Body() body: unknown,
+  ) {
+    const input = siteObject(body);
+    const fingerprint = requiredSiteString(input, 'expectedFingerprint', 64);
+    if (!/^[a-f0-9]{64}$/.test(fingerprint)) {
+      siteInvalid('expectedFingerprint', 'Provide the 64-character source SHA256.');
+    }
+    return {
+      data: await this.site.acknowledgeWeekly(
+        auditContext(request),
+        siteUuid(input.projectId, 'projectId'),
+        siteDate(input.from, 'from'),
+        siteDate(input.to, 'to'),
+        fingerprint,
+      ),
+    };
+  }
+
   @Post('reports')
   @UseGuards(AuthGuard, CsrfGuard, PermissionGuard)
   @RequirePermissions('site.daily_report.create')
@@ -448,6 +472,40 @@ export class SiteExecutionController {
         requiredSiteString(input, 'correctionNote', 10000),
         progressRows(input.progress, 'progress'),
         equipmentRows(input.equipmentUsage, 'equipmentUsage'),
+      ),
+    };
+  }
+
+  @Post('reports/:id/no-work')
+  @UseGuards(AuthGuard, CsrfGuard, PermissionGuard)
+  @RequirePermissions('site.daily_report.edit')
+  async declareNoWork(
+    @Req() request: AuthenticatedRequest,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+    @Body() body: unknown,
+  ) {
+    const input = siteObject(body);
+    return {
+      data: await this.site.declareNoWork(
+        auditContext(request), id,
+        requiredSiteString(input, 'reason', 10000),
+      ),
+    };
+  }
+
+  @Post('reports/:id/no-work/corrections')
+  @UseGuards(AuthGuard, CsrfGuard, PermissionGuard)
+  @RequirePermissions('site.daily_report.edit')
+  async correctNoWork(
+    @Req() request: AuthenticatedRequest,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+    @Body() body: unknown,
+  ) {
+    const input = siteObject(body);
+    return {
+      data: await this.site.correctNoWork(
+        auditContext(request), id,
+        requiredSiteString(input, 'reason', 10000),
       ),
     };
   }
