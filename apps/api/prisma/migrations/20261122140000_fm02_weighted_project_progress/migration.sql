@@ -79,18 +79,18 @@ CREATE TRIGGER fm02_plan_confirm_only BEFORE UPDATE OR DELETE ON project_progres
 
 
 -- No new plan can arrive already confirmed; confirmation is a distinct UPDATE.
-CREATE FUNCTION erp_fm02_plan_create_guard() RETURNS trigger LANGUAGE plpgsql AS $
+CREATE FUNCTION erp_fm02_plan_create_guard() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
  IF NEW.confirmed_at IS NOT NULL OR NEW.confirmed_by_user_id IS NOT NULL
  THEN RAISE EXCEPTION 'FM02_PLAN_CONFIRMATION_MUST_BE_SEPARATE'; END IF;
  RETURN NEW;
-END $;
+END $$;
 CREATE TRIGGER fm02_plan_create_guard BEFORE INSERT ON project_progress_plans
  FOR EACH ROW EXECUTE FUNCTION erp_fm02_plan_create_guard();
 
 -- Once confirmed, no new source row may be injected. Bind Company/Project,
 -- Activity/WBS, approved BOQ source, UOM and quantity even for direct SQL.
-CREATE FUNCTION erp_fm02_plan_line_create_guard() RETURNS trigger LANGUAGE plpgsql AS $
+CREATE FUNCTION erp_fm02_plan_line_create_guard() RETURNS trigger LANGUAGE plpgsql AS $$
 DECLARE p record; a record; b record;
 BEGIN
  SELECT company_id,project_id,confirmed_at INTO p
@@ -114,7 +114,7 @@ BEGIN
    THEN RAISE EXCEPTION 'FM02_APPROVED_QUANTITY_SOURCE_INVALID'; END IF;
  END IF;
  RETURN NEW;
-END $;
+END $$;
 CREATE TRIGGER fm02_line_create_guard BEFORE INSERT ON project_progress_plan_lines
  FOR EACH ROW EXECUTE FUNCTION erp_fm02_plan_line_create_guard();
 
