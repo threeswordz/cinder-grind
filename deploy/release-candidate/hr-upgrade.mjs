@@ -1,6 +1,8 @@
 const materialUomStageCApproved=process.env.MATERIAL_UOM_STAGE_C_SCHEMA_UPGRADE==='YES';
 import {materialUomCatalog,verifyMaterialUomCatalog} from './material-uom-catalog-contract.mjs';
 import {dec054Catalog,verifyDec054Catalog} from './dec054-permission-catalog.mjs';
+import {fm02Catalog,verifyFm02Catalog} from './fm02-permission-catalog.mjs';
+const fm02Approved=process.env.FM02_SCHEMA_UPGRADE==='YES';
 const materialUomApproved=process.env.MATERIAL_UOM_SCHEMA_UPGRADE==='YES';
 const materialUomEffectApproved=process.env.MATERIAL_UOM_EFFECT_SCHEMA_UPGRADE==='YES';
 import {physicalCatalog,verifyPhysicalCatalog} from './subcontract-physical-catalog-contract.mjs';
@@ -54,12 +56,13 @@ const load = path => {try{return JSON.parse(readFileSync(path,'utf8'));}catch{th
 const digest = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
 const stockCountApproved = process.env.STOCK_COUNT_SCHEMA_UPGRADE === 'YES';
 const materialRequestApproved=process.env.MATERIAL_REQUEST_SCHEMA_UPGRADE==='YES';
-const knownCatalog = [...boqCatalog,...hrCatalog,...(stockCountApproved ? stockCountCatalog : []),...(materialRequestApproved ? materialRequestCatalog : []),...(materialPlanApproved ? materialPlanCatalog : []),...(planIssueApproved ? planIssueCatalog : []),...(siteIssueApproved ? siteIssueCatalog : []),...(receivingApproved ? receivingCatalog : []),...(transferApproved ? transferCatalog : []),...(physicalApproved ? physicalCatalog : []),...(materialUomApproved ? materialUomCatalog : []),...dec054Catalog];
+const knownCatalog = [...boqCatalog,...hrCatalog,...(stockCountApproved ? stockCountCatalog : []),...(materialRequestApproved ? materialRequestCatalog : []),...(materialPlanApproved ? materialPlanCatalog : []),...(planIssueApproved ? planIssueCatalog : []),...(siteIssueApproved ? siteIssueCatalog : []),...(receivingApproved ? receivingCatalog : []),...(transferApproved ? transferCatalog : []),...(physicalApproved ? physicalCatalog : []),...(materialUomApproved ? materialUomCatalog : []),...dec054Catalog,...(fm02Approved ? fm02Catalog : [])];
 const provenanceColumns = {
   projects:['contract_currency_code'],
   boqs:['currency_code'],
   supplier_quotations:['currency_code'],
   quotation_awards:['currency_code'],
+  ...(fm02Approved ? {activity_progress:['completed_quantity','source_budget_revision_line_id','source_uom_id']} : {}),
   ...(receivingApproved ? {goods_receipts:['delivery_id']} : {}),
   ...((stockCountApproved||transferApproved) ? { stock_transactions:[...(stockCountApproved?['stock_count_id']:[]),...(transferApproved?['transfer_receipt_line_id']:[])] } : {}),
 };
@@ -91,6 +94,9 @@ async function snapshot(before) {
   // DEC-054 definitions. The pre-upgrade/rollback snapshot has neither; old
   // permission rows and every role grant remain within the preserved digest.
   if(mode==='verify')verifyDec054Catalog(rawCatalog.filter(p=>dec054Catalog.some(x=>x.id===p.id)));
+  // FM02 is two exact additive permission definitions, not new role/user grants.
+  // Verify every field before excluding only their IDs from the old-row digest.
+  if(fm02Approved&&mode==='verify')verifyFm02Catalog(rawCatalog.filter(p=>fm02Catalog.some(x=>x.id===p.id)));
 
   const excluded = knownCatalog.filter(p=>!(before?.catalogPresent??present).includes(p.id)).map(p=>p.id);
   const hashes={}, columns={};
@@ -104,6 +110,11 @@ async function snapshot(before) {
       assert.ok(added.every(c=>(provenanceColumns[name]??[]).includes(c)),'Unapproved old-table column change');
     }
     if(name==='goods_receipts'&&added.includes('delivery_id'))assert.equal((await db.$queryRawUnsafe('SELECT count(*)::text AS n FROM goods_receipts WHERE delivery_id IS NOT NULL'))[0].n,'0','No receiving backfill');
+    if(name==='activity_progress'&&fm02Approved&&mode==='verify'){
+      // Exact three nullable FM02 columns only; old measured progress stays intact.
+      assert.deepEqual([...added].sort(),['completed_quantity','source_budget_revision_line_id','source_uom_id'].sort(),'FM02 activity_progress column additions must be exact');
+      assert.equal((await db.$queryRawUnsafe('SELECT count(*)::text AS n FROM activity_progress WHERE completed_quantity IS NOT NULL OR source_budget_revision_line_id IS NOT NULL OR source_uom_id IS NOT NULL'))[0].n,'0','FM02 cannot backfill historical progress quantities');
+    }
     const [row]=await db.$queryRawUnsafe(`SELECT count(*)::text AS count, encode(sha256(convert_to(coalesce(string_agg((to_jsonb(t)-$1::text[])::text,E'\n' ORDER BY (to_jsonb(t)-$1::text[])::text),''),'UTF8')),'hex') AS digest FROM "${name}" t ${name==='permissions'?'WHERE id <> ALL($2::uuid[])':''}`, ... (name==='permissions'?[added,excluded]:[added]));
     hashes[name]=row;
   }
@@ -130,7 +141,7 @@ try {
       after.tables,
       process.env.HR_SCHEMA_UPGRADE === 'YES',
       process.env.HR_DOCUMENT_SCHEMA_UPGRADE === 'YES',
-      stockCountApproved, materialRequestApproved,materialPlanApproved,planIssueApproved,siteIssueApproved,receivingApproved,transferApproved,physicalApproved,materialUomApproved,materialUomEffectApproved,materialUomStageCApproved,
+      stockCountApproved, materialRequestApproved,materialPlanApproved,planIssueApproved,siteIssueApproved,receivingApproved,transferApproved,physicalApproved,materialUomApproved,materialUomEffectApproved,materialUomStageCApproved,fm02Approved,
     );
     for(const migration of before.migrations)assert.deepEqual(after.migrations.find(m=>m.migration_name===migration.migration_name),migration);
     console.log(mode==='rollback'?'HR_EXACT_PREDECESSOR_ROLLBACK_ROWS_PRESERVED':'HR_PREDECESSOR_ROWS_AND_MIGRATIONS_PRESERVED');
