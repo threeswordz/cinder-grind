@@ -136,7 +136,8 @@ export function urgentIssueEvidence(
       state.reviewedAt=null;state.reviewedByUserId=null;state.reviewerNote=null;state.onTime=null;
     }else{
       if(state.status!=='SUBMITTED' || event.actorUserId===root.actorUserId ||
-        !isString(v.note) || v.evidenceFingerprint!==state.evidenceFingerprint)
+        !isString(v.note) || v.evidenceFingerprint!==state.evidenceFingerprint ||
+        v.reviewedSubmissionEventId!==prior.id)
         return corrupted('DECISION_INVALID');
       state.status=event.action===URGENT_DOC_CLOSE?'CLOSED':'RETURNED';
       state.reviewedAt=event.occurredAt.toISOString();
