@@ -59,6 +59,8 @@ jobs:
         run: |
           pnpm install --frozen-lockfile
           pnpm prisma:generate
+      - name: Diagnose exact receiving and FM03 preserved-history predecessor (no API/browser)
+        run: node deploy/release-candidate/fm02-predecessor-smoke.mjs
       - name: Build native API once for both browser predecessors
         run: pnpm --filter @construction-erp/api build
       - name: Verify receiving predecessor and real disposable Chromium

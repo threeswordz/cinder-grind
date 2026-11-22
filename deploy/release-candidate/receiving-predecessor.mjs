@@ -74,6 +74,8 @@ export async function prepareReceivingUpgrade(databaseUrl){
   catch { console.log('RECEIVING_PREDECESSOR_CANDIDATE_SNAPSHOT_FAILED'); throw new Error('RECEIVING_PREDECESSOR_CANDIDATE_SNAPSHOT_FAILED'); }
   const extra=Object.keys(after).filter(name=>!Object.hasOwn(before,name));
   console.log('RECEIVING_PREDECESSOR_ADDED_TABLES_'+extra.sort().join(','));
+  const changed=Object.keys(before).filter(name=>JSON.stringify(before[name])!==JSON.stringify(after[name]));
+  if(changed.length)console.log('RECEIVING_PREDECESSOR_CHANGED_TABLES_'+changed.sort().join(','));
   try {
     assertHistoricalTables(before,after,false,false,false,false,false,false,false,true,true,true,true,true,true,true);
   } catch(e) {

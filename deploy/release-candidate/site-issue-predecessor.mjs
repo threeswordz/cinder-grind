@@ -66,7 +66,10 @@ export async function prepareFm03Upgrade(databaseUrl){
   const before=await snapshot(false);
   await execute('pnpm',['prisma:migrate:deploy'],{env:{...safeEnvironment(),DATABASE_URL:u.href},timeout:120000,maxBuffer:2097152});
   console.log('FM03_PREDECESSOR_FORWARD_MIGRATIONS_PASS');
-  assertHistoricalTables(before,await snapshot(true),false,false,false,false,false,false,true,true,true,true,true,true,true,true);
+  const after=await snapshot(true);
+  const changed=Object.keys(before).filter(name=>JSON.stringify(before[name])!==JSON.stringify(after[name]));
+  if(changed.length)console.log('FM03_PREDECESSOR_CHANGED_TABLES_'+changed.sort().join(','));
+  assertHistoricalTables(before,after,false,false,false,false,false,false,true,true,true,true,true,true,true,true);
   console.log('FM03_EXACT_POPULATED_PREDECESSOR_ALL_HISTORICAL_TABLES_AND_GRANTS_PASS');
  }finally{await db.$disconnect();await rm(temp,{recursive:true,force:true});}
 }
