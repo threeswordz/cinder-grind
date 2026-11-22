@@ -181,9 +181,10 @@ export class SiteExecutionService {
     projectId: string,
     from?: Date,
     to?: Date,
+    db: Prisma.TransactionClient = this.prisma,
   ) {
-    await this.access.assertAccess(auth, projectId);
-    const rows = await this.prisma.dailySiteReport.findMany({
+    await this.access.assertAccess(auth, projectId, db);
+    const rows = await db.dailySiteReport.findMany({
       where: {
         companyId: auth.companyId,
         projectId,
@@ -231,6 +232,7 @@ export class SiteExecutionService {
     projectId: string,
     from: Date,
     to: Date,
+    db: Prisma.TransactionClient = this.prisma,
   ) {
     if (!isSevenCalendarDays(from, to)) {
       throw new UnprocessableEntityException({
@@ -238,9 +240,9 @@ export class SiteExecutionService {
         detail: 'Select exactly seven consecutive calendar dates.',
       });
     }
-    const sources = await this.list(auth, projectId, from, to);
+    const sources = await this.list(auth, projectId, from, to, db);
     const ids = sources.map(source => source.id);
-    const lines = ids.length ? await this.prisma.dailySiteReportProgressLine.findMany({
+    const lines = ids.length ? await db.dailySiteReportProgressLine.findMany({
       where: {
         reportId: { in: ids },
         report: { companyId: auth.companyId, projectId },
@@ -257,7 +259,7 @@ export class SiteExecutionService {
     // FM01-B: the only calendar authority is an explicitly configured
     // default for this Project (or Company fallback), never an assumed
     // Monday-Friday rule. This read is still within the scoped Project route.
-    const calendars = await this.prisma.workingCalendar.findMany({
+    const calendars = await db.workingCalendar.findMany({
       where: {
         companyId: auth.companyId,
         isActive: true,
