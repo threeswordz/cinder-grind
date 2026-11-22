@@ -58,6 +58,8 @@ export class UrgentMaterialIssueDocumentsService {
       session.user.employee.companyId!==auth.companyId ||
       !hasRole || !permissions.every(p=>auth.permissions.includes(p)&&effective.has(p)))
       throw new ForbiddenException({code:'PM09_CURRENT_ACTOR_PERMISSION_DENIED'});
+    return {...auth,roleCodes:roles.map(r=>r.roleCode),
+      permissions:[...effective].filter(permission=>auth.permissions.includes(permission))};
   }
 
   private async source(auth:AuthenticatedUserContext,id:string,db:Tx|PrismaService){
@@ -120,14 +122,14 @@ export class UrgentMaterialIssueDocumentsService {
   }
 
   async read(auth:AuthenticatedUserContext,id:string){
-    await this.liveActor(auth,this.prisma,'VIEW');
-    const issue=await this.source(auth,id,this.prisma);
-    const state=urgentIssueEvidence(issue.postedAt!,await this.history(auth,id,this.prisma));
+    const currentAuth=await this.liveActor(auth,this.prisma,'VIEW');
+    const issue=await this.source(currentAuth,id,this.prisma);
+    const state=urgentIssueEvidence(issue.postedAt!,await this.history(currentAuth,id,this.prisma));
     if(!state) return {issueId:id,projectId:issue.projectId,record:null};
     let sourceCurrent=false;
     if(state.evidenceFingerprint&&state.documentIds.length){
       try{
-        const snapshot=await this.snapshot(auth,issue.projectId,id,state.documentIds,issue.postedAt!,this.prisma);
+        const snapshot=await this.snapshot(currentAuth,issue.projectId,id,state.documentIds,issue.postedAt!,this.prisma);
         sourceCurrent=snapshot.digest===state.evidenceFingerprint;
       }catch{
         sourceCurrent=false;
@@ -146,14 +148,14 @@ export class UrgentMaterialIssueDocumentsService {
 
   async register(context:Context,id:string,reason:string){
     return this.prisma.$transaction(async tx=>{
-      await this.liveActor(context.auth,tx,'MAKER');
-      const issue=await this.source(context.auth,id,tx);
+      const currentAuth=await this.liveActor(context.auth,tx,'MAKER');
+      const issue=await this.source(currentAuth,id,tx);
       if(issue.createdByUserId!==context.auth.userId)
         throw new ForbiddenException({code:'PM09_ORIGINAL_ISSUE_PREPARER_REQUIRED'});
-      if((await this.history(context.auth,id,tx)).length)
+      if((await this.history(currentAuth,id,tx)).length)
         return conflict('PM09_ALREADY_REGISTERED');
       await this.audit.record({
-        ...context,entityType:URGENT_DOC_ENTITY,entityId:id,action:URGENT_DOC_REGISTER,
+        ...context,auth:currentAuth,entityType:URGENT_DOC_ENTITY,entityId:id,action:URGENT_DOC_REGISTER,
         newValues:{
           reason,sourcePostedAt:issue.postedAt!.toISOString(),dueAt:urgentDueAt(issue.postedAt!),
           authority:'DOCUMENT_TRACKING_ONLY_NO_STOCK_POSTING',
@@ -166,16 +168,16 @@ export class UrgentMaterialIssueDocumentsService {
 
   async submit(context:Context,id:string,documentIds:string[],completionNote:string){
     return this.prisma.$transaction(async tx=>{
-      await this.liveActor(context.auth,tx,'MAKER');
-      const issue=await this.source(context.auth,id,tx);
+      const currentAuth=await this.liveActor(context.auth,tx,'MAKER');
+      const issue=await this.source(currentAuth,id,tx);
       if(issue.createdByUserId!==context.auth.userId)
         throw new ForbiddenException({code:'PM09_ORIGINAL_ISSUE_PREPARER_REQUIRED'});
-      const current=urgentIssueEvidence(issue.postedAt!,await this.history(context.auth,id,tx));
+      const current=urgentIssueEvidence(issue.postedAt!,await this.history(currentAuth,id,tx));
       if(!current || !['OPEN','RETURNED'].includes(current.status))
         return conflict('PM09_NOT_OPEN_FOR_EVIDENCE');
-      const evidence=await this.snapshot(context.auth,issue.projectId,id,documentIds,issue.postedAt!,tx);
+      const evidence=await this.snapshot(currentAuth,issue.projectId,id,documentIds,issue.postedAt!,tx);
       await this.audit.record({
-        ...context,entityType:URGENT_DOC_ENTITY,entityId:id,action:URGENT_DOC_SUBMIT,
+        ...context,auth:currentAuth,entityType:URGENT_DOC_ENTITY,entityId:id,action:URGENT_DOC_SUBMIT,
         newValues:{
           previousEventId:current.lastEventId,documentIds:[...documentIds].sort(),
           completionNote,evidenceFingerprint:evidence.digest,
@@ -188,25 +190,26 @@ export class UrgentMaterialIssueDocumentsService {
   }
 
   async decide(context:Context,id:string,decision:'CLOSE'|'RETURN',
-    expectedFingerprint:string,note:string){
+    expectedSubmissionEventId:string,expectedFingerprint:string,note:string){
     return this.prisma.$transaction(async tx=>{
-      await this.liveActor(context.auth,tx,'REVIEW');
-      const issue=await this.source(context.auth,id,tx);
+      const currentAuth=await this.liveActor(context.auth,tx,'REVIEW');
+      const issue=await this.source(currentAuth,id,tx);
       if(issue.createdByUserId===context.auth.userId)
         throw new ForbiddenException({code:'PM09_INDEPENDENT_PROJECT_MANAGER_REQUIRED'});
-      const current=urgentIssueEvidence(issue.postedAt!,await this.history(context.auth,id,tx));
-      if(!current||current.status!=='SUBMITTED'||current.evidenceFingerprint!==expectedFingerprint)
+      const current=urgentIssueEvidence(issue.postedAt!,await this.history(currentAuth,id,tx));
+      if(!current||current.status!=='SUBMITTED'||current.evidenceFingerprint!==expectedFingerprint ||
+        current.lastEventId!==expectedSubmissionEventId)
         return conflict('PM09_STALE_OR_UNSUBMITTED_EVIDENCE');
-      const evidence=await this.snapshot(context.auth,issue.projectId,id,current.documentIds,issue.postedAt!,tx);
+      const evidence=await this.snapshot(currentAuth,issue.projectId,id,current.documentIds,issue.postedAt!,tx);
       if(evidence.digest!==current.evidenceFingerprint)
         return conflict('PM09_DOCUMENT_EVIDENCE_CHANGED');
       if(evidence.uploaderIds.includes(context.auth.userId))
         throw new ForbiddenException({code:'PM09_SELF_UPLOADED_EVIDENCE_REVIEW_DENIED'});
       await this.audit.record({
-        ...context,entityType:URGENT_DOC_ENTITY,entityId:id,
+        ...context,auth:currentAuth,entityType:URGENT_DOC_ENTITY,entityId:id,
         action:decision=== 'CLOSE'?URGENT_DOC_CLOSE:URGENT_DOC_RETURN,
         newValues:{
-          previousEventId:current.lastEventId,note,
+          previousEventId:current.lastEventId,reviewedSubmissionEventId:current.lastEventId,note,
           evidenceFingerprint:expectedFingerprint,
           onTime:decision==='CLOSE'&&current.submittedAt!==null &&
             Date.parse(current.submittedAt)<=Date.parse(current.dueAt)&&current.docsUploadedByDeadline,
