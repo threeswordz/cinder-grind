@@ -1,0 +1,42 @@
+name: PM09 corrected exact-source focused evidence 2026-11-23
+on:
+  push:
+    branches: [focused-pm09-fixed-20261123]
+    paths: ['.github/workflows/focused-pm09-fixed-20261123.yml']
+permissions:
+  contents: read
+jobs:
+  pm09-fixed:
+    name: corrected-contract-and-api-typecheck-only
+    runs-on: ubuntu-latest
+    env:
+      PM09_REVIEW_SOURCE: 2e9a6e294f0ebe8cffd7a5eeaad903c9f8afa65e
+    steps:
+      - name: Checkout unchanged PM09 source with workflow-only child
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 2
+          ref: ${{ github.sha }}
+      - name: Assert exact reviewed code and one workflow path only
+        run: |
+          test "$(git rev-parse HEAD^)" = "$PM09_REVIEW_SOURCE"
+          test "$(git diff --name-only HEAD^ HEAD)" = ".github/workflows/focused-pm09-fixed-20261123.yml"
+      - name: Set up pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          version: 12.6.0
+          run_install: false
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.21.0
+      - name: Install exact lockfile
+        run: pnpm install --frozen-lockfile
+      - name: Generate Prisma client
+        run: pnpm prisma:generate
+      - name: Run only PM09 policy and replay negatives
+        run: node --test deploy/release-candidate/pm09-urgent-documents-focused.test.mjs
+      - name: Typecheck only affected API
+        run: pnpm --filter @construction-erp/api typecheck
+      - name: State focused test boundary
+        run: echo 'FOCUSED ONLY. No full ERP validation, PostgreSQL/browser rehearsal, Mac or Production.'
