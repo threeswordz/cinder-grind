@@ -23,7 +23,7 @@ const submit=(prev=mk(1),time='2026-11-21T12:00:00.000Z')=>({
 });
 const close=(action=URGENT_DOC_CLOSE,time='2026-11-21T12:10:00.000Z')=>({
  id:mk(3),action,actorUserId:mk(12),occurredAt:at(time),
- newValues:{previousEventId:mk(2),note:'Independently checked source documents',evidenceFingerprint:digest},
+ newValues:{previousEventId:mk(2),reviewedSubmissionEventId:mk(2),note:'Independently checked source documents',evidenceFingerprint:digest},
 });
 test('PM09 uses exactly 48 elapsed hours including weekends and holidays',()=>{
  assert.equal(urgentDueAt(posted),due);
@@ -72,7 +72,15 @@ test('PM09 returned proof can be resubmitted; no silent deletion of earlier audi
  const returned=close(URGENT_DOC_RETURN);
  const resubmitted={...submit(mk(3),'2026-11-21T13:00:00.000Z'),id:mk(4)};
  const closed={...close(URGENT_DOC_CLOSE,'2026-11-21T14:00:00.000Z'),id:mk(5),
- newValues:{...close().newValues,previousEventId:mk(4)}};
+ newValues:{...close().newValues,previousEventId:mk(4),reviewedSubmissionEventId:mk(4)}};
  const out=urgentIssueEvidence(posted,[closed,resubmitted,returned,...source,submit()]);
  assert.equal(out.status,'CLOSED');assert.equal(out.lastEventId,mk(5));assert.equal(out.onTime,true);
+});
+
+test('PM09 rejects a stale CLOSE from an earlier submission even with identical document digest',()=>{
+ const returned=close(URGENT_DOC_RETURN);
+ const next={...submit(mk(3),'2026-11-21T13:00:00.000Z'),id:mk(4)};
+ const stale={...close(URGENT_DOC_CLOSE,'2026-11-21T14:00:00.000Z'),id:mk(5),
+   newValues:{...close().newValues,previousEventId:mk(4),reviewedSubmissionEventId:mk(2)}};
+ assert.throws(()=>urgentIssueEvidence(posted,[stale,next,returned,submit(),...source]),RangeError);
 });
