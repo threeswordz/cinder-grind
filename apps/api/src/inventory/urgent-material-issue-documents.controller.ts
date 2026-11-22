@@ -23,11 +23,11 @@ function fields(body:unknown,allow:readonly string[]){
 }
 
 @Controller('inventory/urgent-issue-documents')
-@Header('Cache-Control','private, no-store')
 export class UrgentMaterialIssueDocumentsController{
   constructor(private readonly urgent:UrgentMaterialIssueDocumentsService){}
 
   @Get(':id')
+  @Header('Cache-Control','private, no-store')
   @UseGuards(AuthGuard,PermissionGuard)
   @RequirePermissions('inventory.issue.view','documents.document.view')
   status(@Req() r:AuthenticatedRequest,
@@ -36,6 +36,7 @@ export class UrgentMaterialIssueDocumentsController{
   }
 
   @Post(':id/register')
+  @Header('Cache-Control','private, no-store')
   @UseGuards(AuthGuard,CsrfGuard,PermissionGuard)
   @RequirePermissions('inventory.issue.view','inventory.issue.create')
   register(@Req() r:AuthenticatedRequest,
@@ -46,6 +47,7 @@ export class UrgentMaterialIssueDocumentsController{
   }
 
   @Post(':id/submit')
+  @Header('Cache-Control','private, no-store')
   @UseGuards(AuthGuard,CsrfGuard,PermissionGuard)
   @RequirePermissions('inventory.issue.view','inventory.issue.create','documents.document.view')
   submit(@Req() r:AuthenticatedRequest,
@@ -62,6 +64,7 @@ export class UrgentMaterialIssueDocumentsController{
   }
 
   @Post(':id/decision')
+  @Header('Cache-Control','private, no-store')
   @UseGuards(AuthGuard,CsrfGuard,PermissionGuard)
   @RequirePermissions('inventory.issue.view','inventory.issue.approve','documents.document.view')
   decide(@Req() r:AuthenticatedRequest,
