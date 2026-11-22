@@ -108,6 +108,7 @@ export class SiteWeeklyEventsService {
         ...review,fingerprint,
         canAcknowledge:mayReviewWeek(auth),
         canDeclareNoWork:mayRecordNoWork(auth),
+        viewerUserId:auth.userId,
         semantics:'REVIEW_ACKNOWLEDGMENT_NOT_APPROVAL' as const,
       },
     };
