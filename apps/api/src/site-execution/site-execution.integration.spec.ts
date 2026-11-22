@@ -18,6 +18,7 @@ import { DocumentsService } from '../documents/documents.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProjectAccessService } from '../projects/project-access.service';
 import { SiteExecutionService } from './site-execution.service';
+import { SiteWeeklyEventsService } from './site-weekly-events.service';
 
 function auth(
   companyId: string,
@@ -551,6 +552,136 @@ test('Stage E keeps Daily Site Reports project-scoped, immutable after submissio
       () => service.weekly(siteAuth, project.id, weekFrom, new Date('2026-10-12T00:00:00.000Z')),
       (error: unknown) => error instanceof UnprocessableEntityException,
       'weekly read must reject a period longer than seven calendar dates',
+    );
+
+    // FM01-B/C: actual PostgreSQL witnessed no-work events + Ben review,
+    // retained source history and strict Project/role separation. This test is
+    // for an appropriate future stable release gate; not a Mac UAT rerun.
+    await prisma.workingCalendar.update({
+      where: { id: calendar.id },
+      data: {
+        isDefault: true,
+        weekdays: { create: Array.from({length: 7}, (_,n) => ({
+          weekdayNo: n+1,
+          isWorking: n<5,
+          startTime: n<5 ? new Date('1970-01-01T08:00:00.000Z') : null,
+        })) },
+      },
+    });
+    const siteWeekly = new SiteWeeklyEventsService(prisma,access,audit,service);
+    const foremanAuth = auth(company.id,user.id);
+    foremanAuth.roleCodes = ['PROJECT_ENGINEER'];
+    const blank = await service.create({auth:foremanAuth},{
+      projectId:project.id,reportDate:new Date('2026-10-08T00:00:00.000Z'),
+      manpower:[],materialUsage:[],equipmentUsage:[],progress:[],issues:[],delays:[],inspections:[],
+    });
+    await service.submit({auth:foremanAuth},blank.id);
+    await assert.rejects(
+      () => siteWeekly.declareNoWork({auth:siteAuth},blank.id,'Rain stopped work',null),
+      error=>error instanceof ForbiddenException,
+      'non-Foreman role cannot declare a planned stopped-work day',
+    );
+    await assert.rejects(
+      () => siteWeekly.declareNoWork({auth:foremanAuth},created.id,'Rain stopped work',null),
+      error=>error instanceof ConflictException,
+      'a submitted day with material/progress/manpower cannot be reclassified as no-work',
+    );
+    await siteWeekly.declareNoWork({auth:foremanAuth},blank.id,'Unsafe ground after heavy rain',null);
+    const firstWeek = await siteWeekly.weekly(foremanAuth,project.id,weekFrom,weekTo);
+    const initialProof=firstWeek.noWorkByReportId[blank.id];
+    assert.equal(initialProof?.status,'DECLARED');
+    assert.equal(initialProof?.historyCount,1);
+    assert.equal(initialProof?.reason,'Unsafe ground after heavy rain');
+    assert.equal(firstWeek.weeklyReview.status,'UNREVIEWED');
+    assert.equal(firstWeek.weeklyReview.canAcknowledge,false);
+    await assert.rejects(
+      () => siteWeekly.declareNoWork({auth:foremanAuth},blank.id,'Unsafe ground after heavy rain',null),
+      error=>error instanceof ConflictException,
+      'cannot insert two unlinked declarations or overwrite source event',
+    );
+    const benEmployee=await prisma.employee.create({data:{
+      companyId:company.id,employeeCode:'SE-BEN-'+suffix,employeeName:'General Management',
+    }});
+    const ben=await prisma.user.create({data:{
+      companyId:company.id,employeeId:benEmployee.id,
+      email:'ben-site-'+suffix+'@example.com',displayName:'General Management',passwordHash:'x',
+    }});
+    await prisma.projectMember.create({data:{
+      projectId:project.id,employeeId:benEmployee.id,projectRole:'General Manager',
+    }});
+    const benAuth=auth(company.id,ben.id,['site.daily_report.view']);
+    benAuth.roleCodes=['MANAGEMENT'];
+    await assert.rejects(
+      () => siteWeekly.acknowledge({auth:foremanAuth},project.id,weekFrom,weekTo,
+        firstWeek.weeklyReview.fingerprint,'Reports reviewed with exceptions'),
+      error=>error instanceof ForbiddenException,
+      'Foreman cannot self-acknowledge as Ben',
+    );
+    await assert.rejects(
+      () => siteWeekly.acknowledge({auth:benAuth},project.id,weekFrom,weekTo,
+        firstWeek.weeklyReview.fingerprint,''),
+      error=>error instanceof UnprocessableEntityException,
+      'incomplete planned workdays must not be silently acknowledged without note',
+    );
+    const acknowledged=await siteWeekly.acknowledge(
+      {auth:benAuth},project.id,weekFrom,weekTo,
+      firstWeek.weeklyReview.fingerprint,'Tuesday and Wednesday report follow-up required.',
+    );
+    assert.equal(acknowledged.weeklyReview.status,'ACKNOWLEDGED');
+    assert.equal(acknowledged.weeklyReview.semantics,'REVIEW_ACKNOWLEDGMENT_NOT_APPROVAL');
+    const ackCount=await prisma.auditLog.count({
+      where:{companyId:company.id,entityType:'PROJECT_SITE_WEEKLY_REVIEW',
+        entityId:project.id,action:'ACKNOWLEDGE_WEEK'},
+    });
+    await siteWeekly.acknowledge(
+      {auth:benAuth},project.id,weekFrom,weekTo,
+      firstWeek.weeklyReview.fingerprint,'No new source evidence.',
+    );
+    assert.equal(await prisma.auditLog.count({
+      where:{companyId:company.id,entityType:'PROJECT_SITE_WEEKLY_REVIEW',
+        entityId:project.id,action:'ACKNOWLEDGE_WEEK'},
+    }),ackCount,'same weekly source fingerprint is idempotent');
+    await assert.rejects(
+      () => siteWeekly.declareNoWork({auth:foremanAuth},blank.id,
+        'New reason after site safety checks',randomUUID()),
+      error=>error instanceof ConflictException,
+      'correction must link exact latest historical declaration',
+    );
+    await siteWeekly.declareNoWork({auth:foremanAuth},blank.id,
+      'Site remained closed while ground dried',initialProof!.eventId);
+    const changed=await siteWeekly.weekly(benAuth,project.id,weekFrom,weekTo);
+    assert.equal(changed.weeklyReview.status,'STALE');
+    assert.equal(changed.noWorkByReportId[blank.id]?.historyCount,2);
+    assert.equal(changed.noWorkByReportId[blank.id]?.reason,
+      'Site remained closed while ground dried');
+    assert.notEqual(changed.weeklyReview.fingerprint,firstWeek.weeklyReview.fingerprint);
+    await assert.rejects(
+      () => siteWeekly.acknowledge({auth:benAuth},project.id,weekFrom,weekTo,
+        firstWeek.weeklyReview.fingerprint,'Old source fingerprint'),
+      error=>error instanceof ConflictException,
+      'Ben cannot acknowledge an obsolete source',
+    );
+    assert.equal((await siteWeekly.acknowledge({auth:benAuth},project.id,
+      weekFrom,weekTo,changed.weeklyReview.fingerprint,
+      'Reviewed corrected no-work note and pending reporting exceptions.')).weeklyReview.status,
+      'ACKNOWLEDGED');
+    const holiday = await service.create({auth:foremanAuth},{
+      projectId:project.id,reportDate:new Date('2026-10-10T00:00:00.000Z'),
+      manpower:[],materialUsage:[],equipmentUsage:[],progress:[],issues:[],delays:[],inspections:[],
+    });
+    await service.submit({auth:foremanAuth},holiday.id);
+    await assert.rejects(
+      () => siteWeekly.declareNoWork({auth:foremanAuth},holiday.id,
+        'Regular weekly site rest day',null),
+      error=>error instanceof UnprocessableEntityException,
+      'ordinary off-day must not require or allow artificial no-work declaration',
+    );
+    const unassignedBen=auth(company.id,unassigned.id,['site.daily_report.view']);
+    unassignedBen.roleCodes=['MANAGEMENT'];
+    await assert.rejects(
+      () => siteWeekly.weekly(unassignedBen,project.id,weekFrom,weekTo),
+      error=>error instanceof ForbiddenException,
+      'management role cannot bypass employee/Project assignment',
     );
 
     const auditCount = await prisma.auditLog.count({
