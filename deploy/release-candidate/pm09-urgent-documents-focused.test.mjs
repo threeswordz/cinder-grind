@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {readFileSync} from 'node:fs';
 import {
  URGENT_DOC_ENTITY, URGENT_DOC_REGISTER,URGENT_DOC_SUBMIT,URGENT_DOC_RETURN,URGENT_DOC_CLOSE,
  URGENT_DOC_WINDOW_MS,urgentDueAt,urgentIssueEvidence,urgentSnapshotDigest,
@@ -83,4 +84,15 @@ test('PM09 rejects a stale CLOSE from an earlier submission even with identical 
  const stale={...close(URGENT_DOC_CLOSE,'2026-11-21T14:00:00.000Z'),id:mk(5),
    newValues:{...close().newValues,previousEventId:mk(4),reviewedSubmissionEventId:mk(2)}};
  assert.throws(()=>urgentIssueEvidence(posted,[stale,next,returned,submit(),...source]),RangeError);
+});
+
+test('PM09 protected document read fails closed when a linked source permission is revoked',()=>{
+ const service=readFileSync(new URL('../../apps/api/src/inventory/urgent-material-issue-documents.service.ts',import.meta.url),'utf8');
+ const read=service.slice(service.indexOf('  async read('),service.indexOf('  async register('));
+ assert.ok(read.length>300);
+ assert.match(read,/await this\.snapshot\(currentAuth,issue\.projectId,id,state\.documentIds,issue\.postedAt!,this\.prisma\)/);
+ assert.doesNotMatch(read,/catch\s*\{/,'a denied source must not be converted into stale packet metadata');
+ assert.ok(read.indexOf('await this.snapshot(')<read.indexOf('...state,sourceCurrent'));
+ assert.ok(service.includes("PM09_EVIDENCE_SOURCE_NOT_AUTHORIZED"));
+ assert.ok(service.includes("this.documents.filterSourceDocuments(auth,projectId,rows"));
 });
