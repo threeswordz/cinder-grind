@@ -51,7 +51,7 @@ CREATE INDEX project_progress_plan_lines_activity_id_idx ON project_progress_pla
 
 -- No updates/deletes to snapshots; revisions must create a new version.
 CREATE FUNCTION erp_fm02_immutable_lines() RETURNS trigger LANGUAGE plpgsql AS $$
-BEGIN RAISE EXCEPTION 'FM02_IMMUTABLE_PLAN_LINE'; END $$;
+BEGIN RAISE EXCEPTION 'FM02_IMMUTABLE_PLAN_LINE'; END; $$;
 CREATE TRIGGER fm02_lines_immutable BEFORE UPDATE OR DELETE ON project_progress_plan_lines
   FOR EACH ROW EXECUTE FUNCTION erp_fm02_immutable_lines();
 
@@ -73,7 +73,7 @@ BEGIN
  SELECT SUM(weight_percent) INTO total_weight FROM project_progress_plan_lines WHERE plan_id=OLD.id;
  IF total_weight IS DISTINCT FROM 100 THEN RAISE EXCEPTION 'FM02_WEIGHTS_NOT_COMPLETE'; END IF;
  RETURN NEW;
-END $$;
+END; $$;
 CREATE TRIGGER fm02_plan_confirm_only BEFORE UPDATE OR DELETE ON project_progress_plans
   FOR EACH ROW EXECUTE FUNCTION erp_fm02_confirm_only();
 
@@ -84,7 +84,7 @@ BEGIN
  IF NEW.confirmed_at IS NOT NULL OR NEW.confirmed_by_user_id IS NOT NULL
  THEN RAISE EXCEPTION 'FM02_PLAN_CONFIRMATION_MUST_BE_SEPARATE'; END IF;
  RETURN NEW;
-END $$;
+END; $$;
 CREATE TRIGGER fm02_plan_create_guard BEFORE INSERT ON project_progress_plans
  FOR EACH ROW EXECUTE FUNCTION erp_fm02_plan_create_guard();
 
@@ -114,7 +114,7 @@ BEGIN
    THEN RAISE EXCEPTION 'FM02_APPROVED_QUANTITY_SOURCE_INVALID'; END IF;
  END IF;
  RETURN NEW;
-END $$;
+END; $$;
 CREATE TRIGGER fm02_line_create_guard BEFORE INSERT ON project_progress_plan_lines
  FOR EACH ROW EXECUTE FUNCTION erp_fm02_plan_line_create_guard();
 
