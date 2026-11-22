@@ -60,7 +60,7 @@ function fixture(missingQuantity = false) {
     }},
   };
   const prisma = {
-    $transaction: async (work: (tx: typeof tx) => Promise<unknown>) => work(tx),
+    $transaction: async (work: (client: typeof tx) => Promise<unknown>) => work(tx),
   } as unknown as PrismaService;
   const access = {assertAccess: async () => {}} as unknown as ProjectAccessService;
   const service = new ProjectProgressPlanService(prisma, access, {} as AuditService);
