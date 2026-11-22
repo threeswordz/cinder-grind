@@ -1,0 +1,39 @@
+name: FM01 Operational Controls Focused Once
+on:
+  push:
+    branches: ['work-fm01-calendar-preview-no-full-20261122']
+    paths: ['.github/workflows/fm01-operational-focused-once.yml']
+permissions:
+  contents: read
+jobs:
+  fm01-affected-source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout exact FM01 candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+      - name: Configure Node 24
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.21.0
+      - name: Run FM01 pure business-policy and calendar negatives
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          node --experimental-strip-types --test deploy/release-candidate/fm01-workday-preview.test.mjs deploy/release-candidate/fm01-operational-focused.test.mjs
+      - name: Install pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
+        with:
+          version: 12.6.0
+          run_install: false
+      - name: Install pinned workspace
+        run: pnpm install --frozen-lockfile
+      - name: Generate type declarations and typecheck affected API and web
+        run: |
+          pnpm --filter @construction-erp/api prisma:generate
+          pnpm --filter @construction-erp/api typecheck
+          pnpm --filter @construction-erp/web typecheck
+      - name: Focused-only evidence marker
+        run: echo FM01_OPERATIONAL_FOCUSED_ONLY_NO_DATABASE_NO_FULL_CI_NO_MAC_NO_PRODUCTION
