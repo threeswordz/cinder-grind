@@ -17,10 +17,14 @@ const verifyHistorical=(before,after,enabled)=>assertHistoricalTables(before,aft
 
 test('legacy historical verifier explicitly gates FM02 using the signed migration history',()=>{
   assert.match(legacy,/const fm02Approved=process\.env\.FM02_SCHEMA_UPGRADE==='YES'/);
-  assert.match(legacy,/fm02Migration\.length===1,fm02Approved/);
+  assert.match(legacy,/if\(fm02Approved\)assert\.equal\(fm02Migration\.length,1/);
   assert.match(legacy,/20261122140000_fm02_weighted_project_progress/);
-  assert.match(legacy,/if\(fm02Approved\)verifyFm02Catalog\(fm02Rows\)/);
+  assert.match(legacy,/if\(fm02Migration\.length===1\)verifyFm02Catalog\(fm02Rows\)/);
   assert.match(legacy,/else assert\.equal\(fm02Rows\.length,0/);
+  assert.match(legacy,/\.\.\.\(fm02Approved \? fm02Catalog : \[\]\)/);
+  // Subsequent releases retain the FM02 rows in the old-row digest when
+  // the migration was already part of the previous release.
+  assert.match(legacy,/FM02 can already be a legitimate part of a LATER predecessor/);
   assert.match(legacy,/materialUomEffectApproved,materialUomStageCApproved,fm02Approved\)/);
 });
 
