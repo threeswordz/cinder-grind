@@ -40,7 +40,7 @@ test('public BOQ HTTP workflow enforces persisted disclosure, CSRF, maker/checke
       await db.userRole.create({data:{companyId:a.companyId,userId:a.userId,roleId:role.id}});return role;
     }
     const pid=f.project.id,root='/budget/customer/projects/'+pid;
-    const all=['budget.boq.view','budget.revision.view','budget.customer.view','budget.customer.manage','budget.customer.submit','budget.customer.approve'];
+    const all=['budget.cost.full_view','budget.boq.view','budget.revision.view','budget.customer.view','budget.customer.manage','budget.customer.submit','budget.customer.approve'];
     const sourceBefore=JSON.stringify(await db.budgetRevision.findUniqueOrThrow({where:{id:f.source.id},include:{lines:true}}));
     const ledgersBefore=await Promise.all([db.stockTransaction.count(),db.payment.count(),db.directCostPosting.count()]);
     let id='',instance='',documentId='';

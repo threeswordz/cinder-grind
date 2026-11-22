@@ -1,5 +1,6 @@
 const materialUomStageCApproved=process.env.MATERIAL_UOM_STAGE_C_SCHEMA_UPGRADE==='YES';
 import {materialUomCatalog,verifyMaterialUomCatalog} from './material-uom-catalog-contract.mjs';
+import {dec054Catalog,verifyDec054Catalog} from './dec054-permission-catalog.mjs';
 const materialUomApproved=process.env.MATERIAL_UOM_SCHEMA_UPGRADE==='YES';
 const materialUomEffectApproved=process.env.MATERIAL_UOM_EFFECT_SCHEMA_UPGRADE==='YES';
 import {physicalCatalog,verifyPhysicalCatalog} from './subcontract-physical-catalog-contract.mjs';
@@ -53,7 +54,7 @@ const load = path => {try{return JSON.parse(readFileSync(path,'utf8'));}catch{th
 const digest = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
 const stockCountApproved = process.env.STOCK_COUNT_SCHEMA_UPGRADE === 'YES';
 const materialRequestApproved=process.env.MATERIAL_REQUEST_SCHEMA_UPGRADE==='YES';
-const knownCatalog = [...boqCatalog,...hrCatalog,...(stockCountApproved ? stockCountCatalog : []),...(materialRequestApproved ? materialRequestCatalog : []),...(materialPlanApproved ? materialPlanCatalog : []),...(planIssueApproved ? planIssueCatalog : []),...(siteIssueApproved ? siteIssueCatalog : []),...(receivingApproved ? receivingCatalog : []),...(transferApproved ? transferCatalog : []),...(physicalApproved ? physicalCatalog : []),...(materialUomApproved ? materialUomCatalog : [])];
+const knownCatalog = [...boqCatalog,...hrCatalog,...(stockCountApproved ? stockCountCatalog : []),...(materialRequestApproved ? materialRequestCatalog : []),...(materialPlanApproved ? materialPlanCatalog : []),...(planIssueApproved ? planIssueCatalog : []),...(siteIssueApproved ? siteIssueCatalog : []),...(receivingApproved ? receivingCatalog : []),...(transferApproved ? transferCatalog : []),...(physicalApproved ? physicalCatalog : []),...(materialUomApproved ? materialUomCatalog : []),...dec054Catalog];
 const provenanceColumns = {
   projects:['contract_currency_code'],
   boqs:['currency_code'],
@@ -86,6 +87,11 @@ async function snapshot(before) {
   if(materialUomApproved)verifyMaterialUomCatalog(rawCatalog.filter(p=>materialUomCatalog.some(x=>x.id===p.id)),!['snapshot','rollback'].includes(mode));
   if(physicalApproved)verifyPhysicalCatalog(rawCatalog.filter(p=>physicalCatalog.some(x=>x.id===p.id)),!['snapshot','rollback'].includes(mode));
   if(transferApproved)verifyTransferCatalog(rawCatalog.filter(p=>transferCatalog.some(x=>x.id===p.id)),!['snapshot','rollback'].includes(mode));
+  // The upgrade may omit from its after-hash only these two verified new
+  // DEC-054 definitions. The pre-upgrade/rollback snapshot has neither; old
+  // permission rows and every role grant remain within the preserved digest.
+  if(mode==='verify')verifyDec054Catalog(rawCatalog.filter(p=>dec054Catalog.some(x=>x.id===p.id)));
+
   const excluded = knownCatalog.filter(p=>!(before?.catalogPresent??present).includes(p.id)).map(p=>p.id);
   const hashes={}, columns={};
   for(const {tablename:name} of tables){

@@ -3,9 +3,11 @@ import { Prisma } from '@prisma/client';
 import { AuthenticatedUserContext } from '../auth/auth.types';
 
 export const QUANTITY_VIEW = 'budget.quantity.view';
+// Explicit Company-scoped full Cost BOQ capability; no default grant.
+export const COST_FULL_VIEW = 'budget.cost.full_view';
 export const PROJECT_SUMMARY_VIEW = 'budget.project_summary.view';
-export function restrictedBudgetWithoutCost(auth: AuthenticatedUserContext, kind: 'BOQ' | 'REVISION' = 'REVISION') {
-  return [QUANTITY_VIEW,PROJECT_SUMMARY_VIEW].some(p=>auth.permissions.includes(p)) && !auth.permissions.includes(kind === 'BOQ' ? 'budget.boq.view' : 'budget.revision.view');
+export function restrictedBudgetWithoutCost(auth: AuthenticatedUserContext, _kind: 'BOQ' | 'REVISION' = 'REVISION') {
+  return [QUANTITY_VIEW,PROJECT_SUMMARY_VIEW].some(p=>auth.permissions.includes(p)) && !auth.permissions.includes(COST_FULL_VIEW);
 }
 export function assertCostReportDisclosure(auth: AuthenticatedUserContext) {
   if (restrictedBudgetWithoutCost(auth)) throw new ForbiddenException({ code: 'BOQ_COST_DISCLOSURE_DENIED', detail: 'This report contains protected Budget costs. Explicit full Budget read authority is required.' });
