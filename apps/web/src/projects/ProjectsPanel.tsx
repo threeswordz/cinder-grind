@@ -6,6 +6,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { projectsApi, ProjectRecord } from '../api/projects';
+import { ProjectCloseoutPanel } from './ProjectCloseoutPanel';
 import { costControlApi } from '../api/cost-control';
 import {
   canOpenSourceLink,
@@ -26,10 +27,12 @@ const emptyProject = {
 
 export function ProjectsPanel({
   permissions,
+  roleCodes,
   initialProjectId,
   onOpenSource,
 }: {
   permissions: string[];
+  roleCodes: string[];
   initialProjectId?: string | undefined;
   onOpenSource?: ((target: SourceLinkTarget) => void) | undefined;
 }) {
@@ -329,6 +332,11 @@ export function ProjectsPanel({
           </CardContent>
         </Card>
       ) : null}
+
+      {selected && permissions.includes('projects.project.view') &&
+        roleCodes.some(role=>['PROJECT_MANAGER','MANAGEMENT','FINANCE_MANAGER'].includes(role)) ?
+        <ProjectCloseoutPanel key={selected.id} projectId={selected.id}
+          permissions={permissions} roleCodes={roleCodes}/> : null}
 
       {selected && canViewTeam ? (
         <Stack spacing={2}>
