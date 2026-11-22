@@ -3,7 +3,8 @@ import test from 'node:test';
 
 import {
   NO_WORK_ACTION, NO_WORK_CORRECTION_ACTION, noWorkEvidence,
-  calendarFingerprint, weeklyReviewFingerprint, mayAcknowledgeWeekly, validWeeklyHash,
+  calendarFingerprint, weeklyReviewFingerprint, mayAcknowledgeWeekly, mayDeclareNoWork,
+  validWeeklyHash,
 } from '../../apps/api/src/site-execution/site-weekly-operational.ts';
 
 const p='a'.repeat(36), foreman='b'.repeat(36), ben='c'.repeat(36);
@@ -85,10 +86,25 @@ test('weekly source fingerprint binds report version and correction source',()=>
   ])));
   assert.notEqual(hash,weeklyReviewFingerprint({...w,to:'2026-11-02'},map));
   assert.notEqual(hash,weeklyReviewFingerprint(w,new Map()));
+  const calendar={status:'CONFIGURED',calendarId:'a',days:[{date:'2026-10-26',working:true}]};
+  const previewHash=weeklyReviewFingerprint(w,map,calendar,['document-2','document-1']);
+  assert.equal(previewHash,weeklyReviewFingerprint(w,map,calendar,['document-1','document-2']));
+  assert.notEqual(previewHash,weeklyReviewFingerprint(w,map,
+    {...calendar,days:[{date:'2026-10-26',working:false}]},
+    ['document-2','document-1']));
+  assert.notEqual(previewHash,weeklyReviewFingerprint(w,map,calendar,['document-1']));
+  assert.notEqual(previewHash,weeklyReviewFingerprint(w,map,calendar,['document-3','document-1']));
+
 });
 test('weekly Management source reviewer cannot approve own report or corrections',()=>{
   const w=source(), auth=management();
   assert.equal(mayAcknowledgeWeekly(auth,w,[]),true);
+  const foremanRole={userId:foreman,roleCodes:['PROJECT_ENGINEER'],
+    permissions:['site.daily_report.edit','site.daily_report.submit']};
+  assert.equal(mayDeclareNoWork(foremanRole),true);
+  assert.equal(mayDeclareNoWork({...foremanRole,roleCodes:['MANAGEMENT']}),false);
+  assert.equal(mayDeclareNoWork({...foremanRole,permissions:['site.daily_report.edit']}),false);
+  assert.equal(mayDeclareNoWork({...foremanRole,permissions:['site.daily_report.submit']}),false);
   assert.equal(mayAcknowledgeWeekly({...auth,roleCodes:['SYS_ADMIN']},w,[]),false);
   assert.equal(mayAcknowledgeWeekly({...auth,permissions:[]},w,[]),false);
   assert.equal(mayAcknowledgeWeekly({...auth,userId:foreman},w,[]),false);
