@@ -122,7 +122,7 @@ export function replayLossCase(id:string,rows:readonly CaseEvent[]):LossCaseStat
    if(row.action===LOSS_SCREEN){
      if(state.status!=='OPEN'||row.actorUserId===state.makerUserId||
        !text(a.note,2000)||typeof a.escalateToBen!=='boolean'||
-       !['RETURN','NONDISPOSAL_REVIEW','FORWARD_DISPOSAL'].includes(String(a.decision))||
+       (a.decision!=='RETURN'&&a.decision!=='NONDISPOSAL_REVIEW'&&a.decision!=='FORWARD_DISPOSAL')||
        (a.decision==='NONDISPOSAL_REVIEW'&&state.proposedDisposition==='DISPOSAL')||
        (a.decision==='FORWARD_DISPOSAL'&&state.proposedDisposition!=='DISPOSAL')||
        (a.decision==='RETURN'&&a.escalateToBen===true))
