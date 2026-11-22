@@ -102,7 +102,8 @@ test('reject fake amounts, inappropriate units, unknown company owners and inval
 test('historical revisions require explicit reason and preserve old closeout source',()=>{
  const original=prepare({body:warning()});
  const revision=warning();revision.revisionReason='Unpaid invoice amount updated after vendor confirmation';
- assert.throws(()=>normalize(revision,true).overallNote==='unknown',/irrelevant/);
+ const missingReason={...warning(),revisionReason:''};
+ assert.throws(()=>normalize(missingReason,true),RangeError);
  assert.equal(normalize(revision,true).revisionReason,revision.revisionReason);
  const later=prepare({id:b,version:2,previousEventId:a,body:revision});
  const state=parseCloseoutEvents([original,later],projectId);
