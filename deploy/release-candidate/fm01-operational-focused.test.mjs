@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 import {
@@ -24,7 +25,7 @@ const declare=(id='event1',reason='Heavy rain prevented all planned works')=>({
 const correct=(oldReason,newReason)=>({
   id:'event2',actorUserId:foreman,action:NO_WORK_CORRECTION_ACTION,
   occurredAt:at('2026-10-27T09:00:00.000Z'),
-  newValues:{oldReason,reason:newReason},
+  newValues:{oldReason,reason:newReason,previousEventId:'event1'},
 });
 const source=()=>({
   projectId:p,from:'2026-10-26',to:'2026-11-01',
@@ -128,4 +129,39 @@ test('review fingerprint input must be canonical SHA256 lowercase hex',()=>{
   assert.equal(validWeeklyHash('a'.repeat(64)),true);
   for(const bad of [null,undefined,123,'a'.repeat(63),'A'.repeat(64),'g'.repeat(64),{}])
     assert.equal(validWeeklyHash(bad),false);
+});
+ 
+test('same-millisecond corrections replay by causal predecessor, not random event ID',()=>{
+  const initial=declare();
+  const first={...correct(initial.newValues.reason,'Flooding'),id:'z-last'};
+  const second={...correct('Flooding','Flooded access'),id:'a-first',
+    newValues:{oldReason:'Flooding',reason:'Flooded access',previousEventId:first.id}};
+  const evidence=noWorkEvidence([second,initial,first]);
+  assert.equal(evidence.reason,'Flooded access');
+  assert.equal(evidence.correctionCount,2);
+  assert.equal(evidence.latestEventId,second.id);
+  assert.throws(()=>noWorkEvidence([initial,first,{
+    ...second,newValues:{...second.newValues,previousEventId:'event1'},
+  }]),RangeError);
+  assert.throws(()=>noWorkEvidence([initial,{
+    ...second,newValues:{...second.newValues,previousEventId:'missing'},
+  }]),RangeError);
+  assert.throws(()=>noWorkEvidence([first]),RangeError);
+  assert.throws(()=>noWorkEvidence([initial,{
+    ...first,newValues:{oldReason:initial.newValues.reason,reason:'Flooding'},
+  }]),RangeError);
+});
+test('FM01 write contracts serialize draft/save, submit and no-work declaration',()=>{
+  const source=readFileSync(new URL('../../apps/api/src/site-execution/site-execution.service.ts',import.meta.url),'utf8');
+  const update=source.slice(source.indexOf('  async update('),source.indexOf('  async submit('));
+  const submit=source.slice(source.indexOf('  async submit('),source.indexOf('  async addCorrection('));
+  const declaration=source.slice(source.indexOf('  async declareNoWork('),source.indexOf('  async correctNoWork('));
+  for(const part of [update,submit,declaration]){
+    assert.ok(part.length>1000);
+    assert.match(part,/isolationLevel: Prisma.TransactionIsolationLevel.Serializable/);
+  }
+  assert.ok(update.includes('input.reportDate.getTime() !== before.reportDate.getTime()'));
+  assert.ok(update.includes('const noWork = noWorkEvidence(await this.noWorkEvents(tx, context.auth, id))'));
+  assert.ok(update.includes('await tx.dailySiteReport.update('));
+  assert.ok(declaration.includes('await this.noWorkEvents(tx, context.auth, id)'));
 });
