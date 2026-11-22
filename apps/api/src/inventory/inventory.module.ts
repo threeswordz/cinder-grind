@@ -34,6 +34,8 @@ import { StockBalanceService } from './stock-balance.service';
 import { StockTransferController } from './stock-transfer.controller';
 import { StockTransferService } from './stock-transfer.service';
 import { StockCountController } from './stock-count.controller';
+import { StockCountScheduleController } from './stock-count-schedule.controller';
+import { StockCountScheduleService } from './stock-count-schedule.service';
 import { StockCountService } from './stock-count.service';
 
 @Module({
@@ -48,6 +50,7 @@ import { StockCountService } from './stock-count.service';
     AdministrationModule,
   ],
   controllers: [
+    StockCountScheduleController,
     TransferCustodyController,
     ReceivingController,
     MaterialPlanIssueController,
@@ -62,6 +65,7 @@ import { StockCountService } from './stock-count.service';
     StockCountController,
   ],
   providers: [
+    StockCountScheduleService,
     TransferCustodyService,
     ReceivingService,
     MaterialPlanIssueService,
