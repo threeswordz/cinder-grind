@@ -152,6 +152,7 @@ model UnitOfMeasure {
   materialUsagePlanLines MaterialUsagePlanLine[]
   materialRequestLines MaterialRequestLine[]
   customerBoqLines CustomerBoqLine[]
+  fm02QuantityProgress ActivityProgress[] @relation("Fm02QuantityUom")
 
   id            String  @id @default(uuid()) @db.Uuid
   companyId     String  @map("company_id") @db.Uuid
@@ -1069,6 +1070,8 @@ model ActivityProgress {
   completedQuantity Decimal? @map("completed_quantity") @db.Decimal(18, 4)
   sourceBudgetRevisionLineId String? @map("source_budget_revision_line_id") @db.Uuid
   sourceUomId String? @map("source_uom_id") @db.Uuid
+  sourceBudgetRevisionLine BudgetRevisionLine? @relation("Fm02QuantityBudgetSource", fields: [sourceBudgetRevisionLineId], references: [id], onDelete: Restrict)
+  sourceUom UnitOfMeasure? @relation("Fm02QuantityUom", fields: [sourceUomId], references: [id], onDelete: Restrict)
   note             String?  @db.Text
   sourceType       String   @default("MANUAL") @map("source_type") @db.VarChar(30)
   sourceEntityId   String?  @map("source_entity_id") @db.Uuid
@@ -2380,6 +2383,7 @@ model BudgetRevisionLine {
   materialUsagePlanLines MaterialUsagePlanLine[]
   customerBoqMappings CustomerBoqMapping[]
   projectProgressPlanLines ProjectProgressPlanLine[]
+  fm02QuantityProgress ActivityProgress[] @relation("Fm02QuantityBudgetSource")
 
   id               String   @id @default(uuid()) @db.Uuid
   budgetRevisionId String   @map("budget_revision_id") @db.Uuid
