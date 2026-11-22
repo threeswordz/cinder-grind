@@ -213,7 +213,11 @@ export class ProjectProgressPlanService {
       });
       const calculation=calculateConfirmedProjectProgress({planId:plan.id,versionNo:plan.versionNo,
         confirmationVerified:!!plan.confirmedAt&&!!plan.confirmedByUserId,lines});
-      return {projectId,confirmedAt:plan.confirmedAt,confirmedBy:plan.confirmedBy,...calculation};
+      // Keep the immutable plan's intended basis distinct from the observed
+      // evidence type. An unmeasured QUANTITY line still needs a quantity input,
+      // even though the calculator correctly reports sourceKind:null.
+      return {projectId,confirmedAt:plan.confirmedAt,confirmedBy:plan.confirmedBy,...calculation,
+        lines:calculation.lines.map((item,i)=>({...item,planSourceKind:plan.lines[i]!.sourceKind}))};
     });
   }
   async recordQuantity(context:Context,activityId:string,input:{
