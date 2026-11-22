@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import test from 'node:test';
 import { calculateConfirmedProjectProgress as rollup } from './project-progress-weighting';
 
@@ -81,4 +83,21 @@ test('one confirmed 100% plan yields 100%, zero milestone progress yields 0%', (
   const second=rollup({...input,lines:[{...input.lines[0]!,weightPercent:'100.00',
     source:{...input.lines[0]!.source!,percentComplete:'0.00'}}]});
   assert.equal(second.percentComplete,'0.00');
+});
+
+// A source-level guard for the migration's PL/pgSQL delimiters and immutable
+// plan custody. The actual PostgreSQL/Prisma deployment remains a separate
+// focused native test gate; this check must never be called database proof.
+test('FM02 migration PL/pgSQL dollar quotes are balanced and security triggers exist', () => {
+  const migration = readFileSync(resolve(__dirname,
+    '../../prisma/migrations/20261122140000_fm02_weighted_project_progress/migration.sql'), 'utf8');
+  assert.equal((migration.match(/LANGUAGE plpgsql AS \\$\\$/g) ?? []).length, 4);
+  assert.equal((migration.match(/END \\$\\$;/g) ?? []).length, 4);
+  assert.doesNotMatch(migration, /LANGUAGE plpgsql AS \\$(?:\\r?\\n)/);
+  assert.doesNotMatch(migration, /END \\$;/);
+  assert.match(migration, /CREATE TRIGGER fm02_plan_confirm_only/);
+  assert.match(migration, /CREATE TRIGGER fm02_plan_create_guard/);
+  assert.match(migration, /CREATE TRIGGER fm02_line_create_guard/);
+  assert.match(migration, /CREATE TRIGGER fm02_lines_immutable/);
+  assert.match(migration, /FROM project_progress_plans WHERE id=NEW.plan_id FOR UPDATE/);
 });
