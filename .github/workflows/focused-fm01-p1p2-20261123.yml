@@ -1,0 +1,46 @@
+name: FM01 P1/P2 isolated focused evidence 2026-11-23
+on:
+  push:
+    branches: [focused-fm01-p1p2-no-full-20261123]
+    paths: ['.github/workflows/focused-fm01-p1p2-20261123.yml']
+permissions:
+  contents: read
+jobs:
+  fm01-focused:
+    name: fm01-focused-source-only
+    runs-on: ubuntu-latest
+    env:
+      REVIEWED_FM01_SOURCE_SHA: c844897bed0cb945b72ce7bc85c2c179ae9f8999
+    steps:
+      - name: Checkout exact workflow commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 2
+          ref: ${{ github.sha }}
+      - name: Prove only disposable workflow differs from reviewed source
+        run: |
+          test "$(git rev-parse HEAD^)" = "$REVIEWED_FM01_SOURCE_SHA"
+          test "$(git diff --name-only HEAD^ HEAD)" = ".github/workflows/focused-fm01-p1p2-20261123.yml"
+          printf '%s\n' 'FM01 reviewed application source unchanged: no release/CI shortcut'
+      - name: Set up pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          version: 12.6.0
+          run_install: false
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.21.0
+      - name: Install exact dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Generate Prisma client
+        run: pnpm prisma:generate
+      - name: Test FM01 operational and calendar contracts ONLY
+        run: node --test deploy/release-candidate/fm01-operational-focused.test.mjs deploy/release-candidate/fm01-workday-preview.test.mjs
+      - name: API typecheck only
+        run: pnpm --filter @construction-erp/api typecheck
+      - name: Web typecheck only
+        run: pnpm --filter @construction-erp/web typecheck
+      - name: Record evidence boundary
+        run: |
+          printf '%s\n' 'FOCUSED_ONLY: no full CI, database concurrency, browser, Mac, production, or human UAT claim'
