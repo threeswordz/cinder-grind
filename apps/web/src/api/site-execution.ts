@@ -104,6 +104,29 @@ export type DailySiteReportPayload = {
 };
 
 export type WeeklySiteSummary = {
+  noWorkByReportId: Record<string, {
+    eventId: string;
+    reason: string;
+    createdAt: string;
+    createdByUserId: string;
+    historyCount: number;
+    status: 'DECLARED' | 'REQUIRES_RECONCILIATION';
+  }>;
+  weeklyReview: {
+    fingerprint: string;
+    status: 'UNREVIEWED' | 'ACKNOWLEDGED' | 'STALE';
+    review: null | {
+      eventId: string;
+      reviewedByUserId: string;
+      reviewedAt: string;
+      note: string;
+      fingerprint: string;
+    };
+    canAcknowledge: boolean;
+    canDeclareNoWork: boolean;
+    viewerUserId: string;
+    semantics: 'REVIEW_ACKNOWLEDGMENT_NOT_APPROVAL';
+  };
   // FM01-B uses the CURRENT explicitly configured work calendar for read-only
   // report expectations; it does not assert historical deadline compliance.
   workCalendarPreview: {
@@ -371,6 +394,16 @@ export const siteExecutionApi = {
     apiRequest<Data<WeeklySiteSummary>>(
       query('/site-execution/reports/weekly', { projectId, from, to }),
     ),
+  acknowledgeWeekly: (projectId: string, from: string, to: string, expectedFingerprint: string, note: string) =>
+    apiRequest<Data<WeeklySiteSummary>>('/site-execution/reports/weekly/acknowledge', {
+      method: 'POST',
+      body: JSON.stringify({ projectId, from, to, expectedFingerprint, note }),
+    }),
+  declareNoWork: (id: string, reason: string, previousEventId: string | null = null) =>
+    apiRequest<Data<DailySiteReportDetail>>('/site-execution/reports/' + id + '/no-work', {
+      method: 'POST',
+      body: JSON.stringify({ reason, previousEventId }),
+    }),
   report: (id: string) =>
     apiRequest<Data<DailySiteReportDetail>>(
       '/site-execution/reports/' + id,
