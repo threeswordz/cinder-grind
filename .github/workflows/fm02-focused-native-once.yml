@@ -1,5 +1,5 @@
-name: FM02 Focused Native (single candidate gate)
-# Explicit Owner authorization 2026-11-22: ONE bounded FM02 native validation.
+name: FM02 Focused Native (bounded repair check)
+# Owner authorized focused FM02 completion. Run #45010801944 already proved DB migration and catalog.
 # The workflow only starts when this workflow file itself is first added/edited
 # on the isolated FM02 branch. Later source commits do not retrigger it.
 on:
@@ -16,23 +16,12 @@ concurrency:
 
 jobs:
   fm02-native:
-    name: FM02 native only - no full ERP CI
+    name: FM02 repair compile and specs - no full ERP CI
     runs-on: ubuntu-latest
-    timeout-minutes: 16
-    services:
-      postgres:
-        image: postgres:17.11-alpine
-        env:
-          POSTGRES_DB: construction_erp
-          POSTGRES_USER: construction_erp
-          POSTGRES_PASSWORD: construction_erp_dev_only
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U construction_erp -d construction_erp"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
+    timeout-minutes: 10
+    # Repair check after run #45010801944 proved Prisma/PostgreSQL 17.11
+    # migrations and the FM02 trigger catalog PASS. Do NOT repeat database
+    # migration work; only compile the fixed code and execute FM02 tests.
     env:
       DATABASE_URL: postgresql://construction_erp:construction_erp_dev_only@localhost:5432/construction_erp?schema=public
       VITE_API_BASE_URL: http://localhost:3000/api/v1
@@ -61,15 +50,6 @@ jobs:
           pnpm install --frozen-lockfile
           pnpm prisma:generate
           pnpm prisma:validate
-      - name: Apply forward-only migrations on disposable PostgreSQL 17.11
-        run: |
-          pnpm prisma:migrate:deploy
-          pnpm --filter @construction-erp/api exec prisma migrate status
-      - name: Verify FM02 database trigger, constraint and column catalog
-        run: |
-          pnpm --filter @construction-erp/api exec prisma db execute \
-            --file ../../deploy/release-candidate/fm02-native-catalog-assert.sql \
-            --schema prisma/schema.prisma
       - name: Compile API including FM02 regression tests
         run: pnpm --filter @construction-erp/api build
       - name: Execute FM02 weighting, Ben authorization and source readback tests ONLY
