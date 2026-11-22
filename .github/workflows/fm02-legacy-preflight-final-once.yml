@@ -1,0 +1,26 @@
+name: FM02 Legacy Preflight Focused Final
+on:
+  push:
+    branches: ['work-fm02-preflight-legacy-contract-20261122']
+    paths: ['.github/workflows/fm02-legacy-preflight-final-once.yml']
+permissions:
+  contents: read
+jobs:
+  focused-contract-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Exact candidate checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+      - name: Source checks and focused preflight tests
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          node --check deploy/release-candidate/legacy-fixture.mjs
+          node --check deploy/release-candidate/hr-upgrade.mjs
+          node --check deploy/release-candidate/fm02-legacy-preflight.test.mjs
+          bash -n deploy/release-candidate/rehearse-migration.sh
+          node --test deploy/release-candidate/fm02-legacy-preflight.test.mjs deploy/release-candidate/hr-fm02-compat.test.mjs
+          echo FM02_PREFLIGHT_FINAL_FOCUSED_PASS_NO_FULL_CI_NO_MAC
