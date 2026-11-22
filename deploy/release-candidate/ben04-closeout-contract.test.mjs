@@ -146,6 +146,10 @@ test('new preparation supersedes both old signatures without erasing their histo
  const p=prepare(),b1=sign(p,'BEN',ben,b),n1=sign(p,'NANCY',nancy,c);
  const revision={...basic(),revisionReason:'Outstanding documents found after joint closure'};
  const p2=prepare({id:d,version:2,previousEventId:p.id,body:revision});
+ // This is the ordinary ordered revision path: both historic signatures
+ // were committed before the replacement source. Equal clocks are separately
+ // exercised in the causal-order regression above.
+ p2.occurredAt=new Date(date.getTime()+2000);
  const state=parseCloseoutEvents([p,b1,n1,p2],projectId);
  assert.equal(state.status,'PREPARED');
  assert.equal(state.current.version,2);
