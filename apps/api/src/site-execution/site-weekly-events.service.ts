@@ -136,7 +136,7 @@ export class SiteWeeklyEventsService {
         throw new ConflictException(error('SITE_NO_WORK_SOURCE_INVALID','Use your own submitted Daily Site Report.'));
       // Serialize declarations/corrections for the canonical report even when
       // separate HTTP requests race. This SELECT never mutates source rows.
-      await tx.$queryRaw\`SELECT id FROM daily_site_reports WHERE id = \${report.id}::uuid FOR UPDATE\`;
+      await tx.$queryRaw`SELECT id FROM daily_site_reports WHERE id = ${report.id}::uuid FOR UPDATE`;
       const counts=report._count;
       if(counts.manpowerLines||counts.materialUsage||counts.equipmentUsage||
         counts.progressLines||counts.inspections||counts.corrections)
@@ -192,7 +192,7 @@ export class SiteWeeklyEventsService {
       await this.access.assertAccess(context.auth,projectId,tx);
       // Serialize two Ben review attempts and preserve one event per
       // fingerprint; a later source revision creates a new audit event.
-      await tx.$queryRaw\`SELECT id FROM projects WHERE id = \${projectId}::uuid FOR UPDATE\`;
+      await tx.$queryRaw`SELECT id FROM projects WHERE id = ${projectId}::uuid FOR UPDATE`;
       const summary=await this.site.weekly(context.auth,projectId,from,to,tx);
       const decorated=await this.decorate(context.auth,projectId,summary,tx);
       if(decorated.weeklyReview.fingerprint!==expectedFingerprint)
