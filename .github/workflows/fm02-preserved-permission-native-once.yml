@@ -1,0 +1,65 @@
+name: FM02 Permission Predecessor Targeted Once
+# Exact isolated PostgreSQL 17.11 preservation check; no API/browser/full ERP suite.
+on:
+  push:
+    branches: ['work-fm02-preserved-permission-fix-no-pr-20261122']
+    paths: ['.github/workflows/fm02-preserved-permission-native-once.yml']
+permissions:
+  contents: read
+concurrency:
+  group: fm02-permission-predecessor-once
+  cancel-in-progress: false
+jobs:
+  predecessor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    services:
+      postgres:
+        image: postgres:17.11-alpine
+        env:
+          POSTGRES_DB: construction_erp
+          POSTGRES_USER: construction_erp
+          POSTGRES_PASSWORD: construction_erp_dev_only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U construction_erp -d construction_erp"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://construction_erp:construction_erp_dev_only@localhost:5432/construction_erp?schema=public
+      VITE_API_BASE_URL: http://localhost:3000/api/v1
+    steps:
+      - name: Checkout exact isolated candidate with all historical migrations
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          ref: ${{ github.sha }}
+      - name: Verify exact isolated source
+        run: |
+          test "$GITHUB_REF" = 'refs/heads/work-fm02-preserved-permission-fix-no-pr-20261122'
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - name: Set up pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
+        with:
+          version: 12.6.0
+          run_install: false
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.21.0
+      - name: Validate exact additive permission catalogue and legacy contract
+        run: |
+          node --check deploy/release-candidate/fm02-permission-catalog.mjs
+          node --check deploy/release-candidate/receiving-predecessor.mjs
+          node --check deploy/release-candidate/site-issue-predecessor.mjs
+          node --test deploy/release-candidate/schema-contract.test.mjs
+      - name: Locked install and native Prisma generation
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm prisma:generate
+      - name: Verify exact receiving and FM03 predecessors against disposable PostgreSQL
+        run: node deploy/release-candidate/fm02-predecessor-smoke.mjs
+      - name: Evidence boundary
+        run: echo 'FM02_ADDITIVE_PERMISSION_PRESERVED_PREDECESSOR_PASS: exact native receiving and FM03 history, no full suite, no browser, no Mac'
