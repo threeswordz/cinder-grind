@@ -69,7 +69,7 @@ test('Type-checked API source retains live Nancy-only schedule rights and cannot
  const service=readFileSync(new URL('../../apps/api/src/inventory/stock-count-schedule.service.ts',import.meta.url),'utf8');
  const controller=readFileSync(new URL('../../apps/api/src/inventory/stock-count-schedule.controller.ts',import.meta.url),'utf8');
  assert.match(service,/r\.roleCode==='FINANCE_MANAGER'/);
- assert.match(service,/return \{\.\.\.auth,roleCodes:/);
+ assert.match(service,/return\s*\{\s*\.\.\.auth,roleCodes:/);
  assert.match(service,/permissions:\[\.\.\.permissions\]\.filter\(p=>auth\.permissions\.includes\(p\)\)/);
  assert.match(service,/TransactionIsolationLevel\.Serializable/);
  assert.match(service,/COUNT_SCHEDULE_STALE_VERSION/);
