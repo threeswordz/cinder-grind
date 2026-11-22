@@ -18,7 +18,8 @@ import { previewWeeklyWorkdays, type SiteCalendar } from './site-weekly-workday'
 import {
   NO_WORK_ACTION, NO_WORK_CORRECTION_ACTION, NO_WORK_ENTITY,
   WEEKLY_ACK_ACTION, WEEKLY_REVIEW_ENTITY, calendarFingerprint,
-  mayAcknowledgeWeekly, noWorkEvidence, validWeeklyHash, weeklyReviewFingerprint,
+  mayAcknowledgeWeekly, mayDeclareNoWork, noWorkEvidence,
+  validWeeklyHash, weeklyReviewFingerprint,
 } from './site-weekly-operational';
 
 type AuditContext = {
@@ -327,7 +328,18 @@ export class SiteExecutionService {
       })),
       workCalendarPreview: previewWeeklyWorkdays(projectId, summary.days, calendars),
     };
-    const reviewFingerprint = weeklyReviewFingerprint(summary, noWorkMap);
+    const documentLinks = ids.length ? await db.documentLink.findMany({
+      where: {
+        entityType: 'DAILY_SITE_REPORT',
+        entityId: { in: ids },
+      },
+      select: { id: true },
+      orderBy: { id: 'asc' },
+    }) : [];
+    const reviewFingerprint = weeklyReviewFingerprint(
+      summary, noWorkMap, enriched.workCalendarPreview,
+      documentLinks.map(link => link.id),
+    );
     const reviewRows = await db.auditLog.findMany({
       where: {
         companyId: auth.companyId,
@@ -407,6 +419,10 @@ export class SiteExecutionService {
   }
 
   async declareNoWork(context: AuditContext, id: string, reason: string) {
+    if (!mayDeclareNoWork(context.auth)) {
+      throw new ForbiddenException({code:'NO_WORK_FOREMAN_ROLE_REQUIRED',
+        detail:'Only an authorized Project Engineer/Foreman may declare planned no-work.'});
+    }
     await this.prisma.$transaction(async tx => {
       const report = await tx.dailySiteReport.findFirst({
         where: { id, companyId: context.auth.companyId },
@@ -464,6 +480,10 @@ export class SiteExecutionService {
   }
 
   async correctNoWork(context: AuditContext, id: string, reason: string) {
+    if (!mayDeclareNoWork(context.auth)) {
+      throw new ForbiddenException({code:'NO_WORK_FOREMAN_ROLE_REQUIRED',
+        detail:'Only the authorized Foreman may correct a planned no-work reason.'});
+    }
     await this.prisma.$transaction(async tx => {
       const report = await tx.dailySiteReport.findFirst({
         where: {id, companyId: context.auth.companyId},
