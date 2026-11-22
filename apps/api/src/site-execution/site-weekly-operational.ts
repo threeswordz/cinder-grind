@@ -1,0 +1,222 @@
+import { createHash } from 'node:crypto';
+
+import type { AuthenticatedUserContext } from '../auth/auth.types';
+import type { WeeklySiteReportSource } from './site-weekly-summary';
+
+export const NO_WORK_ACTION = 'DECLARE_NO_WORK';
+export const NO_WORK_CORRECTION_ACTION = 'CORRECT_NO_WORK';
+export const WEEKLY_ACK_ACTION = 'REVIEW_ACK';
+export const NO_WORK_ENTITY = 'DAILY_SITE_REPORT_NO_WORK';
+export const WEEKLY_REVIEW_ENTITY = 'SITE_WEEKLY_REVIEW';
+
+export type EvidenceRow = {
+  id: string;
+  action: string;
+  occurredAt: Date;
+  actorUserId: string;
+  newValues: unknown;
+};
+
+export type NoWorkEvidence = {
+  reason: string;
+  declarationId: string;
+  latestEventId: string;
+  declaredByUserId: string;
+  declaredAt: string;
+  correctedByUserId: string | null;
+  correctedAt: string | null;
+  correctionCount: number;
+  plannedDayEvidence: {
+    calendarId: string;
+    calendarName: string;
+    timezoneName: string;
+    reportDate: string;
+    plannedDayKind: 'PLANNED_WORKDAY';
+    dueLocalDate: string | null;
+    dueLocalStartTime: string | null;
+    calendarFingerprint: string;
+    historicTimeliness: 'NOT_ASSESSED';
+  };
+};
+
+type WeekSource = {
+  projectId: string;
+  from: string;
+  to: string;
+  days: readonly {
+    date: string;
+    status: string;
+    report: null | {
+      id: string;
+      createdBy: { id: string };
+      submittedAt: Date | string | null;
+      updatedAt: Date | string;
+      totalManpower: number;
+      counts: WeeklySiteReportSource['_count'];
+      progressObservations: readonly {
+        activityId: string; percentComplete: string; note: string | null;
+      }[];
+    };
+  }[];
+};
+
+const sha256 = (value: unknown) => createHash('sha256')
+  .update(JSON.stringify(value))
+  .digest('hex');
+
+export function calendarFingerprint(calendar: {
+  id: string;
+  projectId: string | null;
+  isActive: boolean;
+  isDefault: boolean;
+  timezoneName: string;
+  weekdays: readonly { weekdayNo: number; isWorking: boolean; startTime: Date | null }[];
+  exceptions: readonly { exceptionDate: Date; isWorkingOverride: boolean; startTime: Date | null; reason: string | null }[];
+}): string {
+  return sha256({
+    id: calendar.id, projectId: calendar.projectId, isActive: calendar.isActive,
+    isDefault: calendar.isDefault, timezone: calendar.timezoneName,
+    weekdays: calendar.weekdays.map(w => ({
+      weekdayNo: w.weekdayNo, working: w.isWorking, start: w.startTime?.toISOString() ?? null,
+    })).sort((a,b) => a.weekdayNo - b.weekdayNo),
+    exceptions: calendar.exceptions.map(e => ({
+      date: e.exceptionDate.toISOString().slice(0, 10), working: e.isWorkingOverride,
+      start: e.startTime?.toISOString() ?? null, reason: e.reason,
+    })).sort((a,b) => a.date.localeCompare(b.date)),
+  });
+}
+
+function object(value: unknown): Record<string, unknown> | null {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown> : null;
+}
+
+export function noWorkEvidence(rows: readonly EvidenceRow[]): NoWorkEvidence | null {
+  // Scoped append-only history. Explicit links, not UUID order or truncated
+  // timestamps, determine the causal order of corrections.
+  const declarations = rows.filter(row => row.action === NO_WORK_ACTION);
+  if (!declarations.length) {
+    if (rows.length) throw new RangeError('Correction without no-work declaration');
+    return null;
+  }
+  if (declarations.length !== 1) throw new RangeError('Duplicate no-work declaration');
+  const declared = declarations[0]!;
+  const values = object(declared.newValues);
+  const plan = object(values?.plannedDayEvidence);
+  if (typeof values?.reason !== 'string' || !values.reason.trim() ||
+    typeof plan?.calendarId !== 'string' || typeof plan?.timezoneName !== 'string' ||
+    typeof plan?.calendarName !== 'string' || typeof plan?.reportDate !== 'string' ||
+    plan?.plannedDayKind !== 'PLANNED_WORKDAY' ||
+    typeof plan?.calendarFingerprint !== 'string' ||
+    !/^[a-f0-9]{64}$/.test(plan.calendarFingerprint))
+    throw new RangeError('Malformed no-work declaration');
+  const seenIds = new Set<string>();
+  const children = new Map<string, EvidenceRow>();
+  for (const row of rows) {
+    if (!row.id || seenIds.has(row.id)) throw new RangeError('Duplicate no-work event id');
+    seenIds.add(row.id);
+    if (row.action === NO_WORK_ACTION) continue;
+    if (row.action !== NO_WORK_CORRECTION_ACTION)
+      throw new RangeError('Unexpected no-work audit action');
+    const next = object(row.newValues);
+    if (typeof next?.previousEventId !== 'string' || !next.previousEventId.trim())
+      throw new RangeError('Missing no-work correction predecessor');
+    if (children.has(next.previousEventId))
+      throw new RangeError('Forked no-work correction history');
+    children.set(next.previousEventId, row);
+  }
+  let reason = values.reason;
+  let correctedByUserId: string | null = null;
+  let correctedAt: string | null = null;
+  let count = 0;
+  let previous = declared;
+  while (children.size) {
+    const row = children.get(previous.id);
+    if (!row) throw new RangeError('Orphaned or cyclic no-work correction');
+    if (row.occurredAt.getTime() < previous.occurredAt.getTime())
+      throw new RangeError('Invalid no-work correction order');
+    const next = object(row.newValues);
+    if (typeof next?.reason !== 'string' || !next.reason.trim() ||
+      next.oldReason !== reason)
+      throw new RangeError('Malformed no-work correction');
+    children.delete(previous.id);
+    previous = row;
+    reason = next.reason;
+    correctedByUserId = row.actorUserId;
+    correctedAt = row.occurredAt.toISOString();
+    count++;
+  }
+  return {
+    reason,
+    declarationId: declared.id,
+    latestEventId: previous.id,
+    declaredByUserId: declared.actorUserId,
+    declaredAt: declared.occurredAt.toISOString(),
+    correctedByUserId, correctedAt, correctionCount: count,
+    plannedDayEvidence: {
+      calendarId: plan.calendarId,
+      calendarName: plan.calendarName,
+      timezoneName: plan.timezoneName,
+      reportDate: plan.reportDate,
+      plannedDayKind: 'PLANNED_WORKDAY',
+      dueLocalDate: typeof plan.dueLocalDate === 'string' ? plan.dueLocalDate : null,
+      dueLocalStartTime: typeof plan.dueLocalStartTime === 'string' ? plan.dueLocalStartTime : null,
+      calendarFingerprint: plan.calendarFingerprint,
+      historicTimeliness: 'NOT_ASSESSED',
+    },
+  };
+}
+
+export function weeklyReviewFingerprint(
+  week: WeekSource,
+  noWorkByReport: ReadonlyMap<string, NoWorkEvidence | null>,
+  currentCalendarPreview: unknown = null,
+  documentLinkIds: readonly string[] = [],
+): string {
+  return sha256({
+    projectId: week.projectId, from: week.from, to: week.to,
+    calendarPreview: currentCalendarPreview,
+    documentLinkIds: [...documentLinkIds].sort(),
+    days: week.days.map(day => ({
+      date: day.date, status: day.status,
+      source: day.report === null ? null : {
+        id: day.report.id,
+        author: day.report.createdBy.id,
+        submittedAt: day.report.submittedAt,
+        updatedAt: day.report.updatedAt,
+        counts: day.report.counts,
+        manpower: day.report.totalManpower,
+        observations: day.report.progressObservations.map(p => ({
+          activity: p.activityId, progress: p.percentComplete, note: p.note,
+        })),
+        noWork: noWorkByReport.get(day.report.id) ?? null,
+      },
+    })),
+  });
+}
+
+export function mayDeclareNoWork(
+  auth: Pick<AuthenticatedUserContext, 'roleCodes' | 'permissions'>,
+): boolean {
+  return auth.roleCodes.includes('PROJECT_ENGINEER') &&
+    auth.permissions.includes('site.daily_report.edit') &&
+    auth.permissions.includes('site.daily_report.submit');
+}
+
+export function mayAcknowledgeWeekly(
+  auth: Pick<AuthenticatedUserContext, 'roleCodes' | 'permissions' | 'userId'>,
+  week: WeekSource,
+  correctionAuthors: readonly string[],
+): boolean {
+  // The MANAGEMENT persona (Ben) reviews but NEVER formally approves. Do not
+  // silently make SYS_ADMIN or a project preparer an alternate reviewer.
+  return auth.roleCodes.includes('MANAGEMENT') &&
+    auth.permissions.includes('site.daily_report.view') &&
+    week.days.some(day => day.status === 'SUBMITTED') &&
+    week.days.every(day => day.report?.createdBy.id !== auth.userId) &&
+    !correctionAuthors.includes(auth.userId);
+}
+
+export function validWeeklyHash(hash: unknown): hash is string {
+  return typeof hash === 'string' && /^[a-f0-9]{64}$/.test(hash);
+}

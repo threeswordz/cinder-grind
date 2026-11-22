@@ -117,6 +117,7 @@ export function SiteExecutionPanel({
   const [delays, setDelays] = useState<DelayLineInput[]>([]);
   const [inspections, setInspections] = useState<InspectionLineInput[]>([]);
   const [correctionNote, setCorrectionNote] = useState('');
+  const [noWorkReason, setNoWorkReason] = useState('');
   const [correctionProgress, setCorrectionProgress] = useState<
     ProgressLineInput[]
   >([]);
@@ -166,6 +167,7 @@ export function SiteExecutionPanel({
     setReportDate(report.reportDate.slice(0, 10));
     setWeatherObservation(report.weatherObservation ?? '');
     setGeneralRemarks(report.generalRemarks ?? '');
+    setNoWorkReason(report.noWork?.reason ?? '');
     setManpower(
       report.manpowerLines.map((line) => ({
         tradeRole: line.tradeRole,
@@ -360,6 +362,25 @@ export function SiteExecutionPanel({
     },
   });
 
+  const noWorkMutation = useMutation({
+    mutationFn: () => siteExecutionApi.declareNoWork(selectedId, noWorkReason.trim()),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['site-execution', 'report', selectedId] }),
+        queryClient.invalidateQueries({ queryKey: ['site-execution', 'weekly', projectId] }),
+      ]);
+    },
+  });
+  const noWorkCorrectionMutation = useMutation({
+    mutationFn: () => siteExecutionApi.correctNoWork(selectedId, noWorkReason.trim()),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['site-execution', 'report', selectedId] }),
+        queryClient.invalidateQueries({ queryKey: ['site-execution', 'weekly', projectId] }),
+      ]);
+    },
+  });
+
   const photoMutation = useMutation({
     mutationFn: () => {
       if (!photo) throw new Error('Select a file first.');
@@ -392,6 +413,7 @@ export function SiteExecutionPanel({
     setCorrectionNote('');
     setCorrectionProgress([]);
     setCorrectionEquipment([]);
+    setNoWorkReason('');
     setDocumentTypeId('');
     setPhoto(null);
   };
@@ -458,6 +480,8 @@ export function SiteExecutionPanel({
     saveMutation.error ??
     submitMutation.error ??
     correctionMutation.error ??
+    noWorkMutation.error ??
+    noWorkCorrectionMutation.error ??
     photoMutation.error;
 
   return (
@@ -504,6 +528,8 @@ export function SiteExecutionPanel({
           ) : null}
           <WeeklySiteSummaryPanel
             projectId={projectId}
+            canAcknowledge={permissions.includes('management.dashboard.view') &&
+              permissions.includes('site.daily_report.view')}
             onOpenReport={(id) => setSelectedId(id)}
           />
           <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
@@ -1241,6 +1267,50 @@ export function SiteExecutionPanel({
                   >
                     {selectedId ? 'Save Draft' : 'Create Draft'}
                   </Button>
+                ) : null}
+
+                {report && canEdit && (report.status === 'DRAFT' || report.noWork) ? (
+                  <Stack spacing={1}>
+                    <Divider />
+                    <Typography variant="subtitle1">
+                      Planned workday stopped — no-work evidence
+                    </Typography>
+                    <Alert severity="info">
+                      Declare only when the configured Project work calendar says this
+                      was a planned workday and the saved report has no actual
+                      manpower, material, equipment, progress or inspection.
+                      Reporting timeliness is not assessed retrospectively.
+                      A reason correction is append-only, not a change to the
+                      original submitted report.
+                    </Alert>
+                    {report.noWork ? (
+                      <Chip color="info" variant="outlined"
+                        label={'No-work declared · ' + report.noWork.declaredAt.slice(0, 10) +
+                        ' · corrections: ' + report.noWork.correctionCount} />
+                    ) : null}
+                    <TextField
+                      label={report.noWork ? 'Correct no-work reason' : 'No-work reason (rain, safety, etc.)'}
+                      value={noWorkReason}
+                      multiline
+                      minRows={2}
+                      onChange={(event) => setNoWorkReason(event.target.value)}
+                    />
+                    {report.status === 'DRAFT' && !report.noWork ? (
+                      <Button variant="outlined"
+                        disabled={!noWorkReason.trim() || noWorkMutation.isPending}
+                        onClick={() => noWorkMutation.mutate()}>
+                        Declare planned-day no-work
+                      </Button>
+                    ) : report.status === 'SUBMITTED' && report.noWork ? (
+                      <Button variant="outlined"
+                        disabled={!noWorkReason.trim() ||
+                          noWorkReason.trim() === report.noWork.reason ||
+                          noWorkCorrectionMutation.isPending}
+                        onClick={() => noWorkCorrectionMutation.mutate()}>
+                        Append reason correction
+                      </Button>
+                    ) : null}
+                  </Stack>
                 ) : null}
 
                 {report?.status === 'DRAFT' && canSubmit ? (
