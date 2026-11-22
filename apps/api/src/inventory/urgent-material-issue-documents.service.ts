@@ -48,7 +48,7 @@ export class UrgentMaterialIssueDocumentsService {
       .map(row=>row.role)??[];
     const effective=new Set(roles.flatMap(row=>row.rolePermissions.map(p=>p.permission.permissionCode)));
     const role=action==='MAKER'?'STOREKEEPER':'PROJECT_MANAGER';
-    const permissions=action==='MAKER'?['inventory.issue.view','inventory.issue.create']:
+    const permissions=action==='MAKER'?['inventory.issue.view','inventory.issue.create','documents.document.view']:
       action==='REVIEW'?['inventory.issue.view','inventory.issue.approve','documents.document.view']:
       ['inventory.issue.view','documents.document.view'];
     const hasRole=action==='VIEW'
