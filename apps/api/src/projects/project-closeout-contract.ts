@@ -148,7 +148,7 @@ export function parseCloseoutEvents(
     if(!uuid.test(e.id)||!uuid.test(e.actorUserId)||!Number.isFinite(e.occurredAt.getTime()))
       throw new RangeError('BEN04_INVALID_AUDIT_IDENTITY');
     if(e.action===PREPARE_CLOSEOUT){
-      const version=(prepared?.version??0)+1;
+      const version: number=(prepared?.version??0)+1;
       const prep=validateCloseoutPreparation(v.preparation,version>1);
       if(v.projectId!==projectId||v.version!==version||v.preparedBy!==e.actorUserId||
         (version>1&&v.previousEventId!==prepared?.eventId))
