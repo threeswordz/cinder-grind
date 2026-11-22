@@ -243,6 +243,11 @@ export function ProjectCloseoutPanel({
             {t.description}: {item.description} · {t.reason}: {item.reason} · {t.owner}: {item.ownerUserId}
             {' · '}{t.due}: {item.dueDate} · {t.amount}: {item.remainingAmount??'—'}
             {' · '}{t.quantity}: {item.remainingQuantity??'—'} {item.quantityUom??''}
+            {item.notQuantifiableReason ? (
+              <Typography variant="body2">
+                {t.nonquant}: {item.notQuantifiableReason}
+              </Typography>
+            ) : null}
           </Alert>)}
         </Stack>:null}
         {result.current&&
