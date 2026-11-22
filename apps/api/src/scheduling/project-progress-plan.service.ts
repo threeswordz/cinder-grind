@@ -175,10 +175,19 @@ export class ProjectProgressPlanService {
       const activities=await tx.activity.findMany({where:{companyId:auth.companyId,projectId,
         id:{in:plan.lines.map(x=>x.activityId)},isActive:true},select:{id:true}});
       const active=new Set(activities.map(x=>x.id));
+      // A newer work-plan version must never inherit measured quantity records
+      // from a previous plan or a different BOQ/UOM pin. Milestone assessments
+      // must not be impersonated by a BOQ_QUANTITY row that happens to have a note.
       const evidence=await Promise.all(plan.lines.map(line=>active.has(line.activityId)?tx.activityProgress.findFirst({
-        where:{companyId:auth.companyId,projectId,activityId:line.activityId},
+        where:{companyId:auth.companyId,projectId,activityId:line.activityId,
+          ...(line.sourceKind==='QUANTITY'?{
+            sourceType:'BOQ_QUANTITY',
+            sourceEntityId:plan.id,
+            sourceBudgetRevisionLineId:line.approvedBudgetRevisionLineId,
+            sourceUomId:line.uomId,
+          }:{sourceType:{not:'BOQ_QUANTITY'}})},
         orderBy:[{createdAt:'desc'},{id:'desc'}],
-        select:{id:true,sourceType:true,percentComplete:true,note:true,completedQuantity:true,
+        select:{id:true,sourceType:true,sourceEntityId:true,percentComplete:true,note:true,completedQuantity:true,
           sourceBudgetRevisionLineId:true,sourceUomId:true}}):Promise.resolve(null)));
       const lines=plan.lines.map((line,i)=>{
         const progress=evidence[i];let source=null;
