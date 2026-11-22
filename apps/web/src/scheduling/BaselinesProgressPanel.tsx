@@ -13,6 +13,7 @@ import { FormEvent, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { schedulingApi } from '../api/scheduling';
+import { ProjectProgressPlansPanel } from './ProjectProgressPlansPanel';
 
 function dateValue(value: string | null | undefined) {
   return value ? value.slice(0, 10) : '—';
@@ -417,6 +418,9 @@ export function BaselinesProgressPanel({
           </CardContent>
         </Card>
       ) : null}
+      {projectId ? <ProjectProgressPlansPanel key={projectId} projectId={projectId}
+        permissions={permissions}
+        activities={rows.map(row=>({activityId:row.activityId,activityName:row.activityName}))}/>:null}
     </Stack>
   );
 }
