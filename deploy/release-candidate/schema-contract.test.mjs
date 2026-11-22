@@ -158,3 +158,29 @@ test('FM02 preserved predecessor allows exactly two empty new tables without wea
   assert.throws(()=>verify(prior,{...upgraded,[fm02Tables[0]]:{count:'1',digest:'changed'}}),/New table must be empty/);
   assert.throws(()=>verify(prior,{...upgraded,companies:{count:'1',digest:'mutated'}}),/Historical business\/approval\/stock\/Finance\/audit rows changed/);
 });
+
+
+test('FM02 permission catalogue is the exact additive migration with no automatic grants', async () => {
+  const {fm02Catalog,verifyFm02Catalog}=await import('./fm02-permission-catalog.mjs');
+  const {readFileSync}=await import('node:fs');
+  const migration=readFileSync(new URL('../../apps/api/prisma/migrations/20261122140000_fm02_weighted_project_progress/migration.sql',import.meta.url),'utf8');
+  assert.equal(fm02Catalog.length,2);
+  for(const row of fm02Catalog)for(const value of Object.values(row))assert.ok(migration.includes(value));
+  assert.doesNotMatch(migration,/INSERT\s+INTO\s+"?(role_permissions|user_roles|stock_transactions|approval_actions)"?/i);
+  assert.doesNotThrow(()=>verifyFm02Catalog(fm02Catalog.map(row=>({...row}))));
+  assert.throws(()=>verifyFm02Catalog(fm02Catalog.slice(1)));
+  assert.throws(()=>verifyFm02Catalog(fm02Catalog.map((row,i)=>i?{...row,module_code:'BUDGET'}:row)));
+  assert.throws(()=>verifyFm02Catalog([...fm02Catalog,{...fm02Catalog[0],id:'f0020000-0000-4000-8000-000000000003'}]));
+  assert.throws(()=>verifyFm02Catalog(fm02Catalog.map((row,i)=>i?{...row,description:'broader access'}:row)));
+});
+
+test('both pre-FM02 populated upgrade witnesses verify new permissions before excluding their IDs, while retaining all role grants', async () => {
+  const {readFileSync}=await import('node:fs');
+  for(const filename of ['receiving-predecessor.mjs','site-issue-predecessor.mjs']){
+    const file=readFileSync(new URL('./'+filename,import.meta.url),'utf8');
+    assert.match(file,/verifyFm02Catalog\(await db\.\$queryRawUnsafe/);
+    assert.match(file,/\.\.\.dec054Catalog,\.\.\.fm02Catalog\]\.map\(p=>p\.id\)/);
+    assert.match(file,/assertHistoricalTables\(before,after,/);
+    assert.doesNotMatch(file,/role_permissions[^\n]*WHERE/);
+  }
+});

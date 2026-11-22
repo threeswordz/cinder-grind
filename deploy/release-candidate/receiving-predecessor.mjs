@@ -9,6 +9,7 @@ import {stripTransferSchema as transferBase} from './transfer-schema-contract.mj
 const stripTransferSchema=schema=>transferBase(stripPhysicalSchema(stripMaterialUomSchema(stripMaterialUomEffectSchema(stripMaterialUomStageCSchema(stripFm02Schema(schema).text).text).text).text).text);
 import {transferCatalog,verifyTransferCatalog} from './transfer-catalog-contract.mjs';
 import {dec054Catalog,verifyDec054Catalog} from './dec054-permission-catalog.mjs';
+import {fm02Catalog,verifyFm02Catalog} from './fm02-permission-catalog.mjs';
 // Exact post-FM03 populated d2b79080 predecessor → receiving. No historical acceptance/backfill.
 import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
@@ -60,9 +61,12 @@ export async function prepareReceivingUpgrade(databaseUrl){
     // Verify the two exact additive DEC-054 rows before excluding their IDs
     // from the historical permission digest; no user/role grants are ignored.
     if(candidate&&tablename==='permissions')verifyDec054Catalog(await db.$queryRawUnsafe('SELECT id::text AS id,permission_code,module_code FROM permissions WHERE id=ANY($1::uuid[])',dec054Catalog.map(p=>p.id)));
+    // FM02 adds exactly two permission definitions, never historical user/role grants.
+    // Verify both full definitions before excluding only their IDs from the old-row hash.
+    if(candidate&&tablename==='permissions')verifyFm02Catalog(await db.$queryRawUnsafe('SELECT id::text AS id,permission_code,module_code,description FROM permissions WHERE id=ANY($1::uuid[])',fm02Catalog.map(p=>p.id)));
     const filter=candidate&&tablename==='permissions',columns=candidate&&tablename==='goods_receipts'?['delivery_id']:candidate&&tablename==='stock_transactions'?['transfer_receipt_line_id']:candidate&&tablename==='activity_progress'?['completed_quantity','source_budget_revision_line_id','source_uom_id']:[];
     if(columns.includes('delivery_id'))assert.equal((await db.$queryRawUnsafe('SELECT count(*)::text AS n FROM goods_receipts WHERE delivery_id IS NOT NULL'))[0].n,'0','Historical GR receiving provenance must stay null');
-    const [row]=await db.$queryRawUnsafe(`SELECT count(*)::text AS count,encode(sha256(convert_to(coalesce(string_agg((to_jsonb(t)-$1::text[])::text,E'\\n' ORDER BY (to_jsonb(t)-$1::text[])::text),''),'UTF8')),'hex') AS digest FROM "${tablename}" t ${filter?'WHERE id <> ALL($2::uuid[])':''}`,columns,...(filter?[[...receivingCatalog,...transferCatalog,...physicalCatalog,...materialUomCatalog,...dec054Catalog].map(p=>p.id)]:[]));result[tablename]=row;
+    const [row]=await db.$queryRawUnsafe(`SELECT count(*)::text AS count,encode(sha256(convert_to(coalesce(string_agg((to_jsonb(t)-$1::text[])::text,E'\\n' ORDER BY (to_jsonb(t)-$1::text[])::text),''),'UTF8')),'hex') AS digest FROM "${tablename}" t ${filter?'WHERE id <> ALL($2::uuid[])':''}`,columns,...(filter?[[...receivingCatalog,...transferCatalog,...physicalCatalog,...materialUomCatalog,...dec054Catalog,...fm02Catalog].map(p=>p.id)]:[]));result[tablename]=row;
    }return result;
   }
   console.log('RECEIVING_PREDECESSOR_POPULATED_PASS');
