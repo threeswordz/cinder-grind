@@ -128,12 +128,11 @@ export class UrgentMaterialIssueDocumentsService {
     if(!state) return {issueId:id,projectId:issue.projectId,record:null};
     let sourceCurrent=false;
     if(state.evidenceFingerprint&&state.documentIds.length){
-      try{
-        const snapshot=await this.snapshot(currentAuth,issue.projectId,id,state.documentIds,issue.postedAt!,this.prisma);
-        sourceCurrent=snapshot.digest===state.evidenceFingerprint;
-      }catch{
-        sourceCurrent=false;
-      }
+      // Protected source authorization is a hard read gate, not a stale state.
+      // Never return document IDs, counts or hashes when a linked source has
+      // become inaccessible, archived or missing after a role revocation.
+      const snapshot=await this.snapshot(currentAuth,issue.projectId,id,state.documentIds,issue.postedAt!,this.prisma);
+      sourceCurrent=snapshot.digest===state.evidenceFingerprint;
     }
     return {
       issueId:id,projectId:issue.projectId,
