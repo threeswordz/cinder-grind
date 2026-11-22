@@ -151,6 +151,54 @@ test('new preparation supersedes both old signatures without erasing their histo
  assert.equal(state.current.version,2);
  assert.equal(parseCloseoutEvents([p,b1,n1],projectId).status,'JOINTLY_APPROVED');
 });
+test('same-timestamp random UUID order cannot invert preparation and Ben/Nancy signatures',()=>{
+ const prepared=prepare({id:a}),benSig=sign(prepared,'BEN',ben,b),nancySig=sign(prepared,'NANCY',nancy,c);
+ benSig.occurredAt=date;nancySig.occurredAt=date;
+ for(const order of [
+   [nancySig,prepared,benSig],
+   [benSig,nancySig,prepared],
+   [prepared,nancySig,benSig],
+ ]) {
+   const state=parseCloseoutEvents(order,projectId);
+   assert.equal(state.status,'JOINTLY_APPROVED');
+   assert.equal(state.current.signatures.BEN.userId,ben);
+   assert.equal(state.current.signatures.NANCY.userId,nancy);
+ }
+});
+test('same-timestamp successive preparations use explicit version/previous event links',()=>{
+ const first=prepare({id:a,body:warning()});
+ const priorSign=sign(first,'BEN',ben,b);priorSign.occurredAt=date;
+ const newer=prepare({id:d,version:2,previousEventId:a,
+   body:{...basic(),revisionReason:'New handover evidence requires another review'}});
+ const history=[newer,priorSign,first];
+ const state=parseCloseoutEvents(history,projectId);
+ assert.equal(state.status,'PREPARED');
+ assert.equal(state.current.version,2);
+ assert.equal(state.current.signatures.BEN,undefined);
+ assert.equal(parseCloseoutEvents([priorSign,first],projectId).status,'BEN_SIGNED');
+});
+test('duplicate, orphan, forged and impossible causal audit events fail closed',()=>{
+ const prepared=prepare({id:a}),sign1=sign(prepared,'BEN',ben,b);
+ const cases=[
+   [prepared,prepared],
+   [sign1],
+   [prepared,{...sign1,occurredAt:new Date(date.getTime()-1000)}],
+   [prepared,prepare({id:d,version:1})],
+   [prepared,prepare({id:d,version:2,previousEventId:a,
+     body:{...basic(),revisionReason:'Properly marked revision for testing'}}),
+     {...sign1,occurredAt:new Date(date.getTime()+1000)}],
+   [prepared,{...sign1,id:prepared.id}],
+ ];
+ for(const events of cases)
+   assert.throws(()=>parseCloseoutEvents(events,projectId),RangeError);
+});
+test('Ben and Nancy read-only source view displays nonquantified rationale',async()=>{
+ const {readFileSync}=await import('node:fs');
+ const ui=readFileSync(new URL('../../apps/web/src/projects/ProjectCloseoutPanel.tsx',import.meta.url),'utf8');
+ assert.match(ui,/item\.notQuantifiableReason\s*\?/);
+ assert.match(ui,/\{t\.nonquant\}: \{item\.notQuantifiableReason\}/);
+});
+
 test('preparation fingerprint canonicalizes order of six source rows and followup register',()=>{
  const a=normalize(warning()),b=warning();b.checklist.reverse();
  assert.equal(closeoutFingerprint({projectId,version:1,preparedBy:khaimook,preparation:a}),
