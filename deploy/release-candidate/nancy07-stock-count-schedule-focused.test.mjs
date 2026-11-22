@@ -28,6 +28,8 @@ test('Nancy explicitly supplies site category and positive repeat cadence; never
   firstDueDate:'2026-11-29',status:'ACTIVE',reason:'none'}),RangeError);
  assert.throws(()=>countScheduleContract({...c,intervalDays:0}),RangeError);
  assert.throws(()=>countScheduleContract({...c,intervalDays:3651}),RangeError);
+ assert.throws(()=>countScheduleContract({...c,status:['ACTIVE']}),RangeError);
+ assert.throws(()=>countScheduleContract({...c,status:{toString:()=> 'ACTIVE'}}),RangeError);
  assert.throws(()=>countScheduleContract({...c,materialCategory:'*'}),RangeError);
  assert.throws(()=>countScheduleContract({...c,override:'approval'}),RangeError);
 });
