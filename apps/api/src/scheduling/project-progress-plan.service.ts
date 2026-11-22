@@ -28,7 +28,7 @@ export class ProjectProgressPlanService {
     const session=await tx.userSession.findFirst({where:{id:auth.sessionId,userId:auth.userId,
       revokedAt:null,expiresAt:{gt:new Date()},user:{companyId:auth.companyId,isActive:true,
         company:{isActive:true}}},include:{user:{include:userInclude}}});
-    if(!session)denied('FM02_SESSION_REVOKED');
+    if(!session)throw new ForbiddenException({code:'FM02_SESSION_REVOKED'});
     // A permission granted through another Company/Role must never authorize
     // this Company's Project. Confirmation is reserved to Ben's configured
     // MANAGEMENT role; the permission catalog alone grants nobody this right.
@@ -111,7 +111,7 @@ export class ProjectProgressPlanService {
           if(selected.has(parent))fail('FM02_PARENT_CHILD_DOUBLE_COUNT');
           const ancestor=await tx.activity.findFirst({where:{id:parent,projectId:input.projectId,companyId:a.companyId},
             select:{parentActivityId:true}});
-          if(!ancestor)denied('FM02_ANCESTOR_SCOPE_INVALID');
+          if(!ancestor)throw new ForbiddenException({code:'FM02_ANCESTOR_SCOPE_INVALID'});
           parent=ancestor.parentActivityId;
           if(depth===100)fail('FM02_ACTIVITY_HIERARCHY_CYCLE');
         }
@@ -131,9 +131,11 @@ export class ProjectProgressPlanService {
           return {activityId:line.activityId,weightPercent:line.weightPercent,sourceKind:'MILESTONE',
             approvedBudgetRevisionLineId:null,plannedQuantity:null,uomId:null};
         }
-        if(line.sourceKind!=='QUANTITY'||!line.approvedBudgetRevisionLineId)fail('FM02_SOURCE_KIND_INVALID');
+        if(line.sourceKind!=='QUANTITY'||!line.approvedBudgetRevisionLineId)
+          throw new UnprocessableEntityException({code:'FM02_SOURCE_KIND_INVALID'});
         const budget=bound.get(line.approvedBudgetRevisionLineId);
-        if(!budget||budget.wbsId!==activity.wbsId||budget.quantity.lte(0))denied('FM02_APPROVED_BOQ_PROJECT_SOURCE');
+        if(!budget||budget.wbsId!==activity.wbsId||budget.quantity.lte(0))
+          throw new ForbiddenException({code:'FM02_APPROVED_BOQ_PROJECT_SOURCE'});
         return {activityId:line.activityId,weightPercent:line.weightPercent,sourceKind:'QUANTITY',
           approvedBudgetRevisionLineId:budget.id,plannedQuantity:budget.quantity,uomId:budget.uomId};
       });
@@ -236,7 +238,8 @@ export class ProjectProgressPlanService {
         confirmedAt:{not:null}},include:{lines:{where:{activityId,sourceKind:'QUANTITY'}}},
         orderBy:{versionNo:'desc'}});
       const line=plan?.lines[0];
-      if(!line||!line.plannedQuantity||!line.approvedBudgetRevisionLineId||!line.uomId)stale();
+      if(!line||!line.plannedQuantity||!line.approvedBudgetRevisionLineId||!line.uomId)
+        throw new ConflictException({code:'FM02_VERSION_OR_SCOPE_CONFLICT'});
       const actual=new Prisma.Decimal(input.completedQuantity);
       if(actual.lt(0)||actual.gt(line.plannedQuantity))fail('FM02_QUANTITY_OUTSIDE_APPROVED_SOURCE');
       const percent=actual.div(line.plannedQuantity).mul(100).toDecimalPlaces(2,Prisma.Decimal.ROUND_HALF_UP);
