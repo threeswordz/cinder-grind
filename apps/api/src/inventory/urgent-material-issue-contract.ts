@@ -48,7 +48,7 @@ const isString = (v: unknown): v is string => typeof v === 'string' && v.trim().
 const isIso = (v: unknown): v is string => typeof v === 'string' &&
   !Number.isNaN(Date.parse(v)) && new Date(v).toISOString() === v;
 const uuid = (v: unknown): v is string =>
-  typeof v === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{12}$/i.test(v);
+  typeof v === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v);
 function corrupted(message: string): never { throw new RangeError('PM09_' + message); }
 
 export function urgentDueAt(sourcePostedAt: Date): string {
