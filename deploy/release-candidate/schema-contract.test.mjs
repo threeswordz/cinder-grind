@@ -1,3 +1,4 @@
+import {stripFm02Schema} from './fm02-schema-contract.mjs';
 import {stripMaterialUomStageCSchema} from './material-uom-stage-c-schema-contract.mjs';
 import {stripMaterialUomSchema} from './material-uom-schema-contract.mjs';
 import {stripMaterialUomEffectSchema} from './material-uom-effect-schema-contract.mjs';
@@ -47,7 +48,7 @@ test('schema classification rejects unrelated/removal/required/defaulted/partial
 test('Customer BOQ classifier admits only the exact five new models and parent relations', async () => {
   const { readFileSync } = await import('node:fs');
   const current = stripHrDocumentSchema(stripHrSchema(stripStockCountSchema(
-    stripMaterialRequestSchema(stripMaterialPlanSchema(stripPlanIssueSchema(stripSiteIssueSchema(stripReceivingSchema(stripMaterialUomSchema(stripMaterialUomEffectSchema(stripMaterialUomStageCSchema(readFileSync(new URL('../../apps/api/prisma/schema.prisma', import.meta.url), 'utf8')).text).text).text).text).text).text).text).text,
+    stripMaterialRequestSchema(stripMaterialPlanSchema(stripPlanIssueSchema(stripSiteIssueSchema(stripReceivingSchema(stripMaterialUomSchema(stripMaterialUomEffectSchema(stripMaterialUomStageCSchema(stripFm02Schema(readFileSync(new URL('../../apps/api/prisma/schema.prisma', import.meta.url), 'utf8')).text).text).text).text).text).text).text).text).text,
   ).text).text).text;
   // The real predecessor schema, independently stored by Git, is the baseline.
   const { execFileSync } = await import('node:child_process');
@@ -63,4 +64,27 @@ test('Customer BOQ classifier admits only the exact five new models and parent r
     current + '\nmodel Unreviewed {\n id String @id\n}',
   ]) assert.throws(() => classifySchema(baseline, invalid));
   assert.throws(() => classifySchema(current, baseline));
+});
+
+
+// New FM02 is an independently pinned additive contract; older fixtures above
+// strip only that exact contract before testing their original strict scopes.
+test('FM02 schema classifier admits only the exact immutable work-plan increment', async () => {
+  const {execFileSync}=await import('node:child_process');
+  const {readFileSync}=await import('node:fs');
+  const predecessor=execFileSync('git',['show','5535dd890fd84489d76b611929e70e3422c746e8:apps/api/prisma/schema.prisma'],{encoding:'utf8'});
+  const fm02=readFileSync(new URL('../../apps/api/prisma/schema.prisma',import.meta.url),'utf8');
+  const stripped=stripFm02Schema(fm02);
+  assert.equal(stripped.present,true);
+  assert.equal(stripped.text.replace(/\s+/g,' ').trim(),predecessor.replace(/\s+/g,' ').trim());
+  assert.equal(classifySchema(predecessor,fm02),'migration-aware-fm02-schema');
+  for(const invalid of [
+    fm02.replace('versionNo Int @map("version_no")','versionNo String @map("version_no")'),
+    fm02.replace('projectProgressPlans ProjectProgressPlan[]',''),
+    fm02.replace('completedQuantity Decimal? @map("completed_quantity")','completedQuantity Float @map("completed_quantity")'),
+    fm02.replace('sourceBudgetRevisionLine BudgetRevisionLine? @relation("Fm02QuantityBudgetSource"','sourceBudgetRevisionLine BudgetRevisionLine[] @relation("Fm02QuantityBudgetSource"'),
+    fm02.replace('model ProjectProgressPlanLine {','model OtherProgressPlanLine {'),
+    fm02+'\nmodel UnapprovedFm02 {\n id String @id\n}',
+  ])assert.throws(()=>classifySchema(predecessor,invalid));
+  assert.throws(()=>classifySchema(fm02,predecessor));
 });

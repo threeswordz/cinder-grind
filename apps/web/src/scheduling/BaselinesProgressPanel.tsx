@@ -116,7 +116,10 @@ export function BaselinesProgressPanel({
     onSuccess: async () => {
       setPercentComplete('');
       setProgressNote('');
-      await refresh();
+      await Promise.all([
+        refresh(),
+        queryClient.invalidateQueries({queryKey:['fm02',projectId]}),
+      ]);
     },
   });
 

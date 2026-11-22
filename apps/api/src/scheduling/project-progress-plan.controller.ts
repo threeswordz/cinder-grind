@@ -71,6 +71,8 @@ export class ProjectProgressPlanController {
    progressDate:parseSchedulingDate(body.progressDate,'progressDate'),
    completedQuantity:requiredSchedulingString(body,'completedQuantity',32),
    note:requiredSchedulingString(body,'note',10000),
+   expectedPlanId:uid(body,'expectedPlanId'),
+   expectedPlanVersion:version(body.expectedPlanVersion),
   })};
  }
 

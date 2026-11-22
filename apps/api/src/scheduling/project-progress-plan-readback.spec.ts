@@ -1,3 +1,4 @@
+import {ConflictException} from '@nestjs/common';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import test from 'node:test';
@@ -93,4 +94,58 @@ test('FM02 missing quantity evidence stays missing, but intended QUANTITY basis 
   assert.deepEqual(result.missingActivityIds, [f.quantityActivityId]);
   assert.equal(result.lines[0]!.planSourceKind, 'QUANTITY');
   assert.equal(result.lines[0]!.sourceKind, null);
+});
+
+
+test('FM02 stale measured-plan ID or version is rejected before append', async () => {
+  const companyId=randomUUID(),projectId=randomUUID(),activityId=randomUUID(),planId=randomUUID();
+  const budgetLineId=randomUUID(),uomId=randomUUID();
+  const auth:AuthenticatedUserContext={
+    sessionId:randomUUID(),userId:randomUUID(),companyId,email:'fm02-stale@example.com',
+    displayName:'FM02 stale measurement',roleCodes:['PROJECT_ENGINEER'],
+    permissions:['schedule.progress.record'],csrfTokenHash:'0'.repeat(64),
+  };
+  let writes=0;
+  const tx={
+    userSession:{findFirst:async()=>({user:{userRoles:[{
+      companyId,role:{companyId,roleCode:'PROJECT_ENGINEER',isActive:true,
+        rolePermissions:[{permission:{permissionCode:'schedule.progress.record'}}]},
+    }]}})},
+    project:{findFirst:async()=>({id:projectId,companyId})},
+    activity:{findFirst:async()=>({id:activityId,projectId})},
+    projectProgressPlan:{findFirst:async()=>({
+      id:planId,versionNo:2,lines:[{
+        plannedQuantity:new Prisma.Decimal('20.0000'),
+        approvedBudgetRevisionLineId:budgetLineId,uomId,
+      }],
+    })},
+    activityProgress:{create:async(args:{data:Record<string,unknown>})=>{
+      writes++;
+      return {id:randomUUID(),...args.data};
+    }},
+  };
+  const prisma={$transaction:async(work:(client:typeof tx)=>Promise<unknown>)=>work(tx)} as unknown as PrismaService;
+  const access={assertAccess:async()=>{}} as unknown as ProjectAccessService;
+  const audit={record:async()=>{}} as unknown as AuditService;
+  const service=new ProjectProgressPlanService(prisma,access,audit);
+  const input={progressDate:new Date('2026-11-22T00:00:00Z'),completedQuantity:'10.0000',
+    note:'Measured against plan 2',expectedPlanId:planId,expectedPlanVersion:2};
+  for(const stale of [
+    {...input,expectedPlanId:randomUUID()},
+    {...input,expectedPlanVersion:1},
+  ])await assert.rejects(
+    ()=>service.recordQuantity({auth},activityId,stale),
+    (e:unknown)=>{
+      assert.ok(e instanceof ConflictException);
+      assert.equal((e.getResponse() as {code:string}).code,'FM02_STALE_MEASUREMENT_PLAN');
+      return true;
+    },
+  );
+  assert.equal(writes,0,'stale client must never append evidence');
+  const record=await service.recordQuantity({auth},activityId,input);
+  assert.equal(writes,1);
+  assert.equal(record.sourceEntityId,planId);
+  assert.equal(record.sourceBudgetRevisionLineId,budgetLineId);
+  assert.equal(record.sourceUomId,uomId);
+  assert.equal((record.completedQuantity as Prisma.Decimal).toString(),'10');
 });

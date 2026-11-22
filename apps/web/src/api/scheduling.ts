@@ -206,11 +206,16 @@ export type WorkPlanVersion = {
   id:string;versionNo:number;reason:string;confirmedAt:string|null;
   preparedByUserId:string;confirmedByUserId:string|null;
   _count?:{lines:number};
+  lines?:{id:string;activityId:string;weightPercent:string;sourceKind:'QUANTITY'|'MILESTONE';
+    approvedBudgetRevisionLineId:string|null;plannedQuantity:string|null;uomId:string|null;
+    activity:{activityCode:string;activityName:string};
+    approvedBudgetRevisionLine:{description:string;uomCode:string}|null}[];
   preparedBy?:{id:string;displayName:string};
   confirmedBy?:{id:string;displayName:string}|null;
 };
 export type CurrentWorkPlan = {
   projectId:string;status:string;percentComplete:string|null;
+  planId?:string;
   missingActivityIds?:string[];
   lines?:{activityId:string;weightPercent:string;sourceKind:'QUANTITY'|'MILESTONE'|null;
     planSourceKind:'QUANTITY'|'MILESTONE';percentComplete:string|null}[];
@@ -474,7 +479,8 @@ export const schedulingApi = {
     apiRequest<Data<WorkPlanVersion>>('/project-progress-plans/'+id+'/confirm', {
       method:'POST',body:JSON.stringify({expectedVersion}),
     }),
-  recordQuantityProgress: (activityId:string,body:{progressDate:string;completedQuantity:string;note:string}) =>
+  recordQuantityProgress: (activityId:string,body:{progressDate:string;completedQuantity:string;note:string;
+    expectedPlanId:string;expectedPlanVersion:number}) =>
     apiRequest<Data<ActivityProgressRecord>>('/project-progress-plans/activity/'+activityId+'/quantity', {
       method:'POST',body:JSON.stringify(body),
     }),

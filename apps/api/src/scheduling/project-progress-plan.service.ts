@@ -83,7 +83,10 @@ export class ProjectProgressPlanService {
       await this.live(tx,auth,'schedule.programme.view');
       await this.project(tx,auth,projectId);
       return tx.projectProgressPlan.findMany({where:{companyId:auth.companyId,projectId},
-        include:{_count:{select:{lines:true}},preparedBy:{select:{id:true,displayName:true}},
+        include:{lines:{include:{
+          activity:{select:{activityCode:true,activityName:true}},
+          approvedBudgetRevisionLine:{select:{description:true,uomCode:true}},
+        }},_count:{select:{lines:true}},preparedBy:{select:{id:true,displayName:true}},
           confirmedBy:{select:{id:true,displayName:true}}},orderBy:{versionNo:'desc'},take:100});
     });
   }
@@ -224,6 +227,7 @@ export class ProjectProgressPlanService {
   }
   async recordQuantity(context:Context,activityId:string,input:{
     progressDate:Date;completedQuantity:string;note:string;
+    expectedPlanId:string;expectedPlanVersion:number;
   }) {
     const a=context.auth;
     return this.serial(async tx=>{
@@ -237,7 +241,12 @@ export class ProjectProgressPlanService {
       const plan=await tx.projectProgressPlan.findFirst({where:{companyId:a.companyId,projectId:activity.projectId,
         confirmedAt:{not:null}},include:{lines:{where:{activityId,sourceKind:'QUANTITY'}}},
         orderBy:{versionNo:'desc'}});
-      const line=plan?.lines[0];
+      // A Foreman must submit against the exact plan/version shown when
+      // measuring. Never silently rebind quantity or UOM after Ben confirms
+      // a successor plan while the form is open.
+      if(!plan||plan.id!==input.expectedPlanId||plan.versionNo!==input.expectedPlanVersion)
+        throw new ConflictException({code:'FM02_STALE_MEASUREMENT_PLAN'});
+      const line=plan.lines[0];
       if(!line||!line.plannedQuantity||!line.approvedBudgetRevisionLineId||!line.uomId)
         throw new ConflictException({code:'FM02_VERSION_OR_SCOPE_CONFLICT'});
       const actual=new Prisma.Decimal(input.completedQuantity);

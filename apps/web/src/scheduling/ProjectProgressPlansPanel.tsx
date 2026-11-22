@@ -20,6 +20,9 @@ export function ProjectProgressPlansPanel({projectId,permissions,activities}:Pro
  const [sourceKind,setKind]=useState<'MILESTONE'|'QUANTITY'>('MILESTONE');
  const [budgetLineId,setBudgetLine]=useState(''),[lines,setLines]=useState<WorkPlanLineInput[]>([]);
  const [quantityActivity,setQuantityActivity]=useState(''),[completedQuantity,setQuantity]=useState('');
+ // Capture the observed confirmed version when selecting the measurement.
+ // A background refresh must not silently retarget an in-progress form.
+ const [quantityPlanId,setQuantityPlanId]=useState(''),[quantityPlanVersion,setQuantityPlanVersion]=useState(0);
  const [quantityReason,setQuantityReason]=useState(''),[quantityDate,setQuantityDate]=useState(new Date().toISOString().slice(0,10));
  const active=Boolean(projectId&&canView);
  const key=['fm02',projectId];
@@ -35,8 +38,16 @@ export function ProjectProgressPlansPanel({projectId,permissions,activities}:Pro
  const confirm=useMutation({mutationFn:(item:{id:string;versionNo:number})=>schedulingApi.confirmWorkPlan(item.id,item.versionNo),
    onSuccess:refresh});
  const quantity=useMutation({mutationFn:()=>schedulingApi.recordQuantityProgress(quantityActivity,{
-   progressDate:quantityDate,completedQuantity,note:quantityReason}),
-   onSuccess:async()=>{setQuantity('');setQuantityReason('');await refresh();}});
+   progressDate:quantityDate,completedQuantity,note:quantityReason,
+   expectedPlanId:quantityPlanId,expectedPlanVersion:quantityPlanVersion}),
+   onSuccess:async()=>{
+     setQuantity('');setQuantityReason('');setQuantityActivity('');setQuantityPlanId('');setQuantityPlanVersion(0);
+     await Promise.all([
+       refresh(),
+       queryClient.invalidateQueries({queryKey:['schedule','comparison',projectId]}),
+       queryClient.invalidateQueries({queryKey:['schedule','progress-history']}),
+     ]);
+   }});
  const add=()=>{
    if(!activityId||!/^\d+(?:\.\d{1,2})?$/.test(weightPercent)||Number(weightPercent)<=0||
       Number(weightPercent)>100||lines.some(x=>x.activityId===activityId)||
@@ -73,8 +84,14 @@ export function ProjectProgressPlansPanel({projectId,permissions,activities}:Pro
      <Stack spacing={1}><Typography>Version {plan.versionNo} · {plan.confirmedAt?'Ben-confirmed (configured role)':'Awaiting confirmation'}
        {' '}· {plan._count?.lines??0} work lines</Typography>
        <Typography variant="body2">{plan.reason}</Typography>
+       {(plan.lines??[]).map(line=><Typography key={line.id} variant="body2">
+         {line.activity.activityCode} · {line.activity.activityName} — {line.weightPercent}% ·
+         {' '}{line.sourceKind==='QUANTITY'
+           ?`Approved BOQ: ${line.approvedBudgetRevisionLine?.description??line.approvedBudgetRevisionLineId} · ${line.plannedQuantity} ${line.approvedBudgetRevisionLine?.uomCode??line.uomId}`
+           :'Reasoned milestone assessment'}
+       </Typography>)}
        {canConfirm&&!plan.confirmedAt&&pending?.id===plan.id?
-       <Button disabled={confirm.isPending} onClick={()=>confirm.mutate({id:plan.id,versionNo:plan.versionNo})}>
+       <Button disabled={confirm.isPending||!plan.lines?.length} onClick={()=>confirm.mutate({id:plan.id,versionNo:plan.versionNo})}>
          Confirm version as authorized Ben</Button>:null}
      </Stack>
    </CardContent></Card>)}
@@ -119,16 +136,23 @@ export function ProjectProgressPlansPanel({projectId,permissions,activities}:Pro
      <Typography variant="subtitle1">Record cumulative approved-BOQ quantity</Typography>
      <Typography variant="body2">Use only an Activity pinned to a QUANTITY line in the confirmed version;
        this appends a canonical ActivityProgress record, never edits an earlier record.</Typography>
-     <TextField select label="Activity" value={quantityActivity} onChange={e=>setQuantityActivity(e.target.value)}>
+     <TextField select label="Activity" value={quantityActivity} onChange={e=>{
+       setQuantityActivity(e.target.value);setQuantity('');
+       setQuantityPlanId(current.data?.data.planId??'');
+       setQuantityPlanVersion(current.data?.data.versionNo??0);
+     }}>
        <MenuItem value="">Select Activity</MenuItem>
        {quantityActivities.map(a=><MenuItem key={a.activityId} value={a.activityId}>{a.activityName}</MenuItem>)}
      </TextField>
+     <Typography variant="body2">Measurement pinned to confirmed plan version {quantityPlanVersion||'—'}.
+       If Ben confirms a successor, reselect the Activity before submitting.</Typography>
      <TextField label="Completed quantity (in pinned BOQ UOM)" value={completedQuantity}
        onChange={e=>setQuantity(e.target.value)} />
      <TextField type="date" label="Progress date" value={quantityDate}
        InputLabelProps={{shrink:true}} onChange={e=>setQuantityDate(e.target.value)}/>
      <TextField label="Evidence/reason" value={quantityReason} onChange={e=>setQuantityReason(e.target.value)}/>
-     <Button disabled={quantity.isPending||!quantityActivities.some(a=>a.activityId===quantityActivity)||!completedQuantity||!quantityReason.trim()}
+     <Button disabled={quantity.isPending||!quantityPlanId||quantityPlanVersion<1||
+       !quantityActivities.some(a=>a.activityId===quantityActivity)||!completedQuantity||!quantityReason.trim()}
        onClick={()=>quantity.mutate()}>Append measured progress</Button>
      {quantity.isError?<Alert severity="error">Quantity evidence rejected: use a current approved
        Project source and a scoped canonical Activity.</Alert>:null}
