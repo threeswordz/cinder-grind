@@ -55,7 +55,7 @@ function requiredId(value: string, code: string) {
 function fixed(value: string, scale: number, maxWholeDigits: number, code: string): bigint {
   if (typeof value !== 'string' ||
       !new RegExp('^(?:0|[1-9][0-9]{0,' + (maxWholeDigits - 1) + '})(?:\\.[0-9]{1,' + scale + '})?$').test(value)) reject(code);
-  const [whole, fractional = ''] = value.split('.');
+  const [whole = '0', fractional = ''] = value.split('.');
   return BigInt(whole) * (10n ** BigInt(scale)) + BigInt(fractional.padEnd(scale, '0'));
 }
 function greatestCommonDivisor(first: bigint, second: bigint): bigint {
