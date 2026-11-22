@@ -212,7 +212,8 @@ export type WorkPlanVersion = {
 export type CurrentWorkPlan = {
   projectId:string;status:string;percentComplete:string|null;
   missingActivityIds?:string[];
-  lines?:{activityId:string;weightPercent:string;sourceKind:'QUANTITY'|'MILESTONE'|null;percentComplete:string|null}[];
+  lines?:{activityId:string;weightPercent:string;sourceKind:'QUANTITY'|'MILESTONE'|null;
+    planSourceKind:'QUANTITY'|'MILESTONE';percentComplete:string|null}[];
   versionNo?:number;
 };
 
