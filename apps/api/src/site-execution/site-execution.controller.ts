@@ -42,6 +42,7 @@ import {
   SiteProgressInput,
   SiteExecutionService,
 } from './site-execution.service';
+import { SiteWeeklyEventsService } from './site-weekly-events.service';
 import {
   nullableSiteString,
   optionalSiteHours,
@@ -314,7 +315,10 @@ function updateInput(body: unknown): DailySiteReportUpdateInput {
 
 @Controller('site-execution')
 export class SiteExecutionController {
-  constructor(private readonly site: SiteExecutionService) {}
+  constructor(
+    private readonly site: SiteExecutionService,
+    private readonly weeklyEvents: SiteWeeklyEventsService,
+  ) {}
 
   @Get('projects')
   @UseGuards(AuthGuard, PermissionGuard)
@@ -369,11 +373,33 @@ export class SiteExecutionController {
     if (!rawFrom) siteInvalid('from', 'Is required.');
     if (!rawTo) siteInvalid('to', 'Is required.');
     return {
-      data: await this.site.weekly(
+      data: await this.weeklyEvents.weekly(
         authOf(request),
         siteUuid(rawProjectId, 'projectId'),
         siteDate(rawFrom, 'from'),
         siteDate(rawTo, 'to'),
+      ),
+    };
+  }
+
+  // Ben records a witnessed review snapshot, NOT a formal approval.
+  // CSRF and signed role/Project checks are required in service too.
+  @Post('reports/weekly/acknowledge')
+  @UseGuards(AuthGuard, CsrfGuard, PermissionGuard)
+  @RequirePermissions('site.daily_report.view')
+  async acknowledgeWeek(
+    @Req() request: AuthenticatedRequest,
+    @Body() body: unknown,
+  ) {
+    const input = siteObject(body);
+    return {
+      data: await this.weeklyEvents.acknowledge(
+        auditContext(request),
+        siteUuid(input.projectId, 'projectId'),
+        siteDate(input.from, 'from'),
+        siteDate(input.to, 'to'),
+        requiredSiteString(input, 'expectedFingerprint', 64),
+        input.note ?? '',
       ),
     };
   }
@@ -429,6 +455,27 @@ export class SiteExecutionController {
   ) {
     return {
       data: await this.site.submit(auditContext(request), id),
+    };
+  }
+
+  // Foreman declares stopped planned work against the original submitted
+  // source; a later reason correction appends an event, never edits history.
+  @Post('reports/:id/no-work')
+  @UseGuards(AuthGuard, CsrfGuard, PermissionGuard)
+  @RequirePermissions('site.daily_report.submit')
+  async noWork(
+    @Req() request: AuthenticatedRequest,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+    @Body() body: unknown,
+  ) {
+    const input = siteObject(body);
+    return {
+      data: await this.weeklyEvents.declareNoWork(
+        auditContext(request), id,
+        requiredSiteString(input, 'reason', 1000),
+        input.previousEventId == null
+          ? null : siteUuid(input.previousEventId, 'previousEventId'),
+      ),
     };
   }
 
