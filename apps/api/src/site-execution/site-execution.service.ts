@@ -13,6 +13,7 @@ import { DocumentsService } from '../documents/documents.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProjectAccessService } from '../projects/project-access.service';
 import { buildWeeklySiteSummary, isSevenCalendarDays } from './site-weekly-summary';
+import { previewWeeklyWorkdays } from './site-weekly-workday';
 
 type AuditContext = {
   auth: AuthenticatedUserContext;
@@ -253,7 +254,33 @@ export class SiteExecutionService {
       },
       orderBy: [{ reportId: 'asc' }, { activityId: 'asc' }],
     }) : [];
-    return buildWeeklySiteSummary(
+    // FM01-B: the only calendar authority is an explicitly configured
+    // default for this Project (or Company fallback), never an assumed
+    // Monday-Friday rule. This read is still within the scoped Project route.
+    const calendars = await this.prisma.workingCalendar.findMany({
+      where: {
+        companyId: auth.companyId,
+        isActive: true,
+        isDefault: true,
+        OR: [{ projectId }, { projectId: null }],
+      },
+      select: {
+        id: true,
+        projectId: true,
+        isActive: true,
+        isDefault: true,
+        calendarName: true,
+        timezoneName: true,
+        weekdays: { select: {
+          weekdayNo: true, isWorking: true, startTime: true,
+        } },
+        exceptions: { select: {
+          exceptionDate: true, isWorkingOverride: true,
+          startTime: true, reason: true,
+        } },
+      },
+    });
+    const summary = buildWeeklySiteSummary(
       projectId,
       from,
       to,
@@ -267,6 +294,10 @@ export class SiteExecutionService {
         note: line.note,
       })),
     );
+    return {
+      ...summary,
+      workCalendarPreview: previewWeeklyWorkdays(projectId, summary.days, calendars),
+    };
   }
 
   async get(auth: AuthenticatedUserContext, id: string) {
