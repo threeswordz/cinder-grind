@@ -73,6 +73,20 @@ export class ProjectCloseoutService {
       canSignNancy:reviewer(auth)==='NANCY'&&project.isActive};
   }
 
+  async ownerOptions(auth:AuthenticatedUserContext,projectId:string) {
+    if(!closureViewer(auth))
+      throw new ForbiddenException(err('BEN04_ROLE_VIEW_DENIED',
+        'Only the scoped closeout team may view follow-up owner options.'));
+    await this.access.assertAccess(auth,projectId);
+    return this.prisma.user.findMany({
+      where:{companyId:auth.companyId,isActive:true,
+        employee:{is:{companyId:auth.companyId,isActive:true}}},
+      select:{id:true,displayName:true},
+      orderBy:[{displayName:'asc'},{id:'asc'}],
+      take:500,
+    });
+  }
+
   async prepare(context:AuditContext,projectId:string,body:unknown) {
     if(!preparer(context.auth))
       throw new ForbiddenException(err('BEN04_KHAIMOOK_REQUIRED',
