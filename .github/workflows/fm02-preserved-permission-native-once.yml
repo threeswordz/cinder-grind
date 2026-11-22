@@ -62,4 +62,5 @@ jobs:
       - name: Verify exact receiving and FM03 predecessors against disposable PostgreSQL
         run: node deploy/release-candidate/fm02-predecessor-smoke.mjs
       - name: Evidence boundary
-        run: echo 'FM02_ADDITIVE_PERMISSION_PRESERVED_PREDECESSOR_PASS: exact native receiving and FM03 history, no full suite, no browser, no Mac'
+        run: |
+          echo 'FM02_ADDITIVE_PERMISSION_PRESERVED_PREDECESSOR_PASS: exact native receiving and FM03 history, no full suite, no browser, no Mac'
