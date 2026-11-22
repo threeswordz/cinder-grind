@@ -1,0 +1,38 @@
+name: FM01 Functional Final Focused Once
+on:
+  push:
+    branches: ['work-fm01-calendar-preview-no-full-20261122']
+    paths: ['.github/workflows/fm01-functional-final-focused-once.yml']
+permissions:
+  contents: read
+jobs:
+  fm01-final-affected-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 11
+    steps:
+      - name: Exact candidate checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.21.0
+      - name: Only FM01 calendar, source, role and history tests
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          node --experimental-strip-types --test deploy/release-candidate/fm01-workday-preview.test.mjs deploy/release-candidate/fm01-operational-focused.test.mjs
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
+        with:
+          version: 12.6.0
+          run_install: false
+      - name: Install exact dependency lock and regenerate Prisma
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm --filter @construction-erp/api prisma:generate
+      - name: Typecheck affected API and Web
+        run: |
+          pnpm --filter @construction-erp/api typecheck
+          pnpm --filter @construction-erp/web typecheck
+      - name: No full suite attestation
+        run: echo FM01_FINAL_FOCUSED_ONLY_NO_FULL_CI_NO_DATABASE_NO_MAC_NO_PRODUCTION
