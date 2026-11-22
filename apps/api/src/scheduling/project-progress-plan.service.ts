@@ -29,9 +29,17 @@ export class ProjectProgressPlanService {
       revokedAt:null,expiresAt:{gt:new Date()},user:{companyId:auth.companyId,isActive:true,
         company:{isActive:true}}},include:{user:{include:userInclude}}});
     if(!session)denied('FM02_SESSION_REVOKED');
-    const permissions=new Set(session.user.userRoles.filter(x=>x.role.isActive).flatMap(x=>
+    // A permission granted through another Company/Role must never authorize
+    // this Company's Project. Confirmation is reserved to Ben's configured
+    // MANAGEMENT role; the permission catalog alone grants nobody this right.
+    const activeRoles=session.user.userRoles.filter(x=>
+      x.companyId===auth.companyId&&x.role.companyId===auth.companyId&&x.role.isActive);
+    const permissions=new Set(activeRoles.flatMap(x=>
       x.role.rolePermissions.map(r=>r.permission.permissionCode)));
     if(!auth.permissions.includes(code)||!permissions.has(code))denied('FM02_PERMISSION_REVOKED');
+    if(code==='schedule.work_plan.confirm'&&!activeRoles.some(x=>
+      x.role.roleCode==='MANAGEMENT'&&x.role.rolePermissions.some(r=>
+        r.permission.permissionCode===code)))denied('FM02_MANAGEMENT_ROLE_REQUIRED');
   }
 
   private async project(tx: Tx, auth: AuthenticatedUserContext, projectId: string) {
