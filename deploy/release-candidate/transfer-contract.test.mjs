@@ -1,3 +1,4 @@
+import {stripFm02Schema} from './fm02-schema-contract.mjs';
 import {stripMaterialUomStageCSchema} from './material-uom-stage-c-schema-contract.mjs';
 import {stripMaterialUomEffectSchema} from './material-uom-effect-schema-contract.mjs';
 import {stripMaterialUomSchema} from './material-uom-schema-contract.mjs';
@@ -11,7 +12,7 @@ import { classifySchema } from './schema-contract.mjs';
 import { stripTransferSchema, transferTables, transferMode } from './transfer-schema-contract.mjs';
 import { transferCatalog, verifyTransferCatalog } from './transfer-catalog-contract.mjs';
 import { assertHistoricalTables } from './historical-snapshot.mjs';
-const current = stripPhysicalSchema(stripMaterialUomSchema(stripMaterialUomEffectSchema(stripMaterialUomStageCSchema(readFileSync(new URL('../../apps/api/prisma/schema.prisma',import.meta.url),'utf8')).text).text).text).text;
+const current = stripPhysicalSchema(stripMaterialUomSchema(stripMaterialUomEffectSchema(stripMaterialUomStageCSchema(stripFm02Schema(readFileSync(new URL('../../apps/api/prisma/schema.prisma',import.meta.url),'utf8')).text).text).text).text).text;
 const previous = execFileSync('git', ['show', 'a8dad66fbcef22079060efe0105225e29260a411:apps/api/prisma/schema.prisma'], { encoding: 'utf8' });
 test('DEC-046 exact eight-model transfer contract admits partial receipt provenance without unrelated old-field changes', () => {
   assert.equal(classifySchema(previous, current), 'migration-aware-transfer-schema');

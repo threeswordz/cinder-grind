@@ -1,6 +1,8 @@
 const materialUomStageCApproved=process.env.MATERIAL_UOM_STAGE_C_SCHEMA_UPGRADE==='YES';
 import {materialUomCatalog,verifyMaterialUomCatalog} from './material-uom-catalog-contract.mjs';
 import {dec054Catalog,verifyDec054MigrationState} from './dec054-permission-catalog.mjs';
+import {fm02Catalog,verifyFm02Catalog} from './fm02-permission-catalog.mjs';
+const fm02Approved=process.env.FM02_SCHEMA_UPGRADE==='YES';
 const materialUomApproved=process.env.MATERIAL_UOM_SCHEMA_UPGRADE==='YES';
 const materialUomEffectApproved=process.env.MATERIAL_UOM_EFFECT_SCHEMA_UPGRADE==='YES';
 import {physicalCatalog,verifyPhysicalCatalog} from './subcontract-physical-catalog-contract.mjs';
@@ -50,7 +52,7 @@ async function snapshot() {
     const stockCountApproved = process.env.STOCK_COUNT_SCHEMA_UPGRADE === 'YES';
 const materialRequestApproved=process.env.MATERIAL_REQUEST_SCHEMA_UPGRADE==='YES';
     const catalogIds = [...boqCatalog,...(hrApproved ? hrCatalog : []),
-      ...(stockCountApproved ? stockCountCatalog : []),...(materialRequestApproved ? materialRequestCatalog : []),...(materialPlanApproved ? materialPlanCatalog : []),...(planIssueApproved ? planIssueCatalog : []),...(siteIssueApproved ? siteIssueCatalog : []),...(receivingApproved ? receivingCatalog : []),...(transferApproved ? transferCatalog : []),...(physicalApproved ? physicalCatalog : []),...(materialUomApproved ? materialUomCatalog : []),...dec054Catalog].map(row => row.id);
+      ...(stockCountApproved ? stockCountCatalog : []),...(materialRequestApproved ? materialRequestCatalog : []),...(materialPlanApproved ? materialPlanCatalog : []),...(planIssueApproved ? planIssueCatalog : []),...(siteIssueApproved ? siteIssueCatalog : []),...(receivingApproved ? receivingCatalog : []),...(transferApproved ? transferCatalog : []),...(physicalApproved ? physicalCatalog : []),...(materialUomApproved ? materialUomCatalog : []),...dec054Catalog,...(fm02Approved ? fm02Catalog : [])].map(row => row.id);
     if (tablename === 'permissions') {
       if(materialUomApproved)verifyMaterialUomCatalog(await prisma.$queryRawUnsafe('SELECT * FROM permissions WHERE id = ANY($1::uuid[])',materialUomCatalog.map(p=>p.id)));
       if(physicalApproved)verifyPhysicalCatalog(await prisma.$queryRawUnsafe('SELECT * FROM permissions WHERE id = ANY($1::uuid[])',physicalCatalog.map(p=>p.id)));
@@ -79,6 +81,23 @@ const materialRequestApproved=process.env.MATERIAL_REQUEST_SCHEMA_UPGRADE==='YES
           additions.filter(row=>dec054Catalog.some(x=>x.id===row.id)),
           migration.length===1,
         );
+        // The same legacy verifier is run on the candidate AND the restored
+        // predecessor. Bind acceptance to the recorded forward migration; a
+        // flag alone must never authorize extra permissions in a rollback.
+        const fm02Migration=await prisma.$queryRawUnsafe(
+          "SELECT migration_name FROM \"_prisma_migrations\" WHERE migration_name='20261122140000_fm02_weighted_project_progress' AND finished_at IS NOT NULL AND rolled_back_at IS NULL"
+        );
+        assert.ok(fm02Migration.length<=1,'FM02 migration history is ambiguous');
+        // FM02 can already be a legitimate part of a LATER predecessor.
+        // In that case FM02_SCHEMA_UPGRADE is NO and its existing permission
+        // rows must remain INSIDE the historical digest, not be excluded.
+        if(fm02Approved)assert.equal(fm02Migration.length,1,
+          'New FM02 upgrade requires its exact finished forward migration');
+        const fm02Rows=await prisma.$queryRawUnsafe(
+          'SELECT * FROM permissions WHERE id = ANY($1::uuid[])',fm02Catalog.map(p=>p.id)
+        );
+        if(fm02Migration.length===1)verifyFm02Catalog(fm02Rows);
+        else assert.equal(fm02Rows.length,0,'Restored predecessor retains FM02 permissions');
       }
     }
     if(receivingApproved&&tablename==='goods_receipts'){const cols=await prisma.$queryRawUnsafe("SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='goods_receipts' AND column_name='delivery_id'");if(cols.length)assert.equal((await prisma.$queryRawUnsafe('SELECT count(*)::text AS n FROM goods_receipts WHERE delivery_id IS NOT NULL'))[0].n,'0','Historical GR must not acquire fabricated custody');}
@@ -86,6 +105,22 @@ const materialRequestApproved=process.env.MATERIAL_REQUEST_SCHEMA_UPGRADE==='YES
       ['boqs','supplier_quotations','quotation_awards'].includes(tablename) ? ['currency_code'] :
       (tablename === 'stock_transactions' && stockCountApproved ? ['stock_count_id'] : []);
     if(transferApproved && tablename==='stock_transactions')excludedColumns=[...excludedColumns,'transfer_receipt_line_id'];
+    if(fm02Approved && tablename==='activity_progress'){
+      // Exact additive nullable FM02 evidence only; never disguise a changed
+      // historical progress value as a new-column migration.
+      const fm02Names=['completed_quantity','source_budget_revision_line_id','source_uom_id'];
+      const columns=await prisma.$queryRawUnsafe(
+        "SELECT column_name, is_nullable, column_default FROM information_schema.columns WHERE table_schema='public' AND table_name='activity_progress' AND column_name = ANY($1::text[])",fm02Names
+      );
+      if(mode==='verify'){
+        assert.deepEqual(columns.map(c=>c.column_name).sort(),[...fm02Names].sort(),'Exact FM02 ActivityProgress columns required');
+        assert.ok(columns.every(c=>c.is_nullable==='YES'&&c.column_default===null),'FM02 quantity evidence must remain nullable without defaults');
+        assert.equal((await prisma.$queryRawUnsafe(
+          'SELECT count(*)::text AS n FROM activity_progress WHERE completed_quantity IS NOT NULL OR source_budget_revision_line_id IS NOT NULL OR source_uom_id IS NOT NULL'
+        ))[0].n,'0','FM02 cannot backfill legacy ActivityProgress rows');
+      }
+      excludedColumns=[...excludedColumns,...fm02Names];
+    }
     const [row] = await prisma.$queryRawUnsafe(`SELECT count(*)::text AS count,
       encode(sha256(convert_to(coalesce(string_agg((to_jsonb(t) - $1::text[])::text, E'\n' ORDER BY (to_jsonb(t) - $1::text[])::text), ''), 'UTF8')), 'hex') AS digest
       FROM "${tablename}" t ${tablename === 'permissions' ? 'WHERE id <> ALL($2::uuid[])' : ''}`,
@@ -133,7 +168,7 @@ try {
     const after = await snapshot();
     assertHistoricalTables(before.tables, after.tables,
       process.env.HR_SCHEMA_UPGRADE === 'YES', process.env.HR_DOCUMENT_SCHEMA_UPGRADE === 'YES',
-      process.env.STOCK_COUNT_SCHEMA_UPGRADE === 'YES', process.env.MATERIAL_REQUEST_SCHEMA_UPGRADE === 'YES',materialPlanApproved,planIssueApproved,siteIssueApproved,receivingApproved,transferApproved,physicalApproved,materialUomApproved,materialUomEffectApproved,materialUomStageCApproved);
+      process.env.STOCK_COUNT_SCHEMA_UPGRADE === 'YES', process.env.MATERIAL_REQUEST_SCHEMA_UPGRADE === 'YES',materialPlanApproved,planIssueApproved,siteIssueApproved,receivingApproved,transferApproved,physicalApproved,materialUomApproved,materialUomEffectApproved,materialUomStageCApproved,fm02Approved);
     for (const migration of before.migrations) assert.deepEqual(after.migrations.find((row) => row.migration_name === migration.migration_name), migration, 'Historical migration checksum changed');
     const fixture = load(manifestPath);
     assert.equal((await prisma.purchaseOrder.findUniqueOrThrow({ where: { id: fixture.unknownPoId } })).currencyCode, null);
