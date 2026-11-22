@@ -38,6 +38,13 @@ test('full PR work is admitted only by explicit ready transition and stable head
   }
 });
 
+test('a Ready candidate withdrawn to Draft cannot complete the exact same release gate',async()=>{
+  const f=fixture();
+  assert.equal((await admit(f,'start')).status,'FULL_VALIDATION_ADMITTED');
+  f.live.draft=true;
+  await denied(admit(f,'finish'),'STALE_PR_DRAFT');
+});
+
 test('exact ready head is checked again at finish',async()=>{
   const f=fixture();
   assert.equal((await admit(f)).status,'FULL_VALIDATION_ADMITTED');
@@ -52,6 +59,7 @@ for (const phase of ['start', 'finish']) {
     ['changed base', f => { f.live.base.sha = 'd'.repeat(40); }, 'STALE_PR_BASE'],
     ['retargeted base', f => { f.live.base.ref = 'v1.2-c-uat-coverage'; }, 'STALE_PR_BASE'],
     ['closed PR', f => { f.live.state = 'closed'; }, 'STALE_PR_STATE'],
+    ['withdrawn back to Draft', f => { f.live.draft = true; }, 'STALE_PR_DRAFT'],
     ['merged PR', f => { f.live.merged = true; }, 'STALE_PR_STATE'],
     ['wrong PR', f => { f.live.number = 13; }, 'STALE_PR_STATE'],
   ]) test(`${phase} rejects ${label}`, async () => {

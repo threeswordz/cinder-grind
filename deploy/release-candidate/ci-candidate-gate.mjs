@@ -64,6 +64,9 @@ export function verifyLiveIdentity(identity, live) {
   }
   requireThat(live?.number === identity.number && live.state === 'open' && live.merged !== true,
     'STALE_PR_STATE');
+  // The ready-for-review event is immutable; current authority is not.
+  // Fail closed at BOTH start and finish if the live PR returned to Draft.
+  requireThat(live.draft === false, 'STALE_PR_DRAFT');
   requireThat(live.head?.sha === identity.sha && live.head?.ref === identity.headRef &&
     live.head?.repo?.full_name === identity.headRepository, 'STALE_PR_HEAD');
   requireThat(live.base?.sha === identity.baseSha && live.base?.ref === identity.baseRef &&
