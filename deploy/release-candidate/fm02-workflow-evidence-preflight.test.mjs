@@ -74,7 +74,22 @@ for(const [name,tail,predecessor] of entries){
     const block=blocks.find(text=>text.includes('/tmp/'+name+'-consolidated-evidence.json'));
     assert.ok(block,'Missing corresponding inline proof block '+name);
     const data=fixture(name,tail,predecessor);
-    assert.deepEqual(fm02Mode(data.releaseMode),
-      {present:true,prior:'migration-aware-'+tail.startsWith('schema')?'dummy':'dummy'});
+    const outer=fm02Mode(data.releaseMode);
+    assert.equal(outer.present,true);
+    assert.equal(outer.prior,prefix.replace('migration-aware-fm02-','migration-aware-')+tail);
+    const accepted=runInline(block,data);
+    assert.equal(accepted.status,0,
+      name+' version-20 inline proof rejected: '+String(accepted.stderr||accepted.error));
+    // Wrong predecessor is never enough evidence even with every PASS label.
+    const wrong={...data,rehearsal:{...data.rehearsal,previousReleaseCommit:'0'.repeat(40)}};
+    assert.notEqual(runInline(block,wrong).status,0,'Foreign predecessor accepted: '+name);
+    if(name==='material-uom'){
+      // The first consumer has exact FM02/C/B source version checks.
+      assert.notEqual(runInline(block,{...data,version:19}).status,0,
+        'FM02 version-19 evidence was incorrectly accepted');
+      const missing={...data,rehearsal:{...data.rehearsal,
+        migrationNames:data.rehearsal.migrationNames.filter(n=>n!=='20261122140000_fm02_weighted_project_progress')}};
+      assert.notEqual(runInline(block,missing).status,0,'Missing exact FM02 migration accepted');
+    }
   });
 }
