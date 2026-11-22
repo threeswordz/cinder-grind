@@ -66,4 +66,4 @@ jobs:
       - name: Verify FM03 predecessor and real disposable Chromium
         run: node deploy/uat/fm03-browser-native.mjs
       - name: Evidence boundary
-        run: echo 'FM02_PREDECESSOR_FOCUSED_PASS; exact historical upgrade plus receiving and FM03 browser; no full suite, no Mac'
+        run: echo 'FM02_PREDECESSOR_FOCUSED_PASS; exact historical upgrade plus receiving and FM03 browser; no full suite, no Mac; safe predecessor diagnostics'

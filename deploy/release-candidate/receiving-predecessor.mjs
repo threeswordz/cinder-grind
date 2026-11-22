@@ -69,7 +69,23 @@ export async function prepareReceivingUpgrade(databaseUrl){
   const before=await snapshot(false);
   await execute('pnpm',['prisma:migrate:deploy'],{env:{...safeEnvironment(),DATABASE_URL:u.href},timeout:120000,maxBuffer:2097152});
   console.log('RECEIVING_PREDECESSOR_FORWARD_MIGRATIONS_PASS');
-  assertHistoricalTables(before,await snapshot(true),false,false,false,false,false,false,false,true,true,true,true,true,true,true);
+  let after;
+  try { after=await snapshot(true); }
+  catch { console.log('RECEIVING_PREDECESSOR_CANDIDATE_SNAPSHOT_FAILED'); throw new Error('RECEIVING_PREDECESSOR_CANDIDATE_SNAPSHOT_FAILED'); }
+  const extra=Object.keys(after).filter(name=>!Object.hasOwn(before,name));
+  console.log('RECEIVING_PREDECESSOR_ADDED_TABLES_'+extra.sort().join(','));
+  try {
+    assertHistoricalTables(before,after,false,false,false,false,false,false,false,true,true,true,true,true,true,true);
+  } catch(e) {
+    const reason=String(e?.message??'');
+    const code=reason.includes('Unexpected/partial schema addition')?'TABLE_ALLOWLIST'
+      :reason.includes('Complete exact')?'MISSING_REQUIRED_TABLES'
+      :reason.includes('New table must be empty')?'NONEMPTY_NEW_TABLE'
+      :reason.includes('Historical business/approval/stock/Finance/audit rows changed')?'HISTORICAL_ROW_MISMATCH'
+      :'UNKNOWN';
+    console.log('RECEIVING_PREDECESSOR_HISTORY_'+code+'_FAILED');
+    throw e;
+  }
   console.log('RECEIVING_EXACT_FM03_PREDECESSOR_ALL_HISTORICAL_TABLES_GRANTS_AND_NULL_GR_LINK_PASS');
  }finally{await db.$disconnect();await rm(temp,{recursive:true,force:true});}
 }
