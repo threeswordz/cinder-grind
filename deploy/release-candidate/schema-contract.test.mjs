@@ -88,3 +88,55 @@ test('FM02 schema classifier admits only the exact immutable work-plan increment
   ])assert.throws(()=>classifySchema(predecessor,invalid));
   assert.throws(()=>classifySchema(fm02,predecessor));
 });
+
+
+test('FM02 release-mode consumers require exact migration and fail closed on missing proof', async () => {
+  const {fm02Mode}=await import('./fm02-schema-contract.mjs');
+  const {mkdtempSync,writeFileSync,rmSync,readFileSync}=await import('node:fs');
+  const {spawnSync,execFileSync}=await import('node:child_process');
+  const {tmpdir}=await import('node:os');
+  const {join}=await import('node:path');
+  assert.deepEqual(fm02Mode('migration-aware-fm02-schema'),
+    {present:true,prior:'migration-aware-sql-only'});
+  assert.deepEqual(fm02Mode('migration-aware-fm02-material-uom-stage-c-schema'),
+    {present:true,prior:'migration-aware-material-uom-stage-c-schema'});
+  assert.deepEqual(fm02Mode('migration-aware-sql-only'),
+    {present:false,prior:'migration-aware-sql-only'});
+
+  const shell=new URL('./rehearse-migration.sh',import.meta.url);
+  const verifier=new URL('./verify-evidence.mjs',import.meta.url);
+  execFileSync('bash',['-n',shell.pathname]);
+  execFileSync(process.execPath,['--check',verifier.pathname]);
+  const source=readFileSync(shell,'utf8');
+  assert.match(source,/FM02_SCHEMA_UPGRADE=YES/);
+  assert.match(source,/20261122140000_fm02_weighted_project_progress/);
+  assert.match(source,/fm02-native-catalog-assert\.sql/);
+
+  const dir=mkdtempSync(join(tmpdir(),'fm02-mode-contract-'));
+  const releaseCommit='a'.repeat(40);
+  const rehearsal=join(dir,'rehearsal.json'),recovery=join(dir,'recovery.json');
+  try {
+    writeFileSync(recovery,JSON.stringify({releaseCommit}));
+    const base={version:20,releaseMode:'migration-aware-fm02-schema',
+      releaseCommit,previousReleaseCommit:releaseCommit,previousRuntimeCommit:releaseCommit,
+      boundedSchemaContract:'PASS',previousRuntimeClientBuild:'PASS',
+      restoredPreviousRuntimeAuthenticationDownload:'PASS',
+      migrationNames:['20261122140000_fm02_weighted_project_progress']};
+    const run=body=>{
+      writeFileSync(rehearsal,JSON.stringify(body));
+      return spawnSync(process.execPath,[verifier.pathname,rehearsal,recovery],
+        {env:{...process.env,RELEASE_COMMIT:releaseCommit},encoding:'utf8'});
+    };
+    let result=run(base);
+    assert.notEqual(result.status,0);
+    assert.match(result.stderr,/FM02 preserved upgrade proof missing/);
+    result=run({...base,version:19});
+    assert.notEqual(result.status,0);
+    assert.match(result.stderr,/schema version does not match its mode/);
+    result=run({...base,migrationNames:['20261122140000_unapproved']});
+    assert.notEqual(result.status,0);
+    assert.match(result.stderr,/Exact FM02 forward migration missing/);
+  } finally {
+    rmSync(dir,{recursive:true,force:true});
+  }
+});
