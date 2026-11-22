@@ -337,7 +337,7 @@ export class SiteExecutionService {
       },
       select: {
         id: true, occurredAt: true, actorUserId: true, newValues: true,
-        actor: { select: { displayName: true } },
+        actorUser: { select: { displayName: true } },
       },
       orderBy: [{ occurredAt: 'desc' }, { id: 'desc' }],
     });
@@ -356,7 +356,7 @@ export class SiteExecutionService {
         status: lastHash === reviewFingerprint ? 'CURRENT' as const : 'STALE' as const,
         acknowledgedAt: latest.occurredAt,
         acknowledgedByUserId: latest.actorUserId,
-        acknowledgedByName: latest.actor.displayName,
+        acknowledgedByName: latest.actorUser.displayName,
         acknowledgedFingerprint: lastHash,
         authority: 'MANAGEMENT_REVIEW_ONLY_NOT_APPROVAL' as const,
       } : {
