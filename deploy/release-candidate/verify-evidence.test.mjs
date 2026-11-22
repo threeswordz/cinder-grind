@@ -188,8 +188,17 @@ test('FM03 wrapper before historical predecessor checks remains mandatory in con
   const workflow = readFileSync(new URL('../../.github/workflows/validate.yml', import.meta.url), 'utf8');
   const evidenceStep = workflow.split('- name: Verify V1.0-E consolidated technical evidence')[1];
   assert.ok(evidenceStep, 'Consolidated evidence step must exist');
-  const stageCPeeled=evidenceStep.replace(/\(await import\('\.\/deploy\/release-candidate\/material-uom-stage-c-schema-contract\.mjs'\)\)\.materialUomStageCMode\(data\.releaseMode\)\.prior/g,'data.releaseMode');
-  assert.equal((evidenceStep.match(/materialUomStageCMode\(data\.releaseMode\)\.prior/g)??[]).length,6);
+  // FM02 is the outermost v20 wrapper; strip ONLY its six inline nested
+  // occurrences before proving the older Stage C -> FM03 chain is intact.
+  // The seventh FM02 occurrence is the separately bound first-line gate.
+  const fm02Wrapper=/\(await import\('\.\/deploy\/release-candidate\/fm02-schema-contract\.mjs'\)\)\.fm02Mode\(data\.releaseMode\)\.prior/g;
+  assert.equal((evidenceStep.match(fm02Wrapper)??[]).length,6,
+    'Exactly six downstream predecessor checks must unwrap the FM02 outer mode');
+  assert.equal((evidenceStep.match(/fm02Mode\(data\.releaseMode\)/g)??[]).length,7,
+    'The first material-UOM gate and six historical gates must all check FM02');
+  const fm02Peeled=evidenceStep.replace(fm02Wrapper,'data.releaseMode');
+  const stageCPeeled=fm02Peeled.replace(/\(await import\('\.\/deploy\/release-candidate\/material-uom-stage-c-schema-contract\.mjs'\)\)\.materialUomStageCMode\(data\.releaseMode\)\.prior/g,'data.releaseMode');
+  assert.equal((fm02Peeled.match(/materialUomStageCMode\(data\.releaseMode\)\.prior/g)??[]).length,6);
   const effectPeeled=stageCPeeled.replace(/\(await import\('\.\/deploy\/release-candidate\/material-uom-effect-schema-contract\.mjs'\)\)\.materialUomEffectMode\(data\.releaseMode\)\.prior/g,'data.releaseMode');
   assert.equal((stageCPeeled.match(/materialUomEffectMode\(data\.releaseMode\)\.prior/g)??[]).length,6);
   const uomPeeled = effectPeeled.replace(/\(await import\('\.\/deploy\/release-candidate\/material-uom-schema-contract\.mjs'\)\)\.materialUomMode\(data\.releaseMode\)\.prior/g, 'data.releaseMode');

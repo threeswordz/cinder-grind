@@ -1,3 +1,4 @@
+import {stripFm02Schema} from './fm02-schema-contract.mjs';
 import {stripMaterialUomStageCSchema} from './material-uom-stage-c-schema-contract.mjs';
 import {stripMaterialUomEffectSchema} from './material-uom-effect-schema-contract.mjs';
 import {stripMaterialUomSchema} from './material-uom-schema-contract.mjs';
@@ -215,9 +216,13 @@ function classifyLegacySchema(previous,candidate){
 }
 export function classifySchema(previous,candidate){
  if(previous===candidate)return 'migration-aware-sql-only';
+ // Strip only the exact FM02 two-model, 13-parent-field additive contract.
+ // Historical predecessor modes stay independently strict; no generic bypass.
+ const oldFm02=stripFm02Schema(previous),newFm02=stripFm02Schema(candidate);
+ if(oldFm02.present&&!newFm02.present)throw Error('FM02 immutable work-plan schema removal prohibited');
  // Pin C first, then keep every historical A/B/plan/request classifier intact.
- const oldC=stripMaterialUomStageCSchema(previous);
- const newC=stripMaterialUomStageCSchema(candidate);
+ const oldC=stripMaterialUomStageCSchema(oldFm02.text);
+ const newC=stripMaterialUomStageCSchema(newFm02.text);
  if(oldC.present&&!newC.present)throw Error('Immutable Stage C source pin removal prohibited');
  const before=stripMaterialUomEffectSchema(oldC.text),after=stripMaterialUomEffectSchema(newC.text);
  if(before.present&&!after.present)throw Error('Material UOM B provenance schema removal prohibited');
@@ -230,10 +235,14 @@ export function classifySchema(previous,candidate){
  // Every predecessor that acquires C must explicitly preserve its three
  // new empty tables and execute C recovery proof. Peel C before retaining
  // the exact older A/B/HR/source contract; never silently drop the C group.
- if(!oldC.present&&newC.present)
-   return base==='migration-aware-sql-only'?'migration-aware-material-uom-stage-c-schema'
-    :'migration-aware-material-uom-stage-c-'+base.slice('migration-aware-'.length);
- return base;
+ const mode=!oldC.present&&newC.present
+   ?(base==='migration-aware-sql-only'?'migration-aware-material-uom-stage-c-schema'
+     :'migration-aware-material-uom-stage-c-'+base.slice('migration-aware-'.length))
+   :base;
+ return !oldFm02.present&&newFm02.present
+   ?(mode==='migration-aware-sql-only'?'migration-aware-fm02-schema'
+     :'migration-aware-fm02-'+mode.slice('migration-aware-'.length))
+   :mode;
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

@@ -1,3 +1,4 @@
+import {stripFm02Schema} from './fm02-schema-contract.mjs';
 import {assertHistoricalTables} from './historical-snapshot.mjs';
 import {createHash} from 'node:crypto';
 import test from 'node:test';
@@ -7,7 +8,7 @@ import {execFileSync} from 'node:child_process';
 import {classifySchema} from './schema-contract.mjs';
 import {stripMaterialUomStageCSchema} from './material-uom-stage-c-schema-contract.mjs';
 import {stripMaterialUomEffectSchema,materialUomEffectMode,materialUomEffectMigration} from './material-uom-effect-schema-contract.mjs';
-const candidate=stripMaterialUomStageCSchema(readFileSync(new URL('../../apps/api/prisma/schema.prisma',import.meta.url),'utf8')).text;
+const candidate=stripMaterialUomStageCSchema(stripFm02Schema(readFileSync(new URL('../../apps/api/prisma/schema.prisma',import.meta.url),'utf8')).text).text;
 const previous=execFileSync('git',['show','72ec4127a6a04a92419fedf5db7ccb338ef8e444:apps/api/prisma/schema.prisma'],{encoding:'utf8'});
 test('DEC-050 B accepts exactly one isolated stock effect pin model/relation',()=>{
  assert.equal(classifySchema(previous,candidate),'migration-aware-material-uom-effect-schema');
