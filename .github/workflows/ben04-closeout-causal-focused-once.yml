@@ -1,0 +1,39 @@
+name: BEN04 Causal and Reviewer Focused Once
+on:
+  push:
+    branches: ['work-m4-ben04-pm16-closeout-no-full-20261123']
+    paths: ['.github/workflows/ben04-closeout-causal-focused-once.yml']
+permissions:
+  contents: read
+jobs:
+  closeout-causal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+      - name: Use Node 24
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.21.0
+      - name: Execute only BEN04 causal ledger and reviewer disclosure tests
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          node --experimental-strip-types --test deploy/release-candidate/ben04-closeout-contract.test.mjs
+      - name: Setup pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
+        with:
+          version: 12.6.0
+          run_install: false
+      - name: Install workspace deps once
+        run: pnpm install --frozen-lockfile
+      - name: Prisma client and affected API/web typing only
+        run: |
+          pnpm --filter @construction-erp/api prisma:generate
+          pnpm --filter @construction-erp/api typecheck
+          pnpm --filter @construction-erp/web typecheck
+      - name: No full validation evidence assertion
+        run: echo BEN04_P2_CAUSAL_AND_REVIEWER_FOCUSED_NO_FULL_CI_NO_DB_NO_MAC
