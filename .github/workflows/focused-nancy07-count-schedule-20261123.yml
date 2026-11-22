@@ -1,0 +1,42 @@
+name: Nancy07 exact-source focused count schedule 2026-11-23
+on:
+  push:
+    branches: [focused-nancy07-site-calendar-20261123]
+    paths: ['.github/workflows/focused-nancy07-count-schedule-20261123.yml']
+permissions:
+  contents: read
+jobs:
+  schedule-focused:
+    name: nancy07-policy-test-and-api-typecheck-only
+    runs-on: ubuntu-latest
+    env:
+      EXACT_NANCY07_SOURCE: 7df65893fc5b73c6e88dc205a5e7d15bdb6be421
+    steps:
+      - name: Checkout exact reviewed candidate plus disposable workflow
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 2
+      - name: Assert only workflow file differs from source
+        run: |
+          test "$(git rev-parse HEAD^)" = "$EXACT_NANCY07_SOURCE"
+          test "$(git diff --name-only HEAD^ HEAD)" = ".github/workflows/focused-nancy07-count-schedule-20261123.yml"
+      - name: Setup pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          version: 12.6.0
+          run_install: false
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.21.0
+      - name: Install exact lockfile
+        run: pnpm install --frozen-lockfile
+      - name: Generate Prisma client
+        run: pnpm prisma:generate
+      - name: Test only Nancy07 schedules and audit negatives
+        run: node --test deploy/release-candidate/nancy07-stock-count-schedule-focused.test.mjs
+      - name: Typecheck affected API only
+        run: pnpm --filter @construction-erp/api typecheck
+      - name: State evidence boundary
+        run: echo 'Focused source tests only; not native PostgreSQL, browser, Mac, full release CI, UAT or Production'
