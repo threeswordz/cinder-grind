@@ -69,13 +69,14 @@ export class UrgentMaterialIssueDocumentsController{
   @RequirePermissions('inventory.issue.view','inventory.issue.approve','documents.document.view')
   decide(@Req() r:AuthenticatedRequest,
     @Param('id',new ParseUUIDPipe({version:'4'})) id:string,@Body() body:unknown){
-    const value=fields(body,['decision','expectedFingerprint','note']);
+    const value=fields(body,['decision','expectedSubmissionEventId','expectedFingerprint','note']);
     if(value.decision!=='CLOSE'&&value.decision!=='RETURN')
       inventoryInvalid('decision','Use CLOSE or RETURN.');
     const digest=requiredInventoryString(value,'expectedFingerprint',64);
     if(!/^[a-f0-9]{64}$/.test(digest))
       inventoryInvalid('expectedFingerprint','Provide the exact lowercase SHA256 snapshot.');
     return this.urgent.decide(context(r),id,value.decision as 'CLOSE'|'RETURN',
+      inventoryUuid(value.expectedSubmissionEventId,'expectedSubmissionEventId'),
       digest,requiredInventoryString(value,'note',2000)).then(data=>({data}));
   }
 }
