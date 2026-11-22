@@ -43,7 +43,7 @@ export function countScheduleContract(input:unknown){
   if(!countScheduleDay(x.firstDueDate)||
     !Number.isSafeInteger(x.intervalDays)||Number(x.intervalDays)<1||
     Number(x.intervalDays)>STOCK_COUNT_SCHEDULE_MAX_DAYS||
-    !['ACTIVE','PAUSED'].includes(String(x.status))||
+    (x.status!=='ACTIVE'&&x.status!=='PAUSED')||
     !validText(x.reason,2000))
     throw new RangeError('COUNT_SCHEDULE_CADENCE_INVALID');
   return {
