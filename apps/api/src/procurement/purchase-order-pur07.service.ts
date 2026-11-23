@@ -17,6 +17,7 @@ import {
   PoPdfUnsupportedTextError,
   renderApprovedPoAsciiPdf,
 } from './purchase-order-pdf';
+import { renderApprovedPoUnicodePdf } from './purchase-order-unicode-pdf';
 import { PurchaseOrderService } from './purchase-order.service';
 
 type AuditContext = { auth: AuthenticatedUserContext; correlationId?: string };
@@ -97,8 +98,7 @@ export class PurchaseOrderPur07Service {
     if (net?.isNegative()) {
       throw new ConflictException({ code: 'PO_PDF_NEGATIVE_NET_TOTAL' });
     }
-    try {
-      const bytes = renderApprovedPoAsciiPdf({
+    const pdfInput = {
         number: order.displayNumber ?? order.poNumber,
         revision: order.revisionNo,
         company: order.companyId,
@@ -124,17 +124,27 @@ export class PurchaseOrderPur07Service {
         charges: charges?.toFixed(2) ?? null,
         vatPercent: vatRate?.toFixed(2) ?? null,
         total,
-      });
-      return { bytes, fileName, sha256: approvedPoPdfSha256(bytes) };
+      };
+    let bytes: Buffer;
+    try {
+      // Keep the established no-dependency deterministic ASCII PDF route.
+      bytes = renderApprovedPoAsciiPdf(pdfInput);
     } catch (error) {
-      if (error instanceof PoPdfUnsupportedTextError) {
+      if (!(error instanceof PoPdfUnsupportedTextError)) throw error;
+      // Actual Thai/Unicode content is rendered through a sandboxed, local
+      // headless Chromium PDF engine, preserving searchable legal names and
+      // source lines. Production host must supply Chromium and Noto Sans Thai;
+      // absence is a fail-closed error, never a fabricated ASCII document.
+      try {
+        bytes = await renderApprovedPoUnicodePdf(pdfInput);
+      } catch {
         throw new UnprocessableEntityException({
-          code: 'PO_PDF_UNICODE_FONT_NOT_READY',
-          detail: 'Thai or other Unicode PO text requires a reviewed embedded font. The document cannot be exported by the ASCII-only prototype. Use the linked Project Document workflow for the externally prepared PDF; release of this export remains blocked.',
+          code: 'PO_PDF_UNICODE_RENDERER_UNAVAILABLE',
+          detail: 'Thai/Unicode approved PO could not be rendered with the installed sandboxed Chromium and Thai fonts. No partial PDF was exported. Configure and verify the local renderer before release.',
         });
       }
-      throw error;
     }
+    return { bytes, fileName, sha256: approvedPoPdfSha256(bytes) };
   }
 
   async events(auth: AuthenticatedUserContext, orderId: string) {

@@ -1169,16 +1169,18 @@ export function PurchaseOrdersPanel({ permissions, initialProjectId, initialOrde
                   Export is available only for the exact approved, active revision.
                   Jai sends the file outside ERP by email or LINE. Reporting a send or
                   acknowledgment records your evidence; ERP does not transmit or verify
-                  third-party delivery. Automated PDF refuses Thai/Unicode text
-                  until reviewed embedded fonts are available. For Thai POs, use
-                  browser Print - Save as PDF and attach the actual sent document. Do not dispatch a missing
-                  or incomplete export.
+                  third-party delivery. The approved-PDF download supports Thai text
+                  only when this ERP host has its local Chromium Unicode renderer
+                  and Thai fonts installed and verified. If unavailable, export fails
+                  without creating an incomplete PDF. Browser Print - Save as PDF
+                  remains a manual fallback. Attach the actual file you sent as evidence;
+                  do not record an unsent or incomplete document.
                 </Alert>
                 {approved && canView ? (
                   <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                     <Button variant="outlined" disabled={busy}
                       onClick={() => pdfDownload.mutate()}>
-                      {pdfDownload.isPending ? 'Preparing PDF...' : 'Download approved PDF (Latin text)'}
+                      {pdfDownload.isPending ? 'Preparing PDF...' : 'Download approved PDF (Thai / English)'}
                     </Button>
                     <Button variant="outlined" onClick={manualPrintApprovedPo}
                       disabled={busy}>Print / Save as PDF (Thai supported by browser)</Button>
@@ -1193,9 +1195,11 @@ export function PurchaseOrdersPanel({ permissions, initialProjectId, initialOrde
                 ) : null}
                 {pdfDownload.isError ? (
                   <Alert severity="error">
-                    {message(pdfDownload.error)} For Thai/Unicode PO content, use
-                    an externally prepared PDF with Project Document evidence until
-                    the Unicode renderer is reviewed.
+                    {message(pdfDownload.error)} If the local Unicode renderer is
+                    unavailable, ask the system operator to verify Chromium and Thai
+                    fonts. Alternatively, attach the actual externally prepared PDF
+                    using the scoped Project Document workflow. Never report sending
+                    a file that has not been created and checked.
                   </Alert>
                 ) : null}
                 <Divider />
