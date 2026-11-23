@@ -32,8 +32,10 @@ function clean(value: string | null | undefined): string {
 }
 
 function escapeHtml(value: string | null | undefined): string {
-  return clean(value).replace(/[&<>"']/gu, char =>
-    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]!);
+  const entities: Record<string, string> = {
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  };
+  return clean(value).replace(/[&<>"']/gu, char => entities[char] ?? '');
 }
 
 export function approvedPoUnicodeHtml(input: ApprovedPoPdfText): string {
@@ -195,6 +197,7 @@ async function chromePdf(html: string, supplierName: string): Promise<Buffer> {
   if (process.platform === 'linux' && process.getuid?.() === 0 && !testOnlyNoSandbox) {
     throw error('UNICODE_SANDBOX_NONROOT_REQUIRED');
   }
+  const binary = browserBinary();
   const profile = await mkdtemp(join(tmpdir(), 'construction-erp-po-pdf-'));
   const args = [
     '--headless=new', '--remote-debugging-pipe', '--no-first-run',
@@ -204,7 +207,7 @@ async function chromePdf(html: string, supplierName: string): Promise<Buffer> {
     '--user-data-dir=' + profile,
   ];
   if (testOnlyNoSandbox) args.push('--no-sandbox', '--disable-dev-shm-usage');
-  const child = spawn(browserBinary(), args, {
+  const child = spawn(binary, args, {
     stdio: ['ignore', 'ignore', 'ignore', 'pipe', 'pipe'],
     env: {
       PATH: process.env.PATH ?? '/usr/bin:/bin',
