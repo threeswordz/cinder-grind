@@ -215,6 +215,20 @@ test('PM02: mixed approval, immutable returned demand, and rejected-correction c
       ),
       (error: unknown) => error instanceof ConflictException,
     );
+    // The one-time PM02 transaction cannot be reproduced through ad-hoc SQL.
+    // Business content and review metadata remain protected after approval.
+    await assert.rejects(
+      () => prisma.purchaseRequestLine.update({
+        where: { id: lineA.id },
+        data: { quantity: new Prisma.Decimal('99') },
+      }),
+    );
+    await assert.rejects(
+      () => prisma.purchaseRequestLine.update({
+        where: { id: lineB.id },
+        data: { reviewDecision: 'APPROVED' },
+      }),
+    );
     await assert.rejects(
       () => service.copyReturned({ auth: otherAuth }, draft.id),
       (error: unknown) => error instanceof ForbiddenException,

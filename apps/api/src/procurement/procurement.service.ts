@@ -852,6 +852,15 @@ export class ProcurementService {
             detail: 'Submitted line set changed, already reviewed, or incomplete.',
           });
         }
+        // The existing SQL guard deliberately freezes every submitted line.
+        // This transaction-local pair permits ONLY final approval metadata;
+        // the DB trigger still rejects any business-data mutation or later SQL.
+        await tx.$queryRaw`SELECT set_config(
+          'erp.pm02_review_instance', ${expectedApprovalInstanceId}, true
+        )`;
+        await tx.$queryRaw`SELECT set_config(
+          'erp.pm02_review_actor', ${context.auth.userId}, true
+        )`;
         const at = new Date();
         for (const line of decisions) {
           await tx.purchaseRequestLine.update({
