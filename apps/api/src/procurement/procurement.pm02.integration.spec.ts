@@ -14,6 +14,7 @@ import { ProjectScopeService } from '../authorization/project-scope.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProjectAccessService } from '../projects/project-access.service';
 import { ProcurementService } from './procurement.service';
+import { PurchaseOrderService } from './purchase-order.service';
 import { SourcingService } from './sourcing.service';
 
 // Isolated PM02-only native PostgreSQL proof. Do not run the full procurement suite.
@@ -31,6 +32,16 @@ function auth(companyId: string, userId: string, roleCodes: string[]): Authentic
       'procurement.pr.submit',
       'procurement.pr.approve',
       'procurement.pr.cancel',
+      'procurement.rfq.view',
+      'procurement.rfq.manage',
+      'procurement.quotation.view',
+      'procurement.quotation.manage',
+      'procurement.award.select',
+      'procurement.po.view',
+      'procurement.po.create',
+      'procurement.po.edit',
+      'procurement.po.submit',
+      'procurement.po.approve',
     ],
     csrfTokenHash: '0'.repeat(64),
   };
@@ -51,7 +62,7 @@ test('PM02: mixed approval, immutable returned demand, and rejected-correction c
       },
     });
     const employees = await Promise.all(
-      ['Maker', 'Reviewer', 'Other'].map((name) => prisma.employee.create({
+      ['Maker', 'Reviewer', 'Other', 'Jai', 'Ben'].map((name) => prisma.employee.create({
         data: {
           companyId: company.id,
           employeeCode: 'PM02-' + name.slice(0, 2).toUpperCase() + '-' + suffix,
@@ -73,6 +84,8 @@ test('PM02: mixed approval, immutable returned demand, and rejected-correction c
     const maker = users[0]!;
     const reviewer = users[1]!;
     const otherMaker = users[2]!;
+    const jai = users[3]!;
+    const ben = users[4]!;
     const project = await prisma.project.create({
       data: {
         companyId: company.id,
@@ -115,11 +128,27 @@ test('PM02: mixed approval, immutable returned demand, and rejected-correction c
         resetRule: 'MONTHLY',
       },
     });
+    await prisma.numberSequence.create({
+      data: {
+        companyId: company.id,
+        entityType: 'PURCHASE_ORDER',
+        sequenceCode: 'PURCHASE_ORDER',
+        formatTemplate: 'POYYMM-###',
+        resetRule: 'MONTHLY',
+      },
+    });
     const approverRole = await prisma.role.create({
       data: {
         companyId: company.id,
         roleCode: 'PM02_APPROVER_' + suffix,
         roleName: 'PM02 Project Manager Approver',
+      },
+    });
+    const poApproverRole = await prisma.role.create({
+      data: {
+        companyId: company.id,
+        roleCode: 'PM02_PO_APPROVER_' + suffix,
+        roleName: 'PM02 Ben PO Approver',
       },
     });
     const workflow = await prisma.approvalWorkflow.create({
@@ -138,6 +167,21 @@ test('PM02: mixed approval, immutable returned demand, and rejected-correction c
       },
     });
 
+    const poWorkflow = await prisma.approvalWorkflow.create({
+      data: {
+        companyId: company.id,
+        workflowCode: 'PM02_PO_' + suffix,
+        entityType: 'PURCHASE_ORDER',
+        workflowName: 'PM02 Ben PO approval',
+        steps: {
+          create: [{
+            stepNo: 1, stepName: 'Ben commitment check',
+            requiredApprovals: 1,
+            stepRoles: { create: [{ roleId: poApproverRole.id }] },
+          }],
+        },
+      },
+    });
     const access = new ProjectAccessService(
       prisma, new ProjectScopeService(new AuthorizationService()),
     );
@@ -147,11 +191,18 @@ test('PM02: mixed approval, immutable returned demand, and rejected-correction c
       prisma, access, audit, new ApprovalService(prisma), numbers,
     );
     const sourcing = new SourcingService(prisma, access, audit, numbers);
+    const purchaseOrders = new PurchaseOrderService(
+      prisma, access, audit, new ApprovalService(prisma), numbers,
+    );
     const makerAuth = auth(company.id, maker.id, ['STOREKEEPER']);
     const reviewerAuth = auth(company.id, reviewer.id, [
       'PROJECT_MANAGER', approverRole.roleCode,
     ]);
     const otherAuth = auth(company.id, otherMaker.id, ['STOREKEEPER']);
+    const jaiAuth = auth(company.id, jai.id, ['PROCUREMENT_OFFICER']);
+    const benAuth = auth(company.id, ben.id, [
+      'MANAGEMENT', poApproverRole.roleCode,
+    ]);
 
     const draft = await service.createRequest(
       { auth: makerAuth }, project.id, 'Two-line PM02 A/B decision',
@@ -234,6 +285,51 @@ test('PM02: mixed approval, immutable returned demand, and rejected-correction c
     });
     assert.equal(rfq.lines.length, 1);
     assert.equal(rfq.lines[0]?.purchaseRequestLineId, lineA.id);
+
+    // Real downstream source lineage, with separate synthetic Jai buyer
+    // and Ben approver. B cannot get an RFQ/award/PO through normal APIs.
+    const supplier = await prisma.supplier.create({
+      data: {
+        companyId: company.id,
+        supplierCode: 'PM02-SUP-' + suffix,
+        supplierName: 'PM02 test supplier',
+      },
+    });
+    await sourcing.inviteSupplier({ auth: jaiAuth }, rfq.id, supplier.id);
+    const quote = await sourcing.createQuotation(
+      { auth: jaiAuth }, rfq.id, supplier.id,
+      { quotationDate: new Date(), supplierReference: 'PM02-Q-' + suffix },
+    );
+    const quoteLine = await sourcing.upsertQuotationLine(
+      { auth: jaiAuth }, quote.id, rfq.lines[0]!.id,
+      { quantity: new Prisma.Decimal('1'), unitPrice: new Prisma.Decimal('125') },
+    );
+    const award = await sourcing.selectAward(
+      { auth: jaiAuth }, rfq.lines[0]!.id, quoteLine.id,
+      'Valid approved A only',
+    );
+    const available = await purchaseOrders.availableAwards(jaiAuth, project.id);
+    assert.ok(available.some((row) => row.id === award.id));
+    assert.ok(!available.some((row) => row.purchaseRequestLineId === lineB.id));
+    const draftPo = await purchaseOrders.createOrder(
+      { auth: jaiAuth }, project.id, [award.id], 'PM02 only approved A',
+    );
+    assert.equal(draftPo.lines.length, 1);
+    assert.equal(draftPo.lines[0]?.purchaseRequestLineId, lineA.id);
+    await purchaseOrders.submit({ auth: jaiAuth }, draftPo.id, poWorkflow.workflowCode);
+    await assert.rejects(
+      () => purchaseOrders.approve({ auth: jaiAuth }, draftPo.id, 'Self approval denied'),
+      (error: unknown) => error instanceof ForbiddenException,
+    );
+    const benApproved = await purchaseOrders.approve(
+      { auth: benAuth }, draftPo.id, 'Ben approves A-only supplier commitment',
+    );
+    assert.equal(benApproved.lifecycleState, 'APPROVED');
+    assert.equal(benApproved.lines.length, 1);
+    assert.equal(benApproved.lines[0]?.purchaseRequestLineId, lineA.id);
+    assert.equal(await prisma.purchaseOrderLine.count({
+      where: { purchaseRequestLineId: lineB.id },
+    }), 0);
 
     // Compatibility: historically whole-approved PR lines retain NULL and
     // remain eligible; PM02 must not require retroactive backfill/reapproval.
@@ -344,7 +440,7 @@ test('PM02: mixed approval, immutable returned demand, and rejected-correction c
     const original = await service.getRequest(makerAuth, draft.id);
     assert.equal(original.lifecycleState, 'APPROVED');
     assert.equal(original.lines.find((line) => line.id === lineB.id)?.reviewDecision, 'RETURNED');
-    assert.equal(await prisma.purchaseOrder.count({ where: { companyId: company.id } }), 0);
+    assert.equal(await prisma.purchaseOrder.count({ where: { companyId: company.id } }), 1);
     assert.equal(await prisma.rfq.count({ where: { companyId: company.id } }), 1);
   } finally {
     await prisma.$disconnect();
