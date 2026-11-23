@@ -12,7 +12,7 @@
     "verifiedRetiredHours": 0,
     "openBudgetHours": 1900,
     "actualLoggedHours": null,
-    "asOf": "2026-11-23T18:28:02+08:00",
+    "asOf": "2026-11-23T19:08:39+08:00",
     "activePackage": "M4-01",
     "activeForecastHourRange": "H0001–H0020",
     "activeConcurrentPackages": [
@@ -22,9 +22,9 @@
       "M4-02",
       "M4-06"
     ],
-    "workEvidenceNote": "M4-01/02/04/05/06/07 in progress. New PUR07 supplier PDF and append-only Jai manual evidence source and scoped tests proved; Unicode font/retained actors/independent acceptance not closed. No accepted full packages or retired 1,900 forecast hours.",
-    "latestTechnicalCheckpoint": "PUR07 #418 new isolated #45155841629 full SUCCESS: PG17 migrations + API/Web compile, 4/4 new pure/native tests. Thai automated PDF/font and browser print verification remain outstanding. M4 16/32 technical.",
-    "m4CheckpointCompleted": 16,
+    "workEvidenceNote": "M4-01/02/04/05/06/07 still in progress. PUR07 draft #418 now has new genuine Chrome PDF Thai rendering evidence in addition to native PG actor tests, but automated backend Unicode and actual retained role/browser review remain outstanding. 0 full packages accepted; no forecast-hour credit.",
+    "latestTechnicalCheckpoint": "New synthetic real Chrome CDP #45162334613 SUCCESS: authentic A4 PDF 105124 bytes, searchable Thai source text, validated THB subtotal 2000.00 / VAT 137.90 / grand 2107.90, previous unsafe/draft negative cases. Backend automatic Unicode PDF and real named-user UI remain unproven. M4 17/32.",
+    "m4CheckpointCompleted": 17,
     "m4CheckpointTotal": 32,
     "displayCounter": "0 / 1900",
     "countdownHoursLeft": 1900,
@@ -346,11 +346,12 @@
       "evidence": [
         "https://github.com/threeswordz/cinder-grind/pull/418",
         "https://github.com/threeswordz/cinder-grind/actions/runs/45155536353",
-        "https://github.com/threeswordz/cinder-grind/actions/runs/45155841629"
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45155841629",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45162334613"
       ],
       "actualHours": null,
       "verifiedAt": null,
-      "progressPercent": 50,
+      "progressPercent": 75,
       "checkpoints": [
         {
           "name": "Approved PO PDF/filename & append-only external evidence code, forward-only schema, API/Web typecheck and new pure PDF tests",
@@ -363,15 +364,18 @@
           "run": 45155841629
         },
         {
-          "name": "Thai/Unicode true automated PDF export, actual PDF visual inspection and authenticated print/download browser",
-          "status": "NOT_VERIFIED_UNICODE_FONT_MISSING"
+          "name": "Synthetic approved PO Thai HTML → genuine Chromium A4 PDF and searchable Thai text + exact currency totals, independent of backend/DB",
+          "status": "FOCUSED_REAL_CHROME_PDF_PASS",
+          "run": 45162334613,
+          "bytes": 105124,
+          "note": "No actual authenticated React print button, final bitmap visual signoff or automatic backend Unicode PDF. These remain release blockers."
         },
         {
-          "name": "Real retained named Jai/Ben/Company grants, independent review, Owner acceptance and release integration",
+          "name": "Production-grade Unicode PDF download and actual authorized Jai/Ben browser role flow, retained MKE/TCJ grants, independent DEC-022 review and Owner acceptance",
           "status": "NOT_VERIFIED"
         }
       ],
-      "latestAssessment": "Draft #418 stacked on PUR12 #417 implements supplier-facing approved-only ASCII PDF and safe short-name filename, a Thai browser Print/Save fallback (not automated Unicode), immutable reported dispatch/ack events. First focused #45155536353 migration PASS but API compile FAIL on new nullability (fixed); exact focused #45155841629 PG17 migration/API/Web compile PASS, 3 PDF pure and 1 native actor test PASS. Backend Unicode/Thai PDF remains UNSUPPORTED; do not mark PUR07 accepted or pretend external messages sent. 2/4 checklist; 0 accepted-hours."
+      "latestAssessment": "Draft #418 source SHA 9460eaee (documentation follow-up only) has real Chrome CDP print-to-PDF run #45162334613 SUCCESS: exact A4 105124 bytes, pdftotext searchable Thai supplier, trusted synthetic approved PO, THB grand 2107.90 after VAT 137.90, denial tests and Web TS PASS. Prior #45155841629 4/4 new native/API schema/PDF contract tests PASS; new Chrome harness initial #45160954962/#45161259406 preflight failure and #45161447424 missing output were corrected before green. Automated server Unicode PDF endpoint still fails closed for Thai; authenticated actual Jai button, independent review/Owner signoff and visual pagination acceptance incomplete. 3/4 technical checkpoints, 0 forecast hours retired."
     },
     {
       "id": "M4-07",
