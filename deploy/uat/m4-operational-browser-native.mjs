@@ -71,9 +71,13 @@ async function until(p,session,fn,arg,code){
    // optimize-and-reload. Retry only transient evaluation/context errors,
    // within a strict 17.6-second limit; never treat one as a PASS.
    const kind=String(error?.message??'');
-   if(!kind.startsWith('REAL_BROWSER_EVAL_EXCEPTION_')&&
-      kind!=='BROWSER_PROTOCOL_COMMAND_FAILED')throw error;
-   last=kind;
+   // PipeProtocol surfaces protocol failures in safeCode, not Error.message.
+   // A frame-context loss during Vite reload may be retried; an actual
+   // TypeError/ReferenceError in the browser code is a real test failure.
+   const code=error?.safeCode??kind;
+   if(code!=='BROWSER_PROTOCOL_COMMAND_FAILED'&&
+      code!=='REAL_BROWSER_EVAL_RESULT_UNAVAILABLE')throw error;
+   last=code;
   }
   await delay(160);
  }
@@ -112,7 +116,7 @@ async function choose(p,s,label,option){
 async function input(p,s,label,value){
  const good=await page(p,s,({label,value})=>{
   const lbl=[...document.querySelectorAll('label')].find(
-   x=>x.textContent.replace(/\\s*\\*$/,'').trim()===label);
+   x=>x.textContent.replace(/\s*\*$/,'').trim()===label);
   if(!lbl)return false;
   const element=document.getElementById(lbl.htmlFor);
   if(!element)return false;
@@ -140,20 +144,22 @@ async function click(p,s,text){
  await delay(140);
 }
 async function visible(p,s,phrase){
- // MUI tabs render uppercase using CSS text-transform. innerText is CSS
- // transformed, while textContent preserves actual source label case.
- for(let i=0;i<110;i++){
-  if(await page(p,s,fragment=>
-    (document.getElementById('root')?.textContent??'').includes(fragment),phrase))return;
-  await delay(160);
+ // MUI tabs render uppercase using CSS text-transform. textContent has
+ // stable source text. Use the same bounded navigation-safe CDP waiter.
+ try{
+  await until(p,s,fragment=>
+    (document.getElementById('root')?.textContent??'').includes(fragment),
+    phrase,'MISSING_REAL_UI_TEXT_'+phrase);
+ }catch(error){
+  if(!String(error?.message??'').startsWith('MISSING_REAL_UI_TEXT_'))throw error;
+  // Bounded synthetic UI diagnostic only. No credentials, session or token.
+  const state=await page(p,s,()=>({
+   authenticated:document.body?.dataset?.authenticated??'unknown',
+   failure:document.body?.dataset?.failure??null,
+   renderedText:(document.getElementById('root')?.textContent??'').slice(0,230),
+  }));
+  throw new Error('MISSING_REAL_UI_TEXT_'+phrase+' '+JSON.stringify(state));
  }
- // Bounded synthetic UI diagnostic only. Never print cookies or actor IDs.
- const state=await page(p,s,()=>({
-  authenticated:document.body.dataset.authenticated,
-  failure:document.body.dataset.failure??null,
-  renderedText:(document.getElementById('root')?.textContent??'').slice(0,230),
- }));
- throw new Error('MISSING_REAL_UI_TEXT_'+phrase+' '+JSON.stringify(state));
 }
 async function absent(p,s,phrase){
  const exists=await page(p,s,fragment=>
