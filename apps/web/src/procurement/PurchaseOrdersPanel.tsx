@@ -54,6 +54,45 @@ type LineDraft = {
   remarks: string;
 };
 
+type CommercialDraftKey =
+  | 'deliveryLocation'
+  | 'deliveryContact'
+  | 'deliveryTerms'
+  | 'paymentTerms'
+  | 'creditTerms'
+  | 'discountAmount'
+  | 'freightAmount'
+  | 'additionalChargeAmount'
+  | 'vatRatePercent';
+
+const commercialHeaderFields: Array<{
+  key: CommercialDraftKey;
+  label: string;
+  numeric: boolean;
+}> = [
+  { key: 'deliveryLocation', label: 'Delivery location', numeric: false },
+  { key: 'deliveryContact', label: 'Delivery contact', numeric: false },
+  { key: 'deliveryTerms', label: 'Partial delivery / delivery terms', numeric: false },
+  { key: 'paymentTerms', label: 'Payment terms', numeric: false },
+  { key: 'creditTerms', label: 'Credit terms', numeric: false },
+  { key: 'discountAmount', label: 'Discount (THB)', numeric: true },
+  { key: 'freightAmount', label: 'Freight (THB)', numeric: true },
+  { key: 'additionalChargeAmount', label: 'Additional charges (THB)', numeric: true },
+  { key: 'vatRatePercent', label: 'VAT rate (%)', numeric: true },
+];
+
+const emptyCommercialDraft = (): Record<CommercialDraftKey, string> => ({
+  deliveryLocation: '',
+  deliveryContact: '',
+  deliveryTerms: '',
+  paymentTerms: '',
+  creditTerms: '',
+  discountAmount: '',
+  freightAmount: '',
+  additionalChargeAmount: '',
+  vatRatePercent: '',
+});
+
 function message(error: unknown) {
   if (error instanceof ApiError) return error.message;
   if (error instanceof Error) return error.message;
@@ -94,6 +133,7 @@ export function PurchaseOrdersPanel({ permissions, initialProjectId, initialOrde
   const [selectedAwards, setSelectedAwards] = useState<string[]>([]);
   const [createRemarks, setCreateRemarks] = useState('');
   const [headerRemarks, setHeaderRemarks] = useState('');
+  const [commercialDraft, setCommercialDraft] = useState(emptyCommercialDraft);
   const [workflowCode, setWorkflowCode] = useState('');
   const [actionComment, setActionComment] = useState('');
   const [cancelReason, setCancelReason] = useState('');
@@ -219,6 +259,11 @@ export function PurchaseOrdersPanel({ permissions, initialProjectId, initialOrde
     const current = detail.data?.data;
     if (!current) return;
     setHeaderRemarks(current.remarks ?? '');
+    setCommercialDraft(Object.fromEntries(
+      commercialHeaderFields.map((field) => [
+        field.key, current[field.key] ?? '',
+      ]),
+    ) as Record<CommercialDraftKey, string>);
     setLineDrafts(
       Object.fromEntries(
         current.lines.map((line) => [line.id, lineDraft(line)]),
@@ -266,6 +311,15 @@ export function PurchaseOrdersPanel({ permissions, initialProjectId, initialOrde
     mutationFn: () =>
       purchaseOrdersApi.update(orderId, {
         remarks: headerRemarks || null,
+        deliveryLocation: commercialDraft.deliveryLocation.trim() || null,
+        deliveryContact: commercialDraft.deliveryContact.trim() || null,
+        deliveryTerms: commercialDraft.deliveryTerms.trim() || null,
+        paymentTerms: commercialDraft.paymentTerms.trim() || null,
+        creditTerms: commercialDraft.creditTerms.trim() || null,
+        discountAmount: commercialDraft.discountAmount.trim() || null,
+        freightAmount: commercialDraft.freightAmount.trim() || null,
+        additionalChargeAmount: commercialDraft.additionalChargeAmount.trim() || null,
+        vatRatePercent: commercialDraft.vatRatePercent.trim() || null,
       }),
     onSuccess: () => refreshOrder(),
   });
@@ -589,6 +643,30 @@ export function PurchaseOrdersPanel({ permissions, initialProjectId, initialOrde
                   multiline
                   minRows={2}
                 />
+                <Typography variant="subtitle2">PUR04 · Delivery and commercial terms</Typography>
+                <Alert severity="info">
+                  Header commercial values are descriptive draft inputs until
+                  the separate PUR01 whole-PO quote-count gate is implemented.
+                  Blank amount fields mean unknown, not a certified zero.
+                </Alert>
+                <Box sx={{ display: 'grid', gridTemplateColumns: {
+                  xs: '1fr', md: 'repeat(2, minmax(0, 1fr))',
+                }, gap: 2 }}>
+                  {commercialHeaderFields.map((field) => (
+                    <TextField
+                      key={field.key}
+                      label={field.label}
+                      type={field.numeric ? 'number' : 'text'}
+                      inputProps={field.numeric ? { min: 0, step: '0.01' } : undefined}
+                      value={commercialDraft[field.key]}
+                      disabled={!canEdit || !draft}
+                      onChange={(event) => setCommercialDraft((previous) => ({
+                        ...previous, [field.key]: event.target.value,
+                      }))}
+                      fullWidth
+                    />
+                  ))}
+                </Box>
                 {canEdit && draft ? (
                   <Button
                     variant="outlined"
