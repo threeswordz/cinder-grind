@@ -1,4 +1,4 @@
-import { Alert, Button, Card, CardContent, Chip, Stack, TextField, Typography } from '@mui/material';
+import { Alert, Button, Card, CardContent, Checkbox, Chip, FormControlLabel, Stack, TextField, Typography } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { ApiError } from '../api/client';
@@ -22,7 +22,14 @@ const errorText = (error: unknown) => error instanceof ApiError
 export function PurchaseOrderCancellationPanel({ orderId, permissions, roleCodes }: Props) {
   const client = useQueryClient();
   const [note, setNote] = useState('');
-  useEffect(() => setNote(''), [orderId]);
+  const [supplierEvidence, setSupplierEvidence] = useState('');
+  const [supplierAgreed, setSupplierAgreed] = useState(false);
+  const [noDepositPenalty, setNoDepositPenalty] = useState(false);
+  const [noDeliveryInvoice, setNoDeliveryInvoice] = useState(false);
+  useEffect(() => {
+    setNote(''); setSupplierEvidence('');
+    setSupplierAgreed(false); setNoDepositPenalty(false); setNoDeliveryInvoice(false);
+  }, [orderId]);
 
   const canView = permissions.includes('procurement.po.view') &&
     roleCodes.some(role => ['PROCUREMENT_OFFICER', 'PROJECT_MANAGER', 'MANAGEMENT'].includes(role));
@@ -31,6 +38,7 @@ export function PurchaseOrderCancellationPanel({ orderId, permissions, roleCodes
   const isPmCandidate = roleCodes.includes('PROJECT_MANAGER');
   const isBenCandidate = roleCodes.includes('MANAGEMENT') &&
     permissions.includes('procurement.po.approve');
+  const canFinalize = isBenCandidate && permissions.includes('procurement.po.cancel');
   const query = useQuery({
     queryKey: ['pur10-cancellation-review', orderId],
     queryFn: () => poCancellationApi.read(orderId),
@@ -65,6 +73,26 @@ export function PurchaseOrderCancellationPanel({ orderId, permissions, roleCodes
     },
   });
 
+  const finalize = useMutation({
+    mutationFn: () => {
+      if (!previous) throw new Error('PUR10 finalization requires a current Ben approval event.');
+      return poCancellationApi.finalize(orderId, {
+        expectedVersion: state?.version ?? 0,
+        expectedPreviousEventId: previous,
+        supplierAgreementEvidence: supplierEvidence.trim(),
+        supplierAgreed: true, noDepositOrPenalty: true, noDeliveryOrInvoice: true,
+      });
+    },
+    onSuccess: async () => {
+      setSupplierAgreed(false); setNoDepositPenalty(false); setNoDeliveryInvoice(false);
+      setSupplierEvidence('');
+      await Promise.all([
+        client.invalidateQueries({ queryKey: ['pur10-cancellation-review', orderId] }),
+        client.invalidateQueries({ queryKey: ['purchase-order', orderId] }),
+        client.invalidateQueries({ queryKey: ['purchase-orders'] }),
+      ]);
+    },
+  });
   if (!canView || !orderId) return null;
   return (
     <Card variant="outlined">
@@ -92,10 +120,55 @@ export function PurchaseOrderCancellationPanel({ orderId, permissions, roleCodes
           ) : null}
           {state?.status === 'BEN_APPROVED' ? (
             <Alert severity="warning">
-              Ben has approved this review. Final cancellation is not yet enabled:
-              supplier agreement and any receipt/Finance exceptions require their
-              separately authorized handling.
+              Ben has approved the independent review. Cancellation is a separate,
+              explicit Ben action and requires documented supplier agreement,
+              confirmation that there are no deposits or penalties, and no
+              delivery or invoice. The server rechecks current receipt and Finance
+              records and refuses all exception cases.
             </Alert>
+          ) : null}
+          {state?.status === 'FINALIZED' ? (
+            <Alert severity="success">
+              The reviewed Purchase Order cancellation was recorded atomically.
+              No stock or Finance posting was performed.
+            </Alert>
+          ) : null}
+          {state?.status === 'BEN_APPROVED' && canFinalize ? (
+            <Stack spacing={1}>
+              <TextField
+                label="Supplier's cancellation agreement evidence reference"
+                value={supplierEvidence}
+                onChange={e => setSupplierEvidence(e.target.value)}
+                inputProps={{ maxLength: 1200 }}
+                helperText="Record an actual supplier confirmation reference. This form does not contact suppliers."
+                multiline minRows={2} fullWidth
+              />
+              <FormControlLabel
+                control={<Checkbox checked={supplierAgreed}
+                  onChange={(_e, v) => setSupplierAgreed(v)} />}
+                label="I confirm the supplier agreed to the cancellation."
+              />
+              <FormControlLabel
+                control={<Checkbox checked={noDepositPenalty}
+                  onChange={(_e, v) => setNoDepositPenalty(v)} />}
+                label="I confirm there is no deposit, penalty or expense to resolve."
+              />
+              <FormControlLabel
+                control={<Checkbox checked={noDeliveryInvoice}
+                  onChange={(_e, v) => setNoDeliveryInvoice(v)} />}
+                label="I confirm no goods were received and no supplier invoice exists."
+              />
+              <Button variant="outlined" color="error"
+                disabled={finalize.isPending || supplierEvidence.trim().length < 10 ||
+                  !supplierAgreed || !noDepositPenalty || !noDeliveryInvoice}
+                onClick={() => finalize.mutate()}
+              >
+                Finalize reviewed PO cancellation
+              </Button>
+              {finalize.isError ? (
+                <Alert severity="error">{errorText(finalize.error)}</Alert>
+              ) : null}
+            </Stack>
           ) : null}
           {state?.status === 'RETURNED' || state?.status === 'REJECTED' ? (
             <Alert severity="info">
