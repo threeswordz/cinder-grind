@@ -59,11 +59,13 @@ export function InventoryWorkspace({
   const locale = useContext(MonetaryLocaleContext);
   const requestText = materialRequestLabels[locale];
   const planText = materialPlanLabels[locale];
-  const canSeeExceptions = permissions.includes('documents.document.view') && (
-    (permissions.includes('inventory.issue.view') && roleCodes.some(r => r === 'STOREKEEPER' || r === 'PROJECT_MANAGER')) ||
-    (permissions.includes('inventory.stock.view') && roleCodes.some(r => ['STOREKEEPER','PROJECT_MANAGER','MANAGEMENT','FINANCE_MANAGER'].includes(r))) ||
-    (permissions.includes('inventory.stock_count.view') && roleCodes.some(r => ['FINANCE_MANAGER','PROJECT_MANAGER','STOREKEEPER'].includes(r)))
-  );
+  const canSeeExceptions = (
+    permissions.includes('documents.document.view') && (
+      (permissions.includes('inventory.issue.view') && roleCodes.some(r => r === 'STOREKEEPER' || r === 'PROJECT_MANAGER')) ||
+      (permissions.includes('inventory.stock.view') && roleCodes.some(r => ['STOREKEEPER','PROJECT_MANAGER','MANAGEMENT','FINANCE_MANAGER'].includes(r)))
+    )
+  ) || (permissions.includes('inventory.stock_count.view') &&
+    roleCodes.some(r => ['FINANCE_MANAGER','PROJECT_MANAGER','STOREKEEPER'].includes(r)));
   const canSeeTransferReceipts = permissions.includes('inventory.transfer.receipt_view');
   const canSeeReceiving = permissions.includes('inventory.receiving.view');
   const canSeeRequests = permissions.includes('inventory.material_request.view');
@@ -93,7 +95,7 @@ export function InventoryWorkspace({
               ? 'returns'
               : canSeeTransfers
                 ? 'transfers'
-                : 'reports';
+                : canSeeReports ? 'reports' : 'exceptions';
   const [selected, setSelected] = useState<InventoryTab>(first);
   const appliedReceiptProjectSourceLink = useRef('');
   const appliedReceiptSourceLink = useRef('');
