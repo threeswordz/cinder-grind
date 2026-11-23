@@ -9,19 +9,68 @@ const escape = (value: string): string =>
     '"': '&quot;', "'": '&#39;',
   })[match]!);
 
+// Thai baht arithmetic uses integral satang, never IEEE-754 binary amounts.
+function moneySatang(raw: string): bigint {
+  if (!/^(?:0|[1-9]\d{0,14})(?:\.\d{1,2})?$/u.test(raw)) {
+    throw new Error('PO_PRINT_INVALID_MONEY_DECIMAL');
+  }
+  const [whole, fractional = ''] = raw.split('.');
+  return BigInt(whole!) * 100n + BigInt((fractional + '00').slice(0, 2));
+}
+function satangText(value: bigint): string {
+  const sign = value < 0n ? '-' : '';
+  const abs = value < 0n ? -value : value;
+  return sign + (abs / 100n) + '.' + String(abs % 100n).padStart(2, '0');
+}
+function approvedTotals(order: PurchaseOrderDetail) {
+  const subtotal = order.lines.reduce((sum, line) =>
+    sum + moneySatang(line.amount), 0n);
+  const missing = [order.discountAmount, order.freightAmount,
+    order.additionalChargeAmount, order.vatRatePercent].some(v => v === null);
+  if (missing) return {
+    subtotal: satangText(subtotal), net: null, vatAmount: null, grandTotal: null,
+  };
+  const net = subtotal - moneySatang(order.discountAmount!) +
+    moneySatang(order.freightAmount!) + moneySatang(order.additionalChargeAmount!);
+  if (net < 0n) throw new Error('PO_PRINT_NEGATIVE_NET_TOTAL');
+  // vatRatePercent is a percent with up to two decimal places.
+  const rate = moneySatang(order.vatRatePercent!);
+  if (rate > 10000n) throw new Error('PO_PRINT_VAT_RATE_INVALID');
+  // Round positive VAT satang half-up; 100.00% = 10000 basis points.
+  const vatAmount = (net * rate + 5000n) / 10000n;
+  return {
+    subtotal: satangText(subtotal),
+    net: satangText(net),
+    vatAmount: satangText(vatAmount),
+    grandTotal: satangText(net + vatAmount),
+  };
+}
 export function printApprovedPurchaseOrderHtml(order: PurchaseOrderDetail): {
   html: string; suggestedFileName: string;
 } {
   if (order.lifecycleState !== 'APPROVED' || order.cancelledAt) {
     throw new Error('Only the exact approved, active PO revision may be printed.');
   }
+  if (!order.lines.length || order.currencyCode !== 'THB') {
+    throw new Error('PO_PRINT_SOURCE_CURRENCY_OR_LINES_UNVERIFIED');
+  }
   const label = (order.displayNumber ?? order.poNumber).trim().normalize('NFKC');
   if (!/^([TK]-)?PO\d{4}-\d{3,}/u.test(label) ||
-      /[\\/<>:"|?*\u0000-\u001f\u202a-\u202e]/u.test(label)) {
+      /[\\/<>:"|?*\u0000-\u001f\u007f\u202a-\u202e\u2066-\u2069]/u.test(label) ||
+      !/^[\p{L}\p{M}\p{N} .()_-]+$/u.test(label)) {
     throw new Error('PO display identity is not safe as a filename.');
   }
   const suffix = order.revisionNo > 0 ? '-rev' + String(order.revisionNo).padStart(2, '0') : '';
   const suggestedFileName = label + suffix + '.pdf';
+  if (new TextEncoder().encode(suggestedFileName).length > 210) {
+    throw new Error('PO_PRINT_FILENAME_TOO_LONG');
+  }
+  const totals = approvedTotals(order);
+  const verified = order.approvalInstance?.approvalState === 'APPROVED' &&
+    Boolean(order.approvalInstance.completedAt);
+  if (!verified) {
+    throw new Error('PO_PRINT_INDEPENDENT_APPROVAL_EVIDENCE_MISSING');
+  }
   const legalNames = new Set(order.lines.map(line => line.quotationAward?.supplierNameSnapshot?.trim()));
   if (legalNames.size !== 1 || [...legalNames][0] === undefined || ![...legalNames][0]) {
     throw new Error('The approved PO has inconsistent or missing immutable supplier legal names.');
@@ -35,7 +84,9 @@ export function printApprovedPurchaseOrderHtml(order: PurchaseOrderDetail): {
   const value = (v: string | null) => escape(v ?? 'Not specified');
   const approvedAt = order.approvalInstance?.completedAt ?? '';
   const html = `<!doctype html><html lang="th"><head>
-<meta charset="UTF-8"><title>${escape(suggestedFileName.replace(/\.pdf$/u,''))}</title>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
+<title>${escape(suggestedFileName.replace(/\.pdf$/u,''))}</title>
 <style>
 @page { size:A4; margin:14mm; }
 body { font: 11pt/1.45 'Noto Sans Thai','Tahoma','Arial',sans-serif; color:#1f2937; }
@@ -61,6 +112,13 @@ tr {break-inside:avoid;} .footer{border-top:1px solid #777; margin-top:22px; pad
 <table><thead><tr><th>#</th><th>Description / รายละเอียด</th>
 <th>Qty / Unit</th><th>Unit price</th><th>Amount</th></tr></thead>
 <tbody>${lines}</tbody></table>
+<h2>Commercial totals (THB)</h2>
+<div class="meta">
+<div><strong>Subtotal:</strong> ${totals.subtotal}</div>
+<div><strong>Net before VAT:</strong> ${totals.net ?? 'NOT CALCULATED — missing inputs'}</div>
+<div><strong>VAT amount:</strong> ${totals.vatAmount ?? 'NOT CALCULATED — missing inputs'}</div>
+<div><strong>Grand total (including VAT):</strong> ${totals.grandTotal ?? 'NOT CALCULATED — missing inputs'}</div>
+</div>
 <h2>Commercial terms</h2><div class="meta">
 <div><strong>Discount:</strong> ${value(order.discountAmount)}</div>
 <div><strong>Freight:</strong> ${value(order.freightAmount)}</div>
