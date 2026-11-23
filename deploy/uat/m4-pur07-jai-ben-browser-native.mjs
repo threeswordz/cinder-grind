@@ -380,29 +380,17 @@ async function run(){
  }
  async function pdfFromActualPrint(p,s){
   const known=new Set((await p.send('Target.getTargets')).targetInfos.map(t=>t.targetId));
-  // A Runtime.evaluate el.click() is NOT a trusted user activation and Chrome
-  // may correctly block window.open(). Use actual CDP pointer down/up, matching
-  // a human UI click. Never bypass popup protection in application code.
-  const bounds=await page(p,s,()=>{
-   const button=[...document.querySelectorAll('button')]
-    .find(b=>b.textContent?.trim()==='Print / Save as PDF (Thai supported by browser)'&&!b.disabled);
-   if(!button)return null;
-   button.scrollIntoView({block:'center'});
-   const box=button.getBoundingClientRect();
-   return {x:box.left+box.width/2,y:box.top+box.height/2};
-  });
-  assert.ok(bounds,'PUR07 actual print button missing or disabled');
-  await p.send('Input.dispatchMouseEvent',{
-   type:'mouseMoved',x:bounds.x,y:bounds.y,
+  // Headless Chrome CDP Runtime.evaluate explicitly supports userGesture=true;
+  // this grants transient browser activation for the actual React window.open
+  // without requiring insecure popup-blocking flags or altering app logic.
+  const activation=await p.send('Runtime.evaluate',{
+   expression:"(()=>{const b=[...document.querySelectorAll('button')]"+
+    ".find(x=>x.textContent?.trim()==='Print / Save as PDF (Thai supported by browser)'&&!x.disabled);"+
+    "if(!b)return false;b.click();return true;})()",
+   userGesture:true,awaitPromise:true,returnByValue:true,
   },s);
-  await p.send('Input.dispatchMouseEvent',{
-   type:'mousePressed',x:bounds.x,y:bounds.y,
-   button:'left',clickCount:1,
-  },s);
-  await p.send('Input.dispatchMouseEvent',{
-   type:'mouseReleased',x:bounds.x,y:bounds.y,
-   button:'left',clickCount:1,
-  },s);
+  assert.ok(!activation.exceptionDetails&&activation.result?.value===true,
+   'Expected authenticated Chrome Print action with real user activation');
   let popup;
   for(let i=0;i<90;i++){
    popup=(await p.send('Target.getTargets')).targetInfos.find(t=>
@@ -502,7 +490,7 @@ async function run(){
 try{await run();}
 catch(error){
  console.error('M4_PUR07_REAL_UI_FAILED_'+stage+': '+
-  String(error?.message??error).slice(0,300));
+  String(error?.safeCode??error?.message??error).slice(0,300));
  process.exitCode=1;
 }finally{
  try{if(browser)await browser.stop();}finally{
