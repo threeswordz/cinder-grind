@@ -437,6 +437,9 @@ test('PUR10 native: real approved PO, independent named Jai/Khaimook/Ben, atomic
       const po=await orders.createOrder(
         {auth:jai.auth},project.id,[awarded.id], 'PUR10 reviewed '+tag,
       );
+      // Reuse a valid submitted commercial basis; the source PO needs all
+      // tax/discount/charge facts before the quote-policy guard can run.
+      await orders.updateOrder({auth:jai.auth},po.id,fields);
       await orders.submit({auth:jai.auth},po.id,poFlow.workflowCode);
       await orders.approve({auth:ben.auth},po.id,'PUR10 scoped new PO');
       const loaded=await prisma.purchaseOrder.findUniqueOrThrow({
