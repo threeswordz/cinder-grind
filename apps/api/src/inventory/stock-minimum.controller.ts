@@ -43,6 +43,18 @@ export class StockMinimumController {
     return this.minimums.choices(r.auth!, projectId, warehouseId, after).then(data => ({ data }));
   }
 
+  /** An approved plan's validFrom, not a supplier promise or daily issue date. */
+  @Get('projects/:projectId/sites/:warehouseId/plan-starts')
+  @Header('Cache-Control', 'private, no-store')
+  @UseGuards(AuthGuard, PermissionGuard)
+  @RequirePermissions('inventory.stock.view')
+  planStarts(@Req() r: AuthenticatedRequest,
+    @Param('projectId', uuid) projectId: string,
+    @Param('warehouseId', uuid) warehouseId: string) {
+    return this.minimums.planStarts(r.auth!, projectId, warehouseId)
+      .then(data => ({ data }));
+  }
+
   @Get('projects/:projectId/sites/:warehouseId')
   @Header('Cache-Control', 'private, no-store')
   @UseGuards(AuthGuard, PermissionGuard)
