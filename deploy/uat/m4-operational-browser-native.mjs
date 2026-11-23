@@ -287,6 +287,42 @@ async function realBrowser(){
  await vite.listen();
  browser=await startBrowser(browserBin,temp);
  const p=browser.protocol,contexts=[];
+ const unexpectedApi=[],unhandledRuntime=[],unexpectedNetwork=[],requests=new Map();
+ let outsiderSession=null;
+ const forbiddenPath='/api/v1/inventory/stock-count-schedules/projects/'+
+  project.id+'/sites/'+warehouse.id;
+ // Observe real Chrome network/runtime events rather than intercept/mock.
+ // Any API error, including a 500 from a secondary query while a mutation
+ // succeeds, invalidates the entire browser proof. The sole permitted
+ // negative is this test's exact Project denial with mandatory date.
+ const observer=event=>{
+  const {method,params={},sessionId}=event;
+  if(method==='Network.requestWillBeSent'){
+   requests.set(sessionId+':'+params.requestId,{
+    url:params.request?.url??'',type:params.type??''});
+  } else if(method==='Network.responseReceived'){
+   const url=params.response?.url??'',status=params.response?.status;
+   if(url.startsWith(WEB+'/api/v1/') && typeof status==='number' && status>=400){
+    let intentional=false;
+    try {
+     const u=new URL(url);
+     intentional=sessionId===outsiderSession&&u.pathname===forbiddenPath&&
+      u.searchParams.get('asOfDate')==='2026-11-23'&&
+      [403,404].includes(status);
+     if(!intentional)unexpectedApi.push(status+' '+u.pathname);
+    } catch {unexpectedApi.push('INVALID_BROWSER_API_URL');}
+   }
+  } else if(method==='Network.loadingFailed'){
+   const request=requests.get(sessionId+':'+params.requestId);
+   if(request&&!params.canceled &&
+      (request.url.startsWith(WEB+'/api/v1/')||
+       ['Script','Document'].includes(request.type)))
+    unexpectedNetwork.push(request.type+' '+new URL(request.url).pathname);
+  } else if(method==='Runtime.exceptionThrown') {
+   unhandledRuntime.push('REAL_BROWSER_UNHANDLED_RUNTIME_EXCEPTION');
+  }
+ };
+ p.listeners.add(observer);
  async function session(actor){
   const {browserContextId}=await p.send('Target.createBrowserContext');
   contexts.push(browserContextId);
@@ -388,18 +424,38 @@ async function realBrowser(){
   // Actual unrelated-Project authenticated UI and protected API isolation.
   const outsiderS=await session(outsider);
   await tab(p,outsiderS,'Count schedules');
-  await until(p,outsiderS,()=>document.querySelectorAll('[role="combobox"]').length>=1,
-   null,'OUTSIDER_PROJECT_SELECTOR_MISSING');
-  const canSee=await page(p,outsiderS,text=>document.body.innerText.includes(text),
-   'M4-ASSIGNED-'+key);
-  assert.equal(canSee,false,'Other Project leaked into real browser');
+  outsiderSession=outsiderS;
+  // A closed MUI select hides its options. Wait for the authorized Project
+  // network query by opening the real dropdown and inspecting option nodes.
+  const opened=await page(p,outsiderS,label=>{
+   const control=[...document.querySelectorAll('[role="combobox"]')].find(x=>
+    (x.getAttribute('aria-labelledby')??'').split(' ').some(
+     id=>document.getElementById(id)?.textContent?.trim()===label));
+   if(!control)return false;
+   control.dispatchEvent(new MouseEvent('mousedown',{bubbles:true,button:0}));
+   return true;
+  },'Project');
+  assert.equal(opened,true,'Outsider Project selection not available');
+  await until(p,outsiderS,fragment=>[...document.querySelectorAll('[role="option"]')]
+   .some(x=>x.textContent.includes(fragment)),'M4-OTHER-'+key,
+   'OUTSIDER_ASSIGNED_PROJECT_NOT_LOADED');
+  const leaked=await page(p,outsiderS,fragment=>
+   [...document.querySelectorAll('[role="option"]')]
+    .some(x=>x.textContent.includes(fragment)),'M4-ASSIGNED-'+key);
+  assert.equal(leaked,false,'Unassigned Project leaked in opened real options');
   const denied=await page(p,outsiderS,async path=>{
    const r=await fetch('/api/v1'+path,{credentials:'include',redirect:'error'});
    return r.status;
-  },'/inventory/stock-count-schedules/projects/'+project.id+'/sites/'+warehouse.id);
+  },'/inventory/stock-count-schedules/projects/'+project.id+
+    '/sites/'+warehouse.id+'?asOfDate=2026-11-23');
   assert.ok([403,404].includes(denied),'Nonmember Project scope rejected with '+denied);
+  await delay(450);
+  assert.deepEqual(unexpectedApi,[],'Unexpected browser API errors cannot count as success');
+  assert.deepEqual(unexpectedNetwork,[],'Unsuccessful browser network load cannot count as success');
+  assert.deepEqual(unhandledRuntime,[],'Browser uncaught runtime exception cannot count as success');
   console.log('M4_BROWSER_OTHER_PROJECT_AUTH_DENIAL_PASS');
  }finally{
+  p.listeners.delete(observer);
   for(const contextId of contexts.reverse())
    await p.send('Target.disposeBrowserContext',{browserContextId:contextId}).catch(()=>{});
  }
