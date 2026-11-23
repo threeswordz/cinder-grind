@@ -4,8 +4,9 @@ import { randomUUID } from 'node:crypto';
 import { AuthenticatedUserContext } from '../auth/auth.types';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProjectAccessService } from '../projects/project-access.service';
+import { PurchaseOrderService } from './purchase-order.service';
 import {
-  Pur10PolicyError, planPur10Decision, type Pur10Action, type Pur10Actor,
+  Pur10PolicyError, planPur10Decision, assertPur10ReadyToCancel, type Pur10Action, type Pur10Actor,
   type Pur10Case, type Pur10Order, type Pur10Status,
 } from './purchase-order-cancellation-contract';
 
@@ -33,7 +34,7 @@ type Latest = { state: Pur10Case; eventId: string };
  */
 @Injectable()
 export class PurchaseOrderCancellationCaseService {
-  constructor(private readonly prisma: PrismaService, private readonly access: ProjectAccessService) {}
+  constructor(private readonly prisma: PrismaService, private readonly access: ProjectAccessService, private readonly orders: PurchaseOrderService) {}
 
   private async liveActor(auth: AuthenticatedUserContext, db: Tx | PrismaService) {
     const session = await db.userSession.findFirst({
@@ -104,7 +105,7 @@ export class PurchaseOrderCancellationCaseService {
     return { jai, khaimook, ben };
   }
 
-  private async source(auth: AuthenticatedUserContext, id: string, db: Tx | PrismaService) {
+  private async source(auth: AuthenticatedUserContext, id: string, db: Tx | PrismaService, allowFinalized = false) {
     const row = await db.purchaseOrder.findFirst({
       where: { id, companyId: auth.companyId },
       select: {
@@ -119,7 +120,7 @@ export class PurchaseOrderCancellationCaseService {
     // Only an actually approved, most recent PO revision can enter this
     // cancellation review. Draft/rejected/newer-revision cases fail closed.
     if (row.approvalInstance?.approvalState !== 'APPROVED' ||
-        row.nextRevision || row.cancelledAt) return fail('PUR10_APPROVED_LATEST_PO_REQUIRED');
+        row.nextRevision || (!allowFinalized && row.cancelledAt)) return fail('PUR10_APPROVED_LATEST_PO_REQUIRED');
     return row;
   }
 
@@ -148,15 +149,16 @@ export class PurchaseOrderCancellationCaseService {
       seen.add(row.id);
       const v = row.newValues as Record<string, Prisma.JsonValue>;
       if (!uuid(v.caseId) || typeof v.orderUpdatedAt !== 'string' ||
-          v.version !== expected || v.effect !== 'NO_PO_CHANGE' ||
+          v.version !== expected || (v.effect !== 'NO_PO_CHANGE' && v.effect !== 'PO_CANCELLED') ||
           typeof v.orderId !== 'string' || v.orderId !== id ||
           typeof v.companyId !== 'string' || v.companyId !== companyId ||
           typeof v.projectId !== 'string' || typeof v.poNumber !== 'string' ||
           typeof v.revisionNo !== 'number' || typeof v.makerUserId !== 'string' ||
           (v.pmUserId !== null && typeof v.pmUserId !== 'string') ||
           (v.benUserId !== null && typeof v.benUserId !== 'string') ||
-          !['PM_PENDING','BEN_PENDING','RETURNED','REJECTED','BEN_APPROVED'].includes(String(v.status)) ||
-          !ACTIONS.includes(row.action as Pur10Action)) return fail('PUR10_HISTORY_INVALID');
+          !['PM_PENDING','BEN_PENDING','RETURNED','REJECTED','BEN_APPROVED','FINALIZED'].includes(String(v.status)) ||
+          !(ACTIONS.includes(row.action as Pur10Action) || row.action === 'FINALIZE') ||
+          ((row.action === 'FINALIZE') !== (v.effect === 'PO_CANCELLED'))) return fail('PUR10_HISTORY_INVALID');
       if (state && (state.caseId !== v.caseId || state.makerUserId !== v.makerUserId ||
           state.orderUpdatedAt !== v.orderUpdatedAt || state.projectId !== v.projectId ||
           state.poNumber !== v.poNumber || state.revisionNo !== v.revisionNo))
@@ -175,7 +177,12 @@ export class PurchaseOrderCancellationCaseService {
           row.actorUserId !== state?.makerUserId) ||
         (before === 'BEN_PENDING' && row.action === 'BEN_REJECT' && target === 'REJECTED' &&
           v.benUserId === row.actorUserId && row.actorUserId !== state?.pmUserId &&
-          row.actorUserId !== state?.makerUserId)
+          row.actorUserId !== state?.makerUserId) ||
+        (before === 'BEN_APPROVED' && row.action === 'FINALIZE' &&
+          target === 'FINALIZED' && v.effect === 'PO_CANCELLED' &&
+          v.benUserId === row.actorUserId && row.actorUserId === state?.benUserId &&
+          v.pmUserId === state?.pmUserId && v.makerUserId === state?.makerUserId &&
+          v.poCancelled === true && v.financePosted === false)
       )) return fail('PUR10_HISTORY_STAGE_INVALID');
       state = {
         caseId: v.caseId, companyId: v.companyId, projectId: v.projectId,
@@ -196,9 +203,11 @@ export class PurchaseOrderCancellationCaseService {
         !actor.roleCodes.some(role =>
           ['PROCUREMENT_OFFICER', 'PROJECT_MANAGER', 'MANAGEMENT'].includes(role)))
       return denied('PUR10_VIEW_PERMISSION_DENIED');
-    await this.source(auth, orderId, this.prisma);
+    const source = await this.source(auth, orderId, this.prisma, true);
     await this.mappedActors(auth.companyId, this.prisma);
     const current = await this.history(auth.companyId, orderId, this.prisma);
+    if (Boolean(source.cancelledAt) !== (current?.state.status === 'FINALIZED'))
+      return fail('PUR10_SOURCE_AND_FINAL_AUDIT_MISMATCH');
     return { orderId, case: current?.state ?? null,
       expectedPreviousEventId: current?.eventId ?? null };
   }
@@ -261,4 +270,139 @@ export class PurchaseOrderCancellationCaseService {
       };
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
   }
+  /**
+   * Finalization is a distinct, explicit Ben confirmation. It is the only
+   * transaction allowed to transition an approved reviewed PO to cancelled.
+   * All receipt, invoice and delivery evidence must be absent; exception cases
+   * remain blocked pending their separate Ben/Nancy/Accounting decisions.
+   */
+  async finalize(context: Context, orderId: string,
+    expectedVersion: number, expectedPreviousEventId: string,
+    attestation: {
+      supplierAgreementEvidence: string;
+      supplierAgreed: boolean;
+      noDepositOrPenalty: boolean;
+      noDeliveryOrInvoice: boolean;
+    }) {
+    if (!Number.isSafeInteger(expectedVersion) || expectedVersion < 1 ||
+        !uuid(expectedPreviousEventId) ||
+        typeof attestation.supplierAgreementEvidence !== 'string' ||
+        attestation.supplierAgreementEvidence.trim() !== attestation.supplierAgreementEvidence ||
+        attestation.supplierAgreementEvidence.length < 10 ||
+        attestation.supplierAgreementEvidence.length > 1200 ||
+        !attestation.supplierAgreed ||
+        !attestation.noDepositOrPenalty || !attestation.noDeliveryOrInvoice)
+      return fail('PUR10_EXPLICIT_BEN_SUPPLIER_AND_NO_EXCEPTION_ATTESTATION_REQUIRED');
+
+    return this.prisma.$transaction(async tx => {
+      // Case lock before any receipt/Finance locks. Competing finalizers or
+      // stage updates to the same PO cannot both observe an earlier version.
+      await tx.$executeRawUnsafe('SELECT pg_advisory_xact_lock(hashtext($1))',
+        'pur10:' + context.auth.companyId + ':' + orderId);
+      const actor = await this.liveActor(context.auth, tx);
+      const source = await this.source(context.auth, orderId, tx);
+      const named = await this.mappedActors(context.auth.companyId, tx);
+      if (actor.userId !== named.ben ||
+          !actor.roleCodes.includes('MANAGEMENT') ||
+          !actor.permissions.includes('procurement.po.approve') ||
+          !actor.permissions.includes('procurement.po.cancel'))
+        return denied('PUR10_NAMED_BEN_FINALIZATION_PERMISSION_REQUIRED');
+
+      const reviewed = await this.history(context.auth.companyId, orderId, tx);
+      if (!reviewed || reviewed.eventId !== expectedPreviousEventId ||
+          reviewed.state.version !== expectedVersion ||
+          reviewed.state.status !== 'BEN_APPROVED' ||
+          reviewed.state.benUserId !== actor.userId)
+        return fail('PUR10_FINALIZATION_REVIEW_STALE_OR_NOT_APPROVED');
+
+      const order: Pur10Order = {
+        id: source.id, companyId: source.companyId,
+        projectId: source.projectId, poNumber: source.poNumber,
+        revisionNo: source.revisionNo, updatedAt: source.updatedAt.toISOString(),
+        configuredJaiUserId: named.jai, configuredKhaimookUserId: named.khaimook,
+        configuredBenUserId: named.ben, isLatestRevision: source.nextRevision === null,
+        isCancelled: source.cancelledAt !== null, isRejected: false,
+      };
+      const lines = await tx.purchaseOrderLine.findMany({
+        where: { purchaseOrderId: orderId }, select: { id: true },
+      });
+      if (!lines.length) return fail('PUR10_SOURCE_LINES_REQUIRED');
+      const lineIds = lines.map(row => row.id);
+      const [anyReceipt, anyInvoice, anyDelivery, postedReceipt, approvedInvoice] = await Promise.all([
+        tx.goodsReceipt.findFirst({
+          where: { purchaseOrder: { companyId: source.companyId, poNumber: source.poNumber } },
+          select: { id: true },
+        }),
+        tx.supplierInvoiceItem.findFirst({
+          where: { purchaseOrderLineId: { in: lineIds } }, select: { id: true },
+        }),
+        tx.receivingDelivery.findFirst({
+          where: { companyId: source.companyId, purchaseOrderId: orderId },
+          select: { id: true },
+        }),
+        tx.goodsReceipt.findFirst({
+          where: { purchaseOrder: { companyId: source.companyId, poNumber: source.poNumber },
+            postedAt: { not: null }, reversedAt: null },
+          select: { id: true },
+        }),
+        tx.supplierInvoiceItem.findFirst({
+          where: { purchaseOrderLineId: { in: lineIds },
+            supplierInvoice: { state: 'APPROVED' } }, select: { id: true },
+        }),
+      ]);
+      try {
+        assertPur10ReadyToCancel(reviewed.state, order, {
+          postedUnreversedReceipt: Boolean(postedReceipt),
+          approvedInvoiceSource: Boolean(approvedInvoice),
+          supplierRefusesCancellation: !attestation.supplierAgreed,
+          depositOrPenaltyUnresolved: !attestation.noDepositOrPenalty,
+          partialDeliveryOrInvoice:
+            Boolean(anyReceipt || anyInvoice || anyDelivery || !attestation.noDeliveryOrInvoice),
+        });
+      } catch (error) {
+        if (error instanceof Pur10PolicyError) return fail(error.code);
+        throw error;
+      }
+
+      // Never mutate a PO or Finance source unless the complete independent
+      // case still matches. This existing writer ALSO checks live GR/AP locks
+      // and PO revision state after its own row lock in this same transaction.
+      const cancelled = await this.orders.cancelForReviewedCase(
+        context, orderId,
+        'PUR10 verified Ben cancellation; supplier evidence: ' +
+          attestation.supplierAgreementEvidence,
+        reviewed.state.caseId, reviewed.eventId, reviewed.state.orderUpdatedAt, tx,
+      );
+      const final = await tx.auditLog.create({
+        data: {
+          companyId: source.companyId, entityType: ENTITY, entityId: orderId,
+          action: 'FINALIZE', actorUserId: actor.userId,
+          ...(context.correlationId ? { correlationId: context.correlationId } : {}),
+          newValues: {
+            caseId: reviewed.state.caseId, companyId: source.companyId,
+            projectId: source.projectId, orderId, poNumber: source.poNumber,
+            revisionNo: source.revisionNo,
+            orderUpdatedAt: reviewed.state.orderUpdatedAt,
+            makerUserId: reviewed.state.makerUserId,
+            pmUserId: reviewed.state.pmUserId, benUserId: reviewed.state.benUserId,
+            version: reviewed.state.version + 1,
+            status: 'FINALIZED', previousEventId: reviewed.eventId,
+            effect: 'PO_CANCELLED', poCancelled: true, financePosted: false,
+            supplierAgreementEvidence: attestation.supplierAgreementEvidence,
+            supplierAgreed: true, noDepositOrPenalty: true,
+            noDeliveryOrInvoice: true,
+          },
+        },
+        select: { id: true },
+      });
+      return {
+        orderId, caseId: reviewed.state.caseId, status: 'FINALIZED' as const,
+        version: reviewed.state.version + 1,
+        expectedPreviousEventId: final.id,
+        poCancelled: cancelled.lifecycleState === 'CANCELLED',
+        financePosted: false,
+      };
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+  }
+
 }
