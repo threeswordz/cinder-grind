@@ -1,0 +1,61 @@
+name: M4 focused FM01 BEN04 native actors only 2026-11-23
+on:
+  push:
+    branches: [focused-m4-fm01-ben04-native-20261123]
+    paths: ['.github/workflows/focused-m4-fm01-ben04-native-20261123.yml']
+permissions:
+  contents: read
+jobs:
+  native-fm01-ben04-only:
+    name: isolated-FM01-BEN04-real-Postgres-API
+    runs-on: ubuntu-latest
+    timeout-minutes: 17
+    services:
+      postgres:
+        image: postgres:17.11-alpine
+        env:
+          POSTGRES_DB: erp_m4_weekly_closeout
+          POSTGRES_USER: construction_erp
+          POSTGRES_PASSWORD: construction_erp_dev_only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U construction_erp -d erp_m4_weekly_closeout"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://construction_erp:construction_erp_dev_only@localhost:5432/erp_m4_weekly_closeout?schema=public
+      M4_NON_PRODUCTION_CONFIRMED: 'YES'
+      EXACT_NATIVE_SOURCE: 23a897f03c3a4c6a325d7897349d37ea6fef8102
+    steps:
+      - name: Checkout frozen reviewed source and disposable workflow
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 2
+      - name: Assert immutable source and isolated workflow-only change
+        run: |
+          test "$(git rev-parse HEAD^)" = "$EXACT_NATIVE_SOURCE"
+          test "$(git diff --name-only HEAD^ HEAD)" = ".github/workflows/focused-m4-fm01-ben04-native-20261123.yml"
+      - name: Setup pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
+        with:
+          version: 12.6.0
+          run_install: false
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.21.0
+      - name: Frozen dependency installation
+        run: pnpm install --frozen-lockfile
+      - name: Generate Prisma and migrate only fresh disposable database
+        run: |
+          pnpm prisma:generate
+          pnpm prisma:migrate:deploy
+      - name: Compile API including FM01 BEN04 native test
+        run: pnpm --filter @construction-erp/api build
+      - name: Run only FM01 and BEN04 native actor proof
+        run: node --test --test-concurrency=1 apps/api/dist/projects/m4-fm01-closeout-native.integration.spec.js
+      - name: Explain exact evidence limitation
+        run: echo 'FM01+BEN04 native only; no previous M4 native rerun, no full suite, browser, Mac, retained roles, Owner UAT, Production or release.'
