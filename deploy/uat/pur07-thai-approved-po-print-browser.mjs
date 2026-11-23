@@ -93,9 +93,11 @@ try {
   assert.throws(() => printApprovedPurchaseOrderHtml({
     ...source, displayNumber: 'T-PO2611-001 ../evil',
   }), /not safe as a filename/u);
-  assert.throws(() => printApprovedPurchaseOrderHtml({
+  const missingInput = printApprovedPurchaseOrderHtml({
     ...source, discountAmount: null,
-  }).html.includes('NOT CALCULATED — missing inputs') === false ? new Error('missing value not shown') : () => {});
+  });
+  assert.match(missingInput.html, /NOT CALCULATED — missing inputs/u);
+  assert.doesNotMatch(missingInput.html, /Grand total \(including VAT\):<\/strong> 2107\.90/u);
 
   await vite.listen();
   const address = vite.httpServer.address();
