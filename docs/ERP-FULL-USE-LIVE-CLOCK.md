@@ -38,6 +38,8 @@ The ERP is complete only if all 112 requirements are implemented and working or 
 | GL-10 final UAT, cutover and stable use | 150h | 1,900h |
 | **Subtotal AFTER prototype 8/8** | **1,495h** | **Conditional full ERP 1,900h overall** |
 
+**Scope overlap risks requiring subsequent estimate calibration (NOT proven double-counting):** `ROLE-03` (GL-04 cross-module UAT, 35h) vs `LAUNCH-02` (GL-10 final human UAT, 45h) must clearly distinguish pre-release business qualification from post-migration production-like acceptance; `ROLE-01` (35h preproduction retained grants) vs `DATA-03` (20h actual Production user provisioning) must document differing environments; `M7` prototype restore vs `INF-04` production-like restore (25h) must use distinct target/evidence; and M8 security review vs GL-07 security signoff must not replay exact reviewed work without changed risk. The allocations currently describe separate phases, but these assumptions are **not independently validated**. Until actual acceptance contracts and observed effort confirm separation, do not claim the center estimate is accurate to the hour. Do not silently delete these budgets either; reduce them only when verifiable evidence shows an overlap, and rebaseline visibly.
+
 **Reliability note:** the 1,100–3,300h range is an illustrative scenario interval rather than a statistically calibrated confidence interval. Only scope approval and actual measured work can validate the eventual engineering effort; the planning budget is not an ERP completion percentage or a promise of a specific date. **No GitHub Actions CI or Production deployment is required to correct this forecast display.**
 
 ## ERP 1,900-hour completion counter and countdown
