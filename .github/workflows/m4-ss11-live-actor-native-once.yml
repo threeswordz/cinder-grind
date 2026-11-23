@@ -1,0 +1,68 @@
+# Exact-source one-time live-session SS11 authorization proof only. Not full release CI.
+name: M4 SS11 Live Role Revocation Native Only
+on:
+  push:
+    branches: ['focused-m4-ss11-live-actor-native-once-20261124']
+    paths: ['.github/workflows/m4-ss11-live-actor-native-once.yml']
+permissions:
+  contents: read
+concurrency:
+  group: m4-ss11-live-actor-once-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  custody-live-auth-native:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:17.11-alpine
+        env:
+          POSTGRES_DB: construction_erp
+          POSTGRES_USER: construction_erp
+          POSTGRES_PASSWORD: construction_erp_dev_only
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U construction_erp -d construction_erp"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      EXACT_CHANGED_SOURCE: '13d909b897aabda88e293d1287e709d640b8fe3a'
+      DATABASE_URL: postgresql://construction_erp:construction_erp_dev_only@localhost:5432/construction_erp?schema=public
+      NODE_ENV: test
+      RC_NON_PRODUCTION_CONFIRMED: 'YES'
+    steps:
+      - name: Checkout one-time source and verify only workflow wrapper differs
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 2
+      - name: Verify exact new role guard branch source and no wrapper code edits
+        run: |
+          test "$(git rev-parse HEAD^)" = "$EXACT_CHANGED_SOURCE"
+          test "$(git diff --name-only HEAD^ HEAD)" = ".github/workflows/m4-ss11-live-actor-native-once.yml"
+      - name: Install pinned pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
+        with:
+          version: 12.6.0
+          run_install: false
+      - name: Install Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.21.0
+      - name: Frozen install
+        run: pnpm install --frozen-lockfile
+      - name: Prisma generate and schema validate
+        run: |
+          pnpm prisma:generate
+          pnpm prisma:validate
+      - name: Apply forward-only migrations in fresh disposable PG17
+        run: pnpm prisma:migrate:deploy
+      - name: Typecheck original source with SS11 live role changes
+        run: pnpm typecheck
+      - name: Build API for new native test
+        run: pnpm --filter @construction-erp/api build
+      - name: One SS11 live session and role permission native integration test
+        run: node --test --test-concurrency=1 apps/api/dist/equipment/equipment-custody.integration.spec.js
+      - name: Seal no-release boundary
+        run: echo M4_LIVE_ACTOR_TEST_ONLY_NO_RELEASE_ACTION
