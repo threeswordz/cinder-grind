@@ -1,146 +1,158 @@
-# M4 evidence crosswalk — ALL 112 frozen requirement IDs (23 November 2026)
+# M4 112-ID current-source evidence and scope crosswalk — 23 November 2026
 
-**Status: ID coverage complete; CURRENT requirement verification/acceptance NOT complete.**
-This is an evidence inventory for the **private integrated Draft #407 at exact source `62d2ce23810938784caa66aab6e427e49030d7fe`**, built from the original immutable ledger `docs/ROLE-REQUIREMENTS-2026-10-30/data/requirements-execution.json` as verified on main `3a441b1fa389a9a274e6ca82413740a3ffa2f51b`. Exactly **112 rows and 112 unique IDs**, no ID renames/drops/duplicates. Source baseline observations and execution lanes are **October labels, NOT current 2026-11-23 completion claims**. Do not convert "implemented", "partially implemented" or "missing" from the original ledger into today's PASS/FAIL without source/native/role evidence.
+**Inventory/release triage updated, NOT 112/112 technical acceptance.** Frozen source: `docs/ROLE-REQUIREMENTS-2026-10-30/data/requirements-execution.json` (112 unique IDs, `main` `3a441b1fa389a9a274e6ca82413740a3ffa2f51b`). Prior comprehensive [112-ID M4 launch triage](https://github.com/threeswordz/cinder-grind/issues/304#issuecomment-7082701440) is reused rather than re-collecting old requirements. New integrated unmerged application candidate [Draft #407](https://github.com/threeswordz/cinder-grind/pull/407) source `62d2ce23810938784caa66aab6e427e49030d7fe`. This doc is evidence bookkeeping only; no role grants, change to protected main, or new business scope.
 
-## Audited disposition (candidate scope, not launch acceptance)
+## Exact counts — how much genuine work remains
 
-- **6 IDs** (FM01, BEN04, PM16, PM09, NANCY-07, SS13) have new source-focused + actual disposable Postgres17.11/NestJS Auth/CSRF/role API evidence on integrated candidate (five operational journeys across six IDs); **real Chrome/browser remains PENDING**.
-- **1 ID** FM02 has accepted merged PR #396 with previously recorded focused/exact-main CI receipts; reuse them, do **not rerun**. Retained-role and human UAT separately pending.
-- **2 IDs** BEN02/BEN03 are Owner #288 deferred/gated Accounting/Finance/business-policy scope. Their status is neither implemented nor silently removed from the ledger; scope/exclusion must be explicit.
-- **103 IDs** have **not been re-evaluated on this exact M4 candidate within this crosswalk**; their old observations are retained as research input, **not** technical or business acceptance. This statement does not assert that these requirements are unimplemented.
-- Candidate coverage is **112/112 IDs accounted for**, but **NOT 112/112 functional completeness**. Official M4 **4/8** and GL **3/10** until governed exit; no Production.
-- Browser gate: isolated real-Chromium runs [#45109449847](https://github.com/threeswordz/cinder-grind/actions/runs/45109449847) and [#45110084960](https://github.com/threeswordz/cinder-grind/actions/runs/45110084960) **DID NOT PASS**; first DOM label locator, second generic CDP evaluation; source diagnostic hardening staged on [Draft #410](https://github.com/threeswordz/cinder-grind/pull/410), **NO further CI retry authorized**. Do not represent browser work as passed.
+| Evidence/scope work queue (mutually exclusive) | IDs | What counts as exit |
+|---|---:|---|
+| M4 integrated native actor API proven, **browser not proven** | **6** | [Native PG #45101879795](https://github.com/threeswordz/cinder-grind/actions/runs/45101879795) and [#45103782289](https://github.com/threeswordz/cinder-grind/actions/runs/45103782289) reused; resolve targeted Chrome #410 |
+| FM02 already merged on main | **1** | [#396](https://github.com/threeswordz/cinder-grind/pull/396) prior approved CI; role/scope readback separately |
+| FM03 prior Mac evidence (not rerun) | **1** | [#344](https://github.com/threeswordz/cinder-grind/issues/344) reuse; actor mapping only |
+| Required operational source/role/current evidence check | **45** | Identify accepted behavior/evidence **or** an actual missing M4 functional item; no automatic new code |
+| Existing accepted source / current grants review | **6** | Existing BOQ/approval source vs configured role denial/Company scope |
+| Quantity-only physical stock-count reuse / role verification | **3** | [#300](https://github.com/threeswordz/cinder-grind/issues/300) Store, PM, Foreman, no financial write-off |
+| Mixed-current/future split needs exact Owner scope | **5** | Explicit split before saying included/deferred |
+| Separately approved HR1-A retained-role proof | **3** | [#283](https://github.com/threeswordz/cinder-grind/issues/283); later HR not implied |
+| Other gated new dependencies (PM03, PUR06) | **2** | Owner policy/scoped deferment, or gated separate design |
+| BEN02/BEN03 deferred Finance/budget enhancement | **2** | Owner #288 scope boundary, no false PASS or arbitrary cap |
+| Accounting deferred lane under Owner #288 | **24** | Preserve as explicit later Accounting, not a current M4 implementation |
+| Future HR/time/payroll lane | **14** | Preserve as later staged HR, not a current M4 implementation |
+| **Total immutable stable IDs** | **112** | **112/112 tracked, not 112/112 delivered** |
 
-## Old ledger classification (source labels only)
+**Operational review is the largest unresolved queue:** 45 source/permission evidence checks plus 6 existing-source grants, 3 canonical-count roles, and 5 mixed scope splits = **59 IDs requiring current proof or scope decision** (not 59 new features). There are 3 separate HR1-A readback IDs and 2 separate dependent IDs. BEN02/BEN03 and 24 Accounting IDs are not assumed complete. Project/Company retained actor grants are not inferred from synthetic fixtures.
 
-- `partially implemented`: 67 original observation(s)
-- `missing`: 29 original observation(s)
-- `configuration-only`: 10 original observation(s)
-- `implemented`: 4 original observation(s)
-- `unverified`: 2 original observation(s)
+### Reuse, do not repeat
 
-## Requirement-by-requirement frozen-ID crosswalk
+- Candidate source: privately reviewed [#406](https://github.com/threeswordz/cinder-grind/pull/406) plus React [#407](https://github.com/threeswordz/cinder-grind/pull/407), independently source reviewed, API/Web typechecks accepted.
+- Native actual Postgres multi-actor: six ID names across five journeys **PASS** via #45101879795 and #45103782289; do not rerun their tests.
+- Real Chromium UI: [#45109449847](https://github.com/threeswordz/cinder-grind/actions/runs/45109449847) and [#45110084960](https://github.com/threeswordz/cinder-grind/actions/runs/45110084960) **FAILED** on browser test harness early. No business workflow or browser PASS claimed. [Test-only #410](https://github.com/threeswordz/cinder-grind/pull/410) source-only diagnostics staged but unexecuted; no third Actions trigger.
+- Already accepted [FM02 #396](https://github.com/threeswordz/cinder-grind/pull/396), [FM03 #344](https://github.com/threeswordz/cinder-grind/issues/344), receiving, transfers, UOM/BOQ, HR1-A and older Mac/role evidence must be reused at their actual demonstrated scope, **not promoted to wider capability**.
+- Original 30 October observations (missing/partial/implemented) and previous M4 triage are historical classification, not automatically a current PASS, present defect, or Owner-approved waiver.
 
-| Stable ID | Persona | Original requirement title | Frozen execution lane | Original implementation observation (non-current) | 23 Nov exact-candidate evidence state | Bounded receipt / next evidence |
+### Required order to close this crosswalk
+
+1. Map the 45 operational evidence checks to current `main`, draft #407 differences and previously accepted receipts. Mark `source evidence identified`, `missing behavior` or `unverified configured role` separately; identify the **smallest launch-critical genuine blockers**, not 45 new test requests.
+2. For the 6 existing and 3 stock-count IDs, reuse BOQ/stock/PO role receipts and verify current protected effective grants for each named actor (Store, Khaimook, Ben, Nancy, Foreman, Jai, Porn, Koh) only with separately authorized access. Do not confuse seed-role grants with retained live entitlements.
+3. Resolve the 5 mixed + 2 dependent + 2 BEN Finance IDs and any truly required M4 exceptions by approved scope, without silently writing new accounting/budget/HR modules. Record Owner decision or keep them BLOCKED.
+4. Obtain actual UI actor acceptance for the 6 integrated IDs; earlier real-Chrome runs did not pass. Keep FM02/FM03 accepted evidence and explicit limitations.
+5. **Only then** consolidate a single stable exact-source M4 release candidate, independent review and **specific Owner authorization** for any genuinely mandatory full release CI under [#384](https://github.com/threeswordz/cinder-grind/issues/384). Governed merge and M4 technical acceptance still needed before **5/8**; Production remains prohibited and human UAT is deferred per DEC-042.
+
+## All 112 immutable IDs — joined current work queue
+
+| Stable ID | Persona | Original requirement | Original execution lane | Prior [#304](https://github.com/threeswordz/cinder-grind/issues/304#issuecomment-7082701440) M4 triage | 23 Nov source/evidence gate | Exact next check |
 |---|---|---|---|---|---|---|
-| BEN01 | ben | No delegate approver | OPERATIONAL_REVIEW_ONLY | configuration-only | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| BEN02 | ben | Emergency before prior approval | POLICY_UNRESOLVED | unverified | OWNER-DEFERRED Finance scope; no M4 PASS | [Owner boundary #288](https://github.com/threeswordz/cinder-grind/issues/288) |
-| BEN03 | ben | Block over-budget commitments and costs | FUTURE_GATED | partially implemented | OWNER-DEFERRED Finance scope; no M4 PASS | [Owner boundary #288](https://github.com/threeswordz/cinder-grind/issues/288) |
-| BEN04 | ben | Joint controlled Project closure | OPERATIONAL_REVIEW_ONLY | missing | API NATIVE PASS · Browser PENDING | [Focused PG/HTTP #45103782289](https://github.com/threeswordz/cinder-grind/actions/runs/45103782289) |
-| BEN-BASE-01 | ben | PO approval and revised commitments | OPERATIONAL_REVIEW_ONLY | partially implemented | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| BEN-BASE-02 | ben | Subcontract agreement and WO approval | OPERATIONAL_REVIEW_ONLY | configuration-only | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| BEN-BASE-03 | ben | Subcontract physical work acceptance | OPERATIONAL_REVIEW_ONLY | partially implemented | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| BEN-BASE-04 | ben | Separate cost and customer BOQ authority | EXISTING_CONTROLS | implemented | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| BEN-BASE-05 | ben | Project VO and budget revision | EXISTING_CONTROLS | configuration-only | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| BEN-BASE-06 | ben | Customer quotation and progress billing | MIXED_KEEP_BOUNDARY | partially implemented | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| BEN-BASE-07 | ben | Management source-derived dashboard | OPERATIONAL_REVIEW_ONLY | implemented | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| BEN-HR-01 | ben | Ben HR handoffs | FUTURE_HR | missing | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| NANCY-01 | nancy | Customer BOQ, VO, budget and quotation approvals | EXISTING_CONTROLS | partially implemented | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| NANCY-02 | nancy | AP invoice and supplier payment approval | DEFER_ACCOUNTING | partially implemented | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| NANCY-03 | nancy | Subcontract payment approval | DEFER_ACCOUNTING | partially implemented | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| NANCY-04 | nancy | Supplier master ownership | OPERATIONAL_REVIEW_ONLY | partially implemented | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| NANCY-05 | nancy | Material codes at initial rollout | OPERATIONAL_REVIEW_ONLY | partially implemented | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| NANCY-06 | nancy | Main petty-cash fund and expense approval | DEFER_ACCOUNTING | missing | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| NANCY-07 | nancy | Stock-count scheduling and financial write-off boundary | COUNT_CANDIDATE | missing | API NATIVE PASS · Browser PENDING | [Focused PG/HTTP #45101879795](https://github.com/threeswordz/cinder-grind/actions/runs/45101879795) |
-| NANCY-08 | nancy | Depreciation ownership | DEFER_ACCOUNTING | partially implemented | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| NANCY-09 | nancy | Bank reconciliation confirmation | DEFER_ACCOUNTING | missing | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| NANCY-10 | nancy | Payroll approvals and actual payment | FUTURE_HR | missing | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| NANCY-11 | nancy | Narrow HR substitution exception | FUTURE_HR | configuration-only | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| NANCY-12 | nancy | HR privacy and launch responsibility | APPROVED_HR1A | partially implemented | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| PM01 | khaimook | PR/usage-plan review | OPERATIONAL_REVIEW_ONLY | partially implemented | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| PM02 | khaimook | Partial PR line disposition | OPERATIONAL_REVIEW_ONLY | partially implemented | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| PM03 | khaimook | Excess demand/budget revision | FUTURE_GATED | partially implemented | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| PM04 | khaimook | Internal Cost BOQ initial and revisions | EXISTING_CONTROLS | implemented | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| PM05 | khaimook | Disclosure and warehouse scope | OPERATIONAL_REVIEW_ONLY | partially implemented | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| PM06 | khaimook | Receive and decide anomalies | OPERATIONAL_REVIEW_ONLY | partially implemented | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| PM07 | khaimook | Transfers and beyond-plan issue authority | MIXED_KEEP_BOUNDARY | partially implemented | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| PM08 | khaimook | Stock count and approved adjustment | COUNT_CANDIDATE | missing | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| PM09 | khaimook | Urgent incomplete-document material handling | OPERATIONAL_REVIEW_ONLY | partially implemented | API NATIVE PASS · Browser PENDING | [Focused PG/HTTP #45101879795](https://github.com/threeswordz/cinder-grind/actions/runs/45101879795) |
-| PM10 | khaimook | Subcontract agreement preparation | OPERATIONAL_REVIEW_ONLY | configuration-only | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| PM11 | khaimook | Work Order preparation | OPERATIONAL_REVIEW_ONLY | configuration-only | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| PM12 | khaimook | Physical work and certification handoff | OPERATIONAL_REVIEW_ONLY | partially implemented | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| PM13 | khaimook | Material/work-method changes | OPERATIONAL_REVIEW_ONLY | configuration-only | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| PM14 | khaimook | Actual-hour labour allocation | FUTURE_HR | missing | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| PM15 | khaimook | Cross-Project reports and alerts | OPERATIONAL_REVIEW_ONLY | partially implemented | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| PM16 | khaimook | Close-site preparation | OPERATIONAL_REVIEW_ONLY | missing | API NATIVE PASS · Browser PENDING | [Focused PG/HTTP #45103782289](https://github.com/threeswordz/cinder-grind/actions/runs/45103782289) |
-| PM-HR-01 | khaimook | PM HR duties | FUTURE_HR | missing | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| PM-CASH-01 | khaimook | Field-central petty cash custody | DEFER_ACCOUNTING | missing | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| PUR01 | jai | Quote comparison and selection | OPERATIONAL_REVIEW_ONLY | partially implemented | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| PUR03 | jai | Supplier master handoff | OPERATIONAL_REVIEW_ONLY | partially implemented | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| PUR04 | jai | PO business fields | OPERATIONAL_REVIEW_ONLY | partially implemented | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| PUR05 | jai | Approved PO amendments | OPERATIONAL_REVIEW_ONLY | partially implemented | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| PUR06 | jai | Combined PR and multi-Project PO | FUTURE_GATED | partially implemented | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| PUR07 | jai | Approved PO dispatch and filename | OPERATIONAL_REVIEW_ONLY | partially implemented | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| PUR08 | jai | Supplier delivery tracking | OPERATIONAL_REVIEW_ONLY | partially implemented | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| PUR09 | jai | Document-based receipt verification | OPERATIONAL_REVIEW_ONLY | partially implemented | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| PUR10 | jai | Cancel PO/outstanding delivery | OPERATIONAL_REVIEW_ONLY | partially implemented | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| PUR12 | jai | Company monthly PO identity | OPERATIONAL_REVIEW_ONLY | partially implemented | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| PUR13 | jai | Normal material-code creation | OPERATIONAL_REVIEW_ONLY | partially implemented | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| PUR14 | jai | Supplier discrepancy, return and replacement | OPERATIONAL_REVIEW_ONLY | partially implemented | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| PUR15 | jai | Accounting document packet | MIXED_KEEP_BOUNDARY | partially implemented | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| JAI-ASSET-01 | jai | Asset register | OPERATIONAL_REVIEW_ONLY | partially implemented | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| JAI-SCOPE-01 | jai | Purchasing across Projects | OPERATIONAL_REVIEW_ONLY | configuration-only | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| SS01 | store | One warehouse per site | OPERATIONAL_REVIEW_ONLY | configuration-only | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| SS02 | store | Request new material codes | OPERATIONAL_REVIEW_ONLY | partially implemented | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| SS03 | store | Material-specific UOM | OPERATIONAL_REVIEW_ONLY | partially implemented | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| SS04 | store | Record actual physical receipt | OPERATIONAL_REVIEW_ONLY | partially implemented | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| SS05 | store | Receive anomalies and provisional custody | OPERATIONAL_REVIEW_ONLY | partially implemented | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| SS06 | store | Every-delivery evidence | OPERATIONAL_REVIEW_ONLY | partially implemented | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| SS07 | store | Foreman requests and receiver signs | OPERATIONAL_REVIEW_ONLY | partially implemented | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| SS08 | store | Material issue work dimensions | OPERATIONAL_REVIEW_ONLY | partially implemented | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| SS09 | store | Return unused good material | OPERATIONAL_REVIEW_ONLY | partially implemented | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| SS10 | store | Approved transfer with destination receipt | MIXED_KEEP_BOUNDARY | partially implemented | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| SS11 | store | Tool/equipment loans | OPERATIONAL_REVIEW_ONLY | partially implemented | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| SS12 | store | Stock-count responsibility | COUNT_CANDIDATE | missing | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| SS13 | store | Loss/damage/waste record | FUTURE_GATED | missing | API NATIVE PASS · Browser PENDING | [Focused PG/HTTP #45101879795](https://github.com/threeswordz/cinder-grind/actions/runs/45101879795) |
-| SS14 | store | Stock and demand alerts | OPERATIONAL_REVIEW_ONLY | partially implemented | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| SS15 | store | Site fund custody and requests | DEFER_ACCOUNTING | missing | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| SS16 | store | Correct submitted movement documents | OPERATIONAL_REVIEW_ONLY | partially implemented | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| SS17 | store | Site operational visibility | OPERATIONAL_REVIEW_ONLY | partially implemented | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| SS18 | store | Assigned temporary Store cover | OPERATIONAL_REVIEW_ONLY | configuration-only | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| SS-PLAN-01 | store | Material usage plan and issue limits | OPERATIONAL_REVIEW_ONLY | partially implemented | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| SS-HR-01 | store | Site actual time and small-job help | FUTURE_HR | missing | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| SS-HR-02 | store | Site worker leave and moves | FUTURE_HR | missing | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| FM01 | foreman | Daily work reports and weekly summary | OPERATIONAL_REVIEW_ONLY | partially implemented | API NATIVE PASS · Browser PENDING | [Focused PG/HTTP #45103782289](https://github.com/threeswordz/cinder-grind/actions/runs/45103782289) |
-| FM02 | foreman | Measurable and milestone progress | OPERATIONAL_REVIEW_ONLY | partially implemented | Main MERGED · accepted CI · UAT unconfirmed | [FM02 PR #396](https://github.com/threeswordz/cinder-grind/pull/396) |
-| FM03 | foreman | Issue ownership and severe escalation | OPERATIONAL_REVIEW_ONLY | partially implemented | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| FM04 | foreman | Material request through Store | OPERATIONAL_REVIEW_ONLY | partially implemented | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| FM05 | foreman | No stock-count adjustment authority | COUNT_CANDIDATE | missing | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| FM-HR-01 | foreman | Foreman leave role and salary-free view | FUTURE_HR | missing | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| ACC01 | porn | Accounting scope | DEFER_ACCOUNTING | missing | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| ACC02 | porn | AP invoice preparation | DEFER_ACCOUNTING | partially implemented | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| ACC03 | porn | Mismatch hold and correction | DEFER_ACCOUNTING | partially implemented | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| ACC04 | porn | Payment preparation/approval/execution | DEFER_ACCOUNTING | partially implemented | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| ACC05 | porn | Payment channels | DEFER_ACCOUNTING | partially implemented | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| ACC06 | porn | Cheque signature | DEFER_ACCOUNTING | missing | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| ACC07 | porn | Fund custodians | DEFER_ACCOUNTING | missing | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| ACC08 | porn | Cheque tracking by Porn | DEFER_ACCOUNTING | missing | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| ACC09 | porn | Supplier/expense payment schedule | DEFER_ACCOUNTING | unverified | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| ACC10 | porn | Supplier deposits/advances | DEFER_ACCOUNTING | partially implemented | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| ACC11 | porn | Partial AP settlement | DEFER_ACCOUNTING | partially implemented | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| ACC12 | porn | Bank reconciliation | DEFER_ACCOUNTING | missing | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| ACC13 | porn | Customer billing actors | DEFER_ACCOUNTING | partially implemented | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| ACC14 | porn | Progress-billing support | DEFER_ACCOUNTING | partially implemented | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| ACC15 | porn | Customer collection types | DEFER_ACCOUNTING | partially implemented | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| ACC16 | porn | Receipt evidence and AR settlement actors | DEFER_ACCOUNTING | partially implemented | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| ACC17 | porn | AR follow-up | DEFER_ACCOUNTING | partially implemented | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| PORN-SUB-01 | porn | Subcontract certification preparation | EXISTING_CONTROLS | partially implemented | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| PORN-BOQ-01 | porn | Safe financial totals only | EXISTING_CONTROLS | implemented | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| PORN-HR-01 | porn | Payroll transfer preparation and bank visibility | MIXED_KEEP_BOUNDARY | partially implemented | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| KOH-01 | koh | Canonical employee and employment history | APPROVED_HR1A | partially implemented | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| KOH-02 | koh | Private data and HR-only Company rights | APPROVED_HR1A | partially implemented | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| KOH-03 | koh | Individual actual-time submission | FUTURE_HR | missing | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| KOH-04 | koh | Leave and OT administration | FUTURE_HR | missing | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| KOH-05 | koh | Payroll calculation and immutable corrections | FUTURE_HR | missing | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| KOH-06 | koh | Payroll fixes and substitution boundary | FUTURE_HR | missing | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| KOH-07 | koh | Actual-hour Project/Company labour cost | FUTURE_HR | missing | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
-| KOH-08 | koh | Slip, exports, alerts and offboarding | FUTURE_HR | missing | NOT RECONCILED on exact M4 candidate | Baseline only; explicit evidence review needed |
+| BEN01 | ben | No delegate approver | OPERATIONAL_REVIEW_ONLY | `OPERATIONAL_CURRENT_PROOF_REQUIRED` | OPERATIONAL-SOURCE/ROLE-EVIDENCE-DUE | Look up prior accepted source/receipt; determine M4 criticality |
+| BEN02 | ben | Emergency before prior approval | POLICY_UNRESOLVED | `FUNCTIONAL_GAP` | OWNER-288 FINANCE DEFERRAL / SCOPE-DECISION | Record as not built; don't implement without new Owner authorization |
+| BEN03 | ben | Block over-budget commitments and costs | FUTURE_GATED | `FUNCTIONAL_GAP` | OWNER-288 FINANCE DEFERRAL / SCOPE-DECISION | Record as not built; don't implement without new Owner authorization |
+| BEN04 | ben | Joint controlled Project closure | OPERATIONAL_REVIEW_ONLY | `DRAFT_REVIEWED_FOCUSED` | NATIVE-API-PASS / BROWSER-BLOCKED | Use focused PG #45103782289; unblock browser #410 only |
+| BEN-BASE-01 | ben | PO approval and revised commitments | OPERATIONAL_REVIEW_ONLY | `OPERATIONAL_CURRENT_PROOF_REQUIRED` | OPERATIONAL-SOURCE/ROLE-EVIDENCE-DUE | Look up prior accepted source/receipt; determine M4 criticality |
+| BEN-BASE-02 | ben | Subcontract agreement and WO approval | OPERATIONAL_REVIEW_ONLY | `OPERATIONAL_CURRENT_PROOF_REQUIRED` | OPERATIONAL-SOURCE/ROLE-EVIDENCE-DUE | Look up prior accepted source/receipt; determine M4 criticality |
+| BEN-BASE-03 | ben | Subcontract physical work acceptance | OPERATIONAL_REVIEW_ONLY | `OPERATIONAL_CURRENT_PROOF_REQUIRED` | OPERATIONAL-SOURCE/ROLE-EVIDENCE-DUE | Look up prior accepted source/receipt; determine M4 criticality |
+| BEN-BASE-04 | ben | Separate cost and customer BOQ authority | EXISTING_CONTROLS | `EXISTING_RECHECK_ROLE_EVIDENCE` | EXISTING-SOURCE / ROLE-READBACK-DUE | Reuse prior BOQ/approval evidence; check current grants & scope |
+| BEN-BASE-05 | ben | Project VO and budget revision | EXISTING_CONTROLS | `EXISTING_RECHECK_ROLE_EVIDENCE` | EXISTING-SOURCE / ROLE-READBACK-DUE | Reuse prior BOQ/approval evidence; check current grants & scope |
+| BEN-BASE-06 | ben | Customer quotation and progress billing | MIXED_KEEP_BOUNDARY | `MIXED_CURRENT_AND_DEFERRED` | MIXED / OWNER-SCOPE-SPLIT-DUE | Split current operational need from later Accounting/HR/Project expansion |
+| BEN-BASE-07 | ben | Management source-derived dashboard | OPERATIONAL_REVIEW_ONLY | `OPERATIONAL_CURRENT_PROOF_REQUIRED` | OPERATIONAL-SOURCE/ROLE-EVIDENCE-DUE | Look up prior accepted source/receipt; determine M4 criticality |
+| BEN-HR-01 | ben | Ben HR handoffs | FUTURE_HR | `FUTURE_HR_NOT_M4_RELEASE` | FUTURE-HR-DEFERRED | No payroll/OT/time changes in M4; retain ID |
+| NANCY-01 | nancy | Customer BOQ, VO, budget and quotation approvals | EXISTING_CONTROLS | `EXISTING_RECHECK_ROLE_EVIDENCE` | EXISTING-SOURCE / ROLE-READBACK-DUE | Reuse prior BOQ/approval evidence; check current grants & scope |
+| NANCY-02 | nancy | AP invoice and supplier payment approval | DEFER_ACCOUNTING | `ACCOUNTING_288_DEFERRED` | ACCOUNTING-288-DEFERRED | No M4 Accounting implementation; Owner release-scope acknowledgement |
+| NANCY-03 | nancy | Subcontract payment approval | DEFER_ACCOUNTING | `ACCOUNTING_288_DEFERRED` | ACCOUNTING-288-DEFERRED | No M4 Accounting implementation; Owner release-scope acknowledgement |
+| NANCY-04 | nancy | Supplier master ownership | OPERATIONAL_REVIEW_ONLY | `OPERATIONAL_CURRENT_PROOF_REQUIRED` | OPERATIONAL-SOURCE/ROLE-EVIDENCE-DUE | Look up prior accepted source/receipt; determine M4 criticality |
+| NANCY-05 | nancy | Material codes at initial rollout | OPERATIONAL_REVIEW_ONLY | `OPERATIONAL_CURRENT_PROOF_REQUIRED` | OPERATIONAL-SOURCE/ROLE-EVIDENCE-DUE | Look up prior accepted source/receipt; determine M4 criticality |
+| NANCY-06 | nancy | Main petty-cash fund and expense approval | DEFER_ACCOUNTING | `ACCOUNTING_288_DEFERRED` | ACCOUNTING-288-DEFERRED | No M4 Accounting implementation; Owner release-scope acknowledgement |
+| NANCY-07 | nancy | Stock-count scheduling and financial write-off boundary | COUNT_CANDIDATE | `DRAFT_SOURCE_FIX_REVIEW_PENDING` | NATIVE-API-PASS / BROWSER-BLOCKED | Use focused PG #45101879795; unblock browser #410 only |
+| NANCY-08 | nancy | Depreciation ownership | DEFER_ACCOUNTING | `ACCOUNTING_288_DEFERRED` | ACCOUNTING-288-DEFERRED | No M4 Accounting implementation; Owner release-scope acknowledgement |
+| NANCY-09 | nancy | Bank reconciliation confirmation | DEFER_ACCOUNTING | `ACCOUNTING_288_DEFERRED` | ACCOUNTING-288-DEFERRED | No M4 Accounting implementation; Owner release-scope acknowledgement |
+| NANCY-10 | nancy | Payroll approvals and actual payment | FUTURE_HR | `FUTURE_HR_NOT_M4_RELEASE` | FUTURE-HR-DEFERRED | No payroll/OT/time changes in M4; retain ID |
+| NANCY-11 | nancy | Narrow HR substitution exception | FUTURE_HR | `FUTURE_HR_NOT_M4_RELEASE` | FUTURE-HR-DEFERRED | No payroll/OT/time changes in M4; retain ID |
+| NANCY-12 | nancy | HR privacy and launch responsibility | APPROVED_HR1A | `HR1A_SEPARATE_EVIDENCE` | HR1A-SEPARATE-GATE | Reuse #283 HR privacy/master evidence; retained roles unverified |
+| PM01 | khaimook | PR/usage-plan review | OPERATIONAL_REVIEW_ONLY | `OPERATIONAL_CURRENT_PROOF_REQUIRED` | OPERATIONAL-SOURCE/ROLE-EVIDENCE-DUE | Look up prior accepted source/receipt; determine M4 criticality |
+| PM02 | khaimook | Partial PR line disposition | OPERATIONAL_REVIEW_ONLY | `OPERATIONAL_CURRENT_PROOF_REQUIRED` | OPERATIONAL-SOURCE/ROLE-EVIDENCE-DUE | Look up prior accepted source/receipt; determine M4 criticality |
+| PM03 | khaimook | Excess demand/budget revision | FUTURE_GATED | `DEPENDENCY_GATED` | DEPENDENCY / OWNER-SCOPE-DUE | Current policy and multi-Project dependency; not built/waived |
+| PM04 | khaimook | Internal Cost BOQ initial and revisions | EXISTING_CONTROLS | `EXISTING_RECHECK_ROLE_EVIDENCE` | EXISTING-SOURCE / ROLE-READBACK-DUE | Reuse prior BOQ/approval evidence; check current grants & scope |
+| PM05 | khaimook | Disclosure and warehouse scope | OPERATIONAL_REVIEW_ONLY | `OPERATIONAL_CURRENT_PROOF_REQUIRED` | OPERATIONAL-SOURCE/ROLE-EVIDENCE-DUE | Look up prior accepted source/receipt; determine M4 criticality |
+| PM06 | khaimook | Receive and decide anomalies | OPERATIONAL_REVIEW_ONLY | `OPERATIONAL_CURRENT_PROOF_REQUIRED` | OPERATIONAL-SOURCE/ROLE-EVIDENCE-DUE | Look up prior accepted source/receipt; determine M4 criticality |
+| PM07 | khaimook | Transfers and beyond-plan issue authority | MIXED_KEEP_BOUNDARY | `MIXED_CURRENT_AND_DEFERRED` | MIXED / OWNER-SCOPE-SPLIT-DUE | Split current operational need from later Accounting/HR/Project expansion |
+| PM08 | khaimook | Stock count and approved adjustment | COUNT_CANDIDATE | `CANONICAL_STOCK_COUNT_REUSE` | STOCK-COUNT-REUSE / ROLE-READBACK-DUE | Reuse #300 count, no valuation; check Store/PM/Foreman deny |
+| PM09 | khaimook | Urgent incomplete-document material handling | OPERATIONAL_REVIEW_ONLY | `DRAFT_REVIEWED_FOCUSED` | NATIVE-API-PASS / BROWSER-BLOCKED | Use focused PG #45101879795; unblock browser #410 only |
+| PM10 | khaimook | Subcontract agreement preparation | OPERATIONAL_REVIEW_ONLY | `OPERATIONAL_CURRENT_PROOF_REQUIRED` | OPERATIONAL-SOURCE/ROLE-EVIDENCE-DUE | Look up prior accepted source/receipt; determine M4 criticality |
+| PM11 | khaimook | Work Order preparation | OPERATIONAL_REVIEW_ONLY | `OPERATIONAL_CURRENT_PROOF_REQUIRED` | OPERATIONAL-SOURCE/ROLE-EVIDENCE-DUE | Look up prior accepted source/receipt; determine M4 criticality |
+| PM12 | khaimook | Physical work and certification handoff | OPERATIONAL_REVIEW_ONLY | `OPERATIONAL_CURRENT_PROOF_REQUIRED` | OPERATIONAL-SOURCE/ROLE-EVIDENCE-DUE | Look up prior accepted source/receipt; determine M4 criticality |
+| PM13 | khaimook | Material/work-method changes | OPERATIONAL_REVIEW_ONLY | `OPERATIONAL_CURRENT_PROOF_REQUIRED` | OPERATIONAL-SOURCE/ROLE-EVIDENCE-DUE | Look up prior accepted source/receipt; determine M4 criticality |
+| PM14 | khaimook | Actual-hour labour allocation | FUTURE_HR | `FUTURE_HR_NOT_M4_RELEASE` | FUTURE-HR-DEFERRED | No payroll/OT/time changes in M4; retain ID |
+| PM15 | khaimook | Cross-Project reports and alerts | OPERATIONAL_REVIEW_ONLY | `OPERATIONAL_CURRENT_PROOF_REQUIRED` | OPERATIONAL-SOURCE/ROLE-EVIDENCE-DUE | Look up prior accepted source/receipt; determine M4 criticality |
+| PM16 | khaimook | Close-site preparation | OPERATIONAL_REVIEW_ONLY | `DRAFT_REVIEWED_FOCUSED` | NATIVE-API-PASS / BROWSER-BLOCKED | Use focused PG #45103782289; unblock browser #410 only |
+| PM-HR-01 | khaimook | PM HR duties | FUTURE_HR | `FUTURE_HR_NOT_M4_RELEASE` | FUTURE-HR-DEFERRED | No payroll/OT/time changes in M4; retain ID |
+| PM-CASH-01 | khaimook | Field-central petty cash custody | DEFER_ACCOUNTING | `ACCOUNTING_288_DEFERRED` | ACCOUNTING-288-DEFERRED | No M4 Accounting implementation; Owner release-scope acknowledgement |
+| PUR01 | jai | Quote comparison and selection | OPERATIONAL_REVIEW_ONLY | `OPERATIONAL_CURRENT_PROOF_REQUIRED` | OPERATIONAL-SOURCE/ROLE-EVIDENCE-DUE | Look up prior accepted source/receipt; determine M4 criticality |
+| PUR03 | jai | Supplier master handoff | OPERATIONAL_REVIEW_ONLY | `OPERATIONAL_CURRENT_PROOF_REQUIRED` | OPERATIONAL-SOURCE/ROLE-EVIDENCE-DUE | Look up prior accepted source/receipt; determine M4 criticality |
+| PUR04 | jai | PO business fields | OPERATIONAL_REVIEW_ONLY | `OPERATIONAL_CURRENT_PROOF_REQUIRED` | OPERATIONAL-SOURCE/ROLE-EVIDENCE-DUE | Look up prior accepted source/receipt; determine M4 criticality |
+| PUR05 | jai | Approved PO amendments | OPERATIONAL_REVIEW_ONLY | `OPERATIONAL_CURRENT_PROOF_REQUIRED` | OPERATIONAL-SOURCE/ROLE-EVIDENCE-DUE | Look up prior accepted source/receipt; determine M4 criticality |
+| PUR06 | jai | Combined PR and multi-Project PO | FUTURE_GATED | `DEPENDENCY_GATED` | DEPENDENCY / OWNER-SCOPE-DUE | Current policy and multi-Project dependency; not built/waived |
+| PUR07 | jai | Approved PO dispatch and filename | OPERATIONAL_REVIEW_ONLY | `OPERATIONAL_CURRENT_PROOF_REQUIRED` | OPERATIONAL-SOURCE/ROLE-EVIDENCE-DUE | Look up prior accepted source/receipt; determine M4 criticality |
+| PUR08 | jai | Supplier delivery tracking | OPERATIONAL_REVIEW_ONLY | `OPERATIONAL_CURRENT_PROOF_REQUIRED` | OPERATIONAL-SOURCE/ROLE-EVIDENCE-DUE | Look up prior accepted source/receipt; determine M4 criticality |
+| PUR09 | jai | Document-based receipt verification | OPERATIONAL_REVIEW_ONLY | `OPERATIONAL_CURRENT_PROOF_REQUIRED` | OPERATIONAL-SOURCE/ROLE-EVIDENCE-DUE | Look up prior accepted source/receipt; determine M4 criticality |
+| PUR10 | jai | Cancel PO/outstanding delivery | OPERATIONAL_REVIEW_ONLY | `OPERATIONAL_CURRENT_PROOF_REQUIRED` | OPERATIONAL-SOURCE/ROLE-EVIDENCE-DUE | Look up prior accepted source/receipt; determine M4 criticality |
+| PUR12 | jai | Company monthly PO identity | OPERATIONAL_REVIEW_ONLY | `OPERATIONAL_CURRENT_PROOF_REQUIRED` | OPERATIONAL-SOURCE/ROLE-EVIDENCE-DUE | Look up prior accepted source/receipt; determine M4 criticality |
+| PUR13 | jai | Normal material-code creation | OPERATIONAL_REVIEW_ONLY | `OPERATIONAL_CURRENT_PROOF_REQUIRED` | OPERATIONAL-SOURCE/ROLE-EVIDENCE-DUE | Look up prior accepted source/receipt; determine M4 criticality |
+| PUR14 | jai | Supplier discrepancy, return and replacement | OPERATIONAL_REVIEW_ONLY | `OPERATIONAL_CURRENT_PROOF_REQUIRED` | OPERATIONAL-SOURCE/ROLE-EVIDENCE-DUE | Look up prior accepted source/receipt; determine M4 criticality |
+| PUR15 | jai | Accounting document packet | MIXED_KEEP_BOUNDARY | `MIXED_CURRENT_AND_DEFERRED` | MIXED / OWNER-SCOPE-SPLIT-DUE | Split current operational need from later Accounting/HR/Project expansion |
+| JAI-ASSET-01 | jai | Asset register | OPERATIONAL_REVIEW_ONLY | `OPERATIONAL_CURRENT_PROOF_REQUIRED` | OPERATIONAL-SOURCE/ROLE-EVIDENCE-DUE | Look up prior accepted source/receipt; determine M4 criticality |
+| JAI-SCOPE-01 | jai | Purchasing across Projects | OPERATIONAL_REVIEW_ONLY | `OPERATIONAL_CURRENT_PROOF_REQUIRED` | OPERATIONAL-SOURCE/ROLE-EVIDENCE-DUE | Look up prior accepted source/receipt; determine M4 criticality |
+| SS01 | store | One warehouse per site | OPERATIONAL_REVIEW_ONLY | `OPERATIONAL_CURRENT_PROOF_REQUIRED` | OPERATIONAL-SOURCE/ROLE-EVIDENCE-DUE | Look up prior accepted source/receipt; determine M4 criticality |
+| SS02 | store | Request new material codes | OPERATIONAL_REVIEW_ONLY | `OPERATIONAL_CURRENT_PROOF_REQUIRED` | OPERATIONAL-SOURCE/ROLE-EVIDENCE-DUE | Look up prior accepted source/receipt; determine M4 criticality |
+| SS03 | store | Material-specific UOM | OPERATIONAL_REVIEW_ONLY | `OPERATIONAL_CURRENT_PROOF_REQUIRED` | OPERATIONAL-SOURCE/ROLE-EVIDENCE-DUE | Look up prior accepted source/receipt; determine M4 criticality |
+| SS04 | store | Record actual physical receipt | OPERATIONAL_REVIEW_ONLY | `OPERATIONAL_CURRENT_PROOF_REQUIRED` | OPERATIONAL-SOURCE/ROLE-EVIDENCE-DUE | Look up prior accepted source/receipt; determine M4 criticality |
+| SS05 | store | Receive anomalies and provisional custody | OPERATIONAL_REVIEW_ONLY | `OPERATIONAL_CURRENT_PROOF_REQUIRED` | OPERATIONAL-SOURCE/ROLE-EVIDENCE-DUE | Look up prior accepted source/receipt; determine M4 criticality |
+| SS06 | store | Every-delivery evidence | OPERATIONAL_REVIEW_ONLY | `OPERATIONAL_CURRENT_PROOF_REQUIRED` | OPERATIONAL-SOURCE/ROLE-EVIDENCE-DUE | Look up prior accepted source/receipt; determine M4 criticality |
+| SS07 | store | Foreman requests and receiver signs | OPERATIONAL_REVIEW_ONLY | `OPERATIONAL_CURRENT_PROOF_REQUIRED` | OPERATIONAL-SOURCE/ROLE-EVIDENCE-DUE | Look up prior accepted source/receipt; determine M4 criticality |
+| SS08 | store | Material issue work dimensions | OPERATIONAL_REVIEW_ONLY | `OPERATIONAL_CURRENT_PROOF_REQUIRED` | OPERATIONAL-SOURCE/ROLE-EVIDENCE-DUE | Look up prior accepted source/receipt; determine M4 criticality |
+| SS09 | store | Return unused good material | OPERATIONAL_REVIEW_ONLY | `OPERATIONAL_CURRENT_PROOF_REQUIRED` | OPERATIONAL-SOURCE/ROLE-EVIDENCE-DUE | Look up prior accepted source/receipt; determine M4 criticality |
+| SS10 | store | Approved transfer with destination receipt | MIXED_KEEP_BOUNDARY | `MIXED_CURRENT_AND_DEFERRED` | MIXED / OWNER-SCOPE-SPLIT-DUE | Split current operational need from later Accounting/HR/Project expansion |
+| SS11 | store | Tool/equipment loans | OPERATIONAL_REVIEW_ONLY | `OPERATIONAL_CURRENT_PROOF_REQUIRED` | OPERATIONAL-SOURCE/ROLE-EVIDENCE-DUE | Look up prior accepted source/receipt; determine M4 criticality |
+| SS12 | store | Stock-count responsibility | COUNT_CANDIDATE | `CANONICAL_STOCK_COUNT_REUSE` | STOCK-COUNT-REUSE / ROLE-READBACK-DUE | Reuse #300 count, no valuation; check Store/PM/Foreman deny |
+| SS13 | store | Loss/damage/waste record | FUTURE_GATED | `FUNCTIONAL_GAP` | NATIVE-API-PASS / BROWSER-BLOCKED | Use focused PG #45101879795; unblock browser #410 only |
+| SS14 | store | Stock and demand alerts | OPERATIONAL_REVIEW_ONLY | `OPERATIONAL_CURRENT_PROOF_REQUIRED` | OPERATIONAL-SOURCE/ROLE-EVIDENCE-DUE | Look up prior accepted source/receipt; determine M4 criticality |
+| SS15 | store | Site fund custody and requests | DEFER_ACCOUNTING | `ACCOUNTING_288_DEFERRED` | ACCOUNTING-288-DEFERRED | No M4 Accounting implementation; Owner release-scope acknowledgement |
+| SS16 | store | Correct submitted movement documents | OPERATIONAL_REVIEW_ONLY | `OPERATIONAL_CURRENT_PROOF_REQUIRED` | OPERATIONAL-SOURCE/ROLE-EVIDENCE-DUE | Look up prior accepted source/receipt; determine M4 criticality |
+| SS17 | store | Site operational visibility | OPERATIONAL_REVIEW_ONLY | `OPERATIONAL_CURRENT_PROOF_REQUIRED` | OPERATIONAL-SOURCE/ROLE-EVIDENCE-DUE | Look up prior accepted source/receipt; determine M4 criticality |
+| SS18 | store | Assigned temporary Store cover | OPERATIONAL_REVIEW_ONLY | `OPERATIONAL_CURRENT_PROOF_REQUIRED` | OPERATIONAL-SOURCE/ROLE-EVIDENCE-DUE | Look up prior accepted source/receipt; determine M4 criticality |
+| SS-PLAN-01 | store | Material usage plan and issue limits | OPERATIONAL_REVIEW_ONLY | `OPERATIONAL_CURRENT_PROOF_REQUIRED` | OPERATIONAL-SOURCE/ROLE-EVIDENCE-DUE | Look up prior accepted source/receipt; determine M4 criticality |
+| SS-HR-01 | store | Site actual time and small-job help | FUTURE_HR | `FUTURE_HR_NOT_M4_RELEASE` | FUTURE-HR-DEFERRED | No payroll/OT/time changes in M4; retain ID |
+| SS-HR-02 | store | Site worker leave and moves | FUTURE_HR | `FUTURE_HR_NOT_M4_RELEASE` | FUTURE-HR-DEFERRED | No payroll/OT/time changes in M4; retain ID |
+| FM01 | foreman | Daily work reports and weekly summary | OPERATIONAL_REVIEW_ONLY | `DRAFT_REVIEWED_FOCUSED` | NATIVE-API-PASS / BROWSER-BLOCKED | Use focused PG #45103782289; unblock browser #410 only |
+| FM02 | foreman | Measurable and milestone progress | OPERATIONAL_REVIEW_ONLY | `MAIN_SOURCE_PROVED` | MERGED-MAIN-EVIDENCE / ROLE-READBACK-DUE | Reuse #396 full/short-main; no rerun |
+| FM03 | foreman | Issue ownership and severe escalation | OPERATIONAL_REVIEW_ONLY | `REUSE_PRIOR_MAC_EVIDENCE` | PRIOR-MAC-EVIDENCE / ROLE-READBACK-DUE | Reuse #344; no FM03 Mac replay |
+| FM04 | foreman | Material request through Store | OPERATIONAL_REVIEW_ONLY | `OPERATIONAL_CURRENT_PROOF_REQUIRED` | OPERATIONAL-SOURCE/ROLE-EVIDENCE-DUE | Look up prior accepted source/receipt; determine M4 criticality |
+| FM05 | foreman | No stock-count adjustment authority | COUNT_CANDIDATE | `CANONICAL_STOCK_COUNT_REUSE` | STOCK-COUNT-REUSE / ROLE-READBACK-DUE | Reuse #300 count, no valuation; check Store/PM/Foreman deny |
+| FM-HR-01 | foreman | Foreman leave role and salary-free view | FUTURE_HR | `FUTURE_HR_NOT_M4_RELEASE` | FUTURE-HR-DEFERRED | No payroll/OT/time changes in M4; retain ID |
+| ACC01 | porn | Accounting scope | DEFER_ACCOUNTING | `ACCOUNTING_288_DEFERRED` | ACCOUNTING-288-DEFERRED | No M4 Accounting implementation; Owner release-scope acknowledgement |
+| ACC02 | porn | AP invoice preparation | DEFER_ACCOUNTING | `ACCOUNTING_288_DEFERRED` | ACCOUNTING-288-DEFERRED | No M4 Accounting implementation; Owner release-scope acknowledgement |
+| ACC03 | porn | Mismatch hold and correction | DEFER_ACCOUNTING | `ACCOUNTING_288_DEFERRED` | ACCOUNTING-288-DEFERRED | No M4 Accounting implementation; Owner release-scope acknowledgement |
+| ACC04 | porn | Payment preparation/approval/execution | DEFER_ACCOUNTING | `ACCOUNTING_288_DEFERRED` | ACCOUNTING-288-DEFERRED | No M4 Accounting implementation; Owner release-scope acknowledgement |
+| ACC05 | porn | Payment channels | DEFER_ACCOUNTING | `ACCOUNTING_288_DEFERRED` | ACCOUNTING-288-DEFERRED | No M4 Accounting implementation; Owner release-scope acknowledgement |
+| ACC06 | porn | Cheque signature | DEFER_ACCOUNTING | `ACCOUNTING_288_DEFERRED` | ACCOUNTING-288-DEFERRED | No M4 Accounting implementation; Owner release-scope acknowledgement |
+| ACC07 | porn | Fund custodians | DEFER_ACCOUNTING | `ACCOUNTING_288_DEFERRED` | ACCOUNTING-288-DEFERRED | No M4 Accounting implementation; Owner release-scope acknowledgement |
+| ACC08 | porn | Cheque tracking by Porn | DEFER_ACCOUNTING | `ACCOUNTING_288_DEFERRED` | ACCOUNTING-288-DEFERRED | No M4 Accounting implementation; Owner release-scope acknowledgement |
+| ACC09 | porn | Supplier/expense payment schedule | DEFER_ACCOUNTING | `ACCOUNTING_288_DEFERRED` | ACCOUNTING-288-DEFERRED | No M4 Accounting implementation; Owner release-scope acknowledgement |
+| ACC10 | porn | Supplier deposits/advances | DEFER_ACCOUNTING | `ACCOUNTING_288_DEFERRED` | ACCOUNTING-288-DEFERRED | No M4 Accounting implementation; Owner release-scope acknowledgement |
+| ACC11 | porn | Partial AP settlement | DEFER_ACCOUNTING | `ACCOUNTING_288_DEFERRED` | ACCOUNTING-288-DEFERRED | No M4 Accounting implementation; Owner release-scope acknowledgement |
+| ACC12 | porn | Bank reconciliation | DEFER_ACCOUNTING | `ACCOUNTING_288_DEFERRED` | ACCOUNTING-288-DEFERRED | No M4 Accounting implementation; Owner release-scope acknowledgement |
+| ACC13 | porn | Customer billing actors | DEFER_ACCOUNTING | `ACCOUNTING_288_DEFERRED` | ACCOUNTING-288-DEFERRED | No M4 Accounting implementation; Owner release-scope acknowledgement |
+| ACC14 | porn | Progress-billing support | DEFER_ACCOUNTING | `ACCOUNTING_288_DEFERRED` | ACCOUNTING-288-DEFERRED | No M4 Accounting implementation; Owner release-scope acknowledgement |
+| ACC15 | porn | Customer collection types | DEFER_ACCOUNTING | `ACCOUNTING_288_DEFERRED` | ACCOUNTING-288-DEFERRED | No M4 Accounting implementation; Owner release-scope acknowledgement |
+| ACC16 | porn | Receipt evidence and AR settlement actors | DEFER_ACCOUNTING | `ACCOUNTING_288_DEFERRED` | ACCOUNTING-288-DEFERRED | No M4 Accounting implementation; Owner release-scope acknowledgement |
+| ACC17 | porn | AR follow-up | DEFER_ACCOUNTING | `ACCOUNTING_288_DEFERRED` | ACCOUNTING-288-DEFERRED | No M4 Accounting implementation; Owner release-scope acknowledgement |
+| PORN-SUB-01 | porn | Subcontract certification preparation | EXISTING_CONTROLS | `EXISTING_RECHECK_ROLE_EVIDENCE` | EXISTING-SOURCE / ROLE-READBACK-DUE | Reuse prior BOQ/approval evidence; check current grants & scope |
+| PORN-BOQ-01 | porn | Safe financial totals only | EXISTING_CONTROLS | `EXISTING_RECHECK_ROLE_EVIDENCE` | EXISTING-SOURCE / ROLE-READBACK-DUE | Reuse prior BOQ/approval evidence; check current grants & scope |
+| PORN-HR-01 | porn | Payroll transfer preparation and bank visibility | MIXED_KEEP_BOUNDARY | `MIXED_CURRENT_AND_DEFERRED` | MIXED / OWNER-SCOPE-SPLIT-DUE | Split current operational need from later Accounting/HR/Project expansion |
+| KOH-01 | koh | Canonical employee and employment history | APPROVED_HR1A | `HR1A_SEPARATE_EVIDENCE` | HR1A-SEPARATE-GATE | Reuse #283 HR privacy/master evidence; retained roles unverified |
+| KOH-02 | koh | Private data and HR-only Company rights | APPROVED_HR1A | `HR1A_SEPARATE_EVIDENCE` | HR1A-SEPARATE-GATE | Reuse #283 HR privacy/master evidence; retained roles unverified |
+| KOH-03 | koh | Individual actual-time submission | FUTURE_HR | `FUTURE_HR_NOT_M4_RELEASE` | FUTURE-HR-DEFERRED | No payroll/OT/time changes in M4; retain ID |
+| KOH-04 | koh | Leave and OT administration | FUTURE_HR | `FUTURE_HR_NOT_M4_RELEASE` | FUTURE-HR-DEFERRED | No payroll/OT/time changes in M4; retain ID |
+| KOH-05 | koh | Payroll calculation and immutable corrections | FUTURE_HR | `FUTURE_HR_NOT_M4_RELEASE` | FUTURE-HR-DEFERRED | No payroll/OT/time changes in M4; retain ID |
+| KOH-06 | koh | Payroll fixes and substitution boundary | FUTURE_HR | `FUTURE_HR_NOT_M4_RELEASE` | FUTURE-HR-DEFERRED | No payroll/OT/time changes in M4; retain ID |
+| KOH-07 | koh | Actual-hour Project/Company labour cost | FUTURE_HR | `FUTURE_HR_NOT_M4_RELEASE` | FUTURE-HR-DEFERRED | No payroll/OT/time changes in M4; retain ID |
+| KOH-08 | koh | Slip, exports, alerts and offboarding | FUTURE_HR | `FUTURE_HR_NOT_M4_RELEASE` | FUTURE-HR-DEFERRED | No payroll/OT/time changes in M4; retain ID |
 
-## Release decision procedure (not yet signed)
-
-1. For each of the **103 not-reconciled IDs**, record a current exact-source behavior reference, focused validation/operational receipt if available, effective-role grants (Company/Project), and required business/Owner decision. Reuse accepted evidence, **never create generic full CI just to fill rows**.
-2. For **six new native-API-evidenced IDs**, finish one correctly scoped browser/UI run and actual configured-role cross-check; then classify each as in pilot, Owner-approved exception, or later milestone. The source/API probes alone do not equal live acceptance.
-3. For **FM02**, verify that accepted existing exact-main PR #396 evidence remains applicable to the integrated candidate, without rerunning completed checks or inventing new UAT.
-4. Keep BEN02/BEN03 Owner #288 Finance deferral visible, alongside HR/Accounting future lanes. **Do not** infer that all original `DEFER_ACCOUNTING`, `FUTURE_HR`, `FUTURE_GATED` etc. rows are automatically authorized exclusions from M4: require explicit scope decision if they affect launch.
-5. Freeze one integrated candidate and one independent exact-head review. Seek **fresh explicit Owner authorization** before final mandatory full release validation per #384. No self-approval, protected main merge or Production without governance. Human UAT per DEC-042 remains separately scheduled after frozen prototype.
+*This is an explicitly conservative incremental audit. No historical `missing` label is treated as proof of today's absence; no old source `implemented` label becomes an assumed release PASS. All Owner-grant, Finance, HR and Production limits remain in force.*
