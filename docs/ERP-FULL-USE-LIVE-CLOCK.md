@@ -6,6 +6,39 @@
 
 The ERP is complete only if all 112 requirements are implemented and working or explicitly superseded with Owner approval, all eight roles (Ben, Nancy, Khaimook, Jai, Store Site, Foreman, Porn and Koh) can use real MKE/TCJ authenticated workflows, integrated HR/payroll and Accounting/GL/tax/banking work, preserved data, functional cross-module workflows and no material blocking defects, valid backups/restore, business UAT and actual authorized Production go-live. An **8/8 prototype is not 100% ERP**. Accounting/HR and multi-Project scope formerly deferred must receive new authority before implementation.
 
+## ERP 1,900-hour completion counter and countdown
+
+**Current evidence-backed position: `0 / 1900` planned hours retired · `1,900h left`.** This is the net remaining-work budget anchored 23 Nov 2026. The actual work-effort timesheet is UNKNOWN, and the 12/32 M4 technical checkpoints are a different metric. **Do not subtract calendar time, CI runtime, commits, or partial checkpoint progress.** Only a fully accepted forecast work package changes the completed numerator and decrements the remaining-hour forecast (or an explicit evidence-backed re-estimate changes the baseline).
+
+**Read the hourly countdown:** [H0001–H1900 CSV](ERP-FULL-USE-HOURLY-1900.csv) now has `hour_out_of_1900` shown as **`1 / 1900`, `2 / 1900`, ... `1900 / 1900`** and `planned_hours_left_if_this_hour_completed` shown as **1899, 1898, ... 0**. Each row is a *hypothetical planned position*, not evidence that the hours before it have been completed. The live actual clock above is authoritative.
+
+| Forecast milestone if that position were fully completed | Hour position / 1900 | Planned hours left after that position |
+|---|---:|---:|
+| Current verified position | **0 / 1900** | **1,900h** |
+| First planned hour | 1 / 1900 | 1,899h |
+| M4 complete → prototype 5/8 | 170 / 1900 | 1,730h |
+| Prototype milestones 8/8 | 405 / 1900 | 1,495h |
+| Whole 8-role ERP and GL-10 complete | 1900 / 1900 | 0h |
+
+### Stage-by-stage forecast countdown (NOT actual acceptance)
+
+| Exit milestone | Planned work interval | If all prior planned hours completed | Hours left at that hypothetical exit |
+|---|---:|---:|---:|
+| M4 / prototype 5/8 | H0001–H0170 | **170 / 1900** | **1,730h** |
+| M6 / prototype 6/8 | H0171–H0290 | **290 / 1900** | **1,610h** |
+| M7 / prototype 7/8 | H0291–H0340 | **340 / 1900** | **1,560h** |
+| M8 / prototype 8/8 | H0341–H0405 | **405 / 1900** | **1,495h** |
+| GL-05 / all HR and payroll | H0406–H0705 | **705 / 1900** | **1,195h** |
+| GL-06 / full accounting, tax and banking | H0706–H1185 | **1185 / 1900** | **715h** |
+| Cross-Project purchasing, budgets and exceptions | H1186–H1315 | **1315 / 1900** | **585h** |
+| GL-04 / eight-role operational acceptance | H1316–H1435 | **1435 / 1900** | **465h** |
+| GL-07 / production security and governance | H1436–H1530 | **1530 / 1900** | **370h** |
+| GL-08 / real production hosting and recovery | H1531–H1640 | **1640 / 1900** | **260h** |
+| GL-09 / data migration and business onboarding | H1641–H1750 | **1750 / 1900** | **150h** |
+| GL-10 / full acceptance, cutover and stable usage | H1751–H1900 | **1900 / 1900** | **0h** |
+
+**Update rule for every `live position` / `check recommended sequence` / `continue recommended sequence`:** show `verified completed / 1900`, `forecast hours left`, then the active Hxxxx range and M4 checkpoints. Re-read real GitHub evidence before advancing any counter. Update the JSON `tracking.displayCounter` and `tracking.countdownHoursLeft` together with `verifiedRetiredHours` and `openBudgetHours`; revise hourly positions only if a new approved baseline changes the 1,900-hour denominator. No CI or background timer is required for a display-only refresh.
+
 ## Latest live M4 execution — 23 November 2026, 17:20 SGT
 
 - [M4-02 new test-only Draft #416](https://github.com/threeswordz/cinder-grind/pull/416) source `cdca52702d93eba53ac8ea1f86244a317ebe2a47` has **actual authenticated MUI React + NestJS + disposable PostgreSQL17.11 Chromium proof**. [#45145803345](https://github.com/threeswordz/cinder-grind/actions/runs/45145803345) **browser test step SUCCESS** with markers `M4_PM02_BROWSER_STORE_REVIEW_DENIED_PASS`, `M4_PM02_BROWSER_REAL_MIXED_DECISION_AND_APPROVAL_BYPASS_DENIED_PASS`, `M4_PM02_BROWSER_MAKER_SINGLE_CORRECTION_DRAFT_PASS`, `M4_PM02_REAL_CHROMIUM_REAL_NEST_PG17_SCOPED_PASS`. The optional trailing `echo '` in its one-time workflow had an unmatched quote and the **overall GitHub job concluded FAILURE** *after* the browser test passed. Do not rerun a successful business journey to clean a no-op echo; acknowledge the failed overall status in release assurance.
@@ -93,7 +126,7 @@ Owner-visible progress is **an auditable four-checkpoint completion counter for 
 
 ## Hour-by-hour plan — exact work packages (all 1,900 numbered hour slots)
 
-Every single forecast hour H0001…H1900 appears as one row in [the hourly CSV](ERP-FULL-USE-HOURLY-1900.csv). Rows are **forecast engineering budget slots**, not scheduled clock appointments, proof of completed effort, or a claim that humans work a fixed continuous 1,900h. A package earns 0 hours until its specific acceptance is verified, then its *remaining-work estimate* is retired; optional real time is logged separately. In-progress stage status may show without converting into false hour-credit.
+Every single forecast hour H0001…H1900 appears as one row in [the hourly CSV](ERP-FULL-USE-HOURLY-1900.csv). **Read each row as `hour_out_of_1900` → conditional `planned_hours_left_if_this_hour_completed`; this is a forward schedule, not a live earned-credit timer.** Rows are **forecast engineering budget slots**, not scheduled clock appointments, proof of completed effort, or a claim that humans work a fixed continuous 1,900h. A package earns 0 hours until its specific acceptance is verified, then its *remaining-work estimate* is retired; optional real time is logged separately. In-progress stage status may show without converting into false hour-credit.
 
 | Package | Hour range | Budget | Work and acceptance | Current evidence / credit |
 |---|---:|---:|---|---|
