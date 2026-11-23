@@ -12,7 +12,7 @@
     "verifiedRetiredHours": 0,
     "openBudgetHours": 1900,
     "actualLoggedHours": null,
-    "asOf": "2026-11-23T16:25:05+08:00",
+    "asOf": "2026-11-23T16:45:28+08:00",
     "activePackage": "M4-01",
     "activeForecastHourRange": "H0001–H0020",
     "activeConcurrentPackages": [
@@ -20,7 +20,10 @@
       "M4-04",
       "M4-05"
     ],
-    "workEvidenceNote": "Source staged and one focused validation in flight; no new completion credited."
+    "workEvidenceNote": "Source staged and one focused validation in flight; no new completion credited.",
+    "latestTechnicalCheckpoint": "PUR01 pure source tests and changed Web/API validation passed in partly failed run #45140450091; corrected PM02/PUR04 PG tests PASS #45140977184; source only, no package exit.",
+    "m4CheckpointCompleted": 10,
+    "m4CheckpointTotal": 32
   },
   "official": {
     "prototypeCompleted": 4,
@@ -204,11 +207,30 @@
       "verifiedHours": 0,
       "evidence": [
         "https://github.com/threeswordz/cinder-grind/pull/415",
-        "https://github.com/threeswordz/cinder-grind/actions/runs/45140450091"
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45140450091",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45140977184"
       ],
       "actualHours": null,
       "verifiedAt": null,
-      "latestAssessment": "PUR01 exact-source Draft PR #415 stages net THB 1/2/3 supplier gate, comparable quote evidence, maker reason and MANAGEMENT approval exception. Changed-path one-shot #45140450091 started; no PASS until observed."
+      "latestAssessment": "PUR01 commercial threshold maths and native one-supplier PO PASS; two/three supplier, shortage exception and actual Ben role/browser still need proof.",
+      "checkpoints": [
+        {
+          "name": "Existing RFQ and award baseline",
+          "status": "SOURCE_VERIFIED"
+        },
+        {
+          "name": "Net ex-VAT thresholds/missing-data pure proof",
+          "status": "FOCUSED_TEST_PASS"
+        },
+        {
+          "name": "Two/three supplier complete quotes and exception end-to-end",
+          "status": "NOT_PROVEN"
+        },
+        {
+          "name": "Ben exception retained-role/independent action",
+          "status": "NOT_PROVEN"
+        }
+      ]
     },
     {
       "id": "M4-05",
@@ -222,11 +244,30 @@
       "verifiedHours": 0,
       "evidence": [
         "https://github.com/threeswordz/cinder-grind/pull/413",
-        "https://github.com/threeswordz/cinder-grind/actions/runs/45140450091"
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45140450091",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45140977184"
       ],
       "actualHours": null,
       "verifiedAt": null,
-      "latestAssessment": "PUR04 Draft PR #413 stages additive nullable commercial fields, draft edit/revision UI and focused PG spec; combined changed-path #45140450091 pending."
+      "latestAssessment": "PUR04 additive PG17.11 migration, draft edit/audit focused PG, changed API and Web typecheck PASS. Real revision/browser/retained role and final integration unproven.",
+      "checkpoints": [
+        {
+          "name": "Forward-only nullable commercial schema",
+          "status": "SOURCE_STAGED"
+        },
+        {
+          "name": "Draft API/React/revision-copy source",
+          "status": "SOURCE_STAGED"
+        },
+        {
+          "name": "Real migration, API/Web TS and new PG test",
+          "status": "FOCUSED_TEST_PASS"
+        },
+        {
+          "name": "Revision/Company scope, real UI/retained actor acceptance",
+          "status": "NOT_PROVEN"
+        }
+      ]
     },
     {
       "id": "M4-06",
