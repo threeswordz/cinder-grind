@@ -477,7 +477,12 @@ test('PM02: mixed approval, immutable returned demand, and rejected-correction c
         createdByUserId: jai.id,
       },
     });
-    await prisma.purchaseOrderLine.create({
+    // The canonical PostgreSQL source-provenance trigger forbids the forged
+    // A-award/B-returned-line association itself. Assert that gate instead
+    // of expecting illegal fixture setup to succeed. There is no approved
+    // migration or test privilege bypass of this immutable source barrier.
+    await assert.rejects(
+      () => prisma.purchaseOrderLine.create({
       data: {
         purchaseOrderId: forgedDraft.id,
         lineNo: 1,
@@ -502,15 +507,14 @@ test('PM02: mixed approval, immutable returned demand, and rejected-correction c
         expectedDelivery: originalPoLine.expectedDelivery,
         remarks: originalPoLine.remarks,
       },
-    });
-    await assert.rejects(
-      () => purchaseOrders.submit(
-        { auth: jaiAuth }, forgedDraft.id, poWorkflow.workflowCode,
-      ),
-      (error: unknown) => error instanceof ConflictException &&
-        typeof error.getResponse() === 'object' &&
-        (error.getResponse() as { code?: string }).code === 'PO_SOURCE_DEMAND_INACTIVE',
+      }),
+      (error: unknown) =>
+        String(error).includes('Purchase Order source traceability is inconsistent with the selected award'),
     );
+    assert.equal(await prisma.purchaseOrderLine.count({
+      where: { purchaseOrderId: forgedDraft.id },
+    }), 0);
+    // With no valid lines, there is no possible forged PO submission.
     const blockedPo = await prisma.purchaseOrder.findUniqueOrThrow({
       where: { id: forgedDraft.id },
       select: { submittedAt: true, approvalInstanceId: true },
