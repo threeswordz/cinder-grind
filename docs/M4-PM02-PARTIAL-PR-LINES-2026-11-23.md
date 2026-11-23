@@ -17,7 +17,7 @@ Private base: integrated reviewed M4 UI #407 at `62d2ce23810938784caa66aab6e427e
 2. A past fully approved parent with NULL line decisions still sources all old lines. Existing rejected-PR copy behavior and whole approval remain unchanged.
 3. Original Store maker's correction draft contains only B, independently editable/re-submittable; another Store/PM maker cannot copy the source. Duplicate copy, stale instance, missing/duplicate/foreign line UUID, wrong Project/Company, maker/submitter self decision, wrong role/step, stale action, and concurrent review all fail without partial writes.
 4. Ensure no stock transaction, inventory reservation, DirectCostPosting or AP/Finance effect. Verify audit and approvalAction history, source parent/correction pointer.
-5. Actual React/MUI Store and Khaimook partial disposition/correction UI, real browser and retained assigned grants still needed for full PM02 acceptance. This API-only draft must not be called complete.
+5. React/MUI Purchase Requests UI is staged with explicit per-line decisions/reasons and correction draft link (no default all-approve), protected by existing API roles and original-maker checks. **Real browser interaction, native server proof, and retained assigned grants remain NOT RUN**; this source-only UI draft is not functional acceptance.
 6. Independent exact-head Codex P1/P2 review, **focused tests only during development**, no previous successful suite reruns. Full release CI only after fresh Owner authorization under #384. No self-approval or Production.
 
 ## Scope limits

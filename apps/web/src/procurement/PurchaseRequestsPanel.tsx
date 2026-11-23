@@ -50,6 +50,11 @@ export function PurchaseRequestsPanel({
   const [remarks, setRemarks] = useState('');
   const [workflowCode, setWorkflowCode] = useState('');
   const [approvalComment, setApprovalComment] = useState('');
+  // No default "approve everything": every submitted line needs a conscious review.
+  const [lineReviews, setLineReviews] = useState<Record<string, {
+    decision: 'APPROVED' | 'RETURNED' | '';
+    reason: string;
+  }>>({});
 
   const [editingLineId, setEditingLineId] = useState('');
   const [lineType, setLineType] = useState<'MATERIAL' | 'SERVICE'>('MATERIAL');
@@ -156,6 +161,13 @@ export function PurchaseRequestsPanel({
       await refresh();
     },
   });
+  const copyReturned = useMutation({
+    mutationFn: () => procurementApi.copyReturned(requestId),
+    onSuccess: async (result) => {
+      setRequestId(result.data.id);
+      await refresh();
+    },
+  });
   const saveLine = useMutation({
     mutationFn: () => {
       const body = {
@@ -202,6 +214,41 @@ export function PurchaseRequestsPanel({
       await refresh();
     },
   });
+  const decideLines = useMutation({
+    mutationFn: () => {
+      const loaded = selected.data?.data;
+      if (!loaded?.approvalInstanceId) {
+        throw new Error('Open the current submitted PR before deciding lines.');
+      }
+      const decisions = loaded.lines.map((line) => {
+        const review = lineReviews[line.id];
+        if (!review || !review.decision) {
+          throw new Error('An explicit decision is required for every line.');
+        }
+        if (review.decision === 'RETURNED' && !review.reason.trim()) {
+          throw new Error('Every returned line needs a correction reason.');
+        }
+        return {
+          lineId: line.id,
+          decision: review.decision,
+          ...(review.decision === 'RETURNED'
+            ? { reason: review.reason.trim() } : {}),
+        };
+      });
+      if (!decisions.some((line) => line.decision === 'APPROVED')) {
+        throw new Error('Partial review needs at least one approved line. Use Reject for all-invalid requests.');
+      }
+      return procurementApi.decideLines(
+        loaded.id, loaded.approvalInstanceId, decisions,
+        approvalComment.trim() || null,
+      );
+    },
+    onSuccess: async () => {
+      setApprovalComment('');
+      setLineReviews({});
+      await refresh();
+    },
+  });
   const cancel = useMutation({
     mutationFn: () => procurementApi.cancel(requestId),
     onSuccess: refresh,
@@ -211,10 +258,32 @@ export function PurchaseRequestsPanel({
   const isDraft = current?.lifecycleState === 'DRAFT';
   const isSubmitted = current?.lifecycleState === 'SUBMITTED';
   const isRejected = current?.lifecycleState === 'REJECTED';
+  const isReturned = current?.lifecycleState === 'APPROVED' &&
+    current.lines.some((line) => line.reviewDecision === 'RETURNED');
+  const isCorrection = Boolean(
+    current?.lines.some((line) => line.correctionSourceLineId),
+  );
   const canCancelCurrent =
     Boolean(current) &&
+    !isCorrection &&
     current?.lifecycleState !== 'CANCELLED' &&
     current?.lifecycleState !== 'REJECTED';
+  const readyForLineReview = Boolean(
+    current?.approvalInstanceId &&
+    current.lines.length > 0 &&
+    current.lines.every((line) => {
+      const review = lineReviews[line.id];
+      return Boolean(review && (
+        review.decision === 'APPROVED' ||
+        (review.decision === 'RETURNED' && review.reason.trim())
+      ));
+    }) &&
+    current.lines.some((line) => lineReviews[line.id]?.decision === 'APPROVED'),
+  );
+
+  useEffect(() => {
+    setLineReviews({});
+  }, [current?.id, current?.approvalInstanceId]);
 
   useEffect(() => {
     setRemarks(current?.remarks ?? '');
@@ -272,6 +341,8 @@ export function PurchaseRequestsPanel({
     createRequest.error ??
     saveHeader.error ??
     copyRejected.error ??
+    copyReturned.error ??
+    decideLines.error ??
     saveLine.error ??
     deleteLine.error ??
     submit.error ??
@@ -419,7 +490,8 @@ export function PurchaseRequestsPanel({
 
                 {current.sourceRequest ? (
                   <Alert severity="info">
-                    This Draft was copied from rejected request{' '}
+                    This Draft was copied from{' '}
+                    {isCorrection ? 'returned lines' : 'a rejected request'} of{' '}
                     {current.sourceRequest.prNumber}.
                   </Alert>
                 ) : null}
@@ -496,21 +568,38 @@ export function PurchaseRequestsPanel({
                           : line.description}
                       </Typography>
                       <Chip size="small" label={line.lineType} />
+                      {line.reviewDecision ? (
+                        <Chip size="small"
+                          color={line.reviewDecision === 'RETURNED' ? 'warning' : 'success'}
+                          label={line.reviewDecision} />
+                      ) : null}
                       {isDraft && canManage ? (
                         <>
                           <Button size="small" onClick={() => editLine(line)}>
                             Edit
                           </Button>
-                          <Button
-                            size="small"
-                            onClick={() => deleteLine.mutate(line.id)}
-                            disabled={deleteLine.isPending}
-                          >
-                            Remove
-                          </Button>
+                          {!line.correctionSourceLineId ? (
+                            <Button
+                              size="small"
+                              onClick={() => deleteLine.mutate(line.id)}
+                              disabled={deleteLine.isPending}
+                            >
+                              Remove
+                            </Button>
+                          ) : null}
                         </>
                       ) : null}
                     </Stack>
+                    {line.reviewDecision === 'RETURNED' && line.reviewReason ? (
+                      <Alert severity="warning">
+                        Return for correction: {line.reviewReason}
+                      </Alert>
+                    ) : null}
+                    {line.correctionSourceLineId ? (
+                      <Typography variant="caption" color="text.secondary">
+                        Correcting a returned source line; original approval history retained.
+                      </Typography>
+                    ) : null}
                     <Typography variant="body2" color="text.secondary">
                       {line.quantity} {line.uom.uomCode}
                       {line.wbs
@@ -790,6 +879,64 @@ export function PurchaseRequestsPanel({
                       </Button>
                     </Stack>
                   </>
+                ) : null}
+
+                {isSubmitted && canApprove ? (
+                  <Stack spacing={1.5} sx={{ border: 1, borderColor: 'divider', p: 1.5, borderRadius: 1 }}>
+                    <Typography variant="subtitle2">
+                      Khaimook — independent line-by-line review (PM02)
+                    </Typography>
+                    <Alert severity="info">
+                      Choose a decision for every line. Approved lines can proceed to RFQ;
+                      returned lines cannot be sourced and need original-maker correction.
+                      Only the configured single-step Project Manager reviewer can submit.
+                    </Alert>
+                    {current.lines.map((line) => (
+                      <Stack key={line.id} spacing={1} sx={{ border: 1, borderColor: 'divider', p: 1, borderRadius: 1 }}>
+                        <Typography variant="body2">
+                          {line.lineNo}. {line.description} · {line.quantity} {line.uom.uomCode}
+                        </Typography>
+                        <TextField select size="small" label={'Decision for line ' + line.lineNo}
+                          value={lineReviews[line.id]?.decision ?? ''}
+                          onChange={(event) => {
+                            const decision = event.target.value as 'APPROVED' | 'RETURNED' | '';
+                            setLineReviews((previous) => ({
+                              ...previous, [line.id]: {
+                                decision, reason: decision === 'RETURNED'
+                                  ? (previous[line.id]?.reason ?? '') : '',
+                              },
+                            }));
+                          }}>
+                          <MenuItem value="">Select an explicit decision</MenuItem>
+                          <MenuItem value="APPROVED">Approve this line</MenuItem>
+                          <MenuItem value="RETURNED">Return this line for correction</MenuItem>
+                        </TextField>
+                        {lineReviews[line.id]?.decision === 'RETURNED' ? (
+                          <TextField multiline minRows={2}
+                            label={'Correction reason for line ' + line.lineNo}
+                            value={lineReviews[line.id]?.reason ?? ''}
+                            inputProps={{ maxLength: 5000 }}
+                            onChange={(event) => setLineReviews((previous) => ({
+                              ...previous, [line.id]: {
+                                decision: 'RETURNED', reason: event.target.value,
+                              },
+                            }))} />
+                        ) : null}
+                      </Stack>
+                    ))}
+                    <Button variant="contained" disabled={!readyForLineReview || decideLines.isPending}
+                      onClick={() => decideLines.mutate()}>
+                      Approve selected lines / return the others
+                    </Button>
+                  </Stack>
+                ) : null}
+
+                {isReturned && canManage ? (
+                  <Button variant="contained"
+                    onClick={() => copyReturned.mutate()}
+                    disabled={copyReturned.isPending}>
+                    Copy returned lines to correction Draft
+                  </Button>
                 ) : null}
 
                 {isRejected && canManage ? (

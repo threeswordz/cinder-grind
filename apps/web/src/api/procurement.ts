@@ -109,6 +109,11 @@ export type PurchaseRequestLine = {
   costCodeId: string | null;
   activityId: string | null;
   requiredOnSite: string | null;
+  reviewDecision: 'APPROVED' | 'RETURNED' | null;
+  reviewReason: string | null;
+  reviewedByUserId: string | null;
+  reviewedAt: string | null;
+  correctionSourceLineId: string | null;
   material: {
     id: string;
     materialCode: string;
@@ -178,6 +183,30 @@ export const procurementApi = {
         body: JSON.stringify(
           remarks === undefined ? {} : { remarks: remarks ?? null },
         ),
+      },
+    ),
+  copyReturned: (requestId: string) =>
+    apiRequest<Data<PurchaseRequestListItem>>(
+      '/procurement/purchase-requests/' + requestId + '/copy-returned',
+      { method: 'POST', body: JSON.stringify({}) },
+    ),
+  decideLines: (
+    requestId: string,
+    expectedApprovalInstanceId: string,
+    decisions: Array<{
+      lineId: string;
+      decision: 'APPROVED' | 'RETURNED';
+      reason?: string;
+    }>,
+    comment?: string | null,
+  ) =>
+    apiRequest<Data<PurchaseRequest>>(
+      '/procurement/purchase-requests/' + requestId + '/decide-lines',
+      { method: 'POST',
+        body: JSON.stringify({
+          expectedApprovalInstanceId, decisions,
+          comment: comment ?? null,
+        }),
       },
     ),
   createLine: (
