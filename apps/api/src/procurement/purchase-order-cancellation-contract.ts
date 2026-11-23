@@ -144,7 +144,7 @@ export function planPur10Decision(input: Readonly<{
     };
   }
   if (action === 'BEN_APPROVE' || action === 'BEN_REJECT') {
-    allowActor(actor, 'MANAGEMENT', 'procurement.po.cancel', order);
+    allowActor(actor, 'MANAGEMENT', 'procurement.po.approve', order);
     if (actor.userId !== order.configuredBenUserId) deny('PUR10_NAMED_BEN_REQUIRED');
     if (current.status !== 'BEN_PENDING' || !current.pmUserId ||
         current.benUserId !== null || actor.userId === current.pmUserId)
