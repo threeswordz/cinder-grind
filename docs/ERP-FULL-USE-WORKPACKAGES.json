@@ -12,7 +12,7 @@
     "verifiedRetiredHours": 0,
     "openBudgetHours": 1900,
     "actualLoggedHours": null,
-    "asOf": "2026-11-23T20:41:24+08:00",
+    "asOf": "2026-11-23T21:14:10+08:00",
     "activePackage": "M4-01",
     "activeForecastHourRange": "H0001–H0020",
     "activeConcurrentPackages": [
@@ -23,9 +23,9 @@
       "M4-06",
       "M4-03"
     ],
-    "workEvidenceNote": "M4-03 #419 one-shot focused Chrome+Postgres run #45176454339 SUCCESS, 3/4 checkpoints provisionally with final scope/role denial open. Other M4 packages remain unfinished. No source integration or accepted complete package; 0 of 1,900 forecast-hours retired, 1,900h remaining.",
-    "latestTechnicalCheckpoint": "M4-03 one-shot run #45176454339 overall SUCCESS: real Chrome FM01 Foreman/Ben, BEN04 Khaimook prepare, PM16 Ben/Nancy signoffs. B/C accepted; D browser signoffs passed but Company/Project denial + retained named actors not verified. M4 19/32.",
-    "m4CheckpointCompleted": 19,
+    "workEvidenceNote": "M4-02 3/4 after 9/9 focused new source-guard PASS; M4-03 3/4 after real Chrome PASS. New proof is NOT full M4 package acceptance or retained MKE/TCJ grants; 0/1900 hours retired, forecast 1900h unchanged (low-confidence 1100–3300h scenario). No duplicate full CI/Mac.",
+    "latestTechnicalCheckpoint": "M4-02 new exact-source #45181742276 SUCCESS: real PG17 invariant refuses forged B-line insert, service seven cases guard against inactive/wrong Company/Project/returned demand pre-ApprovalService; 9/9 focused tests PASS. Separate previously successful actual PM02 Chrome #45147124712 reused. M4=20/32, M4-02=3/4; retained grants/Owner gates open.",
+    "m4CheckpointCompleted": 20,
     "m4CheckpointTotal": 32,
     "displayCounter": "0 / 1900",
     "countdownHoursLeft": 1900,
@@ -222,12 +222,15 @@
       "verifiedHours": 0,
       "evidence": [
         "https://github.com/threeswordz/cinder-grind/pull/416",
-        "https://github.com/threeswordz/cinder-grind/actions/runs/45145803345"
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45145803345",
+        "https://github.com/threeswordz/cinder-grind/pull/412",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45147124712",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45181742276"
       ],
       "actualHours": null,
       "verifiedAt": null,
-      "progressPercent": 50,
-      "latestAssessment": "New PM02 actual Chrome Store denial, Khaimook A/B line decision and bypass lock, original Store copied B correction: test step PASS #45145803345. Overall GitHub workflow FAILED after test in cosmetic shell echo. Distinct forged PO-submit guard and named retained business roles outstanding.",
+      "progressPercent": 75,
+      "latestAssessment": "Draft #412 now includes separate native PostgreSQL award-lineage trigger and service submit fail-closed tests. Focused new #45181742276 SUCCESS (9 tests/0 fail: one original A/B+SQL negative native integration, 7 service seam negatives before ApprovalService.start); compilation PASS and PG17 migrations PASS. Real PM02 synthetic React+Chrome #45147124712 SUCCESS already separately passed and must not rerun. Still missing effective retained Store/Khaimook/Jai/Ben grants, scope owner acceptance and independent exact-candidate release review. M4-02=3/4. Hours remain unretired until full package accepted.",
       "checkpoints": [
         {
           "name": "Native original A/B→RFQ→PO proof",
@@ -235,13 +238,17 @@
           "run": 45127724396
         },
         {
-          "name": "Separate new PO submit corrupted provenance service denial",
-          "status": "NOT_VERIFIED_SQL_GUARD_ONLY"
+          "name": "Distinct forged PO source: existing PostgreSQL award-lineage P0001 denies INSERT; independent service submit rejects seven inactive/mismatched source states before approval, write or audit",
+          "status": "NATIVE_SQL_TRIGGER_AND_SERVICE_TRANSACTION_SEAM_PASS",
+          "run": 45181742276,
+          "codeSourceSha": "80c6a541d1e55b89099e1b5798be1e70c0b228a0",
+          "note": "Service tests are isolated mocked transaction seams; the actual PostgreSQL test proves a separate immutable source-award trigger. No real retained roles."
         },
         {
-          "name": "Real auth React PM02 mixed line review/correction",
-          "status": "BROWSER_TEST_STEP_PASS_WORKFLOW_ECHO_FAIL",
-          "run": 45145803345
+          "name": "Real authenticated React/Chromium Store Khaimook PM02 mixed line review and original-maker B-only correction",
+          "status": "ACTUAL_BROWSER_FULL_WORKFLOW_SUCCESS",
+          "run": 45147124712,
+          "note": "Earlier #45145803345 had browser step PASS then optional echo failure; subsequent exact-new focused #45147124712 overall SUCCESS. Synthetic Company actors only."
         },
         {
           "name": "Real MKE/TCJ named roles, independent review and Owner acceptance",
