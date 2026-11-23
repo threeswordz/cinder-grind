@@ -1,0 +1,65 @@
+name: M4 PUR07 new PDF and recorded external evidence native actor
+on:
+  push:
+    branches: [focused-m4-pur07-native-evidence-20261123]
+    paths: ['.github/workflows/focused-m4-pur07-native-evidence-20261123.yml']
+permissions:
+  contents: read
+jobs:
+  pur07-native:
+    name: Only PUR07 new tests on disposable PG17
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    services:
+      postgres:
+        image: postgres:17.11-alpine
+        env:
+          POSTGRES_DB: erp_m4_pur07_native
+          POSTGRES_USER: construction_erp
+          POSTGRES_PASSWORD: construction_erp_dev_only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U construction_erp -d erp_m4_pur07_native"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://construction_erp:construction_erp_dev_only@localhost:5432/erp_m4_pur07_native?schema=public
+      M4_NON_PRODUCTION_CONFIRMED: 'YES'
+      EXACT_PUR07_SOURCE: 3c6e89ac57c5cb62d4c481c582cc31c94503e79b
+    steps:
+      - name: Frozen focused test source checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 2
+      - name: Deny any unexpected source or real database
+        run: |
+          test "$(git rev-parse HEAD^)" = "$EXACT_PUR07_SOURCE"
+          test "$(git diff --name-only HEAD^ HEAD)" = ".github/workflows/focused-m4-pur07-native-evidence-20261123.yml"
+          test "${DATABASE_URL%%\?*}" = "postgresql://construction_erp:construction_erp_dev_only@localhost:5432/erp_m4_pur07_native"
+          test "$M4_NON_PRODUCTION_CONFIRMED" = "YES"
+      - name: Setup pinned pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
+        with:
+          version: 12.6.0
+          run_install: false
+      - name: Setup pinned Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.21.0
+      - name: Frozen dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Generate Prisma and deploy forward-only migrations to disposable PG17
+        run: |
+          pnpm prisma:generate
+          pnpm prisma:migrate:deploy
+      - name: Compile scoped new PDF/dispatch API and actor spec
+        run: pnpm --filter @construction-erp/api build
+      - name: Typecheck new browser-print and external evidence UI
+        run: pnpm --filter @construction-erp/web typecheck
+      - name: Run ONLY new PUR07 PDF/filename and real-PG external evidence tests
+        run: node --test apps/api/dist/procurement/purchase-order-pdf.spec.js apps/api/dist/procurement/purchase-order.pur07.integration.spec.js
+      - name: Scope boundary
+        run: echo 'Only NEW PUR07 functionality; no prior PUR01/PUR12/PM02 test reruns, no full CI/Mac/Production.'
