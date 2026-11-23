@@ -82,7 +82,7 @@ export class PurchaseOrderCancellationCaseService {
     if (!ids.every(uuid) || new Set(ids).size !== 3) {
       return fail('PUR10_NAMED_ACTORS_CONFIGURATION_INVALID');
     }
-    const [jai, khaimook, ben] = ids as string[];
+    const [jai, khaimook, ben] = ids as [string, string, string];
     const users = await db.user.findMany({
       where: { companyId, id: { in: [jai, khaimook, ben] }, isActive: true },
       select: {
@@ -143,6 +143,7 @@ export class PurchaseOrderCancellationCaseService {
       });
       if (candidates.length !== 1) return fail('PUR10_HISTORY_FORK_OR_MISSING_LINK');
       const row = candidates[0];
+      if (!row) return fail('PUR10_HISTORY_FORK_OR_MISSING_LINK');
       if (seen.has(row.id)) return fail('PUR10_HISTORY_REPLAY_DETECTED');
       seen.add(row.id);
       const v = row.newValues as Record<string, Prisma.JsonValue>;
