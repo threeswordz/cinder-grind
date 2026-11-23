@@ -1,0 +1,53 @@
+# One-off SS02 new-source typecheck and 11 focused tests only.
+name: M4 SS02 Material Code Handoff Focused
+on:
+  push:
+    branches: ['work-m4-ss02-focused-once-20261124']
+    paths: ['.github/workflows/m4-ss02-focused-once.yml']
+permissions:
+  contents: read
+concurrency:
+  group: m4-ss02-focused-once-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  ss02-focused:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DATABASE_URL: postgresql://construction_erp:construction_erp_dev_only@localhost:5432/construction_erp?schema=public
+      NODE_ENV: test
+      SS02_SOURCE_SHA: ${{ github.sha }}
+    steps:
+      - name: Checkout only exact SS02 review source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: Verify immutable source identity
+        run: test "$(git rev-parse HEAD)" = "$SS02_SOURCE_SHA"
+      - name: Install pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
+        with:
+          version: 12.6.0
+          run_install: false
+      - name: Install Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.21.0
+      - name: Frozen dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Prisma codegen/schema only; no database migration or production writes
+        run: |
+          pnpm prisma:generate
+          pnpm prisma:validate
+      - name: Full-workspace TypeScript source check
+        run: pnpm typecheck
+      - name: Compile only existing API project
+        run: pnpm --filter @construction-erp/api build
+      - name: SS02 NEW audit contract and scoped service tests only
+        run: |
+          node --test --test-concurrency=1 \
+            apps/api/dist/inventory/material-code-request-contract.spec.js \
+            apps/api/dist/inventory/material-code-request.service.spec.js
+      - name: Seal focused-only boundary
+        run: echo 'SS02_FOCUSED_ONLY; no full release CI, native browser, retained grants, independent DEC-022 approval or production'
