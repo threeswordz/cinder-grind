@@ -23,6 +23,18 @@ const fixture=()=>{
   };
 };
 const error=(pattern,fn)=>assert.throws(fn,e=>pattern.test(e.safeCode??e.message));
+
+test('Runtime fixture must match a separately approved exact 40-hex source; old source cannot substitute',()=>{
+  const c=fixture();
+  const integrated='b44d789a80b6cf4992d7272eecea36cb6bc6be19';
+  c.sourceSha=integrated;
+  assert.equal(validateFixture(c,integrated).sourceSha,integrated);
+  error(/INTEGRATED_BASE_SHA_MISMATCH/,()=>validateFixture(c));
+  error(/APPROVED_SOURCE_INVALID/,()=>validateFixture(c,'not-a-commit'));
+  error(/APPROVED_SOURCE_INVALID/,()=>validateFixture(c,integrated.toUpperCase()));
+  const stale=fixture();
+  error(/INTEGRATED_BASE_SHA_MISMATCH/,()=>validateFixture(stale,integrated));
+});
 test('Eight named production-role personas only: no SYS_ADMIN or permission-union actor',()=>{
   assert.deepEqual(Object.keys(PERSONAS),[
     'NANCY','BEN','KHAIMOOK','JAI','STORE_SITE','FOREMAN','PORN','KOH']);

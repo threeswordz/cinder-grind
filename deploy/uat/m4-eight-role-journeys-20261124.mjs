@@ -11,6 +11,8 @@ import {mkdtemp,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {startBrowser,allowedRequest} from './prototype-browser.mjs';
 
+// Historical unit-fixture default only. A real browser run must bind its approved
+// source to the actual Git checkout SHA rather than this former integration parent.
 export const BASE_SOURCE='680bca5767652522ef08f72d4df97b6df2732fca';
 export const PERSONAS=Object.freeze({
   NANCY:{roles:['FINANCE_MANAGER'],section:'BOQ & Budget',requires:'budget.customer.view'},
@@ -29,10 +31,12 @@ const same=(a,b)=>JSON.stringify(sorted(a))===JSON.stringify(sorted(b));
 const fail=code=>{throw Object.assign(new Error(code),{safeCode:code});};
 const demand=(v,code)=>{if(!v)fail(code);};
 
-export function validateFixture(c){
+export function validateFixture(c,expectedSource=BASE_SOURCE){
   demand(c&&typeof c==='object'&&!Array.isArray(c),'INVALID_FIXTURE');
   demand(c.purpose==='M4_LANE_C_DISPOSABLE_SYNTHETIC_ONLY','DISPOSABLE_PROOF_REQUIRED');
-  demand(c.sourceSha===BASE_SOURCE,'INTEGRATED_BASE_SHA_MISMATCH');
+  demand(typeof expectedSource==='string'&&/^[0-9a-f]{40}$/.test(expectedSource),
+    'APPROVED_SOURCE_INVALID');
+  demand(c.sourceSha===expectedSource,'INTEGRATED_BASE_SHA_MISMATCH');
   demand(c.apiBase==='http://127.0.0.1:31375/api/v1'&&
     c.webOrigin==='http://127.0.0.1:44375'&&
     c.databaseName==='erp_m4_lane_c_20261124','UNSAFE_TARGET');
@@ -109,7 +113,7 @@ export function assessResponse(check,status,body,secret){
   return {check:check.name,status:'PASS',httpStatus:status};
 }
 
-async function privateFixture(path){
+async function privateFixture(path,expectedSource){
   demand(typeof path==='string'&&path.startsWith('/'),'ABSOLUTE_PRIVATE_FIXTURE_REQUIRED');
   const s=await lstat(path);
   demand(s.isFile()&&!s.isSymbolicLink()&&s.nlink===1&&
@@ -119,7 +123,7 @@ async function privateFixture(path){
   demand(checked===path,'SYMLINK_FIXTURE_DENIED');
   const root=await realpath(fileURLToPath(new URL('../../',import.meta.url)));
   demand(checked!==root&&!checked.startsWith(root+sep),'REPOSITORY_FIXTURE_DENIED');
-  return validateFixture(JSON.parse(await readFile(checked,'utf8')));
+  return validateFixture(JSON.parse(await readFile(checked,'utf8')),expectedSource);
 }
 async function evaluate(p,s,fn,arg){
   const r=await p.send('Runtime.evaluate',{expression:'('+fn.toString()+')('+JSON.stringify(arg??null)+')',
@@ -308,13 +312,13 @@ export async function execute(c,bin){
     const missing=['clientBoqVersionId','foreignDocumentId','otherProjectDocumentId','hrAttachmentId',
       'disabledActor'].filter(k=>!c[k]);
     return {status:missing.length?'PARTIAL_BLOCKED_FIXTURE':'DISPOSABLE_BROWSER_BOUNDARIES_PASS',
-      sourceSha:BASE_SOURCE,personas:records,browser:'REAL_CHROMIUM_REACT_MUI',
+      sourceSha:c.sourceSha,personas:records,browser:'REAL_CHROMIUM_REACT_MUI',
       missingSyntheticArtifacts:missing,retainedRoleAcceptance:false,humanAcceptance:false,
       independentReview:false,productionAuthorized:false,businessWrites:false,
       technicalAdminUsed:false,activeRoleGrantsChanged:false,stage:'COMPLETE'};
   }catch(error){
     return {status:'FAILED',stage,safeCode:error?.safeCode??'UNCLASSIFIED_BROWSER_FAILURE',
-      sourceSha:BASE_SOURCE,retainedRoleAcceptance:false,personas:records};
+      sourceSha:c.sourceSha,retainedRoleAcceptance:false,personas:records};
   }finally{if(browser)await browser.stop();await rm(temp,{recursive:true,force:true});}
 }
 async function main(){
@@ -322,7 +326,18 @@ async function main(){
     'USAGE_DISPOSABLE_READBACK_ONLY');
   demand(process.env.GITHUB_ACTIONS==='true'&&process.platform==='linux'&&
     process.env.M4_LANE_C_DISPOSABLE_VERIFIED==='YES','CI_DISPOSABLE_AUTHORIZATION_REQUIRED');
-  const c=await privateFixture(process.argv[3]);
+  const sourceRoot=await realpath(fileURLToPath(new URL('../../',import.meta.url)));
+  const git=spawnSync('git',['rev-parse','HEAD'],{
+    cwd:sourceRoot,encoding:'utf8',stdio:['ignore','pipe','ignore'],timeout:5000});
+  const exactSource=git.status===0?git.stdout?.trim():null;
+  demand(typeof exactSource==='string'&&/^[0-9a-f]{40}$/.test(exactSource),
+    'EXACT_GIT_SOURCE_REQUIRED');
+  demand(process.env.M4_LANE_C_APPROVED_SOURCE_SHA===exactSource,
+    'APPROVED_SOURCE_SHA_MISMATCH');
+  const dirty=spawnSync('git',['status','--porcelain','--untracked-files=no'],{
+    cwd:sourceRoot,encoding:'utf8',stdio:['ignore','pipe','ignore'],timeout:5000});
+  demand(dirty.status===0&&dirty.stdout?.trim()==='','SOURCE_TREE_DIRTY');
+  const c=await privateFixture(process.argv[3],exactSource);
   const bin=['google-chrome','chromium','chromium-browser']
     .find(name=>spawnSync(name,['--version'],{stdio:'ignore'}).status===0);
   demand(bin,'ACTUAL_CHROMIUM_REQUIRED');
