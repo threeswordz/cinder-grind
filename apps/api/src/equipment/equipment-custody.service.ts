@@ -39,12 +39,43 @@ export class EquipmentCustodyService {
     private readonly audit: AuditService,
   ) {}
 
-  private async authorize(auth: AuthenticatedUserContext, permission: string, tx: Prisma.TransactionClient | PrismaService = this.prisma) {
-    if (!auth.permissions.includes(permission) || !(await this.access.activeEmployeeId(auth, tx))) deny();
+  private async authorize(supplied: AuthenticatedUserContext, permission: string,
+    tx: Prisma.TransactionClient | PrismaService = this.prisma): Promise<AuthenticatedUserContext> {
+    // Refresh the session and assigned role permissions from the same DB snapshot
+    // as the custody write. A previously issued request context is not a grant.
+    if (!supplied.permissions.includes(permission)) deny();
+    const session = await tx.userSession.findFirst({
+      where: { id: supplied.sessionId, userId: supplied.userId,
+        revokedAt: null, expiresAt: { gt: new Date() },
+        user: { companyId: supplied.companyId, isActive: true,
+          company: { isActive: true } } },
+      select: { user: { select: {
+        employee: { select: { companyId: true, isActive: true } },
+        userRoles: { select: { role: { select: {
+          companyId: true, isActive: true, roleCode: true,
+          rolePermissions: { select: { permission: { select: { permissionCode: true } } } },
+        } } } },
+      } } },
+    });
+    const employee = session?.user.employee;
+    if (!session || !employee?.isActive || employee.companyId !== supplied.companyId) deny();
+    const roles = session.user.userRoles
+      .map(assignment => assignment.role)
+      .filter(role => role.isActive && role.companyId === supplied.companyId);
+    const livePermissions = new Set(roles.flatMap(role =>
+      role.rolePermissions.map(entry => entry.permission.permissionCode)));
+    if (!livePermissions.has(permission)) deny();
+    const suppliedRoles = new Set(supplied.roleCodes);
+    return {
+      ...supplied,
+      roleCodes: [...new Set(roles.map(role => role.roleCode))]
+        .filter(roleCode => suppliedRoles.has(roleCode)),
+      permissions: [...livePermissions].filter(code => supplied.permissions.includes(code)),
+    };
   }
 
-  async projects(auth: AuthenticatedUserContext) {
-    await this.authorize(auth, 'equipment.custody.view');
+  async projects(supplied: AuthenticatedUserContext) {
+    const auth = await this.authorize(supplied, 'equipment.custody.view');
     const scope = await this.access.scopeWhere(auth);
     return this.prisma.project.findMany({
       where: { AND: [scope, { isActive: true }] },
@@ -53,8 +84,8 @@ export class EquipmentCustodyService {
     });
   }
 
-  async borrowers(auth: AuthenticatedUserContext, projectId: string, on: Date) {
-    await this.authorize(auth, 'equipment.custody.view');
+  async borrowers(supplied: AuthenticatedUserContext, projectId: string, on: Date) {
+    const auth = await this.authorize(supplied, 'equipment.custody.view');
     await this.access.assertAccess(auth, projectId);
     const members = await this.prisma.projectMember.findMany({
       where: { projectId, isActive: true,
@@ -67,8 +98,8 @@ export class EquipmentCustodyService {
     return [...new Map(members.map(({employee}) => [employee.id, employee])).values()];
   }
 
-  async list(auth: AuthenticatedUserContext, projectId: string, equipmentId?: string) {
-    await this.authorize(auth, 'equipment.custody.view');
+  async list(supplied: AuthenticatedUserContext, projectId: string, equipmentId?: string) {
+    const auth = await this.authorize(supplied, 'equipment.custody.view');
     await this.access.assertAccess(auth, projectId);
     return this.prisma.$queryRawUnsafe<LoanRow[]>(
       'SELECT l.id, l.company_id AS "companyId", l.equipment_id AS "equipmentId", l.project_id AS "projectId", ' +
@@ -86,11 +117,10 @@ export class EquipmentCustodyService {
   }
 
   async checkout(context: Context, input: EquipmentCustodyIssue) {
-    const auth = context.auth;
     if (input.issuedOn > todayUtc()) invalid('issuedOn', 'Issue date cannot be in the future.');
     if (input.dueOn < input.issuedOn) invalid('dueOn', 'Due date cannot predate issue date.');
     return this.prisma.$transaction(async tx => {
-      await this.authorize(auth, 'equipment.custody.manage', tx);
+      const auth = await this.authorize(context.auth, 'equipment.custody.manage', tx);
       await this.access.assertAccess(auth, input.projectId, tx);
       // A single Equipment row lock serializes simultaneous checkout and reassignment.
       const equipment = await tx.$queryRawUnsafe<{id:string;equipment_code:string;is_active:boolean;operational_status:string}[]>(
@@ -131,7 +161,7 @@ export class EquipmentCustodyService {
       );
       const createdLoan = inserted[0];
       if (!createdLoan) conflict('EQUIPMENT_CUSTODY_INSERT_FAILED', 'Loan insertion returned no record.');
-      await this.audit.record({...context,entityType:'EQUIPMENT_CUSTODY',entityId:createdLoan.id,action:'CHECKOUT',
+      await this.audit.record({...context,auth,entityType:'EQUIPMENT_CUSTODY',entityId:createdLoan.id,action:'CHECKOUT',
         newValues:{...input, issuedByUserId:auth.userId}},tx);
       return { id: createdLoan.id };
     });
@@ -140,13 +170,13 @@ export class EquipmentCustodyService {
   async returnLoan(context: Context, id: string, input: EquipmentCustodyReturn) {
     if (input.returnedOn > todayUtc()) invalid('returnedOn','Return date cannot be in the future.');
     return this.prisma.$transaction(async tx => {
-      await this.authorize(context.auth,'equipment.custody.manage',tx);
+      const auth = await this.authorize(context.auth,'equipment.custody.manage',tx);
       const rows = await tx.$queryRawUnsafe<{id:string;equipment_id:string;project_id:string;issued_on:Date;returned_on:Date|null}[]>(
         'SELECT id,equipment_id,project_id,issued_on,returned_on FROM equipment_custody_loans ' +
-        'WHERE id=$1::uuid AND company_id=$2::uuid',id,context.auth.companyId);
+        'WHERE id=$1::uuid AND company_id=$2::uuid',id,auth.companyId);
       const existingLoan = rows[0];
       if (!existingLoan) throw new NotFoundException({code:'EQUIPMENT_CUSTODY_NOT_FOUND',detail:'Loan not found in Company.'});
-      await this.access.assertAccess(context.auth,existingLoan.project_id,tx);
+      await this.access.assertAccess(auth,existingLoan.project_id,tx);
       // Same lock order as checkout/assignment guards; re-read after acquiring it.
       await tx.$queryRawUnsafe('SELECT id FROM equipment WHERE id=$1::uuid FOR UPDATE', existingLoan.equipment_id);
       const locked = await tx.$queryRawUnsafe<{returned_on:Date|null;issued_on:Date}[]>(
@@ -158,10 +188,10 @@ export class EquipmentCustodyService {
       const updated = await tx.$queryRawUnsafe<{id:string}[]>(
         'UPDATE equipment_custody_loans SET returned_on=$2::date,condition_in=$3,returned_by_user_id=$4::uuid,updated_at=NOW() ' +
         'WHERE id=$1::uuid AND returned_on IS NULL RETURNING id',
-        id,input.returnedOn,input.conditionIn,context.auth.userId);
+        id,input.returnedOn,input.conditionIn,auth.userId);
       if (!updated.length) conflict('EQUIPMENT_CUSTODY_ALREADY_RETURNED','A loan can only be returned once.');
-      await this.audit.record({...context,entityType:'EQUIPMENT_CUSTODY',entityId:id,action:'RETURN',
-        oldValues:{returnedOn:null},newValues:{...input,returnedByUserId:context.auth.userId}},tx);
+      await this.audit.record({...context,auth,entityType:'EQUIPMENT_CUSTODY',entityId:id,action:'RETURN',
+        oldValues:{returnedOn:null},newValues:{...input,returnedByUserId:auth.userId}},tx);
       return {id,returnedOn:input.returnedOn,conditionIn:input.conditionIn};
     });
   }
