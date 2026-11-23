@@ -2,6 +2,15 @@
 
 > **Canonical planning ledger — initial baseline 23 Nov 2026, 16:17 SGT.** This is a docs-only DRAFT, not a code release. **Future requests 'continue the recommended sequence', 'check the recommended sequence' and 'live position' MUST refresh exact GitHub source/CI/PR evidence first, compare with this ledger and render the current hour-range dashboard**. Evidence may be added only after verifying source and exit. No autonomous background polling is claimed.
 
+## Updated indicative countdown — 23 Nov 2026, 23:24 SGT (new provisional forecast)
+
+**1,900h was the historical 16:17 SGT *remaining-effort estimate*, not an actual-worked-hours clock.** Earlier rule required fully accepted M4 packages before any subtraction, so successful partial development stayed invisible. To fix that display without inventing actual worker time, the current task-by-task residual reforecast is **1,847h remaining**: **53h-equivalent estimated forward-work reduction / 1,900h baseline = 2.8% planning movement**. This is a *forecast adjustment*, **not** a verified 53h timesheet or released engineering acceptance. Formal accepted-package hours remain **0/1,900**, technical M4 is **20/32 (62.5%)**, prototype **4/8**, production gates **3/10**. No main merge or Production.
+
+**M4 to 5/8 now estimated 117h remaining** (original allowance 170h): M4-01 32h, M4-02 8h, M4-03 10h, M4-04 8h, M4-05 9h, M4-06 10h, M4-07 6h, M4-08 34h. Other 11 stages still have their unchanged original **1,730h** allowance pending future re-estimation. Owner-gated retained business rights, 59 exact scope dispositions, combined source compilation, exact independent review, fresh Owner-authorized release CI and merge still block 5/8.
+
+**Canonical detailed 60-package reforecast and reconciliation:** [23-Nov remaining-work audit](ERP-FULL-USE-REFORECAST-2026-11-23.md). **Two mandatory counters from now:** `forecast 53h-equivalent reduction / 1847h estimated left` versus `formal acceptance 0/1900 hours released`; show both and refresh only on new evidence. The preexisting CSV H0001–H1900 remains *original baseline positions*, not an 1847-hour measured timesheet. Original 1,100–3,300h risk envelope remains; 1,847 is indicative planning judgment.
+
+---
 ## Definition of done
 
 The ERP is complete only if all 112 requirements are implemented and working or explicitly superseded with Owner approval, all eight roles (Ben, Nancy, Khaimook, Jai, Store Site, Foreman, Porn and Koh) can use real MKE/TCJ authenticated workflows, integrated HR/payroll and Accounting/GL/tax/banking work, preserved data, functional cross-module workflows and no material blocking defects, valid backups/restore, business UAT and actual authorized Production go-live. An **8/8 prototype is not 100% ERP**. Accounting/HR and multi-Project scope formerly deferred must receive new authority before implementation.
