@@ -1556,7 +1556,7 @@ export class PurchaseOrderService {
             nextRevision: { select: { id: true } },
           },
         });
-        if (!afterLock || afterLock.nextRevision) {
+        if (!afterLock || afterLock.nextRevision || afterLock.cancelledAt) {
           throw new ConflictException({
             code: 'PO_REVISION_ALREADY_EXISTS',
             detail:
