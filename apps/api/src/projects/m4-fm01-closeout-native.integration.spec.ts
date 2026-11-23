@@ -69,6 +69,9 @@ test('M4 actual HTTP/PostgreSQL FM01 weekly calendar and BEN04 closeout with ind
   const foreman=await actor('Foreman','PROJECT_ENGINEER',[
    'site.daily_report.create','site.daily_report.edit','site.daily_report.submit','site.daily_report.view',
   ],project.id);
+  const alternativeForeman=await actor('AlternateForeman','PROJECT_ENGINEER',[
+   'site.daily_report.create','site.daily_report.edit','site.daily_report.submit','site.daily_report.view',
+  ],project.id);
   const pm=await actor('Khaimook','PROJECT_MANAGER',['projects.project.view','projects.project.edit','site.daily_report.view'],project.id);
   const ben=await actor('Ben','MANAGEMENT',['projects.project.view','site.daily_report.view'],project.id);
   const nancy=await actor('Nancy','FINANCE_MANAGER',['projects.project.view'],project.id);
@@ -136,11 +139,17 @@ test('M4 actual HTTP/PostgreSQL FM01 weekly calendar and BEN04 closeout with ind
    await reject(pm,'POST','/site-execution/reports',form);
    const report=await pass<{id:string}>(foreman,'POST','/site-execution/reports',form);
    const path='/site-execution/reports/'+report.id;
-   await reject(pm,'POST',path+'/no-work',{reason:'Not the original Foreman'});
+   const wrongMaker=await request(alternativeForeman,'POST',path+'/no-work',{
+    reason:'Another authorized Foreman cannot take over a draft'});
+   assert.equal(wrongMaker.status,403);
+   assert.match(JSON.stringify(wrongMaker.raw),/NO_WORK_ORIGINAL_FOREMAN_REQUIRED/);
    await pass(foreman,'POST',path+'/no-work',{reason:'No work due to unexpected site access'});
    await reject(foreman,'POST',path+'/no-work',{reason:'Duplicate no-work evidence'});
    await pass(foreman,'POST',path+'/submit',{});
-   await reject(pm,'POST',path+'/no-work/corrections',{reason:'Not the original preparer'});
+   const wrongCorrector=await request(alternativeForeman,'POST',path+'/no-work/corrections',{
+    reason:'Another Foreman cannot revise the submitted author history'});
+   assert.equal(wrongCorrector.status,403);
+   assert.match(JSON.stringify(wrongCorrector.raw),/NO_WORK_REASON_CORRECTION_DENIED/);
    await pass(foreman,'POST',path+'/no-work/corrections',{reason:'Updated access closure details'});
    await reject(foreman,'POST',path+'/no-work/corrections',{reason:'Updated access closure details'});
    const week='/site-execution/reports/weekly?projectId='+project.id+'&from=2026-11-23&to=2026-11-29';
