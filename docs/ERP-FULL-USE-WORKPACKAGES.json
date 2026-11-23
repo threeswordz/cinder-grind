@@ -22,8 +22,8 @@
       "M4-02"
     ],
     "workEvidenceNote": "M4-01/M4-02/M4-04/M4-05/M4-07 in progress; source/pure-checkpoint gains only; no fully accepted package or forecast hours retired.",
-    "latestTechnicalCheckpoint": "PUR12 draft #417 source and new PG17.11 migration/API/Web/2 pure tests passed in #45149778502; overall diagnostic psql URL failed after successful tests; 13/32 M4 scoped checkpoints, no full package closure.",
-    "m4CheckpointCompleted": 13,
+    "latestTechnicalCheckpoint": "PUR12 real MKE/TCJ PO native #45150538123 SUCCESS: create, quote/PR source, revision snapshot, no-short-name denial, SQL guard, Company scope; remaining named retained roles and Owner M4 acceptance.",
+    "m4CheckpointCompleted": 14,
     "m4CheckpointTotal": 32,
     "displayCounter": "0 / 1900",
     "countdownHoursLeft": 1900,
@@ -358,11 +358,12 @@
       "verifiedHours": 0,
       "evidence": [
         "https://github.com/threeswordz/cinder-grind/pull/417",
-        "https://github.com/threeswordz/cinder-grind/actions/runs/45149778502"
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45149778502",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45150538123"
       ],
       "actualHours": null,
       "verifiedAt": null,
-      "progressPercent": 50,
+      "progressPercent": 75,
       "checkpoints": [
         {
           "name": "Existing per-Company monthly canonical PO sequence",
@@ -374,15 +375,16 @@
           "run": 45149778502
         },
         {
-          "name": "Actual new PO, revision and legacy-safe SQL immutable snapshot",
-          "status": "NOT_YET_NATIVE_ACTOR_VERIFIED"
+          "name": "Real MKE/TCJ PO, revision snapshot, missing-name denial, SQL immutability, Company negative",
+          "status": "FOCUSED_NATIVE_POSTGRES_PASS",
+          "run": 45150538123
         },
         {
           "name": "True Company/Project boundary, retained grants and Owner acceptance",
           "status": "NOT_VERIFIED"
         }
       ],
-      "latestAssessment": "Draft #417 implements separate partner shortNames, nullable immutable PO display snapshot and legacy fallback. #45149778502 passes PG17.11 migrations, API/Web compile, 2/2 pure tests; overall run fails only in a trailing psql inspection because Prisma URL ?schema is unsupported by psql. No real PO/role/trigger negative proof, release approval or hour retirement."
+      "latestAssessment": "New isolated real PostgreSQL17.11 #45150538123 all steps SUCCESS and 1 native test PASS/0 FAIL: MKE/TCJ same-canonical PO prefixes distinct, original short-name snapshot retained through supplier edits and approved revision, direct SQL mutation denied, missing name denies before next sequence and cross-Company PO access denied. This is synthetic authenticated role context and disposable Company, not named retained MKE/TCJ grants or final release approval. 3/4 package checkpoints, zero hours retired."
     },
     {
       "id": "M4-08",
