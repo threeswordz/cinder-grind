@@ -1,4 +1,4 @@
-import { apiRequest } from './client';
+import { apiDownload, apiRequest } from './client';
 
 type Data<T> = { data: T };
 
@@ -224,6 +224,34 @@ export type PurchaseOrderRevision = {
   _count: { lines: number };
 };
 
+export type PoDispatchEvent = {
+  id: string;
+  companyId: string;
+  projectId: string;
+  purchaseOrderId: string;
+  kind: 'DISPATCH' | 'ACKNOWLEDGMENT';
+  channel: 'EMAIL' | 'LINE';
+  recipient: string;
+  evidenceReference: string;
+  evidenceDocumentId: string | null;
+  pdfFileName: string | null;
+  pdfSha256: string | null;
+  acknowledgesEventId: string | null;
+  recordedByUserId: string;
+  recordedAt: string;
+  actor?: { id: string; displayName: string };
+  evidenceDocument?: { id: string; fileName: string; checksum: string | null } | null;
+};
+
+export type PoDispatchDraft = {
+  kind: 'DISPATCH' | 'ACKNOWLEDGMENT';
+  channel: 'EMAIL' | 'LINE';
+  recipient: string;
+  evidenceReference: string;
+  evidenceDocumentId: string | null;
+  acknowledgesEventId: string | null;
+};
+
 export const purchaseOrdersApi = {
   projects: () =>
     apiRequest<Data<PoProject[]>>('/procurement/po-projects'),
@@ -246,6 +274,17 @@ export const purchaseOrdersApi = {
   detail: (orderId: string) =>
     apiRequest<Data<PurchaseOrderDetail>>(
       '/procurement/purchase-orders/' + orderId,
+    ),
+  approvedPdf: (orderId: string) =>
+    apiDownload('/procurement/purchase-orders/' + orderId + '/pdf'),
+  dispatchEvents: (orderId: string) =>
+    apiRequest<Data<PoDispatchEvent[]>>(
+      '/procurement/purchase-orders/' + orderId + '/dispatch-events',
+    ),
+  recordDispatch: (orderId: string, body: PoDispatchDraft) =>
+    apiRequest<Data<PoDispatchEvent>>(
+      '/procurement/purchase-orders/' + orderId + '/dispatch-events',
+      { method: 'POST', body: JSON.stringify(body) },
     ),
   revisions: (orderId: string) =>
     apiRequest<Data<PurchaseOrderRevision[]>>(
