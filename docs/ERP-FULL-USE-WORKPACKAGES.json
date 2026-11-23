@@ -1,0 +1,1275 @@
+{
+  "schema": "erp-hour-ledger-v1",
+  "baselineAt": "2026-11-23T16:17:49+08:00",
+  "timezone": "Asia/Singapore",
+  "baselineMain": "3a441b1fa389a9a274e6ca82413740a3ffa2f51b",
+  "baselineEstimatedRemainingHours": 1900,
+  "engineeringHoursPerWeek": 35,
+  "parallelScenarioHoursPerWeek": 65,
+  "estimatingNote": "Planning-hour budget, not actual time recorded, not measured functionality percentage. Range 1100–3300h; adjust only with new accepted scope/evidence or signed estimate changes.",
+  "tracking": {
+    "budgetedHours": 1900,
+    "verifiedRetiredHours": 0,
+    "openBudgetHours": 1900,
+    "actualLoggedHours": null,
+    "asOf": "2026-11-23T22:43:00+08:00",
+    "activePackage": "M4-01",
+    "activeForecastHourRange": "H0001–H0020",
+    "activeConcurrentPackages": [
+      "M4-01",
+      "M4-04",
+      "M4-05",
+      "M4-02",
+      "M4-06",
+      "M4-03"
+    ],
+    "workEvidenceNote": "New scoped PUR07 server Unicode and real authenticated synthetic business UI executed successfully. PUR05 separately proved repeat Ben approval on amendment. Production font/sandbox review, retained named MKE/TCJ effective grants and final independent Owner release gates OPEN; no released packages, 0/1900 hours retired. Actual effort unknown.",
+    "latestTechnicalCheckpoint": "PUR07 NEW actual server Thai Unicode PDF #45195364823 SUCCESS 2/2 searchable Thai A4 54,073 bytes, approved PDF service bytes/filename/SHA; distinct genuine Jai and Ben React/Chrome PG17 UI #45196516424 SUCCESS PDF HTTP200 reported-only Jai send and Ben read-only. PUR05 #45192292763 PASS independent new Ben approval of Rev1. M4 aggregate remains 20/32 pending retained actors/Owner release signoff; no full-package hours retired.",
+    "m4CheckpointCompleted": 20,
+    "m4CheckpointTotal": 32,
+    "displayCounter": "0 / 1900",
+    "countdownHoursLeft": 1900,
+    "countdownSemantics": "Actual countdown is updated ONLY after accepted complete work-package exits with evidence. The hour-by-hour CSV columns represent hypothetical planned positions, not completed effort.",
+    "hourlyCsvColumns": [
+      "forecast_hour",
+      "hour_out_of_1900",
+      "planned_hours_left_if_this_hour_completed"
+    ],
+    "countdownPresentationRevision": "2026-11-23 docs-only; no added credit",
+    "forecastIntegrity": "AUDITED_60_PACKAGES_12_STAGES_SUM_1900; PROTOTYPE_405 + POST_PROTOTYPE_1495",
+    "liveGraphRule": "Do NOT render filled green forecast progress bars from staged cumulative budget (e.g. 1900/1900). Display forecast allocations, current accepted packages, and conditional future stage exits separately. 0h remaining applies only to hypothetical full ERP acceptance.",
+    "uncertaintyRangeHours": [
+      1100,
+      3300
+    ],
+    "forecastRebaselineStatus": "NONE; center unchanged 1,900h because no measured actual-hour or signed scope change"
+  },
+  "official": {
+    "prototypeCompleted": 4,
+    "prototypeTotal": 8,
+    "productionGateCompleted": 3,
+    "productionGateTotal": 10
+  },
+  "stages": [
+    {
+      "id": "M4",
+      "label": "M4 / prototype 5/8",
+      "hours": 170,
+      "from": 1,
+      "to": 170,
+      "forecastExitPosition": "170 / 1900",
+      "plannedHoursLeftAfterExit": 1730
+    },
+    {
+      "id": "M6",
+      "label": "M6 / prototype 6/8",
+      "hours": 120,
+      "from": 171,
+      "to": 290,
+      "forecastExitPosition": "290 / 1900",
+      "plannedHoursLeftAfterExit": 1610
+    },
+    {
+      "id": "M7",
+      "label": "M7 / prototype 7/8",
+      "hours": 50,
+      "from": 291,
+      "to": 340,
+      "forecastExitPosition": "340 / 1900",
+      "plannedHoursLeftAfterExit": 1560
+    },
+    {
+      "id": "M8",
+      "label": "M8 / prototype 8/8",
+      "hours": 65,
+      "from": 341,
+      "to": 405,
+      "forecastExitPosition": "405 / 1900",
+      "plannedHoursLeftAfterExit": 1495
+    },
+    {
+      "id": "GL05",
+      "label": "GL-05 / all HR and payroll",
+      "hours": 300,
+      "from": 406,
+      "to": 705,
+      "forecastExitPosition": "705 / 1900",
+      "plannedHoursLeftAfterExit": 1195
+    },
+    {
+      "id": "GL06",
+      "label": "GL-06 / full accounting, tax and banking",
+      "hours": 480,
+      "from": 706,
+      "to": 1185,
+      "forecastExitPosition": "1185 / 1900",
+      "plannedHoursLeftAfterExit": 715
+    },
+    {
+      "id": "XP",
+      "label": "Cross-Project purchasing, budgets and exceptions",
+      "hours": 130,
+      "from": 1186,
+      "to": 1315,
+      "forecastExitPosition": "1315 / 1900",
+      "plannedHoursLeftAfterExit": 585
+    },
+    {
+      "id": "GL04",
+      "label": "GL-04 / eight-role operational acceptance",
+      "hours": 120,
+      "from": 1316,
+      "to": 1435,
+      "forecastExitPosition": "1435 / 1900",
+      "plannedHoursLeftAfterExit": 465
+    },
+    {
+      "id": "GL07",
+      "label": "GL-07 / production security and governance",
+      "hours": 95,
+      "from": 1436,
+      "to": 1530,
+      "forecastExitPosition": "1530 / 1900",
+      "plannedHoursLeftAfterExit": 370
+    },
+    {
+      "id": "GL08",
+      "label": "GL-08 / real production hosting and recovery",
+      "hours": 110,
+      "from": 1531,
+      "to": 1640,
+      "forecastExitPosition": "1640 / 1900",
+      "plannedHoursLeftAfterExit": 260
+    },
+    {
+      "id": "GL09",
+      "label": "GL-09 / data migration and business onboarding",
+      "hours": 110,
+      "from": 1641,
+      "to": 1750,
+      "forecastExitPosition": "1750 / 1900",
+      "plannedHoursLeftAfterExit": 150
+    },
+    {
+      "id": "GL10",
+      "label": "GL-10 / full acceptance, cutover and stable usage",
+      "hours": 150,
+      "from": 1751,
+      "to": 1900,
+      "forecastExitPosition": "1900 / 1900",
+      "plannedHoursLeftAfterExit": 0
+    }
+  ],
+  "packages": [
+    {
+      "id": "M4-01",
+      "stage": "M4",
+      "title": "Current-source and all-112 evidence/scope decisions",
+      "acceptance": "112 unique IDs classified; genuine gaps resolved or scoped; no inferred approval",
+      "hours": 20,
+      "from": 1,
+      "to": 20,
+      "status": "IN_PROGRESS",
+      "verifiedHours": 0,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/blob/docs-erp-full-use-1900h-hourly-ledger-20261123/docs/ERP-M4-01-112-ID-GATES.csv",
+        "https://github.com/threeswordz/cinder-grind/blob/docs-erp-full-use-1900h-hourly-ledger-20261123/docs/ERP-M4-01-112-EXIT-AUDIT.md",
+        "https://github.com/threeswordz/cinder-grind/pull/411",
+        "https://github.com/threeswordz/cinder-grind/pull/412",
+        "https://github.com/threeswordz/cinder-grind/pull/413"
+      ],
+      "actualHours": null,
+      "verifiedAt": null,
+      "subchecks": [
+        {
+          "key": "A",
+          "name": "112 original immutable IDs unique and partitioned",
+          "status": "SOURCE_VERIFIED",
+          "sourceRef": "ffdd823567a4db0d50201af38dc58c4fa1bc7297"
+        },
+        {
+          "key": "B",
+          "name": "Current exact native/Chrome proof mapped without overclaim",
+          "status": "BOUNDED_SOURCE_VERIFIED",
+          "evidence": [
+            "45132932414",
+            "45127724396"
+          ]
+        },
+        {
+          "key": "C",
+          "name": "Current M4 code gaps vs GL future gates separated",
+          "status": "SOURCE_CLASSIFIED_OWNER_GATES_OPEN",
+          "sourceRef": "ffdd823567a4db0d50201af38dc58c4fa1bc7297"
+        },
+        {
+          "key": "D",
+          "name": "Retained eight-role permissions and owner policy acceptance",
+          "status": "UNVERIFIED"
+        }
+      ],
+      "latestAssessment": "Full 112-ID technical classification audited; 59 operational role/scope readbacks still due, code deltas #412/#413 unrun; no final package exit or hour credit."
+    },
+    {
+      "id": "M4-02",
+      "stage": "M4",
+      "title": "PM02 real browser and retained-role authorization",
+      "acceptance": "Store/Khaimook approved A / returned B / correction lifecycle in actual UI",
+      "hours": 22,
+      "from": 21,
+      "to": 42,
+      "status": "IN_PROGRESS",
+      "verifiedHours": 0,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/pull/416",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45145803345",
+        "https://github.com/threeswordz/cinder-grind/pull/412",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45147124712",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45181742276"
+      ],
+      "actualHours": null,
+      "verifiedAt": null,
+      "progressPercent": 75,
+      "latestAssessment": "Draft #412 now includes separate native PostgreSQL award-lineage trigger and service submit fail-closed tests. Focused new #45181742276 SUCCESS (9 tests/0 fail: one original A/B+SQL negative native integration, 7 service seam negatives before ApprovalService.start); compilation PASS and PG17 migrations PASS. Real PM02 synthetic React+Chrome #45147124712 SUCCESS already separately passed and must not rerun. Still missing effective retained Store/Khaimook/Jai/Ben grants, scope owner acceptance and independent exact-candidate release review. M4-02=3/4. Hours remain unretired until full package accepted.",
+      "checkpoints": [
+        {
+          "name": "Native original A/B→RFQ→PO proof",
+          "status": "FOCUSED_NATIVE_PASS",
+          "run": 45127724396
+        },
+        {
+          "name": "Distinct forged PO source: existing PostgreSQL award-lineage P0001 denies INSERT; independent service submit rejects seven inactive/mismatched source states before approval, write or audit",
+          "status": "NATIVE_SQL_TRIGGER_AND_SERVICE_TRANSACTION_SEAM_PASS",
+          "run": 45181742276,
+          "codeSourceSha": "80c6a541d1e55b89099e1b5798be1e70c0b228a0",
+          "note": "Service tests are isolated mocked transaction seams; the actual PostgreSQL test proves a separate immutable source-award trigger. No real retained roles."
+        },
+        {
+          "name": "Real authenticated React/Chromium Store Khaimook PM02 mixed line review and original-maker B-only correction",
+          "status": "ACTUAL_BROWSER_FULL_WORKFLOW_SUCCESS",
+          "run": 45147124712,
+          "note": "Earlier #45145803345 had browser step PASS then optional echo failure; subsequent exact-new focused #45147124712 overall SUCCESS. Synthetic Company actors only."
+        },
+        {
+          "name": "Real MKE/TCJ named roles, independent review and Owner acceptance",
+          "status": "OUTSTANDING"
+        }
+      ]
+    },
+    {
+      "id": "M4-03",
+      "stage": "M4",
+      "title": "FM01, BEN04 and PM16 real-browser acceptance",
+      "acceptance": "Three distinct authenticated scenarios and denials, with no redundant previous browser probes",
+      "hours": 22,
+      "from": 43,
+      "to": 64,
+      "status": "IN_PROGRESS",
+      "verifiedHours": 0,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/pull/419",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45176454339"
+      ],
+      "actualHours": null,
+      "verifiedAt": null,
+      "progressPercent": 75,
+      "checkpoints": [
+        {
+          "name": "Previous isolated native source-level FM01/BEN04/PM16 evidence",
+          "status": "PRIOR_FOCUSED_SOURCE_PROOF",
+          "run": 45103782289
+        },
+        {
+          "name": "Foreman no-work corrected weekly React readback, Ben real browser acknowledgment",
+          "status": "REAL_AUTH_CHROMIUM_PASS",
+          "run": 45176454339
+        },
+        {
+          "name": "Khaimook six-category actual React closeout preparation and source snapshot",
+          "status": "REAL_AUTH_CHROMIUM_PASS",
+          "run": 45176454339
+        },
+        {
+          "name": "Separate Ben/Nancy current closeout signoffs; retain same-Company/Project denial and named-role acceptance",
+          "status": "SIGNOFF_BROWSER_PASS_SCOPE_DENIAL_AND_RETAINED_ROLES_OUTSTANDING",
+          "run": 45176454339
+        }
+      ],
+      "latestAssessment": "New exact-source focused workflow #45176454339 overall SUCCESS on workflow-only child 4800827b of PR #419 2b66f3a. Real Chrome/React/MUI+Nest+disposable PG17 tests confirmed Foreman corrected no-work weekly source and Ben read acknowledgment, Khaimook six-category actual UI preparation, independent Ben and Nancy signatures, Project active and stock/DirectCost unchanged. Current script does not prove outsider Company/Project browser denial or real retained named-user grants; independent final DEC-022 review/Owner acceptance and integration still pending. Checkpoint 3/4 conservatively; no complete-package hours retired."
+    },
+    {
+      "id": "M4-04",
+      "stage": "M4",
+      "title": "PUR01 whole-PO supplier-count and commercial rule",
+      "acceptance": "1/2/3 suppliers by THB net total; Ben-approved reasoned exception; limits accepted",
+      "hours": 26,
+      "from": 65,
+      "to": 90,
+      "status": "IN_PROGRESS",
+      "verifiedHours": 0,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/pull/415",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45140450091",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45140977184",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45142678279",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45185452075",
+        "https://github.com/threeswordz/cinder-grind/pull/420"
+      ],
+      "actualHours": null,
+      "verifiedAt": null,
+      "latestAssessment": "New one-shot exact-source #45185452075 COMPLETED SUCCESS, 5 browser log markers. Synthetic real Jai/Ben Chromium confirmed THB60k 1 supplier no-reason HTTP422 and no approval, actual exception MUI input/save and Jai submit, independent Ben MANAGEMENT browser Approve with one audit/ApprovalAction, stock/Finance unchanged. This is first actual PUR01 UI proof, but synthetic Company/roles; effective retained actual MKE/TCJ grants, final DEC-022 independent review, Owner business acceptance, final CI and merge unverified. Final D remains unaccepted, package 3/4=75%, no hours retired.",
+      "checkpoints": [
+        {
+          "name": "Existing RFQ/award baseline",
+          "status": "SOURCE_VERIFIED"
+        },
+        {
+          "name": "Net ex-VAT and unknown quote pure proof",
+          "status": "FOCUSED_TEST_PASS",
+          "run": 45140450091
+        },
+        {
+          "name": "Genuine 2/3 supplier bids and Ben exception synthetic PG actor",
+          "status": "FOCUSED_NATIVE_PASS",
+          "run": 45142678279
+        },
+        {
+          "name": "REAL Jai MUI no-reason denial, reasoned buyer submit, independent Ben MANAGEMENT browser approval passed; retained named MKE/TCJ actor admissions, Owner acceptance and final independent review still outstanding",
+          "status": "SYNTHETIC_REAL_BROWSER_PASS_RETAINED_USER_AND_FINAL_REVIEW_PENDING",
+          "run": 45185452075,
+          "note": "At H0065–H0090 PUR01 final checkpoint is NOT accepted solely from synthetic browser evidence. 1/2/3 supplier count native proof remains #45142678279; zero existing suite reruns."
+        }
+      ],
+      "progressPercent": 75
+    },
+    {
+      "id": "M4-05",
+      "stage": "M4",
+      "title": "PUR04 core PO commercial/delivery fields",
+      "acceptance": "Company-scoped terms and source-linked immutable approvals, no implicit cross-Project",
+      "hours": 30,
+      "from": 91,
+      "to": 120,
+      "status": "IN_PROGRESS",
+      "verifiedHours": 0,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/pull/413",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45140450091",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45140977184",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45185452075",
+        "https://github.com/threeswordz/cinder-grind/pull/421",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45187304506",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45192292763"
+      ],
+      "actualHours": null,
+      "verifiedAt": null,
+      "latestAssessment": "PUR04 real source backfill #45187304506 1/1 scoped PG PASS; extended distinct PUR05 #45192292763 1/1 PASS confirms new Rev1 is separately submitted by Jai (new ApprovalInstance), Jai self approval forbidden with zero actions, independent Ben approves exactly once, old approved PO and financial commercial values remain immutable, and approved Rev1 no longer directly editable. Both synthetic disposable Company actors; genuine retained MKE/TCJ role grants, owner business UAT and final independent review still open. Real Jai draft header Chrome #45185452075 reused. M4-05 remains 3/4 75%, 0h credited.",
+      "checkpoints": [
+        {
+          "name": "Forward-only nullable commercial schema",
+          "status": "SOURCE_STAGED"
+        },
+        {
+          "name": "Draft API/React/revision-copy source",
+          "status": "SOURCE_STAGED"
+        },
+        {
+          "name": "Real migration, API/Web TS and new PG test",
+          "status": "FOCUSED_TEST_PASS"
+        },
+        {
+          "name": "PUR04 approved revision preserves immutable older snapshot, source and Company/Project, plus PUR05 new Rev1 approval instance/Jai self-approval denied and Ben independent approval PG PASS; real retained named users/Owner/independent release still OPEN",
+          "status": "REAL_PG_APPROVED_REVISION_AND_REAPPROVAL_PASS_RETAINED_ACTORS_RELEASE_PENDING",
+          "run": 45192292763,
+          "note": "Exactly one 1/1 new focused PostgreSQL integration run SUCCESS #45187304506, four explicit markers. No replay of prior PUR04 draft PG or PUR01 UI. Retained roles and final candidate acceptance unverified so final D remains OPEN."
+        }
+      ],
+      "progressPercent": 75
+    },
+    {
+      "id": "M4-06",
+      "stage": "M4",
+      "title": "PUR07 supplier-name PO PDF and manual dispatch evidence",
+      "acceptance": "PDF name and recorded handoff; email/LINE sending stays external",
+      "hours": 15,
+      "from": 121,
+      "to": 135,
+      "status": "IN_PROGRESS",
+      "verifiedHours": 0,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/pull/418",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45155536353",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45155841629",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45162334613",
+        "https://github.com/threeswordz/cinder-grind/pull/422",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45189759754",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45190249369",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45190773009",
+        "https://github.com/threeswordz/cinder-grind/pull/423",
+        "https://github.com/threeswordz/cinder-grind/pull/424",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45195061628",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45195364823",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45196516424"
+      ],
+      "actualHours": null,
+      "verifiedAt": null,
+      "progressPercent": 75,
+      "checkpoints": [
+        {
+          "name": "Approved PO PDF/filename & append-only external evidence code, forward-only schema, API/Web typecheck and new pure PDF tests",
+          "status": "FOCUSED_NEW_SOURCE_PROOF_PASS",
+          "run": 45155841629
+        },
+        {
+          "name": "Real PostgreSQL17.11 source-backed PO PDF, Jai reported send/ack, unauthorized, forged evidence, SQL immutability and Company scope",
+          "status": "FOCUSED_NEW_NATIVE_PASS",
+          "run": 45155841629
+        },
+        {
+          "name": "Synthetic approved PO Thai HTML → genuine Chromium A4 PDF and searchable Thai text + exact currency totals, independent of backend/DB",
+          "status": "FOCUSED_REAL_CHROME_PDF_PASS",
+          "run": 45162334613,
+          "bytes": 105124,
+          "note": "No actual authenticated React print button, final bitmap visual signoff or automatic backend Unicode PDF. These remain release blockers."
+        },
+        {
+          "name": "NEW server Unicode Thai Chrome PDF 2/2 PASS (54,073 bytes, searchable Thai, filename, SHA), actual Jai MUI HTTP200 download, reported-only dispatch, separate Ben read-only browser PASS; real retained named MKE/TCJ role, host/Thai-font setup, independent DEC-022/Owner UAT still OPEN",
+          "status": "REAL_UNICODE_BACKEND_AND_AUTHENTICATED_SYNTHETIC_JAI_BEN_UI_PASS_RETAINED_ROLE_HOST_REVIEW_OWNER_ACCEPTANCE_OPEN",
+          "evidenceRuns": [
+            45195364823,
+            45196516424
+          ],
+          "note": "Focused first Unicode runner #45195061628 failed at missing PDF inspectors before API build/tests. Corrected one-shot #45195364823 2/2 PASS new backend Chrome renderer and service Thai PDF; #45196516424 SUCCESS actual Jai authenticated UI GET approved Thai PDF HTTP200, one reported-only dispatch without actual send/PDF external hash, independent Ben read-only, zero Finance/stock. This is NOT real retained Jai/Ben MKE/TCJ accounts or approved Production host PDF font/sandbox. Earlier 3 failed Print popup runs retained and not repeated; new direct download bypasses popup UX, not authorization."
+        }
+      ],
+      "latestAssessment": "PUR07 Unicode server source Draft #423 real focused #45195364823 SUCCESS 2/2: actual server headless Chrome generated 54,073-byte searchable Thai A4 PDF, tested approval source-to-PDF service fileName SHA256, no paid PDF library; fail-closed missing renderer. New separate actual authenticated Jai/Ben end-to-end UI Draft #424 #45196516424 SUCCESS: Jai React MUI approved Thai PDF direct GET 200, actual reported-only external email event saved with pdfSha256 null and no outbound send, Ben MANAGEMENT separate real browser sees history but cannot record Jai-only send, no Finance/stock mutation. Earlier direct Print-popup trials three failed; not rerun. Existing native #45155841629 and standalone Thai Chrome #45162334613 remain accepted separate scope. Still actual retained named MKE/TCJ Jai/Ben permissions, host sandbox/font availability and licensed font review, human Thai PDF visual UAT, real supplier-send proof, independent DEC-022 review and Owner acceptance unverified; M4-06 remains 3/4 75%, 0h retired."
+    },
+    {
+      "id": "M4-07",
+      "stage": "M4",
+      "title": "PUR12 K-/T- company PO document identity",
+      "acceptance": "New-doc format with preserved historical numbers and no cross-Company confusion",
+      "hours": 15,
+      "from": 136,
+      "to": 150,
+      "status": "IN_PROGRESS",
+      "verifiedHours": 0,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/pull/417",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45149778502",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45150538123"
+      ],
+      "actualHours": null,
+      "verifiedAt": null,
+      "progressPercent": 75,
+      "checkpoints": [
+        {
+          "name": "Existing per-Company monthly canonical PO sequence",
+          "status": "SOURCE_VERIFIED"
+        },
+        {
+          "name": "MKE K / TCJ T display and distinct supplier short-name source + pure proof",
+          "status": "FOCUSED_MIGRATION_BUILD_PURE_TEST_PASS",
+          "run": 45149778502
+        },
+        {
+          "name": "Real MKE/TCJ PO, revision snapshot, missing-name denial, SQL immutability, Company negative",
+          "status": "FOCUSED_NATIVE_POSTGRES_PASS",
+          "run": 45150538123
+        },
+        {
+          "name": "True Company/Project boundary, retained grants and Owner acceptance",
+          "status": "NOT_VERIFIED"
+        }
+      ],
+      "latestAssessment": "New isolated real PostgreSQL17.11 #45150538123 all steps SUCCESS and 1 native test PASS/0 FAIL: MKE/TCJ same-canonical PO prefixes distinct, original short-name snapshot retained through supplier edits and approved revision, direct SQL mutation denied, missing name denies before next sequence and cross-Company PO access denied. This is synthetic authenticated role context and disposable Company, not named retained MKE/TCJ grants or final release approval. 3/4 package checkpoints, zero hours retired."
+    },
+    {
+      "id": "M4-08",
+      "stage": "M4",
+      "title": "M4 focused closure, governed integration and Owner decision",
+      "acceptance": "Exact candidate, linked evidence, independent review; owner-gated final CI/merge, no Production",
+      "hours": 20,
+      "from": 151,
+      "to": 170,
+      "status": "NOT_CREDITED",
+      "verifiedHours": 0,
+      "evidence": [],
+      "actualHours": null,
+      "verifiedAt": null
+    },
+    {
+      "id": "M6-01",
+      "stage": "M6",
+      "title": "Build deployable preserved-data integrated M4/M6 candidate",
+      "acceptance": "Exact approved source, additive schema and records preserved",
+      "hours": 25,
+      "from": 171,
+      "to": 195,
+      "status": "NOT_CREDITED",
+      "verifiedHours": 0,
+      "evidence": [],
+      "actualHours": null,
+      "verifiedAt": null
+    },
+    {
+      "id": "M6-02",
+      "stage": "M6",
+      "title": "Site, plan, request, issue and document deployed journeys",
+      "acceptance": "Eight-role boundary tests with actual API/browser where needed",
+      "hours": 25,
+      "from": 196,
+      "to": 220,
+      "status": "NOT_CREDITED",
+      "verifiedHours": 0,
+      "evidence": [],
+      "actualHours": null,
+      "verifiedAt": null
+    },
+    {
+      "id": "M6-03",
+      "stage": "M6",
+      "title": "Procurement, receiving, transfers and inventory deployed journeys",
+      "acceptance": "Canonical source-to-GR/stock, no duplicate posting, no replay of past Mac checks",
+      "hours": 30,
+      "from": 221,
+      "to": 250,
+      "status": "NOT_CREDITED",
+      "verifiedHours": 0,
+      "evidence": [],
+      "actualHours": null,
+      "verifiedAt": null
+    },
+    {
+      "id": "M6-04",
+      "stage": "M6",
+      "title": "Subcontract physical acceptance/certification deployed journey",
+      "acceptance": "Independent accepted quantity to certification, no new Finance implied",
+      "hours": 20,
+      "from": 251,
+      "to": 270,
+      "status": "NOT_CREDITED",
+      "verifiedHours": 0,
+      "evidence": [],
+      "actualHours": null,
+      "verifiedAt": null
+    },
+    {
+      "id": "M6-05",
+      "stage": "M6",
+      "title": "HR encrypted/protected-file deployed journey",
+      "acceptance": "Authorized bytes and denial proof with safe private-key custody",
+      "hours": 20,
+      "from": 271,
+      "to": 290,
+      "status": "NOT_CREDITED",
+      "verifiedHours": 0,
+      "evidence": [],
+      "actualHours": null,
+      "verifiedAt": null
+    },
+    {
+      "id": "M7-01",
+      "stage": "M7",
+      "title": "Paired populated DB, Documents and external HR-key backup",
+      "acceptance": "Immutable verified copy with provenance and secret isolation",
+      "hours": 20,
+      "from": 291,
+      "to": 310,
+      "status": "NOT_CREDITED",
+      "verifiedHours": 0,
+      "evidence": [],
+      "actualHours": null,
+      "verifiedAt": null
+    },
+    {
+      "id": "M7-02",
+      "stage": "M7",
+      "title": "Restore to distinct non-overwriting target",
+      "acceptance": "Matching data/files/keys, restored application startup and authenticated reads",
+      "hours": 15,
+      "from": 311,
+      "to": 325,
+      "status": "NOT_CREDITED",
+      "verifiedHours": 0,
+      "evidence": [],
+      "actualHours": null,
+      "verifiedAt": null
+    },
+    {
+      "id": "M7-03",
+      "stage": "M7",
+      "title": "Recovery negative paths and runbook evidence",
+      "acceptance": "Wrong key/missing document/unauthorized actor fail closed; records preserved",
+      "hours": 15,
+      "from": 326,
+      "to": 340,
+      "status": "NOT_CREDITED",
+      "verifiedHours": 0,
+      "evidence": [],
+      "actualHours": null,
+      "verifiedAt": null
+    },
+    {
+      "id": "M8-01",
+      "stage": "M8",
+      "title": "Independent exact-head review and security reconciliation",
+      "acceptance": "No unresolved P1/P2; no builder self-approval",
+      "hours": 20,
+      "from": 341,
+      "to": 360,
+      "status": "NOT_CREDITED",
+      "verifiedHours": 0,
+      "evidence": [],
+      "actualHours": null,
+      "verifiedAt": null
+    },
+    {
+      "id": "M8-02",
+      "stage": "M8",
+      "title": "Frozen integrated candidate and final justified release validation",
+      "acceptance": "Owner-authorized mandatory final CI only; actual reviewed-tree identity",
+      "hours": 25,
+      "from": 361,
+      "to": 385,
+      "status": "NOT_CREDITED",
+      "verifiedHours": 0,
+      "evidence": [],
+      "actualHours": null,
+      "verifiedAt": null
+    },
+    {
+      "id": "M8-03",
+      "stage": "M8",
+      "title": "Prototype audit evidence and Owner technical freeze acceptance",
+      "acceptance": "Milestones 4,6,7 observed; user UAT remains separate",
+      "hours": 20,
+      "from": 386,
+      "to": 405,
+      "status": "NOT_CREDITED",
+      "verifiedHours": 0,
+      "evidence": [],
+      "actualHours": null,
+      "verifiedAt": null
+    },
+    {
+      "id": "HR-01",
+      "stage": "GL05",
+      "title": "Close HR1-A private records, role and file work",
+      "acceptance": "Retained sensitive-data matrix and protected history verified",
+      "hours": 35,
+      "from": 406,
+      "to": 440,
+      "status": "NOT_CREDITED",
+      "verifiedHours": 0,
+      "evidence": [],
+      "actualHours": null,
+      "verifiedAt": null
+    },
+    {
+      "id": "HR-02",
+      "stage": "GL05",
+      "title": "Attendance, site time and timesheet handling",
+      "acceptance": "Employment/Project periods, correction and immutable approval",
+      "hours": 55,
+      "from": 441,
+      "to": 495,
+      "status": "NOT_CREDITED",
+      "verifiedHours": 0,
+      "evidence": [],
+      "actualHours": null,
+      "verifiedAt": null
+    },
+    {
+      "id": "HR-03",
+      "stage": "GL05",
+      "title": "Leave, overtime and attendance entitlement",
+      "acceptance": "Approved Thailand-specific policy and controlled calculations",
+      "hours": 55,
+      "from": 496,
+      "to": 550,
+      "status": "NOT_CREDITED",
+      "verifiedHours": 0,
+      "evidence": [],
+      "actualHours": null,
+      "verifiedAt": null
+    },
+    {
+      "id": "HR-04",
+      "stage": "GL05",
+      "title": "Payroll computation, Thai statutory contributions and taxes",
+      "acceptance": "Validated pay rules, allowances, deduction and legislation-specific fixtures",
+      "hours": 80,
+      "from": 551,
+      "to": 630,
+      "status": "NOT_CREDITED",
+      "verifiedHours": 0,
+      "evidence": [],
+      "actualHours": null,
+      "verifiedAt": null
+    },
+    {
+      "id": "HR-05",
+      "stage": "GL05",
+      "title": "Payroll maker-checker, payslips and period locking",
+      "acceptance": "Koh/Nancy/Ben/Porn boundary and approved bank/payment interface",
+      "hours": 35,
+      "from": 631,
+      "to": 665,
+      "status": "NOT_CREDITED",
+      "verifiedHours": 0,
+      "evidence": [],
+      "actualHours": null,
+      "verifiedAt": null
+    },
+    {
+      "id": "HR-06",
+      "stage": "GL05",
+      "title": "HR integrated API/UI/privacy and real-role acceptance",
+      "acceptance": "HR-to-Finance postings reconciled without salary disclosures",
+      "hours": 40,
+      "from": 666,
+      "to": 705,
+      "status": "NOT_CREDITED",
+      "verifiedHours": 0,
+      "evidence": [],
+      "actualHours": null,
+      "verifiedAt": null
+    },
+    {
+      "id": "ACC-01",
+      "stage": "GL06",
+      "title": "Chart of accounts, posting rules, journal and immutable GL",
+      "acceptance": "Double-entry audit, THB, periods, trial balance",
+      "hours": 80,
+      "from": 706,
+      "to": 785,
+      "status": "NOT_CREDITED",
+      "verifiedHours": 0,
+      "evidence": [],
+      "actualHours": null,
+      "verifiedAt": null
+    },
+    {
+      "id": "ACC-02",
+      "stage": "GL06",
+      "title": "AP supplier invoices, three-way matching and credits",
+      "acceptance": "PO/GR/quantity source and Nancy maker/checker; no duplicate liability",
+      "hours": 70,
+      "from": 786,
+      "to": 855,
+      "status": "NOT_CREDITED",
+      "verifiedHours": 0,
+      "evidence": [],
+      "actualHours": null,
+      "verifiedAt": null
+    },
+    {
+      "id": "ACC-03",
+      "stage": "GL06",
+      "title": "AR customer billing, receipts, quotation and VO handoff",
+      "acceptance": "Ben work confirmation → Porn billing; Nancy controls where assigned",
+      "hours": 60,
+      "from": 856,
+      "to": 915,
+      "status": "NOT_CREDITED",
+      "verifiedHours": 0,
+      "evidence": [],
+      "actualHours": null,
+      "verifiedAt": null
+    },
+    {
+      "id": "ACC-04",
+      "stage": "GL06",
+      "title": "Supplier/subcontract payments, cash/bank and reconciliation",
+      "acceptance": "Approval limits, payment runs, bank reconciliations and idempotency",
+      "hours": 80,
+      "from": 916,
+      "to": 995,
+      "status": "NOT_CREDITED",
+      "verifiedHours": 0,
+      "evidence": [],
+      "actualHours": null,
+      "verifiedAt": null
+    },
+    {
+      "id": "ACC-05",
+      "stage": "GL06",
+      "title": "Thailand VAT, WHT and tax reporting",
+      "acceptance": "Reviewed local tax rules, test vectors and accountable signoff",
+      "hours": 65,
+      "from": 996,
+      "to": 1060,
+      "status": "NOT_CREDITED",
+      "verifiedHours": 0,
+      "evidence": [],
+      "actualHours": null,
+      "verifiedAt": null
+    },
+    {
+      "id": "ACC-06",
+      "stage": "GL06",
+      "title": "Asset depreciation, periods and controls",
+      "acceptance": "Jai register → Nancy depreciation, append-only asset/audit evidence",
+      "hours": 40,
+      "from": 1061,
+      "to": 1100,
+      "status": "NOT_CREDITED",
+      "verifiedHours": 0,
+      "evidence": [],
+      "actualHours": null,
+      "verifiedAt": null
+    },
+    {
+      "id": "ACC-07",
+      "stage": "GL06",
+      "title": "Payroll-to-GL and financial cost attribution",
+      "acceptance": "Balanced GL and P&L with confidential salary boundaries",
+      "hours": 40,
+      "from": 1101,
+      "to": 1140,
+      "status": "NOT_CREDITED",
+      "verifiedHours": 0,
+      "evidence": [],
+      "actualHours": null,
+      "verifiedAt": null
+    },
+    {
+      "id": "ACC-08",
+      "stage": "GL06",
+      "title": "Financial reporting, close, export and accountant handoff",
+      "acceptance": "Trial balance, audit trail, statement/export and close validation",
+      "hours": 45,
+      "from": 1141,
+      "to": 1185,
+      "status": "NOT_CREDITED",
+      "verifiedHours": 0,
+      "evidence": [],
+      "actualHours": null,
+      "verifiedAt": null
+    },
+    {
+      "id": "XP-01",
+      "stage": "XP",
+      "title": "Finalize formerly gated #245, BEN02/BEN03 and PM03 decisions",
+      "acceptance": "Signed allocation/exception contract, no guessed thresholds",
+      "hours": 20,
+      "from": 1186,
+      "to": 1205,
+      "status": "NOT_CREDITED",
+      "verifiedHours": 0,
+      "evidence": [],
+      "actualHours": null,
+      "verifiedAt": null
+    },
+    {
+      "id": "XP-02",
+      "stage": "XP",
+      "title": "One supplier PO with multiple Project allocations",
+      "acceptance": "A18/B2 source links, price and single commitment, cross-Company isolation",
+      "hours": 50,
+      "from": 1206,
+      "to": 1255,
+      "status": "NOT_CREDITED",
+      "verifiedHours": 0,
+      "evidence": [],
+      "actualHours": null,
+      "verifiedAt": null
+    },
+    {
+      "id": "XP-03",
+      "stage": "XP",
+      "title": "Partial/central/direct deliveries and ledger allocation",
+      "acceptance": "No duplicate PO/GR/stock/Finance; preserved outstanding per Project",
+      "hours": 35,
+      "from": 1256,
+      "to": 1290,
+      "status": "NOT_CREDITED",
+      "verifiedHours": 0,
+      "evidence": [],
+      "actualHours": null,
+      "verifiedAt": null
+    },
+    {
+      "id": "XP-04",
+      "stage": "XP",
+      "title": "Budget checks, emergency rules, exception and change control",
+      "acceptance": "Owner-approved limits, approval ancestry and out-of-plan audit",
+      "hours": 25,
+      "from": 1291,
+      "to": 1315,
+      "status": "NOT_CREDITED",
+      "verifiedHours": 0,
+      "evidence": [],
+      "actualHours": null,
+      "verifiedAt": null
+    },
+    {
+      "id": "ROLE-01",
+      "stage": "GL04",
+      "title": "Retained MKE/TCJ eight-role permissions and approval settings",
+      "acceptance": "Real Company/Project roles, no synthetic grants mistaken for live",
+      "hours": 35,
+      "from": 1316,
+      "to": 1350,
+      "status": "NOT_CREDITED",
+      "verifiedHours": 0,
+      "evidence": [],
+      "actualHours": null,
+      "verifiedAt": null
+    },
+    {
+      "id": "ROLE-02",
+      "stage": "GL04",
+      "title": "All eight role-specific guided workflow walkthroughs",
+      "acceptance": "Named Ben/Nancy/Khaimook/Jai/Store/Foreman/Porn/Koh separation",
+      "hours": 35,
+      "from": 1351,
+      "to": 1385,
+      "status": "NOT_CREDITED",
+      "verifiedHours": 0,
+      "evidence": [],
+      "actualHours": null,
+      "verifiedAt": null
+    },
+    {
+      "id": "ROLE-03",
+      "stage": "GL04",
+      "title": "Complete cross-module business UAT and exception coverage",
+      "acceptance": "All 112 current requirements signed by accountable users",
+      "hours": 35,
+      "from": 1386,
+      "to": 1420,
+      "status": "NOT_CREDITED",
+      "verifiedHours": 0,
+      "evidence": [],
+      "actualHours": null,
+      "verifiedAt": null
+    },
+    {
+      "id": "ROLE-04",
+      "stage": "GL04",
+      "title": "Repair verified role/approval gaps and retain signoffs",
+      "acceptance": "Open critical user defects closed, access still least privilege",
+      "hours": 15,
+      "from": 1421,
+      "to": 1435,
+      "status": "NOT_CREDITED",
+      "verifiedHours": 0,
+      "evidence": [],
+      "actualHours": null,
+      "verifiedAt": null
+    },
+    {
+      "id": "SEC-01",
+      "stage": "GL07",
+      "title": "Threat model and production-access/authorization negative tests",
+      "acceptance": "Tenant/Project, CSRF, session, maker/checker and authorization denies",
+      "hours": 30,
+      "from": 1436,
+      "to": 1465,
+      "status": "NOT_CREDITED",
+      "verifiedHours": 0,
+      "evidence": [],
+      "actualHours": null,
+      "verifiedAt": null
+    },
+    {
+      "id": "SEC-02",
+      "stage": "GL07",
+      "title": "Enforced GitHub protected-main/review controls",
+      "acceptance": "Actual active ruleset status plus non-bypass evidence",
+      "hours": 15,
+      "from": 1466,
+      "to": 1480,
+      "status": "NOT_CREDITED",
+      "verifiedHours": 0,
+      "evidence": [],
+      "actualHours": null,
+      "verifiedAt": null
+    },
+    {
+      "id": "SEC-03",
+      "stage": "GL07",
+      "title": "HR/Finance confidential record review",
+      "acceptance": "No salary, customer profit or banking cross-role exposure",
+      "hours": 20,
+      "from": 1481,
+      "to": 1500,
+      "status": "NOT_CREDITED",
+      "verifiedHours": 0,
+      "evidence": [],
+      "actualHours": null,
+      "verifiedAt": null
+    },
+    {
+      "id": "SEC-04",
+      "stage": "GL07",
+      "title": "TLS, credentials and secret/key custody",
+      "acceptance": "Protected runtime/rotation, no credentials in repo/logs",
+      "hours": 15,
+      "from": 1501,
+      "to": 1515,
+      "status": "NOT_CREDITED",
+      "verifiedHours": 0,
+      "evidence": [],
+      "actualHours": null,
+      "verifiedAt": null
+    },
+    {
+      "id": "SEC-05",
+      "stage": "GL07",
+      "title": "Vulnerability, audit and incident response signoff",
+      "acceptance": "No release-blocking findings and escalation owners",
+      "hours": 15,
+      "from": 1516,
+      "to": 1530,
+      "status": "NOT_CREDITED",
+      "verifiedHours": 0,
+      "evidence": [],
+      "actualHours": null,
+      "verifiedAt": null
+    },
+    {
+      "id": "INF-01",
+      "stage": "GL08",
+      "title": "Approved host, persistent storage, TLS and runtime service",
+      "acceptance": "Production-only authorization and reviewed release artifact",
+      "hours": 30,
+      "from": 1531,
+      "to": 1560,
+      "status": "NOT_CREDITED",
+      "verifiedHours": 0,
+      "evidence": [],
+      "actualHours": null,
+      "verifiedAt": null
+    },
+    {
+      "id": "INF-02",
+      "stage": "GL08",
+      "title": "Scheduled encrypted offsite DB + Documents backups",
+      "acceptance": "Paired point-in-time backups and 24h RPO proof",
+      "hours": 25,
+      "from": 1561,
+      "to": 1585,
+      "status": "NOT_CREDITED",
+      "verifiedHours": 0,
+      "evidence": [],
+      "actualHours": null,
+      "verifiedAt": null
+    },
+    {
+      "id": "INF-03",
+      "stage": "GL08",
+      "title": "External HR keys, deploy/rollback and smoke proof",
+      "acceptance": "No overwrite of actual data; 8h recovery target measured",
+      "hours": 20,
+      "from": 1586,
+      "to": 1605,
+      "status": "NOT_CREDITED",
+      "verifiedHours": 0,
+      "evidence": [],
+      "actualHours": null,
+      "verifiedAt": null
+    },
+    {
+      "id": "INF-04",
+      "stage": "GL08",
+      "title": "Independent populated production-like restore drill",
+      "acceptance": "Authenticated restored app, matching bytes and key ownership",
+      "hours": 25,
+      "from": 1606,
+      "to": 1630,
+      "status": "NOT_CREDITED",
+      "verifiedHours": 0,
+      "evidence": [],
+      "actualHours": null,
+      "verifiedAt": null
+    },
+    {
+      "id": "INF-05",
+      "stage": "GL08",
+      "title": "Monitoring, alerting, SLO and on-call runbooks",
+      "acceptance": "Incident owner and health/restore alert proof",
+      "hours": 10,
+      "from": 1631,
+      "to": 1640,
+      "status": "NOT_CREDITED",
+      "verifiedHours": 0,
+      "evidence": [],
+      "actualHours": null,
+      "verifiedAt": null
+    },
+    {
+      "id": "DATA-01",
+      "stage": "GL09",
+      "title": "MKE/TCJ Company/Project/warehouse master onboarding",
+      "acceptance": "Approved mappings and no guessed retained Company IDs",
+      "hours": 30,
+      "from": 1641,
+      "to": 1670,
+      "status": "NOT_CREDITED",
+      "verifiedHours": 0,
+      "evidence": [],
+      "actualHours": null,
+      "verifiedAt": null
+    },
+    {
+      "id": "DATA-02",
+      "stage": "GL09",
+      "title": "Import suppliers, employees, BOQ and financial opening balances",
+      "acceptance": "THB/currency provenance, references and reconciliation",
+      "hours": 30,
+      "from": 1671,
+      "to": 1700,
+      "status": "NOT_CREDITED",
+      "verifiedHours": 0,
+      "evidence": [],
+      "actualHours": null,
+      "verifiedAt": null
+    },
+    {
+      "id": "DATA-03",
+      "stage": "GL09",
+      "title": "Real users, role grants and workflow assignment",
+      "acceptance": "Named user approvals and effective permission readback",
+      "hours": 20,
+      "from": 1701,
+      "to": 1720,
+      "status": "NOT_CREDITED",
+      "verifiedHours": 0,
+      "evidence": [],
+      "actualHours": null,
+      "verifiedAt": null
+    },
+    {
+      "id": "DATA-04",
+      "stage": "GL09",
+      "title": "Controlled source-to-target tie-out, training and SOPs",
+      "acceptance": "Signed migration variances, training records and cutover owner",
+      "hours": 30,
+      "from": 1721,
+      "to": 1750,
+      "status": "NOT_CREDITED",
+      "verifiedHours": 0,
+      "evidence": [],
+      "actualHours": null,
+      "verifiedAt": null
+    },
+    {
+      "id": "LAUNCH-01",
+      "stage": "GL10",
+      "title": "Frozen staged candidate and no-write production smoke",
+      "acceptance": "End-to-end source/secret/storage/permission identity checked",
+      "hours": 30,
+      "from": 1751,
+      "to": 1780,
+      "status": "NOT_CREDITED",
+      "verifiedHours": 0,
+      "evidence": [],
+      "actualHours": null,
+      "verifiedAt": null
+    },
+    {
+      "id": "LAUNCH-02",
+      "stage": "GL10",
+      "title": "Comprehensive human UAT across all eight roles",
+      "acceptance": "All required workflows pass, no missed source/role obligation",
+      "hours": 45,
+      "from": 1781,
+      "to": 1825,
+      "status": "NOT_CREDITED",
+      "verifiedHours": 0,
+      "evidence": [],
+      "actualHours": null,
+      "verifiedAt": null
+    },
+    {
+      "id": "LAUNCH-03",
+      "stage": "GL10",
+      "title": "Resolve observed critical defects and affected-path retests",
+      "acceptance": "No repeated all-suites without changed risk; all P0/P1 closed",
+      "hours": 45,
+      "from": 1826,
+      "to": 1870,
+      "status": "NOT_CREDITED",
+      "verifiedHours": 0,
+      "evidence": [],
+      "actualHours": null,
+      "verifiedAt": null
+    },
+    {
+      "id": "LAUNCH-04",
+      "stage": "GL10",
+      "title": "Backup/rollback rehearsal and migration cutover",
+      "acceptance": "Owner-approved go/no-go inputs; no production before authority",
+      "hours": 15,
+      "from": 1871,
+      "to": 1885,
+      "status": "NOT_CREDITED",
+      "verifiedHours": 0,
+      "evidence": [],
+      "actualHours": null,
+      "verifiedAt": null
+    },
+    {
+      "id": "LAUNCH-05",
+      "stage": "GL10",
+      "title": "Explicit Production go-live, support and operational acceptance",
+      "acceptance": "Eight roles can use live system, stable support and signoff",
+      "hours": 15,
+      "from": 1886,
+      "to": 1900,
+      "status": "NOT_CREDITED",
+      "verifiedHours": 0,
+      "evidence": [],
+      "actualHours": null,
+      "verifiedAt": null
+    }
+  ],
+  "forecastAudit": {
+    "auditedOn": "2026-11-23",
+    "basis": "2026-11-23 16:17 SGT remaining-work baseline; no numerical rebaseline because no new timesheet or scope approval",
+    "packageCount": 60,
+    "stageCount": 12,
+    "packageHoursSum": 1900,
+    "prototypeStages": [
+      "M4",
+      "M6",
+      "M7",
+      "M8"
+    ],
+    "hoursToPrototype8Of8": 405,
+    "postPrototypeStages": [
+      "GL05",
+      "GL06",
+      "XP",
+      "GL04",
+      "GL07",
+      "GL08",
+      "GL09",
+      "GL10"
+    ],
+    "additionalHoursAfterPrototype8Of8": 1495,
+    "totalFullUsableErpHours": 1900,
+    "verification": "405 + 1495 = 1900; 1900 is total from current baseline, not extra hours after 8/8",
+    "initialEstimatedRangeHours": {
+      "optimistic": 1100,
+      "central": 1900,
+      "conservative": 3300
+    },
+    "confidence": "LOW; indicative planning scenario, not calibrated empirical interval or confirmed schedule",
+    "exclusionsFromProvenEngineeringHours": "Actual productive effort is UNKNOWN; no subtraction for calendar time, CI duration, partial checkpoints or previous baseline work",
+    "scopeIncludes": "all 112 requirement IDs delivered or explicitly Owner-superseded; all 8 named roles; Thai HR/payroll and GL/tax/banking; multi-Project purchasing; security, backup and restore; real business UAT; Owner-authorized Production go-live",
+    "currentAcceptedMilestones": "prototype 4/8; GL 3/10; M4 19/32 bounded technical checkpoints; 0 full packages credited",
+    "presentation": {
+      "showActualAcceptedProgressSeparateFromForecast": true,
+      "neverUseCumulativePlannedHoursAsProgressBar": true,
+      "greenFillPermittedOnlyForVerifiedAcceptedMilestonesOrExplicitTechnicalCheckpoints": true,
+      "showFutureBarsAsUnfilledOrUseAllocationOnly": true,
+      "futureStageHoursAreIncrementalNotWorked": true,
+      "fullErpAfterPrototypeBlock": "H0406–H1900 = 1,495 incremental hours, total from M4 baseline 1,900",
+      "final1900Of1900And0LeftAreHypotheticalOnly": true
+    }
+  }
+}
