@@ -50,4 +50,4 @@ jobs:
           node --check deploy/uat/m4-eight-role-journeys-20261124.mjs
           node --check deploy/uat/m4-eight-role-journeys-20261124.test.mjs
       - name: Preserve bounded evidence label
-        run: echo 'INTEGRATED_SOURCE_COMPAT_ONLY; no repeated native tests, no Chrome/retained grants/DEC-022/Owner #384/full CI/Production'
+        run: echo M4_INTEGRATED_SOURCE_COMPAT_ONLY_NO_RELEASE_ACTION
