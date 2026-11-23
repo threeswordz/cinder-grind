@@ -28,9 +28,8 @@ type Event = {
 type Latest = { state: Pur10Case; eventId: string };
 
 /**
- * PUR10 staging: audit-backed, nonposting Jai → Khaimook → Ben decisions.
- * NO PO cancellation happens in this class. Existing direct cancel API remains
- * an explicit release blocker until transaction-safe integration replaces it.
+ * PUR10: audit-backed Jai → Khaimook → Ben decisions followed by a
+ * separate, explicit Ben-only, transaction-guarded final cancellation.
  */
 @Injectable()
 export class PurchaseOrderCancellationCaseService {
@@ -67,6 +66,13 @@ export class PurchaseOrderCancellationCaseService {
       sessionActive: true, employeeActive: true,
     };
     return result;
+  }
+
+  // ProjectAccessService must never trust permissions cached in a session token
+  // after a role or all-projects permission has been revoked. Retain identity,
+  // but scope every PUR10 project lookup using the rehydrated live role grants.
+  private scopeAuth(auth: AuthenticatedUserContext, actor: Pur10Actor): AuthenticatedUserContext {
+    return { ...auth, roleCodes: [...actor.roleCodes], permissions: [...actor.permissions] };
   }
 
   private async mappedActors(companyId: string, db: Tx | PrismaService): Promise<ActorMapping> {
@@ -204,7 +210,7 @@ export class PurchaseOrderCancellationCaseService {
         !actor.roleCodes.some(role =>
           ['PROCUREMENT_OFFICER', 'PROJECT_MANAGER', 'MANAGEMENT'].includes(role)))
       return denied('PUR10_VIEW_PERMISSION_DENIED');
-    const source = await this.source(auth, orderId, this.prisma, true);
+    const source = await this.source(this.scopeAuth(auth, actor), orderId, this.prisma, true);
     await this.mappedActors(auth.companyId, this.prisma);
     const current = await this.history(auth.companyId, orderId, this.prisma);
     if (Boolean(source.cancelledAt) !== (current?.state.status === 'FINALIZED'))
@@ -222,7 +228,7 @@ export class PurchaseOrderCancellationCaseService {
       await tx.$executeRawUnsafe('SELECT pg_advisory_xact_lock(hashtext($1))',
         'pur10:'+context.auth.companyId+':'+orderId);
       const actor = await this.liveActor(context.auth, tx);
-      const source = await this.source(context.auth, orderId, tx);
+      const source = await this.source(this.scopeAuth(context.auth, actor), orderId, tx);
       const named = await this.mappedActors(context.auth.companyId, tx);
       const current = await this.history(context.auth.companyId, orderId, tx);
       if ((current?.eventId ?? null) !== expectedPreviousEventId)
@@ -301,7 +307,7 @@ export class PurchaseOrderCancellationCaseService {
       await tx.$executeRawUnsafe('SELECT pg_advisory_xact_lock(hashtext($1))',
         'pur10:' + context.auth.companyId + ':' + orderId);
       const actor = await this.liveActor(context.auth, tx);
-      const source = await this.source(context.auth, orderId, tx);
+      const source = await this.source(this.scopeAuth(context.auth, actor), orderId, tx);
       const named = await this.mappedActors(context.auth.companyId, tx);
       if (actor.userId !== named.ben ||
           !actor.roleCodes.includes('MANAGEMENT') ||
@@ -328,18 +334,20 @@ export class PurchaseOrderCancellationCaseService {
         where: { purchaseOrderId: orderId }, select: { id: true },
       });
       if (!lines.length) return fail('PUR10_SOURCE_LINES_REQUIRED');
-      const lineIds = lines.map(row => row.id);
       const [anyReceipt, anyInvoice, anyDelivery, postedReceipt, approvedInvoice] = await Promise.all([
         tx.goodsReceipt.findFirst({
           where: { purchaseOrder: { companyId: source.companyId, poNumber: source.poNumber } },
           select: { id: true },
         }),
         tx.supplierInvoiceItem.findFirst({
-          where: { purchaseOrderLineId: { in: lineIds } }, select: { id: true },
+          where: { purchaseOrderLine: { purchaseOrder: {
+            companyId: source.companyId, poNumber: source.poNumber,
+          } } }, select: { id: true },
         }),
         tx.receivingDelivery.findFirst({
-          where: { companyId: source.companyId, purchaseOrderId: orderId },
-          select: { id: true },
+          where: { companyId: source.companyId, purchaseOrder: {
+            companyId: source.companyId, poNumber: source.poNumber,
+          } }, select: { id: true },
         }),
         tx.goodsReceipt.findFirst({
           where: { purchaseOrder: { companyId: source.companyId, poNumber: source.poNumber },
@@ -347,8 +355,9 @@ export class PurchaseOrderCancellationCaseService {
           select: { id: true },
         }),
         tx.supplierInvoiceItem.findFirst({
-          where: { purchaseOrderLineId: { in: lineIds },
-            supplierInvoice: { state: 'APPROVED' } }, select: { id: true },
+          where: { purchaseOrderLine: { purchaseOrder: {
+            companyId: source.companyId, poNumber: source.poNumber,
+          } }, supplierInvoice: { state: 'APPROVED' } }, select: { id: true },
         }),
       ]);
       try {
@@ -369,7 +378,7 @@ export class PurchaseOrderCancellationCaseService {
       // case still matches. This existing writer ALSO checks live GR/AP locks
       // and PO revision state after its own row lock in this same transaction.
       const cancelled = await this.orders.cancelForReviewedCase(
-        context, orderId,
+        { ...context, auth: this.scopeAuth(context.auth, actor) }, orderId,
         'PUR10 verified Ben cancellation; supplier evidence: ' +
           attestation.supplierAgreementEvidence,
         reviewed.state.caseId, reviewed.eventId, reviewed.state.orderUpdatedAt, tx,
