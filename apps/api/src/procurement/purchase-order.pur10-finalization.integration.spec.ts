@@ -289,6 +289,160 @@ test('PUR10 native: real approved PO, independent named Jai/Khaimook/Ben, atomic
       supplierAgreementEvidence:'Supplier confirmed cancellation reference PUR10-TEST-'+key,
       supplierAgreed:true,noDepositOrPenalty:true,noDeliveryOrInvoice:true,
     };
+
+    // Missing PUR10 negatives only. They share the already-proven real
+    // synthetic approved PO fixture, without rerunning unrelated packages.
+    // A cached all-projects claim MUST NOT bypass a revoked live DB grant.
+    const pmRole=await prisma.role.findFirstOrThrow({where:{
+      companyId:company.id,roleCode:'PROJECT_MANAGER',
+    }});
+    await prisma.userRole.create({data:{
+      companyId:company.id,userId:wrongProjectActor.user.id,roleId:pmRole.id,
+    }});
+    const wrongSession=await prisma.userSession.create({data:{
+      userId:wrongProjectActor.user.id,
+      tokenHash:randomUUID().replace(/-/g,'')+randomUUID().replace(/-/g,''),
+      csrfTokenHash:'d'.repeat(64),expiresAt:new Date(Date.now()+3_600_000),
+    }});
+    const wrongScopeAuth:AuthenticatedUserContext={
+      ...wrongProjectActor.auth,sessionId:wrongSession.id,
+      roleCodes:['PROJECT_MANAGER'],
+      permissions:['procurement.po.view','projects.access_all'],
+    };
+    await assert.rejects(
+      ()=>cases.read(wrongScopeAuth,approvedOriginal.id),
+      (e:unknown)=>e instanceof ForbiddenException &&
+        (e.getResponse() as {code?:string}).code==='PROJECT_ACCESS_DENIED',
+    );
+    const foreignRole=await prisma.role.create({data:{
+      companyId:outsiderCompany.id,roleCode:'PROJECT_MANAGER',
+      roleName:'Synthetic outside-Company Project Manager',
+    }});
+    const viewPermission=await prisma.permission.findUniqueOrThrow({where:{
+      permissionCode:'procurement.po.view',
+    }});
+    await prisma.rolePermission.create({data:{
+      roleId:foreignRole.id,permissionId:viewPermission.id,
+    }});
+    await prisma.userRole.create({data:{
+      companyId:outsiderCompany.id,userId:foreignActor.user.id,roleId:foreignRole.id,
+    }});
+    const foreignSession=await prisma.userSession.create({data:{
+      userId:foreignActor.user.id,
+      tokenHash:randomUUID().replace(/-/g,'')+randomUUID().replace(/-/g,''),
+      csrfTokenHash:'e'.repeat(64),expiresAt:new Date(Date.now()+3_600_000),
+    }});
+    await assert.rejects(
+      ()=>cases.read({
+        ...foreignActor.auth,sessionId:foreignSession.id,
+        roleCodes:['PROJECT_MANAGER'],permissions:['procurement.po.view'],
+      },approvedOriginal.id),
+      (e:unknown)=>e instanceof NotFoundException,
+    );
+    assert.equal((await cases.read(benAuth,approvedOriginal.id)).case?.status,'BEN_APPROVED');
+
+    // Actual server-side revocations must invalidate Ben immediately, even
+    // while the client retains a cached token permission set.
+    await prisma.userSession.update({where:{id:benAuth.sessionId},
+      data:{revokedAt:new Date()}});
+    await assert.rejects(
+      ()=>cases.finalize({auth:benAuth},approvedOriginal.id,3,
+        approvedCase.expectedPreviousEventId,finalArgs),
+      (e:unknown)=>e instanceof ForbiddenException,
+    );
+    await prisma.userSession.update({where:{id:benAuth.sessionId},
+      data:{revokedAt:null}});
+    await prisma.employee.update({where:{id:ben.user.employeeId},
+      data:{isActive:false}});
+    await assert.rejects(
+      ()=>cases.finalize({auth:benAuth},approvedOriginal.id,3,
+        approvedCase.expectedPreviousEventId,finalArgs),
+      (e:unknown)=>e instanceof ForbiddenException,
+    );
+    await prisma.employee.update({where:{id:ben.user.employeeId},
+      data:{isActive:true}});
+    const benRole=await prisma.role.findFirstOrThrow({where:{
+      companyId:company.id,roleCode:'MANAGEMENT',
+    }});
+    await prisma.role.update({where:{id:benRole.id},data:{isActive:false}});
+    await assert.rejects(
+      ()=>cases.finalize({auth:benAuth},approvedOriginal.id,3,
+        approvedCase.expectedPreviousEventId,finalArgs),
+      (e:unknown)=>e instanceof ForbiddenException || e instanceof ConflictException,
+    );
+    await prisma.role.update({where:{id:benRole.id},data:{isActive:true}});
+
+    // Any GR (including unposted), or linked receiving delivery, prohibits a
+    // no-exception cancellation. These are disposable rows, never posted stock.
+    const warehouse=await prisma.warehouse.create({data:{
+      companyId:company.id,projectId:project.id,
+      warehouseCode:'P10WH-'+key,warehouseName:'PUR10 test quarantine',
+      isSiteWarehouse:true,
+    }});
+    const gr=await prisma.goodsReceipt.create({data:{
+      companyId:company.id,projectId:project.id,supplierId:supplier.id,
+      warehouseId:warehouse.id,purchaseOrderId:approvedOriginal.id,
+      receiptNumber:'P10GR-'+key,createdByUserId:store.user.id,
+    }});
+    await assert.rejects(
+      ()=>cases.finalize({auth:benAuth},approvedOriginal.id,3,
+        approvedCase.expectedPreviousEventId,finalArgs),
+      (e:unknown)=>e instanceof ConflictException,
+    );
+    await prisma.goodsReceipt.delete({where:{id:gr.id}});
+    const delivery=await prisma.receivingDelivery.create({data:{
+      companyId:company.id,projectId:project.id,supplierId:supplier.id,
+      warehouseId:warehouse.id,createdByUserId:store.user.id,
+      receivedAt:new Date(),poLinkDueAt:new Date(Date.now()+172_800_000),
+      receiverName:'Synthetic Store',reason:'PUR10 negative delivery source',
+      qualityRequired:false,purchaseOrderId:approvedOriginal.id,
+    }});
+    await assert.rejects(
+      ()=>cases.finalize({auth:benAuth},approvedOriginal.id,3,
+        approvedCase.expectedPreviousEventId,finalArgs),
+      (e:unknown)=>e instanceof ConflictException,
+    );
+    await prisma.receivingDelivery.delete({where:{id:delivery.id}});
+
+    // A draft AP source is already a conflict; approved AP is also denied.
+    const invoice=await prisma.supplierInvoice.create({data:{
+      companyId:company.id,projectId:project.id,supplierId:supplier.id,
+      supplierInvoiceNumber:'P10SI-'+key,
+      supplierReference:'P10SUP-'+key,invoiceDate:new Date(),
+      currencyCode:'THB',totalAmount:D('100.00'),state:'DRAFT',
+      createKey:'P10KEY-'+key,createPayloadHash:'a'.repeat(64),
+      createdByUserId:jai.user.id,
+    }});
+    const invoiceLine=await prisma.supplierInvoiceItem.create({data:{
+      companyId:company.id,projectId:project.id,
+      supplierInvoiceId:invoice.id,purchaseOrderLineId:approvedOriginal.lines[0]!.id,
+      lineNo:1,description:'Blocked PUR10 Finance source',amount:D('100.00'),
+    }});
+    await assert.rejects(
+      ()=>cases.finalize({auth:benAuth},approvedOriginal.id,3,
+        approvedCase.expectedPreviousEventId,finalArgs),
+      (e:unknown)=>e instanceof ConflictException,
+    );
+    await prisma.supplierInvoice.update({where:{id:invoice.id},
+      data:{state:'APPROVED'}});
+    await assert.rejects(
+      ()=>cases.finalize({auth:benAuth},approvedOriginal.id,3,
+        approvedCase.expectedPreviousEventId,finalArgs),
+      (e:unknown)=>e instanceof ConflictException,
+    );
+    await prisma.supplierInvoiceItem.delete({where:{id:invoiceLine.id}});
+    await prisma.supplierInvoice.delete({where:{id:invoice.id}});
+
+    // Every blocked attempt preserves the reviewed state and produces no
+    // final cancellation/audit. A genuine contested pair must yield one
+    // durable finalization and one losing transaction (including P2034).
+    assert.equal(await prisma.auditLog.count({where:{
+      companyId:company.id,entityType:'PURCHASE_ORDER_CANCELLATION',
+      entityId:approvedOriginal.id,action:'FINALIZE',
+    }}),0);
+    assert.equal((await prisma.purchaseOrder.findUniqueOrThrow({
+      where:{id:approvedOriginal.id},select:{cancelledAt:true},
+    })).cancelledAt,null);
     await assert.rejects(
       ()=>cases.finalize({auth:jaiAuth},approvedOriginal.id,3,
         approvedCase.expectedPreviousEventId,finalArgs),
@@ -300,8 +454,18 @@ test('PUR10 native: real approved PO, independent named Jai/Khaimook/Ben, atomic
       (e:unknown)=>e instanceof ConflictException,
     );
 
-    const finalize=await cases.finalize({auth:benAuth},approvedOriginal.id,3,
-      approvedCase.expectedPreviousEventId,finalArgs);
+    const competing=await Promise.allSettled([
+      cases.finalize({auth:benAuth},approvedOriginal.id,3,
+        approvedCase.expectedPreviousEventId,finalArgs),
+      cases.finalize({auth:benAuth},approvedOriginal.id,3,
+        approvedCase.expectedPreviousEventId,finalArgs),
+    ]);
+    const winners=competing.filter((value):value is PromiseFulfilledResult<{
+      status:string;poCancelled:boolean;financePosted:boolean;
+    }>=>value.status==='fulfilled');
+    assert.equal(winners.length,1,'Exactly one concurrent finalization may commit');
+    assert.equal(competing.filter(value=>value.status==='rejected').length,1);
+    const finalize=winners[0]!.value;
     assert.deepEqual([finalize.status,finalize.poCancelled,finalize.financePosted],
       ['FINALIZED',true,false]);
     const cancelled=await prisma.purchaseOrder.findUniqueOrThrow({where:{id:approvedOriginal.id}});
