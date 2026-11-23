@@ -16,8 +16,9 @@ const ACTIONS: readonly string[] = [
 ];
 
 /**
- * PUR10 protected staged review. These endpoints never cancel a PO or post
- * stock/finance. A separate independent finalized write gate is still required.
+ * PUR10 protected, nonposting decision events plus explicit Ben-only finalization.
+ * The separate finalization route cancels only after live authorization, source,
+ * receipt and Finance checks; neither route posts stock or Finance adjustments.
  */
 @Controller('procurement/purchase-orders/:orderId/cancellation-case')
 export class PurchaseOrderCancellationCaseController {
