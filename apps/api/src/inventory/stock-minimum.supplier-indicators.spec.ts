@@ -33,8 +33,8 @@ const line = (id: string, expected: string | null) => ({
 
 function fixture(options: {
   revoked?: boolean; inactiveEmployee?: boolean; foreignProject?: boolean; foreignSupplier?: boolean;
-  cancellation?: boolean; previousApproval?: boolean;
-  noDeliveryDate?: boolean; badReceiptUom?: boolean; overReceipt?: boolean;
+  cancellation?: boolean; previousApproval?: boolean; draftAhead?: boolean;
+  noDeliveryDate?: boolean; badReceiptUom?: boolean; foreignReceipt?: boolean; overReceipt?: boolean;
   tooManyOrders?: boolean;
 } = {}) {
   let poReads = 0, grReads = 0, writes = 0;
@@ -50,12 +50,14 @@ function fixture(options: {
     ...latest, id: oldPoId, revisionNo: 0, cancelledAt: null,
     lines: [line(oldPoLineId, '2026-11-28')],
   };
+  const draft = { ...latest, id: randomUUID(), revisionNo: 2,
+    approvalInstance: null, lines: [line(randomUUID(), '2027-01-01')] };
   const posted = (qty: string, siteId: string) => ({
     quotationAwardId: awardId, materialId,
     uomId: options.badReceiptUom ? randomUUID() : uomId,
     quantity: new Prisma.Decimal(qty),
     goodsReceipt: {
-      companyId, projectId, warehouseId: siteId,
+      companyId: options.foreignReceipt ? randomUUID() : companyId, projectId, warehouseId: siteId,
       purchaseOrder: { companyId, projectId, poNumber: 'PO-01' },
     },
     purchaseOrderLine: {
@@ -88,7 +90,8 @@ function fixture(options: {
         assert.deepEqual(orderBy, [{ poNumber: 'asc' }, { revisionNo: 'desc' }]);
         return options.tooManyOrders
           ? Array.from({ length: 201 }, (_, i) => ({ ...latest, poNumber: 'PO-' + i }))
-          : [latest, ...(options.previousApproval ? [prior] : [])];
+          : [...(options.draftAhead ? [draft] : []), latest,
+            ...(options.previousApproval ? [prior] : [])];
       },
     },
     goodsReceiptItem: {
@@ -157,12 +160,21 @@ test('SS14 real actor revocation and foreign Project fail before any PO read', a
 });
 
 test('SS14 rejects foreign Company supplier and inconsistent GR UOM instead of leaking', async () => {
-  for (const options of [{ foreignSupplier: true }, { badReceiptUom: true }]) {
+  for (const options of [{ foreignSupplier: true }, { foreignReceipt: true },
+    { badReceiptUom: true }]) {
     const f = fixture(options);
     await assert.rejects(f.service.supplierCommitments(auth, projectId, warehouseId, at),
       ConflictException);
     assert.equal(f.writes, 0);
   }
+});
+
+test('SS14 does not substitute a newer unapproved draft for current approved date', async () => {
+  const f = fixture({ draftAhead: true });
+  const result = await f.service.supplierCommitments(auth, projectId, warehouseId, at);
+  assert.equal(result.alerts.length, 1);
+  assert.equal(result.alerts[0]?.revisionNo, 1);
+  assert.equal(result.alerts[0]?.expectedDelivery, '2026-12-01');
 });
 
 test('SS14 cancellation suppresses pending and unknown PO date is never fabricated', async () => {
