@@ -58,8 +58,9 @@ test('M4 actual HTTP/PostgreSQL FM01 weekly calendar and BEN04 closeout with ind
    const employee=await db.employee.create({data:{companyId:company.id,employeeCode:label+key,employeeName:'Synthetic '+label}});
    const user=await db.user.create({data:{companyId:company.id,employeeId:employee.id,
     email:label.toLowerCase()+'-'+key+'@example.invalid',displayName:label,passwordHash:'not-a-login'}});
-   const role=await db.role.create({data:{companyId:company.id,roleCode,roleName:roleCode}});
-   await db.rolePermission.createMany({data:codes.map(code=>({roleId:role.id,permissionId:permissionIds.get(code)!}))});
+   const role=(await db.role.findFirst({where:{companyId:company.id,roleCode}})) ??
+    await db.role.create({data:{companyId:company.id,roleCode,roleName:roleCode}});
+   await db.rolePermission.createMany({data:codes.map(code=>({roleId:role.id,permissionId:permissionIds.get(code)!})),skipDuplicates:true});
    await db.userRole.create({data:{companyId:company.id,userId:user.id,roleId:role.id}});
    await db.projectMember.create({data:{projectId:projectScope,employeeId:employee.id,projectRole:roleCode}});
    const session=await sessions.create(user.id);
@@ -71,7 +72,7 @@ test('M4 actual HTTP/PostgreSQL FM01 weekly calendar and BEN04 closeout with ind
   const pm=await actor('Khaimook','PROJECT_MANAGER',['projects.project.view','projects.project.edit','site.daily_report.view'],project.id);
   const ben=await actor('Ben','MANAGEMENT',['projects.project.view','site.daily_report.view'],project.id);
   const nancy=await actor('Nancy','FINANCE_MANAGER',['projects.project.view'],project.id);
-  const outsider=await actor('Outsider','STOREKEEPER',['projects.project.view','site.daily_report.view'],wrong.id);
+  const outsider=await actor('Outsider','PROJECT_MANAGER',['projects.project.view','projects.project.edit','site.daily_report.view'],wrong.id);
   const request=async<T=any>(who:Actor,method:'GET'|'POST',path:string,input?:unknown):Promise<Read<T>>=>values<T>(await fetch(base+path,{
    method,headers:{Cookie:'erp_session='+who.token,
      ...(method==='POST'?{'x-csrf-token':who.csrf,'Content-Type':'application/json'}:{})},
@@ -127,8 +128,8 @@ test('M4 actual HTTP/PostgreSQL FM01 weekly calendar and BEN04 closeout with ind
     companyId:company.id,projectId:project.id,calendarName:'Explicit M4 weekdays',
     timezoneName:'Asia/Singapore',isDefault:true,
    }});
-   await db.workingCalendarWeekday.createMany({data:Array.from({length:7},(_,weekdayNo)=>({
-    workingCalendarId:calendar.id,weekdayNo,isWorking:true,
+   await db.workingCalendarWeekday.createMany({data:Array.from({length:7},(_,index)=>({
+    workingCalendarId:calendar.id,weekdayNo:index+1,isWorking:true,
    }))});
    const form={projectId:project.id,reportDate:'2026-11-23',
     manpower:[],materialUsage:[],equipmentUsage:[],progress:[],issues:[],delays:[],inspections:[]};
