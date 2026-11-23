@@ -239,7 +239,7 @@ export class PurchaseOrderPur07Service {
           pdfFileName: eventType === 'DISPATCH' ? pdfFileName : null,
           pdfSha256: null, // Do not fabricate a hash for externally sent files.
           acknowledgesEventId: eventType === 'ACKNOWLEDGMENT'
-            ? input.acknowledgesEventId
+            ? input.acknowledgesEventId ?? null
             : null,
           recordedByUserId: context.auth.userId,
         },
