@@ -15,6 +15,7 @@ jobs:
     timeout-minutes: 20
     env:
       M4_REVIEWED_INTEGRATED_SHA: 'b44d789a80b6cf4992d7272eecea36cb6bc6be19'
+      DATABASE_URL: 'postgresql://m4_ci_only:m4_ci_only@localhost:5432/m4_ci_only?schema=public'
     steps:
       - name: Checkout exact integrated source plus one workflow
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
