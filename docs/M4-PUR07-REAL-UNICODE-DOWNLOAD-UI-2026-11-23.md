@@ -1,0 +1,9 @@
+# PUR07 new real authenticated Jai / Ben automatic Thai PDF download UI
+
+**Test-only draft**, stacked on new guarded local Chromium Thai PDF backend #423. The separate server renderer passed [focused #45195364823](https://github.com/threeswordz/cinder-grind/actions/runs/45195364823), 2/2 tests, 54,073-byte one-page searchable Thai PDF; this document does not claim the NEW authenticated UI has passed until its own scoped run proves it.
+
+Test path `deploy/uat/m4-pur07-jai-ben-server-download-browser-native.mjs` uses disposable PostgreSQL17.11, real Nest API + React/MUI and actual Chrome CDP with distinct synthetic Jai and Ben HttpOnly sessions. No mocks for HTTP response. Jai clicks newly clarified `Download approved PDF (Thai / English)`, listens for exactly one HTTP200 PDF response; Ben independently sees permitted view but not Jai-only external dispatch controls. Jai's actual MUI reported external email send button records a synthetic **reported-only** dispatch event, null PDF hash (never proof of actual external transmission), and stock/Finance remain unchanged.
+
+Intentionally **does not retry** the failed browser Print-popup transport experiments #45189759754 / #45190249369 / #45190773009; the real server PDF can be downloaded without a popup. Earlier successful standalone Thai CDP print #45162334613 and native PG dispatch/authorization #45155841629 are reused rather than rerun. This test does NOT transmit any real email or LINE message, assign actual retained MKE/TCJ employees, execute full release CI, merge main or deploy Production.
+
+Even if passed, final PUR07 business acceptance requires controlled host Chromium+Thai fonts/sandbox/security review, actual named Jai/Ben permissions, human file pagination/supplier approval and independent DEC-022 final candidate review. No forecast hours or final checkpoint credited solely on synthetic UI.
