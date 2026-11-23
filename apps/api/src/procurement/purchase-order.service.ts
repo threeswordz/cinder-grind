@@ -145,6 +145,7 @@ export class PurchaseOrderService {
         const request = award.rfqLine.purchaseRequestLine.purchaseRequest;
         return (
           !request.cancelledAt &&
+          award.rfqLine.purchaseRequestLine.reviewDecision !== 'RETURNED' &&
           request.approvalInstance?.approvalState === APPROVAL_STATE.APPROVED
         );
       })
@@ -493,6 +494,7 @@ export class PurchaseOrderService {
             award.rfqLine.purchaseRequestLine.purchaseRequest;
           if (
             request.cancelledAt ||
+            award.rfqLine.purchaseRequestLine.reviewDecision === 'RETURNED' ||
             request.approvalInstance?.approvalState !==
               APPROVAL_STATE.APPROVED
           ) {
@@ -943,6 +945,7 @@ export class PurchaseOrderService {
       sourceLines.length !== order.purchaseRequestLineIds.length ||
       sourceLines.some(
         (line) =>
+          line.reviewDecision === 'RETURNED' ||
           line.purchaseRequest.cancelledAt ||
           line.purchaseRequest.approvalInstance?.approvalState !==
             APPROVAL_STATE.APPROVED,
@@ -1269,6 +1272,7 @@ export class PurchaseOrderService {
           sourceRequestLines.length !== source.lines.length ||
           sourceRequestLines.some(
             (line) =>
+              line.reviewDecision === 'RETURNED' ||
               line.purchaseRequest.cancelledAt ||
               line.purchaseRequest.approvalInstance?.approvalState !==
                 APPROVAL_STATE.APPROVED,

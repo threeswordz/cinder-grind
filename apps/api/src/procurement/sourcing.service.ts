@@ -969,6 +969,7 @@ export class SourcingService {
           });
         }
         if (
+          rfqLine.purchaseRequestLine.reviewDecision === 'RETURNED' ||
           rfqLine.purchaseRequestLine.purchaseRequest.cancelledAt ||
           rfqLine.purchaseRequestLine.purchaseRequest
             .approvalInstance?.approvalState !== 'APPROVED'
