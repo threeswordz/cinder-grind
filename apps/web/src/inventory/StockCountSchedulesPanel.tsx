@@ -14,9 +14,11 @@ function today() {
 function message(error: unknown) {
   return error instanceof Error ? error.message : 'The schedule could not be read or updated.';
 }
-const validDate = (value: string) =>
-  /^\d{4}-\d{2}-\d{2}$/.test(value) &&
-  new Date(value + 'T00:00:00.000Z').toISOString().slice(0, 10) === value;
+const validDate = (value: string) => {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const result = new Date(value + 'T00:00:00.000Z');
+  return Number.isFinite(result.getTime()) && result.toISOString().slice(0, 10) === value;
+};
 
 export function StockCountSchedulesPanel({
   permissions, roleCodes,
