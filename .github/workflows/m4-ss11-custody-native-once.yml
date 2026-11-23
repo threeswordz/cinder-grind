@@ -57,7 +57,7 @@ jobs:
           pnpm prisma:validate
       - name: Deploy forward-only migration on disposable PostgreSQL
         run: pnpm prisma:migrate:deploy
-      - name: Check integrated TypeScript and React compile
+      - name: Check corrected nullable SQL and test array access in integrated TypeScript and React
         run: pnpm typecheck
       - name: Compile new native SS11 test
         run: pnpm --filter @construction-erp/api build
