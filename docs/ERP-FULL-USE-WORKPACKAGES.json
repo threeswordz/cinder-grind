@@ -35,7 +35,14 @@
       "hour_out_of_1900",
       "planned_hours_left_if_this_hour_completed"
     ],
-    "countdownPresentationRevision": "2026-11-23 docs-only; no added credit"
+    "countdownPresentationRevision": "2026-11-23 docs-only; no added credit",
+    "forecastIntegrity": "AUDITED_60_PACKAGES_12_STAGES_SUM_1900; PROTOTYPE_405 + POST_PROTOTYPE_1495",
+    "liveGraphRule": "Do NOT render filled green forecast progress bars from staged cumulative budget (e.g. 1900/1900). Display forecast allocations, current accepted packages, and conditional future stage exits separately. 0h remaining applies only to hypothetical full ERP acceptance.",
+    "uncertaintyRangeHours": [
+      1100,
+      3300
+    ],
+    "forecastRebaselineStatus": "NONE; center unchanged 1,900h because no measured actual-hour or signed scope change"
   },
   "official": {
     "prototypeCompleted": 4,
@@ -1187,5 +1194,50 @@
       "actualHours": null,
       "verifiedAt": null
     }
-  ]
+  ],
+  "forecastAudit": {
+    "auditedOn": "2026-11-23",
+    "basis": "2026-11-23 16:17 SGT remaining-work baseline; no numerical rebaseline because no new timesheet or scope approval",
+    "packageCount": 60,
+    "stageCount": 12,
+    "packageHoursSum": 1900,
+    "prototypeStages": [
+      "M4",
+      "M6",
+      "M7",
+      "M8"
+    ],
+    "hoursToPrototype8Of8": 405,
+    "postPrototypeStages": [
+      "GL05",
+      "GL06",
+      "XP",
+      "GL04",
+      "GL07",
+      "GL08",
+      "GL09",
+      "GL10"
+    ],
+    "additionalHoursAfterPrototype8Of8": 1495,
+    "totalFullUsableErpHours": 1900,
+    "verification": "405 + 1495 = 1900; 1900 is total from current baseline, not extra hours after 8/8",
+    "initialEstimatedRangeHours": {
+      "optimistic": 1100,
+      "central": 1900,
+      "conservative": 3300
+    },
+    "confidence": "LOW; indicative planning scenario, not calibrated empirical interval or confirmed schedule",
+    "exclusionsFromProvenEngineeringHours": "Actual productive effort is UNKNOWN; no subtraction for calendar time, CI duration, partial checkpoints or previous baseline work",
+    "scopeIncludes": "all 112 requirement IDs delivered or explicitly Owner-superseded; all 8 named roles; Thai HR/payroll and GL/tax/banking; multi-Project purchasing; security, backup and restore; real business UAT; Owner-authorized Production go-live",
+    "currentAcceptedMilestones": "prototype 4/8; GL 3/10; M4 19/32 bounded technical checkpoints; 0 full packages credited",
+    "presentation": {
+      "showActualAcceptedProgressSeparateFromForecast": true,
+      "neverUseCumulativePlannedHoursAsProgressBar": true,
+      "greenFillPermittedOnlyForVerifiedAcceptedMilestonesOrExplicitTechnicalCheckpoints": true,
+      "showFutureBarsAsUnfilledOrUseAllocationOnly": true,
+      "futureStageHoursAreIncrementalNotWorked": true,
+      "fullErpAfterPrototypeBlock": "H0406–H1900 = 1,495 incremental hours, total from M4 baseline 1,900",
+      "final1900Of1900And0LeftAreHypotheticalOnly": true
+    }
+  }
 }
