@@ -2674,6 +2674,15 @@ model PurchaseOrder {
   previousRevisionId String?   @unique @map("previous_revision_id") @db.Uuid
   revisionReason     String?   @map("revision_reason") @db.Text
   remarks            String?   @db.Text
+  deliveryLocation   String?   @map("delivery_location") @db.VarChar(500)
+  deliveryContact    String?   @map("delivery_contact") @db.VarChar(200)
+  deliveryTerms      String?   @map("delivery_terms") @db.Text
+  paymentTerms       String?   @map("payment_terms") @db.Text
+  creditTerms        String?   @map("credit_terms") @db.Text
+  discountAmount     Decimal?  @map("discount_amount") @db.Decimal(18, 2)
+  freightAmount      Decimal?  @map("freight_amount") @db.Decimal(18, 2)
+  additionalChargeAmount Decimal? @map("additional_charge_amount") @db.Decimal(18, 2)
+  vatRatePercent     Decimal?  @map("vat_rate_percent") @db.Decimal(5, 2)
   approvalInstanceId String?   @unique @map("approval_instance_id") @db.Uuid
   createdByUserId    String    @map("created_by_user_id") @db.Uuid
   submittedByUserId  String?   @map("submitted_by_user_id") @db.Uuid
