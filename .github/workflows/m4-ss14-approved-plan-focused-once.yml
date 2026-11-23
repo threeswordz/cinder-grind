@@ -1,0 +1,54 @@
+# One-off source compatibility for NEW SS14 approved-plan reminders only.
+# No full CI, no native DB transactions, no retained users or Production.
+name: M4 SS14 Approved Plan 14-7 Focused Only
+on:
+  push:
+    branches: ['work-m4-ss14-plan-reminders-focused-once-20261124']
+    paths: ['.github/workflows/m4-ss14-approved-plan-focused-once.yml']
+permissions:
+  contents: read
+concurrency:
+  group: m4-ss14-plan-once-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  approved-plan-focused:
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    env:
+      DATABASE_URL: postgresql://construction_erp:construction_erp_dev_only@localhost:5432/construction_erp?schema=public
+      NODE_ENV: test
+      SS14_EXACT_SHA: ${{ github.sha }}
+    steps:
+      - name: Checkout exact isolated SS14 source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          ref: ${{ github.sha }}
+      - name: Verify exact source identity
+        run: test "$(git rev-parse HEAD)" = "$SS14_EXACT_SHA"
+      - name: Set up pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
+        with:
+          version: 12.6.0
+          run_install: false
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.21.0
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Prisma generate plus schema validation (no DB migration)
+        run: |
+          pnpm prisma:generate
+          pnpm prisma:validate
+      - name: Typecheck new combined API and React source
+        run: pnpm typecheck
+      - name: Compile API new focused tests
+        run: pnpm --filter @construction-erp/api build
+      - name: Run ONLY new approved-plan reminder contract and scoped service tests
+        run: |
+          node --test --test-concurrency=1 \
+            apps/api/dist/inventory/approved-plan-start-reminder.spec.js \
+            apps/api/dist/inventory/stock-minimum.plan-start.spec.js
+      - name: Seal focused-only result
+        run: echo 'SS14_14_7_READ_ONLY_FOCUSED_SOURCE_ONLY; no historical full suite, real named-user browser, delivery commitments or M4 acceptance'
