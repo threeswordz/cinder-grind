@@ -6,6 +6,8 @@ import { AuthorizationModule } from '../authorization/authorization.module';
 import { PrismaModule } from '../prisma/prisma.module';
 import { ProjectsModule } from '../projects/projects.module';
 import { EquipmentController } from './equipment.controller';
+import { EquipmentCustodyController } from './equipment-custody.controller';
+import { EquipmentCustodyService } from './equipment-custody.service';
 import { EquipmentService } from './equipment.service';
 
 @Module({
@@ -16,8 +18,8 @@ import { EquipmentService } from './equipment.service';
     AuditModule,
     ProjectsModule,
   ],
-  controllers: [EquipmentController],
-  providers: [EquipmentService],
+  controllers: [EquipmentController, EquipmentCustodyController],
+  providers: [EquipmentService, EquipmentCustodyService],
   exports: [EquipmentService],
 })
 export class EquipmentModule {}
