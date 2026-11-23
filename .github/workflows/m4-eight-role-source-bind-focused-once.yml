@@ -1,0 +1,39 @@
+# Exactly one changed eight-role operator SHA contract test. No live accounts/browser/release CI.
+name: M4 Eight Role Source Binding Only
+on:
+  push:
+    branches: ['focused-m4-eight-role-source-binding-once-20261124']
+    paths: ['.github/workflows/m4-eight-role-source-bind-focused-once.yml']
+permissions:
+  contents: read
+concurrency:
+  group: m4-eight-role-source-binding-once-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  source-binding:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      EXPECTED_CHANGED_SOURCE: 'e163e6b76478ec5c4d0ac45d0a03168f419f1437'
+    steps:
+      - name: Checkout exact changed operator
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 2
+      - name: Confirm only wrapper YAML differs from the tested source
+        run: |
+          test "$(git rev-parse HEAD^)" = "$EXPECTED_CHANGED_SOURCE"
+          test "$(git diff --name-only HEAD^ HEAD)" = ".github/workflows/m4-eight-role-source-bind-focused-once.yml"
+      - name: Set up Node 24
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.21.0
+      - name: Syntax check only changed operator and tests
+        run: |
+          node --check deploy/uat/m4-eight-role-journeys-20261124.mjs
+          node --check deploy/uat/m4-eight-role-journeys-20261124.test.mjs
+      - name: Execute only updated eight-role operator contract suite
+        run: node --test --test-concurrency=1 deploy/uat/m4-eight-role-journeys-20261124.test.mjs
+      - name: Seal no human-UAT or release interpretation
+        run: echo M4_SOURCE_BINDING_CONTRACT_ONLY_NO_RELEASE_ACTION
