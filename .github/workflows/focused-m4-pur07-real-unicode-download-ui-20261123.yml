@@ -1,0 +1,72 @@
+name: M4 PUR07 authenticated Thai backend PDF download and reported send UI
+on:
+  push:
+    branches: [focused-m4-pur07-real-unicode-download-ui-20261123]
+    paths: ['.github/workflows/focused-m4-pur07-real-unicode-download-ui-20261123.yml']
+permissions:
+  contents: read
+jobs:
+  new-pur07-unicode-ui-only:
+    name: New PUR07 approved Thai server PDF real Jai and Ben download proof
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    services:
+      postgres:
+        image: postgres:17.11-alpine
+        env:
+          POSTGRES_DB: erp_m4_pur07_auth_browser
+          POSTGRES_USER: construction_erp
+          POSTGRES_PASSWORD: construction_erp_dev_only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U construction_erp -d erp_m4_pur07_auth_browser"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://construction_erp:construction_erp_dev_only@localhost:5432/erp_m4_pur07_auth_browser?schema=public
+      M4_NON_PRODUCTION_CONFIRMED: 'YES'
+      EXACT_PUR07_TEST_SOURCE: 10a9917f00d53e3c91b999e038113b42f9ab5a42
+    steps:
+      - name: Checkout exact source with workflow-only test runner child
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 2
+      - name: Stop unless exact PUR07 source parent and one workflow child
+        run: |
+          test "$(git rev-parse HEAD^)" = "$EXACT_PUR07_TEST_SOURCE"
+          test "$(git diff --name-only HEAD^ HEAD)" = ".github/workflows/focused-m4-pur07-real-unicode-download-ui-20261123.yml"
+          test "${DATABASE_URL%%\?*}" = "postgresql://construction_erp:construction_erp_dev_only@localhost:5432/erp_m4_pur07_auth_browser"
+          test "$M4_NON_PRODUCTION_CONFIRMED" = "YES"
+      - name: Setup pinned pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
+        with:
+          version: 12.6.0
+          run_install: false
+      - name: Setup pinned Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.21.0
+      - name: Frozen dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Check new browser source and actual Chromium only
+        run: |
+          node --check deploy/uat/m4-pur07-jai-ben-server-download-browser-native.mjs
+          command -v google-chrome || command -v chromium || command -v chromium-browser
+      - name: Fresh disposable PG17 forward-only migration
+        run: |
+          pnpm prisma:generate
+          pnpm prisma:migrate:deploy
+      - name: Install Thai test font only on disposable runner
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends fonts-noto-core fontconfig
+          fc-match 'Noto Sans Thai'
+      - name: Build actual Nest API for this new browser journey
+        run: pnpm --filter @construction-erp/api build
+      - name: Only NEW PUR07 Unicode download HTTP200 and reported send Jai Ben browser
+        run: node deploy/uat/m4-pur07-jai-ben-server-download-browser-native.mjs
+      - name: Explicit proof limits for new synthetic Chrome only
+        run: echo 'No full CI, retained grants, Mac replay, previous Chromium suite, main merge, or Production.'
