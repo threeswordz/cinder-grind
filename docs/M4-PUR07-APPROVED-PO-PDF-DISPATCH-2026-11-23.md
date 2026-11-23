@@ -1,0 +1,23 @@
+# M4 PUR07 — approved supplier PO PDF and external delivery evidence
+
+**Development candidate only — DRAFT, stacked on PUR12 #417.** The Owner confirmed on 17 Nov that an approved PO must support safe filename `T-PO2610-001 ABC.pdf` / MKE equivalent, with supplier **short name**, unchanged full legal supplier name, Jai's **manual** email/LINE dispatch and supplier acknowledgment proof. No external send integration is approved.
+
+## Source contract and security boundaries
+
+1. **Exact approved version:** GET `/api/v1/procurement/purchase-orders/:orderId/pdf` reuses the existing Company/Project `procurement.po.view` guards, checks exact PO revision is approved and not cancelled, and requires THB/source-backed supplier legal-name snapshot from the selected quotation award. No draft, submitted, cancelled or unverified currency PDF.
+2. **Safe filename:** derive deterministic Unicode-safe `<K/T-POYYMM-NNN> <supplier-short-name>.pdf` from PUR12's saved display snapshot, append `-revNN` for revisions >0, reject path traversal/bidi/control characters rather than replacing it with guessed supplier code. Historical NULL display falls back to the old immutable `POYYMM-NNN.pdf` only.
+3. **Prototype PDF (narrow):** dependency-free deterministic PDF 1.4 with ASCII/Latin legal/line strings and stored lines, whole-PO commercial values, explicit unknowns and no arbitrary 0 defaults. It refuses all **Thai/Unicode document glyphs** with `PO_PDF_UNICODE_FONT_NOT_READY`, rather than silently dropping them or printing garbage. Thai rendering is NOT fully implemented and **blocks PUR07 release acceptance**.
+4. **Thai operator fallback:** React offers a separate *Print / Save as PDF* browser page with escaped supplied text, native browser Thai-font shaping, and the suggested safe filename in document title. This produces no automatic PDF download, does not guarantee the browser uses the filename, and relies on the operator saving and uploading the exact PDF to the existing scoped Project Documents workflow. It is a temporary human fallback, not a substitute for approved Unicode PDF rendering and real browser proof.
+5. **Append-only evidence:** new `PoDispatchEvent` rows tied to an exact Company, Project, PO revision, author and server time; event kind `DISPATCH` or `ACKNOWLEDGMENT`, recorded email/LINE channel, recipient and verifiable human reference, optional existing Project Document and exact prior dispatch ID for acknowledgment. PostgreSQL trigger prevents update/delete, enforces source/project/evidence-link and same-PO dispatch-ack linkage. `record` only via existing `procurement.po.edit` and explicit `PROCUREMENT_OFFICER` role (Jai). Event/audit action explicitly says **REPORTED**, not message transmitted or acknowledged by the platform. No e-mail/LINE API, no grants, no approval delegation.
+6. **External PDF hash limitation:** `pdfSha256` remains null for *self-reported external* sends because the server cannot verify the user's actual external attachment. Never substitute the hash of a generated local preview and claim it was sent. Supporting uploaded evidence must have exact Company/Project link.
+7. **Monetary caution:** if any approved header discount/freight/charges/VAT values are historical NULLs, the downloaded PDF prints **NOT SPECIFIED** and **NOT CALCULATED** instead of treating them as zero. No Accounting/GL, WHT/VAT reporting or #245 multi-Project scopes introduced.
+
+## Distinct technical gates
+
+- [ ] Forward-only Prisma migration + compile + Web typecheck at exact source SHA.
+- [ ] New PDF contract tests: valid PDF byte structure, deterministic hash/filename, reject path traversal and unsupported Thai font.
+- [ ] New REAL disposable PG17 source-backed approved PO actor journey: deny drafts, permit exact approved PDF, Jai manual event, linked acknowledgment, immutable SQL trigger, forged evidence and unauthorized/cross-Company denials; **synthetic actor != retained named MKE/TCJ rights**.
+- [ ] Chrome browser print (Thai) / actual PDF rendered and inspected, file title and save proof; Unicode font installed/embedded for backend PDF with license review.
+- [ ] Independent DEC-022 exact-head review, real retained Jai/Ben/MKE/TCJ permissions, Owner requirement acceptance, consolidated candidate and **separately Owner-authorized** mandatory release CI.
+
+**No production, no retained business edits, no historical renumbering, no completed hours credited until a whole package is accepted.** User-visible M4-06 checklist is source/evidence-scoped, not engineering hours or go-live authority.
