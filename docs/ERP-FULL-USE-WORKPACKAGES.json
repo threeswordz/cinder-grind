@@ -12,7 +12,7 @@
     "verifiedRetiredHours": 0,
     "openBudgetHours": 1900,
     "actualLoggedHours": null,
-    "asOf": "2026-11-23T21:14:10+08:00",
+    "asOf": "2026-11-23T21:36:53+08:00",
     "activePackage": "M4-01",
     "activeForecastHourRange": "H0001–H0020",
     "activeConcurrentPackages": [
@@ -23,8 +23,8 @@
       "M4-06",
       "M4-03"
     ],
-    "workEvidenceNote": "M4-02 3/4 after 9/9 focused new source-guard PASS; M4-03 3/4 after real Chrome PASS. New proof is NOT full M4 package acceptance or retained MKE/TCJ grants; 0/1900 hours retired, forecast 1900h unchanged (low-confidence 1100–3300h scenario). No duplicate full CI/Mac.",
-    "latestTechnicalCheckpoint": "M4-02 new exact-source #45181742276 SUCCESS: real PG17 invariant refuses forged B-line insert, service seven cases guard against inactive/wrong Company/Project/returned demand pre-ApprovalService; 9/9 focused tests PASS. Separate previously successful actual PM02 Chrome #45147124712 reused. M4=20/32, M4-02=3/4; retained grants/Owner gates open.",
+    "workEvidenceNote": "M4-04 and M4-05 new distinct synthetic real Chrome UI evidence #45185452075 PASS. This shrinks outstanding PUR01 UI gap and proves PUR04 header user entry, not effective real retained MKE/TCJ grants, human UAT or revision. Existing success suites preserved and no final D checkpoint credit; M4=20/32, prototype4/8, GL3/10, 0/1900h retired.",
+    "latestTechnicalCheckpoint": "NEW actual distinct PUR01/Jai/Ben React/MUI browser #45185452075 SUCCESS (5 source logs), THB60k exception no-reason denial then reasoned buyer save/submit, Ben independent actual Approve; PUR04 delivery/payment header UI also verified. Both M4-04 and M4-05 final D remain unaccepted until named retained role/extra revision/Owner review. Technical aggregate stays 20/32, accepted hours stay 0/1900.",
     "m4CheckpointCompleted": 20,
     "m4CheckpointTotal": 32,
     "displayCounter": "0 / 1900",
@@ -311,11 +311,13 @@
         "https://github.com/threeswordz/cinder-grind/pull/415",
         "https://github.com/threeswordz/cinder-grind/actions/runs/45140450091",
         "https://github.com/threeswordz/cinder-grind/actions/runs/45140977184",
-        "https://github.com/threeswordz/cinder-grind/actions/runs/45142678279"
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45142678279",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45185452075",
+        "https://github.com/threeswordz/cinder-grind/pull/420"
       ],
       "actualHours": null,
       "verifiedAt": null,
-      "latestAssessment": "Actual 2/3 supplier, incomplete bid denial, no-reason exception denial, non-Management and buyer denial, independent Ben synthetic allow PG17.11 PASS #45142678279. Final real UI/retained grants/Owner review outstanding, no hour retirement.",
+      "latestAssessment": "New one-shot exact-source #45185452075 COMPLETED SUCCESS, 5 browser log markers. Synthetic real Jai/Ben Chromium confirmed THB60k 1 supplier no-reason HTTP422 and no approval, actual exception MUI input/save and Jai submit, independent Ben MANAGEMENT browser Approve with one audit/ApprovalAction, stock/Finance unchanged. This is first actual PUR01 UI proof, but synthetic Company/roles; effective retained actual MKE/TCJ grants, final DEC-022 independent review, Owner business acceptance, final CI and merge unverified. Final D remains unaccepted, package 3/4=75%, no hours retired.",
       "checkpoints": [
         {
           "name": "Existing RFQ/award baseline",
@@ -332,8 +334,10 @@
           "run": 45142678279
         },
         {
-          "name": "Retained user grants and real purchase-order browser/Owner acceptance",
-          "status": "OUTSTANDING"
+          "name": "REAL Jai MUI no-reason denial, reasoned buyer submit, independent Ben MANAGEMENT browser approval passed; retained named MKE/TCJ actor admissions, Owner acceptance and final independent review still outstanding",
+          "status": "SYNTHETIC_REAL_BROWSER_PASS_RETAINED_USER_AND_FINAL_REVIEW_PENDING",
+          "run": 45185452075,
+          "note": "At H0065–H0090 PUR01 final checkpoint is NOT accepted solely from synthetic browser evidence. 1/2/3 supplier count native proof remains #45142678279; zero existing suite reruns."
         }
       ],
       "progressPercent": 75
@@ -351,11 +355,12 @@
       "evidence": [
         "https://github.com/threeswordz/cinder-grind/pull/413",
         "https://github.com/threeswordz/cinder-grind/actions/runs/45140450091",
-        "https://github.com/threeswordz/cinder-grind/actions/runs/45140977184"
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45140977184",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45185452075"
       ],
       "actualHours": null,
       "verifiedAt": null,
-      "latestAssessment": "PUR04 additive PG17.11 migration, draft edit/audit focused PG, changed API and Web typecheck PASS. Real revision/browser/retained role and final integration unproven.",
+      "latestAssessment": "Prior PG17 migrations, draft API/Web TS and commercial data audit PASS, plus first actual authenticated Jai React Chrome header edit PASS in one-shot PUR01 #45185452075: deliveryLocation, paymentTerms and exceptional supplier reason persisted to real PG. PUR04 revised PO copy, Company boundary, real retained actors and release integration still unproven. Final 4th checkpoint not accepted; 3/4=75% and 0h retired.",
       "checkpoints": [
         {
           "name": "Forward-only nullable commercial schema",
@@ -370,8 +375,10 @@
           "status": "FOCUSED_TEST_PASS"
         },
         {
-          "name": "Revision/Company scope, real UI/retained actor acceptance",
-          "status": "NOT_PROVEN"
+          "name": "Jai actual Chrome saved PUR04 delivery location and payment terms (partial); actual revision/Company scope, retained roles and Owner/independent release acceptance still pending",
+          "status": "BROWSER_DRAFT_HEADER_PASS_REVISION_RETAINED_ROLES_PENDING",
+          "run": 45185452075,
+          "note": "M4-05 final D remains unaccepted. Browser proof is actual authenticated synthetic Jai; no revision flow proven."
         }
       ]
     },
