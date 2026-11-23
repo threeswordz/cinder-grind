@@ -13,6 +13,7 @@ jobs:
     env:
       PUR07_DISPOSABLE_BROWSER_ONLY: 'YES'
       EXPECTED_PUR07_SOURCE: 141402521f512259489c50b20dd4609715448b73
+      EXPECTED_PREVIOUS_WORKFLOW_COMMIT: 3bf8ac17b0a1c977a492ffbf4d52934d59378eba
     steps:
       - name: Checkout exact source, no other files
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -21,7 +22,8 @@ jobs:
           fetch-depth: 2
       - name: Reject unrelated source and workflow changes
         run: |
-          test "$(git rev-parse HEAD^)" = "$EXPECTED_PUR07_SOURCE"
+          test "$(git rev-parse HEAD^)" = "$EXPECTED_PREVIOUS_WORKFLOW_COMMIT"
+          test "$(git rev-parse HEAD^^)" = "$EXPECTED_PUR07_SOURCE"
           test "$(git diff --name-only HEAD^ HEAD)" = ".github/workflows/focused-m4-pur07-real-thai-print-20261123.yml"
           test "$PUR07_DISPOSABLE_BROWSER_ONLY" = "YES"
       - name: Setup pinned pnpm
@@ -37,11 +39,12 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Ensure local Thai font shaping (ephemeral test runner only)
         run: |
-          if ! fc-list :lang=th | grep -q .; then
+          if [ -z "$(fc-list :lang=th -f '%{family}\\n')" ] || ! command -v pdftotext >/dev/null; then
             sudo apt-get update -qq
-            sudo apt-get install -y --no-install-recommends fonts-thai-tlwg
+            sudo apt-get install -y --no-install-recommends fonts-thai-tlwg poppler-utils
           fi
-          fc-list :lang=th | grep -q .
+          fc-list :lang=th -f '%{family}\\n' > /tmp/pur07-thai-font-families.txt
+          test -s /tmp/pur07-thai-font-families.txt
           command -v pdftotext
           command -v pdfinfo
           (command -v google-chrome || command -v chromium || command -v chromium-browser)
