@@ -8,7 +8,7 @@
 export type PlanStartWindow = 'DUE_TODAY' | 'WITHIN_7_DAYS' | 'WITHIN_14_DAYS';
 
 const isoDay = (day: unknown): day is string => {
-  if (typeof day !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(day)) return false;
+  if (typeof day !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(day) || day.startsWith('0000')) return false;
   const parsed = new Date(day + 'T00:00:00.000Z');
   return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === day;
 };
