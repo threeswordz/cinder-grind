@@ -109,6 +109,7 @@ export type MaterialReservation = {
 
 export type MaterialIssue = {
   id: string;
+  createdByUserId: string;
   issueNumber: string;
   projectId: string;
   warehouseId: string;
