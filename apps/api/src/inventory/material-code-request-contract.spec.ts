@@ -51,7 +51,7 @@ test('SS02 refuses fork, missing event, tampered project and changed immutable r
   assert.throws(()=>ss02Replay([first,second,copied],companyId,projectId,requestId),
     /SS02_HISTORY_INVALID/);
   assert.throws(()=>ss02Replay([second],companyId,projectId,requestId),
-    /SS02_HISTORY_ILLEGAL_STAGE|SS02_HISTORY_TAMPER/);
+    /SS02_HISTORY_VERSION_GAP|SS02_HISTORY_ILLEGAL_STAGE|SS02_HISTORY_TAMPER/);
   const foreign=structuredClone(second);
   foreign.newValues.projectId=randomUUID();
   assert.throws(()=>ss02Replay([first,foreign],companyId,projectId,requestId),
