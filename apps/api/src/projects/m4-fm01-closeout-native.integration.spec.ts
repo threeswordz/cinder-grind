@@ -107,7 +107,23 @@ test('M4 actual HTTP/PostgreSQL FM01 weekly calendar and BEN04 closeout with ind
    const prepared=await pass<{status:string;current:{fingerprint:string}}>(pm,'POST',closeout+'/prepare',input);
    assert.equal(prepared.status,'PREPARED');
    const fingerprint=prepared.current.fingerprint;
-   await reject(pm,'POST',closeout+'/sign',{expectedFingerprint:fingerprint,note:'Maker cannot sign'});
+   // Temporarily give the actual preparer the eligible Ben reviewer role:
+   // the denial must come from maker/checker, not missing role/permission.
+   const benReviewerRole=await db.role.findFirstOrThrow({
+    where:{companyId:company.id,roleCode:'MANAGEMENT'},
+   });
+   const syntheticDualRole=await db.userRole.create({
+    data:{companyId:company.id,userId:pm.id,roleId:benReviewerRole.id},
+   });
+   try {
+    const self=await request(pm,'POST',closeout+'/sign',{
+     expectedFingerprint:fingerprint,note:'A dual-role maker cannot sign their own preparation',
+    });
+    assert.equal(self.status,403);
+    assert.match(JSON.stringify(self.raw),/BEN04_SELF_APPROVAL_DENIED/);
+   } finally {
+    await db.userRole.delete({where:{id:syntheticDualRole.id}});
+   }
    await pass(ben,'POST',closeout+'/sign',{expectedFingerprint:fingerprint,note:'Ben independently reviewed'});
    await reject(ben,'POST',closeout+'/sign',{expectedFingerprint:fingerprint,note:'Duplicate signer'});
    const approved=await pass<{status:string}>(nancy,'POST',closeout+'/sign',{
