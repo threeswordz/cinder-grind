@@ -981,6 +981,7 @@ export class PurchaseOrderService {
           data: {
             approvalInstanceId: approvalInstance.id,
             submittedByUserId: context.auth.userId,
+            currencyCode: 'THB',
             submittedAt,
           },
         });
@@ -1469,6 +1470,7 @@ export class PurchaseOrderService {
             projectId: source.projectId,
             supplierId: source.supplierId,
             poNumber: source.poNumber,
+            currencyCode: source.currencyCode,
             revisionNo: source.revisionNo + 1,
             previousRevisionId: source.id,
             revisionReason: revisionReason ?? null,
@@ -1559,12 +1561,18 @@ export class PurchaseOrderService {
     order: {
       companyId: string;
       projectId: string;
+      supplierId: string;
       discountAmount: Prisma.Decimal | null;
       freightAmount: Prisma.Decimal | null;
       additionalChargeAmount: Prisma.Decimal | null;
       vatRatePercent: Prisma.Decimal | null;
       supplierQuoteExceptionReason: string | null;
-      lines: Array<{ rfqLineId: string; quantity: Prisma.Decimal; amount: Prisma.Decimal }>;
+      lines: Array<{
+        rfqLineId: string;
+        supplierQuotationId: string;
+        quantity: Prisma.Decimal;
+        amount: Prisma.Decimal;
+      }>;
     },
     approver?: AuthenticatedUserContext,
   ) {
@@ -1575,6 +1583,26 @@ export class PurchaseOrderService {
       subtotal, order.discountAmount, order.freightAmount,
       order.additionalChargeAmount, order.vatRatePercent,
     );
+    // The awarded/selected supplier's *own* quotation must be verified THB;
+    // otherwise unrelated THB bids could make an unknown-currency award pass.
+    const selectedQuotationIds = [...new Set(
+      order.lines.map((line) => line.supplierQuotationId),
+    )];
+    const selectedTHB = await tx.supplierQuotation.count({
+      where: {
+        id: { in: selectedQuotationIds },
+        companyId: order.companyId,
+        supplierId: order.supplierId,
+        currencyCode: 'THB',
+        rfq: { companyId: order.companyId, projectId: order.projectId },
+      },
+    });
+    if (selectedTHB !== selectedQuotationIds.length) {
+      throw new UnprocessableEntityException({
+        code: 'PO_SELECTED_QUOTE_THB_PROVENANCE_REQUIRED',
+        detail: 'Every selected award must have verifiable THB quotation provenance.',
+      });
+    }
     const offers = await tx.supplierQuotationLine.findMany({
       where: {
         rfqLineId: { in: order.lines.map((line) => line.rfqLineId) },
