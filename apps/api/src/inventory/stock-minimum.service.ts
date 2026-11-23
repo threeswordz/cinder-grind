@@ -112,7 +112,7 @@ export class StockMinimumService {
     for (const policy of policies) {
       const material = await this.prisma.material.findFirst({
         where: { id: policy.materialId, companyId: auth.companyId, isActive: true },
-        select: { materialCode: true, materialName: true },
+        select: { materialCode: true, materialName: true, defaultUomId: true },
       });
       if (!material) continue;
       const uom = await this.prisma.unitOfMeasure.findFirst({
@@ -125,14 +125,21 @@ export class StockMinimumService {
         materialId: policy.materialId, uomId: policy.uomId,
       });
       const minimum = new Prisma.Decimal(policy.minimumQuantity);
+      // A historical threshold must not silently compare a retired purchase UOM
+      // with a newly activated canonical stock UOM. It requires fresh PM setup.
+      const canonical = await trackedCanonicalBasis(this.prisma, auth.companyId, policy.materialId);
+      const configurationStale = canonical
+        ? canonical.stockUomId !== policy.uomId
+        : material.defaultUomId !== policy.uomId;
+      const belowMinimum = !configurationStale && policy.status === 'ACTIVE' &&
+        balance.available.lessThan(minimum);
       alerts.push({
         ...policy, materialCode: material.materialCode, materialName: material.materialName,
-        uomCode: uom.uomCode,
+        uomCode: uom.uomCode, configurationStale,
         onHand: balance.onHand.toFixed(4), reserved: balance.reserved.toFixed(4),
         available: balance.available.toFixed(4),
-        belowMinimum: policy.status === 'ACTIVE' && balance.available.lessThan(minimum),
-        shortage: policy.status === 'ACTIVE' && balance.available.lessThan(minimum)
-          ? minimum.minus(balance.available).toFixed(4) : '0.0000',
+        belowMinimum,
+        shortage: belowMinimum ? minimum.minus(balance.available).toFixed(4) : '0.0000',
       });
     }
     return { projectId, warehouseId, warehouseCode: warehouse.warehouseCode,
