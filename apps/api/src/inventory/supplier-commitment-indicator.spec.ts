@@ -63,6 +63,12 @@ test('SS14 explicit approved PO revision date change is not a verified supplier 
   });
   assert.equal(unchanged.dateRevisedFromPreviousApproved, false);
   assert.equal(unchanged.previousApprovedExpectedDelivery, null);
+  const removed = supplierLineIndicator({ ...input, expectedDelivery: null,
+    previousApprovedExpectedDelivery: '2026-12-01' });
+  assert.equal(removed.dateRevisedFromPreviousApproved, false);
+  assert.equal(removed.dateRemovedFromPreviousApproved, true);
+  assert.equal(removed.deliveryState, 'DATE_UNKNOWN');
+  assert.equal(removed.previousApprovedExpectedDelivery, '2026-12-01');
 });
 
 test('SS14 cancelled approved PO is not shown as a live supplier obligation', () => {
