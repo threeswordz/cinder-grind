@@ -142,9 +142,10 @@ export class PurchaseOrderPur07Service {
     return this.prisma.poDispatchEvent.findMany({
       where: { companyId: auth.companyId, projectId: order.projectId, purchaseOrderId: order.id },
       orderBy: [{ recordedAt: 'asc' }, { id: 'asc' }],
+      // PO viewing alone is NOT documents.document.view: never leak an
+      // attached Project Document's filename or checksum through this list.
       include: {
         actor: { select: { id: true, displayName: true } },
-        evidenceDocument: { select: { id: true, fileName: true, checksum: true } },
       },
     });
   }
