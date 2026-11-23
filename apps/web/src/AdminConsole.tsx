@@ -214,6 +214,7 @@ export function AdminConsole({ user, onLogoutSuccess }: { user: CurrentUser; onL
           permission: '__inventory__',
           content: <InventoryWorkspace
             permissions={user.permissions}
+            roleCodes={user.roleCodes}
             userId={user.id}
             companyId={user.companyId}
             initialProjectId={linkedSource?.sectionKey === 'inventory' ? linkedSource.projectId : undefined}
