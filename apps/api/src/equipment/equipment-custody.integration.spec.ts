@@ -14,8 +14,8 @@ import { EquipmentCustodyService } from './equipment-custody.service';
 const issuedOn=new Date('2026-11-20T00:00:00.000Z');
 const dueOn=new Date('2026-11-30T00:00:00.000Z');
 const returnedOn=new Date('2026-11-22T00:00:00.000Z');
-function context(companyId:string,userId:string,manage=true):AuthenticatedUserContext {
-  return {sessionId:randomUUID(),companyId,userId,email:'ss11@example.test',
+function context(companyId:string,userId:string,sessionId:string,manage=true):AuthenticatedUserContext {
+  return {sessionId,companyId,userId,email:'ss11@example.test',
     displayName:'Store',roleCodes:['STOREKEEPER'],csrfTokenHash:'0'.repeat(64),
     permissions:['equipment.custody.view',...(manage?['equipment.custody.manage']:[])]};
 }
@@ -39,6 +39,16 @@ test('SS11 native PG employee custody: scope, concurrent checkout/return, immuta
     const disabled=await db.employee.create({data:{companyId:company.id,employeeCode:'DI-'+suffix,employeeName:'Disabled',isActive:false}});
     const user=await db.user.create({data:{companyId:company.id,employeeId:operator.id,email:'ss11-'+suffix+'@example.test',
       displayName:'Operator',passwordHash:'x'}});
+    // Disposable fixture roles and session only. No retained role grants.
+    const role=await db.role.create({data:{companyId:company.id,roleCode:'STOREKEEPER',roleName:'Storekeeper'}});
+    const view=await db.permission.findUniqueOrThrow({where:{permissionCode:'equipment.custody.view'}});
+    const manage=await db.permission.findUniqueOrThrow({where:{permissionCode:'equipment.custody.manage'}});
+    await db.rolePermission.createMany({data:[
+      {roleId:role.id,permissionId:view.id},{roleId:role.id,permissionId:manage.id}]});
+    await db.userRole.create({data:{companyId:company.id,userId:user.id,roleId:role.id}});
+    const session=await db.userSession.create({data:{
+      userId:user.id,tokenHash:randomUUID().replaceAll('-',''),
+      csrfTokenHash:'0'.repeat(64),expiresAt:new Date(Date.now()+60*60*1000)}});
     await db.projectMember.createMany({data:[
       {projectId:project.id,employeeId:operator.id,projectRole:'site'},
       {projectId:project.id,employeeId:borrower.id,projectRole:'site'},
@@ -47,7 +57,7 @@ test('SS11 native PG employee custody: scope, concurrent checkout/return, immuta
     const audit=new AuditService(db);
     const equipment=new EquipmentService(db,access,audit);
     const custody=new EquipmentCustodyService(db,access,audit);
-    const auth=context(company.id,user.id);
+    const auth=context(company.id,user.id,session.id);
     const type=await equipment.createType({auth},{equipmentTypeCode:'T-'+suffix,equipmentTypeName:'Tool'});
     const tool=await equipment.createEquipment({auth},{equipmentTypeId:type.id,
       equipmentCode:'CG'+String(parseInt(suffix.slice(0,6),16)%100000).padStart(5,'0'),
@@ -55,7 +65,7 @@ test('SS11 native PG employee custody: scope, concurrent checkout/return, immuta
     await equipment.assign({auth},tool.id,{projectId:project.id,assignedFrom:issuedOn});
     const loan={equipmentId:tool.id,projectId:project.id,borrowerEmployeeId:borrower.id,
       siteLabel:'Block A',issuedOn,dueOn,conditionOut:'Good'};
-    await assert.rejects(()=>custody.checkout({auth:context(company.id,user.id,false)},loan),
+    await assert.rejects(()=>custody.checkout({auth:context(company.id,user.id,session.id,false)},loan),
       (e:unknown)=>e instanceof ForbiddenException);
     await assert.rejects(()=>custody.checkout({auth},{...loan,borrowerEmployeeId:disabled.id}),
       (e:unknown)=>e instanceof ConflictException);
@@ -81,6 +91,27 @@ test('SS11 native PG employee custody: scope, concurrent checkout/return, immuta
     assert.equal(persistedLoan.returnedOn?.toISOString().slice(0,10),'2026-11-22');
     const actions=await db.auditLog.findMany({where:{companyId:company.id,entityType:'EQUIPMENT_CUSTODY',entityId:id}});
     assert.deepEqual(actions.map(e=>e.action).sort(),['CHECKOUT','RETURN']);
+
+    // A stale cookie/request context must not resurrect a revoked live grant.
+    await db.rolePermission.delete({
+      where:{roleId_permissionId:{roleId:role.id,permissionId:manage.id}}});
+    await assert.rejects(()=>custody.checkout({auth},loan),
+      (e:unknown)=>e instanceof ForbiddenException);
+    assert.equal((await custody.list(auth,project.id,tool.id)).length,1);
+    await db.rolePermission.create({data:{roleId:role.id,permissionId:manage.id}});
+
+    await db.role.update({where:{id:role.id},data:{isActive:false}});
+    await assert.rejects(()=>custody.checkout({auth},loan),
+      (e:unknown)=>e instanceof ForbiddenException);
+    await db.role.update({where:{id:role.id},data:{isActive:true}});
+
+    await db.userSession.update({where:{id:session.id},data:{revokedAt:new Date()}});
+    await assert.rejects(()=>custody.checkout({auth},loan),
+      (e:unknown)=>e instanceof ForbiddenException);
+    await assert.rejects(()=>custody.list(auth,project.id,tool.id),
+      (e:unknown)=>e instanceof ForbiddenException);
+    await db.userSession.update({where:{id:session.id},data:{revokedAt:null}});
+
     await db.user.update({where:{id:user.id},data:{isActive:false}});
     await assert.rejects(()=>custody.checkout({auth},loan),(e:unknown)=>e instanceof ForbiddenException);
   } finally {await db.$disconnect();}
