@@ -1,6 +1,6 @@
 # M4 PUR10 — staged cancellation policy, integration and acceptance boundaries
 
-**Status:** isolated source-level contract and focused tests only, **not runtime-integrated**, not released, not M4 acceptance.
+**Status:** nonposting API/service and purchasing UI are now staged on the isolated branch; exact integrated TypeScript/Prisma/React validation and native behavior are **unverified**. No actual PO cancellation, rollout, UAT or M4 acceptance.
 **Base:** consolidated M4 Draft #425 at `8c60e125b57e1081b552ea8f2de87cdfeddadbf0`.
 **Branch:** `work-m4-pur10-cancellation-policy-no-ci-20261123`.
 **Implementation:** `apps/api/src/procurement/purchase-order-cancellation-contract.ts`; focused test: `apps/api/src/procurement/purchase-order-cancellation-contract.test.mjs`.
@@ -16,6 +16,16 @@ Jai proposes cancellation with explicit reason → Khaimook checks continuing Pr
 - Monotonic optimistic versions and exact PO revision/update-source pins; stale or changed source blocked.
 - Nonposting decisions. Final deny-only precondition rejects unapproved reviews, posted unreversed GR, approved AP source, supplier refusal, unresolved deposit/penalty, or partial delivery/invoice.
 - Local isolated Node 22 type-strip test **3/3 passed**, and standalone TS5.8 strict typecheck passed. No full ERP compile, DB test, real-browser test or GitHub CI is claimed.
+
+
+## Incremental backend and UI implementation after initial contract
+
+- `PurchaseOrderCancellationCaseService`: audit-backed, ordered-by-previous-event replay; transaction-scoped advisory lock; explicit current live user session/active employee/role/permission/Company/Project checks; exact named actor IDs from `system_settings.PUR10_NAMED_ACTORS_V1` (must be authorized separately, never preseeded here). Duplicate/stale request and PO revision/change checks; append-only nonposting history.
+- `PurchaseOrderCancellationCaseController` exposes scoped GET and POST decision events with Auth/CSRF/Permission guards. No order/stock/Finance write from the decision API; BEN_APPROVE is review-only.
+- Old one-step `POST /procurement/purchase-orders/:orderId/cancel` now **fails closed** with `PUR10_INDEPENDENT_CANCELLATION_REVIEW_REQUIRED` on this unmerged branch. Old `PurchaseOrderService.cancel` is not itself refactored, therefore **service-level finalization and call-site audit remain release blockers**.
+- The `PurchaseOrdersPanel` unilateral Cancel Revision control is removed; `PurchaseOrderCancellationPanel` renders the Jai proposal, Khaimook review or Ben decision depending on the current role and case status. Actual roles and server permissions are independently enforced; no effective retained grant claims. Ben review reuses existing `procurement.po.approve` permission; no new role grants.
+- On this branch, no new Prisma schema is required for nonposting case decisions because the current append-only `audit_logs` model is used. This does **not** by itself prove immutable persisted-event semantics or migration/recovery integrity; focused PG tests remain needed.
+- The existing 3/3 local policy tests were performed on the initial pure policy before the backend/UI increment; current integrated source has **not** been compiled or executed, so no false PASS is recorded for the new code.
 
 ## Next implementation sequence — explicitly NOT complete
 
