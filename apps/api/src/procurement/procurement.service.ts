@@ -242,6 +242,12 @@ export class ProcurementService {
           detail: 'Only a rejected request or explicitly returned lines of an approved request may be copied.',
         });
       }
+      if (hasReturned && source.createdByUserId !== context.auth.userId) {
+        throw new ForbiddenException({
+          code: 'PR_CORRECTION_MAKER_DENIED',
+          detail: 'Only the original Purchase Request maker may correct returned lines.',
+        });
+      }
     }
 
     const prNumber = await this.numbers.next(
@@ -281,6 +287,9 @@ export class ProcurementService {
           });
           if (!sourceState) throw this.requestNotFound();
           const returnedOnly = this.lifecycleOf(sourceState) === APPROVAL_STATE.APPROVED;
+          if (returnedOnly && sourceState.createdByUserId !== context.auth.userId) {
+            throw new ForbiddenException({ code: 'PR_CORRECTION_MAKER_DENIED' });
+          }
           copiedReturned = returnedOnly;
           if (!returnedOnly && this.lifecycleOf(sourceState) !== APPROVAL_STATE.REJECTED) {
             throw new ConflictException({ code: 'PR_COPY_SOURCE_INVALID' });
