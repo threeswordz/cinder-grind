@@ -25,7 +25,7 @@ const validInput = {
 
 function service(options: {
   role?: string; inactive?: boolean; allowedProject?: boolean;
-  activeUomId?: string;
+  activeUomId?: string; stockPrecision?: number;
 } = {}) {
   const role = options.role ?? 'STOREKEEPER';
   const queries: string[] = [];
@@ -54,7 +54,8 @@ function service(options: {
     }) },
     unitOfMeasure: { findFirst: async () => ({ uomCode: 'EA', isActive: true }) },
     $queryRaw: async () => options.activeUomId
-      ? [{ stockUomId: options.activeUomId, stockPrecision: 4 }] : [],
+      ? [{ stockUomId: options.activeUomId, stockPrecision: options.stockPrecision ?? 4 }] : [],
+    $executeRawUnsafe: async () => { queries.push('policyLock'); return 1; },
     stockTransaction: { create: async () => { stockWrites++; } },
     $transaction: async <T>(fn: (tx: unknown) => Promise<T>): Promise<T> => fn(db),
   };
@@ -122,4 +123,30 @@ test('SS14 warns on changed canonical stock UOM rather than reporting false shor
   assert.equal(result.alerts[0]?.belowMinimum, false);
   assert.equal(result.alerts[0]?.shortage, '0.0000');
   assert.equal(f.stockWrites, 0);
+});
+
+test('PM threshold update creates audit only, uses optimistic version and rejects stale writes', async () => {
+  const f = service({ role: 'PROJECT_MANAGER' });
+  const value = await f.handler.set({ auth: auth('PROJECT_MANAGER') }, projectId, warehouseId,
+    validInput, eventId);
+  assert.equal(value.version, 2);
+  assert.equal(value.stockEffect, false);
+  assert.equal(value.financeEffect, false);
+  assert.deepEqual([f.auditWrites, f.stockWrites], [1, 0]);
+  assert.ok(f.queries.includes('policyLock'));
+  await assert.rejects(
+    f.handler.set({ auth: auth('PROJECT_MANAGER') }, projectId, warehouseId, validInput, randomUUID()),
+    /STOCK_MINIMUM_STALE_VERSION/,
+  );
+  assert.equal(f.auditWrites, 1);
+});
+
+test('SS14 minimum must respect activated canonical unit precision before audit write', async () => {
+  const f = service({ role: 'PROJECT_MANAGER', activeUomId: uomId, stockPrecision: 0 });
+  await assert.rejects(
+    f.handler.set({ auth: auth('PROJECT_MANAGER') }, projectId, warehouseId,
+      { ...validInput, minimumQuantity: '1.5' }, eventId),
+    /STOCK_MINIMUM_STOCK_PRECISION_EXCEEDED/,
+  );
+  assert.deepEqual([f.auditWrites, f.stockWrites], [0, 0]);
 });
