@@ -52,7 +52,7 @@ function service(options: {
     material: { findFirst: async () => ({
       materialCode: 'MAT01', materialName: 'Test material', defaultUomId: uomId,
     }) },
-    unitOfMeasure: { findFirst: async () => ({ uomCode: 'EA' }) },
+    unitOfMeasure: { findFirst: async () => ({ uomCode: 'EA', isActive: true }) },
     $queryRaw: async () => options.activeUomId
       ? [{ stockUomId: options.activeUomId, stockPrecision: 4 }] : [],
     stockTransaction: { create: async () => { stockWrites++; } },
