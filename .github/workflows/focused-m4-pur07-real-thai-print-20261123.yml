@@ -1,0 +1,53 @@
+name: M4 PUR07 one new real Chrome Thai PO PDF rendering proof
+on:
+  push:
+    branches: [focused-m4-pur07-real-thai-print-20261123]
+    paths: ['.github/workflows/focused-m4-pur07-real-thai-print-20261123.yml']
+permissions:
+  contents: read
+jobs:
+  thai-print-one-shot:
+    name: Only new Thai PO browser print PDF and monetary math
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    env:
+      PUR07_DISPOSABLE_BROWSER_ONLY: 'YES'
+      EXPECTED_PUR07_SOURCE: 141402521f512259489c50b20dd4609715448b73
+    steps:
+      - name: Checkout exact source, no other files
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 2
+      - name: Reject unrelated source and workflow changes
+        run: |
+          test "$(git rev-parse HEAD^)" = "$EXPECTED_PUR07_SOURCE"
+          test "$(git diff --name-only HEAD^ HEAD)" = ".github/workflows/focused-m4-pur07-real-thai-print-20261123.yml"
+          test "$PUR07_DISPOSABLE_BROWSER_ONLY" = "YES"
+      - name: Setup pinned pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
+        with:
+          version: 12.6.0
+          run_install: false
+      - name: Setup pinned Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.21.0
+      - name: Frozen dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Ensure local Thai font shaping (ephemeral test runner only)
+        run: |
+          if ! fc-list :lang=th | grep -q .; then
+            sudo apt-get update -qq
+            sudo apt-get install -y --no-install-recommends fonts-thai-tlwg
+          fi
+          fc-list :lang=th | grep -q .
+          command -v pdftotext
+          command -v pdfinfo
+          (command -v google-chrome || command -v chromium || command -v chromium-browser)
+      - name: Scoped web typecheck of actual print and PDF UI source
+        run: pnpm --filter @construction-erp/web typecheck
+      - name: ONLY NEW actual Chrome Thai PO Print to PDF test with exact financial values
+        run: node deploy/uat/pur07-thai-approved-po-print-browser.mjs
+      - name: Evidence boundary
+        run: echo 'Native Chrome A4 Thai PDF text+totals proof only. No actual UI click, outbound message, PG/API, existing CI, full release CI, or Mac.'
