@@ -16,8 +16,8 @@ const errorText = (error: unknown) => error instanceof ApiError
   : error instanceof Error ? error.message : 'Unable to load cancellation review.';
 
 /**
- * PUR10 — explicitly nonposting proposal and review. Actual order cancellation
- * and any supplier/Finance handling are blocked until a separate reviewed gate.
+ * PUR10 — nonposting proposal/review followed by an explicit, verified
+ * Ben-only final cancellation. No stock or Finance transaction is posted.
  */
 export function PurchaseOrderCancellationPanel({ orderId, permissions, roleCodes }: Props) {
   const client = useQueryClient();
@@ -108,13 +108,18 @@ export function PurchaseOrderCancellationPanel({ orderId, permissions, roleCodes
             <Alert severity="warning">
               {errorText(query.error)}. Cancellation review cannot proceed until
               named Jai, Khaimook and Ben accounts are configured and authorized.
+              <Button size="small" onClick={() => void query.refetch()}>
+                Refresh protected review
+              </Button>
             </Alert>
           ) : null}
           {query.isSuccess ? (
             <Stack direction="row" spacing={1} alignItems="center">
               <Chip size="small" label={state?.status ?? 'NO PROPOSAL'} />
               <Typography variant="caption">
-                Review version {state?.version ?? 0}; historical PO remains unchanged
+                Review version {state?.version ?? 0}; {state?.status === 'FINALIZED'
+                  ? 'PO cancellation finalized; audit history retained'
+                  : 'PO cancellation not yet finalized'}
               </Typography>
             </Stack>
           ) : null}
@@ -133,7 +138,7 @@ export function PurchaseOrderCancellationPanel({ orderId, permissions, roleCodes
               No stock or Finance posting was performed.
             </Alert>
           ) : null}
-          {state?.status === 'BEN_APPROVED' && canFinalize ? (
+          {query.isSuccess && state?.status === 'BEN_APPROVED' && canFinalize ? (
             <Stack spacing={1}>
               <TextField
                 label="Supplier's cancellation agreement evidence reference"
@@ -188,7 +193,8 @@ export function PurchaseOrderCancellationPanel({ orderId, permissions, roleCodes
                 {actions.map(item => (
                   <Button
                     key={item.action} variant="outlined" color={item.color ?? 'primary'}
-                    disabled={change.isPending || note.trim().length < 3}
+                    disabled={change.isPending || note.trim().length < 3 ||
+                      note.trim() !== note}
                     onClick={() => change.mutate(item.action)}
                   >
                     {item.label}
