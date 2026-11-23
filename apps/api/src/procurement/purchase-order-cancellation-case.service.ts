@@ -163,25 +163,26 @@ export class PurchaseOrderCancellationCaseService {
           state.orderUpdatedAt !== v.orderUpdatedAt || state.projectId !== v.projectId ||
           state.poNumber !== v.poNumber || state.revisionNo !== v.revisionNo))
         return fail('PUR10_HISTORY_SOURCE_MUTATED');
-      const before = state?.status ?? null;
+      const previousState = state as Pur10Case | null;
+      const before = previousState?.status ?? null;
       const target = v.status as Pur10Status;
       if (!(
         (before === null && row.action === 'PROPOSE' && target === 'PM_PENDING' &&
           v.makerUserId === row.actorUserId && v.pmUserId === null && v.benUserId === null) ||
         (before === 'PM_PENDING' && row.action === 'PM_FORWARD' && target === 'BEN_PENDING' &&
-          v.pmUserId === row.actorUserId && v.benUserId === null && row.actorUserId !== state?.makerUserId) ||
+          v.pmUserId === row.actorUserId && v.benUserId === null && row.actorUserId !== previousState?.makerUserId) ||
         (before === 'PM_PENDING' && row.action === 'PM_RETURN' && target === 'RETURNED' &&
-          v.pmUserId === row.actorUserId && v.benUserId === null && row.actorUserId !== state?.makerUserId) ||
+          v.pmUserId === row.actorUserId && v.benUserId === null && row.actorUserId !== previousState?.makerUserId) ||
         (before === 'BEN_PENDING' && row.action === 'BEN_APPROVE' && target === 'BEN_APPROVED' &&
-          v.benUserId === row.actorUserId && row.actorUserId !== state?.pmUserId &&
-          row.actorUserId !== state?.makerUserId) ||
+          v.benUserId === row.actorUserId && row.actorUserId !== previousState?.pmUserId &&
+          row.actorUserId !== previousState?.makerUserId) ||
         (before === 'BEN_PENDING' && row.action === 'BEN_REJECT' && target === 'REJECTED' &&
-          v.benUserId === row.actorUserId && row.actorUserId !== state?.pmUserId &&
-          row.actorUserId !== state?.makerUserId) ||
+          v.benUserId === row.actorUserId && row.actorUserId !== previousState?.pmUserId &&
+          row.actorUserId !== previousState?.makerUserId) ||
         (before === 'BEN_APPROVED' && row.action === 'FINALIZE' &&
           target === 'FINALIZED' && v.effect === 'PO_CANCELLED' &&
-          v.benUserId === row.actorUserId && row.actorUserId === state?.benUserId &&
-          v.pmUserId === state?.pmUserId && v.makerUserId === state?.makerUserId &&
+          v.benUserId === row.actorUserId && row.actorUserId === previousState?.benUserId &&
+          v.pmUserId === previousState?.pmUserId && v.makerUserId === previousState?.makerUserId &&
           v.poCancelled === true && v.financePosted === false)
       )) return fail('PUR10_HISTORY_STAGE_INVALID');
       state = {
