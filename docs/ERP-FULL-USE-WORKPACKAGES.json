@@ -12,7 +12,7 @@
     "verifiedRetiredHours": 0,
     "openBudgetHours": 1900,
     "actualLoggedHours": null,
-    "asOf": "2026-11-23T16:45:28+08:00",
+    "asOf": "2026-11-23T16:57:53+08:00",
     "activePackage": "M4-01",
     "activeForecastHourRange": "H0001–H0020",
     "activeConcurrentPackages": [
@@ -20,9 +20,9 @@
       "M4-04",
       "M4-05"
     ],
-    "workEvidenceNote": "Source staged and one focused validation in flight; no new completion credited.",
-    "latestTechnicalCheckpoint": "PUR01 pure source tests and changed Web/API validation passed in partly failed run #45140450091; corrected PM02/PUR04 PG tests PASS #45140977184; source only, no package exit.",
-    "m4CheckpointCompleted": 10,
+    "workEvidenceNote": "M4-01/M4-04/M4-05 in progress. Technical checkpoint gains only, no full package accepted; no hours retired.",
+    "latestTechnicalCheckpoint": "PUR01 genuine 2/3 suppliers and Ben exception synthetic native PostgreSQL 17.11 #45142678279 PASS 1/0. M4-04 3/4, still browser and retained business UAT pending.",
+    "m4CheckpointCompleted": 11,
     "m4CheckpointTotal": 32
   },
   "official": {
@@ -208,29 +208,33 @@
       "evidence": [
         "https://github.com/threeswordz/cinder-grind/pull/415",
         "https://github.com/threeswordz/cinder-grind/actions/runs/45140450091",
-        "https://github.com/threeswordz/cinder-grind/actions/runs/45140977184"
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45140977184",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45142678279"
       ],
       "actualHours": null,
       "verifiedAt": null,
-      "latestAssessment": "PUR01 commercial threshold maths and native one-supplier PO PASS; two/three supplier, shortage exception and actual Ben role/browser still need proof.",
+      "latestAssessment": "Actual 2/3 supplier, incomplete bid denial, no-reason exception denial, non-Management and buyer denial, independent Ben synthetic allow PG17.11 PASS #45142678279. Final real UI/retained grants/Owner review outstanding, no hour retirement.",
       "checkpoints": [
         {
-          "name": "Existing RFQ and award baseline",
+          "name": "Existing RFQ/award baseline",
           "status": "SOURCE_VERIFIED"
         },
         {
-          "name": "Net ex-VAT thresholds/missing-data pure proof",
-          "status": "FOCUSED_TEST_PASS"
+          "name": "Net ex-VAT and unknown quote pure proof",
+          "status": "FOCUSED_TEST_PASS",
+          "run": 45140450091
         },
         {
-          "name": "Two/three supplier complete quotes and exception end-to-end",
-          "status": "NOT_PROVEN"
+          "name": "Genuine 2/3 supplier bids and Ben exception synthetic PG actor",
+          "status": "FOCUSED_NATIVE_PASS",
+          "run": 45142678279
         },
         {
-          "name": "Ben exception retained-role/independent action",
-          "status": "NOT_PROVEN"
+          "name": "Retained user grants and real purchase-order browser/Owner acceptance",
+          "status": "OUTSTANDING"
         }
-      ]
+      ],
+      "progressPercent": 75
     },
     {
       "id": "M4-05",
