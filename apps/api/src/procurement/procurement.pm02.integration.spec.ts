@@ -235,6 +235,26 @@ test('PM02: mixed approval, immutable returned demand, and rejected-correction c
     assert.equal(rfq.lines.length, 1);
     assert.equal(rfq.lines[0]?.purchaseRequestLineId, lineA.id);
 
+    // Compatibility: historically whole-approved PR lines retain NULL and
+    // remain eligible; PM02 must not require retroactive backfill/reapproval.
+    const legacyDraft = await service.createRequest(
+      { auth: makerAuth }, project.id, 'Whole-request legacy compatibility',
+    );
+    const legacyLine = await service.createLine({ auth: makerAuth }, legacyDraft.id, {
+      lineType: 'SERVICE', description: 'Previous whole approval compatible',
+      quantity: new Prisma.Decimal('2'), uomId: uom.id,
+    });
+    await service.submitRequest(
+      { auth: makerAuth }, legacyDraft.id, workflow.workflowCode,
+    );
+    await service.approveRequest({ auth: reviewerAuth }, legacyDraft.id, 'Whole approved');
+    assert.equal(
+      (await service.getRequest(makerAuth, legacyDraft.id)).lines[0]?.reviewDecision,
+      null,
+    );
+    const withLegacy = await sourcing.approvedDemand(makerAuth, project.id);
+    assert.ok(withLegacy.some((line) => line.id === legacyLine.id));
+
     await assert.rejects(
       () => service.decideRequestLines(
         { auth: reviewerAuth }, draft.id, instanceId, mixed,
