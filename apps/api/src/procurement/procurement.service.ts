@@ -242,7 +242,16 @@ export class ProcurementService {
           detail: 'Only a rejected request or explicitly returned lines of an approved request may be copied.',
         });
       }
-      if (hasReturned && source.createdByUserId !== context.auth.userId) {
+      // A rejected linked correction remains an original-maker-only correction.
+      const rejectedCorrection = state === APPROVAL_STATE.REJECTED &&
+        (await this.prisma.purchaseRequestLine.count({
+          where: {
+            purchaseRequestId: source.id,
+            correctionSourceLineId: { not: null },
+          },
+        })) > 0;
+      if ((hasReturned || rejectedCorrection) &&
+          source.createdByUserId !== context.auth.userId) {
         throw new ForbiddenException({
           code: 'PR_CORRECTION_MAKER_DENIED',
           detail: 'Only the original Purchase Request maker may correct returned lines.',
@@ -280,6 +289,7 @@ export class ProcurementService {
         });
 
         let copiedReturned = false;
+        let copiedRejectedCorrection = false;
         if (sourceRequestId) {
           const sourceState = await tx.purchaseRequest.findFirst({
             where: { id: sourceRequestId, companyId: context.auth.companyId, projectId },
@@ -287,10 +297,6 @@ export class ProcurementService {
           });
           if (!sourceState) throw this.requestNotFound();
           const returnedOnly = this.lifecycleOf(sourceState) === APPROVAL_STATE.APPROVED;
-          if (returnedOnly && sourceState.createdByUserId !== context.auth.userId) {
-            throw new ForbiddenException({ code: 'PR_CORRECTION_MAKER_DENIED' });
-          }
-          copiedReturned = returnedOnly;
           if (!returnedOnly && this.lifecycleOf(sourceState) !== APPROVAL_STATE.REJECTED) {
             throw new ConflictException({ code: 'PR_COPY_SOURCE_INVALID' });
           }
@@ -304,7 +310,22 @@ export class ProcurementService {
           if (!sourceLines.length) {
             throw new ConflictException({ code: 'PR_NO_RETURNED_LINES' });
           }
-          if (returnedOnly) {
+          // A rejected correction has only linked lines. Link its successor
+          // to its own rejected lines to preserve chain history and uniqueness.
+          const rejectedCorrection = !returnedOnly &&
+            sourceLines.some((line) => line.correctionSourceLineId !== null);
+          if (rejectedCorrection &&
+              sourceLines.some((line) => line.correctionSourceLineId === null)) {
+            throw new ConflictException({ code: 'PR_CORRECTION_MIXED_LINEAGE' });
+          }
+          const linkedCorrection = returnedOnly || rejectedCorrection;
+          if (linkedCorrection &&
+              sourceState.createdByUserId !== context.auth.userId) {
+            throw new ForbiddenException({ code: 'PR_CORRECTION_MAKER_DENIED' });
+          }
+          copiedReturned = returnedOnly;
+          copiedRejectedCorrection = rejectedCorrection;
+          if (linkedCorrection) {
             const previousCorrection = await tx.purchaseRequestLine.findFirst({
               where: { correctionSourceLineId: { in: sourceLines.map((line) => line.id) } },
               select: { id: true },
@@ -334,9 +355,9 @@ export class ProcurementService {
             await tx.purchaseRequestLine.create({
               data: {
                 purchaseRequestId: row.id,
-                lineNo: returnedOnly ? index + 1 : line.lineNo,
+                lineNo: linkedCorrection ? index + 1 : line.lineNo,
                 ...normalized,
-                ...(returnedOnly ? { correctionSourceLineId: line.id } : {}),
+                ...(linkedCorrection ? { correctionSourceLineId: line.id } : {}),
               },
             });
           }
@@ -348,7 +369,9 @@ export class ProcurementService {
             entityType: 'PURCHASE_REQUEST',
             entityId: row.id,
             action: !sourceRequestId ? 'CREATE_DRAFT' :
-              copiedReturned ? 'COPY_RETURNED_LINES_TO_DRAFT' : 'COPY_REJECTED_TO_DRAFT',
+              copiedReturned ? 'COPY_RETURNED_LINES_TO_DRAFT' :
+              copiedRejectedCorrection ? 'COPY_REJECTED_CORRECTION_TO_DRAFT' :
+              'COPY_REJECTED_TO_DRAFT',
             newValues: {
               projectId,
               prNumber,

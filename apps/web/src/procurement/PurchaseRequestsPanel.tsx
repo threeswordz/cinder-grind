@@ -199,8 +199,16 @@ export function PurchaseRequestsPanel({
     onSuccess: refresh,
   });
   const approve = useMutation({
-    mutationFn: () =>
-      procurementApi.approve(requestId, approvalComment.trim() || null),
+    mutationFn: () => {
+      if (selected.data?.data?.lines.some(
+        (line) => Boolean(lineReviews[line.id]?.decision),
+      )) {
+        throw new Error(
+          'Line decisions are in progress. Submit them or clear them before whole-request approval.',
+        );
+      }
+      return procurementApi.approve(requestId, approvalComment.trim() || null);
+    },
     onSuccess: async () => {
       setApprovalComment('');
       await refresh();
@@ -262,6 +270,10 @@ export function PurchaseRequestsPanel({
     current.lines.some((line) => line.reviewDecision === 'RETURNED');
   const isCorrection = Boolean(
     current?.lines.some((line) => line.correctionSourceLineId),
+  );
+  // Selecting PM02 line decisions disables the old whole-request path.
+  const hasLineReviewSelections = Boolean(
+    current?.lines.some((line) => Boolean(lineReviews[line.id]?.decision)),
   );
   const canCancelCurrent =
     Boolean(current) &&
@@ -874,9 +886,9 @@ export function PurchaseRequestsPanel({
                       <Button
                         variant="contained"
                         onClick={() => approve.mutate()}
-                        disabled={approve.isPending}
+                        disabled={approve.isPending || hasLineReviewSelections}
                       >
-                        Approve
+                        Approve whole PR
                       </Button>
                       <Button
                         onClick={() => reject.mutate()}
@@ -885,6 +897,13 @@ export function PurchaseRequestsPanel({
                         Reject
                       </Button>
                     </Stack>
+                    {hasLineReviewSelections ? (
+                      <Alert severity="info">
+                        Whole-request approval is disabled while line decisions are selected.
+                        Complete the line review below, or clear all selections to use
+                        the legacy whole-request approval path.
+                      </Alert>
+                    ) : null}
                   </>
                 ) : null}
 
@@ -952,7 +971,9 @@ export function PurchaseRequestsPanel({
                     onClick={() => copyRejected.mutate()}
                     disabled={copyRejected.isPending}
                   >
-                    Copy rejected PR to new Draft
+                    {isCorrection
+                      ? 'Correct rejected returned lines in a new linked Draft'
+                      : 'Copy rejected PR to new Draft'}
                   </Button>
                 ) : null}
 
