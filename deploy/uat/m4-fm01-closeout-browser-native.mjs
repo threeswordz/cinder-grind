@@ -195,7 +195,7 @@ async function run(){
   "import {QueryClient,QueryClientProvider} from '@tanstack/react-query';",
   "import {WeeklySiteSummaryPanel} from '/src/site-execution/WeeklySiteSummaryPanel.tsx';",
   "import {ProjectCloseoutPanel} from '/src/projects/ProjectCloseoutPanel.tsx';",
-  "import {MonetaryLocaleContext} from '/src/role-ui/monetary-presentation.ts';",
+  "import {MonetaryLocaleContext} from '/src/role-ui/monetary-presentation.tsx';",
   "const projectId="+JSON.stringify(project.id)+";",
   "const client=new QueryClient({defaultOptions:{queries:{retry:false},mutations:{retry:false}}});",
   "(async()=>{",
