@@ -2327,20 +2327,31 @@ test('V0.3-D Purchase Orders preserve awarded-source traceability, approval and 
     });
     assert.equal(archivedAfterReversal.isActive, false);
 
-    await purchaseOrders.cancel(
-      { auth: makerAuth }, afterReceiptRevision.id, 'Draft revision withdrawn after reversal',
+    // PUR10 supersedes the historic unilateral cancellation API. Neither a
+    // Draft nor an approved PO may be cancelled by the old direct service path.
+    // The new dedicated PUR10 native test owns Jai→PM→Ben finalization proof.
+    const requiresReview = (error: unknown) =>
+      error instanceof ConflictException &&
+      (error.getResponse() as { code?: string }).code ===
+        'PUR10_INDEPENDENT_CANCELLATION_REVIEW_REQUIRED';
+    await assert.rejects(
+      () => purchaseOrders.cancel(
+        { auth: makerAuth }, afterReceiptRevision.id,
+        'Draft revision withdrawn after reversal',
+      ),
+      requiresReview,
     );
-
-    const cancelled = await purchaseOrders.cancel(
-      { auth: makerAuth },
-      revision.id,
-      'Supplier order cancelled.',
+    await assert.rejects(
+      () => purchaseOrders.cancel(
+        { auth: makerAuth }, revision.id, 'Supplier order cancelled.',
+      ),
+      requiresReview,
     );
-    assert.equal(cancelled.lifecycleState, 'CANCELLED');
-    assert.equal(
-      cancelled.cancellationReason,
-      'Supplier order cancelled.',
-    );
+    const retained = await prisma.purchaseOrder.findUniqueOrThrow({
+      where: { id: revision.id },
+    });
+    assert.equal(retained.cancelledAt, null);
+    assert.equal(retained.cancellationReason, null);
     const retainedApproval =
       await prisma.approvalInstance.findUniqueOrThrow({
         where: {
@@ -2351,7 +2362,7 @@ test('V0.3-D Purchase Orders preserve awarded-source traceability, approval and 
 
     await assert.rejects(
       () => prisma.purchaseOrder.delete({ where: { id: revision.id } }),
-      'Cancelled Purchase Order revision must remain retained history.',
+      'Purchase Order history must not be deletable through direct SQL.',
     );
 
     await assert.rejects(
