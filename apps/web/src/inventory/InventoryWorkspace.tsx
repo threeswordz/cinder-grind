@@ -1,3 +1,4 @@
+import { OperationalExceptionsPanel } from './OperationalExceptionsPanel';
 import { TransferReceiptsPanel } from './TransferReceiptsPanel';
 import { transferCustodyLabels } from './transfer-custody-labels';
 import { ReceivingPanel } from './ReceivingPanel';
@@ -23,6 +24,7 @@ import { WarehousesPanel } from './WarehousesPanel';
 import type { SourceLinkTarget } from '../role-ui/source-link-policy';
 
 type InventoryTab =
+  | 'exceptions'
   | 'transfer-receipts'
   | 'receiving'
   | 'requests'
@@ -39,6 +41,7 @@ type InventoryTab =
 
 export function InventoryWorkspace({
   permissions,
+  roleCodes = [],
   userId = '',
   companyId = '',
   initialProjectId,
@@ -46,6 +49,7 @@ export function InventoryWorkspace({
   onOpenSource,
 }: {
   permissions: string[];
+  roleCodes?: string[];
   userId?: string;
   companyId?: string;
   initialProjectId?: string | undefined;
@@ -55,6 +59,11 @@ export function InventoryWorkspace({
   const locale = useContext(MonetaryLocaleContext);
   const requestText = materialRequestLabels[locale];
   const planText = materialPlanLabels[locale];
+  const canSeeExceptions = permissions.includes('documents.document.view') && (
+    (permissions.includes('inventory.issue.view') && roleCodes.some(r => r === 'STOREKEEPER' || r === 'PROJECT_MANAGER')) ||
+    (permissions.includes('inventory.stock.view') && roleCodes.some(r => ['STOREKEEPER','PROJECT_MANAGER','MANAGEMENT','FINANCE_MANAGER'].includes(r))) ||
+    (permissions.includes('inventory.stock_count.view') && roleCodes.some(r => ['FINANCE_MANAGER','PROJECT_MANAGER','STOREKEEPER'].includes(r)))
+  );
   const canSeeTransferReceipts = permissions.includes('inventory.transfer.receipt_view');
   const canSeeReceiving = permissions.includes('inventory.receiving.view');
   const canSeeRequests = permissions.includes('inventory.material_request.view');
@@ -93,6 +102,7 @@ export function InventoryWorkspace({
     if (initialReceiptId && canSeeReceipts) setSelected('receipts');
   }, [initialReceiptId, canSeeReceipts]);
   if (
+    !canSeeExceptions &&
     !canSeeTransferReceipts &&
     !canSeeReceiving &&
     !canSeeRequests &&
@@ -110,7 +120,7 @@ export function InventoryWorkspace({
     return <Alert severity="info">Inventory view permission is required.</Alert>;
   }
   const active: InventoryTab =
-    selected === 'transfer-receipts' && canSeeTransferReceipts ? 'transfer-receipts' : selected === 'receiving' && canSeeReceiving ? 'receiving' : selected === 'requests' && canSeeRequests ? 'requests' : selected === 'plans' && canSeePlans ? 'plans' : selected === 'warehouses' && canSeeWarehouses
+    selected === 'exceptions' && canSeeExceptions ? 'exceptions' : selected === 'transfer-receipts' && canSeeTransferReceipts ? 'transfer-receipts' : selected === 'receiving' && canSeeReceiving ? 'receiving' : selected === 'requests' && canSeeRequests ? 'requests' : selected === 'plans' && canSeePlans ? 'plans' : selected === 'warehouses' && canSeeWarehouses
       ? 'warehouses'
       : selected === 'receipts' && canSeeReceipts
         ? 'receipts'
@@ -132,6 +142,7 @@ export function InventoryWorkspace({
   return (
     <Stack spacing={2}>
       <Tabs value={active} onChange={(_event, value: InventoryTab) => setSelected(value)}>
+        {canSeeExceptions ? <Tab value="exceptions" label="Operational Exceptions" /> : null}
         {canSeeTransferReceipts ? <Tab value="transfer-receipts" label={transferCustodyLabels[locale].title} /> : null}
         {canSeeReceiving ? <Tab value="receiving" label={receivingLabels[locale].title} /> : null}
         {canSeeRequests ? <Tab value="requests" label={requestText.title} /> : null}
@@ -146,7 +157,9 @@ export function InventoryWorkspace({
         {canSeeTransfers ? <Tab value="transfers" label="Stock Transfers" /> : null}
         {canSeeReports ? <Tab value="reports" label="Reports" /> : null}
       </Tabs>
-      {active === 'transfer-receipts' ? (
+      {active === 'exceptions' ? (
+        <OperationalExceptionsPanel permissions={permissions} roleCodes={roleCodes} userId={userId} />
+      ) : active === 'transfer-receipts' ? (
         <TransferReceiptsPanel permissions={permissions} userId={userId} companyId={companyId}/>
       ) : active === 'receiving' ? (
         <ReceivingPanel permissions={permissions} userId={userId} companyId={companyId} onOpenGr={(projectId,id)=>{appliedReceiptProjectSourceLink.current='';appliedReceiptSourceLink.current='';setReceivingGr({projectId,id});setSelected('receipts');}}/>
