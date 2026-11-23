@@ -96,6 +96,26 @@ test('SS13 rejects self-review, incorrect escalation sequence, fork and stale pr
  const duplicate={...screen(),id:id(22)};
  assert.throws(()=>replayLossCase(caseId,[root(),screen(),duplicate]),RangeError);
 });
+test('SS13 invalid PM decisions must be rejected before an append-only audit write',()=>{
+ assert.throws(()=>replayLossCase(caseId,[root(),screen('NONDISPOSAL_REVIEW',false)]),RangeError);
+ assert.throws(()=>replayLossCase(caseId,[root(),screen('RETURN',true)]),RangeError);
+ const service=readFileSync(new URL('../../apps/api/src/inventory/stock-loss-case.service.ts',import.meta.url),'utf8');
+ const pos=service.indexOf('  private async transition(');
+ const end=service.indexOf('  async screen(',pos);
+ const transition=service.slice(pos,end);
+ assert.match(transition,/replayLossCase\(id,\[\.\.\.previous,\{/);
+ assert.ok(transition.indexOf('replayLossCase(id,[...previous')<
+   transition.indexOf('await this.audit.record('),
+   'source must validate the proposed transition before committing its AuditLog record');
+});
+test('SS13 material-specific UOM is mandatory, never any active Company unit',()=>{
+ const service=readFileSync(new URL('../../apps/api/src/inventory/stock-loss-case.service.ts',import.meta.url),'utf8');
+ assert.match(service,/trackedCanonicalBasis\(db,auth\.companyId,materialId\)/);
+ assert.match(service,/basis\.stockUomId!==uomId/);
+ assert.match(service,/material\.defaultUomId!==uomId/);
+ assert.match(service,/db\.stockTransaction\.findFirst/);
+ assert.match(service,/companyId:auth\.companyId,projectId,warehouseId,materialId,uomId/);
+});
 test('SS13 rejects forged array decisions, cross actor and illegal disposal effects',()=>{
  assert.throws(()=>replayLossCase(caseId,[root(),{
   ...screen(),newValues:{...screen().newValues,decision:['FORWARD_DISPOSAL']}}]),RangeError);
