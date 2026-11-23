@@ -3,6 +3,7 @@ import {
 } from '@nestjs/common';
 import {Prisma} from '@prisma/client';
 import {randomUUID} from 'node:crypto';
+import {trackedCanonicalBasis} from './material-uom-stock-dimension';
 import {AuditService} from '../audit/audit.service';
 import {AuthenticatedUserContext} from '../auth/auth.types';
 import {DocumentsService} from '../documents/documents.service';
@@ -64,12 +65,25 @@ export class StockLossCaseService{
       db.warehouse.findFirst({where:{id:warehouseId,companyId:auth.companyId,
         projectId,isSiteWarehouse:true,isActive:true,project:{isActive:true}},select:{id:true}}),
       db.material.findFirst({where:{id:materialId,companyId:auth.companyId,isActive:true},
-        select:{id:true}}),
+        select:{id:true,defaultUomId:true}}),
       db.unitOfMeasure.findFirst({where:{id:uomId,companyId:auth.companyId,isActive:true},
         select:{id:true}}),
     ]);
     if(!warehouse||!material||!uom)
       return invalid('SS13_ACTIVE_PROJECT_SITE_MATERIAL_UOM_REQUIRED');
+    // Mirror StockCountService's site-specific physical dimension rules. A
+    // Company-wide active UOM alone cannot describe a particular Material.
+    const basis=await trackedCanonicalBasis(db,auth.companyId,materialId);
+    if(basis){
+      if(basis.stockUomId!==uomId)
+        return invalid('SS13_MATERIAL_TRACKED_UOM_REQUIRED');
+    }else if(material.defaultUomId!==uomId){
+      const used=await db.stockTransaction.findFirst({
+        where:{companyId:auth.companyId,projectId,warehouseId,materialId,uomId},
+        select:{id:true},
+      });
+      if(!used)return invalid('SS13_MATERIAL_UOM_DIMENSION_INVALID');
+    }
   }
 
   private async sourceDocs(auth:AuthenticatedUserContext,projectId:string,ids:string[],db:Db){
@@ -173,11 +187,32 @@ export class StockLossCaseService{
           [state.makerUserId,state.pmUserId,state.benUserId].includes(auth.userId))
           return denied('SS13_INDEPENDENT_NANCY_DISPOSAL_REQUIRED');
       }else return denied('SS13_ACTION_ROLE_INVALID');
+      const newValues={
+        ...fields,previousEventId:state.latestEventId,
+        version:state.version+1,
+        stockDisposalExecuted:false,financeWriteOffPosted:false,
+      };
+      // Check the exact prospective transition against the same immutable
+      // replay policy used by every subsequent reader. Never append a state
+      // that would permanently poison the case's append-only history.
+      const previous=await tx.auditLog.findMany({
+        where:{companyId:auth.companyId,entityType:LOSS_CASE_ENTITY,entityId:id,
+          action:{in:[LOSS_OPEN,LOSS_SCREEN,LOSS_BEN,LOSS_NANCY]}},
+        select:{id:true,actorUserId:true,action:true,occurredAt:true,newValues:true},
+        take:101,
+      });
+      if(previous.length>100)return conflict('SS13_HISTORY_LIMIT_EXCEEDED');
+      try{
+        replayLossCase(id,[...previous,{
+          id:randomUUID(),action,actorUserId:auth.userId,
+          occurredAt:new Date(),newValues,
+        }]);
+      }catch{
+        return invalid('SS13_PROPOSED_DECISION_INVALID');
+      }
       await this.audit.record({
         ...context,auth,entityType:LOSS_CASE_ENTITY,entityId:id,action,
-        newValues:{...fields,previousEventId:state.latestEventId,
-          version:state.version+1,
-          stockDisposalExecuted:false,financeWriteOffPosted:false},
+        newValues,
       },tx);
       return {caseId:id,projectId:state.projectId,action,
         newVersion:state.version+1,stockDisposalExecuted:false,
