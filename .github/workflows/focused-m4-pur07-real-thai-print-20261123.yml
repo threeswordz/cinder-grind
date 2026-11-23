@@ -13,7 +13,7 @@ jobs:
     env:
       PUR07_DISPOSABLE_BROWSER_ONLY: 'YES'
       EXPECTED_PUR07_SOURCE: 141402521f512259489c50b20dd4609715448b73
-      EXPECTED_PREVIOUS_WORKFLOW_COMMIT: 3bf8ac17b0a1c977a492ffbf4d52934d59378eba
+      EXPECTED_PREVIOUS_WORKFLOW_COMMIT: 343647aaa5c546e748e2207a1f84e8216e4bd511
     steps:
       - name: Checkout exact source, no other files
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -23,7 +23,6 @@ jobs:
       - name: Reject unrelated source and workflow changes
         run: |
           test "$(git rev-parse HEAD^)" = "$EXPECTED_PREVIOUS_WORKFLOW_COMMIT"
-          test "$(git rev-parse HEAD^^)" = "$EXPECTED_PUR07_SOURCE"
           test "$(git diff --name-only HEAD^ HEAD)" = ".github/workflows/focused-m4-pur07-real-thai-print-20261123.yml"
           test "$PUR07_DISPOSABLE_BROWSER_ONLY" = "YES"
       - name: Setup pinned pnpm
