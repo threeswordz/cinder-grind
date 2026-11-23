@@ -24,7 +24,16 @@
     "workEvidenceNote": "M4-01/M4-04/M4-05 in progress. Technical checkpoint gains only, no full package accepted; no hours retired.",
     "latestTechnicalCheckpoint": "PM02 actual Chromium React/HTTP step PASS #45145803345 after MUI portal fix; overall GitHub workflow FAILED on trailing malformed non-evidence echo. M4-02 now 2/4 checklist, not full acceptance.",
     "m4CheckpointCompleted": 12,
-    "m4CheckpointTotal": 32
+    "m4CheckpointTotal": 32,
+    "displayCounter": "0 / 1900",
+    "countdownHoursLeft": 1900,
+    "countdownSemantics": "Actual countdown is updated ONLY after accepted complete work-package exits with evidence. The hour-by-hour CSV columns represent hypothetical planned positions, not completed effort.",
+    "hourlyCsvColumns": [
+      "forecast_hour",
+      "hour_out_of_1900",
+      "planned_hours_left_if_this_hour_completed"
+    ],
+    "countdownPresentationRevision": "2026-11-23 docs-only; no added credit"
   },
   "official": {
     "prototypeCompleted": 4,
@@ -38,84 +47,108 @@
       "label": "M4 / prototype 5/8",
       "hours": 170,
       "from": 1,
-      "to": 170
+      "to": 170,
+      "forecastExitPosition": "170 / 1900",
+      "plannedHoursLeftAfterExit": 1730
     },
     {
       "id": "M6",
       "label": "M6 / prototype 6/8",
       "hours": 120,
       "from": 171,
-      "to": 290
+      "to": 290,
+      "forecastExitPosition": "290 / 1900",
+      "plannedHoursLeftAfterExit": 1610
     },
     {
       "id": "M7",
       "label": "M7 / prototype 7/8",
       "hours": 50,
       "from": 291,
-      "to": 340
+      "to": 340,
+      "forecastExitPosition": "340 / 1900",
+      "plannedHoursLeftAfterExit": 1560
     },
     {
       "id": "M8",
       "label": "M8 / prototype 8/8",
       "hours": 65,
       "from": 341,
-      "to": 405
+      "to": 405,
+      "forecastExitPosition": "405 / 1900",
+      "plannedHoursLeftAfterExit": 1495
     },
     {
       "id": "GL05",
       "label": "GL-05 / all HR and payroll",
       "hours": 300,
       "from": 406,
-      "to": 705
+      "to": 705,
+      "forecastExitPosition": "705 / 1900",
+      "plannedHoursLeftAfterExit": 1195
     },
     {
       "id": "GL06",
       "label": "GL-06 / full accounting, tax and banking",
       "hours": 480,
       "from": 706,
-      "to": 1185
+      "to": 1185,
+      "forecastExitPosition": "1185 / 1900",
+      "plannedHoursLeftAfterExit": 715
     },
     {
       "id": "XP",
       "label": "Cross-Project purchasing, budgets and exceptions",
       "hours": 130,
       "from": 1186,
-      "to": 1315
+      "to": 1315,
+      "forecastExitPosition": "1315 / 1900",
+      "plannedHoursLeftAfterExit": 585
     },
     {
       "id": "GL04",
       "label": "GL-04 / eight-role operational acceptance",
       "hours": 120,
       "from": 1316,
-      "to": 1435
+      "to": 1435,
+      "forecastExitPosition": "1435 / 1900",
+      "plannedHoursLeftAfterExit": 465
     },
     {
       "id": "GL07",
       "label": "GL-07 / production security and governance",
       "hours": 95,
       "from": 1436,
-      "to": 1530
+      "to": 1530,
+      "forecastExitPosition": "1530 / 1900",
+      "plannedHoursLeftAfterExit": 370
     },
     {
       "id": "GL08",
       "label": "GL-08 / real production hosting and recovery",
       "hours": 110,
       "from": 1531,
-      "to": 1640
+      "to": 1640,
+      "forecastExitPosition": "1640 / 1900",
+      "plannedHoursLeftAfterExit": 260
     },
     {
       "id": "GL09",
       "label": "GL-09 / data migration and business onboarding",
       "hours": 110,
       "from": 1641,
-      "to": 1750
+      "to": 1750,
+      "forecastExitPosition": "1750 / 1900",
+      "plannedHoursLeftAfterExit": 150
     },
     {
       "id": "GL10",
       "label": "GL-10 / full acceptance, cutover and stable usage",
       "hours": 150,
       "from": 1751,
-      "to": 1900
+      "to": 1900,
+      "forecastExitPosition": "1900 / 1900",
+      "plannedHoursLeftAfterExit": 0
     }
   ],
   "packages": [
