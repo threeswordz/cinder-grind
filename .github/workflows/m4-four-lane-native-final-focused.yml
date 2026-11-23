@@ -1,0 +1,69 @@
+# One-time M4 four-lane NEW-scope PostgreSQL and contract checks.
+# NO full release PR/main CI, no retained people/records, no Mac/Production.
+name: M4 Four-Lane Valid Fixture PUR10 and BOQ Native
+on:
+  push:
+    branches: ['work-m4-four-lane-native-final-focused-20261124']
+    paths: ['.github/workflows/m4-four-lane-native-final-focused.yml']
+permissions:
+  contents: read
+concurrency:
+  group: m4-four-lane-native-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  m4-targeted:
+    name: m4-targeted
+    runs-on: ubuntu-latest
+    timeout-minutes: 24
+    services:
+      postgres:
+        image: postgres:17.11-alpine
+        env:
+          POSTGRES_DB: construction_erp
+          POSTGRES_USER: construction_erp
+          POSTGRES_PASSWORD: construction_erp_dev_only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U construction_erp -d construction_erp"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://construction_erp:construction_erp_dev_only@localhost:5432/construction_erp?schema=public
+      NODE_ENV: test
+      RC_NON_PRODUCTION_CONFIRMED: 'YES'
+      M4_EXACT_SOURCE_SHA: ${{ github.sha }}
+    steps:
+      - name: Checkout exact isolated four-lane source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          ref: ${{ github.sha }}
+      - name: Verify immutable source identity
+        run: test "$(git rev-parse HEAD)" = "$M4_EXACT_SOURCE_SHA"
+      - name: Set up pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
+        with:
+          version: 12.6.0
+          run_install: false
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.21.0
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Generate and validate forward-only Prisma schema
+        run: |
+          pnpm prisma:generate
+          pnpm prisma:validate
+      - name: Apply existing ordered migrations on disposable PostgreSQL only
+        run: pnpm prisma:migrate:deploy
+      - name: Build API including the four-lane targeted test sources
+        run: pnpm --filter @construction-erp/api build
+      - name: Execute NEW PUR10 concurrency GR/AP role-revocation negatives only
+        run: node --test --test-concurrency=1 apps/api/dist/procurement/purchase-order.pur10-finalization.integration.spec.js
+      - name: Execute NEW BOQ CSV scope/role HTTP negatives within current focused suite
+        run: node --test --test-concurrency=1 apps/api/dist/budget/boq-http.integration.spec.js
+      - name: Seal one-off evidence boundary
+        run: echo 'M4_FOUR_LANE_PUR10_CORRECTED_AND_BOQ_ONLY; no full PR/main CI; no retained MKE/TCJ UAT, DEC-022 approval, Production or Owner acceptance'
