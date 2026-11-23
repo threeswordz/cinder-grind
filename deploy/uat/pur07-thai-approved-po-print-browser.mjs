@@ -1,12 +1,13 @@
 // PUR07 NEW isolated Chrome -> actual PDF check. Does NOT load API, auth,
 // retained data or historic browser suites; uses synthetic approved PO only.
 import assert from 'node:assert/strict';
-import { spawn, spawnSync } from 'node:child_process';
-import { mkdtemp, readFile, rm, stat } from 'node:fs/promises';
+import { spawnSync } from 'node:child_process';
+import { mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { startBrowser } from './prototype-browser.mjs';
 
 assert.equal(process.env.PUR07_DISPOSABLE_BROWSER_ONLY, 'YES');
 const root = fileURLToPath(new URL('../../apps/web/', import.meta.url));
@@ -104,37 +105,42 @@ try {
   assert.ok(address && typeof address === 'object');
   const url = 'http://127.0.0.1:' + address.port + '/__pur07-private-print';
   const pdfPath = path.join(dir, 'actual-chrome-thai-po.pdf');
-  const profile = path.join(dir, 'chrome-profile');
-  const flags = [
-    '--headless=new', '--no-sandbox', '--disable-gpu',
-    '--disable-dev-shm-usage', '--disable-extensions',
-    '--disable-background-networking', '--no-proxy-server',
-    '--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE localhost',
-    '--no-first-run', '--no-default-browser-check',
-    '--user-data-dir=' + profile,
-    '--no-pdf-header-footer',
-    '--print-to-pdf=' + pdfPath,
-    url,
-  ];
-  // The Vite server shares this event loop. A synchronous Chrome subprocess
-  // would deadlock it while Chrome requests localhost, so spawn asynchronously.
-  const run = await new Promise((resolve, reject) => {
-    const child = spawn(chrome, flags, { stdio: ['ignore', 'pipe', 'pipe'] });
-    let stderr = '';
-    const timer = setTimeout(() => {
-      child.kill('SIGKILL');
-      reject(new Error('PUR07 Chrome PDF test timed out after 90s'));
-    }, 90000);
-    child.stderr.on('data', chunk => {
-      stderr = (stderr + chunk.toString()).slice(-4000);
+  // Reuse the repository's proven Chrome CDP pipe transport. It prints a
+  // real browser-rendered PDF without relying on fragile CLI exit behavior
+  // or synchronously blocking this same process's disposable HTTP server.
+  const browser = await startBrowser(chrome, dir);
+  try {
+    const protocol = browser.protocol;
+    const { targetId } = await protocol.send('Target.createTarget', { url: 'about:blank' });
+    const { sessionId } = await protocol.send('Target.attachToTarget', {
+      targetId, flatten: true,
     });
-    child.on('error', error => { clearTimeout(timer); reject(error); });
-    child.on('close', (code, signal) => {
-      clearTimeout(timer);
-      resolve({ code, signal, stderr });
-    });
-  });
-  assert.equal(run.code, 0, run.stderr.slice(-1800));
+    await protocol.send('Page.enable', {}, sessionId);
+    await protocol.send('Runtime.enable', {}, sessionId);
+    await protocol.send('Page.navigate', { url }, sessionId);
+    let loaded = false;
+    for (let n = 0; n < 100; n++) {
+      const readback = await protocol.send('Runtime.evaluate', {
+        expression: "document.readyState === 'complete' && document.body.textContent.includes('เซมิคอนกรีต') && document.body.textContent.includes('2107.90')",
+        returnByValue: true,
+      }, sessionId);
+      if (readback.result?.value === true) {
+        loaded = true;
+        break;
+      }
+      await new Promise(ok => setTimeout(ok, 100));
+    }
+    assert.ok(loaded, 'Actual headless Chrome must render the Thai PO and exact total before printing');
+    const output = await protocol.send('Page.printToPDF', {
+      printBackground: true, preferCSSPageSize: true,
+      displayHeaderFooter: false, transferMode: 'ReturnAsBase64',
+    }, sessionId);
+    assert.ok(typeof output.data === 'string' && output.data.length > 3000,
+      'Chrome CDP did not return real PDF bytes');
+    await writeFile(pdfPath, Buffer.from(output.data, 'base64'));
+  } finally {
+    await browser.stop();
+  }
   const file = await readFile(pdfPath);
   const size = await stat(pdfPath);
   assert.ok(file.subarray(0, 8).toString('ascii').startsWith('%PDF-'));
