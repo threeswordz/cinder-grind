@@ -74,6 +74,13 @@ This incremental read compares [Jai's approved original requirements](https://gi
 
 These four are **now specifically source-triaged**, not four technically completed requirements. They do not change the 112-ID denominator or the 59 active operational/role/scope exit queue. The still-required purchasing delivery work remains PUR01 quote thresholds with PUR04 commercial amount basis, PUR07 supplier PO PDF/manual dispatch evidence, PUR12 forward-only company numbering and PUR10's gated cancellation approval workflow. Keep multi-Project PO #245 and financial effects separate.
 
+### PUR04 draft functional candidate staged — separate from completed source proof
+
+- [Draft PR #413](https://github.com/threeswordz/cinder-grind/pull/413) is a private stacked **UNRUN/UNREVIEWED** source extension atop PM02 #412, not merged into the main or #407 exact candidate. It proposes forward-only nullable header fields for delivery location/contact/terms, payment/credit terms, discount, freight, additional charges and VAT percent, with draft API/UI and immutable revision copy. It includes a new dedicated isolated PG contract test, **not executed**.
+- Its submission guard checks header discount does not exceed PO-line subtotal; **this is NOT the PUR01 quote-count/net-ex-VAT acceptance rule**. Do not mark PUR04 or PUR01 as accepted because source was written; exact migration, API/web typecheck, native actor/Company scope and real browser still need evidence.
+- PUR01 still needs complete supplier quote coverage and 1/2/3 thresholds against THB 10,000/50,000 net whole-PO value after discount+freight/charges excluding VAT, with Ben-reviewed exception. NULL commercial values cannot be treated as zero.
+- Existing PO revision, sourcing, receipt and Finance source custody must not be replayed, rewritten or bypassed. No multi-Project #245, supplier PDF #PUR07 or K-/T- numbering #PUR12 is inferred.
+
 ### Exact-source spot check: purchasing, approvals, Material Plan and PR (seven IDs)
 
 Live source read of integrated [Draft #407](https://github.com/threeswordz/cinder-grind/pull/407) at `62d2ce23810938784caa66aab6e427e49030d7fe`. All findings are **source-presence/delta only**, not a CI result, effective named-role grants or business acceptance.
