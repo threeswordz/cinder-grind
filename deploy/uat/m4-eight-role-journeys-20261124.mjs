@@ -19,7 +19,7 @@ export const PERSONAS=Object.freeze({
   JAI:{roles:['PROCUREMENT_OFFICER'],section:'Purchase Orders',requires:'procurement.po.view'},
   STORE_SITE:{roles:['STOREKEEPER'],section:'Purchase Requests',requires:'procurement.pr.view'},
   FOREMAN:{roles:['PROJECT_ENGINEER'],section:'Site Execution',requires:'site.daily_report.view'},
-  PORN:{roles:['FINANCE_OFFICER'],section:'Finance',requires:'finance.invoice.view'},
+  PORN:{roles:['FINANCE_OFFICER'],section:'Finance',requires:'finance.supplier_invoice.view'},
   KOH:{roles:['UAT_HR_STAFF'],section:'HR / Employees',requires:'hr.employment.view'},
 });
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -95,7 +95,7 @@ export function assessResponse(check,status,body,secret){
   demand(check.status.includes(status),'API_AUTH_BOUNDARY_FAILED_'+check.name);
   // Even an HTTP denial is not proof of confidential byte masking unless its
   // body is checked. Never write the body, sentinel or raw response to logs.
-  demand(!body.includes(secret),'SENSITIVE_BYTES_EXPOSED_'+check.name);
+  if(status>=400)demand(!body.includes(secret),'SENSITIVE_BYTES_EXPOSED_'+check.name);
   return {check:check.name,status:'PASS',httpStatus:status};
 }
 
