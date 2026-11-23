@@ -389,6 +389,13 @@ async function realBrowser(){
   await choose(p,storeS,'Project','M4-ASSIGNED-'+key);
   await choose(p,storeS,'Site Warehouse','M4-SITE-'+key);
   await visible(p,storeS,'Physical count scheduling');
+  // The heading renders before the real API GET. The Store read-only
+  // negative only counts AFTER the canonical schedule table has rendered,
+  // including when there are no current schedule rows.
+  await until(p,storeS,()=>[...document.querySelectorAll('table thead')].some(
+   head=>['Material category','First due','Next date','Revision'].every(
+    label=>head.textContent.includes(label))),
+   null,'STORE_CANONICAL_SCHEDULE_TABLE_NOT_LOADED');
   await absent(p,storeS,'Save category schedule');
   console.log('M4_BROWSER_STORE_SCOPED_READONLY_PASS');
 
