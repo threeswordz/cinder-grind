@@ -477,20 +477,31 @@ export function PurchaseOrdersPanel({ permissions, initialProjectId, initialOrde
   };
 
   const current = detail.data?.data;
-  const manualPrintApprovedPo = () => {
-    if (!current) return;
+  const manualPrintApprovedPo = async () => {
+    if (!current || !orderId) return;
     setManualPrintError('');
+    // Open synchronously on the human click to avoid popup blockers, but
+    // NEVER print cached previously-approved PO data. Reauthorize/readback
+    // exact source from the backend before rendering any supplier details.
+    const windowRef = window.open('', '_blank', 'width=950,height=820');
+    if (!windowRef) {
+      setManualPrintError('Your browser blocked the print window. Enable this ERP popup and retry.');
+      return;
+    }
+    windowRef.opener = null;
     try {
-      const { html } = printApprovedPurchaseOrderHtml(current);
-      const windowRef = window.open('', '_blank', 'width=950,height=820');
-      if (!windowRef) throw new Error('Your browser blocked the print window. Enable this ERP popup and retry.');
-      windowRef.opener = null;
+      const fresh = (await purchaseOrdersApi.detail(orderId)).data;
+      if (fresh.id !== orderId) throw new Error('PO_PRINT_REVISION_MISMATCH');
+      const { html } = printApprovedPurchaseOrderHtml(fresh);
+      if (windowRef.closed) return;
       windowRef.document.open();
       windowRef.document.write(html);
       windowRef.document.close();
+      await windowRef.document.fonts.ready;
       windowRef.focus();
-      windowRef.setTimeout(() => windowRef.print(), 350);
+      windowRef.print();
     } catch (error) {
+      if (!windowRef.closed) windowRef.close();
       setManualPrintError(message(error));
     }
   };
