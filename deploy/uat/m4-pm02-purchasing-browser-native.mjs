@@ -271,8 +271,26 @@ const client=new QueryClient({defaultOptions:{queries:{retry:false},mutations:{r
   }]});
  await vite.listen();
  browser=await startBrowser(browserBin,temp);
- const p=browser.protocol,contexts=[],errors=[],requests=new Map();
+ const p=browser.protocol,contexts=[],errors=[];
+ // This NEW write-capable UI proof has a different request policy from the
+ // read-only prototype harness: permit genuine mutations ONLY on test-local
+ // Vite/Nest origins, and fail closed for all outbound browser requests.
+ const localOrigins=new Set([new URL(WEB).origin,new URL(API).origin]);
  const observe=event=>{
+  if(event.method==='Fetch.requestPaused'){
+   const requestId=event.params?.requestId;
+   let local=false;
+   try{
+    const url=new URL(event.params?.request?.url??'');
+    local=url.protocol==='http:'&&localOrigins.has(url.origin)&&
+     !url.username&&!url.password;
+   }catch{}
+   if(!local)errors.push('NONLOCAL_BROWSER_REQUEST_DENIED');
+   void p.send(local?'Fetch.continueRequest':'Fetch.failRequest',
+    local?{requestId}:{requestId,errorReason:'BlockedByClient'},event.sessionId)
+    .catch(()=>errors.push('BROWSER_FETCH_INTERCEPTION_FAILED'));
+   return;
+  }
   if(event.method==='Network.responseReceived'){
    const status=event.params?.response?.status??0;
    const u=event.params?.response?.url??'';
@@ -289,6 +307,7 @@ const client=new QueryClient({defaultOptions:{queries:{retry:false},mutations:{r
   const s=(await p.send('Target.attachToTarget',{targetId,flatten:true})).sessionId;
   await p.send('Network.enable',{},s);await p.send('Page.enable',{},s);
   await p.send('Runtime.enable',{},s);
+  await p.send('Fetch.enable',{patterns:[{urlPattern:'*',requestStage:'Request'}]},s);
   const cookie=await p.send('Network.setCookie',{
    name:'erp_session',value:person.token,url:WEB,httpOnly:true,sameSite:'Lax',
   },s);
