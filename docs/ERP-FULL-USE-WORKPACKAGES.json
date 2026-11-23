@@ -12,7 +12,7 @@
     "verifiedRetiredHours": 0,
     "openBudgetHours": 1900,
     "actualLoggedHours": null,
-    "asOf": "2026-11-23T22:43:00+08:00",
+    "asOf": "2026-11-23T23:24:00+08:00",
     "activePackage": "M4-01",
     "activeForecastHourRange": "H0001–H0020",
     "activeConcurrentPackages": [
@@ -27,9 +27,9 @@
     "latestTechnicalCheckpoint": "PUR07 NEW actual server Thai Unicode PDF #45195364823 SUCCESS 2/2 searchable Thai A4 54,073 bytes, approved PDF service bytes/filename/SHA; distinct genuine Jai and Ben React/Chrome PG17 UI #45196516424 SUCCESS PDF HTTP200 reported-only Jai send and Ben read-only. PUR05 #45192292763 PASS independent new Ben approval of Rev1. M4 aggregate remains 20/32 pending retained actors/Owner release signoff; no full-package hours retired.",
     "m4CheckpointCompleted": 20,
     "m4CheckpointTotal": 32,
-    "displayCounter": "0 / 1900",
-    "countdownHoursLeft": 1900,
-    "countdownSemantics": "Actual countdown is updated ONLY after accepted complete work-package exits with evidence. The hour-by-hour CSV columns represent hypothetical planned positions, not completed effort.",
+    "displayCounter": "53 / 1900 forecast reduction (2.8%); 1847h estimated remaining; acceptance 0 / 1900",
+    "countdownHoursLeft": 1847,
+    "countdownSemantics": "INDICATIVE CURRENT REMAINING-EFFORT FORECAST after re-estimation; 1847 = historical 1900 - provisional 53h forecast reduction; the 53h are NOT actual logged worker hours nor formally accepted packages. Separate accepted baseline counter remains 0/1900.",
     "hourlyCsvColumns": [
       "forecast_hour",
       "hour_out_of_1900",
@@ -70,7 +70,9 @@
         "M4-07": 6,
         "M4-08": 34
       }
-    }
+    },
+    "acceptedDisplayCounter": "0 / 1900 accepted baseline hours (0 full M4 packages)",
+    "openBudgetHoursSemantics": "Original 1900h baseline allocated to unaccepted packages; not equal to provisional current remaining-work forecast of 1847h. Do not sum or subtract twice."
   },
   "official": {
     "prototypeCompleted": 4,
