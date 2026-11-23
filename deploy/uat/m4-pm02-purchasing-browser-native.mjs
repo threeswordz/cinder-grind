@@ -228,7 +228,7 @@ const client=new QueryClient({defaultOptions:{queries:{retry:false},mutations:{r
   <QueryClientProvider client={client}><PurchaseRequestsPanel
    permissions={me.permissions}
    initialProjectId={${JSON.stringify(project.id)}}
-   initialRequestId={${JSON.stringify(request.id)}/>
+   initialRequestId={${JSON.stringify(request.id)}}/>
   </QueryClientProvider>);
  document.body.dataset.authenticated='yes';
 })().catch(error=>{
@@ -308,10 +308,12 @@ const client=new QueryClient({defaultOptions:{queries:{retry:false},mutations:{r
   console.log('M4_PM02_BROWSER_REAL_MIXED_DECISION_AND_APPROVAL_BYPASS_DENIED_PASS');
 
   stage='STORE_CORRECTION_CHAIN';
-  await p.send('Page.reload',{ignoreCache:true},storeS);
-  await visible(p,storeS,'Copy returned lines to correction Draft');
-  await click(p,storeS,'Copy returned lines to correction Draft');
-  await visible(p,storeS,'This correction Draft contains only returned source lines.');
+  // New actual authenticated page avoids reusing stale Store React Query
+  // cache or assuming a reload preserves the previous CDP execution context.
+  const correctionStoreS=await session(store);
+  await visible(p,correctionStoreS,'Copy returned lines to correction Draft');
+  await click(p,correctionStoreS,'Copy returned lines to correction Draft');
+  await visible(p,correctionStoreS,'This correction Draft contains only returned source lines.');
   const correction=await db.purchaseRequest.findFirstOrThrow({
    where:{companyId:company.id,sourceRequestId:request.id},
    include:{lines:true},
