@@ -12,7 +12,7 @@
     "verifiedRetiredHours": 0,
     "openBudgetHours": 1900,
     "actualLoggedHours": null,
-    "asOf": "2026-11-23T21:48:00+08:00",
+    "asOf": "2026-11-23T22:10:00+08:00",
     "activePackage": "M4-01",
     "activeForecastHourRange": "H0001–H0020",
     "activeConcurrentPackages": [
@@ -23,8 +23,8 @@
       "M4-06",
       "M4-03"
     ],
-    "workEvidenceNote": "PUR04 real PG17.11 approved revision, historic fields and Company/Project access #45187304506 PASS. M4-05 D remains open on retained actual roles/Owner acceptance; no full package exit/forecast hour credit. Baseline 1,900h remains rough and actual hours unknown.",
-    "latestTechnicalCheckpoint": "PUR04 #45187304506 COMPLETED SUCCESS 1/1 new PG17.11 real approved PO revision copied commercial and source terms, immutability/duplicate/audit/Company-Project denials; prior actual Jai header UI #45185452075 reused, no repeated suites. 20/32 technical M4 checkpoints remain pending retained roles/review; hours 0/1900.",
+    "workEvidenceNote": "PUR07 new authenticated test proved Jai approved Thai PO and visible Unicode automated export denial, but actual popup/dispatch/Ben UI unverified; 3 exact new focused runs failed, do NOT rerun absent new protocol evidence. Continue other unblocked M4 functional source gaps; real Unicode PDF renderer, retained named grants and final review open.",
+    "latestTechnicalCheckpoint": "M4-06 PUR07 new actual authenticated Jai UI proved visible server Thai PDF fail-closed HTTP422, but 3 new Chrome popup attempts FAILED due CDP activation/command; not full browser PASS. Existing native #45155841629 and standalone Thai A4 Chrome #45162334613 reused. M4 remains 20/32, hours 0/1900.",
     "m4CheckpointCompleted": 20,
     "m4CheckpointTotal": 32,
     "displayCounter": "0 / 1900",
@@ -399,7 +399,11 @@
         "https://github.com/threeswordz/cinder-grind/pull/418",
         "https://github.com/threeswordz/cinder-grind/actions/runs/45155536353",
         "https://github.com/threeswordz/cinder-grind/actions/runs/45155841629",
-        "https://github.com/threeswordz/cinder-grind/actions/runs/45162334613"
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45162334613",
+        "https://github.com/threeswordz/cinder-grind/pull/422",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45189759754",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45190249369",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45190773009"
       ],
       "actualHours": null,
       "verifiedAt": null,
@@ -423,11 +427,17 @@
           "note": "No actual authenticated React print button, final bitmap visual signoff or automatic backend Unicode PDF. These remain release blockers."
         },
         {
-          "name": "Production-grade Unicode PDF download and actual authorized Jai/Ben browser role flow, retained MKE/TCJ grants, independent DEC-022 review and Owner acceptance",
-          "status": "NOT_VERIFIED"
+          "name": "Actual authenticated Jai approved Thai PO UI + visible automated backend Unicode PDF fail-closed PROVEN; real Jai Print popup/dispatch/Ben UI NOT PROVEN due Chrome CDP protocol/popup test failures; real named grants/Owner independent release acceptance outstanding",
+          "status": "AUTHENTICATED_JAI_UNICODE_DENIAL_PASS_CHROME_POPUP_AND_RETAINED_ROLES_OPEN",
+          "evidenceRuns": [
+            45189759754,
+            45190249369,
+            45190773009
+          ],
+          "note": "Each workflow overall FAIL. Every run reached real Nest/PostgreSQL source approval and Jai actual MUI GET PDF denial HTTP422 with visible unsupported Unicode error. First blocked popup, second Input.dispatchMouseEvent CDP rejected, third Runtime.evaluate(userGesture:true) returned BROWSER_PROTOCOL_COMMAND_FAILED. No Chrome PDF output or UI dispatch/Ben visibility proven in these runs. Earlier standalone Chrome Thai PDF #45162334613 SUCCESS remains distinct."
         }
       ],
-      "latestAssessment": "Draft #418 source SHA 9460eaee (documentation follow-up only) has real Chrome CDP print-to-PDF run #45162334613 SUCCESS: exact A4 105124 bytes, pdftotext searchable Thai supplier, trusted synthetic approved PO, THB grand 2107.90 after VAT 137.90, denial tests and Web TS PASS. Prior #45155841629 4/4 new native/API schema/PDF contract tests PASS; new Chrome harness initial #45160954962/#45161259406 preflight failure and #45161447424 missing output were corrected before green. Automated server Unicode PDF endpoint still fails closed for Thai; authenticated actual Jai button, independent review/Owner signoff and visual pagination acceptance incomplete. 3/4 technical checkpoints, 0 forecast hours retired."
+      "latestAssessment": "PUR07 PR #422 new real authenticated Jai React/Chrome source has partial PASS evidence only: three exact-new focused runs #45189759754/#45190249369/#45190773009 all completed FAILURE at print popup after proving real Thai approved PO fixture and actual visible API HTTP422 Unicode fail-closed. CDP transport rejected trusted Input and Runtime userGesture; do not retry this case without independent root-cause proof or change production code. Actual Jai reported email, Ben read-only UI, server automated Unicode PDF and retained named MKE/TCJ grants NOT verified; prior standalone Thai A4 PDF #45162334613 and native external reported dispatch #45155841629 remain earlier successful distinct proofs. M4-06 remains 3/4=75% final checkpoint OPEN; no full package hour credit."
     },
     {
       "id": "M4-07",
