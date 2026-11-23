@@ -1,0 +1,40 @@
+name: M4 UI corrected exact source web typecheck final 2026-11-23
+on:
+  push:
+    branches: [focused-m4-operational-ui-final-20261123]
+    paths: ['.github/workflows/focused-m4-ui-final-types-20261123.yml']
+permissions:
+  contents: read
+jobs:
+  ui-source-only:
+    name: corrected-ui-web-types-only
+    runs-on: ubuntu-latest
+    env:
+      UI_SOURCE_PARENT_SHA: 62d2ce23810938784caa66aab6e427e49030d7fe
+    steps:
+      - name: Checkout exact reviewed UI + disposable workflow
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 2
+      - name: Assert one workflow addition above exact reviewed source
+        run: |
+          test "$(git rev-parse HEAD^)" = "$UI_SOURCE_PARENT_SHA"
+          test "$(git diff --name-only HEAD^ HEAD)" = ".github/workflows/focused-m4-ui-final-types-20261123.yml"
+      - name: pnpm setup
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        with:
+          version: 12.6.0
+          run_install: false
+      - name: Node setup
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24.21.0
+      - name: Install frozen dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Generate shared Prisma client
+        run: pnpm prisma:generate
+      - name: Focused Web TypeScript only
+        run: pnpm --filter @construction-erp/web typecheck
+      - name: Explicit evidence limit
+        run: echo 'UI typecheck only, no feature suite, API suite, full CI, DB, browser, Mac, human acceptance or Production'
