@@ -1,0 +1,335 @@
+import assert from 'node:assert/strict';
+import { randomUUID } from 'node:crypto';
+import test from 'node:test';
+
+import {
+  ConflictException, ForbiddenException, NotFoundException,
+} from '@nestjs/common';
+import { Prisma } from '@prisma/client';
+
+import { NumberSequenceService } from '../administration/number-sequence.service';
+import { ApprovalService } from '../approval/approval.service';
+import { AuditService } from '../audit/audit.service';
+import { AuthenticatedUserContext } from '../auth/auth.types';
+import { AuthorizationService } from '../authorization/authorization.service';
+import { ProjectScopeService } from '../authorization/project-scope.service';
+import { PrismaService } from '../prisma/prisma.service';
+import { ProjectAccessService } from '../projects/project-access.service';
+import { ProcurementService } from './procurement.service';
+import { PurchaseOrderService } from './purchase-order.service';
+import { SourcingService } from './sourcing.service';
+import { PurchaseOrderCancellationCaseService } from './purchase-order-cancellation-case.service';
+
+// NEW bounded PUR04 actual PostgreSQL17.11 behavior, not a rerun of the
+// previously passed PUR04 draft-edit/THB quote/Chrome flows.
+// Disposable DB only: never retained MKE/TCJ, Mac or Production.
+const D=(value:string)=>new Prisma.Decimal(value);
+test('PUR10 native: real approved PO, independent named Jai/Khaimook/Ben, atomic single cancellation, protected audit history', async () => {
+  const prisma=new PrismaService();
+  await prisma.$connect();
+  try {
+    const key=randomUUID().slice(0,8);
+    const company=await prisma.company.create({data:{
+      companyCode:'P04REV-'+key,companyName:'Disposable PUR04 revision '+key,
+    }});
+    const outsiderCompany=await prisma.company.create({data:{
+      companyCode:'P04EXT-'+key,companyName:'Disposable outsider Company',
+    }});
+    const customer=await prisma.customer.create({data:{
+      companyId:company.id,customerCode:'P04-C-'+key,
+      customerName:'Synthetic PUR04 customer',
+    }});
+    const project=await prisma.project.create({data:{
+      companyId:company.id,customerId:customer.id,
+      projectCode:'P04-SITE-'+key,projectName:'Eligible single Project',
+      contractValue:D('100000'),
+      plannedStartDate:new Date('2026-10-01T00:00:00Z'),
+      plannedCompletionDate:new Date('2027-12-31T00:00:00Z'),
+    }});
+    const otherProject=await prisma.project.create({data:{
+      companyId:company.id,customerId:customer.id,
+      projectCode:'P04-OTHER-'+key,projectName:'Unrelated same-Company Project',
+      contractValue:D('100000'),
+      plannedStartDate:new Date('2026-10-01T00:00:00Z'),
+      plannedCompletionDate:new Date('2027-12-31T00:00:00Z'),
+    }});
+    const uom=await prisma.unitOfMeasure.create({data:{
+      companyId:company.id,uomCode:'EA-'+key,uomName:'Each',
+      decimalPlaces:2,
+    }});
+    for(const [entityType,sequenceCode,formatTemplate] of [
+      ['PURCHASE_REQUEST','PURCHASE_REQUEST','PRYYMM-###'],
+      ['RFQ','RFQ','RFQYYMM-###'],
+      ['PURCHASE_ORDER','PURCHASE_ORDER','POYYMM-###'],
+    ] as const){
+      await prisma.numberSequence.create({data:{
+        companyId:company.id,entityType,sequenceCode,formatTemplate,
+        resetRule:'MONTHLY',
+      }});
+    }
+    async function actor(label:string, companyId:string, projectId?:string) {
+      const employee=await prisma.employee.create({data:{
+        companyId,employeeCode:label.slice(0,4)+key,
+        employeeName:'Synthetic '+label,
+      }});
+      const user=await prisma.user.create({data:{
+        companyId,employeeId:employee.id,
+        email:label.toLowerCase()+'-'+key+'@example.invalid',
+        displayName:'Synthetic '+label,passwordHash:'no-login',
+      }});
+      if(projectId)await prisma.projectMember.create({data:{
+        employeeId:employee.id,projectId,projectRole:'PUR04 isolated test',
+      }});
+      return {user,auth:{
+        companyId,userId:user.id,sessionId:randomUUID(),
+        email:user.email,displayName:user.displayName,
+        roleCodes:label==='Ben'?['MANAGEMENT','PUR04_BEN_'+key]:
+          label==='Khaimook'?['PROJECT_MANAGER','PUR04_PM_'+key]:
+          ['PROCUREMENT_OFFICER'],
+        permissions:[
+          'procurement.pr.view','procurement.pr.manage',
+          'procurement.pr.submit','procurement.pr.approve',
+          'procurement.rfq.view','procurement.rfq.manage',
+          'procurement.quotation.view','procurement.quotation.manage',
+          'procurement.award.select','procurement.po.view',
+          'procurement.po.create','procurement.po.edit',
+          'procurement.po.submit','procurement.po.approve',
+          'procurement.po.revise',
+        ],
+        csrfTokenHash:'0'.repeat(64),
+      } as AuthenticatedUserContext};
+    }
+    const store=await actor('Store',company.id,project.id);
+    const khaimook=await actor('Khaimook',company.id,project.id);
+    const jai=await actor('Jai',company.id,project.id);
+    const ben=await actor('Ben',company.id,project.id);
+    const wrongProjectActor=await actor('OtherPM',company.id,otherProject.id);
+    const foreignActor=await actor('Foreign',outsiderCompany.id);
+    const prRole=await prisma.role.create({data:{
+      companyId:company.id,roleCode:'PUR04_PM_'+key,
+      roleName:'Synthetic independent PR approver',
+    }});
+    const poRole=await prisma.role.create({data:{
+      companyId:company.id,roleCode:'PUR04_BEN_'+key,
+      roleName:'Synthetic independent PO approver',
+    }});
+    const prFlow=await prisma.approvalWorkflow.create({data:{
+      companyId:company.id,workflowCode:'PUR04_PR_'+key,
+      workflowName:'PUR04 test PM approval',
+      entityType:'PURCHASE_REQUEST',
+      steps:{create:[{stepNo:1,stepName:'PM check',requiredApprovals:1,
+        stepRoles:{create:[{roleId:prRole.id}]}}]},
+    }});
+    const poFlow=await prisma.approvalWorkflow.create({data:{
+      companyId:company.id,workflowCode:'PUR04_PO_'+key,
+      workflowName:'PUR04 test Ben approval',
+      entityType:'PURCHASE_ORDER',
+      steps:{create:[{stepNo:1,stepName:'Ben approval',requiredApprovals:1,
+        stepRoles:{create:[{roleId:poRole.id}]}}]},
+    }});
+    const supplier=await prisma.supplier.create({data:{
+      companyId:company.id,supplierCode:'P04S-'+key,
+      supplierName:'PUR04 disposable THB supplier',
+    }});
+    const scope=new ProjectAccessService(
+      prisma,new ProjectScopeService(new AuthorizationService()),
+    );
+    const audit=new AuditService(prisma);
+    const approval=new ApprovalService(prisma);
+    const numbers=new NumberSequenceService(prisma);
+    const prs=new ProcurementService(prisma,scope,audit,approval,numbers);
+    const sourcing=new SourcingService(prisma,scope,audit,numbers);
+    const orders=new PurchaseOrderService(prisma,scope,audit,approval,numbers);
+
+    // Normal published services, not direct fake award/PO rows:
+    // original Store demand, real Khaimook approval, Jai THB RFQ/award,
+    // final Ben-approved PO. Distinct test asserts only the NEW revision.
+    const request=await prs.createRequest({auth:store.auth},project.id,'PUR04 approved revision');
+    const requestLine=await prs.createLine({auth:store.auth},request.id,{
+      lineType:'SERVICE',description:'One-Project synthetic service',
+      quantity:D('1'),uomId:uom.id,
+    });
+    await prs.submitRequest({auth:store.auth},request.id,prFlow.workflowCode);
+    await prs.approveRequest({auth:khaimook.auth},request.id,'Demand valid');
+    const rfq=await sourcing.createRfq({auth:store.auth},project.id,{
+      lines:[{purchaseRequestLineId:requestLine.id,quantity:D('1')}],
+    });
+    await sourcing.inviteSupplier({auth:jai.auth},rfq.id,supplier.id);
+    const quotation=await sourcing.createQuotation(
+      {auth:jai.auth},rfq.id,supplier.id,
+      {quotationDate:new Date(),supplierReference:'P04REV-'+key},
+    );
+    assert.equal(quotation.currencyCode,'THB');
+    const quoteLine=await sourcing.upsertQuotationLine(
+      {auth:jai.auth},quotation.id,rfq.lines[0]!.id,
+      {quantity:D('1'),unitPrice:D('9000')},
+    );
+    const award=await sourcing.selectAward(
+      {auth:jai.auth},rfq.lines[0]!.id,quoteLine.id,
+      'PUR04 bona fide THB supplier source',
+    );
+    const original=await orders.createOrder(
+      {auth:jai.auth},project.id,[award.id],'Original commercial baseline',
+    );
+    const fields={
+      deliveryLocation:'Site loading dock 3',
+      deliveryContact:null,
+      deliveryTerms:'Delivery by scheduled pickup',
+      paymentTerms:'30 days after accepted goods',
+      creditTerms:null,
+      discountAmount:D('100.25'),
+      freightAmount:D('20.50'),
+      additionalChargeAmount:D('3.75'),
+      vatRatePercent:D('7.00'),
+      supplierQuoteExceptionReason:null,
+    };
+    await orders.updateOrder({auth:jai.auth},original.id,fields);
+    await orders.submit({auth:jai.auth},original.id,poFlow.workflowCode);
+    const approved=await orders.approve({auth:ben.auth},original.id,'Commercial offer reviewed');
+    assert.equal(approved.lifecycleState,'APPROVED');
+    const approvedOriginal=await prisma.purchaseOrder.findUniqueOrThrow({
+      where:{id:original.id},include:{lines:true},
+    });
+    assert.ok(approvedOriginal.approvalInstanceId);
+    assert.equal(approvedOriginal.lines.length,1);
+
+    // This test uses the already-proven real PR/RFQ/award/PO service journey
+    // to establish a bona-fide approved THB PO before exercising ONLY the
+    // new PUR10 cancellation path. No existing PUR04 browser/PG rerun.
+
+    const roleSetup: Array<{
+      person: typeof jai;
+      code: string;
+      permissions: string[];
+    }> = [
+      { person: jai, code: 'PROCUREMENT_OFFICER',
+        permissions: ['procurement.po.view', 'procurement.po.create'] },
+      { person: khaimook, code: 'PROJECT_MANAGER',
+        permissions: ['procurement.po.view'] },
+      { person: ben, code: 'MANAGEMENT',
+        permissions: ['procurement.po.view', 'procurement.po.approve', 'procurement.po.cancel'] },
+    ];
+    const auths=new Map<string,AuthenticatedUserContext>();
+    for (const entry of roleSetup) {
+      const role=await prisma.role.create({data:{
+        companyId:company.id,roleCode:entry.code,roleName:'PUR10 synthetic '+entry.code,
+      }});
+      await prisma.userRole.create({data:{
+        companyId:company.id,userId:entry.person.user.id,roleId:role.id,
+      }});
+      for(const permissionCode of entry.permissions){
+        const permission=await prisma.permission.upsert({where:{permissionCode},
+          create:{permissionCode,moduleCode:'PROCUREMENT',description:'PUR10 synthetic role'},
+          update:{},
+        });
+        await prisma.rolePermission.create({data:{roleId:role.id,permissionId:permission.id}});
+      }
+      const session=await prisma.userSession.create({data:{
+        userId:entry.person.user.id,
+        tokenHash:randomUUID().replace(/-/g,'')+randomUUID().replace(/-/g,''),
+        csrfTokenHash:'c'.repeat(64),
+        expiresAt:new Date(Date.now()+3_600_000),
+      }});
+      auths.set(entry.code,{
+        ...entry.person.auth, sessionId:session.id,
+        permissions:[...new Set([...entry.person.auth.permissions,...entry.permissions])],
+      });
+    }
+    const jaiAuth=auths.get('PROCUREMENT_OFFICER')!;
+    const pmAuth=auths.get('PROJECT_MANAGER')!;
+    const benAuth=auths.get('MANAGEMENT')!;
+    await prisma.systemSetting.create({data:{
+      companyId:company.id,settingKey:'PUR10_NAMED_ACTORS_V1',
+      settingValue:{
+        jai:jai.user.id,khaimook:khaimook.user.id,ben:ben.user.id,
+      },
+    }});
+
+    const cases=new PurchaseOrderCancellationCaseService(prisma,scope,orders);
+    const unchanged=await prisma.purchaseOrder.findUniqueOrThrow({
+      where:{id:approvedOriginal.id},select:{cancelledAt:true,updatedAt:true},
+    });
+    assert.equal(unchanged.cancelledAt,null);
+    await assert.rejects(
+      ()=>orders.cancel({auth:jaiAuth},approvedOriginal.id,'Direct bypass should never work'),
+      (e:unknown)=>e instanceof ConflictException &&
+        (e.getResponse() as {code?:string}).code==='PUR10_INDEPENDENT_CANCELLATION_REVIEW_REQUIRED',
+    );
+
+    const zero=await cases.read(jaiAuth,approvedOriginal.id);
+    assert.equal(zero.case,null);
+    const proposed=await cases.transition({auth:jaiAuth},approvedOriginal.id,
+      'PROPOSE',0,null,'Supplier cancellation discussed and documented');
+    assert.deepEqual([proposed.status,proposed.poCancelled,proposed.version],
+      ['PM_PENDING',false,1]);
+
+    await assert.rejects(
+      ()=>cases.transition({auth:jaiAuth},approvedOriginal.id,'PM_FORWARD',1,
+        proposed.expectedPreviousEventId,'Jai cannot self-review'),
+      (e:unknown)=>e instanceof ForbiddenException || e instanceof ConflictException,
+    );
+    await assert.rejects(
+      ()=>cases.transition({auth:pmAuth},approvedOriginal.id,'PM_FORWARD',0,
+        proposed.expectedPreviousEventId,'Stale version attempt'),
+      (e:unknown)=>e instanceof ConflictException,
+    );
+    const checked=await cases.transition({auth:pmAuth},approvedOriginal.id,
+      'PM_FORWARD',1,proposed.expectedPreviousEventId,
+      'Project requires no further quantities');
+    assert.deepEqual([checked.status,checked.version],['BEN_PENDING',2]);
+    const approvedCase=await cases.transition({auth:benAuth},approvedOriginal.id,
+      'BEN_APPROVE',2,checked.expectedPreviousEventId,
+      'Approved after Khaimook site review');
+    assert.equal(approvedCase.status,'BEN_APPROVED');
+    assert.equal((await prisma.purchaseOrder.findUniqueOrThrow({
+      where:{id:approvedOriginal.id},select:{cancelledAt:true},
+    })).cancelledAt,null);
+
+    const finalArgs={
+      supplierAgreementEvidence:'Supplier confirmed cancellation reference PUR10-TEST-'+key,
+      supplierAgreed:true,noDepositOrPenalty:true,noDeliveryOrInvoice:true,
+    };
+    await assert.rejects(
+      ()=>cases.finalize({auth:jaiAuth},approvedOriginal.id,3,
+        approvedCase.expectedPreviousEventId,finalArgs),
+      (e:unknown)=>e instanceof ForbiddenException,
+    );
+    await assert.rejects(
+      ()=>cases.finalize({auth:benAuth},approvedOriginal.id,2,
+        approvedCase.expectedPreviousEventId,finalArgs),
+      (e:unknown)=>e instanceof ConflictException,
+    );
+
+    const finalize=await cases.finalize({auth:benAuth},approvedOriginal.id,3,
+      approvedCase.expectedPreviousEventId,finalArgs);
+    assert.deepEqual([finalize.status,finalize.poCancelled,finalize.financePosted],
+      ['FINALIZED',true,false]);
+    const cancelled=await prisma.purchaseOrder.findUniqueOrThrow({where:{id:approvedOriginal.id}});
+    assert.ok(cancelled.cancelledAt);
+    assert.equal(cancelled.cancelledByUserId,ben.user.id);
+    assert.equal(await prisma.auditLog.count({where:{
+      companyId:company.id,entityType:'PURCHASE_ORDER_CANCELLATION',
+      entityId:approvedOriginal.id,action:'FINALIZE',
+    }}),1);
+    assert.equal(await prisma.auditLog.count({where:{
+      companyId:company.id,entityType:'PURCHASE_ORDER',
+      entityId:approvedOriginal.id,action:'CANCEL',
+    }}),1);
+    assert.equal((await cases.read(benAuth,approvedOriginal.id)).case?.status,'FINALIZED');
+    await assert.rejects(
+      ()=>cases.finalize({auth:benAuth},approvedOriginal.id,3,
+        approvedCase.expectedPreviousEventId,finalArgs),
+      (e:unknown)=>e instanceof ConflictException,
+    );
+    // The finalization never inserts/reverses receipts, invoices or payments.
+    assert.equal(await prisma.goodsReceipt.count({where:{
+      purchaseOrderId:approvedOriginal.id,
+    }}),0);
+    assert.equal(await prisma.supplierInvoiceItem.count({where:{
+      purchaseOrderLineId:{in:approvedOriginal.lines.map(l=>l.id)},
+    }}),0);
+    console.log('M4_PUR10_REAL_PG_ATOMIC_FINALIZATION_AND_REPLAY_PASS');
+  } finally {
+    await prisma.$disconnect();
+  }
+});
