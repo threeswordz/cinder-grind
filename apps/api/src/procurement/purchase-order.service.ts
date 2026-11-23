@@ -1220,8 +1220,19 @@ export class PurchaseOrderService {
         values.benUserId !== context.auth.userId) {
       throw new ConflictException({ code: 'PUR10_VERIFIED_BEN_EVENT_REQUIRED' });
     }
-    // A row lock serializes this final write with revision creation/PO edits;
-    // the receipt and Finance advisory locks below remain unchanged.
+    // Match the existing revision lock order BEFORE taking the row lock;
+    // otherwise an already-started revise() could create a later revision.
+    const initial = await tx.purchaseOrder.findFirst({
+      where: { id: orderId, companyId: context.auth.companyId },
+      select: { poNumber: true },
+    });
+    if (!initial) throw this.orderNotFound();
+    await tx.$executeRawUnsafe(
+      'SELECT pg_advisory_xact_lock(hashtext($1))',
+      'purchase-order:' + initial.poNumber,
+    );
+    // Lock the PO source row to prevent concurrent edits/cancel writes while
+    // retaining the original receipt and Finance advisory guards.
     const locked = await tx.$queryRaw<Array<{id: string}>>(Prisma.sql`
       SELECT "id" FROM "purchase_orders"
       WHERE "id" = ${orderId}::uuid
