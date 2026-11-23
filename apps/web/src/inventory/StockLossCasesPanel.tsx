@@ -132,17 +132,21 @@ export function StockLossCasesPanel({
     },
     onError: (error: unknown) => setFeedback(errorText(error)),
   });
-  const pmReady = pm && record?.status === 'OPEN' &&
-    record.makerUserId !== userId && Boolean(reviewNote.trim()) &&
-    (pmDecision === 'RETURN' ? !escalateToBen :
-      pmDecision === 'FORWARD_DISPOSAL' ? record.proposedDisposition === 'DISPOSAL' :
-        record.proposedDisposition !== 'DISPOSAL');
-  const benReady = ben && record?.status === 'BEN_PENDING' && Boolean(reviewNote.trim()) &&
+  // Stage/authority controls must remain visible BEFORE the reviewer types a note.
+  // Input validity controls only the submit button, never visibility of its own fields.
+  const pmStage = pm && record?.status === 'OPEN' && record.makerUserId !== userId;
+  const benStage = ben && record?.status === 'BEN_PENDING' &&
     record.makerUserId !== userId && record.pmUserId !== userId;
-  const nancyReady = nancy && record?.status === 'NANCY_PENDING' &&
-    record.proposedDisposition === 'DISPOSAL' && Boolean(reviewNote.trim()) &&
+  const nancyStage = nancy && record?.status === 'NANCY_PENDING' &&
+    record.proposedDisposition === 'DISPOSAL' &&
     record.makerUserId !== userId && record.pmUserId !== userId &&
     record.benUserId !== userId;
+  const pmDecisionValid = pmStage && (pmDecision === 'RETURN' ? !escalateToBen :
+    pmDecision === 'FORWARD_DISPOSAL' ? record?.proposedDisposition === 'DISPOSAL' :
+      record?.proposedDisposition !== 'DISPOSAL');
+  const pmReady = pmDecisionValid && Boolean(reviewNote.trim());
+  const benReady = benStage && Boolean(reviewNote.trim());
+  const nancyReady = nancyStage && Boolean(reviewNote.trim());
   const doReview = (run: () => Promise<unknown>) => { setFeedback(''); review.mutate(run); };
   if (!view) return <Alert severity="info">This case log requires a current business role and active stock/document view permissions.</Alert>;
   return (
@@ -279,12 +283,12 @@ export function StockLossCasesPanel({
               ) : null}
             </Stack>
           ) : null}
-          {record && (pmReady || benReady || nancyReady) ? (
+          {record && (pmStage || benStage || nancyStage) ? (
             <Stack spacing={2}>
               <Typography variant="subtitle1">
-                {pmReady ? 'Khaimook severity screen' : benReady ? 'Ben property-severity acknowledgment' : 'Nancy disposal-proposal decision'}
+                {pmStage ? 'Khaimook severity screen' : benStage ? 'Ben property-severity acknowledgment' : 'Nancy disposal-proposal decision'}
               </Typography>
-              {pmReady ? <>
+              {pmStage ? <>
                 <TextField select label="PM decision" value={pmDecision}
                   onChange={e => {
                     const value=e.target.value as typeof pmDecision;
@@ -302,14 +306,14 @@ export function StockLossCasesPanel({
                   <MenuItem value="yes">Yes — Ben must acknowledge severity</MenuItem>
                 </TextField>
               </> : null}
-              {nancyReady ? <TextField select label="Nancy proposal decision" value={nancyDecision}
+              {nancyStage ? <TextField select label="Nancy proposal decision" value={nancyDecision}
                 onChange={e => setNancyDecision(e.target.value as typeof nancyDecision)}>
                 <MenuItem value="APPROVE_PROPOSAL">Approve proposal — execution still pending</MenuItem>
                 <MenuItem value="REJECT_PROPOSAL">Reject proposal</MenuItem>
               </TextField> : null}
               <TextField label="Independent review reason" value={reviewNote} multiline minRows={2}
                 onChange={e => setReviewNote(e.target.value)} inputProps={{ maxLength: 2000 }} />
-              <Button variant="contained" disabled={!reviewNote.trim() || review.isPending ||
+              <Button variant="contained" disabled={!(pmReady || benReady || nancyReady) || review.isPending ||
                 caseQuery.isFetching || !record.latestEventId}
                 onClick={() => {
                   if (!record) return;
