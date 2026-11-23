@@ -3,7 +3,7 @@ name: M4 PUR10 Corrected Targeted Native PostgreSQL
 on:
   push:
     branches: ['work-m4-pur10-native-fixed-once-20261124']
-    paths: ['.github/workflows/m4-pur10-native-once.yml']
+    paths: ['.github/workflows/m4-pur10-native-fixed-once.yml']
 permissions:
   contents: read
 concurrency:
