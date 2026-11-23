@@ -1,0 +1,68 @@
+name: M4 PUR12 isolated new identity and migration proof
+on:
+  push:
+    branches: [focused-m4-pur12-identity-20261123]
+    paths: ['.github/workflows/focused-m4-pur12-identity-20261123.yml']
+permissions:
+  contents: read
+jobs:
+  pur12-only:
+    name: One new PUR12 Prisma/Nest/Web/identity proof only
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17.11-alpine
+        env:
+          POSTGRES_DB: erp_m4_pur12_identity
+          POSTGRES_USER: construction_erp
+          POSTGRES_PASSWORD: construction_erp_dev_only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U construction_erp -d erp_m4_pur12_identity"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://construction_erp:construction_erp_dev_only@localhost:5432/erp_m4_pur12_identity?schema=public
+      M4_NON_PRODUCTION_CONFIRMED: 'YES'
+      EXACT_PUR12_SOURCE: 94e8da9d7a6e0cfdfb245bcb81097d3cb8051a12
+    steps:
+      - name: Exact source checkout, no general suite
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 2
+      - name: Refuse unrelated commits or non-test database
+        run: |
+          test "$(git rev-parse HEAD^)" = "$EXACT_PUR12_SOURCE"
+          test "$(git diff --name-only HEAD^ HEAD)" = ".github/workflows/focused-m4-pur12-identity-20261123.yml"
+          test "${DATABASE_URL%%\?*}" = "postgresql://construction_erp:construction_erp_dev_only@localhost:5432/erp_m4_pur12_identity"
+          test "$M4_NON_PRODUCTION_CONFIRMED" = "YES"
+      - name: Setup pinned pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
+        with:
+          version: 12.6.0
+          run_install: false
+      - name: Setup pinned Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.21.0
+      - name: Frozen install
+        run: pnpm install --frozen-lockfile
+      - name: Generate Prisma client and deploy forward-only schema to disposable PG17
+        run: |
+          pnpm prisma:generate
+          pnpm prisma:migrate:deploy
+      - name: Compile only changed API and linked TypeScript graph
+        run: pnpm --filter @construction-erp/api build
+      - name: Typecheck changed Web UI
+        run: pnpm --filter @construction-erp/web typecheck
+      - name: Run ONLY new PUR12 identity pure test
+        run: node --test apps/api/dist/procurement/purchase-order-identity.spec.js
+      - name: Check new SQL snapshot guard exists (not proof it exercised)
+        run: |
+          psql "$DATABASE_URL" -Atc "SELECT count(*) FROM pg_trigger WHERE tgname = 'trg_pur12_po_identity_immutable' AND NOT tgisinternal" | grep -qx 1
+      - name: Explicit no-waste result boundary
+        run: echo 'PUR12 new scoped syntax/migration/typecheck/pure identity only; actual PO actor/trigger negative and release CI still pending.'
