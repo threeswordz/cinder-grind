@@ -44,7 +44,7 @@
 
 All historic 2-Nov "missing/partial" labels remain audit history, superseded ONLY within the exact bounded receipts above. The 112 stable IDs, mutually exclusive queue counts, deferred Accounting/HR and mandatory final release checks are unchanged. No need to replay receiving/transfer/subcontract/count or now-successful browser probes.
 
-### Additional current-source triage — eight IDs; code evidence only, no new Actions
+### Additional current-source triage — eight initial IDs; code evidence only, no new Actions
 
 Read the existing source on privately staged [M4 candidate + PM02 Draft #412](https://github.com/threeswordz/cinder-grind/pull/412) at `b61a53b3b49b6dab5ffa01062a91f9efc2778bae` rather than opening a redundant implementation or running tests. This is **direct source comparison**, not proof of retained business grants or a fresh whole-module test.
 
@@ -60,6 +60,19 @@ Read the existing source on privately staged [M4 candidate + PM02 Draft #412](ht
 | `PUR12` | `purchase-order.service.ts:assertApprovedNumbering` **requires** legacy `POYYMM-###` and `MONTHLY`. Owner's K-/T- company prefix and supplier-name PDF filename examples are not implemented by that guard; preserve historic PO IDs, design forward-only display/document identity and explicit Company-mapping, not retroactive renumbering |
 
 **Priority for next coherent M4 code delta:** first avoid rebuilding existing Material Plan and PO revision controls; then resolve confirmed **PUR01/PO commercial basis**, **PUR07/PUR12 PDF+number formatting** by bounded source, and separately record what needs a real business/scope gate. The current Owner #288 Accounting deferral still prohibits new AP/payment/Finance implementation; #245 continues to bar implicit multi-Project PO. This triage does not self-approve new policies, changed source, human UAT or release readiness.
+
+### Additional current-source triage — four more purchasing IDs, source proof only
+
+This incremental read compares [Jai's approved original requirements](https://github.com/threeswordz/cinder-grind/blob/main/docs/ROLE-REQUIREMENTS-2026-10-30/04-jai.md) with current [#412 source](https://github.com/threeswordz/cinder-grind/pull/412) and existing bounded Receiving #347. No new CI, actual retained role grants, deployment, supplier negotiation or Accounting scope is inferred.
+
+| ID | Source finding and exact next decision |
+|---|---|
+| `PUR08` | `purchase-order.service.ts:getOrder` reports approval/revision and supplier/award lines; the PO-specific readback inspected does **not demonstrate** a complete supplier acknowledgment → in-transit → partial/outstanding → rescheduled → replacement delivery timeline. Reuse actual #347 receipt/physical custody evidence only for its demonstrated portion. **Current partial / supplier delivery workflow evidence due**; no new stock posting assumed |
+| `PUR10` | `purchase-order.controller.ts` exposes a direct reasoned `cancel` action guarded by `procurement.po.cancel`. Service protects posted, unreversed GR and approved invoice sources and revision state. The approved business sequence **Jai proposes → Khaimook checks site need → Ben approves** is **not represented by this direct controller/service path**. **Confirmed approval-workflow delta**, with supplier refusal/deposit/penalties/received balance still an Owner business gate. Do not silently grant Jai unilateral final cancellation or weaken GR/AP locks |
+| `PUR14` | `inventory/material-return.service.ts` is linked to a previously posted **Material Issue**, rather than a supplier delivery return/claim. #347 supports bounded damaged/short receiving evidence but **does not prove** the whole supplier claim/replacement/outbound-return process. **Supplier-discrepancy lifecycle remains a distinct current partial gap**; needs explicit nonposting claim vs actual stock movement separation |
+| `PUR15` | `finance/finance.service.ts` and `SupplierInvoiceItem` retain source PO-line/GR-item references, but these alone do **not demonstrate** Jai's complete handover packet, discrepancy hold → correction → Porn recheck, and payment eligibility. **Mixed operational handoff + deferred Accounting scope**. Reuse PO/GR evidence; hold AP/payment implementation behind Owner #288 rather than mark the full ID accepted |
+
+These four are **now specifically source-triaged**, not four technically completed requirements. They do not change the 112-ID denominator or the 59 active operational/role/scope exit queue. The still-required purchasing delivery work remains PUR01 quote thresholds with PUR04 commercial amount basis, PUR07 supplier PO PDF/manual dispatch evidence, PUR12 forward-only company numbering and PUR10's gated cancellation approval workflow. Keep multi-Project PO #245 and financial effects separate.
 
 ### Exact-source spot check: purchasing, approvals, Material Plan and PR (seven IDs)
 
