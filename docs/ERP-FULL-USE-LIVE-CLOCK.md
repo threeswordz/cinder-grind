@@ -6,6 +6,40 @@
 
 The ERP is complete only if all 112 requirements are implemented and working or explicitly superseded with Owner approval, all eight roles (Ben, Nancy, Khaimook, Jai, Store Site, Foreman, Porn and Koh) can use real MKE/TCJ authenticated workflows, integrated HR/payroll and Accounting/GL/tax/banking work, preserved data, functional cross-module workflows and no material blocking defects, valid backups/restore, business UAT and actual authorized Production go-live. An **8/8 prototype is not 100% ERP**. Accounting/HR and multi-Project scope formerly deferred must receive new authority before implementation.
 
+## 23 Nov 2026 forecast audit — corrected presentation (NO estimate rebaseline)
+
+**Issue found:** an earlier Owner-facing graphic filled a green progress bar to each **future cumulative planned hour** (e.g. `1900 / 1900` with `0h remaining at stage exit`). This could be read as **100% actual completion**, which is false. Those are *conditional future milestones*, **not live work completed**. The title "Roadmap after Milestone 5" also misleadingly included M4 / 5/8. Do not repeat either visualization.
+
+**Audited arithmetic, no new estimate evidence:** 60 packages across 12 stages total **1,900 forecast productive engineering hours** in the existing **23 Nov 2026 post-baseline estimate**; (170+120+50+65=405\) hours to finish prototype 8/8, and (300+480+130+120+95+110+110+150=1,495\) **additional hours after prototype 8/8**. **405+1,495=1,900**. Full usable ERP including all 112 requirements and all eight named roles is **NOT** complete at 8/8. The 1,495 hours contain HR/payroll, full Accounting/tax/bank, multi-Project purchasing, real eight-role UAT, security, production hosting/restore, migration/training and cutover.
+
+**No false precision:** 1,900 is an **unvalidated point estimate** allocated by planning judgment, not measured engineering effort and not a guaranteed remaining duration. The existing ledger states an indicative **1,100–3,300 hour range**, with major uncertainty concentrated in Owner-gated HR and Thailand Accounting, open 112-ID role/scope decisions, multi-Project policy and Production readiness. No timesheet or calibrated velocity justifies replacing the 1,900-hour center with a more precise figure; do not silently change its denominator. When business scope, actual effort or revised estimates are available, publish an explicit evidence-backed forecast revision with the delta. Calendar lead time may exceed productive hours because of reviews, approvals, staffing and business UAT.
+
+**Correct live presentation contract (mandatory for future live position):**
+1. Lead with **verified accepted packages and actual logged time**, separately: prototype **4/8**, GL **3/10**, M4 checklist **19/32 = 59.375%**, completed post-baseline whole-package budget **0 / 1900 h**, and `actualLoggedHours=null` (**UNKNOWN**). M4 checkpoints are not weighted effort or ERP %.
+2. Show **scope allocations**, **NOT green progress bars based on forecast cumulative hours**: prototype remaining plan 405h (21.3% of budget) plus post-prototype full ERP remaining plan 1,495h (78.7%), and the specific stage deltas below.
+3. For each future milestone say "**forecast hours required for this stage**" and "**conditional cumulative hours / hours left *if* stage accepted**." Never show `1900/1900 100%` or `0h left` without prominently identifying it as a **hypothetical end state**. A current completed-progress bar may be drawn only from evidence-backed acceptance.
+4. Explicitly mark baseline remaining forecast **1,900h as-of 23 Nov 2026 estimate, not re-estimated for partially completed packages**. Do not subtract unlogged wall time or grant 22h merely because M4-03 reached 75% technical checkpoints.
+5. Do not use a single "Full usable ERP H0406–H1900" segment with cumulative `1900 / 1900` as though it were an independent 1,900h **after** 8/8. Correct **incremental post-prototype segment** is **H0406–H1900 = 1,495h**, the **total including M4–M8** is 1,900h.
+
+| Work scope | Incremental remaining-work estimate | Conditional running total if all preceding scope completed |
+|---|---:|---:|
+| M4 / 5/8 | 170h | 170h |
+| M6 / 6/8 | 120h | 290h |
+| M7 / 7/8 | 50h | 340h |
+| M8 / 8/8 | 65h | 405h |
+| **Subtotal to prototype 8/8** | **405h** | **405h, leaving another 1,495h** |
+| GL-05 full HR/OT/leave/payroll | 300h | 705h |
+| GL-06 Accounting/GL/tax/banking | 480h | 1,185h |
+| #245 cross-Project purchasing and budgets | 130h | 1,315h |
+| GL-04 all eight real role acceptance | 120h | 1,435h |
+| GL-07 production security | 95h | 1,530h |
+| GL-08 hosting, encrypted backup and restore | 110h | 1,640h |
+| GL-09 master data migration, user onboarding | 110h | 1,750h |
+| GL-10 final UAT, cutover and stable use | 150h | 1,900h |
+| **Subtotal AFTER prototype 8/8** | **1,495h** | **Conditional full ERP 1,900h overall** |
+
+**Reliability note:** the 1,100–3,300h range is an illustrative scenario interval rather than a statistically calibrated confidence interval. Only scope approval and actual measured work can validate the eventual engineering effort; the planning budget is not an ERP completion percentage or a promise of a specific date. **No GitHub Actions CI or Production deployment is required to correct this forecast display.**
+
 ## ERP 1,900-hour completion counter and countdown
 
 **Current evidence-backed position: `0 / 1900` planned hours retired · `1,900h left`.** This is the net remaining-work budget anchored 23 Nov 2026. The actual work-effort timesheet is UNKNOWN, and the 19/32 M4 technical checkpoints are a different metric. **Do not subtract calendar time, CI runtime, commits, or partial checkpoint progress.** Only a fully accepted forecast work package changes the completed numerator and decrements the remaining-hour forecast (or an explicit evidence-backed re-estimate changes the baseline).
@@ -129,7 +163,7 @@ Owner-visible progress is **an auditable four-checkpoint completion counter for 
 | `M4-07` H0136–H0150 — PUR12 identity | IN_PROGRESS | **75% (3/4)** | A: monthly canonical sequence; B: scoped source + PG17 migration/API/Web compile/2 pure tests [#45149778502](https://github.com/threeswordz/cinder-grind/actions/runs/45149778502) (overall failed in optional psql URL check); C: [new isolated real PG native #45150538123 SUCCESS](https://github.com/threeswordz/cinder-grind/actions/runs/45150538123) for MKE/TCJ PO, revision, no-name, SQL immutability and Company-denial | D: retained named MKE/TCJ grants, final review and Owner acceptance |
 | `M4-08` H0151–H0170 — release acceptance | NOT STARTED | **0% (0/4)** | None | A: frozen consolidated exact candidate; B: independent review clean; C: one justified Owner-authorized full release CI; D: guarded integration and explicit M4 acceptance |
 
-**Aggregate M4 checkpoint counter = 19/32 = 59.375%.** This reflects *evidence-backed checklist progress* only; it is **NOT** 53.125% of remaining 170 productive engineering hours and does not imply full ERP completion. Some checked items were completed before the 1,900-hour post-baseline plan and are not new earned-hour credit. In the canonical forecast ledger, **accepted packages: 0/8; post-baseline estimate retired: 0/1,900h; remaining central forecast: 1,900h (M4: 170h); official milestone 4/8, GL3/10**. Revisit each numerator only on new actual source/CI/retained-role proof. Keep previously accepted Chromium run #45132932414 closed; it covers Nancy schedule, PM09 and SS13, **not** M4-02 or M4-03; M4-02 has a **separate newly executed** actual React/HTTP Chromium test step [#45145803345](https://github.com/threeswordz/cinder-grind/actions/runs/45145803345) that passed but its workflow remains overall failed due a final optional shell-echo syntax error.
+**Aggregate M4 checkpoint counter = 19/32 = 59.375%.** This reflects *evidence-backed checklist progress* only; it is **NOT** 59.375% of remaining 170 productive engineering hours and does not imply full ERP completion. Some checked items were completed before the 1,900-hour post-baseline plan and are not new earned-hour credit. In the canonical forecast ledger, **accepted packages: 0/8; post-baseline estimate retired: 0/1,900h; remaining central forecast: 1,900h (M4: 170h); official milestone 4/8, GL3/10**. Revisit each numerator only on new actual source/CI/retained-role proof. Keep previously accepted Chromium run #45132932414 closed; it covers Nancy schedule, PM09 and SS13, **not** M4-02 or M4-03; M4-02 has a **separate newly executed** actual React/HTTP Chromium test step [#45145803345](https://github.com/threeswordz/cinder-grind/actions/runs/45145803345) that passed but its workflow remains overall failed due a final optional shell-echo syntax error.
 
 **Reporting contract:** For every future "live position", "check", or "continue" include `Status` immediately followed by `Progress` as percentages plus `x/y checkpoints`; show 100% only on actual passed complete package exit, and separately disclose accepted forecast hours. Add or retire checkpoints with citations rather than guessing percentages from elapsed time, commits or agent output.
 
