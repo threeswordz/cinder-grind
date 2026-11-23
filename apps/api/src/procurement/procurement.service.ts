@@ -586,6 +586,14 @@ export class ProcurementService {
         tx,
       );
       this.assertDraft(current.purchaseRequest);
+      // Returned-line correction lineage must survive maker edits; deleting
+      // this line would remove the unique idempotency guard and permit re-copy.
+      if (current.correctionSourceLineId) {
+        throw new ConflictException({
+          code: 'PR_CORRECTION_LINE_DELETE_DENIED',
+          detail: 'A returned-line correction must be revised in place, not deleted.',
+        });
+      }
       await tx.purchaseRequestLine.delete({ where: { id: current.id } });
       await this.audit.record(
         {
@@ -876,6 +884,22 @@ export class ProcurementService {
             code: 'PR_REJECTED_IMMUTABLE',
             detail: 'A rejected Purchase Request is retained history and cannot be cancelled.',
           });
+        }
+        // A cancelled correction permanently occupies the unique source-line
+        // lineage and cannot be edited, leaving returned demand stranded.
+        // Until replacement-of-correction is specified, fail closed.
+        if (request.sourceRequestId) {
+          const correction = await tx.purchaseRequestLine.findFirst({
+            where: { purchaseRequestId: request.id,
+              correctionSourceLineId: { not: null } },
+            select: { id: true },
+          });
+          if (correction) {
+            throw new ConflictException({
+              code: 'PR_CORRECTION_CANCEL_DENIED',
+              detail: 'Returned-line correction requests cannot be cancelled; revise and resubmit.',
+            });
+          }
         }
 
         const requestLines = await tx.purchaseRequestLine.findMany({
