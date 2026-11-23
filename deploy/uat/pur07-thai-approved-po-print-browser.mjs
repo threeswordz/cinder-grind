@@ -1,7 +1,7 @@
 // PUR07 NEW isolated Chrome -> actual PDF check. Does NOT load API, auth,
 // retained data or historic browser suites; uses synthetic approved PO only.
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { mkdtemp, readFile, rm, stat } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import os from 'node:os';
@@ -116,11 +116,25 @@ try {
     '--print-to-pdf=' + pdfPath,
     url,
   ];
-  const run = spawnSync(chrome, flags, {
-    encoding: 'utf8', timeout: 90000,
-    maxBuffer: 4 * 1024 * 1024,
+  // The Vite server shares this event loop. A synchronous Chrome subprocess
+  // would deadlock it while Chrome requests localhost, so spawn asynchronously.
+  const run = await new Promise((resolve, reject) => {
+    const child = spawn(chrome, flags, { stdio: ['ignore', 'pipe', 'pipe'] });
+    let stderr = '';
+    const timer = setTimeout(() => {
+      child.kill('SIGKILL');
+      reject(new Error('PUR07 Chrome PDF test timed out after 90s'));
+    }, 90000);
+    child.stderr.on('data', chunk => {
+      stderr = (stderr + chunk.toString()).slice(-4000);
+    });
+    child.on('error', error => { clearTimeout(timer); reject(error); });
+    child.on('close', (code, signal) => {
+      clearTimeout(timer);
+      resolve({ code, signal, stderr });
+    });
   });
-  assert.equal(run.status, 0, run.stderr?.slice(-1800) ?? 'Chrome did not exit 0');
+  assert.equal(run.code, 0, run.stderr.slice(-1800));
   const file = await readFile(pdfPath);
   const size = await stat(pdfPath);
   assert.ok(file.subarray(0, 8).toString('ascii').startsWith('%PDF-'));
