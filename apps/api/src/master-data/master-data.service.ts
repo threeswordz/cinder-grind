@@ -36,6 +36,7 @@ export class MasterDataService {
               OR: [
                 { customerCode: { contains: search, mode: 'insensitive' } },
                 { customerName: { contains: search, mode: 'insensitive' } },
+                { shortName: { contains: search, mode: 'insensitive' } },
                 { registrationNumber: { contains: search, mode: 'insensitive' } },
                 { contactName: { contains: search, mode: 'insensitive' } },
               ],
@@ -59,6 +60,7 @@ export class MasterDataService {
     data: {
       customerCode: string;
       customerName: string;
+      shortName?: string | null | undefined;
       registrationNumber?: string | null | undefined;
       contactName?: string | null | undefined;
       email?: string | null | undefined;
@@ -72,6 +74,7 @@ export class MasterDataService {
           companyId: context.auth.companyId,
           customerCode: data.customerCode,
           customerName: data.customerName,
+          ...(data.shortName !== undefined ? { shortName: data.shortName } : {}),
           ...(data.registrationNumber !== undefined
             ? { registrationNumber: data.registrationNumber }
             : {}),
@@ -110,6 +113,7 @@ export class MasterDataService {
     data: {
       customerCode?: string | undefined;
       customerName?: string | undefined;
+      shortName?: string | null | undefined;
       registrationNumber?: string | null | undefined;
       contactName?: string | null | undefined;
       email?: string | null | undefined;
@@ -132,6 +136,7 @@ export class MasterDataService {
           ...(data.customerName !== undefined
             ? { customerName: data.customerName }
             : {}),
+          ...(data.shortName !== undefined ? { shortName: data.shortName } : {}),
           ...(data.registrationNumber !== undefined
             ? { registrationNumber: data.registrationNumber }
             : {}),
@@ -181,6 +186,7 @@ export class MasterDataService {
               OR: [
                 { supplierCode: { contains: search, mode: 'insensitive' } },
                 { supplierName: { contains: search, mode: 'insensitive' } },
+                { shortName: { contains: search, mode: 'insensitive' } },
                 { registrationNumber: { contains: search, mode: 'insensitive' } },
                 { contactName: { contains: search, mode: 'insensitive' } },
               ],
@@ -204,6 +210,7 @@ export class MasterDataService {
     data: {
       supplierCode: string;
       supplierName: string;
+      shortName?: string | null | undefined;
       registrationNumber?: string | null | undefined;
       contactName?: string | null | undefined;
       email?: string | null | undefined;
@@ -217,6 +224,7 @@ export class MasterDataService {
           companyId: context.auth.companyId,
           supplierCode: data.supplierCode,
           supplierName: data.supplierName,
+          ...(data.shortName !== undefined ? { shortName: data.shortName } : {}),
           ...(data.registrationNumber !== undefined
             ? { registrationNumber: data.registrationNumber }
             : {}),
@@ -255,6 +263,7 @@ export class MasterDataService {
     data: {
       supplierCode?: string | undefined;
       supplierName?: string | undefined;
+      shortName?: string | null | undefined;
       registrationNumber?: string | null | undefined;
       contactName?: string | null | undefined;
       email?: string | null | undefined;
@@ -277,6 +286,7 @@ export class MasterDataService {
           ...(data.supplierName !== undefined
             ? { supplierName: data.supplierName }
             : {}),
+          ...(data.shortName !== undefined ? { shortName: data.shortName } : {}),
           ...(data.registrationNumber !== undefined
             ? { registrationNumber: data.registrationNumber }
             : {}),
