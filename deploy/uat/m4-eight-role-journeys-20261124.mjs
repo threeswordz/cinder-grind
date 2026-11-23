@@ -53,6 +53,12 @@ export function validateFixture(c){
     ids.push(a.userId);emails.push(a.email.toLowerCase());
   }
   demand(new Set(ids).size===8&&new Set(emails).size===8,'ACTOR_IDENTITY_REUSED');
+  if(c.disabledActor!==undefined){
+    demand(c.disabledActor&&typeof c.disabledActor.email==='string'&&
+      /^[^@\s]+@[^@\s]+$/.test(c.disabledActor.email)&&
+      typeof c.disabledActor.password==='string'&&c.disabledActor.password.length>=12&&
+      !emails.includes(c.disabledActor.email.toLowerCase()),'INVALID_DISABLED_ACTOR');
+  }
   for(const name of ['clientBoqVersionId','foreignDocumentId','otherProjectDocumentId','hrAttachmentId'])
     if(c[name]!==undefined)demand(uuid.test(c[name]),'INVALID_OPTIONAL_EVIDENCE_ID');
   return c;
@@ -73,9 +79,13 @@ export function plannedChecks(c,key,permissions){
     {name:'HR_BANK_PERMISSION',path:'/hr/companies/'+c.companyId+'/employees/'+c.employeeId+'/private/bank',
       status:permissions.includes('hr.bank.view')?[200]:[403,404]},
   ];
-  if(c.clientBoqVersionId&&!permissions.includes('budget.customer.view'))
-    out.push({name:'CLIENT_BOQ_CSV_EXPORT_DENIED',path:'/budget/customer/projects/'+c.projectId+
-      '/versions/'+c.clientBoqVersionId+'/export',status:[403,404]});
+  if(c.clientBoqVersionId){
+    const canExport=['budget.cost.full_view','budget.boq.view','budget.revision.view',
+      'budget.customer.view'].every(code=>permissions.includes(code));
+    out.push({name:canExport?'CLIENT_BOQ_CSV_AUTHORIZED':'CLIENT_BOQ_CSV_EXPORT_DENIED',
+      path:'/budget/customer/projects/'+c.projectId+'/versions/'+c.clientBoqVersionId+'/export',
+      status:canExport?[200]:[403,404]});
+  }
   if(c.foreignDocumentId)
     out.push({name:'FOREIGN_DOCUMENT_BYTES_DENIED',path:'/documents/projects/'+c.foreignProjectId+
       '/'+c.foreignDocumentId+'/download',status:[403,404]});
@@ -158,6 +168,12 @@ async function observe(p,s,c,key){
     Array.isArray(me.permissions)&&
     !me.roleCodes.includes('SYS_ADMIN'),'REAL_IDENTITY_OR_ROLE_MISMATCH_'+key);
   demand(me.permissions.includes(target.requires),'MISSING_EXPECTED_MODULE_PERMISSION_'+key);
+  const adminMenu=await evaluate(p,s,()=>{
+    const nav=document.querySelector('nav[aria-label="Main navigation"]');
+    return [...(nav?.querySelectorAll('button,[role="button"]')??[])].some(b=>
+      ['Roles & Permissions','Users','System Settings'].includes(b.textContent?.trim()));
+  });
+  demand(!adminMenu,'UNAUTHORIZED_ADMIN_NAVIGATION_VISIBLE_'+key);
   if(['STORE_SITE','FOREMAN','PORN','KOH'].includes(key))
     demand(!me.permissions.includes('projects.access_all'),'UNAPPROVED_WIDE_PROJECT_SCOPE_'+key);
   // Actual navigation + rendered React/MUI page, not an isolated mocked component.
@@ -181,6 +197,9 @@ async function observe(p,s,c,key){
     },check.path);
     demand(!result.oversized,'UNBOUNDED_RESPONSE_'+check.name);
     summary.push(assessResponse(check,result.status,result.body,secret));
+    if(check.name==='CLIENT_BOQ_CSV_AUTHORIZED')
+      demand(result.body.startsWith('\uFEFF')&&result.body.includes('Amount')&&
+        result.body.includes('Rate'),'CLIENT_BOQ_POSITIVE_CONTROL_EMPTY');
   }
   const loggedOut=await evaluate(p,s,()=>{
     const button=[...document.querySelectorAll('header button')]
@@ -194,6 +213,37 @@ async function observe(p,s,c,key){
   demand(revoked,'SESSION_NOT_REVOKED_'+key);
   summary.push({check:'REAL_UI_LOGOUT_SESSION_REVOKED',status:'PASS'});
   return summary;
+}
+async function disabledLogin(p,c){
+  const context=(await p.send('Target.createBrowserContext')).browserContextId;
+  let session=null;
+  try{
+    const target=(await p.send('Target.createTarget',{url:'about:blank',browserContextId:context})).targetId;
+    session=(await p.send('Target.attachToTarget',{targetId:target,flatten:true})).sessionId;
+    await p.send('Page.enable',{},session);await p.send('Runtime.enable',{},session);
+    await p.send('Fetch.enable',{patterns:[{urlPattern:'*',requestStage:'Request'}]},session);
+    await p.send('Page.navigate',{url:c.webOrigin+'/'},session);
+    await wait(p,session,()=>Boolean(document.querySelector('input[type="email"]')&&
+      document.querySelector('input[type="password"]')),null,'DISABLED_LOGIN_FORM');
+    await evaluate(p,session,credentials=>{
+      for(const kind of ['email','password']){
+        const input=document.querySelector('input[type="'+kind+'"]');
+        Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value')
+          .set.call(input,credentials[kind]);
+        input.dispatchEvent(new Event('input',{bubbles:true}));
+        input.dispatchEvent(new Event('change',{bubbles:true}));
+      }
+      document.querySelector('form').requestSubmit();return true;
+    },c.disabledActor);
+    // Negative login is deliberately not interpreted from a transient 401.
+    // Wait for UI's failed-login response before asserting no session.
+    await wait(p,session,()=>Boolean(document.querySelector('input[type="password"]')&&
+      document.querySelector('[role="alert"]')),null,'DISABLED_LOGIN_DENIAL');
+    const status=await evaluate(p,session,async()=>
+      (await fetch('/api/v1/auth/me',{credentials:'include',redirect:'error'})).status);
+    demand(status===401,'DISABLED_ACTOR_AUTHENTICATED');
+    return {check:'DISABLED_ACTOR_LOGIN_DENIED',status:'PASS'};
+  }finally{if(context)await p.send('Target.disposeBrowserContext',{browserContextId:context});}
 }
 export async function execute(c,bin){
   const temp=await mkdtemp(resolve(tmpdir(),'erp-m4-lanec-browser-'));
@@ -246,11 +296,17 @@ export async function execute(c,bin){
             .catch(()=>{if(!primary)fail('BROWSER_CONTEXT_CLEANUP_FAILED_'+key);});
         }
       }
+      if(c.disabledActor){
+        stage='DISABLED_ACTOR';
+        records.push({persona:'DISABLED_SYNTHETIC_ACTOR',
+          checks:[await disabledLogin(p,c)]});
+        demand(violations.length===0,'DISABLED_ACTOR_BROWSER_OUTBOUND_POLICY_FAILED');
+      }
     }finally{p.listeners.delete(intercept);}
     // Optional persisted synthetic target artifacts are mandatory for full
     // export/bytes coverage. A missing one must never be reported as PASS.
-    const missing=['clientBoqVersionId','foreignDocumentId','otherProjectDocumentId','hrAttachmentId']
-      .filter(k=>!c[k]);
+    const missing=['clientBoqVersionId','foreignDocumentId','otherProjectDocumentId','hrAttachmentId',
+      'disabledActor'].filter(k=>!c[k]);
     return {status:missing.length?'PARTIAL_BLOCKED_FIXTURE':'DISPOSABLE_BROWSER_BOUNDARIES_PASS',
       sourceSha:BASE_SOURCE,personas:records,browser:'REAL_CHROMIUM_REACT_MUI',
       missingSyntheticArtifacts:missing,retainedRoleAcceptance:false,humanAcceptance:false,
