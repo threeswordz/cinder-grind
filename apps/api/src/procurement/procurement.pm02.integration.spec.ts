@@ -14,6 +14,7 @@ import { ProjectScopeService } from '../authorization/project-scope.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProjectAccessService } from '../projects/project-access.service';
 import { ProcurementService } from './procurement.service';
+import { SourcingService } from './sourcing.service';
 
 // Isolated PM02-only native PostgreSQL proof. Do not run the full procurement suite.
 function auth(companyId: string, userId: string, roleCodes: string[]): AuthenticatedUserContext {
@@ -105,6 +106,15 @@ test('PM02: mixed approval, immutable returned demand, and rejected-correction c
         resetRule: 'MONTHLY',
       },
     });
+    await prisma.numberSequence.create({
+      data: {
+        companyId: company.id,
+        entityType: 'RFQ',
+        sequenceCode: 'RFQ',
+        formatTemplate: 'RFQYYMM-###',
+        resetRule: 'MONTHLY',
+      },
+    });
     const approverRole = await prisma.role.create({
       data: {
         companyId: company.id,
@@ -128,15 +138,15 @@ test('PM02: mixed approval, immutable returned demand, and rejected-correction c
       },
     });
 
-    const service = new ProcurementService(
-      prisma,
-      new ProjectAccessService(
-        prisma, new ProjectScopeService(new AuthorizationService()),
-      ),
-      new AuditService(prisma),
-      new ApprovalService(prisma),
-      new NumberSequenceService(prisma),
+    const access = new ProjectAccessService(
+      prisma, new ProjectScopeService(new AuthorizationService()),
     );
+    const audit = new AuditService(prisma);
+    const numbers = new NumberSequenceService(prisma);
+    const service = new ProcurementService(
+      prisma, access, audit, new ApprovalService(prisma), numbers,
+    );
+    const sourcing = new SourcingService(prisma, access, audit, numbers);
     const makerAuth = auth(company.id, maker.id, ['STOREKEEPER']);
     const reviewerAuth = auth(company.id, reviewer.id, [
       'PROJECT_MANAGER', approverRole.roleCode,
@@ -208,6 +218,22 @@ test('PM02: mixed approval, immutable returned demand, and rejected-correction c
     assert.equal(approved.lines.find((line) => line.id === lineB.id)?.reviewReason,
       'Quantity and scope need correction');
     assert.equal(approved.approvalInstance?.actions.length, 1);
+
+    // Actual sourcing admission: A proceeds, B cannot enter a new RFQ.
+    const eligible = await sourcing.approvedDemand(makerAuth, project.id);
+    assert.ok(eligible.some((line) => line.id === lineA.id));
+    assert.ok(!eligible.some((line) => line.id === lineB.id));
+    await assert.rejects(
+      () => sourcing.createRfq({ auth: makerAuth }, project.id, {
+        lines: [{ purchaseRequestLineId: lineB.id, quantity: new Prisma.Decimal('1') }],
+      }),
+      (error: unknown) => error instanceof UnprocessableEntityException,
+    );
+    const rfq = await sourcing.createRfq({ auth: makerAuth }, project.id, {
+      lines: [{ purchaseRequestLineId: lineA.id, quantity: new Prisma.Decimal('1') }],
+    });
+    assert.equal(rfq.lines.length, 1);
+    assert.equal(rfq.lines[0]?.purchaseRequestLineId, lineA.id);
 
     await assert.rejects(
       () => service.decideRequestLines(
@@ -299,7 +325,7 @@ test('PM02: mixed approval, immutable returned demand, and rejected-correction c
     assert.equal(original.lifecycleState, 'APPROVED');
     assert.equal(original.lines.find((line) => line.id === lineB.id)?.reviewDecision, 'RETURNED');
     assert.equal(await prisma.purchaseOrder.count({ where: { companyId: company.id } }), 0);
-    assert.equal(await prisma.rfq.count({ where: { companyId: company.id } }), 0);
+    assert.equal(await prisma.rfq.count({ where: { companyId: company.id } }), 1);
   } finally {
     await prisma.$disconnect();
   }
