@@ -407,9 +407,55 @@ test('PUR10 native: real approved PO, independent named Jai/Khaimook/Ben, atomic
       roleId:benRole.id,permissionId:cancelPermission.id,
     }});
 
-    // Any GR (including unposted) prohibits a no-exception cancellation.
-    // A receiving delivery is an immutable separate negative-only fixture,
-    // never a source to delete so that this happy-path PO can be finalized.
+    // PostgreSQL forbids deletion of Goods Receipt history (P0001).
+    // Never remove test evidence to reopen a source for cancellation. Create
+    // separate bona-fide approved/reviewed POs for negative cases instead.
+    async function reviewedExceptionOrder(tag: string) {
+      const req=await prs.createRequest({auth:store.auth},project.id,'PUR10 '+tag);
+      const line=await prs.createLine({auth:store.auth},req.id,{
+        lineType:'SERVICE',description:'Independent PUR10 '+tag+' negative case',
+        quantity:D('1'),uomId:uom.id,
+      });
+      await prs.submitRequest({auth:store.auth},req.id,prFlow.workflowCode);
+      await prs.approveRequest({auth:khaimook.auth},req.id,'PUR10 source demand valid');
+      const reqRfq=await sourcing.createRfq({auth:store.auth},project.id,{
+        lines:[{purchaseRequestLineId:line.id,quantity:D('1')}],
+      });
+      await sourcing.inviteSupplier({auth:jai.auth},reqRfq.id,supplier.id);
+      const quote=await sourcing.createQuotation(
+        {auth:jai.auth},reqRfq.id,supplier.id,
+        {quotationDate:new Date(),supplierReference:'PUR10-'+tag+'-'+key},
+      );
+      const quoteLine=await sourcing.upsertQuotationLine(
+        {auth:jai.auth},quote.id,reqRfq.lines[0]!.id,
+        {quantity:D('1'),unitPrice:D('9000')},
+      );
+      const awarded=await sourcing.selectAward(
+        {auth:jai.auth},reqRfq.lines[0]!.id,quoteLine.id,
+        'PUR10 separate '+tag+' exception evidence',
+      );
+      const po=await orders.createOrder(
+        {auth:jai.auth},project.id,[awarded.id], 'PUR10 reviewed '+tag,
+      );
+      await orders.submit({auth:jai.auth},po.id,poFlow.workflowCode);
+      await orders.approve({auth:ben.auth},po.id,'PUR10 scoped new PO');
+      const loaded=await prisma.purchaseOrder.findUniqueOrThrow({
+        where:{id:po.id},include:{lines:true},
+      });
+      const a=await cases.transition({auth:jaiAuth},po.id,
+        'PROPOSE',0,null,'Supplier cancellation requested for '+tag);
+      const b=await cases.transition({auth:pmAuth},po.id,
+        'PM_FORWARD',1,a.expectedPreviousEventId,
+        'Khaimook checked no continuing need for '+tag);
+      const c=await cases.transition({auth:benAuth},po.id,
+        'BEN_APPROVE',2,b.expectedPreviousEventId,
+        'Ben independently approved '+tag+' review');
+      assert.equal(c.status,'BEN_APPROVED');
+      return {po:loaded,case:c};
+    }
+
+    // Any GR, including an unposted draft, must prohibit cancellation.
+    const receiptSource=await reviewedExceptionOrder('GR');
     const warehouse=await prisma.warehouse.create({data:{
       companyId:company.id,projectId:project.id,
       warehouseCode:'P10WH-'+key,warehouseName:'PUR10 test quarantine',
@@ -417,18 +463,23 @@ test('PUR10 native: real approved PO, independent named Jai/Khaimook/Ben, atomic
     }});
     const gr=await prisma.goodsReceipt.create({data:{
       companyId:company.id,projectId:project.id,supplierId:supplier.id,
-      warehouseId:warehouse.id,purchaseOrderId:approvedOriginal.id,
+      warehouseId:warehouse.id,purchaseOrderId:receiptSource.po.id,
       receiptNumber:'P10GR-'+key,createdByUserId:store.user.id,
     }});
     await assert.rejects(
-      ()=>cases.finalize({auth:benAuth},approvedOriginal.id,3,
-        approvedCase.expectedPreviousEventId,finalArgs),
+      ()=>cases.finalize({auth:benAuth},receiptSource.po.id,3,
+        receiptSource.case.expectedPreviousEventId,finalArgs),
       (e:unknown)=>e instanceof ConflictException,
     );
-    await prisma.goodsReceipt.delete({where:{id:gr.id}});
+    assert.ok(await prisma.goodsReceipt.findUnique({where:{id:gr.id}}),
+      'Historical Goods Receipt remains recorded; never delete evidence');
+    assert.equal((await prisma.purchaseOrder.findUniqueOrThrow({
+      where:{id:receiptSource.po.id},select:{cancelledAt:true},
+    })).cancelledAt,null);
 
-    // A DRAFT AP source is already a conflict. Approved AP records are
-    // immutable; do not manufacture and then delete one as test cleanup.
+    // Separate draft Supplier Invoice source; preserve the invoice and line
+    // after proving the denial. No immutable Finance history is destroyed.
+    const invoiceSource=await reviewedExceptionOrder('AP');
     const invoice=await prisma.supplierInvoice.create({data:{
       companyId:company.id,projectId:project.id,supplierId:supplier.id,
       supplierInvoiceNumber:'P10SI-'+key,
@@ -439,16 +490,19 @@ test('PUR10 native: real approved PO, independent named Jai/Khaimook/Ben, atomic
     }});
     const invoiceLine=await prisma.supplierInvoiceItem.create({data:{
       companyId:company.id,projectId:project.id,
-      supplierInvoiceId:invoice.id,purchaseOrderLineId:approvedOriginal.lines[0]!.id,
+      supplierInvoiceId:invoice.id,purchaseOrderLineId:invoiceSource.po.lines[0]!.id,
       lineNo:1,description:'Blocked PUR10 Finance source',amount:D('100.00'),
     }});
     await assert.rejects(
-      ()=>cases.finalize({auth:benAuth},approvedOriginal.id,3,
-        approvedCase.expectedPreviousEventId,finalArgs),
+      ()=>cases.finalize({auth:benAuth},invoiceSource.po.id,3,
+        invoiceSource.case.expectedPreviousEventId,finalArgs),
       (e:unknown)=>e instanceof ConflictException,
     );
-    await prisma.supplierInvoiceItem.delete({where:{id:invoiceLine.id}});
-    await prisma.supplierInvoice.delete({where:{id:invoice.id}});
+    assert.ok(await prisma.supplierInvoiceItem.findUnique({where:{id:invoiceLine.id}}),
+      'Draft Finance evidence remains immutable through cancelled attempt');
+    assert.equal((await prisma.purchaseOrder.findUniqueOrThrow({
+      where:{id:invoiceSource.po.id},select:{cancelledAt:true},
+    })).cancelledAt,null);
 
     // Every blocked attempt preserves the reviewed state and produces no
     // final cancellation/audit. A genuine contested pair must yield one
