@@ -44,6 +44,7 @@ type SupplierIndicator = {
     'DUE_TODAY' | 'WITHIN_7_DAYS' | 'WITHIN_14_DAYS' | 'LATER' |
     'SOURCE_REVIEW_REQUIRED';
   requiredOnSiteWindow: string; dateRevisedFromPreviousApproved: boolean;
+  dateRemovedFromPreviousApproved: boolean;
   previousApprovedExpectedDelivery: string | null;
   supplierAcknowledgment: 'NOT_VERIFIED'; targetSite: 'NOT_RECORDED_ON_PO';
 };
@@ -313,6 +314,9 @@ export function StockMinimumsPanel({ roleCodes }: { roleCodes: string[] }) {
                       ' — approved PO date revised from ' +
                       (item.previousApprovedExpectedDelivery ?? 'unknown') +
                       '; supplier acceptance unverified'}
+                    {item.dateRemovedFromPreviousApproved &&
+                      ' — expected date removed from approved PO (previously ' +
+                      (item.previousApprovedExpectedDelivery ?? 'unknown') + ')'}
                   </TableCell>
                 </TableRow>)}
                 {supplierIndicators.length === 0 &&
