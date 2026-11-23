@@ -51,6 +51,9 @@ export class SourcingService {
     await this.access.assertAccess(auth, projectId);
     const lines = await this.prisma.purchaseRequestLine.findMany({
       where: {
+        // Legacy NULL is eligible only when parent is fully approved.
+        // Newly returned PM02 lines are never eligible even if parent APPROVED.
+        OR: [{ reviewDecision: null }, { reviewDecision: 'APPROVED' }],
         purchaseRequest: {
           companyId: auth.companyId,
           projectId,
@@ -316,6 +319,7 @@ export class SourcingService {
         const sources = await tx.purchaseRequestLine.findMany({
           where: {
             id: { in: [...distinct] },
+            OR: [{ reviewDecision: null }, { reviewDecision: 'APPROVED' }],
             purchaseRequest: {
               companyId: context.auth.companyId,
               projectId,

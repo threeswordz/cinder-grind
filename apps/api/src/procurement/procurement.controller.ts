@@ -22,6 +22,7 @@ import { RequirePermissions } from '../authorization/permissions.decorator';
 import {
   procurementDate,
   procurementDecimal,
+  procurementInvalid,
   procurementLineType,
   procurementNonEmpty,
   procurementNullableString,
@@ -329,6 +330,60 @@ export class ProcurementController {
         comment ?? undefined,
       ),
     };
+  }
+
+  @Post('purchase-requests/:requestId/decide-lines')
+  @UseGuards(AuthGuard, CsrfGuard, PermissionGuard)
+  @RequirePermissions('procurement.pr.approve')
+  async decideRequestLines(
+    @Req() request: AuthenticatedRequest,
+    @Param('requestId', new ParseUUIDPipe({ version: '4' })) requestId: string,
+    @Body() body: unknown,
+  ) {
+    const input = procurementObject(body);
+    const expectedApprovalInstanceId = procurementUuid(
+      input.expectedApprovalInstanceId, 'expectedApprovalInstanceId',
+    ) as string;
+    if (!Array.isArray(input.decisions) ||
+        input.decisions.length < 1 || input.decisions.length > 200) {
+      procurementInvalid('decisions', 'Provide 1–200 exact line decisions.');
+    }
+    const decisions = input.decisions.map((raw, index) => {
+      const row = procurementObject(raw);
+      const lineId = procurementUuid(row.lineId, 'decisions[' + index + '].lineId') as string;
+      if (row.decision !== 'APPROVED' && row.decision !== 'RETURNED') {
+        procurementInvalid('decisions[' + index + '].decision', 'Use APPROVED or RETURNED.');
+      }
+      const decision = row.decision as 'APPROVED' | 'RETURNED';
+      if (decision === 'APPROVED' && row.reason !== undefined) {
+        procurementInvalid('decisions[' + index + '].reason', 'Approved lines need no return reason.');
+      }
+      const reason = decision === 'RETURNED'
+        ? procurementString(row, 'reason', 5000) : undefined;
+      return { lineId, decision, ...(reason ? { reason } : {}) };
+    });
+    const comment = procurementNullableString(input, 'comment', 5000);
+    return {
+      data: await this.procurement.decideRequestLines(
+        auditContext(request), requestId, expectedApprovalInstanceId,
+        decisions, comment ?? undefined,
+      ),
+    };
+  }
+
+  @Post('purchase-requests/:requestId/copy-returned')
+  @UseGuards(AuthGuard, CsrfGuard, PermissionGuard)
+  @RequirePermissions('procurement.pr.manage')
+  async copyReturned(
+    @Req() request: AuthenticatedRequest,
+    @Param('requestId', new ParseUUIDPipe({ version: '4' })) requestId: string,
+    @Body() body: unknown,
+  ) {
+    const input = procurementObject(body);
+    const remarks = procurementNullableString(input, 'remarks', 5000);
+    return { data: await this.procurement.copyReturned(
+      auditContext(request), requestId, remarks,
+    ) };
   }
 
   @Post('purchase-requests/:requestId/reject')

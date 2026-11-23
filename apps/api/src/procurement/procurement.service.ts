@@ -1,5 +1,6 @@
 import {
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
   UnprocessableEntityException,
@@ -229,10 +230,16 @@ export class ProcurementService {
         },
         include: { approvalInstance: { select: { approvalState: true } } },
       });
-      if (!source || this.lifecycleOf(source) !== APPROVAL_STATE.REJECTED) {
+      if (!source) throw this.requestNotFound();
+      const state = this.lifecycleOf(source);
+      const hasReturned = state === APPROVAL_STATE.APPROVED &&
+        (await this.prisma.purchaseRequestLine.count({
+          where: { purchaseRequestId: source.id, reviewDecision: 'RETURNED' },
+        })) > 0;
+      if (state !== APPROVAL_STATE.REJECTED && !hasReturned) {
         throw new ConflictException({
           code: 'PR_COPY_SOURCE_INVALID',
-          detail: 'Only a rejected Purchase Request can be copied into a new Draft.',
+          detail: 'Only a rejected request or explicitly returned lines of an approved request may be copied.',
         });
       }
     }
@@ -267,11 +274,35 @@ export class ProcurementService {
         });
 
         if (sourceRequestId) {
+          const sourceState = await tx.purchaseRequest.findFirst({
+            where: { id: sourceRequestId, companyId: context.auth.companyId, projectId },
+            include: { approvalInstance: { select: { approvalState: true } } },
+          });
+          if (!sourceState) throw this.requestNotFound();
+          const returnedOnly = this.lifecycleOf(sourceState) === APPROVAL_STATE.APPROVED;
+          if (!returnedOnly && this.lifecycleOf(sourceState) !== APPROVAL_STATE.REJECTED) {
+            throw new ConflictException({ code: 'PR_COPY_SOURCE_INVALID' });
+          }
           const sourceLines = await tx.purchaseRequestLine.findMany({
-            where: { purchaseRequestId: sourceRequestId },
+            where: {
+              purchaseRequestId: sourceRequestId,
+              ...(returnedOnly ? { reviewDecision: 'RETURNED' } : {}),
+            },
             orderBy: { lineNo: 'asc' },
           });
-          for (const line of sourceLines) {
+          if (!sourceLines.length) {
+            throw new ConflictException({ code: 'PR_NO_RETURNED_LINES' });
+          }
+          if (returnedOnly) {
+            const previousCorrection = await tx.purchaseRequestLine.findFirst({
+              where: { correctionSourceLineId: { in: sourceLines.map((line) => line.id) } },
+              select: { id: true },
+            });
+            if (previousCorrection) {
+              throw new ConflictException({ code: 'PR_RETURNED_LINES_ALREADY_COPIED' });
+            }
+          }
+          for (const [index, line] of sourceLines.entries()) {
             const normalized = await this.normalizeLine(
               tx,
               context.auth,
@@ -292,8 +323,9 @@ export class ProcurementService {
             await tx.purchaseRequestLine.create({
               data: {
                 purchaseRequestId: row.id,
-                lineNo: line.lineNo,
+                lineNo: returnedOnly ? index + 1 : line.lineNo,
                 ...normalized,
+                ...(returnedOnly ? { correctionSourceLineId: line.id } : {}),
               },
             });
           }
@@ -304,7 +336,7 @@ export class ProcurementService {
             ...context,
             entityType: 'PURCHASE_REQUEST',
             entityId: row.id,
-            action: sourceRequestId ? 'COPY_REJECTED_TO_DRAFT' : 'CREATE_DRAFT',
+            action: sourceRequestId ? 'COPY_SOURCE_TO_DRAFT' : 'CREATE_DRAFT',
             newValues: {
               projectId,
               prNumber,
@@ -569,6 +601,26 @@ export class ProcurementService {
     });
   }
 
+  async copyReturned(
+    context: AuditContext,
+    requestId: string,
+    remarks?: string | null,
+  ) {
+    const source = await this.getRequest(context.auth, requestId);
+    if (source.lifecycleState !== APPROVAL_STATE.APPROVED ||
+        !source.lines.some((line) => line.reviewDecision === 'RETURNED')) {
+      throw new ConflictException({
+        code: 'PR_NO_RETURNED_LINES',
+        detail: 'Only an approved request with returned lines may be corrected.',
+      });
+    }
+    return this.createRequest(
+      context, source.projectId,
+      remarks === undefined ? source.remarks : remarks,
+      source.id,
+    );
+  }
+
   async submitRequest(
     context: AuditContext,
     requestId: string,
@@ -667,6 +719,108 @@ export class ProcurementService {
       },
     });
     return this.getRequest(context.auth, request.id);
+  }
+
+  // PM02: one configured Khaimook approval step, one atomic mixed-line decision.
+  // Existing whole-request approve/reject remains unchanged for historical PRs.
+  async decideRequestLines(
+    context: AuditContext,
+    requestId: string,
+    expectedApprovalInstanceId: string,
+    decisions: Array<{ lineId: string; decision: 'APPROVED' | 'RETURNED'; reason?: string }>,
+    comment?: string,
+  ) {
+    const request = await this.requestForApproval(context.auth, requestId);
+    if (!context.auth.roleCodes.includes('PROJECT_MANAGER') ||
+        request.createdByUserId === context.auth.userId) {
+      throw new ForbiddenException({
+        code: 'PR_LINE_REVIEW_ROLE_DENIED',
+        detail: 'An independent configured Project Manager must review Purchase Request lines.',
+      });
+    }
+    if (request.approvalInstanceId !== expectedApprovalInstanceId) {
+      throw new ConflictException({ code: 'PR_LINE_REVIEW_STALE_INSTANCE' });
+    }
+    const gate = await this.prisma.approvalInstance.findFirst({
+      where: { id: request.approvalInstanceId, companyId: context.auth.companyId },
+      include: { workflow: { include: { steps: true } } },
+    });
+    if (!gate || gate.approvalState !== APPROVAL_STATE.SUBMITTED ||
+        gate.workflow.steps.length !== 1 ||
+        gate.workflow.steps[0]!.stepNo !== gate.currentStepNo ||
+        gate.workflow.steps[0]!.requiredApprovals !== 1) {
+      throw new ConflictException({
+        code: 'PR_PARTIAL_REVIEW_WORKFLOW_UNSUPPORTED',
+        detail: 'Mixed line decisions require one configured single-reviewer approval step.',
+      });
+    }
+    const ids = decisions.map((line) => line.lineId);
+    if (!ids.length || new Set(ids).size !== ids.length ||
+        !decisions.some((line) => line.decision === 'APPROVED')) {
+      throw new UnprocessableEntityException({ code: 'PR_LINE_REVIEW_INVALID_SET' });
+    }
+    for (const line of decisions) {
+      if ((line.decision !== 'APPROVED' && line.decision !== 'RETURNED') ||
+          (line.decision === 'RETURNED' && (!line.reason || !line.reason.trim())) ||
+          (line.decision === 'APPROVED' && line.reason)) {
+        throw new UnprocessableEntityException({ code: 'PR_LINE_REVIEW_INVALID_DECISION' });
+      }
+    }
+    await this.approvals.approve(
+      request.approvalInstanceId,
+      context.auth,
+      request.submittedByUserId,
+      comment,
+      async (tx) => {
+        const current = await tx.purchaseRequest.findFirst({
+          where: { id: requestId, companyId: context.auth.companyId },
+          select: { projectId: true, approvalInstanceId: true, createdByUserId: true,
+            cancelledAt: true },
+        });
+        if (!current || current.approvalInstanceId !== expectedApprovalInstanceId ||
+            current.cancelledAt || current.createdByUserId === context.auth.userId) {
+          throw new ConflictException({ code: 'PR_LINE_REVIEW_STALE_SOURCE' });
+        }
+        await this.access.assertAccess(context.auth, current.projectId, tx);
+        const lines = await tx.purchaseRequestLine.findMany({
+          where: { purchaseRequestId: requestId },
+          select: { id: true, reviewDecision: true },
+        });
+        if (lines.length !== decisions.length ||
+            lines.some((line) => line.reviewDecision !== null ||
+              !ids.includes(line.id))) {
+          throw new ConflictException({
+            code: 'PR_LINE_REVIEW_STALE_LINES',
+            detail: 'Submitted line set changed, already reviewed, or incomplete.',
+          });
+        }
+        const at = new Date();
+        for (const line of decisions) {
+          await tx.purchaseRequestLine.update({
+            where: { id: line.lineId },
+            data: {
+              reviewDecision: line.decision,
+              reviewReason: line.decision === 'RETURNED' ? line.reason!.trim() : null,
+              reviewedByUserId: context.auth.userId,
+              reviewedAt: at,
+            },
+          });
+        }
+        await this.audit.record({
+          ...context,
+          entityType: 'PURCHASE_REQUEST',
+          entityId: requestId,
+          action: 'APPROVE_WITH_LINE_DISPOSITIONS',
+          newValues: { approvalInstanceId: expectedApprovalInstanceId,
+            decisions: decisions.map((line) => ({
+              lineId: line.lineId, decision: line.decision,
+              ...(line.reason ? { reason: line.reason } : {}),
+            })),
+          },
+        }, tx);
+      },
+    );
+    return this.getRequest(context.auth, requestId);
   }
 
   async rejectRequest(
@@ -850,6 +1004,7 @@ export class ProcurementService {
         projectId: true,
         approvalInstanceId: true,
         submittedByUserId: true,
+        createdByUserId: true,
         cancelledAt: true,
       },
     });
