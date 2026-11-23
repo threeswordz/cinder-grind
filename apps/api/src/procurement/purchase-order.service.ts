@@ -628,6 +628,21 @@ export class PurchaseOrderService {
           detail: 'VAT percentage must be between 0 and 100.',
         });
       }
+      // PostgreSQL DECIMAL(18,2) would silently round a 3/4-decimal
+      // amount from the shared procurement validator; reject instead.
+      for (const [field, value] of [
+        ['discountAmount', data.discountAmount],
+        ['freightAmount', data.freightAmount],
+        ['additionalChargeAmount', data.additionalChargeAmount],
+        ['vatRatePercent', data.vatRatePercent],
+      ] as const) {
+        if (value && value.decimalPlaces() > 2) {
+          throw new UnprocessableEntityException({
+            code: 'PO_COMMERCIAL_PRECISION_INVALID',
+            detail: field + ' may contain at most two decimal places.',
+          });
+        }
+      }
       const updated = await tx.purchaseOrder.update({
         where: { id: current.id },
         data,
