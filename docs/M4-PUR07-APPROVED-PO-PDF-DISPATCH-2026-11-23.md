@@ -12,11 +12,14 @@
 6. **External PDF hash limitation:** `pdfSha256` remains null for *self-reported external* sends because the server cannot verify the user's actual external attachment. Never substitute the hash of a generated local preview and claim it was sent. Supporting uploaded evidence must have exact Company/Project link.
 7. **Monetary caution:** if any approved header discount/freight/charges/VAT values are historical NULLs, the downloaded PDF prints **NOT SPECIFIED** and **NOT CALCULATED** instead of treating them as zero. No Accounting/GL, WHT/VAT reporting or #245 multi-Project scopes introduced.
 
+
+**Failed-first-run history:** [#45155536353](https://github.com/threeswordz/cinder-grind/actions/runs/45155536353) successfully applied the new forward-only migration but **overall failed API compile** due the new optional acknowledgment reference sometimes passing `undefined` where Prisma required `null`. Corrected only this new field's type-safe persistence; **no old suites rerun**. A second runner used a fresh throwaway PostgreSQL database for truly unverified API/Web/native PDF and evidence tests. [#45155841629](https://github.com/threeswordz/cinder-grind/actions/runs/45155841629) **full focused workflow success**, no Production and no changed MKE/TCJ retained business data.
+
 ## Distinct technical gates
 
-- [ ] Forward-only Prisma migration + compile + Web typecheck at exact source SHA.
-- [ ] New PDF contract tests: valid PDF byte structure, deterministic hash/filename, reject path traversal and unsupported Thai font.
-- [ ] New REAL disposable PG17 source-backed approved PO actor journey: deny drafts, permit exact approved PDF, Jai manual event, linked acknowledgment, immutable SQL trigger, forged evidence and unauthorized/cross-Company denials; **synthetic actor != retained named MKE/TCJ rights**.
+- [x] Forward-only Prisma migration + API compile + Web typecheck at exact tested application source SHA `3c6e89ac57c5cb62d4c481c582cc31c94503e79b`: [focused #45155841629 PASS](https://github.com/threeswordz/cinder-grind/actions/runs/45155841629).
+- [x] Three NEW PDF contract tests PASS (valid deterministic PDF structure/hash/filename, path traversal and Thai fail-closed) in [#45155841629](https://github.com/threeswordz/cinder-grind/actions/runs/45155841629). **This does not count as Thai PDF support.**
+- [x] One NEW disposable PostgreSQL17 source-backed approved PR→RFQ→PO actor journey PASS with exact approved PDF, deny drafts, Jai external send REPORT, linked ACK report, SQL immutability, forged evidence and unauthorized/cross-Company denials. **Synthetic actor != retained named MKE/TCJ rights; no real message was sent.** [#45155841629](https://github.com/threeswordz/cinder-grind/actions/runs/45155841629), 4 total new tests PASS / 0 FAIL.
 - [ ] Chrome browser print (Thai) / actual PDF rendered and inspected, file title and save proof; Unicode font installed/embedded for backend PDF with license review.
 - [ ] Independent DEC-022 exact-head review, real retained Jai/Ben/MKE/TCJ permissions, Owner requirement acceptance, consolidated candidate and **separately Owner-authorized** mandatory release CI.
 
