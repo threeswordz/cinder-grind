@@ -20,6 +20,7 @@ import {
   equipmentApi,
 } from '../api/equipment';
 import { siteExecutionApi } from '../api/site-execution';
+import { EquipmentCustodyPanel } from './EquipmentCustodyPanel';
 
 function localDateValue(date = new Date()) {
   const year = date.getFullYear();
@@ -751,6 +752,9 @@ export function EquipmentPanel({
           Select an Equipment record to view assignments and usage history.
         </Alert>
       )}
+      {selected && permissions.includes('equipment.custody.view') ? (
+        <EquipmentCustodyPanel equipmentId={selected.id} permissions={permissions} />
+      ) : null}
     </Stack>
   );
 }
