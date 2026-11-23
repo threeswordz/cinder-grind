@@ -12,7 +12,7 @@
     "verifiedRetiredHours": 0,
     "openBudgetHours": 1900,
     "actualLoggedHours": null,
-    "asOf": "2026-11-23T19:08:39+08:00",
+    "asOf": "2026-11-23T20:41:24+08:00",
     "activePackage": "M4-01",
     "activeForecastHourRange": "H0001–H0020",
     "activeConcurrentPackages": [
@@ -20,11 +20,12 @@
       "M4-04",
       "M4-05",
       "M4-02",
-      "M4-06"
+      "M4-06",
+      "M4-03"
     ],
-    "workEvidenceNote": "M4-01/02/04/05/06/07 still in progress. PUR07 draft #418 now has new genuine Chrome PDF Thai rendering evidence in addition to native PG actor tests, but automated backend Unicode and actual retained role/browser review remain outstanding. 0 full packages accepted; no forecast-hour credit.",
-    "latestTechnicalCheckpoint": "New synthetic real Chrome CDP #45162334613 SUCCESS: authentic A4 PDF 105124 bytes, searchable Thai source text, validated THB subtotal 2000.00 / VAT 137.90 / grand 2107.90, previous unsafe/draft negative cases. Backend automatic Unicode PDF and real named-user UI remain unproven. M4 17/32.",
-    "m4CheckpointCompleted": 17,
+    "workEvidenceNote": "M4-03 #419 one-shot focused Chrome+Postgres run #45176454339 SUCCESS, 3/4 checkpoints provisionally with final scope/role denial open. Other M4 packages remain unfinished. No source integration or accepted complete package; 0 of 1,900 forecast-hours retired, 1,900h remaining.",
+    "latestTechnicalCheckpoint": "M4-03 one-shot run #45176454339 overall SUCCESS: real Chrome FM01 Foreman/Ben, BEN04 Khaimook prepare, PM16 Ben/Nancy signoffs. B/C accepted; D browser signoffs passed but Company/Project denial + retained named actors not verified. M4 19/32.",
+    "m4CheckpointCompleted": 19,
     "m4CheckpointTotal": 32,
     "displayCounter": "0 / 1900",
     "countdownHoursLeft": 1900,
@@ -249,11 +250,38 @@
       "hours": 22,
       "from": 43,
       "to": 64,
-      "status": "NOT_CREDITED",
+      "status": "IN_PROGRESS",
       "verifiedHours": 0,
-      "evidence": [],
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/pull/419",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45176454339"
+      ],
       "actualHours": null,
-      "verifiedAt": null
+      "verifiedAt": null,
+      "progressPercent": 75,
+      "checkpoints": [
+        {
+          "name": "Previous isolated native source-level FM01/BEN04/PM16 evidence",
+          "status": "PRIOR_FOCUSED_SOURCE_PROOF",
+          "run": 45103782289
+        },
+        {
+          "name": "Foreman no-work corrected weekly React readback, Ben real browser acknowledgment",
+          "status": "REAL_AUTH_CHROMIUM_PASS",
+          "run": 45176454339
+        },
+        {
+          "name": "Khaimook six-category actual React closeout preparation and source snapshot",
+          "status": "REAL_AUTH_CHROMIUM_PASS",
+          "run": 45176454339
+        },
+        {
+          "name": "Separate Ben/Nancy current closeout signoffs; retain same-Company/Project denial and named-role acceptance",
+          "status": "SIGNOFF_BROWSER_PASS_SCOPE_DENIAL_AND_RETAINED_ROLES_OUTSTANDING",
+          "run": 45176454339
+        }
+      ],
+      "latestAssessment": "New exact-source focused workflow #45176454339 overall SUCCESS on workflow-only child 4800827b of PR #419 2b66f3a. Real Chrome/React/MUI+Nest+disposable PG17 tests confirmed Foreman corrected no-work weekly source and Ben read acknowledgment, Khaimook six-category actual UI preparation, independent Ben and Nancy signatures, Project active and stock/DirectCost unchanged. Current script does not prove outsider Company/Project browser denial or real retained named-user grants; independent final DEC-022 review/Owner acceptance and integration still pending. Checkpoint 3/4 conservatively; no complete-package hours retired."
     },
     {
       "id": "M4-04",
