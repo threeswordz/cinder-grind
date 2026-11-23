@@ -56,6 +56,15 @@ export type PurchaseOrderListItem = {
   revisionNo: number;
   revisionReason: string | null;
   remarks: string | null;
+  deliveryLocation: string | null;
+  deliveryContact: string | null;
+  deliveryTerms: string | null;
+  paymentTerms: string | null;
+  creditTerms: string | null;
+  discountAmount: string | null;
+  freightAmount: string | null;
+  additionalChargeAmount: string | null;
+  vatRatePercent: string | null;
   approvalInstanceId: string | null;
   submittedAt: string | null;
   cancelledAt: string | null;
@@ -256,6 +265,15 @@ export const purchaseOrdersApi = {
     body: Partial<{
       remarks: string | null;
       revisionReason: string | null;
+      deliveryLocation: string | null;
+      deliveryContact: string | null;
+      deliveryTerms: string | null;
+      paymentTerms: string | null;
+      creditTerms: string | null;
+      discountAmount: string | null;
+      freightAmount: string | null;
+      additionalChargeAmount: string | null;
+      vatRatePercent: string | null;
     }>,
   ) =>
     apiRequest<Data<PurchaseOrderDetail>>(
