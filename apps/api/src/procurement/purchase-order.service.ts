@@ -1182,13 +1182,60 @@ export class PurchaseOrderService {
     return this.getOrder(context.auth, order.id);
   }
 
-  async cancel(
+  // PUR10: prevent any controller, test helper, script or internal caller from
+  // bypassing the independently recorded cancellation decision.
+  async cancel(_context: AuditContext, _orderId: string, _reason: string): Promise<never> {
+    throw new ConflictException({
+      code: 'PUR10_INDEPENDENT_CANCELLATION_REVIEW_REQUIRED',
+    });
+  }
+
+  /**
+   * The ONLY PO cancellation writer. Must be invoked inside an already-open
+   * PUR10 advisory-locked transaction after independent Ben case replay and
+   * canonical receipt/Finance checks. It re-admits the exact recorded Ben
+   * decision itself and retains the original PO/receipt/AP/revision guards.
+   */
+  async cancelForReviewedCase(
     context: AuditContext,
     orderId: string,
     reason: string,
+    caseId: string,
+    benEventId: string,
+    expectedPoUpdatedAt: string,
+    tx: Prisma.TransactionClient,
   ) {
-    return this.prisma.$transaction(
-      async (tx) => {
+    const recorded = await tx.auditLog.findFirst({
+      where: {
+        id: benEventId, companyId: context.auth.companyId,
+        entityType: 'PURCHASE_ORDER_CANCELLATION', entityId: orderId,
+        action: 'BEN_APPROVE', actorUserId: context.auth.userId,
+      },
+      select: { newValues: true },
+    });
+    const values = recorded?.newValues;
+    if (!values || typeof values !== 'object' || Array.isArray(values) ||
+        values.caseId !== caseId || values.status !== 'BEN_APPROVED' ||
+        values.orderId !== orderId || values.orderUpdatedAt !== expectedPoUpdatedAt ||
+        values.benUserId !== context.auth.userId) {
+      throw new ConflictException({ code: 'PUR10_VERIFIED_BEN_EVENT_REQUIRED' });
+    }
+    // A row lock serializes this final write with revision creation/PO edits;
+    // the receipt and Finance advisory locks below remain unchanged.
+    const locked = await tx.$queryRaw<Array<{id: string}>>(Prisma.sql`
+      SELECT "id" FROM "purchase_orders"
+      WHERE "id" = ${orderId}::uuid
+        AND "company_id" = ${context.auth.companyId}::uuid
+      FOR UPDATE
+    `);
+    if (locked.length !== 1) throw this.orderNotFound();
+    const pinned = await tx.purchaseOrder.findFirst({
+      where: { id: orderId, companyId: context.auth.companyId },
+      select: { updatedAt: true },
+    });
+    if (pinned?.updatedAt.toISOString() !== expectedPoUpdatedAt) {
+      throw new ConflictException({ code: 'PUR10_SOURCE_CHANGED_SINCE_BEN_REVIEW' });
+    }
         const order = await tx.purchaseOrder.findFirst({
           where: {
             id: orderId,
@@ -1340,9 +1387,6 @@ export class PurchaseOrderService {
           ...updated,
           lifecycleState: 'CANCELLED' as const,
         };
-      },
-      { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted },
-    );
   }
 
   async revise(
