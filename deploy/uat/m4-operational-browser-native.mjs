@@ -156,7 +156,7 @@ async function upload(actor,projectId,docTypeId){
  assert.equal(r.status,201,JSON.stringify(data));
  return data.data.id;
 }
-const harness=\`
+const harness=`
 import React from 'react';
 import {createRoot} from 'react-dom/client';
 import {QueryClient,QueryClientProvider} from '@tanstack/react-query';
@@ -178,7 +178,7 @@ const client=new QueryClient({defaultOptions:{queries:{retry:false},mutations:{r
  </QueryClientProvider>);
  document.body.dataset.authenticated='yes';
 })().catch(e=>{document.body.dataset.authenticated='no';document.body.dataset.failure=e.message;});
-\`;
+`;
 async function realBrowser(){
  const key=randomUUID().slice(0,8);
  const company=await db.company.create({data:{companyCode:'M4B-'+key,companyName:'Disposable M4 Chromium'}});
@@ -279,8 +279,8 @@ async function realBrowser(){
     res.setHeader('Content-Type','text/html');
     res.end('<!doctype html><html><body><div id="root"></div><script type="module" src="/__m4-live.tsx"></script></body></html>');
    });},
-   resolveId(id){if(id==='/__m4-live.tsx')return '\\0m4-live.tsx';},
-   async load(id){if(id==='\\0m4-live.tsx')
+   resolveId(id){if(id==='/__m4-live.tsx')return 'virtual:m4-live-fixture-entry';},
+   async load(id){if(id==='virtual:m4-live-fixture-entry')
     return transformWithOxc(harness,path.join(WEB_ROOT,'__m4-live.tsx'),
      {lang:'tsx',jsx:{runtime:'automatic'}});}
   }]});
