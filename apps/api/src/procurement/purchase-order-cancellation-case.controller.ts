@@ -56,4 +56,36 @@ export class PurchaseOrderCancellationCaseController {
       previous, procurementString(x, 'note', 2000),
     ).then(data => ({ data }));
   }
+  @Post('finalize')
+  @UseGuards(AuthGuard, CsrfGuard, PermissionGuard)
+  @RequirePermissions('procurement.po.view', 'procurement.po.approve', 'procurement.po.cancel')
+  finalize(
+    @Req() req: AuthenticatedRequest,
+    @Param('orderId', new ParseUUIDPipe({ version: '4' })) orderId: string,
+    @Body() body: unknown,
+  ) {
+    const x = procurementObject(body);
+    const keys = [
+      'expectedVersion', 'expectedPreviousEventId',
+      'supplierAgreementEvidence', 'supplierAgreed',
+      'noDepositOrPenalty', 'noDeliveryOrInvoice',
+    ];
+    if (Object.keys(x).some(k => !keys.includes(k)) ||
+        !Number.isSafeInteger(x.expectedVersion) ||
+        x.supplierAgreed !== true ||
+        x.noDepositOrPenalty !== true || x.noDeliveryOrInvoice !== true)
+      throw new UnprocessableEntityException({
+        code: 'PUR10_EXPLICIT_BEN_SUPPLIER_AND_NO_EXCEPTION_ATTESTATION_REQUIRED',
+      });
+    const previous = procurementUuid(x.expectedPreviousEventId, 'expectedPreviousEventId');
+    if (!previous) throw new UnprocessableEntityException({ code: 'PUR10_FINALIZATION_EVENT_REQUIRED' });
+    return this.cases.finalize({
+      auth: req.auth!,
+      ...(req.correlationId ? { correlationId: req.correlationId } : {}),
+    }, orderId, x.expectedVersion as number, previous, {
+      supplierAgreementEvidence: procurementString(x, 'supplierAgreementEvidence', 1200),
+      supplierAgreed: true, noDepositOrPenalty: true, noDeliveryOrInvoice: true,
+    }).then(data => ({ data }));
+  }
+
 }
