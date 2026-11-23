@@ -32,7 +32,7 @@ const line = (id: string, expected: string | null) => ({
 });
 
 function fixture(options: {
-  revoked?: boolean; foreignProject?: boolean; foreignSupplier?: boolean;
+  revoked?: boolean; inactiveEmployee?: boolean; foreignProject?: boolean; foreignSupplier?: boolean;
   cancellation?: boolean; previousApproval?: boolean;
   noDeliveryDate?: boolean; badReceiptUom?: boolean; overReceipt?: boolean;
   tooManyOrders?: boolean;
@@ -66,7 +66,7 @@ function fixture(options: {
   const tx = {
     userSession: { findFirst: async () => options.revoked ? null : {
       user: {
-        employee: { companyId, isActive: true },
+        employee: { companyId, isActive: !options.inactiveEmployee },
         userRoles: [{ role: { companyId, isActive: true, roleCode: 'STOREKEEPER',
           rolePermissions: [{ permission: { permissionCode: 'inventory.stock.view' } }] } }],
       },
@@ -103,7 +103,7 @@ function fixture(options: {
           { companyId, projectId, poNumber: { in: ['PO-01'] } });
         assert.deepEqual([where.goodsReceipt.companyId, where.goodsReceipt.projectId,
           where.goodsReceipt.reversedAt, take], [companyId, projectId, null, 5001]);
-        return options.overReceipt ? [posted('11', warehouseId)] :
+        return options.cancellation ? [] : options.overReceipt ? [posted('11', warehouseId)] :
           [posted('2.25', warehouseId), posted('2', otherSiteId)];
       },
     },
@@ -148,7 +148,7 @@ test('SS14 authenticated scoped project PO date and partial GR are advisory only
 });
 
 test('SS14 real actor revocation and foreign Project fail before any PO read', async () => {
-  for (const options of [{ revoked: true }, { foreignProject: true }]) {
+  for (const options of [{ revoked: true }, { inactiveEmployee: true }, { foreignProject: true }]) {
     const f = fixture(options);
     await assert.rejects(f.service.supplierCommitments(auth, projectId, warehouseId, at),
       ForbiddenException);
