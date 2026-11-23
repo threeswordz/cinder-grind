@@ -1603,6 +1603,23 @@ export class PurchaseOrderService {
         detail: 'Every selected award must have verifiable THB quotation provenance.',
       });
     }
+    const selectedOfferLines = await tx.supplierQuotationLine.findMany({
+      where: {
+        supplierQuotationId: { in: selectedQuotationIds },
+        rfqLineId: { in: order.lines.map((line) => line.rfqLineId) },
+      },
+      select: { supplierQuotationId: true, rfqLineId: true, quantity: true },
+    });
+    if (order.lines.some((line) => !selectedOfferLines.some(
+      (offer) => offer.supplierQuotationId === line.supplierQuotationId &&
+        offer.rfqLineId === line.rfqLineId && offer.quantity.gte(line.quantity),
+    ))) {
+      throw new ConflictException({
+        code: 'PO_SELECTED_QUOTE_QUANTITY_INCOMPLETE',
+        detail: 'Selected supplier quotation must cover every PO source line quantity.',
+      });
+    }
+
     const offers = await tx.supplierQuotationLine.findMany({
       where: {
         rfqLineId: { in: order.lines.map((line) => line.rfqLineId) },
