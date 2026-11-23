@@ -1,0 +1,65 @@
+# Exactly one NEW SS02 native source proof; not full PR/main release CI.
+name: M4 SS02 New-Only Native PostgreSQL 17
+on:
+  push:
+    branches: ['work-m4-ss02-native-pg17-once-20261124']
+    paths: ['.github/workflows/m4-ss02-native-pg17-once.yml']
+permissions:
+  contents: read
+concurrency:
+  group: m4-ss02-native-one-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  ss02-native:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17.11-alpine
+        env:
+          POSTGRES_DB: construction_erp
+          POSTGRES_USER: construction_erp
+          POSTGRES_PASSWORD: construction_erp_dev_only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U construction_erp -d construction_erp"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://construction_erp:construction_erp_dev_only@localhost:5432/construction_erp?schema=public
+      NODE_ENV: test
+      RC_NON_PRODUCTION_CONFIRMED: 'YES'
+      SS02_EXACT_SOURCE_SHA: ${{ github.sha }}
+    steps:
+      - name: Checkout exact SS02 source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: Assert exact git source
+        run: test "$(git rev-parse HEAD)" = "$SS02_EXACT_SOURCE_SHA"
+      - name: Install pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
+        with:
+          version: 12.6.0
+          run_install: false
+      - name: Install Node 24
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.21.0
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Prisma generate and validate
+        run: |
+          pnpm prisma:generate
+          pnpm prisma:validate
+      - name: Forward-only existing migrations to disposable PostgreSQL
+        run: pnpm prisma:migrate:deploy
+      - name: Compile API and NEW SS02 native source
+        run: pnpm --filter @construction-erp/api build
+      - name: Run ONLY SS02 new native PostgreSQL role and material creation handoff
+        run: node --test --test-concurrency=1 apps/api/dist/inventory/material-code-request.native.integration.spec.js
+      - name: Seal no-release boundary
+        run: echo 'SS02_NATIVE_ONLY; no full CI, retained MKE/TCJ, Mac browser, DEC-022 signoff, Production or Owner acceptance'
