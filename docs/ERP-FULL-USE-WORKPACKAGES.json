@@ -23,7 +23,7 @@
       "M4-06",
       "M4-03"
     ],
-    "workEvidenceNote": "New scoped PUR07 server Unicode and real authenticated synthetic business UI executed successfully. PUR05 separately proved repeat Ben approval on amendment. Production font/sandbox review, retained named MKE/TCJ effective grants and final independent Owner release gates OPEN; no released packages, 0/1900 hours retired. Actual effort unknown.",
+    "workEvidenceNote": "Baseline historical budget is 1900h; accepted whole-package hours 0. NEW evidence-informed remaining-effort reforecast 1847h (M4 117h; others 1730h), not measured effort or formal Owner acceptance. Actual productive hours unknown.",
     "latestTechnicalCheckpoint": "PUR07 NEW actual server Thai Unicode PDF #45195364823 SUCCESS 2/2 searchable Thai A4 54,073 bytes, approved PDF service bytes/filename/SHA; distinct genuine Jai and Ben React/Chrome PG17 UI #45196516424 SUCCESS PDF HTTP200 reported-only Jai send and Ben read-only. PUR05 #45192292763 PASS independent new Ben approval of Rev1. M4 aggregate remains 20/32 pending retained actors/Owner release signoff; no full-package hours retired.",
     "m4CheckpointCompleted": 20,
     "m4CheckpointTotal": 32,
@@ -42,7 +42,35 @@
       1100,
       3300
     ],
-    "forecastRebaselineStatus": "NONE; center unchanged 1,900h because no measured actual-hour or signed scope change"
+    "forecastRebaselineStatus": "PROVISIONAL_REFORECAST_1847H; original accepted package ledger remains 0/1900; see tracking.reforecast",
+    "reforecast": {
+      "method": "TASK_BY_TASK_RESIDUAL_ESTIMATE;NOT_ACTUAL_HOURS;NOT_OWNER_ACCEPTANCE",
+      "asOf": "2026-11-23T23:24:00+08:00",
+      "historicalNetBaselineHours": 1900,
+      "historicalBaselineAt": "2026-11-23T16:17:49+08:00",
+      "baselineM4Hours": 170,
+      "latestM4ResidualHours": 117,
+      "unchangedOtherStageHours": 1730,
+      "reforecastRemainingHours": 1847,
+      "forecastReductionSinceBaselineHours": 53,
+      "forecastReductionAsPercentOfHistoricalBaseline": 2.8,
+      "acceptedPackageHoursRetired": 0,
+      "actualLoggedHours": null,
+      "m4TechnicalCheckpoints": "20/32",
+      "status": "PROVISIONAL_PLANNING_ESTIMATE_NOT_SIGNOFF",
+      "methodologicalWarning": "53h is forward-work ESTIMATE reduction, not 53 observed productive worker hours. Do not combine with accepted package hours or double count after milestone acceptance.",
+      "supportingDocument": "docs/ERP-FULL-USE-REFORECAST-2026-11-23.md",
+      "m4ResidualPackages": {
+        "M4-01": 32,
+        "M4-02": 8,
+        "M4-03": 10,
+        "M4-04": 8,
+        "M4-05": 9,
+        "M4-06": 10,
+        "M4-07": 6,
+        "M4-08": 34
+      }
+    }
   },
   "official": {
     "prototypeCompleted": 4,
