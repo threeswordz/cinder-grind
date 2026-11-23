@@ -1278,7 +1278,17 @@ export class PurchaseOrderService {
           'SELECT pg_advisory_xact_lock(hashtext($1))',
           'receipt-po:' + order.companyId + ':' + order.poNumber,
         );
-        for (const line of [...order.lines].sort((a, b) => a.id.localeCompare(b.id))) {
+        // Finance can source invoices from a historical revision of this
+        // PO number. Lock every family line in stable order, not only current
+        // lines, before checking the absence of any invoice source.
+        const familyLines = await tx.purchaseOrderLine.findMany({
+          where: { purchaseOrder: {
+            companyId: order.companyId, poNumber: order.poNumber,
+          } },
+          select: { id: true },
+          orderBy: { id: 'asc' },
+        });
+        for (const line of familyLines) {
           await tx.$executeRawUnsafe(
             'SELECT pg_advisory_xact_lock(hashtext($1))',
             'finance-source:po-line:' + line.id,
