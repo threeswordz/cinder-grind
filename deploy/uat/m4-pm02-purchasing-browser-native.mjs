@@ -103,21 +103,26 @@ async function choose(p,s,label,option){
  await pause(120);
 }
 async function input(p,s,label,value){
- const ok=await page(p,s,values=>{
-  const lbl=[...document.querySelectorAll('label')].find(
-   x=>x.textContent?.replace(/\\s*\\*$/,'').trim()===values.label);
+ // React mounts the returned-line reason textarea only AFTER MUI's select
+ // updates state. Wait for the actual label AND a visible input, not a fixed
+ // 120ms assumption. MUI can move its textarea outside the label's htmlFor.
+ await until(p,s,values=>{
+  const lbl=[...document.querySelectorAll('label')].find(x=>
+   String(x.textContent??'').replaceAll('*','').trim()===values.label);
   if(!lbl)return false;
-  const el=document.getElementById(lbl.htmlFor);
-  if(!(el instanceof HTMLInputElement||el instanceof HTMLTextAreaElement))return false;
+  const linked=lbl.htmlFor?document.getElementById(lbl.htmlFor):null;
+  const el=(linked instanceof HTMLTextAreaElement||linked instanceof HTMLInputElement)
+   ?linked:lbl.closest('.MuiFormControl-root')?.querySelector(
+    'textarea:not([aria-hidden="true"]),input');
+  if(!(el instanceof HTMLTextAreaElement||el instanceof HTMLInputElement))return false;
   const proto=el instanceof HTMLTextAreaElement?HTMLTextAreaElement.prototype:
    HTMLInputElement.prototype;
   Object.getOwnPropertyDescriptor(proto,'value').set.call(el,values.value);
   el.dispatchEvent(new Event('input',{bubbles:true}));
   el.dispatchEvent(new Event('change',{bubbles:true}));
   return true;
- },{label,value});
- assert.equal(ok,true,'PM02_INPUT_NOT_FOUND_'+label);
- await pause(120);
+ },{label,value},'RENDERED_INPUT_'+label);
+ await pause(180);
 }
 async function apiCall(actor,method,path,body){
  const headers={Cookie:'erp_session='+actor.token};
