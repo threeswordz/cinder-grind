@@ -96,6 +96,7 @@ model Customer {
   companyId          String   @map("company_id") @db.Uuid
   customerCode       String   @map("customer_code") @db.VarChar(50)
   customerName       String   @map("customer_name") @db.VarChar(200)
+  shortName          String?  @map("short_name") @db.VarChar(100)
   registrationNumber String?  @map("registration_number") @db.VarChar(100)
   contactName        String?  @map("contact_name") @db.VarChar(200)
   email              String?  @db.VarChar(320)
@@ -122,6 +123,7 @@ model Supplier {
   companyId          String   @map("company_id") @db.Uuid
   supplierCode       String   @map("supplier_code") @db.VarChar(50)
   supplierName       String   @map("supplier_name") @db.VarChar(200)
+  shortName          String?  @map("short_name") @db.VarChar(100)
   registrationNumber String?  @map("registration_number") @db.VarChar(100)
   contactName        String?  @map("contact_name") @db.VarChar(200)
   email              String?  @db.VarChar(320)
@@ -2669,6 +2671,8 @@ model PurchaseOrder {
   projectId          String    @map("project_id") @db.Uuid
   supplierId         String    @map("supplier_id") @db.Uuid
   poNumber           String    @map("po_number") @db.VarChar(120)
+  displayNumber      String?   @map("po_display_number") @db.VarChar(240)
+  supplierShortNameSnapshot String? @map("supplier_short_name_snapshot") @db.VarChar(100)
   currencyCode       String?   @map("currency_code") @db.VarChar(3)
   revisionNo         Int       @default(0) @map("revision_no")
   previousRevisionId String?   @unique @map("previous_revision_id") @db.Uuid
