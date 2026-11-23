@@ -30,7 +30,7 @@ export function PurchaseOrderCancellationPanel({ orderId, permissions, roleCodes
     permissions.includes('procurement.po.create');
   const isPmCandidate = roleCodes.includes('PROJECT_MANAGER');
   const isBenCandidate = roleCodes.includes('MANAGEMENT') &&
-    permissions.includes('procurement.po.cancel');
+    permissions.includes('procurement.po.approve');
   const query = useQuery({
     queryKey: ['pur10-cancellation-review', orderId],
     queryFn: () => poCancellationApi.read(orderId),
