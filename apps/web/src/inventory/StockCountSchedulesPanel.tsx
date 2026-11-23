@@ -36,7 +36,14 @@ export function StockCountSchedulesPanel({
   const [interval, setInterval] = useState('');
   const [status, setStatus] = useState<'ACTIVE' | 'PAUSED'>('ACTIVE');
   const [reason, setReason] = useState('');
+  // Pin the exact event the editor originally loaded. A background refresh
+  // must NEVER silently upgrade Nancy's compare-and-set expectation.
+  const [expectedEventId, setExpectedEventId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState('');
+  const resetDraft = () => {
+    setCategory(''); setUncategorized(false); setFirstDueDate('');
+    setInterval(''); setStatus('ACTIVE'); setReason(''); setExpectedEventId(null);
+  };
   const projects = useQuery({
     queryKey: ['m4-count-schedule-projects'],
     queryFn: inventoryApi.stockCountProjects,
@@ -61,7 +68,10 @@ export function StockCountSchedulesPanel({
     schedules.data.data : null;
   const chosenCategory = uncategorized ? null : category.trim();
   const prior = active?.schedules.find(s => s.materialCategory === chosenCategory) ?? null;
-  const ready = nancy && Boolean(active) && Boolean(firstDueDate) &&
+  // Covers both stale edits and another user creating the same category while
+  // this form was open. Only an explicit reselect reloads the expected ID.
+  const staleDraft = Boolean(active) && expectedEventId !== (prior?.lastEventId ?? null);
+  const ready = nancy && Boolean(active) && !staleDraft && Boolean(firstDueDate) &&
     validDate(firstDueDate) && Boolean(reason.trim()) && reason.trim().length <= 2000 &&
     (uncategorized || Boolean(chosenCategory && chosenCategory.length <= 150)) &&
     /^\d+$/.test(interval) && Number(interval) >= 1 && Number(interval) <= 3650;
@@ -70,7 +80,7 @@ export function StockCountSchedulesPanel({
       operationalExceptionsApi.scheduleSet(projectId, warehouseId, value),
     onSuccess: async () => {
       setFeedback('Saved a new immutable site/category scheduling revision.');
-      setReason('');
+      resetDraft();
       await client.invalidateQueries({ queryKey: ['m4-count-schedule', projectId, warehouseId] });
     },
     onError: (error: unknown) => setFeedback(message(error)),
@@ -85,7 +95,7 @@ export function StockCountSchedulesPanel({
       </Alert>
       <Stack direction={{ xs: 'column', md: 'row' }} spacing={1}>
         <TextField select label="Project" value={projectId} sx={{ minWidth: 230 }}
-          onChange={e => { setProjectId(e.target.value); setWarehouseId(''); setFeedback(''); }}>
+          onChange={e => { setProjectId(e.target.value); setWarehouseId(''); resetDraft(); setFeedback(''); }}>
           <MenuItem value="">Choose Project</MenuItem>
           {(projects.isSuccess && !projects.isFetching ? projects.data.data : []).map(p => (
             <MenuItem key={p.id} value={p.id}>{p.projectCode} — {p.projectName}</MenuItem>
@@ -93,7 +103,7 @@ export function StockCountSchedulesPanel({
         </TextField>
         <TextField select label="Site Warehouse" value={warehouseId}
           disabled={!authorizedProject} sx={{ minWidth: 230 }}
-          onChange={e => { setWarehouseId(e.target.value); setFeedback(''); }}>
+          onChange={e => { setWarehouseId(e.target.value); resetDraft(); setFeedback(''); }}>
           <MenuItem value="">Choose site</MenuItem>
           {(sites.isSuccess && !sites.isFetching ? sites.data.data : []).map(s => (
             <MenuItem key={s.id} value={s.id}>{s.warehouseCode} — {s.warehouseName}</MenuItem>
@@ -131,14 +141,21 @@ export function StockCountSchedulesPanel({
               when selecting the unclassified-materials option. Select an existing row to revise it.
               Saving requires the current revision; a concurrent edit is rejected.
             </Alert>
-            <TextField select label="Existing category to revise (optional)" value={prior?.lastEventId ?? ''}
+            {staleDraft ? <Alert severity="warning">
+              Another session changed or created this category, or the category selection changed.
+              Your draft retains its original revision and cannot be saved against the new one.
+              Explicitly choose the current schedule again to reload its latest values.
+            </Alert> : null}
+            <TextField select label="Existing category to revise (optional)"
+              value={active.schedules.some(row => row.lastEventId === expectedEventId) ?
+                (expectedEventId ?? '') : ''}
               onChange={e => {
                 const row = active.schedules.find(s => s.lastEventId === e.target.value);
                 if (row) {
                   setUncategorized(row.materialCategory === null); setCategory(row.materialCategory ?? '');
                   setFirstDueDate(row.firstDueDate); setInterval(String(row.intervalDays));
-                  setStatus(row.status); setReason('');
-                } else {setCategory('');setUncategorized(false);}
+                  setStatus(row.status); setReason(''); setExpectedEventId(row.lastEventId);
+                } else resetDraft();
               }}>
               <MenuItem value="">New category schedule</MenuItem>
               {active.schedules.map(row => <MenuItem key={row.lastEventId} value={row.lastEventId}>
@@ -147,10 +164,17 @@ export function StockCountSchedulesPanel({
             </TextField>
             <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
               <TextField label="Material category (exact)" value={category}
-                disabled={uncategorized} onChange={e => setCategory(e.target.value)}
+                disabled={uncategorized} onChange={e => {
+                  if (e.target.value !== category) setExpectedEventId(null);
+                  setCategory(e.target.value);
+                }}
                 inputProps={{ maxLength: 150 }} sx={{ flexGrow: 1 }} />
               <TextField select label="Category type" value={uncategorized ? 'none' : 'named'}
-                onChange={e => setUncategorized(e.target.value === 'none')}>
+                onChange={e => {
+                  const next = e.target.value === 'none';
+                  if (next !== uncategorized) setExpectedEventId(null);
+                  setUncategorized(next);
+                }}>
                 <MenuItem value="named">Named category</MenuItem>
                 <MenuItem value="none">Unclassified materials only</MenuItem>
               </TextField>
@@ -172,7 +196,7 @@ export function StockCountSchedulesPanel({
                 update.mutate({
                   materialCategory: chosenCategory,
                   firstDueDate, intervalDays: Number(interval), status, reason: reason.trim(),
-                  expectedPreviousEventId: prior?.lastEventId ?? null,
+                  expectedPreviousEventId: expectedEventId,
                 });
               }}>Save category schedule</Button>
           </Stack>
