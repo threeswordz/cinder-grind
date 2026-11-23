@@ -96,7 +96,7 @@ test('PUR01 native: whole-PO 2/3 comparable THB supplier gates, shortage reason,
       ['PURCHASE_REQUEST', 'PURCHASE_REQUEST', 'PRYYMM-###'],
       ['RFQ', 'RFQ', 'RFQYYMM-###'],
       ['PURCHASE_ORDER', 'PURCHASE_ORDER', 'POYYMM-###'],
-    ]) {
+    ] as const) {
       await prisma.numberSequence.create({
         data: {
           companyId: company.id,
