@@ -1,5 +1,5 @@
 import {
-  Body, Controller, Get, Header, Param, ParseUUIDPipe, Post, Req, UseGuards,
+  Body, Controller, Get, Header, Param, ParseUUIDPipe, Post, Query, Req, UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '../auth/auth.guard';
 import { CsrfGuard } from '../auth/csrf.guard';
@@ -13,6 +13,35 @@ const uuid = new ParseUUIDPipe({ version: '4' });
 @Controller('inventory/stock-minimums')
 export class StockMinimumController {
   constructor(private readonly minimums: StockMinimumService) {}
+
+  @Get('projects')
+  @Header('Cache-Control', 'private, no-store')
+  @UseGuards(AuthGuard, PermissionGuard)
+  @RequirePermissions('inventory.stock.view')
+  projects(@Req() r: AuthenticatedRequest) {
+    return this.minimums.projects(r.auth!).then(data => ({ data }));
+  }
+
+  @Get('projects/:projectId/sites')
+  @Header('Cache-Control', 'private, no-store')
+  @UseGuards(AuthGuard, PermissionGuard)
+  @RequirePermissions('inventory.stock.view')
+  sites(@Req() r: AuthenticatedRequest,
+    @Param('projectId', uuid) projectId: string) {
+    return this.minimums.sites(r.auth!, projectId).then(data => ({ data }));
+  }
+
+  @Get('projects/:projectId/sites/:warehouseId/choices')
+  @Header('Cache-Control', 'private, no-store')
+  @UseGuards(AuthGuard, PermissionGuard)
+  @RequirePermissions('inventory.stock.view')
+  choices(@Req() r: AuthenticatedRequest,
+    @Param('projectId', uuid) projectId: string,
+    @Param('warehouseId', uuid) warehouseId: string,
+    @Query('after') rawAfter: unknown) {
+    const after = rawAfter === undefined ? undefined : inventoryUuid(rawAfter, 'after');
+    return this.minimums.choices(r.auth!, projectId, warehouseId, after).then(data => ({ data }));
+  }
 
   @Get('projects/:projectId/sites/:warehouseId')
   @Header('Cache-Control', 'private, no-store')
