@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import test from 'node:test';
-import { ForbiddenException } from '@nestjs/common';
+import { ConflictException, ForbiddenException, UnprocessableEntityException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import type { AuthenticatedUserContext } from '../auth/auth.types';
 import type { AuditService } from '../audit/audit.service';
@@ -136,7 +136,8 @@ test('PM threshold update creates audit only, uses optimistic version and reject
   assert.ok(f.queries.includes('policyLock'));
   await assert.rejects(
     f.handler.set({ auth: auth('PROJECT_MANAGER') }, projectId, warehouseId, validInput, randomUUID()),
-    /STOCK_MINIMUM_STALE_VERSION/,
+    (error: unknown) => error instanceof ConflictException &&
+      (error.getResponse() as { code?: string }).code === 'STOCK_MINIMUM_STALE_VERSION',
   );
   assert.equal(f.auditWrites, 1);
 });
@@ -146,7 +147,8 @@ test('SS14 minimum must respect activated canonical unit precision before audit 
   await assert.rejects(
     f.handler.set({ auth: auth('PROJECT_MANAGER') }, projectId, warehouseId,
       { ...validInput, minimumQuantity: '1.5' }, eventId),
-    /STOCK_MINIMUM_STOCK_PRECISION_EXCEEDED/,
+    (error: unknown) => error instanceof UnprocessableEntityException &&
+      (error.getResponse() as { code?: string }).code === 'STOCK_MINIMUM_STOCK_PRECISION_EXCEEDED',
   );
   assert.deepEqual([f.auditWrites, f.stockWrites], [0, 0]);
 });
