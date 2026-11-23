@@ -1284,18 +1284,20 @@ export class PurchaseOrderService {
             'finance-source:po-line:' + line.id,
           );
         }
-        const approvedInvoiceSource = await tx.supplierInvoiceItem.findFirst({
+        // PUR10 denies any invoice source, even a draft or one linked to an
+        // earlier revision of this PO number. Cancelling must not orphan AP.
+        const anyInvoiceSource = await tx.supplierInvoiceItem.findFirst({
           where: {
-            purchaseOrderLineId: { in: order.lines.map((line) => line.id) },
-            supplierInvoice: { state: 'APPROVED' },
+            purchaseOrderLine: { purchaseOrder: {
+              companyId: order.companyId, poNumber: order.poNumber,
+            } },
           },
           select: { id: true },
         });
-        if (approvedInvoiceSource) {
+        if (anyInvoiceSource) {
           throw new ConflictException({
             code: 'PO_CANCEL_FINANCE_SOURCE_LOCKED',
-            detail:
-              'A Purchase Order referenced by an approved Supplier Invoice cannot be cancelled.',
+            detail: 'A Purchase Order referenced by any Supplier Invoice cannot be cancelled.',
           });
         }
         const outstandingReceipt = await tx.goodsReceipt.findFirst({
@@ -1313,6 +1315,30 @@ export class PurchaseOrderService {
           throw new ConflictException({
             code: 'PO_HAS_OUTSTANDING_RECEIPT',
             detail: 'Reverse all posted Goods Receipts before cancelling this Purchase Order.',
+          });
+        }
+
+        // Reversal does not erase the receipt/delivery record. PUR10 exception
+        // policies remain unapproved, so even unposted/reversed sources block.
+        const anyReceipt = await tx.goodsReceipt.findFirst({
+          where: {
+            purchaseOrder: {
+              companyId: order.companyId, poNumber: order.poNumber,
+            },
+          },
+          select: { id: true },
+        });
+        const anyDelivery = await tx.receivingDelivery.findFirst({
+          where: {
+            companyId: order.companyId,
+            purchaseOrder: { companyId: order.companyId, poNumber: order.poNumber },
+          },
+          select: { id: true },
+        });
+        if (anyReceipt || anyDelivery) {
+          throw new ConflictException({
+            code: 'PUR10_RECEIPT_OR_DELIVERY_EXCEPTION_REQUIRES_DECISION',
+            detail: 'Receipt/delivery source exists; explicit exception policy is required.',
           });
         }
 
