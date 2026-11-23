@@ -305,7 +305,7 @@ export function AdminConsole({ user, onLogoutSuccess }: { user: CurrentUser; onL
           key: 'master-data',
           label: 'Master Data',
           permission: '__master_data__',
-          content: <MasterDataPanel permissions={user.permissions} />,
+          content: <MasterDataPanel permissions={user.permissions} roleCodes={user.roleCodes} />,
         },
         {
           key: 'company',

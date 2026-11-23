@@ -43,6 +43,8 @@ import { StockLossCaseService } from './stock-loss-case.service';
 import { StockCountService } from './stock-count.service';
 import { StockMinimumService } from './stock-minimum.service';
 import { StockMinimumController } from './stock-minimum.controller';
+import { MaterialCodeRequestController } from './material-code-request.controller';
+import { MaterialCodeRequestService } from './material-code-request.service';
 
 @Module({
   imports: [
@@ -59,6 +61,7 @@ import { StockMinimumController } from './stock-minimum.controller';
     UrgentMaterialIssueDocumentsController,
     StockCountScheduleController,
     StockMinimumController,
+    MaterialCodeRequestController,
     StockLossCaseController,
     TransferCustodyController,
     ReceivingController,
@@ -77,6 +80,7 @@ import { StockMinimumController } from './stock-minimum.controller';
     UrgentMaterialIssueDocumentsService,
     StockCountScheduleService,
     StockMinimumService,
+    MaterialCodeRequestService,
     StockLossCaseService,
     TransferCustodyService,
     ReceivingService,
