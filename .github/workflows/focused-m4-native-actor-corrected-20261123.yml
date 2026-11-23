@@ -1,0 +1,61 @@
+name: M4 focused disposable native actor corrected
+on:
+  push:
+    branches: [focused-m4-native-actor-corrected-20261123]
+    paths: ['.github/workflows/focused-m4-native-actor-corrected-20261123.yml']
+permissions:
+  contents: read
+jobs:
+  m4-native:
+    name: M4 Nancy PM09 SS13 native only
+    runs-on: ubuntu-latest
+    timeout-minutes: 17
+    services:
+      postgres:
+        image: postgres:17.11-alpine
+        env:
+          POSTGRES_DB: erp_m4_native
+          POSTGRES_USER: construction_erp
+          POSTGRES_PASSWORD: construction_erp_dev_only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U construction_erp -d erp_m4_native"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://construction_erp:construction_erp_dev_only@localhost:5432/erp_m4_native?schema=public
+      M4_NON_PRODUCTION_CONFIRMED: 'YES'
+      EXACT_REVIEWED_SOURCE: 5eef7fc911a6739a0ba82e6c9bf1fdf7ba234f08
+    steps:
+      - name: Checkout source-only child
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 2
+      - name: Assert exact immutable source and workflow-only change
+        run: |
+          test "$(git rev-parse HEAD^)" = "$EXACT_REVIEWED_SOURCE"
+          test "$(git diff --name-only HEAD^ HEAD)" = ".github/workflows/focused-m4-native-actor-corrected-20261123.yml"
+      - name: Setup pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
+        with:
+          version: 12.6.0
+          run_install: false
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.21.0
+      - name: Install frozen dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Prisma generate and forward-only migrate disposable database
+        run: |
+          pnpm prisma:generate
+          pnpm prisma:migrate:deploy
+      - name: API build including exact reviewed native test
+        run: pnpm --filter @construction-erp/api build
+      - name: M4 native authenticated HTTP and protected bytes test only
+        run: node --test --test-concurrency=1 apps/api/dist/inventory/m4-operational-native.integration.spec.js
+      - name: Evidence boundary
+        run: echo 'ONLY M4 native focus. No full CI, browser, Mac, retained grants, human UAT, Production or release exit.'
