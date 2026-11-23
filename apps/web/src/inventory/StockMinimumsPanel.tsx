@@ -14,7 +14,7 @@ type Policy = {
   materialId: string; uomId: string; materialCode: string; materialName: string; uomCode: string;
   minimumQuantity: string; status: 'ACTIVE' | 'PAUSED'; reason: string;
   lastEventId: string; onHand: string; reserved: string; available: string;
-  belowMinimum: boolean; shortage: string;
+  belowMinimum: boolean; shortage: string; configurationStale: boolean;
 };
 type Readback = { alerts: Policy[]; advisoryOnly: boolean;
   approvedPlanDemandAlertsIncluded: boolean; externalNotificationsSent: boolean };
@@ -182,6 +182,7 @@ export function StockMinimumsPanel({ roleCodes }: { roleCodes: string[] }) {
               <TableCell align="right">{p.available}</TableCell>
               <TableCell align="right">{p.shortage}</TableCell>
               <TableCell>{p.status === 'PAUSED' ? 'Paused' :
+                p.configurationStale ? 'Stock UOM changed — review minimum' :
                 p.belowMinimum ? 'Below minimum' : 'Within minimum'}</TableCell>
             </TableRow>)}
             {policies.length === 0 && <TableRow><TableCell colSpan={5}>
