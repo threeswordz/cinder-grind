@@ -10,6 +10,12 @@ The ERP is complete only if all 112 requirements are implemented and working or 
 
 **M4-01 H0001–H0020 = IN_PROGRESS, not accepted (0 of its 20 forecast-hours retired).** [112-ID gate audit](ERP-M4-01-112-EXIT-AUDIT.md) and [machine-readable source matrix](ERP-M4-01-112-ID-GATES.csv) verify the immutable 112 census and distinguish previously passed scoped native/Chromium cases from unresolved role and functional exits. Draft #412's new PO-submit guard and Draft #413 PUR04 commercial fields are **source only, unrun**, unlike the earlier native #45127724396 and operational Chromium #45132932414 already passed. **Official M4 4/8, GL 3/10; 1,900h remaining forecast unchanged.** Do not subtract elapsed wall time, run broad CI or replay successful Mac/browser cases.
 
+## Newly staged source — PUR01 and PUR04, pending focused proof
+
+- **[Draft PR #415](https://github.com/threeswordz/cinder-grind/pull/415)**, exact head `ee3ca3e1932a96cf3c37339bbf55ba68ff14f37f`, stacked on Draft [PUR04 #413](https://github.com/threeswordz/cinder-grind/pull/413). Net-after-discount-plus-freight/charges ex-VAT thresholds, complete THB supplier bid counts, documented special supplier/Ben exception, immutable source audit. New-currency THB capture is forward-looking; historical unknown is never silently repaired.
+- **Only newly affected focused PG/API/Web tests** [#45140450091](https://github.com/threeswordz/cinder-grind/actions/runs/45140450091) were initiated to validate these staged changes. **As of this checkpoint no pass is yet credited**. This is not the full CI/old Mac/previous browser suite.
+- **H0065–H0090 M4-04** (PUR01) and **H0091–H0120 M4-05** (PUR04) are now **IN_PROGRESS in parallel with M4-01**, 0 forecast hours retired for either. The sequential cursor remains **H0001–H0020**, and 1,900h is still the honest remaining budget.
+
 ## Baseline counters (DO NOT imply earned progress)
 
 | Counter | Value | Meaning |

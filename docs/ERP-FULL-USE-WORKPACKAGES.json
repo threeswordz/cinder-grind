@@ -14,7 +14,13 @@
     "actualLoggedHours": null,
     "asOf": "2026-11-23T16:25:05+08:00",
     "activePackage": "M4-01",
-    "activeForecastHourRange": "H0001–H0020"
+    "activeForecastHourRange": "H0001–H0020",
+    "activeConcurrentPackages": [
+      "M4-01",
+      "M4-04",
+      "M4-05"
+    ],
+    "workEvidenceNote": "Source staged and one focused validation in flight; no new completion credited."
   },
   "official": {
     "prototypeCompleted": 4,
@@ -194,11 +200,15 @@
       "hours": 26,
       "from": 65,
       "to": 90,
-      "status": "NOT_CREDITED",
+      "status": "IN_PROGRESS",
       "verifiedHours": 0,
-      "evidence": [],
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/pull/415",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45140450091"
+      ],
       "actualHours": null,
-      "verifiedAt": null
+      "verifiedAt": null,
+      "latestAssessment": "PUR01 exact-source Draft PR #415 stages net THB 1/2/3 supplier gate, comparable quote evidence, maker reason and MANAGEMENT approval exception. Changed-path one-shot #45140450091 started; no PASS until observed."
     },
     {
       "id": "M4-05",
@@ -208,11 +218,15 @@
       "hours": 30,
       "from": 91,
       "to": 120,
-      "status": "NOT_CREDITED",
+      "status": "IN_PROGRESS",
       "verifiedHours": 0,
-      "evidence": [],
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/pull/413",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45140450091"
+      ],
       "actualHours": null,
-      "verifiedAt": null
+      "verifiedAt": null,
+      "latestAssessment": "PUR04 Draft PR #413 stages additive nullable commercial fields, draft edit/revision UI and focused PG spec; combined changed-path #45140450091 pending."
     },
     {
       "id": "M4-06",
