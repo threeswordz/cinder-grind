@@ -9,8 +9,10 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { ProjectsModule } from '../projects/projects.module';
 import { ProcurementController } from './procurement.controller';
 import { PurchaseOrderController } from './purchase-order.controller';
+import { PurchaseOrderCancellationCaseController } from './purchase-order-cancellation-case.controller';
 import { ProcurementService } from './procurement.service';
 import { PurchaseOrderService } from './purchase-order.service';
+import { PurchaseOrderCancellationCaseService } from './purchase-order-cancellation-case.service';
 import { PurchaseOrderPur07Service } from './purchase-order-pur07.service';
 import { SourcingController } from './sourcing.controller';
 import { SourcingService } from './sourcing.service';
@@ -25,8 +27,8 @@ import { SourcingService } from './sourcing.service';
     ApprovalModule,
     AdministrationModule,
   ],
-  controllers: [ProcurementController, SourcingController, PurchaseOrderController],
-  providers: [ProcurementService, SourcingService, PurchaseOrderService, PurchaseOrderPur07Service],
+  controllers: [ProcurementController, SourcingController, PurchaseOrderController, PurchaseOrderCancellationCaseController],
+  providers: [ProcurementService, SourcingService, PurchaseOrderService, PurchaseOrderPur07Service, PurchaseOrderCancellationCaseService],
   exports: [ProcurementService, SourcingService, PurchaseOrderService],
 })
 export class ProcurementModule {}
