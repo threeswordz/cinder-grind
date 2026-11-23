@@ -1,0 +1,67 @@
+name: M4 PM02 synthetic DOM state diagnostic on new browser test only
+on:
+  push:
+    branches: [focused-m4-pm02-state-diagnostic-20261123]
+    paths: ['.github/workflows/focused-m4-pm02-state-diagnostic-20261123.yml']
+permissions:
+  contents: read
+jobs:
+  pm02-real-browser:
+    name: Only PM02 actual Chromium Store/Khaimook mixed approval
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    services:
+      postgres:
+        image: postgres:17.11-alpine
+        env:
+          POSTGRES_DB: erp_m4_pm02_chromium
+          POSTGRES_USER: construction_erp
+          POSTGRES_PASSWORD: construction_erp_dev_only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U construction_erp -d erp_m4_pm02_chromium"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://construction_erp:construction_erp_dev_only@localhost:5432/erp_m4_pm02_chromium?schema=public
+      M4_NON_PRODUCTION_CONFIRMED: 'YES'
+      EXACT_PM02_UI_SCRIPT_PARENT: 1c4371b0b66f934e1c4547eb2ebe524ee0767c61
+    steps:
+      - name: Checkout workflow-only child of exact PM02 application and UI script
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 2
+      - name: Fail closed on source mismatch / non-disposable DB / extraneous changes
+        run: |
+          test "$(git rev-parse HEAD^)" = "$EXACT_PM02_UI_SCRIPT_PARENT"
+          test "$(git diff --name-only HEAD^ HEAD)" = ".github/workflows/focused-m4-pm02-state-diagnostic-20261123.yml"
+          test "${DATABASE_URL%%\?*}" = "postgresql://construction_erp:construction_erp_dev_only@localhost:5432/erp_m4_pm02_chromium"
+          test "$M4_NON_PRODUCTION_CONFIRMED" = "YES"
+      - name: Pinned pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
+        with:
+          version: 12.6.0
+          run_install: false
+      - name: Pinned Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.21.0
+      - name: Frozen dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Actual Chromium installed and PM02 script syntax only
+        run: |
+          node --check deploy/uat/m4-pm02-purchasing-browser-native.mjs
+          command -v google-chrome || command -v chromium || command -v chromium-browser
+      - name: Generate Prisma and apply forward-only migrations in isolated PG17.11
+        run: |
+          pnpm prisma:generate
+          pnpm prisma:migrate:deploy
+      - name: Compile real NestJS API used by Chrome network
+        run: pnpm --filter @construction-erp/api build
+      - name: Run only new actual PM02 Chromium UI/HTTP/PG proof
+        run: node deploy/uat/m4-pm02-purchasing-browser-native.mjs
+      - name: Explicit evidence scope
+        run: echo 'Only new PM02 React mixed A/B and maker correction. No old #410 browser, no full CI, no Mac, no retained role grants, no production.'
