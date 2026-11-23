@@ -273,6 +273,7 @@ export class ProcurementService {
           },
         });
 
+        let copiedReturned = false;
         if (sourceRequestId) {
           const sourceState = await tx.purchaseRequest.findFirst({
             where: { id: sourceRequestId, companyId: context.auth.companyId, projectId },
@@ -280,6 +281,7 @@ export class ProcurementService {
           });
           if (!sourceState) throw this.requestNotFound();
           const returnedOnly = this.lifecycleOf(sourceState) === APPROVAL_STATE.APPROVED;
+          copiedReturned = returnedOnly;
           if (!returnedOnly && this.lifecycleOf(sourceState) !== APPROVAL_STATE.REJECTED) {
             throw new ConflictException({ code: 'PR_COPY_SOURCE_INVALID' });
           }
@@ -336,7 +338,8 @@ export class ProcurementService {
             ...context,
             entityType: 'PURCHASE_REQUEST',
             entityId: row.id,
-            action: sourceRequestId ? 'COPY_SOURCE_TO_DRAFT' : 'CREATE_DRAFT',
+            action: !sourceRequestId ? 'CREATE_DRAFT' :
+              copiedReturned ? 'COPY_RETURNED_LINES_TO_DRAFT' : 'COPY_REJECTED_TO_DRAFT',
             newValues: {
               projectId,
               prNumber,
