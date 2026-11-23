@@ -1,0 +1,65 @@
+name: M4 PUR07 isolated new PDF/manual-evidence source proof
+on:
+  push:
+    branches: [focused-m4-pur07-pdf-and-evidence-20261123]
+    paths: ['.github/workflows/focused-m4-pur07-pdf-and-evidence-20261123.yml']
+permissions:
+  contents: read
+jobs:
+  pur07-new-only:
+    name: PUR07 new PG migration API Web compile and PDF pure tests ONLY
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17.11-alpine
+        env:
+          POSTGRES_DB: erp_m4_pur07_dev
+          POSTGRES_USER: construction_erp
+          POSTGRES_PASSWORD: construction_erp_dev_only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U construction_erp -d erp_m4_pur07_dev"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://construction_erp:construction_erp_dev_only@localhost:5432/erp_m4_pur07_dev?schema=public
+      M4_NON_PRODUCTION_CONFIRMED: 'YES'
+      EXACT_PUR07_SOURCE: 9754d0631442920e265ca650c4b81575fbeb8ab0
+    steps:
+      - name: Exact source checkout only
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 2
+      - name: Reject unrelated commit and nonlocal database
+        run: |
+          test "$(git rev-parse HEAD^)" = "$EXACT_PUR07_SOURCE"
+          test "$(git diff --name-only HEAD^ HEAD)" = ".github/workflows/focused-m4-pur07-pdf-and-evidence-20261123.yml"
+          test "${DATABASE_URL%%\?*}" = "postgresql://construction_erp:construction_erp_dev_only@localhost:5432/erp_m4_pur07_dev"
+          test "$M4_NON_PRODUCTION_CONFIRMED" = "YES"
+      - name: Setup pinned pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
+        with:
+          version: 12.6.0
+          run_install: false
+      - name: Setup pinned Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.21.0
+      - name: Frozen install
+        run: pnpm install --frozen-lockfile
+      - name: Forward-only fresh PostgreSQL 17.11 migration and Prisma generate
+        run: |
+          pnpm prisma:generate
+          pnpm prisma:migrate:deploy
+      - name: Compile NEW PUR07 Nest and related graph only
+        run: pnpm --filter @construction-erp/api build
+      - name: Typecheck NEW PUR07 web print and dispatch UI only
+        run: pnpm --filter @construction-erp/web typecheck
+      - name: Execute ONLY new PUR07 filename/PDF structural/Thai fail-closed tests
+        run: node --test apps/api/dist/procurement/purchase-order-pdf.spec.js
+      - name: Scope boundary
+        run: echo 'No prior PUR01/PUR12/PM02 browser tests, no full CI, no Mac, no production.'
