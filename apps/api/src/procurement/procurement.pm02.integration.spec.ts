@@ -442,6 +442,64 @@ test('PM02: mixed approval, immutable returned demand, and rejected-correction c
     assert.equal(original.lines.find((line) => line.id === lineB.id)?.reviewDecision, 'RETURNED');
     assert.equal(await prisma.purchaseOrder.count({ where: { companyId: company.id } }), 1);
     assert.equal(await prisma.rfq.count({ where: { companyId: company.id } }), 1);
+
+    // Adversarial fixture on disposable PG ONLY: simulate a buggy importer
+    // attaching a returned line B to an otherwise authentic supplier award A.
+    // Public PO creation already rejects inactive demand; the new submission
+    // guard must also refuse a forged draft BEFORE any ApprovalInstance exists.
+    const originalPoLine = await prisma.purchaseOrderLine.findFirstOrThrow({
+      where: { purchaseOrderId: draftPo.id },
+    });
+    const forgedDraft = await prisma.purchaseOrder.create({
+      data: {
+        companyId: company.id,
+        projectId: project.id,
+        supplierId: supplier.id,
+        poNumber: 'PM02-FORGED-' + suffix,
+        revisionNo: 0,
+        createdByUserId: jai.id,
+      },
+    });
+    await prisma.purchaseOrderLine.create({
+      data: {
+        purchaseOrderId: forgedDraft.id,
+        lineNo: 1,
+        quotationAwardId: originalPoLine.quotationAwardId,
+        purchaseRequestLineId: lineB.id,
+        rfqId: originalPoLine.rfqId,
+        rfqLineId: originalPoLine.rfqLineId,
+        supplierQuotationId: originalPoLine.supplierQuotationId,
+        supplierQuotationLineId: originalPoLine.supplierQuotationLineId,
+        lineType: originalPoLine.lineType,
+        materialId: originalPoLine.materialId,
+        materialCodeSnapshot: originalPoLine.materialCodeSnapshot,
+        description: originalPoLine.description,
+        quantity: originalPoLine.quantity,
+        uomId: originalPoLine.uomId,
+        uomCodeSnapshot: originalPoLine.uomCodeSnapshot,
+        unitPrice: originalPoLine.unitPrice,
+        amount: originalPoLine.amount,
+        wbsId: originalPoLine.wbsId,
+        costCodeId: originalPoLine.costCodeId,
+        requiredOnSite: originalPoLine.requiredOnSite,
+        expectedDelivery: originalPoLine.expectedDelivery,
+        remarks: originalPoLine.remarks,
+      },
+    });
+    await assert.rejects(
+      () => purchaseOrders.submit(
+        { auth: jaiAuth }, forgedDraft.id, poWorkflow.workflowCode,
+      ),
+      (error: unknown) => error instanceof ConflictException &&
+        typeof error.getResponse() === 'object' &&
+        (error.getResponse() as { code?: string }).code === 'PO_SOURCE_DEMAND_INACTIVE',
+    );
+    const blockedPo = await prisma.purchaseOrder.findUniqueOrThrow({
+      where: { id: forgedDraft.id },
+      select: { submittedAt: true, approvalInstanceId: true },
+    });
+    assert.equal(blockedPo.submittedAt, null);
+    assert.equal(blockedPo.approvalInstanceId, null);
   } finally {
     await prisma.$disconnect();
   }
