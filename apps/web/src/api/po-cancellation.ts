@@ -4,7 +4,7 @@ type Data<T> = { data: T };
 export type PoCancelAction =
   | 'PROPOSE' | 'PM_FORWARD' | 'PM_RETURN' | 'BEN_APPROVE' | 'BEN_REJECT';
 export type PoCancelStatus =
-  | 'PM_PENDING' | 'BEN_PENDING' | 'RETURNED' | 'REJECTED' | 'BEN_APPROVED';
+  | 'PM_PENDING' | 'BEN_PENDING' | 'RETURNED' | 'REJECTED' | 'BEN_APPROVED' | 'FINALIZED';
 export type PoCancelCase = {
   caseId: string;
   companyId: string;
@@ -36,7 +36,7 @@ export type PoCancelEventReceipt = {
   status: PoCancelStatus;
   version: number;
   expectedPreviousEventId: string;
-  poCancelled: false;
+  poCancelled: boolean;
   financePosted: false;
 };
 const path = (orderId: string) =>
@@ -44,6 +44,16 @@ const path = (orderId: string) =>
 export const poCancellationApi = {
   read: (orderId: string) =>
     apiRequest<Data<PoCancelSnapshot>>(path(orderId)),
+  finalize: (orderId: string, input: {
+    expectedVersion: number;
+    expectedPreviousEventId: string;
+    supplierAgreementEvidence: string;
+    supplierAgreed: true;
+    noDepositOrPenalty: true;
+    noDeliveryOrInvoice: true;
+  }) => apiRequest<Data<PoCancelEventReceipt>>(path(orderId) + '/finalize', {
+    method: 'POST', body: JSON.stringify(input),
+  }),
   decide: (orderId: string, input: PoCancelEventInput) =>
     apiRequest<Data<PoCancelEventReceipt>>(path(orderId) + '/events', {
       method: 'POST',
