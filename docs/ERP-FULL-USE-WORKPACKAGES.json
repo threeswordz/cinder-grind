@@ -12,7 +12,7 @@
     "verifiedRetiredHours": 0,
     "openBudgetHours": 1900,
     "actualLoggedHours": null,
-    "asOf": "2026-11-23T21:36:53+08:00",
+    "asOf": "2026-11-23T21:48:00+08:00",
     "activePackage": "M4-01",
     "activeForecastHourRange": "H0001–H0020",
     "activeConcurrentPackages": [
@@ -23,8 +23,8 @@
       "M4-06",
       "M4-03"
     ],
-    "workEvidenceNote": "M4-04 and M4-05 new distinct synthetic real Chrome UI evidence #45185452075 PASS. This shrinks outstanding PUR01 UI gap and proves PUR04 header user entry, not effective real retained MKE/TCJ grants, human UAT or revision. Existing success suites preserved and no final D checkpoint credit; M4=20/32, prototype4/8, GL3/10, 0/1900h retired.",
-    "latestTechnicalCheckpoint": "NEW actual distinct PUR01/Jai/Ben React/MUI browser #45185452075 SUCCESS (5 source logs), THB60k exception no-reason denial then reasoned buyer save/submit, Ben independent actual Approve; PUR04 delivery/payment header UI also verified. Both M4-04 and M4-05 final D remain unaccepted until named retained role/extra revision/Owner review. Technical aggregate stays 20/32, accepted hours stay 0/1900.",
+    "workEvidenceNote": "PUR04 real PG17.11 approved revision, historic fields and Company/Project access #45187304506 PASS. M4-05 D remains open on retained actual roles/Owner acceptance; no full package exit/forecast hour credit. Baseline 1,900h remains rough and actual hours unknown.",
+    "latestTechnicalCheckpoint": "PUR04 #45187304506 COMPLETED SUCCESS 1/1 new PG17.11 real approved PO revision copied commercial and source terms, immutability/duplicate/audit/Company-Project denials; prior actual Jai header UI #45185452075 reused, no repeated suites. 20/32 technical M4 checkpoints remain pending retained roles/review; hours 0/1900.",
     "m4CheckpointCompleted": 20,
     "m4CheckpointTotal": 32,
     "displayCounter": "0 / 1900",
@@ -356,11 +356,13 @@
         "https://github.com/threeswordz/cinder-grind/pull/413",
         "https://github.com/threeswordz/cinder-grind/actions/runs/45140450091",
         "https://github.com/threeswordz/cinder-grind/actions/runs/45140977184",
-        "https://github.com/threeswordz/cinder-grind/actions/runs/45185452075"
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45185452075",
+        "https://github.com/threeswordz/cinder-grind/pull/421",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45187304506"
       ],
       "actualHours": null,
       "verifiedAt": null,
-      "latestAssessment": "Prior PG17 migrations, draft API/Web TS and commercial data audit PASS, plus first actual authenticated Jai React Chrome header edit PASS in one-shot PUR01 #45185452075: deliveryLocation, paymentTerms and exceptional supplier reason persisted to real PG. PUR04 revised PO copy, Company boundary, real retained actors and release integration still unproven. Final 4th checkpoint not accepted; 3/4=75% and 0h retired.",
+      "latestAssessment": "NEW focused one-shot #45187304506 SUCCESS 1/1 native PG17.11 test (4 positive completion markers) for approved PO Rev1 cloning all commercial and nullable header terms, Company/Project/supplier/PO number and exact award/PR line; Rev1 remains Draft, old approved source immutable, new Draft independent, duplicate successor denied, exactly one CREATE_REVISION audit. A foreign Company actor got 404; a same-Company employee assigned only to another Project was denied 403, both before writes. Previously successful genuine Jai Chrome header save #45185452075 reused not rerun. This is synthetic role context, not retained MKE/TCJ actor permissions; independent final DEC-022 review/Owner acceptance/merge still pending, final D not accepted. 3/4 75%, no budget hour retirement.",
       "checkpoints": [
         {
           "name": "Forward-only nullable commercial schema",
@@ -375,12 +377,13 @@
           "status": "FOCUSED_TEST_PASS"
         },
         {
-          "name": "Jai actual Chrome saved PUR04 delivery location and payment terms (partial); actual revision/Company scope, retained roles and Owner/independent release acceptance still pending",
-          "status": "BROWSER_DRAFT_HEADER_PASS_REVISION_RETAINED_ROLES_PENDING",
-          "run": 45185452075,
-          "note": "M4-05 final D remains unaccepted. Browser proof is actual authenticated synthetic Jai; no revision flow proven."
+          "name": "Genuine real Jai Chrome header save PASS; NEW real PG approved revision preserves commercial/source history and denies outsider Company and Project; named retained roles/independent review and Owner acceptance still open",
+          "status": "REAL_PG_APPROVED_REVISION_COMPANY_PROJECT_DENIAL_PASS_RETAINED_ROLES_RELEASE_PENDING",
+          "run": 45187304506,
+          "note": "Exactly one 1/1 new focused PostgreSQL integration run SUCCESS #45187304506, four explicit markers. No replay of prior PUR04 draft PG or PUR01 UI. Retained roles and final candidate acceptance unverified so final D remains OPEN."
         }
-      ]
+      ],
+      "progressPercent": 75
     },
     {
       "id": "M4-06",
