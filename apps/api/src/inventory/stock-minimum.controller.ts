@@ -55,6 +55,19 @@ export class StockMinimumController {
       .then(data => ({ data }));
   }
 
+
+  /** Approved PO-line dates and posted GR balances, not supplier-confirmed promises. */
+  @Get('projects/:projectId/sites/:warehouseId/supplier-indicators')
+  @Header('Cache-Control', 'private, no-store')
+  @UseGuards(AuthGuard, PermissionGuard)
+  @RequirePermissions('inventory.stock.view')
+  supplierIndicators(@Req() r: AuthenticatedRequest,
+    @Param('projectId', uuid) projectId: string,
+    @Param('warehouseId', uuid) warehouseId: string) {
+    return this.minimums.supplierCommitments(r.auth!, projectId, warehouseId)
+      .then(data => ({ data }));
+  }
+
   @Get('projects/:projectId/sites/:warehouseId')
   @Header('Cache-Control', 'private, no-store')
   @UseGuards(AuthGuard, PermissionGuard)

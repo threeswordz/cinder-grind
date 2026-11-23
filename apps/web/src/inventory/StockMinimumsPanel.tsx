@@ -32,6 +32,40 @@ type PlanStartReadback = { asOfThailandDate: string;
   dayByDayDemandScheduleIncluded: false;
   supplierDueOrLateIndicatorsIncluded: false;
   externalNotificationsSent: false; stockEffect: false; financeEffect: false };
+
+type SupplierIndicator = {
+  poId: string; poNumber: string; revisionNo: number; poLineId: string; lineNo: number;
+  supplierCode: string; supplierName: string; supplierInactive: boolean;
+  materialCode: string; materialName: string; uomCode: string;
+  orderedQuantity: string; receivedQuantity: string;
+  receivedAtSelectedSite: string; pendingQuantity: string;
+  requiredOnSite: string | null; expectedDelivery: string | null;
+  deliveryState: 'CANCELLED' | 'FULFILLED' | 'DATE_UNKNOWN' | 'LATE' |
+    'DUE_TODAY' | 'WITHIN_7_DAYS' | 'WITHIN_14_DAYS' | 'LATER' |
+    'SOURCE_REVIEW_REQUIRED';
+  requiredOnSiteWindow: string; dateRevisedFromPreviousApproved: boolean;
+  dateRemovedFromPreviousApproved: boolean;
+  previousApprovedExpectedDelivery: string | null;
+  supplierAcknowledgment: 'NOT_VERIFIED'; targetSite: 'NOT_RECORDED_ON_PO';
+};
+type SupplierReadback = {
+  asOfThailandDate: string; alerts: SupplierIndicator[];
+  advisoryOnly: true; projectWidePoDates: true;
+  poLineSiteAssignmentIncluded: false; supplierAcknowledgmentsVerified: false;
+  externalNotificationsSent: false; stockEffect: false; financeEffect: false;
+};
+const supplierState = (value: SupplierIndicator['deliveryState']) => ({
+  CANCELLED: 'Cancelled — no current obligation',
+  FULFILLED: 'Received in full',
+  DATE_UNKNOWN: 'Expected date not supplied',
+  LATE: 'Past expected date — delivery not complete',
+  DUE_TODAY: 'Expected today',
+  WITHIN_7_DAYS: 'Expected within 7 days',
+  WITHIN_14_DAYS: 'Expected within 14 days',
+  LATER: 'Expected later',
+  SOURCE_REVIEW_REQUIRED: 'Inactive supplier — verify source',
+})[value];
+
 const base = '/inventory/stock-minimums';
 const message = (error: unknown) =>
   error instanceof Error ? error.message : 'Minimum-stock request failed.';
@@ -50,6 +84,8 @@ export function StockMinimumsPanel({ roleCodes }: { roleCodes: string[] }) {
   const [reason, setReason] = useState('');
   const [policies, setPolicies] = useState<Policy[]>([]);
   const [planStarts, setPlanStarts] = useState<PlanStartReminder[]>([]);
+  const [supplierIndicators, setSupplierIndicators] = useState<SupplierIndicator[]>([]);
+  const [supplierAsOf, setSupplierAsOf] = useState('');
   const [asOfThailandDate, setAsOfThailandDate] = useState('');
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -64,7 +100,7 @@ export function StockMinimumsPanel({ roleCodes }: { roleCodes: string[] }) {
   }, []);
 
   useEffect(() => {
-    setWarehouseId(''); setSites([]); setPolicies([]); setPlanStarts([]); setAsOfThailandDate(''); setChoices([]);
+    setWarehouseId(''); setSites([]); setPolicies([]); setPlanStarts([]); setAsOfThailandDate(''); setSupplierIndicators([]); setSupplierAsOf(''); setChoices([]);
     setNextCursor(null); setMaterialKey('');
     if (!projectId) return;
     let active = true;
@@ -78,21 +114,24 @@ export function StockMinimumsPanel({ roleCodes }: { roleCodes: string[] }) {
     if (!projectId || !warehouseId) return;
     setError('');
     try {
-      const [readback, options, plan] = await Promise.all([
+      const [readback, options, plan, suppliers] = await Promise.all([
         apiRequest<Data<Readback>>(siteBase),
         apiRequest<Data<{ items: Choice[]; nextCursor: string | null }>>(siteBase + '/choices'),
         apiRequest<Data<PlanStartReadback>>(siteBase + '/plan-starts'),
+        apiRequest<Data<SupplierReadback>>(siteBase + '/supplier-indicators'),
       ]);
       setPolicies(readback.data.alerts);
       setPlanStarts(plan.data.alerts);
       setAsOfThailandDate(plan.data.asOfThailandDate);
+      setSupplierIndicators(suppliers.data.alerts);
+      setSupplierAsOf(suppliers.data.asOfThailandDate);
       setChoices(options.data.items);
       setNextCursor(options.data.nextCursor);
     } catch (caught) { setError(message(caught)); }
   }, [projectId, warehouseId, siteBase]);
 
   useEffect(() => {
-    setPolicies([]); setPlanStarts([]); setAsOfThailandDate(''); setChoices([]); setNextCursor(null); setMaterialKey('');
+    setPolicies([]); setPlanStarts([]); setAsOfThailandDate(''); setSupplierIndicators([]); setSupplierAsOf(''); setChoices([]); setNextCursor(null); setMaterialKey('');
     void refresh();
   }, [refresh]);
 
@@ -139,7 +178,8 @@ export function StockMinimumsPanel({ roleCodes }: { roleCodes: string[] }) {
         Read-only stock warnings use available quantity (on hand minus active reservations).
         No stock, receiving or Finance posting occurs. Approved plan start dates now
         show 14-day and 7-day reminders. These are not exact daily material demand,
-        supplier delivery commitments or external notifications.
+        supplier delivery commitments or external notifications. Approved PO-line
+        delivery dates and posted GR quantities are shown separately below.
       </Alert>
       <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
         <TextField select label="Authorized Project" value={projectId}
@@ -231,6 +271,65 @@ export function StockMinimumsPanel({ roleCodes }: { roleCodes: string[] }) {
           </TableContainer>
         </Stack>
       </Paper>}
+
+      {warehouseId && <Paper variant="outlined" sx={{ p: 2 }}>
+        <Stack spacing={1.5}>
+          <Typography variant="subtitle1">Supplier delivery indicators — approved PO lines</Typography>
+          <Alert severity="info">
+            Project-wide Purchase Order expected delivery dates as of {supplierAsOf || 'today'}
+            {' '} (Thailand calendar). PO lines do not record a destination Site;
+            only posted, unreversed Goods Receipts can be attributed to this selected Site.
+            Received totals and outstanding quantities cover the authorized Project
+            and all revisions of the same PO. Dates are not verified supplier promises,
+            and approved PO date changes do not prove supplier rescheduling.
+            No daily requirement, alerts to suppliers, Finance or stock posting is triggered.
+          </Alert>
+          <TableContainer>
+            <Table size="small">
+              <TableHead><TableRow>
+                <TableCell>Approved PO / revision</TableCell>
+                <TableCell>Supplier</TableCell>
+                <TableCell>Material</TableCell>
+                <TableCell align="right">Ordered</TableCell>
+                <TableCell align="right">Posted received (selected Site)</TableCell>
+                <TableCell align="right">Outstanding</TableCell>
+                <TableCell>Required on Site</TableCell>
+                <TableCell>PO expected delivery</TableCell>
+                <TableCell>Advisory</TableCell>
+              </TableRow></TableHead>
+              <TableBody>
+                {supplierIndicators.map(item => <TableRow key={item.poLineId}>
+                  <TableCell>{item.poNumber} (Rev {item.revisionNo}, line {item.lineNo})</TableCell>
+                  <TableCell>{item.supplierCode} — {item.supplierName}</TableCell>
+                  <TableCell>{item.materialCode} — {item.materialName}</TableCell>
+                  <TableCell align="right">{item.orderedQuantity} {item.uomCode}</TableCell>
+                  <TableCell align="right">{item.receivedQuantity}
+                    {' '}({item.receivedAtSelectedSite}) {item.uomCode}</TableCell>
+                  <TableCell align="right">{item.pendingQuantity} {item.uomCode}</TableCell>
+                  <TableCell>{item.requiredOnSite ?? 'Unknown / not supplied'}</TableCell>
+                  <TableCell>{item.expectedDelivery ?? 'Unknown / not supplied'}</TableCell>
+                  <TableCell>
+                    {supplierState(item.deliveryState)}
+                    {item.dateRevisedFromPreviousApproved &&
+                      ' — approved PO date revised from ' +
+                      (item.previousApprovedExpectedDelivery ?? 'unknown') +
+                      '; supplier acceptance unverified'}
+                    {item.dateRemovedFromPreviousApproved &&
+                      ' — expected date removed from approved PO (previously ' +
+                      (item.previousApprovedExpectedDelivery ?? 'unknown') + ')'}
+                  </TableCell>
+                </TableRow>)}
+                {supplierIndicators.length === 0 &&
+                  <TableRow><TableCell colSpan={9}>
+                    No approved material PO lines for this authorized Project.
+                    Unapproved POs are not supplier commitments.
+                  </TableCell></TableRow>}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Stack>
+      </Paper>}
+
       {warehouseId && <TableContainer component={Paper} variant="outlined">
         <Table size="small">
           <TableHead><TableRow>

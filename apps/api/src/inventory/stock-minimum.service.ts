@@ -7,6 +7,7 @@ import { ProjectAccessService } from '../projects/project-access.service';
 import { InventoryQuantityService } from './inventory-quantity.service';
 import { StockCountService } from './stock-count.service';
 import { trackedCanonicalBasis } from './material-uom-stock-dimension';
+import { supplierLineIndicator } from './supplier-commitment-indicator';
 import {
   approvedPlanStartWindow, dayPlus, thailandBusinessDate,
 } from './approved-plan-start-reminder';
@@ -242,6 +243,184 @@ export class StockMinimumService {
       externalNotificationsSent: false,
       stockEffect: false, financeEffect: false,
     };
+  }
+
+  /**
+   * Advisory project-wide APPROVED PO-line dates, with posted/unreversed GR
+   * quantities reconciled across PO revisions. POs do not carry warehouseId:
+   * only actually posted site receipts are attributed to the selected site.
+   * No supplier promise, daily demand or site assignment is inferred.
+   */
+  async supplierCommitments(supplied: AuthenticatedUserContext, projectId: string,
+    warehouseId: string, at = new Date()) {
+    return this.prisma.$transaction(async tx => {
+      const auth = await this.liveActor(supplied, tx, false);
+      await this.site(auth, projectId, warehouseId, tx);
+      const asOfThailandDate = thailandBusinessDate(at);
+      const orders = await tx.purchaseOrder.findMany({
+        where: { companyId: auth.companyId, projectId },
+        orderBy: [{ poNumber: 'asc' }, { revisionNo: 'desc' }],
+        take: 201,
+        select: {
+          id: true, poNumber: true, revisionNo: true, cancelledAt: true,
+          approvalInstance: { select: { approvalState: true } },
+          supplier: { select: { companyId: true, isActive: true,
+            supplierCode: true, supplierName: true } },
+          lines: {
+            where: { lineType: 'MATERIAL' },
+            orderBy: { lineNo: 'asc' }, take: 101,
+            select: {
+              id: true, lineNo: true, quotationAwardId: true,
+              materialId: true, materialCodeSnapshot: true,
+              description: true, quantity: true, uomId: true,
+              uomCodeSnapshot: true, requiredOnSite: true, expectedDelivery: true,
+              material: { select: { companyId: true, isActive: true,
+                materialCode: true, materialName: true } },
+              uom: { select: { companyId: true, isActive: true, uomCode: true } },
+            },
+          },
+        },
+      });
+      if (orders.length > 200) return conflict('SS14_SUPPLIER_PO_PAGE_LIMIT');
+      const families = new Map<string, typeof orders>();
+      for (const order of orders) {
+        const family = families.get(order.poNumber) ?? [];
+        family.push(order);
+        families.set(order.poNumber, family);
+      }
+      const current = [...families.values()].map(family =>
+        family.find(order => order.approvalInstance?.approvalState === 'APPROVED'))
+        .filter((order): order is (typeof orders)[number] => order !== undefined);
+      if (current.some(order => order.lines.length > 100))
+        return conflict('SS14_SUPPLIER_LINE_PAGE_LIMIT');
+      const poNumbers = current.map(order => order.poNumber);
+      const receipts = poNumbers.length ? await tx.goodsReceiptItem.findMany({
+        where: {
+          goodsReceipt: {
+            companyId: auth.companyId, projectId,
+            postedAt: { not: null }, reversedAt: null,
+            purchaseOrder: { companyId: auth.companyId, projectId,
+              poNumber: { in: poNumbers } },
+          },
+        },
+        take: 5001,
+        select: {
+          quotationAwardId: true, materialId: true, uomId: true, quantity: true,
+          goodsReceipt: { select: {
+            companyId: true, projectId: true, warehouseId: true,
+            purchaseOrder: { select: {
+              companyId: true, projectId: true, poNumber: true,
+            } },
+          } },
+          purchaseOrderLine: { select: {
+            quotationAwardId: true, materialId: true, uomId: true,
+            purchaseOrder: { select: {
+              companyId: true, projectId: true, poNumber: true,
+            } },
+          } },
+        },
+      }) : [];
+      if (receipts.length > 5000) return conflict('SS14_SUPPLIER_GR_PAGE_LIMIT');
+      const receivedByKey = new Map<string, { total: Prisma.Decimal;
+        atSite: Prisma.Decimal; materialId: string; uomId: string }>();
+      for (const receipt of receipts) {
+        const gr = receipt.goodsReceipt;
+        const order = gr.purchaseOrder;
+        const source = receipt.purchaseOrderLine;
+        if (gr.companyId !== auth.companyId || gr.projectId !== projectId ||
+            order.companyId !== auth.companyId || order.projectId !== projectId ||
+            source.purchaseOrder.companyId !== auth.companyId ||
+            source.purchaseOrder.projectId !== projectId ||
+            order.poNumber !== source.purchaseOrder.poNumber ||
+            receipt.quotationAwardId !== source.quotationAwardId ||
+            receipt.materialId !== source.materialId ||
+            receipt.uomId !== source.uomId || receipt.quantity.lessThanOrEqualTo(0))
+          return conflict('SS14_SUPPLIER_RECEIPT_SOURCE_INVALID');
+        const key = order.poNumber + ':' + receipt.quotationAwardId;
+        const before = receivedByKey.get(key);
+        if (before && (before.materialId !== receipt.materialId ||
+                       before.uomId !== receipt.uomId))
+          return conflict('SS14_SUPPLIER_RECEIPT_UOM_MISMATCH');
+        receivedByKey.set(key, {
+          total: (before?.total ?? new Prisma.Decimal(0)).plus(receipt.quantity),
+          atSite: (before?.atSite ?? new Prisma.Decimal(0)).plus(
+            gr.warehouseId === warehouseId ? receipt.quantity : 0),
+          materialId: receipt.materialId, uomId: receipt.uomId,
+        });
+      }
+
+      const alerts = [];
+      for (const order of current) {
+        if (order.supplier.companyId !== auth.companyId)
+          return conflict('SS14_SUPPLIER_FOREIGN_COMPANY_SOURCE');
+        const family = families.get(order.poNumber) ?? [];
+        const previousApproved = family.find(other =>
+          other.revisionNo < order.revisionNo &&
+          other.approvalInstance?.approvalState === 'APPROVED');
+        if (previousApproved && previousApproved.lines.length > 100)
+          return conflict('SS14_SUPPLIER_LINE_PAGE_LIMIT');
+        for (const line of order.lines) {
+          if (!line.material || !line.materialId ||
+              line.material.companyId !== auth.companyId ||
+              line.uom.companyId !== auth.companyId ||
+              !line.material.isActive || !line.uom.isActive ||
+              line.material.materialCode !== line.materialCodeSnapshot ||
+              line.uom.uomCode !== line.uomCodeSnapshot)
+            return conflict('SS14_SUPPLIER_MATERIAL_UOM_SOURCE_INVALID');
+          const key = order.poNumber + ':' + line.quotationAwardId;
+          const actual = receivedByKey.get(key);
+          if (actual && (actual.materialId !== line.materialId ||
+                         actual.uomId !== line.uomId))
+            return conflict('SS14_SUPPLIER_REVISION_UOM_MISMATCH');
+          const previousLine = previousApproved?.lines.find(
+            old => old.quotationAwardId === line.quotationAwardId);
+          const expectedDelivery = line.expectedDelivery?.toISOString().slice(0, 10) ?? null;
+          const requiredOnSite = line.requiredOnSite?.toISOString().slice(0, 10) ?? null;
+          const previousApprovedExpectedDelivery =
+            previousLine?.expectedDelivery?.toISOString().slice(0, 10) ?? null;
+          let indicator;
+          try {
+            indicator = supplierLineIndicator({
+              orderedQuantity: line.quantity,
+              receivedQuantity: actual?.total ?? new Prisma.Decimal(0),
+              receivedAtSite: actual?.atSite ?? new Prisma.Decimal(0),
+              expectedDelivery, requiredOnSite, previousApprovedExpectedDelivery,
+              asOfThailandDate, cancelled: order.cancelledAt !== null,
+            });
+          } catch {
+            return conflict('SS14_SUPPLIER_DATE_OR_QUANTITY_SOURCE_INVALID');
+          }
+          alerts.push({
+            poId: order.id, poNumber: order.poNumber, revisionNo: order.revisionNo,
+            poLineId: line.id, lineNo: line.lineNo, quotationAwardId: line.quotationAwardId,
+            supplierCode: order.supplier.supplierCode,
+            supplierName: order.supplier.supplierName,
+            supplierInactive: !order.supplier.isActive,
+            materialId: line.materialId, materialCode: line.material.materialCode,
+            materialName: line.material.materialName,
+            uomId: line.uomId, uomCode: line.uom.uomCode,
+            requiredOnSite, expectedDelivery,
+            ...indicator,
+            deliveryState: !order.supplier.isActive && !order.cancelledAt
+              ? 'SOURCE_REVIEW_REQUIRED' as const : indicator.deliveryState,
+          });
+          if (alerts.length > 500) return conflict('SS14_SUPPLIER_ALERT_PAGE_LIMIT');
+        }
+      }
+      alerts.sort((a, b) =>
+        a.poNumber.localeCompare(b.poNumber) || a.lineNo - b.lineNo);
+      return {
+        projectId, warehouseId, asOfThailandDate, alerts,
+        advisoryOnly: true, supplierDueIndicatorsIncluded: true,
+        planValidFromUsedAsDeliveryDate: false,
+        poLineSiteAssignmentIncluded: false,
+        projectWidePoDates: true,
+        receiptsScopedToSelectedSite: true,
+        supplierAcknowledgmentsVerified: false,
+        dayByDayDemandScheduleIncluded: false,
+        externalNotificationsSent: false, stockEffect: false, financeEffect: false,
+      };
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead });
   }
 
   async set(context: Context, projectId: string, warehouseId: string, input: unknown,
