@@ -10,7 +10,7 @@ import type { ProjectAccessService } from '../projects/project-access.service';
 import type { InventoryQuantityService } from './inventory-quantity.service';
 import type { StockCountService } from './stock-count.service';
 import { StockMinimumService } from './stock-minimum.service';
-import { STOCK_MINIMUM_ACTION, STOCK_MINIMUM_ENTITY } from './stock-minimum-contract';
+import { STOCK_MINIMUM_ACTION } from './stock-minimum-contract';
 
 const companyId = randomUUID(), projectId = randomUUID(), warehouseId = randomUUID();
 const materialId = randomUUID(), uomId = randomUUID(), userId = randomUUID(), sessionId = randomUUID();
@@ -60,7 +60,7 @@ function service(options: {
   };
   const access = { assertAccess: async (_actor: unknown, requested: string) => {
     queries.push('assertAccess');
-    if (!options.allowedProject && options.allowedProject !== undefined || requested !== projectId)
+    if (options.allowedProject === false || requested !== projectId)
       throw new ForbiddenException({ code: 'PROJECT_DENIED' });
   } };
   const quantities = { available: async (_db: unknown, dimension: { companyId: string; projectId: string; warehouseId: string }) => {
