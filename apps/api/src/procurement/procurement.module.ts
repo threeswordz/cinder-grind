@@ -11,6 +11,7 @@ import { ProcurementController } from './procurement.controller';
 import { PurchaseOrderController } from './purchase-order.controller';
 import { ProcurementService } from './procurement.service';
 import { PurchaseOrderService } from './purchase-order.service';
+import { PurchaseOrderPur07Service } from './purchase-order-pur07.service';
 import { SourcingController } from './sourcing.controller';
 import { SourcingService } from './sourcing.service';
 
@@ -25,7 +26,7 @@ import { SourcingService } from './sourcing.service';
     AdministrationModule,
   ],
   controllers: [ProcurementController, SourcingController, PurchaseOrderController],
-  providers: [ProcurementService, SourcingService, PurchaseOrderService],
+  providers: [ProcurementService, SourcingService, PurchaseOrderService, PurchaseOrderPur07Service],
   exports: [ProcurementService, SourcingService, PurchaseOrderService],
 })
 export class ProcurementModule {}
