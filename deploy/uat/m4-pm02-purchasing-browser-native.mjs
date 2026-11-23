@@ -83,6 +83,11 @@ async function click(p,s,title){
  assert.equal(ok,true,'PM02_UI_BUTTON_MISSING_'+title);
 }
 async function choose(p,s,label,option){
+ // MUI's portal keeps the previous menu options in the DOM throughout its
+ // close animation. If the next choice is clicked immediately, the old
+ // line's matching option wins and silently changes the WRONG PR line.
+ await until(p,s,()=>document.querySelectorAll('[role="option"]').length===0,
+  null,'PREVIOUS_MUI_MENU_MUST_BE_CLOSED');
  const opened=await page(p,s,value=>{
   const target=[...document.querySelectorAll('[role="combobox"]')].find(
    x=>(x.getAttribute('aria-labelledby')??'').split(' ').some(
@@ -100,7 +105,16 @@ async function choose(p,s,label,option){
   if(!target)return false;target.click();return true;
  },option);
  assert.equal(selected,true,'PM02_OPTION_NOT_SELECTED_'+label);
- await pause(120);
+ // Inspect the actual controlled combobox associated with THIS line's label.
+ // Never treat a clicked portal option as success unless its corresponding
+ // current React value visibly changed to the requested option.
+ await until(p,s,values=>[...document.querySelectorAll('[role="combobox"]')].some(
+  x=>(x.getAttribute('aria-labelledby')??'').split(' ').some(
+   id=>document.getElementById(id)?.textContent?.trim()===values.label) &&
+   x.textContent?.includes(values.option)),{label,option},
+  'WRONG_LINE_OR_UNCHANGED_MUI_SELECTOR_'+label);
+ await until(p,s,()=>document.querySelectorAll('[role="option"]').length===0,
+  null,'MUI_MENU_MUST_CLOSE_BEFORE_NEXT_LINE');
 }
 async function input(p,s,label,value){
  // React mounts the returned-line reason textarea only AFTER MUI's select
