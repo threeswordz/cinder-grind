@@ -280,6 +280,57 @@ test('PUR04 native: approved PO revision preserves commercial snapshot and rejec
     });
     assert.equal(revisionAudit,1);
     console.log('M4_PUR04_NATIVE_HISTORY_IMMUTABLE_DRAFT_ONLY_AUDIT_AND_DUPLICATE_DENIAL_PASS');
+    // Owner PUR05: a revised commercial commitment is a NEW DRAFT, and Ben
+    // must approve the NEW submitted revision. Reuse the already source-backed
+    // PUR04 fixture but make one genuinely NEW business assertion; do not
+    // rerun historical separate PUR01/PM02/Mac/Chrome suites.
+    const submittedRevision=await orders.submit(
+      {auth:jai.auth},revised.id,poFlow.workflowCode,
+    );
+    assert.equal(submittedRevision.lifecycleState,'SUBMITTED');
+    assert.ok(submittedRevision.approvalInstanceId);
+    assert.notEqual(submittedRevision.approvalInstanceId,approvedOriginal.approvalInstanceId,
+      'Revised commitment must create a distinct approval instance');
+    const beforeRejectedActions=await prisma.approvalAction.count({
+      where:{approvalInstanceId:submittedRevision.approvalInstanceId},
+    });
+    await assert.rejects(
+      ()=>orders.approve({auth:jai.auth},revised.id,'Buyer cannot approve own revision'),
+      (e:unknown)=>e instanceof ForbiddenException,
+    );
+    assert.equal(await prisma.approvalAction.count({
+      where:{approvalInstanceId:submittedRevision.approvalInstanceId},
+    }),beforeRejectedActions,
+    'Buyer self-approval may not record an approval action');
+    const approvedRevision=await orders.approve(
+      {auth:ben.auth},revised.id,'Ben independently approves Rev1 amendment',
+    );
+    assert.equal(approvedRevision.lifecycleState,'APPROVED');
+    assert.equal(approvedRevision.revisionNo,1);
+    assert.equal(approvedRevision.previousRevisionId,original.id);
+    assert.equal(approvedRevision.deliveryLocation,'Revised site entrance after approval');
+    assert.equal(approvedRevision.freightAmount?.toString(),'25.5');
+    assert.equal(await prisma.approvalAction.count({
+      where:{approvalInstanceId:submittedRevision.approvalInstanceId,
+        action:'APPROVE',actionByUserId:ben.user.id},
+    }),1,'Exactly one independent Ben approval for revised commitment');
+    const previousApproval=await prisma.approvalInstance.findUniqueOrThrow({
+      where:{id:approvedOriginal.approvalInstanceId!},
+    });
+    assert.equal(previousApproval.approvalState,'APPROVED');
+    assert.equal((await prisma.purchaseOrder.findUniqueOrThrow({
+      where:{id:original.id},
+    })).freightAmount?.toString(),'20.5',
+    'Revised approval must never rewrite the previously approved commercial snapshot');
+    await assert.rejects(
+      ()=>orders.updateOrder({auth:jai.auth},revised.id,{
+        paymentTerms:'Cannot mutate an approved revision',
+      }),
+      (e:unknown)=>e instanceof ConflictException &&
+        typeof e.getResponse()==='object' &&
+        (e.getResponse() as {code?:string}).code==='PO_NOT_DRAFT',
+    );
+    console.log('M4_PUR05_NEW_REVISION_REQUIRES_NEW_APPROVAL_AND_DISTINCT_BEN_ACTION_PASS');
     console.log('M4_PUR04_ACTUAL_POSTGRES17_REVISION_COMPANY_PROJECT_SCOPED_PASS');
   } finally {
     await prisma.$disconnect();
