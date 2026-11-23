@@ -5,7 +5,7 @@ const order={id:'po-1',companyId:'mke',projectId:'site-a',poNumber:'PO2611-005',
 const actor=(userId,role,permissions)=>({userId,companyId:'mke',roleCodes:[role],permissions,sessionActive:true,employeeActive:true});
 const jai=actor('jai','PROCUREMENT_OFFICER',['procurement.po.create']);
 const pm=actor('khaimook','PROJECT_MANAGER',['procurement.po.view']);
-const ben=actor('ben','MANAGEMENT',['procurement.po.cancel']);
+const ben=actor('ben','MANAGEMENT',['procurement.po.approve']);
 const base={order,projectAuthorized:true,note:'Cancel remaining supplier quantity by agreement.'};
 const decide=(action,a,current,expectedVersion=current?.version??0,override={})=>planPur10Decision({...base,action,actor:a,current,expectedVersion,...override});
 const c=(next,prev=null)=>({caseId:'case1',companyId:order.companyId,projectId:order.projectId,orderId:order.id,poNumber:order.poNumber,revisionNo:order.revisionNo,orderUpdatedAt:order.updatedAt,makerUserId:next.makerUserId,pmUserId:next.pmUserId,benUserId:next.benUserId,version:next.version,status:next.nextStatus});
