@@ -380,7 +380,29 @@ async function run(){
  }
  async function pdfFromActualPrint(p,s){
   const known=new Set((await p.send('Target.getTargets')).targetInfos.map(t=>t.targetId));
-  await click(p,s,'Print / Save as PDF (Thai supported by browser)');
+  // A Runtime.evaluate el.click() is NOT a trusted user activation and Chrome
+  // may correctly block window.open(). Use actual CDP pointer down/up, matching
+  // a human UI click. Never bypass popup protection in application code.
+  const bounds=await page(p,s,()=>{
+   const button=[...document.querySelectorAll('button')]
+    .find(b=>b.textContent?.trim()==='Print / Save as PDF (Thai supported by browser)'&&!b.disabled);
+   if(!button)return null;
+   button.scrollIntoView({block:'center'});
+   const box=button.getBoundingClientRect();
+   return {x:box.left+box.width/2,y:box.top+box.height/2};
+  });
+  assert.ok(bounds,'PUR07 actual print button missing or disabled');
+  await p.send('Input.dispatchMouseEvent',{
+   type:'mouseMoved',x:bounds.x,y:bounds.y,
+  },s);
+  await p.send('Input.dispatchMouseEvent',{
+   type:'mousePressed',x:bounds.x,y:bounds.y,
+   button:'left',clickCount:1,
+  },s);
+  await p.send('Input.dispatchMouseEvent',{
+   type:'mouseReleased',x:bounds.x,y:bounds.y,
+   button:'left',clickCount:1,
+  },s);
   let popup;
   for(let i=0;i<90;i++){
    popup=(await p.send('Target.getTargets')).targetInfos.find(t=>
