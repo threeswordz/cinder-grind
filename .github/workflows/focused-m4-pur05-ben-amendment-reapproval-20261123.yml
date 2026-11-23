@@ -1,0 +1,63 @@
+name: M4 PUR05 Ben independently reapproves revised commercial PO
+on:
+  push:
+    branches: [focused-m4-pur05-ben-amendment-reapproval-20261123]
+    paths: ['.github/workflows/focused-m4-pur05-ben-amendment-reapproval-20261123.yml']
+permissions:
+  contents: read
+jobs:
+  pur04-only:
+    name: PUR04 approved PO revision Company and Project scope
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17.11-alpine
+        env:
+          POSTGRES_DB: erp_m4_pur04_revision_scope
+          POSTGRES_USER: construction_erp
+          POSTGRES_PASSWORD: construction_erp_dev_only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U construction_erp -d erp_m4_pur04_revision_scope"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://construction_erp:construction_erp_dev_only@localhost:5432/erp_m4_pur04_revision_scope?schema=public
+      M4_NON_PRODUCTION_CONFIRMED: 'YES'
+      EXACT_PUR04_SOURCE_SHA: af7b14eb7321b94d90d0d496cdcce81f80720448
+    steps:
+      - name: Checkout exact PUR04 test source with workflow-only child
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 2
+      - name: Fail closed if source or database does not match
+        run: |
+          test "$(git rev-parse HEAD^)" = "$EXACT_PUR04_SOURCE_SHA"
+          test "$(git diff --name-only HEAD^ HEAD)" = ".github/workflows/focused-m4-pur05-ben-amendment-reapproval-20261123.yml"
+          test "${DATABASE_URL%%\?*}" = "postgresql://construction_erp:construction_erp_dev_only@localhost:5432/erp_m4_pur04_revision_scope"
+          test "$M4_NON_PRODUCTION_CONFIRMED" = "YES"
+      - name: Setup pinned pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
+        with:
+          version: 12.6.0
+          run_install: false
+      - name: Setup pinned Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.21.0
+      - name: Frozen dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Prisma generate and forward-only migrate disposable PG17.11
+        run: |
+          pnpm prisma:generate
+          pnpm prisma:migrate:deploy
+      - name: Focused changed API build
+        run: pnpm --filter @construction-erp/api build
+      - name: Only revised PUR04 test with NEW separate Ben reapproval assertions
+        run: node --test --test-concurrency=1 apps/api/dist/procurement/purchase-order.pur04-revision.integration.spec.js
+      - name: Explicit limits
+        run: echo 'Only PUR04 approved revision and Company Project denial test. No previous suites, full CI, Mac, Chrome, retained roles, merge or Production.'
