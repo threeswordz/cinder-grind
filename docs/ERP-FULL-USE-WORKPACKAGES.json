@@ -12,7 +12,7 @@
     "verifiedRetiredHours": 0,
     "openBudgetHours": 1900,
     "actualLoggedHours": null,
-    "asOf": "2026-11-23T22:10:00+08:00",
+    "asOf": "2026-11-23T22:43:00+08:00",
     "activePackage": "M4-01",
     "activeForecastHourRange": "H0001–H0020",
     "activeConcurrentPackages": [
@@ -23,8 +23,8 @@
       "M4-06",
       "M4-03"
     ],
-    "workEvidenceNote": "PUR07 new authenticated test proved Jai approved Thai PO and visible Unicode automated export denial, but actual popup/dispatch/Ben UI unverified; 3 exact new focused runs failed, do NOT rerun absent new protocol evidence. Continue other unblocked M4 functional source gaps; real Unicode PDF renderer, retained named grants and final review open.",
-    "latestTechnicalCheckpoint": "M4-06 PUR07 new actual authenticated Jai UI proved visible server Thai PDF fail-closed HTTP422, but 3 new Chrome popup attempts FAILED due CDP activation/command; not full browser PASS. Existing native #45155841629 and standalone Thai A4 Chrome #45162334613 reused. M4 remains 20/32, hours 0/1900.",
+    "workEvidenceNote": "New scoped PUR07 server Unicode and real authenticated synthetic business UI executed successfully. PUR05 separately proved repeat Ben approval on amendment. Production font/sandbox review, retained named MKE/TCJ effective grants and final independent Owner release gates OPEN; no released packages, 0/1900 hours retired. Actual effort unknown.",
+    "latestTechnicalCheckpoint": "PUR07 NEW actual server Thai Unicode PDF #45195364823 SUCCESS 2/2 searchable Thai A4 54,073 bytes, approved PDF service bytes/filename/SHA; distinct genuine Jai and Ben React/Chrome PG17 UI #45196516424 SUCCESS PDF HTTP200 reported-only Jai send and Ben read-only. PUR05 #45192292763 PASS independent new Ben approval of Rev1. M4 aggregate remains 20/32 pending retained actors/Owner release signoff; no full-package hours retired.",
     "m4CheckpointCompleted": 20,
     "m4CheckpointTotal": 32,
     "displayCounter": "0 / 1900",
@@ -358,11 +358,12 @@
         "https://github.com/threeswordz/cinder-grind/actions/runs/45140977184",
         "https://github.com/threeswordz/cinder-grind/actions/runs/45185452075",
         "https://github.com/threeswordz/cinder-grind/pull/421",
-        "https://github.com/threeswordz/cinder-grind/actions/runs/45187304506"
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45187304506",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45192292763"
       ],
       "actualHours": null,
       "verifiedAt": null,
-      "latestAssessment": "NEW focused one-shot #45187304506 SUCCESS 1/1 native PG17.11 test (4 positive completion markers) for approved PO Rev1 cloning all commercial and nullable header terms, Company/Project/supplier/PO number and exact award/PR line; Rev1 remains Draft, old approved source immutable, new Draft independent, duplicate successor denied, exactly one CREATE_REVISION audit. A foreign Company actor got 404; a same-Company employee assigned only to another Project was denied 403, both before writes. Previously successful genuine Jai Chrome header save #45185452075 reused not rerun. This is synthetic role context, not retained MKE/TCJ actor permissions; independent final DEC-022 review/Owner acceptance/merge still pending, final D not accepted. 3/4 75%, no budget hour retirement.",
+      "latestAssessment": "PUR04 real source backfill #45187304506 1/1 scoped PG PASS; extended distinct PUR05 #45192292763 1/1 PASS confirms new Rev1 is separately submitted by Jai (new ApprovalInstance), Jai self approval forbidden with zero actions, independent Ben approves exactly once, old approved PO and financial commercial values remain immutable, and approved Rev1 no longer directly editable. Both synthetic disposable Company actors; genuine retained MKE/TCJ role grants, owner business UAT and final independent review still open. Real Jai draft header Chrome #45185452075 reused. M4-05 remains 3/4 75%, 0h credited.",
       "checkpoints": [
         {
           "name": "Forward-only nullable commercial schema",
@@ -377,9 +378,9 @@
           "status": "FOCUSED_TEST_PASS"
         },
         {
-          "name": "Genuine real Jai Chrome header save PASS; NEW real PG approved revision preserves commercial/source history and denies outsider Company and Project; named retained roles/independent review and Owner acceptance still open",
-          "status": "REAL_PG_APPROVED_REVISION_COMPANY_PROJECT_DENIAL_PASS_RETAINED_ROLES_RELEASE_PENDING",
-          "run": 45187304506,
+          "name": "PUR04 approved revision preserves immutable older snapshot, source and Company/Project, plus PUR05 new Rev1 approval instance/Jai self-approval denied and Ben independent approval PG PASS; real retained named users/Owner/independent release still OPEN",
+          "status": "REAL_PG_APPROVED_REVISION_AND_REAPPROVAL_PASS_RETAINED_ACTORS_RELEASE_PENDING",
+          "run": 45192292763,
           "note": "Exactly one 1/1 new focused PostgreSQL integration run SUCCESS #45187304506, four explicit markers. No replay of prior PUR04 draft PG or PUR01 UI. Retained roles and final candidate acceptance unverified so final D remains OPEN."
         }
       ],
@@ -403,7 +404,12 @@
         "https://github.com/threeswordz/cinder-grind/pull/422",
         "https://github.com/threeswordz/cinder-grind/actions/runs/45189759754",
         "https://github.com/threeswordz/cinder-grind/actions/runs/45190249369",
-        "https://github.com/threeswordz/cinder-grind/actions/runs/45190773009"
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45190773009",
+        "https://github.com/threeswordz/cinder-grind/pull/423",
+        "https://github.com/threeswordz/cinder-grind/pull/424",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45195061628",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45195364823",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45196516424"
       ],
       "actualHours": null,
       "verifiedAt": null,
@@ -427,17 +433,16 @@
           "note": "No actual authenticated React print button, final bitmap visual signoff or automatic backend Unicode PDF. These remain release blockers."
         },
         {
-          "name": "Actual authenticated Jai approved Thai PO UI + visible automated backend Unicode PDF fail-closed PROVEN; real Jai Print popup/dispatch/Ben UI NOT PROVEN due Chrome CDP protocol/popup test failures; real named grants/Owner independent release acceptance outstanding",
-          "status": "AUTHENTICATED_JAI_UNICODE_DENIAL_PASS_CHROME_POPUP_AND_RETAINED_ROLES_OPEN",
+          "name": "NEW server Unicode Thai Chrome PDF 2/2 PASS (54,073 bytes, searchable Thai, filename, SHA), actual Jai MUI HTTP200 download, reported-only dispatch, separate Ben read-only browser PASS; real retained named MKE/TCJ role, host/Thai-font setup, independent DEC-022/Owner UAT still OPEN",
+          "status": "REAL_UNICODE_BACKEND_AND_AUTHENTICATED_SYNTHETIC_JAI_BEN_UI_PASS_RETAINED_ROLE_HOST_REVIEW_OWNER_ACCEPTANCE_OPEN",
           "evidenceRuns": [
-            45189759754,
-            45190249369,
-            45190773009
+            45195364823,
+            45196516424
           ],
-          "note": "Each workflow overall FAIL. Every run reached real Nest/PostgreSQL source approval and Jai actual MUI GET PDF denial HTTP422 with visible unsupported Unicode error. First blocked popup, second Input.dispatchMouseEvent CDP rejected, third Runtime.evaluate(userGesture:true) returned BROWSER_PROTOCOL_COMMAND_FAILED. No Chrome PDF output or UI dispatch/Ben visibility proven in these runs. Earlier standalone Chrome Thai PDF #45162334613 SUCCESS remains distinct."
+          "note": "Focused first Unicode runner #45195061628 failed at missing PDF inspectors before API build/tests. Corrected one-shot #45195364823 2/2 PASS new backend Chrome renderer and service Thai PDF; #45196516424 SUCCESS actual Jai authenticated UI GET approved Thai PDF HTTP200, one reported-only dispatch without actual send/PDF external hash, independent Ben read-only, zero Finance/stock. This is NOT real retained Jai/Ben MKE/TCJ accounts or approved Production host PDF font/sandbox. Earlier 3 failed Print popup runs retained and not repeated; new direct download bypasses popup UX, not authorization."
         }
       ],
-      "latestAssessment": "PUR07 PR #422 new real authenticated Jai React/Chrome source has partial PASS evidence only: three exact-new focused runs #45189759754/#45190249369/#45190773009 all completed FAILURE at print popup after proving real Thai approved PO fixture and actual visible API HTTP422 Unicode fail-closed. CDP transport rejected trusted Input and Runtime userGesture; do not retry this case without independent root-cause proof or change production code. Actual Jai reported email, Ben read-only UI, server automated Unicode PDF and retained named MKE/TCJ grants NOT verified; prior standalone Thai A4 PDF #45162334613 and native external reported dispatch #45155841629 remain earlier successful distinct proofs. M4-06 remains 3/4=75% final checkpoint OPEN; no full package hour credit."
+      "latestAssessment": "PUR07 Unicode server source Draft #423 real focused #45195364823 SUCCESS 2/2: actual server headless Chrome generated 54,073-byte searchable Thai A4 PDF, tested approval source-to-PDF service fileName SHA256, no paid PDF library; fail-closed missing renderer. New separate actual authenticated Jai/Ben end-to-end UI Draft #424 #45196516424 SUCCESS: Jai React MUI approved Thai PDF direct GET 200, actual reported-only external email event saved with pdfSha256 null and no outbound send, Ben MANAGEMENT separate real browser sees history but cannot record Jai-only send, no Finance/stock mutation. Earlier direct Print-popup trials three failed; not rerun. Existing native #45155841629 and standalone Thai Chrome #45162334613 remain accepted separate scope. Still actual retained named MKE/TCJ Jai/Ben permissions, host sandbox/font availability and licensed font review, human Thai PDF visual UAT, real supplier-send proof, independent DEC-022 review and Owner acceptance unverified; M4-06 remains 3/4 75%, 0h retired."
     },
     {
       "id": "M4-07",
