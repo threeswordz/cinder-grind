@@ -65,6 +65,7 @@ export type PurchaseOrderListItem = {
   freightAmount: string | null;
   additionalChargeAmount: string | null;
   vatRatePercent: string | null;
+      supplierQuoteExceptionReason: string | null;
   approvalInstanceId: string | null;
   submittedAt: string | null;
   cancelledAt: string | null;
@@ -274,6 +275,7 @@ export const purchaseOrdersApi = {
       freightAmount: string | null;
       additionalChargeAmount: string | null;
       vatRatePercent: string | null;
+      supplierQuoteExceptionReason: string | null;
     }>,
   ) =>
     apiRequest<Data<PurchaseOrderDetail>>(

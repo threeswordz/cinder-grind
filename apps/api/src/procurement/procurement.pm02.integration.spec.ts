@@ -316,6 +316,14 @@ test('PM02: mixed approval, immutable returned demand, and rejected-correction c
     );
     assert.equal(draftPo.lines.length, 1);
     assert.equal(draftPo.lines[0]?.purchaseRequestLineId, lineA.id);
+    // PUR01 commercial basis cannot be inferred from NULL. Maker enters
+    // known zero adjustments (and a known VAT rate) before submission.
+    await purchaseOrders.updateOrder({ auth: jaiAuth }, draftPo.id, {
+      discountAmount: new Prisma.Decimal(0),
+      freightAmount: new Prisma.Decimal(0),
+      additionalChargeAmount: new Prisma.Decimal(0),
+      vatRatePercent: new Prisma.Decimal(7),
+    });
     await purchaseOrders.submit({ auth: jaiAuth }, draftPo.id, poWorkflow.workflowCode);
     await assert.rejects(
       () => purchaseOrders.approve({ auth: jaiAuth }, draftPo.id, 'Self approval denied'),

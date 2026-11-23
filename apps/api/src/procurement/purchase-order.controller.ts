@@ -249,6 +249,10 @@ export class PurchaseOrderController {
         ? { vatRatePercent: input.vatRatePercent === null ? null :
             procurementNonnegativeDecimal(input.vatRatePercent, 'vatRatePercent') }
         : {}),
+      ...(input.supplierQuoteExceptionReason !== undefined
+        ? { supplierQuoteExceptionReason:
+            procurementNullableString(input, 'supplierQuoteExceptionReason', 2000) ?? null }
+        : {}),
     };
     procurementNonEmpty(data);
     return {
