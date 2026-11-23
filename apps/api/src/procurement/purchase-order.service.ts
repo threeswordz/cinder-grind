@@ -145,6 +145,7 @@ export class PurchaseOrderService {
         const request = award.rfqLine.purchaseRequestLine.purchaseRequest;
         return (
           !request.cancelledAt &&
+          award.rfqLine.purchaseRequestLine.reviewDecision !== 'RETURNED' &&
           request.approvalInstance?.approvalState === APPROVAL_STATE.APPROVED
         );
       })
@@ -493,6 +494,7 @@ export class PurchaseOrderService {
             award.rfqLine.purchaseRequestLine.purchaseRequest;
           if (
             request.cancelledAt ||
+            award.rfqLine.purchaseRequestLine.reviewDecision === 'RETURNED' ||
             request.approvalInstance?.approvalState !==
               APPROVAL_STATE.APPROVED
           ) {
@@ -854,6 +856,44 @@ export class PurchaseOrderService {
           });
         }
 
+        // PM02 defence in depth: even a draft whose line provenance was
+        // altered outside the supported award-backed creation flow cannot
+        // enter an approval workflow with returned, cancelled or foreign
+        // Company/Project Purchase Request demand. Legacy NULL decisions on
+        // historically approved requests remain eligible.
+        const sourceIds = [...new Set(
+          order.lines.map((line) => line.purchaseRequestLineId),
+        )];
+        const sourceLines = await tx.purchaseRequestLine.findMany({
+          where: { id: { in: sourceIds } },
+          include: {
+            purchaseRequest: {
+              include: {
+                approvalInstance: {
+                  select: { approvalState: true },
+                },
+              },
+            },
+          },
+        });
+        if (
+          sourceLines.length !== sourceIds.length ||
+          sourceLines.some((line) =>
+            line.reviewDecision === 'RETURNED' ||
+            line.purchaseRequest.cancelledAt !== null ||
+            line.purchaseRequest.companyId !== context.auth.companyId ||
+            line.purchaseRequest.projectId !== order.projectId ||
+            line.purchaseRequest.approvalInstance?.approvalState !==
+              APPROVAL_STATE.APPROVED
+          )
+        ) {
+          throw new ConflictException({
+            code: 'PO_SOURCE_DEMAND_INACTIVE',
+            detail:
+              'Purchase Order submission requires active approved Purchase Request line demand.',
+          });
+        }
+
         const approvalInstance = await this.approvals.start(
           {
             companyId: context.auth.companyId,
@@ -943,6 +983,7 @@ export class PurchaseOrderService {
       sourceLines.length !== order.purchaseRequestLineIds.length ||
       sourceLines.some(
         (line) =>
+          line.reviewDecision === 'RETURNED' ||
           line.purchaseRequest.cancelledAt ||
           line.purchaseRequest.approvalInstance?.approvalState !==
             APPROVAL_STATE.APPROVED,
@@ -1269,6 +1310,7 @@ export class PurchaseOrderService {
           sourceRequestLines.length !== source.lines.length ||
           sourceRequestLines.some(
             (line) =>
+              line.reviewDecision === 'RETURNED' ||
               line.purchaseRequest.cancelledAt ||
               line.purchaseRequest.approvalInstance?.approvalState !==
                 APPROVAL_STATE.APPROVED,

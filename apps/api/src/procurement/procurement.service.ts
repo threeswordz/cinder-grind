@@ -1,5 +1,6 @@
 import {
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
   UnprocessableEntityException,
@@ -229,10 +230,31 @@ export class ProcurementService {
         },
         include: { approvalInstance: { select: { approvalState: true } } },
       });
-      if (!source || this.lifecycleOf(source) !== APPROVAL_STATE.REJECTED) {
+      if (!source) throw this.requestNotFound();
+      const state = this.lifecycleOf(source);
+      const hasReturned = state === APPROVAL_STATE.APPROVED &&
+        (await this.prisma.purchaseRequestLine.count({
+          where: { purchaseRequestId: source.id, reviewDecision: 'RETURNED' },
+        })) > 0;
+      if (state !== APPROVAL_STATE.REJECTED && !hasReturned) {
         throw new ConflictException({
           code: 'PR_COPY_SOURCE_INVALID',
-          detail: 'Only a rejected Purchase Request can be copied into a new Draft.',
+          detail: 'Only a rejected request or explicitly returned lines of an approved request may be copied.',
+        });
+      }
+      // A rejected linked correction remains an original-maker-only correction.
+      const rejectedCorrection = state === APPROVAL_STATE.REJECTED &&
+        (await this.prisma.purchaseRequestLine.count({
+          where: {
+            purchaseRequestId: source.id,
+            correctionSourceLineId: { not: null },
+          },
+        })) > 0;
+      if ((hasReturned || rejectedCorrection) &&
+          source.createdByUserId !== context.auth.userId) {
+        throw new ForbiddenException({
+          code: 'PR_CORRECTION_MAKER_DENIED',
+          detail: 'Only the original Purchase Request maker may correct returned lines.',
         });
       }
     }
@@ -266,12 +288,53 @@ export class ProcurementService {
           },
         });
 
+        let copiedReturned = false;
+        let copiedRejectedCorrection = false;
         if (sourceRequestId) {
+          const sourceState = await tx.purchaseRequest.findFirst({
+            where: { id: sourceRequestId, companyId: context.auth.companyId, projectId },
+            include: { approvalInstance: { select: { approvalState: true } } },
+          });
+          if (!sourceState) throw this.requestNotFound();
+          const returnedOnly = this.lifecycleOf(sourceState) === APPROVAL_STATE.APPROVED;
+          if (!returnedOnly && this.lifecycleOf(sourceState) !== APPROVAL_STATE.REJECTED) {
+            throw new ConflictException({ code: 'PR_COPY_SOURCE_INVALID' });
+          }
           const sourceLines = await tx.purchaseRequestLine.findMany({
-            where: { purchaseRequestId: sourceRequestId },
+            where: {
+              purchaseRequestId: sourceRequestId,
+              ...(returnedOnly ? { reviewDecision: 'RETURNED' } : {}),
+            },
             orderBy: { lineNo: 'asc' },
           });
-          for (const line of sourceLines) {
+          if (!sourceLines.length) {
+            throw new ConflictException({ code: 'PR_NO_RETURNED_LINES' });
+          }
+          // A rejected correction has only linked lines. Link its successor
+          // to its own rejected lines to preserve chain history and uniqueness.
+          const rejectedCorrection = !returnedOnly &&
+            sourceLines.some((line) => line.correctionSourceLineId !== null);
+          if (rejectedCorrection &&
+              sourceLines.some((line) => line.correctionSourceLineId === null)) {
+            throw new ConflictException({ code: 'PR_CORRECTION_MIXED_LINEAGE' });
+          }
+          const linkedCorrection = returnedOnly || rejectedCorrection;
+          if (linkedCorrection &&
+              sourceState.createdByUserId !== context.auth.userId) {
+            throw new ForbiddenException({ code: 'PR_CORRECTION_MAKER_DENIED' });
+          }
+          copiedReturned = returnedOnly;
+          copiedRejectedCorrection = rejectedCorrection;
+          if (linkedCorrection) {
+            const previousCorrection = await tx.purchaseRequestLine.findFirst({
+              where: { correctionSourceLineId: { in: sourceLines.map((line) => line.id) } },
+              select: { id: true },
+            });
+            if (previousCorrection) {
+              throw new ConflictException({ code: 'PR_RETURNED_LINES_ALREADY_COPIED' });
+            }
+          }
+          for (const [index, line] of sourceLines.entries()) {
             const normalized = await this.normalizeLine(
               tx,
               context.auth,
@@ -292,8 +355,9 @@ export class ProcurementService {
             await tx.purchaseRequestLine.create({
               data: {
                 purchaseRequestId: row.id,
-                lineNo: line.lineNo,
+                lineNo: linkedCorrection ? index + 1 : line.lineNo,
                 ...normalized,
+                ...(linkedCorrection ? { correctionSourceLineId: line.id } : {}),
               },
             });
           }
@@ -304,7 +368,10 @@ export class ProcurementService {
             ...context,
             entityType: 'PURCHASE_REQUEST',
             entityId: row.id,
-            action: sourceRequestId ? 'COPY_REJECTED_TO_DRAFT' : 'CREATE_DRAFT',
+            action: !sourceRequestId ? 'CREATE_DRAFT' :
+              copiedReturned ? 'COPY_RETURNED_LINES_TO_DRAFT' :
+              copiedRejectedCorrection ? 'COPY_REJECTED_CORRECTION_TO_DRAFT' :
+              'COPY_REJECTED_TO_DRAFT',
             newValues: {
               projectId,
               prNumber,
@@ -378,6 +445,21 @@ export class ProcurementService {
           'SELECT pg_advisory_xact_lock(hashtext($1))',
           'purchase-request:' + request.id,
         );
+        // A copy of returned demand only revises the existing source-linked
+        // lines; unrelated new demand belongs in an original Purchase Request.
+        if (request.sourceRequestId) {
+          const correction = await tx.purchaseRequestLine.findFirst({
+            where: { purchaseRequestId: request.id,
+              correctionSourceLineId: { not: null } },
+            select: { id: true },
+          });
+          if (correction) {
+            throw new ConflictException({
+              code: 'PR_CORRECTION_NEW_LINE_DENIED',
+              detail: 'Correct returned source lines only; create a separate PR for new demand.',
+            });
+          }
+        }
         const max = await tx.purchaseRequestLine.aggregate({
           where: { purchaseRequestId: request.id },
           _max: { lineNo: true },
@@ -551,6 +633,14 @@ export class ProcurementService {
         tx,
       );
       this.assertDraft(current.purchaseRequest);
+      // Returned-line correction lineage must survive maker edits; deleting
+      // this line would remove the unique idempotency guard and permit re-copy.
+      if (current.correctionSourceLineId) {
+        throw new ConflictException({
+          code: 'PR_CORRECTION_LINE_DELETE_DENIED',
+          detail: 'A returned-line correction must be revised in place, not deleted.',
+        });
+      }
       await tx.purchaseRequestLine.delete({ where: { id: current.id } });
       await this.audit.record(
         {
@@ -567,6 +657,26 @@ export class ProcurementService {
       );
       return { id: current.id };
     });
+  }
+
+  async copyReturned(
+    context: AuditContext,
+    requestId: string,
+    remarks?: string | null,
+  ) {
+    const source = await this.getRequest(context.auth, requestId);
+    if (source.lifecycleState !== APPROVAL_STATE.APPROVED ||
+        !source.lines.some((line) => line.reviewDecision === 'RETURNED')) {
+      throw new ConflictException({
+        code: 'PR_NO_RETURNED_LINES',
+        detail: 'Only an approved request with returned lines may be corrected.',
+      });
+    }
+    return this.createRequest(
+      context, source.projectId,
+      remarks === undefined ? source.remarks : remarks,
+      source.id,
+    );
   }
 
   async submitRequest(
@@ -669,6 +779,117 @@ export class ProcurementService {
     return this.getRequest(context.auth, request.id);
   }
 
+  // PM02: one configured Khaimook approval step, one atomic mixed-line decision.
+  // Existing whole-request approve/reject remains unchanged for historical PRs.
+  async decideRequestLines(
+    context: AuditContext,
+    requestId: string,
+    expectedApprovalInstanceId: string,
+    decisions: Array<{ lineId: string; decision: 'APPROVED' | 'RETURNED'; reason?: string }>,
+    comment?: string,
+  ) {
+    const request = await this.requestForApproval(context.auth, requestId);
+    if (!context.auth.roleCodes.includes('PROJECT_MANAGER') ||
+        request.createdByUserId === context.auth.userId) {
+      throw new ForbiddenException({
+        code: 'PR_LINE_REVIEW_ROLE_DENIED',
+        detail: 'An independent configured Project Manager must review Purchase Request lines.',
+      });
+    }
+    if (request.approvalInstanceId !== expectedApprovalInstanceId) {
+      throw new ConflictException({ code: 'PR_LINE_REVIEW_STALE_INSTANCE' });
+    }
+    const gate = await this.prisma.approvalInstance.findFirst({
+      where: { id: request.approvalInstanceId, companyId: context.auth.companyId },
+      include: { workflow: { include: { steps: true } } },
+    });
+    if (!gate || gate.approvalState !== APPROVAL_STATE.SUBMITTED ||
+        gate.workflow.steps.length !== 1 ||
+        gate.workflow.steps[0]!.stepNo !== gate.currentStepNo ||
+        gate.workflow.steps[0]!.requiredApprovals !== 1) {
+      throw new ConflictException({
+        code: 'PR_PARTIAL_REVIEW_WORKFLOW_UNSUPPORTED',
+        detail: 'Mixed line decisions require one configured single-reviewer approval step.',
+      });
+    }
+    const ids = decisions.map((line) => line.lineId);
+    if (!ids.length || new Set(ids).size !== ids.length ||
+        !decisions.some((line) => line.decision === 'APPROVED')) {
+      throw new UnprocessableEntityException({ code: 'PR_LINE_REVIEW_INVALID_SET' });
+    }
+    for (const line of decisions) {
+      if ((line.decision !== 'APPROVED' && line.decision !== 'RETURNED') ||
+          (line.decision === 'RETURNED' && (!line.reason || !line.reason.trim())) ||
+          (line.decision === 'APPROVED' && line.reason)) {
+        throw new UnprocessableEntityException({ code: 'PR_LINE_REVIEW_INVALID_DECISION' });
+      }
+    }
+    await this.approvals.approve(
+      request.approvalInstanceId,
+      context.auth,
+      request.submittedByUserId,
+      comment,
+      async (tx) => {
+        const current = await tx.purchaseRequest.findFirst({
+          where: { id: requestId, companyId: context.auth.companyId },
+          select: { projectId: true, approvalInstanceId: true, createdByUserId: true,
+            cancelledAt: true },
+        });
+        if (!current || current.approvalInstanceId !== expectedApprovalInstanceId ||
+            current.cancelledAt || current.createdByUserId === context.auth.userId) {
+          throw new ConflictException({ code: 'PR_LINE_REVIEW_STALE_SOURCE' });
+        }
+        await this.access.assertAccess(context.auth, current.projectId, tx);
+        const lines = await tx.purchaseRequestLine.findMany({
+          where: { purchaseRequestId: requestId },
+          select: { id: true, reviewDecision: true },
+        });
+        if (lines.length !== decisions.length ||
+            lines.some((line) => line.reviewDecision !== null ||
+              !ids.includes(line.id))) {
+          throw new ConflictException({
+            code: 'PR_LINE_REVIEW_STALE_LINES',
+            detail: 'Submitted line set changed, already reviewed, or incomplete.',
+          });
+        }
+        // The existing SQL guard deliberately freezes every submitted line.
+        // This transaction-local pair permits ONLY final approval metadata;
+        // the DB trigger still rejects any business-data mutation or later SQL.
+        await tx.$queryRaw`SELECT set_config(
+          'erp.pm02_review_instance', ${expectedApprovalInstanceId}, true
+        )`;
+        await tx.$queryRaw`SELECT set_config(
+          'erp.pm02_review_actor', ${context.auth.userId}, true
+        )`;
+        const at = new Date();
+        for (const line of decisions) {
+          await tx.purchaseRequestLine.update({
+            where: { id: line.lineId },
+            data: {
+              reviewDecision: line.decision,
+              reviewReason: line.decision === 'RETURNED' ? line.reason!.trim() : null,
+              reviewedByUserId: context.auth.userId,
+              reviewedAt: at,
+            },
+          });
+        }
+        await this.audit.record({
+          ...context,
+          entityType: 'PURCHASE_REQUEST',
+          entityId: requestId,
+          action: 'APPROVE_WITH_LINE_DISPOSITIONS',
+          newValues: { approvalInstanceId: expectedApprovalInstanceId,
+            decisions: decisions.map((line) => ({
+              lineId: line.lineId, decision: line.decision,
+              ...(line.reason ? { reason: line.reason } : {}),
+            })),
+          },
+        }, tx);
+      },
+    );
+    return this.getRequest(context.auth, requestId);
+  }
+
   async rejectRequest(
     context: AuditContext,
     requestId: string,
@@ -719,6 +940,22 @@ export class ProcurementService {
             code: 'PR_REJECTED_IMMUTABLE',
             detail: 'A rejected Purchase Request is retained history and cannot be cancelled.',
           });
+        }
+        // A cancelled correction permanently occupies the unique source-line
+        // lineage and cannot be edited, leaving returned demand stranded.
+        // Until replacement-of-correction is specified, fail closed.
+        if (request.sourceRequestId) {
+          const correction = await tx.purchaseRequestLine.findFirst({
+            where: { purchaseRequestId: request.id,
+              correctionSourceLineId: { not: null } },
+            select: { id: true },
+          });
+          if (correction) {
+            throw new ConflictException({
+              code: 'PR_CORRECTION_CANCEL_DENIED',
+              detail: 'Returned-line correction requests cannot be cancelled; revise and resubmit.',
+            });
+          }
         }
 
         const requestLines = await tx.purchaseRequestLine.findMany({
@@ -850,6 +1087,7 @@ export class ProcurementService {
         projectId: true,
         approvalInstanceId: true,
         submittedByUserId: true,
+        createdByUserId: true,
         cancelledAt: true,
       },
     });
