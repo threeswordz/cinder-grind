@@ -5,6 +5,7 @@ import { AuthenticatedUserContext } from '../auth/auth.types';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProjectAccessService } from '../projects/project-access.service';
 import { InventoryQuantityService } from './inventory-quantity.service';
+import { StockCountService } from './stock-count.service';
 import { trackedCanonicalBasis } from './material-uom-stock-dimension';
 import {
   replayStockMinimums, stockMinimumInput, STOCK_MINIMUM_ACTION, STOCK_MINIMUM_ENTITY,
@@ -24,6 +25,7 @@ export class StockMinimumService {
     private readonly access: ProjectAccessService,
     private readonly audit: AuditService,
     private readonly quantities: InventoryQuantityService,
+    private readonly choicesService: StockCountService,
   ) {}
 
   private async liveActor(supplied: AuthenticatedUserContext, db: Db, edit: boolean) {
@@ -75,6 +77,29 @@ export class StockMinimumService {
     });
     if (events.length > 5000) return conflict('STOCK_MINIMUM_HISTORY_LIMIT');
     return events;
+  }
+
+  async projects(supplied: AuthenticatedUserContext) {
+    const auth = await this.liveActor(supplied, this.prisma, false);
+    const scope = await this.access.scopeWhere(auth);
+    return this.prisma.project.findMany({ where: { AND: [scope, { isActive: true }] },
+      select: { id: true, projectCode: true, projectName: true }, orderBy: { projectCode: 'asc' } });
+  }
+
+  async sites(supplied: AuthenticatedUserContext, projectId: string) {
+    const auth = await this.liveActor(supplied, this.prisma, false);
+    await this.access.assertAccess(auth, projectId);
+    return this.prisma.warehouse.findMany({ where: {
+      companyId: auth.companyId, projectId, isSiteWarehouse: true, isActive: true,
+      project: { isActive: true },
+    }, select: { id: true, warehouseCode: true, warehouseName: true },
+      orderBy: { warehouseCode: 'asc' } });
+  }
+
+  async choices(supplied: AuthenticatedUserContext, projectId: string, warehouseId: string, after?: string) {
+    const auth = await this.liveActor(supplied, this.prisma, false);
+    await this.site(auth, projectId, warehouseId, this.prisma);
+    return this.choicesService.choices(auth, projectId, warehouseId, after);
   }
 
   async read(supplied: AuthenticatedUserContext, projectId: string, warehouseId: string) {
