@@ -407,8 +407,9 @@ test('PUR10 native: real approved PO, independent named Jai/Khaimook/Ben, atomic
       roleId:benRole.id,permissionId:cancelPermission.id,
     }});
 
-    // Any GR (including unposted), or linked receiving delivery, prohibits a
-    // no-exception cancellation. These are disposable rows, never posted stock.
+    // Any GR (including unposted) prohibits a no-exception cancellation.
+    // A receiving delivery is an immutable separate negative-only fixture,
+    // never a source to delete so that this happy-path PO can be finalized.
     const warehouse=await prisma.warehouse.create({data:{
       companyId:company.id,projectId:project.id,
       warehouseCode:'P10WH-'+key,warehouseName:'PUR10 test quarantine',
@@ -425,21 +426,9 @@ test('PUR10 native: real approved PO, independent named Jai/Khaimook/Ben, atomic
       (e:unknown)=>e instanceof ConflictException,
     );
     await prisma.goodsReceipt.delete({where:{id:gr.id}});
-    const delivery=await prisma.receivingDelivery.create({data:{
-      companyId:company.id,projectId:project.id,supplierId:supplier.id,
-      warehouseId:warehouse.id,createdByUserId:store.user.id,
-      receivedAt:new Date(),poLinkDueAt:new Date(Date.now()+172_800_000),
-      receiverName:'Synthetic Store',reason:'PUR10 negative delivery source',
-      qualityRequired:false,purchaseOrderId:approvedOriginal.id,
-    }});
-    await assert.rejects(
-      ()=>cases.finalize({auth:benAuth},approvedOriginal.id,3,
-        approvedCase.expectedPreviousEventId,finalArgs),
-      (e:unknown)=>e instanceof ConflictException,
-    );
-    await prisma.receivingDelivery.delete({where:{id:delivery.id}});
 
-    // A draft AP source is already a conflict; approved AP is also denied.
+    // A DRAFT AP source is already a conflict. Approved AP records are
+    // immutable; do not manufacture and then delete one as test cleanup.
     const invoice=await prisma.supplierInvoice.create({data:{
       companyId:company.id,projectId:project.id,supplierId:supplier.id,
       supplierInvoiceNumber:'P10SI-'+key,
@@ -453,13 +442,6 @@ test('PUR10 native: real approved PO, independent named Jai/Khaimook/Ben, atomic
       supplierInvoiceId:invoice.id,purchaseOrderLineId:approvedOriginal.lines[0]!.id,
       lineNo:1,description:'Blocked PUR10 Finance source',amount:D('100.00'),
     }});
-    await assert.rejects(
-      ()=>cases.finalize({auth:benAuth},approvedOriginal.id,3,
-        approvedCase.expectedPreviousEventId,finalArgs),
-      (e:unknown)=>e instanceof ConflictException,
-    );
-    await prisma.supplierInvoice.update({where:{id:invoice.id},
-      data:{state:'APPROVED'}});
     await assert.rejects(
       ()=>cases.finalize({auth:benAuth},approvedOriginal.id,3,
         approvedCase.expectedPreviousEventId,finalArgs),
