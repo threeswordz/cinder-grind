@@ -125,11 +125,24 @@ async function click(p,s,text){
  await delay(140);
 }
 async function visible(p,s,phrase){
- await until(p,s,fragment=>document.body.innerText.includes(fragment),
-  phrase,'MISSING_REAL_UI_TEXT_'+phrase);
+ // MUI tabs render uppercase using CSS text-transform. innerText is CSS
+ // transformed, while textContent preserves actual source label case.
+ for(let i=0;i<110;i++){
+  if(await page(p,s,fragment=>
+    (document.getElementById('root')?.textContent??'').includes(fragment),phrase))return;
+  await delay(160);
+ }
+ // Bounded synthetic UI diagnostic only. Never print cookies or actor IDs.
+ const state=await page(p,s,()=>({
+  authenticated:document.body.dataset.authenticated,
+  failure:document.body.dataset.failure??null,
+  renderedText:(document.getElementById('root')?.textContent??'').slice(0,230),
+ }));
+ throw new Error('MISSING_REAL_UI_TEXT_'+phrase+' '+JSON.stringify(state));
 }
 async function absent(p,s,phrase){
- const exists=await page(p,s,fragment=>document.body.innerText.includes(fragment),phrase);
+ const exists=await page(p,s,fragment=>
+   (document.getElementById('root')?.textContent??'').includes(fragment),phrase);
  assert.equal(exists,false,'Forbidden UI text appeared '+phrase);
 }
 async function apiCall(actor,method,pathname,body){
