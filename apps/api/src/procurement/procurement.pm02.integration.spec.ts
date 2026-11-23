@@ -462,8 +462,9 @@ test('PM02: mixed approval, immutable returned demand, and rejected-correction c
 
     // Adversarial fixture on disposable PG ONLY: simulate a buggy importer
     // attaching a returned line B to an otherwise authentic supplier award A.
-    // Public PO creation already rejects inactive demand; the new submission
-    // guard must also refuse a forged draft BEFORE any ApprovalInstance exists.
+    // Public PO creation already rejects inactive demand. This negative test
+    // proves the SQL-level boundary only; it must not claim a successful
+    // corruption-based exercise of the separate PO submission guard.
     const originalPoLine = await prisma.purchaseOrderLine.findFirstOrThrow({
       where: { purchaseOrderId: draftPo.id },
     });
@@ -483,7 +484,7 @@ test('PM02: mixed approval, immutable returned demand, and rejected-correction c
     // migration or test privilege bypass of this immutable source barrier.
     await assert.rejects(
       () => prisma.purchaseOrderLine.create({
-      data: {
+        data: {
         purchaseOrderId: forgedDraft.id,
         lineNo: 1,
         quotationAwardId: originalPoLine.quotationAwardId,
@@ -506,7 +507,7 @@ test('PM02: mixed approval, immutable returned demand, and rejected-correction c
         requiredOnSite: originalPoLine.requiredOnSite,
         expectedDelivery: originalPoLine.expectedDelivery,
         remarks: originalPoLine.remarks,
-      },
+        },
       }),
       (error: unknown) =>
         String(error).includes('Purchase Order source traceability is inconsistent with the selected award'),
