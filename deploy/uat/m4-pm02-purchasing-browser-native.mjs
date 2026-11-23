@@ -303,6 +303,30 @@ const client=new QueryClient({defaultOptions:{queries:{retry:false},mutations:{r
    .find(b=>b.textContent?.trim()==='Approve whole PR')?.disabled);
   assert.equal(wholeDisabled,true,'Whole-approve must not bypass partial line decision');
   await choose(p,pmS,'Decision for line 2','Return this line for correction');
+  // Safe synthetic-only DOM diagnosis: no tokens, credentials, confidential
+  // Company data, or full HTML. Confirm the actual controlled MUI selector
+  // adopted RETURNED rather than assuming a MenuItem click changed state.
+  const decisionDom=await page(p,pmS,()=>{
+   const controls=[...document.querySelectorAll('[role="combobox"]')];
+   const second=controls.find(x=>(x.getAttribute('aria-labelledby')??'')
+    .split(' ').some(id=>document.getElementById(id)?.textContent?.trim()==='Decision for line 2'));
+   const reasonLabels=[...document.querySelectorAll('label')].filter(x=>
+    x.textContent?.includes('Correction reason')).map(x=>({
+     text:x.textContent?.trim(),hasLinkedInput:Boolean(document.getElementById(x.htmlFor)),
+    }));
+   return {
+    line2Choice:second?.textContent?.trim()??'SELECT_MISSING',
+    reasonLabels,
+    visibleText:(document.getElementById('root')?.textContent??'').includes('Correction reason for line 2'),
+    textareas:document.querySelectorAll('textarea:not([aria-hidden="true"])').length,
+   };
+  });
+  console.log('M4_PM02_SYNTHETIC_DOM_DECISION_'+JSON.stringify(decisionDom));
+  await until(p,pmS,()=>[...document.querySelectorAll('[role="combobox"]')].some(
+   x=>(x.getAttribute('aria-labelledby')??'').split(' ').some(
+    id=>document.getElementById(id)?.textContent?.trim()==='Decision for line 2') &&
+    x.textContent?.includes('Return this line for correction')),null,
+   'RETURN_DECISION_ACTUALLY_SELECTED');
   await input(p,pmS,'Correction reason for line 2','Wrong transport quantity; correct it before purchasing');
   await click(p,pmS,'Approve selected lines / return the others');
   await visible(p,pmS,'Return for correction: Wrong transport quantity');
