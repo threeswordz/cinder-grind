@@ -141,7 +141,7 @@ test('public BOQ HTTP workflow enforces persisted disclosure, CSRF, maker/checke
       for(const permissions of incomplete){
         await grants(f.editor,permissions);
         const denied=await get(f.editor,root+'/versions/'+id+'/export',403);
-        assert.doesNotMatch(await denied.text(),/Customer work|120\\.0000|costBasis|pricingSnapshot/,
+        assert.doesNotMatch(await denied.text(),/Customer work|120[.]0000|costBasis|pricingSnapshot/,
           'Forbidden export must not return Customer values or source snapshots');
       }
     });
