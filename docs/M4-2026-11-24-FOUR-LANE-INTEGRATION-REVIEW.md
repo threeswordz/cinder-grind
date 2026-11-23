@@ -23,6 +23,23 @@
 3. **Inventory SS14/PM15 partial:** New scoped configurable material/site minimum-threshold and advisory alerts, reservation-adjusted availability, stale-UOM warning, UI and focused contract/service tests. **Test sources not executed** by Builder 3; **14/7 day approved-plan and supplier due/late alerts remain missing**, as do SS02 and SS11 shared-service dependencies and later PM15 wider exceptions. No stock/Finance postings from threshold setup.
 4. **Assurance:** 112 immutable IDs fully enumerated in docs matrix, classified conservatively as **32 bounded implemented+evidenced, 11 source implemented proof due, 14 current evidence unresolved, 7 functional/workflow gaps, 6 Owner/mixed-scope splits, 42 deferred** (sum 112); all rows mark formal M4 acceptance NO. Historical 59 active dispositions are a separate task/census lens, *not* 59 missing features. Eight-persona UAT scenarios, exact main-to-original-candidate manifest, and M4-01..08 exits exist. Source manifest from Builder 4 was frozen BEFORE 4-lane combination and **must not be mistaken for the full new diff**.
 
+## New integrated source and native verification receipts (24 Nov 2026)
+
+**Source-sensitive PASS, no full CI**:
+
+| Check | Exact tested SHA | Evidence | Result / boundary |
+|---|---|---|---|
+| Four-lane combined Prisma + TypeScript + role UI focused | `560f559d9f1a440854923a383bf5657e1e119d9e` | [GitHub Actions #45221614973](https://github.com/threeswordz/cinder-grind/actions/runs/45221614973) | **SUCCESS**: locked install, Prisma generate/validate, workspace TypeScript, role UI, routing and read-only tests; **not** full PR CI |
+| Inventory SS14/PM15 new contract + mocked service | `31bd0fa998ac66375a57fddc87b5c2e9892a5fcc` | [GitHub Actions #45221962033](https://github.com/threeswordz/cinder-grind/actions/runs/45221962033) | **9/9 PASS**; run overall **FAILED later** during expanded PUR10 fixture; Inventory results are focused code/mocked service proof, **not actual inventory Postgres, retained-role or browser UAT** |
+| Corrected PUR10 GR/AP/concurrent finalization/actor revocation | `639deb555dddf08d71bf5d4b0dd23616d0d3dd02` | [GitHub Actions #45222979381](https://github.com/threeswordz/cinder-grind/actions/runs/45222979381) | **1/1 native PostgreSQL 17.11 PASS**; real disposable approved PO and atomic finalize, GR/AP negative, actor revocation and two racing finalizers |
+| BOQ new project-swapped/partial grants HTTP CSV negatives and existing bounded subtests | Same `639deb555dddf08d71bf5d4b0dd23616d0d3dd02` | Same [#45222979381](https://github.com/threeswordz/cinder-grind/actions/runs/45222979381) | **11/11 Nest HTTP subtests PASS**, including the new cross-Project and partial-capability CSV export denial |
+
+**Exact code provenance:** The native PASS run's `639deb55...` branch differs from integration application source `1cbfb0645503b202240caf14e5f9a114cc9ecc26` **only by** `.github/workflows/m4-four-lane-native-final-focused.yml`; all application and test source files are byte-identical. The early full-source focused PASS predates a *test-only* PUR10 fixture correction; the final native run rebuilt the full API after that correction.
+
+**Transparent first attempts:** [#45221962033](https://github.com/threeswordz/cinder-grind/actions/runs/45221962033) FAILED because the PUR10 test attempted to **delete a Goods Receipt** and PostgreSQL correctly enforced immutable GR history. The test was fixed to create separate authentic approved POs for GR and AP negatives, retaining their source history. [#45222560237](https://github.com/threeswordz/cinder-grind/actions/runs/45222560237) FAILED because the new negative-case PO test helper lacked a valid commercial-quote header; the fixture was corrected to use the same approved commercial basis. **Neither failure is evidence of a failed application cancellation business transaction.** The corrected #45222979381 is PASS. No redundant full CI or previously sealed Mac journey was run.
+
+**Acceptance limitation:** These are synthetic, bounded engineering receipts. No retained named MKE/TCJ user or human UAT has passed, the full 14/7 inventory alert scope is incomplete, the one-off integration branch is unmerged, no DEC-022 independent reviewer has approved this final source, and #384's Owner-specific final full CI/merge authority has not been granted. Current 4/8, GL3/10, M4 20/32, accepted packages 0/8, retired hours 0/1900 remain unchanged.
+
 ## Exact next gates without wasting Codex
 
 - **Gate A: one focused combined-source TypeScript/Prisma/role UI check** on an immutable integration descendant, with no full PR CI or Mac rerun. Verify result at exact commit.
