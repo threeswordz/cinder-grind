@@ -7,7 +7,7 @@
  * Company/Project scope and transaction locks before using a returned decision.
  */
 export type Pur10Role = 'PROCUREMENT_OFFICER' | 'PROJECT_MANAGER' | 'MANAGEMENT';
-export type Pur10Status = 'PM_PENDING' | 'BEN_PENDING' | 'RETURNED' | 'REJECTED' | 'BEN_APPROVED';
+export type Pur10Status = 'PM_PENDING' | 'BEN_PENDING' | 'RETURNED' | 'REJECTED' | 'BEN_APPROVED' | 'FINALIZED';
 export type Pur10Action = 'PROPOSE' | 'PM_FORWARD' | 'PM_RETURN' | 'BEN_APPROVE' | 'BEN_REJECT';
 
 export type Pur10Actor = Readonly<{
