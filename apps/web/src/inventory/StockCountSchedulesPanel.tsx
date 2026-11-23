@@ -107,7 +107,7 @@ export function StockCountSchedulesPanel({
       {projects.error || sites.error || schedules.error ?
         <Alert severity="error">{message(projects.error ?? sites.error ?? schedules.error)}</Alert> : null}
       {active ? (
-        <TableContainer component={Paper} variant="outlined"><Table size="small">
+        <TableContainer component={Paper}><Table size="small">
           <TableHead><TableRow>
             <TableCell>Material category</TableCell><TableCell>First due</TableCell>
             <TableCell>Repeat (days)</TableCell><TableCell>Next date</TableCell>
