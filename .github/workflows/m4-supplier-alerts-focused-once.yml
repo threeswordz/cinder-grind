@@ -1,0 +1,53 @@
+# One-time SS14/PM15 new-code focused compile and tests, not full release CI.
+name: M4 Supplier Alerts New-Only Focused
+on:
+  push:
+    branches: ['work-m4-ss14-pm15-focused-once-20261124']
+    paths: ['.github/workflows/m4-supplier-alerts-focused-once.yml']
+permissions:
+  contents: read
+concurrency:
+  group: m4-ss14-supplier-once-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  supplier-focused:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    env:
+      DATABASE_URL: postgresql://construction_erp:construction_erp_dev_only@localhost:5432/construction_erp?schema=public
+      NODE_ENV: test
+      EXACT_TEST_SOURCE: ${{ github.sha }}
+    steps:
+      - name: Checkout exact supplier indicator source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: Confirm exact source
+        run: test "$(git rev-parse HEAD)" = "$EXACT_TEST_SOURCE"
+      - name: Install pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
+        with:
+          version: 12.6.0
+          run_install: false
+      - name: Install Node 24
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.21.0
+      - name: Frozen install
+        run: pnpm install --frozen-lockfile
+      - name: Generate/validate Prisma
+        run: |
+          pnpm prisma:generate
+          pnpm prisma:validate
+      - name: Check changed API and React TypeScript
+        run: pnpm typecheck
+      - name: Compile NEW supplier tests
+        run: pnpm --filter @construction-erp/api build
+      - name: Execute only two new SS14 supplier unit and scoped service tests
+        run: |
+          node --test --test-concurrency=1 \
+            apps/api/dist/inventory/supplier-commitment-indicator.spec.js \
+            apps/api/dist/inventory/stock-minimum.supplier-indicators.spec.js
+      - name: Seal focused-only boundary
+        run: echo 'SS14_SUPPLIER_SOURCE_ONLY; no full CI, native GR target, retained roles, DEC-022 or Production'
