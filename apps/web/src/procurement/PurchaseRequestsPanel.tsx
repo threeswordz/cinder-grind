@@ -627,8 +627,14 @@ export function PurchaseRequestsPanel({
                 {isDraft && canManage ? (
                   <>
                     <Divider />
+                    {isCorrection && !editingLineId ? (
+                      <Alert severity="info">
+                        This correction Draft contains only returned source lines.
+                        Select Edit on a returned line; adding unrelated demand is prohibited.
+                      </Alert>
+                    ) : null}
                     <Typography variant="subtitle2">
-                      {editingLineId ? 'Edit line' : 'Add line'}
+                      {editingLineId ? 'Edit line' : isCorrection ? 'Select a returned line to correct' : 'Add line'}
                     </Typography>
                     <TextField
                       select
@@ -763,6 +769,7 @@ export function PurchaseRequestsPanel({
                         onClick={() => saveLine.mutate()}
                         disabled={
                           saveLine.isPending ||
+                          (isCorrection && !editingLineId) ||
                           !quantity ||
                           !uomId ||
                           (lineType === 'MATERIAL' && !materialId) ||

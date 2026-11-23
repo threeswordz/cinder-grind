@@ -422,6 +422,21 @@ export class ProcurementService {
           'SELECT pg_advisory_xact_lock(hashtext($1))',
           'purchase-request:' + request.id,
         );
+        // A copy of returned demand only revises the existing source-linked
+        // lines; unrelated new demand belongs in an original Purchase Request.
+        if (request.sourceRequestId) {
+          const correction = await tx.purchaseRequestLine.findFirst({
+            where: { purchaseRequestId: request.id,
+              correctionSourceLineId: { not: null } },
+            select: { id: true },
+          });
+          if (correction) {
+            throw new ConflictException({
+              code: 'PR_CORRECTION_NEW_LINE_DENIED',
+              detail: 'Correct returned source lines only; create a separate PR for new demand.',
+            });
+          }
+        }
         const max = await tx.purchaseRequestLine.aggregate({
           where: { purchaseRequestId: request.id },
           _max: { lineNo: true },
