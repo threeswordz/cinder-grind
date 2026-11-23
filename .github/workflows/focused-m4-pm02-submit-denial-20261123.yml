@@ -1,0 +1,63 @@
+name: M4 PM02 new forged PO submit guard focused negative
+on:
+  push:
+    branches: [focused-m4-pm02-submit-denial-20261123]
+    paths: ['.github/workflows/focused-m4-pm02-submit-denial-20261123.yml']
+permissions:
+  contents: read
+jobs:
+  pm02-po-only:
+    name: PM02 negative: returned B source cannot submit forged PO
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17.11-alpine
+        env:
+          POSTGRES_DB: erp_pm02_submit_denial
+          POSTGRES_USER: construction_erp
+          POSTGRES_PASSWORD: construction_erp_dev_only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U construction_erp -d erp_pm02_submit_denial"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://construction_erp:construction_erp_dev_only@localhost:5432/erp_pm02_submit_denial?schema=public
+      M4_NON_PRODUCTION_CONFIRMED: 'YES'
+      EXACT_PM02_SOURCE_SHA: b55f5887b300921dfd0288d51ef16673a1e307a6
+    steps:
+      - name: Checkout exact PM02 source with workflow-only child
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 2
+      - name: Fail closed if source or database does not match
+        run: |
+          test "$(git rev-parse HEAD^)" = "$EXACT_PM02_SOURCE_SHA"
+          test "$(git diff --name-only HEAD^ HEAD)" = ".github/workflows/focused-m4-pm02-submit-denial-20261123.yml"
+          test "${DATABASE_URL%%\?*}" = "postgresql://construction_erp:construction_erp_dev_only@localhost:5432/erp_pm02_submit_denial"
+          test "$M4_NON_PRODUCTION_CONFIRMED" = "YES"
+      - name: Setup pinned pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
+        with:
+          version: 12.6.0
+          run_install: false
+      - name: Setup pinned Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.21.0
+      - name: Frozen dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Prisma generate and forward-only migrate disposable PG17.11
+        run: |
+          pnpm prisma:generate
+          pnpm prisma:migrate:deploy
+      - name: Focused changed API build
+        run: pnpm --filter @construction-erp/api build
+      - name: One PM02 test with NEW forged PO submission negative
+        run: node --test --test-concurrency=1 apps/api/dist/procurement/procurement.pm02.integration.spec.js
+      - name: Explicit limits
+        run: echo 'Focused PM02 newly added forged PO rejection test plus required fixture. No full CI, Chrome, Mac, retained role, Production, merge, release.'
