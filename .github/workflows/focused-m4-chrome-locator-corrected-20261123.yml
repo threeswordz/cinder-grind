@@ -1,0 +1,67 @@
+name: M4 corrected DOM locator real Chromium operational proof
+on:
+  push:
+    branches: [focused-m4-chrome-locator-corrected-20261123]
+    paths: ['.github/workflows/focused-m4-chrome-locator-corrected-20261123.yml']
+permissions:
+  contents: read
+jobs:
+  m4-real-browser-only:
+    name: M4 Chrome real session API PostgreSQL operational roles
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    services:
+      postgres:
+        image: postgres:17.11-alpine
+        env:
+          POSTGRES_DB: erp_m4_chromium
+          POSTGRES_USER: construction_erp
+          POSTGRES_PASSWORD: construction_erp_dev_only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U construction_erp -d erp_m4_chromium"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://construction_erp:construction_erp_dev_only@localhost:5432/erp_m4_chromium?schema=public
+      M4_NON_PRODUCTION_CONFIRMED: 'YES'
+      EXACT_REVIEWED_TEST_SOURCE: 87a16942ac9ee5081405bd60f9d752c8b4739bef
+    steps:
+      - name: Checkout reviewed test source and workflow-only child
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 2
+      - name: Fail closed on wrong parent or non-workflow diff
+        run: |
+          test "$(git rev-parse HEAD^)" = "$EXACT_REVIEWED_TEST_SOURCE"
+          test "$(git diff --name-only HEAD^ HEAD)" = ".github/workflows/focused-m4-chrome-locator-corrected-20261123.yml"
+          test "${DATABASE_URL%%\?*}" = "postgresql://construction_erp:construction_erp_dev_only@localhost:5432/erp_m4_chromium"
+          test "$M4_NON_PRODUCTION_CONFIRMED" = "YES"
+      - name: Setup pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
+        with:
+          version: 12.6.0
+          run_install: false
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.21.0
+      - name: Frozen dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Check JS test syntax and preinstalled browser
+        run: |
+          node --check deploy/uat/m4-operational-browser-native.mjs
+          command -v google-chrome || command -v chromium || command -v chromium-browser
+      - name: Prisma generate and forward-only migrate fresh throwaway Postgres
+        run: |
+          pnpm prisma:generate
+          pnpm prisma:migrate:deploy
+      - name: Build API for actual NestJS + React browser network
+        run: pnpm --filter @construction-erp/api build
+      - name: Only M4 real Chromium operational browser test
+        run: node deploy/uat/m4-operational-browser-native.mjs
+      - name: Exact proof limitation
+        run: echo 'FOCUSED real Chromium against disposable API+PG only. Not full CI, not Mac, not full UAT, not Production, not final release acceptance.'
