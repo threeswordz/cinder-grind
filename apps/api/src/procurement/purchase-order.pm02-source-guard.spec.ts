@@ -46,7 +46,7 @@ test('PM02 PO submission rejects inactive source before ApprovalService.start', 
         submittedAt: null, cancelledAt: null, nextRevision: null,
         lines: [{ purchaseRequestLineId: sourceId }],
       };
-      const sources = scenario.missing ? [] : [{
+      const sources = ('missing' in scenario && scenario.missing) ? [] : [{
         id: sourceId,
         reviewDecision: 'decision' in scenario ? scenario.decision : 'APPROVED',
         purchaseRequest: {
