@@ -352,14 +352,16 @@ test('PUR10 native: real approved PO, independent named Jai/Khaimook/Ben, atomic
     );
     await prisma.userSession.update({where:{id:benAuth.sessionId},
       data:{revokedAt:null}});
-    await prisma.employee.update({where:{id:ben.user.employeeId},
+    const benEmployeeId=ben.user.employeeId;
+    assert.ok(benEmployeeId,'synthetic Ben must have a linked employee');
+    await prisma.employee.update({where:{id:benEmployeeId},
       data:{isActive:false}});
     await assert.rejects(
       ()=>cases.finalize({auth:benAuth},approvedOriginal.id,3,
         approvedCase.expectedPreviousEventId,finalArgs),
       (e:unknown)=>e instanceof ForbiddenException,
     );
-    await prisma.employee.update({where:{id:ben.user.employeeId},
+    await prisma.employee.update({where:{id:benEmployeeId},
       data:{isActive:true}});
     const benRole=await prisma.role.findFirstOrThrow({where:{
       companyId:company.id,roleCode:'MANAGEMENT',
