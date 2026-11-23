@@ -12,7 +12,9 @@
     "verifiedRetiredHours": 0,
     "openBudgetHours": 1900,
     "actualLoggedHours": null,
-    "asOf": "2026-11-23T16:17:49+08:00"
+    "asOf": "2026-11-23T16:25:05+08:00",
+    "activePackage": "M4-01",
+    "activeForecastHourRange": "H0001–H0020"
   },
   "official": {
     "prototypeCompleted": 4,
@@ -115,11 +117,46 @@
       "hours": 20,
       "from": 1,
       "to": 20,
-      "status": "NOT_CREDITED",
+      "status": "IN_PROGRESS",
       "verifiedHours": 0,
-      "evidence": [],
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/blob/docs-erp-full-use-1900h-hourly-ledger-20261123/docs/ERP-M4-01-112-ID-GATES.csv",
+        "https://github.com/threeswordz/cinder-grind/blob/docs-erp-full-use-1900h-hourly-ledger-20261123/docs/ERP-M4-01-112-EXIT-AUDIT.md",
+        "https://github.com/threeswordz/cinder-grind/pull/411",
+        "https://github.com/threeswordz/cinder-grind/pull/412",
+        "https://github.com/threeswordz/cinder-grind/pull/413"
+      ],
       "actualHours": null,
-      "verifiedAt": null
+      "verifiedAt": null,
+      "subchecks": [
+        {
+          "key": "A",
+          "name": "112 original immutable IDs unique and partitioned",
+          "status": "SOURCE_VERIFIED",
+          "sourceRef": "ffdd823567a4db0d50201af38dc58c4fa1bc7297"
+        },
+        {
+          "key": "B",
+          "name": "Current exact native/Chrome proof mapped without overclaim",
+          "status": "BOUNDED_SOURCE_VERIFIED",
+          "evidence": [
+            "45132932414",
+            "45127724396"
+          ]
+        },
+        {
+          "key": "C",
+          "name": "Current M4 code gaps vs GL future gates separated",
+          "status": "SOURCE_CLASSIFIED_OWNER_GATES_OPEN",
+          "sourceRef": "ffdd823567a4db0d50201af38dc58c4fa1bc7297"
+        },
+        {
+          "key": "D",
+          "name": "Retained eight-role permissions and owner policy acceptance",
+          "status": "UNVERIFIED"
+        }
+      ],
+      "latestAssessment": "Full 112-ID technical classification audited; 59 operational role/scope readbacks still due, code deltas #412/#413 unrun; no final package exit or hour credit."
     },
     {
       "id": "M4-02",

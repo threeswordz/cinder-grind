@@ -6,6 +6,10 @@
 
 The ERP is complete only if all 112 requirements are implemented and working or explicitly superseded with Owner approval, all eight roles (Ben, Nancy, Khaimook, Jai, Store Site, Foreman, Porn and Koh) can use real MKE/TCJ authenticated workflows, integrated HR/payroll and Accounting/GL/tax/banking work, preserved data, functional cross-module workflows and no material blocking defects, valid backups/restore, business UAT and actual authorized Production go-live. An **8/8 prototype is not 100% ERP**. Accounting/HR and multi-Project scope formerly deferred must receive new authority before implementation.
 
+## Live checkpoint — 23 November 2026, 16:25 SGT
+
+**M4-01 H0001–H0020 = IN_PROGRESS, not accepted (0 of its 20 forecast-hours retired).** [112-ID gate audit](ERP-M4-01-112-EXIT-AUDIT.md) and [machine-readable source matrix](ERP-M4-01-112-ID-GATES.csv) verify the immutable 112 census and distinguish previously passed scoped native/Chromium cases from unresolved role and functional exits. Draft #412's new PO-submit guard and Draft #413 PUR04 commercial fields are **source only, unrun**, unlike the earlier native #45127724396 and operational Chromium #45132932414 already passed. **Official M4 4/8, GL 3/10; 1,900h remaining forecast unchanged.** Do not subtract elapsed wall time, run broad CI or replay successful Mac/browser cases.
+
 ## Baseline counters (DO NOT imply earned progress)
 
 | Counter | Value | Meaning |
