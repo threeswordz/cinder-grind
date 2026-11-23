@@ -51,6 +51,8 @@ export function supplierLineIndicator(input: {
   const dateRevised = input.previousApprovedExpectedDelivery != null &&
     input.expectedDelivery != null &&
     input.previousApprovedExpectedDelivery !== input.expectedDelivery;
+  const dateRemoved = input.previousApprovedExpectedDelivery != null &&
+    input.expectedDelivery === null;
   return {
     orderedQuantity: ordered.toFixed(4),
     receivedQuantity: received.toFixed(4),
@@ -63,7 +65,9 @@ export function supplierLineIndicator(input: {
     requiredOnSiteWindow: needed.window,
     daysUntilRequiredOnSite: needed.daysUntil,
     dateRevisedFromPreviousApproved: dateRevised,
-    previousApprovedExpectedDelivery: dateRevised ? input.previousApprovedExpectedDelivery : null,
+    dateRemovedFromPreviousApproved: dateRemoved,
+    previousApprovedExpectedDelivery: dateRevised || dateRemoved
+      ? input.previousApprovedExpectedDelivery ?? null : null,
     supplierAcknowledgment: 'NOT_VERIFIED' as const,
     targetSite: 'NOT_RECORDED_ON_PO' as const,
     quantityBasis: 'PO_LINE_ENTERED_UOM_NO_STOCK_CONVERSION' as const,
