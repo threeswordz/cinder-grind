@@ -21,9 +21,9 @@
       "M4-05",
       "M4-02"
     ],
-    "workEvidenceNote": "M4-01/M4-04/M4-05 in progress. Technical checkpoint gains only, no full package accepted; no hours retired.",
-    "latestTechnicalCheckpoint": "PM02 actual Chromium React/HTTP step PASS #45145803345 after MUI portal fix; overall GitHub workflow FAILED on trailing malformed non-evidence echo. M4-02 now 2/4 checklist, not full acceptance.",
-    "m4CheckpointCompleted": 12,
+    "workEvidenceNote": "M4-01/M4-02/M4-04/M4-05/M4-07 in progress; source/pure-checkpoint gains only; no fully accepted package or forecast hours retired.",
+    "latestTechnicalCheckpoint": "PUR12 draft #417 source and new PG17.11 migration/API/Web/2 pure tests passed in #45149778502; overall diagnostic psql URL failed after successful tests; 13/32 M4 scoped checkpoints, no full package closure.",
+    "m4CheckpointCompleted": 13,
     "m4CheckpointTotal": 32,
     "displayCounter": "0 / 1900",
     "countdownHoursLeft": 1900,
@@ -354,11 +354,35 @@
       "hours": 15,
       "from": 136,
       "to": 150,
-      "status": "NOT_CREDITED",
+      "status": "IN_PROGRESS",
       "verifiedHours": 0,
-      "evidence": [],
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/pull/417",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45149778502"
+      ],
       "actualHours": null,
-      "verifiedAt": null
+      "verifiedAt": null,
+      "progressPercent": 50,
+      "checkpoints": [
+        {
+          "name": "Existing per-Company monthly canonical PO sequence",
+          "status": "SOURCE_VERIFIED"
+        },
+        {
+          "name": "MKE K / TCJ T display and distinct supplier short-name source + pure proof",
+          "status": "FOCUSED_MIGRATION_BUILD_PURE_TEST_PASS",
+          "run": 45149778502
+        },
+        {
+          "name": "Actual new PO, revision and legacy-safe SQL immutable snapshot",
+          "status": "NOT_YET_NATIVE_ACTOR_VERIFIED"
+        },
+        {
+          "name": "True Company/Project boundary, retained grants and Owner acceptance",
+          "status": "NOT_VERIFIED"
+        }
+      ],
+      "latestAssessment": "Draft #417 implements separate partner shortNames, nullable immutable PO display snapshot and legacy fallback. #45149778502 passes PG17.11 migrations, API/Web compile, 2/2 pure tests; overall run fails only in a trailing psql inspection because Prisma URL ?schema is unsupported by psql. No real PO/role/trigger negative proof, release approval or hour retirement."
     },
     {
       "id": "M4-08",
