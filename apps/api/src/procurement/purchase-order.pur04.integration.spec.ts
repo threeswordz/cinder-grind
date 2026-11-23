@@ -118,6 +118,15 @@ test('PUR04: nullable PO commercial draft fields, audit, and DB validation', asy
       (error: unknown) => error instanceof UnprocessableEntityException,
     );
     await assert.rejects(
+      () => service.updateOrder({ auth }, po.id, {
+        freightAmount: new Prisma.Decimal('0.001'),
+      }),
+      (error: unknown) => error instanceof UnprocessableEntityException &&
+        typeof error.getResponse() === 'object' &&
+        (error.getResponse() as { code?: string }).code ===
+          'PO_COMMERCIAL_PRECISION_INVALID',
+    );
+    await assert.rejects(
       () => prisma.purchaseOrder.update({
         where: { id: po.id },
         data: { discountAmount: new Prisma.Decimal('-1') },
