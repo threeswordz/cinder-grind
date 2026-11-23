@@ -12,18 +12,19 @@
     "verifiedRetiredHours": 0,
     "openBudgetHours": 1900,
     "actualLoggedHours": null,
-    "asOf": "2026-11-23T17:20:33+08:00",
+    "asOf": "2026-11-23T18:28:02+08:00",
     "activePackage": "M4-01",
     "activeForecastHourRange": "H0001–H0020",
     "activeConcurrentPackages": [
       "M4-01",
       "M4-04",
       "M4-05",
-      "M4-02"
+      "M4-02",
+      "M4-06"
     ],
-    "workEvidenceNote": "M4-01/M4-02/M4-04/M4-05/M4-07 in progress; source/pure-checkpoint gains only; no fully accepted package or forecast hours retired.",
-    "latestTechnicalCheckpoint": "PUR12 real MKE/TCJ PO native #45150538123 SUCCESS: create, quote/PR source, revision snapshot, no-short-name denial, SQL guard, Company scope; remaining named retained roles and Owner M4 acceptance.",
-    "m4CheckpointCompleted": 14,
+    "workEvidenceNote": "M4-01/02/04/05/06/07 in progress. New PUR07 supplier PDF and append-only Jai manual evidence source and scoped tests proved; Unicode font/retained actors/independent acceptance not closed. No accepted full packages or retired 1,900 forecast hours.",
+    "latestTechnicalCheckpoint": "PUR07 #418 new isolated #45155841629 full SUCCESS: PG17 migrations + API/Web compile, 4/4 new pure/native tests. Thai automated PDF/font and browser print verification remain outstanding. M4 16/32 technical.",
+    "m4CheckpointCompleted": 16,
     "m4CheckpointTotal": 32,
     "displayCounter": "0 / 1900",
     "countdownHoursLeft": 1900,
@@ -340,11 +341,37 @@
       "hours": 15,
       "from": 121,
       "to": 135,
-      "status": "NOT_CREDITED",
+      "status": "IN_PROGRESS",
       "verifiedHours": 0,
-      "evidence": [],
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/pull/418",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45155536353",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45155841629"
+      ],
       "actualHours": null,
-      "verifiedAt": null
+      "verifiedAt": null,
+      "progressPercent": 50,
+      "checkpoints": [
+        {
+          "name": "Approved PO PDF/filename & append-only external evidence code, forward-only schema, API/Web typecheck and new pure PDF tests",
+          "status": "FOCUSED_NEW_SOURCE_PROOF_PASS",
+          "run": 45155841629
+        },
+        {
+          "name": "Real PostgreSQL17.11 source-backed PO PDF, Jai reported send/ack, unauthorized, forged evidence, SQL immutability and Company scope",
+          "status": "FOCUSED_NEW_NATIVE_PASS",
+          "run": 45155841629
+        },
+        {
+          "name": "Thai/Unicode true automated PDF export, actual PDF visual inspection and authenticated print/download browser",
+          "status": "NOT_VERIFIED_UNICODE_FONT_MISSING"
+        },
+        {
+          "name": "Real retained named Jai/Ben/Company grants, independent review, Owner acceptance and release integration",
+          "status": "NOT_VERIFIED"
+        }
+      ],
+      "latestAssessment": "Draft #418 stacked on PUR12 #417 implements supplier-facing approved-only ASCII PDF and safe short-name filename, a Thai browser Print/Save fallback (not automated Unicode), immutable reported dispatch/ack events. First focused #45155536353 migration PASS but API compile FAIL on new nullability (fixed); exact focused #45155841629 PG17 migration/API/Web compile PASS, 3 PDF pure and 1 native actor test PASS. Backend Unicode/Thai PDF remains UNSUPPORTED; do not mark PUR07 accepted or pretend external messages sent. 2/4 checklist; 0 accepted-hours."
     },
     {
       "id": "M4-07",
