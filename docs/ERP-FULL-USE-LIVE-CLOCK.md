@@ -16,6 +16,25 @@ The ERP is complete only if all 112 requirements are implemented and working or 
 - **Only newly affected focused PG/API/Web tests** [#45140450091](https://github.com/threeswordz/cinder-grind/actions/runs/45140450091) were initiated to validate these staged changes. **As of this checkpoint no pass is yet credited**. This is not the full CI/old Mac/previous browser suite.
 - **H0065–H0090 M4-04** (PUR01) and **H0091–H0120 M4-05** (PUR04) are now **IN_PROGRESS in parallel with M4-01**, 0 forecast hours retired for either. The sequential cursor remains **H0001–H0020**, and 1,900h is still the honest remaining budget.
 
+## M4 progressive work dashboard — Status then Progress (23 Nov 2026, 16:36 SGT)
+
+Owner-visible progress is **an auditable four-checkpoint completion counter for each of eight M4 work packages**, NOT an estimate of engineering effort or proportion of accepted release hours. Values are `completed checkpoints / 4 × 100%`. A checkpoint may document *source staged*, *prior exact scoped proof*, or *bounded evidence mapping*; the table labels these distinctly. All four checkpoints must meet the package's actual acceptance criteria and required review before showing 100%. An identified additional mandatory acceptance gate changes the denominator with a recorded evidence-backed revision. Never silently mark unrun code as tested, or convert these counters to retired forecast hours.
+
+| Work package | Status | Progress | Completed checkpoint evidence | Unfinished checkpoint outcomes |
+|---|---|---:|---|---|
+| `M4-01` H0001–H0020 — 112-ID reconciliation | IN_PROGRESS | **50% (2/4)** | A: distinct 112/112 census verified; B: bounded prior evidence mapped to IDs | C: close/currently scope all 59 operational dispositions; D: current retained role/Owner policy evidence or explicit future gate |
+| `M4-02` H0021–H0042 — PM02 | IN_PROGRESS | **25% (1/4)** | A: older exact-source native A/B→RFQ/PO actor path PASS [#45127724396](https://github.com/threeswordz/cinder-grind/actions/runs/45127724396) | B: newly staged #412 PO-submit provenance negative exact-head PASS; C: authenticated React/HTTP browser workflow PASS; D: retained named-role rights and scope accepted |
+| `M4-03` H0043–H0064 — FM01/BEN04/PM16 UI | IN_PROGRESS | **25% (1/4)** | A: prior bounded native PG/API source PASS [#45103782289](https://github.com/threeswordz/cinder-grind/actions/runs/45103782289) | B: FM01 browser; C: BEN04 browser; D: PM16 browser; retain Company/Project denials |
+| `M4-04` H0065–H0090 — PUR01 quotation policy | IN_PROGRESS | **25% (1/4)** | A: existing RFQ quotation comparison/award module present in code | B: correct whole-PO commercial total excl. VAT; C: approved 1/2/3 supplier count and reasoned exception; D: negative policy/Ben approval proof |
+| `M4-05` H0091–H0120 — PUR04 PO fields | SOURCE STAGED | **50% (2/4)** | A: forward-only nullable schema/migration authored on #413; B: draft API/React fields and revision-copy source authored | C: new exact-head PG migration + API/Web validation; D: approval/revision/Company scope and retained role proof, plus acceptance review |
+| `M4-06` H0121–H0135 — PUR07 PDF | NOT STARTED | **0% (0/4)** | None | A: supplier PO PDF; B: supplier-name filename; C: manual dispatch/acknowledgment record; D: actor/role/PDF proof |
+| `M4-07` H0136–H0150 — PUR12 identity | IN_PROGRESS | **25% (1/4)** | A: existing monthly PO sequence engine and historical identifiers present | B: Company K-/T- new-document numbering; C: old IDs + creation-period retention; D: correct Company boundary and negative proof |
+| `M4-08` H0151–H0170 — release acceptance | NOT STARTED | **0% (0/4)** | None | A: frozen consolidated exact candidate; B: independent review clean; C: one justified Owner-authorized full release CI; D: guarded integration and explicit M4 acceptance |
+
+**Aggregate M4 checkpoint counter = 8/32 = 25.0%.** This reflects *evidence-backed checklist progress* only; it is **NOT** 25% of remaining 170 productive engineering hours and does not imply full ERP completion. Some checked items were completed before the 1,900-hour post-baseline plan and are not new earned-hour credit. In the canonical forecast ledger, **accepted packages: 0/8; post-baseline estimate retired: 0/1,900h; remaining central forecast: 1,900h (M4: 170h); official milestone 4/8, GL3/10**. Revisit each numerator only on new actual source/CI/retained-role proof. Keep previously accepted Chromium run #45132932414 closed; it covers Nancy schedule, PM09 and SS13, **not** M4-02 or M4-03.
+
+**Reporting contract:** For every future "live position", "check", or "continue" include `Status` immediately followed by `Progress` as percentages plus `x/y checkpoints`; show 100% only on actual passed complete package exit, and separately disclose accepted forecast hours. Add or retire checkpoints with citations rather than guessing percentages from elapsed time, commits or agent output.
+
 ## Baseline counters (DO NOT imply earned progress)
 
 | Counter | Value | Meaning |
