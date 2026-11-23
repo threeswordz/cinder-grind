@@ -23,6 +23,7 @@ import {
 } from '@tanstack/react-query';
 
 import { ApiError } from '../api/client';
+import { printApprovedPurchaseOrderHtml } from './purchase-order-print';
 import {
   PoAward,
   PoDispatchDraft,
@@ -148,6 +149,7 @@ export function PurchaseOrdersPanel({ permissions, initialProjectId, initialOrde
   const [dispatchReference, setDispatchReference] = useState('');
   const [dispatchDocumentId, setDispatchDocumentId] = useState('');
   const [dispatchAckId, setDispatchAckId] = useState('');
+  const [manualPrintError, setManualPrintError] = useState('');
   const [lineDrafts, setLineDrafts] = useState<Record<string, LineDraft>>({});
 
   const projects = useQuery({
@@ -469,6 +471,23 @@ export function PurchaseOrdersPanel({ permissions, initialProjectId, initialOrde
   };
 
   const current = detail.data?.data;
+  const manualPrintApprovedPo = () => {
+    if (!current) return;
+    setManualPrintError('');
+    try {
+      const { html } = printApprovedPurchaseOrderHtml(current);
+      const windowRef = window.open('', '_blank', 'width=950,height=820');
+      if (!windowRef) throw new Error('Your browser blocked the print window. Enable this ERP popup and retry.');
+      windowRef.opener = null;
+      windowRef.document.open();
+      windowRef.document.write(html);
+      windowRef.document.close();
+      windowRef.focus();
+      windowRef.setTimeout(() => windowRef.print(), 350);
+    } catch (error) {
+      setManualPrintError(message(error));
+    }
+  };
   const draft = current?.lifecycleState === 'DRAFT';
   const awaitingApproval = current?.lifecycleState === 'SUBMITTED';
   const approved = current?.lifecycleState === 'APPROVED';
@@ -1133,20 +1152,28 @@ export function PurchaseOrdersPanel({ permissions, initialProjectId, initialOrde
                   Export is available only for the exact approved, active revision.
                   Jai sends the file outside ERP by email or LINE. Reporting a send or
                   acknowledgment records your evidence; ERP does not transmit or verify
-                  third-party delivery. The prototype PDF refuses Thai/Unicode text
-                  until reviewed font support is available. Do not dispatch a missing
+                  third-party delivery. Automated PDF refuses Thai/Unicode text
+                  until reviewed embedded fonts are available. For Thai POs, use
+                  browser Print - Save as PDF and attach the actual sent document. Do not dispatch a missing
                   or incomplete export.
                 </Alert>
                 {approved && canView ? (
-                  <Button variant="outlined" disabled={busy}
-                    onClick={() => pdfDownload.mutate()}>
-                    {pdfDownload.isPending ? 'Preparing PDF...' : 'Download approved PDF'}
-                  </Button>
+                  <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                    <Button variant="outlined" disabled={busy}
+                      onClick={() => pdfDownload.mutate()}>
+                      {pdfDownload.isPending ? 'Preparing PDF...' : 'Download approved PDF (Latin text)'}
+                    </Button>
+                    <Button variant="outlined" onClick={manualPrintApprovedPo}
+                      disabled={busy}>Print / Save as PDF (Thai supported by browser)</Button>
+                  </Stack>
                 ) : (
                   <Typography color="text.secondary" variant="body2">
                     Only approved, non-cancelled revisions can be downloaded or newly dispatched.
                   </Typography>
                 )}
+                {manualPrintError ? (
+                  <Alert severity="error">{manualPrintError}</Alert>
+                ) : null}
                 {pdfDownload.isError ? (
                   <Alert severity="error">
                     {message(pdfDownload.error)} For Thai/Unicode PO content, use
