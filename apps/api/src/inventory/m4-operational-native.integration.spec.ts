@@ -91,7 +91,7 @@ test('M4 native PostgreSQL + actual HTTP: Nancy, PM09 and SS13 actors, concurren
     for (const code of rights) {
       const row = await db.permission.upsert({
         where: { permissionCode: code }, update: {},
-        create: { permissionCode: code, moduleCode: code.split('.')[0].toUpperCase() },
+        create: { permissionCode: code, moduleCode: code.slice(0, code.indexOf('.')).toUpperCase() },
       });
       permissionIds.set(code, row.id);
     }
