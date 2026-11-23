@@ -75,8 +75,10 @@ test('SS11 native PG employee custody: scope, concurrent checkout/return, immuta
     await assert.rejects(()=>db.$executeRawUnsafe('DELETE FROM equipment_custody_loans WHERE id=$1::uuid',id));
     const history=await custody.list(auth,project.id,tool.id);
     assert.equal(history.length,1);
-    assert.equal(history[0].borrowerEmployeeId,borrower.id);
-    assert.equal(history[0].returnedOn?.toISOString().slice(0,10),'2026-11-22');
+    const persistedLoan = history[0];
+    assert.ok(persistedLoan, 'The returned custody loan must remain in history.');
+    assert.equal(persistedLoan.borrowerEmployeeId,borrower.id);
+    assert.equal(persistedLoan.returnedOn?.toISOString().slice(0,10),'2026-11-22');
     const actions=await db.auditLog.findMany({where:{companyId:company.id,entityType:'EQUIPMENT_CUSTODY',entityId:id}});
     assert.deepEqual(actions.map(e=>e.action).sort(),['CHECKOUT','RETURN']);
     await db.user.update({where:{id:user.id},data:{isActive:false}});
