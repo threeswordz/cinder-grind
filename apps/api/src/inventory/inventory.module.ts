@@ -34,6 +34,12 @@ import { StockBalanceService } from './stock-balance.service';
 import { StockTransferController } from './stock-transfer.controller';
 import { StockTransferService } from './stock-transfer.service';
 import { StockCountController } from './stock-count.controller';
+import { UrgentMaterialIssueDocumentsController } from './urgent-material-issue-documents.controller';
+import { UrgentMaterialIssueDocumentsService } from './urgent-material-issue-documents.service';
+import { StockCountScheduleController } from './stock-count-schedule.controller';
+import { StockCountScheduleService } from './stock-count-schedule.service';
+import { StockLossCaseController } from './stock-loss-case.controller';
+import { StockLossCaseService } from './stock-loss-case.service';
 import { StockCountService } from './stock-count.service';
 
 @Module({
@@ -48,6 +54,9 @@ import { StockCountService } from './stock-count.service';
     AdministrationModule,
   ],
   controllers: [
+    UrgentMaterialIssueDocumentsController,
+    StockCountScheduleController,
+    StockLossCaseController,
     TransferCustodyController,
     ReceivingController,
     MaterialPlanIssueController,
@@ -62,6 +71,9 @@ import { StockCountService } from './stock-count.service';
     StockCountController,
   ],
   providers: [
+    UrgentMaterialIssueDocumentsService,
+    StockCountScheduleService,
+    StockLossCaseService,
     TransferCustodyService,
     ReceivingService,
     MaterialPlanIssueService,

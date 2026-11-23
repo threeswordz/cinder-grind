@@ -7,11 +7,12 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { ProjectAccessService } from './project-access.service';
 import { ProjectsController } from './projects.controller';
 import { ProjectsService } from './projects.service';
+import { ProjectCloseoutService } from './project-closeout.service';
 
 @Module({
   imports: [PrismaModule, AuthModule, AuthorizationModule, AuditModule],
   controllers: [ProjectsController],
-  providers: [ProjectAccessService, ProjectsService],
+  providers: [ProjectAccessService, ProjectsService, ProjectCloseoutService],
   exports: [ProjectAccessService, ProjectsService],
 })
 export class ProjectsModule {}
