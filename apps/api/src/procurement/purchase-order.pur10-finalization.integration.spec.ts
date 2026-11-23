@@ -371,6 +371,20 @@ test('PUR10 native: real approved PO, independent named Jai/Khaimook/Ben, atomic
       (e:unknown)=>e instanceof ForbiddenException || e instanceof ConflictException,
     );
     await prisma.role.update({where:{id:benRole.id},data:{isActive:true}});
+    const cancelPermission=await prisma.permission.findUniqueOrThrow({where:{
+      permissionCode:'procurement.po.cancel',
+    }});
+    await prisma.rolePermission.deleteMany({where:{
+      roleId:benRole.id,permissionId:cancelPermission.id,
+    }});
+    await assert.rejects(
+      ()=>cases.finalize({auth:benAuth},approvedOriginal.id,3,
+        approvedCase.expectedPreviousEventId,finalArgs),
+      (e:unknown)=>e instanceof ForbiddenException,
+    );
+    await prisma.rolePermission.create({data:{
+      roleId:benRole.id,permissionId:cancelPermission.id,
+    }});
 
     // Any GR (including unposted), or linked receiving delivery, prohibits a
     // no-exception cancellation. These are disposable rows, never posted stock.
@@ -460,12 +474,11 @@ test('PUR10 native: real approved PO, independent named Jai/Khaimook/Ben, atomic
       cases.finalize({auth:benAuth},approvedOriginal.id,3,
         approvedCase.expectedPreviousEventId,finalArgs),
     ]);
-    const winners=competing.filter((value):value is PromiseFulfilledResult<{
-      status:string;poCancelled:boolean;financePosted:boolean;
-    }>=>value.status==='fulfilled');
+    const winners=competing.filter(value=>value.status==='fulfilled');
     assert.equal(winners.length,1,'Exactly one concurrent finalization may commit');
     assert.equal(competing.filter(value=>value.status==='rejected').length,1);
-    const finalize=winners[0]!.value;
+    if (winners[0]?.status !== 'fulfilled') throw new Error('Missing PUR10 finalizer');
+    const finalize=winners[0].value;
     assert.deepEqual([finalize.status,finalize.poCancelled,finalize.financePosted],
       ['FINALIZED',true,false]);
     const cancelled=await prisma.purchaseOrder.findUniqueOrThrow({where:{id:approvedOriginal.id}});
