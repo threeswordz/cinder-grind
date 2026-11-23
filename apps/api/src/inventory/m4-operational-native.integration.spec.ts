@@ -34,7 +34,7 @@ const parsed = async <T = any>(res: Response): Promise<Result<T>> => {
   return { status: res.status, data: raw.data as T, raw };
 };
 
-test('M4 native PostgreSQL + actual HTTP: Nancy, PM09 and SS13 actors, concurrent boundaries, protected bytes, no posting', async t => {
+test('M4 native PostgreSQL + actual HTTP: Nancy, PM09 and SS13 actors, concurrent boundaries, protected bytes, no posting', async () => {
   const oldStorage = process.env.STORAGE_ROOT;
   const root = await mkdtemp(join(tmpdir(), 'm4-native-only-'));
   process.env.STORAGE_ROOT = root;
@@ -105,12 +105,16 @@ test('M4 native PostgreSQL + actual HTTP: Nancy, PM09 and SS13 actors, concurren
         email: label.toLowerCase() + '-' + unique + '@example.invalid',
         displayName: 'Synthetic ' + label, passwordHash: 'not-a-login',
       } });
-      const role = await db.role.create({ data: {
-        companyId: company.id, roleCode, roleName: 'Synthetic ' + roleCode,
-      } });
+      // Multiple personnel may hold the same Company role. Never create a
+      // duplicate STOREKEEPER Role merely because a second User belongs to
+      // an inaccessible Project. Role identity is Company + roleCode.
+      const role = (await db.role.findFirst({ where: { companyId: company.id, roleCode } })) ??
+        await db.role.create({ data: {
+          companyId: company.id, roleCode, roleName: 'Synthetic ' + roleCode,
+        } });
       await db.rolePermission.createMany({ data: allowed.map(code => ({
         roleId: role.id, permissionId: permissionIds.get(code)!,
-      })) });
+      })), skipDuplicates:true });
       await db.userRole.create({ data: { companyId: company.id, userId: user.id, roleId: role.id } });
       await db.projectMember.create({ data: {
         projectId: scope, employeeId: employee.id, projectRole: roleCode,
@@ -177,7 +181,9 @@ test('M4 native PostgreSQL + actual HTTP: Nancy, PM09 and SS13 actors, concurren
       return result.data.id;
     }
     const schedulePath='/inventory/stock-count-schedules/projects/'+project.id+'/sites/'+warehouse.id;
-    await t.test('Nancy exact-category schedule, stale and cross-project/role boundaries', async()=>{
+    // Sequentially awaited assertions deliberately fail the parent test.
+    // Node's t.test() child assertion failures do NOT reject the parent.
+    await (async()=>{
       const input={materialCategory:'AGGREGATE',firstDueDate:'2026-11-24',
         intervalDays:7,status:'ACTIVE',reason:'Explicit synthetic weekly count',
         expectedPreviousEventId:null};
@@ -202,7 +208,8 @@ test('M4 native PostgreSQL + actual HTTP: Nancy, PM09 and SS13 actors, concurren
       assert.equal(current.schedules[0]!.version,2);
       assert.equal(current.schedules[0]!.intervalDays,14);
       await denied(nancy,'POST',schedulePath,{...input,materialCategory:'NOT_IN_MASTER'});
-    });
+    })();
+    console.log('M4_NATIVE_NANCY_SCOPE_PASS');
 
     const stockBefore=await db.stockTransaction.count({where:{companyId:company.id}});
     const financeBefore=await db.directCostPosting.count({where:{companyId:company.id}});
@@ -210,11 +217,11 @@ test('M4 native PostgreSQL + actual HTTP: Nancy, PM09 and SS13 actors, concurren
     const issue=await db.materialIssue.create({data:{
       companyId:company.id,projectId:project.id,warehouseId:warehouse.id,
       issueNumber:'MI-'+unique,issueDate:date,createdByUserId:store.id,
-      postedByUserId:store.id,postedAt:date,
+      postedByUserId:store.id,postedAt:date,postKey:'M4-NATIVE-'+unique,
     }});
     const actualPdf=Buffer.from('%PDF-1.4\nM4 scoped native non-Production evidence\n%%EOF\n');
     const issueDocPath='/documents/projects/'+project.id+'/targets/MATERIAL_ISSUE/'+issue.id;
-    await t.test('PM09 canonical linked bytes, independent late closure and revoked evidence denial',async()=>{
+    await (async()=>{
       await denied(pm,'POST','/inventory/urgent-issue-documents/'+issue.id+'/register',{reason:'Wrong actor'});
       const registered=await ok<{dueAt:string}>(
         store,'POST','/inventory/urgent-issue-documents/'+issue.id+'/register',
@@ -229,7 +236,8 @@ test('M4 native PostgreSQL + actual HTTP: Nancy, PM09 and SS13 actors, concurren
       const blocked=await fetch(base+issueDocPath+'/'+docId+'/download',{
         headers:{Cookie:'erp_session='+outsider.token},
       });
-      assert.notEqual(blocked.status,200,'unassigned Project may not read document bytes');
+      assert.ok([403,404].includes(blocked.status),
+        'unassigned Project must be refused with 403/404, got '+blocked.status);
       await ok(store,'POST','/inventory/urgent-issue-documents/'+issue.id+'/submit',{
         documentIds:[docId],completionNote:'Completed with actual linked source evidence',
       });
@@ -247,9 +255,10 @@ test('M4 native PostgreSQL + actual HTTP: Nancy, PM09 and SS13 actors, concurren
       await denied(pm,'POST',decidePath,req);
       await db.document.update({where:{id:docId},data:{isActive:false}});
       await denied(pm,'GET','/inventory/urgent-issue-documents/'+issue.id);
-    });
+    })();
+    console.log('M4_NATIVE_PM09_PROTECTED_BYTES_PASS');
 
-    await t.test('SS13 true document source, valid UOM, PM/Ben/Nancy handoffs and no ledger effects',async()=>{
+    await (async()=>{
       const docId=await upload(store,'/documents/projects/'+project.id,actualPdf);
       const body={projectId:project.id,warehouseId:warehouse.id,materialId:material.id,
         uomId:uom.id,quantity:'2.0000',kind:'DAMAGE',occurredOn:'2026-11-23',
@@ -293,7 +302,7 @@ test('M4 native PostgreSQL + actual HTTP: Nancy, PM09 and SS13 actors, concurren
       assert.equal(await db.directCostPosting.count({where:{companyId:company.id}}),financeBefore);
       await db.userSession.update({where:{id:nancy.sessionId},data:{revokedAt:new Date()}});
       await denied(nancy,'GET',path);
-    });
+    })();
     console.log('M4_NATIVE_AUTHENTICATED_API_SCOPED_PASS: schedule/PM09/SS13, actual bytes, no financial or stock posting');
   } finally {
     await app.close();
