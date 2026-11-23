@@ -25,6 +25,7 @@ import {
 import { ApiError } from '../api/client';
 import {
   PoAward,
+  PoDispatchDraft,
   PurchaseOrderLine,
   purchaseOrdersApi,
 } from '../api/purchase-orders';
@@ -141,6 +142,12 @@ export function PurchaseOrdersPanel({ permissions, initialProjectId, initialOrde
   const [actionComment, setActionComment] = useState('');
   const [cancelReason, setCancelReason] = useState('');
   const [revisionReason, setRevisionReason] = useState('');
+  const [dispatchKind, setDispatchKind] = useState<PoDispatchDraft['kind']>('DISPATCH');
+  const [dispatchChannel, setDispatchChannel] = useState<PoDispatchDraft['channel']>('EMAIL');
+  const [dispatchRecipient, setDispatchRecipient] = useState('');
+  const [dispatchReference, setDispatchReference] = useState('');
+  const [dispatchDocumentId, setDispatchDocumentId] = useState('');
+  const [dispatchAckId, setDispatchAckId] = useState('');
   const [lineDrafts, setLineDrafts] = useState<Record<string, LineDraft>>({});
 
   const projects = useQuery({
@@ -239,6 +246,43 @@ export function PurchaseOrdersPanel({ permissions, initialProjectId, initialOrde
     queryKey: ['purchase-order', orderId],
     queryFn: () => purchaseOrdersApi.detail(orderId),
     enabled: canView && Boolean(orderId),
+  });
+
+  const dispatchEvents = useQuery({
+    queryKey: ['po-dispatch-events', orderId],
+    queryFn: () => purchaseOrdersApi.dispatchEvents(orderId),
+    enabled: canView && Boolean(orderId),
+  });
+
+  const pdfDownload = useMutation({
+    mutationFn: () => purchaseOrdersApi.approvedPdf(orderId),
+    onSuccess: ({blob, fileName}) => {
+      const objectUrl = URL.createObjectURL(blob);
+      const element = document.createElement('a');
+      element.href = objectUrl;
+      element.download = fileName ?? 'approved-purchase-order.pdf';
+      document.body.appendChild(element);
+      element.click();
+      element.remove();
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+    },
+  });
+
+  const recordExternal = useMutation({
+    mutationFn: () => purchaseOrdersApi.recordDispatch(orderId, {
+      kind: dispatchKind,
+      channel: dispatchChannel,
+      recipient: dispatchRecipient,
+      evidenceReference: dispatchReference,
+      evidenceDocumentId: dispatchDocumentId.trim() || null,
+      acknowledgesEventId: dispatchKind === 'ACKNOWLEDGMENT' ? dispatchAckId : null,
+    }),
+    onSuccess: async () => {
+      setDispatchReference('');
+      setDispatchDocumentId('');
+      setDispatchAckId('');
+      await queryClient.invalidateQueries({queryKey: ['po-dispatch-events', orderId]});
+    },
   });
 
   const revisions = useQuery({
@@ -437,7 +481,9 @@ export function PurchaseOrdersPanel({ permissions, initialProjectId, initialOrde
     approveOrder.isPending ||
     rejectOrder.isPending ||
     cancelOrder.isPending ||
-    reviseOrder.isPending;
+    reviseOrder.isPending ||
+    pdfDownload.isPending ||
+    recordExternal.isPending;
 
   const mutationError =
     createOrder.error ||
@@ -448,7 +494,9 @@ export function PurchaseOrdersPanel({ permissions, initialProjectId, initialOrde
     approveOrder.error ||
     rejectOrder.error ||
     cancelOrder.error ||
-    reviseOrder.error;
+    reviseOrder.error ||
+    pdfDownload.error ||
+    recordExternal.error;
 
   if (projects.isPending) {
     return (
@@ -1072,6 +1120,103 @@ export function PurchaseOrdersPanel({ permissions, initialProjectId, initialOrde
                       </Typography>
                     ))}
                   </>
+                ) : null}
+              </Stack>
+            </CardContent>
+          </Card>
+
+          <Card variant="outlined">
+            <CardContent>
+              <Stack spacing={2}>
+                <Typography variant="h6">Approved PO PDF & Manual Dispatch (PUR07)</Typography>
+                <Alert severity="info">
+                  Export is available only for the exact approved, active revision.
+                  Jai sends the file outside ERP by email or LINE. Reporting a send or
+                  acknowledgment records your evidence; ERP does not transmit or verify
+                  third-party delivery. The prototype PDF refuses Thai/Unicode text
+                  until reviewed font support is available. Do not dispatch a missing
+                  or incomplete export.
+                </Alert>
+                {approved && canView ? (
+                  <Button variant="outlined" disabled={busy}
+                    onClick={() => pdfDownload.mutate()}>
+                    {pdfDownload.isPending ? 'Preparing PDF...' : 'Download approved PDF'}
+                  </Button>
+                ) : (
+                  <Typography color="text.secondary" variant="body2">
+                    Only approved, non-cancelled revisions can be downloaded or newly dispatched.
+                  </Typography>
+                )}
+                {pdfDownload.isError ? (
+                  <Alert severity="error">
+                    {message(pdfDownload.error)} For Thai/Unicode PO content, use
+                    an externally prepared PDF with Project Document evidence until
+                    the Unicode renderer is reviewed.
+                  </Alert>
+                ) : null}
+                <Divider />
+                <Typography variant="subtitle2">Reported external activity for this revision</Typography>
+                {dispatchEvents.isPending ? <CircularProgress size={20} /> : null}
+                {dispatchEvents.isError ? (
+                  <Alert severity="error">{message(dispatchEvents.error)}</Alert>
+                ) : null}
+                {(dispatchEvents.data?.data ?? []).map((event) => (
+                  <Typography key={event.id} variant="body2">
+                    {event.kind === 'DISPATCH' ? 'Reported sent' : 'Reported acknowledged'}
+                    {' · '}{event.channel}{' · '}{event.recipient}
+                    {' · '}{event.actor?.displayName ?? 'Unknown actor'}
+                    {' · '}{new Date(event.recordedAt).toLocaleString()}
+                    {' · Evidence: '}{event.evidenceReference}
+                    {event.evidenceDocumentId ? ' · Document '+ event.evidenceDocumentId : ''}
+                  </Typography>
+                ))}
+                {canEdit && (approved || (dispatchEvents.data?.data.some(
+                  (event) => event.kind === 'DISPATCH') ?? false)) ? (
+                  <Stack spacing={2}>
+                    <Alert severity="warning">
+                      Only authorized Purchasing staff may record these actions.
+                      Provide a real external message/thread reference or uploaded
+                      Project Document; recording is not proof of external delivery.
+                    </Alert>
+                    <TextField select label="Record external event" value={dispatchKind}
+                      onChange={(e) => setDispatchKind(e.target.value as PoDispatchDraft['kind'])}>
+                      {approved ? <MenuItem value="DISPATCH">I sent an approved PO externally</MenuItem> : null}
+                      <MenuItem value="ACKNOWLEDGMENT">Supplier acknowledged an earlier send</MenuItem>
+                    </TextField>
+                    {dispatchKind === 'ACKNOWLEDGMENT' ? (
+                      <TextField select label="Earlier sent PO record" value={dispatchAckId}
+                        onChange={(e) => setDispatchAckId(e.target.value)}>
+                        {(dispatchEvents.data?.data ?? []).filter(e => e.kind === 'DISPATCH')
+                          .map(e => <MenuItem key={e.id} value={e.id}>
+                            {e.channel}{' · '}{e.recipient}{' · '}
+                            {new Date(e.recordedAt).toLocaleString()}
+                          </MenuItem>)}
+                      </TextField>
+                    ) : null}
+                    <TextField select label="External channel" value={dispatchChannel}
+                      onChange={(e) => setDispatchChannel(e.target.value as PoDispatchDraft['channel'])}>
+                      <MenuItem value="EMAIL">Email</MenuItem>
+                      <MenuItem value="LINE">LINE</MenuItem>
+                    </TextField>
+                    <TextField label={dispatchKind === 'DISPATCH' ?
+                      'Recipient email / LINE contact' : 'Acknowledging supplier contact'}
+                      value={dispatchRecipient} onChange={(e) => setDispatchRecipient(e.target.value)}
+                      inputProps={{maxLength:320}} />
+                    <TextField label="External evidence reference (required)"
+                      helperText="Message ID, dated email thread, LINE screenshot reference or other verifiable evidence. No automatic send."
+                      value={dispatchReference} onChange={(e) => setDispatchReference(e.target.value)}
+                      inputProps={{maxLength:1200}} multiline minRows={2} />
+                    <TextField label="Linked Project Document UUID (optional)"
+                      helperText="If used, the existing upload must belong to this Company and Project."
+                      value={dispatchDocumentId} onChange={(e) => setDispatchDocumentId(e.target.value)} />
+                    <Button variant="outlined" disabled={busy ||
+                      dispatchRecipient.trim().length < 3 ||
+                      dispatchReference.trim().length < 3 ||
+                      (dispatchKind === 'ACKNOWLEDGMENT' && !dispatchAckId)}
+                      onClick={() => recordExternal.mutate()}>
+                      Record reported {dispatchKind === 'DISPATCH' ? 'external send' : 'supplier acknowledgment'}
+                    </Button>
+                  </Stack>
                 ) : null}
               </Stack>
             </CardContent>
