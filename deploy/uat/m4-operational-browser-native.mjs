@@ -47,22 +47,37 @@ app.useGlobalFilters(new ProblemDetailsFilter());
 await app.listen(31359,'127.0.0.1');
 const db=app.get(PrismaService),sessions=app.get(SessionService);
 let vite=null,browser=null;
+let browserStage='INITIALIZATION';
 const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 async function page(p,session,fn,arg){
  const r=await p.send('Runtime.evaluate',{
   expression:'('+fn.toString()+')('+JSON.stringify(arg??null)+')',
   awaitPromise:true,returnByValue:true},session);
- if(r.exceptionDetails||!r.result||r.result.type==='error'){
-  throw new Error('REAL_BROWSER_EVALUATION_FAILED');
+ if(r.exceptionDetails){
+  const name=r.exceptionDetails.exception?.className??'UNKNOWN';
+  throw new Error('REAL_BROWSER_EVAL_EXCEPTION_'+
+   (['TypeError','ReferenceError','SyntaxError','RangeError'].includes(name)?name:'OTHER'));
  }
+ if(!r.result||r.result.type==='error')
+  throw new Error('REAL_BROWSER_EVAL_RESULT_UNAVAILABLE');
  return r.result.value;
 }
 async function until(p,session,fn,arg,code){
+ let last='NONE';
  for(let i=0;i<110;i++){
-  if(await page(p,session,fn,arg))return;
+  try{if(await page(p,session,fn,arg))return;}
+  catch(error){
+   // Chrome may destroy the execution context during navigation/Vite
+   // optimize-and-reload. Retry only transient evaluation/context errors,
+   // within a strict 17.6-second limit; never treat one as a PASS.
+   const kind=String(error?.message??'');
+   if(!kind.startsWith('REAL_BROWSER_EVAL_EXCEPTION_')&&
+      kind!=='BROWSER_PROTOCOL_COMMAND_FAILED')throw error;
+   last=kind;
+  }
   await delay(160);
  }
- throw new Error(code);
+ throw new Error(code+'_NAVIGATION_OR_RENDER_TIMEOUT_'+last);
 }
 async function tab(p,s,label){
  const found=await page(p,s,value=>{
@@ -349,7 +364,8 @@ async function realBrowser(){
    name:'erp_session',value:actor.token,url:WEB,httpOnly:true,sameSite:'Lax'},s);
   assert.equal(cookie.success,true,'Real HTTP-only session cookie was not created');
   await p.send('Page.navigate',{url:WEB+'/__m4-operational-live'},s);
-  await until(p,s,()=>document.body.dataset.authenticated==='yes',null,'REAL_BROWSER_AUTH_FAILED');
+  await until(p,s,()=>Boolean(document.body?.dataset.authenticated==='yes'),
+   null,'REAL_BROWSER_AUTH_FAILED');
   const identity=await page(p,s,async()=>{
    const r=await fetch('/api/v1/auth/me',{credentials:'include',redirect:'error'});
    return r.status===200?(await r.json()).data:null;
@@ -360,6 +376,7 @@ async function realBrowser(){
  }
  try{
   // Store can only view schedules, can see urgency and SS13 forms; not Nancy's editor.
+  browserStage='STORE_SESSION_AND_SCHEDULE_READ';
   const storeS=await session(store);
   await visible(p,storeS,'Urgent issue documents');
   await tab(p,storeS,'Count schedules');
@@ -370,6 +387,7 @@ async function realBrowser(){
   console.log('M4_BROWSER_STORE_SCOPED_READONLY_PASS');
 
   // Nancy writes a true site/category schedule via React/MUI + CSRF + PostgreSQL.
+  browserStage='NANCY_SCHEDULE_UI_WRITE';
   const nancyS=await session(nancy);
   await visible(p,nancyS,'Count schedules');
   await choose(p,nancyS,'Project','M4-ASSIGNED-'+key);
@@ -388,6 +406,7 @@ async function realBrowser(){
   console.log('M4_BROWSER_NANCY_REAL_SAVE_PASS');
 
   // PM09 Khaimook closes posted issue document follow-up from real React tab.
+  browserStage='PM09_DOCUMENT_REVIEW';
   const pmS=await session(pm);
   await visible(p,pmS,'Urgent issue documents');
   await choose(p,pmS,'Project','M4-ASSIGNED-'+key);
@@ -401,6 +420,7 @@ async function realBrowser(){
   console.log('M4_BROWSER_PM09_KHAIMOOK_REAL_REVIEW_PASS');
 
   // SS13 Khaimook→Ben→Nancy actual source/actor stage transitions in browser.
+  browserStage='SS13_KHAIMOOK_STAGE';
   await tab(p,pmS,'Loss / damage / waste');
   await choose(p,pmS,'Project','M4-ASSIGNED-'+key);
   await input(p,pmS,'Case UUID',loss.caseId);
@@ -411,6 +431,7 @@ async function realBrowser(){
   await click(p,pmS,'Record independent operational decision');
   await visible(p,pmS,'Status: BEN_PENDING');
 
+  browserStage='SS13_BEN_STAGE';
   const benS=await session(ben);
   await visible(p,benS,'Loss / damage / waste');
   await choose(p,benS,'Project','M4-ASSIGNED-'+key);
@@ -421,6 +442,7 @@ async function realBrowser(){
   await click(p,benS,'Record independent operational decision');
   await visible(p,benS,'Status: NANCY_PENDING');
 
+  browserStage='SS13_NANCY_STAGE';
   await tab(p,nancyS,'Loss / damage / waste');
   await choose(p,nancyS,'Project','M4-ASSIGNED-'+key);
   await input(p,nancyS,'Case UUID',loss.caseId);
@@ -435,6 +457,7 @@ async function realBrowser(){
   console.log('M4_BROWSER_SS13_SEPARATE_ROLE_STAGE_NO_POST_PASS');
 
   // Actual unrelated-Project authenticated UI and protected API isolation.
+  browserStage='UNASSIGNED_PROJECT_SCOPE';
   const outsiderS=await session(outsider);
   await tab(p,outsiderS,'Count schedules');
   outsiderSession=outsiderS;
@@ -477,7 +500,8 @@ try{
  await realBrowser();
  console.log('M4_REAL_CHROMIUM_REAL_API_REAL_POSTGRES_SCOPED_PASS');
 }catch(error){
- console.error('M4_REAL_BROWSER_FOCUSED_FAILED: '+String(error?.message??error).slice(0,350));
+ console.error('M4_REAL_BROWSER_FOCUSED_FAILED_'+browserStage+': '+
+  String(error?.message??error).slice(0,280));
  process.exitCode=1;
 }finally{
  try{if(browser)await browser.stop();}finally{
