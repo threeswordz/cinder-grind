@@ -193,7 +193,7 @@ export function ProjectsPanel({
       projectCode: project.projectCode,
       projectName: project.projectName,
       customerId: project.customer.id,
-      statusDefinitionId: project.statusDefinition.id,
+      statusDefinitionId: project.statusDefinition?.id ?? '',
       contractValue: project.contractValue,
       location: project.location ?? '',
       description: project.description ?? '',
@@ -243,7 +243,7 @@ export function ProjectsPanel({
                 <div>
                   <Typography fontWeight={600}>{project.projectCode} · {project.projectName}</Typography>
                   <Typography color="text.secondary">
-                    {project.customer.customerName} · {project.statusDefinition.statusLabel} · {project.isActive ? 'Active' : 'Archived'}
+                    {project.customer.customerName} · {project.statusDefinition?.statusLabel ?? 'Status not assigned'} · {project.isActive ? 'Active' : 'Archived'}
                   </Typography>
                   <Typography variant="body2">
                     {project.plannedStartDate.slice(0, 10)} → {project.plannedCompletionDate.slice(0, 10)} · Contract <CurrencyLabel code={project.contractCurrencyCode} /> {project.contractValue}
