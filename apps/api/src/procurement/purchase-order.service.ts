@@ -605,6 +605,15 @@ export class PurchaseOrderService {
     data: {
       remarks?: string | null;
       revisionReason?: string | null;
+      deliveryLocation?: string | null;
+      deliveryContact?: string | null;
+      deliveryTerms?: string | null;
+      paymentTerms?: string | null;
+      creditTerms?: string | null;
+      discountAmount?: Prisma.Decimal | null;
+      freightAmount?: Prisma.Decimal | null;
+      additionalChargeAmount?: Prisma.Decimal | null;
+      vatRatePercent?: Prisma.Decimal | null;
     },
   ) {
     return this.prisma.$transaction(async (tx) => {
@@ -613,6 +622,12 @@ export class PurchaseOrderService {
         context.auth,
         orderId,
       );
+      if (data.vatRatePercent?.gt(100)) {
+        throw new UnprocessableEntityException({
+          code: 'PO_VAT_PERCENT_INVALID',
+          detail: 'VAT percentage must be between 0 and 100.',
+        });
+      }
       const updated = await tx.purchaseOrder.update({
         where: { id: current.id },
         data,
@@ -626,10 +641,28 @@ export class PurchaseOrderService {
           oldValues: {
             remarks: current.remarks,
             revisionReason: current.revisionReason,
+            deliveryLocation: current.deliveryLocation,
+            deliveryContact: current.deliveryContact,
+            deliveryTerms: current.deliveryTerms,
+            paymentTerms: current.paymentTerms,
+            creditTerms: current.creditTerms,
+            discountAmount: current.discountAmount,
+            freightAmount: current.freightAmount,
+            additionalChargeAmount: current.additionalChargeAmount,
+            vatRatePercent: current.vatRatePercent,
           },
           newValues: {
             remarks: updated.remarks,
             revisionReason: updated.revisionReason,
+            deliveryLocation: updated.deliveryLocation,
+            deliveryContact: updated.deliveryContact,
+            deliveryTerms: updated.deliveryTerms,
+            paymentTerms: updated.paymentTerms,
+            creditTerms: updated.creditTerms,
+            discountAmount: updated.discountAmount,
+            freightAmount: updated.freightAmount,
+            additionalChargeAmount: updated.additionalChargeAmount,
+            vatRatePercent: updated.vatRatePercent,
           },
         },
         tx,
@@ -853,6 +886,20 @@ export class PurchaseOrderService {
             code: 'PO_NOT_LATEST_REVISION',
             detail:
               'Only the latest Purchase Order revision can be submitted.',
+          });
+        }
+
+        // PUR04: a nominal discount cannot exceed the authoritative PO
+        // line subtotal. This does not implement PUR01 quote-count admission:
+        // legacy NULL commercial fields remain UNKNOWN, not zero.
+        const grossLineTotal = order.lines.reduce(
+          (sum, line) => sum.plus(line.amount),
+          new Prisma.Decimal(0),
+        );
+        if (order.discountAmount && order.discountAmount.gt(grossLineTotal)) {
+          throw new UnprocessableEntityException({
+            code: 'PO_DISCOUNT_EXCEEDS_SUBTOTAL',
+            detail: 'PO header discount cannot exceed the line subtotal.',
           });
         }
 
@@ -1394,6 +1441,15 @@ export class PurchaseOrderService {
             previousRevisionId: source.id,
             revisionReason: revisionReason ?? null,
             remarks: source.remarks,
+            deliveryLocation: source.deliveryLocation,
+            deliveryContact: source.deliveryContact,
+            deliveryTerms: source.deliveryTerms,
+            paymentTerms: source.paymentTerms,
+            creditTerms: source.creditTerms,
+            discountAmount: source.discountAmount,
+            freightAmount: source.freightAmount,
+            additionalChargeAmount: source.additionalChargeAmount,
+            vatRatePercent: source.vatRatePercent,
             createdByUserId: context.auth.userId,
           },
         });
