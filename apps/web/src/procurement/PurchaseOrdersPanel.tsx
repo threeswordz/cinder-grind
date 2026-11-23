@@ -262,7 +262,13 @@ export function PurchaseOrdersPanel({ permissions, initialProjectId, initialOrde
       const objectUrl = URL.createObjectURL(blob);
       const element = document.createElement('a');
       element.href = objectUrl;
-      element.download = fileName ?? 'approved-purchase-order.pdf';
+      // The API's Content-Disposition is not necessarily CORS-exposed.
+      // Use the already scoped immutable PO display as deterministic fallback.
+      const selected = detail.data?.data;
+      const stem = selected?.displayNumber ?? selected?.poNumber ?? 'approved-purchase-order';
+      const revisionSuffix = selected?.revisionNo
+        ? '-rev' + String(selected.revisionNo).padStart(2, '0') : '';
+      element.download = fileName ?? stem + revisionSuffix + '.pdf';
       document.body.appendChild(element);
       element.click();
       element.remove();
