@@ -32,7 +32,7 @@ export type ProjectRecord = {
     statusCode: string;
     statusLabel: string;
     isActive: boolean;
-  };
+  } | null;
 };
 
 export type ProjectMember = {
