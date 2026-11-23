@@ -21,11 +21,11 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: ${{ github.sha }}
-          fetch-depth: 2
+          fetch-depth: 0
       - name: Assert only this workflow differs from the exact Draft integration
         run: |
-          test "$(git rev-parse HEAD^)" = "$M4_REVIEWED_INTEGRATED_SHA"
-          test "$(git diff --name-only HEAD^ HEAD)" = ".github/workflows/m4-abcd-integrated-compat-once.yml"
+          test "$(git merge-base HEAD "$M4_REVIEWED_INTEGRATED_SHA")" = "$M4_REVIEWED_INTEGRATED_SHA"
+          test "$(git diff --name-only "$M4_REVIEWED_INTEGRATED_SHA" HEAD)" = ".github/workflows/m4-abcd-integrated-compat-once.yml"
       - name: Set up pnpm
         uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
         with:
