@@ -116,8 +116,8 @@ export class StockMinimumService {
       });
       if (!material) continue;
       const uom = await this.prisma.unitOfMeasure.findFirst({
-        where: { id: policy.uomId, companyId: auth.companyId, isActive: true },
-        select: { uomCode: true },
+        where: { id: policy.uomId, companyId: auth.companyId },
+        select: { uomCode: true, isActive: true },
       });
       if (!uom) continue;
       const balance = await this.quantities.available(this.prisma, {
@@ -128,9 +128,9 @@ export class StockMinimumService {
       // A historical threshold must not silently compare a retired purchase UOM
       // with a newly activated canonical stock UOM. It requires fresh PM setup.
       const canonical = await trackedCanonicalBasis(this.prisma, auth.companyId, policy.materialId);
-      const configurationStale = canonical
+      const configurationStale = !uom.isActive || (canonical
         ? canonical.stockUomId !== policy.uomId
-        : material.defaultUomId !== policy.uomId;
+        : material.defaultUomId !== policy.uomId);
       const belowMinimum = !configurationStale && policy.status === 'ACTIVE' &&
         balance.available.lessThan(minimum);
       alerts.push({
