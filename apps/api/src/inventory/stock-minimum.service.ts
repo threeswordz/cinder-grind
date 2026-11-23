@@ -168,6 +168,8 @@ export class StockMinimumService {
       if ((canonical && canonical.stockUomId !== body.uomId) ||
           (!canonical && material.defaultUomId !== body.uomId))
         return invalid('STOCK_MINIMUM_STOCK_UOM_REQUIRED');
+      if (canonical && new Prisma.Decimal(body.minimumQuantity).decimalPlaces() > canonical.stockPrecision)
+        return invalid('STOCK_MINIMUM_STOCK_PRECISION_EXCEEDED');
 
       // Policy lock is separate from stock effects, so alert setup cannot post stock.
       await tx.$executeRawUnsafe('SELECT pg_advisory_xact_lock(hashtext($1))',
