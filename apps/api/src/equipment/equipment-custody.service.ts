@@ -97,9 +97,10 @@ export class EquipmentCustodyService {
         'SELECT id, equipment_code, is_active, operational_status FROM equipment WHERE id=$1::uuid AND company_id=$2::uuid FOR UPDATE',
         input.equipmentId, auth.companyId,
       );
-      if (!equipment.length) throw new NotFoundException({code:'EQUIPMENT_NOT_FOUND',detail:'Equipment not found in Company.'});
-      if (!equipment[0].is_active || equipment[0].operational_status !== 'AVAILABLE' ||
-          !/^CG[0-9]{5}$/.test(equipment[0].equipment_code)) {
+      const selectedEquipment = equipment[0];
+      if (!selectedEquipment) throw new NotFoundException({code:'EQUIPMENT_NOT_FOUND',detail:'Equipment not found in Company.'});
+      if (!selectedEquipment.is_active || selectedEquipment.operational_status !== 'AVAILABLE' ||
+          !/^CG[0-9]{5}$/.test(selectedEquipment.equipment_code)) {
         conflict('EQUIPMENT_CUSTODY_NOT_ELIGIBLE', 'An active, available CG##### Equipment record is required.');
       }
       const open = await tx.$queryRawUnsafe<{id:string}[]>(
@@ -128,9 +129,11 @@ export class EquipmentCustodyService {
         auth.companyId,input.equipmentId,input.projectId,input.borrowerEmployeeId,
         input.siteLabel,input.issuedOn,input.dueOn,input.conditionOut,auth.userId,
       );
-      await this.audit.record({...context,entityType:'EQUIPMENT_CUSTODY',entityId:inserted[0].id,action:'CHECKOUT',
+      const createdLoan = inserted[0];
+      if (!createdLoan) conflict('EQUIPMENT_CUSTODY_INSERT_FAILED', 'Loan insertion returned no record.');
+      await this.audit.record({...context,entityType:'EQUIPMENT_CUSTODY',entityId:createdLoan.id,action:'CHECKOUT',
         newValues:{...input, issuedByUserId:auth.userId}},tx);
-      return { id: inserted[0].id };
+      return { id: createdLoan.id };
     });
   }
 
@@ -141,14 +144,17 @@ export class EquipmentCustodyService {
       const rows = await tx.$queryRawUnsafe<{id:string;equipment_id:string;project_id:string;issued_on:Date;returned_on:Date|null}[]>(
         'SELECT id,equipment_id,project_id,issued_on,returned_on FROM equipment_custody_loans ' +
         'WHERE id=$1::uuid AND company_id=$2::uuid',id,context.auth.companyId);
-      if (!rows.length) throw new NotFoundException({code:'EQUIPMENT_CUSTODY_NOT_FOUND',detail:'Loan not found in Company.'});
-      await this.access.assertAccess(context.auth,rows[0].project_id,tx);
+      const existingLoan = rows[0];
+      if (!existingLoan) throw new NotFoundException({code:'EQUIPMENT_CUSTODY_NOT_FOUND',detail:'Loan not found in Company.'});
+      await this.access.assertAccess(context.auth,existingLoan.project_id,tx);
       // Same lock order as checkout/assignment guards; re-read after acquiring it.
-      await tx.$queryRawUnsafe('SELECT id FROM equipment WHERE id=$1::uuid FOR UPDATE', rows[0].equipment_id);
+      await tx.$queryRawUnsafe('SELECT id FROM equipment WHERE id=$1::uuid FOR UPDATE', existingLoan.equipment_id);
       const locked = await tx.$queryRawUnsafe<{returned_on:Date|null;issued_on:Date}[]>(
         'SELECT returned_on,issued_on FROM equipment_custody_loans WHERE id=$1::uuid FOR UPDATE',id);
-      if (locked[0].returned_on) conflict('EQUIPMENT_CUSTODY_ALREADY_RETURNED','A loan can only be returned once.');
-      if (input.returnedOn < locked[0].issued_on) invalid('returnedOn','Return date cannot predate issue date.');
+      const lockedLoan = locked[0];
+      if (!lockedLoan) throw new NotFoundException({code:'EQUIPMENT_CUSTODY_NOT_FOUND',detail:'Loan not found in Company.'});
+      if (lockedLoan.returned_on) conflict('EQUIPMENT_CUSTODY_ALREADY_RETURNED','A loan can only be returned once.');
+      if (input.returnedOn < lockedLoan.issued_on) invalid('returnedOn','Return date cannot predate issue date.');
       const updated = await tx.$queryRawUnsafe<{id:string}[]>(
         'UPDATE equipment_custody_loans SET returned_on=$2::date,condition_in=$3,returned_by_user_id=$4::uuid,updated_at=NOW() ' +
         'WHERE id=$1::uuid AND returned_on IS NULL RETURNING id',
