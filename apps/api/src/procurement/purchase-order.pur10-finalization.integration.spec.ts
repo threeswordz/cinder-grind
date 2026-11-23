@@ -309,6 +309,18 @@ test('PUR10 native: real approved PO, independent named Jai/Khaimook/Ben, atomic
       roleCodes:['PROJECT_MANAGER'],
       permissions:['procurement.po.view','projects.access_all'],
     };
+    const allProjectsPermission=await prisma.permission.upsert({where:{
+      permissionCode:'projects.access_all',
+    },create:{
+      permissionCode:'projects.access_all',moduleCode:'PROJECTS',
+      description:'Synthetic scoped test capability',
+    },update:{}});
+    const temporarilyGranted=await prisma.rolePermission.create({data:{
+      roleId:pmRole.id,permissionId:allProjectsPermission.id,
+    }});
+    assert.equal((await cases.read(wrongScopeAuth,approvedOriginal.id)).case?.status,
+      'BEN_APPROVED');
+    await prisma.rolePermission.delete({where:{id:temporarilyGranted.id}});
     await assert.rejects(
       ()=>cases.read(wrongScopeAuth,approvedOriginal.id),
       (e:unknown)=>e instanceof ForbiddenException &&
@@ -373,6 +385,13 @@ test('PUR10 native: real approved PO, independent named Jai/Khaimook/Ben, atomic
       (e:unknown)=>e instanceof ForbiddenException || e instanceof ConflictException,
     );
     await prisma.role.update({where:{id:benRole.id},data:{isActive:true}});
+    await prisma.role.update({where:{id:pmRole.id},data:{isActive:false}});
+    await assert.rejects(
+      ()=>cases.finalize({auth:benAuth},approvedOriginal.id,3,
+        approvedCase.expectedPreviousEventId,finalArgs),
+      (e:unknown)=>e instanceof ConflictException,
+    );
+    await prisma.role.update({where:{id:pmRole.id},data:{isActive:true}});
     const cancelPermission=await prisma.permission.findUniqueOrThrow({where:{
       permissionCode:'procurement.po.cancel',
     }});
