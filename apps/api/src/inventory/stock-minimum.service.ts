@@ -8,6 +8,9 @@ import { InventoryQuantityService } from './inventory-quantity.service';
 import { StockCountService } from './stock-count.service';
 import { trackedCanonicalBasis } from './material-uom-stock-dimension';
 import {
+  approvedPlanStartWindow, dayPlus, thailandBusinessDate,
+} from './approved-plan-start-reminder';
+import {
   replayStockMinimums, stockMinimumInput, STOCK_MINIMUM_ACTION, STOCK_MINIMUM_ENTITY,
 } from './stock-minimum-contract';
 
@@ -145,6 +148,100 @@ export class StockMinimumService {
     return { projectId, warehouseId, warehouseCode: warehouse.warehouseCode,
       warehouseName: warehouse.warehouseName, alerts, advisoryOnly: true,
       approvedPlanDemandAlertsIncluded: false, externalNotificationsSent: false };
+  }
+
+  /**
+   * Actual approved material-plan windows only; no invented daily requirement,
+   * supplier due date, future stock credit, reservation or procurement effect.
+   * Each plan contributes its LATEST approved revision (never drafts).
+   */
+  async planStarts(supplied: AuthenticatedUserContext, projectId: string,
+    warehouseId: string, at = new Date()) {
+    const auth = await this.liveActor(supplied, this.prisma, false);
+    await this.site(auth, projectId, warehouseId, this.prisma);
+    const today = thailandBusinessDate(at);
+    const dateFrom = dayPlus(today, 0);
+    const dateThrough = dayPlus(today, 14);
+    const plans = await this.prisma.materialUsagePlan.findMany({
+      where: {
+        companyId: auth.companyId, projectId, warehouseId,
+        revisions: { some: { status: 'APPROVED',
+          validFrom: { gte: dateFrom, lte: dateThrough } } },
+      },
+      select: {
+        id: true, workPackageCode: true,
+        revisions: {
+          where: { status: 'APPROVED' },
+          orderBy: { revisionNo: 'desc' }, take: 1,
+          select: {
+            id: true, revisionNo: true, validFrom: true, validTo: true,
+            lines: {
+              select: {
+                id: true, materialId: true, uomId: true, quantity: true,
+                material: { select: { companyId: true, isActive: true,
+                  materialCode: true, materialName: true } },
+                uom: { select: { companyId: true, isActive: true, uomCode: true } },
+              },
+            },
+          },
+        },
+      },
+      orderBy: { id: 'asc' },
+      take: 201,
+    });
+    // Never silently truncate scope evidence and imply "no pending demand".
+    if (plans.length > 200) return conflict('SS14_PLAN_ALERT_PAGE_LIMIT');
+    const alerts: Array<{
+      planId: string; revisionId: string; revisionNo: number;
+      workPackageCode: string; validFrom: string; validTo: string;
+      lineId: string; materialId: string; materialCode: string; materialName: string;
+      quantity: string; uomId: string; uomCode: string;
+      sourceInactive: boolean; daysUntilStart: number;
+      window: 'DUE_TODAY' | 'WITHIN_7_DAYS' | 'WITHIN_14_DAYS';
+      quantityBasis: 'APPROVED_PLAN_ENTERED_UOM_ONLY';
+    }> = [];
+    for (const plan of plans) {
+      const revision = plan.revisions[0];
+      if (!revision) continue;
+      const validFrom = revision.validFrom.toISOString().slice(0, 10);
+      const validTo = revision.validTo.toISOString().slice(0, 10);
+      if (validTo < validFrom) return conflict('SS14_APPROVED_PLAN_DATES_INVALID');
+      const window = approvedPlanStartWindow(validFrom, today);
+      if (!window) continue;
+      for (const line of revision.lines) {
+        // An improperly scoped material/UOM must never leak even as a reminder.
+        if (line.material.companyId !== auth.companyId ||
+            line.uom.companyId !== auth.companyId) {
+          return conflict('SS14_APPROVED_PLAN_CROSS_COMPANY_SOURCE');
+        }
+        alerts.push({
+          planId: plan.id, revisionId: revision.id,
+          revisionNo: revision.revisionNo, workPackageCode: plan.workPackageCode,
+          validFrom, validTo, lineId: line.id,
+          materialId: line.materialId, materialCode: line.material.materialCode,
+          materialName: line.material.materialName,
+          quantity: line.quantity.toFixed(4), uomId: line.uomId,
+          uomCode: line.uom.uomCode,
+          sourceInactive: !line.material.isActive || !line.uom.isActive,
+          daysUntilStart: window.daysUntilStart, window: window.window,
+          quantityBasis: 'APPROVED_PLAN_ENTERED_UOM_ONLY',
+        });
+      }
+    }
+    alerts.sort((a, b) => a.daysUntilStart - b.daysUntilStart ||
+      a.workPackageCode.localeCompare(b.workPackageCode) ||
+      a.materialCode.localeCompare(b.materialCode) ||
+      a.lineId.localeCompare(b.lineId));
+    return {
+      projectId, warehouseId, asOfThailandDate: today,
+      alerts, advisoryOnly: true,
+      approvedPlanStartRemindersIncluded: true,
+      dayByDayDemandScheduleIncluded: false,
+      supplierDueOrLateIndicatorsIncluded: false,
+      availabilityOrShortageComputed: false,
+      externalNotificationsSent: false,
+      stockEffect: false, financeEffect: false,
+    };
   }
 
   async set(context: Context, projectId: string, warehouseId: string, input: unknown,
