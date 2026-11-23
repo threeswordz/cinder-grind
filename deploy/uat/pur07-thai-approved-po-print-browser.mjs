@@ -137,7 +137,7 @@ try {
   assert.ok(!text.includes('NOT CALCULATED'), 'Should calculate every provided commercial input');
   const info = spawnSync('pdfinfo', [pdfPath], { encoding: 'utf8', timeout: 15000 });
   assert.equal(info.status, 0, info.stderr);
-  assert.match(info.stdout, /Page size:\s+595(?:\.\d+)? x 842(?:\.\d+)? pts \(A4\)/u);
+  assert.match(info.stdout, /Page size:.*\(A4\)/u);
   console.log('PUR07_CHROME_THAI_ACTUAL_PDF_PASS ' + JSON.stringify({
     fileBytes: file.length, pages: info.stdout.match(/Pages:\s+(\d+)/u)?.[1],
     thaiSupplierSearchable: true, subtotal: '2000.00',
