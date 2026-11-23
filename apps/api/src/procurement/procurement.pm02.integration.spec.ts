@@ -300,6 +300,7 @@ test('PM02: mixed approval, immutable returned demand, and rejected-correction c
       { auth: jaiAuth }, rfq.id, supplier.id,
       { quotationDate: new Date(), supplierReference: 'PM02-Q-' + suffix },
     );
+    assert.equal(quote.currencyCode, 'THB');
     const quoteLine = await sourcing.upsertQuotationLine(
       { auth: jaiAuth }, quote.id, rfq.lines[0]!.id,
       { quantity: new Prisma.Decimal('1'), unitPrice: new Prisma.Decimal('125') },
@@ -316,6 +317,22 @@ test('PM02: mixed approval, immutable returned demand, and rejected-correction c
     );
     assert.equal(draftPo.lines.length, 1);
     assert.equal(draftPo.lines[0]?.purchaseRequestLineId, lineA.id);
+    // The new policy rejects implicit zero for unknown header commercial
+    // values; this is why newly created PO drafts require explicit input.
+    await assert.rejects(
+      () => purchaseOrders.submit({ auth: jaiAuth }, draftPo.id, poWorkflow.workflowCode),
+      (error: unknown) => error instanceof UnprocessableEntityException &&
+        typeof error.getResponse() === 'object' &&
+        (error.getResponse() as { code?: string }).code === 'PO_QUOTE_COMMERCIAL_BASIS_UNKNOWN',
+    );
+    // PUR01 commercial basis cannot be inferred from NULL. Maker enters
+    // known zero adjustments (and a known VAT rate) before submission.
+    await purchaseOrders.updateOrder({ auth: jaiAuth }, draftPo.id, {
+      discountAmount: new Prisma.Decimal(0),
+      freightAmount: new Prisma.Decimal(0),
+      additionalChargeAmount: new Prisma.Decimal(0),
+      vatRatePercent: new Prisma.Decimal(7),
+    });
     await purchaseOrders.submit({ auth: jaiAuth }, draftPo.id, poWorkflow.workflowCode);
     await assert.rejects(
       () => purchaseOrders.approve({ auth: jaiAuth }, draftPo.id, 'Self approval denied'),
@@ -445,8 +462,9 @@ test('PM02: mixed approval, immutable returned demand, and rejected-correction c
 
     // Adversarial fixture on disposable PG ONLY: simulate a buggy importer
     // attaching a returned line B to an otherwise authentic supplier award A.
-    // Public PO creation already rejects inactive demand; the new submission
-    // guard must also refuse a forged draft BEFORE any ApprovalInstance exists.
+    // Public PO creation already rejects inactive demand. This negative test
+    // proves the SQL-level boundary only; it must not claim a successful
+    // corruption-based exercise of the separate PO submission guard.
     const originalPoLine = await prisma.purchaseOrderLine.findFirstOrThrow({
       where: { purchaseOrderId: draftPo.id },
     });
@@ -460,8 +478,13 @@ test('PM02: mixed approval, immutable returned demand, and rejected-correction c
         createdByUserId: jai.id,
       },
     });
-    await prisma.purchaseOrderLine.create({
-      data: {
+    // The canonical PostgreSQL source-provenance trigger forbids the forged
+    // A-award/B-returned-line association itself. Assert that gate instead
+    // of expecting illegal fixture setup to succeed. There is no approved
+    // migration or test privilege bypass of this immutable source barrier.
+    await assert.rejects(
+      () => prisma.purchaseOrderLine.create({
+        data: {
         purchaseOrderId: forgedDraft.id,
         lineNo: 1,
         quotationAwardId: originalPoLine.quotationAwardId,
@@ -484,16 +507,15 @@ test('PM02: mixed approval, immutable returned demand, and rejected-correction c
         requiredOnSite: originalPoLine.requiredOnSite,
         expectedDelivery: originalPoLine.expectedDelivery,
         remarks: originalPoLine.remarks,
-      },
-    });
-    await assert.rejects(
-      () => purchaseOrders.submit(
-        { auth: jaiAuth }, forgedDraft.id, poWorkflow.workflowCode,
-      ),
-      (error: unknown) => error instanceof ConflictException &&
-        typeof error.getResponse() === 'object' &&
-        (error.getResponse() as { code?: string }).code === 'PO_SOURCE_DEMAND_INACTIVE',
+        },
+      }),
+      (error: unknown) =>
+        String(error).includes('Purchase Order source traceability is inconsistent with the selected award'),
     );
+    assert.equal(await prisma.purchaseOrderLine.count({
+      where: { purchaseOrderId: forgedDraft.id },
+    }), 0);
+    // With no valid lines, there is no possible forged PO submission.
     const blockedPo = await prisma.purchaseOrder.findUniqueOrThrow({
       where: { id: forgedDraft.id },
       select: { submittedAt: true, approvalInstanceId: true },

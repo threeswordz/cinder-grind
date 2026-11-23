@@ -63,7 +63,8 @@ type CommercialDraftKey =
   | 'discountAmount'
   | 'freightAmount'
   | 'additionalChargeAmount'
-  | 'vatRatePercent';
+  | 'vatRatePercent'
+  | 'supplierQuoteExceptionReason';
 
 const commercialHeaderFields: Array<{
   key: CommercialDraftKey;
@@ -79,6 +80,7 @@ const commercialHeaderFields: Array<{
   { key: 'freightAmount', label: 'Freight (THB)', numeric: true },
   { key: 'additionalChargeAmount', label: 'Additional charges (THB)', numeric: true },
   { key: 'vatRatePercent', label: 'VAT rate (%)', numeric: true },
+  { key: 'supplierQuoteExceptionReason', label: 'Special/sole supplier exception reason for Ben', numeric: false },
 ];
 
 const emptyCommercialDraft = (): Record<CommercialDraftKey, string> => ({
@@ -91,6 +93,7 @@ const emptyCommercialDraft = (): Record<CommercialDraftKey, string> => ({
   freightAmount: '',
   additionalChargeAmount: '',
   vatRatePercent: '',
+  supplierQuoteExceptionReason: '',
 });
 
 function message(error: unknown) {
@@ -320,6 +323,7 @@ export function PurchaseOrdersPanel({ permissions, initialProjectId, initialOrde
         freightAmount: commercialDraft.freightAmount.trim() || null,
         additionalChargeAmount: commercialDraft.additionalChargeAmount.trim() || null,
         vatRatePercent: commercialDraft.vatRatePercent.trim() || null,
+        supplierQuoteExceptionReason: commercialDraft.supplierQuoteExceptionReason.trim() || null,
       }),
     onSuccess: () => refreshOrder(),
   });
@@ -645,9 +649,12 @@ export function PurchaseOrdersPanel({ permissions, initialProjectId, initialOrde
                 />
                 <Typography variant="subtitle2">PUR04 · Delivery and commercial terms</Typography>
                 <Alert severity="info">
-                  Header commercial values are descriptive draft inputs until
-                  the separate PUR01 whole-PO quote-count gate is implemented.
-                  Blank amount fields mean unknown, not a certified zero.
+                  PUR01 compares the net whole-PO THB total after discount,
+                  freight and charges (excluding VAT): up to ฿10,000 requires
+                  one comparable supplier, up to ฿50,000 requires two, and
+                  above ฿50,000 requires three. A shortage needs a specific
+                  reason and independent Ben approval.
+                  Enter explicit zero values where applicable; blanks mean unknown.
                 </Alert>
                 <Box sx={{ display: 'grid', gridTemplateColumns: {
                   xs: '1fr', md: 'repeat(2, minmax(0, 1fr))',
