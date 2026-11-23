@@ -1,0 +1,37 @@
+# One-time new source syntax and contract check; no target runtime and no protected writes.
+name: M4 Eight Role New Source Only
+on:
+  push:
+    branches: ['test-m4-eight-role-node-once-20261124']
+    paths: ['.github/workflows/m4-eight-role-source-only-once.yml']
+permissions:
+  contents: read
+concurrency:
+  group: m4-eight-role-source-once-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  eight-role-source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      EXACT_TEST_SOURCE: ${{ github.sha }}
+    steps:
+      - name: Checkout exact eight-role operator
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: Confirm exact source
+        run: test "$(git rev-parse HEAD)" = "$EXACT_TEST_SOURCE"
+      - name: Install Node 24
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.21.0
+      - name: Syntax check source and unit contract
+        run: |
+          node --check deploy/uat/m4-eight-role-journeys-20261124.mjs
+          node --check deploy/uat/m4-eight-role-journeys-20261124.test.mjs
+      - name: New-only role/fixture/denial operator tests
+        run: node --test --test-concurrency=1 deploy/uat/m4-eight-role-journeys-20261124.test.mjs
+      - name: Seal disposable browser still not run
+        run: echo 'SOURCE_ONLY; no chromium/native PG/retained MKE_TCJ/human DEC-042, no full CI or Production'
