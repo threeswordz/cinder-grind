@@ -89,8 +89,11 @@ test('Actual CSV, document bytes and HR attachment are separate negative probes'
   }
   const readable=plannedChecks(c,'NANCY',['budget.customer.view','hr.documents.view',
     'projects.access_all','hr.bank.view']);
-  assert.ok(!readable.some(x=>x.name==='CLIENT_BOQ_CSV_EXPORT_DENIED'));
+  assert.ok(readable.some(x=>x.name==='CLIENT_BOQ_CSV_EXPORT_DENIED'));
   assert.ok(!readable.some(x=>x.name==='HR_ATTACHMENT_BYTES_DENIED'));
+  const full=plannedChecks(c,'NANCY',['budget.cost.full_view','budget.boq.view',
+    'budget.revision.view','budget.customer.view']);
+  assert.deepEqual(full.find(x=>x.name==='CLIENT_BOQ_CSV_AUTHORIZED').status,[200]);
   assert.deepEqual(readable.find(x=>x.name==='HR_BANK_PERMISSION').status,[200]);
 });
 test('No simulated PASS from forbidden, leaky, oversized or unexpected status',()=>{
@@ -110,4 +113,16 @@ test('Omitted synthetic evidence IDs do not generate counterfeit export/byte tes
   assert.ok(!names.includes('FOREIGN_DOCUMENT_BYTES_DENIED'));
   assert.ok(!names.includes('UNASSIGNED_PROJECT_DOCUMENT_BYTES_DENIED'));
   assert.ok(!names.includes('HR_ATTACHMENT_BYTES_DENIED'));
+});
+
+test('A separately provisioned disabled synthetic user cannot reuse persona credentials',()=>{
+  const c=fixture();
+  c.disabledActor={email:'disabled@example.invalid',password:'disposable-disabled-secret'};
+  validateFixture(c);
+  const conflict=fixture();
+  conflict.disabledActor={email:'NANCY@example.invalid',password:'disposable-disabled-secret'};
+  error(/INVALID_DISABLED_ACTOR/,()=>validateFixture(conflict));
+  const weak=fixture();
+  weak.disabledActor={email:'disabled@example.invalid',password:'short'};
+  error(/INVALID_DISABLED_ACTOR/,()=>validateFixture(weak));
 });
