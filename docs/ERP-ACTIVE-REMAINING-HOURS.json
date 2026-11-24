@@ -939,6 +939,46 @@
       "sourceSha": "e8c0b7775e7bde66679db70fb0af992a00ecf91a",
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261124-PUR08-14-013",
+      "date": "2026-11-24",
+      "packageId": null,
+      "scopeId": "PUR08_PUR14_INTEGRATION",
+      "kind": "NEW_HANDOVER_EVIDENCE_BINDING_DEFECT_DISCOVERED_AND_FIXED",
+      "beforeHours": null,
+      "afterHours": null,
+      "reductionHours": 0,
+      "scopeBeforeHours": 9,
+      "scopeAfterHours": 9,
+      "scopeReductionHours": 0,
+      "newlyIdentifiedScopeHours": 1,
+      "verifiedCompletedScopeHours": 1,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/pull/440",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45388148255"
+      ],
+      "basis": "Builder preflight identified separate UUID was insufficient: unrelated Project document or renamed identical condition photo could be accepted. Fixed exact original Receiving Delivery link and distinct checksum, UI guidance, pure and real native upload negatives; successful workflow-only-child PG17.11/API/React/pure/native run. New defect +1h provisional scope, verified fix -1h, net zero; no duplicate credit for earlier signed return or browser. No formal acceptance.",
+      "sourceSha": "f1af4265c071b5c0988d87ef87be6ee2c810eaac",
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261124-M4-01-002",
+      "date": "2026-11-24",
+      "packageId": "M4-01",
+      "kind": "TEN_HISTORICAL_RUNS_EXACT_BLOB_REUSE_AND_GAP_TRIAGE",
+      "beforeHours": 30,
+      "afterHours": 29,
+      "reductionHours": 1,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/blob/docs-erp-deadline-first-1500h-20261124/docs/M4-2026-11-24-PRIOR-EVIDENCE-REUSE-AND-GAPS.md",
+        "https://github.com/threeswordz/cinder-grind/blob/docs-erp-deadline-first-1500h-20261124/docs/M4-2026-11-24-PR440-EXACT-MAIN-DEC022-HANDOFF.md"
+      ],
+      "basis": "Verified 10 actual historical Actions terminal results (9 success, 1 failure), exact run heads and scoped Git tree blob matches/changes for PM02, FM01/BEN04/PM16, PUR01/04/12. Identified failed PUR12 static check, later actual native SQL proof, changed PO shared paths, unchanged site browser and service paths, absent earlier native test. Removes an estimated 1h of future evidence lookup/reclassification, not independent review or acceptance, distinct from earlier 112-ID initial triage. No full CI or historical suite replay.",
+      "sourceSha": "f1af4265c071b5c0988d87ef87be6ee2c810eaac",
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -950,17 +990,17 @@
       ],
       "hours": 9,
       "budgetAllocation": "NEW_EXPLICIT_M4_ADDITIONAL_SCOPE; NOT SILENTLY SUBTRACTED_FROM_M4_01/M4_08",
-      "sourceStatus": "DAMAGED_SIGNED_CUSTODY_ONLY_NATIVE_AND_AUTHENTICATED_CHROME_PASS;REPLACEMENT_AND_REVERSAL_WARNING_PASS;NON_DAMAGED_CLAIM_ONLY;FINANCE_CREDIT_SEPARATE",
+      "sourceStatus": "SIGNED_DAMAGED_CUSTODY_NATIVE_EXACT_DELIVERY_LINK_AND_DISTINCT_CHECKSUM_PASS;PRIOR_CHROME_HISTORICAL;FINANCE_CREDIT_SEPARATE",
       "remaining": "9h low-confidence remaining future supplier workflow and assurance work: exact stacked integration source/DEC-022 independent review; retained named eight-role MKE/TCJ Company/Project permission proof and UAT; posted-stock supplier return requires separately authorized canonical stock reversal, no duplicate stock debit; any real supplier credit/AP adjustment is independent Porn-maker/Nancy-checker Finance source (GL06), not automated; SHORT/WRONG_ITEM/EXCESS remain evidence-only, quantitative material/UOM/PO-line posting attribution not approved. Owner release CI/merge/Production authorizations separate. Native and real Chrome signed DAMAGED custody-only proofs do not count as human UAT.",
-      "evidence": "https://github.com/threeswordz/cinder-grind/actions/runs/45386319537",
+      "evidence": "https://github.com/threeswordz/cinder-grind/actions/runs/45388148255",
       "stage": "M4",
-      "grossPreImplementationEstimateHours": 50,
-      "estimatedReductionFromNewSourceHours": 41,
+      "grossPreImplementationEstimateHours": 51,
+      "estimatedReductionFromNewSourceHours": 42,
       "confidence": "LOW",
       "estimateKind": "NEWLY_DISCOVERED_MANDATORY_SCOPE_PRICE_NOT_A_TIMESHEET"
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1850,
-  "currentRollingTotalSemantics": "1850h provisional future work = 1847h original current 60-package baseline minus 2h M4-01 triage, minus 2h M4-06 approved PDF/evidence guards, minus 2h M4-08 combined integration + 177-path independent-review preparation, plus 9h separately priced mandatory PUR08/PUR14 remaining after signed custody and Finance/non-DAMAGED policy source verified. Not actual worker timesheet, retained eight-person UAT or formal package completion. Protected main unchanged, no full release CI/approval/Production. 31 Dec 2026 full 112-ID eight-role Production feasibility RED."
+  "currentRollingTotalAfterPricedGapsHours": 1849,
+  "currentRollingTotalSemantics": "1849h provisional future work = 1847h original baseline minus 3h M4-01, minus 2h M4-06, minus 2h M4-08, plus 9h mandatory supplier scope (new evidence-binding defect +1h and verified fix -1h net zero). Not actual labor or formal acceptance; full 112-ID eight-role Production deadline RED."
 }
