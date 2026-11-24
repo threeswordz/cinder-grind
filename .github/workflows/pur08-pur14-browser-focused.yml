@@ -9,6 +9,7 @@ on:
       - 'apps/web/src/procurement/SupplierDeliveryCasePanel.tsx'
       - 'apps/web/src/inventory/ReceivingPanel.tsx'
       - 'apps/api/src/procurement/supplier-delivery-*'
+      - 'apps/api/src/inventory/receiving-test-fixture.ts'
 permissions:
   contents: read
 concurrency:
