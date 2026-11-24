@@ -232,7 +232,7 @@ export function SupplierDeliveryCasePanel({ orderId, permissions, roleCodes, pre
                   <Alert severity="warning">
                     Only checked DAMAGED units that were excluded from the good-quantity GR
                     can be returned through custody-only evidence. The exact rejected quantity,
-                    original line, a separate uploaded signed handover document, named supplier
+                    original line, a separate signed handover document uploaded under that original Receiving Delivery (not a duplicate condition photo), named supplier
                     signatory and Store attestation are mandatory. This never reduces posted
                     warehouse stock or creates a credit note.
                   </Alert>
