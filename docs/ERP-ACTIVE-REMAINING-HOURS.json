@@ -1017,6 +1017,46 @@
       "afterHours": 8,
       "reductionHours": 1,
       "basis": "Existing historical PUR04/PUR05 proof had changed PO service and revision-test blobs. The genuinely new native rollback test runs through the affected legitimate original and revised commercial PO approvals on exact current source; logs M4_PUR05_NEW_REVISION_REQUIRES_NEW_APPROVAL_AND_DISTINCT_BEN_ACTION_PASS and M4_PUR04_ACTUAL_POSTGRES17_REVISION_COMPANY_PROJECT_SCOPED_PASS. This removes an estimated 1h of remaining changed-source commercial revision validation, separate from PM02 guard/rollback work. No redundant separate historical test replay, retained UAT, formal acceptance or release."
+    },
+    {
+      "date": "2026-11-24",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/pull/442",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45398941022",
+        "https://github.com/threeswordz/cinder-grind/blob/docs-erp-deadline-first-1500h-20261124/docs/M4-2026-11-24-PR442-REVIEW-DELTA.md"
+      ],
+      "sourceSha": "1f8c8cdb34ccb8ae6f4e47897bfd59e303de9929",
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL",
+      "newlyIdentifiedScopeHours": 1,
+      "verifiedCompletedScopeHours": 2,
+      "reductionHours": 1,
+      "id": "ERP-PROG-20261124-M4-04-001",
+      "packageId": "M4-04",
+      "kind": "FINAL_APPROVAL_QUOTE_POLICY_ATOMIC_AUDIT_AND_NATIVE_EVIDENCE",
+      "beforeHours": 8,
+      "afterHours": 7,
+      "basis": "New final decision evidence gap +1h: previous code revalidated PUR01 counts on final approval but did not preserve exact final decision basis (only submit snapshot). Added atomic final quote-policy audit with actor, instance, revision, scoped source, THB net/required/comparable counts and exception; fixed +1h/−1h. Existing remaining changed-source native PUR01 acceptance evidence reduced by 1h after successful run 45398941022, including shortage exception, maker/delegate denials and exact final audit with independent Ben. No retained UAT or independent approval."
+    },
+    {
+      "date": "2026-11-24",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/pull/442",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45398941022",
+        "https://github.com/threeswordz/cinder-grind/blob/docs-erp-deadline-first-1500h-20261124/docs/M4-2026-11-24-PR442-REVIEW-DELTA.md"
+      ],
+      "sourceSha": "1f8c8cdb34ccb8ae6f4e47897bfd59e303de9929",
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL",
+      "newlyIdentifiedScopeHours": 1,
+      "verifiedCompletedScopeHours": 2,
+      "reductionHours": 1,
+      "id": "ERP-PROG-20261124-M4-07-001",
+      "packageId": "M4-07",
+      "kind": "PO_NUMBER_SEQUENCE_ATOMIC_CREATION_AND_CURRENT_IDENTITY_PROOF",
+      "beforeHours": 6,
+      "afterHours": 5,
+      "basis": "New rejected-draft sequence allocation defect +1h, fix −1h: allocation now in same transaction as validated source and immutable PO identity, lines and audit. Actual MKE/TCJ native proof of duplicate award denial, simulated post-allocation audit failure rollback with no sequence consumption or partial PO, retry and immutable legacy/revision identity. Run 45398941022 SUCCESS. Reduces prior remaining changed-source PUR12 evidence work by 1h. No new month timezone policy, concurrent success proof, retained UAT or formal acceptance."
     }
   ],
   "unestimatedWork": [
@@ -1039,6 +1079,6 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1847,
-  "currentRollingTotalSemantics": "1847h provisional future work = 1847h baseline minus 3h M4-01, minus 1h M4-02, minus 1h M4-05, minus 2h M4-06, minus 2h M4-08, plus 9h mandatory supplier scope. New atomic approval defect +1h and verified correction -1h net zero; existing PM02/PUR04 evidence -2h. Not actual labor or formal acceptance; deadline RED."
+  "currentRollingTotalAfterPricedGapsHours": 1845,
+  "currentRollingTotalSemantics": "1845h provisional future work = 1847h baseline minus 3h M4-01, 1h M4-02, 1h M4-04, 1h M4-05, 2h M4-06, 1h M4-07, 2h M4-08, plus 9h supplier scope. Newly identified final audit and atomic number defects +2h, verified correction -2h; remaining PUR01/PUR12 source evidence -2h. Not logged labor or formal acceptance; deadline RED."
 }
