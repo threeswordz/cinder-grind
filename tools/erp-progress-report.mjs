@@ -39,6 +39,13 @@ for(const e of d.events){
 const all=[...records.values()];
 const remaining=all.reduce((a,p)=>a+p.remaining,0);
 const reduction=initial-remaining;
+if(remaining===0){
+ must(d.counts.officialPrototypeCompleted===d.counts.officialPrototypeTotal&&
+ d.counts.officialGoLiveCompleted===d.counts.officialGoLiveTotal &&
+ d.unestimatedWork.every(x=>x.hours!==null) &&
+ all.every(p=>p.remaining===0),
+ 'FULL_ERP_FINAL_GATE_NOT_ACCEPTED: 0h requires all package, prototype, GL and gap gates');
+}
 const stages=d.stageOrder.map(id=>{
  const items=all.filter(p=>p.stage===id);
  must(items.length>0,'Empty stage '+id);
