@@ -56,6 +56,9 @@ const {NestFactory}=apiRequire('@nestjs/core');
 const {AppModule}=apiRequire('./dist/app.module.js');
 const {PrismaService}=apiRequire('./dist/prisma/prisma.service.js');
 const {DocumentStorage}=apiRequire('./dist/documents/document-storage.js');
+const {BudgetService}=apiRequire('./dist/budget/budget.service.js');
+const {CustomerBoqService}=apiRequire('./dist/budget/customer-boq.service.js');
+const {Prisma}=apiRequire('@prisma/client');
 const {PasswordService}=apiRequire('./dist/auth/password.service.js');
 const {ProblemDetailsFilter}=apiRequire('./dist/common/problem-details.filter.js');
 const {securityHeadersMiddleware}=apiRequire('./dist/common/security-headers.js');
@@ -73,10 +76,11 @@ let app=null,web=null;
 let stage='INIT';
 const roleGrants={
   FINANCE_MANAGER:['projects.project.view','projects.access_all','budget.customer.view',
-    'budget.cost.full_view','budget.boq.view','budget.revision.view'],
+    'budget.cost.full_view','budget.boq.view','budget.revision.view','budget.customer.approve'],
   MANAGEMENT:['projects.project.view','projects.access_all','procurement.po.view',
-    'documents.document.view','budget.cost.full_view','budget.boq.view','budget.revision.view','budget.customer.view'],
-  PROJECT_MANAGER:['projects.project.view','projects.access_all','inventory.receipt.view'],
+    'documents.document.view','budget.cost.full_view','budget.boq.view','budget.revision.view',
+    'budget.customer.view','budget.customer.manage','budget.customer.submit'],
+  PROJECT_MANAGER:['projects.project.view','projects.access_all','inventory.receipt.view','budget.revision.approve'],
   STOREKEEPER:['projects.project.view','procurement.pr.view','documents.document.view'],
   PROCUREMENT_OFFICER:['projects.project.view','projects.access_all','procurement.po.view'],
   PROJECT_ENGINEER:['projects.project.view','site.daily_report.view'],
