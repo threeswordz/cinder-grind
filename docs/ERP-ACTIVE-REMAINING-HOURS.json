@@ -1393,6 +1393,26 @@
       "sourceSha": "fb208dc1e2d2764180e341a5f027bfd55a477c64",
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-08-009",
+      "date": "2026-11-25",
+      "packageId": "M4-08",
+      "kind": "PR450_SHORT_MAIN_PASS_CI451_FOCUSED_PASS_TRIAL_STARTED",
+      "beforeHours": 27,
+      "afterHours": 26,
+      "reductionHours": 1,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 1,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45450463925",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45450612840",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45450628566"
+      ],
+      "basis": "Exact main integration SUCCESS 14/14 and plan 5/5; logs prove MAIN_INTEGRATION_VERIFIED_REUSED_FULL_PR, exact tree, full PR 45440339597 attempt 2, trusted review, fresh build/audit/migration/API all PASS, fullSuiteExecutedOnMain:false. Provisional 1h remaining integration assurance eliminated, not logged labor or formal acceptance. CI451 reconciled focused SUCCESS 18/18 incl seven scheduler/contract cases, draft admission DRAFT_FOCUSED_ONLY; Owner expressly authorized recommended sequence including one full performance trial, failed-job rerun accepted. Trial not yet successful, no CI time savings or further forecast credit, no Codex request.",
+      "sourceSha": "fb208dc1e2d2764180e341a5f027bfd55a477c64",
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -1415,6 +1435,6 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1822,
+  "currentRollingTotalAfterPricedGapsHours": 1821,
   "currentRollingTotalSemantics": "1830h provisional future work = 1847h baseline minus 17h M4-01, 1h M4-02, 1h M4-03, 1h M4-04, 1h M4-05, 2h M4-06, 1h M4-07, 2h M4-08, plus 9h supplier scope. JAI-ASSET-01 canonical CG acquisition register and native proof eliminate 5h previously identified remaining scope. Not actual labor or formal acceptance; deadline RED."
 }
