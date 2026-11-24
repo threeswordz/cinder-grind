@@ -34,7 +34,7 @@ test('draft admission fails before install; final live identity follows all full
   assert.match(full, /permissions:\n  actions: read\n  contents: read\n  pull-requests: read\n/);
   assert.match(focused, /node --test deploy\/release-candidate\/ci-routing-contract.test.mjs deploy\/release-candidate\/ci-candidate-gate.test.mjs/);
   for (const command of ['pnpm install --frozen-lockfile', 'node --test deploy/release-candidate/*.test.mjs',
-    'deploy/release-candidate/rehearse.sh', 'deploy/release-candidate/verify-evidence.mjs']) assert.ok(full.includes(command), command);
+    'deploy/release-candidate/ci-parallel-rehearsals.mjs', 'deploy/release-candidate/verify-evidence.mjs']) assert.ok(full.includes(command), command);
 });
 
 test('focused branch excludes explicit full lane; no PR/main event or full check identity', () => {
@@ -52,4 +52,18 @@ test('focused branch excludes explicit full lane; no PR/main event or full check
 
 test('focused workflow keeps frozen dependencies and meaningful compile/schema checks', () => {
   for (const command of ['pnpm install --frozen-lockfile','pnpm prisma:generate','pnpm prisma:validate','pnpm typecheck','node --test src/role-ui/*.test.mjs']) assert.ok(focused.includes(command), command);
+});
+
+const parallel = readFileSync(new URL('./ci-parallel-rehearsals.mjs', import.meta.url), 'utf8');
+test('parallel rehearsal retains all eight original source and evidence pairs, full verifier and final gate', () => {
+  assert.match(full,/name: Rehearse all eight historical predecessors in two isolated lanes/);
+  assert.match(parallel,/deploy\/release-candidate\/rehearse.sh/);
+  assert.match(parallel,/worktree', 'add', '--detach'/);
+  assert.match(parallel,/worktree', 'remove', '--force'/);
+  for(const [sha,file] of [["65857a384005e1734028ffb6945b1077ed3449e5","/tmp/v1-0-e-rehearsal.json"],["fc52a867c96a8b3a369b480b9799bad1a5e9f399","/tmp/v1-3-customer-boq-rehearsal.json"],["e86ed846f30ac3feeb09f74ba9084571b9955520","/tmp/hr1-a-employee-rehearsal.json"],["3a5ae8a92083a2bd03f4159b1e84d0565e7e78ec","/tmp/material-request-rehearsal.json"],["34e022d5807d3e16458437a02ebba669ba838c6a","/tmp/material-plan-rehearsal.json"],["5209c30a1b7b282a603ba09d4a5bd82a700a183f","/tmp/material-plan-issue-rehearsal.json"],["d2b790801119fb1b5b4176ad416086ee7363d091","/tmp/receiving-rehearsal.json"],["59d67d1f2e54e6bfde51e4c5be336ea97906bf52","/tmp/material-uom-rehearsal.json"]]) {
+    assert.ok(parallel.includes(sha)); assert.ok(parallel.includes(file)); assert.ok(full.includes(file));
+  }
+  assert.match(full,/cache: pnpm\n          cache-dependency-path: pnpm-lock.yaml/);
+  assert.match(full,/run: pnpm install --frozen-lockfile/);
+  assert.match(full,/pnpm audit --prod/);
 });
