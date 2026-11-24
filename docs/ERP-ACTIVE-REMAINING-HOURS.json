@@ -799,6 +799,28 @@
       "sourceSha": "4a0197a1aa6f8d30099372aba50fa0e883526da8",
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261124-PUR08-14-010",
+      "date": "2026-11-24",
+      "packageId": null,
+      "scopeId": "PUR08_PUR14_INTEGRATION",
+      "kind": "VERIFIED_REAL_AUTH_CHROME_REPLACEMENT_GR_SOURCE_LINK_REESTIMATE",
+      "beforeHours": null,
+      "afterHours": null,
+      "reductionHours": 0,
+      "scopeBeforeHours": 18,
+      "scopeAfterHours": 16,
+      "scopeReductionHours": 2,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/pull/435",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45371800181",
+        "https://github.com/threeswordz/cinder-grind/commit/f4593664469e0e91d24c560865255196c6720168"
+      ],
+      "basis": "Focused actual real Chrome/React/MUI/NestJS/PostgreSQL 17.11 synthetic disposable Store Site → Khaimook PM REQUEST_REPLACEMENT → Jai claim → separately captured, Document-byte-verified, independently checked, approved posted canonical replacement GR → Store Site Chrome 3-field original receiving line/posted GR/GR item evidence link succeeded. Reused unchanged actual source services; verified exact original and replacement condition-photo documents and bytes, current PM approval session, authenticated cookie+CSRF+wrong Project negative, original audit separation, source-linked readback, no second stock transaction or supplier-case Finance/AP/payment effects. New-only focused #45371800181 OVERALL SUCCESS, exact browser script blob 511a72dc57f87abc006b3bef8855ce1c99a3e7be identical to isolated PR #435 head. Earlier first run failed on stale synthetic PM role snapshot; fixed without production role mutation. 2h provisional decrease in forward estimated remaining for previously unverified replacement-specific Chrome work; does not double count prior return-only Chrome, native positive, or negative source work. No actual logged labor, no retained human UAT, independent review or formally accepted M4 package.",
+      "sourceSha": "f4593664469e0e91d24c560865255196c6720168",
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -808,19 +830,19 @@
         "PUR08",
         "PUR14"
       ],
-      "hours": 18,
+      "hours": 16,
       "budgetAllocation": "NEW_EXPLICIT_M4_ADDITIONAL_SCOPE; NOT SILENTLY SUBTRACTED_FROM_M4_01/M4_08",
-      "sourceStatus": "DAMAGED_POSTED_REPLACEMENT_GR_PG17_POSITIVE_AND_NEGATIVE_PASS;NATIVE_ROLE_REVOCATION_PROJECT_COMPANY_CHECKS_PASS;NO_RETURN_STOCK_OR_FINANCE_POLICY",
-      "remaining": "18h low-confidence future work: physical supplier-return warehouse/quantity/stock-control rule and implementation without double deduction, Owner Finance choice credit note vs AP adjustment vs replacement-only resolution, SHORT/WRONG_ITEM/EXCESS attribution, authenticated browser for newly strengthened replacement step, retained real-person Company/Project UAT, independent DEC-022 source review, Owner #384 release/integration authorization. Positive DAMAGED posted GR and synthetic negative/revocation PG17 pass; no formal acceptance.",
-      "evidence": "https://github.com/threeswordz/cinder-grind/actions/runs/45370305802",
+      "sourceStatus": "DAMAGED_POSITIVE_NATIVE_AND_ROLE_NEGATIVE_PG17_PASS;REAL_AUTHENTICATED_CHROME_POSTED_REPLACEMENT_GR_PASS;PHYSICAL_RETURN_FINANCE_POLICY_OPEN",
+      "remaining": "16h low-confidence future work: Owner physical supplier-return stock/quantity ownership and credit-note/AP-adjustment vs replacement-only resolution policy, implementation without duplicate stock or Finance, SHORT/WRONG/EXCESS discrepancy allocation, retained MKE/TCJ eight-role authorization/UAT, independent DEC-022 exact integrated review, Owner #384 CI/merge/release signoff. DAMAGED posted-GR source and synthetic actual Chrome Store/PM/Jai replacement journey passing; no retained-user or formal gate acceptance.",
+      "evidence": "https://github.com/threeswordz/cinder-grind/actions/runs/45371800181",
       "stage": "M4",
       "grossPreImplementationEstimateHours": 50,
-      "estimatedReductionFromNewSourceHours": 32,
+      "estimatedReductionFromNewSourceHours": 34,
       "confidence": "LOW",
       "estimateKind": "NEWLY_DISCOVERED_MANDATORY_SCOPE_PRICE_NOT_A_TIMESHEET"
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1863,
-  "currentRollingTotalSemantics": "1863h estimated work still required = original 1847h current 60-package forecast - 2h M4-01 verified triage + 18h newly priced PUR08/PUR14 remaining after source, native posted-GR and native tenant/Project/evidence/actor negatives. Not actual worker-hours, no accepted M4 package or release gate. Original 1900h and unapproved 1500h optimization are separate; 31 Dec 2026 feasibility RED."
+  "currentRollingTotalAfterPricedGapsHours": 1861,
+  "currentRollingTotalSemantics": "1861h provisional forward work = original 1847h current 60-package estimate - 2h M4-01 verified triage + 16h explicitly priced mandatory PUR08/PUR14 still needed. Native positive and negative, scoped receipt provenance and synthetic Chrome replacement complete; no actual human timesheets, formal M4 acceptance or retained-user UAT. Historical 1900h and unapproved 1500h are separate; 31 Dec 2026 feasibility RED."
 }
