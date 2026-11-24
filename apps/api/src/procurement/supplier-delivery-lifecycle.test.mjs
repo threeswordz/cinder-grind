@@ -73,3 +73,9 @@ test('PUR14 Store may report source-backed discrepancy without supplier acknowle
  const reviewed=step(reported.case,'PM_REVIEW_DISCREPANCY',{actor:pm,pmDecision:'REQUEST_RETURN'});
  assert.equal(reviewed.case.stage,'PM_REVIEWED');
 });
+
+test('PUR08 does not permit delay/in-transit before an actual recorded acknowledgment',()=>{
+ err(()=>step(null,'REPORT_DELAY',{newSupplierExpectedDate:'2026-12-09'}),
+ 'PUR08_SUPPLIER_REVISED_DATE_EVIDENCE_REQUIRED');
+ err(()=>step(null,'CONFIRM_IN_TRANSIT'), 'PUR08_ACKNOWLEDGED_PO_AND_JAI_REQUIRED');
+});
