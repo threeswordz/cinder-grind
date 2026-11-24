@@ -733,6 +733,29 @@
       "sourceSha": "5bba976d090e4561b0ad45cc2f3e8a8b8cc906ca",
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261124-PUR08-14-007",
+      "date": "2026-11-24",
+      "packageId": null,
+      "kind": "VERIFIED_POSTED_REPLACEMENT_GR_PROVENANCE_SCOPE_REESTIMATE",
+      "beforeHours": null,
+      "afterHours": null,
+      "reductionHours": 0,
+      "scopeId": "PUR08_PUR14_INTEGRATION",
+      "scopeBeforeHours": 25,
+      "scopeAfterHours": 20,
+      "scopeReductionHours": 5,
+      "sourceSha": "b2a23a3bfbc93d1cb9c4d54b668e76629d4e6195",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/pull/433",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45356981100",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45357938853",
+        "https://github.com/threeswordz/cinder-grind/commit/b2a23a3bfbc93d1cb9c4d54b668e76629d4e6195"
+      ],
+      "basis": "Previously missing positive PUR14 supplier replacement GR item lineage is implemented in isolated stacked Draft #433: live actor/Company/Project/PO source gating, original CHECKED damaged delivery line and linked Document, auditable PM/Jai claim, different later checked receiving delivery with identical material/UOM/PO line and exact damaged quantity, genuine approved posted nonreversed canonical GR item; no additional stock/AP/Finance effects. Exact-source Prisma/API/React typecheck branch #45356981100 PASS; new disposable native PostgreSQL 17.11 actual posted-GR test in run #45357938853 PASS 1/1 although that overall run FAILS only at separate new Node strip-only pure-test compatibility step, subsequently corrected in source. Six source-bound policy groups passed V8 after TS type erasure; final native pure runner rerun pending. Estimate 5 fewer future engineering hours for implemented positive lineage and source/DB proof, not 5 actual worker hours or final acceptance. Full physical supplier return, exact finance policy, revoked actor comprehensive negatives, retained user UAT, independent review and Owner release approval remain.",
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -742,19 +765,19 @@
         "PUR08",
         "PUR14"
       ],
-      "hours": 25,
+      "hours": 20,
       "budgetAllocation": "NEW_EXPLICIT_M4_ADDITIONAL_SCOPE; NOT SILENTLY SUBTRACTED_FROM_M4_01/M4_08",
-      "sourceStatus": "REAL_HTTP_CHROME_STORE_PM_JAI_AND_DOCUMENT_BYTES_PASS;SYNTHETIC_ONLY;NATIVE_PG17_1_OF_1_PASS;FULL_UAT_AND_PHYSICAL_RETURN_FINANCE_POLICY_PENDING",
-      "remaining": "25h low-confidence future work for actual supplier physical return line quantities/stock effects and Finance credit governance (not the existing reported-only case), positive posted replacement GR line trace, real retained-user cross-Project role UAT, DEC-022 independent reviewer, Owner signoff and release integration.",
-      "evidence": "https://github.com/threeswordz/cinder-grind/actions/runs/45353333518",
+      "sourceStatus": "DAMAGED_POSTED_REPLACEMENT_GR_NATIVE_POSITIVE_1_OF_1_PASS;API_WEB_TS_PASS;STANDALONE_NODE_PURE_RUNNER_PENDING;NO_PHYSICAL_RETURN_STOCK_FINANCE_POLICY",
+      "remaining": "20h low-confidence future effort still needed: physical supplier-return warehouse and quantity/stock policy and its authorized implementation (no double deduction), Finance supplier credit note vs AP adjustment vs replacement-only Owner decision, unsupported SHORT/WRONG/EXCESS attribution, retained eight-role negative cross-Project UAT, independent DEC-022 exact source review, Owner #384 acceptance and release integration. DAMAGED source-linked posted-GR proof now implemented and real native PG17.11 positive journey 1/1 PASS; native pure test runner confirmation pending.",
+      "evidence": "https://github.com/threeswordz/cinder-grind/actions/runs/45357938853",
       "stage": "M4",
       "grossPreImplementationEstimateHours": 50,
-      "estimatedReductionFromNewSourceHours": 25,
+      "estimatedReductionFromNewSourceHours": 30,
       "confidence": "LOW",
       "estimateKind": "NEWLY_DISCOVERED_MANDATORY_SCOPE_PRICE_NOT_A_TIMESHEET"
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1870,
-  "currentRollingTotalSemantics": "1870h remaining provisional work = original 1847h baseline - 2h M4 triage + 25h distinct newly priced mandatory PUR08/14 after focused 7/7 pure, API/React TS, PG17 native, real authenticated scoped Chrome and Document byte proof. Not actual labor hours, real retained human UAT, accepted package or 31 Dec feasibility assurance."
+  "currentRollingTotalAfterPricedGapsHours": 1865,
+  "currentRollingTotalSemantics": "1865h remaining provisional forward-work forecast = 1847h current 60-package baseline - 2h M4 triage + 20h still needed separately priced mandatory PUR08/PUR14. Native PostgreSQL positive approved posted-GR damaged quantity and exact original discrepancy source verified; source branch b2a23a3bfbc93d1cb9c4d54b668e76629d4e6195, stacked Draft PR #433; no human timesheet, no package formal acceptance, no physical return/Finance authorization, no 31 December feasibility assurance."
 }
