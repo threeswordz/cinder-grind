@@ -167,9 +167,7 @@ test('PUR14 native positive: source damaged line -> Store/PM/Jai -> later approv
       candidate({ originalReceivingDeliveryLineId: replacement.lineId }) as never),
     'PUR14_REPLACEMENT_ORIGIN_OR_ITEM_MISMATCH');
     await expectCode(supplier.transition(ctx(store), f.po.id,
-      input('STORE_RECORD_REPLACEMENT_RECEIPT', 2, review.expectedPreviousEventId, {
-        ...candidate(),
-      }) as never),
+      candidate({ expectedVersion: 2, expectedPreviousEventId: review.expectedPreviousEventId }) as never),
     'SUPPLIER_CASE_STALE_EVENT');
 
     // Revocation MUST be rechecked inside the same serializable transaction,
