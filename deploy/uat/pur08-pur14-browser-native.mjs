@@ -128,6 +128,22 @@ async function run(){
  const {f,id:deliveryId,grId,docs}=await receivingProofFixture(db,app,true);
  assert.ok(grId&&docs.length>=1,'RECEIVING_POSTED_GR_AND_DOCUMENT_REQUIRED');
  const {store,jai,pm,outsider,po,project,company}=f;
+ // Actual separate uploaded source bytes for a Store-attested supplier-signed
+ // custody slip; the original photo may not stand in for outward handover.
+ const {DocumentTargetsService}=apiRequire('./dist/documents/document-targets.service.js');
+ const target=app.get(DocumentTargetsService);
+ const slipBytes=Buffer.from('%PDF-1.4\\nSigned supplier returned one damaged unit '+randomUUID()+'\\n');
+ const slip=await target.upload({auth:store.auth},project.id,'RECEIVING_DELIVERY',
+  deliveryId,f.documentType.id,{
+   originalname:'signed-outward-supplier-custody.pdf',mimetype:'application/pdf',
+   size:slipBytes.length,buffer:slipBytes,
+  });
+ const original=await db.receivingDeliveryLine.findFirstOrThrow({
+  where:{deliveryId},select:{id:true,observedQuantity:true,goodQuantity:true},
+ });
+ assert.equal(original.observedQuantity.minus(original.goodQuantity).toFixed(4),'1.0000');
+ const persistedSlip=await db.document.findUniqueOrThrow({where:{id:slip.id}});
+ assert.match(persistedSlip.checksum??'',/^[a-f0-9]{64}$/i);
  // The existing receiving fixture uses fixture-only labels as role codes. Convert
  // ONLY these newly created synthetic Company roles to the real policy roles.
  await db.role.update({where:{id:store.role.id},data:{roleCode:'STOREKEEPER'}});
@@ -269,6 +285,7 @@ async function run(){
   stage='STORE_REAL_RECEIVING_BROWSER_DISCREPANCY';
   const storeSid=await openStoreReceipt();
   await visible(protocol,storeSid,'Record source-linked evidence');
+  await input(protocol,storeSid,'Existing authorized Project Document UUID',docs[2].id);
   await input(protocol,storeSid,
    'Evidence notes (not a substitute for a real supplier acknowledgment)',
    'Damaged delivery seen and evidence uploaded on site');
@@ -304,17 +321,32 @@ async function run(){
   stage='STORE_REAL_CHROME_RETURN_REPORT_ONLY';
   const finalStore=await openStoreReceipt();
   await visible(protocol,finalStore,'CLAIM_RECORDED');
+  await visible(protocol,finalStore,'Unposted damaged quantity returned');
+  await input(protocol,finalStore,'Original damaged Receiving Delivery LINE UUID',original.id);
+  await input(protocol,finalStore,'Unposted damaged quantity returned','1.0000');
+  await input(protocol,finalStore,'Supplier signatory recorded on handover','Supplier receiver');
+  await select(protocol,finalStore,'Signed supplier handover confirmed by Store','YES');
+  await input(protocol,finalStore,'Existing authorized Project Document UUID',slip.id);
   await input(protocol,finalStore,
    'Evidence notes (not a substitute for a real supplier acknowledgment)',
-   'Actual physical outward supplier handover evidenced; financial credit remains separate');
+   'Signed outward handover of only one held damaged unit; no posted stock or Finance');
   await click(protocol,finalStore,'Record source-linked evidence');
   await visible(protocol,finalStore,'RETURN_DISPATCH_RECORDED');
+  await visible(protocol,finalStore,'Supplier signed-handover attested by operator: 1.0000');
 
   const logs=await db.auditLog.findMany({
    where:{companyId:company.id,entityType:'SUPPLIER_DELIVERY_CASE',entityId:po.id},
    select:{action:true,actorUserId:true},
   });
   assert.equal(logs.length,4,'Exactly four append-only case records');
+  const finalRead=await scoped(storeActor,url);
+  assert.equal(finalRead.status,200);
+  const finalCase=(await finalRead.json()).data;
+  assert.equal(finalCase.returnCustodyTrace?.quantity,'1.0000');
+  assert.equal(finalCase.returnCustodyTrace?.signedHandoverDocumentId,slip.id);
+  assert.equal(finalCase.returnCustodyTrace?.stockEffect,false);
+  assert.equal(finalCase.returnCustodyTrace?.financeEffect,false);
+  assert.equal(finalCase.financeResolution,'REPLACEMENT_ONLY_NO_AP_CREDIT');
   for(const [name,who] of [
    ['REPORT_DISCREPANCY',store],['PM_REVIEW_DISCREPANCY',pm],
    ['JAI_RECORD_CLAIM',jai],['STORE_RECORD_RETURN_DISPATCH',store]]){
@@ -326,7 +358,7 @@ async function run(){
   assert.equal(await db.payment.count({where:{companyId:company.id}}),initialPayments);
   assert.deepEqual(external,[],'No nonlocal browser requests');
   assert.deepEqual(jsErrors,[],'No unhandled UI JS exceptions');
-  console.log('PUR0814_REAL_CHROME_NEST_PG17_FOUR_ROLE_EVENTS_NO_SIDE_EFFECTS_PASS');
+  console.log('PUR0814_REAL_CHROME_PG17_SIGNED_DAMAGED_CUSTODY_RETURN_NO_STOCK_AP_PASS');
  }finally{
   protocol.listeners.delete(onBrowser);
   for(const ctx of contexts.reverse())

@@ -34,12 +34,21 @@ test('PUR14 Store→independent PM→Jai→Store replacement evidence never post
   err(()=>step(claim.case,'STORE_RECORD_REPLACEMENT_RECEIPT',{actor:store}),'PUR14_CANONICAL_REPLACEMENT_GR_REQUIRED');
   err(()=>step(claim.case,'STORE_RECORD_RETURN_DISPATCH',{actor:store}),'PUR14_STORE_RETURN_AFTER_AUTHORIZED_CLAIM_REQUIRED');
 });
-test('PUR14 return path does not infer supplier acceptance or refund',()=>{
+test('PUR14 return is DAMAGED-only; other discrepancy claims remain unresolved evidence',()=>{
   const ack=step(null,'ACKNOWLEDGE');
-  const discrep=step(ack.case,'REPORT_DISCREPANCY',{actor:store,discrepancyKind:'WRONG_ITEM'});
+  for(const discrepancyKind of ['SHORT','WRONG_ITEM','EXCESS']) {
+    const discrep=step(ack.case,'REPORT_DISCREPANCY',{actor:store,discrepancyKind});
+    const reviewed=step(discrep.case,'PM_REVIEW_DISCREPANCY',{actor:pm,pmDecision:'REQUEST_RETURN'});
+    const claim=step(reviewed.case,'JAI_RECORD_CLAIM');
+    err(()=>step(claim.case,'STORE_RECORD_RETURN_DISPATCH',{actor:store}),
+      'PUR14_RETURN_KIND_REQUIRES_ATTRIBUTION_POLICY');
+    assert.equal(claim.effect,'NO_PO_GR_STOCK_FINANCE_MUTATION');
+  }
+  const discrep=step(ack.case,'REPORT_DISCREPANCY',{actor:store,discrepancyKind:'DAMAGED'});
   const reviewed=step(discrep.case,'PM_REVIEW_DISCREPANCY',{actor:pm,pmDecision:'REQUEST_RETURN'});
   const claim=step(reviewed.case,'JAI_RECORD_CLAIM');
-  assert.equal(step(claim.case,'STORE_RECORD_RETURN_DISPATCH',{actor:store}).effect,'NO_PO_GR_STOCK_FINANCE_MUTATION');
+  assert.equal(step(claim.case,'STORE_RECORD_RETURN_DISPATCH',{actor:store}).effect,
+    'NO_PO_GR_STOCK_FINANCE_MUTATION');
 });
 test('PUR08/PUR14 fail closed for Company, Project, actor revocation, version, changed PO and missing evidence',()=>{
   const ack=step(null,'ACKNOWLEDGE');

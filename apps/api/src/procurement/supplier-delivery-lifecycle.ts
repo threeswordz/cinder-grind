@@ -174,6 +174,10 @@ export function planSupplierDeliveryTransition(input: SupplierDeliveryRequest) {
       state.pmDecision !== 'REQUEST_RETURN' || !state.jaiClaimerId ||
       actor.userId === state.jaiClaimerId)
       fail('PUR14_STORE_RETURN_AFTER_AUTHORIZED_CLAIM_REQUIRED');
+    // Owner-approved custody-only rule: SHORT, WRONG_ITEM and EXCESS remain
+    // traceable claims, not an inferred physical stock/Finance resolution.
+    if (state.discrepancyKind !== 'DAMAGED')
+      fail('PUR14_RETURN_KIND_REQUIRES_ATTRIBUTION_POLICY');
     state.stage = 'RETURN_DISPATCH_RECORDED';
   } else if (action === 'STORE_RECORD_REPLACEMENT_RECEIPT') {
     if (!canStore(actor) || from !== 'CLAIM_RECORDED' ||

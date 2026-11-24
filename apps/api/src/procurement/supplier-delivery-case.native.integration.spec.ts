@@ -224,17 +224,21 @@ test('PUR08/PUR14 native: scoped live actors, real PUR07 source, append-only cas
             recordedGoodsReceiptId:randomUUID(),
           }) as never),'SUPPLIER_CASE_ACTUAL_POSTED_GR_REQUIRED');
     } else {
-      const returned=await service.transition(ctx(store.auth),receiptPo.id,
+      // This historic fixture has no independently checked damaged receiving
+      // line or separately uploaded supplier-signed handover document. Under
+      // the Owner-confirmed policy it must remain a CLAIM, not become a
+      // falsely completed outward physical return.
+      await expectCode(service.transition(ctx(store.auth),receiptPo.id,
         input('STORE_RECORD_RETURN_DISPATCH',claimed.case.version,
-          claimed.expectedPreviousEventId) as never);
-      assert.equal(returned.case.stage,'RETURN_DISPATCH_RECORDED');
+          claimed.expectedPreviousEventId) as never),
+        'SUPPLIER_CASE_RETURN_SOURCE_AND_SIGNED_HANDOVER_REQUIRED');
     }
     await db.userSession.update({where:{id:store.session.id},data:{revokedAt:new Date()}});
     await expectCode(service.read(store.auth,receiptPo.id),
       'SUPPLIER_CASE_LIVE_EMPLOYEE_REQUIRED');
     assert.equal(await db.auditLog.count({
       where:{companyId:company.id,entityType:'SUPPLIER_DELIVERY_CASE',entityId:receiptPo.id},
-    }),review.pmDecision==='REQUEST_RETURN'?4:3);
+    }),3);
     assert.equal(await db.stockTransaction.count({where:{companyId:company.id}}),0);
     assert.equal(await db.supplierInvoice.count({where:{companyId:company.id}}),0);
     assert.equal(await db.payment.count({where:{companyId:company.id}}),0);

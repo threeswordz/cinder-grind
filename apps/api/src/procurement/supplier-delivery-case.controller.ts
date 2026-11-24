@@ -53,6 +53,7 @@ export class SupplierDeliveryCaseController {
       'note', 'recordedPoAcknowledgmentEventId', 'discrepancyKind',
       'pmDecision', 'recordedGoodsReceiptId', 'recordedGoodsReceiptItemId',
       'originalReceivingDeliveryLineId', 'newSupplierExpectedDate',
+      'returnQuantity', 'supplierSignatory', 'supplierSignatureConfirmed',
     ];
     if (Object.keys(x).some(key => !allow.includes(key)) ||
         !actions.includes(x.action as SupplierAction) ||
@@ -75,6 +76,17 @@ export class SupplierDeliveryCaseController {
            !/^\d{4}-\d{2}-\d{2}$/.test(x.newSupplierExpectedDate)))) {
       throw new UnprocessableEntityException({ code: 'SUPPLIER_CASE_ACTION_FIELDS_INVALID' });
     }
+    if ((x.returnQuantity !== undefined &&
+          (typeof x.returnQuantity !== 'string' || x.returnQuantity.length > 40)) ||
+        (x.supplierSignatory !== undefined &&
+          (typeof x.supplierSignatory !== 'string' || x.supplierSignatory.length > 200)) ||
+        (x.supplierSignatureConfirmed !== undefined &&
+          typeof x.supplierSignatureConfirmed !== 'boolean') ||
+        (action !== 'STORE_RECORD_RETURN_DISPATCH' &&
+          (x.returnQuantity !== undefined || x.supplierSignatory !== undefined ||
+           x.supplierSignatureConfirmed !== undefined))) {
+      throw new UnprocessableEntityException({ code: 'SUPPLIER_CASE_RETURN_FIELDS_INVALID' });
+    }
     // A pure transition rule also checks which of these fields belongs to its
     // current stage; this boundary rejects unknown/malformed field values.
     const input: SupplierCaseInput = {
@@ -95,6 +107,12 @@ export class SupplierDeliveryCaseController {
         ? { recordedGoodsReceiptItemId: uuid(x.recordedGoodsReceiptItemId, 'recordedGoodsReceiptItemId') } : {}),
       ...(x.originalReceivingDeliveryLineId !== undefined
         ? { originalReceivingDeliveryLineId: uuid(x.originalReceivingDeliveryLineId, 'originalReceivingDeliveryLineId') } : {}),
+      ...(x.returnQuantity !== undefined
+        ? { returnQuantity: x.returnQuantity as string } : {}),
+      ...(x.supplierSignatory !== undefined
+        ? { supplierSignatory: x.supplierSignatory as string } : {}),
+      ...(x.supplierSignatureConfirmed !== undefined
+        ? { supplierSignatureConfirmed: x.supplierSignatureConfirmed as boolean } : {}),
       ...(x.newSupplierExpectedDate !== undefined
         ? { newSupplierExpectedDate: x.newSupplierExpectedDate as string } : {}),
     };
