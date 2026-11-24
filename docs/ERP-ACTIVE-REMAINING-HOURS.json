@@ -756,6 +756,27 @@
       "basis": "Previously missing positive PUR14 supplier replacement GR item lineage is implemented in isolated stacked Draft #433: live actor/Company/Project/PO source gating, original CHECKED damaged delivery line and linked Document, auditable PM/Jai claim, different later checked receiving delivery with identical material/UOM/PO line and exact damaged quantity, genuine approved posted nonreversed canonical GR item; no additional stock/AP/Finance effects. Exact-source Prisma/API/React typecheck branch #45356981100 PASS; new disposable native PostgreSQL 17.11 actual posted-GR test in run #45357938853 PASS 1/1 although that overall run FAILS only at separate new Node strip-only pure-test compatibility step, subsequently corrected in source. Six source-bound policy groups passed V8 after TS type erasure; final native pure runner rerun pending. Estimate 5 fewer future engineering hours for implemented positive lineage and source/DB proof, not 5 actual worker hours or final acceptance. Full physical supplier return, exact finance policy, revoked actor comprehensive negatives, retained user UAT, independent review and Owner release approval remain.",
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261124-PUR08-14-008",
+      "date": "2026-11-24",
+      "packageId": null,
+      "scopeId": "PUR08_PUR14_INTEGRATION",
+      "kind": "NATIVE_POSTED_REPLACEMENT_AND_SIX_PROOF_GROUPS_SUCCESS_CONFIRMATION",
+      "beforeHours": null,
+      "afterHours": null,
+      "reductionHours": 0,
+      "scopeBeforeHours": 20,
+      "scopeAfterHours": 20,
+      "scopeReductionHours": 0,
+      "sourceSha": "b2a23a3bfbc93d1cb9c4d54b668e76629d4e6195",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45358238789",
+        "https://github.com/threeswordz/cinder-grind/pull/433"
+      ],
+      "basis": "Final disposable PostgreSQL 17.11 #45358238789 succeeded after correcting Node24 type stripping in a *new* proof error class: native 1/1 approved, posted damaged replacement actual receiving/GR lineage; standalone pure proof groups 6/6 PASS, no full CI. TypeScript new helper blob e772412bbe0ae287d6f19b87df7e324c8e673301 matches tested CI and source branch. No additional forecast reduction counted after earlier provisional −5h to prevent double credit. Not proof for SHORT/WRONG_ITEM, physical supplier-return stock/credit, retained eight-role UAT, independent release review or Owner approvals.",
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -767,9 +788,9 @@
       ],
       "hours": 20,
       "budgetAllocation": "NEW_EXPLICIT_M4_ADDITIONAL_SCOPE; NOT SILENTLY SUBTRACTED_FROM_M4_01/M4_08",
-      "sourceStatus": "DAMAGED_POSTED_REPLACEMENT_GR_NATIVE_POSITIVE_1_OF_1_PASS;API_WEB_TS_PASS;STANDALONE_NODE_PURE_RUNNER_PENDING;NO_PHYSICAL_RETURN_STOCK_FINANCE_POLICY",
-      "remaining": "20h low-confidence future effort still needed: physical supplier-return warehouse and quantity/stock policy and its authorized implementation (no double deduction), Finance supplier credit note vs AP adjustment vs replacement-only Owner decision, unsupported SHORT/WRONG/EXCESS attribution, retained eight-role negative cross-Project UAT, independent DEC-022 exact source review, Owner #384 acceptance and release integration. DAMAGED source-linked posted-GR proof now implemented and real native PG17.11 positive journey 1/1 PASS; native pure test runner confirmation pending.",
-      "evidence": "https://github.com/threeswordz/cinder-grind/actions/runs/45357938853",
+      "sourceStatus": "DAMAGED_POSTED_REPLACEMENT_GR_PG17_NATIVE_1_OF_1_PASS;NATIVE_NODE_6_OF_6_PURE_PASS;API_WEB_TS_PASS;PHYSICAL_RETURN_AND_FINANCE_POLICY_PENDING",
+      "remaining": "20h low-confidence future effort still needed: physical supplier-return warehouse and quantity/stock policy and its authorized implementation (no double deduction), Finance supplier credit note vs AP adjustment vs replacement-only Owner decision, unsupported SHORT/WRONG/EXCESS attribution, retained eight-role negative cross-Project UAT, independent DEC-022 exact source review, Owner #384 acceptance and release integration. DAMAGED source-linked posted-GR proof now implemented and real native PG17.11 positive journey 1/1 PASS; native pure 6/6 and posted-GR native 1/1 confirmed SUCCESS.",
+      "evidence": "https://github.com/threeswordz/cinder-grind/actions/runs/45358238789",
       "stage": "M4",
       "grossPreImplementationEstimateHours": 50,
       "estimatedReductionFromNewSourceHours": 30,
