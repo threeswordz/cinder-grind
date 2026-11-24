@@ -4,6 +4,8 @@
 
 > **Latest verified source — Draft [#447](https://github.com/threeswordz/cinder-grind/pull/447), `fe2ece266d0b8424cda3d999fe44cea4fa9aa56c`.** [Focused run 45415683772](https://github.com/threeswordz/cinder-grind/actions/runs/45415683772) SUCCESS; native concurrent acquisition edits, one winner/one conflict/one version/one audit. **M4-01 15→14h, M4 100→99h, full ERP 1,830→1,829h**. No full CI or new Accounting scope.
 
+> **Latest candidate awaiting focused proof — [Draft #448](https://github.com/threeswordz/cinder-grind/pull/448), `ff4bc0312658bfd7850178c4368d73fdabd37d9b`.** PM15 positive pending stock count, work order, claim and certification status native test committed; [run 45419931062](https://github.com/threeswordz/cinder-grind/actions/runs/45419931062) in progress. No further forecast reduction; M4-01 14h, M4 99h, full ERP 1,829h. Existing Finance scope unchanged.
+
 ## Headline
 | Metric | Current | Meaning |
 |---|---:|---|
