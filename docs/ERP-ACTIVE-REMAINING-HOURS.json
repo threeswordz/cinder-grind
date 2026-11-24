@@ -1350,6 +1350,28 @@
       "sourceSha": "2b760755b3a962d74f375070869cf8ab0e14dbeb",
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-08-007",
+      "date": "2026-11-25",
+      "packageId": "M4-08",
+      "kind": "PR450_CORRECTED_FULL_AND_INDEPENDENT_CLEAN_REVIEW",
+      "beforeHours": 29,
+      "afterHours": 28,
+      "reductionHours": 1,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 1,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45440339597",
+        "https://github.com/threeswordz/cinder-grind/pull/450",
+        "https://github.com/threeswordz/cinder-grind/pull/450#discussion_r4683275664",
+        "https://github.com/threeswordz/cinder-grind/pull/450#discussion_r4683275671",
+        "https://github.com/threeswordz/cinder-grind/pull/451"
+      ],
+      "basis": "Corrected exact-head full validate 50/50 SUCCESS; Ready once, trusted Codex summary exact corrected SHA status completed/no findings and trusted +1 observed; both original P2 threads replied with proof then resolved. Provisional 1h existing remaining correction review assurance removed, not duplicate functional credit or logged labor. Main unchanged; branch protection verification remains. Separate five-path CI optimization draft #451 head 8358fef94188af7b4f1c31115f4e53bf8c5f4709 focused only; no savings or scope credit, no expensive trial before #450 integration and base reconciliation.",
+      "sourceSha": "2b760755b3a962d74f375070869cf8ab0e14dbeb",
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -1372,6 +1394,6 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1824,
+  "currentRollingTotalAfterPricedGapsHours": 1823,
   "currentRollingTotalSemantics": "1830h provisional future work = 1847h baseline minus 17h M4-01, 1h M4-02, 1h M4-03, 1h M4-04, 1h M4-05, 2h M4-06, 1h M4-07, 2h M4-08, plus 9h supplier scope. JAI-ASSET-01 canonical CG acquisition register and native proof eliminate 5h previously identified remaining scope. Not actual labor or formal acceptance; deadline RED."
 }
