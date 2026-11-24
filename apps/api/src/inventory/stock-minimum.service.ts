@@ -186,6 +186,50 @@ export class StockMinimumService {
         by: ['projectId'], orderBy: { projectId: 'asc' }, where: { ...where, state: 'SUBMITTED' }, _count: { _all: true },
       }) : [];
       const certificates = grouped(certificatesRows);
+      // Reuse canonical site minima and approved PO lineage within the same
+      // repeatable-read snapshot. Count PO lines once per Project, even when
+      // there are several sites (or no configured site warehouse).
+      const sites = ids.length ? await tx.warehouse.findMany({
+        where: { ...where, isActive: true, isSiteWarehouse: true },
+        select: { id: true, projectId: true }, orderBy: { id: 'asc' }, take: 101,
+      }) : [];
+      if (sites.length > 100) return conflict('PM15_PORTFOLIO_SITE_LIMIT');
+      const inventory = new Map<string, { sites: number; policies: number;
+        activeComparable: number; shortage: number; review: number }>();
+      let policyBudget = 500;
+      for (const site of sites) {
+        if (!site.projectId || !ids.includes(site.projectId)) return conflict('PM15_PORTFOLIO_SITE_SCOPE');
+        const detail = await this.readSiteMinimums(auth, site.projectId, site.id, tx, policyBudget);
+        policyBudget -= detail.policyCount;
+        const totals = inventory.get(site.projectId) ?? {
+          sites: 0, policies: 0, activeComparable: 0, shortage: 0, review: 0,
+        };
+        totals.sites++;
+        totals.policies += detail.policyCount;
+        totals.activeComparable += detail.alerts.filter(x => x.status === 'ACTIVE' && !x.configurationStale).length;
+        totals.shortage += detail.alerts.filter(x => x.belowMinimum).length;
+        totals.review += detail.unavailableActivePolicies +
+          detail.alerts.filter(x => x.status === 'ACTIVE' && x.configurationStale).length;
+        inventory.set(site.projectId, totals);
+      }
+      const deliveries = new Map<string, { late: number; today: number; within7: number;
+        unknown: number; review: number; requiredLate: number }>();
+      for (const p of projects) {
+        // No site ID passed: the existing PO-line evaluator aggregates all
+        // posted, unreversed receipts across approved revision lineage.
+        const detail = await this.readSupplierCommitments(auth, p.id, null, tx, at);
+        const lines = detail.alerts;
+        deliveries.set(p.id, {
+          late: lines.filter(x => x.deliveryState === 'LATE').length,
+          today: lines.filter(x => x.deliveryState === 'DUE_TODAY').length,
+          within7: lines.filter(x => x.deliveryState === 'WITHIN_7_DAYS').length,
+          unknown: lines.filter(x => x.deliveryState === 'DATE_UNKNOWN').length,
+          review: lines.filter(x => x.deliveryState === 'SOURCE_REVIEW_REQUIRED').length,
+          requiredLate: lines.filter(x => x.deliveryState !== 'CANCELLED' &&
+            x.deliveryState !== 'SOURCE_REVIEW_REQUIRED' && x.pendingQuantity !== '0.0000' &&
+            x.requiredOnSiteWindow === 'LATE').length,
+        });
+      }
       const value = (allowed: boolean, counts: Counts, id: string) =>
         allowed ? counts.get(id) ?? 0 : null;
       return {
@@ -200,12 +244,25 @@ export class StockMinimumService {
           pendingWorkOrders: value(woAllowed,workOrders,p.id),
           pendingClaims: value(claimAllowed,claims,p.id),
           pendingCertifications: value(certAllowed,certificates,p.id),
+          activeSiteWarehouses: inventory.get(p.id)?.sites ?? 0,
+          configuredMinimums: inventory.get(p.id)?.policies ?? 0,
+          comparableActiveMinimums: inventory.get(p.id)?.activeComparable ?? 0,
+          belowMinimumSiteDimensions: inventory.get(p.id)?.shortage ?? 0,
+          minimumsRequireReview: inventory.get(p.id)?.review ?? 0,
+          lateDeliveryLines: deliveries.get(p.id)!.late,
+          deliveryLinesDueToday: deliveries.get(p.id)!.today,
+          deliveryLinesWithin7Days: deliveries.get(p.id)!.within7,
+          unknownDeliveryDateLines: deliveries.get(p.id)!.unknown,
+          deliverySourceReviewLines: deliveries.get(p.id)!.review,
+          lateRequiredOnSiteLines: deliveries.get(p.id)!.requiredLate,
         })),
         advisoryOnly: true, stockEffect: false, financeEffect: false,
         externalNotificationsSent: false,
-        stockShortageAndDeliveryDetail: 'SITE_DRILLDOWN_ONLY' as const,
+        stockShortageAndDeliveryDetail: 'PORTFOLIO_COUNTS_AND_SITE_DRILLDOWN' as const,
+        deliveryCountBasis: 'PROJECT_PO_LINES_ONCE_NOT_PER_SITE' as const,
+        shortageCountBasis: 'ACTIVE_CONFIGURED_SITE_MATERIAL_UOM_DIMENSIONS' as const,
       };
-    }, { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead });
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead, timeout: 30000 });
   }
 
   async sites(supplied: AuthenticatedUserContext, projectId: string) {
@@ -226,30 +283,37 @@ export class StockMinimumService {
 
   async read(supplied: AuthenticatedUserContext, projectId: string, warehouseId: string) {
     const auth = await this.liveActor(supplied, this.prisma, false);
-    const warehouse = await this.site(auth, projectId, warehouseId, this.prisma);
+    return this.readSiteMinimums(auth, projectId, warehouseId, this.prisma);
+  }
+
+  private async readSiteMinimums(auth: AuthenticatedUserContext, projectId: string, warehouseId: string,
+    db: Db, policyLimit = 500) {
+    const warehouse = await this.site(auth, projectId, warehouseId, db);
     let policies;
-    try { policies = replayStockMinimums(await this.history(auth, warehouseId, this.prisma), projectId, warehouseId); }
+    try { policies = replayStockMinimums(await this.history(auth, warehouseId, db), projectId, warehouseId); }
     catch { return conflict('STOCK_MINIMUM_AUDIT_CHAIN_INVALID'); }
+    if (policies.length > policyLimit) return conflict('PM15_PORTFOLIO_POLICY_LIMIT');
+    let unavailableActivePolicies = 0;
     const alerts = [];
     for (const policy of policies) {
-      const material = await this.prisma.material.findFirst({
+      const material = await db.material.findFirst({
         where: { id: policy.materialId, companyId: auth.companyId, isActive: true },
         select: { materialCode: true, materialName: true, defaultUomId: true },
       });
-      if (!material) continue;
-      const uom = await this.prisma.unitOfMeasure.findFirst({
+      if (!material) { if (policy.status === 'ACTIVE') unavailableActivePolicies++; continue; }
+      const uom = await db.unitOfMeasure.findFirst({
         where: { id: policy.uomId, companyId: auth.companyId },
         select: { uomCode: true, isActive: true },
       });
-      if (!uom) continue;
-      const balance = await this.quantities.available(this.prisma, {
+      if (!uom) { if (policy.status === 'ACTIVE') unavailableActivePolicies++; continue; }
+      const balance = await this.quantities.available(db, {
         companyId: auth.companyId, projectId, warehouseId,
         materialId: policy.materialId, uomId: policy.uomId,
       });
       const minimum = new Prisma.Decimal(policy.minimumQuantity);
       // A historical threshold must not silently compare a retired purchase UOM
       // with a newly activated canonical stock UOM. It requires fresh PM setup.
-      const canonical = await trackedCanonicalBasis(this.prisma, auth.companyId, policy.materialId);
+      const canonical = await trackedCanonicalBasis(db, auth.companyId, policy.materialId);
       const configurationStale = !uom.isActive || (canonical
         ? canonical.stockUomId !== policy.uomId
         : material.defaultUomId !== policy.uomId);
@@ -265,7 +329,8 @@ export class StockMinimumService {
       });
     }
     return { projectId, warehouseId, warehouseCode: warehouse.warehouseCode,
-      warehouseName: warehouse.warehouseName, alerts, advisoryOnly: true,
+      warehouseName: warehouse.warehouseName, alerts, policyCount: policies.length,
+      unavailableActivePolicies, advisoryOnly: true,
       approvedPlanDemandAlertsIncluded: false, externalNotificationsSent: false };
   }
 
@@ -374,6 +439,12 @@ export class StockMinimumService {
     return this.prisma.$transaction(async tx => {
       const auth = await this.liveActor(supplied, tx, false);
       await this.site(auth, projectId, warehouseId, tx);
+      return this.readSupplierCommitments(auth, projectId, warehouseId, tx, at);
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead });
+  }
+
+  private async readSupplierCommitments(auth: AuthenticatedUserContext, projectId: string,
+    warehouseId: string | null, tx: Prisma.TransactionClient, at: Date) {
       const asOfThailandDate = thailandBusinessDate(at);
       const orders = await tx.purchaseOrder.findMany({
         where: { companyId: auth.companyId, projectId },
@@ -533,12 +604,11 @@ export class StockMinimumService {
         planValidFromUsedAsDeliveryDate: false,
         poLineSiteAssignmentIncluded: false,
         projectWidePoDates: true,
-        receiptsScopedToSelectedSite: true,
+        receiptsScopedToSelectedSite: warehouseId !== null,
         supplierAcknowledgmentsVerified: false,
         dayByDayDemandScheduleIncluded: false,
         externalNotificationsSent: false, stockEffect: false, financeEffect: false,
       };
-    }, { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead });
   }
 
   async set(context: Context, projectId: string, warehouseId: string, input: unknown,
