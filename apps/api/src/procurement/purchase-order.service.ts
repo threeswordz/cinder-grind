@@ -954,6 +954,9 @@ export class PurchaseOrderService {
           });
         }
 
+        // PM02: reject inactive demand before evaluating commercial policy.
+        await this.assertActiveDemand(tx, order);
+
         // PUR04: a nominal discount cannot exceed the authoritative PO
         // line subtotal. This does not implement PUR01 quote-count admission:
         // legacy NULL commercial fields remain UNKNOWN, not zero.
@@ -971,44 +974,6 @@ export class PurchaseOrderService {
         // PUR01 admission is checked on the entire real PO, before
         // creating any approval instance. Recheck at final approval too.
         const quotePolicy = await this.assertPoQuotePolicy(tx, order);
-
-        // PM02 defence in depth: even a draft whose line provenance was
-        // altered outside the supported award-backed creation flow cannot
-        // enter an approval workflow with returned, cancelled or foreign
-        // Company/Project Purchase Request demand. Legacy NULL decisions on
-        // historically approved requests remain eligible.
-        const sourceIds = [...new Set(
-          order.lines.map((line) => line.purchaseRequestLineId),
-        )];
-        const sourceLines = await tx.purchaseRequestLine.findMany({
-          where: { id: { in: sourceIds } },
-          include: {
-            purchaseRequest: {
-              include: {
-                approvalInstance: {
-                  select: { approvalState: true },
-                },
-              },
-            },
-          },
-        });
-        if (
-          sourceLines.length !== sourceIds.length ||
-          sourceLines.some((line) =>
-            line.reviewDecision === 'RETURNED' ||
-            line.purchaseRequest.cancelledAt !== null ||
-            line.purchaseRequest.companyId !== context.auth.companyId ||
-            line.purchaseRequest.projectId !== order.projectId ||
-            line.purchaseRequest.approvalInstance?.approvalState !==
-              APPROVAL_STATE.APPROVED
-          )
-        ) {
-          throw new ConflictException({
-            code: 'PO_SOURCE_DEMAND_INACTIVE',
-            detail:
-              'Purchase Order submission requires active approved Purchase Request line demand.',
-          });
-        }
 
         const approvalInstance = await this.approvals.start(
           {
@@ -1083,36 +1048,10 @@ export class PurchaseOrderService {
       });
     }
 
-    const sourceLines = await this.prisma.purchaseRequestLine.findMany({
-      where: {
-        id: { in: order.purchaseRequestLineIds },
-      },
-      include: {
-        purchaseRequest: {
-          include: {
-            approvalInstance: {
-              select: { approvalState: true },
-            },
-          },
-        },
-      },
+    await this.assertActiveDemand(this.prisma, {
+      companyId: context.auth.companyId, projectId: order.projectId,
+      lines: order.purchaseRequestLineIds.map(purchaseRequestLineId => ({ purchaseRequestLineId })),
     });
-    if (
-      sourceLines.length !== order.purchaseRequestLineIds.length ||
-      sourceLines.some(
-        (line) =>
-          line.reviewDecision === 'RETURNED' ||
-          line.purchaseRequest.cancelledAt ||
-          line.purchaseRequest.approvalInstance?.approvalState !==
-            APPROVAL_STATE.APPROVED,
-      )
-    ) {
-      throw new ConflictException({
-        code: 'PO_SOURCE_DEMAND_INACTIVE',
-        detail:
-          'Purchase Order approval requires active approved Purchase Request demand.',
-      });
-    }
 
     const instance = await this.approvals.approve(
       order.approvalInstanceId,
@@ -1125,6 +1064,18 @@ export class PurchaseOrderService {
           include: { lines: true },
         });
         if (!source) throw this.orderNotFound();
+        // The preflight read is not sufficient: demand, supplier or Project
+        // access may have changed before the serializable final approval.
+        await this.access.assertAccess(context.auth, source.projectId, tx);
+        if (source.cancelledAt || source.approvalInstanceId !== order.approvalInstanceId ||
+            source.submittedByUserId !== order.submittedByUserId)
+          throw new ConflictException({ code: 'PO_NOT_SUBMITTED' });
+        await this.assertActiveDemand(tx, source);
+        const activeSupplier = await tx.supplier.findFirst({
+          where: { id: source.supplierId, companyId: source.companyId, isActive: true },
+          select: { id: true },
+        });
+        if (!activeSupplier) throw new ConflictException({ code: 'PO_SUPPLIER_INACTIVE' });
         // Revalidate while Ben's approval is being recorded atomically.
         await this.assertPoQuotePolicy(tx, source, context.auth);
         const lines = await tx.purchaseOrderLine.findMany({
@@ -1694,6 +1645,37 @@ export class PurchaseOrderService {
    * per-RFQ invitations. Only active, source-linked THB quotation responses
    * covering each selected PO line qualify. No approval based on NULL fields.
    */
+  private async assertActiveDemand(
+    tx: Prisma.TransactionClient,
+    order: {
+      companyId: string;
+      projectId: string;
+      lines: Array<{ purchaseRequestLineId: string }>;
+    },
+  ) {
+    const sourceIds = [...new Set(order.lines.map(line => line.purchaseRequestLineId))];
+    const sources = await tx.purchaseRequestLine.findMany({
+      where: {
+        id: { in: sourceIds },
+        purchaseRequest: { companyId: order.companyId, projectId: order.projectId },
+      },
+      include: { purchaseRequest: {
+        include: { approvalInstance: { select: { approvalState: true } } },
+      } },
+    });
+    if (!sourceIds.length || sources.length !== sourceIds.length ||
+        sources.some(line => line.reviewDecision === 'RETURNED' ||
+          line.purchaseRequest.cancelledAt !== null ||
+          line.purchaseRequest.companyId !== order.companyId ||
+          line.purchaseRequest.projectId !== order.projectId ||
+          line.purchaseRequest.approvalInstance?.approvalState !== APPROVAL_STATE.APPROVED)) {
+      throw new ConflictException({
+        code: 'PO_SOURCE_DEMAND_INACTIVE',
+        detail: 'Purchase Order requires active approved Purchase Request line demand in the same Company and Project.',
+      });
+    }
+  }
+
   private async assertPoQuotePolicy(
     tx: Prisma.TransactionClient,
     order: {
