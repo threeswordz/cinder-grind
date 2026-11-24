@@ -844,6 +844,24 @@
       "sourceSha": "a10b99e8a3ad11737e258f987fb97ce4f57a9e38",
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261124-M4-06-001",
+      "date": "2026-11-24",
+      "packageId": "M4-06",
+      "kind": "FOCUSED_PUR07_APPROVED_PO_PDF_SOURCE_COMPLETION_REESTIMATE",
+      "beforeHours": 10,
+      "afterHours": 9,
+      "reductionHours": 1,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/pull/437",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45375009267",
+        "https://github.com/threeswordz/cinder-grind/commit/26916aa548435f60e887d568ba69298cb83fb973"
+      ],
+      "basis": "In isolated Draft #437 from integrated M4 Draft #427, real NestJS server PDF previously displayed fabricated fallback 'Approval completed: APPROVED' when lifecycleState APPROVED but completed independent approval timestamp absent. Browser Print/Save-as-PDF already denied this. Source now fails closed if completed approval timestamp or APPROVED approvalInstance missing; uses actual ISO completion only. One NEW focused no-DB Node native source-negative test covers missing approval instance, missing completedAt, PENDING and REJECTED inconsistencies; affected API TypeScript build and source-only 1/1 test PASS in run #45375009267 (overall SUCCESS). Changed service and test Git blob SHAs exactly match separate CI branch. Existing positive real PDF tests/Thai/Jai-Ben browser not needlessly repeated. Forecast 1 fewer hour still needed for M4-06 source guard; existing positive/retained proof, integration and independent/Owner acceptance still outstanding. No supplier communication, full CI, main merge or production; NOT actual person-hour timesheet.",
+      "sourceSha": "26916aa548435f60e887d568ba69298cb83fb973",
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -866,6 +884,6 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1859,
-  "currentRollingTotalSemantics": "1859h estimated remaining forward work = original 1847h full 60-package forecast −2h verified M4-01 triage +14h separately priced required PUR08/PUR14 work. Real native source/actor negatives, real Chrome posted replacement and actual GR reversal warning are verified; NOT actual logged worker hours or formal eight-role UAT/DEC-022 acceptance. Historical 1900h and proposed unapproved 1500h are separate. Full 112-ID Production by 31 Dec feasibility RED."
+  "currentRollingTotalAfterPricedGapsHours": 1858,
+  "currentRollingTotalSemantics": "1858h provisional future work = original 1847h 60-package baseline −2h verified M4-01 triage −1h M4-06 PDF approval-source guard +14h separately priced required PUR08/PUR14 integration still needed. All development source/negative/browser evidence estimates are not actual worked hours, retained-person signoff or formal 60-package acceptance. Historical 1900h and unapproved optimization 1500h are separate. Full 112-ID Production by 31 Dec feasibility RED."
 }
