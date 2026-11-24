@@ -14,6 +14,14 @@ const uuid = new ParseUUIDPipe({ version: '4' });
 export class StockMinimumController {
   constructor(private readonly minimums: StockMinimumService) {}
 
+  @Get('portfolio-work-queue')
+  @Header('Cache-Control', 'private, no-store')
+  @UseGuards(AuthGuard, PermissionGuard)
+  @RequirePermissions('inventory.stock.view')
+  portfolioWorkQueue(@Req() r: AuthenticatedRequest) {
+    return this.minimums.portfolioWorkQueue(r.auth!).then(data => ({ data }));
+  }
+
   @Get('projects')
   @Header('Cache-Control', 'private, no-store')
   @UseGuards(AuthGuard, PermissionGuard)
