@@ -63,3 +63,13 @@ test('PUR14 requires different real maker-checker actors; no claim before PM dec
   err(()=>step(decision.case,'JAI_RECORD_CLAIM'),'PUR14_JAI_AFTER_PM_DECISION_REQUIRED');
   err(()=>step(ack.case,'REPORT_DISCREPANCY',{actor:jai,discrepancyKind:'DAMAGED'}),'PUR14_STORE_DISCREPANCY_SOURCE_REQUIRED');
 });
+
+test('PUR14 Store may report source-backed discrepancy without supplier acknowledgment',()=>{
+ const reported=step(null,'REPORT_DISCREPANCY',{actor:store,discrepancyKind:'DAMAGED'});
+ assert.equal(reported.case.stage,'DISCREPANCY_REPORTED');
+ assert.equal(reported.case.version,1);
+ assert.equal(reported.case.storeReporterId,'store');
+ assert.equal(reported.effect,'NO_PO_GR_STOCK_FINANCE_MUTATION');
+ const reviewed=step(reported.case,'PM_REVIEW_DISCREPANCY',{actor:pm,pmDecision:'REQUEST_RETURN'});
+ assert.equal(reviewed.case.stage,'PM_REVIEWED');
+});
