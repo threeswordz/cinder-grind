@@ -1455,6 +1455,30 @@
       "sourceSha": "48bc38629520a9ca2f7bbcdf5daac715c19d706d",
       "formalAcceptance": false,
       "estimateConfidence": "PENDING_FOCUSED_PROOF"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-03-002",
+      "date": "2026-11-25",
+      "packageId": "M4-03",
+      "kind": "FM01_BOUNDED_CHROMIUM_SERIALIZABLE_RACE_AND_CONFLICT_GUARD_PASS",
+      "beforeHours": 9,
+      "afterHours": 8,
+      "reductionHours": 1,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 1,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/pull/452",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45457768336",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45457951622",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45459422621",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45460032068",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45460660941",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45460867971"
+      ],
+      "basis": "One authoritative 14-file bounded FM01 PR452, exact corrected head 3e6cc49da653a924babdc8507fb4f60a2335df1d. The duplicate PR453 closed; all 12 common source paths exact-blob identical, no duplicate full CI. Base candidate 48bc3863... focused 18/18, isolated PG17 authenticated Chrome 18/18; independent deterministic PG17 native P1 stale-update vs committed immutable no-work declaration safety PASS. Observed raw Prisma P2034 potentially surfaced HTTP500, patched five FM01 Serializable writes to map conflict to HTTP409 without auto replay; exact source child native 45460032068 SUCCESS 1/1; corrected source-contract 45460660941 SUCCESS 16/16; PR452 guarded non-force advanced three-path delta; current PR452 branch focused 45460867971 SUCCESS 18/18. PR452 remains DRAFT, full PR attempt1 DRAFT_FOCUSED_ONLY intentional, independent DEC-022 and main merge pending explicit per-run Owner authorization under #384. One provisional hour of remaining M4-03 focused evidence/technical repair retired, not actual labor, retained human UAT/business acceptance, or FM01-C historical deadline closure. Main remains 040395bc7b0dedd40207f91f743bc2efc1584622, CI acceleration active and short main 45457428768 PASS.",
+      "sourceSha": "3e6cc49da653a924babdc8507fb4f60a2335df1d",
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -1477,6 +1501,6 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1821,
+  "currentRollingTotalAfterPricedGapsHours": 1820,
   "currentRollingTotalSemantics": "1830h provisional future work = 1847h baseline minus 17h M4-01, 1h M4-02, 1h M4-03, 1h M4-04, 1h M4-05, 2h M4-06, 1h M4-07, 2h M4-08, plus 9h supplier scope. JAI-ASSET-01 canonical CG acquisition register and native proof eliminate 5h previously identified remaining scope. Not actual labor or formal acceptance; deadline RED."
 }
