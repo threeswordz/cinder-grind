@@ -1,0 +1,60 @@
+name: M4 FM01 controlled 409 concurrency proof
+on:
+  push:
+    branches: [ci-m4-fm01-409-20261125]
+permissions:
+  contents: read
+jobs:
+  focused:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    services:
+      postgres:
+        image: postgres:17.11-alpine
+        env:
+          POSTGRES_DB: erp_m4_fm01_race
+          POSTGRES_USER: construction_erp
+          POSTGRES_PASSWORD: construction_erp_dev_only
+        ports: [5432:5432]
+        options: >-
+          --health-cmd "pg_isready -U construction_erp -d erp_m4_fm01_race"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://construction_erp:construction_erp_dev_only@localhost:5432/erp_m4_fm01_race?schema=public
+      M4_NON_PRODUCTION_CONFIRMED: 'YES'
+      NODE_ENV: test
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 2
+          ref: ${{ github.sha }}
+      - name: Verify exact reviewed candidate and test-only delta
+        env:
+          SOURCE_SHA: 0d7c0c87c246bfe0a52a90c325e3978c293afc4e
+        run: |
+          test "$(git rev-parse HEAD^)" = "$SOURCE_SHA"
+          node --input-type=module - <<'NODE'
+          import assert from 'node:assert/strict';
+          import {execFileSync} from 'node:child_process';
+          const delta=execFileSync('git',['diff-tree','--no-commit-id','--name-only','-r','HEAD'],{encoding:'utf8'}).trim().split('\n').sort();
+          assert.deepEqual(delta,['.github/workflows/m4-fm01-409.yml']);
+          NODE
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
+        with:
+          version: 12.6.0
+          run_install: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.21.0
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - name: Fresh isolated PG17 schema and FM01 API
+        run: |
+          pnpm prisma:generate
+          pnpm prisma:migrate:deploy
+          pnpm --filter @construction-erp/api build
+      - name: Race only - draft update stale read vs committed no-work
+        run: node --test deploy/uat/m4-fm01-concurrency-native.mjs
