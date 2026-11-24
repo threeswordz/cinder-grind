@@ -187,6 +187,7 @@ try{
       redirect:'error'});
     requireSafe(response.status===204,'POSITIVE_SESSION_REVOCATION_FAILED');
   }
+  stage='DOCUMENT_STORAGE_RESOLVE';
   const storage=app.get(DocumentStorage);
   async function seedProjectBytes(owner,project,uploader,label) {
     const bytes=Buffer.from('LANEC_SYNTHETIC_SECRET '+label+' '+suffix,'utf8');
@@ -230,16 +231,20 @@ try{
   await db.projectMember.create({data:{
     projectId:outside.id,employeeId:foreignEmployee.id,projectRole:'PROTECTED_DOC_PROOF'}});
 
+  stage='FOREIGN_DOCUMENT_SOURCE_AND_BYTES';
   const foreignDocument=await seedProjectBytes(
     foreign.id,outside.id,foreignUser.id,'foreign-document');
+  stage='OTHER_PROJECT_DOCUMENT_SOURCE_AND_BYTES';
   const sameCompanyDocument=await seedProjectBytes(
     company.id,unassigned.id,actors.BEN.userId,'unassigned-document');
 
+  stage='FOREIGN_DOCUMENT_AUTHENTICATED_POSITIVE';
   const foreignSession=await signIn(foreignUser.email,foreignProofPassword);
   await positiveGet(foreignSession,
     '/documents/projects/'+outside.id+'/'+foreignDocument.id+'/download',
     foreignDocument.bytes);
   await signOut(foreignSession);
+  stage='OTHER_PROJECT_AUTHENTICATED_POSITIVE';
   const benSession=await signIn(actors.BEN.email,actors.BEN.password);
   await positiveGet(benSession,
     '/documents/projects/'+unassigned.id+'/'+sameCompanyDocument.id+'/download',
@@ -251,6 +256,7 @@ try{
   await signOut(benSession);
 
   // Real encrypted HR upload under a persisted employee/role/category grant.
+  stage='HR_CATEGORY_SOURCE_GRANT_SYNTHETIC_ONLY';
   await db.hrCompanyAccess.create({data:{
     companyId:company.id,userId:actors.KOH.userId,category:'documents',
     reasonCode:'DISPOSABLE_PROOF',updatedByUserId:actors.KOH.userId
@@ -266,6 +272,7 @@ try{
   form.set('documentTypeId',hrType.id);
   form.set('expectedVersion','0');
   form.set('file',new Blob([hrBytes],{type:'text/plain'}),'private-proof.txt');
+  stage='HR_AUTHENTICATED_ENCRYPTED_UPLOAD';
   const upload=await fetch(API+'/api/v1/hr/companies/'+company.id+
     '/employees/'+disabled.id+'/documents',{method:'POST',
       headers:{Cookie:kohSession.cookie,Origin:WEB,
@@ -276,6 +283,7 @@ try{
   requireSafe(typeof hrAttachmentId==='string'&&
     /^[0-9a-f-]{36}$/i.test(hrAttachmentId),
     'HR_ATTACHMENT_CANONICAL_RECORD_MISSING');
+  stage='HR_ENCRYPTED_SOURCE_EXISTENCE';
   const hrDb=await db.hrDocumentAttachment.findUnique({
     where:{id:hrAttachmentId},include:{document:true}});
   requireSafe(hrDb?.document?.storageProvider==='LOCAL'&&
@@ -285,6 +293,7 @@ try{
   requireSafe(fingerprint(encrypted)===hrDb.document.checksum&&
     !encrypted.includes('LANEC_SYNTHETIC_SECRET'),
     'HR_PRIVATE_STORAGE_CIPHERTEXT_UNSAFE');
+  stage='HR_AUTHENTICATED_POSITIVE_DOWNLOAD';
   await positiveGet(kohSession,
     '/hr/companies/'+company.id+'/employees/'+disabled.id+
       '/documents/'+hrAttachmentId+'/download',hrBytes);
@@ -351,7 +360,11 @@ try{
 } catch(error){
   const code=String(error?.safeCode??'DISPOSABLE_RUNNER_FAILED')
     .replace(/[^A-Z0-9_]/g,'').slice(0,100);
-  console.error('M4_DISPOSABLE_ROLE_FIXTURE_BLOCKED_'+code);
+  const safeKind=String(error?.constructor?.name??'ERROR')
+    .replace(/[^A-Za-z0-9_]/g,'').slice(0,48).toUpperCase();
+  const safeDb=String(error?.code??'NONE').replace(/[^A-Za-z0-9_]/g,'').slice(0,30);
+  console.error('M4_DISPOSABLE_ROLE_FIXTURE_BLOCKED_'+code+
+    '_STAGE_'+stage+'_KIND_'+safeKind+'_DB_'+safeDb);
   process.exitCode=1;
 } finally {
   try{if(web)await web.close()}catch{}
