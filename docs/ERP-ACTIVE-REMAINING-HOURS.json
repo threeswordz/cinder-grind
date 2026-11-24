@@ -1,0 +1,644 @@
+{
+  "schema": "construction-erp-evidence-backed-remaining-work-v1",
+  "repo": "threeswordz/cinder-grind",
+  "ownerDeadline": {
+    "date": "2026-12-31",
+    "timezone": "Asia/Singapore",
+    "definition": "ALL_112_REQUIREMENTS_ALL_EIGHT_ROLES_FULL_PRODUCTION",
+    "scopeReductionApproved": false
+  },
+  "historicalRemainingBaselineHours": 1900,
+  "currentRemainingWorkBaselineHours": 1847,
+  "baselineRecordedAt": "2026-11-23T23:24:00+08:00",
+  "historicalToCurrentReforecastHours": 53,
+  "fullScopeOptimizationTargetHours": 1500,
+  "optimizationTargetApproved": false,
+  "hoursSemantics": "Package hours estimate remaining FUTURE productive effort, not elapsed, timesheet, AI token cost or formal accepted milestone credit. A verified implementation may reduce forecast remaining before formal package acceptance. New scope or defects may increase it. Zero per package only with real package acceptance; full zero requires all 60 package exits.",
+  "status": "HARD_DEADLINE_RED_CAPACITY_UNVERIFIED",
+  "source": {
+    "protectedMainSha": "3a441b1fa389a9a274e6ca82413740a3ffa2f51b",
+    "integratedDraftPR": 427,
+    "integratedDraftHeadSha": "435bd8805d5bcd7e0a1a9941668b67860f288b78",
+    "referenceLedgerBranch": "docs-erp-full-use-1900h-hourly-ledger-20261123",
+    "recordType": "PROPOSAL_NOT_PRODUCTION_CONFIG"
+  },
+  "counts": {
+    "immutableRequirements": 112,
+    "rolePersonas": 8,
+    "officialPrototypeCompleted": 4,
+    "officialPrototypeTotal": 8,
+    "officialGoLiveCompleted": 3,
+    "officialGoLiveTotal": 10,
+    "m4TechnicalCheckpointsCompleted": 20,
+    "m4TechnicalCheckpointsTotal": 32,
+    "m4PackagesAccepted": 0,
+    "m4PackagesTotal": 8,
+    "formalAcceptedHistoricalHours": 0,
+    "actualLoggedHumanHours": null
+  },
+  "stageOrder": [
+    "M4",
+    "M6",
+    "M7",
+    "M8",
+    "GL05",
+    "GL06",
+    "XP",
+    "GL04",
+    "GL07",
+    "GL08",
+    "GL09",
+    "GL10"
+  ],
+  "packages": [
+    {
+      "id": "M4-01",
+      "stage": "M4",
+      "title": "Current-source and all-112 evidence/scope decisions",
+      "baselineRemainingHours": 32,
+      "optimizationTargetHours": 24,
+      "requiredExit": "112 unique IDs classified; genuine gaps resolved or scoped; no inferred approval",
+      "formalAcceptance": false
+    },
+    {
+      "id": "M4-02",
+      "stage": "M4",
+      "title": "PM02 real browser and retained-role authorization",
+      "baselineRemainingHours": 8,
+      "optimizationTargetHours": 6,
+      "requiredExit": "Store/Khaimook approved A / returned B / correction lifecycle in actual UI",
+      "formalAcceptance": false
+    },
+    {
+      "id": "M4-03",
+      "stage": "M4",
+      "title": "FM01, BEN04 and PM16 real-browser acceptance",
+      "baselineRemainingHours": 10,
+      "optimizationTargetHours": 8,
+      "requiredExit": "Three distinct authenticated scenarios and denials, with no redundant previous browser probes",
+      "formalAcceptance": false
+    },
+    {
+      "id": "M4-04",
+      "stage": "M4",
+      "title": "PUR01 whole-PO supplier-count and commercial rule",
+      "baselineRemainingHours": 8,
+      "optimizationTargetHours": 6,
+      "requiredExit": "1/2/3 suppliers by THB net total; Ben-approved reasoned exception; limits accepted",
+      "formalAcceptance": false
+    },
+    {
+      "id": "M4-05",
+      "stage": "M4",
+      "title": "PUR04 core PO commercial/delivery fields",
+      "baselineRemainingHours": 9,
+      "optimizationTargetHours": 7,
+      "requiredExit": "Company-scoped terms and source-linked immutable approvals, no implicit cross-Project",
+      "formalAcceptance": false
+    },
+    {
+      "id": "M4-06",
+      "stage": "M4",
+      "title": "PUR07 supplier-name PO PDF and manual dispatch evidence",
+      "baselineRemainingHours": 10,
+      "optimizationTargetHours": 8,
+      "requiredExit": "PDF name and recorded handoff; email/LINE sending stays external",
+      "formalAcceptance": false
+    },
+    {
+      "id": "M4-07",
+      "stage": "M4",
+      "title": "PUR12 K-/T- company PO document identity",
+      "baselineRemainingHours": 6,
+      "optimizationTargetHours": 5,
+      "requiredExit": "New-doc format with preserved historical numbers and no cross-Company confusion",
+      "formalAcceptance": false
+    },
+    {
+      "id": "M4-08",
+      "stage": "M4",
+      "title": "M4 focused closure, governed integration and Owner decision",
+      "baselineRemainingHours": 34,
+      "optimizationTargetHours": 30,
+      "requiredExit": "Exact candidate, linked evidence, independent review; owner-gated final CI/merge, no Production",
+      "formalAcceptance": false
+    },
+    {
+      "id": "M6-01",
+      "stage": "M6",
+      "title": "Build deployable preserved-data integrated M4/M6 candidate",
+      "baselineRemainingHours": 25,
+      "optimizationTargetHours": 20,
+      "requiredExit": "Exact approved source, additive schema and records preserved",
+      "formalAcceptance": false
+    },
+    {
+      "id": "M6-02",
+      "stage": "M6",
+      "title": "Site, plan, request, issue and document deployed journeys",
+      "baselineRemainingHours": 25,
+      "optimizationTargetHours": 20,
+      "requiredExit": "Eight-role boundary tests with actual API/browser where needed",
+      "formalAcceptance": false
+    },
+    {
+      "id": "M6-03",
+      "stage": "M6",
+      "title": "Procurement, receiving, transfers and inventory deployed journeys",
+      "baselineRemainingHours": 30,
+      "optimizationTargetHours": 25,
+      "requiredExit": "Canonical source-to-GR/stock, no duplicate posting, no replay of past Mac checks",
+      "formalAcceptance": false
+    },
+    {
+      "id": "M6-04",
+      "stage": "M6",
+      "title": "Subcontract physical acceptance/certification deployed journey",
+      "baselineRemainingHours": 20,
+      "optimizationTargetHours": 15,
+      "requiredExit": "Independent accepted quantity to certification, no new Finance implied",
+      "formalAcceptance": false
+    },
+    {
+      "id": "M6-05",
+      "stage": "M6",
+      "title": "HR encrypted/protected-file deployed journey",
+      "baselineRemainingHours": 20,
+      "optimizationTargetHours": 15,
+      "requiredExit": "Authorized bytes and denial proof with safe private-key custody",
+      "formalAcceptance": false
+    },
+    {
+      "id": "M7-01",
+      "stage": "M7",
+      "title": "Paired populated DB, Documents and external HR-key backup",
+      "baselineRemainingHours": 20,
+      "optimizationTargetHours": 15,
+      "requiredExit": "Immutable verified copy with provenance and secret isolation",
+      "formalAcceptance": false
+    },
+    {
+      "id": "M7-02",
+      "stage": "M7",
+      "title": "Restore to distinct non-overwriting target",
+      "baselineRemainingHours": 15,
+      "optimizationTargetHours": 11,
+      "requiredExit": "Matching data/files/keys, restored application startup and authenticated reads",
+      "formalAcceptance": false
+    },
+    {
+      "id": "M7-03",
+      "stage": "M7",
+      "title": "Recovery negative paths and runbook evidence",
+      "baselineRemainingHours": 15,
+      "optimizationTargetHours": 10,
+      "requiredExit": "Wrong key/missing document/unauthorized actor fail closed; records preserved",
+      "formalAcceptance": false
+    },
+    {
+      "id": "M8-01",
+      "stage": "M8",
+      "title": "Independent exact-head review and security reconciliation",
+      "baselineRemainingHours": 20,
+      "optimizationTargetHours": 18,
+      "requiredExit": "No unresolved P1/P2; no builder self-approval",
+      "formalAcceptance": false
+    },
+    {
+      "id": "M8-02",
+      "stage": "M8",
+      "title": "Frozen integrated candidate and final justified release validation",
+      "baselineRemainingHours": 25,
+      "optimizationTargetHours": 18,
+      "requiredExit": "Owner-authorized mandatory final CI only; actual reviewed-tree identity",
+      "formalAcceptance": false
+    },
+    {
+      "id": "M8-03",
+      "stage": "M8",
+      "title": "Prototype audit evidence and Owner technical freeze acceptance",
+      "baselineRemainingHours": 20,
+      "optimizationTargetHours": 14,
+      "requiredExit": "Milestones 4,6,7 observed; user UAT remains separate",
+      "formalAcceptance": false
+    },
+    {
+      "id": "HR-01",
+      "stage": "GL05",
+      "title": "Close HR1-A private records, role and file work",
+      "baselineRemainingHours": 35,
+      "optimizationTargetHours": 30,
+      "requiredExit": "Retained sensitive-data matrix and protected history verified",
+      "formalAcceptance": false
+    },
+    {
+      "id": "HR-02",
+      "stage": "GL05",
+      "title": "Attendance, site time and timesheet handling",
+      "baselineRemainingHours": 55,
+      "optimizationTargetHours": 50,
+      "requiredExit": "Employment/Project periods, correction and immutable approval",
+      "formalAcceptance": false
+    },
+    {
+      "id": "HR-03",
+      "stage": "GL05",
+      "title": "Leave, overtime and attendance entitlement",
+      "baselineRemainingHours": 55,
+      "optimizationTargetHours": 50,
+      "requiredExit": "Approved Thailand-specific policy and controlled calculations",
+      "formalAcceptance": false
+    },
+    {
+      "id": "HR-04",
+      "stage": "GL05",
+      "title": "Payroll computation, Thai statutory contributions and taxes",
+      "baselineRemainingHours": 80,
+      "optimizationTargetHours": 75,
+      "requiredExit": "Validated pay rules, allowances, deduction and legislation-specific fixtures",
+      "formalAcceptance": false
+    },
+    {
+      "id": "HR-05",
+      "stage": "GL05",
+      "title": "Payroll maker-checker, payslips and period locking",
+      "baselineRemainingHours": 35,
+      "optimizationTargetHours": 30,
+      "requiredExit": "Koh/Nancy/Ben/Porn boundary and approved bank/payment interface",
+      "formalAcceptance": false
+    },
+    {
+      "id": "HR-06",
+      "stage": "GL05",
+      "title": "HR integrated API/UI/privacy and real-role acceptance",
+      "baselineRemainingHours": 40,
+      "optimizationTargetHours": 30,
+      "requiredExit": "HR-to-Finance postings reconciled without salary disclosures",
+      "formalAcceptance": false
+    },
+    {
+      "id": "ACC-01",
+      "stage": "GL06",
+      "title": "Chart of accounts, posting rules, journal and immutable GL",
+      "baselineRemainingHours": 80,
+      "optimizationTargetHours": 72,
+      "requiredExit": "Double-entry audit, THB, periods, trial balance",
+      "formalAcceptance": false
+    },
+    {
+      "id": "ACC-02",
+      "stage": "GL06",
+      "title": "AP supplier invoices, three-way matching and credits",
+      "baselineRemainingHours": 70,
+      "optimizationTargetHours": 63,
+      "requiredExit": "PO/GR/quantity source and Nancy maker/checker; no duplicate liability",
+      "formalAcceptance": false
+    },
+    {
+      "id": "ACC-03",
+      "stage": "GL06",
+      "title": "AR customer billing, receipts, quotation and VO handoff",
+      "baselineRemainingHours": 60,
+      "optimizationTargetHours": 55,
+      "requiredExit": "Ben work confirmation → Porn billing; Nancy controls where assigned",
+      "formalAcceptance": false
+    },
+    {
+      "id": "ACC-04",
+      "stage": "GL06",
+      "title": "Supplier/subcontract payments, cash/bank and reconciliation",
+      "baselineRemainingHours": 80,
+      "optimizationTargetHours": 75,
+      "requiredExit": "Approval limits, payment runs, bank reconciliations and idempotency",
+      "formalAcceptance": false
+    },
+    {
+      "id": "ACC-05",
+      "stage": "GL06",
+      "title": "Thailand VAT, WHT and tax reporting",
+      "baselineRemainingHours": 65,
+      "optimizationTargetHours": 60,
+      "requiredExit": "Reviewed local tax rules, test vectors and accountable signoff",
+      "formalAcceptance": false
+    },
+    {
+      "id": "ACC-06",
+      "stage": "GL06",
+      "title": "Asset depreciation, periods and controls",
+      "baselineRemainingHours": 40,
+      "optimizationTargetHours": 36,
+      "requiredExit": "Jai register → Nancy depreciation, append-only asset/audit evidence",
+      "formalAcceptance": false
+    },
+    {
+      "id": "ACC-07",
+      "stage": "GL06",
+      "title": "Payroll-to-GL and financial cost attribution",
+      "baselineRemainingHours": 40,
+      "optimizationTargetHours": 30,
+      "requiredExit": "Balanced GL and P&L with confidential salary boundaries",
+      "formalAcceptance": false
+    },
+    {
+      "id": "ACC-08",
+      "stage": "GL06",
+      "title": "Financial reporting, close, export and accountant handoff",
+      "baselineRemainingHours": 45,
+      "optimizationTargetHours": 34,
+      "requiredExit": "Trial balance, audit trail, statement/export and close validation",
+      "formalAcceptance": false
+    },
+    {
+      "id": "XP-01",
+      "stage": "XP",
+      "title": "Finalize formerly gated #245, BEN02/BEN03 and PM03 decisions",
+      "baselineRemainingHours": 20,
+      "optimizationTargetHours": 16,
+      "requiredExit": "Signed allocation/exception contract, no guessed thresholds",
+      "formalAcceptance": false
+    },
+    {
+      "id": "XP-02",
+      "stage": "XP",
+      "title": "One supplier PO with multiple Project allocations",
+      "baselineRemainingHours": 50,
+      "optimizationTargetHours": 44,
+      "requiredExit": "A18/B2 source links, price and single commitment, cross-Company isolation",
+      "formalAcceptance": false
+    },
+    {
+      "id": "XP-03",
+      "stage": "XP",
+      "title": "Partial/central/direct deliveries and ledger allocation",
+      "baselineRemainingHours": 35,
+      "optimizationTargetHours": 30,
+      "requiredExit": "No duplicate PO/GR/stock/Finance; preserved outstanding per Project",
+      "formalAcceptance": false
+    },
+    {
+      "id": "XP-04",
+      "stage": "XP",
+      "title": "Budget checks, emergency rules, exception and change control",
+      "baselineRemainingHours": 25,
+      "optimizationTargetHours": 20,
+      "requiredExit": "Owner-approved limits, approval ancestry and out-of-plan audit",
+      "formalAcceptance": false
+    },
+    {
+      "id": "ROLE-01",
+      "stage": "GL04",
+      "title": "Retained MKE/TCJ eight-role permissions and approval settings",
+      "baselineRemainingHours": 35,
+      "optimizationTargetHours": 26,
+      "requiredExit": "Real Company/Project roles, no synthetic grants mistaken for live",
+      "formalAcceptance": false
+    },
+    {
+      "id": "ROLE-02",
+      "stage": "GL04",
+      "title": "All eight role-specific guided workflow walkthroughs",
+      "baselineRemainingHours": 35,
+      "optimizationTargetHours": 21,
+      "requiredExit": "Named Ben/Nancy/Khaimook/Jai/Store/Foreman/Porn/Koh separation",
+      "formalAcceptance": false
+    },
+    {
+      "id": "ROLE-03",
+      "stage": "GL04",
+      "title": "Complete cross-module business UAT and exception coverage",
+      "baselineRemainingHours": 35,
+      "optimizationTargetHours": 24,
+      "requiredExit": "All 112 current requirements signed by accountable users",
+      "formalAcceptance": false
+    },
+    {
+      "id": "ROLE-04",
+      "stage": "GL04",
+      "title": "Repair verified role/approval gaps and retain signoffs",
+      "baselineRemainingHours": 15,
+      "optimizationTargetHours": 9,
+      "requiredExit": "Open critical user defects closed, access still least privilege",
+      "formalAcceptance": false
+    },
+    {
+      "id": "SEC-01",
+      "stage": "GL07",
+      "title": "Threat model and production-access/authorization negative tests",
+      "baselineRemainingHours": 30,
+      "optimizationTargetHours": 25,
+      "requiredExit": "Tenant/Project, CSRF, session, maker/checker and authorization denies",
+      "formalAcceptance": false
+    },
+    {
+      "id": "SEC-02",
+      "stage": "GL07",
+      "title": "Enforced GitHub protected-main/review controls",
+      "baselineRemainingHours": 15,
+      "optimizationTargetHours": 12,
+      "requiredExit": "Actual active ruleset status plus non-bypass evidence",
+      "formalAcceptance": false
+    },
+    {
+      "id": "SEC-03",
+      "stage": "GL07",
+      "title": "HR/Finance confidential record review",
+      "baselineRemainingHours": 20,
+      "optimizationTargetHours": 16,
+      "requiredExit": "No salary, customer profit or banking cross-role exposure",
+      "formalAcceptance": false
+    },
+    {
+      "id": "SEC-04",
+      "stage": "GL07",
+      "title": "TLS, credentials and secret/key custody",
+      "baselineRemainingHours": 15,
+      "optimizationTargetHours": 12,
+      "requiredExit": "Protected runtime/rotation, no credentials in repo/logs",
+      "formalAcceptance": false
+    },
+    {
+      "id": "SEC-05",
+      "stage": "GL07",
+      "title": "Vulnerability, audit and incident response signoff",
+      "baselineRemainingHours": 15,
+      "optimizationTargetHours": 10,
+      "requiredExit": "No release-blocking findings and escalation owners",
+      "formalAcceptance": false
+    },
+    {
+      "id": "INF-01",
+      "stage": "GL08",
+      "title": "Approved host, persistent storage, TLS and runtime service",
+      "baselineRemainingHours": 30,
+      "optimizationTargetHours": 24,
+      "requiredExit": "Production-only authorization and reviewed release artifact",
+      "formalAcceptance": false
+    },
+    {
+      "id": "INF-02",
+      "stage": "GL08",
+      "title": "Scheduled encrypted offsite DB + Documents backups",
+      "baselineRemainingHours": 25,
+      "optimizationTargetHours": 20,
+      "requiredExit": "Paired point-in-time backups and 24h RPO proof",
+      "formalAcceptance": false
+    },
+    {
+      "id": "INF-03",
+      "stage": "GL08",
+      "title": "External HR keys, deploy/rollback and smoke proof",
+      "baselineRemainingHours": 20,
+      "optimizationTargetHours": 16,
+      "requiredExit": "No overwrite of actual data; 8h recovery target measured",
+      "formalAcceptance": false
+    },
+    {
+      "id": "INF-04",
+      "stage": "GL08",
+      "title": "Independent populated production-like restore drill",
+      "baselineRemainingHours": 25,
+      "optimizationTargetHours": 20,
+      "requiredExit": "Authenticated restored app, matching bytes and key ownership",
+      "formalAcceptance": false
+    },
+    {
+      "id": "INF-05",
+      "stage": "GL08",
+      "title": "Monitoring, alerting, SLO and on-call runbooks",
+      "baselineRemainingHours": 10,
+      "optimizationTargetHours": 5,
+      "requiredExit": "Incident owner and health/restore alert proof",
+      "formalAcceptance": false
+    },
+    {
+      "id": "DATA-01",
+      "stage": "GL09",
+      "title": "MKE/TCJ Company/Project/warehouse master onboarding",
+      "baselineRemainingHours": 30,
+      "optimizationTargetHours": 23,
+      "requiredExit": "Approved mappings and no guessed retained Company IDs",
+      "formalAcceptance": false
+    },
+    {
+      "id": "DATA-02",
+      "stage": "GL09",
+      "title": "Import suppliers, employees, BOQ and financial opening balances",
+      "baselineRemainingHours": 30,
+      "optimizationTargetHours": 23,
+      "requiredExit": "THB/currency provenance, references and reconciliation",
+      "formalAcceptance": false
+    },
+    {
+      "id": "DATA-03",
+      "stage": "GL09",
+      "title": "Real users, role grants and workflow assignment",
+      "baselineRemainingHours": 20,
+      "optimizationTargetHours": 15,
+      "requiredExit": "Named user approvals and effective permission readback",
+      "formalAcceptance": false
+    },
+    {
+      "id": "DATA-04",
+      "stage": "GL09",
+      "title": "Controlled source-to-target tie-out, training and SOPs",
+      "baselineRemainingHours": 30,
+      "optimizationTargetHours": 24,
+      "requiredExit": "Signed migration variances, training records and cutover owner",
+      "formalAcceptance": false
+    },
+    {
+      "id": "LAUNCH-01",
+      "stage": "GL10",
+      "title": "Frozen staged candidate and no-write production smoke",
+      "baselineRemainingHours": 30,
+      "optimizationTargetHours": 20,
+      "requiredExit": "End-to-end source/secret/storage/permission identity checked",
+      "formalAcceptance": false
+    },
+    {
+      "id": "LAUNCH-02",
+      "stage": "GL10",
+      "title": "Comprehensive human UAT across all eight roles",
+      "baselineRemainingHours": 45,
+      "optimizationTargetHours": 31,
+      "requiredExit": "All required workflows pass, no missed source/role obligation",
+      "formalAcceptance": false
+    },
+    {
+      "id": "LAUNCH-03",
+      "stage": "GL10",
+      "title": "Resolve observed critical defects and affected-path retests",
+      "baselineRemainingHours": 45,
+      "optimizationTargetHours": 27,
+      "requiredExit": "No repeated all-suites without changed risk; all P0/P1 closed",
+      "formalAcceptance": false
+    },
+    {
+      "id": "LAUNCH-04",
+      "stage": "GL10",
+      "title": "Backup/rollback rehearsal and migration cutover",
+      "baselineRemainingHours": 15,
+      "optimizationTargetHours": 10,
+      "requiredExit": "Owner-approved go/no-go inputs; no production before authority",
+      "formalAcceptance": false
+    },
+    {
+      "id": "LAUNCH-05",
+      "stage": "GL10",
+      "title": "Explicit Production go-live, support and operational acceptance",
+      "baselineRemainingHours": 15,
+      "optimizationTargetHours": 12,
+      "requiredExit": "Eight roles can use live system, stable support and signoff",
+      "formalAcceptance": false
+    }
+  ],
+  "events": [
+    {
+      "id": "ERP-PROG-20261124-M4-01-001",
+      "date": "2026-11-24",
+      "packageId": "M4-01",
+      "kind": "PROVISIONAL_REMAINING_WORK_REESTIMATE",
+      "beforeHours": 32,
+      "afterHours": 30,
+      "reductionHours": 2,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/blob/49f3319db33441fd409480a39ed334ff2c0782b3/docs/ERP-DEADLINE-M4-112-CANDIDATE-TRIAGE-2026-11-24.csv",
+        "https://github.com/threeswordz/cinder-grind/blob/435bd8805d5bcd7e0a1a9941668b67860f288b78/docs/M4-2026-11-24-112-DISPOSITION.csv"
+      ],
+      "basis": "112 immutable source records were reconciled into a current integrated-source triage with 8 specifically verified delta annotations, eliminating an estimated 2 hours of reclassification/reinspection from M4-01's 32-hour forward-work estimate. This is an estimate reduction; remaining source-check and retained-policy/UAT work stays 30 hours. Do NOT credit 2 actual employee hours or formal package acceptance.",
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL",
+      "reviewStatus": "BUILDER_RECONCILIATION_ONLY"
+    },
+    {
+      "id": "ERP-PROG-20261124-PUR08-14-001",
+      "date": "2026-11-24",
+      "packageId": null,
+      "kind": "UNPRICED_TECHNICAL_SOURCE_PROGRESS",
+      "beforeHours": null,
+      "afterHours": null,
+      "reductionHours": 0,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/tree/3415ccd0eeaf1e544dd2e93a25ee867c0587df98/apps/api/src/procurement"
+      ],
+      "basis": "Isolated PUR08/PUR14 non-posting transition contract and five focused pure tests committed. Not yet linked to authenticated persistence/API/UI/real GR/Document records; no source-backed estimate allocated in a specific 60-package row, so no invented remaining-hour reduction.",
+      "sourceSha": "3415ccd0eeaf1e544dd2e93a25ee867c0587df98",
+      "formalAcceptance": false
+    }
+  ],
+  "unestimatedWork": [
+    {
+      "id": "PUR08_PUR14_INTEGRATION",
+      "requirements": [
+        "PUR08",
+        "PUR14"
+      ],
+      "hours": null,
+      "budgetAllocation": "TO_BE_CONFIRMED_AGAINST_M4_01_AND_M4_08_OR_NEW_PACKAGE",
+      "sourceStatus": "PURE_CONTRACT_ONLY",
+      "remaining": "Persistent supplier acknowledgment, transit and discrepancy/return/replacement audit source, authorizations, genuine GR/document provenance, API/MUI, focused native PG/browser verification and independent review",
+      "evidence": "https://github.com/threeswordz/cinder-grind/tree/3415ccd0eeaf1e544dd2e93a25ee867c0587df98/apps/api/src/procurement"
+    }
+  ],
+  "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races."
+}
