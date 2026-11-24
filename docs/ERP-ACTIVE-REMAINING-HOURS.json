@@ -1269,6 +1269,27 @@
       "sourceSha": "52721dfd0d1c1a88cdcc5e5e41e8d6971c5a95cd",
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261124-M4-08-003",
+      "date": "2026-11-24",
+      "packageId": "M4-08",
+      "kind": "BOUNDED_CLOSEOUT_RELEASE_CANDIDATE_FOCUSED_PROOF",
+      "beforeHours": 32,
+      "afterHours": 31,
+      "reductionHours": 1,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 1,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/pull/450",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45428882525",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45428856250",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45428869738"
+      ],
+      "basis": "Bounded main-targeted candidate independently assembled and verified in exact branch focused run and workflow-only child b1dd285c721d8306122ebd8e7a77efa203240ea6 native run (15/15). This is 1h provisional future release-preparation and exact bounded validation work removed, not duplicate credit for previously developed BEN04/PM16 behavior, actual labor or acceptance. Full PR attempt 1 intentional DRAFT_FOCUSED_ONLY before install; requested single failed-jobs rerun, attempt 2 in progress at observation. No full PR pass, Codex review or merge yet. Branch metadata protected=false, rulesets empty, protection endpoint denied 403; owner-side verification needed before integration.",
+      "sourceSha": "a7ad0a82e4f467ca097a3b9b519fbb67cd0910b9",
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -1291,6 +1312,6 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1827,
+  "currentRollingTotalAfterPricedGapsHours": 1826,
   "currentRollingTotalSemantics": "1830h provisional future work = 1847h baseline minus 17h M4-01, 1h M4-02, 1h M4-03, 1h M4-04, 1h M4-05, 2h M4-06, 1h M4-07, 2h M4-08, plus 9h supplier scope. JAI-ASSET-01 canonical CG acquisition register and native proof eliminate 5h previously identified remaining scope. Not actual labor or formal acceptance; deadline RED."
 }
