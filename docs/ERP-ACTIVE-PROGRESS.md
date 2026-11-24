@@ -5,14 +5,14 @@
 ## Headline
 | Metric | Current | Meaning |
 |---|---:|---|
-| **Estimated full ERP work still needed** | **1,884h → 0h** | Includes latest newly priced mandatory gaps |
+| **Estimated full ERP work still needed** | **1,877h → 0h** | Includes latest newly priced mandatory gaps |
 | 23 Nov original current-work forecast | 1847h | Earlier 60-package provisional baseline |
 | Additional estimated future-work eliminated | −2h | M4-01 source reconciliation, **not timesheet** |
-| Newly discovered previously unpriced PUR08/PUR14 work | +39h | Net **remaining** after source code development |
-| Net reforecast change versus 1,847h | +37h | More honest scope recognition; not schedule recovery |
+| Newly discovered previously unpriced PUR08/PUR14 work | +32h | Net **remaining** after source code development |
+| Net reforecast change versus 1,847h | +30h | More honest scope recognition; not schedule recovery |
 | PUR08/PUR14 provisional work before new development | 50h | Low-confidence new-gap gross estimate |
-| PUR08/PUR14 estimated work eliminated by source development | 11h | Source-only, five pure tests PASS; DB and UI not verified |
-| PUR08/PUR14 remaining | **39h** | PostgreSQL, API/React, role/GR source, human and reviewer gates |
+| PUR08/PUR14 estimated future work eliminated through verified development | 18h | Seven pure policy tests, API and React compile, native PG17 1/1 and Store UI typecheck; no actual worker-hours counted |
+| PUR08/PUR14 remaining | **32h** | Authenticated HTTP/Chrome, actual Store/Jai/Khaimook business UAT, physical return/Finance policy, independent review |
 | Historical original baseline | 1,900h | Not the current work-to-go figure |
 | Proposed optimization | 1,500h | **Unvalidated**; now requires risk/scope recalibration |
 | Prototype milestone | 4/8 | Official |
@@ -21,13 +21,13 @@
 | Whole baseline packages formally accepted | 0/60 | 8 M4 packages still 0/8 |
 | Actual productive hours logged | UNKNOWN | Cannot infer from GitHub commits or AI conversation length |
 
-**Why the number rose:** the earlier 1,845h omitted a separate confirmed PUR08/PUR14 implementation budget. New source plus corrected source-backed tests reduced that *newly priced* work from a provisional 50h gross to 39h remaining, but the previous total excluded all 50h. Thus **1,845h + 39h = 1,884h**, not 1,835h. This prevents a false countdown and requires a real reduction in remaining work at each future step. It does **not** mean 40 human hours have been worked.
+**Why the number rose:** the earlier 1,845h omitted a separate confirmed PUR08/PUR14 implementation budget. New source plus corrected source-backed tests reduced that *newly priced* work from a provisional 50h gross to 32h remaining, but the original 60-package forecast excluded that additional work. Thus **1,845h + 32h = 1,877h**, not 1,835h. This prevents a false countdown and requires a real reduction in remaining work at each future step. It does **not** represent actual human hours worked or formal acceptance.
 
 ## Stage-by-stage remaining work
 
 | Stage | Previous 60-package baseline | Verified package forecast reduction | Additional scope remaining | **Now remaining** | Accepted baseline packages |
 |---|---:|---:|---:|---:|---:|
-| Prototype 5/8 — M4 closure | 117h | 2h | 39h | **154h** | 0/8 |
+| Prototype 5/8 — M4 closure | 117h | 2h | 32h | **147h** | 0/8 |
 | Prototype 6/8 — end-to-end deployment | 120h | 0h | 0h | **120h** | 0/5 |
 | Prototype 7/8 — populated restore | 50h | 0h | 0h | **50h** | 0/3 |
 | Prototype 8/8 — technical freeze | 65h | 0h | 0h | **65h** | 0/3 |
@@ -39,7 +39,7 @@
 | Production hosting and recovery | 110h | 0h | 0h | **110h** | 0/5 |
 | Migration and onboarding | 110h | 0h | 0h | **110h** | 0/4 |
 | Final human UAT, cutover and Production | 150h | 0h | 0h | **150h** | 0/5 |
-| **Full ERP** | **1847h** | **2h** | **39h** | **1,884h** | **0/60** |
+| **Full ERP** | **1847h** | **2h** | **32h** | **1,877h** | **0/60** |
 
 ## Each baseline package
 
@@ -109,9 +109,13 @@
 ## Additional required scope (beyond the original 60 package costing)
 | Scope ID | Stage | Provisional initial estimate | Source progress estimated | Remaining |
 |---|---|---:|---:|---:|
-| PUR08_PUR14_INTEGRATION | M4 | 50h | 11h | **39h** |
+| PUR08_PUR14_INTEGRATION | M4 | 50h | 18h | **32h** |
 
 ## Evidence-backed update history
+
+- **24 Nov — PUR08/PUR14 native PG17.11 + API, React PASS: 39h → 34h (−5h estimated future work).** Source API typecheck, React typecheck, 7 pure-policy tests, and native 1/1 real PG17 role/Company/Project/ACK/canonical-GR-negative/concurrency/revocation/no-posting evidence passed, after correcting synthetic Store role fixture (no business permissions changed). [Native PASS #45349684998](https://github.com/threeswordz/cinder-grind/actions/runs/45349684998) [Source and PR #432](https://github.com/threeswordz/cinder-grind/pull/432). HTTP/browser and human acceptance not yet tested.
+
+- **24 Nov — PUR08/PUR14 real Store Site navigation implemented and React PASS: 34h → 32h (−2h estimated future work).** Receiving flow now exposes source-linked supplier case and carries role codes; selected receiving Document can be prefilled. [Store UI focused PASS #45350220558](https://github.com/threeswordz/cinder-grind/actions/runs/45350220558) [Draft PR #432](https://github.com/threeswordz/cinder-grind/pull/432). Authenticated Chrome/real user test pending.
 
 - **2026-11-24 — PUR08/PUR14 correction: 40h → 39h.** Corrected standalone Store discrepancy reporting without supplier acknowledgment while rejecting premature supplier delay/in-transit assertions. Seven exact-blob pure tests passed locally and TypeScript strict check passed; integrated Nest/Prisma/React/PostgreSQL/browser remain unverified. Estimated 1h of future work removed; NOT actual staff time or accepted release. [Source](https://github.com/threeswordz/cinder-grind/blob/984847746e377bc5f90d7ed0bf3d83bdd8d260d0/apps/api/src/procurement/supplier-delivery-lifecycle.ts) [Tests](https://github.com/threeswordz/cinder-grind/blob/fafa5069a5e7559780ab1fbf858cea5655bc7589/apps/api/src/procurement/supplier-delivery-lifecycle.test.mjs)
 
