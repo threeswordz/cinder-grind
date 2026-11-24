@@ -11,6 +11,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { ReceivingService } from '../inventory/receiving.service';
 import { receivingFixture } from '../inventory/receiving-test-fixture';
 import { DocumentTargetsService } from '../documents/document-targets.service';
+import { DocumentsService } from '../documents/documents.service';
 import { SupplierDeliveryCaseService } from './supplier-delivery-case.service';
 
 test('PUR14 actual checked damaged return is signed custody only, no stock or AP credit', async () => {
@@ -58,12 +59,13 @@ test('PUR14 actual checked damaged return is signed custody only, no stock or AP
    lines:[{id:lineId,purchaseOrderLineId:f.po.lines[0]!.id}],
   }));
   let photoId='';
+  let photoBytes: Buffer | undefined;
   for(const purpose of ['DELIVERY_NOTE','RECEIVER_SIGNATURE','CONDITION_PHOTO']){
    const bytes=Buffer.from('%PDF-1.4\nReceiving '+purpose+' '+randomUUID()+'\n');
    const doc=await documents.upload(ctx(store),f.project.id,'RECEIVING_DELIVERY',captured.id,
     f.documentType.id,{originalname:purpose+'.pdf',mimetype:'application/pdf',
      size:bytes.length,buffer:bytes});
-   if(purpose==='CONDITION_PHOTO')photoId=doc.id;
+   if(purpose==='CONDITION_PHOTO'){photoId=doc.id;photoBytes=bytes;}
    delivery=await receiving.get(store,captured.id);
    await receiving.attach(ctx(store),captured.id,cmd(delivery.version,{
     documentId:doc.id,purpose,signedEvidenceConfirmed:purpose==='RECEIVER_SIGNATURE',
@@ -79,6 +81,23 @@ test('PUR14 actual checked damaged return is signed custody only, no stock or AP
   const signedRow=await db.document.findUniqueOrThrow({where:{id:signed.id}});
   assert.match(signedRow.checksum??'',/^[a-f0-9]{64}$/i);
   assert.notEqual(signed.id,photoId);
+  assert.ok(photoBytes);
+  // A separate UUID for the exact same photo bytes is not separate handover evidence.
+  const duplicatePhoto=await documents.upload(ctx(store),f.project.id,'RECEIVING_DELIVERY',captured.id,
+   f.documentType.id,{originalname:'renamed-condition-photo.pdf',mimetype:'application/pdf',
+    size:photoBytes.length,buffer:photoBytes});
+  assert.notEqual(duplicatePhoto.id,photoId);
+  const duplicateRow=await db.document.findUniqueOrThrow({where:{id:duplicatePhoto.id}});
+  const photoRow=await db.document.findUniqueOrThrow({where:{id:photoId}});
+  assert.equal(duplicateRow.checksum,photoRow.checksum);
+  // A genuine project upload with different bytes but no receiving-source link
+  // must also fail, even though the operator can view it in the same project.
+  const projectBytes=Buffer.from('%PDF-1.4\\nUnrelated project document '+randomUUID()+'\\n');
+  const projectOnly=await app.get(DocumentsService).uploadProjectDocument(
+   ctx(store),f.project.id,f.documentType.id,{
+    originalname:'unrelated-project.pdf',mimetype:'application/pdf',
+    size:projectBytes.length,buffer:projectBytes,
+   });
   const input=(action:string,version:number,previous:string|null,
    extra:Record<string,unknown>={})=>({
    action,expectedVersion:version,expectedPreviousEventId:previous,
@@ -123,6 +142,12 @@ test('PUR14 actual checked damaged return is signed custody only, no stock or AP
    {...valid(),evidenceDocumentId:photoId} as never),
    'PUR14_RETURN_SIGNED_SUPPLIER_DOCUMENT_REQUIRED');
   await expectCode(supplier.transition(ctx(store),f.po.id,
+   {...valid(),evidenceDocumentId:duplicatePhoto.id} as never),
+   'PUR14_RETURN_SIGNED_SUPPLIER_DOCUMENT_REQUIRED');
+  await expectCode(supplier.transition(ctx(store),f.po.id,
+   {...valid(),evidenceDocumentId:projectOnly.id} as never),
+   'PUR14_RETURN_HANDOVER_ORIGINAL_DELIVERY_LINK_REQUIRED');
+  await expectCode(supplier.transition(ctx(store),f.po.id,
    {...valid(),evidenceDocumentId:randomUUID()} as never),
    'SUPPLIER_CASE_SCOPED_DOCUMENT_EVIDENCE_REQUIRED');
   await expectCode(supplier.transition(ctx(store),f.po.id,
@@ -156,7 +181,7 @@ test('PUR14 actual checked damaged return is signed custody only, no stock or AP
   assert.equal(await db.payment.count({where:{companyId:f.company.id}}),payBefore);
   await expectCode(supplier.transition(ctx(store),f.po.id,valid() as never),
    'SUPPLIER_CASE_STALE_EVENT');
-  console.log('PUR14_NATIVE_SIGNED_CUSTODY_DAMAGED_SOURCE_STOCK_AP_UNCHANGED_PASS');
+  console.log('PUR14_NATIVE_SIGNED_CUSTODY_DELIVERY_LINK_AND_DUPLICATE_BYTES_DENIED_STOCK_AP_UNCHANGED_PASS');
  }finally{
   await app.close();await db.$disconnect();
   if(priorStorage===undefined)delete process.env.STORAGE_ROOT;

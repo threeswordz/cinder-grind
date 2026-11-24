@@ -280,7 +280,8 @@ export class SupplierDeliveryCaseService {
       const doc = await tx.document.findFirst({
         where: { id: input.evidenceDocumentId, companyId: order.companyId, isActive: true,
           links: { some: { entityType: 'PROJECT', entityId: order.projectId } } },
-        select: { id: true, checksum: true },
+        select: { id: true, checksum: true,
+          links: { where: { entityType: 'RECEIVING_DELIVERY' }, select: { entityId: true } } },
       });
       if (!doc || !actor.permissions.includes('documents.document.view'))
         return denied('SUPPLIER_CASE_SCOPED_DOCUMENT_EVIDENCE_REQUIRED');
@@ -382,7 +383,11 @@ export class SupplierDeliveryCaseService {
               supplierSignatory: input.supplierSignatory,
               supplierSignatureConfirmed: input.supplierSignatureConfirmed,
               documentId: doc.id, documentChecksum: doc.checksum,
-              documentDistinctFromConditionPhoto: doc.id !== current.origin.evidenceDocumentId,
+              documentDistinctFromConditionPhoto: doc.id !== current.origin.evidenceDocumentId &&
+                Boolean(doc.checksum && originDoc?.checksum &&
+                  doc.checksum.toLowerCase() !== originDoc.checksum.toLowerCase()),
+              documentLinkedToOriginalDelivery: doc.links.some(link =>
+                link.entityId === original.delivery.id),
             },
           });
         } catch (error) {

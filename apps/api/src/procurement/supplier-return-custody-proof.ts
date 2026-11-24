@@ -26,6 +26,7 @@ export type SupplierReturnCustodyProofInput = {
     quantity: string; supplierSignatory: string; supplierSignatureConfirmed: boolean;
     documentId: string; documentChecksum: string | null;
     documentDistinctFromConditionPhoto: boolean;
+    documentLinkedToOriginalDelivery: boolean;
   };
 };
 const sameScope = (a: Scope, b: Scope) =>
@@ -56,6 +57,8 @@ export function verifySupplierReturnCustody(input: SupplierReturnCustodyProofInp
   if (damaged <= 0n || units(h.quantity) <= 0n ||
       units(h.quantity) !== damaged)
     return fail('PUR14_RETURN_UNPOSTED_DAMAGED_QUANTITY_REQUIRED');
+  if (!h.documentLinkedToOriginalDelivery)
+    return fail('PUR14_RETURN_HANDOVER_ORIGINAL_DELIVERY_LINK_REQUIRED');
   // Source and signed-handover evidence are user reported, not a verified
   // third-party receipt. Require a distinct uploaded, checksummed document
   // plus named witness attestation, not the original condition photo alone.
