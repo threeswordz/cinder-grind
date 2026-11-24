@@ -6,7 +6,7 @@ Builder preparation only, not independent DEC-022 review or retained acceptance.
 - Prior [Draft #443](https://github.com/threeswordz/cinder-grind/pull/443) `0143eaf7876f46aff9c81353ae4a0e0656d32622`.
 - Current [Draft #444](https://github.com/threeswordz/cinder-grind/pull/444) `463f485c6456f1545cb29108433f8886d56b3a9d`.
 - Full compare: 327 commits ahead, 0 behind, 183 paths (146 added, 37 modified). Use previous full inventory and [PR443 delta](M4-2026-11-24-PR443-REVIEW-DELTA.md), reviewing full main-to-current-head diff.
-- Initial focused [45406911890](https://github.com/threeswordz/cinder-grind/actions/runs/45406911890) FAILED compilation (Prisma groupBy contextual inference), native test skipped. Corrected group query typing; [45407269180](https://github.com/threeswordz/cinder-grind/actions/runs/45407269180) pending terminal verification. Exact CI workflow-only child `45dd99040246568758dbf476ba88d06a8c25667c` verified.
+- Initial focused [45406911890](https://github.com/threeswordz/cinder-grind/actions/runs/45406911890) FAILED compilation (Prisma groupBy contextual inference), native test skipped. Corrected group query typing; [45407269180](https://github.com/threeswordz/cinder-grind/actions/runs/45407269180) **OVERALL SUCCESS** verified: fresh PG17.11 migrations, API and React compilation, actual HTTP native test marker `PM15_NATIVE_PORTFOLIO_SCOPE_PR_CORRECTION_TOOLS_AND_REVOCATION_PASS`. Exact CI workflow-only child `45dd99040246568758dbf476ba88d06a8c25667c` verified.
 
 | Path | Blob |
 |---|---|
