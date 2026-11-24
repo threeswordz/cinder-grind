@@ -777,6 +777,28 @@
       "basis": "Final disposable PostgreSQL 17.11 #45358238789 succeeded after correcting Node24 type stripping in a *new* proof error class: native 1/1 approved, posted damaged replacement actual receiving/GR lineage; standalone pure proof groups 6/6 PASS, no full CI. TypeScript new helper blob e772412bbe0ae287d6f19b87df7e324c8e673301 matches tested CI and source branch. No additional forecast reduction counted after earlier provisional −5h to prevent double credit. Not proof for SHORT/WRONG_ITEM, physical supplier-return stock/credit, retained eight-role UAT, independent release review or Owner approvals.",
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261124-PUR08-14-009",
+      "date": "2026-11-24",
+      "packageId": null,
+      "scopeId": "PUR08_PUR14_INTEGRATION",
+      "kind": "VERIFIED_NATIVE_NEGATIVE_LINEAGE_AND_LIVE_REVOCATION_REESTIMATE",
+      "beforeHours": null,
+      "afterHours": null,
+      "reductionHours": 0,
+      "scopeBeforeHours": 20,
+      "scopeAfterHours": 18,
+      "scopeReductionHours": 2,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/pull/434",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45370305802",
+        "https://github.com/threeswordz/cinder-grind/commit/4a0197a1aa6f8d30099372aba50fa0e883526da8"
+      ],
+      "basis": "Stacked Draft PR #434 implements strict tenant/Project/supplier/PO-constrained original receiving + canonical replacement GR lookups and verifies that original and replacement CONDITION_PHOTO Documents are actually part of their respective active, checksum-matching, non-superseded immutable ReceivingDeliveryEvidence, not merely generic Project links. Expanded existing disposable PostgreSQL 17.11 native posted-GR journey tests invalid GR/GR item, source mismatch, unrelated Project-level evidence, stale event and replay, revoked live Store role grant, disabled Employee, revoked session, removed Project membership and a foreign Company active Store actor; rejected events preserve audit, stock, AP and payment counts. Focused exact-source native run #45370305802 overall SUCCESS with API TypeScript and migration PASS, native group 1/1 PASS, zero full suite reruns. Source and CI six source/test code blobs matched exact Git object SHAs for changed files. Provisional 2h fewer future verification effort, not actual worked time, retained-human UAT or formal package acceptance; physical return and Finance policy remain blocked.",
+      "sourceSha": "4a0197a1aa6f8d30099372aba50fa0e883526da8",
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -786,19 +808,19 @@
         "PUR08",
         "PUR14"
       ],
-      "hours": 20,
+      "hours": 18,
       "budgetAllocation": "NEW_EXPLICIT_M4_ADDITIONAL_SCOPE; NOT SILENTLY SUBTRACTED_FROM_M4_01/M4_08",
-      "sourceStatus": "DAMAGED_POSTED_REPLACEMENT_GR_PG17_NATIVE_1_OF_1_PASS;NATIVE_NODE_6_OF_6_PURE_PASS;API_WEB_TS_PASS;PHYSICAL_RETURN_AND_FINANCE_POLICY_PENDING",
-      "remaining": "20h low-confidence future effort still needed: physical supplier-return warehouse and quantity/stock policy and its authorized implementation (no double deduction), Finance supplier credit note vs AP adjustment vs replacement-only Owner decision, unsupported SHORT/WRONG/EXCESS attribution, retained eight-role negative cross-Project UAT, independent DEC-022 exact source review, Owner #384 acceptance and release integration. DAMAGED source-linked posted-GR proof now implemented and real native PG17.11 positive journey 1/1 PASS; native pure 6/6 and posted-GR native 1/1 confirmed SUCCESS.",
-      "evidence": "https://github.com/threeswordz/cinder-grind/actions/runs/45358238789",
+      "sourceStatus": "DAMAGED_POSTED_REPLACEMENT_GR_PG17_POSITIVE_AND_NEGATIVE_PASS;NATIVE_ROLE_REVOCATION_PROJECT_COMPANY_CHECKS_PASS;NO_RETURN_STOCK_OR_FINANCE_POLICY",
+      "remaining": "18h low-confidence future work: physical supplier-return warehouse/quantity/stock-control rule and implementation without double deduction, Owner Finance choice credit note vs AP adjustment vs replacement-only resolution, SHORT/WRONG_ITEM/EXCESS attribution, authenticated browser for newly strengthened replacement step, retained real-person Company/Project UAT, independent DEC-022 source review, Owner #384 release/integration authorization. Positive DAMAGED posted GR and synthetic negative/revocation PG17 pass; no formal acceptance.",
+      "evidence": "https://github.com/threeswordz/cinder-grind/actions/runs/45370305802",
       "stage": "M4",
       "grossPreImplementationEstimateHours": 50,
-      "estimatedReductionFromNewSourceHours": 30,
+      "estimatedReductionFromNewSourceHours": 32,
       "confidence": "LOW",
       "estimateKind": "NEWLY_DISCOVERED_MANDATORY_SCOPE_PRICE_NOT_A_TIMESHEET"
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1865,
-  "currentRollingTotalSemantics": "1865h remaining provisional forward-work forecast = 1847h current 60-package baseline - 2h M4 triage + 20h still needed separately priced mandatory PUR08/PUR14. Native PostgreSQL positive approved posted-GR damaged quantity and exact original discrepancy source verified; source branch b2a23a3bfbc93d1cb9c4d54b668e76629d4e6195, stacked Draft PR #433; no human timesheet, no package formal acceptance, no physical return/Finance authorization, no 31 December feasibility assurance."
+  "currentRollingTotalAfterPricedGapsHours": 1863,
+  "currentRollingTotalSemantics": "1863h estimated work still required = original 1847h current 60-package forecast - 2h M4-01 verified triage + 18h newly priced PUR08/PUR14 remaining after source, native posted-GR and native tenant/Project/evidence/actor negatives. Not actual worker-hours, no accepted M4 package or release gate. Original 1900h and unapproved 1500h optimization are separate; 31 Dec 2026 feasibility RED."
 }
