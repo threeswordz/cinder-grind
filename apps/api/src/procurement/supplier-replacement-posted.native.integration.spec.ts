@@ -86,9 +86,9 @@ test('PUR14 native positive: source damaged line -> Store/PM/Jai -> later approv
         }));
       }
       detail = await receiving.get(store, captured.id);
-      await receiving.check(ctx(pm), captured.id, command(detail.version, { decision: 'ACCEPT' }));
+      await receiving.check(ctx(f.jai.auth), captured.id, command(detail.version, { decision: 'ACCEPT' }));
       // Existing receiving rules require an independent check; the Project
-      // Manager is deliberately distinct from Store and is authorized here.
+      // Jai checks independently of Store under existing receiving permissions.
       detail = await receiving.get(store, captured.id);
       assert.equal(detail.status, 'CHECKED');
       return { id: captured.id, lineId, discrepancyDocumentId, detail };
