@@ -237,7 +237,9 @@ export class SupplierDeliveryCaseService {
             !input.recordedGoodsReceiptId)
           return conflict('SUPPLIER_CASE_REPLACEMENT_PROVENANCE_REQUIRED');
         const origin = await tx.receivingDeliveryLine.findFirst({
-          where: { id: input.originalReceivingDeliveryLineId },
+          where: { id: input.originalReceivingDeliveryLineId,
+            delivery: { companyId: order.companyId, projectId: order.projectId,
+              supplierId: order.supplierId, purchaseOrderId: order.id } },
           select: {
             id: true, purchaseOrderLineId: true, materialId: true, uomId: true,
             observedQuantity: true, goodQuantity: true,
@@ -259,8 +261,12 @@ export class SupplierDeliveryCaseService {
             } } },
           select: { id: true },
         });
+        // The candidate GR lookup must itself be tenant and PO constrained.
+        // Do not read a foreign receipt and depend only on an eventual proof rejection.
         const gr = await tx.goodsReceipt.findFirst({
-          where: { id: input.recordedGoodsReceiptId },
+          where: { id: input.recordedGoodsReceiptId, companyId: order.companyId,
+            projectId: order.projectId, supplierId: order.supplierId,
+            purchaseOrderId: order.id },
           select: {
             id: true, companyId: true, projectId: true, supplierId: true,
             purchaseOrderId: true, postedAt: true, reversedAt: true,
@@ -279,6 +285,29 @@ export class SupplierDeliveryCaseService {
         });
         if (!origin || !poLine?.materialId || !gr || !gr.items[0] || !gr.delivery)
           return conflict('SUPPLIER_CASE_REPLACEMENT_SOURCE_NOT_FOUND');
+        // A Project-linked document alone does not establish receiving provenance.
+        // A live, non-superseded immutable receiving evidence row is required
+        // for BOTH the damaged origin and the independently checked replacement.
+        const originalEvidence = await tx.receivingDeliveryEvidence.findFirst({
+          where: { companyId: order.companyId, deliveryId: origin.delivery.id,
+            documentId: current.origin.evidenceDocumentId, purpose: 'CONDITION_PHOTO',
+            replacement: { is: null },
+            document: { companyId: order.companyId, isActive: true } },
+          select: { checksum: true, document: { select: { checksum: true } } },
+        });
+        const replacementEvidence = await tx.receivingDeliveryEvidence.findFirst({
+          where: { companyId: order.companyId, deliveryId: gr.delivery.id,
+            documentId: input.evidenceDocumentId, purpose: 'CONDITION_PHOTO',
+            replacement: { is: null },
+            document: { companyId: order.companyId, isActive: true,
+              links: { some: { entityType: 'RECEIVING_DELIVERY',
+                entityId: gr.delivery.id } } } },
+          select: { checksum: true, document: { select: { checksum: true } } },
+        });
+        if (!replacementEvidence ||
+            !replacementEvidence.document.checksum ||
+            replacementEvidence.document.checksum !== replacementEvidence.checksum)
+          return conflict('SUPPLIER_CASE_REPLACEMENT_RECEIVING_EVIDENCE_REQUIRED');
         const item = gr.items[0];
         const deliveredLine = gr.delivery.lines.find(line =>
           line.purchaseOrderLineId === poLine.id &&
@@ -307,7 +336,9 @@ export class SupplierDeliveryCaseService {
               receivedAt: origin.delivery.receivedAt.toISOString(),
               observedQuantity: origin.observedQuantity.toFixed(4),
               goodQuantity: origin.goodQuantity.toFixed(4),
-              discrepancyDocumentLinked: Boolean(originalDocument),
+              discrepancyDocumentLinked: Boolean(originalDocument && originalEvidence &&
+                originalEvidence.document.checksum &&
+                originalEvidence.document.checksum === originalEvidence.checksum),
             },
             receipt: {
               id: gr.id, itemId: item.id, companyId: gr.companyId,

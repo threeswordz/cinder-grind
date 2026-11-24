@@ -127,6 +127,146 @@ test('PUR14 native positive: source damaged line -> Store/PM/Jai -> later approv
     const beforeStock = await db.stockTransaction.count({ where: { companyId: f.company.id } });
     const beforeAP = await db.supplierInvoice.count({ where: { companyId: f.company.id } });
     const beforePayments = await db.payment.count({ where: { companyId: f.company.id } });
+    // Independent tests, each targeting a specific live persistence and
+    // authorization rejection before the successful final transition.
+    const candidate = (more: Record<string, unknown> = {}) => input(
+      'STORE_RECORD_REPLACEMENT_RECEIPT', 3, claim.expectedPreviousEventId, {
+        recordedGoodsReceiptId: gr.id,
+        recordedGoodsReceiptItemId: posted.items[0]!.id,
+        originalReceivingDeliveryLineId: original.lineId,
+        evidenceDocumentId: replacement.discrepancyDocumentId,
+        ...more,
+      });
+    const expectCode = async (run: Promise<unknown>, code: string) => {
+      await assert.rejects(run, (err: unknown) => {
+        if (!err || typeof err !== 'object' || !('getResponse' in err) ||
+            typeof err.getResponse !== 'function') return false;
+        const body = err.getResponse();
+        return !!body && typeof body === 'object' && 'code' in body && body.code === code;
+      }, 'Expected '+code);
+    };
+    const supplierAuditBefore = await db.auditLog.count({
+      where: { companyId: f.company.id, entityType: 'SUPPLIER_DELIVERY_CASE', entityId: f.po.id },
+    });
+    assert.equal(supplierAuditBefore, 3);
+    await expectCode(supplier.transition(ctx(store), f.po.id,
+      candidate({ recordedGoodsReceiptId: randomUUID() }) as never),
+    'SUPPLIER_CASE_REPLACEMENT_SOURCE_NOT_FOUND');
+    await expectCode(supplier.transition(ctx(store), f.po.id,
+      candidate({ recordedGoodsReceiptItemId: randomUUID() }) as never),
+    'SUPPLIER_CASE_REPLACEMENT_SOURCE_NOT_FOUND');
+    await expectCode(supplier.transition(ctx(store), f.po.id,
+      candidate({ evidenceDocumentId: randomUUID() }) as never),
+    'SUPPLIER_CASE_SCOPED_DOCUMENT_EVIDENCE_REQUIRED');
+    // Original photo is a valid Project document, but NOT replacement receiving
+    // evidence; the old API incorrectly accepted it for unrelated GR linkage.
+    await expectCode(supplier.transition(ctx(store), f.po.id,
+      candidate({ evidenceDocumentId: original.discrepancyDocumentId }) as never),
+    'SUPPLIER_CASE_REPLACEMENT_RECEIVING_EVIDENCE_REQUIRED');
+    await expectCode(supplier.transition(ctx(store), f.po.id,
+      candidate({ originalReceivingDeliveryLineId: replacement.lineId }) as never),
+    'PUR14_REPLACEMENT_ORIGIN_OR_ITEM_MISMATCH');
+    await expectCode(supplier.transition(ctx(store), f.po.id,
+      candidate({ expectedVersion: 2, expectedPreviousEventId: review.expectedPreviousEventId }) as never),
+    'SUPPLIER_CASE_STALE_EVENT');
+
+    // Revocation MUST be rechecked inside the same serializable transaction,
+    // not trusted from the already-resolved AuthenticatedUserContext.
+    const storeView = await db.permission.findUniqueOrThrow({
+      where: { permissionCode: 'inventory.receiving.view' },
+    });
+    await db.rolePermission.delete({
+      where: { roleId_permissionId: {
+        roleId: f.store.role.id, permissionId: storeView.id,
+      } },
+    });
+    try {
+      await expectCode(supplier.transition(ctx(store), f.po.id, candidate() as never),
+        'SUPPLIER_CASE_BUSINESS_VIEW_DENIED');
+    } finally {
+      await db.rolePermission.create({
+        data: { roleId: f.store.role.id, permissionId: storeView.id },
+      });
+    }
+    await db.employee.update({
+      where: { id: f.store.employee.id }, data: { isActive: false },
+    });
+    try {
+      await expectCode(supplier.transition(ctx(store), f.po.id, candidate() as never),
+        'SUPPLIER_CASE_LIVE_EMPLOYEE_REQUIRED');
+    } finally {
+      await db.employee.update({
+        where: { id: f.store.employee.id }, data: { isActive: true },
+      });
+    }
+    await db.userSession.update({
+      where: { id: f.store.session.sessionId }, data: { revokedAt: new Date() },
+    });
+    try {
+      await expectCode(supplier.transition(ctx(store), f.po.id, candidate() as never),
+        'SUPPLIER_CASE_LIVE_EMPLOYEE_REQUIRED');
+    } finally {
+      await db.userSession.update({
+        where: { id: f.store.session.sessionId }, data: { revokedAt: null },
+      });
+    }
+
+    // The Store employee is a real Project member for the approved receipt.
+    // Removing just that disposable membership must deny the cached auth.
+    const membership = await db.projectMember.findFirstOrThrow({
+      where: { employeeId: f.store.employee.id, projectId: f.project.id },
+    });
+    await db.projectMember.delete({ where: { id: membership.id } });
+    try {
+      await expectCode(supplier.transition(ctx(store), f.po.id, candidate() as never),
+        'PROJECT_ACCESS_DENIED');
+    } finally {
+      await db.projectMember.create({ data: {
+        projectId: f.project.id, employeeId: f.store.employee.id,
+        projectRole: membership.projectRole,
+      } });
+    }
+
+    // A distinct active Company/Store principal must not see this source PO.
+    const foreignCompany = await db.company.create({
+      data: { companyCode: 'PUR14-F-'+randomUUID().slice(0,8),
+        companyName: 'Foreign replacement negative-test Company' },
+    });
+    const foreignEmployee = await db.employee.create({ data: {
+      companyId: foreignCompany.id, employeeCode: 'PUR14-X-'+randomUUID().slice(0,8),
+      employeeName: 'Foreign synthetic Store',
+    } });
+    const foreignUser = await db.user.create({ data: {
+      companyId: foreignCompany.id, employeeId: foreignEmployee.id,
+      email: 'pur14-foreign-'+randomUUID()+'@example.invalid',
+      displayName: 'Foreign synthetic Store', passwordHash: 'not-a-real-login',
+    } });
+    const foreignRole = await db.role.create({ data: {
+      companyId: foreignCompany.id, roleCode: 'STOREKEEPER',
+      roleName: 'Foreign synthetic Storekeeper',
+    } });
+    const permissionDocs = await db.permission.findUniqueOrThrow({
+      where: { permissionCode: 'documents.document.view' },
+    });
+    await db.rolePermission.createMany({ data: [storeView, permissionDocs].map(p => ({
+      roleId: foreignRole.id, permissionId: p.id,
+    })) });
+    await db.userRole.create({ data: {
+      companyId: foreignCompany.id, userId: foreignUser.id, roleId: foreignRole.id,
+    } });
+    const foreignSession = await f.sessions.create(foreignUser.id);
+    const foreign = await f.sessions.resolve(foreignSession.sessionToken);
+    assert.ok(foreign);
+    await expectCode(supplier.transition(ctx(foreign), f.po.id, candidate() as never),
+      'SUPPLIER_CASE_PO_NOT_FOUND');
+
+    assert.equal(await db.auditLog.count({
+      where: { companyId: f.company.id, entityType: 'SUPPLIER_DELIVERY_CASE', entityId: f.po.id },
+    }), supplierAuditBefore, 'Rejected cases cannot add audit transitions');
+    assert.equal(await db.stockTransaction.count({ where: { companyId: f.company.id } }), beforeStock,
+      'Rejected supplier claims cannot change canonical stock');
+    assert.equal(await db.supplierInvoice.count({ where: { companyId: f.company.id } }), beforeAP);
+    assert.equal(await db.payment.count({ where: { companyId: f.company.id } }), beforePayments);
     const answer = await supplier.transition(ctx(store), f.po.id, input(
       'STORE_RECORD_REPLACEMENT_RECEIPT', 3, claim.expectedPreviousEventId, {
         recordedGoodsReceiptId: gr.id,
@@ -135,6 +275,11 @@ test('PUR14 native positive: source damaged line -> Store/PM/Jai -> later approv
         evidenceDocumentId: replacement.discrepancyDocumentId,
       }) as never);
     assert.equal(answer.case.stage, 'REPLACEMENT_RECEIPT_RECORDED');
+    await expectCode(supplier.transition(ctx(store), f.po.id, candidate() as never),
+      'SUPPLIER_CASE_STALE_EVENT');
+    assert.equal(await db.auditLog.count({
+      where: { companyId: f.company.id, entityType: 'SUPPLIER_DELIVERY_CASE', entityId: f.po.id },
+    }), supplierAuditBefore+1, 'Exactly one accepted final supplier event');
     const readback = await supplier.read(store, f.po.id);
     assert.equal((readback.replacementTrace as { quantity: string }).quantity, '1.0000');
     assert.equal((readback.replacementTrace as { originalDeliveryId: string }).originalDeliveryId, original.id);
