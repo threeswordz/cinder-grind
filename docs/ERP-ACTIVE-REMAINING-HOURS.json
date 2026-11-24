@@ -1479,6 +1479,27 @@
       "sourceSha": "3e6cc49da653a924babdc8507fb4f60a2335df1d",
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-03-003",
+      "date": "2026-11-25",
+      "packageId": "M4-03",
+      "kind": "FM01_FULL_GATE_IDENTIFIED_STALE_CACHE_TEST_CORRECTED",
+      "beforeHours": 8,
+      "afterHours": 8,
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/pull/452",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45460884490",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45463390620",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45463404517"
+      ],
+      "basis": "Owner authorized exactly one full PR validation for Draft #452. Original exact-head attempt 2 45460884490 stopped at the production deployment contract pack: 428/429 node tests PASS, old FM01-A cached weekly invalidation test expected three but legitimate no-work declaration and reason correction now require five. One-file guarded non-force correction head 1b4be1427fea3d729d07a1717f0bfcd6ce232a20 strengthens test to separately require exactly one weekly invalidation for each save, submit, correction, no-work declaration and no-work reason correction. V8 readback confirmed all five source call sites; new exact-head focused 45463390620 SUCCESS 18/18. New Draft admission attempt1 DRAFT_FOCUSED_ONLY; single failed-jobs rerun for exact-head full CI 45463404517 attempt2 started after focused PASS, in progress. No new source functionality, scope or remaining-hour credit, Codex, merge, Production or UAT. Do not count previous failed full run as green; same-repo source and main unchanged except test patch.",
+      "sourceSha": "1b4be1427fea3d729d07a1717f0bfcd6ce232a20",
+      "formalAcceptance": false,
+      "estimateConfidence": "PENDING_FULL_GATE"
     }
   ],
   "unestimatedWork": [
