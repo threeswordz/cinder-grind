@@ -711,6 +711,28 @@
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL",
       "sourceSha": "7409a3a5e896108561dbdbe767fbcba620089520"
+    },
+    {
+      "id": "ERP-PROG-20261124-PUR08-14-006",
+      "date": "2026-11-24",
+      "packageId": null,
+      "kind": "VERIFIED_DISPOSABLE_CHROME_HTTP_REAL_BYTES_SCOPE_REESTIMATE",
+      "beforeHours": null,
+      "afterHours": null,
+      "reductionHours": 0,
+      "scopeId": "PUR08_PUR14_INTEGRATION",
+      "scopeBeforeHours": 32,
+      "scopeAfterHours": 25,
+      "scopeReductionHours": 7,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45353333518",
+        "https://github.com/threeswordz/cinder-grind/pull/432",
+        "https://github.com/threeswordz/cinder-grind/blob/83761646f66b642eb5d9fdbb8a63278baf4c7008/docs/parallel/PUR08-PUR14-INTEGRATION-HANDOFF-2026-11-24.md"
+      ],
+      "basis": "One new focused authenticated Chrome+Nest+React+PG17 source journey SUCCESS: anonymous 401, CSRF-negative 403, same-Company wrong Project denied, stored receiving Document downloaded with exact byte equality, Store Site Receiving UI discrepancy -> independent PM return decision -> Jai claim -> Store outbound reported evidence, four actor-bound audit events, zero unintended stock/AP/payments. Updated obsolete synthetic receiving source fixture to explicitly supply existing PUR01 quote basis; did NOT relax production approval. Relevant tested source blobs match isolated code branch. Re-estimate 7 fewer future work hours from demonstrated browser and HTTP progress; not actual human time or formal UAT/independent review. Positive physically posted supplier return and credit model still open.",
+      "sourceSha": "5bba976d090e4561b0ad45cc2f3e8a8b8cc906ca",
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -720,19 +742,19 @@
         "PUR08",
         "PUR14"
       ],
-      "hours": 32,
+      "hours": 25,
       "budgetAllocation": "NEW_EXPLICIT_M4_ADDITIONAL_SCOPE; NOT SILENTLY SUBTRACTED_FROM_M4_01/M4_08",
-      "sourceStatus": "NEST_API_AND_REACT_TYPECHECK_PASS;PURE_7_OF_7_PASS;NATIVE_PG17_1_OF_1_PASS;STORE_RECEIVING_REACT_TYPECHECK_PASS;HUMAN_BROWSER_INDEPENDENT_REVIEW_PENDING",
-      "remaining": "32h low-confidence future effort: actual authenticated HTTP/CSRF and real scoped eight-role browser UAT; genuine supplier physical return/quantity/stock and Finance credit policy and implementation; positive posted-replacement GR business link; actual documented supplier evidence byte integrity; independent DEC-022 review, Owner approval and integration.",
-      "evidence": "https://github.com/threeswordz/cinder-grind/pull/432",
+      "sourceStatus": "REAL_HTTP_CHROME_STORE_PM_JAI_AND_DOCUMENT_BYTES_PASS;SYNTHETIC_ONLY;NATIVE_PG17_1_OF_1_PASS;FULL_UAT_AND_PHYSICAL_RETURN_FINANCE_POLICY_PENDING",
+      "remaining": "25h low-confidence future work for actual supplier physical return line quantities/stock effects and Finance credit governance (not the existing reported-only case), positive posted replacement GR line trace, real retained-user cross-Project role UAT, DEC-022 independent reviewer, Owner signoff and release integration.",
+      "evidence": "https://github.com/threeswordz/cinder-grind/actions/runs/45353333518",
       "stage": "M4",
       "grossPreImplementationEstimateHours": 50,
-      "estimatedReductionFromNewSourceHours": 18,
+      "estimatedReductionFromNewSourceHours": 25,
       "confidence": "LOW",
       "estimateKind": "NEWLY_DISCOVERED_MANDATORY_SCOPE_PRICE_NOT_A_TIMESHEET"
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1877,
-  "currentRollingTotalSemantics": "1877h = original 1847h provisional baseline - 2h M4-01 future-work source triage + 32h newly recognized mandatory PUR08/PUR14 after its source+focused API/React/PG verification; estimative work remaining not actual hours worked or formally accepted."
+  "currentRollingTotalAfterPricedGapsHours": 1870,
+  "currentRollingTotalSemantics": "1870h remaining provisional work = original 1847h baseline - 2h M4 triage + 25h distinct newly priced mandatory PUR08/14 after focused 7/7 pure, API/React TS, PG17 native, real authenticated scoped Chrome and Document byte proof. Not actual labor hours, real retained human UAT, accepted package or 31 Dec feasibility assurance."
 }
