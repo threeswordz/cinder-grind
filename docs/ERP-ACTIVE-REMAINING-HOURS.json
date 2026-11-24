@@ -862,6 +862,24 @@
       "sourceSha": "26916aa548435f60e887d568ba69298cb83fb973",
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261124-M4-06-002",
+      "date": "2026-11-24",
+      "packageId": "M4-06",
+      "kind": "PUR07_EXTERNAL_DOC_LINK_VIEW_AUTHORIZATION_SOURCE_REESTIMATE",
+      "beforeHours": 9,
+      "afterHours": 8,
+      "reductionHours": 1,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/pull/437",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45375637651",
+        "https://github.com/threeswordz/cinder-grind/commit/08beb187bdfdc54b71edc0fdc6e2e14d1b9e52fc"
+      ],
+      "basis": "Draft PR #437 continues source-bound M4-06 PUR07: existing approved supplier PO reported external dispatch allowed linking an active scoped Project Document UUID even when the procurement officer lacked documents.document.view permission. Added fail-closed PO_DISPATCH_DOCUMENT_VIEW_REQUIRED before any PO source read for document-backed dispatch evidence; optional text-only human-reported send remains supported without a new grant. One NEW focused Node source-negative spec with missing Document view and text-only unchanged path, API TS build both PASS in overall SUCCESS run #45375637651. Exact changed service/test blobs match CI source. Existing PDF approval-time source guard previous #45375009267 PASS not redundantly retested; earlier genuine PUR07 native/browser positives remain previously verified. Estimated 1h fewer future M4-06 source-authorization tasks, not actual hours worked, retained role or final approval. No full CI, migration, production or release.",
+      "sourceSha": "08beb187bdfdc54b71edc0fdc6e2e14d1b9e52fc",
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -884,6 +902,6 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1858,
-  "currentRollingTotalSemantics": "1858h provisional future work = original 1847h 60-package baseline −2h verified M4-01 triage −1h M4-06 PDF approval-source guard +14h separately priced required PUR08/PUR14 integration still needed. All development source/negative/browser evidence estimates are not actual worked hours, retained-person signoff or formal 60-package acceptance. Historical 1900h and unapproved optimization 1500h are separate. Full 112-ID Production by 31 Dec feasibility RED."
+  "currentRollingTotalAfterPricedGapsHours": 1857,
+  "currentRollingTotalSemantics": "1857h estimated remaining future work = 1847h original baseline −2h M4-01 triage −2h M4-06 independently verified supplier PDF+reported external evidence authorization source guard +14h separately priced mandatory PUR08/PUR14 remaining. Not actual logged human effort or formal package/go-live acceptance. Historical 1900h and unapproved 1500h optimization remain distinct. Owner 31 Dec 2026 full 112-ID Production deadline feasibility RED."
 }
