@@ -23,6 +23,7 @@ type State = {
   approvedLatest: boolean; case: Case | null;
   expectedPreviousEventId: string | null;
   advisoryOnly: boolean; stockEffect: false; financeEffect: false;
+  replacementReceiptLiveStatus: 'POSTED' | 'REVERSED' | 'SOURCE_UNVERIFIED' | null;
   replacementTrace?: { quantity: string; purchaseOrderLineId: string;
     replacementGoodsReceiptId: string; originalDeliveryId: string } | null;
 };
@@ -132,12 +133,19 @@ export function SupplierDeliveryCasePanel({ orderId, permissions, roleCodes, pre
               {caseData.case?.discrepancyKind?<Typography variant="body2">
                 Discrepancy: {caseData.case.discrepancyKind} · PM decision: {caseData.case.pmDecision??'awaiting review'}
               </Typography>:null}
-              {caseData.replacementTrace?<Alert severity="success">
-                Linked damaged quantity: {caseData.replacementTrace.quantity} ·
-                PO item {caseData.replacementTrace.purchaseOrderLineId} ·
-                Posted GR {caseData.replacementTrace.replacementGoodsReceiptId}.
-                This evidence action did not post stock or Finance.
-              </Alert>:null}
+              {caseData.replacementTrace?(
+                <Alert severity={caseData.replacementReceiptLiveStatus==='POSTED'?'success':'warning'}>
+                  Historical linked damaged quantity: {caseData.replacementTrace.quantity} ·
+                  PO item {caseData.replacementTrace.purchaseOrderLineId} ·
+                  GR {caseData.replacementTrace.replacementGoodsReceiptId}.{' '}
+                  {caseData.replacementReceiptLiveStatus==='POSTED'
+                    ? 'Canonical replacement GR is still approved and posted.'
+                    : caseData.replacementReceiptLiveStatus==='REVERSED'
+                      ? 'Canonical replacement GR was reversed. Prior supplier claim is historical evidence only; do not treat this as current received stock.'
+                      : 'Current canonical replacement GR source cannot be verified. Reconcile its Project, item, posting and approval before relying on this claim.'}
+                  {' '}The supplier-case event never posts stock or Finance.
+                </Alert>
+              ):null}
             </Stack>
           ):null}
           <Divider />

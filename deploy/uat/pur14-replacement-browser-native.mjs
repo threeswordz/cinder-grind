@@ -384,10 +384,13 @@ async function run(){
    'Exact new posted canonical GR and original damaged line, no extra stock or Finance');
   await click(protocol,finalStore,'Record source-linked evidence');
   await visible(protocol,finalStore,'REPLACEMENT_RECEIPT_RECORDED');
-  await visible(protocol,finalStore,'Linked damaged quantity: 1.0000');
+  await visible(protocol,finalStore,'Historical linked damaged quantity: 1.0000');
+  await visible(protocol,finalStore,'Canonical replacement GR is still approved and posted.');
   const result=await scoped(storeActor,url);
   assert.equal(result.status,200);
-  const trace=(await result.json()).data.replacementTrace;
+  const beforeReversal=(await result.json()).data;
+  const trace=beforeReversal.replacementTrace;
+  assert.equal(beforeReversal.replacementReceiptLiveStatus,'POSTED');
   assert.equal(trace?.originalDeliveryId,deliveryId);
   assert.equal(trace?.replacementGoodsReceiptId,gr.id);
   assert.equal(trace?.replacementGoodsReceiptItemId,gr.items[0].id);
@@ -411,6 +414,39 @@ async function run(){
   assert.deepEqual(external,[],'No nonlocal browser requests');
   assert.deepEqual(jsErrors,[],'No unhandled UI JS exceptions');
   console.log('PUR14_REAL_CHROME_NEST_PG17_REPLACEMENT_NO_EXTRA_STOCK_FINANCE_PASS');
+
+  stage='CANONICAL_GR_REVERSED_AFTER_RECORDED_SUPPLIER_EVIDENCE';
+  const livePm=await sessions.resolve(pm.session.sessionToken);
+  assert.ok(livePm);
+  const reversed=await goods.reverse({auth:livePm},gr.id,randomUUID(),
+   'Disposable real canonical receipt reversal for live UI reconciliation');
+  assert.ok(reversed.reversedAt);
+  const after=await scoped(storeActor,url);
+  assert.equal(after.status,200);
+  const afterCase=(await after.json()).data;
+  assert.equal(afterCase.replacementReceiptLiveStatus,'REVERSED');
+  assert.equal(afterCase.case.stage,'REPLACEMENT_RECEIPT_RECORDED');
+  assert.deepEqual(afterCase.replacementTrace,trace,'Immutable historical provenance retained');
+  assert.equal(await db.auditLog.count({
+   where:{companyId:company.id,entityType:'SUPPLIER_DELIVERY_CASE',entityId:po.id},
+  }),4,'GR reversal cannot append a fake supplier case event');
+  assert.equal(await db.stockTransaction.count({where:{companyId:company.id}}),
+   postedStock+1,'Real GR reversal is the only extra stock ledger entry');
+  assert.equal(await db.supplierInvoice.count({where:{companyId:company.id}}),initialFinance);
+  assert.equal(await db.payment.count({where:{companyId:company.id}}),initialPayments);
+
+  // Actual authenticated Store UI, not a synthetic component render.
+  // Store Site loads ReceivingPanel on every new page. Re-open the actual
+  // delivery row to access its nested SupplierDeliveryCasePanel; simply
+  // reloading ReceivingPanel cannot show the supplier-case warning.
+  const afterReversalStore=await openStoreReceipt(false);
+  await visible(protocol,afterReversalStore,'Canonical replacement GR was reversed.');
+  const stillSuccess=await page(protocol,afterReversalStore,()=>[...document.querySelectorAll('.MuiAlert-standardSuccess')]
+   .some(n=>n.textContent?.includes('Canonical replacement GR is still approved')));
+  assert.equal(stillSuccess,false,'Reversed receipt cannot render success alert');
+  assert.deepEqual(external,[],'Canonical reversal UI cannot contact outside localhost');
+  assert.deepEqual(jsErrors,[],'Canonical reversal UI cannot raise JS exceptions');
+  console.log('PUR14_REAL_CHROME_REVERSED_GR_WARNING_HISTORY_AND_LEDGER_PASS');
  }finally{
   protocol.listeners.delete(onBrowser);
   for(const ctx of contexts.reverse())

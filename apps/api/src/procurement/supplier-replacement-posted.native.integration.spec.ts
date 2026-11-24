@@ -284,7 +284,39 @@ test('PUR14 native positive: source damaged line -> Store/PM/Jai -> later approv
     assert.equal((readback.replacementTrace as { quantity: string }).quantity, '1.0000');
     assert.equal((readback.replacementTrace as { originalDeliveryId: string }).originalDeliveryId, original.id);
     assert.equal((readback.replacementTrace as { replacementGoodsReceiptId: string }).replacementGoodsReceiptId, gr.id);
+    assert.equal(readback.replacementReceiptLiveStatus, 'POSTED');
     assert.equal(await db.stockTransaction.count({ where: { companyId: f.company.id } }), beforeStock);
+    assert.equal(await db.supplierInvoice.count({ where: { companyId: f.company.id } }), beforeAP);
+    assert.equal(await db.payment.count({ where: { companyId: f.company.id } }), beforePayments);
+
+    // Real authorized canonical reversal after supplier-case event: keep the
+    // immutable supplier claim, but stop displaying its GR as live received stock.
+    const reversed = await goods.reverse(ctx(pm), gr.id, randomUUID(),
+      'Disposable canonical reversal after supplier replacement was evidenced');
+    assert.ok(reversed.reversedAt, 'Canonical receipt reversal should be complete');
+    const afterReversal = await supplier.read(store, f.po.id);
+    assert.equal(afterReversal.case?.stage, 'REPLACEMENT_RECEIPT_RECORDED',
+      'Audit evidence must not be erased by a later canonical reversal');
+    assert.equal(afterReversal.expectedPreviousEventId, readback.expectedPreviousEventId);
+    assert.deepEqual(afterReversal.replacementTrace, readback.replacementTrace);
+    assert.equal(afterReversal.replacementReceiptLiveStatus, 'REVERSED',
+      'Reversed canonical GR must never be shown as still posted');
+    assert.equal(await db.auditLog.count({
+      where: { companyId: f.company.id, entityType: 'SUPPLIER_DELIVERY_CASE', entityId: f.po.id },
+    }), supplierAuditBefore + 1, 'Reversal is not an additional supplier-case event');
+    assert.equal(await db.stockTransaction.count({ where: { companyId: f.company.id } }),
+      beforeStock + 1, 'Only the canonical GR reversal creates its stock reversal entry');
+
+    // The PostgreSQL canonical GR source trigger refuses an edit that would
+    // violate the approved PO material source. We must TEST the fail-closed
+    // rejection rather than bypassing the trigger to fake a mismatch.
+    await assert.rejects(db.goodsReceiptItem.update({
+      where: { id: posted.items[0]!.id },
+      data: { quantity: new Prisma.Decimal('2.0000') },
+    }), /Goods Receipt item must match its Draft approved-PO material source/);
+    assert.deepEqual((await supplier.read(store, f.po.id)).replacementTrace,
+      readback.replacementTrace, 'Rejected GR source edit must preserve historical evidence');
+    assert.equal((await supplier.read(store, f.po.id)).replacementReceiptLiveStatus, 'REVERSED');
     assert.equal(await db.supplierInvoice.count({ where: { companyId: f.company.id } }), beforeAP);
     assert.equal(await db.payment.count({ where: { companyId: f.company.id } }), beforePayments);
     await db.userSession.update({ where: { id: f.store.session.sessionId }, data: { revokedAt: new Date() } });
