@@ -184,6 +184,34 @@ test('PUR04 native: approved PO revision preserves commercial snapshot and rejec
     };
     await orders.updateOrder({auth:jai.auth},original.id,fields);
     await orders.submit({auth:jai.auth},original.id,poFlow.workflowCode);
+    // New PM02/PUR01 shared final-approval boundary: change supplier status
+    // AFTER PurchaseOrderService preflight but BEFORE real ApprovalService
+    // starts its serializable transaction. The actual action/state writes
+    // must roll back when the final callback rejects. Disposable fixture only.
+    const submitted=await prisma.purchaseOrder.findUniqueOrThrow({where:{id:original.id}});
+    assert.ok(submitted.approvalInstanceId);
+    const approvalId=submitted.approvalInstanceId!;
+    const actionsBefore=await prisma.approvalAction.count({where:{approvalInstanceId:approvalId}});
+    const realApprove=approval.approve.bind(approval);
+    approval.approve=async (...args:Parameters<ApprovalService['approve']>)=>{
+      await prisma.supplier.update({where:{id:supplier.id},data:{isActive:false}});
+      return realApprove(...args);
+    };
+    try {
+      await assert.rejects(
+        ()=>orders.approve({auth:ben.auth},original.id,'Supplier changed after preflight'),
+        (e:unknown)=>e instanceof ConflictException &&
+          (e.getResponse() as {code?:string}).code==='PO_SUPPLIER_INACTIVE',
+      );
+      const unchanged=await prisma.approvalInstance.findUniqueOrThrow({where:{id:approvalId}});
+      assert.equal(unchanged.approvalState,'SUBMITTED');
+      assert.equal(unchanged.completedAt,null);
+      assert.equal(await prisma.approvalAction.count({where:{approvalInstanceId:approvalId}}),actionsBefore);
+      console.log('M4_PM02_NATIVE_FINAL_APPROVAL_SUPPLIER_CHANGE_ROLLBACK_PASS');
+    } finally {
+      approval.approve=realApprove;
+      await prisma.supplier.update({where:{id:supplier.id},data:{isActive:true}});
+    }
     const approved=await orders.approve({auth:ben.auth},original.id,'Commercial offer reviewed');
     assert.equal(approved.lifecycleState,'APPROVED');
     const approvedOriginal=await prisma.purchaseOrder.findUniqueOrThrow({

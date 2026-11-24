@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { ConflictException } from '@nestjs/common';
+import { ConflictException, ForbiddenException } from '@nestjs/common';
 
 import { NumberSequenceService } from '../administration/number-sequence.service';
 import { ApprovalService } from '../approval/approval.service';
@@ -64,7 +64,10 @@ test('PM02 PO submission rejects inactive source before ApprovalService.start', 
           update: async () => { submittedWrites++; throw Error('UNEXPECTED_PO_WRITE'); },
         },
         purchaseRequestLine: {
-          findMany: async () => sources,
+          findMany: async (query: { where: { purchaseRequest: unknown } }) => {
+            assert.deepEqual(query.where.purchaseRequest, { companyId, projectId });
+            return sources;
+          },
         },
       };
       const database = {
@@ -94,6 +97,81 @@ test('PM02 PO submission rejects inactive source before ApprovalService.start', 
       assert.equal(approvalStart, 0);
       assert.equal(submittedWrites, 0);
       assert.equal(audited, 0);
+    });
+  }
+});
+
+test('PM02 final approval rechecks current demand, supplier and Project in the approval transaction', async (t) => {
+  const companyId = 'company-a', projectId = 'project-a', sourceId = 'pr-line-a';
+  const orderId = 'po-a', maker = 'jai', checker = 'ben', instanceId = 'approval-a';
+  const auth = { companyId, userId: checker } as AuthenticatedUserContext;
+  const order = {
+    id: orderId, companyId, projectId, supplierId: 'supplier-a', poNumber: 'PO2611-001',
+    approvalInstanceId: instanceId, submittedByUserId: maker, cancelledAt: null,
+    lines: [{ purchaseRequestLineId: sourceId }],
+  };
+  const active = () => ({
+    id: sourceId, reviewDecision: 'APPROVED',
+    purchaseRequest: { companyId, projectId, cancelledAt: null as Date | null,
+      approvalInstance: { approvalState: 'APPROVED' } },
+  });
+  for (const scenario of [
+    'returned', 'cancelled', 'foreign-company', 'other-project', 'missing',
+    'rejected', 'supplier-inactive', 'project-revoked', 'po-cancelled', 'instance-changed',
+  ]) {
+    await t.test(scenario, async () => {
+      const changed = active();
+      if (scenario === 'returned') changed.reviewDecision = 'RETURNED';
+      if (scenario === 'cancelled') changed.purchaseRequest.cancelledAt = new Date();
+      if (scenario === 'foreign-company') changed.purchaseRequest.companyId = 'foreign';
+      if (scenario === 'other-project') changed.purchaseRequest.projectId = 'other';
+      if (scenario === 'rejected') changed.purchaseRequest.approvalInstance.approvalState = 'REJECTED';
+      let finalChecks = 0, committed = 0, audits = 0, commercialReads = 0;
+      const tx = {
+        purchaseOrder: { findFirst: async () => ({
+          ...order,
+          cancelledAt: scenario === 'po-cancelled' ? new Date() : null,
+          approvalInstanceId: scenario === 'instance-changed' ? 'other-instance' : instanceId,
+        }) },
+        purchaseRequestLine: { findMany: async (query: { where: { purchaseRequest: unknown } }) => {
+          assert.deepEqual(query.where.purchaseRequest, { companyId, projectId });
+          return scenario === 'missing' ? [] : [changed];
+        } },
+        supplier: { findFirst: async () => scenario === 'supplier-inactive' ? null : { id: order.supplierId } },
+        supplierQuotation: { count: async () => { commercialReads++; throw Error('UNEXPECTED_COMMERCIAL_READ'); } },
+      };
+      const database = {
+        purchaseOrder: { findFirst: async () => order },
+        purchaseRequestLine: { findMany: async () => [active()] },
+        supplier: { findFirst: async () => ({ id: order.supplierId }) },
+      } as unknown as PrismaService;
+      const access = { assertAccess: async (_auth: unknown, id: string, db?: unknown) => {
+        assert.equal(id, projectId);
+        if (db === tx) {
+          finalChecks++;
+          if (scenario === 'project-revoked') throw new ForbiddenException({ code: 'PROJECT_ACCESS_DENIED' });
+        }
+      } } as unknown as ProjectAccessService;
+      const approvals = { approve: async (_id: string, _auth: unknown, _maker: string,
+        _comment: unknown, callback: (client: typeof tx) => Promise<void>) => {
+        // Deliberately emulate the final-approval transaction callback boundary;
+        // this is a service seam, not a native concurrency or rollback test.
+        await callback(tx);
+        committed++;
+        throw Error('UNEXPECTED_APPROVAL_COMMIT');
+      } } as unknown as ApprovalService;
+      const audit = { record: async () => { audits++; } } as unknown as AuditService;
+      const service = new PurchaseOrderService(database, access, audit, approvals, {} as NumberSequenceService);
+      const expected = scenario === 'supplier-inactive' ? 'PO_SUPPLIER_INACTIVE' :
+        scenario === 'project-revoked' ? 'PROJECT_ACCESS_DENIED' :
+        ['po-cancelled','instance-changed'].includes(scenario) ? 'PO_NOT_SUBMITTED' : 'PO_SOURCE_DEMAND_INACTIVE';
+      await assert.rejects(() => service.approve({ auth }, orderId), (error: unknown) =>
+        (error instanceof ConflictException || error instanceof ForbiddenException) &&
+        (error.getResponse() as {code?: string}).code === expected);
+      assert.equal(finalChecks, 1);
+      assert.equal(committed, 0);
+      assert.equal(audits, 0);
+      assert.equal(commercialReads, 0);
     });
   }
 });
