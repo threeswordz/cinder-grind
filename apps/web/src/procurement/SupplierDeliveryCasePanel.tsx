@@ -24,6 +24,13 @@ type State = {
   expectedPreviousEventId: string | null;
   advisoryOnly: boolean; stockEffect: false; financeEffect: false;
   replacementReceiptLiveStatus: 'POSTED' | 'REVERSED' | 'SOURCE_UNVERIFIED' | null;
+  returnCustodyTrace?: {
+    quantity: string; originalDeliveryLineId: string; warehouseId: string;
+    supplierSignatory: string; signedHandoverDocumentId: string;
+    signedHandoverOperatorAttested: true; stockEffect: false; financeEffect: false;
+  } | null;
+  financeResolution: 'REPLACEMENT_ONLY_NO_AP_CREDIT';
+  nonDamagedResolution: 'DISCREPANCY_EVIDENCE_ONLY';
   replacementTrace?: { quantity: string; purchaseOrderLineId: string;
     replacementGoodsReceiptId: string; originalDeliveryId: string } | null;
 };
@@ -50,6 +57,9 @@ export function SupplierDeliveryCasePanel({ orderId, permissions, roleCodes, pre
   const [receiptId, setReceiptId] = useState('');
   const [receiptItemId, setReceiptItemId] = useState('');
   const [originalLineId, setOriginalLineId] = useState('');
+  const [returnQuantity, setReturnQuantity] = useState('');
+  const [supplierSignatory, setSupplierSignatory] = useState('');
+  const [supplierSignatureConfirmed, setSupplierSignatureConfirmed] = useState(false);
   const canJai = roleCodes.includes('PROCUREMENT_OFFICER') && permissions.includes('procurement.po.view');
   const canStore = roleCodes.includes('STOREKEEPER') && permissions.includes('inventory.receiving.view');
   const canPm = roleCodes.includes('PROJECT_MANAGER') && permissions.includes('inventory.receipt.view');
@@ -80,9 +90,9 @@ export function SupplierDeliveryCasePanel({ orderId, permissions, roleCodes, pre
   if (canStore) {
     if (!stage || ['ACKNOWLEDGED','IN_TRANSIT','DELAY_REPORTED'].includes(stage))
       choices.push({value:'REPORT_DISCREPANCY',label:'Report short/wrong/excess/damaged delivery'});
-    if (stage==='CLAIM_RECORDED'&&caseData?.case?.pmDecision==='REQUEST_RETURN')
+    if (stage==='CLAIM_RECORDED'&&caseData?.case?.pmDecision==='REQUEST_RETURN'&&caseData.case.discrepancyKind==='DAMAGED')
       choices.push({value:'STORE_RECORD_RETURN_DISPATCH',label:'Record actual outward supplier return evidence'});
-    if (stage==='CLAIM_RECORDED'&&caseData?.case?.pmDecision==='REQUEST_REPLACEMENT')
+    if (stage==='CLAIM_RECORDED'&&caseData?.case?.pmDecision==='REQUEST_REPLACEMENT'&&caseData.case.discrepancyKind==='DAMAGED')
       choices.push({value:'STORE_RECORD_REPLACEMENT_RECEIPT',label:'Link posted replacement GR evidence'});
   }
   if (canPm&&stage==='DISCREPANCY_REPORTED')
@@ -98,6 +108,12 @@ export function SupplierDeliveryCasePanel({ orderId, permissions, roleCodes, pre
         ...(choice==='REPORT_DISCREPANCY'?{discrepancyKind:kind}:{}),
         ...(choice==='PM_REVIEW_DISCREPANCY'?{pmDecision:decision}:{}),
         ...(choice==='REPORT_DELAY'?{newSupplierExpectedDate:date}:{}),
+        ...(choice==='STORE_RECORD_RETURN_DISPATCH'?{
+          originalReceivingDeliveryLineId:originalLineId.trim(),
+          returnQuantity:returnQuantity.trim(),
+          supplierSignatory:supplierSignatory.trim(),
+          supplierSignatureConfirmed,
+        }:{}),
         ...(choice==='STORE_RECORD_REPLACEMENT_RECEIPT'?{
           recordedGoodsReceiptId:receiptId.trim(),
           recordedGoodsReceiptItemId:receiptItemId.trim(),
@@ -107,6 +123,7 @@ export function SupplierDeliveryCasePanel({ orderId, permissions, roleCodes, pre
     }),
     onSuccess:()=>{
       setNote('');setDocumentId('');setAckId('');setReceiptId('');setReceiptItemId('');setOriginalLineId('');setDate('');
+      setReturnQuantity('');setSupplierSignatory('');setSupplierSignatureConfirmed(false);
       void client.invalidateQueries({queryKey:['supplier-delivery-case',orderId]});
     },
   });
@@ -120,6 +137,8 @@ export function SupplierDeliveryCasePanel({ orderId, permissions, roleCodes, pre
             This records reported external status and supporting documents only. It does not send a
             supplier message, approve a GR, deduct stock, create a credit note, or post Finance.
             The original PUR07 dispatch/acknowledgment and canonical posted GR remain authoritative.
+            Replacement-only creates no AP credit; a genuine supplier credit or AP adjustment must
+            follow a separately authorized Porn-maker / Nancy-checker Finance workflow.
           </Alert>
           {current.isPending?<CircularProgress size={22}/>:null}
           {current.isError?<Alert severity="error">{err(current.error)}</Alert>:null}
@@ -133,6 +152,24 @@ export function SupplierDeliveryCasePanel({ orderId, permissions, roleCodes, pre
               {caseData.case?.discrepancyKind?<Typography variant="body2">
                 Discrepancy: {caseData.case.discrepancyKind} · PM decision: {caseData.case.pmDecision??'awaiting review'}
               </Typography>:null}
+              {caseData.case?.discrepancyKind &&
+               ['SHORT','WRONG_ITEM','EXCESS'].includes(caseData.case.discrepancyKind) ? (
+                <Alert severity="warning">
+                  Short, wrong-item and excess discrepancies are evidence-only. A supplier claim
+                  can be recorded, but physical return/replacement resolution and stock/Finance
+                  quantities require separately approved material and PO-line attribution.
+                </Alert>
+              ):null}
+              {caseData.returnCustodyTrace ? (
+                <Alert severity="info">
+                  Supplier signed-handover attested by operator: {caseData.returnCustodyTrace.quantity} held damaged units ·
+                  warehouse {caseData.returnCustodyTrace.warehouseId} ·
+                  supplier signatory {caseData.returnCustodyTrace.supplierSignatory}.
+                  Document {caseData.returnCustodyTrace.signedHandoverDocumentId}.
+                  This is reported unposted custody only — no stock deduction or AP credit.
+                  Previously posted goods require a separate authorized canonical reversal.
+                </Alert>
+              ):null}
               {caseData.replacementTrace?(
                 <Alert severity={caseData.replacementReceiptLiveStatus==='POSTED'?'success':'warning'}>
                   Historical linked damaged quantity: {caseData.replacementTrace.quantity} ·
@@ -190,6 +227,28 @@ export function SupplierDeliveryCasePanel({ orderId, permissions, roleCodes, pre
                 <TextField label="Supplier-reported revised date" type="date" value={date}
                   onChange={e=>setDate(e.target.value)} slotProps={{inputLabel:{shrink:true}}} required/>
               ):null}
+              {selected==='STORE_RECORD_RETURN_DISPATCH'?(
+                <Stack spacing={1}>
+                  <Alert severity="warning">
+                    Only checked DAMAGED units that were excluded from the good-quantity GR
+                    can be returned through custody-only evidence. The exact rejected quantity,
+                    original line, a separate uploaded signed handover document, named supplier
+                    signatory and Store attestation are mandatory. This never reduces posted
+                    warehouse stock or creates a credit note.
+                  </Alert>
+                  <TextField label="Original damaged Receiving Delivery LINE UUID" value={originalLineId}
+                    onChange={e=>setOriginalLineId(e.target.value)} required/>
+                  <TextField label="Unposted damaged quantity returned" value={returnQuantity}
+                    onChange={e=>setReturnQuantity(e.target.value)} required/>
+                  <TextField label="Supplier signatory recorded on handover" value={supplierSignatory}
+                    onChange={e=>setSupplierSignatory(e.target.value)} required/>
+                  <TextField select label="Signed supplier handover confirmed by Store" value={supplierSignatureConfirmed?'YES':'NO'}
+                    onChange={e=>setSupplierSignatureConfirmed(e.target.value==='YES')} required>
+                    <MenuItem value="NO">NO — do not record</MenuItem>
+                    <MenuItem value="YES">YES — signed document uploaded and personally checked</MenuItem>
+                  </TextField>
+                </Stack>
+              ):null}
               {selected==='STORE_RECORD_REPLACEMENT_RECEIPT'?(
                 <Stack spacing={1}>
                   <Alert severity="info">Only DAMAGED source quantities are supported: the original receiving evidence must link to the original checked delivery; the supplier replacement must be separately received, checked and posted, with an exact item, UOM and damaged quantity match.</Alert>
@@ -210,6 +269,8 @@ export function SupplierDeliveryCasePanel({ orderId, permissions, roleCodes, pre
               <Box><Button variant="outlined" disabled={save.isPending||!selected||!documentId.trim()||!note.trim()||
                 (selected==='ACKNOWLEDGE'&&!ackId)||
                 (selected==='REPORT_DELAY'&&!date)||
+                (selected==='STORE_RECORD_RETURN_DISPATCH'&&
+                  (!originalLineId.trim()||!returnQuantity.trim()||!supplierSignatory.trim()||!supplierSignatureConfirmed))||
                 (selected==='STORE_RECORD_REPLACEMENT_RECEIPT'&&(!receiptId.trim()||!receiptItemId.trim()||!originalLineId.trim()))}
                 onClick={()=>{if(selected)save.mutate(selected)}}>
                 {save.isPending?'Recording...':'Record source-linked evidence'}
