@@ -60,13 +60,19 @@ test('PUR08/PUR14 native: scoped live actors, real PUR07 source, append-only cas
         email:name.toLowerCase()+'-'+key+'@example.invalid',
         displayName:'Synthetic '+name, passwordHash:'not-a-login',
       }});
-      const role = await db.role.create({data:{
-        companyId, roleCode, roleName:'Disposable '+name,
-      }});
+      const role = await db.role.upsert({
+        where:{companyId_roleCode:{companyId,roleCode}},
+        create:{companyId,roleCode,roleName:'Disposable '+name},
+        update:{},
+      });
       for (const permission of grants) {
         const pid=permIds.get(permission);
         assert.ok(pid);
-        await db.rolePermission.create({data:{roleId:role.id,permissionId:pid}});
+        await db.rolePermission.upsert({
+          where:{roleId_permissionId:{roleId:role.id,permissionId:pid}},
+          create:{roleId:role.id,permissionId:pid},
+          update:{},
+        });
       }
       await db.userRole.create({data:{companyId,userId:user.id,roleId:role.id}});
       if (memberProjectId) await db.projectMember.create({data:{
