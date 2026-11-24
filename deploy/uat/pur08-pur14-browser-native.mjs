@@ -335,8 +335,11 @@ async function run(){
 }
 try{await run();}
 catch(error){
- console.error('PUR0814_AUTHENTICATED_CHROME_FAILED_'+stage+': '+
-  String(error?.message??error).slice(0,330));
+ const detail=typeof error?.getResponse==='function'?error.getResponse():null;
+ const code=detail&&typeof detail==='object'&&typeof detail.code==='string'?
+  detail.code:'NO_SAFE_NEST_ERROR_CODE';
+ console.error('PUR0814_AUTHENTICATED_CHROME_FAILED_'+stage+': '+code+' / '+
+  String(error?.message??error).slice(0,190));
  process.exitCode=1;
 }finally{
  try{if(browser)await browser.stop();}finally{
