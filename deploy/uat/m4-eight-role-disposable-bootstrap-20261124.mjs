@@ -11,7 +11,9 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {pathToFileURL} from 'node:url';
 
-const EXACT='4819d794b6bc34738341efd9725e93f55c696da0';
+const REVIEWED_APP='4819d794b6bc34738341efd9725e93f55c696da0';
+const EXACT=process.env.GITHUB_SHA;
+assert.match(EXACT??'',/^[0-9a-f]{40}$/,'EXACT_TEST_SHA_REQUIRED');
 const ROOT=process.env.GITHUB_WORKSPACE;
 const failure=(code)=>{throw Object.assign(new Error(code),{safeCode:code});};
 function requireSafe(value,code){if(!value)failure(code);}
@@ -25,6 +27,18 @@ const dirty=spawnSync('git',['status','--porcelain','--untracked-files=no'],
   {cwd:ROOT,encoding:'utf8'});
 requireSafe(sha.status===0&&sha.stdout.trim()===EXACT&&
   dirty.status===0&&dirty.stdout.trim()==='','SOURCE_CHECKOUT_NOT_FROZEN');
+const changes=spawnSync('git',['diff','--name-only',REVIEWED_APP,EXACT],
+  {cwd:ROOT,encoding:'utf8'});
+const allowed=new Set([
+  '.github/workflows/m4-eight-role-disposable-native-once.yml',
+  'deploy/uat/m4-eight-role-disposable-bootstrap-20261124.mjs',
+  'deploy/uat/m4-eight-role-journeys-20261124.mjs',
+  'deploy/uat/m4-eight-role-journeys-20261124.test.mjs'
+]);
+const paths=changes.stdout.trim().split('\n').filter(Boolean);
+requireSafe(changes.status===0&&paths.length===allowed.size&&
+  paths.every(p=>allowed.has(p)),
+  'UNREVIEWED_APPLICATION_SOURCE_CHANGED');
 const dbUrl=new URL(process.env.DATABASE_URL);
 requireSafe(['127.0.0.1','localhost'].includes(dbUrl.hostname)&&
   dbUrl.port==='5432'&&dbUrl.pathname==='/erp_m4_lane_c_20261124'&&
