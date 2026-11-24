@@ -1155,6 +1155,25 @@
       "sourceSha": "57cf3c7e61b3699d56ea71dd0c5fd452f5b4f1f0",
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261124-M4-01-007",
+      "date": "2026-11-24",
+      "packageId": "M4-01",
+      "kind": "JAI_ASSET_CONCURRENT_EDIT_SOURCE_PENDING_NATIVE_PROOF",
+      "beforeHours": 15,
+      "afterHours": 15,
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/pull/447",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45415683772"
+      ],
+      "basis": "Existing unverified concurrent acquisition write path; two-file source/test change maps serializable/unique conflict to 409 without stale auto-replay; real authenticated concurrent edits assert one success, one conflict, exactly one new history version and audit. Isolated exact-source run 45415683772 in progress at observation; no forecast credit until outcome. #288 Accounting remains deferred; no retained role changes, merge, independent approval, or Production.",
+      "sourceSha": "fe2ece266d0b8424cda3d999fe44cea4fa9aa56c",
+      "formalAcceptance": false,
+      "estimateConfidence": "PENDING_NATIVE_PROOF"
     }
   ],
   "unestimatedWork": [
