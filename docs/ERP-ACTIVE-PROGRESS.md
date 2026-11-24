@@ -2,6 +2,8 @@
 
 > **Updated 24 November 2026, Asia/Singapore.** Owner hard deadline: **31 December 2026**, **all 112 requirements**, eight real roles and Production. **Delivery feasibility RED** (zero other engineers). Evidence-backed forecast, **not** actual hours worked or formal acceptance. This file and the JSON are on an isolated documentation branch, not protected main.
 
+> **Latest source pending verification — Draft [#447](https://github.com/threeswordz/cinder-grind/pull/447), `fe2ece266d0b8424cda3d999fe44cea4fa9aa56c`.** Concurrent acquisition edits: conflict-safe response and authenticated native regression test committed. [Focused run 45415683772](https://github.com/threeswordz/cinder-grind/actions/runs/45415683772) in progress; **M4-01 15→15h, M4 100→100h, full ERP 1,830→1,830h**. No forecast credit until result; last verified candidate #446 unchanged. No full CI or new Accounting scope.
+
 ## Headline
 | Metric | Current | Meaning |
 |---|---:|---|
