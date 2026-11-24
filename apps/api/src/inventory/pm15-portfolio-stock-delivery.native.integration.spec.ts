@@ -60,7 +60,7 @@ test('PM15 portfolio native stock thresholds and PO delay across multiple sites,
   // still include this posted quantity in its Project-wide total.
   await receive(original.id,mainLine.id,f.warehouse.id,3);
   const revised=await f.orders.revise({auth:f.buyer.auth},original.id,'Update expected delivery date');
-  const newLine=revised.lines.find(x=>x.materialId===f.material.id)!;
+  const newLine=await db.purchaseOrderLine.findFirstOrThrow({where:{purchaseOrderId:revised.id,materialId:f.material.id}});
   assert.ok(newLine);
   await f.orders.updateLine({auth:f.buyer.auth},newLine.id,{expectedDelivery:yesterday,requiredOnSite:yesterday});
   const poWorkflow=await db.approvalWorkflow.findFirstOrThrow({where:{companyId:f.company.id,entityType:'PURCHASE_ORDER'}});
