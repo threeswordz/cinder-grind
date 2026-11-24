@@ -4,6 +4,7 @@ import {
 } from '@mui/material';
 import { useCallback, useEffect, useState } from 'react';
 import { apiRequest } from '../api/client';
+import { PortfolioWorkQueuePanel } from './PortfolioWorkQueuePanel';
 
 type Data<T> = { data: T };
 type Project = { id: string; projectCode: string; projectName: string };
@@ -174,6 +175,7 @@ export function StockMinimumsPanel({ roleCodes }: { roleCodes: string[] }) {
   return (
     <Stack spacing={2}>
       <Typography variant="h6">Material / Site minimum-stock alerts</Typography>
+      {canConfigure && <PortfolioWorkQueuePanel selectProject={setProjectId} />}
       <Alert severity="info">
         Read-only stock warnings use available quantity (on hand minus active reservations).
         No stock, receiving or Finance posting occurs. Approved plan start dates now
