@@ -68,7 +68,7 @@ jobs:
         run: pnpm prisma:migrate:deploy
       - name: Compile isolated real API
         run: pnpm --filter @construction-erp/api build
-      - name: Verify document and encrypted HR positive bytes; fail closed on missing BOQ provenance
+      - name: Verify only protected document and HR stage with sanitized failure diagnostics
         run: node deploy/uat/m4-eight-role-disposable-bootstrap-20261124.mjs
       - name: Boundary marker — technical fixture, not retained UAT, release CI or signoff
         run: echo M4_POSITIVE_CONTROL_PROTECTED_BYTES_DISPOSABLE_ONLY
