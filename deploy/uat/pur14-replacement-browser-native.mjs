@@ -354,7 +354,9 @@ async function run(){
    lines:[{purchaseOrderLineId:po.lines[0].id,quantity:new Prisma.Decimal('1.0000')}],
   });
   await goods.submit({auth:store.auth},created.id,f.receiptWorkflow.workflowCode);
-  await goods.approve({auth:pm.auth},created.id,randomUUID(),'Real independent replacement approval');
+  const freshPm=await sessions.resolve(pm.session.sessionToken);
+  assert.ok(freshPm);
+  await goods.approve({auth:freshPm},created.id,randomUUID(),'Real independent replacement approval');
   const gr=await db.goodsReceipt.findUniqueOrThrow({
    where:{id:created.id},include:{items:true,approvalInstance:true},
   });
