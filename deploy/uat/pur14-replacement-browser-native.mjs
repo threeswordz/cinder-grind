@@ -436,11 +436,12 @@ async function run(){
   assert.equal(await db.payment.count({where:{companyId:company.id}}),initialPayments);
 
   // Actual authenticated Store UI, not a synthetic component render.
-  await protocol.send('Page.reload',{ignoreCache:true},finalStore);
-  await until(protocol,finalStore,()=>document.body?.dataset?.authenticated==='yes',
-   null,'RELOAD_LIVE_STORE_SESSION');
-  await visible(protocol,finalStore,'Canonical replacement GR was reversed.');
-  const stillSuccess=await page(protocol,finalStore,()=>[...document.querySelectorAll('.MuiAlert-standardSuccess')]
+  // Store Site loads ReceivingPanel on every new page. Re-open the actual
+  // delivery row to access its nested SupplierDeliveryCasePanel; simply
+  // reloading ReceivingPanel cannot show the supplier-case warning.
+  const afterReversalStore=await openStoreReceipt(false);
+  await visible(protocol,afterReversalStore,'Canonical replacement GR was reversed.');
+  const stillSuccess=await page(protocol,afterReversalStore,()=>[...document.querySelectorAll('.MuiAlert-standardSuccess')]
    .some(n=>n.textContent?.includes('Canonical replacement GR is still approved')));
   assert.equal(stillSuccess,false,'Reversed receipt cannot render success alert');
   assert.deepEqual(external,[],'Canonical reversal UI cannot contact outside localhost');
