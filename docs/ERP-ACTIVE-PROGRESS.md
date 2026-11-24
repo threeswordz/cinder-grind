@@ -5,13 +5,13 @@
 ## Headline
 | Metric | Current | Meaning |
 |---|---:|---|
-| **Estimated full ERP work still needed** | **1,850h → 0h** | Includes latest newly priced mandatory gaps |
+| **Estimated full ERP work still needed** | **1,849h → 0h** | Includes latest newly priced mandatory gaps |
 | 23 Nov original current-work forecast | 1847h | Earlier 60-package provisional baseline |
-| Additional estimated future-work eliminated | −6h | M4-01 −2h, M4-06 −2h and M4-08 combined source + full diff manifest −2h, **not timesheet** |
+| Additional estimated future-work eliminated | −7h | M4-01 −3h, M4-06 −2h and M4-08 combined source + full diff manifest −2h, **not timesheet** |
 | Newly discovered previously unpriced PUR08/PUR14 work | +9h | Net **remaining** after real signed damaged-custody Chrome/native proof, no automatic Finance/AP/stock effect |
-| Net reforecast change versus 1,847h | +3h | More honest scope recognition; not schedule recovery |
-| PUR08/PUR14 provisional work before new development | 50h | Low-confidence new-gap gross estimate |
-| PUR08/PUR14 estimated future work eliminated through verified development | 41h | Verified role/tenant source, posted GR/reversal warning and signed DAMAGED outward custody; only future-work forecast, not logged hours |
+| Net reforecast change versus 1,847h | +2h | More honest scope recognition; not schedule recovery |
+| PUR08/PUR14 provisional work before new development | 51h | Low-confidence new-gap gross estimate |
+| PUR08/PUR14 estimated future work eliminated through verified development | 42h | Verified role/tenant source, posted GR/reversal warning and signed DAMAGED outward custody; only future-work forecast, not logged hours |
 | PUR08/PUR14 remaining | **9h** | Signed unposted DAMAGED custody implemented, posted stock needs separately approved canonical reversal; real supplier credit/AP is separate Finance module, SHORT/WRONG/EXCESS stay evidence-only, retained named-role UAT and independent review pending |
 | Historical original baseline | 1,900h | Not the current work-to-go figure |
 | Proposed optimization | 1,500h | **Unvalidated**; now requires risk/scope recalibration |
@@ -21,13 +21,13 @@
 | Whole baseline packages formally accepted | 0/60 | 8 M4 packages still 0/8 |
 | Actual productive hours logged | UNKNOWN | Cannot infer from GitHub commits or AI conversation length |
 
-**Why the number rose:** the earlier 1,845h omitted a separate confirmed PUR08/PUR14 implementation budget. New source plus corrected source-backed tests reduced that *newly priced* work from a provisional 50h gross to 9h remaining, but the original 60-package forecast excluded that additional work. Thus **1,847h − 2h M4-01 − 2h M4-06 − 2h M4-08 + 9h supplier = 1,850h**, with gross supplier scope originally estimated at 50h and 41h of future work re-estimated away. This prevents a false countdown and requires a real reduction in remaining work at each future step. It does **not** represent actual human hours worked or formal acceptance.
+**Why the number rose:** the earlier 1,845h omitted a separate confirmed PUR08/PUR14 implementation budget. New source plus corrected source-backed tests reduced that *newly priced* work from a provisional 51h gross to 9h remaining, but the original 60-package forecast excluded that additional work. Thus **1,847h − 3h M4-01 − 2h M4-06 − 2h M4-08 + 9h supplier = 1,849h**. Supplier gross estimate 51h includes newly discovered handover defect +1h, verified fix −1h, with 42h of future work eliminated. This prevents a false countdown and requires a real reduction in remaining work at each future step. It does **not** represent actual human hours worked or formal acceptance.
 
 ## Stage-by-stage remaining work
 
 | Stage | Previous 60-package baseline | Verified package forecast reduction | Additional scope remaining | **Now remaining** | Accepted baseline packages |
 |---|---:|---:|---:|---:|---:|
-| Prototype 5/8 — M4 closure | 117h | 6h | 9h | **120h** | 0/8 |
+| Prototype 5/8 — M4 closure | 117h | 7h | 9h | **119h** | 0/8 |
 | Prototype 6/8 — end-to-end deployment | 120h | 0h | 0h | **120h** | 0/5 |
 | Prototype 7/8 — populated restore | 50h | 0h | 0h | **50h** | 0/3 |
 | Prototype 8/8 — technical freeze | 65h | 0h | 0h | **65h** | 0/3 |
@@ -39,13 +39,13 @@
 | Production hosting and recovery | 110h | 0h | 0h | **110h** | 0/5 |
 | Migration and onboarding | 110h | 0h | 0h | **110h** | 0/4 |
 | Final human UAT, cutover and Production | 150h | 0h | 0h | **150h** | 0/5 |
-| **Full ERP** | **1847h** | **6h** | **9h** | **1,850h** | **0/60** |
+| **Full ERP** | **1847h** | **7h** | **9h** | **1,849h** | **0/60** |
 
 ## Each baseline package
 
 | Package | Stage | Delivery item | Starting estimate | Remaining now |
 |---|---|---|---:|---:|
-| M4-01 | M4 | Current-source and all-112 evidence/scope decisions | 32h | **30h** |
+| M4-01 | M4 | Current-source and all-112 evidence/scope decisions | 32h | **29h** |
 | M4-02 | M4 | PM02 real browser and retained-role authorization | 8h | **8h** |
 | M4-03 | M4 | FM01, BEN04 and PM16 real-browser acceptance | 10h | **10h** |
 | M4-04 | M4 | PUR01 whole-PO supplier-count and commercial rule | 8h | **8h** |
@@ -109,9 +109,11 @@
 ## Additional required scope (beyond the original 60 package costing)
 | Scope ID | Stage | Provisional initial estimate | Source progress estimated | Remaining |
 |---|---|---:|---:|---:|
-| PUR08_PUR14_INTEGRATION | M4 | 50h | 41h | **9h** |
+| PUR08_PUR14_INTEGRATION | M4 | 51h | 42h | **9h** |
 
 ## Evidence-backed update history
+
+- **2026-11-24 — exact source handover binding + historical evidence reuse: full ERP 1,850h → 1,849h.** [Draft #440](https://github.com/threeswordz/cinder-grind/pull/440) exact source `f1af4265c071b5c0988d87ef87be6ee2c810eaac`: discovered handover could use unrelated project document or duplicate condition-photo bytes (+1h provisional new scope), fixed original receiving-delivery link and distinct checksum, Store UI guidance, actual duplicate-upload and unrelated-project native negatives and positive signed handover. [Focused #45388148255](https://github.com/threeswordz/cinder-grind/actions/runs/45388148255) SUCCESS; CI child differs only by workflow file. Verified fix −1h, supplier net 9h unchanged. [Ten historical runs evidence reuse](M4-2026-11-24-PRIOR-EVIDENCE-REUSE-AND-GAPS.md) verifies 9 successes, one failed overall PUR12 static check, later actual native pass, changed shared PO paths and absent older site native test. M4-01 30→29h (−1h provisional remaining evidence reconciliation). [Current exact 180-file, 310-commit independent review handoff](M4-2026-11-24-PR440-EXACT-MAIN-DEC022-HANDOFF.md) supersedes #439 review boundary; no extra hours credited for manifest refresh. No full CI, repeated browser, retained grants, formal acceptance, merge or Production.
 
 - **2026-11-24 — Owner-directed signed outward damaged custody and Finance/source exceptions: PUR08/PUR14 14h → 9h (−5h provisional future work).** [Draft PR #439](https://github.com/threeswordz/cinder-grind/pull/439) exact source `e8c0b7775e7bde66679db70fb0af992a00ecf91a` stacked on combined [#438](https://github.com/threeswordz/cinder-grind/pull/438). Real checked DAMAGED source line, condition-photo checksum, exact observed-minus-good unposted quantity, original warehouse, distinct uploaded signed-hand-over document checksum, supplier signatory and Store attestation now required; append-only custody trace has **no stock/AP/payment mutation**. Source, controller and React/MUI explicitly keep SHORT/WRONG_ITEM/EXCESS evidence-only, plus replacement-only no AP credit; separately authorized canonical posted-goods reversal or genuine Porn/Nancy Finance credit remains outside supplier-case posting. Focused [PostgreSQL 17.11 migrations + API/React + pure + native signed-return/negative + authenticated Chrome Store→PM→Jai→Store #45386319537](https://github.com/threeswordz/cinder-grind/actions/runs/45386319537) **OVERALL SUCCESS**, all ten relevant file Git blobs equal builder and runner. Former unsigned old browser return path is superseded by source-backed signed custody policy, **not counted as current**. No full CI, retained role grants, main merge, independent DEC-022 acceptance, actual supplier transmission or Production. −5h is low-confidence forward-work estimate, NOT actual worker hours or accepted M4 completion.
 
