@@ -88,3 +88,27 @@ These windows show **dependencies and governance**, not proof that 1,500/1,847 e
 | Prototype, GL | 4/8, 3/10 unchanged |
 | Existing full-ERP remaining forecast | 1,847h provisional unchanged |
 | New planning stretch target | 1,500h *conditional*, **not accepted** |
+
+## 24 November 2026 — FINAL OWNER CHOICE: full 112-requirement Production release by 31 December, not a pilot
+
+**The Owner selected the LATTER of two explicit choices:**
+1. A usable construction-operations ERP by 31 Dec with full Accounting/payroll after December; OR
+2. **All 112 requirements operational in Production by 31 December.**
+
+**Selected: option 2. This is a scope-and-date decision, not a grant of retained-user access, independent-review signoff, CI authority, protected-main merge authority, Production credentials or a waiver of DEC-008/022/042/053/054.** The smaller December pilot is **not the accepted objective** and must not be reported as meeting this deadline, substituted into the schedule, or used to call the project complete. All eight real users, Thai payroll and Accounting/GL/tax/bank, #245, cross-Company/Project boundaries, populated restored app, real UAT, migration/cutover and full Production readiness remain required.
+
+### Reality flag: RED — resource infeasibility remains despite the fixed goal
+- Zero additional engineers confirmed; Work/Codex scarce, and Chat works only during active turns, with no assumed throughput.
+- From 24 November, 37 calendar days remain, ~5.29 weeks. Full 1,847h provisional outstanding effort = ~349.4 productive team hours/week. Unvalidated stretch 1,500h = ~283.8 hours/week; that is approximately 8.1 equally effective 35h/week engineers, **not present**. Actual task efficiency and engineering hours logged remain UNKNOWN.
+- Therefore **date + scope are fixed Owner requirements, but technical delivery feasibility is NOT established**. The calendar cannot be made feasible by renaming CI, taking credit for test passes as human acceptance, inventing staffing, compromising approval boundaries or silently removing HR/Accounting.
+- A **qualified independent reviewer** remains required. With no identified independent review resource, DEC-022 is an actual external release blocker regardless of how much source Chat writes. Owner-only Production and retained-user gate authority remains separate.
+- **Escalation trigger is immediate (24 November):** the full release is behind the minimum demonstrated-capacity needed, not merely at risk on 27 Nov. Raise real capacity/reviewer/business SME availability explicitly. Do not ask the Owner again to choose pilot versus full ERP; that answer is now on record.
+
+### Authorized delivery action despite infeasibility
+- Keep Chat-only GitHub changes on isolated branches. Next implementation work: source-pin PUR08 supplier acknowledgment / partial in-transit / revised delivery record and PUR14 supplier discrepancy / return / replacement with explicit non-posting semantics; inspect the current source first, implement only verified owner-policy-independent invariants and focused tests. Continue other identified gaps if these require an external policy.
+- Reuse integrated SS11 custody/PUR10 cancellation without creating duplicate parallel lanes; validate their genuinely new unproven migrations/negative tests only.
+- Complete 112-ID source-to-exit matrix, actual business policy/Company-Project gates, then exact independent review and Owner-authorized release. Focused technical progress cannot be confused with full acceptance.
+- Treat any full scope release on 31 Dec as **conditional on every mandatory requirement, review, restore, role, UAT and Production gate passing**, even if this implies reporting an unmet deadline rather than releasing an unsafe product.
+- Do not alter the formal 1,900h accepted counter or 1,847h current provisional estimate; the proposed 1,500h remains an **unvalidated hypothesis** pending source and capacity-based reforecast.
+
+**Decision status: OWNER_SCOPE_AND_DATE_CONFIRMED / DELIVERY_FEASIBILITY_RED / NO_RELEASE_AUTHORIZATION.**
