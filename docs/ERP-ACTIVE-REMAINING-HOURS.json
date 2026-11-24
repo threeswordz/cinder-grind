@@ -641,7 +641,32 @@
       "basis": "Existing 60-package baseline 1847h omitted a separable implementation budget for mandatory PUR08/PUR14. Provisional gross 50h source scope, estimated 10h engineering future effort eliminated by new pure-policy, scoped audit-backed API, controller and React source, leaving 40h engineering+verification+review/Owner policy. Adds 40h net remaining to M4 and full forecast rather than hiding it. Gross 50h and 10h reduction are low-confidence judgment, not measured worker hours or accepted completion; prototype and GL gates unchanged.",
       "sourceSha": "a93d66f96d6b144fb4af33bc1e1961945b875630",
       "formalAcceptance": false,
-      "estimateConfidence": "LOW_NEW_SCOPE_GAP"
+      "estimateConfidence": "LOW_NEW_SCOPE_GAP",
+      "scopeId": "PUR08_PUR14_INTEGRATION",
+      "scopeBeforeHours": 50,
+      "scopeAfterHours": 40,
+      "scopeReductionHours": 10
+    },
+    {
+      "id": "ERP-PROG-20261124-PUR08-14-003",
+      "date": "2026-11-24",
+      "packageId": null,
+      "kind": "EVIDENCE_BACKED_DISCOVERED_SCOPE_REESTIMATE",
+      "beforeHours": null,
+      "afterHours": null,
+      "reductionHours": 0,
+      "scopeId": "PUR08_PUR14_INTEGRATION",
+      "scopeBeforeHours": 40,
+      "scopeAfterHours": 39,
+      "scopeReductionHours": 1,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/blob/984847746e377bc5f90d7ed0bf3d83bdd8d260d0/apps/api/src/procurement/supplier-delivery-lifecycle.ts",
+        "https://github.com/threeswordz/cinder-grind/blob/fafa5069a5e7559780ab1fbf858cea5655bc7589/apps/api/src/procurement/supplier-delivery-lifecycle.test.mjs"
+      ],
+      "basis": "Pure rule corrected to allow documented Store damage/short discrepancy without requiring supplier ack while preventing Jai delay/in-transit reports without actual acknowledgment; seven exact-source policy tests PASS locally and strict TS source check PASS, remote blobs match. Further source triage estimated 1h less. No new accepted package, not actual time, no native PG/React/API integration success.",
+      "sourceSha": "fafa5069a5e7559780ab1fbf858cea5655bc7589",
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -651,19 +676,19 @@
         "PUR08",
         "PUR14"
       ],
-      "hours": 40,
+      "hours": 39,
       "budgetAllocation": "NEW_EXPLICIT_M4_ADDITIONAL_SCOPE; NOT SILENTLY SUBTRACTED_FROM_M4_01/M4_08",
-      "sourceStatus": "UNREVIEWED_PERSISTENT_API_AND_MUI_SOURCE_COMMITTED;PURE_TESTS_5_PASS;NATIVE_DB_BROWSER_BUILD_PENDING",
-      "remaining": "Source code for audit-backed transition, live actor/Company/Project checks, scoped evidence Document, existing PUR07 acknowledgment, canonical posted GR, CSRF-protected API and React form now exists on isolated branch; remaining full TypeScript/Prisma compile, native PG transaction/admission tests, actual React/Chrome real-role UAT, supplier claim/return stock-effect policy or explicit nonposting boundary acceptance, independent review, integration and acceptance.",
-      "evidence": "https://github.com/threeswordz/cinder-grind/tree/a93d66f96d6b144fb4af33bc1e1961945b875630/apps/api/src/procurement",
+      "sourceStatus": "PURE_POLICY_7_TESTS_LOCAL_PASS;PRISMA_NEST_REACT_NATIVE_NOT_YET_RUN;DISCREPANCY_WITHOUT_ACK_FIXED",
+      "remaining": "39h estimated future work for full Nest/Prisma and React compile; native PostgreSQL/HTTP concurrency and scope tests; real Store UI entry/navigation; document/posted-GR identity and byte proof; missing supplier physical return/credit policy; independent DEC-022 reviewer and actual business acceptance.",
+      "evidence": "https://github.com/threeswordz/cinder-grind/blob/984847746e377bc5f90d7ed0bf3d83bdd8d260d0/apps/api/src/procurement/supplier-delivery-lifecycle.ts",
       "stage": "M4",
       "grossPreImplementationEstimateHours": 50,
-      "estimatedReductionFromNewSourceHours": 10,
+      "estimatedReductionFromNewSourceHours": 11,
       "confidence": "LOW",
       "estimateKind": "NEWLY_DISCOVERED_MANDATORY_SCOPE_PRICE_NOT_A_TIMESHEET"
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1885,
-  "currentRollingTotalSemantics": "1885h = 1845h old 60-package overlay + 40h newly priced mandatory PUR08/14 scope; provisional planning estimate, may change with review. 50h gross gap pre-current-code, 10h estimated source work avoided is NOT actual hours."
+  "currentRollingTotalAfterPricedGapsHours": 1884,
+  "currentRollingTotalSemantics": "1884h = original provisional 1847h - 2h M4 source triage + 39h newly priced PUR08/14 required workflow, after a separate further estimated 1h reduction for verified no-ack discrepancy and anti-false-delay checks; total remains a low-confidence source-bound estimate, not hours worked."
 }
