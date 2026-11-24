@@ -1250,6 +1250,25 @@
       "sourceSha": "52721dfd0d1c1a88cdcc5e5e41e8d6971c5a95cd",
       "formalAcceptance": false,
       "estimateConfidence": "PENDING_NATIVE_PROOF"
+    },
+    {
+      "id": "ERP-PROG-20261124-M4-01-012",
+      "date": "2026-11-24",
+      "packageId": "M4-01",
+      "kind": "PUR10_CANCELLATION_REVISION_RACE_NATIVE_PROOF",
+      "beforeHours": 13,
+      "afterHours": 12,
+      "reductionHours": 1,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 1,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/pull/449",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45420921543"
+      ],
+      "basis": "Exact workflow-only child 4d60fcfcf60fd37a4c7431a580ceace7808bf778; overall SUCCESS 15/15 steps. Controlled conflicts and native competing cancellation versus revision exclusive commit; existing exception policy preserved. Provisional 1h future assurance reduction, no formal acceptance or logged labor.",
+      "sourceSha": "52721dfd0d1c1a88cdcc5e5e41e8d6971c5a95cd",
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -1272,6 +1291,6 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1828,
+  "currentRollingTotalAfterPricedGapsHours": 1827,
   "currentRollingTotalSemantics": "1830h provisional future work = 1847h baseline minus 17h M4-01, 1h M4-02, 1h M4-03, 1h M4-04, 1h M4-05, 2h M4-06, 1h M4-07, 2h M4-08, plus 9h supplier scope. JAI-ASSET-01 canonical CG acquisition register and native proof eliminate 5h previously identified remaining scope. Not actual labor or formal acceptance; deadline RED."
 }
