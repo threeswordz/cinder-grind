@@ -528,6 +528,44 @@ test('PUR10 native: real approved PO, independent named Jai/Khaimook/Ben, atomic
       (e:unknown)=>e instanceof ConflictException,
     );
 
+    // A live revision and Ben's reviewed cancellation must never both commit.
+    // Use independent approved source history and the actual owning writers.
+    const raceSource=await reviewedExceptionOrder('REVISION-RACE');
+    const race=await Promise.allSettled([
+      cases.finalize({auth:benAuth},raceSource.po.id,3,
+        raceSource.case.expectedPreviousEventId,finalArgs),
+      orders.revise({auth:jai.auth},raceSource.po.id,'Concurrent legitimate revision'),
+    ]);
+    assert.equal(race.filter(r=>r.status==='fulfilled').length,1,
+      'Exactly one of cancellation and revision may commit');
+    const raceOrder=await prisma.purchaseOrder.findUniqueOrThrow({
+      where:{id:raceSource.po.id},include:{nextRevision:{select:{id:true}}},
+    });
+    const raceFinals=await prisma.auditLog.count({where:{
+      companyId:company.id,entityType:'PURCHASE_ORDER_CANCELLATION',
+      entityId:raceSource.po.id,action:'FINALIZE',
+    }});
+    const raceCancelAudits=await prisma.auditLog.count({where:{
+      companyId:company.id,entityType:'PURCHASE_ORDER',
+      entityId:raceSource.po.id,action:'CANCEL',
+    }});
+    if(race[0]!.status==='fulfilled'){
+      assert.ok(raceOrder.cancelledAt);
+      assert.equal(raceOrder.nextRevision,null);
+      assert.equal(raceFinals,1);assert.equal(raceCancelAudits,1);
+    }else{
+      assert.ok(race[0]!.reason instanceof ConflictException,
+        'Losing cancellation must return an explicit conflict');
+      assert.equal(raceOrder.cancelledAt,null);
+      assert.ok(raceOrder.nextRevision);
+      assert.equal(raceFinals,0);assert.equal(raceCancelAudits,0);
+    }
+    assert.equal(await prisma.goodsReceipt.count({where:{purchaseOrderId:raceSource.po.id}}),0);
+    assert.equal(await prisma.supplierInvoiceItem.count({where:{
+      purchaseOrderLineId:{in:raceSource.po.lines.map(l=>l.id)},
+    }}),0);
+    console.log('PUR10_NATIVE_FINALIZE_VS_REVISION_EXCLUSIVE_COMMIT_PASS');
+
     const competing=await Promise.allSettled([
       cases.finalize({auth:benAuth},approvedOriginal.id,3,
         approvedCase.expectedPreviousEventId,finalArgs),
@@ -537,6 +575,9 @@ test('PUR10 native: real approved PO, independent named Jai/Khaimook/Ben, atomic
     const winners=competing.filter(value=>value.status==='fulfilled');
     assert.equal(winners.length,1,'Exactly one concurrent finalization may commit');
     assert.equal(competing.filter(value=>value.status==='rejected').length,1);
+    const loser=competing.find(value=>value.status==='rejected');
+    assert.ok(loser?.status==='rejected' && loser.reason instanceof ConflictException,
+      'Losing finalizer must return a controlled conflict');
     if (winners[0]?.status !== 'fulfilled') throw new Error('Missing PUR10 finalizer');
     const finalize=winners[0].value;
     assert.deepEqual([finalize.status,finalize.poCancelled,finalize.financePosted],
