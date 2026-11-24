@@ -257,9 +257,11 @@ try{
 
   // Real encrypted HR upload under a persisted employee/role/category grant.
   stage='HR_CATEGORY_SOURCE_GRANT_SYNTHETIC_ONLY';
+  // Database rejects self-granted HR scope. A distinct disposable synthetic
+  // actor witnesses fixture setup; this is NOT a retained Owner authorization.
   await db.hrCompanyAccess.create({data:{
     companyId:company.id,userId:actors.KOH.userId,category:'documents',
-    reasonCode:'DISPOSABLE_PROOF',updatedByUserId:actors.KOH.userId
+    reasonCode:'OWNER_APPROVED_SCOPE',updatedByUserId:actors.BEN.userId
   }});
   const hrType=await db.documentType.create({data:{
     companyId:company.id,documentTypeCode:'HR-'+suffix,
