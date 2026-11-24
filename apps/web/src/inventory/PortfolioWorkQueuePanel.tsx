@@ -10,6 +10,10 @@ type ProjectWork = {
   toolsDueToday: number|null; toolsOverdue: number|null;
   pendingWorkOrders: number|null; pendingClaims: number|null;
   pendingCertifications: number|null;
+  activeSiteWarehouses:number; configuredMinimums:number; comparableActiveMinimums:number;
+  belowMinimumSiteDimensions:number; minimumsRequireReview:number;
+  lateDeliveryLines:number; deliveryLinesDueToday:number; deliveryLinesWithin7Days:number;
+  unknownDeliveryDateLines:number; deliverySourceReviewLines:number; lateRequiredOnSiteLines:number;
 };
 type Queue = { companyId: string; asOfThailandDate: string; projects: ProjectWork[] };
 const columns = [
@@ -22,6 +26,16 @@ const columns = [
   ['pendingWorkOrders','Work orders submitted'],
   ['pendingClaims','Claims submitted'],
   ['pendingCertifications','Certifications submitted'],
+  ['activeSiteWarehouses','Active sites'],
+  ['comparableActiveMinimums','Active comparable minima'],
+  ['belowMinimumSiteDimensions','Below minimum (site dimensions)'],
+  ['minimumsRequireReview','Minima require review'],
+  ['lateDeliveryLines','Overdue PO lines'],
+  ['deliveryLinesDueToday','PO lines due today'],
+  ['deliveryLinesWithin7Days','PO lines due within 7 days'],
+  ['unknownDeliveryDateLines','PO date unknown'],
+  ['deliverySourceReviewLines','PO source review'],
+  ['lateRequiredOnSiteLines','Required-on-site date passed'],
 ] as const;
 export function PortfolioWorkQueuePanel({selectProject}: {selectProject:(id:string)=>void}) {
   const [result,setResult]=useState<Queue|null>(null);
@@ -42,7 +56,7 @@ export function PortfolioWorkQueuePanel({selectProject}: {selectProject:(id:stri
     <Alert severity="info">
       Active authorized Projects in the selected Company only. Counts are source record counts, not financial amounts.
       A dash means no view permission, not zero. Submitted documents are awaiting the relevant workflow; these are not all unresolved obligations.
-      Stock shortages and supplier delivery details remain in the Site drill-down below. No approval or posting from this report.
+      Stock warnings count configured site/material/unit dimensions; zero comparable minima means no configured comparable coverage, not proof of sufficient stock. PO lines count once per Project across all sites and approved revisions. Expected dates are internal PO dates, not confirmed supplier promises. Select a Project for site detail. No approval or posting.
     </Alert>
     <Button disabled={loading} onClick={()=>setReload(x=>x+1)}>Refresh portfolio / รีเฟรช</Button>
     {loading&&<Typography role="status">Loading authorized work queue…</Typography>}
@@ -55,7 +69,7 @@ export function PortfolioWorkQueuePanel({selectProject}: {selectProject:(id:stri
         <TableCell><Button onClick={()=>selectProject(row.id)}>{row.projectCode} — {row.projectName}</Button></TableCell>
         {columns.map(([key])=><TableCell key={key} align="right">{row[key]===null?'—':row[key]}</TableCell>)}
       </TableRow>)}
-      {result.projects.length===0&&<TableRow><TableCell colSpan={10}>No active authorized Projects.</TableCell></TableRow>}
+      {result.projects.length===0&&<TableRow><TableCell colSpan={columns.length+1}>No active authorized Projects.</TableCell></TableRow>}
       </TableBody>
     </Table></TableContainer></>}
   </Stack></Paper>;
