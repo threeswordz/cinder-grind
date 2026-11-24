@@ -100,18 +100,34 @@ test('JAI-ASSET native HTTP acquisition history, canonical CG identity, custody 
   await assert.rejects(db.$executeRawUnsafe('UPDATE equipment_asset_register_versions SET acquisition_value_thb=0 WHERE id=$1::uuid',id));
   await assert.rejects(db.$executeRawUnsafe('DELETE FROM equipment_asset_register_versions WHERE id=$1::uuid',id));
   await assert.rejects(db.equipment.update({where:{id:tool.id},data:{equipmentCode:'CG00099'}}));
+  // Two real concurrent authenticated edits using the same predecessor.
+  const edits=await Promise.all([
+   req(jai,'POST',tool.id,{...initial,expectedVersionId:updated.raw.data.id,reason:'Concurrent edit A'}),
+   req(jai,'POST',tool.id,{...initial,expectedVersionId:updated.raw.data.id,reason:'Concurrent edit B'})
+  ]);
+  assert.deepEqual(edits.map(e=>e.status).sort((a,b)=>a-b),[201,409],JSON.stringify(edits));
+  const winner=edits.find(e=>e.status===201)!;
+  const loser=edits.find(e=>e.status===409)!;
+  assert.ok(['ASSET_REGISTER_STALE_VERSION','ASSET_REGISTER_CONCURRENT_CHANGE'].includes(loser.raw.code),JSON.stringify(loser.raw));
+  const afterRace=await req(jai,'GET',tool.id);
+  assert.equal(afterRace.status,200);
+  assert.equal(afterRace.raw.data.current.id,winner.raw.data.id);
+  assert.equal(afterRace.raw.data.current.version,3);
+  assert.equal(afterRace.raw.data.current.previousVersionId,updated.raw.data.id);
+  assert.equal(afterRace.raw.data.history.length,3);
+  assert.equal((await req(jai,'POST',tool.id,{...initial,expectedVersionId:updated.raw.data.id})).status,409);
   const audit=await db.auditLog.findMany({where:{companyId:company.id,entityType:'EQUIPMENT_ASSET_REGISTER',entityId:tool.id}});
-  assert.equal(audit.length,2);
+  assert.equal(audit.length,3);
   assert.ok(!JSON.stringify(audit).includes('1250.25'));
   assert.equal(await db.stockTransaction.count({where:{companyId:company.id}}),stockBefore);
   assert.equal(await db.supplierInvoice.count({where:{companyId:company.id}}),apBefore);
   await custody.returnLoan({auth:store.auth},loan.id,{returnedOn:issued,conditionIn:'Good'});
   assert.equal((await req(jai,'GET',tool.id)).raw.data.currentCustody,null);
   await db.rolePermission.delete({where:{roleId_permissionId:{roleId:jai.role.id,permissionId:ids.get('equipment.equipment.manage')!}}});
-  assert.equal((await req(jai,'POST',tool.id,{...initial,expectedVersionId:updated.raw.data.id})).status,403);
+  assert.equal((await req(jai,'POST',tool.id,{...initial,expectedVersionId:winner.raw.data.id})).status,403);
   await db.projectMember.updateMany({where:{projectId:a.id,employeeId:jai.employee.id},data:{isActive:false}});
   assert.equal((await req(jai,'GET',tool.id)).status,403);
-  console.log('JAI_ASSET_NATIVE_CG_ACQUISITION_IMMUTABLE_HISTORY_CUSTODY_SCOPE_PASS');
+  console.log('JAI_ASSET_NATIVE_CG_CONCURRENT_VERSION_AUDIT_SCOPE_PASS');
  }finally{
   await app.close();if(prior===undefined)delete process.env.STORAGE_ROOT;else process.env.STORAGE_ROOT=prior;
   await rm(storage,{recursive:true,force:true});
