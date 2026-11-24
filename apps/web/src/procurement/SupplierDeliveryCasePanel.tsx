@@ -73,7 +73,7 @@ export function SupplierDeliveryCasePanel({ orderId, permissions, roleCodes }: P
       choices.push({value:'JAI_RECORD_CLAIM',label:'Record supplier claim evidence'});
   }
   if (canStore) {
-    if (['ACKNOWLEDGED','IN_TRANSIT','DELAY_REPORTED'].includes(stage ?? ''))
+    if (!stage || ['ACKNOWLEDGED','IN_TRANSIT','DELAY_REPORTED'].includes(stage))
       choices.push({value:'REPORT_DISCREPANCY',label:'Report short/wrong/excess/damaged delivery'});
     if (stage==='CLAIM_RECORDED'&&caseData?.case?.pmDecision==='REQUEST_RETURN')
       choices.push({value:'STORE_RECORD_RETURN_DISPATCH',label:'Record actual outward supplier return evidence'});
