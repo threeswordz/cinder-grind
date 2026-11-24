@@ -1,0 +1,74 @@
+# One-time positive-control protected BYTE proof, never retained/Production or full release CI.
+name: M4 Protected Actual Bytes Eight Roles One-Shot
+on:
+  push:
+    branches: ['test-m4-protected-positive-bytes-once-20261124']
+    paths: ['.github/workflows/m4-eight-role-disposable-native-once.yml']
+permissions:
+  contents: read
+concurrency:
+  group: m4-protected-actual-bytes-once-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  protected-source-positive-bytes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:17.11-alpine
+        env:
+          POSTGRES_DB: erp_m4_lane_c_20261124
+          POSTGRES_USER: m4_disposable
+          POSTGRES_PASSWORD: m4_disposable_test_only
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U m4_disposable -d erp_m4_lane_c_20261124"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      M4_REVIEWED_APP: '435bd8805d5bcd7e0a1a9941668b67860f288b78'
+      DATABASE_URL: 'postgresql://m4_disposable:m4_disposable_test_only@127.0.0.1:5432/erp_m4_lane_c_20261124?schema=public'
+      M4_LANE_C_DISPOSABLE_VERIFIED: 'YES'
+      M4_LANE_C_APPROVED_SOURCE_SHA: ${{ github.sha }}
+      NODE_ENV: test
+      VITE_API_BASE_URL: 'http://127.0.0.1:44375/api/v1'
+    steps:
+      - name: Checkout exact disposable run derived from frozen candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - name: Verify only three test-only paths changed from reviewed app candidate
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          mapfile -t changed < <(git diff --name-only "$M4_REVIEWED_APP" "$GITHUB_SHA")
+          test "${#changed[@]}" = 3
+          test "${changed[0]}" = '.github/workflows/m4-eight-role-disposable-native-once.yml'
+          test "${changed[1]}" = 'deploy/uat/m4-eight-role-disposable-bootstrap-20261124.mjs'
+          test "${changed[2]}" = 'deploy/uat/m4-eight-role-journeys-20261124.mjs'
+          node --check deploy/uat/m4-eight-role-disposable-bootstrap-20261124.mjs
+          node --check deploy/uat/m4-eight-role-journeys-20261124.mjs
+      - name: Install pinned pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
+        with:
+          version: 12.6.0
+          run_install: false
+      - name: Install Node 24
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.21.0
+      - name: Frozen install
+        run: pnpm install --frozen-lockfile
+      - name: Generate and validate schema
+        run: |
+          pnpm prisma:generate
+          pnpm prisma:validate
+      - name: Fresh only forward-only PostgreSQL 17.11 migration
+        run: pnpm prisma:migrate:deploy
+      - name: Compile isolated real API
+        run: pnpm --filter @construction-erp/api build
+      - name: Independently verify four actual positive protected sources then real eight-role browser denials
+        run: node deploy/uat/m4-eight-role-disposable-bootstrap-20261124.mjs
+      - name: Boundary marker — technical fixture, not retained UAT, release CI or signoff
+        run: echo M4_POSITIVE_CONTROL_PROTECTED_BYTES_DISPOSABLE_ONLY
