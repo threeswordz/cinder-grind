@@ -294,6 +294,7 @@ export function AdminConsole({ user, onLogoutSuccess }: { user: CurrentUser; onL
           permission: 'projects.project.view',
           content: <ProjectsPanel
             permissions={user.permissions}
+            roleCodes={user.roleCodes}
             initialProjectId={linkedSource?.sectionKey === 'projects' ? linkedSource.projectId : undefined}
             onOpenSource={openSource}
           />,
