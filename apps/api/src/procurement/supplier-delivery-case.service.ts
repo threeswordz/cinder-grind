@@ -1,6 +1,7 @@
 import { ConflictException, ForbiddenException, Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { verifySupplierReplacementProof, SupplierReplacementProofError } from './supplier-replacement-proof';
+import { verifySupplierReturnCustody, SupplierReturnCustodyError } from './supplier-return-custody-proof';
 
 import { AuthenticatedUserContext } from '../auth/auth.types';
 import { PrismaService } from '../prisma/prisma.service';
@@ -29,6 +30,9 @@ export type SupplierCaseInput = Pick<SupplierDeliveryRequest,
   recordedPoAcknowledgmentEventId?: string;
   originalReceivingDeliveryLineId?: string;
   recordedGoodsReceiptItemId?: string;
+  returnQuantity?: string;
+  supplierSignatory?: string;
+  supplierSignatureConfirmed?: boolean;
 };
 const ENTITY = 'SUPPLIER_DELIVERY_CASE';
 const actions: SupplierAction[] = [
@@ -119,6 +123,7 @@ export class SupplierDeliveryCaseService {
     let origin: { eventId: string; evidenceDocumentId: string } | null = null;
     let claim: { eventId: string; claimedAt: string } | null = null;
     let replacementTrace: Prisma.JsonValue | null = null;
+    let returnCustodyTrace: Prisma.JsonValue | null = null;
     const processed = new Set<string>();
     for (let version = 1; version <= rows.length; version++) {
       const links = rows.filter(row => {
@@ -156,10 +161,12 @@ export class SupplierDeliveryCaseService {
         claim = { eventId: e.id, claimedAt: e.occurredAt.toISOString() };
       if (e.action === 'STORE_RECORD_REPLACEMENT_RECEIPT')
         replacementTrace = values.replacementTrace ?? null;
+      if (e.action === 'STORE_RECORD_RETURN_DISPATCH')
+        returnCustodyTrace = values.returnCustodyTrace ?? null;
       state = obj as unknown as SupplierDeliveryCase;
       lastId = e.id;
     }
-    return { state, eventId: lastId, origin, claim, replacementTrace };
+    return { state, eventId: lastId, origin, claim, replacementTrace, returnCustodyTrace };
   }
 
   /**
@@ -233,6 +240,9 @@ export class SupplierDeliveryCaseService {
       approvedLatest: source.approvalInstance?.approvalState === 'APPROVED' && !source.nextRevision && !source.cancelledAt,
       case: current.state, expectedPreviousEventId: current.eventId,
       replacementTrace: current.replacementTrace,
+      returnCustodyTrace: current.returnCustodyTrace,
+      financeResolution: 'REPLACEMENT_ONLY_NO_AP_CREDIT',
+      nonDamagedResolution: 'DISCREPANCY_EVIDENCE_ONLY',
       replacementReceiptLiveStatus: await this.currentReplacementReceipt(source, current.replacementTrace, this.prisma),
       advisoryOnly: true, stockEffect: false, financeEffect: false,
       // PUR07 acknowledgment is an independent source, not implied by a PO date.
@@ -248,7 +258,10 @@ export class SupplierDeliveryCaseService {
         (input.recordedPoAcknowledgmentEventId !== undefined && !uuid(input.recordedPoAcknowledgmentEventId)) ||
         (input.recordedGoodsReceiptId !== undefined && !uuid(input.recordedGoodsReceiptId)) ||
         (input.recordedGoodsReceiptItemId !== undefined && !uuid(input.recordedGoodsReceiptItemId)) ||
-        (input.originalReceivingDeliveryLineId !== undefined && !uuid(input.originalReceivingDeliveryLineId)))
+        (input.originalReceivingDeliveryLineId !== undefined && !uuid(input.originalReceivingDeliveryLineId)) ||
+        (input.returnQuantity !== undefined && typeof input.returnQuantity !== 'string') ||
+        (input.supplierSignatory !== undefined && typeof input.supplierSignatory !== 'string') ||
+        (input.supplierSignatureConfirmed !== undefined && typeof input.supplierSignatureConfirmed !== 'boolean'))
       return invalid('SUPPLIER_CASE_INVALID_INPUT');
     return this.prisma.$transaction(async tx => {
       // Same-Company PO-specific serialization: simultaneous Store/Jai/PM actions
@@ -267,7 +280,7 @@ export class SupplierDeliveryCaseService {
       const doc = await tx.document.findFirst({
         where: { id: input.evidenceDocumentId, companyId: order.companyId, isActive: true,
           links: { some: { entityType: 'PROJECT', entityId: order.projectId } } },
-        select: { id: true },
+        select: { id: true, checksum: true },
       });
       if (!doc || !actor.permissions.includes('documents.document.view'))
         return denied('SUPPLIER_CASE_SCOPED_DOCUMENT_EVIDENCE_REQUIRED');
@@ -291,6 +304,92 @@ export class SupplierDeliveryCaseService {
         if (!ack) return conflict('SUPPLIER_CASE_PUR07_ACK_NOT_FOUND');
       }
       let replacementTrace: Record<string, string> | null = null;
+      let returnCustodyTrace: ReturnType<typeof verifySupplierReturnCustody> | null = null;
+      if (input.action === 'STORE_RECORD_RETURN_DISPATCH') {
+        if (!current.origin || !current.claim || !input.originalReceivingDeliveryLineId ||
+            !input.returnQuantity || !input.supplierSignatory ||
+            input.supplierSignatureConfirmed !== true)
+          return conflict('SUPPLIER_CASE_RETURN_SOURCE_AND_SIGNED_HANDOVER_REQUIRED');
+        // Non-damaged discrepancy cases remain claim-only. No assumed
+        // short/excess/wrong-item posted-material or financial resolution.
+        if (current.state?.discrepancyKind !== 'DAMAGED')
+          return conflict('PUR14_RETURN_KIND_REQUIRES_ATTRIBUTION_POLICY');
+        const original = await tx.receivingDeliveryLine.findFirst({
+          where: { id: input.originalReceivingDeliveryLineId,
+            delivery: { companyId: order.companyId, projectId: order.projectId,
+              supplierId: order.supplierId, purchaseOrderId: order.id } },
+          select: {
+            id: true, condition: true, purchaseOrderLineId: true,
+            materialId: true, uomId: true,
+            observedQuantity: true, goodQuantity: true,
+            delivery: { select: {
+              id: true, companyId: true, projectId: true,
+              supplierId: true, purchaseOrderId: true, warehouseId: true,
+              status: true, checkedAt: true,
+              replacement: { select: { id: true } },
+            } },
+          },
+        });
+        if (!original?.purchaseOrderLineId)
+          return conflict('SUPPLIER_CASE_RETURN_ORIGINAL_CHECKED_LINE_REQUIRED');
+        const poLine = await tx.purchaseOrderLine.findFirst({
+          where: { id: original.purchaseOrderLineId,
+            purchaseOrderId: order.id, lineType: 'MATERIAL' },
+          select: { id: true, materialId: true, uomId: true },
+        });
+        if (!poLine?.materialId || !poLine.uomId)
+          return conflict('SUPPLIER_CASE_RETURN_PO_MATERIAL_SOURCE_REQUIRED');
+        const originDoc = await tx.receivingDeliveryEvidence.findFirst({
+          where: { companyId: order.companyId,
+            deliveryId: original.delivery.id,
+            documentId: current.origin.evidenceDocumentId,
+            purpose: 'CONDITION_PHOTO',
+            replacement: { is: null },
+            document: { companyId: order.companyId, isActive: true,
+              links: { some: { entityType: 'RECEIVING_DELIVERY',
+                entityId: original.delivery.id } } },
+          },
+          select: { checksum: true, document: { select: { checksum: true } } },
+        });
+        try {
+          returnCustodyTrace = verifySupplierReturnCustody({
+            expected: {
+              companyId: order.companyId, projectId: order.projectId,
+              supplierId: order.supplierId, purchaseOrderId: order.id,
+              purchaseOrderLineId: poLine.id, materialId: poLine.materialId,
+              uomId: poLine.uomId,
+              discrepancyKind: current.state.discrepancyKind!,
+            },
+            original: {
+              deliveryId: original.delivery.id, lineId: original.id,
+              companyId: original.delivery.companyId,
+              projectId: original.delivery.projectId,
+              supplierId: original.delivery.supplierId,
+              purchaseOrderId: original.delivery.purchaseOrderId ?? '',
+              purchaseOrderLineId: original.purchaseOrderLineId,
+              materialId: original.materialId, uomId: original.uomId,
+              warehouseId: original.delivery.warehouseId,
+              status: original.delivery.status, condition: original.condition,
+              checkedAt: original.delivery.checkedAt?.toISOString() ?? null,
+              superseded: Boolean(original.delivery.replacement),
+              observedQuantity: original.observedQuantity.toFixed(4),
+              goodQuantity: original.goodQuantity.toFixed(4),
+              conditionPhotoVerified: Boolean(originDoc && originDoc.document.checksum &&
+                originDoc.checksum === originDoc.document.checksum),
+            },
+            handover: {
+              quantity: input.returnQuantity,
+              supplierSignatory: input.supplierSignatory,
+              supplierSignatureConfirmed: input.supplierSignatureConfirmed,
+              documentId: doc.id, documentChecksum: doc.checksum,
+              documentDistinctFromConditionPhoto: doc.id !== current.origin.evidenceDocumentId,
+            },
+          });
+        } catch (error) {
+          if (error instanceof SupplierReturnCustodyError) return conflict(error.code);
+          throw error;
+        }
+      }
       if (input.action === 'STORE_RECORD_REPLACEMENT_RECEIPT') {
         // Do not relabel any unrelated posted GR as a completed supplier claim.
         // Existing evidence-only cases remain readable until real source proof exists.
@@ -461,6 +560,9 @@ export class SupplierDeliveryCaseService {
               { referencedPur07AcknowledgmentEventId: input.recordedPoAcknowledgmentEventId } : {}),
             ...(input.action === 'REPORT_DELAY' ?
               { newSupplierExpectedDate: input.newSupplierExpectedDate } : {}),
+            ...(input.action === 'STORE_RECORD_RETURN_DISPATCH' ?
+              { originalReceivingDeliveryLineId: input.originalReceivingDeliveryLineId,
+                returnCustodyTrace } : {}),
             ...(input.action === 'STORE_RECORD_REPLACEMENT_RECEIPT' ?
               { recordedGoodsReceiptId: input.recordedGoodsReceiptId,
                 recordedGoodsReceiptItemId: input.recordedGoodsReceiptItemId,
