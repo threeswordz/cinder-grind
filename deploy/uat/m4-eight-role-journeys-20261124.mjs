@@ -197,7 +197,7 @@ async function observe(p,s,c,key){
       const r=await fetch('/api/v1'+pathname,{credentials:'include',redirect:'error'});
       const b=await r.arrayBuffer();
       if(b.byteLength>1048576)return {status:r.status,oversized:true,body:''};
-      return {status:r.status,oversized:false,body:new TextDecoder().decode(b)};
+      return {status:r.status,oversized:false,body:new TextDecoder('utf-8',{ignoreBOM:true}).decode(b)};
     },check.path);
     demand(!result.oversized,'UNBOUNDED_RESPONSE_'+check.name);
     summary.push(assessResponse(check,result.status,result.body,secret));
