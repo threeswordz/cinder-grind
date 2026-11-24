@@ -29,26 +29,27 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     env:
-      M4_EXACT_SOURCE: '4819d794b6bc34738341efd9725e93f55c696da0'
+      M4_REVIEWED_APP: '4819d794b6bc34738341efd9725e93f55c696da0'
       DATABASE_URL: 'postgresql://m4_disposable:m4_disposable_test_only@127.0.0.1:5432/erp_m4_lane_c_20261124?schema=public'
       M4_LANE_C_DISPOSABLE_VERIFIED: 'YES'
-      M4_LANE_C_APPROVED_SOURCE_SHA: '4819d794b6bc34738341efd9725e93f55c696da0'
+      M4_LANE_C_APPROVED_SOURCE_SHA: ${{ github.sha }}
       NODE_ENV: test
       VITE_API_BASE_URL: 'http://127.0.0.1:44375/api/v1'
     steps:
-      - name: Checkout exact frozen reviewed candidate, not test-only branch application
+      - name: Checkout exact test-only source with immutable reviewed app ancestry
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
-          ref: '4819d794b6bc34738341efd9725e93f55c696da0'
+          ref: ${{ github.sha }}
           fetch-depth: 0
       - name: Prove exact candidate and only runner-only additions
         run: |
-          test "$(git rev-parse HEAD)" = "$M4_EXACT_SOURCE"
-          git fetch --no-tags origin "$GITHUB_SHA"
-          mapfile -t changed < <(git diff --name-only "$M4_EXACT_SOURCE" "$GITHUB_SHA")
-          test "${#changed[@]}" = 2
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          mapfile -t changed < <(git diff --name-only "$M4_REVIEWED_APP" "$GITHUB_SHA")
+          test "${#changed[@]}" = 4
           test "${changed[0]}" = '.github/workflows/m4-eight-role-disposable-native-once.yml'
           test "${changed[1]}" = 'deploy/uat/m4-eight-role-disposable-bootstrap-20261124.mjs'
+          test "${changed[2]}" = 'deploy/uat/m4-eight-role-journeys-20261124.mjs'
+          test "${changed[3]}" = 'deploy/uat/m4-eight-role-journeys-20261124.test.mjs'
           git show "$GITHUB_SHA:deploy/uat/m4-eight-role-disposable-bootstrap-20261124.mjs" > "$RUNNER_TEMP/m4-disposable-bootstrap.mjs"
           node --check "$RUNNER_TEMP/m4-disposable-bootstrap.mjs"
       - name: Install frozen pnpm
@@ -70,6 +71,8 @@ jobs:
         run: pnpm prisma:migrate:deploy
       - name: Compile API for real Nest/browser fixture, no full workspace CI
         run: pnpm --filter @construction-erp/api build
+      - name: New-only browser operator exact MUI label and guard contracts
+        run: node --test --test-concurrency=1 deploy/uat/m4-eight-role-journeys-20261124.test.mjs
       - name: Seed eight true role codes, use real Vite Nest Chrome and report partial protected bytes honestly
         run: node "$RUNNER_TEMP/m4-disposable-bootstrap.mjs"
       - name: Distinguish partial synthetic browser from final retained UAT
