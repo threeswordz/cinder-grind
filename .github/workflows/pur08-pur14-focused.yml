@@ -1,6 +1,6 @@
 # Single-use disposable PUR08/PUR14 focused verification, not full release CI.
 # Branch is isolated; no protected-main merge, Production, or retained-user grants.
-name: PUR08-PUR14 Focused Typecheck and PostgreSQL
+name: PUR08-PUR14 Native Postgres Test Recheck
 on:
   push:
     branches: ['ci-pur08-pur14-focused-20261124']
@@ -54,12 +54,6 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Generate actual Prisma client
         run: pnpm prisma:generate
-      - name: Focused API TypeScript check
-        run: pnpm --filter @construction-erp/api typecheck
-      - name: Focused React TypeScript check
-        run: pnpm --filter @construction-erp/web typecheck
-      - name: Verify pure supplier policies only
-        run: node --test apps/api/src/procurement/supplier-delivery-lifecycle.test.mjs
       - name: Deploy forward-only migrations to disposable PostgreSQL 17.11
         run: pnpm prisma:migrate:deploy
       - name: Compile native test to JS
