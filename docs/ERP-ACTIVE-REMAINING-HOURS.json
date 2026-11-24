@@ -916,6 +916,29 @@
       "sourceSha": "c2b406616cbaa2fa3d5095d252e0de3c265c6f24",
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261124-PUR08-14-012",
+      "date": "2026-11-24",
+      "packageId": null,
+      "scopeId": "PUR08_PUR14_INTEGRATION",
+      "kind": "SIGNED_UNPOSTED_DAMAGED_CUSTODY_RETURN_AND_FINANCE_NON_DAMAGED_POLICY",
+      "beforeHours": null,
+      "afterHours": null,
+      "reductionHours": 0,
+      "scopeBeforeHours": 14,
+      "scopeAfterHours": 9,
+      "scopeReductionHours": 5,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/pull/439",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45386319537",
+        "https://github.com/threeswordz/cinder-grind/issues/428#issuecomment-7130465292",
+        "https://github.com/threeswordz/cinder-grind/commit/e8c0b7775e7bde66679db70fb0af992a00ecf91a"
+      ],
+      "basis": "Owner instructed proceed with earlier proposed conservative rules: rejected DAMAGED goods not posted as good stock may be sent outward with signed source-backed custody evidence; any posted goods require separate canonical stock reversal; replacement-only has no automatic supplier credit/AP; SHORT/WRONG_ITEM/EXCESS stay evidence-only until quantitative attribution. Draft #439 exact integrated descendant e8c0b777 from #438 adds pure quantity/Company/Project/supplier/PO/material/UOM and checked original condition-photo/source proof, immutable audit signed handover document/checksum, returned qty exact observed-good, Store signatory+confirmation, MUI fields/status, explicit Finance resolution, server/UI block for unsupported discrepancy completion. All 10 changed source/test blobs match focused #45386319537 OVERALL SUCCESS: fresh PG17.11 forward migrations, API/React TS, six pure custody tests plus changed lifecycle, native 1/1 real signed checked source positive/negative/no stock/AP/payment, actual authenticated Store/PM/Jai/Store real Chrome positive. Existing old unsigned browser return evidence is superseded, not new policy proof. Reduction 5h LOW-CONFIDENCE forward engineering estimate of 14h required newly priced supplier scope, not 5 actual logged labor hours; 9h remains for exact integration independent review, retained eight-person UAT, physical posted-stock return decision or canonical reversal integration, Finance approved credit-note process outside this M4 case, and further exception attribution. No new role grants, full CI, main merge or Production; no formal acceptance.",
+      "sourceSha": "e8c0b7775e7bde66679db70fb0af992a00ecf91a",
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -925,19 +948,19 @@
         "PUR08",
         "PUR14"
       ],
-      "hours": 14,
+      "hours": 9,
       "budgetAllocation": "NEW_EXPLICIT_M4_ADDITIONAL_SCOPE; NOT SILENTLY SUBTRACTED_FROM_M4_01/M4_08",
-      "sourceStatus": "DAMAGED_NATIVE_POSTED_REPLACEMENT_AND_NEGATIVES_PASS;CHROME_REPLACEMENT_AND_REVERSAL_WARNING_PASS;CANONICAL_PHYSICAL_RETURN_AND_FINANCE_POLICY_OPEN",
-      "remaining": "14h low-confidence future work: explicitly authorize and implement physical outward supplier-return quantity/warehouse/stock effects without double deduction, Owner Finance treatment (replacement-only vs supplier credit note vs AP adjustment), SHORT/WRONG_ITEM/EXCESS attribution rules, retained real named eight-role Company/Project UAT, independent DEC-022 exact integrated source review, Owner #384 approved CI/merge/release. Synthetic native and real Chrome prove checked posted replacement + later GR reversal read-side warning; no formal acceptance.",
-      "evidence": "https://github.com/threeswordz/cinder-grind/actions/runs/45374163626",
+      "sourceStatus": "DAMAGED_SIGNED_CUSTODY_ONLY_NATIVE_AND_AUTHENTICATED_CHROME_PASS;REPLACEMENT_AND_REVERSAL_WARNING_PASS;NON_DAMAGED_CLAIM_ONLY;FINANCE_CREDIT_SEPARATE",
+      "remaining": "9h low-confidence remaining future supplier workflow and assurance work: exact stacked integration source/DEC-022 independent review; retained named eight-role MKE/TCJ Company/Project permission proof and UAT; posted-stock supplier return requires separately authorized canonical stock reversal, no duplicate stock debit; any real supplier credit/AP adjustment is independent Porn-maker/Nancy-checker Finance source (GL06), not automated; SHORT/WRONG_ITEM/EXCESS remain evidence-only, quantitative material/UOM/PO-line posting attribution not approved. Owner release CI/merge/Production authorizations separate. Native and real Chrome signed DAMAGED custody-only proofs do not count as human UAT.",
+      "evidence": "https://github.com/threeswordz/cinder-grind/actions/runs/45386319537",
       "stage": "M4",
       "grossPreImplementationEstimateHours": 50,
-      "estimatedReductionFromNewSourceHours": 36,
+      "estimatedReductionFromNewSourceHours": 41,
       "confidence": "LOW",
       "estimateKind": "NEWLY_DISCOVERED_MANDATORY_SCOPE_PRICE_NOT_A_TIMESHEET"
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1855,
-  "currentRollingTotalSemantics": "1855h provisional future work = 1847h original 60-package current baseline −2h M4-01 requirement triage −2h M4-06 PDF/Document source guards −2h M4-08 combined source integration and entire protected-main review manifest +14h separately priced mandatory PUR08/PUR14 remaining. Actual worker-hours UNKNOWN; no formal M4 package acceptance, independent DEC-022 code review or retained 8-role signoff. Historical 1900h and 1500h unapproved optimization separate; 31 Dec 2026 Production feasibility RED."
+  "currentRollingTotalAfterPricedGapsHours": 1850,
+  "currentRollingTotalSemantics": "1850h provisional future work = 1847h original current 60-package baseline minus 2h M4-01 triage, minus 2h M4-06 approved PDF/evidence guards, minus 2h M4-08 combined integration + 177-path independent-review preparation, plus 9h separately priced mandatory PUR08/PUR14 remaining after signed custody and Finance/non-DAMAGED policy source verified. Not actual worker timesheet, retained eight-person UAT or formal package completion. Protected main unchanged, no full release CI/approval/Production. 31 Dec 2026 full 112-ID eight-role Production feasibility RED."
 }
