@@ -207,6 +207,39 @@ test('PUR12 native: MKE/TCJ source-backed PO snapshots, revision, no fake names,
       });
       assert.equal(afterSequence.nextValue, beforeSequence.nextValue);
 
+      // Rejected duplicate award and an error AFTER sequence allocation
+      // must not consume a number or leave a partial PO/line/audit.
+      await prisma.supplier.update({where:{id:supplier.id},data:{shortName:'LATER'}});
+      const seq=()=>prisma.numberSequence.findUniqueOrThrow({
+        where:{companyId_sequenceCode:{companyId:company.id,sequenceCode:'PURCHASE_ORDER'}},
+      });
+      const snapshot=await seq();
+      const poCount=await prisma.purchaseOrder.count({where:{companyId:company.id}});
+      await assert.rejects(()=>pos.createOrder({auth:jai},project.id,[award.id]),
+        (e:unknown)=>typeof e==='object'&&e!==null&&'getResponse' in e&&
+          typeof e.getResponse==='function'&&e.getResponse()?.code==='PO_AWARD_ALREADY_USED');
+      assert.equal((await seq()).nextValue,snapshot.nextValue);
+      const realRecord=audit.record.bind(audit);
+      audit.record=async (...args:Parameters<AuditService['record']>)=>{
+        if(args[0].entityType==='PURCHASE_ORDER'&&args[0].action==='CREATE_DRAFT'){
+          assert.ok(args[1],'PO audit must be in the same transaction');
+          throw Error('PUR12_TEST_POST_ALLOCATION_FAILURE');
+        }
+        return realRecord(...args);
+      };
+      try {
+        await assert.rejects(()=>pos.createOrder({auth:jai},project.id,[secondAward.id]),
+          /PUR12_TEST_POST_ALLOCATION_FAILURE/);
+      }finally{audit.record=realRecord;}
+      assert.equal((await seq()).nextValue,snapshot.nextValue);
+      assert.equal((await seq()).lastPeriodKey,snapshot.lastPeriodKey);
+      assert.equal(await prisma.purchaseOrder.count({where:{companyId:company.id}}),poCount);
+      const retry=await pos.createOrder({auth:jai},project.id,[secondAward.id]);
+      assert.equal(retry.displayNumber,prefix+'-'+retry.poNumber+' LATER');
+      assert.equal((await seq()).nextValue,snapshot.nextValue+1);
+      console.log('PUR12_NATIVE_FAILED_DRAFT_ATOMIC_SEQUENCE_ROLLBACK_AND_RETRY_PASS',companyCode);
+      await prisma.supplier.update({where:{id:supplier.id},data:{shortName:null}});
+
       // Approved PO revision inherits immutable initial snapshot.
       await pos.updateOrder({auth: jai}, order.id, {
         discountAmount:D('0'), freightAmount:D('0'),
