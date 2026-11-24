@@ -307,23 +307,15 @@ test('PUR14 native positive: source damaged line -> Store/PM/Jai -> later approv
     assert.equal(await db.stockTransaction.count({ where: { companyId: f.company.id } }),
       beforeStock + 1, 'Only the canonical GR reversal creates its stock reversal entry');
 
-    // Disposable source alteration: a mismatched GR item can never be
-    // described as a currently verified replacement, even if the recorded
-    // history remains intact. Restore the fixture after this check.
-    await db.goodsReceiptItem.update({
+    // The PostgreSQL canonical GR source trigger refuses an edit that would
+    // violate the approved PO material source. We must TEST the fail-closed
+    // rejection rather than bypassing the trigger to fake a mismatch.
+    await assert.rejects(db.goodsReceiptItem.update({
       where: { id: posted.items[0]!.id },
       data: { quantity: new Prisma.Decimal('2.0000') },
-    });
-    try {
-      const changed = await supplier.read(store, f.po.id);
-      assert.equal(changed.replacementReceiptLiveStatus, 'SOURCE_UNVERIFIED');
-      assert.deepEqual(changed.replacementTrace, readback.replacementTrace);
-    } finally {
-      await db.goodsReceiptItem.update({
-        where: { id: posted.items[0]!.id },
-        data: { quantity: new Prisma.Decimal('1.0000') },
-      });
-    }
+    }), /Goods Receipt item must match its Draft approved-PO material source/);
+    assert.deepEqual((await supplier.read(store, f.po.id)).replacementTrace,
+      readback.replacementTrace, 'Rejected GR source edit must preserve historical evidence');
     assert.equal((await supplier.read(store, f.po.id)).replacementReceiptLiveStatus, 'REVERSED');
     assert.equal(await db.supplierInvoice.count({ where: { companyId: f.company.id } }), beforeAP);
     assert.equal(await db.payment.count({ where: { companyId: f.company.id } }), beforePayments);
