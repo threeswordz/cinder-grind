@@ -1413,6 +1413,27 @@
       "sourceSha": "fb208dc1e2d2764180e341a5f027bfd55a477c64",
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-08-010",
+      "date": "2026-11-25",
+      "packageId": "M4-08",
+      "kind": "CI451_MERGED_M4_STACK_RECONCILED_PENDING_PROOF",
+      "beforeHours": 26,
+      "afterHours": 26,
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/pull/451",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45450628566",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45457428768",
+        "https://github.com/threeswordz/cinder-grind/commit/3ae1e684930ad9692ba9e85559204022a0f30cbc"
+      ],
+      "basis": "Owner accepted measured 24% CI elapsed reduction and directed continuation. Exact CI451 full 46/46, trusted clean independent Codex and +1, no unresolved threads; expected-head squash merged as 040395bc7b0dedd40207f91f743bc2efc1584622 with identical reviewed tree cc37732481928ca3df86618ea5308cd59882b63b. Main branch protection disabled; no settings change; ordinary guarded merge. Short main proof running. Reconciled original M4 stack 52721dfd0d1c1a88cdcc5e5e41e8d6971c5a95cd on separate work-m4-stack-reconcile-20261125 branch, exact integrated three closeout correction blobs and five CI blobs; other 449 source preserved; 180 paths remaining vs new main, 0 behind. No tested new stack claim. No estimated business work credit before bounded validation; CI time not engineering labor. Stop further CI optimization; prioritize FM01 bounded package, then related purchasing and inventory packages. All acceptance deferred.",
+      "sourceSha": "3ae1e684930ad9692ba9e85559204022a0f30cbc",
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
