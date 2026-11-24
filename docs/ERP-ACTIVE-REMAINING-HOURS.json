@@ -1372,6 +1372,27 @@
       "sourceSha": "2b760755b3a962d74f375070869cf8ab0e14dbeb",
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-08-008",
+      "date": "2026-11-25",
+      "packageId": "M4-08",
+      "kind": "PR450_GUARDED_MERGE_TREE_EQUAL_CI451_RECONCILED",
+      "beforeHours": 28,
+      "afterHours": 27,
+      "reductionHours": 1,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 1,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/pull/450",
+        "https://github.com/threeswordz/cinder-grind/commit/fb208dc1e2d2764180e341a5f027bfd55a477c64",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45450463925",
+        "https://github.com/threeswordz/cinder-grind/pull/451"
+      ],
+      "basis": "Owner explicitly authorized merge. Reviewed corrected head 2b760755b3a962d74f375070869cf8ab0e14dbeb, full PR exact identity, trusted Codex clean +1 and all threads resolved; live main metadata protection disabled and detailed API 403, no rules changed or bypass. Expected-head squash merged fb208dc1e2d2764180e341a5f027bfd55a477c64 with exact reviewed tree c2cd5c5bafdf4473d5191e34d0b32b8b8afd1e69, old main sole parent. Short main integration run in_progress at observation; no full-main or acceptance claim. Provisional 1h remaining merge work removed, not actual labor. CI451 previous focused 18/18 seven scheduler/contract tests PASS; forward reconciled with new main via merge commit 7a04952ddc5b0dcb8e895e57b489d17f0ef916a6, exact five-path diff, 0 behind, remains draft. No performance savings or new expensive full trial credited; pending exact focused and main proof. Full #449 development stack preserved, not yet reconciled.",
+      "sourceSha": "fb208dc1e2d2764180e341a5f027bfd55a477c64",
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -1394,6 +1415,6 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1823,
+  "currentRollingTotalAfterPricedGapsHours": 1822,
   "currentRollingTotalSemantics": "1830h provisional future work = 1847h baseline minus 17h M4-01, 1h M4-02, 1h M4-03, 1h M4-04, 1h M4-05, 2h M4-06, 1h M4-07, 2h M4-08, plus 9h supplier scope. JAI-ASSET-01 canonical CG acquisition register and native proof eliminate 5h previously identified remaining scope. Not actual labor or formal acceptance; deadline RED."
 }
