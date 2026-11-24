@@ -144,7 +144,7 @@ export function planSupplierDeliveryTransition(input: SupplierDeliveryRequest) {
       fail('PUR08_ACKNOWLEDGED_PO_AND_JAI_REQUIRED');
     state.stage = 'IN_TRANSIT';
   } else if (action === 'REPORT_DELAY') {
-    if (!canJai(actor) || !['ACKNOWLEDGED','IN_TRANSIT','DELAY_REPORTED'].includes(from ?? '') ||
+    if (!canJai(actor) || (from !== null && !['ACKNOWLEDGED','IN_TRANSIT','DELAY_REPORTED'].includes(from)) ||
       !input.newSupplierExpectedDate || !safeDate(input.newSupplierExpectedDate))
       fail('PUR08_SUPPLIER_REVISED_DATE_EVIDENCE_REQUIRED');
     state.stage = 'DELAY_REPORTED';
