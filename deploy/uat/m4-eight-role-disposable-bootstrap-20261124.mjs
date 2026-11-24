@@ -31,7 +31,8 @@ const changes=spawnSync('git',['diff','--name-only',REVIEWED_APP,EXACT],
   {cwd:ROOT,encoding:'utf8'});
 const allowed=new Set([
   '.github/workflows/m4-eight-role-disposable-native-once.yml',
-  'deploy/uat/m4-eight-role-disposable-bootstrap-20261124.mjs'
+  'deploy/uat/m4-eight-role-disposable-bootstrap-20261124.mjs',
+  'deploy/uat/m4-eight-role-journeys-20261124.mjs'
 ]);
 const paths=changes.stdout.trim().split('\n').filter(Boolean);
 requireSafe(changes.status===0&&paths.length===allowed.size&&
