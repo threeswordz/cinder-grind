@@ -5,14 +5,14 @@
 ## Headline
 | Metric | Current | Meaning |
 |---|---:|---|
-| **Estimated full ERP work still needed** | **1,863h → 0h** | Includes latest newly priced mandatory gaps |
+| **Estimated full ERP work still needed** | **1,861h → 0h** | Includes latest newly priced mandatory gaps |
 | 23 Nov original current-work forecast | 1847h | Earlier 60-package provisional baseline |
 | Additional estimated future-work eliminated | −2h | M4-01 source reconciliation, **not timesheet** |
-| Newly discovered previously unpriced PUR08/PUR14 work | +18h | Net **remaining** after positive GR and scoped negative evidence verification |
-| Net reforecast change versus 1,847h | +16h | More honest scope recognition; not schedule recovery |
+| Newly discovered previously unpriced PUR08/PUR14 work | +16h | Net **remaining** after real Chrome replacement proof |
+| Net reforecast change versus 1,847h | +14h | More honest scope recognition; not schedule recovery |
 | PUR08/PUR14 provisional work before new development | 50h | Low-confidence new-gap gross estimate |
-| PUR08/PUR14 estimated future work eliminated through verified development | 32h | Authenticated Chrome, positive posted GR, and native Company/Project/revocation/evidence rejection checks; not logged hours |
-| PUR08/PUR14 remaining | **18h** | Physical supplier-return stock and Finance policy, unsupported discrepancy types, newly hardened browser/retained UAT, independent review and Owner integration |
+| PUR08/PUR14 estimated future work eliminated through verified development | 34h | Return-only Chrome, native positive/negative, and new genuine replacement Chrome; estimated unneeded future work, not logged hours |
+| PUR08/PUR14 remaining | **16h** | Physical supplier-return stock/Finance Owner rules, SHORT/WRONG/EXCESS, retained named-role UAT, independent review and Owner integration |
 | Historical original baseline | 1,900h | Not the current work-to-go figure |
 | Proposed optimization | 1,500h | **Unvalidated**; now requires risk/scope recalibration |
 | Prototype milestone | 4/8 | Official |
@@ -21,13 +21,13 @@
 | Whole baseline packages formally accepted | 0/60 | 8 M4 packages still 0/8 |
 | Actual productive hours logged | UNKNOWN | Cannot infer from GitHub commits or AI conversation length |
 
-**Why the number rose:** the earlier 1,845h omitted a separate confirmed PUR08/PUR14 implementation budget. New source plus corrected source-backed tests reduced that *newly priced* work from a provisional 50h gross to 18h remaining, but the original 60-package forecast excluded that additional work. Thus **1,845h + 18h = 1,863h**, with gross scope originally estimated at 50h and 32h of forward work re-estimated away. This prevents a false countdown and requires a real reduction in remaining work at each future step. It does **not** represent actual human hours worked or formal acceptance.
+**Why the number rose:** the earlier 1,845h omitted a separate confirmed PUR08/PUR14 implementation budget. New source plus corrected source-backed tests reduced that *newly priced* work from a provisional 50h gross to 16h remaining, but the original 60-package forecast excluded that additional work. Thus **1,845h + 16h = 1,861h**, with gross supplier scope originally estimated at 50h and 34h of future work re-estimated away. This prevents a false countdown and requires a real reduction in remaining work at each future step. It does **not** represent actual human hours worked or formal acceptance.
 
 ## Stage-by-stage remaining work
 
 | Stage | Previous 60-package baseline | Verified package forecast reduction | Additional scope remaining | **Now remaining** | Accepted baseline packages |
 |---|---:|---:|---:|---:|---:|
-| Prototype 5/8 — M4 closure | 117h | 2h | 18h | **133h** | 0/8 |
+| Prototype 5/8 — M4 closure | 117h | 2h | 16h | **131h** | 0/8 |
 | Prototype 6/8 — end-to-end deployment | 120h | 0h | 0h | **120h** | 0/5 |
 | Prototype 7/8 — populated restore | 50h | 0h | 0h | **50h** | 0/3 |
 | Prototype 8/8 — technical freeze | 65h | 0h | 0h | **65h** | 0/3 |
@@ -39,7 +39,7 @@
 | Production hosting and recovery | 110h | 0h | 0h | **110h** | 0/5 |
 | Migration and onboarding | 110h | 0h | 0h | **110h** | 0/4 |
 | Final human UAT, cutover and Production | 150h | 0h | 0h | **150h** | 0/5 |
-| **Full ERP** | **1847h** | **2h** | **18h** | **1,863h** | **0/60** |
+| **Full ERP** | **1847h** | **2h** | **16h** | **1,861h** | **0/60** |
 
 ## Each baseline package
 
@@ -109,9 +109,11 @@
 ## Additional required scope (beyond the original 60 package costing)
 | Scope ID | Stage | Provisional initial estimate | Source progress estimated | Remaining |
 |---|---|---:|---:|---:|
-| PUR08_PUR14_INTEGRATION | M4 | 50h | 32h | **18h** |
+| PUR08_PUR14_INTEGRATION | M4 | 50h | 34h | **16h** |
 
 ## Evidence-backed update history
+
+- **2026-11-24 — real authenticated Store Site replacement-source Chrome: 18h → 16h (−2h provisional future work).** [Draft PR #435](https://github.com/threeswordz/cinder-grind/pull/435) source SHA `f4593664469e0e91d24c560865255196c6720168`, exact browser script blob `511a72dc57f87abc006b3bef8855ce1c99a3e7be`, adds focused Store→PM REQUEST_REPLACEMENT→Jai claim→separately checked/postclaimed approved canonical replacement GR→Store Chrome React/MUI linking original damaged receiving line, actual GR and GR item. [Focused disposable PostgreSQL 17.11, NestJS, Chrome run #45371800181](https://github.com/threeswordz/cinder-grind/actions/runs/45371800181) **OVERALL SUCCESS**, authentic cookies, CSRF/wrong-Project denial, original and replacement uploaded bytes, exact matching lineage readback, stock change only through approved canonical GR, no duplicate supplier-case stock/AP/payments. First test attempt exposed stale synthetic PM role context at canonical approval; corrected by re-resolving already-authorized PM session, no production role changes. No full CI, no human retained UAT or DEC-022 signoff. This −2h is **estimated eliminated future work**, not actual logged work or formally accepted M4 package.
 
 - **2026-11-24 — PUR14 cross-Company/Project, receiving evidence, live-role and replay hardening: 20h → 18h (−2h provisional future work).** Isolated [Draft PR #434](https://github.com/threeswordz/cinder-grind/pull/434), SHA `4a0197a1aa6f8d30099372aba50fa0e883526da8`, explicitly scopes original received line and posted GR lookup by Company/Project/supplier/exact PO and requires active non-superseded original and replacement CONDITION_PHOTO `ReceivingDeliveryEvidence` with matching Document checksum; generic Project Document alone is insufficient. Expanded synthetic native service tests deny unrelated GR/item, mismatched delivery evidence, stale events, revoked Store permission, inactive Employee/session, removed Project membership and foreign Company; rejected events preserve audit/stock/AP/payment counts, and valid case still completes. [Focused disposable PostgreSQL 17.11 / TypeScript #45370305802](https://github.com/threeswordz/cinder-grind/actions/runs/45370305802) **SUCCESS**; relevant source/test blobs identical on CI and PR branch; no full CI. Forecast reduction is a **future-work estimate**, not actual engineering labor or formal M4 acceptance. Physical return/Finance policy, retained human UAT and DEC-022/Owner review remain.
 
