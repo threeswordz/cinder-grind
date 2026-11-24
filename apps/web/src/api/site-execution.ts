@@ -103,7 +103,61 @@ export type DailySiteReportPayload = {
   inspections?: InspectionLineInput[];
 };
 
+export type NoWorkEvidence = {
+  reason: string;
+  declarationId: string;
+  declaredByUserId: string;
+  declaredAt: string;
+  correctedByUserId: string | null;
+  correctedAt: string | null;
+  correctionCount: number;
+  plannedDayEvidence: {
+    calendarId: string;
+    calendarName: string;
+    timezoneName: string;
+    reportDate: string;
+    plannedDayKind: 'PLANNED_WORKDAY';
+    dueLocalDate: string | null;
+    dueLocalStartTime: string | null;
+    calendarFingerprint: string;
+    historicTimeliness: 'NOT_ASSESSED';
+  };
+};
+
 export type WeeklySiteSummary = {
+  reviewFingerprint: string;
+  reviewAcknowledgment: {
+    status: 'NOT_REVIEWED' | 'CURRENT' | 'STALE';
+    acknowledgedAt: string | null;
+    acknowledgedByUserId: string | null;
+    acknowledgedByName: string | null;
+    acknowledgedFingerprint: string | null;
+    authority: 'MANAGEMENT_REVIEW_ONLY_NOT_APPROVAL';
+  };
+  // FM01-B uses the CURRENT explicitly configured work calendar for read-only
+  // report expectations; it does not assert historical deadline compliance.
+  workCalendarPreview: {
+    status: 'CONFIGURED' | 'NOT_CONFIGURED' | 'AMBIGUOUS' | 'INVALID_CONFIGURATION';
+    calendarId: string | null;
+    calendarName: string | null;
+    timezoneName: string | null;
+    basis: 'CURRENT_CONFIGURATION_PREVIEW_NOT_HISTORICAL_COMPLIANCE';
+    days: Array<{
+      date: string;
+      plannedDayKind: 'PLANNED_WORKDAY' | 'PLANNED_OFF_DAY' | 'UNKNOWN';
+      reportingExpectation: 'UNDETERMINED' | 'NO_REPORT_REQUIRED' |
+        'PLANNED_DAY_REPORT_MISSING' | 'PLANNED_DAY_DRAFT' | 'PLANNED_DAY_SUBMITTED';
+      dueLocalDate: string | null;
+      dueLocalStartTime: string | null;
+      timeliness: 'NOT_ASSESSED';
+      exceptionReason: string | null;
+    }>;
+    totals: {
+      plannedWorkdays: number;
+      plannedOffDays: number;
+      missingPlannedWorkdayReports: number;
+    } | null;
+  };
   projectId: string;
   from: string;
   to: string;
@@ -116,6 +170,8 @@ export type WeeklySiteSummary = {
       id: string;
       createdBy: { id: string; displayName: string };
       submittedAt: string | null;
+      updatedAt: string;
+      noWork: NoWorkEvidence | null;
       weatherObservation: string | null;
       generalRemarks: string | null;
       totalManpower: number;
@@ -181,6 +237,7 @@ type ActivityRef = {
 };
 
 export type DailySiteReportDetail = {
+  noWork: NoWorkEvidence | null;
   id: string;
   companyId: string;
   projectId: string;
@@ -347,6 +404,18 @@ export const siteExecutionApi = {
     apiRequest<Data<WeeklySiteSummary>>(
       query('/site-execution/reports/weekly', { projectId, from, to }),
     ),
+  acknowledgeWeekly: (
+    projectId: string, from: string, to: string, expectedFingerprint: string,
+  ) => apiRequest<Data<{
+    projectId: string;
+    from: string;
+    to: string;
+    reviewFingerprint: string;
+    reviewState: 'ACKNOWLEDGED_NOT_APPROVED';
+  }>>('/site-execution/reports/weekly/acknowledge', {
+    method: 'POST',
+    body: JSON.stringify({ projectId, from, to, expectedFingerprint }),
+  }),
   report: (id: string) =>
     apiRequest<Data<DailySiteReportDetail>>(
       '/site-execution/reports/' + id,
@@ -360,6 +429,16 @@ export const siteExecutionApi = {
     apiRequest<Data<DailySiteReportDetail>>(
       '/site-execution/reports/' + id,
       { method: 'PATCH', body: JSON.stringify(body) },
+    ),
+  declareNoWork: (id: string, reason: string) =>
+    apiRequest<Data<DailySiteReportDetail>>(
+      '/site-execution/reports/' + id + '/no-work',
+      { method: 'POST', body: JSON.stringify({reason}) },
+    ),
+  correctNoWork: (id: string, reason: string) =>
+    apiRequest<Data<DailySiteReportDetail>>(
+      '/site-execution/reports/' + id + '/no-work/corrections',
+      { method: 'POST', body: JSON.stringify({reason}) },
     ),
   submit: (id: string) =>
     apiRequest<Data<DailySiteReportDetail>>(
