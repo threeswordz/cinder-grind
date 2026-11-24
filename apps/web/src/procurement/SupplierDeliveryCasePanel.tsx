@@ -24,7 +24,7 @@ type State = {
   expectedPreviousEventId: string | null;
   advisoryOnly: boolean; stockEffect: false; financeEffect: false;
 };
-type Props = { orderId: string; permissions: string[]; roleCodes: string[] };
+type Props = { orderId: string; permissions: string[]; roleCodes: string[]; preferredEvidenceDocumentId?: string };
 type Data<T> = { data: T };
 const url = (id: string) => '/procurement/purchase-orders/' + id + '/supplier-case';
 const err = (value: unknown) =>
@@ -35,10 +35,10 @@ const err = (value: unknown) =>
  * Goods Receipt, inventory posting, financial credit, or automatic notification.
  * The API independently rechecks live rights and canonical PO/GR/Document links.
  */
-export function SupplierDeliveryCasePanel({ orderId, permissions, roleCodes }: Props) {
+export function SupplierDeliveryCasePanel({ orderId, permissions, roleCodes, preferredEvidenceDocumentId }: Props) {
   const client = useQueryClient();
   const [action, setAction] = useState<Action>('ACKNOWLEDGE');
-  const [documentId, setDocumentId] = useState('');
+  const [documentId, setDocumentId] = useState(preferredEvidenceDocumentId ?? '');
   const [ackId, setAckId] = useState('');
   const [note, setNote] = useState('');
   const [kind, setKind] = useState('DAMAGED');
