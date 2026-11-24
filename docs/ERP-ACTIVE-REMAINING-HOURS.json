@@ -880,6 +880,24 @@
       "sourceSha": "08beb187bdfdc54b71edc0fdc6e2e14d1b9e52fc",
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261124-M4-08-001",
+      "date": "2026-11-24",
+      "packageId": "M4-08",
+      "kind": "VERIFIED_TWO_PARENT_PUR07_PUR14_DRAFT_INTEGRATION",
+      "beforeHours": 34,
+      "afterHours": 33,
+      "reductionHours": 1,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/pull/438",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45376511209",
+        "https://github.com/threeswordz/cinder-grind/commit/c2b406616cbaa2fa3d5095d252e0de3c265c6f24"
+      ],
+      "basis": "Release Coordinator created new isolated unprotected Draft PR #438 from current Draft #427 source with two-parent merge ancestry: PUR14 supplier-replacement #436 source a10b99e8 and independent PUR07 source #437 08beb187. GitHub compare verified 3 PUR07 changed paths were disjoint from supplier's 17 changes; new merge commit c2b406 tree 15927db4 copies exact original PUR07 service+two tests Git blobs into unchanged supplier subtree; no source conflicts or manual reinterpretation. New focused combined-code API TS build and React typecheck #45376511209 overall SUCCESS, exact 7 representative code/test blobs equal between Draft PR and isolated CI source; earlier #45376440524 failed only precheck on shallow Git checkout before compilation and was corrected with fetch-depth 0. Existing native and actual Chrome focused evidence from both branches remains source-byte identical and not redundantly rerun. Estimated −1h of remaining M4-08 code-branch integration effort now eliminated; not 1h human labor, independent DEC-022 approval, formal M4 acceptance, complete integrated UAT, full CI, or release. Main unchanged; no retained grants or Production.",
+      "sourceSha": "c2b406616cbaa2fa3d5095d252e0de3c265c6f24",
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -902,6 +920,6 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1857,
-  "currentRollingTotalSemantics": "1857h estimated remaining future work = 1847h original baseline −2h M4-01 triage −2h M4-06 independently verified supplier PDF+reported external evidence authorization source guard +14h separately priced mandatory PUR08/PUR14 remaining. Not actual logged human effort or formal package/go-live acceptance. Historical 1900h and unapproved 1500h optimization remain distinct. Owner 31 Dec 2026 full 112-ID Production deadline feasibility RED."
+  "currentRollingTotalAfterPricedGapsHours": 1856,
+  "currentRollingTotalSemantics": "1856h remaining provisional forward work = 1847h original 60 package current baseline −2h M4-01 triage −2h M4-06 PDF/Document guards −1h M4-08 combined two-parent draft integration +14h separately priced supplier PUR08/PUR14 remaining. No actual person-hours logged, independent exact-head acceptance or main/Production deployment; 31 Dec 2026 112-ID full Production feasibility RED."
 }
