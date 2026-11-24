@@ -20,12 +20,22 @@ const initial=[...records.values()].reduce((a,p)=>a+p.baselineRemainingHours,0);
 must(initial===d.currentRemainingWorkBaselineHours,'Initial 1847h does not reconcile');
 must([...records.values()].reduce((a,p)=>a+p.optimizationTargetHours,0)===d.fullScopeOptimizationTargetHours,'Optimization 1500h does not reconcile');
 const ids=new Set();
+const scopeChain=new Map(d.unestimatedWork.filter(x=>x.grossPreImplementationEstimateHours!==undefined)
+  .map(x=>[x.id,x.grossPreImplementationEstimateHours]));
 for(const e of d.events){
   must(e.id&&!ids.has(e.id),'Duplicate event');
   ids.add(e.id);
   must(Array.isArray(e.evidence)&&e.evidence.length>0&&e.evidence.every(u=>typeof u==='string'&&u.startsWith('https://github.com/')),'Event needs GitHub evidence: '+e.id);
   if(e.packageId===null){
-    must(e.beforeHours===null&&e.afterHours===null&&e.reductionHours===0,'Unpriced event cannot retire hours');
+    must(e.beforeHours===null&&e.afterHours===null&&e.reductionHours===0,'Scope event cannot falsely retire baseline package hours');
+    if(e.scopeId){
+      must(scopeChain.has(e.scopeId),'Unknown separately priced work '+e.scopeId);
+      must(scopeChain.get(e.scopeId)===e.scopeBeforeHours,'Stale scope event '+e.id);
+      must(e.scopeBeforeHours-e.scopeAfterHours===e.scopeReductionHours&&
+        Number.isInteger(e.scopeAfterHours)&&e.scopeAfterHours>=0,
+        'Invalid scope remaining-hours delta '+e.id);
+      scopeChain.set(e.scopeId,e.scopeAfterHours);
+    }
     continue;
   }
   const p=records.get(e.packageId);
@@ -35,6 +45,10 @@ for(const e of d.events){
   must(e.reductionHours===e.beforeHours-e.afterHours,'Incorrect subtraction '+e.id);
   if(e.afterHours===0)must(e.formalAcceptance===true&&typeof e.formalAcceptanceUrl==='string'&&e.formalAcceptanceUrl.startsWith('https://github.com/'),'No 0h before actual acceptance '+e.id);
   p.remaining=e.afterHours;
+}
+for(const x of d.unestimatedWork){
+  if(scopeChain.has(x.id))must(scopeChain.get(x.id)===x.hours,
+    'The latest priced-scope hours must equal final event-chain estimate: '+x.id);
 }
 const all=[...records.values()];
 const remaining=all.reduce((a,p)=>a+p.remaining,0);
