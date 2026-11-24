@@ -63,7 +63,7 @@ test('PUR14 native positive: source damaged line -> Store/PM/Jai -> later approv
         lines: [{
           materialId: f.material.id, uomId: f.uom.id,
           observedQuantity: observed, goodQuantity: good,
-          condition: observed === good ? 'GOOD' : 'DAMAGED',
+          condition: observed === good ? 'NORMAL' : 'DAMAGED',
           note: 'Actual condition on arrival',
         }],
       }));
