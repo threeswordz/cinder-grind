@@ -1,0 +1,36 @@
+name: M4 Combined PUR07 PUR14 Typecheck Only
+on:
+  push:
+    branches: [ci-m4-pur07-pur14-combined-typecheck-20261124]
+permissions:
+  contents: read
+jobs:
+  combined-source-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    steps:
+      - name: Checkout exact combined code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Assert both prior source histories and exact checkout
+        run: |
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          git merge-base --is-ancestor a10b99e8a3ad11737e258f987fb97ce4f57a9e38 HEAD
+          git merge-base --is-ancestor 08beb187bdfdc54b71edc0fdc6e2e14d1b9e52fc HEAD
+      - name: Install pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
+        with:
+          version: 12.6.0
+          run_install: false
+      - name: Install Node 24
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.21.0
+      - name: Lockfile dependency install
+        run: pnpm install --frozen-lockfile
+      - name: Combined-source API and React typechecks only
+        run: |
+          pnpm prisma:generate
+          pnpm --filter @construction-erp/api build
+          pnpm --filter @construction-erp/web typecheck
+      - name: Exact trees and no full CI
+        run: echo "Combined two-parent Draft integration; no full CI, tests replay, retained roles, review approval or Production"
