@@ -68,6 +68,12 @@ export async function receivingFixture(db:PrismaService,mixed=false){
   const award=await sourcing.selectAward({auth:buyer.auth},rfqLine.id,quoted.id,'Synthetic source selection');awards.push(award.id);
  }
  const po=await orders.createOrder({auth:buyer.auth},project.id,awards,'Synthetic receiving PO');
+ // The real PUR01 submission gate intentionally rejects UNKNOWN commercial fields.
+ // Explicit zero-value test basis is not an automatic production default.
+ await orders.updateOrder({auth:buyer.auth},po.id,{
+  discountAmount:new Prisma.Decimal(0),freightAmount:new Prisma.Decimal(0),
+  additionalChargeAmount:new Prisma.Decimal(0),vatRatePercent:new Prisma.Decimal(7),
+ });
  await orders.submit({auth:buyer.auth},po.id,poWorkflow.workflowCode);await orders.approve({auth:buyerChecker.auth},po.id,'Synthetic PO checked');
  const input=(extra={})=>({requestKey:randomUUID(),projectId:project.id,warehouseId:warehouse.id,supplierId:supplier.id,receivedAt:new Date(Date.now()-60000).toISOString(),receiverName:'Store receiver',reason:'Actual physical delivery captured',qualityRequired:false,lines:[{materialId:material.id,uomId:uom.id,observedQuantity:'4.0000',goodQuantity:'3.0000',condition:'DAMAGED',note:'One damaged item remains held'}],...extra});
  return {secondaryMaterial,company,project,unassigned,store,jai,pm,config,outsider,viewer,buyer,buyerChecker,uom,material,supplier,warehouse,documentType,receiptWorkflow,po,sessions,input,access,audit,orders};
