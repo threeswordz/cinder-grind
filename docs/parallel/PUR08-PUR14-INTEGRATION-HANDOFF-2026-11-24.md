@@ -5,7 +5,7 @@
 ## Delivered source
 
 - `supplier-delivery-lifecycle.ts`: pure transition contract, evidence-backed human Jai/Store/Khaimook separation, active Company/Project/actor policy inputs, expected revision version, no PO/GR/stock/Finance mutations.
-- `supplier-delivery-lifecycle.test.mjs`: five focused pure business-rule tests. **Local Node 22 `node --experimental-strip-types --test supplier-delivery-lifecycle.test.mjs`: 5/5 PASS** on the original unchanged pure contract; `tsc --noEmit --strict --target ES2022 --module ESNext` PASS on same file.
+- `supplier-delivery-lifecycle.test.mjs`: seven focused pure business-rule tests. **Local Node 22 `node --experimental-strip-types --test supplier-delivery-lifecycle.test.mjs`: 7/7 PASS** on the original unchanged pure contract; `tsc --noEmit --strict --target ES2022 --module ESNext` PASS on same file.
 - `supplier-delivery-case.service.ts`: new auditLog-backed history, explicit previous-event chain and state/action consistency, transaction advisory lock, live DB session/active employee and current Company role grants, Project-access denial, verified active same-Project linked Document and actual posted nonreversed Goods Receipt when replacement recorded. First ACKNOWLEDGE requires existing **PUR07** user-reported external dispatch acknowledgment linked to the correct approved PO. No database schema change or duplicate send.
 - `supplier-delivery-case.controller.ts`: GET read, CSRF-guarded POST events, request validation. Supports Store/PM/Jai using their distinct existing permissions, no SYS_ADMIN blanket authority.
 - `procurement.module.ts`: registers new Nest service/controller.
@@ -35,3 +35,11 @@
 **Estimate ledger:** discovered PUR08/14 scope gross 50h before bounded new source; provisional 40h *still remaining* after this code. Gross/delta are planning judgments, not actual measured engineer hours. Previously existing 60 packages estimated 1,845h after 2h source-triage saving, **excluding** this gap. Accurate provisional full-ERP remaining after pricing = **1,885h**. Formal prototype 4/8, GL3/10, M4 technical 20/32 last recorded, M4 package acceptance 0/8 unchanged.
 
 **No release claim:** source only, untested integrated API/UI, no independent or Owner business acceptance.
+
+
+## Focused correction — discrepancy without supplier acknowledgment
+
+- Store Site may record actual short/wrong/excess/damaged receiving evidence (on already-approved/linked PO) before Jai receives a supplier acknowledgment. The supplier's acknowledgment is a separate PUR07 evidence event; lack of acknowledgment must not block legitimate Store observations.
+- Supplier DELAY and IN_TRANSIT still require a prior recorded acknowledgment: no fabricated supplier status from a PO expected date.
+- Exact pure policy and 7 focused tests rechecked locally, source blob SHA `3d52eea77e198f48c0e4c1d931723340b830bb66`, test blob SHA `ad578d968eb633feea57cc3fd9725266fc19d06e`; both match GitHub blobs. Local strict TypeScript source `tsc --noEmit --strict` PASS. **No claims of Nest/Prisma/React compile or real database execution.**
+- Source-audited supplier lifecycle remaining estimate provisionally **39h** (previously **40h**), 1h of likely future defect triage/rework eliminated by the verified source correction. This is **estimated future work**, not measured labor or acceptance.
