@@ -5,11 +5,11 @@
 ## Headline
 | Metric | Current | Meaning |
 |---|---:|---|
-| **Estimated full ERP work still needed** | **1,856h → 0h** | Includes latest newly priced mandatory gaps |
+| **Estimated full ERP work still needed** | **1,855h → 0h** | Includes latest newly priced mandatory gaps |
 | 23 Nov original current-work forecast | 1847h | Earlier 60-package provisional baseline |
-| Additional estimated future-work eliminated | −5h | M4-01 −2h, M4-06 −2h and M4-08 integrated source −1h, **not timesheet** |
+| Additional estimated future-work eliminated | −6h | M4-01 −2h, M4-06 −2h and M4-08 combined source + full diff manifest −2h, **not timesheet** |
 | Newly discovered previously unpriced PUR08/PUR14 work | +14h | Net **remaining** after native + Chrome canonical GR reversal reconciliation |
-| Net reforecast change versus 1,847h | +9h | More honest scope recognition; not schedule recovery |
+| Net reforecast change versus 1,847h | +8h | More honest scope recognition; not schedule recovery |
 | PUR08/PUR14 provisional work before new development | 50h | Low-confidence new-gap gross estimate |
 | PUR08/PUR14 estimated future work eliminated through verified development | 36h | Native/Chrome source, security, real posted replacement and real canonical GR reversal warnings; estimated future work eliminated, not logged hours |
 | PUR08/PUR14 remaining | **14h** | Owner physical return stock/Finance decisions, SHORT/WRONG/EXCESS, retained named-role UAT, independent review and release integration |
@@ -21,13 +21,13 @@
 | Whole baseline packages formally accepted | 0/60 | 8 M4 packages still 0/8 |
 | Actual productive hours logged | UNKNOWN | Cannot infer from GitHub commits or AI conversation length |
 
-**Why the number rose:** the earlier 1,845h omitted a separate confirmed PUR08/PUR14 implementation budget. New source plus corrected source-backed tests reduced that *newly priced* work from a provisional 50h gross to 14h remaining, but the original 60-package forecast excluded that additional work. Thus **1,847h − 2h M4-01 − 2h M4-06 − 1h M4-08 + 14h supplier = 1,856h**, with gross supplier scope originally estimated at 50h and 36h of future work re-estimated away. This prevents a false countdown and requires a real reduction in remaining work at each future step. It does **not** represent actual human hours worked or formal acceptance.
+**Why the number rose:** the earlier 1,845h omitted a separate confirmed PUR08/PUR14 implementation budget. New source plus corrected source-backed tests reduced that *newly priced* work from a provisional 50h gross to 14h remaining, but the original 60-package forecast excluded that additional work. Thus **1,847h − 2h M4-01 − 2h M4-06 − 2h M4-08 + 14h supplier = 1,855h**, with gross supplier scope originally estimated at 50h and 36h of future work re-estimated away. This prevents a false countdown and requires a real reduction in remaining work at each future step. It does **not** represent actual human hours worked or formal acceptance.
 
 ## Stage-by-stage remaining work
 
 | Stage | Previous 60-package baseline | Verified package forecast reduction | Additional scope remaining | **Now remaining** | Accepted baseline packages |
 |---|---:|---:|---:|---:|---:|
-| Prototype 5/8 — M4 closure | 117h | 5h | 14h | **126h** | 0/8 |
+| Prototype 5/8 — M4 closure | 117h | 6h | 14h | **125h** | 0/8 |
 | Prototype 6/8 — end-to-end deployment | 120h | 0h | 0h | **120h** | 0/5 |
 | Prototype 7/8 — populated restore | 50h | 0h | 0h | **50h** | 0/3 |
 | Prototype 8/8 — technical freeze | 65h | 0h | 0h | **65h** | 0/3 |
@@ -39,7 +39,7 @@
 | Production hosting and recovery | 110h | 0h | 0h | **110h** | 0/5 |
 | Migration and onboarding | 110h | 0h | 0h | **110h** | 0/4 |
 | Final human UAT, cutover and Production | 150h | 0h | 0h | **150h** | 0/5 |
-| **Full ERP** | **1847h** | **5h** | **14h** | **1,856h** | **0/60** |
+| **Full ERP** | **1847h** | **6h** | **14h** | **1,855h** | **0/60** |
 
 ## Each baseline package
 
@@ -52,7 +52,7 @@
 | M4-05 | M4 | PUR04 core PO commercial/delivery fields | 9h | **9h** |
 | M4-06 | M4 | PUR07 supplier-name PO PDF and manual dispatch evidence | 10h | **8h** |
 | M4-07 | M4 | PUR12 K-/T- company PO document identity | 6h | **6h** |
-| M4-08 | M4 | M4 focused closure, governed integration and Owner decision | 34h | **33h** |
+| M4-08 | M4 | M4 focused closure, governed integration and Owner decision | 34h | **32h** |
 | M6-01 | M6 | Build deployable preserved-data integrated M4/M6 candidate | 25h | **25h** |
 | M6-02 | M6 | Site, plan, request, issue and document deployed journeys | 25h | **25h** |
 | M6-03 | M6 | Procurement, receiving, transfers and inventory deployed journeys | 30h | **30h** |
@@ -112,6 +112,8 @@
 | PUR08_PUR14_INTEGRATION | M4 | 50h | 36h | **14h** |
 
 ## Evidence-backed update history
+
+- **2026-11-24 — exact full main→combined-M4 code review manifest: M4-08 33h → 32h (−1h provisional forward review-preparation work).** GitHub compare protected `main` SHA `3a441b1fa389a9a274e6ca82413740a3ffa2f51b` → combined Draft [#438](https://github.com/threeswordz/cinder-grind/pull/438) code SHA `c2b406616cbaa2fa3d5095d252e0de3c265c6f24` returned **295 commits ahead, 177 changed files** (140 added, 37 modified). New [257-line entire 177-file review inventory](https://github.com/threeswordz/cinder-grind/blob/docs-erp-deadline-first-1500h-20261124/docs/M4-2026-11-24-COMBINED-MAIN-DIFF-INDEPENDENT-REVIEW-MANIFEST.md) on separate docs branch enumerates all files, seven categories, SHA pedigree, production/authorization risks and independent DEC-022 review checklist. Readback confirmed 177 path entries; no code-head modification, no full CI or self-approval. The −1h is estimated *future* manual review preparation eliminated, NOT DEC-022 completed, actual labor or M4 accepted.
 
 - **2026-11-24 — isolated two-parent PUR14+PUR07 draft source integration: M4-08 34h → 33h (−1h provisional future integration work).** New [Draft PR #438](https://github.com/threeswordz/cinder-grind/pull/438) merge SHA `c2b406616cbaa2fa3d5095d252e0de3c265c6f24` joins [#436](https://github.com/threeswordz/cinder-grind/pull/436) and [#437](https://github.com/threeswordz/cinder-grind/pull/437) atop [#427](https://github.com/threeswordz/cinder-grind/pull/427), preserving two source parents and exact previously verified Git blob contents. Three PUR07 paths disjoint from supplier’s 17 modified paths; Git merged tree verified. New *combined-source-only* [API and React focused typecheck #45376511209](https://github.com/threeswordz/cinder-grind/actions/runs/45376511209) **OVERALL SUCCESS** with exact seven relevant code/test blobs matching CI. Initial #45376440524 preflight failed due to shallow checkout (no source compile), corrected by fetching full ancestry; no native/browser/full replay. This removes estimated future candidate grafting/source-check effort, NOT actual human hours, formal M4 closure, independent DEC-022 review, authorized release or retained-user UAT. Main unchanged.
 
