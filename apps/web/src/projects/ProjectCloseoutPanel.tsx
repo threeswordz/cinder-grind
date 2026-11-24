@@ -1,4 +1,7 @@
 import { useContext, useEffect, useState } from 'react';
+import { canSignDisplayedCloseout, closeoutEditorDirty, closeoutEditorMatches,
+  openCloseoutEditor, syncCloseoutEditor, type CloseoutDraft, type CloseoutEditor,
+} from './closeout-editor';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Alert, Box, Button, Card, CardContent, Chip, MenuItem, Stack,
@@ -31,6 +34,9 @@ const terms = {
     projectInactive:'Project archived: new closure preparation/signature is unavailable.',
     status:'Current operational closure position',warn:'Unsettled obligations are preserved after signatures.',
     missing:'Not signed',reviewed:'Signed',noteRequired:'A reasoned reviewer note is required for outstanding items.',
+    stale:'A newer preparation exists. Your unsaved inputs are preserved; discard them explicitly before saving or signing the current version.',
+    dirty:'Save or discard unsaved preparation edits before signing.',
+    reload:'Discard unsaved changes and load current preparation',
     work:'Work and customer acceptance',contracts:'POs and subcontract contracts',
     finance:'AP, AR and payments',stock:'Material, tools and assets',
     budget:'BOQ, variations and cost',docs:'Handover and supporting documents',
@@ -55,6 +61,9 @@ const terms = {
     projectInactive:'โครงการถูกเก็บเข้าคลัง ไม่สามารถจัดทำหรือลงนามใหม่',
     status:'สถานะการปิดโครงการด้านปฏิบัติการ',warn:'รายการหนี้และงานคงค้างยังคงอยู่แม้ลงนามแล้ว',
     missing:'ยังไม่ลงนาม',reviewed:'ลงนามแล้ว',noteRequired:'เมื่อมีรายการคงค้างต้องระบุบันทึกเหตุผล',
+    stale:'มีฉบับใหม่ ข้อมูลที่ยังไม่ได้บันทึกยังคงอยู่ ต้องยกเลิกการแก้ไขก่อนบันทึกหรือลงนามฉบับปัจจุบัน',
+    dirty:'บันทึกหรือยกเลิกการแก้ไขก่อนลงนาม',
+    reload:'ยกเลิกการแก้ไขและโหลดฉบับปัจจุบัน',
     work:'งานและการรับมอบ',contracts:'ใบสั่งซื้อและสัญญาช่วง',
     finance:'เจ้าหนี้ ลูกหนี้ และการชำระเงิน',stock:'วัสดุ เครื่องมือ และทรัพย์สิน',
     budget:'BOQ งานเพิ่มลด และต้นทุน',docs:'ส่งมอบและเอกสารประกอบ',
@@ -79,6 +88,9 @@ const terms = {
     projectInactive:'專案已封存，無法新建或簽核結案。',
     status:'營運結案進度',warn:'簽核後未結負債及事項仍然保留。',
     missing:'未簽核',reviewed:'已簽核',noteRequired:'有未結事項時必須提供原因備註。',
+    stale:'已有較新版本。未儲存的輸入仍保留；請明確捨棄後再儲存或簽核目前版本。',
+    dirty:'請先儲存或捨棄未儲存的變更，再簽核。',
+    reload:'捨棄未儲存的變更並載入目前版本',
     work:'施工及客戶驗收',contracts:'採購及分包合約',
     finance:'應付／應收及付款',stock:'材料、工具及資產',
     budget:'BOQ、變更及成本',docs:'移交及佐證文件',
@@ -104,52 +116,75 @@ export function ProjectCloseoutPanel({
   const queryClient=useQueryClient();
   const eligible=permissions.includes('projects.project.view') &&
     roleCodes.some(role=>['PROJECT_MANAGER','MANAGEMENT','FINANCE_MANAGER'].includes(role));
-  const [checklist,setChecklist]=useState<CloseoutChecklist[]>(startingChecklist);
-  const [outstanding,setOutstanding]=useState<CloseoutFollowup[]>([]);
-  const [overallNote,setOverallNote]=useState('');
-  const [revisionReason,setRevisionReason]=useState('');
+  const [editor,setEditor]=useState<CloseoutEditor|null>(null);
   const [signNote,setSignNote]=useState('');
-  const [editBase,setEditBase]=useState<{projectId:string;fingerprint:string|null}|null>(null);
+  const emptyDraft=():CloseoutDraft=>({checklist:startingChecklist(),outstandingItems:[],overallNote:'',revisionReason:''});
+  const draft=editor?.draft??emptyDraft();
+  const {checklist,outstandingItems:outstanding,overallNote,revisionReason}=draft;
+  function editDraft(update:(draft:CloseoutDraft)=>CloseoutDraft){
+    setEditor(previous=>previous&&previous.projectId===projectId
+      ? {...previous,draft:update(previous.draft)}:previous);
+  }
+  const setChecklist=(update:(rows:CloseoutChecklist[])=>CloseoutChecklist[])=>
+    editDraft(previous=>({...previous,checklist:update(previous.checklist)}));
+  const setOutstanding=(update:(rows:CloseoutFollowup[])=>CloseoutFollowup[])=>
+    editDraft(previous=>({...previous,outstandingItems:update(previous.outstandingItems)}));
+  const setOverallNote=(value:string)=>editDraft(previous=>({...previous,overallNote:value}));
+  const setRevisionReason=(value:string)=>editDraft(previous=>({...previous,revisionReason:value}));
   const closeout=useQuery({
     queryKey:['projects','closeout',projectId],
     queryFn:()=>projectsApi.closeout(projectId),
     enabled:Boolean(projectId&&eligible),
   });
-  const result=closeout.isSuccess&&!closeout.isFetching&&
+  const result=eligible&&closeout.isSuccess&&
     closeout.data?.data.project.id===projectId?closeout.data.data:null;
+  const fresh=Boolean(result&&!closeout.isFetching);
+  const matches=Boolean(result&&closeoutEditorMatches(editor,result));
+  const dirty=Boolean(editor&&closeoutEditorDirty(editor));
   const owners=useQuery({
     queryKey:['projects','closeout','owners',projectId],
     queryFn:()=>projectsApi.closeoutOwners(projectId),
     enabled:Boolean(result?.canPrepare),
   });
   useEffect(()=>{
-    if(!result)return;
-    setEditBase({projectId,fingerprint:result.current?.fingerprint??null});
-    setChecklist(result.current?.preparation.checklist??startingChecklist());
-    setOutstanding(result.current?.preparation.outstandingItems??[]);
-    setOverallNote(result.current?.preparation.overallNote??'');
-    setRevisionReason('');
-    setSignNote('');
-  },[result?.current?.eventId,result?.project.id,projectId]);
-  const refresh=()=>{
-    void queryClient.invalidateQueries({queryKey:['projects','closeout',projectId]});
-  };
+    setEditor(previous=>syncCloseoutEditor(previous,result,emptyDraft()));
+  },[result]);
+  useEffect(()=>{setSignNote('');},[projectId,result?.current?.fingerprint]);
+  const refresh=()=>queryClient.invalidateQueries({queryKey:['projects','closeout',projectId]});
   const prepare=useMutation({
-    mutationFn:()=>{
-      if(!editBase||editBase.projectId!==projectId)
+    mutationFn:(submitted:CloseoutEditor)=>{
+      if(!fresh||!result?.canPrepare||!closeoutEditorMatches(submitted,result))
         throw Error('BEN04_PREPARATION_FINGERPRINT_REQUIRED');
-      return projectsApi.prepareCloseout(projectId,{
-        checklist,outstandingItems:outstanding,overallNote,
-        expectedFingerprint:editBase.fingerprint,
-        revisionReason:editBase.fingerprint?revisionReason:null,
+      return projectsApi.prepareCloseout(submitted.projectId,{
+        ...submitted.draft,
+        expectedFingerprint:submitted.fingerprint,
+        revisionReason:submitted.fingerprint?submitted.draft.revisionReason:null,
       });
     },
-    onSuccess:refresh,
+    onSuccess:(response,submitted)=>{
+      // Only replace the exact draft that was submitted. Edits made while
+      // the request was pending remain attached to their old predecessor.
+      setEditor(previous=>previous===submitted&&response.data.project.id===submitted.projectId
+        ?openCloseoutEditor(response.data,emptyDraft()):previous);
+      setSignNote('');
+      return refresh();
+    },
   });
   const sign=useMutation({
-    mutationFn:()=>projectsApi.signCloseout(projectId,result!.current!.fingerprint,signNote),
-    onSuccess:refresh,
+    mutationFn:()=>{
+      if(!canSignDisplayedCloseout(editor,result,fresh)||!result?.current||prepare.isPending)
+        throw Error('BEN04_SIGN_DISPLAYED_PREPARATION_REQUIRED');
+      return projectsApi.signCloseout(projectId,result.current.fingerprint,signNote);
+    },
+    onSuccess:()=>{setSignNote('');return refresh();},
   });
+  const busy=prepare.isPending||sign.isPending;
+  const canSign=canSignDisplayedCloseout(editor,result,fresh)&&!busy;
+  const discard=()=>{
+    if(!fresh||!result||busy)return;
+    setEditor(openCloseoutEditor(result,emptyDraft()));
+    setSignNote('');
+  };
   function updateCheck(index:number,key:'state'|'evidenceNote'|'evidenceReference',value:string){
     setChecklist(rows=>rows.map((row,i)=>i!==index?row:{
       ...row,[key]:value,
@@ -187,7 +222,11 @@ export function ProjectCloseoutPanel({
             <Alert severity="warning">{t.warn}</Alert>:null}
         </Box>:null}
         {!result.project.isActive?<Alert severity="warning">{t.projectInactive}</Alert>:null}
-        {result.canPrepare?<Stack spacing={2}>
+        {editor&&(!matches||dirty)?<Alert severity={!matches?'warning':'info'}
+          action={<Button disabled={!fresh||busy} onClick={discard}>{t.reload}</Button>}>
+          {!matches?t.stale:t.dirty}
+        </Alert>:null}
+        {result.canPrepare&&editor?<Stack spacing={2}>
           <Typography fontWeight={600}>{t.prepare}</Typography>
           {checklist.map((row,index)=><Stack key={row.category} spacing={1} sx={{borderTop:1,borderColor:'divider',pt:1}}>
             <Typography fontWeight={600}>{t[categoryLabel[row.category]]}</Typography>
@@ -238,10 +277,13 @@ export function ProjectCloseoutPanel({
             onChange={e=>setOverallNote(e.target.value)}/>
           {result.current?<TextField multiline label={t.revision} value={revisionReason}
             onChange={e=>setRevisionReason(e.target.value)}/>:null}
-          <Button variant="contained" disabled={prepare.isPending||!editBase||editBase.projectId!==projectId||editBase.fingerprint!==(result.current?.fingerprint??null)} onClick={()=>prepare.mutate()}>{t.prepare}</Button>
+          <Button variant="contained" disabled={busy||!fresh||!matches} onClick={()=>{if(!busy&&fresh&&matches&&editor)prepare.mutate(editor);}}>{t.prepare}</Button>
           {prepare.isError?<Alert severity="error">{t.problem}</Alert>:null}
         </Stack>:null}
-        {result.current&&!result.canPrepare?<Stack spacing={1}>
+        {result.current&&(!result.canPrepare||result.canSignBen||result.canSignNancy)?<Stack spacing={1}>
+          <Typography fontWeight={600}>{t.version}: {result.current.version} · {t.signed}</Typography>
+          <Typography variant="body2">{t.overall}: {result.current.preparation.overallNote}</Typography>
+          {result.current.preparation.revisionReason?<Typography variant="body2">{t.revision}: {result.current.preparation.revisionReason}</Typography>:null}
           {result.current.preparation.checklist.map(row=><Box key={row.category}>
             <Typography fontWeight={600}>{t[categoryLabel[row.category]]}: {row.state==='CLEAR'?t.clear:t.warning}</Typography>
             <Typography variant="body2">{row.evidenceReference} · {row.evidenceNote}</Typography>
@@ -263,9 +305,9 @@ export function ProjectCloseoutPanel({
           <Stack spacing={1}>
             <TextField multiline minRows={2} label={t.note} value={signNote}
               onChange={e=>setSignNote(e.target.value)}/>
-            <Button variant="outlined" disabled={sign.isPending||
+            <Button variant="outlined" disabled={!canSign||
               (result.current.preparation.outstandingItems.length>0&&signNote.trim().length<8)}
-              onClick={()=>sign.mutate()}>{t.sign}</Button>
+              onClick={()=>{if(canSign)sign.mutate();}}>{t.sign}</Button>
             {sign.isError?<Alert severity="error">{t.problem}</Alert>:null}
           </Stack>:null}
       </Stack>:null}
