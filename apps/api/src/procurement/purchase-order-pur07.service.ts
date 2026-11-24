@@ -58,6 +58,17 @@ export class PurchaseOrderPur07Service {
         detail: 'Only an active, independently approved Purchase Order revision can be exported.',
       });
     }
+    // The browser's approved Print/Save-as-PDF path already requires a
+    // completed independent approval. Apply the same source contract to the
+    // server PDF download; never render a supplier-facing "APPROVED" placeholder
+    // when the real approval completion timestamp is missing.
+    if (order.approvalInstance?.approvalState !== 'APPROVED' ||
+        !order.approvalInstance.completedAt) {
+      throw new ConflictException({
+        code: 'PO_PDF_INDEPENDENT_APPROVAL_EVIDENCE_REQUIRED',
+        detail: 'Supplier-facing PDF requires recorded completed independent PO approval.',
+      });
+    }
     if (order.currencyCode !== 'THB') {
       throw new ConflictException({
         code: 'PO_PDF_CURRENCY_UNVERIFIED',
@@ -104,7 +115,7 @@ export class PurchaseOrderPur07Service {
         company: order.companyId,
         project: order.project.projectCode + ' - ' + order.project.projectName,
         supplierLegalName: [...legalNames][0]!,
-        approvedAt: order.approvalInstance?.completedAt?.toISOString() ?? 'APPROVED',
+        approvedAt: order.approvalInstance.completedAt.toISOString(),
         currency: order.currencyCode,
         lines: order.lines.map(line => ({
           number: line.lineNo,
