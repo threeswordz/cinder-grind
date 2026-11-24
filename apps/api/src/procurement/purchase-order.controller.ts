@@ -10,6 +10,7 @@ import {
   Req,
   StreamableFile,
   UnprocessableEntityException,
+  ConflictException,
   UseGuards,
 } from '@nestjs/common';
 
@@ -498,23 +499,23 @@ export class PurchaseOrderController {
     };
   }
 
+  // PUR10 migration safety: the previous one-step cancellation endpoint was
+  // a maker/checker bypass. Deny it until the independently reviewed case
+  // reaches an atomic, source-rechecked Ben finalization service.
   @Post('purchase-orders/:orderId/cancel')
   @UseGuards(AuthGuard, CsrfGuard, PermissionGuard)
   @RequirePermissions('procurement.po.cancel')
   async cancel(
     @Req() request: AuthenticatedRequest,
-    @Param('orderId', new ParseUUIDPipe({ version: '4' }))
-    orderId: string,
+    @Param('orderId', new ParseUUIDPipe({ version: '4' })) orderId: string,
     @Body() body: unknown,
   ) {
-    const input = procurementObject(body);
-    return {
-      data: await this.purchaseOrders.cancel(
-        auditContext(request),
-        orderId,
-        procurementString(input, 'reason', 10000),
-      ),
-    };
+    // Auth/CSRF/permission and UUID guards still execute; no source mutation.
+    void request; void orderId; void body;
+    throw new ConflictException({
+      code: 'PUR10_INDEPENDENT_CANCELLATION_REVIEW_REQUIRED',
+      detail: 'Use the independent Jai → Khaimook → Ben cancellation review.',
+    });
   }
 
   @Post('purchase-orders/:orderId/revise')

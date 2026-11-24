@@ -4,6 +4,7 @@ import { transferCustodyLabels } from './transfer-custody-labels';
 import { ReceivingPanel } from './ReceivingPanel';
 import { receivingLabels } from './receiving-labels';
 import { MaterialRequestsPanel } from './MaterialRequestsPanel';
+import { MaterialCodeRequestsPanel } from './MaterialCodeRequestsPanel';
 import { MaterialPlansPanel } from './MaterialPlansPanel';
 import { materialPlanLabels } from './material-plan-labels';
 import { useContext } from 'react';
@@ -17,6 +18,7 @@ import { MaterialIssuesPanel } from './MaterialIssuesPanel';
 import { MaterialReservationsPanel } from './MaterialReservationsPanel';
 import { MaterialReturnsPanel } from './MaterialReturnsPanel';
 import { StockBalancePanel } from './StockBalancePanel';
+import { StockMinimumsPanel } from './StockMinimumsPanel';
 import { StockCountsPanel } from './StockCountsPanel';
 import { StockTransfersPanel } from './StockTransfersPanel';
 import { InventoryReportsPanel } from './InventoryReportsPanel';
@@ -28,10 +30,12 @@ type InventoryTab =
   | 'transfer-receipts'
   | 'receiving'
   | 'requests'
+  | 'material-codes'
   | 'plans'
   | 'warehouses'
   | 'receipts'
   | 'stock'
+  | 'minimums'
   | 'counts'
   | 'reservations'
   | 'issues'
@@ -69,11 +73,14 @@ export function InventoryWorkspace({
   const canSeeTransferReceipts = permissions.includes('inventory.transfer.receipt_view');
   const canSeeReceiving = permissions.includes('inventory.receiving.view');
   const canSeeRequests = permissions.includes('inventory.material_request.view');
+  const canSeeCodes = (permissions.includes('inventory.material_request.view') && roleCodes.includes('STOREKEEPER')) ||
+    (permissions.includes('inventory.stock.view') && roleCodes.includes('PROJECT_MANAGER'));
   const canSeePlans = permissions.includes('inventory.material_plan.view');
   const canSeeWarehouses = permissions.includes('inventory.warehouse.view');
   const canSeeReceipts = permissions.includes('inventory.receipt.view');
   const canSeeStock = permissions.includes('inventory.stock.view');
   const canSeeCounts = permissions.includes('inventory.stock_count.view');
+  const canSeeMinimums = canSeeStock && roleCodes.some(r => r === 'STOREKEEPER' || r === 'PROJECT_MANAGER');
   const canSeeReservations = permissions.includes('inventory.reservation.view');
   const canSeeIssues = permissions.includes('inventory.issue.view');
   const canSeeReturns = permissions.includes('inventory.return.view');
@@ -108,6 +115,7 @@ export function InventoryWorkspace({
     !canSeeTransferReceipts &&
     !canSeeReceiving &&
     !canSeeRequests &&
+    !canSeeCodes &&
     !canSeePlans &&
     !canSeeWarehouses &&
     !canSeeReceipts &&
@@ -122,12 +130,14 @@ export function InventoryWorkspace({
     return <Alert severity="info">Inventory view permission is required.</Alert>;
   }
   const active: InventoryTab =
-    selected === 'exceptions' && canSeeExceptions ? 'exceptions' : selected === 'transfer-receipts' && canSeeTransferReceipts ? 'transfer-receipts' : selected === 'receiving' && canSeeReceiving ? 'receiving' : selected === 'requests' && canSeeRequests ? 'requests' : selected === 'plans' && canSeePlans ? 'plans' : selected === 'warehouses' && canSeeWarehouses
+    selected === 'material-codes' && canSeeCodes ? 'material-codes' : selected === 'exceptions' && canSeeExceptions ? 'exceptions' : selected === 'transfer-receipts' && canSeeTransferReceipts ? 'transfer-receipts' : selected === 'receiving' && canSeeReceiving ? 'receiving' : selected === 'requests' && canSeeRequests ? 'requests' : selected === 'plans' && canSeePlans ? 'plans' : selected === 'warehouses' && canSeeWarehouses
       ? 'warehouses'
       : selected === 'receipts' && canSeeReceipts
         ? 'receipts'
         : selected === 'stock' && canSeeStock
           ? 'stock'
+          : selected === 'minimums' && canSeeMinimums
+            ? 'minimums'
           : selected === 'counts' && canSeeCounts
             ? 'counts'
             : selected === 'reservations' && canSeeReservations
@@ -148,10 +158,12 @@ export function InventoryWorkspace({
         {canSeeTransferReceipts ? <Tab value="transfer-receipts" label={transferCustodyLabels[locale].title} /> : null}
         {canSeeReceiving ? <Tab value="receiving" label={receivingLabels[locale].title} /> : null}
         {canSeeRequests ? <Tab value="requests" label={requestText.title} /> : null}
+        {canSeeCodes ? <Tab value="material-codes" label="New Material Codes" /> : null}
         {canSeePlans ? <Tab value="plans" label={planText.title} /> : null}
         {canSeeWarehouses ? <Tab value="warehouses" label="Warehouses" /> : null}
         {canSeeReceipts ? <Tab value="receipts" label="Goods Receipts" /> : null}
         {canSeeStock ? <Tab value="stock" label="Stock Balance" /> : null}
+        {canSeeMinimums ? <Tab value="minimums" label="Minimum Stock Alerts" /> : null}
         {canSeeCounts ? <Tab value="counts" label="Stock Counts" /> : null}
         {canSeeReservations ? <Tab value="reservations" label="Reservations" /> : null}
         {canSeeIssues ? <Tab value="issues" label="Material Issues" /> : null}
@@ -165,6 +177,8 @@ export function InventoryWorkspace({
         <TransferReceiptsPanel permissions={permissions} userId={userId} companyId={companyId}/>
       ) : active === 'receiving' ? (
         <ReceivingPanel permissions={permissions} userId={userId} companyId={companyId} onOpenGr={(projectId,id)=>{appliedReceiptProjectSourceLink.current='';appliedReceiptSourceLink.current='';setReceivingGr({projectId,id});setSelected('receipts');}}/>
+      ) : active === 'material-codes' ? (
+        <MaterialCodeRequestsPanel permissions={permissions} roleCodes={roleCodes} />
       ) : active === 'requests' ? (
         <MaterialRequestsPanel permissions={permissions}/>
       ) : active === 'plans' ? (
@@ -182,6 +196,8 @@ export function InventoryWorkspace({
         />
       ) : active === 'stock' ? (
         <StockBalancePanel />
+      ) : active === 'minimums' ? (
+        <StockMinimumsPanel roleCodes={roleCodes} />
       ) : active === 'counts' ? (
         <StockCountsPanel permissions={permissions} />
       ) : active === 'reservations' ? (

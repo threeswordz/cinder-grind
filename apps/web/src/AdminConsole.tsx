@@ -137,6 +137,7 @@ export function AdminConsole({ user, onLogoutSuccess }: { user: CurrentUser; onL
           permission: '__purchase_orders__',
           content: <PurchaseOrdersPanel
             permissions={user.permissions}
+            roleCodes={user.roleCodes}
             initialProjectId={linkedSource?.sectionKey === 'purchase-orders' ? linkedSource.projectId : undefined}
             initialOrderId={linkedSource?.sectionKey === 'purchase-orders' ? linkedSource.recordId : undefined}
             onOpenSource={openSource}
@@ -304,7 +305,7 @@ export function AdminConsole({ user, onLogoutSuccess }: { user: CurrentUser; onL
           key: 'master-data',
           label: 'Master Data',
           permission: '__master_data__',
-          content: <MasterDataPanel permissions={user.permissions} />,
+          content: <MasterDataPanel permissions={user.permissions} roleCodes={user.roleCodes} />,
         },
         {
           key: 'company',
