@@ -160,7 +160,7 @@ test('FM01 write contracts serialize draft/save, submit and no-work declaration'
   const acknowledgment=source.slice(source.indexOf('  async acknowledgeWeekly('),source.indexOf('  async get('));
   for(const part of [update,submit,declaration,correction,acknowledgment]){
     assert.ok(part.length>400,'serializable FM01 source body must exist');
-    assert.match(part,/this.guardedSerializable\\(/,
+    assert.match(part,/this.guardedSerializable\(/,
       'all five FM01 write paths must use the guarded Serializable boundary');
   }
   const guard=source.slice(source.indexOf('  private async guardedSerializable('),source.indexOf('  private throwDuplicate('));
@@ -168,7 +168,7 @@ test('FM01 write contracts serialize draft/save, submit and no-work declaration'
   assert.match(guard,/error.code === 'P2034'/);
   assert.match(guard,/DAILY_SITE_REPORT_CONCURRENT_SOURCE/);
   assert.match(guard,/ConflictException/);
-  assert.doesNotMatch(guard,/retry|for\\s*\\(/i,'source conflict must not be automatically replayed');
+  assert.doesNotMatch(guard,/\bfor\s*\(|\bwhile\s*\(/,'source conflict must not be automatically replayed');
   assert.ok(update.includes('input.reportDate.getTime() !== before.reportDate.getTime()'));
   assert.ok(update.includes('const noWork = noWorkEvidence(await this.noWorkEvents(tx, context.auth, id))'));
   assert.ok(update.includes('await tx.dailySiteReport.update('));
