@@ -163,7 +163,7 @@ test('FM01 write contracts serialize draft/save, submit and no-work declaration'
     assert.match(part,/this.guardedSerializable\(/,
       'all five FM01 write paths must use the guarded Serializable boundary');
   }
-  const guard=source.slice(source.indexOf('  private async guardedSerializable('),source.indexOf('  private throwDuplicate('));
+  const guard=source.slice(source.indexOf('  private async guardedSerializable<'),source.indexOf('  private throwDuplicate('));
   assert.match(guard,/isolationLevel: Prisma.TransactionIsolationLevel.Serializable/);
   assert.match(guard,/error.code === 'P2034'/);
   assert.match(guard,/DAILY_SITE_REPORT_CONCURRENT_SOURCE/);
