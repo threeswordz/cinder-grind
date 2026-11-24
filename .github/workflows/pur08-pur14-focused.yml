@@ -67,4 +67,5 @@ jobs:
       - name: Run ONLY new real Postgres supplier case native test
         run: node --test apps/api/dist/procurement/supplier-delivery-case.native.integration.spec.js
       - name: Focused only, not full release/UAT
-        run: echo "NEW_SOURCE_FOCUSED_ONLY: no full CI, authenticated browser, independent DEC-022, retained UAT or Production acceptance."
+        run: |
+          echo "NEW_SOURCE_FOCUSED_ONLY: no full CI, authenticated browser, independent DEC-022, retained UAT or Production acceptance."
