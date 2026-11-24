@@ -36,10 +36,27 @@ function parse(body:unknown):Input{
 export class EquipmentAssetRegisterService{
  constructor(private readonly prisma:PrismaService,private readonly access:ProjectAccessService,private readonly audit:AuditService){}
  private async actor(supplied:AuthenticatedUserContext,tx:Tx,write:boolean){
-  const session=await tx.userSession.findFirst({where:{id:supplied.sessionId,userId:supplied.userId,
-   revokedAt:null,expiresAt:{gt:new Date()},user:{companyId:supplied.companyId,isActive:true,company:{isActive:true}}},
-   select:{user:{select:{employee:{select:{companyId:true,isActive:true}},
-    userRoles:{select:{role:{select:{companyId:true,isActive:true,roleCode:true,rolePermissions:{select:{permission:{select:{permissionCode:true}}}}}}}}}}});
+  const session=await tx.userSession.findFirst({
+   where:{id:supplied.sessionId,userId:supplied.userId,revokedAt:null,expiresAt:{gt:new Date()},
+    user:{companyId:supplied.companyId,isActive:true,company:{isActive:true}}},
+   select:{
+    user:{
+     select:{
+      employee:{select:{companyId:true,isActive:true}},
+      userRoles:{
+       select:{
+        role:{
+         select:{
+          companyId:true,isActive:true,roleCode:true,
+          rolePermissions:{select:{permission:{select:{permissionCode:true}}}}
+         }
+        }
+       }
+      }
+     }
+    }
+   }
+  });
   const roles=session?.user.userRoles.map(x=>x.role).filter(r=>r.isActive&&r.companyId===supplied.companyId&&supplied.roleCodes.includes(r.roleCode))??[];
   const codes=roles.map(r=>r.roleCode);
   const permissions=[...new Set(roles.flatMap(r=>r.rolePermissions.map(p=>p.permission.permissionCode)))].filter(p=>supplied.permissions.includes(p));
