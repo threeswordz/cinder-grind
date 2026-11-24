@@ -1193,6 +1193,25 @@
       "sourceSha": "fe2ece266d0b8424cda3d999fe44cea4fa9aa56c",
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261124-M4-01-009",
+      "date": "2026-11-24",
+      "packageId": "M4-01",
+      "kind": "PM15_POSITIVE_PENDING_PORTFOLIO_SOURCE_PENDING_NATIVE_PROOF",
+      "beforeHours": 14,
+      "afterHours": 14,
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/pull/448",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45419931062"
+      ],
+      "basis": "New test-only candidate for existing PM15 stock-count/work-order/claim/certification positive state and decision counts. Actual authenticated existing endpoints; hidden same-Company count, Store denial, null on revocation, read side-effect checks. Existing non-opted-in subcontract fixture, not a new Finance implementation. Exact workflow-only child 5ece3df3fda42d89de201e93c0b719bc4721a5fd; run in progress at observation, no estimate reduction until pass. Independent review and retained acceptance remain.",
+      "sourceSha": "ff4bc0312658bfd7850178c4368d73fdabd37d9b",
+      "formalAcceptance": false,
+      "estimateConfidence": "PENDING_NATIVE_PROOF"
     }
   ],
   "unestimatedWork": [
