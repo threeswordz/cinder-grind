@@ -33,6 +33,16 @@ const actions: SupplierAction[] = [
   'REPORT_DISCREPANCY', 'PM_REVIEW_DISCREPANCY', 'JAI_RECORD_CLAIM',
   'STORE_RECORD_RETURN_DISPATCH', 'STORE_RECORD_REPLACEMENT_RECEIPT',
 ];
+const stageForAction: Record<SupplierAction, SupplierDeliveryCase['stage']> = {
+  ACKNOWLEDGE: 'ACKNOWLEDGED',
+  CONFIRM_IN_TRANSIT: 'IN_TRANSIT',
+  REPORT_DELAY: 'DELAY_REPORTED',
+  REPORT_DISCREPANCY: 'DISCREPANCY_REPORTED',
+  PM_REVIEW_DISCREPANCY: 'PM_REVIEWED',
+  JAI_RECORD_CLAIM: 'CLAIM_RECORDED',
+  STORE_RECORD_RETURN_DISPATCH: 'RETURN_DISPATCH_RECORDED',
+  STORE_RECORD_REPLACEMENT_RECEIPT: 'REPLACEMENT_RECEIPT_RECORDED',
+};
 const uuid = (v: unknown): v is string =>
   typeof v === 'string' &&
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v);
@@ -123,8 +133,7 @@ export class SupplierDeliveryCaseService {
       if (obj.purchaseOrderId !== orderId || obj.companyId !== companyId ||
           !uuid(obj.projectId) || !uuid(obj.revisionId) ||
           obj.version !== version || typeof obj.stage !== 'string' ||
-          !['ACKNOWLEDGED','IN_TRANSIT','DELAY_REPORTED','DISCREPANCY_REPORTED','PM_REVIEWED',
-            'CLAIM_RECORDED','RETURN_DISPATCH_RECORDED','REPLACEMENT_RECEIPT_RECORDED'].includes(obj.stage))
+          obj.stage !== stageForAction[e.action as SupplierAction])
         return conflict('SUPPLIER_CASE_HISTORY_STATE_INVALID');
       if (state && (state.projectId !== obj.projectId || state.revisionId !== obj.revisionId))
         return conflict('SUPPLIER_CASE_HISTORY_SOURCE_CHANGED');
@@ -235,7 +244,7 @@ export class SupplierDeliveryCaseService {
           action: input.action, actorUserId: context.auth.userId,
           ...(context.correlationId ? { correlationId: context.correlationId } : {}),
           newValues: {
-            previousEventId: current.eventId, state: decision.case,
+            previousEventId: current.eventId, state: { ...decision.case },
             actorUserId: context.auth.userId, evidenceDocumentId: doc.id,
             reportedOnly: true, note: decision.note,
             ...(input.action === 'ACKNOWLEDGE' ?
