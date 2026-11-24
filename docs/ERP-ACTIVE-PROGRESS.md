@@ -5,14 +5,14 @@
 ## Headline
 | Metric | Current | Meaning |
 |---|---:|---|
-| **Estimated full ERP work still needed** | **1,885h → 0h** | Includes latest newly priced mandatory gaps |
+| **Estimated full ERP work still needed** | **1,884h → 0h** | Includes latest newly priced mandatory gaps |
 | 23 Nov original current-work forecast | 1847h | Earlier 60-package provisional baseline |
 | Additional estimated future-work eliminated | −2h | M4-01 source reconciliation, **not timesheet** |
-| Newly discovered previously unpriced PUR08/PUR14 work | +40h | Net **remaining** after source code development |
-| Net reforecast change versus 1,847h | +38h | More honest scope recognition; not schedule recovery |
+| Newly discovered previously unpriced PUR08/PUR14 work | +39h | Net **remaining** after source code development |
+| Net reforecast change versus 1,847h | +37h | More honest scope recognition; not schedule recovery |
 | PUR08/PUR14 provisional work before new development | 50h | Low-confidence new-gap gross estimate |
-| PUR08/PUR14 estimated work eliminated by source development | 10h | Source-only, five pure tests PASS; DB and UI not verified |
-| PUR08/PUR14 remaining | **40h** | PostgreSQL, API/React, role/GR source, human and reviewer gates |
+| PUR08/PUR14 estimated work eliminated by source development | 11h | Source-only, five pure tests PASS; DB and UI not verified |
+| PUR08/PUR14 remaining | **39h** | PostgreSQL, API/React, role/GR source, human and reviewer gates |
 | Historical original baseline | 1,900h | Not the current work-to-go figure |
 | Proposed optimization | 1,500h | **Unvalidated**; now requires risk/scope recalibration |
 | Prototype milestone | 4/8 | Official |
@@ -21,13 +21,13 @@
 | Whole baseline packages formally accepted | 0/60 | 8 M4 packages still 0/8 |
 | Actual productive hours logged | UNKNOWN | Cannot infer from GitHub commits or AI conversation length |
 
-**Why the number rose:** the earlier 1,845h omitted a separate confirmed PUR08/PUR14 implementation budget. New source reduced that *newly priced* work from a provisional 50h gross to 40h remaining, but the previous total excluded all 50h. Thus **1,845h + 40h = 1,885h**, not 1,835h. This prevents a false countdown and requires a real reduction in remaining work at each future step. It does **not** mean 40 human hours have been worked.
+**Why the number rose:** the earlier 1,845h omitted a separate confirmed PUR08/PUR14 implementation budget. New source plus corrected source-backed tests reduced that *newly priced* work from a provisional 50h gross to 39h remaining, but the previous total excluded all 50h. Thus **1,845h + 39h = 1,884h**, not 1,835h. This prevents a false countdown and requires a real reduction in remaining work at each future step. It does **not** mean 40 human hours have been worked.
 
 ## Stage-by-stage remaining work
 
 | Stage | Previous 60-package baseline | Verified package forecast reduction | Additional scope remaining | **Now remaining** | Accepted baseline packages |
 |---|---:|---:|---:|---:|---:|
-| Prototype 5/8 — M4 closure | 117h | 2h | 40h | **155h** | 0/8 |
+| Prototype 5/8 — M4 closure | 117h | 2h | 39h | **154h** | 0/8 |
 | Prototype 6/8 — end-to-end deployment | 120h | 0h | 0h | **120h** | 0/5 |
 | Prototype 7/8 — populated restore | 50h | 0h | 0h | **50h** | 0/3 |
 | Prototype 8/8 — technical freeze | 65h | 0h | 0h | **65h** | 0/3 |
@@ -39,7 +39,7 @@
 | Production hosting and recovery | 110h | 0h | 0h | **110h** | 0/5 |
 | Migration and onboarding | 110h | 0h | 0h | **110h** | 0/4 |
 | Final human UAT, cutover and Production | 150h | 0h | 0h | **150h** | 0/5 |
-| **Full ERP** | **1847h** | **2h** | **40h** | **1,885h** | **0/60** |
+| **Full ERP** | **1847h** | **2h** | **39h** | **1,884h** | **0/60** |
 
 ## Each baseline package
 
@@ -109,9 +109,11 @@
 ## Additional required scope (beyond the original 60 package costing)
 | Scope ID | Stage | Provisional initial estimate | Source progress estimated | Remaining |
 |---|---|---:|---:|---:|
-| PUR08_PUR14_INTEGRATION | M4 | 50h | 10h | **40h** |
+| PUR08_PUR14_INTEGRATION | M4 | 50h | 11h | **39h** |
 
 ## Evidence-backed update history
+
+- **2026-11-24 — PUR08/PUR14 correction: 40h → 39h.** Corrected standalone Store discrepancy reporting without supplier acknowledgment while rejecting premature supplier delay/in-transit assertions. Seven exact-blob pure tests passed locally and TypeScript strict check passed; integrated Nest/Prisma/React/PostgreSQL/browser remain unverified. Estimated 1h of future work removed; NOT actual staff time or accepted release. [Source](https://github.com/threeswordz/cinder-grind/blob/984847746e377bc5f90d7ed0bf3d83bdd8d260d0/apps/api/src/procurement/supplier-delivery-lifecycle.ts) [Tests](https://github.com/threeswordz/cinder-grind/blob/fafa5069a5e7559780ab1fbf858cea5655bc7589/apps/api/src/procurement/supplier-delivery-lifecycle.test.mjs)
 
 - **2026-11-24 — PRICED_ADDITIONAL_MANDATORY_SCOPE:** Existing 60-package baseline 1847h omitted a separable implementation budget for mandatory PUR08/PUR14. Provisional gross 50h source scope, estimated 10h engineering future effort eliminated by new pure-policy, scoped audit-backed API, controller and React source, leaving 40h engineering+verification+review/Owner policy. Adds 40h net remaining to M4 and full forecast rather than hiding it. Gross 50h and 10h reduction are low-confidence judgment, not measured worker hours or accepted completion; prototype and GL gates unchanged. [Evidence 1](https://github.com/threeswordz/cinder-grind/tree/a93d66f96d6b144fb4af33bc1e1961945b875630/apps/api/src/procurement) [Evidence 2](https://github.com/threeswordz/cinder-grind/blob/a93d66f96d6b144fb4af33bc1e1961945b875630/apps/api/src/procurement/supplier-delivery-case.service.ts) [Evidence 3](https://github.com/threeswordz/cinder-grind/blob/7a89cc061bfbb5c33deb606173b990a489fe897a/apps/web/src/procurement/SupplierDeliveryCasePanel.tsx)
 - **2026-11-24 — UNPRICED_TECHNICAL_SOURCE_PROGRESS:** Isolated PUR08/PUR14 non-posting transition contract and five focused pure tests committed. Not yet linked to authenticated persistence/API/UI/real GR/Document records; no source-backed estimate allocated in a specific 60-package row, so no invented remaining-hour reduction. [Evidence 1](https://github.com/threeswordz/cinder-grind/tree/3415ccd0eeaf1e544dd2e93a25ee867c0587df98/apps/api/src/procurement)
