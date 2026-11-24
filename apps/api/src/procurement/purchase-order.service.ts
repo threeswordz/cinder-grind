@@ -432,11 +432,6 @@ export class PurchaseOrderService {
       }
     }
 
-    const poNumber = await this.numbers.next(
-      context.auth.companyId,
-      'PURCHASE_ORDER',
-    );
-
     return this.prisma.$transaction(
       async (tx) => {
         await this.access.assertAccess(context.auth, projectId, tx);
@@ -559,10 +554,23 @@ export class PurchaseOrderService {
         if (!freshSupplier) {
           throw new ConflictException({ code: 'PO_SUPPLIER_INACTIVE' });
         }
-        const identity = purchaseOrderPresentation(
-          company.companyCode, poNumber, freshSupplier.shortName,
+        // Allocate within the same transaction as the validated source,
+        // immutable display snapshot, lines and audit. A rejected draft must
+        // not consume a canonical Company sequence value.
+        const currentCompany = await tx.company.findUnique({
+          where: { id: context.auth.companyId },
+          select: { companyCode: true, isActive: true },
+        });
+        if (!currentCompany?.isActive)
+          throw new ConflictException({ code: 'PO_COMPANY_NOT_FOUND' });
+        await this.assertApprovedNumbering(context.auth.companyId, tx);
+        const poNumber = await this.numbers.next(
+          context.auth.companyId, 'PURCHASE_ORDER', new Date(), tx,
         );
-        if (purchaseOrderCompanyPrefix(company.companyCode) && !identity.displayNumber) {
+        const identity = purchaseOrderPresentation(
+          currentCompany.companyCode, poNumber, freshSupplier.shortName,
+        );
+        if (purchaseOrderCompanyPrefix(currentCompany.companyCode) && !identity.displayNumber) {
           throw new UnprocessableEntityException({
             code: 'PO_SUPPLIER_SHORT_NAME_REQUIRED',
             detail: 'The selected supplier needs a separately managed short name before a new MKE/TCJ PO.',
@@ -1077,7 +1085,7 @@ export class PurchaseOrderService {
         });
         if (!activeSupplier) throw new ConflictException({ code: 'PO_SUPPLIER_INACTIVE' });
         // Revalidate while Ben's approval is being recorded atomically.
-        await this.assertPoQuotePolicy(tx, source, context.auth);
+        const finalQuotePolicy = await this.assertPoQuotePolicy(tx, source, context.auth);
         const lines = await tx.purchaseOrderLine.findMany({
           where: { purchaseOrderId: order.id },
           select: { quotationAwardId: true, quantity: true },
@@ -1090,6 +1098,22 @@ export class PurchaseOrderService {
             line.quantity,
           );
         }
+        // The submit-time comparison may have changed. Persist the exact
+        // final decision basis atomically with the independent approval.
+        await this.audit.record({
+          ...context,
+          entityType: 'PURCHASE_ORDER',
+          entityId: source.id,
+          action: 'PUR01_FINAL_QUOTE_POLICY',
+          newValues: {
+            approvalInstanceId: source.approvalInstanceId,
+            poNumber: source.poNumber,
+            revisionNo: source.revisionNo,
+            projectId: source.projectId,
+            supplierId: source.supplierId,
+            ...finalQuotePolicy,
+          },
+        }, tx);
       },
     );
     await this.audit.record({
@@ -1789,8 +1813,8 @@ export class PurchaseOrderService {
     };
   }
 
-  private async assertApprovedNumbering(companyId: string) {
-    const sequence = await this.prisma.numberSequence.findFirst({
+  private async assertApprovedNumbering(companyId: string, db: Prisma.TransactionClient = this.prisma) {
+    const sequence = await db.numberSequence.findFirst({
       where: {
         companyId,
         sequenceCode: 'PURCHASE_ORDER',

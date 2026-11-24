@@ -265,6 +265,28 @@ test('PUR01 native: whole-PO 2/3 comparable THB supplier gates, shortage reason,
 
     // Canonical approval-action identity remains on the real actor, not an
     // unreviewed auto-approval, and rejected attempts must not leave actions.
+    // Final independent approval stores the actual decision basis in the same
+    // transaction, not just the earlier maker's submission snapshot.
+    const finalPolicy=await prisma.auditLog.findMany({
+      where:{companyId:company.id,entityType:'PURCHASE_ORDER',entityId:special.po.id,
+        action:'PUR01_FINAL_QUOTE_POLICY'},
+    });
+    assert.equal(finalPolicy.length,1,'Denied delegate/maker attempts leave no final policy audit');
+    assert.equal(finalPolicy[0]!.actorUserId,ben.userId);
+    const snapshot=finalPolicy[0]!.newValues as Record<string,unknown>;
+    assert.equal(snapshot.approvalInstanceId,approvedException.approvalInstanceId);
+    assert.equal(snapshot.projectId,project.id);
+    assert.equal(snapshot.netExVatTHB,'60000.00');
+    assert.equal(snapshot.requiredSuppliers,3);
+    assert.equal(snapshot.comparableSuppliers,1);
+    assert.equal(snapshot.exceptionReason,'Only certified supplier is qualified for this Project');
+    const twoPolicy=await prisma.auditLog.findFirstOrThrow({
+      where:{companyId:company.id,entityType:'PURCHASE_ORDER',entityId:two.po.id,
+        action:'PUR01_FINAL_QUOTE_POLICY'},
+    });
+    assert.equal((twoPolicy.newValues as Record<string,unknown>).comparableSuppliers,2);
+    console.log('PUR01_FINAL_APPROVAL_ATOMIC_QUOTE_POLICY_AND_ACTOR_PASS');
+
     const approvedPoActions = await prisma.approvalAction.count({
       where: {
         approvalInstanceId: approvedException.approvalInstanceId!,
