@@ -3,10 +3,11 @@ import {createContext,useContext,useState} from 'react';
 import {useMutation,useQuery,useQueryClient} from '@tanstack/react-query';
 import {receivingApi as api,type ReceivingChoice,type ReceivingDelivery,type ReceivingLine} from '../api/receiving';
 import {documentsApi} from '../api/documents';
+import { SupplierDeliveryCasePanel } from '../procurement/SupplierDeliveryCasePanel';
 import {MonetaryLocaleContext} from '../role-ui/monetary-presentation';
 import {effectiveUiQueryScope} from '../role-ui/role-workspace-policy';
 import {receivingLabels} from './receiving-labels';
-const Actor=createContext({scope:'',userId:'',permissions:[] as string[]});
+const Actor=createContext({scope:'',userId:'',permissions:[] as string[],roleCodes:[] as string[]});
 const root='/inventory/receiving';
 const conditions=['NORMAL','SHORT','EXCESS','WRONG','DAMAGED'] as const;
 const purposes=['DELIVERY_NOTE','RECEIVER_SIGNATURE','CONDITION_PHOTO','QUALITY_RESULT'] as const;
@@ -24,10 +25,10 @@ function useCommand(saved:(id?:string)=>void){
  return {frozen:intent!==null,busy:m.isPending,error:m.isError,send:(path:string,body:unknown)=>{if(intent)return;const i={path,body};setIntent(i);m.mutate(i);},retry:()=>{if(intent)m.mutate(intent);},clear:()=>{setIntent(null);m.reset();}};
 }
 function Notice({c}:{c:ReturnType<typeof useCommand>}){const t=useText();return c.error?<Alert severity="error">{t.uncertain}<Button disabled={c.busy} onClick={c.retry}>{t.retry}</Button><Button disabled={c.busy} onClick={c.clear}>{t.clear}</Button></Alert>:null;}
-export function ReceivingPanel({permissions,userId,companyId,onOpenGr}:{permissions:string[];userId:string;companyId:string;onOpenGr:(projectId:string,id:string)=>void}){
+export function ReceivingPanel({permissions,roleCodes,userId,companyId,onOpenGr}:{permissions:string[];roleCodes:string[];userId:string;companyId:string;onOpenGr:(projectId:string,id:string)=>void}){
  const scope=effectiveUiQueryScope(userId,companyId,permissions);
  if(!permissions.includes('inventory.receiving.view')||!userId)return null;
- return <Actor.Provider key={scope} value={{scope,userId,permissions}}><ReceivingProjects onOpenGr={onOpenGr}/></Actor.Provider>;
+ return <Actor.Provider key={scope} value={{scope,userId,permissions,roleCodes}}><ReceivingProjects onOpenGr={onOpenGr}/></Actor.Provider>;
 }
 function ReceivingProjects({onOpenGr}:{onOpenGr:(projectId:string,id:string)=>void}){
  const t=useText(),{permissions}=useContext(Actor),[project,setProject]=useState(''),[id,setId]=useState(''),[pages,setPages]=useState(['']),[reason,setReason]=useState('');
@@ -62,7 +63,7 @@ function Detail({id,projectId,onOpenGr,onSaved}:{id:string;projectId:string;onOp
  return <DetailForm key={id+':'+epoch} d={q.data.data} refresh={async()=>{await q.refetch();setEpoch(n=>n+1);}} onOpenGr={onOpenGr} onSaved={onSaved}/>;
 }
 function DetailForm({d,refresh,onOpenGr,onSaved}:{d:ReceivingDelivery;refresh:()=>Promise<void>;onOpenGr:(projectId:string,id:string)=>void;onSaved:(id:string)=>void}){
- const t=useText(),{permissions,userId}=useContext(Actor),can=(s:string)=>permissions.includes('inventory.receiving.'+s),[original]=useState(d),[reason,setReason]=useState(''),[receiver,setReceiver]=useState(d.receiverName),[quality,setQuality]=useState(d.qualityRequired),[lines,setLines]=useState(d.lines),[order,setOrder]=useState<ReceivingChoice|null>(null),[mapping,setMapping]=useState<Record<string,string>>({}),[replace,setReplace]=useState(false);
+ const t=useText(),{permissions,userId,roleCodes}=useContext(Actor),can=(s:string)=>permissions.includes('inventory.receiving.'+s),[original]=useState(d),[reason,setReason]=useState(''),[receiver,setReceiver]=useState(d.receiverName),[quality,setQuality]=useState(d.qualityRequired),[lines,setLines]=useState(d.lines),[order,setOrder]=useState<ReceivingChoice|null>(null),[mapping,setMapping]=useState<Record<string,string>>({}),[replace,setReplace]=useState(false);
  const c=useCommand(()=>void refresh()),stale=original.version!==d.version,locked=c.frozen||stale,editable=d.createdByUserId===userId&&d.status!=='VOID'&&!d.goodsReceipt,command=(suffix:string,extra:Record<string,unknown>={})=>c.send(root+'/deliveries/'+d.id+'/'+suffix,{requestKey:crypto.randomUUID(),expectedVersion:original.version,reason,...extra});
  return <Paper data-testid="receiving-detail" variant="outlined" sx={{p:2}}><Stack spacing={2}><Typography variant="h6">{t.open} · {d.receiverName}</Typography><Typography>{t.version}: {d.version} · {t[d.status as 'HELD']}</Typography><Alert severity={d.usable?'success':'warning'}>{d.usable?t.usable:t.unavailable}</Alert><Typography>{t.received}: {new Date(d.receivedAt).toLocaleString()} · {t.due}: {new Date(d.poLinkDueAt).toLocaleString()} · {t[d.deadline as 'DUE']}</Typography><Notice c={c}/>{stale?<Alert severity="warning">{t.stale}</Alert>:null}<Button disabled={c.frozen} onClick={()=>void refresh()}>{t.refresh}</Button>
  {d.lines.map(l=><Typography key={l.id}>{l.material.materialCode} · {l.material.materialName} · {l.uom.uomCode} · {t.observed}: {l.observedQuantity} · {t.good}: {l.goodQuantity} · {t.held}: {l.heldQuantity} · {t[l.condition as 'NORMAL']} · {l.note}</Typography>)}
@@ -74,6 +75,10 @@ function DetailForm({d,refresh,onOpenGr,onSaved}:{d:ReceivingDelivery;refresh:()
  {d.createdByUserId===userId&&can('edit')&&!d.goodsReceipt?.postedAt&&!d.goodsReceipt?.reversedAt&&(!d.goodsReceipt?.submittedAt||d.goodsReceipt?.approvalInstance?.approvalState==='REJECTED')?<Button disabled={locked||!reason.trim()} onClick={()=>command('void')}>{t.void}</Button>:null}
  {d.status==='CHECKED'&&!d.goodsReceipt&&permissions.includes('inventory.receipt.create')&&permissions.includes('documents.document.view')?<Button disabled={locked||!reason.trim()} onClick={()=>c.send('/inventory/goods-receipts',{requestKey:crypto.randomUUID(),expectedDeliveryVersion:original.version,deliveryId:d.id,projectId:d.projectId,purchaseOrderId:d.purchaseOrderId,warehouseId:d.warehouseId,remarks:reason,lines:d.lines.filter(l=>Number(l.goodQuantity)>0).map(l=>({purchaseOrderLineId:l.purchaseOrderLineId,quantity:l.goodQuantity}))})}>{t.gr}</Button>:null}</>:can('capture')&&d.createdByUserId===userId?<><Button onClick={()=>setReplace(v=>!v)}>{t.replace}</Button>{replace?<Capture projectId={d.projectId} onSaved={onSaved} replacement={d}/>:null}</>:null}
  {d.goodsReceipt&&permissions.includes('inventory.receipt.view')?<Button onClick={()=>onOpenGr(d.projectId,d.goodsReceipt!.id)}>{t.openGr} · {d.goodsReceipt.receiptNumber}</Button>:null}
+ {d.purchaseOrderId && d.status!=='VOID' && permissions.includes('documents.document.view') ?
+   <SupplierDeliveryCasePanel orderId={d.purchaseOrderId} permissions={permissions} roleCodes={roleCodes}
+     preferredEvidenceDocumentId={d.evidence.find(e=>e.documentId&&!e.superseded)?.documentId??''}/>
+   :null}
  <Typography variant="h6">{t.evidence}</Typography>{d.evidence.map(e=><Stack key={e.id}><Typography>{t[e.purpose as 'DELIVERY_NOTE']} · {e.fileName} · {e.superseded?t.supersede:''}</Typography>{e.documentId&&permissions.includes('documents.document.view')?<Button onClick={()=>void documentsApi.downloadTargetDocument(d.projectId,'RECEIVING_DELIVERY',d.id,e.documentId!).then(({blob,fileName})=>{const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=fileName??e.fileName??'evidence';a.click();URL.revokeObjectURL(url);}).catch(()=>{})}>{t.download}</Button>:null}</Stack>)}
  <Typography variant="h6">{t.history}</Typography>{d.events.map(e=><Typography key={e.id}>{e.version} · {t[e.action as 'CAPTURE']} · {e.actor.displayName} · {new Date(e.recordedAt).toLocaleString()} · {e.note}</Typography>)}</Stack></Paper>;
 }

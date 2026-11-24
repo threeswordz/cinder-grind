@@ -176,7 +176,7 @@ export function InventoryWorkspace({
       ) : active === 'transfer-receipts' ? (
         <TransferReceiptsPanel permissions={permissions} userId={userId} companyId={companyId}/>
       ) : active === 'receiving' ? (
-        <ReceivingPanel permissions={permissions} userId={userId} companyId={companyId} onOpenGr={(projectId,id)=>{appliedReceiptProjectSourceLink.current='';appliedReceiptSourceLink.current='';setReceivingGr({projectId,id});setSelected('receipts');}}/>
+        <ReceivingPanel permissions={permissions} roleCodes={roleCodes} userId={userId} companyId={companyId} onOpenGr={(projectId,id)=>{appliedReceiptProjectSourceLink.current='';appliedReceiptSourceLink.current='';setReceivingGr({projectId,id});setSelected('receipts');}}/>
       ) : active === 'material-codes' ? (
         <MaterialCodeRequestsPanel permissions={permissions} roleCodes={roleCodes} />
       ) : active === 'requests' ? (
