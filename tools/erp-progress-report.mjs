@@ -90,10 +90,10 @@ out+='| Package | Stage | Work item | Start | Credited forecast reduction | Rema
 for(const p of all)out+='| '+p.id+' | '+p.stage+' | '+p.title.replaceAll('|','/')+' | '+p.baselineRemainingHours+'h | '+(p.baselineRemainingHours-p.remaining)+'h | **'+p.remaining+'h** | '+p.optimizationTargetHours+'h |\n';
 out+='\n## Evidence-backed updates (latest first)\n\n';
 for(const e of [...d.events].reverse()){
- out+='- **'+e.date+' · '+(e.packageId??e.kind)+'**: '+(e.packageId?e.beforeHours+'h → '+e.afterHours+'h':'Progress recorded; hours unpriced')+'. '+e.basis+' ';
+ out+='- **'+e.date+' · '+(e.packageId??e.kind)+'**: '+(e.packageId?e.beforeHours+'h → '+e.afterHours+'h':(e.kind==='PRICED_ADDITIONAL_MANDATORY_SCOPE'?'New mandatory scope priced: 40h remaining':'Progress recorded; hours unpriced'))+'. '+e.basis+' ';
  out+=e.evidence.map((u,i)=>'[Evidence '+(i+1)+']('+u+')').join(' ')+'\n';
 }
-out+='\n## Outstanding unpriced gaps\n\n';
+out+='\n## Additional discovered mandatory scope\n\n';
 for(const x of d.unestimatedWork){
  out+='- **'+x.id+'** ('+x.stage+'): '+(x.hours===null?'TBD':x.hours+'h remaining')+'; '+x.remaining+'. [Source]('+x.evidence+')\n';
 }
