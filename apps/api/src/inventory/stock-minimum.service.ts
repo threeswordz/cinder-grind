@@ -124,10 +124,11 @@ export class StockMinimumService {
       const woAllowed = has('subcontracts.work_order.view');
       const claimAllowed = has('subcontracts.claim.view');
       const certAllowed = has('subcontracts.certification.view');
-      const pendingPr = prAllowed && ids.length ? grouped(await tx.purchaseRequest.groupBy({
+      const pendingPrRows = prAllowed && ids.length ? await tx.purchaseRequest.groupBy({
         by: ['projectId'], orderBy: { projectId: 'asc' }, where: { ...where, cancelledAt: null,
           approvalInstance: { approvalState: 'SUBMITTED' } }, _count: { _all: true },
-      })) : new Map<string, number>();
+      }) : [];
+      const pendingPr = grouped(pendingPrRows);
       // Count only original returned lines for which a correction line has
       // not yet been captured; this is not a count of all unresolved demand.
       const returned = prAllowed && ids.length ? rawCounts(await tx.$queryRaw<
@@ -149,16 +150,18 @@ export class StockMinimumService {
             )
           GROUP BY pr.project_id
         `)) : new Map<string, number>();
-      const corrections = prAllowed && ids.length ? grouped(await tx.purchaseRequest.groupBy({
+      const correctionsRows = prAllowed && ids.length ? await tx.purchaseRequest.groupBy({
         by: ['projectId'], orderBy: { projectId: 'asc' }, where: { ...where, cancelledAt: null,
           lines: { some: { correctionSourceLineId: { not: null } } },
           OR: [{ approvalInstanceId: null },
             { approvalInstance: { approvalState: { in: ['SUBMITTED', 'REJECTED'] } } }] },
         _count: { _all: true },
-      })) : new Map<string, number>();
-      const stockCounts = countAllowed && ids.length ? grouped(await tx.stockCount.groupBy({
+      }) : [];
+      const corrections = grouped(correctionsRows);
+      const stockCountsRows = countAllowed && ids.length ? await tx.stockCount.groupBy({
         by: ['projectId'], orderBy: { projectId: 'asc' }, where: { ...where, status: 'SUBMITTED' }, _count: { _all: true },
-      })) : new Map<string, number>();
+      }) : [];
+      const stockCounts = grouped(stockCountsRows);
       const tools = toolAllowed && ids.length ? await tx.$queryRaw<
         { projectId: string; dueToday: number; overdue: number }[]>(Prisma.sql`
           SELECT project_id AS "projectId",
@@ -171,15 +174,18 @@ export class StockMinimumService {
           GROUP BY project_id
         `) : [];
       const toolsByProject = new Map(tools.map(row => [row.projectId,row]));
-      const workOrders = woAllowed && ids.length ? grouped(await tx.subcontractWorkOrder.groupBy({
+      const workOrdersRows = woAllowed && ids.length ? await tx.subcontractWorkOrder.groupBy({
         by: ['projectId'], orderBy: { projectId: 'asc' }, where: { ...where, approvalState: 'SUBMITTED' }, _count: { _all: true },
-      })) : new Map<string, number>();
-      const claims = claimAllowed && ids.length ? grouped(await tx.subcontractClaim.groupBy({
+      }) : [];
+      const workOrders = grouped(workOrdersRows);
+      const claimsRows = claimAllowed && ids.length ? await tx.subcontractClaim.groupBy({
         by: ['projectId'], orderBy: { projectId: 'asc' }, where: { ...where, state: 'SUBMITTED' }, _count: { _all: true },
-      })) : new Map<string, number>();
-      const certificates = certAllowed && ids.length ? grouped(await tx.subcontractCertification.groupBy({
+      }) : [];
+      const claims = grouped(claimsRows);
+      const certificatesRows = certAllowed && ids.length ? await tx.subcontractCertification.groupBy({
         by: ['projectId'], orderBy: { projectId: 'asc' }, where: { ...where, state: 'SUBMITTED' }, _count: { _all: true },
-      })) : new Map<string, number>();
+      }) : [];
+      const certificates = grouped(certificatesRows);
       const value = (allowed: boolean, counts: Counts, id: string) =>
         allowed ? counts.get(id) ?? 0 : null;
       return {
