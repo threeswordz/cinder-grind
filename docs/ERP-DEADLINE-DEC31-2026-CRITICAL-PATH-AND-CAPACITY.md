@@ -56,3 +56,35 @@ These windows show **dependencies and governance**, not proof that 1,500/1,847 e
 3. **Production environment and retained data access:** approval for any future scoped operations must remain explicit and separate. The date itself does not grant authorization.
 
 **No false claims:** A goal date is not a successful release, passed acceptance, working payroll or a source merge; no optimistic milestone/GL/accepted-hour counts have changed. Full 112-ID work remains committed unless Owner explicitly authorizes a scope decision.
+
+## 24 November 2026 — actual staffing answer: ZERO additional software engineers
+
+**Owner confirmed: "none" in response to the exact question "How many qualified software engineers can work on this ERP between now and December 31, excluding ChatGPT?"** No engineer is available to deliver HR/payroll, GL/tax/banking, #245 or infrastructure in parallel.
+
+**Implications (supersedes any implicit staffing assumption above):**
+- There is **no demonstrated 35h/week qualified engineering worker** and no verified 65h/week combined capacity. The 185h theoretical 35h/week person capacity is a mathematical illustration, **not available staffing**. Chat may author source in active sessions with user supervision and connected GitHub, but it cannot be counted as an autonomous scheduled engineer, guarantee a throughput rate or perform work between turns.
+- The target of **1,500h** remains a *hypothetical effort optimization*, **not feasible as an assured completion-by-31-Dec plan**. The 1,847h current full-scope estimate is also not meetable as a credible engineering capacity forecast given known staffing.
+- **Release status: RED.** No unilateral scope cut, security shortcut or deferred statutory requirement permitted. The Owner must explicitly choose whether 31 Dec means a smaller, tested release candidate/pilot, or whether full all-112 Production completion must move after 31 Dec. This is a product tradeoff, not a demand for more AI usage.
+- **Realistic unapproved December target:** an exact-source construction-operations **staging demonstration / release candidate** (BOQ, PR/RFQ/PO/GR, inventory/transfers, scoped role readback and documents) with all critical defects enumerated and independent reviewer/retained-user/human acceptance still classified independently. Production pilot is **conditional** on proper independent review, real data/backup/recovery, named user signoff and explicit go-live authorization. Never call this all-112 full ERP or a guaranteed 5/8 signoff.
+- **Full ERP remains mandatory future scope:** all 112 IDs, Thai payroll/HR, full Accounting GL/VAT/WHT/bank, cross-Project #245, actual MKE/TCJ UAT, independent DEC-022 and Production readiness are not cancelled.
+
+### Chat-only bounded next work (no unsupported background promises)
+
+1. **Immediate source review done at frozen PR #427 SHA `435bd8805d5bcd7e0a1a9941668b67860f288b78`:** `purchase-order.service.ts` and `procurement.service.ts` have no supplier acknowledgement/reschedule workflow tokens; `purchase-order.controller.ts` exposes PO creation/update/submit/approve/cancel/revise and PDF/dispatch events, not supplier acknowledgment/in-transit/return endpoints. `receiving.controller.ts` exposes capture/evidence/check/GR PO-link/void, not supplier-return processing; `receiving.service.ts` uses "replacement" only for superseded receiving evidence/delivery corrections, **not** supplier return/replacement. `material-return.service.ts` returns unused **issued** stock internally. Therefore PUR08 and PUR14 are confirmed *not evidenced in the inspected services/controllers* and deserve targeted design/implementation triage; no false "all modules completed" claim.
+2. **Avoid rebuilding proven features:** SS11 tool/employee custody and PUR10 cancellation implementation already sit in the current candidate; SS14 supplier expected-delivery alerts exist with `supplierAcknowledgment='NOT_VERIFIED'` and `targetSite='NOT_RECORDED_ON_PO'`. Run only new focused tests/migration for uncovered source; do not manufacture supplier acknowledgement, supplier site target or paid/damaged stock ledger effects.
+3. Reuse the full 112-ID matrix and 84 real synthetic protected-record checks. Produce one critical-path M4 acceptance exception register, mapping technical source to retained roles/Owner and independent reviewer gates. Do not replace human signoff with synthetic browser proof.
+4. The next authorized actual coding should prioritize **PUR08 supplier delivery acknowledgment/state** and **PUR14 supplier discrepancy/return/replacement** only after confirming source model and approval/provenance invariants; do not imply the Owner approved a new supplier-return policy. A narrower technical source-gap audit remains authorized without Owner access.
+5. Keep #414 official counters and original/target estimates distinct, no full CI, no Codex/Work, no protected main merge, no retained grants.
+
+### Decision dashboard
+| Decision | Current |
+|---|---|
+| Date | 31 Dec 2026 SGT |
+| Additional qualified engineers | **0 verified** |
+| Work mode | **Active-session Chat + connected GitHub, no autonomous background execution** |
+| Full all-112 Production release by deadline | **Not credible with known resources; RED** |
+| December candidate/pilot | **Potential narrower target, NOT approved or guaranteed** |
+| Project scope retained | 112 immutable IDs, eight roles, full future HR/Accounting |
+| Prototype, GL | 4/8, 3/10 unchanged |
+| Existing full-ERP remaining forecast | 1,847h provisional unchanged |
+| New planning stretch target | 1,500h *conditional*, **not accepted** |
