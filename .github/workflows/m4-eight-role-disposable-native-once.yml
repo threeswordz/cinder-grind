@@ -1,0 +1,76 @@
+# Focused first real eight-role Chromium readback on fresh synthetic-only PostgreSQL.
+# Intentionally PARTIAL until actual protected BOQ/document/HR artifacts are seeded.
+# Do not rerun prior accepted modules or full release CI.
+name: M4 Canonical Eight Role Disposable Browser One-Shot
+on:
+  push:
+    branches: ['test-m4-eight-role-disposable-native-once-20261124']
+    paths: ['.github/workflows/m4-eight-role-disposable-native-once.yml']
+permissions:
+  contents: read
+concurrency:
+  group: m4-canonical-roles-one-shot-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  eight-canonical-role-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:17.11-alpine
+        env:
+          POSTGRES_DB: erp_m4_lane_c_20261124
+          POSTGRES_USER: m4_disposable
+          POSTGRES_PASSWORD: m4_disposable_test_only
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U m4_disposable -d erp_m4_lane_c_20261124"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      M4_EXACT_SOURCE: '4819d794b6bc34738341efd9725e93f55c696da0'
+      DATABASE_URL: 'postgresql://m4_disposable:m4_disposable_test_only@127.0.0.1:5432/erp_m4_lane_c_20261124?schema=public'
+      M4_LANE_C_DISPOSABLE_VERIFIED: 'YES'
+      M4_LANE_C_APPROVED_SOURCE_SHA: '4819d794b6bc34738341efd9725e93f55c696da0'
+      NODE_ENV: test
+      VITE_API_BASE_URL: 'http://127.0.0.1:44375/api/v1'
+    steps:
+      - name: Checkout exact frozen reviewed candidate, not test-only branch application
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: '4819d794b6bc34738341efd9725e93f55c696da0'
+          fetch-depth: 0
+      - name: Prove exact candidate and only runner-only additions
+        run: |
+          test "$(git rev-parse HEAD)" = "$M4_EXACT_SOURCE"
+          git fetch --no-tags origin "$GITHUB_SHA"
+          mapfile -t changed < <(git diff --name-only "$M4_EXACT_SOURCE" "$GITHUB_SHA")
+          test "${#changed[@]}" = 2
+          test "${changed[0]}" = '.github/workflows/m4-eight-role-disposable-native-once.yml'
+          test "${changed[1]}" = 'deploy/uat/m4-eight-role-disposable-bootstrap-20261124.mjs'
+          git show "$GITHUB_SHA:deploy/uat/m4-eight-role-disposable-bootstrap-20261124.mjs" > "$RUNNER_TEMP/m4-disposable-bootstrap.mjs"
+          node --check "$RUNNER_TEMP/m4-disposable-bootstrap.mjs"
+      - name: Install frozen pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
+        with:
+          version: 12.6.0
+          run_install: false
+      - name: Install Node 24
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.21.0
+      - name: Install only frozen dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Prisma generation and schema validation
+        run: |
+          pnpm prisma:generate
+          pnpm prisma:validate
+      - name: Apply forward-only migrations in disposable PostgreSQL17 only
+        run: pnpm prisma:migrate:deploy
+      - name: Compile API for real Nest/browser fixture, no full workspace CI
+        run: pnpm --filter @construction-erp/api build
+      - name: Seed eight true role codes, use real Vite Nest Chrome and report partial protected bytes honestly
+        run: node "$RUNNER_TEMP/m4-disposable-bootstrap.mjs"
+      - name: Distinguish partial synthetic browser from final retained UAT
+        run: echo M4_CANONICAL_ROLES_READONLY_SYNTHETIC_STAGE_ONLY_NO_DEC042_OR_RELEASE
