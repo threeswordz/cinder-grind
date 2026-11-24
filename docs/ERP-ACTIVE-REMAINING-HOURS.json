@@ -1231,6 +1231,25 @@
       "sourceSha": "ff4bc0312658bfd7850178c4368d73fdabd37d9b",
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261124-M4-01-011",
+      "date": "2026-11-24",
+      "packageId": "M4-01",
+      "kind": "PUR10_CANCELLATION_REVISION_RACE_SOURCE_PENDING_NATIVE_PROOF",
+      "beforeHours": 13,
+      "afterHours": 13,
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/pull/449",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45420921543"
+      ],
+      "basis": "Previously recorded PUR10 finalize-versus-revise gap; narrowly scoped serializable conflict handling and native competing owning-service test, exact workflow-only child 4d60fcfcf60fd37a4c7431a580ceace7808bf778 in progress. No change to exception authorization, no Accounting or retained grants. No forecast credit pending actual result.",
+      "sourceSha": "52721dfd0d1c1a88cdcc5e5e41e8d6971c5a95cd",
+      "formalAcceptance": false,
+      "estimateConfidence": "PENDING_NATIVE_PROOF"
     }
   ],
   "unestimatedWork": [
