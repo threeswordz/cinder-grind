@@ -624,6 +624,24 @@
       "basis": "Isolated PUR08/PUR14 non-posting transition contract and five focused pure tests committed. Not yet linked to authenticated persistence/API/UI/real GR/Document records; no source-backed estimate allocated in a specific 60-package row, so no invented remaining-hour reduction.",
       "sourceSha": "3415ccd0eeaf1e544dd2e93a25ee867c0587df98",
       "formalAcceptance": false
+    },
+    {
+      "id": "ERP-PROG-20261124-PUR08-14-002",
+      "date": "2026-11-24",
+      "packageId": null,
+      "kind": "PRICED_ADDITIONAL_MANDATORY_SCOPE",
+      "beforeHours": null,
+      "afterHours": null,
+      "reductionHours": 0,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/tree/a93d66f96d6b144fb4af33bc1e1961945b875630/apps/api/src/procurement",
+        "https://github.com/threeswordz/cinder-grind/blob/a93d66f96d6b144fb4af33bc1e1961945b875630/apps/api/src/procurement/supplier-delivery-case.service.ts",
+        "https://github.com/threeswordz/cinder-grind/blob/7a89cc061bfbb5c33deb606173b990a489fe897a/apps/web/src/procurement/SupplierDeliveryCasePanel.tsx"
+      ],
+      "basis": "Existing 60-package baseline 1847h omitted a separable implementation budget for mandatory PUR08/PUR14. Provisional gross 50h source scope, estimated 10h engineering future effort eliminated by new pure-policy, scoped audit-backed API, controller and React source, leaving 40h engineering+verification+review/Owner policy. Adds 40h net remaining to M4 and full forecast rather than hiding it. Gross 50h and 10h reduction are low-confidence judgment, not measured worker hours or accepted completion; prototype and GL gates unchanged.",
+      "sourceSha": "a93d66f96d6b144fb4af33bc1e1961945b875630",
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_NEW_SCOPE_GAP"
     }
   ],
   "unestimatedWork": [
@@ -633,12 +651,19 @@
         "PUR08",
         "PUR14"
       ],
-      "hours": null,
-      "budgetAllocation": "TO_BE_CONFIRMED_AGAINST_M4_01_AND_M4_08_OR_NEW_PACKAGE",
-      "sourceStatus": "PURE_CONTRACT_ONLY",
-      "remaining": "Persistent supplier acknowledgment, transit and discrepancy/return/replacement audit source, authorizations, genuine GR/document provenance, API/MUI, focused native PG/browser verification and independent review",
-      "evidence": "https://github.com/threeswordz/cinder-grind/tree/3415ccd0eeaf1e544dd2e93a25ee867c0587df98/apps/api/src/procurement"
+      "hours": 40,
+      "budgetAllocation": "NEW_EXPLICIT_M4_ADDITIONAL_SCOPE; NOT SILENTLY SUBTRACTED_FROM_M4_01/M4_08",
+      "sourceStatus": "UNREVIEWED_PERSISTENT_API_AND_MUI_SOURCE_COMMITTED;PURE_TESTS_5_PASS;NATIVE_DB_BROWSER_BUILD_PENDING",
+      "remaining": "Source code for audit-backed transition, live actor/Company/Project checks, scoped evidence Document, existing PUR07 acknowledgment, canonical posted GR, CSRF-protected API and React form now exists on isolated branch; remaining full TypeScript/Prisma compile, native PG transaction/admission tests, actual React/Chrome real-role UAT, supplier claim/return stock-effect policy or explicit nonposting boundary acceptance, independent review, integration and acceptance.",
+      "evidence": "https://github.com/threeswordz/cinder-grind/tree/a93d66f96d6b144fb4af33bc1e1961945b875630/apps/api/src/procurement",
+      "stage": "M4",
+      "grossPreImplementationEstimateHours": 50,
+      "estimatedReductionFromNewSourceHours": 10,
+      "confidence": "LOW",
+      "estimateKind": "NEWLY_DISCOVERED_MANDATORY_SCOPE_PRICE_NOT_A_TIMESHEET"
     }
   ],
-  "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races."
+  "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
+  "currentRollingTotalAfterPricedGapsHours": 1885,
+  "currentRollingTotalSemantics": "1885h = 1845h old 60-package overlay + 40h newly priced mandatory PUR08/14 scope; provisional planning estimate, may change with review. 50h gross gap pre-current-code, 10h estimated source work avoided is NOT actual hours."
 }
