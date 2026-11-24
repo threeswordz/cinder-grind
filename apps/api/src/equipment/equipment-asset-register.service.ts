@@ -116,7 +116,8 @@ export class EquipmentAssetRegisterService{
  }
  async set(context:Context,id:string,body:unknown){
   const input=parse(body);
-  return this.prisma.$transaction(async tx=>{
+  try {
+   return await this.prisma.$transaction(async tx=>{
    const auth=await this.actor(context.auth,tx,true);
    const scope=await this.scoped(auth,id,tx,true);
    const history=await this.versions(auth,id,tx);
@@ -134,6 +135,15 @@ export class EquipmentAssetRegisterService{
    await this.audit.record({...context,auth,entityType:'EQUIPMENT_ASSET_REGISTER',entityId:id,action:'RECORD_VERSION',
     newValues:{versionId:created.id,version:created.version,previousVersionId:input.expectedVersionId,financeEffect:false}},tx);
    return {...created,financeEffect:false,depreciationEffect:false};
-  },{isolationLevel:Prisma.TransactionIsolationLevel.Serializable});
+   },{isolationLevel:Prisma.TransactionIsolationLevel.Serializable});
+  } catch (error) {
+   // A concurrent writer may lose the serializable snapshot or the immutable
+   // predecessor/version uniqueness race. Never replay a stale user edit.
+   if (error instanceof Prisma.PrismaClientKnownRequestError &&
+       (error.code==='P2034' || (error.code==='P2010' && ['40001','40P01','23505'].includes(String(error.meta?.code))))) {
+    throw new ConflictException({code:'ASSET_REGISTER_CONCURRENT_CHANGE',detail:'The asset changed concurrently. Reload its current version before saving.'});
+   }
+   throw error;
+  }
  }
 }
