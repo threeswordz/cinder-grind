@@ -5,14 +5,14 @@
 ## Headline
 | Metric | Current | Meaning |
 |---|---:|---|
-| **Estimated full ERP work still needed** | **1,865h → 0h** | Includes latest newly priced mandatory gaps |
+| **Estimated full ERP work still needed** | **1,863h → 0h** | Includes latest newly priced mandatory gaps |
 | 23 Nov original current-work forecast | 1847h | Earlier 60-package provisional baseline |
 | Additional estimated future-work eliminated | −2h | M4-01 source reconciliation, **not timesheet** |
-| Newly discovered previously unpriced PUR08/PUR14 work | +20h | Net **remaining** after source and native positive posted-GR proof |
-| Net reforecast change versus 1,847h | +18h | More honest scope recognition; not schedule recovery |
+| Newly discovered previously unpriced PUR08/PUR14 work | +18h | Net **remaining** after positive GR and scoped negative evidence verification |
+| Net reforecast change versus 1,847h | +16h | More honest scope recognition; not schedule recovery |
 | PUR08/PUR14 provisional work before new development | 50h | Low-confidence new-gap gross estimate |
-| PUR08/PUR14 estimated future work eliminated through verified development | 30h | Prior authenticated Chrome plus new source-linked positive actual posted-GR PostgreSQL proof; future-work re-estimate, not logged hours |
-| PUR08/PUR14 remaining | **20h** | Actual outbound supplier-return stock/quantity and Finance credit policy; short/wrong item allocation, retained UAT, independent review and Owner integration remain |
+| PUR08/PUR14 estimated future work eliminated through verified development | 32h | Authenticated Chrome, positive posted GR, and native Company/Project/revocation/evidence rejection checks; not logged hours |
+| PUR08/PUR14 remaining | **18h** | Physical supplier-return stock and Finance policy, unsupported discrepancy types, newly hardened browser/retained UAT, independent review and Owner integration |
 | Historical original baseline | 1,900h | Not the current work-to-go figure |
 | Proposed optimization | 1,500h | **Unvalidated**; now requires risk/scope recalibration |
 | Prototype milestone | 4/8 | Official |
@@ -21,13 +21,13 @@
 | Whole baseline packages formally accepted | 0/60 | 8 M4 packages still 0/8 |
 | Actual productive hours logged | UNKNOWN | Cannot infer from GitHub commits or AI conversation length |
 
-**Why the number rose:** the earlier 1,845h omitted a separate confirmed PUR08/PUR14 implementation budget. New source plus corrected source-backed tests reduced that *newly priced* work from a provisional 50h gross to 20h remaining, but the original 60-package forecast excluded that additional work. Thus **1,845h + 20h = 1,865h**, not 1,835h. This prevents a false countdown and requires a real reduction in remaining work at each future step. It does **not** represent actual human hours worked or formal acceptance.
+**Why the number rose:** the earlier 1,845h omitted a separate confirmed PUR08/PUR14 implementation budget. New source plus corrected source-backed tests reduced that *newly priced* work from a provisional 50h gross to 18h remaining, but the original 60-package forecast excluded that additional work. Thus **1,845h + 18h = 1,863h**, with gross scope originally estimated at 50h and 32h of forward work re-estimated away. This prevents a false countdown and requires a real reduction in remaining work at each future step. It does **not** represent actual human hours worked or formal acceptance.
 
 ## Stage-by-stage remaining work
 
 | Stage | Previous 60-package baseline | Verified package forecast reduction | Additional scope remaining | **Now remaining** | Accepted baseline packages |
 |---|---:|---:|---:|---:|---:|
-| Prototype 5/8 — M4 closure | 117h | 2h | 20h | **135h** | 0/8 |
+| Prototype 5/8 — M4 closure | 117h | 2h | 18h | **133h** | 0/8 |
 | Prototype 6/8 — end-to-end deployment | 120h | 0h | 0h | **120h** | 0/5 |
 | Prototype 7/8 — populated restore | 50h | 0h | 0h | **50h** | 0/3 |
 | Prototype 8/8 — technical freeze | 65h | 0h | 0h | **65h** | 0/3 |
@@ -39,7 +39,7 @@
 | Production hosting and recovery | 110h | 0h | 0h | **110h** | 0/5 |
 | Migration and onboarding | 110h | 0h | 0h | **110h** | 0/4 |
 | Final human UAT, cutover and Production | 150h | 0h | 0h | **150h** | 0/5 |
-| **Full ERP** | **1847h** | **2h** | **20h** | **1,865h** | **0/60** |
+| **Full ERP** | **1847h** | **2h** | **18h** | **1,863h** | **0/60** |
 
 ## Each baseline package
 
@@ -109,9 +109,11 @@
 ## Additional required scope (beyond the original 60 package costing)
 | Scope ID | Stage | Provisional initial estimate | Source progress estimated | Remaining |
 |---|---|---:|---:|---:|
-| PUR08_PUR14_INTEGRATION | M4 | 50h | 30h | **20h** |
+| PUR08_PUR14_INTEGRATION | M4 | 50h | 32h | **18h** |
 
 ## Evidence-backed update history
+
+- **2026-11-24 — PUR14 cross-Company/Project, receiving evidence, live-role and replay hardening: 20h → 18h (−2h provisional future work).** Isolated [Draft PR #434](https://github.com/threeswordz/cinder-grind/pull/434), SHA `4a0197a1aa6f8d30099372aba50fa0e883526da8`, explicitly scopes original received line and posted GR lookup by Company/Project/supplier/exact PO and requires active non-superseded original and replacement CONDITION_PHOTO `ReceivingDeliveryEvidence` with matching Document checksum; generic Project Document alone is insufficient. Expanded synthetic native service tests deny unrelated GR/item, mismatched delivery evidence, stale events, revoked Store permission, inactive Employee/session, removed Project membership and foreign Company; rejected events preserve audit/stock/AP/payment counts, and valid case still completes. [Focused disposable PostgreSQL 17.11 / TypeScript #45370305802](https://github.com/threeswordz/cinder-grind/actions/runs/45370305802) **SUCCESS**; relevant source/test blobs identical on CI and PR branch; no full CI. Forecast reduction is a **future-work estimate**, not actual engineering labor or formal M4 acceptance. Physical return/Finance policy, retained human UAT and DEC-022/Owner review remain.
 
 - **2026-11-24 — PUR14 final native acceptance-evidence check: no further hour reduction (20h → 20h).** [Focused PostgreSQL 17.11 #45358238789](https://github.com/threeswordz/cinder-grind/actions/runs/45358238789) **OVERALL SUCCESS**, posted replacement Goods Receipt actual service/DB journey **1/1 PASS** and new supplier replacement pure proof **6/6 PASS** on disposable exact source. The prior #45357938853 positive step passed but its overall run failed because Node24 strip-only TypeScript rejected a parameter property; source was fixed at [PR #433 head `b2a23a3`](https://github.com/threeswordz/cinder-grind/pull/433). No double-counting of source progress or new stage acceptance. Full ERP remains **1,865h → 0h**; M4 **135h**; PUR08/PUR14 **20h**. Supplier-return physical stock, Finance resolution policy and independent/retained release gates remain open.
 
