@@ -66,7 +66,8 @@ test('PUR14 native positive: source damaged line -> Store/PM/Jai -> later approv
           condition: observed === good ? 'NORMAL' : 'DAMAGED',
           note: 'Actual condition on arrival',
         }],
-      }));
+      })) as unknown as { id: string };
+      assert.ok(typeof captured.id === 'string', 'Receiving capture must resolve to a delivery ID');
       let detail = await receiving.get(store, captured.id);
       const lineId = detail.lines[0]!.id;
       await receiving.link(ctx(store), captured.id, command(detail.version, {
