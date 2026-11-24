@@ -979,6 +979,44 @@
       "sourceSha": "f1af4265c071b5c0988d87ef87be6ee2c810eaac",
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "date": "2026-11-24",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/pull/441",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45398081733",
+        "https://github.com/threeswordz/cinder-grind/blob/docs-erp-deadline-first-1500h-20261124/docs/M4-2026-11-24-PR441-REVIEW-DELTA.md"
+      ],
+      "sourceSha": "e22bfddf18ada568f90d1ec04096164f8f2bd23f",
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL",
+      "id": "ERP-PROG-20261124-M4-02-001",
+      "packageId": "M4-02",
+      "kind": "NEW_ATOMIC_PO_APPROVAL_DEFECT_FIXED_AND_EXISTING_PM02_SOURCE_GUARD_PROOF",
+      "beforeHours": 8,
+      "afterHours": 7,
+      "reductionHours": 1,
+      "newlyIdentifiedScopeHours": 1,
+      "verifiedCompletedScopeHours": 2,
+      "basis": "Newly identified final-approval TOCTOU guard gap +1h provisional scope; scoped active PR demand helper, PO identity/cancellation, Project access and active supplier checks inside existing serializable final approval callback implemented and tested (−1h). Separate pre-existing PM02 service guard evidence gap: stale submit test fixture now reaches intended source guard before commercial checks; same-Company/Project query assertions and 10 new final-approval negative seam cases pass (−1h of previously estimated source evidence work). Native PG rollback proves actual approval state/action rollback on supplier change after preflight. Overall focused run 45398081733 SUCCESS. No retained role, browser or independent approval credit."
+    },
+    {
+      "date": "2026-11-24",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/pull/441",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45398081733",
+        "https://github.com/threeswordz/cinder-grind/blob/docs-erp-deadline-first-1500h-20261124/docs/M4-2026-11-24-PR441-REVIEW-DELTA.md"
+      ],
+      "sourceSha": "e22bfddf18ada568f90d1ec04096164f8f2bd23f",
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL",
+      "id": "ERP-PROG-20261124-M4-05-001",
+      "packageId": "M4-05",
+      "kind": "CURRENT_SHARED_PO_APPROVAL_NATIVE_COMMERCIAL_REVISION_PROOF",
+      "beforeHours": 9,
+      "afterHours": 8,
+      "reductionHours": 1,
+      "basis": "Existing historical PUR04/PUR05 proof had changed PO service and revision-test blobs. The genuinely new native rollback test runs through the affected legitimate original and revised commercial PO approvals on exact current source; logs M4_PUR05_NEW_REVISION_REQUIRES_NEW_APPROVAL_AND_DISTINCT_BEN_ACTION_PASS and M4_PUR04_ACTUAL_POSTGRES17_REVISION_COMPANY_PROJECT_SCOPED_PASS. This removes an estimated 1h of remaining changed-source commercial revision validation, separate from PM02 guard/rollback work. No redundant separate historical test replay, retained UAT, formal acceptance or release."
     }
   ],
   "unestimatedWork": [
@@ -1001,6 +1039,6 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1849,
-  "currentRollingTotalSemantics": "1849h provisional future work = 1847h original baseline minus 3h M4-01, minus 2h M4-06, minus 2h M4-08, plus 9h mandatory supplier scope (new evidence-binding defect +1h and verified fix -1h net zero). Not actual labor or formal acceptance; full 112-ID eight-role Production deadline RED."
+  "currentRollingTotalAfterPricedGapsHours": 1847,
+  "currentRollingTotalSemantics": "1847h provisional future work = 1847h baseline minus 3h M4-01, minus 1h M4-02, minus 1h M4-05, minus 2h M4-06, minus 2h M4-08, plus 9h mandatory supplier scope. New atomic approval defect +1h and verified correction -1h net zero; existing PM02/PUR04 evidence -2h. Not actual labor or formal acceptance; deadline RED."
 }
