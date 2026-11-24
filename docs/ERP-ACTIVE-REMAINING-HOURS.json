@@ -1095,6 +1095,26 @@
         "https://github.com/threeswordz/cinder-grind/actions/runs/45238716889"
       ],
       "basis": "Refreshed 11 stale rows in 112 immutable-ID snapshot, all 112 unique and no formal acceptance; conservative disposition classes unchanged. Verified five SS11 and ten SS14/PM15 focused source blobs exactly match successful historical native live-role and scoped service proofs respectively. Prior tests not replayed. Residual estimate −1h of pre-existing evidence lookup/triage, not new inventory functionality or repeated credit for earlier supplier changes. Retained UAT and policy gaps remain."
+    },
+    {
+      "id": "ERP-PROG-20261124-M4-01-004",
+      "date": "2026-11-24",
+      "packageId": "M4-01",
+      "kind": "PM15_NEW_AUTHORIZED_CROSS_PROJECT_WORK_QUEUE_AND_NATIVE_HTTP_PROOF",
+      "beforeHours": 28,
+      "afterHours": 24,
+      "reductionHours": 4,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 4,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/pull/444",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45407269180",
+        "https://github.com/threeswordz/cinder-grind/blob/docs-erp-deadline-first-1500h-20261124/docs/M4-2026-11-24-PR444-REVIEW-DELTA.md"
+      ],
+      "basis": "Previously documented PM15 portfolio gap, not new scope. New guarded Company/Project operational portfolio API and React drilldown panel, domain-specific live view grants, explicit unavailable values, bounded repeatable-read aggregate query. Initial focused 45406911890 failed compilation; corrected source and focused 45407269180 SUCCESS with actual authenticated HTTP/PG17 PR submission/return/correction and tool due/overdue/return, same-Company hidden and foreign-Company isolation, Storekeeper denial, capability/assignment/session revocation, and no audit/stock writes. API and React compile pass. Estimated future effort eliminated 4h for bounded portfolio implementation and native proof, not actual labor. Stock count and subcontract positive populated proof, exact retained browser UAT, cross-site shortage/delivery summary, daily demand and notification policy remain; zero-state counts only for stock/subcontract categories. No formal acceptance.",
+      "sourceSha": "463f485c6456f1545cb29108433f8886d56b3a9d",
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -1117,6 +1137,6 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1843,
-  "currentRollingTotalSemantics": "1843h provisional future work = 1847h baseline minus 4h M4-01, 1h M4-02, 1h M4-03, 1h M4-04, 1h M4-05, 2h M4-06, 1h M4-07, 2h M4-08, plus 9h supplier scope. New closeout stale-editor gap +1h, fixed -1h; current native evidence and 112-ID/inventory reconciliation -2h. Not actual hours or formal acceptance; deadline RED."
+  "currentRollingTotalAfterPricedGapsHours": 1839,
+  "currentRollingTotalSemantics": "1839h provisional future work = 1847h baseline minus 8h M4-01, 1h M4-02, 1h M4-03, 1h M4-04, 1h M4-05, 2h M4-06, 1h M4-07, 2h M4-08, plus 9h supplier scope. PM15 bounded new operational work queue and native HTTP proof reduce previously identified remaining scope by 4h. Not actual labor or formal acceptance; deadline RED."
 }
