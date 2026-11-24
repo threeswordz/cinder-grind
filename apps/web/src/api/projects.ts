@@ -126,7 +126,7 @@ export const projectsApi = {
     apiRequest<Data<ProjectCloseout>>('/projects/'+id+'/closeout'),
   closeoutOwners: (id:string) =>
     apiRequest<Data<CloseoutOwner[]>>('/projects/'+id+'/closeout/owners'),
-  prepareCloseout: (id:string,body:CloseoutPreparation) =>
+  prepareCloseout: (id:string,body:CloseoutPreparation & {expectedFingerprint:string|null}) =>
     apiRequest<Data<ProjectCloseout>>('/projects/'+id+'/closeout/prepare',{
       method:'POST',body:JSON.stringify(body),
     }),
