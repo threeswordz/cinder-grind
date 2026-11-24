@@ -109,6 +109,7 @@ export function ProjectCloseoutPanel({
   const [overallNote,setOverallNote]=useState('');
   const [revisionReason,setRevisionReason]=useState('');
   const [signNote,setSignNote]=useState('');
+  const [editBase,setEditBase]=useState<{projectId:string;fingerprint:string|null}|null>(null);
   const closeout=useQuery({
     queryKey:['projects','closeout',projectId],
     queryFn:()=>projectsApi.closeout(projectId),
@@ -123,20 +124,26 @@ export function ProjectCloseoutPanel({
   });
   useEffect(()=>{
     if(!result)return;
+    setEditBase({projectId,fingerprint:result.current?.fingerprint??null});
     setChecklist(result.current?.preparation.checklist??startingChecklist());
     setOutstanding(result.current?.preparation.outstandingItems??[]);
     setOverallNote(result.current?.preparation.overallNote??'');
     setRevisionReason('');
     setSignNote('');
-  },[result?.current?.eventId,projectId]);
+  },[result?.current?.eventId,result?.project.id,projectId]);
   const refresh=()=>{
     void queryClient.invalidateQueries({queryKey:['projects','closeout',projectId]});
   };
   const prepare=useMutation({
-    mutationFn:()=>projectsApi.prepareCloseout(projectId,{
-      checklist,outstandingItems:outstanding,overallNote,
-      revisionReason:result?.current?revisionReason:null,
-    }),
+    mutationFn:()=>{
+      if(!editBase||editBase.projectId!==projectId)
+        throw Error('BEN04_PREPARATION_FINGERPRINT_REQUIRED');
+      return projectsApi.prepareCloseout(projectId,{
+        checklist,outstandingItems:outstanding,overallNote,
+        expectedFingerprint:editBase.fingerprint,
+        revisionReason:editBase.fingerprint?revisionReason:null,
+      });
+    },
     onSuccess:refresh,
   });
   const sign=useMutation({
@@ -231,7 +238,7 @@ export function ProjectCloseoutPanel({
             onChange={e=>setOverallNote(e.target.value)}/>
           {result.current?<TextField multiline label={t.revision} value={revisionReason}
             onChange={e=>setRevisionReason(e.target.value)}/>:null}
-          <Button variant="contained" disabled={prepare.isPending} onClick={()=>prepare.mutate()}>{t.prepare}</Button>
+          <Button variant="contained" disabled={prepare.isPending||!editBase||editBase.projectId!==projectId||editBase.fingerprint!==(result.current?.fingerprint??null)} onClick={()=>prepare.mutate()}>{t.prepare}</Button>
           {prepare.isError?<Alert severity="error">{t.problem}</Alert>:null}
         </Stack>:null}
         {result.current&&!result.canPrepare?<Stack spacing={1}>

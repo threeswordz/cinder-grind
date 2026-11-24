@@ -101,6 +101,16 @@ export class ProjectCloseoutService {
       // Serialize preparation/revision and signatures on the same Project row.
       await tx.$queryRaw`SELECT id FROM projects WHERE id = ${projectId}::uuid FOR UPDATE`;
       const before=await this.current(context.auth,projectId,tx);
+      // Require the exact preparation the editor originally read. A delayed
+      // save must not supersede another PM's newer preparation/signatures.
+      const expected = body && typeof body === 'object' && !Array.isArray(body)
+        ? (body as Record<string,unknown>).expectedFingerprint : undefined;
+      if(expected !== null && (typeof expected !== 'string' || !/^[a-f0-9]{64}$/.test(expected)))
+        throw new UnprocessableEntityException(err('BEN04_PREPARATION_FINGERPRINT_REQUIRED',
+          'Read the current preparation before saving; use null only for a first preparation.'));
+      if(expected !== (before.current?.fingerprint ?? null))
+        throw new ConflictException(err('BEN04_STALE_PREPARATION',
+          'A newer closeout preparation exists. Refresh before revising.'));
       let preparation;
       try {preparation=validateCloseoutPreparation(body,Boolean(before.current));}
       catch(e) {
