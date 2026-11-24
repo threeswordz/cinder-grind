@@ -162,6 +162,67 @@ export class SupplierDeliveryCaseService {
     return { state, eventId: lastId, origin, claim, replacementTrace };
   }
 
+  /**
+   * A historical supplier evidence event is immutable; a later canonical GR
+   * reversal must NOT be disguised as a currently posted replacement.
+   * This is a bounded read-side reconciliation, never a new inventory/Finance
+   * transaction and never a rewrite of the signed supplier-case history.
+   */
+  private async currentReplacementReceipt(
+    source: { id: string; companyId: string; projectId: string; supplierId: string },
+    trace: Prisma.JsonValue | null, db: Db,
+  ): Promise<'POSTED' | 'REVERSED' | 'SOURCE_UNVERIFIED' | null> {
+    if (trace === null) return null;
+    if (typeof trace !== 'object' || Array.isArray(trace)) return 'SOURCE_UNVERIFIED';
+    const t = trace as Record<string, Prisma.JsonValue>;
+    if (!uuid(t.replacementGoodsReceiptId) || !uuid(t.replacementGoodsReceiptItemId) ||
+        !uuid(t.replacementDeliveryId) || !uuid(t.originalDeliveryId) ||
+        !uuid(t.originalDeliveryLineId) || !uuid(t.purchaseOrderLineId) ||
+        !uuid(t.materialId) || !uuid(t.uomId) ||
+        typeof t.quantity !== 'string' ||
+        t.effect !== 'TRACE_ONLY_NO_STOCK_FINANCE_MUTATION')
+      return 'SOURCE_UNVERIFIED';
+
+    const gr = await db.goodsReceipt.findFirst({
+      where: {
+        id: t.replacementGoodsReceiptId, companyId: source.companyId,
+        projectId: source.projectId, supplierId: source.supplierId,
+        purchaseOrderId: source.id,
+      },
+      select: {
+        id: true, postedAt: true, reversedAt: true,
+        approvalInstance: { select: { approvalState: true } },
+        items: { where: { id: t.replacementGoodsReceiptItemId },
+          select: { purchaseOrderLineId: true, materialId: true,
+            uomId: true, quantity: true } },
+        delivery: { select: { id: true, status: true, companyId: true,
+          projectId: true, supplierId: true, purchaseOrderId: true } },
+      },
+    });
+    const item = gr?.items[0];
+    const d = gr?.delivery;
+    const orig = await db.receivingDeliveryLine.findFirst({
+      where: {
+        id: t.originalDeliveryLineId, deliveryId: t.originalDeliveryId,
+        purchaseOrderLineId: t.purchaseOrderLineId,
+        materialId: t.materialId, uomId: t.uomId,
+        delivery: { companyId: source.companyId, projectId: source.projectId,
+          supplierId: source.supplierId, purchaseOrderId: source.id },
+      },
+      select: { delivery: { select: { status: true } } },
+    });
+    if (!gr || !item || !d || !orig || orig.delivery.status !== 'CHECKED' ||
+        d.id !== t.replacementDeliveryId || d.status !== 'CHECKED' ||
+        d.companyId !== source.companyId || d.projectId !== source.projectId ||
+        d.supplierId !== source.supplierId || d.purchaseOrderId !== source.id ||
+        item.purchaseOrderLineId !== t.purchaseOrderLineId ||
+        item.materialId !== t.materialId || item.uomId !== t.uomId ||
+        item.quantity.toFixed(4) !== t.quantity ||
+        !gr.postedAt || gr.approvalInstance?.approvalState !== 'APPROVED')
+      return 'SOURCE_UNVERIFIED';
+    return gr.reversedAt ? 'REVERSED' : 'POSTED';
+  }
+
   async read(auth: AuthenticatedUserContext, orderId: string) {
     const actor = await this.actor(auth, this.prisma);
     const scoped = { ...auth, roleCodes: actor.roleCodes, permissions: actor.permissions };
@@ -172,6 +233,7 @@ export class SupplierDeliveryCaseService {
       approvedLatest: source.approvalInstance?.approvalState === 'APPROVED' && !source.nextRevision && !source.cancelledAt,
       case: current.state, expectedPreviousEventId: current.eventId,
       replacementTrace: current.replacementTrace,
+      replacementReceiptLiveStatus: await this.currentReplacementReceipt(source, current.replacementTrace, this.prisma),
       advisoryOnly: true, stockEffect: false, financeEffect: false,
       // PUR07 acknowledgment is an independent source, not implied by a PO date.
       supplierAcknowledgmentFrom: 'PUR07_DOCUMENTED_EXTERNAL_ACK_ONLY',
