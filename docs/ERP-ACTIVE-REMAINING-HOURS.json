@@ -1500,6 +1500,27 @@
       "sourceSha": "1b4be1427fea3d729d07a1717f0bfcd6ce232a20",
       "formalAcceptance": false,
       "estimateConfidence": "PENDING_FULL_GATE"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-03-004",
+      "date": "2026-11-25",
+      "packageId": "M4-03",
+      "kind": "EXACT_FULL_FAIL_BROWSER_TIMEOUT_ISOLATED_PASS_OWNER_TRIGGER_REQUIRED",
+      "beforeHours": 8,
+      "afterHours": 8,
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45463404517",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45465020377",
+        "https://github.com/threeswordz/cinder-grind/pull/452",
+        "https://github.com/threeswordz/cinder-grind/issues/384"
+      ],
+      "basis": "Exact PR452 corrected head 1b4be1427fea3d729d07a1717f0bfcd6ce232a20 full run45463404517 attempt2 FAILED at mandatory synthetic actual-browser check. Production pack 429/429 source tests PASS, workspace 459/459 API tests PASS, 123 actual HTTP actor checks PASS, then REAL_BROWSER_READBACK BROWSER_COMMAND_TIMEOUT (20s Chrome CDP command). CI web source test logs also show port24678 WebSocket collision; root cause not conclusively proven. One narrow workflow-only child 9d8993e39a590b7b2020122fa8bef5a10e11fe26 in isolated PG17 run45465020377 SUCCESS, 123 authenticated HTTP + 126 actual Chrome actor+admin checks, 13/13 job steps, unchanged source. This supports transient/full-runner contention but cannot convert failed full gate to success. Owner #384 explicit per-trigger approval needed before another full rerun; no such new trigger, no Codex request, Ready or merge. No hours credited for debug repeat. Main remains 040395bc7b0dedd40207f91f743bc2efc1584622, prototype4/8, go-live3/10, full forecast1820h, M4 90h, M4-03 8h.",
+      "sourceSha": "1b4be1427fea3d729d07a1717f0bfcd6ce232a20",
+      "formalAcceptance": false,
+      "estimateConfidence": "PENDING_OWNER_FULL_TRIGGER"
     }
   ],
   "unestimatedWork": [
