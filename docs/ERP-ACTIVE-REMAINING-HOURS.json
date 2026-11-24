@@ -1057,6 +1057,44 @@
       "beforeHours": 6,
       "afterHours": 5,
       "basis": "New rejected-draft sequence allocation defect +1h, fix −1h: allocation now in same transaction as validated source and immutable PO identity, lines and audit. Actual MKE/TCJ native proof of duplicate award denial, simulated post-allocation audit failure rollback with no sequence consumption or partial PO, retry and immutable legacy/revision identity. Run 45398941022 SUCCESS. Reduces prior remaining changed-source PUR12 evidence work by 1h. No new month timezone policy, concurrent success proof, retained UAT or formal acceptance."
+    },
+    {
+      "date": "2026-11-24",
+      "sourceSha": "0143eaf7876f46aff9c81353ae4a0e0656d32622",
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL",
+      "id": "ERP-PROG-20261124-M4-03-001",
+      "packageId": "M4-03",
+      "kind": "STALE_CLOSEOUT_PREPARATION_GUARD_AND_CURRENT_NATIVE_HTTP_PROOF",
+      "beforeHours": 10,
+      "afterHours": 9,
+      "reductionHours": 1,
+      "newlyIdentifiedScopeHours": 1,
+      "verifiedCompletedScopeHours": 2,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/pull/443",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45404273554"
+      ],
+      "basis": "New stale-editor predecessor gap +1h, verified correction −1h: explicit null first save or matching previous fingerprint under existing Project lock, UI binds loaded form base. Focused 45404273554 SUCCESS fresh PG17.11, API/Web compile, genuine session/CSRF native HTTP stale first/revised/missing predecessor denial, audit unchanged and independent Ben/Nancy signoffs. Existing remaining current closeout native evidence −1h; no retained role or new browser acceptance."
+    },
+    {
+      "date": "2026-11-24",
+      "sourceSha": "0143eaf7876f46aff9c81353ae4a0e0656d32622",
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL",
+      "id": "ERP-PROG-20261124-M4-01-003",
+      "packageId": "M4-01",
+      "kind": "CURRENT_112_ID_EVIDENCE_REFRESH_AND_INVENTORY_BLOB_REUSE",
+      "beforeHours": 29,
+      "afterHours": 28,
+      "reductionHours": 1,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/blob/docs-erp-deadline-first-1500h-20261124/docs/M4-2026-11-24-112-DISPOSITION-PR443.csv",
+        "https://github.com/threeswordz/cinder-grind/blob/docs-erp-deadline-first-1500h-20261124/docs/M4-2026-11-24-PR443-REVIEW-DELTA.md",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45243740765",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45238716889"
+      ],
+      "basis": "Refreshed 11 stale rows in 112 immutable-ID snapshot, all 112 unique and no formal acceptance; conservative disposition classes unchanged. Verified five SS11 and ten SS14/PM15 focused source blobs exactly match successful historical native live-role and scoped service proofs respectively. Prior tests not replayed. Residual estimate −1h of pre-existing evidence lookup/triage, not new inventory functionality or repeated credit for earlier supplier changes. Retained UAT and policy gaps remain."
     }
   ],
   "unestimatedWork": [
@@ -1079,6 +1117,6 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1845,
-  "currentRollingTotalSemantics": "1845h provisional future work = 1847h baseline minus 3h M4-01, 1h M4-02, 1h M4-04, 1h M4-05, 2h M4-06, 1h M4-07, 2h M4-08, plus 9h supplier scope. Newly identified final audit and atomic number defects +2h, verified correction -2h; remaining PUR01/PUR12 source evidence -2h. Not logged labor or formal acceptance; deadline RED."
+  "currentRollingTotalAfterPricedGapsHours": 1843,
+  "currentRollingTotalSemantics": "1843h provisional future work = 1847h baseline minus 4h M4-01, 1h M4-02, 1h M4-03, 1h M4-04, 1h M4-05, 2h M4-06, 1h M4-07, 2h M4-08, plus 9h supplier scope. New closeout stale-editor gap +1h, fixed -1h; current native evidence and 112-ID/inventory reconciliation -2h. Not actual hours or formal acceptance; deadline RED."
 }
