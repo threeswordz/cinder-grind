@@ -5,11 +5,11 @@
 ## Headline
 | Metric | Current | Meaning |
 |---|---:|---|
-| **Estimated full ERP work still needed** | **1,839h → 0h** | Includes latest newly priced mandatory gaps |
+| **Estimated full ERP work still needed** | **1,835h → 0h** | Includes latest newly priced mandatory gaps |
 | 23 Nov original current-work forecast | 1847h | Earlier 60-package provisional baseline |
-| Additional estimated future-work eliminated | −17h | M4-01 −8h, M4-02 −1h, M4-03 −1h, M4-04 −1h, M4-05 −1h, M4-06 −2h, M4-07 −1h, M4-08 −2h, **not timesheet** |
+| Additional estimated future-work eliminated | −21h | M4-01 −12h, M4-02 −1h, M4-03 −1h, M4-04 −1h, M4-05 −1h, M4-06 −2h, M4-07 −1h, M4-08 −2h, **not timesheet** |
 | Newly discovered previously unpriced PUR08/PUR14 work | +9h | Net **remaining** after real signed damaged-custody Chrome/native proof, no automatic Finance/AP/stock effect |
-| Net reforecast change versus 1,847h | −8h | More honest scope recognition; not schedule recovery |
+| Net reforecast change versus 1,847h | −12h | More honest scope recognition; not schedule recovery |
 | PUR08/PUR14 provisional work before new development | 51h | Low-confidence new-gap gross estimate |
 | PUR08/PUR14 estimated future work eliminated through verified development | 42h | Verified role/tenant source, posted GR/reversal warning and signed DAMAGED outward custody; only future-work forecast, not logged hours |
 | PUR08/PUR14 remaining | **9h** | Signed unposted DAMAGED custody implemented, posted stock needs separately approved canonical reversal; real supplier credit/AP is separate Finance module, SHORT/WRONG/EXCESS stay evidence-only, retained named-role UAT and independent review pending |
@@ -21,13 +21,13 @@
 | Whole baseline packages formally accepted | 0/60 | 8 M4 packages still 0/8 |
 | Actual productive hours logged | UNKNOWN | Cannot infer from GitHub commits or AI conversation length |
 
-**Why the number rose:** the earlier 1,845h omitted a separate confirmed PUR08/PUR14 implementation budget. New source plus corrected source-backed tests reduced that *newly priced* work from a provisional 51h gross to 9h remaining, but the original 60-package forecast excluded that additional work. Thus **1,847h − 8h M4-01 − 1h M4-02 − 1h M4-03 − 1h M4-04 − 1h M4-05 − 2h M4-06 − 1h M4-07 − 2h M4-08 + 9h supplier = 1,839h**. Supplier gross estimate 51h includes newly discovered handover defect +1h, verified fix −1h, with 42h of future work eliminated. This prevents a false countdown and requires a real reduction in remaining work at each future step. It does **not** represent actual human hours worked or formal acceptance.
+**Why the number rose:** the earlier 1,845h omitted a separate confirmed PUR08/PUR14 implementation budget. New source plus corrected source-backed tests reduced that *newly priced* work from a provisional 51h gross to 9h remaining, but the original 60-package forecast excluded that additional work. Thus **1,847h − 12h M4-01 − 1h M4-02 − 1h M4-03 − 1h M4-04 − 1h M4-05 − 2h M4-06 − 1h M4-07 − 2h M4-08 + 9h supplier = 1,835h**. Supplier gross estimate 51h includes newly discovered handover defect +1h, verified fix −1h, with 42h of future work eliminated. This prevents a false countdown and requires a real reduction in remaining work at each future step. It does **not** represent actual human hours worked or formal acceptance.
 
 ## Stage-by-stage remaining work
 
 | Stage | Previous 60-package baseline | Verified package forecast reduction | Additional scope remaining | **Now remaining** | Accepted baseline packages |
 |---|---:|---:|---:|---:|---:|
-| Prototype 5/8 — M4 closure | 117h | 17h | 9h | **109h** | 0/8 |
+| Prototype 5/8 — M4 closure | 117h | 21h | 9h | **105h** | 0/8 |
 | Prototype 6/8 — end-to-end deployment | 120h | 0h | 0h | **120h** | 0/5 |
 | Prototype 7/8 — populated restore | 50h | 0h | 0h | **50h** | 0/3 |
 | Prototype 8/8 — technical freeze | 65h | 0h | 0h | **65h** | 0/3 |
@@ -39,13 +39,13 @@
 | Production hosting and recovery | 110h | 0h | 0h | **110h** | 0/5 |
 | Migration and onboarding | 110h | 0h | 0h | **110h** | 0/4 |
 | Final human UAT, cutover and Production | 150h | 0h | 0h | **150h** | 0/5 |
-| **Full ERP** | **1847h** | **17h** | **9h** | **1,839h** | **0/60** |
+| **Full ERP** | **1847h** | **21h** | **9h** | **1,835h** | **0/60** |
 
 ## Each baseline package
 
 | Package | Stage | Delivery item | Starting estimate | Remaining now |
 |---|---|---|---:|---:|
-| M4-01 | M4 | Current-source and all-112 evidence/scope decisions | 32h | **24h** |
+| M4-01 | M4 | Current-source and all-112 evidence/scope decisions | 32h | **20h** |
 | M4-02 | M4 | PM02 real browser and retained-role authorization | 8h | **7h** |
 | M4-03 | M4 | FM01, BEN04 and PM16 real-browser acceptance | 10h | **9h** |
 | M4-04 | M4 | PUR01 whole-PO supplier-count and commercial rule | 8h | **7h** |
@@ -112,6 +112,8 @@
 | PUR08_PUR14_INTEGRATION | M4 | 51h | 42h | **9h** |
 
 ## Evidence-backed update history
+
+- **2026-11-24 — PM15 multi-site stock shortages and delivery portfolio: full ERP 1,839h → 1,835h.** [Draft #445](https://github.com/threeswordz/cinder-grind/pull/445) exact `2e2831eea4badeac84d1b59e3f1b0b5e00d37bc5`. Previously identified scope; +0h new, −4h bounded implementation/native proof, M4-01 24→20h, M4 109→105h. Initial [45409363228](https://github.com/threeswordz/cinder-grind/actions/runs/45409363228) compile FAIL test fixture; corrected [45409659996](https://github.com/threeswordz/cinder-grind/actions/runs/45409659996) overall SUCCESS: fresh PG17.11, API/React compile, native HTTP actual two-site thresholds and reservation, original/revised PO partial receipts, full receipt/reversal, unknown date, no duplicate PO lines or read effects. Site policy counts and Project PO-line counts separate; no confirmed supplier promise. Positive populated stock count/subcontract portfolio proof, retained browser, scalability benchmark and unresolved policies remain. [Review delta](M4-2026-11-24-PR445-REVIEW-DELTA.md) 332 commits/184 files, 0 behind main. No full CI, independent review, retained grants, Ready, merge or Production.
 
 - **2026-11-24 — new PM15 Project Manager operational work queue: full ERP 1,843h → 1,839h.** [Draft #444](https://github.com/threeswordz/cinder-grind/pull/444) exact `463f485c6456f1545cb29108433f8886d56b3a9d`. Previously documented functional gap; +0h new scope, −4h bounded backend/UI/native implementation and proof, M4-01 28→24h, M4 113→109h. Initial [45406911890](https://github.com/threeswordz/cinder-grind/actions/runs/45406911890) failed compile (Prisma contextual groupBy inference); corrected [45407269180](https://github.com/threeswordz/cinder-grind/actions/runs/45407269180) overall SUCCESS with fresh PG17.11, API and React compilation and actual authenticated HTTP native PR/correction/tool data, Project/Company/role/session denial, no stock/audit write. Stock count and subcontract status categories tested zero-state only; positive populated proof and retained browser remain. No full CI or historical replay. [Review delta](M4-2026-11-24-PR444-REVIEW-DELTA.md): 327 commits/183 files, 0 behind main. No independent review, formal acceptance, retained grant, merge or Production.
 
