@@ -1309,6 +1309,27 @@
       "sourceSha": "a7ad0a82e4f467ca097a3b9b519fbb67cd0910b9",
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-08-005",
+      "date": "2026-11-25",
+      "packageId": "M4-08",
+      "kind": "PR450_CODEX_TWO_P2_CORRECTIONS_PENDING_FOCUSED_PROOF",
+      "beforeHours": 30,
+      "afterHours": 30,
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/pull/450",
+        "https://github.com/threeswordz/cinder-grind/pull/450#discussion_r4683275664",
+        "https://github.com/threeswordz/cinder-grind/pull/450#discussion_r4683275671",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45440320213"
+      ],
+      "basis": "Independent Codex completed exact previous head a7ad0a82e4f467ca097a3b9b519fbb67cd0910b9 with two P2 frontend findings (same-version refetch losing dirty form, dual-role signing mismatched displayed draft). Returned PR to draft before atomic three-path correction. Current head 2b760755b3a962d74f375070869cf8ab0e14dbeb introduces pure editor state, dirty/version/freshness guard, explicit discard, persisted review view and six focused node regression cases including source wiring. Existing M4-08 review-fix allowance covers findings; no extra scope or progress credit before actual validation. Focused run in progress; new exact-head PR full validation and independent re-review required; do not resolve findings prematurely. Main unchanged.",
+      "sourceSha": "2b760755b3a962d74f375070869cf8ab0e14dbeb",
+      "formalAcceptance": false,
+      "estimateConfidence": "PENDING_FOCUSED_PROOF"
     }
   ],
   "unestimatedWork": [
