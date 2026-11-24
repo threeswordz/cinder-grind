@@ -1,0 +1,70 @@
+name: M4 FM01 bounded isolated native and browser evidence
+on:
+  push:
+    branches: [ci-m4-fm01-bounded-20261125]
+permissions:
+  contents: read
+jobs:
+  focused:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:17.11-alpine
+        env:
+          POSTGRES_DB: erp_m4_fm01_closeout_chromium
+          POSTGRES_USER: construction_erp
+          POSTGRES_PASSWORD: construction_erp_dev_only
+        ports: [5432:5432]
+        options: >-
+          --health-cmd "pg_isready -U construction_erp -d erp_m4_fm01_closeout_chromium"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://construction_erp:construction_erp_dev_only@localhost:5432/erp_m4_fm01_closeout_chromium?schema=public
+      M4_NON_PRODUCTION_CONFIRMED: 'YES'
+      NODE_ENV: test
+    steps:
+      - name: Checkout exact isolated candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 2
+          ref: ${{ github.sha }}
+      - name: Enforce source and workflow-only fixture additions
+        env:
+          SOURCE_SHA: 6ebd5a39183014737ad635c7543e9e90d2abbde7
+        run: |
+          test "$(git rev-parse HEAD^)" = "$SOURCE_SHA"
+          node --input-type=module - <<'NODE'
+          import {execFileSync} from 'node:child_process';
+          import assert from 'node:assert/strict';
+          const actual=execFileSync('git',['diff-tree','--no-commit-id','--name-only','-r','HEAD'],{encoding:'utf8'}).trim().split('\n').sort();
+          assert.deepEqual(actual,['.github/workflows/m4-fm01-bounded.yml','deploy/uat/m4-fm01-closeout-browser-native.mjs']);
+          NODE
+      - name: Set up pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
+        with:
+          version: 12.6.0
+          run_install: false
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.21.0
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - name: Install exact frozen dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Verify bounded FM01 pure source and audit tests
+        run: node --test deploy/release-candidate/fm01-operational-focused.test.mjs deploy/release-candidate/fm01-workday-preview.test.mjs
+      - name: Fresh isolated PostgreSQL migrations
+        run: |
+          pnpm prisma:generate
+          pnpm prisma:migrate:deploy
+          pnpm --filter @construction-erp/api exec prisma migrate status
+      - name: Build exact FM01 API and typecheck UI
+        run: |
+          pnpm --filter @construction-erp/api build
+          pnpm --filter @construction-erp/web typecheck
+      - name: Verify actual authenticated Nest, React MUI, Chromium PM and Ben and Nancy
+        run: node deploy/uat/m4-fm01-closeout-browser-native.mjs
