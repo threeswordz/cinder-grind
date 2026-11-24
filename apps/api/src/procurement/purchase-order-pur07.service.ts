@@ -177,6 +177,12 @@ export class PurchaseOrderPur07Service {
     input: PoExternalEventInput,
   ) {
     this.purchasingOnly(context.auth);
+    // A scoped Project document UUID does not itself grant the right to link
+    // that document to supplier communications. Preserve optional text-only
+    // external evidence for Jai without expanding any retained role grant.
+    if (input.evidenceDocumentId && !context.auth.permissions.includes('documents.document.view')) {
+      throw new ForbiddenException({ code: 'PO_DISPATCH_DOCUMENT_VIEW_REQUIRED' });
+    }
     const order = await this.orders.getOrder(context.auth, orderId);
     const eventType = input.kind;
     if (eventType !== 'DISPATCH' && eventType !== 'ACKNOWLEDGMENT') {
