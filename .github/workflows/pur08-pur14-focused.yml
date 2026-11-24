@@ -1,0 +1,70 @@
+# Single-use disposable PUR08/PUR14 focused verification, not full release CI.
+# Branch is isolated; no protected-main merge, Production, or retained-user grants.
+name: PUR08-PUR14 Focused Typecheck and PostgreSQL
+on:
+  push:
+    branches: ['ci-pur08-pur14-focused-20261124']
+    paths:
+      - '.github/workflows/pur08-pur14-focused.yml'
+      - 'apps/api/src/procurement/supplier-delivery-*'
+      - 'apps/api/src/procurement/procurement.module.ts'
+      - 'apps/web/src/procurement/SupplierDeliveryCasePanel.tsx'
+      - 'apps/web/src/procurement/PurchaseOrdersPanel.tsx'
+permissions:
+  contents: read
+concurrency:
+  group: pur08-pur14-one-targeted-20261124
+  cancel-in-progress: true
+jobs:
+  supplier-case-focused:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:17.11-alpine
+        env:
+          POSTGRES_DB: construction_erp
+          POSTGRES_USER: construction_erp
+          POSTGRES_PASSWORD: construction_erp_dev_only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U construction_erp -d construction_erp"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://construction_erp:construction_erp_dev_only@localhost:5432/construction_erp?schema=public
+      RC_NON_PRODUCTION_CONFIRMED: 'YES'
+    steps:
+      - name: Checkout exact pushed source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Prove exact checked-out SHA
+        run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - name: Install pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
+        with:
+          version: 12.6.0
+          run_install: false
+      - name: Install Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.21.0
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Generate actual Prisma client
+        run: pnpm prisma:generate
+      - name: Focused API TypeScript check
+        run: pnpm --filter @construction-erp/api typecheck
+      - name: Focused React TypeScript check
+        run: pnpm --filter @construction-erp/web typecheck
+      - name: Verify pure supplier policies only
+        run: node --test apps/api/src/procurement/supplier-delivery-lifecycle.test.mjs
+      - name: Deploy forward-only migrations to disposable PostgreSQL 17.11
+        run: pnpm prisma:migrate:deploy
+      - name: Compile native test to JS
+        run: pnpm --filter @construction-erp/api build
+      - name: Run ONLY new real Postgres supplier case native test
+        run: node --test apps/api/dist/procurement/supplier-delivery-case.native.integration.spec.js
+      - name: Focused only, not full release/UAT
+        run: echo "NEW_SOURCE_FOCUSED_ONLY: no full CI, authenticated browser, independent DEC-022, retained UAT or Production acceptance."
