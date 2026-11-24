@@ -3,7 +3,12 @@
  * canonical source facts; it never creates a GR, stock effect or Finance entry.
  */
 export class SupplierReplacementProofError extends Error {
-  constructor(readonly code: string) { super(code); this.name = 'SupplierReplacementProofError'; }
+  readonly code: string;
+  constructor(code: string) {
+    super(code);
+    this.code = code;
+    this.name = 'SupplierReplacementProofError';
+  }
 }
 const fail = (code: string): never => { throw new SupplierReplacementProofError(code); };
 type Scope = { companyId: string; projectId: string; supplierId: string; purchaseOrderId: string };
