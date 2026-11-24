@@ -423,7 +423,7 @@ export class SiteExecutionService {
       throw new ForbiddenException({code:'NO_WORK_FOREMAN_ROLE_REQUIRED',
         detail:'Only an authorized Project Engineer/Foreman may declare planned no-work.'});
     }
-    await this.prisma.$transaction(async tx => {
+    await this.guardedSerializable(async tx => {
       const report = await tx.dailySiteReport.findFirst({
         where: { id, companyId: context.auth.companyId },
         include: { _count: { select: {
@@ -475,7 +475,7 @@ export class SiteExecutionService {
           },
         },
       }, tx);
-    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+    });
     return this.get(context.auth, id);
   }
 
@@ -484,7 +484,7 @@ export class SiteExecutionService {
       throw new ForbiddenException({code:'NO_WORK_FOREMAN_ROLE_REQUIRED',
         detail:'Only the authorized Foreman may correct a planned no-work reason.'});
     }
-    await this.prisma.$transaction(async tx => {
+    await this.guardedSerializable(async tx => {
       const report = await tx.dailySiteReport.findFirst({
         where: {id, companyId: context.auth.companyId},
       });
@@ -510,7 +510,7 @@ export class SiteExecutionService {
           reportDate: report.reportDate,
         },
       }, tx);
-    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+    });
     return this.get(context.auth, id);
   }
 
@@ -522,7 +522,7 @@ export class SiteExecutionService {
       throw new UnprocessableEntityException({code:'WEEKLY_FINGERPRINT_INVALID',
         detail:'Expected a canonical SHA256 weekly source fingerprint.'});
     }
-    return this.prisma.$transaction(async tx => {
+    return this.guardedSerializable(async tx => {
       // All source, correction and review reads share the same serializable
       // snapshot. Stale/missing evidence fails closed; no approval is created.
       const week = await this.weekly(context.auth, projectId, from, to, tx);
@@ -560,7 +560,7 @@ export class SiteExecutionService {
         reviewFingerprint: expectedFingerprint,
         reviewState: 'ACKNOWLEDGED_NOT_APPROVED' as const,
       };
-    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+    });
   }
 
   async get(auth: AuthenticatedUserContext, id: string) {
@@ -788,7 +788,7 @@ export class SiteExecutionService {
     input: DailySiteReportUpdateInput,
   ) {
     try {
-      await this.prisma.$transaction(async (tx) => {
+      await this.guardedSerializable(async (tx) => {
         const before = await tx.dailySiteReport.findFirst({
           where: { id, companyId: context.auth.companyId },
         });
@@ -1000,7 +1000,7 @@ export class SiteExecutionService {
           },
           tx,
         );
-      }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+      });
 
       return this.get(context.auth, id);
     } catch (error) {
@@ -1010,7 +1010,7 @@ export class SiteExecutionService {
   }
 
   async submit(context: AuditContext, id: string) {
-    await this.prisma.$transaction(async (tx) => {
+    await this.guardedSerializable(async (tx) => {
       const report = await tx.dailySiteReport.findFirst({
         where: { id, companyId: context.auth.companyId },
         include: { progressLines: true, equipmentUsage: true },
@@ -1135,7 +1135,7 @@ export class SiteExecutionService {
         },
         tx,
       );
-    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+    });
 
     return this.get(context.auth, id);
   }
@@ -1784,6 +1784,30 @@ export class SiteExecutionService {
       code: 'DAILY_SITE_REPORT_NOT_FOUND',
       detail: 'Daily Site Report not found.',
     });
+  }
+
+  // Every FM01 source transaction maps a concurrent serializable abort into
+  // an actionable domain conflict rather than leaking an opaque HTTP 500.
+  // No automatic retry: caller must re-read immutable source history first.
+  private async guardedSerializable<T>(
+    operation: (tx: Prisma.TransactionClient) => Promise<T>,
+  ): Promise<T> {
+    try {
+      return await this.prisma.$transaction(operation, {
+        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2034'
+      ) {
+        throw new ConflictException({
+          code: 'DAILY_SITE_REPORT_CONCURRENT_SOURCE',
+          detail: 'The report or immutable source changed concurrently. Refresh and retry after reviewing the latest source.',
+        });
+      }
+      throw error;
+    }
   }
 
   private throwDuplicate(error: unknown) {
