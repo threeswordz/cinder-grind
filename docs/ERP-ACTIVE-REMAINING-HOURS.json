@@ -1330,6 +1330,26 @@
       "sourceSha": "2b760755b3a962d74f375070869cf8ab0e14dbeb",
       "formalAcceptance": false,
       "estimateConfidence": "PENDING_FOCUSED_PROOF"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-08-006",
+      "date": "2026-11-25",
+      "packageId": "M4-08",
+      "kind": "PR450_CODEX_TWO_P2_CORRECTIONS_FOCUSED_PASS",
+      "beforeHours": 30,
+      "afterHours": 29,
+      "reductionHours": 1,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 1,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45440320213",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45440339597",
+        "https://github.com/threeswordz/cinder-grind/pull/450"
+      ],
+      "basis": "Corrected exact head focused run SUCCESS; 18/18 job steps, all six named new editor regression cases confirmed in logs, workspace typecheck passed. PR attempt 1 intentionally DRAFT_FOCUSED_ONLY per job log; one failed-jobs rerun accepted for corrected full PR gate. Provisional 1h existing review-fix work removed, not actual labor or independent acceptance. No new scope, no Codex request, no merge.",
+      "sourceSha": "2b760755b3a962d74f375070869cf8ab0e14dbeb",
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -1352,6 +1372,6 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1825,
+  "currentRollingTotalAfterPricedGapsHours": 1824,
   "currentRollingTotalSemantics": "1830h provisional future work = 1847h baseline minus 17h M4-01, 1h M4-02, 1h M4-03, 1h M4-04, 1h M4-05, 2h M4-06, 1h M4-07, 2h M4-08, plus 9h supplier scope. JAI-ASSET-01 canonical CG acquisition register and native proof eliminate 5h previously identified remaining scope. Not actual labor or formal acceptance; deadline RED."
 }
