@@ -245,42 +245,9 @@ try{
     '/documents/projects/'+unassigned.id+'/'+sameCompanyDocument.id+'/download',
     sameCompanyDocument.bytes);
 
-  // The client BOQ is a real, priced DRAFT record linked to a source revision:
-  // this is confidentiality proof, NOT a fabricated maker/checker approval.
-  const pricedUom=await db.unitOfMeasure.create({data:{
-    companyId:company.id,uomCode:'CBQ-'+suffix,uomName:'Disposable each',decimalPlaces:4
-  }});
-  const draftRevision=await db.budgetRevision.create({data:{
-    companyId:company.id,projectId:assigned.id,revisionNo:1,
-    revisionNumber:'SYN-'+suffix,currencyCode:'THB',
-    createdByUserId:actors.BEN.userId
-  }});
-  const customerBoq=await db.customerBoqVersion.create({data:{
-    companyId:company.id,projectId:assigned.id,versionNo:1,
-    sourceRevisionId:draftRevision.id,currencyCode:'THB',
-    currentEditNo:1,createdByUserId:actors.BEN.userId,
-    edits:{create:{editNo:1,actorUserId:actors.BEN.userId,
-      reason:'Synthetic priced draft confidential export source',
-      totalAmount:'1250.00',sourceCoverage:[],
-      lines:{create:[{
-        lineKey:randomUUID(),sortOrder:0,
-        description:'LANEC_SYNTHETIC_SECRET priced client draft',
-        quantity:'1.0000',uomId:pricedUom.id,
-        uomSnapshot:{code:pricedUom.uomCode},
-        rate:'1250.0000',amount:'1250.00',
-        pricingSnapshot:{rawQuantity:'1.0000',bufferQuantity:null}
-      }]}
-    }}
-  }});
-  const csvResponse=await fetch(API+'/api/v1/budget/customer/projects/'+
-    assigned.id+'/versions/'+customerBoq.id+'/export',{
-      headers:{Cookie:benSession.cookie,Origin:WEB},redirect:'error'});
-  requireSafe(csvResponse.status===200,'CLIENT_BOQ_POSITIVE_EXPORT_DENIED');
-  const csvBytes=Buffer.from(await csvResponse.arrayBuffer());
-  requireSafe(csvBytes.subarray(0,3).equals(Buffer.from([0xEF,0xBB,0xBF]))&&
-    csvBytes.includes('Rate')&&csvBytes.includes('Amount')&&
-    csvBytes.includes('LANEC_SYNTHETIC_SECRET'),
-    'CLIENT_BOQ_POSITIVE_CONFIDENTIAL_BYTES_MISSING');
+  // Client BOQ requires the actual authorized cost revision workflow.
+  // Never bypass ERP_THB_PROVENANCE_REQUIRED by manufacturing a priced revision.
+  // Client BOQ protected-byte evidence remains BLOCKED_CONFIGURATION.
   await signOut(benSession);
 
   // Real encrypted HR upload under a persisted employee/role/category grant.
@@ -322,7 +289,7 @@ try{
     '/hr/companies/'+company.id+'/employees/'+disabled.id+
       '/documents/'+hrAttachmentId+'/download',hrBytes);
   await signOut(kohSession);
-  stage='ALL_FOUR_POSITIVE_CONTROLS_VERIFIED';
+  stage='THREE_REAL_POSITIVE_CONTROLS_VERIFIED';
 
   const fixture={
     purpose:'M4_LANE_C_DISPOSABLE_SYNTHETIC_ONLY',
@@ -332,7 +299,6 @@ try{
     sameCompanyOtherProjectId:unassigned.id,
     foreignCompanyId:foreign.id,foreignProjectId:outside.id,
     employeeId:disabled.id,actors,
-    clientBoqVersionId:customerBoq.id,
     foreignDocumentId:foreignDocument.id,
     otherProjectDocumentId:sameCompanyDocument.id,
     hrAttachmentId,
@@ -370,16 +336,18 @@ try{
   requireSafe(report.personas.every(x=>Array.isArray(x.checks)&&
     x.checks.length>=1&&x.checks.every(c=>c.status==='PASS')),
     'REAL_BROWSER_ROLE_BOUNDARY_NOT_PROVEN');
-  requireSafe(report.status==='DISPOSABLE_BROWSER_BOUNDARIES_PASS'&&exitCode===0,
-    'FULL_SYNTHETIC_SOURCE_BOUNDARY_PROOF_NOT_COMPLETE');
+  requireSafe(report.status==='PARTIAL_BLOCKED_FIXTURE'&&exitCode===1,
+    'UNSEEDED_COST_BOQ_MUST_NOT_PASS_FULL_BROWSER');
   requireSafe(Array.isArray(report.missingSyntheticArtifacts)&&
-    report.missingSyntheticArtifacts.length===0,
-    'PROTECTED_ARTIFACTS_WRONGLY_MISSING');
+    report.missingSyntheticArtifacts.length===1&&
+    report.missingSyntheticArtifacts[0]==='clientBoqVersionId',
+    'PROTECTED_ARTIFACT_BLOCKER_NOT_EXACT');
   const count=report.personas.reduce((sum,a)=>sum+a.checks.length,0);
-  requireSafe(count>=80,'EXPECTED_EIGHT_ROLE_PROTECTED_CHECK_MATRIX_MISSING');
-  console.log('M4_DISPOSABLE_PROTECTED_BYTES_BROWSER_PASS checks='+count+
+  requireSafe(count>=74,'EXPECTED_THREE_PROTECTED_RECORD_CHECKS_MISSING');
+  console.log('M4_DISPOSABLE_DOC_HR_POSITIVE_PARTIAL checks='+count+
     ' canonicalRoles=8 disabled=1 source='+EXACT.slice(0,12)+
-    ' positiveSources=4 protectedBytes=TRUE retainedUat=false humanAcceptance=false');
+    ' verified=foreign-doc+other-project-doc+encrypted-hr client-boq=BLOCKED_PROVENANCE'+
+    ' retainedUat=false humanAcceptance=false');
 } catch(error){
   const code=String(error?.safeCode??'DISPOSABLE_RUNNER_FAILED')
     .replace(/[^A-Z0-9_]/g,'').slice(0,100);
