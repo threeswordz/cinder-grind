@@ -35,6 +35,22 @@ type Latest = { state: Pur10Case; eventId: string };
 export class PurchaseOrderCancellationCaseService {
   constructor(private readonly prisma: PrismaService, private readonly access: ProjectAccessService, private readonly orders: PurchaseOrderService) {}
 
+  // A lost serializable race is a stale business decision, not an internal
+  // server error. Never automatically replay a previously approved decision.
+  private async reviewedTransaction<T>(run: (tx: Tx) => Promise<T>): Promise<T> {
+    try {
+      return await this.prisma.$transaction(run, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError &&
+          (error.code === 'P2034' ||
+           (error.code === 'P2010' && ['40001','40P01'].includes(String(error.meta?.code))))) {
+        throw new ConflictException({ code: 'PUR10_CONCURRENT_SOURCE_CHANGE',
+          detail: 'The cancellation source changed concurrently. Reload the reviewed order before continuing.' });
+      }
+      throw error;
+    }
+  }
+
   private async liveActor(auth: AuthenticatedUserContext, db: Tx | PrismaService) {
     const session = await db.userSession.findFirst({
       where: {
@@ -224,7 +240,7 @@ export class PurchaseOrderCancellationCaseService {
     if (!ACTIONS.includes(action) || !Number.isSafeInteger(expectedVersion) ||
         expectedVersion < 0 || (expectedPreviousEventId !== null && !uuid(expectedPreviousEventId)))
       return fail('PUR10_REQUEST_INVALID');
-    return this.prisma.$transaction(async tx => {
+    return this.reviewedTransaction(async tx => {
       await tx.$executeRawUnsafe('SELECT pg_advisory_xact_lock(hashtext($1))',
         'pur10:'+context.auth.companyId+':'+orderId);
       const actor = await this.liveActor(context.auth, tx);
@@ -275,7 +291,7 @@ export class PurchaseOrderCancellationCaseService {
         version: decision.version, expectedPreviousEventId: event.id,
         poCancelled: false, financePosted: false,
       };
-    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+    });
   }
   /**
    * Finalization is a distinct, explicit Ben confirmation. It is the only
@@ -301,7 +317,7 @@ export class PurchaseOrderCancellationCaseService {
         !attestation.noDepositOrPenalty || !attestation.noDeliveryOrInvoice)
       return fail('PUR10_EXPLICIT_BEN_SUPPLIER_AND_NO_EXCEPTION_ATTESTATION_REQUIRED');
 
-    return this.prisma.$transaction(async tx => {
+    return this.reviewedTransaction(async tx => {
       // Case lock before any receipt/Finance locks. Competing finalizers or
       // stage updates to the same PO cannot both observe an earlier version.
       await tx.$executeRawUnsafe('SELECT pg_advisory_xact_lock(hashtext($1))',
@@ -412,7 +428,7 @@ export class PurchaseOrderCancellationCaseService {
         poCancelled: cancelled.lifecycleState === 'CANCELLED',
         financePosted: false,
       };
-    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+    });
   }
 
 }
