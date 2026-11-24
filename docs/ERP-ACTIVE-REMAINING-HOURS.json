@@ -1434,6 +1434,27 @@
       "sourceSha": "3ae1e684930ad9692ba9e85559204022a0f30cbc",
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-03-001",
+      "date": "2026-11-25",
+      "packageId": "M4-03",
+      "kind": "CI_ACCELERATION_ACTIVE_AND_FM01_BOUNDED_RELEASE_PREPARED",
+      "beforeHours": 9,
+      "afterHours": 9,
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45457428768",
+        "https://github.com/threeswordz/cinder-grind/pull/452",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45457768336",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45457951622"
+      ],
+      "basis": "CI451 exact short main SUCCESS14/14, verified reviewed-tree receipt; no repeat full main. Accepted measured 24% reduction, no further optimization. Isolated M4 reconciliation head 3ae1e684930ad9692ba9e85559204022a0f30cbc, 180 paths and zero behind. Extracted exact 14 FM01 paths into draft PR452 head 48bc38629520a9ca2f7bbcdf5daac715c19d706d; ordinary focused run and separate workflow-only child 2604ce53e09b2c102de2c6717ed5d10185ad5554 focused contract+Chrome proof running. Original #449 untouched. 112-ID disposition corrected for BEN04, PM16, PUR10; no acceptance. FM01 historical timeliness remains NOT_ASSESSED, native race proof and current exact-head CI/review remain. No forecast credit for extraction, elapsed CI or pending proof.",
+      "sourceSha": "48bc38629520a9ca2f7bbcdf5daac715c19d706d",
+      "formalAcceptance": false,
+      "estimateConfidence": "PENDING_FOCUSED_PROOF"
     }
   ],
   "unestimatedWork": [
