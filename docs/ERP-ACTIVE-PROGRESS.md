@@ -6,7 +6,7 @@
 
 > Previous verified [#447](https://github.com/threeswordz/cinder-grind/pull/447) concurrency proof preserved.
 
-> **Integration priority — main-targeted [Ready PR #450](https://github.com/threeswordz/cinder-grind/pull/450), `a7ad0a82e4f467ca097a3b9b519fbb67cd0910b9`.** BEN04/PM16 bounded closeout, 11 paths vs 190 in full stack. [Full PR 45428869738](https://github.com/threeswordz/cinder-grind/actions/runs/45428869738) attempt 2 SUCCESS 50/50, final exact candidate verification; focused native and branch proofs passed. Marked Ready once at unchanged head; automatic independent review outcome not yet observed. **M4-08 31→30h, M4 96→95h, full ERP 1,826→1,825h**. Main unchanged; Owner-side protection verification pending (detailed API 403, metadata protected=false, visible rulesets empty). Feature additions paused.
+> **Integration priority — [Draft PR #450](https://github.com/threeswordz/cinder-grind/pull/450), corrected head `2b760755b3a962d74f375070869cf8ab0e14dbeb`.** Prior 11-path head `a7ad0a82e4f467ca097a3b9b519fbb67cd0910b9` full PR 50/50 PASS, Codex completed with two P2 findings. Returned to draft before batched three-path frontend fix, now 13 paths overall; preserve dirty drafts across refreshes, block stale/dirty signing, explicit discard, immutable review display, executable regression cases. [Focused 45440320213](https://github.com/threeswordz/cinder-grind/actions/runs/45440320213) in progress. No credit yet; M4-08 30h, M4 95h, full ERP 1,825h. Prior full CI/review historical; current-head full CI and re-review required. Main protection verification pending, no merge; feature additions paused.
 
 ## Headline
 | Metric | Current | Meaning |
