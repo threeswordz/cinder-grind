@@ -287,7 +287,7 @@ export class StockMinimumService {
   }
 
   private async readSiteMinimums(auth: AuthenticatedUserContext, projectId: string, warehouseId: string,
-    db: Db, policyLimit = 500) {
+    db: Db, policyLimit = Number.POSITIVE_INFINITY) {
     const warehouse = await this.site(auth, projectId, warehouseId, db);
     let policies;
     try { policies = replayStockMinimums(await this.history(auth, warehouseId, db), projectId, warehouseId); }
