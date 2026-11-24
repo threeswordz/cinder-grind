@@ -6,16 +6,16 @@
 
 > Previous verified [#447](https://github.com/threeswordz/cinder-grind/pull/447) concurrency proof preserved.
 
-> **Integration priority — [Ready PR #450](https://github.com/threeswordz/cinder-grind/pull/450), corrected head `2b760755b3a962d74f375070869cf8ab0e14dbeb`.** [Corrected full PR 45440339597](https://github.com/threeswordz/cinder-grind/actions/runs/45440339597) SUCCESS 50/50, independent Codex clean exact SHA and trusted +1; both P2 threads resolved. M4-08 29→28h, M4 94→93h, full ERP 1,824→1,823h. Main protection verification pending (metadata protected=false, detailed API 403), no merge. Separate [CI optimization draft #451](https://github.com/threeswordz/cinder-grind/pull/451) `8358fef94188af7b4f1c31115f4e53bf8c5f4709`, five paths, two isolated candidate worktrees, cache store, all eight predecessor evidence gates unchanged; focused [45449586888](https://github.com/threeswordz/cinder-grind/actions/runs/45449586888) running. No full trial until #450 integration/base reconciliation and specific authorization. No measured speedup or progress credit for #451.
+> **Integration priority — [PR #450 MERGED](https://github.com/threeswordz/cinder-grind/pull/450)** as `fb208dc1e2d2764180e341a5f027bfd55a477c64`; exact reviewed tree `c2cd5c5bafdf4473d5191e34d0b32b8b8afd1e69`. Full corrected PR 50/50 and trusted clean review +1; both threads resolved. Owner expressly authorized guarded squash; metadata protection disabled, detail API 403; no settings changed. [Main integration 45450463925](https://github.com/threeswordz/cinder-grind/actions/runs/45450463925) short path in progress, no full-main claim. M4-08 28→27h, M4 93→92h, full ERP 1,823→1,822h. [CI draft #451](https://github.com/threeswordz/cinder-grind/pull/451) earlier focused 18/18, seven scheduler/contract tests PASS; reconciled non-force to new main `7a04952ddc5b0dcb8e895e57b489d17f0ef916a6`, five-path diff, zero behind. [New focused 45450612840](https://github.com/threeswordz/cinder-grind/actions/runs/45450612840) and [draft admission 45450628566](https://github.com/threeswordz/cinder-grind/actions/runs/45450628566) pending. No new expensive trial or performance credit; full #449 stack preserved, not reconciled yet.
 
 ## Headline
 | Metric | Current | Meaning |
 |---|---:|---|
-| **Estimated full ERP work still needed** | **1,823h → 0h** | Includes latest newly priced mandatory gaps |
+| **Estimated full ERP work still needed** | **1,822h → 0h** | Includes latest newly priced mandatory gaps |
 | 23 Nov original current-work forecast | 1847h | Earlier 60-package provisional baseline |
-| Additional estimated future-work eliminated | −33h | M4-01 −20h, M4-02 −1h, M4-03 −1h, M4-04 −1h, M4-05 −1h, M4-06 −2h, M4-07 −1h, M4-08 −6h, **not timesheet** |
+| Additional estimated future-work eliminated | −34h | M4-01 −20h, M4-02 −1h, M4-03 −1h, M4-04 −1h, M4-05 −1h, M4-06 −2h, M4-07 −1h, M4-08 −7h, **not timesheet** |
 | Newly discovered previously unpriced PUR08/PUR14 work | +9h | Net **remaining** after real signed damaged-custody Chrome/native proof, no automatic Finance/AP/stock effect |
-| Net reforecast change versus 1,847h | −24h | More honest scope recognition; not schedule recovery |
+| Net reforecast change versus 1,847h | −25h | More honest scope recognition; not schedule recovery |
 | PUR08/PUR14 provisional work before new development | 51h | Low-confidence new-gap gross estimate |
 | PUR08/PUR14 estimated future work eliminated through verified development | 42h | Verified role/tenant source, posted GR/reversal warning and signed DAMAGED outward custody; only future-work forecast, not logged hours |
 | PUR08/PUR14 remaining | **9h** | Signed unposted DAMAGED custody implemented, posted stock needs separately approved canonical reversal; real supplier credit/AP is separate Finance module, SHORT/WRONG/EXCESS stay evidence-only, retained named-role UAT and independent review pending |
@@ -27,13 +27,13 @@
 | Whole baseline packages formally accepted | 0/60 | 8 M4 packages still 0/8 |
 | Actual productive hours logged | UNKNOWN | Cannot infer from GitHub commits or AI conversation length |
 
-**Why the number rose:** the earlier 1,845h omitted a separate confirmed PUR08/PUR14 implementation budget. New source plus corrected source-backed tests reduced that *newly priced* work from a provisional 51h gross to 9h remaining, but the original 60-package forecast excluded that additional work. Thus **1,847h − 20h M4-01 − 1h M4-02 − 1h M4-03 − 1h M4-04 − 1h M4-05 − 2h M4-06 − 1h M4-07 − 6h M4-08 + 9h supplier = 1,823h**. Supplier gross estimate 51h includes newly discovered handover defect +1h, verified fix −1h, with 42h of future work eliminated. This prevents a false countdown and requires a real reduction in remaining work at each future step. It does **not** represent actual human hours worked or formal acceptance.
+**Why the number rose:** the earlier 1,845h omitted a separate confirmed PUR08/PUR14 implementation budget. New source plus corrected source-backed tests reduced that *newly priced* work from a provisional 51h gross to 9h remaining, but the original 60-package forecast excluded that additional work. Thus **1,847h − 20h M4-01 − 1h M4-02 − 1h M4-03 − 1h M4-04 − 1h M4-05 − 2h M4-06 − 1h M4-07 − 7h M4-08 + 9h supplier = 1,822h**. Supplier gross estimate 51h includes newly discovered handover defect +1h, verified fix −1h, with 42h of future work eliminated. This prevents a false countdown and requires a real reduction in remaining work at each future step. It does **not** represent actual human hours worked or formal acceptance.
 
 ## Stage-by-stage remaining work
 
 | Stage | Previous 60-package baseline | Verified package forecast reduction | Additional scope remaining | **Now remaining** | Accepted baseline packages |
 |---|---:|---:|---:|---:|---:|
-| Prototype 5/8 — M4 closure | 117h | 33h | 9h | **93h** | 0/8 |
+| Prototype 5/8 — M4 closure | 117h | 34h | 9h | **92h** | 0/8 |
 | Prototype 6/8 — end-to-end deployment | 120h | 0h | 0h | **120h** | 0/5 |
 | Prototype 7/8 — populated restore | 50h | 0h | 0h | **50h** | 0/3 |
 | Prototype 8/8 — technical freeze | 65h | 0h | 0h | **65h** | 0/3 |
@@ -45,7 +45,7 @@
 | Production hosting and recovery | 110h | 0h | 0h | **110h** | 0/5 |
 | Migration and onboarding | 110h | 0h | 0h | **110h** | 0/4 |
 | Final human UAT, cutover and Production | 150h | 0h | 0h | **150h** | 0/5 |
-| **Full ERP** | **1847h** | **33h** | **9h** | **1,823h** | **0/60** |
+| **Full ERP** | **1847h** | **34h** | **9h** | **1,822h** | **0/60** |
 
 ## Each baseline package
 
@@ -58,7 +58,7 @@
 | M4-05 | M4 | PUR04 core PO commercial/delivery fields | 9h | **8h** |
 | M4-06 | M4 | PUR07 supplier-name PO PDF and manual dispatch evidence | 10h | **8h** |
 | M4-07 | M4 | PUR12 K-/T- company PO document identity | 6h | **5h** |
-| M4-08 | M4 | M4 focused closure, governed integration and Owner decision | 34h | **28h** |
+| M4-08 | M4 | M4 focused closure, governed integration and Owner decision | 34h | **27h** |
 | M6-01 | M6 | Build deployable preserved-data integrated M4/M6 candidate | 25h | **25h** |
 | M6-02 | M6 | Site, plan, request, issue and document deployed journeys | 25h | **25h** |
 | M6-03 | M6 | Procurement, receiving, transfers and inventory deployed journeys | 30h | **30h** |
