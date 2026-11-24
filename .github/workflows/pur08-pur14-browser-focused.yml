@@ -1,0 +1,66 @@
+# One newly uncovered PUR08/PUR14 authenticated browser journey. No full suite.
+name: PUR08-PUR14 Authenticated Store PM Jai Browser
+on:
+  push:
+    branches: ['ci-pur08-pur14-browser-20261124']
+    paths:
+      - '.github/workflows/pur08-pur14-browser-focused.yml'
+      - 'deploy/uat/pur08-pur14-browser-native.mjs'
+      - 'apps/web/src/procurement/SupplierDeliveryCasePanel.tsx'
+      - 'apps/web/src/inventory/ReceivingPanel.tsx'
+      - 'apps/api/src/procurement/supplier-delivery-*'
+permissions:
+  contents: read
+concurrency:
+  group: pur08-14-one-browser-20261124
+  cancel-in-progress: true
+jobs:
+  real-source-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 23
+    services:
+      postgres:
+        image: postgres:17.11-alpine
+        env:
+          POSTGRES_DB: construction_erp
+          POSTGRES_USER: construction_erp
+          POSTGRES_PASSWORD: construction_erp_dev_only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U construction_erp -d construction_erp"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://construction_erp:construction_erp_dev_only@localhost:5432/construction_erp?schema=public
+      PUR0814_NON_PRODUCTION_CONFIRMED: 'YES'
+    steps:
+      - name: Checkout exact branch commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Prove exact SHA
+        run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - name: Install pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
+        with:
+          version: 12.6.0
+          run_install: false
+      - name: Install Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.21.0
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Generate Prisma Client
+        run: pnpm prisma:generate
+      - name: Prepare disposable PostgreSQL with forward-only migrations
+        run: pnpm prisma:migrate:deploy
+      - name: Compile actual NestJS source and test fixture
+        run: pnpm --filter @construction-erp/api build
+      - name: Prove Chrome binary exists
+        run: google-chrome --version
+      - name: Run only NEW authenticated PUR08/PUR14 real browser
+        run: node deploy/uat/pur08-pur14-browser-native.mjs
+      - name: Evidence boundary
+        run: |
+          echo "NEW_P8_P14_CHROME_SOURCE_ONLY: no full CI, no retained actors, no DEC-022, no release/Production."
