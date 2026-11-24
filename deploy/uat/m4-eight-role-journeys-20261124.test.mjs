@@ -7,6 +7,11 @@ import {
 } from './m4-eight-role-journeys-20261124.mjs';
 
 const uid=n=>'00000000-0000-4000-8000-'+n.toString(16).padStart(12,'0');
+
+test('Eight-role operator selects exact current English MUI navigation labels',()=>{
+  assert.equal(PERSONAS.PORN.section,'Supplier Finance');
+  assert.equal(PERSONAS.KOH.section,'Employees & HR');
+});
 const fixture=()=>{
   const actors={};
   Object.entries(PERSONAS).forEach(([key,value],i)=>{

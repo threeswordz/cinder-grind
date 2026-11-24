@@ -21,8 +21,8 @@ export const PERSONAS=Object.freeze({
   JAI:{roles:['PROCUREMENT_OFFICER'],section:'Purchase Orders',requires:'procurement.po.view'},
   STORE_SITE:{roles:['STOREKEEPER'],section:'Purchase Requests',requires:'procurement.pr.view'},
   FOREMAN:{roles:['PROJECT_ENGINEER'],section:'Site Execution',requires:'site.daily_report.view'},
-  PORN:{roles:['FINANCE_OFFICER'],section:'Finance',requires:'finance.supplier_invoice.view'},
-  KOH:{roles:['UAT_HR_STAFF'],section:'HR / Employees',requires:'hr.employment.view'},
+  PORN:{roles:['FINANCE_OFFICER'],section:'Supplier Finance',requires:'finance.supplier_invoice.view'},
+  KOH:{roles:['UAT_HR_STAFF'],section:'Employees & HR',requires:'hr.employment.view'},
 });
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const keys=Object.keys(PERSONAS);
