@@ -125,7 +125,7 @@ export class StockMinimumService {
       const claimAllowed = has('subcontracts.claim.view');
       const certAllowed = has('subcontracts.certification.view');
       const pendingPr = prAllowed && ids.length ? grouped(await tx.purchaseRequest.groupBy({
-        by: ['projectId'], where: { ...where, cancelledAt: null,
+        by: ['projectId'], orderBy: { projectId: 'asc' }, where: { ...where, cancelledAt: null,
           approvalInstance: { approvalState: 'SUBMITTED' } }, _count: { _all: true },
       })) : new Map<string, number>();
       // Count only original returned lines for which a correction line has
@@ -150,14 +150,14 @@ export class StockMinimumService {
           GROUP BY pr.project_id
         `)) : new Map<string, number>();
       const corrections = prAllowed && ids.length ? grouped(await tx.purchaseRequest.groupBy({
-        by: ['projectId'], where: { ...where, cancelledAt: null,
+        by: ['projectId'], orderBy: { projectId: 'asc' }, where: { ...where, cancelledAt: null,
           lines: { some: { correctionSourceLineId: { not: null } } },
           OR: [{ approvalInstanceId: null },
             { approvalInstance: { approvalState: { in: ['SUBMITTED', 'REJECTED'] } } }] },
         _count: { _all: true },
       })) : new Map<string, number>();
       const stockCounts = countAllowed && ids.length ? grouped(await tx.stockCount.groupBy({
-        by: ['projectId'], where: { ...where, status: 'SUBMITTED' }, _count: { _all: true },
+        by: ['projectId'], orderBy: { projectId: 'asc' }, where: { ...where, status: 'SUBMITTED' }, _count: { _all: true },
       })) : new Map<string, number>();
       const tools = toolAllowed && ids.length ? await tx.$queryRaw<
         { projectId: string; dueToday: number; overdue: number }[]>(Prisma.sql`
@@ -172,13 +172,13 @@ export class StockMinimumService {
         `) : [];
       const toolsByProject = new Map(tools.map(row => [row.projectId,row]));
       const workOrders = woAllowed && ids.length ? grouped(await tx.subcontractWorkOrder.groupBy({
-        by: ['projectId'], where: { ...where, approvalState: 'SUBMITTED' }, _count: { _all: true },
+        by: ['projectId'], orderBy: { projectId: 'asc' }, where: { ...where, approvalState: 'SUBMITTED' }, _count: { _all: true },
       })) : new Map<string, number>();
       const claims = claimAllowed && ids.length ? grouped(await tx.subcontractClaim.groupBy({
-        by: ['projectId'], where: { ...where, state: 'SUBMITTED' }, _count: { _all: true },
+        by: ['projectId'], orderBy: { projectId: 'asc' }, where: { ...where, state: 'SUBMITTED' }, _count: { _all: true },
       })) : new Map<string, number>();
       const certificates = certAllowed && ids.length ? grouped(await tx.subcontractCertification.groupBy({
-        by: ['projectId'], where: { ...where, state: 'SUBMITTED' }, _count: { _all: true },
+        by: ['projectId'], orderBy: { projectId: 'asc' }, where: { ...where, state: 'SUBMITTED' }, _count: { _all: true },
       })) : new Map<string, number>();
       const value = (allowed: boolean, counts: Counts, id: string) =>
         allowed ? counts.get(id) ?? 0 : null;
