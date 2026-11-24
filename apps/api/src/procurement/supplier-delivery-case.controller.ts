@@ -21,8 +21,6 @@ const uuid = (value: unknown, key: string): string => {
   if (!result) throw new UnprocessableEntityException({ code: 'SUPPLIER_CASE_UUID_REQUIRED' });
   return result;
 };
-const optionalUuid = (value: unknown, key: string): string | undefined =>
-  value === undefined ? undefined : uuid(value, key);
 
 /**
  * Live role and Project checks occur INSIDE the transactional service;
@@ -84,14 +82,14 @@ export class SupplierDeliveryCaseController {
       evidenceDocumentId: uuid(x.evidenceDocumentId, 'evidenceDocumentId'),
       note: procurementString(x, 'note', 2000),
       ...(x.recordedPoAcknowledgmentEventId !== undefined
-        ? { recordedPoAcknowledgmentEventId: optionalUuid(x.recordedPoAcknowledgmentEventId, 'recordedPoAcknowledgmentEventId') }
+        ? { recordedPoAcknowledgmentEventId: uuid(x.recordedPoAcknowledgmentEventId, 'recordedPoAcknowledgmentEventId') }
         : {}),
       ...(discrepancyKind !== undefined
-        ? { discrepancyKind: discrepancyKind as SupplierCaseInput['discrepancyKind'] } : {}),
+        ? { discrepancyKind: discrepancyKind as NonNullable<SupplierCaseInput['discrepancyKind']> } : {}),
       ...(pmDecision !== undefined
-        ? { pmDecision: pmDecision as SupplierCaseInput['pmDecision'] } : {}),
+        ? { pmDecision: pmDecision as NonNullable<SupplierCaseInput['pmDecision']> } : {}),
       ...(x.recordedGoodsReceiptId !== undefined
-        ? { recordedGoodsReceiptId: optionalUuid(x.recordedGoodsReceiptId, 'recordedGoodsReceiptId') } : {}),
+        ? { recordedGoodsReceiptId: uuid(x.recordedGoodsReceiptId, 'recordedGoodsReceiptId') } : {}),
       ...(x.newSupplierExpectedDate !== undefined
         ? { newSupplierExpectedDate: x.newSupplierExpectedDate as string } : {}),
     };
