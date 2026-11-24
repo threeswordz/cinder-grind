@@ -6,6 +6,8 @@
 
 > Previous verified [#447](https://github.com/threeswordz/cinder-grind/pull/447) concurrency proof preserved.
 
+> **Latest candidate — [Draft #449](https://github.com/threeswordz/cinder-grind/pull/449), `52721dfd0d1c1a88cdcc5e5e41e8d6971c5a95cd`.** PUR10 reviewed cancellation vs revision exclusive-commit regression and controlled conflict handling; [focused run 45420921543](https://github.com/threeswordz/cinder-grind/actions/runs/45420921543) in progress. No further credit; M4-01 13h, M4 98h, full ERP 1,828h. No exception or Accounting policy changes.
+
 ## Headline
 | Metric | Current | Meaning |
 |---|---:|---|
