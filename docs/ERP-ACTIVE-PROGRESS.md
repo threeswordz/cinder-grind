@@ -5,11 +5,11 @@
 ## Headline
 | Metric | Current | Meaning |
 |---|---:|---|
-| **Estimated full ERP work still needed** | **1,859h → 0h** | Includes latest newly priced mandatory gaps |
+| **Estimated full ERP work still needed** | **1,858h → 0h** | Includes latest newly priced mandatory gaps |
 | 23 Nov original current-work forecast | 1847h | Earlier 60-package provisional baseline |
-| Additional estimated future-work eliminated | −2h | M4-01 source reconciliation, **not timesheet** |
+| Additional estimated future-work eliminated | −3h | M4-01 triage −2h and M4-06 verified PDF guard −1h; **not timesheet** |
 | Newly discovered previously unpriced PUR08/PUR14 work | +14h | Net **remaining** after native + Chrome canonical GR reversal reconciliation |
-| Net reforecast change versus 1,847h | +12h | More honest scope recognition; not schedule recovery |
+| Net reforecast change versus 1,847h | +11h | More honest scope recognition; not schedule recovery |
 | PUR08/PUR14 provisional work before new development | 50h | Low-confidence new-gap gross estimate |
 | PUR08/PUR14 estimated future work eliminated through verified development | 36h | Native/Chrome source, security, real posted replacement and real canonical GR reversal warnings; estimated future work eliminated, not logged hours |
 | PUR08/PUR14 remaining | **14h** | Owner physical return stock/Finance decisions, SHORT/WRONG/EXCESS, retained named-role UAT, independent review and release integration |
@@ -21,13 +21,13 @@
 | Whole baseline packages formally accepted | 0/60 | 8 M4 packages still 0/8 |
 | Actual productive hours logged | UNKNOWN | Cannot infer from GitHub commits or AI conversation length |
 
-**Why the number rose:** the earlier 1,845h omitted a separate confirmed PUR08/PUR14 implementation budget. New source plus corrected source-backed tests reduced that *newly priced* work from a provisional 50h gross to 14h remaining, but the original 60-package forecast excluded that additional work. Thus **1,845h + 14h = 1,859h**, with gross supplier scope originally estimated at 50h and 36h of future work re-estimated away. This prevents a false countdown and requires a real reduction in remaining work at each future step. It does **not** represent actual human hours worked or formal acceptance.
+**Why the number rose:** the earlier 1,845h omitted a separate confirmed PUR08/PUR14 implementation budget. New source plus corrected source-backed tests reduced that *newly priced* work from a provisional 50h gross to 14h remaining, but the original 60-package forecast excluded that additional work. Thus **1,847h − 2h M4-01 − 1h M4-06 + 14h supplier = 1,858h**, with gross supplier scope originally estimated at 50h and 36h of future work re-estimated away. This prevents a false countdown and requires a real reduction in remaining work at each future step. It does **not** represent actual human hours worked or formal acceptance.
 
 ## Stage-by-stage remaining work
 
 | Stage | Previous 60-package baseline | Verified package forecast reduction | Additional scope remaining | **Now remaining** | Accepted baseline packages |
 |---|---:|---:|---:|---:|---:|
-| Prototype 5/8 — M4 closure | 117h | 2h | 14h | **129h** | 0/8 |
+| Prototype 5/8 — M4 closure | 117h | 3h | 14h | **128h** | 0/8 |
 | Prototype 6/8 — end-to-end deployment | 120h | 0h | 0h | **120h** | 0/5 |
 | Prototype 7/8 — populated restore | 50h | 0h | 0h | **50h** | 0/3 |
 | Prototype 8/8 — technical freeze | 65h | 0h | 0h | **65h** | 0/3 |
@@ -39,7 +39,7 @@
 | Production hosting and recovery | 110h | 0h | 0h | **110h** | 0/5 |
 | Migration and onboarding | 110h | 0h | 0h | **110h** | 0/4 |
 | Final human UAT, cutover and Production | 150h | 0h | 0h | **150h** | 0/5 |
-| **Full ERP** | **1847h** | **2h** | **14h** | **1,859h** | **0/60** |
+| **Full ERP** | **1847h** | **3h** | **14h** | **1,858h** | **0/60** |
 
 ## Each baseline package
 
@@ -50,7 +50,7 @@
 | M4-03 | M4 | FM01, BEN04 and PM16 real-browser acceptance | 10h | **10h** |
 | M4-04 | M4 | PUR01 whole-PO supplier-count and commercial rule | 8h | **8h** |
 | M4-05 | M4 | PUR04 core PO commercial/delivery fields | 9h | **9h** |
-| M4-06 | M4 | PUR07 supplier-name PO PDF and manual dispatch evidence | 10h | **10h** |
+| M4-06 | M4 | PUR07 supplier-name PO PDF and manual dispatch evidence | 10h | **9h** |
 | M4-07 | M4 | PUR12 K-/T- company PO document identity | 6h | **6h** |
 | M4-08 | M4 | M4 focused closure, governed integration and Owner decision | 34h | **34h** |
 | M6-01 | M6 | Build deployable preserved-data integrated M4/M6 candidate | 25h | **25h** |
@@ -112,6 +112,8 @@
 | PUR08_PUR14_INTEGRATION | M4 | 50h | 36h | **14h** |
 
 ## Evidence-backed update history
+
+- **2026-11-24 — PUR07 supplier-facing server PDF approval-source fail-closed repair: M4-06 10h → 9h (−1h estimated future work).** Isolated [Draft PR #437](https://github.com/threeswordz/cinder-grind/pull/437), SHA `26916aa548435f60e887d568ba69298cb83fb973`, based on exact [Draft PR #427](https://github.com/threeswordz/cinder-grind/pull/427); existing browser approved Print/Save-as-PDF already required completed independent PO approval, but server download permitted a misleading `Approval completed: APPROVED` fallback with missing approved completion timestamp. Updated server check requires actual independently APPROVED `approvalInstance.completedAt`, otherwise 409 `PO_PDF_INDEPENDENT_APPROVAL_EVIDENCE_REQUIRED`, and embeds actual ISO completion. [One focused API TypeScript build and new 1/1 negative source test #45375009267](https://github.com/threeswordz/cinder-grind/actions/runs/45375009267) **OVERALL SUCCESS**, proving null/missing/PENDING/REJECTED approval sources reject. Existing genuine positive PDF/Jai–Ben Thai browser evidence reused rather than rerun; source/test blobs match CI. No main merge, full CI, retained roles, release authority or supplier send. The −1h is estimated eliminated remaining source-validation work, not actual worker hours or M4 acceptance.
 
 - **2026-11-24 — posted replacement remains historical after real canonical GR reversal: 16h → 14h (−2h provisional future effort).** New isolated [Draft PR #436](https://github.com/threeswordz/cinder-grind/pull/436), source `a10b99e8a3ad11737e258f987fb97ce4f57a9e38`, introduces read-only Company/Project/supplier/PO and original receiving/GR item reconciliation to return POSTED/REVERSED/SOURCE_UNVERIFIED and React/MUI warning for reversed/unverified replacement. Real PostgreSQL 17.11 [#45373701925](https://github.com/threeswordz/cinder-grind/actions/runs/45373701925) focused native step **PASS** (1/1, genuine authorized GR reversal, stock reversal only from canonical service, same supplier audit history, no AP/payment); overall run **FAIL** only because initial Chrome test reloaded Receiving without reopening its nested case. Existing DB trigger correctly prohibited source GR item tampering. Newly corrected [real authenticated Chrome #45374163626](https://github.com/threeswordz/cinder-grind/actions/runs/45374163626) **OVERALL SUCCESS**, Store explicitly reopens correct Receiving row and sees reversed GR warning, preserved trace, no fake green success. No full CI, DEC-022 review, retained UAT, Owner release authorization or production. −2h is future remaining-work re-estimate, not actual person-hours or accepted M4 closure.
 
