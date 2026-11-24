@@ -898,6 +898,24 @@
       "sourceSha": "c2b406616cbaa2fa3d5095d252e0de3c265c6f24",
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261124-M4-08-002",
+      "date": "2026-11-24",
+      "packageId": "M4-08",
+      "kind": "VERIFIED_WHOLE_177_FILE_PROTECTED_MAIN_DIFF_REVIEW_MANIFEST",
+      "beforeHours": 33,
+      "afterHours": 32,
+      "reductionHours": 1,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/blob/docs-erp-deadline-first-1500h-20261124/docs/M4-2026-11-24-COMBINED-MAIN-DIFF-INDEPENDENT-REVIEW-MANIFEST.md",
+        "https://github.com/threeswordz/cinder-grind/pull/438",
+        "https://github.com/threeswordz/cinder-grind/commit/5074182af079cb3aa5784e1db43c5a2b94e50569"
+      ],
+      "basis": "Exact GitHub compare protected-main SHA 3a441b1fa389a9a274e6ca82413740a3ffa2f51b to combined Draft PR #438 CODE head c2b406616cbaa2fa3d5095d252e0de3c265c6f24 verified status ahead 295 commits / 0 behind and 177 changed paths (140 added, 37 modified). New 257-line 20.8KB canonical docs-only full path review manifest enumerates exactly all 177 with per-file compare changes, 7 technical categories, source-parent pedigree, security/migration/tenant/maker-checker review agenda and remaining explicit gate names. GitHub document readback confirmed 140 added+37 modified rows and exact code-head SHA. Does not modify code head, and is not DEC-022 independent review; estimate 1 fewer hour of future M4-08 diff-inventory/reviewer preparation work (distinct from prior 2h M4-01 112-ID triage), not logged worker hours, final UAT or Owner acceptance. No full CI or protected-main merge.",
+      "sourceSha": "c2b406616cbaa2fa3d5095d252e0de3c265c6f24",
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -920,6 +938,6 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1856,
-  "currentRollingTotalSemantics": "1856h remaining provisional forward work = 1847h original 60 package current baseline −2h M4-01 triage −2h M4-06 PDF/Document guards −1h M4-08 combined two-parent draft integration +14h separately priced supplier PUR08/PUR14 remaining. No actual person-hours logged, independent exact-head acceptance or main/Production deployment; 31 Dec 2026 112-ID full Production feasibility RED."
+  "currentRollingTotalAfterPricedGapsHours": 1855,
+  "currentRollingTotalSemantics": "1855h provisional future work = 1847h original 60-package current baseline −2h M4-01 requirement triage −2h M4-06 PDF/Document source guards −2h M4-08 combined source integration and entire protected-main review manifest +14h separately priced mandatory PUR08/PUR14 remaining. Actual worker-hours UNKNOWN; no formal M4 package acceptance, independent DEC-022 code review or retained 8-role signoff. Historical 1900h and 1500h unapproved optimization separate; 31 Dec 2026 Production feasibility RED."
 }
