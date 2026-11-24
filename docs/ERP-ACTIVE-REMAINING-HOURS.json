@@ -1115,6 +1115,26 @@
       "sourceSha": "463f485c6456f1545cb29108433f8886d56b3a9d",
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261124-M4-01-005",
+      "date": "2026-11-24",
+      "packageId": "M4-01",
+      "kind": "PM15_PORTFOLIO_SITE_SHORTAGE_AND_PROJECT_DELIVERY_AGGREGATION_NATIVE_PROOF",
+      "beforeHours": 24,
+      "afterHours": 20,
+      "reductionHours": 4,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 4,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/pull/445",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45409659996",
+        "https://github.com/threeswordz/cinder-grind/blob/docs-erp-deadline-first-1500h-20261124/docs/M4-2026-11-24-PR445-REVIEW-DELTA.md"
+      ],
+      "basis": "Previously documented PM15 portfolio shortage/delivery gap, not new scope. Reuse canonical site minimum and current approved PO lineage inside same repeatable-read snapshot. Count active comparable minima, site-material-UOM shortages, stale active config, late/due/unknown PO lines once per Project, no double counting multiple sites or revisions. Initial 45409363228 compile failed test fixture return type, corrected source test; 45409659996 overall SUCCESS fresh PG17.11 API build and React typecheck, real HTTP actual original/revised PO receipts 3+2, reservation and paused policy, hidden site exclusion, full receipt and reversal, no read stock/audit/AP effect. Estimated future work eliminated 4h; no actual labor. Retained browser, populated positive stock count/subcontract portfolio, scalability benchmark, daily demand/external supplier confirmation and notification policy remain. No formal acceptance.",
+      "sourceSha": "2e2831eea4badeac84d1b59e3f1b0b5e00d37bc5",
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -1137,6 +1157,6 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1839,
-  "currentRollingTotalSemantics": "1839h provisional future work = 1847h baseline minus 8h M4-01, 1h M4-02, 1h M4-03, 1h M4-04, 1h M4-05, 2h M4-06, 1h M4-07, 2h M4-08, plus 9h supplier scope. PM15 bounded new operational work queue and native HTTP proof reduce previously identified remaining scope by 4h. Not actual labor or formal acceptance; deadline RED."
+  "currentRollingTotalAfterPricedGapsHours": 1835,
+  "currentRollingTotalSemantics": "1835h provisional future work = 1847h baseline minus 12h M4-01, 1h M4-02, 1h M4-03, 1h M4-04, 1h M4-05, 2h M4-06, 1h M4-07, 2h M4-08, plus 9h supplier scope. PM15 new portfolio shortage and approved PO delay counts and native proof reduce prior identified remaining work by 4h. Not actual labor or formal acceptance; deadline RED."
 }
