@@ -667,6 +667,50 @@
       "sourceSha": "fafa5069a5e7559780ab1fbf858cea5655bc7589",
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261124-PUR08-14-004",
+      "date": "2026-11-24",
+      "packageId": null,
+      "scopeId": "PUR08_PUR14_INTEGRATION",
+      "kind": "VERIFIED_NATIVE_API_SOURCE_REESTIMATE",
+      "beforeHours": null,
+      "afterHours": null,
+      "reductionHours": 0,
+      "scopeBeforeHours": 39,
+      "scopeAfterHours": 34,
+      "scopeReductionHours": 5,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45349257055",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45349684998",
+        "https://github.com/threeswordz/cinder-grind/pull/432"
+      ],
+      "basis": "New Nest/Prisma API/React workspace TS compiled; seven focused pure policy tests PASS; migrations deployed to disposable PG17.11; corrected native integration 1/1 PASS with live Company/Project actors, doc/ACK/posted-GR constraints, audit event concurrency and no stock/AP/Finance postings. All relevant source blobs in native CI branch match production source branch. The initial native fixture collision was fixed without any retained role grant. Re-estimated 5 fewer future hours from supplier scoped API/DB integration; not actual labor, real browser, independent review or acceptance.",
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL",
+      "sourceSha": "50ccd819cdcdd65263026f919cc681e7fb2ce62c"
+    },
+    {
+      "id": "ERP-PROG-20261124-PUR08-14-005",
+      "date": "2026-11-24",
+      "packageId": null,
+      "scopeId": "PUR08_PUR14_INTEGRATION",
+      "kind": "VERIFIED_STORE_UI_SOURCE_REESTIMATE",
+      "beforeHours": null,
+      "afterHours": null,
+      "reductionHours": 0,
+      "scopeBeforeHours": 34,
+      "scopeAfterHours": 32,
+      "scopeReductionHours": 2,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45350220558",
+        "https://github.com/threeswordz/cinder-grind/pull/432",
+        "https://github.com/threeswordz/cinder-grind/blob/3c1f79829f5536c2affef56dff4f67362e9b8de6/apps/web/src/inventory/ReceivingPanel.tsx"
+      ],
+      "basis": "Added role-scoped Store Receiving entry and linked existing receiving evidence Document, avoiding PO-view UI access requirement. Exact React TS check PASS on isolated CI branch, relevant UI file blobs match source branch. Re-estimated 2 fewer future engineering hours; Chrome authenticated retained Store, actual file bytes and business acceptance still pending.",
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL",
+      "sourceSha": "7409a3a5e896108561dbdbe767fbcba620089520"
     }
   ],
   "unestimatedWork": [
@@ -676,19 +720,19 @@
         "PUR08",
         "PUR14"
       ],
-      "hours": 39,
+      "hours": 32,
       "budgetAllocation": "NEW_EXPLICIT_M4_ADDITIONAL_SCOPE; NOT SILENTLY SUBTRACTED_FROM_M4_01/M4_08",
-      "sourceStatus": "PURE_POLICY_7_TESTS_LOCAL_PASS;PRISMA_NEST_REACT_NATIVE_NOT_YET_RUN;DISCREPANCY_WITHOUT_ACK_FIXED",
-      "remaining": "39h estimated future work for full Nest/Prisma and React compile; native PostgreSQL/HTTP concurrency and scope tests; real Store UI entry/navigation; document/posted-GR identity and byte proof; missing supplier physical return/credit policy; independent DEC-022 reviewer and actual business acceptance.",
-      "evidence": "https://github.com/threeswordz/cinder-grind/blob/984847746e377bc5f90d7ed0bf3d83bdd8d260d0/apps/api/src/procurement/supplier-delivery-lifecycle.ts",
+      "sourceStatus": "NEST_API_AND_REACT_TYPECHECK_PASS;PURE_7_OF_7_PASS;NATIVE_PG17_1_OF_1_PASS;STORE_RECEIVING_REACT_TYPECHECK_PASS;HUMAN_BROWSER_INDEPENDENT_REVIEW_PENDING",
+      "remaining": "32h low-confidence future effort: actual authenticated HTTP/CSRF and real scoped eight-role browser UAT; genuine supplier physical return/quantity/stock and Finance credit policy and implementation; positive posted-replacement GR business link; actual documented supplier evidence byte integrity; independent DEC-022 review, Owner approval and integration.",
+      "evidence": "https://github.com/threeswordz/cinder-grind/pull/432",
       "stage": "M4",
       "grossPreImplementationEstimateHours": 50,
-      "estimatedReductionFromNewSourceHours": 11,
+      "estimatedReductionFromNewSourceHours": 18,
       "confidence": "LOW",
       "estimateKind": "NEWLY_DISCOVERED_MANDATORY_SCOPE_PRICE_NOT_A_TIMESHEET"
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1884,
-  "currentRollingTotalSemantics": "1884h = original provisional 1847h - 2h M4 source triage + 39h newly priced PUR08/14 required workflow, after a separate further estimated 1h reduction for verified no-ack discrepancy and anti-false-delay checks; total remains a low-confidence source-bound estimate, not hours worked."
+  "currentRollingTotalAfterPricedGapsHours": 1877,
+  "currentRollingTotalSemantics": "1877h = original 1847h provisional baseline - 2h M4-01 future-work source triage + 32h newly recognized mandatory PUR08/PUR14 after its source+focused API/React/PG verification; estimative work remaining not actual hours worked or formally accepted."
 }
