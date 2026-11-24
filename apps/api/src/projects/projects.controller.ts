@@ -36,6 +36,7 @@ import {
   validateProjectUuid,
 } from './project-validation';
 import { ProjectsService } from './projects.service';
+import { ProjectCloseoutService } from './project-closeout.service';
 
 function authOf(request: AuthenticatedRequest): AuthenticatedUserContext {
   if (!request.auth) throw new Error('Authentication context is missing.');
@@ -59,7 +60,10 @@ function ensureFields(data: Record<string, unknown>) {
 
 @Controller('projects')
 export class ProjectsController {
-  constructor(private readonly projects: ProjectsService) {}
+  constructor(
+    private readonly projects: ProjectsService,
+    private readonly closeout: ProjectCloseoutService,
+  ) {}
 
   @Get()
   @UseGuards(AuthGuard, PermissionGuard)
@@ -152,6 +156,57 @@ export class ProjectsController {
     return {
       data: await this.projects.getProject(authOf(request), id),
     };
+  }
+
+  // BEN04/PM16: separate controlled operational closure. This never
+  // executes the unrelated administrative archive/reactivate mutation.
+  @Get(':id/closeout')
+  @UseGuards(AuthGuard, PermissionGuard)
+  @RequirePermissions('projects.project.view')
+  async closeoutStatus(
+    @Req() request: AuthenticatedRequest,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+  ) {
+    return {data: await this.closeout.get(authOf(request),id)};
+  }
+
+  @Get(':id/closeout/owners')
+  @UseGuards(AuthGuard, PermissionGuard)
+  @RequirePermissions('projects.project.view')
+  async closeoutOwners(
+    @Req() request: AuthenticatedRequest,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+  ) {
+    return {data: await this.closeout.ownerOptions(authOf(request),id)};
+  }
+
+  @Post(':id/closeout/prepare')
+  @UseGuards(AuthGuard, CsrfGuard, PermissionGuard)
+  @RequirePermissions('projects.project.edit')
+  async prepareCloseout(
+    @Req() request: AuthenticatedRequest,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+    @Body() body: unknown,
+  ) {
+    return {data: await this.closeout.prepare(
+      auditContext(request),id,requireProjectObject(body),
+    )};
+  }
+
+  @Post(':id/closeout/sign')
+  @UseGuards(AuthGuard, CsrfGuard, PermissionGuard)
+  @RequirePermissions('projects.project.view')
+  async signCloseout(
+    @Req() request: AuthenticatedRequest,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+    @Body() body: unknown,
+  ) {
+    const input=requireProjectObject(body);
+    return {data: await this.closeout.sign(
+      auditContext(request),id,
+      requiredProjectString(input,'expectedFingerprint',64),
+      typeof input.note==='string'?input.note:'',
+    )};
   }
 
   @Patch(':id')

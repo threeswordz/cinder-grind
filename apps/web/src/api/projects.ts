@@ -2,6 +2,39 @@ import { apiRequest } from './client';
 
 type Data<T> = { data: T };
 
+export const closeoutCategories = [
+  'WORK_ACCEPTANCE', 'PO_CONTRACTS', 'AP_AR_PAYMENTS',
+  'STOCK_TOOLS_ASSETS', 'BOQ_VO_COST', 'HANDOVER_DOCUMENTS',
+] as const;
+export type CloseoutCategory = typeof closeoutCategories[number];
+export type CloseoutChecklist = {
+  category:CloseoutCategory;state:'CLEAR'|'WARNING';
+  evidenceNote:string;evidenceReference:string;
+};
+export type CloseoutFollowup = {
+  category:CloseoutCategory;description:string;reason:string;
+  ownerUserId:string;dueDate:string;
+  remainingAmount:string|null;remainingQuantity:string|null;
+  quantityUom:string|null;notQuantifiableReason:string|null;
+};
+export type CloseoutPreparation = {
+  checklist:CloseoutChecklist[];outstandingItems:CloseoutFollowup[];
+  overallNote:string;revisionReason:string|null;
+};
+export type ProjectCloseout = {
+  status:'NOT_PREPARED'|'PREPARED'|'BEN_SIGNED'|'NANCY_SIGNED'|'JOINTLY_APPROVED';
+  current:null|{
+    eventId:string;fingerprint:string;version:number;
+    preparedBy:string;preparedAt:string;
+    preparation:CloseoutPreparation;
+    signatures:Partial<Record<'BEN'|'NANCY',{userId:string;at:string;note:string;eventId:string}>>;
+  };
+  project:{id:string;projectCode:string;projectName:string;isActive:boolean};
+  authority:'OPERATIONAL_ONLY_NO_ARCHIVE_OR_FINANCIAL_SETTLEMENT';
+  canPrepare:boolean;canSignBen:boolean;canSignNancy:boolean;
+};
+export type CloseoutOwner = {id:string;displayName:string};
+
 export type ProjectOption = {
   id: string;
   isActive: boolean;
@@ -89,6 +122,18 @@ export const projectsApi = {
       '/projects/' + id + (active ? '/reactivate' : '/archive'),
       { method: 'POST' },
     ),
+  closeout: (id:string) =>
+    apiRequest<Data<ProjectCloseout>>('/projects/'+id+'/closeout'),
+  closeoutOwners: (id:string) =>
+    apiRequest<Data<CloseoutOwner[]>>('/projects/'+id+'/closeout/owners'),
+  prepareCloseout: (id:string,body:CloseoutPreparation & {expectedFingerprint:string|null}) =>
+    apiRequest<Data<ProjectCloseout>>('/projects/'+id+'/closeout/prepare',{
+      method:'POST',body:JSON.stringify(body),
+    }),
+  signCloseout: (id:string,expectedFingerprint:string,note:string) =>
+    apiRequest<Data<ProjectCloseout>>('/projects/'+id+'/closeout/sign',{
+      method:'POST',body:JSON.stringify({expectedFingerprint,note}),
+    }),
   members: (id: string) =>
     apiRequest<Data<ProjectMember[]>>('/projects/' + id + '/members'),
   memberOptions: (id: string) =>
