@@ -1,0 +1,62 @@
+name: PUR14 Posted Replacement Authenticated Chrome Only
+on:
+  push:
+    branches: [ci-pur14-replacement-chrome-20261124]
+permissions:
+  contents: read
+concurrency:
+  group: pur14-replacement-chrome-disposable-20261124
+  cancel-in-progress: true
+jobs:
+  one-posted-replacement-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 23
+    services:
+      postgres:
+        image: postgres:17.11-alpine
+        env:
+          POSTGRES_DB: construction_erp
+          POSTGRES_USER: construction_erp
+          POSTGRES_PASSWORD: construction_erp_dev_only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U construction_erp -d construction_erp"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://construction_erp:construction_erp_dev_only@localhost:5432/construction_erp?schema=public
+      PUR0814_NON_PRODUCTION_CONFIRMED: 'YES'
+    steps:
+      - name: Checkout exact isolated code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Verify exact SHA and disposable runner
+        run: |
+          test "$GITHUB_ACTIONS" = true
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+      - name: Setup pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
+        with:
+          version: 12.6.0
+          run_install: false
+      - name: Setup Node 24
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.21.0
+      - name: Install frozen dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Generate Prisma and migrate fresh PG17 forward-only
+        run: |
+          pnpm prisma:generate
+          pnpm prisma:migrate:deploy
+      - name: Compile actual Nest and fixture source
+        run: pnpm --filter @construction-erp/api build
+      - name: Check only new browser script syntax and Chrome
+        run: |
+          node --check deploy/uat/pur14-replacement-browser-native.mjs
+          google-chrome --version
+      - name: Run ONLY new real authenticated posted replacement Chrome journey
+        run: node deploy/uat/pur14-replacement-browser-native.mjs
+      - name: Scope boundary
+        run: echo "NEW_PUR14_REPLACEMENT_CHROME_DISPOSABLE_ONLY; no full CI, retained role or Production"
