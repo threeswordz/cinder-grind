@@ -6,7 +6,7 @@ Builder handoff, not independent DEC-022 review or retained acceptance.
 - Prior [Draft #444](https://github.com/threeswordz/cinder-grind/pull/444) `463f485c6456f1545cb29108433f8886d56b3a9d`.
 - Current [Draft #445](https://github.com/threeswordz/cinder-grind/pull/445) `2e2831eea4badeac84d1b59e3f1b0b5e00d37bc5`.
 - Full compare: 332 commits ahead, 0 behind, 184 paths (147 added, 37 modified). Review full protected-main diff using earlier complete inventory and [PR444 delta](M4-2026-11-24-PR444-REVIEW-DELTA.md), not only this overlay.
-- Initial focused [45409363228](https://github.com/threeswordz/cinder-grind/actions/runs/45409363228) failed compile due to test fixture assuming revise() returns lines. Changed only test to fetch canonical revision line. Corrected [45409659996](https://github.com/threeswordz/cinder-grind/actions/runs/45409659996) pending terminal verification; exact workflow-only child `473d9cfbb7a570b5897ccec7ca60178adb52312d`.
+- Initial focused [45409363228](https://github.com/threeswordz/cinder-grind/actions/runs/45409363228) failed compile due to test fixture assuming revise() returns lines. Changed only test to fetch canonical revision line. Corrected [45409659996](https://github.com/threeswordz/cinder-grind/actions/runs/45409659996) **OVERALL SUCCESS**, fresh PG17.11 migrations, API and React compilation, real authenticated HTTP native proof marker `PM15_NATIVE_MULTI_SITE_MINIMA_RESERVATION_PO_REVISION_PARTIAL_FULL_REVERSE_PASS`; exact workflow-only child `473d9cfbb7a570b5897ccec7ca60178adb52312d`.
 
 | Overlay path | Blob |
 |---|---|
