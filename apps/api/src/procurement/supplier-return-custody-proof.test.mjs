@@ -11,7 +11,8 @@ const fixture=()=>({
    observedQuantity:'5.0000',goodQuantity:'3.0000',conditionPhotoVerified:true},
  handover:{quantity:'2.0000',supplierSignatory:'Supplier receiver',
   supplierSignatureConfirmed:true,documentId:'SIGN-DOC-1',
-  documentChecksum:'a'.repeat(64),documentDistinctFromConditionPhoto:true},
+  documentChecksum:'a'.repeat(64),documentDistinctFromConditionPhoto:true,
+  documentLinkedToOriginalDelivery:true},
 });
 const rejects=(mutate,code)=>{const input=fixture();mutate(input);
  assert.throws(()=>verify(input),e=>e instanceof SupplierReturnCustodyError&&e.code===code,code);};
@@ -56,4 +57,8 @@ test('signed separate actual uploaded evidence and named attestation required',(
  rejects(x=>{x.handover.documentDistinctFromConditionPhoto=false},'PUR14_RETURN_SIGNED_SUPPLIER_DOCUMENT_REQUIRED');
  rejects(x=>{x.handover.documentChecksum=null},'PUR14_RETURN_SIGNED_SUPPLIER_DOCUMENT_REQUIRED');
  rejects(x=>{x.handover.documentChecksum='not-a-checksum'},'PUR14_RETURN_SIGNED_SUPPLIER_DOCUMENT_REQUIRED');
+});
+
+test('a project-only signed document cannot stand in for the original delivery handover',()=>{
+ rejects(x=>{x.handover.documentLinkedToOriginalDelivery=false},'PUR14_RETURN_HANDOVER_ORIGINAL_DELIVERY_LINK_REQUIRED');
 });
