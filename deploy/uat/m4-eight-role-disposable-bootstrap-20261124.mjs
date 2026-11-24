@@ -2,7 +2,7 @@
 // Runner-only child branch. Never run against Mac, retained MKE/TCJ or Production.
 // Missing protected artifacts are intentionally reported PARTIAL, not a green UAT.
 import assert from 'node:assert/strict';
-import {randomBytes,randomUUID} from 'node:crypto';
+import {createHash,randomBytes,randomUUID} from 'node:crypto';
 import {createRequire} from 'node:module';
 import {spawn,spawnSync} from 'node:child_process';
 import {once} from 'node:events';
@@ -11,7 +11,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {pathToFileURL} from 'node:url';
 
-const REVIEWED_APP='4819d794b6bc34738341efd9725e93f55c696da0';
+const REVIEWED_APP='435bd8805d5bcd7e0a1a9941668b67860f288b78';
 const EXACT=process.env.GITHUB_SHA;
 assert.match(EXACT??'',/^[0-9a-f]{40}$/,'EXACT_TEST_SHA_REQUIRED');
 const ROOT=process.env.GITHUB_WORKSPACE;
@@ -31,9 +31,7 @@ const changes=spawnSync('git',['diff','--name-only',REVIEWED_APP,EXACT],
   {cwd:ROOT,encoding:'utf8'});
 const allowed=new Set([
   '.github/workflows/m4-eight-role-disposable-native-once.yml',
-  'deploy/uat/m4-eight-role-disposable-bootstrap-20261124.mjs',
-  'deploy/uat/m4-eight-role-journeys-20261124.mjs',
-  'deploy/uat/m4-eight-role-journeys-20261124.test.mjs'
+  'deploy/uat/m4-eight-role-disposable-bootstrap-20261124.mjs'
 ]);
 const paths=changes.stdout.trim().split('\n').filter(Boolean);
 requireSafe(changes.status===0&&paths.length===allowed.size&&
@@ -56,6 +54,7 @@ apiRequire('reflect-metadata');
 const {NestFactory}=apiRequire('@nestjs/core');
 const {AppModule}=apiRequire('./dist/app.module.js');
 const {PrismaService}=apiRequire('./dist/prisma/prisma.service.js');
+const {DocumentStorage}=apiRequire('./dist/documents/document-storage.js');
 const {PasswordService}=apiRequire('./dist/auth/password.service.js');
 const {ProblemDetailsFilter}=apiRequire('./dist/common/problem-details.filter.js');
 const {securityHeadersMiddleware}=apiRequire('./dist/common/security-headers.js');
@@ -72,14 +71,16 @@ process.env.NODE_ENV='test';
 let app=null,web=null;
 let stage='INIT';
 const roleGrants={
-  FINANCE_MANAGER:['projects.project.view','projects.access_all','budget.customer.view'],
-  MANAGEMENT:['projects.project.view','projects.access_all','procurement.po.view'],
+  FINANCE_MANAGER:['projects.project.view','projects.access_all','budget.customer.view',
+    'budget.cost.full_view','budget.boq.view','budget.revision.view'],
+  MANAGEMENT:['projects.project.view','projects.access_all','procurement.po.view',
+    'documents.document.view','budget.cost.full_view','budget.boq.view','budget.revision.view','budget.customer.view'],
   PROJECT_MANAGER:['projects.project.view','projects.access_all','inventory.receipt.view'],
-  STOREKEEPER:['projects.project.view','procurement.pr.view'],
+  STOREKEEPER:['projects.project.view','procurement.pr.view','documents.document.view'],
   PROCUREMENT_OFFICER:['projects.project.view','projects.access_all','procurement.po.view'],
   PROJECT_ENGINEER:['projects.project.view','site.daily_report.view'],
   FINANCE_OFFICER:['projects.project.view','finance.supplier_invoice.view'],
-  UAT_HR_STAFF:['projects.project.view','hr.employment.view'],
+  UAT_HR_STAFF:['projects.project.view','hr.employment.view','hr.documents.view','hr.documents.manage'],
 };
 try{
   stage='START_API';
