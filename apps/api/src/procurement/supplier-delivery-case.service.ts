@@ -1,5 +1,6 @@
 import { ConflictException, ForbiddenException, Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import { verifySupplierReplacementProof, SupplierReplacementProofError } from './supplier-replacement-proof';
 
 import { AuthenticatedUserContext } from '../auth/auth.types';
 import { PrismaService } from '../prisma/prisma.service';
@@ -26,6 +27,8 @@ export type SupplierCaseInput = Pick<SupplierDeliveryRequest,
 > & {
   expectedPreviousEventId: string | null;
   recordedPoAcknowledgmentEventId?: string;
+  originalReceivingDeliveryLineId?: string;
+  recordedGoodsReceiptItemId?: string;
 };
 const ENTITY = 'SUPPLIER_DELIVERY_CASE';
 const actions: SupplierAction[] = [
@@ -107,12 +110,15 @@ export class SupplierDeliveryCaseService {
   private async history(companyId: string, orderId: string, db: Db) {
     const rows = await db.auditLog.findMany({
       where: { companyId, entityType: ENTITY, entityId: orderId },
-      select: { id: true, action: true, actorUserId: true, newValues: true },
+      select: { id: true, action: true, actorUserId: true, occurredAt: true, newValues: true },
       take: 101,
     });
     if (rows.length > 100) return conflict('SUPPLIER_CASE_HISTORY_BOUND_EXCEEDED');
     let lastId: string | null = null;
     let state: SupplierDeliveryCase | null = null;
+    let origin: { eventId: string; evidenceDocumentId: string } | null = null;
+    let claim: { eventId: string; claimedAt: string } | null = null;
+    let replacementTrace: Prisma.JsonValue | null = null;
     const processed = new Set<string>();
     for (let version = 1; version <= rows.length; version++) {
       const links = rows.filter(row => {
@@ -144,10 +150,16 @@ export class SupplierDeliveryCaseService {
       if (typeof values.actorUserId !== 'string' || values.actorUserId !== e.actorUserId ||
           typeof values.evidenceDocumentId !== 'string' || !uuid(values.evidenceDocumentId))
         return conflict('SUPPLIER_CASE_HISTORY_EVIDENCE_INVALID');
+      if (e.action === 'REPORT_DISCREPANCY')
+        origin = { eventId: e.id, evidenceDocumentId: values.evidenceDocumentId as string };
+      if (e.action === 'JAI_RECORD_CLAIM')
+        claim = { eventId: e.id, claimedAt: e.occurredAt.toISOString() };
+      if (e.action === 'STORE_RECORD_REPLACEMENT_RECEIPT')
+        replacementTrace = values.replacementTrace ?? null;
       state = obj as unknown as SupplierDeliveryCase;
       lastId = e.id;
     }
-    return { state, eventId: lastId };
+    return { state, eventId: lastId, origin, claim, replacementTrace };
   }
 
   async read(auth: AuthenticatedUserContext, orderId: string) {
@@ -159,6 +171,7 @@ export class SupplierDeliveryCaseService {
       purchaseOrderId: source.id, projectId: source.projectId,
       approvedLatest: source.approvalInstance?.approvalState === 'APPROVED' && !source.nextRevision && !source.cancelledAt,
       case: current.state, expectedPreviousEventId: current.eventId,
+      replacementTrace: current.replacementTrace,
       advisoryOnly: true, stockEffect: false, financeEffect: false,
       // PUR07 acknowledgment is an independent source, not implied by a PO date.
       supplierAcknowledgmentFrom: 'PUR07_DOCUMENTED_EXTERNAL_ACK_ONLY',
@@ -171,7 +184,9 @@ export class SupplierDeliveryCaseService {
         (input.expectedPreviousEventId !== null && !uuid(input.expectedPreviousEventId)) ||
         !uuid(input.evidenceDocumentId) ||
         (input.recordedPoAcknowledgmentEventId !== undefined && !uuid(input.recordedPoAcknowledgmentEventId)) ||
-        (input.recordedGoodsReceiptId !== undefined && !uuid(input.recordedGoodsReceiptId)))
+        (input.recordedGoodsReceiptId !== undefined && !uuid(input.recordedGoodsReceiptId)) ||
+        (input.recordedGoodsReceiptItemId !== undefined && !uuid(input.recordedGoodsReceiptItemId)) ||
+        (input.originalReceivingDeliveryLineId !== undefined && !uuid(input.originalReceivingDeliveryLineId)))
       return invalid('SUPPLIER_CASE_INVALID_INPUT');
     return this.prisma.$transaction(async tx => {
       // Same-Company PO-specific serialization: simultaneous Store/Jai/PM actions
@@ -213,18 +228,119 @@ export class SupplierDeliveryCaseService {
         });
         if (!ack) return conflict('SUPPLIER_CASE_PUR07_ACK_NOT_FOUND');
       }
+      let replacementTrace: Record<string, string> | null = null;
       if (input.action === 'STORE_RECORD_REPLACEMENT_RECEIPT') {
-        const gr = await tx.goodsReceipt.findFirst({
-          where: {
-            id: input.recordedGoodsReceiptId ?? '',
-            companyId: order.companyId, projectId: order.projectId,
-            supplierId: order.supplierId,
-            purchaseOrder: { companyId: order.companyId, projectId: order.projectId, poNumber: order.poNumber },
-            postedAt: { not: null }, reversedAt: null,
+        // Do not relabel any unrelated posted GR as a completed supplier claim.
+        // Existing evidence-only cases remain readable until real source proof exists.
+        if (!current.origin || !current.claim ||
+            !input.originalReceivingDeliveryLineId || !input.recordedGoodsReceiptItemId ||
+            !input.recordedGoodsReceiptId)
+          return conflict('SUPPLIER_CASE_REPLACEMENT_PROVENANCE_REQUIRED');
+        const origin = await tx.receivingDeliveryLine.findFirst({
+          where: { id: input.originalReceivingDeliveryLineId },
+          select: {
+            id: true, purchaseOrderLineId: true, materialId: true, uomId: true,
+            observedQuantity: true, goodQuantity: true,
+            delivery: { select: {
+              id: true, companyId: true, projectId: true, supplierId: true,
+              purchaseOrderId: true, status: true, receivedAt: true,
+            } },
           },
+        });
+        const poLine = await tx.purchaseOrderLine.findFirst({
+          where: { id: origin?.purchaseOrderLineId ?? '', purchaseOrderId: order.id,
+            lineType: 'MATERIAL' },
+          select: { id: true, materialId: true, uomId: true },
+        });
+        const originalDocument = origin && await tx.document.findFirst({
+          where: { id: current.origin.evidenceDocumentId, companyId: order.companyId,
+            isActive: true, links: { some: {
+              entityType: 'RECEIVING_DELIVERY', entityId: origin.delivery.id,
+            } } },
           select: { id: true },
         });
-        if (!gr) return conflict('SUPPLIER_CASE_ACTUAL_POSTED_GR_REQUIRED');
+        const gr = await tx.goodsReceipt.findFirst({
+          where: { id: input.recordedGoodsReceiptId },
+          select: {
+            id: true, companyId: true, projectId: true, supplierId: true,
+            purchaseOrderId: true, postedAt: true, reversedAt: true,
+            approvalInstance: { select: { approvalState: true } },
+            items: { where: { id: input.recordedGoodsReceiptItemId },
+              select: { id: true, purchaseOrderLineId: true, materialId: true,
+                uomId: true, quantity: true } },
+            delivery: { select: {
+              id: true, companyId: true, projectId: true, supplierId: true,
+              purchaseOrderId: true, receivedAt: true, status: true, checkedAt: true,
+              supersedesId: true,
+              lines: { select: { purchaseOrderLineId: true, materialId: true,
+                uomId: true, goodQuantity: true } },
+            } },
+          },
+        });
+        if (!origin || !poLine?.materialId || !gr || !gr.items[0] || !gr.delivery)
+          return conflict('SUPPLIER_CASE_REPLACEMENT_SOURCE_NOT_FOUND');
+        const item = gr.items[0];
+        const deliveredLine = gr.delivery.lines.find(line =>
+          line.purchaseOrderLineId === poLine.id &&
+          line.materialId === poLine.materialId &&
+          line.uomId === poLine.uomId &&
+          line.goodQuantity.equals(item.quantity));
+        if (!deliveredLine)
+          return conflict('SUPPLIER_CASE_REPLACEMENT_DELIVERY_LINE_NOT_FOUND');
+        try {
+          const proof = verifySupplierReplacementProof({
+            expected: {
+              companyId: order.companyId, projectId: order.projectId,
+              supplierId: order.supplierId, purchaseOrderId: order.id,
+              purchaseOrderLineId: poLine.id, materialId: poLine.materialId,
+              uomId: poLine.uomId, discrepancyKind: current.state?.discrepancyKind ?? '',
+              claimAt: current.claim.claimedAt,
+            },
+            original: {
+              id: origin.delivery.id, lineId: origin.id,
+              companyId: origin.delivery.companyId, projectId: origin.delivery.projectId,
+              supplierId: origin.delivery.supplierId,
+              purchaseOrderId: origin.delivery.purchaseOrderId ?? '',
+              purchaseOrderLineId: origin.purchaseOrderLineId,
+              materialId: origin.materialId, uomId: origin.uomId,
+              status: origin.delivery.status,
+              receivedAt: origin.delivery.receivedAt.toISOString(),
+              observedQuantity: origin.observedQuantity.toFixed(4),
+              goodQuantity: origin.goodQuantity.toFixed(4),
+              discrepancyDocumentLinked: Boolean(originalDocument),
+            },
+            receipt: {
+              id: gr.id, itemId: item.id, companyId: gr.companyId,
+              projectId: gr.projectId, supplierId: gr.supplierId,
+              purchaseOrderId: gr.purchaseOrderId,
+              postedAt: gr.postedAt?.toISOString() ?? null,
+              reversedAt: gr.reversedAt?.toISOString() ?? null,
+              approvalState: gr.approvalInstance?.approvalState ?? null,
+              item: { purchaseOrderLineId: item.purchaseOrderLineId,
+                materialId: item.materialId, uomId: item.uomId,
+                quantity: item.quantity.toFixed(4) },
+              delivery: {
+                id: gr.delivery.id, companyId: gr.delivery.companyId,
+                projectId: gr.delivery.projectId, supplierId: gr.delivery.supplierId,
+                purchaseOrderId: gr.delivery.purchaseOrderId ?? '',
+                receivedAt: gr.delivery.receivedAt.toISOString(),
+                status: gr.delivery.status,
+                checkedAt: gr.delivery.checkedAt?.toISOString() ?? null,
+                supersedesId: gr.delivery.supersedesId,
+                line: { purchaseOrderLineId: deliveredLine.purchaseOrderLineId,
+                  materialId: deliveredLine.materialId, uomId: deliveredLine.uomId,
+                  goodQuantity: deliveredLine.goodQuantity.toFixed(4) },
+              },
+            },
+          });
+          replacementTrace = {
+            ...proof, discrepancyEventId: current.origin.eventId,
+            claimEventId: current.claim.eventId,
+          };
+        } catch (error) {
+          if (error instanceof SupplierReplacementProofError) return conflict(error.code);
+          throw error;
+        }
       }
       let decision;
       try {
@@ -253,7 +369,10 @@ export class SupplierDeliveryCaseService {
             ...(input.action === 'REPORT_DELAY' ?
               { newSupplierExpectedDate: input.newSupplierExpectedDate } : {}),
             ...(input.action === 'STORE_RECORD_REPLACEMENT_RECEIPT' ?
-              { recordedGoodsReceiptId: input.recordedGoodsReceiptId } : {}),
+              { recordedGoodsReceiptId: input.recordedGoodsReceiptId,
+                recordedGoodsReceiptItemId: input.recordedGoodsReceiptItemId,
+                originalReceivingDeliveryLineId: input.originalReceivingDeliveryLineId,
+                replacementTrace } : {}),
             effect: 'NO_PO_GR_STOCK_FINANCE_MUTATION',
           },
         },

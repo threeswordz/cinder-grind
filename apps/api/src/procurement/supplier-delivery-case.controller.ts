@@ -51,7 +51,8 @@ export class SupplierDeliveryCaseController {
     const allow = [
       'action', 'expectedVersion', 'expectedPreviousEventId', 'evidenceDocumentId',
       'note', 'recordedPoAcknowledgmentEventId', 'discrepancyKind',
-      'pmDecision', 'recordedGoodsReceiptId', 'newSupplierExpectedDate',
+      'pmDecision', 'recordedGoodsReceiptId', 'recordedGoodsReceiptItemId',
+      'originalReceivingDeliveryLineId', 'newSupplierExpectedDate',
     ];
     if (Object.keys(x).some(key => !allow.includes(key)) ||
         !actions.includes(x.action as SupplierAction) ||
@@ -90,6 +91,10 @@ export class SupplierDeliveryCaseController {
         ? { pmDecision: pmDecision as NonNullable<SupplierCaseInput['pmDecision']> } : {}),
       ...(x.recordedGoodsReceiptId !== undefined
         ? { recordedGoodsReceiptId: uuid(x.recordedGoodsReceiptId, 'recordedGoodsReceiptId') } : {}),
+      ...(x.recordedGoodsReceiptItemId !== undefined
+        ? { recordedGoodsReceiptItemId: uuid(x.recordedGoodsReceiptItemId, 'recordedGoodsReceiptItemId') } : {}),
+      ...(x.originalReceivingDeliveryLineId !== undefined
+        ? { originalReceivingDeliveryLineId: uuid(x.originalReceivingDeliveryLineId, 'originalReceivingDeliveryLineId') } : {}),
       ...(x.newSupplierExpectedDate !== undefined
         ? { newSupplierExpectedDate: x.newSupplierExpectedDate as string } : {}),
     };

@@ -23,6 +23,8 @@ type State = {
   approvedLatest: boolean; case: Case | null;
   expectedPreviousEventId: string | null;
   advisoryOnly: boolean; stockEffect: false; financeEffect: false;
+  replacementTrace?: { quantity: string; purchaseOrderLineId: string;
+    replacementGoodsReceiptId: string; originalDeliveryId: string } | null;
 };
 type Props = { orderId: string; permissions: string[]; roleCodes: string[]; preferredEvidenceDocumentId?: string };
 type Data<T> = { data: T };
@@ -45,6 +47,8 @@ export function SupplierDeliveryCasePanel({ orderId, permissions, roleCodes, pre
   const [decision, setDecision] = useState('REQUEST_REPLACEMENT');
   const [date, setDate] = useState('');
   const [receiptId, setReceiptId] = useState('');
+  const [receiptItemId, setReceiptItemId] = useState('');
+  const [originalLineId, setOriginalLineId] = useState('');
   const canJai = roleCodes.includes('PROCUREMENT_OFFICER') && permissions.includes('procurement.po.view');
   const canStore = roleCodes.includes('STOREKEEPER') && permissions.includes('inventory.receiving.view');
   const canPm = roleCodes.includes('PROJECT_MANAGER') && permissions.includes('inventory.receipt.view');
@@ -93,11 +97,15 @@ export function SupplierDeliveryCasePanel({ orderId, permissions, roleCodes, pre
         ...(choice==='REPORT_DISCREPANCY'?{discrepancyKind:kind}:{}),
         ...(choice==='PM_REVIEW_DISCREPANCY'?{pmDecision:decision}:{}),
         ...(choice==='REPORT_DELAY'?{newSupplierExpectedDate:date}:{}),
-        ...(choice==='STORE_RECORD_REPLACEMENT_RECEIPT'?{recordedGoodsReceiptId:receiptId.trim()}:{}),
+        ...(choice==='STORE_RECORD_REPLACEMENT_RECEIPT'?{
+          recordedGoodsReceiptId:receiptId.trim(),
+          recordedGoodsReceiptItemId:receiptItemId.trim(),
+          originalReceivingDeliveryLineId:originalLineId.trim(),
+        }:{}),
       }),
     }),
     onSuccess:()=>{
-      setNote('');setDocumentId('');setAckId('');setReceiptId('');setDate('');
+      setNote('');setDocumentId('');setAckId('');setReceiptId('');setReceiptItemId('');setOriginalLineId('');setDate('');
       void client.invalidateQueries({queryKey:['supplier-delivery-case',orderId]});
     },
   });
@@ -124,6 +132,12 @@ export function SupplierDeliveryCasePanel({ orderId, permissions, roleCodes, pre
               {caseData.case?.discrepancyKind?<Typography variant="body2">
                 Discrepancy: {caseData.case.discrepancyKind} · PM decision: {caseData.case.pmDecision??'awaiting review'}
               </Typography>:null}
+              {caseData.replacementTrace?<Alert severity="success">
+                Linked damaged quantity: {caseData.replacementTrace.quantity} ·
+                PO item {caseData.replacementTrace.purchaseOrderLineId} ·
+                Posted GR {caseData.replacementTrace.replacementGoodsReceiptId}.
+                This evidence action did not post stock or Finance.
+              </Alert>:null}
             </Stack>
           ):null}
           <Divider />
@@ -169,8 +183,15 @@ export function SupplierDeliveryCasePanel({ orderId, permissions, roleCodes, pre
                   onChange={e=>setDate(e.target.value)} slotProps={{inputLabel:{shrink:true}}} required/>
               ):null}
               {selected==='STORE_RECORD_REPLACEMENT_RECEIPT'?(
-                <TextField label="Existing approved/posted Goods Receipt UUID" value={receiptId}
-                  onChange={e=>setReceiptId(e.target.value)} required/>
+                <Stack spacing={1}>
+                  <Alert severity="info">Only DAMAGED source quantities are supported: the original receiving evidence must link to the original checked delivery; the supplier replacement must be separately received, checked and posted, with an exact item, UOM and damaged quantity match.</Alert>
+                  <TextField label="Original damaged Receiving Delivery LINE UUID" value={originalLineId}
+                    onChange={e=>setOriginalLineId(e.target.value)} required/>
+                  <TextField label="New posted replacement Goods Receipt UUID" value={receiptId}
+                    onChange={e=>setReceiptId(e.target.value)} required/>
+                  <TextField label="Replacement Goods Receipt ITEM UUID" value={receiptItemId}
+                    onChange={e=>setReceiptItemId(e.target.value)} required/>
+                </Stack>
               ):null}
               <TextField label="Existing authorized Project Document UUID" value={documentId}
                 onChange={e=>setDocumentId(e.target.value)} required/>
@@ -181,7 +202,7 @@ export function SupplierDeliveryCasePanel({ orderId, permissions, roleCodes, pre
               <Box><Button variant="outlined" disabled={save.isPending||!selected||!documentId.trim()||!note.trim()||
                 (selected==='ACKNOWLEDGE'&&!ackId)||
                 (selected==='REPORT_DELAY'&&!date)||
-                (selected==='STORE_RECORD_REPLACEMENT_RECEIPT'&&!receiptId.trim())}
+                (selected==='STORE_RECORD_REPLACEMENT_RECEIPT'&&(!receiptId.trim()||!receiptItemId.trim()||!originalLineId.trim()))}
                 onClick={()=>{if(selected)save.mutate(selected)}}>
                 {save.isPending?'Recording...':'Record source-linked evidence'}
               </Button></Box>
