@@ -25,6 +25,7 @@ import {
 import { ApiError } from '../api/client';
 import { printApprovedPurchaseOrderHtml } from './purchase-order-print';
 import { PurchaseOrderCancellationPanel } from './PurchaseOrderCancellationPanel';
+import { SupplierDeliveryCasePanel } from './SupplierDeliveryCasePanel';
 import {
   PoAward,
   PoDispatchDraft,
@@ -1087,6 +1088,13 @@ export function PurchaseOrdersPanel({ permissions, roleCodes, initialProjectId, 
 
                 {approved && !current.nextRevision ? (
                   <PurchaseOrderCancellationPanel
+                    orderId={orderId}
+                    permissions={permissions}
+                    roleCodes={roleCodes}
+                  />
+                ) : null}
+                {approved && !current.nextRevision ? (
+                  <SupplierDeliveryCasePanel
                     orderId={orderId}
                     permissions={permissions}
                     roleCodes={roleCodes}
