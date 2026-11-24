@@ -138,7 +138,8 @@ export class SupplierDeliveryCaseService {
       if (state && (state.projectId !== obj.projectId || state.revisionId !== obj.revisionId))
         return conflict('SUPPLIER_CASE_HISTORY_SOURCE_CHANGED');
       // Preserve exact actor and first event, rather than trusting time/UUID sort.
-      if (version === 1 && (e.action !== 'ACKNOWLEDGE' || obj.stage !== 'ACKNOWLEDGED'))
+      if (version === 1 && !((e.action === 'ACKNOWLEDGE' && obj.stage === 'ACKNOWLEDGED') ||
+          (e.action === 'REPORT_DISCREPANCY' && obj.stage === 'DISCREPANCY_REPORTED')))
         return conflict('SUPPLIER_CASE_HISTORY_INVALID_START');
       if (typeof values.actorUserId !== 'string' || values.actorUserId !== e.actorUserId ||
           typeof values.evidenceDocumentId !== 'string' || !uuid(values.evidenceDocumentId))
