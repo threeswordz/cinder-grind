@@ -39,7 +39,14 @@ for(const e of d.events){
 const all=[...records.values()];
 const remaining=all.reduce((a,p)=>a+p.remaining,0);
 const reduction=initial-remaining;
-if(remaining===0){
+const additional=d.unestimatedWork.reduce((a,x)=>{
+  must(x.hours===null||(Number.isInteger(x.hours)&&x.hours>=0),'Invalid discovered-scope work hours');
+  if(x.hours===0)must(x.formalAcceptance===true&&typeof x.formalAcceptanceUrl==='string',
+    'Discovered scope cannot reach 0h before formal acceptance: '+x.id);
+  return a+(x.hours??0);
+},0);
+const forecast=remaining+additional;
+if(forecast===0){
  must(d.counts.officialPrototypeCompleted===d.counts.officialPrototypeTotal&&
  d.counts.officialGoLiveCompleted===d.counts.officialGoLiveTotal &&
  d.unestimatedWork.every(x=>x.hours!==null) &&
@@ -57,11 +64,12 @@ const fmt=x=>Number(x).toLocaleString('en-US');
 const pct=(x,y)=>(x*100/y).toFixed(2)+'%';
 let out='# Construction ERP — evidence-backed remaining-hours dashboard\n\n';
 out+='**Deadline:** 31 Dec 2026, ALL 112 requirements / 8 real roles / Production. **Risk RED.** This is estimated future work, not observed worker time, and does not waive review or Owner acceptance.\n\n';
-out+='## Full ERP countdown: **'+fmt(remaining)+'h → 0h**\n\n';
+out+='## Full ERP countdown: **'+fmt(forecast)+'h → 0h**\n\n';
 out+='| Measure | Amount |\n|---|---:|\n';
 out+='| Starting provisional remaining estimate (23 Nov) | '+fmt(initial)+'h |\n';
 out+='| Subsequent forecast work reduction | '+fmt(reduction)+'h ('+pct(reduction,initial)+') |\n';
-out+='| **Latest remaining forecast** | **'+fmt(remaining)+'h** |\n';
+out+='| Newly priced mandatory work not in original 60 rows | +'+fmt(additional)+'h |\n';
+out+='| **Latest remaining forecast** | **'+fmt(forecast)+'h** |\n';
 out+='| Historical original forecast | '+fmt(d.historicalRemainingBaselineHours)+'h |\n';
 out+='| Proposed, NOT accepted optimization target | '+fmt(d.fullScopeOptimizationTargetHours)+'h |\n';
 out+='| Formally accepted whole packages | '+all.filter(p=>p.remaining===0).length+'/60 |\n';
@@ -69,11 +77,14 @@ out+='| Prototype milestones | '+d.counts.officialPrototypeCompleted+'/8 |\n';
 out+='| GL release gates | '+d.counts.officialGoLiveCompleted+'/10 |\n';
 out+='| Last published M4 technical checklist | '+d.counts.m4TechnicalCheckpointsCompleted+'/32 |\n';
 out+='| Actual productive hours logged | UNKNOWN |\n';
-out+='| Unpriced source gaps | '+d.unestimatedWork.filter(x=>x.hours===null).length+' |\n\n';
+out+='| Still unpriced source gaps | '+d.unestimatedWork.filter(x=>x.hours===null).length+' |\n\n';
 out+='## Every milestone — rolling hours\n\n';
-out+='| Stage | Starting future work | Verified forecast change | Remaining | Accepted packages |\n|---|---:|---:|---:|---:|\n';
-for(const s of stages)out+='| '+s.id+' | '+s.start+'h | '+(s.start-s.left)+'h | **'+s.left+'h** | '+s.accepted+'/'+s.items.length+' |\n';
-out+='| **All stages** | **'+fmt(initial)+'h** | **'+fmt(reduction)+'h** | **'+fmt(remaining)+'h** | **'+all.filter(p=>p.remaining===0).length+'/60** |\n\n';
+out+='| Stage | 23 Nov baseline | Earlier reduction | New priced scope | Current remaining | Accepted baseline packages |\n|---|---:|---:|---:|---:|---:|\n';
+for(const s of stages){
+ const extra=d.unestimatedWork.filter(x=>x.stage===s.id).reduce((a,x)=>a+(x.hours??0),0);
+ out+='| '+s.id+' | '+s.start+'h | '+(s.start-s.left)+'h | +'+extra+'h | **'+(s.left+extra)+'h** | '+s.accepted+'/'+s.items.length+' |\n';
+}
+out+='| **All stages** | **'+fmt(initial)+'h** | **'+fmt(reduction)+'h** | **+'+fmt(additional)+'h** | **'+fmt(forecast)+'h** | **'+all.filter(p=>p.remaining===0).length+'/60** |\n\n';
 out+='## Every work package — rolling hours\n\n';
 out+='| Package | Stage | Work item | Start | Credited forecast reduction | Remaining | Unapproved optimized target |\n|---|---|---|---:|---:|---:|---:|\n';
 for(const p of all)out+='| '+p.id+' | '+p.stage+' | '+p.title.replaceAll('|','/')+' | '+p.baselineRemainingHours+'h | '+(p.baselineRemainingHours-p.remaining)+'h | **'+p.remaining+'h** | '+p.optimizationTargetHours+'h |\n';
@@ -83,9 +94,11 @@ for(const e of [...d.events].reverse()){
  out+=e.evidence.map((u,i)=>'[Evidence '+(i+1)+']('+u+')').join(' ')+'\n';
 }
 out+='\n## Outstanding unpriced gaps\n\n';
-for(const x of d.unestimatedWork)out+='- **'+x.id+'**: '+x.remaining+'. Hours TBD until allocated once, not silently subtracted. [Source]('+x.evidence+')\n';
+for(const x of d.unestimatedWork){
+ out+='- **'+x.id+'** ('+x.stage+'): '+(x.hours===null?'TBD':x.hours+'h remaining')+'; '+x.remaining+'. [Source]('+x.evidence+')\n';
+}
 out+='\n**Credit rule:** Each Chat development session publishes source SHA, explicit deliverable, reused/new verification and the estimated remaining hours for the affected package, with evidence. Commits and CI passes alone do not automatically remove hours. New defects or omitted scope may INCREASE the forecast. Package 0h requires recorded formal acceptance; full ERP 0h requires all 60 exits and all 10 GL gates. Never self-approve. Canonical issue: [#414](https://github.com/threeswordz/cinder-grind/issues/414).\n';
 if(process.argv.includes('--write')){
  writeFileSync('docs/ERP-ACTIVE-PROGRESS.md',out);
- console.log('Dashboard written: '+fmt(remaining)+'h remaining, '+d.events.length+' events');
+ console.log('Dashboard written: '+fmt(forecast)+'h remaining including newly priced work, '+d.events.length+' events');
 }else process.stdout.write(out);
