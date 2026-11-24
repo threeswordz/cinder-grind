@@ -254,9 +254,141 @@ try{
     '/documents/projects/'+unassigned.id+'/'+sameCompanyDocument.id+'/download',
     sameCompanyDocument.bytes);
 
-  // Client BOQ requires the actual authorized cost revision workflow.
-  // Never bypass ERP_THB_PROVENANCE_REQUIRED by manufacturing a priced revision.
-  // Client BOQ protected-byte evidence remains BLOCKED_CONFIGURATION.
+  // Four-stage real business provenance: Ben prepares Cost BOQ, Khaimook
+  // independently approves Cost revision, Ben prepares Client BOQ, Nancy
+  // independently approves Client version. The fixture is ephemeral ONLY.
+  stage='CLIENT_BOQ_REAL_SOURCE_SERVICE_PROVENANCE';
+  const budget=app.get(BudgetService);
+  const customerBoqService=app.get(CustomerBoqService);
+  const khaimookSession=await signIn(actors.KHAIMOOK.email,actors.KHAIMOOK.password);
+  const nancySession=await signIn(actors.NANCY.email,actors.NANCY.password);
+  async function currentActor(key) {
+    const a=actors[key];
+    const session=await db.userSession.findFirst({where:{
+      userId:a.userId,revokedAt:null,expiresAt:{gt:new Date()}
+    },orderBy:{createdAt:'desc'}});
+    requireSafe(session?.id,'LIVE_SYNTHETIC_SESSION_NOT_FOUND');
+    return {
+      sessionId:session.id,userId:a.userId,companyId:company.id,
+      email:a.email,displayName:'Disposable '+key,
+      csrfTokenHash:session.csrfTokenHash,
+      roleCodes:[...a.roleCodes],
+      permissions:[...new Set(a.roleCodes.flatMap(role=>roleGrants[role]??[]))]
+    };
+  }
+  const ben=await currentActor('BEN');
+  const khaimook=await currentActor('KHAIMOOK');
+  const nancy=await currentActor('NANCY');
+  requireSafe(ben.userId!==khaimook.userId&&ben.userId!==nancy.userId&&
+    khaimook.userId!==nancy.userId,'BOQ_MAKER_CHECKER_IDENTITIES_REUSED');
+  const costWorkflow='M4_COST_REVISION';
+  const clientWorkflow='M4_CLIENT_BOQ';
+  async function createApprovalWorkflow(entityType,code,checkerRole){
+    return db.approvalWorkflow.create({data:{
+      companyId:company.id,entityType,workflowCode:code,workflowName:'Disposable '+code,
+      steps:{create:{stepNo:1,stepName:'Independent checker',
+        requiredApprovals:1,stepRoles:{create:{roleId:roles[checkerRole].id}}}}
+    }});
+  }
+  await createApprovalWorkflow('BUDGET_REVISION',costWorkflow,'PROJECT_MANAGER');
+  await createApprovalWorkflow('CUSTOMER_BOQ',clientWorkflow,'FINANCE_MANAGER');
+  await db.numberSequence.create({data:{
+    companyId:company.id,entityType:'BUDGET_REVISION',
+    sequenceCode:'BUDGET_REVISION',formatTemplate:'CBYY-###',resetRule:'YEARLY'
+  }});
+  const pricedUom=await db.unitOfMeasure.create({data:{
+    companyId:company.id,uomCode:'CBQ-'+suffix,uomName:'Disposable each',
+    decimalPlaces:0
+  }});
+  const pricedCostCode=await db.costCode.create({data:{
+    companyId:company.id,costCode:'M4BOQ-'+suffix,costName:'Disposable cost'
+  }});
+  const costBoq=await budget.createBoq({auth:ben},assigned.id,'Disposable source Cost BOQ');
+  const costSection=await budget.createSection({auth:ben},costBoq.id,{
+    sectionCode:'A',sectionName:'Actual cost',sortOrder:0
+  });
+  await budget.createItem({auth:ben},costBoq.id,{
+    sectionId:costSection.id,itemCode:'C1',description:'Synthetic source work',
+    quantity:new Prisma.Decimal(10),uomId:pricedUom.id,
+    costCodeId:pricedCostCode.id,rate:new Prisma.Decimal(100),sortOrder:0
+  });
+  const costDraft=await budget.createRevisionDraft({auth:ben},assigned.id);
+  await budget.submitRevision({auth:ben},costDraft.id,costWorkflow);
+  const costApproved=await budget.approveRevision({auth:khaimook},costDraft.id,
+    'Independent Khaimook approval of synthetic Cost BOQ');
+  const costRow=await db.budgetRevision.findUniqueOrThrow({
+    where:{id:costApproved.id},include:{approvalInstance:true,lines:true}
+  });
+  requireSafe(costRow.createdByUserId===ben.userId&&
+    costRow.approvalInstance?.approvalState==='APPROVED'&&
+    costRow.lines.length===1,'COST_BOQ_INDEPENDENT_APPROVAL_NOT_PERSISTED');
+  const costAction=await db.approvalAction.findFirst({where:{
+    approvalInstanceId:costRow.approvalInstanceId,
+    actionByUserId:khaimook.userId,action:'APPROVE'
+  }});
+  requireSafe(Boolean(costAction),'COST_BOQ_CHECKER_AUDIT_MISSING');
+  const sourceLine=costRow.lines[0];
+  const customerReceipt=await customerBoqService.create({auth:ben},
+    assigned.id,randomUUID(),{
+      sourceRevisionId:costRow.id,reason:'Synthetic Client BOQ pricing',
+      lines:[{lineId:randomUUID(),
+        description:'LANEC_SYNTHETIC_SECRET priced client approved version',
+        quantity:'10',uomId:pricedUom.id,
+        method:'MANUAL',manualRate:'125',
+        mappings:[{sourceLineId:sourceLine.id,sharePercent:'100'}]
+      }]
+    });
+  requireSafe(customerReceipt.approvalState==='DRAFT',
+    'CLIENT_BOQ_CREATION_INCOMPLETE');
+  await customerBoqService.submit({auth:ben},assigned.id,
+    randomUUID(),customerReceipt.id,customerReceipt.editNo,clientWorkflow);
+  const submittedCustomer=await db.customerBoqVersion.findUniqueOrThrow({
+    where:{id:customerReceipt.id},include:{approvalInstance:true}
+  });
+  requireSafe(submittedCustomer.createdByUserId===ben.userId&&
+    submittedCustomer.submittedByUserId===ben.userId&&
+    submittedCustomer.approvalInstance?.approvalState==='SUBMITTED',
+    'CLIENT_BOQ_MAKER_NOT_RECORDED');
+  let makerRejected=false;
+  try{
+    await customerBoqService.decide({auth:ben},assigned.id,randomUUID(),
+      customerReceipt.id,submittedCustomer.approvalInstanceId,
+      'APPROVE','Disallowed maker self approval');
+  }catch(error){makerRejected=error?.status===403||
+    error?.getStatus?.()===403;}
+  requireSafe(makerRejected,'CLIENT_BOQ_SELF_APPROVAL_NOT_DENIED');
+  const clientApproved=await customerBoqService.decide({auth:nancy},
+    assigned.id,randomUUID(),customerReceipt.id,
+    submittedCustomer.approvalInstanceId,'APPROVE',
+    'Independent Nancy Client BOQ approval in disposable fixture');
+  requireSafe(clientApproved.approvalState==='APPROVED',
+    'CLIENT_BOQ_APPROVAL_INCOMPLETE');
+  const approvedCustomer=await db.customerBoqVersion.findUniqueOrThrow({
+    where:{id:customerReceipt.id},include:{
+      approvalInstance:{include:{actions:true}},
+      edits:{include:{lines:true}}
+    }
+  });
+  requireSafe(approvedCustomer.approvalInstance?.approvalState==='APPROVED'&&
+    approvedCustomer.approvalInstance.actions.length===1&&
+    approvedCustomer.approvalInstance.actions[0].actionByUserId===nancy.userId&&
+    approvedCustomer.edits[0]?.lines.length===1,
+    'CLIENT_BOQ_INDEPENDENT_APPROVAL_AUDIT_OR_PRICE_MISSING');
+  const csvPath='/budget/customer/projects/'+assigned.id+
+    '/versions/'+approvedCustomer.id+'/export';
+  stage='CLIENT_BOQ_AUTHENTICATED_POSITIVE_EXPORT_BYTES';
+  const csvRes=await fetch(API+'/api/v1'+csvPath,{
+    headers:{Cookie:benSession.cookie,Origin:WEB},redirect:'error'});
+  requireSafe(csvRes.status===200,'CLIENT_BOQ_BEN_EXPORT_NOT_AUTHORIZED');
+  const csvBytes=Buffer.from(await csvRes.arrayBuffer());
+  requireSafe(csvBytes.subarray(0,3).equals(Buffer.from([0xef,0xbb,0xbf]))&&
+    csvBytes.includes('Rate')&&csvBytes.includes('Amount')&&
+    csvBytes.includes('LANEC_SYNTHETIC_SECRET')&&
+    csvBytes.includes('APPROVED')&&csvBytes.includes('1250.00'),
+    'CLIENT_BOQ_APPROVED_CSV_FINANCIAL_BYTES_MISSING');
+  await positiveGet(nancySession,csvPath,csvBytes);
+  await signOut(nancySession);
+  await signOut(khaimookSession);
   await signOut(benSession);
 
   // Real encrypted HR upload under a persisted employee/role/category grant.
@@ -304,7 +436,7 @@ try{
     '/hr/companies/'+company.id+'/employees/'+disabled.id+
       '/documents/'+hrAttachmentId+'/download',hrBytes);
   await signOut(kohSession);
-  stage='THREE_REAL_POSITIVE_CONTROLS_VERIFIED';
+  stage='FOUR_PROTECTED_SOURCES_POSITIVE_VERIFIED';
 
   const fixture={
     purpose:'M4_LANE_C_DISPOSABLE_SYNTHETIC_ONLY',
@@ -314,6 +446,7 @@ try{
     sameCompanyOtherProjectId:unassigned.id,
     foreignCompanyId:foreign.id,foreignProjectId:outside.id,
     employeeId:disabled.id,actors,
+    clientBoqVersionId:approvedCustomer.id,
     foreignDocumentId:foreignDocument.id,
     otherProjectDocumentId:sameCompanyDocument.id,
     hrAttachmentId,
@@ -351,18 +484,17 @@ try{
   requireSafe(report.personas.every(x=>Array.isArray(x.checks)&&
     x.checks.length>=1&&x.checks.every(c=>c.status==='PASS')),
     'REAL_BROWSER_ROLE_BOUNDARY_NOT_PROVEN');
-  requireSafe(report.status==='PARTIAL_BLOCKED_FIXTURE'&&exitCode===1,
-    'UNSEEDED_COST_BOQ_MUST_NOT_PASS_FULL_BROWSER');
+  requireSafe(report.status==='DISPOSABLE_BROWSER_BOUNDARIES_PASS'&&exitCode===0,
+    'ALL_PROTECTED_SOURCE_BOUNDARIES_NOT_VERIFIED');
   requireSafe(Array.isArray(report.missingSyntheticArtifacts)&&
-    report.missingSyntheticArtifacts.length===1&&
-    report.missingSyntheticArtifacts[0]==='clientBoqVersionId',
-    'PROTECTED_ARTIFACT_BLOCKER_NOT_EXACT');
+    report.missingSyntheticArtifacts.length===0,
+    'PROTECTED_ARTIFACT_REMAINS_UNPROVEN');
   const count=report.personas.reduce((sum,a)=>sum+a.checks.length,0);
-  requireSafe(count>=74,'EXPECTED_THREE_PROTECTED_RECORD_CHECKS_MISSING');
-  console.log('M4_DISPOSABLE_DOC_HR_POSITIVE_PARTIAL checks='+count+
+  requireSafe(count>=80,'EXPECTED_FOUR_PROTECTED_RECORD_CHECKS_MISSING');
+  console.log('M4_DISPOSABLE_FOUR_PROTECTED_SOURCES_PASS checks='+count+
     ' canonicalRoles=8 disabled=1 source='+EXACT.slice(0,12)+
-    ' verified=foreign-doc+other-project-doc+encrypted-hr client-boq=BLOCKED_PROVENANCE'+
-    ' retainedUat=false humanAcceptance=false');
+    ' verified=approved-client-boq+foreign-doc+other-project-doc+encrypted-hr'+
+    ' independent=Ben-Khaimook-Nancy retainedUat=false humanAcceptance=false');
 } catch(error){
   const code=String(error?.safeCode??'DISPOSABLE_RUNNER_FAILED')
     .replace(/[^A-Z0-9_]/g,'').slice(0,100);
