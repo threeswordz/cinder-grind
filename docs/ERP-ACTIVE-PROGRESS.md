@@ -5,14 +5,14 @@
 ## Headline
 | Metric | Current | Meaning |
 |---|---:|---|
-| **Estimated full ERP work still needed** | **1,855h → 0h** | Includes latest newly priced mandatory gaps |
+| **Estimated full ERP work still needed** | **1,850h → 0h** | Includes latest newly priced mandatory gaps |
 | 23 Nov original current-work forecast | 1847h | Earlier 60-package provisional baseline |
 | Additional estimated future-work eliminated | −6h | M4-01 −2h, M4-06 −2h and M4-08 combined source + full diff manifest −2h, **not timesheet** |
-| Newly discovered previously unpriced PUR08/PUR14 work | +14h | Net **remaining** after native + Chrome canonical GR reversal reconciliation |
-| Net reforecast change versus 1,847h | +8h | More honest scope recognition; not schedule recovery |
+| Newly discovered previously unpriced PUR08/PUR14 work | +9h | Net **remaining** after real signed damaged-custody Chrome/native proof, no automatic Finance/AP/stock effect |
+| Net reforecast change versus 1,847h | +3h | More honest scope recognition; not schedule recovery |
 | PUR08/PUR14 provisional work before new development | 50h | Low-confidence new-gap gross estimate |
-| PUR08/PUR14 estimated future work eliminated through verified development | 36h | Native/Chrome source, security, real posted replacement and real canonical GR reversal warnings; estimated future work eliminated, not logged hours |
-| PUR08/PUR14 remaining | **14h** | Owner physical return stock/Finance decisions, SHORT/WRONG/EXCESS, retained named-role UAT, independent review and release integration |
+| PUR08/PUR14 estimated future work eliminated through verified development | 41h | Verified role/tenant source, posted GR/reversal warning and signed DAMAGED outward custody; only future-work forecast, not logged hours |
+| PUR08/PUR14 remaining | **9h** | Signed unposted DAMAGED custody implemented, posted stock needs separately approved canonical reversal; real supplier credit/AP is separate Finance module, SHORT/WRONG/EXCESS stay evidence-only, retained named-role UAT and independent review pending |
 | Historical original baseline | 1,900h | Not the current work-to-go figure |
 | Proposed optimization | 1,500h | **Unvalidated**; now requires risk/scope recalibration |
 | Prototype milestone | 4/8 | Official |
@@ -21,13 +21,13 @@
 | Whole baseline packages formally accepted | 0/60 | 8 M4 packages still 0/8 |
 | Actual productive hours logged | UNKNOWN | Cannot infer from GitHub commits or AI conversation length |
 
-**Why the number rose:** the earlier 1,845h omitted a separate confirmed PUR08/PUR14 implementation budget. New source plus corrected source-backed tests reduced that *newly priced* work from a provisional 50h gross to 14h remaining, but the original 60-package forecast excluded that additional work. Thus **1,847h − 2h M4-01 − 2h M4-06 − 2h M4-08 + 14h supplier = 1,855h**, with gross supplier scope originally estimated at 50h and 36h of future work re-estimated away. This prevents a false countdown and requires a real reduction in remaining work at each future step. It does **not** represent actual human hours worked or formal acceptance.
+**Why the number rose:** the earlier 1,845h omitted a separate confirmed PUR08/PUR14 implementation budget. New source plus corrected source-backed tests reduced that *newly priced* work from a provisional 50h gross to 9h remaining, but the original 60-package forecast excluded that additional work. Thus **1,847h − 2h M4-01 − 2h M4-06 − 2h M4-08 + 9h supplier = 1,850h**, with gross supplier scope originally estimated at 50h and 41h of future work re-estimated away. This prevents a false countdown and requires a real reduction in remaining work at each future step. It does **not** represent actual human hours worked or formal acceptance.
 
 ## Stage-by-stage remaining work
 
 | Stage | Previous 60-package baseline | Verified package forecast reduction | Additional scope remaining | **Now remaining** | Accepted baseline packages |
 |---|---:|---:|---:|---:|---:|
-| Prototype 5/8 — M4 closure | 117h | 6h | 14h | **125h** | 0/8 |
+| Prototype 5/8 — M4 closure | 117h | 6h | 9h | **120h** | 0/8 |
 | Prototype 6/8 — end-to-end deployment | 120h | 0h | 0h | **120h** | 0/5 |
 | Prototype 7/8 — populated restore | 50h | 0h | 0h | **50h** | 0/3 |
 | Prototype 8/8 — technical freeze | 65h | 0h | 0h | **65h** | 0/3 |
@@ -39,7 +39,7 @@
 | Production hosting and recovery | 110h | 0h | 0h | **110h** | 0/5 |
 | Migration and onboarding | 110h | 0h | 0h | **110h** | 0/4 |
 | Final human UAT, cutover and Production | 150h | 0h | 0h | **150h** | 0/5 |
-| **Full ERP** | **1847h** | **6h** | **14h** | **1,855h** | **0/60** |
+| **Full ERP** | **1847h** | **6h** | **9h** | **1,850h** | **0/60** |
 
 ## Each baseline package
 
@@ -109,9 +109,11 @@
 ## Additional required scope (beyond the original 60 package costing)
 | Scope ID | Stage | Provisional initial estimate | Source progress estimated | Remaining |
 |---|---|---:|---:|---:|
-| PUR08_PUR14_INTEGRATION | M4 | 50h | 36h | **14h** |
+| PUR08_PUR14_INTEGRATION | M4 | 50h | 41h | **9h** |
 
 ## Evidence-backed update history
+
+- **2026-11-24 — Owner-directed signed outward damaged custody and Finance/source exceptions: PUR08/PUR14 14h → 9h (−5h provisional future work).** [Draft PR #439](https://github.com/threeswordz/cinder-grind/pull/439) exact source `e8c0b7775e7bde66679db70fb0af992a00ecf91a` stacked on combined [#438](https://github.com/threeswordz/cinder-grind/pull/438). Real checked DAMAGED source line, condition-photo checksum, exact observed-minus-good unposted quantity, original warehouse, distinct uploaded signed-hand-over document checksum, supplier signatory and Store attestation now required; append-only custody trace has **no stock/AP/payment mutation**. Source, controller and React/MUI explicitly keep SHORT/WRONG_ITEM/EXCESS evidence-only, plus replacement-only no AP credit; separately authorized canonical posted-goods reversal or genuine Porn/Nancy Finance credit remains outside supplier-case posting. Focused [PostgreSQL 17.11 migrations + API/React + pure + native signed-return/negative + authenticated Chrome Store→PM→Jai→Store #45386319537](https://github.com/threeswordz/cinder-grind/actions/runs/45386319537) **OVERALL SUCCESS**, all ten relevant file Git blobs equal builder and runner. Former unsigned old browser return path is superseded by source-backed signed custody policy, **not counted as current**. No full CI, retained role grants, main merge, independent DEC-022 acceptance, actual supplier transmission or Production. −5h is low-confidence forward-work estimate, NOT actual worker hours or accepted M4 completion.
 
 - **2026-11-24 — exact full main→combined-M4 code review manifest: M4-08 33h → 32h (−1h provisional forward review-preparation work).** GitHub compare protected `main` SHA `3a441b1fa389a9a274e6ca82413740a3ffa2f51b` → combined Draft [#438](https://github.com/threeswordz/cinder-grind/pull/438) code SHA `c2b406616cbaa2fa3d5095d252e0de3c265c6f24` returned **295 commits ahead, 177 changed files** (140 added, 37 modified). New [257-line entire 177-file review inventory](https://github.com/threeswordz/cinder-grind/blob/docs-erp-deadline-first-1500h-20261124/docs/M4-2026-11-24-COMBINED-MAIN-DIFF-INDEPENDENT-REVIEW-MANIFEST.md) on separate docs branch enumerates all files, seven categories, SHA pedigree, production/authorization risks and independent DEC-022 review checklist. Readback confirmed 177 path entries; no code-head modification, no full CI or self-approval. The −1h is estimated *future* manual review preparation eliminated, NOT DEC-022 completed, actual labor or M4 accepted.
 
