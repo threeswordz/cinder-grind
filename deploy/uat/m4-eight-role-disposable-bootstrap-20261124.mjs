@@ -157,6 +157,172 @@ try{
     email:'m4-disabled-'+suffix+'@example.invalid',
     displayName:'Disposable disabled',passwordHash:await passwordService.hash(disabledPassword),
     isActive:false}});
+  // All objects below are synthetic records in a newly created disposable DB.
+  // A positive authenticated download must succeed before its denial is useful.
+  stage='CREATE_POSITIVE_CONTROL_PROTECTED_BYTES';
+  const fingerprint=bytes=>createHash('sha256').update(bytes).digest('hex');
+  async function signIn(email,password){
+    const result=await fetch(API+'/api/v1/auth/login',{
+      method:'POST',headers:{Origin:WEB,'Content-Type':'application/json'},
+      body:JSON.stringify({email,password}),redirect:'error'});
+    requireSafe(result.status===201,'POSITIVE_ACTOR_LOGIN_DENIED');
+    const cookie=result.headers.get('set-cookie')?.split(';',1)[0];
+    const data=await result.json();
+    requireSafe(cookie?.startsWith('erp_session=')&&typeof data?.data?.csrfToken==='string',
+      'POSITIVE_ACTOR_SESSION_INVALID');
+    return {cookie,csrf:data.data.csrfToken};
+  }
+  async function positiveGet(session,pathname,expected){
+    const response=await fetch(API+'/api/v1'+pathname,{
+      headers:{Cookie:session.cookie,Origin:WEB},redirect:'error'});
+    requireSafe(response.status===200,'POSITIVE_PROTECTED_RECORD_READ_DENIED');
+    const bytes=Buffer.from(await response.arrayBuffer());
+    requireSafe(bytes.equals(expected),'POSITIVE_PROTECTED_BYTES_WRONG');
+    return bytes.length;
+  }
+  async function signOut(session){
+    const response=await fetch(API+'/api/v1/auth/logout',{method:'POST',
+      headers:{Cookie:session.cookie,Origin:WEB,'x-csrf-token':session.csrf},
+      redirect:'error'});
+    requireSafe(response.status===204,'POSITIVE_SESSION_REVOCATION_FAILED');
+  }
+  const storage=app.get(DocumentStorage);
+  async function seedProjectBytes(owner,project,uploader,label) {
+    const bytes=Buffer.from('LANEC_SYNTHETIC_SECRET '+label+' '+suffix,'utf8');
+    const documentType=await db.documentType.create({data:{
+      companyId:owner,documentTypeCode:'DP-'+label+'-'+suffix,
+      documentTypeName:'Disposable '+label
+    }});
+    const stored=await storage.put(bytes);
+    const document=await db.document.create({data:{
+      companyId:owner,documentTypeId:documentType.id,fileName:label+'.txt',
+      storageProvider:stored.storageProvider,storageKey:stored.storageKey,
+      mimeType:'text/plain',fileSizeBytes:bytes.length,
+      uploadedByUserId:uploader,checksum:fingerprint(bytes)
+    }});
+    await db.documentLink.create({data:{documentId:document.id,
+      entityType:'PROJECT',entityId:project,linkedByUserId:uploader}});
+    const actual=await storage.read(stored.storageKey);
+    requireSafe(actual.equals(bytes)&&fingerprint(actual)===fingerprint(bytes),
+      'PROTECTED_STORAGE_POSITIVE_SOURCE_MISSING');
+    return {id:document.id,bytes};
+  }
+  // Real second-company actor proves the foreign document is not a fake 404.
+  const foreignProofPassword=randomBytes(32).toString('hex');
+  const foreignEmployee=await db.employee.create({data:{
+    companyId:foreign.id,employeeCode:'WIT-'+suffix,employeeName:'Foreign positive verifier'
+  }});
+  const foreignUser=await db.user.create({data:{companyId:foreign.id,
+    employeeId:foreignEmployee.id,email:'foreign-verifier-'+suffix+'@example.invalid',
+    passwordHash:await passwordService.hash(foreignProofPassword),
+    displayName:'Disposable foreign positive verifier'}});
+  const foreignRole=await db.role.create({data:{
+    companyId:foreign.id,roleCode:'DISPOSABLE_PROJECT_DOCUMENT_VERIFIER',
+    roleName:'Disposable same-Company positive verifier'
+  }});
+  await db.rolePermission.createMany({data:
+    ['projects.project.view','documents.document.view'].map(code=>({
+      roleId:foreignRole.id,permissionId:pmap.get(code)}))
+  });
+  await db.userRole.create({data:{
+    companyId:foreign.id,userId:foreignUser.id,roleId:foreignRole.id}});
+  await db.projectMember.create({data:{
+    projectId:outside.id,employeeId:foreignEmployee.id,projectRole:'PROTECTED_DOC_PROOF'}});
+
+  const foreignDocument=await seedProjectBytes(
+    foreign.id,outside.id,foreignUser.id,'foreign-document');
+  const sameCompanyDocument=await seedProjectBytes(
+    company.id,unassigned.id,actors.BEN.userId,'unassigned-document');
+
+  const foreignSession=await signIn(foreignUser.email,foreignProofPassword);
+  await positiveGet(foreignSession,
+    '/documents/projects/'+outside.id+'/'+foreignDocument.id+'/download',
+    foreignDocument.bytes);
+  await signOut(foreignSession);
+  const benSession=await signIn(actors.BEN.email,actors.BEN.password);
+  await positiveGet(benSession,
+    '/documents/projects/'+unassigned.id+'/'+sameCompanyDocument.id+'/download',
+    sameCompanyDocument.bytes);
+
+  // The client BOQ is a real, priced DRAFT record linked to a source revision:
+  // this is confidentiality proof, NOT a fabricated maker/checker approval.
+  const pricedUom=await db.unitOfMeasure.create({data:{
+    companyId:company.id,uomCode:'CBQ-'+suffix,uomName:'Disposable each',decimalPlaces:4
+  }});
+  const draftRevision=await db.budgetRevision.create({data:{
+    companyId:company.id,projectId:assigned.id,revisionNo:1,
+    revisionNumber:'SYN-'+suffix,currencyCode:'THB',
+    createdByUserId:actors.BEN.userId
+  }});
+  const customerBoq=await db.customerBoqVersion.create({data:{
+    companyId:company.id,projectId:assigned.id,versionNo:1,
+    sourceRevisionId:draftRevision.id,currencyCode:'THB',
+    currentEditNo:1,createdByUserId:actors.BEN.userId,
+    edits:{create:{editNo:1,actorUserId:actors.BEN.userId,
+      reason:'Synthetic priced draft confidential export source',
+      totalAmount:'1250.00',sourceCoverage:[],
+      lines:{create:[{
+        lineKey:randomUUID(),sortOrder:0,
+        description:'LANEC_SYNTHETIC_SECRET priced client draft',
+        quantity:'1.0000',uomId:pricedUom.id,
+        uomSnapshot:{code:pricedUom.uomCode},
+        rate:'1250.0000',amount:'1250.00',
+        pricingSnapshot:{rawQuantity:'1.0000',bufferQuantity:null}
+      }]}
+    }}
+  }});
+  const csvResponse=await fetch(API+'/api/v1/budget/customer/projects/'+
+    assigned.id+'/versions/'+customerBoq.id+'/export',{
+      headers:{Cookie:benSession.cookie,Origin:WEB},redirect:'error'});
+  requireSafe(csvResponse.status===200,'CLIENT_BOQ_POSITIVE_EXPORT_DENIED');
+  const csvBytes=Buffer.from(await csvResponse.arrayBuffer());
+  requireSafe(csvBytes.subarray(0,3).equals(Buffer.from([0xEF,0xBB,0xBF]))&&
+    csvBytes.includes('Rate')&&csvBytes.includes('Amount')&&
+    csvBytes.includes('LANEC_SYNTHETIC_SECRET'),
+    'CLIENT_BOQ_POSITIVE_CONFIDENTIAL_BYTES_MISSING');
+  await signOut(benSession);
+
+  // Real encrypted HR upload under a persisted employee/role/category grant.
+  await db.hrCompanyAccess.create({data:{
+    companyId:company.id,userId:actors.KOH.userId,category:'documents',
+    reasonCode:'DISPOSABLE_PROOF',updatedByUserId:actors.KOH.userId
+  }});
+  const hrType=await db.documentType.create({data:{
+    companyId:company.id,documentTypeCode:'HR-'+suffix,
+    documentTypeName:'Disposable encrypted HR attachment'
+  }});
+  const kohSession=await signIn(actors.KOH.email,actors.KOH.password);
+  const hrBytes=Buffer.from('LANEC_SYNTHETIC_SECRET PRIVATE HR '+suffix,'utf8');
+  const form=new FormData();
+  form.set('requestId',randomUUID());
+  form.set('documentTypeId',hrType.id);
+  form.set('expectedVersion','0');
+  form.set('file',new Blob([hrBytes],{type:'text/plain'}),'private-proof.txt');
+  const upload=await fetch(API+'/api/v1/hr/companies/'+company.id+
+    '/employees/'+disabled.id+'/documents',{method:'POST',
+      headers:{Cookie:kohSession.cookie,Origin:WEB,
+        'x-csrf-token':kohSession.csrf},body:form,redirect:'error'});
+  requireSafe(upload.status===201,'HR_PRIVATE_REAL_UPLOAD_DENIED');
+  const hrUploadReceipt=await upload.json();
+  const hrAttachmentId=hrUploadReceipt?.data?.id;
+  requireSafe(typeof hrAttachmentId==='string'&&
+    /^[0-9a-f-]{36}$/i.test(hrAttachmentId),
+    'HR_ATTACHMENT_CANONICAL_RECORD_MISSING');
+  const hrDb=await db.hrDocumentAttachment.findUnique({
+    where:{id:hrAttachmentId},include:{document:true}});
+  requireSafe(hrDb?.document?.storageProvider==='LOCAL'&&
+    hrDb?.document?.checksum&&hrDb?.encryptedMetadata,
+    'HR_PRIVATE_SOURCE_OR_CIPHERTEXT_MISSING');
+  const encrypted=await storage.read(hrDb.document.storageKey);
+  requireSafe(fingerprint(encrypted)===hrDb.document.checksum&&
+    !encrypted.includes('LANEC_SYNTHETIC_SECRET'),
+    'HR_PRIVATE_STORAGE_CIPHERTEXT_UNSAFE');
+  await positiveGet(kohSession,
+    '/hr/companies/'+company.id+'/employees/'+disabled.id+
+      '/documents/'+hrAttachmentId+'/download',hrBytes);
+  await signOut(kohSession);
+  stage='ALL_FOUR_POSITIVE_CONTROLS_VERIFIED';
+
   const fixture={
     purpose:'M4_LANE_C_DISPOSABLE_SYNTHETIC_ONLY',
     sourceSha:EXACT,
@@ -165,6 +331,10 @@ try{
     sameCompanyOtherProjectId:unassigned.id,
     foreignCompanyId:foreign.id,foreignProjectId:outside.id,
     employeeId:disabled.id,actors,
+    clientBoqVersionId:customerBoq.id,
+    foreignDocumentId:foreignDocument.id,
+    otherProjectDocumentId:sameCompanyDocument.id,
+    hrAttachmentId,
     disabledActor:{email:'m4-disabled-'+suffix+'@example.invalid',password:disabledPassword}
   };
   validateFixture(fixture,EXACT);
@@ -199,17 +369,16 @@ try{
   requireSafe(report.personas.every(x=>Array.isArray(x.checks)&&
     x.checks.length>=1&&x.checks.every(c=>c.status==='PASS')),
     'REAL_BROWSER_ROLE_BOUNDARY_NOT_PROVEN');
-  requireSafe(report.status==='PARTIAL_BLOCKED_FIXTURE'&&exitCode===1,
-    'SENSITIVE_ARTIFACTS_NOT_REPORTED_AS_PARTIAL');
-  const expectedMissing=['clientBoqVersionId','foreignDocumentId',
-    'otherProjectDocumentId','hrAttachmentId'];
-  requireSafe(expectedMissing.every(x=>report.missingSyntheticArtifacts.includes(x))&&
-    report.missingSyntheticArtifacts.length===expectedMissing.length,
-    'PROTECTED_ARTIFACT_STATUS_INCORRECT');
+  requireSafe(report.status==='DISPOSABLE_BROWSER_BOUNDARIES_PASS'&&exitCode===0,
+    'FULL_SYNTHETIC_SOURCE_BOUNDARY_PROOF_NOT_COMPLETE');
+  requireSafe(Array.isArray(report.missingSyntheticArtifacts)&&
+    report.missingSyntheticArtifacts.length===0,
+    'PROTECTED_ARTIFACTS_WRONGLY_MISSING');
   const count=report.personas.reduce((sum,a)=>sum+a.checks.length,0);
-  console.log('M4_SYNTHETIC_EIGHT_CANONICAL_ROLE_BROWSER_PARTIAL_VERIFIED checks='+count+
-    ' people=8 disabled=1 source='+EXACT.slice(0,12)+
-    ' protected-artifact-bytes=BLOCKED_CONFIGURATION retained-UAT=false');
+  requireSafe(count>=80,'EXPECTED_EIGHT_ROLE_PROTECTED_CHECK_MATRIX_MISSING');
+  console.log('M4_DISPOSABLE_PROTECTED_BYTES_BROWSER_PASS checks='+count+
+    ' canonicalRoles=8 disabled=1 source='+EXACT.slice(0,12)+
+    ' positiveSources=4 protectedBytes=TRUE retainedUat=false humanAcceptance=false');
 } catch(error){
   const code=String(error?.safeCode??'DISPOSABLE_RUNNER_FAILED')
     .replace(/[^A-Z0-9_]/g,'').slice(0,100);
