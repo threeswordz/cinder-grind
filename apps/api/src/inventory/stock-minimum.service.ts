@@ -90,6 +90,124 @@ export class StockMinimumService {
       select: { id: true, projectCode: true, projectName: true }, orderBy: { projectCode: 'asc' } });
   }
 
+  /**
+   * PM15 operational work queue across currently authorized Projects in the
+   * selected Company. Each metric requires its own existing view capability.
+   * Count records, not financial amounts; absent authorization is null, not 0.
+   * No implied cross-Company access, approval, notification or posting.
+   */
+  async portfolioWorkQueue(supplied: AuthenticatedUserContext, at = new Date()) {
+    return this.prisma.$transaction(async tx => {
+      const auth = await this.liveActor(supplied, tx, false);
+      if (!supplied.roleCodes.includes('PROJECT_MANAGER') ||
+          !auth.roleCodes.includes('PROJECT_MANAGER')) return denied();
+      const scope = await this.access.scopeWhere(auth, tx);
+      const projects = await tx.project.findMany({
+        where: { AND: [scope, { companyId: auth.companyId, isActive: true }] },
+        select: { id: true, projectCode: true, projectName: true },
+        orderBy: [{ projectCode: 'asc' }, { id: 'asc' }], take: 101,
+      });
+      if (projects.length > 100) return conflict('PM15_PORTFOLIO_PROJECT_LIMIT');
+      const ids = projects.map(p => p.id);
+      const where = { companyId: auth.companyId, projectId: { in: ids } };
+      const has = (permission: string) => auth.permissions.includes(permission);
+      const date = thailandBusinessDate(at);
+      const today = new Date(date + 'T00:00:00.000Z');
+      type Counts = Map<string, number>;
+      const grouped = (rows: { projectId: string; _count: { _all: number } }[]): Counts =>
+        new Map(rows.map(r => [r.projectId, r._count._all]));
+      const rawCounts = (rows: { projectId: string; count: number }[]): Counts =>
+        new Map(rows.map(r => [r.projectId, r.count]));
+      const prAllowed = has('procurement.pr.view');
+      const countAllowed = has('inventory.stock_count.view');
+      const toolAllowed = has('equipment.custody.view');
+      const woAllowed = has('subcontracts.work_order.view');
+      const claimAllowed = has('subcontracts.claim.view');
+      const certAllowed = has('subcontracts.certification.view');
+      const pendingPrRows = prAllowed && ids.length ? await tx.purchaseRequest.groupBy({
+        by: ['projectId'], orderBy: { projectId: 'asc' }, where: { ...where, cancelledAt: null,
+          approvalInstance: { approvalState: 'SUBMITTED' } }, _count: { _all: true },
+      }) : [];
+      const pendingPr = grouped(pendingPrRows);
+      // Count only original returned lines for which a correction line has
+      // not yet been captured; this is not a count of all unresolved demand.
+      const returned = prAllowed && ids.length ? rawCounts(await tx.$queryRaw<
+        { projectId: string; count: number }[]>(Prisma.sql`
+          SELECT pr.project_id AS "projectId", COUNT(*)::int AS count
+          FROM purchase_request_lines l
+          JOIN purchase_requests pr ON pr.id = l.purchase_request_id
+          JOIN approval_instances a ON a.id = pr.approval_instance_id
+          WHERE pr.company_id = ${auth.companyId}::uuid
+            AND pr.project_id IN (${Prisma.join(ids.map(id => Prisma.sql`${id}::uuid`))})
+            AND pr.cancelled_at IS NULL AND a.approval_state = 'APPROVED'
+            AND a.company_id = pr.company_id AND a.entity_id = pr.id
+            AND l.review_decision = 'RETURNED'
+            AND NOT EXISTS (
+              SELECT 1 FROM purchase_request_lines c
+              JOIN purchase_requests cp ON cp.id = c.purchase_request_id
+              WHERE c.correction_source_line_id = l.id
+                AND cp.company_id = pr.company_id AND cp.project_id = pr.project_id
+            )
+          GROUP BY pr.project_id
+        `)) : new Map<string, number>();
+      const correctionsRows = prAllowed && ids.length ? await tx.purchaseRequest.groupBy({
+        by: ['projectId'], orderBy: { projectId: 'asc' }, where: { ...where, cancelledAt: null,
+          lines: { some: { correctionSourceLineId: { not: null } } },
+          OR: [{ approvalInstanceId: null },
+            { approvalInstance: { approvalState: { in: ['SUBMITTED', 'REJECTED'] } } }] },
+        _count: { _all: true },
+      }) : [];
+      const corrections = grouped(correctionsRows);
+      const stockCountsRows = countAllowed && ids.length ? await tx.stockCount.groupBy({
+        by: ['projectId'], orderBy: { projectId: 'asc' }, where: { ...where, status: 'SUBMITTED' }, _count: { _all: true },
+      }) : [];
+      const stockCounts = grouped(stockCountsRows);
+      const tools = toolAllowed && ids.length ? await tx.$queryRaw<
+        { projectId: string; dueToday: number; overdue: number }[]>(Prisma.sql`
+          SELECT project_id AS "projectId",
+            COUNT(*) FILTER (WHERE due_on = ${today}::date)::int AS "dueToday",
+            COUNT(*) FILTER (WHERE due_on < ${today}::date)::int AS overdue
+          FROM equipment_custody_loans
+          WHERE company_id = ${auth.companyId}::uuid
+            AND project_id IN (${Prisma.join(ids.map(id => Prisma.sql`${id}::uuid`))})
+            AND returned_on IS NULL AND due_on <= ${today}::date
+          GROUP BY project_id
+        `) : [];
+      const toolsByProject = new Map(tools.map(row => [row.projectId,row]));
+      const workOrdersRows = woAllowed && ids.length ? await tx.subcontractWorkOrder.groupBy({
+        by: ['projectId'], orderBy: { projectId: 'asc' }, where: { ...where, approvalState: 'SUBMITTED' }, _count: { _all: true },
+      }) : [];
+      const workOrders = grouped(workOrdersRows);
+      const claimsRows = claimAllowed && ids.length ? await tx.subcontractClaim.groupBy({
+        by: ['projectId'], orderBy: { projectId: 'asc' }, where: { ...where, state: 'SUBMITTED' }, _count: { _all: true },
+      }) : [];
+      const claims = grouped(claimsRows);
+      const certificatesRows = certAllowed && ids.length ? await tx.subcontractCertification.groupBy({
+        by: ['projectId'], orderBy: { projectId: 'asc' }, where: { ...where, state: 'SUBMITTED' }, _count: { _all: true },
+      }) : [];
+      const certificates = grouped(certificatesRows);
+      const value = (allowed: boolean, counts: Counts, id: string) =>
+        allowed ? counts.get(id) ?? 0 : null;
+      return {
+        companyId: auth.companyId, asOfThailandDate: date,
+        projects: projects.map(p => ({ ...p,
+          pendingPurchaseRequests: value(prAllowed,pendingPr,p.id),
+          returnedLinesWithoutCorrection: value(prAllowed,returned,p.id),
+          correctionRequestsNotApproved: value(prAllowed,corrections,p.id),
+          pendingStockCounts: value(countAllowed,stockCounts,p.id),
+          toolsDueToday: toolAllowed ? toolsByProject.get(p.id)?.dueToday ?? 0 : null,
+          toolsOverdue: toolAllowed ? toolsByProject.get(p.id)?.overdue ?? 0 : null,
+          pendingWorkOrders: value(woAllowed,workOrders,p.id),
+          pendingClaims: value(claimAllowed,claims,p.id),
+          pendingCertifications: value(certAllowed,certificates,p.id),
+        })),
+        advisoryOnly: true, stockEffect: false, financeEffect: false,
+        externalNotificationsSent: false,
+        stockShortageAndDeliveryDetail: 'SITE_DRILLDOWN_ONLY' as const,
+      };
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead });
+  }
+
   async sites(supplied: AuthenticatedUserContext, projectId: string) {
     const auth = await this.liveActor(supplied, this.prisma, false);
     await this.access.assertAccess(auth, projectId);
