@@ -60,7 +60,14 @@ export class EquipmentAssetRegisterService{
    select:{projectId:true,assignedFrom:true,assignedTo:true,project:{select:{id:true,projectCode:true,projectName:true}}},take:3});
   if(assignments.length>2)throw new ConflictException({code:'ASSET_ASSIGNMENT_SOURCE_INVALID'});
   if(!assignments.length&&!this.access.canAccessAll(auth))return denied();
-  for(const a of assignments)await this.access.assertAccess(auth,a.projectId,tx);
+  // Version history may contain documentary references to earlier locations.
+  // Do not expose that history through a newly acquired assignment alone.
+  const historical=await tx.equipmentAssignment.findMany({
+   where:{companyId:auth.companyId,equipmentId:id},distinct:['projectId'],
+   select:{projectId:true},take:101});
+  if(historical.length>100)throw new ConflictException({code:'ASSET_ASSIGNMENT_HISTORY_LIMIT'});
+  for(const projectId of new Set([...assignments,...historical].map(a=>a.projectId)))
+   await this.access.assertAccess(auth,projectId,tx);
   const effective=assignments.find(a=>a.assignedFrom<=today&&(!a.assignedTo||a.assignedTo>=today));
   return {equipment,currentProject:effective?.project??null};
  }
