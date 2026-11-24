@@ -821,6 +821,29 @@
       "sourceSha": "f4593664469e0e91d24c560865255196c6720168",
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261124-PUR08-14-011",
+      "date": "2026-11-24",
+      "packageId": null,
+      "scopeId": "PUR08_PUR14_INTEGRATION",
+      "kind": "POSTED_REPLACEMENT_GR_REVERSAL_NATIVE_AND_CHROME_RECONCILIATION",
+      "beforeHours": null,
+      "afterHours": null,
+      "reductionHours": 0,
+      "scopeBeforeHours": 16,
+      "scopeAfterHours": 14,
+      "scopeReductionHours": 2,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/pull/436",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45373701925",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45374163626",
+        "https://github.com/threeswordz/cinder-grind/commit/a10b99e8a3ad11737e258f987fb97ce4f57a9e38"
+      ],
+      "basis": "New previously missing read-side canonical GR reconciliation: a supplier-case recorded replacement remains immutable historical evidence but no longer renders as currently posted if the real canonical GoodsReceiptService.reverse subsequently reverses receipt stock. Bounded scoped read checks actual Company/Project/supplier/PO, original receiving line and quantity-matched canonical GR item/status, returns POSTED/REVERSED/SOURCE_UNVERIFIED; React/MUI success only on POSTED, warning on reversed/unverified. Native real PostgreSQL 17.11 step from #45373701925 SUCCESS 1/1 with real GR reversal, supplier history stable and only canonical reversal stock transaction, while whole #45373701925 FAILED solely in new Chrome navigation test. Source edit to canonical GR item blocked by existing PostgreSQL integrity trigger and is asserted. Corrected focused actual authenticated Store Chrome #45374163626 OVERALL SUCCESS: full Store/PM/Jai/replacement posted GR journey, Store re-opens its Receiving row after reversal and warning appears with intact evidence. Source branch head a10b99e8a3ad11737e258f987fb97ce4f57a9e38; all 4 relevant code/test blobs match Chrome runner; 3 native scope blobs match native successful step. No full CI, retained UAT, review, production or formal acceptance. LOW-confidence re-estimate 2 fewer hours of future supplier discrepancy/reversal assurance, not actual labor or signed-off acceptance.",
+      "sourceSha": "a10b99e8a3ad11737e258f987fb97ce4f57a9e38",
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -830,19 +853,19 @@
         "PUR08",
         "PUR14"
       ],
-      "hours": 16,
+      "hours": 14,
       "budgetAllocation": "NEW_EXPLICIT_M4_ADDITIONAL_SCOPE; NOT SILENTLY SUBTRACTED_FROM_M4_01/M4_08",
-      "sourceStatus": "DAMAGED_POSITIVE_NATIVE_AND_ROLE_NEGATIVE_PG17_PASS;REAL_AUTHENTICATED_CHROME_POSTED_REPLACEMENT_GR_PASS;PHYSICAL_RETURN_FINANCE_POLICY_OPEN",
-      "remaining": "16h low-confidence future work: Owner physical supplier-return stock/quantity ownership and credit-note/AP-adjustment vs replacement-only resolution policy, implementation without duplicate stock or Finance, SHORT/WRONG/EXCESS discrepancy allocation, retained MKE/TCJ eight-role authorization/UAT, independent DEC-022 exact integrated review, Owner #384 CI/merge/release signoff. DAMAGED posted-GR source and synthetic actual Chrome Store/PM/Jai replacement journey passing; no retained-user or formal gate acceptance.",
-      "evidence": "https://github.com/threeswordz/cinder-grind/actions/runs/45371800181",
+      "sourceStatus": "DAMAGED_NATIVE_POSTED_REPLACEMENT_AND_NEGATIVES_PASS;CHROME_REPLACEMENT_AND_REVERSAL_WARNING_PASS;CANONICAL_PHYSICAL_RETURN_AND_FINANCE_POLICY_OPEN",
+      "remaining": "14h low-confidence future work: explicitly authorize and implement physical outward supplier-return quantity/warehouse/stock effects without double deduction, Owner Finance treatment (replacement-only vs supplier credit note vs AP adjustment), SHORT/WRONG_ITEM/EXCESS attribution rules, retained real named eight-role Company/Project UAT, independent DEC-022 exact integrated source review, Owner #384 approved CI/merge/release. Synthetic native and real Chrome prove checked posted replacement + later GR reversal read-side warning; no formal acceptance.",
+      "evidence": "https://github.com/threeswordz/cinder-grind/actions/runs/45374163626",
       "stage": "M4",
       "grossPreImplementationEstimateHours": 50,
-      "estimatedReductionFromNewSourceHours": 34,
+      "estimatedReductionFromNewSourceHours": 36,
       "confidence": "LOW",
       "estimateKind": "NEWLY_DISCOVERED_MANDATORY_SCOPE_PRICE_NOT_A_TIMESHEET"
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1861,
-  "currentRollingTotalSemantics": "1861h provisional forward work = original 1847h current 60-package estimate - 2h M4-01 verified triage + 16h explicitly priced mandatory PUR08/PUR14 still needed. Native positive and negative, scoped receipt provenance and synthetic Chrome replacement complete; no actual human timesheets, formal M4 acceptance or retained-user UAT. Historical 1900h and unapproved 1500h are separate; 31 Dec 2026 feasibility RED."
+  "currentRollingTotalAfterPricedGapsHours": 1859,
+  "currentRollingTotalSemantics": "1859h estimated remaining forward work = original 1847h full 60-package forecast −2h verified M4-01 triage +14h separately priced required PUR08/PUR14 work. Real native source/actor negatives, real Chrome posted replacement and actual GR reversal warning are verified; NOT actual logged worker hours or formal eight-role UAT/DEC-022 acceptance. Historical 1900h and proposed unapproved 1500h are separate. Full 112-ID Production by 31 Dec feasibility RED."
 }
