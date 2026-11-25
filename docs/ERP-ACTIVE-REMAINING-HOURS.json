@@ -1790,6 +1790,27 @@
       "sourceSha": "09ef1561030d8bde9dd4ff9fa9026ee824d2caa3",
       "formalAcceptance": false,
       "estimateConfidence": "NO_ADDITIONAL_HOURS_CREDIT"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-05-004",
+      "date": "2026-11-25",
+      "packageId": "M4-05",
+      "kind": "PUR04_NATIVE_REVISION_AND_CORRECTED_GUARDS_PASS",
+      "beforeHours": 8,
+      "afterHours": 7,
+      "reductionHours": 1,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 1,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45540380093",
+        "https://github.com/threeswordz/cinder-grind/commit/09ef1561030d8bde9dd4ff9fa9026ee824d2caa3",
+        "https://github.com/threeswordz/cinder-grind/commit/6c389146ac16cea1e125e26a4845bce1608a9dc8",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45540981880"
+      ],
+      "basis": "Exact bounded PUR04 test-only child f8a5cae0 run45540380093 SUCCESS15/15 job steps and 20/20 tests, all seven PM02 submit denials and ten final approval denials, native historical commercial snapshot, distinct Ben approval and denied buyer self-approval, Company/Project denial. Prior header native proof reused. Provisional 1h remaining bounded source rebase and revision validation eliminated, not measured labor. New standalone nine-field exact schema and historical NULL guard preparation 6c389146, focused workflow-only child 0fa92ea6 pending; no further credit. Global PUR04 admission remains closed, populated preservation and layered recovery integration still required, retained roles/review deferred.",
+      "sourceSha": "09ef1561030d8bde9dd4ff9fa9026ee824d2caa3",
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -1812,6 +1833,6 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1815,
-  "currentRollingTotalSemantics": "1815h provisional future work = 1847h baseline minus 41h evidence-backed package forecast reductions plus 9h separately priced supplier scope. M4 85h, M4-02 3h, M4-03 8h, M4-08 25h. Exact single predecessor native PM02 recovery and FM01 full readiness passed; independent and retained business acceptance remain."
+  "currentRollingTotalAfterPricedGapsHours": 1814,
+  "currentRollingTotalSemantics": "1814h provisional future work = 1847h baseline minus 42h evidence-backed package forecast reductions plus 9h separately priced supplier scope. M4 84h; M4-05 7h. Formal acceptance unchanged."
 }

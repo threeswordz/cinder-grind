@@ -10,16 +10,16 @@
 
 > **PM02 native integrated rehearsal:** source `05e64e24eb8d5b0864c360109bcdc570eae9134a`, [45537365945](https://github.com/threeswordz/cinder-grind/actions/runs/45537365945) SUCCESS 15/15. Global schema and historical consumers, paired DB/Documents, external HR keys and protected documents, previous-runtime authentication and v21 receipt proven on one exact predecessor. Previous database-only proof preserved. M4-02 5→3h, M4 88→85h, ERP 1,818→1,815h. Real browser/retained roles and full integrated independent review pending.
 
-> **PUR04 bounded source:** [45539318276](https://github.com/threeswordz/cinder-grind/actions/runs/45539318276) native header/migration/build/typecheck PASS; overall 12/20 tests PASS, stale PM02 subtotal fixture failure. [09ef1561](https://github.com/threeswordz/cinder-grind/commit/09ef1561030d8bde9dd4ff9fa9026ee824d2caa3) test-only correction plus nine-field revision/reapproval native test; focused combined proof pending. M4-05 8→8h, M4 85h, ERP 1,815h.
+> **PUR04 bounded source:** [45540380093](https://github.com/threeswordz/cinder-grind/actions/runs/45540380093) SUCCESS 15/15 job steps, 20/20 tests; revision snapshot, separate Ben reapproval and PM02 safeguards PASS. [6c389146](https://github.com/threeswordz/cinder-grind/commit/6c389146ac16cea1e125e26a4845bce1608a9dc8) exact schema/NULL preservation preparation; focused contract validation pending; global admission closed. M4-05 8→7h, M4 85→84h, ERP 1,815→1,814h.
 
 ## Headline
 | Metric | Current | Meaning |
 |---|---:|---|
-| **Estimated full ERP work still needed** | **1,815h → 0h** | Includes latest newly priced mandatory gaps |
+| **Estimated full ERP work still needed** | **1,814h → 0h** | Includes latest newly priced mandatory gaps |
 | 23 Nov original current-work forecast | 1847h | Earlier 60-package provisional baseline |
-| Additional estimated future-work eliminated | −41h | M4-01 −20h, M4-02 −5h, M4-03 −2h, M4-04 −1h, M4-05 −1h, M4-06 −2h, M4-07 −1h, M4-08 −9h, **not timesheet** |
+| Additional estimated future-work eliminated | −42h | M4-01 −20h, M4-02 −5h, M4-03 −2h, M4-04 −1h, M4-05 −2h, M4-06 −2h, M4-07 −1h, M4-08 −9h, **not timesheet** |
 | Newly discovered previously unpriced PUR08/PUR14 work | +9h | Net **remaining** after real signed damaged-custody Chrome/native proof, no automatic Finance/AP/stock effect |
-| Net reforecast change versus 1,847h | −32h | More honest scope recognition; not schedule recovery |
+| Net reforecast change versus 1,847h | −33h | More honest scope recognition; not schedule recovery |
 | PUR08/PUR14 provisional work before new development | 51h | Low-confidence new-gap gross estimate |
 | PUR08/PUR14 estimated future work eliminated through verified development | 42h | Verified role/tenant source, posted GR/reversal warning and signed DAMAGED outward custody; only future-work forecast, not logged hours |
 | PUR08/PUR14 remaining | **9h** | Signed unposted DAMAGED custody implemented, posted stock needs separately approved canonical reversal; real supplier credit/AP is separate Finance module, SHORT/WRONG/EXCESS stay evidence-only, retained named-role UAT and independent review pending |
@@ -31,13 +31,13 @@
 | Whole baseline packages formally accepted | 0/60 | 8 M4 packages still 0/8 |
 | Actual productive hours logged | UNKNOWN | Cannot infer from GitHub commits or AI conversation length |
 
-**Why the number rose:** the earlier 1,845h omitted a separate confirmed PUR08/PUR14 implementation budget. New source plus corrected source-backed tests reduced that *newly priced* work from a provisional 51h gross to 9h remaining, but the original 60-package forecast excluded that additional work. Thus **1,847h − 20h M4-01 − 5h M4-02 − 2h M4-03 − 1h M4-04 − 1h M4-05 − 2h M4-06 − 1h M4-07 − 9h M4-08 + 9h supplier = 1,815h**. Supplier gross estimate 51h includes newly discovered handover defect +1h, verified fix −1h, with 42h of future work eliminated. This prevents a false countdown and requires a real reduction in remaining work at each future step. It does **not** represent actual human hours worked or formal acceptance.
+**Why the number rose:** the earlier 1,845h omitted a separate confirmed PUR08/PUR14 implementation budget. New source plus corrected source-backed tests reduced that *newly priced* work from a provisional 51h gross to 9h remaining, but the original 60-package forecast excluded that additional work. Thus **1,847h − 20h M4-01 − 5h M4-02 − 2h M4-03 − 1h M4-04 − 2h M4-05 − 2h M4-06 − 1h M4-07 − 9h M4-08 + 9h supplier = 1,814h**. Supplier gross estimate 51h includes newly discovered handover defect +1h, verified fix −1h, with 42h of future work eliminated. This prevents a false countdown and requires a real reduction in remaining work at each future step. It does **not** represent actual human hours worked or formal acceptance.
 
 ## Stage-by-stage remaining work
 
 | Stage | Previous 60-package baseline | Verified package forecast reduction | Additional scope remaining | **Now remaining** | Accepted baseline packages |
 |---|---:|---:|---:|---:|---:|
-| Prototype 5/8 — M4 closure | 117h | 41h | 9h | **85h** | 0/8 |
+| Prototype 5/8 — M4 closure | 117h | 42h | 9h | **84h** | 0/8 |
 | Prototype 6/8 — end-to-end deployment | 120h | 0h | 0h | **120h** | 0/5 |
 | Prototype 7/8 — populated restore | 50h | 0h | 0h | **50h** | 0/3 |
 | Prototype 8/8 — technical freeze | 65h | 0h | 0h | **65h** | 0/3 |
@@ -49,7 +49,7 @@
 | Production hosting and recovery | 110h | 0h | 0h | **110h** | 0/5 |
 | Migration and onboarding | 110h | 0h | 0h | **110h** | 0/4 |
 | Final human UAT, cutover and Production | 150h | 0h | 0h | **150h** | 0/5 |
-| **Full ERP** | **1847h** | **41h** | **9h** | **1,815h** | **0/60** |
+| **Full ERP** | **1847h** | **42h** | **9h** | **1,814h** | **0/60** |
 
 ## Each baseline package
 
@@ -59,7 +59,7 @@
 | M4-02 | M4 | PM02 real browser and retained-role authorization | 8h | **3h** |
 | M4-03 | M4 | FM01, BEN04 and PM16 real-browser acceptance | 10h | **8h** |
 | M4-04 | M4 | PUR01 whole-PO supplier-count and commercial rule | 8h | **7h** |
-| M4-05 | M4 | PUR04 core PO commercial/delivery fields | 9h | **8h** |
+| M4-05 | M4 | PUR04 core PO commercial/delivery fields | 9h | **7h** |
 | M4-06 | M4 | PUR07 supplier-name PO PDF and manual dispatch evidence | 10h | **8h** |
 | M4-07 | M4 | PUR12 K-/T- company PO document identity | 6h | **5h** |
 | M4-08 | M4 | M4 focused closure, governed integration and Owner decision | 34h | **25h** |
