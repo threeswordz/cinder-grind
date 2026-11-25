@@ -1586,6 +1586,48 @@
       "sourceSha": "06d7e623ca5f3cd493d0d20085fcfa3e617469b1",
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-03-005",
+      "date": "2026-11-25",
+      "packageId": "M4-03",
+      "kind": "FM01_FULL_ATTEMPT3_FAILED_LEGACY_BROWSER_FIXTURE_CORRECTED",
+      "beforeHours": 8,
+      "afterHours": 8,
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45463404517/attempts/3",
+        "https://github.com/threeswordz/cinder-grind/commit/4aab761d8477cfb63ea978af1444865b720d42d5",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45524960275",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45525025034",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45524967848"
+      ],
+      "basis": "Authorized exact attempt3 failed after 33 successful steps at legacy FM01-A Chromium localization; old actor timeout passed. Legacy fixture lacked required reviewAcknowledgment/reviewFingerprint/calendar fields, explaining render crash. Corrected only legacy browser fixture on draft452 at 4aab761d8477cfb63ea978af1444865b720d42d5, retains EN/TH/zh-TW and cache-revocation checks and adds review-state assertion. Ordinary focused 45524960275 PASS18/18; dedicated workflow-only child ce0ceb1a21cb9ecf9be6068e1bdb56b1305010a7 run45525025034 pending. Automatic draft admission45524967848 blocked before full execution. No further full trigger, independent review or merge without fresh specific authorization; no hours credit for corrective work before proof. Main unchanged.",
+      "sourceSha": "4aab761d8477cfb63ea978af1444865b720d42d5",
+      "formalAcceptance": false,
+      "estimateConfidence": "PENDING_FOCUSED_PROOF"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-02-004",
+      "date": "2026-11-25",
+      "packageId": "M4-02",
+      "kind": "PM02_RESTORE_TRIGGER_DEPARSE_FIX_PENDING_PROOF",
+      "beforeHours": 5,
+      "afterHours": 5,
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45524584225",
+        "https://github.com/threeswordz/cinder-grind/commit/51a7e875b08d73fb6f404231f8859bc122618949",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45525042917"
+      ],
+      "basis": "Separate restore run45524584225 repeated successful forward proof but failed exact restored trigger definition comparison for material_uom_copy_transfer_pin, PostgreSQL pg_dump/restore deparsed identical typed text array coercion differently. Corrected test-only source51a7e875b08d73fb6f404231f8859bc122618949 to normalize only exact known spelling on that named trigger/relation; all table digests, migration checksums, other trigger definitions/attachment and enabled states remain exact. Workflow-only child6c5fc905bd6321a7239319ee777a07b1a826f821 run45525042917 in progress. No schema or business source modifications, no gate weakening to arbitrary differences; no recovery credit before successful proof. Global migration mode integration still pending. No further full CI, main change, retained grants or Production.",
+      "sourceSha": "51a7e875b08d73fb6f404231f8859bc122618949",
+      "formalAcceptance": false,
+      "estimateConfidence": "PENDING_FOCUSED_PROOF"
     }
   ],
   "unestimatedWork": [
