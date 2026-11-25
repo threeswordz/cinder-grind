@@ -2072,6 +2072,69 @@
       "sourceSha": "ce22baa40f02a557784a1b6b0c59c1a2e94aa7b9",
       "formalAcceptance": false,
       "estimateConfidence": "NO_ADDITIONAL_HOURS_CREDIT"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-08-016",
+      "date": "2026-11-25",
+      "packageId": "M4-08",
+      "kind": "PURCHASING_RUNTIME_FIXTURE_EXPLICIT_COMMERCIAL_BASIS",
+      "beforeHours": 24,
+      "afterHours": 24,
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45554153389",
+        "https://github.com/threeswordz/cinder-grind/commit/f42f58ee1c083c3552ee57f17e39e3ecf94766fa",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45554670120"
+      ],
+      "basis": "Corrected v23 rehearsal 45554153389 passed Customer BOQ preflight and dependency generation but stopped at candidate authenticated runtime-acceptance PO submit, expected201 got422 PO_QUOTE_COMMERCIAL_BASIS_UNKNOWN. New test-only f42f58ee explicit draft commercial terms, first proves unknown-basis 422, persists explicit synthetic zero discount/freight/charges/VAT preserving old receipt arithmetic, checks inherited revision fields and supplies rejected PO fixture terms. No historical backfill or weaker admission. Single predecessor retry needed because prior ephemeral database was destroyed; no full CI and no forecast credit pending result. Run45554670120 observed [{\"id\":139003728159,\"status\":\"in_progress\",\"conclusion\":null,\"passed\":8,\"total\":14,\"active\":[\"Single exact predecessor native migration and paired recovery\"]}]",
+      "sourceSha": "f42f58ee1c083c3552ee57f17e39e3ecf94766fa",
+      "formalAcceptance": false,
+      "estimateConfidence": "NO_ADDITIONAL_HOURS_CREDIT"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-06-004",
+      "date": "2026-11-25",
+      "packageId": "M4-06",
+      "kind": "PUR07_TYPE_SAFE_TEST_CORRECTION_AND_SCHEMA_PREPARATION",
+      "beforeHours": 8,
+      "afterHours": 8,
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45554375145",
+        "https://github.com/threeswordz/cinder-grind/commit/f77a26abe7cb98e324e7d5ddb2f8d90b9d83de67",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45554735611",
+        "https://github.com/threeswordz/cinder-grind/commit/f33a8ec6d94162a8d99b492dfdaf88c8cf924633",
+        "https://github.com/threeswordz/cinder-grind/commit/40727a1e8c629a3152e9f6abe8491cc3b894d611",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45554899467"
+      ],
+      "basis": "PUR07 45554375145 migration PASS; compilation stopped before native tests at TS2352 in test assertion. Fixed with typed Nest ConflictException response code check, retaining explicit synthetic document-view context and exact out-of-scope denial. Carried exact runtime fixture delta onto successor branch. Focused run45554735611 observed [{\"id\":139003944398,\"status\":\"completed\",\"conclusion\":\"success\",\"passed\":16,\"total\":16,\"active\":[]}]. Staged exact PUR07 one model/five relations, migration checksum, new evidence table empty and active trigger/source FK checks; focused successor contract workflow child61af900d run45554899467 completed. Native populated preservation, versioned release integration and actual host/role/browser review outstanding. No release admission or forecast credit.",
+      "sourceSha": "40727a1e8c629a3152e9f6abe8491cc3b894d611",
+      "formalAcceptance": false,
+      "estimateConfidence": "NO_ADDITIONAL_HOURS_CREDIT"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-07-005",
+      "date": "2026-11-25",
+      "packageId": "M4-07",
+      "kind": "PUR12_HISTORICAL_SCHEMA_CONTRACT_PREPARED",
+      "beforeHours": 4,
+      "afterHours": 4,
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/commit/f33a8ec6d94162a8d99b492dfdaf88c8cf924633",
+        "https://github.com/threeswordz/cinder-grind/commit/40727a1e8c629a3152e9f6abe8491cc3b894d611",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45554899467"
+      ],
+      "basis": "Staged exact four nullable partner/PO identity field increments, pinned migration blob, historical NULL, check/immutable-trigger witnesses and rejection tests on isolated PUR07 successor. Global PUR12 admission remains closed, native catalog and populated preservation not yet proved. No additional credit or retained grant.",
+      "sourceSha": "40727a1e8c629a3152e9f6abe8491cc3b894d611",
+      "formalAcceptance": false,
+      "estimateConfidence": "NO_ADDITIONAL_HOURS_CREDIT"
     }
   ],
   "unestimatedWork": [
