@@ -1,0 +1,3 @@
+# PUR12 isolated preparation — 25 Nov 2026
+
+Exact parent bd8be84e91c985db53a7ecd4ecd8796e03664834, original #417 delta 1b06cd9881400af5dcb6046dddb6575da019108d..f74a2bbb14cb49047edf3510066c3e4a4f024ebe, non-overlap base blobs checked equal. Shared PO service original hunks and later #442 transaction-atomic sequence allocation/numbering checks applied without removing PM02 demand/supplier/Project guards or PUR01 final comparison audit. Later native identity/sequence regression hunks included. No new release admission or main change. No PASS until focused tests. UTC period behavior inherited; no new local month policy asserted.

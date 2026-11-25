@@ -4,6 +4,7 @@ import { MasterField, SimpleMasterPanel } from './SimpleMasterPanel';
 const customerFields: MasterField[] = [
   { key: 'customerCode', label: 'Customer Code', required: true },
   { key: 'customerName', label: 'Customer Name', required: true },
+  { key: 'shortName', label: 'Customer Short Name (not the code)', helperText: 'Separate from legal name and customer code; existing names are not inferred.' },
   { key: 'registrationNumber', label: 'Registration Number' },
   { key: 'contactName', label: 'Contact Name' },
   { key: 'email', label: 'Email', type: 'email' },
@@ -14,6 +15,7 @@ const customerFields: MasterField[] = [
 const supplierFields: MasterField[] = [
   { key: 'supplierCode', label: 'Supplier Code', required: true },
   { key: 'supplierName', label: 'Supplier Name', required: true },
+  { key: 'shortName', label: 'Supplier Short Name (PO display)', helperText: 'Required for NEW MKE/TCJ POs; not the supplier code. Existing POs keep their prior identity.' },
   { key: 'registrationNumber', label: 'Registration Number' },
   { key: 'contactName', label: 'Contact Name' },
   { key: 'email', label: 'Email', type: 'email' },

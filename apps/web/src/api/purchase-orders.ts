@@ -53,6 +53,8 @@ export type PurchaseOrderListItem = {
   projectId: string;
   supplierId: string;
   poNumber: string;
+  displayNumber: string | null;
+  supplierShortNameSnapshot: string | null;
   revisionNo: number;
   revisionReason: string | null;
   remarks: string | null;

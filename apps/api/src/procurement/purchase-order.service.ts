@@ -14,6 +14,7 @@ import { AuthenticatedUserContext } from '../auth/auth.types';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProjectAccessService } from '../projects/project-access.service';
 import { completeSupplierCount, poQuoteBasis } from './purchase-order-quote-policy';
+import { purchaseOrderCompanyPrefix, purchaseOrderPresentation } from './purchase-order-identity';
 
 type AuditContext = {
   auth: AuthenticatedUserContext;
@@ -407,10 +408,29 @@ export class PurchaseOrderService {
       });
     }
 
-    const poNumber = await this.numbers.next(
-      context.auth.companyId,
-      'PURCHASE_ORDER',
-    );
+    const company = await this.prisma.company.findUnique({
+      where: { id: context.auth.companyId },
+      select: { companyCode: true },
+    });
+    if (!company) {
+      throw new ConflictException({ code: 'PO_COMPANY_NOT_FOUND' });
+    }
+    // Keep missing-short-name refusals ahead of the legacy monthly allocator.
+    if (purchaseOrderCompanyPrefix(company.companyCode)) {
+      const candidate = await this.prisma.quotationAward.findFirst({
+        where: {
+          id: { in: uniqueAwardIds },
+          rfq: { companyId: context.auth.companyId, projectId },
+        },
+        select: { supplier: { select: { shortName: true } } },
+      });
+      if (!candidate?.supplier.shortName?.trim()) {
+        throw new UnprocessableEntityException({
+          code: 'PO_SUPPLIER_SHORT_NAME_REQUIRED',
+          detail: 'Configure the supplier short name separately from its code before preparing a new MKE/TCJ Purchase Order.',
+        });
+      }
+    }
 
     return this.prisma.$transaction(
       async (tx) => {
@@ -433,7 +453,7 @@ export class PurchaseOrderService {
           },
           include: {
             supplier: {
-              select: { id: true, companyId: true, isActive: true },
+              select: { id: true, companyId: true, isActive: true, shortName: true },
             },
             rfq: {
               select: {
@@ -527,12 +547,43 @@ export class PurchaseOrderService {
           });
         }
 
+        const freshSupplier = await tx.supplier.findFirst({
+          where: { id: supplierId, companyId: context.auth.companyId, isActive: true },
+          select: { shortName: true },
+        });
+        if (!freshSupplier) {
+          throw new ConflictException({ code: 'PO_SUPPLIER_INACTIVE' });
+        }
+        // Allocate within the same transaction as the validated source,
+        // immutable display snapshot, lines and audit. A rejected draft must
+        // not consume a canonical Company sequence value.
+        const currentCompany = await tx.company.findUnique({
+          where: { id: context.auth.companyId },
+          select: { companyCode: true, isActive: true },
+        });
+        if (!currentCompany?.isActive)
+          throw new ConflictException({ code: 'PO_COMPANY_NOT_FOUND' });
+        await this.assertApprovedNumbering(context.auth.companyId, tx);
+        const poNumber = await this.numbers.next(
+          context.auth.companyId, 'PURCHASE_ORDER', new Date(), tx,
+        );
+        const identity = purchaseOrderPresentation(
+          currentCompany.companyCode, poNumber, freshSupplier.shortName,
+        );
+        if (purchaseOrderCompanyPrefix(currentCompany.companyCode) && !identity.displayNumber) {
+          throw new UnprocessableEntityException({
+            code: 'PO_SUPPLIER_SHORT_NAME_REQUIRED',
+            detail: 'The selected supplier needs a separately managed short name before a new MKE/TCJ PO.',
+          });
+        }
         const order = await tx.purchaseOrder.create({
           data: {
             companyId: context.auth.companyId,
             projectId,
             supplierId,
             poNumber,
+            displayNumber: identity.displayNumber,
+            supplierShortNameSnapshot: identity.supplierShortNameSnapshot,
             revisionNo: 0,
             remarks: remarks ?? null,
             createdByUserId: context.auth.userId,
@@ -582,6 +633,8 @@ export class PurchaseOrderService {
             action: 'CREATE_DRAFT',
             newValues: {
               poNumber,
+              displayNumber: identity.displayNumber,
+              supplierShortNameSnapshot: identity.supplierShortNameSnapshot,
               revisionNo: 0,
               projectId,
               supplierId,
@@ -1433,6 +1486,8 @@ export class PurchaseOrderService {
             projectId: source.projectId,
             supplierId: source.supplierId,
             poNumber: source.poNumber,
+            displayNumber: source.displayNumber,
+            supplierShortNameSnapshot: source.supplierShortNameSnapshot,
             currencyCode: source.currencyCode,
             revisionNo: source.revisionNo + 1,
             previousRevisionId: source.id,
@@ -1632,8 +1687,8 @@ export class PurchaseOrderService {
     };
   }
 
-  private async assertApprovedNumbering(companyId: string) {
-    const sequence = await this.prisma.numberSequence.findFirst({
+  private async assertApprovedNumbering(companyId: string, db: Prisma.TransactionClient = this.prisma) {
+    const sequence = await db.numberSequence.findFirst({
       where: {
         companyId,
         sequenceCode: 'PURCHASE_ORDER',
