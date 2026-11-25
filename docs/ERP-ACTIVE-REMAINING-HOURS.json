@@ -3042,6 +3042,26 @@
       "sourceSha": "0fe545da4241dacb4201f5cad1bcd8d51502a032",
       "formalAcceptance": false,
       "estimateConfidence": "NO_ADDITIONAL_HOURS_CREDIT"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-08-044",
+      "date": "2026-11-25",
+      "packageId": "M4-08",
+      "kind": "PM15_TYPECHECK_PASS_AND_DELAYED_BROWSER_FIXTURE_STAGED",
+      "beforeHours": 6,
+      "afterHours": 6,
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45582734359/job/139096568048",
+        "https://github.com/threeswordz/cinder-grind/commit/86015162a1390ff4ee0fa709de16a1fdb1a10d8f",
+        "https://github.com/threeswordz/cinder-grind/commit/8d1dbf0362462d5b53a443cdd1fcde0479fe335f"
+      ],
+      "basis": "Prior 0fe545da exact changed-web typecheck SUCCESS 11/11. Isolated new test source mounts actual StockMinimumsPanel in Chrome with synthetic local HTTP responses deliberately held across same-Project warehouse and cross-Project switches; checks late success and error cannot overwrite current material readback. Read-only disposable fixture, no real backend/retained UAT claim. Focused workflow-only child committed; run ID/status not yet returned by connector. No hour reduction until observed browser result and integrated source reconciliation.",
+      "sourceSha": "86015162a1390ff4ee0fa709de16a1fdb1a10d8f",
+      "formalAcceptance": false,
+      "estimateConfidence": "NO_ADDITIONAL_HOURS_CREDIT"
     }
   ],
   "unestimatedWork": [
