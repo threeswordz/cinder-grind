@@ -85,34 +85,56 @@ async function until(p,session,fn,arg,code){
  throw new Error(code+'_NAVIGATION_OR_RENDER_TIMEOUT_'+last);
 }
 async function tab(p,s,label){
+ await until(p,s,value=>[...document.querySelectorAll('[role="tab"]')]
+  .filter(x=>x.textContent.trim()===value&&x.getAttribute('aria-disabled')!=='true').length===1,
+  label,'REAL_TAB_NOT_READY_'+label);
  const found=await page(p,s,value=>{
-  const node=[...document.querySelectorAll('[role="tab"]')].find(
-   x=>x.textContent.trim()===value);
-  if(!node)return false;node.click();return true;
+  const nodes=[...document.querySelectorAll('[role="tab"]')].filter(
+   x=>x.textContent.trim()===value&&x.getAttribute('aria-disabled')!=='true');
+  if(nodes.length!==1)return false;nodes[0].click();return true;
  },label);
- assert.equal(found,true,'Missing tab '+label);
- await delay(120);
+ assert.equal(found,true,'Missing or ambiguous tab '+label);
+ await until(p,s,value=>[...document.querySelectorAll('[role="tab"]')]
+  .some(x=>x.textContent.trim()===value&&x.getAttribute('aria-selected')==='true'),
+  label,'REAL_TAB_NOT_SELECTED_'+label);
 }
-async function choose(p,s,label,option){
+async function openSelector(p,s,label){
+ // Child controls are intentionally disabled while authorized parent scope
+ // is being fetched. A DOM node alone is not proof that it can be used.
+ await until(p,s,value=>[...document.querySelectorAll('[role="combobox"]')]
+  .filter(x=>x.getAttribute('aria-disabled')!=='true'&&
+   !x.hasAttribute('disabled')&&
+   (x.getAttribute('aria-labelledby')??'').split(' ').some(
+    id=>document.getElementById(id)?.textContent?.trim()===value)).length===1,
+  label,'REAL_SELECTOR_NOT_ENABLED_'+label);
  const found=await page(p,s,value=>{
-  const controls=[...document.querySelectorAll('[role="combobox"]')];
-  const target=controls.find(x=>
+  const controls=[...document.querySelectorAll('[role="combobox"]')].filter(x=>
+   x.getAttribute('aria-disabled')!=='true'&&!x.hasAttribute('disabled')&&
    (x.getAttribute('aria-labelledby')??'').split(' ').some(
     id=>document.getElementById(id)?.textContent?.trim()===value));
-  if(!target)return false;
-  target.dispatchEvent(new MouseEvent('mousedown',{bubbles:true,button:0}));
+  if(controls.length!==1)return false;
+  controls[0].dispatchEvent(new MouseEvent('mousedown',{bubbles:true,button:0}));
   return true;
  },label);
- assert.equal(found,true,'Missing real selector '+label);
- await until(p,s,fragment=>[...document.querySelectorAll('[role="option"]')]
-  .some(x=>x.textContent.includes(fragment)),option,'OPTION_NOT_LOADED_'+label);
+ assert.equal(found,true,'Missing or ambiguous enabled selector '+label);
+ await until(p,s,()=>[...document.querySelectorAll('[role="listbox"]')].some(
+  x=>x.getClientRects().length>0),null,'REAL_SELECTOR_MENU_NOT_OPEN_'+label);
+}
+async function choose(p,s,label,option){
+ await openSelector(p,s,label);
+ await until(p,s,fragment=>[...document.querySelectorAll('[role="listbox"] [role="option"]')]
+  .filter(x=>x.getAttribute('aria-disabled')!=='true'&&x.textContent.includes(fragment)).length===1,
+  option,'UNIQUE_AUTHORIZED_OPTION_NOT_LOADED_'+label);
  const picked=await page(p,s,fragment=>{
-  const node=[...document.querySelectorAll('[role="option"]')].find(
-   x=>x.textContent.includes(fragment));
-  if(!node)return false;node.click();return true;
+  const nodes=[...document.querySelectorAll('[role="listbox"] [role="option"]')]
+   .filter(x=>x.getAttribute('aria-disabled')!=='true'&&x.textContent.includes(fragment));
+  if(nodes.length!==1)return false;nodes[0].click();return true;
  },option);
- assert.equal(picked,true,'Could not choose '+option);
- await delay(160);
+ assert.equal(picked,true,'Could not choose unique option '+option);
+ await until(p,s,({label,option})=>[...document.querySelectorAll('[role="combobox"]')]
+  .some(x=>(x.getAttribute('aria-labelledby')??'').split(' ').some(
+    id=>document.getElementById(id)?.textContent?.trim()===label)&&
+    x.textContent.includes(option)),{label,option},'REAL_SELECTOR_VALUE_NOT_COMMITTED_'+label);
 }
 async function input(p,s,label,value){
  const good=await page(p,s,({label,value})=>{
@@ -260,7 +282,7 @@ async function realBrowser(){
   await db.projectMember.create({data:{projectId:projectScope,employeeId:employee.id,
    projectRole:roleCode}});
   const session=await sessions.create(user.id);
-  return {id:user.id,token:session.sessionToken,csrf:session.csrfToken,
+  return {id:user.id,companyId:company.id,roleCode,token:session.sessionToken,csrf:session.csrfToken,
    sessionId:session.sessionId};
  }
  const docView='documents.document.view',stock='inventory.stock.view',count='inventory.stock_count.view';
@@ -380,6 +402,8 @@ async function realBrowser(){
    return r.status===200?(await r.json()).data:null;
   });
   assert.equal(identity?.id,actor.id,'Actual auth/me identity mismatch');
+  assert.equal(identity?.companyId,actor.companyId,'Actual auth/me Company mismatch');
+  assert.deepEqual(identity?.roleCodes,[actor.roleCode],'Actual fixture role mismatch');
   await visible(p,s,'Operational exceptions / evidence decisions');
   return s;
  }
@@ -419,6 +443,11 @@ async function realBrowser(){
    '/sites/'+warehouse.id+'?asOfDate=2026-11-23');
   assert.equal(schedule.schedules[0]?.materialCategory,'AGGREGATE');
   assert.equal(schedule.schedules[0]?.intervalDays,7);
+  assert.equal(schedule.schedules[0]?.changedByUserId,nancy.id);
+  assert.equal(schedule.schedules[0]?.version,1);
+  assert.equal(schedule.projectId,project.id);
+  assert.equal(schedule.warehouseId,warehouse.id);
+  assert.equal(schedule.financeWriteOffAuthorized,false);
   console.log('M4_BROWSER_NANCY_REAL_SAVE_PASS');
 
   // PM09 Khaimook closes posted issue document follow-up from real React tab.
@@ -433,6 +462,10 @@ async function realBrowser(){
   await visible(p,pmS,'Closure recorded');
   const urgent=await apiCall(pm,'GET','/inventory/urgent-issue-documents/'+issue.id);
   assert.equal(urgent.record?.status,'CLOSED');
+  assert.equal(urgent.projectId,project.id);
+  assert.equal(urgent.record?.reviewedByUserId,pm.id);
+  assert.equal(urgent.record?.createdByUserId,store.id);
+  assert.deepEqual(urgent.record?.documentIds,[issueDoc]);
   console.log('M4_BROWSER_PM09_KHAIMOOK_REAL_REVIEW_PASS');
 
   // SS13 Khaimook→Ben→Nancy actual source/actor stage transitions in browser.
@@ -468,6 +501,15 @@ async function realBrowser(){
   await click(p,nancyS,'Record independent operational decision');
   await visible(p,nancyS,'Status: NANCY_APPROVED_PENDING_EXECUTION');
   await visible(p,nancyS,'Actual disposal and financial write-off are NOT posted');
+  const reviewed=await apiCall(nancy,'GET','/inventory/stock-loss-cases/'+loss.caseId);
+  assert.deepEqual([reviewed.makerUserId,reviewed.pmUserId,reviewed.benUserId,reviewed.nancyUserId],
+   [store.id,pm.id,ben.id,nancy.id]);
+  assert.equal(reviewed.projectId,project.id);
+  assert.equal(reviewed.warehouseId,warehouse.id);
+  assert.equal(reviewed.version,4);
+  assert.equal(reviewed.status,'NANCY_APPROVED_PENDING_EXECUTION');
+  assert.equal(reviewed.stockDisposalExecuted,false);
+  assert.equal(reviewed.financeWriteOffPosted,false);
   assert.equal(await db.stockTransaction.count({where:{companyId:company.id}}),stockBefore);
   assert.equal(await db.directCostPosting.count({where:{companyId:company.id}}),costBefore);
   console.log('M4_BROWSER_SS13_SEPARATE_ROLE_STAGE_NO_POST_PASS');
@@ -479,15 +521,7 @@ async function realBrowser(){
   outsiderSession=outsiderS;
   // A closed MUI select hides its options. Wait for the authorized Project
   // network query by opening the real dropdown and inspecting option nodes.
-  const opened=await page(p,outsiderS,label=>{
-   const control=[...document.querySelectorAll('[role="combobox"]')].find(x=>
-    (x.getAttribute('aria-labelledby')??'').split(' ').some(
-     id=>document.getElementById(id)?.textContent?.trim()===label));
-   if(!control)return false;
-   control.dispatchEvent(new MouseEvent('mousedown',{bubbles:true,button:0}));
-   return true;
-  },'Project');
-  assert.equal(opened,true,'Outsider Project selection not available');
+  await openSelector(p,outsiderS,'Project');
   await until(p,outsiderS,fragment=>[...document.querySelectorAll('[role="option"]')]
    .some(x=>x.textContent.includes(fragment)),'M4-OTHER-'+key,
    'OUTSIDER_ASSIGNED_PROJECT_NOT_LOADED');
