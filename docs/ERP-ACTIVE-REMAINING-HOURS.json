@@ -4361,6 +4361,27 @@
       "verifiedCompletedScopeHours": 0,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261126-M4-08-115",
+      "date": "2026-11-26",
+      "packageId": "M4-08",
+      "kind": "M4_BATCHED_FIXTURE_EXACT_HEAD_INDEPENDENT_REVIEW_CLEAN",
+      "beforeHours": 0.5,
+      "afterHours": 0.5,
+      "sourceSha": "82df55d423aedebf13a642861dc64e30919bad52",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/pull/455#issuecomment-7171622451",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45679758958/job/139436852827",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45679767315/attempts/2"
+      ],
+      "basis": "Independent Codex returned a clean review for the exact fixture-only draft head 82df55d. The exact focused branch job passed 18/18. The Owner separately authorized one failed-jobs rerun of 45679767315 for this head and base 040395bc, after the first attempt halted at DRAFT_FOCUSED_ONLY. The authorized request was accepted. Exact full validation, retained readiness and governed integration still price the release exit. No duplicate forecast credit.",
+      "blocker": "Observe actual full PR attempt 2 through terminal outcome. Retained readiness evidence, separate Ready and integration authority, applicable post-Ready review/proof and formal acceptance remain.",
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
