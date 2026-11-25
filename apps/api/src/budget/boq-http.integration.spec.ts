@@ -114,6 +114,37 @@ test('public BOQ HTTP workflow enforces persisted disclosure, CSRF, maker/checke
       await get(f.editor,'/budget/quantity/projects/'+foreign.project.id+'/revisions',404);
       await get(f.editor,quantity+'/revisions/'+foreign.source.id,404);
     });
+    await t.test('Customer CSV export refuses cross-Project ID swapping and partial combined BOQ grants',async()=>{
+      // The same maker is explicitly authorized for TWO Projects; a version ID
+      // from the first Project must remain inaccessible through the second URL.
+      const other=await db.project.create({data:{companyId:f.company.id,customerId:f.project.customerId,
+        projectCode:'CSV-'+randomUUID().slice(0,8),projectName:'Second authorized Project',
+        contractValue:'1000',plannedStartDate:new Date('2026-01-01'),plannedCompletionDate:new Date('2026-12-31')}});
+      const makerUser=await db.user.findUniqueOrThrow({where:{id:f.maker.userId}});
+      assert.ok(makerUser.employeeId);
+      await db.projectMember.create({data:{projectId:other.id,employeeId:makerUser.employeeId!,projectRole:'Commercial'}});
+      const options=await(await get(f.maker,'/budget/customer/projects/'+other.id+'/options')).json();
+      assert.deepEqual(options.data.sources,[],'Second Project is authorized but has no approved Cost source');
+      const valid=await(await get(f.maker,root+'/versions/'+id+'/export')).text();
+      assert.match(valid,/Customer work/,'Original Project still exports to a fully authorized actor');
+      await get(f.maker,'/budget/customer/projects/'+other.id+'/versions/'+id+'/export',404);
+      await get(f.maker,'/budget/customer/projects/'+foreign.project.id+'/versions/'+id+'/export',404);
+
+      // Unioned grants are not a substitute for ALL four independent required
+      // commercial read capabilities, even with Quantity Only or action rights.
+      const incomplete=[
+        ['budget.quantity.view','budget.boq.view','budget.revision.view','budget.customer.view','budget.customer.manage'],
+        ['budget.quantity.view','budget.cost.full_view','budget.boq.view','budget.revision.view'],
+        ['budget.quantity.view','budget.cost.full_view','budget.revision.view','budget.customer.view'],
+        ['budget.quantity.view','budget.cost.full_view','budget.boq.view','budget.customer.view'],
+      ];
+      for(const permissions of incomplete){
+        await grants(f.editor,permissions);
+        const denied=await get(f.editor,root+'/versions/'+id+'/export',403);
+        assert.doesNotMatch(await denied.text(),/Customer work|120[.]0000|costBasis|pricingSnapshot/,
+          'Forbidden export must not return Customer values or source snapshots');
+      }
+    });
     await t.test('maker/editor and configured step roles remain authoritative through rejection, resubmission and approval',async()=>{
       await post(f.maker,root+'/versions/'+id+'/edit',{requestId:randomUUID(),expectedEditNo:1,draft:{...f.input('115'),reason:'Negotiated price'}});
       await post(f.maker,root+'/versions/'+id+'/submit',{requestId:randomUUID(),expectedEditNo:2,workflowCode:f.wf.workflowCode});
