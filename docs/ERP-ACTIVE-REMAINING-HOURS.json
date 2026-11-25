@@ -4319,6 +4319,27 @@
       "verifiedCompletedScopeHours": 0,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261126-M4-08-113",
+      "date": "2026-11-26",
+      "packageId": "M4-08",
+      "kind": "M4_RECEIVING_FM03_PREDECESSOR_EQUIPMENT_COMPATIBILITY_LOCAL_PASS",
+      "beforeHours": 0.5,
+      "afterHours": 0.5,
+      "sourceSha": "82df55d423aedebf13a642861dc64e30919bad52",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/commit/82df55d423aedebf13a642861dc64e30919bad52",
+        "https://github.com/threeswordz/cinder-grind/compare/f9d32c5924f8ebd91930694a2156743a7c686785...82df55d423aedebf13a642861dc64e30919bad52",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45679086031"
+      ],
+      "basis": "Reproduced the full runner's skipped standalone receiving predecessor failure on disposable PostgreSQL 17.11: the two equipment tables and new permission definitions broke its historical comparison. Fixed both receiving and FM03 fixture consumers using the existing exact migration checksum, new ungranted catalog, trigger binding and empty table verifiers. Both true populated predecessor upgrades passed with preserved history and grants, including the null historical GR link. Adjacent API 21/21 and predecessor/equipment contracts 14/14 passed locally. The prospective integration tree matches this candidate. Hosted exact Chromium and artifact custody are still running at this checkpoint; previous 0.5h integration estimate remains.",
+      "blocker": "Observe hosted targeted browser outcomes, complete scoped independent review and obtain exact full PR CI and integration authority.",
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
