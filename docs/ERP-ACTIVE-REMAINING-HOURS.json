@@ -1769,6 +1769,27 @@
       "sourceSha": "12453a1ff391b758f567a47b7f318c49cbb1dbbb",
       "formalAcceptance": false,
       "estimateConfidence": "NO_ADDITIONAL_HOURS_CREDIT"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-05-003",
+      "date": "2026-11-25",
+      "packageId": "M4-05",
+      "kind": "PUR04_NATIVE_HEADER_PASS_SHARED_FIXTURE_CORRECTION",
+      "beforeHours": 8,
+      "afterHours": 8,
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45539318276",
+        "https://github.com/threeswordz/cinder-grind/commit/09ef1561030d8bde9dd4ff9fa9026ee824d2caa3",
+        "https://github.com/threeswordz/cinder-grind/commit/f8a5cae0d540b39e41d68bb5851d961585fcc035",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45540380093"
+      ],
+      "basis": "Exact prior bounded PUR04 native run45539318276: migration, API build, web typecheck, native commercial draft/header roundtrip and 10 PM02 final-approval seam negatives passed. Overall 12/20 tests passed; seven submit negatives and parent failed due missing amount in old synthetic Prisma row fixture, DecimalError undefined before intended check. No production change: fixture now provides exact Decimal amount and null discount; all previous denials/counters retained. Imported historical #421 actual native revision/reapproval test, excluding only not-yet-integrated PUR01 exception field, retaining nine PUR04 fields, new independent approval, Company/Project and immutable history assertions. Source 09ef1561, workflow-only child f8a5cae0; focused corrected seam and new revision proof pending, no repeat header test. No hours credit before combined proof, no new scope or main/PM02/FM01 change.",
+      "sourceSha": "09ef1561030d8bde9dd4ff9fa9026ee824d2caa3",
+      "formalAcceptance": false,
+      "estimateConfidence": "NO_ADDITIONAL_HOURS_CREDIT"
     }
   ],
   "unestimatedWork": [
