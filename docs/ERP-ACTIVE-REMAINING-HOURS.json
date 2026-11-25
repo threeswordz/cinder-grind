@@ -3179,6 +3179,25 @@
       "sourceSha": "1d5a79c8f1fa18443d742dd4739463a6e5eb0c9b",
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-08-051",
+      "date": "2026-11-25",
+      "packageId": "M4-08",
+      "kind": "CURRENT_SUCCESSOR_IMMUTABLE_OWNER_GATES_SOURCE_INTEGRATION_VERIFIED",
+      "beforeHours": 5,
+      "afterHours": 5,
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/commit/86e376af957788de15f1a7e315428cdd0d0299b2",
+        "https://github.com/threeswordz/cinder-grind/commit/a9d0e1282bed72f65a929fadca25d32ce1a7dedf"
+      ],
+      "basis": "Isolated operational browser successor received exactly four byte-identical immutable M4 scope governance files, with no other path changes; readback confirms all four expected Git blobs. Protected-main compare 58 ahead, zero behind, 188 paths including eight forward migrations. Independent review manifest enumerates exactly 188 distinct changed paths and confirms Owner-approved six boundaries with 112 requirements preserved. Integration reuses already credited M4-01 112 effective-gate reconciliation and existing M4-08 source assembly; no second retirement or runtime verification. Four focused jobs, operational browser, DEC-022, retained UAT and release admission still pending.",
+      "sourceSha": "86e376af957788de15f1a7e315428cdd0d0299b2",
+      "formalAcceptance": false,
+      "estimateConfidence": "NO_ADDITIONAL_HOURS_CREDIT"
     }
   ],
   "unestimatedWork": [
