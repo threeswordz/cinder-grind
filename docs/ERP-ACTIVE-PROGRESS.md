@@ -80,6 +80,8 @@
 
 > **Combined supplier cancellation evidence verified:** [45581872905](https://github.com/threeswordz/cinder-grind/actions/runs/45581872905/job/139093668108) SUCCESS16/16; historical reported evidence preserved and post-cancellation write denied, no GR/AP creation, prior exclusive commit/replay PASS. M4-08 7→6h, M4 49→48h, ERP 1,779→1,778h. Concurrent supplier ordering and retained roles remain.
 
+> **PM15 site readback isolation correction:** [0fe545da](https://github.com/threeswordz/cinder-grind/commit/0fe545da4241dacb4201f5cad1bcd8d51502a032) preserves existing Inventory portfolio wiring and discards late results after Project/site switch. Focused web typecheck [45582734359](https://github.com/threeswordz/cinder-grind/actions/runs/45582734359); browser timing evidence not yet obtained. M4 48h / ERP 1,778h unchanged.
+
 ## Headline
 | Metric | Current | Meaning |
 |---|---:|---|
