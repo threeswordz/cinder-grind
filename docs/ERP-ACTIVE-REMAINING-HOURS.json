@@ -1852,6 +1852,25 @@
       "sourceSha": "b6159797267ce1aa5bf2153c4cb568917725bcbf",
       "formalAcceptance": false,
       "estimateConfidence": "NO_ADDITIONAL_HOURS_CREDIT"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-05-006",
+      "date": "2026-11-25",
+      "packageId": "M4-05",
+      "kind": "PUR04_POPULATED_UPGRADE_RESTORE_PASS",
+      "beforeHours": 7,
+      "afterHours": 6,
+      "reductionHours": 1,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 1,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45541682784",
+        "https://github.com/threeswordz/cinder-grind/commit/f9b4feadf1b0641621a489082c2ca2224df789cd"
+      ],
+      "basis": "Exact source f9b4fead workflow-only child426756a2 run45541682784 job138961455751 SUCCESS14/14. Populated upgrade and separate predecessor restore each 169 tables and 5 PO rows; all row digests, existing mixed PM02 review values, migration checksums and trigger definitions preserved, nine commercial columns NULL, upgraded target recheck PASS. Provisional 1h future native recovery preparation eliminated; no formal acceptance or labor credit. Global PUR04 admission, paired Documents/HR keys and layered historical rehearsal integration remain. PUR01 focused native run45541823895 in progress.",
+      "sourceSha": "f9b4feadf1b0641621a489082c2ca2224df789cd",
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -1874,6 +1893,6 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1814,
-  "currentRollingTotalSemantics": "1814h provisional future work = 1847h baseline minus 42h evidence-backed package forecast reductions plus 9h separately priced supplier scope. M4 84h; M4-05 7h. Formal acceptance unchanged."
+  "currentRollingTotalAfterPricedGapsHours": 1813,
+  "currentRollingTotalSemantics": "1813h provisional future work = 1847h baseline minus 43h evidence-backed package forecast reductions plus 9h separately priced supplier scope. M4 83h; M4-05 6h; formal acceptance unchanged."
 }
