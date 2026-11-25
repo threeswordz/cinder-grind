@@ -1,0 +1,71 @@
+name: PUR08 PUR14 bounded supplier lifecycle native and Chrome
+on:
+  push:
+    branches: [ci-m4-supplier-bounded-provenance-20261125]
+permissions:
+  contents: read
+concurrency:
+  group: ci-m4-supplier-bounded-provenance-20261125
+  cancel-in-progress: true
+jobs:
+  custody-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:17.11-alpine
+        env:
+          POSTGRES_DB: construction_erp
+          POSTGRES_USER: construction_erp
+          POSTGRES_PASSWORD: construction_erp_dev_only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U construction_erp -d construction_erp"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://construction_erp:construction_erp_dev_only@localhost:5432/construction_erp?schema=public
+      PUR0814_NON_PRODUCTION_CONFIRMED: 'YES'
+      NODE_ENV: test
+    steps:
+      - name: Exact isolated checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          fetch-depth: 2
+      - name: Assert immutable tested code source SHA
+        run: |
+          test "$GITHUB_ACTIONS" = true
+          test "$(git rev-parse HEAD^)" = fc093f55dcfcf2c08c28e519212dd3684c1d1ccf
+          test "$(git diff --name-only HEAD^ HEAD)" = .github/workflows/m4-supplier-bounded-provenance.yml
+          test "$DATABASE_URL" = 'postgresql://construction_erp:construction_erp_dev_only@localhost:5432/construction_erp?schema=public'
+      - name: pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
+        with:
+          version: 12.6.0
+          run_install: false
+      - name: Node 24
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
+        with:
+          node-version: 24.21.0
+      - name: Frozen exact dependency installation
+        run: pnpm install --frozen-lockfile
+      - name: PostgreSQL 17 forward-only migrations and Prisma generate
+        run: |
+          pnpm prisma:generate
+          pnpm prisma:migrate:deploy
+      - name: Affected API/React TypeScript and browser script parse
+        run: |
+          pnpm --filter @construction-erp/api build
+          pnpm --filter @construction-erp/web typecheck
+          node --check deploy/uat/pur08-pur14-browser-native.mjs
+      - name: Corrected missing-provenance native negative only
+        run: node --test apps/api/dist/procurement/supplier-delivery-case.native.integration.spec.js
+      - name: Authenticated Chrome Store PM Jai signed custody and replacement reversal
+        run: |
+          google-chrome --version
+          node deploy/uat/pur08-pur14-browser-native.mjs
+          node deploy/uat/pur14-replacement-browser-native.mjs
+      - name: Boundary
+        run: echo "No repeated full CI, Production, retained role grants, self-approval, protected main, or unrelated native suites"
