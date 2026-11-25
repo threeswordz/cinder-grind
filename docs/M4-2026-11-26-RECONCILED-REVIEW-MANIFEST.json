@@ -1,9 +1,9 @@
 {
   "schema": "M4_RECONCILED_REVIEW_MANIFEST_V1",
   "date": "2026-11-26",
-  "source": "7486c0fd2e42b07e542ab8f570f6ed85650e7d06",
+  "source": "0994594e8ab1fd40d972ade9f463a7cca6e0be32",
   "base": "040395bc7b0dedd40207f91f743bc2efc1584622",
-  "sourceAhead": 121,
+  "sourceAhead": 123,
   "sourceBehind": 0,
   "frozenDraftHead": "280760321e5958035443721eb208dc090e614d93",
   "parentManifest": {
@@ -12,13 +12,19 @@
     "sourceTree": "abeecfaa786a6126d0479ac919ce126d0694caba",
     "baseTree": "cc37732481928ca3df86618ea5308cd59882b63b"
   },
-  "verificationMethod": "Prior 205-file complete recursive tree manifest carried forward using exact GitHub six-addition-only comparison and six newly fetched blob identities; complete 211 changed-path/status list crosschecked against base-to-successor comparison. New recursive tree SHA not exposed by connector; no claim of new full tree walk.",
+  "verificationMethod": "Prior 205-file complete recursive tree manifest carried forward using exact GitHub six-addition-only comparison and six newly fetched blob identities; complete 211 changed-path/status list crosschecked against base-to-successor comparison. New recursive tree SHA not exposed by connector; no claim of new full tree walk.; six changed path blob identities read back after P2 correction and complete 214 path/status comparison checked. No new recursive tree SHA.",
   "changedFiles": [
     {
       "path": ".github/workflows/validate.yml",
       "status": "modified",
       "sha": "1110ea0fc62bbb158d0fb5d41746ad7f8dde546a",
       "old": "3e4e0b78f4e38647141ab988453a5f68a11a37c9"
+    },
+    {
+      "path": "apps/api/package.json",
+      "status": "modified",
+      "sha": "5538638713f4b5c42f8e0fe761efd3f7e1551f40",
+      "old": "be3caa5380e6b078327f079a1241be39d2af062d"
     },
     {
       "path": "apps/api/prisma/migrations/20261123143000_pm02_partial_pr_line_review/migration.sql",
@@ -419,13 +425,13 @@
     {
       "path": "apps/api/src/procurement/purchase-order-pur07-source-approval.spec.ts",
       "status": "added",
-      "sha": "3667d34e3c9f384e144b592e00111b0fa417f830",
+      "sha": "eab0a5c4952a332e8b08a9c8e3d10e4bc155ee1a",
       "old": null
     },
     {
       "path": "apps/api/src/procurement/purchase-order-pur07.service.ts",
       "status": "added",
-      "sha": "29fa056f858169761e7bc08a9c882bdcec1ed1bd",
+      "sha": "b96ddd5370dccf35d51b7bf42edeaee8db53727d",
       "old": null
     },
     {
@@ -771,9 +777,15 @@
       "old": "026d769ca67fb5dadc2deb100fa9446b157d1ef5"
     },
     {
+      "path": "apps/web/src/procurement/purchase-order-print-money.ts",
+      "status": "added",
+      "sha": "74a8c2ea7a059eddc05c06474b290ba85c89bbfa",
+      "old": null
+    },
+    {
       "path": "apps/web/src/procurement/purchase-order-print.ts",
       "status": "added",
-      "sha": "c6f1f840f4f36df976cf9f45f701f97e2131f93c",
+      "sha": "87018772ad38c0d98f4a8cab24269a174950fcc2",
       "old": null
     },
     {
@@ -798,6 +810,12 @@
       "path": "apps/web/src/procurement/SupplierDeliveryCasePanel.tsx",
       "status": "added",
       "sha": "c617bdb76a7b4070ff3058dadb31524f1fead9a6",
+      "old": null
+    },
+    {
+      "path": "apps/web/src/role-ui/purchase-order-print-money.test.mjs",
+      "status": "added",
+      "sha": "f0f236593a5743cc34c8c2b3233bf97c0df97659",
       "old": null
     },
     {
@@ -1439,13 +1457,11 @@
   "pending": [
     {
       "scope": "Operational exceptions browser",
-      "path": "deploy/uat/m4-operational-browser-native.mjs",
-      "status": "BLOCKED_INDEPENDENT_SOURCE_REVIEW",
-      "blob": "be2c525dc8f4b001a3a1c761d23a9ebaf55e0071"
+      "status": "INDEPENDENT_SOURCE_REVIEW_CLEARED_RUNTIME_NOT_EXECUTED"
     },
     {
-      "scope": "DEC-022",
-      "status": "BLOCKED_INDEPENDENT_REVIEW_QUOTA_LAST_OBSERVED"
+      "scope": "PUR07 corrected server PDF regression",
+      "status": "NOT_EXECUTED_NATIVE_DEPENDENCIES_ABSENT"
     },
     {
       "scope": "Full release CI",
@@ -1456,8 +1472,11 @@
       "status": "BLOCKED_RETAINED_CONFIGURATION_AND_HUMAN_UAT"
     }
   ],
-  "independentReview": "BLOCKED_LAST_OBSERVED_QUOTA_REFUSAL_RESET_UNCONFIRMED",
+  "independentReview": "COMPLETED_NO_FINDINGS_ON_EXACT_HEAD",
   "formalAcceptance": false,
   "protectedMainChanged": false,
-  "forecastReductionHours": 0
+  "forecastReductionHours": 0.5,
+  "previousReconciledSource": "7486c0fd2e42b07e542ab8f570f6ed85650e7d06",
+  "currentDraftHead": "0994594e8ab1fd40d972ade9f463a7cca6e0be32",
+  "independentReviewEvidence": "https://github.com/threeswordz/cinder-grind/pull/455#issuecomment-7168792544"
 }
