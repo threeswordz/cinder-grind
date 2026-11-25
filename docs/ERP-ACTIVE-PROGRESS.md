@@ -82,6 +82,8 @@
 
 > **PM15 site readback isolation correction:** [0fe545da](https://github.com/threeswordz/cinder-grind/commit/0fe545da4241dacb4201f5cad1bcd8d51502a032) preserves existing Inventory portfolio wiring and discards late results after Project/site switch. Focused web typecheck [45582734359](https://github.com/threeswordz/cinder-grind/actions/runs/45582734359); browser timing evidence not yet obtained. M4 48h / ERP 1,778h unchanged.
 
+> **PM15 typecheck verified and deterministic browser test staged:** [45582734359](https://github.com/threeswordz/cinder-grind/actions/runs/45582734359/job/139096568048) SUCCESS11/11. [86015162](https://github.com/threeswordz/cinder-grind/commit/86015162a1390ff4ee0fa709de16a1fdb1a10d8f) actual React/MUI Chrome fixture with delayed synthetic local HTTP site success and cross-Project failure; [workflow-only child 8d1dbf03](https://github.com/threeswordz/cinder-grind/commit/8d1dbf0362462d5b53a443cdd1fcde0479fe335f). Browser outcome not observed; no native backend/retained UAT claim, no hour credit. M4-08 6h, M4 48h, ERP 1,778h.
+
 ## Headline
 | Metric | Current | Meaning |
 |---|---:|---|
