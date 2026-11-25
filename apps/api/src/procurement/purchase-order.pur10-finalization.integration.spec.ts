@@ -19,6 +19,7 @@ import { ProcurementService } from './procurement.service';
 import { PurchaseOrderService } from './purchase-order.service';
 import { SourcingService } from './sourcing.service';
 import { PurchaseOrderCancellationCaseService } from './purchase-order-cancellation-case.service';
+import { SupplierDeliveryCaseService } from './supplier-delivery-case.service';
 
 // NEW bounded PUR04 actual PostgreSQL17.11 behavior, not a rerun of the
 // previously passed PUR04 draft-edit/THB quote/Chrome flows.
@@ -615,6 +616,39 @@ test('PUR10 native: real approved PO, independent named Jai/Khaimook/Ben, atomic
     assert.equal(await prisma.supplierInvoiceItem.count({where:{
       purchaseOrderLineId:{in:approvedOriginal.lines.map(l=>l.id)},
     }}),0);
+    // Combined successor boundary: a real supplier report on an approved
+    // PO remains historical after independent cancellation. New supplier
+    // transitions on the cancelled source must fail without new effects.
+    const linked=await reviewedExceptionOrder('SUPPLIER-HISTORY');
+    const buyerRole=await prisma.role.findUniqueOrThrow({where:{
+      companyId_roleCode:{companyId:company.id,roleCode:'PROCUREMENT_OFFICER'},
+    }});
+    const docPermission=await prisma.permission.findUniqueOrThrow({where:{permissionCode:'documents.document.view'}});
+    await prisma.rolePermission.upsert({where:{roleId_permissionId:{roleId:buyerRole.id,permissionId:docPermission.id}},update:{},create:{roleId:buyerRole.id,permissionId:docPermission.id}});
+    const buyer={...jaiAuth,permissions:[...new Set([...jaiAuth.permissions,'documents.document.view'])]};
+    const docType=await prisma.documentType.create({data:{companyId:company.id,documentTypeCode:'PUR10-LINK-'+key,documentTypeName:'Synthetic supplier evidence'}});
+    const doc=await prisma.document.create({data:{companyId:company.id,documentTypeId:docType.id,fileName:'supplier-evidence.txt',storageProvider:'LOCAL',storageKey:'pur10-linked-'+key,mimeType:'text/plain',fileSizeBytes:20,uploadedByUserId:jai.user.id}});
+    await prisma.documentLink.create({data:{documentId:doc.id,entityType:'PROJECT',entityId:project.id,linkedByUserId:jai.user.id}});
+    const dispatch=await prisma.poDispatchEvent.create({data:{companyId:company.id,projectId:project.id,purchaseOrderId:linked.po.id,kind:'DISPATCH',channel:'EMAIL',recipient:'supplier@example.invalid',evidenceReference:'Synthetic reported external dispatch',recordedByUserId:jai.user.id}});
+    const ack=await prisma.poDispatchEvent.create({data:{companyId:company.id,projectId:project.id,purchaseOrderId:linked.po.id,kind:'ACKNOWLEDGMENT',channel:'EMAIL',recipient:'supplier@example.invalid',evidenceReference:'Synthetic reported supplier acknowledgement',acknowledgesEventId:dispatch.id,recordedByUserId:jai.user.id}});
+    const supplierCases=new SupplierDeliveryCaseService(prisma,scope);
+    const event=await supplierCases.transition({auth:buyer},linked.po.id,{
+      action:'ACKNOWLEDGE',expectedVersion:0,expectedPreviousEventId:null,evidenceDocumentId:doc.id,note:'Reported supplier acknowledgment',recordedPoAcknowledgmentEventId:ack.id,
+    });
+    assert.equal(event.case.stage,'ACKNOWLEDGED');
+    const result=await cases.finalize({auth:benAuth},linked.po.id,3,linked.case.expectedPreviousEventId,finalArgs);
+    assert.equal(result.poCancelled,true);
+    const historical=await supplierCases.read(buyer,linked.po.id);
+    assert.equal(historical.approvedLatest,false);
+    assert.equal(historical.case?.version,1);
+    await assert.rejects(()=>supplierCases.transition({auth:buyer},linked.po.id,{
+      action:'REPORT_DELAY',expectedVersion:1,expectedPreviousEventId:event.expectedPreviousEventId,evidenceDocumentId:doc.id,note:'Reported delay after cancellation',newSupplierExpectedDate:'2026-12-09',
+    }),(e:unknown)=>e instanceof ConflictException&&(e.getResponse() as {code?:string}).code==='SUPPLIER_CASE_APPROVED_LATEST_SOURCE_REQUIRED');
+    assert.equal(await prisma.auditLog.count({where:{companyId:company.id,entityType:'SUPPLIER_DELIVERY_CASE',entityId:linked.po.id}}),1);
+    assert.equal(await prisma.poDispatchEvent.count({where:{purchaseOrderId:linked.po.id}}),2);
+    assert.equal(await prisma.goodsReceipt.count({where:{purchaseOrderId:linked.po.id}}),0);
+    assert.equal(await prisma.supplierInvoiceItem.count({where:{purchaseOrderLineId:{in:linked.po.lines.map(l=>l.id)}}}),0);
+    console.log('PUR10_PUR08_CANCELLED_SOURCE_HISTORY_AND_WRITE_DENIAL_PASS');
     console.log('M4_PUR10_REAL_PG_ATOMIC_FINALIZATION_AND_REPLAY_PASS');
   } finally {
     await prisma.$disconnect();
