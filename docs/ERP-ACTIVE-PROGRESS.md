@@ -40,6 +40,8 @@
 
 > **Verified v25 PUR10 integration:** [45566487068](https://github.com/threeswordz/cinder-grind/actions/runs/45566487068/job/139042444270) SUCCESS16/16; exact [ad38bc37](https://github.com/threeswordz/cinder-grind/commit/ad38bc379687c906103bdfe8121643f22b384f4b), API and web compile, actual PG atomic finalization/replay and policy PASS. M4-08 18→17h; M4 66→65h; ERP 1,796→1,795h. Prior #449 assurance not credited twice. PUR07 [45566583650](https://github.com/threeswordz/cinder-grind/actions/runs/45566583650) real scoped HTTP list PASS, then unhandled React exception before root mount; no browser credit.
 
+> **Parallel next integrations:** PUR07 [45566583650](https://github.com/threeswordz/cinder-grind/actions/runs/45566583650) actual scoped HTTP PASS, unhandled React exception before mount. Test-only runtime harness [5fe9305f](https://github.com/threeswordz/cinder-grind/commit/5fe9305f84ef8e6165ea594d67d8e28d380276a3), [45568660272](https://github.com/threeswordz/cinder-grind/actions/runs/45568660272) running. Equipment custody and CG asset register integrated in [5d2d86e1](https://github.com/threeswordz/cinder-grind/commit/5d2d86e1bcb4c338bbd39c8bf3270b2628f93cc7), 14 paths and two forward-only migrations; [45568812808](https://github.com/threeswordz/cinder-grind/actions/runs/45568812808) running. No additional hours until verification. ERP 1,795h, M4 65h, M4-08 17h, M4-06 6h.
+
 ## Headline
 | Metric | Current | Meaning |
 |---|---:|---|
