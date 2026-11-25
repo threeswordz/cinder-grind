@@ -1,14 +1,14 @@
 # Construction ERP — live countdown to 0 hours
 
 <!-- current-work-m4 -->
-**Current M4 forecast 21.5h → 0h · Full ERP 1,751.5h → 0h.** BEN01 actual configured approval authority PASS15/15, PM05 export regression PASS14/14 (11/11 tests), Nancy/Jai/Store actual scoped master-role proof PASS15/15. Independent review blocked by quota.
+**Current M4 forecast 21h → 0h · Full ERP 1,751h → 0h.** Complete 205-file exact-source review manifest verified; new supplier latest-revision actual browser/API proof running. Independent source and release review remain blocked by quota.
 
 | Forecast reconciliation | Hours |
 |---|---:|
-| Previous reported ERP forecast | 1,754 |
+| Previous reported ERP forecast | 1,751.5 |
 | Newly identified mandatory scope | +0 |
-| Verified remaining-effort reduction | −2.5 |
-| Revised remaining ERP forecast | **1,751.5** |
+| Verified remaining-effort reduction | −0.5 |
+| Revised remaining ERP forecast | **1,751** |
 
 Prototype 4/8 · Go-live 3/10 · Deadline 31 December 2026.
 <!-- /current-work-m4 -->
@@ -140,9 +140,9 @@ Prototype 4/8 · Go-live 3/10 · Deadline 31 December 2026.
 ## Headline
 | Metric | Current | Meaning |
 |---|---:|---|
-| **Estimated full ERP work still needed** | **1,751.5h → 0h** | 112 requirements across eight roles |
+| **Estimated full ERP work still needed** | **1,751h → 0h** | 112 requirements across eight roles |
 | 23 Nov original current-work forecast | 1847h | Earlier 60-package provisional baseline |
-| Additional estimated future-work eliminated | −100h | M4-01 −29.5h, M4-02 −6h, M4-03 −7.5h, M4-04 −5.5h, M4-05 −5.5h, M4-06 −8h, M4-07 −4.5h, M4-08 −33.5h |
+| Additional estimated future-work eliminated | −100.5h | M4-01 −30h, M4-02 −6h, M4-03 −7.5h, M4-04 −5.5h, M4-05 −5.5h, M4-06 −8h, M4-07 −4.5h, M4-08 −33.5h |
 | Newly discovered previously unpriced PUR08/PUR14 work | +4.5h | Remaining supplier lifecycle and assurance work |
 | Net reforecast change versus 1,847h | −79h | Includes separately priced supplier scope |
 | PUR08/PUR14 provisional work before new development | 51h | Low-confidence new-gap gross estimate |
@@ -156,13 +156,13 @@ Prototype 4/8 · Go-live 3/10 · Deadline 31 December 2026.
 | Whole baseline packages formally accepted | 0/60 | 8 M4 packages still 0/8 |
 | Actual productive hours logged | UNKNOWN | Cannot infer from GitHub commits or AI conversation length |
 
-**Forecast basis.** The 1,847h baseline covers 60 packages. Verified work has removed 100h of estimated future effort from those packages. The separately priced supplier lifecycle has 4.5h remaining, bringing the ERP forecast to 1,751.5h.
+**Forecast basis.** The 1,847h baseline covers 60 packages. Verified work has removed 100.5h of estimated future effort from those packages. The separately priced supplier lifecycle has 4.5h remaining, bringing the ERP forecast to 1,751h.
 
 ## Stage-by-stage remaining work
 
 | Stage | Previous 60-package baseline | Verified package forecast reduction | Additional scope remaining | **Now remaining** | Accepted baseline packages |
 |---|---:|---:|---:|---:|---:|
-| Prototype 5/8 — M4 closure | 117h | 100h | 4.5h | **21.5h** | 0/8 |
+| Prototype 5/8 — M4 closure | 117h | 100.5h | 4.5h | **21h** | 0/8 |
 | Prototype 6/8 — end-to-end deployment | 120h | 0h | 0h | **120h** | 0/5 |
 | Prototype 7/8 — populated restore | 50h | 0h | 0h | **50h** | 0/3 |
 | Prototype 8/8 — technical freeze | 65h | 0h | 0h | **65h** | 0/3 |
@@ -174,13 +174,13 @@ Prototype 4/8 · Go-live 3/10 · Deadline 31 December 2026.
 | Production hosting and recovery | 110h | 0h | 0h | **110h** | 0/5 |
 | Migration and onboarding | 110h | 0h | 0h | **110h** | 0/4 |
 | Final human UAT, cutover and Production | 150h | 0h | 0h | **150h** | 0/5 |
-| **Full ERP** | 1847h | 100h | 4.5h | **1,751.5h** | **0/60** |
+| **Full ERP** | 1847h | 100.5h | 4.5h | **1,751h** | **0/60** |
 
 ## Each baseline package
 
 | Package | Stage | Delivery item | Starting estimate | Remaining now |
 |---|---|---|---:|---:|
-| M4-01 | M4 | Current-source and all-112 evidence/scope decisions | 32h | **2.5h** |
+| M4-01 | M4 | Current-source and all-112 evidence/scope decisions | 32h | **2h** |
 | M4-02 | M4 | PM02 real browser and retained-role authorization | 8h | **2h** |
 | M4-03 | M4 | FM01, BEN04 and PM16 real-browser acceptance | 10h | **2.5h** |
 | M4-04 | M4 | PUR01 whole-PO supplier-count and commercial rule | 8h | **2.5h** |
@@ -358,6 +358,10 @@ Prototype 4/8 · Go-live 3/10 · Deadline 31 December 2026.
 ## 25 November actual master-role authority evidence
 
 - **M4-01 3.5→2.5h** — Actual fresh PG17 and authenticated API synthetic Nancy supplier/material initial creation, Jai maintenance/normal material creation, exact actor audit, Store read-only, TCJ foreign Company denial, foreign UOM and CSRF refusal, no stock/Finance change. Exact cb8e4b70 workflow-only child 5dce416b SUCCESS15/15. Retire 1h across NANCY-04/05, PUR03/13 bounded role evidence. Retained grant and human acceptance remain; no global master-role policy inferred. [Evidence](https://github.com/threeswordz/cinder-grind/actions/runs/45618250092/job/139219190621)
+
+## 25 November exact release review manifest preparation
+
+- **M4-01 2.5→2h** — Actual complete recursive Git tree comparison and exact review handoff readback: 205 unique changed paths with old/new blob identities, 115 commits ahead and zero behind protected main, nine migration files added only, source/base tree identities, source-bound historical validation and explicitly outstanding gates. Retire 0.5h specific remaining review/evidence manifest preparation only; not prior 112-ID mapping, independent review verdict, full CI, formal acceptance or actual worked hours. Supplier latest-revision UI proof running; operational browser independent-source-review prerequisite preserved. [Evidence](https://github.com/threeswordz/cinder-grind/blob/b10a70024b174c9c62269fd75bc8b0c1ddaa187c/docs/M4-2026-11-25-EXACT-REVIEW-MANIFEST.json)
 
 ## Required update rule after every Chat development turn
 

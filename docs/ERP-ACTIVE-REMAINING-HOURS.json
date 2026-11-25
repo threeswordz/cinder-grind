@@ -3828,6 +3828,24 @@
       "verifiedCompletedScopeHours": 1,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-01-086",
+      "date": "2026-11-25",
+      "packageId": "M4-01",
+      "kind": "EXACT_COMPLETE_TREE_REVIEW_MANIFEST_READBACK",
+      "beforeHours": 2.5,
+      "afterHours": 2,
+      "sourceSha": "b10a70024b174c9c62269fd75bc8b0c1ddaa187c",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/blob/b10a70024b174c9c62269fd75bc8b0c1ddaa187c/docs/M4-2026-11-25-EXACT-REVIEW-MANIFEST.json"
+      ],
+      "basis": "Actual complete recursive Git tree comparison and exact review handoff readback: 205 unique changed paths with old/new blob identities, 115 commits ahead and zero behind protected main, nine migration files added only, source/base tree identities, source-bound historical validation and explicitly outstanding gates. Retire 0.5h specific remaining review/evidence manifest preparation only; not prior 112-ID mapping, independent review verdict, full CI, formal acceptance or actual worked hours. Supplier latest-revision UI proof running; operational browser independent-source-review prerequisite preserved.",
+      "reductionHours": 0.5,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0.5,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -3850,6 +3868,6 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1751.5,
-  "currentRollingTotalSemantics": "1751.5h = 1847h baseline minus 100h verified baseline forecast reduction plus 4.5h remaining supplier scope. M4 21.5h. All 112 requirements preserved. Actual labor unmeasured."
+  "currentRollingTotalAfterPricedGapsHours": 1751,
+  "currentRollingTotalSemantics": "1751h = 1847h baseline minus 100.5h verified baseline forecast reduction plus 4.5h remaining supplier scope. M4 21h. All 112 requirements preserved. Actual labor unmeasured."
 }
