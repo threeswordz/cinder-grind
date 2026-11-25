@@ -1564,6 +1564,28 @@
       "sourceSha": "b15d009a21b976badfe5918b3d5ff8c7eaa30cf7",
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-02-003",
+      "date": "2026-11-25",
+      "packageId": "M4-02",
+      "kind": "PM02_POPULATED_UPGRADE_PASS_AND_PAIRED_RESTORE_STARTED",
+      "beforeHours": 6,
+      "afterHours": 5,
+      "reductionHours": 1,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 1,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45523796231",
+        "https://github.com/threeswordz/cinder-grind/commit/06d7e623ca5f3cd493d0d20085fcfa3e617469b1",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45524503765",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45524584225",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45463404517/attempts/3"
+      ],
+      "basis": "Exact standalone PM02 populated upgrade run45523796231 SUCCESS14/14 at workflow-only child082c6900; three additive schema/pinned migration tests and two actual predecessor native procurement fixtures passed. Logs PM02_POPULATED_PREDECESSOR_ROWS_PRESERVED_PASS tables=169 PR_LINES=7, all prior table row hashes and trigger attachments unchanged, exact two new migration checksums, five nullable no-default columns and zero historical backfill. Provisional 1h remaining upgrade assurance eliminated, not actual labor. Added separate pre-upgrade PostgreSQL dump and restore proof with exact predecessor manifest comparison and upgraded target recheck, source06d7e623ca5f3cd493d0d20085fcfa3e617469b1. Initial focused workflow45524503765 failed before scheduling any jobs; likely job.services context at job-level env; corrected to step env on direct workflow-only child8654bd917ff0fa2aac2602c1c692e922da8d49ac, new focused run45524584225 in progress. No credit for pending recovery. Global rehearsal schema admission remains unchanged; full consumer wiring, document/paired release recovery and independent review still required. FM01 owner-authorized full attempt3 running beyond previously failing actor Chrome gate, no second trigger. Original #449 preserved, no main change, retained grant or Production.",
+      "sourceSha": "06d7e623ca5f3cd493d0d20085fcfa3e617469b1",
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -1586,6 +1608,6 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1819,
+  "currentRollingTotalAfterPricedGapsHours": 1818,
   "currentRollingTotalSemantics": "1830h provisional future work = 1847h baseline minus 17h M4-01, 1h M4-02, 1h M4-03, 1h M4-04, 1h M4-05, 2h M4-06, 1h M4-07, 2h M4-08, plus 9h supplier scope. JAI-ASSET-01 canonical CG acquisition register and native proof eliminate 5h previously identified remaining scope. Not actual labor or formal acceptance; deadline RED."
 }
