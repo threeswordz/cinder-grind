@@ -3389,6 +3389,26 @@
       "sourceSha": "89c74e810122782b7e946e3ac2c2d2adce196867",
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-03-062",
+      "date": "2026-11-25",
+      "packageId": "M4-03",
+      "kind": "FM01_INDEPENDENT_CODEX_P2_CORRECTION_PREPARED_NATIVE_PENDING",
+      "beforeHours": 5,
+      "afterHours": 5,
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/pull/452#discussion_r4694074492",
+        "https://github.com/threeswordz/cinder-grind/commit/c83f2498ce46a2bba52f565fd6af8c1257784907",
+        "https://github.com/threeswordz/cinder-grind/commit/0e950e9b9bde6863ab94fecf524a578bdebb3d16"
+      ],
+      "basis": "Independent Codex review completed on 4aab761d with one unresolved P2: production SiteExecutionPanel incorrectly required management.dashboard.view instead of MANAGEMENT role. PR converted Draft before correction. Exact corrected c83f2498 passes seven source wiring readback checks, forwards authenticated role codes, gates unrelated equipment read by existing permission, upgrades real browser fixture to actual SiteExecutionPanel and explicitly verifies Ben lacks dashboard permission. One exact workflow-only child configured PG17 + web compile + Chrome focused validation; actual push-run result not visible through PR-only connector, ordinary PR admission 45603992458 queued. No new scope priced: correction/retest fits existing M4-03/08 allowance, no forecast credit pending execution. Previous full CI remains historical only; new head requires fresh full validation per specific authorization and independent verdict. Main unchanged, no merge, retained grants, formal UAT or Production.",
+      "sourceSha": "c83f2498ce46a2bba52f565fd6af8c1257784907",
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -3412,5 +3432,5 @@
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
   "currentRollingTotalAfterPricedGapsHours": 1769.5,
-  "currentRollingTotalSemantics": "1769.5h provisional full ERP = 1847h baseline minus 84h net baseline forecast effort retired plus 6.5h supplier work remaining. M4 39.5h: M4-01 7h, M4-02 2h, M4-03 5h, M4-04 4.5h, M4-05 5.5h, M4-06 4h, M4-07 3h, M4-08 2h, supplier 6.5h. PUR04 source preparation verified; actual TS/PG and independent review pending. PR452 independent Codex review resumed; no acceptance credit. All 112 requirements preserved."
+  "currentRollingTotalSemantics": "1769.5h provisional full ERP = 1847h baseline minus 84h net baseline forecast effort retired plus 6.5h supplier work remaining. M4 39.5h: M4-01 7h, M4-02 2h, M4-03 5h, M4-04 4.5h, M4-05 5.5h, M4-06 4h, M4-07 3h, M4-08 2h, supplier 6.5h. PUR04 source preparation verified; actual TS/PG and independent review pending. PR452 independent Codex review resumed; no acceptance credit. All 112 requirements preserved. PR452 Codex P2 fixed in source; exact corrected candidate c83f2498 Draft, targeted native/browser pending; no additional credit until observed validation."
 }
