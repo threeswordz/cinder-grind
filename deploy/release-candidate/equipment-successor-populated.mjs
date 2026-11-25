@@ -13,7 +13,7 @@ assert.ok(['seed','before','after','restored'].includes(phase)&&manifest);
 assert.equal(url.pathname,phase==='restored'?'/erp_m4_equipment_restore':'/erp_m4_equipment_upgrade');
 const req=createRequire(new URL('../../apps/api/package.json',import.meta.url));
 const {PrismaClient}=req('@prisma/client'); const db=new PrismaClient();
-const additions=['20261124023000_ss11_equipment_custody','20261124221500_jai_asset_register'];
+const additions=['20261124023000_ss11_equipment_custody','20261124221500_jai_asset_register','20261125103100_ss11_thailand_custody_db_date'];
 const tablesAdded=['equipment_asset_register_versions','equipment_custody_loans'];
 const newPermissions=['equipment.custody.manage','equipment.custody.view'];
 const triggersAdded=new Map([
@@ -61,6 +61,16 @@ try{
   const newTriggers=triggers.filter(t=>triggersAdded.has(t.name));
   assert.equal(newTriggers.length,phase==='after'?4:0);
   for(const t of newTriggers){assert.equal(t.relation,triggersAdded.get(t.name));assert.equal(t.enabled,'O');}
+  // Verify the installed correction, not merely its recorded migration name.
+  const functions=await db.$queryRawUnsafe("SELECT p.proname AS name,pg_get_functiondef(p.oid) AS definition FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public' AND p.proname IN ('equipment_custody_thailand_day','guard_equipment_custody_loan') ORDER BY p.proname");
+  if(phase==='after'){
+   assert.equal(functions.length,2);
+   assert.match(functions[0].definition,/Asia\/Bangkok/);
+   assert.match(functions[1].definition,/equipment_custody_thailand_day\(statement_timestamp\(\)\)/);
+   assert.doesNotMatch(functions[1].definition,/CURRENT_DATE/i);
+   const dates=await db.$queryRawUnsafe("SELECT equipment_custody_thailand_day('2026-11-24T16:59:59.999Z'::timestamptz)::text AS before, equipment_custody_thailand_day('2026-11-24T17:00:00Z'::timestamptz)::text AS after");
+   assert.deepEqual(dates,[{before:'2026-11-24',after:'2026-11-25'}]);
+  }else assert.equal(functions.length,0,'Predecessor restore must not contain successor functions');
   const historical=triggers.filter(t=>!triggersAdded.has(t.name));
   if(phase==='before'){
    assert.ok(!migrations.some(m=>additions.includes(m.migration_name)));
