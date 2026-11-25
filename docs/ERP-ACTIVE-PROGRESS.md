@@ -24,6 +24,8 @@
 
 > **Verified consolidated v25 native successor:** [45556427561](https://github.com/threeswordz/cinder-grind/actions/runs/45556427561/job/139009464942) SUCCESS15/15, exact source `a8e1f688617b5c54656467c61923b6d8e4039007`, single predecessor, populated upgrade, all five layered receipt assertions, HR keys and protected documents, restored predecessor runtime and rollback readiness. M4-08 20→18h; M4 70→68h; ERP 1,800→1,798h. Full historical/review/retained-role gates remain.
 
+> **PM02 integrated v25 browser:** identical prior PASS fixture restored in [b7ada888](https://github.com/threeswordz/cinder-grind/commit/b7ada888a3fcf8fbc8bfb120d154df3996752a6f); [workflow-only child 3c764c71](https://github.com/threeswordz/cinder-grind/commit/3c764c71b2f87e2d39d6e2e61a7af1f44ad3ba5b) configured one scoped disposable PG17 browser execution. Current result not observed. M4-02 3h unchanged; ERP 1,798h.
+
 ## Headline
 | Metric | Current | Meaning |
 |---|---:|---|
