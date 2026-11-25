@@ -1893,6 +1893,45 @@
       "sourceSha": "b6159797267ce1aa5bf2153c4cb568917725bcbf",
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-04-004",
+      "date": "2026-11-25",
+      "packageId": "M4-04",
+      "kind": "PUR01_POPULATED_UPGRADE_RESTORE_PASS",
+      "beforeHours": 6,
+      "afterHours": 5,
+      "reductionHours": 1,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 1,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45542817519",
+        "https://github.com/threeswordz/cinder-grind/commit/cde0237679608074da07f7ef32f611c9ea158d77"
+      ],
+      "basis": "Exact PUR01 source cde02376, workflow-only child03d36427, 45542817519 job138965166428 SUCCESS14/14. Populated upgrade and independent predecessor restore each 169 tables and 7 PO rows; prior non-null commercial values, mixed PM02 review metadata, all table counts/digests, migration checksums and triggers retained, exception field NULL, upgraded target recheck PASS. Provisional 1h native recovery preparation eliminated, not measured labor or business acceptance. Combined historical release admission and paired Documents/HR keys remain.",
+      "sourceSha": "cde0237679608074da07f7ef32f611c9ea158d77",
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-08-012",
+      "date": "2026-11-25",
+      "packageId": "M4-08",
+      "kind": "PURCHASING_HISTORICAL_CONSUMERS_PREPARED",
+      "beforeHours": 25,
+      "afterHours": 25,
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/commit/8536934bd8bac226966f038af2b08fe66013c7a1",
+        "https://github.com/threeswordz/cinder-grind/commit/daf19cf55cbeb5ec1690b4a78dcae50d097df597",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45543885554"
+      ],
+      "basis": "Seven-path combined purchasing historical witness preparation. Dedicated receiving and FM03 witnesses strip exact pinned older layers, legacy and HR digest consumers exclude only validated newly added PUR04/PUR01 columns by independent flags. Updated isolated PUR04 contract to use frozen historical source rather than moving HEAD. Focused workflow-only child daf19cf run 45543885554 completed. No admission enabled or further credit before validation; versioned rehearsal, consolidation, paired recovery, native old predecessor proof and exact independent review outstanding.",
+      "sourceSha": "8536934bd8bac226966f038af2b08fe66013c7a1",
+      "formalAcceptance": false,
+      "estimateConfidence": "NO_ADDITIONAL_HOURS_CREDIT"
     }
   ],
   "unestimatedWork": [
@@ -1915,6 +1954,6 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1812,
-  "currentRollingTotalSemantics": "1812h provisional future work = 1847h baseline minus 44h evidence-backed package forecast reductions plus 9h separately priced supplier scope. M4 82h; M4-04 6h, M4-05 6h; formal acceptance unchanged."
+  "currentRollingTotalAfterPricedGapsHours": 1811,
+  "currentRollingTotalSemantics": "1811h provisional future work = 1847h baseline minus 45h evidence-backed package forecast reductions plus 9h separately priced supplier scope. M4 81h; M4-04 5h, M4-05 6h; formal acceptance unchanged."
 }
