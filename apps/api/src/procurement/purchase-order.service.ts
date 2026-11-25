@@ -678,7 +678,8 @@ export class PurchaseOrderService {
         context.auth,
         orderId,
       );
-      if (data.vatRatePercent?.gt(100)) {
+      if (data.vatRatePercent != null &&
+          (!data.vatRatePercent.isFinite() || data.vatRatePercent.lt(0) || data.vatRatePercent.gt(100))) {
         throw new UnprocessableEntityException({
           code: 'PO_VAT_PERCENT_INVALID',
           detail: 'VAT percentage must be between 0 and 100.',
@@ -692,7 +693,16 @@ export class PurchaseOrderService {
         ['additionalChargeAmount', data.additionalChargeAmount],
         ['vatRatePercent', data.vatRatePercent],
       ] as const) {
-        if (value && value.decimalPlaces() > 2) {
+        // Preserve explicit NULL (unknown) and undefined (unchanged). Validate
+        // direct service callers as well as controller-validated requests.
+        if (value == null) continue;
+        if (!value.isFinite() || value.lt(0) || value.gte('10000000000000000')) {
+          throw new UnprocessableEntityException({
+            code: 'PO_COMMERCIAL_AMOUNT_INVALID',
+            detail: field + ' must be nonnegative, finite and within storage range.',
+          });
+        }
+        if (value.decimalPlaces() > 2) {
           throw new UnprocessableEntityException({
             code: 'PO_COMMERCIAL_PRECISION_INVALID',
             detail: field + ' may contain at most two decimal places.',
