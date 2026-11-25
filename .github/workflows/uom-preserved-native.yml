@@ -1,22 +1,17 @@
-name: UOM Preserved Prototype Targeted
+name: M4 Downstream Fixture Targeted
 on:
   push:
-    branches: ['vuom-preserved-upgrade-20261121']
-    paths:
-      - '.github/workflows/uom-preserved-native.yml'
-      - 'deploy/uat/prototype-uom-*.mjs'
-      - 'deploy/uat/prototype-material-run-native.mjs'
-      - 'deploy/uat/material-uom-browser.mjs'
-      - 'deploy/release-candidate/prototype-uom-upgrade.test.mjs'
+    branches: ['work-m4-downstream-fixture-20261126']
+    paths: ['.github/workflows/uom-preserved-native.yml']
 permissions:
   contents: read
 concurrency:
-  group: uom-preserved-native-${{ github.ref }}
+  group: m4-downstream-fixture-${{ github.ref }}
   cancel-in-progress: true
 jobs:
-  uom-preserved:
+  downstream-fixtures:
     runs-on: ubuntu-latest
-    timeout-minutes: 18
+    timeout-minutes: 14
     services:
       postgres:
         image: postgres:17.11-alpine
@@ -39,7 +34,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           fetch-depth: 0
-          ref: ${{ github.sha }}
+          ref: 82df55d423aedebf13a642861dc64e30919bad52
       - name: Set up pnpm
         uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
         with:
@@ -51,15 +46,37 @@ jobs:
           node-version: 24.21.0
       - name: Install locked dependencies and generate schema
         run: |
-          test "$(git rev-parse HEAD)" = "${{ github.sha }}"
+          test "$(git rev-parse HEAD)" = "82df55d423aedebf13a642861dc64e30919bad52"
           pnpm install --frozen-lockfile
           pnpm prisma:generate
           pnpm prisma:validate
-      - name: Verify custody and preservation contracts
-        run: node --test deploy/release-candidate/prototype-uom-upgrade.test.mjs
-      - name: Build actual API
+      - name: Verify affected predecessor and custody contracts
+        run: node --test deploy/release-candidate/schema-contract.test.mjs deploy/release-candidate/historical-snapshot.test.mjs deploy/release-candidate/prototype-receiving-upgrade.test.mjs deploy/release-candidate/prototype-uom-upgrade.test.mjs
+      - name: Build exact API
+        id: build
         run: pnpm --filter @construction-erp/api build
-      - name: Extend populated subcontract fixture with the same UOM browser and preservation kernel
-        run: node deploy/uat/prototype-material-run-native.mjs
-      - name: Classify engineering evidence
-        run: echo 'UOM_PRESERVED_TARGETED_ONLY - no full PR, independent review, full-main deployment or actual Mac receipt'
+      - name: Verify compiled material artifact custody
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: node deploy/uat/prototype-material-artifacts-native.mjs
+      - name: Verify receiving on its populated predecessor in Chromium
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: node deploy/uat/receiving-browser-native.mjs
+      - name: Verify FM03 on its populated predecessor in Chromium
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: node deploy/uat/fm03-browser-native.mjs
+      - name: Verify standalone transfer in Chromium
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: node deploy/uat/transfer-browser-native.mjs
+      - name: Verify standalone subcontract in Chromium
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: node deploy/uat/subcontract-physical-browser-native.mjs
+      - name: Verify standalone UOM definition in Chromium
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: node deploy/uat/material-uom-browser-native.mjs
+      - name: Verify standalone UOM plan in Chromium
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        run: node deploy/uat/material-uom-browser-native.mjs --stage-c
+      - name: Identify exact targeted receipt
+        run: |
+          test "$(git rev-parse HEAD)" = "82df55d423aedebf13a642861dc64e30919bad52"
+          echo 'M4_DOWNSTREAM_FIXTURES_TARGETED_PASS'
