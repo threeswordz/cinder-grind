@@ -56,7 +56,8 @@ export async function executeOneShotM6({inputs, adapter} = {}) {
         result.proof?.privateNoStoreDownloadVerified === true && result.proof?.maskedHistoryVerified === true &&
         result.proof?.sessionsRevoked === true, 'M6_HR_PRIVACY_PROOF_REQUIRED');
       if (name === 'preserve') requireCheck(result.historicalSubcontractRowsPreserved === true &&
-        result.protectedSubcontractEvidencePreserved === true && result.originalPopulatedDumpPreserved === true &&
+        result.protectedSubcontractEvidencePreserved === true && result.historicalSiteMaterialRowsPreserved === true &&
+        result.materialRequestEvidencePreserved === true && result.originalPopulatedDumpPreserved === true &&
         result.previousHrKeysAndUploadsIntact === true && result.protectedHrEncryptedFileVerified === true &&
         result.oldHistoricalSnapshotPreserved === true, 'M6_FINAL_PRESERVATION_PROOF_REQUIRED');
       results[name] = result;
