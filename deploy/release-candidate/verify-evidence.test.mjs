@@ -186,8 +186,14 @@ test('FM03 evidence requires exact migration, version13 and executed upgrade/HTT
 
 test('FM03 wrapper before historical predecessor checks remains mandatory in consolidated CI', async () => {
   const workflow = readFileSync(new URL('../../.github/workflows/validate.yml', import.meta.url), 'utf8');
-  const evidenceStep = workflow.split('- name: Verify V1.0-E consolidated technical evidence')[1];
-  assert.ok(evidenceStep, 'Consolidated evidence step must exist');
+  const rawEvidenceStep = workflow.split('- name: Verify V1.0-E consolidated technical evidence')[1];
+  assert.ok(rawEvidenceStep, 'Consolidated evidence step must exist');
+  const pm02Wrapper=/\(await import\('\.\/deploy\/release-candidate\/pm02-schema-preparation\.mjs'\)\)\.pm02Mode\(data\.releaseMode\)\.prior/g;
+  assert.equal((rawEvidenceStep.match(pm02Wrapper)??[]).length,6,'Six historical consumers must unwrap PM02');
+  assert.match(rawEvidenceStep,/const pm02=pm02Mode\(data\.releaseMode\)/);
+  assert.match(rawEvidenceStep,/pm02\.present&&\(data\.version!==21/);
+  assert.match(rawEvidenceStep,/pm02ExternalHrKeyAndDocumentRecovery!=='PASS'/);
+  const evidenceStep=rawEvidenceStep.replace(pm02Wrapper,'data.releaseMode').replace('fm02Mode(pm02.prior)','fm02Mode(data.releaseMode)');
   // FM02 is the outermost v20 wrapper; strip ONLY its six inline nested
   // occurrences before proving the older Stage C -> FM03 chain is intact.
   // The seventh FM02 occurrence is the separately bound first-line gate.
