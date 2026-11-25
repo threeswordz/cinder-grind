@@ -552,6 +552,8 @@ test('PUR10 native: real approved PO, independent named Jai/Khaimook/Ben, atomic
     if(race[0]!.status==='fulfilled'){
       assert.ok(raceOrder.cancelledAt);
       assert.equal(raceOrder.nextRevision,null);
+      assert.ok(race[1]!.status==='rejected' && race[1]!.reason instanceof ConflictException,
+        'Losing revision must return a controlled conflict');
       assert.equal(raceFinals,1);assert.equal(raceCancelAudits,1);
     }else{
       assert.ok(race[0]!.reason instanceof ConflictException,

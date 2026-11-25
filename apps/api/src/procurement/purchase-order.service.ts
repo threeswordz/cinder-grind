@@ -1412,7 +1412,11 @@ export class PurchaseOrderService {
     orderId: string,
     revisionReason?: string | null,
   ) {
-    return this.prisma.$transaction(
+    // Both competing PO lifecycle writers must participate in PostgreSQL SSI.
+    // The family lock alone cannot refresh a SERIALIZABLE finalizer's earlier
+    // snapshot when the revision inserts a child without updating the parent.
+    try {
+      return await this.prisma.$transaction(
       async (tx) => {
         const source = await tx.purchaseOrder.findFirst({
           where: {
@@ -1666,8 +1670,17 @@ export class PurchaseOrderService {
           lifecycleState: 'DRAFT' as const,
         };
       },
-      { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted },
-    );
+      { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      );
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError &&
+          (error.code === 'P2034' ||
+           (error.code === 'P2010' && ['40001','40P01'].includes(String(error.meta?.code))))) {
+        throw new ConflictException({ code: 'PO_REVISION_CONCURRENT_SOURCE_CHANGE',
+          detail: 'The Purchase Order source changed concurrently. Reload it before revising.' });
+      }
+      throw error;
+    }
   }
 
   /**
