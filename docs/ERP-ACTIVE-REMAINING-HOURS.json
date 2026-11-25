@@ -4403,6 +4403,27 @@
       "verifiedCompletedScopeHours": 0,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261126-M4-08-117",
+      "date": "2026-11-26",
+      "packageId": "M4-08",
+      "kind": "M4_EXACT_FULL_PR_ATTEMPT2_ALL_46_STEPS_PASS",
+      "beforeHours": 0.5,
+      "afterHours": 0.5,
+      "sourceSha": "82df55d423aedebf13a642861dc64e30919bad52",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45679767315/job/139439384452",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45679767315/attempts/2",
+        "https://github.com/threeswordz/cinder-grind/pull/455#issuecomment-7171622451"
+      ],
+      "basis": "Owner-authorized full PR attempt 2 completed SUCCESS. Actual validate job 139439384452 passed all 46 steps including all eight historical predecessors, every standalone browser, paired recovery, isolated restore, restored-runtime authentication and consolidated technical evidence. Final log FULL_VALIDATION_IDENTITY_CONFIRMED binds source 82df55d, attempt 2, PR455 and base 040395bc. Integration-check is skipped by design on this PR and does not establish main integration. Existing 0.5h final integration/Owner gate remains open. No duplicate forecast deduction.",
+      "blocker": "Separate Owner Ready transition, post-Ready trusted clean Codex reaction, authorized protected integration and retained technical readback remain.",
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
