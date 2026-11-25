@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { ConflictException, ForbiddenException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 
 import { NumberSequenceService } from '../administration/number-sequence.service';
 import { ApprovalService } from '../approval/approval.service';
@@ -44,7 +45,9 @@ test('PM02 PO submission rejects inactive source before ApprovalService.start', 
       const order = {
         id: orderId, companyId, projectId, approvalInstanceId: null,
         submittedAt: null, cancelledAt: null, nextRevision: null,
-        lines: [{ purchaseRequestLineId: sourceId }],
+        // Match the real Prisma row shape after PUR04 commercial admission.
+        discountAmount: null,
+        lines: [{ purchaseRequestLineId: sourceId, amount: new Prisma.Decimal('100.00') }],
       };
       const sources = ('missing' in scenario && scenario.missing) ? [] : [{
         id: sourceId,
