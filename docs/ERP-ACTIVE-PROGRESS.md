@@ -60,6 +60,8 @@
 
 > **Equipment successor preflight:** [90147671](https://github.com/threeswordz/cinder-grind/commit/90147671340b4696c714b4ecceb4bcdbf5053070) verifies 174 predecessor migration entries unchanged, exactly two added pinned SQL files and same Prisma schema. Fail-closed test source added; no Node execution, populated recovery, global admission or additional credit. M4 54h, ERP 1,784h.
 
+> **Human decision required for M4-01:** [six-ID proposed scope packet](M4-2026-11-25-OWNER-SCOPE-DECISION-PACKET.md) readback verified at ecd78e4d. BEN02, BEN-BASE-06, PM07, PUR15, SS10, PORN-HR-01 await explicit Owner disposition. Future scope remains in full ERP; no waiver or credit. M4 54h, ERP 1,784h.
+
 ## Headline
 | Metric | Current | Meaning |
 |---|---:|---|
