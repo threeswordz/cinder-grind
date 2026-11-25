@@ -1,14 +1,14 @@
 # Construction ERP — live countdown to 0 hours
 
 <!-- current-work-m4 -->
-**M4 12h → 0h · M6 114h → 0h · M7 50h → 0h · M8 65h → 0h · combined prototype 241h → 0h · Full ERP 1,736h → 0h.** Integrated M6 exact historical SQL member-byte migration guard; six local regression tests PASS, including decimal drift hidden by JavaScript numeric rounding. Original Mac/PG17 runtime and independent review pending. M4 #455 frozen; resume independent M4 review when Codex available.
+**M4 12h → 0h · M6 113.5h → 0h · M7 50h → 0h · M8 65h → 0h · combined prototype 240.5h → 0h · Full ERP 1,735.5h → 0h.** Integrated recovery-copy custody guard; eight local tests PASS. Native rehearsal and independent review pending. M4 #455 frozen; resume independent M4 review when Codex available.
 
 | Forecast reconciliation | Hours |
 |---|---:|
-| Previous reported ERP forecast | 1,736.5 |
+| Previous reported ERP forecast | 1,736 |
 | Newly identified mandatory scope | +0 |
 | Verified remaining-effort reduction | −0.5 |
-| Revised remaining ERP forecast | **1,736** |
+| Revised remaining ERP forecast | **1,735.5** |
 
 Prototype 4/8 · Go-live 3/10 · Deadline 31 December 2026.
 <!-- /current-work-m4 -->
@@ -140,9 +140,9 @@ Prototype 4/8 · Go-live 3/10 · Deadline 31 December 2026.
 ## Headline
 | Metric | Current | Meaning |
 |---|---:|---|
-| **Estimated full ERP work still needed** | **1,736h → 0h** | 112 requirements across eight roles |
+| **Estimated full ERP work still needed** | **1,735.5h → 0h** | 112 requirements across eight roles |
 | 23 Nov original current-work forecast | 1847h | Earlier 60-package provisional baseline |
-| Additional estimated future-work eliminated | −113.5h | M4-01 −31h, M4-02 −7h, M4-03 −9h, M4-04 −6.5h, M4-05 −6.5h, M4-06 −9h, M4-07 −5h, M4-08 −33.5h, M6-01 −1.5h, M6-02 −1h, M6-03 −1h, M6-04 −1.5h, M6-05 −1h |
+| Additional estimated future-work eliminated | −114h | M4-01 −31h, M4-02 −7h, M4-03 −9h, M4-04 −6.5h, M4-05 −6.5h, M4-06 −9h, M4-07 −5h, M4-08 −33.5h, M6-01 −2h, M6-02 −1h, M6-03 −1h, M6-04 −1.5h, M6-05 −1h |
 | Newly discovered previously unpriced PUR08/PUR14 work | +2.5h | Remaining supplier lifecycle and assurance work |
 | Net reforecast change versus 1,847h | −79h | Includes separately priced supplier scope |
 | PUR08/PUR14 provisional work before new development | 51h | Low-confidence new-gap gross estimate |
@@ -156,14 +156,14 @@ Prototype 4/8 · Go-live 3/10 · Deadline 31 December 2026.
 | Whole baseline packages formally accepted | 0/60 | 8 M4 packages still 0/8 |
 | Actual productive hours logged | UNKNOWN | Cannot infer from GitHub commits or AI conversation length |
 
-**Forecast basis.** The 1,847h baseline covers 60 packages. Verified work has removed 113.5h of estimated future effort from those packages. The separately priced supplier lifecycle has 2.5h remaining, bringing the ERP forecast to 1,736h.
+**Forecast basis.** The 1,847h baseline covers 60 packages. Verified work has removed 114h of estimated future effort from those packages. The separately priced supplier lifecycle has 2.5h remaining, bringing the ERP forecast to 1,735.5h.
 
 ## Stage-by-stage remaining work
 
 | Stage | Previous 60-package baseline | Verified package forecast reduction | Additional scope remaining | **Now remaining** | Accepted baseline packages |
 |---|---:|---:|---:|---:|---:|
 | Prototype 5/8 — M4 closure | 117h | 107.5h | 2.5h | **12h** | 0/8 |
-| Prototype 6/8 — end-to-end deployment | 120h | 6h | 0h | **114h** | 0/5 |
+| Prototype 6/8 — end-to-end deployment | 120h | 6.5h | 0h | **113.5h** | 0/5 |
 | Prototype 7/8 — populated restore | 50h | 0h | 0h | **50h** | 0/3 |
 | Prototype 8/8 — technical freeze | 65h | 0h | 0h | **65h** | 0/3 |
 | Thai HR and payroll | 300h | 0h | 0h | **300h** | 0/6 |
@@ -174,7 +174,7 @@ Prototype 4/8 · Go-live 3/10 · Deadline 31 December 2026.
 | Production hosting and recovery | 110h | 0h | 0h | **110h** | 0/5 |
 | Migration and onboarding | 110h | 0h | 0h | **110h** | 0/4 |
 | Final human UAT, cutover and Production | 150h | 0h | 0h | **150h** | 0/5 |
-| **Full ERP** | 1847h | 113.5h | 2.5h | **1,736h** | **0/60** |
+| **Full ERP** | 1847h | 114h | 2.5h | **1,735.5h** | **0/60** |
 
 ## Each baseline package
 
@@ -188,7 +188,7 @@ Prototype 4/8 · Go-live 3/10 · Deadline 31 December 2026.
 | M4-06 | M4 | PUR07 supplier-name PO PDF and manual dispatch evidence | 10h | **1h** |
 | M4-07 | M4 | PUR12 K-/T- company PO document identity | 6h | **1h** |
 | M4-08 | M4 | M4 focused closure, governed integration and Owner decision | 34h | **0.5h** |
-| M6-01 | M6 | Build deployable preserved-data integrated M4/M6 candidate | 25h | **23.5h** |
+| M6-01 | M6 | Build deployable preserved-data integrated M4/M6 candidate | 25h | **23h** |
 | M6-02 | M6 | Site, plan, request, issue and document deployed journeys | 25h | **24h** |
 | M6-03 | M6 | Procurement, receiving, transfers and inventory deployed journeys | 30h | **29h** |
 | M6-04 | M6 | Subcontract physical acceptance/certification deployed journey | 20h | **18.5h** |
@@ -447,3 +447,8 @@ The forecast can **increase** when new work is found. It reaches true **0h only 
 ## 25 November — integrated M6 exact historical SQL values
 
 [Exact source](https://github.com/threeswordz/cinder-grind/commit/1f84e842b5f070397f1c339e6a7f115aea103e7f). Distinct integrated M6-01 migration preservation guard compares original top-level SQL JSON member value bytes, including nested decimals, rather than parsed JS numbers. Actual local Node22.16.0 six tests PASS (6/6) for decimal and nested precision drift, missing columns, timestamp changes, multiplicity, malformed/missing raw bytes/duplicate keys, additive columns and new rows. Exact tested GitHub blobs b33f5866c3a95c07d675d2ab778d7d0fdc8941dd and bdfd8d8ab4ad6a7309a5a1c56590d53e6a289f4c matched. Runtime source readback confirms two checkpoint calls before cutover and before new startup, existing generic and per-domain guards retained. Runtime adapter not executed. 0.5h provisional forecast reduction for existing migration proof preparation only, not actual PG17/Mac rehearsal, independent review or formal acceptance. M6-01 24→23.5h; M6 114.5→114h; combined 241.5→241h; ERP 1,736.5→1,736h. M4 12h unchanged. PostgreSQL, Podman, Docker and original Mac access unavailable in current runtime. No native rehearsal claimed; next prepare isolated synthetic native rehearsal and verify actual migration/restore receipts. M4 independent review takes priority when Codex available.
+
+
+## 25 November — M6 recovery copy custody
+
+[Exact source](https://github.com/threeswordz/cinder-grind/commit/c37d6ffcda6d213170d13cd5af4a6b72751684e8). Integrated recovery-copy guard rechecks preserved Documents/uploads/HR keys and private dump before cutover after rehearsal, and again before final seal. Actual Node22.16.0 local 8/8 PASS, including actual temporary dump content, unsafe mode, symlink/hardlink substitutions, and mocked inventory drift for all three categories. Tested Git blobs 3e19b9a2ec98b136152dce4f51d154a68fc267d8 and 0ee075bbf810c105781f3f6d00045eb4e8add6e0 match GitHub. Runtime call sites read back, not executed. 0.5h provisional reduction for existing M6-01 recovery-copy assurance preparation only, no native DB restore, actual original-Mac rehearsal, independent review or formal acceptance. M6-01 23.5→23h; M6 114→113.5h; combined 241→240.5h; ERP 1736→1735.5h. No local PostgreSQL or container runtime. Next isolated populated native rehearsal preparation; M4 independent review first when Codex returns.

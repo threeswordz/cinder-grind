@@ -4189,6 +4189,24 @@
       "verifiedCompletedScopeHours": 0.5,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261125-M6-01-106",
+      "date": "2026-11-25",
+      "packageId": "M6-01",
+      "kind": "M6_RECOVERY_COPY_CUSTODY_GUARD_LOCAL_PASS",
+      "beforeHours": 23.5,
+      "afterHours": 23,
+      "sourceSha": "c37d6ffcda6d213170d13cd5af4a6b72751684e8",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/commit/c37d6ffcda6d213170d13cd5af4a6b72751684e8"
+      ],
+      "basis": "Integrated recovery-copy guard rechecks preserved Documents/uploads/HR keys and private dump before cutover after rehearsal, and again before final seal. Actual Node22.16.0 local 8/8 PASS, including actual temporary dump content, unsafe mode, symlink/hardlink substitutions, and mocked inventory drift for all three categories. Tested Git blobs 3e19b9a2ec98b136152dce4f51d154a68fc267d8 and 0ee075bbf810c105781f3f6d00045eb4e8add6e0 match GitHub. Runtime call sites read back, not executed. 0.5h provisional reduction for existing M6-01 recovery-copy assurance preparation only, no native DB restore, actual original-Mac rehearsal, independent review or formal acceptance.",
+      "reductionHours": 0.5,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0.5,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -4211,6 +4229,6 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1736,
-  "currentRollingTotalSemantics": "1736h = 1847h baseline minus 113.5h verified baseline forecast reduction plus 2.5h remaining supplier scope. M4 12h, M6 114h. All 112 requirements preserved. Actual labor unmeasured."
+  "currentRollingTotalAfterPricedGapsHours": 1735.5,
+  "currentRollingTotalSemantics": "1735.5h = 1847h baseline minus 114h verified baseline forecast reduction plus 2.5h remaining supplier scope. M4 12h, M6 113.5h. All 112 requirements preserved. Actual labor unmeasured."
 }
