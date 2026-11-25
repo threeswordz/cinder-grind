@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import test from 'node:test';
 
-import { ForbiddenException, UnprocessableEntityException } from '@nestjs/common';
+import { ConflictException, ForbiddenException, UnprocessableEntityException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { NumberSequenceService } from '../administration/number-sequence.service';
 import { ApprovalService } from '../approval/approval.service';
@@ -185,8 +185,12 @@ test('PUR07 native: approved PDF bytes and Jai-only append-only external send/ac
         kind:'DISPATCH',channel:'EMAIL',recipient:'supplier@example.invalid',
         evidenceReference:'Attempt to link cross-scope evidence',evidenceDocumentId:randomUUID(),
       }),
-      (error:unknown)=>error instanceof Error && typeof (error as {getResponse?:unknown}).getResponse==='function' &&
-        (error as {getResponse:()=>{code?:string}}).getResponse().code==='PO_DISPATCH_EVIDENCE_DOCUMENT_OUT_OF_SCOPE',
+      (error:unknown)=>{
+        if(!(error instanceof ConflictException))return false;
+        const response=error.getResponse();
+        return typeof response==='object' && response!==null && 'code' in response &&
+          response.code==='PO_DISPATCH_EVIDENCE_DOCUMENT_OUT_OF_SCOPE';
+      },
     );
     const sent = await pur07.record({auth:jai},order.id,{
       kind:'DISPATCH',channel:'EMAIL',recipient:'supplier@example.invalid',

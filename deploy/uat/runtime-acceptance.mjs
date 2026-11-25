@@ -2098,6 +2098,21 @@ check(
   'Draft Purchase Order line did not derive amount or retain Expected Delivery.',
 );
 
+// PUR04/PUR01: a new PO must carry explicit, known commercial terms.
+// This fixture uses zero discount/freight/charges and zero VAT to preserve
+// the original receipt/invoice arithmetic; never default historical NULLs.
+const unknownPoBasis = await request(pm, '/procurement/purchase-orders/' + purchaseOrderId + '/submit', {
+  method: 'POST', json: { workflowCode: poWorkflowCode }, expected: 422,
+});
+check(unknownPoBasis.data.code === 'PO_QUOTE_COMMERCIAL_BASIS_UNKNOWN',
+  'PUR01 must reject submission without known commercial basis.');
+const knownCommercial = {discountAmount:'0',freightAmount:'0',additionalChargeAmount:'0',vatRatePercent:'0'};
+const commercialPo=await request(pm, '/procurement/purchase-orders/' + purchaseOrderId, {
+  method:'PATCH',json:knownCommercial,
+});
+for(const field of Object.keys(knownCommercial))check(commercialPo.data.data[field]!==null&&Number(commercialPo.data.data[field])===0,'Explicit commercial input not persisted: '+field);
+record('PUR01 explicit new-draft commercial basis, unknown basis rejected');
+
 const submittedPo = await request(
   pm,
   '/procurement/purchase-orders/' + purchaseOrderId + '/submit',
@@ -2187,6 +2202,8 @@ await request(
     },
   },
 );
+const revisedCommercial=await request(pm, '/procurement/purchase-orders/' + revisedPoId);
+for(const field of Object.keys(knownCommercial))check(revisedCommercial.data.data[field]!==null&&Number(revisedCommercial.data.data[field])===0,'Revision did not preserve commercial basis: '+field);
 await request(
   pm,
   '/procurement/purchase-orders/' + revisedPoId + '/submit',
@@ -3852,6 +3869,9 @@ const rejectedPo = await request(
     expected: 201,
   },
 );
+await request(pm, '/procurement/purchase-orders/' + rejectedPo.data.data.id, {
+  method:'PATCH',json:knownCommercial,
+});
 await request(
   pm,
   '/procurement/purchase-orders/' + rejectedPo.data.data.id + '/submit',
