@@ -7,7 +7,7 @@ const inputs=()=>({sourceSha:src,releaseSha:rel,isolatedSynthetic:true,productio
  independentlyReviewed:true,requiredReleaseProofSatisfied:true,priorUomReceiptVerified:true,
  originalMacCustodyVerified:true,noActiveSessions:true,authorizedForOneShot:true,noPriorM6Attempt:true});
 const hrProof=()=>({encryptedAtRestVerified:true,privateNoStoreDownloadVerified:true,maskedHistoryVerified:true,sessionsRevoked:true});
-const preserveProof=()=>({historicalSubcontractRowsPreserved:true,protectedSubcontractEvidencePreserved:true,historicalSiteMaterialRowsPreserved:true,materialRequestEvidencePreserved:true,originalPopulatedDumpPreserved:true,previousHrKeysAndUploadsIntact:true,protectedHrEncryptedFileVerified:true,oldHistoricalSnapshotPreserved:true});
+const preserveProof=()=>({historicalSubcontractRowsPreserved:true,protectedSubcontractEvidencePreserved:true,historicalSiteMaterialRowsPreserved:true,materialRequestEvidencePreserved:true,historicalProcurementStockPreserved:true,receivingTransferEvidencePreserved:true,originalPopulatedDumpPreserved:true,previousHrKeysAndUploadsIntact:true,protectedHrEncryptedFileVerified:true,oldHistoricalSnapshotPreserved:true});
 function fake(){const seen=[],adapter={claim:async()=>{seen.push('claim');return {claimed:true,releaseSha:rel,newlyCreated:true};},
  readOnlyPreflight:async()=>({sourceSha:src,releaseSha:rel,historicalReceiptsPreserved:true,snapshotDigestMatched:true,runtimeOwned:true}),
  recordPhase:async(name)=>seen.push('record:'+name)};

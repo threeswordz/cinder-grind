@@ -11,6 +11,7 @@ import {validCompletedUomReceipt} from './prototype-m6-finance-configuration.mjs
 import {uomSnapshot,digest} from './prototype-uom-state.mjs';
 import {verifyM6SubcontractRetention} from './m6-subcontract-retention.mjs';
 import {verifyM6SiteMaterial} from './m6-site-material-preservation.mjs';
+import {verifyM6Procurement} from './m6-procurement-preservation.mjs';
 import {privateInventory,privateJson,seal,fileHash,stage,databaseStream,freePort,environment,command,hasSoleListenerPid,verifyDocumentInventory} from './prototype-transfer-upgrade.mjs';
 import {validActorReceipt,validPrivateActors} from './prototype-browser-operator.mjs';
 const ORIGIN='https://github.com/threeswordz/cinder-grind.git';
@@ -215,6 +216,7 @@ export function createM6MacRuntime({releaseSha,sourceRoot,root=join(homedir(),'C
    const rehearsalDocuments=await privateInventory(join(newStage,'preserved','documents'));
    verifyM6SubcontractRetention(snapshots.before,after,snapshots.files.documents,rehearsalDocuments);
    verifyM6SiteMaterial(snapshots.before,after,snapshots.files.documents,rehearsalDocuments);
+   verifyM6Procurement(snapshots.before,after,snapshots.files.documents,rehearsalDocuments);
    verifyM6MigrationLedger(snapshots.priorLedger,await migrationLedger(rehearsal),previousSources,releaseSources);
   }finally{await rehearsal.$disconnect();}
   // Never replay the already completed UOM/receiving/subcontract business operators.
@@ -247,6 +249,7 @@ export function createM6MacRuntime({releaseSha,sourceRoot,root=join(homedir(),'C
   const migratedDocuments=await privateInventory(join(root,'documents'));
   verifyM6SubcontractRetention(snapshots.before,migrated,snapshots.files.documents,migratedDocuments);
   verifyM6SiteMaterial(snapshots.before,migrated,snapshots.files.documents,migratedDocuments);
+  verifyM6Procurement(snapshots.before,migrated,snapshots.files.documents,migratedDocuments);
   verifyM6MigrationLedger(snapshots.priorLedger,await migrationLedger(db),previousSources,releaseSources);
   for(const [kind,port,entry,cwd,vars] of [
     ['api',33071,join(app,'apps/api/dist/main.js'),join(app,'apps/api'),await runtimeEnv()],
@@ -303,6 +306,7 @@ export function createM6MacRuntime({releaseSha,sourceRoot,root=join(homedir(),'C
   originalInventoryPreserved(snapshots.files.documents,currentDocuments,[encryptedDocumentKey]);
   const subcontractProof=verifyM6SubcontractRetention(snapshots.before,latest,snapshots.files.documents,currentDocuments);
   const siteMaterialProof=verifyM6SiteMaterial(snapshots.before,latest,snapshots.files.documents,currentDocuments);
+  const procurementProof=verifyM6Procurement(snapshots.before,latest,snapshots.files.documents,currentDocuments);
   verifyDocumentInventory(latest.documents,currentDocuments);
   need(await fileHash(join(newStage,'preserved','postgresql.custom'))===snapshots.dumpSha,'M6_FINAL_PRESERVED_DUMP_CHANGED');
   need(digest(await boundedJSON(join(prior,'source-database-after-private.json')))===digest(snapshots.before),
@@ -313,7 +317,9 @@ export function createM6MacRuntime({releaseSha,sourceRoot,root=join(homedir(),'C
     historicalSubcontractRowsPreserved:subcontractProof.historicalSubcontractRowsPreserved,
     protectedSubcontractEvidencePreserved:subcontractProof.protectedEvidenceMetadataAndBytesPreserved,
     historicalSiteMaterialRowsPreserved:siteMaterialProof.historicalSiteMaterialRowsPreserved,
-    materialRequestEvidencePreserved:siteMaterialProof.materialRequestEvidencePreserved};
+    materialRequestEvidencePreserved:siteMaterialProof.materialRequestEvidencePreserved,
+    historicalProcurementStockPreserved:procurementProof.historicalProcurementStockPreserved,
+    receivingTransferEvidencePreserved:procurementProof.receivingTransferEvidencePreserved};
  }
  async function close(){if(db)await db.$disconnect();db=undefined;}
  return {inspected,upgrade,preserve,close,verifyEncryptedHrAttachment,load,
