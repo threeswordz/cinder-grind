@@ -22,6 +22,7 @@ const {PrismaClient}=runtime('@prisma/client');
 const db=new PrismaClient();
 const history=()=>db.$queryRawUnsafe('SELECT migration_name,checksum FROM "_prisma_migrations" WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL ORDER BY migration_name');
 const sourceRows=async ids=>{
+ assert.deepEqual(Object.keys(ids).sort(),['equipment','equipment_assignments','equipment_types']);
  const result={};
  for(const [table,id] of Object.entries(ids)){
   assert.ok(['equipment_types','equipment','equipment_assignments'].includes(table));
@@ -70,10 +71,13 @@ try{
   else if(phase==='after'){
    const result=await verifyEquipmentHistoricalIncrement(db,previous.migrations);
    assert.equal(result.present,true,'Exact newly installed equipment increment required');
+   writeFileSync(manifestPath+'.upgraded',JSON.stringify(await history()),{mode:0o600,flag:'wx'});
   }else{
    // The independent upgraded restore may contain synthetic fixture grants.
    // Global HR proof separately verifies the protected restored evidence.
-   const actual=await history(),names=new Set(actual.map(row=>row.migration_name));
+   const upgradedHistory=JSON.parse(readFileSync(manifestPath+'.upgraded','utf8'));
+   assert.deepEqual(await history(),upgradedHistory,'Exact upgraded migration history/checksums changed on restore');
+   const names=new Set(upgradedHistory.map(row=>row.migration_name));
    assert.ok(equipmentMigrationNames.every(name=>names.has(name)),'Restored candidate lacks equipment migration history');
   }
  }
