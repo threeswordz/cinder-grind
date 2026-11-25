@@ -92,19 +92,22 @@ export class PurchaseOrderPur07Service {
     const fileName = approvedPoPdfFilename(
       order.poNumber, order.displayNumber, order.revisionNo,
     );
+    // Local precision covers Decimal(38,8) line amounts and their sums without
+    // changing global Decimal configuration or rounding contractual rates.
+    const ExactDecimal = Prisma.Decimal.clone({ precision: 60, rounding: Prisma.Decimal.ROUND_HALF_UP });
     const subtotal = order.lines.reduce(
-      (sum, line) => sum.plus(line.amount), new Prisma.Decimal(0),
+      (sum, line) => sum.plus(line.amount.toFixed()), new ExactDecimal(0),
     );
-    const subtotalText = subtotal.toFixed(2);
+    const subtotalText = subtotal.toFixed(2, Prisma.Decimal.ROUND_HALF_UP);
     const discount = order.discountAmount;
     const freight = order.freightAmount;
     const charges = order.additionalChargeAmount;
     const vatRate = order.vatRatePercent;
     const net = discount !== null && freight !== null && charges !== null
-      ? subtotal.minus(discount).plus(freight).plus(charges)
+      ? subtotal.minus(discount.toFixed()).plus(freight.toFixed()).plus(charges.toFixed())
       : null;
     const total = net !== null && vatRate !== null
-      ? net.mul(new Prisma.Decimal(1).plus(vatRate.div(100)))
+      ? net.mul(new ExactDecimal(1).plus(new ExactDecimal(vatRate.toFixed()).div(100)))
         .toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP).toFixed(2)
       : null;
     if (net?.isNegative()) {
@@ -123,8 +126,8 @@ export class PurchaseOrderPur07Service {
           description: line.description,
           quantity: line.quantity.toString(),
           uom: line.uomCodeSnapshot,
-          unitPrice: line.unitPrice.toFixed(2),
-          amount: line.amount.toFixed(2),
+          unitPrice: line.unitPrice.toFixed(Math.max(2, line.unitPrice.decimalPlaces())),
+          amount: line.amount.toFixed(2, Prisma.Decimal.ROUND_HALF_UP),
         })),
         deliveryLocation: order.deliveryLocation,
         deliveryTerms: order.deliveryTerms,

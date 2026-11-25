@@ -1,4 +1,5 @@
 import { PurchaseOrderDetail } from '../api/purchase-orders';
+import { approvedPrintTotals, formatPoLineAmount } from './purchase-order-print-money';
 
 // Browser-native printing supports Thai shaping via the operator's installed
 // fonts. This is a manual Print -> Save as PDF workflow, not an automatic PDF
@@ -9,42 +10,6 @@ const escape = (value: string): string =>
     '"': '&quot;', "'": '&#39;',
   })[match]!);
 
-// Thai baht arithmetic uses integral satang, never IEEE-754 binary amounts.
-function moneySatang(raw: string): bigint {
-  if (!/^(?:0|[1-9]\d{0,14})(?:\.\d{1,2})?$/u.test(raw)) {
-    throw new Error('PO_PRINT_INVALID_MONEY_DECIMAL');
-  }
-  const [whole, fractional = ''] = raw.split('.');
-  return BigInt(whole!) * 100n + BigInt((fractional + '00').slice(0, 2));
-}
-function satangText(value: bigint): string {
-  const sign = value < 0n ? '-' : '';
-  const abs = value < 0n ? -value : value;
-  return sign + (abs / 100n) + '.' + String(abs % 100n).padStart(2, '0');
-}
-function approvedTotals(order: PurchaseOrderDetail) {
-  const subtotal = order.lines.reduce((sum, line) =>
-    sum + moneySatang(line.amount), 0n);
-  const missing = [order.discountAmount, order.freightAmount,
-    order.additionalChargeAmount, order.vatRatePercent].some(v => v === null);
-  if (missing) return {
-    subtotal: satangText(subtotal), net: null, vatAmount: null, grandTotal: null,
-  };
-  const net = subtotal - moneySatang(order.discountAmount!) +
-    moneySatang(order.freightAmount!) + moneySatang(order.additionalChargeAmount!);
-  if (net < 0n) throw new Error('PO_PRINT_NEGATIVE_NET_TOTAL');
-  // vatRatePercent is a percent with up to two decimal places.
-  const rate = moneySatang(order.vatRatePercent!);
-  if (rate > 10000n) throw new Error('PO_PRINT_VAT_RATE_INVALID');
-  // Round positive VAT satang half-up; 100.00% = 10000 basis points.
-  const vatAmount = (net * rate + 5000n) / 10000n;
-  return {
-    subtotal: satangText(subtotal),
-    net: satangText(net),
-    vatAmount: satangText(vatAmount),
-    grandTotal: satangText(net + vatAmount),
-  };
-}
 export function printApprovedPurchaseOrderHtml(order: PurchaseOrderDetail): {
   html: string; suggestedFileName: string;
 } {
@@ -65,7 +30,7 @@ export function printApprovedPurchaseOrderHtml(order: PurchaseOrderDetail): {
   if (new TextEncoder().encode(suggestedFileName).length > 210) {
     throw new Error('PO_PRINT_FILENAME_TOO_LONG');
   }
-  const totals = approvedTotals(order);
+  const totals = approvedPrintTotals(order);
   const verified = order.approvalInstance?.approvalState === 'APPROVED' &&
     Boolean(order.approvalInstance.completedAt);
   if (!verified) {
@@ -80,7 +45,7 @@ export function printApprovedPurchaseOrderHtml(order: PurchaseOrderDetail): {
     <td>${line.lineNo}</td><td>${escape(line.description)}</td>
     <td>${escape(line.quantity)} ${escape(line.uomCodeSnapshot)}</td>
     <td class="number">${escape(line.unitPrice)}</td>
-    <td class="number">${escape(line.amount)}</td></tr>`).join('\n');
+    <td class="number">${formatPoLineAmount(line.amount)}</td></tr>`).join('\n');
   const value = (v: string | null) => escape(v ?? 'Not specified');
   const approvedAt = order.approvalInstance?.completedAt ?? '';
   const html = `<!doctype html><html lang="th"><head>
@@ -113,6 +78,7 @@ tr {break-inside:avoid;} .footer{border-top:1px solid #777; margin-top:22px; pad
 <th>Qty / Unit</th><th>Unit price</th><th>Amount</th></tr></thead>
 <tbody>${lines}</tbody></table>
 <h2>Commercial totals (THB)</h2>
+<div class="warning">Line amounts and totals are rounded independently to satang from the full stored precision. Unit prices retain their approved precision.</div>
 <div class="meta">
 <div><strong>Subtotal:</strong> ${totals.subtotal}</div>
 <div><strong>Net before VAT:</strong> ${totals.net ?? 'NOT CALCULATED — missing inputs'}</div>
