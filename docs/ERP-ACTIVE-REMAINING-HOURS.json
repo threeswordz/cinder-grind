@@ -1749,6 +1749,26 @@
       "sourceSha": "4aab761d8477cfb63ea978af1444865b720d42d5",
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-05-002",
+      "date": "2026-11-25",
+      "packageId": "M4-05",
+      "kind": "PUR04_BOUNDED_REBASE_STAGED",
+      "beforeHours": 8,
+      "afterHours": 8,
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/commit/12453a1ff391b758f567a47b7f318c49cbb1dbbb",
+        "https://github.com/threeswordz/cinder-grind/compare/05e64e24eb8d5b0864c360109bcdc570eae9134a...12453a1ff391b758f567a47b7f318c49cbb1dbbb",
+        "https://github.com/threeswordz/cinder-grind/commit/a68fba1cd96db378cd155e6d8cdb0f2ea6add0a9"
+      ],
+      "basis": "Prepared separate PUR04 source on native-tested PM02 parent. Seven exact original PUR04 non-doc paths replayed with byte-identical unchanged base or unique-context shared PO service merge; preserved newer active-demand submit and final approval guards. Compare confirms 8 added/modified paths, no deletions. Focused PG17 header + shared PM02 guard workflow-only child created, execution not yet visible. Later #421/#442 revision and threshold interactions, explicit global schema admission, historical preservation and native evidence outstanding. No estimate credit before proof, no changes to PM02 release head, main or FM01.",
+      "sourceSha": "12453a1ff391b758f567a47b7f318c49cbb1dbbb",
+      "formalAcceptance": false,
+      "estimateConfidence": "NO_ADDITIONAL_HOURS_CREDIT"
     }
   ],
   "unestimatedWork": [

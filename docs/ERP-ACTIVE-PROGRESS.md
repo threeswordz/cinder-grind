@@ -10,6 +10,8 @@
 
 > **PM02 native integrated rehearsal:** source `05e64e24eb8d5b0864c360109bcdc570eae9134a`, [45537365945](https://github.com/threeswordz/cinder-grind/actions/runs/45537365945) SUCCESS 15/15. Global schema and historical consumers, paired DB/Documents, external HR keys and protected documents, previous-runtime authentication and v21 receipt proven on one exact predecessor. Previous database-only proof preserved. M4-02 5→3h, M4 88→85h, ERP 1,818→1,815h. Real browser/retained roles and full integrated independent review pending.
 
+> **PUR04 next bounded source:** [12453a1](https://github.com/threeswordz/cinder-grind/commit/12453a1ff391b758f567a47b7f318c49cbb1dbbb) staged on exact tested PM02, eight paths; new shared service retains submit/final-approval guards. Focused workflow child prepared, no PASS yet. M4-05 8→8h, M4 85h, ERP 1,815h.
+
 ## Headline
 | Metric | Current | Meaning |
 |---|---:|---|
