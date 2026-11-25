@@ -1,3 +1,4 @@
+import {stripPm02Schema} from './pm02-schema-preparation.mjs';
 import {stripFm02Schema} from './fm02-schema-contract.mjs';
 import {stripMaterialUomStageCSchema} from './material-uom-stage-c-schema-contract.mjs';
 import {stripMaterialUomSchema} from './material-uom-schema-contract.mjs';
@@ -16,7 +17,7 @@ import test from 'node:test';
 import {stripHrSchema} from './hr-schema-contract.mjs';
 import {stripHrDocumentSchema} from './hr-document-schema-contract.mjs';
 import {stripStockCountSchema} from './stock-count-schema-contract.mjs';
-import { classifySchema, provenanceFields } from './schema-contract.mjs';
+import { classifySchema, classifyPm02Preparation, provenanceFields } from './schema-contract.mjs';
 
 const previous = `model Company {
   baseCurrencyCode String @default("SGD") @map("base_currency_code") @db.VarChar(3)
@@ -48,7 +49,7 @@ test('schema classification rejects unrelated/removal/required/defaulted/partial
 test('Customer BOQ classifier admits only the exact five new models and parent relations', async () => {
   const { readFileSync } = await import('node:fs');
   const current = stripHrDocumentSchema(stripHrSchema(stripStockCountSchema(
-    stripMaterialRequestSchema(stripMaterialPlanSchema(stripPlanIssueSchema(stripSiteIssueSchema(stripReceivingSchema(stripMaterialUomSchema(stripMaterialUomEffectSchema(stripMaterialUomStageCSchema(stripFm02Schema(readFileSync(new URL('../../apps/api/prisma/schema.prisma', import.meta.url), 'utf8')).text).text).text).text).text).text).text).text).text,
+    stripMaterialRequestSchema(stripMaterialPlanSchema(stripPlanIssueSchema(stripSiteIssueSchema(stripReceivingSchema(stripMaterialUomSchema(stripMaterialUomEffectSchema(stripMaterialUomStageCSchema(stripFm02Schema(stripPm02Schema(readFileSync(new URL('../../apps/api/prisma/schema.prisma', import.meta.url), 'utf8')).text).text).text).text).text).text).text).text).text).text,
   ).text).text).text;
   // The real predecessor schema, independently stored by Git, is the baseline.
   const { execFileSync } = await import('node:child_process');
@@ -73,7 +74,7 @@ test('FM02 schema classifier admits only the exact immutable work-plan increment
   const {execFileSync}=await import('node:child_process');
   const {readFileSync}=await import('node:fs');
   const predecessor=execFileSync('git',['show','5535dd890fd84489d76b611929e70e3422c746e8:apps/api/prisma/schema.prisma'],{encoding:'utf8'});
-  const fm02=readFileSync(new URL('../../apps/api/prisma/schema.prisma',import.meta.url),'utf8');
+  const fm02=stripPm02Schema(readFileSync(new URL('../../apps/api/prisma/schema.prisma',import.meta.url),'utf8')).text;
   const stripped=stripFm02Schema(fm02);
   assert.equal(stripped.present,true);
   assert.equal(stripped.text.replace(/\s+/g,' ').trim(),predecessor.replace(/\s+/g,' ').trim());
@@ -183,4 +184,31 @@ test('both pre-FM02 populated upgrade witnesses verify new permissions before ex
     assert.match(file,/assertHistoricalTables\(before,after,/);
     assert.doesNotMatch(file,/role_permissions[^\n]*WHERE/);
   }
+});
+
+test('PM02 preparation composes exact additive schema with existing predecessor modes without opening global admission', async () => {
+ const {execFileSync}=await import('node:child_process');
+ const {readFileSync}=await import('node:fs');
+ const predecessor=sha=>execFileSync('git',['show',sha+':apps/api/prisma/schema.prisma'],{encoding:'utf8'});
+ const before=predecessor('040395bc7b0dedd40207f91f743bc2efc1584622');
+ const older=predecessor('5535dd890fd84489d76b611929e70e3422c746e8');
+ const after=readFileSync(new URL('../../apps/api/prisma/schema.prisma',import.meta.url),'utf8');
+ assert.equal(classifyPm02Preparation(before,after),'migration-aware-pm02-schema');
+ assert.equal(classifyPm02Preparation(older,after),'migration-aware-pm02-fm02-schema');
+ assert.throws(()=>classifyPm02Preparation(after,before));
+ assert.throws(()=>classifyPm02Preparation(before,before));
+ assert.throws(()=>classifyPm02Preparation(after,after));
+ for(const invalid of [
+  after.replace(/reviewDecision\s+String\?/,'reviewDecision String'),
+  after.replace(/reviewReason\s+String\?\s+@map\("review_reason"\) @db.Text/,''),
+  after.replace(/contractValue\s+Decimal/,'contractValue Float'),
+  after+'\nmodel UnreviewedPm02 {\n id String @id\n}',
+ ]){
+  assert.notEqual(invalid,after);
+  assert.throws(()=>classifyPm02Preparation(before,invalid));
+ }
+ // The actual release CLI continues to reject this increment until every
+ // historical and paired recovery consumer has been wired and proved.
+ assert.throws(()=>classifySchema(before,after));
+ assert.throws(()=>classifySchema(older,after));
 });

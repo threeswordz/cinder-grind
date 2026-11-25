@@ -1,3 +1,4 @@
+import {stripPm02Schema,normalizeSchema as normalizePm02Schema} from './pm02-schema-preparation.mjs';
 import {stripFm02Schema} from './fm02-schema-contract.mjs';
 import {stripMaterialUomStageCSchema} from './material-uom-stage-c-schema-contract.mjs';
 import {stripMaterialUomEffectSchema} from './material-uom-effect-schema-contract.mjs';
@@ -243,6 +244,19 @@ export function classifySchema(previous,candidate){
    ?(mode==='migration-aware-sql-only'?'migration-aware-fm02-schema'
      :'migration-aware-fm02-'+mode.slice('migration-aware-'.length))
    :mode;
+}
+
+// Preparation only: compose the exact PM02 increment with the existing strict
+// predecessor contracts. Do not route this mode through the global CLI until
+// every historical rehearsal and paired-recovery consumer verifies PM02.
+export function classifyPm02Preparation(previous,candidate){
+ const before=stripPm02Schema(previous),after=stripPm02Schema(candidate);
+ if(before.present||!after.present)throw Error('PM02 preparation requires an additive increment');
+ const prior=normalizePm02Schema(before.text)===normalizePm02Schema(after.text)
+  ?'migration-aware-sql-only':classifySchema(before.text,after.text);
+ return prior==='migration-aware-sql-only'
+  ?'migration-aware-pm02-schema'
+  :'migration-aware-pm02-'+prior.slice('migration-aware-'.length);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
