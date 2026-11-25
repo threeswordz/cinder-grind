@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Alert, Box, Stack, Tab, Tabs } from '@mui/material';
 
 import { MaterialsPanel } from './MaterialsPanel';
+import { MaterialCodeRequestsPanel } from '../inventory/MaterialCodeRequestsPanel';
 import {
   CustomersPanel,
   EmployeesPanel,
@@ -42,7 +43,7 @@ const permissionsByKey: Record<
   },
 };
 
-export function MasterDataPanel({ permissions }: { permissions: string[] }) {
+export function MasterDataPanel({ permissions, roleCodes = [] }: { permissions: string[]; roleCodes?: string[] }) {
   const available = useMemo(
     () =>
       (Object.keys(permissionsByKey) as MasterKey[]).filter((key) =>
@@ -89,7 +90,12 @@ export function MasterDataPanel({ permissions }: { permissions: string[] }) {
       ) : null}
       {activeKey === 'uoms' ? <UomsPanel canManage={canManage} /> : null}
       {activeKey === 'materials' ? (
-        <MaterialsPanel canManage={canManage} canConfigureConversions={canManage && permissions.includes('master.material.conversion.manage')} />
+        <>
+          <MaterialsPanel canManage={canManage} canConfigureConversions={canManage && permissions.includes('master.material.conversion.manage')} />
+          {canManage && roleCodes.some(role => role === 'PROCUREMENT_OFFICER' || role === 'FINANCE_MANAGER') ? (
+            <MaterialCodeRequestsPanel permissions={permissions} roleCodes={roleCodes} />
+          ) : null}
+        </>
       ) : null}
     </Stack>
   );

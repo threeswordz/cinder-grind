@@ -34,9 +34,17 @@ import { StockBalanceService } from './stock-balance.service';
 import { StockTransferController } from './stock-transfer.controller';
 import { StockTransferService } from './stock-transfer.service';
 import { StockCountController } from './stock-count.controller';
+import { UrgentMaterialIssueDocumentsController } from './urgent-material-issue-documents.controller';
+import { UrgentMaterialIssueDocumentsService } from './urgent-material-issue-documents.service';
+import { StockCountScheduleController } from './stock-count-schedule.controller';
+import { StockCountScheduleService } from './stock-count-schedule.service';
+import { StockLossCaseController } from './stock-loss-case.controller';
+import { StockLossCaseService } from './stock-loss-case.service';
 import { StockCountService } from './stock-count.service';
 import { StockMinimumService } from './stock-minimum.service';
 import { StockMinimumController } from './stock-minimum.controller';
+import { MaterialCodeRequestController } from './material-code-request.controller';
+import { MaterialCodeRequestService } from './material-code-request.service';
 
 @Module({
   imports: [
@@ -50,7 +58,11 @@ import { StockMinimumController } from './stock-minimum.controller';
     AdministrationModule,
   ],
   controllers: [
+    UrgentMaterialIssueDocumentsController,
+    StockCountScheduleController,
     StockMinimumController,
+    MaterialCodeRequestController,
+    StockLossCaseController,
     TransferCustodyController,
     ReceivingController,
     MaterialPlanIssueController,
@@ -65,7 +77,11 @@ import { StockMinimumController } from './stock-minimum.controller';
     StockCountController,
   ],
   providers: [
+    UrgentMaterialIssueDocumentsService,
+    StockCountScheduleService,
     StockMinimumService,
+    MaterialCodeRequestService,
+    StockLossCaseService,
     TransferCustodyService,
     ReceivingService,
     MaterialPlanIssueService,

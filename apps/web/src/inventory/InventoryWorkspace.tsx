@@ -1,8 +1,10 @@
+import { OperationalExceptionsPanel } from './OperationalExceptionsPanel';
 import { TransferReceiptsPanel } from './TransferReceiptsPanel';
 import { transferCustodyLabels } from './transfer-custody-labels';
 import { ReceivingPanel } from './ReceivingPanel';
 import { receivingLabels } from './receiving-labels';
 import { MaterialRequestsPanel } from './MaterialRequestsPanel';
+import { MaterialCodeRequestsPanel } from './MaterialCodeRequestsPanel';
 import { MaterialPlansPanel } from './MaterialPlansPanel';
 import { materialPlanLabels } from './material-plan-labels';
 import { useContext } from 'react';
@@ -24,9 +26,11 @@ import { WarehousesPanel } from './WarehousesPanel';
 import type { SourceLinkTarget } from '../role-ui/source-link-policy';
 
 type InventoryTab =
+  | 'exceptions'
   | 'transfer-receipts'
   | 'receiving'
   | 'requests'
+  | 'material-codes'
   | 'plans'
   | 'warehouses'
   | 'receipts'
@@ -59,15 +63,24 @@ export function InventoryWorkspace({
   const locale = useContext(MonetaryLocaleContext);
   const requestText = materialRequestLabels[locale];
   const planText = materialPlanLabels[locale];
+  const canSeeExceptions = (
+    permissions.includes('documents.document.view') && (
+      (permissions.includes('inventory.issue.view') && roleCodes.some(r => r === 'STOREKEEPER' || r === 'PROJECT_MANAGER')) ||
+      (permissions.includes('inventory.stock.view') && roleCodes.some(r => ['STOREKEEPER','PROJECT_MANAGER','MANAGEMENT','FINANCE_MANAGER'].includes(r)))
+    )
+  ) || (permissions.includes('inventory.stock_count.view') &&
+    roleCodes.some(r => ['FINANCE_MANAGER','PROJECT_MANAGER','STOREKEEPER'].includes(r)));
   const canSeeTransferReceipts = permissions.includes('inventory.transfer.receipt_view');
   const canSeeReceiving = permissions.includes('inventory.receiving.view');
   const canSeeRequests = permissions.includes('inventory.material_request.view');
+  const canSeeCodes = (permissions.includes('inventory.material_request.view') && roleCodes.includes('STOREKEEPER')) ||
+    (permissions.includes('inventory.stock.view') && roleCodes.includes('PROJECT_MANAGER'));
   const canSeePlans = permissions.includes('inventory.material_plan.view');
   const canSeeWarehouses = permissions.includes('inventory.warehouse.view');
   const canSeeReceipts = permissions.includes('inventory.receipt.view');
   const canSeeStock = permissions.includes('inventory.stock.view');
-  const canSeeMinimums = canSeeStock && roleCodes.some(r => r === 'STOREKEEPER' || r === 'PROJECT_MANAGER');
   const canSeeCounts = permissions.includes('inventory.stock_count.view');
+  const canSeeMinimums = canSeeStock && roleCodes.some(r => r === 'STOREKEEPER' || r === 'PROJECT_MANAGER');
   const canSeeReservations = permissions.includes('inventory.reservation.view');
   const canSeeIssues = permissions.includes('inventory.issue.view');
   const canSeeReturns = permissions.includes('inventory.return.view');
@@ -89,7 +102,7 @@ export function InventoryWorkspace({
               ? 'returns'
               : canSeeTransfers
                 ? 'transfers'
-                : 'reports';
+                : canSeeReports ? 'reports' : canSeeCodes ? 'material-codes' : 'exceptions';
   const [selected, setSelected] = useState<InventoryTab>(first);
   const appliedReceiptProjectSourceLink = useRef('');
   const appliedReceiptSourceLink = useRef('');
@@ -98,9 +111,11 @@ export function InventoryWorkspace({
     if (initialReceiptId && canSeeReceipts) setSelected('receipts');
   }, [initialReceiptId, canSeeReceipts]);
   if (
+    !canSeeExceptions &&
     !canSeeTransferReceipts &&
     !canSeeReceiving &&
     !canSeeRequests &&
+    !canSeeCodes &&
     !canSeePlans &&
     !canSeeWarehouses &&
     !canSeeReceipts &&
@@ -115,7 +130,7 @@ export function InventoryWorkspace({
     return <Alert severity="info">Inventory view permission is required.</Alert>;
   }
   const active: InventoryTab =
-    selected === 'transfer-receipts' && canSeeTransferReceipts ? 'transfer-receipts' : selected === 'receiving' && canSeeReceiving ? 'receiving' : selected === 'requests' && canSeeRequests ? 'requests' : selected === 'plans' && canSeePlans ? 'plans' : selected === 'warehouses' && canSeeWarehouses
+    selected === 'material-codes' && canSeeCodes ? 'material-codes' : selected === 'exceptions' && canSeeExceptions ? 'exceptions' : selected === 'transfer-receipts' && canSeeTransferReceipts ? 'transfer-receipts' : selected === 'receiving' && canSeeReceiving ? 'receiving' : selected === 'requests' && canSeeRequests ? 'requests' : selected === 'plans' && canSeePlans ? 'plans' : selected === 'warehouses' && canSeeWarehouses
       ? 'warehouses'
       : selected === 'receipts' && canSeeReceipts
         ? 'receipts'
@@ -139,14 +154,16 @@ export function InventoryWorkspace({
   return (
     <Stack spacing={2}>
       <Tabs value={active} onChange={(_event, value: InventoryTab) => setSelected(value)}>
+        {canSeeExceptions ? <Tab value="exceptions" label="Operational Exceptions" /> : null}
         {canSeeTransferReceipts ? <Tab value="transfer-receipts" label={transferCustodyLabels[locale].title} /> : null}
         {canSeeReceiving ? <Tab value="receiving" label={receivingLabels[locale].title} /> : null}
         {canSeeRequests ? <Tab value="requests" label={requestText.title} /> : null}
+        {canSeeCodes ? <Tab value="material-codes" label="New Material Codes" /> : null}
         {canSeePlans ? <Tab value="plans" label={planText.title} /> : null}
         {canSeeWarehouses ? <Tab value="warehouses" label="Warehouses" /> : null}
         {canSeeReceipts ? <Tab value="receipts" label="Goods Receipts" /> : null}
         {canSeeStock ? <Tab value="stock" label="Stock Balance" /> : null}
-        {canSeeMinimums ? <Tab value="minimums" label="Stock Minimums & Reminders" /> : null}
+        {canSeeMinimums ? <Tab value="minimums" label="Minimum Stock Alerts" /> : null}
         {canSeeCounts ? <Tab value="counts" label="Stock Counts" /> : null}
         {canSeeReservations ? <Tab value="reservations" label="Reservations" /> : null}
         {canSeeIssues ? <Tab value="issues" label="Material Issues" /> : null}
@@ -154,10 +171,14 @@ export function InventoryWorkspace({
         {canSeeTransfers ? <Tab value="transfers" label="Stock Transfers" /> : null}
         {canSeeReports ? <Tab value="reports" label="Reports" /> : null}
       </Tabs>
-      {active === 'transfer-receipts' ? (
+      {active === 'exceptions' ? (
+        <OperationalExceptionsPanel permissions={permissions} roleCodes={roleCodes} userId={userId} />
+      ) : active === 'transfer-receipts' ? (
         <TransferReceiptsPanel permissions={permissions} userId={userId} companyId={companyId}/>
       ) : active === 'receiving' ? (
         <ReceivingPanel permissions={permissions} roleCodes={roleCodes} userId={userId} companyId={companyId} onOpenGr={(projectId,id)=>{appliedReceiptProjectSourceLink.current='';appliedReceiptSourceLink.current='';setReceivingGr({projectId,id});setSelected('receipts');}}/>
+      ) : active === 'material-codes' ? (
+        <MaterialCodeRequestsPanel permissions={permissions} roleCodes={roleCodes} />
       ) : active === 'requests' ? (
         <MaterialRequestsPanel permissions={permissions}/>
       ) : active === 'plans' ? (
