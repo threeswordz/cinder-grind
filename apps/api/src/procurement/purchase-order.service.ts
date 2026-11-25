@@ -1607,6 +1607,15 @@ export class PurchaseOrderService {
           });
         }
 
+        // A revision inserts a child. Give the predecessor a new PostgreSQL row
+        // version as well so serializable readers waiting on its FOR UPDATE
+        // lock cannot accept the old snapshot after this transaction commits.
+        // Preserve every historical field, including its stored timestamp.
+        await tx.$executeRaw(Prisma.sql`
+          UPDATE "purchase_orders" SET "updated_at" = "updated_at"
+          WHERE "id" = ${source.id}::uuid AND "company_id" = ${source.companyId}::uuid
+        `);
+
         const revision = await tx.purchaseOrder.create({
           data: {
             companyId: source.companyId,
