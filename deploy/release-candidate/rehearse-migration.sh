@@ -52,6 +52,8 @@ if ! git diff --quiet "$RC_PREVIOUS_RELEASE_COMMIT" "$RELEASE_COMMIT" -- apps/ap
   rm -f "$previous_schema_check"
 fi
 
+pur07_schema=false
+pur12_schema=false
 pur01_schema=false
 pur04_schema=false
 pm02_schema=false
@@ -72,6 +74,7 @@ hr_document_schema=false
 hr_proof=false
 customer_schema=false
 successor_mode="$schema_mode"
+export PUR07_SCHEMA_UPGRADE=NO PUR12_SCHEMA_UPGRADE=NO
 export PUR01_SCHEMA_UPGRADE=NO PUR04_SCHEMA_UPGRADE=NO
 export PM02_SCHEMA_UPGRADE=NO
 export FM02_SCHEMA_UPGRADE=NO
@@ -88,6 +91,22 @@ export MATERIAL_REQUEST_SCHEMA_UPGRADE=NO
 export STOCK_COUNT_SCHEMA_UPGRADE=NO
 export HR_SCHEMA_UPGRADE=NO
 export HR_DOCUMENT_SCHEMA_UPGRADE=NO
+if [[ "$successor_mode" == "migration-aware-pur07-schema" ]]; then
+  pur07_schema=true
+  successor_mode="migration-aware-sql-only"
+elif [[ "$successor_mode" == migration-aware-pur07-* ]]; then
+  pur07_schema=true
+  successor_mode="migration-aware-${successor_mode#migration-aware-pur07-}"
+fi
+if [[ "$successor_mode" == "migration-aware-pur12-schema" ]]; then
+  pur12_schema=true
+  successor_mode="migration-aware-sql-only"
+elif [[ "$successor_mode" == migration-aware-pur12-* ]]; then
+  pur12_schema=true
+  successor_mode="migration-aware-${successor_mode#migration-aware-pur12-}"
+fi
+if [[ "$pur07_schema" == true ]]; then export PUR07_SCHEMA_UPGRADE=YES; fi
+if [[ "$pur12_schema" == true ]]; then export PUR12_SCHEMA_UPGRADE=YES; fi
 if [[ "$successor_mode" == "migration-aware-pur01-schema" ]]; then
   pur01_schema=true
   successor_mode="migration-aware-sql-only"
@@ -222,7 +241,7 @@ if [[ "$historical_mode" == "migration-aware-hr-schema" || "$historical_mode" ==
   export HR_SCHEMA_UPGRADE=YES
 fi
 if [[ "$historical_mode" == "migration-aware-customer-boq-schema" || "$historical_mode" == "migration-aware-hr-customer-boq-schema" ]]; then customer_schema=true; fi
-if [[ "$pur01_schema" == true || "$pur04_schema" == true || "$pm02_schema" == true || "$fm02_schema" == true || "$material_uom_stage_c_schema" == true || "$material_uom_effect_schema" == true || "$material_uom_schema" == true || "$physical_schema" == true || "$transfer_schema" == true || "$hr_schema" == true || "$hr_document_schema" == true || "$material_request_schema" == true || "$material_plan_schema" == true || "$plan_issue_schema" == true || "$site_issue_schema" == true || "$receiving_schema" == true ]]; then hr_proof=true; fi
+if [[ "$pur07_schema" == true || "$pur12_schema" == true || "$pur01_schema" == true || "$pur04_schema" == true || "$pm02_schema" == true || "$fm02_schema" == true || "$material_uom_stage_c_schema" == true || "$material_uom_effect_schema" == true || "$material_uom_schema" == true || "$physical_schema" == true || "$transfer_schema" == true || "$hr_schema" == true || "$hr_document_schema" == true || "$material_request_schema" == true || "$material_plan_schema" == true || "$plan_issue_schema" == true || "$site_issue_schema" == true || "$receiving_schema" == true ]]; then hr_proof=true; fi
 
 legacy_upgrade=false
 if ! git cat-file -e "$RC_PREVIOUS_RELEASE_COMMIT:apps/api/prisma/migrations/20261025120000_v1_2_thb_monetary_policy/migration.sql" 2>/dev/null; then
@@ -248,6 +267,14 @@ done
 mapfile -t new_migrations < <(printf '%s\n' "${new_migrations[@]}" | sort -u)
 (( ${#new_migrations[@]} > 0 )) || fail "no new forward migrations detected"
 migration_list="$(IFS=,; printf '%s' "${new_migrations[*]}")"
+if [[ "$pur12_schema" == true ]]; then
+  [[ ",$migration_list," == *",20261123190000_pur12_po_partner_short_names,"* ]] || fail "exact PUR12 migration missing"
+  [[ "$(git hash-object apps/api/prisma/migrations/20261123190000_pur12_po_partner_short_names/migration.sql)" == 2342d5f965adaefa97fc72c3ee862c92c696f041 ]] || fail "PUR12 migration differs"
+fi
+if [[ "$pur07_schema" == true ]]; then
+  [[ ",$migration_list," == *",20261123201500_pur07_po_manual_dispatch_events,"* ]] || fail "exact PUR07 migration missing"
+  [[ "$(git hash-object apps/api/prisma/migrations/20261123201500_pur07_po_manual_dispatch_events/migration.sql)" == 82faa9d33f3573c6a332dec4b20047bfb5b42502 ]] || fail "PUR07 migration differs"
+fi
 if [[ "$pur04_schema" == true ]]; then
   [[ ",$migration_list," == *",20261123181000_pur04_po_commercial_header,"* ]] || fail "exact PUR04 migration missing"
   [[ "$(git hash-object apps/api/prisma/migrations/20261123181000_pur04_po_commercial_header/migration.sql)" == 072293acec77a8a9c911dc78d1b0a39175820412 ]] || fail "PUR04 migration differs"
@@ -598,6 +625,17 @@ if [[ "$schema_mode" != "migration-aware-sql-only" && "$legacy_upgrade" == true 
   DATABASE_URL="$upgrade_url" node "$RC_DIR/legacy-fixture.mjs" verify "$previous_root" "$tmp_root/legacy.json" "$tmp_root/legacy-snapshot.json"
   DATABASE_URL="$upgrade_url" ERP_LEGACY_FIXTURE="$tmp_root/legacy.json" node "$RC_DIR/verify-thb-upgrade.mjs"
 fi
+# These source contract tests do not replace the separate native identity/PDF
+# workflows (which deliberately require their own exact disposable DB names).
+if [[ "$pur12_schema" == true || "$pur07_schema" == true ]]; then
+  node --test "$RC_DIR/purchasing-successor-schema-preparation.test.mjs" "$RC_DIR/purchasing-successor-historical.test.mjs" "$RC_DIR/historical-snapshot.test.mjs"
+fi
+if [[ "$pur12_schema" == true ]]; then
+  node --test apps/api/dist/procurement/purchase-order-identity.spec.js
+fi
+if [[ "$pur07_schema" == true ]]; then
+  node --test apps/api/dist/procurement/purchase-order-pur07-document-link.spec.js apps/api/dist/procurement/purchase-order-pur07-source-approval.spec.js
+fi
 if [[ "$pur04_schema" == true ]]; then
   node --test "$RC_DIR/pur04-schema-preparation.test.mjs"
   DATABASE_URL="$upgrade_url" node --test --test-concurrency=1 \
@@ -692,7 +730,7 @@ chmod 600 "$upgrade_pgpass"
 native_upgrade_url="$(POSTGRES_RAW_URL="$upgrade_url" PGPASSFILE="$upgrade_pgpass" node deploy/recovery/postgres-url.mjs)"
 if [[ "$physical_schema" == true || "$transfer_schema" == true || "$hr_proof" == true || "$material_request_schema" == true || "$material_plan_schema" == true || "$plan_issue_schema" == true || "$site_issue_schema" == true || "$receiving_schema" == true ]]; then
   if [[ "$hr_proof" == true ]]; then
-  if [[ "$hr_document_schema" == true || "$pm02_schema" == true || "$pur04_schema" == true || "$pur01_schema" == true ]]; then
+  if [[ "$hr_document_schema" == true || "$pm02_schema" == true || "$pur04_schema" == true || "$pur01_schema" == true || "$pur12_schema" == true || "$pur07_schema" == true ]]; then
     mkdir -p "$tmp_root/hr-attachment-source" "$tmp_root/hr-attachment-restored"
     chmod 700 "$tmp_root/hr-attachment-source" "$tmp_root/hr-attachment-restored"
     HR_ATTACHMENT_RECOVERY_STORAGE_ROOT="$tmp_root/hr-attachment-source" DATABASE_URL="$upgrade_url" \
@@ -786,7 +824,7 @@ if [[ "$physical_schema" == true || "$transfer_schema" == true || "$hr_proof" ==
     DATABASE_URL="$hr_url" node "$RC_DIR/site-issue-upgrade.mjs" restored "$tmp_root/site-issue-protected.json"
   fi
   if [[ "$hr_proof" == true ]]; then
-  if [[ "$hr_document_schema" == true || "$pm02_schema" == true || "$pur04_schema" == true || "$pur01_schema" == true ]]; then
+  if [[ "$hr_document_schema" == true || "$pm02_schema" == true || "$pur04_schema" == true || "$pur01_schema" == true || "$pur12_schema" == true || "$pur07_schema" == true ]]; then
     HR_ATTACHMENT_RECOVERY_STORAGE_ROOT="$tmp_root/hr-attachment-restored" DATABASE_URL="$hr_url" \
       node "$RC_DIR/hr-upgrade.mjs" restored "$previous_root" "$tmp_root/hr-protected.json" "$tmp_root/hr-external-keys.json"
   else
@@ -916,10 +954,10 @@ set -e
 
 if [[ "$schema_mode" != "migration-aware-sql-only" ]]; then
   if [[ "$legacy_upgrade" == true ]]; then
-    PUR01_SCHEMA_UPGRADE=NO PUR04_SCHEMA_UPGRADE=NO PM02_SCHEMA_UPGRADE=NO FM02_SCHEMA_UPGRADE=NO MATERIAL_UOM_STAGE_C_SCHEMA_UPGRADE=NO MATERIAL_UOM_EFFECT_SCHEMA_UPGRADE=NO MATERIAL_UOM_SCHEMA_UPGRADE=NO SUBCONTRACT_PHYSICAL_SCHEMA_UPGRADE=NO TRANSFER_SCHEMA_UPGRADE=NO RECEIVING_SCHEMA_UPGRADE=NO SITE_ISSUE_SCHEMA_UPGRADE=NO MATERIAL_PLAN_ISSUE_SCHEMA_UPGRADE=NO MATERIAL_PLAN_SCHEMA_UPGRADE=NO MATERIAL_REQUEST_SCHEMA_UPGRADE=NO HR_SCHEMA_UPGRADE=NO HR_DOCUMENT_SCHEMA_UPGRADE=NO STOCK_COUNT_SCHEMA_UPGRADE=NO DATABASE_URL="$rollback_url" node "$RC_DIR/legacy-fixture.mjs" verify "$previous_root" "$tmp_root/legacy.json" "$tmp_root/legacy-snapshot.json"
+    PUR07_SCHEMA_UPGRADE=NO PUR12_SCHEMA_UPGRADE=NO PUR01_SCHEMA_UPGRADE=NO PUR04_SCHEMA_UPGRADE=NO PM02_SCHEMA_UPGRADE=NO FM02_SCHEMA_UPGRADE=NO MATERIAL_UOM_STAGE_C_SCHEMA_UPGRADE=NO MATERIAL_UOM_EFFECT_SCHEMA_UPGRADE=NO MATERIAL_UOM_SCHEMA_UPGRADE=NO SUBCONTRACT_PHYSICAL_SCHEMA_UPGRADE=NO TRANSFER_SCHEMA_UPGRADE=NO RECEIVING_SCHEMA_UPGRADE=NO SITE_ISSUE_SCHEMA_UPGRADE=NO MATERIAL_PLAN_ISSUE_SCHEMA_UPGRADE=NO MATERIAL_PLAN_SCHEMA_UPGRADE=NO MATERIAL_REQUEST_SCHEMA_UPGRADE=NO HR_SCHEMA_UPGRADE=NO HR_DOCUMENT_SCHEMA_UPGRADE=NO STOCK_COUNT_SCHEMA_UPGRADE=NO DATABASE_URL="$rollback_url" node "$RC_DIR/legacy-fixture.mjs" verify "$previous_root" "$tmp_root/legacy.json" "$tmp_root/legacy-snapshot.json"
   fi
   if [[ "$hr_proof" == true ]]; then
-    PUR01_SCHEMA_UPGRADE=NO PUR04_SCHEMA_UPGRADE=NO PM02_SCHEMA_UPGRADE=NO FM02_SCHEMA_UPGRADE=NO MATERIAL_UOM_STAGE_C_SCHEMA_UPGRADE=NO MATERIAL_UOM_EFFECT_SCHEMA_UPGRADE=NO MATERIAL_UOM_SCHEMA_UPGRADE=NO SUBCONTRACT_PHYSICAL_SCHEMA_UPGRADE=NO TRANSFER_SCHEMA_UPGRADE=NO RECEIVING_SCHEMA_UPGRADE=NO SITE_ISSUE_SCHEMA_UPGRADE=NO MATERIAL_PLAN_ISSUE_SCHEMA_UPGRADE=NO MATERIAL_PLAN_SCHEMA_UPGRADE=NO MATERIAL_REQUEST_SCHEMA_UPGRADE=NO HR_DOCUMENT_SCHEMA_UPGRADE=NO DATABASE_URL="$rollback_url" node "$RC_DIR/hr-upgrade.mjs" rollback "$previous_root" "$tmp_root/hr-predecessor.json"
+    PUR07_SCHEMA_UPGRADE=NO PUR12_SCHEMA_UPGRADE=NO PUR01_SCHEMA_UPGRADE=NO PUR04_SCHEMA_UPGRADE=NO PM02_SCHEMA_UPGRADE=NO FM02_SCHEMA_UPGRADE=NO MATERIAL_UOM_STAGE_C_SCHEMA_UPGRADE=NO MATERIAL_UOM_EFFECT_SCHEMA_UPGRADE=NO MATERIAL_UOM_SCHEMA_UPGRADE=NO SUBCONTRACT_PHYSICAL_SCHEMA_UPGRADE=NO TRANSFER_SCHEMA_UPGRADE=NO RECEIVING_SCHEMA_UPGRADE=NO SITE_ISSUE_SCHEMA_UPGRADE=NO MATERIAL_PLAN_ISSUE_SCHEMA_UPGRADE=NO MATERIAL_PLAN_SCHEMA_UPGRADE=NO MATERIAL_REQUEST_SCHEMA_UPGRADE=NO HR_DOCUMENT_SCHEMA_UPGRADE=NO DATABASE_URL="$rollback_url" node "$RC_DIR/hr-upgrade.mjs" rollback "$previous_root" "$tmp_root/hr-predecessor.json"
   fi
   start_previous_runtime "$rollback_url" "$rollback_storage"
   RESTORED_API_BASE_URL="http://127.0.0.1:$api_port/api/v1" DATABASE_URL="$rollback_url" \
@@ -971,7 +1009,8 @@ const peelPurchasing=(mode,layer)=>{
  const prefix='migration-aware-'+layer+'-';
  return mode.startsWith(prefix)?{present:true,prior:mode===prefix+'schema'?'migration-aware-sql-only':'migration-aware-'+mode.slice(prefix.length)}:{present:false,prior:mode};
 };
-const pur01=peelPurchasing(schemaMode,'pur01'),pur04=peelPurchasing(pur01.prior,'pur04');
+const pur07=peelPurchasing(schemaMode,'pur07'),pur12=peelPurchasing(pur07.prior,'pur12');
+const pur01=peelPurchasing(pur12.prior,'pur01'),pur04=peelPurchasing(pur01.prior,'pur04');
 const beforePurchasing=pur04.prior;
 const pm02Schema=beforePurchasing.startsWith('migration-aware-pm02-');
 const beforePm02=!pm02Schema?beforePurchasing:beforePurchasing==='migration-aware-pm02-schema'?'migration-aware-sql-only':'migration-aware-'+beforePurchasing.slice('migration-aware-pm02-'.length);
@@ -1007,7 +1046,7 @@ const priorMode = !hrDocumentSchema ? afterStock : afterStock === 'migration-awa
 const hrSchema = ['migration-aware-hr-schema','migration-aware-hr-customer-boq-schema'].includes(priorMode);
 const customerSchema = ['migration-aware-customer-boq-schema','migration-aware-hr-customer-boq-schema'].includes(priorMode);
 writeFileSync(path, JSON.stringify({
-  version: pur01.present ? 23 : pur04.present ? 22 : pm02Schema ? 21 : fm02Schema ? 20 : materialUomStageCSchema ? 19 : materialUomEffectSchema ? 18 : materialUomSchema ? 17 : physicalSchema ? 16 : transferSchema ? 15 : receivingSchema ? 14 : siteIssueSchema ? 13 : planIssueSchema ? 12 : materialPlanSchema ? 11 : materialRequestSchema ? 10 : stockCountSchema ? 9 : hrDocumentSchema ? 8 : hrSchema ? (customerSchema ? 7 : 6) : customerSchema ? 5 : schemaMode === 'migration-aware-thb-schema' ? 4 : 3,
+  version: pur07.present ? 25 : pur12.present ? 24 : pur01.present ? 23 : pur04.present ? 22 : pm02Schema ? 21 : fm02Schema ? 20 : materialUomStageCSchema ? 19 : materialUomEffectSchema ? 18 : materialUomSchema ? 17 : physicalSchema ? 16 : transferSchema ? 15 : receivingSchema ? 14 : siteIssueSchema ? 13 : planIssueSchema ? 12 : materialPlanSchema ? 11 : materialRequestSchema ? 10 : stockCountSchema ? 9 : hrDocumentSchema ? 8 : hrSchema ? (customerSchema ? 7 : 6) : customerSchema ? 5 : schemaMode === 'migration-aware-thb-schema' ? 4 : 3,
   releaseMode: schemaMode,
   releaseCommit,
   previousReleaseCommit,
@@ -1043,6 +1082,8 @@ writeFileSync(path, JSON.stringify({
   ...(hrSchema || hrDocumentSchema ? { hrPredecessorPreservation: 'PASS', hrPredecessorRollback: 'PASS', hrEmployeeUpgradeTests: 'PASS', hrEncryptedRecordRecovery: 'PASS', hrPrivateAttachmentRecovery: hrDocumentSchema ? 'PASS' : 'NOT_IMPLEMENTED_THIS_INCREMENT' } : {}),
   ...(hrDocumentSchema ? { hrDocumentCustodyUpgrade: 'PASS', hrDocumentSchemaOnly: 'PASS' } : {}),
   ...(stockCountSchema ? { stockCountSchemaUpgrade: 'PASS', stockCountHistoricalPreservation: 'PASS' } : {}),
+  ...(pur12.present ? {pur12SchemaUpgrade:'PASS',pur12SourceContractTests:'PASS',pur12HistoricalPreservation:'PASS',pur12PairedRecovery:'PASS',pur12ExternalHrKeyAndDocumentRecovery:'PASS'} : {}),
+  ...(pur07.present ? {pur07SchemaUpgrade:'PASS',pur07SourceContractTests:'PASS',pur07HistoricalPreservation:'PASS',pur07PairedRecovery:'PASS',pur07ExternalHrKeyAndDocumentRecovery:'PASS'} : {}),
   ...(pur04.present ? {pur04SchemaUpgrade:'PASS',pur04SourceContractTests:'PASS',pur04HistoricalPreservation:'PASS',pur04PairedRecovery:'PASS',pur04ExternalHrKeyAndDocumentRecovery:'PASS'} : {}),
   ...(pur01.present ? {pur01SchemaUpgrade:'PASS',pur01SourceContractTests:'PASS',pur01HistoricalPreservation:'PASS',pur01PairedRecovery:'PASS',pur01ExternalHrKeyAndDocumentRecovery:'PASS'} : {}),
   ...(pm02Schema ? {pm02SchemaUpgrade:'PASS',pm02SourceContractTests:'PASS',
