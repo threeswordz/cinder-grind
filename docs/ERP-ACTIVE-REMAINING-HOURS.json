@@ -3159,6 +3159,26 @@
       "sourceSha": "33f301ad9967c3b94cda8b3a12542be5855a1c9c",
       "formalAcceptance": false,
       "estimateConfidence": "NO_ADDITIONAL_HOURS_CREDIT"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-01-050",
+      "date": "2026-11-25",
+      "packageId": "M4-01",
+      "kind": "ALL_112_EFFECTIVE_SCOPE_GATES_AND_IMMUTABLE_OWNER_RECONCILIATION_VERIFIED",
+      "beforeHours": 10,
+      "afterHours": 9,
+      "reductionHours": 1,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 1,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/commit/1d5a79c8f1fa18443d742dd4739463a6e5eb0c9b",
+        "https://github.com/threeswordz/cinder-grind/commit/0336d3b251a218ac48dcc595b1b6b605786fefad",
+        "https://github.com/threeswordz/cinder-grind/commit/d5c333d8feabb60c8ed847f4dc16171abe3b6f84"
+      ],
+      "basis": "Read-back comparison programmatically reconciled all 112 unchanged original 16-column records against 21-column Owner overlay and new 112-row effective M4 projection with zero mismatches. Exactly six approved bounded Owner scopes, 42 future deferred, 33 bounded technical evidence, 12 source evidence pending, 13 role scope pending and six open functional gaps. No row marked formally accepted; no future requirement omitted. Added Node standard-library guard source to prevent future silent waiver; Node execution/CI not claimed. Retires distinct provisional 1h previously remaining manual effective-gate classification/reconciliation (not prior Owner authorization, actual worked time, runtime acceptance or retained UAT); independent review still required.",
+      "sourceSha": "1d5a79c8f1fa18443d742dd4739463a6e5eb0c9b",
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -3181,6 +3201,6 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1777,
-  "currentRollingTotalSemantics": "1777h provisional future work = 1847h baseline minus 77h evidence-backed forecast reductions plus 7h separately priced supplier scope. M4 47h; M4-01 10h; M4-03 5h; M4-06 4h; M4-08 5h; supplier 7h; all downstream work preserved; formal acceptance unchanged."
+  "currentRollingTotalAfterPricedGapsHours": 1776,
+  "currentRollingTotalSemantics": "1776h provisional future work = 1847h baseline minus 78h evidence-backed forecast reductions plus 7h separately priced supplier scope. M4 46h; M4-01 9h; M4-03 5h; M4-06 4h; M4-08 5h; supplier 7h; all downstream work preserved; formal acceptance unchanged."
 }
