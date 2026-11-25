@@ -1,0 +1,23 @@
+name: PUR12 PUR07 exact successor preservation contracts
+on:
+  push:
+    branches: [ci-m4-purchasing-successor-schema-20261125]
+permissions:
+  contents: read
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+      - name: Verify exact source and workflow-only delta
+        run: |
+          test "$(git rev-parse HEAD^)" = 40727a1e8c629a3152e9f6abe8491cc3b894d611
+          test "$(git diff --name-only HEAD^ HEAD)" = .github/workflows/m4-purchasing-successor-schema.yml
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.21.0
+      - name: Check exact schema and historical witness contracts
+        run: node --test deploy/release-candidate/purchasing-successor-schema-preparation.test.mjs deploy/release-candidate/purchasing-successor-historical.test.mjs
