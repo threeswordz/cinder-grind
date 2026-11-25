@@ -2807,6 +2807,26 @@
       "sourceSha": "90147671340b4696c714b4ecceb4bcdbf5053070",
       "formalAcceptance": false,
       "estimateConfidence": "NO_ADDITIONAL_HOURS_CREDIT"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-01-011",
+      "date": "2026-11-25",
+      "packageId": "M4-01",
+      "kind": "EXPLICIT_SIX_ROW_OWNER_SCOPE_DISPOSITION_PACKET_PREPARED",
+      "beforeHours": 11,
+      "afterHours": 11,
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/commit/ecd78e4dad648594f27bb7d5517df819b0b1e090",
+        "https://github.com/threeswordz/cinder-grind/issues/288",
+        "https://github.com/threeswordz/cinder-grind/issues/245"
+      ],
+      "basis": "112-ID consolidated matrix has six explicit Owner decision/scope-split rows BEN02, BEN-BASE-06, PM07, PUR15, SS10, PORN-HR-01. Verified readback of one proposed bounded decision packet consistent with #288/#245; six additional gap rows preserved and explicitly excluded from batch. Await Owner disposition; no scope or permission change, no acceptance, no credit. Prior browser tool blockers unchanged.",
+      "sourceSha": "ecd78e4dad648594f27bb7d5517df819b0b1e090",
+      "formalAcceptance": false,
+      "estimateConfidence": "NO_ADDITIONAL_HOURS_CREDIT"
     }
   ],
   "unestimatedWork": [
