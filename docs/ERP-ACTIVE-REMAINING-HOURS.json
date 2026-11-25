@@ -3237,6 +3237,26 @@
       "sourceSha": "5778baf1a566d0ae5331ea2bcf9f3c156dcd8780",
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-08-054",
+      "date": "2026-11-25",
+      "packageId": "M4-08",
+      "kind": "SS11_THAI_BUSINESS_DATE_CUSTODY_SOURCE_CORRECTED_LOCAL_BOUNDARIES_VERIFIED",
+      "beforeHours": 5,
+      "afterHours": 4,
+      "reductionHours": 1,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 1,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/commit/a0ce9bf6307a561e6e56e5f6e68bbc2922eca679",
+        "https://github.com/threeswordz/cinder-grind/commit/98a888d460680a421fafd15eea11c9ffc9dc9d0b",
+        "https://github.com/threeswordz/cinder-grind/commit/522a6312d15d01d621c95e7ed2eb4fc9054a4b45"
+      ],
+      "basis": "Real SS11 source defect: server equipment checkout/return date-only cutoff used UTC rather than Asia/Bangkok, and React defaults browser local date, causing valid Thailand midnight attempts to be marked future. Corrected backend to reuse SS14 canonical thailandBusinessDate for both writes, web defaults Bangkok date; added dedicated three native unit cases for UTC/Bangkok/Singapore/leap-day and invalid input; source readback exact 4 paths. Independent standalone Node22 source-equivalent calendar logic checked 6 boundary cases and invalid with PASS, not claiming compiled Jest/Node test or PG/retained UAT; exact-source focused API build + web typecheck workflow-only commit staged, connector reports no result. Retires 1h provisional remaining SS11 date-handling corrective source+focused fixture effort within M4 closure, not testing/independent acceptance, no duplicate planning credit. Latest main->candidate 63 ahead/0 behind, 190 path inventory readback exactly 190. No stored permissions, stock, finance, HR, production, or policy expansion.",
+      "sourceSha": "a0ce9bf6307a561e6e56e5f6e68bbc2922eca679",
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -3259,6 +3279,6 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1774,
-  "currentRollingTotalSemantics": "1774h provisional future work = 1847h baseline minus 80h evidence-backed forecast reductions plus 7h separately priced supplier scope. M4 44h; M4-01 7h; M4-02 2h; M4-03 5h; M4-04 5h; M4-05 6h; M4-06 4h; M4-07 3h; M4-08 5h; supplier 7h; all 112 and downstream work preserved; no formal acceptance or actual logged labor asserted."
+  "currentRollingTotalAfterPricedGapsHours": 1773,
+  "currentRollingTotalSemantics": "1773h provisional remaining full ERP work = 1847h baseline minus 81h source/reconciled forecast effort retired plus 7h newly priced supplier work. M4 remaining 43h: M4-01 7h, M4-02 2h, M4-03 5h, M4-04 5h, M4-05 6h, M4-06 4h, M4-07 3h, M4-08 4h, supplier 7h. All 112 requirements and downstream full ERP work preserved; no formal acceptance, CI full pass or logged actual labor implied."
 }
