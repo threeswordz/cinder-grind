@@ -1628,6 +1628,46 @@
       "sourceSha": "51a7e875b08d73fb6f404231f8859bc122618949",
       "formalAcceptance": false,
       "estimateConfidence": "PENDING_FOCUSED_PROOF"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-03-006",
+      "date": "2026-11-25",
+      "packageId": "M4-03",
+      "kind": "FM01_LEGACY_BROWSER_FIXTURE_PASS_FULL_AUTH_REQUIRED",
+      "beforeHours": 8,
+      "afterHours": 8,
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45525025034",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45524960275",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45524967848"
+      ],
+      "basis": "Exact corrected fixture source4aab761d8477cfb63ea978af1444865b720d42d5, focused ordinary PASS18/18, targeted Chromium workflow-only child ce0ceb1a21cb9ecf9be6068e1bdb56b1305010a7 PASS11/11 logs FM01A_WEEKLY_BROWSER_PASS EN/TH/zh-TW, source link and authorization cache isolation. Prior full attempt3 failure remains; new draft admission blocked before expensive full work. No forecast credit for corrective rework. Require fresh explicit authorization for one full trigger of 45524967848 at exact corrected head. No review/merge.",
+      "sourceSha": "4aab761d8477cfb63ea978af1444865b720d42d5",
+      "formalAcceptance": false,
+      "estimateConfidence": "PENDING_OWNER_FULL_TRIGGER"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-02-005",
+      "date": "2026-11-25",
+      "packageId": "M4-02",
+      "kind": "PM02_RESTORE_DEPARSE_PARENTHESIS_FIX_PENDING",
+      "beforeHours": 5,
+      "afterHours": 5,
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45525042917",
+        "https://github.com/threeswordz/cinder-grind/commit/e04b1cac5343f5b57bad51d52349990357c7168a",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45525270417"
+      ],
+      "basis": "Focused restore run45525042917 passed populated upgrade and exact restored row digests and migration checksums, then failed the named stock trigger comparison because normalization dropped parentheses around ANY array. Corrected test-only normalization at e04b1cac5343f5b57bad51d52349990357c7168a, verified exact string mapping against both observed spellings; no wider normalization or ignored definitions. Workflow-only child181eb11647d77ce398d8efcb57c1c0238995e25d focused run45525270417 queued. No recovery credit pending success; global migration admission unchanged, paired release document recovery and consumer wiring pending. No full trigger, main changes, grants or Production.",
+      "sourceSha": "e04b1cac5343f5b57bad51d52349990357c7168a",
+      "formalAcceptance": false,
+      "estimateConfidence": "PENDING_FOCUSED_PROOF"
     }
   ],
   "unestimatedWork": [
