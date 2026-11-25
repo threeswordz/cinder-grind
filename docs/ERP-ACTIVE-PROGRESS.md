@@ -10,7 +10,9 @@
 
 > **PM02 native integrated rehearsal:** source `05e64e24eb8d5b0864c360109bcdc570eae9134a`, [45537365945](https://github.com/threeswordz/cinder-grind/actions/runs/45537365945) SUCCESS 15/15. Global schema and historical consumers, paired DB/Documents, external HR keys and protected documents, previous-runtime authentication and v21 receipt proven on one exact predecessor. Previous database-only proof preserved. M4-02 5→3h, M4 88→85h, ERP 1,818→1,815h. Real browser/retained roles and full integrated independent review pending.
 
-> **PUR04 bounded source:** [45540380093](https://github.com/threeswordz/cinder-grind/actions/runs/45540380093) SUCCESS 15/15 job steps, 20/20 tests; revision snapshot, separate Ben reapproval and PM02 safeguards PASS. [6c389146](https://github.com/threeswordz/cinder-grind/commit/6c389146ac16cea1e125e26a4845bce1608a9dc8) exact schema/NULL preservation preparation; focused contract validation pending; global admission closed. M4-05 8→7h, M4 85→84h, ERP 1,815→1,814h.
+> **PUR04 bounded source:** [45540380093](https://github.com/threeswordz/cinder-grind/actions/runs/45540380093) SUCCESS 15/15 steps, 20/20 tests; [45540981880](https://github.com/threeswordz/cinder-grind/actions/runs/45540981880) schema guards SUCCESS8/8. [45541682784](https://github.com/threeswordz/cinder-grind/actions/runs/45541682784) populated upgrade and separate predecessor DB restore started. M4-05 7h unchanged; global admission closed.
+
+> **PUR01 bounded source:** [b615979](https://github.com/threeswordz/cinder-grind/commit/b6159797267ce1aa5bf2153c4cb568917725bcbf) exact threshold/exception policy replay preserving newer PM02 guards and atomic final comparison audit. Focused validation [45541823895](https://github.com/threeswordz/cinder-grind/actions/runs/45541823895) in_progress; M4-04 7h unchanged. M4 84h / ERP 1,814h.
 
 ## Headline
 | Metric | Current | Meaning |

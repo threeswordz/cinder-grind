@@ -1811,6 +1811,47 @@
       "sourceSha": "09ef1561030d8bde9dd4ff9fa9026ee824d2caa3",
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-05-005",
+      "date": "2026-11-25",
+      "packageId": "M4-05",
+      "kind": "PUR04_POPULATED_RECOVERY_PREPARATION",
+      "beforeHours": 7,
+      "afterHours": 7,
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45540981880",
+        "https://github.com/threeswordz/cinder-grind/commit/f9b4feadf1b0641621a489082c2ca2224df789cd",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45541682784"
+      ],
+      "basis": "Existing schema/NULL guard contract workflow45540981880 SUCCESS8/8. New exact pre-PUR04 populated upgrade and independent predecessor DB restore witness, source f9b4fead, workflow-only child426756a2, 45541682784 observed [{\"status\":\"completed\",\"conclusion\":\"success\",\"passed\":14,\"active\":[]}]. Requires actual mixed APPROVED/RETURNED PM02 metadata, approved historical PO, stock/audit, all table digests, migration checksums and trigger attachments, exactly nine nullable fields with no backfill. No full release admission, paired Documents/HR-key proof or additional forecast credit before native outcome and integration.",
+      "sourceSha": "f9b4feadf1b0641621a489082c2ca2224df789cd",
+      "formalAcceptance": false,
+      "estimateConfidence": "NO_ADDITIONAL_HOURS_CREDIT"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-04-002",
+      "date": "2026-11-25",
+      "packageId": "M4-04",
+      "kind": "PUR01_BOUNDED_REBASE_STAGED",
+      "beforeHours": 7,
+      "afterHours": 7,
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/commit/efa48464652a8c40662256d223aee9bdcb860c09",
+        "https://github.com/threeswordz/cinder-grind/commit/b6159797267ce1aa5bf2153c4cb568917725bcbf",
+        "https://github.com/threeswordz/cinder-grind/commit/d8d6ff133a036637c67133c4c54b93130fbc58a0",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45541823895"
+      ],
+      "basis": "Original #415 exact PUR01 delta replayed on isolated PUR04 f9b4fead parent, exact nonoverlap blobs and explicitly merged shared PO service with active demand and supplier/Project guards before quote-policy checks. Final policy actor and basis audit in same approval transaction from #442 plus original native test assertions; PM02 fixture retains deactivation rollback and adds known commercial inputs. Two commits, 12 paths total. Focused new source validation in_progress. No new quote threshold or retained grant; PUR12 sequence separate. No forecast credit before proof; no global PUR01 schema admission, independent review or merge.",
+      "sourceSha": "b6159797267ce1aa5bf2153c4cb568917725bcbf",
+      "formalAcceptance": false,
+      "estimateConfidence": "NO_ADDITIONAL_HOURS_CREDIT"
     }
   ],
   "unestimatedWork": [
