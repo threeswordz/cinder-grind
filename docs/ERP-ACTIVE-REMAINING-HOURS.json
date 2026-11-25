@@ -3991,6 +3991,24 @@
       "verifiedCompletedScopeHours": 1,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-03-095",
+      "date": "2026-11-25",
+      "packageId": "M4-03",
+      "kind": "FM01_BEN04_PM16_ACTUAL_STALE_WEEKLY_REVIEW_AND_WARNED_CLOSEOUT_PASS",
+      "beforeHours": 2.5,
+      "afterHours": 1,
+      "sourceSha": "f7d65e860b77048fa6fca2f854aab8a0b77a0eb0",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45626721473/job/139248767966"
+      ],
+      "basis": "Exact test-only source f7d65e86, workflow-only child 00eb5ff0, actual authenticated HTTP/Nest/PG17 SUCCESS15/15: Foreman denial, Ben current review, later daily correction changes hash and marks stale; outdated and duplicate acknowledgment rejected without audit mutation; refreshed source acknowledged. Separate warned operational closeout rejects missing follow-up, nonexistent owner, and missing reviewer notes; independently signed Ben/Nancy preserves THB1234.56 outstanding balance and Project active, with unchanged stock/Finance. Retire 1.5h distinct stale-review transport and warned-closeout assurance; not repeat prior successful clean closeout browser, stale preparation concurrency or native source proof. Retained named-user acceptance and independent review remain.",
+      "reductionHours": 1.5,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 1.5,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -4013,6 +4031,6 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1744.5,
-  "currentRollingTotalSemantics": "1744.5h = 1847h baseline minus 106h verified baseline forecast reduction plus 3.5h remaining supplier scope. M4 14.5h. All 112 requirements preserved. Actual labor unmeasured."
+  "currentRollingTotalAfterPricedGapsHours": 1743,
+  "currentRollingTotalSemantics": "1743h = 1847h baseline minus 107.5h verified baseline forecast reduction plus 3.5h remaining supplier scope. M4 13h. All 112 requirements preserved. Actual labor unmeasured."
 }

@@ -1,14 +1,14 @@
 # Construction ERP — live countdown to 0 hours
 
 <!-- current-work-m4 -->
-**Current M4 forecast 14.5h → 0h · Full ERP 1,744.5h → 0h.** Actual PUR01/PUR04 stale bid and commercial HTTP boundary PASS15/15; PM02 live authority and correction PASS15/15. Codex deferred until usage reset per Owner; draft #455 pinned.
+**Current M4 forecast 13h → 0h · Full ERP 1,743h → 0h.** Actual FM01 stale weekly review and BEN04/PM16 warned closeout PASS15/15; new supplier attribution boundary native proof submitted, no credit until result. Codex deferred until usage reset per Owner; draft #455 pinned.
 
 | Forecast reconciliation | Hours |
 |---|---:|
-| Previous reported ERP forecast | 1,747.5 |
+| Previous reported ERP forecast | 1,744.5 |
 | Newly identified mandatory scope | +0 |
-| Verified remaining-effort reduction | −3 |
-| Revised remaining ERP forecast | **1,744.5** |
+| Verified remaining-effort reduction | −1.5 |
+| Revised remaining ERP forecast | **1,743** |
 
 Prototype 4/8 · Go-live 3/10 · Deadline 31 December 2026.
 <!-- /current-work-m4 -->
@@ -140,9 +140,9 @@ Prototype 4/8 · Go-live 3/10 · Deadline 31 December 2026.
 ## Headline
 | Metric | Current | Meaning |
 |---|---:|---|
-| **Estimated full ERP work still needed** | **1,744.5h → 0h** | 112 requirements across eight roles |
+| **Estimated full ERP work still needed** | **1,743h → 0h** | 112 requirements across eight roles |
 | 23 Nov original current-work forecast | 1847h | Earlier 60-package provisional baseline |
-| Additional estimated future-work eliminated | −106h | M4-01 −31h, M4-02 −7h, M4-03 −7.5h, M4-04 −6.5h, M4-05 −6.5h, M4-06 −9h, M4-07 −5h, M4-08 −33.5h |
+| Additional estimated future-work eliminated | −107.5h | M4-01 −31h, M4-02 −7h, M4-03 −9h, M4-04 −6.5h, M4-05 −6.5h, M4-06 −9h, M4-07 −5h, M4-08 −33.5h |
 | Newly discovered previously unpriced PUR08/PUR14 work | +3.5h | Remaining supplier lifecycle and assurance work |
 | Net reforecast change versus 1,847h | −79h | Includes separately priced supplier scope |
 | PUR08/PUR14 provisional work before new development | 51h | Low-confidence new-gap gross estimate |
@@ -156,13 +156,13 @@ Prototype 4/8 · Go-live 3/10 · Deadline 31 December 2026.
 | Whole baseline packages formally accepted | 0/60 | 8 M4 packages still 0/8 |
 | Actual productive hours logged | UNKNOWN | Cannot infer from GitHub commits or AI conversation length |
 
-**Forecast basis.** The 1,847h baseline covers 60 packages. Verified work has removed 106h of estimated future effort from those packages. The separately priced supplier lifecycle has 3.5h remaining, bringing the ERP forecast to 1,744.5h.
+**Forecast basis.** The 1,847h baseline covers 60 packages. Verified work has removed 107.5h of estimated future effort from those packages. The separately priced supplier lifecycle has 3.5h remaining, bringing the ERP forecast to 1,743h.
 
 ## Stage-by-stage remaining work
 
 | Stage | Previous 60-package baseline | Verified package forecast reduction | Additional scope remaining | **Now remaining** | Accepted baseline packages |
 |---|---:|---:|---:|---:|---:|
-| Prototype 5/8 — M4 closure | 117h | 106h | 3.5h | **14.5h** | 0/8 |
+| Prototype 5/8 — M4 closure | 117h | 107.5h | 3.5h | **13h** | 0/8 |
 | Prototype 6/8 — end-to-end deployment | 120h | 0h | 0h | **120h** | 0/5 |
 | Prototype 7/8 — populated restore | 50h | 0h | 0h | **50h** | 0/3 |
 | Prototype 8/8 — technical freeze | 65h | 0h | 0h | **65h** | 0/3 |
@@ -174,7 +174,7 @@ Prototype 4/8 · Go-live 3/10 · Deadline 31 December 2026.
 | Production hosting and recovery | 110h | 0h | 0h | **110h** | 0/5 |
 | Migration and onboarding | 110h | 0h | 0h | **110h** | 0/4 |
 | Final human UAT, cutover and Production | 150h | 0h | 0h | **150h** | 0/5 |
-| **Full ERP** | 1847h | 106h | 3.5h | **1,744.5h** | **0/60** |
+| **Full ERP** | 1847h | 107.5h | 3.5h | **1,743h** | **0/60** |
 
 ## Each baseline package
 
@@ -182,7 +182,7 @@ Prototype 4/8 · Go-live 3/10 · Deadline 31 December 2026.
 |---|---|---|---:|---:|
 | M4-01 | M4 | Current-source and all-112 evidence/scope decisions | 32h | **1h** |
 | M4-02 | M4 | PM02 real browser and retained-role authorization | 8h | **1h** |
-| M4-03 | M4 | FM01, BEN04 and PM16 real-browser acceptance | 10h | **2.5h** |
+| M4-03 | M4 | FM01, BEN04 and PM16 real-browser acceptance | 10h | **1h** |
 | M4-04 | M4 | PUR01 whole-PO supplier-count and commercial rule | 8h | **1.5h** |
 | M4-05 | M4 | PUR04 core PO commercial/delivery fields | 9h | **2.5h** |
 | M4-06 | M4 | PUR07 supplier-name PO PDF and manual dispatch evidence | 10h | **1h** |
@@ -388,6 +388,10 @@ Prototype 4/8 · Go-live 3/10 · Deadline 31 December 2026.
 ## 25 November PM02 live authority validation
 
 - **M4-02 2→1h** — Exact test-only source a631aa66, workflow-only child 5f31952c, actual HTTP/Nest/PG17 SUCCESS15/15: stale session, revoked Project membership and revoked approval grant denied atomically with no action or audit mutation; stale approval instance denied; renewed legitimate configured PM approves mixed line decisions, replay denied, Store correction copies only returned line and original stays immutable. Retire 1h distinct live authority evidence, not earlier browser or migration proof. Retained named role acceptance and independent review remain. [Evidence](https://github.com/threeswordz/cinder-grind/actions/runs/45623304729/job/139236843090)
+
+## 25 November FM01 stale weekly and warned closeout validation
+
+- **M4-03 2.5→1h** — Exact test-only source f7d65e86, workflow-only child 00eb5ff0, actual authenticated HTTP/Nest/PG17 SUCCESS15/15: Foreman denial, Ben current review, later daily correction changes hash and marks stale; outdated and duplicate acknowledgment rejected without audit mutation; refreshed source acknowledged. Separate warned operational closeout rejects missing follow-up, nonexistent owner, and missing reviewer notes; independently signed Ben/Nancy preserves THB1234.56 outstanding balance and Project active, with unchanged stock/Finance. Retire 1.5h distinct stale-review transport and warned-closeout assurance; not repeat prior successful clean closeout browser, stale preparation concurrency or native source proof. Retained named-user acceptance and independent review remain. [Evidence](https://github.com/threeswordz/cinder-grind/actions/runs/45626721473/job/139248767966)
 
 ## Required update rule after every Chat development turn
 
