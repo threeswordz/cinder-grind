@@ -2753,6 +2753,42 @@
       "sourceSha": "e29327df246570a432d7c61a6e9a4792205e341f",
       "formalAcceptance": false,
       "estimateConfidence": "NO_ADDITIONAL_HOURS_CREDIT"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-01-010",
+      "date": "2026-11-25",
+      "packageId": "M4-01",
+      "kind": "ALL_112_LATEST_BOUNDED_EVIDENCE_RECONCILED",
+      "beforeHours": 12,
+      "afterHours": 11,
+      "reductionHours": 1,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 1,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/commit/e318977db75f6a1a4bd8bac4ae461dbd1a1aba23"
+      ],
+      "basis": "New successor evidence matrix appended 19 exact limited requirement-specific annotations; all 112 original rows and historical dispositions preserved verbatim; readback verified 113 lines and each original row prefix, no change to retained or Owner gates. Provisional 1h distinct reconciliation work retired, not duplicate technical proof credit. No formal acceptance.",
+      "sourceSha": "e318977db75f6a1a4bd8bac4ae461dbd1a1aba23",
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-06-012",
+      "date": "2026-11-25",
+      "packageId": "M4-06",
+      "kind": "LATEST_PUR07_BROWSER_FAILED_OPERATIONAL_SKIPPED",
+      "beforeHours": 4,
+      "afterHours": 4,
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45572709802/job/139063012015"
+      ],
+      "basis": "Latest consolidated exact source e29327df: migration/API and approved PG fixture plus scoped HTTP lists passed; Jai PDF response count 0 vs expected 1, direct Ben deep link and operational browser not reached. Earlier bounded PASS preserved but not transferred. Independent operational workflow branch created; workflow creation blocked by tool safety checks, not submitted; no bypass/retry. No credit.",
+      "sourceSha": "e29327df246570a432d7c61a6e9a4792205e341f",
+      "formalAcceptance": false,
+      "estimateConfidence": "NO_ADDITIONAL_HOURS_CREDIT"
     }
   ],
   "unestimatedWork": [
@@ -2775,6 +2811,6 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1785,
-  "currentRollingTotalSemantics": "1785h provisional future work = 1847h baseline minus 69h evidence-backed package forecast reductions plus 7h separately priced supplier scope. M4 55h; M4-03 5h; M4-06 4h; M4-08 11h; supplier 7h; formal acceptance unchanged."
+  "currentRollingTotalAfterPricedGapsHours": 1784,
+  "currentRollingTotalSemantics": "1784h provisional future work = 1847h baseline minus 70h evidence-backed package forecast reductions plus 7h separately priced supplier scope. M4 54h; M4-01 11h; M4-03 5h; M4-06 4h; M4-08 11h; supplier 7h; formal acceptance unchanged."
 }
