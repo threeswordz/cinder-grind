@@ -1,10 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {assertExactEquipmentSuccessor,assertEquipmentSuccessor,expected,migrationRoot} from './equipment-successor-preflight.mjs';
-test('exact successor adds only pinned custody and asset migrations, preserves all historical blobs and Prisma schema',()=>{
+test('exact successor adds only pinned custody, asset and Thai calendar migrations, preserves all historical blobs and Prisma schema',()=>{
  assert.equal(assertExactEquipmentSuccessor(),true);
 });
 test('fails closed on missing, edited, additional or historical migration changes and unrelated schema drift',()=>{
+ assert.equal(Object.keys(expected).length,3);
  const old={[migrationRoot+'previous/migration.sql']:'historical'};
  const next={...old,...expected};
  assert.equal(assertEquipmentSuccessor(old,next,'same','same'),true);
