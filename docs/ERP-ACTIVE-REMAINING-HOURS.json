@@ -4081,6 +4081,24 @@
       "verifiedCompletedScopeHours": 0.5,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261125-M6-04-100",
+      "date": "2026-11-25",
+      "packageId": "M6-04",
+      "kind": "M6_SUBCONTRACT_PRESERVATION_OPERATOR_WIRING_LOCAL_REGRESSION",
+      "beforeHours": 19.5,
+      "afterHours": 19,
+      "sourceSha": "7ce42ca0fd12a11b464d4e69c9d040189f0e6c43",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/commit/7ce42ca0fd12a11b464d4e69c9d040189f0e6c43"
+      ],
+      "basis": "Wired exact historical subcontract/document guard into existing M6 Mac runtime at restored-rehearsal migration before cutover, source migration before startup, and final preservation before sealing. Remote source order verified, 11 intervening migration files inspected for relevant schema changes. Exact helper and updated test Git blobs a2ca3ed3c89a15d104f3c38190a7c969e52fba57 and d9130ac244afe489fe7fb9861d71cc0520dd1c30 match local Node v22.16.0 run 10/10 PASS. Three new regressions catch exact SQL monetary drift hidden by JS rounding, new evidence alias while allowing unrelated HR document, and unexpected retention ledger posting. Seven prior fixture tests not double credited. Retire 0.5h distinct wiring and regression effort only. No native PG17/Mac execution, actual deployed upgrade, independent review or formal acceptance. #353 prior journey not replayed.",
+      "reductionHours": 0.5,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0.5,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -4103,6 +4121,6 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1740.5,
-  "currentRollingTotalSemantics": "1740.5h = 1847h baseline minus 109h verified baseline forecast reduction plus 2.5h remaining supplier scope. M4 12h, M6 118.5h. All 112 requirements preserved. Actual labor unmeasured."
+  "currentRollingTotalAfterPricedGapsHours": 1740,
+  "currentRollingTotalSemantics": "1740h = 1847h baseline minus 109.5h verified baseline forecast reduction plus 2.5h remaining supplier scope. M4 12h, M6 118h. All 112 requirements preserved. Actual labor unmeasured."
 }
