@@ -3062,6 +3062,45 @@
       "sourceSha": "86015162a1390ff4ee0fa709de16a1fdb1a10d8f",
       "formalAcceptance": false,
       "estimateConfidence": "NO_ADDITIONAL_HOURS_CREDIT"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-08-045",
+      "date": "2026-11-25",
+      "packageId": "M4-08",
+      "kind": "EQUIPMENT_PAIRED_DOCUMENT_RECOVERY_STAGED",
+      "beforeHours": 6,
+      "afterHours": 6,
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/commit/2a9779b108a68c208f06ce3c9b31b2fa3a515885",
+        "https://github.com/threeswordz/cinder-grind/commit/8c8f9aa922059cccde6fafa40ba6a5c7e317ff06"
+      ],
+      "basis": "Isolated test helper and workflow use exact previously verified purchasing predecessor, active and historical synthetic LOCAL document links/bytes, full prior table digests, paired checksummed DB and Documents archives, separate restored database, canonical restored-document verifier, forward recheck. No independent HR key proof, global release or retained data claim. Workflow source committed, no observed run/result; no additional credit.",
+      "sourceSha": "2a9779b108a68c208f06ce3c9b31b2fa3a515885",
+      "formalAcceptance": false,
+      "estimateConfidence": "NO_ADDITIONAL_HOURS_CREDIT"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-08-046",
+      "date": "2026-11-25",
+      "packageId": "M4-08",
+      "kind": "PUR10_PUR08_DETERMINISTIC_CANCELLATION_COLLISION_STAGED",
+      "beforeHours": 6,
+      "afterHours": 6,
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/commit/7dc8070fc45aee2ca1e8098f30419a86d48cfe58",
+        "https://github.com/threeswordz/cinder-grind/commit/1b4aba9fbedbc928e9a28c9af38e227fabbd56ff",
+        "https://github.com/threeswordz/cinder-grind/commit/6ecaf5960cc05c3b6383b88dfa5c9d47a2952f11"
+      ],
+      "basis": "Supplier serializable transition takes scoped row lock matching canonical PUR10 finalizer and maps narrow database serialization/deadlock errors to HTTP 409, never retries business decisions. Deterministic native test holds actual finalization before commit and observes actual supplier lock wait, requires no late supplier audit append or GR/AP effects. Cancellation race only, separate revision-ordering assurance not claimed. Focused workflow source committed; no observed result or credit.",
+      "sourceSha": "1b4aba9fbedbc928e9a28c9af38e227fabbd56ff",
+      "formalAcceptance": false,
+      "estimateConfidence": "NO_ADDITIONAL_HOURS_CREDIT"
     }
   ],
   "unestimatedWork": [
