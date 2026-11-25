@@ -716,6 +716,107 @@ test('PUR10 native: real approved PO, independent named Jai/Khaimook/Ben, atomic
     assert.equal(await prisma.supplierInvoiceItem.count({where:{purchaseOrderLineId:{in:collision.po.lines.map(l=>l.id)}}}),0);
     console.log('PUR10_PUR08_DETERMINISTIC_CANCELLATION_SUPPLIER_ROW_LOCK_PASS');
 
+    // PUR08 vs a real PO revision (distinct from the canonical cancellation
+    // collision above). Do not permit a supplier report using the old approved
+    // PO's snapshot once a newer revision has been durably inserted.
+    const revisionRace=await reviewedExceptionOrder('SUPPLIER-REVISION-RACE');
+    const revisionDispatch=await prisma.poDispatchEvent.create({data:{
+      companyId:company.id,projectId:project.id,purchaseOrderId:revisionRace.po.id,
+      kind:'DISPATCH',channel:'EMAIL',recipient:'supplier@example.invalid',
+      evidenceReference:'Synthetic revision-race dispatch',recordedByUserId:jai.user.id,
+    }});
+    const revisionAck=await prisma.poDispatchEvent.create({data:{
+      companyId:company.id,projectId:project.id,purchaseOrderId:revisionRace.po.id,
+      kind:'ACKNOWLEDGMENT',channel:'EMAIL',recipient:'supplier@example.invalid',
+      evidenceReference:'Synthetic revision-race acknowledgment',
+      acknowledgesEventId:revisionDispatch.id,recordedByUserId:jai.user.id,
+    }});
+    const revisionSupplierEvent=await supplierCases.transition({auth:buyer},revisionRace.po.id,{
+      action:'ACKNOWLEDGE',expectedVersion:0,expectedPreviousEventId:null,
+      evidenceDocumentId:doc.id,note:'Real approved source reported acknowledgment',
+      recordedPoAcknowledgmentEventId:revisionAck.id,
+    });
+    let enteredRevision!:()=>void;
+    let releaseRevision!:()=>void;
+    const atRevisionAudit=new Promise<void>(resolve=>{enteredRevision=resolve;});
+    const heldRevision=new Promise<void>(resolve=>{releaseRevision=resolve;});
+    const originalAuditRecord=audit.record.bind(audit);
+    // The canonical revision has already inserted its child PO and its
+    // immutable audit record while inside the real serializable transaction.
+    // Pause at this existing service seam, not by creating fake PO rows.
+    audit.record=async (...args:Parameters<typeof audit.record>)=>{
+      await originalAuditRecord(...args);
+      const data=args[0].newValues;
+      if(args[0].entityType==='PURCHASE_ORDER'&&args[0].action==='CREATE_REVISION'&&
+        typeof data==='object'&&data!==null&&
+        'previousRevisionId' in data&&data.previousRevisionId===revisionRace.po.id){
+        enteredRevision();
+        await heldRevision;
+      }
+    };
+    const revising=Promise.allSettled([
+      orders.revise({auth:jai.auth},revisionRace.po.id,'Actual overlapping source revision'),
+    ]);
+    let revisionReporting:
+      Promise<PromiseSettledResult<Awaited<ReturnType<typeof supplierCases.transition>>>[]>|undefined;
+    let revisionWaited=false;
+    let revisionTimer:ReturnType<typeof setTimeout>|undefined;
+    try{
+      await Promise.race([
+        atRevisionAudit,
+        revising.then(()=>{throw new Error('Revision completed before real transaction hold');}),
+        new Promise<never>((_,reject)=>{
+          revisionTimer=setTimeout(()=>reject(new Error('Revision never reached audit hold')),3000);
+        }),
+      ]);
+      revisionReporting=Promise.allSettled([supplierCases.transition({auth:buyer},revisionRace.po.id,{
+        action:'REPORT_DELAY',expectedVersion:1,
+        expectedPreviousEventId:revisionSupplierEvent.expectedPreviousEventId,
+        evidenceDocumentId:doc.id,note:'Old approved source reported after overlapping revision',
+        newSupplierExpectedDate:'2026-12-09',
+      })]);
+      for(let attempt=0;attempt<40;attempt++){
+        const rows=await prisma.$queryRaw<Array<{waiting:boolean}>>(Prisma.sql`
+          SELECT EXISTS(
+            SELECT 1 FROM pg_stat_activity
+            WHERE datname=current_database() AND pid<>pg_backend_pid()
+              AND wait_event_type='Lock' AND query LIKE '%purchase_orders%'
+              AND query LIKE '%FOR UPDATE%'
+          ) AS waiting
+        `);
+        if(rows[0]?.waiting){revisionWaited=true;break;}
+        await new Promise(resolve=>setTimeout(resolve,35));
+      }
+    } finally {
+      if(revisionTimer)clearTimeout(revisionTimer);
+      releaseRevision();
+      audit.record=originalAuditRecord;
+    }
+    const [completedRevision]=await revising;
+    assert.ok(revisionReporting,'Real supplier report was started before revision commit');
+    const [revisionReport]=await revisionReporting;
+    assert.equal(revisionWaited,true,'Supplier report must wait behind real revision FK source lock');
+    assert.equal(completedRevision?.status,'fulfilled','Actual revised PO must commit');
+    assert.ok(revisionReport?.status==='rejected'&&revisionReport.reason instanceof ConflictException&&
+      (revisionReport.reason.getResponse() as {code?:string}).code===
+        'SUPPLIER_CASE_CONCURRENT_SOURCE_CHANGE',
+      'Post-revision stale supplier report must fail with controlled concurrency conflict');
+    const revisions=await prisma.purchaseOrder.findMany({
+      where:{previousRevisionId:revisionRace.po.id},select:{id:true,revisionNo:true},
+    });
+    assert.equal(revisions.length,1,'Exactly one actual successor PO revision');
+    assert.equal((await supplierCases.read(buyer,revisionRace.po.id)).approvedLatest,false);
+    assert.equal((await supplierCases.read(buyer,revisionRace.po.id)).case?.version,1,
+      'Only the historical supplier acknowledgment survives source supersession');
+    assert.equal(await prisma.auditLog.count({where:{
+      companyId:company.id,entityType:'SUPPLIER_DELIVERY_CASE',entityId:revisionRace.po.id,
+    }}),1,'Stale supplier report did not create a second audit event');
+    assert.equal(await prisma.goodsReceipt.count({where:{purchaseOrderId:revisionRace.po.id}}),0);
+    assert.equal(await prisma.supplierInvoiceItem.count({where:{
+      purchaseOrderLineId:{in:revisionRace.po.lines.map(l=>l.id)},
+    }}),0);
+    console.log('PUR08_PO_REVISION_SUPPLIER_SERIALIZABLE_COLLISION_PASS');
+
     console.log('M4_PUR10_REAL_PG_ATOMIC_FINALIZATION_AND_REPLAY_PASS');
   } finally {
     await prisma.$disconnect();
