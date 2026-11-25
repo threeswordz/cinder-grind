@@ -52,6 +52,7 @@ if ! git diff --quiet "$RC_PREVIOUS_RELEASE_COMMIT" "$RELEASE_COMMIT" -- apps/ap
   rm -f "$previous_schema_check"
 fi
 
+pm02_schema=false
 fm02_schema=false
 material_uom_stage_c_schema=false
 material_uom_effect_schema=false
@@ -69,6 +70,7 @@ hr_document_schema=false
 hr_proof=false
 customer_schema=false
 successor_mode="$schema_mode"
+export PM02_SCHEMA_UPGRADE=NO
 export FM02_SCHEMA_UPGRADE=NO
 export MATERIAL_UOM_STAGE_C_SCHEMA_UPGRADE=NO
 export MATERIAL_UOM_EFFECT_SCHEMA_UPGRADE=NO
@@ -83,6 +85,14 @@ export MATERIAL_REQUEST_SCHEMA_UPGRADE=NO
 export STOCK_COUNT_SCHEMA_UPGRADE=NO
 export HR_SCHEMA_UPGRADE=NO
 export HR_DOCUMENT_SCHEMA_UPGRADE=NO
+if [[ "$successor_mode" == "migration-aware-pm02-schema" ]]; then
+  pm02_schema=true
+  successor_mode="migration-aware-sql-only"
+elif [[ "$successor_mode" == migration-aware-pm02-* ]]; then
+  pm02_schema=true
+  successor_mode="migration-aware-${successor_mode#migration-aware-pm02-}"
+fi
+if [[ "$pm02_schema" == true ]]; then export PM02_SCHEMA_UPGRADE=YES; fi
 if [[ "$successor_mode" == "migration-aware-fm02-schema" ]]; then
   fm02_schema=true
   successor_mode="migration-aware-sql-only"
@@ -193,7 +203,7 @@ if [[ "$historical_mode" == "migration-aware-hr-schema" || "$historical_mode" ==
   export HR_SCHEMA_UPGRADE=YES
 fi
 if [[ "$historical_mode" == "migration-aware-customer-boq-schema" || "$historical_mode" == "migration-aware-hr-customer-boq-schema" ]]; then customer_schema=true; fi
-if [[ "$fm02_schema" == true || "$material_uom_stage_c_schema" == true || "$material_uom_effect_schema" == true || "$material_uom_schema" == true || "$physical_schema" == true || "$transfer_schema" == true || "$hr_schema" == true || "$hr_document_schema" == true || "$material_request_schema" == true || "$material_plan_schema" == true || "$plan_issue_schema" == true || "$site_issue_schema" == true || "$receiving_schema" == true ]]; then hr_proof=true; fi
+if [[ "$pm02_schema" == true || "$fm02_schema" == true || "$material_uom_stage_c_schema" == true || "$material_uom_effect_schema" == true || "$material_uom_schema" == true || "$physical_schema" == true || "$transfer_schema" == true || "$hr_schema" == true || "$hr_document_schema" == true || "$material_request_schema" == true || "$material_plan_schema" == true || "$plan_issue_schema" == true || "$site_issue_schema" == true || "$receiving_schema" == true ]]; then hr_proof=true; fi
 
 legacy_upgrade=false
 if ! git cat-file -e "$RC_PREVIOUS_RELEASE_COMMIT:apps/api/prisma/migrations/20261025120000_v1_2_thb_monetary_policy/migration.sql" 2>/dev/null; then
@@ -219,6 +229,14 @@ done
 mapfile -t new_migrations < <(printf '%s\n' "${new_migrations[@]}" | sort -u)
 (( ${#new_migrations[@]} > 0 )) || fail "no new forward migrations detected"
 migration_list="$(IFS=,; printf '%s' "${new_migrations[*]}")"
+if [[ "$pm02_schema" == true ]]; then
+  [[ ",$migration_list," == *",20261123143000_pm02_partial_pr_line_review,"* &&
+     ",$migration_list," == *",20261123163500_pm02_review_trigger_scope,"* ]] ||
+    fail "exact PM02 forward migrations missing"
+  [[ "$(git hash-object apps/api/prisma/migrations/20261123143000_pm02_partial_pr_line_review/migration.sql)" == c7e904fea47fab743cb6af684fc55cb0363a4c85 &&
+     "$(git hash-object apps/api/prisma/migrations/20261123163500_pm02_review_trigger_scope/migration.sql)" == 160d8c0debca75269b4a0f0497c8fdfc74378773 ]] ||
+    fail "PM02 migration content differs from reviewed preparation"
+fi
 if [[ "$fm02_schema" == true ]]; then
   [[ ",$migration_list," == *",20261122140000_fm02_weighted_project_progress,"* ]] ||
     fail "exact FM02 forward migration missing"
@@ -553,6 +571,12 @@ if [[ "$schema_mode" != "migration-aware-sql-only" && "$legacy_upgrade" == true 
   DATABASE_URL="$upgrade_url" node "$RC_DIR/legacy-fixture.mjs" verify "$previous_root" "$tmp_root/legacy.json" "$tmp_root/legacy-snapshot.json"
   DATABASE_URL="$upgrade_url" ERP_LEGACY_FIXTURE="$tmp_root/legacy.json" node "$RC_DIR/verify-thb-upgrade.mjs"
 fi
+if [[ "$pm02_schema" == true ]]; then
+  node --test "$RC_DIR/pm02-historical-columns.test.mjs"
+  DATABASE_URL="$upgrade_url" node --test --test-concurrency=1 \
+    apps/api/dist/procurement/purchase-order.pm02-source-guard.spec.js \
+    apps/api/dist/procurement/procurement.pm02.integration.spec.js
+fi
 if [[ "$fm02_schema" == true ]]; then
   # New schema must be present on the actually upgraded, disposable DB.
   DATABASE_URL="$upgrade_url" pnpm --filter @construction-erp/api exec prisma db execute \
@@ -629,7 +653,7 @@ chmod 600 "$upgrade_pgpass"
 native_upgrade_url="$(POSTGRES_RAW_URL="$upgrade_url" PGPASSFILE="$upgrade_pgpass" node deploy/recovery/postgres-url.mjs)"
 if [[ "$physical_schema" == true || "$transfer_schema" == true || "$hr_proof" == true || "$material_request_schema" == true || "$material_plan_schema" == true || "$plan_issue_schema" == true || "$site_issue_schema" == true || "$receiving_schema" == true ]]; then
   if [[ "$hr_proof" == true ]]; then
-  if [[ "$hr_document_schema" == true ]]; then
+  if [[ "$hr_document_schema" == true || "$pm02_schema" == true ]]; then
     mkdir -p "$tmp_root/hr-attachment-source" "$tmp_root/hr-attachment-restored"
     chmod 700 "$tmp_root/hr-attachment-source" "$tmp_root/hr-attachment-restored"
     HR_ATTACHMENT_RECOVERY_STORAGE_ROOT="$tmp_root/hr-attachment-source" DATABASE_URL="$upgrade_url" \
@@ -723,7 +747,7 @@ if [[ "$physical_schema" == true || "$transfer_schema" == true || "$hr_proof" ==
     DATABASE_URL="$hr_url" node "$RC_DIR/site-issue-upgrade.mjs" restored "$tmp_root/site-issue-protected.json"
   fi
   if [[ "$hr_proof" == true ]]; then
-  if [[ "$hr_document_schema" == true ]]; then
+  if [[ "$hr_document_schema" == true || "$pm02_schema" == true ]]; then
     HR_ATTACHMENT_RECOVERY_STORAGE_ROOT="$tmp_root/hr-attachment-restored" DATABASE_URL="$hr_url" \
       node "$RC_DIR/hr-upgrade.mjs" restored "$previous_root" "$tmp_root/hr-protected.json" "$tmp_root/hr-external-keys.json"
   else
@@ -853,10 +877,10 @@ set -e
 
 if [[ "$schema_mode" != "migration-aware-sql-only" ]]; then
   if [[ "$legacy_upgrade" == true ]]; then
-    FM02_SCHEMA_UPGRADE=NO MATERIAL_UOM_STAGE_C_SCHEMA_UPGRADE=NO MATERIAL_UOM_EFFECT_SCHEMA_UPGRADE=NO MATERIAL_UOM_SCHEMA_UPGRADE=NO SUBCONTRACT_PHYSICAL_SCHEMA_UPGRADE=NO TRANSFER_SCHEMA_UPGRADE=NO RECEIVING_SCHEMA_UPGRADE=NO SITE_ISSUE_SCHEMA_UPGRADE=NO MATERIAL_PLAN_ISSUE_SCHEMA_UPGRADE=NO MATERIAL_PLAN_SCHEMA_UPGRADE=NO MATERIAL_REQUEST_SCHEMA_UPGRADE=NO HR_SCHEMA_UPGRADE=NO HR_DOCUMENT_SCHEMA_UPGRADE=NO STOCK_COUNT_SCHEMA_UPGRADE=NO DATABASE_URL="$rollback_url" node "$RC_DIR/legacy-fixture.mjs" verify "$previous_root" "$tmp_root/legacy.json" "$tmp_root/legacy-snapshot.json"
+    PM02_SCHEMA_UPGRADE=NO FM02_SCHEMA_UPGRADE=NO MATERIAL_UOM_STAGE_C_SCHEMA_UPGRADE=NO MATERIAL_UOM_EFFECT_SCHEMA_UPGRADE=NO MATERIAL_UOM_SCHEMA_UPGRADE=NO SUBCONTRACT_PHYSICAL_SCHEMA_UPGRADE=NO TRANSFER_SCHEMA_UPGRADE=NO RECEIVING_SCHEMA_UPGRADE=NO SITE_ISSUE_SCHEMA_UPGRADE=NO MATERIAL_PLAN_ISSUE_SCHEMA_UPGRADE=NO MATERIAL_PLAN_SCHEMA_UPGRADE=NO MATERIAL_REQUEST_SCHEMA_UPGRADE=NO HR_SCHEMA_UPGRADE=NO HR_DOCUMENT_SCHEMA_UPGRADE=NO STOCK_COUNT_SCHEMA_UPGRADE=NO DATABASE_URL="$rollback_url" node "$RC_DIR/legacy-fixture.mjs" verify "$previous_root" "$tmp_root/legacy.json" "$tmp_root/legacy-snapshot.json"
   fi
   if [[ "$hr_proof" == true ]]; then
-    FM02_SCHEMA_UPGRADE=NO MATERIAL_UOM_STAGE_C_SCHEMA_UPGRADE=NO MATERIAL_UOM_EFFECT_SCHEMA_UPGRADE=NO MATERIAL_UOM_SCHEMA_UPGRADE=NO SUBCONTRACT_PHYSICAL_SCHEMA_UPGRADE=NO TRANSFER_SCHEMA_UPGRADE=NO RECEIVING_SCHEMA_UPGRADE=NO SITE_ISSUE_SCHEMA_UPGRADE=NO MATERIAL_PLAN_ISSUE_SCHEMA_UPGRADE=NO MATERIAL_PLAN_SCHEMA_UPGRADE=NO MATERIAL_REQUEST_SCHEMA_UPGRADE=NO HR_DOCUMENT_SCHEMA_UPGRADE=NO DATABASE_URL="$rollback_url" node "$RC_DIR/hr-upgrade.mjs" rollback "$previous_root" "$tmp_root/hr-predecessor.json"
+    PM02_SCHEMA_UPGRADE=NO FM02_SCHEMA_UPGRADE=NO MATERIAL_UOM_STAGE_C_SCHEMA_UPGRADE=NO MATERIAL_UOM_EFFECT_SCHEMA_UPGRADE=NO MATERIAL_UOM_SCHEMA_UPGRADE=NO SUBCONTRACT_PHYSICAL_SCHEMA_UPGRADE=NO TRANSFER_SCHEMA_UPGRADE=NO RECEIVING_SCHEMA_UPGRADE=NO SITE_ISSUE_SCHEMA_UPGRADE=NO MATERIAL_PLAN_ISSUE_SCHEMA_UPGRADE=NO MATERIAL_PLAN_SCHEMA_UPGRADE=NO MATERIAL_REQUEST_SCHEMA_UPGRADE=NO HR_DOCUMENT_SCHEMA_UPGRADE=NO DATABASE_URL="$rollback_url" node "$RC_DIR/hr-upgrade.mjs" rollback "$previous_root" "$tmp_root/hr-predecessor.json"
   fi
   start_previous_runtime "$rollback_url" "$rollback_storage"
   RESTORED_API_BASE_URL="http://127.0.0.1:$api_port/api/v1" DATABASE_URL="$rollback_url" \
@@ -904,8 +928,10 @@ const [
   ciJob, ciRepository, migrationList, schemaMode, legacyUpgrade,
 ] = process.argv.slice(2);
 const nullable = (value) => value === '' ? null : value;
-const fm02Schema=schemaMode.startsWith('migration-aware-fm02-');
-const beforeFm02=!fm02Schema?schemaMode:schemaMode==='migration-aware-fm02-schema'?'migration-aware-sql-only':'migration-aware-'+schemaMode.slice('migration-aware-fm02-'.length);
+const pm02Schema=schemaMode.startsWith('migration-aware-pm02-');
+const beforePm02=!pm02Schema?schemaMode:schemaMode==='migration-aware-pm02-schema'?'migration-aware-sql-only':'migration-aware-'+schemaMode.slice('migration-aware-pm02-'.length);
+const fm02Schema=beforePm02.startsWith('migration-aware-fm02-');
+const beforeFm02=!fm02Schema?beforePm02:beforePm02==='migration-aware-fm02-schema'?'migration-aware-sql-only':'migration-aware-'+beforePm02.slice('migration-aware-fm02-'.length);
 const materialUomStageCSchema=beforeFm02.startsWith('migration-aware-material-uom-stage-c-');
 const beforeStageC=!materialUomStageCSchema?beforeFm02:beforeFm02==='migration-aware-material-uom-stage-c-schema'?'migration-aware-sql-only':'migration-aware-'+beforeFm02.slice('migration-aware-material-uom-stage-c-'.length);
 const materialUomEffectSchema=beforeStageC.startsWith('migration-aware-material-uom-effect-');
@@ -936,7 +962,7 @@ const priorMode = !hrDocumentSchema ? afterStock : afterStock === 'migration-awa
 const hrSchema = ['migration-aware-hr-schema','migration-aware-hr-customer-boq-schema'].includes(priorMode);
 const customerSchema = ['migration-aware-customer-boq-schema','migration-aware-hr-customer-boq-schema'].includes(priorMode);
 writeFileSync(path, JSON.stringify({
-  version: fm02Schema ? 20 : materialUomStageCSchema ? 19 : materialUomEffectSchema ? 18 : materialUomSchema ? 17 : physicalSchema ? 16 : transferSchema ? 15 : receivingSchema ? 14 : siteIssueSchema ? 13 : planIssueSchema ? 12 : materialPlanSchema ? 11 : materialRequestSchema ? 10 : stockCountSchema ? 9 : hrDocumentSchema ? 8 : hrSchema ? (customerSchema ? 7 : 6) : customerSchema ? 5 : schemaMode === 'migration-aware-thb-schema' ? 4 : 3,
+  version: pm02Schema ? 21 : fm02Schema ? 20 : materialUomStageCSchema ? 19 : materialUomEffectSchema ? 18 : materialUomSchema ? 17 : physicalSchema ? 16 : transferSchema ? 15 : receivingSchema ? 14 : siteIssueSchema ? 13 : planIssueSchema ? 12 : materialPlanSchema ? 11 : materialRequestSchema ? 10 : stockCountSchema ? 9 : hrDocumentSchema ? 8 : hrSchema ? (customerSchema ? 7 : 6) : customerSchema ? 5 : schemaMode === 'migration-aware-thb-schema' ? 4 : 3,
   releaseMode: schemaMode,
   releaseCommit,
   previousReleaseCommit,
@@ -972,6 +998,8 @@ writeFileSync(path, JSON.stringify({
   ...(hrSchema || hrDocumentSchema ? { hrPredecessorPreservation: 'PASS', hrPredecessorRollback: 'PASS', hrEmployeeUpgradeTests: 'PASS', hrEncryptedRecordRecovery: 'PASS', hrPrivateAttachmentRecovery: hrDocumentSchema ? 'PASS' : 'NOT_IMPLEMENTED_THIS_INCREMENT' } : {}),
   ...(hrDocumentSchema ? { hrDocumentCustodyUpgrade: 'PASS', hrDocumentSchemaOnly: 'PASS' } : {}),
   ...(stockCountSchema ? { stockCountSchemaUpgrade: 'PASS', stockCountHistoricalPreservation: 'PASS' } : {}),
+  ...(pm02Schema ? {pm02SchemaUpgrade:'PASS',pm02SourceContractTests:'PASS',
+     pm02HistoricalPreservation:'PASS',pm02PairedRecovery:'PASS',pm02ExternalHrKeyAndDocumentRecovery:'PASS'} : {}),
   ...(fm02Schema ? {fm02SchemaUpgrade:'PASS',fm02SourceContractTests:'PASS',
      fm02HistoricalPreservation:'PASS',fm02PairedRecovery:'PASS'} : {}),
    ...(materialUomStageCSchema ? {materialUomStageCSchemaUpgrade:'PASS',materialUomStageCHistoricalPreservation:'PASS',materialUomStageCHttpUpgrade:'PASS',materialUomStageCPopulatedRecovery:'PASS'} : {}),

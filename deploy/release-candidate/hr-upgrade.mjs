@@ -41,7 +41,7 @@ if (process.env.GITHUB_ACTIONS !== 'true' || process.env.RC_NON_PRODUCTION_CONFI
 }
 // A real nonempty HR document recovery is limited to an isolated CI host,
  // an exact disposable rehearsal DB and a named temporary storage directory.
-const attachmentRecovery = process.env.HR_DOCUMENT_SCHEMA_UPGRADE === 'YES' &&
+const attachmentRecovery = (process.env.HR_DOCUMENT_SCHEMA_UPGRADE === 'YES' || pm02Approved) &&
   ['protect', 'restored'].includes(mode);
 if (attachmentRecovery) {
   const storage = process.env.HR_ATTACHMENT_RECOVERY_STORAGE_ROOT;

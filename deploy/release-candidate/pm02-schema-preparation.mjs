@@ -35,3 +35,10 @@ export function assertExactPm02Increment(previous,candidate){
    throw Error('Not the exact forward-only PM02 schema increment');
  return true;
 }
+
+// Explicit outer layer; no generic exemption for unknown successor modes.
+export function pm02Mode(mode){
+ const prefix='migration-aware-pm02-';
+ if(typeof mode!=='string'||!mode.startsWith(prefix))return {present:false,prior:mode};
+ return {present:true,prior:mode===prefix+'schema'?'migration-aware-sql-only':'migration-aware-'+mode.slice(prefix.length)};
+}
