@@ -3101,6 +3101,26 @@
       "sourceSha": "1b4aba9fbedbc928e9a28c9af38e227fabbd56ff",
       "formalAcceptance": false,
       "estimateConfidence": "NO_ADDITIONAL_HOURS_CREDIT"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-06-047",
+      "date": "2026-11-25",
+      "packageId": "M4-06",
+      "kind": "PUR07_REAL_PDF_DOWNLOAD_WITNESS_STAGED",
+      "beforeHours": 4,
+      "afterHours": 4,
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45572709802/job/139063012015",
+        "https://github.com/threeswordz/cinder-grind/commit/ff316e21c9001495c3a684715b7310ae4811a06e",
+        "https://github.com/threeswordz/cinder-grind/commit/e417124cc9b6d3227630d64e49cf5f0fb8177219"
+      ],
+      "basis": "Previous integrated run reached approved synthetic fixture and scoped Jai browser but failed the PDF response event assertion; cause not established. New isolated test-only source witnesses exact browser GET, independent actual Nest HTTP200 MIME, Chrome completed download, nonempty PDF header and extracted Thai supplier text, while retaining manual reported-send and Ben read-only deep-link assertions. No production source, grant, policy or full CI change. Dedicated workflow source committed; push run ID/outcome not available. No hour credit.",
+      "sourceSha": "ff316e21c9001495c3a684715b7310ae4811a06e",
+      "formalAcceptance": false,
+      "estimateConfidence": "NO_ADDITIONAL_HOURS_CREDIT"
     }
   ],
   "unestimatedWork": [
