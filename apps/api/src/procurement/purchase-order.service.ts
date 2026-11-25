@@ -145,6 +145,7 @@ export class PurchaseOrderService {
         const request = award.rfqLine.purchaseRequestLine.purchaseRequest;
         return (
           !request.cancelledAt &&
+          award.rfqLine.purchaseRequestLine.reviewDecision !== 'RETURNED' &&
           request.approvalInstance?.approvalState === APPROVAL_STATE.APPROVED
         );
       })
@@ -493,6 +494,7 @@ export class PurchaseOrderService {
             award.rfqLine.purchaseRequestLine.purchaseRequest;
           if (
             request.cancelledAt ||
+            award.rfqLine.purchaseRequestLine.reviewDecision === 'RETURNED' ||
             request.approvalInstance?.approvalState !==
               APPROVAL_STATE.APPROVED
           ) {
@@ -854,6 +856,9 @@ export class PurchaseOrderService {
           });
         }
 
+        // PM02: active approved demand must be scoped to this Company/Project.
+        await this.assertActiveDemand(tx, order);
+
         const approvalInstance = await this.approvals.start(
           {
             companyId: context.auth.companyId,
@@ -925,35 +930,10 @@ export class PurchaseOrderService {
       });
     }
 
-    const sourceLines = await this.prisma.purchaseRequestLine.findMany({
-      where: {
-        id: { in: order.purchaseRequestLineIds },
-      },
-      include: {
-        purchaseRequest: {
-          include: {
-            approvalInstance: {
-              select: { approvalState: true },
-            },
-          },
-        },
-      },
+    await this.assertActiveDemand(this.prisma, {
+      companyId: context.auth.companyId, projectId: order.projectId,
+      lines: order.purchaseRequestLineIds.map(purchaseRequestLineId => ({ purchaseRequestLineId })),
     });
-    if (
-      sourceLines.length !== order.purchaseRequestLineIds.length ||
-      sourceLines.some(
-        (line) =>
-          line.purchaseRequest.cancelledAt ||
-          line.purchaseRequest.approvalInstance?.approvalState !==
-            APPROVAL_STATE.APPROVED,
-      )
-    ) {
-      throw new ConflictException({
-        code: 'PO_SOURCE_DEMAND_INACTIVE',
-        detail:
-          'Purchase Order approval requires active approved Purchase Request demand.',
-      });
-    }
 
     const instance = await this.approvals.approve(
       order.approvalInstanceId,
@@ -961,6 +941,23 @@ export class PurchaseOrderService {
       order.submittedByUserId,
       comment,
       async (tx) => {
+        const source = await tx.purchaseOrder.findFirst({
+          where: { id: order.id, companyId: context.auth.companyId },
+          include: { lines: true },
+        });
+        if (!source) throw this.orderNotFound();
+        // The preflight read is not sufficient: demand, supplier or Project
+        // access may have changed before the serializable final approval.
+        await this.access.assertAccess(context.auth, source.projectId, tx);
+        if (source.cancelledAt || source.approvalInstanceId !== order.approvalInstanceId ||
+            source.submittedByUserId !== order.submittedByUserId)
+          throw new ConflictException({ code: 'PO_NOT_SUBMITTED' });
+        await this.assertActiveDemand(tx, source);
+        const activeSupplier = await tx.supplier.findFirst({
+          where: { id: source.supplierId, companyId: source.companyId, isActive: true },
+          select: { id: true },
+        });
+        if (!activeSupplier) throw new ConflictException({ code: 'PO_SUPPLIER_INACTIVE' });
         const lines = await tx.purchaseOrderLine.findMany({
           where: { purchaseOrderId: order.id },
           select: { quotationAwardId: true, quantity: true },
@@ -1269,6 +1266,7 @@ export class PurchaseOrderService {
           sourceRequestLines.length !== source.lines.length ||
           sourceRequestLines.some(
             (line) =>
+              line.reviewDecision === 'RETURNED' ||
               line.purchaseRequest.cancelledAt ||
               line.purchaseRequest.approvalInstance?.approvalState !==
                 APPROVAL_STATE.APPROVED,
@@ -1475,6 +1473,37 @@ export class PurchaseOrderService {
         code: 'PO_NOT_DRAFT',
         detail:
           'Only a Draft Purchase Order revision is directly editable.',
+      });
+    }
+  }
+
+  private async assertActiveDemand(
+    tx: Prisma.TransactionClient,
+    order: {
+      companyId: string;
+      projectId: string;
+      lines: Array<{ purchaseRequestLineId: string }>;
+    },
+  ) {
+    const sourceIds = [...new Set(order.lines.map(line => line.purchaseRequestLineId))];
+    const sources = await tx.purchaseRequestLine.findMany({
+      where: {
+        id: { in: sourceIds },
+        purchaseRequest: { companyId: order.companyId, projectId: order.projectId },
+      },
+      include: { purchaseRequest: {
+        include: { approvalInstance: { select: { approvalState: true } } },
+      } },
+    });
+    if (!sourceIds.length || sources.length !== sourceIds.length ||
+        sources.some(line => line.reviewDecision === 'RETURNED' ||
+          line.purchaseRequest.cancelledAt !== null ||
+          line.purchaseRequest.companyId !== order.companyId ||
+          line.purchaseRequest.projectId !== order.projectId ||
+          line.purchaseRequest.approvalInstance?.approvalState !== APPROVAL_STATE.APPROVED)) {
+      throw new ConflictException({
+        code: 'PO_SOURCE_DEMAND_INACTIVE',
+        detail: 'Purchase Order requires active approved Purchase Request line demand in the same Company and Project.',
       });
     }
   }

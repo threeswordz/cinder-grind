@@ -2468,6 +2468,13 @@ model PurchaseRequestLine {
   costCodeId        String?   @map("cost_code_id") @db.Uuid
   activityId        String?   @map("activity_id") @db.Uuid
   requiredOnSite    DateTime? @map("required_on_site") @db.Date
+  // PM02: NULL means legacy all-lines-approved behavior when the parent is approved.
+  // New mixed reviews explicitly set APPROVED or RETURNED on *every* source line.
+  reviewDecision        String?   @map("review_decision") @db.VarChar(20)
+  reviewReason          String?   @map("review_reason") @db.Text
+  reviewedByUserId      String?   @map("reviewed_by_user_id") @db.Uuid
+  reviewedAt            DateTime? @map("reviewed_at") @db.Timestamptz(6)
+  correctionSourceLineId String?  @unique @map("correction_source_line_id") @db.Uuid
   createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt         DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
 
