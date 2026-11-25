@@ -63,7 +63,7 @@ try{
   const original="((ARRAY['STOCK_TRANSFER_OUT'::character varying, 'STOCK_TRANSFER_IN'::character varying])::text[])";
   const restored="ARRAY[('STOCK_TRANSFER_OUT'::character varying)::text, ('STOCK_TRANSFER_IN'::character varying)::text]";
   const normalize=items=>items.map(t=>t.relation==='stock_transactions'&&t.name==='material_uom_copy_transfer_pin'
-    ?{...t,definition:t.definition.replace(original,restored)}:t);
+    ?{...t,definition:t.definition.replace('ANY '+original,'ANY ('+restored+')')}:t);
   assert.deepEqual(normalize(triggers),normalize(before.triggers),'Restored predecessor trigger attachments and definitions must match');
   console.log('PM02_PAIRED_PREDECESSOR_RESTORE_PASS tables='+Object.keys(tables).length+' PR_LINES='+tables.purchase_request_lines.count);
  }else{
