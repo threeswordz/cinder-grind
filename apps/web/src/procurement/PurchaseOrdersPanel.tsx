@@ -24,6 +24,7 @@ import {
 
 import { ApiError } from '../api/client';
 import { printApprovedPurchaseOrderHtml } from './purchase-order-print';
+import { PurchaseOrderCancellationPanel } from './PurchaseOrderCancellationPanel';
 import { SupplierDeliveryCasePanel } from './SupplierDeliveryCasePanel';
 import {
   PoAward,
@@ -130,7 +131,6 @@ export function PurchaseOrdersPanel({ permissions, roleCodes = [], initialProjec
   const canSubmit = permissions.includes('procurement.po.submit');
   const canApprove = permissions.includes('procurement.po.approve');
   const canReject = permissions.includes('procurement.po.reject');
-  const canCancel = permissions.includes('procurement.po.cancel');
   const canRevise = permissions.includes('procurement.po.revise');
 
   const [projectId, setProjectId] = useState('');
@@ -143,7 +143,6 @@ export function PurchaseOrdersPanel({ permissions, roleCodes = [], initialProjec
   const [commercialDraft, setCommercialDraft] = useState(emptyCommercialDraft);
   const [workflowCode, setWorkflowCode] = useState('');
   const [actionComment, setActionComment] = useState('');
-  const [cancelReason, setCancelReason] = useState('');
   const [revisionReason, setRevisionReason] = useState('');
   const [dispatchKind, setDispatchKind] = useState<PoDispatchDraft['kind']>('DISPATCH');
   const [dispatchChannel, setDispatchChannel] = useState<PoDispatchDraft['channel']>('EMAIL');
@@ -435,14 +434,6 @@ export function PurchaseOrdersPanel({ permissions, roleCodes = [], initialProjec
     },
   });
 
-  const cancelOrder = useMutation({
-    mutationFn: () => purchaseOrdersApi.cancel(orderId, cancelReason),
-    onSuccess: async () => {
-      setCancelReason('');
-      await refreshOrder();
-    },
-  });
-
   const reviseOrder = useMutation({
     mutationFn: () =>
       purchaseOrdersApi.revise(orderId, revisionReason || null),
@@ -518,7 +509,6 @@ export function PurchaseOrdersPanel({ permissions, roleCodes = [], initialProjec
     submitOrder.isPending ||
     approveOrder.isPending ||
     rejectOrder.isPending ||
-    cancelOrder.isPending ||
     reviseOrder.isPending ||
     pdfDownload.isPending ||
     recordExternal.isPending;
@@ -531,7 +521,6 @@ export function PurchaseOrdersPanel({ permissions, roleCodes = [], initialProjec
     submitOrder.error ||
     approveOrder.error ||
     rejectOrder.error ||
-    cancelOrder.error ||
     reviseOrder.error ||
     pdfDownload.error ||
     recordExternal.error;
@@ -1097,24 +1086,8 @@ export function PurchaseOrdersPanel({ permissions, roleCodes = [], initialProjec
                   </Stack>
                 ) : null}
 
-                {canCancel &&
-                current.lifecycleState !== 'CANCELLED' &&
-                current.lifecycleState !== 'REJECTED' ? (
-                  <Stack spacing={1}>
-                    <TextField
-                      label="Cancellation reason"
-                      value={cancelReason}
-                      onChange={(event) => setCancelReason(event.target.value)}
-                    />
-                    <Button
-                      color="error"
-                      variant="outlined"
-                      disabled={!cancelReason.trim() || busy}
-                      onClick={() => cancelOrder.mutate()}
-                    >
-                      Cancel Revision
-                    </Button>
-                  </Stack>
+                {approved && !current.nextRevision ? (
+                  <PurchaseOrderCancellationPanel orderId={orderId} permissions={permissions} roleCodes={roleCodes}/>
                 ) : null}
 
                 {approved && !current.nextRevision ? (

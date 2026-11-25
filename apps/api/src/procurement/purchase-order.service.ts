@@ -1153,13 +1153,71 @@ export class PurchaseOrderService {
     return this.getOrder(context.auth, order.id);
   }
 
-  async cancel(
+  // PUR10: prevent any controller, test helper, script or internal caller from
+  // bypassing the independently recorded cancellation decision.
+  async cancel(_context: AuditContext, _orderId: string, _reason: string): Promise<never> {
+    throw new ConflictException({
+      code: 'PUR10_INDEPENDENT_CANCELLATION_REVIEW_REQUIRED',
+    });
+  }
+
+  /**
+   * The ONLY PO cancellation writer. Must be invoked inside an already-open
+   * PUR10 advisory-locked transaction after independent Ben case replay and
+   * canonical receipt/Finance checks. It re-admits the exact recorded Ben
+   * decision itself and retains the original PO/receipt/AP/revision guards.
+   */
+  async cancelForReviewedCase(
     context: AuditContext,
     orderId: string,
     reason: string,
+    caseId: string,
+    benEventId: string,
+    expectedPoUpdatedAt: string,
+    tx: Prisma.TransactionClient,
   ) {
-    return this.prisma.$transaction(
-      async (tx) => {
+    const recorded = await tx.auditLog.findFirst({
+      where: {
+        id: benEventId, companyId: context.auth.companyId,
+        entityType: 'PURCHASE_ORDER_CANCELLATION', entityId: orderId,
+        action: 'BEN_APPROVE', actorUserId: context.auth.userId,
+      },
+      select: { newValues: true },
+    });
+    const values = recorded?.newValues;
+    if (!values || typeof values !== 'object' || Array.isArray(values) ||
+        values.caseId !== caseId || values.status !== 'BEN_APPROVED' ||
+        values.orderId !== orderId || values.orderUpdatedAt !== expectedPoUpdatedAt ||
+        values.benUserId !== context.auth.userId) {
+      throw new ConflictException({ code: 'PUR10_VERIFIED_BEN_EVENT_REQUIRED' });
+    }
+    // Match the existing revision lock order BEFORE taking the row lock;
+    // otherwise an already-started revise() could create a later revision.
+    const initial = await tx.purchaseOrder.findFirst({
+      where: { id: orderId, companyId: context.auth.companyId },
+      select: { poNumber: true },
+    });
+    if (!initial) throw this.orderNotFound();
+    await tx.$executeRawUnsafe(
+      'SELECT pg_advisory_xact_lock(hashtext($1))',
+      'purchase-order:' + initial.poNumber,
+    );
+    // Lock the PO source row to prevent concurrent edits/cancel writes while
+    // retaining the original receipt and Finance advisory guards.
+    const locked = await tx.$queryRaw<Array<{id: string}>>(Prisma.sql`
+      SELECT "id" FROM "purchase_orders"
+      WHERE "id" = ${orderId}::uuid
+        AND "company_id" = ${context.auth.companyId}::uuid
+      FOR UPDATE
+    `);
+    if (locked.length !== 1) throw this.orderNotFound();
+    const pinned = await tx.purchaseOrder.findFirst({
+      where: { id: orderId, companyId: context.auth.companyId },
+      select: { updatedAt: true },
+    });
+    if (pinned?.updatedAt.toISOString() !== expectedPoUpdatedAt) {
+      throw new ConflictException({ code: 'PUR10_SOURCE_CHANGED_SINCE_BEN_REVIEW' });
+    }
         const order = await tx.purchaseOrder.findFirst({
           where: {
             id: orderId,
@@ -1191,24 +1249,36 @@ export class PurchaseOrderService {
           'SELECT pg_advisory_xact_lock(hashtext($1))',
           'receipt-po:' + order.companyId + ':' + order.poNumber,
         );
-        for (const line of [...order.lines].sort((a, b) => a.id.localeCompare(b.id))) {
+        // Finance can source invoices from a historical revision of this
+        // PO number. Lock every family line in stable order, not only current
+        // lines, before checking the absence of any invoice source.
+        const familyLines = await tx.purchaseOrderLine.findMany({
+          where: { purchaseOrder: {
+            companyId: order.companyId, poNumber: order.poNumber,
+          } },
+          select: { id: true },
+          orderBy: { id: 'asc' },
+        });
+        for (const line of familyLines) {
           await tx.$executeRawUnsafe(
             'SELECT pg_advisory_xact_lock(hashtext($1))',
             'finance-source:po-line:' + line.id,
           );
         }
-        const approvedInvoiceSource = await tx.supplierInvoiceItem.findFirst({
+        // PUR10 denies any invoice source, even a draft or one linked to an
+        // earlier revision of this PO number. Cancelling must not orphan AP.
+        const anyInvoiceSource = await tx.supplierInvoiceItem.findFirst({
           where: {
-            purchaseOrderLineId: { in: order.lines.map((line) => line.id) },
-            supplierInvoice: { state: 'APPROVED' },
+            purchaseOrderLine: { purchaseOrder: {
+              companyId: order.companyId, poNumber: order.poNumber,
+            } },
           },
           select: { id: true },
         });
-        if (approvedInvoiceSource) {
+        if (anyInvoiceSource) {
           throw new ConflictException({
             code: 'PO_CANCEL_FINANCE_SOURCE_LOCKED',
-            detail:
-              'A Purchase Order referenced by an approved Supplier Invoice cannot be cancelled.',
+            detail: 'A Purchase Order referenced by any Supplier Invoice cannot be cancelled.',
           });
         }
         const outstandingReceipt = await tx.goodsReceipt.findFirst({
@@ -1226,6 +1296,30 @@ export class PurchaseOrderService {
           throw new ConflictException({
             code: 'PO_HAS_OUTSTANDING_RECEIPT',
             detail: 'Reverse all posted Goods Receipts before cancelling this Purchase Order.',
+          });
+        }
+
+        // Reversal does not erase the receipt/delivery record. PUR10 exception
+        // policies remain unapproved, so even unposted/reversed sources block.
+        const anyReceipt = await tx.goodsReceipt.findFirst({
+          where: {
+            purchaseOrder: {
+              companyId: order.companyId, poNumber: order.poNumber,
+            },
+          },
+          select: { id: true },
+        });
+        const anyDelivery = await tx.receivingDelivery.findFirst({
+          where: {
+            companyId: order.companyId,
+            purchaseOrder: { companyId: order.companyId, poNumber: order.poNumber },
+          },
+          select: { id: true },
+        });
+        if (anyReceipt || anyDelivery) {
+          throw new ConflictException({
+            code: 'PUR10_RECEIPT_OR_DELIVERY_EXCEPTION_REQUIRES_DECISION',
+            detail: 'Receipt/delivery source exists; explicit exception policy is required.',
           });
         }
 
@@ -1311,9 +1405,6 @@ export class PurchaseOrderService {
           ...updated,
           lifecycleState: 'CANCELLED' as const,
         };
-      },
-      { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted },
-    );
   }
 
   async revise(
