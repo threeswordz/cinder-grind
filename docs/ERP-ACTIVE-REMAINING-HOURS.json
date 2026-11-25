@@ -3610,6 +3610,42 @@
       "verifiedCompletedScopeHours": 1,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-06-074",
+      "date": "2026-11-25",
+      "packageId": "M4-06",
+      "kind": "PUR07_GOVERNED_THAI_PDF_BROWSER_MANUAL_DISPATCH_BEN_READ_ONLY_PASS",
+      "beforeHours": 4,
+      "afterHours": 2,
+      "sourceSha": "e6120e20aaa46ab245e3a08b00935d3bba4c7fb5",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45615060550/job/139208203637"
+      ],
+      "basis": "Actual workflow-only child 2f271a5d SUCCESS 15/15, PostgreSQL17 and API build, actual approved PO source, actual HTTP200 PDF and completed Chrome download, extracted Thai name, real Jai manual external send evidence and Ben scoped read-only deep link. Earlier 409 synthetic missing PUR10 named actors corrected, 422 renderer failure addressed with bounded transient transport retry and safe failure class logging; exact underlying failure not conclusively diagnosed. Retire 2h of previously outstanding integrated PUR07 browser validation, no duplicate prior preparation or native evidence. Retained MKE/TCJ acceptance and independent final review remain.",
+      "reductionHours": 2,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 2,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-01-075",
+      "date": "2026-11-25",
+      "packageId": "M4-01",
+      "kind": "PM15_RECOVERED_CURRENT_LINEAGE_REAL_CHROME_DELAYED_READBACK_PROOF",
+      "beforeHours": 7,
+      "afterHours": 6.5,
+      "sourceSha": "8601516",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45583301153/job/139098462710"
+      ],
+      "basis": "Actual previously uncredited Chrome job SUCCESS11/11, PM15_SYNTHETIC_HTTP_REAL_CHROME_DELAYED_SITE_SUCCESS_AND_PROJECT_ERROR_ISOLATION_PASS. Exact test source ancestor of integrated e6120e2; real browser with synthetic HTTP fixture, not real API/retained user. Retire 0.5h distinct requirements evidence reconciliation, not repeat credit for earlier real PG17 portfolio or prior typecheck. Demand/supplier policy and retained acceptance stay open.",
+      "reductionHours": 0.5,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0.5,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -3632,6 +3668,6 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1762,
-  "currentRollingTotalSemantics": "1762h = 1847h baseline minus 89.5h verified baseline forecast reduction plus 4.5h remaining supplier scope. M4 32h. All 112 requirements preserved. Actual labor unmeasured."
+  "currentRollingTotalAfterPricedGapsHours": 1759.5,
+  "currentRollingTotalSemantics": "1759.5h = 1847h baseline minus 92h verified baseline forecast reduction plus 4.5h remaining supplier scope. M4 29.5h. All 112 requirements preserved. Actual labor unmeasured."
 }
