@@ -3276,6 +3276,25 @@
       "sourceSha": "45970888fb48a0293a44b4cf57a37052450c37e6",
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-08-056",
+      "date": "2026-11-25",
+      "packageId": "M4-08",
+      "kind": "SS11_THREE_MIGRATION_PREFLIGHT_AND_RECOVERY_PREPARATION_VERIFIED",
+      "beforeHours": 5,
+      "afterHours": 4,
+      "reductionHours": 1,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 1,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/commit/3fd716ad37fb664beccedba1cb86681164a0e3af",
+        "https://github.com/threeswordz/cinder-grind/compare/a8e1f688617b5c54656467c61923b6d8e4039007...3fd716ad37fb664beccedba1cb86681164a0e3af"
+      ],
+      "basis": "Exact isolated successor three-path source update: pin new Thai calendar SQL blob, extend fail-closed preflight negatives, extend populated successor checksum set and installed-function/midnight/independent restore assertions. GitHub predecessor comparison confirms precisely 3 added migration files, no edits/removals, matching 3 pinned blobs and unchanged Prisma schema. Local Node22 source-equivalent 12 assertions PASS; not full checkout, native PG, general release admission or independent review. Retires estimated 1h bounded preflight/recovery source preparation effort only; actual populated proof and global historical/release receipt contract remain open. No broad CI, main changes, retained permissions or acceptance.",
+      "sourceSha": "3fd716ad37fb664beccedba1cb86681164a0e3af",
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -3298,6 +3317,6 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1774,
-  "currentRollingTotalSemantics": "1774h provisional full ERP = 1847h baseline minus 80h net forecast effort retired plus 7h newly priced supplier work. M4 44h: M4-01 7h, M4-02 2h, M4-03 5h, M4-04 5h, M4-05 6h, M4-06 4h, M4-07 3h, M4-08 5h, supplier 7h. New SS11 SQL correction staged; additional 1h net validation/recovery/admission work, no runtime credit. All 112 requirements preserved."
+  "currentRollingTotalAfterPricedGapsHours": 1773,
+  "currentRollingTotalSemantics": "1773h provisional full ERP = 1847h baseline minus 81h net forecast effort retired plus 7h newly priced supplier work. M4 43h: M4-01 7h, M4-02 2h, M4-03 5h, M4-04 5h, M4-05 6h, M4-06 4h, M4-07 3h, M4-08 4h, supplier 7h. SS11 three-migration preflight and recovery source preparation verified; actual PG/recovery/global admission and independent review pending. All 112 requirements preserved."
 }
