@@ -1,0 +1,25 @@
+name: M4 equipment exact migration preflight only
+on:
+  push:
+    branches: [ci-m4-v25-equipment-preflight-20261125]
+    paths: ['.github/workflows/ci-m4-v25-equipment-preflight-20261125.yml']
+permissions:
+  contents: read
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+      - name: Check workflow-only child and exact source
+        run: |
+          test "$(git rev-parse HEAD^)" = 888baa5a726731c95828b9790ba46b1346ec3bd9
+          test "$(git diff --name-only HEAD^ HEAD)" = .github/workflows/ci-m4-v25-equipment-preflight-20261125.yml
+          git checkout --detach 888baa5a726731c95828b9790ba46b1346ec3bd9
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.21.0
+      - name: Equipment migration tree and tamper contract tests only
+        run: node --test deploy/release-candidate/equipment-successor-preflight.test.mjs
