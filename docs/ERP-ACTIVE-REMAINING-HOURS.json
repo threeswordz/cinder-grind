@@ -4063,6 +4063,24 @@
       "verifiedCompletedScopeHours": 0.5,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261125-M6-05-099",
+      "date": "2026-11-25",
+      "packageId": "M6-05",
+      "kind": "M6_HR_JOURNEY_PRIVACY_REGRESSION_LOCAL_PASS",
+      "beforeHours": 19.5,
+      "afterHours": 19,
+      "sourceSha": "36be382cbee0a54a0ebbd8193525acedfba15f7e",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/commit/36be382cbee0a54a0ebbd8193525acedfba15f7e"
+      ],
+      "basis": "Exact four source/test Git blobs matched local files; Node v22.16.0 node --test *.test.mjs PASS 14/14, 0 failures. Seven journey mock-transport regression cases include new cacheable-download failure with exactly one upload and both sessions revoked, and unmasked prior history failure before any upload with both sessions revoked. Seven helper cases previously credited are not credited again. Exact-SHA full repository clone/checkout in M6 Mac operator includes helper; no separate file-copy manifest required. Retire 0.5h distinct integrated local regression/packaging preparation only. No actual Nest/PG17/HR-key/Mac runtime, independent review or acceptance. Main/M4 unchanged.",
+      "reductionHours": 0.5,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0.5,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -4085,6 +4103,6 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1741,
-  "currentRollingTotalSemantics": "1741h = 1847h baseline minus 108.5h verified baseline forecast reduction plus 2.5h remaining supplier scope. M4 12h, M6 119h. All 112 requirements preserved. Actual labor unmeasured."
+  "currentRollingTotalAfterPricedGapsHours": 1740.5,
+  "currentRollingTotalSemantics": "1740.5h = 1847h baseline minus 109h verified baseline forecast reduction plus 2.5h remaining supplier scope. M4 12h, M6 118.5h. All 112 requirements preserved. Actual labor unmeasured."
 }
