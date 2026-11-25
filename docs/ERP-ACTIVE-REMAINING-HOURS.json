@@ -2866,6 +2866,46 @@
       "sourceSha": "d0a6a3324d1528a65791ccdc5009465fe5896d5a",
       "formalAcceptance": false,
       "estimateConfidence": "NO_ADDITIONAL_HOURS_CREDIT"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-08-035",
+      "date": "2026-11-25",
+      "packageId": "M4-08",
+      "kind": "PUR10_NATIVE_RACE_FAILURE_AND_SERIALIZABLE_CORRECTION_STAGED",
+      "beforeHours": 11,
+      "afterHours": 11,
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45579826306/job/139086757630",
+        "https://github.com/threeswordz/cinder-grind/commit/888baa5a726731c95828b9790ba46b1346ec3bd9",
+        "https://github.com/threeswordz/cinder-grind/commit/b498aacb49070066af404345dc30bb91560e57bd",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45580213362"
+      ],
+      "basis": "Prior native race failed with two commits, compile and pure policy PASS. Mixed isolation may allow serializable finalizer's earlier snapshot to miss ReadCommitted revision insertion. Both lifecycle transactions now use Serializable with controlled conflict translation, no source-history rewrite, prior post-lock guard and race assertions preserved and losing revision conflict assertion added. Two changed source/test files, focused validation pending. No credit or expanded policy.",
+      "sourceSha": "888baa5a726731c95828b9790ba46b1346ec3bd9",
+      "formalAcceptance": false,
+      "estimateConfidence": "NO_ADDITIONAL_HOURS_CREDIT"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-08-036",
+      "date": "2026-11-25",
+      "packageId": "M4-08",
+      "kind": "EQUIPMENT_PREFLIGHT_EXECUTION_INITIATED",
+      "beforeHours": 11,
+      "afterHours": 11,
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/commit/c9f991ab31392103a16b90e50ae51d2d8ea35e4e",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45580256238"
+      ],
+      "basis": "New independent Node-only preflight workflow on exact latest successor, no DB or full CI, verifies prior staged migration tree pin and tamper tests. Not populated recovery; no credit pending result.",
+      "sourceSha": "888baa5a726731c95828b9790ba46b1346ec3bd9",
+      "formalAcceptance": false,
+      "estimateConfidence": "NO_ADDITIONAL_HOURS_CREDIT"
     }
   ],
   "unestimatedWork": [
