@@ -3,7 +3,7 @@
 // Source alone is NOT a PASS. No retained users, Mac, external endpoints or Production.
 import assert from 'node:assert/strict';
 import {randomUUID} from 'node:crypto';
-import {mkdtemp,rm,writeFile} from 'node:fs/promises';
+import {mkdtemp,rm,writeFile,mkdir,readFile} from 'node:fs/promises';
 import {createRequire} from 'node:module';
 import {spawnSync} from 'node:child_process';
 import os from 'node:os';
@@ -47,9 +47,19 @@ const {createServer,transformWithOxc}=
  await import(pathToFileURL(webRequire.resolve('vite')).href);
 const {default:reactPlugin}=await import(pathToFileURL(webRequire.resolve('@vitejs/plugin-react')).href);
 const D=value=>new Prisma.Decimal(value);
+const pdfServerResponses=[];
+let expectedPdfPath=null;
 const app=await NestFactory.create(AppModule,{logger:false});
 app.setGlobalPrefix('api/v1');
 app.use(securityHeadersMiddleware(false));
+// Observe only the exact synthetic PO PDF route; no credentials or bodies logged.
+app.use((req,res,next)=>{
+ if(req.method==='GET'&&expectedPdfPath&&req.path===expectedPdfPath){
+  res.once('finish',()=>pdfServerResponses.push({status:res.statusCode,
+   mimeType:String(res.getHeader('content-type')??'').split(';')[0]}));
+ }
+ next();
+});
 app.useGlobalFilters(new ProblemDetailsFilter());
 await app.listen(31364,'127.0.0.1');
 const db=app.get(PrismaService);
@@ -374,6 +384,10 @@ async function run(){
  await vite.listen();
  browser=await startBrowser(executable,temp);
  const protocol=browser.protocol,contexts=[],errors=[],downloadHttp200=[];
+ const pdfRequests=new Set(),pdfFailures=[],downloadStarted=new Map(),completedDownloads=new Set();
+ const downloadDir=path.join(temp,'actual-browser-downloads');
+ await mkdir(downloadDir,{mode:0o700});
+ expectedPdfPath='/api/v1/procurement/purchase-orders/'+po.id+'/pdf';
  const local=new Set([new URL(API).origin,new URL(WEB).origin]);
  const handle=event=>{
   if(event.method==='Fetch.requestPaused'){
@@ -389,6 +403,23 @@ async function run(){
     event.sessionId).catch(()=>errors.push('PUR07_INTERCEPT_FAILURE'));
    return;
   }
+  if(event.method==='Browser.downloadWillBegin'){
+   const {guid,suggestedFilename}=event.params;
+   downloadStarted.set(guid,suggestedFilename);return;
+  }
+  if(event.method==='Browser.downloadProgress'){
+   if(event.params.state==='completed')completedDownloads.add(event.params.guid);
+   if(event.params.state==='canceled')errors.push('PUR07_ACTUAL_DOWNLOAD_CANCELLED');
+   return;
+  }
+  if(event.method==='Network.requestWillBeSent'){
+   try{const u=new URL(event.params.request.url);
+    if(u.origin===WEB&&u.pathname===expectedPdfPath&&event.params.request.method==='GET')
+     pdfRequests.add(event.params.requestId);
+   }catch{}
+  }
+  if(event.method==='Network.loadingFailed'&&pdfRequests.has(event.params.requestId))
+   pdfFailures.push({canceled:Boolean(event.params.canceled),blocked:Boolean(event.params.blockedReason)});
   if(event.method==='Network.responseReceived'){
    const url=event.params?.response?.url??'';
    const status=event.params?.response?.status??0;
@@ -405,6 +436,7 @@ async function run(){
  async function session(actor,sourceLink=false){
   const {browserContextId}=await protocol.send('Target.createBrowserContext');
   contexts.push(browserContextId);
+  await protocol.send('Browser.setDownloadBehavior',{behavior:'allowAndName',browserContextId,downloadPath:downloadDir,eventsEnabled:true});
   const {targetId}=await protocol.send('Target.createTarget',{
    url:'about:blank',browserContextId,
   });
@@ -500,9 +532,32 @@ async function run(){
   await visible(protocol,buyer,exactIdentity);
   await visible(protocol,buyer,'Download approved PDF (Thai / English)');
   await click(protocol,buyer,'Download approved PDF (Thai / English)');
-  for(let n=0;n<150&&downloadHttp200.length<1;n++)await delay(140);
-  assert.equal(downloadHttp200.length,1,'One actual Jai UI PDF request');
-  assert.equal(downloadHttp200[0].mimeType,'application/pdf');
+  for(let n=0;n<180&&completedDownloads.size<1&&!(pdfServerResponses.length&&pdfServerResponses[0].status>=400);n++)await delay(150);
+  // A CDP response can be missed; require stronger independent server and
+  // on-disk browser-download witnesses, never treat the click as evidence.
+  console.log('PUR07_PDF_WITNESS '+JSON.stringify({requests:pdfRequests.size,
+   responseEvents:downloadHttp200.length,serverResponses:pdfServerResponses,
+   failedRequests:pdfFailures,startedDownloads:downloadStarted.size,
+   completedDownloads:completedDownloads.size}));
+  assert.equal(pdfRequests.size,1,'Exactly one actual Jai UI PDF GET');
+  assert.deepEqual(pdfServerResponses,[{status:200,mimeType:'application/pdf'}],
+   'Exactly one real approved server PDF response');
+  assert.deepEqual(pdfFailures,[]);
+  assert.ok(downloadHttp200.length<=1);
+  if(downloadHttp200.length)assert.equal(downloadHttp200[0].mimeType,'application/pdf');
+  assert.equal(downloadStarted.size,1,'Actual browser download began');
+  assert.equal(completedDownloads.size,1,'Actual browser download completed');
+  const guid=[...completedDownloads][0];
+  assert.match(guid,/^[a-f0-9-]{36}$/i);
+  assert.match(downloadStarted.get(guid)??'',/\.pdf$/i);
+  const downloaded=path.join(downloadDir,guid);
+  const bytes=await readFile(downloaded);
+  assert.equal(bytes.subarray(0,5).toString(),'%PDF-');
+  assert.ok(bytes.length>1000,'Nonempty actual browser PDF');
+  const extracted=spawnSync('pdftotext',[downloaded,'-'],{encoding:'utf8'});
+  assert.equal(extracted.status,0,'Actual downloaded PDF is readable');
+  assert.ok(extracted.stdout.normalize('NFC').includes('เซมิคอนกรีต'.normalize('NFC')),
+   'Actual downloaded PDF contains synthetic Thai supplier name');
   await until(protocol,buyer,()=>{
    const button=[...document.querySelectorAll('button')]
     .find(b=>b.textContent?.trim()==='Download approved PDF (Thai / English)');
