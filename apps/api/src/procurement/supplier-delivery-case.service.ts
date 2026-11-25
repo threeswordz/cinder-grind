@@ -427,12 +427,16 @@ export class SupplierDeliveryCaseService {
             } },
           },
         });
+        // Missing/foreign/unlinked origin must be a controlled business conflict,
+        // never an empty-string UUID passed to PostgreSQL by Prisma.
+        if (!origin?.purchaseOrderLineId)
+          return conflict('SUPPLIER_CASE_REPLACEMENT_SOURCE_NOT_FOUND');
         const poLine = await tx.purchaseOrderLine.findFirst({
-          where: { id: origin?.purchaseOrderLineId ?? '', purchaseOrderId: order.id,
+          where: { id: origin.purchaseOrderLineId, purchaseOrderId: order.id,
             lineType: 'MATERIAL' },
           select: { id: true, materialId: true, uomId: true },
         });
-        const originalDocument = origin && await tx.document.findFirst({
+        const originalDocument = await tx.document.findFirst({
           where: { id: current.origin.evidenceDocumentId, companyId: order.companyId,
             isActive: true, links: { some: {
               entityType: 'RECEIVING_DELIVERY', entityId: origin.delivery.id,
@@ -461,7 +465,7 @@ export class SupplierDeliveryCaseService {
             } },
           },
         });
-        if (!origin || !poLine?.materialId || !gr || !gr.items[0] || !gr.delivery)
+        if (!poLine?.materialId || !gr || !gr.items[0] || !gr.delivery)
           return conflict('SUPPLIER_CASE_REPLACEMENT_SOURCE_NOT_FOUND');
         // A Project-linked document alone does not establish receiving provenance.
         // A live, non-superseded immutable receiving evidence row is required
