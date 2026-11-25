@@ -1,14 +1,14 @@
 # Construction ERP — live countdown to 0 hours
 
 <!-- current-work-m4 -->
-**Current M4 forecast 13h → 0h · Full ERP 1,743h → 0h.** Actual FM01 stale weekly review and BEN04/PM16 warned closeout PASS15/15; new supplier attribution boundary native proof submitted, no credit until result. Codex deferred until usage reset per Owner; draft #455 pinned.
+**Current M4 forecast 12h → 0h · Full ERP 1,742h → 0h.** FM01 stale weekly review and BEN04/PM16 warned closeout PASS15/15; PUR14 actual native attribution boundary PASS14/14. Codex deferred until usage reset per Owner; draft #455 pinned.
 
 | Forecast reconciliation | Hours |
 |---|---:|
 | Previous reported ERP forecast | 1,744.5 |
 | Newly identified mandatory scope | +0 |
-| Verified remaining-effort reduction | −1.5 |
-| Revised remaining ERP forecast | **1,743** |
+| Verified remaining-effort reduction | −2.5 |
+| Revised remaining ERP forecast | **1,742** |
 
 Prototype 4/8 · Go-live 3/10 · Deadline 31 December 2026.
 <!-- /current-work-m4 -->
@@ -140,14 +140,14 @@ Prototype 4/8 · Go-live 3/10 · Deadline 31 December 2026.
 ## Headline
 | Metric | Current | Meaning |
 |---|---:|---|
-| **Estimated full ERP work still needed** | **1,743h → 0h** | 112 requirements across eight roles |
+| **Estimated full ERP work still needed** | **1,742h → 0h** | 112 requirements across eight roles |
 | 23 Nov original current-work forecast | 1847h | Earlier 60-package provisional baseline |
 | Additional estimated future-work eliminated | −107.5h | M4-01 −31h, M4-02 −7h, M4-03 −9h, M4-04 −6.5h, M4-05 −6.5h, M4-06 −9h, M4-07 −5h, M4-08 −33.5h |
 | Newly discovered previously unpriced PUR08/PUR14 work | +3.5h | Remaining supplier lifecycle and assurance work |
 | Net reforecast change versus 1,847h | −79h | Includes separately priced supplier scope |
 | PUR08/PUR14 provisional work before new development | 51h | Low-confidence new-gap gross estimate |
 | PUR08/PUR14 estimated future work eliminated through verified development | 47.5h | Provisional forecast reduction against the 51h gross estimate |
-| PUR08/PUR14 remaining | **3.5h** | See supplier evidence and approved boundaries in the ledger |
+| PUR08/PUR14 remaining | **2.5h** | See supplier evidence and approved boundaries in the ledger |
 | Historical original baseline | 1,900h | Not the current work-to-go figure |
 | Proposed optimization | 1,500h | **Unvalidated**; now requires risk/scope recalibration |
 | Prototype milestone | 4/8 | Official |
@@ -156,13 +156,13 @@ Prototype 4/8 · Go-live 3/10 · Deadline 31 December 2026.
 | Whole baseline packages formally accepted | 0/60 | 8 M4 packages still 0/8 |
 | Actual productive hours logged | UNKNOWN | Cannot infer from GitHub commits or AI conversation length |
 
-**Forecast basis.** The 1,847h baseline covers 60 packages. Verified work has removed 107.5h of estimated future effort from those packages. The separately priced supplier lifecycle has 3.5h remaining, bringing the ERP forecast to 1,743h.
+**Forecast basis.** The 1,847h baseline covers 60 packages. Verified work has removed 107.5h of estimated future effort from those packages. The separately priced supplier lifecycle has 2.5h remaining, bringing the ERP forecast to 1,742h.
 
 ## Stage-by-stage remaining work
 
 | Stage | Previous 60-package baseline | Verified package forecast reduction | Additional scope remaining | **Now remaining** | Accepted baseline packages |
 |---|---:|---:|---:|---:|---:|
-| Prototype 5/8 — M4 closure | 117h | 107.5h | 3.5h | **13h** | 0/8 |
+| Prototype 5/8 — M4 closure | 117h | 107.5h | 2.5h | **12h** | 0/8 |
 | Prototype 6/8 — end-to-end deployment | 120h | 0h | 0h | **120h** | 0/5 |
 | Prototype 7/8 — populated restore | 50h | 0h | 0h | **50h** | 0/3 |
 | Prototype 8/8 — technical freeze | 65h | 0h | 0h | **65h** | 0/3 |
@@ -174,7 +174,7 @@ Prototype 4/8 · Go-live 3/10 · Deadline 31 December 2026.
 | Production hosting and recovery | 110h | 0h | 0h | **110h** | 0/5 |
 | Migration and onboarding | 110h | 0h | 0h | **110h** | 0/4 |
 | Final human UAT, cutover and Production | 150h | 0h | 0h | **150h** | 0/5 |
-| **Full ERP** | 1847h | 107.5h | 3.5h | **1,743h** | **0/60** |
+| **Full ERP** | 1847h | 107.5h | 2.5h | **1,742h** | **0/60** |
 
 ## Each baseline package
 
@@ -244,7 +244,7 @@ Prototype 4/8 · Go-live 3/10 · Deadline 31 December 2026.
 ## Additional required scope (beyond the original 60 package costing)
 | Scope ID | Stage | Provisional initial estimate | Source progress estimated | Remaining |
 |---|---|---:|---:|---:|
-| PUR08_PUR14_INTEGRATION | M4 | 51h | 47.5h | **3.5h** |
+| PUR08_PUR14_INTEGRATION | M4 | 51h | 48.5h | **2.5h** |
 
 ## Evidence-backed update history
 
@@ -392,6 +392,10 @@ Prototype 4/8 · Go-live 3/10 · Deadline 31 December 2026.
 ## 25 November FM01 stale weekly and warned closeout validation
 
 - **M4-03 2.5→1h** — Exact test-only source f7d65e86, workflow-only child 00eb5ff0, actual authenticated HTTP/Nest/PG17 SUCCESS15/15: Foreman denial, Ben current review, later daily correction changes hash and marks stale; outdated and duplicate acknowledgment rejected without audit mutation; refreshed source acknowledged. Separate warned operational closeout rejects missing follow-up, nonexistent owner, and missing reviewer notes; independently signed Ben/Nancy preserves THB1234.56 outstanding balance and Project active, with unchanged stock/Finance. Retire 1.5h distinct stale-review transport and warned-closeout assurance; not repeat prior successful clean closeout browser, stale preparation concurrency or native source proof. Retained named-user acceptance and independent review remain. [Evidence](https://github.com/threeswordz/cinder-grind/actions/runs/45626721473/job/139248767966)
+
+## 25 November native non-damaged supplier attribution proof
+
+- **PUR08/PUR14 3.5→2.5h** — Exact test-only source 7486c0fd, workflow-only child 4100f359, actual PostgreSQL17 native service SUCCESS14/14: SHORT, WRONG_ITEM, EXCESS each record independently reviewed claim, reject physical return with exact PUR14_RETURN_KIND_REQUIRES_ATTRIBUTION_POLICY and unchanged state/audit; DOCUMENT_ONLY decisions refuse claim advance; stock, invoice, payment and direct cost counts unchanged. Retire 1h distinct non-damaged attribution and document-only boundary assurance, not previous signed damaged-return, replacement or latest-revision witness. Does not implement or authorize quantitative non-damaged resolution, posted-stock returns or AP credits; retained roles and review remain. [Evidence](https://github.com/threeswordz/cinder-grind/actions/runs/45626946379/job/139249538302)
 
 ## Required update rule after every Chat development turn
 
