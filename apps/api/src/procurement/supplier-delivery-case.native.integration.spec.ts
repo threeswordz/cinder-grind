@@ -222,7 +222,7 @@ test('PUR08/PUR14 native: scoped live actors, real PUR07 source, append-only cas
         input('STORE_RECORD_REPLACEMENT_RECEIPT',claimed.case.version,
           claimed.expectedPreviousEventId,{
             recordedGoodsReceiptId:randomUUID(),
-          }) as never),'SUPPLIER_CASE_ACTUAL_POSTED_GR_REQUIRED');
+          }) as never),'SUPPLIER_CASE_REPLACEMENT_PROVENANCE_REQUIRED');
     } else {
       // This historic fixture has no independently checked damaged receiving
       // line or separately uploaded supplier-signed handover document. Under
