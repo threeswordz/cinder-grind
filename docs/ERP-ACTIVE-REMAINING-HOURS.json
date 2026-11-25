@@ -3846,6 +3846,24 @@
       "verifiedCompletedScopeHours": 0.5,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261125-PUR08-PUR14-INTEGRATION-087",
+      "date": "2026-11-25",
+      "packageId": "PUR08_PUR14_INTEGRATION",
+      "kind": "SUPPLIER_ACTUAL_LATEST_REVISION_BROWSER_AND_API_SCOPE_PASS",
+      "beforeHours": 4.5,
+      "afterHours": 3.5,
+      "sourceSha": "220b781aea8752e9b6762bf2d4e8cba06b44f2de",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45619654984/job/139224087409"
+      ],
+      "basis": "Exact latest integrated source 220b781a, workflow-only child d7f41e3a, actual PG17/Nest/Chrome SUCCESS15/15. Authenticated Jai historical supplier case remains readable but old revision write rejected with exact latest-approved-source code; actual PO register switches old/latest/old with supplier panel scoped to latest; Ben denied supplier case authority; unchanged predecessor, audit count, stock and Finance. Retire 1h distinct latest-revision browser assurance, not prior native revision race or signed custody/replacement browser credit. Independent review, retained roles and release gates remain.",
+      "reductionHours": 1,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 1,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -3855,19 +3873,19 @@
         "PUR08",
         "PUR14"
       ],
-      "hours": 4.5,
+      "hours": 3.5,
       "budgetAllocation": "NEW_EXPLICIT_M4_ADDITIONAL_SCOPE; NOT SILENTLY SUBTRACTED_FROM_M4_01/M4_08",
       "sourceStatus": "NEW_BOUNDED_LINEAGE_NATIVE_AND_REAL_CHROME_SIGNED_CUSTODY_REPLACEMENT_REVERSAL_PASS;FINANCE_CREDIT_SEPARATE",
-      "remaining": "4.5h provisional remaining supplier workflow and assurance: exact final integrated independent DEC-022, retained named-role MKE/TCJ Company/Project UAT, separately authorized canonical posted-stock return/reversal and Finance credit outside case, SHORT/WRONG/EXCESS remain evidence-only pending quantitative attribution; final CI/merge/Production authorization. Latest revision/report and invalid-origin native proof passed; no retained acceptance.",
+      "remaining": "3.5h provisional remaining supplier workflow and assurance: exact integrated independent DEC-022, retained named-role MKE/TCJ Company/Project UAT, separately authorized canonical posted-stock return/reversal and Finance credit outside case, SHORT/WRONG/EXCESS evidence-only pending quantitative attribution; final CI/merge/Production authorization. Latest-revision actual browser and API authority now PASS; no retained acceptance.",
       "evidence": "https://github.com/threeswordz/cinder-grind/actions/runs/45555913363",
       "stage": "M4",
       "grossPreImplementationEstimateHours": 51,
-      "estimatedReductionFromNewSourceHours": 46.5,
+      "estimatedReductionFromNewSourceHours": 47.5,
       "confidence": "LOW",
       "estimateKind": "NEWLY_DISCOVERED_MANDATORY_SCOPE_PRICE_NOT_A_TIMESHEET"
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1751,
-  "currentRollingTotalSemantics": "1751h = 1847h baseline minus 100.5h verified baseline forecast reduction plus 4.5h remaining supplier scope. M4 21h. All 112 requirements preserved. Actual labor unmeasured."
+  "currentRollingTotalAfterPricedGapsHours": 1750,
+  "currentRollingTotalSemantics": "1750h = 1847h baseline minus 100.5h verified baseline forecast reduction plus 3.5h remaining supplier scope. M4 20h. All 112 requirements preserved. Actual labor unmeasured."
 }
