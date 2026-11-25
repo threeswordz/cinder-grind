@@ -2498,6 +2498,46 @@
       "sourceSha": "ad38bc379687c906103bdfe8121643f22b384f4b",
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-06-009",
+      "date": "2026-11-25",
+      "packageId": "M4-06",
+      "kind": "PUR07_REAL_REACT_RUNTIME_HARNESS_CORRECTION_STAGED",
+      "beforeHours": 6,
+      "afterHours": 6,
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45566583650/job/139042751318",
+        "https://github.com/threeswordz/cinder-grind/commit/5fe9305f84ef8e6165ea594d67d8e28d380276a3",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45568660272"
+      ],
+      "basis": "Real authenticated scoped project/order HTTP lists passed; React unhandled exception before root mount, no UI acceptance. Test-only Vite harness uses actual React plugin, explicit shared-dependency dedupe/optimization, static PO import and safe first-render error classification; exact source 5fe9305f, workflow-only child1e07ae2d. New run in progress. Underlying production source defect not established; deep-link journey remains open. No credit.",
+      "sourceSha": "5fe9305f84ef8e6165ea594d67d8e28d380276a3",
+      "formalAcceptance": false,
+      "estimateConfidence": "NO_ADDITIONAL_HOURS_CREDIT"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-08-025",
+      "date": "2026-11-25",
+      "packageId": "M4-08",
+      "kind": "SS11_JAI_ASSET_V25_INTEGRATION_STAGED",
+      "beforeHours": 17,
+      "afterHours": 17,
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/commit/5d2d86e1bcb4c338bbd39c8bf3270b2628f93cc7",
+        "https://github.com/threeswordz/cinder-grind/commit/bd9ccd5975fbb1e4843261ec7499af55435b9b13",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45568812808"
+      ],
+      "basis": "13 exact historical #449 equipment custody/asset source, tests, UI and two migration blobs, plus one AdminConsole roleCodes seam on native-green ad38bc37. Fourteen changed paths; previous last migration 20261123201500, both later migration names/checksums preserved; schema.prisma identical between lineages, raw SQL tables. No retained grants, no depreciation/finance posting. Targeted PG17 migrations, API/web compile, two native suites running. No additional credit until result; populated predecessor admission/rollback and independent review still required.",
+      "sourceSha": "5d2d86e1bcb4c338bbd39c8bf3270b2628f93cc7",
+      "formalAcceptance": false,
+      "estimateConfidence": "NO_ADDITIONAL_HOURS_CREDIT"
     }
   ],
   "unestimatedWork": [
