@@ -2789,6 +2789,24 @@
       "sourceSha": "e29327df246570a432d7c61a6e9a4792205e341f",
       "formalAcceptance": false,
       "estimateConfidence": "NO_ADDITIONAL_HOURS_CREDIT"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-08-033",
+      "date": "2026-11-25",
+      "packageId": "M4-08",
+      "kind": "EQUIPMENT_SUCCESSOR_EXACT_MIGRATION_TREE_PREFLIGHT_STAGED",
+      "beforeHours": 11,
+      "afterHours": 11,
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/commit/90147671340b4696c714b4ecceb4bcdbf5053070"
+      ],
+      "basis": "Exact predecessor a8e1f688 vs successor 90147671: all 174 existing entries preserved byte-identical via tree SHA, 176 successor entries, exactly two added equipment migrations and unchanged Prisma schema. Verified both SQL blob pins against source. Added fail-closed tree preflight and tamper tests without changing global release admission. Repository Node tests and populated recovery have not run; no forecast credit. Tool-level operational browser blocker remains; not retried.",
+      "sourceSha": "90147671340b4696c714b4ecceb4bcdbf5053070",
+      "formalAcceptance": false,
+      "estimateConfidence": "NO_ADDITIONAL_HOURS_CREDIT"
     }
   ],
   "unestimatedWork": [
