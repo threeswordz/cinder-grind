@@ -736,6 +736,11 @@ test('PUR10 native: real approved PO, independent named Jai/Khaimook/Ben, atomic
       evidenceDocumentId:doc.id,note:'Real approved source reported acknowledgment',
       recordedPoAcknowledgmentEventId:revisionAck.id,
     });
+    // The row-version write is technical serialization only: no historic field
+    // (including updatedAt) may change as a side effect of revising.
+    const predecessorBefore=await prisma.purchaseOrder.findUniqueOrThrow({
+      where:{id:revisionRace.po.id},
+    });
     let enteredRevision!:()=>void;
     let releaseRevision!:()=>void;
     const atRevisionAudit=new Promise<void>(resolve=>{enteredRevision=resolve;});
@@ -805,6 +810,22 @@ test('PUR10 native: real approved PO, independent named Jai/Khaimook/Ben, atomic
       where:{previousRevisionId:revisionRace.po.id},select:{id:true,revisionNo:true},
     });
     assert.equal(revisions.length,1,'Exactly one actual successor PO revision');
+    const predecessorAfter=await prisma.purchaseOrder.findUniqueOrThrow({
+      where:{id:revisionRace.po.id},
+    });
+    assert.deepEqual(predecessorAfter,predecessorBefore,
+      'Revision row-version guard must preserve every predecessor field and timestamp');
+    await assert.rejects(
+      ()=>supplierCases.transition({auth:buyer},revisionRace.po.id,{
+        action:'REPORT_DELAY',expectedVersion:1,
+        expectedPreviousEventId:revisionSupplierEvent.expectedPreviousEventId,
+        evidenceDocumentId:doc.id,note:'Explicit retry against superseded source',
+        newSupplierExpectedDate:'2026-12-09',
+      }),
+      (err:unknown)=>err instanceof ConflictException &&
+        (err.getResponse() as {code?:string}).code===
+          'SUPPLIER_CASE_APPROVED_LATEST_SOURCE_REQUIRED',
+      'A fresh retry cannot append to a superseded PO');
     assert.equal((await supplierCases.read(buyer,revisionRace.po.id)).approvedLatest,false);
     assert.equal((await supplierCases.read(buyer,revisionRace.po.id)).case?.version,1,
       'Only the historical supplier acknowledgment survives source supersession');
