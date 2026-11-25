@@ -3909,16 +3909,27 @@ check(
     retryPo.data.data.lifecycleState === 'DRAFT',
   'Rejected Purchase Order could not be copied into a retained corrective revision.',
 );
-await request(
+// PUR10 now prohibits the old direct cancellation writer, even for this
+// synthetic retry draft. Preserve the retry proof and assert the new denial;
+// do not manufacture an approved supplier commitment merely to clean up UAT.
+const deniedRetryCancel = await request(
   pm,
   '/procurement/purchase-orders/' + retryPo.data.data.id + '/cancel',
   {
     method: 'POST',
     json: { reason: 'Rejected retry acceptance cleanup.' },
-    expected: 201,
+    expected: 409,
   },
 );
-record('V0.3-D rejected Purchase Order retry path');
+check(deniedRetryCancel.data.code === 'PUR10_INDEPENDENT_CANCELLATION_REVIEW_REQUIRED',
+  'Legacy direct retry cancellation must be denied by the PUR10 boundary.');
+const retainedRetry = await request(pm,
+  '/procurement/purchase-orders/' + retryPo.data.data.id);
+check(retainedRetry.data.data.lifecycleState === 'DRAFT' &&
+  retainedRetry.data.data.previousRevisionId === rejectedPo.data.data.id &&
+  !retainedRetry.data.data.cancelledAt,
+  'Denied direct cancellation must preserve the corrective draft and lineage.');
+record('V0.3-D rejected Purchase Order retry path; PUR10 direct cancellation denied');
 
 
 const rejectedCandidate = await request(

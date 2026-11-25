@@ -44,18 +44,27 @@ test('release evidence cannot omit any equipment-specific proof or accept a part
 });
 
 test('equipment trigger bindings are exact, enabled and absent on rollback',async()=>{
- const rows=Object.entries(equipmentTriggerBindings).map(([name,binding])=>({name,...binding,function_schema:'public',enabled:'O'}));
+ const rows=Object.entries(equipmentTriggerBindings).map(([name,binding])=>({name,...binding,function_schema:'public',enabled:'O',unconditional:true,argument_count:0}));
  assertEquipmentTriggerBindings(rows,true);
  assertEquipmentTriggerBindings([],false);
  assert.throws(()=>assertEquipmentTriggerBindings(rows,false));
  assert.throws(()=>assertEquipmentTriggerBindings(rows.slice(0,-1),true));
  assert.throws(()=>assertEquipmentTriggerBindings([...rows.slice(0,-1),rows[0]],true));
- for(const patch of [{enabled:'D'},{enabled:'R'},{relation:'equipment'},{function_name:'wrong_guard'},{function_schema:'other'},{trigger_type:1}]){
+ for(const patch of [{enabled:'D'},{enabled:'R'},{relation:'equipment'},{function_name:'wrong_guard'},{function_schema:'other'},{trigger_type:1},{unconditional:false},{argument_count:1},{update_columns:['unexpected']}]){
   assert.throws(()=>assertEquipmentTriggerBindings([{...rows[0],...patch},...rows.slice(1)],true));
  }
+ // UPDATE OF masks must reject missing, swapped or widened columns even
+ // when the trigger event type, function and enablement are otherwise correct.
+ const assignment=rows.find(row=>row.name==='equipment_assignment_open_custody_guard');
+ const identity=rows.find(row=>row.name==='equipment_registered_identity_guard');
+ assert.ok(assignment&&identity);
+ for(const columns of [[],['assigned_to','project_id'],['assigned_to','equipment_id','project_id','unrelated']]){
+  assert.throws(()=>assertEquipmentTriggerBindings(rows.map(row=>row===assignment?{...row,update_columns:columns}:row),true));
+ }
+ assert.throws(()=>assertEquipmentTriggerBindings(rows.map(row=>row===identity?{...row,update_columns:[]}:row),true));
  let calls=0;
  await verifyEquipmentTriggerBindings({$queryRawUnsafe:async(sql,names)=>{
-  calls++;assert.match(sql,/t\.tgfoid/);assert.match(sql,/t\.tgenabled/);assert.deepEqual(names,Object.keys(equipmentTriggerBindings));return rows;
+  calls++;assert.match(sql,/t\.tgfoid/);assert.match(sql,/t\.tgenabled/);assert.match(sql,/t\.tgattr/);assert.match(sql,/t\.tgqual IS NULL/);assert.match(sql,/t\.tgnargs/);assert.deepEqual(names,Object.keys(equipmentTriggerBindings));return rows;
  }},true);
  assert.equal(calls,1);
  await assert.rejects(()=>verifyEquipmentTriggerBindings({$queryRawUnsafe:async()=>rows.slice(1)},true));
