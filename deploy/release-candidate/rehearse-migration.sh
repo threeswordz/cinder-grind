@@ -267,6 +267,37 @@ done
 mapfile -t new_migrations < <(printf '%s\n' "${new_migrations[@]}" | sort -u)
 (( ${#new_migrations[@]} > 0 )) || fail "no new forward migrations detected"
 migration_list="$(IFS=,; printf '%s' "${new_migrations[*]}")"
+equipment_schema=false
+equipment_migrations=(
+  20261124023000_ss11_equipment_custody
+  20261124221500_jai_asset_register
+  20261125103100_ss11_thailand_custody_db_date
+)
+equipment_pins=(
+  ce16f51eae3d597de431d5b890b70fc17fc63944
+  8d730d5aebf75d98b9e47fd502a69242e951e56e
+  738aa01e59d883ae4a6165bedc08e221ce340cc1
+)
+equipment_count=0
+for name in "${equipment_migrations[@]}"; do
+  if [[ ",$migration_list," == *",$name,"* ]]; then equipment_count=$((equipment_count+1)); fi
+done
+if (( equipment_count > 0 )); then
+  (( equipment_count == 3 )) || fail "partial equipment successor requires separate admission"
+  # This contract is deliberately restricted to the current combined purchasing
+  # lineage, which already mandates the old runtime and nonempty HR key/file proof.
+  [[ "$pur07_schema" == true && "$hr_proof" == true && "$schema_mode" != migration-aware-sql-only ]] || fail "equipment successor needs the bounded combined purchasing recovery contract"
+  [[ "${GITHUB_ACTIONS:-}" == true ]] || fail "equipment recovery requires disposable CI"
+  for i in "${!equipment_migrations[@]}"; do
+    [[ "$(git hash-object "apps/api/prisma/migrations/${equipment_migrations[$i]}/migration.sql")" == "${equipment_pins[$i]}" ]] || fail "equipment migration differs from exact pinned source"
+  done
+  equipment_schema=true
+fi
+equipment_source_contract=NOT_APPLICABLE
+equipment_historical=NOT_APPLICABLE
+equipment_paired=NOT_APPLICABLE
+equipment_hr_recovery=NOT_APPLICABLE
+equipment_calendar=NOT_APPLICABLE
 if [[ "$pur12_schema" == true ]]; then
   [[ ",$migration_list," == *",20261123190000_pur12_po_partner_short_names,"* ]] || fail "exact PUR12 migration missing"
   [[ "$(git hash-object apps/api/prisma/migrations/20261123190000_pur12_po_partner_short_names/migration.sql)" == 2342d5f965adaefa97fc72c3ee862c92c696f041 ]] || fail "PUR12 migration differs"
@@ -511,6 +542,10 @@ BOOTSTRAP_ADMIN_DISPLAY_NAME="RC System Administrator" \
 BOOTSTRAP_ADMIN_PASSWORD='Rc-Admin-Password-2026!' \
 pnpm --dir "$bootstrap_root" --filter @construction-erp/api bootstrap:admin
 
+if [[ "$equipment_schema" == true ]]; then
+  RC_NON_PRODUCTION_CONFIRMED=YES DATABASE_URL="$upgrade_url" node "$RC_DIR/equipment-integrated-recovery.mjs" seed "$previous_root" "$tmp_root/equipment-predecessor.json"
+fi
+
 storage_deployment_id="v10e-${GITHUB_RUN_ID:-local}"
 printf 'construction-erp-production-storage-v1:%s\n' "$storage_deployment_id" > "$storage_root/.construction-erp-storage-ready"
 chmod 600 "$storage_root/.construction-erp-storage-ready"
@@ -625,6 +660,13 @@ if [[ "$schema_mode" != "migration-aware-sql-only" && "$legacy_upgrade" == true 
   DATABASE_URL="$upgrade_url" node "$RC_DIR/legacy-fixture.mjs" verify "$previous_root" "$tmp_root/legacy.json" "$tmp_root/legacy-snapshot.json"
   DATABASE_URL="$upgrade_url" ERP_LEGACY_FIXTURE="$tmp_root/legacy.json" node "$RC_DIR/verify-thb-upgrade.mjs"
 fi
+if [[ "$equipment_schema" == true ]]; then
+  node --test "$RC_DIR/equipment-successor-preflight.test.mjs" "$RC_DIR/equipment-successor-historical.test.mjs" "$RC_DIR/historical-snapshot.test.mjs"
+  equipment_source_contract=PASS
+  RC_NON_PRODUCTION_CONFIRMED=YES DATABASE_URL="$upgrade_url" node "$RC_DIR/equipment-integrated-recovery.mjs" after "$previous_root" "$tmp_root/equipment-predecessor.json"
+  equipment_historical=PASS
+fi
+
 # These source contract tests do not replace the separate native identity/PDF
 # workflows (which deliberately require their own exact disposable DB names).
 if [[ "$pur12_schema" == true || "$pur07_schema" == true ]]; then
@@ -827,6 +869,11 @@ if [[ "$physical_schema" == true || "$transfer_schema" == true || "$hr_proof" ==
   if [[ "$hr_document_schema" == true || "$pm02_schema" == true || "$pur04_schema" == true || "$pur01_schema" == true || "$pur12_schema" == true || "$pur07_schema" == true ]]; then
     HR_ATTACHMENT_RECOVERY_STORAGE_ROOT="$tmp_root/hr-attachment-restored" DATABASE_URL="$hr_url" \
       node "$RC_DIR/hr-upgrade.mjs" restored "$previous_root" "$tmp_root/hr-protected.json" "$tmp_root/hr-external-keys.json"
+    if [[ "$equipment_schema" == true ]]; then
+      equipment_hr_recovery=PASS
+      RC_NON_PRODUCTION_CONFIRMED=YES DATABASE_URL="$hr_url" node "$RC_DIR/equipment-integrated-recovery.mjs" restored "$previous_root" "$tmp_root/equipment-predecessor.json"
+      equipment_calendar=PASS
+    fi
   else
     DATABASE_URL="$hr_url" node "$RC_DIR/hr-upgrade.mjs" restored "$previous_root" "$tmp_root/hr-protected.json" "$tmp_root/hr-external-keys.json"
   fi
@@ -969,6 +1016,12 @@ if [[ "$schema_mode" != "migration-aware-sql-only" ]]; then
   api_pid=""
 fi
 
+if [[ "$equipment_schema" == true ]]; then
+  RC_NON_PRODUCTION_CONFIRMED=YES DATABASE_URL="$rollback_url" node "$RC_DIR/equipment-integrated-recovery.mjs" rollback "$previous_root" "$tmp_root/equipment-predecessor.json"
+  equipment_paired=PASS
+  [[ "$equipment_source_contract" == PASS && "$equipment_historical" == PASS && "$equipment_paired" == PASS && "$equipment_hr_recovery" == PASS && "$equipment_calendar" == PASS ]] || fail "equipment integrated evidence incomplete"
+fi
+
 ci_provider="native"
 ci_workflow=""
 ci_workflow_ref=""
@@ -996,13 +1049,16 @@ trap - EXIT
 node - "$RC_EVIDENCE_FILE" "$RELEASE_COMMIT" "$RC_PREVIOUS_RELEASE_COMMIT" "$RC_ENVIRONMENT" \
   "$recovery_reference" "$git_version" "$node_version" "$pnpm_version" "$postgresql_client_version" "$openssl_version" \
   "$ci_provider" "$ci_workflow" "$ci_workflow_ref" "$ci_run_id" "$ci_run_number" "$ci_run_attempt" \
-  "$ci_job" "$ci_repository" "$migration_list" "$schema_mode" "$legacy_upgrade" <<'NODE'
+  "$ci_job" "$ci_repository" "$migration_list" "$schema_mode" "$legacy_upgrade" \
+  "$equipment_schema" "$equipment_source_contract" "$equipment_historical" "$equipment_paired" "$equipment_hr_recovery" "$equipment_calendar" <<'NODE'
 const { writeFileSync } = require('node:fs');
 const [
   path, releaseCommit, previousReleaseCommit, environment, recoveryReference,
   gitVersion, nodeVersion, pnpmVersion, postgresqlClientVersion, opensslVersion,
   ciProvider, ciWorkflow, ciWorkflowRef, ciRunId, ciRunNumber, ciRunAttempt,
   ciJob, ciRepository, migrationList, schemaMode, legacyUpgrade,
+  equipmentSchema, equipmentSourceContractTests, equipmentHistoricalPreservation,
+  equipmentPairedRecovery, equipmentExternalHrKeyAndDocumentRecovery, equipmentInstalledCalendarProof,
 ] = process.argv.slice(2);
 const nullable = (value) => value === '' ? null : value;
 const peelPurchasing=(mode,layer)=>{
@@ -1100,6 +1156,7 @@ writeFileSync(path, JSON.stringify({
   ...(planIssueSchema ? {materialPlanIssueSchemaUpgrade:'PASS',materialPlanIssueHistoricalPreservation:'PASS',materialPlanIssueHttpUpgrade:'PASS',materialPlanIssuePopulatedRecovery:'PASS',materialPlanIssueSignedReceiptRecovery:'PASS'} : {}),
   ...(materialPlanSchema ? { materialPlanSchemaUpgrade:'PASS',materialPlanHistoricalPreservation:'PASS',materialPlanHttpUpgrade:'PASS',materialPlanPopulatedRecovery:'PASS' } : {}),
   ...(materialRequestSchema ? { materialRequestSchemaUpgrade:'PASS', materialRequestHistoricalPreservation:'PASS', materialRequestHttpUpgrade:'PASS', materialRequestSignedReceiptRecovery:'PASS' } : {}),
+  ...(equipmentSchema === 'true' ? {equipmentSourceContractTests,equipmentHistoricalPreservation,equipmentPairedRecovery,equipmentExternalHrKeyAndDocumentRecovery,equipmentInstalledCalendarProof} : {}),
   forwardOnlyNewMigrations: 'PASS',
   migrationNames: migrationList.split(',').filter(Boolean),
   freshMigration: 'PASS',
