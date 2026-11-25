@@ -1,3 +1,4 @@
+import {assertEquipmentReleaseEvidence} from './equipment-successor-historical.mjs';
 import {assertPurchasingEvidence} from './purchasing-release-mode.mjs';
 import {pm02Mode,pm02Migrations} from './pm02-schema-preparation.mjs';
 import {fm02Mode} from './fm02-schema-contract.mjs';
@@ -41,6 +42,7 @@ if (rehearsal.releaseCommit !== expected || recovery.releaseCommit !== expected)
   fail('evidence release SHA does not match the exact workflow commit');
 }
 
+assertEquipmentReleaseEvidence(rehearsal);
 const purchasing=assertPurchasingEvidence(rehearsal);
 const {present:pm02Schema,prior:beforePm02}=pm02Mode(purchasing.prior);
 const {present:fm02Schema,prior:beforeFm02}=fm02Mode(beforePm02);
