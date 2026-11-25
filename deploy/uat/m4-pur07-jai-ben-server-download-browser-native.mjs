@@ -255,6 +255,13 @@ async function run(){
   {code:'MANAGEMENT',grants:['procurement.po.view','procurement.po.approve']},
   {code:poRole.roleCode,grants:[]},
  ]);
+ // The real PO panel now also reads PUR10. Configure only the three
+ // already-created independent synthetic actors for this disposable company.
+ // Do not grant new permissions, fabricate a cancellation or suppress HTTP409.
+ await db.systemSetting.create({data:{
+  companyId:company.id,settingKey:'PUR10_NAMED_ACTORS_V1',
+  settingValue:{jai:jai.id,khaimook:khaimook.id,ben:ben.id},
+ }});
  for(const [entityType,sequenceCode,formatTemplate] of [
   ['PURCHASE_REQUEST','PURCHASE_REQUEST','PRYYMM-###'],
   ['RFQ','RFQ','RFQYYMM-###'],
@@ -426,7 +433,9 @@ async function run(){
    if(url.endsWith('/procurement/purchase-orders/'+po.id+'/pdf')&&status===200){
     downloadHttp200.push({status,mimeType:event.params?.response?.mimeType});
    }else if(url.startsWith(WEB+'/api/v1/')&&status>=400){
-    errors.push('PUR07_UNEXPECTED_HTTP_'+status);
+    // Record only a normalized local path; never log query values or credentials.
+    const route=new URL(url).pathname.replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi,':id');
+    errors.push('PUR07_UNEXPECTED_HTTP_'+status+' '+route);
    }
   }else if(event.method==='Runtime.exceptionThrown'){
    errors.push('PUR07_UNHANDLED_BROWSER_JS');
@@ -468,6 +477,9 @@ async function run(){
    assert.ok((await response.json()).data.some(row=>row.id===expectedId),
     'PUR07_SCOPED_LIST_SOURCE_MISSING');
   }
+  const cancellationRead=await fetch(WEB+'/api/v1/procurement/purchase-orders/'+po.id+'/cancellation-case',{headers:{Cookie:'erp_session='+actor.token}});
+  assert.equal(cancellationRead.status,200,'PUR10_SYNTHETIC_NAMED_ACTORS_READ_FAILED');
+  assert.equal((await cancellationRead.json()).data.case,null,'No cancellation may be fabricated by PUR07 fixture');
   console.log('PUR07_ACTUAL_SCOPED_PROJECT_AND_PO_HTTP_PASS');
   const cookie=await protocol.send('Network.setCookie',{
    name:'erp_session',value:actor.token,url:WEB,httpOnly:true,sameSite:'Lax',
