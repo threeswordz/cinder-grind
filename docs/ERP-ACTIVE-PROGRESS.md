@@ -96,6 +96,8 @@
 
 > **Current 188-path exact successor:** [86e376af](https://github.com/threeswordz/cinder-grind/commit/86e376af957788de15f1a7e315428cdd0d0299b2) preserves previous four-lane implementation plus operational browser and integrates all 112 immutable source/Owner/effective-gate records and their read-only guard, four byte-identical new paths, zero conflicts. [188-path full independent review inventory](M4-2026-11-25-CLOSURE-CANDIDATE-188-PATH-REVIEW.md) verified 188/188, main→successor 58 ahead and zero behind. **No incremental hour credit:** overlaps already credited all-112 effective-gate work and earlier source integration. M4 46h, ERP 1,776h; pending CI, DEC-022, retained roles, Mac recovery and human release gates unchanged.
 
+> **PUR08 supplier report vs PO revision collision:** [test-only exact source 23e83b60](https://github.com/threeswordz/cinder-grind/commit/23e83b600ac7d2d2ae0c93c2d374b55571a32a9a) extends native real-PO workflow to hold a committed-before-return revision transaction, then attempts a stale supplier report, requires physical row-lock wait and controlled conflict with no extra supplier audit/GR/AP. [Focused workflow e8af9392](https://github.com/threeswordz/cinder-grind/commit/e8af9392db825dd16d97bed2411f6a6fc129b88f) is exact-head and does not rerun full CI; push status remains unobserved. [Current 188-path review inventory](M4-2026-11-25-CLOSURE-CANDIDATE-188-PATH-REVIEW.md) updated for current 59-ahead successor. M4-08 5h, M4 46h, ERP 1,776h unchanged: no test PASS, source fix, or additional validated credit claimed.
+
 ## Headline
 | Metric | Current | Meaning |
 |---|---:|---|
