@@ -1,0 +1,23 @@
+name: PUR04 exact schema and historical guard contracts
+on:
+  push:
+    branches: [ci-m4-pur04-schema-prep-20261125]
+permissions:
+  contents: read
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+      - name: Verify exact source and workflow-only delta
+        run: |
+          test "$(git rev-parse HEAD^)" = 6c389146ac16cea1e125e26a4845bce1608a9dc8
+          test "$(git diff --name-only HEAD^ HEAD)" = .github/workflows/m4-pur04-schema-prep.yml
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.21.0
+      - name: Verify bounded PUR04 contracts
+        run: node --test deploy/release-candidate/pur04-schema-preparation.test.mjs
