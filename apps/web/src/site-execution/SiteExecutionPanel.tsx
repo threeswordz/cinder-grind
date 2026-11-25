@@ -86,11 +86,13 @@ const emptyInspection = (): InspectionLineInput => ({
 
 export function SiteExecutionPanel({
   permissions,
+  roleCodes = [],
   initialProjectId,
   initialReportId,
   onOpenSource,
 }: {
   permissions: string[];
+  roleCodes?: string[];
   initialProjectId?: string | undefined;
   initialReportId?: string | undefined;
   onOpenSource?: ((target: SourceLinkTarget) => void) | undefined;
@@ -151,7 +153,7 @@ export function SiteExecutionPanel({
   const equipmentOptions = useQuery({
     queryKey: ['equipment', 'project-available', projectId, reportDate],
     queryFn: () => equipmentApi.projectEquipment(projectId, reportDate),
-    enabled: Boolean(projectId && reportDate),
+    enabled: permissions.includes('equipment.equipment.view') && Boolean(projectId && reportDate),
   });
   const documents = useQuery({
     queryKey: ['site-execution', 'documents', selectedId],
@@ -528,7 +530,7 @@ export function SiteExecutionPanel({
           ) : null}
           <WeeklySiteSummaryPanel
             projectId={projectId}
-            canAcknowledge={permissions.includes('management.dashboard.view') &&
+            canAcknowledge={roleCodes.includes('MANAGEMENT') &&
               permissions.includes('site.daily_report.view')}
             onOpenReport={(id) => setSelectedId(id)}
           />
