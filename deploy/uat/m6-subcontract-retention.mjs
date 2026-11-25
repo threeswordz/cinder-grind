@@ -42,8 +42,10 @@ export function verifyM6SubcontractRetention(before, after, filesBefore, filesAf
   const claimLinks = oldLinks.filter(r => r.value.entity_type === 'SUBCONTRACT_CLAIM' && claimIds.has(r.value.entity_id));
   requireCheck(claimLinks.length > 0, 'M6_PA_CLAIM_EVIDENCE_REQUIRED');
   const documentIds = new Set(claimLinks.map(r => r.value.document_id));
-  // Compare all links of each historical evidence file, including generic aliases.
-  exact(oldLinks.filter(r => documentIds.has(r.value.document_id)), newLinks.filter(r => documentIds.has(r.value.document_id)));
+  // Protect both historical evidence aliases and the complete link set of each old claim.
+  const related = r => documentIds.has(r.value.document_id) ||
+    (r.value.entity_type === 'SUBCONTRACT_CLAIM' && claimIds.has(r.value.entity_id));
+  exact(oldLinks.filter(related), newLinks.filter(related));
   const oldDocs = rows(before, 'documents').filter(r => documentIds.has(r.value.id));
   const newDocs = rows(after, 'documents').filter(r => documentIds.has(r.value.id));
   requireCheck(oldDocs.length === documentIds.size && new Set(oldDocs.map(r => r.value.id)).size === documentIds.size, 'M6_PA_EVIDENCE_METADATA_MISSING');
