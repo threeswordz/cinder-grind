@@ -12,6 +12,11 @@ import {materialUomMigrations} from './material-uom-schema-contract.mjs';
 import {materialUomEffectMigration} from './material-uom-effect-schema-contract.mjs';
 import {stageCMigrations} from './material-uom-stage-c-schema-contract.mjs';
 import {fm02Mode} from './fm02-schema-contract.mjs';
+import {pm02Mode,pm02Migrations} from './pm02-schema-preparation.mjs';
+import {purchasingMode,purchasingEvidenceKeys} from './purchasing-release-mode.mjs';
+import {pur01Migration} from './pur01-schema-preparation.mjs';
+import {pur04Migration} from './pur04-schema-preparation.mjs';
+import {pur07Migration,pur12Migration} from './purchasing-successor-schema-preparation.mjs';
 import {classifySchema} from './schema-contract.mjs';
 import {execFileSync} from 'node:child_process';
 
@@ -46,6 +51,8 @@ const fixture=(name,tail,predecessor)=>({
  version:20,
  releaseMode:prefix+tail,
  rehearsal:{
+  version:20,
+  releaseMode:prefix+tail,
   previousReleaseCommit:predecessor,
   migrationNames,
   ...Object.fromEntries(gates.map(key=>[key,'PASS'])),
@@ -67,8 +74,12 @@ function runInline(block,data){
 test('seven real inline evidence checks remain covered by FM02-aware normalization',()=>{
   assert.equal(blocks.length,7,'A newly added inline evidence consumer needs explicit preflight coverage');
   assert.equal(entries.length,7);
-  assert.equal([...yaml.matchAll(/fm02Mode\(data\.releaseMode\)/g)].length,7);
-  for(const block of blocks)assert.match(block,/fm02Mode\(data\.releaseMode\)/);
+  // All seven real consumers must peel purchasing and PM02 before FM02.
+  for(const block of blocks){
+    assert.match(block,/fm02Mode\(/);
+    assert.match(block,/pm02Mode\(/);
+    assert.match(block,/(?:assertPurchasingEvidence\(data\.rehearsal\)|purchasingMode\(data\.releaseMode\))/);
+  }
 });
 
 for(const [name,tail,predecessor] of entries){
@@ -96,20 +107,42 @@ for(const [name,tail,predecessor] of entries){
   });
 }
 
-test('real Git predecessor schemas retain their exact FM02 version-20 inline acceptance paths',()=>{
+test('real Git predecessor schemas retain exact FM02 paths inside version-25 layered receipts',()=>{
   const candidateSchema=readFileSync(new URL('../../apps/api/prisma/schema.prisma',import.meta.url),'utf8');
   for(const [name,tail,predecessor] of entries){
     const source=execFileSync('git',['show',predecessor+':apps/api/prisma/schema.prisma'],
       {cwd:root,encoding:'utf8'});
     const actualMode=classifySchema(source,candidateSchema);
-    assert.equal(fm02Mode(actualMode).present,true,
-      'FM02 outer mode absent in actual source delta: '+name);
+    const purchasing=purchasingMode(actualMode);
+    const pm02=pm02Mode(purchasing.prior);
+    assert.deepEqual([purchasing.pur07,purchasing.pur12,purchasing.pur01,purchasing.pur04,pm02.present],[true,true,true,true,true],
+      'Current candidate must preserve every exact purchasing/PM02 layer: '+name);
+    assert.equal(purchasing.version,25);
+    assert.equal(pm02.prior,prefix+tail,'Historical FM02 and earlier mode must remain exact: '+name);
+    assert.equal(fm02Mode(pm02.prior).present,true);
     const data=fixture(name,tail,predecessor);
+    data.version=25;
     data.releaseMode=actualMode;
+    Object.assign(data.rehearsal,{
+      version:25,releaseMode:actualMode,
+      migrationNames:[...new Set([...migrationNames,...Object.keys(pm02Migrations),pur04Migration,pur01Migration,pur12Migration,pur07Migration])],
+      pm02HistoricalPreservation:'PASS',pm02PairedRecovery:'PASS',pm02ExternalHrKeyAndDocumentRecovery:'PASS',
+      ...Object.fromEntries(['pur04','pur01','pur12','pur07'].flatMap(layer=>purchasingEvidenceKeys.map(key=>[layer+key,'PASS']))),
+    });
     const block=blocks.find(text=>text.includes('/tmp/'+name+'-consolidated-evidence.json'));
     assert.ok(block,'Missing inline block '+name);
     const outcome=runInline(block,data);
     assert.equal(outcome.status,0,
       'ACTUAL predecessor '+name+' mode '+actualMode+' rejected: '+String(outcome.stderr||outcome.error));
+    const wrong=structuredClone(data);wrong.rehearsal.previousReleaseCommit='0'.repeat(40);
+    assert.notEqual(runInline(block,wrong).status,0,'Wrong predecessor accepted: '+name);
+    if(name==='material-uom'){
+      for(const key of ['pm02HistoricalPreservation','fm02HistoricalPreservation',...['pur04','pur01','pur12','pur07'].flatMap(layer=>purchasingEvidenceKeys.map(suffix=>layer+suffix))]){
+        const missing=structuredClone(data);delete missing.rehearsal[key];
+        assert.notEqual(runInline(block,missing).status,0,'Missing layered receipt accepted: '+key);
+      }
+      const wrongVersion=structuredClone(data);wrongVersion.rehearsal.version=24;
+      assert.notEqual(runInline(block,wrongVersion).status,0,'Wrong nested version accepted');
+    }
   }
 });

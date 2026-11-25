@@ -1,3 +1,4 @@
+import {projectPrePurchasingTestSchema} from './historical-schema-test-projection.mjs';
 import {stripFm02Schema} from './fm02-schema-contract.mjs';
 import {stripMaterialUomStageCSchema} from './material-uom-stage-c-schema-contract.mjs';
 import {stripMaterialUomEffectSchema} from './material-uom-effect-schema-contract.mjs';
@@ -11,7 +12,7 @@ import { classifySchema } from './schema-contract.mjs';
 import { physicalMigrations, physicalMode, physicalTables, stripPhysicalSchema } from './subcontract-physical-schema-contract.mjs';
 import { physicalCatalog, verifyPhysicalCatalog } from './subcontract-physical-catalog-contract.mjs';
 import { assertHistoricalTables } from './historical-snapshot.mjs';
-const current = stripMaterialUomSchema(stripMaterialUomEffectSchema(stripMaterialUomStageCSchema(stripFm02Schema(readFileSync(new URL('../../apps/api/prisma/schema.prisma',import.meta.url),'utf8')).text).text).text).text;
+const current = stripMaterialUomSchema(stripMaterialUomEffectSchema(stripMaterialUomStageCSchema(stripFm02Schema(projectPrePurchasingTestSchema(readFileSync(new URL('../../apps/api/prisma/schema.prisma',import.meta.url),'utf8'))).text).text).text).text;
 const previous = execFileSync('git', ['show', '97db9151b1059e5f134529deb25b78fc714fa683:apps/api/prisma/schema.prisma'], { encoding: 'utf8' });
 
 test('DEC-048 admits exactly six additive facts and preserves all prior canonical models', () => {

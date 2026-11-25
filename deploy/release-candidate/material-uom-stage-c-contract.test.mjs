@@ -1,3 +1,4 @@
+import {projectPrePurchasingTestSchema} from './historical-schema-test-projection.mjs';
 import {stripFm02Schema} from './fm02-schema-contract.mjs';
 import {assertHistoricalTables} from './historical-snapshot.mjs';
 import {createHash} from 'node:crypto';
@@ -8,7 +9,7 @@ import {execFileSync} from 'node:child_process';
 import {stripMaterialUomStageCSchema,materialUomStageCMode,stageCMigrations,stageCTables} from './material-uom-stage-c-schema-contract.mjs';
 import {classifySchema} from './schema-contract.mjs';
 
-const schema=stripFm02Schema(readFileSync(new URL('../../apps/api/prisma/schema.prisma',import.meta.url),'utf8')).text;
+const schema=stripFm02Schema(projectPrePurchasingTestSchema(readFileSync(new URL('../../apps/api/prisma/schema.prisma',import.meta.url),'utf8'))).text;
 const before=execFileSync('git',['show','bd84f5d188b34ce3017ae42a2c88859d4162240f:apps/api/prisma/schema.prisma'],{encoding:'utf8'});
 
 test('DEC-050 C admits only three exact immutable models/relations and preserves all B business fields',()=>{
