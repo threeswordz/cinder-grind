@@ -47,12 +47,11 @@ test('schema classification rejects unrelated/removal/required/defaulted/partial
 });
 
 test('Customer BOQ classifier admits only the exact five new models and parent relations', async () => {
-  const { readFileSync } = await import('node:fs');
+  const { execFileSync } = await import('node:child_process');
   const current = stripHrDocumentSchema(stripHrSchema(stripStockCountSchema(
     stripMaterialRequestSchema(stripMaterialPlanSchema(stripPlanIssueSchema(stripSiteIssueSchema(stripReceivingSchema(stripMaterialUomSchema(stripMaterialUomEffectSchema(stripMaterialUomStageCSchema(stripFm02Schema(stripPm02Schema(execFileSync('git',['show','05e64e24eb8d5b0864c360109bcdc570eae9134a:apps/api/prisma/schema.prisma'],{encoding:'utf8'})).text).text).text).text).text).text).text).text).text).text,
   ).text).text).text;
   // The real predecessor schema, independently stored by Git, is the baseline.
-  const { execFileSync } = await import('node:child_process');
   const baseline = execFileSync('git', ['show', 'fc52a867c96a8b3a369b480b9799bad1a5e9f399:apps/api/prisma/schema.prisma'], { encoding: 'utf8' });
   assert.equal(classifySchema(baseline, current), 'migration-aware-customer-boq-schema');
   for (const invalid of [
