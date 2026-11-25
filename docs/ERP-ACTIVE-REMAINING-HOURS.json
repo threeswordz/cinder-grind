@@ -1871,6 +1871,28 @@
       "sourceSha": "f9b4feadf1b0641621a489082c2ca2224df789cd",
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-04-003",
+      "date": "2026-11-25",
+      "packageId": "M4-04",
+      "kind": "PUR01_NATIVE_BOUNDED_COMPARISON_PASS_RECOVERY_PREPARATION",
+      "beforeHours": 7,
+      "afterHours": 6,
+      "reductionHours": 1,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 1,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45541823895",
+        "https://github.com/threeswordz/cinder-grind/commit/b6159797267ce1aa5bf2153c4cb568917725bcbf",
+        "https://github.com/threeswordz/cinder-grind/commit/beef1ff3f1c1a72f626ca73f611768ac677096cc",
+        "https://github.com/threeswordz/cinder-grind/commit/cde0237679608074da07f7ef32f611c9ea158d77",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45542817519"
+      ],
+      "basis": "PUR01 exact bounded candidate b6159797, workflow-only child d8d6ff13, 45541823895 job138961914550 SUCCESS15/15 and 23/23 tests. Native two/three suppliers, incomplete quote denial, exception and independent Ben approval; transactional PUR01 final comparison audit and PM02 actual supplier deactivation rollback markers verified. Provisional −1h future bounded integration/actor verification eliminated, not actual labor. New exact one-column migration/historical guard and composable PUR01/PUR04/PM02 preparation (beef1ff3) plus populated witness (cde02376) retaining all existing commercial values, review metadata and checksums; separate disposable predecessor restore workflow child03d36427 run45542817519 in_progress. No additional credit before outcome. Global purchasing admission remains closed, full historical/paired Documents/key integration outstanding, no independent review, retained grant, main or Production.",
+      "sourceSha": "b6159797267ce1aa5bf2153c4cb568917725bcbf",
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -1893,6 +1915,6 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1813,
-  "currentRollingTotalSemantics": "1813h provisional future work = 1847h baseline minus 43h evidence-backed package forecast reductions plus 9h separately priced supplier scope. M4 83h; M4-05 6h; formal acceptance unchanged."
+  "currentRollingTotalAfterPricedGapsHours": 1812,
+  "currentRollingTotalSemantics": "1812h provisional future work = 1847h baseline minus 44h evidence-backed package forecast reductions plus 9h separately priced supplier scope. M4 82h; M4-04 6h, M4-05 6h; formal acceptance unchanged."
 }
