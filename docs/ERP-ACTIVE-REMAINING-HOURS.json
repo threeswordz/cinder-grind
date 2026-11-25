@@ -4340,6 +4340,27 @@
       "verifiedCompletedScopeHours": 0,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261126-M4-08-114",
+      "date": "2026-11-26",
+      "packageId": "M4-08",
+      "kind": "M4_DOWNSTREAM_STANDALONE_CHROMIUM_AND_ARTIFACT_CUSTODY_PASS",
+      "beforeHours": 0.5,
+      "afterHours": 0.5,
+      "sourceSha": "82df55d423aedebf13a642861dc64e30919bad52",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45679086031/job/139434478201",
+        "https://github.com/threeswordz/cinder-grind/commit/82df55d423aedebf13a642861dc64e30919bad52",
+        "https://github.com/threeswordz/cinder-grind/pull/455"
+      ],
+      "basis": "Hosted targeted job 139434478201 passed 21/21. Its actual checkout was the exact fixture-only application commit 82df55d. Logs include both exact populated predecessor preservation markers, six real Chromium journey passes (receiving, FM03, transfer, subcontract, UOM definition and UOM plan), artifact byte equality and drift denial, and the exact targeted receipt. Draft #455 was fast-forwarded to the validated source only. This clears the newly observed compatibility defect and missing targeted proof without retiring the original M4 integration and acceptance allocation.",
+      "blocker": "Exact independent DEC-022, required exact full PR validation with specific Owner authority, and separately governed Ready/merge and retained technical acceptance remain.",
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
