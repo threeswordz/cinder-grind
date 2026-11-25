@@ -1505,5 +1505,32 @@
     },
     "evidence": "https://github.com/threeswordz/cinder-grind/actions/runs/45659322375/job/139364626348",
     "limit": "Focused push-only CI. Earlier equivalent contract checks and six new arithmetic tests already credited; no new forecast deduction. Not operational browser, full CI or retained acceptance."
-  }
+  },
+  "retainedRegisterPreparation": {
+    "path": "docs/M4-2026-11-26-RETAINED-UAT-EXECUTION-REGISTER.csv",
+    "source": "0994594e8ab1fd40d972ade9f463a7cca6e0be32",
+    "priorBlob": "28b45766aecfb0cfb20cceee367a7b7819969752",
+    "matchedCanonicalFiles": [
+      {
+        "path": "docs/M4-2026-11-25-112-CONSOLIDATED-EVIDENCE.csv",
+        "sha": "c3a1cf58546aff1a53f136e513e479e55c637f63"
+      },
+      {
+        "path": "docs/M4-2026-11-25-112-EFFECTIVE-M4-GATES.csv",
+        "sha": "dec0ad01a54aee69a671290a3e74b7105eae3f1d"
+      },
+      {
+        "path": "docs/M4-2026-11-25-112-OWNER-DISPOSITIONS.csv",
+        "sha": "7fc814657437e5ca7154ce22532b4445b2258573"
+      }
+    ],
+    "uniqueIds": 112,
+    "personas": 8,
+    "boundedPending": 70,
+    "deferred": 42,
+    "formalAccepted": 0,
+    "actualEvidenceFieldsPopulated": 0,
+    "onlyChangedColumn": "candidate_sha_at_preparation"
+  },
+  "operationalBrowserExecutionHandoff": "docs/M4-2026-11-26-OPERATIONAL-BROWSER-EXECUTION-HANDOFF.md"
 }
