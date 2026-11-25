@@ -1547,10 +1547,15 @@
   "pending": [
     {
       "scope": "Full release CI",
-      "status": "BLOCKED_SPECIFIC_OWNER_AUTHORIZATION_AFTER_REVIEW",
+      "status": "OWNER_AUTHORIZED_ATTEMPT2_RUNNING",
       "exactRun": 45668782780,
       "head": "457e9c48727b5038f4277bb4f9a547c9843f22b7",
-      "previousAuthorizationConsumed": true
+      "previousAuthorizationConsumed": true,
+      "attempt": 2,
+      "authorization": "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7170301748",
+      "job": 139404649730,
+      "productionDeploymentPack": "PASS_STEP_OBSERVED",
+      "conclusionAtObservation": null
     },
     {
       "scope": "Retained eight-persona acceptance",
@@ -1600,7 +1605,7 @@
   },
   "retainedRegisterPreparation": {
     "path": "docs/M4-2026-11-26-RETAINED-UAT-EXECUTION-REGISTER.csv",
-    "source": "0994594e8ab1fd40d972ade9f463a7cca6e0be32",
+    "source": "457e9c48727b5038f4277bb4f9a547c9843f22b7",
     "priorBlob": "28b45766aecfb0cfb20cceee367a7b7819969752",
     "matchedCanonicalFiles": [
       {
@@ -1623,9 +1628,11 @@
     "formalAccepted": 0,
     "actualEvidenceFieldsPopulated": 0,
     "onlyChangedColumn": "candidate_sha_at_preparation",
-    "sourceAtPreparation": "0994594e8ab1fd40d972ade9f463a7cca6e0be32",
+    "sourceAtPreparation": "457e9c48727b5038f4277bb4f9a547c9843f22b7",
     "currentCandidate": "457e9c48727b5038f4277bb4f9a547c9843f22b7",
-    "sourceRebindPending": true
+    "sourceRebindPending": false,
+    "priorRegisterBlob": "ae2766a37303ccf2ea948435ca603ff8569613a3",
+    "previousPreparationSource": "0994594e8ab1fd40d972ade9f463a7cca6e0be32"
   },
   "operationalBrowserExecutionHandoff": "docs/M4-2026-11-26-OPERATIONAL-BROWSER-EXECUTION-HANDOFF.md",
   "operationalBrowserValidation": {
@@ -1676,6 +1683,14 @@
       "attempt": 1,
       "status": "DRAFT_FOCUSED_ONLY"
     },
-    "forecastCredit": 0
+    "forecastCredit": 0,
+    "linuxDeploymentPack": {
+      "source": "457e9c48727b5038f4277bb4f9a547c9843f22b7",
+      "run": 45668782780,
+      "attempt": 2,
+      "job": 139404649730,
+      "status": "PASS_STEP_OBSERVED",
+      "note": "Step conclusion success, exact test count awaits terminal logs. No full CI pass inferred."
+    }
   }
 }
