@@ -112,14 +112,16 @@
 
 > **PUR14 controlled missing-origin correction:** [1e79492](https://github.com/threeswordz/cinder-grind/commit/1e79492b3ee914e8de5a78d8a259a1a0431c2051) guards missing/foreign/unlinked original receiving line before querying a UUID column and adds native expected conflict/no-audit-change regression. Exact committed source excerpt executed with mocked query: five cases PASS (four rejected without DB lookup; valid scoped material query unchanged). Native PostgreSQL/TypeScript execution still pending. Retire 0.5h existing supplier source-preparation allowance only: PUR08/PUR14 7→6.5h, M4 41→40.5h, ERP 1,771→1,770.5h. No policy change or formal acceptance.
 
+> **PUR01 exact quote and UOM validation:** [622c087](https://github.com/threeswordz/cinder-grind/commit/622c087a302f3632bbc5cfa98551b166ba130714) rejects invalid stored commercial values, invalid/duplicate RFQ demand, wrong-UOM or invalid quantity offers, and requires exact selected quotation line and UOM in submission/final approval. Six existing threshold examples + 15 source-derived checks PASS with mocked Decimal/exception classes; five committed service wiring anchors verified. Actual Decimal/TypeScript/PG execution pending; no policy threshold change. Retire 0.5h source preparation only: M4-04 5→4.5h, M4 40.5→40h, ERP 1,770.5→1,770h.
+
 ## Headline
 | Metric | Current | Meaning |
 |---|---:|---|
-| **Estimated full ERP work still needed** | **1,770.5h → 0h** | Includes latest newly priced mandatory gaps |
+| **Estimated full ERP work still needed** | **1,770h → 0h** | Includes latest newly priced mandatory gaps |
 | 23 Nov original current-work forecast | 1847h | Earlier 60-package provisional baseline |
-| Additional estimated future-work eliminated | −83h | M4-01 −25h, M4-02 −6h, M4-03 −5h, M4-04 −3h, M4-05 −3h, M4-06 −6h, M4-07 −3h, M4-08 −32h, **not timesheet** |
+| Additional estimated future-work eliminated | −83.5h | M4-01 −25h, M4-02 −6h, M4-03 −5h, M4-04 −3.5h, M4-05 −3h, M4-06 −6h, M4-07 −3h, M4-08 −32h, **not timesheet** |
 | Newly discovered previously unpriced PUR08/PUR14 work | +6.5h | Net **remaining** after real signed damaged-custody Chrome/native proof, no automatic Finance/AP/stock effect |
-| Net reforecast change versus 1,847h | −76.5h | More honest scope recognition; not schedule recovery |
+| Net reforecast change versus 1,847h | −77h | More honest scope recognition; not schedule recovery |
 | PUR08/PUR14 provisional work before new development | 51h | Low-confidence new-gap gross estimate |
 | PUR08/PUR14 estimated future work eliminated through verified development | 44.5h | Verified role/tenant source, posted GR/reversal warning and signed DAMAGED outward custody; only future-work forecast, not logged hours |
 | PUR08/PUR14 remaining | **6.5h** | Signed unposted DAMAGED custody implemented, posted stock needs separately approved canonical reversal; real supplier credit/AP is separate Finance module, SHORT/WRONG/EXCESS stay evidence-only, retained named-role UAT and independent review pending |
@@ -131,13 +133,13 @@
 | Whole baseline packages formally accepted | 0/60 | 8 M4 packages still 0/8 |
 | Actual productive hours logged | UNKNOWN | Cannot infer from GitHub commits or AI conversation length |
 
-**Why the number rose:** the earlier 1,845h omitted a separate confirmed PUR08/PUR14 implementation budget. New source plus corrected source-backed tests reduced that *newly priced* work from a provisional 51h gross to 6.5h remaining, but the original 60-package forecast excluded that additional work. Thus **1,847h − 25h M4-01 − 6h M4-02 − 5h M4-03 − 3h M4-04 − 3h M4-05 − 6h M4-06 − 3h M4-07 − 32h M4-08 + 6.5h supplier = 1,770.5h**. Supplier gross estimate 51h includes newly discovered handover defect +1h, verified fix −1h, with 44.5h of future work eliminated. This prevents a false countdown and requires a real reduction in remaining work at each future step. It does **not** represent actual human hours worked or formal acceptance.
+**Why the number rose:** the earlier 1,845h omitted a separate confirmed PUR08/PUR14 implementation budget. New source plus corrected source-backed tests reduced that *newly priced* work from a provisional 51h gross to 6.5h remaining, but the original 60-package forecast excluded that additional work. Thus **1,847h − 25h M4-01 − 6h M4-02 − 5h M4-03 − 3.5h M4-04 − 3h M4-05 − 6h M4-06 − 3h M4-07 − 32h M4-08 + 6.5h supplier = 1,770h**. Supplier gross estimate 51h includes newly discovered handover defect +1h, verified fix −1h, with 44.5h of future work eliminated. This prevents a false countdown and requires a real reduction in remaining work at each future step. It does **not** represent actual human hours worked or formal acceptance.
 
 ## Stage-by-stage remaining work
 
 | Stage | Previous 60-package baseline | Verified package forecast reduction | Additional scope remaining | **Now remaining** | Accepted baseline packages |
 |---|---:|---:|---:|---:|---:|
-| Prototype 5/8 — M4 closure | 117h | 83h | 6.5h | **40.5h** | 0/8 |
+| Prototype 5/8 — M4 closure | 117h | 83.5h | 6.5h | **40h** | 0/8 |
 | Prototype 6/8 — end-to-end deployment | 120h | 0h | 0h | **120h** | 0/5 |
 | Prototype 7/8 — populated restore | 50h | 0h | 0h | **50h** | 0/3 |
 | Prototype 8/8 — technical freeze | 65h | 0h | 0h | **65h** | 0/3 |
@@ -149,7 +151,7 @@
 | Production hosting and recovery | 110h | 0h | 0h | **110h** | 0/5 |
 | Migration and onboarding | 110h | 0h | 0h | **110h** | 0/4 |
 | Final human UAT, cutover and Production | 150h | 0h | 0h | **150h** | 0/5 |
-| **Full ERP** | **1847h** | **83h** | **6.5h** | **1,770.5h** | **0/60** |
+| **Full ERP** | **1847h** | **83.5h** | **6.5h** | **1,770h** | **0/60** |
 
 ## Each baseline package
 
@@ -158,7 +160,7 @@
 | M4-01 | M4 | Current-source and all-112 evidence/scope decisions | 32h | **7h** |
 | M4-02 | M4 | PM02 real browser and retained-role authorization | 8h | **2h** |
 | M4-03 | M4 | FM01, BEN04 and PM16 real-browser acceptance | 10h | **5h** |
-| M4-04 | M4 | PUR01 whole-PO supplier-count and commercial rule | 8h | **5h** |
+| M4-04 | M4 | PUR01 whole-PO supplier-count and commercial rule | 8h | **4.5h** |
 | M4-05 | M4 | PUR04 core PO commercial/delivery fields | 9h | **6h** |
 | M4-06 | M4 | PUR07 supplier-name PO PDF and manual dispatch evidence | 10h | **4h** |
 | M4-07 | M4 | PUR12 K-/T- company PO document identity | 6h | **3h** |
