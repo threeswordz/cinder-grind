@@ -649,6 +649,73 @@ test('PUR10 native: real approved PO, independent named Jai/Khaimook/Ben, atomic
     assert.equal(await prisma.goodsReceipt.count({where:{purchaseOrderId:linked.po.id}}),0);
     assert.equal(await prisma.supplierInvoiceItem.count({where:{purchaseOrderLineId:{in:linked.po.lines.map(l=>l.id)}}}),0);
     console.log('PUR10_PUR08_CANCELLED_SOURCE_HISTORY_AND_WRITE_DENIAL_PASS');
+
+    // Deterministically hold the real canonical cancellation transaction
+    // after its PO update but before commit. A competing supplier report
+    // must wait on the same row, then reject its now-stale snapshot.
+    const collision=await reviewedExceptionOrder('SUPPLIER-CANCEL-RACE');
+    const raceDispatch=await prisma.poDispatchEvent.create({data:{companyId:company.id,projectId:project.id,purchaseOrderId:collision.po.id,kind:'DISPATCH',channel:'EMAIL',recipient:'supplier@example.invalid',evidenceReference:'Synthetic race dispatch',recordedByUserId:jai.user.id}});
+    const raceAck=await prisma.poDispatchEvent.create({data:{companyId:company.id,projectId:project.id,purchaseOrderId:collision.po.id,kind:'ACKNOWLEDGMENT',channel:'EMAIL',recipient:'supplier@example.invalid',evidenceReference:'Synthetic race acknowledgment',acknowledgesEventId:raceDispatch.id,recordedByUserId:jai.user.id}});
+    const raceEvent=await supplierCases.transition({auth:buyer},collision.po.id,{
+      action:'ACKNOWLEDGE',expectedVersion:0,expectedPreviousEventId:null,evidenceDocumentId:doc.id,
+      note:'Reported supplier acknowledgment',recordedPoAcknowledgmentEventId:raceAck.id,
+    });
+    let enter!:()=>void;
+    let release!:()=>void;
+    const entered=new Promise<void>(resolve=>{enter=resolve;});
+    const held=new Promise<void>(resolve=>{release=resolve;});
+    const originalCancel=orders.cancelForReviewedCase.bind(orders);
+    orders.cancelForReviewedCase=async (...args:Parameters<typeof orders.cancelForReviewedCase>)=>{
+      const actual=await originalCancel(...args);
+      enter();
+      await held;
+      return actual;
+    };
+    const finalizing=Promise.allSettled([cases.finalize({auth:benAuth},collision.po.id,3,collision.case.expectedPreviousEventId,finalArgs)]);
+    let reporting:Promise<PromiseSettledResult<Awaited<ReturnType<typeof supplierCases.transition>>>[]>|undefined;
+    let waited=false;
+    let timeout:ReturnType<typeof setTimeout>|undefined;
+    try {
+      await Promise.race([
+        entered,
+        finalizing.then(()=>{throw new Error('Cancellation ended before the deterministic hold');}),
+        new Promise<never>((_,reject)=>{timeout=setTimeout(()=>reject(new Error('Canonical cancellation did not reach hold')),3000);}),
+      ]);
+      reporting=Promise.allSettled([supplierCases.transition({auth:buyer},collision.po.id,{
+        action:'REPORT_DELAY',expectedVersion:1,expectedPreviousEventId:raceEvent.expectedPreviousEventId,
+        evidenceDocumentId:doc.id,note:'Competing supplier report',newSupplierExpectedDate:'2026-12-09',
+      })]);
+      for(let attempt=0;attempt<40;attempt++){
+        const rows=await prisma.$queryRaw<Array<{waiting:boolean}>>(Prisma.sql`
+          SELECT EXISTS(
+            SELECT 1 FROM pg_stat_activity
+            WHERE datname=current_database() AND pid<>pg_backend_pid()
+              AND wait_event_type='Lock' AND query LIKE '%purchase_orders%'
+              AND query LIKE '%FOR UPDATE%'
+          ) AS waiting
+        `);
+        if(rows[0]?.waiting){waited=true;break;}
+        await new Promise(resolve=>setTimeout(resolve,35));
+      }
+    } finally {
+      if(timeout)clearTimeout(timeout);
+      release();
+      orders.cancelForReviewedCase=originalCancel;
+    }
+    const [finished]=await finalizing;
+    assert.ok(reporting,'Actual competing supplier transition started');
+    const [reported]=await reporting;
+    assert.equal(waited,true,'Supplier transition must have waited on the actual locked PO row');
+    assert.ok(finished?.status==='fulfilled'&&finished.value.poCancelled,'Actual cancellation committed');
+    assert.ok(reported?.status==='rejected'&&reported.reason instanceof ConflictException&&
+      (reported.reason.getResponse() as {code?:string}).code==='SUPPLIER_CASE_CONCURRENT_SOURCE_CHANGE',
+      'Losing supplier report must return a controlled conflict');
+    assert.equal((await supplierCases.read(buyer,collision.po.id)).case?.version,1);
+    assert.equal(await prisma.auditLog.count({where:{companyId:company.id,entityType:'SUPPLIER_DELIVERY_CASE',entityId:collision.po.id}}),1);
+    assert.equal(await prisma.goodsReceipt.count({where:{purchaseOrderId:collision.po.id}}),0);
+    assert.equal(await prisma.supplierInvoiceItem.count({where:{purchaseOrderLineId:{in:collision.po.lines.map(l=>l.id)}}}),0);
+    console.log('PUR10_PUR08_DETERMINISTIC_CANCELLATION_SUPPLIER_ROW_LOCK_PASS');
+
     console.log('M4_PUR10_REAL_PG_ATOMIC_FINALIZATION_AND_REPLAY_PASS');
   } finally {
     await prisma.$disconnect();

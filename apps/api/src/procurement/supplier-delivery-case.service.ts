@@ -263,7 +263,8 @@ export class SupplierDeliveryCaseService {
         (input.supplierSignatory !== undefined && typeof input.supplierSignatory !== 'string') ||
         (input.supplierSignatureConfirmed !== undefined && typeof input.supplierSignatureConfirmed !== 'boolean'))
       return invalid('SUPPLIER_CASE_INVALID_INPUT');
-    return this.prisma.$transaction(async tx => {
+    try {
+      return await this.prisma.$transaction(async tx => {
       // Same-Company PO-specific serialization: simultaneous Store/Jai/PM actions
       // cannot both insert a "next" event from a stale version.
       await tx.$executeRawUnsafe('SELECT pg_advisory_xact_lock(hashtext($1))',
@@ -271,6 +272,17 @@ export class SupplierDeliveryCaseService {
       const actor = await this.actor(context.auth, tx);
       const scoped = { ...context.auth, roleCodes: actor.roleCodes, permissions: actor.permissions };
       const order = await this.order(scoped, orderId, tx);
+      // The canonical PUR10 finalizer locks and updates this exact PO row.
+      // A serializable supplier transaction that began before cancellation
+      // must not append a new report from its older snapshot after that
+      // cancellation commits. No PO field is modified by this read lock.
+      const locked = await tx.$queryRaw<Array<{id: string}>>(Prisma.sql`
+        SELECT "id" FROM "purchase_orders"
+        WHERE "id" = ${orderId}::uuid
+          AND "company_id" = ${order.companyId}::uuid
+        FOR UPDATE
+      `);
+      if (locked.length !== 1) throw new NotFoundException({ code: 'SUPPLIER_CASE_PO_NOT_FOUND' });
       const current = await this.history(order.companyId, orderId, tx);
       if (current.eventId !== input.expectedPreviousEventId)
         return conflict('SUPPLIER_CASE_STALE_EVENT');
@@ -584,6 +596,14 @@ export class SupplierDeliveryCaseService {
         stockEffect: false, financeEffect: false,
         supplierNoticeSent: false,
       };
-    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+      }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError &&
+          (error.code === 'P2034' ||
+           (error.code === 'P2010' && ['40001', '40P01'].includes(String(error.meta?.code))))) {
+        return conflict('SUPPLIER_CASE_CONCURRENT_SOURCE_CHANGE');
+      }
+      throw error;
+    }
   }
 }
