@@ -1,0 +1,28 @@
+name: PM02 historical columns focused
+on:
+  push:
+    branches: [ci-m4-pm02-historical-columns-20261125]
+permissions:
+  contents: read
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+      - name: Verify exact source and workflow-only delta
+        run: |
+          test "$(git rev-parse HEAD^)" = 300d04545d20d165efe862c2f492832e3b48d0b8
+          test "$(git diff --name-only HEAD^ HEAD)" = .github/workflows/m4-pm02-historical-columns.yml
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.21.0
+      - name: Validate modified witness syntax
+        run: |
+          for file in receiving-predecessor site-issue-predecessor legacy-fixture hr-upgrade pm02-historical-columns; do
+            node --check "deploy/release-candidate/$file.mjs"
+          done
+      - name: Check historical preservation and schema contracts
+        run: node --test deploy/release-candidate/pm02-historical-columns.test.mjs deploy/release-candidate/schema-contract.test.mjs deploy/release-candidate/pm02-schema-preparation.test.mjs
