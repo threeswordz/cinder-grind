@@ -3140,6 +3140,25 @@
       "sourceSha": "138ea662094dc50556b1389f0c8144298b9bfcb4",
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-08-049",
+      "date": "2026-11-25",
+      "packageId": "M4-08",
+      "kind": "OPERATIONAL_BROWSER_SCOPE_READINESS_AND_PERSISTED_ACTOR_WITNESS_STAGED",
+      "beforeHours": 5,
+      "afterHours": 5,
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/commit/33f301ad9967c3b94cda8b3a12542be5855a1c9c",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45572709802"
+      ],
+      "basis": "Operational browser skipped in earlier combined run. Isolated test-only source corrects dependent MUI control readiness (unique enabled selectors and committed option, selected tab), authenticates exact synthetic Company/role, adds real persisted Nancy schedule author/version, PM09 independent reviewer/original maker/source document, and SS13 four distinct actual actors/version/no posting readback. One changed file verified. No execution initiated: fixture requires independent source review first; four push-only run IDs still unavailable. No production change or hour credit.",
+      "sourceSha": "33f301ad9967c3b94cda8b3a12542be5855a1c9c",
+      "formalAcceptance": false,
+      "estimateConfidence": "NO_ADDITIONAL_HOURS_CREDIT"
     }
   ],
   "unestimatedWork": [
