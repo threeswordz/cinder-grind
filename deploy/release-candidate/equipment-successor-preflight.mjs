@@ -4,7 +4,8 @@ export const predecessor='a8e1f688617b5c54656467c61923b6d8e4039007';
 export const migrationRoot='apps/api/prisma/migrations/';
 export const expected=Object.freeze({
  [migrationRoot+'20261124023000_ss11_equipment_custody/migration.sql']:'ce16f51eae3d597de431d5b890b70fc17fc63944',
- [migrationRoot+'20261124221500_jai_asset_register/migration.sql']:'8d730d5aebf75d98b9e47fd502a69242e951e56e'
+ [migrationRoot+'20261124221500_jai_asset_register/migration.sql']:'8d730d5aebf75d98b9e47fd502a69242e951e56e',
+ [migrationRoot+'20261125103100_ss11_thailand_custody_db_date/migration.sql']:'738aa01e59d883ae4a6165bedc08e221ce340cc1'
 });
 export function assertEquipmentSuccessor(before,after,previousSchema,candidateSchema){
  if(typeof previousSchema!=='string'||!previousSchema||previousSchema!==candidateSchema)
