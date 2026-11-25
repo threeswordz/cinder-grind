@@ -1,16 +1,18 @@
 # Construction ERP — live countdown to 0 hours
 
 <!-- current-work-m4 -->
-**M4 10.5h → 0h · M6 112.5h → 0h · M7 50h → 0h · M8 65h → 0h · combined prototype 238h → 0h · Full ERP 1,733h → 0h.** Exact 0994594e independent Codex review clean, Owner Mac and focused CI PASS, actual operational browser SUCCESS17/17. Exact full CI requires specific Owner authority; retained acceptance and integration outstanding.
+**M4 10.5h → 0h · M6 112.5h → 0h · M7 50h → 0h · M8 65h → 0h · combined prototype 238h → 0h · Full ERP 1,733h → 0h.**
+
+[Targeted run 45677053448](https://github.com/threeswordz/cinder-grind/actions/runs/45677053448/job/139427255388) passed 15/15 steps and 16 receiving/UOM contracts. It ran the actual API and Chromium on disposable PostgreSQL 17.11. The populated receiving workflow passed the PO submission that stopped the previous full run. Transfer continuation, subcontract and converted UOM passed downstream. [Candidate f9d32c59](https://github.com/threeswordz/cinder-grind/commit/f9d32c5924f8ebd91930694a2156743a7c686785) was checked through its [workflow-only successor d9871089](https://github.com/threeswordz/cinder-grind/commit/d9871089027bee1d868e6fe58a2b53e91194bef6). Final integration and formal acceptance remain open. The earlier [operational browser proof](https://github.com/threeswordz/cinder-grind/actions/runs/45665277240/job/139385661182) remains recorded.
 
 | Forecast reconciliation | Hours |
 |---|---:|
-| Previous reported ERP forecast | 1,733.5 |
+| Previous reported ERP forecast | 1,733 |
 | Newly identified mandatory scope | +0 |
-| Verified remaining-effort reduction | −0.5 |
+| Verified remaining-effort reduction | −0 |
 | Revised remaining ERP forecast | **1,733** |
 
-Prototype 4/8 · Go-live 3/10 · Deadline 31 December 2026.
+Prototype 4/8 · Go-live 3/10 · M4 formal packages 0/8 · Deadline 31 December 2026.
 <!-- /current-work-m4 -->
 
 > **Updated 25 November 2026, Asia/Singapore.** Owner hard deadline: **31 December 2026**, **all 112 requirements**, eight real roles and Production. **Delivery feasibility RED** (zero other engineers). Evidence-backed forecast, **not** actual hours worked or formal acceptance. This file and the JSON are on an isolated documentation branch, not protected main.

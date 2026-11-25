@@ -4298,6 +4298,27 @@
       "verifiedCompletedScopeHours": 0.5,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261126-M4-08-112",
+      "date": "2026-11-26",
+      "packageId": "M4-08",
+      "kind": "M4_RECEIVING_COMMERCIAL_COMPATIBILITY_TARGETED_NATIVE_PASS",
+      "beforeHours": 0.5,
+      "afterHours": 0.5,
+      "sourceSha": "f9d32c5924f8ebd91930694a2156743a7c686785",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45677053448/job/139427255388",
+        "https://github.com/threeswordz/cinder-grind/commit/f9d32c5924f8ebd91930694a2156743a7c686785",
+        "https://github.com/threeswordz/cinder-grind/compare/f9d32c5924f8ebd91930694a2156743a7c686785...d9871089027bee1d868e6fe58a2b53e91194bef6"
+      ],
+      "basis": "GitHub job 139427255388 passed 15/15 steps and 16 receiving/UOM contracts on PostgreSQL 17.11, actual API and Chromium. Workflow-only checkout d9871089 differs from the candidate solely in its isolated trigger/job configuration. The previous full failure at canonical receiving PO submit was cleared. Logs prove receiving, transfer continuation, subcontract and converted UOM downstream journeys on the same synthetic populated state. The forecast has no separately priced receiving regression allowance and the 0.5h integration exit remains open. This is bounded candidate proof; independent DEC-022, exact full PR validation and authorized integration are outstanding.",
+      "blocker": "Standalone downstream and historical prerequisites must be reconciled with this proof. Exact independent review, specifically authorized full validation and governed integration remain.",
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
