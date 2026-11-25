@@ -2135,6 +2135,28 @@
       "sourceSha": "40727a1e8c629a3152e9f6abe8491cc3b894d611",
       "formalAcceptance": false,
       "estimateConfidence": "NO_ADDITIONAL_HOURS_CREDIT"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-06-005",
+      "date": "2026-11-25",
+      "packageId": "M4-06",
+      "kind": "PUR07_BOUNDED_NATIVE_PDF_DISPATCH_PASS",
+      "beforeHours": 8,
+      "afterHours": 7,
+      "reductionHours": 1,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 1,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45554735611",
+        "https://github.com/threeswordz/cinder-grind/commit/f77a26abe7cb98e324e7d5ddb2f8d90b9d83de67",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45554899467",
+        "https://github.com/threeswordz/cinder-grind/commit/dcd6aa9088df5917345bceca076f404107c29643",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45555039796"
+      ],
+      "basis": "Exact rebased PUR07 source f77a26ab, workflow child577379bd, 45554735611 job139003944398 SUCCESS16/16 and 8/8 native/unit tests. Actual server Chromium searchable Thai A4 54073 bytes, real approvedPdf fallback, SHA/filename and native reported send/ack immutable scope marker verified. Provisional −1h new-lineage integrated verification only; previous historical PDF and authorization evidence not credited again. Successor preservation contract 45554899467 failed before checkout resolving prior action SHA; no test execution. Corrected workflow-only child dcd6aa90 uses upstream verified checkout v6.0.2 de0fac2e and setup-node v6.3.0 53b83947, source unchanged, run45555039796 completed. No native populated preservation or global successor release admission proof; human visual and actual retained actors, deployed host font/sandbox, independent review remain. No actual outbound transmission or formal acceptance.",
+      "sourceSha": "f77a26abe7cb98e324e7d5ddb2f8d90b9d83de67",
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -2157,6 +2179,6 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1809,
-  "currentRollingTotalSemantics": "1809h provisional future work = 1847h baseline minus 47h evidence-backed package forecast reductions plus 9h separately priced supplier scope. M4 79h; M4-07 4h, M4-06 8h, M4-08 24h; formal acceptance unchanged."
+  "currentRollingTotalAfterPricedGapsHours": 1808,
+  "currentRollingTotalSemantics": "1808h provisional future work = 1847h baseline minus 48h evidence-backed package forecast reductions plus 9h separately priced supplier scope. M4 78h; M4-06 7h, M4-07 4h, M4-08 24h; formal acceptance unchanged."
 }
