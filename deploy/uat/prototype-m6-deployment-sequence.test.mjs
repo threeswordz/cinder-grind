@@ -6,10 +6,12 @@ const rel='d9a1613f96cc164824a077528d6f8374ac6361c0';
 const inputs=()=>({sourceSha:src,releaseSha:rel,isolatedSynthetic:true,productionConnected:false,exactMainReleased:true,
  independentlyReviewed:true,requiredReleaseProofSatisfied:true,priorUomReceiptVerified:true,
  originalMacCustodyVerified:true,noActiveSessions:true,authorizedForOneShot:true,noPriorM6Attempt:true});
+const hrProof=()=>({encryptedAtRestVerified:true,privateNoStoreDownloadVerified:true,maskedHistoryVerified:true,sessionsRevoked:true});
+const preserveProof=()=>({historicalSubcontractRowsPreserved:true,protectedSubcontractEvidencePreserved:true,originalPopulatedDumpPreserved:true,previousHrKeysAndUploadsIntact:true,protectedHrEncryptedFileVerified:true,oldHistoricalSnapshotPreserved:true});
 function fake(){const seen=[],adapter={claim:async()=>{seen.push('claim');return {claimed:true,releaseSha:rel,newlyCreated:true};},
  readOnlyPreflight:async()=>({sourceSha:src,releaseSha:rel,historicalReceiptsPreserved:true,snapshotDigestMatched:true,runtimeOwned:true}),
  recordPhase:async(name)=>seen.push('record:'+name)};
- for(const name of M6_ORDER)adapter[name]=async()=>{seen.push(name);return {ok:true,releaseSha:rel};};
+ for(const name of M6_ORDER)adapter[name]=async()=>{seen.push(name);return {ok:true,releaseSha:rel,...(name==='hr'?{proof:hrProof()}:name==='preserve'?preserveProof():{})};};
  return {seen,adapter};}
 test('denies premature, unauthorized, production and reused execution before claiming',async()=>{
  for(const [key,value] of [['exactMainReleased',false],['independentlyReviewed',false],['requiredReleaseProofSatisfied',false],
@@ -48,4 +50,18 @@ test('ambiguous claim cannot mutate anything',async()=>{
  const f=fake();f.adapter.claim=async()=>{f.seen.push('claim');return {claimed:false,releaseSha:rel};};
  await assert.rejects(executeOneShotM6({inputs:inputs(),adapter:f.adapter}),
   /M6_CREATE_ONCE_CLAIM_NOT_PROVEN/);assert.deepEqual(f.seen,['claim']);
+});
+test('missing or false HR proof prevents BOQ and seal',async()=>{
+ for(const key of Object.keys(hrProof())) for(const value of [undefined,false,'true']){
+  const f=fake();f.adapter.hr=async()=>({ok:true,releaseSha:rel,proof:{...hrProof(),[key]:value}});
+  await assert.rejects(executeOneShotM6({inputs:inputs(),adapter:f.adapter}),e=>e.cause?.safeCode==='M6_HR_PRIVACY_PROOF_REQUIRED');
+  assert.equal(f.seen.includes('record:hr'),false);assert.equal(f.seen.includes('boq'),false);assert.equal(f.seen.includes('seal'),false);
+ }
+});
+test('missing or false final preservation proof prevents sealing',async()=>{
+ for(const key of Object.keys(preserveProof())) for(const value of [undefined,false,'true']){
+  const f=fake();f.adapter.preserve=async()=>({ok:true,releaseSha:rel,...preserveProof(),[key]:value});
+  await assert.rejects(executeOneShotM6({inputs:inputs(),adapter:f.adapter}),e=>e.cause?.safeCode==='M6_FINAL_PRESERVATION_PROOF_REQUIRED');
+  assert.equal(f.seen.includes('record:preserve'),false);assert.equal(f.seen.includes('seal'),false);
+ }
 });

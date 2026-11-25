@@ -76,7 +76,8 @@ export function createM6BusinessStages({releaseSha,db,binding,priorUomReceipt,
       const result=await hrJourney({client,actors,fixture,source,api:API,web:WEB});
       need(proved(result,'M6_ENCRYPTED_HR_ATTACHMENT_HTTP_VERIFIED')&&
         result.syntheticAttachmentId&&result.syntheticEmployeeId===source.employeeId&&
-        result.uploadAndAuthorizedPlaintextReadbackVerified===true,
+        result.uploadAndAuthorizedPlaintextReadbackVerified===true&&
+        result.privateNoStoreDownloadVerified===true&&result.maskedHistoryVerified===true,
         'M6_HR_AUTHENTICATED_PROOF_INCOMPLETE');
       // HTTP decryption alone is NOT encryption-at-rest proof: examine the
       // specific encrypted target row/blob with the original private HR keys.
@@ -88,7 +89,9 @@ export function createM6BusinessStages({releaseSha,db,binding,priorUomReceipt,
         sealed?.ciphertextAtRestVerified===true&&
         sealed?.plaintextNotStored===true,'M6_HR_ENCRYPTED_CUSTODY_UNVERIFIED');
       hrDone=true;
-      return wrap({status:result.status,encryptedAtRestVerified:true});
+      return wrap({status:result.status,encryptedAtRestVerified:sealed.ciphertextAtRestVerified,
+        privateNoStoreDownloadVerified:result.privateNoStoreDownloadVerified,
+        maskedHistoryVerified:result.maskedHistoryVerified,sessionsRevoked:result.sessionsRevoked});
     },
     async boq({authority}){
       check(authority);need(hrDone,'M6_BOQ_SEQUENCE_INVALID');
