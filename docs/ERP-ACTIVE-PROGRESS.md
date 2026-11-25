@@ -7,6 +7,8 @@
 
 [Candidate 82df55d](https://github.com/threeswordz/cinder-grind/commit/82df55d423aedebf13a642861dc64e30919bad52) fixes the receiving and FM03 standalone predecessor fixtures. Both exact populated PostgreSQL 17.11 upgrades passed locally with historical rows and grants preserved. [Focused hosted run 45679086031](https://github.com/threeswordz/cinder-grind/actions/runs/45679086031/job/139434478201) passed 21/21, including both populated predecessor upgrades, artifact custody and all six standalone Chromium checks. [Draft #455](https://github.com/threeswordz/cinder-grind/pull/455) now points to exact tested source 82df55d. [Independent DEC-022 review](https://github.com/threeswordz/cinder-grind/pull/455#issuecomment-7171622451) is clean on the exact head. The Owner authorized one [full PR rerun, attempt 2](https://github.com/threeswordz/cinder-grind/actions/runs/45679767315/attempts/2). Full execution, retained readiness and governed integration remain. The [forecast validator](https://github.com/threeswordz/cinder-grind/commit/4d677537b100a99359fdc9e3ce41523a4a9383d9) now replays the existing half-hour and supplier events and reports formal acceptance separately.
 
+[Retained readback preparation](https://github.com/threeswordz/cinder-grind/commit/0f09d3319df60a4427e68a3410a9b0eea8430182) names the exact reviewed source and keeps all 112 requirement IDs, all six approved boundaries and blank actual-result fields. Retained readback still requires a confirmed non-Production target and scoped access.
+
 | Forecast reconciliation | Hours |
 |---|---:|
 | Previous reported ERP forecast | 1,733 |

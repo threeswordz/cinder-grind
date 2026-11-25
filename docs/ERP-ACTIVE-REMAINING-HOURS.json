@@ -4382,6 +4382,27 @@
       "verifiedCompletedScopeHours": 0,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261126-M4-01-116",
+      "date": "2026-11-26",
+      "packageId": "M4-01",
+      "kind": "M4_112_REQUIREMENTS_AND_RETAINED_READBACK_PREPARATION_VERIFIED",
+      "beforeHours": 0.5,
+      "afterHours": 0.5,
+      "sourceSha": "82df55d423aedebf13a642861dc64e30919bad52",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/commit/0f09d3319df60a4427e68a3410a9b0eea8430182",
+        "https://github.com/threeswordz/cinder-grind/pull/455#issuecomment-7171622451",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45665277240/job/139385661182"
+      ],
+      "basis": "Exact frozen 112 IDs and persona mappings reconciled across three candidate CSVs. Six approved boundaries and 42 future cases retained. The existing retained register rebinds only candidate_sha_at_preparation across all 112 rows and keeps 70 bounded cases, all actual-result fields blank and every formal NO. The rehearsal evidence and DEC-042 deferral are preserved. Verified the remote CSV byte match and parsed every old/new field. Preparation does not retire the M4-01 retained configuration/readback allocation.",
+      "blocker": "Actual deployed target identity and separately authorized retained-role readback are required. Full human UAT follows the frozen non-Production prototype under DEC-042.",
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
