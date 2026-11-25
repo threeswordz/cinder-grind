@@ -1,3 +1,4 @@
+import {assertPurchasingEvidence} from './purchasing-release-mode.mjs';
 import {pm02Mode,pm02Migrations} from './pm02-schema-preparation.mjs';
 import {fm02Mode} from './fm02-schema-contract.mjs';
 import {materialUomStageCMode,stageCMigrations} from './material-uom-stage-c-schema-contract.mjs';
@@ -40,7 +41,8 @@ if (rehearsal.releaseCommit !== expected || recovery.releaseCommit !== expected)
   fail('evidence release SHA does not match the exact workflow commit');
 }
 
-const {present:pm02Schema,prior:beforePm02}=pm02Mode(rehearsal.releaseMode);
+const purchasing=assertPurchasingEvidence(rehearsal);
+const {present:pm02Schema,prior:beforePm02}=pm02Mode(purchasing.prior);
 const {present:fm02Schema,prior:beforeFm02}=fm02Mode(beforePm02);
 const {present:materialUomStageCSchema,prior:beforeStageC}=materialUomStageCMode(beforeFm02);
 const {present:materialUomEffectSchema,prior:beforeEffect}=materialUomEffectMode(beforeStageC);
@@ -69,7 +71,7 @@ if (['migration-aware-sql-only', 'migration-aware-thb-schema', 'migration-aware-
   const customerSchema = ['migration-aware-customer-boq-schema','migration-aware-hr-customer-boq-schema'].includes(historicalMode);
   const hrSchema = ['migration-aware-hr-schema','migration-aware-hr-customer-boq-schema'].includes(historicalMode);
   const schemaAware = rehearsal.releaseMode !== 'migration-aware-sql-only';
-  if (rehearsal.version !== (pm02Schema ? 21 : fm02Schema ? 20 : materialUomStageCSchema ? 19 : materialUomEffectSchema ? 18 : materialUomSchema ? 17 : physicalSchema ? 16 : transferSchema ? 15 : receivingSchema ? 14 : siteIssueSchema ? 13 : planIssueSchema ? 12 : materialPlanSchema ? 11 : materialRequestSchema ? 10 : stockCountSchema ? 9 : hrDocumentSchema ? 8 : hrSchema ? (customerSchema ? 7 : 6) : customerSchema ? 5 : schemaAware ? 4 : 3)) fail('migration-aware rehearsal evidence schema version does not match its mode');
+  if (rehearsal.version !== (purchasing.version ?? (pm02Schema ? 21 : fm02Schema ? 20 : materialUomStageCSchema ? 19 : materialUomEffectSchema ? 18 : materialUomSchema ? 17 : physicalSchema ? 16 : transferSchema ? 15 : receivingSchema ? 14 : siteIssueSchema ? 13 : planIssueSchema ? 12 : materialPlanSchema ? 11 : materialRequestSchema ? 10 : stockCountSchema ? 9 : hrDocumentSchema ? 8 : hrSchema ? (customerSchema ? 7 : 6) : customerSchema ? 5 : schemaAware ? 4 : 3))) fail('migration-aware rehearsal evidence schema version does not match its mode');
   if (schemaAware) {
     if (!/^[0-9a-f]{40}$/.test(rehearsal.previousReleaseCommit ?? '') ||
         rehearsal.previousRuntimeCommit !== rehearsal.previousReleaseCommit) {
@@ -148,7 +150,7 @@ if (['migration-aware-sql-only', 'migration-aware-thb-schema', 'migration-aware-
         if (rehearsal[key] !== 'PASS') fail('Stock-count upgrade proof ' + key + ' did not PASS');
       }
     }
-    if ((!customerSchema && !hrSchema && !stockCountSchema && !materialRequestSchema && !materialPlanSchema && !planIssueSchema && !siteIssueSchema && !receivingSchema && !transferSchema && !physicalSchema && !materialUomSchema && !materialUomEffectSchema && !materialUomStageCSchema && !fm02Schema && !pm02Schema) ||
+    if ((!customerSchema && !hrSchema && !stockCountSchema && !materialRequestSchema && !materialPlanSchema && !planIssueSchema && !siteIssueSchema && !receivingSchema && !transferSchema && !physicalSchema && !materialUomSchema && !materialUomEffectSchema && !materialUomStageCSchema && !fm02Schema && !pm02Schema && !purchasing.version) ||
         rehearsal.migrationNames?.some((name) => name.endsWith('_v1_2_thb_monetary_policy'))) {
       for (const key of ['genuineLegacySgdNullFixture', 'historicalRowsUnchanged']) {
         if (rehearsal[key] !== 'PASS') fail('historical migration proof ' + key + ' did not PASS');
@@ -224,7 +226,7 @@ if (['migration-aware-sql-only', 'migration-aware-thb-schema', 'migration-aware-
   }
 
   const migrationConsolidated = {
-    version: pm02Schema ? 21 : fm02Schema ? 20 : materialUomStageCSchema ? 19 : materialUomEffectSchema ? 18 : materialUomSchema ? 17 : physicalSchema ? 16 : transferSchema ? 15 : receivingSchema ? 14 : siteIssueSchema ? 13 : planIssueSchema ? 12 : materialPlanSchema ? 11 : materialRequestSchema ? 10 : stockCountSchema ? 9 : hrDocumentSchema ? 8 : customerSchema ? 5 : schemaAware ? 4 : 3,
+    version: purchasing.version ?? (pm02Schema ? 21 : fm02Schema ? 20 : materialUomStageCSchema ? 19 : materialUomEffectSchema ? 18 : materialUomSchema ? 17 : physicalSchema ? 16 : transferSchema ? 15 : receivingSchema ? 14 : siteIssueSchema ? 13 : planIssueSchema ? 12 : materialPlanSchema ? 11 : materialRequestSchema ? 10 : stockCountSchema ? 9 : hrDocumentSchema ? 8 : customerSchema ? 5 : schemaAware ? 4 : 3),
     releaseMode: rehearsal.releaseMode,
     releaseCommit: expected,
     provenance: {
