@@ -3864,6 +3864,25 @@
       "verifiedCompletedScopeHours": 1,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-06-088",
+      "date": "2026-11-25",
+      "packageId": "M4-06",
+      "kind": "PUR07_ACTUAL_RENDERER_PIPE_CLOSE_RECOVERY_AND_BOUNDED_FAILURE_PASS",
+      "beforeHours": 2,
+      "afterHours": 1,
+      "sourceSha": "280760321e5958035443721eb208dc090e614d93",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45620748696/job/139227915361",
+        "https://github.com/threeswordz/cinder-grind/pull/455"
+      ],
+      "basis": "Exact 28076032 with workflow-only child 309ed17a SUCCESS15/15: controlled process exit caused real renderer pipe close; retry spawned a fresh Chromium profile and produced a real searchable Thai PDF, both profiles removed; double failure refused without third attempt; invalid input spawned zero processes and subsequent rendering recovered. Retire 1h distinct transport-retry and cleanup assurance, not prior PDF/browser success. Independent review and retained target host/font evidence remain. Draft #455 pinned same head/base on guarded v-* branch; review requested once, no Ready/full rerun/merge. Draft preparation no additional forecast credit.",
+      "reductionHours": 1,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 1,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -3886,6 +3905,6 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1750,
-  "currentRollingTotalSemantics": "1750h = 1847h baseline minus 100.5h verified baseline forecast reduction plus 3.5h remaining supplier scope. M4 20h. All 112 requirements preserved. Actual labor unmeasured."
+  "currentRollingTotalAfterPricedGapsHours": 1749,
+  "currentRollingTotalSemantics": "1749h = 1847h baseline minus 101.5h verified baseline forecast reduction plus 3.5h remaining supplier scope. M4 19h. All 112 requirements preserved. Actual labor unmeasured."
 }
