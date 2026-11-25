@@ -3295,6 +3295,25 @@
       "sourceSha": "3fd716ad37fb664beccedba1cb86681164a0e3af",
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-08-057",
+      "date": "2026-11-25",
+      "packageId": "M4-08",
+      "kind": "SS11_EQUIPMENT_HISTORICAL_CONSUMER_AND_RECEIPT_PREPARATION_VERIFIED",
+      "beforeHours": 4,
+      "afterHours": 3,
+      "reductionHours": 1,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 1,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/commit/4ddca02ad99ece8f099ed73dbdc249c60f664bf0",
+        "https://github.com/threeswordz/cinder-grind/commit/5ec8a0b4d0bc04f650b4c8db8df0b88cb7c589c4"
+      ],
+      "basis": "Seven-path isolated source increment: exact migration checksum and ungranted permission catalog validation, strict new empty-table preservation, wiring into legacy and HR historical consumers, fail-closed equipment-specific release receipt checker, negative tests. Node22.16.0 four local test groups PASS; three source/test dependency Git blobs independently match committed GitHub blobs. Full historical-consumer integration, native PG and receipt producer remain unverified/not implemented; no global release admission. Main verified unchanged, candidate 75 ahead/0 behind, 193 paths. Retire 1h estimated bounded contract preparation, not acceptance or actual timesheet. No grants, full CI, merge or Production.",
+      "sourceSha": "4ddca02ad99ece8f099ed73dbdc249c60f664bf0",
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -3317,6 +3336,6 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1773,
-  "currentRollingTotalSemantics": "1773h provisional full ERP = 1847h baseline minus 81h net forecast effort retired plus 7h newly priced supplier work. M4 43h: M4-01 7h, M4-02 2h, M4-03 5h, M4-04 5h, M4-05 6h, M4-06 4h, M4-07 3h, M4-08 4h, supplier 7h. SS11 three-migration preflight and recovery source preparation verified; actual PG/recovery/global admission and independent review pending. All 112 requirements preserved."
+  "currentRollingTotalAfterPricedGapsHours": 1772,
+  "currentRollingTotalSemantics": "1772h provisional full ERP = 1847h baseline minus 82h net forecast effort retired plus 7h newly priced supplier work. M4 42h: M4-01 7h, M4-02 2h, M4-03 5h, M4-04 5h, M4-05 6h, M4-06 4h, M4-07 3h, M4-08 3h, supplier 7h. Historical contract preparation locally tested; actual integrated historical/PG/recovery, receipt producer and independent review pending. All 112 requirements preserved."
 }
