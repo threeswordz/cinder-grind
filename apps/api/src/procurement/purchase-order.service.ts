@@ -1702,6 +1702,8 @@ export class PurchaseOrderService {
       lines: Array<{
         rfqLineId: string;
         supplierQuotationId: string;
+        supplierQuotationLineId: string;
+        uomId: string;
         quantity: Prisma.Decimal;
         amount: Prisma.Decimal;
       }>;
@@ -1740,11 +1742,13 @@ export class PurchaseOrderService {
         supplierQuotationId: { in: selectedQuotationIds },
         rfqLineId: { in: order.lines.map((line) => line.rfqLineId) },
       },
-      select: { supplierQuotationId: true, rfqLineId: true, quantity: true },
+      select: { id: true, supplierQuotationId: true, rfqLineId: true, uomId: true, quantity: true },
     });
     if (order.lines.some((line) => !selectedOfferLines.some(
-      (offer) => offer.supplierQuotationId === line.supplierQuotationId &&
-        offer.rfqLineId === line.rfqLineId && offer.quantity.gte(line.quantity),
+      (offer) => offer.id === line.supplierQuotationLineId &&
+        offer.supplierQuotationId === line.supplierQuotationId &&
+        offer.rfqLineId === line.rfqLineId && offer.uomId === line.uomId &&
+        offer.quantity.isFinite() && offer.quantity.gte(line.quantity),
     ))) {
       throw new ConflictException({
         code: 'PO_SELECTED_QUOTE_QUANTITY_INCOMPLETE',
@@ -1764,6 +1768,7 @@ export class PurchaseOrderService {
       },
       select: {
         rfqLineId: true,
+        uomId: true,
         quantity: true,
         supplierQuotation: { select: { supplierId: true } },
       },
@@ -1772,6 +1777,7 @@ export class PurchaseOrderService {
       order.lines,
       offers.map((offer) => ({
         rfqLineId: offer.rfqLineId,
+        uomId: offer.uomId,
         supplierId: offer.supplierQuotation.supplierId,
         quantity: offer.quantity,
       })),
