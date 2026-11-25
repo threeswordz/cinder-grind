@@ -149,6 +149,14 @@ test('PUR14 native positive: source damaged line -> Store/PM/Jai -> later approv
       where: { companyId: f.company.id, entityType: 'SUPPLIER_DELIVERY_CASE', entityId: f.po.id },
     });
     assert.equal(supplierAuditBefore, 3);
+    // A syntactically valid but nonexistent origin must not reach a UUID
+    // query with an empty string or append a supplier-case event.
+    await expectCode(supplier.transition(ctx(store), f.po.id,
+      candidate({ originalReceivingDeliveryLineId: randomUUID() }) as never),
+    'SUPPLIER_CASE_REPLACEMENT_SOURCE_NOT_FOUND');
+    assert.equal(await db.auditLog.count({
+      where: { companyId: f.company.id, entityType: 'SUPPLIER_DELIVERY_CASE', entityId: f.po.id },
+    }), supplierAuditBefore);
     await expectCode(supplier.transition(ctx(store), f.po.id,
       candidate({ recordedGoodsReceiptId: randomUUID() }) as never),
     'SUPPLIER_CASE_REPLACEMENT_SOURCE_NOT_FOUND');
