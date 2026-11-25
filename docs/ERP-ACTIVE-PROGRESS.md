@@ -28,6 +28,8 @@
 
 > **PM02 integrated v25 browser verified:** [45562971888](https://github.com/threeswordz/cinder-grind/actions/runs/45562971888/job/139030848298) SUCCESS16/16, exact test-only b7ada888: mixed decisions, bypass denial, single maker correction, authenticated Nest/PG17/Chrome. M4-02 3→2h; M4 68→67h; ERP 1,798→1,797h. Retained named-role acceptance and independent review remain.
 
+> **BEN04/PM16 concurrent source correction:** [0219bec](https://github.com/threeswordz/cinder-grind/commit/0219becb9c5049c1042d068d985ee12412cb6987), exact main-derived two-file candidate maps Serializable P2034 to controlled 409 without replay, adds actual HTTP competing-revision/signature test. [Targeted run 45563492795](https://github.com/threeswordz/cinder-grind/actions/runs/45563492795) observed queued; M4-03 8h unchanged until evidence. No full CI or protected-main change.
+
 ## Headline
 | Metric | Current | Meaning |
 |---|---:|---|
