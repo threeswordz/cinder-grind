@@ -3973,6 +3973,24 @@
       "verifiedCompletedScopeHours": 1,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-02-094",
+      "date": "2026-11-25",
+      "packageId": "M4-02",
+      "kind": "PM02_ACTUAL_LIVE_PROJECT_PERMISSION_SESSION_REVOCATION_AND_CORRECTION_PASS",
+      "beforeHours": 2,
+      "afterHours": 1,
+      "sourceSha": "a631aa6623a1a3e430f210253cee0db6f750c226",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45623304729/job/139236843090"
+      ],
+      "basis": "Exact test-only source a631aa66, workflow-only child 5f31952c, actual HTTP/Nest/PG17 SUCCESS15/15: stale session, revoked Project membership and revoked approval grant denied atomically with no action or audit mutation; stale approval instance denied; renewed legitimate configured PM approves mixed line decisions, replay denied, Store correction copies only returned line and original stays immutable. Retire 1h distinct live authority evidence, not earlier browser or migration proof. Retained named role acceptance and independent review remain.",
+      "reductionHours": 1,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 1,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -3995,6 +4013,6 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1745.5,
-  "currentRollingTotalSemantics": "1745.5h = 1847h baseline minus 105h verified baseline forecast reduction plus 3.5h remaining supplier scope. M4 15.5h. All 112 requirements preserved. Actual labor unmeasured."
+  "currentRollingTotalAfterPricedGapsHours": 1744.5,
+  "currentRollingTotalSemantics": "1744.5h = 1847h baseline minus 106h verified baseline forecast reduction plus 3.5h remaining supplier scope. M4 14.5h. All 112 requirements preserved. Actual labor unmeasured."
 }
