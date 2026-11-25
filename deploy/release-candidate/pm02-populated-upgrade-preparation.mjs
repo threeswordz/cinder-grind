@@ -9,16 +9,16 @@ assert.equal(process.env.GITHUB_ACTIONS,'true');
 assert.equal(process.env.M4_NON_PRODUCTION_CONFIRMED,'YES');
 assert.ok(['localhost','127.0.0.1'].includes(target.hostname));
 assert.equal(target.port,'5432');
-assert.equal(target.pathname,'/erp_m4_pm02_upgrade');
 const [phase,manifest]=process.argv.slice(2);
-assert.ok(['before','after'].includes(phase)&&manifest);
+assert.equal(target.pathname,phase==='restored'?'/erp_m4_pm02_predecessor_restore':'/erp_m4_pm02_upgrade');
+assert.ok(['before','after','restored'].includes(phase)&&manifest);
 const requireApi=createRequire(new URL('../../apps/api/package.json',import.meta.url));
 const {PrismaClient}=requireApi('@prisma/client');
 const db=new PrismaClient();
 const columnTypes={review_decision:['character varying',20,null],review_reason:['text',null,null],reviewed_by_user_id:['uuid',null,null],reviewed_at:['timestamp with time zone',null,6],correction_source_line_id:['uuid',null,null]};
 try{
  const columns=await db.$queryRawUnsafe("SELECT column_name,data_type,character_maximum_length,datetime_precision,is_nullable,column_default FROM information_schema.columns WHERE table_schema='public' AND table_name='purchase_request_lines' AND column_name=ANY($1::text[]) ORDER BY column_name",pm02Columns);
- if(phase==='before')assert.deepEqual(columns,[]);
+ if(phase==='before'||phase==='restored')assert.deepEqual(columns,[]);
  else{
   assert.deepEqual(columns.map(c=>c.column_name).sort(),[...pm02Columns].sort());
   for(const c of columns){
@@ -53,6 +53,10 @@ try{
  if(phase==='before'){
   for(const name of Object.keys(pm02Migrations))assert.ok(!migrations.some(m=>m.migration_name===name));
   writeFileSync(manifest,JSON.stringify(snap),{mode:0o600,flag:'wx'});
+ }else if(phase==='restored'){
+  const before=JSON.parse(readFileSync(manifest,'utf8'));
+  assert.deepEqual(snap,before,'Restored predecessor rows, migrations and trigger attachments must match exactly');
+  console.log('PM02_PAIRED_PREDECESSOR_RESTORE_PASS tables='+Object.keys(tables).length+' PR_LINES='+tables.purchase_request_lines.count);
  }else{
   const before=JSON.parse(readFileSync(manifest,'utf8'));
   assert.deepEqual(tables,before.tables,'Every prior table row digest must match');
