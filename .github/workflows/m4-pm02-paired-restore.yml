@@ -1,0 +1,90 @@
+name: M4 PM02 paired predecessor recovery proof
+on:
+  push:
+    branches: [ci-m4-pm02-paired-restore-v3-20261125]
+    paths: ['.github/workflows/m4-pm02-paired-restore.yml']
+permissions:
+  contents: read
+jobs:
+  pm02-upgrade:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17.11-alpine
+        env:
+          POSTGRES_DB: erp_m4_pm02_upgrade
+          POSTGRES_USER: construction_erp
+          POSTGRES_PASSWORD: construction_erp_dev_only
+        ports: [5432:5432]
+        options: >-
+          --health-cmd "pg_isready -U construction_erp -d erp_m4_pm02_upgrade"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://construction_erp:construction_erp_dev_only@localhost:5432/erp_m4_pm02_upgrade?schema=public
+      M4_NON_PRODUCTION_CONFIRMED: 'YES'
+      NODE_ENV: test
+      PM02_PREDECESSOR: 040395bc7b0dedd40207f91f743bc2efc1584622
+      PM02_SOURCE: 51a7e875b08d73fb6f404231f8859bc122618949
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+      - name: Verify exact workflow-only child and local database
+        run: |
+          test "$(git rev-parse HEAD^)" = "$PM02_SOURCE"
+          test "$(git diff --name-only HEAD^ HEAD)" = '.github/workflows/m4-pm02-paired-restore.yml'
+          test "$DATABASE_URL" = 'postgresql://construction_erp:construction_erp_dev_only@localhost:5432/erp_m4_pm02_upgrade?schema=public'
+          test "$M4_NON_PRODUCTION_CONFIRMED" = YES
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
+        with:
+          version: 12.6.0
+          run_install: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.21.0
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - name: Strict additive schema and original migration blob proof
+        run: node --test deploy/release-candidate/pm02-schema-preparation.test.mjs
+      - name: Populate exact predecessor and prove all rows survive only two forward migrations
+        env:
+          PG_CONTAINER: ${{ job.services.postgres.id }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$(mktemp -d "$RUNNER_TEMP/pm02-upgrade.XXXXXX")"
+          trap 'git worktree remove --force "$root/previous" && rm -rf "$root"' EXIT
+          git worktree add --detach "$root/previous" "$PM02_PREDECESSOR"
+          (
+            cd "$root/previous"
+            test "$(git rev-parse HEAD)" = "$PM02_PREDECESSOR"
+            pnpm install --frozen-lockfile
+            pnpm prisma:generate
+            pnpm prisma:migrate:deploy
+            pnpm --filter @construction-erp/api build
+            # Existing native journeys are used solely to create real historical
+            # approved/rejected PR, PO, receipt, audit and stock fixture records.
+            node --test --test-concurrency=1 apps/api/dist/procurement/procurement.integration.spec.js apps/api/dist/procurement/purchase-order.integration.spec.js
+          )
+          pnpm install --frozen-lockfile
+          pnpm prisma:generate
+          node deploy/release-candidate/pm02-populated-upgrade-preparation.mjs before "$root/before.json"
+          test -n "$PG_CONTAINER"
+          # Same PG17 service supplies client binaries; backup before upgrade.
+          docker exec "$PG_CONTAINER" pg_dump -U construction_erp -Fc -d erp_m4_pm02_upgrade > "$root/predecessor.dump"
+          test -s "$root/predecessor.dump"
+          sha256sum "$root/predecessor.dump" > "$root/predecessor.sha256"
+          pnpm prisma:migrate:deploy
+          pnpm --filter @construction-erp/api exec prisma migrate status
+          node deploy/release-candidate/pm02-populated-upgrade-preparation.mjs after "$root/before.json"
+          sha256sum --check "$root/predecessor.sha256"
+          docker exec "$PG_CONTAINER" createdb -U construction_erp erp_m4_pm02_predecessor_restore
+          docker exec -i "$PG_CONTAINER" pg_restore --exit-on-error --no-owner --no-privileges -U construction_erp -d erp_m4_pm02_predecessor_restore < "$root/predecessor.dump"
+          DATABASE_URL='postgresql://construction_erp:construction_erp_dev_only@localhost:5432/erp_m4_pm02_predecessor_restore?schema=public' node deploy/release-candidate/pm02-populated-upgrade-preparation.mjs restored "$root/before.json"
+          # Confirm forward target remains intact after independent restore.
+          node deploy/release-candidate/pm02-populated-upgrade-preparation.mjs after "$root/before.json"
+      - name: Explicit scope boundary
+        run: echo 'PM02 populated upgrade and separate predecessor DB restore only; no document-store recovery, global rehearsal admission change, full CI, independent review, retained data, UAT or Production.'
