@@ -2674,6 +2674,46 @@
       "sourceSha": "df6b1c3e07f60bdd98dc9a004115fdc82bf26e2c",
       "formalAcceptance": false,
       "estimateConfidence": "NO_ADDITIONAL_HOURS_CREDIT"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-08-032",
+      "date": "2026-11-25",
+      "packageId": "M4-08",
+      "kind": "SS02_PM09_NANCY07_SS13_V25_INTEGRATED_PASS",
+      "beforeHours": 13,
+      "afterHours": 11,
+      "reductionHours": 2,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 2,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/commit/df6b1c3e07f60bdd98dc9a004115fdc82bf26e2c",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45571855671/job/139060175886"
+      ],
+      "basis": "Exact operational exception successor passes all 16 named steps, PG migrations, API/web compile, 12 material-code policy/native tests including canonical handoff/audit, 24 PM09/Nancy07/SS13 contract tests. Retire 2h provisional new-lineage integrated assurance only; operational exception native browser and retained human acceptance not claimed.",
+      "sourceSha": "df6b1c3e07f60bdd98dc9a004115fdc82bf26e2c",
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-03-012",
+      "date": "2026-11-25",
+      "packageId": "M4-03",
+      "kind": "FM01_EXACT_FULL_CI_SOURCE_INTEGRATION_STAGED",
+      "beforeHours": 7,
+      "afterHours": 7,
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/pull/452",
+        "https://github.com/threeswordz/cinder-grind/commit/f45139f9e4f20b2104314f8deb1cfea253c6ca34",
+        "https://github.com/threeswordz/cinder-grind/commit/7a337b76a80fd3baedf02042f29b5599a6afeae2",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45572035443"
+      ],
+      "basis": "12 exact FM01 source/test blobs from frozen full-CI-green PR452 carried onto isolated integrated exception successor; verified shared changed site-execution sources matched main before transplant. Newer closeout two-file concurrency safeguards retained. Focused contract and actual Chromium proof pending; no change to PR452 or main or independence gates. No credit until result.",
+      "sourceSha": "f45139f9e4f20b2104314f8deb1cfea253c6ca34",
+      "formalAcceptance": false,
+      "estimateConfidence": "NO_ADDITIONAL_HOURS_CREDIT"
     }
   ],
   "unestimatedWork": [
@@ -2696,6 +2736,6 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1789,
-  "currentRollingTotalSemantics": "1789h provisional future work = 1847h baseline minus 65h evidence-backed package forecast reductions plus 7h separately priced supplier scope. M4 59h; M4-06 4h; M4-08 13h; supplier 7h; formal acceptance unchanged."
+  "currentRollingTotalAfterPricedGapsHours": 1787,
+  "currentRollingTotalSemantics": "1787h provisional future work = 1847h baseline minus 67h evidence-backed package forecast reductions plus 7h separately priced supplier scope. M4 57h; M4-06 4h; M4-08 11h; supplier 7h; formal acceptance unchanged."
 }
