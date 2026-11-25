@@ -126,6 +126,27 @@ test('PUR04: nullable PO commercial draft fields, audit, and DB validation', asy
         (error.getResponse() as { code?: string }).code ===
           'PO_COMMERCIAL_PRECISION_INVALID',
     );
+    for (const [field, raw, code] of [
+      ['discountAmount', '-1', 'PO_COMMERCIAL_AMOUNT_INVALID'],
+      ['freightAmount', 'NaN', 'PO_COMMERCIAL_AMOUNT_INVALID'],
+      ['additionalChargeAmount', 'Infinity', 'PO_COMMERCIAL_AMOUNT_INVALID'],
+      ['discountAmount', '10000000000000000', 'PO_COMMERCIAL_AMOUNT_INVALID'],
+      ['vatRatePercent', '-1', 'PO_VAT_PERCENT_INVALID'],
+      ['vatRatePercent', 'NaN', 'PO_VAT_PERCENT_INVALID'],
+    ] as const) {
+      await assert.rejects(
+        () => service.updateOrder({ auth }, po.id, { [field]: new Prisma.Decimal(raw) }),
+        (error: unknown) => error instanceof UnprocessableEntityException &&
+          typeof error.getResponse() === 'object' &&
+          (error.getResponse() as { code?: string }).code === code,
+      );
+    }
+    const afterRejected = await prisma.purchaseOrder.findUniqueOrThrow({ where: { id: po.id } });
+    assert.equal(afterRejected.discountAmount?.toString(), '12.25');
+    assert.equal(afterRejected.freightAmount?.toString(), '3.5');
+    assert.equal(afterRejected.additionalChargeAmount?.toString(), '2.75');
+    assert.equal(afterRejected.vatRatePercent?.toString(), '7');
+    assert.equal(afterRejected.updatedAt.toISOString(), edited.updatedAt.toISOString());
     await assert.rejects(
       () => prisma.purchaseOrder.update({
         where: { id: po.id },
