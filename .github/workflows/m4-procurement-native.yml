@@ -1,0 +1,88 @@
+name: M4 procurement native and authenticated browser
+on:
+  push:
+    branches: [ci-m4-procurement-native-20261125]
+    paths: ['.github/workflows/m4-procurement-native.yml']
+permissions:
+  contents: read
+jobs:
+  procurement:
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    services:
+      postgres:
+        image: postgres:17.11-alpine
+        env:
+          POSTGRES_DB: erp_m4_pur07_auth_browser
+          POSTGRES_USER: construction_erp
+          POSTGRES_PASSWORD: construction_erp_dev_only
+        ports: [5432:5432]
+        options: >-
+          --health-cmd "pg_isready -U construction_erp -d erp_m4_pur07_auth_browser"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://construction_erp:construction_erp_dev_only@localhost:5432/erp_m4_pur07_auth_browser?schema=public
+      M4_NON_PRODUCTION_CONFIRMED: 'YES'
+      EXACT_SOURCE: 8cb3057b635bcd217de63a540e736166e61f3da1
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          fetch-depth: 2
+      - name: Verify exact source and disposable database
+        run: |
+          test "$(git rev-parse HEAD^)" = "$EXACT_SOURCE"
+          test "$(git diff --name-only HEAD^ HEAD)" = ".github/workflows/m4-procurement-native.yml"
+          test "${DATABASE_URL%%\?*}" = "postgresql://construction_erp:construction_erp_dev_only@localhost:5432/erp_m4_pur07_auth_browser"
+          git checkout --detach "$EXACT_SOURCE"
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
+        with:
+          version: 12.6.0
+          run_install: false
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
+        with:
+          node-version: 24.21.0
+      - run: pnpm install --frozen-lockfile
+      - name: Prepare disposable Thai font and PDF tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends fonts-noto-core poppler-utils fontconfig
+          command -v google-chrome || command -v chromium || command -v chromium-browser
+          node --check deploy/uat/m4-pur07-jai-ben-server-download-browser-native.mjs
+      - name: Migrate disposable PG17 and compile applications
+        id: build
+        run: |
+          pnpm prisma:generate
+          pnpm prisma:migrate:deploy
+          pnpm --filter @construction-erp/api build
+          pnpm --filter @construction-erp/web build
+      - name: Actual authenticated buyer and Ben browser on integrated v25 source
+        run: node deploy/uat/m4-pur07-jai-ben-server-download-browser-native.mjs
+      - name: Native Prisma Decimal, quote identity, PO fields and PDF policy
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        working-directory: apps/api
+        run: |
+          node --test --test-concurrency=1 dist/procurement/purchase-order-quote-policy.spec.js dist/procurement/purchase-order-identity.spec.js dist/procurement/purchase-order-pdf.spec.js dist/procurement/purchase-order-pur07-source-approval.spec.js dist/procurement/purchase-order-pur07-document-link.spec.js
+      - name: Disposable native commercial, identity and dispatch integration
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        env:
+          PGHOST: localhost
+          PGUSER: construction_erp
+          PGPASSWORD: construction_erp_dev_only
+        run: |
+          set -eu
+          status=0
+          for db in erp_m4_pur01_native erp_m4_pur04_native erp_m4_pur12_native erp_m4_pur07_native; do
+            createdb "$db"
+            export DATABASE_URL="postgresql://construction_erp:construction_erp_dev_only@localhost:5432/$db?schema=public"
+            pnpm prisma:migrate:deploy
+            case "$db" in
+              erp_m4_pur01_native) tests="purchase-order.pur01.integration.spec.js" ;;
+              erp_m4_pur04_native) tests="purchase-order.pur04.integration.spec.js purchase-order.pur04-revision.integration.spec.js" ;;
+              erp_m4_pur12_native) tests="purchase-order.pur12.integration.spec.js" ;;
+              erp_m4_pur07_native) tests="purchase-order.pur07.integration.spec.js" ;;
+            esac
+            (cd apps/api/dist/procurement && node --test --test-concurrency=1 $tests) || status=1
+          done
+          exit "$status"
