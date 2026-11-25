@@ -3,6 +3,7 @@
 // Uses dedicated HR-only endpoints. One isolated synthetic plaintext file,
 // canonical encrypted storage, authenticated raw-byte readback, no retries.
 import {randomUUID} from 'node:crypto';
+import {verifyM6HrHistory,verifyM6HrDownload} from './m6-hr-private-readback.mjs';
 
 const requireCheck=(ok,code)=>{if(!ok)throw Object.assign(new Error(code),{safeCode:code});};
 const uuid4=s=>typeof s==='string'&&/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(s);
@@ -36,10 +37,8 @@ export async function executeM6HrDocumentJourney({client,actors,fixture,source,
     const call=async(session,label,route,status)=>(await client.call(session,label,route,status)).value?.data;
     // Current state is read before the single write; unknown history is blocked.
     const initial=await call(koh,'M6_HR_PRIOR_HISTORY',path,200);
-    requireCheck(initial&&Array.isArray(initial.items)&&initial.items.length<100&&
-      initial.items.every(item=>uuid4(item.id)&&Number.isInteger(item.version))&&
-      (initial.items.at(-1)?.version??0)===source.expectedVersion,
-      'M6_HR_SOURCE_HISTORY_DRIFT');
+    try { verifyM6HrHistory(initial,source.expectedVersion); }
+    catch { requireCheck(false,'M6_HR_SOURCE_HISTORY_DRIFT'); }
     await client.call(store,'M6_HR_STORE_LIST_DENIED',path,403);
     await client.call(store,'M6_HR_STORE_FOREIGN_DENIED',
       '/hr/companies/'+fixture.foreignCompanyId+'/employees/'+source.employeeId+'/documents',403);
@@ -59,28 +58,20 @@ export async function executeM6HrDocumentJourney({client,actors,fixture,source,
     requireCheck(uuid4(receipt?.id)&&receipt?.version===source.expectedVersion+1,
       'M6_HR_UPLOAD_RECEIPT_INVALID');
     const history=await call(koh,'M6_HR_MASKED_HISTORY',path+'?after='+source.expectedVersion,200);
-    requireCheck(history&&Array.isArray(history.items)&&history.items.length===1&&
-      history.items[0]?.id===receipt.id&&history.items[0]?.version===receipt.version&&
-      Object.keys(history.items[0]).every(x=>['id','version','createdAt'].includes(x)),
-      'M6_HR_MASKED_HISTORY_INVALID');
+    verifyM6HrHistory(history,receipt.version,source.expectedVersion);
+    requireCheck(history.items[0]?.id===receipt.id,'M6_HR_MASKED_HISTORY_INVALID');
     const downloadPath=path+'/'+receipt.id+'/download';
     await client.call(store,'M6_HR_STORE_DOWNLOAD_DENIED',downloadPath,403);
     const downloaded=await fetchImpl(api+downloadPath,{method:'GET',redirect:'error',
       signal:AbortSignal.timeout(15000),headers:{Origin:web,Cookie:koh.cookie,
         Accept:'text/plain'}});
-    requireCheck(downloaded.status===200&&
-      downloaded.headers.get('content-type')?.toLowerCase().includes(MIME),
-      'M6_HR_AUTHORIZED_DOWNLOAD_DENIED');
-    const raw=Buffer.from(await downloaded.arrayBuffer());
-    requireCheck(raw.length<=MAX_RESPONSE_BYTES&&raw.equals(SYNTHETIC_BYTES),
-      'M6_HR_AUTHORIZED_BYTES_MISMATCH');
-    raw.fill(0);
+    await verifyM6HrDownload(downloaded,SYNTHETIC_BYTES);
     completion={status:'M6_ENCRYPTED_HR_ATTACHMENT_HTTP_VERIFIED',
       // Private Mac adapter must use this exact newly stored synthetic attachment
       // to prove encrypted-at-rest custody without exposing its bytes or key.
       syntheticAttachmentId:receipt.id,syntheticEmployeeId:source.employeeId,
       encryptedStorageProofRequiresPrivateInspection:true,
-      uploadAndAuthorizedPlaintextReadbackVerified:true,maskedHistoryVerified:true,
+      uploadAndAuthorizedPlaintextReadbackVerified:true,maskedHistoryVerified:true,privateNoStoreDownloadVerified:true,
       unauthorizedStoreListAndDownloadDenied:true,crossCompanyStoreDenied:true,
       hrActor:'KOH',syntheticOnly:true,productionAuthorized:false,
       hrPrivateDataPrinted:false,fullBusinessJourneysVerified:false,

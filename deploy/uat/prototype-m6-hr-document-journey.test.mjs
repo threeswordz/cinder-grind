@@ -36,7 +36,7 @@ function fake(failAt){
    return new Response(JSON.stringify({data:{id:uuid(7),version:1}}),{status:201});
   }
   return new Response(Buffer.from('CONSTRUCTION_ERP_SYNTHETIC_M6_ENCRYPTED_HR_FILE_PROOF_20261122\n'),
-    {status:200,headers:{'content-type':'text/plain'}});
+    {status:200,headers:{'content-type':'text/plain','cache-control':'private, no-store','x-content-type-options':'nosniff'}});
  };
  return {client,fetchImpl,calls,fetches,sessionLog};
 }
@@ -53,6 +53,7 @@ test('Koh upload + masked list + exact downloaded bytes, store denials, both ses
    fetchImpl:x.fetchImpl});
  assert.equal(result.status,'M6_ENCRYPTED_HR_ATTACHMENT_HTTP_VERIFIED');
  assert.equal(result.sessionsRevoked,true);
+ assert.equal(result.privateNoStoreDownloadVerified,true);
  assert.equal(result.macDeploymentVerified,false);
  assert.equal(result.encryptedStorageProofRequiresPrivateInspection,true);
  assert.equal(x.fetches.length,2);
