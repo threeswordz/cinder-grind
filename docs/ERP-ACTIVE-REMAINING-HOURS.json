@@ -3198,6 +3198,26 @@
       "sourceSha": "86e376af957788de15f1a7e315428cdd0d0299b2",
       "formalAcceptance": false,
       "estimateConfidence": "NO_ADDITIONAL_HOURS_CREDIT"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-08-052",
+      "date": "2026-11-25",
+      "packageId": "M4-08",
+      "kind": "PUR08_SUPPLIER_REPORT_VS_CANONICAL_PO_REVISION_NATIVE_COLLISION_TEST_STAGED",
+      "beforeHours": 5,
+      "afterHours": 5,
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/commit/23e83b600ac7d2d2ae0c93c2d374b55571a32a9a",
+        "https://github.com/threeswordz/cinder-grind/commit/e8af9392db825dd16d97bed2411f6a6fc129b88f",
+        "https://github.com/threeswordz/cinder-grind/commit/0084f1417260d26e975e92ac1072240ed747f7e8"
+      ],
+      "basis": "Single test-only path extends actual PG17 integrated PUR10 fixture with live revision-vs-supplier collision: hold real canonical orders.revise after its child PO and audit insert but before commit; compete supplier reported delay, demand actual lock wait, successful new immutable revision, controlled stale supplier conflict, one prior supplier event, no GR/AP creation. The canonical earlier cancellation-vs-revision proof did not cover supplier vs revision. Isolated latest source child preserves approved 112-row governance with one test path changed. Focused exact-head PG workflow committed, but push run result not returned; no claim of test success, no unpriced new implementation or hour reduction. If failing, correct source and document exact failure, not claim passing evidence.",
+      "sourceSha": "23e83b600ac7d2d2ae0c93c2d374b55571a32a9a",
+      "formalAcceptance": false,
+      "estimateConfidence": "NO_ADDITIONAL_HOURS_CREDIT"
     }
   ],
   "unestimatedWork": [
