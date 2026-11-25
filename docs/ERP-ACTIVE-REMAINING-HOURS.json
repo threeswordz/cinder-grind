@@ -2733,6 +2733,26 @@
       "sourceSha": "f45139f9e4f20b2104314f8deb1cfea253c6ca34",
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-06-011",
+      "date": "2026-11-25",
+      "packageId": "M4-06",
+      "kind": "PUR07_LATEST_CONSOLIDATED_DEEP_LINK_BROWSER_STAGED",
+      "beforeHours": 4,
+      "afterHours": 4,
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/commit/e29327df246570a432d7c61a6e9a4792205e341f",
+        "https://github.com/threeswordz/cinder-grind/commit/ff30cbe8ad42c4e4883cc8161bdefe05839fe01c",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45572709802"
+      ],
+      "basis": "Two browser test files only on native/Chromium-green f45139f9. Restore validated runtime harness, maintain real Jai manual selection and independently exercise Ben source-link project/order IDs through actual panel props with scoped API. Prior deep-link failure not waived. Separate operational exception harness uses validated React/Vite dedupe/plugin, isolated database. New browser proof pending; no additional credit.",
+      "sourceSha": "e29327df246570a432d7c61a6e9a4792205e341f",
+      "formalAcceptance": false,
+      "estimateConfidence": "NO_ADDITIONAL_HOURS_CREDIT"
     }
   ],
   "unestimatedWork": [
