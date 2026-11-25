@@ -3446,6 +3446,25 @@
       "sourceSha": "fcd099953d82c2488dafc95a0179ec1289e06883",
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-03-065",
+      "date": "2026-11-25",
+      "packageId": "M4-03",
+      "kind": "FM01_CORRECTED_PRODUCTION_PANEL_PG17_CHROMIUM_CONFIRMED",
+      "beforeHours": 5,
+      "afterHours": 4.5,
+      "sourceSha": "c83f2498ce46a2bba52f565fd6af8c1257784907",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45604053756/job/139170161057",
+        "https://github.com/threeswordz/cinder-grind/pull/452#issuecomment-7161619847"
+      ],
+      "basis": "The corrected Site Execution panel passed the specific P2 regression. Chromium showed Foreman read-only and Ben acknowledging without dashboard permission. The scoped PostgreSQL 17.11 and Nest run passed 16 contracts and all 19 job steps on the one-file workflow child 0e950e9b, attempt 1, 64s elapsed. Retire 0.5h for this newly verified correction. Previous closeout success and the earlier full CI receive no further credit. Fresh full CI and independent review still gate release.",
+      "reductionHours": 0.5,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0.5,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -3468,6 +3487,6 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1768.5,
-  "currentRollingTotalSemantics": "1768.5h provisional full ERP = 1847h baseline minus 85h net baseline forecast effort retired plus 6.5h supplier work remaining. M4 38.5h: M4-01 7h, M4-02 2h, M4-03 5h, M4-04 4.5h, M4-05 5.5h, M4-06 4h, M4-07 2.5h, M4-08 1.5h, supplier 6.5h. Equipment source trigger checks only; actual native recovery pending; FM01 targeted result/full CI/independent review pending. All 112 requirements preserved."
+  "currentRollingTotalAfterPricedGapsHours": 1768,
+  "currentRollingTotalSemantics": "1768h = 1847h baseline minus 85.5h verified baseline forecast reduction plus 6.5h remaining supplier scope. M4 38h. All 112 requirements preserved. Actual labor unmeasured."
 }

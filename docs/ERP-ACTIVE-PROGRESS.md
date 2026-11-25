@@ -1,5 +1,18 @@
 # Construction ERP — live countdown to 0 hours
 
+<!-- current-work-m4 -->
+**Current M4 forecast 38h → 0h · Full ERP 1,768h → 0h.** Owner authorized one failed-jobs rerun of #452 run 45603992458 on c83f2498 against 040395bc. The scoped browser proof is complete. The new full-CI outcome and independent review remain open.
+
+| Forecast reconciliation | Hours |
+|---|---:|
+| Previous reported ERP forecast | 1,768.5 |
+| Newly identified mandatory scope | +0 |
+| Verified completed work | −0.5 |
+| Revised remaining ERP forecast | **1,768** |
+
+Prototype 4/8 · Go-live 3/10 · Deadline 31 December 2026.
+<!-- /current-work-m4 -->
+
 > **Updated 25 November 2026, Asia/Singapore.** Owner hard deadline: **31 December 2026**, **all 112 requirements**, eight real roles and Production. **Delivery feasibility RED** (zero other engineers). Evidence-backed forecast, **not** actual hours worked or formal acceptance. This file and the JSON are on an isolated documentation branch, not protected main.
 
 > **Latest verified development stack — [Draft #449](https://github.com/threeswordz/cinder-grind/pull/449), `52721dfd0d1c1a88cdcc5e5e41e8d6971c5a95cd`.** [Focused run 45420921543](https://github.com/threeswordz/cinder-grind/actions/runs/45420921543) SUCCESS 15/15; PUR10 cancellation/revision exclusive commit and controlled conflict. **M4-01 13→12h, M4 98→97h, full ERP 1,828→1,827h**.
@@ -127,14 +140,14 @@
 ## Headline
 | Metric | Current | Meaning |
 |---|---:|---|
-| **Estimated full ERP work still needed** | **1,768.5h → 0h** | Includes latest newly priced mandatory gaps |
+| **Estimated full ERP work still needed** | **1,768h → 0h** | 112 requirements across eight roles |
 | 23 Nov original current-work forecast | 1847h | Earlier 60-package provisional baseline |
-| Additional estimated future-work eliminated | −85h | M4-01 −25h, M4-02 −6h, M4-03 −5h, M4-04 −3.5h, M4-05 −3.5h, M4-06 −6h, M4-07 −3.5h, M4-08 −32.5h, **not timesheet** |
-| Newly discovered previously unpriced PUR08/PUR14 work | +6.5h | Net **remaining** after real signed damaged-custody Chrome/native proof, no automatic Finance/AP/stock effect |
-| Net reforecast change versus 1,847h | −78.5h | More honest scope recognition; not schedule recovery |
+| Additional estimated future-work eliminated | −85.5h | M4-01 −25h, M4-02 −6h, M4-03 −5.5h, M4-04 −3.5h, M4-05 −3.5h, M4-06 −6h, M4-07 −3.5h, M4-08 −32.5h |
+| Newly discovered previously unpriced PUR08/PUR14 work | +6.5h | Remaining supplier lifecycle and assurance work |
+| Net reforecast change versus 1,847h | −79h | Includes separately priced supplier scope |
 | PUR08/PUR14 provisional work before new development | 51h | Low-confidence new-gap gross estimate |
-| PUR08/PUR14 estimated future work eliminated through verified development | 44.5h | Verified role/tenant source, posted GR/reversal warning and signed DAMAGED outward custody; only future-work forecast, not logged hours |
-| PUR08/PUR14 remaining | **6.5h** | Signed unposted DAMAGED custody implemented, posted stock needs separately approved canonical reversal; real supplier credit/AP is separate Finance module, SHORT/WRONG/EXCESS stay evidence-only, retained named-role UAT and independent review pending |
+| PUR08/PUR14 estimated future work eliminated through verified development | 44.5h | Provisional forecast reduction against the 51h gross estimate |
+| PUR08/PUR14 remaining | **6.5h** | See supplier evidence and approved boundaries in the ledger |
 | Historical original baseline | 1,900h | Not the current work-to-go figure |
 | Proposed optimization | 1,500h | **Unvalidated**; now requires risk/scope recalibration |
 | Prototype milestone | 4/8 | Official |
@@ -143,13 +156,13 @@
 | Whole baseline packages formally accepted | 0/60 | 8 M4 packages still 0/8 |
 | Actual productive hours logged | UNKNOWN | Cannot infer from GitHub commits or AI conversation length |
 
-**Why the number rose:** the earlier 1,845h omitted a separate confirmed PUR08/PUR14 implementation budget. New source plus corrected source-backed tests reduced that *newly priced* work from a provisional 51h gross to 6.5h remaining, but the original 60-package forecast excluded that additional work. Thus **1,847h − 25h M4-01 − 6h M4-02 − 5h M4-03 − 3.5h M4-04 − 3.5h M4-05 − 6h M4-06 − 3.5h M4-07 − 32.5h M4-08 + 6.5h supplier = 1,768.5h**. Supplier gross estimate 51h includes newly discovered handover defect +1h, verified fix −1h, with 44.5h of future work eliminated. This prevents a false countdown and requires a real reduction in remaining work at each future step. It does **not** represent actual human hours worked or formal acceptance.
+**Forecast basis.** The 1,847h baseline covers 60 packages. Verified work has removed 85.5h of estimated future effort from those packages. The separately priced supplier lifecycle has 6.5h remaining, bringing the ERP forecast to 1,768h.
 
 ## Stage-by-stage remaining work
 
 | Stage | Previous 60-package baseline | Verified package forecast reduction | Additional scope remaining | **Now remaining** | Accepted baseline packages |
 |---|---:|---:|---:|---:|---:|
-| Prototype 5/8 — M4 closure | 117h | 85h | 6.5h | **38.5h** | 0/8 |
+| Prototype 5/8 — M4 closure | 117h | 85.5h | 6.5h | **38h** | 0/8 |
 | Prototype 6/8 — end-to-end deployment | 120h | 0h | 0h | **120h** | 0/5 |
 | Prototype 7/8 — populated restore | 50h | 0h | 0h | **50h** | 0/3 |
 | Prototype 8/8 — technical freeze | 65h | 0h | 0h | **65h** | 0/3 |
@@ -161,7 +174,7 @@
 | Production hosting and recovery | 110h | 0h | 0h | **110h** | 0/5 |
 | Migration and onboarding | 110h | 0h | 0h | **110h** | 0/4 |
 | Final human UAT, cutover and Production | 150h | 0h | 0h | **150h** | 0/5 |
-| **Full ERP** | **1847h** | **85h** | **6.5h** | **1,768.5h** | **0/60** |
+| **Full ERP** | 1847h | 85.5h | 6.5h | **1,768h** | **0/60** |
 
 ## Each baseline package
 
@@ -169,7 +182,7 @@
 |---|---|---|---:|---:|
 | M4-01 | M4 | Current-source and all-112 evidence/scope decisions | 32h | **7h** |
 | M4-02 | M4 | PM02 real browser and retained-role authorization | 8h | **2h** |
-| M4-03 | M4 | FM01, BEN04 and PM16 real-browser acceptance | 10h | **5h** |
+| M4-03 | M4 | FM01, BEN04 and PM16 real-browser acceptance | 10h | **4.5h** |
 | M4-04 | M4 | PUR01 whole-PO supplier-count and commercial rule | 8h | **4.5h** |
 | M4-05 | M4 | PUR04 core PO commercial/delivery fields | 9h | **5.5h** |
 | M4-06 | M4 | PUR07 supplier-name PO PDF and manual dispatch evidence | 10h | **4h** |
@@ -234,6 +247,8 @@
 | PUR08_PUR14_INTEGRATION | M4 | 51h | 44.5h | **6.5h** |
 
 ## Evidence-backed update history
+
+- **M4-03 5h → 4.5h.** The corrected Site Execution panel passed the specific P2 regression. Chromium showed Foreman read-only and Ben acknowledging without dashboard permission. The scoped PostgreSQL 17.11 and Nest run passed 16 contracts and all 19 job steps on the one-file workflow child 0e950e9b, attempt 1, 64s elapsed. Retire 0.5h for this newly verified correction. Previous closeout success and the earlier full CI receive no further credit. Fresh full CI and independent review still gate release. [Evidence 1](https://github.com/threeswordz/cinder-grind/actions/runs/45604053756/job/139170161057) [Evidence 2](https://github.com/threeswordz/cinder-grind/pull/452#issuecomment-7161619847)
 
 - **2026-11-25 — M4-03 8h → 7h; ERP 1,797h → 1,796h.** Exact source 0219bec with workflow-only child763d786f, SUCCESS15/15. Actual HTTP/PostgreSQL concurrent revisions and duplicate signature yield exactly one durable winner and controlled refusal; stale first/missing/old hash and independent signoff markers passed; immutable audit counts and no Finance/stock effects asserted. One provisional hour of outstanding M4-03 technical assurance retired, not actual labor or formal acceptance. Final integration, independent review and retained human acceptance remain. [Evidence](https://github.com/threeswordz/cinder-grind/actions/runs/45563492795/job/139032583193).
 
