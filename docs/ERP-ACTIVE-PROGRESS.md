@@ -45,7 +45,7 @@
 |---|---:|---|
 | **Estimated full ERP work still needed** | **1,795h → 0h** | Includes latest newly priced mandatory gaps |
 | 23 Nov original current-work forecast | 1847h | Earlier 60-package provisional baseline |
-| Additional estimated future-work eliminated | −58h | M4-01 −20h, M4-02 −6h, M4-03 −3h, M4-04 −3h, M4-05 −3h, M4-06 −4h, M4-07 −3h, M4-08 −16h, **not timesheet** |
+| Additional estimated future-work eliminated | −59h | M4-01 −20h, M4-02 −6h, M4-03 −3h, M4-04 −3h, M4-05 −3h, M4-06 −4h, M4-07 −3h, M4-08 −17h, **not timesheet** |
 | Newly discovered previously unpriced PUR08/PUR14 work | +7h | Net **remaining** after real signed damaged-custody Chrome/native proof, no automatic Finance/AP/stock effect |
 | Net reforecast change versus 1,847h | −51h | More honest scope recognition; not schedule recovery |
 | PUR08/PUR14 provisional work before new development | 51h | Low-confidence new-gap gross estimate |
@@ -59,13 +59,13 @@
 | Whole baseline packages formally accepted | 0/60 | 8 M4 packages still 0/8 |
 | Actual productive hours logged | UNKNOWN | Cannot infer from GitHub commits or AI conversation length |
 
-**Why the number rose:** the earlier 1,845h omitted a separate confirmed PUR08/PUR14 implementation budget. New source plus corrected source-backed tests reduced that *newly priced* work from a provisional 51h gross to 7h remaining, but the original 60-package forecast excluded that additional work. Thus **1,847h − 20h M4-01 − 6h M4-02 − 3h M4-03 − 3h M4-04 − 3h M4-05 − 4h M4-06 − 3h M4-07 − 16h M4-08 + 7h supplier = 1,795h**. Supplier gross estimate 51h includes newly discovered handover defect +1h, verified fix −1h, with 44h of future work eliminated. This prevents a false countdown and requires a real reduction in remaining work at each future step. It does **not** represent actual human hours worked or formal acceptance.
+**Why the number rose:** the earlier 1,845h omitted a separate confirmed PUR08/PUR14 implementation budget. New source plus corrected source-backed tests reduced that *newly priced* work from a provisional 51h gross to 7h remaining, but the original 60-package forecast excluded that additional work. Thus **1,847h − 20h M4-01 − 6h M4-02 − 3h M4-03 − 3h M4-04 − 3h M4-05 − 4h M4-06 − 3h M4-07 − 17h M4-08 + 7h supplier = 1,795h**. Supplier gross estimate 51h includes newly discovered handover defect +1h, verified fix −1h, with 44h of future work eliminated. This prevents a false countdown and requires a real reduction in remaining work at each future step. It does **not** represent actual human hours worked or formal acceptance.
 
 ## Stage-by-stage remaining work
 
 | Stage | Previous 60-package baseline | Verified package forecast reduction | Additional scope remaining | **Now remaining** | Accepted baseline packages |
 |---|---:|---:|---:|---:|---:|
-| Prototype 5/8 — M4 closure | 117h | 58h | 7h | **66h** | 0/8 |
+| Prototype 5/8 — M4 closure | 117h | 59h | 7h | **65h** | 0/8 |
 | Prototype 6/8 — end-to-end deployment | 120h | 0h | 0h | **120h** | 0/5 |
 | Prototype 7/8 — populated restore | 50h | 0h | 0h | **50h** | 0/3 |
 | Prototype 8/8 — technical freeze | 65h | 0h | 0h | **65h** | 0/3 |
@@ -77,7 +77,7 @@
 | Production hosting and recovery | 110h | 0h | 0h | **110h** | 0/5 |
 | Migration and onboarding | 110h | 0h | 0h | **110h** | 0/4 |
 | Final human UAT, cutover and Production | 150h | 0h | 0h | **150h** | 0/5 |
-| **Full ERP** | **1847h** | **58h** | **7h** | **1,796h** | **0/60** |
+| **Full ERP** | **1847h** | **59h** | **7h** | **1,795h** | **0/60** |
 
 ## Each baseline package
 
