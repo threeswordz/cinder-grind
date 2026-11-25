@@ -3370,6 +3370,25 @@
       "sourceSha": "622c087a302f3632bbc5cfa98551b166ba130714",
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-05-061",
+      "date": "2026-11-25",
+      "packageId": "M4-05",
+      "kind": "PUR04_DRAFT_COMMERCIAL_INVALID_VALUE_SOURCE_GUARD",
+      "beforeHours": 6,
+      "afterHours": 5.5,
+      "reductionHours": 0.5,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0.5,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/commit/89c74e810122782b7e946e3ac2c2d2adce196867",
+        "https://github.com/threeswordz/cinder-grind/pull/452#issuecomment-7160762924"
+      ],
+      "basis": "Two-path isolated source increment rejects nonfinite, negative and out-of-range commercial amounts before persistence, preserves undefined/NULL and prior precision validation; regression verifies unchanged draft values and timestamp. Thirteen committed-source-excerpt checks with mocked Decimal/exception classes PASS (eight invalid, five valid/omitted/NULL). Actual TS/Prisma Decimal/native PG not executed. Retire 0.5h from existing source-preparation allowance only. Separate exact PR452 independent Codex review now observed running after Owner quota resumption; prior exact full CI 46/46 and integration plan 5/5 reconfirmed; no duplicate CI or review acceptance credit. Main unchanged; no grants, merge or Production.",
+      "sourceSha": "89c74e810122782b7e946e3ac2c2d2adce196867",
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -3392,6 +3411,6 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1770,
-  "currentRollingTotalSemantics": "1770h provisional full ERP = 1847h baseline minus 83.5h net baseline forecast effort retired plus 6.5h supplier work remaining. M4 40h: M4-01 7h, M4-02 2h, M4-03 5h, M4-04 4.5h, M4-05 6h, M4-06 4h, M4-07 3h, M4-08 2h, supplier 6.5h. PUR01 source preparation verified; native PG/actual Decimal/TS and independent review pending. All 112 requirements preserved."
+  "currentRollingTotalAfterPricedGapsHours": 1769.5,
+  "currentRollingTotalSemantics": "1769.5h provisional full ERP = 1847h baseline minus 84h net baseline forecast effort retired plus 6.5h supplier work remaining. M4 39.5h: M4-01 7h, M4-02 2h, M4-03 5h, M4-04 4.5h, M4-05 5.5h, M4-06 4h, M4-07 3h, M4-08 2h, supplier 6.5h. PUR04 source preparation verified; actual TS/PG and independent review pending. PR452 independent Codex review resumed; no acceptance credit. All 112 requirements preserved."
 }
