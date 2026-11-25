@@ -3937,6 +3937,42 @@
       "verifiedCompletedScopeHours": 0.5,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-04-092",
+      "date": "2026-11-25",
+      "packageId": "M4-04",
+      "kind": "PUR01_REAL_HTTP_STALE_COMPETING_BID_ROLLBACK_AND_EXCEPTION_RECOVERY_PASS",
+      "beforeHours": 2.5,
+      "afterHours": 1.5,
+      "sourceSha": "08c6c0d9d73dcf2119440ea1d28f61fd84ccc4ac",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45622912802/job/139235487189"
+      ],
+      "basis": "Exact test-only source 08c6c0d9, workflow-only child 0445f099, actual Nest/PG17 HTTP SUCCESS15/15. At THB10000.01 one comparable bid denied; two actual THB bids submit, competing (not selected) supplier then deactivated, final independent approval rejected atomically with exact PO_QUOTE_SUPPLIERS_INSUFFICIENT, no approval action/final policy audit; after rejection new revision with reason approved independently by Ben, exact final one-of-two audit. Retire 1h distinct post-submission competing-bid change/transport proof, not earlier threshold/selected-supplier/native or positive browser proof. Retained acceptance remains.",
+      "reductionHours": 1,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 1,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-05-093",
+      "date": "2026-11-25",
+      "packageId": "M4-05",
+      "kind": "PUR04_REAL_HTTP_INVALID_PATCH_NULL_ZERO_AND_REJECTED_REVISION_IMMUTABILITY_PASS",
+      "beforeHours": 3.5,
+      "afterHours": 2.5,
+      "sourceSha": "08c6c0d9d73dcf2119440ea1d28f61fd84ccc4ac",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45622912802/job/139235487189"
+      ],
+      "basis": "Actual authenticated PATCH rejects negative/nonfinite/out-of-range/excess precision/VAT without changing record or audit; explicit NULL remains unknown and cannot submit, zero admitted and omitted Thai terms preserved. Rejected revision remains identical after approved correction revision; no stock or Finance effects. Retire 1h remaining public HTTP validation and rejected-revision assurance, not prior approved-revision browser/service native proof. Retained role/independent review remain.",
+      "reductionHours": 1,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 1,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -3959,6 +3995,6 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1747.5,
-  "currentRollingTotalSemantics": "1747.5h = 1847h baseline minus 103h verified baseline forecast reduction plus 3.5h remaining supplier scope. M4 17.5h. All 112 requirements preserved. Actual labor unmeasured."
+  "currentRollingTotalAfterPricedGapsHours": 1745.5,
+  "currentRollingTotalSemantics": "1745.5h = 1847h baseline minus 105h verified baseline forecast reduction plus 3.5h remaining supplier scope. M4 15.5h. All 112 requirements preserved. Actual labor unmeasured."
 }
