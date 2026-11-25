@@ -319,3 +319,24 @@ test('purchasing v22/v23 fail closed on missing layer evidence and preserve PM02
   }
  }
 });
+
+test('PUR12 v24 and PUR07 v25 require exact migration evidence and all prior layer receipts',async()=>{
+ const {purchasingEvidenceKeys,purchasingMode}=await import('./purchasing-release-mode.mjs');
+ const {pur12Migration,pur07Migration}=await import('./purchasing-successor-schema-preparation.mjs');
+ const {pur04Migration}=await import('./pur04-schema-preparation.mjs');
+ const {pur01Migration}=await import('./pur01-schema-preparation.mjs');
+ const {pm02Migrations}=await import('./pm02-schema-preparation.mjs');
+ const passes=layers=>Object.fromEntries(layers.flatMap(layer=>purchasingEvidenceKeys.map(key=>[layer+key,'PASS'])));
+ const full={...evidence('migration-aware-pur07-pur12-pur01-pur04-pm02-schema'),version:25,migrationNames:[pur07Migration,pur12Migration,pur01Migration,pur04Migration,...Object.keys(pm02Migrations)],...passes(['pur07','pur12','pur01','pur04','pm02'])};
+ const single12={...evidence('migration-aware-pur12-schema'),version:24,migrationNames:[pur12Migration],...passes(['pur12'])};
+ const single07={...evidence('migration-aware-pur07-schema'),version:25,migrationNames:[pur07Migration],...passes(['pur07'])};
+ for(const data of [single12,single07,full]){
+  const result=verify(data);assert.equal(result.status,0,result.stderr);assert.equal(JSON.parse(result.stdout).version,data.version);
+  assert.notEqual(verify({...data,version:23}).status,0);
+  for(const name of data.migrationNames)assert.notEqual(verify({...data,migrationNames:data.migrationNames.filter(n=>n!==name)}).status,0,name);
+  for(const key of [...Object.keys(data).filter(k=>/^pur(?:01|04|07|12)|^pm02/.test(k)),'rollbackDocuments','restoredPreviousRuntimeAuthenticationDownload']){
+   const invalid={...data};delete invalid[key];assert.notEqual(verify(invalid).status,0,key);
+  }
+ }
+ assert.throws(()=>purchasingMode('migration-aware-pur12-pur07-schema'));
+});

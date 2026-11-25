@@ -1,3 +1,4 @@
+import {classifySuccessorPreparation} from './purchasing-successor-schema-preparation.mjs';
 import {classifyPurchasingPreparation} from './pur01-schema-preparation.mjs';
 import {stripPm02Schema,normalizeSchema as normalizePm02Schema} from './pm02-schema-preparation.mjs';
 import {stripFm02Schema} from './fm02-schema-contract.mjs';
@@ -250,6 +251,14 @@ function classifyPrePm02(previous,candidate){
 // Bounded outer layer. Preserve all pre-PM02 checks, including unchanged
 // synthetic classifier fixtures that have no PurchaseRequestLine model.
 export function classifySchema(previous,candidate){
+ if(previous===candidate)return 'migration-aware-sql-only';
+ // Only exact PUR12/PUR07 increments may wrap earlier bounded purchasing
+ // migrations; legacy synthetic fixtures retain the previous classifier.
+ const hasSuccessor=s=>/\b(?:PoDispatchEvent|poDispatchEvents|poDispatchEvidence|supplierShortNameSnapshot|po_display_number|supplier_short_name_snapshot|short_name)\b/.test(s);
+ if(hasSuccessor(previous)||hasSuccessor(candidate))return classifySuccessorPreparation(previous,candidate,classifyPreSuccessor);
+ return classifyPreSuccessor(previous,candidate);
+}
+function classifyPreSuccessor(previous,candidate){
  if(previous===candidate)return 'migration-aware-sql-only';
  const hasOrder=s=>/^model PurchaseOrder \{/m.test(s);
  if(!hasOrder(previous)&&!hasOrder(candidate))return classifyPrePurchasing(previous,candidate);

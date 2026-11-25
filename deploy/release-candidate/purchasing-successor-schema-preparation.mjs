@@ -56,3 +56,20 @@ function assertIncrement(previous,candidate,strip){
 }
 export const assertExactPur12Increment=(a,b)=>assertIncrement(a,b,stripPur12Schema);
 export const assertExactPur07Increment=(a,b)=>assertIncrement(a,b,stripPur07Schema);
+
+export function stripSuccessorSchema(schema){
+ const seven=stripPur07Schema(schema),twelve=stripPur12Schema(seven.text);
+ if(seven.present&&!twelve.present)throw Error('PUR07 requires PUR12 identity schema');
+ return {text:twelve.text,pur07:seven.present,pur12:twelve.present};
+}
+export function successorFlags(env=process.env){
+ return {pur12:env.PUR12_SCHEMA_UPGRADE==='YES',pur07:env.PUR07_SCHEMA_UPGRADE==='YES'};
+}
+export function classifySuccessorPreparation(previous,candidate,classifyPrior){
+ const a=stripSuccessorSchema(previous),b=stripSuccessorSchema(candidate);
+ if(a.pur12&&!b.pur12||a.pur07&&!b.pur07)throw Error('Successor schema removal prohibited');
+ const base=normalizeSchema(a.text)===normalizeSchema(b.text)?'migration-aware-sql-only':classifyPrior(a.text,b.text);
+ const wrap=(mode,layer)=>mode==='migration-aware-sql-only'?'migration-aware-'+layer+'-schema':'migration-aware-'+layer+'-'+mode.slice('migration-aware-'.length);
+ const twelve=!a.pur12&&b.pur12?wrap(base,'pur12'):base;
+ return !a.pur07&&b.pur07?wrap(twelve,'pur07'):twelve;
+}

@@ -1,3 +1,6 @@
+import {stripSuccessorSchema,successorFlags,pur12Columns} from './purchasing-successor-schema-preparation.mjs';
+import {verifiedPur12HistoricalColumns,verifiedPur07HistoricalTables} from './purchasing-successor-historical.mjs';
+const successors=successorFlags();
 import {purchasingUpgradeFlags,verifiedPurchasingHistoricalColumns} from './purchasing-historical-columns.mjs';
 const purchasingFlags=purchasingUpgradeFlags();
 import {verifiedPm02HistoricalColumns} from './pm02-historical-columns.mjs';
@@ -48,6 +51,8 @@ const load = (path) => JSON.parse(readFileSync(path, 'utf8'));
 async function snapshot() {
   const tables = await prisma.$queryRawUnsafe(`SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename <> '_prisma_migrations' ORDER BY tablename`);
   const hashes = {};
+  const identities=mode==='verify'&&successors.pur12?await verifiedPur12HistoricalColumns(prisma):{};
+  if(mode==='verify'&&successors.pur07)await verifiedPur07HistoricalTables(prisma);
   for (const { tablename } of tables) {
     if (!/^[a-z_]+$/.test(tablename)) throw new Error('Unexpected fixture table name');
     // The old and upgraded rows must be byte-for-byte equal after excluding
@@ -127,6 +132,7 @@ const materialRequestApproved=process.env.MATERIAL_REQUEST_SCHEMA_UPGRADE==='YES
     }
     if(pm02Approved&&mode==='verify'&&tablename==='purchase_request_lines')excludedColumns.push(...await verifiedPm02HistoricalColumns(prisma));
     if(mode==='verify'&&tablename==='purchase_orders')excludedColumns.push(...await verifiedPurchasingHistoricalColumns(prisma,purchasingFlags));
+    if(mode==='verify')excludedColumns.push(...(identities[tablename]??[]));
     const [row] = await prisma.$queryRawUnsafe(`SELECT count(*)::text AS count,
       encode(sha256(convert_to(coalesce(string_agg((to_jsonb(t) - $1::text[])::text, E'\n' ORDER BY (to_jsonb(t) - $1::text[])::text), ''), 'UTF8')), 'hex') AS digest
       FROM "${tablename}" t ${tablename === 'permissions' ? 'WHERE id <> ALL($2::uuid[])' : ''}`,
@@ -174,7 +180,7 @@ try {
     const after = await snapshot();
     assertHistoricalTables(before.tables, after.tables,
       process.env.HR_SCHEMA_UPGRADE === 'YES', process.env.HR_DOCUMENT_SCHEMA_UPGRADE === 'YES',
-      process.env.STOCK_COUNT_SCHEMA_UPGRADE === 'YES', process.env.MATERIAL_REQUEST_SCHEMA_UPGRADE === 'YES',materialPlanApproved,planIssueApproved,siteIssueApproved,receivingApproved,transferApproved,physicalApproved,materialUomApproved,materialUomEffectApproved,materialUomStageCApproved,fm02Approved);
+      process.env.STOCK_COUNT_SCHEMA_UPGRADE === 'YES', process.env.MATERIAL_REQUEST_SCHEMA_UPGRADE === 'YES',materialPlanApproved,planIssueApproved,siteIssueApproved,receivingApproved,transferApproved,physicalApproved,materialUomApproved,materialUomEffectApproved,materialUomStageCApproved,fm02Approved,successors.pur07);
     for (const migration of before.migrations) assert.deepEqual(after.migrations.find((row) => row.migration_name === migration.migration_name), migration, 'Historical migration checksum changed');
     const fixture = load(manifestPath);
     assert.equal((await prisma.purchaseOrder.findUniqueOrThrow({ where: { id: fixture.unknownPoId } })).currencyCode, null);
