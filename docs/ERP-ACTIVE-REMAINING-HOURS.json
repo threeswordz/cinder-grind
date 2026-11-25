@@ -4099,6 +4099,24 @@
       "verifiedCompletedScopeHours": 0.5,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261125-M6-01-101",
+      "date": "2026-11-25",
+      "packageId": "M6-01",
+      "kind": "M6_ISOLATED_CONVERGENCE_AND_MANDATORY_PROOF_GATE_LOCAL_PASS",
+      "beforeHours": 25,
+      "afterHours": 24,
+      "sourceSha": "25f22a4fcbf52629b0ca0beb6d31f324fa938362",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/commit/25f22a4fcbf52629b0ca0beb6d31f324fa938362"
+      ],
+      "basis": "Two-parent isolated merge d721955b converges M6-04 and M6-05 with seven exact original file blobs and no overlap. Subsequent source 25f22a4f requires explicit HR privacy, session revocation, encryption and final historical subcontract/data/file preservation proof; business wrapper propagates verified fields. Local Node22.16.0 exact coordinator/test blobs 016d65c0961cd09cc2d2e091f74e20d2e446a58d and c4cc514ce597d3d8d5db2f49adf6583ac80c5aad passed 8/8 (six existing tests and two new parameterized tests exercising 30 missing/false/string proof cases). Credit 1h distinct convergence and gate implementation/regression only; no earlier M6-04/05 test credit, actual combined Mac/runtime execution, independent review, accepted release, or full CI. Business-stage adapter not runtime tested.",
+      "reductionHours": 1,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 1,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -4121,6 +4139,6 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1740,
-  "currentRollingTotalSemantics": "1740h = 1847h baseline minus 109.5h verified baseline forecast reduction plus 2.5h remaining supplier scope. M4 12h, M6 118h. All 112 requirements preserved. Actual labor unmeasured."
+  "currentRollingTotalAfterPricedGapsHours": 1739,
+  "currentRollingTotalSemantics": "1739h = 1847h baseline minus 110.5h verified baseline forecast reduction plus 2.5h remaining supplier scope. M4 12h, M6 117h. All 112 requirements preserved. Actual labor unmeasured."
 }
