@@ -1,0 +1,27 @@
+name: Purchasing versioned evidence focused
+on:
+  push:
+    branches: [ci-m4-purchasing-evidence-20261125]
+permissions:
+  contents: read
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+      - name: Verify exact source and workflow-only delta
+        run: |
+          test "$(git rev-parse HEAD^)" = bd8be84e91c985db53a7ecd4ecd8796e03664834
+          test "$(git diff --name-only HEAD^ HEAD)" = .github/workflows/m4-purchasing-evidence.yml
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.21.0
+      - name: Check syntax and layered evidence contracts
+        run: |
+          bash -n deploy/release-candidate/rehearse-migration.sh
+          node --check deploy/release-candidate/hr-upgrade.mjs
+          node --check deploy/release-candidate/verify-evidence.mjs
+          node --test deploy/release-candidate/verify-evidence.test.mjs deploy/release-candidate/purchasing-historical-columns.test.mjs deploy/release-candidate/ci-routing-contract.test.mjs deploy/release-candidate/ci-parallel-rehearsals.test.mjs
