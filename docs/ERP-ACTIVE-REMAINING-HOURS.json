@@ -4280,6 +4280,24 @@
       "verifiedCompletedScopeHours": 0.5,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261126-M4-01-111",
+      "date": "2026-11-26",
+      "packageId": "M4-01",
+      "kind": "M4_EXACT_REVIEWED_OPERATIONAL_BROWSER_REAL_PG17_PASS",
+      "beforeHours": 1,
+      "afterHours": 0.5,
+      "sourceSha": "0994594e8ab1fd40d972ade9f463a7cca6e0be32",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45665277240/job/139385661182"
+      ],
+      "basis": "Owner-submitted exact reviewed source 0994594e, isolated workflow-only child d1371714ff4ec9c46cf75f667ecf3cef9db278ed, actual Linux Chromium/NestJS/PostgreSQL17.11 focused run45665277240 attempt1 SUCCESS17/17. Logs record all six required markers: Store scoped read-only, Nancy actual immutable schedule save, PM09 Khaimook independent linked-document review, SS13 four distinct synthetic actors and no stock/Finance posting, unrelated Project denial, terminal M4_REAL_CHROMIUM_REAL_API_REAL_POSTGRES_SCOPED_PASS. No unexpected browser API/network/runtime errors. Retire 0.5h specific outstanding M4-01 operational evidence witness; not prior API/contract proof, named retained actors, deferred physical disposal/Finance execution, full CI or formal acceptance. Remaining M4-01 retained configuration/evidence allowance 0.5h.",
+      "reductionHours": 0.5,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0.5,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -4302,6 +4320,6 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1733.5,
-  "currentRollingTotalSemantics": "1733.5h = 1847h baseline minus 116h verified baseline forecast reduction plus 2.5h supplier residual. M4 11h, M6 112.5h; PUR07 technical forecast 0h, formal acceptance still false. All 112 requirements preserved. Actual labor unmeasured."
+  "currentRollingTotalAfterPricedGapsHours": 1733,
+  "currentRollingTotalSemantics": "1733h = 1847h baseline minus 116.5h verified baseline forecast reduction plus 2.5h supplier residual. M4 10.5h; M6 112.5h; formal acceptance remains false. All 112 requirements preserved. Actual labor unmeasured."
 }

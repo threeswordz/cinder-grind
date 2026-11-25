@@ -1456,11 +1456,6 @@
   ],
   "pending": [
     {
-      "scope": "Operational exceptions browser",
-      "status": "INDEPENDENT_SOURCE_REVIEW_CLEARED_FOCUSED_CI_GREEN_NATIVE_BROWSER_NOT_RUN",
-      "executionBlocker": "Existing dedicated browser-only branch has no executable workflow or run; historical operational exceptions workflow validates API/contract tests only. No workflow dispatch available in current session. Requires authorized focused Linux GitHub Actions execution route."
-    },
-    {
       "scope": "Full release CI",
       "status": "BLOCKED_SPECIFIC_OWNER_AUTHORIZATION_AFTER_REVIEW"
     },
@@ -1476,7 +1471,7 @@
   "independentReview": "COMPLETED_NO_FINDINGS_ON_EXACT_HEAD",
   "formalAcceptance": false,
   "protectedMainChanged": false,
-  "forecastReductionHours": 1,
+  "forecastReductionHours": 1.5,
   "previousReconciledSource": "7486c0fd2e42b07e542ab8f570f6ed85650e7d06",
   "currentDraftHead": "0994594e8ab1fd40d972ade9f463a7cca6e0be32",
   "independentReviewEvidence": "https://github.com/threeswordz/cinder-grind/pull/455#issuecomment-7168792544",
@@ -1532,5 +1527,24 @@
     "actualEvidenceFieldsPopulated": 0,
     "onlyChangedColumn": "candidate_sha_at_preparation"
   },
-  "operationalBrowserExecutionHandoff": "docs/M4-2026-11-26-OPERATIONAL-BROWSER-EXECUTION-HANDOFF.md"
+  "operationalBrowserExecutionHandoff": "docs/M4-2026-11-26-OPERATIONAL-BROWSER-EXECUTION-HANDOFF.md",
+  "operationalBrowserValidation": {
+    "source": "0994594e8ab1fd40d972ade9f463a7cca6e0be32",
+    "workflowOnlyChild": "d1371714ff4ec9c46cf75f667ecf3cef9db278ed",
+    "run": 45665277240,
+    "job": 139385661182,
+    "attempt": 1,
+    "status": "SUCCESS",
+    "steps": "17/17",
+    "evidence": "https://github.com/threeswordz/cinder-grind/actions/runs/45665277240/job/139385661182",
+    "markers": [
+      "M4_BROWSER_STORE_SCOPED_READONLY_PASS",
+      "M4_BROWSER_NANCY_REAL_SAVE_PASS",
+      "M4_BROWSER_PM09_KHAIMOOK_REAL_REVIEW_PASS",
+      "M4_BROWSER_SS13_SEPARATE_ROLE_STAGE_NO_POST_PASS",
+      "M4_BROWSER_OTHER_PROJECT_AUTH_DENIAL_PASS",
+      "M4_REAL_CHROMIUM_REAL_API_REAL_POSTGRES_SCOPED_PASS"
+    ],
+    "limit": "Actual synthetic Linux browser/API/PostgreSQL; no retained role or formal acceptance. No duplicate prior API/contract deduction."
+  }
 }
