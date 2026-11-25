@@ -5,8 +5,13 @@ import { useState } from 'react';
 import { equipmentApi } from '../api/equipment';
 
 function today() {
-  const d=new Date();
-  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  // Date-only Equipment custody follows Thailand operations, never the
+  // browser's local timezone (e.g. a Singapore operator after midnight).
+  const parts=new Intl.DateTimeFormat('en-GB',{
+    timeZone:'Asia/Bangkok',year:'numeric',month:'2-digit',day:'2-digit',
+  }).formatToParts(new Date());
+  const read=(type:string)=>parts.find(p=>p.type===type)?.value??'';
+  return [read('year'),read('month'),read('day')].join('-');
 }
 
 export function EquipmentCustodyPanel({equipmentId,permissions}:{equipmentId:string;permissions:string[]}) {
