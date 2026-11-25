@@ -2983,6 +2983,26 @@
       "sourceSha": "5e3614c76c802cc8ee8a393758691982e52360a7",
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-08-041",
+      "date": "2026-11-25",
+      "packageId": "M4-08",
+      "kind": "PUR10_PUR08_COMBINED_CANCELLED_SOURCE_HISTORY_TEST_STAGED",
+      "beforeHours": 7,
+      "afterHours": 7,
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/commit/4eb988ff8e380a70e0e99e020617333b7e164765",
+        "https://github.com/threeswordz/cinder-grind/commit/ae2360ee3df59da2da0657d325281d2e42725cac",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45581872905"
+      ],
+      "basis": "Test-only change to combined PUR10 native fixture: actual independently approved PO, recorded dispatch/ack fixture, supplier case acknowledgment, governed cancellation, history remains readable, later supplier write rejected, no GR/AP effects. Disposable actor grant only within test fixture; no retained grant or policy changes. Pending focused evidence, no credit.",
+      "sourceSha": "4eb988ff8e380a70e0e99e020617333b7e164765",
+      "formalAcceptance": false,
+      "estimateConfidence": "NO_ADDITIONAL_HOURS_CREDIT"
     }
   ],
   "unestimatedWork": [
