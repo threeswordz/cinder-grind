@@ -1,0 +1,77 @@
+name: M4 PM02 exact populated predecessor preservation
+on:
+  push:
+    branches: [ci-m4-pm02-populated-upgrade-20261125]
+    paths: ['.github/workflows/m4-pm02-populated-upgrade.yml']
+permissions:
+  contents: read
+jobs:
+  pm02-upgrade:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17.11-alpine
+        env:
+          POSTGRES_DB: erp_m4_pm02_upgrade
+          POSTGRES_USER: construction_erp
+          POSTGRES_PASSWORD: construction_erp_dev_only
+        ports: [5432:5432]
+        options: >-
+          --health-cmd "pg_isready -U construction_erp -d erp_m4_pm02_upgrade"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://construction_erp:construction_erp_dev_only@localhost:5432/erp_m4_pm02_upgrade?schema=public
+      M4_NON_PRODUCTION_CONFIRMED: 'YES'
+      NODE_ENV: test
+      PM02_PREDECESSOR: 040395bc7b0dedd40207f91f743bc2efc1584622
+      PM02_SOURCE: b15d009a21b976badfe5918b3d5ff8c7eaa30cf7
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+      - name: Verify exact workflow-only child and local database
+        run: |
+          test "$(git rev-parse HEAD^)" = "$PM02_SOURCE"
+          test "$(git diff --name-only HEAD^ HEAD)" = '.github/workflows/m4-pm02-populated-upgrade.yml'
+          test "$DATABASE_URL" = 'postgresql://construction_erp:construction_erp_dev_only@localhost:5432/erp_m4_pm02_upgrade?schema=public'
+          test "$M4_NON_PRODUCTION_CONFIRMED" = YES
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
+        with:
+          version: 12.6.0
+          run_install: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.21.0
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - name: Strict additive schema and original migration blob proof
+        run: node --test deploy/release-candidate/pm02-schema-preparation.test.mjs
+      - name: Populate exact predecessor and prove all rows survive only two forward migrations
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="$(mktemp -d "$RUNNER_TEMP/pm02-upgrade.XXXXXX")"
+          trap 'git worktree remove --force "$root/previous" && rm -rf "$root"' EXIT
+          git worktree add --detach "$root/previous" "$PM02_PREDECESSOR"
+          (
+            cd "$root/previous"
+            test "$(git rev-parse HEAD)" = "$PM02_PREDECESSOR"
+            pnpm install --frozen-lockfile
+            pnpm prisma:generate
+            pnpm prisma:migrate:deploy
+            pnpm --filter @construction-erp/api build
+            # Existing native journeys are used solely to create real historical
+            # approved/rejected PR, PO, receipt, audit and stock fixture records.
+            node --test --test-concurrency=1 apps/api/dist/procurement/procurement.integration.spec.js apps/api/dist/procurement/purchase-order.integration.spec.js
+          )
+          pnpm install --frozen-lockfile
+          pnpm prisma:generate
+          node deploy/release-candidate/pm02-populated-upgrade-preparation.mjs before "$root/before.json"
+          pnpm prisma:migrate:deploy
+          pnpm --filter @construction-erp/api exec prisma migrate status
+          node deploy/release-candidate/pm02-populated-upgrade-preparation.mjs after "$root/before.json"
+      - name: Explicit scope boundary
+        run: echo 'Populated forward-upgrade proof only. Existing full rehearsal admission unchanged; no independent review, full CI, human UAT, retained data, paired restore or Production.'
