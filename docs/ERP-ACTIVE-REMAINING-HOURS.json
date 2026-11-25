@@ -2012,6 +2012,66 @@
       "sourceSha": "c57916313fa1db1e8d0c54e26564d477d56de90c",
       "formalAcceptance": false,
       "estimateConfidence": "NO_ADDITIONAL_HOURS_CREDIT"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-07-004",
+      "date": "2026-11-25",
+      "packageId": "M4-07",
+      "kind": "PUR12_BOUNDED_NATIVE_IDENTITY_PASS",
+      "beforeHours": 5,
+      "afterHours": 4,
+      "reductionHours": 1,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 1,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45552655875",
+        "https://github.com/threeswordz/cinder-grind/commit/59be28af0285ff42d671d4dbc9b9a3b614ab0400"
+      ],
+      "basis": "Exact newly rebased PUR12 source 59be28a, workflow-only corrected child b8aeda44, run45552655875 job138997195687 SUCCESS15/15 and actual new-lineage native proof 1/1; MKE and TCJ failed-draft atomic sequence rollback and retry, revision identity, direct-SQL denial and scope marker verified. Earlier 45398941022 already credited historical sequence implementation; provisional 1h eliminated here only for verification of bounded replay onto newer PM02/PUR04/PUR01 lineage, not duplicate prior implementation credit or labor. Identity schema preservation, retained-role and exact final review remain.",
+      "sourceSha": "59be28af0285ff42d671d4dbc9b9a3b614ab0400",
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-08-015",
+      "date": "2026-11-25",
+      "packageId": "M4-08",
+      "kind": "PURCHASING_NATIVE_REHEARSAL_TEST_CORRECTION",
+      "beforeHours": 24,
+      "afterHours": 24,
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45552744024",
+        "https://github.com/threeswordz/cinder-grind/commit/fb75e4f43bd880e2deb5488469c3be27f9cd159b",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45554153389"
+      ],
+      "basis": "Integrated purchasing v23 run45552744024 blocked before native work; 36/37 tests PASS, Customer BOQ test references execFileSync before initialization after pinned fixture change. Test-only fix fb75e4f4 moves import before use, no runtime/schema change. Corrected workflow-only child d9281115 run45554153389 observed [{\"id\":139002071000,\"status\":\"in_progress\",\"conclusion\":null,\"passed\":8,\"active\":[\"Single exact predecessor native migration and paired recovery\"]}]. Only failed preflight case plus previously unexecuted native rehearsal; no new hours credit. All-eight predecessor and full CI/independent gates remain.",
+      "sourceSha": "fb75e4f43bd880e2deb5488469c3be27f9cd159b",
+      "formalAcceptance": false,
+      "estimateConfidence": "NO_ADDITIONAL_HOURS_CREDIT"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-06-003",
+      "date": "2026-11-25",
+      "packageId": "M4-06",
+      "kind": "PUR07_BOUNDED_PDF_DISPATCH_REPLAY",
+      "beforeHours": 8,
+      "afterHours": 8,
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/commit/d407ada52791d9f14db9cfd27b506ecc5cbb8349",
+        "https://github.com/threeswordz/cinder-grind/commit/2dfd9b96fe4495f3a2ac5d4aa37f6cbc0170cf20",
+        "https://github.com/threeswordz/cinder-grind/commit/ce22baa40f02a557784a1b6b0c59c1a2e94aa7b9",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45554375145"
+      ],
+      "basis": "PUR12 native-tested source preserved; exact six-path purchasing admission/test delta replayed as successor d407ada5. PUR07 original #418/#423/#424 15 non-doc paths replayed on exact verified base blobs, plus later independent approval and document.view linkage guards and two negative tests; 18-path commit 2dfd9b96. Test-only ce22baa4 adds actual approved state to Unicode test fixture and explicitly synthetic document.view context for cross-scope lookup assertion. Focused workflow-only child096a975f run45554375145 observed [{\"id\":139002787898,\"status\":\"in_progress\",\"conclusion\":null,\"passed\":6,\"active\":[\"Run pnpm install --frozen-lockfile\"]}]. No retained role grants, outbound send, posting or Production. No hours credit before native integrated proof; PUR12/PUR07 schema admission and target-host PDF/font/sandbox/human gates outstanding.",
+      "sourceSha": "ce22baa40f02a557784a1b6b0c59c1a2e94aa7b9",
+      "formalAcceptance": false,
+      "estimateConfidence": "NO_ADDITIONAL_HOURS_CREDIT"
     }
   ],
   "unestimatedWork": [
@@ -2034,6 +2094,6 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1810,
-  "currentRollingTotalSemantics": "1810h provisional future work = 1847h baseline minus 46h evidence-backed package forecast reductions plus 9h separately priced supplier scope. M4 80h; M4-08 24h, M4-07 5h; formal acceptance unchanged."
+  "currentRollingTotalAfterPricedGapsHours": 1809,
+  "currentRollingTotalSemantics": "1809h provisional future work = 1847h baseline minus 47h evidence-backed package forecast reductions plus 9h separately priced supplier scope. M4 79h; M4-07 4h, M4-06 8h, M4-08 24h; formal acceptance unchanged."
 }
