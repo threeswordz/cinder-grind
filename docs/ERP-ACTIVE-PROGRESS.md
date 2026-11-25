@@ -66,6 +66,8 @@
 
 > **PUR10 integration defect corrected at source:** [d0a6a332](https://github.com/threeswordz/cinder-grind/commit/d0a6a3324d1528a65791ccdc5009465fe5896d5a) adds cancelledAt readback after shared PO-family lock, plus native post-finalization revision denial. Existing contested race test retained. Focused workflow-only [5eb80120](https://github.com/threeswordz/cinder-grind/commit/5eb801203fe95777baafa1a89bb35f629f8fa484) [45579826306](https://github.com/threeswordz/cinder-grind/actions/runs/45579826306); no new credit until result. M4 53h, ERP 1,783h.
 
+> **PUR10 race correction:** [45579826306](https://github.com/threeswordz/cinder-grind/actions/runs/45579826306) FAILED native exclusive-commit assertion (2 vs 1); compile/pure policy PASS. [888baa5a](https://github.com/threeswordz/cinder-grind/commit/888baa5a726731c95828b9790ba46b1346ec3bd9) serializes both lifecycle writers and translates revision serialization conflicts. Focused [45580213362](https://github.com/threeswordz/cinder-grind/actions/runs/45580213362); independent equipment preflight [45580256238](https://github.com/threeswordz/cinder-grind/actions/runs/45580256238) pending. No credit until actual proof, M4 53h / ERP 1,783h.
+
 ## Headline
 | Metric | Current | Meaning |
 |---|---:|---|
