@@ -218,6 +218,37 @@ export class PurchaseOrderController {
               ) ?? null,
           }
         : {}),
+      ...(input.deliveryLocation !== undefined
+        ? { deliveryLocation: procurementNullableString(input, 'deliveryLocation', 500) ?? null }
+        : {}),
+      ...(input.deliveryContact !== undefined
+        ? { deliveryContact: procurementNullableString(input, 'deliveryContact', 200) ?? null }
+        : {}),
+      ...(input.deliveryTerms !== undefined
+        ? { deliveryTerms: procurementNullableString(input, 'deliveryTerms', 5000) ?? null }
+        : {}),
+      ...(input.paymentTerms !== undefined
+        ? { paymentTerms: procurementNullableString(input, 'paymentTerms', 5000) ?? null }
+        : {}),
+      ...(input.creditTerms !== undefined
+        ? { creditTerms: procurementNullableString(input, 'creditTerms', 5000) ?? null }
+        : {}),
+      ...(input.discountAmount !== undefined
+        ? { discountAmount: input.discountAmount === null ? null :
+            procurementNonnegativeDecimal(input.discountAmount, 'discountAmount') }
+        : {}),
+      ...(input.freightAmount !== undefined
+        ? { freightAmount: input.freightAmount === null ? null :
+            procurementNonnegativeDecimal(input.freightAmount, 'freightAmount') }
+        : {}),
+      ...(input.additionalChargeAmount !== undefined
+        ? { additionalChargeAmount: input.additionalChargeAmount === null ? null :
+            procurementNonnegativeDecimal(input.additionalChargeAmount, 'additionalChargeAmount') }
+        : {}),
+      ...(input.vatRatePercent !== undefined
+        ? { vatRatePercent: input.vatRatePercent === null ? null :
+            procurementNonnegativeDecimal(input.vatRatePercent, 'vatRatePercent') }
+        : {}),
     };
     procurementNonEmpty(data);
     return {
