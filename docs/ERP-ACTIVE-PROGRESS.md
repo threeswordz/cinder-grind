@@ -54,6 +54,8 @@
 
 > **Consolidated FM01/BEN04/PM16 verified:** [45572035443](https://github.com/threeswordz/cinder-grind/actions/runs/45572035443/job/139060766098) SUCCESS16/16, 18 focused tests and actual scoped Foreman/Ben/PM/Nancy Chromium journeys. Exact source f45139f9. M4-03 7→5h, M4 57→55h, ERP 1,787→1,785h. Independent review and retained UAT unchanged.
 
+> **Consolidated browser reconciliation:** [e29327df](https://github.com/threeswordz/cinder-grind/commit/e29327df246570a432d7c61a6e9a4792205e341f) two test files only, Jai manual and Ben source-link PUR07 journeys plus operational exceptions actual browser, independent disposable DBs. Workflow-only [ff30cbe8](https://github.com/threeswordz/cinder-grind/commit/ff30cbe8ad42c4e4883cc8161bdefe05839fe01c) [45572709802](https://github.com/threeswordz/cinder-grind/actions/runs/45572709802); no new credit pending result. M4 55h, ERP 1,785h.
+
 ## Headline
 | Metric | Current | Meaning |
 |---|---:|---|
