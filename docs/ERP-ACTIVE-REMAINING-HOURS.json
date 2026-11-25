@@ -1542,6 +1542,28 @@
       "sourceSha": "9cdf7f9f886e6c96a357d89e33b1709c0ffd72ab",
       "formalAcceptance": false,
       "estimateConfidence": "PENDING_FOCUSED_PROOF"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-02-002",
+      "date": "2026-11-25",
+      "packageId": "M4-02",
+      "kind": "PM02_BOUNDED_NATIVE_PASS_AND_POPULATED_UPGRADE_PROOF_STARTED",
+      "beforeHours": 7,
+      "afterHours": 6,
+      "reductionHours": 1,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 1,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45521482092",
+        "https://github.com/threeswordz/cinder-grind/commit/9cdf7f9f886e6c96a357d89e33b1709c0ffd72ab",
+        "https://github.com/threeswordz/cinder-grind/commit/b15d009a21b976badfe5918b3d5ff8c7eaa30cf7",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45523796231",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45463404517/attempts/3"
+      ],
+      "basis": "Owner explicitly authorized one exact-head full retry of FM01 #452 run45463404517. Guarded same-head, same-main, draft and failed attempt2 checked; rerun failed jobs once accepted, attempt3 in progress. PM02 exact app source 9cdf7f9f886e6c96a357d89e33b1709c0ffd72ab focused workflow-only child b09c33775d37eb0fa97b5856a8afdc9946b80a26 SUCCESS17/17, 19 source guard cases + one native PG17 mixed approval test PASS; real ApprovalService rollback after supplier deactivation and successful recovery to legitimate PO, frozen dependencies, fresh migrations, API compile, web typecheck. Provisional 1h remaining candidate validation allowance eliminated, not actual labor or formal acceptance. Added three standalone exact schema/pinned migration/preservation proof files at b15d009a21b976badfe5918b3d5ff8c7eaa30cf7; no application changes, global schema admission still fail-closed. Exact workflow-only child 082c69006ee4a6dc3003df7d647be944d04b99ea running targeted populated predecessor-to-candidate upgrade proof 45523796231. No proof credit until outcome. No new independent review, Ready, merge, retained access or Production; original stack preserved.",
+      "sourceSha": "b15d009a21b976badfe5918b3d5ff8c7eaa30cf7",
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -1564,6 +1586,6 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1820,
+  "currentRollingTotalAfterPricedGapsHours": 1819,
   "currentRollingTotalSemantics": "1830h provisional future work = 1847h baseline minus 17h M4-01, 1h M4-02, 1h M4-03, 1h M4-04, 1h M4-05, 2h M4-06, 1h M4-07, 2h M4-08, plus 9h supplier scope. JAI-ASSET-01 canonical CG acquisition register and native proof eliminate 5h previously identified remaining scope. Not actual labor or formal acceptance; deadline RED."
 }
