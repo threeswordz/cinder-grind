@@ -2418,6 +2418,27 @@
       "sourceSha": "0f33035537bf13e7b49f54ae574b897e9971e57a",
       "formalAcceptance": false,
       "estimateConfidence": "NO_ADDITIONAL_HOURS_CREDIT"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-08-022",
+      "date": "2026-11-25",
+      "packageId": "M4-08",
+      "kind": "PUR10_GOVERNED_CANCELLATION_V25_INTEGRATION_STAGED",
+      "beforeHours": 18,
+      "afterHours": 18,
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45565071830/job/139037761732",
+        "https://github.com/threeswordz/cinder-grind/commit/2984c361b9a71a0e966e274405cf75ceed4567be",
+        "https://github.com/threeswordz/cinder-grind/commit/383582dada238c9deaef87e518b3132489fea172",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45566159789"
+      ],
+      "basis": "PUR07 diagnostics reached post-auth/module/mount marker then failed visibility of Workflow & Revision Controls; commercial identity/audit PASS; no browser acceptance. Integrated exact seven PUR10 source/test blobs from historically passed #449 into newer v25 0f330355, selective four shared seams (service cancel block only, controller legacy denial, Nest provider/controller and UI replaces unilateral control). Eleven paths, no schema change, new source 2984c361. Earlier PUR10 evidence not credited twice. Workflow-only child 383582da, scoped disposable PG17 API/web compilation, policy and native cancellation/revision-race run45566159789 observed in progress. No formal acceptance or additional forecast credit until new lineage evidence; named mapping and exception policies remain owner-gated; no protected main changes/full CI/retained grants/Production.",
+      "sourceSha": "2984c361b9a71a0e966e274405cf75ceed4567be",
+      "formalAcceptance": false,
+      "estimateConfidence": "NO_ADDITIONAL_HOURS_CREDIT"
     }
   ],
   "unestimatedWork": [
