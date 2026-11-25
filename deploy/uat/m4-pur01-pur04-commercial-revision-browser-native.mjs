@@ -478,8 +478,16 @@ async function run(){
     'PUR07_SCOPED_LIST_SOURCE_MISSING');
   }
   const cancellationRead=await fetch(WEB+'/api/v1/procurement/purchase-orders/'+po.id+'/cancellation-case',{headers:{Cookie:'erp_session='+actor.token}});
-  assert.equal(cancellationRead.status,200,'PUR10_SYNTHETIC_NAMED_ACTORS_READ_FAILED');
-  assert.equal((await cancellationRead.json()).data.case,null,'No cancellation may be fabricated by PUR07 fixture');
+  const cancellationBody=await cancellationRead.json();
+  const successor=await db.purchaseOrder.findFirst({where:{previousRevisionId:po.id},select:{id:true}});
+  if(successor){
+   assert.equal(cancellationRead.status,409,'Superseded approved PO must not be eligible for cancellation review');
+   assert.equal(cancellationBody.code,'PUR10_APPROVED_LATEST_PO_REQUIRED','Only the exact superseded-source denial is expected');
+   console.log('M4_PUR10_SUPERSEDED_PREDECESSOR_READ_DENIAL_PASS');
+  }else{
+   assert.equal(cancellationRead.status,200,'PUR10_SYNTHETIC_NAMED_ACTORS_READ_FAILED');
+   assert.equal(cancellationBody.data.case,null,'No cancellation may be fabricated by purchasing fixture');
+  }
   console.log('PUR07_ACTUAL_SCOPED_PROJECT_AND_PO_HTTP_PASS');
   const cookie=await protocol.send('Network.setCookie',{
    name:'erp_session',value:actor.token,url:WEB,httpOnly:true,sameSite:'Lax',
