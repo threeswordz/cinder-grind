@@ -2237,6 +2237,50 @@
       ],
       "basis": "Successor historical consumer code c007e194 connects exact validated PUR12 columns/PUR07 table to receiving, FM03, HR and legacy snapshots; positive/negative new empty table allowlist and syntax contract PASS45555815912. Provisional 1h remaining consumer contract work eliminated, not proof of actual full historical rehearsals. Supplier latest scoped source 53c488c8, 21 paths; 45555627653 migration/build/web and 20 policy tests PASS, 2/3 native PASS (posted replacement/reversal and signed custody, no postings); older missing replacement provenance expected wrong error. Test-only correction fc093f55 preserves stricter source denial; corrected native + not-yet-executed browser proof run45555913363 in_progress. Supplier separately priced 9h unchanged pending combined validation. Successor v24/v25 evidence and global admission not enabled.",
       "sourceSha": "c007e19424b9fec96657a84f748320f4816c1aca"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-08-019",
+      "date": "2026-11-25",
+      "packageId": "M4-08",
+      "kind": "PURCHASING_SUCCESSOR_VERSIONED_RECEIPTS_PASS",
+      "beforeHours": 21,
+      "afterHours": 20,
+      "reductionHours": 1,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 1,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/commit/e013d917ba1b0864f80bb8670fdb7758956261dd",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45556131859"
+      ],
+      "basis": "Exact v24/v25 layered release evidence parser, exact migration checks, source contract tests, historical witnesses, paired recovery and external HR/document flags, rollback reset and receipt emission; existing consolidated verifier consumes same generalized purchasingMode and preserves all older layer checks. New missing-receipt/wrong-version/migration/order negatives and rehearsal shell syntax PASS 45556131859. Provisional 1h future evidence-wiring/contract work eliminated, distinct from earlier historical-consumer proof. No successor classifier admission yet, native integrated v25 paired proof and full historical rehearsals/independent release gate remain. Native identity/PDF tests retain their dedicated disposable DB guard; no assertion that the rehearsal source-contract step alone proves them.",
+      "sourceSha": "e013d917ba1b0864f80bb8670fdb7758956261dd",
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261125-PUR08-14-014",
+      "date": "2026-11-25",
+      "packageId": null,
+      "scopeId": "PUR08_PUR14_INTEGRATION",
+      "kind": "SUPPLIER_LIFECYCLE_NEW_LINEAGE_NATIVE_AND_AUTHENTICATED_BROWSER_PASS",
+      "beforeHours": null,
+      "afterHours": null,
+      "reductionHours": 0,
+      "scopeBeforeHours": 9,
+      "scopeAfterHours": 7,
+      "scopeReductionHours": 2,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 2,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/commit/53c488c758a4e2adf5f091c08025d88aaa176967",
+        "https://github.com/threeswordz/cinder-grind/commit/fc093f55dcfcf2c08c28e519212dd3684c1d1ccf",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45555627653",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45555913363"
+      ],
+      "basis": "New bounded supplier integration onto successor purchasing source, 16 exact later supplier/Receiving test and UI blobs plus 4 shared module/UI actor-role wiring changes and handoff. 45555627653 migration/API/web/20 pure policy and two native journeys PASS; stale older missing provenance denial corrected in test-only fc093f55, application unchanged. 45555913363 exact workflow-only child 6f5ac415 SUCCESS17/17 including corrected 1/1 native, actual authenticated Chrome Store→Khaimook→Jai→Store, HTTP/CSRF/Project and uploaded bytes, signed damaged custody without stock/AP, source-linked checked posted replacement GR and real reversal warning intact. Provisional −2h remaining new-lineage source integration and actor/browser verification eliminated, not duplicate historical #432–#440 implementation credit. Retained human UAT, independent exact-head review, final release validation, separately authorized posted-stock reversal/Finance credit and unsupported discrepancy attribution still open. No actual labor or formal acceptance.",
+      "sourceSha": "fc093f55dcfcf2c08c28e519212dd3684c1d1ccf",
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -2246,19 +2290,19 @@
         "PUR08",
         "PUR14"
       ],
-      "hours": 9,
+      "hours": 7,
       "budgetAllocation": "NEW_EXPLICIT_M4_ADDITIONAL_SCOPE; NOT SILENTLY SUBTRACTED_FROM_M4_01/M4_08",
-      "sourceStatus": "SIGNED_DAMAGED_CUSTODY_NATIVE_EXACT_DELIVERY_LINK_AND_DISTINCT_CHECKSUM_PASS;PRIOR_CHROME_HISTORICAL;FINANCE_CREDIT_SEPARATE",
-      "remaining": "9h low-confidence remaining future supplier workflow and assurance work: exact stacked integration source/DEC-022 independent review; retained named eight-role MKE/TCJ Company/Project permission proof and UAT; posted-stock supplier return requires separately authorized canonical stock reversal, no duplicate stock debit; any real supplier credit/AP adjustment is independent Porn-maker/Nancy-checker Finance source (GL06), not automated; SHORT/WRONG_ITEM/EXCESS remain evidence-only, quantitative material/UOM/PO-line posting attribution not approved. Owner release CI/merge/Production authorizations separate. Native and real Chrome signed DAMAGED custody-only proofs do not count as human UAT.",
-      "evidence": "https://github.com/threeswordz/cinder-grind/actions/runs/45388148255",
+      "sourceStatus": "NEW_BOUNDED_LINEAGE_NATIVE_AND_REAL_CHROME_SIGNED_CUSTODY_REPLACEMENT_REVERSAL_PASS;FINANCE_CREDIT_SEPARATE",
+      "remaining": "7h low-confidence remaining supplier workflow and assurance: exact final integrated source independent DEC-022, retained named-role MKE/TCJ Company/Project UAT, separately authorized canonical posted-stock return/reversal and Finance credit outside case, SHORT/WRONG/EXCESS remain evidence-only pending quantitative attribution; final CI/merge/Production authorization. New-lineage native and authenticated browser proof is not retained human acceptance.",
+      "evidence": "https://github.com/threeswordz/cinder-grind/actions/runs/45555913363",
       "stage": "M4",
       "grossPreImplementationEstimateHours": 51,
-      "estimatedReductionFromNewSourceHours": 42,
+      "estimatedReductionFromNewSourceHours": 44,
       "confidence": "LOW",
       "estimateKind": "NEWLY_DISCOVERED_MANDATORY_SCOPE_PRICE_NOT_A_TIMESHEET"
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1803,
-  "currentRollingTotalSemantics": "1803h provisional future work = 1847h baseline minus 53h evidence-backed package forecast reductions plus 9h separately priced supplier scope. M4 73h; M4-06 6h, M4-07 3h, M4-08 21h; formal acceptance unchanged."
+  "currentRollingTotalAfterPricedGapsHours": 1800,
+  "currentRollingTotalSemantics": "1800h provisional future work = 1847h baseline minus 54h evidence-backed package forecast reductions plus 7h separately priced supplier scope. M4 70h; M4-08 20h; supplier 7h; formal acceptance unchanged."
 }
