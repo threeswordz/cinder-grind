@@ -95,6 +95,40 @@ async function click(p,s,value){
  },value);
  assert.equal(clicked,true,'PUR07_REAL_BUTTON_NOT_CLICKED_'+value);
 }
+async function choose(p,s,label,option){
+ // MUI's portal keeps the previous menu options in the DOM throughout its
+ // close animation. If the next choice is clicked immediately, the old
+ // line's matching option wins and silently changes the WRONG PR line.
+ await until(p,s,()=>document.querySelectorAll('[role="option"]').length===0,
+  null,'PREVIOUS_MUI_MENU_MUST_BE_CLOSED');
+ const opened=await page(p,s,value=>{
+  const target=[...document.querySelectorAll('[role="combobox"]')].find(
+   x=>(x.getAttribute('aria-labelledby')??'').split(' ').some(
+    id=>document.getElementById(id)?.textContent?.trim()===value));
+  if(!target)return false;
+  target.dispatchEvent(new MouseEvent('mousedown',{bubbles:true,button:0}));
+  return true;
+ },label);
+ assert.equal(opened,true,'PUR07_SELECT_NOT_FOUND_'+label);
+ await until(p,s,value=>[...document.querySelectorAll('[role="option"]')].some(
+  x=>x.textContent?.includes(value)),option,'OPTION_'+option);
+ const selected=await page(p,s,value=>{
+  const target=[...document.querySelectorAll('[role="option"]')].find(
+   x=>x.textContent?.includes(value));
+  if(!target)return false;target.click();return true;
+ },option);
+ assert.equal(selected,true,'PUR07_OPTION_NOT_SELECTED_'+label);
+ // Inspect the actual controlled combobox associated with THIS line's label.
+ // Never treat a clicked portal option as success unless its corresponding
+ // current React value visibly changed to the requested option.
+ await until(p,s,values=>[...document.querySelectorAll('[role="combobox"]')].some(
+  x=>(x.getAttribute('aria-labelledby')??'').split(' ').some(
+   id=>document.getElementById(id)?.textContent?.trim()===values.label) &&
+   x.textContent?.includes(values.option)),{label,option},
+  'WRONG_LINE_OR_UNCHANGED_MUI_SELECTOR_'+label);
+ await until(p,s,()=>document.querySelectorAll('[role="option"]').length===0,
+  null,'MUI_MENU_MUST_CLOSE_BEFORE_NEXT_LINE');
+}
 async function input(p,s,label,value){
  await until(p,s,({label,value})=>{
   const elLabel=[...document.querySelectorAll('label')].find(l=>
@@ -311,9 +345,7 @@ async function run(){
   " document.body.dataset.moduleLoaded='yes';",
   " createRoot(document.getElementById('root')).render(",
   "  <QueryClientProvider client={client}><MonetaryLocaleContext.Provider value='en'>",
-  "   <PurchaseOrdersPanel permissions={me.permissions} roleCodes={me.roleCodes}",
-  "    initialProjectId="+JSON.stringify(project.id),
-  "    initialOrderId="+JSON.stringify(po.id)+"/>",
+  "   <PurchaseOrdersPanel permissions={me.permissions} roleCodes={me.roleCodes}/>",
   "  </MonetaryLocaleContext.Provider></QueryClientProvider>);",
   " document.body.dataset.authenticated='yes';",
   "})().catch(e=>{document.body.dataset.authenticated='no';document.body.dataset.failure=e.message;});",
@@ -388,6 +420,19 @@ async function run(){
   const directIdentity=(await direct.json()).data;
   assert.equal(directIdentity.id,actor.id);
   assert.deepEqual([...directIdentity.roleCodes].sort(),[...actor.roleCodes].sort());
+  assert.ok(directIdentity.permissions.includes('procurement.po.view'));
+  // Witness actual scoped API data separately from React state. No fake query
+  // data, no grants or request interception beyond the existing local guard.
+  for(const [route,expectedId] of [
+   ['/procurement/po-projects',project.id],
+   ['/procurement/projects/'+project.id+'/purchase-orders',po.id],
+  ]){
+   const response=await fetch(WEB+'/api/v1'+route,{headers:{Cookie:'erp_session='+actor.token}});
+   assert.equal(response.status,200,'PUR07_SCOPED_LIST_HTTP_FAILED');
+   assert.ok((await response.json()).data.some(row=>row.id===expectedId),
+    'PUR07_SCOPED_LIST_SOURCE_MISSING');
+  }
+  console.log('PUR07_ACTUAL_SCOPED_PROJECT_AND_PO_HTTP_PASS');
   const cookie=await protocol.send('Network.setCookie',{
    name:'erp_session',value:actor.token,url:WEB,httpOnly:true,sameSite:'Lax',
   },s);
@@ -413,8 +458,25 @@ async function run(){
    throw error;
   }
   assert.equal(await page(protocol,s,()=>document.body.dataset.identity),actor.id);
-  await visible(protocol,s,'Workflow & Revision Controls');
-  await visible(protocol,s,'Approved PO PDF');
+  try {
+   await visible(protocol,s,'Purchase Orders');
+   await choose(protocol,s,'Project',project.projectName);
+   await visible(protocol,s,'Purchase Order Register');
+   await choose(protocol,s,'Purchase Order revision',exactIdentity);
+   await visible(protocol,s,'Workflow & Revision Controls');
+   await visible(protocol,s,'Approved PO PDF');
+  } catch(error) {
+   const state=await page(protocol,s,()=>({
+    rootMounted:Boolean(document.getElementById('root')?.firstElementChild),
+    hasPoRegister:document.getElementById('root')?.textContent?.includes('Purchase Order Register')??false,
+    hasPoWorkflow:document.getElementById('root')?.textContent?.includes('Workflow & Revision Controls')??false,
+    selects:document.querySelectorAll('[role="combobox"]').length,
+    alerts:document.querySelectorAll('[role="alert"]').length,
+    progress:document.querySelectorAll('[role="progressbar"]').length,
+   })).catch(()=>({unreadable:true}));
+   console.log('PUR07_SCOPED_SYNTHETIC_RENDER_STAGE '+JSON.stringify({state,errors}));
+   throw error;
+  }
   return s;
  }
  try{
