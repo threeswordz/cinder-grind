@@ -1,7 +1,7 @@
-name: UOM Preserved Prototype Targeted
+name: M4 Receiving Commercial Compatibility Targeted
 on:
   push:
-    branches: ['vuom-preserved-upgrade-20261121']
+    branches: ['work-m4-receiving-commercial-compat-20261126']
     paths:
       - '.github/workflows/uom-preserved-native.yml'
       - 'deploy/uat/prototype-uom-*.mjs'
@@ -56,10 +56,10 @@ jobs:
           pnpm prisma:generate
           pnpm prisma:validate
       - name: Verify custody and preservation contracts
-        run: node --test deploy/release-candidate/prototype-uom-upgrade.test.mjs
+        run: node --test deploy/release-candidate/prototype-receiving-upgrade.test.mjs deploy/release-candidate/prototype-uom-upgrade.test.mjs
       - name: Build actual API
         run: pnpm --filter @construction-erp/api build
-      - name: Extend populated subcontract fixture with the same UOM browser and preservation kernel
+      - name: Execute failed material receiving and converted UOM native journey
         run: node deploy/uat/prototype-material-run-native.mjs
       - name: Classify engineering evidence
-        run: echo 'UOM_PRESERVED_TARGETED_ONLY - no full PR, independent review, full-main deployment or actual Mac receipt'
+        run: echo 'M4_RECEIVING_COMPAT_TARGETED_ONLY - no full PR, independent review, full-main deployment or actual Mac receipt'
