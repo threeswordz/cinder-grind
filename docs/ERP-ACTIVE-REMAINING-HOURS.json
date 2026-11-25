@@ -4135,6 +4135,24 @@
       "verifiedCompletedScopeHours": 1,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261125-M6-03-103",
+      "date": "2026-11-25",
+      "packageId": "M6-03",
+      "kind": "M6_PROCUREMENT_STOCK_MIGRATION_COMPATIBLE_GUARD_LOCAL_PASS",
+      "beforeHours": 30,
+      "afterHours": 29,
+      "sourceSha": "28fb85faf36e9e7b4a71d8abbb067819bc3a57f5",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/commit/28fb85faf36e9e7b4a71d8abbb067819bc3a57f5"
+      ],
+      "basis": "41 existing procurement and stock tables guarded, exact top-level SQL numeric value bytes retained with explicit nullable additions permitted for suppliers, PR lines and PO headers. Receiving and transfer evidence source checksums, links, metadata and inventory matched; new aliases/extra stock postings rejected. Wired three upgrade checkpoints and required final proof flags. Actual Node22.16.0 14/14 PASS, zero failures: six new helper tests and eight existing coordinator cases with six additional negative proof variants. Four exact tested blob hashes d870a1b24dd5f375e0e5007402ccde5b5d9addc5,2ca0523856885e04877d50ca154befb17b4d77bf,4e788d0e7b6bc69484e16d308f12f00c84342241,b7d3855ef3b2a109c1b4899c2c8a9ba0714235c2 match GitHub. Credit 1h distinct implementation/regression only. No replay, actual PG17 migration, Mac deployment, authenticated workflow verification or independent review. Existing Finance and HR additions not falsely classified as stock changes.",
+      "reductionHours": 1,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 1,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -4157,6 +4175,6 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1738,
-  "currentRollingTotalSemantics": "1738h = 1847h baseline minus 111.5h verified baseline forecast reduction plus 2.5h remaining supplier scope. M4 12h, M6 116h. All 112 requirements preserved. Actual labor unmeasured."
+  "currentRollingTotalAfterPricedGapsHours": 1737,
+  "currentRollingTotalSemantics": "1737h = 1847h baseline minus 112.5h verified baseline forecast reduction plus 2.5h remaining supplier scope. M4 12h, M6 115h. All 112 requirements preserved. Actual labor unmeasured."
 }
