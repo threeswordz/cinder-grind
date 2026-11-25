@@ -2,7 +2,7 @@ import {
   Alert, Button, MenuItem, Paper, Stack, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, TextField, Typography,
 } from '@mui/material';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { apiRequest } from '../api/client';
 import { PortfolioWorkQueuePanel } from './PortfolioWorkQueuePanel';
 
@@ -91,6 +91,28 @@ export function StockMinimumsPanel({ roleCodes }: { roleCodes: string[] }) {
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const siteBase = base + '/projects/' + projectId + '/sites/' + warehouseId;
+  // Invalidate requests synchronously when the user selects another scope.
+  // A refresh generation also prevents an older same-site refresh winning.
+  const scope = useRef({ projectId: '', warehouseId: '', generation: 0 });
+  const refreshGeneration = useRef(0);
+  const clearSite = () => {
+    setPolicies([]); setPlanStarts([]); setAsOfThailandDate('');
+    setSupplierIndicators([]); setSupplierAsOf(''); setChoices([]);
+    setNextCursor(null); setMaterialKey(''); setMinimumQuantity('');
+    setReason(''); setStatus('ACTIVE'); setError(''); setSaving(false);
+  };
+  const selectProject = (id: string) => {
+    if (scope.current.projectId === id) return;
+    scope.current = { projectId: id, warehouseId: '', generation: scope.current.generation + 1 };
+    refreshGeneration.current++;
+    setProjectId(id); setWarehouseId(''); setSites([]); clearSite();
+  };
+  const selectWarehouse = (id: string) => {
+    if (scope.current.warehouseId === id) return;
+    scope.current = { ...scope.current, warehouseId: id, generation: scope.current.generation + 1 };
+    refreshGeneration.current++;
+    setWarehouseId(id); clearSite();
+  };
 
   useEffect(() => {
     let active = true;
@@ -101,18 +123,19 @@ export function StockMinimumsPanel({ roleCodes }: { roleCodes: string[] }) {
   }, []);
 
   useEffect(() => {
-    setWarehouseId(''); setSites([]); setPolicies([]); setPlanStarts([]); setAsOfThailandDate(''); setSupplierIndicators([]); setSupplierAsOf(''); setChoices([]);
-    setNextCursor(null); setMaterialKey('');
     if (!projectId) return;
     let active = true;
     apiRequest<Data<Site[]>>(base + '/projects/' + projectId + '/sites')
-      .then(r => { if (active) setSites(r.data); })
-      .catch(e => { if (active) setError(message(e)); });
+      .then(r => { if (active && scope.current.projectId === projectId) setSites(r.data); })
+      .catch(e => { if (active && scope.current.projectId === projectId) setError(message(e)); });
     return () => { active = false; };
   }, [projectId]);
 
   const refresh = useCallback(async () => {
-    if (!projectId || !warehouseId) return;
+    if (!projectId || !warehouseId || scope.current.projectId !== projectId || scope.current.warehouseId !== warehouseId) return;
+    const selected = scope.current.generation;
+    const request = ++refreshGeneration.current;
+    const current = () => scope.current.generation === selected && refreshGeneration.current === request;
     setError('');
     try {
       const [readback, options, plan, suppliers] = await Promise.all([
@@ -121,6 +144,7 @@ export function StockMinimumsPanel({ roleCodes }: { roleCodes: string[] }) {
         apiRequest<Data<PlanStartReadback>>(siteBase + '/plan-starts'),
         apiRequest<Data<SupplierReadback>>(siteBase + '/supplier-indicators'),
       ]);
+      if (!current()) return;
       setPolicies(readback.data.alerts);
       setPlanStarts(plan.data.alerts);
       setAsOfThailandDate(plan.data.asOfThailandDate);
@@ -128,12 +152,13 @@ export function StockMinimumsPanel({ roleCodes }: { roleCodes: string[] }) {
       setSupplierAsOf(suppliers.data.asOfThailandDate);
       setChoices(options.data.items);
       setNextCursor(options.data.nextCursor);
-    } catch (caught) { setError(message(caught)); }
+    } catch (caught) { if (current()) setError(message(caught)); }
   }, [projectId, warehouseId, siteBase]);
 
   useEffect(() => {
     setPolicies([]); setPlanStarts([]); setAsOfThailandDate(''); setSupplierIndicators([]); setSupplierAsOf(''); setChoices([]); setNextCursor(null); setMaterialKey('');
     void refresh();
+    return () => { refreshGeneration.current++; };
   }, [refresh]);
 
   const selectMaterial = (key: string) => {
@@ -146,18 +171,24 @@ export function StockMinimumsPanel({ roleCodes }: { roleCodes: string[] }) {
   };
 
   const addChoices = async () => {
-    if (!nextCursor) return;
+    if (!nextCursor || scope.current.projectId !== projectId || scope.current.warehouseId !== warehouseId) return;
+    const selected = scope.current.generation;
+    const request = refreshGeneration.current;
+    const current = () => scope.current.generation === selected && refreshGeneration.current === request;
     try {
       const response = await apiRequest<Data<{ items: Choice[]; nextCursor: string | null }>>(
         siteBase + '/choices?after=' + encodeURIComponent(nextCursor));
+      if (!current()) return;
       setChoices(before => [...before, ...response.data.items]);
       setNextCursor(response.data.nextCursor);
-    } catch (caught) { setError(message(caught)); }
+    } catch (caught) { if (current()) setError(message(caught)); }
   };
 
   const save = async () => {
     const [materialId, uomId] = materialKey.split(':');
-    if (!materialId || !uomId) return;
+    if (!materialId || !uomId || !canConfigure || scope.current.projectId !== projectId || scope.current.warehouseId !== warehouseId) return;
+    const selected = scope.current.generation;
+    const stillSelected = () => scope.current.generation === selected;
     const current = policies.find(r => r.materialId === materialId && r.uomId === uomId);
     setError(''); setSaving(true);
     try {
@@ -167,15 +198,15 @@ export function StockMinimumsPanel({ roleCodes }: { roleCodes: string[] }) {
           expectedPreviousEventId: current?.lastEventId ?? null,
         }),
       });
-      await refresh();
-    } catch (caught) { setError(message(caught)); }
-    finally { setSaving(false); }
+      if (stillSelected()) await refresh();
+    } catch (caught) { if (stillSelected()) setError(message(caught)); }
+    finally { if (stillSelected()) setSaving(false); }
   };
 
   return (
     <Stack spacing={2}>
       <Typography variant="h6">Material / Site minimum-stock alerts</Typography>
-      {canConfigure && <PortfolioWorkQueuePanel selectProject={setProjectId} />}
+      {canConfigure && <PortfolioWorkQueuePanel selectProject={selectProject} />}
       <Alert severity="info">
         Read-only stock warnings use available quantity (on hand minus active reservations).
         No stock, receiving or Finance posting occurs. Approved plan start dates now
@@ -185,14 +216,14 @@ export function StockMinimumsPanel({ roleCodes }: { roleCodes: string[] }) {
       </Alert>
       <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
         <TextField select label="Authorized Project" value={projectId}
-          onChange={e => setProjectId(e.target.value)} sx={{ minWidth: 240 }}>
+          onChange={e => selectProject(e.target.value)} sx={{ minWidth: 240 }}>
           <MenuItem value="">Select Project</MenuItem>
           {projects.map(p => <MenuItem key={p.id} value={p.id}>
             {p.projectCode} — {p.projectName}
           </MenuItem>)}
         </TextField>
         <TextField select label="Site Warehouse" value={warehouseId}
-          onChange={e => setWarehouseId(e.target.value)} sx={{ minWidth: 240 }}
+          onChange={e => selectWarehouse(e.target.value)} sx={{ minWidth: 240 }}
           disabled={!projectId}>
           <MenuItem value="">Select Site</MenuItem>
           {sites.map(s => <MenuItem key={s.id} value={s.id}>
