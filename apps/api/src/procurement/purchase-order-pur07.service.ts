@@ -2,6 +2,7 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
@@ -148,7 +149,13 @@ export class PurchaseOrderPur07Service {
       // absence is a fail-closed error, never a fabricated ASCII document.
       try {
         bytes = await renderApprovedPoUnicodePdf(pdfInput);
-      } catch {
+      } catch (failure) {
+        // Expose only a bounded internal failure class to operational logs;
+        // never supplier text, document content, paths, stack or raw CDP data.
+        const reason = failure instanceof Error &&
+          /^PO_PDF_UNICODE_[A-Z_]+$/.test(failure.message)
+          ? failure.message : 'PO_PDF_UNICODE_UNKNOWN_FAILURE';
+        Logger.warn(reason, 'PurchaseOrderPur07Service');
         throw new UnprocessableEntityException({
           code: 'PO_PDF_UNICODE_RENDERER_UNAVAILABLE',
           detail: 'Thai/Unicode approved PO could not be rendered with the installed sandboxed Chromium and Thai fonts. No partial PDF was exported. Configure and verify the local renderer before release.',

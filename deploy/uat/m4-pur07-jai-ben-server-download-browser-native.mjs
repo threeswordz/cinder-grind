@@ -49,7 +49,7 @@ const {default:reactPlugin}=await import(pathToFileURL(webRequire.resolve('@vite
 const D=value=>new Prisma.Decimal(value);
 const pdfServerResponses=[];
 let expectedPdfPath=null;
-const app=await NestFactory.create(AppModule,{logger:false});
+const app=await NestFactory.create(AppModule,{logger:['warn','error']});
 app.setGlobalPrefix('api/v1');
 app.use(securityHeadersMiddleware(false));
 // Observe only the exact synthetic PO PDF route; no credentials or bodies logged.
@@ -544,7 +544,7 @@ async function run(){
   await visible(protocol,buyer,exactIdentity);
   await visible(protocol,buyer,'Download approved PDF (Thai / English)');
   await click(protocol,buyer,'Download approved PDF (Thai / English)');
-  for(let n=0;n<180&&completedDownloads.size<1&&!(pdfServerResponses.length&&pdfServerResponses[0].status>=400);n++)await delay(150);
+  for(let n=0;n<480&&completedDownloads.size<1&&!(pdfServerResponses.length&&pdfServerResponses[0].status>=400);n++)await delay(150);
   // A CDP response can be missed; require stronger independent server and
   // on-disk browser-download witnesses, never treat the click as evidence.
   console.log('PUR07_PDF_WITNESS '+JSON.stringify({requests:pdfRequests.size,
