@@ -24,6 +24,23 @@ test('SS11 native PG employee custody: scope, concurrent checkout/return, immuta
   const db=new PrismaService();
   await db.$connect();
   try {
+    // Exercise the installed SQL calendar in deliberately different session
+    // timezones; fixed instants make the Bangkok midnight regression deterministic.
+    await db.$transaction(async tx=>{
+      for(const zone of ['UTC','Asia/Singapore','Asia/Bangkok']){
+        await tx.$queryRawUnsafe("SELECT set_config('TimeZone',$1,true)",zone);
+        const rows=await tx.$queryRawUnsafe<{before:string;after:string;sg:string;leap:string}[]>(
+          "SELECT equipment_custody_thailand_day('2026-11-24T16:59:59.999Z'::timestamptz)::text AS before, "+
+          "equipment_custody_thailand_day('2026-11-24T17:00:00Z'::timestamptz)::text AS after, "+
+          "equipment_custody_thailand_day('2026-11-24T16:00:00Z'::timestamptz)::text AS sg, "+
+          "equipment_custody_thailand_day('2028-02-28T17:00:00Z'::timestamptz)::text AS leap");
+        assert.deepEqual(rows[0],{before:'2026-11-24',after:'2026-11-25',sg:'2026-11-24',leap:'2028-02-29'});
+      }
+      const guards=await tx.$queryRawUnsafe<{definition:string}[]>(
+        "SELECT pg_get_functiondef('guard_equipment_custody_loan()'::regprocedure) AS definition");
+      assert.match(guards[0]!.definition,/equipment_custody_thailand_day\(statement_timestamp\(\)\)/);
+      assert.doesNotMatch(guards[0]!.definition,/CURRENT_DATE/i);
+    });
     const suffix=randomUUID().slice(0,8);
     const company=await db.company.create({data:{companyCode:'SS11-'+suffix,companyName:'Custody test'}});
     const foreign=await db.company.create({data:{companyCode:'SS11-F-'+suffix,companyName:'Foreign'}});
