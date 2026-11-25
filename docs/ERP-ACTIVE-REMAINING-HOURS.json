@@ -3333,6 +3333,25 @@
       "sourceSha": "449523a3c183ad7cff12ab8010da9415feaef98f",
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261125-PUR08-PUR14-059",
+      "date": "2026-11-25",
+      "packageId": "PUR08_PUR14_INTEGRATION",
+      "kind": "PUR14_MISSING_ORIGIN_CONTROLLED_CONFLICT_SOURCE_FIXED",
+      "beforeHours": 7,
+      "afterHours": 6.5,
+      "reductionHours": 0.5,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0.5,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/commit/907ad5e7d3b2a5e657e3432cb785e3f0a75a5358",
+        "https://github.com/threeswordz/cinder-grind/commit/1e79492b3ee914e8de5a78d8a259a1a0431c2051"
+      ],
+      "basis": "Existing supplier source-correction allowance: exact two-path fix rejects nonexistent/foreign/unlinked receiving origin before Prisma UUID lookup, preserves PO material scope and adds native controlled-conflict/no-audit-append regression. Five exact committed source-excerpt cases executed using mocked query: four invalid origins zero calls, valid origin scoped query preserved. GitHub readback verifies committed native regression; full TypeScript compile and native PG test NOT executed. Retire only 0.5h provisional source preparation, not runtime or formal acceptance. Main unchanged; no full CI/retained grants/Production.",
+      "sourceSha": "1e79492b3ee914e8de5a78d8a259a1a0431c2051",
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -3342,19 +3361,19 @@
         "PUR08",
         "PUR14"
       ],
-      "hours": 7,
+      "hours": 6.5,
       "budgetAllocation": "NEW_EXPLICIT_M4_ADDITIONAL_SCOPE; NOT SILENTLY SUBTRACTED_FROM_M4_01/M4_08",
       "sourceStatus": "NEW_BOUNDED_LINEAGE_NATIVE_AND_REAL_CHROME_SIGNED_CUSTODY_REPLACEMENT_REVERSAL_PASS;FINANCE_CREDIT_SEPARATE",
-      "remaining": "7h low-confidence remaining supplier workflow and assurance: exact final integrated source independent DEC-022, retained named-role MKE/TCJ Company/Project UAT, separately authorized canonical posted-stock return/reversal and Finance credit outside case, SHORT/WRONG/EXCESS remain evidence-only pending quantitative attribution; final CI/merge/Production authorization. New-lineage native and authenticated browser proof is not retained human acceptance.",
+      "remaining": "6.5h provisional remaining supplier workflow and assurance: native regression for unknown/unlinked origin, exact final integrated independent DEC-022, retained named-role MKE/TCJ Company/Project UAT, separately authorized canonical posted-stock return/reversal and Finance credit outside case, SHORT/WRONG/EXCESS remain evidence-only pending quantitative attribution; final CI/merge/Production authorization. No native or retained acceptance credit for the latest source-only correction.",
       "evidence": "https://github.com/threeswordz/cinder-grind/actions/runs/45555913363",
       "stage": "M4",
       "grossPreImplementationEstimateHours": 51,
-      "estimatedReductionFromNewSourceHours": 44,
+      "estimatedReductionFromNewSourceHours": 44.5,
       "confidence": "LOW",
       "estimateKind": "NEWLY_DISCOVERED_MANDATORY_SCOPE_PRICE_NOT_A_TIMESHEET"
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1771,
-  "currentRollingTotalSemantics": "1771h provisional full ERP = 1847h baseline minus 83h net forecast effort retired plus 7h newly priced supplier work. M4 41h: M4-01 7h, M4-02 2h, M4-03 5h, M4-04 5h, M4-05 6h, M4-06 4h, M4-07 3h, M4-08 2h, supplier 7h. SS11 integrated recovery producer source prepared; actual integrated shell, PG/paired recovery and independent review pending. All 112 requirements preserved."
+  "currentRollingTotalAfterPricedGapsHours": 1770.5,
+  "currentRollingTotalSemantics": "1770.5h provisional full ERP = 1847h baseline minus 83h net baseline forecast effort retired plus 6.5h supplier work remaining. M4 40.5h: M4-01 7h, M4-02 2h, M4-03 5h, M4-04 5h, M4-05 6h, M4-06 4h, M4-07 3h, M4-08 2h, supplier 6.5h. Latest PUR14 source fix and regression preparation verified; native test and independent review pending. All 112 requirements preserved."
 }
