@@ -20,16 +20,18 @@
 
 > **Supplier bounded integration:** [45555913363](https://github.com/threeswordz/cinder-grind/actions/runs/45555913363) SUCCESS17/17 on exact source fc093f55, corrected provenance native and real authenticated Store/PM/Jai custody/posted replacement/reversal journeys, uploaded evidence and no case stock/AP effects; earlier policy20/20 and two native PASS preserved. Supplier remaining 9→7h (new-lineage integration only). M4 70h / ERP 1,800h.
 
-> **Consolidated purchasing candidate:** [a8e1f68](https://github.com/threeswordz/cinder-grind/commit/a8e1f688617b5c54656467c61923b6d8e4039007), exact supplier lineage plus successor historical/release evidence and bounded v25 schema admission. [45556427561](https://github.com/threeswordz/cinder-grind/actions/runs/45556427561) targeted single predecessor rehearsal initiated; full historical validation and independent review remain. M4-08 20h unchanged, M4 70h, ERP 1,800h.
+> **Consolidated purchasing candidate:** [a8e1f68](https://github.com/threeswordz/cinder-grind/commit/a8e1f688617b5c54656467c61923b6d8e4039007), exact supplier lineage plus successor historical/release evidence and bounded v25 schema admission. [45556427561](https://github.com/threeswordz/cinder-grind/actions/runs/45556427561) targeted single predecessor rehearsal initiated; full historical validation and independent review remain. M4-08 20h unchanged, M4 70h, ERP 1,800h at staging.
+
+> **Verified consolidated v25 native successor:** [45556427561](https://github.com/threeswordz/cinder-grind/actions/runs/45556427561/job/139009464942) SUCCESS15/15, exact source `a8e1f688617b5c54656467c61923b6d8e4039007`, single predecessor, populated upgrade, all five layered receipt assertions, HR keys and protected documents, restored predecessor runtime and rollback readiness. M4-08 20→18h; M4 70→68h; ERP 1,800→1,798h. Full historical/review/retained-role gates remain.
 
 ## Headline
 | Metric | Current | Meaning |
 |---|---:|---|
-| **Estimated full ERP work still needed** | **1,800h → 0h** | Includes latest newly priced mandatory gaps |
+| **Estimated full ERP work still needed** | **1,798h → 0h** | Includes latest newly priced mandatory gaps |
 | 23 Nov original current-work forecast | 1847h | Earlier 60-package provisional baseline |
-| Additional estimated future-work eliminated | −54h | M4-01 −20h, M4-02 −5h, M4-03 −2h, M4-04 −3h, M4-05 −3h, M4-06 −4h, M4-07 −3h, M4-08 −14h, **not timesheet** |
+| Additional estimated future-work eliminated | −56h | M4-01 −20h, M4-02 −5h, M4-03 −2h, M4-04 −3h, M4-05 −3h, M4-06 −4h, M4-07 −3h, M4-08 −16h, **not timesheet** |
 | Newly discovered previously unpriced PUR08/PUR14 work | +7h | Net **remaining** after real signed damaged-custody Chrome/native proof, no automatic Finance/AP/stock effect |
-| Net reforecast change versus 1,847h | −47h | More honest scope recognition; not schedule recovery |
+| Net reforecast change versus 1,847h | −49h | More honest scope recognition; not schedule recovery |
 | PUR08/PUR14 provisional work before new development | 51h | Low-confidence new-gap gross estimate |
 | PUR08/PUR14 estimated future work eliminated through verified development | 44h | Verified role/tenant source, posted GR/reversal warning and signed DAMAGED outward custody; only future-work forecast, not logged hours |
 | PUR08/PUR14 remaining | **7h** | Signed unposted DAMAGED custody implemented, posted stock needs separately approved canonical reversal; real supplier credit/AP is separate Finance module, SHORT/WRONG/EXCESS stay evidence-only, retained named-role UAT and independent review pending |
@@ -41,13 +43,13 @@
 | Whole baseline packages formally accepted | 0/60 | 8 M4 packages still 0/8 |
 | Actual productive hours logged | UNKNOWN | Cannot infer from GitHub commits or AI conversation length |
 
-**Why the number rose:** the earlier 1,845h omitted a separate confirmed PUR08/PUR14 implementation budget. New source plus corrected source-backed tests reduced that *newly priced* work from a provisional 51h gross to 7h remaining, but the original 60-package forecast excluded that additional work. Thus **1,847h − 20h M4-01 − 5h M4-02 − 2h M4-03 − 3h M4-04 − 3h M4-05 − 4h M4-06 − 3h M4-07 − 14h M4-08 + 7h supplier = 1,800h**. Supplier gross estimate 51h includes newly discovered handover defect +1h, verified fix −1h, with 44h of future work eliminated. This prevents a false countdown and requires a real reduction in remaining work at each future step. It does **not** represent actual human hours worked or formal acceptance.
+**Why the number rose:** the earlier 1,845h omitted a separate confirmed PUR08/PUR14 implementation budget. New source plus corrected source-backed tests reduced that *newly priced* work from a provisional 51h gross to 7h remaining, but the original 60-package forecast excluded that additional work. Thus **1,847h − 20h M4-01 − 5h M4-02 − 2h M4-03 − 3h M4-04 − 3h M4-05 − 4h M4-06 − 3h M4-07 − 16h M4-08 + 7h supplier = 1,798h**. Supplier gross estimate 51h includes newly discovered handover defect +1h, verified fix −1h, with 44h of future work eliminated. This prevents a false countdown and requires a real reduction in remaining work at each future step. It does **not** represent actual human hours worked or formal acceptance.
 
 ## Stage-by-stage remaining work
 
 | Stage | Previous 60-package baseline | Verified package forecast reduction | Additional scope remaining | **Now remaining** | Accepted baseline packages |
 |---|---:|---:|---:|---:|---:|
-| Prototype 5/8 — M4 closure | 117h | 54h | 7h | **70h** | 0/8 |
+| Prototype 5/8 — M4 closure | 117h | 56h | 7h | **68h** | 0/8 |
 | Prototype 6/8 — end-to-end deployment | 120h | 0h | 0h | **120h** | 0/5 |
 | Prototype 7/8 — populated restore | 50h | 0h | 0h | **50h** | 0/3 |
 | Prototype 8/8 — technical freeze | 65h | 0h | 0h | **65h** | 0/3 |
@@ -59,7 +61,7 @@
 | Production hosting and recovery | 110h | 0h | 0h | **110h** | 0/5 |
 | Migration and onboarding | 110h | 0h | 0h | **110h** | 0/4 |
 | Final human UAT, cutover and Production | 150h | 0h | 0h | **150h** | 0/5 |
-| **Full ERP** | **1847h** | **54h** | **7h** | **1,800h** | **0/60** |
+| **Full ERP** | **1847h** | **56h** | **7h** | **1,798h** | **0/60** |
 
 ## Each baseline package
 
@@ -72,7 +74,7 @@
 | M4-05 | M4 | PUR04 core PO commercial/delivery fields | 9h | **6h** |
 | M4-06 | M4 | PUR07 supplier-name PO PDF and manual dispatch evidence | 10h | **6h** |
 | M4-07 | M4 | PUR12 K-/T- company PO document identity | 6h | **3h** |
-| M4-08 | M4 | M4 focused closure, governed integration and Owner decision | 34h | **20h** |
+| M4-08 | M4 | M4 focused closure, governed integration and Owner decision | 34h | **18h** |
 | M6-01 | M6 | Build deployable preserved-data integrated M4/M6 candidate | 25h | **25h** |
 | M6-02 | M6 | Site, plan, request, issue and document deployed journeys | 25h | **25h** |
 | M6-03 | M6 | Procurement, receiving, transfers and inventory deployed journeys | 30h | **30h** |
@@ -129,9 +131,11 @@
 ## Additional required scope (beyond the original 60 package costing)
 | Scope ID | Stage | Provisional initial estimate | Source progress estimated | Remaining |
 |---|---|---:|---:|---:|
-| PUR08_PUR14_INTEGRATION | M4 | 51h | 42h | **9h** |
+| PUR08_PUR14_INTEGRATION | M4 | 51h | 44h | **7h** |
 
 ## Evidence-backed update history
+
+- **2026-11-25 — M4-08 20h → 18h; ERP 1,800h → 1,798h.** Exact workflow-only child 158b5ae278d874c3c106121819ab663648ccc8f1 checks out source a8e1f688617b5c54656467c61923b6d8e4039007. Job 139009464942 completed SUCCESS15/15, actual predecessor runtime acceptance, migration, PM02/PUR04/PUR01/PUR12/PUR07 layered receipt assertions, protected HR attachment DB/store/external-key recovery, restored predecessor authenticated administrator and Employee reader with document download, rollback readiness and final PURCHASING_V25_SINGLE_PREDECESSOR_NATIVE_REHEARSAL_PASS. Provisional 2h remaining integrated v25 successor native assurance eliminated, distinct from earlier v23 native proof, isolated v24/v25 DB-only proof and staged evidence contracts; no additional credit for earlier layers. Full eight-predecessor release validation, independent DEC-022, retained-role and deployment remain. No actual labor or formal acceptance. [Native run](https://github.com/threeswordz/cinder-grind/actions/runs/45556427561/job/139009464942).
 
 - **2026-11-25 — M4-08: 26h → 25h.** FM01 PR452 exact corrected head 4aab761d8477cfb63ea978af1444865b720d42d5, base/live main 040395bc7b0dedd40207f91f743bc2efc1584622; Owner-authorized full attempt2 SUCCESS, validate46/46 and integration-plan5/5; marked Ready once, no duplicate full trigger. Independent DEC-022 exact-head verdict still absent. Provisional -1h remaining release validation/readiness work in M4-08, no duplicate credit for FM01 focused/browser repair or elapsed CI. M4-03 stays 8h, human acceptance and remaining BEN04/PM16/FM01 tasks not waived. No merge or Production. [Evidence 1](https://github.com/threeswordz/cinder-grind/actions/runs/45524967848/attempts/2) [Evidence 2](https://github.com/threeswordz/cinder-grind/pull/452#issuecomment-7151263448)
 - **2026-11-25 — M4-02: 5h → 3h.** Global exact PM02 schema admission, four historical witness consumers, v21 paired recovery and all seven layered consolidation checks wired. Four focused workflows SUCCESS. Exact native rehearsal source 05e64e24eb8d5b0864c360109bcdc570eae9134a, workflow-only child c8062713337e8558e2864d5b90163468bb8173a3, 45537365945 job138947153938 SUCCESS 15/15 including actual predecessor migration, paired DB/Documents, HR keys and protected file, old runtime restored authentication and v21 receipt. Provisional -2h remaining technical release preparation and paired recovery work eliminated; earlier separate database-only restore not double-counted. Remaining 3h low-confidence allowance: targeted real PM02 browser actor/correction and authorization, retained-role acceptance coordination, exact final candidate reconciliation. Full eight historical predecessors and DEC-022 review remain governed in M4-08. No formal acceptance or human labor claim. [Evidence 1](https://github.com/threeswordz/cinder-grind/commit/05e64e24eb8d5b0864c360109bcdc570eae9134a) [Evidence 2](https://github.com/threeswordz/cinder-grind/actions/runs/45533757894) [Evidence 3](https://github.com/threeswordz/cinder-grind/actions/runs/45534157354) [Evidence 4](https://github.com/threeswordz/cinder-grind/actions/runs/45534525602) [Evidence 5](https://github.com/threeswordz/cinder-grind/actions/runs/45535897340) [Evidence 6](https://github.com/threeswordz/cinder-grind/actions/runs/45537365945)
