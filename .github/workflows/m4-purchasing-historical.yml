@@ -1,0 +1,25 @@
+name: Purchasing historical witness contracts focused
+on:
+  push:
+    branches: [ci-m4-purchasing-historical-20261125]
+permissions:
+  contents: read
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+      - name: Verify exact source and workflow-only delta
+        run: |
+          test "$(git rev-parse HEAD^)" = 8536934bd8bac226966f038af2b08fe66013c7a1
+          test "$(git diff --name-only HEAD^ HEAD)" = .github/workflows/m4-purchasing-historical.yml
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.21.0
+      - name: Syntax and combined exact purchasing contracts
+        run: |
+          for f in receiving-predecessor site-issue-predecessor legacy-fixture hr-upgrade purchasing-historical-columns; do node --check "deploy/release-candidate/$f.mjs"; done
+          node --test deploy/release-candidate/purchasing-historical-columns.test.mjs deploy/release-candidate/pur04-schema-preparation.test.mjs deploy/release-candidate/pur01-schema-preparation.test.mjs
