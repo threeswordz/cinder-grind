@@ -14,7 +14,7 @@ function fake(failAt){
    calls.push({label,path,expected});
    if(failAt===label)throw Error('MOCK_FAILURE');
    let data;
-   if(label==='M6_HR_PRIOR_HISTORY')data={items:[],nextCursor:null};
+   if(label==='M6_HR_PRIOR_HISTORY')data=failAt==='UNMASKED_PRIOR'?{items:[{...history,fileName:'synthetic-private.txt'}],nextCursor:null}:{items:[],nextCursor:null};
    if(label==='M6_HR_MASKED_HISTORY')data={items:[history],nextCursor:null};
    return {value:{data}};
   },
@@ -36,7 +36,7 @@ function fake(failAt){
    return new Response(JSON.stringify({data:{id:uuid(7),version:1}}),{status:201});
   }
   return new Response(Buffer.from('CONSTRUCTION_ERP_SYNTHETIC_M6_ENCRYPTED_HR_FILE_PROOF_20261122\n'),
-    {status:200,headers:{'content-type':'text/plain','cache-control':'private, no-store','x-content-type-options':'nosniff'}});
+    {status:200,headers:{'content-type':'text/plain','cache-control':failAt==='CACHEABLE_DOWNLOAD'?'private, max-age=60':'private, no-store','x-content-type-options':'nosniff'}});
  };
  return {client,fetchImpl,calls,fetches,sessionLog};
 }
@@ -83,4 +83,22 @@ test('history drift refuses upload and cleans up sessions',async()=>{
   client:x.client,fetchImpl:x.fetchImpl}),/M6_HR_SOURCE_HISTORY_DRIFT/);
  assert.equal(x.fetches.length,0);
  assert.deepEqual(x.sessionLog.slice(-2),['logout:M6_HR_STORE_SITE','logout:M6_HR_KOH']);
+});
+
+test('cacheable protected download fails after exactly one upload and revokes both sessions',async()=>{
+ const x=fake('CACHEABLE_DOWNLOAD');
+ await assert.rejects(executeM6HrDocumentJourney({...base,client:x.client,
+  fetchImpl:x.fetchImpl}),/M6_HR_DOWNLOAD_PRIVACY_HEADERS_INVALID/);
+ assert.equal(x.fetches.filter(x=>x.request.method==='POST').length,1);
+ assert.equal(x.fetches.filter(x=>x.request.method==='GET').length,1);
+ assert.deepEqual(x.sessionLog.slice(-2),['logout:M6_HR_STORE_SITE','logout:M6_HR_KOH']);
+ assert.equal(x.calls.filter(x=>x.expected===401).length,2);
+});
+test('unmasked prior history blocks upload and revokes both sessions',async()=>{
+ const x=fake('UNMASKED_PRIOR');
+ await assert.rejects(executeM6HrDocumentJourney({...base,source:{...source,expectedVersion:1},
+  client:x.client,fetchImpl:x.fetchImpl}),/M6_HR_SOURCE_HISTORY_DRIFT/);
+ assert.equal(x.fetches.length,0);
+ assert.deepEqual(x.sessionLog.slice(-2),['logout:M6_HR_STORE_SITE','logout:M6_HR_KOH']);
+ assert.equal(x.calls.filter(x=>x.expected===401).length,2);
 });
