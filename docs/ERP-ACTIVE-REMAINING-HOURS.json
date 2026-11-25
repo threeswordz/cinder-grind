@@ -2538,6 +2538,45 @@
       "sourceSha": "5d2d86e1bcb4c338bbd39c8bf3270b2628f93cc7",
       "formalAcceptance": false,
       "estimateConfidence": "NO_ADDITIONAL_HOURS_CREDIT"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-06-010",
+      "date": "2026-11-25",
+      "packageId": "M4-06",
+      "kind": "PUR07_V25_ACTUAL_AUTHENTICATED_PDF_DISPATCH_PASS",
+      "beforeHours": 6,
+      "afterHours": 4,
+      "reductionHours": 2,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 2,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/commit/5fe9305f84ef8e6165ea594d67d8e28d380276a3",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45568660272/job/139049625140"
+      ],
+      "basis": "Exact pre-PUR10 v25 source and workflow-only child, SUCCESS15/15. Actual scoped HTTP, authentic Jai and Ben, Unicode backend PDF HTTP200, manual reported send, read-only Ben role/history, final journey marker PASS. Distinct integrated manual browser assurance, not previous isolated PDF credit. Deep-link and later integrated candidate verification remain, independent review and retained UAT remain. Provisional 2h future work retired.",
+      "sourceSha": "5fe9305f84ef8e6165ea594d67d8e28d380276a3",
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-08-026",
+      "date": "2026-11-25",
+      "packageId": "M4-08",
+      "kind": "SS11_V25_NATIVE_CUSTODY_PASS_ASSET_GUARD_BLOCKED",
+      "beforeHours": 17,
+      "afterHours": 16,
+      "reductionHours": 1,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 1,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/commit/5d2d86e1bcb4c338bbd39c8bf3270b2628f93cc7",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45568812808/job/139050116583",
+        "https://github.com/threeswordz/cinder-grind/commit/f6157a17444fa05562b8caf85a6dce09342ffba9"
+      ],
+      "basis": "Overall job FAILED: migrations, API/web compile and actual SS11 native PG custody scope/concurrent checkout/return/immutable audit PASS; asset test stopped before execution at exact disposable DB-name guard. Corrected workflow only with required DB name, runs asset test alone, no custody replay. One hour provisional distinct integrated custody proof, no asset credit. Populated restore and review outstanding.",
+      "sourceSha": "5d2d86e1bcb4c338bbd39c8bf3270b2628f93cc7",
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -2560,6 +2599,6 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1795,
-  "currentRollingTotalSemantics": "1795h provisional future work = 1847h baseline minus 59h evidence-backed package forecast reductions plus 7h separately priced supplier scope. M4 65h; M4-03 7h; M4-08 17h; supplier 7h; formal acceptance unchanged."
+  "currentRollingTotalAfterPricedGapsHours": 1792,
+  "currentRollingTotalSemantics": "1792h provisional future work = 1847h baseline minus 62h evidence-backed package forecast reductions plus 7h separately priced supplier scope. M4 62h; M4-06 4h; M4-08 16h; supplier 7h; formal acceptance unchanged."
 }
