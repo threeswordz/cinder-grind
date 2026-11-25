@@ -12,9 +12,9 @@
 
 > **PUR04 bounded source:** [45541682784](https://github.com/threeswordz/cinder-grind/actions/runs/45541682784) SUCCESS14/14, populated upgrade and independent predecessor DB restore 169 tables/5 PO rows, upgraded target recheck PASS. Exact source f9b4fead; schema guards and revision native evidence retained. M4-05 7→6h; global admission and paired Documents/keys remain.
 
-> **Combined purchasing source:** [PUR01 recovery 45542817519](https://github.com/threeswordz/cinder-grind/actions/runs/45542817519) SUCCESS14/14, 169 tables/7 POs. [Historical contracts 45543885554](https://github.com/threeswordz/cinder-grind/actions/runs/45543885554) PASS; [versioned evidence 45552282850](https://github.com/threeswordz/cinder-grind/actions/runs/45552282850) PASS on bd8be84e. M4-08 25→24h; global admission/native paired recovery still outstanding.
+> **Combined purchasing source:** v22/v23 evidence contracts [45552282850](https://github.com/threeswordz/cinder-grind/actions/runs/45552282850) PASS8/8. [c579163](https://github.com/threeswordz/cinder-grind/commit/c57916313fa1db1e8d0c54e26564d477d56de90c) activates exact bounded global schema admission on isolated branch; integrated v23 rehearsal [45552744024](https://github.com/threeswordz/cinder-grind/actions/runs/45552744024) in_progress. M4-08 24h unchanged; integrated proof and independent gates remain.
 
-> **PUR12 bounded preparation:** [59be28a](https://github.com/threeswordz/cinder-grind/commit/59be28af0285ff42d671d4dbc9b9a3b614ab0400), identity and transactional numbering replay; focused validation [45552393311](https://github.com/threeswordz/cinder-grind/actions/runs/45552393311) in_progress. M4-07 5h unchanged. M4 80h / ERP 1,810h.
+> **PUR12 bounded preparation:** [45552393311](https://github.com/threeswordz/cinder-grind/actions/runs/45552393311) 21/22 tests PASS; missing disposable database confirmation/name blocked native identity test before access. Corrected workflow-only child [b8aeda4](https://github.com/threeswordz/cinder-grind/commit/b8aeda4402d199a64093930f10092ad8555557d9), native-only [45552655875](https://github.com/threeswordz/cinder-grind/actions/runs/45552655875) in_progress. M4-07 5h unchanged. M4 80h / ERP 1,810h.
 
 ## Headline
 | Metric | Current | Meaning |

@@ -1972,6 +1972,46 @@
       "sourceSha": "59be28af0285ff42d671d4dbc9b9a3b614ab0400",
       "formalAcceptance": false,
       "estimateConfidence": "NO_ADDITIONAL_HOURS_CREDIT"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-07-003",
+      "date": "2026-11-25",
+      "packageId": "M4-07",
+      "kind": "PUR12_FOCUSED_CONFIGURATION_CORRECTION",
+      "beforeHours": 5,
+      "afterHours": 5,
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45552393311",
+        "https://github.com/threeswordz/cinder-grind/commit/b8aeda4402d199a64093930f10092ad8555557d9",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45552655875"
+      ],
+      "basis": "Exact PUR12 source 59be28a initial native run45552393311 overall FAIL, migration/API/web and 21 tests PASS; native test blocked before DB access by missing M4_NON_PRODUCTION_CONFIRMED and mismatched test database name. Workflow-only correction b8aeda44 supplies YES and exact disposable erp_m4_pur12_native, preserves test guard, runs only unexecuted native identity test. No production change, no repeat of passing tests, no estimate credit until native proof.",
+      "sourceSha": "59be28af0285ff42d671d4dbc9b9a3b614ab0400",
+      "formalAcceptance": false,
+      "estimateConfidence": "NO_ADDITIONAL_HOURS_CREDIT"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-08-014",
+      "date": "2026-11-25",
+      "packageId": "M4-08",
+      "kind": "PURCHASING_BOUNDED_SCHEMA_ADMISSION_ACTIVATED",
+      "beforeHours": 24,
+      "afterHours": 24,
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/commit/c57916313fa1db1e8d0c54e26564d477d56de90c",
+        "https://github.com/threeswordz/cinder-grind/commit/c97d25eaa566091110b1d51ea930c97159ee8b95",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45552744024"
+      ],
+      "basis": "Six-file bounded PUR04/PUR01 outer classifier admission enabled on isolated PUR01 head c5791631; exact existing PM02 and isolated purchasing schema regression fixtures pinned to historical commits, no generic schema bypass. Single exact protected-main predecessor native integrated v23 rehearsal child c97d25ea created; requires PM02/PUR04/PUR01 source tests, historical preservation, paired Documents and HR-key recovery, restored runtime and v23 receipt. All eight historical rehearsals, full CI and independent review remain. No new forecast credit pending native execution; PUR12 branch must later reconcile admission delta, main and FM01 untouched.",
+      "sourceSha": "c57916313fa1db1e8d0c54e26564d477d56de90c",
+      "formalAcceptance": false,
+      "estimateConfidence": "NO_ADDITIONAL_HOURS_CREDIT"
     }
   ],
   "unestimatedWork": [
