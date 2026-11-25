@@ -1,14 +1,14 @@
 # Construction ERP — live countdown to 0 hours
 
 <!-- current-work-m4 -->
-**Current M4 forecast 38h → 0h · Full ERP 1,768h → 0h.** Owner authorized one failed-jobs rerun of #452 run 45603992458 on c83f2498 against 040395bc. The scoped browser proof is complete. The new full-CI outcome and independent review remain open.
+**Current M4 forecast 34.5h → 0h · Full ERP 1,764.5h → 0h.** FM01 full CI 46/46 PASS, supplier real PG17 race PASS, purchasing and SS11 discrete native subproofs PASS. Codex re-review blocked by quota; overall SS11 layered receipt remains open, corrected isolated workflow running.
 
 | Forecast reconciliation | Hours |
 |---|---:|
-| Previous reported ERP forecast | 1,768.5 |
+| Previous reported ERP forecast | 1,768 |
 | Newly identified mandatory scope | +0 |
-| Verified completed work | −0.5 |
-| Revised remaining ERP forecast | **1,768** |
+| Verified remaining-effort reduction | −3.5 |
+| Revised remaining ERP forecast | **1,764.5** |
 
 Prototype 4/8 · Go-live 3/10 · Deadline 31 December 2026.
 <!-- /current-work-m4 -->
@@ -140,14 +140,14 @@ Prototype 4/8 · Go-live 3/10 · Deadline 31 December 2026.
 ## Headline
 | Metric | Current | Meaning |
 |---|---:|---|
-| **Estimated full ERP work still needed** | **1,768h → 0h** | 112 requirements across eight roles |
+| **Estimated full ERP work still needed** | **1,764.5h → 0h** | 112 requirements across eight roles |
 | 23 Nov original current-work forecast | 1847h | Earlier 60-package provisional baseline |
-| Additional estimated future-work eliminated | −85.5h | M4-01 −25h, M4-02 −6h, M4-03 −5.5h, M4-04 −3.5h, M4-05 −3.5h, M4-06 −6h, M4-07 −3.5h, M4-08 −32.5h |
-| Newly discovered previously unpriced PUR08/PUR14 work | +6.5h | Remaining supplier lifecycle and assurance work |
+| Additional estimated future-work eliminated | −88h | M4-01 −25h, M4-02 −6h, M4-03 −6.5h, M4-04 −4h, M4-05 −4h, M4-06 −6h, M4-07 −3.5h, M4-08 −33h |
+| Newly discovered previously unpriced PUR08/PUR14 work | +5.5h | Remaining supplier lifecycle and assurance work |
 | Net reforecast change versus 1,847h | −79h | Includes separately priced supplier scope |
 | PUR08/PUR14 provisional work before new development | 51h | Low-confidence new-gap gross estimate |
-| PUR08/PUR14 estimated future work eliminated through verified development | 44.5h | Provisional forecast reduction against the 51h gross estimate |
-| PUR08/PUR14 remaining | **6.5h** | See supplier evidence and approved boundaries in the ledger |
+| PUR08/PUR14 estimated future work eliminated through verified development | 45.5h | Provisional forecast reduction against the 51h gross estimate |
+| PUR08/PUR14 remaining | **5.5h** | See supplier evidence and approved boundaries in the ledger |
 | Historical original baseline | 1,900h | Not the current work-to-go figure |
 | Proposed optimization | 1,500h | **Unvalidated**; now requires risk/scope recalibration |
 | Prototype milestone | 4/8 | Official |
@@ -156,13 +156,13 @@ Prototype 4/8 · Go-live 3/10 · Deadline 31 December 2026.
 | Whole baseline packages formally accepted | 0/60 | 8 M4 packages still 0/8 |
 | Actual productive hours logged | UNKNOWN | Cannot infer from GitHub commits or AI conversation length |
 
-**Forecast basis.** The 1,847h baseline covers 60 packages. Verified work has removed 85.5h of estimated future effort from those packages. The separately priced supplier lifecycle has 6.5h remaining, bringing the ERP forecast to 1,768h.
+**Forecast basis.** The 1,847h baseline covers 60 packages. Verified work has removed 88h of estimated future effort from those packages. The separately priced supplier lifecycle has 5.5h remaining, bringing the ERP forecast to 1,764.5h.
 
 ## Stage-by-stage remaining work
 
 | Stage | Previous 60-package baseline | Verified package forecast reduction | Additional scope remaining | **Now remaining** | Accepted baseline packages |
 |---|---:|---:|---:|---:|---:|
-| Prototype 5/8 — M4 closure | 117h | 85.5h | 6.5h | **38h** | 0/8 |
+| Prototype 5/8 — M4 closure | 117h | 88h | 5.5h | **34.5h** | 0/8 |
 | Prototype 6/8 — end-to-end deployment | 120h | 0h | 0h | **120h** | 0/5 |
 | Prototype 7/8 — populated restore | 50h | 0h | 0h | **50h** | 0/3 |
 | Prototype 8/8 — technical freeze | 65h | 0h | 0h | **65h** | 0/3 |
@@ -174,7 +174,7 @@ Prototype 4/8 · Go-live 3/10 · Deadline 31 December 2026.
 | Production hosting and recovery | 110h | 0h | 0h | **110h** | 0/5 |
 | Migration and onboarding | 110h | 0h | 0h | **110h** | 0/4 |
 | Final human UAT, cutover and Production | 150h | 0h | 0h | **150h** | 0/5 |
-| **Full ERP** | 1847h | 85.5h | 6.5h | **1,768h** | **0/60** |
+| **Full ERP** | 1847h | 88h | 5.5h | **1,764.5h** | **0/60** |
 
 ## Each baseline package
 
@@ -182,12 +182,12 @@ Prototype 4/8 · Go-live 3/10 · Deadline 31 December 2026.
 |---|---|---|---:|---:|
 | M4-01 | M4 | Current-source and all-112 evidence/scope decisions | 32h | **7h** |
 | M4-02 | M4 | PM02 real browser and retained-role authorization | 8h | **2h** |
-| M4-03 | M4 | FM01, BEN04 and PM16 real-browser acceptance | 10h | **4.5h** |
-| M4-04 | M4 | PUR01 whole-PO supplier-count and commercial rule | 8h | **4.5h** |
-| M4-05 | M4 | PUR04 core PO commercial/delivery fields | 9h | **5.5h** |
+| M4-03 | M4 | FM01, BEN04 and PM16 real-browser acceptance | 10h | **3.5h** |
+| M4-04 | M4 | PUR01 whole-PO supplier-count and commercial rule | 8h | **4h** |
+| M4-05 | M4 | PUR04 core PO commercial/delivery fields | 9h | **5h** |
 | M4-06 | M4 | PUR07 supplier-name PO PDF and manual dispatch evidence | 10h | **4h** |
 | M4-07 | M4 | PUR12 K-/T- company PO document identity | 6h | **2.5h** |
-| M4-08 | M4 | M4 focused closure, governed integration and Owner decision | 34h | **1.5h** |
+| M4-08 | M4 | M4 focused closure, governed integration and Owner decision | 34h | **1h** |
 | M6-01 | M6 | Build deployable preserved-data integrated M4/M6 candidate | 25h | **25h** |
 | M6-02 | M6 | Site, plan, request, issue and document deployed journeys | 25h | **25h** |
 | M6-03 | M6 | Procurement, receiving, transfers and inventory deployed journeys | 30h | **30h** |
@@ -244,7 +244,7 @@ Prototype 4/8 · Go-live 3/10 · Deadline 31 December 2026.
 ## Additional required scope (beyond the original 60 package costing)
 | Scope ID | Stage | Provisional initial estimate | Source progress estimated | Remaining |
 |---|---|---:|---:|---:|
-| PUR08_PUR14_INTEGRATION | M4 | 51h | 44.5h | **6.5h** |
+| PUR08_PUR14_INTEGRATION | M4 | 51h | 45.5h | **5.5h** |
 
 ## Evidence-backed update history
 
@@ -311,6 +311,14 @@ Prototype 4/8 · Go-live 3/10 · Deadline 31 December 2026.
 - **2026-11-24 — PRICED_ADDITIONAL_MANDATORY_SCOPE:** Existing 60-package baseline 1847h omitted a separable implementation budget for mandatory PUR08/PUR14. Provisional gross 50h source scope, estimated 10h engineering future effort eliminated by new pure-policy, scoped audit-backed API, controller and React source, leaving 40h engineering+verification+review/Owner policy. Adds 40h net remaining to M4 and full forecast rather than hiding it. Gross 50h and 10h reduction are low-confidence judgment, not measured worker hours or accepted completion; prototype and GL gates unchanged. [Evidence 1](https://github.com/threeswordz/cinder-grind/tree/a93d66f96d6b144fb4af33bc1e1961945b875630/apps/api/src/procurement) [Evidence 2](https://github.com/threeswordz/cinder-grind/blob/a93d66f96d6b144fb4af33bc1e1961945b875630/apps/api/src/procurement/supplier-delivery-case.service.ts) [Evidence 3](https://github.com/threeswordz/cinder-grind/blob/7a89cc061bfbb5c33deb606173b990a489fe897a/apps/web/src/procurement/SupplierDeliveryCasePanel.tsx)
 - **2026-11-24 — UNPRICED_TECHNICAL_SOURCE_PROGRESS:** Isolated PUR08/PUR14 non-posting transition contract and five focused pure tests committed. Not yet linked to authenticated persistence/API/UI/real GR/Document records; no source-backed estimate allocated in a specific 60-package row, so no invented remaining-hour reduction. [Evidence 1](https://github.com/threeswordz/cinder-grind/tree/3415ccd0eeaf1e544dd2e93a25ee867c0587df98/apps/api/src/procurement)
 - **2026-11-24 — M4-01:** 112 immutable source records were reconciled into a current integrated-source triage with 8 specifically verified delta annotations, eliminating an estimated 2 hours of reclassification/reinspection from M4-01's 32-hour forward-work estimate. This is an estimate reduction; remaining source-check and retained-policy/UAT work stays 30 hours. Do NOT credit 2 actual employee hours or formal package acceptance. [Evidence 1](https://github.com/threeswordz/cinder-grind/blob/49f3319db33441fd409480a39ed334ff2c0782b3/docs/ERP-DEADLINE-M4-112-CANDIDATE-TRIAGE-2026-11-24.csv) [Evidence 2](https://github.com/threeswordz/cinder-grind/blob/435bd8805d5bcd7e0a1a9941668b67860f288b78/docs/M4-2026-11-24-112-DISPOSITION.csv)
+
+## 25 November validation reconciliation
+
+- **M4-03 4.5→3.5h** — Corrected exact-head full validation 46/46 and integration-plan 5/5 completed successfully; earlier full proof and focused browser credit not counted again. Retire 1h remaining full gate verification estimate. Independent Codex re-review requested, quota blocked; unresolved thread, integration and retained human acceptance remain. [Evidence 1](https://github.com/threeswordz/cinder-grind/actions/runs/45603992458/job/139186012299)
+- **PUR08_PUR14_INTEGRATION 6.5→5.5h** — Exact workflow-only child bf54074c SUCCESS 15/15, fresh PG17 migrations, API compile and actual deterministic PUR10/PUR08 1/1 native. Log markers PUR10_PUR08_DETERMINISTIC_CANCELLATION_SUPPLIER_ROW_LOCK_PASS and PUR08_PO_REVISION_SUPPLIER_SERIALIZABLE_COLLISION_PASS, including new complete predecessor equality and superseded retry denial. Retire 1h remaining collision assurance, not earlier cancelled-source or atomic finalization work. Unknown-origin proof, final integrated review and retained role gates remain. [Evidence 1](https://github.com/threeswordz/cinder-grind/actions/runs/45611459901/job/139195772605)
+- **M4-04 4.5→4h** — Failed overall layered job contains independently completed current-source actual Decimal policy test (invalid stored amounts and matching RFQ units/quantity) and native PG17 whole-PO independent Ben approval PASS. Retire 0.5h remaining specific execution work, not older preparation or prior native proof. Overall recovery remains failed; no release credit. [Evidence 1](https://github.com/threeswordz/cinder-grind/actions/runs/45608544306/job/139185696007)
+- **M4-05 5.5→5h** — Current-source real API build, nullable commercial draft validation/audit and actual PG17 approved revision Company/Project scope tests passed before separate legacy runtime fixture failure. Retire 0.5h latest correction execution allowance, not previous bounded recovery or revision history credit. Overall recovery not PASS. [Evidence 1](https://github.com/threeswordz/cinder-grind/actions/runs/45608544306/job/139185696007)
+- **M4-08 1.5→1h** — Actual PG17 logged EQUIPMENT_INTEGRATED_SEED_PASS, AFTER_PASS and RESTORED_PASS. Final independent rollback/receipt not reached due obsolete direct draft cancellation expectation (HTTP409). Retire 0.5h distinct upgrade/installed guard/restore subproof only, not the failed whole run. Corrected fixture and strengthened trigger check merged on isolated source 36ff707c; targeted rerun in progress. No Production or formal acceptance. [Evidence 1](https://github.com/threeswordz/cinder-grind/actions/runs/45608544306/job/139185696007) [Evidence 2](https://github.com/threeswordz/cinder-grind/actions/runs/45613742239)
 
 ## Required update rule after every Chat development turn
 
