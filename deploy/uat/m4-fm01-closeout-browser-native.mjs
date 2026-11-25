@@ -193,7 +193,7 @@ async function run(){
   "import React from 'react';",
   "import {createRoot} from 'react-dom/client';",
   "import {QueryClient,QueryClientProvider} from '@tanstack/react-query';",
-  "import {WeeklySiteSummaryPanel} from '/src/site-execution/WeeklySiteSummaryPanel.tsx';",
+  "import {SiteExecutionPanel} from '/src/site-execution/SiteExecutionPanel.tsx';",
   "import {ProjectCloseoutPanel} from '/src/projects/ProjectCloseoutPanel.tsx';",
   "import {MonetaryLocaleContext} from '/src/role-ui/monetary-presentation.tsx';",
   "const projectId="+JSON.stringify(project.id)+";",
@@ -206,8 +206,9 @@ async function run(){
   " document.body.dataset.identity=me.id;",
   " document.body.dataset.company=me.companyId;",
   " document.body.dataset.roles=me.roleCodes.join(',');",
+  " document.body.dataset.dashboardPermission=String(me.permissions.includes('management.dashboard.view'));" ,
   " const content=new URLSearchParams(location.search).get('view')==='weekly'",
-  "  ? <WeeklySiteSummaryPanel projectId={projectId} onOpenReport={()=>{}} canAcknowledge={me.roleCodes.includes('MANAGEMENT')}/>",
+  "  ? <SiteExecutionPanel initialProjectId={projectId} permissions={me.permissions} roleCodes={me.roleCodes}/>",
   "  : <ProjectCloseoutPanel projectId={projectId} permissions={me.permissions} roleCodes={me.roleCodes}/>;",
   " createRoot(document.getElementById('root')).render(",
   "  <QueryClientProvider client={client}><MonetaryLocaleContext.Provider value='en'>{content}</MonetaryLocaleContext.Provider></QueryClientProvider>);",
@@ -289,6 +290,9 @@ async function run(){
 
   stage='BEN_WEEKLY_ACK';
   const b=await session(ben,'weekly');
+  assert.equal(await page(p,b,()=>document.body.dataset.dashboardPermission),'false',
+   'Ben has site report access without unrelated Management dashboard permission');
+  await visible(p,b,'Site Execution');
   await inputAt(p,b,'First day of seven-day period',0,'2026-11-23');
   await visible(p,b,'Updated access closure details');
   await click(p,b,'Acknowledge reviewed weekly source');
