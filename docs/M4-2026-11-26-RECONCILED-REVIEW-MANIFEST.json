@@ -1460,23 +1460,34 @@
       "status": "INDEPENDENT_SOURCE_REVIEW_CLEARED_RUNTIME_NOT_EXECUTED"
     },
     {
-      "scope": "PUR07 corrected server PDF regression",
-      "status": "NOT_EXECUTED_NATIVE_DEPENDENCIES_ABSENT"
-    },
-    {
       "scope": "Full release CI",
       "status": "BLOCKED_SPECIFIC_OWNER_AUTHORIZATION_AFTER_REVIEW"
     },
     {
       "scope": "Retained eight-persona acceptance",
       "status": "BLOCKED_RETAINED_CONFIGURATION_AND_HUMAN_UAT"
+    },
+    {
+      "scope": "Retained PUR07 Thai renderer host/font and named-role acceptance",
+      "status": "NOT_RUN_RETAINED_ACCEPTANCE"
     }
   ],
   "independentReview": "COMPLETED_NO_FINDINGS_ON_EXACT_HEAD",
   "formalAcceptance": false,
   "protectedMainChanged": false,
-  "forecastReductionHours": 0.5,
+  "forecastReductionHours": 1,
   "previousReconciledSource": "7486c0fd2e42b07e542ab8f570f6ed85650e7d06",
   "currentDraftHead": "0994594e8ab1fd40d972ade9f463a7cca6e0be32",
-  "independentReviewEvidence": "https://github.com/threeswordz/cinder-grind/pull/455#issuecomment-7168792544"
+  "independentReviewEvidence": "https://github.com/threeswordz/cinder-grind/pull/455#issuecomment-7168792544",
+  "macFocusedValidation": {
+    "status": "PASS_OWNER_SUPPLIED_TRANSCRIPT",
+    "source": "0994594e8ab1fd40d972ade9f463a7cca6e0be32",
+    "evidence": "https://github.com/threeswordz/cinder-grind/pull/455#issuecomment-7169252484",
+    "arithmetic": "6/6",
+    "serverPdf": "2/2",
+    "typecheck": "PASS",
+    "apiBuild": "PASS",
+    "prisma": "PASS",
+    "exitCode": 0
+  }
 }

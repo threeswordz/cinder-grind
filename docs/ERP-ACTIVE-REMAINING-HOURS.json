@@ -4262,6 +4262,24 @@
       "verifiedCompletedScopeHours": 0.5,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261126-M4-06-110",
+      "date": "2026-11-26",
+      "packageId": "M4-06",
+      "kind": "M4_PUR07_OWNER_MAC_EXACT_SERVER_PDF_REGRESSION_PASS",
+      "beforeHours": 0.5,
+      "afterHours": 0,
+      "sourceSha": "0994594e8ab1fd40d972ade9f463a7cca6e0be32",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/pull/455#issuecomment-7169252484"
+      ],
+      "basis": "Owner-operated Mac terminal transcript exact reviewed 0994594e, detached clean worktree, 26 Nov 01:13:37–01:13:58 SGT, Node24.21.0 pnpm12.6.0, frozen dependencies, Prisma generate/validate, API/web typecheck and API build all PASS, arithmetic 6/6 already credited, new server PDF regression 2/2 PASS, EXIT_CODE=0. Retire 0.5h remaining PUR07 focused corrected server regression estimate, not formal acceptance; retained Thai renderer host/font, role acceptance and Linux operational browser still required under release acceptance gates. Owner-supplied transcript, not independently observed Mac or CI proof.",
+      "reductionHours": 0.5,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0.5,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -4284,6 +4302,6 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1734,
-  "currentRollingTotalSemantics": "1734h = 1847h baseline minus 115.5h verified baseline forecast reduction plus 2.5h remaining supplier scope. M4 11.5h, M6 112.5h. All 112 requirements preserved. Actual labor unmeasured."
+  "currentRollingTotalAfterPricedGapsHours": 1733.5,
+  "currentRollingTotalSemantics": "1733.5h = 1847h baseline minus 116h verified baseline forecast reduction plus 2.5h supplier residual. M4 11h, M6 112.5h; PUR07 technical forecast 0h, formal acceptance still false. All 112 requirements preserved. Actual labor unmeasured."
 }
