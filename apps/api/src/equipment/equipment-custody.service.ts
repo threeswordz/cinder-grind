@@ -5,6 +5,7 @@ import { AuditService } from '../audit/audit.service';
 import { AuthenticatedUserContext } from '../auth/auth.types';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProjectAccessService } from '../projects/project-access.service';
+import { custodyThailandDay } from './equipment-custody-date';
 
 type Context = { auth: AuthenticatedUserContext; correlationId?: string };
 type LoanRow = {
@@ -29,7 +30,6 @@ function conflict(code: string, detail: string): never {
 function invalid(field: string, detail: string): never {
   throw new UnprocessableEntityException({ code: 'EQUIPMENT_CUSTODY_INVALID', errors: [{ field, message: detail }] });
 }
-function todayUtc(): Date { return new Date(new Date().toISOString().slice(0, 10) + 'T00:00:00.000Z'); }
 
 @Injectable()
 export class EquipmentCustodyService {
@@ -117,7 +117,7 @@ export class EquipmentCustodyService {
   }
 
   async checkout(context: Context, input: EquipmentCustodyIssue) {
-    if (input.issuedOn > todayUtc()) invalid('issuedOn', 'Issue date cannot be in the future.');
+    if (input.issuedOn > custodyThailandDay(new Date())) invalid('issuedOn', 'Issue date cannot be in the future.');
     if (input.dueOn < input.issuedOn) invalid('dueOn', 'Due date cannot predate issue date.');
     return this.prisma.$transaction(async tx => {
       const auth = await this.authorize(context.auth, 'equipment.custody.manage', tx);
@@ -168,7 +168,7 @@ export class EquipmentCustodyService {
   }
 
   async returnLoan(context: Context, id: string, input: EquipmentCustodyReturn) {
-    if (input.returnedOn > todayUtc()) invalid('returnedOn','Return date cannot be in the future.');
+    if (input.returnedOn > custodyThailandDay(new Date())) invalid('returnedOn','Return date cannot be in the future.');
     return this.prisma.$transaction(async tx => {
       const auth = await this.authorize(context.auth,'equipment.custody.manage',tx);
       const rows = await tx.$queryRawUnsafe<{id:string;equipment_id:string;project_id:string;issued_on:Date;returned_on:Date|null}[]>(
