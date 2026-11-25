@@ -119,7 +119,7 @@ async function input(p,s,label,value){
 async function run(){
  const suffix=randomUUID().slice(0,8);
  const company=await db.company.create({data:{
-  companyCode:'P01B-'+suffix,companyName:'PUR07 disposable browser only',
+  companyCode:'MKE',companyName:'PUR07 disposable browser only',
  }});
  const customer=await db.customer.create({data:{
   companyId:company.id,customerCode:'P01C-'+suffix,
@@ -271,6 +271,20 @@ async function run(){
  await pos.submit({auth:jai.auth},po.id,poFlow.workflowCode);
  const checked=await pos.approve({auth:ben.auth},po.id,'Ben independently approved sourced THB PO');
  assert.equal(checked.lifecycleState,'APPROVED');
+ const exactIdentity='K-'+po.poNumber+' SEMICON';
+ const persisted=await db.purchaseOrder.findUniqueOrThrow({where:{id:po.id}});
+ assert.equal(persisted.displayNumber,exactIdentity);
+ assert.equal(persisted.supplierShortNameSnapshot,'SEMICON');
+ const finalAudit=await db.auditLog.findMany({where:{companyId:company.id,
+  entityType:'PURCHASE_ORDER',entityId:po.id,action:'PUR01_FINAL_QUOTE_POLICY'}});
+ assert.equal(finalAudit.length,1);
+ assert.equal(finalAudit[0].actorUserId,ben.id);
+ const basis=finalAudit[0].newValues;
+ assert.equal(basis.netExVatTHB,'1970.00');
+ assert.equal(basis.requiredSuppliers,1);
+ assert.equal(basis.comparableSuppliers,1);
+ assert.equal(basis.approvalInstanceId,persisted.approvalInstanceId);
+ console.log('M4_V25_PUR01_PUR04_PUR12_FINAL_AUDIT_AND_IDENTITY_PASS');
  assert.equal((await pos.getOrder(ben.auth,po.id)).lines[0].quotationAward.supplierNameSnapshot,
   'บริษัท เซมิคอนกรีต จำกัด');
  console.log('M4_PUR07_REAL_APPROVED_PG_THAI_FIXTURE_PASS');
@@ -380,6 +394,7 @@ async function run(){
   const buyer=await session(jai);
   await visible(protocol,buyer,'Approved PO PDF & Manual Dispatch (PUR07)');
   await visible(protocol,buyer,'APPROVED');
+  await visible(protocol,buyer,exactIdentity);
   await visible(protocol,buyer,'Download approved PDF (Thai / English)');
   await click(protocol,buyer,'Download approved PDF (Thai / English)');
   for(let n=0;n<150&&downloadHttp200.length<1;n++)await delay(140);
@@ -418,6 +433,7 @@ async function run(){
   stage='BEN_READ_ONLY_REAL_BROWSER';
   const management=await session(ben);
   await visible(protocol,management,'Reported sent');
+  await visible(protocol,management,exactIdentity);
   await visible(protocol,management,'Download approved PDF (Thai / English)');
   assert.equal(await page(protocol,management,()=>{
    return [...document.querySelectorAll('button')]
