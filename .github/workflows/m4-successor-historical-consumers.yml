@@ -1,0 +1,25 @@
+name: Purchasing successor historical consumers focused
+on:
+  push:
+    branches: [ci-m4-successor-historical-consumers-20261125]
+permissions:
+  contents: read
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          fetch-depth: 0
+      - name: Verify exact source and workflow-only delta
+        run: |
+          test "$(git rev-parse HEAD^)" = c007e19424b9fec96657a84f748320f4816c1aca
+          test "$(git diff --name-only HEAD^ HEAD)" = .github/workflows/m4-successor-historical-consumers.yml
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
+        with:
+          node-version: 24.21.0
+      - name: New historical consumers and exact table preservation contract
+        run: |
+          for f in receiving-predecessor site-issue-predecessor legacy-fixture hr-upgrade purchasing-successor-schema-preparation historical-snapshot; do node --check "deploy/release-candidate/$f.mjs"; done
+          node --test deploy/release-candidate/historical-snapshot.test.mjs
