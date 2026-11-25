@@ -1,14 +1,14 @@
 # Construction ERP — live countdown to 0 hours
 
 <!-- current-work-m4 -->
-**Current M4 forecast 18.5h → 0h · Full ERP 1,748.5h → 0h.** Exact consolidated draft #455 focused SUCCESS18/18 (167 tests). New actual Jai dual Company Project/PO/PDF scope proof running; no credit yet. Owner directs defer Codex review until usage limit resets; no full CI or acceptance.
+**Current M4 forecast 17.5h → 0h · Full ERP 1,747.5h → 0h.** Exact consolidated draft #455 focused SUCCESS18/18 (167 tests); actual Jai dual Company Project/PO/PDF scope proof PASS15/15. Owner directs defer Codex review until usage limit resets; no full CI or acceptance.
 
 | Forecast reconciliation | Hours |
 |---|---:|
 | Previous reported ERP forecast | 1,749 |
 | Newly identified mandatory scope | +0 |
-| Verified remaining-effort reduction | −0.5 |
-| Revised remaining ERP forecast | **1,748.5** |
+| Verified remaining-effort reduction | −1.5 |
+| Revised remaining ERP forecast | **1,747.5** |
 
 Prototype 4/8 · Go-live 3/10 · Deadline 31 December 2026.
 <!-- /current-work-m4 -->
@@ -140,9 +140,9 @@ Prototype 4/8 · Go-live 3/10 · Deadline 31 December 2026.
 ## Headline
 | Metric | Current | Meaning |
 |---|---:|---|
-| **Estimated full ERP work still needed** | **1,748.5h → 0h** | 112 requirements across eight roles |
+| **Estimated full ERP work still needed** | **1,747.5h → 0h** | 112 requirements across eight roles |
 | 23 Nov original current-work forecast | 1847h | Earlier 60-package provisional baseline |
-| Additional estimated future-work eliminated | −102h | M4-01 −30.5h, M4-02 −6h, M4-03 −7.5h, M4-04 −5.5h, M4-05 −5.5h, M4-06 −9h, M4-07 −4.5h, M4-08 −33.5h |
+| Additional estimated future-work eliminated | −103h | M4-01 −31h, M4-02 −6h, M4-03 −7.5h, M4-04 −5.5h, M4-05 −5.5h, M4-06 −9h, M4-07 −5h, M4-08 −33.5h |
 | Newly discovered previously unpriced PUR08/PUR14 work | +3.5h | Remaining supplier lifecycle and assurance work |
 | Net reforecast change versus 1,847h | −79h | Includes separately priced supplier scope |
 | PUR08/PUR14 provisional work before new development | 51h | Low-confidence new-gap gross estimate |
@@ -156,13 +156,13 @@ Prototype 4/8 · Go-live 3/10 · Deadline 31 December 2026.
 | Whole baseline packages formally accepted | 0/60 | 8 M4 packages still 0/8 |
 | Actual productive hours logged | UNKNOWN | Cannot infer from GitHub commits or AI conversation length |
 
-**Forecast basis.** The 1,847h baseline covers 60 packages. Verified work has removed 102h of estimated future effort from those packages. The separately priced supplier lifecycle has 3.5h remaining, bringing the ERP forecast to 1,748.5h.
+**Forecast basis.** The 1,847h baseline covers 60 packages. Verified work has removed 103h of estimated future effort from those packages. The separately priced supplier lifecycle has 3.5h remaining, bringing the ERP forecast to 1,747.5h.
 
 ## Stage-by-stage remaining work
 
 | Stage | Previous 60-package baseline | Verified package forecast reduction | Additional scope remaining | **Now remaining** | Accepted baseline packages |
 |---|---:|---:|---:|---:|---:|
-| Prototype 5/8 — M4 closure | 117h | 102h | 3.5h | **18.5h** | 0/8 |
+| Prototype 5/8 — M4 closure | 117h | 103h | 3.5h | **17.5h** | 0/8 |
 | Prototype 6/8 — end-to-end deployment | 120h | 0h | 0h | **120h** | 0/5 |
 | Prototype 7/8 — populated restore | 50h | 0h | 0h | **50h** | 0/3 |
 | Prototype 8/8 — technical freeze | 65h | 0h | 0h | **65h** | 0/3 |
@@ -174,19 +174,19 @@ Prototype 4/8 · Go-live 3/10 · Deadline 31 December 2026.
 | Production hosting and recovery | 110h | 0h | 0h | **110h** | 0/5 |
 | Migration and onboarding | 110h | 0h | 0h | **110h** | 0/4 |
 | Final human UAT, cutover and Production | 150h | 0h | 0h | **150h** | 0/5 |
-| **Full ERP** | 1847h | 102h | 3.5h | **1,748.5h** | **0/60** |
+| **Full ERP** | 1847h | 103h | 3.5h | **1,747.5h** | **0/60** |
 
 ## Each baseline package
 
 | Package | Stage | Delivery item | Starting estimate | Remaining now |
 |---|---|---|---:|---:|
-| M4-01 | M4 | Current-source and all-112 evidence/scope decisions | 32h | **1.5h** |
+| M4-01 | M4 | Current-source and all-112 evidence/scope decisions | 32h | **1h** |
 | M4-02 | M4 | PM02 real browser and retained-role authorization | 8h | **2h** |
 | M4-03 | M4 | FM01, BEN04 and PM16 real-browser acceptance | 10h | **2.5h** |
 | M4-04 | M4 | PUR01 whole-PO supplier-count and commercial rule | 8h | **2.5h** |
 | M4-05 | M4 | PUR04 core PO commercial/delivery fields | 9h | **3.5h** |
 | M4-06 | M4 | PUR07 supplier-name PO PDF and manual dispatch evidence | 10h | **1h** |
-| M4-07 | M4 | PUR12 K-/T- company PO document identity | 6h | **1.5h** |
+| M4-07 | M4 | PUR12 K-/T- company PO document identity | 6h | **1h** |
 | M4-08 | M4 | M4 focused closure, governed integration and Owner decision | 34h | **0.5h** |
 | M6-01 | M6 | Build deployable preserved-data integrated M4/M6 candidate | 25h | **25h** |
 | M6-02 | M6 | Site, plan, request, issue and document deployed journeys | 25h | **25h** |
@@ -374,6 +374,11 @@ Prototype 4/8 · Go-live 3/10 · Deadline 31 December 2026.
 ## 25 November exact candidate focused proof and dual Company scope
 
 - **M4-01 2→1.5h** — Actual exact consolidated PR455 source focused branch SUCCESS18/18; Prisma schema valid, full workspace typecheck, 92 CI/routing contracts, 71 role UI focused tests, four guarded UOM read-only tests (167 total), no failures. Retire 0.5h exact-current-source verification/reconciliation allowance; not prior subset browser/runtime evidence, not full CI or independent review. Retained role configuration and remaining operational evidence stay open. [Evidence](https://github.com/threeswordz/cinder-grind/actions/runs/45620872398/job/139228337814)
+
+## 25 November actual Jai cross-Company scoped HTTP proof
+
+- **M4-01 1.5→1h** — Actual PG17/HTTP dual Company assigned-project picker and order list positive/negative checks plus direct unauthorized PO, revisions, PDF and dispatch histories, rejected revision writes, unchanged audits/stock/Finance. SUCCESS15/15; distinct JAI-SCOPE-01 technical witness on test-only child of frozen draft. Retire 0.5h remaining source/role evidence, not retained acceptance. [Evidence](https://github.com/threeswordz/cinder-grind/actions/runs/45621618196/job/139230980830)
+- **M4-07 1.5→1h** — Same actual dual Company test checks identical independent PO sequence, distinct K-/T- display identities, Company scope and direct-ID PDF/revision denial through authenticated transport. Retire 0.5h distinct public transport proof, no repeat prior native SQL/concurrency proof. Retained role and review remain. [Evidence](https://github.com/threeswordz/cinder-grind/actions/runs/45621618196/job/139230980830)
 
 ## Required update rule after every Chat development turn
 
