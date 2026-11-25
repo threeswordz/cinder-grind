@@ -21,13 +21,37 @@ test('PUR01 whole PO THB thresholds and VAT excluded', () => {
 });
 
 test('PUR01 distinct qualified suppliers must quote every PO line', () => {
-  const order = [{ rfqLineId:'A',quantity:D('3') },{ rfqLineId:'B',quantity:D('2') }];
+  const order = [{ rfqLineId:'A',uomId:'EA',quantity:D('3') },{ rfqLineId:'B',uomId:'KG',quantity:D('2') }];
   const offers = [
-    { rfqLineId:'A',supplierId:'a',quantity:D('3') },
-    { rfqLineId:'B',supplierId:'a',quantity:D('2') },
-    { rfqLineId:'A',supplierId:'b',quantity:D('3') },
-    { rfqLineId:'B',supplierId:'c',quantity:D('2') },
+    { rfqLineId:'A',uomId:'EA',supplierId:'a',quantity:D('3') },
+    { rfqLineId:'B',uomId:'KG',supplierId:'a',quantity:D('2') },
+    { rfqLineId:'A',uomId:'EA',supplierId:'b',quantity:D('3') },
+    { rfqLineId:'B',uomId:'KG',supplierId:'c',quantity:D('2') },
   ];
   assert.equal(completeSupplierCount(order,offers),1);
-  assert.equal(completeSupplierCount(order,[...offers,{rfqLineId:'B',supplierId:'b',quantity:D('2')}]),2);
+  assert.equal(completeSupplierCount(order,[...offers,{rfqLineId:'B',uomId:'KG',supplierId:'b',quantity:D('2')}]),2);
+});
+
+test('PUR01 invalid stored commercial values fail closed at decision time', () => {
+  for (const values of [
+    ['100','-1','0','0','7'], ['100','0','-1','0','7'],
+    ['100','0','0','-1','7'], ['100','0','0','0','-1'],
+    ['100','0','0','0','101'], ['NaN','0','0','0','7'],
+    ['100','0','Infinity','0','7'],
+  ]) {
+    const [subtotal,discount,freight,charges,vat] = values.map(D);
+    assert.throws(() => poQuoteBasis(subtotal!,discount!,freight!,charges!,vat!));
+  }
+});
+test('PUR01 counts only matching RFQ units and valid quantities, never duplicate demand', () => {
+  const order = [{rfqLineId:'A',uomId:'EA',quantity:D('2')}];
+  const valid = {rfqLineId:'A',uomId:'EA',supplierId:'s',quantity:D('2')};
+  assert.equal(completeSupplierCount(order,[valid]),1);
+  assert.equal(completeSupplierCount(order,[{...valid,uomId:'BOX',quantity:D('100')}]),0);
+  assert.equal(completeSupplierCount(order,[{...valid,quantity:D('Infinity')}]),0);
+  assert.equal(completeSupplierCount(order,[{...valid,quantity:D('0')}]),0);
+  assert.equal(completeSupplierCount(order,[valid,{...valid,quantity:D('3')}]),1);
+  assert.throws(() => completeSupplierCount([], [valid]));
+  assert.throws(() => completeSupplierCount([...order,...order],[valid]));
+  assert.throws(() => completeSupplierCount([{...order[0]!,quantity:D('0')}],[valid]));
 });
