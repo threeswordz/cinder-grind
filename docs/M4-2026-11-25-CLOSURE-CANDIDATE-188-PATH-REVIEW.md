@@ -8,17 +8,20 @@
 | Frozen approved-for-review FM01 PR #452 head | `4aab761d8477cfb63ea978af1444865b720d42d5` (CI 45524967848 attempt 2 46/46 SUCCESS, Codex review could not complete) |
 | Original four-lane combined source | `138ea662094dc50556b1389f0c8144298b9bfcb4` |
 | Operational browser successor | `33f301ad9967c3b94cda8b3a12542be5855a1c9c` |
-| Current exact successor | `86e376af957788de15f1a7e315428cdd0d0299b2` (`work-m4-consolidated-112-gates-20261125`) |
+| Last validated source assembly | `86e376af957788de15f1a7e315428cdd0d0299b2` (`work-m4-consolidated-112-gates-20261125`) |
+| Current test-only successor | `23e83b600ac7d2d2ae0c93c2d374b55571a32a9a` (`work-m4-consolidated-112-race-check-20261125`) |
+| New exact-source focused workflow | `e8af9392db825dd16d97bed2411f6a6fc129b88f` (run outcome unverified) |
 
-- GitHub compare `main` → successor: **58 commits ahead, zero behind, 188 changed paths**. Full file inventory below.
-- Current latest successor adds **exactly four immutable governance paths** atop operational browser successor, with independently verified blob hashes; it does not touch protected main or trigger workflow.
+- GitHub compare `main` → successor: **59 commits ahead, zero behind, 188 changed paths**. Full file inventory below.
+- Latest implementation successor contains the **four immutable governance paths** atop operational browser successor with independently verified Git blobs. Latest test-only child adds 101 lines to the PUR10 native integration test, leaving the changed path set at 188. Neither source branch modifies protected main.
+- New deterministic revision collision test pauses real revision creation before commit, holds the FK source lock, attempts a concurrent supplier REPORT_DELAY, and demands a scoped conflict after revision commits with no new supplier event/GR/AP. The test is **not a PASS**; an untested source race remains a blocker until it runs. The prior cancellation-only concurrency test has a different lineage and does not prove this branch.
 - All 112 original requirement records remain intact. Six and only six Owner-approved M4 bounded scope decisions. Original future scope retained; **no formal M4 acceptance**.
 - Current effective gates: 42 deferred future, 33 bounded technical evidence pending retained UAT, 12 source evidence pending, 13 role/source proof pending, six functional gaps open, six approved bounded scope decisions still requiring retained UAT.
 - Current all-112 guard is a Node source/CSV consistency verifier; readback and independent V8 projection reconciliation passed, but actual Node CI execution has **not** been observed.
 
 ## Unresolved exact tests and decision gates
 
-1. Focused PM15 stale site/Project readback browser, equipment DB+Document paired restore, supplier case vs canonical PUR10 cancellation race, PUR07 actual Thai PDF download. Push-triggered run status is not available via current commit-run API; do not declare PASS from empty results or rerun full CI.
+1. Focused PM15 stale site/Project readback browser, equipment DB+Document paired restore, supplier case vs canonical PUR10 cancellation race, the NEW real PO-revision vs supplier-report collision, and PUR07 actual Thai PDF download. Push-triggered run status is not available via current commit-run API; do not declare PASS from empty results or rerun full CI.
 2. Operational Chrome with Nancy07 scheduling, PM09 independent receipt document decision, SS13 four role chain and outsider Project denial. Test source corrected on isolated successor but remains unexecuted.
 3. Review company/project/permission revalidation, serializable concurrency and PO commercial revision ordering, signed supplier physical return, no automatic stock/Finance posting, active historical data preservation, no retained permission grants or credit creation.
 4. Independently review frozen #452 and current successor separately. M4 46h forecast includes release/retained acceptance; prototype 4/8 and GL 3/10 remain.
@@ -126,7 +129,7 @@
 | added | `apps/api/src/procurement/purchase-order.pur04-revision.integration.spec.ts` | 339 | 0 |
 | added | `apps/api/src/procurement/purchase-order.pur04.integration.spec.ts` | 146 | 0 |
 | added | `apps/api/src/procurement/purchase-order.pur07.integration.spec.ts` | 229 | 0 |
-| added | `apps/api/src/procurement/purchase-order.pur10-finalization.integration.spec.ts` | 723 | 0 |
+| added | `apps/api/src/procurement/purchase-order.pur10-finalization.integration.spec.ts` | 824 | 0 |
 | added | `apps/api/src/procurement/purchase-order.pur12.integration.spec.ts` | 269 | 0 |
 | modified | `apps/api/src/procurement/purchase-order.service.ts` | 464 | 50 |
 | modified | `apps/api/src/procurement/sourcing.service.ts` | 8 | 0 |
