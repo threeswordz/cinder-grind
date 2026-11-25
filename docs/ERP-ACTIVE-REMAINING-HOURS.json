@@ -4171,6 +4171,24 @@
       "verifiedCompletedScopeHours": 0.5,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261125-M6-01-105",
+      "date": "2026-11-25",
+      "packageId": "M6-01",
+      "kind": "M6_EXACT_SQL_HISTORICAL_PRESERVATION_LOCAL_PASS",
+      "beforeHours": 24,
+      "afterHours": 23.5,
+      "sourceSha": "1f84e842b5f070397f1c339e6a7f115aea103e7f",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/commit/1f84e842b5f070397f1c339e6a7f115aea103e7f"
+      ],
+      "basis": "Distinct integrated M6-01 migration preservation guard compares original top-level SQL JSON member value bytes, including nested decimals, rather than parsed JS numbers. Actual local Node22.16.0 six tests PASS (6/6) for decimal and nested precision drift, missing columns, timestamp changes, multiplicity, malformed/missing raw bytes/duplicate keys, additive columns and new rows. Exact tested GitHub blobs b33f5866c3a95c07d675d2ab778d7d0fdc8941dd and bdfd8d8ab4ad6a7309a5a1c56590d53e6a289f4c matched. Runtime source readback confirms two checkpoint calls before cutover and before new startup, existing generic and per-domain guards retained. Runtime adapter not executed. 0.5h provisional forecast reduction for existing migration proof preparation only, not actual PG17/Mac rehearsal, independent review or formal acceptance.",
+      "reductionHours": 0.5,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0.5,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -4193,6 +4211,6 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1736.5,
-  "currentRollingTotalSemantics": "1736.5h = 1847h baseline minus 113h verified baseline forecast reduction plus 2.5h remaining supplier scope. M4 12h, M6 114.5h. All 112 requirements preserved. Actual labor unmeasured."
+  "currentRollingTotalAfterPricedGapsHours": 1736,
+  "currentRollingTotalSemantics": "1736h = 1847h baseline minus 113.5h verified baseline forecast reduction plus 2.5h remaining supplier scope. M4 12h, M6 114h. All 112 requirements preserved. Actual labor unmeasured."
 }
