@@ -3,6 +3,7 @@ import {verifiedPur12HistoricalColumns,verifiedPur07HistoricalTables} from './pu
 import {stripPurchasingSchema,verifiedPurchasingHistoricalColumns} from './purchasing-historical-columns.mjs';
 import {stripPm02Schema} from './pm02-schema-preparation.mjs';
 import {verifiedPm02HistoricalColumns} from './pm02-historical-columns.mjs';
+import {verifyEquipmentHistoricalIncrement,verifyEquipmentTriggerBindings} from './equipment-successor-historical.mjs';
 import {stripFm02Schema} from './fm02-schema-contract.mjs';
 import {stripMaterialUomStageCSchema} from './material-uom-stage-c-schema-contract.mjs';
 import {stripMaterialUomEffectSchema} from './material-uom-effect-schema-contract.mjs';
@@ -63,10 +64,11 @@ export async function prepareReceivingUpgrade(databaseUrl){
   // Genuine pre-existing unposted GR stays unbound. Its Project is never enabled by migration.
   await db.goodsReceipt.create({data:{companyId:company.id,projectId:project.id,supplierId:supplier.id,purchaseOrderId:po.id,warehouseId:warehouse.id,receiptNumber:'PRE-GR',createdByUserId:user.id},select:{id:true}});
   await db.dailySiteReport.create({data:{companyId:company.id,projectId:project.id,createdByUserId:user.id,reportDate:new Date('2026-11-14'),issues:{create:{issueText:'Retained issue observation before receiving'}}}});
-  async function snapshot(candidate){
+  async function snapshot(candidate,equipmentIds=[]){
    const result={},tables=await db.$queryRawUnsafe("SELECT tablename FROM pg_tables WHERE schemaname='public' AND tablename <> '_prisma_migrations' ORDER BY tablename");
    const identities=candidate&&successor.pur12?await verifiedPur12HistoricalColumns(db):{};
    if(candidate&&successor.pur07)await verifiedPur07HistoricalTables(db);
+   const addedCatalogIds=[...receivingCatalog,...transferCatalog,...physicalCatalog,...materialUomCatalog,...dec054Catalog,...fm02Catalog].map(p=>p.id).concat(equipmentIds);
    for(const {tablename}of tables){
     assert.match(tablename,/^[a-z_]+$/);
     if(candidate&&tablename==='permissions')verifyMaterialUomCatalog(await db.$queryRawUnsafe('SELECT * FROM permissions WHERE id=ANY($1::uuid[])',materialUomCatalog.map(p=>p.id)),true);
@@ -84,22 +86,29 @@ export async function prepareReceivingUpgrade(databaseUrl){
     if(candidate&&current.present&&tablename==='purchase_request_lines')columns.push(...await verifiedPm02HistoricalColumns(db));
     if(candidate&&tablename==='purchase_orders')columns.push(...await verifiedPurchasingHistoricalColumns(db,purchasing));
     if(candidate)columns.push(...(identities[tablename]??[]));
-    const [row]=await db.$queryRawUnsafe(`SELECT count(*)::text AS count,encode(sha256(convert_to(coalesce(string_agg((to_jsonb(t)-$1::text[])::text,E'\\n' ORDER BY (to_jsonb(t)-$1::text[])::text),''),'UTF8')),'hex') AS digest FROM "${tablename}" t ${filter?'WHERE id <> ALL($2::uuid[])':''}`,columns,...(filter?[[...receivingCatalog,...transferCatalog,...physicalCatalog,...materialUomCatalog,...dec054Catalog,...fm02Catalog].map(p=>p.id)]:[]));result[tablename]=row;
+    const [row]=await db.$queryRawUnsafe(`SELECT count(*)::text AS count,encode(sha256(convert_to(coalesce(string_agg((to_jsonb(t)-$1::text[])::text,E'\\n' ORDER BY (to_jsonb(t)-$1::text[])::text),''),'UTF8')),'hex') AS digest FROM "${tablename}" t ${filter?'WHERE id <> ALL($2::uuid[])':''}`,columns,...(filter?[addedCatalogIds]:[]));result[tablename]=row;
    }return result;
   }
   console.log('RECEIVING_PREDECESSOR_POPULATED_PASS');
   const before=await snapshot(false);
+  const beforeMigrations=await db.$queryRaw`SELECT migration_name,checksum FROM _prisma_migrations
+    WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL ORDER BY migration_name`;
   await execute('pnpm',['prisma:migrate:deploy'],{env:{...safeEnvironment(),DATABASE_URL:u.href},timeout:120000,maxBuffer:2097152});
   console.log('RECEIVING_PREDECESSOR_FORWARD_MIGRATIONS_PASS');
   let after;
-  try { after=await snapshot(true); }
+  let equipment;
+  try {
+    equipment=await verifyEquipmentHistoricalIncrement(db,beforeMigrations);
+    await verifyEquipmentTriggerBindings(db,equipment.present);
+    after=await snapshot(true,equipment.ids);
+  }
   catch { console.log('RECEIVING_PREDECESSOR_CANDIDATE_SNAPSHOT_FAILED'); throw new Error('RECEIVING_PREDECESSOR_CANDIDATE_SNAPSHOT_FAILED'); }
   const extra=Object.keys(after).filter(name=>!Object.hasOwn(before,name));
   console.log('RECEIVING_PREDECESSOR_ADDED_TABLES_'+extra.sort().join(','));
   const changed=Object.keys(before).filter(name=>JSON.stringify(before[name])!==JSON.stringify(after[name]));
   if(changed.length)console.log('RECEIVING_PREDECESSOR_CHANGED_TABLES_'+changed.sort().join(','));
   try {
-    assertHistoricalTables(before,after,false,false,false,false,false,false,false,true,true,true,true,true,true,true,successor.pur07);
+    assertHistoricalTables(before,after,false,false,false,false,false,false,false,true,true,true,true,true,true,true,successor.pur07,equipment.present);
   } catch(e) {
     const reason=String(e?.message??'');
     const code=reason.includes('Unexpected/partial schema addition')?'TABLE_ALLOWLIST'
