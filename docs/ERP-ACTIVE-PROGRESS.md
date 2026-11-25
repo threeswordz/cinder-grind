@@ -72,6 +72,8 @@
 
 > **PUR10 corrected race verified:** [45580213362](https://github.com/threeswordz/cinder-grind/actions/runs/45580213362/job/139088071868) SUCCESS16/16, three policy tests plus actual PG17 exclusive cancellation/revision commit and finalization/replay on exact 888baa5a. M4-08 10→9h, M4 52→51h, ERP 1,782→1,781h. Retained acceptance and deterministic/combined supplier assurance remain.
 
+> **Equipment populated recovery initiated:** [5e3614c7](https://github.com/threeswordz/cinder-grind/commit/5e3614c76c802cc8ee8a393758691982e52360a7), workflow-only [d0fa2c8f](https://github.com/threeswordz/cinder-grind/commit/d0fa2c8f107fe549ec9a489a3414449ab387196e) [45581471895](https://github.com/threeswordz/cinder-grind/actions/runs/45581471895); populated database-only predecessor recovery pending. M4 51h, ERP 1,781h unchanged.
+
 ## Headline
 | Metric | Current | Meaning |
 |---|---:|---|
