@@ -2397,6 +2397,27 @@
       "sourceSha": "0219becb9c5049c1042d068d985ee12412cb6987",
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-06-007",
+      "date": "2026-11-25",
+      "packageId": "M4-06",
+      "kind": "V25_AUTHENTICATED_PDF_BROWSER_STAGE_DIAGNOSTIC",
+      "beforeHours": 6,
+      "afterHours": 6,
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45564462514/job/139035768724",
+        "https://github.com/threeswordz/cinder-grind/commit/fd26fb9e7978b998d9c0d94adb935676c74aa3a8",
+        "https://github.com/threeswordz/cinder-grind/commit/0f33035537bf13e7b49f54ae574b897e9971e57a",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45565071830"
+      ],
+      "basis": "45564462514 failed only in actual browser before PDF/dispatch; logs show M4_V25_PUR01_PUR04_PUR12_FINAL_AUDIT_AND_IDENTITY_PASS and approved Thai fixture PASS, migration/build PASS. Timeout alone does not diagnose cookie/auth failure. Integrated previously validated closeout two-file correction fd26fb9; test-only 0f330355 splits real same-origin HTTP authentication, browser cookie verification, dynamic PO module load, React mount, forwards actual roleCodes, records safe boolean diagnostics. Workflow-only child 233d0712, new focused run45565071830 observed in progress. No new remaining-work credit until affected browser proof; no repeat full CI or retained changes.",
+      "sourceSha": "0f33035537bf13e7b49f54ae574b897e9971e57a",
+      "formalAcceptance": false,
+      "estimateConfidence": "NO_ADDITIONAL_HOURS_CREDIT"
     }
   ],
   "unestimatedWork": [
