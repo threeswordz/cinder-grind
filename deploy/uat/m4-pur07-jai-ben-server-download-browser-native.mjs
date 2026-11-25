@@ -295,7 +295,7 @@ async function run(){
   "import React from 'react';",
   "import {createRoot} from 'react-dom/client';",
   "import {QueryClient,QueryClientProvider} from '@tanstack/react-query';",
-  "import {PurchaseOrdersPanel} from '/src/procurement/PurchaseOrdersPanel.tsx';",
+
   "import {MonetaryLocaleContext} from '/src/role-ui/monetary-presentation.tsx';",
   "const client=new QueryClient({defaultOptions:{queries:{retry:false},mutations:{retry:false}}});",
   "(async()=>{",
@@ -305,9 +305,13 @@ async function run(){
   " if(!me.id||!me.companyId||!Array.isArray(me.roleCodes)||!Array.isArray(me.permissions))throw Error('PUR07_REAL_ROLE_MISSING');",
   " document.body.dataset.identity=me.id;",
   " document.body.dataset.roleCodes=me.roleCodes.join(',');",
+  " document.body.dataset.cookieVerified='yes';",
+  " const {PurchaseOrdersPanel}=await import('/src/procurement/PurchaseOrdersPanel.tsx');",
+  " if(typeof PurchaseOrdersPanel!=='function')throw Error('PUR07_PANEL_EXPORT_MISSING');",
+  " document.body.dataset.moduleLoaded='yes';",
   " createRoot(document.getElementById('root')).render(",
   "  <QueryClientProvider client={client}><MonetaryLocaleContext.Provider value='en'>",
-  "   <PurchaseOrdersPanel permissions={me.permissions}",
+  "   <PurchaseOrdersPanel permissions={me.permissions} roleCodes={me.roleCodes}",
   "    initialProjectId="+JSON.stringify(project.id),
   "    initialOrderId="+JSON.stringify(po.id)+"/>",
   "  </MonetaryLocaleContext.Provider></QueryClientProvider>);",
@@ -377,13 +381,37 @@ async function run(){
   await protocol.send('Fetch.enable',{
    patterns:[{urlPattern:'*',requestStage:'Request'}],
   },s);
+  // A separate actual same-origin HTTP read isolates backend authentication
+  // from Vite module loading; never print a session token or response payload.
+  const direct=await fetch(WEB+'/api/v1/auth/me',{headers:{Cookie:'erp_session='+actor.token}});
+  assert.equal(direct.status,200,'PUR07_PROXY_COOKIE_AUTH_FAILED');
+  const directIdentity=(await direct.json()).data;
+  assert.equal(directIdentity.id,actor.id);
+  assert.deepEqual([...directIdentity.roleCodes].sort(),[...actor.roleCodes].sort());
   const cookie=await protocol.send('Network.setCookie',{
    name:'erp_session',value:actor.token,url:WEB,httpOnly:true,sameSite:'Lax',
   },s);
   assert.equal(cookie.success,true);
   await protocol.send('Page.navigate',{url:WEB+'/__pur07-real'},s);
-  await until(protocol,s,()=>document.body?.dataset?.authenticated==='yes',
-   null,'REAL_COOKIE_LOGIN');
+  try {
+   await until(protocol,s,()=>document.body?.dataset?.cookieVerified==='yes',
+    null,'REAL_BROWSER_COOKIE_VERIFICATION');
+   await until(protocol,s,()=>document.body?.dataset?.moduleLoaded==='yes',
+    null,'REAL_PURCHASE_ORDER_MODULE_LOAD');
+   await until(protocol,s,()=>document.body?.dataset?.authenticated==='yes',
+    null,'REAL_REACT_MOUNT');
+  } catch(error) {
+   const state=await page(protocol,s,()=>({
+    cookieVerified:document.body?.dataset?.cookieVerified==='yes',
+    moduleLoaded:document.body?.dataset?.moduleLoaded==='yes',
+    authenticated:document.body?.dataset?.authenticated==='yes',
+    entryFailure:Boolean(document.body?.dataset?.failure),
+    readyState:document.readyState,
+    hasRoot:Boolean(document.getElementById('root')),
+   })).catch(()=>({unreadable:true}));
+   console.log('PUR07_SYNTHETIC_BROWSER_STAGE '+JSON.stringify({state,errors}));
+   throw error;
+  }
   assert.equal(await page(protocol,s,()=>document.body.dataset.identity),actor.id);
   await visible(protocol,s,'Workflow & Revision Controls');
   await visible(protocol,s,'Approved PO PDF');
