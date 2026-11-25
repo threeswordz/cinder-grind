@@ -2846,6 +2846,26 @@
       "sourceSha": "d5c333d8feabb60c8ed847f4dc16171abe3b6f84",
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-08-034",
+      "date": "2026-11-25",
+      "packageId": "M4-08",
+      "kind": "PUR10_PO_REVISION_POST_LOCK_CANCELLATION_GUARD_STAGED",
+      "beforeHours": 11,
+      "afterHours": 11,
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/commit/d0a6a3324d1528a65791ccdc5009465fe5896d5a",
+        "https://github.com/threeswordz/cinder-grind/commit/5eb801203fe95777baafa1a89bb35f629f8fa484",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45579826306"
+      ],
+      "basis": "Four supplier shared seams inspected. All changes are governed PUR10 cancellation integration; actual revise() ReadCommitted rechecks nextRevision but not cancelledAt after shared PO-family lock, exposing stale cancellation read. Added post-lock cancelledAt conflict and native finalized-cancelled revision denial assertion; exactly two source/test paths. Existing race test retained. Targeted new source validation pending; deterministic cancellation-first wait interleaving and supplier lifecycle serialization not yet proved. Covered by existing integration budget; no forecast credit or additional scope, no role changes. Browser-specific prior tool blocks not retried.",
+      "sourceSha": "d0a6a3324d1528a65791ccdc5009465fe5896d5a",
+      "formalAcceptance": false,
+      "estimateConfidence": "NO_ADDITIONAL_HOURS_CREDIT"
     }
   ],
   "unestimatedWork": [
