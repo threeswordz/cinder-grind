@@ -614,6 +614,34 @@ test('V0.3-D Purchase Orders preserve awarded-source traceability, approval and 
       expectedDelivery.toISOString().slice(0, 10),
     );
 
+    // PUR01/PUR04: a newly created draft has unknown commercial terms.
+    // Preserve fail-closed submission, then enter explicit synthetic amounts.
+    assert.equal(draft.discountAmount, null);
+    assert.equal(draft.freightAmount, null);
+    assert.equal(draft.additionalChargeAmount, null);
+    assert.equal(draft.vatRatePercent, null);
+    await assert.rejects(
+      () => purchaseOrders.submit({ auth: makerAuth }, draft.id, poWorkflow.workflowCode),
+      (error: unknown) =>
+        error instanceof UnprocessableEntityException &&
+        (error.getResponse() as { code?: string }).code === 'PO_QUOTE_COMMERCIAL_BASIS_UNKNOWN',
+    );
+    const rejectedDraft = await purchaseOrders.getOrder(makerAuth, draft.id);
+    assert.equal(rejectedDraft.lifecycleState, 'DRAFT');
+    assert.equal(rejectedDraft.approvalInstanceId, null);
+    assert.equal(rejectedDraft.submittedAt, null);
+    const commercial = {
+      discountAmount: new Prisma.Decimal(0),
+      freightAmount: new Prisma.Decimal(0),
+      additionalChargeAmount: new Prisma.Decimal(0),
+      vatRatePercent: new Prisma.Decimal(7),
+    };
+    await purchaseOrders.updateOrder({ auth: makerAuth }, draft.id, commercial);
+    const explicitDraft = await purchaseOrders.getOrder(makerAuth, draft.id);
+    for (const [key, amount] of Object.entries(commercial)) {
+      assert.equal(explicitDraft[key as keyof typeof commercial]?.toString(), amount.toString());
+    }
+
     await purchaseOrders.submit(
       { auth: makerAuth },
       draft.id,
@@ -709,6 +737,10 @@ test('V0.3-D Purchase Orders preserve awarded-source traceability, approval and 
     assert.equal(revision.revisionNo, 1);
     assert.equal(revision.previousRevisionId, draft.id);
     assert.equal(revision.lifecycleState, 'DRAFT');
+    for (const [key, amount] of Object.entries(commercial)) {
+      assert.equal(revision[key as keyof typeof commercial]?.toString(), amount.toString(),
+        'Revision must preserve explicit commercial basis.');
+    }
 
     const revisionDetail = await purchaseOrders.getOrder(
       makerAuth,
