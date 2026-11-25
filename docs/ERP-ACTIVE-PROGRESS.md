@@ -76,6 +76,8 @@
 
 > **Equipment populated recovery verified:** [45581471895](https://github.com/threeswordz/cinder-grind/actions/runs/45581471895/job/139092301241) SUCCESS15/15, 170 historical business-table counts/digests, two forward migrations, dump checksum and separate predecessor restore PASS, forward recheck PASS. M4-08 9→7h; M4 51→49h; ERP 1,781→1,779h. Database-only; document recovery and review remain.
 
+> **Combined PUR10/PUR08 test staged:** [4eb988ff](https://github.com/threeswordz/cinder-grind/commit/4eb988ff8e380a70e0e99e020617333b7e164765) verifies supplier history survives governed cancellation and later write denial, zero GR/AP side effects; [45581872905](https://github.com/threeswordz/cinder-grind/actions/runs/45581872905) pending. M4 49h / ERP 1,779h unchanged pending proof.
+
 ## Headline
 | Metric | Current | Meaning |
 |---|---:|---|
