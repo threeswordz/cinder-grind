@@ -2683,6 +2683,7 @@ model PurchaseOrder {
   freightAmount      Decimal?  @map("freight_amount") @db.Decimal(18, 2)
   additionalChargeAmount Decimal? @map("additional_charge_amount") @db.Decimal(18, 2)
   vatRatePercent     Decimal?  @map("vat_rate_percent") @db.Decimal(5, 2)
+  supplierQuoteExceptionReason String? @map("supplier_quote_exception_reason") @db.VarChar(2000)
   approvalInstanceId String?   @unique @map("approval_instance_id") @db.Uuid
   createdByUserId    String    @map("created_by_user_id") @db.Uuid
   submittedByUserId  String?   @map("submitted_by_user_id") @db.Uuid

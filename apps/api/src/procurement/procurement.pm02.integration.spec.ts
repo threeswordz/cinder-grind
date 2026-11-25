@@ -301,6 +301,7 @@ test('PM02: mixed approval, immutable returned demand, and rejected-correction c
       { auth: jaiAuth }, rfq.id, supplier.id,
       { quotationDate: new Date(), supplierReference: 'PM02-Q-' + suffix },
     );
+    assert.equal(quote.currencyCode, 'THB');
     const quoteLine = await sourcing.upsertQuotationLine(
       { auth: jaiAuth }, quote.id, rfq.lines[0]!.id,
       { quantity: new Prisma.Decimal('1'), unitPrice: new Prisma.Decimal('125') },
@@ -317,6 +318,22 @@ test('PM02: mixed approval, immutable returned demand, and rejected-correction c
     );
     assert.equal(draftPo.lines.length, 1);
     assert.equal(draftPo.lines[0]?.purchaseRequestLineId, lineA.id);
+    // The new policy rejects implicit zero for unknown header commercial
+    // values; this is why newly created PO drafts require explicit input.
+    await assert.rejects(
+      () => purchaseOrders.submit({ auth: jaiAuth }, draftPo.id, poWorkflow.workflowCode),
+      (error: unknown) => error instanceof UnprocessableEntityException &&
+        typeof error.getResponse() === 'object' &&
+        (error.getResponse() as { code?: string }).code === 'PO_QUOTE_COMMERCIAL_BASIS_UNKNOWN',
+    );
+    // PUR01 commercial basis cannot be inferred from NULL. Maker enters
+    // known zero adjustments (and a known VAT rate) before submission.
+    await purchaseOrders.updateOrder({ auth: jaiAuth }, draftPo.id, {
+      discountAmount: new Prisma.Decimal(0),
+      freightAmount: new Prisma.Decimal(0),
+      additionalChargeAmount: new Prisma.Decimal(0),
+      vatRatePercent: new Prisma.Decimal(7),
+    });
     await purchaseOrders.submit({ auth: jaiAuth }, draftPo.id, poWorkflow.workflowCode);
     await assert.rejects(
       () => purchaseOrders.approve({ auth: jaiAuth }, draftPo.id, 'Self approval denied'),

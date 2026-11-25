@@ -1,5 +1,6 @@
 import {
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
   UnprocessableEntityException,
@@ -12,6 +13,7 @@ import { AuditService } from '../audit/audit.service';
 import { AuthenticatedUserContext } from '../auth/auth.types';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProjectAccessService } from '../projects/project-access.service';
+import { completeSupplierCount, poQuoteBasis } from './purchase-order-quote-policy';
 
 type AuditContext = {
   auth: AuthenticatedUserContext;
@@ -614,6 +616,7 @@ export class PurchaseOrderService {
       freightAmount?: Prisma.Decimal | null;
       additionalChargeAmount?: Prisma.Decimal | null;
       vatRatePercent?: Prisma.Decimal | null;
+      supplierQuoteExceptionReason?: string | null;
     },
   ) {
     return this.prisma.$transaction(async (tx) => {
@@ -665,6 +668,7 @@ export class PurchaseOrderService {
             freightAmount: current.freightAmount,
             additionalChargeAmount: current.additionalChargeAmount,
             vatRatePercent: current.vatRatePercent,
+            supplierQuoteExceptionReason: current.supplierQuoteExceptionReason,
           },
           newValues: {
             remarks: updated.remarks,
@@ -678,6 +682,7 @@ export class PurchaseOrderService {
             freightAmount: updated.freightAmount,
             additionalChargeAmount: updated.additionalChargeAmount,
             vatRatePercent: updated.vatRatePercent,
+            supplierQuoteExceptionReason: updated.supplierQuoteExceptionReason,
           },
         },
         tx,
@@ -920,6 +925,8 @@ export class PurchaseOrderService {
 
         // PM02: active approved demand must be scoped to this Company/Project.
         await this.assertActiveDemand(tx, order);
+        // Revalidate whole-PO commercial basis only after active-demand checks.
+        const quotePolicy = await this.assertPoQuotePolicy(tx, order);
 
         const approvalInstance = await this.approvals.start(
           {
@@ -937,6 +944,7 @@ export class PurchaseOrderService {
           data: {
             approvalInstanceId: approvalInstance.id,
             submittedByUserId: context.auth.userId,
+            currencyCode: 'THB',
             submittedAt,
           },
         });
@@ -951,6 +959,7 @@ export class PurchaseOrderService {
               poNumber: order.poNumber,
               revisionNo: order.revisionNo,
               approvalInstanceId: approvalInstance.id,
+              quotePolicy,
               lineCount: order.lines.length,
               submittedAt,
             },
@@ -1020,6 +1029,7 @@ export class PurchaseOrderService {
           select: { id: true },
         });
         if (!activeSupplier) throw new ConflictException({ code: 'PO_SUPPLIER_INACTIVE' });
+        const finalQuotePolicy = await this.assertPoQuotePolicy(tx, source, context.auth);
         const lines = await tx.purchaseOrderLine.findMany({
           where: { purchaseOrderId: order.id },
           select: { quotationAwardId: true, quantity: true },
@@ -1032,6 +1042,21 @@ export class PurchaseOrderService {
             line.quantity,
           );
         }
+        // Preserve final comparison evidence in the same approval transaction (#442).
+        await this.audit.record({
+          ...context,
+          entityType: 'PURCHASE_ORDER',
+          entityId: source.id,
+          action: 'PUR01_FINAL_QUOTE_POLICY',
+          newValues: {
+            approvalInstanceId: source.approvalInstanceId,
+            poNumber: source.poNumber,
+            revisionNo: source.revisionNo,
+            projectId: source.projectId,
+            supplierId: source.supplierId,
+            ...finalQuotePolicy,
+          },
+        }, tx);
       },
     );
     await this.audit.record({
@@ -1408,6 +1433,7 @@ export class PurchaseOrderService {
             projectId: source.projectId,
             supplierId: source.supplierId,
             poNumber: source.poNumber,
+            currencyCode: source.currencyCode,
             revisionNo: source.revisionNo + 1,
             previousRevisionId: source.id,
             revisionReason: revisionReason ?? null,
@@ -1421,6 +1447,7 @@ export class PurchaseOrderService {
             freightAmount: source.freightAmount,
             additionalChargeAmount: source.additionalChargeAmount,
             vatRatePercent: source.vatRatePercent,
+            supplierQuoteExceptionReason: source.supplierQuoteExceptionReason,
             createdByUserId: context.auth.userId,
           },
         });
@@ -1485,6 +1512,124 @@ export class PurchaseOrderService {
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted },
     );
+  }
+
+  /**
+   * PUR01: whole-PO comparable supplier count, not the union of incomplete
+   * per-RFQ invitations. Only active, source-linked THB quotation responses
+   * covering each selected PO line qualify. No approval based on NULL fields.
+   */
+  private async assertPoQuotePolicy(
+    tx: Prisma.TransactionClient,
+    order: {
+      companyId: string;
+      projectId: string;
+      supplierId: string;
+      discountAmount: Prisma.Decimal | null;
+      freightAmount: Prisma.Decimal | null;
+      additionalChargeAmount: Prisma.Decimal | null;
+      vatRatePercent: Prisma.Decimal | null;
+      supplierQuoteExceptionReason: string | null;
+      lines: Array<{
+        rfqLineId: string;
+        supplierQuotationId: string;
+        quantity: Prisma.Decimal;
+        amount: Prisma.Decimal;
+      }>;
+    },
+    approver?: AuthenticatedUserContext,
+  ) {
+    const subtotal = order.lines.reduce(
+      (sum, line) => sum.plus(line.amount), new Prisma.Decimal(0),
+    );
+    const basis = poQuoteBasis(
+      subtotal, order.discountAmount, order.freightAmount,
+      order.additionalChargeAmount, order.vatRatePercent,
+    );
+    // The awarded/selected supplier's *own* quotation must be verified THB;
+    // otherwise unrelated THB bids could make an unknown-currency award pass.
+    const selectedQuotationIds = [...new Set(
+      order.lines.map((line) => line.supplierQuotationId),
+    )];
+    const selectedTHB = await tx.supplierQuotation.count({
+      where: {
+        id: { in: selectedQuotationIds },
+        companyId: order.companyId,
+        supplierId: order.supplierId,
+        currencyCode: 'THB',
+        rfq: { companyId: order.companyId, projectId: order.projectId },
+      },
+    });
+    if (selectedTHB !== selectedQuotationIds.length) {
+      throw new UnprocessableEntityException({
+        code: 'PO_SELECTED_QUOTE_THB_PROVENANCE_REQUIRED',
+        detail: 'Every selected award must have verifiable THB quotation provenance.',
+      });
+    }
+    const selectedOfferLines = await tx.supplierQuotationLine.findMany({
+      where: {
+        supplierQuotationId: { in: selectedQuotationIds },
+        rfqLineId: { in: order.lines.map((line) => line.rfqLineId) },
+      },
+      select: { supplierQuotationId: true, rfqLineId: true, quantity: true },
+    });
+    if (order.lines.some((line) => !selectedOfferLines.some(
+      (offer) => offer.supplierQuotationId === line.supplierQuotationId &&
+        offer.rfqLineId === line.rfqLineId && offer.quantity.gte(line.quantity),
+    ))) {
+      throw new ConflictException({
+        code: 'PO_SELECTED_QUOTE_QUANTITY_INCOMPLETE',
+        detail: 'Selected supplier quotation must cover every PO source line quantity.',
+      });
+    }
+
+    const offers = await tx.supplierQuotationLine.findMany({
+      where: {
+        rfqLineId: { in: order.lines.map((line) => line.rfqLineId) },
+        supplierQuotation: {
+          companyId: order.companyId,
+          currencyCode: 'THB',
+          rfq: { companyId: order.companyId, projectId: order.projectId },
+          supplier: { companyId: order.companyId, isActive: true },
+        },
+      },
+      select: {
+        rfqLineId: true,
+        quantity: true,
+        supplierQuotation: { select: { supplierId: true } },
+      },
+    });
+    const comparableSuppliers = completeSupplierCount(
+      order.lines,
+      offers.map((offer) => ({
+        rfqLineId: offer.rfqLineId,
+        supplierId: offer.supplierQuotation.supplierId,
+        quantity: offer.quantity,
+      })),
+    );
+    const exceptionReason = order.supplierQuoteExceptionReason?.trim() || null;
+    if (comparableSuppliers < basis.requiredSuppliers) {
+      if (!exceptionReason || exceptionReason.length < 10) {
+        throw new UnprocessableEntityException({
+          code: 'PO_QUOTE_SUPPLIERS_INSUFFICIENT',
+          detail: 'Required comparable THB suppliers for this whole-PO amount: ' +
+            basis.requiredSuppliers + '; eligible: ' + comparableSuppliers +
+            '. A specific exceptional supplier reason requires Ben review.',
+        });
+      }
+      // Configured maker-checker approval remains mandatory. Shortage
+      // exceptions additionally require the MANAGEMENT business approver;
+      // SYS_ADMIN, buyer and delegated generic workflow grants are not enough.
+      if (approver && !approver.roleCodes.includes('MANAGEMENT')) {
+        throw new ForbiddenException({ code: 'PO_QUOTE_EXCEPTION_BEN_REQUIRED' });
+      }
+    }
+    return {
+      netExVatTHB: basis.netExVat.toFixed(2),
+      requiredSuppliers: basis.requiredSuppliers,
+      comparableSuppliers,
+      exceptionReason,
+    };
   }
 
   private async assertApprovedNumbering(companyId: string) {

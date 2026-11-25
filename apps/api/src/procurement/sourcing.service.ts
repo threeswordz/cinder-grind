@@ -550,6 +550,9 @@ export class SourcingService {
             rfqId,
             supplierId,
             supplierReference: input.supplierReference ?? null,
+            // V1.2 new monetary capture is THB-only. Do not retroactively
+            // relabel historical unknown-currency supplier quotations.
+            currencyCode: 'THB',
             quotationDate: input.quotationDate,
             validityDate: input.validityDate ?? null,
             remarks: input.remarks ?? null,
