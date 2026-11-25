@@ -1,0 +1,57 @@
+name: M4 BEN04 PM16 native closeout concurrency
+on:
+  push:
+    branches: [ci-m4-ben04-concurrency-20261125]
+    paths: ['.github/workflows/ci-m4-ben04-concurrency-20261125.yml']
+permissions:
+  contents: read
+jobs:
+  closeout-native:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:17.11-alpine
+        env:
+          POSTGRES_DB: erp_m4_weekly_closeout
+          POSTGRES_USER: construction_erp
+          POSTGRES_PASSWORD: construction_erp_dev_only
+        ports: [5432:5432]
+        options: >-
+          --health-cmd "pg_isready -U construction_erp -d erp_m4_weekly_closeout"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://construction_erp:construction_erp_dev_only@localhost:5432/erp_m4_weekly_closeout?schema=public
+      M4_NON_PRODUCTION_CONFIRMED: 'YES'
+      EXACT_SOURCE: 0219becb9c5049c1042d068d985ee12412cb6987
+    steps:
+      - name: Checkout exact workflow child
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          fetch-depth: 2
+      - name: Verify source and disposable database
+        run: |
+          test "$(git rev-parse HEAD^)" = "$EXACT_SOURCE"
+          test "$(git diff --name-only HEAD^ HEAD)" = ".github/workflows/ci-m4-ben04-concurrency-20261125.yml"
+          test "${DATABASE_URL%%\?*}" = "postgresql://construction_erp:construction_erp_dev_only@localhost:5432/erp_m4_weekly_closeout"
+          git checkout --detach "$EXACT_SOURCE"
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
+        with:
+          version: 12.6.0
+          run_install: false
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
+        with:
+          node-version: 24.21.0
+      - name: Install frozen dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Validate only affected closeout contracts
+        run: node --test deploy/release-candidate/ben04-closeout-contract.test.mjs
+      - name: Migrate disposable database and build API
+        run: |
+          pnpm prisma:generate
+          pnpm prisma:migrate:deploy
+          pnpm --filter @construction-erp/api build
+      - name: Actual HTTP and PostgreSQL closeout concurrency
+        run: node --test apps/api/dist/projects/project-closeout-stale.native.integration.spec.js
