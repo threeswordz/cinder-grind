@@ -1571,6 +1571,16 @@ export class PurchaseOrderService {
           });
         }
 
+        // A cancellation may have committed while this revision waited on
+        // the shared PO-family lock. Never create a successor from that stale
+        // pre-lock read, even when no other revision has been inserted.
+        if (afterLock.cancelledAt) {
+          throw new ConflictException({
+            code: 'PO_REVISION_SOURCE_INVALID',
+            detail: 'A cancelled Purchase Order cannot be revised.',
+          });
+        }
+
         const revision = await tx.purchaseOrder.create({
           data: {
             companyId: source.companyId,

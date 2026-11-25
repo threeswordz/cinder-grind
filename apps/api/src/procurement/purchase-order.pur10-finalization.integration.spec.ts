@@ -585,6 +585,13 @@ test('PUR10 native: real approved PO, independent named Jai/Khaimook/Ben, atomic
     const cancelled=await prisma.purchaseOrder.findUniqueOrThrow({where:{id:approvedOriginal.id}});
     assert.ok(cancelled.cancelledAt);
     assert.equal(cancelled.cancelledByUserId,ben.user.id);
+    await assert.rejects(
+      ()=>orders.revise({auth:jai.auth},approvedOriginal.id,'Revision after finalized cancellation'),
+      (e:unknown)=>e instanceof ConflictException &&
+        (e.getResponse() as {code?:string}).code==='PO_REVISION_SOURCE_INVALID',
+    );
+    assert.equal(await prisma.purchaseOrder.count({where:{previousRevisionId:approvedOriginal.id}}),0,
+      'A finalized cancelled PO must never acquire a successor revision');
     assert.equal(await prisma.auditLog.count({where:{
       companyId:company.id,entityType:'PURCHASE_ORDER_CANCELLATION',
       entityId:approvedOriginal.id,action:'FINALIZE',
