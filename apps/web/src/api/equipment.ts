@@ -107,6 +107,15 @@ export type EquipmentUsage = {
   recordedBy: { id: string; displayName: string };
 };
 
+
+export type EquipmentCustodyBorrower = { id:string; employeeCode:string; employeeName:string };
+export type EquipmentCustodyLoan = {
+  id:string; companyId:string; equipmentId:string; projectId:string; borrowerEmployeeId:string;
+  borrowerName:string; equipmentCode:string; equipmentName:string; siteLabel:string;
+  issuedOn:string; dueOn:string; conditionOut:string; issuedByUserId:string;
+  returnedOn:string|null; conditionIn:string|null; returnedByUserId:string|null; createdAt:string;
+};
+
 function query(path: string, params: Record<string, string | undefined>) {
   const search = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
@@ -116,6 +125,18 @@ function query(path: string, params: Record<string, string | undefined>) {
 }
 
 export const equipmentApi = {
+  custodyProjects: () => apiRequest<Data<EquipmentProject[]>>('/equipment/custody/projects'),
+  custodyBorrowers: (projectId:string,on:string) =>
+    apiRequest<Data<EquipmentCustodyBorrower[]>>(query('/equipment/custody/borrowers',{projectId,on})),
+  custodyLoans: (projectId:string,equipmentId:string) =>
+    apiRequest<Data<EquipmentCustodyLoan[]>>(query('/equipment/custody',{projectId,equipmentId})),
+  custodyCheckout: (body:{
+    equipmentId:string;projectId:string;borrowerEmployeeId:string;siteLabel:string;
+    issuedOn:string;dueOn:string;conditionOut:string;
+  }) => apiRequest<Data<{id:string}>>('/equipment/custody',{method:'POST',body:JSON.stringify(body)}),
+  custodyReturn: (id:string,returnedOn:string,conditionIn:string) =>
+    apiRequest<Data<{id:string}>>('/equipment/custody/'+id+'/return',{
+      method:'POST',body:JSON.stringify({returnedOn,conditionIn})}),
   projects: () =>
     apiRequest<Data<EquipmentProject[]>>('/equipment/projects'),
   types: (activeOnly = false) =>

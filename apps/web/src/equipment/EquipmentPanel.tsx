@@ -20,6 +20,8 @@ import {
   equipmentApi,
 } from '../api/equipment';
 import { siteExecutionApi } from '../api/site-execution';
+import { EquipmentCustodyPanel } from './EquipmentCustodyPanel';
+import { EquipmentAssetRegisterPanel } from './EquipmentAssetRegisterPanel';
 
 function localDateValue(date = new Date()) {
   const year = date.getFullYear();
@@ -29,9 +31,9 @@ function localDateValue(date = new Date()) {
 }
 
 export function EquipmentPanel({
-  permissions,
+  permissions, roleCodes = [],
 }: {
-  permissions: string[];
+  permissions: string[]; roleCodes?: string[];
 }) {
   const queryClient = useQueryClient();
   const canTypeManage = permissions.includes('equipment.type.manage');
@@ -751,6 +753,12 @@ export function EquipmentPanel({
           Select an Equipment record to view assignments and usage history.
         </Alert>
       )}
+      {selected && !newMode && /^CG[0-9]{5}$/.test(selected.equipmentCode) && permissions.includes('equipment.equipment.view') && roleCodes.some(r=>['PROCUREMENT_OFFICER','FINANCE_MANAGER'].includes(r)) ? (
+        <EquipmentAssetRegisterPanel key={selected.id} equipmentId={selected.id}/>
+      ) : null}
+      {selected && permissions.includes('equipment.custody.view') ? (
+        <EquipmentCustodyPanel equipmentId={selected.id} permissions={permissions} />
+      ) : null}
     </Stack>
   );
 }

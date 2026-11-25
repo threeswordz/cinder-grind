@@ -227,7 +227,7 @@ export function AdminConsole({ user, onLogoutSuccess }: { user: CurrentUser; onL
           key: 'equipment',
           label: 'Equipment',
           permission: '__equipment__',
-          content: <EquipmentPanel permissions={user.permissions} />,
+          content: <EquipmentPanel permissions={user.permissions} roleCodes={user.roleCodes} />,
         },
         {
           key: 'site-execution',
