@@ -1,0 +1,25 @@
+name: Purchasing successor v24 v25 evidence contracts
+on:
+  push:
+    branches: [ci-m4-successor-v24-v25-contracts-20261125]
+permissions:
+  contents: read
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          fetch-depth: 2
+      - name: Verify exact source and workflow-only delta
+        run: |
+          test "$(git rev-parse HEAD^)" = e013d917ba1b0864f80bb8670fdb7758956261dd
+          test "$(git diff --name-only HEAD^ HEAD)" = .github/workflows/m4-successor-v24-v25-contracts.yml
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
+        with:
+          node-version: 24.21.0
+      - name: Verify rehearsal syntax and receipt contracts
+        run: |
+          bash -n deploy/release-candidate/rehearse-migration.sh
+          node --test deploy/release-candidate/verify-evidence.test.mjs
