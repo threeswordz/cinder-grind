@@ -64,6 +64,8 @@
 
 > **Owner scope approval recorded:** all six exact ecd78e4d dispositions explicitly authorized; [112-ID overlay](M4-2026-11-25-112-OWNER-DISPOSITIONS.csv) readback verified, original requirements preserved, only decision/reconciliation effort −1h. M4-01 11→10h, M4 54→53h, ERP 1,784→1,783h. No future implementation removed, no formal acceptance or release authorization; other six gap rows unchanged.
 
+> **PUR10 integration defect corrected at source:** [d0a6a332](https://github.com/threeswordz/cinder-grind/commit/d0a6a3324d1528a65791ccdc5009465fe5896d5a) adds cancelledAt readback after shared PO-family lock, plus native post-finalization revision denial. Existing contested race test retained. Focused workflow-only [5eb80120](https://github.com/threeswordz/cinder-grind/commit/5eb801203fe95777baafa1a89bb35f629f8fa484) [45579826306](https://github.com/threeswordz/cinder-grind/actions/runs/45579826306); no new credit until result. M4 53h, ERP 1,783h.
+
 ## Headline
 | Metric | Current | Meaning |
 |---|---:|---|
