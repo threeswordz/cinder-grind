@@ -86,6 +86,8 @@
 
 > **M4 accelerated parallel closure:** Equipment paired database/Documents [2a9779b1](https://github.com/threeswordz/cinder-grind/commit/2a9779b108a68c208f06ce3c9b31b2fa3a515885), [workflow 8c8f9aa9](https://github.com/threeswordz/cinder-grind/commit/8c8f9aa922059cccde6fafa40ba6a5c7e317ff06); PUR08 supplier transition scoped PO row-lock/controlled 409 correction and deterministic PUR10 collision test [1b4aba9f](https://github.com/threeswordz/cinder-grind/commit/1b4aba9fbedbc928e9a28c9af38e227fabbd56ff), [workflow 6ecaf596](https://github.com/threeswordz/cinder-grind/commit/6ecaf5960cc05c3b6383b88dfa5c9d47a2952f11). Both isolated, workflow commits verified; execution results not observed. No prior evidence replay credit, no full CI, protected main, retained permission or Production changes. M4-08 6h, M4 48h, ERP 1,778h.
 
+> **PUR07 focused download recovery:** prior [45572709802](https://github.com/threeswordz/cinder-grind/actions/runs/45572709802/job/139063012015) failed at PDF response assertion after authenticated scoped browser readiness. [New test-only ff316e21](https://github.com/threeswordz/cinder-grind/commit/ff316e21c9001495c3a684715b7310ae4811a06e) requires exact browser GET, independent Nest HTTP200 PDF response, Chrome completed file, PDF header and extracted Thai supplier text. [Isolated workflow e417124c](https://github.com/threeswordz/cinder-grind/commit/e417124cc9b6d3227630d64e49cf5f0fb8177219) committed; execution outcome not observed. M4-06 4h, M4 48h, ERP 1,778h unchanged; no full CI/main/retained permissions/Production changes.
+
 ## Headline
 | Metric | Current | Meaning |
 |---|---:|---|
