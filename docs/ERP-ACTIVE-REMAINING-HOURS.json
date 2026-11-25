@@ -3682,6 +3682,62 @@
       "verifiedCompletedScopeHours": 0.5,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-05-078",
+      "date": "2026-11-25",
+      "packageId": "M4-05",
+      "kind": "PUR04_REAL_JAI_REVISION_COMMERCIAL_PERSISTENCE_AND_PREDECESSOR_PASS",
+      "beforeHours": 5,
+      "afterHours": 4,
+      "sourceSha": "e8247aead16464ea8743613c31b1286d49b2e77e",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45616141518/job/139211908561"
+      ],
+      "basis": "Discrete actual PG17/Chrome subproof passed before separate Ben fixture failure: revision, seven changed header inputs, copied untouched fields, exact predecessor including timestamp remained immutable. Retire 1h remaining browser commercial edit proof; prior native and recovery not counted again. Independent approval, retained role and final integration remain.",
+      "reductionHours": 1,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 1,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-04-079",
+      "date": "2026-11-25",
+      "packageId": "M4-04",
+      "kind": "PUR01_REAL_JAI_REASONED_EXCEPTION_SUBMISSION_PASS",
+      "beforeHours": 4,
+      "afterHours": 3.5,
+      "sourceSha": "e8247aead16464ea8743613c31b1286d49b2e77e",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45616141518/job/139211908561"
+      ],
+      "basis": "Actual browser submit persisted SUBMITTED with Jai as maker and zero final quote-policy audit. Overall job failed before Ben approval because old fixture expected cancellation read 200 on superseded PO. Retire 0.5h distinct real UI submission work only. Corrected fixture requires exact PUR10_APPROVED_LATEST_PO_REQUIRED 409; final independent Ben UI audit pending.",
+      "reductionHours": 0.5,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0.5,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-01-080",
+      "date": "2026-11-25",
+      "packageId": "M4-01",
+      "kind": "TWELVE_PENDING_SOURCE_EVIDENCE_ACTUAL_RUNTIME_WITNESS_RECONCILIATION",
+      "beforeHours": 6,
+      "afterHours": 5,
+      "sourceSha": "48dd1b8fb7c004d370a429817fb5a92939e2584c",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/blob/48dd1b8fb7c004d370a429817fb5a92939e2584c/docs/M4-2026-11-25-RUNTIME-EVIDENCE-ADDENDUM.md",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45603992458/job/139186012299",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45613742239/job/139203659500"
+      ],
+      "basis": "All 12 pending source-evidence IDs mapped to observed runtime evidence or explicit missing witness, complete two recursive Git trees compared, 76/79 selected material workflow source/test blobs identical, six approval/budget/cost/subcontract/reporting subtrees identical. Retire 1h distinct evidence lookup and lineage reconciliation, not prior gate classification or acceptance. No inferred no-delegate proof, no full integrated validation claim, changed dependencies and retained role gates preserved.",
+      "reductionHours": 1,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 1,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -3704,6 +3760,6 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1758,
-  "currentRollingTotalSemantics": "1758h = 1847h baseline minus 93.5h verified baseline forecast reduction plus 4.5h remaining supplier scope. M4 28h. All 112 requirements preserved. Actual labor unmeasured."
+  "currentRollingTotalAfterPricedGapsHours": 1755.5,
+  "currentRollingTotalSemantics": "1755.5h = 1847h baseline minus 96h verified baseline forecast reduction plus 4.5h remaining supplier scope. M4 25.5h. All 112 requirements preserved. Actual labor unmeasured."
 }
