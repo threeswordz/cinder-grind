@@ -432,7 +432,8 @@ export class PurchaseOrderService {
       }
     }
 
-    return this.prisma.$transaction(
+    try {
+      return await this.prisma.$transaction(
       async (tx) => {
         await this.access.assertAccess(context.auth, projectId, tx);
 
@@ -651,7 +652,18 @@ export class PurchaseOrderService {
         );
       },
       { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
-    );
+      );
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError &&
+          (error.code === 'P2034' ||
+           (error.code === 'P2010' && ['40001','40P01'].includes(String(error.meta?.code))))) {
+        throw new ConflictException({
+          code: 'PO_CREATE_CONCURRENT_SOURCE_CHANGE',
+          detail: 'The Purchase Order source changed concurrently. Reload available awards before creating a new draft.',
+        });
+      }
+      throw error;
+    }
   }
 
   async updateOrder(
