@@ -9,6 +9,7 @@ import {spawn} from 'node:child_process';
 import {SOURCE,API,WEB,validConfig,validContainer,validReady} from './prototype-actors.mjs';
 import {validCompletedUomReceipt} from './prototype-m6-finance-configuration.mjs';
 import {uomSnapshot,digest} from './prototype-uom-state.mjs';
+import {verifyM6SubcontractRetention} from './m6-subcontract-retention.mjs';
 import {privateInventory,privateJson,seal,fileHash,stage,databaseStream,freePort,environment,command,hasSoleListenerPid,verifyDocumentInventory} from './prototype-transfer-upgrade.mjs';
 import {validActorReceipt,validPrivateActors} from './prototype-browser-operator.mjs';
 const ORIGIN='https://github.com/threeswordz/cinder-grind.git';
@@ -210,6 +211,8 @@ export function createM6MacRuntime({releaseSha,sourceRoot,root=join(homedir(),'C
   rehearsal=database(REHEARSAL);
   try{const after=await rehearsal.$transaction(tx=>uomSnapshot(tx),{isolationLevel:'RepeatableRead',timeout:30000});
    exactRowsPreserved(snapshots.before,after);
+   verifyM6SubcontractRetention(snapshots.before,after,snapshots.files.documents,
+    await privateInventory(join(newStage,'preserved','documents')));
    verifyM6MigrationLedger(snapshots.priorLedger,await migrationLedger(rehearsal),previousSources,releaseSources);
   }finally{await rehearsal.$disconnect();}
   // Never replay the already completed UOM/receiving/subcontract business operators.
@@ -239,6 +242,8 @@ export function createM6MacRuntime({releaseSha,sourceRoot,root=join(homedir(),'C
   db=database('proto_a_01');
   const migrated=await db.$transaction(tx=>uomSnapshot(tx),{isolationLevel:'RepeatableRead',timeout:30000});
   exactRowsPreserved(snapshots.before,migrated);
+  verifyM6SubcontractRetention(snapshots.before,migrated,snapshots.files.documents,
+   await privateInventory(join(root,'documents')));
   verifyM6MigrationLedger(snapshots.priorLedger,await migrationLedger(db),previousSources,releaseSources);
   for(const [kind,port,entry,cwd,vars] of [
     ['api',33071,join(app,'apps/api/dist/main.js'),join(app,'apps/api'),await runtimeEnv()],
@@ -291,14 +296,18 @@ export function createM6MacRuntime({releaseSha,sourceRoot,root=join(homedir(),'C
   const latest=await db.$transaction(tx=>uomSnapshot(tx),{isolationLevel:'RepeatableRead',timeout:30000});
   need(digest(await privateInventory(join(root,'uploads')))===digest(snapshots.files.uploads)&&
     digest(await privateInventory(join(root,'hrkeys')))===digest(snapshots.files.hrkeys),'M6_FINAL_UPLOADS_OR_HR_KEYS_CHANGED');
-  originalInventoryPreserved(snapshots.files.documents,await privateInventory(join(root,'documents')),[encryptedDocumentKey]);
-  verifyDocumentInventory(latest.documents,await privateInventory(join(root,'documents')));
+  const currentDocuments=await privateInventory(join(root,'documents'));
+  originalInventoryPreserved(snapshots.files.documents,currentDocuments,[encryptedDocumentKey]);
+  const subcontractProof=verifyM6SubcontractRetention(snapshots.before,latest,snapshots.files.documents,currentDocuments);
+  verifyDocumentInventory(latest.documents,currentDocuments);
   need(await fileHash(join(newStage,'preserved','postgresql.custom'))===snapshots.dumpSha,'M6_FINAL_PRESERVED_DUMP_CHANGED');
   need(digest(await boundedJSON(join(prior,'source-database-after-private.json')))===digest(snapshots.before),
    'M6_UOM_SOURCE_SNAPSHOT_TAMPERED');
   await seal(join(newStage,'source-database-after-private.json'),latest);
   return {ok:true,releaseSha,originalPopulatedDumpPreserved:true,previousHrKeysAndUploadsIntact:true,
-    protectedHrEncryptedFileVerified:true,oldHistoricalSnapshotPreserved:true};
+    protectedHrEncryptedFileVerified:true,oldHistoricalSnapshotPreserved:true,
+    historicalSubcontractRowsPreserved:subcontractProof.historicalSubcontractRowsPreserved,
+    protectedSubcontractEvidencePreserved:subcontractProof.protectedEvidenceMetadataAndBytesPreserved};
  }
  async function close(){if(db)await db.$disconnect();db=undefined;}
  return {inspected,upgrade,preserve,close,verifyEncryptedHrAttachment,load,
