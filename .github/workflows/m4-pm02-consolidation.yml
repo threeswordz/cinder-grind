@@ -1,0 +1,23 @@
+name: PM02 consolidation focused
+on:
+  push:
+    branches: [ci-m4-pm02-consolidation-20261125]
+permissions:
+  contents: read
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+      - name: Verify exact source and workflow-only delta
+        run: |
+          test "$(git rev-parse HEAD^)" = d6b018df04ca9a131b72d3788b9073e14f03c505
+          test "$(git diff --name-only HEAD^ HEAD)" = .github/workflows/m4-pm02-consolidation.yml
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.21.0
+      - name: Check consolidation and unchanged routing contracts
+        run: node --test deploy/release-candidate/verify-evidence.test.mjs deploy/release-candidate/ci-routing-contract.test.mjs deploy/release-candidate/ci-parallel-rehearsals.test.mjs
