@@ -6,18 +6,18 @@
 
 > Previous verified [#447](https://github.com/threeswordz/cinder-grind/pull/447) concurrency proof preserved.
 
-> **Integration priority — FM01 [Draft #452](https://github.com/threeswordz/cinder-grind/pull/452)** authorized full attempt3 failed at legacy FM01-A browser after 33 passed; prior actor gate passed. Fixture-only correction `4aab761d8477cfb63ea978af1444865b720d42d5`, focused [45524960275](https://github.com/threeswordz/cinder-grind/actions/runs/45524960275) PASS18/18 and [targeted Chromium 45525025034](https://github.com/threeswordz/cinder-grind/actions/runs/45525025034) PASS11/11, EN/TH/zh-TW and source/cache proof. Owner-authorized [exact-head full 45524967848 attempt2](https://github.com/threeswordz/cinder-grind/actions/runs/45524967848/attempts/2) **IN_PROGRESS** when checked on 25 November 2026, approximately 10:30 SGT: 33/45 listed steps successfully completed, including the previously failing authentic FM01-A Chromium gate and HR/material Chromium steps; two-lane historical predecessor rehearsal currently running. This is **not** a complete full-gate PASS. No new rerun, Ready transition, independent review, merge or formal M4-03 acceptance. M4-03 8h unchanged.
+> **Integration priority — FM01 [Ready PR #452](https://github.com/threeswordz/cinder-grind/pull/452):** exact corrected head `4aab761d8477cfb63ea978af1444865b720d42d5`, main `040395bc7b0dedd40207f91f743bc2efc1584622`. [Full 45524967848 attempt 2](https://github.com/threeswordz/cinder-grind/actions/runs/45524967848/attempts/2) SUCCESS 46/46; independent review handoff recorded. No new full CI or merge. M4-03 8h unchanged; M4-08 26→25h.
 
-> **Parallel bounded preparation — PM02:** native PASS20/20, populated upgrade PASS14/14. [Existing recovery 45525270417](https://github.com/threeswordz/cinder-grind/actions/runs/45525270417) now observed SUCCESS, all 14 listed steps passed. Source `e04b1cac5343f5b57bad51d52349990357c7168a`, workflow-only child `181eb11647d77ce398d8efcb57c1c0238995e25d`. 169 populated tables / 7 PR lines preserved through upgrade and separate predecessor DB restore, upgraded-target recheck PASS. Database-only disposable evidence; paired Documents/HR keys, restored app and global schema consumer wiring remain. [Exact recovery / FM01 gate handoff](M4-2026-11-25-PM02-RECOVERY-FM01-GATE-HANDOFF.md). No rerun or additional forecast credit. M4-02 5h, M4 88h, ERP 1,818h unchanged.
+> **PM02 native integrated rehearsal:** source `05e64e24eb8d5b0864c360109bcdc570eae9134a`, [45537365945](https://github.com/threeswordz/cinder-grind/actions/runs/45537365945) SUCCESS 15/15. Global schema and historical consumers, paired DB/Documents, external HR keys and protected documents, previous-runtime authentication and v21 receipt proven on one exact predecessor. Previous database-only proof preserved. M4-02 5→3h, M4 88→85h, ERP 1,818→1,815h. Real browser/retained roles and full integrated independent review pending.
 
 ## Headline
 | Metric | Current | Meaning |
 |---|---:|---|
-| **Estimated full ERP work still needed** | **1,818h → 0h** | Includes latest newly priced mandatory gaps |
+| **Estimated full ERP work still needed** | **1,815h → 0h** | Includes latest newly priced mandatory gaps |
 | 23 Nov original current-work forecast | 1847h | Earlier 60-package provisional baseline |
-| Additional estimated future-work eliminated | −38h | M4-01 −20h, M4-02 −3h, M4-03 −2h, M4-04 −1h, M4-05 −1h, M4-06 −2h, M4-07 −1h, M4-08 −8h, **not timesheet** |
+| Additional estimated future-work eliminated | −41h | M4-01 −20h, M4-02 −5h, M4-03 −2h, M4-04 −1h, M4-05 −1h, M4-06 −2h, M4-07 −1h, M4-08 −9h, **not timesheet** |
 | Newly discovered previously unpriced PUR08/PUR14 work | +9h | Net **remaining** after real signed damaged-custody Chrome/native proof, no automatic Finance/AP/stock effect |
-| Net reforecast change versus 1,847h | −29h | More honest scope recognition; not schedule recovery |
+| Net reforecast change versus 1,847h | −32h | More honest scope recognition; not schedule recovery |
 | PUR08/PUR14 provisional work before new development | 51h | Low-confidence new-gap gross estimate |
 | PUR08/PUR14 estimated future work eliminated through verified development | 42h | Verified role/tenant source, posted GR/reversal warning and signed DAMAGED outward custody; only future-work forecast, not logged hours |
 | PUR08/PUR14 remaining | **9h** | Signed unposted DAMAGED custody implemented, posted stock needs separately approved canonical reversal; real supplier credit/AP is separate Finance module, SHORT/WRONG/EXCESS stay evidence-only, retained named-role UAT and independent review pending |
@@ -29,13 +29,13 @@
 | Whole baseline packages formally accepted | 0/60 | 8 M4 packages still 0/8 |
 | Actual productive hours logged | UNKNOWN | Cannot infer from GitHub commits or AI conversation length |
 
-**Why the number rose:** the earlier 1,845h omitted a separate confirmed PUR08/PUR14 implementation budget. New source plus corrected source-backed tests reduced that *newly priced* work from a provisional 51h gross to 9h remaining, but the original 60-package forecast excluded that additional work. Thus **1,847h − 20h M4-01 − 3h M4-02 − 2h M4-03 − 1h M4-04 − 1h M4-05 − 2h M4-06 − 1h M4-07 − 8h M4-08 + 9h supplier = 1,818h**. Supplier gross estimate 51h includes newly discovered handover defect +1h, verified fix −1h, with 42h of future work eliminated. This prevents a false countdown and requires a real reduction in remaining work at each future step. It does **not** represent actual human hours worked or formal acceptance.
+**Why the number rose:** the earlier 1,845h omitted a separate confirmed PUR08/PUR14 implementation budget. New source plus corrected source-backed tests reduced that *newly priced* work from a provisional 51h gross to 9h remaining, but the original 60-package forecast excluded that additional work. Thus **1,847h − 20h M4-01 − 5h M4-02 − 2h M4-03 − 1h M4-04 − 1h M4-05 − 2h M4-06 − 1h M4-07 − 9h M4-08 + 9h supplier = 1,815h**. Supplier gross estimate 51h includes newly discovered handover defect +1h, verified fix −1h, with 42h of future work eliminated. This prevents a false countdown and requires a real reduction in remaining work at each future step. It does **not** represent actual human hours worked or formal acceptance.
 
 ## Stage-by-stage remaining work
 
 | Stage | Previous 60-package baseline | Verified package forecast reduction | Additional scope remaining | **Now remaining** | Accepted baseline packages |
 |---|---:|---:|---:|---:|---:|
-| Prototype 5/8 — M4 closure | 117h | 38h | 9h | **88h** | 0/8 |
+| Prototype 5/8 — M4 closure | 117h | 41h | 9h | **85h** | 0/8 |
 | Prototype 6/8 — end-to-end deployment | 120h | 0h | 0h | **120h** | 0/5 |
 | Prototype 7/8 — populated restore | 50h | 0h | 0h | **50h** | 0/3 |
 | Prototype 8/8 — technical freeze | 65h | 0h | 0h | **65h** | 0/3 |
@@ -47,20 +47,20 @@
 | Production hosting and recovery | 110h | 0h | 0h | **110h** | 0/5 |
 | Migration and onboarding | 110h | 0h | 0h | **110h** | 0/4 |
 | Final human UAT, cutover and Production | 150h | 0h | 0h | **150h** | 0/5 |
-| **Full ERP** | **1847h** | **38h** | **9h** | **1,818h** | **0/60** |
+| **Full ERP** | **1847h** | **41h** | **9h** | **1,815h** | **0/60** |
 
 ## Each baseline package
 
 | Package | Stage | Delivery item | Starting estimate | Remaining now |
 |---|---|---|---:|---:|
 | M4-01 | M4 | Current-source and all-112 evidence/scope decisions | 32h | **12h** |
-| M4-02 | M4 | PM02 real browser and retained-role authorization | 8h | **5h** |
+| M4-02 | M4 | PM02 real browser and retained-role authorization | 8h | **3h** |
 | M4-03 | M4 | FM01, BEN04 and PM16 real-browser acceptance | 10h | **8h** |
 | M4-04 | M4 | PUR01 whole-PO supplier-count and commercial rule | 8h | **7h** |
 | M4-05 | M4 | PUR04 core PO commercial/delivery fields | 9h | **8h** |
 | M4-06 | M4 | PUR07 supplier-name PO PDF and manual dispatch evidence | 10h | **8h** |
 | M4-07 | M4 | PUR12 K-/T- company PO document identity | 6h | **5h** |
-| M4-08 | M4 | M4 focused closure, governed integration and Owner decision | 34h | **26h** |
+| M4-08 | M4 | M4 focused closure, governed integration and Owner decision | 34h | **25h** |
 | M6-01 | M6 | Build deployable preserved-data integrated M4/M6 candidate | 25h | **25h** |
 | M6-02 | M6 | Site, plan, request, issue and document deployed journeys | 25h | **25h** |
 | M6-03 | M6 | Procurement, receiving, transfers and inventory deployed journeys | 30h | **30h** |
@@ -120,6 +120,10 @@
 | PUR08_PUR14_INTEGRATION | M4 | 51h | 42h | **9h** |
 
 ## Evidence-backed update history
+
+- **2026-11-25 — M4-08: 26h → 25h.** FM01 PR452 exact corrected head 4aab761d8477cfb63ea978af1444865b720d42d5, base/live main 040395bc7b0dedd40207f91f743bc2efc1584622; Owner-authorized full attempt2 SUCCESS, validate46/46 and integration-plan5/5; marked Ready once, no duplicate full trigger. Independent DEC-022 exact-head verdict still absent. Provisional -1h remaining release validation/readiness work in M4-08, no duplicate credit for FM01 focused/browser repair or elapsed CI. M4-03 stays 8h, human acceptance and remaining BEN04/PM16/FM01 tasks not waived. No merge or Production. [Evidence 1](https://github.com/threeswordz/cinder-grind/actions/runs/45524967848/attempts/2) [Evidence 2](https://github.com/threeswordz/cinder-grind/pull/452#issuecomment-7151263448)
+- **2026-11-25 — M4-02: 5h → 3h.** Global exact PM02 schema admission, four historical witness consumers, v21 paired recovery and all seven layered consolidation checks wired. Four focused workflows SUCCESS. Exact native rehearsal source 05e64e24eb8d5b0864c360109bcdc570eae9134a, workflow-only child c8062713337e8558e2864d5b90163468bb8173a3, 45537365945 job138947153938 SUCCESS 15/15 including actual predecessor migration, paired DB/Documents, HR keys and protected file, old runtime restored authentication and v21 receipt. Provisional -2h remaining technical release preparation and paired recovery work eliminated; earlier separate database-only restore not double-counted. Remaining 3h low-confidence allowance: targeted real PM02 browser actor/correction and authorization, retained-role acceptance coordination, exact final candidate reconciliation. Full eight historical predecessors and DEC-022 review remain governed in M4-08. No formal acceptance or human labor claim. [Evidence 1](https://github.com/threeswordz/cinder-grind/commit/05e64e24eb8d5b0864c360109bcdc570eae9134a) [Evidence 2](https://github.com/threeswordz/cinder-grind/actions/runs/45533757894) [Evidence 3](https://github.com/threeswordz/cinder-grind/actions/runs/45534157354) [Evidence 4](https://github.com/threeswordz/cinder-grind/actions/runs/45534525602) [Evidence 5](https://github.com/threeswordz/cinder-grind/actions/runs/45535897340) [Evidence 6](https://github.com/threeswordz/cinder-grind/actions/runs/45537365945)
+
 
 - **2026-11-25 — owner-authorized FM01 exact-head full gate in progress, no forecast change.** [PR #452](https://github.com/threeswordz/cinder-grind/pull/452) unchanged candidate `4aab761d8477cfb63ea978af1444865b720d42d5`, base `040395bc7b0dedd40207f91f743bc2efc1584622`. [Full run 45524967848 attempt2](https://github.com/threeswordz/cinder-grind/actions/runs/45524967848/attempts/2) observed IN_PROGRESS with 33/45 steps successful, including authentic FM01-A browser; predecessor rehearsal running. Older failed full attempts are not erased. PM02 separate database-only recovery remains green but global schema/recovered-app/Document-key gates remain open. Forecast previous 1,818h, scope +0h, verified new completion credit −0h, revised 1,818h; M4 88h and M4-03 8h. Codex review deferred to quota availability after full PASS; no full rerun, protected-main merge, grants, UAT or Production authorized by this update.
 

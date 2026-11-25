@@ -1707,6 +1707,48 @@
       "sourceSha": "6b4166b318b25607543591a0df401c549e10b018",
       "formalAcceptance": false,
       "estimateConfidence": "NO_ADDITIONAL_HOURS_CREDIT"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-02-007",
+      "date": "2026-11-25",
+      "packageId": "M4-02",
+      "kind": "PM02_INTEGRATED_NATIVE_REHEARSAL_PASS",
+      "beforeHours": 5,
+      "afterHours": 3,
+      "reductionHours": 2,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 2,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/commit/05e64e24eb8d5b0864c360109bcdc570eae9134a",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45533757894",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45534157354",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45534525602",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45535897340",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45537365945"
+      ],
+      "basis": "Global exact PM02 schema admission, four historical witness consumers, v21 paired recovery and all seven layered consolidation checks wired. Four focused workflows SUCCESS. Exact native rehearsal source 05e64e24eb8d5b0864c360109bcdc570eae9134a, workflow-only child c8062713337e8558e2864d5b90163468bb8173a3, 45537365945 job138947153938 SUCCESS 15/15 including actual predecessor migration, paired DB/Documents, HR keys and protected file, old runtime restored authentication and v21 receipt. Provisional -2h remaining technical release preparation and paired recovery work eliminated; earlier separate database-only restore not double-counted. Remaining 3h low-confidence allowance: targeted real PM02 browser actor/correction and authorization, retained-role acceptance coordination, exact final candidate reconciliation. Full eight historical predecessors and DEC-022 review remain governed in M4-08. No formal acceptance or human labor claim.",
+      "sourceSha": "05e64e24eb8d5b0864c360109bcdc570eae9134a",
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-08-011",
+      "date": "2026-11-25",
+      "packageId": "M4-08",
+      "kind": "FM01_EXACT_FULL_VALIDATION_READY_HANDOFF",
+      "beforeHours": 26,
+      "afterHours": 25,
+      "reductionHours": 1,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 1,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45524967848/attempts/2",
+        "https://github.com/threeswordz/cinder-grind/pull/452#issuecomment-7151263448"
+      ],
+      "basis": "FM01 PR452 exact corrected head 4aab761d8477cfb63ea978af1444865b720d42d5, base/live main 040395bc7b0dedd40207f91f743bc2efc1584622; Owner-authorized full attempt2 SUCCESS, validate46/46 and integration-plan5/5; marked Ready once, no duplicate full trigger. Independent DEC-022 exact-head verdict still absent. Provisional -1h remaining release validation/readiness work in M4-08, no duplicate credit for FM01 focused/browser repair or elapsed CI. M4-03 stays 8h, human acceptance and remaining BEN04/PM16/FM01 tasks not waived. No merge or Production.",
+      "sourceSha": "4aab761d8477cfb63ea978af1444865b720d42d5",
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -1729,6 +1771,6 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1818,
-  "currentRollingTotalSemantics": "1818h provisional future work = 1847h baseline minus 38h evidence-backed package forecast reductions plus 9h separately priced supplier scope. M4 remains88h, M4-02 remains5h. Database-only separate predecessor restore observed PASS; no new forecast credit, actual labor or formal acceptance."
+  "currentRollingTotalAfterPricedGapsHours": 1815,
+  "currentRollingTotalSemantics": "1815h provisional future work = 1847h baseline minus 41h evidence-backed package forecast reductions plus 9h separately priced supplier scope. M4 85h, M4-02 3h, M4-03 8h, M4-08 25h. Exact single predecessor native PM02 recovery and FM01 full readiness passed; independent and retained business acceptance remain."
 }
