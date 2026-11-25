@@ -36,3 +36,27 @@ test('M6 refuses metadata changes and missing or modified bytes',()=>{
   rejects(f=>{f.nextFiles[0][2]='b'.repeat(64);},'M6_PA_EVIDENCE_BYTES_DRIFT');
 });
 test('M6 refuses ambiguous duplicate inventory paths',()=>rejects(f=>{f.nextFiles.push(f.nextFiles[0]);},'M6_PA_INVALID_FILE_INVENTORY'));
+test('M6 detects SQL precision drift hidden by JSON numeric rounding',()=>{
+  const f=fixture();
+  const original='{"id":"claim-1","amount":9007199254740992.01}';
+  const changed='{"id":"claim-1","amount":9007199254740992.02}';
+  assert.deepEqual(JSON.parse(original),JSON.parse(changed));
+  f.before.subcontract_certifications=[{...JSON.parse(original),__fm03_exact_row_json:original}];
+  f.after.subcontract_certifications=[{...JSON.parse(changed),__fm03_exact_row_json:changed}];
+  assert.throws(()=>verify(f),/M6_PA_HISTORICAL_ROW_DRIFT/);
+});
+test('M6 detects new alias on preserved evidence but admits a wholly unrelated HR document',()=>{
+  const f=fixture();
+  f.after.documents.push(row({id:'hr-doc',storage_key:'hr.enc'}));
+  f.after.document_links.push(row({id:'hr-link',document_id:'hr-doc',entity_type:'HR_ATTACHMENT',entity_id:'employee-1'}));
+  f.nextFiles.push(['hr.enc',18,hash]);
+  assert.equal(verify(f).protectedEvidenceMetadataAndBytesPreserved,true);
+  f.after.document_links.push(row({id:'new-alias',document_id:'doc-1',entity_type:'PROJECT',entity_id:'other-project'}));
+  assert.throws(()=>verify(f),/M6_PA_HISTORICAL_ROW_DRIFT/);
+});
+test('M6 rejects an unexpected additional retention posting at final preservation',()=>{
+  const f=fixture();
+  assert.equal(verify(f).historicalSubcontractRowsPreserved,true);
+  f.after.retention_ledger_entries.push(row({id:'unexpected-posting',amount:'36.56'}));
+  assert.throws(()=>verify(f),/M6_PA_HISTORICAL_ROW_DRIFT/);
+});
