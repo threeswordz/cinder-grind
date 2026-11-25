@@ -1,0 +1,73 @@
+name: Purchasing corrected single predecessor native rehearsal
+on:
+  push:
+    branches: [ci-m4-purchasing-native-rehearsal-corrected-20261125]
+permissions:
+  contents: read
+jobs:
+  purchasing-rehearsal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:17.11-alpine
+        env:
+          POSTGRES_DB: construction_erp
+          POSTGRES_USER: construction_erp
+          POSTGRES_PASSWORD: construction_erp_dev_only
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U construction_erp -d construction_erp"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://construction_erp:construction_erp_dev_only@localhost:5432/construction_erp?schema=public
+      RC_NON_PRODUCTION_CONFIRMED: 'YES'
+      RC_ENVIRONMENT: ci
+      RC_POSTGRES_TOOL_MODE: docker
+      RC_PREVIOUS_RELEASE_COMMIT: 040395bc7b0dedd40207f91f743bc2efc1584622
+      RELEASE_COMMIT: fb75e4f43bd880e2deb5488469c3be27f9cd159b
+      RC_EVIDENCE_FILE: /tmp/purchasing-single-rehearsal.json
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+      - name: Verify workflow-only child and checkout exact source
+        run: |
+          test "$(git rev-parse HEAD^)" = "$RELEASE_COMMIT"
+          test "$(git diff --name-only HEAD^ HEAD)" = .github/workflows/m4-purchasing-native-rehearsal-corrected.yml
+          git checkout --detach "$RELEASE_COMMIT"
+          test "$(git rev-parse HEAD)" = "$RELEASE_COMMIT"
+          test -z "$(git status --porcelain)"
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
+        with:
+          version: 12.6.0
+          run_install: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 24.21.0
+      - name: Verify bounded admission and evidence contracts before native work
+        run: node --test --test-name-pattern='Customer BOQ classifier' deploy/release-candidate/schema-contract.test.mjs
+      - name: Install exact dependencies and generate client
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm prisma:generate
+      - name: Single exact predecessor native migration and paired recovery
+        run: bash deploy/release-candidate/rehearse.sh
+      - name: Assert exact v23 layered receipt
+        run: |
+          node --input-type=module - <<'NODE'
+          import assert from 'node:assert/strict';
+          import {readFileSync} from 'node:fs';
+          const r=JSON.parse(readFileSync(process.env.RC_EVIDENCE_FILE,'utf8'));
+          assert.equal(r.releaseCommit,process.env.RELEASE_COMMIT);
+          assert.equal(r.previousReleaseCommit,process.env.RC_PREVIOUS_RELEASE_COMMIT);
+          assert.equal(r.version,23);
+          assert.equal(r.releaseMode,'migration-aware-pur01-pur04-pm02-schema');
+          for(const key of ['pm02SchemaUpgrade','pm02SourceContractTests','pm02HistoricalPreservation','pm02PairedRecovery','pm02ExternalHrKeyAndDocumentRecovery','rollbackDocuments','restoredPreviousRuntimeAuthenticationDownload','rollbackReadiness'])assert.equal(r[key],'PASS',key);
+          for(const layer of ['pur04','pur01'])for(const suffix of ['SchemaUpgrade','SourceContractTests','HistoricalPreservation','PairedRecovery','ExternalHrKeyAndDocumentRecovery'])assert.equal(r[layer+suffix],'PASS',layer+suffix);
+          assert.equal(r.ci.runId,process.env.GITHUB_RUN_ID);
+          assert.equal(r.ci.runAttempt,process.env.GITHUB_RUN_ATTEMPT);
+          console.log('PURCHASING_SINGLE_PREDECESSOR_NATIVE_REHEARSAL_PASS');
+          NODE
