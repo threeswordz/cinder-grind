@@ -1,5 +1,19 @@
 # M4 exact reviewed operational-browser and retained-UAT execution handoff
 
+## 26 November SGT — current proof and retained readback preparation
+
+- Draft [#455](https://github.com/threeswordz/cinder-grind/pull/455) is at `82df55d423aedebf13a642861dc64e30919bad52` against protected base `040395bc7b0dedd40207f91f743bc2efc1584622`. [Independent DEC-022](https://github.com/threeswordz/cinder-grind/pull/455#issuecomment-7171622451), [exact Chromium and artifact custody](https://github.com/threeswordz/cinder-grind/actions/runs/45679086031/job/139434478201) and [exact branch-focused CI](https://github.com/threeswordz/cinder-grind/actions/runs/45679758958/job/139436852827) passed. [Owner-authorized full PR attempt](https://github.com/threeswordz/cinder-grind/actions/runs/45679767315/attempts/2) is pending at preparation.
+- The existing [operational browser evidence](https://github.com/threeswordz/cinder-grind/actions/runs/45665277240/job/139385661182) already exercised all six scoped markers. Its runner and the application code exercised by it are unchanged at the current head. Preserve that separately recorded synthetic result.
+- [The retained register](M4-2026-11-26-RETAINED-UAT-EXECUTION-REGISTER.csv) now names the independently reviewed candidate in `candidate_sha_at_preparation`. It still has 112 IDs, 70 bounded cases, 42 future cases and 112 formal NO dispositions. Candidate preparation and deployed identity have separate columns. The six approved scope boundaries and every actual-result field are preserved.
+
+### Retained technical readback
+
+1. Confirm the exact deployed non-Production candidate, target custody, permission to access the target, and the scope of the proposed readback. Authenticate only as explicitly authorized existing role holders. Use redacted evidence.
+2. Read the eight personas' active role, linked Employee, Company, assigned Project and configured workflow-step eligibility. Verify the intended positive scope and a corresponding denial for an unrelated Company or Project. Check separate approver and maker identities where the workflow requires them.
+3. Record the deployed SHA, target class and approved readback evidence in the existing register using redacted references. A needed permission change requires its own approval. DEC-042 defers the comprehensive human business UAT to the frozen integrated pre-Production prototype.
+
+## Historical preparation checkpoint — source 0994594e
+
 - Source: 0994594e8ab1fd40d972ade9f463a7cca6e0be32; protected base: 040395bc7b0dedd40207f91f743bc2efc1584622. Draft #455 stays draft.
 - Independent review [clean receipt](https://github.com/threeswordz/cinder-grind/pull/455#issuecomment-7168792544); [Mac focused PASS](https://github.com/threeswordz/cinder-grind/pull/455#issuecomment-7169252484); [focused CI PASS](https://github.com/threeswordz/cinder-grind/actions/runs/45659322375/job/139364626348).
 - Operational proof script deploy/uat/m4-operational-browser-native.mjs, blob be2c525dc8f4b001a3a1c761d23a9ebaf55e0071. Existing browser-only branch e29327df246570a432d7c61a6e9a4792205e341f is 79 commits behind the candidate and has no executable dedicated workflow/run; do not execute it as the exact current candidate. No workflow created or triggered here.
