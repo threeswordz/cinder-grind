@@ -31,3 +31,18 @@ test('PUR07 allows only a newly verified empty dispatch table and keeps existing
  check(existing,existing,false);
  assert.throws(()=>check(existing,{...existing,po_dispatch_events:empty},false));
 });
+
+
+test('equipment group is admitted only with its explicit verified increment, with no historical data changes',()=>{
+ const old={customer_boq_versions:{count:'1',digest:'retained'},role_permissions:{count:'2',digest:'grants'}};
+ const empty={count:'0',digest:createHash('sha256').update('').digest('hex')};
+ const next={...old,equipment_asset_register_versions:empty,equipment_custody_loans:empty};
+ const check=(a,b,flag)=>assertHistoricalTables(a,b,...Array(15).fill(false),flag);
+ check(old,next,true);
+ assert.throws(()=>check(old,next,false));
+ assert.throws(()=>check(old,old,true));
+ assert.throws(()=>check(old,{...next,role_permissions:{count:'3',digest:'added grant'}},true));
+ assert.throws(()=>check(old,{...next,unrelated:empty},true));
+ check(next,next,false);
+ assert.throws(()=>check(next,next,true));
+});
