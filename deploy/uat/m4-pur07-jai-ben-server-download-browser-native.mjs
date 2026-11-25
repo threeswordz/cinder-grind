@@ -426,7 +426,10 @@ async function run(){
    if(url.endsWith('/procurement/purchase-orders/'+po.id+'/pdf')&&status===200){
     downloadHttp200.push({status,mimeType:event.params?.response?.mimeType});
    }else if(url.startsWith(WEB+'/api/v1/')&&status>=400){
-    errors.push('PUR07_UNEXPECTED_HTTP_'+status);
+    // Expose the route template and status only. Keep query strings, IDs,
+    // response bodies and session credentials out of the failure log.
+    const route=new URL(url).pathname.replace(/[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}/gi,':id');
+    errors.push('PUR07_UNEXPECTED_HTTP_'+status+' '+route);
    }
   }else if(event.method==='Runtime.exceptionThrown'){
    errors.push('PUR07_UNHANDLED_BROWSER_JS');
