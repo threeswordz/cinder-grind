@@ -614,6 +614,31 @@ test('V0.3-D Purchase Orders preserve awarded-source traceability, approval and 
       expectedDelivery.toISOString().slice(0, 10),
     );
 
+    // PUR01 requires explicit known commercial terms, even for a small PO.
+    // Preserve the legacy traceability scenario while proving NULL is not zero.
+    await assert.rejects(
+      () => purchaseOrders.submit(
+        { auth: makerAuth },
+        draft.id,
+        poWorkflow.workflowCode,
+      ),
+      (error: unknown) =>
+        error instanceof UnprocessableEntityException &&
+        (error.getResponse() as { code?: string }).code ===
+          'PO_QUOTE_COMMERCIAL_BASIS_UNKNOWN',
+    );
+    const rejectedDraft = await purchaseOrders.getOrder(makerAuth, draft.id);
+    assert.equal(rejectedDraft.lifecycleState, 'DRAFT');
+    await purchaseOrders.updateOrder(
+      { auth: makerAuth },
+      draft.id,
+      {
+        discountAmount: new Prisma.Decimal('0'),
+        freightAmount: new Prisma.Decimal('0'),
+        additionalChargeAmount: new Prisma.Decimal('0'),
+        vatRatePercent: new Prisma.Decimal('0'),
+      },
+    );
     await purchaseOrders.submit(
       { auth: makerAuth },
       draft.id,
@@ -723,6 +748,12 @@ test('V0.3-D Purchase Orders preserve awarded-source traceability, approval and 
       revisionDetail.lines[0]?.unitPrice.toString(),
       '13',
     );
+
+    // Revision carries the explicitly agreed commercial basis, not defaults.
+    assert.equal(revisionDetail.discountAmount?.toString(), '0');
+    assert.equal(revisionDetail.freightAmount?.toString(), '0');
+    assert.equal(revisionDetail.additionalChargeAmount?.toString(), '0');
+    assert.equal(revisionDetail.vatRatePercent?.toString(), '0');
 
     const revisedLine = await purchaseOrders.updateLine(
       { auth: makerAuth },
