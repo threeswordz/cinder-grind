@@ -8,6 +8,8 @@ import {
   Patch,
   Post,
   Req,
+  StreamableFile,
+  UnprocessableEntityException,
   UseGuards,
 } from '@nestjs/common';
 
@@ -31,6 +33,7 @@ import {
   procurementUuid,
 } from './procurement-validation';
 import { PurchaseOrderService } from './purchase-order.service';
+import { PurchaseOrderPur07Service } from './purchase-order-pur07.service';
 
 function authOf(request: AuthenticatedRequest): AuthenticatedUserContext {
   if (!request.auth) throw new Error('Authentication context is missing.');
@@ -48,7 +51,10 @@ function auditContext(request: AuthenticatedRequest) {
 
 @Controller('procurement')
 export class PurchaseOrderController {
-  constructor(private readonly purchaseOrders: PurchaseOrderService) {}
+  constructor(
+    private readonly purchaseOrders: PurchaseOrderService,
+    private readonly pur07: PurchaseOrderPur07Service,
+  ) {}
 
   @Get('po-projects')
   @UseGuards(AuthGuard, PermissionGuard)
@@ -140,6 +146,67 @@ export class PurchaseOrderController {
         authOf(request),
         orderId,
       ),
+    };
+  }
+
+  // PUR07: read-only PDF of the exact approved revision (never draft or cancelled).
+  @Get('purchase-orders/:orderId/pdf')
+  @UseGuards(AuthGuard, PermissionGuard)
+  @RequirePermissions('procurement.po.view')
+  async downloadApprovedPdf(
+    @Req() request: AuthenticatedRequest,
+    @Param('orderId', new ParseUUIDPipe({ version: '4' })) orderId: string,
+  ) {
+    const output = await this.pur07.approvedPdf(authOf(request), orderId);
+    const encodedName = encodeURIComponent(output.fileName);
+    return new StreamableFile(output.bytes, {
+      type: 'application/pdf',
+      length: output.bytes.length,
+      disposition: "attachment; filename*=UTF-8''" + encodedName,
+    });
+  }
+
+  @Get('purchase-orders/:orderId/dispatch-events')
+  @UseGuards(AuthGuard, PermissionGuard)
+  @RequirePermissions('procurement.po.view')
+  async dispatchEvents(
+    @Req() request: AuthenticatedRequest,
+    @Param('orderId', new ParseUUIDPipe({ version: '4' })) orderId: string,
+  ) {
+    return { data: await this.pur07.events(authOf(request), orderId) };
+  }
+
+  // The action is a manual report with evidence, NOT an email/LINE send.
+  @Post('purchase-orders/:orderId/dispatch-events')
+  @UseGuards(AuthGuard, CsrfGuard, PermissionGuard)
+  @RequirePermissions('procurement.po.edit')
+  async recordExternalDispatch(
+    @Req() request: AuthenticatedRequest,
+    @Param('orderId', new ParseUUIDPipe({ version: '4' })) orderId: string,
+    @Body() body: unknown,
+  ) {
+    const input = procurementObject(body);
+    const kind = procurementString(input, 'kind', 30);
+    const channel = procurementString(input, 'channel', 20);
+    if (kind !== 'DISPATCH' && kind !== 'ACKNOWLEDGMENT') {
+      throw new UnprocessableEntityException({ code: 'PO_DISPATCH_KIND_INVALID' });
+    }
+    if (channel !== 'EMAIL' && channel !== 'LINE') {
+      throw new UnprocessableEntityException({ code: 'PO_DISPATCH_CHANNEL_INVALID' });
+    }
+    return {
+      data: await this.pur07.record(auditContext(request), orderId, {
+        kind,
+        channel,
+        recipient: procurementString(input, 'recipient', 320),
+        evidenceReference: procurementString(input, 'evidenceReference', 1200),
+        evidenceDocumentId: input.evidenceDocumentId === undefined ||
+          input.evidenceDocumentId === null ? null :
+          procurementUuid(input.evidenceDocumentId, 'evidenceDocumentId'),
+        acknowledgesEventId: input.acknowledgesEventId === undefined ||
+          input.acknowledgesEventId === null ? null :
+          procurementUuid(input.acknowledgesEventId, 'acknowledgesEventId'),
+      }),
     };
   }
 

@@ -8,6 +8,7 @@ datasource db {
 }
 
 model Company {
+  poDispatchEvents PoDispatchEvent[]
   materialPlanPolicies MaterialPlanProjectPolicy[]
   materialPlanIssueOperations MaterialPlanIssueOperation[]
   materialUsagePlans MaterialUsagePlan[]
@@ -252,6 +253,7 @@ model Employee {
 }
 
 model User {
+  poDispatchEvents PoDispatchEvent[] @relation("PoDispatchActor")
   receivingPolicies ReceivingProjectPolicy[] @relation("ReceivingPolicyActor")
   capturedDeliveries ReceivingDelivery[] @relation("ReceivingDeliveryCreator")
   checkedDeliveries ReceivingDelivery[] @relation("ReceivingDeliveryChecker")
@@ -676,6 +678,7 @@ model SystemSetting {
 
 
 model Project {
+  poDispatchEvents PoDispatchEvent[]
   receivingPolicy ReceivingProjectPolicy?
   receivingDeliveries ReceivingDelivery[]
   receivingOperations ReceivingOperation[]
@@ -1158,6 +1161,7 @@ model DocumentType {
 }
 
 model Document {
+  poDispatchEvidence PoDispatchEvent[] @relation("PoDispatchEvidence")
   receivingEvidence ReceivingDeliveryEvidence[]
   materialRequestReceipts MaterialRequestReceipt[]
   id               String   @id @default(uuid()) @db.Uuid
@@ -2665,6 +2669,7 @@ model QuotationAward {
 }
 
 model PurchaseOrder {
+  poDispatchEvents PoDispatchEvent[]
   receivingDeliveries ReceivingDelivery[]
   id                 String    @id @default(uuid()) @db.Uuid
   companyId          String    @map("company_id") @db.Uuid
@@ -2717,6 +2722,37 @@ model PurchaseOrder {
   @@index([submittedByUserId])
   @@index([cancelledByUserId])
   @@map("purchase_orders")
+}
+
+
+model PoDispatchEvent {
+  id                    String   @id @default(uuid()) @db.Uuid
+  companyId             String   @map("company_id") @db.Uuid
+  projectId             String   @map("project_id") @db.Uuid
+  purchaseOrderId       String   @map("purchase_order_id") @db.Uuid
+  kind                  String   @db.VarChar(30)
+  channel               String   @db.VarChar(20)
+  recipient             String   @db.VarChar(320)
+  evidenceReference     String   @map("evidence_reference") @db.VarChar(1200)
+  evidenceDocumentId    String?  @map("evidence_document_id") @db.Uuid
+  pdfFileName           String?  @map("pdf_file_name") @db.VarChar(255)
+  pdfSha256             String?  @map("pdf_sha256") @db.VarChar(64)
+  acknowledgesEventId   String?  @map("acknowledges_event_id") @db.Uuid
+  recordedByUserId      String   @map("recorded_by_user_id") @db.Uuid
+  recordedAt            DateTime @default(now()) @map("recorded_at") @db.Timestamptz(6)
+
+  company          Company          @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  project          Project          @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  purchaseOrder    PurchaseOrder    @relation(fields: [purchaseOrderId], references: [id], onDelete: Restrict)
+  evidenceDocument Document?        @relation("PoDispatchEvidence", fields: [evidenceDocumentId], references: [id], onDelete: Restrict)
+  actor            User             @relation("PoDispatchActor", fields: [recordedByUserId], references: [id], onDelete: Restrict)
+  acknowledges     PoDispatchEvent? @relation("PoDispatchAck", fields: [acknowledgesEventId], references: [id], onDelete: Restrict)
+  acknowledgmentEvents PoDispatchEvent[] @relation("PoDispatchAck")
+
+  @@index([companyId, projectId, purchaseOrderId, recordedAt])
+  @@index([companyId, acknowledgesEventId])
+  @@index([evidenceDocumentId])
+  @@map("po_dispatch_events")
 }
 
 model PurchaseOrderLine {
