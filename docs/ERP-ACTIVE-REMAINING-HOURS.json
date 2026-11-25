@@ -3257,6 +3257,25 @@
       "sourceSha": "a0ce9bf6307a561e6e56e5f6e68bbc2922eca679",
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-08-055",
+      "date": "2026-11-25",
+      "packageId": "M4-08",
+      "kind": "SS11_DATABASE_THAI_DATE_GUARD_FORWARD_MIGRATION_STAGED",
+      "beforeHours": 4,
+      "afterHours": 5,
+      "reductionHours": -1,
+      "newlyIdentifiedScopeHours": 1,
+      "verifiedCompletedScopeHours": 0,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/commit/48fec31c57a56129208e43bdbd473e93df22f18b",
+        "https://github.com/threeswordz/cinder-grind/commit/45970888fb48a0293a44b4cf57a37052450c37e6"
+      ],
+      "basis": "After API/UI correction, historical SQL INSERT trigger still compares issued_on to CURRENT_DATE. Isolated forward-only migration uses Bangkok date of statement_timestamp(), preserves old guards, adds installed SQL function tests across three session zones and deterministic midnight/leap-day inputs. Exact two paths, two commits. No PostgreSQL execution or release admission claimed. Add provisional 1h net remaining validation/integration effort for extra migration; no runtime credit. Old candidate, history, permissions and main unchanged. Reconcile pinned inventory, populated recovery and independent review before release.",
+      "sourceSha": "45970888fb48a0293a44b4cf57a37052450c37e6",
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -3279,6 +3298,6 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1773,
-  "currentRollingTotalSemantics": "1773h provisional remaining full ERP work = 1847h baseline minus 81h source/reconciled forecast effort retired plus 7h newly priced supplier work. M4 remaining 43h: M4-01 7h, M4-02 2h, M4-03 5h, M4-04 5h, M4-05 6h, M4-06 4h, M4-07 3h, M4-08 4h, supplier 7h. All 112 requirements and downstream full ERP work preserved; no formal acceptance, CI full pass or logged actual labor implied."
+  "currentRollingTotalAfterPricedGapsHours": 1774,
+  "currentRollingTotalSemantics": "1774h provisional full ERP = 1847h baseline minus 80h net forecast effort retired plus 7h newly priced supplier work. M4 44h: M4-01 7h, M4-02 2h, M4-03 5h, M4-04 5h, M4-05 6h, M4-06 4h, M4-07 3h, M4-08 5h, supplier 7h. New SS11 SQL correction staged; additional 1h net validation/recovery/admission work, no runtime credit. All 112 requirements preserved."
 }
