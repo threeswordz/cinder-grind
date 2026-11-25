@@ -34,6 +34,8 @@
 
 > **PUR07 v25 diagnostic:** [45564462514](https://github.com/threeswordz/cinder-grind/actions/runs/45564462514) overall FAIL after commercial audit/identity and fixture PASS, cookie-stage timeout. [0f330355](https://github.com/threeswordz/cinder-grind/commit/0f33035537bf13e7b49f54ae574b897e9971e57a) separates auth/module/mount and passes real roleCodes atop closeout-integrated fd26fb9. [45565071830](https://github.com/threeswordz/cinder-grind/actions/runs/45565071830) in progress; no additional hour credit. ERP 1,796h, M4 66h, M4-06 6h.
 
+> **PUR10 v25 integrated candidate:** [2984c361](https://github.com/threeswordz/cinder-grind/commit/2984c361b9a71a0e966e274405cf75ceed4567be) seven exact prior blobs and four shared seams, removes direct cancellation bypass and preserves newer commercial/identity/supplier changes. [Focused native run 45566159789](https://github.com/threeswordz/cinder-grind/actions/runs/45566159789) in progress. PUR07 diagnostics passed auth/module/mount but timed out at visible workflow controls; browser not accepted. ERP 1,796h; M4 66h; M4-08 18h unchanged.
+
 ## Headline
 | Metric | Current | Meaning |
 |---|---:|---|
