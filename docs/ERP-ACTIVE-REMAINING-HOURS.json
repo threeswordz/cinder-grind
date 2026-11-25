@@ -3022,6 +3022,26 @@
       "sourceSha": "4eb988ff8e380a70e0e99e020617333b7e164765",
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-08-043",
+      "date": "2026-11-25",
+      "packageId": "M4-08",
+      "kind": "PM15_STALE_SITE_READBACK_GUARD_STAGED",
+      "beforeHours": 6,
+      "afterHours": 6,
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/commit/0fe545da4241dacb4201f5cad1bcd8d51502a032",
+        "https://github.com/threeswordz/cinder-grind/commit/12407b3bb2f20d17fc1fe03b1ab909ed05de2ac7",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45582734359"
+      ],
+      "basis": "Verified PM15 portfolio queue already reachable via Inventory Minimum Stock Alerts and PM stock permission. Identified async readback/pagination response can arrive after Project or warehouse switch; one source file now invalidates scope synchronously, clears site drafts, ignores prior-scope results and errors, and prevents outdated save callback from refreshing a newly selected scope. Typecheck pending; actual delayed-response browser evidence remains needed. Covered by existing integration budget, no credit or permission change.",
+      "sourceSha": "0fe545da4241dacb4201f5cad1bcd8d51502a032",
+      "formalAcceptance": false,
+      "estimateConfidence": "NO_ADDITIONAL_HOURS_CREDIT"
     }
   ],
   "unestimatedWork": [
