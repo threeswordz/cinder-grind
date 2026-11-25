@@ -1,3 +1,6 @@
+import {stripSuccessorSchema,successorFlags,pur12Columns} from './purchasing-successor-schema-preparation.mjs';
+import {verifiedPur12HistoricalColumns,verifiedPur07HistoricalTables} from './purchasing-successor-historical.mjs';
+const successors=successorFlags();
 import {purchasingUpgradeFlags,purchasingHistoricalNames,verifiedPurchasingHistoricalColumns} from './purchasing-historical-columns.mjs';
 const purchasingFlags=purchasingUpgradeFlags();
 import {pm02Columns} from './pm02-schema-preparation.mjs';
@@ -43,7 +46,7 @@ if (process.env.GITHUB_ACTIONS !== 'true' || process.env.RC_NON_PRODUCTION_CONFI
 }
 // A real nonempty HR document recovery is limited to an isolated CI host,
  // an exact disposable rehearsal DB and a named temporary storage directory.
-const attachmentRecovery = (process.env.HR_DOCUMENT_SCHEMA_UPGRADE === 'YES' || pm02Approved || purchasingFlags.pur04 || purchasingFlags.pur01) &&
+const attachmentRecovery = (process.env.HR_DOCUMENT_SCHEMA_UPGRADE === 'YES' || pm02Approved || purchasingFlags.pur04 || purchasingFlags.pur01 || successors.pur12 || successors.pur07) &&
   ['protect', 'restored'].includes(mode);
 if (attachmentRecovery) {
   const storage = process.env.HR_ATTACHMENT_RECOVERY_STORAGE_ROOT;
@@ -68,7 +71,8 @@ const provenanceColumns = {
   supplier_quotations:['currency_code'],
   quotation_awards:['currency_code'],
   ...(pm02Approved ? {purchase_request_lines:pm02Columns} : {}),
-  ...(purchasingFlags.pur04||purchasingFlags.pur01 ? {purchase_orders:purchasingHistoricalNames(purchasingFlags)} : {}),
+  ...((purchasingFlags.pur04||purchasingFlags.pur01||successors.pur12) ? {purchase_orders:[...purchasingHistoricalNames(purchasingFlags),...(successors.pur12?pur12Columns.purchase_orders:[])]} : {}),
+  ...(successors.pur12 ? {customers:pur12Columns.customers,suppliers:pur12Columns.suppliers} : {}),
   ...(fm02Approved ? {activity_progress:['completed_quantity','source_budget_revision_line_id','source_uom_id']} : {}),
   ...(receivingApproved ? {goods_receipts:['delivery_id']} : {}),
   ...((stockCountApproved||transferApproved) ? { stock_transactions:[...(stockCountApproved?['stock_count_id']:[]),...(transferApproved?['transfer_receipt_line_id']:[])] } : {}),
@@ -107,6 +111,8 @@ async function snapshot(before) {
 
   const excluded = knownCatalog.filter(p=>!(before?.catalogPresent??present).includes(p.id)).map(p=>p.id);
   const hashes={}, columns={};
+  const identities=mode==='verify'&&successors.pur12?await verifiedPur12HistoricalColumns(db):{};
+  if(mode==='verify'&&successors.pur07)await verifiedPur07HistoricalTables(db);
   for(const {tablename:name} of tables){
     if(!/^[a-z_]+$/.test(name))throw new Error('Unexpected rehearsal table');
     columns[name]=(await db.$queryRaw`SELECT column_name FROM information_schema.columns WHERE table_schema='public' AND table_name=${name} ORDER BY column_name`).map(c=>c.column_name);
@@ -126,8 +132,8 @@ async function snapshot(before) {
       const verified=await verifiedPm02HistoricalColumns(db);
       assert.deepEqual([...added].sort(),verified.sort(),'Exact PM02 historical columns required');
     }
-    if(name==='purchase_orders'&&(purchasingFlags.pur04||purchasingFlags.pur01)&&mode==='verify'){
-      const verified=await verifiedPurchasingHistoricalColumns(db,purchasingFlags);
+    if(mode==='verify'&&(Object.hasOwn(identities,name)||name==='purchase_orders'&&(purchasingFlags.pur04||purchasingFlags.pur01))){
+      const verified=[...(identities[name]??[]),...(name==='purchase_orders'?await verifiedPurchasingHistoricalColumns(db,purchasingFlags):[])];
       assert.deepEqual([...added].sort(),verified.sort(),'Exact purchasing historical columns required');
     }
     const [row]=await db.$queryRawUnsafe(`SELECT count(*)::text AS count, encode(sha256(convert_to(coalesce(string_agg((to_jsonb(t)-$1::text[])::text,E'\n' ORDER BY (to_jsonb(t)-$1::text[])::text),''),'UTF8')),'hex') AS digest FROM "${name}" t ${name==='permissions'?'WHERE id <> ALL($2::uuid[])':''}`, ... (name==='permissions'?[added,excluded]:[added]));
@@ -156,7 +162,7 @@ try {
       after.tables,
       process.env.HR_SCHEMA_UPGRADE === 'YES',
       process.env.HR_DOCUMENT_SCHEMA_UPGRADE === 'YES',
-      stockCountApproved, materialRequestApproved,materialPlanApproved,planIssueApproved,siteIssueApproved,receivingApproved,transferApproved,physicalApproved,materialUomApproved,materialUomEffectApproved,materialUomStageCApproved,fm02Approved,
+      stockCountApproved, materialRequestApproved,materialPlanApproved,planIssueApproved,siteIssueApproved,receivingApproved,transferApproved,physicalApproved,materialUomApproved,materialUomEffectApproved,materialUomStageCApproved,fm02Approved,successors.pur07,
     );
     for(const migration of before.migrations)assert.deepEqual(after.migrations.find(m=>m.migration_name===migration.migration_name),migration);
     console.log(mode==='rollback'?'HR_EXACT_PREDECESSOR_ROLLBACK_ROWS_PRESERVED':'HR_PREDECESSOR_ROWS_AND_MIGRATIONS_PRESERVED');

@@ -1,3 +1,5 @@
+import {stripSuccessorSchema,successorFlags,pur12Columns} from './purchasing-successor-schema-preparation.mjs';
+import {verifiedPur12HistoricalColumns,verifiedPur07HistoricalTables} from './purchasing-successor-historical.mjs';
 import {stripPurchasingSchema,verifiedPurchasingHistoricalColumns} from './purchasing-historical-columns.mjs';
 import {stripPm02Schema} from './pm02-schema-preparation.mjs';
 import {verifiedPm02HistoricalColumns} from './pm02-historical-columns.mjs';
@@ -37,8 +39,11 @@ export async function prepareReceivingUpgrade(databaseUrl){
   const git=async args=>(await execute('git',args,{maxBuffer:16777216})).stdout;
   const schema=await git(['show',previous+':apps/api/prisma/schema.prisma']);
   const {readFile}=await import('node:fs/promises');
-  const purchasing=stripPurchasingSchema(await readFile('apps/api/prisma/schema.prisma','utf8'));
-  const priorPurchasing=stripPurchasingSchema(schema);
+  const successor=stripSuccessorSchema(await readFile('apps/api/prisma/schema.prisma','utf8'));
+  const priorSuccessor=stripSuccessorSchema(schema);
+  assert.equal(priorSuccessor.pur12||priorSuccessor.pur07,false,'Pinned predecessor unexpectedly contains successor layers');
+  const purchasing=stripPurchasingSchema(successor.text);
+  const priorPurchasing=stripPurchasingSchema(priorSuccessor.text);
   assert.equal(priorPurchasing.pur04||priorPurchasing.pur01,false,'Pinned predecessor unexpectedly contains purchasing layers');
   const current=stripPm02Schema(purchasing.text);
   assert.equal(stripPm02Schema(schema).present,false,'Pinned predecessor unexpectedly contains PM02');
@@ -49,17 +54,19 @@ export async function prepareReceivingUpgrade(databaseUrl){
   for(const name of names){const rel=name.slice('apps/api/prisma/'.length),path=join(temp,rel);await mkdir(resolve(path,'..'),{recursive:true});await writeFile(path,await git(['show',previous+':'+name]),{mode:0o600});}
   await execute('pnpm',['--filter','@construction-erp/api','exec','prisma','migrate','deploy','--schema',join(temp,'schema.prisma')],{env:{...safeEnvironment(),DATABASE_URL:u.href},timeout:120000,maxBuffer:2097152});
   const tag=randomUUID(),company=await db.company.create({data:{companyCode:'RC-PRE-'+tag,companyName:'Synthetic populated receiving predecessor'}});
-  const customer=await db.customer.create({data:{companyId:company.id,customerCode:'PRE',customerName:'Synthetic predecessor customer'}});
-  const supplier=await db.supplier.create({data:{companyId:company.id,supplierCode:'PRE',supplierName:'Synthetic predecessor supplier'}});
+  const customer=await db.customer.create({data:{companyId:company.id,customerCode:'PRE',customerName:'Synthetic predecessor customer'},select:{id:true}});
+  const supplier=await db.supplier.create({data:{companyId:company.id,supplierCode:'PRE',supplierName:'Synthetic predecessor supplier'},select:{id:true}});
   const user=await db.user.create({data:{companyId:company.id,email:tag+'@example.invalid',displayName:'Synthetic predecessor',passwordHash:'unusable-synthetic-fixture'}});
   const project=await db.project.create({data:{companyId:company.id,customerId:customer.id,projectCode:'PRE',projectName:'Preserved predecessor',contractValue:'0',plannedStartDate:new Date('2026-01-01'),plannedCompletionDate:new Date('2026-12-31')}});
   const warehouse=await db.warehouse.create({data:{companyId:company.id,projectId:project.id,warehouseCode:'PRE',warehouseName:'Predecessor store',isSiteWarehouse:true}});
-  const po=await db.purchaseOrder.create({data:{companyId:company.id,projectId:project.id,supplierId:supplier.id,poNumber:'PRE-PO',createdByUserId:user.id}});
+  const po=await db.purchaseOrder.create({data:{companyId:company.id,projectId:project.id,supplierId:supplier.id,poNumber:'PRE-PO',createdByUserId:user.id},select:{id:true}});
   // Genuine pre-existing unposted GR stays unbound. Its Project is never enabled by migration.
   await db.goodsReceipt.create({data:{companyId:company.id,projectId:project.id,supplierId:supplier.id,purchaseOrderId:po.id,warehouseId:warehouse.id,receiptNumber:'PRE-GR',createdByUserId:user.id},select:{id:true}});
   await db.dailySiteReport.create({data:{companyId:company.id,projectId:project.id,createdByUserId:user.id,reportDate:new Date('2026-11-14'),issues:{create:{issueText:'Retained issue observation before receiving'}}}});
   async function snapshot(candidate){
    const result={},tables=await db.$queryRawUnsafe("SELECT tablename FROM pg_tables WHERE schemaname='public' AND tablename <> '_prisma_migrations' ORDER BY tablename");
+   const identities=candidate&&successor.pur12?await verifiedPur12HistoricalColumns(db):{};
+   if(candidate&&successor.pur07)await verifiedPur07HistoricalTables(db);
    for(const {tablename}of tables){
     assert.match(tablename,/^[a-z_]+$/);
     if(candidate&&tablename==='permissions')verifyMaterialUomCatalog(await db.$queryRawUnsafe('SELECT * FROM permissions WHERE id=ANY($1::uuid[])',materialUomCatalog.map(p=>p.id)),true);
@@ -76,6 +83,7 @@ export async function prepareReceivingUpgrade(databaseUrl){
     if(columns.includes('delivery_id'))assert.equal((await db.$queryRawUnsafe('SELECT count(*)::text AS n FROM goods_receipts WHERE delivery_id IS NOT NULL'))[0].n,'0','Historical GR receiving provenance must stay null');
     if(candidate&&current.present&&tablename==='purchase_request_lines')columns.push(...await verifiedPm02HistoricalColumns(db));
     if(candidate&&tablename==='purchase_orders')columns.push(...await verifiedPurchasingHistoricalColumns(db,purchasing));
+    if(candidate)columns.push(...(identities[tablename]??[]));
     const [row]=await db.$queryRawUnsafe(`SELECT count(*)::text AS count,encode(sha256(convert_to(coalesce(string_agg((to_jsonb(t)-$1::text[])::text,E'\\n' ORDER BY (to_jsonb(t)-$1::text[])::text),''),'UTF8')),'hex') AS digest FROM "${tablename}" t ${filter?'WHERE id <> ALL($2::uuid[])':''}`,columns,...(filter?[[...receivingCatalog,...transferCatalog,...physicalCatalog,...materialUomCatalog,...dec054Catalog,...fm02Catalog].map(p=>p.id)]:[]));result[tablename]=row;
    }return result;
   }
@@ -91,7 +99,7 @@ export async function prepareReceivingUpgrade(databaseUrl){
   const changed=Object.keys(before).filter(name=>JSON.stringify(before[name])!==JSON.stringify(after[name]));
   if(changed.length)console.log('RECEIVING_PREDECESSOR_CHANGED_TABLES_'+changed.sort().join(','));
   try {
-    assertHistoricalTables(before,after,false,false,false,false,false,false,false,true,true,true,true,true,true,true);
+    assertHistoricalTables(before,after,false,false,false,false,false,false,false,true,true,true,true,true,true,true,successor.pur07);
   } catch(e) {
     const reason=String(e?.message??'');
     const code=reason.includes('Unexpected/partial schema addition')?'TABLE_ALLOWLIST'

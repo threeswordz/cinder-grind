@@ -18,3 +18,16 @@ test('historical table hashes stay exact; only all five empty Customer BOQ table
     { ...additions, projects: before.projects },
   ]) assert.throws(() => assertHistoricalTables(before, after));
 });
+
+test('PUR07 allows only a newly verified empty dispatch table and keeps existing dispatch evidence in historical hash',()=>{
+ const before={customer_boq_versions:{count:'1',digest:'retained'},purchase_orders:{count:'7',digest:'po'}};
+ const empty={count:'0',digest:createHash('sha256').update('').digest('hex')};
+ const check=(a,b,flag)=>assertHistoricalTables(a,b,...Array(14).fill(false),flag);
+ check(before,{...before,po_dispatch_events:empty},true);
+ assert.throws(()=>check(before,before,true));
+ assert.throws(()=>check(before,{...before,po_dispatch_events:empty},false));
+ assert.throws(()=>check(before,{...before,po_dispatch_events:{...empty,count:'1'}},true));
+ const existing={...before,po_dispatch_events:{count:'3',digest:'retained events'}};
+ check(existing,existing,false);
+ assert.throws(()=>check(existing,{...existing,po_dispatch_events:empty},false));
+});
