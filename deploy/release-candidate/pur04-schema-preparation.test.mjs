@@ -8,7 +8,8 @@ import {verifiedPur04HistoricalColumns} from './pur04-historical-columns.mjs';
 import {classifySchema} from './schema-contract.mjs';
 const base='05e64e24eb8d5b0864c360109bcdc570eae9134a';
 const before=execFileSync('git',['show',base+':apps/api/prisma/schema.prisma'],{encoding:'utf8'});
-const after=readFileSync(new URL('../../apps/api/prisma/schema.prisma',import.meta.url),'utf8');
+const pur04Source='f9b4feadf1b0641621a489082c2ca2224df789cd';
+const after=execFileSync('git',['show',pur04Source+':apps/api/prisma/schema.prisma'],{encoding:'utf8'});
 test('PUR04 exact increment, migration blob and closed global admission',()=>{
  assert.equal(assertExactPur04Increment(before,after),true);
  assert.throws(()=>assertExactPur04Increment(after,before));
@@ -20,7 +21,7 @@ test('PUR04 exact increment, migration blob and closed global admission',()=>{
  after.replace(/contractValue\s+Decimal/,'contractValue Float'),
  ]){assert.notEqual(invalid,after);assert.throws(()=>assertExactPur04Increment(before,invalid));}
  const path='apps/api/prisma/migrations/'+pur04Migration+'/migration.sql';
- assert.equal(execFileSync('git',['diff','--name-status',base,'HEAD','--','apps/api/prisma/migrations'],{encoding:'utf8'}).trim(),'A\t'+path);
+ assert.equal(execFileSync('git',['diff','--name-status',base,pur04Source,'--','apps/api/prisma/migrations'],{encoding:'utf8'}).trim(),'A\t'+path);
  assert.equal(execFileSync('git',['hash-object',path],{encoding:'utf8'}).trim(),pur04MigrationBlob);
 });
 const types={

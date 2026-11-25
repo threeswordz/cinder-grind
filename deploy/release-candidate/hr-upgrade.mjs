@@ -1,3 +1,5 @@
+import {purchasingUpgradeFlags,purchasingHistoricalNames,verifiedPurchasingHistoricalColumns} from './purchasing-historical-columns.mjs';
+const purchasingFlags=purchasingUpgradeFlags();
 import {pm02Columns} from './pm02-schema-preparation.mjs';
 import {verifiedPm02HistoricalColumns} from './pm02-historical-columns.mjs';
 const materialUomStageCApproved=process.env.MATERIAL_UOM_STAGE_C_SCHEMA_UPGRADE==='YES';
@@ -66,6 +68,7 @@ const provenanceColumns = {
   supplier_quotations:['currency_code'],
   quotation_awards:['currency_code'],
   ...(pm02Approved ? {purchase_request_lines:pm02Columns} : {}),
+  ...(purchasingFlags.pur04||purchasingFlags.pur01 ? {purchase_orders:purchasingHistoricalNames(purchasingFlags)} : {}),
   ...(fm02Approved ? {activity_progress:['completed_quantity','source_budget_revision_line_id','source_uom_id']} : {}),
   ...(receivingApproved ? {goods_receipts:['delivery_id']} : {}),
   ...((stockCountApproved||transferApproved) ? { stock_transactions:[...(stockCountApproved?['stock_count_id']:[]),...(transferApproved?['transfer_receipt_line_id']:[])] } : {}),
@@ -122,6 +125,10 @@ async function snapshot(before) {
     if(name==='purchase_request_lines'&&pm02Approved&&mode==='verify'){
       const verified=await verifiedPm02HistoricalColumns(db);
       assert.deepEqual([...added].sort(),verified.sort(),'Exact PM02 historical columns required');
+    }
+    if(name==='purchase_orders'&&(purchasingFlags.pur04||purchasingFlags.pur01)&&mode==='verify'){
+      const verified=await verifiedPurchasingHistoricalColumns(db,purchasingFlags);
+      assert.deepEqual([...added].sort(),verified.sort(),'Exact purchasing historical columns required');
     }
     const [row]=await db.$queryRawUnsafe(`SELECT count(*)::text AS count, encode(sha256(convert_to(coalesce(string_agg((to_jsonb(t)-$1::text[])::text,E'\n' ORDER BY (to_jsonb(t)-$1::text[])::text),''),'UTF8')),'hex') AS digest FROM "${name}" t ${name==='permissions'?'WHERE id <> ALL($2::uuid[])':''}`, ... (name==='permissions'?[added,excluded]:[added]));
     hashes[name]=row;

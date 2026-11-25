@@ -1,3 +1,5 @@
+import {purchasingUpgradeFlags,verifiedPurchasingHistoricalColumns} from './purchasing-historical-columns.mjs';
+const purchasingFlags=purchasingUpgradeFlags();
 import {verifiedPm02HistoricalColumns} from './pm02-historical-columns.mjs';
 const materialUomStageCApproved=process.env.MATERIAL_UOM_STAGE_C_SCHEMA_UPGRADE==='YES';
 import {materialUomCatalog,verifyMaterialUomCatalog} from './material-uom-catalog-contract.mjs';
@@ -124,6 +126,7 @@ const materialRequestApproved=process.env.MATERIAL_REQUEST_SCHEMA_UPGRADE==='YES
       excludedColumns=[...excludedColumns,...fm02Names];
     }
     if(pm02Approved&&mode==='verify'&&tablename==='purchase_request_lines')excludedColumns.push(...await verifiedPm02HistoricalColumns(prisma));
+    if(mode==='verify'&&tablename==='purchase_orders')excludedColumns.push(...await verifiedPurchasingHistoricalColumns(prisma,purchasingFlags));
     const [row] = await prisma.$queryRawUnsafe(`SELECT count(*)::text AS count,
       encode(sha256(convert_to(coalesce(string_agg((to_jsonb(t) - $1::text[])::text, E'\n' ORDER BY (to_jsonb(t) - $1::text[])::text), ''), 'UTF8')), 'hex') AS digest
       FROM "${tablename}" t ${tablename === 'permissions' ? 'WHERE id <> ALL($2::uuid[])' : ''}`,
