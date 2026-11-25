@@ -20,6 +20,8 @@
 
 > **Supplier bounded integration:** [45555913363](https://github.com/threeswordz/cinder-grind/actions/runs/45555913363) SUCCESS17/17 on exact source fc093f55, corrected provenance native and real authenticated Store/PM/Jai custody/posted replacement/reversal journeys, uploaded evidence and no case stock/AP effects; earlier policy20/20 and two native PASS preserved. Supplier remaining 9→7h (new-lineage integration only). M4 70h / ERP 1,800h.
 
+> **Consolidated purchasing candidate:** [a8e1f68](https://github.com/threeswordz/cinder-grind/commit/a8e1f688617b5c54656467c61923b6d8e4039007), exact supplier lineage plus successor historical/release evidence and bounded v25 schema admission. [45556427561](https://github.com/threeswordz/cinder-grind/actions/runs/45556427561) targeted single predecessor rehearsal initiated; full historical validation and independent review remain. M4-08 20h unchanged, M4 70h, ERP 1,800h.
+
 ## Headline
 | Metric | Current | Meaning |
 |---|---:|---|

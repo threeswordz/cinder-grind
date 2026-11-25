@@ -2281,6 +2281,25 @@
       "sourceSha": "fc093f55dcfcf2c08c28e519212dd3684c1d1ccf",
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-08-020",
+      "date": "2026-11-25",
+      "packageId": "M4-08",
+      "kind": "CONSOLIDATED_PURCHASING_V25_BOUNDED_ADMISSION_STAGED",
+      "beforeHours": 20,
+      "afterHours": 20,
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/commit/a8e1f688617b5c54656467c61923b6d8e4039007",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45556427561"
+      ],
+      "basis": "Exact supplier native/browser verified parent fc093f55; ten release consumer blobs overlaid with original-base equality and exact source blob checks; two bounded classifier and regression files activate exact PUR12/PUR07 layered admission. Consolidated source a8e1f688; workflow-only child 158b5ae2 exact protected-main predecessor single integrated v25 native rehearsal. Latest observed [{\"id\":139009464942,\"status\":\"in_progress\",\"conclusion\":null,\"passed\":4,\"active\":[\"Run pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413\"]}]. No new credit until native proof, no main or FM01 changes, no full CI, independent approval, retained grants or Production.",
+      "sourceSha": "a8e1f688617b5c54656467c61923b6d8e4039007",
+      "formalAcceptance": false,
+      "estimateConfidence": "NO_ADDITIONAL_HOURS_CREDIT"
     }
   ],
   "unestimatedWork": [
