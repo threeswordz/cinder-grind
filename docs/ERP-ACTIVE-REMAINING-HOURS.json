@@ -2596,6 +2596,44 @@
       "sourceSha": "5d2d86e1bcb4c338bbd39c8bf3270b2628f93cc7",
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-08-028",
+      "date": "2026-11-25",
+      "packageId": "M4-08",
+      "kind": "SS14_PM15_V25_STOCK_PORTFOLIO_INTEGRATION_STAGED",
+      "beforeHours": 15,
+      "afterHours": 15,
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/commit/8e7334866abf31bfdee47f5bc9d90d37a24e8f38",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45571472031"
+      ],
+      "basis": "16 exact historical stock minima/advisory/portfolio source and test blobs plus 2 current integration seams; source 8e733486, 18 changed paths. Existing equipment and purchasing preserved; no schema or grants. Workflow-only child dc866e76, migration and API/web compilation already successful, unit/three native isolated DB proofs pending. No additional forecast credit.",
+      "sourceSha": "8e7334866abf31bfdee47f5bc9d90d37a24e8f38",
+      "formalAcceptance": false,
+      "estimateConfidence": "NO_ADDITIONAL_HOURS_CREDIT"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-08-029",
+      "date": "2026-11-25",
+      "packageId": "M4-08",
+      "kind": "SS02_PM09_NANCY07_SS13_V25_INTEGRATION_STAGED",
+      "beforeHours": 15,
+      "afterHours": 15,
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/commit/4acf4a5dce9d295e64e3d7e4a796e5b87370e5f7",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45571616463"
+      ],
+      "basis": "28 paths integrated atop portfolio candidate, material-code approval/request, urgent issue documents, stock count schedules, loss/damage/waste exceptions and scoped navigation, including actual roles passed into existing master panel and fallback for material-code-only view. Existing validated code reused; no retained grants or Finance/stock posting policy change. Targeted run pending. No extra forecast credit until new lineage proof.",
+      "sourceSha": "4acf4a5dce9d295e64e3d7e4a796e5b87370e5f7",
+      "formalAcceptance": false,
+      "estimateConfidence": "NO_ADDITIONAL_HOURS_CREDIT"
     }
   ],
   "unestimatedWork": [
