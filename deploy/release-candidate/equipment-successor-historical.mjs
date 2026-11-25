@@ -73,6 +73,32 @@ export async function verifyEquipmentHistoricalIncrement(db,before){
  const grants=await db.$queryRawUnsafe('SELECT count(*)::text AS n FROM role_permissions WHERE permission_id=ANY($1::uuid[])',rows.map(row=>row.id));
  return {present:true,ids:equipmentCatalogIds(rows,grants[0]?.n)};
 }
+// Exact bindings from the three pinned forward-only SQL migrations.
+export const equipmentTriggerBindings=Object.freeze({
+ equipment_custody_loan_guard: Object.freeze({relation:'equipment_custody_loans',function_name:'guard_equipment_custody_loan',trigger_type:31}),
+ equipment_assignment_open_custody_guard: Object.freeze({relation:'equipment_assignments',function_name:'protect_assigned_equipment_with_open_custody',trigger_type:23}),
+ equipment_asset_register_version_guard: Object.freeze({relation:'equipment_asset_register_versions',function_name:'guard_equipment_asset_register_version',trigger_type:31}),
+ equipment_registered_identity_guard: Object.freeze({relation:'equipment',function_name:'protect_equipment_registered_identity',trigger_type:19}),
+});
+export function assertEquipmentTriggerBindings(rows,present){
+ if(!present){assert.deepEqual(rows,[],'Predecessor must not contain successor trigger bindings');return;}
+ assert.equal(rows.length,Object.keys(equipmentTriggerBindings).length,'Exact four equipment triggers required');
+ const seen=new Set();
+ for(const row of rows){
+  assert.ok(Object.hasOwn(equipmentTriggerBindings,row.name)&&!seen.has(row.name),'Unexpected or duplicate equipment trigger');
+  const expected=equipmentTriggerBindings[row.name];
+  assert.equal(row.relation,expected.relation);
+  assert.equal(row.function_name,expected.function_name);
+  assert.equal(row.function_schema,'public');
+  assert.equal(row.trigger_type,expected.trigger_type);
+  assert.equal(row.enabled,'O','Equipment trigger must be enabled for ordinary writes');
+  seen.add(row.name);
+ }
+}
+export async function verifyEquipmentTriggerBindings(db,present){
+ const rows=await db.$queryRawUnsafe("SELECT t.tgname AS name,c.relname AS relation,p.proname AS function_name,pn.nspname AS function_schema,t.tgtype::int AS trigger_type,t.tgenabled::text AS enabled FROM pg_trigger t JOIN pg_class c ON c.oid=t.tgrelid JOIN pg_namespace n ON n.oid=c.relnamespace JOIN pg_proc p ON p.oid=t.tgfoid JOIN pg_namespace pn ON pn.oid=p.pronamespace WHERE n.nspname='public' AND NOT t.tgisinternal AND t.tgname=ANY($1::text[]) ORDER BY t.tgname",Object.keys(equipmentTriggerBindings));
+ assertEquipmentTriggerBindings(rows,present);
+}
 export function assertEquipmentReleaseEvidence(rehearsal){
  const names=rehearsal.migrationNames??[];
  if(!names.some(name=>equipmentMigrationNames.includes(name)))return;
