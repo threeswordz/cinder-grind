@@ -34,6 +34,7 @@ import { resolve } from 'node:path';
 import { boqCatalog, verifyBoqCatalog } from './boq-catalog-contract.mjs';
 import { hrCatalog, verifyHrCatalog } from './hr-catalog-contract.mjs';
 import { stockCountCatalog, verifyStockCountCatalog } from './stock-count-catalog-contract.mjs';
+import { verifyEquipmentHistoricalIncrement } from './equipment-successor-historical.mjs';
 import { assertHistoricalTables } from './historical-snapshot.mjs';
 
 const [mode, previousRoot, manifestPath, keyPath] = process.argv.slice(2);
@@ -79,6 +80,7 @@ const provenanceColumns = {
 };
 
 async function snapshot(before) {
+  const equipment=await verifyEquipmentHistoricalIncrement(db,before?.migrations);
   const tables = await db.$queryRaw`SELECT tablename FROM pg_tables WHERE schemaname='public' AND tablename <> '_prisma_migrations' ORDER BY tablename`;
   const catalog = await db.permission.findMany({where:{id:{in:knownCatalog.map(p=>p.id)}}});
   const present = catalog.map(p=>p.id).sort();
@@ -109,7 +111,7 @@ async function snapshot(before) {
   // Verify every field before excluding only their IDs from the old-row digest.
   if(fm02Approved&&mode==='verify')verifyFm02Catalog(rawCatalog.filter(p=>fm02Catalog.some(x=>x.id===p.id)));
 
-  const excluded = knownCatalog.filter(p=>!(before?.catalogPresent??present).includes(p.id)).map(p=>p.id);
+  const excluded = knownCatalog.filter(p=>!(before?.catalogPresent??present).includes(p.id)).map(p=>p.id).concat(equipment.ids);
   const hashes={}, columns={};
   const identities=mode==='verify'&&successors.pur12?await verifiedPur12HistoricalColumns(db):{};
   if(mode==='verify'&&successors.pur07)await verifiedPur07HistoricalTables(db);
@@ -140,7 +142,7 @@ async function snapshot(before) {
     hashes[name]=row;
   }
   const migrations=await db.$queryRaw`SELECT migration_name,checksum FROM _prisma_migrations WHERE finished_at IS NOT NULL AND rolled_back_at IS NULL ORDER BY migration_name`;
-  return {tables:hashes,columns,catalogPresent:present,migrations};
+  return {tables:hashes,columns,catalogPresent:present,migrations,equipmentPresent:equipment.present};
 }
 
 async function service(){
@@ -162,7 +164,7 @@ try {
       after.tables,
       process.env.HR_SCHEMA_UPGRADE === 'YES',
       process.env.HR_DOCUMENT_SCHEMA_UPGRADE === 'YES',
-      stockCountApproved, materialRequestApproved,materialPlanApproved,planIssueApproved,siteIssueApproved,receivingApproved,transferApproved,physicalApproved,materialUomApproved,materialUomEffectApproved,materialUomStageCApproved,fm02Approved,successors.pur07,
+      stockCountApproved, materialRequestApproved,materialPlanApproved,planIssueApproved,siteIssueApproved,receivingApproved,transferApproved,physicalApproved,materialUomApproved,materialUomEffectApproved,materialUomStageCApproved,fm02Approved,successors.pur07,after.equipmentPresent,
     );
     for(const migration of before.migrations)assert.deepEqual(after.migrations.find(m=>m.migration_name===migration.migration_name),migration);
     console.log(mode==='rollback'?'HR_EXACT_PREDECESSOR_ROLLBACK_ROWS_PRESERVED':'HR_PREDECESSOR_ROWS_AND_MIGRATIONS_PRESERVED');
