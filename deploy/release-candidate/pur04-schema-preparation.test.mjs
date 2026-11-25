@@ -10,10 +10,11 @@ const base='05e64e24eb8d5b0864c360109bcdc570eae9134a';
 const before=execFileSync('git',['show',base+':apps/api/prisma/schema.prisma'],{encoding:'utf8'});
 const pur04Source='f9b4feadf1b0641621a489082c2ca2224df789cd';
 const after=execFileSync('git',['show',pur04Source+':apps/api/prisma/schema.prisma'],{encoding:'utf8'});
-test('PUR04 exact increment, migration blob and closed global admission',()=>{
+test('PUR04 exact increment, migration blob and bounded global admission',()=>{
  assert.equal(assertExactPur04Increment(before,after),true);
  assert.throws(()=>assertExactPur04Increment(after,before));
- assert.throws(()=>classifySchema(before,after));
+ assert.equal(classifySchema(before,after),'migration-aware-pur04-schema');
+ assert.throws(()=>classifySchema(after,before));
  for(const invalid of [
  after.replace(/deliveryLocation\s+String\?/,'deliveryLocation String'),
  after.replace(/discountAmount\s+Decimal\?/,'discountAmount Decimal? @default(0)'),
