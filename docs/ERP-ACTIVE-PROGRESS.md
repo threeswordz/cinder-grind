@@ -1,14 +1,14 @@
 # Construction ERP — live countdown to 0 hours
 
 <!-- current-work-m4 -->
-**Current M4 forecast 24h → 0h · Full ERP 1,754h → 0h.** Corrected PUR01/PUR04 actual Jai/Ben commercial revision and independent exception approval PASS15/15. New focused BEN01 substitute authority native proof submitted; no credit until result. Independent review blocked by quota.
+**Current M4 forecast 23h → 0h · Full ERP 1,753h → 0h.** BEN01 actual configured approval authority PASS15/15. PM05 new export authority regression running. New Nancy/Jai/Store master role proof submitted. Independent review blocked by quota.
 
 | Forecast reconciliation | Hours |
 |---|---:|
-| Previous reported ERP forecast | 1,755.5 |
+| Previous reported ERP forecast | 1,754 |
 | Newly identified mandatory scope | +0 |
-| Verified remaining-effort reduction | −1.5 |
-| Revised remaining ERP forecast | **1,754** |
+| Verified remaining-effort reduction | −1 |
+| Revised remaining ERP forecast | **1,753** |
 
 Prototype 4/8 · Go-live 3/10 · Deadline 31 December 2026.
 <!-- /current-work-m4 -->
@@ -140,9 +140,9 @@ Prototype 4/8 · Go-live 3/10 · Deadline 31 December 2026.
 ## Headline
 | Metric | Current | Meaning |
 |---|---:|---|
-| **Estimated full ERP work still needed** | **1,754h → 0h** | 112 requirements across eight roles |
+| **Estimated full ERP work still needed** | **1,753h → 0h** | 112 requirements across eight roles |
 | 23 Nov original current-work forecast | 1847h | Earlier 60-package provisional baseline |
-| Additional estimated future-work eliminated | −97.5h | M4-01 −27h, M4-02 −6h, M4-03 −7.5h, M4-04 −5.5h, M4-05 −5.5h, M4-06 −8h, M4-07 −4.5h, M4-08 −33.5h |
+| Additional estimated future-work eliminated | −98.5h | M4-01 −28h, M4-02 −6h, M4-03 −7.5h, M4-04 −5.5h, M4-05 −5.5h, M4-06 −8h, M4-07 −4.5h, M4-08 −33.5h |
 | Newly discovered previously unpriced PUR08/PUR14 work | +4.5h | Remaining supplier lifecycle and assurance work |
 | Net reforecast change versus 1,847h | −79h | Includes separately priced supplier scope |
 | PUR08/PUR14 provisional work before new development | 51h | Low-confidence new-gap gross estimate |
@@ -156,13 +156,13 @@ Prototype 4/8 · Go-live 3/10 · Deadline 31 December 2026.
 | Whole baseline packages formally accepted | 0/60 | 8 M4 packages still 0/8 |
 | Actual productive hours logged | UNKNOWN | Cannot infer from GitHub commits or AI conversation length |
 
-**Forecast basis.** The 1,847h baseline covers 60 packages. Verified work has removed 97.5h of estimated future effort from those packages. The separately priced supplier lifecycle has 4.5h remaining, bringing the ERP forecast to 1,754h.
+**Forecast basis.** The 1,847h baseline covers 60 packages. Verified work has removed 98.5h of estimated future effort from those packages. The separately priced supplier lifecycle has 4.5h remaining, bringing the ERP forecast to 1,753h.
 
 ## Stage-by-stage remaining work
 
 | Stage | Previous 60-package baseline | Verified package forecast reduction | Additional scope remaining | **Now remaining** | Accepted baseline packages |
 |---|---:|---:|---:|---:|---:|
-| Prototype 5/8 — M4 closure | 117h | 97.5h | 4.5h | **24h** | 0/8 |
+| Prototype 5/8 — M4 closure | 117h | 98.5h | 4.5h | **23h** | 0/8 |
 | Prototype 6/8 — end-to-end deployment | 120h | 0h | 0h | **120h** | 0/5 |
 | Prototype 7/8 — populated restore | 50h | 0h | 0h | **50h** | 0/3 |
 | Prototype 8/8 — technical freeze | 65h | 0h | 0h | **65h** | 0/3 |
@@ -174,13 +174,13 @@ Prototype 4/8 · Go-live 3/10 · Deadline 31 December 2026.
 | Production hosting and recovery | 110h | 0h | 0h | **110h** | 0/5 |
 | Migration and onboarding | 110h | 0h | 0h | **110h** | 0/4 |
 | Final human UAT, cutover and Production | 150h | 0h | 0h | **150h** | 0/5 |
-| **Full ERP** | 1847h | 97.5h | 4.5h | **1,754h** | **0/60** |
+| **Full ERP** | 1847h | 98.5h | 4.5h | **1,753h** | **0/60** |
 
 ## Each baseline package
 
 | Package | Stage | Delivery item | Starting estimate | Remaining now |
 |---|---|---|---:|---:|
-| M4-01 | M4 | Current-source and all-112 evidence/scope decisions | 32h | **5h** |
+| M4-01 | M4 | Current-source and all-112 evidence/scope decisions | 32h | **4h** |
 | M4-02 | M4 | PM02 real browser and retained-role authorization | 8h | **2h** |
 | M4-03 | M4 | FM01, BEN04 and PM16 real-browser acceptance | 10h | **2.5h** |
 | M4-04 | M4 | PUR01 whole-PO supplier-count and commercial rule | 8h | **2.5h** |
@@ -346,6 +346,10 @@ Prototype 4/8 · Go-live 3/10 · Deadline 31 December 2026.
 
 - **M4-04 3.5→2.5h** — Corrected workflow-only child 9eccab72, exact source da653498, SUCCESS15/15. Actual browser independently approved by Ben with durable final quote-policy audit for THB12920, one of two required comparable suppliers and explicit exception; superseded PO cancellation read exact 409 denial. Retire 1h distinct final real UI approval validation. Earlier Jai submission and prior native proof not counted again. Retained roles and independent review remain. [Evidence](https://github.com/threeswordz/cinder-grind/actions/runs/45616676458/job/139213755308)
 - **M4-05 4→3.5h** — Same exact corrected actual PG17/Chrome job confirms Ben read-only revised commercial terms, independent approval and immutable original record including timestamp, no stock/Finance change. Retire 0.5h distinct reviewer readback and approval assurance, not earlier credited maker header edits or previous recovery. Retained acceptance remains. [Evidence](https://github.com/threeswordz/cinder-grind/actions/runs/45616676458/job/139213755308)
+
+## 25 November seventh validation reconciliation
+
+- **M4-01 5→4h** — Exact source, workflow-only child 6bd8d25c, actual API/PG17 SUCCESS15/15: authenticated substitute has generic PO approval and Project access but no configured workflow role, exact APPROVAL_ROLE_DENIED and unchanged PO/audit; invalid CSRF denied; actual configured Ben approval and single durable final comparison audit. Retire 1h specific previously missing BEN01 technical witness only. No retained role configuration approval or global prohibition on authorized administrators changing workflow policy inferred. [Evidence](https://github.com/threeswordz/cinder-grind/actions/runs/45617599765/job/139216944029)
 
 ## Required update rule after every Chat development turn
 
