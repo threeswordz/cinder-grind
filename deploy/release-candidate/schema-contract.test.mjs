@@ -186,7 +186,7 @@ test('both pre-FM02 populated upgrade witnesses verify new permissions before ex
   }
 });
 
-test('PM02 preparation composes exact additive schema with existing predecessor modes without opening global admission', async () => {
+test('PM02 admission composes exact additive schema with existing predecessor modes', async () => {
  const {execFileSync}=await import('node:child_process');
  const {readFileSync}=await import('node:fs');
  const predecessor=sha=>execFileSync('git',['show',sha+':apps/api/prisma/schema.prisma'],{encoding:'utf8'});
@@ -206,9 +206,12 @@ test('PM02 preparation composes exact additive schema with existing predecessor 
  ]){
   assert.notEqual(invalid,after);
   assert.throws(()=>classifyPm02Preparation(before,invalid));
+  assert.throws(()=>classifySchema(before,invalid));
+  assert.throws(()=>classifySchema(after,invalid));
  }
- // The actual release CLI continues to reject this increment until every
- // historical and paired recovery consumer has been wired and proved.
- assert.throws(()=>classifySchema(before,after));
- assert.throws(()=>classifySchema(older,after));
+ assert.equal(classifySchema(before,after),'migration-aware-pm02-schema');
+ assert.equal(classifySchema(older,after),'migration-aware-pm02-fm02-schema');
+ assert.equal(classifySchema(after,after),'migration-aware-sql-only');
+ assert.throws(()=>classifySchema(after,before));
+ assert.throws(()=>classifySchema(after,older));
 });

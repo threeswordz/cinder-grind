@@ -215,7 +215,7 @@ function classifyLegacySchema(previous,candidate){
  const base=before.text.replace(/\s+/g,' ').trim()===after.text.replace(/\s+/g,' ').trim()?'migration-aware-sql-only':classifyBeforeMaterialUom(before.text,after.text);
  return !before.present&&after.present?(base==='migration-aware-sql-only'?'migration-aware-material-uom-schema':'migration-aware-material-uom-'+base.slice('migration-aware-'.length)):base;
 }
-export function classifySchema(previous,candidate){
+function classifyPrePm02(previous,candidate){
  if(previous===candidate)return 'migration-aware-sql-only';
  // Strip only the exact FM02 two-model, 13-parent-field additive contract.
  // Historical predecessor modes stay independently strict; no generic bypass.
@@ -246,14 +246,24 @@ export function classifySchema(previous,candidate){
    :mode;
 }
 
-// Preparation only: compose the exact PM02 increment with the existing strict
-// predecessor contracts. Do not route this mode through the global CLI until
-// every historical rehearsal and paired-recovery consumer verifies PM02.
+// Bounded outer layer. Preserve all pre-PM02 checks, including unchanged
+// synthetic classifier fixtures that have no PurchaseRequestLine model.
+export function classifySchema(previous,candidate){
+ if(previous===candidate)return 'migration-aware-sql-only';
+ const hasModel=s=>/^model PurchaseRequestLine \{/m.test(s);
+ if(!hasModel(previous)&&!hasModel(candidate))return classifyPrePm02(previous,candidate);
+ const before=stripPm02Schema(previous),after=stripPm02Schema(candidate);
+ if(before.present&&!after.present)throw Error('PM02 schema removal prohibited');
+ if(!before.present&&after.present)return classifyPm02Preparation(previous,candidate);
+ return classifyPrePm02(before.text,after.text);
+}
+
+// Compose only the exact PM02 increment with previously bounded contracts.
 export function classifyPm02Preparation(previous,candidate){
  const before=stripPm02Schema(previous),after=stripPm02Schema(candidate);
  if(before.present||!after.present)throw Error('PM02 preparation requires an additive increment');
  const prior=normalizePm02Schema(before.text)===normalizePm02Schema(after.text)
-  ?'migration-aware-sql-only':classifySchema(before.text,after.text);
+  ?'migration-aware-sql-only':classifyPrePm02(before.text,after.text);
  return prior==='migration-aware-sql-only'
   ?'migration-aware-pm02-schema'
   :'migration-aware-pm02-'+prior.slice('migration-aware-'.length);

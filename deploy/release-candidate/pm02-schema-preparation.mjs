@@ -1,5 +1,5 @@
-// PM02 exact additive review metadata. Standalone preparation guard only:
-// global rehearsal admission remains fail-closed until all consumers are wired.
+// PM02 exact additive review metadata. Global admission requires versioned
+// rehearsal and recovery evidence; this guard never grants release approval.
 export const pm02Fields=Object.freeze([
   "reviewDecision String? @map(\"review_decision\") @db.VarChar(20)",
   "reviewReason String? @map(\"review_reason\") @db.Text",
