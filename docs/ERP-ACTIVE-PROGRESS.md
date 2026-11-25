@@ -143,10 +143,10 @@ Prototype 4/8 · Go-live 3/10 · Deadline 31 December 2026.
 | **Estimated full ERP work still needed** | **1,742h → 0h** | 112 requirements across eight roles |
 | 23 Nov original current-work forecast | 1847h | Earlier 60-package provisional baseline |
 | Additional estimated future-work eliminated | −107.5h | M4-01 −31h, M4-02 −7h, M4-03 −9h, M4-04 −6.5h, M4-05 −6.5h, M4-06 −9h, M4-07 −5h, M4-08 −33.5h |
-| Newly discovered previously unpriced PUR08/PUR14 work | +3.5h | Remaining supplier lifecycle and assurance work |
+| Newly discovered previously unpriced PUR08/PUR14 work | +2.5h | Remaining supplier lifecycle and assurance work |
 | Net reforecast change versus 1,847h | −79h | Includes separately priced supplier scope |
 | PUR08/PUR14 provisional work before new development | 51h | Low-confidence new-gap gross estimate |
-| PUR08/PUR14 estimated future work eliminated through verified development | 47.5h | Provisional forecast reduction against the 51h gross estimate |
+| PUR08/PUR14 estimated future work eliminated through verified development | 48.5h | Provisional forecast reduction against the 51h gross estimate |
 | PUR08/PUR14 remaining | **2.5h** | See supplier evidence and approved boundaries in the ledger |
 | Historical original baseline | 1,900h | Not the current work-to-go figure |
 | Proposed optimization | 1,500h | **Unvalidated**; now requires risk/scope recalibration |
