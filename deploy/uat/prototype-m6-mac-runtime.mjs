@@ -12,6 +12,7 @@ import {uomSnapshot,digest} from './prototype-uom-state.mjs';
 import {verifyM6SubcontractRetention} from './m6-subcontract-retention.mjs';
 import {verifyM6SiteMaterial} from './m6-site-material-preservation.mjs';
 import {verifyM6Procurement} from './m6-procurement-preservation.mjs';
+import {verifyExactHistoricalRows} from './m6-exact-historical-rows.mjs';
 import {privateInventory,privateJson,seal,fileHash,stage,databaseStream,freePort,environment,command,hasSoleListenerPid,verifyDocumentInventory} from './prototype-transfer-upgrade.mjs';
 import {validActorReceipt,validPrivateActors} from './prototype-browser-operator.mjs';
 const ORIGIN='https://github.com/threeswordz/cinder-grind.git';
@@ -213,6 +214,7 @@ export function createM6MacRuntime({releaseSha,sourceRoot,root=join(homedir(),'C
   rehearsal=database(REHEARSAL);
   try{const after=await rehearsal.$transaction(tx=>uomSnapshot(tx),{isolationLevel:'RepeatableRead',timeout:30000});
    exactRowsPreserved(snapshots.before,after);
+   verifyExactHistoricalRows(snapshots.before,after);
    const rehearsalDocuments=await privateInventory(join(newStage,'preserved','documents'));
    verifyM6SubcontractRetention(snapshots.before,after,snapshots.files.documents,rehearsalDocuments);
    verifyM6SiteMaterial(snapshots.before,after,snapshots.files.documents,rehearsalDocuments);
@@ -246,6 +248,7 @@ export function createM6MacRuntime({releaseSha,sourceRoot,root=join(homedir(),'C
   db=database('proto_a_01');
   const migrated=await db.$transaction(tx=>uomSnapshot(tx),{isolationLevel:'RepeatableRead',timeout:30000});
   exactRowsPreserved(snapshots.before,migrated);
+  verifyExactHistoricalRows(snapshots.before,migrated);
   const migratedDocuments=await privateInventory(join(root,'documents'));
   verifyM6SubcontractRetention(snapshots.before,migrated,snapshots.files.documents,migratedDocuments);
   verifyM6SiteMaterial(snapshots.before,migrated,snapshots.files.documents,migratedDocuments);
