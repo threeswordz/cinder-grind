@@ -1932,6 +1932,46 @@
       "sourceSha": "8536934bd8bac226966f038af2b08fe66013c7a1",
       "formalAcceptance": false,
       "estimateConfidence": "NO_ADDITIONAL_HOURS_CREDIT"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-08-013",
+      "date": "2026-11-25",
+      "packageId": "M4-08",
+      "kind": "PURCHASING_VERSIONED_EVIDENCE_CONTRACTS_PASS",
+      "beforeHours": 25,
+      "afterHours": 24,
+      "reductionHours": 1,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 1,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45543885554",
+        "https://github.com/threeswordz/cinder-grind/commit/bd8be84e91c985db53a7ecd4ecd8796e03664834",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45552282850"
+      ],
+      "basis": "Combined purchasing historical witness focused PASS and new v22/v23 mode-specific migration, native source contract, historical preservation and paired recovery evidence consumers in shell, verifier, consolidation and HR attachment recovery; focused evidence/routing and parallel rehearsal contracts SUCCESS, exact source bd8be84e, workflow-only child46f48e2d. Provisional 1h remaining integration contract work eliminated; not actual labor or acceptance. No global purchasing admission enabled, no integrated native paired recovery on this head yet, legacy affected procurement fixtures and final release validation still require review.",
+      "sourceSha": "bd8be84e91c985db53a7ecd4ecd8796e03664834",
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-07-002",
+      "date": "2026-11-25",
+      "packageId": "M4-07",
+      "kind": "PUR12_BOUNDED_IDENTITY_REPLAY",
+      "beforeHours": 5,
+      "afterHours": 5,
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/commit/59be28af0285ff42d671d4dbc9b9a3b614ab0400",
+        "https://github.com/threeswordz/cinder-grind/commit/c4d5424f5b58c96d5fced36698cdd9129d4762e7",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45552393311"
+      ],
+      "basis": "PUR12 original #417 bounded twelve-path replay on exact isolated PUR01 evidence parent bd8be84e. Unchanged base blobs verified, PO service exact unique-context hunks and later #442 transaction-bound sequence allocation, current Company/numbering checks and native identity/sequence regression incorporated; PM02 and PUR01 final audit guards retained. Focused workflow-only child c4d5424f run 45552393311 in_progress. UTC period behavior remains inherited, no changed policy. No further credit until native validation; identity schema preservation and full integration still pending.",
+      "sourceSha": "59be28af0285ff42d671d4dbc9b9a3b614ab0400",
+      "formalAcceptance": false,
+      "estimateConfidence": "NO_ADDITIONAL_HOURS_CREDIT"
     }
   ],
   "unestimatedWork": [
@@ -1954,6 +1994,6 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1811,
-  "currentRollingTotalSemantics": "1811h provisional future work = 1847h baseline minus 45h evidence-backed package forecast reductions plus 9h separately priced supplier scope. M4 81h; M4-04 5h, M4-05 6h; formal acceptance unchanged."
+  "currentRollingTotalAfterPricedGapsHours": 1810,
+  "currentRollingTotalSemantics": "1810h provisional future work = 1847h baseline minus 46h evidence-backed package forecast reductions plus 9h separately priced supplier scope. M4 80h; M4-08 24h, M4-07 5h; formal acceptance unchanged."
 }
