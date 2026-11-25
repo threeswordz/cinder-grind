@@ -1,14 +1,14 @@
 # Construction ERP — live countdown to 0 hours
 
 <!-- current-work-m4 -->
-**M4 12h → 0h · M6 113h → 0h · M7 50h → 0h · M8 65h → 0h · combined prototype 240h → 0h · Full ERP 1,735h → 0h.** Combined synthetic snapshot/filesystem contract 8/8 PASS, five helpers on one fixture. Actual native PG17/Mac rehearsal and independent review pending. M4 #455 frozen; resume independent M4 review when Codex available.
+**M4 12h → 0h · M6 112.5h → 0h · M7 50h → 0h · M8 65h → 0h · combined prototype 239.5h → 0h · Full ERP 1,734.5h → 0h.** HR final preservation candidate integrated; prior 11/11 local tests, exact remote source verified. Native PG17/Mac rehearsal and independent review pending. M4 #455 frozen; resume independent M4 review when Codex available.
 
 | Forecast reconciliation | Hours |
 |---|---:|
-| Previous reported ERP forecast | 1,735.5 |
+| Previous reported ERP forecast | 1,735 |
 | Newly identified mandatory scope | +0 |
 | Verified remaining-effort reduction | −0.5 |
-| Revised remaining ERP forecast | **1,735** |
+| Revised remaining ERP forecast | **1,734.5** |
 
 Prototype 4/8 · Go-live 3/10 · Deadline 31 December 2026.
 <!-- /current-work-m4 -->
@@ -140,9 +140,9 @@ Prototype 4/8 · Go-live 3/10 · Deadline 31 December 2026.
 ## Headline
 | Metric | Current | Meaning |
 |---|---:|---|
-| **Estimated full ERP work still needed** | **1,735h → 0h** | 112 requirements across eight roles |
+| **Estimated full ERP work still needed** | **1,734.5h → 0h** | 112 requirements across eight roles |
 | 23 Nov original current-work forecast | 1847h | Earlier 60-package provisional baseline |
-| Additional estimated future-work eliminated | −114.5h | M4-01 −31h, M4-02 −7h, M4-03 −9h, M4-04 −6.5h, M4-05 −6.5h, M4-06 −9h, M4-07 −5h, M4-08 −33.5h, M6-01 −2.5h, M6-02 −1h, M6-03 −1h, M6-04 −1.5h, M6-05 −1h |
+| Additional estimated future-work eliminated | −115h | M4-01 −31h, M4-02 −7h, M4-03 −9h, M4-04 −6.5h, M4-05 −6.5h, M4-06 −9h, M4-07 −5h, M4-08 −33.5h, M6-01 −2.5h, M6-02 −1h, M6-03 −1h, M6-04 −1.5h, M6-05 −1.5h |
 | Newly discovered previously unpriced PUR08/PUR14 work | +2.5h | Remaining supplier lifecycle and assurance work |
 | Net reforecast change versus 1,847h | −79h | Includes separately priced supplier scope |
 | PUR08/PUR14 provisional work before new development | 51h | Low-confidence new-gap gross estimate |
@@ -156,14 +156,14 @@ Prototype 4/8 · Go-live 3/10 · Deadline 31 December 2026.
 | Whole baseline packages formally accepted | 0/60 | 8 M4 packages still 0/8 |
 | Actual productive hours logged | UNKNOWN | Cannot infer from GitHub commits or AI conversation length |
 
-**Forecast basis.** The 1,847h baseline covers 60 packages. Verified work has removed 114.5h of estimated future effort from those packages. The separately priced supplier lifecycle has 2.5h remaining, bringing the ERP forecast to 1,735h.
+**Forecast basis.** The 1,847h baseline covers 60 packages. Verified work has removed 115h of estimated future effort from those packages. The separately priced supplier lifecycle has 2.5h remaining, bringing the ERP forecast to 1,734.5h.
 
 ## Stage-by-stage remaining work
 
 | Stage | Previous 60-package baseline | Verified package forecast reduction | Additional scope remaining | **Now remaining** | Accepted baseline packages |
 |---|---:|---:|---:|---:|---:|
 | Prototype 5/8 — M4 closure | 117h | 107.5h | 2.5h | **12h** | 0/8 |
-| Prototype 6/8 — end-to-end deployment | 120h | 7h | 0h | **113h** | 0/5 |
+| Prototype 6/8 — end-to-end deployment | 120h | 7.5h | 0h | **112.5h** | 0/5 |
 | Prototype 7/8 — populated restore | 50h | 0h | 0h | **50h** | 0/3 |
 | Prototype 8/8 — technical freeze | 65h | 0h | 0h | **65h** | 0/3 |
 | Thai HR and payroll | 300h | 0h | 0h | **300h** | 0/6 |
@@ -174,7 +174,7 @@ Prototype 4/8 · Go-live 3/10 · Deadline 31 December 2026.
 | Production hosting and recovery | 110h | 0h | 0h | **110h** | 0/5 |
 | Migration and onboarding | 110h | 0h | 0h | **110h** | 0/4 |
 | Final human UAT, cutover and Production | 150h | 0h | 0h | **150h** | 0/5 |
-| **Full ERP** | 1847h | 114.5h | 2.5h | **1,735h** | **0/60** |
+| **Full ERP** | 1847h | 115h | 2.5h | **1,734.5h** | **0/60** |
 
 ## Each baseline package
 
@@ -192,7 +192,7 @@ Prototype 4/8 · Go-live 3/10 · Deadline 31 December 2026.
 | M6-02 | M6 | Site, plan, request, issue and document deployed journeys | 25h | **24h** |
 | M6-03 | M6 | Procurement, receiving, transfers and inventory deployed journeys | 30h | **29h** |
 | M6-04 | M6 | Subcontract physical acceptance/certification deployed journey | 20h | **18.5h** |
-| M6-05 | M6 | HR encrypted/protected-file deployed journey | 20h | **19h** |
+| M6-05 | M6 | HR encrypted/protected-file deployed journey | 20h | **18.5h** |
 | M7-01 | M7 | Paired populated DB, Documents and external HR-key backup | 20h | **20h** |
 | M7-02 | M7 | Restore to distinct non-overwriting target | 15h | **15h** |
 | M7-03 | M7 | Recovery negative paths and runbook evidence | 15h | **15h** |
@@ -457,3 +457,8 @@ The forecast can **increase** when new work is found. It reaches true **0h only 
 ## 25 November — M6 combined preservation contract
 
 [Exact source](https://github.com/threeswordz/cinder-grind/commit/c8ff9c92b0814d33f0d425f3f66d10e5b9133358). Distinct combined synthetic snapshot and filesystem contract: actual Node22.16.0 8/8 PASS, no skips/failures, five existing helpers exercised together against one fixture covering 92 domain table keys plus Documents/links, actual temporary file copies and SHA-256 inventories, nullable historical procurement fields, unrelated new HR attachment permitted; new links to old subcontract/material/receiving records, extra stock posting, historical backfill, changed live receiving bytes and preserved HR key placeholder bytes rejected. New test blob 73ca974fde6e70b7dd1b84e881a5d01c0d9a3c60 and five exact existing helper blobs match locally tested GitHub source. Only test file added; no operator/runtime execution. Fixture uses fabricated row shapes and placeholder dump/key bytes, not a PostgreSQL dump or authentic encrypted custody. 0.5h provisional reduction for combined contract verification only; no earlier individual test credit, native PG17/Mac rehearsal, independent review or formal acceptance. M6-01 23→22.5h; M6 113.5→113h; combined 240.5→240h; ERP 1735.5→1735h. No local native PG17 or container runtime, no workflow dispatch capability. Next real isolated populated rehearsal in an authorized runtime; do not substitute further mock passes for native evidence. M4 independent review first when Codex returns.
+
+
+## 26 November — M6 HR final preservation integrated
+
+[Exact source](https://github.com/threeswordz/cinder-grind/commit/b2f4e1d9582b5d260b9a76ed2ecb572149ae32f3). Previously tested HR final-preservation guard now integrated by guarded fast-forward after GitHub write errors. Local Node22.16.0 11/11 PASS from prior turn (not rerun); remote helper/test blobs 10b33c485adcc8c6abbd652750045ea756b9a7bc and 76fb23f30818f0a9a1d6a042e590d4fa01247b1a and runtime blob 8b7e7365535672b46b6e8ec8eee2c60ed69aea60 read back. Preserves full historical SQL bytes across 11 HR/employee/document/link tables and binds exactly one new attachment to verified storage key. Retire 0.5h of existing M6-05 forecast once only for distinct verified source/test preparation now integrated. No actual PG17/Mac execution, independent review or formal acceptance. M6-05 19→18.5h; M6 113→112.5h; combined 240→239.5h; ERP 1735→1734.5h. Native rehearsal still requires authorized runtime. M4 independent review first when Codex returns.

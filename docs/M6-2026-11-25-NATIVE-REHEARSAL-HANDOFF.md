@@ -2,11 +2,11 @@
 
 Status: **BLOCKED_ON_NATIVE_RUNTIME**, not a release instruction or deployment approval.
 
-- Candidate: `c8ff9c92b0814d33f0d425f3f66d10e5b9133358` (isolated work-m6-03-procurement-inventory-20261125).
+- Candidate: `b2f4e1d9582b5d260b9a76ed2ecb572149ae32f3` (isolated work-m6-03-procurement-inventory-20261125).
 - Populated UOM application predecessor: `9fa0506e9a50fd556f1c4404e4db2e3d88093b85`.
-- GitHub comparison: 137 commits ahead, 0 behind; 11 added migration SQL paths, no modified/deleted migration SQL in the returned comparison. No claim of native migration success.
+- GitHub comparison: 138 commits ahead, 0 behind; 11 added migration SQL paths, no modified/deleted migration SQL in the returned comparison. No claim of native migration success.
 - Frozen M4 PR #455: `280760321e5958035443721eb208dc090e614d93`; protected main: `040395bc7b0dedd40207f91f743bc2efc1584622`.
-- Latest recorded combined synthetic contract: 8/8 local tests at candidate; this is not a PostgreSQL dump, real Prisma schema, or authenticated HR custody proof.
+- Latest recorded combined synthetic contract: 8/8 local tests at predecessor c8ff9c92; new candidate has prior 11/11 HR final-preservation local tests; this is not a PostgreSQL dump, real Prisma schema, or authenticated HR custody proof.
 - This session checked actual local executables: Node v22.16.0 present; psql/postgres/pg_ctl/Podman/Docker absent; no cached PostgreSQL packages, apt repository DNS resolution failed. No native run, no dispatch, no changes to application code or release gates.
 
 ## Pinned migration delta
@@ -38,4 +38,6 @@ These are Git object blob identities, not Prisma SHA-256 ledger checksums. Verif
 
 ## Evidence and countdown
 
-No new verified remaining-effort reduction this turn. M6 113h, M4 12h, M7 50h, M8 65h, combined 240h, full ERP 1,735h. Preserve the existing ledger; no speculative reduction for writing this handoff.
+26 November: HR guard integrated; 0.5h provisional reduction once for verified HR source/test scope. M6 112.5h, M4 12h, M7 50h, M8 65h, combined 239.5h, full ERP 1,734.5h. Native rehearsal not executed.
+
+26 November update: guarded integration succeeded; only three UAT paths changed, no migration files changed relative to c8ff9c92. Require historical HR preservation at final sealing after the single synthetic attachment. Do not claim the original Mac runtime has executed.
