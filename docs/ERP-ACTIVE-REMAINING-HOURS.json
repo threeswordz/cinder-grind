@@ -3738,6 +3738,42 @@
       "verifiedCompletedScopeHours": 1,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-04-081",
+      "date": "2026-11-25",
+      "packageId": "M4-04",
+      "kind": "PUR01_ACTUAL_BEN_INDEPENDENT_EXCEPTION_APPROVAL_PASS",
+      "beforeHours": 3.5,
+      "afterHours": 2.5,
+      "sourceSha": "da65349825426f9501f2e4b52440f6d326f20b68",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45616676458/job/139213755308"
+      ],
+      "basis": "Corrected workflow-only child 9eccab72, exact source da653498, SUCCESS15/15. Actual browser independently approved by Ben with durable final quote-policy audit for THB12920, one of two required comparable suppliers and explicit exception; superseded PO cancellation read exact 409 denial. Retire 1h distinct final real UI approval validation. Earlier Jai submission and prior native proof not counted again. Retained roles and independent review remain.",
+      "reductionHours": 1,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 1,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-05-082",
+      "date": "2026-11-25",
+      "packageId": "M4-05",
+      "kind": "PUR04_ACTUAL_BEN_READONLY_REVISION_APPROVAL_PASS",
+      "beforeHours": 4,
+      "afterHours": 3.5,
+      "sourceSha": "da65349825426f9501f2e4b52440f6d326f20b68",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45616676458/job/139213755308"
+      ],
+      "basis": "Same exact corrected actual PG17/Chrome job confirms Ben read-only revised commercial terms, independent approval and immutable original record including timestamp, no stock/Finance change. Retire 0.5h distinct reviewer readback and approval assurance, not earlier credited maker header edits or previous recovery. Retained acceptance remains.",
+      "reductionHours": 0.5,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0.5,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -3760,6 +3796,6 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1755.5,
-  "currentRollingTotalSemantics": "1755.5h = 1847h baseline minus 96h verified baseline forecast reduction plus 4.5h remaining supplier scope. M4 25.5h. All 112 requirements preserved. Actual labor unmeasured."
+  "currentRollingTotalAfterPricedGapsHours": 1754,
+  "currentRollingTotalSemantics": "1754h = 1847h baseline minus 97.5h verified baseline forecast reduction plus 4.5h remaining supplier scope. M4 24h. All 112 requirements preserved. Actual labor unmeasured."
 }

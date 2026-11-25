@@ -1,14 +1,14 @@
 # Construction ERP — live countdown to 0 hours
 
 <!-- current-work-m4 -->
-**Current M4 forecast 25.5h → 0h · Full ERP 1,755.5h → 0h.** Actual Jai commercial revision and reasoned exception submission passed; 12 pending evidence IDs reconciled. Corrected purchasing fixture validation pending; no final Ben approval credit. Independent review blocked by quota.
+**Current M4 forecast 24h → 0h · Full ERP 1,754h → 0h.** Corrected PUR01/PUR04 actual Jai/Ben commercial revision and independent exception approval PASS15/15. New focused BEN01 substitute authority native proof submitted; no credit until result. Independent review blocked by quota.
 
 | Forecast reconciliation | Hours |
 |---|---:|
-| Previous reported ERP forecast | 1,758 |
+| Previous reported ERP forecast | 1,755.5 |
 | Newly identified mandatory scope | +0 |
-| Verified remaining-effort reduction | −2.5 |
-| Revised remaining ERP forecast | **1,755.5** |
+| Verified remaining-effort reduction | −1.5 |
+| Revised remaining ERP forecast | **1,754** |
 
 Prototype 4/8 · Go-live 3/10 · Deadline 31 December 2026.
 <!-- /current-work-m4 -->
@@ -140,9 +140,9 @@ Prototype 4/8 · Go-live 3/10 · Deadline 31 December 2026.
 ## Headline
 | Metric | Current | Meaning |
 |---|---:|---|
-| **Estimated full ERP work still needed** | **1,755.5h → 0h** | 112 requirements across eight roles |
+| **Estimated full ERP work still needed** | **1,754h → 0h** | 112 requirements across eight roles |
 | 23 Nov original current-work forecast | 1847h | Earlier 60-package provisional baseline |
-| Additional estimated future-work eliminated | −96h | M4-01 −27h, M4-02 −6h, M4-03 −7.5h, M4-04 −4.5h, M4-05 −5h, M4-06 −8h, M4-07 −4.5h, M4-08 −33.5h |
+| Additional estimated future-work eliminated | −97.5h | M4-01 −27h, M4-02 −6h, M4-03 −7.5h, M4-04 −5.5h, M4-05 −5.5h, M4-06 −8h, M4-07 −4.5h, M4-08 −33.5h |
 | Newly discovered previously unpriced PUR08/PUR14 work | +4.5h | Remaining supplier lifecycle and assurance work |
 | Net reforecast change versus 1,847h | −79h | Includes separately priced supplier scope |
 | PUR08/PUR14 provisional work before new development | 51h | Low-confidence new-gap gross estimate |
@@ -156,13 +156,13 @@ Prototype 4/8 · Go-live 3/10 · Deadline 31 December 2026.
 | Whole baseline packages formally accepted | 0/60 | 8 M4 packages still 0/8 |
 | Actual productive hours logged | UNKNOWN | Cannot infer from GitHub commits or AI conversation length |
 
-**Forecast basis.** The 1,847h baseline covers 60 packages. Verified work has removed 96h of estimated future effort from those packages. The separately priced supplier lifecycle has 4.5h remaining, bringing the ERP forecast to 1,755.5h.
+**Forecast basis.** The 1,847h baseline covers 60 packages. Verified work has removed 97.5h of estimated future effort from those packages. The separately priced supplier lifecycle has 4.5h remaining, bringing the ERP forecast to 1,754h.
 
 ## Stage-by-stage remaining work
 
 | Stage | Previous 60-package baseline | Verified package forecast reduction | Additional scope remaining | **Now remaining** | Accepted baseline packages |
 |---|---:|---:|---:|---:|---:|
-| Prototype 5/8 — M4 closure | 117h | 96h | 4.5h | **25.5h** | 0/8 |
+| Prototype 5/8 — M4 closure | 117h | 97.5h | 4.5h | **24h** | 0/8 |
 | Prototype 6/8 — end-to-end deployment | 120h | 0h | 0h | **120h** | 0/5 |
 | Prototype 7/8 — populated restore | 50h | 0h | 0h | **50h** | 0/3 |
 | Prototype 8/8 — technical freeze | 65h | 0h | 0h | **65h** | 0/3 |
@@ -174,7 +174,7 @@ Prototype 4/8 · Go-live 3/10 · Deadline 31 December 2026.
 | Production hosting and recovery | 110h | 0h | 0h | **110h** | 0/5 |
 | Migration and onboarding | 110h | 0h | 0h | **110h** | 0/4 |
 | Final human UAT, cutover and Production | 150h | 0h | 0h | **150h** | 0/5 |
-| **Full ERP** | 1847h | 96h | 4.5h | **1,755.5h** | **0/60** |
+| **Full ERP** | 1847h | 97.5h | 4.5h | **1,754h** | **0/60** |
 
 ## Each baseline package
 
@@ -183,8 +183,8 @@ Prototype 4/8 · Go-live 3/10 · Deadline 31 December 2026.
 | M4-01 | M4 | Current-source and all-112 evidence/scope decisions | 32h | **5h** |
 | M4-02 | M4 | PM02 real browser and retained-role authorization | 8h | **2h** |
 | M4-03 | M4 | FM01, BEN04 and PM16 real-browser acceptance | 10h | **2.5h** |
-| M4-04 | M4 | PUR01 whole-PO supplier-count and commercial rule | 8h | **3.5h** |
-| M4-05 | M4 | PUR04 core PO commercial/delivery fields | 9h | **4h** |
+| M4-04 | M4 | PUR01 whole-PO supplier-count and commercial rule | 8h | **2.5h** |
+| M4-05 | M4 | PUR04 core PO commercial/delivery fields | 9h | **3.5h** |
 | M4-06 | M4 | PUR07 supplier-name PO PDF and manual dispatch evidence | 10h | **2h** |
 | M4-07 | M4 | PUR12 K-/T- company PO document identity | 6h | **1.5h** |
 | M4-08 | M4 | M4 focused closure, governed integration and Owner decision | 34h | **0.5h** |
@@ -341,6 +341,11 @@ Prototype 4/8 · Go-live 3/10 · Deadline 31 December 2026.
 - **M4-05 5→4h** — Discrete actual PG17/Chrome subproof passed before separate Ben fixture failure: revision, seven changed header inputs, copied untouched fields, exact predecessor including timestamp remained immutable. Retire 1h remaining browser commercial edit proof; prior native and recovery not counted again. Independent approval, retained role and final integration remain. [Evidence 1](https://github.com/threeswordz/cinder-grind/actions/runs/45616141518/job/139211908561)
 - **M4-04 4→3.5h** — Actual browser submit persisted SUBMITTED with Jai as maker and zero final quote-policy audit. Overall job failed before Ben approval because old fixture expected cancellation read 200 on superseded PO. Retire 0.5h distinct real UI submission work only. Corrected fixture requires exact PUR10_APPROVED_LATEST_PO_REQUIRED 409; final independent Ben UI audit pending. [Evidence 1](https://github.com/threeswordz/cinder-grind/actions/runs/45616141518/job/139211908561)
 - **M4-01 6→5h** — All 12 pending source-evidence IDs mapped to observed runtime evidence or explicit missing witness, complete two recursive Git trees compared, 76/79 selected material workflow source/test blobs identical, six approval/budget/cost/subcontract/reporting subtrees identical. Retire 1h distinct evidence lookup and lineage reconciliation, not prior gate classification or acceptance. No inferred no-delegate proof, no full integrated validation claim, changed dependencies and retained role gates preserved. [Evidence 1](https://github.com/threeswordz/cinder-grind/blob/48dd1b8fb7c004d370a429817fb5a92939e2584c/docs/M4-2026-11-25-RUNTIME-EVIDENCE-ADDENDUM.md) [Evidence 2](https://github.com/threeswordz/cinder-grind/actions/runs/45603992458/job/139186012299) [Evidence 3](https://github.com/threeswordz/cinder-grind/actions/runs/45613742239/job/139203659500)
+
+## 25 November sixth validation reconciliation
+
+- **M4-04 3.5→2.5h** — Corrected workflow-only child 9eccab72, exact source da653498, SUCCESS15/15. Actual browser independently approved by Ben with durable final quote-policy audit for THB12920, one of two required comparable suppliers and explicit exception; superseded PO cancellation read exact 409 denial. Retire 1h distinct final real UI approval validation. Earlier Jai submission and prior native proof not counted again. Retained roles and independent review remain. [Evidence](https://github.com/threeswordz/cinder-grind/actions/runs/45616676458/job/139213755308)
+- **M4-05 4→3.5h** — Same exact corrected actual PG17/Chrome job confirms Ben read-only revised commercial terms, independent approval and immutable original record including timestamp, no stock/Finance change. Retire 0.5h distinct reviewer readback and approval assurance, not earlier credited maker header edits or previous recovery. Retained acceptance remains. [Evidence](https://github.com/threeswordz/cinder-grind/actions/runs/45616676458/job/139213755308)
 
 ## Required update rule after every Chat development turn
 
