@@ -90,6 +90,8 @@
 
 > **Exact M4 candidate consolidation verified:** [138ea662](https://github.com/threeswordz/cinder-grind/commit/138ea662094dc50556b1389f0c8144298b9bfcb4) four disjoint source parents, five changed paths with exact blob match, no push-only workflow child included. Main comparison 56 ahead/0 behind, 184 paths including eight migrations. [Complete current independent review inventory](M4-2026-11-25-CLOSURE-CANDIDATE-REVIEW-MANIFEST.md) 184/184 readback. Distinct source assembly/review preparation −1h, not runtime or independent approval. Four focused push-run IDs remain unavailable. M4-08 6→5h; M4 48→47h; ERP 1,778→1,777h.
 
+> **Operational exception browser readiness:** [33f301ad](https://github.com/threeswordz/cinder-grind/commit/33f301ad9967c3b94cda8b3a12542be5855a1c9c) isolated test-only successor to 138ea662, one verified file. Waits for enabled unique scoped selectors, selected tabs and committed values; verifies real Company/role, Nancy schedule author/version, independent PM09 reviewer and evidence, SS13 persisted four-actor separation/version and zero posting. Browser execution not initiated: independent source review prerequisite remains; prior combined run skipped this test. Four push-only results still not exposed. M4-08 5h, M4 47h, ERP 1,777h unchanged. No full CI, protected-main, retained grants or Production changes.
+
 ## Headline
 | Metric | Current | Meaning |
 |---|---:|---|
