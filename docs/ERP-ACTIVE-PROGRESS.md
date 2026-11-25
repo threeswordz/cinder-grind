@@ -36,6 +36,8 @@
 
 > **PUR10 v25 integrated candidate:** [2984c361](https://github.com/threeswordz/cinder-grind/commit/2984c361b9a71a0e966e274405cf75ceed4567be) seven exact prior blobs and four shared seams, removes direct cancellation bypass and preserves newer commercial/identity/supplier changes. [Focused native run 45566159789](https://github.com/threeswordz/cinder-grind/actions/runs/45566159789) in progress. PUR07 diagnostics passed auth/module/mount but timed out at visible workflow controls; browser not accepted. ERP 1,796h; M4 66h; M4-08 18h unchanged.
 
+> **PUR10/PUR07 targeted corrections:** [45566159789](https://github.com/threeswordz/cinder-grind/actions/runs/45566159789) migration PASS, compile stopped at obsolete cancellation-success assertions; exact previous test blob restored [ad38bc37](https://github.com/threeswordz/cinder-grind/commit/ad38bc379687c906103bdfe8121643f22b384f4b), [45566487068](https://github.com/threeswordz/cinder-grind/actions/runs/45566487068) running. PUR07 separate test-only [ed9843ec](https://github.com/threeswordz/cinder-grind/commit/ed9843ecd1eed5d4554afb1e220ced58c430de61) actual scoped HTTP list plus manual MUI selection, [45566583650](https://github.com/threeswordz/cinder-grind/actions/runs/45566583650) queued; deep-link failure remains open. No additional credit. ERP 1,796h, M4 66h, M4-08 18h, M4-06 6h.
+
 ## Headline
 | Metric | Current | Meaning |
 |---|---:|---|
