@@ -1,0 +1,1463 @@
+{
+  "schema": "M4_RECONCILED_REVIEW_MANIFEST_V1",
+  "date": "2026-11-26",
+  "source": "7486c0fd2e42b07e542ab8f570f6ed85650e7d06",
+  "base": "040395bc7b0dedd40207f91f743bc2efc1584622",
+  "sourceAhead": 121,
+  "sourceBehind": 0,
+  "frozenDraftHead": "280760321e5958035443721eb208dc090e614d93",
+  "parentManifest": {
+    "commit": "b10a70024b174c9c62269fd75bc8b0c1ddaa187c",
+    "source": "220b781aea8752e9b6762bf2d4e8cba06b44f2de",
+    "sourceTree": "abeecfaa786a6126d0479ac919ce126d0694caba",
+    "baseTree": "cc37732481928ca3df86618ea5308cd59882b63b"
+  },
+  "verificationMethod": "Prior 205-file complete recursive tree manifest carried forward using exact GitHub six-addition-only comparison and six newly fetched blob identities; complete 211 changed-path/status list crosschecked against base-to-successor comparison. New recursive tree SHA not exposed by connector; no claim of new full tree walk.",
+  "changedFiles": [
+    {
+      "path": ".github/workflows/validate.yml",
+      "status": "modified",
+      "sha": "1110ea0fc62bbb158d0fb5d41746ad7f8dde546a",
+      "old": "3e4e0b78f4e38647141ab988453a5f68a11a37c9"
+    },
+    {
+      "path": "apps/api/prisma/migrations/20261123143000_pm02_partial_pr_line_review/migration.sql",
+      "status": "added",
+      "sha": "c7e904fea47fab743cb6af684fc55cb0363a4c85",
+      "old": null
+    },
+    {
+      "path": "apps/api/prisma/migrations/20261123163500_pm02_review_trigger_scope/migration.sql",
+      "status": "added",
+      "sha": "160d8c0debca75269b4a0f0497c8fdfc74378773",
+      "old": null
+    },
+    {
+      "path": "apps/api/prisma/migrations/20261123181000_pur04_po_commercial_header/migration.sql",
+      "status": "added",
+      "sha": "072293acec77a8a9c911dc78d1b0a39175820412",
+      "old": null
+    },
+    {
+      "path": "apps/api/prisma/migrations/20261123185000_pur01_quote_exception_reason/migration.sql",
+      "status": "added",
+      "sha": "7825f4546a427a1bbe2afc793daac258ae5de08c",
+      "old": null
+    },
+    {
+      "path": "apps/api/prisma/migrations/20261123190000_pur12_po_partner_short_names/migration.sql",
+      "status": "added",
+      "sha": "2342d5f965adaefa97fc72c3ee862c92c696f041",
+      "old": null
+    },
+    {
+      "path": "apps/api/prisma/migrations/20261123201500_pur07_po_manual_dispatch_events/migration.sql",
+      "status": "added",
+      "sha": "82faa9d33f3573c6a332dec4b20047bfb5b42502",
+      "old": null
+    },
+    {
+      "path": "apps/api/prisma/migrations/20261124023000_ss11_equipment_custody/migration.sql",
+      "status": "added",
+      "sha": "ce16f51eae3d597de431d5b890b70fc17fc63944",
+      "old": null
+    },
+    {
+      "path": "apps/api/prisma/migrations/20261124221500_jai_asset_register/migration.sql",
+      "status": "added",
+      "sha": "8d730d5aebf75d98b9e47fd502a69242e951e56e",
+      "old": null
+    },
+    {
+      "path": "apps/api/prisma/migrations/20261125103100_ss11_thailand_custody_db_date/migration.sql",
+      "status": "added",
+      "sha": "738aa01e59d883ae4a6165bedc08e221ce340cc1",
+      "old": null
+    },
+    {
+      "path": "apps/api/prisma/schema.prisma",
+      "status": "modified",
+      "sha": "1a50604233a9555c206195aec2443aa5e1b27ab7",
+      "old": "fa447c22f74657863583e06a25aa52052fc8a8d2"
+    },
+    {
+      "path": "apps/api/src/budget/boq-http.integration.spec.ts",
+      "status": "modified",
+      "sha": "0295ff20834822dd97c181e03a4cca7068de441d",
+      "old": "98240bc7cab0671e109dc984005cced6921877d5"
+    },
+    {
+      "path": "apps/api/src/equipment/equipment-asset-register.controller.ts",
+      "status": "added",
+      "sha": "79525e3704cd738a540725770617e0880cabc1f4",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/equipment/equipment-asset-register.native.integration.spec.ts",
+      "status": "added",
+      "sha": "71a4673fb1f08494afed02153ea5378458f827f5",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/equipment/equipment-asset-register.service.ts",
+      "status": "added",
+      "sha": "9bce9d902dce2f001388b0fbc8514c24a5e21f0b",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/equipment/equipment-custody-date.spec.ts",
+      "status": "added",
+      "sha": "299215e61ba99427c5244c78912ebebc894c4053",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/equipment/equipment-custody-date.ts",
+      "status": "added",
+      "sha": "9c9496ca1aa99ab474312768ac8e547be0eb4909",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/equipment/equipment-custody.controller.ts",
+      "status": "added",
+      "sha": "44f1e5922576eb0324e6a310811c08098a40f027",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/equipment/equipment-custody.integration.spec.ts",
+      "status": "added",
+      "sha": "6eff3991bea3b0fec0cdba2ee5c8e14b3239357f",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/equipment/equipment-custody.service.ts",
+      "status": "added",
+      "sha": "e23fbd667603e4393b9a3f16d00e661791868bd3",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/equipment/equipment.module.ts",
+      "status": "modified",
+      "sha": "e31c0afc0eaddb82b87126cca415531f2a637db6",
+      "old": "b16f462fd2cfa8e828b3fded8421f16f2ea3f9ae"
+    },
+    {
+      "path": "apps/api/src/inventory/approved-plan-start-reminder.spec.ts",
+      "status": "added",
+      "sha": "53a08ae28876f7091a679000edab2aaa3a74cc51",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/inventory/approved-plan-start-reminder.ts",
+      "status": "added",
+      "sha": "3889f3ab76c95394b1bb3e852b7a2f9f9d3a04e2",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/inventory/inventory.module.ts",
+      "status": "modified",
+      "sha": "6106504fc83d102a5951718034995780ffb0a986",
+      "old": "838652306d9500f1915b864ecb1591b4bb053eec"
+    },
+    {
+      "path": "apps/api/src/inventory/material-code-request-contract.spec.ts",
+      "status": "added",
+      "sha": "b81db0a18200607f2a029a3af9d234f9c42151e6",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/inventory/material-code-request-contract.ts",
+      "status": "added",
+      "sha": "f6377c14e886491b03e6c4bce632dd59162b1e4b",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/inventory/material-code-request.controller.ts",
+      "status": "added",
+      "sha": "687614dfda16fecf72da7c1314ec624a103bad41",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/inventory/material-code-request.native.integration.spec.ts",
+      "status": "added",
+      "sha": "37f63a01a08061064317379db749549f6d8271b5",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/inventory/material-code-request.service.spec.ts",
+      "status": "added",
+      "sha": "fa6356486ebcc4e6a2c4ba5f7bbfbf19ee79f8c5",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/inventory/material-code-request.service.ts",
+      "status": "added",
+      "sha": "840cd65a881df468c1c1b2801cffc87e423105f7",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/inventory/pm15-portfolio-pending.native.integration.spec.ts",
+      "status": "added",
+      "sha": "2bb1d914aecf98d2c5137059c903cef28d964da5",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/inventory/pm15-portfolio-stock-delivery.native.integration.spec.ts",
+      "status": "added",
+      "sha": "becdee98c5e60d6a4e35758a86a151eb085a1be1",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/inventory/pm15-portfolio-work-queue.native.integration.spec.ts",
+      "status": "added",
+      "sha": "fbac4c69a0e7b7622104b3ef2e3de30c23f01dab",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/inventory/receiving-test-fixture.ts",
+      "status": "modified",
+      "sha": "28d0f504169d7b6672e8a64fff9af6a5cd7da231",
+      "old": "867dc5f5b4403697038ea57233cd7cba3f2c3c9f"
+    },
+    {
+      "path": "apps/api/src/inventory/stock-count-schedule-contract.ts",
+      "status": "added",
+      "sha": "0289f4015d6a3afb69a76ccb962bfe5e41460c27",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/inventory/stock-count-schedule.controller.ts",
+      "status": "added",
+      "sha": "637e1de65984e347da86da5fb9fcaa1d4c5ad0ac",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/inventory/stock-count-schedule.service.ts",
+      "status": "added",
+      "sha": "3d8d9f5153cfc96836c3a78de861aa5077a94961",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/inventory/stock-loss-case-contract.ts",
+      "status": "added",
+      "sha": "a2b21c41d7a39a8e04feade26b351c8ca7c07879",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/inventory/stock-loss-case.controller.ts",
+      "status": "added",
+      "sha": "07d7cb1dcb61af9066bd24c31ff3c1ca59d75e49",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/inventory/stock-loss-case.service.ts",
+      "status": "added",
+      "sha": "c7b63af68776e1bb9593c5980a53c3e8edae2aad",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/inventory/stock-minimum-contract.spec.ts",
+      "status": "added",
+      "sha": "212947ab917458ad25d0cb1c2e3934f455ba34ad",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/inventory/stock-minimum-contract.ts",
+      "status": "added",
+      "sha": "9329ed571fcbb69b30269dfced71158a565c5a57",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/inventory/stock-minimum.controller.ts",
+      "status": "added",
+      "sha": "7d4b8dc766d7fe0b404d0137dae5e965d2242116",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/inventory/stock-minimum.plan-start.spec.ts",
+      "status": "added",
+      "sha": "1a1ad5d5459b1c1a143b67d7dc4f37bb6182190e",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/inventory/stock-minimum.service.spec.ts",
+      "status": "added",
+      "sha": "6942a04e94ee8736b1846242ad4ee2160d8af810",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/inventory/stock-minimum.service.ts",
+      "status": "added",
+      "sha": "4dfa8b6b1147026ed42f92c9b5264435c9ddc197",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/inventory/stock-minimum.supplier-indicators.spec.ts",
+      "status": "added",
+      "sha": "5233c256e93393683fc939def93fe048f34fb5ce",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/inventory/supplier-commitment-indicator.spec.ts",
+      "status": "added",
+      "sha": "3e019bbb44df03c66a559003d0ca836de0ef2f2a",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/inventory/supplier-commitment-indicator.ts",
+      "status": "added",
+      "sha": "880a3694391e2e04d81033e31a97536b7748ba44",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/inventory/urgent-material-issue-contract.ts",
+      "status": "added",
+      "sha": "0621be1a6b235f990cc7f9b756dec819c7c88375",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/inventory/urgent-material-issue-documents.controller.ts",
+      "status": "added",
+      "sha": "7c353ae8940acb4548e2cd82202cecf7382139c2",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/inventory/urgent-material-issue-documents.service.ts",
+      "status": "added",
+      "sha": "e51e3bcca4336f8031267947035158d966b253f7",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/master-data/master-data.controller.ts",
+      "status": "modified",
+      "sha": "69f203695dfe86392406da2a900d359b452d77ff",
+      "old": "98809efda7a9ef09ffce30c47d6892aed9b89d1c"
+    },
+    {
+      "path": "apps/api/src/master-data/master-data.service.ts",
+      "status": "modified",
+      "sha": "065be7fd55b07b0aeac87f45adf0e59ff827905a",
+      "old": "2418646b9cf5f92c9775c8de4955314e77571439"
+    },
+    {
+      "path": "apps/api/src/procurement/procurement.controller.ts",
+      "status": "modified",
+      "sha": "a22f711dbe7264a00f6212995b5f6c0a2b82ac93",
+      "old": "71a1bf1d887c433b6aabe6ae0e0ed7c151724077"
+    },
+    {
+      "path": "apps/api/src/procurement/procurement.module.ts",
+      "status": "modified",
+      "sha": "0a7524976f5db0cd9848cc3af227396da5cbf483",
+      "old": "025bd9ee09db90ff4b35a04404f3752290abf6cc"
+    },
+    {
+      "path": "apps/api/src/procurement/procurement.pm02.integration.spec.ts",
+      "status": "added",
+      "sha": "d9a33e8166f8810fcfac81f6c675bef42e6eee4e",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/procurement/procurement.service.ts",
+      "status": "modified",
+      "sha": "b007298cfcb8530a005579bc4b56f5af93498880",
+      "old": "78b02ac1ac99c207e14e8692a41d041a3baebdd3"
+    },
+    {
+      "path": "apps/api/src/procurement/purchase-order-cancellation-case.controller.ts",
+      "status": "added",
+      "sha": "4231c6dea95dbce2f66f00f38ef7a4ac77baa2eb",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/procurement/purchase-order-cancellation-case.service.ts",
+      "status": "added",
+      "sha": "f04f35279132c1f81d40b7c7a62d5a95a608968a",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/procurement/purchase-order-cancellation-contract.test.mjs",
+      "status": "added",
+      "sha": "39481e5a25566bae04448533d26c44e2eb7152fc",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/procurement/purchase-order-cancellation-contract.ts",
+      "status": "added",
+      "sha": "0be86753b0cff4888c1f8e44aceb0832cdfe70ca",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/procurement/purchase-order-identity.spec.ts",
+      "status": "added",
+      "sha": "dbdbcadab9ccd54045bb78f795ebd30e58b83aae",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/procurement/purchase-order-identity.ts",
+      "status": "added",
+      "sha": "f033e5c60f22b69a2a4f7f503105708be521feee",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/procurement/purchase-order-pdf.spec.ts",
+      "status": "added",
+      "sha": "fe04aa4a1a458e16bb8911340852004c3f6b5dd7",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/procurement/purchase-order-pdf.ts",
+      "status": "added",
+      "sha": "9e42dd44f5e7b02eb1394bd0adb21480eb4aa5f0",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/procurement/purchase-order-pur07-document-link.spec.ts",
+      "status": "added",
+      "sha": "db0cd97fefa04ed37010a1ab22eaaf927411dc49",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/procurement/purchase-order-pur07-source-approval.spec.ts",
+      "status": "added",
+      "sha": "3667d34e3c9f384e144b592e00111b0fa417f830",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/procurement/purchase-order-pur07.service.ts",
+      "status": "added",
+      "sha": "29fa056f858169761e7bc08a9c882bdcec1ed1bd",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/procurement/purchase-order-quote-policy.spec.ts",
+      "status": "added",
+      "sha": "ec6b2c233849880b43e8561e1e7502d63b0a61d8",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/procurement/purchase-order-quote-policy.ts",
+      "status": "added",
+      "sha": "2124f80a5522f8163515809c3cc26ee50ef8465f",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/procurement/purchase-order-unicode-pdf.spec.ts",
+      "status": "added",
+      "sha": "880abf9722816f4e2e4b186047cd3a197942d34d",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/procurement/purchase-order-unicode-pdf.ts",
+      "status": "added",
+      "sha": "914b696b7d1a45194273a4a698f87c20b0185746",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/procurement/purchase-order.controller.ts",
+      "status": "modified",
+      "sha": "e6450b09c8574f5153971ccbbce873994a2a1fac",
+      "old": "bd3c763ca07c6a7269275310c45721ee8cb813a0"
+    },
+    {
+      "path": "apps/api/src/procurement/purchase-order.integration.spec.ts",
+      "status": "modified",
+      "sha": "d4a4bf63c0ea9545539e4c371eceb01d18dc6651",
+      "old": "fe937286f57986c86e4d0ea3014037e6eb4132f8"
+    },
+    {
+      "path": "apps/api/src/procurement/purchase-order.pm02-source-guard.spec.ts",
+      "status": "added",
+      "sha": "5cdbeb50cc7a7cc9ff0353f07dfa9cd9b353ed40",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/procurement/purchase-order.pur01.integration.spec.ts",
+      "status": "added",
+      "sha": "fe53e5fe2afaa2399d107f82e5ea401d2d18ae33",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/procurement/purchase-order.pur04-revision.integration.spec.ts",
+      "status": "added",
+      "sha": "931188403ad9b2e3d3fae220d188ed2fc13eee46",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/procurement/purchase-order.pur04.integration.spec.ts",
+      "status": "added",
+      "sha": "a217c105235adbc4bc6a2be986a1e3a388273b75",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/procurement/purchase-order.pur07.integration.spec.ts",
+      "status": "added",
+      "sha": "503dac7e9b1b61b3c940e5452edc7ab4d4b8764c",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/procurement/purchase-order.pur10-finalization.integration.spec.ts",
+      "status": "added",
+      "sha": "6ee575150a90b4bf7b16149e5aa3c5b832ed7827",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/procurement/purchase-order.pur12.integration.spec.ts",
+      "status": "added",
+      "sha": "7f6609bb76e848255b30aa2b54661ba20ed0f100",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/procurement/purchase-order.service.ts",
+      "status": "modified",
+      "sha": "c6ccafad446ada408348ae37771751727ef4379e",
+      "old": "326d14bd69359c94e6e7d2ac5400d750e642f954"
+    },
+    {
+      "path": "apps/api/src/procurement/sourcing.service.ts",
+      "status": "modified",
+      "sha": "918419f70dfd6eb93e8d4e98f130fc969c99fa08",
+      "old": "35bbd519e013a8a59e7831b3193f036f849912ef"
+    },
+    {
+      "path": "apps/api/src/procurement/supplier-attribution-boundary.native.integration.spec.ts",
+      "status": "added",
+      "sha": "ae9acee0c4727b4ffb358cf42f05601d3735ab54",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/procurement/supplier-delivery-case.controller.ts",
+      "status": "added",
+      "sha": "a47d97bcef35c6aa8da145fbd77373d61dc9627d",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/procurement/supplier-delivery-case.native.integration.spec.ts",
+      "status": "added",
+      "sha": "1278c4f9e3d380cc9307fcbaddc5fadf029df008",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/procurement/supplier-delivery-case.service.ts",
+      "status": "added",
+      "sha": "d0446f45fcc2c28fe97b97ddccf09276168dff41",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/procurement/supplier-delivery-lifecycle.test.mjs",
+      "status": "added",
+      "sha": "e466205a344f4a8268a377039c3dc1b095058fe1",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/procurement/supplier-delivery-lifecycle.ts",
+      "status": "added",
+      "sha": "08af0ecb525d8727177c98e1968d3a29af11ee1b",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/procurement/supplier-replacement-posted.native.integration.spec.ts",
+      "status": "added",
+      "sha": "902dae56eb41731262564750f9960a55e70be255",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/procurement/supplier-replacement-proof.test.mjs",
+      "status": "added",
+      "sha": "5577f11adb54902d836ae64e2812d8b9518b16fe",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/procurement/supplier-replacement-proof.ts",
+      "status": "added",
+      "sha": "e772412bbe0ae287d6f19b87df7e324c8e673301",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/procurement/supplier-return-custody-proof.test.mjs",
+      "status": "added",
+      "sha": "4fd18777061a03e31b12c63e870605f87ade5aed",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/procurement/supplier-return-custody-proof.ts",
+      "status": "added",
+      "sha": "fed668b9ac2c632dc9191b3fb9b583cfddc12e32",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/procurement/supplier-return-custody.native.integration.spec.ts",
+      "status": "added",
+      "sha": "c32dd6ef50efae00b24b86db73947fb0937676ff",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/projects/project-closeout-stale.native.integration.spec.ts",
+      "status": "modified",
+      "sha": "c66530bd2dbd7ccc9d5aca18c8e4fb58b7b11cd7",
+      "old": "7c1561251dccd3cc6b8348179ad2506576f20bad"
+    },
+    {
+      "path": "apps/api/src/projects/project-closeout.service.ts",
+      "status": "modified",
+      "sha": "bd3b122f90d0aa2c55fc0f02cc4e7b5c272fd52d",
+      "old": "971ddba313dce3259e0622413b81c2ad55385fc1"
+    },
+    {
+      "path": "apps/api/src/site-execution/site-execution.controller.ts",
+      "status": "modified",
+      "sha": "4c753ba4c47ac2c77a66b905e49236a092235099",
+      "old": "0a81a965422ec867d0201edeb7a0f4fcbcf621c4"
+    },
+    {
+      "path": "apps/api/src/site-execution/site-execution.service.ts",
+      "status": "modified",
+      "sha": "256adc81d768cfef164894ed2c44acba1537ef4c",
+      "old": "1f6ff8f3b09bd7dc0a010350ff9105b6ec7c2cad"
+    },
+    {
+      "path": "apps/api/src/site-execution/site-weekly-operational.ts",
+      "status": "added",
+      "sha": "d6ae9b8838bef98c16e31c97d896dcb0d50b7e55",
+      "old": null
+    },
+    {
+      "path": "apps/api/src/site-execution/site-weekly-summary.spec.ts",
+      "status": "modified",
+      "sha": "984f767658d35451a037e3f08c99f98e6436f4e9",
+      "old": "bc427174de2405a20c2251f6f092f98c9ee90f3d"
+    },
+    {
+      "path": "apps/api/src/site-execution/site-weekly-summary.ts",
+      "status": "modified",
+      "sha": "79785070c2a8e452a3e4ca6afa75822ad1aefd3a",
+      "old": "4d88dd64b1a6b2f9d2eeed22e880a429a09852a2"
+    },
+    {
+      "path": "apps/api/src/site-execution/site-weekly-workday.ts",
+      "status": "added",
+      "sha": "51a24fef3ab9389d793e20c4a7375190c4ab680d",
+      "old": null
+    },
+    {
+      "path": "apps/web/src/AdminConsole.tsx",
+      "status": "modified",
+      "sha": "48e858ca7a8067f925a12d030b9f606fddf59cce",
+      "old": "2740cb11068ae4a109c4051fb936fadbec241bd0"
+    },
+    {
+      "path": "apps/web/src/api/equipment.ts",
+      "status": "modified",
+      "sha": "ce4d647d621a3dce002889382580d20c940bf2a2",
+      "old": "76624bd000f92a70916e884da227717a4e0b856f"
+    },
+    {
+      "path": "apps/web/src/api/inventory.ts",
+      "status": "modified",
+      "sha": "f4217f1b22865fdfe9c321f8ca325c7e8b1cf24d",
+      "old": "178899512746e4bf898e838321b8f2d36eca355c"
+    },
+    {
+      "path": "apps/web/src/api/operational-exceptions.ts",
+      "status": "added",
+      "sha": "deb3147a144e96d1b30f71a53b4144121d36cd33",
+      "old": null
+    },
+    {
+      "path": "apps/web/src/api/po-cancellation.ts",
+      "status": "added",
+      "sha": "660f663500a3b16f195f7356b0b780019a39008c",
+      "old": null
+    },
+    {
+      "path": "apps/web/src/api/procurement.ts",
+      "status": "modified",
+      "sha": "9c171d3b26ab365ee95a3e3663ebf298efc253d6",
+      "old": "f7b625f2dfb8accef03d78ede8658797a8d225c1"
+    },
+    {
+      "path": "apps/web/src/api/purchase-orders.ts",
+      "status": "modified",
+      "sha": "5a3971541d80701f629acb9ac878ebf84843e3aa",
+      "old": "e3e9ec8d9ee632dea03c155cbaf30dd876d42a6b"
+    },
+    {
+      "path": "apps/web/src/api/site-execution.ts",
+      "status": "modified",
+      "sha": "2cfa1d02c2fbd9578b4543a48683f11a1ce8d403",
+      "old": "3def1571813de65d206af1083889cacdc48574cb"
+    },
+    {
+      "path": "apps/web/src/equipment/EquipmentAssetRegisterPanel.tsx",
+      "status": "added",
+      "sha": "79d32e190341d9e1f70e2855b0f2e76e8f41958e",
+      "old": null
+    },
+    {
+      "path": "apps/web/src/equipment/EquipmentCustodyPanel.tsx",
+      "status": "added",
+      "sha": "5aeb9f212ece101f9f80865b3d700a13c45fe8d5",
+      "old": null
+    },
+    {
+      "path": "apps/web/src/equipment/EquipmentPanel.tsx",
+      "status": "modified",
+      "sha": "f812ec38e5ce50a5e2dda67cc09c116701d928f7",
+      "old": "53f9f1fbc37884371e82edcb9462e8f5f4ffa649"
+    },
+    {
+      "path": "apps/web/src/inventory/InventoryWorkspace.tsx",
+      "status": "modified",
+      "sha": "d0fb078ac3227d70b382d3fe365a1a4db6aa861b",
+      "old": "e773e20d02b401174e2b9d72e3b794ca6449171d"
+    },
+    {
+      "path": "apps/web/src/inventory/MaterialCodeRequestsPanel.tsx",
+      "status": "added",
+      "sha": "f4eef90de929d119940dd9eb255c25827a9d15ae",
+      "old": null
+    },
+    {
+      "path": "apps/web/src/inventory/OperationalExceptionsPanel.tsx",
+      "status": "added",
+      "sha": "24e398f33dcb207f99ee0004a3478f82399ce311",
+      "old": null
+    },
+    {
+      "path": "apps/web/src/inventory/PortfolioWorkQueuePanel.tsx",
+      "status": "added",
+      "sha": "cb813403b30e5108c03fb8ee9fd2faddd9ca76e5",
+      "old": null
+    },
+    {
+      "path": "apps/web/src/inventory/ReceivingPanel.tsx",
+      "status": "modified",
+      "sha": "f9342bec0ef091348f95b02d21d3ab709adec5af",
+      "old": "93fe37dd134d7c3afff64d6d4212711249d6a6a0"
+    },
+    {
+      "path": "apps/web/src/inventory/StockCountSchedulesPanel.tsx",
+      "status": "added",
+      "sha": "f7875103eaa27fb45722630d73603837ecf29608",
+      "old": null
+    },
+    {
+      "path": "apps/web/src/inventory/StockLossCasesPanel.tsx",
+      "status": "added",
+      "sha": "45abcc282d7c9aef298451cef4e0249138b2da80",
+      "old": null
+    },
+    {
+      "path": "apps/web/src/inventory/StockMinimumsPanel.tsx",
+      "status": "added",
+      "sha": "8fddafbcc98ac162981728c8d77ee51407a88511",
+      "old": null
+    },
+    {
+      "path": "apps/web/src/inventory/UrgentIssueDocumentsPanel.tsx",
+      "status": "added",
+      "sha": "e610e4c3b2bf5b5b496e3af0bc0f7931111c4a1b",
+      "old": null
+    },
+    {
+      "path": "apps/web/src/master-data/MasterDataPanel.tsx",
+      "status": "modified",
+      "sha": "9f5413f707735c55cb19fc005d922d5a5e123b2b",
+      "old": "1a2abb755b22f39a186c5fd864a6ff3c113314d8"
+    },
+    {
+      "path": "apps/web/src/master-data/StandardMasters.tsx",
+      "status": "modified",
+      "sha": "c0c8274ab2a43d623fda8c5785ef5c9768dd282d",
+      "old": "026d769ca67fb5dadc2deb100fa9446b157d1ef5"
+    },
+    {
+      "path": "apps/web/src/procurement/purchase-order-print.ts",
+      "status": "added",
+      "sha": "c6f1f840f4f36df976cf9f45f701f97e2131f93c",
+      "old": null
+    },
+    {
+      "path": "apps/web/src/procurement/PurchaseOrderCancellationPanel.tsx",
+      "status": "added",
+      "sha": "a74ce4382976b451421071938e8f5bb2cddbce34",
+      "old": null
+    },
+    {
+      "path": "apps/web/src/procurement/PurchaseOrdersPanel.tsx",
+      "status": "modified",
+      "sha": "eb57c58cd5c2a623b760c5226e9c48c8f89be56f",
+      "old": "87856b0316bc2329522bbbea87b182ca49805d29"
+    },
+    {
+      "path": "apps/web/src/procurement/PurchaseRequestsPanel.tsx",
+      "status": "modified",
+      "sha": "7a642e332236bd51dcc5ff2b297f0127c1e95b8e",
+      "old": "57ec9ff328a2573d73676a7e6f5336b1a6a16fa0"
+    },
+    {
+      "path": "apps/web/src/procurement/SupplierDeliveryCasePanel.tsx",
+      "status": "added",
+      "sha": "c617bdb76a7b4070ff3058dadb31524f1fead9a6",
+      "old": null
+    },
+    {
+      "path": "apps/web/src/site-execution/SiteExecutionPanel.tsx",
+      "status": "modified",
+      "sha": "259ff549be84411ad0dbbc4bcddd543c422f497d",
+      "old": "432b4fc13b4bb9cc629af5f7f99b690776727d1d"
+    },
+    {
+      "path": "apps/web/src/site-execution/WeeklySiteSummaryPanel.tsx",
+      "status": "modified",
+      "sha": "bea65af26772ac03de623457ef1a410f08b84aeb",
+      "old": "9384770568db567cb3f05fe95d24443f5b930a24"
+    },
+    {
+      "path": "deploy/release-candidate/equipment-integrated-recovery.mjs",
+      "status": "added",
+      "sha": "689cfc203c66255363e4fe5a937214d964657a99",
+      "old": null
+    },
+    {
+      "path": "deploy/release-candidate/equipment-successor-documents.mjs",
+      "status": "added",
+      "sha": "01a36359fc34a126dc9e686aab3520a10d10bc43",
+      "old": null
+    },
+    {
+      "path": "deploy/release-candidate/equipment-successor-historical.mjs",
+      "status": "added",
+      "sha": "0cad3196c3c51ba095d5785250617bac56f4321c",
+      "old": null
+    },
+    {
+      "path": "deploy/release-candidate/equipment-successor-historical.test.mjs",
+      "status": "added",
+      "sha": "7707979b2cbd3c5e89092afc3c39e1c8efbca421",
+      "old": null
+    },
+    {
+      "path": "deploy/release-candidate/equipment-successor-populated.mjs",
+      "status": "added",
+      "sha": "cc643b35d32050e41b985bfa8bc8490fb0f66ef7",
+      "old": null
+    },
+    {
+      "path": "deploy/release-candidate/equipment-successor-preflight.mjs",
+      "status": "added",
+      "sha": "ec76d5a28144b0b84daef27ac7ac532a9bdba3f0",
+      "old": null
+    },
+    {
+      "path": "deploy/release-candidate/equipment-successor-preflight.test.mjs",
+      "status": "added",
+      "sha": "e3ac7faa506944278008f3f253c201c5aebb62b3",
+      "old": null
+    },
+    {
+      "path": "deploy/release-candidate/fm01-operational-focused.test.mjs",
+      "status": "added",
+      "sha": "af9f0f9d5817399b69d55806e57ef72ff527e4ce",
+      "old": null
+    },
+    {
+      "path": "deploy/release-candidate/fm01-workday-preview.test.mjs",
+      "status": "added",
+      "sha": "0a40619ff6a0cb8a3edcbd035932c6526038c80a",
+      "old": null
+    },
+    {
+      "path": "deploy/release-candidate/fm01a-weekly-cache-guards.test.mjs",
+      "status": "modified",
+      "sha": "0b02063b15772c3ccbebf0ec45a446681ac932ae",
+      "old": "06be96d4560b9a1939a27276bf1f5981c2142fcb"
+    },
+    {
+      "path": "deploy/release-candidate/historical-snapshot.mjs",
+      "status": "modified",
+      "sha": "67738332e784b9187b8c009f35f017500b3c7949",
+      "old": "e77a9a52486393036fa088ecb0d9078b3f282d99"
+    },
+    {
+      "path": "deploy/release-candidate/historical-snapshot.test.mjs",
+      "status": "modified",
+      "sha": "ac03a18c337aedb41f90a9e1d9296b5d924648fa",
+      "old": "8471b804b6c4347ce0e188eb6404447c47af88a4"
+    },
+    {
+      "path": "deploy/release-candidate/hr-upgrade.mjs",
+      "status": "modified",
+      "sha": "1c1f09c0fc98ad55a8aa42f13fd0bc231a967001",
+      "old": "daccfc834f294a5b2a6b9464a9cb0272f72ff88d"
+    },
+    {
+      "path": "deploy/release-candidate/legacy-fixture.mjs",
+      "status": "modified",
+      "sha": "c964b36470539dbce33a047b47084554bc9852ca",
+      "old": "0011be6b9ac2926e772eb739d2f9622efe42133b"
+    },
+    {
+      "path": "deploy/release-candidate/m4-112-approval-scope-guard.mjs",
+      "status": "added",
+      "sha": "36ed1c91e357c5c78fadeeb71ec0a859ba684e2d",
+      "old": null
+    },
+    {
+      "path": "deploy/release-candidate/nancy07-stock-count-schedule-focused.test.mjs",
+      "status": "added",
+      "sha": "3191c29de3806d2919afd745bc3c94c48887b863",
+      "old": null
+    },
+    {
+      "path": "deploy/release-candidate/pm02-historical-columns.mjs",
+      "status": "added",
+      "sha": "e1399837a08099e095161c5c0a6bbaa60887a5ac",
+      "old": null
+    },
+    {
+      "path": "deploy/release-candidate/pm02-historical-columns.test.mjs",
+      "status": "added",
+      "sha": "b3d1fb6722cccbd1ef899f07ad01d94cf849e1aa",
+      "old": null
+    },
+    {
+      "path": "deploy/release-candidate/pm02-populated-upgrade-preparation.mjs",
+      "status": "added",
+      "sha": "585d925f1981b62e4a49c4b28e93acee29c0e61f",
+      "old": null
+    },
+    {
+      "path": "deploy/release-candidate/pm02-schema-preparation.mjs",
+      "status": "added",
+      "sha": "edab9959c93384297d1691a31843d9973f0910f5",
+      "old": null
+    },
+    {
+      "path": "deploy/release-candidate/pm02-schema-preparation.test.mjs",
+      "status": "added",
+      "sha": "f069658b42602dfde54a2fcdf41a6f4a474e8591",
+      "old": null
+    },
+    {
+      "path": "deploy/release-candidate/pm09-urgent-documents-focused.test.mjs",
+      "status": "added",
+      "sha": "7e53ccb07196a8796c144de71ad1307e61b7b186",
+      "old": null
+    },
+    {
+      "path": "deploy/release-candidate/pur01-historical-columns.mjs",
+      "status": "added",
+      "sha": "0e881444a645ab5122f1479d33d3d5cffc7766a4",
+      "old": null
+    },
+    {
+      "path": "deploy/release-candidate/pur01-populated-upgrade-preparation.mjs",
+      "status": "added",
+      "sha": "cd7bc4773d40b5285046774aa70085a24d32208f",
+      "old": null
+    },
+    {
+      "path": "deploy/release-candidate/pur01-schema-preparation.mjs",
+      "status": "added",
+      "sha": "dad8bafac740f1a6b8158060b2bd371ca046b7c2",
+      "old": null
+    },
+    {
+      "path": "deploy/release-candidate/pur01-schema-preparation.test.mjs",
+      "status": "added",
+      "sha": "181bb7ae29502ab119e82e57ee354f00ceb49ff4",
+      "old": null
+    },
+    {
+      "path": "deploy/release-candidate/pur04-historical-columns.mjs",
+      "status": "added",
+      "sha": "ad6ed330177ce4d7ee8633bc7f16da1857d4549e",
+      "old": null
+    },
+    {
+      "path": "deploy/release-candidate/pur04-populated-upgrade-preparation.mjs",
+      "status": "added",
+      "sha": "77b425d51e83c82a99a8f5fec1632d901f15c6ed",
+      "old": null
+    },
+    {
+      "path": "deploy/release-candidate/pur04-schema-preparation.mjs",
+      "status": "added",
+      "sha": "c8a3a414b5407a8b0bdff34aec98ab96ce29e782",
+      "old": null
+    },
+    {
+      "path": "deploy/release-candidate/pur04-schema-preparation.test.mjs",
+      "status": "added",
+      "sha": "3cfe76c259890b2afed00c5e810527718ac4e016",
+      "old": null
+    },
+    {
+      "path": "deploy/release-candidate/purchasing-historical-columns.mjs",
+      "status": "added",
+      "sha": "55475a1197d04d8da6918fabfcab711bf56e333b",
+      "old": null
+    },
+    {
+      "path": "deploy/release-candidate/purchasing-historical-columns.test.mjs",
+      "status": "added",
+      "sha": "f8aa49757d6ca9050f5437e4a33b175251a4c455",
+      "old": null
+    },
+    {
+      "path": "deploy/release-candidate/purchasing-release-mode.mjs",
+      "status": "added",
+      "sha": "0c48bb534919881e0a7a0955a954f4d22fb111de",
+      "old": null
+    },
+    {
+      "path": "deploy/release-candidate/purchasing-successor-historical.mjs",
+      "status": "added",
+      "sha": "2e385134ba489174f548073f8c35f9a451be5102",
+      "old": null
+    },
+    {
+      "path": "deploy/release-candidate/purchasing-successor-historical.test.mjs",
+      "status": "added",
+      "sha": "e9a533b06c85e275ac6e3d1b578c1d636260e29b",
+      "old": null
+    },
+    {
+      "path": "deploy/release-candidate/purchasing-successor-populated.mjs",
+      "status": "added",
+      "sha": "e03b2b758285f88d501562fce53aebdb4a8684e1",
+      "old": null
+    },
+    {
+      "path": "deploy/release-candidate/purchasing-successor-schema-preparation.mjs",
+      "status": "added",
+      "sha": "ea708493436c89ef50e990a32bd2976e5a66cb1d",
+      "old": null
+    },
+    {
+      "path": "deploy/release-candidate/purchasing-successor-schema-preparation.test.mjs",
+      "status": "added",
+      "sha": "9829c6788553da3de1d946be88e998f899c123fa",
+      "old": null
+    },
+    {
+      "path": "deploy/release-candidate/receiving-predecessor.mjs",
+      "status": "modified",
+      "sha": "ce8237b885d0b20d65833a1346cb63eba4c1349d",
+      "old": "6d187e0d1d7c5731fb7edc3d69788c4c229e858c"
+    },
+    {
+      "path": "deploy/release-candidate/rehearse-migration.sh",
+      "status": "modified",
+      "sha": "be7dc226bcdd8cbb42da14388c0350a96168b949",
+      "old": "5f4b3c1efb0085406795876841aae3203503b163"
+    },
+    {
+      "path": "deploy/release-candidate/schema-contract.mjs",
+      "status": "modified",
+      "sha": "2d48f35c41bdc928ee198e12206c8551d66a1d03",
+      "old": "6e8b99a6d4b537081eee2bdfd96f5da62bc9203d"
+    },
+    {
+      "path": "deploy/release-candidate/schema-contract.test.mjs",
+      "status": "modified",
+      "sha": "7e3a417145d466cacf5984cafca3c63dfeaf9e75",
+      "old": "168b63882a7dd11a418b9dbd120842db92055527"
+    },
+    {
+      "path": "deploy/release-candidate/site-issue-predecessor.mjs",
+      "status": "modified",
+      "sha": "f8077d7e4b8ca2574a07da0b7c7729ec989529de",
+      "old": "859ade2d739f1036c804fd9f2e7e8f5c643cfea8"
+    },
+    {
+      "path": "deploy/release-candidate/ss13-loss-damage-focused.test.mjs",
+      "status": "added",
+      "sha": "7f5b696f85b40e16d089c8d3e6751e66aeb8fcaa",
+      "old": null
+    },
+    {
+      "path": "deploy/release-candidate/verify-evidence.mjs",
+      "status": "modified",
+      "sha": "6bafc85e11441b09a4e1a8bacf298e359744fc54",
+      "old": "d8479f714e01c8cb765ed68572416967985f2511"
+    },
+    {
+      "path": "deploy/release-candidate/verify-evidence.test.mjs",
+      "status": "modified",
+      "sha": "5671fa13eee901b877a242a3ed4aaf22492fcdc3",
+      "old": "d030662b83aff2efd4e8c9495b9c64b4ffc852cf"
+    },
+    {
+      "path": "deploy/uat/fm01a-weekly-browser.mjs",
+      "status": "modified",
+      "sha": "33431649882af7b8f34966d2e6c49d41e40211fa",
+      "old": "1a8ab9f300222505120ea6aaac23fdea46570c01"
+    },
+    {
+      "path": "deploy/uat/m4-ben01-no-delegate-native.mjs",
+      "status": "added",
+      "sha": "6be9c815023308f12fb1ba202f159648a24aeddb",
+      "old": null
+    },
+    {
+      "path": "deploy/uat/m4-fm01-closeout-browser-native.mjs",
+      "status": "added",
+      "sha": "75538786860a83954f2806cf520b7445ba23ff74",
+      "old": null
+    },
+    {
+      "path": "deploy/uat/m4-fm01-closeout-warning-native.mjs",
+      "status": "added",
+      "sha": "2b06f98bcf0b6116bd6eb2290607813594790dc6",
+      "old": null
+    },
+    {
+      "path": "deploy/uat/m4-fm01-concurrency-native.mjs",
+      "status": "added",
+      "sha": "b2f5418ef6de221683c66b1fa8ddf578afef4bac",
+      "old": null
+    },
+    {
+      "path": "deploy/uat/m4-jai-multicompany-http-native.mjs",
+      "status": "added",
+      "sha": "a4cbd224bc68c83699f1f319e7d293d40628abc5",
+      "old": null
+    },
+    {
+      "path": "deploy/uat/m4-master-role-scope-native.mjs",
+      "status": "added",
+      "sha": "4c4d4bbaf8b09c90581096df728245c881da47b7",
+      "old": null
+    },
+    {
+      "path": "deploy/uat/m4-operational-browser-native.mjs",
+      "status": "added",
+      "sha": "be2c525dc8f4b001a3a1c761d23a9ebaf55e0071",
+      "old": null
+    },
+    {
+      "path": "deploy/uat/m4-pm02-live-authority-native.mjs",
+      "status": "added",
+      "sha": "9d71da230a610003f9abb8c583bc6d5fbfc30249",
+      "old": null
+    },
+    {
+      "path": "deploy/uat/m4-pm02-purchasing-browser-native.mjs",
+      "status": "added",
+      "sha": "96a0c20afd58a18bafec6ff656f4fc3bba5951a3",
+      "old": null
+    },
+    {
+      "path": "deploy/uat/m4-pm15-delayed-site-readback-browser.mjs",
+      "status": "added",
+      "sha": "12812200540462472de5adae47eb1b78af479788",
+      "old": null
+    },
+    {
+      "path": "deploy/uat/m4-pur01-pur04-commercial-revision-browser-native.mjs",
+      "status": "added",
+      "sha": "c4f352977bab4e20cef3c38bb0c62f6bb8b98d23",
+      "old": null
+    },
+    {
+      "path": "deploy/uat/m4-pur01-pur04-http-negative-native.mjs",
+      "status": "added",
+      "sha": "42963bf498ed10b7c4afb22c3867341cedc48ad3",
+      "old": null
+    },
+    {
+      "path": "deploy/uat/m4-pur07-jai-ben-server-download-browser-native.mjs",
+      "status": "added",
+      "sha": "d633108809b79d5a2b9e51f483541885ec4efedb",
+      "old": null
+    },
+    {
+      "path": "deploy/uat/m4-pur07-renderer-retry-native.mjs",
+      "status": "added",
+      "sha": "a93ba11e7bee5e69fb698e2a853f4e51a42d226b",
+      "old": null
+    },
+    {
+      "path": "deploy/uat/m4-supplier-revision-ui-scope-native.mjs",
+      "status": "added",
+      "sha": "9cdae7372d5308cf04fcdef714c3d83869339bf3",
+      "old": null
+    },
+    {
+      "path": "deploy/uat/pur07-thai-approved-po-print-browser.mjs",
+      "status": "added",
+      "sha": "f5eee5904a413163693474bd0a25caf2cdb788fd",
+      "old": null
+    },
+    {
+      "path": "deploy/uat/pur08-pur14-browser-native.mjs",
+      "status": "added",
+      "sha": "a6be843e4faa165feba77240a92e3b0bd961c42e",
+      "old": null
+    },
+    {
+      "path": "deploy/uat/pur14-replacement-browser-native.mjs",
+      "status": "added",
+      "sha": "e239d45ed82110c3a7244b9863fb01a86ffb60b6",
+      "old": null
+    },
+    {
+      "path": "deploy/uat/runtime-acceptance.mjs",
+      "status": "modified",
+      "sha": "65fcf726ba58d07f376a7e0f855efc514f18ab00",
+      "old": "c2724ded4fc605898b999edc23a10cebcd14f1ec"
+    },
+    {
+      "path": "docs/M4-2026-11-25-112-CONSOLIDATED-EVIDENCE.csv",
+      "status": "added",
+      "sha": "c3a1cf58546aff1a53f136e513e479e55c637f63",
+      "old": null
+    },
+    {
+      "path": "docs/M4-2026-11-25-112-EFFECTIVE-M4-GATES.csv",
+      "status": "added",
+      "sha": "dec0ad01a54aee69a671290a3e74b7105eae3f1d",
+      "old": null
+    },
+    {
+      "path": "docs/M4-2026-11-25-112-OWNER-DISPOSITIONS.csv",
+      "status": "added",
+      "sha": "7fc814657437e5ca7154ce22532b4445b2258573",
+      "old": null
+    },
+    {
+      "path": "docs/M4-2026-11-25-PUR01-BOUNDED-REBASE.md",
+      "status": "added",
+      "sha": "c2cff3e19481b32fb6ee6a66f30407ff307e44e7",
+      "old": null
+    },
+    {
+      "path": "docs/M4-2026-11-25-PUR04-BOUNDED-REBASE.md",
+      "status": "added",
+      "sha": "16f816fd8fda00ed15d7eb7dfda63eba317f0345",
+      "old": null
+    },
+    {
+      "path": "docs/M4-2026-11-25-PUR07-BOUNDED-REBASE.md",
+      "status": "added",
+      "sha": "7eed23265bca58dbc4c54a924350a0566983b5eb",
+      "old": null
+    },
+    {
+      "path": "docs/M4-2026-11-25-PUR08-PUR14-BOUNDED-REBASE.md",
+      "status": "added",
+      "sha": "0715323c49e3c866f98ca2861e19769201d4a30f",
+      "old": null
+    },
+    {
+      "path": "docs/M4-2026-11-25-PUR12-BOUNDED-REBASE.md",
+      "status": "added",
+      "sha": "f8863f4883329cc69c7ef485ecbdc658cc1b8b39",
+      "old": null
+    },
+    {
+      "path": "docs/M4-2026-11-25-RUNTIME-EVIDENCE-ADDENDUM.md",
+      "status": "added",
+      "sha": "0523da8d38f3cf20d855237ba519abcf174121cb",
+      "old": null
+    },
+    {
+      "path": "docs/M4-FM01-BEN04-PM16-CHROMIUM-SOURCE-2026-11-23.md",
+      "status": "added",
+      "sha": "88f33d7b0179f76e1c691a72e831fa90205dcaf9",
+      "old": null
+    },
+    {
+      "path": "docs/M4-PM02-PARTIAL-PR-LINES-2026-11-23.md",
+      "status": "added",
+      "sha": "2e2688484d4186b98cdb047bfd2dd5eeba9a72e1",
+      "old": null
+    },
+    {
+      "path": "docs/OP-SITE-REPORT-01-FM01B-CALENDAR-PREVIEW.md",
+      "status": "added",
+      "sha": "1c29f6f30e0899fd73f4bc8aa0777b2c98f4b5b4",
+      "old": null
+    }
+  ],
+  "forwardOnlyMigrationFiles": [
+    "apps/api/prisma/migrations/20261123143000_pm02_partial_pr_line_review/migration.sql",
+    "apps/api/prisma/migrations/20261123163500_pm02_review_trigger_scope/migration.sql",
+    "apps/api/prisma/migrations/20261123181000_pur04_po_commercial_header/migration.sql",
+    "apps/api/prisma/migrations/20261123185000_pur01_quote_exception_reason/migration.sql",
+    "apps/api/prisma/migrations/20261123190000_pur12_po_partner_short_names/migration.sql",
+    "apps/api/prisma/migrations/20261123201500_pur07_po_manual_dispatch_events/migration.sql",
+    "apps/api/prisma/migrations/20261124023000_ss11_equipment_custody/migration.sql",
+    "apps/api/prisma/migrations/20261124221500_jai_asset_register/migration.sql",
+    "apps/api/prisma/migrations/20261125103100_ss11_thailand_custody_db_date/migration.sql"
+  ],
+  "receipts": [
+    {
+      "run": 45619654984,
+      "jobs": [
+        {
+          "name": "purchasing-browser",
+          "conclusion": "success",
+          "successfulSteps": 15
+        }
+      ],
+      "limit": "Previously credited focused source-specific evidence; not full candidate verdict"
+    },
+    {
+      "run": 45620748696,
+      "jobs": [
+        {
+          "name": "purchasing-browser",
+          "conclusion": "success",
+          "successfulSteps": 15
+        }
+      ],
+      "limit": "Previously credited focused source-specific evidence; not full candidate verdict"
+    },
+    {
+      "run": 45621618196,
+      "jobs": [
+        {
+          "name": "purchasing-browser",
+          "conclusion": "success",
+          "successfulSteps": 15
+        }
+      ],
+      "limit": "Previously credited focused source-specific evidence; not full candidate verdict"
+    },
+    {
+      "run": 45622912802,
+      "jobs": [
+        {
+          "name": "purchasing-browser",
+          "conclusion": "success",
+          "successfulSteps": 15
+        }
+      ],
+      "limit": "Previously credited focused source-specific evidence; not full candidate verdict"
+    },
+    {
+      "run": 45623304729,
+      "jobs": [
+        {
+          "name": "purchasing-browser",
+          "conclusion": "success",
+          "successfulSteps": 15
+        }
+      ],
+      "limit": "Previously credited focused source-specific evidence; not full candidate verdict"
+    },
+    {
+      "run": 45626721473,
+      "jobs": [
+        {
+          "name": "purchasing-browser",
+          "conclusion": "success",
+          "successfulSteps": 15
+        }
+      ],
+      "limit": "Previously credited focused source-specific evidence; not full candidate verdict"
+    },
+    {
+      "run": 45626946379,
+      "jobs": [
+        {
+          "name": "purchasing-browser",
+          "conclusion": "success",
+          "successfulSteps": 14
+        }
+      ],
+      "limit": "Previously credited focused source-specific evidence; not full candidate verdict"
+    }
+  ],
+  "priorEvidence": [
+    {
+      "scope": "FM01 integrated",
+      "source": "4d6e56a13bd6f662336c364b36527ed3852e3036",
+      "run": 45615355077,
+      "result": "SUCCESS",
+      "limit": "Synthetic actual Chrome/API/PG; not full current candidate"
+    },
+    {
+      "scope": "PUR07 Thai PDF",
+      "source": "e6120e20aaa46ab245e3a08b00935d3bba4c7fb5",
+      "run": 45615060550,
+      "result": "SUCCESS",
+      "limit": "Synthetic actual buyer/Ben PDF and reported external dispatch"
+    },
+    {
+      "scope": "PUR01/04 commercial revision",
+      "source": "da65349825426f9501f2e4b52440f6d326f20b68",
+      "run": 45616676458,
+      "result": "SUCCESS",
+      "limit": "Synthetic real browser and audit"
+    },
+    {
+      "scope": "Paired recovery",
+      "source": "36ff707c95d819491074fa40b38ca4df5cf83996",
+      "run": 45613742239,
+      "result": "SUCCESS",
+      "limit": "Earlier exact integrated source; successor changes not full revalidated"
+    },
+    {
+      "scope": "PUR12/PUR14 actual native",
+      "source": "36ff707c95d819491074fa40b38ca4df5cf83996",
+      "run": 45614092149,
+      "result": "SUCCESS",
+      "limit": "Actual native scope, no retained acceptance"
+    },
+    {
+      "scope": "Supplier race native",
+      "source": "cd64404a92d172240bfac6efcf3d7df4643d79c8",
+      "run": 45611459901,
+      "result": "SUCCESS",
+      "limit": "Exact earlier collision test"
+    },
+    {
+      "scope": "BEN01",
+      "source": "d8fd736f05cdc88f745476467edd0ff9ab849fc2",
+      "run": 45617599765,
+      "result": "SUCCESS",
+      "limit": "Configured synthetic role, not unique retained assignment"
+    },
+    {
+      "scope": "PM05",
+      "source": "ab1d571f21ffb7295134135689d56d0532029b48",
+      "run": 45618076009,
+      "result": "SUCCESS",
+      "limit": "Synthetic real BOQ HTTP export scope"
+    },
+    {
+      "scope": "Master role",
+      "source": "cb8e4b70ff4eab45fcf839316ac718426cf49ce4",
+      "run": 45618250092,
+      "result": "SUCCESS",
+      "limit": "Synthetic Nancy/Jai/Store configured roles"
+    }
+  ],
+  "pending": [
+    {
+      "scope": "Operational exceptions browser",
+      "path": "deploy/uat/m4-operational-browser-native.mjs",
+      "status": "BLOCKED_INDEPENDENT_SOURCE_REVIEW",
+      "blob": "be2c525dc8f4b001a3a1c761d23a9ebaf55e0071"
+    },
+    {
+      "scope": "DEC-022",
+      "status": "BLOCKED_INDEPENDENT_REVIEW_QUOTA_LAST_OBSERVED"
+    },
+    {
+      "scope": "Full release CI",
+      "status": "BLOCKED_SPECIFIC_OWNER_AUTHORIZATION_AFTER_REVIEW"
+    },
+    {
+      "scope": "Retained eight-persona acceptance",
+      "status": "BLOCKED_RETAINED_CONFIGURATION_AND_HUMAN_UAT"
+    }
+  ],
+  "independentReview": "BLOCKED_LAST_OBSERVED_QUOTA_REFUSAL_RESET_UNCONFIRMED",
+  "formalAcceptance": false,
+  "protectedMainChanged": false,
+  "forecastReductionHours": 0
+}
