@@ -1,3 +1,4 @@
+import {classifyPurchasingPreparation} from './pur01-schema-preparation.mjs';
 import {stripPm02Schema,normalizeSchema as normalizePm02Schema} from './pm02-schema-preparation.mjs';
 import {stripFm02Schema} from './fm02-schema-contract.mjs';
 import {stripMaterialUomStageCSchema} from './material-uom-stage-c-schema-contract.mjs';
@@ -249,6 +250,13 @@ function classifyPrePm02(previous,candidate){
 // Bounded outer layer. Preserve all pre-PM02 checks, including unchanged
 // synthetic classifier fixtures that have no PurchaseRequestLine model.
 export function classifySchema(previous,candidate){
+ if(previous===candidate)return 'migration-aware-sql-only';
+ const hasOrder=s=>/^model PurchaseOrder \{/m.test(s);
+ if(!hasOrder(previous)&&!hasOrder(candidate))return classifyPrePurchasing(previous,candidate);
+ return classifyPurchasingPreparation(previous,candidate,classifyPrePurchasing);
+}
+
+function classifyPrePurchasing(previous,candidate){
  if(previous===candidate)return 'migration-aware-sql-only';
  const hasModel=s=>/^model PurchaseRequestLine \{/m.test(s);
  if(!hasModel(previous)&&!hasModel(candidate))return classifyPrePm02(previous,candidate);

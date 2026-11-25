@@ -10,8 +10,9 @@ const base='f9b4feadf1b0641621a489082c2ca2224df789cd';
 const prior='05e64e24eb8d5b0864c360109bcdc570eae9134a';
 const main='040395bc7b0dedd40207f91f743bc2efc1584622';
 const schema=ref=>execFileSync('git',['show',ref+':apps/api/prisma/schema.prisma'],{encoding:'utf8'});
-const before=schema(base),after=readFileSync(new URL('../../apps/api/prisma/schema.prisma',import.meta.url),'utf8');
-test('exact PUR01 increment and composed historical modes, without global admission',()=>{
+const pur01Source='cde0237679608074da07f7ef32f611c9ea158d77';
+const before=schema(base),after=schema(pur01Source);
+test('exact PUR01 increment and composed historical modes with bounded global admission',()=>{
  assert.equal(assertExactPur01Increment(before,after),true);
  assert.equal(classifyPurchasingPreparation(before,after),'migration-aware-pur01-schema');
  assert.equal(classifyPurchasingPreparation(schema(prior),after),'migration-aware-pur01-pur04-schema');
@@ -20,16 +21,17 @@ test('exact PUR01 increment and composed historical modes, without global admiss
  assert.equal(classifyPurchasingPreparation(schema(prior),before),'migration-aware-pur04-schema');
  assert.throws(()=>classifyPurchasingPreparation(after,before));
  assert.throws(()=>classifyPurchasingPreparation(before,schema(prior)));
- assert.throws(()=>classifySchema(before,after));
- assert.throws(()=>classifySchema(schema(main),after));
+ assert.equal(classifySchema(before,after),'migration-aware-pur01-schema');
+ assert.equal(classifySchema(schema(main),after),'migration-aware-pur01-pur04-pm02-schema');
+ assert.throws(()=>classifySchema(after,before));
  for(const bad of [
   after.replace('supplierQuoteExceptionReason String?','supplierQuoteExceptionReason String'),
   after.replace('@map("supplier_quote_exception_reason") @db.VarChar(2000)','@map("supplier_quote_exception_reason") @db.VarChar(4000)'),
   after.replace('supplierQuoteExceptionReason String?','supplierQuoteExceptionReason String? @default("unknown")'),
   after.replace(/contractValue\s+Decimal/,'contractValue Float'),
- ]){assert.notEqual(bad,after);assert.throws(()=>classifyPurchasingPreparation(before,bad));}
+ ]){assert.notEqual(bad,after);assert.throws(()=>classifyPurchasingPreparation(before,bad));assert.throws(()=>classifySchema(before,bad));}
  const path='apps/api/prisma/migrations/'+pur01Migration+'/migration.sql';
- assert.equal(execFileSync('git',['diff','--name-status',base,'HEAD','--','apps/api/prisma/migrations'],{encoding:'utf8'}).trim(),'A\t'+path);
+ assert.equal(execFileSync('git',['diff','--name-status',base,pur01Source,'--','apps/api/prisma/migrations'],{encoding:'utf8'}).trim(),'A\t'+path);
  assert.equal(execFileSync('git',['hash-object',path],{encoding:'utf8'}).trim(),pur01MigrationBlob);
 });
 const fixture=()=>[

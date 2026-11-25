@@ -1,4 +1,4 @@
-// Purchasing outer layers are prepared only; global release admission remains closed.
+// Exact purchasing outer layers; admission requires versioned recovery evidence.
 import {normalizeSchema} from './pm02-schema-preparation.mjs';
 import {stripPur04Schema} from './pur04-schema-preparation.mjs';
 import {classifySchema} from './schema-contract.mjs';
@@ -24,12 +24,12 @@ export function assertExactPur01Increment(previous,candidate){
  return true;
 }
 function wrap(mode,layer){return mode==='migration-aware-sql-only'?'migration-aware-'+layer+'-schema':'migration-aware-'+layer+'-'+mode.slice('migration-aware-'.length);}
-export function classifyPurchasingPreparation(previous,candidate){
+export function classifyPurchasingPreparation(previous,candidate,classifyPrior=classifySchema){
  const a=stripPur01Schema(previous),b=stripPur01Schema(candidate);
  const c=stripPur04Schema(a.text),d=stripPur04Schema(b.text);
  if(a.present&&!b.present||c.present&&!d.present)throw Error('Purchasing schema removal prohibited');
  if(a.present&&!c.present||b.present&&!d.present)throw Error('PUR01 requires complete PUR04 schema');
- const base=normalizeSchema(c.text)===normalizeSchema(d.text)?'migration-aware-sql-only':classifySchema(c.text,d.text);
+ const base=normalizeSchema(c.text)===normalizeSchema(d.text)?'migration-aware-sql-only':classifyPrior(c.text,d.text);
  const pur04=!c.present&&d.present?wrap(base,'pur04'):base;
  return !a.present&&b.present?wrap(pur04,'pur01'):pur04;
 }

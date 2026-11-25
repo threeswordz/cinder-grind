@@ -49,7 +49,7 @@ test('schema classification rejects unrelated/removal/required/defaulted/partial
 test('Customer BOQ classifier admits only the exact five new models and parent relations', async () => {
   const { readFileSync } = await import('node:fs');
   const current = stripHrDocumentSchema(stripHrSchema(stripStockCountSchema(
-    stripMaterialRequestSchema(stripMaterialPlanSchema(stripPlanIssueSchema(stripSiteIssueSchema(stripReceivingSchema(stripMaterialUomSchema(stripMaterialUomEffectSchema(stripMaterialUomStageCSchema(stripFm02Schema(stripPm02Schema(readFileSync(new URL('../../apps/api/prisma/schema.prisma', import.meta.url), 'utf8')).text).text).text).text).text).text).text).text).text).text,
+    stripMaterialRequestSchema(stripMaterialPlanSchema(stripPlanIssueSchema(stripSiteIssueSchema(stripReceivingSchema(stripMaterialUomSchema(stripMaterialUomEffectSchema(stripMaterialUomStageCSchema(stripFm02Schema(stripPm02Schema(execFileSync('git',['show','05e64e24eb8d5b0864c360109bcdc570eae9134a:apps/api/prisma/schema.prisma'],{encoding:'utf8'})).text).text).text).text).text).text).text).text).text).text,
   ).text).text).text;
   // The real predecessor schema, independently stored by Git, is the baseline.
   const { execFileSync } = await import('node:child_process');
@@ -74,7 +74,7 @@ test('FM02 schema classifier admits only the exact immutable work-plan increment
   const {execFileSync}=await import('node:child_process');
   const {readFileSync}=await import('node:fs');
   const predecessor=execFileSync('git',['show','5535dd890fd84489d76b611929e70e3422c746e8:apps/api/prisma/schema.prisma'],{encoding:'utf8'});
-  const fm02=stripPm02Schema(readFileSync(new URL('../../apps/api/prisma/schema.prisma',import.meta.url),'utf8')).text;
+  const fm02=stripPm02Schema(execFileSync('git',['show','05e64e24eb8d5b0864c360109bcdc570eae9134a:apps/api/prisma/schema.prisma'],{encoding:'utf8'})).text;
   const stripped=stripFm02Schema(fm02);
   assert.equal(stripped.present,true);
   assert.equal(stripped.text.replace(/\s+/g,' ').trim(),predecessor.replace(/\s+/g,' ').trim());
@@ -192,7 +192,7 @@ test('PM02 admission composes exact additive schema with existing predecessor mo
  const predecessor=sha=>execFileSync('git',['show',sha+':apps/api/prisma/schema.prisma'],{encoding:'utf8'});
  const before=predecessor('040395bc7b0dedd40207f91f743bc2efc1584622');
  const older=predecessor('5535dd890fd84489d76b611929e70e3422c746e8');
- const after=readFileSync(new URL('../../apps/api/prisma/schema.prisma',import.meta.url),'utf8');
+ const after=execFileSync('git',['show','05e64e24eb8d5b0864c360109bcdc570eae9134a:apps/api/prisma/schema.prisma'],{encoding:'utf8'});
  assert.equal(classifyPm02Preparation(before,after),'migration-aware-pm02-schema');
  assert.equal(classifyPm02Preparation(older,after),'migration-aware-pm02-fm02-schema');
  assert.throws(()=>classifyPm02Preparation(after,before));
