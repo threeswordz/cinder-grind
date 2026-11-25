@@ -2439,6 +2439,46 @@
       "sourceSha": "2984c361b9a71a0e966e274405cf75ceed4567be",
       "formalAcceptance": false,
       "estimateConfidence": "NO_ADDITIONAL_HOURS_CREDIT"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-08-023",
+      "date": "2026-11-25",
+      "packageId": "M4-08",
+      "kind": "PUR10_LEGACY_ASSERTION_RECONCILIATION",
+      "beforeHours": 18,
+      "afterHours": 18,
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45566159789/job/139041352650",
+        "https://github.com/threeswordz/cinder-grind/commit/ad38bc379687c906103bdfe8121643f22b384f4b",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45566487068"
+      ],
+      "basis": "Integrated PUR10 migration PASS, API compile blocked by two TS2339 errors in legacy test expecting successful unilateral cancellation (now Promise<never>). Replayed exact previously verified #449 test blob d4a4bf63 with explicit direct draft and approved PO denial, unchanged cancellation state, retained approval and history. No production changes. New targeted run45566487068 in progress; native and policy tests not yet executed in prior run. No forecast credit.",
+      "sourceSha": "ad38bc379687c906103bdfe8121643f22b384f4b",
+      "formalAcceptance": false,
+      "estimateConfidence": "NO_ADDITIONAL_HOURS_CREDIT"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-06-008",
+      "date": "2026-11-25",
+      "packageId": "M4-06",
+      "kind": "PUR07_SCOPED_ACTUAL_MUI_SELECTION_PREPARED",
+      "beforeHours": 6,
+      "afterHours": 6,
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45565071830",
+        "https://github.com/threeswordz/cinder-grind/commit/ed9843ecd1eed5d4554afb1e220ced58c430de61",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45566583650"
+      ],
+      "basis": "Separate pre-PUR10 exact v25 lineage. Test-only explicit genuine scoped HTTP project and PO list reads, actual authenticated MUI project and PO selection using previously validated portal helper, safe DOM diagnostics and original PDF/dispatch/role assertions. No mocked data or production grant. Normal manual navigation proof is distinct from deep-link behavior; prior deep-link visibility failure remains unresolved, not waived. Focused run45566583650 queued; no forecast credit.",
+      "sourceSha": "ed9843ecd1eed5d4554afb1e220ced58c430de61",
+      "formalAcceptance": false,
+      "estimateConfidence": "NO_ADDITIONAL_HOURS_CREDIT"
     }
   ],
   "unestimatedWork": [
