@@ -3121,6 +3121,25 @@
       "sourceSha": "ff316e21c9001495c3a684715b7310ae4811a06e",
       "formalAcceptance": false,
       "estimateConfidence": "NO_ADDITIONAL_HOURS_CREDIT"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-08-048",
+      "date": "2026-11-25",
+      "packageId": "M4-08",
+      "kind": "FOUR_LANE_EXACT_SOURCE_CONSOLIDATION_AND_REVIEW_INVENTORY_VERIFIED",
+      "beforeHours": 6,
+      "afterHours": 5,
+      "reductionHours": 1,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 1,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/commit/138ea662094dc50556b1389f0c8144298b9bfcb4",
+        "https://github.com/threeswordz/cinder-grind/commit/c202d27346d718b549674cc724182ee755463876"
+      ],
+      "basis": "Exact four source parents share 0fe545da; no overlapping file changes. Isolated combined commit ahead six, zero behind relative to baseline, exactly five paths and verified all five source blob SHAs; no workflow-only children included. Current protected main compare 56 ahead, zero behind, 184 paths including eight forward migrations; complete review inventory readback 184/184, prior scope decisions and pending gates retained. Retires a distinct provisional 1h source assembly/review-preparation task, not any runtime test or independent approval, not previously credited old 177-path inventory. Four push-only result IDs unavailable, no formal acceptance.",
+      "sourceSha": "138ea662094dc50556b1389f0c8144298b9bfcb4",
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -3143,6 +3162,6 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1778,
-  "currentRollingTotalSemantics": "1778h provisional future work = 1847h baseline minus 76h evidence-backed forecast reductions plus 7h separately priced supplier scope. M4 48h; M4-01 10h; M4-03 5h; M4-06 4h; M4-08 6h; supplier 7h; all downstream work preserved; formal acceptance unchanged."
+  "currentRollingTotalAfterPricedGapsHours": 1777,
+  "currentRollingTotalSemantics": "1777h provisional future work = 1847h baseline minus 77h evidence-backed forecast reductions plus 7h separately priced supplier scope. M4 47h; M4-01 10h; M4-03 5h; M4-06 4h; M4-08 5h; supplier 7h; all downstream work preserved; formal acceptance unchanged."
 }
