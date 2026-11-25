@@ -32,6 +32,8 @@
 
 > **BEN04/PM16 native concurrency verified:** [45563492795](https://github.com/threeswordz/cinder-grind/actions/runs/45563492795/job/139032583193) SUCCESS15/15, exact source 0219bec, concurrent revisions and duplicate signatures each exactly one commit and controlled conflict, independent signoff and immutable audit. M4-03 8→7h; M4 67→66h; ERP 1,797→1,796h. Final review and retained acceptance remain.
 
+> **PUR07 v25 diagnostic:** [45564462514](https://github.com/threeswordz/cinder-grind/actions/runs/45564462514) overall FAIL after commercial audit/identity and fixture PASS, cookie-stage timeout. [0f330355](https://github.com/threeswordz/cinder-grind/commit/0f33035537bf13e7b49f54ae574b897e9971e57a) separates auth/module/mount and passes real roleCodes atop closeout-integrated fd26fb9. [45565071830](https://github.com/threeswordz/cinder-grind/actions/runs/45565071830) in progress; no additional hour credit. ERP 1,796h, M4 66h, M4-06 6h.
+
 ## Headline
 | Metric | Current | Meaning |
 |---|---:|---|
