@@ -10,6 +10,7 @@ function source(id: string, date: string, status: string, project = 'project-a')
   return {
     id, reportDate: new Date(date + 'T00:00:00.000Z'), status,
     submittedAt: status === 'SUBMITTED' ? new Date(date + 'T09:00:00.000Z') : null,
+    updatedAt: new Date(date + 'T09:00:00.000Z'),
     createdBy: { id: 'foreman', displayName: 'Foreman' },
     weatherObservation: 'Rain', generalRemarks: 'Planned work observed',
     totalManpower: 5,

@@ -1,5 +1,6 @@
 import {
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
   UnprocessableEntityException,
@@ -13,6 +14,13 @@ import { DocumentsService } from '../documents/documents.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProjectAccessService } from '../projects/project-access.service';
 import { buildWeeklySiteSummary, isSevenCalendarDays } from './site-weekly-summary';
+import { previewWeeklyWorkdays, type SiteCalendar } from './site-weekly-workday';
+import {
+  NO_WORK_ACTION, NO_WORK_CORRECTION_ACTION, NO_WORK_ENTITY,
+  WEEKLY_ACK_ACTION, WEEKLY_REVIEW_ENTITY, calendarFingerprint,
+  mayAcknowledgeWeekly, mayDeclareNoWork, noWorkEvidence,
+  validWeeklyHash, weeklyReviewFingerprint,
+} from './site-weekly-operational';
 
 type AuditContext = {
   auth: AuthenticatedUserContext;
@@ -180,9 +188,10 @@ export class SiteExecutionService {
     projectId: string,
     from?: Date,
     to?: Date,
+    db: PrismaService | Prisma.TransactionClient = this.prisma,
   ) {
-    await this.access.assertAccess(auth, projectId);
-    const rows = await this.prisma.dailySiteReport.findMany({
+    await this.access.assertAccess(auth, projectId, db);
+    const rows = await db.dailySiteReport.findMany({
       where: {
         companyId: auth.companyId,
         projectId,
@@ -230,6 +239,7 @@ export class SiteExecutionService {
     projectId: string,
     from: Date,
     to: Date,
+    db: PrismaService | Prisma.TransactionClient = this.prisma,
   ) {
     if (!isSevenCalendarDays(from, to)) {
       throw new UnprocessableEntityException({
@@ -237,9 +247,9 @@ export class SiteExecutionService {
         detail: 'Select exactly seven consecutive calendar dates.',
       });
     }
-    const sources = await this.list(auth, projectId, from, to);
+    const sources = await this.list(auth, projectId, from, to, db);
     const ids = sources.map(source => source.id);
-    const lines = ids.length ? await this.prisma.dailySiteReportProgressLine.findMany({
+    const lines = ids.length ? await db.dailySiteReportProgressLine.findMany({
       where: {
         reportId: { in: ids },
         report: { companyId: auth.companyId, projectId },
@@ -253,7 +263,33 @@ export class SiteExecutionService {
       },
       orderBy: [{ reportId: 'asc' }, { activityId: 'asc' }],
     }) : [];
-    return buildWeeklySiteSummary(
+    // FM01-B: the only calendar authority is an explicitly configured
+    // default for this Project (or Company fallback), never an assumed
+    // Monday-Friday rule. This read is still within the scoped Project route.
+    const calendars = await db.workingCalendar.findMany({
+      where: {
+        companyId: auth.companyId,
+        isActive: true,
+        isDefault: true,
+        OR: [{ projectId }, { projectId: null }],
+      },
+      select: {
+        id: true,
+        projectId: true,
+        isActive: true,
+        isDefault: true,
+        calendarName: true,
+        timezoneName: true,
+        weekdays: { select: {
+          weekdayNo: true, isWorking: true, startTime: true,
+        } },
+        exceptions: { select: {
+          exceptionDate: true, isWorkingOverride: true,
+          startTime: true, reason: true,
+        } },
+      },
+    });
+    const summary = buildWeeklySiteSummary(
       projectId,
       from,
       to,
@@ -267,6 +303,264 @@ export class SiteExecutionService {
         note: line.note,
       })),
     );
+    // Read only Company- and report-scoped operational events. A review event
+    // cannot confer approval, grant access or alter canonical daily reports.
+    const noWorkRows = ids.length ? await db.auditLog.findMany({
+      where: {
+        companyId: auth.companyId,
+        entityType: NO_WORK_ENTITY,
+        entityId: { in: ids },
+        action: { in: [NO_WORK_ACTION, NO_WORK_CORRECTION_ACTION] },
+      },
+      orderBy: [{ occurredAt: 'asc' }, { id: 'asc' }],
+    }) : [];
+    const noWorkMap = new Map(ids.map(id => [id, noWorkEvidence(
+      noWorkRows.filter(row => row.entityId === id),
+    )] as const));
+    const enriched = {
+      ...summary,
+      days: summary.days.map(day => ({
+        ...day,
+        report: day.report ? {
+          ...day.report,
+          noWork: noWorkMap.get(day.report.id) ?? null,
+        } : null,
+      })),
+      workCalendarPreview: previewWeeklyWorkdays(projectId, summary.days, calendars),
+    };
+    const documentLinks = ids.length ? await db.documentLink.findMany({
+      where: {
+        entityType: 'DAILY_SITE_REPORT',
+        entityId: { in: ids },
+      },
+      select: { id: true },
+      orderBy: { id: 'asc' },
+    }) : [];
+    const reviewFingerprint = weeklyReviewFingerprint(
+      summary, noWorkMap, enriched.workCalendarPreview,
+      documentLinks.map(link => link.id),
+    );
+    const reviewRows = await db.auditLog.findMany({
+      where: {
+        companyId: auth.companyId,
+        entityType: WEEKLY_REVIEW_ENTITY,
+        entityId: projectId,
+        action: WEEKLY_ACK_ACTION,
+      },
+      select: {
+        id: true, occurredAt: true, actorUserId: true, newValues: true,
+        actorUser: { select: { displayName: true } },
+      },
+      orderBy: [{ occurredAt: 'desc' }, { id: 'desc' }],
+    });
+    const latest = reviewRows.find(row => {
+      const v = row.newValues;
+      return v && typeof v === 'object' && !Array.isArray(v) &&
+        v.from === summary.from && v.to === summary.to;
+    });
+    const previous = latest?.newValues;
+    const lastHash = previous && typeof previous === 'object' && !Array.isArray(previous) &&
+      typeof previous.fingerprint === 'string' ? previous.fingerprint : null;
+    return {
+      ...enriched,
+      reviewFingerprint,
+      reviewAcknowledgment: latest ? {
+        status: lastHash === reviewFingerprint ? 'CURRENT' as const : 'STALE' as const,
+        acknowledgedAt: latest.occurredAt,
+        acknowledgedByUserId: latest.actorUserId,
+        acknowledgedByName: latest.actorUser.displayName,
+        acknowledgedFingerprint: lastHash,
+        authority: 'MANAGEMENT_REVIEW_ONLY_NOT_APPROVAL' as const,
+      } : {
+        status: 'NOT_REVIEWED' as const,
+        acknowledgedAt: null, acknowledgedByUserId: null,
+        acknowledgedByName: null, acknowledgedFingerprint: null,
+        authority: 'MANAGEMENT_REVIEW_ONLY_NOT_APPROVAL' as const,
+      },
+    };
+  }
+
+  // Explicit existing calendar authority, with no assumed weekday/holiday.
+  private async calendarFor(
+    db: PrismaService | Prisma.TransactionClient,
+    auth: AuthenticatedUserContext,
+    projectId: string,
+  ): Promise<SiteCalendar[]> {
+    return db.workingCalendar.findMany({
+      where: {
+        companyId: auth.companyId, isActive: true, isDefault: true,
+        OR: [{ projectId }, { projectId: null }],
+      },
+      select: {
+        id: true, projectId: true, isActive: true, isDefault: true,
+        calendarName: true, timezoneName: true,
+        weekdays: { select: { weekdayNo: true, isWorking: true, startTime: true } },
+        exceptions: { select: {
+          exceptionDate: true, isWorkingOverride: true, startTime: true, reason: true,
+        } },
+      },
+    });
+  }
+
+  private async noWorkEvents(
+    db: PrismaService | Prisma.TransactionClient,
+    auth: AuthenticatedUserContext,
+    reportId: string,
+  ) {
+    return db.auditLog.findMany({
+      where: {
+        companyId: auth.companyId,
+        entityType: NO_WORK_ENTITY,
+        entityId: reportId,
+        action: { in: [NO_WORK_ACTION, NO_WORK_CORRECTION_ACTION] },
+      },
+      orderBy: [{ occurredAt: 'asc' }, { id: 'asc' }],
+    });
+  }
+
+  async declareNoWork(context: AuditContext, id: string, reason: string) {
+    if (!mayDeclareNoWork(context.auth)) {
+      throw new ForbiddenException({code:'NO_WORK_FOREMAN_ROLE_REQUIRED',
+        detail:'Only an authorized Project Engineer/Foreman may declare planned no-work.'});
+    }
+    await this.guardedSerializable(async tx => {
+      const report = await tx.dailySiteReport.findFirst({
+        where: { id, companyId: context.auth.companyId },
+        include: { _count: { select: {
+          manpowerLines: true, materialUsage: true, equipmentUsage: true,
+          progressLines: true, inspections: true,
+        } } },
+      });
+      if (!report) throw this.notFound();
+      await this.access.assertAccess(context.auth, report.projectId, tx);
+      this.assertDraft(report.status);
+      if (report.createdByUserId !== context.auth.userId) {
+        throw new ForbiddenException({code:'NO_WORK_ORIGINAL_FOREMAN_REQUIRED',
+          detail:'Only the original Daily Report preparer may declare planned no-work.'});
+      }
+      if (Object.values(report._count).some(count => count > 0)) {
+        throw new ConflictException({code:'NO_WORK_HAS_RECORDED_WORK',
+          detail:'A no-work declaration cannot overwrite recorded manpower, equipment, activity, material or inspection.'});
+      }
+      if (noWorkEvidence(await this.noWorkEvents(tx, context.auth, id))) {
+        throw new ConflictException({code:'NO_WORK_ALREADY_DECLARED',
+          detail:'No-work declaration is immutable. Append a reason correction instead.'});
+      }
+      const calendars = await this.calendarFor(tx, context.auth, report.projectId);
+      const date = report.reportDate.toISOString().slice(0,10);
+      const days = Array.from({length:7},(_,i)=>({
+        date:new Date(report.reportDate.getTime()+i*86_400_000).toISOString().slice(0,10),
+        status:'DRAFT' as const,
+      }));
+      const preview = previewWeeklyWorkdays(report.projectId, days, calendars);
+      const first = preview.days[0];
+      if (preview.status !== 'CONFIGURED' || first?.plannedDayKind !== 'PLANNED_WORKDAY') {
+        throw new UnprocessableEntityException({code:'NO_WORK_NOT_PLANNED_WORKDAY',
+          detail:'No-work declarations require a unique configured active Project or Company work calendar marking the report date as planned work.'});
+      }
+      const calendar = calendars.find(row => row.id === preview.calendarId);
+      if (!calendar) throw new ConflictException('Configured calendar identity changed.');
+      await this.audit.record({
+        ...context, entityType: NO_WORK_ENTITY, entityId: id, action: NO_WORK_ACTION,
+        newValues: {
+          reason, projectId: report.projectId, reportDate: date,
+          plannedDayEvidence: {
+            calendarId: calendar.id, calendarName: calendar.calendarName,
+            timezoneName: calendar.timezoneName, reportDate: date,
+            plannedDayKind: 'PLANNED_WORKDAY',
+            dueLocalDate: first.dueLocalDate,
+            dueLocalStartTime: first.dueLocalStartTime,
+            calendarFingerprint: calendarFingerprint(calendar),
+            historicTimeliness: 'NOT_ASSESSED',
+          },
+        },
+      }, tx);
+    });
+    return this.get(context.auth, id);
+  }
+
+  async correctNoWork(context: AuditContext, id: string, reason: string) {
+    if (!mayDeclareNoWork(context.auth)) {
+      throw new ForbiddenException({code:'NO_WORK_FOREMAN_ROLE_REQUIRED',
+        detail:'Only the authorized Foreman may correct a planned no-work reason.'});
+    }
+    await this.guardedSerializable(async tx => {
+      const report = await tx.dailySiteReport.findFirst({
+        where: {id, companyId: context.auth.companyId},
+      });
+      if (!report) throw this.notFound();
+      await this.access.assertAccess(context.auth, report.projectId, tx);
+      if (report.createdByUserId !== context.auth.userId ||
+        report.status !== 'SUBMITTED') {
+        throw new ForbiddenException({code:'NO_WORK_REASON_CORRECTION_DENIED',
+          detail:'Only the original preparer may append a submitted no-work reason correction.'});
+      }
+      const prior = noWorkEvidence(await this.noWorkEvents(tx, context.auth, id));
+      if (!prior) throw new ConflictException({code:'NO_WORK_DECLARATION_MISSING',
+        detail:'Only an existing no-work declaration may be corrected.'});
+      if (prior.reason === reason) throw new ConflictException({code:'NO_WORK_UNCHANGED',
+        detail:'Supply a different reason for an append-only correction.'});
+      await this.audit.record({
+        ...context, entityType: NO_WORK_ENTITY, entityId: id,
+        action: NO_WORK_CORRECTION_ACTION,
+        oldValues: {reason: prior.reason},
+        newValues: {
+          reason, oldReason: prior.reason,
+          previousEventId: prior.latestEventId,
+          reportDate: report.reportDate,
+        },
+      }, tx);
+    });
+    return this.get(context.auth, id);
+  }
+
+  async acknowledgeWeekly(
+    context: AuditContext, projectId: string,
+    from: Date, to: Date, expectedFingerprint: string,
+  ) {
+    if (!validWeeklyHash(expectedFingerprint)) {
+      throw new UnprocessableEntityException({code:'WEEKLY_FINGERPRINT_INVALID',
+        detail:'Expected a canonical SHA256 weekly source fingerprint.'});
+    }
+    return this.guardedSerializable(async tx => {
+      // All source, correction and review reads share the same serializable
+      // snapshot. Stale/missing evidence fails closed; no approval is created.
+      const week = await this.weekly(context.auth, projectId, from, to, tx);
+      if (week.reviewFingerprint !== expectedFingerprint) {
+        throw new ConflictException({code:'WEEKLY_SOURCE_CHANGED',
+          detail:'Daily source or correction history changed since review preview.'});
+      }
+      const reportIds = week.days.flatMap(day => day.report ? [day.report.id] : []);
+      const correctionAuthors = reportIds.length ? await tx.dailySiteReportCorrection.findMany({
+        where: {reportId: {in:reportIds}},
+        select: {createdByUserId:true},
+      }) : [];
+      if (!mayAcknowledgeWeekly(context.auth, week, correctionAuthors.map(row=>row.createdByUserId))) {
+        throw new ForbiddenException({code:'WEEKLY_BEN_REVIEW_DENIED',
+          detail:'Only authorized Management, separate from the source preparer/corrector, may acknowledge a submitted weekly source.'});
+      }
+      if (week.reviewAcknowledgment.status === 'CURRENT') {
+        throw new ConflictException({code:'WEEKLY_ALREADY_ACKNOWLEDGED',
+          detail:'The same source version was already reviewed.'});
+      }
+      await this.audit.record({
+        ...context, entityType: WEEKLY_REVIEW_ENTITY, entityId: projectId,
+        action: WEEKLY_ACK_ACTION,
+        newValues: {
+          from: week.from, to: week.to, fingerprint: expectedFingerprint,
+          submittedDays: week.totals.submittedDays,
+          draftDays: week.totals.draftDays,
+          missingDays: week.totals.missingDays,
+          authority: 'MANAGEMENT_REVIEW_ONLY_NOT_APPROVAL',
+          sourceReportIds: reportIds,
+        },
+      }, tx);
+      return {
+        projectId, from: week.from, to: week.to,
+        reviewFingerprint: expectedFingerprint,
+        reviewState: 'ACKNOWLEDGED_NOT_APPROVED' as const,
+      };
+    });
   }
 
   async get(auth: AuthenticatedUserContext, id: string) {
@@ -333,8 +627,9 @@ export class SiteExecutionService {
       equipmentByCorrection.set(usage.sourceEntityId, rows);
     }
 
+    const noWork = noWorkEvidence(await this.noWorkEvents(this.prisma, auth, id));
     return {
-      ...report,
+      ...report, noWork,
       corrections: report.corrections.map((correction) => ({
         ...correction,
         progressCorrections:
@@ -493,13 +788,26 @@ export class SiteExecutionService {
     input: DailySiteReportUpdateInput,
   ) {
     try {
-      await this.prisma.$transaction(async (tx) => {
+      await this.guardedSerializable(async (tx) => {
         const before = await tx.dailySiteReport.findFirst({
           where: { id, companyId: context.auth.companyId },
         });
         if (!before) throw this.notFound();
         await this.access.assertAccess(context.auth, before.projectId, tx);
         this.assertDraft(before.status);
+        const noWork = noWorkEvidence(await this.noWorkEvents(tx, context.auth, id));
+        if (noWork && (
+          (input.reportDate !== undefined &&
+            input.reportDate.getTime() !== before.reportDate.getTime()) ||
+          (input.manpower?.length ?? 0) > 0 ||
+          (input.materialUsage?.length ?? 0) > 0 ||
+          (input.equipmentUsage?.length ?? 0) > 0 ||
+          (input.progress?.length ?? 0) > 0 ||
+          (input.inspections?.length ?? 0) > 0
+        )) {
+          throw new ConflictException({code:'NO_WORK_CANNOT_RECORD_WORK',
+            detail:'A planned no-work declaration forbids changes to report date or positive work lines.'});
+        }
 
         await this.validateReferences(
           tx,
@@ -702,7 +1010,7 @@ export class SiteExecutionService {
   }
 
   async submit(context: AuditContext, id: string) {
-    await this.prisma.$transaction(async (tx) => {
+    await this.guardedSerializable(async (tx) => {
       const report = await tx.dailySiteReport.findFirst({
         where: { id, companyId: context.auth.companyId },
         include: { progressLines: true, equipmentUsage: true },
@@ -710,6 +1018,19 @@ export class SiteExecutionService {
       if (!report) throw this.notFound();
       await this.access.assertAccess(context.auth, report.projectId, tx);
       this.assertDraft(report.status);
+      const noWork = noWorkEvidence(await this.noWorkEvents(tx, context.auth, id));
+      if (noWork) {
+        const substantive = await Promise.all([
+          tx.dailySiteReportManpower.count({where:{reportId:id}}),
+          tx.dailySiteReportMaterialUsage.count({where:{reportId:id}}),
+          tx.dailySiteReportInspection.count({where:{reportId:id}}),
+        ]);
+        if (report.progressLines.length || report.equipmentUsage.length ||
+          substantive.some(count=>count>0)) {
+          throw new ConflictException({code:'NO_WORK_CANNOT_RECORD_WORK',
+            detail:'No-work submission cannot post Activity Progress, material, equipment or work observations.'});
+        }
+      }
 
       for (const line of report.progressLines) {
         const progress = await tx.activityProgress.create({
@@ -837,6 +1158,11 @@ export class SiteExecutionService {
           code: 'DAILY_SITE_REPORT_NOT_SUBMITTED',
           detail: 'Corrections can only be appended after report submission.',
         });
+      }
+      if ((progressCorrections.length || equipmentCorrections.length) &&
+        noWorkEvidence(await this.noWorkEvents(tx, context.auth, id))) {
+        throw new ConflictException({code:'NO_WORK_CANNOT_RECORD_WORK',
+          detail:'No-work reports cannot post progress/equipment corrections; correct the reason separately.'});
       }
 
       await this.validateReferences(
@@ -1458,6 +1784,30 @@ export class SiteExecutionService {
       code: 'DAILY_SITE_REPORT_NOT_FOUND',
       detail: 'Daily Site Report not found.',
     });
+  }
+
+  // Every FM01 source transaction maps a concurrent serializable abort into
+  // an actionable domain conflict rather than leaking an opaque HTTP 500.
+  // No automatic retry: caller must re-read immutable source history first.
+  private async guardedSerializable<T>(
+    operation: (tx: Prisma.TransactionClient) => Promise<T>,
+  ): Promise<T> {
+    try {
+      return await this.prisma.$transaction(operation, {
+        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2034'
+      ) {
+        throw new ConflictException({
+          code: 'DAILY_SITE_REPORT_CONCURRENT_SOURCE',
+          detail: 'The report or immutable source changed concurrently. Refresh and retry after reviewing the latest source.',
+        });
+      }
+      throw error;
+    }
   }
 
   private throwDuplicate(error: unknown) {

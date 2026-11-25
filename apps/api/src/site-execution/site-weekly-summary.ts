@@ -4,6 +4,7 @@ export type WeeklySiteReportSource = {
   reportDate: Date;
   status: string;
   submittedAt: Date | null;
+  updatedAt: Date;
   createdBy: { id: string; displayName: string };
   totalManpower: number;
   weatherObservation: string | null;
@@ -75,6 +76,7 @@ export function buildWeeklySiteSummary(
         id: report.id,
         createdBy: report.createdBy,
         submittedAt: report.submittedAt,
+        updatedAt: report.updatedAt,
         weatherObservation: report.weatherObservation,
         generalRemarks: report.generalRemarks,
         totalManpower: report.totalManpower,
