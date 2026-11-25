@@ -2177,6 +2177,66 @@
       "sourceSha": "f42f58ee1c083c3552ee57f17e39e3ecf94766fa",
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "date": "2026-11-25",
+      "newlyIdentifiedScopeHours": 0,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL",
+      "id": "ERP-PROG-20261125-M4-07-006",
+      "packageId": "M4-07",
+      "kind": "PUR12_NATIVE_POPULATED_HISTORICAL_PRESERVATION",
+      "beforeHours": 4,
+      "afterHours": 3,
+      "reductionHours": 1,
+      "verifiedCompletedScopeHours": 1,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45555417055",
+        "https://github.com/threeswordz/cinder-grind/commit/bcb9cb4e81e481c7c99423dfe87a8f8991ab3bdf"
+      ],
+      "basis": "Exact combined successor source bcb9cb4e, workflow-only child1e099509, run45555417055 SUCCESS14/14. 169 historical table digests and 7 PO rows preserved; prior PM02/PUR04/PUR01 non-null commercial and exception metadata; new PUR12 four nullable identity fields remain NULL, exact migration/check/active immutable trigger; separate predecessor restore and upgraded target recheck. Provisional 1h native identity migration/recovery work eliminated, not actual labor or earlier identity-native credit. Global layered admission, retained actor and independent review remain.",
+      "sourceSha": "bcb9cb4e81e481c7c99423dfe87a8f8991ab3bdf"
+    },
+    {
+      "date": "2026-11-25",
+      "newlyIdentifiedScopeHours": 0,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL",
+      "id": "ERP-PROG-20261125-M4-06-006",
+      "packageId": "M4-06",
+      "kind": "PUR07_NATIVE_POPULATED_HISTORICAL_PRESERVATION",
+      "beforeHours": 7,
+      "afterHours": 6,
+      "reductionHours": 1,
+      "verifiedCompletedScopeHours": 1,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45555417055",
+        "https://github.com/threeswordz/cinder-grind/commit/bcb9cb4e81e481c7c99423dfe87a8f8991ab3bdf"
+      ],
+      "basis": "Same combined native recovery proves separate PUR07 empty new po_dispatch_events table, exact migration, six validated foreign keys, checks and two enabled source/immutability triggers with preserved prior business digests and restore. Provisional 1h remaining dispatch-schema migration proof eliminated, distinct from earlier native PDF and dispatch journey, no duplicate PUR12 credit. Global release admission and final integration/retained-role/host review remain.",
+      "sourceSha": "bcb9cb4e81e481c7c99423dfe87a8f8991ab3bdf"
+    },
+    {
+      "date": "2026-11-25",
+      "newlyIdentifiedScopeHours": 0,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL",
+      "id": "ERP-PROG-20261125-M4-08-018",
+      "packageId": "M4-08",
+      "kind": "PURCHASING_SUCCESSOR_HISTORICAL_CONSUMERS_PASS",
+      "beforeHours": 22,
+      "afterHours": 21,
+      "reductionHours": 1,
+      "verifiedCompletedScopeHours": 1,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/commit/c007e19424b9fec96657a84f748320f4816c1aca",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45555815912",
+        "https://github.com/threeswordz/cinder-grind/commit/fc093f55dcfcf2c08c28e519212dd3684c1d1ccf",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45555627653",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45555913363"
+      ],
+      "basis": "Successor historical consumer code c007e194 connects exact validated PUR12 columns/PUR07 table to receiving, FM03, HR and legacy snapshots; positive/negative new empty table allowlist and syntax contract PASS45555815912. Provisional 1h remaining consumer contract work eliminated, not proof of actual full historical rehearsals. Supplier latest scoped source 53c488c8, 21 paths; 45555627653 migration/build/web and 20 policy tests PASS, 2/3 native PASS (posted replacement/reversal and signed custody, no postings); older missing replacement provenance expected wrong error. Test-only correction fc093f55 preserves stricter source denial; corrected native + not-yet-executed browser proof run45555913363 in_progress. Supplier separately priced 9h unchanged pending combined validation. Successor v24/v25 evidence and global admission not enabled.",
+      "sourceSha": "c007e19424b9fec96657a84f748320f4816c1aca"
     }
   ],
   "unestimatedWork": [
@@ -2199,6 +2259,6 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1806,
-  "currentRollingTotalSemantics": "1806h provisional future work = 1847h baseline minus 50h evidence-backed package forecast reductions plus 9h separately priced supplier scope. M4 76h; M4-06 7h, M4-07 4h, M4-08 22h; formal acceptance unchanged."
+  "currentRollingTotalAfterPricedGapsHours": 1803,
+  "currentRollingTotalSemantics": "1803h provisional future work = 1847h baseline minus 53h evidence-backed package forecast reductions plus 9h separately priced supplier scope. M4 73h; M4-06 6h, M4-07 3h, M4-08 21h; formal acceptance unchanged."
 }
