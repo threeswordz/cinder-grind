@@ -1668,6 +1668,45 @@
       "sourceSha": "e04b1cac5343f5b57bad51d52349990357c7168a",
       "formalAcceptance": false,
       "estimateConfidence": "PENDING_FOCUSED_PROOF"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-02-006",
+      "date": "2026-11-25",
+      "packageId": "M4-02",
+      "kind": "PM02_SEPARATE_PREDECESSOR_DATABASE_RESTORE_PASS",
+      "beforeHours": 5,
+      "afterHours": 5,
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45525270417",
+        "https://github.com/threeswordz/cinder-grind/commit/e04b1cac5343f5b57bad51d52349990357c7168a",
+        "https://github.com/threeswordz/cinder-grind/compare/e04b1cac5343f5b57bad51d52349990357c7168a...181eb11647d77ce398d8efcb57c1c0238995e25d"
+      ],
+      "basis": "Observed existing recovery run45525270417 SUCCESS, job138906928664 all 14 listed steps successful; workflow-only child181eb11647d77ce398d8efcb57c1c0238995e25d of exact PM02 sourcee04b1cac5343f5b57bad51d52349990357c7168a. Three additive-schema/migration contracts PASS, populated forward preservation PASS tables169 PR_LINES7, separate predecessor database restore PASS tables169 PR_LINES7, upgraded-target recheck PASS. All table digests and migration checksums match; only known equivalent PostgreSQL17 typed-array deparse on stock_transactions.material_uom_copy_transfer_pin is normalized, other trigger definitions/enabled states exact. No run repeated or extra forecast credit for corrective proof. Database-only disposable evidence: paired Documents/external HR keys, restored application proof, global schema/rehearsal consumer wiring and independent review remain. M4-02 stays5h, M4 stays88h, ERP stays1818h. FM01 PR452 remains draft4aab761d8477cfb63ea978af1444865b720d42d5, focused/browser repairs PASS; full45524967848 attempt1 blocked at draft admission. New specific Owner authorization under #384 needed before one exact full trigger. No Ready/review/merge, retained grants, human acceptance or Production.",
+      "sourceSha": "e04b1cac5343f5b57bad51d52349990357c7168a",
+      "formalAcceptance": false,
+      "estimateConfidence": "NO_ADDITIONAL_HOURS_CREDIT"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-01-013",
+      "date": "2026-11-25",
+      "packageId": "M4-01",
+      "kind": "PROGRESS_VALIDATOR_ORIGINAL_SCOPE_BASELINE_CORRECTION",
+      "beforeHours": 12,
+      "afterHours": 12,
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/blob/6b4166b318b25607543591a0df401c549e10b018/tools/erp-progress-report.mjs",
+        "https://github.com/threeswordz/cinder-grind/blob/6b4166b318b25607543591a0df401c549e10b018/docs/ERP-ACTIVE-REMAINING-HOURS.json"
+      ],
+      "basis": "Local canonical report validation reproduced Stale scope event ERP-PROG-20261124-PUR08-14-002: validator initialized historical scope chain from cumulative gross51h, but original priced event starts50h and later defect event adds1h gross. Corrected renderer initializes from original explicit priced event and independently requires initial estimate plus all nonnegative discovered-scope increments to equal cumulative gross. Preserves every historical event, 1847h baseline and 9h supplier balance. Current-ledger chain and 12-stage/60-package arithmetic pass; negative original-gross, interior-chain and final-balance variants must still fail. Reporting-only correction, zero forecast credit; no workflow triggered.",
+      "sourceSha": "6b4166b318b25607543591a0df401c549e10b018",
+      "formalAcceptance": false,
+      "estimateConfidence": "NO_ADDITIONAL_HOURS_CREDIT"
     }
   ],
   "unestimatedWork": [
@@ -1691,5 +1730,5 @@
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
   "currentRollingTotalAfterPricedGapsHours": 1818,
-  "currentRollingTotalSemantics": "1830h provisional future work = 1847h baseline minus 17h M4-01, 1h M4-02, 1h M4-03, 1h M4-04, 1h M4-05, 2h M4-06, 1h M4-07, 2h M4-08, plus 9h supplier scope. JAI-ASSET-01 canonical CG acquisition register and native proof eliminate 5h previously identified remaining scope. Not actual labor or formal acceptance; deadline RED."
+  "currentRollingTotalSemantics": "1818h provisional future work = 1847h baseline minus 38h evidence-backed package forecast reductions plus 9h separately priced supplier scope. M4 remains88h, M4-02 remains5h. Database-only separate predecessor restore observed PASS; no new forecast credit, actual labor or formal acceptance."
 }

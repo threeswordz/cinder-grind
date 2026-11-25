@@ -21,7 +21,21 @@ must(initial===d.currentRemainingWorkBaselineHours,'Initial 1847h does not recon
 must([...records.values()].reduce((a,p)=>a+p.optimizationTargetHours,0)===d.fullScopeOptimizationTargetHours,'Optimization 1500h does not reconcile');
 const ids=new Set();
 const scopeChain=new Map(d.unestimatedWork.filter(x=>x.grossPreImplementationEstimateHours!==undefined)
-  .map(x=>[x.id,x.grossPreImplementationEstimateHours]));
+  .map(x=>{
+    const events=d.events.filter(e=>e.scopeId===x.id);
+    const first=events[0];
+    must(first?.kind==='PRICED_ADDITIONAL_MANDATORY_SCOPE'&&
+      Number.isInteger(first.scopeBeforeHours)&&first.scopeBeforeHours>=0,
+      'Missing original priced-scope event '+x.id);
+    const discoveries=events.reduce((sum,e)=>{
+      const added=e.newlyIdentifiedScopeHours??0;
+      must(Number.isInteger(added)&&added>=0,'Invalid discovered-scope hours '+e.id);
+      return sum+added;
+    },0);
+    must(first.scopeBeforeHours+discoveries===x.grossPreImplementationEstimateHours,
+      'Cumulative gross scope does not reconcile '+x.id);
+    return [x.id,first.scopeBeforeHours];
+  }));
 for(const e of d.events){
   must(e.id&&!ids.has(e.id),'Duplicate event');
   ids.add(e.id);
