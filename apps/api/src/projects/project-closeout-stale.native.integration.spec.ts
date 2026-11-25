@@ -148,6 +148,41 @@ test('BEN04 actual HTTP/PostgreSQL stale preparation rejection and immutable ind
    await reject(nancy,'POST',closeout+'/sign',{expectedFingerprint:fingerprint,note:'Old signature must fail'});
    await pass(ben,'POST',closeout+'/sign',{expectedFingerprint:revised.current.fingerprint,note:'New Ben review'});
    await pass(nancy,'POST',closeout+'/sign',{expectedFingerprint:revised.current.fingerprint,note:'New Nancy review'});
+   // Real HTTP competing revisions against one fingerprint: exactly one
+   // append is allowed; no automatic replay or opaque 500 on serialization.
+   const raceInput={...input,expectedFingerprint:revised.current.fingerprint,
+     revisionReason:'Concurrent new operational preparation'};
+   const auditBeforeRace=await db.auditLog.count({where:{companyId:company.id,
+     entityType:'PROJECT_OPERATIONAL_CLOSEOUT',entityId:project.id}});
+   const responses=await Promise.all([
+    request(pm,'POST',closeout+'/prepare',{...raceInput,overallNote:'Competing preparation A'}),
+    request(pm,'POST',closeout+'/prepare',{...raceInput,overallNote:'Competing preparation B'}),
+   ]);
+   assert.deepEqual(responses.map(r=>r.status).sort((a,b)=>a-b),[201,409],
+     'Exactly one competing revision must commit: '+JSON.stringify(responses));
+   const loser=responses.find(r=>r.status===409)!;
+   assert.match(JSON.stringify(loser.raw),/BEN04_(CONCURRENT_SOURCE|STALE_PREPARATION)/);
+   const winner=responses.find(r=>r.status===201)!;
+   const current=await pass<{current:{version:number;fingerprint:string};status:string}>(pm,'GET',closeout);
+   assert.equal(current.current.version,3);
+   assert.equal(current.current.fingerprint,winner.data.current.fingerprint);
+   assert.equal(current.status,'PREPARED');
+   assert.equal(await db.auditLog.count({where:{companyId:company.id,
+     entityType:'PROJECT_OPERATIONAL_CLOSEOUT',entityId:project.id}}),auditBeforeRace+1);
+   // Competing duplicate signatures: one durable signature, one refusal.
+   const signInput={expectedFingerprint:current.current.fingerprint,note:'Concurrent independent Ben review'};
+   const signed=await Promise.all([request(ben,'POST',closeout+'/sign',signInput),
+     request(ben,'POST',closeout+'/sign',signInput)]);
+   assert.deepEqual(signed.map(r=>r.status).sort((a,b)=>a-b),[201,409],
+     'Exactly one competing signature must commit: '+JSON.stringify(signed));
+   assert.match(JSON.stringify(signed.find(r=>r.status===409)!.raw),
+     /BEN04_(CONCURRENT_SOURCE|DUPLICATE_SIGNATURE)/);
+   assert.equal(await db.auditLog.count({where:{companyId:company.id,
+     entityType:'PROJECT_OPERATIONAL_CLOSEOUT',entityId:project.id}}),auditBeforeRace+2);
+   const finished=await pass<{status:string}>(nancy,'POST',closeout+'/sign',{
+     expectedFingerprint:current.current.fingerprint,note:'Nancy reviewed winning preparation'});
+   assert.equal(finished.status,'JOINTLY_APPROVED');
+   console.log('BEN04_NATIVE_CONCURRENT_REVISION_AND_SIGNATURE_EXACTLY_ONE_COMMIT_PASS');
    console.log('BEN04_NATIVE_STALE_PREPARATION_NULL_MISSING_OLD_HASH_DENIED_AND_INDEPENDENT_SIGNOFF_PASS');
   })();
   assert.equal(await db.directCostPosting.count({where:{companyId:company.id}}),beforeFinance);
