@@ -238,6 +238,51 @@ test('PUR12 native: MKE/TCJ source-backed PO snapshots, revision, no fake names,
       assert.equal(retry.displayNumber,prefix+'-'+retry.poNumber+' LATER');
       assert.equal((await seq()).nextValue,snapshot.nextValue+1);
       console.log('PUR12_NATIVE_FAILED_DRAFT_ATOMIC_SEQUENCE_ROLLBACK_AND_RETRY_PASS',companyCode);
+
+      // Distinct source awards compete for the same Company sequence. The
+      // SERIALIZABLE loser must be a controlled conflict, not an HTTP 500;
+      // no implicit server retry or sequence gap is permitted.
+      const concurrentAwards = [
+        await selectedAward(companyCode + '-concurrent-a'),
+        await selectedAward(companyCode + '-concurrent-b'),
+      ];
+      const startSequence = await seq();
+      const startCount = await prisma.purchaseOrder.count({where:{companyId:company.id}});
+      const attempts = await Promise.allSettled(concurrentAwards.map(source =>
+        pos.createOrder({auth:jai},project.id,[source.id])));
+      const successful = attempts.filter(result => result.status === 'fulfilled');
+      assert.ok(successful.length >= 1, 'At least one competing transaction must commit');
+      assert.equal((await seq()).nextValue, startSequence.nextValue + successful.length);
+      assert.equal(await prisma.purchaseOrder.count({where:{companyId:company.id}}),
+        startCount + successful.length);
+      for (const [index, result] of attempts.entries()) {
+        if (result.status === 'rejected') {
+          const error = result.reason;
+          assert.equal(error?.getStatus?.(), 409);
+          assert.equal(error?.getResponse?.()?.code, 'PO_CREATE_CONCURRENT_SOURCE_CHANGE');
+          // Explicit fresh request from the maker after checking the source.
+          await pos.createOrder({auth:jai},project.id,[concurrentAwards[index]!.id]);
+        }
+      }
+      const committed = await prisma.purchaseOrder.findMany({
+        where:{companyId:company.id,lines:{some:{quotationAwardId:{in:concurrentAwards.map(source=>source.id)}}}},
+        include:{lines:true},
+      });
+      assert.equal(committed.length,2);
+      assert.equal(new Set(committed.map(row=>row.poNumber)).size,2);
+      assert.deepEqual(committed.map(row=>Number(row.poNumber.split('-').at(-1))).sort((a,b)=>a-b),
+        [startSequence.nextValue,startSequence.nextValue+1]);
+      for (const row of committed) {
+        assert.equal(row.displayNumber,prefix+'-'+row.poNumber+' LATER');
+        assert.equal(row.lines.length,1);
+      }
+      assert.equal((await seq()).nextValue,startSequence.nextValue+2);
+      assert.equal(await prisma.purchaseOrder.count({where:{companyId:company.id}}),startCount+2);
+      assert.equal(await prisma.auditLog.count({
+        where:{companyId:company.id,entityType:'PURCHASE_ORDER',action:'CREATE_DRAFT',
+          entityId:{in:committed.map(row=>row.id)}},
+      }),2);
+      console.log('PUR12_NATIVE_CONCURRENT_DISTINCT_AWARD_NUMBERING_PASS',companyCode);
       await prisma.supplier.update({where:{id:supplier.id},data:{shortName:null}});
 
       // Approved PO revision inherits immutable initial snapshot.
