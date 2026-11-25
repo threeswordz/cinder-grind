@@ -3646,6 +3646,42 @@
       "verifiedCompletedScopeHours": 0.5,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-03-076",
+      "date": "2026-11-25",
+      "packageId": "M4-03",
+      "kind": "FM01_CORRECTED_ROLE_AND_CLOSEOUT_INTEGRATED_CHROMIUM_PASS",
+      "beforeHours": 3.5,
+      "afterHours": 2.5,
+      "sourceSha": "4d6e56a13bd6f662336c364b36527ed3852e3036",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45615355077/job/139209205431"
+      ],
+      "basis": "Exact integrated source 4d6e56a with workflow-only child c4da953 PASS20/20; API/web compile, actual PG17/Chrome Foreman readonly, Ben acknowledgment without dashboard permission, Khaimook six-category prepare, independent Ben and Nancy closeout signoffs. Retire 1h distinct corrected-source integration verification; previous standalone full and earlier browser credit not counted again. Independent review and retained roles remain.",
+      "reductionHours": 1,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 1,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-01-077",
+      "date": "2026-11-25",
+      "packageId": "M4-01",
+      "kind": "ALL_112_IMMUTABLE_SCOPE_GUARD_ACTUAL_NODE_EXECUTION_PASS",
+      "beforeHours": 6.5,
+      "afterHours": 6,
+      "sourceSha": "4d6e56a13bd6f662336c364b36527ed3852e3036",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45615355077/job/139209205431"
+      ],
+      "basis": "Actual Node execution of previously prepared immutable scope guard on exact integrated source, 112 rows and six owner-authorized boundaries; no acceptance changes, 42 future retained, 33 bounded, 12 source, 13 role, six functional gaps. Retire 0.5h remaining execution/evidence assurance only, not repeat previous manual reconciliation credit or close any requirement.",
+      "reductionHours": 0.5,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0.5,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -3668,6 +3704,6 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1759.5,
-  "currentRollingTotalSemantics": "1759.5h = 1847h baseline minus 92h verified baseline forecast reduction plus 4.5h remaining supplier scope. M4 29.5h. All 112 requirements preserved. Actual labor unmeasured."
+  "currentRollingTotalAfterPricedGapsHours": 1758,
+  "currentRollingTotalSemantics": "1758h = 1847h baseline minus 93.5h verified baseline forecast reduction plus 4.5h remaining supplier scope. M4 28h. All 112 requirements preserved. Actual labor unmeasured."
 }

@@ -1,14 +1,14 @@
 # Construction ERP — live countdown to 0 hours
 
 <!-- current-work-m4 -->
-**Current M4 forecast 29.5h → 0h · Full ERP 1,759.5h → 0h.** Actual PUR07 real Thai PDF/dispatch/Ben browser PASS; recovered PM15 stale-readback Chrome PASS. FM01 corrected source reconciled into integrated candidate 4d6e56a; focused integrated proof running. Independent review blocked by quota.
+**Current M4 forecast 28h → 0h · Full ERP 1,758h → 0h.** Corrected integrated FM01/closeout real Chrome PASS20/20 and actual immutable 112 scope guard PASS. New targeted PUR01/PUR04 browser commercial revision and exception test submitted; no credit until result. Independent review blocked by quota.
 
 | Forecast reconciliation | Hours |
 |---|---:|
-| Previous reported ERP forecast | 1,762 |
+| Previous reported ERP forecast | 1,759.5 |
 | Newly identified mandatory scope | +0 |
-| Verified remaining-effort reduction | −2.5 |
-| Revised remaining ERP forecast | **1,759.5** |
+| Verified remaining-effort reduction | −1.5 |
+| Revised remaining ERP forecast | **1,758** |
 
 Prototype 4/8 · Go-live 3/10 · Deadline 31 December 2026.
 <!-- /current-work-m4 -->
@@ -140,9 +140,9 @@ Prototype 4/8 · Go-live 3/10 · Deadline 31 December 2026.
 ## Headline
 | Metric | Current | Meaning |
 |---|---:|---|
-| **Estimated full ERP work still needed** | **1,759.5h → 0h** | 112 requirements across eight roles |
+| **Estimated full ERP work still needed** | **1,758h → 0h** | 112 requirements across eight roles |
 | 23 Nov original current-work forecast | 1847h | Earlier 60-package provisional baseline |
-| Additional estimated future-work eliminated | −92h | M4-01 −25.5h, M4-02 −6h, M4-03 −6.5h, M4-04 −4h, M4-05 −4h, M4-06 −8h, M4-07 −4.5h, M4-08 −33.5h |
+| Additional estimated future-work eliminated | −93.5h | M4-01 −26h, M4-02 −6h, M4-03 −7.5h, M4-04 −4h, M4-05 −4h, M4-06 −8h, M4-07 −4.5h, M4-08 −33.5h |
 | Newly discovered previously unpriced PUR08/PUR14 work | +4.5h | Remaining supplier lifecycle and assurance work |
 | Net reforecast change versus 1,847h | −79h | Includes separately priced supplier scope |
 | PUR08/PUR14 provisional work before new development | 51h | Low-confidence new-gap gross estimate |
@@ -156,13 +156,13 @@ Prototype 4/8 · Go-live 3/10 · Deadline 31 December 2026.
 | Whole baseline packages formally accepted | 0/60 | 8 M4 packages still 0/8 |
 | Actual productive hours logged | UNKNOWN | Cannot infer from GitHub commits or AI conversation length |
 
-**Forecast basis.** The 1,847h baseline covers 60 packages. Verified work has removed 92h of estimated future effort from those packages. The separately priced supplier lifecycle has 4.5h remaining, bringing the ERP forecast to 1,759.5h.
+**Forecast basis.** The 1,847h baseline covers 60 packages. Verified work has removed 93.5h of estimated future effort from those packages. The separately priced supplier lifecycle has 4.5h remaining, bringing the ERP forecast to 1,758h.
 
 ## Stage-by-stage remaining work
 
 | Stage | Previous 60-package baseline | Verified package forecast reduction | Additional scope remaining | **Now remaining** | Accepted baseline packages |
 |---|---:|---:|---:|---:|---:|
-| Prototype 5/8 — M4 closure | 117h | 92h | 4.5h | **29.5h** | 0/8 |
+| Prototype 5/8 — M4 closure | 117h | 93.5h | 4.5h | **28h** | 0/8 |
 | Prototype 6/8 — end-to-end deployment | 120h | 0h | 0h | **120h** | 0/5 |
 | Prototype 7/8 — populated restore | 50h | 0h | 0h | **50h** | 0/3 |
 | Prototype 8/8 — technical freeze | 65h | 0h | 0h | **65h** | 0/3 |
@@ -174,15 +174,15 @@ Prototype 4/8 · Go-live 3/10 · Deadline 31 December 2026.
 | Production hosting and recovery | 110h | 0h | 0h | **110h** | 0/5 |
 | Migration and onboarding | 110h | 0h | 0h | **110h** | 0/4 |
 | Final human UAT, cutover and Production | 150h | 0h | 0h | **150h** | 0/5 |
-| **Full ERP** | 1847h | 92h | 4.5h | **1,759.5h** | **0/60** |
+| **Full ERP** | 1847h | 93.5h | 4.5h | **1,758h** | **0/60** |
 
 ## Each baseline package
 
 | Package | Stage | Delivery item | Starting estimate | Remaining now |
 |---|---|---|---:|---:|
-| M4-01 | M4 | Current-source and all-112 evidence/scope decisions | 32h | **6.5h** |
+| M4-01 | M4 | Current-source and all-112 evidence/scope decisions | 32h | **6h** |
 | M4-02 | M4 | PM02 real browser and retained-role authorization | 8h | **2h** |
-| M4-03 | M4 | FM01, BEN04 and PM16 real-browser acceptance | 10h | **3.5h** |
+| M4-03 | M4 | FM01, BEN04 and PM16 real-browser acceptance | 10h | **2.5h** |
 | M4-04 | M4 | PUR01 whole-PO supplier-count and commercial rule | 8h | **4h** |
 | M4-05 | M4 | PUR04 core PO commercial/delivery fields | 9h | **5h** |
 | M4-06 | M4 | PUR07 supplier-name PO PDF and manual dispatch evidence | 10h | **2h** |
@@ -330,6 +330,11 @@ Prototype 4/8 · Go-live 3/10 · Deadline 31 December 2026.
 
 - **M4-06 4→2h** — Actual workflow-only child 2f271a5d SUCCESS 15/15, PostgreSQL17 and API build, actual approved PO source, actual HTTP200 PDF and completed Chrome download, extracted Thai name, real Jai manual external send evidence and Ben scoped read-only deep link. Earlier 409 synthetic missing PUR10 named actors corrected, 422 renderer failure addressed with bounded transient transport retry and safe failure class logging; exact underlying failure not conclusively diagnosed. Retire 2h of previously outstanding integrated PUR07 browser validation, no duplicate prior preparation or native evidence. Retained MKE/TCJ acceptance and independent final review remain. [Evidence 1](https://github.com/threeswordz/cinder-grind/actions/runs/45615060550/job/139208203637)
 - **M4-01 7→6.5h** — Actual previously uncredited Chrome job SUCCESS11/11, PM15_SYNTHETIC_HTTP_REAL_CHROME_DELAYED_SITE_SUCCESS_AND_PROJECT_ERROR_ISOLATION_PASS. Exact test source ancestor of integrated e6120e2; real browser with synthetic HTTP fixture, not real API/retained user. Retire 0.5h distinct requirements evidence reconciliation, not repeat credit for earlier real PG17 portfolio or prior typecheck. Demand/supplier policy and retained acceptance stay open. [Evidence 1](https://github.com/threeswordz/cinder-grind/actions/runs/45583301153/job/139098462710)
+
+## 25 November fourth validation reconciliation
+
+- **M4-03 3.5→2.5h** — Exact integrated source 4d6e56a with workflow-only child c4da953 PASS20/20; API/web compile, actual PG17/Chrome Foreman readonly, Ben acknowledgment without dashboard permission, Khaimook six-category prepare, independent Ben and Nancy closeout signoffs. Retire 1h distinct corrected-source integration verification; previous standalone full and earlier browser credit not counted again. Independent review and retained roles remain. [Evidence](https://github.com/threeswordz/cinder-grind/actions/runs/45615355077/job/139209205431)
+- **M4-01 6.5→6h** — Actual Node execution of previously prepared immutable scope guard on exact integrated source, 112 rows and six owner-authorized boundaries; no acceptance changes, 42 future retained, 33 bounded, 12 source, 13 role, six functional gaps. Retire 0.5h remaining execution/evidence assurance only, not repeat previous manual reconciliation credit or close any requirement. [Evidence](https://github.com/threeswordz/cinder-grind/actions/runs/45615355077/job/139209205431)
 
 ## Required update rule after every Chat development turn
 
