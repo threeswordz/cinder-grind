@@ -94,7 +94,7 @@ test('PUR07 new server Chromium: searchable Thai real PDF and actual approvedPdf
       lifecycleState:'APPROVED',cancelledAt:null,currencyCode:'THB',
       companyId:randomUUID(),
       project:{projectCode:'TCJ-SITE',projectName:'ไซต์ก่อสร้าง'},
-      approvalInstance:{completedAt:new Date('2026-11-23T14:20:00.000Z')},
+      approvalInstance:{approvalState:'APPROVED',completedAt:new Date('2026-11-23T14:20:00.000Z')},
       lines:[{
         lineNo:1,description:'บริการคอนกรีตสำหรับไซต์',
         quantity:new Prisma.Decimal('1'),uomCodeSnapshot:'EA',

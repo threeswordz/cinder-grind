@@ -181,10 +181,12 @@ test('PUR07 native: approved PDF bytes and Jai-only append-only external send/ac
       }),
     );
     await assert.rejects(
-      ()=>pur07.record({auth:jai},order.id,{
+      ()=>pur07.record({auth:{...jai,permissions:[...jai.permissions,'documents.document.view']}},order.id,{
         kind:'DISPATCH',channel:'EMAIL',recipient:'supplier@example.invalid',
         evidenceReference:'Attempt to link cross-scope evidence',evidenceDocumentId:randomUUID(),
       }),
+      (error:unknown)=>error instanceof Error && typeof (error as {getResponse?:unknown}).getResponse==='function' &&
+        (error as {getResponse:()=>{code?:string}}).getResponse().code==='PO_DISPATCH_EVIDENCE_DOCUMENT_OUT_OF_SCOPE',
     );
     const sent = await pur07.record({auth:jai},order.id,{
       kind:'DISPATCH',channel:'EMAIL',recipient:'supplier@example.invalid',
