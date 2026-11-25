@@ -268,3 +268,23 @@ test('DEC-050 C evidence requires exact five migrations, version19 and executed 
  for(const name of stageCMigrations)assert.notEqual(verify({...data,migrationNames:stageCMigrations.filter(n=>n!==name)}).status,0,name);
  assert.notEqual(verify({...data,version:18}).status,0);
 });
+
+test('PM02 v21 requires both exact migrations and all executed preservation and paired recovery proofs',async()=>{
+ const {pm02Mode,pm02Migrations}=await import('./pm02-schema-preparation.mjs');
+ assert.deepEqual(pm02Mode('migration-aware-pm02-schema'),{present:true,prior:'migration-aware-sql-only'});
+ assert.deepEqual(pm02Mode('migration-aware-pm02-fm02-schema'),{present:true,prior:'migration-aware-fm02-schema'});
+ assert.deepEqual(pm02Mode('migration-aware-sql-only'),{present:false,prior:'migration-aware-sql-only'});
+ const keys=['pm02SchemaUpgrade','pm02SourceContractTests','pm02HistoricalPreservation','pm02PairedRecovery','pm02ExternalHrKeyAndDocumentRecovery'];
+ const data={...evidence('migration-aware-pm02-schema'),version:21,migrationNames:Object.keys(pm02Migrations),...Object.fromEntries(keys.map(k=>[k,'PASS']))};
+ let result=verify(data);
+ assert.equal(result.status,0,result.stderr);
+ assert.equal(JSON.parse(result.stdout).version,21);
+ for(const key of [...keys,'rollbackDocuments','restoredPreviousRuntimeAuthenticationDownload']){
+  const invalid={...data};delete invalid[key];assert.notEqual(verify(invalid).status,0,key);
+ }
+ assert.notEqual(verify({...data,version:20}).status,0);
+ for(const name of data.migrationNames)assert.notEqual(verify({...data,migrationNames:data.migrationNames.filter(n=>n!==name)}).status,0,name);
+ const layered={...data,releaseMode:'migration-aware-pm02-fm02-schema',migrationNames:[...data.migrationNames,'20261122140000_fm02_weighted_project_progress'],fm02SchemaUpgrade:'PASS',fm02SourceContractTests:'PASS',fm02HistoricalPreservation:'PASS',fm02PairedRecovery:'PASS'};
+ result=verify(layered);assert.equal(result.status,0,result.stderr);
+ delete layered.fm02PairedRecovery;assert.notEqual(verify(layered).status,0);
+});
