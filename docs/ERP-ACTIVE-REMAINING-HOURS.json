@@ -3409,6 +3409,25 @@
       "sourceSha": "c83f2498ce46a2bba52f565fd6af8c1257784907",
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-07-063",
+      "date": "2026-11-25",
+      "packageId": "M4-07",
+      "kind": "PUR12_CONTROLLED_CREATE_CONFLICT_CONCURRENT_NUMBERING_REGRESSION_PREPARED",
+      "beforeHours": 3,
+      "afterHours": 2.5,
+      "reductionHours": 0.5,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0.5,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/commit/0fe9aeb9c6a38d04439a3846d624dca6d797e544",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45603992458/job/139170282235"
+      ],
+      "basis": "Exact two-path PUR12 source increment maps P2034 and raw SQL 40001/40P01 to controlled create conflict without replay; preserves existing serializable transaction and monthly sequence policy. Native MKE/TCJ test competes distinct awards, checks any loser controlled, explicit maker retry, two consecutive unique identities, immutable supplier snapshot, exact sequence/count/audit. Six committed catch excerpt tests using mocked Prisma/exception classes PASS, unrelated errors preserved; actual native/TS not run. Retire 0.5h existing source-preparation allowance only. FM01 PR452 exact corrected draft admission log confirmed DRAFT_FOCUSED_ONLY, not functional failure. Targeted push-only result remains unexposed; no duplicate trigger or full retry. Main unchanged, no merge/Production/retained grants/formal acceptance.",
+      "sourceSha": "0fe9aeb9c6a38d04439a3846d624dca6d797e544",
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -3431,6 +3450,6 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1769.5,
-  "currentRollingTotalSemantics": "1769.5h provisional full ERP = 1847h baseline minus 84h net baseline forecast effort retired plus 6.5h supplier work remaining. M4 39.5h: M4-01 7h, M4-02 2h, M4-03 5h, M4-04 4.5h, M4-05 5.5h, M4-06 4h, M4-07 3h, M4-08 2h, supplier 6.5h. PUR04 source preparation verified; actual TS/PG and independent review pending. PR452 independent Codex review resumed; no acceptance credit. All 112 requirements preserved. PR452 Codex P2 fixed in source; exact corrected candidate c83f2498 Draft, targeted native/browser pending; no additional credit until observed validation."
+  "currentRollingTotalAfterPricedGapsHours": 1769,
+  "currentRollingTotalSemantics": "1769h provisional full ERP = 1847h baseline minus 84.5h net baseline forecast effort retired plus 6.5h supplier work remaining. M4 39h: M4-01 7h, M4-02 2h, M4-03 5h, M4-04 4.5h, M4-05 5.5h, M4-06 4h, M4-07 2.5h, M4-08 2h, supplier 6.5h. PUR12 source preparation only; TS/native PG pending. PR452 corrected head Draft, admission intentional; targeted result and fresh full CI plus independent review pending. All 112 requirements preserved."
 }
