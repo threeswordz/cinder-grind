@@ -13,6 +13,7 @@ import {verifyM6SubcontractRetention} from './m6-subcontract-retention.mjs';
 import {verifyM6SiteMaterial} from './m6-site-material-preservation.mjs';
 import {verifyM6Procurement} from './m6-procurement-preservation.mjs';
 import {verifyExactHistoricalRows} from './m6-exact-historical-rows.mjs';
+import {verifyM6HrFinalPreservation} from './m6-hr-final-preservation.mjs';
 import {verifyM6RecoveryCopy} from './m6-recovery-copy.mjs';
 import {privateInventory,privateJson,seal,fileHash,stage,databaseStream,freePort,environment,command,hasSoleListenerPid,verifyDocumentInventory} from './prototype-transfer-upgrade.mjs';
 import {validActorReceipt,validPrivateActors} from './prototype-browser-operator.mjs';
@@ -115,7 +116,7 @@ async function procIdentity(p,repo){
 export function createM6MacRuntime({releaseSha,sourceRoot,root=join(homedir(),'Construction-ERP-Prototype-Runtime')}={}){
  need(sha.test(releaseSha??'')&&typeof sourceRoot==='string'&&resolve(sourceRoot)===sourceRoot&&resolve(root)===root,'M6_MAC_RUNTIME_INPUT_INVALID');
  const prior=join(root,'uom-upgrade'),old=join(prior,'application'),newStage=join(root,'m6-upgrade'),app=join(newStage,'application');
- const snapshots={};let cfg,container,receipt,actorBinding,db,client,processes=[],encryptedDocumentKey=null;
+ const snapshots={};let cfg,container,receipt,actorBinding,db,client,processes=[],encryptedDocumentKey=null,verifiedHrAttachmentId=null;
  const url=(name='proto_a_01')=>'postgresql://proto_runtime:'+encodeURIComponent(cfg.databasePassword)+'@127.0.0.1:55471/'+name+'?schema=public';
  const database=name=>new client({datasources:{db:{url:url(name)}},log:[]});
  const runtimeEnv=async(name='proto_a_01',store=root)=>({...env(),NODE_ENV:'uat',API_HOST:'127.0.0.1',API_PORT:'33071',WEB_ORIGIN:WEB,DATABASE_URL:url(name),
@@ -298,7 +299,7 @@ export function createM6MacRuntime({releaseSha,sourceRoot,root=join(homedir(),'C
   const matches=doc.checksum===hash(actual)&&doc.fileSizeBytes===actual.length&&
     !actual.equals(plaintext)&&!actual.includes(plaintext)&&typeof row.encryptedMetadata==='string'&&row.encryptedMetadata.length>0;
   actual.fill(0);plaintext.fill(0);need(matches,'M6_HR_PLAINTEXT_OR_CHECKSUM_STORAGE_FAIL');
-  encryptedDocumentKey=key;
+  encryptedDocumentKey=key;verifiedHrAttachmentId=attachmentId;
   need(digest(await privateInventory(join(root,'hrkeys')))===digest(snapshots.files.hrkeys),'M6_HR_KEYS_CHANGED');
   return {attachmentId,ciphertextAtRestVerified:true,plaintextNotStored:true,sourceFilesAndKeysPreserved:true};
  }
@@ -312,6 +313,7 @@ export function createM6MacRuntime({releaseSha,sourceRoot,root=join(homedir(),'C
   const subcontractProof=verifyM6SubcontractRetention(snapshots.before,latest,snapshots.files.documents,currentDocuments);
   const siteMaterialProof=verifyM6SiteMaterial(snapshots.before,latest,snapshots.files.documents,currentDocuments);
   const procurementProof=verifyM6Procurement(snapshots.before,latest,snapshots.files.documents,currentDocuments);
+  const hrProof=verifyM6HrFinalPreservation(snapshots.before,latest,verifiedHrAttachmentId,encryptedDocumentKey);
   verifyDocumentInventory(latest.documents,currentDocuments);
   await verifyM6RecoveryCopy({root:join(newStage,'preserved'),expected:snapshots.files,expectedDumpSha:snapshots.dumpSha,readInventory:privateInventory});
   need(digest(await boundedJSON(join(prior,'source-database-after-private.json')))===digest(snapshots.before),
@@ -319,6 +321,7 @@ export function createM6MacRuntime({releaseSha,sourceRoot,root=join(homedir(),'C
   await seal(join(newStage,'source-database-after-private.json'),latest);
   return {ok:true,releaseSha,originalPopulatedDumpPreserved:true,previousHrKeysAndUploadsIntact:true,
     protectedHrEncryptedFileVerified:true,oldHistoricalSnapshotPreserved:true,
+    historicalHrRowsPreserved:hrProof.historicalHrRowsPreserved,oneNewHrAttachmentVerified:hrProof.oneNewHrAttachmentVerified,
     historicalSubcontractRowsPreserved:subcontractProof.historicalSubcontractRowsPreserved,
     protectedSubcontractEvidencePreserved:subcontractProof.protectedEvidenceMetadataAndBytesPreserved,
     historicalSiteMaterialRowsPreserved:siteMaterialProof.historicalSiteMaterialRowsPreserved,
