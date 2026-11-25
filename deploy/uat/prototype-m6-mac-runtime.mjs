@@ -13,6 +13,7 @@ import {verifyM6SubcontractRetention} from './m6-subcontract-retention.mjs';
 import {verifyM6SiteMaterial} from './m6-site-material-preservation.mjs';
 import {verifyM6Procurement} from './m6-procurement-preservation.mjs';
 import {verifyExactHistoricalRows} from './m6-exact-historical-rows.mjs';
+import {verifyM6RecoveryCopy} from './m6-recovery-copy.mjs';
 import {privateInventory,privateJson,seal,fileHash,stage,databaseStream,freePort,environment,command,hasSoleListenerPid,verifyDocumentInventory} from './prototype-transfer-upgrade.mjs';
 import {validActorReceipt,validPrivateActors} from './prototype-browser-operator.mjs';
 const ORIGIN='https://github.com/threeswordz/cinder-grind.git';
@@ -221,6 +222,7 @@ export function createM6MacRuntime({releaseSha,sourceRoot,root=join(homedir(),'C
    verifyM6Procurement(snapshots.before,after,snapshots.files.documents,rehearsalDocuments);
    verifyM6MigrationLedger(snapshots.priorLedger,await migrationLedger(rehearsal),previousSources,releaseSources);
   }finally{await rehearsal.$disconnect();}
+  await verifyM6RecoveryCopy({root:join(newStage,'preserved'),expected:snapshots.files,expectedDumpSha:snapshots.dumpSha,readInventory:privateInventory});
   // Never replay the already completed UOM/receiving/subcontract business operators.
   const cutover=await identity();
   need(cutover.mode===snapshots.predecessor.mode,'M6_PREDECESSOR_CHANGED_DURING_REHEARSAL');
@@ -311,7 +313,7 @@ export function createM6MacRuntime({releaseSha,sourceRoot,root=join(homedir(),'C
   const siteMaterialProof=verifyM6SiteMaterial(snapshots.before,latest,snapshots.files.documents,currentDocuments);
   const procurementProof=verifyM6Procurement(snapshots.before,latest,snapshots.files.documents,currentDocuments);
   verifyDocumentInventory(latest.documents,currentDocuments);
-  need(await fileHash(join(newStage,'preserved','postgresql.custom'))===snapshots.dumpSha,'M6_FINAL_PRESERVED_DUMP_CHANGED');
+  await verifyM6RecoveryCopy({root:join(newStage,'preserved'),expected:snapshots.files,expectedDumpSha:snapshots.dumpSha,readInventory:privateInventory});
   need(digest(await boundedJSON(join(prior,'source-database-after-private.json')))===digest(snapshots.before),
    'M6_UOM_SOURCE_SNAPSHOT_TAMPERED');
   await seal(join(newStage,'source-database-after-private.json'),latest);
