@@ -58,6 +58,8 @@
 
 > **112 requirement reconciliation:** [new bounded matrix](M4-2026-11-25-112-CONSOLIDATED-EVIDENCE.csv), 112 original rows preserved, 19 recent evidence annotations, no retained/Owner gate changes. M4-01 12→11h, M4 55→54h, ERP 1,785→1,784h. Latest [PUR07 45572709802](https://github.com/threeswordz/cinder-grind/actions/runs/45572709802) failed PDF response assertion; Ben deep link and operational browser skipped. Prior limited PASS preserved, no new browser credit. Separate operational workflow creation blocked by tool safety check; no bypass. 
 
+> **Equipment successor preflight:** [90147671](https://github.com/threeswordz/cinder-grind/commit/90147671340b4696c714b4ecceb4bcdbf5053070) verifies 174 predecessor migration entries unchanged, exactly two added pinned SQL files and same Prisma schema. Fail-closed test source added; no Node execution, populated recovery, global admission or additional credit. M4 54h, ERP 1,784h.
+
 ## Headline
 | Metric | Current | Meaning |
 |---|---:|---|
