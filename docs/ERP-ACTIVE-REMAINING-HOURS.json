@@ -3556,6 +3556,60 @@
       "verifiedCompletedScopeHours": 0.5,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-08-071",
+      "date": "2026-11-25",
+      "packageId": "M4-08",
+      "kind": "SS11_CORRECTED_EXACT_LAYERED_RECOVERY_AND_ROLLBACK_PASS",
+      "beforeHours": 1,
+      "afterHours": 0.5,
+      "sourceSha": "36ff707c95d819491074fa40b38ca4df5cf83996",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45613742239/job/139203659500"
+      ],
+      "basis": "Exact workflow-only child f803ea4b passed 15/15; strengthened real catalog guard and corrected legacy cancellation fixture, EQUIPMENT_LAYERED_RECOVERY_PASS with exact base 040395bc and receipt v25, external HR keys/protected document recovery, runtime, separate rollback and authenticated restored document download. Retire 0.5h remaining focused recovery execution only; previous upgrade/restore subproof not counted twice. Final independent integration and Owner gate still open.",
+      "reductionHours": 0.5,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0.5,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-07-072",
+      "date": "2026-11-25",
+      "packageId": "M4-07",
+      "kind": "PUR12_CONCURRENT_DISTINCT_AWARD_NUMBERING_REAL_PG_PASS",
+      "beforeHours": 2.5,
+      "afterHours": 1.5,
+      "sourceSha": "36ff707c95d819491074fa40b38ca4df5cf83996",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45614092149/job/139204886306"
+      ],
+      "basis": "Exact workflow-only child 2d5d10ed passed 15/15 and native 3/3 overall. PUR12_NATIVE_CONCURRENT_DISTINCT_AWARD_NUMBERING_PASS MKE and TCJ, atomic rollback/retry and scope guards. Retire 1h changed-source concurrency execution effort; prior bounded numbering proof and source preparation not counted twice. Retained authorization and final integration remain.",
+      "reductionHours": 1,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 1,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261125-PUR08-PUR14-INTEGRATION-073",
+      "date": "2026-11-25",
+      "packageId": "PUR08_PUR14_INTEGRATION",
+      "kind": "PUR14_LATEST_INVALID_ORIGIN_AND_SIGNED_CUSTODY_REAL_NATIVE_PASS",
+      "beforeHours": 5.5,
+      "afterHours": 4.5,
+      "sourceSha": "36ff707c95d819491074fa40b38ca4df5cf83996",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45614092149/job/139204886306"
+      ],
+      "basis": "Actual current-source API compile, PG17 native tests 3/3 including missing/nonexistent replacement origin denial, valid posted replacement and signed return custody, original delivery link, duplicate bytes denied and stock/AP unchanged. Retire 1h previously outstanding invalid-origin execution and latest native assurance. No additional credit for prior concurrency/browser/return proof; retained human UAT, independent review, external policy and integration remain.",
+      "reductionHours": 1,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 1,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -3565,19 +3619,19 @@
         "PUR08",
         "PUR14"
       ],
-      "hours": 5.5,
+      "hours": 4.5,
       "budgetAllocation": "NEW_EXPLICIT_M4_ADDITIONAL_SCOPE; NOT SILENTLY SUBTRACTED_FROM_M4_01/M4_08",
       "sourceStatus": "NEW_BOUNDED_LINEAGE_NATIVE_AND_REAL_CHROME_SIGNED_CUSTODY_REPLACEMENT_REVERSAL_PASS;FINANCE_CREDIT_SEPARATE",
-      "remaining": "5.5h provisional remaining supplier workflow and assurance: native regression for unknown/unlinked origin, exact final integrated independent DEC-022, retained named-role MKE/TCJ Company/Project UAT, separately authorized canonical posted-stock return/reversal and Finance credit outside case, SHORT/WRONG/EXCESS remain evidence-only pending quantitative attribution; final CI/merge/Production authorization. Revision/report native collision and explicit stale retry now passed; missing/unlinked-origin test and retained acceptance still pending.",
+      "remaining": "4.5h provisional remaining supplier workflow and assurance: exact final integrated independent DEC-022, retained named-role MKE/TCJ Company/Project UAT, separately authorized canonical posted-stock return/reversal and Finance credit outside case, SHORT/WRONG/EXCESS remain evidence-only pending quantitative attribution; final CI/merge/Production authorization. Latest revision/report and invalid-origin native proof passed; no retained acceptance.",
       "evidence": "https://github.com/threeswordz/cinder-grind/actions/runs/45555913363",
       "stage": "M4",
       "grossPreImplementationEstimateHours": 51,
-      "estimatedReductionFromNewSourceHours": 45.5,
+      "estimatedReductionFromNewSourceHours": 46.5,
       "confidence": "LOW",
       "estimateKind": "NEWLY_DISCOVERED_MANDATORY_SCOPE_PRICE_NOT_A_TIMESHEET"
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1764.5,
-  "currentRollingTotalSemantics": "1764.5h = 1847h baseline minus 88h verified baseline forecast reduction plus 5.5h remaining supplier scope. M4 34.5h. All 112 requirements preserved. Actual labor unmeasured."
+  "currentRollingTotalAfterPricedGapsHours": 1762,
+  "currentRollingTotalSemantics": "1762h = 1847h baseline minus 89.5h verified baseline forecast reduction plus 4.5h remaining supplier scope. M4 32h. All 112 requirements preserved. Actual labor unmeasured."
 }
