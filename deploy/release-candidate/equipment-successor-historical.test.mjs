@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {createHash} from 'node:crypto';
-import {equipmentMigrationNames,equipmentTables,equipmentIncrement,equipmentCatalogIds,assertEquipmentHistoricalTables,assertEquipmentReleaseEvidence} from './equipment-successor-historical.mjs';
+import {equipmentMigrationNames,equipmentTables,equipmentIncrement,equipmentCatalogIds,assertEquipmentHistoricalTables,assertEquipmentReleaseEvidence,equipmentTriggerBindings,assertEquipmentTriggerBindings,verifyEquipmentTriggerBindings} from './equipment-successor-historical.mjs';
 
 const before=[{migration_name:'old',checksum:'historical'}];
 const pins=Object.fromEntries(equipmentMigrationNames.map((name,i)=>[name,String(i+1).repeat(64)]));
@@ -41,4 +41,22 @@ test('release evidence cannot omit any equipment-specific proof or accept a part
  assertEquipmentReleaseEvidence(receipt);
  for(const key of Object.keys(receipt).filter(key=>key!=='migrationNames'))assert.throws(()=>assertEquipmentReleaseEvidence({...receipt,[key]:'FAIL'}));
  assert.throws(()=>assertEquipmentReleaseEvidence({...receipt,migrationNames:equipmentMigrationNames.slice(0,2)}));
+});
+
+test('equipment trigger bindings are exact, enabled and absent on rollback',async()=>{
+ const rows=Object.entries(equipmentTriggerBindings).map(([name,binding])=>({name,...binding,function_schema:'public',enabled:'O'}));
+ assertEquipmentTriggerBindings(rows,true);
+ assertEquipmentTriggerBindings([],false);
+ assert.throws(()=>assertEquipmentTriggerBindings(rows,false));
+ assert.throws(()=>assertEquipmentTriggerBindings(rows.slice(0,-1),true));
+ assert.throws(()=>assertEquipmentTriggerBindings([...rows.slice(0,-1),rows[0]],true));
+ for(const patch of [{enabled:'D'},{enabled:'R'},{relation:'equipment'},{function_name:'wrong_guard'},{function_schema:'other'},{trigger_type:1}]){
+  assert.throws(()=>assertEquipmentTriggerBindings([{...rows[0],...patch},...rows.slice(1)],true));
+ }
+ let calls=0;
+ await verifyEquipmentTriggerBindings({$queryRawUnsafe:async(sql,names)=>{
+  calls++;assert.match(sql,/t\.tgfoid/);assert.match(sql,/t\.tgenabled/);assert.deepEqual(names,Object.keys(equipmentTriggerBindings));return rows;
+ }},true);
+ assert.equal(calls,1);
+ await assert.rejects(()=>verifyEquipmentTriggerBindings({$queryRawUnsafe:async()=>rows.slice(1)},true));
 });
