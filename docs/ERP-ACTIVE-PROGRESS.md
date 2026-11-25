@@ -94,6 +94,8 @@
 
 > **All-112 effective M4 scope gate alignment:** [immutable 112-row Owner reconciliation guard](https://github.com/threeswordz/cinder-grind/commit/1d5a79c8f1fa18443d742dd4739463a6e5eb0c9b) and [effective 112-row gate projection](M4-2026-11-25-112-EFFECTIVE-M4-GATES.csv) [0336d3b](https://github.com/threeswordz/cinder-grind/commit/0336d3b251a218ac48dcc595b1b6b605786fefad). All original 112 rows equal overlay source, exactly six approved bounded scope decisions, 42 deferred, 33 bounded evidence, 12 source pending, 13 role pending, six functional gaps; original historical decisions and all future scope preserved; zero formal M4 acceptance. Programmatic 112/112 readback and cross-file alignment completed; Node CI execution not claimed. Distinct provisional future manual gate reconciliation −1h; M4-01 10→9h, M4 47→46h, ERP 1,777→1,776h. No code admission, retained grants or runtime acceptance.
 
+> **Current 188-path exact successor:** [86e376af](https://github.com/threeswordz/cinder-grind/commit/86e376af957788de15f1a7e315428cdd0d0299b2) preserves previous four-lane implementation plus operational browser and integrates all 112 immutable source/Owner/effective-gate records and their read-only guard, four byte-identical new paths, zero conflicts. [188-path full independent review inventory](M4-2026-11-25-CLOSURE-CANDIDATE-188-PATH-REVIEW.md) verified 188/188, main→successor 58 ahead and zero behind. **No incremental hour credit:** overlaps already credited all-112 effective-gate work and earlier source integration. M4 46h, ERP 1,776h; pending CI, DEC-022, retained roles, Mac recovery and human release gates unchanged.
+
 ## Headline
 | Metric | Current | Meaning |
 |---|---:|---|
