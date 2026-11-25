@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
 import {readFileSync,writeFileSync,realpathSync} from 'node:fs';
 import {resolve,dirname,relative,isAbsolute,sep} from 'node:path';
-import {verifyEquipmentHistoricalIncrement,equipmentMigrationNames,equipmentTables} from './equipment-successor-historical.mjs';
+import {verifyEquipmentHistoricalIncrement,equipmentMigrationNames,equipmentTables,verifyEquipmentTriggerBindings} from './equipment-successor-historical.mjs';
 
 const [phase,previousRoot,manifestPath]=process.argv.slice(2);
 const target=new URL(process.env.DATABASE_URL??'postgresql://invalid.invalid/');
@@ -33,6 +33,7 @@ const sourceRows=async ids=>{
  return result;
 };
 const installed=async present=>{
+ await verifyEquipmentTriggerBindings(db,present);
  const names=await db.$queryRawUnsafe("SELECT to_regclass('public.equipment_asset_register_versions')::text AS asset,to_regclass('public.equipment_custody_loans')::text AS custody");
  assert.deepEqual(names,[{asset:present?equipmentTables[0]:null,custody:present?equipmentTables[1]:null}]);
  const functions=await db.$queryRawUnsafe("SELECT p.proname AS name,pg_get_functiondef(p.oid) AS definition FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE n.nspname='public' AND p.proname IN ('equipment_custody_thailand_day','guard_equipment_custody_loan') ORDER BY p.proname");
