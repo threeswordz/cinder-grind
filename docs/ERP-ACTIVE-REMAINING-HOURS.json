@@ -3428,6 +3428,24 @@
       "sourceSha": "0fe9aeb9c6a38d04439a3846d624dca6d797e544",
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-08-064",
+      "date": "2026-11-25",
+      "packageId": "M4-08",
+      "kind": "SS11_EXACT_ENABLED_TRIGGER_BINDINGS_RECOVERY_GUARD",
+      "beforeHours": 2,
+      "afterHours": 1.5,
+      "reductionHours": 0.5,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0.5,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/commit/fcd099953d82c2488dafc95a0179ec1289e06883"
+      ],
+      "basis": "Exact three-path SS11 assurance preparation: integrated recovery checks all four installed trigger names, relation, public function binding, event mask and ordinary-write enablement in upgrade/restored target, and absence in predecessor/rollback. One exact committed-source regression executed through an assertion shim and mocked DB query, 110 assertions evaluated successfully including rejection cases; actual PostgreSQL catalog query, Node full suite and integrated rehearsal not executed. Retire 0.5h from existing source preparation allowance only. FM01 corrected Draft remains unchanged, no target push-only workflow outcome exposed by commit status or run query. No duplicate CI, merge, retained grants, formal acceptance or Production.",
+      "sourceSha": "fcd099953d82c2488dafc95a0179ec1289e06883",
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -3450,6 +3468,6 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1769,
-  "currentRollingTotalSemantics": "1769h provisional full ERP = 1847h baseline minus 84.5h net baseline forecast effort retired plus 6.5h supplier work remaining. M4 39h: M4-01 7h, M4-02 2h, M4-03 5h, M4-04 4.5h, M4-05 5.5h, M4-06 4h, M4-07 2.5h, M4-08 2h, supplier 6.5h. PUR12 source preparation only; TS/native PG pending. PR452 corrected head Draft, admission intentional; targeted result and fresh full CI plus independent review pending. All 112 requirements preserved."
+  "currentRollingTotalAfterPricedGapsHours": 1768.5,
+  "currentRollingTotalSemantics": "1768.5h provisional full ERP = 1847h baseline minus 85h net baseline forecast effort retired plus 6.5h supplier work remaining. M4 38.5h: M4-01 7h, M4-02 2h, M4-03 5h, M4-04 4.5h, M4-05 5.5h, M4-06 4h, M4-07 2.5h, M4-08 1.5h, supplier 6.5h. Equipment source trigger checks only; actual native recovery pending; FM01 targeted result/full CI/independent review pending. All 112 requirements preserved."
 }
