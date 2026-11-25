@@ -24,6 +24,7 @@ import {
 
 import { ApiError } from '../api/client';
 import { printApprovedPurchaseOrderHtml } from './purchase-order-print';
+import { SupplierDeliveryCasePanel } from './SupplierDeliveryCasePanel';
 import {
   PoAward,
   PoDispatchDraft,
@@ -41,6 +42,7 @@ import {
 
 type Props = {
   permissions: string[];
+  roleCodes?: string[];
   initialProjectId?: string | undefined;
   initialOrderId?: string | undefined;
   onOpenSource?: ((target: SourceLinkTarget) => void) | undefined;
@@ -120,7 +122,7 @@ function lineDraft(line: PurchaseOrderLine): LineDraft {
   };
 }
 
-export function PurchaseOrdersPanel({ permissions, initialProjectId, initialOrderId, onOpenSource }: Props) {
+export function PurchaseOrdersPanel({ permissions, roleCodes = [], initialProjectId, initialOrderId, onOpenSource }: Props) {
   const queryClient = useQueryClient();
   const canView = permissions.includes('procurement.po.view');
   const canCreate = permissions.includes('procurement.po.create');
@@ -1113,6 +1115,10 @@ export function PurchaseOrdersPanel({ permissions, initialProjectId, initialOrde
                       Cancel Revision
                     </Button>
                   </Stack>
+                ) : null}
+
+                {approved && !current.nextRevision ? (
+                  <SupplierDeliveryCasePanel orderId={orderId} permissions={permissions} roleCodes={roleCodes}/>
                 ) : null}
 
                 {canRevise &&

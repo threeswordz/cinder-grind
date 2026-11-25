@@ -137,6 +137,7 @@ export function AdminConsole({ user, onLogoutSuccess }: { user: CurrentUser; onL
           permission: '__purchase_orders__',
           content: <PurchaseOrdersPanel
             permissions={user.permissions}
+            roleCodes={user.roleCodes}
             initialProjectId={linkedSource?.sectionKey === 'purchase-orders' ? linkedSource.projectId : undefined}
             initialOrderId={linkedSource?.sectionKey === 'purchase-orders' ? linkedSource.recordId : undefined}
             onOpenSource={openSource}
@@ -214,6 +215,7 @@ export function AdminConsole({ user, onLogoutSuccess }: { user: CurrentUser; onL
           permission: '__inventory__',
           content: <InventoryWorkspace
             permissions={user.permissions}
+            roleCodes={user.roleCodes}
             userId={user.id}
             companyId={user.companyId}
             initialProjectId={linkedSource?.sectionKey === 'inventory' ? linkedSource.projectId : undefined}
