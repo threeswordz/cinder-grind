@@ -55,7 +55,16 @@ try{
   writeFileSync(manifest,JSON.stringify(snap),{mode:0o600,flag:'wx'});
  }else if(phase==='restored'){
   const before=JSON.parse(readFileSync(manifest,'utf8'));
-  assert.deepEqual(snap,before,'Restored predecessor rows, migrations and trigger attachments must match exactly');
+  assert.deepEqual(tables,before.tables,'Restored predecessor row counts and digests must match exactly');
+  assert.deepEqual(migrations,before.migrations,'Restored migration checksums must match exactly');
+  // PG17 pg_dump/restore can deparse the same typed array coercion in two
+  // forms. Accept ONLY this known equivalent spelling on this exact trigger.
+  // Every other definition, enabled state, relation and name stays exact.
+  const original="((ARRAY['STOCK_TRANSFER_OUT'::character varying, 'STOCK_TRANSFER_IN'::character varying])::text[])";
+  const restored="ARRAY[('STOCK_TRANSFER_OUT'::character varying)::text, ('STOCK_TRANSFER_IN'::character varying)::text]";
+  const normalize=items=>items.map(t=>t.relation==='stock_transactions'&&t.name==='material_uom_copy_transfer_pin'
+    ?{...t,definition:t.definition.replace(original,restored)}:t);
+  assert.deepEqual(normalize(triggers),normalize(before.triggers),'Restored predecessor trigger attachments and definitions must match');
   console.log('PM02_PAIRED_PREDECESSOR_RESTORE_PASS tables='+Object.keys(tables).length+' PR_LINES='+tables.purchase_request_lines.count);
  }else{
   const before=JSON.parse(readFileSync(manifest,'utf8'));
