@@ -2319,6 +2319,26 @@
       "sourceSha": "a8e1f688617b5c54656467c61923b6d8e4039007",
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-02-008",
+      "date": "2026-11-25",
+      "packageId": "M4-02",
+      "kind": "PM02_CONSOLIDATED_V25_BROWSER_FIXTURE_RESTORED",
+      "beforeHours": 3,
+      "afterHours": 3,
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/commit/b7ada888a3fcf8fbc8bfb120d154df3996752a6f",
+        "https://github.com/threeswordz/cinder-grind/commit/3c764c71b2f87e2d39d6e2e61a7af1f44ad3ba5b",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45147124712"
+      ],
+      "basis": "Restored identical previously passing PM02 browser fixture blob 96a0c20afd58a18bafec6ff656f4fc3bba5951a3 to consolidated v25 source a8e1f688 in test-only commit b7ada888; workflow-only child 3c764c71 on isolated branch ci-m4-pm02-v25-browser-20261125. Exact one-path deltas verified. Push trigger configured; current run ID/status not exposed by connector. No new PASS or forecast credit; no full CI, grants, merge, Production or acceptance.",
+      "sourceSha": "b7ada888a3fcf8fbc8bfb120d154df3996752a6f",
+      "formalAcceptance": false,
+      "estimateConfidence": "NO_ADDITIONAL_HOURS_CREDIT"
     }
   ],
   "unestimatedWork": [
