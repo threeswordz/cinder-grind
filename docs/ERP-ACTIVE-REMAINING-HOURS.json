@@ -2358,6 +2358,26 @@
       "sourceSha": "b7ada888a3fcf8fbc8bfb120d154df3996752a6f",
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-03-010",
+      "date": "2026-11-25",
+      "packageId": "M4-03",
+      "kind": "BEN04_CLOSEOUT_CONCURRENT_SOURCE_GUARD_AND_REGRESSION_STAGED",
+      "beforeHours": 8,
+      "afterHours": 8,
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/commit/0219becb9c5049c1042d068d985ee12412cb6987",
+        "https://github.com/threeswordz/cinder-grind/commit/763d786fd3a265db2dd7f6c6bee24d5d83fcfd4a",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45563492795"
+      ],
+      "basis": "Verified previously reviewed closeout service/editor blobs already identical on protected main 040395bc; no replay of old full/browser runs. Source audit identified closeout prepare/sign Serializable abort P2034 not mapped by existing filter. Two-file isolated candidate adds narrow Prisma P2034→409 BEN04_CONCURRENT_SOURCE, no automatic replay, preserves isolation/fingerprint and independent signatures. Native regression races two revisions then two duplicate signatures through actual HTTP and checks one durable winner, one controlled conflict, audit count, final Nancy sign and existing no-stock/no-Finance constraints. Workflow-only child 763d786f starts run45563492795, observed queued. Existing M4-03 residual includes this assurance work; no new priced scope and no forecast credit before PASS. No protected main/full CI/grants/Production.",
+      "sourceSha": "0219becb9c5049c1042d068d985ee12412cb6987",
+      "formalAcceptance": false,
+      "estimateConfidence": "NO_ADDITIONAL_HOURS_CREDIT"
     }
   ],
   "unestimatedWork": [
