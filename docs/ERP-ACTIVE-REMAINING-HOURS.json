@@ -2827,6 +2827,25 @@
       "sourceSha": "ecd78e4dad648594f27bb7d5517df819b0b1e090",
       "formalAcceptance": false,
       "estimateConfidence": "NO_ADDITIONAL_HOURS_CREDIT"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-01-012",
+      "date": "2026-11-25",
+      "packageId": "M4-01",
+      "kind": "OWNER_AUTHORIZED_SIX_SCOPE_BOUNDARIES_RECONCILED",
+      "beforeHours": 11,
+      "afterHours": 10,
+      "reductionHours": 1,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 1,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/commit/ecd78e4dad648594f27bb7d5517df819b0b1e090",
+        "https://github.com/threeswordz/cinder-grind/commit/d5c333d8feabb60c8ed847f4dc16171abe3b6f84"
+      ],
+      "basis": "Owner explicitly authorized all six M4 boundaries in exact ecd78e4d packet, preserving all deferred requirements in full ERP. Verified readback of 112-row disposition overlay, all original rows verbatim, exactly six approved. 1h provisional remaining M4-01 scope decision/reconciliation administrative effort retired, not deferred implementation hours or formal acceptance. Existing downstream XP/HR/Accounting scope and estimates unchanged, six other functional gaps unchanged, no grants or release authorization.",
+      "sourceSha": "d5c333d8feabb60c8ed847f4dc16171abe3b6f84",
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -2849,6 +2868,6 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1784,
-  "currentRollingTotalSemantics": "1784h provisional future work = 1847h baseline minus 70h evidence-backed package forecast reductions plus 7h separately priced supplier scope. M4 54h; M4-01 11h; M4-03 5h; M4-06 4h; M4-08 11h; supplier 7h; formal acceptance unchanged."
+  "currentRollingTotalAfterPricedGapsHours": 1783,
+  "currentRollingTotalSemantics": "1783h provisional future work = 1847h baseline minus 71h evidence-backed forecast reductions plus 7h separately priced supplier scope. M4 53h; M4-01 10h; M4-03 5h; M4-06 4h; M4-08 11h; supplier 7h; all downstream work preserved; formal acceptance unchanged."
 }
