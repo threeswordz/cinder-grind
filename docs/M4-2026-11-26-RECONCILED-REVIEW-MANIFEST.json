@@ -1,18 +1,18 @@
 {
   "schema": "M4_RECONCILED_REVIEW_MANIFEST_V1",
   "date": "2026-11-26",
-  "source": "0994594e8ab1fd40d972ade9f463a7cca6e0be32",
+  "source": "457e9c48727b5038f4277bb4f9a547c9843f22b7",
   "base": "040395bc7b0dedd40207f91f743bc2efc1584622",
-  "sourceAhead": 123,
+  "sourceAhead": 125,
   "sourceBehind": 0,
-  "frozenDraftHead": "280760321e5958035443721eb208dc090e614d93",
+  "frozenDraftHead": "457e9c48727b5038f4277bb4f9a547c9843f22b7",
   "parentManifest": {
     "commit": "b10a70024b174c9c62269fd75bc8b0c1ddaa187c",
     "source": "220b781aea8752e9b6762bf2d4e8cba06b44f2de",
     "sourceTree": "abeecfaa786a6126d0479ac919ce126d0694caba",
     "baseTree": "cc37732481928ca3df86618ea5308cd59882b63b"
   },
-  "verificationMethod": "Prior 205-file complete recursive tree manifest carried forward using exact GitHub six-addition-only comparison and six newly fetched blob identities; complete 211 changed-path/status list crosschecked against base-to-successor comparison. New recursive tree SHA not exposed by connector; no claim of new full tree walk.; six changed path blob identities read back after P2 correction and complete 214 path/status comparison checked. No new recursive tree SHA.",
+  "verificationMethod": "Complete recursive candidate/base blob identities verify 229 changed paths against GitHub comparison; exact two-commit delta of 15 disjoint test-only paths.",
   "changedFiles": [
     {
       "path": ".github/workflows/validate.yml",
@@ -891,6 +891,24 @@
       "old": "06be96d4560b9a1939a27276bf1f5981c2142fcb"
     },
     {
+      "path": "deploy/release-candidate/fm02-legacy-preflight.test.mjs",
+      "status": "modified",
+      "sha": "4f7c4a0978683bb7e57f0056b86226fa5f0a37a1",
+      "old": "930744e65e3cb5d06065a55550b4795c440ebc26"
+    },
+    {
+      "path": "deploy/release-candidate/fm02-workflow-evidence-preflight.test.mjs",
+      "status": "modified",
+      "sha": "217d6f0134bb669c4b63e857f0a73ab255f8428f",
+      "old": "856fda4eae9b5a02b132a0fbd8d8de4beea93fa4"
+    },
+    {
+      "path": "deploy/release-candidate/historical-schema-test-projection.mjs",
+      "status": "added",
+      "sha": "05ea7516315f5329219bc5db8428f84db2605cc3",
+      "old": null
+    },
+    {
       "path": "deploy/release-candidate/historical-snapshot.mjs",
       "status": "modified",
       "sha": "67738332e784b9187b8c009f35f017500b3c7949",
@@ -901,6 +919,12 @@
       "status": "modified",
       "sha": "ac03a18c337aedb41f90a9e1d9296b5d924648fa",
       "old": "8471b804b6c4347ce0e188eb6404447c47af88a4"
+    },
+    {
+      "path": "deploy/release-candidate/hr-contract.test.mjs",
+      "status": "modified",
+      "sha": "b8c2bf27d0f0b0121984969fd7067ce49494c977",
+      "old": "46d93b01b60db6514b0e7b3f3291591e21dc4481"
     },
     {
       "path": "deploy/release-candidate/hr-upgrade.mjs",
@@ -919,6 +943,42 @@
       "status": "added",
       "sha": "36ed1c91e357c5c78fadeeb71ec0a859ba684e2d",
       "old": null
+    },
+    {
+      "path": "deploy/release-candidate/material-plan-contract.test.mjs",
+      "status": "modified",
+      "sha": "92dcb87d29e2635212b650fb097808608d39b84c",
+      "old": "26241a8639a9053f371d3e0d56ef064b57e35eb4"
+    },
+    {
+      "path": "deploy/release-candidate/material-plan-issue-contract.test.mjs",
+      "status": "modified",
+      "sha": "2d8f11342f6e018c442f6c184d420aa9d7207ed6",
+      "old": "3b4d460380eb542f89dff337b4e22e79149b405a"
+    },
+    {
+      "path": "deploy/release-candidate/material-request-contract.test.mjs",
+      "status": "modified",
+      "sha": "7b2a4c01c67cf3e15544773043792aa4bbec18bd",
+      "old": "3a0fdc5a700a207077cce4264ef1218b26471c43"
+    },
+    {
+      "path": "deploy/release-candidate/material-uom-contract.test.mjs",
+      "status": "modified",
+      "sha": "1a4c29f4fa1fdb38d34043c877005eabe4986eee",
+      "old": "ae3a4f43240d22bc429a0c4f6d41216867382bfa"
+    },
+    {
+      "path": "deploy/release-candidate/material-uom-effect-contract.test.mjs",
+      "status": "modified",
+      "sha": "320ef6bfe5db60f8889ab86869e0762b782cc9d5",
+      "old": "66e0a1715cca350e2030d6c92ec4b97f21fb2efb"
+    },
+    {
+      "path": "deploy/release-candidate/material-uom-stage-c-contract.test.mjs",
+      "status": "modified",
+      "sha": "ef07aef6da0891a953cef57b379cfee2f7a9d047",
+      "old": "318886f778550267df62e900141fa19316de8d14"
     },
     {
       "path": "deploy/release-candidate/nancy07-stock-count-schedule-focused.test.mjs",
@@ -1059,6 +1119,12 @@
       "old": null
     },
     {
+      "path": "deploy/release-candidate/receiving-contract.test.mjs",
+      "status": "modified",
+      "sha": "c53d51a2ec6eae6672e46052b8991c94b129be9b",
+      "old": "2b1fcdfd9190b59867b42cab68318d6fdb2e8665"
+    },
+    {
       "path": "deploy/release-candidate/receiving-predecessor.mjs",
       "status": "modified",
       "sha": "ce8237b885d0b20d65833a1346cb63eba4c1349d",
@@ -1083,6 +1149,12 @@
       "old": "168b63882a7dd11a418b9dbd120842db92055527"
     },
     {
+      "path": "deploy/release-candidate/site-issue-contract.test.mjs",
+      "status": "modified",
+      "sha": "271d6d7cda55b5f33b78b4ff2497a0ea25d167d0",
+      "old": "ed5413b1607bc7cc57e27245b30d72e6b7ae8877"
+    },
+    {
       "path": "deploy/release-candidate/site-issue-predecessor.mjs",
       "status": "modified",
       "sha": "f8077d7e4b8ca2574a07da0b7c7729ec989529de",
@@ -1093,6 +1165,24 @@
       "status": "added",
       "sha": "7f5b696f85b40e16d089c8d3e6751e66aeb8fcaa",
       "old": null
+    },
+    {
+      "path": "deploy/release-candidate/stock-count-contract.test.mjs",
+      "status": "modified",
+      "sha": "0561807865b452817fd5f83f5eb0c4c4bd61e3a9",
+      "old": "92d1584a88168640a65a81356f07c1981102fb5e"
+    },
+    {
+      "path": "deploy/release-candidate/subcontract-physical-contract.test.mjs",
+      "status": "modified",
+      "sha": "08db9548b25ac1aa2d8dbd01e6bf3f333f3838f8",
+      "old": "5cd54944dd8b70439c8a2231f9d3351f65d62eee"
+    },
+    {
+      "path": "deploy/release-candidate/transfer-contract.test.mjs",
+      "status": "modified",
+      "sha": "788283eafdf86c0703f7fab68934db930ee357c7",
+      "old": "f2e61cece0322ba072ca5b1c67e8141c1c2fee25"
     },
     {
       "path": "deploy/release-candidate/verify-evidence.mjs",
@@ -1457,7 +1547,10 @@
   "pending": [
     {
       "scope": "Full release CI",
-      "status": "BLOCKED_SPECIFIC_OWNER_AUTHORIZATION_AFTER_REVIEW"
+      "status": "BLOCKED_SPECIFIC_OWNER_AUTHORIZATION_AFTER_REVIEW",
+      "exactRun": 45668782780,
+      "head": "457e9c48727b5038f4277bb4f9a547c9843f22b7",
+      "previousAuthorizationConsumed": true
     },
     {
       "scope": "Retained eight-persona acceptance",
@@ -1472,9 +1565,13 @@
   "formalAcceptance": false,
   "protectedMainChanged": false,
   "forecastReductionHours": 1.5,
-  "previousReconciledSource": "7486c0fd2e42b07e542ab8f570f6ed85650e7d06",
-  "currentDraftHead": "0994594e8ab1fd40d972ade9f463a7cca6e0be32",
-  "independentReviewEvidence": "https://github.com/threeswordz/cinder-grind/pull/455#issuecomment-7168792544",
+  "previousReconciledSource": "0994594e8ab1fd40d972ade9f463a7cca6e0be32",
+  "currentDraftHead": "457e9c48727b5038f4277bb4f9a547c9843f22b7",
+  "independentReviewEvidence": {
+    "source": "457e9c48727b5038f4277bb4f9a547c9843f22b7",
+    "summary": "https://github.com/threeswordz/cinder-grind/pull/455#issuecomment-7163418468",
+    "receipt": "https://github.com/threeswordz/cinder-grind/pull/455#issuecomment-7170095184"
+  },
   "macFocusedValidation": {
     "status": "PASS_OWNER_SUPPLIED_TRANSCRIPT",
     "source": "0994594e8ab1fd40d972ade9f463a7cca6e0be32",
@@ -1525,7 +1622,10 @@
     "deferred": 42,
     "formalAccepted": 0,
     "actualEvidenceFieldsPopulated": 0,
-    "onlyChangedColumn": "candidate_sha_at_preparation"
+    "onlyChangedColumn": "candidate_sha_at_preparation",
+    "sourceAtPreparation": "0994594e8ab1fd40d972ade9f463a7cca6e0be32",
+    "currentCandidate": "457e9c48727b5038f4277bb4f9a547c9843f22b7",
+    "sourceRebindPending": true
   },
   "operationalBrowserExecutionHandoff": "docs/M4-2026-11-26-OPERATIONAL-BROWSER-EXECUTION-HANDOFF.md",
   "operationalBrowserValidation": {
@@ -1546,5 +1646,36 @@
       "M4_REAL_CHROMIUM_REAL_API_REAL_POSTGRES_SCOPED_PASS"
     ],
     "limit": "Actual synthetic Linux browser/API/PostgreSQL; no retained role or formal acceptance. No duplicate prior API/contract deduction."
+  },
+  "correctiveContractEvidence": {
+    "source": "457e9c48727b5038f4277bb4f9a547c9843f22b7",
+    "priorFullFailure": "https://github.com/threeswordz/cinder-grind/actions/runs/45659335518/attempts/2",
+    "priorFullFailed": 17,
+    "priorFullPassed": 465,
+    "macAffectedPass": 67,
+    "macDeploymentPack": {
+      "total": 488,
+      "pass": 481,
+      "fail": 7,
+      "exitCode": 1,
+      "allOriginal17Resolved": true,
+      "source": "Owner Terminal transcript 26 Nov 01:51 SGT",
+      "remainingSevenPreviouslyPassedOnLinux": true,
+      "unchangedFiles": true,
+      "classification": "Five failures match noncanonical macOS temp directory path assumptions; port preflight likely same, exact gap not captured; one explicitly Linux-only transfer fixture rejects Linux URLs on Darwin. No Mac pack PASS asserted."
+    },
+    "focusedCI": {
+      "run": 45668773168,
+      "job": 139398030248,
+      "steps": "18/18",
+      "status": "SUCCESS"
+    },
+    "draftAdmission": {
+      "run": 45668782780,
+      "job": 139398211213,
+      "attempt": 1,
+      "status": "DRAFT_FOCUSED_ONLY"
+    },
+    "forecastCredit": 0
   }
 }
