@@ -234,6 +234,7 @@ export function AdminConsole({ user, onLogoutSuccess }: { user: CurrentUser; onL
           content: <><SiteIssuesPanel user={user} initialLink={siteIssueLink}/>
           {user.permissions.includes('site.daily_report.view') ? <SiteExecutionPanel
             permissions={user.permissions}
+            roleCodes={user.roleCodes}
             initialProjectId={linkedSource?.sectionKey === 'site-execution' ? linkedSource.projectId : undefined}
             initialReportId={
               linkedSource?.sectionKey === 'site-execution' &&
