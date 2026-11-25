@@ -35,6 +35,8 @@ import { StockTransferController } from './stock-transfer.controller';
 import { StockTransferService } from './stock-transfer.service';
 import { StockCountController } from './stock-count.controller';
 import { StockCountService } from './stock-count.service';
+import { StockMinimumService } from './stock-minimum.service';
+import { StockMinimumController } from './stock-minimum.controller';
 
 @Module({
   imports: [
@@ -48,6 +50,7 @@ import { StockCountService } from './stock-count.service';
     AdministrationModule,
   ],
   controllers: [
+    StockMinimumController,
     TransferCustodyController,
     ReceivingController,
     MaterialPlanIssueController,
@@ -62,6 +65,7 @@ import { StockCountService } from './stock-count.service';
     StockCountController,
   ],
   providers: [
+    StockMinimumService,
     TransferCustodyService,
     ReceivingService,
     MaterialPlanIssueService,

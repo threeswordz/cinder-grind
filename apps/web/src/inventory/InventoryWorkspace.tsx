@@ -16,6 +16,7 @@ import { MaterialIssuesPanel } from './MaterialIssuesPanel';
 import { MaterialReservationsPanel } from './MaterialReservationsPanel';
 import { MaterialReturnsPanel } from './MaterialReturnsPanel';
 import { StockBalancePanel } from './StockBalancePanel';
+import { StockMinimumsPanel } from './StockMinimumsPanel';
 import { StockCountsPanel } from './StockCountsPanel';
 import { StockTransfersPanel } from './StockTransfersPanel';
 import { InventoryReportsPanel } from './InventoryReportsPanel';
@@ -30,6 +31,7 @@ type InventoryTab =
   | 'warehouses'
   | 'receipts'
   | 'stock'
+  | 'minimums'
   | 'counts'
   | 'reservations'
   | 'issues'
@@ -64,6 +66,7 @@ export function InventoryWorkspace({
   const canSeeWarehouses = permissions.includes('inventory.warehouse.view');
   const canSeeReceipts = permissions.includes('inventory.receipt.view');
   const canSeeStock = permissions.includes('inventory.stock.view');
+  const canSeeMinimums = canSeeStock && roleCodes.some(r => r === 'STOREKEEPER' || r === 'PROJECT_MANAGER');
   const canSeeCounts = permissions.includes('inventory.stock_count.view');
   const canSeeReservations = permissions.includes('inventory.reservation.view');
   const canSeeIssues = permissions.includes('inventory.issue.view');
@@ -118,6 +121,8 @@ export function InventoryWorkspace({
         ? 'receipts'
         : selected === 'stock' && canSeeStock
           ? 'stock'
+          : selected === 'minimums' && canSeeMinimums
+            ? 'minimums'
           : selected === 'counts' && canSeeCounts
             ? 'counts'
             : selected === 'reservations' && canSeeReservations
@@ -141,6 +146,7 @@ export function InventoryWorkspace({
         {canSeeWarehouses ? <Tab value="warehouses" label="Warehouses" /> : null}
         {canSeeReceipts ? <Tab value="receipts" label="Goods Receipts" /> : null}
         {canSeeStock ? <Tab value="stock" label="Stock Balance" /> : null}
+        {canSeeMinimums ? <Tab value="minimums" label="Stock Minimums & Reminders" /> : null}
         {canSeeCounts ? <Tab value="counts" label="Stock Counts" /> : null}
         {canSeeReservations ? <Tab value="reservations" label="Reservations" /> : null}
         {canSeeIssues ? <Tab value="issues" label="Material Issues" /> : null}
@@ -169,6 +175,8 @@ export function InventoryWorkspace({
         />
       ) : active === 'stock' ? (
         <StockBalancePanel />
+      ) : active === 'minimums' ? (
+        <StockMinimumsPanel roleCodes={roleCodes} />
       ) : active === 'counts' ? (
         <StockCountsPanel permissions={permissions} />
       ) : active === 'reservations' ? (
