@@ -2339,6 +2339,25 @@
       "sourceSha": "b7ada888a3fcf8fbc8bfb120d154df3996752a6f",
       "formalAcceptance": false,
       "estimateConfidence": "NO_ADDITIONAL_HOURS_CREDIT"
+    },
+    {
+      "id": "ERP-PROG-20261125-M4-02-009",
+      "date": "2026-11-25",
+      "packageId": "M4-02",
+      "kind": "PM02_CONSOLIDATED_V25_AUTHENTICATED_BROWSER_PASS",
+      "beforeHours": 3,
+      "afterHours": 2,
+      "reductionHours": 1,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 1,
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/commit/b7ada888a3fcf8fbc8bfb120d154df3996752a6f",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45562971888/job/139030848298"
+      ],
+      "basis": "Verified exact test-only source b7ada888, workflow-only child 3c764c71, push run45562971888 SUCCESS16/16. Logs prove Store review denied, Khaimook real mixed decisions and legacy approval bypass denied, Store maker single correction Draft and actual Nest/PG17/Chromium. Provisional 1h remaining new integrated lineage browser assurance eliminated; earlier 23 Nov proof not credited again. Retained named-role acceptance and final review remain; no formal acceptance or actual labor claim.",
+      "sourceSha": "b7ada888a3fcf8fbc8bfb120d154df3996752a6f",
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -2361,6 +2380,6 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1798,
-  "currentRollingTotalSemantics": "1798h provisional future work = 1847h baseline minus 56h evidence-backed package forecast reductions plus 7h separately priced supplier scope. M4 68h; M4-08 18h; supplier 7h; formal acceptance unchanged."
+  "currentRollingTotalAfterPricedGapsHours": 1797,
+  "currentRollingTotalSemantics": "1797h provisional future work = 1847h baseline minus 57h evidence-backed package forecast reductions plus 7h separately priced supplier scope. M4 67h; M4-02 2h; M4-08 18h; supplier 7h; formal acceptance unchanged."
 }
