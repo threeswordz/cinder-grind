@@ -1,3 +1,5 @@
+import {stripPm02Schema} from './pm02-schema-preparation.mjs';
+import {verifiedPm02HistoricalColumns} from './pm02-historical-columns.mjs';
 import {stripFm02Schema} from './fm02-schema-contract.mjs';
 import {stripMaterialUomStageCSchema} from './material-uom-stage-c-schema-contract.mjs';
 import {stripMaterialUomEffectSchema} from './material-uom-effect-schema-contract.mjs';
@@ -34,7 +36,9 @@ export async function prepareReceivingUpgrade(databaseUrl){
   const git=async args=>(await execute('git',args,{maxBuffer:16777216})).stdout;
   const schema=await git(['show',previous+':apps/api/prisma/schema.prisma']);
   const {readFile}=await import('node:fs/promises');
-  assert.equal(stripReceivingSchema(stripTransferSchema(await readFile('apps/api/prisma/schema.prisma','utf8')).text).text.replace(/\s+/g,' ').trim(),schema.replace(/\s+/g,' ').trim());
+  const current=stripPm02Schema(await readFile('apps/api/prisma/schema.prisma','utf8'));
+  assert.equal(stripPm02Schema(schema).present,false,'Pinned predecessor unexpectedly contains PM02');
+  assert.equal(stripReceivingSchema(stripTransferSchema(current.text).text).text.replace(/\s+/g,' ').trim(),schema.replace(/\s+/g,' ').trim());
   console.log('RECEIVING_PREDECESSOR_SCHEMA_EXACT_MATCH_PASS');
   await writeFile(join(temp,'schema.prisma'),schema,{mode:0o600});
   const names=(await git(['ls-tree','-r','--name-only',previous,'apps/api/prisma/migrations'])).trim().split('\n');
@@ -66,6 +70,7 @@ export async function prepareReceivingUpgrade(databaseUrl){
     if(candidate&&tablename==='permissions')verifyFm02Catalog(await db.$queryRawUnsafe('SELECT id::text AS id,permission_code,module_code,description FROM permissions WHERE id=ANY($1::uuid[])',fm02Catalog.map(p=>p.id)));
     const filter=candidate&&tablename==='permissions',columns=candidate&&tablename==='goods_receipts'?['delivery_id']:candidate&&tablename==='stock_transactions'?['transfer_receipt_line_id']:candidate&&tablename==='activity_progress'?['completed_quantity','source_budget_revision_line_id','source_uom_id']:[];
     if(columns.includes('delivery_id'))assert.equal((await db.$queryRawUnsafe('SELECT count(*)::text AS n FROM goods_receipts WHERE delivery_id IS NOT NULL'))[0].n,'0','Historical GR receiving provenance must stay null');
+    if(candidate&&current.present&&tablename==='purchase_request_lines')columns.push(...await verifiedPm02HistoricalColumns(db));
     const [row]=await db.$queryRawUnsafe(`SELECT count(*)::text AS count,encode(sha256(convert_to(coalesce(string_agg((to_jsonb(t)-$1::text[])::text,E'\\n' ORDER BY (to_jsonb(t)-$1::text[])::text),''),'UTF8')),'hex') AS digest FROM "${tablename}" t ${filter?'WHERE id <> ALL($2::uuid[])':''}`,columns,...(filter?[[...receivingCatalog,...transferCatalog,...physicalCatalog,...materialUomCatalog,...dec054Catalog,...fm02Catalog].map(p=>p.id)]:[]));result[tablename]=row;
    }return result;
   }

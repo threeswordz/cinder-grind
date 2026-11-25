@@ -1,8 +1,11 @@
+import {pm02Columns} from './pm02-schema-preparation.mjs';
+import {verifiedPm02HistoricalColumns} from './pm02-historical-columns.mjs';
 const materialUomStageCApproved=process.env.MATERIAL_UOM_STAGE_C_SCHEMA_UPGRADE==='YES';
 import {materialUomCatalog,verifyMaterialUomCatalog} from './material-uom-catalog-contract.mjs';
 import {dec054Catalog,verifyDec054Catalog} from './dec054-permission-catalog.mjs';
 import {fm02Catalog,verifyFm02Catalog} from './fm02-permission-catalog.mjs';
 const fm02Approved=process.env.FM02_SCHEMA_UPGRADE==='YES';
+const pm02Approved=process.env.PM02_SCHEMA_UPGRADE==='YES';
 const materialUomApproved=process.env.MATERIAL_UOM_SCHEMA_UPGRADE==='YES';
 const materialUomEffectApproved=process.env.MATERIAL_UOM_EFFECT_SCHEMA_UPGRADE==='YES';
 import {physicalCatalog,verifyPhysicalCatalog} from './subcontract-physical-catalog-contract.mjs';
@@ -62,6 +65,7 @@ const provenanceColumns = {
   boqs:['currency_code'],
   supplier_quotations:['currency_code'],
   quotation_awards:['currency_code'],
+  ...(pm02Approved ? {purchase_request_lines:pm02Columns} : {}),
   ...(fm02Approved ? {activity_progress:['completed_quantity','source_budget_revision_line_id','source_uom_id']} : {}),
   ...(receivingApproved ? {goods_receipts:['delivery_id']} : {}),
   ...((stockCountApproved||transferApproved) ? { stock_transactions:[...(stockCountApproved?['stock_count_id']:[]),...(transferApproved?['transfer_receipt_line_id']:[])] } : {}),
@@ -114,6 +118,10 @@ async function snapshot(before) {
       // Exact three nullable FM02 columns only; old measured progress stays intact.
       assert.deepEqual([...added].sort(),['completed_quantity','source_budget_revision_line_id','source_uom_id'].sort(),'FM02 activity_progress column additions must be exact');
       assert.equal((await db.$queryRawUnsafe('SELECT count(*)::text AS n FROM activity_progress WHERE completed_quantity IS NOT NULL OR source_budget_revision_line_id IS NOT NULL OR source_uom_id IS NOT NULL'))[0].n,'0','FM02 cannot backfill historical progress quantities');
+    }
+    if(name==='purchase_request_lines'&&pm02Approved&&mode==='verify'){
+      const verified=await verifiedPm02HistoricalColumns(db);
+      assert.deepEqual([...added].sort(),verified.sort(),'Exact PM02 historical columns required');
     }
     const [row]=await db.$queryRawUnsafe(`SELECT count(*)::text AS count, encode(sha256(convert_to(coalesce(string_agg((to_jsonb(t)-$1::text[])::text,E'\n' ORDER BY (to_jsonb(t)-$1::text[])::text),''),'UTF8')),'hex') AS digest FROM "${name}" t ${name==='permissions'?'WHERE id <> ALL($2::uuid[])':''}`, ... (name==='permissions'?[added,excluded]:[added]));
     hashes[name]=row;
