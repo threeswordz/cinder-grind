@@ -84,6 +84,8 @@
 
 > **PM15 typecheck verified and deterministic browser test staged:** [45582734359](https://github.com/threeswordz/cinder-grind/actions/runs/45582734359/job/139096568048) SUCCESS11/11. [86015162](https://github.com/threeswordz/cinder-grind/commit/86015162a1390ff4ee0fa709de16a1fdb1a10d8f) actual React/MUI Chrome fixture with delayed synthetic local HTTP site success and cross-Project failure; [workflow-only child 8d1dbf03](https://github.com/threeswordz/cinder-grind/commit/8d1dbf0362462d5b53a443cdd1fcde0479fe335f). Browser outcome not observed; no native backend/retained UAT claim, no hour credit. M4-08 6h, M4 48h, ERP 1,778h.
 
+> **M4 accelerated parallel closure:** Equipment paired database/Documents [2a9779b1](https://github.com/threeswordz/cinder-grind/commit/2a9779b108a68c208f06ce3c9b31b2fa3a515885), [workflow 8c8f9aa9](https://github.com/threeswordz/cinder-grind/commit/8c8f9aa922059cccde6fafa40ba6a5c7e317ff06); PUR08 supplier transition scoped PO row-lock/controlled 409 correction and deterministic PUR10 collision test [1b4aba9f](https://github.com/threeswordz/cinder-grind/commit/1b4aba9fbedbc928e9a28c9af38e227fabbd56ff), [workflow 6ecaf596](https://github.com/threeswordz/cinder-grind/commit/6ecaf5960cc05c3b6383b88dfa5c9d47a2952f11). Both isolated, workflow commits verified; execution results not observed. No prior evidence replay credit, no full CI, protected main, retained permission or Production changes. M4-08 6h, M4 48h, ERP 1,778h.
+
 ## Headline
 | Metric | Current | Meaning |
 |---|---:|---|
