@@ -28,9 +28,9 @@ const blocks=[...yaml.matchAll(/^          node --input-type=module(?: -)? <<'NO
 const prefix='migration-aware-fm02-material-uom-stage-c-material-uom-effect-material-uom-';
 const entries=[
   ['material-uom', 'schema','59d67d1f2e54e6bfde51e4c5be336ea97906bf52'],
-  ['v1-3-customer-boq','subcontract-physical-transfer-receiving-site-issue-material-plan-material-request-stock-count-hr-document-customer-boq-schema','fc52a867c96a8b3a369b480b9799bad1a5e9f399'],
-  ['hr1-a-employee','subcontract-physical-transfer-receiving-site-issue-material-plan-material-request-stock-count-hr-document-hr-schema','e86ed846f30ac3feeb09f74ba9084571b9955520'],
-  ['material-request','subcontract-physical-transfer-receiving-site-issue-material-plan-material-request-schema','3a5ae8a92083a2bd03f4159b1e84d0565e7e78ec'],
+  ['v1-3-customer-boq','subcontract-physical-transfer-receiving-site-issue-plan-issue-material-plan-material-request-stock-count-hr-document-hr-customer-boq-schema','fc52a867c96a8b3a369b480b9799bad1a5e9f399'],
+  ['hr1-a-employee','subcontract-physical-transfer-receiving-site-issue-plan-issue-material-plan-material-request-stock-count-hr-document-hr-schema','e86ed846f30ac3feeb09f74ba9084571b9955520'],
+  ['material-request','subcontract-physical-transfer-receiving-site-issue-plan-issue-material-plan-material-request-schema','3a5ae8a92083a2bd03f4159b1e84d0565e7e78ec'],
   ['material-plan','subcontract-physical-transfer-receiving-site-issue-plan-issue-material-plan-schema','34e022d5807d3e16458437a02ebba669ba838c6a'],
   ['material-plan-issue','subcontract-physical-transfer-receiving-site-issue-plan-issue-schema','5209c30a1b7b282a603ba09d4a5bd82a700a183f'],
   ['receiving','subcontract-physical-transfer-receiving-schema','d2b790801119fb1b5b4176ad416086ee7363d091'],
@@ -107,9 +107,10 @@ for(const [name,tail,predecessor] of entries){
   });
 }
 
-test('real Git predecessor schemas retain exact FM02 paths inside version-25 layered receipts',()=>{
-  const candidateSchema=readFileSync(new URL('../../apps/api/prisma/schema.prisma',import.meta.url),'utf8');
-  for(const [name,tail,predecessor] of entries){
+const candidateSchema=readFileSync(new URL('../../apps/api/prisma/schema.prisma',import.meta.url),'utf8');
+// Keep each exact predecessor independently visible, even if another fails.
+for(const [name,tail,predecessor] of entries){
+  test(name+' real Git predecessor retains exact FM02 path inside version-25 layered receipt',()=>{
     const source=execFileSync('git',['show',predecessor+':apps/api/prisma/schema.prisma'],
       {cwd:root,encoding:'utf8'});
     const actualMode=classifySchema(source,candidateSchema);
@@ -144,5 +145,5 @@ test('real Git predecessor schemas retain exact FM02 paths inside version-25 lay
       const wrongVersion=structuredClone(data);wrongVersion.rehearsal.version=24;
       assert.notEqual(runInline(block,wrongVersion).status,0,'Wrong nested version accepted');
     }
-  }
-});
+  });
+}
