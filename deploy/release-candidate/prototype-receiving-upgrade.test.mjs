@@ -156,3 +156,17 @@ test('standalone receiving browser projection excludes live services and unclone
  assert.equal(projected.material.materialName,'Synthetic steel');
  assert.equal(projected.input,undefined);
 });
+
+// Preserve historical grant expectations; NULL cannot satisfy the new synthetic fixture.
+test('receiving commercial compatibility is explicit and preserves the legacy grant profile',async()=>{
+ const {RECEIVING_GRANTS,receivingGrantsFor,receivingCommercialFixture,syntheticPoCommercialTerms,verifySyntheticPoCommercialTerms}=await import('../uat/prototype-receiving-state.mjs');
+ assert.equal(receivingCommercialFixture({}),false);
+ assert.equal(receivingGrantsFor({}),RECEIVING_GRANTS);
+ assert.throws(()=>receivingCommercialFixture({nativeReceivingCommercialTerms:false}));
+ assert.throws(()=>receivingCommercialFixture({nativeReceivingCommercialTerms:true,sourceSha:'wrong'}));
+ assert.deepEqual(syntheticPoCommercialTerms,{discountAmount:'0',freightAmount:'0',additionalChargeAmount:'0',vatRatePercent:'0'});
+ verifySyntheticPoCommercialTerms(syntheticPoCommercialTerms);
+ for(const key of Object.keys(syntheticPoCommercialTerms)){
+  for(const value of [null,undefined,'0.01'])assert.throws(()=>verifySyntheticPoCommercialTerms({...syntheticPoCommercialTerms,[key]:value}));
+ }
+});

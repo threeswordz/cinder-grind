@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {createHash,randomUUID} from 'node:crypto';
 import {SOURCE,httpClient} from './prototype-actors.mjs';
 import {validUomOrigins} from './prototype-uom-state.mjs';
+import {receivingCommercialFixture,syntheticPoCommercialTerms,verifySyntheticPoCommercialTerms} from './prototype-receiving-state.mjs';
 const check=(ok,code)=>{if(!ok)throw Object.assign(new Error(code),{safeCode:code});};
 const four=v=>Number(v).toFixed(4);
 export async function convertedReceiving(db,binding,source,{api,web}){
@@ -36,12 +37,14 @@ export async function convertedReceiving(db,binding,source,{api,web}){
   costs:await db.directCostPosting.findMany({where:{companyId:f.companyId}}),
   grants:await db.rolePermission.findMany({where:{roleId:{in:Object.values(b.actors).map(a=>a.roleId)}}})
  };
- const flow=Object.fromEntries(work.map(w=>[w.entityType,w.workflowCode])),sessions={};
+ const flow=Object.fromEntries(work.map(w=>[w.entityType,w.workflowCode])),sessions={},commercial=receivingCommercialFixture(b);
+ if(commercial)check(api==='http://127.0.0.1:31319/api/v1'&&web==='http://127.0.0.1:44319','UOM_RC_COMMERCIAL_FIXTURE_ORIGINS_REFUSED');
+ let commercialPoId;
  // Authenticated canonical calls; these are isolated-synthetic successors only.
  const client=httpClient(api,web,async(url,options)=>{
   const path=url.slice(api.length);
   check(url.startsWith(api+'/')&&options.headers.Origin===web&&options.redirect==='error'&&
-   ['GET','POST','PUT'].includes(options.method)&&
+   (['GET','POST','PUT'].includes(options.method)||commercial&&options.method==='PATCH'&&commercialPoId&&path==='/procurement/purchase-orders/'+commercialPoId)&&
    (['/auth/login','/auth/logout','/auth/me'].includes(path)||
     path==='/master-data/material-conversions/'+material.id+'/activation'||
     path.startsWith('/procurement/')||path.startsWith('/inventory/receiving/deliveries')||
@@ -49,7 +52,7 @@ export async function convertedReceiving(db,binding,source,{api,web}){
   return fetch(url,options);
  });
  const call=async(k,label,path,body,method)=>(await client.call(sessions[k],label,path,
-  body===undefined?200:method==='PUT'?200:201,body,method)).value?.data;
+  body===undefined?200:(method==='PUT'||method==='PATCH')?200:201,body,method)).value?.data;
  const action=more=>({requestKey:randomUUID(),reason:'Isolated converted UOM proof',...more});
  let primary,result,phase='SOURCE_AUTH';
  try{
@@ -76,6 +79,8 @@ export async function convertedReceiving(db,binding,source,{api,web}){
    supplierQuotationLineId:qline.id,decisionReason:'New synthetic source'});
   phase='PURCHASE_ORDER';const po=await call('JAI','RC_PO','/procurement/projects/'+f.projectId+'/purchase-orders',{
    awardIds:[award.id],remarks:'Converted carton PO'});
+  commercialPoId=po.id;
+  if(commercial)verifySyntheticPoCommercialTerms(await call('JAI','RC_PO_COMMERCIAL','/procurement/purchase-orders/'+po.id,syntheticPoCommercialTerms,'PATCH'));
   await call('JAI','RC_PO_SUBMIT','/procurement/purchase-orders/'+po.id+'/submit',{workflowCode:flow.PURCHASE_ORDER});
   await call('BEN','RC_PO_APPROVE','/procurement/purchase-orders/'+po.id+'/approve',{comment:'Independent PO authorization'});
   const approved=await call('JAI','RC_PO_READ','/procurement/purchase-orders/'+po.id);

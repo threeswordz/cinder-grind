@@ -40,6 +40,22 @@ export const RECEIVING_GRANTS=Object.freeze({
  KHAIMOOK:['inventory.receiving.view','documents.document.view'],
  BEN:['inventory.receiving.view','inventory.receiving.configure'],
 });
+// Only the freshly provisioned Linux CI journey opts in to the newer PO contract.
+ // Historical Mac operators keep their exact prior grant and request shape.
+export function receivingCommercialFixture(binding){
+ const selected=binding.nativeReceivingCommercialTerms;
+ if(selected===undefined)return false;
+ demand(selected===true&&binding.sourceSha===SOURCE&&process.platform==='linux'&&process.env.GITHUB_ACTIONS==='true','RC_COMMERCIAL_FIXTURE_MODE_REFUSED');
+ return true;
+}
+export function receivingGrantsFor(binding){
+ if(!receivingCommercialFixture(binding))return RECEIVING_GRANTS;
+ return {...RECEIVING_GRANTS,JAI:[...RECEIVING_GRANTS.JAI,'procurement.po.edit']};
+}
+export const syntheticPoCommercialTerms=Object.freeze({discountAmount:'0',freightAmount:'0',additionalChargeAmount:'0',vatRatePercent:'0'});
+export function verifySyntheticPoCommercialTerms(po){
+ demand(po&&Object.keys(syntheticPoCommercialTerms).every(key=>po[key]!=null&&/^0(?:\.0+)?$/.test(String(po[key]))),'RC_EXPLICIT_COMMERCIAL_TERMS_REQUIRED');
+}
 export function verifyReceivingMigration(before,after){
  const normalized=structuredClone(after),baseline=structuredClone(before);
  verifyReceivingCatalog(after.permissions.filter(p=>receivingCatalog.some(c=>c.id===p.id)).map(({__fm03_exact_row_json,...r})=>r),true);
@@ -55,7 +71,7 @@ export function verifyReceivingMigration(before,after){
  assert.deepEqual(normalized,baseline,'Receiving migration changed historical rows, grants or source history');
 }
 export async function configureReceiving(db,binding,expected){
- const b=structuredClone(binding),f=b.fixture;
+ const b=structuredClone(binding),f=b.fixture,receivingGrants=receivingGrantsFor(b);
  demand(b.sourceSha===SOURCE&&/^[a-f0-9]{64}$/.test(expected??''),'RC_CONFIGURATION_BINDING_INVALID');
  return db.$transaction(async tx=>{
   await tx.$executeRawUnsafe("SELECT pg_advisory_xact_lock(hashtext('prototype-receiving-configuration-v1'))");
@@ -80,7 +96,7 @@ export async function configureReceiving(db,binding,expected){
    const delta=b.configuration?.changes?.find(c=>c.roleCode==='PROTO_'+key)?.addedCapabilities??[];
    const wanted=[...new Set([...ROLES[key].permissions,...delta,...(FM03_GRANTS[key]??[])])].sort();
    demand(canonical(user.userRoles[0].role.rolePermissions.map(r=>r.permission.permissionCode).sort())===canonical(wanted),'RC_EXISTING_GRANT_MATRIX_CHANGED');
-   const missing=(RECEIVING_GRANTS[key]??[]).filter(code=>!wanted.includes(code));
+   const missing=(receivingGrants[key]??[]).filter(code=>!wanted.includes(code));
    const catalog=await tx.permission.findMany({where:{permissionCode:{in:missing}}});
    demand(catalog.length===missing.length,'RC_MIGRATED_CAPABILITY_CATALOG_REQUIRED');
    for(const permission of catalog)added.push(await tx.rolePermission.create({data:{roleId:a.roleId,permissionId:permission.id}}));
@@ -105,7 +121,7 @@ export async function configureReceiving(db,binding,expected){
   const type=await tx.documentType.findFirst({where:{id:b.configuration.documentTypeId,companyId:f.companyId,isActive:true}});
   demand(type&&!type.documentTypeCode.startsWith('HR_')&&await tx.hrDocumentAttachment.count({where:{document:{documentTypeId:type.id}}})===0,'RC_ORDINARY_DOCUMENT_TYPE_REQUIRED');
   await tx.auditLog.create({data:{companyId:f.companyId,entityType:'PROTOTYPE_RECEIVING_CONFIGURATION',entityId:f.projectId,action:'CONFIGURE',actorUserId:f.adminUserId,
-   newValues:{syntheticOnly:true,grantMatrix:RECEIVING_GRANTS,workflowCodes:Object.fromEntries(Object.entries(workflows).map(([k,v])=>[k,v.workflowCode]))}}});
+   newValues:{syntheticOnly:true,grantMatrix:receivingGrants,workflowCodes:Object.fromEntries(Object.entries(workflows).map(([k,v])=>[k,v.workflowCode]))}}});
   return {status:'RECEIVING_SYNTHETIC_CONFIGURATION_APPLIED',addedRolePermissionIds:added.map(r=>r.id),
    ...resources,workflows,sequenceIds:sequences.map(r=>r.id),documentTypeId:type.id,productionAuthorized:false};
  },{isolationLevel:'Serializable',timeout:30000});
@@ -115,6 +131,8 @@ export async function prepareReceivingSource(db,binding,configuration,origins){
  const {api,web}=structuredClone(origins),b=structuredClone(binding),f=b.fixture,c=structuredClone(configuration);
  demand(api==='http://127.0.0.1:33071/api/v1'&&web==='http://127.0.0.1:44171'||
   process.platform==='linux'&&process.env.GITHUB_ACTIONS==='true'&&api==='http://127.0.0.1:31319/api/v1'&&web==='http://127.0.0.1:44319','RC_SOURCE_ORIGINS_REFUSED');
+ const commercial=receivingCommercialFixture(b);
+ if(commercial)demand(api==='http://127.0.0.1:31319/api/v1'&&web==='http://127.0.0.1:44319','RC_COMMERCIAL_FIXTURE_ORIGINS_REFUSED');
  const ids={};
  const client=httpClient(api,web,async(url,options)=>{
   const path=url.slice(api.length),method=options.method;
@@ -127,10 +145,10 @@ export async function prepareReceivingSource(db,binding,configuration,origins){
    ids.po&&'/procurement/purchase-orders/'+ids.po+'/submit',ids.po&&'/procurement/purchase-orders/'+ids.po+'/approve',
    '/inventory/receiving/projects/'+f.projectId+'/enable'].includes(path)||
    method==='PUT'&&ids.quote&&ids.rfqLine&&path==='/procurement/quotations/'+ids.quote+'/lines/'+ids.rfqLine||
-   method==='GET'&&ids.po&&path==='/procurement/purchase-orders/'+ids.po;
+   (method==='GET'||commercial&&method==='PATCH')&&ids.po&&path==='/procurement/purchase-orders/'+ids.po;
   demand(allowed,'RC_SOURCE_UNDECLARED_REQUEST');return fetch(url,options);
  });
- const sessions={},call=async(key,label,path,body,method)=> (await client.call(sessions[key],label,path,method==='PUT'?200:body===undefined?200:201,body,method)).value.data;
+ const sessions={},call=async(key,label,path,body,method)=> (await client.call(sessions[key],label,path,(method==='PUT'||method==='PATCH')?200:body===undefined?200:201,body,method)).value.data;
  let primary,result;
  try{
   for(const key of ['STORE_SITE','KHAIMOOK','JAI','BEN'])sessions[key]=await client.login(key,b.actors[key],f.companyId);
@@ -145,6 +163,7 @@ export async function prepareReceivingSource(db,binding,configuration,origins){
   const quoted=await call('JAI','RC_QUOTE_LINE','/procurement/quotations/'+quote.id+'/lines/'+ids.rfqLine,{quantity:'10.0000',unitPrice:'12.0000'},'PUT');
   const award=await call('JAI','RC_AWARD','/procurement/rfq-lines/'+ids.rfqLine+'/award',{supplierQuotationLineId:quoted.id,decisionReason:'Synthetic receiving source selection'});
   const po=await call('JAI','RC_PO_CREATE','/procurement/projects/'+f.projectId+'/purchase-orders',{awardIds:[award.id],remarks:'Synthetic receiving approved PO'});ids.po=po.id;
+  if(commercial)verifySyntheticPoCommercialTerms(await call('JAI','RC_PO_COMMERCIAL','/procurement/purchase-orders/'+po.id,syntheticPoCommercialTerms,'PATCH'));
   await call('JAI','RC_PO_SUBMIT','/procurement/purchase-orders/'+po.id+'/submit',{workflowCode:c.workflows.PURCHASE_ORDER.workflowCode});
   await call('BEN','RC_PO_APPROVE','/procurement/purchase-orders/'+po.id+'/approve',{comment:'Independent synthetic receiving PO approval'});
   const approved=await call('JAI','RC_PO_READ','/procurement/purchase-orders/'+po.id);
