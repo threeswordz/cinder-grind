@@ -1,7 +1,7 @@
 # Construction ERP — live countdown to 0 hours
 
 <!-- current-work-m6 -->
-**M4 CLOSED 0h · M6 97.5h → 0h · M7 50h → 0h · M8 65h → 0h · combined prototype 212.5h → 0h · Full ERP 1,707.5h → 0h.**
+**M4 CLOSED 0h · M6 95.5h → 0h · M7 50h → 0h · M8 65h → 0h · combined prototype 210.5h → 0h · Full ERP 1,705.5h → 0h.**
 
 **Prototype technical stages 5/8 · Go-live 3/10 · M4 technical packages 8/8 · Formal business package acceptance 0/8.** [Owner approval](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7198745092) and [closure record](M4-2026-11-27-OWNER-APPROVED-TECHNICAL-CLOSURE.md). Exact main `9417f07c`, full-main46/46, Mac cutover and bounded roles8/8 PASS. All112 IDs and six boundaries preserved; no Production or human UAT. Historical counts below are snapshots, not live totals.
 
@@ -59,6 +59,8 @@
 **Events190–191 — native batch 6/7 PASS:** [Owner evidence](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7201626345), [exact tested candidate](https://github.com/threeswordz/cinder-grind/commit/9762c5ecfd4015e6b0cfb87891ab272685a21b48), [replacement fixture correction](https://github.com/threeswordz/cinder-grind/commit/b1bc13f8c012b1c92a6fe4778bf50828245327ec). API build, 177 migrations, policy16/16, SS08, three SS16 groups, supplier case and custody PASS; combined44/45 tests. Replacement403 remains blocked pending targeted rerun. M6-02 23→22h, M6-03 31→26h, M6 103.5→97.5h; ERP1707.5h. Six hours provisional validation credit only; no repeat of successful groups or FM02, no approval lifecycle closure or new full CI.
 
 **Event192 — M6-03:** [Durable SS16 transaction draft](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7201805117), [two-group exact candidate](https://github.com/threeswordz/cinder-grind/commit/88ac733b93bebfec8e7c5fcd2c88b30f043994a3). All four canonical reversals accept outer transaction; additive immutable request and configured independent approval service, native rollback test prepared. No route/UI activation or legacy bypass closure, cancellation/other movement validation pending. Exact Git source readback only, no native PASS or forecast credit; M6 97.5h, M6-03 26h.
+
+**Event193 — M6-03:** [Owner Mac evidence reconciliation](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7201916078), [exact candidate](https://github.com/threeswordz/cinder-grind/commit/88ac733b93bebfec8e7c5fcd2c88b30f043994a3). Valid Prisma schema, API build, 178 migrations, PUR14 replacement 1/1 and SS16 posted GR approval 1/1 PASS. Prior six groups and FM02 retained. Two provisional native validation hours retired, no formal acceptance, no new CI. M6-03 26→24h; M6 97.5→95.5h; prototype 212.5→210.5h; ERP1707.5→1705.5h. Remaining: routes/UI, direct reversal bypass, cancellation, actual configuration, three other movement approval native journeys, DB binding/concurrency review and integration.
 <!-- /current-work-m6 -->
 
 > **Updated 25 November 2026, Asia/Singapore.** Owner hard deadline: **31 December 2026**, **all 112 requirements**, eight real roles and Production. **Delivery feasibility RED** (zero other engineers). Evidence-backed forecast, **not** actual hours worked or formal acceptance. This file and the JSON are on an isolated documentation branch, not protected main.
