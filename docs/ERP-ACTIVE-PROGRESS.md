@@ -1,7 +1,7 @@
 # Construction ERP — live countdown to 0 hours
 
 <!-- current-work-m6 -->
-**M4 CLOSED 0h · M6 106.5h → 0h · M7 50h → 0h · M8 65h → 0h · combined prototype 221.5h → 0h · Full ERP 1,716.5h → 0h.**
+**M4 CLOSED 0h · M6 104.5h → 0h · M7 50h → 0h · M8 65h → 0h · combined prototype 219.5h → 0h · Full ERP 1,714.5h → 0h.**
 
 **Prototype technical stages 5/8 · Go-live 3/10 · M4 technical packages 8/8 · Formal business package acceptance 0/8.** [Owner approval](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7198745092) and [closure record](M4-2026-11-27-OWNER-APPROVED-TECHNICAL-CLOSURE.md). Exact main `9417f07c`, full-main46/46, Mac cutover and bounded roles8/8 PASS. All112 IDs and six boundaries preserved; no Production or human UAT. Historical counts below are snapshots, not live totals.
 
@@ -45,6 +45,8 @@
 **Event183 — M6-02:** [SS08 native regression prepared](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7200638292), [isolated exact candidate](https://github.com/threeswordz/cinder-grind/commit/47fc399ff1a95e54fb197dbc2ef0459336669f8c); one new test file, local TypeScript syntax/transpile 0 diagnostics and verified Git blob. Full typecheck and actual disposable native HTTP/PG execution pending; no live runtime writes, no Actions, no forecast credit. M6-02 24h, M6 106.5h; prior auth/rebuild Mac proof outstanding.
 
 **Event184 — M6-02:** [FM02 native regression preparation](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7200713970), [exact isolated candidate](https://github.com/threeswordz/cinder-grind/commit/b4ddb641302ac448b7becb2093dbc62a2f8f866e). Actual TypeScript5.8.3 syntax-only transpile 0 diagnostics, exact blob matched. SS08 and FM02 test files prepared; real typecheck/HTTP/PostgreSQL/browser proof pending. No new Actions, no forecast credit. M6-02 remains24h; M6 106.5h.
+
+**Event185 — M6-01 16→14h:** [Owner native evidence](https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7200776181), [exact inspector](https://github.com/threeswordz/cinder-grind/commit/71ee0822a130da188e813cd888fc9c5f85b70934). Auth10/10 PASS; three original auth fingerprints match retained source, account/session projections match, nine new valid sessions, zero active/invalid sessions. Rate-limit bucket equality false; normal mutable lifecycle confirmed in canonical source but explicit disposition pending. Exact isolated API/Web rebuild bytes match current artifacts; not a historical original byte manifest. 2h provisional verification credit, M6 104.5h; full ERP1,714.5h. No formal acceptance, mutations or new full CI.
 <!-- /current-work-m6 -->
 
 > **Updated 25 November 2026, Asia/Singapore.** Owner hard deadline: **31 December 2026**, **all 112 requirements**, eight real roles and Production. **Delivery feasibility RED** (zero other engineers). Evidence-backed forecast, **not** actual hours worked or formal acceptance. This file and the JSON are on an isolated documentation branch, not protected main.

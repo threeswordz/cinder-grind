@@ -5897,6 +5897,28 @@
       "verifiedCompletedScopeHours": 0,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261127-M6-01-185",
+      "date": "2026-11-27",
+      "packageId": "M6-01",
+      "kind": "M6_NATIVE_AUTH_PROJECTION_AND_COMPILED_REBUILD_PASS",
+      "beforeHours": 16,
+      "afterHours": 14,
+      "sourceSha": "71ee0822a130da188e813cd888fc9c5f85b70934",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7200776181",
+        "https://github.com/threeswordz/cinder-grind/commit/71ee0822a130da188e813cd888fc9c5f85b70934",
+        "https://github.com/threeswordz/cinder-grind/blob/9417f07c609dbc091b5bbe2e09071c5e2c316459/apps/api/src/auth/login-rate-limit.service.ts",
+        "https://github.com/threeswordz/cinder-grind/blob/9417f07c609dbc091b5bbe2e09071c5e2c316459/apps/api/src/auth/auth.controller.ts"
+      ],
+      "basis": "Owner supplied exact-head Mac 71ee0822a130da188e813cd888fc9c5f85b70934: auth helper 10/10 PASS, no failures/skips, 39.208667ms. Native auth originalFingerprintsMatched=3, usersOutsideLoginTimestampChanges=0, historicalSessionsMissingOrChanged=0, newSessions=9, invalidNewSessions=0, activeSessions=0, invalidRateBuckets=0, accountAndSessionProjectionMatches=true, rateBucketsExact=false, rateLimitLifecycleRequiresDisposition=true. Prior 165/168 exact table comparison stands; user and session projections reconciled under bounded comparator, no assertion that all 168 exact fingerprints match. Source at 9417f07c login-rate-limit.service.ts shows login consumes/upserts buckets, expiry purge deletes up to100 rows and successful authentication resets/deletes client bucket (auth.controller.ts); mutable security-control state is distinct from immutable business history. Difference consistent with documented normal lifecycle but individual mutation provenance is not proven. Recommend explicit bounded disposition retaining original archive and operational rate-limit controls; exact historical bucket equality remains false, no silent exclusion or reset. Isolated exact-source rebuild at 9417f07c with frozen pnpm lockfile, 235 reused packages, Prisma generation, API TypeScript/web TypeScript and Vite build PASS; native comparator exactSourceRebuildCompared=true, apiRebuildBytesMatched=true, webRebuildBytesMatched=true, compiledRebuildBytesVerified=true. No original historical compiled-byte manifest; distinguish exact rebuild agreement from historical manifest equality. Vite chunk size warning non-blocking, not new scope. No live data mutation, production authorization or formal acceptance. Retire 1h provisional account/session verification and 1h compiled reproducibility allowance; measured human labor unknown. M6-01 16→14h; M6 106.5→104.5h; M7 50h; M8 65h; prototype 219.5h; ERP 1714.5h. Next run SS08 and FM02 on isolated disposable databases, complete bounded rate-limit disposition before preservation closure, continue other lanes. No full CI requested.",
+      "blocker": "Bounded login rate-limit lifecycle disposition, integrated business workflow verification, independent review and governed release gates remain pending. HistoricalBaselineVerified=false.",
+      "reductionHours": 2,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 2,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
@@ -5926,8 +5948,8 @@
     }
   ],
   "protocol": "Append a versioned, evidence-linked event after every Chat development session; update exact package remaining estimate based on what tasks still require doing, not commit counts or imaginary hours. Never set package remaining to 0 without independent+Owner business acceptance where applicable. Publish recalculated totals and #414 comment. A different Chat session can post evidence in #414 but only designated coordinator modifies this JSON after verifying latest branch and head to prevent races.",
-  "currentRollingTotalAfterPricedGapsHours": 1716.5,
-  "currentRollingTotalSemantics": "1716.5h = previous1718.5h minus 1h partial native historical comparison and 1h native lane evidence discovery. M6 106.5h, M7 50h, M8 65h, combined221.5h. No actual labor measurement or formal acceptance change; all112 requirements retained.",
+  "currentRollingTotalAfterPricedGapsHours": 1714.5,
+  "currentRollingTotalSemantics": "1714.5h = previous1716.5h minus 1h native account/session projection verification and 1h exact-source compiled rebuild comparison. M6 104.5h, M7 50h, M8 65h, combined219.5h. Actual labor unknown; no formal acceptance change; all112 requirements retained.",
   "m4TechnicalClosure": {
     "status": "CLOSED_OWNER_APPROVED_BOUNDED",
     "date": "2026-11-27",
