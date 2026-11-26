@@ -4445,6 +4445,27 @@
       "verifiedCompletedScopeHours": 0,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261126-M4-08-119",
+      "date": "2026-11-26",
+      "packageId": "M4-08",
+      "kind": "M4_POST_READY_PUR07_FINDINGS_CORRECTED_LOCAL_REGRESSIONS_PASS",
+      "beforeHours": 0.5,
+      "afterHours": 0.5,
+      "sourceSha": "5af60607d31bc6d7f53ba55a4b483a4e1904cfbb",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/pull/455#discussion_r4703295367",
+        "https://github.com/threeswordz/cinder-grind/pull/455#discussion_r4703295375",
+        "https://github.com/threeswordz/cinder-grind/commit/5af60607d31bc6d7f53ba55a4b483a4e1904cfbb"
+      ],
+      "basis": "Post-Ready independent review found two P2 defects at82df55d. Reproduced three failures in focused server regressions, then corrected both together: filename labels sanitize accepted supplier punctuation and truncate by UTF-8 bytes while preserving document identity; ASCII PDF rejects all characters outside printable ASCII. Browser print applies the same filename policy and preserves escaped full identity. Exact local API build/server7 tests PASS, web typecheck/browser-print7 tests PASS. PR returned Draft before the guarded source update to prevent automatic full CI. Separate targeted PostgreSQL/Chromium validation started on a workflow-only child; final result and independent re-review pending. The former full46/46 receipt applies to82df55d.",
+      "blocker": "Observe exact successor focused/runtime tests, independent re-review, specifically authorized replacement full PR validation and next Ready/integration decisions. Retained technical readback remains.",
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [

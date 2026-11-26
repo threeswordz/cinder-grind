@@ -13,6 +13,8 @@
 
 [PR #455](https://github.com/threeswordz/cinder-grind/pull/455) is Ready at `82df55d423aedebf13a642861dc64e30919bad52` following explicit Owner authorization. Codex acknowledged the post-Ready review. The full 46-step receipt remains the release validation evidence. Final review evidence, governed integration and retained technical readback remain.
 
+Post-Ready review identified two PUR07 P2 defects. [Corrected source 5af60607](https://github.com/threeswordz/cinder-grind/commit/5af60607d31bc6d7f53ba55a4b483a4e1904cfbb) derives safe bounded filenames without changing document identity and routes supplementary characters to Unicode PDF rendering. Local API/server and browser-print regressions passed 7/7 each. PR #455 is Draft for this correction. Focused hosted runtime validation and independent re-review are pending.
+
 | Forecast reconciliation | Hours |
 |---|---:|
 | Previous reported ERP forecast | 1,733 |
