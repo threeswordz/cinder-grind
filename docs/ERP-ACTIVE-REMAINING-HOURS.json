@@ -4633,6 +4633,27 @@
       "verifiedCompletedScopeHours": 0,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261126-M4-08-128",
+      "date": "2026-11-26",
+      "packageId": "M4-08",
+      "kind": "M4_CURRENT_SOURCE_FULL_46_PASS_OWNER_AUTHORIZED_READY",
+      "beforeHours": 0.5,
+      "afterHours": 0.5,
+      "sourceSha": "9482cd57d5eacf4f8708859f84d6fb94d9c7fd02",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7182111305",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45750831129/job/139680893862",
+        "https://github.com/threeswordz/cinder-grind/issues/414#issuecomment-7182513194"
+      ],
+      "basis": "Owner authorized one exact full failed-jobs rerun, then Ready and guarded squash only after current-source fullPASS, post-Ready clean review and exact identity checks. Actual full attempt2 PASS46/46, including all eight predecessors, paired recovery/isolated restore/restored authentication and final identity source9482cd57/base040395bc. Under that authorization the same head was marked Ready at2026-11-26T04:20:43Z. Await post-Ready independent proof before conditional integration.",
+      "blocker": "Post-Ready trusted clean review, resolved threads/frozen head/base/tested-tree checks and actual authorized main integration; retained readback.",
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
