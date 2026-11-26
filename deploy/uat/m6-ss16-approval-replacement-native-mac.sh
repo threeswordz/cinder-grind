@@ -5,7 +5,7 @@ set -euo pipefail
 umask 077
 expected=${1:-}
 mode=${2:-both}
-[[ "$mode" = both || "$mode" = ss16-only ]] || { echo M6_FOCUSED_MODE_INVALID; exit 1; }
+[[ "$mode" = both || "$mode" = ss16-only || "$mode" = regressions-only ]] || { echo M6_FOCUSED_MODE_INVALID; exit 1; }
 [[ "$expected" =~ ^[0-9a-f]{40}$ ]] || { echo M6_FOCUSED_EXACT_SHA_REQUIRED; exit 1; }
 cd "$(git rev-parse --show-toplevel)"
 test "$(git rev-parse HEAD)" = "$expected"
@@ -26,12 +26,16 @@ pnpm install --offline --frozen-lockfile
 pnpm --filter @construction-erp/api exec prisma validate
 pnpm prisma:generate
 pnpm build:api
-echo "===== M6 FOCUSED WEB BUILD ====="
-pnpm --filter @construction-erp/web build
-echo "M6_FOCUSED_WEB_BUILD_PASS"
-echo "===== M6 SS16 AUTHORITY POLICY ====="
-node --test apps/api/dist/inventory/movement-correction-authority.spec.js
-echo "M6_SS16_AUTHORITY_PASS"
+if [[ "$mode" != regressions-only ]]; then
+  echo "===== M6 FOCUSED WEB BUILD ====="
+  pnpm --filter @construction-erp/web build
+  echo "M6_FOCUSED_WEB_BUILD_PASS"
+  echo "===== M6 SS16 AUTHORITY POLICY ====="
+  node --test apps/api/dist/inventory/movement-correction-authority.spec.js
+  echo "M6_SS16_AUTHORITY_PASS"
+else
+  echo M6_PRIOR_WEB_AND_AUTHORITY_NOT_RERUN
+fi
 SUFFIX=$(openssl rand -hex 4)
 PW=$(openssl rand -hex 24)
 [[ "$SUFFIX" =~ ^[0-9a-f]{8}$ && "$PW" =~ ^[0-9a-f]{48}$ ]]
@@ -73,8 +77,24 @@ if [[ "$mode" = both ]]; then
 else
   echo M6_PRIOR_PUR14_REPLACEMENT_NOT_RERUN
 fi
-export M6_SS16_DISPOSABLE_DB="m6_ss16_$SUFFIX"
-run_test SS16_CONSOLIDATED "$M6_SS16_DISPOSABLE_DB" apps/api/dist/inventory/movement-correction-posted.native.m6.js
+if [[ "$mode" = regressions-only ]]; then
+  # Old preserved journey guards accept this disposable upgrade namespace.
+  # Every clone is created from the fresh seed in this new isolated container.
+  for group in RECEIVING TRANSFER_CUSTODY MATERIAL_JOURNEY; do
+    nonce=$(openssl rand -hex 6)
+    [[ "$nonce" =~ ^[0-9a-f]{12}$ ]]
+    case "$group" in
+      RECEIVING) file=receiving.integration.spec.js ;;
+      TRANSFER_CUSTODY) file=transfer-custody.integration.spec.js ;;
+      MATERIAL_JOURNEY) file=prototype-material-journey.integration.spec.js ;;
+    esac
+    run_test "$group" "construction_erp_v10e_upgrade_$nonce" "apps/api/dist/inventory/$file"
+  done
+  echo M6_PRIOR_SS16_CONSOLIDATED_NOT_RERUN
+else
+  export M6_SS16_DISPOSABLE_DB="m6_ss16_$SUFFIX"
+  run_test SS16_CONSOLIDATED "$M6_SS16_DISPOSABLE_DB" apps/api/dist/inventory/movement-correction-posted.native.m6.js
+fi
 echo "M6_FOCUSED_CANDIDATE=$expected"
 echo "M6_PRIOR_SIX_NATIVE_GROUPS_AND_FM02_NOT_RERUN"
 exit "$FAIL"
