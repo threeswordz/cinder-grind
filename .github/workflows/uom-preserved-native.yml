@@ -1,45 +1,43 @@
-name: UOM Preserved Prototype Targeted
+name: M4 Commercial History and Cache Scope Targeted
 on:
   push:
-    branches: ['vuom-preserved-upgrade-20261121']
-    paths:
-      - '.github/workflows/uom-preserved-native.yml'
-      - 'deploy/uat/prototype-uom-*.mjs'
-      - 'deploy/uat/prototype-material-run-native.mjs'
-      - 'deploy/uat/material-uom-browser.mjs'
-      - 'deploy/release-candidate/prototype-uom-upgrade.test.mjs'
+    branches: ['work-m4-commercial-scope-batch-ci-20261126']
+    paths: ['.github/workflows/uom-preserved-native.yml']
 permissions:
   contents: read
 concurrency:
-  group: uom-preserved-native-${{ github.ref }}
+  group: m4-pur14-document-readback-${{ github.ref }}
   cancel-in-progress: true
 jobs:
-  uom-preserved:
+  pur14-document-readback:
     runs-on: ubuntu-latest
-    timeout-minutes: 18
+    timeout-minutes: 20
     services:
       postgres:
         image: postgres:17.11-alpine
         env:
-          POSTGRES_DB: construction_erp
-          POSTGRES_USER: construction_erp
-          POSTGRES_PASSWORD: construction_erp_dev_only
+          POSTGRES_DB: erp_m4_commercial_guard
+          POSTGRES_USER: m4_test
+          POSTGRES_PASSWORD: m4_test_only
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U construction_erp -d construction_erp"
+          --health-cmd "pg_isready -U m4_test -d erp_m4_commercial_guard"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
     env:
-      DATABASE_URL: postgresql://construction_erp:construction_erp_dev_only@localhost:5432/construction_erp?schema=public
+      DATABASE_URL: postgresql://m4_test:m4_test_only@127.0.0.1:5432/erp_m4_commercial_guard?schema=public
+      NODE_ENV: test
+      STORAGE_ROOT: /tmp/m4-pur14-documents
       RC_NON_PRODUCTION_CONFIRMED: 'YES'
+      M4_NON_PRODUCTION_CONFIRMED: 'YES'
     steps:
-      - name: Checkout exact candidate
+      - name: Checkout exact correction source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           fetch-depth: 0
-          ref: ${{ github.sha }}
+          ref: e2fbbc29084683a7e421b817b3b34fa0792bb8b4
       - name: Set up pnpm
         uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413
         with:
@@ -49,17 +47,30 @@ jobs:
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
           node-version: 24.21.0
-      - name: Install locked dependencies and generate schema
+      - name: Build isolated source and database
         run: |
-          test "$(git rev-parse HEAD)" = "${{ github.sha }}"
+          test "$(git rev-parse HEAD)" = "e2fbbc29084683a7e421b817b3b34fa0792bb8b4"
+          mkdir -p "$STORAGE_ROOT"
           pnpm install --frozen-lockfile
           pnpm prisma:generate
           pnpm prisma:validate
-      - name: Verify custody and preservation contracts
-        run: node --test deploy/release-candidate/prototype-uom-upgrade.test.mjs
-      - name: Build actual API
-        run: pnpm --filter @construction-erp/api build
-      - name: Extend populated subcontract fixture with the same UOM browser and preservation kernel
-        run: node deploy/uat/prototype-material-run-native.mjs
-      - name: Classify engineering evidence
-        run: echo 'UOM_PRESERVED_TARGETED_ONLY - no full PR, independent review, full-main deployment or actual Mac receipt'
+          pnpm prisma:migrate:deploy
+          pnpm --filter @construction-erp/api build
+      - name: Verify concurrent PO submission and forward-only DB guards
+        working-directory: apps/api
+        run: node --test --test-concurrency=1 dist/procurement/purchase-order.pur04-revision.integration.spec.js
+      - name: Verify actual asset HTTP access and revocation on separate disposable database
+        run: |
+          docker exec "${{ job.services.postgres.id }}" createdb -U m4_test erp_m4_jai_asset
+          export DATABASE_URL='postgresql://m4_test:m4_test_only@127.0.0.1:5432/erp_m4_jai_asset?schema=public'
+          pnpm prisma:migrate:deploy
+          cd apps/api
+          node --test --test-concurrency=1 dist/equipment/equipment-asset-register.native.integration.spec.js
+      - name: Verify web typecheck and actual Chromium cache denial fixture
+        run: |
+          pnpm --filter @construction-erp/web typecheck
+          node deploy/uat/m4-protected-cache-denial-browser.mjs
+      - name: Record exact bounded proof
+        run: |
+          test "$(git rev-parse HEAD)" = "e2fbbc29084683a7e421b817b3b34fa0792bb8b4"
+          echo M4_COMMERCIAL_SCOPE_BATCH_TARGETED_PASS
