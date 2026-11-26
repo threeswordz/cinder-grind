@@ -5001,6 +5001,28 @@
       "verifiedCompletedScopeHours": 0,
       "formalAcceptance": false,
       "estimateConfidence": "LOW_PROVISIONAL"
+    },
+    {
+      "id": "ERP-PROG-20261126-M4-08-146",
+      "date": "2026-11-26",
+      "packageId": "M4-08",
+      "kind": "M4_POST_READY_REVIEW_PASS_GUARDED_SQUASH_EXACT_TREE_MAIN_VERIFICATION_PENDING",
+      "beforeHours": 0.5,
+      "afterHours": 0.5,
+      "sourceSha": "9417f07c609dbc091b5bbe2e09071c5e2c316459",
+      "evidence": [
+        "https://github.com/threeswordz/cinder-grind/pull/455#issuecomment-7196309594",
+        "https://github.com/threeswordz/cinder-grind/pull/455#issuecomment-7196470742",
+        "https://github.com/threeswordz/cinder-grind/commit/9417f07c609dbc091b5bbe2e09071c5e2c316459",
+        "https://github.com/threeswordz/cinder-grind/actions/runs/45850563692"
+      ],
+      "basis": "Exact post-Ready independent clean receipt and pinned bot reaction at 15:28:15Z after Ready 15:04:59Z; unique full PR run45836902629 attempt2 all 46 job steps PASS (41 primary) and exact terminal log identity for head/base/PR/attempt. No later conflicting review, all threads resolved, exact base ancestor and unchanged main. Owner-authorized guarded squash succeeded; main9417f07c has sole parent040395bc and identical entire tree bfcab1977 to reviewed head20dc687a. Automatic main push run45850563692 observed; reuse eligibility preflight passed, actual main verification result pending. No redundant manual CI, no deployment, no separately priced credit until integration verification. Headline/package sum discrepancy remains.",
+      "blocker": "Verify automatic main integration route, actual build/audit/migrations/startup and receipt or investigate fallback without extra rerun; separate retained non-Production target authority and technical proof; reconcile 112 IDs and package dispositions. No formal acceptance.",
+      "reductionHours": 0,
+      "newlyIdentifiedScopeHours": 0,
+      "verifiedCompletedScopeHours": 0,
+      "formalAcceptance": false,
+      "estimateConfidence": "LOW_PROVISIONAL"
     }
   ],
   "unestimatedWork": [
